@@ -190,7 +190,7 @@ chainlesschain/
 - **硬件密钥**: 强烈建议使用U盾或SIMKey,软件模拟仅供测试
 - **备份重要**: 请务必备份助记词和密钥
 - **开源审计**: 所有加密实现开源可审计
-- **漏洞报告**: security@chainlesschain.org
+- **漏洞报告**: zhanglongfa@chainlesschain.com
 
 ## 许可证
 
@@ -200,10 +200,12 @@ chainlesschain/
 
 ## 联系我们
 
-- **官网**: https://chainlesschain.org (规划中)
-- **文档**: https://docs.chainlesschain.org (规划中)
-- **论坛**: https://community.chainlesschain.org (规划中)
-- **Email**: hello@chainlesschain.org
+- **官网**: https://chainlesschain.com (规划中)
+- **文档**: https://docs.chainlesschain.com (规划中)
+- **论坛**: https://community.chainlesschain.com (规划中)
+- **Email**: zhanglongfa@chainlesschain.com
+- **电话**: 400-1068-687
+- **微信**: https://work.weixin.qq.com/ca/cawcde653996f7ecb2
 
 ## 致谢
 
