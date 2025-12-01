@@ -1,0 +1,117 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+bower_components/
+
+# Build outputs
+dist/
+build/
+out/
+*.app
+*.exe
+*.dmg
+*.deb
+*.rpm
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Encryption keys (NEVER commit real keys!)
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+.env.local
+.env.*.local
+
+# U盾和SIMKey测试数据
+ukey-test/
+simkey-test/
+
+# Git repositories (user data)
+data/git-repos/
+*.git-crypt/
+
+# Vector databases
+data/qdrant/
+data/chromadb/
+
+# AI Models (too large)
+models/
+*.gguf
+*.bin
+*.safetensors
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Docker volumes
+backend/docker/ollama_data/
+backend/docker/qdrant_data/
+backend/docker/anythingllm_data/
+backend/docker/gitea_data/
+
+# Mobile
+*.apk
+*.aab
+*.ipa
+*.dSYM.zip
+*.dSYM
+android/app/build/
+android/.gradle/
+ios/Pods/
+ios/*.xcworkspace/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+ENV/
+
+# Rust (if using Tauri)
+target/
+Cargo.lock
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Cache
+.cache/
+.parcel-cache/
+.next/
+.nuxt/

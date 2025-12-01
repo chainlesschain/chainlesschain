@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/main"
+  },
+  "include": ["src/main/**/*", "src/shared/**/*"],
+  "exclude": ["src/renderer"]
+}

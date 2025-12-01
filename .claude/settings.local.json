@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:preload:*)",
+      "Bash(npm run build:main:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "chainlesschain",
+  "version": "0.1.0",
+  "description": "基于U盾和SIMKey的个人移动AI管理系统",
+  "private": true,
+  "workspaces": [
+    "desktop-app",
+    "backend/services"
+  ],
+  "scripts": {
+    "dev:desktop": "npm run dev --workspace=desktop-app",
+    "build:desktop": "npm run build --workspace=desktop-app",
+    "dev:android": "cd mobile-app/android && ./gradlew installDebug",
+    "docker:up": "cd backend/docker && docker-compose up -d",
+    "docker:down": "cd backend/docker && docker-compose down",
+    "docker:logs": "cd backend/docker && docker-compose logs -f",
+    "init:db": "node scripts/init-database.js",
+    "setup": "node scripts/setup.js",
+    "test": "npm test --workspaces",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "rimraf desktop-app/dist desktop-app/out node_modules/.cache"
+  },
+  "keywords": [
+    "decentralized",
+    "ai",
+    "knowledge-base",
+    "privacy",
+    "u-key",
+    "sim-key",
+    "blockchain"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.2.4",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourname/chainlesschain.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourname/chainlesschain/issues"
+  },
+  "homepage": "https://chainlesschain.org"
+}
