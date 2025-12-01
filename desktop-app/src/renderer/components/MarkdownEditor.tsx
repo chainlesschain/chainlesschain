@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Input, Button, Space, Typography, message, Tabs } from 'antd';
+import { Input, Button, Space, message } from 'antd';
 import { SaveOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { useAppStore } from '../stores/useAppStore';
@@ -7,7 +7,6 @@ import { knowledgeAPI } from '../utils/ipc';
 import debounce from 'lodash.debounce';
 
 const { TextArea } = Input;
-const { Title } = Typography;
 
 const MarkdownEditor: React.FC = () => {
   const { currentItem, updateKnowledgeItem } = useAppStore();

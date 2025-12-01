@@ -30,17 +30,29 @@ export class UKeyManager {
   /**
    * 检测U盾是否连接
    */
-  async detectUKey(): Promise<boolean> {
+  async detectUKey(): Promise<{
+    detected: boolean;
+    unlocked: boolean;
+    deviceId?: string;
+    publicKey?: string;
+  }> {
     console.log('[U盾] 检测U盾连接...');
 
     // TODO: 实际实现需要调用U盾SDK
     // 例如: const devices = await UKeySDK.enumerateDevices();
-    // return devices.length > 0;
 
-    // 模拟: 总是返回true
+    // 模拟: 总是返回已连接状态
     await this.sleep(500);
     console.log('[U盾] 模拟: U盾已连接');
-    return true;
+
+    return {
+      detected: true,
+      unlocked: this.isUnlocked,
+      deviceId: 'simulated-ukey-001',
+      publicKey: this.simulatedPublicKey
+        ? forge.pki.publicKeyToPem(this.simulatedPublicKey).substring(0, 50) + '...'
+        : undefined,
+    };
   }
 
   /**

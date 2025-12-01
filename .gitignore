@@ -2,6 +2,9 @@
 node_modules/
 .pnpm-store/
 bower_components/
+wlsimkey/
+SIMKeySDK-20220416/
+doc/
 
 # Build outputs
 dist/

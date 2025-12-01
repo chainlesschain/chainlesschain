@@ -5,7 +5,12 @@
       "Bash(pip install:*)",
       "Bash(npm install:*)",
       "Bash(npm run build:preload:*)",
-      "Bash(npm run build:main:*)"
+      "Bash(npm run build:main:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []

@@ -66,7 +66,7 @@ interface AppState {
 export const useAppStore = create<AppState>((set, get) => ({
   // 初始状态
   isAuthenticated: false,
-  ukeyStatus: { detected: false, unlocked: false },
+  ukeyStatus: { detected: true, unlocked: false }, // MVP模式：默认为true便于开发测试
   deviceId: null,
 
   knowledgeItems: [],

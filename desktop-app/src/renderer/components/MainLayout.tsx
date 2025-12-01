@@ -75,7 +75,6 @@ const MainLayout: React.FC = () => {
 
   // 创建新笔记
   const handleCreateNote = async () => {
-    const now = Date.now();
     const newItem = await knowledgeAPI.addItem({
       title: '新笔记',
       type: 'note',
