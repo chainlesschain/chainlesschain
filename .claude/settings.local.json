@@ -10,7 +10,8 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(curl:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "WebFetch(domain:www.chainlesschain.com)"
     ],
     "deny": [],
     "ask": []
