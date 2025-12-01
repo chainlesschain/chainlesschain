@@ -112,16 +112,23 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <Layout style={{ height: '100vh' }}>
+    <Layout style={{ height: '100vh', background: '#f5f7fa' }}>
       {/* 侧边栏 */}
-      <Sider width={60} theme="dark">
+      <Sider
+        width={60}
+        theme="light"
+        style={{
+          background: '#f0f2f5',
+          borderRight: '1px solid #e5e7eb',
+        }}
+      >
         <div
           style={{
             height: 48,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#fff',
+            color: '#0f172a',
             fontSize: 24,
           }}
         >
@@ -129,7 +136,7 @@ const MainLayout: React.FC = () => {
         </div>
 
         <Menu
-          theme="dark"
+          theme="light"
           mode="inline"
           defaultSelectedKeys={['knowledge']}
           items={[
@@ -170,7 +177,7 @@ const MainLayout: React.FC = () => {
               type="text"
               icon={<LogoutOutlined />}
               onClick={handleLogout}
-              style={{ color: '#fff' }}
+              style={{ color: '#0f172a' }}
             />
           </Tooltip>
         </div>
@@ -232,9 +239,13 @@ const MainLayout: React.FC = () => {
         </Header>
 
         {/* 内容区 */}
-        <Layout style={{ background: '#fff' }}>
+        <Layout style={{ background: '#f5f7fa' }}>
           {/* 笔记列表 */}
-          <Sider width={300} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
+          <Sider
+            width={300}
+            theme="light"
+            style={{ borderRight: '1px solid #e5e7eb', background: '#f8fafc' }}
+          >
             {loadingItems ? (
               <div style={{ textAlign: 'center', paddingTop: 48 }}>
                 <Spin />
@@ -264,7 +275,7 @@ const MainLayout: React.FC = () => {
             <Sider
               width={400}
               theme="light"
-              style={{ borderLeft: '1px solid #f0f0f0' }}
+              style={{ borderLeft: '1px solid #e5e7eb', background: '#fff' }}
               className="slide-in"
             >
               <ChatPanel />
