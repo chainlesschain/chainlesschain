@@ -1,0 +1,109 @@
+spring:
+  application:
+    name: community-forum
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/community_forum?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true
+    username: root
+    password: root123456
+
+  redis:
+    host: localhost
+    port: 6379
+    password:
+    database: 0
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1ms
+        max-idle: 8
+        min-idle: 0
+
+  elasticsearch:
+    uris: http://localhost:9200
+    username:
+    password:
+    connection-timeout: 5s
+    socket-timeout: 30s
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: 8082
+  servlet:
+    context-path: /api
+
+# MyBatis Plus配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.chainlesschain.community.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# JWT配置
+jwt:
+  secret: chainlesschain-community-forum-secret-key-change-this-in-production-environment
+  expiration: 86400000  # 24小时
+  refresh-expiration: 604800000  # 7天
+  header: Authorization
+  prefix: Bearer
+
+# 系统配置
+system:
+  # 上传路径
+  upload-path: ./uploads
+  # 允许的图片类型
+  allowed-image-types: jpg,jpeg,png,gif,webp
+  # 允许的文件类型
+  allowed-file-types: jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,zip,rar
+  # 最大上传大小
+  max-upload-size: 10485760  # 10MB
+  # 帖子每页数量
+  page-size: 20
+  # 回复每页数量
+  reply-page-size: 50
+  # 热门帖子天数
+  hot-days: 7
+  # 新用户初始积分
+  initial-points: 100
+  # 发帖消耗积分
+  post-cost: 5
+  # 回复获得积分
+  reply-reward: 2
+  # 最佳答案奖励
+  best-answer-reward: 50
+
+# Swagger配置
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.chainlesschain.community: DEBUG
+  file:
+    name: logs/community-forum.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"

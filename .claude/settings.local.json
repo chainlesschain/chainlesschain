@@ -11,7 +11,8 @@
       "Bash(findstr:*)",
       "Bash(curl:*)",
       "Bash(taskkill:*)",
-      "WebFetch(domain:www.chainlesschain.com)"
+      "WebFetch(domain:www.chainlesschain.com)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

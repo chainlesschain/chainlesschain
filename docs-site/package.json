@@ -1,0 +1,23 @@
+{
+  "name": "chainlesschain-docs",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ChainlessChain Documentation Website",
+  "scripts": {
+    "dev": "vitepress dev docs",
+    "build": "vitepress build docs",
+    "preview": "vitepress preview docs"
+  },
+  "keywords": [
+    "chainlesschain",
+    "documentation",
+    "ukey",
+    "simkey"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "devDependencies": {
+    "vitepress": "^1.0.0",
+    "vue": "^3.3.11"
+  }
+}
