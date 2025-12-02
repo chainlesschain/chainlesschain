@@ -5,11 +5,14 @@
   "private": true,
   "workspaces": [
     "desktop-app",
+    "desktop-app-vue",
     "backend/services"
   ],
   "scripts": {
     "dev:desktop": "npm run dev --workspace=desktop-app",
+    "dev:desktop-vue": "npm run dev --workspace=desktop-app-vue",
     "build:desktop": "npm run build --workspace=desktop-app",
+    "build:desktop-vue": "npm run build --workspace=desktop-app-vue",
     "dev:android": "cd mobile-app/android && ./gradlew installDebug",
     "docker:up": "cd backend/docker && docker-compose up -d",
     "docker:down": "cd backend/docker && docker-compose down",
