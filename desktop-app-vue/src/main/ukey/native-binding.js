@@ -1,20 +1,13 @@
 /**
  * Native Module Binding for XinJinKe U盾
  *
- * 使用 FFI (Foreign Function Interface) 调用 xjk.dll
+ * 使用 Koffi (Foreign Function Interface) 调用 xjk.dll
  */
 
-const ffi = require('ffi-napi');
-const ref = require('ref-napi');
+const koffi = require('koffi');
 const path = require('path');
 const os = require('os');
-
-/**
- * Native types definition
- */
-const BOOL = ref.types.int;
-const INT = ref.types.int;
-const CHAR_PTR = ref.refType(ref.types.char);
+const fs = require('fs');
 
 /**
  * XinJinKe Native Binding
@@ -43,7 +36,6 @@ class XinJinKeNativeBinding {
         'C:\\Windows\\System32\\xjk.dll',
       ];
 
-      const fs = require('fs');
       for (const p of possiblePaths) {
         if (fs.existsSync(p)) {
           return p;
@@ -66,35 +58,36 @@ class XinJinKeNativeBinding {
     }
 
     try {
-      // 加载DLL并绑定所有函数
-      this.lib = ffi.Library(this.dllPath, {
-        // 基础功能
-        'xjkOpenKey': [BOOL, []],
-        'xjkOpenKeyEx': [BOOL, [CHAR_PTR]],
-        'xjkCloseKey': [BOOL, []],
-        'xjkFindPort': [INT, []],
+      // 加载DLL
+      this.lib = koffi.load(this.dllPath);
 
-        // 设备信息
-        'xjkGetSerial': [BOOL, [CHAR_PTR]],
-        'xjkGetSectors': [INT, []],
-        'xjkGetClusters': [INT, []],
+      // 绑定所有函数
+      // 基础功能
+      this.xjkOpenKey = this.lib.func('xjkOpenKey', 'int', []);
+      this.xjkOpenKeyEx = this.lib.func('xjkOpenKeyEx', 'int', ['string']);
+      this.xjkCloseKey = this.lib.func('xjkCloseKey', 'int', []);
+      this.xjkFindPort = this.lib.func('xjkFindPort', 'int', []);
 
-        // 数据读写 - 扇区(512字节)
-        'xjkReadSector': [BOOL, [CHAR_PTR, INT]],
-        'xjkWriteSector': [BOOL, [CHAR_PTR, INT]],
+      // 设备信息
+      this.xjkGetSerial = this.lib.func('xjkGetSerial', 'int', [koffi.out(koffi.pointer('char', 256))]);
+      this.xjkGetSectors = this.lib.func('xjkGetSectors', 'int', []);
+      this.xjkGetClusters = this.lib.func('xjkGetClusters', 'int', []);
 
-        // 数据读写 - 簇(4096字节)
-        'xjkReadCluster': [BOOL, [CHAR_PTR, INT]],
-        'xjkWriteCluster': [BOOL, [CHAR_PTR, INT]],
+      // 数据读写 - 扇区(512字节)
+      this.xjkReadSector = this.lib.func('xjkReadSector', 'int', [koffi.out(koffi.pointer('char', 512)), 'int']);
+      this.xjkWriteSector = this.lib.func('xjkWriteSector', 'int', [koffi.pointer('char'), 'int']);
 
-        // 密码管理
-        'xjkChangePwd': [BOOL, [CHAR_PTR, CHAR_PTR]],
-        'xjkChangePwdEx': [BOOL, [CHAR_PTR, CHAR_PTR]],
+      // 数据读写 - 簇(4096字节)
+      this.xjkReadCluster = this.lib.func('xjkReadCluster', 'int', [koffi.out(koffi.pointer('char', 4096)), 'int']);
+      this.xjkWriteCluster = this.lib.func('xjkWriteCluster', 'int', [koffi.pointer('char'), 'int']);
 
-        // 加密解密
-        'xjkEncrypt': [BOOL, [CHAR_PTR, INT, CHAR_PTR]],
-        'xjkDecrypt': [BOOL, [CHAR_PTR, INT, CHAR_PTR]],
-      });
+      // 密码管理
+      this.xjkChangePwd = this.lib.func('xjkChangePwd', 'int', ['string', 'string']);
+      this.xjkChangePwdEx = this.lib.func('xjkChangePwdEx', 'int', ['string', 'string']);
+
+      // 加密解密
+      this.xjkEncrypt = this.lib.func('xjkEncrypt', 'int', [koffi.pointer('char'), 'int', koffi.out(koffi.pointer('char'))]);
+      this.xjkDecrypt = this.lib.func('xjkDecrypt', 'int', [koffi.pointer('char'), 'int', koffi.out(koffi.pointer('char'))]);
 
       this.isLoaded = true;
       console.log(`XinJinKe DLL loaded successfully: ${this.dllPath}`);
@@ -112,7 +105,7 @@ class XinJinKeNativeBinding {
   unload() {
     if (this.lib) {
       try {
-        this.lib.xjkCloseKey();
+        this.closeKey();
       } catch (error) {
         console.error('Error closing key:', error);
       }
@@ -128,7 +121,7 @@ class XinJinKeNativeBinding {
     if (!this.isLoaded) {
       throw new Error('DLL not loaded');
     }
-    return this.lib.xjkOpenKey() === 1;
+    return this.xjkOpenKey() === 1;
   }
 
   /**
@@ -139,9 +132,7 @@ class XinJinKeNativeBinding {
     if (!this.isLoaded) {
       throw new Error('DLL not loaded');
     }
-
-    const passwordBuffer = Buffer.from(password, 'utf8');
-    return this.lib.xjkOpenKeyEx(passwordBuffer) === 1;
+    return this.xjkOpenKeyEx(password) === 1;
   }
 
   /**
@@ -151,7 +142,7 @@ class XinJinKeNativeBinding {
     if (!this.isLoaded) {
       throw new Error('DLL not loaded');
     }
-    return this.lib.xjkCloseKey() === 1;
+    return this.xjkCloseKey() === 1;
   }
 
   /**
@@ -161,7 +152,7 @@ class XinJinKeNativeBinding {
     if (!this.isLoaded) {
       throw new Error('DLL not loaded');
     }
-    return this.lib.xjkFindPort();
+    return this.xjkFindPort();
   }
 
   /**
@@ -174,7 +165,7 @@ class XinJinKeNativeBinding {
     }
 
     const serialBuffer = Buffer.alloc(256);
-    const result = this.lib.xjkGetSerial(serialBuffer);
+    const result = this.xjkGetSerial(serialBuffer);
 
     if (result === 1) {
       return serialBuffer.toString('utf8').replace(/\0/g, '');
@@ -190,7 +181,7 @@ class XinJinKeNativeBinding {
     if (!this.isLoaded) {
       throw new Error('DLL not loaded');
     }
-    return this.lib.xjkGetSectors();
+    return this.xjkGetSectors();
   }
 
   /**
@@ -200,7 +191,7 @@ class XinJinKeNativeBinding {
     if (!this.isLoaded) {
       throw new Error('DLL not loaded');
     }
-    return this.lib.xjkGetClusters();
+    return this.xjkGetClusters();
   }
 
   /**
@@ -214,7 +205,7 @@ class XinJinKeNativeBinding {
     }
 
     const dataBuffer = Buffer.alloc(512);
-    const result = this.lib.xjkReadSector(dataBuffer, sector);
+    const result = this.xjkReadSector(dataBuffer, sector);
 
     if (result === 1) {
       return dataBuffer;
@@ -237,7 +228,7 @@ class XinJinKeNativeBinding {
       throw new Error('Sector data must be exactly 512 bytes');
     }
 
-    return this.lib.xjkWriteSector(data, sector) === 1;
+    return this.xjkWriteSector(data, sector) === 1;
   }
 
   /**
@@ -251,7 +242,7 @@ class XinJinKeNativeBinding {
     }
 
     const dataBuffer = Buffer.alloc(4096);
-    const result = this.lib.xjkReadCluster(dataBuffer, cluster);
+    const result = this.xjkReadCluster(dataBuffer, cluster);
 
     if (result === 1) {
       return dataBuffer;
@@ -274,7 +265,7 @@ class XinJinKeNativeBinding {
       throw new Error('Cluster data must be exactly 4096 bytes');
     }
 
-    return this.lib.xjkWriteCluster(data, cluster) === 1;
+    return this.xjkWriteCluster(data, cluster) === 1;
   }
 
   /**
@@ -286,11 +277,7 @@ class XinJinKeNativeBinding {
     if (!this.isLoaded) {
       throw new Error('DLL not loaded');
     }
-
-    const oldPwdBuffer = Buffer.from(oldPassword, 'utf8');
-    const newPwdBuffer = Buffer.from(newPassword, 'utf8');
-
-    return this.lib.xjkChangePwdEx(oldPwdBuffer, newPwdBuffer) === 1;
+    return this.xjkChangePwdEx(oldPassword, newPassword) === 1;
   }
 
   /**
@@ -304,7 +291,7 @@ class XinJinKeNativeBinding {
     }
 
     const encryptedBuffer = Buffer.alloc(data.length + 16); // AES padding
-    const result = this.lib.xjkEncrypt(data, data.length, encryptedBuffer);
+    const result = this.xjkEncrypt(data, data.length, encryptedBuffer);
 
     if (result === 1) {
       return encryptedBuffer;
@@ -324,7 +311,7 @@ class XinJinKeNativeBinding {
     }
 
     const decryptedBuffer = Buffer.alloc(encryptedData.length);
-    const result = this.lib.xjkDecrypt(encryptedData, encryptedData.length, decryptedBuffer);
+    const result = this.xjkDecrypt(encryptedData, encryptedData.length, decryptedBuffer);
 
     if (result === 1) {
       return decryptedBuffer;

@@ -83,8 +83,8 @@ class RAGManager extends EventEmitter {
     console.log('[RAGManager] 开始构建向量索引...');
 
     try {
-      // 获取所有知识库项
-      const items = this.db.getAllKnowledgeItems();
+      // 获取所有知识库项（使用getKnowledgeItems方法）
+      const items = this.db ? this.db.getKnowledgeItems(10000, 0) : [];
 
       if (!items || items.length === 0) {
         console.log('[RAGManager] 知识库为空');

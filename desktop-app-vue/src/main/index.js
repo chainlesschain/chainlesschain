@@ -53,7 +53,7 @@ class ChainlessChainApp {
     try {
       console.log('初始化数据库...');
       this.database = new DatabaseManager();
-      this.database.initialize();
+      await this.database.initialize();
       console.log('数据库初始化成功');
     } catch (error) {
       console.error('数据库初始化失败:', error);

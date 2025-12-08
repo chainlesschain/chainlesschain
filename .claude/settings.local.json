@@ -12,7 +12,22 @@
       "Bash(curl:*)",
       "Bash(taskkill:*)",
       "WebFetch(domain:www.chainlesschain.com)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm config set:*)",
+      "Bash(tasklist:*)",
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(where:*)",
+      "Bash(rm:*)",
+      "Bash(set PYTHON=C:Python27python.exe)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout 30 npm run dev:*)",
+      "Bash(timeout 25 npm run dev)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(pkill:*)",
+      "Bash(timeout 20 npm run dev:*)"
     ],
     "deny": [],
     "ask": []

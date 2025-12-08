@@ -4,8 +4,8 @@
   "description": "ChainlessChain桌面应用 - 基于Electron和Vue3的个人AI知识库",
   "main": "dist/main/index.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
-    "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
+    "dev": "npm run build:main && concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
+    "dev:electron": "wait-on http://localhost:5173 && npm run build:main && cross-env NODE_ENV=development electron .",
     "dev:renderer": "vite",
     "start": "cross-env NODE_ENV=development electron .",
     "build": "npm run build:renderer && npm run build:main",
@@ -29,14 +29,13 @@
   "dependencies": {
     "@electron/remote": "^2.1.2",
     "axios": "^1.6.5",
-    "better-sqlite3": "^9.2.2",
+    "sql.js": "^1.10.3",
     "dotenv": "^16.4.1",
-    "ffi-napi": "^4.0.3",
+    "koffi": "^2.8.10",
     "isomorphic-git": "^1.25.4",
     "lodash.debounce": "^4.0.8",
     "markdown-it": "^14.0.0",
     "node-forge": "^1.3.1",
-    "ref-napi": "^3.0.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
