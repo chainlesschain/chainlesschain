@@ -24,8 +24,39 @@ class DatabaseManager {
       this.SQL = await initSqlJs({
         // sql.js 使用 WebAssembly，需要加载 .wasm 文件
         locateFile: file => {
-          // Monorepo workspace：sql.js安装在父目录的node_modules中
-          return path.join(process.cwd(), '../node_modules/sql.js/dist', file);
+          // 尝试多个可能的路径
+          const possiblePaths = [];
+
+          if (app.isPackaged) {
+            // 生产环境的可能路径
+            possiblePaths.push(
+              // extraResource 路径（推荐）
+              path.join(process.resourcesPath, file),
+              // node_modules 路径
+              path.join(process.resourcesPath, 'app', 'node_modules', 'sql.js', 'dist', file),
+              path.join(process.resourcesPath, 'node_modules', 'sql.js', 'dist', file),
+              path.join(__dirname, '..', '..', 'node_modules', 'sql.js', 'dist', file)
+            );
+          } else {
+            // 开发环境：Monorepo workspace，sql.js可能在父目录或本地node_modules中
+            possiblePaths.push(
+              path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file),
+              path.join(process.cwd(), '../node_modules/sql.js/dist', file),
+              path.join(__dirname, '..', '..', '..', 'node_modules', 'sql.js', 'dist', file)
+            );
+          }
+
+          // 找到第一个存在的路径
+          for (const filePath of possiblePaths) {
+            if (fs.existsSync(filePath)) {
+              console.log('Found sql.js WASM at:', filePath);
+              return filePath;
+            }
+          }
+
+          // 如果都不存在，返回第一个路径并记录错误
+          console.error('Could not find sql.js WASM file. Tried:', possiblePaths);
+          return possiblePaths[0];
         }
       });
 

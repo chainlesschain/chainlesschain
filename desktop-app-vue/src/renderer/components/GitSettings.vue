@@ -244,7 +244,9 @@ async function handleSave() {
       auth,
     };
 
-    await window.electronAPI.git.setConfig(config);
+    // 转换为普通对象以避免结构化克隆错误
+    const plainConfig = JSON.parse(JSON.stringify(config));
+    await window.electronAPI.git.setConfig(plainConfig);
 
     message.success('配置保存成功！需要重启应用以应用新配置');
   } catch (error) {

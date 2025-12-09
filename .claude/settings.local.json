@@ -27,7 +27,11 @@
       "Bash(node:*)",
       "Bash(ls:*)",
       "Bash(pkill:*)",
-      "Bash(timeout 20 npm run dev:*)"
+      "Bash(timeout 20 npm run dev:*)",
+      "Bash(npm run make:win:*)",
+      "Bash(npx electron-forge package)",
+      "Bash(powershell:*)",
+      "Bash(npm run package:*)"
     ],
     "deny": [],
     "ask": []

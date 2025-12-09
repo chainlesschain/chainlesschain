@@ -299,7 +299,9 @@ const handleKeywordWeightChange = (value) => {
 const handleSave = async () => {
   saving.value = true;
   try {
-    await window.electronAPI.rag.updateConfig(config.value);
+    // 转换为普通对象以避免结构化克隆错误
+    const plainConfig = JSON.parse(JSON.stringify(config.value));
+    await window.electronAPI.rag.updateConfig(plainConfig);
     message.success('RAG 配置已保存');
   } catch (error) {
     console.error('[RAGSettings] 保存配置失败:', error);

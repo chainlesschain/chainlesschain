@@ -523,7 +523,7 @@ MIT License
 
 ## 👥 联系方式
 
-- 项目主页: https://chainlesschain.org
+- 项目主页: https://chainlesschain.com
 - 问题反馈: https://github.com/yourname/chainlesschain/issues
 
 ---

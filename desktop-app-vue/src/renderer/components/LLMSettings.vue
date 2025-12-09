@@ -391,7 +391,9 @@ const loadConfig = async () => {
 const handleSave = async () => {
   saving.value = true;
   try {
-    await window.electronAPI.llm.setConfig(form);
+    // 转换为普通对象以避免结构化克隆错误
+    const plainConfig = JSON.parse(JSON.stringify(form));
+    await window.electronAPI.llm.setConfig(plainConfig);
     message.success('配置已保存');
     await checkStatus();
   } catch (error) {
@@ -406,8 +408,9 @@ const handleSave = async () => {
 const handleTest = async () => {
   testing.value = true;
   try {
-    // 先保存配置
-    await window.electronAPI.llm.setConfig(form);
+    // 先保存配置（转换为普通对象）
+    const plainConfig = JSON.parse(JSON.stringify(form));
+    await window.electronAPI.llm.setConfig(plainConfig);
 
     // 检查状态
     const result = await window.electronAPI.llm.checkStatus();
