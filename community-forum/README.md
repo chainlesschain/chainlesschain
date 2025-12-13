@@ -84,7 +84,7 @@ java -jar target/community-forum-1.0.0.jar
 
 ```bash
 cd frontend
-
+npm install
 npm run dev
 ```
 
