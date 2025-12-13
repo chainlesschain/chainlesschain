@@ -267,6 +267,23 @@ vercel
 - IE11不支持CSS变量，需要添加polyfill
 - Safari旧版本可能不支持某些动画效果
 
+## 📝 最新更新 (2025-12)
+
+### ✅ 已完成
+- ✅ **软件下载区域** - 新增专门的下载页面，支持全平台下载
+- ✅ **导航栏优化** - 添加文档、论坛、下载等快速访问链接
+- ✅ **社区链接** - 集成官方文档、论坛、GitHub、Gitee链接
+- ✅ **联系方式优化** - 突出显示400客服热线
+- ✅ **页脚增强** - 新增联系方式模块，整合所有链接
+
+### 🔗 官方链接
+- 官方网站：https://www.chainlesschain.com
+- 官方文档：https://docs.chainlesschain.com
+- 社区论坛：https://forum.chainlesschain.com
+- GitHub：https://github.com/chainlesschain
+- Gitee：https://gitee.com/chainlesschaincn/chainlesschain
+- 客服热线：400-1068-687（工作日 9:00-18:00）
+
 ## 🔜 待实现功能
 
 - [ ] 多语言支持（中英文切换）
@@ -275,6 +292,7 @@ vercel
 - [ ] 博客集成
 - [ ] 在线演示功能
 - [ ] 客户案例展示
+- [ ] 下载统计功能
 
 ## 📝 SEO优化
 

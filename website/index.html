@@ -3,9 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="厦门无链之链科技有限公司 - 让数据主权回归个人，AI效率触手可及。提供个人AI知识库、去中心化AI社交和AI辅助交易解决方案。">
-    <meta name="keywords" content="无链之链,ChainlessChain,AI知识库,去中心化社交,AI交易,SIMKey,数据安全,厦门无链之链">
+    <meta name="description" content="厦门无链之链科技有限公司 - 让数据主权回归个人，AI效率触手可及。提供个人AI知识库、去中心化AI社交和AI辅助交易解决方案。客服热线：400-1068-687">
+    <meta name="keywords" content="无链之链,ChainlessChain,AI知识库,去中心化社交,AI交易,SIMKey,U盾,数据安全,厦门无链之链,400-1068-687">
+    <meta name="author" content="厦门无链之链科技有限公司">
     <title>无链之链 | ChainlessChain - 让数据主权回归个人，AI效率触手可及</title>
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.chainlesschain.com/">
+    <meta property="og:title" content="无链之链 | ChainlessChain - 让数据主权回归个人">
+    <meta property="og:description" content="基于U盾和SIMKey的硬件加密技术，打造安全可信的个人AI生态系统">
+    <meta property="og:site_name" content="ChainlessChain">
+
+    <!-- Contact Info -->
+    <meta name="contact" content="400-1068-687">
+    <meta name="email" content="zhanglongfa@chainlesschain.com">
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,14 +38,16 @@
                 <div class="nav-menu" id="navMenu">
                     <a href="#home" class="nav-link active">首页</a>
                     <a href="#products" class="nav-link">产品</a>
-                    <a href="#features" class="nav-link">技术特性</a>
-                    <a href="#scenarios" class="nav-link">应用场景</a>
+                    <a href="#download" class="nav-link">下载</a>
+                    <a href="https://docs.chainlesschain.com" class="nav-link" target="_blank">文档</a>
+                    <a href="https://forum.chainlesschain.com" class="nav-link" target="_blank">论坛</a>
                     <a href="#about" class="nav-link">关于我们</a>
                     <a href="#contact" class="nav-link">联系我们</a>
                 </div>
                 <div class="nav-actions">
                     <a href="https://github.com/chainlesschain" class="btn-outline" target="_blank">GitHub</a>
-                    <button class="btn-primary">立即体验</button>
+                    <a href="https://gitee.com/chainlesschaincn/chainlesschain" class="btn-outline" target="_blank">Gitee</a>
+                    <button class="btn-primary" onclick="window.location.href='#download'">立即下载</button>
                     <button class="mobile-menu-toggle" id="mobileMenuToggle">
                         <span></span>
                         <span></span>
@@ -59,8 +73,9 @@
                     基于U盾和SIMKey的硬件加密技术，打造安全可信的个人AI生态系统
                 </p>
                 <div class="hero-cta animate-fade-in-delay-2">
-                    <button class="btn-hero">开始使用</button>
-                    <button class="btn-hero-outline">了解更多</button>
+                    <button class="btn-hero" onclick="window.location.href='#download'">立即下载</button>
+                    <button class="btn-hero-outline" onclick="window.open('https://docs.chainlesschain.com', '_blank')">查看文档</button>
+                    <button class="btn-hero-outline" onclick="window.open('https://forum.chainlesschain.com', '_blank')">加入社区</button>
                 </div>
                 <div class="hero-stats">
                     <div class="stat-item">
@@ -76,6 +91,70 @@
                         <span class="stat-label">覆盖支持</span>
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">软件下载</h2>
+                <p class="section-subtitle">支持全平台，选择适合您的版本</p>
+            </div>
+            <div class="download-grid">
+                <div class="download-card">
+                    <div class="download-icon">💻</div>
+                    <h3>Windows 桌面版</h3>
+                    <p class="download-desc">支持 Windows 10/11 (64位)</p>
+                    <p class="download-version">最新版本：v1.0.0</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" class="btn-download" target="_blank">下载 (.exe)</a>
+                </div>
+                <div class="download-card">
+                    <div class="download-icon">🍎</div>
+                    <h3>macOS 桌面版</h3>
+                    <p class="download-desc">支持 macOS 10.15+ (Intel & Apple Silicon)</p>
+                    <p class="download-version">最新版本：v1.0.0</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" class="btn-download" target="_blank">下载 (.dmg)</a>
+                </div>
+                <div class="download-card">
+                    <div class="download-icon">🐧</div>
+                    <h3>Linux 桌面版</h3>
+                    <p class="download-desc">支持 Ubuntu 20.04+ / Debian / Fedora</p>
+                    <p class="download-version">最新版本：v1.0.0</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" class="btn-download" target="_blank">下载 (.AppImage)</a>
+                </div>
+                <div class="download-card">
+                    <div class="download-icon">📱</div>
+                    <h3>Android 移动版</h3>
+                    <p class="download-desc">支持 Android 7.0 (API 24) 及以上</p>
+                    <p class="download-version">最新版本：v1.0.0</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest" class="btn-download" target="_blank">下载 (.apk)</a>
+                </div>
+                <div class="download-card">
+                    <div class="download-icon">🍏</div>
+                    <h3>iOS 移动版</h3>
+                    <p class="download-desc">支持 iOS 13.0 及以上</p>
+                    <p class="download-version">开发中，敬请期待</p>
+                    <button class="btn-download disabled" disabled>即将推出</button>
+                </div>
+                <div class="download-card featured">
+                    <div class="download-icon">📦</div>
+                    <h3>源码编译</h3>
+                    <p class="download-desc">从源码编译，自定义配置</p>
+                    <div class="source-links">
+                        <a href="https://github.com/chainlesschain/chainlesschain" target="_blank" class="source-link">
+                            <span class="source-icon">📂</span> GitHub
+                        </a>
+                        <a href="https://gitee.com/chainlesschaincn/chainlesschain" target="_blank" class="source-link">
+                            <span class="source-icon">📂</span> Gitee
+                        </a>
+                    </div>
+                    <a href="https://docs.chainlesschain.com" class="btn-download-outline" target="_blank">查看编译文档</a>
+                </div>
+            </div>
+            <div class="download-notice">
+                <p>💡 <strong>提示：</strong>首次使用请查看<a href="https://docs.chainlesschain.com" target="_blank">快速开始指南</a>，或联系客服 <strong>400-1068-687</strong> 获取帮助</p>
             </div>
         </div>
     </section>
@@ -429,10 +508,10 @@
                 <div class="footer-section">
                     <h4>资源</h4>
                     <ul class="footer-links">
-                        <li><a href="#">开发文档</a></li>
-                        <li><a href="#">API文档</a></li>
-                        <li><a href="#">技术博客</a></li>
-                        <li><a href="#">常见问题</a></li>
+                        <li><a href="https://docs.chainlesschain.com" target="_blank">开发文档</a></li>
+                        <li><a href="https://docs.chainlesschain.com" target="_blank">API文档</a></li>
+                        <li><a href="https://forum.chainlesschain.com" target="_blank">社区论坛</a></li>
+                        <li><a href="#download">软件下载</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
@@ -440,8 +519,16 @@
                     <ul class="footer-links">
                         <li><a href="#about">关于我们</a></li>
                         <li><a href="#contact">联系我们</a></li>
-                        <li><a href="#">隐私政策</a></li>
-                        <li><a href="#">服务条款</a></li>
+                        <li><a href="https://github.com/chainlesschain" target="_blank">GitHub</a></li>
+                        <li><a href="https://gitee.com/chainlesschaincn/chainlesschain" target="_blank">Gitee</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>联系方式</h4>
+                    <ul class="footer-links">
+                        <li><a href="tel:400-1068-687">📞 400-1068-687</a></li>
+                        <li><a href="mailto:zhanglongfa@chainlesschain.com">📧 联系邮箱</a></li>
+                        <li>工作日 9:00-18:00</li>
                     </ul>
                 </div>
             </div>
