@@ -133,6 +133,16 @@ npm run type-check       # TypeScript检查
 npm run package          # 打包为可执行文件
 ```
 
+### 打包与发布
+
+```
+npm run make:win   # Windows：Squirrel 安装器 (.exe) + zip
+npm run make:mac   # macOS：dmg 安装包 + zip
+npm run make:linux # Linux：AppImage + deb + rpm + zip
+```
+
+- 产物默认输出在 `out/make/` 下：`squirrel.windows/ChainlessChain-Setup-<version>.exe`、`dmg/ChainlessChain-<version>.dmg`、`appImage/ChainlessChain-<version>.AppImage`、`deb/chainlesschain_<version>_amd64.deb`、`rpm/chainlesschain-<version>.x86_64.rpm`。
+
 ## 使用指南 📖
 
 ### 基本操作
