@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChainlessChain 资源生成器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #1890ff;
+            border-bottom: 2px solid #1890ff;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #333;
+            margin-top: 30px;
+        }
+        .asset-item {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .asset-preview {
+            margin: 15px 0;
+            padding: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #096dd9;
+        }
+        .info {
+            background: #e6f7ff;
+            border-left: 3px solid #1890ff;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            margin: 10px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 ChainlessChain 资源生成器</h1>
+        <p>这个工具可以帮你生成网站需要的所有图片资源</p>
+
+        <div class="info">
+            <strong>💡 提示：</strong>
+            <ul>
+                <li>点击"生成"按钮创建图片</li>
+                <li>右键点击图片 → "图片另存为" 保存到本地</li>
+                <li>将图片保存到对应的目录</li>
+            </ul>
+        </div>
+
+        <!-- 二维码生成 -->
+        <h2>📱 二维码生成</h2>
+
+        <div class="asset-item">
+            <h3>Android 下载二维码</h3>
+            <p>用于移动端扫码下载</p>
+            <input type="text" id="androidUrl" value="https://github.com/chainlesschain/chainlesschain/releases/latest" style="width: 100%; padding: 8px; margin: 10px 0;">
+            <button onclick="generateQRCode('androidUrl', 'qrAndroid')">生成二维码</button>
+            <div class="asset-preview">
+                <canvas id="qrAndroid"></canvas>
+                <p>保存路径: <code>images/qr/android-download.png</code></p>
+            </div>
+        </div>
+
+        <div class="asset-item">
+            <h3>企业微信二维码</h3>
+            <p>用于添加企业微信客服</p>
+            <input type="text" id="wechatUrl" value="https://work.weixin.qq.com/ca/cawcde653996f7ecb2" style="width: 100%; padding: 8px; margin: 10px 0;">
+            <button onclick="generateQRCode('wechatUrl', 'qrWechat')">生成二维码</button>
+            <div class="asset-preview">
+                <canvas id="qrWechat"></canvas>
+                <p>保存路径: <code>images/qr/wechat.png</code></p>
+            </div>
+        </div>
+
+        <!-- Open Graph 图片 -->
+        <h2>🖼️ Open Graph 分享图</h2>
+
+        <div class="asset-item">
+            <h3>社交媒体分享图 (1200x630px)</h3>
+            <p>用于微信、微博、Facebook等社交平台分享时的预览图</p>
+            <button onclick="generateOGImage()">生成分享图</button>
+            <div class="asset-preview">
+                <canvas id="ogImage" width="1200" height="630"></canvas>
+                <p>保存路径: <code>images/og-image.png</code></p>
+            </div>
+        </div>
+
+        <!-- 产品截图占位图 -->
+        <h2>📸 产品截图占位图</h2>
+
+        <div class="grid">
+            <div class="asset-item">
+                <h3>知识库界面</h3>
+                <button onclick="generateProductScreenshot('knowledge-base', 'screenshotKB')">生成占位图</button>
+                <div class="asset-preview">
+                    <canvas id="screenshotKB" width="800" height="600"></canvas>
+                    <p><code>images/products/kb-screenshot.png</code></p>
+                </div>
+            </div>
+
+            <div class="asset-item">
+                <h3>社交界面</h3>
+                <button onclick="generateProductScreenshot('social', 'screenshotSocial')">生成占位图</button>
+                <div class="asset-preview">
+                    <canvas id="screenshotSocial" width="800" height="600"></canvas>
+                    <p><code>images/products/social-screenshot.png</code></p>
+                </div>
+            </div>
+
+            <div class="asset-item">
+                <h3>交易界面</h3>
+                <button onclick="generateProductScreenshot('trading', 'screenshotTrading')">生成占位图</button>
+                <div class="asset-preview">
+                    <canvas id="screenshotTrading" width="800" height="600"></canvas>
+                    <p><code>images/products/trading-screenshot.png</code></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 安全徽章 -->
+        <h2>🛡️ 安全徽章</h2>
+
+        <div class="grid">
+            <div class="asset-item">
+                <h3>SSL 安全徽章</h3>
+                <button onclick="generateBadge('ssl', 'badgeSSL')">生成徽章</button>
+                <div class="asset-preview">
+                    <canvas id="badgeSSL" width="200" height="80"></canvas>
+                    <p><code>images/badges/ssl-secure.png</code></p>
+                </div>
+            </div>
+
+            <div class="asset-item">
+                <h3>等保三级认证</h3>
+                <button onclick="generateBadge('level3', 'badgeLevel3')">生成徽章</button>
+                <div class="asset-preview">
+                    <canvas id="badgeLevel3" width="200" height="80"></canvas>
+                    <p><code>images/badges/level3-certified.png</code></p>
+                </div>
+            </div>
+
+            <div class="asset-item">
+                <h3>ISO 认证</h3>
+                <button onclick="generateBadge('iso', 'badgeISO')">生成徽章</button>
+                <div class="asset-preview">
+                    <canvas id="badgeISO" width="200" height="80"></canvas>
+                    <p><code>images/badges/iso-certified.png</code></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logo -->
+        <h2>🔗 Logo 生成</h2>
+
+        <div class="asset-item">
+            <h3>网站 Logo</h3>
+            <p>如果没有logo.png，可以使用这个临时logo</p>
+            <button onclick="generateLogo()">生成临时Logo</button>
+            <div class="asset-preview" style="background: #667eea;">
+                <canvas id="logoCanvas" width="200" height="60"></canvas>
+                <p>保存路径: <code>logo.png</code></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 qrcode.js 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+
+    <script>
+        // 生成二维码
+        function generateQRCode(inputId, canvasId) {
+            const url = document.getElementById(inputId).value;
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            // 清空画布
+            canvas.width = 200;
+            canvas.height = 200;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 使用临时div生成二维码
+            const tempDiv = document.createElement('div');
+            tempDiv.style.display = 'none';
+            document.body.appendChild(tempDiv);
+
+            const qrcode = new QRCode(tempDiv, {
+                text: url,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // 等待二维码生成完成
+            setTimeout(() => {
+                const img = tempDiv.querySelector('img');
+                if (img) {
+                    ctx.drawImage(img, 0, 0);
+                }
+                document.body.removeChild(tempDiv);
+            }, 100);
+        }
+
+        // 生成 Open Graph 图片
+        function generateOGImage() {
+            const canvas = document.getElementById('ogImage');
+            const ctx = canvas.getContext('2d');
+
+            // 背景渐变
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(0.5, '#764ba2');
+            gradient.addColorStop(1, '#f093fb');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 添加文字
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 72px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('ChainlessChain', canvas.width / 2, 200);
+
+            ctx.font = 'bold 48px Arial';
+            ctx.fillText('无链之链', canvas.width / 2, 280);
+
+            ctx.font = '36px Arial';
+            ctx.fillText('让数据主权回归个人', canvas.width / 2, 360);
+            ctx.fillText('AI效率触手可及', canvas.width / 2, 420);
+
+            // 添加特性标签
+            ctx.font = '24px Arial';
+            const badges = ['🔒 硬件加密', '🤖 本地AI', '💾 离线可用', '🆓 永久免费'];
+            const startX = 200;
+            badges.forEach((badge, index) => {
+                ctx.fillText(badge, startX + index * 200, 520);
+            });
+        }
+
+        // 生成产品截图占位图
+        function generateProductScreenshot(type, canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            // 背景
+            ctx.fillStyle = '#f5f7fa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 顶部导航栏
+            ctx.fillStyle = '#1890ff';
+            ctx.fillRect(0, 0, canvas.width, 60);
+
+            // Logo区域
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 24px Arial';
+            ctx.fillText('🔗 ChainlessChain', 20, 38);
+
+            // 产品标题
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 48px Arial';
+            let title = '';
+            let subtitle = '';
+
+            if (type === 'knowledge-base') {
+                title = '个人AI知识库';
+                subtitle = '硬件加密 + 本地AI';
+            } else if (type === 'social') {
+                title = '去中心化社交';
+                subtitle = '端到端加密 + P2P通信';
+            } else if (type === 'trading') {
+                title = 'AI辅助交易';
+                subtitle = '智能匹配 + 智能合约';
+            }
+
+            ctx.fillText(title, canvas.width / 2 - ctx.measureText(title).width / 2, 150);
+
+            ctx.font = '24px Arial';
+            ctx.fillStyle = '#666';
+            ctx.fillText(subtitle, canvas.width / 2 - ctx.measureText(subtitle).width / 2, 200);
+
+            // 绘制界面框架
+            // 侧边栏
+            ctx.fillStyle = 'white';
+            ctx.fillRect(20, 240, 200, 320);
+            ctx.strokeStyle = '#e8e8e8';
+            ctx.strokeRect(20, 240, 200, 320);
+
+            // 主内容区
+            ctx.fillStyle = 'white';
+            ctx.fillRect(240, 240, 540, 320);
+            ctx.strokeRect(240, 240, 540, 320);
+
+            // 添加占位元素
+            ctx.fillStyle = '#e8e8e8';
+            for (let i = 0; i < 5; i++) {
+                ctx.fillRect(30, 260 + i * 60, 180, 40);
+            }
+
+            for (let i = 0; i < 3; i++) {
+                ctx.fillRect(260, 260 + i * 100, 500, 80);
+            }
+
+            // 底部提示
+            ctx.fillStyle = '#999';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('这是临时占位图，请替换为实际产品截图', canvas.width / 2, 580);
+        }
+
+        // 生成安全徽章
+        function generateBadge(type, canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            // 背景
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+
+            if (type === 'ssl') {
+                gradient.addColorStop(0, '#52c41a');
+                gradient.addColorStop(1, '#389e0d');
+            } else if (type === 'level3') {
+                gradient.addColorStop(0, '#1890ff');
+                gradient.addColorStop(1, '#096dd9');
+            } else if (type === 'iso') {
+                gradient.addColorStop(0, '#722ed1');
+                gradient.addColorStop(1, '#531dab');
+            }
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 圆角效果
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+
+            // 图标
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 32px Arial';
+            ctx.textAlign = 'center';
+
+            let icon = '';
+            let text = '';
+
+            if (type === 'ssl') {
+                icon = '🔒';
+                text = 'SSL Secure';
+            } else if (type === 'level3') {
+                icon = '✅';
+                text = '等保三级';
+            } else if (type === 'iso') {
+                icon = '🏆';
+                text = 'ISO Certified';
+            }
+
+            ctx.fillText(icon, 40, 50);
+
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(text, 120, 50);
+        }
+
+        // 生成Logo
+        function generateLogo() {
+            const canvas = document.getElementById('logoCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // 清空背景
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制链条图标
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 40px Arial';
+            ctx.fillText('🔗', 10, 45);
+
+            // 绘制文字
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText('ChainlessChain', 60, 45);
+        }
+
+        // 页面加载时的提示
+        window.onload = function() {
+            console.log('ChainlessChain 资源生成器已加载');
+            console.log('使用说明：');
+            console.log('1. 点击对应的"生成"按钮');
+            console.log('2. 右键点击生成的图片，选择"图片另存为"');
+            console.log('3. 保存到对应的目录');
+        };
+
+        // 下载画布内容
+        function downloadCanvas(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+
+    <div class="container">
+        <h2>💡 使用技巧</h2>
+        <div class="info">
+            <h3>方法1：右键保存（推荐）</h3>
+            <ol>
+                <li>点击"生成"按钮生成图片</li>
+                <li>右键点击图片</li>
+                <li>选择"图片另存为"</li>
+                <li>保存到对应目录</li>
+            </ol>
+
+            <h3>方法2：使用专业工具</h3>
+            <p><strong>二维码：</strong></p>
+            <ul>
+                <li>在线工具：<a href="https://cli.im/" target="_blank">草料二维码</a></li>
+                <li>或使用：<a href="https://www.qr-code-generator.com/" target="_blank">QR Code Generator</a></li>
+            </ul>
+
+            <p><strong>产品截图：</strong></p>
+            <ul>
+                <li>实际运行产品，使用截图工具截取</li>
+                <li>Windows：Win + Shift + S</li>
+                <li>macOS：Cmd + Shift + 4</li>
+            </ul>
+
+            <p><strong>Open Graph图片：</strong></p>
+            <ul>
+                <li>使用 <a href="https://www.canva.com/" target="_blank">Canva</a> 设计专业分享图</li>
+                <li>推荐尺寸：1200 x 630 像素</li>
+            </ul>
+
+            <p><strong>Logo：</strong></p>
+            <ul>
+                <li>建议找专业设计师设计</li>
+                <li>或使用在线Logo生成器：<a href="https://www.brandcrowd.com/" target="_blank">BrandCrowd</a></li>
+            </ul>
+        </div>
+
+        <h2>📁 目录结构</h2>
+        <div class="info">
+            <pre style="background: #2c3e50; color: #fff; padding: 15px; border-radius: 4px; overflow-x: auto;">
+website/
+├── logo.png                          # 网站Logo
+├── images/
+│   ├── og-image.png                 # Open Graph分享图 (1200x630)
+│   ├── qr/
+│   │   ├── android-download.png     # Android下载二维码 (200x200)
+│   │   └── wechat.png               # 企业微信二维码 (200x200)
+│   ├── products/
+│   │   ├── kb-screenshot.png        # 知识库界面截图 (800x600)
+│   │   ├── social-screenshot.png    # 社交界面截图 (800x600)
+│   │   └── trading-screenshot.png   # 交易界面截图 (800x600)
+│   └── badges/
+│       ├── ssl-secure.png           # SSL安全徽章 (200x80)
+│       ├── level3-certified.png     # 等保三级徽章 (200x80)
+│       └── iso-certified.png        # ISO认证徽章 (200x80)
+            </pre>
+        </div>
+
+        <h2>✅ 检查清单</h2>
+        <div class="info">
+            <ul>
+                <li><input type="checkbox"> logo.png</li>
+                <li><input type="checkbox"> images/og-image.png</li>
+                <li><input type="checkbox"> images/qr/android-download.png</li>
+                <li><input type="checkbox"> images/qr/wechat.png</li>
+                <li><input type="checkbox"> images/products/kb-screenshot.png</li>
+                <li><input type="checkbox"> images/products/social-screenshot.png</li>
+                <li><input type="checkbox"> images/products/trading-screenshot.png</li>
+                <li><input type="checkbox"> images/badges/ssl-secure.png</li>
+                <li><input type="checkbox"> images/badges/level3-certified.png</li>
+                <li><input type="checkbox"> images/badges/iso-certified.png</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

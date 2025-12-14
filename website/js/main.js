@@ -4,11 +4,15 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize all features
+    initPageLoader();
     initNavigation();
     initScrollEffects();
     initMobileMenu();
     initFormHandling();
     initAnimations();
+    initScrollToTop();
+    initImageLazyLoading();
+    initParallaxEffects();
 });
 
 // ============================================
@@ -370,6 +374,240 @@ document.querySelectorAll('.tech-tag').forEach(tag => {
         this.style.transform = 'translateY(0) scale(1)';
     });
 });
+
+// ============================================
+// Page Loader
+// ============================================
+function initPageLoader() {
+    const loader = document.createElement('div');
+    loader.className = 'page-loader';
+    loader.innerHTML = '<div class="loader-spinner"></div>';
+
+    const loaderStyle = document.createElement('style');
+    loaderStyle.textContent = `
+        .page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+        .page-loader.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .loader-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(loaderStyle);
+    document.body.appendChild(loader);
+
+    // Hide loader after page loads
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            loader.classList.add('hidden');
+            setTimeout(() => loader.remove(), 500);
+        }, 500);
+    });
+}
+
+// ============================================
+// Scroll to Top Button
+// ============================================
+function initScrollToTop() {
+    const scrollBtn = document.createElement('button');
+    scrollBtn.className = 'scroll-to-top';
+    scrollBtn.innerHTML = '↑';
+    scrollBtn.setAttribute('aria-label', '返回顶部');
+
+    const btnStyle = document.createElement('style');
+    btnStyle.textContent = `
+        .scroll-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .scroll-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .scroll-to-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .scroll-to-top:active {
+            transform: translateY(-2px);
+        }
+    `;
+    document.head.appendChild(btnStyle);
+    document.body.appendChild(scrollBtn);
+
+    // Show/hide button based on scroll position
+    window.addEventListener('scroll', () => {
+        if (window.pageYOffset > 300) {
+            scrollBtn.classList.add('visible');
+        } else {
+            scrollBtn.classList.remove('visible');
+        }
+    });
+
+    // Scroll to top when clicked
+    scrollBtn.addEventListener('click', () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+}
+
+// ============================================
+// Enhanced Image Lazy Loading
+// ============================================
+function initImageLazyLoading() {
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                    }
+                    img.classList.add('loaded');
+                    imageObserver.unobserve(img);
+                }
+            });
+        });
+
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            imageObserver.observe(img);
+        });
+    }
+}
+
+// ============================================
+// Enhanced Parallax Effects
+// ============================================
+function initParallaxEffects() {
+    const parallaxElements = document.querySelectorAll('.hero-background, .hero-gradient');
+
+    window.addEventListener('scroll', () => {
+        const scrolled = window.pageYOffset;
+
+        parallaxElements.forEach((element, index) => {
+            const speed = 0.5 + (index * 0.1);
+            element.style.transform = `translateY(${scrolled * speed}px)`;
+        });
+    });
+}
+
+// ============================================
+// Smooth Reveal Animations
+// ============================================
+function addRevealAnimations() {
+    const revealStyle = document.createElement('style');
+    revealStyle.textContent = `
+        .animate-fade-in {
+            animation: fadeIn 1s ease-in;
+        }
+        .animate-fade-in-delay {
+            animation: fadeIn 1s ease-in 0.3s backwards;
+        }
+        .animate-fade-in-delay-2 {
+            animation: fadeIn 1s ease-in 0.6s backwards;
+        }
+        .animate-fade-in-delay-3 {
+            animation: fadeIn 1s ease-in 0.9s backwards;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Card hover effects */
+        .product-card,
+        .feature-item,
+        .scenario-card,
+        .value-item,
+        .faq-item {
+            transition: all 0.3s ease;
+        }
+        .product-card:hover,
+        .feature-item:hover,
+        .scenario-card:hover,
+        .value-item:hover,
+        .faq-item:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Button ripple effect */
+        .btn-primary,
+        .btn-hero-primary,
+        .btn-download {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary::before,
+        .btn-hero-primary::before,
+        .btn-download::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        .btn-primary:active::before,
+        .btn-hero-primary:active::before,
+        .btn-download:active::before {
+            width: 300px;
+            height: 300px;
+        }
+    `;
+    document.head.appendChild(revealStyle);
+}
+
+// Initialize reveal animations
+addRevealAnimations();
 
 // ============================================
 // Console Message

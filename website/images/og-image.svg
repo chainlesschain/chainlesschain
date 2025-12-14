@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    <rect width="1200" height="630" fill="url(#grad)"/>
+    <text x="50%" y="150" font-size="72" font-weight="bold" text-anchor="middle" fill="white">ChainlessChain</text>
+    <text x="50%" y="240" font-size="48" font-weight="bold" text-anchor="middle" fill="white">无链之链</text>
+    <text x="50%" y="340" font-size="36" text-anchor="middle" fill="white">让数据主权回归个人</text>
+    <text x="50%" y="400" font-size="36" text-anchor="middle" fill="white">AI效率触手可及</text>
+    <text x="200" y="520" font-size="24" fill="white">🔒 硬件加密</text>
+    <text x="400" y="520" font-size="24" fill="white">🤖 本地AI</text>
+    <text x="600" y="520" font-size="24" fill="white">💾 离线可用</text>
+    <text x="800" y="520" font-size="24" fill="white">🆓 永久免费</text>
+</svg>

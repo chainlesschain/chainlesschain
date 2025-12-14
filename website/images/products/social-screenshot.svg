@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+    <rect width="800" height="600" fill="#f5f7fa"/>
+    <rect y="0" width="800" height="60" fill="#1890ff"/>
+    <text x="20" y="38" font-size="24" font-weight="bold" fill="white">🔗 ChainlessChain</text>
+    <text x="400" y="130" font-size="48" font-weight="bold" text-anchor="middle" fill="#2c3e50">去中心化社交</text>
+    <text x="400" y="180" font-size="24" text-anchor="middle" fill="#666">端到端加密 + P2P通信</text>
+    <rect x="20" y="220" width="200" height="320" fill="white" stroke="#e8e8e8"/>
+    <rect x="240" y="220" width="540" height="320" fill="white" stroke="#e8e8e8"/>
+    <rect x="30" y="240" width="180" height="40" fill="#e8e8e8"/><rect x="30" y="300" width="180" height="40" fill="#e8e8e8"/><rect x="30" y="360" width="180" height="40" fill="#e8e8e8"/><rect x="30" y="420" width="180" height="40" fill="#e8e8e8"/><rect x="30" y="480" width="180" height="40" fill="#e8e8e8"/>
+    <rect x="260" y="240" width="500" height="80" fill="#e8e8e8"/><rect x="260" y="340" width="500" height="80" fill="#e8e8e8"/><rect x="260" y="440" width="500" height="80" fill="#e8e8e8"/>
+    <text x="400" y="570" font-size="20" text-anchor="middle" fill="#999">这是临时占位图，请替换为实际产品截图</text>
+</svg>
