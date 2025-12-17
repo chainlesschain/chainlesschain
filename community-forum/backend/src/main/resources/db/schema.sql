@@ -48,6 +48,7 @@ CREATE TABLE `categories` (
   `status` ENUM('ACTIVE', 'HIDDEN') DEFAULT 'ACTIVE' COMMENT '状态',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` TINYINT DEFAULT 0 COMMENT '是否删除',
   INDEX idx_slug (`slug`),
   INDEX idx_sort_order (`sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分类表';
@@ -61,6 +62,7 @@ CREATE TABLE `tags` (
   `posts_count` INT DEFAULT 0 COMMENT '帖子数',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` TINYINT DEFAULT 0 COMMENT '是否删除',
   INDEX idx_slug (`slug`),
   INDEX idx_posts_count (`posts_count`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='标签表';

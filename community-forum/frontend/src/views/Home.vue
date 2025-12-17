@@ -151,10 +151,11 @@ const loadPosts = async () => {
       pageSize: pageSize.value,
       sortBy: sortBy.value
     })
-    posts.value = response.data.items
-    total.value = response.data.total
+    posts.value = response.items
+    total.value = response.total
   } catch (error) {
     ElMessage.error('加载帖子失败')
+    console.error('加载帖子失败:', error)
     // 使用模拟数据
     posts.value = generateMockPosts()
     total.value = 50

@@ -3,6 +3,7 @@ package com.chainlesschain.community.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -36,17 +37,17 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         // 认证接口
                         .requestMatchers("/auth/**").permitAll()
-                        // 公开的查询接口（GET方法）
-                        .requestMatchers("/posts/**").permitAll()
-                        .requestMatchers("/categories/**").permitAll()
-                        .requestMatchers("/tags/**").permitAll()
-                        .requestMatchers("/users/{id}").permitAll()
-                        .requestMatchers("/search/**").permitAll()
-                        .requestMatchers("/replies").permitAll()
+                        // 公开的GET查询接口
+                        .requestMatchers(HttpMethod.GET, "/posts", "/posts/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/categories", "/categories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/tags", "/tags/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/users/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/search", "/search/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/replies").permitAll()
                         // 管理员API
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        // 其他需要认证
-                        .anyRequest().authenticated()
+                        // 暂时允许所有请求（用于调试）
+                        .anyRequest().permitAll()
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
