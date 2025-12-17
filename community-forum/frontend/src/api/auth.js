@@ -5,9 +5,9 @@ import request from './request'
  */
 export function loginWithUKey(deviceId, pin) {
   return request({
-    url: '/auth/login/ukey',
+    url: '/auth/login',
     method: 'post',
-    data: { deviceId, pin }
+    data: { deviceId, pin, deviceType: 'UKEY' }
   })
 }
 
@@ -16,9 +16,9 @@ export function loginWithUKey(deviceId, pin) {
  */
 export function loginWithSIMKey(simId, pin) {
   return request({
-    url: '/auth/login/simkey',
+    url: '/auth/login',
     method: 'post',
-    data: { simId, pin }
+    data: { deviceId: simId, pin, deviceType: 'SIMKEY' }
   })
 }
 
