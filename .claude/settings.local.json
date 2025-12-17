@@ -37,7 +37,9 @@
       "Bash(git push:*)",
       "Bash(cat:*)",
       "Bash(start index-optimized.html)",
-      "Bash(start index.html)"
+      "Bash(start index.html)",
+      "Bash(mvn clean compile:*)",
+      "Bash(cmd //c mvn clean compile)"
     ],
     "deny": [],
     "ask": []

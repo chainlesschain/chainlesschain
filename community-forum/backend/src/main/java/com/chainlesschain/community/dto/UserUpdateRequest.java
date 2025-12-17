@@ -1,7 +1,7 @@
 package com.chainlesschain.community.dto;
 
 import lombok.Data;
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.Size;
 
 /**
  * 更新用户信息请求DTO
