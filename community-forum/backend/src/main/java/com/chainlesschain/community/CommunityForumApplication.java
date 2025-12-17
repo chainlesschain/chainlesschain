@@ -3,7 +3,8 @@ package com.chainlesschain.community;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
@@ -11,9 +12,11 @@ import org.springframework.scheduling.annotation.EnableAsync;
  *
  * @author ChainlessChain Team
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+        RedisAutoConfiguration.class,
+        ElasticsearchDataAutoConfiguration.class
+})
 @MapperScan("com.chainlesschain.community.mapper")
-@EnableCaching
 @EnableAsync
 public class CommunityForumApplication {
 
