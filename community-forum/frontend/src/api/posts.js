@@ -11,6 +11,9 @@ export function getPostList(params) {
   })
 }
 
+// 别名：getPosts
+export const getPosts = getPostList
+
 /**
  * 获取帖子详情
  */
