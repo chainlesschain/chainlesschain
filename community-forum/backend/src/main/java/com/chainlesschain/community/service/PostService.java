@@ -392,6 +392,28 @@ public class PostService {
     private PostListVO convertToListVO(Post post) {
         PostListVO vo = new PostListVO();
         BeanUtils.copyProperties(post, vo);
+
+        // 查询并设置用户信息
+        User user = userMapper.selectById(post.getUserId());
+        if (user != null) {
+            vo.setUserId(user.getId());
+            vo.setUserNickname(user.getNickname());
+            vo.setUserAvatar(user.getAvatar());
+        }
+
+        // 查询并设置分类信息
+        Category category = categoryMapper.selectById(post.getCategoryId());
+        if (category != null) {
+            vo.setCategoryName(category.getName());
+            vo.setCategorySlug(category.getSlug());
+        }
+
+        // 查询并设置标签信息
+        List<Tag> tags = tagMapper.findByPostId(post.getId());
+        if (tags != null && !tags.isEmpty()) {
+            vo.setTagNames(tags.stream().map(Tag::getName).collect(Collectors.toList()));
+        }
+
         return vo;
     }
 
