@@ -18,7 +18,7 @@ import java.util.Map;
  * 管理员控制器
  */
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/admin")
 @Tag(name = "管理员功能", description = "用户管理、内容审核、举报处理等管理功能")
 public class AdminController {
 

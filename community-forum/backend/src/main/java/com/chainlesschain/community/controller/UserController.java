@@ -21,7 +21,7 @@ import java.util.List;
  * 用户控制器
  */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/users")
 @Tag(name = "用户管理", description = "用户信息、关注系统、收藏列表等功能")
 public class UserController {
 

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
  * 通知控制器
  */
 @RestController
-@RequestMapping("/api/notifications")
+@RequestMapping("/notifications")
 @Tag(name = "通知管理", description = "通知的查询、标记已读等功能")
 public class NotificationController {
 

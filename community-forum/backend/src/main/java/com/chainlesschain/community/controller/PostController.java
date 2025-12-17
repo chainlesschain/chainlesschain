@@ -19,7 +19,7 @@ import jakarta.validation.Valid;
  * 帖子控制器
  */
 @RestController
-@RequestMapping("/api/posts")
+@RequestMapping("/posts")
 @Tag(name = "帖子管理", description = "帖子的增删改查、点赞、收藏等功能")
 public class PostController {
 

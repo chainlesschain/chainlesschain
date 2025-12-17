@@ -17,7 +17,7 @@ import jakarta.validation.Valid;
  * 回复控制器
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("")
 @Tag(name = "回复管理", description = "帖子回复的增删改查、点赞等功能")
 public class ReplyController {
 

@@ -15,7 +15,7 @@ import java.util.List;
  * 分类控制器
  */
 @RestController
-@RequestMapping("/api/categories")
+@RequestMapping("/categories")
 @Tag(name = "分类管理", description = "分类的查询功能")
 public class CategoryController {
 

@@ -15,7 +15,7 @@ import java.util.List;
  * 标签控制器
  */
 @RestController
-@RequestMapping("/api/tags")
+@RequestMapping("/tags")
 @Tag(name = "标签管理", description = "标签的查询和搜索功能")
 public class TagController {
 

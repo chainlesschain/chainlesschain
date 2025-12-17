@@ -16,7 +16,7 @@ import jakarta.validation.Valid;
  * 认证控制器
  */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @Tag(name = "认证管理", description = "用户登录、注册、登出等接口")
 public class AuthController {
 

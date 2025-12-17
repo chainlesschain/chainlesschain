@@ -17,7 +17,7 @@ import jakarta.validation.Valid;
  * 私信控制器
  */
 @RestController
-@RequestMapping("/api/messages")
+@RequestMapping("/messages")
 @Tag(name = "私信管理", description = "私信的发送、接收、查询等功能")
 public class MessageController {
 

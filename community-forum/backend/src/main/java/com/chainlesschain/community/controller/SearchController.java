@@ -18,7 +18,7 @@ import java.util.Map;
  * 搜索控制器
  */
 @RestController
-@RequestMapping("/api/search")
+@RequestMapping("/search")
 @Tag(name = "搜索功能", description = "全局搜索、帖子搜索、用户搜索等功能")
 public class SearchController {
 
