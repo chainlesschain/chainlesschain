@@ -32,19 +32,17 @@ public class SecurityConfig {
                 .cors(cors -> {}) // 使用默认CORS配置
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 公开的API（相对于context-path）
-                        .requestMatchers(
-                                "/auth/**",
-                                "/posts",
-                                "/posts/**",
-                                "/categories/**",
-                                "/tags/**",
-                                "/users/{id}",
-                                "/search/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui.html"
-                        ).permitAll()
+                        // Swagger文档
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        // 认证接口
+                        .requestMatchers("/auth/**").permitAll()
+                        // 公开的查询接口（GET方法）
+                        .requestMatchers("/posts/**").permitAll()
+                        .requestMatchers("/categories/**").permitAll()
+                        .requestMatchers("/tags/**").permitAll()
+                        .requestMatchers("/users/{id}").permitAll()
+                        .requestMatchers("/search/**").permitAll()
+                        .requestMatchers("/replies").permitAll()
                         // 管理员API
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         // 其他需要认证
