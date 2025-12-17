@@ -100,32 +100,26 @@ const routes = [
       {
         path: '',
         name: 'AdminDashboard',
-        component: () => import('@/views/admin/Dashboard.vue'),
-        meta: { title: '管理后台' }
+        component: () => import('@/views/admin/AdminDashboard.vue'),
+        meta: { title: '数据概览' }
       },
       {
         path: 'users',
         name: 'AdminUsers',
-        component: () => import('@/views/admin/Users.vue'),
+        component: () => import('@/views/admin/AdminUsers.vue'),
         meta: { title: '用户管理' }
       },
       {
         path: 'posts',
         name: 'AdminPosts',
-        component: () => import('@/views/admin/Posts.vue'),
-        meta: { title: '帖子管理' }
+        component: () => import('@/views/admin/AdminPosts.vue'),
+        meta: { title: '内容审核' }
       },
       {
-        path: 'categories',
-        name: 'AdminCategories',
-        component: () => import('@/views/admin/Categories.vue'),
-        meta: { title: '分类管理' }
-      },
-      {
-        path: 'reports',
-        name: 'AdminReports',
-        component: () => import('@/views/admin/Reports.vue'),
-        meta: { title: '举报管理' }
+        path: 'settings',
+        name: 'AdminSettings',
+        component: () => import('@/views/admin/AdminSettings.vue'),
+        meta: { title: '系统设置' }
       }
     ]
   },
