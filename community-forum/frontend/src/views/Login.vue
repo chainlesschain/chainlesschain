@@ -112,11 +112,11 @@
         <div class="login-footer">
           <el-divider>或</el-divider>
           <div class="footer-links">
-            <a href="https://chainlesschain.com" target="_blank">了解ChainlessChain</a>
+            <a href="https://www.chainlesschain.com" target="_blank">了解ChainlessChain</a>
             <span class="divider">·</span>
             <a href="https://docs.chainlesschain.com" target="_blank">获取帮助</a>
             <span class="divider">·</span>
-            <a href="https://chainlesschain.com/download" target="_blank">获取U盾/SIMKey</a>
+            <a href="https://www.chainlesschain.com/download" target="_blank">获取U盾/SIMKey</a>
           </div>
         </div>
       </div>
@@ -129,7 +129,7 @@
           <p>基于U盾/SIMKey的硬件认证，私钥永不离开设备</p>
         </div>
         <div class="feature-item">
-          <el-icon :size="32" color="#67c23a"><Shield /></el-icon>
+          <el-icon :size="32" color="#67c23a"><UserFilled /></el-icon>
           <h3>去中心化身份</h3>
           <p>DID身份系统，完全掌控自己的数字身份</p>
         </div>
@@ -149,7 +149,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import {
-  Key, Lock, CreditCard, QuestionFilled, Shield, Connection
+  Key, Lock, CreditCard, QuestionFilled, UserFilled, Connection
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
