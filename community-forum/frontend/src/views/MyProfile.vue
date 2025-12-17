@@ -49,9 +49,15 @@
                 <el-col :span="12">
                   <el-form-item label="昵称" prop="nickname">
                     <el-input
-                      v-model="editing ? editForm.nickname : user.nickname"
+                      v-if="editing"
+                      v-model="editForm.nickname"
                       placeholder="请输入昵称"
-                      :readonly="!editing"
+                    />
+                    <el-input
+                      v-else
+                      :value="user.nickname"
+                      readonly
+                      disabled
                     />
                   </el-form-item>
                 </el-col>
@@ -64,13 +70,21 @@
 
               <el-form-item label="个人简介" prop="bio">
                 <el-input
-                  v-model="editing ? editForm.bio : user.bio"
+                  v-if="editing"
+                  v-model="editForm.bio"
                   type="textarea"
                   :rows="4"
                   placeholder="介绍一下自己..."
-                  :readonly="!editing"
                   maxlength="200"
                   show-word-limit
+                />
+                <el-input
+                  v-else
+                  :value="user.bio"
+                  type="textarea"
+                  :rows="4"
+                  readonly
+                  disabled
                 />
               </el-form-item>
 
@@ -78,18 +92,30 @@
                 <el-col :span="12">
                   <el-form-item label="所在地" prop="location">
                     <el-input
-                      v-model="editing ? editForm.location : user.location"
+                      v-if="editing"
+                      v-model="editForm.location"
                       placeholder="如：北京"
-                      :readonly="!editing"
+                    />
+                    <el-input
+                      v-else
+                      :value="user.location"
+                      readonly
+                      disabled
                     />
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
                   <el-form-item label="个人网站" prop="website">
                     <el-input
-                      v-model="editing ? editForm.website : user.website"
+                      v-if="editing"
+                      v-model="editForm.website"
                       placeholder="https://..."
-                      :readonly="!editing"
+                    />
+                    <el-input
+                      v-else
+                      :value="user.website"
+                      readonly
+                      disabled
                     />
                   </el-form-item>
                 </el-col>
