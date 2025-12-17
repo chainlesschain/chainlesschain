@@ -200,7 +200,7 @@ chainlesschain/
 
 ## 联系我们
 
-- **官网**: https://chainlesschain.com (规划中)
+- **官网**: https://www.chainlesschain.com (规划中)
 - **文档**: https://docs.chainlesschain.com (规划中)
 - **论坛**: https://community.chainlesschain.com (规划中)
 - **Email**: zhanglongfa@chainlesschain.com

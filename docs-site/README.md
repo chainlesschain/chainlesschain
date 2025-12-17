@@ -326,7 +326,7 @@ const hello = 'world'
 
 ```markdown
 [内部链接](/guide/introduction)
-[外部链接](https://chainlesschain.com)
+[外部链接](https://www.chainlesschain.com)
 ```
 
 ### 文档规范
@@ -445,7 +445,7 @@ ignoreDeadLinks: [
 
 ## 📞 技术支持
 
-- **官网**: https://chainlesschain.com
+- **官网**: https://www.chainlesschain.com
 - **GitHub**: https://github.com/chainlesschain
 - **邮箱**: zhanglongfa@chainlesschain.com
 - **电话**: 400-1068-687

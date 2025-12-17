@@ -35,7 +35,7 @@
               </el-upload>
             </el-form-item>
             <el-form-item label="网站域名">
-              <el-input v-model="basicForm.siteDomain" placeholder="https://chainlesschain.com" />
+              <el-input v-model="basicForm.siteDomain" placeholder="https://www.chainlesschain.com" />
             </el-form-item>
             <el-form-item label="联系邮箱">
               <el-input v-model="basicForm.contactEmail" placeholder="admin@chainlesschain.com" />
@@ -276,7 +276,7 @@ const basicForm = reactive({
   siteName: 'ChainlessChain社区',
   siteDescription: '去中心化AI生态社区',
   siteLogo: '',
-  siteDomain: 'https://chainlesschain.com',
+  siteDomain: 'https://www.chainlesschain.com',
   contactEmail: 'admin@chainlesschain.com',
   icpNumber: ''
 })

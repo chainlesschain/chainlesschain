@@ -75,6 +75,11 @@ public class AuthService {
      */
     private User createNewUser(LoginRequest request) {
         User user = new User();
+
+        // 生成DID (Decentralized Identifier)
+        String did = "did:chainlesschain:" + request.getDeviceId();
+        user.setDid(did);
+
         user.setDeviceId(request.getDeviceId());
         user.setDeviceType(request.getDeviceType() != null ? request.getDeviceType() : "UKEY");
         user.setUsername("user_" + System.currentTimeMillis());

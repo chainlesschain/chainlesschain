@@ -282,6 +282,6 @@ A: 数据存储在你自己的设备上（PC、手机），可选择同步到Git
 
 Made with ❤️ by ChainlessChain Team
 
-[官网](https://chainlesschain.com) | [GitHub](https://github.com/chainlesschain) | [论坛](https://community.chainlesschain.com)
+[官网](https://www.chainlesschain.com) | [GitHub](https://github.com/chainlesschain) | [论坛](https://community.chainlesschain.com)
 
 </div>

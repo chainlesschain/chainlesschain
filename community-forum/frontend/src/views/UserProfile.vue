@@ -296,7 +296,7 @@ const loadUser = async () => {
       bio: '热爱分享技术，专注于去中心化AI和区块链领域',
       role: 'user',
       location: '北京',
-      website: 'https://chainlesschain.com',
+      website: 'https://www.chainlesschain.com',
       createdAt: '2024-06-15T10:00:00',
       postsCount: 42,
       repliesCount: 156,

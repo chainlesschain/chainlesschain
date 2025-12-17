@@ -195,7 +195,7 @@
             <div class="links-card">
               <h3>快捷链接</h3>
               <div class="links-list">
-                <a href="https://chainlesschain.com" target="_blank">官方网站</a>
+                <a href="https://www.chainlesschain.com" target="_blank">官方网站</a>
                 <a href="https://docs.chainlesschain.com" target="_blank">帮助文档</a>
                 <a href="https://github.com/chainlesschain" target="_blank">GitHub</a>
               </div>

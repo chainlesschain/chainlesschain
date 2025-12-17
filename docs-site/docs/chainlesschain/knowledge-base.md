@@ -67,7 +67,7 @@ ChainlessChain使用所见即所得的Markdown编辑器，支持：
 1. 有序列表
 2. 项目2
 
-[链接](https://chainlesschain.com)
+[链接](https://www.chainlesschain.com)
 
 ![图片](image.jpg)
 ```
@@ -182,7 +182,7 @@ Ctrl/Cmd + V 粘贴剪贴板图片
 #### 嵌入网页
 
 ```markdown
-<iframe src="https://chainlesschain.com" width="100%" height="400"></iframe>
+<iframe src="https://www.chainlesschain.com" width="100%" height="400"></iframe>
 ```
 
 ### 标签和分类
@@ -576,7 +576,7 @@ AI功能 → 生成大纲
 - Firefox
 - Safari
 
-下载地址: https://chainlesschain.com/extensions
+下载地址: https://www.chainlesschain.comextensions
 
 #### 使用插件
 

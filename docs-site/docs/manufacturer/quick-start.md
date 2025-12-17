@@ -669,7 +669,7 @@ tar -xzf uploads_backup_20241202.tar.gz
 
 - 💬 [GitHub Discussions](https://github.com/chainlesschain/manufacturer-system/discussions)
 - 🐛 [报告问题](https://github.com/chainlesschain/manufacturer-system/issues)
-- 📧 [订阅邮件列表](https://chainlesschain.com/newsletter)
+- 📧 [订阅邮件列表](https://www.chainlesschain.com/newsletter)
 
 ---
 

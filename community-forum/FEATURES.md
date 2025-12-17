@@ -530,6 +530,6 @@ community-forum/frontend/src/
 
 ## 📞 支持
 
-- 官网: https://chainlesschain.com
+- 官网: https://www.chainlesschain.com
 - 文档: https://docs.chainlesschain.com
 - GitHub: https://github.com/chainlesschain

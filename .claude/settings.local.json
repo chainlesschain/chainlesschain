@@ -39,7 +39,10 @@
       "Bash(start index-optimized.html)",
       "Bash(start index.html)",
       "Bash(mvn clean compile:*)",
-      "Bash(cmd //c mvn clean compile)"
+      "Bash(cmd //c mvn clean compile)",
+      "Bash(mvn dependency:tree:*)",
+      "Bash(grep:*)",
+      "Bash(cmd //c \"cd C:\\code\\chainlesschain\\community-forum\\backend && mvn clean compile -DskipTests\")"
     ],
     "deny": [],
     "ask": []

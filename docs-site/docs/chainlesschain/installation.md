@@ -59,7 +59,7 @@
 
 1. **下载安装包**
 
-访问 [ChainlessChain官网](https://chainlesschain.com/download) 下载Windows安装包：
+访问 [ChainlessChain官网](https://www.chainlesschain.com/download) 下载Windows安装包：
 - `ChainlessChain-Setup-1.0.0.exe` (约150MB)
 
 2. **运行安装程序**
@@ -229,7 +229,7 @@ ollama pull qwen
 
 ```bash
 # 添加ChainlessChain GPG密钥
-curl -fsSL https://chainlesschain.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/chainlesschain.gpg
+curl -fsSL https://www.chainlesschain.comgpg | sudo gpg --dearmor -o /usr/share/keyrings/chainlesschain.gpg
 
 # 添加软件源
 echo "deb [signed-by=/usr/share/keyrings/chainlesschain.gpg] https://repo.chainlesschain.com/apt stable main" | sudo tee /etc/apt/sources.list.d/chainlesschain.list
@@ -252,7 +252,7 @@ chainlesschain
 
 ```bash
 # 下载AppImage
-wget https://chainlesschain.com/download/ChainlessChain-1.0.0.AppImage
+wget https://www.chainlesschain.comdownload/ChainlessChain-1.0.0.AppImage
 
 # 添加执行权限
 chmod +x ChainlessChain-1.0.0.AppImage

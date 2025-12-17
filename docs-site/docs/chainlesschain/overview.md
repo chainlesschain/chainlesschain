@@ -590,7 +590,7 @@ npm run dev:desktop
 
 ### 加入社区
 
-- 🌐 **官网**: https://chainlesschain.com
+- 🌐 **官网**: https://www.chainlesschain.com
 - 💬 **论坛**: https://community.chainlesschain.com
 - 📱 **微信群**: 扫码加入
 - 🐦 **Twitter**: @chainlesschain
