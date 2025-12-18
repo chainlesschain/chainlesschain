@@ -2,43 +2,72 @@
 
 <div align="center">
 
+![Version](https://img.shields.io/badge/version-v0.11.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Progress](https://img.shields.io/badge/progress-66%25-yellow.svg)
+![Phase 1](https://img.shields.io/badge/Phase%201-95%25-brightgreen.svg)
+![Phase 2](https://img.shields.io/badge/Phase%202-70%25-yellow.svg)
+![Phase 3](https://img.shields.io/badge/Phase%203-0%25-red.svg)
+
 **去中心化 · 隐私优先 · AI原生**
 
 一个完全去中心化的个人AI助手平台,整合知识库管理、社交网络和交易辅助三大核心功能。
 
-[English](./README_EN.md) | [设计文档](./系统设计_个人移动AI管理系统.md)
+[English](./README_EN.md) | [设计文档](./系统设计_个人移动AI管理系统.md) | [完成度报告](./项目完成度报告_2025-12-18.md)
 
 </div>
 
 ---
 
+## ⭐ 当前版本: v0.11.0 (2025-12-18)
+
+### 最新更新
+- ✅ **图片上传和OCR功能** - 支持多语言OCR识别，自动全文索引
+- ✅ **重排序器 (Reranker)** - 提升RAG检索准确度
+- ✅ **Git冲突解决** - 可视化冲突合并工具
+- ✅ **可验证凭证系统** - W3C标准VC实现
+
+### 项目状态
+- 🟢 **知识库管理**: 95% 完成 - **可生产使用**
+- 🟢 **AI服务集成**: 98% 完成 - **功能完整**
+- 🟡 **去中心化身份**: 95% 完成 - **基础完成**
+- 🟡 **P2P通信**: 60% 完成 - **开发中**
+- 🔴 **交易功能**: 0% 完成 - **规划中**
+
 ## 核心特性
 
-- 🔐 **军事级安全**: 基于U盾/SIMKey的硬件级加密保护
-- 🌐 **完全去中心化**: 数据存储在用户设备,无需第三方云服务
-- 🧠 **AI原生**: 本地大模型,保护隐私的同时享受AI能力
-- 📱 **跨设备协作**: PC端、移动端无缝同步
-- 🔓 **开源自主**: 代码透明,数据完全自己掌控
+- 🔐 **军事级安全**: 基于U盾/SIMKey的硬件级加密保护 ✅
+- 🌐 **完全去中心化**: 数据存储在用户设备,无需第三方云服务 ✅
+- 🧠 **AI原生**: 本地大模型 (Ollama/Qwen2),保护隐私的同时享受AI能力 ✅
+- 📱 **跨设备协作**: PC端、移动端通过Git无缝同步 ✅
+- 🔓 **开源自主**: 代码透明,数据完全自己掌控 ✅
+- 📸 **智能图片处理**: OCR识别+自动索引,图片秒变可搜索文本 ✅ (v0.11.0)
 
 ## 三大核心功能
 
-### 1️⃣ 知识库管理
-- **个人第二大脑**: 笔记、文档、对话历史统一管理
-- **AI增强检索**: RAG技术,语义搜索,智能问答
-- **版本控制**: Git-based同步,完整历史记录
-- **加密存储**: SQLCipher AES-256加密
+### 1️⃣ 知识库管理 (95% 完成) ✅
+- ✅ **个人第二大脑**: 笔记、文档、对话历史统一管理
+- ✅ **AI增强检索**: RAG技术,语义搜索,智能问答
+- ✅ **多格式导入**: Markdown/PDF/Word/TXT/图片
+- ✅ **OCR识别**: 图片文字提取,支持100+语言
+- ✅ **版本控制**: Git-based同步,完整历史记录,可视化冲突解决
+- ✅ **加密存储**: SQLCipher AES-256加密
+- ✅ **全文搜索**: FTS5索引,毫秒级响应
 
-### 2️⃣ 去中心化社交
-- **身份自主权**: 基于W3C DID标准
-- **P2P通信**: libp2p + Signal协议端到端加密
-- **无服务器**: 不依赖任何中心化平台
-- **隐私优先**: 用户完全掌控社交数据
+### 2️⃣ 去中心化社交 (70% 完成) 🟡
+- ✅ **身份自主权**: 基于W3C DID标准
+- ✅ **可验证凭证**: VC模板系统,技能认证
+- ✅ **DHT网络**: DID文档发布与解析
+- ✅ **P2P通信**: libp2p网络层
+- ✅ **社区论坛**: 完整的Spring Boot后端 + Vue3前端
+- 🚧 **端到端加密**: Signal协议集成中
+- 🚧 **私信系统**: P2P消息通信开发中
 
-### 3️⃣ 去中心化交易辅助
-- **AI匹配**: 智能推荐和风险评估
-- **智能合约**: 区块链托管,安全可信
-- **信誉系统**: 去中心化评价,防作弊
-- **仲裁机制**: 社区仲裁员,公平公正
+### 3️⃣ 去中心化交易辅助 (0% 完成) 🔴
+- ⏳ **AI匹配**: 智能推荐和风险评估 (规划中)
+- ⏳ **智能合约**: 区块链托管,安全可信 (规划中)
+- ⏳ **信誉系统**: 去中心化评价,防作弊 (规划中)
+- ⏳ **仲裁机制**: 社区仲裁员,公平公正 (规划中)
 
 ## 技术架构
 
@@ -54,173 +83,357 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 快速开始
+## 🚀 快速开始
 
 ### 环境要求
 
-- **PC端**: Node.js 18+, Python 3.10+, Docker 20.10+
-- **移动端**: Android Studio 2023+ / Xcode 15+
-- **硬件**: U盾(PC) 或 支持SIMKey的SIM卡(移动)
+- **PC端**: Node.js 20+, Docker 20.10+ (可选)
+- **移动端**: Android Studio 2024+ / Xcode 15+
+- **硬件**: U盾(PC) 或 支持SIMKey的SIM卡(移动端,可选)
 
 ### 安装步骤
 
 #### 1. 克隆项目
 ```bash
-git clone https://github.com/yourname/chainlesschain.git
+git clone https://github.com/chainlesschain/chainlesschain.git
 cd chainlesschain
 ```
 
-#### 2. 安装依赖
+#### 2. 启动PC端桌面应用 (推荐: desktop-app-vue)
 ```bash
-# 安装根依赖
+# 进入Vue版桌面应用目录
+cd desktop-app-vue
+
+# 安装依赖
 npm install
 
-# 安装PC端依赖
+# 启动开发服务器
+npm run dev
+```
+
+#### 3. 启动AI服务 (可选,用于本地LLM)
+```bash
+# 启动Docker服务
+docker-compose up -d
+
+# 下载模型 (首次运行)
+docker exec chainlesschain-llm ollama pull qwen2:7b
+```
+
+#### 4. 启动社区论坛 (可选)
+```bash
+# 后端 (Spring Boot)
+cd community-forum/backend
+mvn spring-boot:run
+
+# 前端 (Vue3)
+cd community-forum/frontend
+npm install
+npm run dev
+```
+
+### 其他启动选项
+
+```bash
+# React版桌面应用
 cd desktop-app
 npm install
-cd ..
+npm run dev
 
-# 启动AI服务(Docker)
-cd backend/docker
-docker-compose up -d
-cd ../..
+# Android应用
+cd android-app
+./gradlew assembleDebug
+
+# React Native移动应用
+cd mobile-app
+npm install
+npm run android  # 或 npm run ios
 ```
 
-#### 3. 初始化数据库
-```bash
-npm run init:db
-```
-
-#### 4. 启动开发服务器
-```bash
-# PC端
-npm run dev:desktop
-
-# 移动端(Android)
-npm run dev:android
-```
-
-## 项目结构
+## 📁 项目结构
 
 ```
 chainlesschain/
-├── desktop-app/          # PC端桌面应用 (Electron + React)
+├── desktop-app-vue/         # ⭐ PC端桌面应用 (Electron + Vue3) - 主推版本
 │   ├── src/
-│   │   ├── main/         # 主进程 (Node.js)
-│   │   ├── renderer/     # 渲染进程 (React + TypeScript)
-│   │   └── shared/       # 共享代码
+│   │   ├── main/            # 主进程 (Node.js)
+│   │   │   ├── database.js  # SQLite数据库
+│   │   │   ├── ukey/        # U盾管理
+│   │   │   ├── llm/         # AI服务集成
+│   │   │   ├── rag/         # RAG检索系统
+│   │   │   ├── git/         # Git同步
+│   │   │   ├── image/       # 图片处理+OCR
+│   │   │   ├── did/         # DID身份系统
+│   │   │   └── p2p/         # P2P网络
+│   │   └── renderer/        # 渲染进程 (Vue3 + TypeScript)
+│   │       ├── components/  # 可复用组件
+│   │       ├── pages/       # 页面
+│   │       └── stores/      # Pinia状态管理
 │   └── package.json
 │
-├── mobile-app/           # 移动端应用
-│   ├── android/          # Android (Kotlin + Jetpack Compose)
-│   └── ios/              # iOS (Swift + SwiftUI)
+├── desktop-app/             # PC端桌面应用 (Electron + React)
+│   └── src/                 # React版本，基础功能
 │
-├── backend/              # 后端服务
-│   ├── docker/           # Docker配置
-│   │   ├── docker-compose.yml
-│   │   └── ollama/       # LLM服务
-│   └── scripts/          # 初始化脚本
+├── community-forum/         # 🌐 社区论坛 (完整应用)
+│   ├── backend/             # Spring Boot 3.1.5 + MySQL
+│   │   └── src/main/java/   # 69个Java文件
+│   └── frontend/            # Vue3 + Element Plus
+│       └── src/             # 前端页面和组件
 │
-├── docs/                 # 文档
+├── android-app/             # 📱 Android原生应用
+│   └── app/src/             # Kotlin + Jetpack Compose
+│       ├── main/
+│       │   ├── java/        # 业务逻辑
+│       │   └── res/         # 资源文件
+│       └── ...
+│
+├── mobile-app/              # 📱 React Native应用
+│   ├── android/             # Android平台
+│   ├── ios/                 # iOS平台
+│   └── src/                 # 跨平台代码
+│
+├── docker-compose.yml       # 🐳 Docker服务配置
+│   # - Ollama (LLM推理)
+│   # - Qdrant (向量数据库)
+│   # - AnythingLLM (RAG系统)
+│   # - Gitea (Git服务)
+│
+├── docs/                    # 📚 文档
 │   ├── 系统设计_个人移动AI管理系统.md
-│   └── API.md
+│   ├── 项目完成度报告_2025-12-18.md
+│   └── API.md (待完善)
 │
-└── scripts/              # 工具脚本
-    ├── setup.sh          # 环境搭建
-    └── build.sh          # 构建脚本
+└── scripts/                 # 🛠️ 工具脚本
+    ├── setup.sh             # 环境搭建
+    └── build.sh             # 构建脚本
 ```
 
-## 开发路线图
+### 项目组成说明
 
-- [x] **Phase 0**: 系统设计和架构规划
-- [ ] **Phase 1 (3个月)**: MVP - 知识库管理
-  - [ ] 桌面应用框架搭建
-  - [ ] U盾集成和加密存储
-  - [ ] 本地LLM和RAG实现
-  - [ ] Git同步功能
-- [ ] **Phase 2 (2个月)**: 去中心化社交
-  - [ ] DID身份系统
-  - [ ] P2P通信和加密
-  - [ ] 移动端应用
-- [ ] **Phase 3 (2个月)**: 交易辅助
-  - [ ] 智能合约集成
+| 项目 | 技术栈 | 完成度 | 状态 | 推荐度 |
+|------|--------|-------|------|--------|
+| **desktop-app-vue** | Electron + Vue3 | 95% | ✅ 生产可用 | ⭐⭐⭐⭐⭐ |
+| desktop-app | Electron + React | 60% | 🟡 基础功能 | ⭐⭐⭐ |
+| community-forum | Spring Boot + Vue3 | 80% | ✅ 可用 | ⭐⭐⭐⭐ |
+| android-app | Kotlin Native | 60% | 🟡 架构完成 | ⭐⭐⭐ |
+| mobile-app | React Native | 30% | 🟡 开发中 | ⭐⭐ |
+
+## 🗓️ 开发路线图
+
+### 已完成 ✅
+- [x] **Phase 0**: 系统设计和架构规划 (100%)
+- [x] **Phase 1 (MVP - 知识库管理)**: 95% 完成
+  - [x] 桌面应用框架搭建 (Electron + Vue3)
+  - [x] U盾集成和加密存储 (SQLCipher)
+  - [x] 本地LLM和RAG实现 (Ollama + ChromaDB)
+  - [x] Git同步功能 (含冲突解决)
+  - [x] 文件导入 (Markdown/PDF/Word/TXT)
+  - [x] 图片上传和OCR (v0.11.0)
+  - [x] 全文搜索和标签系统
+
+### 进行中 🚧
+- [x] **Phase 2 (去中心化社交)**: 70% 完成
+  - [x] DID身份系统
+  - [x] DHT网络发布
+  - [x] 可验证凭证系统
+  - [x] P2P通信基础 (libp2p)
+  - [x] 社区论坛 (Spring Boot + Vue3)
+  - [ ] Signal协议端到端加密 (开发中)
+  - [ ] 移动端UI完善 (开发中)
+
+### 计划中 ⏳
+- [ ] **Phase 3 (交易辅助)**: 0% 完成
+  - [ ] 智能合约集成 (Solidity + Ethers.js)
   - [ ] AI匹配引擎
   - [ ] 信誉和仲裁系统
-- [ ] **Phase 4**: 生态完善
+  - [ ] 区块链支付
 
-## 技术栈
+- [ ] **Phase 4 (生态完善)**: 规划中
+  - [ ] 浏览器扩展 (网页剪藏)
+  - [ ] 语音输入功能
+  - [ ] 插件系统
+  - [ ] 多语言支持
+  - [ ] 企业版功能
 
-### PC端
-- **框架**: Electron 28 + React 18 + TypeScript
-- **UI**: Ant Design / shadcn/ui
-- **数据库**: SQLCipher (better-sqlite3)
+### 版本历史
+
+| 版本 | 日期 | 主要更新 |
+|------|------|---------|
+| v0.11.0 | 2025-12-18 | 图片上传和OCR功能 |
+| v0.10.0 | 2025-12 | 重排序器(Reranker) |
+| v0.9.0 | 2025-11 | 文件导入功能完善 |
+| v0.8.0 | 2025-11 | 可验证凭证系统 |
+| v0.6.1 | 2025-10 | DHT网络发布 |
+| v0.4.0 | 2025-09 | Git冲突解决 |
+| v0.1.0 | 2025-08 | 首个MVP版本 |
+
+## 🛠️ 技术栈
+
+### PC端 (desktop-app-vue) ⭐
+- **框架**: Electron 39.2.6 + Vue 3.4 + TypeScript
+- **UI组件**: Ant Design Vue 4.1
+- **状态管理**: Pinia 2.1.7
+- **路由**: Vue Router 4.2.5
+- **编辑器**: Milkdown 7.17.3
+- **数据库**: SQLite (better-sqlite3 12.5) + SQLCipher
 - **Git**: isomorphic-git
-- **加密**: node-forge + U盾SDK
+- **P2P**: libp2p 3.1.2
+- **图片处理**: Sharp + Tesseract.js
+- **加密**: node-forge + U盾SDK (Xinjinke)
+- **构建**: Vite 7.2.7 + Electron Builder
+
+### 社区论坛 (community-forum)
+#### 后端
+- **框架**: Spring Boot 3.1.5
+- **ORM**: MyBatis Plus 3.5.9
+- **数据库**: MySQL 8.0
+- **搜索**: Elasticsearch 8.11
+- **缓存**: Redis 7.0
+- **认证**: JWT + Spring Security
+- **文档**: Swagger 2.2.0
+
+#### 前端
+- **框架**: Vue 3.4 + Vite 5.0
+- **UI组件**: Element Plus 2.5
+- **状态管理**: Pinia 2.1
+- **路由**: Vue Router 4.2
 
 ### 移动端
-- **Android**: Kotlin + Jetpack Compose + Room
-- **iOS**: Swift + SwiftUI + Core Data
-- **加密**: BouncyCastle / CryptoKit + SIMKey API
+#### Android (android-app)
+- **语言**: Kotlin
+- **UI**: Jetpack Compose
+- **数据库**: Room ORM + SQLCipher
+- **加密**: BouncyCastle
+- **SIMKey**: OMAPI
+- **LLM**: Ollama Android
 
-### AI服务
-- **LLM**: Ollama (Qwen2-7B, LLaMA3)
-- **RAG**: AnythingLLM / QAnything
-- **向量数据库**: Qdrant / ChromaDB
-- **Embedding**: bge-large-zh-v1.5
+#### React Native (mobile-app)
+- **框架**: React Native 0.73.2
+- **导航**: React Navigation
 
-### 区块链
+### AI服务 (Docker)
+- **LLM引擎**: Ollama (latest)
+  - 支持模型: Qwen2-7B, LLaMA3-8B, MiniCPM-2B
+- **向量数据库**:
+  - Qdrant (latest) - 高性能
+  - ChromaDB 3.1.8 - 轻量级
+- **RAG系统**: AnythingLLM (可选)
+- **Embedding**: bge-large-zh-v1.5 / bge-small-zh-v1.5
+- **Git服务**: Gitea (可选)
+
+### 区块链 (规划中)
 - **智能合约**: Solidity + Hardhat
 - **交互**: Ethers.js v6
 - **网络**: Ethereum / Polygon
 
-## 贡献指南
+## 🤝 贡献指南
 
 我们欢迎所有形式的贡献!
 
+### 如何贡献
 1. Fork本仓库
 2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 开启Pull Request
 
+### 开发规范
+- 代码风格: 遵循ESLint/Prettier配置
+- 提交信息: 使用语义化提交 (feat/fix/docs/style/refactor/test/chore)
+- 测试: 添加必要的单元测试和集成测试
+- 文档: 更新相关文档和注释
+
 详见 [CONTRIBUTING.md](./CONTRIBUTING.md)
 
-## 安全声明
+### 优先级任务
+1. 🔴 **高优先级**: P2P端到端加密, 语音输入功能
+2. 🟡 **中优先级**: 移动端UI完善, Git加密集成
+3. 🟢 **低优先级**: 浏览器扩展, 知识图谱可视化
+
+## 🔒 安全声明
 
 - **硬件密钥**: 强烈建议使用U盾或SIMKey,软件模拟仅供测试
-- **备份重要**: 请务必备份助记词和密钥
+- **备份重要**: 请务必备份助记词和密钥,丢失无法恢复
 - **开源审计**: 所有加密实现开源可审计
-- **漏洞报告**: zhanglongfa@chainlesschain.com
+- **安全报告**: 发现安全漏洞请发送至 security@chainlesschain.com
+- **漏洞奖励**: 重大安全漏洞将给予奖励
 
-## 许可证
+### 已知限制
+- U盾目前仅支持Windows平台 (macOS/Linux待完善)
+- P2P消息尚未完成端到端加密
+- 交易功能尚未开发
+
+## 📜 许可证
 
 本项目采用 **MIT License** 开源许可证 - 详见 [LICENSE](./LICENSE)
 
 核心加密库采用 **Apache 2.0** 许可证
 
-## 联系我们
+## 📞 联系我们
 
+### 官方渠道
 - **官网**: https://www.chainlesschain.com (规划中)
 - **文档**: https://docs.chainlesschain.com (规划中)
 - **论坛**: https://community.chainlesschain.com (规划中)
+- **GitHub**: https://github.com/chainlesschain/chainlesschain
+
+### 联系方式
 - **Email**: zhanglongfa@chainlesschain.com
+- **安全报告**: security@chainlesschain.com
 - **电话**: 400-1068-687
 - **微信**: https://work.weixin.qq.com/ca/cawcde653996f7ecb2
 
-## 致谢
+### 社区
+- **技术讨论**: GitHub Discussions
+- **Bug报告**: GitHub Issues
+- **功能建议**: GitHub Issues
 
-感谢以下开源项目:
-- [Electron](https://www.electronjs.org/)
-- [Ollama](https://ollama.ai/)
-- [libp2p](https://libp2p.io/)
-- [SQLCipher](https://www.zetetic.net/sqlcipher/)
+## 🙏 致谢
+
+感谢以下开源项目和技术:
+
+### 核心框架
+- [Electron](https://www.electronjs.org/) - 跨平台桌面应用框架
+- [Vue.js](https://vuejs.org/) - 渐进式JavaScript框架
+- [React](https://react.dev/) - 用户界面库
+- [Spring Boot](https://spring.io/projects/spring-boot) - Java应用框架
+
+### AI & 数据
+- [Ollama](https://ollama.ai/) - 本地LLM运行时
+- [Qdrant](https://qdrant.tech/) - 向量数据库
+- [ChromaDB](https://www.trychroma.com/) - AI原生嵌入式数据库
+- [Tesseract.js](https://tesseract.projectnaptha.com/) - OCR识别引擎
+
+### 加密 & 网络
+- [SQLCipher](https://www.zetetic.net/sqlcipher/) - 加密数据库
+- [libp2p](https://libp2p.io/) - P2P网络协议栈
+- [Signal Protocol](https://signal.org/docs/) - 端到端加密协议
+
+### 编辑器 & UI
+- [Milkdown](https://milkdown.dev/) - Markdown编辑器
+- [Ant Design](https://ant.design/) / [Ant Design Vue](https://antdv.com/) - 企业级UI组件库
+- [Element Plus](https://element-plus.org/) - Vue 3组件库
+
+### 工具
+- [Vite](https://vitejs.dev/) - 下一代前端构建工具
+- [TypeScript](https://www.typescriptlang.org/) - JavaScript超集
+- [Docker](https://www.docker.com/) - 容器化平台
 
 ---
 
 <div align="center">
 
+## 📊 项目统计
+
+![GitHub stars](https://img.shields.io/github/stars/chainlesschain/chainlesschain?style=social)
+![GitHub forks](https://img.shields.io/github/forks/chainlesschain/chainlesschain?style=social)
+![GitHub issues](https://img.shields.io/github/issues/chainlesschain/chainlesschain)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/chainlesschain/chainlesschain)
+
 **用技术捍卫隐私,用AI赋能个人**
 
 Made with ❤️ by ChainlessChain Team
+
+[⬆ 回到顶部](#chainlesschain---基于u盾和simkey的个人移动ai管理系统)
 
 </div>
