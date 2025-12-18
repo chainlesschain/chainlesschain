@@ -11,6 +11,7 @@ const { RAGManager } = require('./rag/rag-manager');
 const FileImporter = require('./import/file-importer');
 const ImageUploader = require('./image/image-uploader');
 const PromptTemplateManager = require('./prompt/prompt-template-manager');
+const NativeMessagingHTTPServer = require('./native-messaging/http-server');
 
 class ChainlessChainApp {
   constructor() {
@@ -25,6 +26,7 @@ class ChainlessChainApp {
     this.fileImporter = null;
     this.imageUploader = null;
     this.promptTemplateManager = null;
+    this.nativeMessagingServer = null;
     this.autoSyncTimer = null;
     this.setupApp();
   }
@@ -259,6 +261,17 @@ class ChainlessChainApp {
       console.log('凭证模板管理器初始化成功');
     } catch (error) {
       console.error('凭证模板管理器初始化失败:', error);
+    }
+
+    // 初始化 Native Messaging HTTP Server (用于浏览器扩展通信)
+    try {
+      console.log('初始化 Native Messaging HTTP Server...');
+      this.nativeMessagingServer = new NativeMessagingHTTPServer(this.database, this.ragManager);
+      await this.nativeMessagingServer.start();
+      console.log('Native Messaging HTTP Server 初始化成功');
+    } catch (error) {
+      console.error('Native Messaging HTTP Server 初始化失败:', error);
+      // 不影响主应用启动
     }
 
     this.createWindow();
@@ -2424,6 +2437,11 @@ class ChainlessChainApp {
     if (this.gitManager) {
       this.stopAutoSync();
       this.gitManager.close();
+    }
+
+    // 关闭 Native Messaging HTTP Server
+    if (this.nativeMessagingServer) {
+      this.nativeMessagingServer.stop();
     }
 
     if (process.platform !== 'darwin') {
