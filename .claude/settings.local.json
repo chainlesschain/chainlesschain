@@ -46,7 +46,8 @@
       "Bash(mysql:*)",
       "Bash(npm config:*)",
       "Bash(wc:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []
