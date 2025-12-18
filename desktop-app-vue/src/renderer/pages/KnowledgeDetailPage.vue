@@ -53,7 +53,7 @@
 
           <div class="content-body">
             <p v-if="!item.content" style="color: rgba(0, 0, 0, 0.25)">暂无内容</p>
-            <pre v-else style="white-space: pre-wrap; font-family: inherit">{{ item.content }}</pre>
+            <div v-else class="markdown-content" v-html="renderMarkdown(item.content)"></div>
           </div>
         </div>
 
@@ -73,10 +73,10 @@
             </a-form-item>
 
             <a-form-item label="内容">
-              <a-textarea
-                v-model:value="editForm.content"
-                :rows="20"
-                placeholder="输入内容..."
+              <MarkdownEditor
+                v-model="editForm.content"
+                style="height: 600px"
+                @save="saveItem"
               />
             </a-form-item>
           </a-form>
@@ -100,6 +100,8 @@ import {
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { dbAPI } from '../utils/ipc';
+import MarkdownEditor from '../components/MarkdownEditor.vue';
+import MarkdownIt from 'markdown-it';
 
 const route = useRoute();
 const router = useRouter();
@@ -205,6 +207,17 @@ const deleteItem = async () => {
 const formatDate = (timestamp) => {
   return new Date(timestamp).toLocaleString('zh-CN');
 };
+
+// Markdown渲染
+const md = new MarkdownIt({
+  html: true,
+  linkify: true,
+  typographer: true,
+});
+
+const renderMarkdown = (content) => {
+  return md.render(content || '');
+};
 </script>
 
 <style scoped>
@@ -240,6 +253,115 @@ const formatDate = (timestamp) => {
 .content-body {
   font-size: 16px;
   line-height: 1.8;
+}
+
+/* Markdown渲染样式 */
+.markdown-content {
+  max-width: 800px;
+}
+
+.markdown-content :deep(h1) {
+  font-size: 2em;
+  font-weight: 600;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eaecef;
+}
+
+.markdown-content :deep(h2) {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eaecef;
+}
+
+.markdown-content :deep(h3) {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.markdown-content :deep(p) {
+  margin: 8px 0;
+}
+
+.markdown-content :deep(code) {
+  padding: 2px 6px;
+  background: #f6f8fa;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-content :deep(pre) {
+  padding: 16px;
+  background: #f6f8fa;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.markdown-content :deep(pre code) {
+  padding: 0;
+  background: none;
+}
+
+.markdown-content :deep(blockquote) {
+  margin: 16px 0;
+  padding-left: 16px;
+  border-left: 4px solid #dfe2e5;
+  color: #6a737d;
+}
+
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) {
+  padding-left: 2em;
+  margin: 8px 0;
+}
+
+.markdown-content :deep(li) {
+  margin: 4px 0;
+}
+
+.markdown-content :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+}
+
+.markdown-content :deep(table th),
+.markdown-content :deep(table td) {
+  border: 1px solid #dfe2e5;
+  padding: 8px 13px;
+}
+
+.markdown-content :deep(table th) {
+  background: #f6f8fa;
+  font-weight: 600;
+}
+
+.markdown-content :deep(a) {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.markdown-content :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.markdown-content :deep(img) {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-content :deep(hr) {
+  border: none;
+  border-top: 1px solid #eaecef;
+  margin: 24px 0;
 }
 
 .edit-form {

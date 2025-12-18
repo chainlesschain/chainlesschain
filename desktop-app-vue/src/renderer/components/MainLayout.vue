@@ -78,6 +78,30 @@
               </a-badge>
             </a-tooltip>
 
+            <a-tooltip title="图片上传">
+              <a-button type="text" @click="router.push('/image-upload')">
+                <FileImageOutlined />
+              </a-button>
+            </a-tooltip>
+
+            <a-tooltip title="DID身份">
+              <a-button type="text" @click="router.push('/did')">
+                <IdcardOutlined />
+              </a-button>
+            </a-tooltip>
+
+            <a-tooltip title="联系人">
+              <a-button type="text" @click="router.push('/contacts')">
+                <team-outlined />
+              </a-button>
+            </a-tooltip>
+
+            <a-tooltip title="可验证凭证">
+              <a-button type="text" @click="router.push('/credentials')">
+                <safety-certificate-outlined />
+              </a-button>
+            </a-tooltip>
+
             <a-tooltip title="设置">
               <a-button type="text" @click="router.push('/settings')">
                 <SettingOutlined />
@@ -161,9 +185,13 @@ import {
   GlobalOutlined,
   SyncOutlined,
   SettingOutlined,
+  IdcardOutlined,
+  TeamOutlined,
+  SafetyCertificateOutlined,
   UserOutlined,
   LogoutOutlined,
   MessageOutlined,
+  FileImageOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { dbAPI } from '../utils/ipc';

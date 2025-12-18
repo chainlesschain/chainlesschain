@@ -281,20 +281,283 @@ class GitManager extends EventEmitter {
       });
 
       // 再merge
-      await git.merge({
+      try {
+        await git.merge({
+          fs,
+          dir: this.repoPath,
+          ours: await git.currentBranch({ fs, dir: this.repoPath }),
+          theirs: `${this.remote.name}/main`,
+          author: this.author,
+        });
+
+        console.log('[GitManager] 拉取成功');
+        this.emit('pulled');
+
+        return { success: true, hasConflicts: false };
+      } catch (mergeError) {
+        // 检查是否是合并冲突
+        if (mergeError.code === git.Errors.MergeNotSupportedError.code ||
+            mergeError.code === git.Errors.MergeConflictError.code ||
+            mergeError.message.includes('conflict')) {
+          console.warn('[GitManager] 检测到合并冲突');
+
+          const conflicts = await this.getConflictFiles();
+          this.emit('merge-conflict', { conflicts });
+
+          return {
+            success: false,
+            hasConflicts: true,
+            conflicts,
+            error: '检测到合并冲突，需要手动解决',
+          };
+        }
+
+        // 其他错误直接抛出
+        throw mergeError;
+      }
+    } catch (error) {
+      console.error('[GitManager] 拉取失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取冲突文件列表
+   */
+  async getConflictFiles() {
+    try {
+      const statusMatrix = await git.statusMatrix({
         fs,
         dir: this.repoPath,
-        ours: await git.currentBranch({ fs, dir: this.repoPath }),
-        theirs: `${this.remote.name}/main`,
-        author: this.author,
       });
 
-      console.log('[GitManager] 拉取成功');
-      this.emit('pulled');
+      // 查找有冲突的文件 (status matrix: [filepath, head, workdir, stage])
+      // 冲突文件的特征: stage > 0 (stage 1=base, 2=ours, 3=theirs)
+      const conflicts = [];
+
+      for (const [filepath, head, workdir, stage] of statusMatrix) {
+        // isomorphic-git 在冲突时会创建多个 stage entries
+        // 我们需要检查文件内容是否包含冲突标记
+        if (workdir === 2) { // 文件存在于工作目录
+          const content = await this.readFile(filepath);
+          if (content && content.includes('<<<<<<<')) {
+            conflicts.push({
+              filepath,
+              status: 'conflict',
+            });
+          }
+        }
+      }
+
+      return conflicts;
+    } catch (error) {
+      console.error('[GitManager] 获取冲突文件失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 读取文件内容
+   */
+  async readFile(filepath) {
+    try {
+      const fullPath = path.join(this.repoPath, filepath);
+      return fs.readFileSync(fullPath, 'utf8');
+    } catch (error) {
+      console.error(`[GitManager] 读取文件失败: ${filepath}`, error);
+      return null;
+    }
+  }
+
+  /**
+   * 获取冲突文件的内容（解析冲突标记）
+   */
+  async getConflictContent(filepath) {
+    try {
+      const content = await this.readFile(filepath);
+      if (!content) {
+        throw new Error('无法读取文件');
+      }
+
+      // 解析冲突标记
+      const conflicts = this.parseConflictMarkers(content);
+
+      return {
+        filepath,
+        fullContent: content,
+        conflicts,
+        hasConflicts: conflicts.length > 0,
+      };
+    } catch (error) {
+      console.error(`[GitManager] 获取冲突内容失败: ${filepath}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 解析冲突标记
+   * 格式:
+   * <<<<<<< HEAD (ours)
+   * our content
+   * =======
+   * their content
+   * >>>>>>> branch-name (theirs)
+   */
+  parseConflictMarkers(content) {
+    const conflicts = [];
+    const lines = content.split('\n');
+
+    let inConflict = false;
+    let currentConflict = null;
+    let oursLines = [];
+    let theirsLines = [];
+    let inOurs = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line.startsWith('<<<<<<<')) {
+        // 冲突开始 (ours)
+        inConflict = true;
+        inOurs = true;
+        currentConflict = {
+          startLine: i,
+          oursLabel: line.substring(8).trim(),
+        };
+        oursLines = [];
+        theirsLines = [];
+      } else if (line.startsWith('=======') && inConflict) {
+        // 切换到 theirs
+        inOurs = false;
+      } else if (line.startsWith('>>>>>>>') && inConflict) {
+        // 冲突结束
+        currentConflict.endLine = i;
+        currentConflict.theirsLabel = line.substring(8).trim();
+        currentConflict.ours = oursLines.join('\n');
+        currentConflict.theirs = theirsLines.join('\n');
+
+        conflicts.push(currentConflict);
+
+        inConflict = false;
+        currentConflict = null;
+        oursLines = [];
+        theirsLines = [];
+      } else if (inConflict) {
+        // 收集冲突内容
+        if (inOurs) {
+          oursLines.push(line);
+        } else {
+          theirsLines.push(line);
+        }
+      }
+    }
+
+    return conflicts;
+  }
+
+  /**
+   * 解决冲突 - 选择一方
+   * @param {string} filepath - 文件路径
+   * @param {string} resolution - 'ours' | 'theirs' | 'manual'
+   * @param {string} content - 如果是 manual，提供解决后的内容
+   */
+  async resolveConflict(filepath, resolution, content = null) {
+    try {
+      let resolvedContent;
+
+      if (resolution === 'manual' && content) {
+        // 使用手动解决的内容
+        resolvedContent = content;
+      } else {
+        // 自动解决：选择 ours 或 theirs
+        const conflictData = await this.getConflictContent(filepath);
+
+        if (resolution === 'ours') {
+          // 保留 ours 部分
+          resolvedContent = conflictData.fullContent;
+          for (const conflict of conflictData.conflicts) {
+            const original = conflictData.fullContent.split('\n')
+              .slice(conflict.startLine, conflict.endLine + 1)
+              .join('\n');
+            resolvedContent = resolvedContent.replace(original, conflict.ours);
+          }
+        } else if (resolution === 'theirs') {
+          // 保留 theirs 部分
+          resolvedContent = conflictData.fullContent;
+          for (const conflict of conflictData.conflicts) {
+            const original = conflictData.fullContent.split('\n')
+              .slice(conflict.startLine, conflict.endLine + 1)
+              .join('\n');
+            resolvedContent = resolvedContent.replace(original, conflict.theirs);
+          }
+        } else {
+          throw new Error(`无效的解决方式: ${resolution}`);
+        }
+      }
+
+      // 写入解决后的内容
+      const fullPath = path.join(this.repoPath, filepath);
+      fs.writeFileSync(fullPath, resolvedContent, 'utf8');
+
+      // 添加到暂存区
+      await this.add(filepath);
+
+      console.log(`[GitManager] 冲突已解决: ${filepath} (${resolution})`);
+      this.emit('conflict-resolved', { filepath, resolution });
 
       return true;
     } catch (error) {
-      console.error('[GitManager] 拉取失败:', error);
+      console.error(`[GitManager] 解决冲突失败: ${filepath}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 中止合并
+   */
+  async abortMerge() {
+    try {
+      // isomorphic-git 没有直接的 abort merge 命令
+      // 我们需要重置到合并前的状态
+      const head = await git.resolveRef({ fs, dir: this.repoPath, ref: 'HEAD' });
+
+      await git.checkout({
+        fs,
+        dir: this.repoPath,
+        ref: head,
+        force: true,
+      });
+
+      console.log('[GitManager] 合并已中止');
+      this.emit('merge-aborted');
+
+      return true;
+    } catch (error) {
+      console.error('[GitManager] 中止合并失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 完成合并（所有冲突解决后）
+   */
+  async completeMerge(message = 'Merge completed') {
+    try {
+      // 检查是否还有冲突
+      const conflicts = await this.getConflictFiles();
+      if (conflicts.length > 0) {
+        throw new Error(`还有 ${conflicts.length} 个文件存在冲突`);
+      }
+
+      // 提交合并
+      const sha = await this.commit(message);
+
+      console.log('[GitManager] 合并已完成');
+      this.emit('merge-completed', { sha });
+
+      return { success: true, sha };
+    } catch (error) {
+      console.error('[GitManager] 完成合并失败:', error);
       throw error;
     }
   }

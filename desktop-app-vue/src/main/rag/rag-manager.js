@@ -6,6 +6,8 @@
 
 const EventEmitter = require('events');
 const { EmbeddingsService } = require('./embeddings-service');
+const VectorStore = require('../vector/vector-store');
+const Reranker = require('./reranker');
 
 /**
  * RAG配置
@@ -13,7 +15,7 @@ const { EmbeddingsService } = require('./embeddings-service');
 const DEFAULT_CONFIG = {
   // 检索参数
   topK: 5, // 返回top-K个最相关结果
-  similarityThreshold: 0.3, // 相似度阈值
+  similarityThreshold: 0.7, // 相似度阈值 (提高以获得更好的结果)
   maxContextLength: 2000, // 最大上下文长度（字符）
 
   // 启用选项
@@ -21,9 +23,18 @@ const DEFAULT_CONFIG = {
   enableReranking: false, // 是否启用重排序
   enableHybridSearch: true, // 是否启用混合搜索（向量+关键词）
 
+  // 重排序配置
+  rerankMethod: 'llm', // 重排序方法: 'llm' | 'crossencoder' | 'hybrid' | 'keyword'
+  rerankTopK: 5, // 重排序后保留的文档数量
+  rerankScoreThreshold: 0.3, // 重排序最低分数阈值
+
   // 权重
   vectorWeight: 0.7, // 向量搜索权重
   keywordWeight: 0.3, // 关键词搜索权重
+
+  // 向量存储配置
+  chromaUrl: 'http://localhost:8000', // ChromaDB地址
+  useChromaDB: true, // 是否使用ChromaDB (false则使用内存)
 };
 
 /**
@@ -40,10 +51,27 @@ class RAGManager extends EventEmitter {
     // 嵌入服务
     this.embeddingsService = new EmbeddingsService(llmManager);
 
-    // 向量索引缓存
+    // 向量存储
+    this.vectorStore = new VectorStore({
+      chromaUrl: this.config.chromaUrl,
+      similarityThreshold: this.config.similarityThreshold,
+      topK: this.config.topK,
+    });
+
+    // 重排序器
+    this.reranker = new Reranker(llmManager);
+    this.reranker.updateConfig({
+      enabled: this.config.enableReranking,
+      method: this.config.rerankMethod,
+      topK: this.config.rerankTopK,
+      scoreThreshold: this.config.rerankScoreThreshold,
+    });
+
+    // 向量索引缓存 (降级方案)
     this.vectorIndex = new Map();
 
     this.isInitialized = false;
+    this.useChromaDB = false; // 实际是否使用ChromaDB
   }
 
   /**
@@ -56,13 +84,30 @@ class RAGManager extends EventEmitter {
       // 初始化嵌入服务
       await this.embeddingsService.initialize();
 
+      // 尝试初始化ChromaDB向量存储
+      if (this.config.useChromaDB) {
+        this.useChromaDB = await this.vectorStore.initialize();
+
+        if (this.useChromaDB) {
+          console.log('[RAGManager] 使用ChromaDB向量存储');
+        } else {
+          console.warn('[RAGManager] ChromaDB不可用，使用内存存储');
+        }
+      }
+
       // 构建向量索引
       await this.buildVectorIndex();
 
       this.isInitialized = true;
       console.log('[RAGManager] RAG管理器初始化成功');
+      console.log('[RAGManager] 存储模式:', this.useChromaDB ? 'ChromaDB' : 'Memory');
 
-      this.emit('initialized');
+      this.emit('initialized', {
+        useChromaDB: this.useChromaDB,
+        indexSize: this.useChromaDB ?
+          (await this.vectorStore.getStats()).count :
+          this.vectorIndex.size,
+      });
       return true;
     } catch (error) {
       console.error('[RAGManager] 初始化失败:', error);
@@ -83,7 +128,7 @@ class RAGManager extends EventEmitter {
     console.log('[RAGManager] 开始构建向量索引...');
 
     try {
-      // 获取所有知识库项（使用getKnowledgeItems方法）
+      // 获取所有知识库项
       const items = this.db ? this.db.getKnowledgeItems(10000, 0) : [];
 
       if (!items || items.length === 0) {
@@ -93,36 +138,61 @@ class RAGManager extends EventEmitter {
 
       console.log(`[RAGManager] 为 ${items.length} 个项目生成向量...`);
 
+      // 批量处理
+      const batchSize = 5;
       let processed = 0;
-      for (const item of items) {
+
+      for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+
         try {
-          // 合并标题和内容
-          const text = `${item.title}\n${item.content || ''}`;
+          // 生成嵌入向量
+          const embeddings = await Promise.all(
+            batch.map(async (item) => {
+              const text = `${item.title}\n${item.content || ''}`;
+              return await this.embeddingsService.generateEmbedding(text);
+            })
+          );
 
-          // 生成向量
-          const embedding = await this.embeddingsService.generateEmbedding(text);
+          // 存储向量
+          if (this.useChromaDB) {
+            // 使用ChromaDB
+            await this.vectorStore.addVectorsBatch(batch, embeddings);
+          } else {
+            // 使用内存存储
+            batch.forEach((item, index) => {
+              this.vectorIndex.set(item.id, {
+                id: item.id,
+                title: item.title,
+                content: item.content,
+                type: item.type,
+                embedding: embeddings[index],
+                created_at: item.created_at,
+              });
+            });
+          }
 
-          // 存储到索引
-          this.vectorIndex.set(item.id, {
-            id: item.id,
-            title: item.title,
-            content: item.content,
-            type: item.type,
-            embedding: embedding,
-            created_at: item.created_at,
-          });
-
-          processed++;
+          processed += batch.length;
 
           if (processed % 10 === 0) {
             console.log(`[RAGManager] 已处理 ${processed}/${items.length} 个项目`);
+            this.emit('index-progress', {
+              processed,
+              total: items.length,
+              percentage: Math.round((processed / items.length) * 100),
+            });
           }
         } catch (error) {
-          console.error(`[RAGManager] 处理项目 ${item.id} 失败:`, error);
+          console.error(`[RAGManager] 处理批次失败:`, error);
         }
       }
 
-      console.log(`[RAGManager] 向量索引构建完成，共 ${this.vectorIndex.size} 个项目`);
+      const finalCount = this.useChromaDB ?
+        (await this.vectorStore.getStats()).count :
+        this.vectorIndex.size;
+
+      console.log(`[RAGManager] 向量索引构建完成，共 ${finalCount} 个项目`);
+      this.emit('index-complete', { count: finalCount });
     } catch (error) {
       console.error('[RAGManager] 构建向量索引失败:', error);
       throw error;
@@ -163,6 +233,20 @@ class RAGManager extends EventEmitter {
         results = await this.vectorSearch(query, topK * 2);
       }
 
+      // 应用重排序 (如果启用)
+      if (this.config.enableReranking && results.length > 0) {
+        console.log(`[RAGManager] 应用重排序，方法: ${this.config.rerankMethod}`);
+        try {
+          results = await this.reranker.rerank(query, results, {
+            topK: this.config.rerankTopK || topK,
+            method: this.config.rerankMethod,
+          });
+          console.log(`[RAGManager] 重排序后剩余 ${results.length} 个文档`);
+        } catch (error) {
+          console.error('[RAGManager] 重排序失败，使用原始结果:', error);
+        }
+      }
+
       // 过滤低相似度结果
       results = results.filter((r) => r.score >= similarityThreshold);
 
@@ -188,29 +272,47 @@ class RAGManager extends EventEmitter {
     // 生成查询向量
     const queryEmbedding = await this.embeddingsService.generateEmbedding(query);
 
-    // 计算相似度
-    const similarities = [];
+    let results = [];
 
-    for (const [id, item] of this.vectorIndex) {
-      const similarity = this.embeddingsService.cosineSimilarity(
-        queryEmbedding,
-        item.embedding
-      );
+    if (this.useChromaDB) {
+      // 使用ChromaDB搜索
+      const chromaResults = await this.vectorStore.search(queryEmbedding, topK);
 
-      similarities.push({
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        type: item.type,
-        score: similarity,
+      results = chromaResults.map(r => ({
+        id: r.id,
+        title: r.metadata?.title || '',
+        content: r.document || '',
+        type: r.metadata?.type || 'note',
+        score: r.score,
         source: 'vector',
-      });
+      }));
+    } else {
+      // 使用内存搜索
+      const similarities = [];
+
+      for (const [id, item] of this.vectorIndex) {
+        const similarity = this.embeddingsService.cosineSimilarity(
+          queryEmbedding,
+          item.embedding
+        );
+
+        similarities.push({
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          type: item.type,
+          score: similarity,
+          source: 'vector',
+        });
+      }
+
+      // 排序
+      similarities.sort((a, b) => b.score - a.score);
+
+      results = similarities.slice(0, topK);
     }
 
-    // 排序
-    similarities.sort((a, b) => b.score - a.score);
-
-    return similarities.slice(0, topK);
+    return results;
   }
 
   /**
@@ -362,14 +464,20 @@ class RAGManager extends EventEmitter {
       const text = `${item.title}\n${item.content || ''}`;
       const embedding = await this.embeddingsService.generateEmbedding(text);
 
-      this.vectorIndex.set(item.id, {
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        type: item.type,
-        embedding: embedding,
-        created_at: item.created_at,
-      });
+      if (this.useChromaDB) {
+        // 添加到ChromaDB
+        await this.vectorStore.addVector(item, embedding);
+      } else {
+        // 添加到内存索引
+        this.vectorIndex.set(item.id, {
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          type: item.type,
+          embedding: embedding,
+          created_at: item.created_at,
+        });
+      }
 
       console.log(`[RAGManager] 添加项目到索引: ${item.id}`);
     } catch (error) {
@@ -379,12 +487,20 @@ class RAGManager extends EventEmitter {
 
   /**
    * 从索引中移除文档
-   * @param {number} itemId - 知识库项ID
+   * @param {string} itemId - 知识库项ID
    */
-  removeFromIndex(itemId) {
-    if (this.vectorIndex.has(itemId)) {
-      this.vectorIndex.delete(itemId);
+  async removeFromIndex(itemId) {
+    try {
+      if (this.useChromaDB) {
+        await this.vectorStore.deleteVector(itemId);
+      } else {
+        if (this.vectorIndex.has(itemId)) {
+          this.vectorIndex.delete(itemId);
+        }
+      }
       console.log(`[RAGManager] 从索引移除项目: ${itemId}`);
+    } catch (error) {
+      console.error(`[RAGManager] 移除项目失败:`, error);
     }
   }
 
@@ -410,11 +526,24 @@ class RAGManager extends EventEmitter {
   /**
    * 获取索引统计
    */
-  getIndexStats() {
+  async getIndexStats() {
+    let vectorStats;
+
+    if (this.useChromaDB) {
+      vectorStats = await this.vectorStore.getStats();
+    } else {
+      vectorStats = {
+        mode: 'memory',
+        count: this.vectorIndex.size,
+      };
+    }
+
     return {
-      totalItems: this.vectorIndex.size,
+      totalItems: vectorStats.count,
+      storageMode: vectorStats.mode,
       cacheStats: this.embeddingsService.getCacheStats(),
       config: this.config,
+      chromaUrl: vectorStats.chromaUrl,
     };
   }
 
@@ -423,7 +552,36 @@ class RAGManager extends EventEmitter {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
+
+    // 更新重排序器配置
+    if (this.reranker) {
+      this.reranker.updateConfig({
+        enabled: this.config.enableReranking,
+        method: this.config.rerankMethod,
+        topK: this.config.rerankTopK,
+        scoreThreshold: this.config.rerankScoreThreshold,
+      });
+    }
+
     console.log('[RAGManager] 配置已更新:', this.config);
+  }
+
+  /**
+   * 获取重排序器配置
+   */
+  getRerankConfig() {
+    return this.reranker ? this.reranker.getConfig() : null;
+  }
+
+  /**
+   * 启用/禁用重排序
+   */
+  setRerankingEnabled(enabled) {
+    this.config.enableReranking = enabled;
+    if (this.reranker) {
+      this.reranker.setEnabled(enabled);
+    }
+    console.log(`[RAGManager] 重排序${enabled ? '已启用' : '已禁用'}`);
   }
 }
 

@@ -28,6 +28,27 @@ const routes = [
         name: 'Settings',
         component: () => import('../pages/SettingsPage.vue'),
       },
+      {
+        path: 'did',
+        name: 'DIDManagement',
+        component: () => import('../components/DIDManagement.vue'),
+      },
+      {
+        path: 'contacts',
+        name: 'ContactManagement',
+        component: () => import('../components/ContactManagement.vue'),
+      },
+      {
+        path: 'credentials',
+        name: 'VCManagement',
+        component: () => import('../components/VCManagement.vue'),
+      },
+      {
+        path: 'image-upload',
+        name: 'ImageUpload',
+        component: () => import('../components/ImageUpload.vue'),
+        meta: { title: '图片上传' },
+      },
     ],
   },
 ];

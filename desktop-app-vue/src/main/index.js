@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const DatabaseManager = require('./database');
 const { UKeyManager, DriverTypes } = require('./ukey/ukey-manager');
@@ -8,6 +8,8 @@ const { getGitConfig } = require('./git/git-config');
 const { LLMManager } = require('./llm/llm-manager');
 const { getLLMConfig } = require('./llm/llm-config');
 const { RAGManager } = require('./rag/rag-manager');
+const FileImporter = require('./import/file-importer');
+const ImageUploader = require('./image/image-uploader');
 
 class ChainlessChainApp {
   constructor() {
@@ -18,6 +20,9 @@ class ChainlessChainApp {
     this.markdownExporter = null;
     this.llmManager = null;
     this.ragManager = null;
+    this.vcTemplateManager = null;
+    this.fileImporter = null;
+    this.imageUploader = null;
     this.autoSyncTimer = null;
     this.setupApp();
   }
@@ -58,6 +63,15 @@ class ChainlessChainApp {
     } catch (error) {
       console.error('数据库初始化失败:', error);
       // 即使数据库初始化失败，也继续启动应用
+    }
+
+    // 初始化文件导入器
+    try {
+      console.log('初始化文件导入器...');
+      this.fileImporter = new FileImporter(this.database);
+      console.log('文件导入器初始化成功');
+    } catch (error) {
+      console.error('文件导入器初始化失败:', error);
     }
 
     // 初始化U盾管理器
@@ -143,6 +157,95 @@ class ChainlessChainApp {
     } catch (error) {
       console.error('RAG管理器初始化失败:', error);
       // RAG初始化失败不影响应用启动
+    }
+
+    // 初始化图片上传器
+    try {
+      console.log('初始化图片上传器...');
+      this.imageUploader = new ImageUploader(this.database, this.ragManager);
+      await this.imageUploader.initialize();
+      console.log('图片上传器初始化成功');
+    } catch (error) {
+      console.error('图片上传器初始化失败:', error);
+      // 图片上传器初始化失败不影响应用启动
+    }
+
+    // 初始化DID管理器
+    try {
+      console.log('初始化DID管理器...');
+      const DIDManager = require('./did/did-manager');
+      this.didManager = new DIDManager(this.database);
+      await this.didManager.initialize();
+      console.log('DID管理器初始化成功');
+    } catch (error) {
+      console.error('DID管理器初始化失败:', error);
+      // DID初始化失败不影响应用启动
+    }
+
+    // 初始化P2P管理器
+    try {
+      console.log('初始化P2P管理器...');
+      const P2PManager = require('./p2p/p2p-manager');
+      this.p2pManager = new P2PManager({
+        port: 9000,
+        enableMDNS: true,
+        enableDHT: true,
+        dataPath: path.join(app.getPath('userData'), 'p2p'),
+      });
+      // P2P 初始化可能较慢，使用后台初始化
+      this.p2pManager.initialize().then(() => {
+        console.log('P2P管理器初始化成功');
+        // P2P初始化成功后，设置到DID管理器中以启用DHT功能
+        if (this.didManager) {
+          this.didManager.setP2PManager(this.p2pManager);
+          console.log('P2P管理器已设置到DID管理器');
+
+          // 启动自动重新发布 DID（默认 24 小时间隔）
+          try {
+            this.didManager.startAutoRepublish(24 * 60 * 60 * 1000);
+            console.log('DID 自动重新发布已启动');
+          } catch (error) {
+            console.error('启动 DID 自动重新发布失败:', error);
+          }
+        }
+      }).catch((error) => {
+        console.error('P2P管理器初始化失败:', error);
+      });
+    } catch (error) {
+      console.error('P2P管理器初始化失败:', error);
+    }
+
+    // 初始化联系人管理器
+    try {
+      console.log('初始化联系人管理器...');
+      const ContactManager = require('./contacts/contact-manager');
+      this.contactManager = new ContactManager(this.database, this.p2pManager, this.didManager);
+      await this.contactManager.initialize();
+      console.log('联系人管理器初始化成功');
+    } catch (error) {
+      console.error('联系人管理器初始化失败:', error);
+    }
+
+    // 初始化可验证凭证管理器
+    try {
+      console.log('初始化可验证凭证管理器...');
+      const { VCManager } = require('./vc/vc-manager');
+      this.vcManager = new VCManager(this.database, this.didManager);
+      await this.vcManager.initialize();
+      console.log('可验证凭证管理器初始化成功');
+    } catch (error) {
+      console.error('可验证凭证管理器初始化失败:', error);
+    }
+
+    // 初始化可验证凭证模板管理器
+    try {
+      console.log('初始化凭证模板管理器...');
+      const VCTemplateManager = require('./vc/vc-template-manager');
+      this.vcTemplateManager = new VCTemplateManager(this.database);
+      await this.vcTemplateManager.initialize();
+      console.log('凭证模板管理器初始化成功');
+    } catch (error) {
+      console.error('凭证模板管理器初始化失败:', error);
     }
 
     this.createWindow();
@@ -530,6 +633,348 @@ class ChainlessChainApp {
       }
     });
 
+    // 文件导入
+    ipcMain.handle('import:select-files', async () => {
+      try {
+        if (!this.fileImporter) {
+          throw new Error('文件导入器未初始化');
+        }
+
+        // 打开文件选择对话框
+        const result = await dialog.showOpenDialog(this.mainWindow, {
+          title: '选择要导入的文件',
+          filters: [
+            { name: 'Markdown', extensions: ['md', 'markdown'] },
+            { name: 'PDF', extensions: ['pdf'] },
+            { name: 'Word', extensions: ['doc', 'docx'] },
+            { name: 'Text', extensions: ['txt'] },
+            { name: 'All Files', extensions: ['*'] },
+          ],
+          properties: ['openFile', 'multiSelections'],
+        });
+
+        if (result.canceled) {
+          return { canceled: true };
+        }
+
+        return {
+          canceled: false,
+          filePaths: result.filePaths,
+        };
+      } catch (error) {
+        console.error('[Main] 选择文件失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('import:import-file', async (_event, filePath, options) => {
+      try {
+        if (!this.fileImporter) {
+          throw new Error('文件导入器未初始化');
+        }
+
+        // 设置事件监听器，向渲染进程发送进度
+        this.fileImporter.on('import-start', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('import:start', data);
+          }
+        });
+
+        this.fileImporter.on('import-success', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('import:success', data);
+          }
+        });
+
+        this.fileImporter.on('import-error', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('import:error', data);
+          }
+        });
+
+        const result = await this.fileImporter.importFile(filePath, options);
+
+        // 导入成功后，添加到RAG索引
+        if (result && this.ragManager) {
+          const item = this.database.getKnowledgeItemById(result.id);
+          if (item) {
+            await this.ragManager.addToIndex(item);
+          }
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[Main] 导入文件失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('import:import-files', async (_event, filePaths, options) => {
+      try {
+        if (!this.fileImporter) {
+          throw new Error('文件导入器未初始化');
+        }
+
+        // 设置事件监听器，向渲染进程发送进度
+        this.fileImporter.on('import-progress', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('import:progress', data);
+          }
+        });
+
+        this.fileImporter.on('import-complete', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('import:complete', data);
+          }
+        });
+
+        const results = await this.fileImporter.importFiles(filePaths, options);
+
+        // 批量导入成功后，重建RAG索引
+        if (results.success.length > 0 && this.ragManager) {
+          await this.ragManager.rebuildIndex();
+        }
+
+        return results;
+      } catch (error) {
+        console.error('[Main] 批量导入文件失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('import:get-supported-formats', async () => {
+      try {
+        if (!this.fileImporter) {
+          throw new Error('文件导入器未初始化');
+        }
+
+        return this.fileImporter.getSupportedFormats();
+      } catch (error) {
+        console.error('[Main] 获取支持格式失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('import:check-file', async (_event, filePath) => {
+      try {
+        if (!this.fileImporter) {
+          throw new Error('文件导入器未初始化');
+        }
+
+        const isSupported = this.fileImporter.isSupportedFile(filePath);
+        const fileType = this.fileImporter.getFileType(filePath);
+
+        return {
+          isSupported,
+          fileType,
+        };
+      } catch (error) {
+        console.error('[Main] 检查文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 图片上传和 OCR
+    ipcMain.handle('image:select-images', async () => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        // 打开图片选择对话框
+        const result = await dialog.showOpenDialog(this.mainWindow, {
+          title: '选择要上传的图片',
+          filters: [
+            { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] },
+            { name: 'All Files', extensions: ['*'] },
+          ],
+          properties: ['openFile', 'multiSelections'],
+        });
+
+        if (result.canceled) {
+          return { canceled: true };
+        }
+
+        return {
+          canceled: false,
+          filePaths: result.filePaths,
+        };
+      } catch (error) {
+        console.error('[Main] 选择图片失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('image:upload', async (_event, imagePath, options) => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        // 设置事件监听器
+        this.imageUploader.on('upload-start', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('image:upload-start', data);
+          }
+        });
+
+        this.imageUploader.on('upload-complete', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('image:upload-complete', data);
+          }
+        });
+
+        this.imageUploader.on('ocr:progress', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('image:ocr-progress', data);
+          }
+        });
+
+        const result = await this.imageUploader.uploadImage(imagePath, options);
+        return result;
+      } catch (error) {
+        console.error('[Main] 上传图片失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('image:upload-batch', async (_event, imagePaths, options) => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        // 设置事件监听器
+        this.imageUploader.on('batch-progress', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('image:batch-progress', data);
+          }
+        });
+
+        this.imageUploader.on('batch-complete', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('image:batch-complete', data);
+          }
+        });
+
+        const results = await this.imageUploader.uploadImages(imagePaths, options);
+        return results;
+      } catch (error) {
+        console.error('[Main] 批量上传图片失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('image:ocr', async (_event, imagePath) => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        const result = await this.imageUploader.performOCR(imagePath);
+        return result;
+      } catch (error) {
+        console.error('[Main] OCR 识别失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('image:get', async (_event, imageId) => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        const image = await this.imageUploader.getImageInfo(imageId);
+        return image;
+      } catch (error) {
+        console.error('[Main] 获取图片失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('image:list', async (_event, options) => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        const images = await this.imageUploader.getAllImages(options);
+        return images;
+      } catch (error) {
+        console.error('[Main] 获取图片列表失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('image:search', async (_event, query) => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        const images = await this.imageUploader.searchImages(query);
+        return images;
+      } catch (error) {
+        console.error('[Main] 搜索图片失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('image:delete', async (_event, imageId) => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        const result = await this.imageUploader.deleteImage(imageId);
+        return result;
+      } catch (error) {
+        console.error('[Main] 删除图片失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('image:get-stats', async () => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        const stats = await this.imageUploader.getStats();
+        return stats;
+      } catch (error) {
+        console.error('[Main] 获取统计信息失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('image:get-supported-formats', async () => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        return this.imageUploader.getSupportedFormats();
+      } catch (error) {
+        console.error('[Main] 获取支持格式失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('image:get-supported-languages', async () => {
+      try {
+        if (!this.imageUploader) {
+          throw new Error('图片上传器未初始化');
+        }
+
+        return this.imageUploader.getSupportedLanguages();
+      } catch (error) {
+        console.error('[Main] 获取支持语言失败:', error);
+        throw error;
+      }
+    });
+
     // LLM服务 - 完整实现
     ipcMain.handle('llm:check-status', async () => {
       try {
@@ -751,6 +1196,803 @@ class ChainlessChainApp {
       }
     });
 
+    // RAG - 重排序功能
+    ipcMain.handle('rag:get-rerank-config', async () => {
+      try {
+        if (!this.ragManager) {
+          return null;
+        }
+
+        return this.ragManager.getRerankConfig();
+      } catch (error) {
+        console.error('[Main] 获取重排序配置失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('rag:set-reranking-enabled', async (_event, enabled) => {
+      try {
+        if (!this.ragManager) {
+          throw new Error('RAG服务未初始化');
+        }
+
+        this.ragManager.setRerankingEnabled(enabled);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 设置重排序状态失败:', error);
+        throw error;
+      }
+    });
+
+    // DID身份管理
+    ipcMain.handle('did:create-identity', async (_event, profile, options) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return await this.didManager.createIdentity(profile, options);
+      } catch (error) {
+        console.error('[Main] 创建身份失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:get-all-identities', async () => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.getAllIdentities();
+      } catch (error) {
+        console.error('[Main] 获取身份列表失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:get-identity', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.getIdentityByDID(did);
+      } catch (error) {
+        console.error('[Main] 获取身份失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:get-current-identity', async () => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.getCurrentIdentity();
+      } catch (error) {
+        console.error('[Main] 获取当前身份失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:set-default-identity', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        await this.didManager.setDefaultIdentity(did);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 设置默认身份失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:update-identity', async (_event, did, updates) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return await this.didManager.updateIdentityProfile(did, updates);
+      } catch (error) {
+        console.error('[Main] 更新身份失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:delete-identity', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return await this.didManager.deleteIdentity(did);
+      } catch (error) {
+        console.error('[Main] 删除身份失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:export-document', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.exportDIDDocument(did);
+      } catch (error) {
+        console.error('[Main] 导出DID文档失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:generate-qrcode', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.generateQRCodeData(did);
+      } catch (error) {
+        console.error('[Main] 生成二维码失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:verify-document', async (_event, document) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.verifyDIDDocument(document);
+      } catch (error) {
+        console.error('[Main] 验证DID文档失败:', error);
+        throw error;
+      }
+    });
+
+    // DID DHT操作
+    ipcMain.handle('did:publish-to-dht', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return await this.didManager.publishToDHT(did);
+      } catch (error) {
+        console.error('[Main] 发布DID到DHT失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:resolve-from-dht', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return await this.didManager.resolveFromDHT(did);
+      } catch (error) {
+        console.error('[Main] 从DHT解析DID失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:unpublish-from-dht', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return await this.didManager.unpublishFromDHT(did);
+      } catch (error) {
+        console.error('[Main] 从DHT取消发布DID失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:is-published-to-dht', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return await this.didManager.isPublishedToDHT(did);
+      } catch (error) {
+        console.error('[Main] 检查DID发布状态失败:', error);
+        return false;
+      }
+    });
+
+    // DID 自动重新发布
+    ipcMain.handle('did:start-auto-republish', async (_event, interval) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        this.didManager.startAutoRepublish(interval);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 启动自动重新发布失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:stop-auto-republish', async () => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        this.didManager.stopAutoRepublish();
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 停止自动重新发布失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:get-auto-republish-status', async () => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.getAutoRepublishStatus();
+      } catch (error) {
+        console.error('[Main] 获取自动重新发布状态失败:', error);
+        return {
+          enabled: false,
+          interval: 0,
+          intervalHours: 0,
+        };
+      }
+    });
+
+    ipcMain.handle('did:set-auto-republish-interval', async (_event, interval) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        this.didManager.setAutoRepublishInterval(interval);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 设置自动重新发布间隔失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:republish-all', async () => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return await this.didManager.republishAllDIDs();
+      } catch (error) {
+        console.error('[Main] 重新发布所有DID失败:', error);
+        throw error;
+      }
+    });
+
+    // DID 助记词管理
+    ipcMain.handle('did:generate-mnemonic', async (_event, strength) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.generateMnemonic(strength);
+      } catch (error) {
+        console.error('[Main] 生成助记词失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:validate-mnemonic', async (_event, mnemonic) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.validateMnemonic(mnemonic);
+      } catch (error) {
+        console.error('[Main] 验证助记词失败:', error);
+        return false;
+      }
+    });
+
+    ipcMain.handle('did:create-from-mnemonic', async (_event, profile, mnemonic, options) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return await this.didManager.createIdentityFromMnemonic(profile, mnemonic, options);
+      } catch (error) {
+        console.error('[Main] 从助记词创建身份失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:export-mnemonic', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.exportMnemonic(did);
+      } catch (error) {
+        console.error('[Main] 导出助记词失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('did:has-mnemonic', async (_event, did) => {
+      try {
+        if (!this.didManager) {
+          throw new Error('DID管理器未初始化');
+        }
+
+        return this.didManager.hasMnemonic(did);
+      } catch (error) {
+        console.error('[Main] 检查助记词失败:', error);
+        return false;
+      }
+    });
+
+    // 联系人管理
+    ipcMain.handle('contact:add', async (_event, contact) => {
+      try {
+        if (!this.contactManager) {
+          throw new Error('联系人管理器未初始化');
+        }
+
+        return await this.contactManager.addContact(contact);
+      } catch (error) {
+        console.error('[Main] 添加联系人失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('contact:add-from-qr', async (_event, qrData) => {
+      try {
+        if (!this.contactManager) {
+          throw new Error('联系人管理器未初始化');
+        }
+
+        return await this.contactManager.addContactFromQR(qrData);
+      } catch (error) {
+        console.error('[Main] 从二维码添加联系人失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('contact:get-all', async () => {
+      try {
+        if (!this.contactManager) {
+          return [];
+        }
+
+        return this.contactManager.getAllContacts();
+      } catch (error) {
+        console.error('[Main] 获取联系人列表失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('contact:get', async (_event, did) => {
+      try {
+        if (!this.contactManager) {
+          return null;
+        }
+
+        return this.contactManager.getContactByDID(did);
+      } catch (error) {
+        console.error('[Main] 获取联系人失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('contact:update', async (_event, did, updates) => {
+      try {
+        if (!this.contactManager) {
+          throw new Error('联系人管理器未初始化');
+        }
+
+        return await this.contactManager.updateContact(did, updates);
+      } catch (error) {
+        console.error('[Main] 更新联系人失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('contact:delete', async (_event, did) => {
+      try {
+        if (!this.contactManager) {
+          throw new Error('联系人管理器未初始化');
+        }
+
+        return await this.contactManager.deleteContact(did);
+      } catch (error) {
+        console.error('[Main] 删除联系人失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('contact:search', async (_event, query) => {
+      try {
+        if (!this.contactManager) {
+          return [];
+        }
+
+        return this.contactManager.searchContacts(query);
+      } catch (error) {
+        console.error('[Main] 搜索联系人失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('contact:get-friends', async () => {
+      try {
+        if (!this.contactManager) {
+          return [];
+        }
+
+        return this.contactManager.getFriends();
+      } catch (error) {
+        console.error('[Main] 获取好友列表失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('contact:get-statistics', async () => {
+      try {
+        if (!this.contactManager) {
+          return { total: 0, friends: 0, byRelationship: {} };
+        }
+
+        return this.contactManager.getStatistics();
+      } catch (error) {
+        console.error('[Main] 获取统计信息失败:', error);
+        return { total: 0, friends: 0, byRelationship: {} };
+      }
+    });
+
+    // P2P网络
+    ipcMain.handle('p2p:get-node-info', async () => {
+      try {
+        if (!this.p2pManager || !this.p2pManager.initialized) {
+          return null;
+        }
+
+        return this.p2pManager.getNodeInfo();
+      } catch (error) {
+        console.error('[Main] 获取节点信息失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('p2p:connect', async (_event, multiaddr) => {
+      try {
+        if (!this.p2pManager) {
+          throw new Error('P2P管理器未初始化');
+        }
+
+        return await this.p2pManager.connectToPeer(multiaddr);
+      } catch (error) {
+        console.error('[Main] 连接对等节点失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('p2p:disconnect', async (_event, peerId) => {
+      try {
+        if (!this.p2pManager) {
+          throw new Error('P2P管理器未初始化');
+        }
+
+        return await this.p2pManager.disconnectFromPeer(peerId);
+      } catch (error) {
+        console.error('[Main] 断开对等节点失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('p2p:get-peers', async () => {
+      try {
+        if (!this.p2pManager) {
+          return [];
+        }
+
+        return this.p2pManager.getConnectedPeers();
+      } catch (error) {
+        console.error('[Main] 获取对等节点列表失败:', error);
+        return [];
+      }
+    });
+
+    // 可验证凭证 (VC)
+    ipcMain.handle('vc:create', async (_event, params) => {
+      try {
+        if (!this.vcManager) {
+          throw new Error('可验证凭证管理器未初始化');
+        }
+
+        return await this.vcManager.createCredential(params);
+      } catch (error) {
+        console.error('[Main] 创建凭证失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc:get-all', async (_event, filters) => {
+      try {
+        if (!this.vcManager) {
+          return [];
+        }
+
+        return this.vcManager.getCredentials(filters);
+      } catch (error) {
+        console.error('[Main] 获取凭证列表失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('vc:get', async (_event, id) => {
+      try {
+        if (!this.vcManager) {
+          return null;
+        }
+
+        return this.vcManager.getCredentialById(id);
+      } catch (error) {
+        console.error('[Main] 获取凭证失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('vc:verify', async (_event, vcDocument) => {
+      try {
+        if (!this.vcManager) {
+          throw new Error('可验证凭证管理器未初始化');
+        }
+
+        return await this.vcManager.verifyCredential(vcDocument);
+      } catch (error) {
+        console.error('[Main] 验证凭证失败:', error);
+        return false;
+      }
+    });
+
+    ipcMain.handle('vc:revoke', async (_event, id, issuerDID) => {
+      try {
+        if (!this.vcManager) {
+          throw new Error('可验证凭证管理器未初始化');
+        }
+
+        return await this.vcManager.revokeCredential(id, issuerDID);
+      } catch (error) {
+        console.error('[Main] 撤销凭证失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc:delete', async (_event, id) => {
+      try {
+        if (!this.vcManager) {
+          throw new Error('可验证凭证管理器未初始化');
+        }
+
+        return await this.vcManager.deleteCredential(id);
+      } catch (error) {
+        console.error('[Main] 删除凭证失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc:export', async (_event, id) => {
+      try {
+        if (!this.vcManager) {
+          throw new Error('可验证凭证管理器未初始化');
+        }
+
+        return this.vcManager.exportCredential(id);
+      } catch (error) {
+        console.error('[Main] 导出凭证失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc:get-statistics', async (_event, did) => {
+      try {
+        if (!this.vcManager) {
+          return { issued: 0, received: 0, total: 0, byType: {} };
+        }
+
+        return this.vcManager.getStatistics(did);
+      } catch (error) {
+        console.error('[Main] 获取凭证统计失败:', error);
+        return { issued: 0, received: 0, total: 0, byType: {} };
+      }
+    });
+
+    ipcMain.handle('vc:generate-share-data', async (_event, id) => {
+      try {
+        if (!this.vcManager) {
+          throw new Error('可验证凭证管理器未初始化');
+        }
+
+        return await this.vcManager.generateShareData(id);
+      } catch (error) {
+        console.error('[Main] 生成分享数据失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc:import-from-share', async (_event, shareData) => {
+      try {
+        if (!this.vcManager) {
+          throw new Error('可验证凭证管理器未初始化');
+        }
+
+        return await this.vcManager.importFromShareData(shareData);
+      } catch (error) {
+        console.error('[Main] 导入分享凭证失败:', error);
+        throw error;
+      }
+    });
+
+    // VC模板管理 IPC处理器
+    ipcMain.handle('vc-template:get-all', async (_event, filters) => {
+      try {
+        if (!this.vcTemplateManager) {
+          return [];
+        }
+
+        return this.vcTemplateManager.getAllTemplates(filters);
+      } catch (error) {
+        console.error('[Main] 获取模板列表失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('vc-template:get', async (_event, id) => {
+      try {
+        if (!this.vcTemplateManager) {
+          return null;
+        }
+
+        return this.vcTemplateManager.getTemplateById(id);
+      } catch (error) {
+        console.error('[Main] 获取模板失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('vc-template:create', async (_event, templateData) => {
+      try {
+        if (!this.vcTemplateManager) {
+          throw new Error('凭证模板管理器未初始化');
+        }
+
+        return await this.vcTemplateManager.createTemplate(templateData);
+      } catch (error) {
+        console.error('[Main] 创建模板失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc-template:update', async (_event, id, updates) => {
+      try {
+        if (!this.vcTemplateManager) {
+          throw new Error('凭证模板管理器未初始化');
+        }
+
+        return await this.vcTemplateManager.updateTemplate(id, updates);
+      } catch (error) {
+        console.error('[Main] 更新模板失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc-template:delete', async (_event, id) => {
+      try {
+        if (!this.vcTemplateManager) {
+          throw new Error('凭证模板管理器未初始化');
+        }
+
+        return await this.vcTemplateManager.deleteTemplate(id);
+      } catch (error) {
+        console.error('[Main] 删除模板失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc-template:fill-values', async (_event, templateId, values) => {
+      try {
+        if (!this.vcTemplateManager) {
+          throw new Error('凭证模板管理器未初始化');
+        }
+
+        return this.vcTemplateManager.fillTemplateValues(templateId, values);
+      } catch (error) {
+        console.error('[Main] 填充模板值失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc-template:increment-usage', async (_event, id) => {
+      try {
+        if (!this.vcTemplateManager) {
+          return;
+        }
+
+        await this.vcTemplateManager.incrementUsageCount(id);
+      } catch (error) {
+        console.error('[Main] 更新模板使用次数失败:', error);
+      }
+    });
+
+    ipcMain.handle('vc-template:get-statistics', async () => {
+      try {
+        if (!this.vcTemplateManager) {
+          return { builtIn: 0, custom: 0, public: 0, total: 0 };
+        }
+
+        return this.vcTemplateManager.getStatistics();
+      } catch (error) {
+        console.error('[Main] 获取模板统计失败:', error);
+        return { builtIn: 0, custom: 0, public: 0, total: 0 };
+      }
+    });
+
+    ipcMain.handle('vc-template:export', async (_event, id) => {
+      try {
+        if (!this.vcTemplateManager) {
+          throw new Error('凭证模板管理器未初始化');
+        }
+
+        return this.vcTemplateManager.exportTemplate(id);
+      } catch (error) {
+        console.error('[Main] 导出模板失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc-template:export-multiple', async (_event, ids) => {
+      try {
+        if (!this.vcTemplateManager) {
+          throw new Error('凭证模板管理器未初始化');
+        }
+
+        return this.vcTemplateManager.exportTemplates(ids);
+      } catch (error) {
+        console.error('[Main] 批量导出模板失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('vc-template:import', async (_event, importData, createdBy, options) => {
+      try {
+        if (!this.vcTemplateManager) {
+          throw new Error('凭证模板管理器未初始化');
+        }
+
+        return await this.vcTemplateManager.importTemplate(importData, createdBy, options);
+      } catch (error) {
+        console.error('[Main] 导入模板失败:', error);
+        throw error;
+      }
+    });
+
     // Git同步 - 完整实现
     ipcMain.handle('git:status', async () => {
       try {
@@ -814,10 +2056,76 @@ class ChainlessChainApp {
           throw new Error('Git同步未启用');
         }
 
-        await this.gitManager.pull();
-        return true;
+        const result = await this.gitManager.pull();
+        return result;
       } catch (error) {
         console.error('[Main] Git拉取失败:', error);
+        throw error;
+      }
+    });
+
+    // Git冲突解决相关
+    ipcMain.handle('git:get-conflicts', async () => {
+      try {
+        if (!this.gitManager) {
+          throw new Error('Git同步未启用');
+        }
+
+        return await this.gitManager.getConflictFiles();
+      } catch (error) {
+        console.error('[Main] 获取冲突文件失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('git:get-conflict-content', async (_event, filepath) => {
+      try {
+        if (!this.gitManager) {
+          throw new Error('Git同步未启用');
+        }
+
+        return await this.gitManager.getConflictContent(filepath);
+      } catch (error) {
+        console.error('[Main] 获取冲突内容失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('git:resolve-conflict', async (_event, filepath, resolution, content) => {
+      try {
+        if (!this.gitManager) {
+          throw new Error('Git同步未启用');
+        }
+
+        return await this.gitManager.resolveConflict(filepath, resolution, content);
+      } catch (error) {
+        console.error('[Main] 解决冲突失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('git:abort-merge', async () => {
+      try {
+        if (!this.gitManager) {
+          throw new Error('Git同步未启用');
+        }
+
+        return await this.gitManager.abortMerge();
+      } catch (error) {
+        console.error('[Main] 中止合并失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('git:complete-merge', async (_event, message) => {
+      try {
+        if (!this.gitManager) {
+          throw new Error('Git同步未启用');
+        }
+
+        return await this.gitManager.completeMerge(message);
+      } catch (error) {
+        console.error('[Main] 完成合并失败:', error);
         throw error;
       }
     });

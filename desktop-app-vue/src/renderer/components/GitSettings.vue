@@ -129,23 +129,34 @@
         </a-form-item>
       </a-form>
 
-      <!-- 测试连接 -->
+      <!-- 测试连接与Git操作 -->
       <a-divider />
       <div class="test-section">
-        <h4>测试Git连接</h4>
+        <h4>Git操作</h4>
         <a-space>
           <a-button
             @click="handleTestConnection"
             :loading="testing"
             :disabled="!form.remoteUrl"
           >
+            <template #icon><api-outlined /></template>
             测试远程连接
           </a-button>
           <a-button
             @click="handleExportMarkdown"
             :loading="exporting"
           >
+            <template #icon><export-outlined /></template>
             导出Markdown
+          </a-button>
+          <a-button
+            type="primary"
+            @click="handlePull"
+            :loading="pulling"
+            :disabled="!form.remoteUrl"
+          >
+            <template #icon><download-outlined /></template>
+            拉取更新 (Pull)
           </a-button>
         </a-space>
         <div v-if="testResult" class="test-result" :class="testResult.success ? 'success' : 'error'">
@@ -153,18 +164,33 @@
         </div>
       </div>
     </a-card>
+
+    <!-- Git冲突解决器 -->
+    <GitConflictResolver
+      v-model:visible="showConflictResolver"
+      :conflicts="conflicts"
+      @resolved="handleConflictResolved"
+      @aborted="handleConflictAborted"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import { message } from 'ant-design-vue';
+import { ApiOutlined, ExportOutlined, DownloadOutlined } from '@ant-design/icons-vue';
+import GitConflictResolver from './GitConflictResolver.vue';
 
 const loading = ref(false);
 const saving = ref(false);
 const testing = ref(false);
 const exporting = ref(false);
+const pulling = ref(false);
 const testResult = ref(null);
+
+// 冲突解决相关
+const showConflictResolver = ref(false);
+const conflicts = ref([]);
 
 const form = reactive({
   enabled: false,
@@ -307,6 +333,60 @@ async function handleExportMarkdown() {
   } finally {
     exporting.value = false;
   }
+}
+
+// 拉取更新
+async function handlePull() {
+  if (!form.remoteUrl) {
+    message.warning('请先配置远程仓库URL');
+    return;
+  }
+
+  pulling.value = true;
+  try {
+    const result = await window.electronAPI.git.pull();
+
+    if (result.hasConflicts) {
+      // 检测到冲突，显示冲突解决器
+      conflicts.value = result.conflicts || [];
+      showConflictResolver.value = true;
+      message.warning('检测到合并冲突，请手动解决');
+    } else if (result.success) {
+      message.success('拉取成功！');
+      testResult.value = {
+        success: true,
+        message: '拉取成功，仓库已更新',
+      };
+    }
+  } catch (error) {
+    message.error('拉取失败: ' + error.message);
+    testResult.value = {
+      success: false,
+      message: '拉取失败: ' + error.message,
+    };
+  } finally {
+    pulling.value = false;
+  }
+}
+
+// 冲突解决完成
+function handleConflictResolved() {
+  message.success('所有冲突已解决，合并完成');
+  testResult.value = {
+    success: true,
+    message: '冲突已解决，合并成功',
+  };
+  conflicts.value = [];
+}
+
+// 中止合并
+function handleConflictAborted() {
+  message.info('合并已中止');
+  testResult.value = {
+    success: false,
+    message: '合并已中止',
+  };
+  conflicts.value = [];
 }
 
 onMounted(() => {

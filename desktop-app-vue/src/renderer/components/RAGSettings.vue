@@ -142,10 +142,24 @@
       </a-form>
     </a-card>
 
-    <!-- 索引统计 -->
-    <a-card title="索引统计" class="stats-card">
+    <!-- 向量存储状态 -->
+    <a-card title="向量存储" class="vector-store-card">
       <a-spin :spinning="loadingStats">
         <a-descriptions bordered :column="1">
+          <a-descriptions-item label="存储模式">
+            <a-tag v-if="stats.storageMode === 'chromadb'" color="success">
+              ChromaDB (持久化)
+            </a-tag>
+            <a-tag v-else-if="stats.storageMode === 'memory'" color="warning">
+              内存模式 (临时)
+            </a-tag>
+            <a-tag v-else color="default">
+              未知
+            </a-tag>
+          </a-descriptions-item>
+          <a-descriptions-item v-if="stats.chromaUrl" label="ChromaDB地址">
+            {{ stats.chromaUrl }}
+          </a-descriptions-item>
           <a-descriptions-item label="索引文档数">
             {{ stats.totalItems || 0 }} 个
           </a-descriptions-item>
@@ -157,23 +171,47 @@
           </a-descriptions-item>
         </a-descriptions>
 
-        <div style="margin-top: 16px">
+        <a-alert
+          v-if="stats.storageMode === 'memory'"
+          style="margin-top: 16px"
+          type="warning"
+          message="当前使用内存模式"
+          description="ChromaDB服务未连接，向量数据存储在内存中，应用重启后将丢失。建议启动ChromaDB服务以获得持久化存储。"
+          show-icon
+        />
+
+        <a-alert
+          v-if="stats.storageMode === 'chromadb'"
+          style="margin-top: 16px"
+          type="success"
+          message="ChromaDB已连接"
+          description="向量数据已持久化存储到ChromaDB，重启应用后数据不会丢失。"
+          show-icon
+        />
+      </a-spin>
+    </a-card>
+
+    <!-- 索引管理 -->
+    <a-card title="索引管理" class="stats-card">
+      <a-spin :spinning="loadingStats">
+        <div style="margin-bottom: 16px">
           <a-space>
             <a-button
               type="primary"
               :loading="rebuilding"
               @click="handleRebuildIndex"
             >
+              <template #icon><reload-outlined /></template>
               重建索引
             </a-button>
             <a-button @click="loadStats">
+              <template #icon><sync-outlined /></template>
               刷新统计
             </a-button>
           </a-space>
         </div>
 
         <a-alert
-          style="margin-top: 16px"
           type="info"
           message="关于向量索引"
           description="重建索引会为所有知识库条目重新生成向量嵌入。如果您修改了大量知识库内容或更换了嵌入模型，建议重建索引以获得最佳检索效果。"
@@ -230,6 +268,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
+import { ReloadOutlined, SyncOutlined } from '@ant-design/icons-vue';
 
 // 配置
 const config = ref({
@@ -353,6 +392,7 @@ onMounted(async () => {
 }
 
 .config-card,
+.vector-store-card,
 .stats-card,
 .workflow-card {
   margin-bottom: 16px;
