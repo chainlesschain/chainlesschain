@@ -13,7 +13,7 @@
 
 A fully decentralized personal AI assistant platform integrating knowledge base management, social networking, and transaction assistance.
 
-[中文](./README.md) | [Design Document](./系统设计_个人移动AI管理系统.md) | [Progress Report](./项目完成度报告_2025-12-18.md)
+[中文](./README.md) | [Design Document](./系统设计_个人移动AI管理系统.md) | [Progress Report](./PROJECT_PROGRESS_REPORT_2025-12-18.md)
 
 </div>
 
