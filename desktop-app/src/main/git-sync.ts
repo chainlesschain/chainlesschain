@@ -2,7 +2,7 @@ import * as git from 'isomorphic-git';
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
-import { Database } from './database';
+import { IDatabase } from './database-interface';
 
 export interface GitStatus {
   branch: string;
@@ -18,9 +18,9 @@ export interface GitStatus {
 export class GitSync {
   private repoPath: string;
   // @ts-ignore - 用于未来实现
-  private database: Database;
+  private database: IDatabase;
 
-  constructor(database: Database) {
+  constructor(database: IDatabase) {
     this.database = database;
 
     const userDataPath = app.getPath('userData');

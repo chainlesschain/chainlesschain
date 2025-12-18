@@ -1,13 +1,14 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
-import { Database } from './database';
+// import { Database } from './database'; // 旧的内存数据库
+import { SQLCipherDatabase } from './database-sqlcipher';
 import { UKeyManager } from './ukey';
 import { GitSync } from './git-sync';
 import { LLMService } from './llm-service';
 
 class ChainlessChainApp {
   private mainWindow: BrowserWindow | null = null;
-  private database: Database | null = null;
+  private database: SQLCipherDatabase | null = null;
   private ukeyManager: UKeyManager | null = null;
   private gitSync: GitSync | null = null;
   private llmService: LLMService | null = null;
@@ -54,12 +55,14 @@ class ChainlessChainApp {
   }
 
   private async initializeComponents() {
-    console.log('初始化数据库...');
-    this.database = new Database();
-    await this.database.initialize();
-
     console.log('初始化U盾管理器...');
     this.ukeyManager = new UKeyManager();
+
+    console.log('初始化SQLCipher数据库...');
+    this.database = new SQLCipherDatabase();
+    // TODO: 后续从U盾获取加密密钥
+    // const encryptionKey = await this.ukeyManager.getDatabaseKey();
+    await this.database.initialize(/* encryptionKey */);
 
     console.log('初始化Git同步...');
     this.gitSync = new GitSync(this.database);

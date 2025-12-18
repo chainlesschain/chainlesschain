@@ -43,7 +43,8 @@
       "Bash(mvn dependency:tree:*)",
       "Bash(grep:*)",
       "Bash(cmd //c \"cd C:\\code\\chainlesschain\\community-forum\\backend && mvn clean compile -DskipTests\")",
-      "Bash(mysql:*)"
+      "Bash(mysql:*)",
+      "Bash(npm config:*)"
     ],
     "deny": [],
     "ask": []
