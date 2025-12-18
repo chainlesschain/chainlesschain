@@ -10,6 +10,7 @@ const { getLLMConfig } = require('./llm/llm-config');
 const { RAGManager } = require('./rag/rag-manager');
 const FileImporter = require('./import/file-importer');
 const ImageUploader = require('./image/image-uploader');
+const PromptTemplateManager = require('./prompt/prompt-template-manager');
 
 class ChainlessChainApp {
   constructor() {
@@ -23,6 +24,7 @@ class ChainlessChainApp {
     this.vcTemplateManager = null;
     this.fileImporter = null;
     this.imageUploader = null;
+    this.promptTemplateManager = null;
     this.autoSyncTimer = null;
     this.setupApp();
   }
@@ -168,6 +170,17 @@ class ChainlessChainApp {
     } catch (error) {
       console.error('图片上传器初始化失败:', error);
       // 图片上传器初始化失败不影响应用启动
+    }
+
+    // 初始化提示词模板管理器
+    try {
+      console.log('初始化提示词模板管理器...');
+      this.promptTemplateManager = new PromptTemplateManager(this.database);
+      await this.promptTemplateManager.initialize();
+      console.log('提示词模板管理器初始化成功');
+    } catch (error) {
+      console.error('提示词模板管理器初始化失败:', error);
+      // 提示词模板管理器初始化失败不影响应用启动
     }
 
     // 初始化DID管理器
@@ -971,6 +984,150 @@ class ChainlessChainApp {
         return this.imageUploader.getSupportedLanguages();
       } catch (error) {
         console.error('[Main] 获取支持语言失败:', error);
+        throw error;
+      }
+    });
+
+    // 提示词模板管理
+    ipcMain.handle('prompt-template:get-all', async (_event, filters) => {
+      try {
+        if (!this.promptTemplateManager) {
+          return [];
+        }
+
+        return await this.promptTemplateManager.getTemplates(filters);
+      } catch (error) {
+        console.error('[Main] 获取模板列表失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('prompt-template:get', async (_event, id) => {
+      try {
+        if (!this.promptTemplateManager) {
+          return null;
+        }
+
+        return await this.promptTemplateManager.getTemplateById(id);
+      } catch (error) {
+        console.error('[Main] 获取模板失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('prompt-template:create', async (_event, templateData) => {
+      try {
+        if (!this.promptTemplateManager) {
+          throw new Error('提示词模板管理器未初始化');
+        }
+
+        return await this.promptTemplateManager.createTemplate(templateData);
+      } catch (error) {
+        console.error('[Main] 创建模板失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('prompt-template:update', async (_event, id, updates) => {
+      try {
+        if (!this.promptTemplateManager) {
+          throw new Error('提示词模板管理器未初始化');
+        }
+
+        return await this.promptTemplateManager.updateTemplate(id, updates);
+      } catch (error) {
+        console.error('[Main] 更新模板失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('prompt-template:delete', async (_event, id) => {
+      try {
+        if (!this.promptTemplateManager) {
+          throw new Error('提示词模板管理器未初始化');
+        }
+
+        return await this.promptTemplateManager.deleteTemplate(id);
+      } catch (error) {
+        console.error('[Main] 删除模板失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('prompt-template:fill', async (_event, id, values) => {
+      try {
+        if (!this.promptTemplateManager) {
+          throw new Error('提示词模板管理器未初始化');
+        }
+
+        return await this.promptTemplateManager.fillTemplate(id, values);
+      } catch (error) {
+        console.error('[Main] 填充模板失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('prompt-template:get-categories', async () => {
+      try {
+        if (!this.promptTemplateManager) {
+          return [];
+        }
+
+        return await this.promptTemplateManager.getCategories();
+      } catch (error) {
+        console.error('[Main] 获取分类失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('prompt-template:search', async (_event, query) => {
+      try {
+        if (!this.promptTemplateManager) {
+          return [];
+        }
+
+        return await this.promptTemplateManager.searchTemplates(query);
+      } catch (error) {
+        console.error('[Main] 搜索模板失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('prompt-template:get-statistics', async () => {
+      try {
+        if (!this.promptTemplateManager) {
+          return { total: 0, system: 0, custom: 0, byCategory: {}, mostUsed: [] };
+        }
+
+        return await this.promptTemplateManager.getStatistics();
+      } catch (error) {
+        console.error('[Main] 获取统计信息失败:', error);
+        return { total: 0, system: 0, custom: 0, byCategory: {}, mostUsed: [] };
+      }
+    });
+
+    ipcMain.handle('prompt-template:export', async (_event, id) => {
+      try {
+        if (!this.promptTemplateManager) {
+          throw new Error('提示词模板管理器未初始化');
+        }
+
+        return await this.promptTemplateManager.exportTemplate(id);
+      } catch (error) {
+        console.error('[Main] 导出模板失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('prompt-template:import', async (_event, importData) => {
+      try {
+        if (!this.promptTemplateManager) {
+          throw new Error('提示词模板管理器未初始化');
+        }
+
+        return await this.promptTemplateManager.importTemplate(importData);
+      } catch (error) {
+        console.error('[Main] 导入模板失败:', error);
         throw error;
       }
     });

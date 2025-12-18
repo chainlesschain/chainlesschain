@@ -185,6 +185,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
   },
 
+  // 提示词模板管理
+  promptTemplate: {
+    getAll: (filters) => ipcRenderer.invoke('prompt-template:get-all', filters),
+    get: (id) => ipcRenderer.invoke('prompt-template:get', id),
+    create: (templateData) => ipcRenderer.invoke('prompt-template:create', templateData),
+    update: (id, updates) => ipcRenderer.invoke('prompt-template:update', id, updates),
+    delete: (id) => ipcRenderer.invoke('prompt-template:delete', id),
+    fill: (id, values) => ipcRenderer.invoke('prompt-template:fill', id, values),
+    getCategories: () => ipcRenderer.invoke('prompt-template:get-categories'),
+    search: (query) => ipcRenderer.invoke('prompt-template:search', query),
+    getStatistics: () => ipcRenderer.invoke('prompt-template:get-statistics'),
+    export: (id) => ipcRenderer.invoke('prompt-template:export', id),
+    import: (importData) => ipcRenderer.invoke('prompt-template:import', importData),
+  },
+
   // 系统操作
   system: {
     getVersion: () => ipcRenderer.invoke('system:get-version'),

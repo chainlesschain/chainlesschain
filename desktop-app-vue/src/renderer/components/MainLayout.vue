@@ -84,6 +84,12 @@
               </a-button>
             </a-tooltip>
 
+            <a-tooltip title="提示词模板">
+              <a-button type="text" @click="router.push('/prompt-templates')">
+                <FileTextOutlined />
+              </a-button>
+            </a-tooltip>
+
             <a-tooltip title="DID身份">
               <a-button type="text" @click="router.push('/did')">
                 <IdcardOutlined />

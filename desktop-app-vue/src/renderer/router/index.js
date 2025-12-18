@@ -49,6 +49,12 @@ const routes = [
         component: () => import('../components/ImageUpload.vue'),
         meta: { title: '图片上传' },
       },
+      {
+        path: 'prompt-templates',
+        name: 'PromptTemplates',
+        component: () => import('../components/PromptTemplates.vue'),
+        meta: { title: '提示词模板' },
+      },
     ],
   },
 ];
