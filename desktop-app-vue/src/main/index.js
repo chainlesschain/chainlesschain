@@ -245,6 +245,18 @@ class ChainlessChainApp {
       console.error('联系人管理器初始化失败:', error);
     }
 
+    // 初始化好友管理器
+    try {
+      console.log('初始化好友管理器...');
+      const { FriendManager } = require('./social/friend-manager');
+      this.friendManager = new FriendManager(this.database, this.didManager, this.p2pManager);
+      await this.friendManager.initialize();
+      console.log('好友管理器初始化成功');
+    } catch (error) {
+      console.error('好友管理器初始化失败:', error);
+      // 不影响应用启动
+    }
+
     // 初始化可验证凭证管理器
     try {
       console.log('初始化可验证凭证管理器...');
@@ -1869,6 +1881,124 @@ class ChainlessChainApp {
       } catch (error) {
         console.error('[Main] 获取统计信息失败:', error);
         return { total: 0, friends: 0, byRelationship: {} };
+      }
+    });
+
+    // 好友管理
+    ipcMain.handle('friend:send-request', async (_event, targetDid, message) => {
+      try {
+        if (!this.friendManager) {
+          throw new Error('好友管理器未初始化');
+        }
+
+        return await this.friendManager.sendFriendRequest(targetDid, message);
+      } catch (error) {
+        console.error('[Main] 发送好友请求失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('friend:accept-request', async (_event, requestId) => {
+      try {
+        if (!this.friendManager) {
+          throw new Error('好友管理器未初始化');
+        }
+
+        return await this.friendManager.acceptFriendRequest(requestId);
+      } catch (error) {
+        console.error('[Main] 接受好友请求失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('friend:reject-request', async (_event, requestId) => {
+      try {
+        if (!this.friendManager) {
+          throw new Error('好友管理器未初始化');
+        }
+
+        return await this.friendManager.rejectFriendRequest(requestId);
+      } catch (error) {
+        console.error('[Main] 拒绝好友请求失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('friend:get-pending-requests', async () => {
+      try {
+        if (!this.friendManager) {
+          return [];
+        }
+
+        return await this.friendManager.getPendingFriendRequests();
+      } catch (error) {
+        console.error('[Main] 获取待处理好友请求失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('friend:get-friends', async (_event, groupName) => {
+      try {
+        if (!this.friendManager) {
+          return [];
+        }
+
+        return await this.friendManager.getFriends(groupName);
+      } catch (error) {
+        console.error('[Main] 获取好友列表失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('friend:remove', async (_event, friendDid) => {
+      try {
+        if (!this.friendManager) {
+          throw new Error('好友管理器未初始化');
+        }
+
+        return await this.friendManager.removeFriend(friendDid);
+      } catch (error) {
+        console.error('[Main] 删除好友失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('friend:update-nickname', async (_event, friendDid, nickname) => {
+      try {
+        if (!this.friendManager) {
+          throw new Error('好友管理器未初始化');
+        }
+
+        return await this.friendManager.updateFriendNickname(friendDid, nickname);
+      } catch (error) {
+        console.error('[Main] 更新好友备注失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('friend:update-group', async (_event, friendDid, groupName) => {
+      try {
+        if (!this.friendManager) {
+          throw new Error('好友管理器未初始化');
+        }
+
+        return await this.friendManager.updateFriendGroup(friendDid, groupName);
+      } catch (error) {
+        console.error('[Main] 更新好友分组失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('friend:get-statistics', async () => {
+      try {
+        if (!this.friendManager) {
+          return { total: 0, online: 0, offline: 0, byGroup: {} };
+        }
+
+        return await this.friendManager.getStatistics();
+      } catch (error) {
+        console.error('[Main] 获取好友统计失败:', error);
+        return { total: 0, online: 0, offline: 0, byGroup: {} };
       }
     });
 
