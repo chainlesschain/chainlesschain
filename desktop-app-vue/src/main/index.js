@@ -227,6 +227,12 @@ class ChainlessChainApp {
             console.error('启动 DID 自动重新发布失败:', error);
           }
         }
+
+        // 设置好友管理器到 P2P 管理器 (在 friend manager 初始化后)
+        if (this.friendManager) {
+          this.p2pManager.setFriendManager(this.friendManager);
+          console.log('好友管理器已设置到 P2P 管理器');
+        }
       }).catch((error) => {
         console.error('P2P管理器初始化失败:', error);
       });

@@ -45,6 +45,7 @@ class P2PManager extends EventEmitter {
     this.signalManager = null; // Signal 加密会话管理器
     this.deviceManager = null; // 设备管理器
     this.syncManager = null;   // 设备同步管理器
+    this.friendManager = null; // 好友管理器
     this.initialized = false;
   }
 
@@ -1004,6 +1005,100 @@ class P2PManager extends EventEmitter {
     }
 
     return this.deviceManager.getStatistics();
+  }
+
+  /**
+   * 设置好友管理器
+   * @param {FriendManager} friendManager - 好友管理器实例
+   */
+  setFriendManager(friendManager) {
+    this.friendManager = friendManager;
+
+    // 注册好友请求协议处理器
+    this.registerFriendProtocols();
+
+    console.log('[P2PManager] 好友管理器已设置');
+  }
+
+  /**
+   * 注册好友相关协议处理器
+   */
+  registerFriendProtocols() {
+    if (!this.friendManager) {
+      console.warn('[P2PManager] 好友管理器未设置，跳过协议注册');
+      return;
+    }
+
+    // 处理好友请求
+    this.node.handle('/chainlesschain/friend-request/1.0.0', async ({ stream, connection }) => {
+      try {
+        const data = [];
+        for await (const chunk of stream.source) {
+          data.push(chunk.subarray());
+        }
+
+        const requestData = Buffer.concat(data);
+        const request = JSON.parse(requestData.toString());
+        const senderId = connection.remotePeer.toString();
+
+        console.log('[P2PManager] 收到好友请求:', senderId);
+
+        // 解密消息内容（如果已建立加密会话）
+        let decryptedMessage = request.message;
+        if (request.encrypted && this.signalManager) {
+          try {
+            decryptedMessage = await this.signalManager.decryptMessage(
+              senderId,
+              1,
+              request.message
+            );
+          } catch (error) {
+            console.warn('[P2PManager] 解密好友请求失败，使用原始消息:', error);
+          }
+        }
+
+        // 转发给好友管理器处理
+        await this.friendManager.handleFriendRequestReceived(
+          request.from,
+          decryptedMessage,
+          request.timestamp
+        );
+
+        // 发送确认响应
+        await stream.write(Buffer.from(JSON.stringify({ success: true })));
+        await stream.close();
+      } catch (error) {
+        console.error('[P2PManager] 处理好友请求失败:', error);
+      }
+    });
+
+    // 处理好友请求接受通知
+    this.node.handle('/chainlesschain/friend-request-accepted/1.0.0', async ({ stream, connection }) => {
+      try {
+        const data = [];
+        for await (const chunk of stream.source) {
+          data.push(chunk.subarray());
+        }
+
+        const responseData = Buffer.concat(data);
+        const response = JSON.parse(responseData.toString());
+        const friendDid = connection.remotePeer.toString();
+
+        console.log('[P2PManager] 好友请求已被接受:', friendDid);
+
+        // 触发事件通知 UI
+        this.emit('friend-request:accepted', {
+          friendDid: response.from,
+          timestamp: response.timestamp,
+        });
+
+        await stream.close();
+      } catch (error) {
+        console.error('[P2PManager] 处理好友请求接受通知失败:', error);
+      }
+    });
+
+    console.log('[P2PManager] 好友协议处理器已注册');
   }
 
   /**
