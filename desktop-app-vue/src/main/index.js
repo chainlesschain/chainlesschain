@@ -322,6 +322,23 @@ class ChainlessChainApp {
       // 不影响应用启动
     }
 
+    // 初始化智能合约引擎
+    try {
+      console.log('初始化智能合约引擎...');
+      const { SmartContractEngine } = require('./trade/contract-engine');
+      this.contractEngine = new SmartContractEngine(
+        this.database,
+        this.didManager,
+        this.assetManager,
+        this.escrowManager
+      );
+      await this.contractEngine.initialize();
+      console.log('智能合约引擎初始化成功');
+    } catch (error) {
+      console.error('智能合约引擎初始化失败:', error);
+      // 不影响应用启动
+    }
+
     // 初始化可验证凭证管理器
     try {
       console.log('初始化可验证凭证管理器...');
@@ -2533,6 +2550,213 @@ class ChainlessChainApp {
         return await this.escrowManager.getStatistics();
       } catch (error) {
         console.error('[Main] 获取托管统计信息失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 智能合约 ====================
+
+    // 创建合约
+    ipcMain.handle('contract:create', async (_event, options) => {
+      try {
+        if (!this.contractEngine) {
+          throw new Error('智能合约引擎未初始化');
+        }
+
+        return await this.contractEngine.createContract(options);
+      } catch (error) {
+        console.error('[Main] 创建合约失败:', error);
+        throw error;
+      }
+    });
+
+    // 激活合约
+    ipcMain.handle('contract:activate', async (_event, contractId) => {
+      try {
+        if (!this.contractEngine) {
+          throw new Error('智能合约引擎未初始化');
+        }
+
+        return await this.contractEngine.activateContract(contractId);
+      } catch (error) {
+        console.error('[Main] 激活合约失败:', error);
+        throw error;
+      }
+    });
+
+    // 签名合约
+    ipcMain.handle('contract:sign', async (_event, contractId, signature) => {
+      try {
+        if (!this.contractEngine) {
+          throw new Error('智能合约引擎未初始化');
+        }
+
+        return await this.contractEngine.signContract(contractId, signature);
+      } catch (error) {
+        console.error('[Main] 签名合约失败:', error);
+        throw error;
+      }
+    });
+
+    // 检查合约条件
+    ipcMain.handle('contract:check-conditions', async (_event, contractId) => {
+      try {
+        if (!this.contractEngine) {
+          return { allMet: false, conditions: [] };
+        }
+
+        return await this.contractEngine.checkConditions(contractId);
+      } catch (error) {
+        console.error('[Main] 检查合约条件失败:', error);
+        throw error;
+      }
+    });
+
+    // 执行合约
+    ipcMain.handle('contract:execute', async (_event, contractId) => {
+      try {
+        if (!this.contractEngine) {
+          throw new Error('智能合约引擎未初始化');
+        }
+
+        return await this.contractEngine.executeContract(contractId);
+      } catch (error) {
+        console.error('[Main] 执行合约失败:', error);
+        throw error;
+      }
+    });
+
+    // 取消合约
+    ipcMain.handle('contract:cancel', async (_event, contractId, reason) => {
+      try {
+        if (!this.contractEngine) {
+          throw new Error('智能合约引擎未初始化');
+        }
+
+        return await this.contractEngine.cancelContract(contractId, reason);
+      } catch (error) {
+        console.error('[Main] 取消合约失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取合约详情
+    ipcMain.handle('contract:get', async (_event, contractId) => {
+      try {
+        if (!this.contractEngine) {
+          return null;
+        }
+
+        return await this.contractEngine.getContract(contractId);
+      } catch (error) {
+        console.error('[Main] 获取合约详情失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取合约列表
+    ipcMain.handle('contract:get-list', async (_event, filters) => {
+      try {
+        if (!this.contractEngine) {
+          return [];
+        }
+
+        return await this.contractEngine.getContracts(filters);
+      } catch (error) {
+        console.error('[Main] 获取合约列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取合约条件
+    ipcMain.handle('contract:get-conditions', async (_event, contractId) => {
+      try {
+        if (!this.contractEngine) {
+          return [];
+        }
+
+        return await this.contractEngine.getContractConditions(contractId);
+      } catch (error) {
+        console.error('[Main] 获取合约条件失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取合约事件
+    ipcMain.handle('contract:get-events', async (_event, contractId) => {
+      try {
+        if (!this.contractEngine) {
+          return [];
+        }
+
+        return await this.contractEngine.getContractEvents(contractId);
+      } catch (error) {
+        console.error('[Main] 获取合约事件失败:', error);
+        throw error;
+      }
+    });
+
+    // 发起仲裁
+    ipcMain.handle('contract:initiate-arbitration', async (_event, contractId, reason, evidence) => {
+      try {
+        if (!this.contractEngine) {
+          throw new Error('智能合约引擎未初始化');
+        }
+
+        return await this.contractEngine.initiateArbitration(contractId, reason, evidence);
+      } catch (error) {
+        console.error('[Main] 发起仲裁失败:', error);
+        throw error;
+      }
+    });
+
+    // 解决仲裁
+    ipcMain.handle('contract:resolve-arbitration', async (_event, arbitrationId, resolution) => {
+      try {
+        if (!this.contractEngine) {
+          throw new Error('智能合约引擎未初始化');
+        }
+
+        return await this.contractEngine.resolveArbitration(arbitrationId, resolution);
+      } catch (error) {
+        console.error('[Main] 解决仲裁失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取合约模板列表
+    ipcMain.handle('contract:get-templates', async () => {
+      try {
+        const ContractTemplates = require('./trade/contract-templates');
+        return ContractTemplates.getAllTemplates();
+      } catch (error) {
+        console.error('[Main] 获取合约模板列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 从模板创建合约
+    ipcMain.handle('contract:create-from-template', async (_event, templateId, params) => {
+      try {
+        const ContractTemplates = require('./trade/contract-templates');
+
+        // 验证参数
+        const validation = ContractTemplates.validateParams(templateId, params);
+        if (!validation.valid) {
+          throw new Error(`参数验证失败: ${validation.errors.join(', ')}`);
+        }
+
+        // 从模板创建合约
+        const contractOptions = ContractTemplates.createFromTemplate(templateId, params);
+
+        // 调用合约引擎创建合约
+        if (!this.contractEngine) {
+          throw new Error('智能合约引擎未初始化');
+        }
+
+        return await this.contractEngine.createContract(contractOptions);
+      } catch (error) {
+        console.error('[Main] 从模板创建合约失败:', error);
         throw error;
       }
     });

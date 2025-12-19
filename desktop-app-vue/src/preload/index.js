@@ -180,6 +180,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStatistics: () => ipcRenderer.invoke('escrow:get-statistics'),
   },
 
+  // 智能合约
+  contract: {
+    create: (options) => ipcRenderer.invoke('contract:create', options),
+    activate: (contractId) => ipcRenderer.invoke('contract:activate', contractId),
+    sign: (contractId, signature) => ipcRenderer.invoke('contract:sign', contractId, signature),
+    checkConditions: (contractId) => ipcRenderer.invoke('contract:check-conditions', contractId),
+    execute: (contractId) => ipcRenderer.invoke('contract:execute', contractId),
+    cancel: (contractId, reason) => ipcRenderer.invoke('contract:cancel', contractId, reason),
+    get: (contractId) => ipcRenderer.invoke('contract:get', contractId),
+    getList: (filters) => ipcRenderer.invoke('contract:get-list', filters),
+    getConditions: (contractId) => ipcRenderer.invoke('contract:get-conditions', contractId),
+    getEvents: (contractId) => ipcRenderer.invoke('contract:get-events', contractId),
+    initiateArbitration: (contractId, reason, evidence) => ipcRenderer.invoke('contract:initiate-arbitration', contractId, reason, evidence),
+    resolveArbitration: (arbitrationId, resolution) => ipcRenderer.invoke('contract:resolve-arbitration', arbitrationId, resolution),
+    getTemplates: () => ipcRenderer.invoke('contract:get-templates'),
+    createFromTemplate: (templateId, params) => ipcRenderer.invoke('contract:create-from-template', templateId, params),
+  },
+
   // P2P网络
   p2p: {
     getNodeInfo: () => ipcRenderer.invoke('p2p:get-node-info'),
