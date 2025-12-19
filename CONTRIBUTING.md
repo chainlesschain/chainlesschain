@@ -208,7 +208,6 @@ chainlesschain/
 │   └── src/renderer/     # Frontend (Vue3 components)
 ├── community-forum/      # Forum backend + frontend
 ├── android-app/          # Android native app
-├── mobile-app/           # React Native app
 └── docs/                 # Documentation
 ```
 

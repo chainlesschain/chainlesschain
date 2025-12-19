@@ -1,9 +1,9 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Root is a JavaScript/TypeScript monorepo. Primary app lives in `desktop-app-vue` (Electron + Vue3 + TS) with `src/main` for the Electron process, `src/renderer` for UI, `src/shared` for cross-process types, and `src/preload` for the bridge.  
-- `backend/docker` holds Docker Compose for LLM/RAG services; `backend/scripts` handles setup helpers.  
-- `mobile-app/android` is the Android client scaffold; iOS is reserved.  
+- Root is a JavaScript/TypeScript monorepo. Primary app lives in `desktop-app-vue` (Electron + Vue3 + TS) with `src/main` for the Electron process, `src/renderer` for UI, `src/shared` for cross-process types, and `src/preload` for the bridge.
+- `backend/docker` holds Docker Compose for LLM/RAG services; `backend/scripts` handles setup helpers.
+- `android-app` is the Android native client (Kotlin + Jetpack Compose).
 - `docs` contains design and process docs; `scripts` at root hosts automation (setup, database init).
 
 ## Build, Test, and Development Commands

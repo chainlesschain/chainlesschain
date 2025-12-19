@@ -143,11 +143,6 @@ npm run dev
 # Android app
 cd android-app
 ./gradlew assembleDebug
-
-# React Native mobile app
-cd mobile-app
-npm install
-npm run android  # or npm run ios
 ```
 
 ## 📁 Project Structure
@@ -185,11 +180,6 @@ chainlesschain/
 │       │   └── res/         # Resources
 │       └── ...
 │
-├── mobile-app/              # 📱 React Native App
-│   ├── android/             # Android platform
-│   ├── ios/                 # iOS platform
-│   └── src/                 # Cross-platform code
-│
 ├── docker-compose.yml       # 🐳 Docker service configuration
 │   # - Ollama (LLM inference)
 │   # - Qdrant (Vector database)
@@ -213,7 +203,6 @@ chainlesschain/
 | **desktop-app-vue** | Electron + Vue3 | 95% | ✅ Production Ready | Main PC app with all features |
 | community-forum | Spring Boot + Vue3 | 80% | ✅ Available | Community forum system |
 | android-app | Kotlin Native | 60% | 🟡 Architecture Done | Android native app |
-| mobile-app | React Native | 30% | 🟡 In Development | Cross-platform mobile app |
 
 ## 🗓️ Roadmap
 

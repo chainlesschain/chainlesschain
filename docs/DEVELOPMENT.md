@@ -121,9 +121,8 @@ chainlesschain/
 │       ├── setup.sh          # Linux/Mac初始化脚本
 │       └── setup.bat         # Windows初始化脚本
 │
-├── mobile-app/               # 移动端应用 (待开发)
-│   ├── android/              # Android
-│   └── ios/                  # iOS
+├── android-app/              # Android原生应用
+│   └── app/src/              # Kotlin + Jetpack Compose
 │
 ├── docs/                     # 文档
 │   ├── DEVELOPMENT.md        # 开发指南 (本文件)
