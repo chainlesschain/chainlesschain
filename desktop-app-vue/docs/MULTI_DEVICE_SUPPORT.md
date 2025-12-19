@@ -1,8 +1,8 @@
 # 多设备支持实现报告
 
 **实现日期**: 2025-12-18
-**版本**: v0.15.0
-**状态**: ✅ 已完成 (核心功能 95%)
+**版本**: v0.16.0
+**状态**: ✅ 已完成 (核心功能 98%)
 
 ## 概述
 
@@ -262,11 +262,56 @@ await window.electronAPI.p2p.initiateKeyExchange(peerId, deviceId);
 - 使用 `Map<"peerId-deviceId", Message[]>` 存储设备级消息历史
 - 定期刷新对等节点列表和设备信息 (10秒间隔)
 
+## 设备同步功能
+
+### 离线消息队列
+
+当设备离线时,消息会自动加入队列:
+- 每个设备独立的消息队列
+- 持久化存储 (message-queue.json)
+- 最大队列大小限制 (默认1000条)
+- 消息自动重试机制
+
+### 消息状态跟踪
+
+支持完整的消息生命周期跟踪:
+- **PENDING**: 等待发送
+- **SENT**: 已发送到对等节点
+- **DELIVERED**: 已送达目标设备
+- **READ**: 已读
+- **FAILED**: 发送失败
+
+### 同步协议
+
+自定义 libp2p 协议 `/chainlesschain/device-sync/1.0.0`:
+- **SYNC_REQUEST**: 同步请求
+- **SYNC_RESPONSE**: 同步响应 (包含队列消息)
+- **MESSAGE_STATUS**: 消息状态更新
+- **DEVICE_STATUS**: 设备状态更新
+
+### 同步管理 UI
+
+- 同步队列徽章 (显示待同步消息数)
+- 同步统计模态框:
+  - 队列消息总数
+  - 设备队列数量
+  - 活动同步数量
+  - 消息状态跟踪数量
+  - 各设备队列详细列表
+- 手动触发设备同步
+- 自动定期同步 (可配置间隔)
+
+### 数据持久化
+
+```
+{dataPath}/message-queue.json  - 消息队列
+{dataPath}/message-status.json - 消息状态
+```
+
 ## 待完成功能
 
 ### 📋 未来改进
 
-- [ ] 设备间消息同步 (离线消息)
 - [ ] 设备别名管理
 - [ ] 设备信任级别
 - [ ] 设备锁定/解锁
@@ -313,6 +358,17 @@ await window.electronAPI.p2p.initiateKeyExchange(peerId, deviceId);
 4. 验证不活跃设备被移除
 ```
 
+### 场景 4: 离线消息同步
+
+```
+1. Alice A1 与 Bob B1 建立加密会话
+2. Bob B1 离线
+3. Alice A1 发送消息 -> 消息进入队列 (状态: PENDING)
+4. Bob B1 重新上线
+5. 自动同步触发,消息发送到 B1 (状态: DELIVERED)
+6. Bob B1 读取消息 (状态: READ)
+```
+
 ## 性能影响
 
 - **设备广播**: 每次连接新节点时广播一次,约 100-200ms
@@ -326,31 +382,42 @@ await window.electronAPI.p2p.initiateKeyExchange(peerId, deviceId);
 1. `src/main/p2p/device-manager.js` (350+ 行)
    - 设备管理器核心实现
 
+2. `src/main/p2p/device-sync-manager.js` (650+ 行)
+   - 设备同步管理器
+   - 离线消息队列
+   - 消息状态跟踪
+   - 自动同步机制
+
 ### 修改文件
 
 1. `src/main/p2p/p2p-manager.js`
    - 集成设备管理器
+   - 集成设备同步管理器
    - 添加设备广播协议
+   - 添加设备同步协议
    - 修改密钥交换支持设备ID
 
 2. `src/main/index.js`
    - 添加设备相关 IPC 处理器
+   - 添加同步相关 IPC 处理器:
+     * p2p:get-sync-statistics
+     * p2p:get-message-status
+     * p2p:start-device-sync
+     * p2p:stop-device-sync
 
 3. `src/preload/index.js`
    - 暴露设备管理 API
+   - 暴露设备同步 API
 
 4. `src/renderer/components/P2PMessaging.vue`
    - 完全重写,添加多设备支持
    - 设备信息显示和管理
    - 设备级加密会话和聊天
+   - 同步统计和队列管理界面
 
 ## 下一步计划
 
-1. **设备同步** (优先级: 高)
-   - 离线消息队列
-   - 消息状态同步
-
-3. **设备管理功能** (优先级: 中)
+1. **设备管理功能** (优先级: 高)
    - 设备别名
    - 设备信任管理
 
@@ -360,21 +427,25 @@ await window.electronAPI.p2p.initiateKeyExchange(peerId, deviceId);
 
 ## 总结
 
-多设备支持功能已基本完成,包括:
+多设备支持功能已全面完成,包括:
 - ✅ 设备身份管理和持久化
 - ✅ 设备发现和广播机制
 - ✅ 多设备加密会话 (基于 Signal 协议)
 - ✅ 完整的 UI 组件和设备管理界面
 - ✅ 设备级消息历史和加密状态跟踪
+- ✅ 离线消息队列和自动同步
+- ✅ 消息状态跟踪 (pending/sent/delivered/read/failed)
+- ✅ 同步统计和队列管理界面
 
-**完成度**: 约 95%
+**完成度**: 约 98%
 
-**当前状态**: 核心功能和 UI 界面已完成,可进行完整的多设备加密通信。
+**当前状态**: 核心功能、UI 界面和设备同步已完成,可进行完整的多设备加密通信和离线消息同步。
 
-**待完成**: 设备间消息同步、设备信任管理等高级功能。
+**待完成**: 设备信任管理、设备别名等高级功能。
 
 ---
 
 **更新日志**:
 - 2025-12-18: 核心功能实现完成
 - 2025-12-19: UI 组件完成,添加设备管理界面和聊天功能
+- 2025-12-19: 设备同步功能完成,支持离线消息队列和状态跟踪
