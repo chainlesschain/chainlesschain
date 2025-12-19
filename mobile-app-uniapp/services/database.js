@@ -961,6 +961,224 @@ class DatabaseService {
     const sql = `UPDATE friendships SET ${fields.join(', ')} WHERE user_did = ? AND friend_did = ?`
     await this.executeSql(sql, params)
   }
+
+  // ==================== 社交动态 ====================
+
+  /**
+   * 创建动态
+   * @param {string} authorDid 作者DID
+   * @param {string} content 动态内容
+   * @param {string} visibility 可见性 'public' 或 'friends'
+   * @returns {Promise<Object>} 动态对象
+   */
+  async createPost(authorDid, content, visibility = 'public') {
+    const id = this.generateId()
+    const now = this.now()
+
+    const newPost = {
+      id,
+      author_did: authorDid,
+      content,
+      images: null,
+      visibility,
+      like_count: 0,
+      comment_count: 0,
+      created_at: now
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      this.h5Data.posts.push(newPost)
+      this.saveH5Data()
+      return newPost
+    }
+
+    const sql = `INSERT INTO posts (id, author_did, content, images, visibility, like_count, comment_count, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    await this.executeSql(sql, [id, authorDid, content, null, visibility, 0, 0, now])
+
+    return newPost
+  }
+
+  /**
+   * 获取动态列表
+   * @param {string} visibility 可见性筛选 'all', 'public', 'friends'
+   * @param {number} limit 限制数量
+   * @returns {Promise<Array>} 动态列表
+   */
+  async getPosts(visibility = 'all', limit = 50) {
+    let sql = 'SELECT * FROM posts'
+    const params = []
+
+    if (visibility !== 'all') {
+      sql += ' WHERE visibility = ?'
+      params.push(visibility)
+    }
+
+    sql += ' ORDER BY created_at DESC LIMIT ?'
+    params.push(limit)
+
+    const result = await this.selectSql(sql, params)
+    return result || []
+  }
+
+  /**
+   * 获取单个动态
+   * @param {string} postId 动态ID
+   * @returns {Promise<Object>} 动态对象
+   */
+  async getPost(postId) {
+    const sql = 'SELECT * FROM posts WHERE id = ?'
+    const result = await this.selectSql(sql, [postId])
+    return result && result.length > 0 ? result[0] : null
+  }
+
+  /**
+   * 删除动态
+   * @param {string} postId 动态ID
+   * @returns {Promise<void>}
+   */
+  async deletePost(postId) {
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      this.h5Data.posts = this.h5Data.posts.filter(p => p.id !== postId)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = 'DELETE FROM posts WHERE id = ?'
+    await this.executeSql(sql, [postId])
+  }
+
+  /**
+   * 点赞动态
+   * @param {string} postId 动态ID
+   * @returns {Promise<void>}
+   */
+  async likePost(postId) {
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      const post = this.h5Data.posts.find(p => p.id === postId)
+      if (post) {
+        post.like_count = (post.like_count || 0) + 1
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE posts SET like_count = like_count + 1 WHERE id = ?'
+    await this.executeSql(sql, [postId])
+  }
+
+  /**
+   * 取消点赞动态
+   * @param {string} postId 动态ID
+   * @returns {Promise<void>}
+   */
+  async unlikePost(postId) {
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      const post = this.h5Data.posts.find(p => p.id === postId)
+      if (post && post.like_count > 0) {
+        post.like_count = post.like_count - 1
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE posts SET like_count = like_count - 1 WHERE id = ? AND like_count > 0'
+    await this.executeSql(sql, [postId])
+  }
+
+  /**
+   * 添加评论
+   * @param {string} postId 动态ID
+   * @param {string} authorDid 评论者DID
+   * @param {string} content 评论内容
+   * @param {string} parentId 父评论ID（回复评论时使用）
+   * @returns {Promise<Object>} 评论对象
+   */
+  async addComment(postId, authorDid, content, parentId = null) {
+    const id = this.generateId()
+    const now = this.now()
+
+    const newComment = {
+      id,
+      post_id: postId,
+      author_did: authorDid,
+      content,
+      parent_id: parentId,
+      created_at: now
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('post_comments')
+      this.h5Data.post_comments.push(newComment)
+
+      // 更新动态的评论数
+      this.ensureH5Data('posts')
+      const post = this.h5Data.posts.find(p => p.id === postId)
+      if (post) {
+        post.comment_count = (post.comment_count || 0) + 1
+      }
+
+      this.saveH5Data()
+      return newComment
+    }
+
+    // 添加评论
+    const sql = `INSERT INTO post_comments (id, post_id, author_did, content, parent_id, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)`
+    await this.executeSql(sql, [id, postId, authorDid, content, parentId, now])
+
+    // 更新动态的评论数
+    const updateSql = 'UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?'
+    await this.executeSql(updateSql, [postId])
+
+    return newComment
+  }
+
+  /**
+   * 获取动态的评论列表
+   * @param {string} postId 动态ID
+   * @returns {Promise<Array>} 评论列表
+   */
+  async getComments(postId) {
+    const sql = 'SELECT * FROM post_comments WHERE post_id = ? ORDER BY created_at ASC'
+    const result = await this.selectSql(sql, [postId])
+    return result || []
+  }
+
+  /**
+   * 删除评论
+   * @param {string} commentId 评论ID
+   * @param {string} postId 动态ID
+   * @returns {Promise<void>}
+   */
+  async deleteComment(commentId, postId) {
+    if (this.isH5) {
+      this.ensureH5Data('post_comments')
+      this.h5Data.post_comments = this.h5Data.post_comments.filter(c => c.id !== commentId)
+
+      // 更新动态的评论数
+      this.ensureH5Data('posts')
+      const post = this.h5Data.posts.find(p => p.id === postId)
+      if (post && post.comment_count > 0) {
+        post.comment_count = post.comment_count - 1
+      }
+
+      this.saveH5Data()
+      return
+    }
+
+    // 删除评论
+    const sql = 'DELETE FROM post_comments WHERE id = ?'
+    await this.executeSql(sql, [commentId])
+
+    // 更新动态的评论数
+    const updateSql = 'UPDATE posts SET comment_count = comment_count - 1 WHERE id = ? AND comment_count > 0'
+    await this.executeSql(updateSql, [postId])
+  }
 }
 
 // 导出单例
