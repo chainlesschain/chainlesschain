@@ -212,6 +212,71 @@ export default {
           await db.addComment(alicePost.id, 'did:chainless:bob', '同感，这个项目很有潜力')
         }
 
+        // 添加交易模块模拟数据
+
+        // 给用户初始余额（充值100 CLC）
+        await db.updateBalance(myDid, 100)
+        await db.addTransaction(myDid, 'deposit', 100)
+
+        // 给好友们也初始化余额
+        await db.updateBalance('did:chainless:alice', 50)
+        await db.updateBalance('did:chainless:bob', 80)
+        await db.updateBalance('did:chainless:carol', 30)
+
+        // 创建一些知识项用于上架
+        const knowledgeForSale = []
+
+        // Alice的知识
+        const aliceKnowledge1 = await db.addKnowledgeItem({
+          title: 'Vue 3 组合式 API 完全指南',
+          type: 'document',
+          content: '详细介绍Vue 3组合式API的使用方法、最佳实践和常见问题解决方案...',
+          deviceId: 'did:chainless:alice'
+        })
+        knowledgeForSale.push(aliceKnowledge1)
+
+        const aliceKnowledge2 = await db.addKnowledgeItem({
+          title: 'uni-app 跨平台开发实战经验',
+          type: 'note',
+          content: 'uni-app开发中的踩坑经验总结，包括条件编译、性能优化、适配问题等...',
+          deviceId: 'did:chainless:alice'
+        })
+        knowledgeForSale.push(aliceKnowledge2)
+
+        // Bob的知识
+        const bobKnowledge = await db.addKnowledgeItem({
+          title: '区块链技术原理与应用',
+          type: 'document',
+          content: '从零开始了解区块链，包括共识算法、智能合约、去中心化应用开发...',
+          deviceId: 'did:chainless:bob'
+        })
+        knowledgeForSale.push(bobKnowledge)
+
+        // 上架这些知识到市场
+        await db.createListing(
+          aliceKnowledge1.id,
+          'did:chainless:alice',
+          'Vue 3 组合式 API 完全指南',
+          '适合想深入学习Vue 3的开发者，包含大量实战案例',
+          15
+        )
+
+        await db.createListing(
+          aliceKnowledge2.id,
+          'did:chainless:alice',
+          'uni-app 跨平台开发实战经验',
+          '多年uni-app开发经验总结，避坑指南',
+          12
+        )
+
+        await db.createListing(
+          bobKnowledge.id,
+          'did:chainless:bob',
+          '区块链技术原理与应用',
+          '从入门到精通，涵盖理论和实践',
+          25
+        )
+
         console.log('模拟数据初始化完成')
       } catch (error) {
         console.error('初始化模拟数据失败:', error)
