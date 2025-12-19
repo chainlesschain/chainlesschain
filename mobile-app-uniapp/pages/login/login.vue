@@ -189,6 +189,29 @@ export default {
         await db.sendFriendMessage('did:chainless:bob', 'Bob', '嘿Bob，项目进展怎么样？')
         await db.receiveFriendMessage('did:chainless:bob', 'Bob', '进展顺利！准备下周上线')
 
+        // 添加模拟动态
+        // Alice的动态
+        await db.createPost('did:chainless:alice', '刚刚发现了 ChainlessChain，这个去中心化的理念真的很酷！期待看到更多功能 🚀', 'public')
+
+        // Bob的动态
+        await db.createPost('did:chainless:bob', '今天在公司分享了区块链技术，同事们都很感兴趣。有时候技术的力量就是能改变人们的思维方式。', 'public')
+
+        // Carol的动态
+        await db.createPost('did:chainless:carol', '周末愉快！准备研究一下这个新应用 😊', 'friends')
+
+        // 当前用户的动态
+        await db.createPost(myDid, '第一次使用 ChainlessChain，感觉界面很清爽，隐私保护做得不错！', 'public')
+        await db.createPost(myDid, '学习了一下 uni-app 开发，原来跨平台开发可以这么简单 💡', 'public')
+
+        // 为Alice的动态添加一些点赞和评论
+        const alicePosts = await db.getPosts('all', 10)
+        const alicePost = alicePosts.find(p => p.author_did === 'did:chainless:alice')
+        if (alicePost) {
+          await db.likePost(alicePost.id)
+          await db.addComment(alicePost.id, myDid, '我也这么觉得！很期待后续的功能')
+          await db.addComment(alicePost.id, 'did:chainless:bob', '同感，这个项目很有潜力')
+        }
+
         console.log('模拟数据初始化完成')
       } catch (error) {
         console.error('初始化模拟数据失败:', error)
