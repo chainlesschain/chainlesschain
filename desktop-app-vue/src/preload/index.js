@@ -131,6 +131,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStatistics: () => ipcRenderer.invoke('friend:get-statistics'),
   },
 
+  // 动态管理
+  post: {
+    create: (options) => ipcRenderer.invoke('post:create', options),
+    getFeed: (options) => ipcRenderer.invoke('post:get-feed', options),
+    get: (postId) => ipcRenderer.invoke('post:get', postId),
+    delete: (postId) => ipcRenderer.invoke('post:delete', postId),
+    like: (postId) => ipcRenderer.invoke('post:like', postId),
+    unlike: (postId) => ipcRenderer.invoke('post:unlike', postId),
+    getLikes: (postId) => ipcRenderer.invoke('post:get-likes', postId),
+    addComment: (postId, content, parentId) => ipcRenderer.invoke('post:add-comment', postId, content, parentId),
+    getComments: (postId) => ipcRenderer.invoke('post:get-comments', postId),
+    deleteComment: (commentId) => ipcRenderer.invoke('post:delete-comment', commentId),
+  },
+
   // P2P网络
   p2p: {
     getNodeInfo: () => ipcRenderer.invoke('p2p:get-node-info'),
