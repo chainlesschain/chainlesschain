@@ -40,8 +40,11 @@ class AuthService {
    */
   async verifyPIN(pin) {
     return new Promise((resolve, reject) => {
+      // 确保PIN是字符串类型
+      const pinStr = String(pin)
+
       // 验证 PIN 码格式
-      if (!/^\d{4,6}$/.test(pin)) {
+      if (!/^\d{4,6}$/.test(pinStr)) {
         reject(new Error('PIN码格式错误，请输入4-6位数字'))
         return
       }
@@ -49,12 +52,17 @@ class AuthService {
       // 模拟异步验证过程
       setTimeout(() => {
         // 获取存储的 PIN 码
-        const storedPIN = uni.getStorageSync('user_pin')
+        let storedPIN = uni.getStorageSync('user_pin')
 
-        if (!storedPIN) {
+        // 确保storedPIN也是字符串
+        if (storedPIN) {
+          storedPIN = String(storedPIN)
+        }
+
+        if (!storedPIN || storedPIN === '' || storedPIN === 'undefined') {
           // 首次登录，设置 PIN 码
-          uni.setStorageSync('user_pin', pin)
-          this.pin = pin
+          uni.setStorageSync('user_pin', pinStr)
+          this.pin = pinStr
           this.isAuthenticated = true
           uni.setStorageSync('isLoggedIn', true)
 
@@ -64,9 +72,9 @@ class AuthService {
             message: 'PIN码已设置'
           })
         } else {
-          // 验证 PIN 码
-          if (storedPIN === pin) {
-            this.pin = pin
+          // 验证 PIN 码（字符串比较）
+          if (storedPIN === pinStr) {
+            this.pin = pinStr
             this.isAuthenticated = true
             uni.setStorageSync('isLoggedIn', true)
 
@@ -76,6 +84,7 @@ class AuthService {
               message: 'PIN码验证成功'
             })
           } else {
+            console.log('[DEBUG] PIN不匹配:', { storedPIN, pinStr, storedType: typeof storedPIN, pinType: typeof pinStr })
             reject(new Error('PIN码错误'))
           }
         }
