@@ -1102,6 +1102,112 @@ class P2PManager extends EventEmitter {
   }
 
   /**
+   * 设置动态管理器
+   * @param {PostManager} postManager - 动态管理器实例
+   */
+  setPostManager(postManager) {
+    this.postManager = postManager;
+
+    // 注册动态协议处理器
+    this.registerPostProtocols();
+
+    console.log('[P2PManager] 动态管理器已设置');
+  }
+
+  /**
+   * 注册动态相关协议处理器
+   */
+  registerPostProtocols() {
+    if (!this.postManager) {
+      console.warn('[P2PManager] 动态管理器未设置，跳过协议注册');
+      return;
+    }
+
+    // 处理动态同步
+    this.node.handle('/chainlesschain/post-sync/1.0.0', async ({ stream, connection }) => {
+      try {
+        const data = [];
+        for await (const chunk of stream.source) {
+          data.push(chunk.subarray());
+        }
+
+        const postData = Buffer.concat(data);
+        const message = JSON.parse(postData.toString());
+        const senderId = connection.remotePeer.toString();
+
+        console.log('[P2PManager] 收到动态同步:', message.post?.id);
+
+        // 验证消息类型
+        if (message.type === 'post-sync' && message.post) {
+          // 转发给动态管理器处理
+          this.emit('post:received', { post: message.post });
+        }
+
+        // 发送确认响应
+        await stream.write(Buffer.from(JSON.stringify({ success: true })));
+        await stream.close();
+      } catch (error) {
+        console.error('[P2PManager] 处理动态同步失败:', error);
+      }
+    });
+
+    // 处理点赞通知
+    this.node.handle('/chainlesschain/post-like/1.0.0', async ({ stream, connection }) => {
+      try {
+        const data = [];
+        for await (const chunk of stream.source) {
+          data.push(chunk.subarray());
+        }
+
+        const likeData = Buffer.concat(data);
+        const message = JSON.parse(likeData.toString());
+        const senderId = connection.remotePeer.toString();
+
+        console.log('[P2PManager] 收到点赞通知:', message.postId);
+
+        // 验证消息类型
+        if (message.type === 'post-like') {
+          this.emit('post-like:received', {
+            postId: message.postId,
+            userDid: message.userDid,
+          });
+        }
+
+        await stream.close();
+      } catch (error) {
+        console.error('[P2PManager] 处理点赞通知失败:', error);
+      }
+    });
+
+    // 处理评论通知
+    this.node.handle('/chainlesschain/post-comment/1.0.0', async ({ stream, connection }) => {
+      try {
+        const data = [];
+        for await (const chunk of stream.source) {
+          data.push(chunk.subarray());
+        }
+
+        const commentData = Buffer.concat(data);
+        const message = JSON.parse(commentData.toString());
+        const senderId = connection.remotePeer.toString();
+
+        console.log('[P2PManager] 收到评论通知:', message.comment?.id);
+
+        // 验证消息类型
+        if (message.type === 'post-comment' && message.comment) {
+          this.emit('post-comment:received', { comment: message.comment });
+        }
+
+        await stream.close();
+      } catch (error) {
+        console.error('[P2PManager] 处理评论通知失败:', error);
+      }
+    });
+
+    console.log('[P2PManager] 动态协议处理器已注册');
+  }
+
+  /**
    * 关闭 P2P 节点
    */
   async close() {

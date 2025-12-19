@@ -263,6 +263,24 @@ class ChainlessChainApp {
       // 不影响应用启动
     }
 
+    // 初始化动态管理器
+    try {
+      console.log('初始化动态管理器...');
+      const { PostManager } = require('./social/post-manager');
+      this.postManager = new PostManager(this.database, this.didManager, this.p2pManager, this.friendManager);
+      await this.postManager.initialize();
+
+      // 在 P2P 管理器中设置动态管理器
+      if (this.p2pManager) {
+        this.p2pManager.setPostManager(this.postManager);
+      }
+
+      console.log('动态管理器初始化成功');
+    } catch (error) {
+      console.error('动态管理器初始化失败:', error);
+      // 不影响应用启动
+    }
+
     // 初始化可验证凭证管理器
     try {
       console.log('初始化可验证凭证管理器...');
@@ -2005,6 +2023,148 @@ class ChainlessChainApp {
       } catch (error) {
         console.error('[Main] 获取好友统计失败:', error);
         return { total: 0, online: 0, offline: 0, byGroup: {} };
+      }
+    });
+
+    // ==================== 动态管理 ====================
+
+    // 发布动态
+    ipcMain.handle('post:create', async (_event, options) => {
+      try {
+        if (!this.postManager) {
+          throw new Error('动态管理器未初始化');
+        }
+
+        return await this.postManager.createPost(options);
+      } catch (error) {
+        console.error('[Main] 发布动态失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取动态流
+    ipcMain.handle('post:get-feed', async (_event, options) => {
+      try {
+        if (!this.postManager) {
+          return [];
+        }
+
+        return await this.postManager.getFeed(options);
+      } catch (error) {
+        console.error('[Main] 获取动态流失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取单条动态
+    ipcMain.handle('post:get', async (_event, postId) => {
+      try {
+        if (!this.postManager) {
+          return null;
+        }
+
+        return await this.postManager.getPost(postId);
+      } catch (error) {
+        console.error('[Main] 获取动态失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除动态
+    ipcMain.handle('post:delete', async (_event, postId) => {
+      try {
+        if (!this.postManager) {
+          throw new Error('动态管理器未初始化');
+        }
+
+        return await this.postManager.deletePost(postId);
+      } catch (error) {
+        console.error('[Main] 删除动态失败:', error);
+        throw error;
+      }
+    });
+
+    // 点赞动态
+    ipcMain.handle('post:like', async (_event, postId) => {
+      try {
+        if (!this.postManager) {
+          throw new Error('动态管理器未初始化');
+        }
+
+        return await this.postManager.likePost(postId);
+      } catch (error) {
+        console.error('[Main] 点赞失败:', error);
+        throw error;
+      }
+    });
+
+    // 取消点赞
+    ipcMain.handle('post:unlike', async (_event, postId) => {
+      try {
+        if (!this.postManager) {
+          throw new Error('动态管理器未初始化');
+        }
+
+        return await this.postManager.unlikePost(postId);
+      } catch (error) {
+        console.error('[Main] 取消点赞失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取点赞列表
+    ipcMain.handle('post:get-likes', async (_event, postId) => {
+      try {
+        if (!this.postManager) {
+          return [];
+        }
+
+        return await this.postManager.getLikes(postId);
+      } catch (error) {
+        console.error('[Main] 获取点赞列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 添加评论
+    ipcMain.handle('post:add-comment', async (_event, postId, content, parentId) => {
+      try {
+        if (!this.postManager) {
+          throw new Error('动态管理器未初始化');
+        }
+
+        return await this.postManager.addComment(postId, content, parentId);
+      } catch (error) {
+        console.error('[Main] 添加评论失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取评论列表
+    ipcMain.handle('post:get-comments', async (_event, postId) => {
+      try {
+        if (!this.postManager) {
+          return [];
+        }
+
+        return await this.postManager.getComments(postId);
+      } catch (error) {
+        console.error('[Main] 获取评论列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除评论
+    ipcMain.handle('post:delete-comment', async (_event, commentId) => {
+      try {
+        if (!this.postManager) {
+          throw new Error('动态管理器未初始化');
+        }
+
+        return await this.postManager.deleteComment(commentId);
+      } catch (error) {
+        console.error('[Main] 删除评论失败:', error);
+        throw error;
       }
     });
 
