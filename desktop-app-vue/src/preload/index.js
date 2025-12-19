@@ -145,6 +145,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteComment: (commentId) => ipcRenderer.invoke('post:delete-comment', commentId),
   },
 
+  // 资产管理
+  asset: {
+    create: (options) => ipcRenderer.invoke('asset:create', options),
+    mint: (assetId, toDid, amount) => ipcRenderer.invoke('asset:mint', assetId, toDid, amount),
+    transfer: (assetId, toDid, amount, memo) => ipcRenderer.invoke('asset:transfer', assetId, toDid, amount, memo),
+    burn: (assetId, amount) => ipcRenderer.invoke('asset:burn', assetId, amount),
+    get: (assetId) => ipcRenderer.invoke('asset:get', assetId),
+    getByOwner: (ownerDid) => ipcRenderer.invoke('asset:get-by-owner', ownerDid),
+    getAll: (filters) => ipcRenderer.invoke('asset:get-all', filters),
+    getHistory: (assetId, limit) => ipcRenderer.invoke('asset:get-history', assetId, limit),
+    getBalance: (ownerDid, assetId) => ipcRenderer.invoke('asset:get-balance', ownerDid, assetId),
+  },
+
   // P2P网络
   p2p: {
     getNodeInfo: () => ipcRenderer.invoke('p2p:get-node-info'),
