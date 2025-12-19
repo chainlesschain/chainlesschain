@@ -125,7 +125,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     disconnect: (peerId) => ipcRenderer.invoke('p2p:disconnect', peerId),
     getPeers: () => ipcRenderer.invoke('p2p:get-peers'),
     // 加密消息
-    sendEncryptedMessage: (peerId, message) => ipcRenderer.invoke('p2p:send-encrypted-message', peerId, message),
+    sendEncryptedMessage: (peerId, message, deviceId, options) => ipcRenderer.invoke('p2p:send-encrypted-message', peerId, message, deviceId, options),
     hasEncryptedSession: (peerId) => ipcRenderer.invoke('p2p:has-encrypted-session', peerId),
     initiateKeyExchange: (peerId, deviceId) => ipcRenderer.invoke('p2p:initiate-key-exchange', peerId, deviceId),
     // 多设备支持
