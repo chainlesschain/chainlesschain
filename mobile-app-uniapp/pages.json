@@ -58,6 +58,13 @@
       }
     },
     {
+      "path": "pages/social/friend-chat/friend-chat",
+      "style": {
+        "navigationBarTitleText": "聊天",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/trade/market/market",
       "style": {
         "navigationBarTitleText": "交易市场"
