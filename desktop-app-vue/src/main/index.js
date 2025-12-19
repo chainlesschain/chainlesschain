@@ -281,6 +281,18 @@ class ChainlessChainApp {
       // 不影响应用启动
     }
 
+    // 初始化资产管理器
+    try {
+      console.log('初始化资产管理器...');
+      const { AssetManager } = require('./trade/asset-manager');
+      this.assetManager = new AssetManager(this.database, this.didManager, this.p2pManager);
+      await this.assetManager.initialize();
+      console.log('资产管理器初始化成功');
+    } catch (error) {
+      console.error('资产管理器初始化失败:', error);
+      // 不影响应用启动
+    }
+
     // 初始化可验证凭证管理器
     try {
       console.log('初始化可验证凭证管理器...');
@@ -2165,6 +2177,134 @@ class ChainlessChainApp {
       } catch (error) {
         console.error('[Main] 删除评论失败:', error);
         throw error;
+      }
+    });
+
+    // ==================== 资产管理 ====================
+
+    // 创建资产
+    ipcMain.handle('asset:create', async (_event, options) => {
+      try {
+        if (!this.assetManager) {
+          throw new Error('资产管理器未初始化');
+        }
+
+        return await this.assetManager.createAsset(options);
+      } catch (error) {
+        console.error('[Main] 创建资产失败:', error);
+        throw error;
+      }
+    });
+
+    // 铸造资产
+    ipcMain.handle('asset:mint', async (_event, assetId, toDid, amount) => {
+      try {
+        if (!this.assetManager) {
+          throw new Error('资产管理器未初始化');
+        }
+
+        return await this.assetManager.mintAsset(assetId, toDid, amount);
+      } catch (error) {
+        console.error('[Main] 铸造资产失败:', error);
+        throw error;
+      }
+    });
+
+    // 转账资产
+    ipcMain.handle('asset:transfer', async (_event, assetId, toDid, amount, memo) => {
+      try {
+        if (!this.assetManager) {
+          throw new Error('资产管理器未初始化');
+        }
+
+        return await this.assetManager.transferAsset(assetId, toDid, amount, memo);
+      } catch (error) {
+        console.error('[Main] 转账失败:', error);
+        throw error;
+      }
+    });
+
+    // 销毁资产
+    ipcMain.handle('asset:burn', async (_event, assetId, amount) => {
+      try {
+        if (!this.assetManager) {
+          throw new Error('资产管理器未初始化');
+        }
+
+        return await this.assetManager.burnAsset(assetId, amount);
+      } catch (error) {
+        console.error('[Main] 销毁资产失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取资产信息
+    ipcMain.handle('asset:get', async (_event, assetId) => {
+      try {
+        if (!this.assetManager) {
+          return null;
+        }
+
+        return await this.assetManager.getAsset(assetId);
+      } catch (error) {
+        console.error('[Main] 获取资产失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取用户资产列表
+    ipcMain.handle('asset:get-by-owner', async (_event, ownerDid) => {
+      try {
+        if (!this.assetManager) {
+          return [];
+        }
+
+        return await this.assetManager.getAssetsByOwner(ownerDid);
+      } catch (error) {
+        console.error('[Main] 获取资产列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取所有资产
+    ipcMain.handle('asset:get-all', async (_event, filters) => {
+      try {
+        if (!this.assetManager) {
+          return [];
+        }
+
+        return await this.assetManager.getAllAssets(filters);
+      } catch (error) {
+        console.error('[Main] 获取所有资产失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取资产历史
+    ipcMain.handle('asset:get-history', async (_event, assetId, limit) => {
+      try {
+        if (!this.assetManager) {
+          return [];
+        }
+
+        return await this.assetManager.getAssetHistory(assetId, limit);
+      } catch (error) {
+        console.error('[Main] 获取资产历史失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取余额
+    ipcMain.handle('asset:get-balance', async (_event, ownerDid, assetId) => {
+      try {
+        if (!this.assetManager) {
+          return 0;
+        }
+
+        return await this.assetManager.getBalance(ownerDid, assetId);
+      } catch (error) {
+        console.error('[Main] 获取余额失败:', error);
+        return 0;
       }
     });
 
