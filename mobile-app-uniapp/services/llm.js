@@ -1,12 +1,13 @@
 /**
  * ChainlessChain Mobile - LLM 云端 API 服务
- * 支持 OpenAI、DeepSeek、Ollama、火山引擎等多种提供商
+ * 支持国内外主流大模型提供商
  */
 
 class LLMService {
   constructor() {
-    this.provider = 'openai' // 'openai' | 'deepseek' | 'volcengine' | 'ollama' | 'custom'
+    this.provider = 'openai'
     this.config = {
+      // 国际提供商
       openai: {
         apiKey: '',
         baseURL: 'https://api.openai.com/v1',
@@ -21,6 +22,8 @@ class LLMService {
         temperature: 0.7,
         maxTokens: 2000
       },
+
+      // 国内提供商
       volcengine: {
         apiKey: '',
         baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
@@ -28,6 +31,46 @@ class LLMService {
         temperature: 0.7,
         maxTokens: 2000
       },
+      baidu_qianfan: {
+        apiKey: '',
+        secretKey: '', // 百度需要 Secret Key
+        baseURL: 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat',
+        model: 'ERNIE-Speed-128K',
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+      aliyun_dashscope: {
+        apiKey: '',
+        baseURL: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',
+        model: 'qwen-turbo',
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+      tencent_hunyuan: {
+        apiKey: '', // SecretId
+        secretKey: '', // SecretKey
+        baseURL: 'https://hunyuan.tencentcloudapi.com',
+        model: 'hunyuan-lite',
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+      xfyun_xinghuo: {
+        apiKey: '', // APPID
+        apiSecret: '', // APISecret
+        baseURL: 'wss://spark-api.xf-yun.com/v3.5/chat',
+        model: 'generalv3.5',
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+      zhipu_ai: {
+        apiKey: '',
+        baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+        model: 'glm-4-flash',
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+
+      // 本地和自定义
       ollama: {
         baseURL: 'http://localhost:11434',
         model: 'qwen2:7b',
@@ -81,7 +124,13 @@ class LLMService {
    * 设置提供商
    */
   setProvider(provider) {
-    if (['openai', 'deepseek', 'volcengine', 'ollama', 'custom'].includes(provider)) {
+    const validProviders = [
+      'openai', 'deepseek',
+      'volcengine', 'baidu_qianfan', 'aliyun_dashscope',
+      'tencent_hunyuan', 'xfyun_xinghuo', 'zhipu_ai',
+      'ollama', 'custom'
+    ]
+    if (validProviders.includes(provider)) {
       this.provider = provider
       this.saveConfig()
     }

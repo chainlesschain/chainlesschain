@@ -22,16 +22,30 @@
         </view>
 
         <view class="setting-item" v-if="llmConfig.provider !== 'ollama'">
-          <text class="label">API Key</text>
+          <text class="label">{{ getApiKeyLabel(llmConfig.provider) }}</text>
           <input
             class="input"
             type="text"
             v-model="llmConfig.apiKey"
-            placeholder="请输入 API Key"
+            :placeholder="'请输入 ' + getApiKeyLabel(llmConfig.provider)"
             :password="!showApiKey"
           />
           <text class="toggle-btn" @click="showApiKey = !showApiKey">
             {{ showApiKey ? '👁️' : '👁️‍🗨️' }}
+          </text>
+        </view>
+
+        <view class="setting-item" v-if="needsSecretKey(llmConfig.provider)">
+          <text class="label">{{ getSecretKeyLabel(llmConfig.provider) }}</text>
+          <input
+            class="input"
+            type="text"
+            v-model="llmConfig.secretKey"
+            :placeholder="'请输入 ' + getSecretKeyLabel(llmConfig.provider)"
+            :password="!showSecretKey"
+          />
+          <text class="toggle-btn" @click="showSecretKey = !showSecretKey">
+            {{ showSecretKey ? '👁️' : '👁️‍🗨️' }}
           </text>
         </view>
 
@@ -145,15 +159,22 @@ export default {
       llmConfig: {
         provider: 'openai',
         apiKey: '',
+        secretKey: '',
         baseURL: '',
         model: '',
         temperature: 0.7
       },
       showApiKey: false,
+      showSecretKey: false,
       providers: [
         { value: 'openai', label: 'OpenAI' },
         { value: 'deepseek', label: 'DeepSeek' },
         { value: 'volcengine', label: '火山引擎（豆包）' },
+        { value: 'baidu_qianfan', label: '百度千帆（文心一言）' },
+        { value: 'aliyun_dashscope', label: '阿里云通义千问' },
+        { value: 'tencent_hunyuan', label: '腾讯混元' },
+        { value: 'xfyun_xinghuo', label: '讯飞星火' },
+        { value: 'zhipu_ai', label: '智谱AI (GLM)' },
         { value: 'ollama', label: 'Ollama (本地)' },
         { value: 'custom', label: '自定义' }
       ],
@@ -175,6 +196,7 @@ export default {
       this.llmConfig.provider = llm.provider
       const config = llm.config[llm.provider]
       this.llmConfig.apiKey = config.apiKey || ''
+      this.llmConfig.secretKey = config.secretKey || config.apiSecret || ''
       this.llmConfig.baseURL = config.baseURL || ''
       this.llmConfig.model = config.model || ''
       this.llmConfig.temperature = config.temperature || 0.7
@@ -196,10 +218,34 @@ export default {
         openai: 'gpt-3.5-turbo',
         deepseek: 'deepseek-chat',
         volcengine: 'doubao-pro-32k',
+        baidu_qianfan: 'ERNIE-Speed-128K',
+        aliyun_dashscope: 'qwen-turbo',
+        tencent_hunyuan: 'hunyuan-lite',
+        xfyun_xinghuo: 'generalv3.5',
+        zhipu_ai: 'glm-4-flash',
         ollama: 'qwen2:7b',
         custom: ''
       }
       return defaults[provider] || ''
+    },
+    needsSecretKey(provider) {
+      return ['baidu_qianfan', 'tencent_hunyuan', 'xfyun_xinghuo'].includes(provider)
+    },
+    getApiKeyLabel(provider) {
+      const labels = {
+        baidu_qianfan: 'API Key',
+        tencent_hunyuan: 'SecretId',
+        xfyun_xinghuo: 'APPID'
+      }
+      return labels[provider] || 'API Key'
+    },
+    getSecretKeyLabel(provider) {
+      const labels = {
+        baidu_qianfan: 'Secret Key',
+        tencent_hunyuan: 'SecretKey',
+        xfyun_xinghuo: 'APISecret'
+      }
+      return labels[provider] || 'Secret Key'
     },
     handleProviderChange(e) {
       const index = e.detail.value
