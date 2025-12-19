@@ -173,12 +173,11 @@ chainlesschain/
 │   └── frontend/            # Vue3 + Element Plus
 │       └── src/             # 前端页面和组件
 │
-├── android-app/             # 📱 Android原生应用
-│   └── app/src/             # Kotlin + Jetpack Compose
-│       ├── main/
-│       │   ├── java/        # 业务逻辑
-│       │   └── res/         # 资源文件
-│       └── ...
+├── mobile-app-uniapp/       # 📱 移动端应用 (uni-app)
+│   ├── pages/               # 页面 (知识库、AI、社交、交易)
+│   ├── services/            # 服务层 (数据库、LLM、认证)
+│   ├── components/          # 组件
+│   └── manifest.json        # 应用配置
 │
 ├── docker-compose.yml       # 🐳 Docker服务配置
 │   # - Ollama (LLM推理)
@@ -201,8 +200,8 @@ chainlesschain/
 | 项目 | 技术栈 | 完成度 | 状态 | 说明 |
 |------|--------|-------|------|------|
 | **desktop-app-vue** | Electron + Vue3 | 95% | ✅ 生产可用 | PC端主应用,包含全部功能 |
+| **mobile-app-uniapp** | uni-app + Vue3 | 10% | 🚧 开发中 | 移动端跨平台应用 (Android/iOS/H5) |
 | community-forum | Spring Boot + Vue3 | 80% | ✅ 可用 | 社区论坛系统 |
-| android-app | Kotlin Native | 60% | 🟡 架构完成 | Android原生应用 |
 
 ## 🗓️ 开发路线图
 

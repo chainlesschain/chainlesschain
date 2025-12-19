@@ -1,0 +1,129 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "ChainlessChain"
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/knowledge/list/list",
+      "style": {
+        "navigationBarTitleText": "知识库",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/knowledge/detail/detail",
+      "style": {
+        "navigationBarTitleText": "知识详情"
+      }
+    },
+    {
+      "path": "pages/knowledge/edit/edit",
+      "style": {
+        "navigationBarTitleText": "编辑知识"
+      }
+    },
+    {
+      "path": "pages/chat/chat",
+      "style": {
+        "navigationBarTitleText": "AI 助手"
+      }
+    },
+    {
+      "path": "pages/social/friends/friends",
+      "style": {
+        "navigationBarTitleText": "好友"
+      }
+    },
+    {
+      "path": "pages/social/posts/posts",
+      "style": {
+        "navigationBarTitleText": "动态",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/social/messages/messages",
+      "style": {
+        "navigationBarTitleText": "消息"
+      }
+    },
+    {
+      "path": "pages/trade/market/market",
+      "style": {
+        "navigationBarTitleText": "交易市场"
+      }
+    },
+    {
+      "path": "pages/trade/orders/orders",
+      "style": {
+        "navigationBarTitleText": "我的订单"
+      }
+    },
+    {
+      "path": "pages/trade/assets/assets",
+      "style": {
+        "navigationBarTitleText": "我的资产"
+      }
+    },
+    {
+      "path": "pages/settings/settings",
+      "style": {
+        "navigationBarTitleText": "设置"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "ChainlessChain",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#3cc51f",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/knowledge/list/list",
+        "iconPath": "static/images/knowledge.png",
+        "selectedIconPath": "static/images/knowledge-active.png",
+        "text": "知识库"
+      },
+      {
+        "pagePath": "pages/chat/chat",
+        "iconPath": "static/images/chat.png",
+        "selectedIconPath": "static/images/chat-active.png",
+        "text": "AI助手"
+      },
+      {
+        "pagePath": "pages/social/friends/friends",
+        "iconPath": "static/images/social.png",
+        "selectedIconPath": "static/images/social-active.png",
+        "text": "社交"
+      },
+      {
+        "pagePath": "pages/trade/market/market",
+        "iconPath": "static/images/trade.png",
+        "selectedIconPath": "static/images/trade-active.png",
+        "text": "交易"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "iconPath": "static/images/settings.png",
+        "selectedIconPath": "static/images/settings-active.png",
+        "text": "设置"
+      }
+    ]
+  }
+}
