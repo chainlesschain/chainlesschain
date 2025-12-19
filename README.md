@@ -13,7 +13,7 @@
 
 一个完全去中心化的个人AI助手平台,整合知识库管理、社交网络和交易辅助三大核心功能。
 
-[English](./README_EN.md) | [设计文档](./系统设计_个人移动AI管理系统.md) | [完成度报告](./PROJECT_PROGRESS_REPORT_2025-12-18.md)
+[English](./README_EN.md) | [设计文档](./系统设计_个人移动AI管理系统.md)
 
 </div>
 
@@ -366,9 +366,9 @@ chainlesschain/
 ## 📞 联系我们
 
 ### 官方渠道
-- **官网**: https://www.chainlesschain.com (规划中)
-- **文档**: https://docs.chainlesschain.com (规划中)
-- **论坛**: https://community.chainlesschain.com (规划中)
+- **官网**: https://www.chainlesschain.com
+- **文档**: https://docs.chainlesschain.com
+- **论坛**: https://community.chainlesschain.com
 - **GitHub**: https://github.com/chainlesschain/chainlesschain
 
 ### 联系方式

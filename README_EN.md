@@ -13,7 +13,7 @@
 
 A fully decentralized personal AI assistant platform integrating knowledge base management, social networking, and transaction assistance.
 
-[中文](./README.md) | [Design Document](./系统设计_个人移动AI管理系统.md) | [Progress Report](./PROJECT_PROGRESS_REPORT_2025-12-18.md)
+[中文](./README.md) | [Design Document](./系统设计_个人移动AI管理系统.md)
 
 </div>
 
@@ -365,9 +365,9 @@ Core encryption libraries use **Apache 2.0** license
 ## 📞 Contact Us
 
 ### Official Channels
-- **Website**: https://www.chainlesschain.com (Planned)
-- **Documentation**: https://docs.chainlesschain.com (Planned)
-- **Forum**: https://community.chainlesschain.com (Planned)
+- **Website**: https://www.chainlesschain.com
+- **Documentation**: https://docs.chainlesschain.com
+- **Forum**: https://community.chainlesschain.com
 - **GitHub**: https://github.com/chainlesschain/chainlesschain
 
 ### Contact Information
