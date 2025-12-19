@@ -363,28 +363,91 @@ npm run make
 - [ ] 笔记 CRUD
 - [ ] 搜索功能
 
+## Phase 2 & 3 完成情况
+
+### Phase 2: 好友和社交系统 ✅ (完成于 2025-12-18)
+
+**后端模块**:
+- `friend-manager.js` (690行) - 好友管理系统
+- `post-manager.js` (791行) - 社交动态系统
+
+**前端组件**:
+- `Friends.vue` (598行) - 好友列表和管理
+- `PostFeed.vue` (232行) - 动态列表
+- `PostComposer.vue` (302行) - 发布动态（支持9张图片）
+- `PostCard.vue` (501行) - 动态卡片展示
+
+**功能特性**:
+- ✅ 好友请求发送/接受/拒绝
+- ✅ 在线状态实时追踪
+- ✅ 好友分组和备注
+- ✅ 动态发布（图片、链接、可见性）
+- ✅ 点赞和评论系统
+- ✅ P2P 消息同步
+
+### Phase 3: 去中心化交易系统 ✅ (完成于 2025-12-19)
+
+**模块 1-3** (Commit 7e21b2c):
+- `asset-manager.js` (780行) - 数字资产管理
+- `marketplace-manager.js` (950行) - 交易市场
+- `escrow-manager.js` (600行) - 托管管理
+- `contract-engine.js` (1200行) - 智能合约引擎
+- `contract-templates.js` (400行) - 合约模板
+
+**模块 4-6** (Commit 9f1db66):
+- `knowledge-payment.js` (716行) - 知识付费系统
+- `credit-score.js` (596行) - 信用评分系统
+- `review-manager.js` (565行) - 评价和反馈系统
+
+**前端组件**:
+- `MarketplaceList.vue` - 交易市场
+- `ContractList.vue` (542行) - 合约列表
+- `ContractCreate.vue` (546行) - 创建合约
+- `ContractDetail.vue` (642行) - 合约详情
+- `ContentStore.vue` (489行) - 知识付费商店
+- `MyPurchases.vue` (305行) - 我的购买
+- `CreditScore.vue` (398行) - 信用评分
+
+**核心功能**:
+- ✅ 数字资产（Token、NFT）管理
+- ✅ 去中心化交易市场
+- ✅ 智能合约托管（4种类型，6种模板）
+- ✅ 知识付费（AES-256加密，3种定价）
+- ✅ 信用评分（6维度算法，5级等级）
+- ✅ 评价系统（星级、标签、举报）
+
+**新增路由** (7个):
+- `/friends` - 好友管理
+- `/posts` - 社交动态
+- `/marketplace` - 交易市场
+- `/contracts` - 智能合约
+- `/knowledge-store` - 知识付费
+- `/my-purchases` - 我的购买
+- `/credit-score` - 信用评分
+
 ## 未来规划
 
-### 短期（MVP+）
+### Phase 4: Web Extension
 
-- [ ] 集成 SQLite 数据库
-- [ ] 实现 Markdown 编辑器
-- [ ] 添加标签系统
-- [ ] 优化搜索算法
+- [ ] 浏览器扩展开发
+- [ ] 网页标注和保存
+- [ ] 一键保存到知识库
+- [ ] 网页内容摘要
 
-### 中期
+### 系统优化
 
-- [ ] U盾硬件集成
-- [ ] Ollama LLM 集成
-- [ ] Git 同步功能
-- [ ] 向量化搜索
+- [ ] IPC API 集成完善
+- [ ] 单元测试和集成测试
+- [ ] 性能优化
+- [ ] 文档完善
 
-### 长期
+### 长期规划
 
-- [ ] AI 对话功能
-- [ ] 多设备同步
-- [ ] 插件系统
-- [ ] 主题定制
+- [ ] 跨链资产桥接
+- [ ] DeFi 功能（借贷、质押）
+- [ ] DAO 治理
+- [ ] 移动端完整支持
+- [ ] 区块链浏览器
 
 ## 常见问题
 
@@ -437,5 +500,6 @@ ChainlessChain Team
 
 ---
 
-**最后更新**: 2024-01-XX
-**版本**: 0.1.0 (MVP)
+**最后更新**: 2025-12-19
+**版本**: v0.16.0
+**Phase 进度**: Phase 3 完成 100%
