@@ -11,7 +11,7 @@
 ### 1. 项目结构 ✅
 ```
 chainlesschain/
-├── desktop-app/        # PC端桌面应用 (Electron + React + TypeScript)
+├── desktop-app-vue/    # PC端桌面应用 (Electron + Vue3 + TypeScript)
 ├── mobile-app/         # 移动端应用 (待开发)
 ├── backend/            # 后端服务 (Docker)
 ├── docs/               # 文档
@@ -89,7 +89,7 @@ scripts\install.bat
 
 # 或手动安装
 npm install
-cd desktop-app && npm install && cd ..
+cd desktop-app-vue && npm install && cd ..
 ```
 
 ### Step 2: 启动AI服务

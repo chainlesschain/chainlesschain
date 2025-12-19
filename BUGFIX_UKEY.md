@@ -10,7 +10,7 @@
 
 ## 修复内容
 
-### 修改文件: `desktop-app/src/main/ukey.ts`
+### 修改文件: `desktop-app-vue/src/main/ukey.ts`
 
 **修复前：**
 ```typescript

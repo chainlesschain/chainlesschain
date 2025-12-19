@@ -28,46 +28,46 @@
 ### 核心代码 (20个文件)
 
 #### 后端 (Electron主进程)
-1. `desktop-app/src/main/index.ts` - 主进程入口
-2. `desktop-app/src/main/database.ts` - 内存数据库
-3. `desktop-app/src/main/ukey.ts` - U盾管理器(模拟)
-4. `desktop-app/src/main/git-sync.ts` - Git同步服务
-5. `desktop-app/src/main/llm-service.ts` - LLM服务集成
+1. `desktop-app-vue/src/main/index.ts` - 主进程入口
+2. `desktop-app-vue/src/main/database.ts` - 内存数据库
+3. `desktop-app-vue/src/main/ukey.ts` - U盾管理器(模拟)
+4. `desktop-app-vue/src/main/git-sync.ts` - Git同步服务
+5. `desktop-app-vue/src/main/llm-service.ts` - LLM服务集成
 
 #### Preload桥接
-6. `desktop-app/src/preload/index.ts` - IPC安全桥接
+6. `desktop-app-vue/src/preload/index.ts` - IPC安全桥接
 
 #### 共享代码
-7. `desktop-app/src/shared/types.ts` - TypeScript类型定义
+7. `desktop-app-vue/src/shared/types.ts` - TypeScript类型定义
 
 #### 前端 (React)
-8. `desktop-app/src/renderer/index.html` - HTML模板
-9. `desktop-app/src/renderer/index.tsx` - React入口
-10. `desktop-app/src/renderer/index.css` - 全局样式
-11. `desktop-app/src/renderer/App.tsx` - 应用主组件
+8. `desktop-app-vue/src/renderer/index.html` - HTML模板
+9. `desktop-app-vue/src/renderer/main.ts` - Vue入口
+10. `desktop-app-vue/src/renderer/style.css` - 全局样式
+11. `desktop-app-vue/src/renderer/App.vue` - 应用主组件
 
 ##### 页面组件
-12. `desktop-app/src/renderer/pages/LoginPage.tsx` - 登录界面
+12. `desktop-app-vue/src/renderer/pages/LoginPage.vue` - 登录界面
 
 ##### 布局组件
-13. `desktop-app/src/renderer/components/MainLayout.tsx` - 主布局
-14. `desktop-app/src/renderer/components/KnowledgeList.tsx` - 笔记列表
-15. `desktop-app/src/renderer/components/MarkdownEditor.tsx` - Markdown编辑器
-16. `desktop-app/src/renderer/components/ChatPanel.tsx` - AI聊天面板
+13. `desktop-app-vue/src/renderer/components/MainLayout.vue` - 主布局
+14. `desktop-app-vue/src/renderer/components/KnowledgeList.vue` - 笔记列表
+15. `desktop-app-vue/src/renderer/components/MarkdownEditor.vue` - Markdown编辑器
+16. `desktop-app-vue/src/renderer/components/ChatPanel.vue` - AI聊天面板
 
 ##### 状态管理
-17. `desktop-app/src/renderer/stores/useAppStore.ts` - Zustand Store
+17. `desktop-app-vue/src/renderer/stores/app.js` - Pinia Store
 
 ##### 工具函数
-18. `desktop-app/src/renderer/utils/ipc.ts` - IPC通信封装
+18. `desktop-app-vue/src/renderer/utils/ipc.ts` - IPC通信封装
 
 ### 配置文件 (10个文件)
 
-19. `desktop-app/package.json` - 项目配置
-20. `desktop-app/tsconfig.json` - TypeScript配置
-21. `desktop-app/tsconfig.main.json` - 主进程TS配置
-22. `desktop-app/tsconfig.preload.json` - Preload TS配置
-23. `desktop-app/vite.config.ts` - Vite配置
+19. `desktop-app-vue/package.json` - 项目配置
+20. `desktop-app-vue/tsconfig.json` - TypeScript配置
+21. `desktop-app-vue/tsconfig.main.json` - 主进程TS配置
+22. `desktop-app-vue/tsconfig.preload.json` - Preload TS配置
+23. `desktop-app-vue/vite.config.ts` - Vite配置
 24. `package.json` - 根项目配置
 25. `.gitignore` - Git忽略配置
 
@@ -92,7 +92,7 @@
 37. `docs/PROJECT_OVERVIEW.md` - 项目概览
 
 #### 测试文档
-38. `desktop-app/TEST_GUIDE.md` - 测试指南
+38. `desktop-app-vue/TEST_GUIDE.md` - 测试指南
 
 ---
 

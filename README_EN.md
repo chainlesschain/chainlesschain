@@ -104,9 +104,9 @@ git clone https://github.com/chainlesschain/chainlesschain.git
 cd chainlesschain
 ```
 
-#### 2. Start PC Desktop App (Recommended: desktop-app-vue)
+#### 2. Start PC Desktop App
 ```bash
-# Navigate to Vue desktop app directory
+# Navigate to desktop app directory
 cd desktop-app-vue
 
 # Install dependencies
@@ -140,11 +140,6 @@ npm run dev
 ### Alternative Options
 
 ```bash
-# React desktop app
-cd desktop-app
-npm install
-npm run dev
-
 # Android app
 cd android-app
 ./gradlew assembleDebug
@@ -159,7 +154,7 @@ npm run android  # or npm run ios
 
 ```
 chainlesschain/
-├── desktop-app-vue/         # ⭐ PC Desktop App (Electron + Vue3) - Recommended
+├── desktop-app-vue/         # PC Desktop App (Electron + Vue3)
 │   ├── src/
 │   │   ├── main/            # Main process (Node.js)
 │   │   │   ├── database.js  # SQLite database
@@ -169,15 +164,13 @@ chainlesschain/
 │   │   │   ├── git/         # Git sync
 │   │   │   ├── image/       # Image processing + OCR
 │   │   │   ├── did/         # DID identity system
-│   │   │   └── p2p/         # P2P network
+│   │   │   ├── p2p/         # P2P network
+│   │   │   └── trade/       # Trading system (Phase 3)
 │   │   └── renderer/        # Renderer process (Vue3 + TypeScript)
 │   │       ├── components/  # Reusable components
 │   │       ├── pages/       # Pages
 │   │       └── stores/      # Pinia state management
 │   └── package.json
-│
-├── desktop-app/             # PC Desktop App (Electron + React)
-│   └── src/                 # React version, basic features
 │
 ├── community-forum/         # 🌐 Community Forum (Complete App)
 │   ├── backend/             # Spring Boot 3.1.5 + MySQL
@@ -215,13 +208,12 @@ chainlesschain/
 
 ### Project Components
 
-| Project | Tech Stack | Progress | Status | Rating |
-|---------|-----------|----------|--------|--------|
-| **desktop-app-vue** | Electron + Vue3 | 95% | ✅ Production Ready | ⭐⭐⭐⭐⭐ |
-| desktop-app | Electron + React | 60% | 🟡 Basic Features | ⭐⭐⭐ |
-| community-forum | Spring Boot + Vue3 | 80% | ✅ Available | ⭐⭐⭐⭐ |
-| android-app | Kotlin Native | 60% | 🟡 Architecture Done | ⭐⭐⭐ |
-| mobile-app | React Native | 30% | 🟡 In Development | ⭐⭐ |
+| Project | Tech Stack | Progress | Status | Description |
+|---------|-----------|----------|--------|-------------|
+| **desktop-app-vue** | Electron + Vue3 | 95% | ✅ Production Ready | Main PC app with all features |
+| community-forum | Spring Boot + Vue3 | 80% | ✅ Available | Community forum system |
+| android-app | Kotlin Native | 60% | 🟡 Architecture Done | Android native app |
+| mobile-app | React Native | 30% | 🟡 In Development | Cross-platform mobile app |
 
 ## 🗓️ Roadmap
 
@@ -281,7 +273,7 @@ chainlesschain/
 
 ## 🛠️ Tech Stack
 
-### PC (desktop-app-vue) ⭐
+### PC (desktop-app-vue)
 - **Framework**: Electron 39.2.6 + Vue 3.4 + TypeScript
 - **UI Components**: Ant Design Vue 4.1
 - **State Management**: Pinia 2.1.7
