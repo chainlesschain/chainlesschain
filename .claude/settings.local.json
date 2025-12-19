@@ -50,7 +50,8 @@
       "Bash(git pull:*)",
       "Bash(git check-ignore:*)",
       "Bash(find:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
