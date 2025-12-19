@@ -10,6 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const SignalSessionManager = require('./signal-session-manager');
 const DeviceManager = require('./device-manager');
+const { DeviceSyncManager, MessageStatus, SyncMessageType } = require('./device-sync-manager');
 
 // 动态导入 ESM 模块
 let createLibp2p, tcp, noise, mplex, kadDHT, mdns, bootstrap, multiaddr;
@@ -43,6 +44,7 @@ class P2PManager extends EventEmitter {
     this.dht = null;
     this.signalManager = null; // Signal 加密会话管理器
     this.deviceManager = null; // 设备管理器
+    this.syncManager = null;   // 设备同步管理器
     this.initialized = false;
   }
 
@@ -117,11 +119,17 @@ class P2PManager extends EventEmitter {
       // 初始化 Signal 会话管理器
       await this.initializeSignalManager();
 
+      // 初始化设备同步管理器
+      await this.initializeSyncManager();
+
       // 注册加密消息协议处理器
       this.registerEncryptedMessageHandlers();
 
       // 注册设备广播协议处理器
       this.registerDeviceBroadcastHandlers();
+
+      // 注册设备同步协议处理器
+      this.registerDeviceSyncHandlers();
 
       // 广播当前设备信息
       this.broadcastDeviceInfo();
@@ -310,6 +318,46 @@ class P2PManager extends EventEmitter {
   }
 
   /**
+   * 初始化设备同步管理器
+   */
+  async initializeSyncManager() {
+    console.log('[P2PManager] 初始化设备同步管理器...');
+
+    try {
+      const deviceId = this.deviceManager
+        ? this.deviceManager.getCurrentDevice().deviceId
+        : 'default-device';
+
+      this.syncManager = new DeviceSyncManager({
+        userId: this.peerId.toString(),
+        deviceId: deviceId,
+        dataPath: this.config.dataPath,
+      });
+
+      await this.syncManager.initialize();
+
+      // 监听同步事件
+      this.syncManager.on('sync:message', async ({ deviceId, message }) => {
+        // 尝试发送队列中的消息
+        try {
+          await this.sendEncryptedMessage(message.targetPeerId, message.content);
+          await this.syncManager.markMessageDelivered(message.id);
+          await this.syncManager.removeMessage(message.id);
+        } catch (error) {
+          console.error('[P2PManager] 发送同步消息失败:', error);
+          await this.syncManager.markMessageFailed(message.id, error.message);
+        }
+      });
+
+      console.log('[P2PManager] 设备同步管理器已初始化');
+    } catch (error) {
+      console.error('[P2PManager] 初始化设备同步管理器失败:', error);
+      // 不抛出错误，允许 P2P 网络继续工作（无同步模式）
+      this.syncManager = null;
+    }
+  }
+
+  /**
    * 注册加密消息协议处理器
    */
   registerEncryptedMessageHandlers() {
@@ -430,6 +478,75 @@ class P2PManager extends EventEmitter {
     });
 
     console.log('[P2PManager] 设备广播协议处理器已注册');
+  }
+
+  /**
+   * 注册设备同步协议处理器
+   */
+  registerDeviceSyncHandlers() {
+    if (!this.syncManager) {
+      console.warn('[P2PManager] 设备同步管理器未初始化，跳过同步处理器注册');
+      return;
+    }
+
+    // 处理同步请求
+    this.node.handle('/chainlesschain/device-sync/1.0.0', async ({ stream, connection }) => {
+      try {
+        const data = [];
+        for await (const chunk of stream.source) {
+          data.push(chunk.subarray());
+        }
+
+        const requestData = Buffer.concat(data);
+        const request = JSON.parse(requestData.toString());
+        const peerId = connection.remotePeer.toString();
+
+        console.log('[P2PManager] 收到同步请求:', peerId, 'type:', request.type);
+
+        let response = { success: false };
+
+        switch (request.type) {
+          case SyncMessageType.SYNC_REQUEST:
+            // 对方请求同步，返回队列中的消息
+            const deviceId = request.deviceId;
+            const queue = this.syncManager.getDeviceQueue(deviceId);
+            response = {
+              success: true,
+              type: SyncMessageType.SYNC_RESPONSE,
+              messages: queue,
+            };
+            break;
+
+          case SyncMessageType.MESSAGE_STATUS:
+            // 对方报告消息状态
+            const { messageId, status } = request;
+            if (status === MessageStatus.DELIVERED) {
+              await this.syncManager.markMessageDelivered(messageId);
+            } else if (status === MessageStatus.READ) {
+              await this.syncManager.markMessageRead(messageId);
+            }
+            response = { success: true };
+            break;
+
+          case SyncMessageType.DEVICE_STATUS:
+            // 对方报告设备状态
+            this.syncManager.updateDeviceStatus(request.deviceId, request.status);
+            response = { success: true };
+            break;
+
+          default:
+            console.warn('[P2PManager] 未知同步消息类型:', request.type);
+        }
+
+        // 发送响应
+        await stream.write(Buffer.from(JSON.stringify(response)));
+        await stream.close();
+      } catch (error) {
+        console.error('[P2PManager] 处理同步请求失败:', error);
+      }
+    });
+
+    console.log('[P2PManager] 设备同步协议处理器已注册');
   }
 
   /**
@@ -838,6 +955,11 @@ class P2PManager extends EventEmitter {
    */
   async close() {
     console.log('[P2PManager] 关闭 P2P 节点');
+
+    if (this.syncManager) {
+      await this.syncManager.close();
+      this.syncManager = null;
+    }
 
     if (this.deviceManager) {
       await this.deviceManager.close();
