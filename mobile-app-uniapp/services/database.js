@@ -331,6 +331,10 @@ class DatabaseService {
     }
 
     const tableName = tableMatch[1]
+
+    // 确保数据结构存在
+    this.ensureH5Data(tableName)
+
     let data = [...(this.h5Data[tableName] || [])]
 
     // 简单的参数替换（用于WHERE条件）
@@ -517,6 +521,7 @@ class DatabaseService {
 
     if (this.isH5) {
       // H5模式：更新内存数组
+      this.ensureH5Data('knowledge_items')
       const index = this.h5Data.knowledge_items.findIndex(item => item.id === id)
       if (index !== -1) {
         Object.assign(this.h5Data.knowledge_items[index], updates, {
@@ -565,6 +570,7 @@ class DatabaseService {
   async deleteKnowledgeItem(id) {
     if (this.isH5) {
       // H5模式：从内存数组删除
+      this.ensureH5Data('knowledge_items')
       this.h5Data.knowledge_items = this.h5Data.knowledge_items.filter(item => item.id !== id)
       this.saveH5Data()
       return { id }
