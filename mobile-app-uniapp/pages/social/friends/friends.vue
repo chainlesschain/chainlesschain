@@ -19,7 +19,7 @@
         :class="{ active: currentTab === 'all' }"
         @click="switchTab('all')"
       >
-        <text>全部好友 ({{ friends.length }})</text>
+        <text>全部好友 ({{ acceptedCount }})</text>
       </view>
       <view
         class="tab-item"
@@ -43,11 +43,11 @@
         </button>
       </view>
 
-      <view class="friend-item" v-for="friend in displayList" :key="friend.id" @click="viewFriendDetail(friend)">
-        <view class="avatar">
+      <view class="friend-item" v-for="friend in displayList" :key="friend.friend_did">
+        <view class="avatar" @click="handleFriendAction(friend)">
           <text>👤</text>
         </view>
-        <view class="info">
+        <view class="info" @click="handleFriendAction(friend)">
           <text class="nickname">{{ friend.nickname || friend.friend_did.substring(0, 12) + '...' }}</text>
           <text class="did">DID: {{ friend.friend_did.substring(0, 20) }}...</text>
           <text class="group" v-if="friend.group_name">📁 {{ friend.group_name }}</text>
@@ -57,6 +57,9 @@
             {{ getStatusText(friend.status) }}
           </text>
           <text class="time">{{ formatTime(friend.created_at) }}</text>
+        </view>
+        <view class="more" @click="showFriendMenu(friend)" v-if="friend.status === 'accepted'">
+          <text>⋯</text>
         </view>
       </view>
     </scroll-view>
@@ -112,6 +115,8 @@
 </template>
 
 <script>
+import { db } from '@/services/database'
+
 export default {
   data() {
     return {
@@ -124,7 +129,8 @@ export default {
         did: '',
         nickname: '',
         group: ''
-      }
+      },
+      myDid: ''
     }
   },
   computed: {
@@ -150,11 +156,19 @@ export default {
 
       return list
     },
+    acceptedCount() {
+      return this.friends.filter(f => f.status === 'accepted').length
+    },
     pendingCount() {
       return this.friends.filter(f => f.status === 'pending').length
     }
   },
   onLoad() {
+    this.initUserDid()
+    this.loadFriends()
+  },
+  onShow() {
+    // 每次显示时刷新好友列表
     this.loadFriends()
   },
   onPullDownRefresh() {
@@ -163,43 +177,22 @@ export default {
     })
   },
   methods: {
+    /**
+     * 初始化用户DID
+     */
+    initUserDid() {
+      this.myDid = uni.getStorageSync('device_id') || 'did:chainless:user123'
+    },
+
+    /**
+     * 加载好友列表
+     */
     async loadFriends() {
       this.loading = true
       try {
-        // 模拟数据加载
-        // 实际应该从数据库加载
-        await new Promise(resolve => setTimeout(resolve, 500))
-
-        // 模拟一些好友数据
-        this.friends = [
-          {
-            id: 1,
-            user_did: 'did:example:user123',
-            friend_did: 'did:example:alice456',
-            nickname: 'Alice',
-            group_name: '好友',
-            status: 'accepted',
-            created_at: Date.now() - 86400000 * 5
-          },
-          {
-            id: 2,
-            user_did: 'did:example:user123',
-            friend_did: 'did:example:bob789',
-            nickname: 'Bob',
-            group_name: '同事',
-            status: 'accepted',
-            created_at: Date.now() - 86400000 * 3
-          },
-          {
-            id: 3,
-            user_did: 'did:example:user123',
-            friend_did: 'did:example:charlie123',
-            nickname: '',
-            group_name: '',
-            status: 'pending',
-            created_at: Date.now() - 3600000
-          }
-        ]
+        const friends = await db.getFriends('all')
+        this.friends = friends
+        console.log('加载好友列表:', friends.length)
       } catch (error) {
         console.error('加载好友列表失败:', error)
         uni.showToast({
@@ -210,19 +203,39 @@ export default {
         this.loading = false
       }
     },
+
+    /**
+     * 搜索处理
+     */
     handleSearch() {
       // 搜索在 computed 中处理
     },
+
+    /**
+     * 切换标签
+     */
     switchTab(tab) {
       this.currentTab = tab
     },
+
+    /**
+     * 显示添加好友弹窗
+     */
     showAddFriend() {
       this.showModal = true
       this.newFriend = { did: '', nickname: '', group: '' }
     },
+
+    /**
+     * 关闭弹窗
+     */
     closeModal() {
       this.showModal = false
     },
+
+    /**
+     * 添加好友
+     */
     async handleAddFriend() {
       if (!this.newFriend.did) {
         uni.showToast({
@@ -232,19 +245,31 @@ export default {
         return
       }
 
-      try {
-        // 模拟添加好友
-        const newFriendData = {
-          id: this.friends.length + 1,
-          user_did: 'did:example:user123',
-          friend_did: this.newFriend.did,
-          nickname: this.newFriend.nickname,
-          group_name: this.newFriend.group,
-          status: 'pending',
-          created_at: Date.now()
-        }
+      // 验证DID格式（简单验证）
+      if (!this.newFriend.did.startsWith('did:')) {
+        uni.showToast({
+          title: 'DID格式不正确',
+          icon: 'none'
+        })
+        return
+      }
 
-        this.friends.unshift(newFriendData)
+      // 不能添加自己
+      if (this.newFriend.did === this.myDid) {
+        uni.showToast({
+          title: '不能添加自己为好友',
+          icon: 'none'
+        })
+        return
+      }
+
+      try {
+        await db.addFriend(
+          this.myDid,
+          this.newFriend.did,
+          this.newFriend.nickname,
+          this.newFriend.group
+        )
 
         uni.showToast({
           title: '好友请求已发送',
@@ -252,20 +277,30 @@ export default {
         })
 
         this.closeModal()
+
+        // 刷新列表
+        await this.loadFriends()
+
+        // 切换到待验证标签
         this.switchTab('pending')
       } catch (error) {
         console.error('添加好友失败:', error)
         uni.showToast({
-          title: '添加失败',
+          title: error.message || '添加失败',
           icon: 'none'
         })
       }
     },
-    viewFriendDetail(friend) {
+
+    /**
+     * 好友操作（点击好友）
+     */
+    handleFriendAction(friend) {
       if (friend.status === 'pending') {
+        // 待验证好友，显示接受/拒绝对话框
         uni.showModal({
           title: '好友请求',
-          content: `接受来自 ${friend.nickname || friend.friend_did} 的好友请求？`,
+          content: `接受来自 ${friend.nickname || friend.friend_did.substring(0, 20)} 的好友请求？`,
           cancelText: '拒绝',
           confirmText: '接受',
           success: (res) => {
@@ -276,31 +311,167 @@ export default {
             }
           }
         })
-      } else {
-        uni.showToast({
-          title: '好友详情功能开发中',
-          icon: 'none'
+      } else if (friend.status === 'accepted') {
+        // 已接受好友，跳转到聊天页面
+        uni.navigateTo({
+          url: `/pages/social/friend-chat/friend-chat?friendDid=${friend.friend_did}&nickname=${encodeURIComponent(friend.nickname || friend.friend_did)}`
         })
       }
     },
-    acceptFriend(friend) {
-      const index = this.friends.findIndex(f => f.id === friend.id)
-      if (index !== -1) {
-        this.friends[index].status = 'accepted'
+
+    /**
+     * 接受好友请求
+     */
+    async acceptFriend(friend) {
+      try {
+        await db.updateFriendStatus(this.myDid, friend.friend_did, 'accepted')
+
         uni.showToast({
           title: '已添加好友',
           icon: 'success'
         })
+
+        // 刷新列表
+        await this.loadFriends()
+
+        // 切换到全部好友标签
         this.switchTab('all')
+      } catch (error) {
+        console.error('接受好友失败:', error)
+        uni.showToast({
+          title: '操作失败',
+          icon: 'none'
+        })
       }
     },
-    rejectFriend(friend) {
-      this.friends = this.friends.filter(f => f.id !== friend.id)
-      uni.showToast({
-        title: '已拒绝',
-        icon: 'success'
+
+    /**
+     * 拒绝好友请求
+     */
+    async rejectFriend(friend) {
+      try {
+        await db.deleteFriend(this.myDid, friend.friend_did)
+
+        uni.showToast({
+          title: '已拒绝',
+          icon: 'success'
+        })
+
+        // 刷新列表
+        await this.loadFriends()
+      } catch (error) {
+        console.error('拒绝好友失败:', error)
+        uni.showToast({
+          title: '操作失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * 显示好友菜单
+     */
+    showFriendMenu(friend) {
+      uni.showActionSheet({
+        itemList: ['发送消息', '编辑备注', '删除好友'],
+        success: (res) => {
+          const index = res.tapIndex
+          if (index === 0) {
+            this.sendMessage(friend)
+          } else if (index === 1) {
+            this.editFriend(friend)
+          } else if (index === 2) {
+            this.deleteFriendConfirm(friend)
+          }
+        }
       })
     },
+
+    /**
+     * 发送消息
+     */
+    sendMessage(friend) {
+      uni.navigateTo({
+        url: `/pages/social/friend-chat/friend-chat?friendDid=${friend.friend_did}&nickname=${encodeURIComponent(friend.nickname || friend.friend_did)}`
+      })
+    },
+
+    /**
+     * 编辑好友
+     */
+    editFriend(friend) {
+      uni.showModal({
+        title: '编辑备注',
+        editable: true,
+        placeholderText: friend.nickname || '输入备注名称',
+        success: async (res) => {
+          if (res.confirm && res.content) {
+            try {
+              await db.updateFriend(this.myDid, friend.friend_did, {
+                nickname: res.content
+              })
+
+              uni.showToast({
+                title: '修改成功',
+                icon: 'success'
+              })
+
+              // 刷新列表
+              await this.loadFriends()
+            } catch (error) {
+              console.error('修改备注失败:', error)
+              uni.showToast({
+                title: '修改失败',
+                icon: 'none'
+              })
+            }
+          }
+        }
+      })
+    },
+
+    /**
+     * 删除好友确认
+     */
+    deleteFriendConfirm(friend) {
+      uni.showModal({
+        title: '删除好友',
+        content: `确定要删除好友 ${friend.nickname || friend.friend_did.substring(0, 20)} 吗？`,
+        confirmColor: '#ff4d4f',
+        success: async (res) => {
+          if (res.confirm) {
+            await this.deleteFriendAction(friend)
+          }
+        }
+      })
+    },
+
+    /**
+     * 删除好友操作
+     */
+    async deleteFriendAction(friend) {
+      try {
+        await db.deleteFriend(this.myDid, friend.friend_did)
+
+        uni.showToast({
+          title: '已删除',
+          icon: 'success'
+        })
+
+        // 刷新列表
+        await this.loadFriends()
+      } catch (error) {
+        console.error('删除好友失败:', error)
+        uni.showToast({
+          title: '删除失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * 获取状态文本
+     */
     getStatusText(status) {
       const map = {
         pending: '待验证',
@@ -309,6 +480,10 @@ export default {
       }
       return map[status] || status
     },
+
+    /**
+     * 格式化时间
+     */
     formatTime(timestamp) {
       const date = new Date(timestamp)
       const now = new Date()
@@ -360,6 +535,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
+    color: #ffffff;
   }
 
   .add-btn::after {
@@ -433,6 +609,10 @@ export default {
     border-radius: 40rpx;
     font-size: 28rpx;
     border: none;
+
+    &::after {
+      border: none;
+    }
   }
 }
 
@@ -512,6 +692,16 @@ export default {
       font-size: 20rpx;
       color: #999;
     }
+  }
+
+  .more {
+    width: 64rpx;
+    height: 64rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40rpx;
+    color: #999;
   }
 }
 

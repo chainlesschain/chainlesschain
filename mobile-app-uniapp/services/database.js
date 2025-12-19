@@ -820,6 +820,147 @@ class DatabaseService {
 
     return message
   }
+
+  // ==================== 好友管理 ====================
+
+  /**
+   * 获取所有好友
+   * @param {string} status 状态筛选 'all', 'accepted', 'pending', 'blocked'
+   * @returns {Promise<Array>} 好友列表
+   */
+  async getFriends(status = 'all') {
+    let sql = 'SELECT * FROM friendships'
+    const params = []
+
+    if (status !== 'all') {
+      sql += ' WHERE status = ?'
+      params.push(status)
+    }
+
+    sql += ' ORDER BY created_at DESC'
+
+    const result = await this.selectSql(sql, params)
+    return result || []
+  }
+
+  /**
+   * 添加好友
+   * @param {string} userDid 当前用户DID
+   * @param {string} friendDid 好友DID
+   * @param {string} nickname 昵称
+   * @param {string} groupName 分组名称
+   * @returns {Promise<Object>} 好友对象
+   */
+  async addFriend(userDid, friendDid, nickname = '', groupName = '') {
+    // 检查是否已存在
+    const existing = await this.selectSql(
+      'SELECT * FROM friendships WHERE user_did = ? AND friend_did = ?',
+      [userDid, friendDid]
+    )
+
+    if (existing && existing.length > 0) {
+      throw new Error('好友已存在')
+    }
+
+    // 插入新好友
+    const now = this.now()
+    const sql = `INSERT INTO friendships (user_did, friend_did, nickname, group_name, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)`
+
+    await this.executeSql(sql, [userDid, friendDid, nickname, groupName, 'pending', now])
+
+    return {
+      user_did: userDid,
+      friend_did: friendDid,
+      nickname,
+      group_name: groupName,
+      status: 'pending',
+      created_at: now
+    }
+  }
+
+  /**
+   * 更新好友状态
+   * @param {string} userDid 当前用户DID
+   * @param {string} friendDid 好友DID
+   * @param {string} status 新状态
+   * @returns {Promise<void>}
+   */
+  async updateFriendStatus(userDid, friendDid, status) {
+    if (this.isH5) {
+      this.ensureH5Data('friendships')
+      const friend = this.h5Data.friendships.find(
+        f => f.user_did === userDid && f.friend_did === friendDid
+      )
+      if (friend) {
+        friend.status = status
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE friendships SET status = ? WHERE user_did = ? AND friend_did = ?'
+    await this.executeSql(sql, [status, userDid, friendDid])
+  }
+
+  /**
+   * 删除好友
+   * @param {string} userDid 当前用户DID
+   * @param {string} friendDid 好友DID
+   * @returns {Promise<void>}
+   */
+  async deleteFriend(userDid, friendDid) {
+    if (this.isH5) {
+      this.ensureH5Data('friendships')
+      this.h5Data.friendships = this.h5Data.friendships.filter(
+        f => !(f.user_did === userDid && f.friend_did === friendDid)
+      )
+      this.saveH5Data()
+      return
+    }
+
+    const sql = 'DELETE FROM friendships WHERE user_did = ? AND friend_did = ?'
+    await this.executeSql(sql, [userDid, friendDid])
+  }
+
+  /**
+   * 更新好友信息
+   * @param {string} userDid 当前用户DID
+   * @param {string} friendDid 好友DID
+   * @param {Object} updates 更新的字段
+   * @returns {Promise<void>}
+   */
+  async updateFriend(userDid, friendDid, updates) {
+    if (this.isH5) {
+      this.ensureH5Data('friendships')
+      const friend = this.h5Data.friendships.find(
+        f => f.user_did === userDid && f.friend_did === friendDid
+      )
+      if (friend) {
+        Object.assign(friend, updates)
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const fields = []
+    const params = []
+
+    if (updates.nickname !== undefined) {
+      fields.push('nickname = ?')
+      params.push(updates.nickname)
+    }
+    if (updates.group_name !== undefined) {
+      fields.push('group_name = ?')
+      params.push(updates.group_name)
+    }
+
+    if (fields.length === 0) return
+
+    params.push(userDid, friendDid)
+    const sql = `UPDATE friendships SET ${fields.join(', ')} WHERE user_did = ? AND friend_did = ?`
+    await this.executeSql(sql, params)
+  }
 }
 
 // 导出单例
