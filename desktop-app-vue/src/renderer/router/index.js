@@ -85,6 +85,24 @@ const routes = [
         component: () => import('../components/trade/ContractList.vue'),
         meta: { title: '智能合约' },
       },
+      {
+        path: 'knowledge-store',
+        name: 'KnowledgeStore',
+        component: () => import('../components/knowledge/ContentStore.vue'),
+        meta: { title: '知识付费' },
+      },
+      {
+        path: 'my-purchases',
+        name: 'MyPurchases',
+        component: () => import('../components/knowledge/MyPurchases.vue'),
+        meta: { title: '我的购买' },
+      },
+      {
+        path: 'credit-score',
+        name: 'CreditScore',
+        component: () => import('../components/trade/CreditScore.vue'),
+        meta: { title: '信用评分' },
+      },
     ],
   },
 ];
