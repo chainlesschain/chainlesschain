@@ -1926,13 +1926,13 @@ class ChainlessChainApp {
     });
 
     // P2P 加密消息
-    ipcMain.handle('p2p:send-encrypted-message', async (_event, peerId, message) => {
+    ipcMain.handle('p2p:send-encrypted-message', async (_event, peerId, message, deviceId, options) => {
       try {
         if (!this.p2pManager) {
           throw new Error('P2P管理器未初始化');
         }
 
-        return await this.p2pManager.sendEncryptedMessage(peerId, message);
+        return await this.p2pManager.sendEncryptedMessage(peerId, message, deviceId, options);
       } catch (error) {
         console.error('[Main] 发送加密消息失败:', error);
         throw error;

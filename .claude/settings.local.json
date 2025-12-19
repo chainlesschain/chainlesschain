@@ -47,7 +47,8 @@
       "Bash(npm config:*)",
       "Bash(wc:*)",
       "Bash(echo:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git check-ignore:*)"
     ],
     "deny": [],
     "ask": []

@@ -834,26 +834,44 @@ class P2PManager extends EventEmitter {
    * 发送加密消息到对等节点
    * @param {string} peerId - 对等节点 ID
    * @param {string|Buffer} message - 消息内容
+   * @param {string} targetDeviceId - 目标设备 ID (可选)
+   * @param {Object} options - 发送选项 (可选)
+   * @param {boolean} options.autoQueue - 发送失败时自动入队 (默认 true)
    */
-  async sendEncryptedMessage(peerIdStr, message) {
+  async sendEncryptedMessage(peerIdStr, message, targetDeviceId = null, options = {}) {
     if (!this.signalManager) {
       throw new Error('Signal 会话管理器未初始化');
     }
 
+    const autoQueue = options.autoQueue !== false; // 默认启用自动入队
+
     try {
-      console.log('[P2PManager] 发送加密消息到:', peerIdStr);
+      console.log('[P2PManager] 发送加密消息到:', peerIdStr, 'deviceId:', targetDeviceId || '默认设备');
+
+      // 获取目标设备 ID (如果未指定，使用第一个可用设备)
+      let deviceId = targetDeviceId;
+      if (!deviceId && this.deviceManager) {
+        const userDevices = this.deviceManager.getUserDevices(peerIdStr);
+        if (userDevices && userDevices.length > 0) {
+          deviceId = userDevices[0].deviceId;
+          console.log('[P2PManager] 使用默认设备:', deviceId);
+        }
+      }
+      if (!deviceId) {
+        deviceId = 'default-device'; // 回退到默认设备 ID
+      }
 
       // 检查是否已建立会话
-      const hasSession = await this.signalManager.hasSession(peerIdStr, 1);
+      const hasSession = await this.signalManager.hasSession(peerIdStr, deviceId);
 
       if (!hasSession) {
         // 先发起密钥交换
         console.log('[P2PManager] 会话不存在，先发起密钥交换');
-        await this.initiateKeyExchange(peerIdStr);
+        await this.initiateKeyExchange(peerIdStr, deviceId);
       }
 
       // 加密消息
-      const ciphertext = await this.signalManager.encryptMessage(peerIdStr, 1, message);
+      const ciphertext = await this.signalManager.encryptMessage(peerIdStr, deviceId, message);
 
       // 发送加密消息
       const { peerIdFromString } = await import('@libp2p/peer-id');
@@ -864,7 +882,13 @@ class P2PManager extends EventEmitter {
         '/chainlesschain/encrypted-message/1.0.0'
       );
 
-      const encryptedData = Buffer.from(JSON.stringify(ciphertext));
+      const messagePayload = {
+        ciphertext,
+        targetDeviceId: deviceId,
+        fromDeviceId: this.deviceManager?.getCurrentDevice()?.deviceId || 'default-device',
+      };
+
+      const encryptedData = Buffer.from(JSON.stringify(messagePayload));
       await stream.write(encryptedData);
       await stream.close();
 
@@ -872,12 +896,44 @@ class P2PManager extends EventEmitter {
 
       this.emit('encrypted-message:sent', {
         to: peerIdStr,
+        targetDeviceId: deviceId,
         message,
       });
 
-      return { success: true };
+      return {
+        success: true,
+        status: 'sent',
+        deviceId,
+      };
     } catch (error) {
       console.error('[P2PManager] 发送加密消息失败:', error);
+
+      // 如果启用自动入队且同步管理器可用，则将消息加入队列
+      if (autoQueue && this.syncManager) {
+        try {
+          const deviceId = targetDeviceId || 'default-device';
+          const messageId = await this.syncManager.queueMessage(deviceId, {
+            targetPeerId: peerIdStr,
+            content: message,
+            encrypted: true,
+          });
+
+          console.log('[P2PManager] 消息已加入队列:', messageId);
+
+          return {
+            success: true,
+            status: 'queued',
+            messageId,
+            deviceId,
+            reason: error.message,
+          };
+        } catch (queueError) {
+          console.error('[P2PManager] 消息入队失败:', queueError);
+          throw new Error(`发送失败且无法入队: ${error.message}`);
+        }
+      }
+
+      // 如果不启用自动入队或入队失败，抛出原错误
       throw error;
     }
   }

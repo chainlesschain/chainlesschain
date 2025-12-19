@@ -330,6 +330,13 @@
                 <span v-if="msg.deviceName" style="margin-left: 4px; font-size: 10px">
                   ({{ msg.deviceName }})
                 </span>
+                <span v-if="msg.status" style="margin-left: 4px; font-size: 10px">
+                  <span v-if="msg.status === 'queued'" title="消息已入队,等待发送">⏳</span>
+                  <span v-else-if="msg.status === 'sent'" title="已发送">✓</span>
+                  <span v-else-if="msg.status === 'delivered'" title="已送达">✓✓</span>
+                  <span v-else-if="msg.status === 'read'" title="已读" style="color: #1890ff">✓✓</span>
+                  <span v-else-if="msg.status === 'failed'" title="发送失败">✗</span>
+                </span>
               </div>
             </div>
           </div>
@@ -782,10 +789,14 @@ const handleSendMessage = async () => {
   try {
     sending.value = true;
 
-    // 发送加密消息
-    await window.electronAPI.p2p.sendEncryptedMessage(currentChatPeer.value, content);
+    // 发送加密消息,传入设备 ID
+    const result = await window.electronAPI.p2p.sendEncryptedMessage(
+      currentChatPeer.value,
+      content,
+      currentChatDeviceId.value
+    );
 
-    // 添加到消息列表
+    // 根据发送结果创建消息
     const newMessage = {
       id: messageId,
       content,
@@ -793,6 +804,8 @@ const handleSendMessage = async () => {
       isSent: true,
       encrypted: true,
       deviceName: currentDevice.value?.deviceName,
+      status: result.status || 'sent', // 'sent' 或 'queued'
+      messageId: result.messageId, // 如果是队列消息,保存消息 ID
     };
 
     chatMessages.value.push(newMessage);
@@ -811,7 +824,14 @@ const handleSendMessage = async () => {
       scrollToBottom();
     });
 
-    antMessage.success('消息已发送（加密）');
+    // 显示不同的提示信息
+    if (result.status === 'queued') {
+      antMessage.info(`消息已加入队列(对方离线)`);
+      // 刷新同步统计
+      await loadSyncStatistics();
+    } else {
+      antMessage.success('消息已发送（加密）');
+    }
   } catch (error) {
     console.error('发送消息失败:', error);
     antMessage.error('发送失败: ' + error.message);
