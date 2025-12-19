@@ -2,11 +2,11 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.11.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.16.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Progress](https://img.shields.io/badge/progress-66%25-yellow.svg)
-![Phase 1](https://img.shields.io/badge/Phase%201-95%25-brightgreen.svg)
-![Phase 2](https://img.shields.io/badge/Phase%202-70%25-yellow.svg)
+![Progress](https://img.shields.io/badge/progress-75%25-yellow.svg)
+![Phase 1](https://img.shields.io/badge/Phase%201-98%25-brightgreen.svg)
+![Phase 2](https://img.shields.io/badge/Phase%202-85%25-brightgreen.svg)
 ![Phase 3](https://img.shields.io/badge/Phase%203-0%25-red.svg)
 
 **去中心化 · 隐私优先 · AI原生**
@@ -19,19 +19,19 @@
 
 ---
 
-## ⭐ 当前版本: v0.11.0 (2025-12-18)
+## ⭐ 当前版本: v0.16.0 (2025-12-19)
 
 ### 最新更新
+- ✅ **多设备支持和消息同步** - 设备管理、离线消息队列、自动同步
+- ✅ **端到端加密通信** - Signal协议、密钥交换、加密会话管理
 - ✅ **图片上传和OCR功能** - 支持多语言OCR识别，自动全文索引
 - ✅ **重排序器 (Reranker)** - 提升RAG检索准确度
-- ✅ **Git冲突解决** - 可视化冲突合并工具
-- ✅ **可验证凭证系统** - W3C标准VC实现
 
 ### 项目状态
-- 🟢 **知识库管理**: 95% 完成 - **可生产使用**
+- 🟢 **知识库管理**: 98% 完成 - **可生产使用**
 - 🟢 **AI服务集成**: 98% 完成 - **功能完整**
-- 🟡 **去中心化身份**: 95% 完成 - **基础完成**
-- 🟡 **P2P通信**: 60% 完成 - **开发中**
+- 🟢 **去中心化身份**: 95% 完成 - **基础完成**
+- 🟢 **P2P通信**: 85% 完成 - **核心完成**
 - 🔴 **交易功能**: 0% 完成 - **规划中**
 
 ## 核心特性
@@ -42,10 +42,11 @@
 - 📱 **跨设备协作**: PC端、移动端通过Git无缝同步 ✅
 - 🔓 **开源自主**: 代码透明,数据完全自己掌控 ✅
 - 📸 **智能图片处理**: OCR识别+自动索引,图片秒变可搜索文本 ✅ (v0.11.0)
+- 💬 **多设备P2P通信**: Signal协议端到端加密,离线消息队列,自动同步 ✅ (v0.16.0)
 
 ## 三大核心功能
 
-### 1️⃣ 知识库管理 (95% 完成) ✅
+### 1️⃣ 知识库管理 (98% 完成) ✅
 - ✅ **个人第二大脑**: 笔记、文档、对话历史统一管理
 - ✅ **AI增强检索**: RAG技术,语义搜索,智能问答
 - ✅ **多格式导入**: Markdown/PDF/Word/TXT/图片
@@ -54,14 +55,15 @@
 - ✅ **加密存储**: SQLCipher AES-256加密
 - ✅ **全文搜索**: FTS5索引,毫秒级响应
 
-### 2️⃣ 去中心化社交 (70% 完成) 🟡
+### 2️⃣ 去中心化社交 (85% 完成) ✅
 - ✅ **身份自主权**: 基于W3C DID标准
 - ✅ **可验证凭证**: VC模板系统,技能认证
 - ✅ **DHT网络**: DID文档发布与解析
-- ✅ **P2P通信**: libp2p网络层
+- ✅ **P2P通信**: libp2p网络层,多设备管理
+- ✅ **端到端加密**: Signal协议,密钥交换,加密会话
+- ✅ **私信系统**: P2P加密消息,离线队列,自动同步
 - ✅ **社区论坛**: 完整的Spring Boot后端 + Vue3前端
-- 🚧 **端到端加密**: Signal协议集成中
-- 🚧 **私信系统**: P2P消息通信开发中
+- 🚧 **社交功能**: 好友管理、动态发布 (规划中)
 
 ### 3️⃣ 去中心化交易辅助 (0% 完成) 🔴
 - ⏳ **AI匹配**: 智能推荐和风险评估 (规划中)
@@ -222,7 +224,7 @@ chainlesschain/
 
 ### 已完成 ✅
 - [x] **Phase 0**: 系统设计和架构规划 (100%)
-- [x] **Phase 1 (MVP - 知识库管理)**: 95% 完成
+- [x] **Phase 1 (MVP - 知识库管理)**: 98% 完成
   - [x] 桌面应用框架搭建 (Electron + Vue3)
   - [x] U盾集成和加密存储 (SQLCipher)
   - [x] 本地LLM和RAG实现 (Ollama + ChromaDB)
@@ -230,15 +232,18 @@ chainlesschain/
   - [x] 文件导入 (Markdown/PDF/Word/TXT)
   - [x] 图片上传和OCR (v0.11.0)
   - [x] 全文搜索和标签系统
+  - [x] 提示词模板管理
 
 ### 进行中 🚧
-- [x] **Phase 2 (去中心化社交)**: 70% 完成
+- [x] **Phase 2 (去中心化社交)**: 85% 完成
   - [x] DID身份系统
   - [x] DHT网络发布
   - [x] 可验证凭证系统
   - [x] P2P通信基础 (libp2p)
   - [x] 社区论坛 (Spring Boot + Vue3)
-  - [ ] Signal协议端到端加密 (开发中)
+  - [x] Signal协议端到端加密 (v0.16.0)
+  - [x] 多设备支持和消息同步 (v0.16.0)
+  - [ ] 社交功能 (好友、动态) (规划中)
   - [ ] 移动端UI完善 (开发中)
 
 ### 计划中 ⏳
@@ -259,6 +264,7 @@ chainlesschain/
 
 | 版本 | 日期 | 主要更新 |
 |------|------|---------|
+| v0.16.0 | 2025-12-19 | 多设备支持+消息同步+Signal加密 |
 | v0.11.0 | 2025-12-18 | 图片上传和OCR功能 |
 | v0.10.0 | 2025-12 | 重排序器(Reranker) |
 | v0.9.0 | 2025-11 | 文件导入功能完善 |
