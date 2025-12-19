@@ -73,7 +73,11 @@ class DatabaseService {
           messages: [],
           friendships: [],
           posts: [],
-          post_comments: []
+          post_comments: [],
+          market_listings: [],
+          orders: [],
+          user_assets: [],
+          transactions: []
         }
         this.saveH5Data()
         console.log('[Database] 初始化空数据结构')
@@ -147,7 +151,11 @@ class DatabaseService {
         messages: [],
         friendships: [],
         posts: [],
-        post_comments: []
+        post_comments: [],
+        market_listings: [],
+        orders: [],
+        user_assets: [],
+        transactions: []
       }
     }
 
@@ -253,6 +261,51 @@ class DatabaseService {
         author_did TEXT NOT NULL,
         content TEXT NOT NULL,
         parent_id TEXT,
+        created_at INTEGER NOT NULL
+      )`,
+
+      // 市场商品表
+      `CREATE TABLE IF NOT EXISTS market_listings (
+        id TEXT PRIMARY KEY,
+        knowledge_id TEXT NOT NULL,
+        seller_did TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        price REAL NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('on_sale', 'sold', 'removed')),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
+      )`,
+
+      // 订单表
+      `CREATE TABLE IF NOT EXISTS orders (
+        id TEXT PRIMARY KEY,
+        listing_id TEXT NOT NULL,
+        knowledge_id TEXT NOT NULL,
+        buyer_did TEXT NOT NULL,
+        seller_did TEXT NOT NULL,
+        price REAL NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('pending', 'completed', 'cancelled')),
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER
+      )`,
+
+      // 用户资产表
+      `CREATE TABLE IF NOT EXISTS user_assets (
+        user_did TEXT PRIMARY KEY,
+        balance REAL DEFAULT 0,
+        updated_at INTEGER NOT NULL
+      )`,
+
+      // 交易记录表
+      `CREATE TABLE IF NOT EXISTS transactions (
+        id TEXT PRIMARY KEY,
+        user_did TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('buy', 'sell', 'deposit', 'withdraw')),
+        amount REAL NOT NULL,
+        knowledge_id TEXT,
+        order_id TEXT,
         created_at INTEGER NOT NULL
       )`
     ]
@@ -1178,6 +1231,416 @@ class DatabaseService {
     // 更新动态的评论数
     const updateSql = 'UPDATE posts SET comment_count = comment_count - 1 WHERE id = ? AND comment_count > 0'
     await this.executeSql(updateSql, [postId])
+  }
+
+  // ==================== 交易市场 ====================
+
+  /**
+   * 创建市场商品（上架知识）
+   * @param {string} knowledgeId 知识ID
+   * @param {string} sellerDid 卖家DID
+   * @param {string} title 标题
+   * @param {string} description 描述
+   * @param {number} price 价格
+   * @returns {Promise<Object>} 商品对象
+   */
+  async createListing(knowledgeId, sellerDid, title, description, price) {
+    const id = this.generateId()
+    const now = this.now()
+
+    const newListing = {
+      id,
+      knowledge_id: knowledgeId,
+      seller_did: sellerDid,
+      title,
+      description: description || '',
+      price,
+      status: 'on_sale',
+      created_at: now,
+      updated_at: now
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('market_listings')
+      this.h5Data.market_listings.push(newListing)
+      this.saveH5Data()
+      return newListing
+    }
+
+    const sql = `INSERT INTO market_listings (id, knowledge_id, seller_did, title, description, price, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    await this.executeSql(sql, [id, knowledgeId, sellerDid, title, description, price, 'on_sale', now, now])
+
+    return newListing
+  }
+
+  /**
+   * 获取市场商品列表
+   * @param {Object} options 筛选选项
+   * @returns {Promise<Array>} 商品列表
+   */
+  async getListings(options = {}) {
+    const { status = 'on_sale', limit = 50, searchQuery = '' } = options
+
+    let sql = 'SELECT * FROM market_listings WHERE 1=1'
+    const params = []
+
+    if (status !== 'all') {
+      sql += ' AND status = ?'
+      params.push(status)
+    }
+
+    if (searchQuery) {
+      sql += ' AND (title LIKE ? OR description LIKE ?)'
+      const searchParam = `%${searchQuery}%`
+      params.push(searchParam, searchParam)
+    }
+
+    sql += ' ORDER BY created_at DESC LIMIT ?'
+    params.push(limit)
+
+    const result = await this.selectSql(sql, params)
+    return result || []
+  }
+
+  /**
+   * 获取单个商品
+   * @param {string} listingId 商品ID
+   * @returns {Promise<Object>} 商品对象
+   */
+  async getListing(listingId) {
+    const sql = 'SELECT * FROM market_listings WHERE id = ?'
+    const result = await this.selectSql(sql, [listingId])
+    return result && result.length > 0 ? result[0] : null
+  }
+
+  /**
+   * 获取用户的上架商品
+   * @param {string} sellerDid 卖家DID
+   * @returns {Promise<Array>} 商品列表
+   */
+  async getMyListings(sellerDid) {
+    const sql = 'SELECT * FROM market_listings WHERE seller_did = ? ORDER BY created_at DESC'
+    const result = await this.selectSql(sql, [sellerDid])
+    return result || []
+  }
+
+  /**
+   * 更新商品状态
+   * @param {string} listingId 商品ID
+   * @param {string} status 新状态
+   * @returns {Promise<void>}
+   */
+  async updateListingStatus(listingId, status) {
+    const now = this.now()
+
+    if (this.isH5) {
+      this.ensureH5Data('market_listings')
+      const listing = this.h5Data.market_listings.find(l => l.id === listingId)
+      if (listing) {
+        listing.status = status
+        listing.updated_at = now
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE market_listings SET status = ?, updated_at = ? WHERE id = ?'
+    await this.executeSql(sql, [status, now, listingId])
+  }
+
+  /**
+   * 下架商品
+   * @param {string} listingId 商品ID
+   * @returns {Promise<void>}
+   */
+  async removeListing(listingId) {
+    await this.updateListingStatus(listingId, 'removed')
+  }
+
+  // ==================== 订单管理 ====================
+
+  /**
+   * 创建订单
+   * @param {string} listingId 商品ID
+   * @param {string} knowledgeId 知识ID
+   * @param {string} buyerDid 买家DID
+   * @param {string} sellerDid 卖家DID
+   * @param {number} price 价格
+   * @returns {Promise<Object>} 订单对象
+   */
+  async createOrder(listingId, knowledgeId, buyerDid, sellerDid, price) {
+    const id = this.generateId()
+    const now = this.now()
+
+    const newOrder = {
+      id,
+      listing_id: listingId,
+      knowledge_id: knowledgeId,
+      buyer_did: buyerDid,
+      seller_did: sellerDid,
+      price,
+      status: 'pending',
+      created_at: now,
+      completed_at: null
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('orders')
+      this.h5Data.orders.push(newOrder)
+      this.saveH5Data()
+      return newOrder
+    }
+
+    const sql = `INSERT INTO orders (id, listing_id, knowledge_id, buyer_did, seller_did, price, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    await this.executeSql(sql, [id, listingId, knowledgeId, buyerDid, sellerDid, price, 'pending', now])
+
+    return newOrder
+  }
+
+  /**
+   * 获取订单列表
+   * @param {string} userDid 用户DID
+   * @param {string} type 订单类型 'buy'(购买) 或 'sell'(出售) 或 'all'
+   * @returns {Promise<Array>} 订单列表
+   */
+  async getOrders(userDid, type = 'all') {
+    let sql = 'SELECT * FROM orders WHERE 1=1'
+    const params = []
+
+    if (type === 'buy') {
+      sql += ' AND buyer_did = ?'
+      params.push(userDid)
+    } else if (type === 'sell') {
+      sql += ' AND seller_did = ?'
+      params.push(userDid)
+    } else {
+      sql += ' AND (buyer_did = ? OR seller_did = ?)'
+      params.push(userDid, userDid)
+    }
+
+    sql += ' ORDER BY created_at DESC'
+
+    const result = await this.selectSql(sql, params)
+    return result || []
+  }
+
+  /**
+   * 更新订单状态
+   * @param {string} orderId 订单ID
+   * @param {string} status 新状态
+   * @returns {Promise<void>}
+   */
+  async updateOrderStatus(orderId, status) {
+    const now = this.now()
+
+    if (this.isH5) {
+      this.ensureH5Data('orders')
+      const order = this.h5Data.orders.find(o => o.id === orderId)
+      if (order) {
+        order.status = status
+        if (status === 'completed') {
+          order.completed_at = now
+        }
+        this.saveH5Data()
+      }
+      return
+    }
+
+    let sql = 'UPDATE orders SET status = ?'
+    const params = [status]
+
+    if (status === 'completed') {
+      sql += ', completed_at = ?'
+      params.push(now)
+    }
+
+    sql += ' WHERE id = ?'
+    params.push(orderId)
+
+    await this.executeSql(sql, params)
+  }
+
+  // ==================== 用户资产 ====================
+
+  /**
+   * 获取用户余额
+   * @param {string} userDid 用户DID
+   * @returns {Promise<number>} 余额
+   */
+  async getBalance(userDid) {
+    if (this.isH5) {
+      this.ensureH5Data('user_assets')
+      const asset = this.h5Data.user_assets.find(a => a.user_did === userDid)
+      return asset ? asset.balance : 0
+    }
+
+    const sql = 'SELECT balance FROM user_assets WHERE user_did = ?'
+    const result = await this.selectSql(sql, [userDid])
+    return result && result.length > 0 ? result[0].balance : 0
+  }
+
+  /**
+   * 更新用户余额
+   * @param {string} userDid 用户DID
+   * @param {number} amount 金额变动（正数增加，负数减少）
+   * @returns {Promise<number>} 新余额
+   */
+  async updateBalance(userDid, amount) {
+    const now = this.now()
+    const currentBalance = await this.getBalance(userDid)
+    const newBalance = currentBalance + amount
+
+    if (newBalance < 0) {
+      throw new Error('余额不足')
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('user_assets')
+      let asset = this.h5Data.user_assets.find(a => a.user_did === userDid)
+
+      if (asset) {
+        asset.balance = newBalance
+        asset.updated_at = now
+      } else {
+        asset = {
+          user_did: userDid,
+          balance: newBalance,
+          updated_at: now
+        }
+        this.h5Data.user_assets.push(asset)
+      }
+
+      this.saveH5Data()
+      return newBalance
+    }
+
+    // 检查是否已有记录
+    const existing = await this.selectSql('SELECT * FROM user_assets WHERE user_did = ?', [userDid])
+
+    if (existing && existing.length > 0) {
+      const sql = 'UPDATE user_assets SET balance = ?, updated_at = ? WHERE user_did = ?'
+      await this.executeSql(sql, [newBalance, now, userDid])
+    } else {
+      const sql = 'INSERT INTO user_assets (user_did, balance, updated_at) VALUES (?, ?, ?)'
+      await this.executeSql(sql, [userDid, newBalance, now])
+    }
+
+    return newBalance
+  }
+
+  /**
+   * 添加交易记录
+   * @param {string} userDid 用户DID
+   * @param {string} type 交易类型
+   * @param {number} amount 金额
+   * @param {string} knowledgeId 知识ID（可选）
+   * @param {string} orderId 订单ID（可选）
+   * @returns {Promise<Object>} 交易记录
+   */
+  async addTransaction(userDid, type, amount, knowledgeId = null, orderId = null) {
+    const id = this.generateId()
+    const now = this.now()
+
+    const transaction = {
+      id,
+      user_did: userDid,
+      type,
+      amount,
+      knowledge_id: knowledgeId,
+      order_id: orderId,
+      created_at: now
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('transactions')
+      this.h5Data.transactions.push(transaction)
+      this.saveH5Data()
+      return transaction
+    }
+
+    const sql = `INSERT INTO transactions (id, user_did, type, amount, knowledge_id, order_id, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`
+    await this.executeSql(sql, [id, userDid, type, amount, knowledgeId, orderId, now])
+
+    return transaction
+  }
+
+  /**
+   * 获取交易记录
+   * @param {string} userDid 用户DID
+   * @param {number} limit 限制数量
+   * @returns {Promise<Array>} 交易记录列表
+   */
+  async getTransactions(userDid, limit = 50) {
+    const sql = 'SELECT * FROM transactions WHERE user_did = ? ORDER BY created_at DESC LIMIT ?'
+    const result = await this.selectSql(sql, [userDid, limit])
+    return result || []
+  }
+
+  /**
+   * 购买知识（完整流程）
+   * @param {string} listingId 商品ID
+   * @param {string} buyerDid 买家DID
+   * @returns {Promise<Object>} 订单对象
+   */
+  async buyKnowledge(listingId, buyerDid) {
+    // 获取商品信息
+    const listing = await this.getListing(listingId)
+    if (!listing) {
+      throw new Error('商品不存在')
+    }
+
+    if (listing.status !== 'on_sale') {
+      throw new Error('商品已下架')
+    }
+
+    if (listing.seller_did === buyerDid) {
+      throw new Error('不能购买自己的商品')
+    }
+
+    // 检查买家余额
+    const balance = await this.getBalance(buyerDid)
+    if (balance < listing.price) {
+      throw new Error('余额不足')
+    }
+
+    // 创建订单
+    const order = await this.createOrder(
+      listingId,
+      listing.knowledge_id,
+      buyerDid,
+      listing.seller_did,
+      listing.price
+    )
+
+    // 扣除买家余额
+    await this.updateBalance(buyerDid, -listing.price)
+    await this.addTransaction(buyerDid, 'buy', -listing.price, listing.knowledge_id, order.id)
+
+    // 增加卖家余额
+    await this.updateBalance(listing.seller_did, listing.price)
+    await this.addTransaction(listing.seller_did, 'sell', listing.price, listing.knowledge_id, order.id)
+
+    // 更新商品状态
+    await this.updateListingStatus(listingId, 'sold')
+
+    // 更新订单状态
+    await this.updateOrderStatus(order.id, 'completed')
+
+    // 复制知识到买家（创建新的知识副本）
+    const knowledge = await this.getKnowledgeItem(listing.knowledge_id)
+    if (knowledge) {
+      await this.addKnowledgeItem({
+        title: `[已购] ${knowledge.title}`,
+        type: knowledge.type,
+        content: knowledge.content,
+        deviceId: buyerDid
+      })
+    }
+
+    return order
   }
 }
 
