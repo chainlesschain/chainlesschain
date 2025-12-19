@@ -293,6 +293,35 @@ class ChainlessChainApp {
       // 不影响应用启动
     }
 
+    // 初始化托管管理器
+    try {
+      console.log('初始化托管管理器...');
+      const { EscrowManager } = require('./trade/escrow-manager');
+      this.escrowManager = new EscrowManager(this.database, this.didManager, this.assetManager);
+      await this.escrowManager.initialize();
+      console.log('托管管理器初始化成功');
+    } catch (error) {
+      console.error('托管管理器初始化失败:', error);
+      // 不影响应用启动
+    }
+
+    // 初始化交易市场管理器
+    try {
+      console.log('初始化交易市场管理器...');
+      const { MarketplaceManager } = require('./trade/marketplace-manager');
+      this.marketplaceManager = new MarketplaceManager(
+        this.database,
+        this.didManager,
+        this.assetManager,
+        this.escrowManager
+      );
+      await this.marketplaceManager.initialize();
+      console.log('交易市场管理器初始化成功');
+    } catch (error) {
+      console.error('交易市场管理器初始化失败:', error);
+      // 不影响应用启动
+    }
+
     // 初始化可验证凭证管理器
     try {
       console.log('初始化可验证凭证管理器...');
@@ -2305,6 +2334,206 @@ class ChainlessChainApp {
       } catch (error) {
         console.error('[Main] 获取余额失败:', error);
         return 0;
+      }
+    });
+
+    // ==================== 交易市场 ====================
+
+    // 创建订单
+    ipcMain.handle('marketplace:create-order', async (_event, options) => {
+      try {
+        if (!this.marketplaceManager) {
+          throw new Error('交易市场管理器未初始化');
+        }
+
+        return await this.marketplaceManager.createOrder(options);
+      } catch (error) {
+        console.error('[Main] 创建订单失败:', error);
+        throw error;
+      }
+    });
+
+    // 取消订单
+    ipcMain.handle('marketplace:cancel-order', async (_event, orderId) => {
+      try {
+        if (!this.marketplaceManager) {
+          throw new Error('交易市场管理器未初始化');
+        }
+
+        return await this.marketplaceManager.cancelOrder(orderId);
+      } catch (error) {
+        console.error('[Main] 取消订单失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取订单列表
+    ipcMain.handle('marketplace:get-orders', async (_event, filters) => {
+      try {
+        if (!this.marketplaceManager) {
+          return [];
+        }
+
+        return await this.marketplaceManager.getOrders(filters);
+      } catch (error) {
+        console.error('[Main] 获取订单列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取订单详情
+    ipcMain.handle('marketplace:get-order', async (_event, orderId) => {
+      try {
+        if (!this.marketplaceManager) {
+          return null;
+        }
+
+        return await this.marketplaceManager.getOrder(orderId);
+      } catch (error) {
+        console.error('[Main] 获取订单详情失败:', error);
+        throw error;
+      }
+    });
+
+    // 匹配订单（购买）
+    ipcMain.handle('marketplace:match-order', async (_event, orderId, quantity) => {
+      try {
+        if (!this.marketplaceManager) {
+          throw new Error('交易市场管理器未初始化');
+        }
+
+        return await this.marketplaceManager.matchOrder(orderId, quantity);
+      } catch (error) {
+        console.error('[Main] 匹配订单失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取交易列表
+    ipcMain.handle('marketplace:get-transactions', async (_event, filters) => {
+      try {
+        if (!this.marketplaceManager) {
+          return [];
+        }
+
+        return await this.marketplaceManager.getTransactions(filters);
+      } catch (error) {
+        console.error('[Main] 获取交易列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 确认交付
+    ipcMain.handle('marketplace:confirm-delivery', async (_event, transactionId) => {
+      try {
+        if (!this.marketplaceManager) {
+          throw new Error('交易市场管理器未初始化');
+        }
+
+        return await this.marketplaceManager.confirmDelivery(transactionId);
+      } catch (error) {
+        console.error('[Main] 确认交付失败:', error);
+        throw error;
+      }
+    });
+
+    // 申请退款
+    ipcMain.handle('marketplace:request-refund', async (_event, transactionId, reason) => {
+      try {
+        if (!this.marketplaceManager) {
+          throw new Error('交易市场管理器未初始化');
+        }
+
+        return await this.marketplaceManager.requestRefund(transactionId, reason);
+      } catch (error) {
+        console.error('[Main] 申请退款失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取我的订单
+    ipcMain.handle('marketplace:get-my-orders', async (_event, userDid) => {
+      try {
+        if (!this.marketplaceManager) {
+          return { createdOrders: [], purchasedOrders: [] };
+        }
+
+        return await this.marketplaceManager.getMyOrders(userDid);
+      } catch (error) {
+        console.error('[Main] 获取我的订单失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 托管管理 ====================
+
+    // 获取托管详情
+    ipcMain.handle('escrow:get', async (_event, escrowId) => {
+      try {
+        if (!this.escrowManager) {
+          return null;
+        }
+
+        return await this.escrowManager.getEscrow(escrowId);
+      } catch (error) {
+        console.error('[Main] 获取托管详情失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取托管列表
+    ipcMain.handle('escrow:get-list', async (_event, filters) => {
+      try {
+        if (!this.escrowManager) {
+          return [];
+        }
+
+        return await this.escrowManager.getEscrows(filters);
+      } catch (error) {
+        console.error('[Main] 获取托管列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取托管历史
+    ipcMain.handle('escrow:get-history', async (_event, escrowId) => {
+      try {
+        if (!this.escrowManager) {
+          return [];
+        }
+
+        return await this.escrowManager.getEscrowHistory(escrowId);
+      } catch (error) {
+        console.error('[Main] 获取托管历史失败:', error);
+        throw error;
+      }
+    });
+
+    // 发起争议
+    ipcMain.handle('escrow:dispute', async (_event, escrowId, reason) => {
+      try {
+        if (!this.escrowManager) {
+          throw new Error('托管管理器未初始化');
+        }
+
+        return await this.escrowManager.disputeEscrow(escrowId, reason);
+      } catch (error) {
+        console.error('[Main] 发起争议失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取托管统计信息
+    ipcMain.handle('escrow:get-statistics', async () => {
+      try {
+        if (!this.escrowManager) {
+          return { total: 0, locked: 0, released: 0, refunded: 0, disputed: 0 };
+        }
+
+        return await this.escrowManager.getStatistics();
+      } catch (error) {
+        console.error('[Main] 获取托管统计信息失败:', error);
+        throw error;
       }
     });
 

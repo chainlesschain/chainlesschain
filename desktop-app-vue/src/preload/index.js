@@ -158,6 +158,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getBalance: (ownerDid, assetId) => ipcRenderer.invoke('asset:get-balance', ownerDid, assetId),
   },
 
+  // 交易市场
+  marketplace: {
+    createOrder: (options) => ipcRenderer.invoke('marketplace:create-order', options),
+    cancelOrder: (orderId) => ipcRenderer.invoke('marketplace:cancel-order', orderId),
+    getOrders: (filters) => ipcRenderer.invoke('marketplace:get-orders', filters),
+    getOrder: (orderId) => ipcRenderer.invoke('marketplace:get-order', orderId),
+    matchOrder: (orderId, quantity) => ipcRenderer.invoke('marketplace:match-order', orderId, quantity),
+    getTransactions: (filters) => ipcRenderer.invoke('marketplace:get-transactions', filters),
+    confirmDelivery: (transactionId) => ipcRenderer.invoke('marketplace:confirm-delivery', transactionId),
+    requestRefund: (transactionId, reason) => ipcRenderer.invoke('marketplace:request-refund', transactionId, reason),
+    getMyOrders: (userDid) => ipcRenderer.invoke('marketplace:get-my-orders', userDid),
+  },
+
+  // 托管管理
+  escrow: {
+    get: (escrowId) => ipcRenderer.invoke('escrow:get', escrowId),
+    getList: (filters) => ipcRenderer.invoke('escrow:get-list', filters),
+    getHistory: (escrowId) => ipcRenderer.invoke('escrow:get-history', escrowId),
+    dispute: (escrowId, reason) => ipcRenderer.invoke('escrow:dispute', escrowId, reason),
+    getStatistics: () => ipcRenderer.invoke('escrow:get-statistics'),
+  },
+
   // P2P网络
   p2p: {
     getNodeInfo: () => ipcRenderer.invoke('p2p:get-node-info'),
