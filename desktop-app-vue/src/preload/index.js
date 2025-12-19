@@ -132,6 +132,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getUserDevices: (userId) => ipcRenderer.invoke('p2p:get-user-devices', userId),
     getCurrentDevice: () => ipcRenderer.invoke('p2p:get-current-device'),
     getDeviceStatistics: () => ipcRenderer.invoke('p2p:get-device-statistics'),
+    // 设备同步
+    getSyncStatistics: () => ipcRenderer.invoke('p2p:get-sync-statistics'),
+    getMessageStatus: (messageId) => ipcRenderer.invoke('p2p:get-message-status', messageId),
+    startDeviceSync: (deviceId) => ipcRenderer.invoke('p2p:start-device-sync', deviceId),
+    stopDeviceSync: (deviceId) => ipcRenderer.invoke('p2p:stop-device-sync', deviceId),
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
