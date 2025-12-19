@@ -102,6 +102,12 @@
               </a-button>
             </a-tooltip>
 
+            <a-tooltip title="P2P加密消息">
+              <a-button type="text" @click="router.push('/p2p-messaging')">
+                <MessageOutlined />
+              </a-button>
+            </a-tooltip>
+
             <a-tooltip title="可验证凭证">
               <a-button type="text" @click="router.push('/credentials')">
                 <safety-certificate-outlined />

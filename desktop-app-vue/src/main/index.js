@@ -210,6 +210,10 @@ class ChainlessChainApp {
       // P2P 初始化可能较慢，使用后台初始化
       this.p2pManager.initialize().then(() => {
         console.log('P2P管理器初始化成功');
+
+        // 设置 P2P 加密消息事件监听
+        this.setupP2PEncryptionEvents();
+
         // P2P初始化成功后，设置到DID管理器中以启用DHT功能
         if (this.didManager) {
           this.didManager.setP2PManager(this.p2pManager);
@@ -407,6 +411,38 @@ class ChainlessChainApp {
         this.mainWindow.webContents.send('ukey:locked');
       }
     });
+  }
+
+  setupP2PEncryptionEvents() {
+    if (!this.p2pManager) {
+      return;
+    }
+
+    // 监听加密消息接收事件
+    this.p2pManager.on('encrypted-message:received', (data) => {
+      console.log('[Main] 收到加密消息:', data.from);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('p2p:encrypted-message', data);
+      }
+    });
+
+    // 监听加密消息发送事件
+    this.p2pManager.on('encrypted-message:sent', (data) => {
+      console.log('[Main] 加密消息已发送:', data.to);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('p2p:encrypted-message-sent', data);
+      }
+    });
+
+    // 监听密钥交换成功事件
+    this.p2pManager.on('key-exchange:success', (data) => {
+      console.log('[Main] 密钥交换成功:', data.peerId);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('p2p:key-exchange-success', data);
+      }
+    });
+
+    console.log('[Main] P2P 加密事件监听已设置');
   }
 
   setupIPC() {
@@ -1886,6 +1922,46 @@ class ChainlessChainApp {
       } catch (error) {
         console.error('[Main] 获取对等节点列表失败:', error);
         return [];
+      }
+    });
+
+    // P2P 加密消息
+    ipcMain.handle('p2p:send-encrypted-message', async (_event, peerId, message) => {
+      try {
+        if (!this.p2pManager) {
+          throw new Error('P2P管理器未初始化');
+        }
+
+        return await this.p2pManager.sendEncryptedMessage(peerId, message);
+      } catch (error) {
+        console.error('[Main] 发送加密消息失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('p2p:has-encrypted-session', async (_event, peerId) => {
+      try {
+        if (!this.p2pManager) {
+          return false;
+        }
+
+        return await this.p2pManager.hasEncryptedSession(peerId);
+      } catch (error) {
+        console.error('[Main] 检查加密会话失败:', error);
+        return false;
+      }
+    });
+
+    ipcMain.handle('p2p:initiate-key-exchange', async (_event, peerId) => {
+      try {
+        if (!this.p2pManager) {
+          throw new Error('P2P管理器未初始化');
+        }
+
+        return await this.p2pManager.initiateKeyExchange(peerId);
+      } catch (error) {
+        console.error('[Main] 密钥交换失败:', error);
+        throw error;
       }
     });
 
