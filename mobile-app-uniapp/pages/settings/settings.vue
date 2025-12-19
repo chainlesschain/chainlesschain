@@ -271,13 +271,25 @@ export default {
         }
 
         // 保存到 LLM 服务
-        await llm.setProvider(this.llmConfig.provider)
-        await llm.setConfig({
+        llm.setProvider(this.llmConfig.provider)
+
+        const configToSave = {
           apiKey: this.llmConfig.apiKey,
           baseURL: this.llmConfig.baseURL,
           model: this.llmConfig.model,
           temperature: parseFloat(this.llmConfig.temperature)
-        })
+        }
+
+        // 添加 secretKey（如果需要）
+        if (this.needsSecretKey(this.llmConfig.provider)) {
+          if (this.llmConfig.provider === 'xfyun_xinghuo') {
+            configToSave.apiSecret = this.llmConfig.secretKey
+          } else {
+            configToSave.secretKey = this.llmConfig.secretKey
+          }
+        }
+
+        llm.updateConfig(this.llmConfig.provider, configToSave)
 
         uni.showToast({
           title: '配置已保存',
