@@ -12,7 +12,7 @@
 ```
 chainlesschain/
 ├── desktop-app-vue/    # PC端桌面应用 (Electron + Vue3 + TypeScript)
-├── mobile-app/         # 移动端应用 (待开发)
+├── android-app/        # Android原生应用
 ├── backend/            # 后端服务 (Docker)
 ├── docs/               # 文档
 ├── scripts/            # 工具脚本

@@ -143,11 +143,6 @@ npm run dev
 # Android应用
 cd android-app
 ./gradlew assembleDebug
-
-# React Native移动应用
-cd mobile-app
-npm install
-npm run android  # 或 npm run ios
 ```
 
 ## 📁 项目结构
@@ -185,11 +180,6 @@ chainlesschain/
 │       │   └── res/         # 资源文件
 │       └── ...
 │
-├── mobile-app/              # 📱 React Native应用
-│   ├── android/             # Android平台
-│   ├── ios/                 # iOS平台
-│   └── src/                 # 跨平台代码
-│
 ├── docker-compose.yml       # 🐳 Docker服务配置
 │   # - Ollama (LLM推理)
 │   # - Qdrant (向量数据库)
@@ -213,7 +203,6 @@ chainlesschain/
 | **desktop-app-vue** | Electron + Vue3 | 95% | ✅ 生产可用 | PC端主应用,包含全部功能 |
 | community-forum | Spring Boot + Vue3 | 80% | ✅ 可用 | 社区论坛系统 |
 | android-app | Kotlin Native | 60% | 🟡 架构完成 | Android原生应用 |
-| mobile-app | React Native | 30% | 🟡 开发中 | 跨平台移动应用 |
 
 ## 🗓️ 开发路线图
 

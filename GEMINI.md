@@ -17,9 +17,7 @@ The system places a strong emphasis on security, utilizing hardware-level encryp
 The repository is a monorepo containing several distinct, but interconnected, sub-projects:
 
 -   `desktop-app-vue/`: The primary desktop application built with **Electron** and **Vue3**. This is the most mature part of the project.
--   `desktop-app-vue/`: An alternative desktop application built with **Electron** and **Vue.js**.
--   `mobile-app/`: Contains the native Android and iOS applications.
-    -   `android/`: **Kotlin** with **Jetpack Compose**.
+-   `android-app/`: Android native application built with **Kotlin** and **Jetpack Compose**.
 -   `backend/`: Holds the backend services, primarily managed through Docker.
     -   `docker/`: Contains `docker-compose.yml` to run AI services like **Ollama**, **Qdrant**, and optionally **AnythingLLM** and **Gitea**.
 -   `community-forum/`: A Java and Vue-based community forum application.

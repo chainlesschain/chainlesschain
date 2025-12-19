@@ -48,7 +48,9 @@
       "Bash(wc:*)",
       "Bash(echo:*)",
       "Bash(git pull:*)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(find:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
