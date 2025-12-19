@@ -48,6 +48,10 @@ export default {
   onLoad() {
     this.loadItems()
   },
+  onShow() {
+    // 页面显示时重新加载，确保新添加的条目能显示
+    this.loadItems()
+  },
   onPullDownRefresh() {
     this.loadItems().then(() => {
       uni.stopPullDownRefresh()

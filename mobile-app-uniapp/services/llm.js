@@ -1,11 +1,11 @@
 /**
  * ChainlessChain Mobile - LLM 云端 API 服务
- * 支持 OpenAI、DeepSeek、Ollama 等多种提供商
+ * 支持 OpenAI、DeepSeek、Ollama、火山引擎等多种提供商
  */
 
 class LLMService {
   constructor() {
-    this.provider = 'openai' // 'openai' | 'deepseek' | 'ollama' | 'custom'
+    this.provider = 'openai' // 'openai' | 'deepseek' | 'volcengine' | 'ollama' | 'custom'
     this.config = {
       openai: {
         apiKey: '',
@@ -18,6 +18,13 @@ class LLMService {
         apiKey: '',
         baseURL: 'https://api.deepseek.com/v1',
         model: 'deepseek-chat',
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+      volcengine: {
+        apiKey: '',
+        baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
+        model: 'doubao-pro-32k',
         temperature: 0.7,
         maxTokens: 2000
       },
@@ -74,7 +81,7 @@ class LLMService {
    * 设置提供商
    */
   setProvider(provider) {
-    if (['openai', 'deepseek', 'ollama', 'custom'].includes(provider)) {
+    if (['openai', 'deepseek', 'volcengine', 'ollama', 'custom'].includes(provider)) {
       this.provider = provider
       this.saveConfig()
     }

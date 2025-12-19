@@ -153,6 +153,7 @@ export default {
       providers: [
         { value: 'openai', label: 'OpenAI' },
         { value: 'deepseek', label: 'DeepSeek' },
+        { value: 'volcengine', label: '火山引擎（豆包）' },
         { value: 'ollama', label: 'Ollama (本地)' },
         { value: 'custom', label: '自定义' }
       ],
@@ -194,6 +195,7 @@ export default {
       const defaults = {
         openai: 'gpt-3.5-turbo',
         deepseek: 'deepseek-chat',
+        volcengine: 'doubao-pro-32k',
         ollama: 'qwen2:7b',
         custom: ''
       }
