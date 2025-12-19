@@ -59,7 +59,7 @@ cd chainlesschain
 npm install
 
 # 安装PC端依赖
-cd desktop-app
+cd desktop-app-vue
 npm install
 cd ..
 ```
@@ -95,7 +95,7 @@ npm run dev:desktop
 
 ```
 chainlesschain/
-├── desktop-app/              # PC端桌面应用
+├── desktop-app-vue/          # PC端桌面应用
 │   ├── src/
 │   │   ├── main/             # Electron主进程
 │   │   │   ├── index.ts      # 主进程入口
@@ -184,7 +184,7 @@ npm run clean                # 清理构建产物
 
 **添加新表:**
 ```typescript
-// desktop-app/src/main/database.ts
+// desktop-app-vue/src/main/database.ts
 private createTables(): void {
   // 添加新表SQL
   this.db.exec(`
@@ -368,8 +368,8 @@ npm run test:e2e
       "name": "Electron: Main",
       "type": "node",
       "request": "launch",
-      "cwd": "${workspaceFolder}/desktop-app",
-      "runtimeExecutable": "${workspaceFolder}/desktop-app/node_modules/.bin/electron",
+      "cwd": "${workspaceFolder}/desktop-app-vue",
+      "runtimeExecutable": "${workspaceFolder}/desktop-app-vue/node_modules/.bin/electron",
       "runtimeArgs": [".", "--remote-debugging-port=9223"],
       "outputCapture": "std"
     }

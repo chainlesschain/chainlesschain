@@ -104,9 +104,9 @@ git clone https://github.com/chainlesschain/chainlesschain.git
 cd chainlesschain
 ```
 
-#### 2. 启动PC端桌面应用 (推荐: desktop-app-vue)
+#### 2. 启动PC端桌面应用
 ```bash
-# 进入Vue版桌面应用目录
+# 进入桌面应用目录
 cd desktop-app-vue
 
 # 安装依赖
@@ -140,11 +140,6 @@ npm run dev
 ### 其他启动选项
 
 ```bash
-# React版桌面应用
-cd desktop-app
-npm install
-npm run dev
-
 # Android应用
 cd android-app
 ./gradlew assembleDebug
@@ -159,7 +154,7 @@ npm run android  # 或 npm run ios
 
 ```
 chainlesschain/
-├── desktop-app-vue/         # ⭐ PC端桌面应用 (Electron + Vue3) - 主推版本
+├── desktop-app-vue/         # PC端桌面应用 (Electron + Vue3)
 │   ├── src/
 │   │   ├── main/            # 主进程 (Node.js)
 │   │   │   ├── database.js  # SQLite数据库
@@ -169,15 +164,13 @@ chainlesschain/
 │   │   │   ├── git/         # Git同步
 │   │   │   ├── image/       # 图片处理+OCR
 │   │   │   ├── did/         # DID身份系统
-│   │   │   └── p2p/         # P2P网络
+│   │   │   ├── p2p/         # P2P网络
+│   │   │   └── trade/       # 交易系统 (Phase 3)
 │   │   └── renderer/        # 渲染进程 (Vue3 + TypeScript)
 │   │       ├── components/  # 可复用组件
 │   │       ├── pages/       # 页面
 │   │       └── stores/      # Pinia状态管理
 │   └── package.json
-│
-├── desktop-app/             # PC端桌面应用 (Electron + React)
-│   └── src/                 # React版本，基础功能
 │
 ├── community-forum/         # 🌐 社区论坛 (完整应用)
 │   ├── backend/             # Spring Boot 3.1.5 + MySQL
@@ -215,13 +208,12 @@ chainlesschain/
 
 ### 项目组成说明
 
-| 项目 | 技术栈 | 完成度 | 状态 | 推荐度 |
-|------|--------|-------|------|--------|
-| **desktop-app-vue** | Electron + Vue3 | 95% | ✅ 生产可用 | ⭐⭐⭐⭐⭐ |
-| desktop-app | Electron + React | 60% | 🟡 基础功能 | ⭐⭐⭐ |
-| community-forum | Spring Boot + Vue3 | 80% | ✅ 可用 | ⭐⭐⭐⭐ |
-| android-app | Kotlin Native | 60% | 🟡 架构完成 | ⭐⭐⭐ |
-| mobile-app | React Native | 30% | 🟡 开发中 | ⭐⭐ |
+| 项目 | 技术栈 | 完成度 | 状态 | 说明 |
+|------|--------|-------|------|------|
+| **desktop-app-vue** | Electron + Vue3 | 95% | ✅ 生产可用 | PC端主应用,包含全部功能 |
+| community-forum | Spring Boot + Vue3 | 80% | ✅ 可用 | 社区论坛系统 |
+| android-app | Kotlin Native | 60% | 🟡 架构完成 | Android原生应用 |
+| mobile-app | React Native | 30% | 🟡 开发中 | 跨平台移动应用 |
 
 ## 🗓️ 开发路线图
 
@@ -282,7 +274,7 @@ chainlesschain/
 
 ## 🛠️ 技术栈
 
-### PC端 (desktop-app-vue) ⭐
+### PC端 (desktop-app-vue)
 - **框架**: Electron 39.2.6 + Vue 3.4 + TypeScript
 - **UI组件**: Ant Design Vue 4.1
 - **状态管理**: Pinia 2.1.7

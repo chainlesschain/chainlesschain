@@ -16,7 +16,7 @@ The system places a strong emphasis on security, utilizing hardware-level encryp
 
 The repository is a monorepo containing several distinct, but interconnected, sub-projects:
 
--   `desktop-app/`: The primary desktop application built with **Electron** and **React**. This is the most mature part of the project.
+-   `desktop-app-vue/`: The primary desktop application built with **Electron** and **Vue3**. This is the most mature part of the project.
 -   `desktop-app-vue/`: An alternative desktop application built with **Electron** and **Vue.js**.
 -   `mobile-app/`: Contains the native Android and iOS applications.
     -   `android/`: **Kotlin** with **Jetpack Compose**.
@@ -37,7 +37,7 @@ The repository is a monorepo containing several distinct, but interconnected, su
 
 ## Getting Started: Running the Desktop App
 
-The primary focus for development currently appears to be the `desktop-app`.
+The primary focus for development currently appears to be the `desktop-app-vue`.
 
 ### 1. Install Dependencies
 
