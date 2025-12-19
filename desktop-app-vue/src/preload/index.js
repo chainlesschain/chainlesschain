@@ -127,7 +127,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 加密消息
     sendEncryptedMessage: (peerId, message) => ipcRenderer.invoke('p2p:send-encrypted-message', peerId, message),
     hasEncryptedSession: (peerId) => ipcRenderer.invoke('p2p:has-encrypted-session', peerId),
-    initiateKeyExchange: (peerId) => ipcRenderer.invoke('p2p:initiate-key-exchange', peerId),
+    initiateKeyExchange: (peerId, deviceId) => ipcRenderer.invoke('p2p:initiate-key-exchange', peerId, deviceId),
+    // 多设备支持
+    getUserDevices: (userId) => ipcRenderer.invoke('p2p:get-user-devices', userId),
+    getCurrentDevice: () => ipcRenderer.invoke('p2p:get-current-device'),
+    getDeviceStatistics: () => ipcRenderer.invoke('p2p:get-device-statistics'),
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
