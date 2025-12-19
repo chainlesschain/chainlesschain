@@ -9,6 +9,7 @@ const EventEmitter = require('events');
 const fs = require('fs');
 const path = require('path');
 const SignalSessionManager = require('./signal-session-manager');
+const DeviceManager = require('./device-manager');
 
 // 动态导入 ESM 模块
 let createLibp2p, tcp, noise, mplex, kadDHT, mdns, bootstrap, multiaddr;
@@ -41,6 +42,7 @@ class P2PManager extends EventEmitter {
     this.peers = new Map(); // 连接的对等节点
     this.dht = null;
     this.signalManager = null; // Signal 加密会话管理器
+    this.deviceManager = null; // 设备管理器
     this.initialized = false;
   }
 
@@ -109,11 +111,20 @@ class P2PManager extends EventEmitter {
         this.dht = this.node.services.dht;
       }
 
+      // 初始化设备管理器
+      await this.initializeDeviceManager();
+
       // 初始化 Signal 会话管理器
       await this.initializeSignalManager();
 
       // 注册加密消息协议处理器
       this.registerEncryptedMessageHandlers();
+
+      // 注册设备广播协议处理器
+      this.registerDeviceBroadcastHandlers();
+
+      // 广播当前设备信息
+      this.broadcastDeviceInfo();
 
       this.initialized = true;
 
@@ -247,15 +258,44 @@ class P2PManager extends EventEmitter {
   }
 
   /**
+   * 初始化设备管理器
+   */
+  async initializeDeviceManager() {
+    console.log('[P2PManager] 初始化设备管理器...');
+
+    try {
+      this.deviceManager = new DeviceManager({
+        userId: this.peerId.toString(),
+        dataPath: this.config.dataPath,
+        deviceName: this.config.deviceName,
+      });
+
+      await this.deviceManager.initialize();
+
+      console.log('[P2PManager] 设备管理器已初始化');
+      console.log('[P2PManager] 当前设备 ID:', this.deviceManager.getCurrentDevice().deviceId);
+    } catch (error) {
+      console.error('[P2PManager] 初始化设备管理器失败:', error);
+      // 不抛出错误，允许 P2P 网络继续工作
+      this.deviceManager = null;
+    }
+  }
+
+  /**
    * 初始化 Signal 会话管理器
    */
   async initializeSignalManager() {
     console.log('[P2PManager] 初始化 Signal 会话管理器...');
 
     try {
+      // 获取设备 ID
+      const deviceId = this.deviceManager
+        ? this.deviceManager.getCurrentDevice().deviceId
+        : 'default-device';
+
       this.signalManager = new SignalSessionManager({
         userId: this.peerId.toString(),
-        deviceId: 1,
+        deviceId: deviceId,
         dataPath: this.config.dataPath,
       });
 
@@ -319,17 +359,34 @@ class P2PManager extends EventEmitter {
         const requestData = Buffer.concat(data);
         const requesterId = connection.remotePeer.toString();
 
-        console.log('[P2PManager] 收到密钥交换请求:', requesterId);
+        // 解析请求
+        let request = {};
+        try {
+          request = JSON.parse(requestData.toString());
+        } catch (e) {
+          // 兼容旧版本的请求
+          request = { requestDeviceId: 'default-device', targetDeviceId: null };
+        }
+
+        console.log('[P2PManager] 收到密钥交换请求:', requesterId, '请求设备:', request.requestDeviceId);
 
         // 获取预密钥包
         const preKeyBundle = await this.signalManager.getPreKeyBundle();
 
-        // 发送预密钥包
-        const responseData = Buffer.from(JSON.stringify(preKeyBundle));
+        // 获取当前设备ID
+        const currentDeviceId = this.deviceManager?.getCurrentDevice()?.deviceId || 'default-device';
+
+        // 发送预密钥包和设备ID
+        const response = {
+          preKeyBundle,
+          deviceId: currentDeviceId,
+        };
+
+        const responseData = Buffer.from(JSON.stringify(response));
         await stream.write(responseData);
         await stream.close();
 
-        console.log('[P2PManager] 已发送预密钥包');
+        console.log('[P2PManager] 已发送预密钥包，设备:', currentDeviceId);
       } catch (error) {
         console.error('[P2PManager] 处理密钥交换失败:', error);
       }
@@ -339,16 +396,96 @@ class P2PManager extends EventEmitter {
   }
 
   /**
+   * 注册设备广播协议处理器
+   */
+  registerDeviceBroadcastHandlers() {
+    if (!this.deviceManager) {
+      console.warn('[P2PManager] 设备管理器未初始化，跳过设备广播处理器注册');
+      return;
+    }
+
+    // 处理设备广播
+    this.node.handle('/chainlesschain/device-broadcast/1.0.0', async ({ stream, connection }) => {
+      try {
+        const data = [];
+        for await (const chunk of stream.source) {
+          data.push(chunk.subarray());
+        }
+
+        const broadcastData = Buffer.concat(data);
+        const broadcast = JSON.parse(broadcastData.toString());
+        const peerId = connection.remotePeer.toString();
+
+        console.log('[P2PManager] 收到设备广播:', peerId);
+
+        // 处理设备广播
+        await this.deviceManager.handleDeviceBroadcast(peerId, broadcast);
+
+        // 发送确认响应
+        await stream.write(Buffer.from(JSON.stringify({ success: true })));
+        await stream.close();
+      } catch (error) {
+        console.error('[P2PManager] 处理设备广播失败:', error);
+      }
+    });
+
+    console.log('[P2PManager] 设备广播协议处理器已注册');
+  }
+
+  /**
+   * 广播当前设备信息
+   */
+  async broadcastDeviceInfo() {
+    if (!this.deviceManager) {
+      return;
+    }
+
+    const broadcast = this.deviceManager.getDeviceBroadcast();
+
+    if (!broadcast) {
+      return;
+    }
+
+    console.log('[P2PManager] 广播设备信息到所有连接的节点');
+
+    // 向所有连接的节点广播设备信息
+    const connections = this.node.getConnections();
+
+    for (const conn of connections) {
+      try {
+        const peerId = conn.remotePeer;
+        const stream = await this.node.dialProtocol(peerId, '/chainlesschain/device-broadcast/1.0.0');
+
+        const broadcastData = Buffer.from(JSON.stringify(broadcast));
+        await stream.write(broadcastData);
+
+        // 接收确认
+        const responseData = [];
+        for await (const chunk of stream.source) {
+          responseData.push(chunk.subarray());
+        }
+
+        await stream.close();
+
+        console.log('[P2PManager] 设备信息已广播到:', peerId.toString());
+      } catch (error) {
+        console.error('[P2PManager] 广播设备信息失败:', error);
+      }
+    }
+  }
+
+  /**
    * 发起密钥交换
    * @param {string} peerId - 对等节点 ID
+   * @param {string} deviceId - 设备 ID (可选，默认使用对方的默认设备)
    */
-  async initiateKeyExchange(peerIdStr) {
+  async initiateKeyExchange(peerIdStr, targetDeviceId = null) {
     if (!this.signalManager) {
       throw new Error('Signal 会话管理器未初始化');
     }
 
     try {
-      console.log('[P2PManager] 发起密钥交换:', peerIdStr);
+      console.log('[P2PManager] 发起密钥交换:', peerIdStr, 'deviceId:', targetDeviceId || '默认设备');
 
       const { peerIdFromString } = await import('@libp2p/peer-id');
       const peerId = peerIdFromString(peerIdStr);
@@ -356,8 +493,12 @@ class P2PManager extends EventEmitter {
       // 创建密钥交换流
       const stream = await this.node.dialProtocol(peerId, '/chainlesschain/key-exchange/1.0.0');
 
-      // 发送请求（空请求，仅表示发起交换）
-      await stream.write(Buffer.from('key-exchange-request'));
+      // 发送请求，包含当前设备ID和目标设备ID
+      const request = {
+        requestDeviceId: this.deviceManager?.getCurrentDevice()?.deviceId || 'default-device',
+        targetDeviceId: targetDeviceId,
+      };
+      await stream.write(Buffer.from(JSON.stringify(request)));
 
       // 接收预密钥包
       const data = [];
@@ -366,16 +507,20 @@ class P2PManager extends EventEmitter {
       }
 
       const responseData = Buffer.concat(data);
-      const preKeyBundle = JSON.parse(responseData.toString());
+      const response = JSON.parse(responseData.toString());
+
+      // 提取预密钥包和设备ID
+      const preKeyBundle = response.preKeyBundle || response;
+      const remoteDeviceId = response.deviceId || targetDeviceId || 'default-device';
 
       // 处理预密钥包，建立会话
-      await this.signalManager.processPreKeyBundle(peerIdStr, 1, preKeyBundle);
+      await this.signalManager.processPreKeyBundle(peerIdStr, remoteDeviceId, preKeyBundle);
 
-      console.log('[P2PManager] 密钥交换成功');
+      console.log('[P2PManager] 密钥交换成功，设备:', remoteDeviceId);
 
-      this.emit('key-exchange:success', { peerId: peerIdStr });
+      this.emit('key-exchange:success', { peerId: peerIdStr, deviceId: remoteDeviceId });
 
-      return { success: true };
+      return { success: true, deviceId: remoteDeviceId };
     } catch (error) {
       console.error('[P2PManager] 密钥交换失败:', error);
       throw error;
@@ -650,10 +795,54 @@ class P2PManager extends EventEmitter {
   }
 
   /**
+   * 获取用户的所有设备
+   * @param {string} userId - 用户 ID (默认为当前用户)
+   */
+  getUserDevices(userId = null) {
+    if (!this.deviceManager) {
+      return [];
+    }
+
+    const targetUserId = userId || this.peerId.toString();
+    return this.deviceManager.getUserDevices(targetUserId);
+  }
+
+  /**
+   * 获取当前设备信息
+   */
+  getCurrentDevice() {
+    if (!this.deviceManager) {
+      return null;
+    }
+
+    return this.deviceManager.getCurrentDevice();
+  }
+
+  /**
+   * 获取设备统计信息
+   */
+  getDeviceStatistics() {
+    if (!this.deviceManager) {
+      return {
+        userCount: 0,
+        totalDevices: 0,
+        currentDevice: null,
+      };
+    }
+
+    return this.deviceManager.getStatistics();
+  }
+
+  /**
    * 关闭 P2P 节点
    */
   async close() {
     console.log('[P2PManager] 关闭 P2P 节点');
+
+    if (this.deviceManager) {
+      await this.deviceManager.close();
+      this.deviceManager = null;
+    }
 
     if (this.signalManager) {
       await this.signalManager.close();

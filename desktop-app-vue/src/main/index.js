@@ -1952,16 +1952,64 @@ class ChainlessChainApp {
       }
     });
 
-    ipcMain.handle('p2p:initiate-key-exchange', async (_event, peerId) => {
+    ipcMain.handle('p2p:initiate-key-exchange', async (_event, peerId, deviceId) => {
       try {
         if (!this.p2pManager) {
           throw new Error('P2P管理器未初始化');
         }
 
-        return await this.p2pManager.initiateKeyExchange(peerId);
+        return await this.p2pManager.initiateKeyExchange(peerId, deviceId);
       } catch (error) {
         console.error('[Main] 密钥交换失败:', error);
         throw error;
+      }
+    });
+
+    // P2P 多设备支持
+    ipcMain.handle('p2p:get-user-devices', async (_event, userId) => {
+      try {
+        if (!this.p2pManager) {
+          return [];
+        }
+
+        return this.p2pManager.getUserDevices(userId);
+      } catch (error) {
+        console.error('[Main] 获取用户设备列表失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('p2p:get-current-device', async () => {
+      try {
+        if (!this.p2pManager) {
+          return null;
+        }
+
+        return this.p2pManager.getCurrentDevice();
+      } catch (error) {
+        console.error('[Main] 获取当前设备失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('p2p:get-device-statistics', async () => {
+      try {
+        if (!this.p2pManager) {
+          return {
+            userCount: 0,
+            totalDevices: 0,
+            currentDevice: null,
+          };
+        }
+
+        return this.p2pManager.getDeviceStatistics();
+      } catch (error) {
+        console.error('[Main] 获取设备统计失败:', error);
+        return {
+          userCount: 0,
+          totalDevices: 0,
+          currentDevice: null,
+        };
       }
     });
 
