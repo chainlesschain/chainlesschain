@@ -2,33 +2,31 @@
   "name": "chainlesschain-mobile",
   "version": "0.1.0",
   "description": "ChainlessChain 移动端应用 - uni-app 版本",
-  "main": "main.js",
   "scripts": {
-    "dev:app": "uni",
     "dev:h5": "uni",
-    "dev:mp-weixin": "uni",
-    "build:app": "uni build",
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "dev:app": "uni -p app",
     "build:h5": "uni build",
-    "build:mp-weixin": "uni build"
+    "build:mp-weixin": "uni build -p mp-weixin",
+    "build:app": "uni build -p app"
   },
   "dependencies": {
-    "@dcloudio/uni-app": "3.0.0-4020420241217001",
-    "@dcloudio/uni-app-plus": "3.0.0-4020420241217001",
-    "@dcloudio/uni-components": "3.0.0-4020420241217001",
-    "@dcloudio/uni-h5": "3.0.0-4020420241217001",
-    "@dcloudio/uni-mp-weixin": "3.0.0-4020420241217001",
+    "@dcloudio/uni-app": "3.0.0-4080420251103001",
+    "@dcloudio/uni-app-plus": "3.0.0-4080420251103001",
+    "@dcloudio/uni-components": "3.0.0-4080420251103001",
+    "@dcloudio/uni-h5": "3.0.0-4080420251103001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-4080420251103001",
     "vue": "^3.4.21",
     "pinia": "^2.1.7"
   },
   "devDependencies": {
     "@dcloudio/types": "^3.4.8",
-    "@dcloudio/uni-automator": "3.0.0-4020420241217001",
-    "@dcloudio/uni-cli-shared": "3.0.0-4020420241217001",
-    "@dcloudio/vite-plugin-uni": "3.0.0-4020420241217001",
-    "@dcloudio/uni-stacktracey": "3.0.0-4020420241217001",
+    "@dcloudio/uni-automator": "3.0.0-4080420251103001",
+    "@dcloudio/uni-cli-shared": "3.0.0-4080420251103001",
+    "@dcloudio/uni-stacktracey": "3.0.0-4080420251103001",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4080420251103001",
+    "@vue/runtime-core": "^3.4.21",
     "vite": "5.2.8",
-    "@vue/compiler-sfc": "^3.4.21",
-    "sass": "^1.77.0",
-    "sass-loader": "^14.2.0"
+    "sass": "^1.77.0"
   }
 }
