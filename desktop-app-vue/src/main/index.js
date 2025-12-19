@@ -2013,6 +2013,73 @@ class ChainlessChainApp {
       }
     });
 
+    // P2P 设备同步
+    ipcMain.handle('p2p:get-sync-statistics', async () => {
+      try {
+        if (!this.p2pManager || !this.p2pManager.syncManager) {
+          return {
+            totalMessages: 0,
+            deviceCount: 0,
+            deviceQueues: {},
+            statusCount: 0,
+            activeSyncs: 0,
+          };
+        }
+
+        return this.p2pManager.syncManager.getStatistics();
+      } catch (error) {
+        console.error('[Main] 获取同步统计失败:', error);
+        return {
+          totalMessages: 0,
+          deviceCount: 0,
+          deviceQueues: {},
+          statusCount: 0,
+          activeSyncs: 0,
+        };
+      }
+    });
+
+    ipcMain.handle('p2p:get-message-status', async (_event, messageId) => {
+      try {
+        if (!this.p2pManager || !this.p2pManager.syncManager) {
+          return null;
+        }
+
+        return this.p2pManager.syncManager.messageStatus.get(messageId) || null;
+      } catch (error) {
+        console.error('[Main] 获取消息状态失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('p2p:start-device-sync', async (_event, deviceId) => {
+      try {
+        if (!this.p2pManager || !this.p2pManager.syncManager) {
+          throw new Error('设备同步管理器未初始化');
+        }
+
+        this.p2pManager.syncManager.startDeviceSync(deviceId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 启动设备同步失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('p2p:stop-device-sync', async (_event, deviceId) => {
+      try {
+        if (!this.p2pManager || !this.p2pManager.syncManager) {
+          throw new Error('设备同步管理器未初始化');
+        }
+
+        this.p2pManager.syncManager.stopDeviceSync(deviceId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 停止设备同步失败:', error);
+        throw error;
+      }
+    });
+
     // 可验证凭证 (VC)
     ipcMain.handle('vc:create', async (_event, params) => {
       try {
