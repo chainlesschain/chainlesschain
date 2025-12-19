@@ -133,22 +133,36 @@ const linkCollapse = ref([]);
 // 选择图片
 const selectImages = async () => {
   try {
-    // 使用 Electron 的文件选择对话框
-    const result = await window.electron.dialog.showOpenDialog({
-      properties: ['openFile', 'multiSelections'],
-      filters: [
-        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'] },
-      ],
-    });
+    const remainingSlots = 9 - images.value.length;
+
+    if (remainingSlots <= 0) {
+      antMessage.warning('最多只能添加 9 张图片');
+      return;
+    }
+
+    // 使用 electronAPI 选择图片
+    const result = await window.electronAPI.image.selectImages();
 
     if (!result.canceled && result.filePaths.length > 0) {
-      const remainingSlots = 9 - images.value.length;
       const filesToAdd = result.filePaths.slice(0, remainingSlots);
 
-      // 读取文件并转换为 base64
+      // 读取文件并转换为 base64（使用 File API）
       for (const filePath of filesToAdd) {
-        const base64 = await window.electron.fs.readFileAsBase64(filePath);
-        images.value.push(`data:image/png;base64,${base64}`);
+        try {
+          // 使用 FileReader 读取本地文件
+          const response = await fetch(`file://${filePath}`);
+          const blob = await response.blob();
+          const base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+
+          images.value.push(base64);
+        } catch (error) {
+          console.error('读取图片失败:', filePath, error);
+        }
       }
 
       if (result.filePaths.length > remainingSlots) {

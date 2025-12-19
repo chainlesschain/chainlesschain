@@ -61,6 +61,30 @@ const routes = [
         component: () => import('../components/PromptTemplates.vue'),
         meta: { title: '提示词模板' },
       },
+      {
+        path: 'friends',
+        name: 'Friends',
+        component: () => import('../components/Friends.vue'),
+        meta: { title: '好友管理' },
+      },
+      {
+        path: 'posts',
+        name: 'PostFeed',
+        component: () => import('../components/PostFeed.vue'),
+        meta: { title: '动态' },
+      },
+      {
+        path: 'marketplace',
+        name: 'Marketplace',
+        component: () => import('../components/trade/MarketplaceList.vue'),
+        meta: { title: '交易市场' },
+      },
+      {
+        path: 'contracts',
+        name: 'Contracts',
+        component: () => import('../components/trade/ContractList.vue'),
+        meta: { title: '智能合约' },
+      },
     ],
   },
 ];
