@@ -44,6 +44,12 @@ const routes = [
         component: () => import('../components/VCManagement.vue'),
       },
       {
+        path: 'p2p-messaging',
+        name: 'P2PMessaging',
+        component: () => import('../components/P2PMessaging.vue'),
+        meta: { title: 'P2P加密消息' },
+      },
+      {
         path: 'image-upload',
         name: 'ImageUpload',
         component: () => import('../components/ImageUpload.vue'),

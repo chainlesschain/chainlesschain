@@ -45,6 +45,7 @@
     "@milkdown/prose": "^7.17.3",
     "@milkdown/theme-nord": "^7.17.3",
     "@milkdown/vue": "^7.17.3",
+    "@privacyresearch/libsignal-protocol-typescript": "^0.0.16",
     "axios": "^1.13.2",
     "bip39": "^3.1.0",
     "chromadb": "^3.1.8",

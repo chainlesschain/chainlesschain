@@ -2,12 +2,13 @@
  * P2P 网络管理器
  *
  * 基于 libp2p 实现去中心化的 P2P 通信网络
- * 功能：节点发现、DHT、消息传输、NAT穿透
+ * 功能：节点发现、DHT、消息传输、NAT穿透、端到端加密
  */
 
 const EventEmitter = require('events');
 const fs = require('fs');
 const path = require('path');
+const SignalSessionManager = require('./signal-session-manager');
 
 // 动态导入 ESM 模块
 let createLibp2p, tcp, noise, mplex, kadDHT, mdns, bootstrap, multiaddr;
@@ -39,6 +40,7 @@ class P2PManager extends EventEmitter {
     this.peerId = null;
     this.peers = new Map(); // 连接的对等节点
     this.dht = null;
+    this.signalManager = null; // Signal 加密会话管理器
     this.initialized = false;
   }
 
@@ -106,6 +108,12 @@ class P2PManager extends EventEmitter {
       if (this.config.enableDHT) {
         this.dht = this.node.services.dht;
       }
+
+      // 初始化 Signal 会话管理器
+      await this.initializeSignalManager();
+
+      // 注册加密消息协议处理器
+      this.registerEncryptedMessageHandlers();
 
       this.initialized = true;
 
@@ -236,6 +244,154 @@ class P2PManager extends EventEmitter {
         addresses: addresses.map((a) => a.toString()),
       });
     });
+  }
+
+  /**
+   * 初始化 Signal 会话管理器
+   */
+  async initializeSignalManager() {
+    console.log('[P2PManager] 初始化 Signal 会话管理器...');
+
+    try {
+      this.signalManager = new SignalSessionManager({
+        userId: this.peerId.toString(),
+        deviceId: 1,
+        dataPath: this.config.dataPath,
+      });
+
+      await this.signalManager.initialize();
+
+      console.log('[P2PManager] Signal 会话管理器已初始化');
+    } catch (error) {
+      console.error('[P2PManager] 初始化 Signal 会话管理器失败:', error);
+      // 不抛出错误，允许 P2P 网络继续工作（无加密模式）
+      this.signalManager = null;
+    }
+  }
+
+  /**
+   * 注册加密消息协议处理器
+   */
+  registerEncryptedMessageHandlers() {
+    if (!this.signalManager) {
+      console.warn('[P2PManager] Signal 未初始化，跳过加密消息处理器注册');
+      return;
+    }
+
+    // 处理加密消息
+    this.node.handle('/chainlesschain/encrypted-message/1.0.0', async ({ stream, connection }) => {
+      try {
+        const data = [];
+        for await (const chunk of stream.source) {
+          data.push(chunk.subarray());
+        }
+
+        const encryptedMessage = Buffer.concat(data);
+        const senderId = connection.remotePeer.toString();
+
+        console.log('[P2PManager] 收到加密消息:', senderId);
+
+        // 解析加密消息
+        const ciphertext = JSON.parse(encryptedMessage.toString());
+
+        // 解密消息
+        const plaintext = await this.signalManager.decryptMessage(senderId, 1, ciphertext);
+
+        console.log('[P2PManager] 消息已解密');
+
+        this.emit('encrypted-message:received', {
+          from: senderId,
+          message: plaintext,
+        });
+      } catch (error) {
+        console.error('[P2PManager] 处理加密消息失败:', error);
+      }
+    });
+
+    // 处理预密钥交换请求
+    this.node.handle('/chainlesschain/key-exchange/1.0.0', async ({ stream, connection }) => {
+      try {
+        const data = [];
+        for await (const chunk of stream.source) {
+          data.push(chunk.subarray());
+        }
+
+        const requestData = Buffer.concat(data);
+        const requesterId = connection.remotePeer.toString();
+
+        console.log('[P2PManager] 收到密钥交换请求:', requesterId);
+
+        // 获取预密钥包
+        const preKeyBundle = await this.signalManager.getPreKeyBundle();
+
+        // 发送预密钥包
+        const responseData = Buffer.from(JSON.stringify(preKeyBundle));
+        await stream.write(responseData);
+        await stream.close();
+
+        console.log('[P2PManager] 已发送预密钥包');
+      } catch (error) {
+        console.error('[P2PManager] 处理密钥交换失败:', error);
+      }
+    });
+
+    console.log('[P2PManager] 加密消息协议处理器已注册');
+  }
+
+  /**
+   * 发起密钥交换
+   * @param {string} peerId - 对等节点 ID
+   */
+  async initiateKeyExchange(peerIdStr) {
+    if (!this.signalManager) {
+      throw new Error('Signal 会话管理器未初始化');
+    }
+
+    try {
+      console.log('[P2PManager] 发起密钥交换:', peerIdStr);
+
+      const { peerIdFromString } = await import('@libp2p/peer-id');
+      const peerId = peerIdFromString(peerIdStr);
+
+      // 创建密钥交换流
+      const stream = await this.node.dialProtocol(peerId, '/chainlesschain/key-exchange/1.0.0');
+
+      // 发送请求（空请求，仅表示发起交换）
+      await stream.write(Buffer.from('key-exchange-request'));
+
+      // 接收预密钥包
+      const data = [];
+      for await (const chunk of stream.source) {
+        data.push(chunk.subarray());
+      }
+
+      const responseData = Buffer.concat(data);
+      const preKeyBundle = JSON.parse(responseData.toString());
+
+      // 处理预密钥包，建立会话
+      await this.signalManager.processPreKeyBundle(peerIdStr, 1, preKeyBundle);
+
+      console.log('[P2PManager] 密钥交换成功');
+
+      this.emit('key-exchange:success', { peerId: peerIdStr });
+
+      return { success: true };
+    } catch (error) {
+      console.error('[P2PManager] 密钥交换失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 检查是否已建立加密会话
+   * @param {string} peerId - 对等节点 ID
+   */
+  async hasEncryptedSession(peerIdStr) {
+    if (!this.signalManager) {
+      return false;
+    }
+
+    return await this.signalManager.hasSession(peerIdStr, 1);
   }
 
   /**
@@ -387,7 +543,7 @@ class P2PManager extends EventEmitter {
   }
 
   /**
-   * 发送消息到对等节点
+   * 发送消息到对等节点 (明文)
    * @param {string} peerId - 对等节点 ID
    * @param {Buffer} data - 数据
    */
@@ -408,6 +564,58 @@ class P2PManager extends EventEmitter {
       return { success: true };
     } catch (error) {
       console.error('[P2PManager] 发送消息失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 发送加密消息到对等节点
+   * @param {string} peerId - 对等节点 ID
+   * @param {string|Buffer} message - 消息内容
+   */
+  async sendEncryptedMessage(peerIdStr, message) {
+    if (!this.signalManager) {
+      throw new Error('Signal 会话管理器未初始化');
+    }
+
+    try {
+      console.log('[P2PManager] 发送加密消息到:', peerIdStr);
+
+      // 检查是否已建立会话
+      const hasSession = await this.signalManager.hasSession(peerIdStr, 1);
+
+      if (!hasSession) {
+        // 先发起密钥交换
+        console.log('[P2PManager] 会话不存在，先发起密钥交换');
+        await this.initiateKeyExchange(peerIdStr);
+      }
+
+      // 加密消息
+      const ciphertext = await this.signalManager.encryptMessage(peerIdStr, 1, message);
+
+      // 发送加密消息
+      const { peerIdFromString } = await import('@libp2p/peer-id');
+      const peerId = peerIdFromString(peerIdStr);
+
+      const stream = await this.node.dialProtocol(
+        peerId,
+        '/chainlesschain/encrypted-message/1.0.0'
+      );
+
+      const encryptedData = Buffer.from(JSON.stringify(ciphertext));
+      await stream.write(encryptedData);
+      await stream.close();
+
+      console.log('[P2PManager] 加密消息已发送');
+
+      this.emit('encrypted-message:sent', {
+        to: peerIdStr,
+        message,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('[P2PManager] 发送加密消息失败:', error);
       throw error;
     }
   }
@@ -446,6 +654,11 @@ class P2PManager extends EventEmitter {
    */
   async close() {
     console.log('[P2PManager] 关闭 P2P 节点');
+
+    if (this.signalManager) {
+      await this.signalManager.close();
+      this.signalManager = null;
+    }
 
     if (this.node) {
       await this.node.stop();

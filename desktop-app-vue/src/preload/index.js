@@ -124,6 +124,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     connect: (multiaddr) => ipcRenderer.invoke('p2p:connect', multiaddr),
     disconnect: (peerId) => ipcRenderer.invoke('p2p:disconnect', peerId),
     getPeers: () => ipcRenderer.invoke('p2p:get-peers'),
+    // 加密消息
+    sendEncryptedMessage: (peerId, message) => ipcRenderer.invoke('p2p:send-encrypted-message', peerId, message),
+    hasEncryptedSession: (peerId) => ipcRenderer.invoke('p2p:has-encrypted-session', peerId),
+    initiateKeyExchange: (peerId) => ipcRenderer.invoke('p2p:initiate-key-exchange', peerId),
+    // 事件监听
+    on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
+    off: (event, callback) => ipcRenderer.removeListener(event, callback),
   },
 
   // 可验证凭证 (VC)
