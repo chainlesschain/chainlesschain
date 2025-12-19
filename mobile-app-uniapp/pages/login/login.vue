@@ -107,6 +107,11 @@ export default {
         // 初始化数据库
         await db.init(this.pin)
 
+        // 首次登录时添加模拟数据
+        if (this.isFirstTime) {
+          await this.initMockData()
+        }
+
         uni.showToast({
           title: result.message,
           icon: 'success'
@@ -128,6 +133,66 @@ export default {
         this.pin = '' // 清空输入
       } finally {
         this.loading = false
+      }
+    },
+    /**
+     * 初始化模拟数据（仅首次登录）
+     */
+    async initMockData() {
+      try {
+        console.log('初始化模拟数据...')
+
+        // 获取当前用户DID（模拟）
+        const myDid = uni.getStorageSync('device_id') || 'did:chainless:user123'
+
+        // 添加3个模拟好友
+        const mockFriends = [
+          {
+            friend_did: 'did:chainless:alice',
+            nickname: 'Alice',
+            group_name: '好友',
+            status: 'accepted'
+          },
+          {
+            friend_did: 'did:chainless:bob',
+            nickname: 'Bob',
+            group_name: '同事',
+            status: 'accepted'
+          },
+          {
+            friend_did: 'did:chainless:carol',
+            nickname: 'Carol',
+            group_name: '家人',
+            status: 'accepted'
+          }
+        ]
+
+        for (const friend of mockFriends) {
+          const sql = `INSERT INTO friendships (user_did, friend_did, nickname, group_name, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)`
+          await db.executeSql(sql, [
+            myDid,
+            friend.friend_did,
+            friend.nickname,
+            friend.group_name,
+            friend.status,
+            Date.now()
+          ])
+        }
+
+        // 为Alice创建一个对话并添加几条消息
+        await db.receiveFriendMessage('did:chainless:alice', 'Alice', '嗨！欢迎使用ChainlessChain！')
+        await db.sendFriendMessage('did:chainless:alice', 'Alice', '你好Alice！很高兴认识你')
+        await db.receiveFriendMessage('did:chainless:alice', 'Alice', '这个应用真不错，可以安全地聊天')
+
+        // 为Bob创建一个对话
+        await db.sendFriendMessage('did:chainless:bob', 'Bob', '嘿Bob，项目进展怎么样？')
+        await db.receiveFriendMessage('did:chainless:bob', 'Bob', '进展顺利！准备下周上线')
+
+        console.log('模拟数据初始化完成')
+      } catch (error) {
+        console.error('初始化模拟数据失败:', error)
+        // 不影响登录流程
       }
     }
   }

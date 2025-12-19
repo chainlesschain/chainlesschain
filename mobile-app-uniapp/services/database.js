@@ -664,6 +664,162 @@ class DatabaseService {
     const result = await this.selectSql(sql, [conversationId, limit])
     return result || []
   }
+
+  /**
+   * 更新对话时间
+   */
+  async updateConversationTime(conversationId) {
+    const now = this.now()
+
+    if (this.isH5) {
+      // H5模式：更新内存中的数据
+      this.ensureH5Data('conversations')
+      const conversation = this.h5Data.conversations.find(c => c.id === conversationId)
+      if (conversation) {
+        conversation.updated_at = now
+        this.saveH5Data()
+      }
+      return
+    }
+
+    // App模式：更新SQLite
+    const sql = `UPDATE conversations SET updated_at = ? WHERE id = ?`
+    await this.executeSql(sql, [now, conversationId])
+  }
+
+  // ==================== 好友消息 ====================
+
+  /**
+   * 创建或获取好友对话
+   * @param {string} friendDid 好友的DID
+   * @param {string} nickname 好友昵称
+   * @returns {Promise<Object>} 对话对象
+   */
+  async getOrCreateFriendConversation(friendDid, nickname) {
+    // 标题格式：FRIEND:{friendDid}:{nickname}
+    const titlePrefix = `FRIEND:${friendDid}`
+
+    // 查找是否已存在
+    const sql = `SELECT * FROM conversations WHERE title LIKE ?`
+    const existing = await this.selectSql(sql, [`${titlePrefix}%`])
+
+    if (existing && existing.length > 0) {
+      // 更新昵称（如果改变了）
+      const conversation = existing[0]
+      const newTitle = `FRIEND:${friendDid}:${nickname}`
+      if (conversation.title !== newTitle) {
+        await this.updateConversationTitle(conversation.id, newTitle)
+        conversation.title = newTitle
+      }
+      return conversation
+    }
+
+    // 创建新对话
+    return await this.createConversation(`FRIEND:${friendDid}:${nickname}`, null)
+  }
+
+  /**
+   * 获取所有好友对话列表
+   * @returns {Promise<Array>} 对话列表，包含最后一条消息和未读数
+   */
+  async getFriendConversations() {
+    const sql = `SELECT * FROM conversations WHERE title LIKE 'FRIEND:%' ORDER BY updated_at DESC`
+    const conversations = await this.selectSql(sql, [])
+
+    if (!conversations || conversations.length === 0) {
+      return []
+    }
+
+    // 为每个对话获取最后一条消息
+    const result = []
+    for (const conv of conversations) {
+      // 解析好友信息
+      const parts = conv.title.split(':')
+      const friendDid = parts[1] || ''
+      const nickname = parts[2] || friendDid.substring(0, 12) + '...'
+
+      // 获取最后一条消息
+      const lastMsgSql = `SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp DESC LIMIT 1`
+      const lastMessages = await this.selectSql(lastMsgSql, [conv.id])
+      const lastMessage = lastMessages && lastMessages.length > 0 ? lastMessages[0] : null
+
+      // 获取未读消息数（这里简化处理，实际应该有read_status字段）
+      // 暂时设为0，后续可以扩展
+      const unreadCount = 0
+
+      result.push({
+        ...conv,
+        friendDid,
+        nickname,
+        lastMessage: lastMessage ? {
+          content: lastMessage.content,
+          timestamp: lastMessage.timestamp,
+          isSent: lastMessage.role === 'user'
+        } : null,
+        unreadCount
+      })
+    }
+
+    return result
+  }
+
+  /**
+   * 更新对话标题
+   */
+  async updateConversationTitle(conversationId, newTitle) {
+    if (this.isH5) {
+      this.ensureH5Data('conversations')
+      const conversation = this.h5Data.conversations.find(c => c.id === conversationId)
+      if (conversation) {
+        conversation.title = newTitle
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = `UPDATE conversations SET title = ? WHERE id = ?`
+    await this.executeSql(sql, [newTitle, conversationId])
+  }
+
+  /**
+   * 发送好友消息
+   * @param {string} friendDid 好友DID
+   * @param {string} nickname 好友昵称
+   * @param {string} content 消息内容
+   * @returns {Promise<Object>} 消息对象
+   */
+  async sendFriendMessage(friendDid, nickname, content) {
+    // 获取或创建对话
+    const conversation = await this.getOrCreateFriendConversation(friendDid, nickname)
+
+    // 添加消息（role='user'表示自己发送）
+    const message = await this.addMessage(conversation.id, 'user', content, 0)
+
+    // 更新对话时间
+    await this.updateConversationTime(conversation.id)
+
+    return message
+  }
+
+  /**
+   * 接收好友消息（模拟）
+   * @param {string} friendDid 好友DID
+   * @param {string} nickname 好友昵称
+   * @param {string} content 消息内容
+   * @returns {Promise<Object>} 消息对象
+   */
+  async receiveFriendMessage(friendDid, nickname, content) {
+    // 获取或创建对话
+    const conversation = await this.getOrCreateFriendConversation(friendDid, nickname)
+
+    // 添加消息（role='assistant'表示好友发送）
+    const message = await this.addMessage(conversation.id, 'assistant', content, 0)
+
+    // 更新对话时间
+    await this.updateConversationTime(conversation.id)
+
+    return message
+  }
 }
 
 // 导出单例
