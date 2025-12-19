@@ -301,10 +301,13 @@ export default {
 .input-container {
   background-color: #ffffff;
   padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
   box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: flex-end;
   gap: 20rpx;
+  position: relative;
+  z-index: 10;
 
   .input {
     flex: 1;
