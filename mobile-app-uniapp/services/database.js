@@ -10,11 +10,11 @@ class DatabaseService {
     this.dbPath = '_doc/chainlesschain.db'
     this.isOpen = false
     this.encryptionKey = null // PIN码派生的加密密钥
+    this.h5Data = null // H5模式下的内存数据存储
 
     // 检测运行平台
     // #ifdef H5
     this.isH5 = true
-    this.h5Data = {} // H5模式下的内存数据存储
     // #endif
     // #ifndef H5
     this.isH5 = false
@@ -24,6 +24,8 @@ class DatabaseService {
     if (this.isH5 === undefined) {
       this.isH5 = typeof plus === 'undefined'
     }
+
+    console.log('[Database] 平台检测:', this.isH5 ? 'H5' : 'App')
   }
 
   /**
@@ -45,14 +47,23 @@ class DatabaseService {
    * H5模式初始化（使用localStorage）
    */
   async initH5() {
-    console.log('数据库初始化 (H5模式)')
+    console.log('[Database] 数据库初始化 (H5模式)')
 
     try {
       // 从localStorage加载数据
       const stored = uni.getStorageSync('chainlesschain_db')
       if (stored) {
-        this.h5Data = JSON.parse(stored)
-      } else {
+        try {
+          this.h5Data = JSON.parse(stored)
+          console.log('[Database] 从 localStorage 加载数据')
+        } catch (parseError) {
+          console.warn('[Database] 解析存储数据失败，使用空数据结构')
+          this.h5Data = null
+        }
+      }
+
+      // 确保数据结构存在
+      if (!this.h5Data || typeof this.h5Data !== 'object') {
         // 初始化空数据结构
         this.h5Data = {
           knowledge_items: [],
@@ -65,13 +76,17 @@ class DatabaseService {
           post_comments: []
         }
         this.saveH5Data()
+        console.log('[Database] 初始化空数据结构')
       }
 
       this.isOpen = true
-      console.log('数据库打开成功 (H5模式)')
+      console.log('[Database] 数据库打开成功 (H5模式)', {
+        knowledge_items: this.h5Data.knowledge_items?.length || 0,
+        conversations: this.h5Data.conversations?.length || 0
+      })
       return Promise.resolve()
     } catch (error) {
-      console.error('数据库初始化失败 (H5模式):', error)
+      console.error('[Database] 数据库初始化失败 (H5模式):', error)
       return Promise.reject(error)
     }
   }
@@ -109,12 +124,36 @@ class DatabaseService {
    * 保存H5数据到localStorage
    */
   saveH5Data() {
-    if (this.isH5) {
+    if (this.isH5 && this.h5Data) {
       try {
         uni.setStorageSync('chainlesschain_db', JSON.stringify(this.h5Data))
       } catch (error) {
-        console.error('保存H5数据失败:', error)
+        console.error('[Database] 保存H5数据失败:', error)
       }
+    }
+  }
+
+  /**
+   * 确保H5数据结构存在
+   */
+  ensureH5Data(tableName) {
+    if (!this.h5Data) {
+      console.warn('[Database] h5Data 未初始化，尝试初始化')
+      this.h5Data = {
+        knowledge_items: [],
+        tags: [],
+        knowledge_tags: [],
+        conversations: [],
+        messages: [],
+        friendships: [],
+        posts: [],
+        post_comments: []
+      }
+    }
+
+    if (!Array.isArray(this.h5Data[tableName])) {
+      console.warn(`[Database] 表 ${tableName} 不存在，创建空数组`)
+      this.h5Data[tableName] = []
     }
   }
 
@@ -406,8 +445,10 @@ class DatabaseService {
 
     if (this.isH5) {
       // H5模式：添加到内存数组
+      this.ensureH5Data('knowledge_items')
       this.h5Data.knowledge_items.push(newItem)
       this.saveH5Data()
+      console.log('[Database] 添加知识条目:', newItem.id)
       return newItem
     }
 
@@ -554,8 +595,10 @@ class DatabaseService {
 
     if (this.isH5) {
       // H5模式：添加到内存数组
+      this.ensureH5Data('conversations')
       this.h5Data.conversations.push(newConversation)
       this.saveH5Data()
+      console.log('[Database] 创建对话:', newConversation.id)
       return newConversation
     }
 
@@ -587,6 +630,7 @@ class DatabaseService {
 
     if (this.isH5) {
       // H5模式：添加到内存数组
+      this.ensureH5Data('messages')
       this.h5Data.messages.push(newMessage)
       this.saveH5Data()
       return newMessage
