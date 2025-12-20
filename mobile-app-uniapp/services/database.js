@@ -1046,6 +1046,122 @@ class DatabaseService {
     await this.executeSql(sql, [now, conversationId])
   }
 
+  /**
+   * 获取所有对话列表（不包括好友对话）
+   */
+  async getConversations(limit = 20) {
+    if (this.isH5) {
+      this.ensureH5Data('conversations')
+      // 过滤掉好友对话
+      const conversations = this.h5Data.conversations.filter(c => !c.title.startsWith('FRIEND:'))
+      // 按更新时间倒序排序
+      conversations.sort((a, b) => b.updated_at - a.updated_at)
+      return conversations.slice(0, limit)
+    }
+
+    const sql = `SELECT * FROM conversations
+      WHERE title NOT LIKE 'FRIEND:%'
+      ORDER BY updated_at DESC
+      LIMIT ?`
+    const result = await this.selectSql(sql, [limit])
+    return result || []
+  }
+
+  /**
+   * 获取单个对话
+   */
+  async getConversation(conversationId) {
+    if (this.isH5) {
+      this.ensureH5Data('conversations')
+      return this.h5Data.conversations.find(c => c.id === conversationId) || null
+    }
+
+    const sql = `SELECT * FROM conversations WHERE id = ?`
+    const result = await this.selectSql(sql, [conversationId])
+    return result && result.length > 0 ? result[0] : null
+  }
+
+  /**
+   * 删除对话及其所有消息
+   */
+  async deleteConversation(conversationId) {
+    if (this.isH5) {
+      this.ensureH5Data('conversations')
+      this.ensureH5Data('messages')
+
+      // 删除对话
+      const convIndex = this.h5Data.conversations.findIndex(c => c.id === conversationId)
+      if (convIndex !== -1) {
+        this.h5Data.conversations.splice(convIndex, 1)
+      }
+
+      // 删除所有消息
+      this.h5Data.messages = this.h5Data.messages.filter(m => m.conversation_id !== conversationId)
+
+      this.saveH5Data()
+      return
+    }
+
+    // App模式：删除对话和消息
+    await this.executeSql('DELETE FROM messages WHERE conversation_id = ?', [conversationId])
+    await this.executeSql('DELETE FROM conversations WHERE id = ?', [conversationId])
+  }
+
+  /**
+   * 更新对话标题
+   */
+  async updateConversationTitle(conversationId, title) {
+    const now = this.now()
+
+    if (this.isH5) {
+      this.ensureH5Data('conversations')
+      const conversation = this.h5Data.conversations.find(c => c.id === conversationId)
+      if (conversation) {
+        conversation.title = title
+        conversation.updated_at = now
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = `UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?`
+    await this.executeSql(sql, [title, now, conversationId])
+  }
+
+  /**
+   * 获取对话的消息数量
+   */
+  async getConversationMessageCount(conversationId) {
+    if (this.isH5) {
+      this.ensureH5Data('messages')
+      return this.h5Data.messages.filter(m => m.conversation_id === conversationId).length
+    }
+
+    const sql = `SELECT COUNT(*) as count FROM messages WHERE conversation_id = ?`
+    const result = await this.selectSql(sql, [conversationId])
+    return result && result.length > 0 ? result[0].count : 0
+  }
+
+  /**
+   * 获取对话的最后一条消息
+   */
+  async getLastMessage(conversationId) {
+    if (this.isH5) {
+      this.ensureH5Data('messages')
+      const messages = this.h5Data.messages
+        .filter(m => m.conversation_id === conversationId)
+        .sort((a, b) => b.timestamp - a.timestamp)
+      return messages.length > 0 ? messages[0] : null
+    }
+
+    const sql = `SELECT * FROM messages
+      WHERE conversation_id = ?
+      ORDER BY timestamp DESC
+      LIMIT 1`
+    const result = await this.selectSql(sql, [conversationId])
+    return result && result.length > 0 ? result[0] : null
+  }
+
   // ==================== 好友消息 ====================
 
   /**
