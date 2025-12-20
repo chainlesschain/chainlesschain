@@ -111,19 +111,20 @@ export default {
 <style lang="scss" scoped>
 .knowledge-list {
   min-height: 100vh;
-  background-color: #f8f8f8;
+  background-color: var(--bg-page);
   padding-bottom: 100rpx;
 }
 
 .header {
   padding: 24rpx;
-  background-color: #ffffff;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-card);
+  box-shadow: var(--shadow-sm);
 
   .search-input {
     width: 100%;
     height: 72rpx;
-    background-color: #f5f5f5;
+    background-color: var(--bg-input);
+    color: var(--text-primary);
     border-radius: 36rpx;
     padding: 0 32rpx;
     font-size: 28rpx;
@@ -137,7 +138,7 @@ export default {
 .loading, .empty {
   text-align: center;
   padding: 100rpx 40rpx;
-  color: #999999;
+  color: var(--text-tertiary);
 }
 
 .empty-icon {
@@ -149,12 +150,13 @@ export default {
 .empty-text {
   display: block;
   font-size: 28rpx;
+  color: var(--text-secondary);
   margin-bottom: 40rpx;
 }
 
 .add-btn {
-  background-color: #3cc51f;
-  color: #ffffff;
+  background-color: var(--color-primary);
+  color: var(--text-inverse);
   border-radius: 48rpx;
   padding: 20rpx 60rpx;
   font-size: 28rpx;
@@ -162,24 +164,24 @@ export default {
 }
 
 .item {
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   border-radius: 12rpx;
   padding: 32rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
 
   .item-title {
     display: block;
     font-size: 32rpx;
     font-weight: 500;
-    color: #333333;
+    color: var(--text-primary);
     margin-bottom: 16rpx;
   }
 
   .item-content {
     display: block;
     font-size: 26rpx;
-    color: #666666;
+    color: var(--text-secondary);
     line-height: 1.6;
     margin-bottom: 16rpx;
     overflow: hidden;
@@ -191,7 +193,7 @@ export default {
 
   .item-time {
     font-size: 24rpx;
-    color: #999999;
+    color: var(--text-tertiary);
   }
 }
 
@@ -201,7 +203,7 @@ export default {
   bottom: 120rpx;
   width: 112rpx;
   height: 112rpx;
-  background-color: #3cc51f;
+  background-color: var(--color-primary);
   border-radius: 56rpx;
   display: flex;
   align-items: center;
@@ -210,7 +212,7 @@ export default {
 
   .fab-icon {
     font-size: 60rpx;
-    color: #ffffff;
+    color: var(--text-inverse);
     line-height: 1;
   }
 }
