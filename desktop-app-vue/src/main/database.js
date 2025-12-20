@@ -82,6 +82,8 @@ class DatabaseManager {
       }
 
       // 启用外键约束
+      this.applyStatementCompat();
+      // Enable foreign key constraints.
       this.db.run('PRAGMA foreign_keys = ON');
 
       // 创建表
@@ -93,6 +95,89 @@ class DatabaseManager {
       console.error('数据库初始化失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * Add better-sqlite style helpers to sql.js statements.
+   */
+  applyStatementCompat() {
+    if (!this.db || this.db.__betterSqliteCompat) {
+      return;
+    }
+
+    const manager = this;
+    const rawPrepare = this.db.prepare.bind(this.db);
+
+    const normalizeParams = (params) => {
+      if (params.length === 1) {
+        const first = params[0];
+        if (Array.isArray(first)) {
+          return first;
+        }
+        if (first && typeof first === 'object') {
+          return first;
+        }
+      }
+      return params;
+    };
+
+    this.db.prepare = (sql) => {
+      const stmt = rawPrepare(sql);
+
+      if (!stmt.__betterSqliteCompat) {
+        stmt.__betterSqliteCompat = true;
+
+        stmt.get = (...params) => {
+          const bound = normalizeParams(params);
+          if (Array.isArray(bound) ? bound.length : bound && typeof bound === 'object') {
+            stmt.bind(bound);
+          }
+          const row = stmt.step() ? stmt.getAsObject() : null;
+          stmt.reset();
+          return row;
+        };
+
+        stmt.all = (...params) => {
+          const bound = normalizeParams(params);
+          if (Array.isArray(bound) ? bound.length : bound && typeof bound === 'object') {
+            stmt.bind(bound);
+          }
+          const rows = [];
+          while (stmt.step()) {
+            rows.push(stmt.getAsObject());
+          }
+          stmt.reset();
+          return rows;
+        };
+
+        const rawRun = stmt.run ? stmt.run.bind(stmt) : null;
+        stmt.run = (...params) => {
+          const bound = normalizeParams(params);
+          if (rawRun) {
+            if (Array.isArray(bound) ? bound.length : bound && typeof bound === 'object') {
+              rawRun(bound);
+            } else {
+              rawRun();
+            }
+          } else {
+            if (Array.isArray(bound) ? bound.length : bound && typeof bound === 'object') {
+              stmt.bind(bound);
+            }
+            stmt.step();
+            stmt.reset();
+          }
+          manager.saveToFile();
+          if (typeof manager.db.getRowsModified === 'function') {
+            return { changes: manager.db.getRowsModified() };
+          }
+          return {};
+        };
+      }
+
+      return stmt;
+    };
+
+    this.db.__betterSqliteCompat = true;
   }
 
   /**
@@ -220,12 +305,16 @@ class DatabaseManager {
    * @returns {Array} 知识库项列表
    */
   getKnowledgeItems(limit = 100, offset = 0) {
+    const parsedLimit = Number(limit);
+    const parsedOffset = Number(offset);
+    const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.floor(parsedLimit) : 100;
+    const safeOffset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? Math.floor(parsedOffset) : 0;
+
     const stmt = this.db.prepare(`
       SELECT * FROM knowledge_items
       ORDER BY updated_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${safeLimit} OFFSET ${safeOffset}
     `);
-    stmt.bind([limit, offset]);
 
     const results = [];
     while (stmt.step()) {
@@ -241,6 +330,9 @@ class DatabaseManager {
    * @returns {Object|null} 知识库项
    */
   getKnowledgeItemById(id) {
+    if (!id) {
+      return null;
+    }
     const stmt = this.db.prepare('SELECT * FROM knowledge_items WHERE id = ?');
     stmt.bind([id]);
 
@@ -255,30 +347,35 @@ class DatabaseManager {
    * @returns {Object} 创建的项目
    */
   addKnowledgeItem(item) {
-    const id = item.id || uuidv4();
+    const safeItem = item || {};
+    const id = safeItem.id || uuidv4();
     const now = Date.now();
+    const rawTitle = typeof safeItem.title === 'string' ? safeItem.title.trim() : '';
+    const title = rawTitle || 'Untitled';
+    const type = typeof safeItem.type === 'string' && safeItem.type ? safeItem.type : 'note';
+    const content = typeof safeItem.content === 'string' ? safeItem.content : null;
 
     this.db.run(`
       INSERT INTO knowledge_items (
         id, title, type, content, content_path, embedding_path,
         created_at, updated_at, git_commit_hash, device_id, sync_status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, COALESCE(NULLIF(?, ''), 'Untitled'), ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id,
-      item.title,
-      item.type,
-      item.content || null,
-      item.content_path || null,
-      item.embedding_path || null,
+      title,
+      type,
+      content,
+      safeItem.content_path || null,
+      safeItem.embedding_path || null,
       now,
       now,
-      item.git_commit_hash || null,
-      item.device_id || null,
-      item.sync_status || 'pending'
+      safeItem.git_commit_hash || null,
+      safeItem.device_id || null,
+      safeItem.sync_status || 'pending'
     ]);
 
     // 更新全文搜索索引
-    this.updateSearchIndex(id, item.title, item.content || '');
+    this.updateSearchIndex(id, title, content || '');
 
     // 保存到文件
     this.saveToFile();
@@ -542,6 +639,86 @@ class DatabaseManager {
   }
 
   // ==================== 工具方法 ====================
+
+  /**
+   * Normalize SQL params to avoid undefined values.
+   * @param {Array|Object|null|undefined} params
+   * @returns {Array|Object|null|undefined}
+   */
+  normalizeParams(params) {
+    if (params === undefined || params === null) {
+      return params;
+    }
+    if (Array.isArray(params)) {
+      return params.map((value) => (value === undefined ? null : value));
+    }
+    if (typeof params === 'object') {
+      const sanitized = {};
+      Object.keys(params).forEach((key) => {
+        const value = params[key];
+        sanitized[key] = value === undefined ? null : value;
+      });
+      return sanitized;
+    }
+    return params;
+  }
+
+  /**
+   * Execute a write statement (DDL/DML) and persist changes.
+   * @param {string} sql
+   * @param {Array|Object} params
+   */
+  run(sql, params = []) {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+    const safeParams = this.normalizeParams(params);
+    this.db.run(sql, safeParams ?? []);
+    this.saveToFile();
+  }
+
+  /**
+   * Fetch a single row as an object.
+   * @param {string} sql
+   * @param {Array|Object} params
+   * @returns {Object|null}
+   */
+  get(sql, params = []) {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+    const stmt = this.db.prepare(sql);
+    const safeParams = this.normalizeParams(params);
+    if (safeParams !== undefined && safeParams !== null) {
+      stmt.bind(safeParams);
+    }
+    const row = stmt.step() ? stmt.getAsObject() : null;
+    stmt.free();
+    return row;
+  }
+
+  /**
+   * Fetch all rows as objects.
+   * @param {string} sql
+   * @param {Array|Object} params
+   * @returns {Array}
+   */
+  all(sql, params = []) {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+    const stmt = this.db.prepare(sql);
+    const safeParams = this.normalizeParams(params);
+    if (safeParams !== undefined && safeParams !== null) {
+      stmt.bind(safeParams);
+    }
+    const rows = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return rows;
+  }
 
   /**
    * 执行事务

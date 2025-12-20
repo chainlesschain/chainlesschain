@@ -388,7 +388,7 @@ onMounted(async () => {
 
 <style scoped>
 .rag-settings {
-  max-width: 900px;
+  height: 100%;
 }
 
 .config-card,

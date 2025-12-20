@@ -254,18 +254,26 @@ class PromptTemplateManager {
     const now = Date.now();
 
     for (const template of builtInTemplates) {
+      const id = template.id || uuidv4();
+      const name = template.name || 'Untitled';
+      const description = template.description || '';
+      const templateText = template.template || '';
+      const variables = template.variables || JSON.stringify([]);
+      const category = template.category || 'general';
+      const isSystem = template.is_system ? 1 : 0;
+
       await this.db.run(
         `INSERT INTO prompt_templates
          (id, name, description, template, variables, category, is_system, usage_count, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          template.id,
-          template.name,
-          template.description,
-          template.template,
-          template.variables,
-          template.category,
-          template.is_system,
+          id,
+          name,
+          description,
+          templateText,
+          variables,
+          category,
+          isSystem,
           0,
           now,
           now,

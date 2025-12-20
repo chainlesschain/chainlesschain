@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="did-management">
     <a-card title="DID 身份管理" :loading="loading">
       <template #extra>
@@ -536,7 +536,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, h } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
   PlusOutlined,
@@ -1020,7 +1020,7 @@ async function handleExportMnemonic() {
   Modal.confirm({
     title: '导出助记词',
     content: '助记词是恢复身份的唯一凭证，请务必妥善保管！任何人获得助记词都可以完全控制您的身份。确定要导出吗？',
-    icon: <WarningOutlined />,
+    icon: h(WarningOutlined),
     okText: '确定导出',
     okType: 'danger',
     cancelText: '取消',
@@ -1247,3 +1247,4 @@ onMounted(() => {
   }
 }
 </style>
+

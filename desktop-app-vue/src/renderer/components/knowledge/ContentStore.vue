@@ -305,6 +305,21 @@ const loadContents = async () => {
   try {
     loading.value = true;
 
+    // 检查API是否存在
+    if (!window.electronAPI?.knowledge?.getContents) {
+      console.warn("知识付费API尚未实现");
+      contents.value = [];
+      loading.value = false;
+      return;
+    }
+    // 检查API是否存在
+    if (!window.electronAPI?.knowledge?.getContents) {
+      console.warn('知识付费API尚未实现');
+      contents.value = [];
+      loading.value = false;
+      return;
+    }
+
     if (searchKeyword.value) {
       // 搜索模式
       contents.value = await window.electronAPI.knowledge.searchContents(

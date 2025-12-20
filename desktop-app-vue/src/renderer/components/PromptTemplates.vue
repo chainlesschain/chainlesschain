@@ -271,7 +271,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, toRaw } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   PlusOutlined,
@@ -417,6 +417,17 @@ const handleEditTemplate = async (template) => {
   templateModalVisible.value = true;
 };
 
+const buildTemplatePayload = () => {
+  const raw = toRaw(templateForm.value);
+  return {
+    name: raw.name || '',
+    description: raw.description || '',
+    template: raw.template || '',
+    category: raw.category || 'general',
+    variables: Array.isArray(raw.variables) ? [...raw.variables] : [],
+  };
+};
+
 const handleSaveTemplate = async () => {
   if (!templateForm.value.name || !templateForm.value.template) {
     message.warning('请填写模板名称和内容');
@@ -424,16 +435,17 @@ const handleSaveTemplate = async () => {
   }
 
   try {
+    const payload = buildTemplatePayload();
     if (editingTemplate.value) {
       // 更新
       await window.electronAPI.promptTemplate.update(
         editingTemplate.value.id,
-        templateForm.value
+        payload
       );
       message.success('模板已更新');
     } else {
       // 创建
-      await window.electronAPI.promptTemplate.create(templateForm.value);
+      await window.electronAPI.promptTemplate.create(payload);
       message.success('模板已创建');
     }
 
@@ -475,9 +487,10 @@ const handleUseTemplate = (template) => {
 
 const handleFillTemplate = async () => {
   try {
+    const values = { ...toRaw(variableValues.value) };
     filledPrompt.value = await window.electronAPI.promptTemplate.fill(
       currentTemplate.value.id,
-      variableValues.value
+      values
     );
 
     // 复制到剪贴板

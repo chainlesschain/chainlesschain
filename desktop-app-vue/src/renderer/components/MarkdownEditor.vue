@@ -95,7 +95,6 @@ import { commonmark } from '@milkdown/preset-commonmark';
 import { gfm } from '@milkdown/preset-gfm';
 import { nord } from '@milkdown/theme-nord';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
-import { VueEditor, useEditor } from '@milkdown/vue';
 import {
   BoldOutlined,
   ItalicOutlined,

@@ -322,6 +322,10 @@ async function handlePull() {
 
 // 加载提交历史
 async function loadCommits() {
+  if (!enabled.value) {
+    commits.value = [];
+    return;
+  }
   try {
     commits.value = await window.electronAPI.git.getLog(20);
   } catch (error) {
@@ -331,10 +335,13 @@ async function loadCommits() {
 
 // 监听事件
 let unsubscribers = [];
+let refreshTimer = null;
 
-onMounted(() => {
-  handleRefresh();
-  loadCommits();
+onMounted(async () => {
+  await handleRefresh();
+  if (enabled.value) {
+    loadCommits();
+  }
 
   // 监听Git事件
   unsubscribers = [
@@ -357,12 +364,20 @@ onMounted(() => {
   ];
 
   // 定期刷新状态
-  const interval = setInterval(handleRefresh, 30000); // 每30秒刷新一次
+  refreshTimer = setInterval(handleRefresh, 30000); // 每30秒刷新一次
+});
 
-  onUnmounted(() => {
-    clearInterval(interval);
-    unsubscribers.forEach((unsub) => unsub && unsub());
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+  unsubscribers.forEach((unsub) => {
+    if (typeof unsub === 'function') {
+      unsub();
+    }
   });
+  unsubscribers = [];
 });
 </script>
 

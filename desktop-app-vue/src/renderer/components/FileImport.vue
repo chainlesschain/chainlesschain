@@ -86,7 +86,6 @@ npm install pdf-parse mammoth</pre>
       <div v-if="importResults.length > 0" class="import-results">
         <a-divider>导入结果</a-divider>
 
-        <a-statistic-group>
           <a-row :gutter="16">
             <a-col :span="8">
               <a-statistic
@@ -113,7 +112,6 @@ npm install pdf-parse mammoth</pre>
               />
             </a-col>
           </a-row>
-        </a-statistic-group>
 
         <a-list
           style="margin-top: 20px"

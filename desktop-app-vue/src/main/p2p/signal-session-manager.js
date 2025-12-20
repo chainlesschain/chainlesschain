@@ -18,7 +18,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Signal 协议库
-let SignalProtocolStore, KeyHelper, SessionBuilder, SessionCipher, SignalProtocolAddress;
+let KeyHelper, SessionBuilder, SessionCipher, SignalProtocolAddress;
 
 /**
  * Signal 会话管理器类
@@ -54,7 +54,7 @@ class SignalSessionManager extends EventEmitter {
       await this.loadSignalLibrary();
 
       // 创建存储
-      this.store = new SignalProtocolStore();
+      this.store = new LocalSignalProtocolStore();
 
       // 加载或生成身份
       await this.loadOrGenerateIdentity();
@@ -89,7 +89,6 @@ class SignalSessionManager extends EventEmitter {
     try {
       const signal = await import('@privacyresearch/libsignal-protocol-typescript');
 
-      SignalProtocolStore = signal.SignalProtocolStore;
       KeyHelper = signal.KeyHelper;
       SessionBuilder = signal.SessionBuilder;
       SessionCipher = signal.SessionCipher;
@@ -417,7 +416,7 @@ class SignalSessionManager extends EventEmitter {
  * Signal Protocol Store 实现
  * 存储会话、身份密钥、预密钥等
  */
-class SignalProtocolStore {
+class LocalSignalProtocolStore {
   constructor() {
     this.store = new Map();
   }
