@@ -114,6 +114,12 @@
       }
     },
     {
+      "path": "pages/knowledge/import-export/import-export",
+      "style": {
+        "navigationBarTitleText": "导入/导出"
+      }
+    },
+    {
       "path": "pages/mine/mine",
       "style": {
         "navigationBarTitleText": "我的"

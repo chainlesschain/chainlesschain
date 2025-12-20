@@ -10,7 +10,7 @@
       </view>
     </view>
     <view class="settings-icon" @click="goToSettings">
-      <text>⚙️</text>
+      <uni-icons type="gear" color="#fff" size="24"></uni-icons>
     </view>
   </view>
 </template>
@@ -49,6 +49,9 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-radius: $border-radius-lg;
+  margin: 20rpx;
+  box-shadow: var(--shadow-lg);
 
   .user-info {
     display: flex;
@@ -90,7 +93,6 @@ export default {
   }
 
   .settings-icon {
-    font-size: 48rpx;
     width: 80rpx;
     height: 80rpx;
     display: flex;

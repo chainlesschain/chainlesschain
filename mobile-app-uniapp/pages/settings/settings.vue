@@ -289,6 +289,10 @@
           <text>💾 数据备份与恢复</text>
         </button>
 
+        <button class="action-btn import-export" @click="handleImportExport">
+          <text>📦 导入/导出知识</text>
+        </button>
+
         <button class="action-btn" @click="handleClearCache">
           <text>清除缓存</text>
         </button>
@@ -1119,6 +1123,11 @@ export default {
         url: '/pages/backup/backup'
       })
     },
+    handleImportExport() {
+      uni.navigateTo({
+        url: '/pages/knowledge/import-export/import-export'
+      })
+    },
     handleLogout() {
       uni.showModal({
         title: '退出登录',
@@ -1328,6 +1337,12 @@ export default {
 
     &.backup {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: var(--text-inverse);
+      font-weight: 500;
+    }
+
+    &.import-export {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       color: var(--text-inverse);
       font-weight: 500;
     }
