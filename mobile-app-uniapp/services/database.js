@@ -1907,6 +1907,220 @@ class DatabaseService {
 
     return order
   }
+
+  // ==================== 统计分析方法 ====================
+
+  /**
+   * 获取知识库统计数据
+   * @returns {Promise<Object>} 统计对象
+   */
+  async getKnowledgeStatistics() {
+    try {
+      const stats = {
+        total: 0,
+        favorites: 0,
+        byType: {},
+        byTag: [],
+        recentActivity: [],
+        creationTrend: []
+      }
+
+      if (this.isH5) {
+        this.ensureH5Data('knowledge_items')
+        const items = this.h5Data.knowledge_items || []
+
+        // 总数统计
+        stats.total = items.length
+        stats.favorites = items.filter(item => item.is_favorite).length
+
+        // 按类型统计
+        items.forEach(item => {
+          const type = item.type || 'note'
+          stats.byType[type] = (stats.byType[type] || 0) + 1
+        })
+
+        // 按标签统计
+        const tags = await this.getTags()
+        stats.byTag = tags.map(tag => ({
+          id: tag.id,
+          name: tag.name,
+          color: tag.color,
+          count: tag.count || 0
+        }))
+
+        // 最近活动（最近7天更新的知识）
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+        stats.recentActivity = items
+          .filter(item => item.updated_at >= sevenDaysAgo)
+          .sort((a, b) => b.updated_at - a.updated_at)
+          .slice(0, 10)
+          .map(item => ({
+            id: item.id,
+            title: item.title,
+            type: item.type,
+            updated_at: item.updated_at
+          }))
+
+        // 创建趋势（按月统计）
+        const trendMap = {}
+        items.forEach(item => {
+          const date = new Date(item.created_at)
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+          trendMap[monthKey] = (trendMap[monthKey] || 0) + 1
+        })
+
+        // 获取最近6个月的趋势数据
+        const now = new Date()
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+          stats.creationTrend.push({
+            month: monthKey,
+            count: trendMap[monthKey] || 0
+          })
+        }
+
+        return stats
+      }
+
+      // App (SQLite) 模式
+      // 总数和收藏数
+      let result = await this.selectSql('SELECT COUNT(*) as total FROM knowledge_items')
+      stats.total = result[0]?.total || 0
+
+      result = await this.selectSql('SELECT COUNT(*) as favorites FROM knowledge_items WHERE is_favorite = 1')
+      stats.favorites = result[0]?.favorites || 0
+
+      // 按类型统计
+      result = await this.selectSql(`
+        SELECT type, COUNT(*) as count
+        FROM knowledge_items
+        GROUP BY type
+      `)
+      result.forEach(row => {
+        stats.byType[row.type] = row.count
+      })
+
+      // 按标签统计
+      const tags = await this.getTags()
+      stats.byTag = tags.map(tag => ({
+        id: tag.id,
+        name: tag.name,
+        color: tag.color,
+        count: tag.count || 0
+      }))
+
+      // 最近活动
+      result = await this.selectSql(`
+        SELECT id, title, type, updated_at
+        FROM knowledge_items
+        WHERE updated_at >= ?
+        ORDER BY updated_at DESC
+        LIMIT 10
+      `, [Date.now() - 7 * 24 * 60 * 60 * 1000])
+      stats.recentActivity = result || []
+
+      // 创建趋势
+      result = await this.selectSql(`
+        SELECT
+          strftime('%Y-%m', datetime(created_at/1000, 'unixepoch')) as month,
+          COUNT(*) as count
+        FROM knowledge_items
+        WHERE created_at >= ?
+        GROUP BY month
+        ORDER BY month
+      `, [Date.now() - 6 * 30 * 24 * 60 * 60 * 1000])
+
+      const trendMap = {}
+      result.forEach(row => {
+        trendMap[row.month] = row.count
+      })
+
+      const now = new Date()
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        stats.creationTrend.push({
+          month: monthKey,
+          count: trendMap[monthKey] || 0
+        })
+      }
+
+      return stats
+    } catch (error) {
+      console.error('获取统计数据失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 获取每日创建统计（最近30天）
+   * @returns {Promise<Array>} 每日统计数组
+   */
+  async getDailyCreationStats() {
+    try {
+      const stats = []
+      const now = Date.now()
+      const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000
+
+      if (this.isH5) {
+        this.ensureH5Data('knowledge_items')
+        const items = this.h5Data.knowledge_items || []
+
+        // 统计每天的创建数量
+        const dailyMap = {}
+        items.forEach(item => {
+          if (item.created_at >= thirtyDaysAgo) {
+            const date = new Date(item.created_at)
+            const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+            dailyMap[dateKey] = (dailyMap[dateKey] || 0) + 1
+          }
+        })
+
+        // 生成最近30天的完整数据
+        for (let i = 29; i >= 0; i--) {
+          const d = new Date(now - i * 24 * 60 * 60 * 1000)
+          const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          stats.push({
+            date: dateKey,
+            count: dailyMap[dateKey] || 0
+          })
+        }
+
+        return stats
+      }
+
+      // App (SQLite) 模式
+      const result = await this.selectSql(`
+        SELECT
+          strftime('%Y-%m-%d', datetime(created_at/1000, 'unixepoch')) as date,
+          COUNT(*) as count
+        FROM knowledge_items
+        WHERE created_at >= ?
+        GROUP BY date
+        ORDER BY date
+      `, [thirtyDaysAgo])
+
+      const dailyMap = {}
+      result.forEach(row => {
+        dailyMap[row.date] = row.count
+      })
+
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(now - i * 24 * 60 * 60 * 1000)
+        const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        stats.push({
+          date: dateKey,
+          count: dailyMap[dateKey] || 0
+        })
+      }
+
+      return stats
+    } catch (error) {
+      console.error('获取每日统计失败:', error)
+      return []
+    }
+  }
 }
 
 // 导出单例

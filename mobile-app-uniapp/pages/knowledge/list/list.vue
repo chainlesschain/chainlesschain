@@ -12,6 +12,9 @@
         />
         <text class="search-icon">🔍</text>
       </view>
+      <view class="stats-btn" @click="goToStatistics">
+        <text class="stats-icon">📊</text>
+      </view>
       <view class="filter-btn" @click="showFilterModal = true">
         <text class="filter-icon">{{ hasActiveFilter ? '🎯' : '☰' }}</text>
       </view>
@@ -361,6 +364,15 @@ export default {
     },
 
     /**
+     * 跳转到统计页面
+     */
+    goToStatistics() {
+      uni.navigateTo({
+        url: '/pages/knowledge/statistics/statistics'
+      })
+    },
+
+    /**
      * 跳转到添加
      */
     goToAdd() {
@@ -425,6 +437,21 @@ export default {
     }
   }
 
+  .stats-btn {
+    width: 72rpx;
+    height: 72rpx;
+    background-color: var(--bg-input);
+    border-radius: 36rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 16rpx;
+
+    .stats-icon {
+      font-size: 32rpx;
+    }
+  }
+
   .filter-btn {
     width: 72rpx;
     height: 72rpx;
@@ -433,6 +460,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-left: 16rpx;
 
     .filter-icon {
       font-size: 32rpx;
