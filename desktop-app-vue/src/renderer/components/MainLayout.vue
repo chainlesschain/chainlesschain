@@ -24,13 +24,50 @@
         class="main-menu"
         @click="handleMenuClick"
       >
+        <!-- 项目管理 ⭐核心模块 -->
+        <a-sub-menu key="project-management">
+          <template #icon><FolderOutlined /></template>
+          <template #title>
+            <span>项目管理</span>
+            <a-badge count="核心" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
+          </template>
+          <a-menu-item key="projects">
+            <template #icon><FolderOpenOutlined /></template>
+            我的项目
+          </a-menu-item>
+          <a-menu-item key="project-new">
+            <template #icon><PlusCircleOutlined /></template>
+            新建项目
+          </a-menu-item>
+          <a-menu-item key="project-templates">
+            <template #icon><FileTextOutlined /></template>
+            项目模板
+          </a-menu-item>
+          <a-menu-item key="project-market">
+            <template #icon><ShopOutlined /></template>
+            项目市场
+          </a-menu-item>
+          <a-menu-item key="project-collaboration">
+            <template #icon><TeamOutlined /></template>
+            协作项目
+          </a-menu-item>
+          <a-menu-item key="project-archived">
+            <template #icon><InboxOutlined /></template>
+            已归档项目
+          </a-menu-item>
+        </a-sub-menu>
+
         <!-- 知识与AI -->
         <a-sub-menu key="knowledge">
           <template #icon><FileTextOutlined /></template>
           <template #title>知识与AI</template>
           <a-menu-item key="home">
             <template #icon><HomeOutlined /></template>
-            首页
+            知识首页
+          </a-menu-item>
+          <a-menu-item key="knowledge-list">
+            <template #icon><FileTextOutlined /></template>
+            我的知识
           </a-menu-item>
           <a-menu-item key="file-import">
             <template #icon><CloudUploadOutlined /></template>
@@ -43,6 +80,10 @@
           <a-menu-item key="prompt-templates">
             <template #icon><TagsOutlined /></template>
             提示词模板
+          </a-menu-item>
+          <a-menu-item key="ai-chat">
+            <template #icon><RobotOutlined /></template>
+            AI对话
           </a-menu-item>
           <a-menu-item key="knowledge-store">
             <template #icon><ShopOutlined /></template>
@@ -270,6 +311,11 @@ import {
   SafetyOutlined,
   LogoutOutlined,
   DownOutlined,
+  FolderOutlined,
+  FolderOpenOutlined,
+  PlusCircleOutlined,
+  InboxOutlined,
+  RobotOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import ChatPanel from './ChatPanel.vue';
@@ -292,18 +338,33 @@ const selectedMenuKeys = ref(['home']);
 
 // 菜单配置
 const menuConfig = {
-  home: { path: '/', title: '首页', closable: false },
+  // 项目管理模块
+  projects: { path: '/projects', title: '我的项目' },
+  'project-new': { path: '/projects/new', title: '新建项目' },
+  'project-templates': { path: '/projects/templates', title: '项目模板' },
+  'project-market': { path: '/projects/market', title: '项目市场' },
+  'project-collaboration': { path: '/projects/collaboration', title: '协作项目' },
+  'project-archived': { path: '/projects/archived', title: '已归档项目' },
+
+  // 知识与AI模块
+  home: { path: '/', title: '知识首页', closable: false },
+  'knowledge-list': { path: '/knowledge/list', title: '我的知识' },
   'file-import': { path: '/file-import', title: '文件导入' },
   'image-upload': { path: '/image-upload', title: '图片上传' },
   'prompt-templates': { path: '/prompt-templates', title: '提示词模板' },
+  'ai-chat': { path: '/ai/chat', title: 'AI对话' },
   'knowledge-store': { path: '/knowledge-store', title: '知识付费' },
   'my-purchases': { path: '/my-purchases', title: '我的购买' },
+
+  // 身份与社交模块
   did: { path: '/did', title: 'DID身份' },
   credentials: { path: '/credentials', title: '可验证凭证' },
   contacts: { path: '/contacts', title: '联系人' },
   friends: { path: '/friends', title: '好友管理' },
   posts: { path: '/posts', title: '动态广场' },
   'p2p-messaging': { path: '/p2p-messaging', title: 'P2P加密消息' },
+
+  // 交易系统模块
   marketplace: { path: '/marketplace', title: '交易市场' },
   contracts: { path: '/contracts', title: '智能合约' },
   'credit-score': { path: '/credit-score', title: '信用评分' },
