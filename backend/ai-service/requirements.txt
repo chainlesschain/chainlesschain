@@ -14,6 +14,10 @@ langchain-community==0.0.16
 dashscope==1.14.1  # 阿里云通义千问
 zhipuai==2.0.1     # 智谱AI (ChatGLM)
 anthropic==0.18.1  # Anthropic Claude (可选)
+volcengine-python-sdk==1.0.79  # 火山引擎（豆包）
+qianfan==0.3.5     # 百度千帆
+huggingface-hub==0.20.3  # HuggingFace (可选)
+minimax==0.1.0     # MiniMax (如果有SDK)
 
 # 向量数据库
 qdrant-client==1.7.3
