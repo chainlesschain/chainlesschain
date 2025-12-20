@@ -11,6 +11,7 @@ doc/
 dist/
 build/
 out/
+unpackage/
 *.app
 *.exe
 *.dmg
