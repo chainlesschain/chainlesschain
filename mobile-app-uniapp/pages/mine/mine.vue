@@ -461,7 +461,7 @@ export default {
       display: flex;
       align-items: center;
       padding: 28rpx 40rpx;
-      border-bottom: 1rpx solid var(--border-color);
+      border-bottom: 1rpx solid var(--border-normal);
 
       &:last-child {
         border-bottom: none;

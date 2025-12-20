@@ -62,7 +62,7 @@ export default {
   background-color: var(--bg-card);
   border-radius: 20rpx;
   padding: 32rpx 0;
-  box-shadow: 0 4rpx 20rpx rgba(102, 126, 234, 0.08);
+  box-shadow: var(--shadow-md);
   margin-bottom: 24rpx;
   display: flex;
   align-items: center;
@@ -112,7 +112,7 @@ export default {
   .stat-divider {
     width: 2rpx;
     height: 80rpx;
-    background: linear-gradient(180deg, transparent 0%, var(--border-color) 50%, transparent 100%);
+    background: linear-gradient(180deg, transparent 0%, var(--border-normal) 50%, transparent 100%);
   }
 }
 </style>

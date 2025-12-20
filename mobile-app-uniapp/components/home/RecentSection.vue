@@ -1,7 +1,10 @@
 <template>
-  <view class="recent-section" v-if="recentItems.length > 0">
-    <text class="section-title">最近浏览</text>
-    <view class="recent-list">
+  <view class="recent-section">
+    <view class="empty" v-if="recentItems.length === 0">
+      <text class="empty-icon">📭</text>
+      <text class="empty-text">暂无最近访问</text>
+    </view>
+    <view class="recent-list" v-else>
       <view
         class="recent-item"
         v-for="item in recentItems"
@@ -9,7 +12,7 @@
         @click="goToDetail(item.id)"
       >
         <view class="recent-icon">
-          <uni-icons :type="getTypeIcon(item.type)" color="#667eea" size="24"></uni-icons>
+          <text class="icon-emoji">{{ getTypeIcon(item.type) }}</text>
         </view>
         <view class="recent-content">
           <text class="recent-title">{{ item.title }}</text>
@@ -31,12 +34,12 @@ export default {
   methods: {
     getTypeIcon(type) {
       const icons = {
-        'note': 'compose',
-        'document': 'file-text-filled',
-        'conversation': 'chat-filled',
-        'web_clip': 'link'
+        'note': '📝',
+        'document': '📄',
+        'conversation': '💬',
+        'web_clip': '🔗'
       }
-      return icons[type] || 'compose'
+      return icons[type] || '📝'
     },
 
     formatTime(timestamp) {
@@ -68,46 +71,53 @@ export default {
 
 <style lang="scss" scoped>
 .recent-section {
-  padding: 0 40rpx;
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60rpx 0;
 
-  .section-title {
-    display: block;
-    font-size: 32rpx;
-    font-weight: bold;
-    color: var(--text-primary);
-    margin-bottom: 24rpx;
+    .empty-icon {
+      font-size: 80rpx;
+      margin-bottom: 16rpx;
+      opacity: 0.5;
+    }
+
+    .empty-text {
+      font-size: 24rpx;
+      color: var(--text-tertiary);
+    }
   }
 
   .recent-list {
-    background-color: var(--bg-card);
-    border-radius: 16rpx;
-    overflow: hidden;
-    box-shadow: var(--shadow-md);
-
     .recent-item {
       display: flex;
       align-items: center;
       gap: 20rpx;
-      padding: 24rpx;
-      border-bottom: 1rpx solid var(--border-color);
+      padding: 24rpx 0;
+      border-bottom: 1rpx solid var(--border-light);
 
       &:last-child {
         border-bottom: none;
       }
 
       &:active {
-        background-color: var(--bg-hover);
+        opacity: 0.7;
       }
 
       .recent-icon {
-        width: 72rpx;
-        height: 72rpx;
+        width: 64rpx;
+        height: 64rpx;
         border-radius: 12rpx;
         background-color: var(--bg-input);
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+
+        .icon-emoji {
+          font-size: 32rpx;
+        }
       }
 
       .recent-content {
