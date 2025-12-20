@@ -44,6 +44,18 @@ class DatabaseService {
   }
 
   /**
+   * 简化初始化（无需PIN，仅用于H5模式的基本功能）
+   */
+  async initWithoutPin() {
+    if (this.isH5) {
+      return this.initH5()
+    } else {
+      console.warn('[Database] App模式需要PIN初始化')
+      return Promise.reject(new Error('App模式需要PIN初始化'))
+    }
+  }
+
+  /**
    * H5模式初始化（使用localStorage）
    */
   async initH5() {
@@ -69,15 +81,24 @@ class DatabaseService {
           knowledge_items: [],
           tags: [],
           knowledge_tags: [],
+          knowledge_links: [],
+          folders: [],
           conversations: [],
           messages: [],
+          identities: [],
+          did_services: [],
           friendships: [],
+          friend_requests: [],
+          blocked_users: [],
           posts: [],
+          post_likes: [],
           post_comments: [],
           market_listings: [],
           orders: [],
           user_assets: [],
-          transactions: []
+          transactions: [],
+          ai_conversations: [],
+          ai_messages: []
         }
         this.saveH5Data()
         console.log('[Database] 初始化空数据结构')
@@ -151,14 +172,23 @@ class DatabaseService {
         folders: [],
         conversations: [],
         messages: [],
+        identities: [],
+        did_services: [],
         friendships: [],
+        friend_requests: [],
+        blocked_users: [],
         posts: [],
+        post_likes: [],
         post_comments: [],
         market_listings: [],
         orders: [],
         user_assets: [],
-        transactions: []
+        transactions: [],
+        ai_conversations: [],
+        ai_messages: []
       }
+      // 保存到localStorage
+      this.saveH5Data()
     }
 
     if (!Array.isArray(this.h5Data[tableName])) {
@@ -260,6 +290,32 @@ class DatabaseService {
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
       )`,
 
+      // DID身份表
+      `CREATE TABLE IF NOT EXISTS identities (
+        did TEXT PRIMARY KEY,
+        nickname TEXT,
+        avatar_path TEXT,
+        bio TEXT,
+        public_key_sign TEXT NOT NULL,
+        public_key_encrypt TEXT NOT NULL,
+        private_key_encrypted TEXT NOT NULL,
+        did_document TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        is_default INTEGER DEFAULT 0,
+        is_active INTEGER DEFAULT 1
+      )`,
+
+      // DID服务端点表
+      `CREATE TABLE IF NOT EXISTS did_services (
+        id TEXT PRIMARY KEY,
+        did TEXT NOT NULL,
+        service_type TEXT NOT NULL CHECK(service_type IN ('relay', 'storage', 'messaging')),
+        service_endpoint TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (did) REFERENCES identities(did) ON DELETE CASCADE
+      )`,
+
       // 好友表
       `CREATE TABLE IF NOT EXISTS friendships (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -336,6 +392,32 @@ class DatabaseService {
         knowledge_id TEXT,
         order_id TEXT,
         created_at INTEGER NOT NULL
+      )`,
+
+      // AI对话表
+      `CREATE TABLE IF NOT EXISTS ai_conversations (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        system_prompt TEXT,
+        model TEXT NOT NULL,
+        temperature REAL DEFAULT 0.7,
+        user_did TEXT,
+        message_count INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        last_message_at TEXT
+      )`,
+
+      // AI消息表
+      `CREATE TABLE IF NOT EXISTS ai_messages (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+        content TEXT NOT NULL,
+        model TEXT,
+        tokens INTEGER,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE
       )`
     ]
 
@@ -1437,6 +1519,549 @@ class DatabaseService {
     await this.executeSql(sql, params)
   }
 
+  /**
+   * 根据DID获取好友
+   * @param {string} friendDid 好友DID
+   * @returns {Promise<Object|null>}
+   */
+  async getFriendByDid(friendDid) {
+    if (this.isH5) {
+      this.ensureH5Data('friendships')
+      return this.h5Data.friendships.find(f => f.friendDid === friendDid) || null
+    }
+
+    const sql = 'SELECT * FROM friendships WHERE friend_did = ? LIMIT 1'
+    const result = await this.selectSql(sql, [friendDid])
+    return result && result.length > 0 ? result[0] : null
+  }
+
+  /**
+   * 保存好友关系
+   * @param {Object} friendship 好友对象
+   * @returns {Promise<void>}
+   */
+  async saveFriend(friendship) {
+    if (this.isH5) {
+      this.ensureH5Data('friendships')
+      this.h5Data.friendships.push(friendship)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = `INSERT INTO friendships (
+      id, user_did, friend_did, nickname, notes, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+
+    const params = [
+      friendship.id,
+      friendship.userDid,
+      friendship.friendDid,
+      friendship.nickname || '',
+      friendship.notes || '',
+      friendship.createdAt,
+      friendship.updatedAt
+    ]
+
+    await this.executeSql(sql, params)
+  }
+
+  // ==================== 好友请求 ====================
+
+  /**
+   * 保存好友请求
+   * @param {Object} request 请求对象
+   * @returns {Promise<void>}
+   */
+  async saveFriendRequest(request) {
+    if (this.isH5) {
+      this.ensureH5Data('friend_requests')
+      if (!this.h5Data.friend_requests) {
+        this.h5Data.friend_requests = []
+      }
+      this.h5Data.friend_requests.push(request)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = `INSERT INTO friend_requests (
+      id, from_did, to_did, message, status, direction, signature, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+    const params = [
+      request.id,
+      request.fromDid,
+      request.toDid,
+      request.message,
+      request.status,
+      request.direction,
+      request.signature,
+      request.createdAt,
+      request.updatedAt
+    ]
+
+    await this.executeSql(sql, params)
+  }
+
+  /**
+   * 获取好友请求
+   * @param {string} targetDid 目标DID
+   * @param {string} direction 方向 'sent' 或 'received'
+   * @returns {Promise<Object|null>}
+   */
+  async getFriendRequest(targetDid, direction) {
+    if (this.isH5) {
+      this.ensureH5Data('friend_requests')
+      if (!this.h5Data.friend_requests) {
+        return null
+      }
+      if (direction === 'sent') {
+        return this.h5Data.friend_requests.find(r => r.toDid === targetDid && r.status === 'pending') || null
+      } else {
+        return this.h5Data.friend_requests.find(r => r.fromDid === targetDid && r.status === 'pending') || null
+      }
+    }
+
+    let sql
+    if (direction === 'sent') {
+      sql = 'SELECT * FROM friend_requests WHERE to_did = ? AND status = ? LIMIT 1'
+    } else {
+      sql = 'SELECT * FROM friend_requests WHERE from_did = ? AND status = ? LIMIT 1'
+    }
+    const result = await this.selectSql(sql, [targetDid, 'pending'])
+    return result && result.length > 0 ? result[0] : null
+  }
+
+  /**
+   * 根据ID获取好友请求
+   * @param {string} requestId 请求ID
+   * @returns {Promise<Object|null>}
+   */
+  async getFriendRequestById(requestId) {
+    if (this.isH5) {
+      this.ensureH5Data('friend_requests')
+      if (!this.h5Data.friend_requests) {
+        return null
+      }
+      return this.h5Data.friend_requests.find(r => r.id === requestId) || null
+    }
+
+    const sql = 'SELECT * FROM friend_requests WHERE id = ? LIMIT 1'
+    const result = await this.selectSql(sql, [requestId])
+    return result && result.length > 0 ? result[0] : null
+  }
+
+  /**
+   * 获取所有好友请求
+   * @param {string} userDid 用户DID
+   * @returns {Promise<Array>}
+   */
+  async getAllFriendRequests(userDid) {
+    if (this.isH5) {
+      this.ensureH5Data('friend_requests')
+      if (!this.h5Data.friend_requests) {
+        return []
+      }
+      return this.h5Data.friend_requests.filter(r =>
+        r.fromDid === userDid || r.toDid === userDid
+      )
+    }
+
+    const sql = 'SELECT * FROM friend_requests WHERE from_did = ? OR to_did = ? ORDER BY created_at DESC'
+    return this.selectSql(sql, [userDid, userDid])
+  }
+
+  /**
+   * 获取好友请求列表
+   * @param {Object} options 查询选项
+   * @returns {Promise<Array>}
+   */
+  async getFriendRequests(options = {}) {
+    const { userDid, direction, status } = options
+
+    if (this.isH5) {
+      this.ensureH5Data('friend_requests')
+      if (!this.h5Data.friend_requests) {
+        return []
+      }
+      return this.h5Data.friend_requests.filter(r => {
+        if (direction === 'sent' && r.fromDid !== userDid) return false
+        if (direction === 'received' && r.toDid !== userDid) return false
+        if (status && r.status !== status) return false
+        return true
+      })
+    }
+
+    const conditions = []
+    const params = []
+
+    if (direction === 'sent') {
+      conditions.push('from_did = ?')
+      params.push(userDid)
+    } else if (direction === 'received') {
+      conditions.push('to_did = ?')
+      params.push(userDid)
+    }
+
+    if (status) {
+      conditions.push('status = ?')
+      params.push(status)
+    }
+
+    const sql = `SELECT * FROM friend_requests ${
+      conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
+    } ORDER BY created_at DESC`
+
+    return this.selectSql(sql, params)
+  }
+
+  /**
+   * 更新好友请求
+   * @param {string} requestId 请求ID
+   * @param {Object} updates 更新内容
+   * @returns {Promise<void>}
+   */
+  async updateFriendRequest(requestId, updates) {
+    if (this.isH5) {
+      this.ensureH5Data('friend_requests')
+      if (!this.h5Data.friend_requests) {
+        return
+      }
+      const request = this.h5Data.friend_requests.find(r => r.id === requestId)
+      if (request) {
+        Object.assign(request, updates)
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ')
+    const values = Object.values(updates)
+    values.push(requestId)
+
+    const sql = `UPDATE friend_requests SET ${fields} WHERE id = ?`
+    await this.executeSql(sql, values)
+  }
+
+  // ==================== 黑名单 ====================
+
+  /**
+   * 保存黑名单记录
+   * @param {Object} blockRecord 黑名单对象
+   * @returns {Promise<void>}
+   */
+  async saveBlockedUser(blockRecord) {
+    if (this.isH5) {
+      this.ensureH5Data('blocked_users')
+      if (!this.h5Data.blocked_users) {
+        this.h5Data.blocked_users = []
+      }
+      this.h5Data.blocked_users.push(blockRecord)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = `INSERT INTO blocked_users (
+      id, user_did, blocked_did, reason, created_at
+    ) VALUES (?, ?, ?, ?, ?)`
+
+    const params = [
+      blockRecord.id,
+      blockRecord.userDid,
+      blockRecord.blockedDid,
+      blockRecord.reason,
+      blockRecord.createdAt
+    ]
+
+    await this.executeSql(sql, params)
+  }
+
+  /**
+   * 获取黑名单
+   * @param {string} userDid 用户DID
+   * @returns {Promise<Array>}
+   */
+  async getBlockedUsers(userDid) {
+    if (this.isH5) {
+      this.ensureH5Data('blocked_users')
+      if (!this.h5Data.blocked_users) {
+        return []
+      }
+      return this.h5Data.blocked_users.filter(b => b.userDid === userDid)
+    }
+
+    const sql = 'SELECT * FROM blocked_users WHERE user_did = ? ORDER BY created_at DESC'
+    return this.selectSql(sql, [userDid])
+  }
+
+  /**
+   * 删除黑名单记录
+   * @param {string} userDid 用户DID
+   * @param {string} blockedDid 被拉黑的DID
+   * @returns {Promise<void>}
+   */
+  async deleteBlockedUser(userDid, blockedDid) {
+    if (this.isH5) {
+      this.ensureH5Data('blocked_users')
+      if (!this.h5Data.blocked_users) {
+        return
+      }
+      this.h5Data.blocked_users = this.h5Data.blocked_users.filter(
+        b => !(b.userDid === userDid && b.blockedDid === blockedDid)
+      )
+      this.saveH5Data()
+      return
+    }
+
+    const sql = 'DELETE FROM blocked_users WHERE user_did = ? AND blocked_did = ?'
+    await this.executeSql(sql, [userDid, blockedDid])
+  }
+
+  // ==================== 消息和会话 ====================
+
+  /**
+   * 保存消息
+   * @param {Object} message 消息对象
+   * @returns {Promise<void>}
+   */
+  async saveMessage(message) {
+    if (this.isH5) {
+      this.ensureH5Data('messages')
+      if (!this.h5Data.messages) {
+        this.h5Data.messages = []
+      }
+      this.h5Data.messages.push(message)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = `INSERT INTO messages (
+      id, conversation_id, from_did, to_did, type, content, metadata, status, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+    const params = [
+      message.id,
+      message.conversationId,
+      message.fromDid,
+      message.toDid,
+      message.type,
+      message.content,
+      JSON.stringify(message.metadata || {}),
+      message.status,
+      message.createdAt,
+      message.updatedAt
+    ]
+
+    await this.executeSql(sql, params)
+  }
+
+  /**
+   * 获取会话消息
+   * @param {string} conversationId 会话ID
+   * @param {Object} options 查询选项
+   * @returns {Promise<Array>}
+   */
+  async getConversationMessages(conversationId, options = {}) {
+    const { limit = 50, offset = 0 } = options
+
+    if (this.isH5) {
+      this.ensureH5Data('messages')
+      if (!this.h5Data.messages) {
+        return []
+      }
+      return this.h5Data.messages
+        .filter(m => m.conversationId === conversationId)
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        .slice(offset, offset + limit)
+    }
+
+    const sql = `SELECT * FROM messages
+      WHERE conversation_id = ?
+      ORDER BY created_at ASC
+      LIMIT ? OFFSET ?`
+
+    return this.selectSql(sql, [conversationId, limit, offset])
+  }
+
+  /**
+   * 更新消息状态
+   * @param {string} messageId 消息ID
+   * @param {string} status 新状态
+   * @returns {Promise<void>}
+   */
+  async updateMessageStatus(messageId, status) {
+    if (this.isH5) {
+      this.ensureH5Data('messages')
+      if (!this.h5Data.messages) {
+        return
+      }
+      const message = this.h5Data.messages.find(m => m.id === messageId)
+      if (message) {
+        message.status = status
+        message.updatedAt = new Date().toISOString()
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE messages SET status = ?, updated_at = ? WHERE id = ?'
+    await this.executeSql(sql, [status, new Date().toISOString(), messageId])
+  }
+
+  /**
+   * 获取会话列表
+   * @param {string} userDid 用户DID
+   * @returns {Promise<Array>}
+   */
+  async getConversations(userDid) {
+    if (this.isH5) {
+      this.ensureH5Data('conversations')
+      if (!this.h5Data.conversations) {
+        return []
+      }
+      return this.h5Data.conversations
+        .filter(c => c.participants && c.participants.includes(userDid))
+        .sort((a, b) => new Date(b.lastMessageAt || b.createdAt) - new Date(a.lastMessageAt || a.createdAt))
+    }
+
+    const sql = `SELECT * FROM conversations
+      WHERE participants LIKE ?
+      ORDER BY last_message_at DESC`
+
+    return this.selectSql(sql, [`%${userDid}%`])
+  }
+
+  /**
+   * 保存或更新会话
+   * @param {Object} conversation 会话对象
+   * @returns {Promise<void>}
+   */
+  async saveConversation(conversation) {
+    if (this.isH5) {
+      this.ensureH5Data('conversations')
+      if (!this.h5Data.conversations) {
+        this.h5Data.conversations = []
+      }
+      // 查找现有会话
+      const existingIndex = this.h5Data.conversations.findIndex(c => c.id === conversation.id)
+      if (existingIndex >= 0) {
+        // 更新
+        this.h5Data.conversations[existingIndex] = {
+          ...this.h5Data.conversations[existingIndex],
+          ...conversation
+        }
+      } else {
+        // 新增
+        this.h5Data.conversations.push(conversation)
+      }
+      this.saveH5Data()
+      return
+    }
+
+    // 检查是否存在
+    const existing = await this.selectSql('SELECT * FROM conversations WHERE id = ?', [conversation.id])
+
+    if (existing && existing.length > 0) {
+      // 更新
+      const sql = `UPDATE conversations SET
+        last_message = ?, last_message_at = ?, unread_count = ?
+        WHERE id = ?`
+
+      await this.executeSql(sql, [
+        conversation.lastMessage,
+        conversation.lastMessageAt,
+        conversation.unreadCount || 0,
+        conversation.id
+      ])
+    } else {
+      // 插入
+      const sql = `INSERT INTO conversations (
+        id, participants, last_message, last_message_at, unread_count, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?)`
+
+      await this.executeSql(sql, [
+        conversation.id,
+        JSON.stringify(conversation.participants),
+        conversation.lastMessage,
+        conversation.lastMessageAt,
+        conversation.unreadCount || 0,
+        conversation.createdAt || new Date().toISOString()
+      ])
+    }
+  }
+
+  /**
+   * 标记会话为已读
+   * @param {string} conversationId 会话ID
+   * @returns {Promise<void>}
+   */
+  async markConversationAsRead(conversationId) {
+    if (this.isH5) {
+      this.ensureH5Data('conversations')
+      if (!this.h5Data.conversations) {
+        return
+      }
+      const conv = this.h5Data.conversations.find(c => c.id === conversationId)
+      if (conv) {
+        conv.unreadCount = 0
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE conversations SET unread_count = 0 WHERE id = ?'
+    await this.executeSql(sql, [conversationId])
+  }
+
+  /**
+   * 删除会话
+   * @param {string} conversationId 会话ID
+   * @returns {Promise<void>}
+   */
+  async deleteConversation(conversationId) {
+    if (this.isH5) {
+      this.ensureH5Data('conversations')
+      this.ensureH5Data('messages')
+      if (this.h5Data.conversations) {
+        this.h5Data.conversations = this.h5Data.conversations.filter(c => c.id !== conversationId)
+      }
+      if (this.h5Data.messages) {
+        this.h5Data.messages = this.h5Data.messages.filter(m => m.conversationId !== conversationId)
+      }
+      this.saveH5Data()
+      return
+    }
+
+    // 删除会话和相关消息
+    await this.executeSql('DELETE FROM messages WHERE conversation_id = ?', [conversationId])
+    await this.executeSql('DELETE FROM conversations WHERE id = ?', [conversationId])
+  }
+
+  /**
+   * 搜索消息
+   * @param {string} query 搜索关键词
+   * @param {Object} options 搜索选项
+   * @returns {Promise<Array>}
+   */
+  async searchMessages(query, options = {}) {
+    const { limit = 100 } = options
+
+    if (this.isH5) {
+      this.ensureH5Data('messages')
+      if (!this.h5Data.messages) {
+        return []
+      }
+      // H5模式下，消息已加密，需要在外部解密后再搜索
+      return this.h5Data.messages.slice(0, limit)
+    }
+
+    const sql = `SELECT * FROM messages
+      WHERE content LIKE ?
+      ORDER BY created_at DESC
+      LIMIT ?`
+
+    return this.selectSql(sql, [`%${query}%`, limit])
+  }
+
   // ==================== 社交动态 ====================
 
   /**
@@ -1622,6 +2247,314 @@ class DatabaseService {
     const sql = 'SELECT * FROM post_comments WHERE post_id = ? ORDER BY created_at ASC'
     const result = await this.selectSql(sql, [postId])
     return result || []
+  }
+
+  /**
+   * 保存动态
+   * @param {Object} post 动态对象
+   * @returns {Promise<void>}
+   */
+  async savePost(post) {
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      this.h5Data.posts.push(post)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = `INSERT INTO posts (
+      id, author_did, content, images, visibility, like_count, comment_count, signature, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+    await this.executeSql(sql, [
+      post.id,
+      post.authorDid,
+      post.content,
+      JSON.stringify(post.images || []),
+      post.visibility,
+      post.likeCount || 0,
+      post.commentCount || 0,
+      post.signature,
+      post.createdAt,
+      post.updatedAt
+    ])
+  }
+
+  /**
+   * 根据ID获取动态
+   * @param {string} postId 动态ID
+   * @returns {Promise<Object|null>}
+   */
+  async getPostById(postId) {
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      return this.h5Data.posts.find(p => p.id === postId) || null
+    }
+
+    const sql = 'SELECT * FROM posts WHERE id = ? LIMIT 1'
+    const result = await this.selectSql(sql, [postId])
+    return result && result.length > 0 ? result[0] : null
+  }
+
+  /**
+   * 根据作者获取动态列表
+   * @param {string} authorDid 作者DID
+   * @returns {Promise<Array>}
+   */
+  async getPostsByAuthor(authorDid) {
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      return this.h5Data.posts
+        .filter(p => p.authorDid === authorDid)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    }
+
+    const sql = 'SELECT * FROM posts WHERE author_did = ? ORDER BY created_at DESC'
+    return this.selectSql(sql, [authorDid])
+  }
+
+  /**
+   * 根据多个作者获取动态列表
+   * @param {Array} authorDids 作者DID列表
+   * @param {Object} options 查询选项
+   * @returns {Promise<Array>}
+   */
+  async getPostsByAuthors(authorDids, options = {}) {
+    const { limit = 20, offset = 0 } = options
+
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      return this.h5Data.posts
+        .filter(p => authorDids.includes(p.authorDid))
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(offset, offset + limit)
+    }
+
+    const placeholders = authorDids.map(() => '?').join(',')
+    const sql = `SELECT * FROM posts
+      WHERE author_did IN (${placeholders})
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?`
+
+    return this.selectSql(sql, [...authorDids, limit, offset])
+  }
+
+  /**
+   * 保存点赞记录
+   * @param {Object} like 点赞对象
+   * @returns {Promise<void>}
+   */
+  async saveLike(like) {
+    if (this.isH5) {
+      this.ensureH5Data('post_likes')
+      if (!this.h5Data.post_likes) {
+        this.h5Data.post_likes = []
+      }
+      this.h5Data.post_likes.push(like)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = `INSERT INTO post_likes (
+      id, post_id, user_did, created_at
+    ) VALUES (?, ?, ?, ?)`
+
+    await this.executeSql(sql, [
+      like.id,
+      like.postId,
+      like.userDid,
+      like.createdAt
+    ])
+  }
+
+  /**
+   * 获取点赞记录
+   * @param {string} postId 动态ID
+   * @param {string} userDid 用户DID
+   * @returns {Promise<Object|null>}
+   */
+  async getLike(postId, userDid) {
+    if (this.isH5) {
+      this.ensureH5Data('post_likes')
+      if (!this.h5Data.post_likes) {
+        return null
+      }
+      return this.h5Data.post_likes.find(l => l.postId === postId && l.userDid === userDid) || null
+    }
+
+    const sql = 'SELECT * FROM post_likes WHERE post_id = ? AND user_did = ? LIMIT 1'
+    const result = await this.selectSql(sql, [postId, userDid])
+    return result && result.length > 0 ? result[0] : null
+  }
+
+  /**
+   * 删除点赞记录
+   * @param {string} postId 动态ID
+   * @param {string} userDid 用户DID
+   * @returns {Promise<void>}
+   */
+  async deleteLike(postId, userDid) {
+    if (this.isH5) {
+      this.ensureH5Data('post_likes')
+      if (!this.h5Data.post_likes) {
+        return
+      }
+      this.h5Data.post_likes = this.h5Data.post_likes.filter(
+        l => !(l.postId === postId && l.userDid === userDid)
+      )
+      this.saveH5Data()
+      return
+    }
+
+    const sql = 'DELETE FROM post_likes WHERE post_id = ? AND user_did = ?'
+    await this.executeSql(sql, [postId, userDid])
+  }
+
+  /**
+   * 增加动态点赞数
+   * @param {string} postId 动态ID
+   * @returns {Promise<void>}
+   */
+  async incrementPostLikeCount(postId) {
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      const post = this.h5Data.posts.find(p => p.id === postId)
+      if (post) {
+        post.likeCount = (post.likeCount || 0) + 1
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE posts SET like_count = like_count + 1 WHERE id = ?'
+    await this.executeSql(sql, [postId])
+  }
+
+  /**
+   * 减少动态点赞数
+   * @param {string} postId 动态ID
+   * @returns {Promise<void>}
+   */
+  async decrementPostLikeCount(postId) {
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      const post = this.h5Data.posts.find(p => p.id === postId)
+      if (post && post.likeCount > 0) {
+        post.likeCount = post.likeCount - 1
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE posts SET like_count = like_count - 1 WHERE id = ? AND like_count > 0'
+    await this.executeSql(sql, [postId])
+  }
+
+  /**
+   * 保存评论
+   * @param {Object} comment 评论对象
+   * @returns {Promise<void>}
+   */
+  async saveComment(comment) {
+    if (this.isH5) {
+      this.ensureH5Data('post_comments')
+      this.h5Data.post_comments.push(comment)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = `INSERT INTO post_comments (
+      id, post_id, author_did, content, created_at
+    ) VALUES (?, ?, ?, ?, ?)`
+
+    await this.executeSql(sql, [
+      comment.id,
+      comment.postId,
+      comment.authorDid,
+      comment.content,
+      comment.createdAt
+    ])
+  }
+
+  /**
+   * 获取动态的评论列表
+   * @param {string} postId 动态ID
+   * @param {Object} options 查询选项
+   * @returns {Promise<Array>}
+   */
+  async getPostComments(postId, options = {}) {
+    const { limit = 100, offset = 0 } = options
+
+    if (this.isH5) {
+      this.ensureH5Data('post_comments')
+      return this.h5Data.post_comments
+        .filter(c => c.postId === postId)
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        .slice(offset, offset + limit)
+    }
+
+    const sql = `SELECT * FROM post_comments
+      WHERE post_id = ?
+      ORDER BY created_at ASC
+      LIMIT ? OFFSET ?`
+
+    return this.selectSql(sql, [postId, limit, offset])
+  }
+
+  /**
+   * 根据ID获取评论
+   * @param {string} commentId 评论ID
+   * @returns {Promise<Object|null>}
+   */
+  async getCommentById(commentId) {
+    if (this.isH5) {
+      this.ensureH5Data('post_comments')
+      return this.h5Data.post_comments.find(c => c.id === commentId) || null
+    }
+
+    const sql = 'SELECT * FROM post_comments WHERE id = ? LIMIT 1'
+    const result = await this.selectSql(sql, [commentId])
+    return result && result.length > 0 ? result[0] : null
+  }
+
+  /**
+   * 增加动态评论数
+   * @param {string} postId 动态ID
+   * @returns {Promise<void>}
+   */
+  async incrementPostCommentCount(postId) {
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      const post = this.h5Data.posts.find(p => p.id === postId)
+      if (post) {
+        post.commentCount = (post.commentCount || 0) + 1
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?'
+    await this.executeSql(sql, [postId])
+  }
+
+  /**
+   * 减少动态评论数
+   * @param {string} postId 动态ID
+   * @returns {Promise<void>}
+   */
+  async decrementPostCommentCount(postId) {
+    if (this.isH5) {
+      this.ensureH5Data('posts')
+      const post = this.h5Data.posts.find(p => p.id === postId)
+      if (post && post.commentCount > 0) {
+        post.commentCount = post.commentCount - 1
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE posts SET comment_count = comment_count - 1 WHERE id = ? AND comment_count > 0'
+    await this.executeSql(sql, [postId])
   }
 
   /**
@@ -2532,8 +3465,409 @@ class DatabaseService {
     const result = await this.selectSql(sql, params)
     return result[0]?.count || 0
   }
+
+  // ==================== DID身份管理 ====================
+
+  /**
+   * 创建DID身份
+   * @param {Object} identity - 身份对象
+   */
+  async createIdentity(identity) {
+    if (this.isH5) {
+      this.h5Data.identities.push(identity)
+      this.saveH5Data()
+      return Promise.resolve()
+    }
+
+    const sql = `INSERT INTO identities (
+      did, nickname, avatar_path, bio,
+      public_key_sign, public_key_encrypt, private_key_encrypted, did_document,
+      created_at, updated_at, is_default, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+    const params = [
+      identity.did,
+      identity.nickname,
+      identity.avatar_path,
+      identity.bio,
+      identity.public_key_sign,
+      identity.public_key_encrypt,
+      identity.private_key_encrypted,
+      identity.did_document,
+      identity.created_at,
+      identity.updated_at,
+      identity.is_default,
+      identity.is_active
+    ]
+
+    return this.executeSql(sql, params)
+  }
+
+  /**
+   * 获取DID身份
+   * @param {string} did - DID标识符
+   */
+  async getIdentity(did) {
+    if (this.isH5) {
+      return this.h5Data.identities.find(item => item.did === did)
+    }
+
+    const sql = 'SELECT * FROM identities WHERE did = ?'
+    const result = await this.selectSql(sql, [did])
+    return result[0]
+  }
+
+  /**
+   * 获取所有身份
+   */
+  async getAllIdentities() {
+    if (this.isH5) {
+      return this.h5Data.identities.filter(item => item.is_active === 1)
+    }
+
+    const sql = 'SELECT * FROM identities WHERE is_active = 1 ORDER BY created_at DESC'
+    return this.selectSql(sql)
+  }
+
+  /**
+   * 获取默认身份
+   */
+  async getDefaultIdentity() {
+    if (this.isH5) {
+      return this.h5Data.identities.find(item => item.is_default === 1 && item.is_active === 1)
+    }
+
+    const sql = 'SELECT * FROM identities WHERE is_default = 1 AND is_active = 1 LIMIT 1'
+    const result = await this.selectSql(sql)
+    return result[0]
+  }
+
+  /**
+   * 设置默认身份
+   * @param {string} did - DID标识符
+   */
+  async setDefaultIdentity(did) {
+    if (this.isH5) {
+      // 先取消所有默认
+      this.h5Data.identities.forEach(item => {
+        item.is_default = 0
+      })
+      // 设置新默认
+      const identity = this.h5Data.identities.find(item => item.did === did)
+      if (identity) {
+        identity.is_default = 1
+      }
+      this.saveH5Data()
+      return Promise.resolve()
+    }
+
+    // 先取消所有默认
+    await this.executeSql('UPDATE identities SET is_default = 0')
+    // 设置新默认
+    return this.executeSql('UPDATE identities SET is_default = 1 WHERE did = ?', [did])
+  }
+
+  /**
+   * 更新身份信息
+   * @param {string} did - DID标识符
+   * @param {Object} updates - 更新的字段
+   */
+  async updateIdentity(did, updates) {
+    if (this.isH5) {
+      const identity = this.h5Data.identities.find(item => item.did === did)
+      if (identity) {
+        Object.assign(identity, updates, { updated_at: Date.now() })
+        this.saveH5Data()
+      }
+      return Promise.resolve()
+    }
+
+    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ')
+    const values = Object.values(updates)
+    values.push(Date.now()) // updated_at
+    values.push(did)
+
+    const sql = `UPDATE identities SET ${fields}, updated_at = ? WHERE did = ?`
+    return this.executeSql(sql, values)
+  }
+
+  /**
+   * 删除身份（软删除）
+   * @param {string} did - DID标识符
+   */
+  async deleteIdentity(did) {
+    if (this.isH5) {
+      const identity = this.h5Data.identities.find(item => item.did === did)
+      if (identity) {
+        identity.is_active = 0
+        identity.updated_at = Date.now()
+        this.saveH5Data()
+      }
+      return Promise.resolve()
+    }
+
+    const sql = 'UPDATE identities SET is_active = 0, updated_at = ? WHERE did = ?'
+    return this.executeSql(sql, [Date.now(), did])
+  }
+
+  /**
+   * 添加DID服务端点
+   * @param {Object} service - 服务端点对象
+   */
+  async addDIDService(service) {
+    if (this.isH5) {
+      this.h5Data.did_services.push(service)
+      this.saveH5Data()
+      return Promise.resolve()
+    }
+
+    const sql = `INSERT INTO did_services (
+      id, did, service_type, service_endpoint, created_at
+    ) VALUES (?, ?, ?, ?, ?)`
+
+    const params = [
+      service.id,
+      service.did,
+      service.service_type,
+      service.service_endpoint,
+      service.created_at
+    ]
+
+    return this.executeSql(sql, params)
+  }
+
+  /**
+   * 获取DID的服务端点
+   * @param {string} did - DID标识符
+   */
+  async getDIDServices(did) {
+    if (this.isH5) {
+      return this.h5Data.did_services.filter(item => item.did === did)
+    }
+
+    const sql = 'SELECT * FROM did_services WHERE did = ?'
+    return this.selectSql(sql, [did])
+  }
+
+  // ==================== AI 对话相关 ====================
+
+  /**
+   * 保存AI对话
+   * @param {Object} conversation 对话对象
+   * @returns {Promise<void>}
+   */
+  async saveAIConversation(conversation) {
+    if (this.isH5) {
+      this.ensureH5Data('ai_conversations')
+      // 检查是否已存在
+      const index = this.h5Data.ai_conversations.findIndex(c => c.id === conversation.id)
+      if (index >= 0) {
+        // 更新现有对话
+        this.h5Data.ai_conversations[index] = conversation
+      } else {
+        // 添加新对话
+        this.h5Data.ai_conversations.push(conversation)
+      }
+      this.saveH5Data()
+      return
+    }
+
+    const sql = `INSERT OR REPLACE INTO ai_conversations (
+      id, title, system_prompt, model, temperature, user_did, message_count,
+      created_at, updated_at, last_message_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+    await this.executeSql(sql, [
+      conversation.id,
+      conversation.title,
+      conversation.systemPrompt,
+      conversation.model,
+      conversation.temperature,
+      conversation.userDid,
+      conversation.messageCount || 0,
+      conversation.createdAt,
+      conversation.updatedAt,
+      conversation.lastMessageAt
+    ])
+  }
+
+  /**
+   * 获取AI对话
+   * @param {string} conversationId 对话ID
+   * @returns {Promise<Object|null>}
+   */
+  async getAIConversation(conversationId) {
+    if (this.isH5) {
+      this.ensureH5Data('ai_conversations')
+      return this.h5Data.ai_conversations.find(c => c.id === conversationId) || null
+    }
+
+    const sql = 'SELECT * FROM ai_conversations WHERE id = ? LIMIT 1'
+    const result = await this.selectSql(sql, [conversationId])
+    return result && result.length > 0 ? result[0] : null
+  }
+
+  /**
+   * 获取所有AI对话列表
+   * @returns {Promise<Array>}
+   */
+  async getAIConversations() {
+    if (this.isH5) {
+      this.ensureH5Data('ai_conversations')
+      return this.h5Data.ai_conversations
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    }
+
+    const sql = 'SELECT * FROM ai_conversations ORDER BY updated_at DESC'
+    return this.selectSql(sql, [])
+  }
+
+  /**
+   * 更新AI对话
+   * @param {string} conversationId 对话ID
+   * @param {Object} updates 更新字段
+   * @returns {Promise<void>}
+   */
+  async updateAIConversation(conversationId, updates) {
+    if (this.isH5) {
+      this.ensureH5Data('ai_conversations')
+      const conversation = this.h5Data.ai_conversations.find(c => c.id === conversationId)
+      if (conversation) {
+        Object.assign(conversation, updates)
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const fields = []
+    const values = []
+
+    const fieldMap = {
+      title: 'title',
+      systemPrompt: 'system_prompt',
+      model: 'model',
+      temperature: 'temperature',
+      messageCount: 'message_count',
+      updatedAt: 'updated_at',
+      lastMessageAt: 'last_message_at'
+    }
+
+    for (const [key, dbField] of Object.entries(fieldMap)) {
+      if (updates.hasOwnProperty(key)) {
+        fields.push(`${dbField} = ?`)
+        values.push(updates[key])
+      }
+    }
+
+    if (fields.length === 0) return
+
+    values.push(conversationId)
+    const sql = `UPDATE ai_conversations SET ${fields.join(', ')} WHERE id = ?`
+    await this.executeSql(sql, values)
+  }
+
+  /**
+   * 删除AI对话（及其所有消息）
+   * @param {string} conversationId 对话ID
+   * @returns {Promise<void>}
+   */
+  async deleteAIConversation(conversationId) {
+    if (this.isH5) {
+      this.ensureH5Data('ai_conversations')
+      this.ensureH5Data('ai_messages')
+
+      // 删除对话
+      const convIndex = this.h5Data.ai_conversations.findIndex(c => c.id === conversationId)
+      if (convIndex >= 0) {
+        this.h5Data.ai_conversations.splice(convIndex, 1)
+      }
+
+      // 删除相关消息
+      this.h5Data.ai_messages = this.h5Data.ai_messages.filter(m => m.conversationId !== conversationId)
+
+      this.saveH5Data()
+      return
+    }
+
+    // 删除消息
+    await this.executeSql('DELETE FROM ai_messages WHERE conversation_id = ?', [conversationId])
+
+    // 删除对话
+    await this.executeSql('DELETE FROM ai_conversations WHERE id = ?', [conversationId])
+  }
+
+  /**
+   * 保存AI消息
+   * @param {Object} message 消息对象
+   * @returns {Promise<void>}
+   */
+  async saveAIMessage(message) {
+    if (this.isH5) {
+      this.ensureH5Data('ai_messages')
+      this.h5Data.ai_messages.push(message)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = `INSERT INTO ai_messages (
+      id, conversation_id, role, content, model, tokens, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+
+    await this.executeSql(sql, [
+      message.id,
+      message.conversationId,
+      message.role,
+      message.content,
+      message.model || null,
+      message.tokens || null,
+      message.createdAt
+    ])
+  }
+
+  /**
+   * 获取对话的消息列表
+   * @param {string} conversationId 对话ID
+   * @param {Object} options 查询选项 {limit, offset}
+   * @returns {Promise<Array>}
+   */
+  async getAIMessages(conversationId, options = {}) {
+    const { limit = 50, offset = 0 } = options
+
+    if (this.isH5) {
+      this.ensureH5Data('ai_messages')
+      return this.h5Data.ai_messages
+        .filter(m => m.conversationId === conversationId)
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        .slice(offset, limit > 0 ? offset + limit : undefined)
+    }
+
+    const sql = `SELECT * FROM ai_messages
+      WHERE conversation_id = ?
+      ORDER BY created_at ASC
+      LIMIT ? OFFSET ?`
+
+    return this.selectSql(sql, [conversationId, limit, offset])
+  }
+
+  /**
+   * 清空对话的所有消息
+   * @param {string} conversationId 对话ID
+   * @returns {Promise<void>}
+   */
+  async clearAIMessages(conversationId) {
+    if (this.isH5) {
+      this.ensureH5Data('ai_messages')
+      this.h5Data.ai_messages = this.h5Data.ai_messages.filter(m => m.conversationId !== conversationId)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = 'DELETE FROM ai_messages WHERE conversation_id = ?'
+    await this.executeSql(sql, [conversationId])
+  }
 }
 
 // 导出单例
 export const db = new DatabaseService()
-export default DatabaseService
+export { DatabaseService }
+export default db
