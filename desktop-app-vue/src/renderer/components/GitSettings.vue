@@ -399,6 +399,10 @@ onMounted(() => {
   height: 100%;
 }
 
+.git-settings :deep(.ant-card) {
+  max-width: 800px;
+}
+
 .form-hint {
   font-size: 12px;
   color: #999;

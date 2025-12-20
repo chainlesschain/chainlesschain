@@ -2,328 +2,311 @@
   <view class="mine-page">
     <!-- 用户信息头部 -->
     <view class="user-header">
-      <view class="user-avatar">
-        <text class="avatar-text">{{ avatarText }}</text>
+      <view class="header-bg">
+        <view class="bg-pattern"></view>
       </view>
-      <view class="user-info">
-        <text class="username">{{ username }}</text>
-        <text class="user-id">ID: {{ userId }}</text>
-      </view>
-      <view class="edit-profile" @click="editProfile">
-        <text>编辑</text>
+      <view class="header-content">
+        <view class="user-avatar">
+          <text class="avatar-text">{{ avatarText }}</text>
+        </view>
+        <view class="user-info">
+          <text class="username">{{ username }}</text>
+          <text class="user-did">{{ userDidShort }}</text>
+        </view>
+        <view class="header-actions">
+          <view class="action-icon" @click="navigateTo('/pages/identity/list')">
+            <text>🆔</text>
+          </view>
+          <view class="action-icon" @click="navigateTo('/pages/settings/settings')">
+            <text>⚙️</text>
+          </view>
+        </view>
       </view>
     </view>
 
-    <!-- 数据统计 -->
-    <view class="stats-section">
-      <view class="stat-card" @click="goToKnowledge">
+    <!-- 数据统计卡片 -->
+    <view class="stats-card">
+      <view class="stat-item" @click="switchTab('/pages/knowledge/list/list')">
         <text class="stat-number">{{ stats.knowledge }}</text>
         <text class="stat-label">知识</text>
       </view>
-      <view class="stat-card" @click="goToKnowledge">
-        <text class="stat-number">{{ stats.favorites }}</text>
-        <text class="stat-label">收藏</text>
+      <view class="stat-divider"></view>
+      <view class="stat-item" @click="switchTab('/pages/ai/index')">
+        <text class="stat-number">{{ stats.conversations }}</text>
+        <text class="stat-label">对话</text>
       </view>
-      <view class="stat-card" @click="goToFolders">
-        <text class="stat-number">{{ stats.folders }}</text>
-        <text class="stat-label">文件夹</text>
-      </view>
-      <view class="stat-card" @click="goToFriends">
+      <view class="stat-divider"></view>
+      <view class="stat-item" @click="navigateTo('/pages/social/friends/list')">
         <text class="stat-number">{{ stats.friends }}</text>
         <text class="stat-label">好友</text>
       </view>
-    </view>
-
-    <!-- 功能菜单 -->
-    <view class="menu-section">
-      <text class="section-title">知识管理</text>
-      <view class="menu-group">
-        <view class="menu-item" @click="goToKnowledge">
-          <view class="menu-icon">📚</view>
-          <text class="menu-label">我的知识库</text>
-          <text class="menu-arrow">›</text>
-        </view>
-        <view class="menu-item" @click="goToFolders">
-          <view class="menu-icon">📁</view>
-          <text class="menu-label">文件夹管理</text>
-          <text class="menu-arrow">›</text>
-        </view>
-        <view class="menu-item" @click="goToStatistics">
-          <view class="menu-icon">📊</view>
-          <text class="menu-label">数据统计</text>
-          <text class="menu-arrow">›</text>
-        </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item" @click="navigateTo('/pages/trade/assets/assets')">
+        <text class="stat-number">{{ stats.assets }}</text>
+        <text class="stat-label">资产</text>
       </view>
     </view>
 
-    <view class="menu-section">
-      <text class="section-title">AI 功能</text>
-      <view class="menu-group">
-        <view class="menu-item" @click="goToChat">
-          <view class="menu-icon">🤖</view>
-          <text class="menu-label">AI 助手</text>
-          <text class="menu-arrow">›</text>
+    <!-- 功能网格 -->
+    <scroll-view class="functions-scroll" scroll-y>
+      <!-- 快速功能 -->
+      <view class="quick-functions">
+        <view class="function-card" @click="navigateTo('/pages/knowledge/import-export/import-export')">
+          <view class="card-icon gradient-blue">
+            <text>📥</text>
+          </view>
+          <text class="card-title">导入/导出</text>
+        </view>
+        <view class="function-card" @click="navigateTo('/pages/knowledge/statistics/statistics')">
+          <view class="card-icon gradient-purple">
+            <text>📊</text>
+          </view>
+          <text class="card-title">数据统计</text>
+        </view>
+        <view class="function-card" @click="navigateTo('/pages/backup/backup')">
+          <view class="card-icon gradient-green">
+            <text>☁️</text>
+          </view>
+          <text class="card-title">数据备份</text>
+        </view>
+        <view class="function-card" @click="navigateTo('/pages/ai/settings')">
+          <view class="card-icon gradient-orange">
+            <text>🔧</text>
+          </view>
+          <text class="card-title">AI配置</text>
         </view>
       </view>
-    </view>
 
-    <view class="menu-section">
-      <text class="section-title">社交互动</text>
-      <view class="menu-group">
-        <view class="menu-item" @click="goToFriends">
-          <view class="menu-icon">👥</view>
-          <text class="menu-label">好友</text>
-          <text class="menu-arrow">›</text>
+      <!-- 功能列表 -->
+      <view class="menu-section">
+        <view class="section-header">
+          <text class="section-title">知识管理</text>
         </view>
-        <view class="menu-item" @click="goToPosts">
-          <view class="menu-icon">📱</view>
-          <text class="menu-label">动态</text>
-          <text class="menu-arrow">›</text>
-        </view>
-        <view class="menu-item" @click="goToMessages">
-          <view class="menu-icon">💬</view>
-          <text class="menu-label">消息</text>
-          <text class="menu-arrow">›</text>
+        <view class="menu-list">
+          <view class="menu-item" @click="navigateTo('/pages/knowledge/folders/folders')">
+            <view class="item-icon">📁</view>
+            <text class="item-label">文件夹管理</text>
+            <text class="item-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="navigateTo('/pages/knowledge/statistics/statistics')">
+            <view class="item-icon">📊</view>
+            <text class="item-label">数据统计</text>
+            <text class="item-arrow">›</text>
+          </view>
         </view>
       </view>
-    </view>
 
-    <view class="menu-section">
-      <text class="section-title">交易市场</text>
-      <view class="menu-group">
-        <view class="menu-item" @click="goToMarket">
-          <view class="menu-icon">🛒</view>
-          <text class="menu-label">知识市场</text>
-          <text class="menu-arrow">›</text>
+      <view class="menu-section">
+        <view class="section-header">
+          <text class="section-title">社交互动</text>
         </view>
-        <view class="menu-item" @click="goToOrders">
-          <view class="menu-icon">📦</view>
-          <text class="menu-label">我的订单</text>
-          <text class="menu-arrow">›</text>
-        </view>
-        <view class="menu-item" @click="goToAssets">
-          <view class="menu-icon">💰</view>
-          <text class="menu-label">我的资产</text>
-          <text class="menu-arrow">›</text>
+        <view class="menu-list">
+          <view class="menu-item" @click="navigateTo('/pages/social/friends/list')">
+            <view class="item-icon">👥</view>
+            <text class="item-label">好友管理</text>
+            <text class="item-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="navigateTo('/pages/social/timeline/index')">
+            <view class="item-icon">📝</view>
+            <text class="item-label">我的动态</text>
+            <text class="item-arrow">›</text>
+          </view>
         </view>
       </view>
-    </view>
 
-    <view class="menu-section">
-      <text class="section-title">数据与安全</text>
-      <view class="menu-group">
-        <view class="menu-item" @click="goToBackup">
-          <view class="menu-icon">☁️</view>
-          <text class="menu-label">数据备份</text>
-          <text class="menu-arrow">›</text>
+      <view class="menu-section">
+        <view class="section-header">
+          <text class="section-title">交易系统</text>
         </view>
-        <view class="menu-item" @click="goToCloudSync">
-          <view class="menu-icon">🔄</view>
-          <text class="menu-label">云同步设置</text>
-          <text class="menu-arrow">›</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="menu-section">
-      <text class="section-title">设置</text>
-      <view class="menu-group">
-        <view class="menu-item" @click="goToSettings">
-          <view class="menu-icon">⚙️</view>
-          <text class="menu-label">应用设置</text>
-          <text class="menu-arrow">›</text>
-        </view>
-        <view class="menu-item" @click="showAbout">
-          <view class="menu-icon">ℹ️</view>
-          <text class="menu-label">关于我们</text>
-          <text class="menu-arrow">›</text>
+        <view class="menu-list">
+          <view class="menu-item" @click="navigateTo('/pages/trade/market/market')">
+            <view class="item-icon">🏪</view>
+            <text class="item-label">交易市场</text>
+            <text class="item-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="navigateTo('/pages/trade/orders/orders')">
+            <view class="item-icon">📋</view>
+            <text class="item-label">我的订单</text>
+            <text class="item-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="navigateTo('/pages/trade/assets/assets')">
+            <view class="item-icon">💎</view>
+            <text class="item-label">我的资产</text>
+            <text class="item-arrow">›</text>
+          </view>
         </view>
       </view>
-    </view>
 
-    <!-- 退出登录按钮 -->
-    <view class="logout-section">
-      <button class="logout-btn" @click="confirmLogout">
-        <text>退出登录</text>
-      </button>
-    </view>
+      <view class="menu-section">
+        <view class="section-header">
+          <text class="section-title">系统设置</text>
+        </view>
+        <view class="menu-list">
+          <view class="menu-item" @click="navigateTo('/pages/identity/list')">
+            <view class="item-icon">🆔</view>
+            <text class="item-label">身份管理</text>
+            <text class="item-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="navigateTo('/pages/backup/cloud-sync')">
+            <view class="item-icon">🔄</view>
+            <text class="item-label">云同步</text>
+            <text class="item-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="navigateTo('/pages/auth/change-pin')">
+            <view class="item-icon">🔐</view>
+            <text class="item-label">安全设置</text>
+            <text class="item-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="showAbout">
+            <view class="item-icon">ℹ️</view>
+            <text class="item-label">关于我们</text>
+            <text class="item-arrow">›</text>
+          </view>
+        </view>
+      </view>
 
-    <!-- 版本信息 -->
-    <view class="version-info">
-      <text>ChainlessChain v1.0.0</text>
-    </view>
+      <!-- 退出登录 -->
+      <view class="logout-section">
+        <view class="logout-btn" @click="confirmLogout">
+          <text class="logout-text">退出登录</text>
+        </view>
+      </view>
+
+      <!-- 版本信息 -->
+      <view class="version-info">
+        <text class="version-text">ChainlessChain v1.0.0</text>
+      </view>
+    </scroll-view>
   </view>
 </template>
 
 <script>
-import { db } from '@/services/database'
+import database from '@/services/database'
+import didService from '@/services/did'
+import friendService from '@/services/friends'
+import aiConversationService from '@/services/ai-conversation'
 
 export default {
   data() {
     return {
+      currentIdentity: null,
       username: 'ChainlessChain 用户',
-      userId: 'CLC_' + Date.now().toString(36),
+      userDid: '',
       stats: {
         knowledge: 0,
-        favorites: 0,
-        folders: 0,
-        friends: 0
+        conversations: 0,
+        friends: 0,
+        assets: 0
       }
     }
   },
+
   computed: {
     avatarText() {
-      return this.username.charAt(0).toUpperCase()
+      const name = this.currentIdentity?.nickname || this.username
+      return name.charAt(0).toUpperCase()
+    },
+
+    userDidShort() {
+      if (!this.userDid) return 'DID未设置'
+      return 'DID: ' + this.userDid.substring(0, 12) + '...'
     }
   },
-  onLoad() {
-    this.loadUserInfo()
-    this.loadStats()
-  },
-  onShow() {
-    this.loadStats()
-  },
-  methods: {
-    loadUserInfo() {
-      const savedUsername = uni.getStorageSync('username')
-      if (savedUsername) {
-        this.username = savedUsername
-      }
 
-      const savedUserId = uni.getStorageSync('userId')
-      if (savedUserId) {
-        this.userId = savedUserId
-      } else {
-        // 生成并保存用户ID
-        uni.setStorageSync('userId', this.userId)
+  async onLoad() {
+    await this.loadUserInfo()
+    await this.loadStats()
+  },
+
+  async onShow() {
+    await this.loadStats()
+  },
+
+  methods: {
+    /**
+     * 加载用户信息
+     */
+    async loadUserInfo() {
+      try {
+        // 尝试从 DID 服务获取当前身份
+        const identity = await didService.getCurrentIdentity()
+
+        if (identity) {
+          this.currentIdentity = identity
+          this.username = identity.nickname || 'ChainlessChain 用户'
+          this.userDid = identity.did || ''
+        } else {
+          // 未登录时使用默认值
+          this.username = 'ChainlessChain 用户'
+          this.userDid = ''
+        }
+      } catch (error) {
+        console.error('加载用户信息失败:', error)
+        // 加载失败时使用默认值
+        this.username = 'ChainlessChain 用户'
+        this.userDid = ''
       }
     },
 
+    /**
+     * 加载统计数据
+     */
     async loadStats() {
       try {
-        const knowledgeStats = await db.getKnowledgeStatistics()
-        this.stats.knowledge = knowledgeStats.total || 0
-        this.stats.favorites = knowledgeStats.favorites || 0
+        // 加载知识库统计
+        const knowledge = await database.getAllKnowledge()
+        this.stats.knowledge = knowledge.length
 
-        const folders = await db.getFolders()
-        this.stats.folders = folders.length
+        // 加载AI对话统计
+        const conversations = await aiConversationService.getConversations()
+        this.stats.conversations = conversations.length
 
-        // TODO: 加载好友数量
-        this.stats.friends = 0
+        // 加载好友统计
+        const friends = await friendService.getFriends()
+        this.stats.friends = friends.length
+
+        // TODO: 加载资产统计
+        this.stats.assets = 0
       } catch (error) {
         console.error('加载统计数据失败:', error)
       }
     },
 
-    editProfile() {
-      uni.showModal({
-        title: '编辑资料',
-        editable: true,
-        placeholderText: '请输入昵称',
-        success: (res) => {
-          if (res.confirm && res.content) {
-            this.username = res.content
-            uni.setStorageSync('username', res.content)
-            uni.showToast({
-              title: '保存成功',
-              icon: 'success'
-            })
-          }
-        }
-      })
+    /**
+     * 页面导航
+     */
+    navigateTo(url) {
+      uni.navigateTo({ url })
     },
 
-    goToKnowledge() {
-      uni.switchTab({
-        url: '/pages/knowledge/list/list'
-      })
+    /**
+     * 切换Tab
+     */
+    switchTab(url) {
+      uni.switchTab({ url })
     },
 
-    goToFolders() {
-      uni.navigateTo({
-        url: '/pages/knowledge/folders/folders'
-      })
-    },
-
-    goToStatistics() {
-      uni.navigateTo({
-        url: '/pages/knowledge/statistics/statistics'
-      })
-    },
-
-    goToChat() {
-      uni.navigateTo({
-        url: '/pages/chat/chat'
-      })
-    },
-
-    goToFriends() {
-      uni.navigateTo({
-        url: '/pages/social/friends/friends'
-      })
-    },
-
-    goToPosts() {
-      uni.navigateTo({
-        url: '/pages/social/posts/posts'
-      })
-    },
-
-    goToMessages() {
-      uni.navigateTo({
-        url: '/pages/social/messages/messages'
-      })
-    },
-
-    goToMarket() {
-      uni.navigateTo({
-        url: '/pages/trade/market/market'
-      })
-    },
-
-    goToOrders() {
-      uni.navigateTo({
-        url: '/pages/trade/orders/orders'
-      })
-    },
-
-    goToAssets() {
-      uni.navigateTo({
-        url: '/pages/trade/assets/assets'
-      })
-    },
-
-    goToBackup() {
-      uni.navigateTo({
-        url: '/pages/backup/backup'
-      })
-    },
-
-    goToCloudSync() {
-      uni.navigateTo({
-        url: '/pages/backup/cloud-sync'
-      })
-    },
-
-    goToSettings() {
-      uni.navigateTo({
-        url: '/pages/settings/settings'
-      })
-    },
-
+    /**
+     * 显示关于信息
+     */
     showAbout() {
       uni.showModal({
         title: '关于 ChainlessChain',
-        content: 'ChainlessChain 是一个去中心化的知识管理平台，致力于保护用户隐私，提供 AI 原生的知识管理体验。\n\n版本：v1.0.0',
+        content: 'ChainlessChain 是一个去中心化的知识管理平台，致力于保护用户隐私，提供 AI 原生的知识管理体验。\n\n版本：v1.0.0\n\n基于区块链和 DID 技术构建，确保您的数据完全由您掌控。',
         confirmText: '知道了',
         showCancel: false
       })
     },
 
+    /**
+     * 确认退出登录
+     */
     confirmLogout() {
       uni.showModal({
         title: '确认退出',
         content: '退出后需要重新登录，确定要退出吗？',
+        confirmText: '退出',
+        confirmColor: '#ff4d4f',
         success: (res) => {
           if (res.confirm) {
             this.logout()
@@ -332,205 +315,322 @@ export default {
       })
     },
 
-    logout() {
-      uni.removeStorageSync('isLoggedIn')
-      uni.removeStorageSync('username')
+    /**
+     * 退出登录
+     */
+    async logout() {
+      try {
+        // 清除本地存储
+        uni.removeStorageSync('isLoggedIn')
+        uni.removeStorageSync('username')
+        uni.removeStorageSync('current_identity_id')
 
-      uni.showToast({
-        title: '已退出登录',
-        icon: 'success'
-      })
+        // 清除 DID 服务状态
+        await didService.clearCurrentIdentity()
 
-      setTimeout(() => {
-        uni.reLaunch({
-          url: '/pages/login/login'
+        uni.showToast({
+          title: '已退出登录',
+          icon: 'success'
         })
-      }, 1000)
+
+        setTimeout(() => {
+          uni.reLaunch({
+            url: '/pages/login/login'
+          })
+        }, 1000)
+      } catch (error) {
+        console.error('退出登录失败:', error)
+        uni.showToast({
+          title: '退出失败',
+          icon: 'none'
+        })
+      }
     }
   }
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .mine-page {
   min-height: 100vh;
-  background-color: var(--bg-page);
-  padding-bottom: 120rpx;
+  background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 50px);
 }
 
-// 用户信息头部
+/* 用户头部 */
 .user-header {
+  position: relative;
+  padding: 50px 20px 60px;
+  overflow: hidden;
+}
+
+.header-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 60rpx 40rpx 40rpx;
+  z-index: 0;
+}
+
+.bg-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.5;
+}
+
+.header-content {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 24rpx;
-
-  .user-avatar {
-    width: 120rpx;
-    height: 120rpx;
-    border-radius: 60rpx;
-    background-color: rgba(255, 255, 255, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-
-    .avatar-text {
-      font-size: 48rpx;
-      font-weight: bold;
-      color: var(--text-inverse);
-    }
-  }
-
-  .user-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8rpx;
-
-    .username {
-      font-size: 36rpx;
-      font-weight: bold;
-      color: var(--text-inverse);
-    }
-
-    .user-id {
-      font-size: 24rpx;
-      color: rgba(255, 255, 255, 0.7);
-    }
-  }
-
-  .edit-profile {
-    padding: 12rpx 24rpx;
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 32rpx;
-    font-size: 24rpx;
-    color: var(--text-inverse);
-  }
+  gap: 16px;
 }
 
-// 数据统计
-.stats-section {
-  margin: -40rpx 40rpx 32rpx;
-  background-color: var(--bg-card);
-  border-radius: 16rpx;
-  padding: 24rpx;
-  box-shadow: var(--shadow-md);
+.user-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 36px;
+  background: rgba(255, 255, 255, 0.3);
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatar-text {
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+}
+
+.user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.username {
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+}
+
+.user-did {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+/* 数据统计卡片 */
+.stats-card {
+  margin: -30px 16px 16px;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #999;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: #f0f0f0;
+}
+
+/* 功能滚动区 */
+.functions-scroll {
+  flex: 1;
+  padding: 0 16px;
+}
+
+/* 快速功能网格 */
+.quick-functions {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16rpx;
-
-  .stat-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8rpx;
-    padding: 16rpx 0;
-
-    .stat-number {
-      font-size: 40rpx;
-      font-weight: bold;
-      color: var(--color-primary);
-    }
-
-    .stat-label {
-      font-size: 22rpx;
-      color: var(--text-secondary);
-    }
-  }
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-// 功能菜单
+.function-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.gradient-blue {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.gradient-purple {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-green {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.gradient-orange {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.card-title {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+
+/* 菜单区域 */
 .menu-section {
-  margin: 0 0 32rpx;
-
-  .section-title {
-    display: block;
-    font-size: 28rpx;
-    font-weight: 500;
-    color: var(--text-tertiary);
-    padding: 0 40rpx 16rpx;
-  }
-
-  .menu-group {
-    background-color: var(--bg-card);
-    overflow: hidden;
-
-    .menu-item {
-      display: flex;
-      align-items: center;
-      padding: 28rpx 40rpx;
-      border-bottom: 1rpx solid var(--border-normal);
-
-      &:last-child {
-        border-bottom: none;
-      }
-
-      &:active {
-        background-color: var(--bg-hover);
-      }
-
-      .menu-icon {
-        width: 64rpx;
-        height: 64rpx;
-        border-radius: 12rpx;
-        background-color: var(--bg-input);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 36rpx;
-        margin-right: 20rpx;
-        flex-shrink: 0;
-      }
-
-      .menu-label {
-        flex: 1;
-        font-size: 28rpx;
-        color: var(--text-primary);
-      }
-
-      .menu-arrow {
-        font-size: 40rpx;
-        color: var(--text-tertiary);
-        font-weight: 300;
-      }
-    }
-  }
+  margin-bottom: 16px;
 }
 
-// 退出登录
+.section-header {
+  padding: 12px 0 8px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #999;
+}
+
+.menu-list {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.2s;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-item:active {
+  background: #f8f9fa;
+}
+
+.item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.item-label {
+  flex: 1;
+  font-size: 15px;
+  color: #1a1a1a;
+}
+
+.item-arrow {
+  font-size: 20px;
+  color: #ccc;
+  font-weight: 300;
+}
+
+/* 退出登录 */
 .logout-section {
-  padding: 0 40rpx 32rpx;
-
-  .logout-btn {
-    width: 100%;
-    height: 88rpx;
-    background-color: var(--bg-card);
-    border: 2rpx solid var(--color-error);
-    border-radius: 44rpx;
-    color: var(--color-error);
-    font-size: 30rpx;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &::after {
-      border: none;
-    }
-
-    &:active {
-      background-color: rgba(245, 34, 45, 0.1);
-    }
-  }
+  padding: 16px 0;
 }
 
-// 版本信息
+.logout-btn {
+  background: white;
+  border: 1px solid #ff4d4f;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+
+.logout-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #ff4d4f;
+}
+
+.logout-btn:active {
+  background: #fff5f5;
+}
+
+/* 版本信息 */
 .version-info {
   text-align: center;
-  padding: 20rpx;
-  font-size: 22rpx;
-  color: var(--text-tertiary);
+  padding: 20px 0;
+}
+
+.version-text {
+  font-size: 12px;
+  color: #999;
 }
 </style>

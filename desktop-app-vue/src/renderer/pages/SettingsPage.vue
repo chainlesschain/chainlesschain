@@ -1,13 +1,49 @@
 <template>
   <div class="settings-page">
-    <a-page-header
-      title="系统设置"
-      sub-title="配置应用程序设置"
-      @back="handleBack"
-    />
-
     <div class="settings-content">
       <a-tabs v-model:activeKey="activeTab" type="card" class="settings-tabs">
+        <!-- 通用设置 -->
+        <a-tab-pane key="general" tab="通用">
+          <template #tab>
+            <span>
+              <setting-outlined />
+              通用
+            </span>
+          </template>
+          <a-card title="通用设置">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+              <a-form-item label="主题">
+                <a-radio-group v-model:value="theme">
+                  <a-radio value="light">浅色</a-radio>
+                  <a-radio value="dark">深色</a-radio>
+                  <a-radio value="auto">跟随系统</a-radio>
+                </a-radio-group>
+              </a-form-item>
+
+              <a-form-item label="语言">
+                <a-select v-model:value="language" style="width: 200px">
+                  <a-select-option value="zh-CN">简体中文</a-select-option>
+                  <a-select-option value="en-US">English</a-select-option>
+                </a-select>
+              </a-form-item>
+
+              <a-form-item label="启动时打开">
+                <a-switch v-model:checked="openOnStartup" />
+              </a-form-item>
+
+              <a-form-item label="最小化到托盘">
+                <a-switch v-model:checked="minimizeToTray" />
+              </a-form-item>
+
+              <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
+                <a-button type="primary" @click="handleSaveGeneral">
+                  保存设置
+                </a-button>
+              </a-form-item>
+            </a-form>
+          </a-card>
+        </a-tab-pane>
+
         <!-- LLM 服务设置 -->
         <a-tab-pane key="llm" tab="LLM 服务">
           <template #tab>
@@ -77,48 +113,6 @@
                 show-icon
               />
             </div>
-          </a-card>
-        </a-tab-pane>
-
-        <!-- 通用设置 -->
-        <a-tab-pane key="general" tab="通用">
-          <template #tab>
-            <span>
-              <setting-outlined />
-              通用
-            </span>
-          </template>
-          <a-card title="通用设置">
-            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-              <a-form-item label="主题">
-                <a-radio-group v-model:value="theme">
-                  <a-radio value="light">浅色</a-radio>
-                  <a-radio value="dark">深色</a-radio>
-                  <a-radio value="auto">跟随系统</a-radio>
-                </a-radio-group>
-              </a-form-item>
-
-              <a-form-item label="语言">
-                <a-select v-model:value="language" style="width: 200px">
-                  <a-select-option value="zh-CN">简体中文</a-select-option>
-                  <a-select-option value="en-US">English</a-select-option>
-                </a-select>
-              </a-form-item>
-
-              <a-form-item label="启动时打开">
-                <a-switch v-model:checked="openOnStartup" />
-              </a-form-item>
-
-              <a-form-item label="最小化到托盘">
-                <a-switch v-model:checked="minimizeToTray" />
-              </a-form-item>
-
-              <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
-                <a-button type="primary" @click="handleSaveGeneral">
-                  保存设置
-                </a-button>
-              </a-form-item>
-            </a-form>
           </a-card>
         </a-tab-pane>
 
@@ -196,7 +190,7 @@ const router = useRouter();
 const store = useAppStore();
 
 // 当前激活的标签页
-const activeTab = ref('llm');
+const activeTab = ref('general');
 
 // 通用设置
 const theme = ref('light');
@@ -240,21 +234,34 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  margin: -24px;
 }
 
 .settings-content {
   flex: 1;
-  overflow: auto;
-  padding: 0 24px 24px;
+  overflow: hidden;
+  background: #fff;
 }
 
 .settings-tabs {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-tabs :deep(.ant-tabs-nav) {
+  padding: 16px 24px 0;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .settings-tabs :deep(.ant-tabs-content) {
-  height: 100%;
+  flex: 1;
   overflow: auto;
+}
+
+.settings-tabs :deep(.ant-tabs-tabpane) {
+  padding: 24px;
 }
 
 .settings-tabs :deep(.ant-card) {

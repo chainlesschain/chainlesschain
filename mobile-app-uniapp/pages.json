@@ -163,6 +163,18 @@
       "style": {
         "navigationBarTitleText": "我的"
       }
+    },
+    {
+      "path": "pages/ai/index",
+      "style": {
+        "navigationBarTitleText": "AI助手"
+      }
+    },
+    {
+      "path": "pages/messages/index",
+      "style": {
+        "navigationBarTitleText": "消息"
+      }
     }
   ],
   "globalStyle": {
@@ -184,10 +196,16 @@
         "text": "首页"
       },
       {
-        "pagePath": "pages/knowledge/list/list",
-        "iconPath": "static/images/knowledge.png",
-        "selectedIconPath": "static/images/knowledge-active.png",
-        "text": "知识库"
+        "pagePath": "pages/ai/index",
+        "iconPath": "static/images/chat.png",
+        "selectedIconPath": "static/images/chat-active.png",
+        "text": "AI"
+      },
+      {
+        "pagePath": "pages/messages/index",
+        "iconPath": "static/images/social.png",
+        "selectedIconPath": "static/images/social-active.png",
+        "text": "消息"
       },
       {
         "pagePath": "pages/mine/mine",

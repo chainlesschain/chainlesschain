@@ -307,7 +307,7 @@ const menuConfig = {
   marketplace: { path: '/marketplace', title: '交易市场' },
   contracts: { path: '/contracts', title: '智能合约' },
   'credit-score': { path: '/credit-score', title: '信用评分' },
-  settings: { path: '/settings', title: '系统设置' },
+  settings: { path: '/settings', title: '通用设置', query: { tab: 'general' } },
   'llm-settings': { path: '/settings', title: 'LLM配置', query: { tab: 'llm' } },
   'git-settings': { path: '/settings', title: 'Git同步', query: { tab: 'git' } },
   'rag-settings': { path: '/settings', title: 'RAG配置', query: { tab: 'rag' } },
@@ -348,6 +348,7 @@ const handleMenuClick = ({ key }) => {
     key,
     title: config.title,
     path: config.path,
+    query: config.query,
     closable: config.closable !== false,
   });
 
@@ -362,7 +363,11 @@ const handleMenuClick = ({ key }) => {
 const handleTabChange = (activeKey) => {
   const tab = store.tabs.find((t) => t.key === activeKey);
   if (tab) {
-    router.push(tab.path);
+    if (tab.query) {
+      router.push({ path: tab.path, query: tab.query });
+    } else {
+      router.push(tab.path);
+    }
   }
 };
 

@@ -38,7 +38,7 @@ export const useAppStore = defineStore('app', {
       {
         key: 'home',
         title: '首页',
-        path: '/',
+        path: '/', query: null,
         closable: false, // 首页不可关闭
       },
     ],
@@ -187,7 +187,7 @@ export const useAppStore = defineStore('app', {
         {
           key: 'home',
           title: '首页',
-          path: '/',
+          path: '/', query: null,
           closable: false,
         },
       ];
@@ -208,7 +208,7 @@ export const useAppStore = defineStore('app', {
       this.tabs.push({
         key: tab.key,
         title: tab.title,
-        path: tab.path,
+        path: tab.path, query: tab.query || null,
         closable: tab.closable !== false, // 默认可关闭
       });
       this.activeTabKey = tab.key;
@@ -248,7 +248,7 @@ export const useAppStore = defineStore('app', {
         {
           key: 'home',
           title: '首页',
-          path: '/',
+          path: '/', query: null,
           closable: false,
         },
       ];
