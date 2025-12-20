@@ -1,18 +1,31 @@
 <template>
   <view class="stats-card">
     <view class="stat-item" @click="goToKnowledge">
-      <text class="stat-value">{{ stats.knowledge }}</text>
-      <text class="stat-label">知识</text>
+      <view class="stat-icon">📚</view>
+      <view class="stat-info">
+        <text class="stat-value">{{ stats.knowledge }}</text>
+        <text class="stat-label">知识条目</text>
+      </view>
     </view>
+
     <view class="stat-divider"></view>
+
     <view class="stat-item" @click="goToKnowledge">
-      <text class="stat-value">{{ stats.favorites }}</text>
-      <text class="stat-label">收藏</text>
+      <view class="stat-icon">⭐</view>
+      <view class="stat-info">
+        <text class="stat-value">{{ stats.favorites }}</text>
+        <text class="stat-label">收藏</text>
+      </view>
     </view>
+
     <view class="stat-divider"></view>
+
     <view class="stat-item" @click="goToFolders">
-      <text class="stat-value">{{ stats.folders }}</text>
-      <text class="stat-label">文件夹</text>
+      <view class="stat-icon">📁</view>
+      <view class="stat-info">
+        <text class="stat-value">{{ stats.folders }}</text>
+        <text class="stat-label">文件夹</text>
+      </view>
     </view>
   </view>
 </template>
@@ -46,38 +59,60 @@ export default {
 
 <style lang="scss" scoped>
 .stats-card {
-  margin: -40rpx 40rpx 32rpx;
   background-color: var(--bg-card);
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 32rpx 0;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4rpx 20rpx rgba(102, 126, 234, 0.08);
+  margin-bottom: 24rpx;
   display: flex;
   align-items: center;
   justify-content: space-around;
 
   .stat-item {
     flex: 1;
-    text-align: center;
     display: flex;
     flex-direction: column;
-    gap: 8rpx;
+    align-items: center;
+    gap: 12rpx;
+    padding: 12rpx 0;
+    transition: transform 0.2s ease;
 
-    .stat-value {
-      font-size: 48rpx;
-      font-weight: bold;
-      color: var(--color-primary);
+    &:active {
+      transform: scale(0.95);
     }
 
-    .stat-label {
-      font-size: 24rpx;
-      color: var(--text-secondary);
+    .stat-icon {
+      font-size: 40rpx;
+      margin-bottom: 4rpx;
+    }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4rpx;
+
+      .stat-value {
+        font-size: 44rpx;
+        font-weight: bold;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .stat-label {
+        font-size: 22rpx;
+        color: var(--text-tertiary);
+        font-weight: 500;
+      }
     }
   }
 
   .stat-divider {
     width: 2rpx;
-    height: 60rpx;
-    background-color: var(--border-color);
+    height: 80rpx;
+    background: linear-gradient(180deg, transparent 0%, var(--border-color) 50%, transparent 100%);
   }
 }
 </style>
