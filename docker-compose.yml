@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # Ollama - 本地LLM服务
+  ollama:
+    image: ollama/ollama:latest
+    container_name: chainlesschain-ollama
+    volumes:
+      - ./data/ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_MODELS=/root/.ollama/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
+  # Qdrant - 向量数据库
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: chainlesschain-qdrant
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
+  # PostgreSQL - 项目元数据数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: chainlesschain-postgres
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./backend/project-service/src/main/resources/db/migration:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=chainlesschain
+      - POSTGRES_USER=chainlesschain
+      - POSTGRES_PASSWORD=chainlesschain_pwd_2024
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
+  # Redis - 缓存和消息队列
+  redis:
+    image: redis:7-alpine
+    container_name: chainlesschain-redis
+    volumes:
+      - ./data/redis:/data
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass chainlesschain_redis_2024
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
+  # AI服务 - FastAPI Python服务
+  ai-service:
+    build:
+      context: ./backend/ai-service
+      dockerfile: Dockerfile
+    container_name: chainlesschain-ai-service
+    volumes:
+      - ./backend/ai-service:/app
+      - ./data/projects:/data/projects
+    ports:
+      - "8001:8000"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - QDRANT_HOST=http://qdrant:6333
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=chainlesschain_redis_2024
+    depends_on:
+      - ollama
+      - qdrant
+      - redis
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
+  # 项目服务 - Spring Boot服务
+  project-service:
+    build:
+      context: ./backend/project-service
+      dockerfile: Dockerfile
+    container_name: chainlesschain-project-service
+    volumes:
+      - ./data/projects:/data/projects
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/chainlesschain
+      - SPRING_DATASOURCE_USERNAME=chainlesschain
+      - SPRING_DATASOURCE_PASSWORD=chainlesschain_pwd_2024
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PASSWORD=chainlesschain_redis_2024
+      - AI_SERVICE_URL=http://ai-service:8000
+    depends_on:
+      - postgres
+      - redis
+      - ai-service
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
+networks:
+  chainlesschain-network:
+    driver: bridge
+
+volumes:
+  ollama-data:
+  qdrant-data:
+  postgres-data:
+  redis-data:
