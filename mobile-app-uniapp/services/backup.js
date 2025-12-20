@@ -1,7 +1,8 @@
-/**
+﻿/**
  * 数据备份与恢复服务
  */
-import { db } from './database'
+import { db as database } from './database'
+import authService from './auth'
 import CryptoJS from 'crypto-js'
 
 class BackupService {
@@ -13,12 +14,13 @@ class BackupService {
    * 导出所有数据
    * @param {Object} options - 导出选项
    * @param {boolean} options.encrypted - 是否加密
-   * @param {string} options.password - 加密密码（如果encrypted为true）
+   * @param {string} options.password - 加密密码（可选，不提供则使用PIN码）
+   * @param {boolean} options.usePIN - 使用PIN码加密（默认true）
    * @returns {Promise<Object>} 导出的数据对象
    */
   async exportData(options = {}) {
     try {
-      const { encrypted = false, password = '' } = options
+      const { encrypted = false, password = '', usePIN = true } = options
 
       // 收集所有数据
       const exportData = {
@@ -29,10 +31,10 @@ class BackupService {
       }
 
       // 导出知识库数据
-      exportData.data.knowledge = await db.getKnowledgeItems({ limit: 10000 })
+      exportData.data.knowledge = await database.getKnowledgeItems({ limit: 10000 })
 
       // 导出好友数据
-      exportData.data.friends = await db.getFriends('all')
+      exportData.data.friends = await database.getFriends('all')
 
       // 导出对话数据
       exportData.data.conversations = await this._getAllConversations()
@@ -41,36 +43,55 @@ class BackupService {
       exportData.data.messages = await this._getAllMessages()
 
       // 导出动态数据
-      exportData.data.posts = await db.getPosts('all', 10000)
+      exportData.data.posts = await database.getPosts('all', 10000)
 
       // 导出评论数据
       exportData.data.comments = await this._getAllComments()
 
       // 导出交易数据
-      exportData.data.transactions = await db.getTransactions(
+      exportData.data.transactions = await database.getTransactions(
         uni.getStorageSync('device_id') || 'did:chainless:user123',
         10000
       )
 
       // 导出订单数据
       const myDid = uni.getStorageSync('device_id') || 'did:chainless:user123'
-      const buyOrders = await db.getOrders(myDid, 'buy')
-      const sellOrders = await db.getOrders(myDid, 'sell')
+      const buyOrders = await database.getOrders(myDid, 'buy')
+      const sellOrders = await database.getOrders(myDid, 'sell')
       exportData.data.orders = [...buyOrders, ...sellOrders]
 
       // 导出市场列表数据
-      exportData.data.listings = await db.getMyListings(myDid)
+      exportData.data.listings = await database.getMyListings(myDid)
 
       // 导出用户设置
       exportData.data.settings = this._getUserSettings()
 
       // 如果需要加密
-      if (encrypted && password) {
+      if (encrypted) {
         const jsonStr = JSON.stringify(exportData)
-        const encrypted = CryptoJS.AES.encrypt(jsonStr, password).toString()
-        return {
-          encrypted: true,
-          data: encrypted
+
+        if (usePIN && !password) {
+          // 使用PIN码加密（通过authService）
+          try {
+            const encryptedData = authService.encrypt(jsonStr)
+            return {
+              encrypted: true,
+              encryptionMethod: 'PIN',
+              data: encryptedData
+            }
+          } catch (error) {
+            throw new Error('使用PIN码加密失败，请确保已登录: ' + error.message)
+          }
+        } else if (password) {
+          // 使用密码加密（传统方式）
+          const encryptedData = CryptoJS.AES.encrypt(jsonStr, password).toString()
+          return {
+            encrypted: true,
+            encryptionMethod: 'password',
+            data: encryptedData
+          }
+        } else {
+          throw new Error('启用加密但未提供密码或PIN')
         }
       }
 
@@ -86,28 +107,39 @@ class BackupService {
    * @param {Object|string} importData - 导入的数据
    * @param {Object} options - 导入选项
    * @param {boolean} options.encrypted - 数据是否加密
-   * @param {string} options.password - 解密密码
+   * @param {string} options.password - 解密密码（可选）
+   * @param {string} options.encryptionMethod - 加密方法（'PIN' 或 'password'）
    * @param {boolean} options.merge - 是否合并（false为覆盖）
    * @returns {Promise<Object>} 导入结果统计
    */
   async importData(importData, options = {}) {
     try {
-      const { encrypted = false, password = '', merge = false } = options
+      const { encrypted = false, password = '', encryptionMethod = 'password', merge = false } = options
 
       let data = importData
 
       // 如果数据加密，先解密
       if (encrypted) {
-        if (!password) {
-          throw new Error('需要提供解密密码')
-        }
+        const encryptedContent = importData.data || importData
 
         try {
-          const decrypted = CryptoJS.AES.decrypt(importData.data || importData, password)
-          const jsonStr = decrypted.toString(CryptoJS.enc.Utf8)
+          let jsonStr
+
+          if (encryptionMethod === 'PIN') {
+            // 使用PIN码解密（通过authService）
+            jsonStr = authService.decrypt(encryptedContent)
+          } else {
+            // 使用密码解密（传统方式）
+            if (!password) {
+              throw new Error('需要提供解密密码')
+            }
+
+            const decrypted = CryptoJS.AES.decrypt(encryptedContent, password)
+            jsonStr = decrypted.toString(CryptoJS.enc.Utf8)
+          }
 
           if (!jsonStr) {
-            throw new Error('解密失败，密码可能错误')
+            throw new Error('解密失败，密码或PIN可能错误')
           }
 
           data = JSON.parse(jsonStr)
@@ -141,7 +173,7 @@ class BackupService {
       // 导入知识库
       if (data.data.knowledge && data.data.knowledge.length > 0) {
         for (const item of data.data.knowledge) {
-          await db.addKnowledgeItem(item)
+          await database.addKnowledgeItem(item)
           stats.knowledge++
         }
       }
@@ -302,7 +334,7 @@ class BackupService {
   async _getAllConversations() {
     try {
       const sql = 'SELECT * FROM conversations ORDER BY updated_at DESC'
-      const result = await db.executeSql(sql, [])
+      const result = await database.executeSql(sql, [])
       return result.rows || []
     } catch (error) {
       console.error('获取对话失败:', error)
@@ -316,7 +348,7 @@ class BackupService {
   async _getAllMessages() {
     try {
       const sql = 'SELECT * FROM messages ORDER BY timestamp ASC LIMIT 10000'
-      const result = await db.executeSql(sql, [])
+      const result = await database.executeSql(sql, [])
       return result.rows || []
     } catch (error) {
       console.error('获取消息失败:', error)
@@ -330,7 +362,7 @@ class BackupService {
   async _getAllComments() {
     try {
       const sql = 'SELECT * FROM post_comments ORDER BY created_at ASC'
-      const result = await db.executeSql(sql, [])
+      const result = await database.executeSql(sql, [])
       return result.rows || []
     } catch (error) {
       console.error('获取评论失败:', error)
@@ -387,16 +419,16 @@ class BackupService {
   async _clearAllData() {
     try {
       // 清空数据库表
-      await db.executeSql('DELETE FROM knowledge_items', [])
-      await db.executeSql('DELETE FROM friendships', [])
-      await db.executeSql('DELETE FROM conversations', [])
-      await db.executeSql('DELETE FROM messages', [])
-      await db.executeSql('DELETE FROM posts', [])
-      await db.executeSql('DELETE FROM post_likes', [])
-      await db.executeSql('DELETE FROM post_comments', [])
-      await db.executeSql('DELETE FROM transactions', [])
-      await db.executeSql('DELETE FROM orders', [])
-      await db.executeSql('DELETE FROM market_listings', [])
+      await database.executeSql('DELETE FROM knowledge_items', [])
+      await database.executeSql('DELETE FROM friendships', [])
+      await database.executeSql('DELETE FROM conversations', [])
+      await database.executeSql('DELETE FROM messages', [])
+      await database.executeSql('DELETE FROM posts', [])
+      await database.executeSql('DELETE FROM post_likes', [])
+      await database.executeSql('DELETE FROM post_comments', [])
+      await database.executeSql('DELETE FROM transactions', [])
+      await database.executeSql('DELETE FROM orders', [])
+      await database.executeSql('DELETE FROM market_listings', [])
 
       console.log('数据已清空')
     } catch (error) {
@@ -414,7 +446,7 @@ class BackupService {
         (user_did, friend_did, nickname, group_name, status, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)`
 
-      await db.executeSql(sql, [
+      await database.executeSql(sql, [
         friend.user_did,
         friend.friend_did,
         friend.nickname,
@@ -437,7 +469,7 @@ class BackupService {
         (id, participant_did, last_message, last_message_time, unread_count, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)`
 
-      await db.executeSql(sql, [
+      await database.executeSql(sql, [
         conv.id,
         conv.participant_did,
         conv.last_message,
@@ -460,7 +492,7 @@ class BackupService {
         (id, conversation_id, sender_did, receiver_did, content, type, timestamp, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
-      await db.executeSql(sql, [
+      await database.executeSql(sql, [
         msg.id,
         msg.conversation_id,
         msg.sender_did,
@@ -484,7 +516,7 @@ class BackupService {
         (id, author_did, content, visibility, like_count, comment_count, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)`
 
-      await db.executeSql(sql, [
+      await database.executeSql(sql, [
         post.id,
         post.author_did,
         post.content,
@@ -507,7 +539,7 @@ class BackupService {
         (id, post_id, author_did, content, created_at)
         VALUES (?, ?, ?, ?, ?)`
 
-      await db.executeSql(sql, [
+      await database.executeSql(sql, [
         comment.id,
         comment.post_id,
         comment.author_did,
@@ -522,3 +554,4 @@ class BackupService {
 
 // 导出单例
 export const backup = new BackupService()
+

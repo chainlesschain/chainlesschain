@@ -235,7 +235,13 @@ export default {
     selectFileToImport() {
       // #ifdef H5
       // H5 环境：触发文件选择器
-      this.$refs.fileInput.click()
+      const fileInput = this.$refs.fileInput
+      const inputEl = fileInput && fileInput.$el ? fileInput.$el : fileInput
+      if (inputEl && typeof inputEl.click === 'function') {
+        inputEl.click()
+      } else {
+        console.warn('File input ref is not ready.')
+      }
       // #endif
 
       // #ifndef H5
