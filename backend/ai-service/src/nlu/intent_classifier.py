@@ -5,44 +5,27 @@ Intent Classifier - 意图识别引擎
 import os
 import json
 from typing import List, Dict, Any, Optional
-import ollama
-from openai import AsyncOpenAI
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from llm.llm_client import get_llm_client, BaseLLMClient
 
 
 class IntentClassifier:
     """意图识别分类器"""
 
     def __init__(self):
-        self.llm_provider = os.getenv("LLM_PROVIDER", "ollama")
-        self.model_name = os.getenv("LLM_MODEL", "qwen2:7b")
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
-        self.openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-
-        if self.llm_provider == "openai" and self.openai_api_key:
-            self.client = AsyncOpenAI(api_key=self.openai_api_key, base_url=self.openai_base_url)
-        else:
-            self.client = None  # 使用ollama时不需要async client
-
         self._ready = False
         self._initialize()
 
     def _initialize(self):
-        """初始化检查"""
+        """初始化LLM客户端"""
         try:
-            if self.llm_provider == "ollama":
-                # 检查Ollama是否可用
-                try:
-                    ollama.list()
-                    self._ready = True
-                except Exception as e:
-                    print(f"Ollama not ready: {e}")
-                    self._ready = False
-            else:
-                # OpenAI API 默认认为可用
-                self._ready = True
+            self.llm_client: BaseLLMClient = get_llm_client()
+            self._ready = True
         except Exception as e:
             print(f"Intent classifier initialization error: {e}")
             self._ready = False
+
 
     def is_ready(self) -> bool:
         """检查引擎是否就绪"""
@@ -75,12 +58,18 @@ class IntentClassifier:
         # 构建Few-shot Prompt
         prompt = self._build_prompt(text, context)
 
-        # 调用LLM
+        # 调用LLM（统一接口）
         try:
-            if self.llm_provider == "ollama":
-                response = await self._call_ollama(prompt)
-            else:
-                response = await self._call_openai(prompt)
+            messages = [
+                {"role": "system", "content": "你是一个专业的意图识别助手，总是返回有效的JSON格式。"},
+                {"role": "user", "content": prompt}
+            ]
+
+            response = await self.llm_client.chat(
+                messages=messages,
+                temperature=0.1,
+                max_tokens=256
+            )
 
             # 解析LLM返回的JSON
             result = self._parse_response(response)
@@ -155,41 +144,6 @@ class IntentClassifier:
 """
         return full_prompt
 
-    async def _call_ollama(self, prompt: str) -> str:
-        """调用Ollama API"""
-        try:
-            response = ollama.chat(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": "你是一个专业的意图识别助手，总是返回有效的JSON格式。"},
-                    {"role": "user", "content": prompt}
-                ],
-                options={
-                    "temperature": 0.1,  # 低温度保证输出稳定
-                    "num_predict": 256
-                }
-            )
-            return response['message']['content']
-        except Exception as e:
-            print(f"Ollama call error: {e}")
-            raise
-
-    async def _call_openai(self, prompt: str) -> str:
-        """调用OpenAI API"""
-        try:
-            response = await self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": "你是一个专业的意图识别助手，总是返回有效的JSON格式。"},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1,
-                max_tokens=256
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            print(f"OpenAI call error: {e}")
-            raise
 
     def _parse_response(self, response: str) -> Dict[str, Any]:
         """解析LLM返回的JSON"""

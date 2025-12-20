@@ -10,6 +10,11 @@ openai==1.10.0
 langchain==0.1.5
 langchain-community==0.0.16
 
+# 云LLM服务SDK
+dashscope==1.14.1  # 阿里云通义千问
+zhipuai==2.0.1     # 智谱AI (ChatGLM)
+anthropic==0.18.1  # Anthropic Claude (可选)
+
 # 向量数据库
 qdrant-client==1.7.3
 chromadb==0.4.22
