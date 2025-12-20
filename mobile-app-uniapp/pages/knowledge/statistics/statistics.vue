@@ -297,17 +297,17 @@ export default {
     gap: 12rpx;
 
     .card-icon {
-      font-size: 48rpx;
+      font-size: 24px;
     }
 
     .card-value {
-      font-size: 48rpx;
+      font-size: 24px;
       font-weight: bold;
       color: var(--text-primary);
     }
 
     .card-label {
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-tertiary);
     }
   }
@@ -328,13 +328,13 @@ export default {
     margin-bottom: 24rpx;
 
     .section-title {
-      font-size: 32rpx;
+      font-size: 16px;
       font-weight: bold;
       color: var(--text-primary);
     }
 
     .section-subtitle {
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-tertiary);
     }
   }
@@ -359,12 +359,12 @@ export default {
       flex-shrink: 0;
 
       .type-label {
-        font-size: 26rpx;
+        font-size: 13px;
         color: var(--text-secondary);
       }
 
       .type-count {
-        font-size: 26rpx;
+        font-size: 13px;
         font-weight: 500;
         color: var(--text-primary);
       }
@@ -387,7 +387,7 @@ export default {
     .type-percent {
       width: 60rpx;
       text-align: right;
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-tertiary);
       flex-shrink: 0;
     }
@@ -415,7 +415,7 @@ export default {
 
     .tag-name {
       width: 120rpx;
-      font-size: 26rpx;
+      font-size: 13px;
       color: var(--text-secondary);
       flex-shrink: 0;
       overflow: hidden;
@@ -425,7 +425,7 @@ export default {
 
     .tag-count {
       width: 50rpx;
-      font-size: 24rpx;
+      font-size: 12px;
       font-weight: 500;
       color: var(--text-primary);
       text-align: right;
@@ -480,13 +480,13 @@ export default {
       }
 
       .trend-count {
-        font-size: 22rpx;
+        font-size: 11px;
         color: var(--text-primary);
         font-weight: 500;
       }
 
       .trend-label {
-        font-size: 20rpx;
+        font-size: 10px;
         color: var(--text-tertiary);
       }
     }
@@ -513,7 +513,7 @@ export default {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 36rpx;
+      font-size: 18px;
       flex-shrink: 0;
 
       &.type-note {
@@ -541,7 +541,7 @@ export default {
       overflow: hidden;
 
       .activity-title {
-        font-size: 28rpx;
+        font-size: 14px;
         color: var(--text-primary);
         overflow: hidden;
         text-overflow: ellipsis;
@@ -549,13 +549,13 @@ export default {
       }
 
       .activity-time {
-        font-size: 24rpx;
+        font-size: 12px;
         color: var(--text-tertiary);
       }
     }
 
     .activity-arrow {
-      font-size: 40rpx;
+      font-size: 20px;
       color: var(--text-tertiary);
       flex-shrink: 0;
     }
@@ -569,12 +569,12 @@ export default {
 
   .empty-icon {
     display: block;
-    font-size: 120rpx;
+    font-size: 60px;
     margin-bottom: 20rpx;
   }
 
   .empty-text {
-    font-size: 28rpx;
+    font-size: 14px;
     color: var(--text-secondary);
   }
 }

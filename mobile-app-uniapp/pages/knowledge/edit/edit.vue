@@ -1083,7 +1083,7 @@ export default {
 
     .label {
       display: block;
-      font-size: 28rpx;
+      font-size: 14px;
       font-weight: 500;
       color: var(--text-primary);
       margin-bottom: 20rpx;
@@ -1096,7 +1096,7 @@ export default {
       margin-bottom: 20rpx;
 
       .add-tag-btn {
-        font-size: 26rpx;
+        font-size: 13px;
         color: var(--color-primary);
         padding: 8rpx 16rpx;
         background-color: #e6f7e6;
@@ -1104,7 +1104,7 @@ export default {
       }
 
       .ai-assistant-btn {
-        font-size: 24rpx;
+        font-size: 12px;
         color: #fff;
         padding: 10rpx 20rpx;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1119,7 +1119,7 @@ export default {
       padding: 0 24rpx;
       background-color: var(--bg-input);
       border-radius: 8rpx;
-      font-size: 28rpx;
+      font-size: 14px;
       color: var(--text-primary);
     }
 
@@ -1131,11 +1131,11 @@ export default {
       padding: 0 24rpx;
       background-color: var(--bg-input);
       border-radius: 8rpx;
-      font-size: 28rpx;
+      font-size: 14px;
       color: var(--text-primary);
 
       .arrow {
-        font-size: 20rpx;
+        font-size: 10px;
         color: var(--text-tertiary);
       }
     }
@@ -1146,7 +1146,7 @@ export default {
       padding: 24rpx;
       background-color: var(--bg-input);
       border-radius: 8rpx;
-      font-size: 28rpx;
+      font-size: 14px;
       color: var(--text-primary);
       line-height: 1.6;
     }
@@ -1177,12 +1177,12 @@ export default {
           border: 2rpx solid;
 
           .tag-chip-name {
-            font-size: 24rpx;
+            font-size: 12px;
             font-weight: 500;
           }
 
           .tag-chip-close {
-            font-size: 36rpx;
+            font-size: 18px;
             line-height: 1;
             opacity: 0.6;
           }
@@ -1194,7 +1194,7 @@ export default {
         text-align: center;
 
         .empty-hint {
-          font-size: 26rpx;
+          font-size: 13px;
           color: var(--text-tertiary);
         }
       }
@@ -1215,7 +1215,7 @@ export default {
 
           .encryption-hint {
             display: block;
-            font-size: 22rpx;
+            font-size: 11px;
             color: var(--text-tertiary);
             line-height: 32rpx;
           }
@@ -1236,7 +1236,7 @@ export default {
     flex: 1;
     height: 88rpx;
     border-radius: 44rpx;
-    font-size: 32rpx;
+    font-size: 16px;
     font-weight: 500;
     border: none;
     display: flex;
@@ -1286,7 +1286,7 @@ export default {
 
     .modal-title {
       display: block;
-      font-size: 36rpx;
+      font-size: 18px;
       font-weight: bold;
       color: var(--text-primary);
       margin-bottom: 32rpx;
@@ -1302,7 +1302,7 @@ export default {
         padding: 0 24rpx;
         background-color: var(--bg-input);
         border-radius: 36rpx;
-        font-size: 28rpx;
+        font-size: 14px;
         color: var(--text-primary);
       }
     }
@@ -1313,7 +1313,7 @@ export default {
 
       .section-label {
         display: block;
-        font-size: 24rpx;
+        font-size: 12px;
         color: var(--text-tertiary);
         margin-bottom: 16rpx;
       }
@@ -1331,7 +1331,7 @@ export default {
           background-color: var(--bg-input);
           border-radius: 32rpx;
           border: 2rpx solid transparent;
-          font-size: 24rpx;
+          font-size: 12px;
           color: var(--text-secondary);
           transition: all 0.2s;
 
@@ -1340,16 +1340,16 @@ export default {
           }
 
           .tag-option-name {
-            font-size: 24rpx;
+            font-size: 12px;
           }
 
           .tag-count {
-            font-size: 20rpx;
+            font-size: 10px;
             opacity: 0.6;
           }
 
           .tag-check {
-            font-size: 24rpx;
+            font-size: 12px;
             font-weight: bold;
           }
         }
@@ -1361,7 +1361,7 @@ export default {
 
         .hint-text {
           display: block;
-          font-size: 24rpx;
+          font-size: 12px;
           color: var(--text-tertiary);
           margin-bottom: 16rpx;
         }
@@ -1371,7 +1371,7 @@ export default {
           color: var(--text-inverse);
           border-radius: 32rpx;
           padding: 16rpx 32rpx;
-          font-size: 26rpx;
+          font-size: 13px;
           border: none;
 
           &::after {
@@ -1383,7 +1383,7 @@ export default {
       .empty-tags-hint {
         text-align: center;
         padding: 40rpx 20rpx;
-        font-size: 26rpx;
+        font-size: 13px;
         color: var(--text-tertiary);
       }
     }
@@ -1393,7 +1393,7 @@ export default {
 
       .section-label {
         display: block;
-        font-size: 24rpx;
+        font-size: 12px;
         color: var(--text-tertiary);
         margin-bottom: 16rpx;
       }
@@ -1418,7 +1418,7 @@ export default {
           }
 
           .color-check {
-            font-size: 32rpx;
+            font-size: 16px;
             color: var(--text-inverse);
             font-weight: bold;
           }
@@ -1435,7 +1435,7 @@ export default {
         flex: 1;
         height: 88rpx;
         border-radius: 44rpx;
-        font-size: 30rpx;
+        font-size: 15px;
         font-weight: 500;
         border: none;
 
@@ -1487,19 +1487,19 @@ export default {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 40rpx;
+        font-size: 20px;
         flex-shrink: 0;
       }
 
       .option-label {
-        font-size: 30rpx;
+        font-size: 15px;
         font-weight: 500;
         color: var(--text-primary);
         margin-bottom: 8rpx;
       }
 
       .option-desc {
-        font-size: 24rpx;
+        font-size: 12px;
         color: var(--text-tertiary);
       }
 

@@ -469,7 +469,7 @@ export default {
       color: var(--text-primary);
       border-radius: 36rpx;
       padding: 0 50rpx 0 32rpx;
-      font-size: 28rpx;
+      font-size: 14px;
     }
 
     .search-icon {
@@ -477,7 +477,7 @@ export default {
       right: 24rpx;
       top: 50%;
       transform: translateY(-50%);
-      font-size: 32rpx;
+      font-size: 16px;
     }
   }
 
@@ -492,7 +492,7 @@ export default {
     margin-left: 16rpx;
 
     .folder-icon {
-      font-size: 32rpx;
+      font-size: 16px;
     }
   }
 
@@ -507,7 +507,7 @@ export default {
     margin-left: 16rpx;
 
     .stats-icon {
-      font-size: 32rpx;
+      font-size: 16px;
     }
   }
 
@@ -522,7 +522,7 @@ export default {
     margin-left: 16rpx;
 
     .filter-icon {
-      font-size: 32rpx;
+      font-size: 16px;
     }
   }
 }
@@ -544,7 +544,7 @@ export default {
       padding: 12rpx 24rpx;
       background-color: var(--bg-input);
       border-radius: 32rpx;
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-secondary);
       border: 2rpx solid transparent;
       transition: all 0.2s;
@@ -562,15 +562,15 @@ export default {
       }
 
       .tag-icon {
-        font-size: 28rpx;
+        font-size: 14px;
       }
 
       .tag-name {
-        font-size: 24rpx;
+        font-size: 12px;
       }
 
       .tag-count {
-        font-size: 20rpx;
+        font-size: 10px;
         opacity: 0.7;
       }
     }
@@ -589,13 +589,13 @@ export default {
 
 .empty-icon {
   display: block;
-  font-size: 120rpx;
+  font-size: 60px;
   margin-bottom: 20rpx;
 }
 
 .empty-text {
   display: block;
-  font-size: 28rpx;
+  font-size: 14px;
   color: var(--text-secondary);
   margin-bottom: 40rpx;
 }
@@ -605,7 +605,7 @@ export default {
   color: var(--text-inverse);
   border-radius: 48rpx;
   padding: 20rpx 60rpx;
-  font-size: 28rpx;
+  font-size: 14px;
   border: none;
 
   &::after {
@@ -628,14 +628,14 @@ export default {
 
     .item-title {
       flex: 1;
-      font-size: 32rpx;
+      font-size: 16px;
       font-weight: 500;
       color: var(--text-primary);
     }
 
     .favorite-icon,
     .favorite-icon-empty {
-      font-size: 36rpx;
+      font-size: 18px;
       margin-left: 16rpx;
       padding: 8rpx;
     }
@@ -652,7 +652,7 @@ export default {
 
   .item-content {
     display: block;
-    font-size: 26rpx;
+    font-size: 13px;
     color: var(--text-secondary);
     line-height: 1.6;
     margin-bottom: 16rpx;
@@ -684,14 +684,14 @@ export default {
         border: 1rpx solid;
 
         .item-tag-name {
-          font-size: 22rpx;
+          font-size: 11px;
           font-weight: 500;
         }
       }
     }
 
     .item-time {
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-tertiary);
     }
   }
@@ -711,7 +711,7 @@ export default {
   box-shadow: 0 8rpx 24rpx rgba(60, 197, 31, 0.4);
 
   .fab-icon {
-    font-size: 60rpx;
+    font-size: 30px;
     color: var(--text-inverse);
     line-height: 1;
   }
@@ -740,7 +740,7 @@ export default {
 
     .modal-title {
       display: block;
-      font-size: 36rpx;
+      font-size: 18px;
       font-weight: bold;
       color: var(--text-primary);
       margin-bottom: 32rpx;
@@ -752,7 +752,7 @@ export default {
 
       .filter-label {
         display: block;
-        font-size: 28rpx;
+        font-size: 14px;
         color: var(--text-secondary);
         margin-bottom: 16rpx;
       }
@@ -766,7 +766,7 @@ export default {
           padding: 16rpx 32rpx;
           background-color: var(--bg-input);
           border-radius: 32rpx;
-          font-size: 26rpx;
+          font-size: 13px;
           color: var(--text-secondary);
           border: 2rpx solid transparent;
           transition: all 0.2s;
@@ -789,7 +789,7 @@ export default {
         flex: 1;
         height: 88rpx;
         border-radius: 44rpx;
-        font-size: 30rpx;
+        font-size: 15px;
         font-weight: 500;
         border: none;
 

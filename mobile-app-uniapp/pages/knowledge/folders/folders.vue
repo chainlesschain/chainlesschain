@@ -309,7 +309,7 @@ export default {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 48rpx;
+      font-size: 24px;
       flex-shrink: 0;
     }
 
@@ -321,7 +321,7 @@ export default {
       overflow: hidden;
 
       .folder-name {
-        font-size: 30rpx;
+        font-size: 15px;
         font-weight: 500;
         color: var(--text-primary);
         overflow: hidden;
@@ -330,7 +330,7 @@ export default {
       }
 
       .folder-count {
-        font-size: 24rpx;
+        font-size: 12px;
         color: var(--text-tertiary);
       }
     }
@@ -341,7 +341,7 @@ export default {
       flex-shrink: 0;
 
       .action-btn {
-        font-size: 36rpx;
+        font-size: 18px;
         width: 64rpx;
         height: 64rpx;
         display: flex;
@@ -365,12 +365,12 @@ export default {
 
   .empty-icon {
     display: block;
-    font-size: 120rpx;
+    font-size: 60px;
     margin-bottom: 20rpx;
   }
 
   .empty-text {
-    font-size: 28rpx;
+    font-size: 14px;
     color: var(--text-secondary);
   }
 }
@@ -391,7 +391,7 @@ export default {
   z-index: 100;
 
   .fab-icon {
-    font-size: 72rpx;
+    font-size: 36px;
     color: #ffffff;
     font-weight: 300;
   }
@@ -424,7 +424,7 @@ export default {
 
     .modal-title {
       display: block;
-      font-size: 36rpx;
+      font-size: 18px;
       font-weight: bold;
       color: var(--text-primary);
       margin-bottom: 32rpx;
@@ -437,7 +437,7 @@ export default {
 
         .label {
           display: block;
-          font-size: 28rpx;
+          font-size: 14px;
           font-weight: 500;
           color: var(--text-primary);
           margin-bottom: 16rpx;
@@ -449,7 +449,7 @@ export default {
           padding: 0 24rpx;
           background-color: var(--bg-input);
           border-radius: 8rpx;
-          font-size: 28rpx;
+          font-size: 14px;
           color: var(--text-primary);
         }
 
@@ -467,7 +467,7 @@ export default {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 40rpx;
+          font-size: 20px;
           border: 3rpx solid transparent;
           transition: all 0.2s;
 
@@ -500,7 +500,7 @@ export default {
           }
 
           .check {
-            font-size: 32rpx;
+            font-size: 16px;
             color: #ffffff;
             font-weight: bold;
           }
@@ -517,7 +517,7 @@ export default {
         flex: 1;
         height: 88rpx;
         border-radius: 44rpx;
-        font-size: 30rpx;
+        font-size: 15px;
         font-weight: 500;
         border: none;
         display: flex;

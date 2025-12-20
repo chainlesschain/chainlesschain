@@ -510,7 +510,7 @@ export default {
 
   .page-title {
     display: block;
-    font-size: 44rpx;
+    font-size: 22px;
     font-weight: bold;
     color: var(--text-primary);
     margin-bottom: 12rpx;
@@ -518,7 +518,7 @@ export default {
 
   .page-desc {
     display: block;
-    font-size: 26rpx;
+    font-size: 13px;
     color: var(--text-tertiary);
   }
 }
@@ -545,17 +545,17 @@ export default {
     }
 
     .action-icon {
-      font-size: 72rpx;
+      font-size: 36px;
     }
 
     .action-title {
-      font-size: 30rpx;
+      font-size: 15px;
       font-weight: 500;
       color: var(--text-primary);
     }
 
     .action-desc {
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-tertiary);
     }
   }
@@ -574,14 +574,14 @@ export default {
     margin-bottom: 24rpx;
 
     .section-title {
-      font-size: 32rpx;
+      font-size: 16px;
       font-weight: bold;
       color: var(--text-primary);
     }
 
     .section-count {
       margin-left: 8rpx;
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-tertiary);
     }
   }
@@ -593,13 +593,13 @@ export default {
 
   .empty-icon {
     display: block;
-    font-size: 100rpx;
+    font-size: 50px;
     margin-bottom: 20rpx;
   }
 
   .empty-text {
     display: block;
-    font-size: 28rpx;
+    font-size: 14px;
     color: var(--text-secondary);
   }
 }
@@ -625,13 +625,13 @@ export default {
       gap: 8rpx;
 
       .item-title {
-        font-size: 28rpx;
+        font-size: 14px;
         color: var(--text-primary);
         font-weight: 500;
       }
 
       .item-time {
-        font-size: 24rpx;
+        font-size: 12px;
         color: var(--text-tertiary);
       }
     }
@@ -641,12 +641,12 @@ export default {
       gap: 16rpx;
 
       .stat-success {
-        font-size: 26rpx;
+        font-size: 13px;
         color: var(--color-success);
       }
 
       .stat-failed {
-        font-size: 26rpx;
+        font-size: 13px;
         color: var(--color-error);
       }
     }
@@ -677,7 +677,7 @@ export default {
 
     .modal-title {
       display: block;
-      font-size: 36rpx;
+      font-size: 18px;
       font-weight: bold;
       color: var(--text-primary);
       margin-bottom: 32rpx;
@@ -690,7 +690,7 @@ export default {
       background-color: var(--bg-input);
       color: var(--text-primary);
       border-radius: 44rpx;
-      font-size: 30rpx;
+      font-size: 15px;
       border: none;
       margin-top: 24rpx;
 
@@ -704,7 +704,7 @@ export default {
 .import-options {
   .option-desc {
     display: block;
-    font-size: 28rpx;
+    font-size: 14px;
     color: var(--text-secondary);
     margin-bottom: 20rpx;
   }
@@ -722,11 +722,11 @@ export default {
       margin-bottom: 12rpx;
 
       .format-icon {
-        font-size: 36rpx;
+        font-size: 18px;
       }
 
       .format-name {
-        font-size: 28rpx;
+        font-size: 14px;
         color: var(--text-primary);
       }
     }
@@ -738,7 +738,7 @@ export default {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #ffffff;
     border-radius: 44rpx;
-    font-size: 30rpx;
+    font-size: 15px;
     border: none;
     font-weight: 500;
 
@@ -754,7 +754,7 @@ export default {
 
     .group-label {
       display: block;
-      font-size: 28rpx;
+      font-size: 14px;
       color: var(--text-secondary);
       margin-bottom: 16rpx;
       font-weight: 500;
@@ -777,12 +777,12 @@ export default {
         }
 
         .radio-icon {
-          font-size: 32rpx;
+          font-size: 16px;
         }
 
         .radio-label {
           flex: 1;
-          font-size: 28rpx;
+          font-size: 14px;
           color: var(--text-primary);
         }
       }
@@ -797,7 +797,7 @@ export default {
 
     .info-text {
       display: block;
-      font-size: 26rpx;
+      font-size: 13px;
       color: var(--color-info);
       text-align: center;
     }
@@ -809,7 +809,7 @@ export default {
     background-color: var(--color-primary);
     color: var(--text-inverse);
     border-radius: 44rpx;
-    font-size: 30rpx;
+    font-size: 15px;
     border: none;
     font-weight: 500;
 
