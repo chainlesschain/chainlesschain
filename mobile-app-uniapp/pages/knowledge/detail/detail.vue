@@ -26,11 +26,47 @@
       </view>
 
       <view class="actions">
+        <button class="action-btn share-btn" @click="showShareModal = true">
+          <text>📤 分享</text>
+        </button>
         <button class="action-btn edit-btn" @click="goToEdit">
           <text>✏️ 编辑</text>
         </button>
         <button class="action-btn delete-btn" @click="handleDelete">
           <text>🗑️ 删除</text>
+        </button>
+      </view>
+    </view>
+
+    <!-- 分享弹窗 -->
+    <view class="modal" v-if="showShareModal" @click="showShareModal = false">
+      <view class="modal-content share-modal" @click.stop>
+        <text class="modal-title">分享知识</text>
+
+        <view class="share-options">
+          <view class="share-option" @click="copyAsText">
+            <view class="option-icon">📋</view>
+            <text class="option-label">复制文本</text>
+          </view>
+
+          <view class="share-option" @click="copyAsMarkdown">
+            <view class="option-icon">📝</view>
+            <text class="option-label">复制Markdown</text>
+          </view>
+
+          <view class="share-option" @click="exportAsFile">
+            <view class="option-icon">💾</view>
+            <text class="option-label">导出文件</text>
+          </view>
+
+          <view class="share-option" @click="shareToSocial">
+            <view class="option-icon">🔗</view>
+            <text class="option-label">分享到...</text>
+          </view>
+        </view>
+
+        <button class="modal-close" @click="showShareModal = false">
+          <text>取消</text>
         </button>
       </view>
     </view>
@@ -46,7 +82,8 @@ export default {
       id: '',
       item: null,
       loading: false,
-      error: null
+      error: null,
+      showShareModal: false
     }
   },
   onLoad(options) {
@@ -128,6 +165,259 @@ export default {
     },
     goBack() {
       uni.navigateBack()
+    },
+
+    /**
+     * 复制为纯文本
+     */
+    copyAsText() {
+      if (!this.item) return
+
+      const text = `${this.item.title}\n\n${this.item.content}`
+
+      uni.setClipboardData({
+        data: text,
+        success: () => {
+          uni.showToast({
+            title: '已复制到剪贴板',
+            icon: 'success'
+          })
+          this.showShareModal = false
+        },
+        fail: (err) => {
+          console.error('复制失败:', err)
+          uni.showToast({
+            title: '复制失败',
+            icon: 'none'
+          })
+        }
+      })
+    },
+
+    /**
+     * 复制为Markdown格式
+     */
+    async copyAsMarkdown() {
+      if (!this.item) return
+
+      try {
+        // 获取标签
+        const tags = await db.getKnowledgeTags(this.id)
+        const tagText = tags && tags.length > 0
+          ? tags.map(tag => `#${tag.name}`).join(' ')
+          : ''
+
+        // 生成Markdown格式
+        let markdown = `# ${this.item.title}\n\n`
+
+        // 添加元数据
+        markdown += `**类型**: ${this.getTypeLabel(this.item.type)}\n`
+        markdown += `**更新时间**: ${this.formatTime(this.item.updated_at)}\n`
+
+        if (tagText) {
+          markdown += `**标签**: ${tagText}\n`
+        }
+
+        markdown += `\n---\n\n`
+        markdown += `${this.item.content}\n`
+
+        // 添加底部标识
+        markdown += `\n---\n`
+        markdown += `*导出自 ChainlessChain 知识库*\n`
+
+        uni.setClipboardData({
+          data: markdown,
+          success: () => {
+            uni.showToast({
+              title: 'Markdown已复制',
+              icon: 'success'
+            })
+            this.showShareModal = false
+          },
+          fail: (err) => {
+            console.error('复制失败:', err)
+            uni.showToast({
+              title: '复制失败',
+              icon: 'none'
+            })
+          }
+        })
+      } catch (error) {
+        console.error('生成Markdown失败:', error)
+        uni.showToast({
+          title: '生成失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * 导出为文件
+     */
+    async exportAsFile() {
+      if (!this.item) return
+
+      try {
+        // 获取标签
+        const tags = await db.getKnowledgeTags(this.id)
+        const tagText = tags && tags.length > 0
+          ? tags.map(tag => `#${tag.name}`).join(' ')
+          : ''
+
+        // 生成Markdown内容
+        let content = `# ${this.item.title}\n\n`
+        content += `**类型**: ${this.getTypeLabel(this.item.type)}\n`
+        content += `**更新时间**: ${this.formatTime(this.item.updated_at)}\n`
+        if (tagText) {
+          content += `**标签**: ${tagText}\n`
+        }
+        content += `\n---\n\n`
+        content += `${this.item.content}\n`
+        content += `\n---\n`
+        content += `*导出自 ChainlessChain 知识库*\n`
+
+        // 生成文件名（移除特殊字符）
+        const safeTitle = this.item.title.replace(/[^\w\u4e00-\u9fa5]/g, '_').substring(0, 50)
+        const fileName = `${safeTitle}.md`
+
+        // #ifdef H5
+        // H5环境：创建下载链接
+        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = fileName
+        a.click()
+        URL.revokeObjectURL(url)
+
+        uni.showToast({
+          title: '文件已下载',
+          icon: 'success'
+        })
+        this.showShareModal = false
+        // #endif
+
+        // #ifndef H5
+        // App环境：保存到本地文件系统
+        // 注意：需要在 manifest.json 中配置文件权限
+        const fs = uni.getFileSystemManager()
+        const filePath = `${wx.env.USER_DATA_PATH}/${fileName}`
+
+        fs.writeFile({
+          filePath: filePath,
+          data: content,
+          encoding: 'utf8',
+          success: () => {
+            uni.showModal({
+              title: '导出成功',
+              content: `文件已保存到：${filePath}`,
+              showCancel: false,
+              success: () => {
+                this.showShareModal = false
+              }
+            })
+          },
+          fail: (err) => {
+            console.error('保存文件失败:', err)
+            // 降级：复制到剪贴板
+            uni.setClipboardData({
+              data: content,
+              success: () => {
+                uni.showToast({
+                  title: '内容已复制到剪贴板',
+                  icon: 'success'
+                })
+                this.showShareModal = false
+              }
+            })
+          }
+        })
+        // #endif
+      } catch (error) {
+        console.error('导出文件失败:', error)
+        uni.showToast({
+          title: '导出失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * 分享到社交平台
+     */
+    shareToSocial() {
+      if (!this.item) return
+
+      const shareContent = {
+        title: this.item.title,
+        summary: this.item.content.substring(0, 100) + (this.item.content.length > 100 ? '...' : ''),
+        href: '' // 可以是应用的分享链接
+      }
+
+      // #ifdef APP-PLUS
+      // App环境：使用原生分享
+      uni.share({
+        provider: 'weixin',
+        scene: 'WXSceneSession',
+        type: 1,
+        title: shareContent.title,
+        summary: shareContent.summary,
+        success: () => {
+          uni.showToast({
+            title: '分享成功',
+            icon: 'success'
+          })
+          this.showShareModal = false
+        },
+        fail: (err) => {
+          console.error('分享失败:', err)
+          // 降级：复制到剪贴板
+          this.copyAsText()
+        }
+      })
+      // #endif
+
+      // #ifdef H5
+      // H5环境：使用Web Share API（如果支持）
+      if (navigator.share) {
+        navigator.share({
+          title: shareContent.title,
+          text: shareContent.summary
+        })
+          .then(() => {
+            uni.showToast({
+              title: '分享成功',
+              icon: 'success'
+            })
+            this.showShareModal = false
+          })
+          .catch((err) => {
+            console.error('分享失败:', err)
+            // 降级：复制到剪贴板
+            this.copyAsText()
+          })
+      } else {
+        // 不支持Web Share API，降级为复制
+        uni.showModal({
+          title: '提示',
+          content: '当前环境不支持直接分享，是否复制内容到剪贴板？',
+          success: (res) => {
+            if (res.confirm) {
+              this.copyAsText()
+            }
+          }
+        })
+      }
+      // #endif
+
+      // #ifdef MP-WEIXIN
+      // 微信小程序环境：引导用户使用转发功能
+      uni.showModal({
+        title: '提示',
+        content: '请点击右上角的"..."按钮，选择"转发"分享给好友',
+        showCancel: false
+      })
+      // #endif
     }
   }
 }
@@ -250,16 +540,120 @@ export default {
       align-items: center;
       justify-content: center;
 
+      &.share-btn {
+        background-color: var(--color-success);
+        color: var(--text-inverse);
+      }
+
       &.edit-btn {
         background-color: var(--color-info);
-        color: var(--bg-card);
+        color: var(--text-inverse);
       }
 
       &.delete-btn {
         background-color: var(--color-error);
-        color: var(--bg-card);
+        color: var(--text-inverse);
       }
     }
+  }
+}
+
+// 分享弹窗
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+
+  .modal-content {
+    width: 100%;
+    background-color: var(--bg-card);
+    border-radius: 32rpx 32rpx 0 0;
+    padding: 40rpx;
+    animation: slideUp 0.3s ease-out;
+
+    .modal-title {
+      display: block;
+      font-size: 36rpx;
+      font-weight: bold;
+      color: var(--text-primary);
+      margin-bottom: 32rpx;
+      text-align: center;
+    }
+
+    .share-options {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32rpx;
+      margin-bottom: 32rpx;
+
+      .share-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16rpx;
+        cursor: pointer;
+        transition: transform 0.2s;
+
+        &:active {
+          transform: scale(0.95);
+        }
+
+        .option-icon {
+          width: 120rpx;
+          height: 120rpx;
+          background-color: var(--bg-input);
+          border-radius: 24rpx;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 56rpx;
+          transition: background-color 0.2s;
+
+          &:active {
+            background-color: var(--bg-hover);
+          }
+        }
+
+        .option-label {
+          font-size: 24rpx;
+          color: var(--text-secondary);
+          text-align: center;
+        }
+      }
+    }
+
+    .modal-close {
+      width: 100%;
+      height: 88rpx;
+      background-color: var(--bg-input);
+      color: var(--text-primary);
+      border-radius: 44rpx;
+      font-size: 30rpx;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &::after {
+        border: none;
+      }
+    }
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
   }
 }
 </style>
