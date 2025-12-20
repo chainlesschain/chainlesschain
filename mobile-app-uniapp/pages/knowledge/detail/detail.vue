@@ -25,6 +25,72 @@
         <text class="text-content">{{ item.content }}</text>
       </view>
 
+      <!-- 关联知识 -->
+      <view class="related-section" v-if="relatedItems.length > 0">
+        <view class="section-header">
+          <text class="section-title">🔗 关联知识</text>
+          <text class="section-count">{{ relatedItems.length }}</text>
+        </view>
+        <view class="related-list">
+          <view
+            class="related-item"
+            v-for="related in relatedItems"
+            :key="related.id"
+            @click="goToRelated(related.id)"
+          >
+            <text class="related-icon">{{ getTypeIcon(related.type) }}</text>
+            <view class="related-content">
+              <text class="related-title">{{ related.title }}</text>
+              <text class="related-type">{{ getTypeLabel(related.type) }}</text>
+            </view>
+            <text class="related-arrow">›</text>
+          </view>
+        </view>
+        <button class="add-link-btn" @click="showLinkModal = true">
+          <text>+ 添加关联</text>
+        </button>
+      </view>
+
+      <!-- 添加关联弹窗 -->
+      <view class="modal" v-if="showLinkModal" @click="showLinkModal = false">
+        <view class="modal-content link-modal" @click.stop>
+          <text class="modal-title">添加关联知识</text>
+
+          <view class="search-box">
+            <input
+              class="search-input"
+              type="text"
+              v-model="linkSearchQuery"
+              placeholder="搜索知识..."
+              @input="handleLinkSearch"
+            />
+          </view>
+
+          <view class="knowledge-list">
+            <view
+              class="knowledge-option"
+              v-for="knowledge in filteredKnowledge"
+              :key="knowledge.id"
+              @click="addLink(knowledge.id)"
+            >
+              <text class="knowledge-icon">{{ getTypeIcon(knowledge.type) }}</text>
+              <view class="knowledge-info">
+                <text class="knowledge-title">{{ knowledge.title }}</text>
+                <text class="knowledge-type">{{ getTypeLabel(knowledge.type) }}</text>
+              </view>
+            </view>
+
+            <view class="empty" v-if="filteredKnowledge.length === 0">
+              <text>未找到匹配的知识</text>
+            </view>
+          </view>
+
+          <button class="modal-close" @click="showLinkModal = false">
+            <text>取消</text>
+          </button>
+        </view>
+      </view>
+
       <view class="actions">
         <button class="action-btn share-btn" @click="showShareModal = true">
           <text>📤 分享</text>
@@ -83,13 +149,37 @@ export default {
       item: null,
       loading: false,
       error: null,
-      showShareModal: false
+      showShareModal: false,
+      showLinkModal: false,
+      relatedItems: [],
+      allKnowledge: [],
+      linkSearchQuery: ''
+    }
+  },
+  computed: {
+    filteredKnowledge() {
+      if (!this.linkSearchQuery) {
+        // 过滤掉当前知识和已关联的知识
+        return this.allKnowledge.filter(k =>
+          k.id !== this.id &&
+          !this.relatedItems.some(r => r.id === k.id)
+        ).slice(0, 20)
+      }
+
+      const query = this.linkSearchQuery.toLowerCase()
+      return this.allKnowledge.filter(k =>
+        k.id !== this.id &&
+        !this.relatedItems.some(r => r.id === k.id) &&
+        (k.title.toLowerCase().includes(query) || k.content.toLowerCase().includes(query))
+      ).slice(0, 20)
     }
   },
   onLoad(options) {
     if (options.id) {
       this.id = options.id
       this.loadItem()
+      this.loadRelatedItems()
+      this.loadAllKnowledge()
     } else {
       this.error = '缺少知识条目 ID'
     }
@@ -418,6 +508,80 @@ export default {
         showCancel: false
       })
       // #endif
+    },
+
+    /**
+     * 加载关联知识
+     */
+    async loadRelatedItems() {
+      try {
+        this.relatedItems = await db.getKnowledgeLinks(this.id)
+      } catch (error) {
+        console.error('加载关联知识失败:', error)
+      }
+    },
+
+    /**
+     * 加载所有知识（用于关联选择）
+     */
+    async loadAllKnowledge() {
+      try {
+        this.allKnowledge = await db.getKnowledgeItems({ limit: 100 })
+      } catch (error) {
+        console.error('加载知识列表失败:', error)
+      }
+    },
+
+    /**
+     * 搜索知识
+     */
+    handleLinkSearch() {
+      // 触发computed重新计算
+    },
+
+    /**
+     * 添加关联
+     */
+    async addLink(targetId) {
+      try {
+        await db.createKnowledgeLink(this.id, targetId)
+
+        uni.showToast({
+          title: '关联已添加',
+          icon: 'success'
+        })
+
+        this.showLinkModal = false
+        this.linkSearchQuery = ''
+
+        // 重新加载关联列表
+        await this.loadRelatedItems()
+      } catch (error) {
+        console.error('添加关联失败:', error)
+        uni.showToast({
+          title: '添加失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * 跳转到关联知识
+     */
+    goToRelated(id) {
+      uni.redirectTo({
+        url: `/pages/knowledge/detail/detail?id=${id}`
+      })
+    },
+
+    getTypeIcon(type) {
+      const icons = {
+        note: '📝',
+        document: '📄',
+        conversation: '💬',
+        web_clip: '🌐'
+      }
+      return icons[type] || '📄'
     }
   }
 }
@@ -654,6 +818,172 @@ export default {
   }
   to {
     transform: translateY(0);
+  }
+}
+
+// 关联知识部分
+.related-section {
+  background-color: var(--bg-card);
+  padding: 32rpx;
+  margin-bottom: 20rpx;
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20rpx;
+
+    .section-title {
+      font-size: 32rpx;
+      font-weight: bold;
+      color: var(--text-primary);
+    }
+
+    .section-count {
+      font-size: 24rpx;
+      color: var(--text-tertiary);
+      background-color: var(--bg-input);
+      padding: 4rpx 12rpx;
+      border-radius: 12rpx;
+    }
+  }
+
+  .related-list {
+    .related-item {
+      display: flex;
+      align-items: center;
+      gap: 20rpx;
+      padding: 20rpx;
+      background-color: var(--bg-input);
+      border-radius: 12rpx;
+      margin-bottom: 12rpx;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .related-icon {
+        font-size: 36rpx;
+        flex-shrink: 0;
+      }
+
+      .related-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8rpx;
+        overflow: hidden;
+
+        .related-title {
+          font-size: 28rpx;
+          color: var(--text-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .related-type {
+          font-size: 24rpx;
+          color: var(--text-tertiary);
+        }
+      }
+
+      .related-arrow {
+        font-size: 40rpx;
+        color: var(--text-tertiary);
+        flex-shrink: 0;
+      }
+    }
+  }
+
+  .add-link-btn {
+    width: 100%;
+    height: 72rpx;
+    background-color: var(--bg-input);
+    color: var(--text-secondary);
+    border-radius: 36rpx;
+    font-size: 28rpx;
+    margin-top: 20rpx;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &::after {
+      border: none;
+    }
+  }
+}
+
+// 关联选择弹窗
+.link-modal {
+  .search-box {
+    margin-bottom: 24rpx;
+
+    .search-input {
+      width: 100%;
+      height: 72rpx;
+      padding: 0 24rpx;
+      background-color: var(--bg-input);
+      border-radius: 36rpx;
+      font-size: 28rpx;
+      color: var(--text-primary);
+    }
+  }
+
+  .knowledge-list {
+    max-height: 600rpx;
+    overflow-y: auto;
+    margin-bottom: 24rpx;
+
+    .knowledge-option {
+      display: flex;
+      align-items: center;
+      gap: 20rpx;
+      padding: 20rpx;
+      background-color: var(--bg-input);
+      border-radius: 12rpx;
+      margin-bottom: 12rpx;
+      transition: all 0.2s;
+
+      &:active {
+        background-color: var(--bg-hover);
+        transform: scale(0.98);
+      }
+
+      .knowledge-icon {
+        font-size: 36rpx;
+        flex-shrink: 0;
+      }
+
+      .knowledge-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8rpx;
+        overflow: hidden;
+
+        .knowledge-title {
+          font-size: 28rpx;
+          color: var(--text-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .knowledge-type {
+          font-size: 24rpx;
+          color: var(--text-tertiary);
+        }
+      }
+    }
+
+    .empty {
+      text-align: center;
+      padding: 60rpx 20rpx;
+      color: var(--text-tertiary);
+      font-size: 26rpx;
+    }
   }
 }
 </style>
