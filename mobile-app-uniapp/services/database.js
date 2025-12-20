@@ -187,6 +187,7 @@ class DatabaseService {
         type TEXT CHECK(type IN ('note', 'document', 'conversation', 'web_clip', 'image')),
         content TEXT,
         encrypted_content TEXT,
+        is_favorite INTEGER DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         device_id TEXT,
@@ -494,6 +495,7 @@ class DatabaseService {
       title: item.title,
       type: item.type || 'note',
       content: item.content || '',
+      is_favorite: item.is_favorite || 0,
       created_at: now,
       updated_at: now,
       device_id: item.deviceId || uni.getSystemInfoSync().deviceId,
@@ -511,14 +513,15 @@ class DatabaseService {
 
     // App模式：插入SQLite
     const sql = `INSERT INTO knowledge_items
-      (id, title, type, content, created_at, updated_at, device_id, sync_status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      (id, title, type, content, is_favorite, created_at, updated_at, device_id, sync_status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
     const params = [
       newItem.id,
       newItem.title,
       newItem.type,
       newItem.content,
+      newItem.is_favorite,
       newItem.created_at,
       newItem.updated_at,
       newItem.device_id,
@@ -534,7 +537,7 @@ class DatabaseService {
    * 获取知识库项列表
    */
   async getKnowledgeItems(options = {}) {
-    const { limit = 20, offset = 0, type = null, searchQuery = '' } = options
+    const { limit = 20, offset = 0, type = null, searchQuery = '', tagId = null, favoriteOnly = false } = options
 
     let sql = 'SELECT * FROM knowledge_items WHERE 1=1'
     const params = []
@@ -548,6 +551,15 @@ class DatabaseService {
       sql += ' AND (title LIKE ? OR content LIKE ?)'
       const searchParam = `%${searchQuery}%`
       params.push(searchParam, searchParam)
+    }
+
+    if (favoriteOnly) {
+      sql += ' AND is_favorite = 1'
+    }
+
+    if (tagId) {
+      sql += ' AND id IN (SELECT knowledge_id FROM knowledge_tags WHERE tag_id = ?)'
+      params.push(tagId)
     }
 
     sql += ' ORDER BY updated_at DESC LIMIT ? OFFSET ?'
@@ -625,6 +637,9 @@ class DatabaseService {
       // H5模式：从内存数组删除
       this.ensureH5Data('knowledge_items')
       this.h5Data.knowledge_items = this.h5Data.knowledge_items.filter(item => item.id !== id)
+      // 同时删除关联的标签
+      this.ensureH5Data('knowledge_tags')
+      this.h5Data.knowledge_tags = this.h5Data.knowledge_tags.filter(kt => kt.knowledge_id !== id)
       this.saveH5Data()
       return { id }
     }
@@ -632,7 +647,257 @@ class DatabaseService {
     // App模式：从SQLite删除
     const sql = 'DELETE FROM knowledge_items WHERE id = ?'
     await this.executeSql(sql, [id])
+    // 标签关联会通过外键自动删除
     return { id }
+  }
+
+  /**
+   * 切换知识库项收藏状态
+   */
+  async toggleKnowledgeFavorite(id) {
+    const item = await this.getKnowledgeItem(id)
+    if (!item) {
+      throw new Error('知识条目不存在')
+    }
+
+    const is_favorite = item.is_favorite ? 0 : 1
+
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_items')
+      const index = this.h5Data.knowledge_items.findIndex(item => item.id === id)
+      if (index !== -1) {
+        this.h5Data.knowledge_items[index].is_favorite = is_favorite
+        this.h5Data.knowledge_items[index].updated_at = this.now()
+        this.saveH5Data()
+      }
+      return { id, is_favorite }
+    }
+
+    const sql = 'UPDATE knowledge_items SET is_favorite = ?, updated_at = ? WHERE id = ?'
+    await this.executeSql(sql, [is_favorite, this.now(), id])
+    return { id, is_favorite }
+  }
+
+  // ==================== 标签管理 ====================
+
+  /**
+   * 获取所有标签
+   */
+  async getTags() {
+    if (this.isH5) {
+      this.ensureH5Data('tags')
+      // 统计每个标签的使用次数
+      this.ensureH5Data('knowledge_tags')
+      return this.h5Data.tags.map(tag => ({
+        ...tag,
+        count: this.h5Data.knowledge_tags.filter(kt => kt.tag_id === tag.id).length
+      }))
+    }
+
+    const sql = `
+      SELECT t.*, COUNT(kt.knowledge_id) as count
+      FROM tags t
+      LEFT JOIN knowledge_tags kt ON t.id = kt.tag_id
+      GROUP BY t.id
+      ORDER BY count DESC, t.name ASC
+    `
+    const result = await this.selectSql(sql, [])
+    return result || []
+  }
+
+  /**
+   * 创建标签
+   */
+  async createTag(name, color = '#3cc51f') {
+    const id = this.generateId()
+    const now = this.now()
+
+    const newTag = {
+      id,
+      name,
+      color,
+      created_at: now
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('tags')
+      // 检查是否已存在同名标签
+      const existing = this.h5Data.tags.find(t => t.name === name)
+      if (existing) {
+        return existing
+      }
+      this.h5Data.tags.push(newTag)
+      this.saveH5Data()
+      return newTag
+    }
+
+    // App模式：插入SQLite
+    const checkSql = 'SELECT * FROM tags WHERE name = ?'
+    const existing = await this.selectSql(checkSql, [name])
+    if (existing && existing.length > 0) {
+      return existing[0]
+    }
+
+    const sql = 'INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)'
+    await this.executeSql(sql, [id, name, color, now])
+    return newTag
+  }
+
+  /**
+   * 删除标签
+   */
+  async deleteTag(id) {
+    if (this.isH5) {
+      this.ensureH5Data('tags')
+      this.h5Data.tags = this.h5Data.tags.filter(tag => tag.id !== id)
+      // 删除关联
+      this.ensureH5Data('knowledge_tags')
+      this.h5Data.knowledge_tags = this.h5Data.knowledge_tags.filter(kt => kt.tag_id !== id)
+      this.saveH5Data()
+      return { id }
+    }
+
+    const sql = 'DELETE FROM tags WHERE id = ?'
+    await this.executeSql(sql, [id])
+    return { id }
+  }
+
+  /**
+   * 获取知识库项的标签
+   */
+  async getKnowledgeTags(knowledgeId) {
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_tags')
+      this.ensureH5Data('tags')
+
+      const tagIds = this.h5Data.knowledge_tags
+        .filter(kt => kt.knowledge_id === knowledgeId)
+        .map(kt => kt.tag_id)
+
+      return this.h5Data.tags.filter(tag => tagIds.includes(tag.id))
+    }
+
+    const sql = `
+      SELECT t.*
+      FROM tags t
+      INNER JOIN knowledge_tags kt ON t.id = kt.tag_id
+      WHERE kt.knowledge_id = ?
+      ORDER BY t.name ASC
+    `
+    const result = await this.selectSql(sql, [knowledgeId])
+    return result || []
+  }
+
+  /**
+   * 为知识库项添加标签
+   */
+  async addKnowledgeTag(knowledgeId, tagId) {
+    const id = this.generateId()
+
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_tags')
+      // 检查是否已存在
+      const existing = this.h5Data.knowledge_tags.find(
+        kt => kt.knowledge_id === knowledgeId && kt.tag_id === tagId
+      )
+      if (existing) {
+        return existing
+      }
+
+      const newKnowledgeTag = { id, knowledge_id: knowledgeId, tag_id: tagId }
+      this.h5Data.knowledge_tags.push(newKnowledgeTag)
+      this.saveH5Data()
+      return newKnowledgeTag
+    }
+
+    // 检查是否已存在
+    const checkSql = 'SELECT * FROM knowledge_tags WHERE knowledge_id = ? AND tag_id = ?'
+    const existing = await this.selectSql(checkSql, [knowledgeId, tagId])
+    if (existing && existing.length > 0) {
+      return existing[0]
+    }
+
+    const sql = 'INSERT INTO knowledge_tags (id, knowledge_id, tag_id) VALUES (?, ?, ?)'
+    await this.executeSql(sql, [id, knowledgeId, tagId])
+    return { id, knowledge_id: knowledgeId, tag_id: tagId }
+  }
+
+  /**
+   * 移除知识库项的标签
+   */
+  async removeKnowledgeTag(knowledgeId, tagId) {
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_tags')
+      this.h5Data.knowledge_tags = this.h5Data.knowledge_tags.filter(
+        kt => !(kt.knowledge_id === knowledgeId && kt.tag_id === tagId)
+      )
+      this.saveH5Data()
+      return { knowledgeId, tagId }
+    }
+
+    const sql = 'DELETE FROM knowledge_tags WHERE knowledge_id = ? AND tag_id = ?'
+    await this.executeSql(sql, [knowledgeId, tagId])
+    return { knowledgeId, tagId }
+  }
+
+  /**
+   * 设置知识库项的标签（覆盖式）
+   */
+  async setKnowledgeTags(knowledgeId, tagIds) {
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_tags')
+      // 删除旧的标签关联
+      this.h5Data.knowledge_tags = this.h5Data.knowledge_tags.filter(
+        kt => kt.knowledge_id !== knowledgeId
+      )
+      // 添加新的标签关联
+      for (const tagId of tagIds) {
+        await this.addKnowledgeTag(knowledgeId, tagId)
+      }
+      return { knowledgeId, tagIds }
+    }
+
+    // 删除旧的标签关联
+    await this.executeSql('DELETE FROM knowledge_tags WHERE knowledge_id = ?', [knowledgeId])
+
+    // 添加新的标签关联
+    for (const tagId of tagIds) {
+      await this.addKnowledgeTag(knowledgeId, tagId)
+    }
+
+    return { knowledgeId, tagIds }
+  }
+
+  /**
+   * 按标签获取知识库项
+   */
+  async getKnowledgeItemsByTag(tagId, options = {}) {
+    const { limit = 20, offset = 0 } = options
+
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_tags')
+      this.ensureH5Data('knowledge_items')
+
+      const knowledgeIds = this.h5Data.knowledge_tags
+        .filter(kt => kt.tag_id === tagId)
+        .map(kt => kt.knowledge_id)
+
+      return this.h5Data.knowledge_items
+        .filter(item => knowledgeIds.includes(item.id))
+        .sort((a, b) => b.updated_at - a.updated_at)
+        .slice(offset, offset + limit)
+    }
+
+    const sql = `
+      SELECT k.*
+      FROM knowledge_items k
+      INNER JOIN knowledge_tags kt ON k.id = kt.knowledge_id
+      WHERE kt.tag_id = ?
+      ORDER BY k.updated_at DESC
+      LIMIT ? OFFSET ?
+    `
+    const result = await this.selectSql(sql, [tagId, limit, offset])
+    return result || []
   }
 
   // ==================== 对话 CRUD ====================
