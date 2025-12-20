@@ -536,6 +536,10 @@ onMounted(() => {
   height: 100%;
 }
 
+.llm-settings :deep(.ant-card) {
+  max-width: 900px;
+}
+
 .form-hint {
   color: rgba(0, 0, 0, 0.45);
   font-size: 12px;

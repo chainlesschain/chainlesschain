@@ -391,6 +391,10 @@ onMounted(async () => {
   height: 100%;
 }
 
+.rag-settings :deep(.ant-card) {
+  max-width: 900px;
+}
+
 .config-card,
 .vector-store-card,
 .stats-card,

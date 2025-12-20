@@ -1,189 +1,504 @@
 <template>
-  <view class="home-page">
-    <view class="container">
-      <user-card :username="username" :user-desc="userDesc" />
-
-      <!-- 统计卡片 -->
-      <stats-card :stats="stats" />
-
-      <!-- 快捷功能 -->
-      <view class="quick-actions-wrapper">
-        <view class="section-header">
-          <text class="section-title">✨ 快捷功能</text>
-          <text class="section-subtitle">快速访问常用功能</text>
+  <view class="home-container">
+    <!-- 头部用户信息卡片 -->
+    <view class="header-card">
+      <view class="user-info">
+        <view class="avatar">
+          <text class="avatar-text">{{ userInitial }}</text>
         </view>
-        <quick-actions />
-      </view>
-
-      <!-- 最近访问 -->
-      <view class="recent-wrapper">
-        <view class="section-header">
-          <text class="section-title">🕒 最近访问</text>
-          <text class="section-subtitle">继续您的工作</text>
+        <view class="info">
+          <text class="greeting">{{ greeting }}</text>
+          <text class="username">{{ currentIdentity?.nickname || 'ChainlessChain用户' }}</text>
         </view>
-        <recent-section :recent-items="recentItems" />
       </view>
-
-      <!-- 底部装饰 -->
-      <view class="footer-decoration">
-        <text class="footer-text">ChainlessChain © 2025</text>
-        <text class="footer-slogan">去中心化 · 隐私优先 · AI增强</text>
+      <view class="sync-status" @click="goToSync">
+        <text class="status-icon">{{ syncStatus === 'synced' ? '✓' : '↻' }}</text>
+        <text class="status-text">{{ syncStatusText }}</text>
       </view>
     </view>
+
+    <!-- 快速操作卡片 -->
+    <view class="quick-actions">
+      <view class="quick-item" @click="quickAction('knowledge')">
+        <view class="quick-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+          <text class="icon">📚</text>
+        </view>
+        <text class="quick-label">知识</text>
+      </view>
+      <view class="quick-item" @click="quickAction('ai-chat')">
+        <view class="quick-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+          <text class="icon">🤖</text>
+        </view>
+        <text class="quick-label">AI对话</text>
+      </view>
+      <view class="quick-item" @click="quickAction('scan')">
+        <view class="quick-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">
+          <text class="icon">📷</text>
+        </view>
+        <text class="quick-label">扫一扫</text>
+      </view>
+      <view class="quick-item" @click="quickAction('voice')">
+        <view class="quick-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+          <text class="icon">🎤</text>
+        </view>
+        <text class="quick-label">语音</text>
+      </view>
+    </view>
+
+    <!-- 功能模块卡片 -->
+    <scroll-view class="modules-scroll" scroll-y>
+      <!-- 知识与AI -->
+      <view class="module-section">
+        <view class="section-header">
+          <text class="section-icon">📚</text>
+          <text class="section-title">知识与AI</text>
+          <text class="section-more" @click="goToModule('knowledge')">更多 ›</text>
+        </view>
+        <view class="module-grid">
+          <view class="module-card" @click="navigateTo('/pages/knowledge/list/list')">
+            <view class="card-icon">📖</view>
+            <text class="card-title">知识库</text>
+            <text class="card-desc">{{ statistics.knowledgeCount }} 条</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/ai/chat/index')">
+            <view class="card-icon">💬</view>
+            <text class="card-title">AI对话</text>
+            <text class="card-desc">{{ statistics.conversationCount }} 个会话</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/knowledge/import-export/import-export')">
+            <view class="card-icon">📥</view>
+            <text class="card-title">导入/导出</text>
+            <text class="card-desc">数据迁移</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/knowledge/statistics/statistics')">
+            <view class="card-icon">📊</view>
+            <text class="card-title">知识统计</text>
+            <text class="card-desc">数据分析</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 身份与社交 -->
+      <view class="module-section">
+        <view class="section-header">
+          <text class="section-icon">👥</text>
+          <text class="section-title">身份与社交</text>
+          <text class="section-more" @click="goToModule('social')">更多 ›</text>
+        </view>
+        <view class="module-grid">
+          <view class="module-card" @click="navigateTo('/pages/identity/list')">
+            <view class="card-icon">🆔</view>
+            <text class="card-title">DID身份</text>
+            <text class="card-desc">去中心化身份</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/social/friends/list')">
+            <view class="card-icon">👬</view>
+            <text class="card-title">好友</text>
+            <text class="card-desc">{{ statistics.friendCount }} 个好友</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/social/timeline/index')">
+            <view class="card-icon">📝</view>
+            <text class="card-title">动态</text>
+            <text class="card-desc">最新动态</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/social/chat/index')">
+            <view class="card-icon">💌</view>
+            <text class="card-title">消息</text>
+            <text class="card-desc" v-if="statistics.unreadCount > 0" style="color: #ff4d4f">
+              {{ statistics.unreadCount }} 条未读
+            </text>
+            <text class="card-desc" v-else>无未读</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 交易系统 -->
+      <view class="module-section">
+        <view class="section-header">
+          <text class="section-icon">💰</text>
+          <text class="section-title">交易系统</text>
+          <text class="section-more" @click="goToModule('trade')">更多 ›</text>
+        </view>
+        <view class="module-grid">
+          <view class="module-card" @click="navigateTo('/pages/trade/market/market')">
+            <view class="card-icon">🏪</view>
+            <text class="card-title">交易市场</text>
+            <text class="card-desc">知识交易</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/trade/orders/orders')">
+            <view class="card-icon">📋</view>
+            <text class="card-title">我的订单</text>
+            <text class="card-desc">订单管理</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/trade/assets/assets')">
+            <view class="card-icon">💎</view>
+            <text class="card-title">我的资产</text>
+            <text class="card-desc">资产管理</text>
+          </view>
+          <view class="module-card" style="opacity: 0.5">
+            <view class="card-icon">⭐</view>
+            <text class="card-title">信用评分</text>
+            <text class="card-desc">即将推出</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 系统设置 -->
+      <view class="module-section">
+        <view class="section-header">
+          <text class="section-icon">⚙️</text>
+          <text class="section-title">系统设置</text>
+          <text class="section-more" @click="goToModule('settings')">更多 ›</text>
+        </view>
+        <view class="module-grid">
+          <view class="module-card" @click="navigateTo('/pages/ai/settings')">
+            <view class="card-icon">🔧</view>
+            <text class="card-title">AI配置</text>
+            <text class="card-desc">LLM设置</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/backup/backup')">
+            <view class="card-icon">☁️</view>
+            <text class="card-title">数据备份</text>
+            <text class="card-desc">云端同步</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/auth/change-pin')">
+            <view class="card-icon">🔐</view>
+            <text class="card-title">安全设置</text>
+            <text class="card-desc">PIN/生物识别</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/settings/settings')">
+            <view class="card-icon">🛠️</view>
+            <text class="card-title">通用设置</text>
+            <text class="card-desc">偏好设置</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部间距 -->
+      <view style="height: 20px"></view>
+    </scroll-view>
   </view>
 </template>
 
 <script>
-import UserCard from '@/components/home/UserCard.vue'
-import StatsCard from '@/components/home/StatsCard.vue'
-import QuickActions from '@/components/home/QuickActions.vue'
-import RecentSection from '@/components/home/RecentSection.vue'
-import { db } from '@/services/database'
+import didService from '@/services/did'
+import friendService from '@/services/friends'
+import aiConversationService from '@/services/ai-conversation'
+import database from '@/services/database'
 
 export default {
-  components: {
-    UserCard,
-    StatsCard,
-    QuickActions,
-    RecentSection
-  },
   data() {
     return {
-      username: 'ChainlessChain 用户',
-      userDesc: '去中心化 · 隐私优先',
-      stats: {
-        knowledge: 0,
-        favorites: 0,
-        folders: 0
-      },
-      recentItems: []
-    }
-  },
-  onLoad() {
-    // 检查登录状态
-    const isLoggedIn = uni.getStorageSync('isLoggedIn')
-    if (!isLoggedIn) {
-      uni.reLaunch({
-        url: '/pages/login/login'
-      })
-      return
-    }
-
-    // 加载用户信息
-    const userProfile = uni.getStorageSync('user_profile')
-    if (userProfile) {
-      try {
-        const profile = JSON.parse(userProfile)
-        this.username = profile.nickname || 'ChainlessChain 用户'
-        if (profile.bio) {
-          this.userDesc = profile.bio
-        }
-      } catch (error) {
-        console.error('解析用户信息失败:', error)
+      currentIdentity: null,
+      syncStatus: 'synced', // 'synced', 'syncing', 'failed'
+      statistics: {
+        knowledgeCount: 0,
+        conversationCount: 0,
+        friendCount: 0,
+        unreadCount: 0
       }
     }
+  },
 
-    this.loadStats()
-    this.loadRecentItems()
+  computed: {
+    greeting() {
+      const hour = new Date().getHours()
+      if (hour < 6) return '夜深了'
+      if (hour < 12) return '早上好'
+      if (hour < 14) return '中午好'
+      if (hour < 18) return '下午好'
+      if (hour < 22) return '晚上好'
+      return '夜深了'
+    },
+
+    userInitial() {
+      const name = this.currentIdentity?.nickname || 'C'
+      return name.charAt(0).toUpperCase()
+    },
+
+    syncStatusText() {
+      const statusMap = {
+        synced: '已同步',
+        syncing: '同步中',
+        failed: '同步失败'
+      }
+      return statusMap[this.syncStatus] || '未知'
+    }
   },
-  onShow() {
-    // 每次显示页面时刷新统计数据
-    this.loadStats()
-    this.loadRecentItems()
+
+  async onLoad() {
+    await this.loadUserInfo()
+    await this.loadStatistics()
   },
+
+  async onShow() {
+    await this.loadStatistics()
+  },
+
   methods: {
-    async loadStats() {
+    async loadUserInfo() {
       try {
-        const stats = await db.getKnowledgeStatistics()
-        this.stats.knowledge = stats.total || 0
-        this.stats.favorites = stats.favorites || 0
+        this.currentIdentity = await didService.getCurrentIdentity()
+      } catch (error) {
+        console.error('加载用户信息失败:', error)
+      }
+    },
 
-        const folders = await db.getFolders()
-        this.stats.folders = folders.length
+    async loadStatistics() {
+      try {
+        // 加载知识库统计
+        const knowledge = await database.getAllKnowledge()
+        this.statistics.knowledgeCount = knowledge.length
+
+        // 加载AI对话统计
+        const conversations = await aiConversationService.getConversations()
+        this.statistics.conversationCount = conversations.length
+
+        // 加载好友统计
+        const friends = await friendService.getFriends()
+        this.statistics.friendCount = friends.length
+
+        // TODO: 加载未读消息数
+        this.statistics.unreadCount = 0
       } catch (error) {
         console.error('加载统计数据失败:', error)
       }
     },
 
-    async loadRecentItems() {
-      try {
-        const items = await db.getKnowledgeItems({ limit: 5 })
-        this.recentItems = items || []
-      } catch (error) {
-        console.error('加载最近项目失败:', error)
+    navigateTo(url) {
+      uni.navigateTo({ url })
+    },
+
+    quickAction(action) {
+      const actions = {
+        'knowledge': () => uni.navigateTo({ url: '/pages/knowledge/edit/edit?mode=new' }),
+        'ai-chat': () => uni.switchTab({ url: '/pages/ai/index' }),
+        'scan': () => {
+          // TODO: 实现扫一扫功能
+          uni.showToast({ title: '功能开发中', icon: 'none' })
+        },
+        'voice': () => {
+          // TODO: 实现语音输入
+          uni.showToast({ title: '功能开发中', icon: 'none' })
+        }
       }
+
+      if (actions[action]) {
+        actions[action]()
+      }
+    },
+
+    goToModule(module) {
+      // 跳转到对应模块的更多页面
+      const modulePages = {
+        'knowledge': '/pages/knowledge/list/list',
+        'social': '/pages/social/friends/list',
+        'trade': '/pages/trade/market/market',
+        'settings': '/pages/settings/settings'
+      }
+
+      if (modulePages[module]) {
+        uni.navigateTo({ url: modulePages[module] })
+      }
+    },
+
+    goToSync() {
+      uni.navigateTo({ url: '/pages/backup/cloud-sync' })
     }
   }
 }
 </script>
 
-<style lang="scss" scoped>
-.home-page {
+<style scoped>
+.home-container {
   min-height: 100vh;
-  background: var(--bg-page);
-  padding-bottom: 140rpx;
+  background: linear-gradient(180deg, #f0f2f5 0%, #ffffff 100%);
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom) + 50px);
 }
 
-// 内容容器
-.container {
-  padding: 24rpx;
+/* 头部用户卡片 */
+.header-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-// Section 头部
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.avatar-text {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.greeting {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.username {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.sync-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.status-icon {
+  font-size: 18px;
+  color: white;
+}
+
+.status-text {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 快速操作 */
+.quick-actions {
+  display: flex;
+  justify-content: space-around;
+  background: white;
+  border-radius: 16px;
+  padding: 20px 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.quick-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.quick-icon .icon {
+  font-size: 24px;
+}
+
+.quick-label {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 模块滚动区 */
+.modules-scroll {
+  flex: 1;
+  height: calc(100vh - 280px);
+}
+
+/* 模块区块 */
+.module-section {
+  margin-bottom: 24px;
+}
+
 .section-header {
-  margin: 48rpx 0 24rpx;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.section-icon {
+  font-size: 20px;
+  margin-right: 8px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  flex: 1;
+}
+
+.section-more {
+  font-size: 13px;
+  color: #999;
+}
+
+/* 模块网格 */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.module-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
-
-  .section-title {
-    font-size: 36rpx;
-    font-weight: bold;
-    color: var(--text-primary);
-    letter-spacing: 0.5rpx;
-  }
-
-  .section-subtitle {
-    font-size: 24rpx;
-    color: var(--text-tertiary);
-  }
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
 }
 
-// 快捷功能包装
-.quick-actions-wrapper {
-  background-color: var(--bg-card);
-  border-radius: 24rpx;
-  padding: 32rpx 24rpx;
-  box-shadow: var(--shadow-md);
-  margin-bottom: 24rpx;
+.module-card:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-// 最近访问包装
-.recent-wrapper {
-  background-color: var(--bg-card);
-  border-radius: 24rpx;
-  padding: 32rpx 24rpx;
-  box-shadow: var(--shadow-md);
-  margin-bottom: 32rpx;
+.card-icon {
+  font-size: 32px;
+  margin-bottom: 4px;
 }
 
-// 底部装饰
-.footer-decoration {
-  padding: 60rpx 0 40rpx;
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.card-desc {
+  font-size: 12px;
+  color: #999;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-
-  .footer-text {
-    font-size: 24rpx;
-    color: var(--text-tertiary);
-  }
-
-  .footer-slogan {
-    font-size: 22rpx;
-    color: var(--text-quaternary);
-    letter-spacing: 1rpx;
-  }
 }
 </style>
