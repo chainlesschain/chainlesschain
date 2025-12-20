@@ -1,0 +1,31 @@
+{
+    "name" : "ChainlessChain",
+    "appid" : "__UNI__4F3B0DC",
+    "description" : "去中心化个人AI助手平台",
+    "versionName" : "0.1.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    "app-plus" : {
+        "usingComponents" : true,
+        "compilerVersion" : 3,
+        "splashscreen" : {
+            "alwaysShowBeforeRender" : false,
+            "waiting" : false
+        },
+        "modules" : {},
+        "distribute" : {
+            "android" : {
+                "minSdkVersion" : 21,
+                "targetSdkVersion" : 28,
+                "abiFilters" : [ "armeabi-v7a" ]
+            },
+            "ios" : {},
+            "sdkConfigs" : {}
+        }
+    },
+    "quickapp" : {},
+    "mp-weixin" : {
+        "usingComponents" : true
+    },
+    "vueVersion" : "3"
+}
