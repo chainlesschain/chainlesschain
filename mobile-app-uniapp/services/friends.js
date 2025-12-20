@@ -393,6 +393,39 @@ class FriendService {
   }
 
   /**
+   * 获取好友请求列表
+   * @param {Object} options - 查询选项
+   * @returns {Promise<Array>}
+   */
+  async getFriendRequests(options = {}) {
+    try {
+      const currentIdentity = await didService.getCurrentIdentity()
+      if (!currentIdentity) {
+        return []
+      }
+
+      const { direction = 'all', status = 'all' } = options
+
+      let requests = [...this.friendRequests]
+
+      // 过滤方向
+      if (direction !== 'all') {
+        requests = requests.filter(r => r.direction === direction)
+      }
+
+      // 过滤状态
+      if (status !== 'all') {
+        requests = requests.filter(r => r.status === status)
+      }
+
+      return requests
+    } catch (error) {
+      console.error('获取好友请求失败:', error)
+      return []
+    }
+  }
+
+  /**
    * 获取黑名单
    * @returns {Promise<Array>}
    */

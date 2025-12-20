@@ -362,7 +362,7 @@ export default {
 /* 用户头部 */
 .user-header {
   position: relative;
-  padding: 50px 20px 60px;
+  padding: 50px 20px 40px;
   overflow: hidden;
 }
 
@@ -449,6 +449,7 @@ export default {
 
 /* 数据统计卡片 */
 .stats-card {
+  position: relative;
   margin: -30px 16px 16px;
   background: white;
   border-radius: 16px;
@@ -457,6 +458,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-around;
+  z-index: 2;
 }
 
 .stat-item {
