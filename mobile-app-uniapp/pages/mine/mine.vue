@@ -379,7 +379,7 @@ export default {
     .avatar-text {
       font-size: 48rpx;
       font-weight: bold;
-      color: #ffffff;
+      color: var(--text-inverse);
     }
   }
 
@@ -392,7 +392,7 @@ export default {
     .username {
       font-size: 36rpx;
       font-weight: bold;
-      color: #ffffff;
+      color: var(--text-inverse);
     }
 
     .user-id {
@@ -406,7 +406,7 @@ export default {
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 32rpx;
     font-size: 24rpx;
-    color: #ffffff;
+    color: var(--text-inverse);
   }
 }
 
@@ -507,9 +507,9 @@ export default {
     width: 100%;
     height: 88rpx;
     background-color: var(--bg-card);
-    border: 2rpx solid #f5222d;
+    border: 2rpx solid var(--color-error);
     border-radius: 44rpx;
-    color: #f5222d;
+    color: var(--color-error);
     font-size: 30rpx;
     font-weight: 500;
     display: flex;

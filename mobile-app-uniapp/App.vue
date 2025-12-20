@@ -141,12 +141,19 @@ page {
   --text-primary: #333333;
   --text-secondary: #666666;
   --text-tertiary: #999999;
+  --text-quaternary: #cccccc;
   --text-inverse: #ffffff;
+  --text-link: #667eea;
 
   /* 边框色 */
   --border-light: #f0f0f0;
   --border-normal: #e0e0e0;
   --border-dark: #d0d0d0;
+
+  /* 品牌渐变色 */
+  --gradient-brand: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-blue: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --color-brand: #667eea;
 
   /* 主题色 */
   --color-primary: #3cc51f;
@@ -154,6 +161,13 @@ page {
   --color-warning: #fa8c16;
   --color-error: #ff4d4f;
   --color-info: #1890ff;
+
+  /* 主题色背景（浅色） */
+  --bg-primary-light: #f0f9ff;
+  --bg-success-light: #f6ffed;
+  --bg-warning-light: #fff7e6;
+  --bg-error-light: #fff1f0;
+  --bg-info-light: #e6f7ff;
 
   /* 阴影 */
   --shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
@@ -173,12 +187,19 @@ page[data-theme='dark'] {
   --text-primary: #e0e0e0;
   --text-secondary: #b0b0b0;
   --text-tertiary: #808080;
+  --text-quaternary: #606060;
   --text-inverse: #ffffff;
+  --text-link: #8b9aef;
 
   /* 边框色 */
   --border-light: #2a2a2a;
   --border-normal: #3a3a3a;
   --border-dark: #4a4a4a;
+
+  /* 品牌渐变色（深色模式下稍微调亮） */
+  --gradient-brand: linear-gradient(135deg, #7b8ff7 0%, #8b60b8 100%);
+  --gradient-blue: linear-gradient(135deg, #5fbdff 0%, #1affff 100%);
+  --color-brand: #7b8ff7;
 
   /* 主题色保持不变 */
   --color-primary: #3cc51f;
@@ -186,6 +207,13 @@ page[data-theme='dark'] {
   --color-warning: #fa8c16;
   --color-error: #ff4d4f;
   --color-info: #1890ff;
+
+  /* 主题色背景（深色模式） */
+  --bg-primary-light: rgba(60, 197, 31, 0.1);
+  --bg-success-light: rgba(82, 196, 26, 0.1);
+  --bg-warning-light: rgba(250, 140, 22, 0.1);
+  --bg-error-light: rgba(255, 77, 79, 0.1);
+  --bg-info-light: rgba(24, 144, 255, 0.1);
 
   /* 阴影 */
   --shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);

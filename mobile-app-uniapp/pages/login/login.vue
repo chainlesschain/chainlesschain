@@ -357,7 +357,7 @@ export default {
       }
 
       &.status-error {
-        color: #f5222d;
+        color: var(--color-error);
       }
     }
   }
@@ -413,7 +413,7 @@ export default {
     width: 100%;
     height: 96rpx;
     background-color: var(--bg-card);
-    color: #667eea;
+    color: var(--text-link);
     border-radius: 48rpx;
     font-size: 32rpx;
     font-weight: bold;

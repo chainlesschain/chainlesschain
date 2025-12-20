@@ -714,7 +714,7 @@ export default {
       background-color: var(--text-tertiary);
 
       &.active {
-        background-color: #52c41a;
+        background-color: var(--color-success);
         animation: pulse 2s ease-in-out infinite;
       }
     }
@@ -1006,12 +1006,12 @@ export default {
         font-size: 26rpx;
 
         &.restore {
-          background-color: #e6f7ff;
+          background-color: var(--bg-info-light);
           color: var(--color-info);
         }
 
         &.delete {
-          background-color: #fff1f0;
+          background-color: var(--bg-error-light);
           color: var(--color-error);
         }
       }
