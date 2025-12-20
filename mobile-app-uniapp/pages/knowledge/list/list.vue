@@ -12,6 +12,9 @@
         />
         <text class="search-icon">🔍</text>
       </view>
+      <view class="folder-btn" @click="goToFolders">
+        <text class="folder-icon">📁</text>
+      </view>
       <view class="stats-btn" @click="goToStatistics">
         <text class="stats-icon">📊</text>
       </view>
@@ -373,6 +376,15 @@ export default {
     },
 
     /**
+     * 跳转到文件夹管理
+     */
+    goToFolders() {
+      uni.navigateTo({
+        url: '/pages/knowledge/folders/folders'
+      })
+    },
+
+    /**
      * 跳转到添加
      */
     goToAdd() {
@@ -433,6 +445,21 @@ export default {
       right: 24rpx;
       top: 50%;
       transform: translateY(-50%);
+      font-size: 32rpx;
+    }
+  }
+
+  .folder-btn {
+    width: 72rpx;
+    height: 72rpx;
+    background-color: var(--bg-input);
+    border-radius: 36rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 16rpx;
+
+    .folder-icon {
       font-size: 32rpx;
     }
   }
