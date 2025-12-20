@@ -16,14 +16,15 @@
         <h2 v-if="!sidebarCollapsed">ChainlessChain</h2>
       </div>
 
-      <!-- 菜单 -->
-      <a-menu
-        v-model:selectedKeys="selectedMenuKeys"
-        theme="dark"
-        mode="inline"
-        class="main-menu"
-        @click="handleMenuClick"
-      >
+      <!-- 菜单容器 - 添加滚动 -->
+      <div class="menu-container">
+        <a-menu
+          v-model:selectedKeys="selectedMenuKeys"
+          theme="dark"
+          mode="inline"
+          class="main-menu"
+          @click="handleMenuClick"
+        >
         <!-- 项目管理 ⭐核心模块 -->
         <a-sub-menu key="project-management">
           <template #icon><FolderOutlined /></template>
@@ -169,6 +170,7 @@
           </a-menu-item>
         </a-sub-menu>
       </a-menu>
+      </div>
     </a-layout-sider>
 
     <!-- 主内容区 -->
@@ -496,6 +498,31 @@ const handleLogout = () => {
   color: white;
   font-size: 18px;
   font-weight: 600;
+}
+
+/* 菜单容器 - 可滚动 */
+.menu-container {
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 自定义滚动条样式 */
+.menu-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menu-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.menu-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.menu-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .main-menu {
