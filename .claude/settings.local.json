@@ -51,7 +51,10 @@
       "Bash(git check-ignore:*)",
       "Bash(find:*)",
       "Bash(git reset:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(git checkout:*)",
+      "Bash(xargs:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
