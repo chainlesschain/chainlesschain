@@ -114,6 +114,18 @@
             <text class="option-label">内容润色</text>
             <text class="option-desc">改进语言表达和结构</text>
           </view>
+
+          <view class="ai-option" @click="generateTitle">
+            <view class="option-icon">📌</view>
+            <text class="option-label">生成标题</text>
+            <text class="option-desc">根据内容自动生成标题</text>
+          </view>
+
+          <view class="ai-option" @click="extractKeywords">
+            <view class="option-icon">🔑</view>
+            <text class="option-label">提取关键词</text>
+            <text class="option-desc">自动识别核心关键词</text>
+          </view>
         </view>
 
         <button class="modal-close" @click="showAIModal = false">
@@ -778,6 +790,146 @@ export default {
           icon: 'none'
         })
       }
+    },
+
+    /**
+     * AI生成标题
+     */
+    async generateTitle() {
+      if (!this.form.content) {
+        uni.showToast({
+          title: '请先输入内容',
+          icon: 'none'
+        })
+        return
+      }
+
+      this.showAIModal = false
+
+      uni.showLoading({
+        title: 'AI生成中...',
+        mask: true
+      })
+
+      try {
+        const title = await aiService.generateTitle(this.form.content)
+
+        uni.hideLoading()
+
+        // 如果标题为空，提示用户是否替换
+        if (this.form.title) {
+          uni.showModal({
+            title: '生成的标题',
+            content: title,
+            confirmText: '使用此标题',
+            cancelText: '取消',
+            success: (res) => {
+              if (res.confirm) {
+                this.form.title = title
+              }
+            }
+          })
+        } else {
+          // 直接使用生成的标题
+          this.form.title = title
+          uni.showToast({
+            title: '标题已生成',
+            icon: 'success'
+          })
+        }
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({
+          title: error.message || '生成标题失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * AI提取关键词
+     */
+    async extractKeywords() {
+      if (!this.form.title && !this.form.content) {
+        uni.showToast({
+          title: '请先输入标题或内容',
+          icon: 'none'
+        })
+        return
+      }
+
+      this.showAIModal = false
+
+      uni.showLoading({
+        title: 'AI分析中...',
+        mask: true
+      })
+
+      try {
+        const text = this.form.title + '\n' + this.form.content
+        const keywords = await aiService.extractKeywords(text, 8)
+
+        uni.hideLoading()
+
+        if (keywords.length === 0) {
+          uni.showToast({
+            title: '未提取到关键词',
+            icon: 'none'
+          })
+          return
+        }
+
+        // 显示关键词，让用户选择是否创建为标签
+        uni.showModal({
+          title: '提取的关键词',
+          content: keywords.join('、'),
+          confirmText: '创建为标签',
+          cancelText: '取消',
+          success: async (res) => {
+            if (res.confirm) {
+              // 将关键词创建为标签并选中
+              for (const keyword of keywords) {
+                try {
+                  // 检查标签是否已存在
+                  const existingTag = this.allTags.find(t => t.name === keyword)
+                  if (existingTag) {
+                    // 如果存在且未选中，则选中
+                    if (!this.isTagSelected(existingTag.id)) {
+                      this.selectedTags.push(existingTag)
+                    }
+                  } else {
+                    // 创建新标签
+                    const newTag = await db.createTag(keyword, this.getRandomColor())
+                    this.allTags.push(newTag)
+                    this.selectedTags.push(newTag)
+                  }
+                } catch (error) {
+                  console.error('创建标签失败:', keyword, error)
+                }
+              }
+
+              uni.showToast({
+                title: '标签已创建',
+                icon: 'success'
+              })
+            }
+          }
+        })
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({
+          title: error.message || '提取关键词失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * 获取随机颜色
+     */
+    getRandomColor() {
+      const colors = this.tagColors
+      return colors[Math.floor(Math.random() * colors.length)]
     },
 
     handleCancel() {

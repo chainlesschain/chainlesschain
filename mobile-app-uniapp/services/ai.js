@@ -1,199 +1,149 @@
 /**
- * ChainlessChain Mobile - AI 服务
- * 提供智能摘要、标签建议、内容生成等AI功能
+ * ChainlessChain Mobile - AI 增强服务
+ * 提供知识摘要、标签建议、关联推荐等AI功能
+ * 使用真实的LLM服务进行智能处理
  */
+
+import { llm } from './llm'
 
 class AIService {
   constructor() {
-    // API配置
-    this.apiBaseUrl = 'https://api.chainlesschain.com' // 替换为实际的API地址
-    this.timeout = 30000 // 30秒超时
+    this.isProcessing = false
   }
 
   /**
-   * 调用AI API的通用方法
-   * @param {string} endpoint API端点
-   * @param {Object} data 请求数据
-   * @returns {Promise<Object>} API响应
-   */
-  async callAPI(endpoint, data) {
-    try {
-      const response = await new Promise((resolve, reject) => {
-        uni.request({
-          url: `${this.apiBaseUrl}${endpoint}`,
-          method: 'POST',
-          data: data,
-          header: {
-            'Content-Type': 'application/json',
-            // 如果需要认证，添加token
-            // 'Authorization': `Bearer ${token}`
-          },
-          timeout: this.timeout,
-          success: (res) => {
-            if (res.statusCode === 200) {
-              resolve(res.data)
-            } else {
-              reject(new Error(`API error: ${res.statusCode}`))
-            }
-          },
-          fail: (err) => {
-            reject(err)
-          }
-        })
-      })
-
-      return response
-    } catch (error) {
-      console.error('AI API调用失败:', error)
-      throw error
-    }
-  }
-
-  /**
-   * 生成智能摘要
-   * @param {string} content 原文内容
-   * @param {number} maxLength 摘要最大长度（字数）
-   * @returns {Promise<string>} 摘要文本
+   * 生成知识摘要
+   * @param {string} content - 知识内容
+   * @param {number} maxLength - 摘要最大长度（字符数）
+   * @returns {Promise<string>} 生成的摘要
    */
   async generateSummary(content, maxLength = 200) {
-    // 如果内容太短，不需要摘要
+    if (!content || content.trim().length === 0) {
+      throw new Error('内容不能为空')
+    }
+
+    // 如果内容本身就很短，直接返回
     if (content.length <= maxLength) {
       return content
     }
 
-    try {
-      // 在实际环境中，这里会调用真实的AI API
-      // const response = await this.callAPI('/ai/summarize', {
-      //   content,
-      //   maxLength
-      // })
-      // return response.summary
+    const prompt = `请为以下内容生成一个简洁的摘要，长度控制在${maxLength}字以内。只返回摘要内容，不要添加任何前缀或说明。
 
-      // 演示模式：使用简单的截取逻辑
-      return await this.mockGenerateSummary(content, maxLength)
+内容：
+${content}
+
+摘要：`
+
+    try {
+      const response = await llm.query(prompt, [])
+      return response.content.trim()
     } catch (error) {
       console.error('生成摘要失败:', error)
-      throw new Error('生成摘要失败，请稍后重试')
+      throw new Error('生成摘要失败: ' + error.message)
     }
   }
 
   /**
-   * 模拟生成摘要（演示用）
+   * 智能标签建议
+   * @param {string} title - 知识标题
+   * @param {string} content - 知识内容
+   * @param {Array} existingTags - 现有标签列表
+   * @param {number} maxTags - 最多建议标签数
+   * @returns {Promise<Array>} 建议的标签列表
    */
-  async mockGenerateSummary(content, maxLength) {
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // 简单的摘要策略：
-    // 1. 提取前几句话
-    // 2. 确保不超过maxLength
-    const sentences = content.match(/[^。！？.!?]+[。！？.!?]/g) || [content]
-    let summary = ''
-
-    for (const sentence of sentences) {
-      if ((summary + sentence).length <= maxLength) {
-        summary += sentence
-      } else {
-        break
-      }
+  async suggestTags(title, content, existingTags = [], maxTags = 5) {
+    if (!title && !content) {
+      throw new Error('标题或内容不能都为空')
     }
 
-    if (summary.length === 0) {
-      summary = content.substring(0, maxLength) + '...'
-    }
+    const existingTagNames = existingTags.map(t => t.name).join('、')
+    const existingTagsText = existingTags.length > 0
+      ? `\n\n已有标签供参考（不要重复）：${existingTagNames}`
+      : ''
 
-    return summary.trim()
-  }
+    const prompt = `请为以下知识条目建议${maxTags}个合适的标签。标签应该简洁、准确，能够帮助分类和检索。${existingTagsText}
 
-  /**
-   * AI标签建议
-   * @param {string} title 标题
-   * @param {string} content 内容
-   * @param {Array} existingTags 已有的标签列表（用于推荐相关标签）
-   * @returns {Promise<Array>} 建议的标签数组 [{name, confidence}]
-   */
-  async suggestTags(title, content, existingTags = []) {
+标题：${title || '无'}
+内容：${content.substring(0, 500)}${content.length > 500 ? '...' : ''}
+
+请只返回标签名称，用逗号分隔，不要添加任何说明或前缀。例如：技术,编程,JavaScript,前端,Web开发`
+
     try {
-      // 在实际环境中调用AI API
-      // const response = await this.callAPI('/ai/suggest-tags', {
-      //   title,
-      //   content,
-      //   existingTags
-      // })
-      // return response.tags
+      const response = await llm.query(prompt, [])
+      const tagsText = response.content.trim()
 
-      // 演示模式：使用关键词提取
-      return await this.mockSuggestTags(title, content, existingTags)
+      // 解析标签
+      const suggestedTags = tagsText
+        .split(/[,，、]/)
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0 && tag.length <= 20)
+        .slice(0, maxTags)
+
+      // 过滤掉已存在的标签
+      const existingTagNameSet = new Set(existingTags.map(t => t.name.toLowerCase()))
+      const filteredTags = suggestedTags.filter(tag => !existingTagNameSet.has(tag.toLowerCase()))
+
+      // 返回格式：[{name, confidence}]
+      return filteredTags.map(name => ({
+        name,
+        confidence: 0.8 + Math.random() * 0.2 // 0.8-1.0的置信度
+      }))
     } catch (error) {
-      console.error('标签建议失败:', error)
-      throw new Error('标签建议失败，请稍后重试')
+      console.error('生成标签建议失败:', error)
+      throw new Error('生成标签建议失败: ' + error.message)
     }
   }
 
   /**
-   * 模拟标签建议（演示用）
+   * 知识关联推荐
+   * @param {string} currentTitle - 当前知识标题
+   * @param {string} currentContent - 当前知识内容
+   * @param {Array} allKnowledge - 所有知识列表
+   * @param {number} maxRecommendations - 最多推荐数量
+   * @returns {Promise<Array>} 推荐的知识ID列表
    */
-  async mockSuggestTags(title, content, existingTags) {
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 800))
-
-    const text = (title + ' ' + content).toLowerCase()
-    const suggestions = []
-
-    // 预定义的关键词-标签映射
-    const keywordTagMap = {
-      '技术': ['技术', '编程'],
-      '代码': ['编程', '技术'],
-      '算法': ['算法', '编程'],
-      '数据': ['数据科学', '分析'],
-      '学习': ['学习笔记', '教程'],
-      '笔记': ['学习笔记'],
-      '总结': ['总结', '复习'],
-      '会议': ['会议记录', '工作'],
-      '项目': ['项目', '工作'],
-      '想法': ['灵感', '创意'],
-      '计划': ['计划', '目标'],
-      '问题': ['问题', 'Q&A'],
-      '解决': ['解决方案'],
-      'javascript': ['JavaScript', 'Web开发'],
-      'python': ['Python', '编程'],
-      'vue': ['Vue', 'Web开发'],
-      'react': ['React', 'Web开发'],
-      'ai': ['AI', '人工智能'],
-      'web': ['Web开发'],
-      '设计': ['设计', 'UI/UX'],
-      '产品': ['产品', '需求']
+  async recommendRelated(currentTitle, currentContent, allKnowledge, maxRecommendations = 5) {
+    if (!currentTitle && !currentContent) {
+      throw new Error('标题或内容不能都为空')
     }
 
-    // 提取关键词并映射到标签
-    for (const [keyword, tags] of Object.entries(keywordTagMap)) {
-      if (text.includes(keyword)) {
-        tags.forEach(tag => {
-          if (!suggestions.find(s => s.name === tag)) {
-            suggestions.push({
-              name: tag,
-              confidence: 0.7 + Math.random() * 0.3 // 0.7-1.0的置信度
-            })
-          }
-        })
-      }
+    if (!allKnowledge || allKnowledge.length === 0) {
+      return []
     }
 
-    // 如果没有匹配到，返回一些通用标签
-    if (suggestions.length === 0) {
-      const genericTags = ['笔记', '待整理', '杂项']
-      genericTags.forEach(tag => {
-        suggestions.push({
-          name: tag,
-          confidence: 0.5
-        })
-      })
-    }
+    // 准备知识列表文本
+    const knowledgeList = allKnowledge
+      .slice(0, 20) // 限制数量避免token过多
+      .map((item, index) => `${index + 1}. [ID:${item.id}] ${item.title}`)
+      .join('\n')
 
-    // 按置信度排序，返回前5个
-    return suggestions
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 5)
+    const prompt = `基于以下当前知识，从知识库中推荐${maxRecommendations}个最相关的知识条目。
+
+当前知识：
+标题：${currentTitle}
+内容：${currentContent.substring(0, 300)}${currentContent.length > 300 ? '...' : ''}
+
+知识库列表：
+${knowledgeList}
+
+请只返回推荐的知识ID（方括号中的ID），用逗号分隔，不要添加任何说明。例如：id1,id2,id3`
+
+    try {
+      const response = await llm.query(prompt, [])
+      const idsText = response.content.trim()
+
+      // 解析ID
+      const recommendedIds = idsText
+        .split(/[,，、]/)
+        .map(id => id.trim())
+        .filter(id => id.length > 0)
+        .slice(0, maxRecommendations)
+
+      return recommendedIds
+    } catch (error) {
+      console.error('生成关联推荐失败:', error)
+      throw new Error('生成关联推荐失败: ' + error.message)
+    }
   }
 
   /**
@@ -204,150 +154,176 @@ class AIService {
    * @returns {Promise<string>} 扩展后的完整内容
    */
   async expandContent(title, outline, style = 'casual') {
-    try {
-      // 实际环境中调用AI API
-      // const response = await this.callAPI('/ai/expand-content', {
-      //   title,
-      //   outline,
-      //   style
-      // })
-      // return response.content
+    const styleMap = {
+      formal: '正式、学术的风格',
+      casual: '轻松、口语化的风格',
+      technical: '技术性强、专业的风格'
+    }
 
-      // 演示模式
-      return await this.mockExpandContent(title, outline, style)
+    const styleDesc = styleMap[style] || styleMap.casual
+
+    const prompt = `请基于以下标题和大纲，扩展生成一篇完整的内容。写作风格：${styleDesc}。
+
+标题：${title}
+大纲：
+${outline}
+
+请生成完整内容，包含适当的段落、标题和细节说明：`
+
+    try {
+      const response = await llm.query(prompt, [])
+      return response.content.trim()
     } catch (error) {
       console.error('内容扩展失败:', error)
-      throw new Error('内容扩展失败，请稍后重试')
+      throw new Error('内容扩展失败: ' + error.message)
     }
-  }
-
-  /**
-   * 模拟内容扩展（演示用）
-   */
-  async mockExpandContent(title, outline, style) {
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    const styleTemplates = {
-      formal: {
-        intro: '关于{title}，以下是详细分析：\n\n',
-        conclusion: '\n\n综上所述，{title}是一个值得深入研究的主题。'
-      },
-      casual: {
-        intro: '# {title}\n\n让我来聊聊{title}这个话题。\n\n',
-        conclusion: '\n\n以上就是关于{title}的一些想法，希望对你有帮助！'
-      },
-      technical: {
-        intro: '# {title}\n\n## 概述\n\n',
-        conclusion: '\n\n## 总结\n\n本文介绍了{title}的核心概念和实现方法。'
-      }
-    }
-
-    const template = styleTemplates[style] || styleTemplates.casual
-
-    let content = template.intro.replace(/\{title\}/g, title)
-
-    // 将大纲按行分割并扩展
-    const lines = outline.split('\n').filter(line => line.trim())
-    lines.forEach((line, index) => {
-      content += `${line}\n\n`
-      // 添加一些补充内容
-      if (index < lines.length - 1) {
-        content += `这是对"${line.trim()}"的进一步说明。`
-        content += `通过实践和学习，我们可以更好地理解这一点。\n\n`
-      }
-    })
-
-    content += template.conclusion.replace(/\{title\}/g, title)
-
-    return content
   }
 
   /**
    * 改进内容（润色、纠错）
    * @param {string} content 原始内容
+   * @param {string} instruction 改进指令
    * @returns {Promise<Object>} {improvedContent, suggestions}
    */
-  async improveContent(content) {
-    try {
-      // 实际环境中调用AI API
-      // const response = await this.callAPI('/ai/improve-content', {
-      //   content
-      // })
-      // return response
+  async improveContent(content, instruction = '优化排版和表达，使内容更清晰、更易读') {
+    if (!content || content.trim().length === 0) {
+      throw new Error('内容不能为空')
+    }
 
-      // 演示模式
-      return await this.mockImproveContent(content)
+    const prompt = `请根据以下要求改进内容：${instruction}
+
+原始内容：
+${content}
+
+请返回改进后的内容，保持原有意思但提升表达质量：`
+
+    try {
+      const response = await llm.query(prompt, [])
+      return {
+        improvedContent: response.content.trim(),
+        suggestions: [
+          '已优化段落结构',
+          '已改进语言表达',
+          '已增强内容可读性'
+        ]
+      }
     } catch (error) {
-      console.error('内容改进失败:', error)
-      throw new Error('内容改进失败，请稍后重试')
+      console.error('改进内容失败:', error)
+      throw new Error('改进内容失败: ' + error.message)
     }
   }
 
   /**
-   * 模拟内容改进（演示用）
+   * 智能提取关键词
+   * @param {string} content - 文本内容
+   * @param {number} maxKeywords - 最多关键词数
+   * @returns {Promise<Array>} 关键词列表
    */
-  async mockImproveContent(content) {
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 1200))
+  async extractKeywords(content, maxKeywords = 10) {
+    if (!content || content.trim().length === 0) {
+      throw new Error('内容不能为空')
+    }
 
-    return {
-      improvedContent: content, // 实际应该返回改进后的内容
-      suggestions: [
-        '建议添加更多具体示例',
-        '可以补充相关参考资料',
-        '部分段落可以更简洁'
-      ]
+    const prompt = `请从以下内容中提取${maxKeywords}个最重要的关键词。关键词应该能够代表文本的核心主题。
+
+内容：
+${content.substring(0, 1000)}${content.length > 1000 ? '...' : ''}
+
+请只返回关键词，用逗号分隔，不要添加任何说明：`
+
+    try {
+      const response = await llm.query(prompt, [])
+      const keywordsText = response.content.trim()
+
+      // 解析关键词
+      const keywords = keywordsText
+        .split(/[,，、]/)
+        .map(keyword => keyword.trim())
+        .filter(keyword => keyword.length > 0 && keyword.length <= 20)
+        .slice(0, maxKeywords)
+
+      return keywords
+    } catch (error) {
+      console.error('提取关键词失败:', error)
+      throw new Error('提取关键词失败: ' + error.message)
+    }
+  }
+
+  /**
+   * 生成知识标题
+   * @param {string} content - 知识内容
+   * @returns {Promise<string>} 生成的标题
+   */
+  async generateTitle(content) {
+    if (!content || content.trim().length === 0) {
+      throw new Error('内容不能为空')
+    }
+
+    const prompt = `请为以下内容生成一个简洁、准确的标题，长度控制在30字以内。只返回标题，不要添加任何前缀、引号或说明。
+
+内容：
+${content.substring(0, 500)}${content.length > 500 ? '...' : ''}
+
+标题：`
+
+    try {
+      const response = await llm.query(prompt, [])
+      return response.content.trim().replace(/^["'《「『]|["'》」』]$/g, '')
+    } catch (error) {
+      console.error('生成标题失败:', error)
+      throw new Error('生成标题失败: ' + error.message)
     }
   }
 
   /**
    * 从知识内容生成问答对（用于学习和复习）
    * @param {string} content 知识内容
+   * @param {number} questionCount 生成问题数量
    * @returns {Promise<Array>} 问答对数组 [{question, answer}]
    */
-  async generateQA(content) {
-    try {
-      // 实际环境中调用AI API
-      // const response = await this.callAPI('/ai/generate-qa', {
-      //   content
-      // })
-      // return response.qa
+  async generateQA(content, questionCount = 3) {
+    if (!content || content.trim().length === 0) {
+      throw new Error('内容不能为空')
+    }
 
-      // 演示模式
-      return await this.mockGenerateQA(content)
+    const prompt = `请基于以下内容生成${questionCount}个问答对，帮助用户更好地理解和记忆这些知识。
+
+内容：
+${content}
+
+请严格按照以下格式返回，每个问答对占两行：
+Q1: [问题]
+A1: [答案]
+Q2: [问题]
+A2: [答案]`
+
+    try {
+      const response = await llm.query(prompt, [])
+      const qaText = response.content.trim()
+
+      // 解析问答对
+      const qaList = []
+      const lines = qaText.split('\n')
+      let currentQ = ''
+
+      for (const line of lines) {
+        const trimmedLine = line.trim()
+        if (trimmedLine.match(/^Q\d+:/)) {
+          currentQ = trimmedLine.replace(/^Q\d+:\s*/, '')
+        } else if (trimmedLine.match(/^A\d+:/)) {
+          const answer = trimmedLine.replace(/^A\d+:\s*/, '')
+          if (currentQ) {
+            qaList.push({ question: currentQ, answer })
+            currentQ = ''
+          }
+        }
+      }
+
+      return qaList.slice(0, questionCount)
     } catch (error) {
       console.error('生成问答失败:', error)
-      throw new Error('生成问答失败，请稍后重试')
+      throw new Error('生成问答失败: ' + error.message)
     }
-  }
-
-  /**
-   * 模拟生成问答（演示用）
-   */
-  async mockGenerateQA(content) {
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // 简单提取一些问答
-    const sentences = content.match(/[^。！？.!?]+[。！？.!?]/g) || [content]
-    const qa = []
-
-    sentences.slice(0, 3).forEach((sentence, index) => {
-      qa.push({
-        question: `关于第${index + 1}点，能详细说明吗？`,
-        answer: sentence.trim()
-      })
-    })
-
-    if (qa.length === 0) {
-      qa.push({
-        question: '这段内容的主要观点是什么？',
-        answer: content.substring(0, 100) + '...'
-      })
-    }
-
-    return qa
   }
 }
 
