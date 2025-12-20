@@ -14,7 +14,10 @@
           </view>
 
           <view class="setting-item">
-            <text class="label">昵称</text>
+            <view class="label-row">
+              <text class="label">昵称</text>
+              <text class="char-count">{{ userProfile.nickname.length }}/20</text>
+            </view>
             <input
               class="input"
               type="text"
@@ -25,7 +28,10 @@
           </view>
 
           <view class="setting-item">
-            <text class="label">个人简介</text>
+            <view class="label-row">
+              <text class="label">个人简介</text>
+              <text class="char-count">{{ userProfile.bio.length }}/100</text>
+            </view>
             <textarea
               class="textarea"
               v-model="userProfile.bio"
@@ -156,9 +162,14 @@
           <text class="value">{{ llmConfig.temperature }}</text>
         </view>
 
-        <button class="save-btn" @click="saveLLMConfig">
-          <text>保存配置</text>
-        </button>
+        <view class="button-group">
+          <button class="action-btn secondary" @click="testLLMConnection" :disabled="testingConnection">
+            <text>{{ testingConnection ? '测试中...' : '测试连接' }}</text>
+          </button>
+          <button class="save-btn" @click="saveLLMConfig">
+            <text>保存配置</text>
+          </button>
+        </view>
       </view>
 
       <!-- 账户信息 -->
@@ -255,6 +266,25 @@
       <view class="section">
         <text class="section-title">数据管理</text>
 
+        <view class="data-stats">
+          <view class="stat-row">
+            <text class="stat-label">知识条目</text>
+            <text class="stat-value">{{ dataStats.knowledgeCount }} 条</text>
+          </view>
+          <view class="stat-row">
+            <text class="stat-label">AI 对话</text>
+            <text class="stat-value">{{ dataStats.conversationCount }} 个</text>
+          </view>
+          <view class="stat-row">
+            <text class="stat-label">消息记录</text>
+            <text class="stat-value">{{ dataStats.messageCount }} 条</text>
+          </view>
+          <view class="stat-row">
+            <text class="stat-label">缓存大小</text>
+            <text class="stat-value">{{ cacheSize }}</text>
+          </view>
+        </view>
+
         <button class="action-btn backup" @click="handleBackup">
           <text>💾 数据备份与恢复</text>
         </button>
@@ -285,6 +315,21 @@
         <view class="info-item">
           <text class="info-label">平台</text>
           <text class="info-value">{{ deviceInfo.platform || 'H5' }}</text>
+        </view>
+
+        <view class="info-item">
+          <text class="info-label">首次使用</text>
+          <text class="info-value">{{ appStats.firstUseDate }}</text>
+        </view>
+
+        <view class="info-item">
+          <text class="info-label">使用天数</text>
+          <text class="info-value">{{ appStats.usageDays }} 天</text>
+        </view>
+
+        <view class="info-item">
+          <text class="info-label">启动次数</text>
+          <text class="info-value">{{ appStats.launchCount }} 次</text>
         </view>
       </view>
 
@@ -387,7 +432,7 @@ export default {
     return {
       userProfile: {
         avatar: '👤',
-        nickname: '',
+        nickname: '用户',
         bio: ''
       },
       showAvatarModal: false,
@@ -430,6 +475,7 @@ export default {
       },
       showApiKey: false,
       showSecretKey: false,
+      testingConnection: false,
       providers: [
         { value: 'openai', label: 'OpenAI' },
         { value: 'deepseek', label: 'DeepSeek' },
@@ -442,7 +488,18 @@ export default {
         { value: 'ollama', label: 'Ollama (本地)' },
         { value: 'custom', label: '自定义' }
       ],
-      deviceInfo: {}
+      deviceInfo: {},
+      dataStats: {
+        knowledgeCount: 0,
+        conversationCount: 0,
+        messageCount: 0
+      },
+      cacheSize: '计算中...',
+      appStats: {
+        firstUseDate: '未知',
+        usageDays: 0,
+        launchCount: 0
+      }
     }
   },
   computed: {
@@ -465,6 +522,8 @@ export default {
     this.loadPrivacySettings()
     this.loadLLMConfig()
     this.loadDeviceInfo()
+    this.loadDataStats()
+    this.loadAppStats()
   },
   methods: {
     /**
@@ -567,27 +626,36 @@ export default {
         effectiveTheme = systemInfo.theme || 'light'
       }
 
+      // 设置页面主题属性
+      const pages = getCurrentPages()
+      if (pages.length > 0) {
+        const currentPage = pages[pages.length - 1]
+        if (currentPage.$vm && currentPage.$vm.$el) {
+          currentPage.$vm.$el.setAttribute('data-theme', effectiveTheme)
+        }
+      }
+
       // 设置状态栏样式
       if (effectiveTheme === 'dark') {
         uni.setNavigationBarColor({
-          frontColor: 'var(--bg-card)',
+          frontColor: '#ffffff',
           backgroundColor: '#1f1f1f'
         })
         uni.setTabBarStyle({
           backgroundColor: '#1f1f1f',
-          color: 'var(--text-tertiary)',
-          selectedColor: 'var(--color-primary)',
+          color: '#999999',
+          selectedColor: '#667eea',
           borderStyle: 'black'
         })
       } else {
         uni.setNavigationBarColor({
           frontColor: '#000000',
-          backgroundColor: 'var(--bg-card)'
+          backgroundColor: '#ffffff'
         })
         uni.setTabBarStyle({
-          backgroundColor: 'var(--bg-card)',
-          color: 'var(--text-tertiary)',
-          selectedColor: 'var(--color-primary)',
+          backgroundColor: '#ffffff',
+          color: '#999999',
+          selectedColor: '#667eea',
           borderStyle: 'white'
         })
       }
@@ -743,6 +811,99 @@ export default {
         system: systemInfo.system
       }
     },
+    /**
+     * 加载数据统计
+     */
+    async loadDataStats() {
+      try {
+        // 导入数据库服务
+        const { db } = await import('@/services/database')
+
+        // 获取知识条目数量
+        const knowledge = await db.getKnowledgeItems({ limit: 10000 })
+        this.dataStats.knowledgeCount = knowledge.length
+
+        // 获取对话数量
+        const conversations = await db.getConversations(10000)
+        this.dataStats.conversationCount = conversations.length
+
+        // 获取消息数量（近似统计）
+        let messageCount = 0
+        for (const conv of conversations.slice(0, 100)) {
+          const count = await db.getConversationMessageCount(conv.id)
+          messageCount += count
+        }
+        this.dataStats.messageCount = messageCount
+
+        // 计算缓存大小
+        this.calculateCacheSize()
+      } catch (error) {
+        console.error('加载数据统计失败:', error)
+        this.dataStats = {
+          knowledgeCount: 0,
+          conversationCount: 0,
+          messageCount: 0
+        }
+        this.cacheSize = '未知'
+      }
+    },
+    /**
+     * 计算缓存大小
+     */
+    calculateCacheSize() {
+      try {
+        const storageData = uni.getStorageSync('chainlesschain_db')
+        if (storageData) {
+          const sizeInBytes = new Blob([storageData]).size
+          const sizeInKB = sizeInBytes / 1024
+          const sizeInMB = sizeInKB / 1024
+
+          if (sizeInMB >= 1) {
+            this.cacheSize = sizeInMB.toFixed(2) + ' MB'
+          } else {
+            this.cacheSize = sizeInKB.toFixed(2) + ' KB'
+          }
+        } else {
+          this.cacheSize = '0 KB'
+        }
+      } catch (error) {
+        console.error('计算缓存大小失败:', error)
+        this.cacheSize = '未知'
+      }
+    },
+    /**
+     * 加载应用统计
+     */
+    loadAppStats() {
+      try {
+        // 获取首次使用时间
+        let firstUseTime = uni.getStorageSync('app_first_use_time')
+        if (!firstUseTime) {
+          firstUseTime = Date.now()
+          uni.setStorageSync('app_first_use_time', firstUseTime)
+        }
+
+        const firstDate = new Date(firstUseTime)
+        this.appStats.firstUseDate = `${firstDate.getFullYear()}-${String(firstDate.getMonth() + 1).padStart(2, '0')}-${String(firstDate.getDate()).padStart(2, '0')}`
+
+        // 计算使用天数
+        const daysDiff = Math.floor((Date.now() - firstUseTime) / (1000 * 60 * 60 * 24))
+        this.appStats.usageDays = daysDiff
+
+        // 获取启动次数
+        let launchCount = uni.getStorageSync('app_launch_count') || 0
+        launchCount++
+        uni.setStorageSync('app_launch_count', launchCount)
+        this.appStats.launchCount = launchCount
+      } catch (error) {
+        console.error('加载应用统计失败:', error)
+        this.appStats = {
+          firstUseDate: '未知',
+          usageDays: 0,
+          launchCount: 0
+        }
+      }
+    },
     getProviderLabel(value) {
       const provider = this.providers.find(p => p.value === value)
       return provider ? provider.label : value
@@ -835,6 +996,78 @@ export default {
           title: '保存失败',
           icon: 'none'
         })
+      }
+    },
+    /**
+     * 测试 LLM 连接
+     */
+    async testLLMConnection() {
+      if (this.testingConnection) {
+        return
+      }
+
+      // 验证必填字段
+      if (this.llmConfig.provider !== 'ollama' && !this.llmConfig.apiKey) {
+        uni.showToast({
+          title: '请先输入 API Key',
+          icon: 'none'
+        })
+        return
+      }
+
+      this.testingConnection = true
+
+      try {
+        // 临时设置配置用于测试
+        const originalProvider = llm.provider
+        const originalConfig = { ...llm.config[this.llmConfig.provider] }
+
+        llm.setProvider(this.llmConfig.provider)
+
+        const testConfig = {
+          apiKey: this.llmConfig.apiKey,
+          baseURL: this.llmConfig.baseURL,
+          model: this.llmConfig.model,
+          temperature: parseFloat(this.llmConfig.temperature)
+        }
+
+        if (this.needsSecretKey(this.llmConfig.provider)) {
+          if (this.llmConfig.provider === 'xfyun_xinghuo') {
+            testConfig.apiSecret = this.llmConfig.secretKey
+          } else {
+            testConfig.secretKey = this.llmConfig.secretKey
+          }
+        }
+
+        llm.updateConfig(this.llmConfig.provider, testConfig)
+
+        // 发送测试消息
+        const response = await llm.query('你好，这是一个测试消息，请简短回复。', [])
+
+        if (response && response.content) {
+          uni.showModal({
+            title: '连接成功',
+            content: '配置有效，可以正常使用。\n\n测试回复：' + response.content.substring(0, 50) + (response.content.length > 50 ? '...' : ''),
+            showCancel: false,
+            confirmText: '确定'
+          })
+        } else {
+          throw new Error('未获取到有效响应')
+        }
+
+        // 恢复原配置
+        llm.setProvider(originalProvider)
+        llm.updateConfig(this.llmConfig.provider, originalConfig)
+      } catch (error) {
+        console.error('测试连接失败:', error)
+        uni.showModal({
+          title: '连接失败',
+          content: '配置无效或网络错误\n\n错误信息：' + (error.message || '未知错误'),
+          showCancel: false,
+          confirmText: '确定'
+        })
+      } finally {
+        this.testingConnection = false
       }
     },
     handleClearCache() {
@@ -940,6 +1173,22 @@ export default {
       margin-bottom: 16rpx;
     }
 
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16rpx;
+
+      .label {
+        margin-bottom: 0;
+      }
+
+      .char-count {
+        font-size: 22rpx;
+        color: var(--text-tertiary);
+      }
+    }
+
     .input {
       width: 100%;
       height: 72rpx;
@@ -1011,6 +1260,40 @@ export default {
 
       &.status-pending {
         color: var(--color-warning);
+      }
+    }
+  }
+
+  .button-group {
+    display: flex;
+    gap: 16rpx;
+    margin-top: 32rpx;
+
+    .action-btn,
+    .save-btn {
+      flex: 1;
+      margin-top: 0;
+
+      &.secondary {
+        background-color: var(--bg-input);
+        color: var(--text-primary);
+
+        &:active {
+          background-color: var(--bg-hover);
+        }
+
+        &[disabled] {
+          opacity: 0.5;
+        }
+      }
+    }
+
+    .save-btn {
+      background-color: #667eea;
+      color: #ffffff;
+
+      &:active {
+        background-color: #5568d3;
       }
     }
   }
@@ -1105,6 +1388,36 @@ export default {
   }
 
   // 开关项样式
+  .data-stats {
+    background-color: var(--bg-input);
+    border-radius: 12rpx;
+    padding: 24rpx;
+    margin-bottom: 32rpx;
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16rpx 0;
+      border-bottom: 1rpx solid var(--border-light);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .stat-label {
+        font-size: 28rpx;
+        color: var(--text-secondary);
+      }
+
+      .stat-value {
+        font-size: 28rpx;
+        font-weight: 500;
+        color: var(--color-primary);
+      }
+    }
+  }
+
   .switch-item {
     display: flex;
     justify-content: space-between;
