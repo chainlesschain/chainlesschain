@@ -255,6 +255,10 @@
       <view class="section">
         <text class="section-title">数据管理</text>
 
+        <button class="action-btn backup" @click="handleBackup">
+          <text>💾 数据备份与恢复</text>
+        </button>
+
         <button class="action-btn" @click="handleClearCache">
           <text>清除缓存</text>
         </button>
@@ -871,6 +875,11 @@ export default {
         }
       })
     },
+    handleBackup() {
+      uni.navigateTo({
+        url: '/pages/backup/backup'
+      })
+    },
     handleLogout() {
       uni.showModal({
         title: '退出登录',
@@ -1027,6 +1036,12 @@ export default {
     background-color: var(--color-info);
     color: var(--bg-card);
     margin-top: 16rpx;
+
+    &.backup {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: var(--text-inverse);
+      font-weight: 500;
+    }
 
     &.danger {
       background-color: var(--color-error);

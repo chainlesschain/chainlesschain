@@ -87,6 +87,19 @@
       "style": {
         "navigationBarTitleText": "设置"
       }
+    },
+    {
+      "path": "pages/backup/backup",
+      "style": {
+        "navigationBarTitleText": "数据备份",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/backup/cloud-sync",
+      "style": {
+        "navigationBarTitleText": "云同步设置"
+      }
     }
   ],
   "globalStyle": {

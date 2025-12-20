@@ -1,5 +1,6 @@
 <script>
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
+import { cloudSync } from '@/services/cloudSync'
 
 export default {
   onLaunch() {
@@ -12,6 +13,8 @@ export default {
     this.initDatabase()
     // 监听主题变更事件
     this.listenThemeChange()
+    // 自动云同步
+    this.autoCloudSync()
   },
   onShow() {
     console.log('App Show')
@@ -103,6 +106,20 @@ export default {
         console.log('Database initialized')
       } catch (error) {
         console.error('Database initialization failed:', error)
+      }
+    },
+
+    /**
+     * 自动云同步
+     */
+    async autoCloudSync() {
+      try {
+        // 延迟3秒执行，避免阻塞应用启动
+        setTimeout(async () => {
+          await cloudSync.autoSyncOnStartup()
+        }, 3000)
+      } catch (error) {
+        console.error('自动云同步失败:', error)
       }
     }
   }
