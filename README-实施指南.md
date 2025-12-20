@@ -2,11 +2,30 @@
 
 本文档提供快速启动和开发指南。
 
-## 快速启动
+---
+
+## 💡 重要提示
+
+**如果您没有本地GPU或GPU算力不足**，请查看 [云端部署指南](./README-云端部署指南.md)
+
+使用云端LLM API，每月成本可低至 **￥0-5元**！
+
+**一键启动云端模式**:
+```bash
+# Linux/Mac
+bash start-cloud.sh
+
+# Windows
+start-cloud.bat
+```
+
+---
+
+## 快速启动（本地GPU模式）
 
 ### 前置要求
 
-- Docker Desktop（带GPU支持）
+- Docker Desktop（带GPU支持）⚠️ **需要NVIDIA GPU**
 - Git
 - Node.js 18+（前端开发）
 - JDK 17+（后端开发）
