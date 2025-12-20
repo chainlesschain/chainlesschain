@@ -28,6 +28,23 @@
         </picker>
       </view>
 
+      <!-- 文件夹选择 -->
+      <view class="form-item">
+        <text class="label">文件夹</text>
+        <picker
+          mode="selector"
+          :range="folderOptions"
+          range-key="label"
+          :value="selectedFolderIndex"
+          @change="handleFolderChange"
+        >
+          <view class="picker">
+            <text>{{ getFolderLabel(form.folder_id) }}</text>
+            <text class="arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
       <!-- 标签选择 -->
       <view class="form-item tags-item">
         <view class="label-row">
@@ -229,7 +246,8 @@ export default {
       form: {
         title: '',
         type: 'note',
-        content: ''
+        content: '',
+        folder_id: null
       },
       typeOptions: [
         { value: 'note', label: '笔记' },
@@ -237,6 +255,8 @@ export default {
         { value: 'conversation', label: '对话' },
         { value: 'web_clip', label: '网页摘录' }
       ],
+      // 文件夹相关
+      folders: [],
       // 标签相关
       showTagModal: false,
       showAIModal: false,
@@ -259,6 +279,19 @@ export default {
     },
     selectedTypeIndex() {
       return this.typeOptions.findIndex(item => item.value === this.form.type)
+    },
+    selectedFolderIndex() {
+      return this.folderOptions.findIndex(item => item.value === this.form.folder_id)
+    },
+    folderOptions() {
+      const options = [{ value: null, label: '📁 无文件夹（根目录）' }]
+      this.folders.forEach(folder => {
+        options.push({
+          value: folder.id,
+          label: `${folder.icon || '📁'} ${folder.name}`
+        })
+      })
+      return options
     },
     filteredTags() {
       if (!this.tagSearchQuery) {
@@ -284,6 +317,11 @@ export default {
       this.isEdit = true
       this.loadItem()
     } else {
+      // 如果从文件夹页面跳转过来，设置默认文件夹
+      if (options.folderId) {
+        this.form.folder_id = parseInt(options.folderId)
+      }
+
       // 设置导航栏标题
       uni.setNavigationBarTitle({
         title: '新建知识'
@@ -291,6 +329,7 @@ export default {
     }
 
     this.loadTags()
+    this.loadFolders()
   },
   methods: {
     /**
@@ -305,6 +344,17 @@ export default {
     },
 
     /**
+     * 加载文件夹列表
+     */
+    async loadFolders() {
+      try {
+        this.folders = await db.getFolders()
+      } catch (error) {
+        console.error('加载文件夹失败:', error)
+      }
+    },
+
+    /**
      * 加载知识项和其标签
      */
     async loadItem() {
@@ -314,7 +364,8 @@ export default {
           this.form = {
             title: item.title,
             type: item.type,
-            content: item.content
+            content: item.content,
+            folder_id: item.folder_id
           }
 
           // 加载该知识项的标签
@@ -445,6 +496,19 @@ export default {
       this.form.type = this.typeOptions[index].value
     },
 
+    getFolderLabel(folderId) {
+      if (!folderId) {
+        return '📁 无文件夹（根目录）'
+      }
+      const folder = this.folders.find(f => f.id === folderId)
+      return folder ? `${folder.icon || '📁'} ${folder.name}` : '📁 无文件夹（根目录）'
+    },
+
+    handleFolderChange(e) {
+      const index = e.detail.value
+      this.form.folder_id = this.folderOptions[index].value
+    },
+
     async handleSave() {
       if (!this.canSave || this.saving) {
         return
@@ -460,14 +524,16 @@ export default {
           await db.updateKnowledgeItem(this.id, {
             title: this.form.title.trim(),
             type: this.form.type,
-            content: this.form.content.trim()
+            content: this.form.content.trim(),
+            folder_id: this.form.folder_id
           })
         } else {
           // 新建知识项
           const newItem = await db.addKnowledgeItem({
             title: this.form.title.trim(),
             type: this.form.type,
-            content: this.form.content.trim()
+            content: this.form.content.trim(),
+            folder_id: this.form.folder_id
           })
           itemId = newItem.id
         }
