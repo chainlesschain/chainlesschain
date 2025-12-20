@@ -396,8 +396,7 @@ onMounted(() => {
 
 <style scoped>
 .git-settings {
-  max-width: 800px;
-  margin: 0 auto;
+  height: 100%;
 }
 
 .form-hint {

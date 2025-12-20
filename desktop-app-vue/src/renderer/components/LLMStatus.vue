@@ -17,11 +17,19 @@
             </a-tag>
           </a-descriptions-item>
 
-          <a-descriptions-item label="当前模型" v-if="currentModel">
+          <a-descriptions-item
+            label="当前模型"
+            v-if="showCurrentModel"
+            :span="modelStatSpan"
+          >
             {{ currentModel }}
           </a-descriptions-item>
 
-          <a-descriptions-item label="可用模型" v-if="status.models && status.models.length > 0">
+          <a-descriptions-item
+            label="可用模型"
+            v-if="showModelCount"
+            :span="modelStatSpan"
+          >
             {{ status.models.length }} 个
           </a-descriptions-item>
 
@@ -38,7 +46,7 @@
       </div>
 
       <!-- 可用模型列表 -->
-      <div v-if="status.models && status.models.length > 0" class="models-section">
+      <div v-if="showModelCount" class="models-section">
         <a-divider>可用模型</a-divider>
         <a-list
           :data-source="status.models.slice(0, showAllModels ? status.models.length : 5)"
@@ -162,6 +170,14 @@ const refreshing = ref(false);
 const testing = ref(false);
 const showAllModels = ref(false);
 const testResult = ref(null);
+
+const showCurrentModel = computed(() => Boolean(currentModel.value));
+const showModelCount = computed(
+  () => Array.isArray(status.value.models) && status.value.models.length > 0
+);
+const modelStatSpan = computed(() =>
+  showCurrentModel.value && showModelCount.value ? 1 : 2
+);
 
 // 定时器
 let statusCheckInterval = null;

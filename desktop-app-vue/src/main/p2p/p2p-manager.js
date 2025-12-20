@@ -34,20 +34,22 @@ const DEFAULT_CONFIG = {
  * P2P 管理器类
  */
 class P2PManager extends EventEmitter {
-  constructor(config = {}) {
-    super();
+    constructor(config = {}) {
+      super();
 
-    this.config = { ...DEFAULT_CONFIG, ...config };
-    this.node = null;
+      this.config = { ...DEFAULT_CONFIG, ...config };
+      this.node = null;
     this.peerId = null;
     this.peers = new Map(); // 连接的对等节点
     this.dht = null;
-    this.signalManager = null; // Signal 加密会话管理器
-    this.deviceManager = null; // 设备管理器
-    this.syncManager = null;   // 设备同步管理器
-    this.friendManager = null; // 好友管理器
-    this.initialized = false;
-  }
+      this.signalManager = null; // Signal 加密会话管理器
+      this.deviceManager = null; // 设备管理器
+      this.syncManager = null;   // 设备同步管理器
+      this.friendManager = null; // 好友管理器
+      this.postProtocolsRegistered = false;
+      this.pendingPostProtocolRegistration = false;
+      this.initialized = false;
+    }
 
   /**
    * 初始化 P2P 节点
@@ -86,6 +88,10 @@ class P2PManager extends EventEmitter {
 
       // 加载或生成 PeerId
       this.peerId = await this.loadOrGeneratePeerId();
+      if (!this.peerId) {
+        console.warn('[P2PManager] PeerId 不可用，跳过 P2P 初始化');
+        return false;
+      }
 
       // 创建 libp2p 节点
       this.node = await createLibp2p({
@@ -132,6 +138,10 @@ class P2PManager extends EventEmitter {
       // 注册设备同步协议处理器
       this.registerDeviceSyncHandlers();
 
+      if (this.pendingPostProtocolRegistration || this.postManager) {
+        this.registerPostProtocols();
+      }
+
       // 广播当前设备信息
       this.broadcastDeviceInfo();
 
@@ -158,7 +168,18 @@ class P2PManager extends EventEmitter {
    * 加载或生成 PeerId
    */
   async loadOrGeneratePeerId() {
-    const { createFromJSON, createEd25519PeerId } = await import('@libp2p/peer-id-factory');
+    let peerFactory;
+    try {
+      peerFactory = await import('@libp2p/peer-id-factory');
+    } catch (error) {
+      console.warn(
+        '[P2PManager] 缺少 @libp2p/peer-id-factory，P2P 功能将被禁用:',
+        error.message
+      );
+      return null;
+    }
+
+    const { createFromJSON, createEd25519PeerId } = peerFactory;
 
     if (!this.config.dataPath) {
       // 无数据路径，生成临时 PeerId
@@ -1105,23 +1126,35 @@ class P2PManager extends EventEmitter {
    * 设置动态管理器
    * @param {PostManager} postManager - 动态管理器实例
    */
-  setPostManager(postManager) {
-    this.postManager = postManager;
+    setPostManager(postManager) {
+      this.postManager = postManager;
 
-    // 注册动态协议处理器
-    this.registerPostProtocols();
+      // 注册动态协议处理器
+      if (this.node) {
+        this.registerPostProtocols();
+      } else {
+        this.pendingPostProtocolRegistration = true;
+      }
 
-    console.log('[P2PManager] 动态管理器已设置');
-  }
+      console.log('[P2PManager] 动态管理器已设置');
+    }
 
   /**
    * 注册动态相关协议处理器
    */
-  registerPostProtocols() {
-    if (!this.postManager) {
-      console.warn('[P2PManager] 动态管理器未设置，跳过协议注册');
-      return;
-    }
+    registerPostProtocols() {
+      if (!this.postManager) {
+        console.warn('[P2PManager] 动态管理器未设置，跳过协议注册');
+        return;
+      }
+      if (!this.node) {
+        console.warn('[P2PManager] P2P 节点未初始化，跳过动态协议注册');
+        this.pendingPostProtocolRegistration = true;
+        return;
+      }
+      if (this.postProtocolsRegistered) {
+        return;
+      }
 
     // 处理动态同步
     this.node.handle('/chainlesschain/post-sync/1.0.0', async ({ stream, connection }) => {
@@ -1179,9 +1212,9 @@ class P2PManager extends EventEmitter {
       }
     });
 
-    // 处理评论通知
-    this.node.handle('/chainlesschain/post-comment/1.0.0', async ({ stream, connection }) => {
-      try {
+      // 处理评论通知
+      this.node.handle('/chainlesschain/post-comment/1.0.0', async ({ stream, connection }) => {
+        try {
         const data = [];
         for await (const chunk of stream.source) {
           data.push(chunk.subarray());
@@ -1201,11 +1234,13 @@ class P2PManager extends EventEmitter {
         await stream.close();
       } catch (error) {
         console.error('[P2PManager] 处理评论通知失败:', error);
-      }
-    });
+        }
+      });
 
-    console.log('[P2PManager] 动态协议处理器已注册');
-  }
+      this.postProtocolsRegistered = true;
+      this.pendingPostProtocolRegistration = false;
+      console.log('[P2PManager] 动态协议处理器已注册');
+    }
 
   /**
    * 关闭 P2P 节点

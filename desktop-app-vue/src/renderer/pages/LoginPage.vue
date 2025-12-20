@@ -83,7 +83,7 @@ import {
   CloseCircleOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
-import { ukeyAPI } from '../utils/ipc';
+import { ukeyAPI, systemAPI } from '../utils/ipc';
 
 const router = useRouter();
 const store = useAppStore();
@@ -139,6 +139,13 @@ const handleLogin = async () => {
 
       // 设置为已认证
       store.setAuthenticated(true);
+
+      // 最大化窗口
+      try {
+        await systemAPI.maximize();
+      } catch (error) {
+        console.error('窗口最大化失败:', error);
+      }
 
       // 跳转到首页
       router.push('/');

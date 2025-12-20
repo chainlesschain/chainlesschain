@@ -118,7 +118,7 @@
         <!-- 上传结果 -->
         <a-card v-if="uploadResults.length > 0" title="上传结果" size="small" :bordered="true">
           <!-- 统计信息 -->
-          <a-statistic-group>
+          <div class="upload-stats">
             <a-row :gutter="16">
               <a-col :span="8">
                 <a-statistic
@@ -154,7 +154,7 @@
                 </a-statistic>
               </a-col>
             </a-row>
-          </a-statistic-group>
+          </div>
 
           <!-- 结果列表 -->
           <a-divider />
@@ -452,7 +452,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, toRaw } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
   CameraOutlined,
@@ -476,6 +476,27 @@ const uploadOptions = reactive({
   performOCR: true,
   addToIndex: true,
 });
+
+const normalizeFilePath = (file) => {
+  if (!file) return '';
+  if (typeof file === 'string') return file;
+  if (file.path) return file.path;
+  if (file.originFileObj?.path) return file.originFileObj.path;
+  return '';
+};
+
+const buildUploadOptions = () => {
+  const raw = toRaw(uploadOptions);
+  return {
+    compress: !!raw.compress,
+    generateThumbnail: true,
+    performOCR: !!raw.performOCR,
+    addToKnowledge: true,
+    addToIndex: !!raw.addToIndex,
+    knowledgeType: raw.type || 'note',
+    tags: Array.isArray(raw.tags) ? [...raw.tags] : [],
+  };
+};
 
 // 上传状态
 const uploading = ref(false);
@@ -518,8 +539,8 @@ const imageViewerVisible = ref(false);
 const currentImage = ref(null);
 
 // 文件选择前的处理
-const handleBeforeUpload = (file) => {
-  const files = Array.isArray(file) ? file : [file];
+const handleBeforeUpload = (file, fileList) => {
+  const files = fileList?.length ? fileList : Array.isArray(file) ? file : [file];
   handleFilesSelected(files);
   return false; // 阻止自动上传
 };
@@ -540,7 +561,11 @@ const handleSelectFiles = async () => {
 
 // 处理选中的文件
 const handleFilesSelected = (files) => {
-  const filePaths = files.map(file => file.path || file);
+  const filePaths = files.map(normalizeFilePath).filter(Boolean);
+  if (filePaths.length === 0) {
+    message.warning('æ— æ³•èŽ·å–æ–‡ä»¶è·¯å¾„');
+    return;
+  }
   uploadImages(filePaths);
 };
 
@@ -575,15 +600,7 @@ const uploadImages = async (filePaths) => {
   window.electronAPI.image.on('image:ocr-progress', ocrProgressHandler);
 
   try {
-    const options = {
-      compress: uploadOptions.compress,
-      generateThumbnail: true,
-      performOCR: uploadOptions.performOCR,
-      addToKnowledge: true,
-      addToIndex: uploadOptions.addToIndex,
-      knowledgeType: uploadOptions.type,
-      tags: uploadOptions.tags,
-    };
+    const options = buildUploadOptions();
 
     let results;
     if (filePaths.length === 1) {

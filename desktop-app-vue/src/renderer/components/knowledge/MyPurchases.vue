@@ -202,6 +202,14 @@ const contentDetail = ref('');
 const loadPurchases = async () => {
   try {
     loading.value = true;
+
+    // 检查API是否存在
+    if (!window.electronAPI?.knowledge?.getMyPurchases) {
+      console.warn("购买API尚未实现");
+      purchases.value = [];
+      loading.value = false;
+      return;
+    }
     purchases.value = await window.electronAPI.knowledge.getMyPurchases();
     console.log('购买列表已加载:', purchases.value.length);
   } catch (error) {

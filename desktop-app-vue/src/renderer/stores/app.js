@@ -32,6 +32,17 @@ export const useAppStore = defineStore('app', {
     sidebarCollapsed: false,
     chatPanelVisible: false,
     loading: false,
+
+    // 多标签页管理
+    tabs: [
+      {
+        key: 'home',
+        title: '首页',
+        path: '/',
+        closable: false, // 首页不可关闭
+      },
+    ],
+    activeTabKey: 'home',
   }),
 
   getters: {
@@ -171,6 +182,84 @@ export const useAppStore = defineStore('app', {
       this.knowledgeItems = [];
       this.currentItem = null;
       this.messages = [];
+      // 重置标签页
+      this.tabs = [
+        {
+          key: 'home',
+          title: '首页',
+          path: '/',
+          closable: false,
+        },
+      ];
+      this.activeTabKey = 'home';
+    },
+
+    // 多标签页管理
+    addTab(tab) {
+      // 检查标签页是否已存在
+      const existingTab = this.tabs.find((t) => t.key === tab.key);
+      if (existingTab) {
+        // 如果存在，激活该标签
+        this.activeTabKey = tab.key;
+        return;
+      }
+
+      // 添加新标签页
+      this.tabs.push({
+        key: tab.key,
+        title: tab.title,
+        path: tab.path,
+        closable: tab.closable !== false, // 默认可关闭
+      });
+      this.activeTabKey = tab.key;
+    },
+
+    removeTab(targetKey) {
+      const tabs = this.tabs;
+      let activeKey = this.activeTabKey;
+
+      // 不能关闭首页
+      if (targetKey === 'home') {
+        return;
+      }
+
+      // 找到要删除的标签页的索引
+      const targetIndex = tabs.findIndex((tab) => tab.key === targetKey);
+      if (targetIndex === -1) return;
+
+      // 如果关闭的是当前激活的标签，需要激活另一个标签
+      if (targetKey === activeKey) {
+        // 优先激活下一个，如果没有下一个，激活上一个
+        const nextTab = tabs[targetIndex + 1] || tabs[targetIndex - 1];
+        activeKey = nextTab ? nextTab.key : 'home';
+      }
+
+      // 移除标签页
+      this.tabs = tabs.filter((tab) => tab.key !== targetKey);
+      this.activeTabKey = activeKey;
+    },
+
+    setActiveTab(key) {
+      this.activeTabKey = key;
+    },
+
+    closeAllTabs() {
+      this.tabs = [
+        {
+          key: 'home',
+          title: '首页',
+          path: '/',
+          closable: false,
+        },
+      ];
+      this.activeTabKey = 'home';
+    },
+
+    closeOtherTabs(targetKey) {
+      this.tabs = this.tabs.filter(
+        (tab) => tab.key === targetKey || tab.key === 'home'
+      );
+      this.activeTabKey = targetKey;
     },
   },
 });

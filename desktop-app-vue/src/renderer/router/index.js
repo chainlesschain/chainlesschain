@@ -56,6 +56,12 @@ const routes = [
         meta: { title: '图片上传' },
       },
       {
+        path: 'file-import',
+        name: 'FileImport',
+        component: () => import('../components/FileImport.vue'),
+        meta: { title: '文件导入' },
+      },
+      {
         path: 'prompt-templates',
         name: 'PromptTemplates',
         component: () => import('../components/PromptTemplates.vue'),
@@ -76,7 +82,7 @@ const routes = [
       {
         path: 'marketplace',
         name: 'Marketplace',
-        component: () => import('../components/trade/MarketplaceList.vue'),
+        component: () => import('../components/trade/Marketplace.vue'),
         meta: { title: '交易市场' },
       },
       {

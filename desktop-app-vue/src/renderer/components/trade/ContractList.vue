@@ -35,7 +35,7 @@
 
         <span style="margin-left: 16px">合约类型:</span>
         <a-select
-          v-model:value="filterType"540
+          v-model:value="filterType"
           style="width: 180px"
           @change="handleFilterChange"
         >

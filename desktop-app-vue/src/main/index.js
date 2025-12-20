@@ -208,7 +208,11 @@ class ChainlessChainApp {
         dataPath: path.join(app.getPath('userData'), 'p2p'),
       });
       // P2P 初始化可能较慢，使用后台初始化
-      this.p2pManager.initialize().then(() => {
+      this.p2pManager.initialize().then((initialized) => {
+        if (!initialized) {
+          console.warn('P2P管理器未启用');
+          return;
+        }
         console.log('P2P管理器初始化成功');
 
         // 设置 P2P 加密消息事件监听
@@ -3383,7 +3387,7 @@ class ChainlessChainApp {
     ipcMain.handle('git:get-log', async (_event, depth = 10) => {
       try {
         if (!this.gitManager) {
-          throw new Error('Git同步未启用');
+          return [];
         }
 
         return await this.gitManager.getLog(depth);
@@ -3489,9 +3493,7 @@ class ChainlessChainApp {
     });
 
     ipcMain.handle('system:maximize', () => {
-      if (this.mainWindow?.isMaximized()) {
-        this.mainWindow.unmaximize();
-      } else {
+      if (!this.mainWindow?.isMaximized()) {
         this.mainWindow?.maximize();
       }
     });

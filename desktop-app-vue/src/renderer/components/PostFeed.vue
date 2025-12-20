@@ -214,9 +214,14 @@ onMounted(async () => {
 
 <style scoped>
 .post-feed-container {
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
+  height: 100%;
+  margin: -24px;
+  padding: 0;
+}
+
+.post-feed-container :deep(.ant-card) {
+  border-radius: 0;
+  height: 100%;
 }
 
 .composer-section {
