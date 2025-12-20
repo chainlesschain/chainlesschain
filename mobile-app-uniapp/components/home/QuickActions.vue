@@ -141,7 +141,7 @@ export default {
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+        box-shadow: var(--shadow-md);
         position: relative;
         overflow: hidden;
         transition: all 0.3s ease;

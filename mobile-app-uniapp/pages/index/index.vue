@@ -154,7 +154,7 @@ export default {
   background-color: var(--bg-card);
   border-radius: 24rpx;
   padding: 32rpx 24rpx;
-  box-shadow: 0 4rpx 20rpx rgba(102, 126, 234, 0.08);
+  box-shadow: var(--shadow-md);
   margin-bottom: 24rpx;
 }
 
@@ -163,7 +163,7 @@ export default {
   background-color: var(--bg-card);
   border-radius: 24rpx;
   padding: 32rpx 24rpx;
-  box-shadow: 0 4rpx 20rpx rgba(102, 126, 234, 0.08);
+  box-shadow: var(--shadow-md);
   margin-bottom: 32rpx;
 }
 

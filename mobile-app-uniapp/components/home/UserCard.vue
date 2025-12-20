@@ -69,11 +69,11 @@ export default {
 
 <style lang="scss" scoped>
 .user-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-brand);
   border-radius: 24rpx;
   padding: 48rpx 32rpx;
   margin-bottom: 24rpx;
-  box-shadow: 0 8rpx 32rpx rgba(102, 126, 234, 0.25);
+  box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
 
@@ -113,7 +113,7 @@ export default {
         align-items: center;
         justify-content: center;
         border: 3rpx solid rgba(255, 255, 255, 0.3);
-        box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-sm);
 
         .avatar-text {
           font-size: 44rpx;
