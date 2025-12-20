@@ -3,38 +3,40 @@
  */
 
 /* 主题颜色 */
-$primary-color: #3cc51f;
-$success-color: #52c41a;
-$warning-color: #faad14;
-$error-color: #f5222d;
-$info-color: #1890ff;
+$primary-color: #667eea;
+$success-color: #43e97b;
+$warning-color: #fa709a;
+$error-color: #f5576c;
+$info-color: #4facfe;
 
 /* 文本颜色 */
-$text-primary: #333333;
-$text-secondary: #666666;
-$text-placeholder: #999999;
-$text-disabled: #cccccc;
+$text-primary: #1f2937; /* 深灰色 */
+$text-secondary: #6b7280; /* 中灰色 */
+$text-tertiary: #9ca3af; /* 浅灰色 */
+$text-placeholder: #9ca3af;
+$text-disabled: #d1d5db;
 
 /* 背景颜色 */
-$bg-page: #f8f8f8;
-$bg-white: #ffffff;
-$bg-light: #f5f5f5;
+$bg-page: #f2f3f7; /* 非常浅的灰色 */
+$bg-card: #ffffff;
+$bg-hover: #f9fafb; /* 悬停时的浅灰色 */
+$bg-input: #f3f4f6;
 
 /* 边框颜色 */
-$border-color: #e8e8e8;
-$border-light: #f0f0f0;
+$border-color: #e5e7eb;
+$border-light: #f3f4f6;
 
 /* 圆角 */
-$border-radius-sm: 4rpx;
-$border-radius-base: 8rpx;
-$border-radius-lg: 12rpx;
+$border-radius-sm: 8rpx;
+$border-radius-base: 16rpx;
+$border-radius-lg: 24rpx;
 
 /* 间距 */
 $spacing-xs: 8rpx;
-$spacing-sm: 12rpx;
-$spacing-base: 16rpx;
-$spacing-lg: 24rpx;
-$spacing-xl: 32rpx;
+$spacing-sm: 16rpx;
+$spacing-base: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 48rpx;
 
 /* 字体大小 */
 $font-size-xs: 22rpx;
@@ -45,25 +47,32 @@ $font-size-xl: 36rpx;
 $font-size-xxl: 40rpx;
 
 /* 阴影 */
-$box-shadow-sm: 0 2rpx 4rpx rgba(0, 0, 0, 0.05);
-$box-shadow-base: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
-$box-shadow-lg: 0 4rpx 16rpx rgba(0, 0, 0, 0.12);
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
 /* 导出变量供 CSS 使用 */
 :root {
-  --primary-color: #{$primary-color};
-  --success-color: #{$success-color};
-  --warning-color: #{$warning-color};
-  --error-color: #{$error-color};
-  --info-color: #{$info-color};
+  --color-primary: #{$primary-color};
+  --color-success: #{$success-color};
+  --color-warning: #{$warning-color};
+  --color-error: #{$error-color};
+  --color-info: #{$info-color};
 
   --text-primary: #{$text-primary};
   --text-secondary: #{$text-secondary};
+  --text-tertiary: #{$text-tertiary};
   --text-placeholder: #{$text-placeholder};
 
   --bg-page: #{$bg-page};
-  --bg-white: #{$bg-white};
-  --bg-light: #{$bg-light};
+  --bg-card: #{$bg-card};
+  --bg-hover: #{$bg-hover};
+  --bg-input: #{$bg-input};
 
   --border-color: #{$border-color};
+  --border-light: #{$border-light};
+
+  --shadow-sm: #{$shadow-sm};
+  --shadow-md: #{$shadow-md};
+  --shadow-lg: #{$shadow-lg};
 }
