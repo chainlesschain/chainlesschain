@@ -147,6 +147,8 @@ class DatabaseService {
         knowledge_items: [],
         tags: [],
         knowledge_tags: [],
+        knowledge_links: [],
+        folders: [],
         conversations: [],
         messages: [],
         friendships: [],
@@ -188,10 +190,12 @@ class DatabaseService {
         content TEXT,
         encrypted_content TEXT,
         is_favorite INTEGER DEFAULT 0,
+        folder_id TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         device_id TEXT,
-        sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'local'))
+        sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'local')),
+        FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL
       )`,
 
       // 标签表
@@ -209,6 +213,30 @@ class DatabaseService {
         PRIMARY KEY (knowledge_id, tag_id),
         FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
         FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      )`,
+
+      // 知识关联表（双向链接）
+      `CREATE TABLE IF NOT EXISTS knowledge_links (
+        id TEXT PRIMARY KEY,
+        source_id TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        relation_type TEXT DEFAULT 'related',
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (source_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (target_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
+      )`,
+
+      // 文件夹表
+      `CREATE TABLE IF NOT EXISTS folders (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        parent_id TEXT,
+        color TEXT,
+        icon TEXT,
+        sort_order INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE
       )`,
 
       // 对话表
@@ -2120,6 +2148,260 @@ class DatabaseService {
       console.error('获取每日统计失败:', error)
       return []
     }
+  }
+
+  // ==================== 知识关联功能 ====================
+
+  /**
+   * 创建知识关联
+   * @param {string} sourceId 源知识ID
+   * @param {string} targetId 目标知识ID
+   * @param {string} relationType 关联类型（related, reference, derived等）
+   * @returns {Promise<Object>} 关联对象
+   */
+  async createKnowledgeLink(sourceId, targetId, relationType = 'related') {
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9)
+    const now = Date.now()
+
+    const link = {
+      id,
+      source_id: sourceId,
+      target_id: targetId,
+      relation_type: relationType,
+      created_at: now
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_links')
+      this.h5Data.knowledge_links.push(link)
+      this.saveH5Data()
+      return link
+    }
+
+    const sql = `INSERT INTO knowledge_links (id, source_id, target_id, relation_type, created_at)
+      VALUES (?, ?, ?, ?, ?)`
+    await this.executeSql(sql, [id, sourceId, targetId, relationType, now])
+
+    return link
+  }
+
+  /**
+   * 获取知识的关联项
+   * @param {string} knowledgeId 知识ID
+   * @returns {Promise<Array>} 关联的知识数组
+   */
+  async getKnowledgeLinks(knowledgeId) {
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_links')
+      this.ensureH5Data('knowledge_items')
+
+      // 找到所有与该知识相关的链接（作为source或target）
+      const links = this.h5Data.knowledge_links.filter(
+        link => link.source_id === knowledgeId || link.target_id === knowledgeId
+      )
+
+      // 获取关联的知识项详情
+      const relatedItems = []
+      for (const link of links) {
+        const targetId = link.source_id === knowledgeId ? link.target_id : link.source_id
+        const item = this.h5Data.knowledge_items.find(k => k.id === targetId)
+        if (item) {
+          relatedItems.push({
+            ...item,
+            relation_type: link.relation_type,
+            link_id: link.id
+          })
+        }
+      }
+
+      return relatedItems
+    }
+
+    // SQLite查询
+    const sql = `
+      SELECT k.*, l.relation_type, l.id as link_id
+      FROM knowledge_items k
+      JOIN knowledge_links l ON (
+        (l.source_id = ? AND l.target_id = k.id) OR
+        (l.target_id = ? AND l.source_id = k.id)
+      )
+      ORDER BY l.created_at DESC
+    `
+    const result = await this.selectSql(sql, [knowledgeId, knowledgeId])
+    return result || []
+  }
+
+  /**
+   * 删除知识关联
+   * @param {string} linkId 关联ID
+   * @returns {Promise<void>}
+   */
+  async deleteKnowledgeLink(linkId) {
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_links')
+      this.h5Data.knowledge_links = this.h5Data.knowledge_links.filter(l => l.id !== linkId)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = 'DELETE FROM knowledge_links WHERE id = ?'
+    await this.executeSql(sql, [linkId])
+  }
+
+  // ==================== 文件夹管理功能 ====================
+
+  /**
+   * 创建文件夹
+   * @param {string} name 文件夹名称
+   * @param {string} parentId 父文件夹ID（可选）
+   * @param {string} color 颜色（可选）
+   * @param {string} icon 图标（可选）
+   * @returns {Promise<Object>} 文件夹对象
+   */
+  async createFolder(name, parentId = null, color = '#3cc51f', icon = '📁') {
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9)
+    const now = Date.now()
+
+    const folder = {
+      id,
+      name,
+      parent_id: parentId,
+      color,
+      icon,
+      sort_order: 0,
+      created_at: now,
+      updated_at: now
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('folders')
+      this.h5Data.folders.push(folder)
+      this.saveH5Data()
+      return folder
+    }
+
+    const sql = `INSERT INTO folders (id, name, parent_id, color, icon, sort_order, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    await this.executeSql(sql, [id, name, parentId, color, icon, 0, now, now])
+
+    return folder
+  }
+
+  /**
+   * 获取所有文件夹
+   * @returns {Promise<Array>} 文件夹数组
+   */
+  async getFolders() {
+    if (this.isH5) {
+      this.ensureH5Data('folders')
+      return this.h5Data.folders.sort((a, b) => a.sort_order - b.sort_order)
+    }
+
+    const sql = 'SELECT * FROM folders ORDER BY sort_order ASC, created_at DESC'
+    const result = await this.selectSql(sql)
+    return result || []
+  }
+
+  /**
+   * 更新文件夹
+   * @param {string} id 文件夹ID
+   * @param {Object} updates 更新的字段
+   * @returns {Promise<void>}
+   */
+  async updateFolder(id, updates) {
+    const now = Date.now()
+    updates.updated_at = now
+
+    if (this.isH5) {
+      this.ensureH5Data('folders')
+      const folder = this.h5Data.folders.find(f => f.id === id)
+      if (folder) {
+        Object.assign(folder, updates)
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ')
+    const values = [...Object.values(updates), id]
+    const sql = `UPDATE folders SET ${fields} WHERE id = ?`
+    await this.executeSql(sql, values)
+  }
+
+  /**
+   * 删除文件夹
+   * @param {string} id 文件夹ID
+   * @returns {Promise<void>}
+   */
+  async deleteFolder(id) {
+    if (this.isH5) {
+      this.ensureH5Data('folders')
+      this.ensureH5Data('knowledge_items')
+
+      // 删除文件夹
+      this.h5Data.folders = this.h5Data.folders.filter(f => f.id !== id)
+
+      // 将该文件夹中的知识项移到根目录
+      this.h5Data.knowledge_items.forEach(item => {
+        if (item.folder_id === id) {
+          item.folder_id = null
+        }
+      })
+
+      this.saveH5Data()
+      return
+    }
+
+    // 先将文件夹中的知识移到根目录
+    await this.executeSql('UPDATE knowledge_items SET folder_id = NULL WHERE folder_id = ?', [id])
+
+    // 删除文件夹
+    const sql = 'DELETE FROM folders WHERE id = ?'
+    await this.executeSql(sql, [id])
+  }
+
+  /**
+   * 将知识移动到文件夹
+   * @param {string} knowledgeId 知识ID
+   * @param {string} folderId 文件夹ID（null表示移到根目录）
+   * @returns {Promise<void>}
+   */
+  async moveKnowledgeToFolder(knowledgeId, folderId) {
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_items')
+      const item = this.h5Data.knowledge_items.find(k => k.id === knowledgeId)
+      if (item) {
+        item.folder_id = folderId
+        item.updated_at = Date.now()
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE knowledge_items SET folder_id = ?, updated_at = ? WHERE id = ?'
+    await this.executeSql(sql, [folderId, Date.now(), knowledgeId])
+  }
+
+  /**
+   * 获取文件夹中的知识项数量
+   * @param {string} folderId 文件夹ID（null表示根目录）
+   * @returns {Promise<number>} 知识数量
+   */
+  async getFolderKnowledgeCount(folderId) {
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_items')
+      return this.h5Data.knowledge_items.filter(
+        item => item.folder_id === folderId
+      ).length
+    }
+
+    const sql = folderId
+      ? 'SELECT COUNT(*) as count FROM knowledge_items WHERE folder_id = ?'
+      : 'SELECT COUNT(*) as count FROM knowledge_items WHERE folder_id IS NULL'
+
+    const params = folderId ? [folderId] : []
+    const result = await this.selectSql(sql, params)
+    return result[0]?.count || 0
   }
 }
 
