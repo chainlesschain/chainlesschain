@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="login-container">
     <view class="logo-section">
       <image class="logo" src="/logo.png" mode="aspectFit"></image>
@@ -6,6 +6,7 @@
       <text class="app-slogan">去中心化 · 隐私优先 · AI原生</text>
     </view>
 
+    <!-- #ifdef APP-PLUS -->
     <view class="sim-status" v-if="simKeyStatus">
       <view class="status-item">
         <text class="status-label">SIMKey 状态:</text>
@@ -18,6 +19,7 @@
         <text class="status-value">{{ simKeyStatus.serialNumber }}</text>
       </view>
     </view>
+    <!-- #endif -->
 
     <view class="pin-section">
       <text class="section-title">请输入 PIN 码</text>
@@ -60,8 +62,8 @@
 </template>
 
 <script>
-import { auth } from '@/services/auth'
-import { db } from '@/services/database'
+import authService from '@/services/auth'
+import { db as database } from '@/services/database'
 
 export default {
   data() {
@@ -73,13 +75,16 @@ export default {
     }
   },
   onLoad() {
+    // #ifdef APP-PLUS
     this.checkSIMKey()
+    // #endif
     this.checkFirstTime()
   },
   methods: {
     async checkSIMKey() {
+      // #ifdef APP-PLUS
       try {
-        const status = await auth.detectSIMKey()
+        const status = await authService.detectSIMKey()
         this.simKeyStatus = status
       } catch (error) {
         console.error('检测SIMKey失败:', error)
@@ -88,10 +93,11 @@ export default {
           icon: 'none'
         })
       }
+      // #endif
     },
-    checkFirstTime() {
-      const storedPIN = uni.getStorageSync('user_pin')
-      this.isFirstTime = !storedPIN
+    async checkFirstTime() {
+      const hasPin = await authService.hasPIN()
+      this.isFirstTime = !hasPin
     },
     async handleLogin() {
       if (this.pin.length < 4 || this.loading) {
@@ -101,19 +107,32 @@ export default {
       this.loading = true
 
       try {
-        // 验证 PIN 码
-        const result = await auth.verifyPIN(this.pin)
+        let result
+
+        // 首次登录，设置PIN码
+        if (this.isFirstTime) {
+          result = await authService.setupPIN(this.pin)
+        } else {
+          // 验证 PIN 码
+          result = await authService.verifyPIN(this.pin)
+        }
+
+        if (!result.success) {
+          throw new Error('PIN码错误')
+        }
 
         // 初始化数据库
-        await db.init(this.pin)
+        await database.init(this.pin)
 
         // 首次登录时添加模拟数据
         if (this.isFirstTime) {
           await this.initMockData()
         }
 
+        uni.setStorageSync('isLoggedIn', true)
+
         uni.showToast({
-          title: result.message,
+          title: this.isFirstTime ? 'PIN码设置成功' : '登录成功',
           icon: 'success'
         })
 
@@ -170,7 +189,7 @@ export default {
         for (const friend of mockFriends) {
           const sql = `INSERT INTO friendships (user_did, friend_did, nickname, group_name, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?)`
-          await db.executeSql(sql, [
+          await database.executeSql(sql, [
             myDid,
             friend.friend_did,
             friend.nickname,
@@ -181,53 +200,53 @@ export default {
         }
 
         // 为Alice创建一个对话并添加几条消息
-        await db.receiveFriendMessage('did:chainless:alice', 'Alice', '嗨！欢迎使用ChainlessChain！')
-        await db.sendFriendMessage('did:chainless:alice', 'Alice', '你好Alice！很高兴认识你')
-        await db.receiveFriendMessage('did:chainless:alice', 'Alice', '这个应用真不错，可以安全地聊天')
+        await database.receiveFriendMessage('did:chainless:alice', 'Alice', '嗨！欢迎使用ChainlessChain！')
+        await database.sendFriendMessage('did:chainless:alice', 'Alice', '你好Alice！很高兴认识你')
+        await database.receiveFriendMessage('did:chainless:alice', 'Alice', '这个应用真不错，可以安全地聊天')
 
         // 为Bob创建一个对话
-        await db.sendFriendMessage('did:chainless:bob', 'Bob', '嘿Bob，项目进展怎么样？')
-        await db.receiveFriendMessage('did:chainless:bob', 'Bob', '进展顺利！准备下周上线')
+        await database.sendFriendMessage('did:chainless:bob', 'Bob', '嘿Bob，项目进展怎么样？')
+        await database.receiveFriendMessage('did:chainless:bob', 'Bob', '进展顺利！准备下周上线')
 
         // 添加模拟动态
         // Alice的动态
-        await db.createPost('did:chainless:alice', '刚刚发现了 ChainlessChain，这个去中心化的理念真的很酷！期待看到更多功能 🚀', 'public')
+        await database.createPost('did:chainless:alice', '刚刚发现了 ChainlessChain，这个去中心化的理念真的很酷！期待看到更多功能 🚀', 'public')
 
         // Bob的动态
-        await db.createPost('did:chainless:bob', '今天在公司分享了区块链技术，同事们都很感兴趣。有时候技术的力量就是能改变人们的思维方式。', 'public')
+        await database.createPost('did:chainless:bob', '今天在公司分享了区块链技术，同事们都很感兴趣。有时候技术的力量就是能改变人们的思维方式。', 'public')
 
         // Carol的动态
-        await db.createPost('did:chainless:carol', '周末愉快！准备研究一下这个新应用 😊', 'friends')
+        await database.createPost('did:chainless:carol', '周末愉快！准备研究一下这个新应用 😊', 'friends')
 
         // 当前用户的动态
-        await db.createPost(myDid, '第一次使用 ChainlessChain，感觉界面很清爽，隐私保护做得不错！', 'public')
-        await db.createPost(myDid, '学习了一下 uni-app 开发，原来跨平台开发可以这么简单 💡', 'public')
+        await database.createPost(myDid, '第一次使用 ChainlessChain，感觉界面很清爽，隐私保护做得不错！', 'public')
+        await database.createPost(myDid, '学习了一下 uni-app 开发，原来跨平台开发可以这么简单 💡', 'public')
 
         // 为Alice的动态添加一些点赞和评论
-        const alicePosts = await db.getPosts('all', 10)
+        const alicePosts = await database.getPosts('all', 10)
         const alicePost = alicePosts.find(p => p.author_did === 'did:chainless:alice')
         if (alicePost) {
-          await db.likePost(alicePost.id)
-          await db.addComment(alicePost.id, myDid, '我也这么觉得！很期待后续的功能')
-          await db.addComment(alicePost.id, 'did:chainless:bob', '同感，这个项目很有潜力')
+          await database.likePost(alicePost.id)
+          await database.addComment(alicePost.id, myDid, '我也这么觉得！很期待后续的功能')
+          await database.addComment(alicePost.id, 'did:chainless:bob', '同感，这个项目很有潜力')
         }
 
         // 添加交易模块模拟数据
 
         // 给用户初始余额（充值100 CLC）
-        await db.updateBalance(myDid, 100)
-        await db.addTransaction(myDid, 'deposit', 100)
+        await database.updateBalance(myDid, 100)
+        await database.addTransaction(myDid, 'deposit', 100)
 
         // 给好友们也初始化余额
-        await db.updateBalance('did:chainless:alice', 50)
-        await db.updateBalance('did:chainless:bob', 80)
-        await db.updateBalance('did:chainless:carol', 30)
+        await database.updateBalance('did:chainless:alice', 50)
+        await database.updateBalance('did:chainless:bob', 80)
+        await database.updateBalance('did:chainless:carol', 30)
 
         // 创建一些知识项用于上架
         const knowledgeForSale = []
 
         // Alice的知识
-        const aliceKnowledge1 = await db.addKnowledgeItem({
+        const aliceKnowledge1 = await database.addKnowledgeItem({
           title: 'Vue 3 组合式 API 完全指南',
           type: 'document',
           content: '详细介绍Vue 3组合式API的使用方法、最佳实践和常见问题解决方案...',
@@ -235,7 +254,7 @@ export default {
         })
         knowledgeForSale.push(aliceKnowledge1)
 
-        const aliceKnowledge2 = await db.addKnowledgeItem({
+        const aliceKnowledge2 = await database.addKnowledgeItem({
           title: 'uni-app 跨平台开发实战经验',
           type: 'note',
           content: 'uni-app开发中的踩坑经验总结，包括条件编译、性能优化、适配问题等...',
@@ -244,7 +263,7 @@ export default {
         knowledgeForSale.push(aliceKnowledge2)
 
         // Bob的知识
-        const bobKnowledge = await db.addKnowledgeItem({
+        const bobKnowledge = await database.addKnowledgeItem({
           title: '区块链技术原理与应用',
           type: 'document',
           content: '从零开始了解区块链，包括共识算法、智能合约、去中心化应用开发...',
@@ -253,7 +272,7 @@ export default {
         knowledgeForSale.push(bobKnowledge)
 
         // 上架这些知识到市场
-        await db.createListing(
+        await database.createListing(
           aliceKnowledge1.id,
           'did:chainless:alice',
           'Vue 3 组合式 API 完全指南',
@@ -261,7 +280,7 @@ export default {
           15
         )
 
-        await db.createListing(
+        await database.createListing(
           aliceKnowledge2.id,
           'did:chainless:alice',
           'uni-app 跨平台开发实战经验',
@@ -269,7 +288,7 @@ export default {
           12
         )
 
-        await db.createListing(
+        await database.createListing(
           bobKnowledge.id,
           'did:chainless:bob',
           '区块链技术原理与应用',
@@ -442,3 +461,4 @@ export default {
   }
 }
 </style>
+
