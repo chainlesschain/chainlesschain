@@ -688,6 +688,15 @@ class DatabaseService {
   }
 
   /**
+   * 获取所有知识库项（不分页）
+   */
+  async getAllKnowledge() {
+    const sql = 'SELECT * FROM knowledge_items ORDER BY updated_at DESC'
+    const result = await this.selectSql(sql, [])
+    return result || []
+  }
+
+  /**
    * 获取单个知识库项
    */
   async getKnowledgeItem(id) {
