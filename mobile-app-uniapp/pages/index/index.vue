@@ -1,19 +1,5 @@
 <template>
   <view class="home-page">
-    <!-- 渐变头部 -->
-    <view class="header-gradient">
-      <view class="header-content">
-        <view class="title-row">
-          <image src="/logo.png" class="logo" mode="aspectFit" />
-          <view class="title-info">
-            <text class="app-title">ChainlessChain</text>
-            <text class="app-subtitle">AI原生知识管理平台</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 用户卡片（悬浮效果） -->
     <view class="container">
       <user-card :username="username" :user-desc="userDesc" />
 
@@ -134,89 +120,13 @@ export default {
 <style lang="scss" scoped>
 .home-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8f9ff 0%, var(--bg-page) 30%);
+  background: var(--bg-page);
   padding-bottom: 140rpx;
-}
-
-// 渐变头部
-.header-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 0 0 80rpx 0;
-  position: relative;
-  overflow: hidden;
-
-  // 装饰性背景图案
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 400rpx;
-    height: 400rpx;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    filter: blur(80rpx);
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -30%;
-    left: -10%;
-    width: 300rpx;
-    height: 300rpx;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 50%;
-    filter: blur(60rpx);
-  }
-
-  .header-content {
-    padding: 60rpx 32rpx 0;
-    position: relative;
-    z-index: 1;
-
-    .title-row {
-      display: flex;
-      align-items: center;
-      gap: 20rpx;
-
-      .logo {
-        width: 80rpx;
-        height: 80rpx;
-        border-radius: 20rpx;
-        background-color: rgba(255, 255, 255, 0.2);
-        padding: 8rpx;
-        box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);
-      }
-
-      .title-info {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 8rpx;
-
-        .app-title {
-          font-size: 40rpx;
-          font-weight: bold;
-          color: #ffffff;
-          letter-spacing: 1rpx;
-        }
-
-        .app-subtitle {
-          font-size: 24rpx;
-          color: rgba(255, 255, 255, 0.85);
-          letter-spacing: 0.5rpx;
-        }
-      }
-    }
-  }
 }
 
 // 内容容器
 .container {
-  position: relative;
-  margin-top: -60rpx;
-  padding: 0 24rpx;
+  padding: 24rpx;
 }
 
 // Section 头部
