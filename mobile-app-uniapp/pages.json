@@ -106,6 +106,12 @@
       "style": {
         "navigationBarTitleText": "知识统计"
       }
+    },
+    {
+      "path": "pages/knowledge/folders/folders",
+      "style": {
+        "navigationBarTitleText": "文件夹管理"
+      }
     }
   ],
   "globalStyle": {
