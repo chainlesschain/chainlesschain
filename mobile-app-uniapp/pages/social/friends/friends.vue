@@ -437,7 +437,7 @@ export default {
       uni.showModal({
         title: '删除好友',
         content: `确定要删除好友 ${friend.nickname || friend.friend_did.substring(0, 20)} 吗？`,
-        confirmColor: '#ff4d4f',
+        confirmColor: 'var(--color-error)',
         success: async (res) => {
           if (res.confirm) {
             await this.deleteFriendAction(friend)
@@ -503,22 +503,22 @@ export default {
 <style lang="scss" scoped>
 .friends-container {
   min-height: 100vh;
-  background-color: #f8f8f8;
+  background-color: var(--bg-page);
   display: flex;
   flex-direction: column;
 }
 
 .header {
   padding: 24rpx;
-  background-color: #ffffff;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-card);
+  box-shadow: 0 2rpx 8rpx var(--shadow-sm);
   display: flex;
   gap: 20rpx;
 
   .search-input {
     flex: 1;
     height: 72rpx;
-    background-color: #f5f5f5;
+    background-color: var(--bg-input);
     border-radius: 36rpx;
     padding: 0 32rpx;
     font-size: 28rpx;
@@ -527,7 +527,7 @@ export default {
   .add-btn {
     width: 72rpx;
     height: 72rpx;
-    background-color: #3cc51f;
+    background-color: var(--color-primary);
     border-radius: 36rpx;
     font-size: 36rpx;
     border: none;
@@ -535,7 +535,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
+    color: var(--bg-card);
   }
 
   .add-btn::after {
@@ -545,8 +545,8 @@ export default {
 
 .tabs {
   display: flex;
-  background-color: #ffffff;
-  border-bottom: 1rpx solid #f0f0f0;
+  background-color: var(--bg-card);
+  border-bottom: 1rpx solid var(--bg-hover);
 
   .tab-item {
     flex: 1;
@@ -555,11 +555,11 @@ export default {
     align-items: center;
     justify-content: center;
     font-size: 28rpx;
-    color: #666;
+    color: var(--text-secondary);
     position: relative;
 
     &.active {
-      color: #3cc51f;
+      color: var(--color-primary);
       font-weight: 500;
 
       &::after {
@@ -570,7 +570,7 @@ export default {
         transform: translateX(-50%);
         width: 60rpx;
         height: 4rpx;
-        background-color: #3cc51f;
+        background-color: var(--color-primary);
         border-radius: 2rpx;
       }
     }
@@ -585,7 +585,7 @@ export default {
 .loading, .empty {
   padding: 100rpx 40rpx;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .empty {
@@ -604,8 +604,8 @@ export default {
   .add-btn-large {
     width: 300rpx;
     height: 80rpx;
-    background-color: #3cc51f;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--bg-card);
     border-radius: 40rpx;
     font-size: 28rpx;
     border: none;
@@ -617,7 +617,7 @@ export default {
 }
 
 .friend-item {
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   border-radius: 12rpx;
   padding: 32rpx;
   margin-bottom: 20rpx;
@@ -646,17 +646,17 @@ export default {
     .nickname {
       font-size: 32rpx;
       font-weight: 500;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .did {
       font-size: 24rpx;
-      color: #999;
+      color: var(--text-tertiary);
     }
 
     .group {
       font-size: 24rpx;
-      color: #666;
+      color: var(--text-secondary);
     }
   }
 
@@ -674,23 +674,23 @@ export default {
 
       &.status-pending {
         background-color: #fff7e6;
-        color: #fa8c16;
+        color: var(--color-warning);
       }
 
       &.status-accepted {
         background-color: #f6ffed;
-        color: #52c41a;
+        color: var(--color-success);
       }
 
       &.status-blocked {
         background-color: #fff1f0;
-        color: #ff4d4f;
+        color: var(--color-error);
       }
     }
 
     .time {
       font-size: 20rpx;
-      color: #999;
+      color: var(--text-tertiary);
     }
   }
 
@@ -701,7 +701,7 @@ export default {
     align-items: center;
     justify-content: center;
     font-size: 40rpx;
-    color: #999;
+    color: var(--text-tertiary);
   }
 }
 
@@ -719,7 +719,7 @@ export default {
 
   .modal-content {
     width: 600rpx;
-    background-color: #ffffff;
+    background-color: var(--bg-card);
     border-radius: 16rpx;
     padding: 40rpx;
 
@@ -727,7 +727,7 @@ export default {
       display: block;
       font-size: 36rpx;
       font-weight: bold;
-      color: #333;
+      color: var(--text-primary);
       margin-bottom: 32rpx;
       text-align: center;
     }
@@ -739,7 +739,7 @@ export default {
         .label {
           display: block;
           font-size: 28rpx;
-          color: #666;
+          color: var(--text-secondary);
           margin-bottom: 16rpx;
         }
 
@@ -747,7 +747,7 @@ export default {
           width: 100%;
           height: 72rpx;
           padding: 0 24rpx;
-          background-color: #f5f5f5;
+          background-color: var(--bg-input);
           border-radius: 8rpx;
           font-size: 28rpx;
         }
@@ -768,13 +768,13 @@ export default {
         border: none;
 
         &.cancel {
-          background-color: #f5f5f5;
-          color: #666;
+          background-color: var(--bg-input);
+          color: var(--text-secondary);
         }
 
         &.confirm {
-          background-color: #3cc51f;
-          color: #ffffff;
+          background-color: var(--color-primary);
+          color: var(--bg-card);
 
           &[disabled] {
             opacity: 0.5;

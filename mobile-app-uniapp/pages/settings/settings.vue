@@ -566,24 +566,24 @@ export default {
       // 设置状态栏样式
       if (effectiveTheme === 'dark') {
         uni.setNavigationBarColor({
-          frontColor: '#ffffff',
+          frontColor: 'var(--bg-card)',
           backgroundColor: '#1f1f1f'
         })
         uni.setTabBarStyle({
           backgroundColor: '#1f1f1f',
-          color: '#999999',
-          selectedColor: '#3cc51f',
+          color: 'var(--text-tertiary)',
+          selectedColor: 'var(--color-primary)',
           borderStyle: 'black'
         })
       } else {
         uni.setNavigationBarColor({
           frontColor: '#000000',
-          backgroundColor: '#ffffff'
+          backgroundColor: 'var(--bg-card)'
         })
         uni.setTabBarStyle({
-          backgroundColor: '#ffffff',
-          color: '#999999',
-          selectedColor: '#3cc51f',
+          backgroundColor: 'var(--bg-card)',
+          color: 'var(--text-tertiary)',
+          selectedColor: 'var(--color-primary)',
           borderStyle: 'white'
         })
       }
@@ -852,7 +852,7 @@ export default {
       uni.showModal({
         title: '危险操作',
         content: '此操作将删除所有数据且无法恢复，确定继续吗？',
-        confirmColor: '#ff4d4f',
+        confirmColor: 'var(--color-error)',
         success: (res) => {
           if (res.confirm) {
             // 清除所有数据
@@ -894,7 +894,7 @@ export default {
 <style lang="scss" scoped>
 .settings-container {
   min-height: 100vh;
-  background-color: #f8f8f8;
+  background-color: var(--bg-page);
 }
 
 .content {
@@ -903,7 +903,7 @@ export default {
 }
 
 .section {
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   border-radius: 16rpx;
   padding: 32rpx;
   margin-bottom: 24rpx;
@@ -912,7 +912,7 @@ export default {
     display: block;
     font-size: 32rpx;
     font-weight: bold;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 32rpx;
   }
 
@@ -927,7 +927,7 @@ export default {
     .label {
       display: block;
       font-size: 28rpx;
-      color: #666;
+      color: var(--text-secondary);
       margin-bottom: 16rpx;
     }
 
@@ -935,7 +935,7 @@ export default {
       width: 100%;
       height: 72rpx;
       padding: 0 24rpx;
-      background-color: #f5f5f5;
+      background-color: var(--bg-input);
       border-radius: 8rpx;
       font-size: 28rpx;
     }
@@ -946,13 +946,13 @@ export default {
       justify-content: space-between;
       height: 72rpx;
       padding: 0 24rpx;
-      background-color: #f5f5f5;
+      background-color: var(--bg-input);
       border-radius: 8rpx;
       font-size: 28rpx;
 
       .arrow {
         font-size: 20rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
     }
 
@@ -971,7 +971,7 @@ export default {
 
       .value {
         font-size: 24rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
     }
   }
@@ -981,7 +981,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     padding: 24rpx 0;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--bg-hover);
 
     &:last-child {
       border-bottom: none;
@@ -989,19 +989,19 @@ export default {
 
     .info-label {
       font-size: 28rpx;
-      color: #666;
+      color: var(--text-secondary);
     }
 
     .info-value {
       font-size: 28rpx;
-      color: #333;
+      color: var(--text-primary);
 
       &.status-ok {
-        color: #52c41a;
+        color: var(--color-success);
       }
 
       &.status-pending {
-        color: #fa8c16;
+        color: var(--color-warning);
       }
     }
   }
@@ -1019,17 +1019,17 @@ export default {
   }
 
   .save-btn {
-    background-color: #3cc51f;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--bg-card);
   }
 
   .action-btn {
-    background-color: #1890ff;
-    color: #ffffff;
+    background-color: var(--color-info);
+    color: var(--bg-card);
     margin-top: 16rpx;
 
     &.danger {
-      background-color: #ff4d4f;
+      background-color: var(--color-error);
     }
 
     &:first-child {
@@ -1038,8 +1038,8 @@ export default {
   }
 
   .logout-btn {
-    background-color: #f5f5f5;
-    color: #666;
+    background-color: var(--bg-input);
+    color: var(--text-secondary);
     margin-top: 0;
   }
 
@@ -1074,7 +1074,7 @@ export default {
 
       .avatar-hint {
         font-size: 24rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
     }
 
@@ -1082,7 +1082,7 @@ export default {
       width: 100%;
       min-height: 120rpx;
       padding: 16rpx 24rpx;
-      background-color: #f5f5f5;
+      background-color: var(--bg-input);
       border-radius: 8rpx;
       font-size: 28rpx;
       line-height: 1.6;
@@ -1095,7 +1095,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     padding: 24rpx 0;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--bg-hover);
 
     &:last-child {
       border-bottom: none;
@@ -1108,14 +1108,14 @@ export default {
       .switch-label {
         display: block;
         font-size: 28rpx;
-        color: #333;
+        color: var(--text-primary);
         margin-bottom: 8rpx;
       }
 
       .switch-desc {
         display: block;
         font-size: 24rpx;
-        color: #999;
+        color: var(--text-tertiary);
         line-height: 1.5;
       }
     }
@@ -1138,14 +1138,14 @@ export default {
       align-items: center;
       justify-content: center;
       padding: 32rpx 16rpx;
-      background-color: #f5f5f5;
+      background-color: var(--bg-input);
       border-radius: 12rpx;
       border: 2rpx solid transparent;
       transition: all 0.2s;
 
       &.active {
         background-color: #e6f7e6;
-        border-color: #3cc51f;
+        border-color: var(--color-primary);
       }
 
       .theme-icon {
@@ -1155,11 +1155,11 @@ export default {
 
       .theme-name {
         font-size: 24rpx;
-        color: #666;
+        color: var(--text-secondary);
       }
 
       &.active .theme-name {
-        color: #3cc51f;
+        color: var(--color-primary);
         font-weight: 500;
       }
     }
@@ -1182,7 +1182,7 @@ export default {
   .modal-content {
     width: 640rpx;
     max-height: 80vh;
-    background-color: #ffffff;
+    background-color: var(--bg-card);
     border-radius: 16rpx;
     padding: 40rpx;
     overflow-y: auto;
@@ -1191,7 +1191,7 @@ export default {
       display: block;
       font-size: 36rpx;
       font-weight: bold;
-      color: #333;
+      color: var(--text-primary);
       margin-bottom: 32rpx;
       text-align: center;
     }
@@ -1203,8 +1203,8 @@ export default {
       font-size: 30rpx;
       font-weight: 500;
       border: none;
-      background-color: #f5f5f5;
-      color: #666;
+      background-color: var(--bg-input);
+      color: var(--text-secondary);
       margin-top: 32rpx;
 
       &::after {
@@ -1225,14 +1225,14 @@ export default {
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #f5f5f5;
+        background-color: var(--bg-input);
         border-radius: 12rpx;
         border: 2rpx solid transparent;
         transition: all 0.2s;
 
         &.active {
           background-color: #e6f7e6;
-          border-color: #3cc51f;
+          border-color: var(--color-primary);
         }
 
         .avatar-emoji-large {
@@ -1254,7 +1254,7 @@ export default {
         .form-label {
           display: block;
           font-size: 28rpx;
-          color: #666;
+          color: var(--text-secondary);
           margin-bottom: 16rpx;
         }
 
@@ -1262,7 +1262,7 @@ export default {
           width: 100%;
           height: 80rpx;
           padding: 0 24rpx;
-          background-color: #f5f5f5;
+          background-color: var(--bg-input);
           border-radius: 8rpx;
           font-size: 28rpx;
         }
@@ -1281,16 +1281,16 @@ export default {
         font-size: 30rpx;
         font-weight: 500;
         border: none;
-        background-color: #f5f5f5;
-        color: #666;
+        background-color: var(--bg-input);
+        color: var(--text-secondary);
 
         &::after {
           border: none;
         }
 
         &.confirm {
-          background-color: #3cc51f;
-          color: #ffffff;
+          background-color: var(--color-primary);
+          color: var(--bg-card);
 
           &[disabled] {
             opacity: 0.5;
@@ -1298,8 +1298,8 @@ export default {
         }
 
         &.cancel {
-          background-color: #f5f5f5;
-          color: #666;
+          background-color: var(--bg-input);
+          color: var(--text-secondary);
         }
       }
     }

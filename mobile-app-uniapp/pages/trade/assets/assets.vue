@@ -614,7 +614,7 @@ export default {
 <style lang="scss" scoped>
 .assets-page {
   min-height: 100vh;
-  background-color: #f8f8f8;
+  background-color: var(--bg-page);
   display: flex;
   flex-direction: column;
 }
@@ -642,7 +642,7 @@ export default {
       background-color: rgba(255, 255, 255, 0.2);
       border-radius: 20rpx;
       font-size: 24rpx;
-      color: #ffffff;
+      color: var(--bg-card);
       backdrop-filter: blur(10rpx);
     }
   }
@@ -650,15 +650,15 @@ export default {
   .balance-value {
     font-size: 72rpx;
     font-weight: bold;
-    color: #ffffff;
-    text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+    color: var(--bg-card);
+    text-shadow: 0 2rpx 8rpx var(--shadow-md);
   }
 }
 
 .tabs {
   display: flex;
-  background-color: #ffffff;
-  border-bottom: 1rpx solid #f0f0f0;
+  background-color: var(--bg-card);
+  border-bottom: 1rpx solid var(--bg-hover);
 
   .tab-item {
     flex: 1;
@@ -667,11 +667,11 @@ export default {
     align-items: center;
     justify-content: center;
     font-size: 28rpx;
-    color: #666;
+    color: var(--text-secondary);
     position: relative;
 
     &.active {
-      color: #3cc51f;
+      color: var(--color-primary);
       font-weight: 500;
 
       &::after {
@@ -682,7 +682,7 @@ export default {
         transform: translateX(-50%);
         width: 60rpx;
         height: 4rpx;
-        background-color: #3cc51f;
+        background-color: var(--color-primary);
         border-radius: 2rpx;
       }
     }
@@ -697,7 +697,7 @@ export default {
 .loading, .empty {
   padding: 200rpx 40rpx;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .empty {
@@ -710,15 +710,15 @@ export default {
   .empty-text {
     display: block;
     font-size: 32rpx;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 32rpx;
   }
 
   .add-listing-btn {
     width: 300rpx;
     height: 80rpx;
-    background-color: #3cc51f;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--bg-card);
     border-radius: 40rpx;
     font-size: 28rpx;
     border: none;
@@ -775,13 +775,13 @@ export default {
 
     .tx-type {
       font-size: 28rpx;
-      color: #333;
+      color: var(--text-primary);
       font-weight: 500;
     }
 
     .tx-time {
       font-size: 24rpx;
-      color: #999;
+      color: var(--text-tertiary);
     }
   }
 
@@ -791,11 +791,11 @@ export default {
     flex-shrink: 0;
 
     &.positive {
-      color: #52c41a;
+      color: var(--color-success);
     }
 
     &.negative {
-      color: #ff4d4f;
+      color: var(--color-error);
     }
   }
 }
@@ -822,7 +822,7 @@ export default {
       .listing-title {
         font-size: 30rpx;
         font-weight: 500;
-        color: #333;
+        color: var(--text-primary);
         line-height: 1.4;
       }
 
@@ -835,17 +835,17 @@ export default {
 
         &.status-on_sale {
           background-color: #f6ffed;
-          color: #52c41a;
+          color: var(--color-success);
         }
 
         &.status-sold {
-          background-color: #f0f0f0;
-          color: #999;
+          background-color: var(--bg-hover);
+          color: var(--text-tertiary);
         }
 
         &.status-removed {
           background-color: #fff1f0;
-          color: #ff4d4f;
+          color: var(--color-error);
         }
       }
     }
@@ -864,7 +864,7 @@ export default {
       .price-unit {
         display: block;
         font-size: 20rpx;
-        color: #999;
+        color: var(--text-tertiary);
         margin-top: 4rpx;
       }
     }
@@ -873,7 +873,7 @@ export default {
   .listing-desc {
     font-size: 26rpx;
     line-height: 1.6;
-    color: #666;
+    color: var(--text-secondary);
     margin-bottom: 16rpx;
   }
 
@@ -884,7 +884,7 @@ export default {
 
     .listing-time {
       font-size: 24rpx;
-      color: #999;
+      color: var(--text-tertiary);
     }
 
     .listing-actions {
@@ -898,7 +898,7 @@ export default {
 
         &.remove {
           background-color: #fff1f0;
-          color: #ff4d4f;
+          color: var(--color-error);
         }
       }
     }
@@ -911,13 +911,13 @@ export default {
   bottom: 120rpx;
   width: 112rpx;
   height: 112rpx;
-  background-color: #3cc51f;
+  background-color: var(--color-primary);
   border-radius: 56rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 48rpx;
-  color: #ffffff;
+  color: var(--bg-card);
   box-shadow: 0 8rpx 24rpx rgba(60, 197, 31, 0.4);
   z-index: 10;
 }
@@ -937,7 +937,7 @@ export default {
 
   .modal-content {
     width: 640rpx;
-    background-color: #ffffff;
+    background-color: var(--bg-card);
     border-radius: 16rpx;
     padding: 40rpx;
 
@@ -945,7 +945,7 @@ export default {
       display: block;
       font-size: 36rpx;
       font-weight: bold;
-      color: #333;
+      color: var(--text-primary);
       margin-bottom: 32rpx;
       text-align: center;
     }
@@ -961,7 +961,7 @@ export default {
 
       .recharge-option {
         padding: 32rpx 24rpx;
-        background-color: #f5f5f5;
+        background-color: var(--bg-input);
         border-radius: 12rpx;
         text-align: center;
         display: flex;
@@ -970,18 +970,18 @@ export default {
 
         &.active {
           background-color: #e6f7e6;
-          border: 2rpx solid #3cc51f;
+          border: 2rpx solid var(--color-primary);
         }
 
         .amount-value {
           font-size: 40rpx;
           font-weight: bold;
-          color: #333;
+          color: var(--text-primary);
         }
 
         .amount-unit {
           font-size: 24rpx;
-          color: #999;
+          color: var(--text-tertiary);
         }
       }
     }
@@ -992,7 +992,7 @@ export default {
       .label {
         display: block;
         font-size: 28rpx;
-        color: #666;
+        color: var(--text-secondary);
         margin-bottom: 16rpx;
       }
 
@@ -1000,7 +1000,7 @@ export default {
         width: 100%;
         height: 80rpx;
         padding: 0 24rpx;
-        background-color: #f5f5f5;
+        background-color: var(--bg-input);
         border-radius: 8rpx;
         font-size: 28rpx;
       }
@@ -1018,7 +1018,7 @@ export default {
       .form-label {
         display: block;
         font-size: 28rpx;
-        color: #666;
+        color: var(--text-secondary);
         margin-bottom: 16rpx;
       }
 
@@ -1026,15 +1026,15 @@ export default {
         width: 100%;
         height: 80rpx;
         padding: 0 24rpx;
-        background-color: #f5f5f5;
+        background-color: var(--bg-input);
         border-radius: 8rpx;
         display: flex;
         align-items: center;
         font-size: 28rpx;
-        color: #333;
+        color: var(--text-primary);
 
         .placeholder {
-          color: #999;
+          color: var(--text-tertiary);
         }
       }
 
@@ -1042,7 +1042,7 @@ export default {
         width: 100%;
         height: 80rpx;
         padding: 0 24rpx;
-        background-color: #f5f5f5;
+        background-color: var(--bg-input);
         border-radius: 8rpx;
         font-size: 28rpx;
       }
@@ -1051,7 +1051,7 @@ export default {
         width: 100%;
         min-height: 160rpx;
         padding: 16rpx 24rpx;
-        background-color: #f5f5f5;
+        background-color: var(--bg-input);
         border-radius: 8rpx;
         font-size: 28rpx;
         line-height: 1.6;
@@ -1076,13 +1076,13 @@ export default {
       }
 
       &.cancel {
-        background-color: #f5f5f5;
-        color: #666;
+        background-color: var(--bg-input);
+        color: var(--text-secondary);
       }
 
       &.confirm {
-        background-color: #3cc51f;
-        color: #ffffff;
+        background-color: var(--color-primary);
+        color: var(--bg-card);
 
         &[disabled] {
           opacity: 0.5;

@@ -210,7 +210,7 @@ export default {
 <style lang="scss" scoped>
 .edit-container {
   min-height: 100vh;
-  background-color: #f8f8f8;
+  background-color: var(--bg-page);
   display: flex;
   flex-direction: column;
 }
@@ -220,7 +220,7 @@ export default {
   padding: 24rpx;
 
   .form-item {
-    background-color: #ffffff;
+    background-color: var(--bg-card);
     border-radius: 12rpx;
     padding: 32rpx;
     margin-bottom: 20rpx;
@@ -229,7 +229,7 @@ export default {
       display: block;
       font-size: 28rpx;
       font-weight: 500;
-      color: #333;
+      color: var(--text-primary);
       margin-bottom: 20rpx;
     }
 
@@ -237,10 +237,10 @@ export default {
       width: 100%;
       height: 72rpx;
       padding: 0 24rpx;
-      background-color: #f5f5f5;
+      background-color: var(--bg-input);
       border-radius: 8rpx;
       font-size: 28rpx;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .picker {
@@ -249,14 +249,14 @@ export default {
       justify-content: space-between;
       height: 72rpx;
       padding: 0 24rpx;
-      background-color: #f5f5f5;
+      background-color: var(--bg-input);
       border-radius: 8rpx;
       font-size: 28rpx;
-      color: #333;
+      color: var(--text-primary);
 
       .arrow {
         font-size: 20rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
     }
 
@@ -264,10 +264,10 @@ export default {
       width: 100%;
       min-height: 400rpx;
       padding: 24rpx;
-      background-color: #f5f5f5;
+      background-color: var(--bg-input);
       border-radius: 8rpx;
       font-size: 28rpx;
-      color: #333;
+      color: var(--text-primary);
       line-height: 1.6;
     }
 
@@ -285,8 +285,8 @@ export default {
 
 .actions {
   padding: 24rpx;
-  background-color: #ffffff;
-  box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-card);
+  box-shadow: 0 -2rpx 8rpx var(--shadow-sm);
   display: flex;
   gap: 20rpx;
 
@@ -302,13 +302,13 @@ export default {
     justify-content: center;
 
     &.cancel-btn {
-      background-color: #f5f5f5;
-      color: #666;
+      background-color: var(--bg-input);
+      color: var(--text-secondary);
     }
 
     &.save-btn {
-      background-color: #3cc51f;
-      color: #ffffff;
+      background-color: var(--color-primary);
+      color: var(--bg-card);
 
       &.disabled {
         opacity: 0.5;

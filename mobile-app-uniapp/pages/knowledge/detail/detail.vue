@@ -136,13 +136,13 @@ export default {
 <style lang="scss" scoped>
 .detail-container {
   min-height: 100vh;
-  background-color: #f8f8f8;
+  background-color: var(--bg-page);
 }
 
 .loading, .error {
   padding: 100rpx 40rpx;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .error {
@@ -155,7 +155,7 @@ export default {
   .error-text {
     display: block;
     font-size: 28rpx;
-    color: #666;
+    color: var(--text-secondary);
     margin-bottom: 40rpx;
   }
 
@@ -163,8 +163,8 @@ export default {
     width: 300rpx;
     height: 80rpx;
     line-height: 80rpx;
-    background-color: #3cc51f;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--bg-card);
     border-radius: 40rpx;
     font-size: 28rpx;
     border: none;
@@ -173,7 +173,7 @@ export default {
 
 .content {
   .header {
-    background-color: #ffffff;
+    background-color: var(--bg-card);
     padding: 40rpx;
     margin-bottom: 20rpx;
 
@@ -181,7 +181,7 @@ export default {
       display: block;
       font-size: 40rpx;
       font-weight: bold;
-      color: #333;
+      color: var(--text-primary);
       margin-bottom: 20rpx;
       line-height: 1.4;
     }
@@ -193,43 +193,43 @@ export default {
 
       .type-tag {
         padding: 8rpx 20rpx;
-        background-color: #f0f0f0;
-        color: #666;
+        background-color: var(--bg-hover);
+        color: var(--text-secondary);
         font-size: 24rpx;
         border-radius: 8rpx;
 
         &.type-note {
           background-color: #e6f7ff;
-          color: #1890ff;
+          color: var(--color-info);
         }
 
         &.type-document {
           background-color: #f6ffed;
-          color: #52c41a;
+          color: var(--color-success);
         }
 
         &.type-conversation {
           background-color: #fff7e6;
-          color: #fa8c16;
+          color: var(--color-warning);
         }
       }
 
       .time {
         font-size: 24rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
     }
   }
 
   .body {
-    background-color: #ffffff;
+    background-color: var(--bg-card);
     padding: 40rpx;
     margin-bottom: 20rpx;
     min-height: 400rpx;
 
     .text-content {
       font-size: 30rpx;
-      color: #333;
+      color: var(--text-primary);
       line-height: 1.8;
       white-space: pre-wrap;
     }
@@ -251,13 +251,13 @@ export default {
       justify-content: center;
 
       &.edit-btn {
-        background-color: #1890ff;
-        color: #ffffff;
+        background-color: var(--color-info);
+        color: var(--bg-card);
       }
 
       &.delete-btn {
-        background-color: #ff4d4f;
-        color: #ffffff;
+        background-color: var(--color-error);
+        color: var(--bg-card);
       }
     }
   }

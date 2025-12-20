@@ -317,15 +317,15 @@ export default {
 <style lang="scss" scoped>
 .orders-page {
   min-height: 100vh;
-  background-color: #f8f8f8;
+  background-color: var(--bg-page);
   display: flex;
   flex-direction: column;
 }
 
 .tabs {
   display: flex;
-  background-color: #ffffff;
-  border-bottom: 1rpx solid #f0f0f0;
+  background-color: var(--bg-card);
+  border-bottom: 1rpx solid var(--bg-hover);
 
   .tab-item {
     flex: 1;
@@ -334,11 +334,11 @@ export default {
     align-items: center;
     justify-content: center;
     font-size: 28rpx;
-    color: #666;
+    color: var(--text-secondary);
     position: relative;
 
     &.active {
-      color: #3cc51f;
+      color: var(--color-primary);
       font-weight: 500;
 
       &::after {
@@ -349,7 +349,7 @@ export default {
         transform: translateX(-50%);
         width: 60rpx;
         height: 4rpx;
-        background-color: #3cc51f;
+        background-color: var(--color-primary);
         border-radius: 2rpx;
       }
     }
@@ -364,7 +364,7 @@ export default {
 .loading, .empty {
   padding: 200rpx 40rpx;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .empty {
@@ -377,14 +377,14 @@ export default {
   .empty-text {
     display: block;
     font-size: 32rpx;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 16rpx;
   }
 
   .empty-hint {
     display: block;
     font-size: 24rpx;
-    color: #999;
+    color: var(--text-tertiary);
   }
 }
 
@@ -403,7 +403,7 @@ export default {
     .order-type {
       width: 72rpx;
       height: 72rpx;
-      background-color: #f0f0f0;
+      background-color: var(--bg-hover);
       border-radius: 36rpx;
       display: flex;
       align-items: center;
@@ -421,12 +421,12 @@ export default {
       .order-title {
         font-size: 30rpx;
         font-weight: 500;
-        color: #333;
+        color: var(--text-primary);
       }
 
       .order-party {
         font-size: 24rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
     }
 
@@ -447,12 +447,12 @@ export default {
 
       .label {
         font-size: 26rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
 
       .value {
         font-size: 26rpx;
-        color: #333;
+        color: var(--text-primary);
 
         &.price {
           color: #ff6b00;
@@ -470,17 +470,17 @@ export default {
 
   &.status-pending {
     background-color: #fff7e6;
-    color: #fa8c16;
+    color: var(--color-warning);
   }
 
   &.status-completed {
     background-color: #f6ffed;
-    color: #52c41a;
+    color: var(--color-success);
   }
 
   &.status-cancelled {
     background-color: #fff1f0;
-    color: #ff4d4f;
+    color: var(--color-error);
   }
 }
 
@@ -500,7 +500,7 @@ export default {
   .modal-content {
     width: 640rpx;
     max-height: 80vh;
-    background-color: #ffffff;
+    background-color: var(--bg-card);
     border-radius: 16rpx;
     overflow: hidden;
     display: flex;
@@ -513,12 +513,12 @@ export default {
       align-items: center;
       justify-content: space-between;
       padding: 24rpx 32rpx;
-      border-bottom: 1rpx solid #f0f0f0;
+      border-bottom: 1rpx solid var(--bg-hover);
 
       .modal-title {
         font-size: 32rpx;
         font-weight: 500;
-        color: #333;
+        color: var(--text-primary);
       }
 
       .close-btn {
@@ -528,7 +528,7 @@ export default {
         align-items: center;
         justify-content: center;
         font-size: 32rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
     }
 
@@ -547,14 +547,14 @@ export default {
         .section-label {
           display: block;
           font-size: 24rpx;
-          color: #999;
+          color: var(--text-tertiary);
           margin-bottom: 12rpx;
         }
 
         .section-value {
           display: block;
           font-size: 28rpx;
-          color: #333;
+          color: var(--text-primary);
           line-height: 1.6;
           word-break: break-all;
         }
@@ -581,7 +581,7 @@ export default {
     .detail-actions {
       display: flex;
       padding: 24rpx 32rpx;
-      border-top: 1rpx solid #f0f0f0;
+      border-top: 1rpx solid var(--bg-hover);
 
       .modal-btn {
         flex: 1;
@@ -598,8 +598,8 @@ export default {
         }
 
         &.confirm {
-          background-color: #3cc51f;
-          color: #ffffff;
+          background-color: var(--color-primary);
+          color: var(--bg-card);
         }
       }
     }
