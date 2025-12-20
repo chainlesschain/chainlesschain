@@ -831,12 +831,12 @@ export default {
         font-size: 26rpx;
 
         &.restore {
-          background-color: #e6f7ff;
+          background-color: var(--bg-info-light);
           color: var(--color-info);
         }
 
         &.delete {
-          background-color: #fff1f0;
+          background-color: var(--bg-error-light);
           color: var(--color-error);
         }
       }
@@ -949,7 +949,7 @@ export default {
         align-items: center;
         gap: 12rpx;
         padding: 16rpx 20rpx;
-        background-color: #fff7e6;
+        background-color: var(--bg-warning-light);
         border-radius: 8rpx;
         margin-top: 16rpx;
 
@@ -960,7 +960,7 @@ export default {
         .warning-text {
           flex: 1;
           font-size: 24rpx;
-          color: #fa8c16;
+          color: var(--color-warning);
           line-height: 1.5;
         }
       }

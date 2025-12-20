@@ -759,8 +759,8 @@ export default {
       width: 64rpx;
       height: 64rpx;
       padding: 0;
-      background-color: #667eea;
-      color: var(--bg-card);
+      background-color: var(--color-brand);
+      color: var(--text-inverse);
       border-radius: 32rpx;
       font-size: 28rpx;
       border: none;
@@ -782,7 +782,7 @@ export default {
 
 // 知识库引用
 .knowledge-ref {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-brand);
   padding: 16rpx 24rpx;
   display: flex;
   align-items: center;
@@ -801,7 +801,7 @@ export default {
     .ref-text {
       flex: 1;
       font-size: 24rpx;
-      color: #ffffff;
+      color: var(--text-inverse);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -810,7 +810,7 @@ export default {
 
   .ref-close {
     font-size: 48rpx;
-    color: #ffffff;
+    color: var(--text-inverse);
     font-weight: 300;
     line-height: 1;
   }
@@ -884,11 +884,11 @@ export default {
 
   &.warning {
     .empty-icon {
-      color: #ff9800;
+      color: var(--color-warning);
     }
 
     .empty-text {
-      color: #ff9800;
+      color: var(--color-warning);
     }
   }
 }
@@ -904,7 +904,7 @@ export default {
       width: 72rpx;
       height: 72rpx;
       flex-shrink: 0;
-      background-color: #e0e0e0;
+      background-color: var(--border-normal);
       border-radius: 36rpx;
       display: flex;
       align-items: center;
@@ -971,15 +971,15 @@ export default {
         align-items: flex-end;
 
         .text {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: #ffffff;
+          background: var(--gradient-brand);
+          color: var(--text-inverse);
         }
       }
     }
 
     &.assistant {
       .avatar {
-        background-color: #667eea;
+        background-color: var(--color-brand);
       }
     }
   }
@@ -1011,8 +1011,8 @@ export default {
   .send-btn {
     width: 120rpx;
     height: 72rpx;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #ffffff;
+    background: var(--gradient-brand);
+    color: var(--text-inverse);
     border-radius: 36rpx;
     font-size: 28rpx;
     font-weight: 500;

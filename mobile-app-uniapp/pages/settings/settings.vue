@@ -1304,11 +1304,11 @@ export default {
     }
 
     .save-btn {
-      background-color: #667eea;
-      color: #ffffff;
+      background-color: var(--color-brand);
+      color: var(--text-inverse);
 
       &:active {
-        background-color: #5568d3;
+        opacity: 0.9;
       }
     }
   }
@@ -1336,13 +1336,13 @@ export default {
     margin-top: 16rpx;
 
     &.backup {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--gradient-brand);
       color: var(--text-inverse);
       font-weight: 500;
     }
 
     &.import-export {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      background: var(--gradient-blue);
       color: var(--text-inverse);
       font-weight: 500;
     }
@@ -1379,12 +1379,12 @@ export default {
         width: 160rpx;
         height: 160rpx;
         border-radius: 80rpx;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: var(--gradient-brand);
         display: flex;
         align-items: center;
         justify-content: center;
         margin-bottom: 16rpx;
-        box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.3);
+        box-shadow: var(--shadow-lg);
 
         .avatar-emoji {
           font-size: 80rpx;
@@ -1526,7 +1526,7 @@ export default {
       transition: all 0.2s;
 
       &.active {
-        background-color: #e6f7e6;
+        background-color: var(--bg-success-light);
         border-color: var(--color-primary);
       }
 
@@ -1613,7 +1613,7 @@ export default {
         transition: all 0.2s;
 
         &.active {
-          background-color: #e6f7e6;
+          background-color: var(--bg-success-light);
           border-color: var(--color-primary);
         }
 
