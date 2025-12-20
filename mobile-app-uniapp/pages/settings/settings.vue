@@ -302,6 +302,12 @@
       <view class="section">
         <text class="section-title">关于</text>
 
+        <view class="about-logo">
+          <image class="logo-image" src="/logo.png" mode="aspectFit"></image>
+          <text class="app-name">ChainlessChain</text>
+          <text class="app-desc">去中心化个人AI助手平台</text>
+        </view>
+
         <view class="info-item">
           <text class="info-label">应用名称</text>
           <text class="info-value">ChainlessChain</text>
@@ -1450,6 +1456,39 @@ export default {
 
     switch {
       transform: scale(0.9);
+    }
+  }
+
+  // 关于section的logo样式
+  .about-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40rpx 0;
+    margin-bottom: 32rpx;
+    border-bottom: 1rpx solid var(--bg-hover);
+
+    .logo-image {
+      width: 160rpx;
+      height: 160rpx;
+      margin-bottom: 24rpx;
+      border-radius: 32rpx;
+      box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.15);
+      background-color: var(--bg-input);
+      padding: 8rpx;
+    }
+
+    .app-name {
+      font-size: 36rpx;
+      font-weight: bold;
+      color: var(--text-primary);
+      margin-bottom: 12rpx;
+    }
+
+    .app-desc {
+      font-size: 24rpx;
+      color: var(--text-tertiary);
+      text-align: center;
     }
   }
 
