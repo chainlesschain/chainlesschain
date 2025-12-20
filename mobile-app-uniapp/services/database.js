@@ -524,6 +524,7 @@ class DatabaseService {
       type: item.type || 'note',
       content: item.content || '',
       is_favorite: item.is_favorite || 0,
+      folder_id: item.folder_id || null,
       created_at: now,
       updated_at: now,
       device_id: item.deviceId || uni.getSystemInfoSync().deviceId,
@@ -541,8 +542,8 @@ class DatabaseService {
 
     // App模式：插入SQLite
     const sql = `INSERT INTO knowledge_items
-      (id, title, type, content, is_favorite, created_at, updated_at, device_id, sync_status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (id, title, type, content, is_favorite, folder_id, created_at, updated_at, device_id, sync_status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
     const params = [
       newItem.id,
@@ -550,6 +551,7 @@ class DatabaseService {
       newItem.type,
       newItem.content,
       newItem.is_favorite,
+      newItem.folder_id,
       newItem.created_at,
       newItem.updated_at,
       newItem.device_id,
@@ -565,7 +567,7 @@ class DatabaseService {
    * 获取知识库项列表
    */
   async getKnowledgeItems(options = {}) {
-    const { limit = 20, offset = 0, type = null, searchQuery = '', tagId = null, favoriteOnly = false } = options
+    const { limit = 20, offset = 0, type = null, searchQuery = '', tagId = null, favoriteOnly = false, folderId = null } = options
 
     let sql = 'SELECT * FROM knowledge_items WHERE 1=1'
     const params = []
@@ -588,6 +590,12 @@ class DatabaseService {
     if (tagId) {
       sql += ' AND id IN (SELECT knowledge_id FROM knowledge_tags WHERE tag_id = ?)'
       params.push(tagId)
+    }
+
+    // 文件夹筛选
+    if (folderId !== null && folderId !== undefined) {
+      sql += ' AND folder_id = ?'
+      params.push(folderId)
     }
 
     sql += ' ORDER BY updated_at DESC LIMIT ? OFFSET ?'
@@ -643,6 +651,11 @@ class DatabaseService {
     if (updates.type !== undefined) {
       fields.push('type = ?')
       params.push(updates.type)
+    }
+
+    if (updates.folder_id !== undefined) {
+      fields.push('folder_id = ?')
+      params.push(updates.folder_id)
     }
 
     fields.push('updated_at = ?', 'sync_status = ?')

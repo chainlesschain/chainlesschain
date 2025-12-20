@@ -184,7 +184,8 @@ export default {
       favoriteOnly: false,
       showFilterModal: false,
       sortBy: 'updated',
-      filterType: null
+      filterType: null,
+      currentFolderId: null // 当前文件夹ID筛选
     }
   },
   computed: {
@@ -204,7 +205,13 @@ export default {
       return '暂无知识条目'
     }
   },
-  onLoad() {
+  onLoad(options) {
+    // 如果从文件夹页面跳转过来，设置当前文件夹
+    if (options.folderId) {
+      this.currentFolderId = parseInt(options.folderId)
+      this.loadFolderName()
+    }
+
     this.loadTags()
     this.loadItems()
   },
@@ -244,6 +251,7 @@ export default {
           tagId: this.selectedTagId,
           favoriteOnly: this.favoriteOnly,
           type: this.filterType,
+          folderId: this.currentFolderId,
           limit: 50
         })
         this.items = result || []
@@ -385,11 +393,35 @@ export default {
     },
 
     /**
+     * 加载文件夹名称并更新导航栏标题
+     */
+    async loadFolderName() {
+      if (!this.currentFolderId) return
+
+      try {
+        const folders = await db.getFolders()
+        const folder = folders.find(f => f.id === this.currentFolderId)
+        if (folder) {
+          uni.setNavigationBarTitle({
+            title: `${folder.icon || '📁'} ${folder.name}`
+          })
+        }
+      } catch (error) {
+        console.error('加载文件夹名称失败:', error)
+      }
+    },
+
+    /**
      * 跳转到添加
      */
     goToAdd() {
+      let url = '/pages/knowledge/edit/edit'
+      // 如果当前在文件夹视图中，传递文件夹ID
+      if (this.currentFolderId) {
+        url += `?folderId=${this.currentFolderId}`
+      }
       uni.navigateTo({
-        url: '/pages/knowledge/edit/edit'
+        url: url
       })
     },
 
