@@ -1,0 +1,101 @@
+spring:
+  application:
+    name: project-service
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:chainlesschain}
+    username: ${DB_USER:chainlesschain}
+    password: ${DB_PASSWORD:chainlesschain_pwd_2024}
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      test-on-borrow: true
+      test-while-idle: true
+      validation-query: SELECT 1
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:chainlesschain_redis_2024}
+    database: 0
+    timeout: 6000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1ms
+        max-idle: 8
+        min-idle: 0
+
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      write-dates-as-timestamps: false
+
+# MyBatis Plus配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.chainlesschain.project.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: assign_uuid
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 服务端口
+server:
+  port: ${PROJECT_SERVICE_PORT:8080}
+  servlet:
+    context-path: /api
+
+# Actuator监控
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# 日志配置
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.chainlesschain: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    path: ${LOG_PATH:./logs}
+    name: ${LOG_PATH:./logs}/project-service.log
+
+# AI服务配置
+ai:
+  service:
+    url: ${AI_SERVICE_URL:http://localhost:8001}
+    timeout: 60000
+
+# 项目文件存储配置
+project:
+  storage:
+    root-path: ${PROJECTS_ROOT_PATH:/data/projects}
+    max-size-mb: 1000
+    allowed-types: html,css,js,json,md,txt,pdf,docx,xlsx,pptx,png,jpg,jpeg,gif,svg,mp4,mp3
+
+# Git配置
+git:
+  user:
+    name: ${GIT_USER_NAME:ChainlessChain}
+    email: ${GIT_USER_EMAIL:bot@chainlesschain.com}
+  auto-commit: true
+  auto-push: false
