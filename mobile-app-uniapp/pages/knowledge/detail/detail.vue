@@ -779,17 +779,17 @@ export default {
         border-radius: 8rpx;
 
         &.type-note {
-          background-color: #e6f7ff;
+          background-color: var(--bg-info-light);
           color: var(--color-info);
         }
 
         &.type-document {
-          background-color: #f6ffed;
+          background-color: var(--bg-success-light);
           color: var(--color-success);
         }
 
         &.type-conversation {
-          background-color: #fff7e6;
+          background-color: var(--bg-warning-light);
           color: var(--color-warning);
         }
       }
@@ -973,8 +973,8 @@ export default {
 
     .ai-recommend-btn {
       padding: 8rpx 16rpx;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #ffffff;
+      background: var(--gradient-brand);
+      color: var(--text-inverse);
       border-radius: 20rpx;
       font-size: 24rpx;
       border: none;

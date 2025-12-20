@@ -161,6 +161,7 @@ page {
   --color-warning: #fa8c16;
   --color-error: #ff4d4f;
   --color-info: #1890ff;
+  --color-favorite: #fadb14;
 
   /* 主题色背景（浅色） */
   --bg-primary-light: #f0f9ff;
@@ -207,6 +208,7 @@ page[data-theme='dark'] {
   --color-warning: #fa8c16;
   --color-error: #ff4d4f;
   --color-info: #1890ff;
+  --color-favorite: #ffd666;
 
   /* 主题色背景（深色模式） */
   --bg-primary-light: rgba(60, 197, 31, 0.1);

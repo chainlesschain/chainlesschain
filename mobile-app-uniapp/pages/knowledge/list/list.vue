@@ -641,7 +641,7 @@ export default {
     }
 
     .favorite-icon {
-      color: #fadb14;
+      color: var(--color-favorite);
     }
 
     .favorite-icon-empty {
@@ -772,7 +772,7 @@ export default {
           transition: all 0.2s;
 
           &.active {
-            background-color: #e6f7e6;
+            background-color: var(--bg-success-light);
             color: var(--color-primary);
             border-color: var(--color-primary);
           }
