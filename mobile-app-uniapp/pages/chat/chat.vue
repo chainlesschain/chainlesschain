@@ -567,11 +567,14 @@ export default {
         // 显示加载状态
         this.loading = true
 
-        // 准备消息历史（使用完整上下文）
-        const history = this.messages.slice(0, -1).map(msg => ({
+        // 准备消息历史（智能截取上下文）
+        const allHistory = this.messages.slice(0, -1).map(msg => ({
           role: msg.role,
           content: msg.content
         }))
+
+        // 智能截取上下文：保留最近的对话，避免超出token限制
+        const history = this.getOptimalHistory(allHistory, 4000)
 
         // 调用 LLM（发送包含知识库上下文的消息）
         const response = await llm.query(messageWithContext, history)
@@ -626,6 +629,43 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+
+    /**
+     * 智能截取对话历史，控制上下文长度
+     * @param {Array} history - 完整的对话历史
+     * @param {number} maxChars - 最大字符数
+     * @returns {Array} 截取后的历史
+     */
+    getOptimalHistory(history, maxChars = 4000) {
+      if (history.length === 0) {
+        return []
+      }
+
+      // 总是保留最近的消息
+      const result = []
+      let totalChars = 0
+
+      // 从最近的消息开始向前遍历
+      for (let i = history.length - 1; i >= 0; i--) {
+        const msg = history[i]
+        const msgLength = msg.content.length
+
+        // 如果添加这条消息会超出限制，就停止
+        if (totalChars + msgLength > maxChars && result.length > 0) {
+          break
+        }
+
+        result.unshift(msg)
+        totalChars += msgLength
+
+        // 至少保留最近10轮对话
+        if (result.length >= 20) {
+          break
+        }
+      }
+
+      return result
     },
 
     getTypeIcon(type) {

@@ -26,12 +26,18 @@
       </view>
 
       <!-- 关联知识 -->
-      <view class="related-section" v-if="relatedItems.length > 0">
+      <view class="related-section">
         <view class="section-header">
           <text class="section-title">🔗 关联知识</text>
-          <text class="section-count">{{ relatedItems.length }}</text>
+          <view class="header-actions">
+            <text class="section-count" v-if="relatedItems.length > 0">{{ relatedItems.length }}</text>
+            <button class="ai-recommend-btn" @click="handleAIRecommend" :disabled="aiRecommending">
+              <text>{{ aiRecommending ? '🤖 分析中...' : '🤖 AI推荐' }}</text>
+            </button>
+          </view>
         </view>
-        <view class="related-list">
+
+        <view class="related-list" v-if="relatedItems.length > 0">
           <view
             class="related-item"
             v-for="related in relatedItems"
@@ -46,8 +52,13 @@
             <text class="related-arrow">›</text>
           </view>
         </view>
+
+        <view class="empty-related" v-else>
+          <text class="empty-hint">暂无关联知识，点击AI推荐自动发现相关内容</text>
+        </view>
+
         <button class="add-link-btn" @click="showLinkModal = true">
-          <text>+ 添加关联</text>
+          <text>+ 手动添加关联</text>
         </button>
       </view>
 
@@ -141,6 +152,7 @@
 
 <script>
 import { db } from '@/services/database'
+import { aiService } from '@/services/ai'
 
 export default {
   data() {
@@ -148,6 +160,7 @@ export default {
       id: '',
       item: null,
       loading: false,
+      aiRecommending: false,
       error: null,
       showShareModal: false,
       showLinkModal: false,
@@ -566,6 +579,79 @@ export default {
     },
 
     /**
+     * AI智能推荐关联知识
+     */
+    async handleAIRecommend() {
+      if (!this.item || this.aiRecommending) {
+        return
+      }
+
+      this.aiRecommending = true
+
+      try {
+        // 使用AI服务推荐相关知识
+        const recommendedIds = await aiService.recommendRelated(
+          this.item.title,
+          this.item.content,
+          this.allKnowledge,
+          5
+        )
+
+        if (recommendedIds.length === 0) {
+          uni.showToast({
+            title: '未找到相关知识',
+            icon: 'none'
+          })
+          return
+        }
+
+        // 显示推荐结果让用户选择
+        const recommendedKnowledge = this.allKnowledge.filter(k =>
+          recommendedIds.includes(k.id)
+        )
+
+        // 批量添加推荐的关联
+        let addedCount = 0
+        for (const knowledge of recommendedKnowledge) {
+          try {
+            // 检查是否已关联
+            const isLinked = this.relatedItems.some(r => r.id === knowledge.id)
+            if (!isLinked) {
+              await db.createKnowledgeLink(this.id, knowledge.id)
+              addedCount++
+            }
+          } catch (error) {
+            console.error('添加关联失败:', knowledge.id, error)
+          }
+        }
+
+        if (addedCount > 0) {
+          uni.showToast({
+            title: `已添加 ${addedCount} 个关联`,
+            icon: 'success'
+          })
+
+          // 重新加载关联列表
+          await this.loadRelatedItems()
+        } else {
+          uni.showToast({
+            title: '推荐的知识已全部关联',
+            icon: 'none'
+          })
+        }
+      } catch (error) {
+        console.error('AI推荐失败:', error)
+        uni.showToast({
+          title: 'AI推荐失败: ' + error.message,
+          icon: 'none',
+          duration: 2000
+        })
+      } finally {
+        this.aiRecommending = false
+      }
+    },
+
+    /**
      * 跳转到关联知识
      */
     goToRelated(id) {
@@ -839,6 +925,32 @@ export default {
       color: var(--text-primary);
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+    }
+
+    .ai-recommend-btn {
+      padding: 8rpx 16rpx;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      border-radius: 20rpx;
+      font-size: 24rpx;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:active {
+        opacity: 0.8;
+      }
+
+      &[disabled] {
+        opacity: 0.5;
+      }
+    }
+
     .section-count {
       font-size: 24rpx;
       color: var(--text-tertiary);
@@ -893,6 +1005,20 @@ export default {
         color: var(--text-tertiary);
         flex-shrink: 0;
       }
+    }
+  }
+
+  .empty-related {
+    text-align: center;
+    padding: 40rpx 20rpx;
+    background-color: var(--bg-input);
+    border-radius: 12rpx;
+    margin-bottom: 20rpx;
+
+    .empty-hint {
+      font-size: 26rpx;
+      color: var(--text-tertiary);
+      line-height: 1.5;
     }
   }
 
