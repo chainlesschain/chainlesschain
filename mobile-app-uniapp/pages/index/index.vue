@@ -58,7 +58,7 @@ export default {
     display: block;
     font-size: 48rpx;
     font-weight: bold;
-    color: #ffffff;
+    color: var(--bg-card);
     margin-bottom: 20rpx;
   }
 
@@ -91,7 +91,7 @@ export default {
     .action-text {
       font-size: 28rpx;
       font-weight: 500;
-      color: #333333;
+      color: var(--text-primary);
     }
   }
 }

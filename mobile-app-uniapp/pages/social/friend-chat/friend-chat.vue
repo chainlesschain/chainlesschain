@@ -290,7 +290,7 @@ export default {
       uni.showModal({
         title: '删除好友',
         content: '确定要删除此好友吗？聊天记录也将被删除。',
-        confirmColor: '#ff4d4f',
+        confirmColor: 'var(--color-error)',
         success: async (res) => {
           if (res.confirm) {
             // TODO: 实现删除好友功能
@@ -331,13 +331,13 @@ export default {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f8f8f8;
+  background-color: var(--bg-page);
 }
 
 .header {
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   padding: 20rpx 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2rpx 8rpx var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -351,7 +351,7 @@ export default {
     align-items: center;
     justify-content: center;
     font-size: 48rpx;
-    color: #333;
+    color: var(--text-primary);
   }
 
   .back-btn {
@@ -362,7 +362,7 @@ export default {
     flex: 1;
     font-size: 32rpx;
     font-weight: 500;
-    color: #333;
+    color: var(--text-primary);
     text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -389,14 +389,14 @@ export default {
   .empty-text {
     display: block;
     font-size: 32rpx;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 16rpx;
   }
 
   .empty-hint {
     display: block;
     font-size: 24rpx;
-    color: #999;
+    color: var(--text-tertiary);
   }
 }
 
@@ -426,23 +426,23 @@ export default {
       gap: 8rpx;
 
       .text {
-        background-color: #ffffff;
+        background-color: var(--bg-card);
         padding: 24rpx;
         border-radius: 16rpx;
         font-size: 28rpx;
         line-height: 1.6;
-        color: #333;
+        color: var(--text-primary);
         word-wrap: break-word;
       }
 
       .time {
         font-size: 20rpx;
-        color: #999;
+        color: var(--text-tertiary);
         padding: 0 12rpx;
       }
 
       .typing {
-        background-color: #ffffff;
+        background-color: var(--bg-card);
         padding: 24rpx;
         border-radius: 16rpx;
         display: flex;
@@ -451,7 +451,7 @@ export default {
         .dot {
           width: 12rpx;
           height: 12rpx;
-          background-color: #999;
+          background-color: var(--text-tertiary);
           border-radius: 50%;
           animation: typing 1.4s infinite;
 
@@ -471,15 +471,15 @@ export default {
       flex-direction: row-reverse;
 
       .avatar {
-        background-color: #3cc51f;
+        background-color: var(--color-primary);
       }
 
       .content {
         align-items: flex-end;
 
         .text {
-          background-color: #3cc51f;
-          color: #ffffff;
+          background-color: var(--color-primary);
+          color: var(--bg-card);
         }
       }
     }
@@ -494,10 +494,10 @@ export default {
 }
 
 .input-container {
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   padding: 20rpx 24rpx;
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-  box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2rpx 8rpx var(--shadow-sm);
   display: flex;
   align-items: flex-end;
   gap: 20rpx;
@@ -509,7 +509,7 @@ export default {
     min-height: 72rpx;
     max-height: 200rpx;
     padding: 20rpx 24rpx;
-    background-color: #f5f5f5;
+    background-color: var(--bg-input);
     border-radius: 36rpx;
     font-size: 28rpx;
     line-height: 1.4;
@@ -518,8 +518,8 @@ export default {
   .send-btn {
     width: 120rpx;
     height: 72rpx;
-    background-color: #3cc51f;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--bg-card);
     border-radius: 36rpx;
     font-size: 28rpx;
     font-weight: 500;

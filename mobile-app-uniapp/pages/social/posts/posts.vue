@@ -488,7 +488,7 @@ export default {
       uni.showModal({
         title: '删除动态',
         content: '确定要删除这条动态吗？',
-        confirmColor: '#ff4d4f',
+        confirmColor: 'var(--color-error)',
         success: async (res) => {
           if (res.confirm) {
             try {
@@ -543,7 +543,7 @@ export default {
 <style lang="scss" scoped>
 .posts-page {
   min-height: 100vh;
-  background-color: #f8f8f8;
+  background-color: var(--bg-page);
   position: relative;
 }
 
@@ -555,7 +555,7 @@ export default {
 .loading, .empty {
   padding: 200rpx 40rpx;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .empty {
@@ -568,14 +568,14 @@ export default {
   .empty-text {
     display: block;
     font-size: 32rpx;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 16rpx;
   }
 
   .empty-hint {
     display: block;
     font-size: 24rpx;
-    color: #999;
+    color: var(--text-tertiary);
   }
 }
 
@@ -612,12 +612,12 @@ export default {
       .name {
         font-size: 28rpx;
         font-weight: 500;
-        color: #333;
+        color: var(--text-primary);
       }
 
       .time {
         font-size: 24rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
     }
 
@@ -628,14 +628,14 @@ export default {
       align-items: center;
       justify-content: center;
       font-size: 32rpx;
-      color: #999;
+      color: var(--text-tertiary);
     }
   }
 
   .content-text {
     font-size: 28rpx;
     line-height: 1.6;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 20rpx;
     word-wrap: break-word;
   }
@@ -646,13 +646,13 @@ export default {
 
     .action {
       font-size: 24rpx;
-      color: #666;
+      color: var(--text-secondary);
       padding: 8rpx 16rpx;
-      background-color: #f5f5f5;
+      background-color: var(--bg-input);
       border-radius: 16rpx;
 
       &.liked {
-        color: #ff4d4f;
+        color: var(--color-error);
         background-color: #fff1f0;
       }
     }
@@ -662,7 +662,7 @@ export default {
 .load-more {
   padding: 40rpx;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 24rpx;
 }
 
@@ -672,13 +672,13 @@ export default {
   bottom: 120rpx;
   width: 112rpx;
   height: 112rpx;
-  background-color: #3cc51f;
+  background-color: var(--color-primary);
   border-radius: 56rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 48rpx;
-  color: #ffffff;
+  color: var(--bg-card);
   box-shadow: 0 8rpx 24rpx rgba(60, 197, 31, 0.4);
   z-index: 10;
 }
@@ -699,7 +699,7 @@ export default {
   .modal-content {
     width: 640rpx;
     max-height: 80vh;
-    background-color: #ffffff;
+    background-color: var(--bg-card);
     border-radius: 16rpx;
     overflow: hidden;
 
@@ -708,9 +708,9 @@ export default {
       padding: 32rpx;
       font-size: 32rpx;
       font-weight: 500;
-      color: #333;
+      color: var(--text-primary);
       text-align: center;
-      border-bottom: 1rpx solid #f0f0f0;
+      border-bottom: 1rpx solid var(--bg-hover);
     }
   }
 
@@ -731,7 +731,7 @@ export default {
 
       text {
         font-size: 24rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
     }
 
@@ -740,7 +740,7 @@ export default {
 
       .label {
         font-size: 24rpx;
-        color: #666;
+        color: var(--text-secondary);
         margin-bottom: 16rpx;
       }
 
@@ -751,15 +751,15 @@ export default {
         .option {
           flex: 1;
           padding: 16rpx;
-          background-color: #f5f5f5;
+          background-color: var(--bg-input);
           border-radius: 8rpx;
           text-align: center;
           font-size: 26rpx;
-          color: #666;
+          color: var(--text-secondary);
 
           &.active {
             background-color: #e6f7e6;
-            color: #3cc51f;
+            color: var(--color-primary);
           }
         }
       }
@@ -767,7 +767,7 @@ export default {
 
     .modal-actions {
       display: flex;
-      border-top: 1rpx solid #f0f0f0;
+      border-top: 1rpx solid var(--bg-hover);
 
       .modal-btn {
         flex: 1;
@@ -783,14 +783,14 @@ export default {
         }
 
         &.cancel {
-          background-color: #ffffff;
-          color: #666;
-          border-right: 1rpx solid #f0f0f0;
+          background-color: var(--bg-card);
+          color: var(--text-secondary);
+          border-right: 1rpx solid var(--bg-hover);
         }
 
         &.confirm {
-          background-color: #ffffff;
-          color: #3cc51f;
+          background-color: var(--bg-card);
+          color: var(--color-primary);
           font-weight: 500;
 
           &[disabled] {
@@ -812,7 +812,7 @@ export default {
       align-items: center;
       justify-content: space-between;
       padding: 24rpx 32rpx;
-      border-bottom: 1rpx solid #f0f0f0;
+      border-bottom: 1rpx solid var(--bg-hover);
 
       .modal-title {
         padding: 0;
@@ -827,7 +827,7 @@ export default {
         align-items: center;
         justify-content: center;
         font-size: 32rpx;
-        color: #999;
+        color: var(--text-tertiary);
       }
     }
 
@@ -865,19 +865,19 @@ export default {
             .comment-author {
               font-size: 24rpx;
               font-weight: 500;
-              color: #333;
+              color: var(--text-primary);
             }
 
             .comment-time {
               font-size: 20rpx;
-              color: #999;
+              color: var(--text-tertiary);
             }
           }
 
           .comment-text {
             font-size: 26rpx;
             line-height: 1.5;
-            color: #666;
+            color: var(--text-secondary);
           }
         }
 
@@ -895,7 +895,7 @@ export default {
       .no-comments {
         padding: 100rpx 40rpx;
         text-align: center;
-        color: #999;
+        color: var(--text-tertiary);
         font-size: 24rpx;
       }
     }
@@ -904,14 +904,14 @@ export default {
       display: flex;
       gap: 16rpx;
       padding: 20rpx;
-      border-top: 1rpx solid #f0f0f0;
-      background-color: #ffffff;
+      border-top: 1rpx solid var(--bg-hover);
+      background-color: var(--bg-card);
 
       .comment-input {
         flex: 1;
         height: 64rpx;
         padding: 0 20rpx;
-        background-color: #f5f5f5;
+        background-color: var(--bg-input);
         border-radius: 32rpx;
         font-size: 26rpx;
       }
@@ -919,8 +919,8 @@ export default {
       .comment-btn {
         width: 120rpx;
         height: 64rpx;
-        background-color: #3cc51f;
-        color: #ffffff;
+        background-color: var(--color-primary);
+        color: var(--bg-card);
         border-radius: 32rpx;
         font-size: 26rpx;
         border: none;

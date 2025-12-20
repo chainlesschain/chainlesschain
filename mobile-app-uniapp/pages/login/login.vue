@@ -311,7 +311,7 @@ export default {
     display: block;
     font-size: 48rpx;
     font-weight: bold;
-    color: #ffffff;
+    color: var(--bg-card);
     margin-bottom: 16rpx;
   }
 
@@ -346,10 +346,10 @@ export default {
 
     .status-value {
       font-size: 28rpx;
-      color: #ffffff;
+      color: var(--bg-card);
 
       &.status-success {
-        color: #52c41a;
+        color: var(--color-success);
       }
 
       &.status-error {
@@ -365,7 +365,7 @@ export default {
   .section-title {
     display: block;
     font-size: 32rpx;
-    color: #ffffff;
+    color: var(--bg-card);
     margin-bottom: 32rpx;
     text-align: center;
   }
@@ -382,7 +382,7 @@ export default {
       border-radius: 16rpx;
       padding: 0 32rpx;
       font-size: 36rpx;
-      color: #ffffff;
+      color: var(--bg-card);
       text-align: center;
       letter-spacing: 8rpx;
     }
@@ -408,7 +408,7 @@ export default {
   .login-btn {
     width: 100%;
     height: 96rpx;
-    background-color: #ffffff;
+    background-color: var(--bg-card);
     color: #667eea;
     border-radius: 48rpx;
     font-size: 32rpx;
