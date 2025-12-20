@@ -109,6 +109,57 @@ const routes = [
         component: () => import('../components/trade/CreditScore.vue'),
         meta: { title: '信用评分' },
       },
+      // 项目管理模块
+      {
+        path: 'projects',
+        name: 'Projects',
+        component: () => import('../pages/projects/ProjectsPage.vue'),
+        meta: { title: '我的项目' },
+      },
+      {
+        path: 'projects/new',
+        name: 'NewProject',
+        component: () => import('../pages/projects/NewProjectPage.vue'),
+        meta: { title: '新建项目' },
+      },
+      {
+        path: 'projects/templates',
+        name: 'ProjectTemplates',
+        component: () => import('../pages/projects/TemplatesPage.vue'),
+        meta: { title: '项目模板' },
+      },
+      {
+        path: 'projects/market',
+        name: 'ProjectMarket',
+        component: () => import('../pages/projects/MarketPage.vue'),
+        meta: { title: '项目市场' },
+      },
+      {
+        path: 'projects/collaboration',
+        name: 'ProjectCollaboration',
+        component: () => import('../pages/projects/CollaborationPage.vue'),
+        meta: { title: '协作项目' },
+      },
+      {
+        path: 'projects/archived',
+        name: 'ProjectArchived',
+        component: () => import('../pages/projects/ArchivedPage.vue'),
+        meta: { title: '已归档项目' },
+      },
+      // 知识模块
+      {
+        path: 'knowledge/list',
+        name: 'KnowledgeList',
+        component: () => import('../pages/KnowledgeListPage.vue'),
+        meta: { title: '我的知识' },
+      },
+      // AI对话
+      {
+        path: 'ai/chat',
+        name: 'AIChat',
+        component: () => import('../pages/AIChatPage.vue'),
+        meta: { title: 'AI对话' },
+      },
     ],
   },
 ];
