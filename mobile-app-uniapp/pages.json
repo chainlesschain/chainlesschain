@@ -112,6 +112,12 @@
       "style": {
         "navigationBarTitleText": "文件夹管理"
       }
+    },
+    {
+      "path": "pages/mine/mine",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
     }
   ],
   "globalStyle": {
@@ -122,10 +128,16 @@
   },
   "tabBar": {
     "color": "#7A7E83",
-    "selectedColor": "#3cc51f",
+    "selectedColor": "#667eea",
     "borderStyle": "black",
     "backgroundColor": "#ffffff",
     "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "static/images/home.png",
+        "selectedIconPath": "static/images/home-active.png",
+        "text": "首页"
+      },
       {
         "pagePath": "pages/knowledge/list/list",
         "iconPath": "static/images/knowledge.png",
@@ -133,28 +145,10 @@
         "text": "知识库"
       },
       {
-        "pagePath": "pages/chat/chat",
-        "iconPath": "static/images/chat.png",
-        "selectedIconPath": "static/images/chat-active.png",
-        "text": "AI助手"
-      },
-      {
-        "pagePath": "pages/social/friends/friends",
-        "iconPath": "static/images/social.png",
-        "selectedIconPath": "static/images/social-active.png",
-        "text": "社交"
-      },
-      {
-        "pagePath": "pages/trade/market/market",
-        "iconPath": "static/images/trade.png",
-        "selectedIconPath": "static/images/trade-active.png",
-        "text": "交易"
-      },
-      {
-        "pagePath": "pages/settings/settings",
-        "iconPath": "static/images/settings.png",
-        "selectedIconPath": "static/images/settings-active.png",
-        "text": "设置"
+        "pagePath": "pages/mine/mine",
+        "iconPath": "static/images/mine.png",
+        "selectedIconPath": "static/images/mine-active.png",
+        "text": "我的"
       }
     ]
   }
