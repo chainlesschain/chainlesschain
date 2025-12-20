@@ -53,7 +53,10 @@
       </view>
 
       <view class="form-item content-item">
-        <text class="label">内容</text>
+        <view class="label-row">
+          <text class="label">内容</text>
+          <text class="ai-assistant-btn" @click="showAIModal = true">🤖 AI助手</text>
+        </view>
         <textarea
           class="textarea"
           v-model="form.content"
@@ -62,6 +65,43 @@
           :auto-height="true"
           :show-confirm-bar="false"
         />
+      </view>
+    </view>
+
+    <!-- AI助手弹窗 -->
+    <view class="modal" v-if="showAIModal" @click="showAIModal = false">
+      <view class="modal-content ai-modal" @click.stop>
+        <text class="modal-title">🤖 AI助手</text>
+
+        <view class="ai-options">
+          <view class="ai-option" @click="generateSummary">
+            <view class="option-icon">📝</view>
+            <text class="option-label">生成摘要</text>
+            <text class="option-desc">为长文本生成简短摘要</text>
+          </view>
+
+          <view class="ai-option" @click="suggestTags">
+            <view class="option-icon">🏷️</view>
+            <text class="option-label">标签建议</text>
+            <text class="option-desc">AI分析内容推荐标签</text>
+          </view>
+
+          <view class="ai-option" @click="expandContent">
+            <view class="option-icon">✨</view>
+            <text class="option-label">内容扩展</text>
+            <text class="option-desc">根据大纲生成完整内容</text>
+          </view>
+
+          <view class="ai-option" @click="improveContent">
+            <view class="option-icon">💡</view>
+            <text class="option-label">内容润色</text>
+            <text class="option-desc">改进语言表达和结构</text>
+          </view>
+        </view>
+
+        <button class="modal-close" @click="showAIModal = false">
+          <text>取消</text>
+        </button>
       </view>
     </view>
 
@@ -178,6 +218,7 @@
 
 <script>
 import { db } from '@/services/database'
+import { aiService } from '@/services/ai'
 
 export default {
   data() {
@@ -198,6 +239,7 @@ export default {
       ],
       // 标签相关
       showTagModal: false,
+      showAIModal: false,
       allTags: [],
       selectedTags: [],
       originalTagIds: [], // 用于编辑时保存原始标签ID
@@ -453,6 +495,225 @@ export default {
       }
     },
 
+    /**
+     * AI生成摘要
+     */
+    async generateSummary() {
+      if (!this.form.content) {
+        uni.showToast({
+          title: '请先输入内容',
+          icon: 'none'
+        })
+        return
+      }
+
+      this.showAIModal = false
+
+      uni.showLoading({
+        title: 'AI生成中...',
+        mask: true
+      })
+
+      try {
+        const summary = await aiService.generateSummary(this.form.content, 200)
+
+        uni.hideLoading()
+
+        uni.showModal({
+          title: '智能摘要',
+          content: summary,
+          confirmText: '使用摘要',
+          cancelText: '保留原文',
+          success: (res) => {
+            if (res.confirm) {
+              // 将摘要插入到内容开头
+              this.form.content = `【摘要】\n${summary}\n\n【正文】\n${this.form.content}`
+            }
+          }
+        })
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({
+          title: error.message || '生成失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * AI标签建议
+     */
+    async suggestTags() {
+      if (!this.form.title && !this.form.content) {
+        uni.showToast({
+          title: '请先输入标题或内容',
+          icon: 'none'
+        })
+        return
+      }
+
+      this.showAIModal = false
+
+      uni.showLoading({
+        title: 'AI分析中...',
+        mask: true
+      })
+
+      try {
+        const suggestions = await aiService.suggestTags(
+          this.form.title,
+          this.form.content,
+          this.allTags
+        )
+
+        uni.hideLoading()
+
+        if (suggestions.length === 0) {
+          uni.showToast({
+            title: '未找到合适的标签',
+            icon: 'none'
+          })
+          return
+        }
+
+        // 显示建议的标签
+        const tagNames = suggestions.map(s => s.name).join('、')
+        uni.showModal({
+          title: 'AI标签建议',
+          content: `建议添加以下标签：\n${tagNames}`,
+          confirmText: '添加这些标签',
+          cancelText: '取消',
+          success: async (res) => {
+            if (res.confirm) {
+              // 添加建议的标签
+              for (const suggestion of suggestions) {
+                // 检查标签是否已存在
+                let tag = this.allTags.find(t => t.name === suggestion.name)
+
+                // 如果标签不存在，创建新标签
+                if (!tag) {
+                  const randomColor = this.tagColors[Math.floor(Math.random() * this.tagColors.length)]
+                  tag = await db.createTag(suggestion.name, randomColor)
+                  this.allTags.push(tag)
+                }
+
+                // 添加到已选标签（避免重复）
+                if (!this.selectedTags.find(t => t.id === tag.id)) {
+                  this.selectedTags.push(tag)
+                }
+              }
+
+              uni.showToast({
+                title: '标签已添加',
+                icon: 'success'
+              })
+            }
+          }
+        })
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({
+          title: error.message || '分析失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * AI内容扩展
+     */
+    async expandContent() {
+      if (!this.form.title) {
+        uni.showToast({
+          title: '请先输入标题',
+          icon: 'none'
+        })
+        return
+      }
+
+      const outline = this.form.content || '请根据标题生成内容'
+
+      this.showAIModal = false
+
+      uni.showLoading({
+        title: 'AI创作中...',
+        mask: true
+      })
+
+      try {
+        const expanded = await aiService.expandContent(
+          this.form.title,
+          outline,
+          'casual'
+        )
+
+        uni.hideLoading()
+
+        uni.showModal({
+          title: 'AI生成的内容',
+          content: expanded.substring(0, 200) + '...',
+          confirmText: '使用生成内容',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              this.form.content = expanded
+              uni.showToast({
+                title: '内容已更新',
+                icon: 'success'
+              })
+            }
+          }
+        })
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({
+          title: error.message || '生成失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * AI内容润色
+     */
+    async improveContent() {
+      if (!this.form.content) {
+        uni.showToast({
+          title: '请先输入内容',
+          icon: 'none'
+        })
+        return
+      }
+
+      this.showAIModal = false
+
+      uni.showLoading({
+        title: 'AI润色中...',
+        mask: true
+      })
+
+      try {
+        const result = await aiService.improveContent(this.form.content)
+
+        uni.hideLoading()
+
+        const suggestions = result.suggestions.join('\n• ')
+
+        uni.showModal({
+          title: '改进建议',
+          content: `AI建议：\n• ${suggestions}`,
+          confirmText: '知道了',
+          showCancel: false
+        })
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({
+          title: error.message || '润色失败',
+          icon: 'none'
+        })
+      }
+    },
+
     handleCancel() {
       // 检查是否有未保存的内容
       if (this.form.title || this.form.content) {
@@ -511,6 +772,15 @@ export default {
         padding: 8rpx 16rpx;
         background-color: #e6f7e6;
         border-radius: 32rpx;
+      }
+
+      .ai-assistant-btn {
+        font-size: 24rpx;
+        color: #fff;
+        padding: 10rpx 20rpx;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 32rpx;
+        box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.4);
       }
     }
 
@@ -830,6 +1100,61 @@ export default {
           background-color: var(--color-primary);
           color: var(--text-inverse);
         }
+      }
+    }
+  }
+}
+
+// AI助手弹窗
+.ai-modal {
+  .ai-options {
+    display: flex;
+    flex-direction: column;
+    gap: 20rpx;
+    margin-bottom: 32rpx;
+
+    .ai-option {
+      background-color: var(--bg-input);
+      border-radius: 16rpx;
+      padding: 24rpx;
+      display: flex;
+      align-items: center;
+      gap: 20rpx;
+      transition: all 0.2s;
+
+      &:active {
+        background-color: var(--bg-hover);
+        transform: scale(0.98);
+      }
+
+      .option-icon {
+        width: 80rpx;
+        height: 80rpx;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40rpx;
+        flex-shrink: 0;
+      }
+
+      .option-label {
+        font-size: 30rpx;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 8rpx;
+      }
+
+      .option-desc {
+        font-size: 24rpx;
+        color: var(--text-tertiary);
+      }
+
+      > view:last-child {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
       }
     }
   }
