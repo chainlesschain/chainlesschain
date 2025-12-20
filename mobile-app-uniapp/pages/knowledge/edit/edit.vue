@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="edit-container">
     <view class="form">
       <view class="form-item">
@@ -66,6 +66,21 @@
 
         <view class="empty-tags" v-else>
           <text class="empty-hint">未添加标签，点击右上角添加</text>
+        </view>
+      </view>
+
+      <!-- 加密选项 -->
+      <view class="form-item encryption-item">
+        <view class="label-row">
+          <view class="encryption-info">
+            <text class="label">🔐 内容加密</text>
+            <text class="encryption-hint">开启后内容将使用PIN码加密存储</text>
+          </view>
+          <switch
+            :checked="form.encrypted"
+            @change="handleEncryptionChange"
+            color="#667eea"
+          />
         </view>
       </view>
 
@@ -246,7 +261,8 @@
 </template>
 
 <script>
-import { db } from '@/services/database'
+import { db as database } from '@/services/database'
+import authService from '@/services/auth'
 import { aiService } from '@/services/ai'
 
 export default {
@@ -259,8 +275,11 @@ export default {
         title: '',
         type: 'note',
         content: '',
-        folder_id: null
+        folder_id: null,
+        encrypted: false // 是否加密
       },
+      originalContent: '', // 保存原始内容（解密后的）
+      isContentEncrypted: false, // 标记内容是否已加密
       typeOptions: [
         { value: 'note', label: '笔记' },
         { value: 'document', label: '文档' },
@@ -349,7 +368,7 @@ export default {
      */
     async loadTags() {
       try {
-        this.allTags = await db.getTags()
+        this.allTags = await database.getTags()
       } catch (error) {
         console.error('加载标签失败:', error)
       }
@@ -360,7 +379,7 @@ export default {
      */
     async loadFolders() {
       try {
-        this.folders = await db.getFolders()
+        this.folders = await database.getFolders()
       } catch (error) {
         console.error('加载文件夹失败:', error)
       }
@@ -371,17 +390,43 @@ export default {
      */
     async loadItem() {
       try {
-        const item = await db.getKnowledgeItem(this.id)
+        const item = await database.getKnowledgeItem(this.id)
         if (item) {
+          // 检查内容是否加密
+          let content = item.content
+          let isEncrypted = false
+
+          // 判断是否为加密内容（以特定前缀标识）
+          if (content && content.startsWith('ENC:')) {
+            try {
+              // 去掉前缀，解密内容
+              const encryptedContent = content.substring(4)
+              content = authService.decrypt(encryptedContent)
+              isEncrypted = true
+            } catch (error) {
+              console.error('解密失败:', error)
+              uni.showModal({
+                title: '解密失败',
+                content: '无法解密内容，请确保已登录并使用正确的PIN码',
+                showCancel: false
+              })
+              return
+            }
+          }
+
           this.form = {
             title: item.title,
             type: item.type,
-            content: item.content,
-            folder_id: item.folder_id
+            content: content,
+            folder_id: item.folder_id,
+            encrypted: isEncrypted
           }
 
+          this.originalContent = content
+          this.isContentEncrypted = isEncrypted
+
           // 加载该知识项的标签
-          const tags = await db.getKnowledgeTags(this.id)
+          const tags = await database.getKnowledgeTags(this.id)
           this.selectedTags = tags || []
           this.originalTagIds = this.selectedTags.map(t => t.id)
 
@@ -454,7 +499,7 @@ export default {
 
       try {
         const tagName = this.tagSearchQuery.trim()
-        const newTag = await db.createTag(tagName, this.selectedColor)
+        const newTag = await database.createTag(tagName, this.selectedColor)
 
         // 添加到全部标签列表
         this.allTags.push(newTag)
@@ -521,6 +566,52 @@ export default {
       this.form.folder_id = this.folderOptions[index].value
     },
 
+    /**
+     * 处理加密选项变化
+     */
+    handleEncryptionChange(e) {
+      const enabled = e.detail.value
+
+      if (enabled) {
+        // 启用加密，提示用户
+        uni.showModal({
+          title: '启用加密',
+          content: '启用后，内容将使用您的PIN码加密存储。确保您记住PIN码，否则无法解密内容。',
+          success: (res) => {
+            if (res.confirm) {
+              this.form.encrypted = true
+            } else {
+              // 用户取消，恢复开关状态
+              this.$nextTick(() => {
+                this.form.encrypted = false
+              })
+            }
+          }
+        })
+      } else {
+        // 禁用加密
+        if (this.isContentEncrypted && this.isEdit) {
+          // 如果之前是加密的，警告用户
+          uni.showModal({
+            title: '禁用加密',
+            content: '禁用后，内容将以明文存储。确定要禁用加密吗？',
+            success: (res) => {
+              if (res.confirm) {
+                this.form.encrypted = false
+              } else {
+                // 用户取消，恢复开关状态
+                this.$nextTick(() => {
+                  this.form.encrypted = true
+                })
+              }
+            }
+          })
+        } else {
+          this.form.encrypted = false
+        }
+      }
+    },
+
     async handleSave() {
       if (!this.canSave || this.saving) {
         return
@@ -531,20 +622,40 @@ export default {
       try {
         let itemId = this.id
 
+        // 准备内容（加密或明文）
+        let contentToSave = this.form.content.trim()
+
+        if (this.form.encrypted) {
+          try {
+            // 加密内容并添加前缀标识
+            const encryptedContent = authService.encrypt(contentToSave)
+            contentToSave = 'ENC:' + encryptedContent
+          } catch (error) {
+            console.error('加密失败:', error)
+            uni.showToast({
+              title: '加密失败，请确保已登录',
+              icon: 'none',
+              duration: 2000
+            })
+            this.saving = false
+            return
+          }
+        }
+
         if (this.isEdit) {
           // 更新知识项
-          await db.updateKnowledgeItem(this.id, {
+          await database.updateKnowledgeItem(this.id, {
             title: this.form.title.trim(),
             type: this.form.type,
-            content: this.form.content.trim(),
+            content: contentToSave,
             folder_id: this.form.folder_id
           })
         } else {
           // 新建知识项
-          const newItem = await db.addKnowledgeItem({
+          const newItem = await database.addKnowledgeItem({
             title: this.form.title.trim(),
             type: this.form.type,
-            content: this.form.content.trim(),
+            content: contentToSave,
             folder_id: this.form.folder_id
           })
           itemId = newItem.id
@@ -552,7 +663,7 @@ export default {
 
         // 保存标签关联
         const tagIds = this.selectedTags.map(tag => tag.id)
-        await db.setKnowledgeTags(itemId, tagIds)
+        await database.setKnowledgeTags(itemId, tagIds)
 
         uni.showToast({
           title: this.isEdit ? '保存成功' : '创建成功',
@@ -671,7 +782,7 @@ export default {
                 // 如果标签不存在，创建新标签
                 if (!tag) {
                   const randomColor = this.tagColors[Math.floor(Math.random() * this.tagColors.length)]
-                  tag = await db.createTag(suggestion.name, randomColor)
+                  tag = await database.createTag(suggestion.name, randomColor)
                   this.allTags.push(tag)
                 }
 
@@ -899,7 +1010,7 @@ export default {
                     }
                   } else {
                     // 创建新标签
-                    const newTag = await db.createTag(keyword, this.getRandomColor())
+                    const newTag = await database.createTag(keyword, this.getRandomColor())
                     this.allTags.push(newTag)
                     this.selectedTags.push(newTag)
                   }
@@ -1085,6 +1196,29 @@ export default {
         .empty-hint {
           font-size: 26rpx;
           color: var(--text-tertiary);
+        }
+      }
+    }
+
+    &.encryption-item {
+      .label-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .encryption-info {
+          flex: 1;
+
+          .label {
+            margin-bottom: 8rpx;
+          }
+
+          .encryption-hint {
+            display: block;
+            font-size: 22rpx;
+            color: var(--text-tertiary);
+            line-height: 32rpx;
+          }
         }
       }
     }
@@ -1378,3 +1512,4 @@ export default {
   }
 }
 </style>
+

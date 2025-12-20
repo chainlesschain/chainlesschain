@@ -89,6 +89,45 @@
       }
     },
     {
+      "path": "pages/identity/list",
+      "style": {
+        "navigationBarTitleText": "我的身份"
+      }
+    },
+    {
+      "path": "pages/identity/create",
+      "style": {
+        "navigationBarTitleText": "创建身份"
+      }
+    },
+    {
+      "path": "pages/auth/setup-pin",
+      "style": {
+        "navigationBarTitleText": "设置PIN码",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/auth/change-pin",
+      "style": {
+        "navigationBarTitleText": "修改PIN码",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/auth/verify-pin",
+      "style": {
+        "navigationBarTitleText": "验证身份",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/auth/biometric-setup",
+      "style": {
+        "navigationBarTitleText": "生物识别设置"
+      }
+    },
+    {
       "path": "pages/backup/backup",
       "style": {
         "navigationBarTitleText": "数据备份",
