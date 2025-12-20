@@ -1,7 +1,7 @@
 <template>
   <view class="login-container">
     <view class="logo-section">
-      <image class="logo" src="/static/images/logo.png" mode="aspectFit"></image>
+      <image class="logo" src="/logo.png" mode="aspectFit"></image>
       <text class="app-name">ChainlessChain</text>
       <text class="app-slogan">去中心化 · 隐私优先 · AI原生</text>
     </view>
@@ -302,9 +302,13 @@ export default {
   margin-bottom: 80rpx;
 
   .logo {
-    width: 160rpx;
-    height: 160rpx;
+    width: 180rpx;
+    height: 180rpx;
     margin-bottom: 30rpx;
+    border-radius: 36rpx;
+    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 12rpx;
   }
 
   .app-name {
