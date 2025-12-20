@@ -9,16 +9,31 @@ import sys
 
 # 各服务商价格表 (每1K tokens的价格，单位：人民币)
 PRICING = {
+    # 超高性价比（推荐）
     "硅基流动 Qwen2-7B": 0.0007,
+    "DeepSeek deepseek-chat": 0.001,
+    "火山引擎 doubao-lite": 0.0,  # 免费
+    "火山引擎 doubao-pro-4k": 0.0008,
+
+    # 高性价比
     "硅基流动 DeepSeek-V2.5": 0.0014,
     "阿里云 qwen-turbo": 0.008,
-    "阿里云 qwen-plus": 0.02,
-    "阿里云 qwen-max": 0.12,
-    "零一万物 yi-large": 0.02,
-    "智谱AI glm-4": 0.05,
     "Moonshot moonshot-v1-8k": 0.012,
+    "百度千帆 ERNIE-Bot-turbo": 0.012,
+    "腾讯混元 hunyuan-lite": 0.0,  # 免费
+    "腾讯混元 hunyuan-pro": 0.015,
+
+    # 中等价位
+    "MiniMax abab5.5-chat": 0.015,
+    "讯飞星火 spark-lite": 0.018,
     "OpenAI GPT-3.5-Turbo": 0.014,  # $0.002 * 7汇率
-    "OpenAI GPT-4-Turbo": 0.07,     # $0.01 * 7汇率
+    "零一万物 yi-large": 0.02,
+    "阿里云 qwen-plus": 0.02,
+
+    # 高级模型
+    "智谱AI glm-4": 0.05,
+    "OpenAI GPT-4-Turbo": 0.07,  # $0.01 * 7汇率
+    "阿里云 qwen-max": 0.12,
 }
 
 # GPU租用价格 (每小时，单位：人民币)
@@ -213,17 +228,23 @@ def preset_scenarios():
         print(f"  使用量: 每天{daily_calls}次对话，平均{avg_tokens} tokens/次")
         print("-" * 80)
 
-        # 计算几个代表性服务商
+        # 计算几个代表性服务商（按性价比排序）
         providers = [
+            "火山引擎 doubao-lite",  # 免费
             "硅基流动 Qwen2-7B",
+            "DeepSeek deepseek-chat",
+            "火山引擎 doubao-pro-4k",
             "阿里云 qwen-turbo",
-            "零一万物 yi-large"
+            "百度千帆 ERNIE-Bot-turbo"
         ]
 
         for provider in providers:
             cost = calculate_api_cost(daily_calls, avg_tokens, provider)
             if cost:
-                print(f"  {provider:<25} 每月: ￥{cost['monthly_cost']:>6.2f}")
+                if cost['monthly_cost'] == 0:
+                    print(f"  {provider:<30} 每月: 免费 ⭐")
+                else:
+                    print(f"  {provider:<30} 每月: ￥{cost['monthly_cost']:>6.2f}")
 
 
 if __name__ == "__main__":
