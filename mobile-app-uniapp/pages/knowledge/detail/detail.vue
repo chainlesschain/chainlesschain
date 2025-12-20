@@ -118,7 +118,7 @@
     <!-- 分享弹窗 -->
     <view class="modal" v-if="showShareModal" @click="showShareModal = false">
       <view class="modal-content share-modal" @click.stop>
-        <text class="modal-title">分享知识</text>
+        <text class="modal-title">分享/导出知识</text>
 
         <view class="share-options">
           <view class="share-option" @click="copyAsText">
@@ -131,7 +131,7 @@
             <text class="option-label">复制Markdown</text>
           </view>
 
-          <view class="share-option" @click="exportAsFile">
+          <view class="share-option" @click="showExportFormatModal = true">
             <view class="option-icon">💾</view>
             <text class="option-label">导出文件</text>
           </view>
@@ -147,12 +147,44 @@
         </button>
       </view>
     </view>
+
+    <!-- 导出格式选择弹窗 -->
+    <view class="modal" v-if="showExportFormatModal" @click="showExportFormatModal = false">
+      <view class="modal-content export-format-modal" @click.stop>
+        <text class="modal-title">选择导出格式</text>
+
+        <view class="format-options">
+          <view class="format-option" @click="exportWithFormat('markdown')">
+            <text class="format-icon">📝</text>
+            <text class="format-name">Markdown (.md)</text>
+            <text class="format-desc">适合跨平台使用</text>
+          </view>
+
+          <view class="format-option" @click="exportWithFormat('text')">
+            <text class="format-icon">📄</text>
+            <text class="format-name">纯文本 (.txt)</text>
+            <text class="format-desc">通用文本格式</text>
+          </view>
+
+          <view class="format-option" @click="exportWithFormat('json')">
+            <text class="format-icon">📦</text>
+            <text class="format-name">JSON (.json)</text>
+            <text class="format-desc">包含完整元数据</text>
+          </view>
+        </view>
+
+        <button class="modal-close" @click="showExportFormatModal = false">
+          <text>取消</text>
+        </button>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
 import { db } from '@/services/database'
 import { aiService } from '@/services/ai'
+import { importExport } from '@/services/importExport'
 
 export default {
   data() {
@@ -163,6 +195,7 @@ export default {
       aiRecommending: false,
       error: null,
       showShareModal: false,
+      showExportFormatModal: false,
       showLinkModal: false,
       relatedItems: [],
       allKnowledge: [],
@@ -355,57 +388,64 @@ export default {
     },
 
     /**
-     * 导出为文件
+     * 使用指定格式导出
      */
-    async exportAsFile() {
+    async exportWithFormat(format) {
       if (!this.item) return
 
       try {
-        // 获取标签
+        // 准备知识数据（包含标签和关联）
         const tags = await db.getKnowledgeTags(this.id)
-        const tagText = tags && tags.length > 0
-          ? tags.map(tag => `#${tag.name}`).join(' ')
-          : ''
-
-        // 生成Markdown内容
-        let content = `# ${this.item.title}\n\n`
-        content += `**类型**: ${this.getTypeLabel(this.item.type)}\n`
-        content += `**更新时间**: ${this.formatTime(this.item.updated_at)}\n`
-        if (tagText) {
-          content += `**标签**: ${tagText}\n`
+        const knowledgeData = {
+          ...this.item,
+          tags: tags || [],
+          links: this.relatedItems || []
         }
-        content += `\n---\n\n`
-        content += `${this.item.content}\n`
-        content += `\n---\n`
-        content += `*导出自 ChainlessChain 知识库*\n`
 
-        // 生成文件名（移除特殊字符）
-        const safeTitle = this.item.title.replace(/[^\w\u4e00-\u9fa5]/g, '_').substring(0, 50)
-        const fileName = `${safeTitle}.md`
+        // 使用导入导出服务生成文件
+        const { content, filename, mimeType } = importExport.exportKnowledge(knowledgeData, format)
 
-        // #ifdef H5
-        // H5环境：创建下载链接
-        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = fileName
-        a.click()
-        URL.revokeObjectURL(url)
+        // 保存文件
+        await this.downloadFile(content, filename, mimeType)
 
         uni.showToast({
-          title: '文件已下载',
+          title: '导出成功',
           icon: 'success'
         })
+
+        this.showExportFormatModal = false
         this.showShareModal = false
-        // #endif
+      } catch (error) {
+        console.error('导出失败:', error)
+        uni.showToast({
+          title: '导出失败: ' + error.message,
+          icon: 'none',
+          duration: 3000
+        })
+      }
+    },
 
-        // #ifndef H5
-        // App环境：保存到本地文件系统
-        // 注意：需要在 manifest.json 中配置文件权限
-        const fs = uni.getFileSystemManager()
-        const filePath = `${wx.env.USER_DATA_PATH}/${fileName}`
+    /**
+     * 下载文件到本地
+     */
+    async downloadFile(content, filename, mimeType) {
+      // #ifdef H5
+      // H5环境：创建下载链接
+      const blob = new Blob([content], { type: mimeType + ';charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+      // #endif
 
+      // #ifndef H5
+      // App环境：保存到本地文件系统
+      const fs = uni.getFileSystemManager()
+      const filePath = `${uni.env.USER_DATA_PATH}/${filename}`
+
+      return new Promise((resolve, reject) => {
         fs.writeFile({
           filePath: filePath,
           data: content,
@@ -414,11 +454,9 @@ export default {
             uni.showModal({
               title: '导出成功',
               content: `文件已保存到：${filePath}`,
-              showCancel: false,
-              success: () => {
-                this.showShareModal = false
-              }
+              showCancel: false
             })
+            resolve()
           },
           fail: (err) => {
             console.error('保存文件失败:', err)
@@ -430,19 +468,21 @@ export default {
                   title: '内容已复制到剪贴板',
                   icon: 'success'
                 })
-                this.showShareModal = false
-              }
+                resolve()
+              },
+              fail: reject
             })
           }
         })
-        // #endif
-      } catch (error) {
-        console.error('导出文件失败:', error)
-        uni.showToast({
-          title: '导出失败',
-          icon: 'none'
-        })
-      }
+      })
+      // #endif
+    },
+
+    /**
+     * 导出为文件（旧方法，保留向后兼容）
+     */
+    async exportAsFile() {
+      this.showExportFormatModal = true
     },
 
     /**
@@ -1109,6 +1149,48 @@ export default {
       padding: 60rpx 20rpx;
       color: var(--text-tertiary);
       font-size: 26rpx;
+    }
+  }
+}
+
+// 导出格式选择弹窗
+.export-format-modal {
+  .format-options {
+    margin-bottom: 24rpx;
+
+    .format-option {
+      padding: 24rpx;
+      background-color: var(--bg-input);
+      border-radius: 12rpx;
+      margin-bottom: 16rpx;
+      display: flex;
+      align-items: center;
+      gap: 20rpx;
+      transition: all 0.2s;
+
+      &:active {
+        background-color: var(--bg-hover);
+        transform: scale(0.98);
+      }
+
+      .format-icon {
+        font-size: 48rpx;
+        flex-shrink: 0;
+      }
+
+      .format-name {
+        flex: 1;
+        font-size: 30rpx;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 4rpx;
+      }
+
+      .format-desc {
+        display: block;
+        font-size: 24rpx;
+        color: var(--text-tertiary);
+      }
     }
   }
 }

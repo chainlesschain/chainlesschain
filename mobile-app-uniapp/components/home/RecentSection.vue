@@ -9,7 +9,7 @@
         @click="goToDetail(item.id)"
       >
         <view class="recent-icon">
-          <text>{{ getTypeIcon(item.type) }}</text>
+          <uni-icons :type="getTypeIcon(item.type)" color="#667eea" size="24"></uni-icons>
         </view>
         <view class="recent-content">
           <text class="recent-title">{{ item.title }}</text>
@@ -31,12 +31,12 @@ export default {
   methods: {
     getTypeIcon(type) {
       const icons = {
-        'note': '📝',
-        'document': '📄',
-        'conversation': '💬',
-        'web_clip': '🔖'
+        'note': 'compose',
+        'document': 'file-text-filled',
+        'conversation': 'chat-filled',
+        'web_clip': 'link'
       }
-      return icons[type] || '📝'
+      return icons[type] || 'compose'
     },
 
     formatTime(timestamp) {
@@ -82,6 +82,7 @@ export default {
     background-color: var(--bg-card);
     border-radius: 16rpx;
     overflow: hidden;
+    box-shadow: var(--shadow-md);
 
     .recent-item {
       display: flex;
@@ -106,7 +107,6 @@ export default {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 36rpx;
         flex-shrink: 0;
       }
 
