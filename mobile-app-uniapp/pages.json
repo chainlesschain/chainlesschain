@@ -14,6 +14,43 @@
       }
     },
     {
+      "path": "pages/projects/list",
+      "style": {
+        "navigationBarTitleText": "我的项目",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/projects/detail",
+      "style": {
+        "navigationBarTitleText": "项目详情"
+      }
+    },
+    {
+      "path": "pages/projects/create",
+      "style": {
+        "navigationBarTitleText": "新建项目"
+      }
+    },
+    {
+      "path": "pages/projects/chat",
+      "style": {
+        "navigationBarTitleText": "项目AI助手"
+      }
+    },
+    {
+      "path": "pages/projects/templates",
+      "style": {
+        "navigationBarTitleText": "项目模板"
+      }
+    },
+    {
+      "path": "pages/projects/market",
+      "style": {
+        "navigationBarTitleText": "项目市场"
+      }
+    },
+    {
       "path": "pages/knowledge/list/list",
       "style": {
         "navigationBarTitleText": "知识库",
@@ -196,16 +233,22 @@
         "text": "首页"
       },
       {
-        "pagePath": "pages/ai/index",
-        "iconPath": "static/images/chat.png",
-        "selectedIconPath": "static/images/chat-active.png",
-        "text": "AI"
+        "pagePath": "pages/projects/list",
+        "iconPath": "static/images/project.png",
+        "selectedIconPath": "static/images/project-active.png",
+        "text": "项目"
       },
       {
         "pagePath": "pages/messages/index",
-        "iconPath": "static/images/social.png",
-        "selectedIconPath": "static/images/social-active.png",
+        "iconPath": "static/images/message.png",
+        "selectedIconPath": "static/images/message-active.png",
         "text": "消息"
+      },
+      {
+        "pagePath": "pages/knowledge/list/list",
+        "iconPath": "static/images/knowledge.png",
+        "selectedIconPath": "static/images/knowledge-active.png",
+        "text": "知识"
       },
       {
         "pagePath": "pages/mine/mine",
