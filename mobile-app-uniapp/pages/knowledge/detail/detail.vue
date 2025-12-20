@@ -728,13 +728,13 @@ export default {
 .error {
   .error-icon {
     display: block;
-    font-size: 100rpx;
+    font-size: 50px;
     margin-bottom: 20rpx;
   }
 
   .error-text {
     display: block;
-    font-size: 28rpx;
+    font-size: 14px;
     color: var(--text-secondary);
     margin-bottom: 40rpx;
   }
@@ -746,7 +746,7 @@ export default {
     background-color: var(--color-primary);
     color: var(--bg-card);
     border-radius: 40rpx;
-    font-size: 28rpx;
+    font-size: 14px;
     border: none;
   }
 }
@@ -759,7 +759,7 @@ export default {
 
     .title {
       display: block;
-      font-size: 40rpx;
+      font-size: 20px;
       font-weight: bold;
       color: var(--text-primary);
       margin-bottom: 20rpx;
@@ -775,7 +775,7 @@ export default {
         padding: 8rpx 20rpx;
         background-color: var(--bg-hover);
         color: var(--text-secondary);
-        font-size: 24rpx;
+        font-size: 12px;
         border-radius: 8rpx;
 
         &.type-note {
@@ -795,7 +795,7 @@ export default {
       }
 
       .time {
-        font-size: 24rpx;
+        font-size: 12px;
         color: var(--text-tertiary);
       }
     }
@@ -808,7 +808,7 @@ export default {
     min-height: 400rpx;
 
     .text-content {
-      font-size: 30rpx;
+      font-size: 15px;
       color: var(--text-primary);
       line-height: 1.8;
       white-space: pre-wrap;
@@ -824,7 +824,7 @@ export default {
       flex: 1;
       height: 88rpx;
       border-radius: 44rpx;
-      font-size: 30rpx;
+      font-size: 15px;
       border: none;
       display: flex;
       align-items: center;
@@ -870,7 +870,7 @@ export default {
 
     .modal-title {
       display: block;
-      font-size: 36rpx;
+      font-size: 18px;
       font-weight: bold;
       color: var(--text-primary);
       margin-bottom: 32rpx;
@@ -903,7 +903,7 @@ export default {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 56rpx;
+          font-size: 28px;
           transition: background-color 0.2s;
 
           &:active {
@@ -912,7 +912,7 @@ export default {
         }
 
         .option-label {
-          font-size: 24rpx;
+          font-size: 12px;
           color: var(--text-secondary);
           text-align: center;
         }
@@ -925,7 +925,7 @@ export default {
       background-color: var(--bg-input);
       color: var(--text-primary);
       border-radius: 44rpx;
-      font-size: 30rpx;
+      font-size: 15px;
       border: none;
       display: flex;
       align-items: center;
@@ -960,7 +960,7 @@ export default {
     margin-bottom: 20rpx;
 
     .section-title {
-      font-size: 32rpx;
+      font-size: 16px;
       font-weight: bold;
       color: var(--text-primary);
     }
@@ -976,7 +976,7 @@ export default {
       background: var(--gradient-brand);
       color: var(--text-inverse);
       border-radius: 20rpx;
-      font-size: 24rpx;
+      font-size: 12px;
       border: none;
       display: flex;
       align-items: center;
@@ -992,7 +992,7 @@ export default {
     }
 
     .section-count {
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-tertiary);
       background-color: var(--bg-input);
       padding: 4rpx 12rpx;
@@ -1015,7 +1015,7 @@ export default {
       }
 
       .related-icon {
-        font-size: 36rpx;
+        font-size: 18px;
         flex-shrink: 0;
       }
 
@@ -1027,7 +1027,7 @@ export default {
         overflow: hidden;
 
         .related-title {
-          font-size: 28rpx;
+          font-size: 14px;
           color: var(--text-primary);
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1035,13 +1035,13 @@ export default {
         }
 
         .related-type {
-          font-size: 24rpx;
+          font-size: 12px;
           color: var(--text-tertiary);
         }
       }
 
       .related-arrow {
-        font-size: 40rpx;
+        font-size: 20px;
         color: var(--text-tertiary);
         flex-shrink: 0;
       }
@@ -1056,7 +1056,7 @@ export default {
     margin-bottom: 20rpx;
 
     .empty-hint {
-      font-size: 26rpx;
+      font-size: 13px;
       color: var(--text-tertiary);
       line-height: 1.5;
     }
@@ -1068,7 +1068,7 @@ export default {
     background-color: var(--bg-input);
     color: var(--text-secondary);
     border-radius: 36rpx;
-    font-size: 28rpx;
+    font-size: 14px;
     margin-top: 20rpx;
     border: none;
     display: flex;
@@ -1092,7 +1092,7 @@ export default {
       padding: 0 24rpx;
       background-color: var(--bg-input);
       border-radius: 36rpx;
-      font-size: 28rpx;
+      font-size: 14px;
       color: var(--text-primary);
     }
   }
@@ -1118,7 +1118,7 @@ export default {
       }
 
       .knowledge-icon {
-        font-size: 36rpx;
+        font-size: 18px;
         flex-shrink: 0;
       }
 
@@ -1130,7 +1130,7 @@ export default {
         overflow: hidden;
 
         .knowledge-title {
-          font-size: 28rpx;
+          font-size: 14px;
           color: var(--text-primary);
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1138,7 +1138,7 @@ export default {
         }
 
         .knowledge-type {
-          font-size: 24rpx;
+          font-size: 12px;
           color: var(--text-tertiary);
         }
       }
@@ -1148,7 +1148,7 @@ export default {
       text-align: center;
       padding: 60rpx 20rpx;
       color: var(--text-tertiary);
-      font-size: 26rpx;
+      font-size: 13px;
     }
   }
 }
@@ -1174,13 +1174,13 @@ export default {
       }
 
       .format-icon {
-        font-size: 48rpx;
+        font-size: 24px;
         flex-shrink: 0;
       }
 
       .format-name {
         flex: 1;
-        font-size: 30rpx;
+        font-size: 15px;
         font-weight: 500;
         color: var(--text-primary);
         margin-bottom: 4rpx;
@@ -1188,7 +1188,7 @@ export default {
 
       .format-desc {
         display: block;
-        font-size: 24rpx;
+        font-size: 12px;
         color: var(--text-tertiary);
       }
     }
