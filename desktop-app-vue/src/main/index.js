@@ -4026,11 +4026,13 @@ class ChainlessChainApp {
     // 创建项目（调用后端）
     ipcMain.handle('project:create', async (_event, createData) => {
       try {
+        console.log('[Main] 开始创建项目，参数:', JSON.stringify(createData, null, 2));
         const { getProjectHTTPClient } = require('./project/http-client');
         const httpClient = getProjectHTTPClient();
 
         // 调用后端API
         const project = await httpClient.createProject(createData);
+        console.log('[Main] 后端返回项目，键:', Object.keys(project || {}));
 
         // 保存到本地数据库
         if (this.database && project) {
@@ -4041,15 +4043,19 @@ class ChainlessChainApp {
             synced_at: Date.now(),
           };
           await this.database.saveProject(localProject);
+          console.log('[Main] 项目已保存到本地数据库');
 
           // 保存项目文件
           if (project.files && project.files.length > 0) {
             await this.database.saveProjectFiles(project.id, project.files);
+            console.log('[Main] 项目文件已保存，数量:', project.files.length);
           }
         }
 
         // 清理undefined值（IPC无法序列化undefined）
+        console.log('[Main] 开始清理 undefined 值');
         const cleanProject = this.removeUndefinedValues(project);
+        console.log('[Main] 清理完成，返回项目');
         return cleanProject;
       } catch (error) {
         console.error('[Main] 创建项目失败:', error);
