@@ -198,6 +198,48 @@ contextBridge.exposeInMainWorld('electronAPI', {
     createFromTemplate: (templateId, params) => ipcRenderer.invoke('contract:create-from-template', templateId, params),
   },
 
+  // 知识付费
+  knowledge: {
+    createContent: (options) => ipcRenderer.invoke('knowledge:create-content', options),
+    updateContent: (contentId, updates) => ipcRenderer.invoke('knowledge:update-content', contentId, updates),
+    deleteContent: (contentId) => ipcRenderer.invoke('knowledge:delete-content', contentId),
+    getContent: (contentId) => ipcRenderer.invoke('knowledge:get-content', contentId),
+    listContents: (filters) => ipcRenderer.invoke('knowledge:list-contents', filters),
+    purchaseContent: (contentId, paymentAssetId) => ipcRenderer.invoke('knowledge:purchase-content', contentId, paymentAssetId),
+    subscribe: (planId, paymentAssetId) => ipcRenderer.invoke('knowledge:subscribe', planId, paymentAssetId),
+    unsubscribe: (planId) => ipcRenderer.invoke('knowledge:unsubscribe', planId),
+    getMyPurchases: (userDid) => ipcRenderer.invoke('knowledge:get-my-purchases', userDid),
+    getMySubscriptions: (userDid) => ipcRenderer.invoke('knowledge:get-my-subscriptions', userDid),
+    accessContent: (contentId) => ipcRenderer.invoke('knowledge:access-content', contentId),
+    checkAccess: (contentId, userDid) => ipcRenderer.invoke('knowledge:check-access', contentId, userDid),
+    getStatistics: (creatorDid) => ipcRenderer.invoke('knowledge:get-statistics', creatorDid),
+  },
+
+  // 信用评分
+  credit: {
+    getUserCredit: (userDid) => ipcRenderer.invoke('credit:get-user-credit', userDid),
+    updateScore: (userDid) => ipcRenderer.invoke('credit:update-score', userDid),
+    getScoreHistory: (userDid, limit) => ipcRenderer.invoke('credit:get-score-history', userDid, limit),
+    getCreditLevel: (score) => ipcRenderer.invoke('credit:get-credit-level', score),
+    getLeaderboard: (limit) => ipcRenderer.invoke('credit:get-leaderboard', limit),
+    getBenefits: (userDid) => ipcRenderer.invoke('credit:get-benefits', userDid),
+    getStatistics: () => ipcRenderer.invoke('credit:get-statistics'),
+  },
+
+  // 评价反馈
+  review: {
+    create: (options) => ipcRenderer.invoke('review:create', options),
+    update: (reviewId, updates) => ipcRenderer.invoke('review:update', reviewId, updates),
+    delete: (reviewId) => ipcRenderer.invoke('review:delete', reviewId),
+    get: (reviewId) => ipcRenderer.invoke('review:get', reviewId),
+    getByTarget: (targetId, targetType, filters) => ipcRenderer.invoke('review:get-by-target', targetId, targetType, filters),
+    reply: (reviewId, content) => ipcRenderer.invoke('review:reply', reviewId, content),
+    markHelpful: (reviewId, helpful) => ipcRenderer.invoke('review:mark-helpful', reviewId, helpful),
+    report: (reviewId, reason, description) => ipcRenderer.invoke('review:report', reviewId, reason, description),
+    getStatistics: (targetId, targetType) => ipcRenderer.invoke('review:get-statistics', targetId, targetType),
+    getMyReviews: (userDid) => ipcRenderer.invoke('review:get-my-reviews', userDid),
+  },
+
   // P2P网络
   p2p: {
     getNodeInfo: () => ipcRenderer.invoke('p2p:get-node-info'),

@@ -12,6 +12,10 @@ const FileImporter = require('./import/file-importer');
 const ImageUploader = require('./image/image-uploader');
 const PromptTemplateManager = require('./prompt/prompt-template-manager');
 const NativeMessagingHTTPServer = require('./native-messaging/http-server');
+// Trade modules
+const KnowledgePaymentManager = require('./trade/knowledge-payment');
+const CreditScoreManager = require('./trade/credit-score');
+const ReviewManager = require('./trade/review-manager');
 
 class ChainlessChainApp {
   constructor() {
@@ -27,6 +31,9 @@ class ChainlessChainApp {
     this.imageUploader = null;
     this.promptTemplateManager = null;
     this.nativeMessagingServer = null;
+    this.knowledgePaymentManager = null;
+    this.creditScoreManager = null;
+    this.reviewManager = null;
     this.autoSyncTimer = null;
     this.setupApp();
   }
@@ -340,6 +347,43 @@ class ChainlessChainApp {
       console.log('智能合约引擎初始化成功');
     } catch (error) {
       console.error('智能合约引擎初始化失败:', error);
+      // 不影响应用启动
+    }
+
+    // 初始化知识付费管理器
+    try {
+      console.log('初始化知识付费管理器...');
+      this.knowledgePaymentManager = new KnowledgePaymentManager(
+        this.database,
+        this.assetManager,
+        this.p2pManager
+      );
+      await this.knowledgePaymentManager.initialize();
+      console.log('知识付费管理器初始化成功');
+    } catch (error) {
+      console.error('知识付费管理器初始化失败:', error);
+      // 不影响应用启动
+    }
+
+    // 初始化信用评分管理器
+    try {
+      console.log('初始化信用评分管理器...');
+      this.creditScoreManager = new CreditScoreManager(this.database);
+      await this.creditScoreManager.initialize();
+      console.log('信用评分管理器初始化成功');
+    } catch (error) {
+      console.error('信用评分管理器初始化失败:', error);
+      // 不影响应用启动
+    }
+
+    // 初始化评价管理器
+    try {
+      console.log('初始化评价管理器...');
+      this.reviewManager = new ReviewManager(this.database);
+      await this.reviewManager.initialize();
+      console.log('评价管理器初始化成功');
+    } catch (error) {
+      console.error('评价管理器初始化失败:', error);
       // 不影响应用启动
     }
 
@@ -2762,6 +2806,372 @@ class ChainlessChainApp {
       } catch (error) {
         console.error('[Main] 从模板创建合约失败:', error);
         throw error;
+      }
+    });
+
+    // === 知识付费系统 ===
+    ipcMain.handle('knowledge:create-content', async (_event, options) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          throw new Error('知识付费管理器未初始化');
+        }
+        return await this.knowledgePaymentManager.createPaidContent(options);
+      } catch (error) {
+        console.error('[Main] 创建付费内容失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('knowledge:update-content', async (_event, contentId, updates) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          throw new Error('知识付费管理器未初始化');
+        }
+        return await this.knowledgePaymentManager.updateContent(contentId, updates);
+      } catch (error) {
+        console.error('[Main] 更新内容失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('knowledge:delete-content', async (_event, contentId) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          throw new Error('知识付费管理器未初始化');
+        }
+        return await this.knowledgePaymentManager.deleteContent(contentId);
+      } catch (error) {
+        console.error('[Main] 删除内容失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('knowledge:get-content', async (_event, contentId) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          return null;
+        }
+        return await this.knowledgePaymentManager.getContent(contentId);
+      } catch (error) {
+        console.error('[Main] 获取内容失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('knowledge:list-contents', async (_event, filters) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          return [];
+        }
+        return await this.knowledgePaymentManager.listContents(filters);
+      } catch (error) {
+        console.error('[Main] 列出内容失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('knowledge:purchase-content', async (_event, contentId, paymentAssetId) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          throw new Error('知识付费管理器未初始化');
+        }
+        return await this.knowledgePaymentManager.purchaseContent(contentId, paymentAssetId);
+      } catch (error) {
+        console.error('[Main] 购买内容失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('knowledge:subscribe', async (_event, planId, paymentAssetId) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          throw new Error('知识付费管理器未初始化');
+        }
+        return await this.knowledgePaymentManager.subscribe(planId, paymentAssetId);
+      } catch (error) {
+        console.error('[Main] 订阅失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('knowledge:unsubscribe', async (_event, planId) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          throw new Error('知识付费管理器未初始化');
+        }
+        return await this.knowledgePaymentManager.unsubscribe(planId);
+      } catch (error) {
+        console.error('[Main] 取消订阅失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('knowledge:get-my-purchases', async (_event, userDid) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          return [];
+        }
+        return await this.knowledgePaymentManager.getMyPurchases(userDid);
+      } catch (error) {
+        console.error('[Main] 获取购买记录失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('knowledge:get-my-subscriptions', async (_event, userDid) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          return [];
+        }
+        return await this.knowledgePaymentManager.getMySubscriptions(userDid);
+      } catch (error) {
+        console.error('[Main] 获取订阅记录失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('knowledge:access-content', async (_event, contentId) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          throw new Error('知识付费管理器未初始化');
+        }
+        return await this.knowledgePaymentManager.accessContent(contentId);
+      } catch (error) {
+        console.error('[Main] 访问内容失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('knowledge:check-access', async (_event, contentId, userDid) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          return false;
+        }
+        return await this.knowledgePaymentManager.checkAccess(contentId, userDid);
+      } catch (error) {
+        console.error('[Main] 检查访问权限失败:', error);
+        return false;
+      }
+    });
+
+    ipcMain.handle('knowledge:get-statistics', async (_event, creatorDid) => {
+      try {
+        if (!this.knowledgePaymentManager) {
+          return null;
+        }
+        return await this.knowledgePaymentManager.getStatistics(creatorDid);
+      } catch (error) {
+        console.error('[Main] 获取统计数据失败:', error);
+        return null;
+      }
+    });
+
+    // === 信用评分系统 ===
+    ipcMain.handle('credit:get-user-credit', async (_event, userDid) => {
+      try {
+        if (!this.creditScoreManager) {
+          return null;
+        }
+        return await this.creditScoreManager.getUserCredit(userDid);
+      } catch (error) {
+        console.error('[Main] 获取用户信用失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('credit:update-score', async (_event, userDid) => {
+      try {
+        if (!this.creditScoreManager) {
+          throw new Error('信用评分管理器未初始化');
+        }
+        return await this.creditScoreManager.calculateScore(userDid);
+      } catch (error) {
+        console.error('[Main] 更新信用评分失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('credit:get-score-history', async (_event, userDid, limit) => {
+      try {
+        if (!this.creditScoreManager) {
+          return [];
+        }
+        return await this.creditScoreManager.getScoreHistory(userDid, limit);
+      } catch (error) {
+        console.error('[Main] 获取评分历史失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('credit:get-credit-level', async (_event, score) => {
+      try {
+        if (!this.creditScoreManager) {
+          return null;
+        }
+        return await this.creditScoreManager.getCreditLevel(score);
+      } catch (error) {
+        console.error('[Main] 获取信用等级失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('credit:get-leaderboard', async (_event, limit) => {
+      try {
+        if (!this.creditScoreManager) {
+          return [];
+        }
+        return await this.creditScoreManager.getLeaderboard(limit);
+      } catch (error) {
+        console.error('[Main] 获取排行榜失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('credit:get-benefits', async (_event, userDid) => {
+      try {
+        if (!this.creditScoreManager) {
+          return [];
+        }
+        const credit = await this.creditScoreManager.getUserCredit(userDid);
+        if (!credit) return [];
+        const level = await this.creditScoreManager.getCreditLevel(credit.credit_score);
+        return level ? level.benefits : [];
+      } catch (error) {
+        console.error('[Main] 获取信用权益失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('credit:get-statistics', async () => {
+      try {
+        if (!this.creditScoreManager) {
+          return null;
+        }
+        return await this.creditScoreManager.getStatistics();
+      } catch (error) {
+        console.error('[Main] 获取统计信息失败:', error);
+        return null;
+      }
+    });
+
+    // === 评价反馈系统 ===
+    ipcMain.handle('review:create', async (_event, options) => {
+      try {
+        if (!this.reviewManager) {
+          throw new Error('评价管理器未初始化');
+        }
+        return await this.reviewManager.createReview(options);
+      } catch (error) {
+        console.error('[Main] 创建评价失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('review:update', async (_event, reviewId, updates) => {
+      try {
+        if (!this.reviewManager) {
+          throw new Error('评价管理器未初始化');
+        }
+        return await this.reviewManager.updateReview(reviewId, updates);
+      } catch (error) {
+        console.error('[Main] 更新评价失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('review:delete', async (_event, reviewId) => {
+      try {
+        if (!this.reviewManager) {
+          throw new Error('评价管理器未初始化');
+        }
+        return await this.reviewManager.deleteReview(reviewId);
+      } catch (error) {
+        console.error('[Main] 删除评价失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('review:get', async (_event, reviewId) => {
+      try {
+        if (!this.reviewManager) {
+          return null;
+        }
+        return await this.reviewManager.getReview(reviewId);
+      } catch (error) {
+        console.error('[Main] 获取评价失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('review:get-by-target', async (_event, targetId, targetType, filters) => {
+      try {
+        if (!this.reviewManager) {
+          return [];
+        }
+        return await this.reviewManager.getReviewsByTarget(targetId, targetType, filters);
+      } catch (error) {
+        console.error('[Main] 获取目标评价失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('review:reply', async (_event, reviewId, content) => {
+      try {
+        if (!this.reviewManager) {
+          throw new Error('评价管理器未初始化');
+        }
+        return await this.reviewManager.replyToReview(reviewId, content);
+      } catch (error) {
+        console.error('[Main] 回复评价失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('review:mark-helpful', async (_event, reviewId, helpful) => {
+      try {
+        if (!this.reviewManager) {
+          throw new Error('评价管理器未初始化');
+        }
+        return await this.reviewManager.markHelpful(reviewId, helpful);
+      } catch (error) {
+        console.error('[Main] 标记有帮助失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('review:report', async (_event, reviewId, reason, description) => {
+      try {
+        if (!this.reviewManager) {
+          throw new Error('评价管理器未初始化');
+        }
+        return await this.reviewManager.reportReview(reviewId, reason, description);
+      } catch (error) {
+        console.error('[Main] 举报评价失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('review:get-statistics', async (_event, targetId, targetType) => {
+      try {
+        if (!this.reviewManager) {
+          return null;
+        }
+        return await this.reviewManager.getStatistics(targetId, targetType);
+      } catch (error) {
+        console.error('[Main] 获取评价统计失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('review:get-my-reviews', async (_event, userDid) => {
+      try {
+        if (!this.reviewManager) {
+          return [];
+        }
+        return await this.reviewManager.getMyReviews(userDid);
+      } catch (error) {
+        console.error('[Main] 获取我的评价失败:', error);
+        return [];
       }
     });
 
