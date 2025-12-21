@@ -3893,6 +3893,481 @@ class ChainlessChainApp {
       }
     });
 
+    // ==================== 项目管理 IPC ====================
+
+    // 获取所有项目（本地SQLite）
+    ipcMain.handle('project:get-all', async (_event, userId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.getProjects(userId);
+      } catch (error) {
+        console.error('[Main] 获取项目列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取单个项目
+    ipcMain.handle('project:get', async (_event, projectId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.getProjectById(projectId);
+      } catch (error) {
+        console.error('[Main] 获取项目失败:', error);
+        throw error;
+      }
+    });
+
+    // 创建项目（调用后端）
+    ipcMain.handle('project:create', async (_event, createData) => {
+      try {
+        const { getProjectHTTPClient } = require('./project/http-client');
+        const httpClient = getProjectHTTPClient();
+
+        // 调用后端API
+        const project = await httpClient.createProject(createData);
+
+        // 保存到本地数据库
+        if (this.database && project) {
+          const localProject = {
+            ...project,
+            user_id: createData.userId,
+            sync_status: 'synced',
+            synced_at: Date.now(),
+          };
+          await this.database.saveProject(localProject);
+
+          // 保存项目文件
+          if (project.files && project.files.length > 0) {
+            await this.database.saveProjectFiles(project.id, project.files);
+          }
+        }
+
+        return project;
+      } catch (error) {
+        console.error('[Main] 创建项目失败:', error);
+        throw error;
+      }
+    });
+
+    // 保存项目到本地SQLite
+    ipcMain.handle('project:save', async (_event, project) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.saveProject(project);
+      } catch (error) {
+        console.error('[Main] 保存项目失败:', error);
+        throw error;
+      }
+    });
+
+    // 更新项目
+    ipcMain.handle('project:update', async (_event, projectId, updates) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        const updatedProject = {
+          ...updates,
+          updated_at: Date.now(),
+          sync_status: 'pending',
+        };
+
+        return this.database.updateProject(projectId, updatedProject);
+      } catch (error) {
+        console.error('[Main] 更新项目失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除项目（后端）
+    ipcMain.handle('project:delete', async (_event, projectId) => {
+      try {
+        const { getProjectHTTPClient } = require('./project/http-client');
+        const httpClient = getProjectHTTPClient();
+
+        // 从后端删除
+        await httpClient.deleteProject(projectId);
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 删除项目失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除本地项目
+    ipcMain.handle('project:delete-local', async (_event, projectId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.deleteProject(projectId);
+      } catch (error) {
+        console.error('[Main] 删除本地项目失败:', error);
+        throw error;
+      }
+    });
+
+    // 从后端获取项目
+    ipcMain.handle('project:fetch-from-backend', async (_event, projectId) => {
+      try {
+        const { getProjectHTTPClient } = require('./project/http-client');
+        const httpClient = getProjectHTTPClient();
+
+        const project = await httpClient.getProject(projectId);
+
+        // 保存到本地
+        if (this.database && project) {
+          await this.database.saveProject({
+            ...project,
+            sync_status: 'synced',
+            synced_at: Date.now(),
+          });
+        }
+
+        return project;
+      } catch (error) {
+        console.error('[Main] 从后端获取项目失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取项目文件列表
+    ipcMain.handle('project:get-files', async (_event, projectId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.getProjectFiles(projectId);
+      } catch (error) {
+        console.error('[Main] 获取项目文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取单个文件
+    ipcMain.handle('project:get-file', async (_event, fileId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        const stmt = this.database.db.prepare('SELECT * FROM project_files WHERE id = ?');
+        return stmt.get(fileId);
+      } catch (error) {
+        console.error('[Main] 获取文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 保存项目文件
+    ipcMain.handle('project:save-files', async (_event, projectId, files) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        this.database.saveProjectFiles(projectId, files);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 保存项目文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 更新文件
+    ipcMain.handle('project:update-file', async (_event, fileUpdate) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        this.database.updateProjectFile(fileUpdate);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 更新文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除文件
+    ipcMain.handle('project:delete-file', async (_event, fileId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        this.database.db.run('DELETE FROM project_files WHERE id = ?', [fileId]);
+        this.database.saveToFile();
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 删除文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取模板列表
+    ipcMain.handle('project:get-templates', async () => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        // 先从本地获取
+        let templates = this.database.getProjectTemplates();
+
+        // 如果本地为空，从后端获取
+        if (templates.length === 0) {
+          try {
+            const { getProjectHTTPClient } = require('./project/http-client');
+            const httpClient = getProjectHTTPClient();
+
+            templates = await httpClient.getTemplates();
+
+            // 缓存到本地
+            if (templates && templates.length > 0) {
+              this.database.saveProjectTemplates(templates);
+            }
+          } catch (backendError) {
+            console.warn('[Main] 从后端获取模板失败，使用本地数据:', backendError);
+          }
+        }
+
+        return templates;
+      } catch (error) {
+        console.error('[Main] 获取模板列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取模板详情
+    ipcMain.handle('project:get-template', async (_event, templateId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        const stmt = this.database.db.prepare('SELECT * FROM project_templates WHERE id = ?');
+        return stmt.get(templateId);
+      } catch (error) {
+        console.error('[Main] 获取模板详情失败:', error);
+        throw error;
+      }
+    });
+
+    // 同步项目
+    ipcMain.handle('project:sync', async (_event, userId) => {
+      try {
+        const { getProjectHTTPClient } = require('./project/http-client');
+        const httpClient = getProjectHTTPClient();
+
+        // 1. 获取后端项目列表
+        const response = await httpClient.listProjects(userId, 1, 1000);
+        const backendProjects = response.records || [];
+
+        // 2. 获取本地项目
+        const localProjects = this.database ? this.database.getProjects(userId) : [];
+
+        // 3. 合并数据
+        if (this.database) {
+          this.database.transaction(() => {
+            backendProjects.forEach(project => {
+              const createdAt = project.createdAt ? new Date(project.createdAt).getTime() : Date.now();
+              const updatedAt = project.updatedAt ? new Date(project.updatedAt).getTime() : Date.now();
+
+              this.database.saveProject({
+                id: project.id,
+                user_id: project.userId,
+                name: project.name,
+                description: project.description,
+                project_type: project.projectType,
+                status: project.status,
+                root_path: project.rootPath,
+                file_count: project.fileCount || 0,
+                total_size: project.totalSize || 0,
+                template_id: project.templateId,
+                cover_image_url: project.coverImageUrl,
+                tags: JSON.stringify(project.tags || []),
+                metadata: JSON.stringify(project.metadata || {}),
+                created_at: createdAt,
+                updated_at: updatedAt,
+                synced_at: Date.now(),
+                sync_status: 'synced',
+              });
+            });
+          });
+        }
+
+        // 4. 推送本地pending的项目到后端
+        const pendingProjects = localProjects.filter(p => p.sync_status === 'pending');
+        for (const project of pendingProjects) {
+          try {
+            await httpClient.syncProject(project);
+
+            // 更新同步状态
+            if (this.database) {
+              this.database.updateProject(project.id, {
+                sync_status: 'synced',
+                synced_at: Date.now(),
+              });
+            }
+          } catch (syncError) {
+            console.error(`[Main] 同步项目 ${project.id} 失败:`, syncError);
+          }
+        }
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 同步项目失败:', error);
+        throw error;
+      }
+    });
+
+    // 同步单个项目
+    ipcMain.handle('project:sync-one', async (_event, projectId) => {
+      try {
+        const { getProjectHTTPClient } = require('./project/http-client');
+        const httpClient = getProjectHTTPClient();
+
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        const project = this.database.getProjectById(projectId);
+        if (!project) {
+          throw new Error('项目不存在');
+        }
+
+        await httpClient.syncProject(project);
+
+        // 更新同步状态
+        this.database.updateProject(projectId, {
+          sync_status: 'synced',
+          synced_at: Date.now(),
+        });
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 同步单个项目失败:', error);
+        throw error;
+      }
+    });
+
+    // Git初始化
+    ipcMain.handle('project:git-init', async (_event, repoPath) => {
+      try {
+        const git = require('isomorphic-git');
+        const fs = require('fs');
+
+        await git.init({
+          fs,
+          dir: repoPath,
+          defaultBranch: 'main',
+        });
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] Git初始化失败:', error);
+        throw error;
+      }
+    });
+
+    // Git状态查询
+    ipcMain.handle('project:git-status', async (_event, repoPath) => {
+      try {
+        const git = require('isomorphic-git');
+        const fs = require('fs');
+
+        const status = await git.statusMatrix({ fs, dir: repoPath });
+
+        return status;
+      } catch (error) {
+        console.error('[Main] Git状态查询失败:', error);
+        throw error;
+      }
+    });
+
+    // Git提交
+    ipcMain.handle('project:git-commit', async (_event, repoPath, message) => {
+      try {
+        const git = require('isomorphic-git');
+        const fs = require('fs');
+
+        // Add all changes
+        const status = await git.statusMatrix({ fs, dir: repoPath });
+        for (const row of status) {
+          const [filepath, , worktreeStatus] = row;
+          if (worktreeStatus !== 1) {
+            await git.add({ fs, dir: repoPath, filepath });
+          }
+        }
+
+        // Commit
+        const sha = await git.commit({
+          fs,
+          dir: repoPath,
+          message,
+          author: {
+            name: this.gitManager?.author?.name || 'ChainlessChain User',
+            email: this.gitManager?.author?.email || 'user@chainlesschain.com',
+          },
+        });
+
+        return { success: true, sha };
+      } catch (error) {
+        console.error('[Main] Git提交失败:', error);
+        throw error;
+      }
+    });
+
+    // Git推送
+    ipcMain.handle('project:git-push', async (_event, repoPath) => {
+      try {
+        const git = require('isomorphic-git');
+        const fs = require('fs');
+        const http = require('isomorphic-git/http/node');
+
+        await git.push({
+          fs,
+          http,
+          dir: repoPath,
+          remote: 'origin',
+          ref: 'main',
+          onAuth: () => this.gitManager?.auth || {},
+        });
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] Git推送失败:', error);
+        throw error;
+      }
+    });
+
+    // Git拉取
+    ipcMain.handle('project:git-pull', async (_event, repoPath) => {
+      try {
+        const git = require('isomorphic-git');
+        const fs = require('fs');
+        const http = require('isomorphic-git/http/node');
+
+        await git.pull({
+          fs,
+          http,
+          dir: repoPath,
+          ref: 'main',
+          singleBranch: true,
+          onAuth: () => this.gitManager?.auth || {},
+        });
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] Git拉取失败:', error);
+        throw error;
+      }
+    });
+
     // 系统操作
     ipcMain.handle('system:get-version', () => {
       return app.getVersion();
