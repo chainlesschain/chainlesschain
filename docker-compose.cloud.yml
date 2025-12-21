@@ -66,6 +66,9 @@ services:
 
       # 智谱AI
       ZHIPU_API_KEY: ${ZHIPU_API_KEY}
+      # Volcengine
+      VOLCENGINE_API_KEY: ${VOLCENGINE_API_KEY}
+      VOLCENGINE_MODEL: ${VOLCENGINE_MODEL}
 
       # Qdrant配置
       QDRANT_HOST: qdrant

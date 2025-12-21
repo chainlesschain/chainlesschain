@@ -18,6 +18,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 import io
 import ollama
 from openai import AsyncOpenAI
+from src.llm.llm_client import get_llm_client
 
 
 class DocumentEngine:
@@ -29,12 +30,21 @@ class DocumentEngine:
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
-        if self.llm_provider == "openai" and self.openai_api_key:
-            self.client = AsyncOpenAI(api_key=self.openai_api_key, base_url=self.openai_base_url)
-        else:
-            self.client = None
-
+        self.client = None
+        self.llm_client = None
         self._ready = True
+
+        if self.llm_provider == "openai":
+            if self.openai_api_key:
+                self.client = AsyncOpenAI(api_key=self.openai_api_key, base_url=self.openai_base_url)
+            else:
+                self._ready = False
+        elif self.llm_provider != "ollama":
+            try:
+                self.llm_client = get_llm_client()
+            except Exception as e:
+                print(f"LLM client initialization error: {e}")
+                self._ready = False
 
     def is_ready(self) -> bool:
         """检查引擎是否就绪"""
@@ -157,7 +167,7 @@ class DocumentEngine:
                     options={"temperature": 0.3}
                 )
                 content = response['message']['content']
-            else:
+            elif self.client is not None:
                 response = await self.client.chat.completions.create(
                     model=self.model_name,
                     messages=[
@@ -167,6 +177,17 @@ class DocumentEngine:
                     temperature=0.3
                 )
                 content = response.choices[0].message.content
+            elif self.llm_client is not None:
+                content = await self.llm_client.chat(
+                    messages=[
+                        {"role": "system", "content": "You are a document outline assistant. Return valid JSON only."},
+                        {"role": "user", "content": outline_prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=1024
+                )
+            else:
+                raise Exception("LLM client not initialized")
 
             outline = json.loads(content)
             return outline
@@ -222,7 +243,7 @@ class DocumentEngine:
                         options={"temperature": 0.5, "num_predict": 1024}
                     )
                     content = response['message']['content']
-                else:
+                elif self.client is not None:
                     response = await self.client.chat.completions.create(
                         model=self.model_name,
                         messages=[
@@ -233,6 +254,17 @@ class DocumentEngine:
                         max_tokens=1024
                     )
                     content = response.choices[0].message.content
+                elif self.llm_client is not None:
+                    content = await self.llm_client.chat(
+                        messages=[
+                            {"role": "system", "content": "You are a document writer. Return plain text."},
+                            {"role": "user", "content": content_prompt}
+                        ],
+                        temperature=0.5,
+                        max_tokens=1024
+                    )
+                else:
+                    raise Exception("LLM client not initialized")
 
                 sections_content.append({
                     "title": section_title,

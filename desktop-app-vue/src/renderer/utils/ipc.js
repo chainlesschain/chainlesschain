@@ -7,6 +7,11 @@ export const ukeyAPI = {
   verifyPIN: (pin) => api.ukey.verifyPIN(pin),
 };
 
+// 认证API
+export const authAPI = {
+  verifyPassword: (username, password) => api.auth.verifyPassword(username, password),
+};
+
 // 数据库API
 export const dbAPI = {
   getKnowledgeItems: () => api.db.getKnowledgeItems(),

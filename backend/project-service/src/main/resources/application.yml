@@ -15,6 +15,10 @@ spring:
       max-lifetime: 1800000
       connection-test-query: SELECT 1
 
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
@@ -52,9 +56,6 @@ mybatis-plus:
 # 服务端口
 server:
   port: ${PROJECT_SERVICE_PORT:9090}
-  servlet:
-    context-path: /api
-
 # Actuator监控
 management:
   endpoints:
@@ -96,3 +97,4 @@ git:
     email: ${GIT_USER_EMAIL:bot@chainlesschain.com}
   auto-commit: true
   auto-push: false
+

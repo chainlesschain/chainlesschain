@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
+import base64
 import os
 from dotenv import load_dotenv
 
@@ -41,6 +42,18 @@ doc_engine = DocumentEngine()
 data_engine = DataEngine()
 intent_classifier = IntentClassifier()
 rag_engine = RAGEngine()
+
+
+# Encode binary file content so FastAPI can serialize the response.
+def _encode_binary_files(result: Dict[str, Any]) -> Dict[str, Any]:
+    files = result.get("files")
+    if isinstance(files, list):
+        for file_item in files:
+            content = file_item.get("content")
+            if isinstance(content, (bytes, bytearray)):
+                file_item["content"] = base64.b64encode(content).decode("ascii")
+                file_item["content_encoding"] = "base64"
+    return result
 
 
 # ========================================
@@ -114,6 +127,8 @@ async def classify_intent(request: IntentClassifyRequest):
             context=request.context
         )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -134,7 +149,9 @@ async def create_project(request: ProjectCreateRequest):
         intent_result = await intent_classifier.classify(request.user_prompt)
 
         # 2. 根据意图选择引擎
-        project_type = request.project_type or intent_result.get("project_type", "web")
+        project_type = request.project_type or intent_result.get("project_type") or "web"
+        if project_type == "unknown":
+            project_type = "web"
 
         # 3. 调用相应引擎生成文件
         if project_type == "web":
@@ -159,7 +176,7 @@ async def create_project(request: ProjectCreateRequest):
             "success": True,
             "project_type": project_type,
             "intent": intent_result,
-            "result": result
+            "result": _encode_binary_files(result)
         }
 
     except Exception as e:
