@@ -20,11 +20,23 @@ public class Project {
 
     private String description;
 
+    @TableField("type")
+    private String type;
+
     private String projectType;  // web, document, data, app
 
     private String status;  // draft, active, completed, archived
 
+    @TableField("owner_did")
+    private String ownerDid;
+
+    @TableField("folder_path")
+    private String folderPath;
+
     private String rootPath;
+
+    @TableField("git_repo_path")
+    private String gitRepoPath;
 
     private String gitRepoUrl;
 
@@ -41,6 +53,9 @@ public class Project {
     private String tags;  // JSON array
 
     private String metadata;  // JSON object
+
+    @TableField("metadata_json")
+    private String metadataJson;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

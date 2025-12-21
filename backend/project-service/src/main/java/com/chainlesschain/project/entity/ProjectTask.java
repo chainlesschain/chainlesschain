@@ -16,6 +16,9 @@ public class ProjectTask {
 
     private String projectId;
 
+    @TableField("description")
+    private String description;
+
     private String taskType;  // generate_file, update_file, analyze_data, optimize_code
 
     private String userPrompt;

@@ -16,6 +16,7 @@ import ollama
 from openai import AsyncOpenAI
 import matplotlib
 matplotlib.use('Agg')  # 无GUI后端
+from src.llm.llm_client import get_llm_client
 
 
 class DataEngine:
@@ -27,16 +28,25 @@ class DataEngine:
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
-        if self.llm_provider == "openai" and self.openai_api_key:
-            self.client = AsyncOpenAI(api_key=self.openai_api_key, base_url=self.openai_base_url)
-        else:
-            self.client = None
+        self.client = None
+        self.llm_client = None
+        self._ready = True
+
+        if self.llm_provider == "openai":
+            if self.openai_api_key:
+                self.client = AsyncOpenAI(api_key=self.openai_api_key, base_url=self.openai_base_url)
+            else:
+                self._ready = False
+        elif self.llm_provider != "ollama":
+            try:
+                self.llm_client = get_llm_client()
+            except Exception as e:
+                print(f"LLM client initialization error: {e}")
+                self._ready = False
 
         # 设置中文字体（用于matplotlib）
         plt.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans']
         plt.rcParams['axes.unicode_minus'] = False
-
-        self._ready = True
 
     def is_ready(self) -> bool:
         """检查引擎是否就绪"""
@@ -156,23 +166,33 @@ class DataEngine:
                 response = ollama.chat(
                     model=self.model_name,
                     messages=[
-                        {"role": "system", "content": "你是数据分析专家，擅长设计数据结构。"},
+                        {"role": "system", "content": "You are a data analysis expert. Return valid JSON only."},
                         {"role": "user", "content": spec_prompt}
                     ],
                     options={"temperature": 0.3}
                 )
                 content = response['message']['content']
-            else:
+            elif self.client is not None:
                 response = await self.client.chat.completions.create(
                     model=self.model_name,
                     messages=[
-                        {"role": "system", "content": "你是数据分析专家，擅长设计数据结构。"},
+                        {"role": "system", "content": "You are a data analysis expert. Return valid JSON only."},
                         {"role": "user", "content": spec_prompt}
                     ],
                     temperature=0.3
                 )
                 content = response.choices[0].message.content
-
+            elif self.llm_client is not None:
+                content = await self.llm_client.chat(
+                    messages=[
+                        {"role": "system", "content": "You are a data analysis assistant. Return valid JSON only."},
+                        {"role": "user", "content": spec_prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=1024
+                )
+            else:
+                raise Exception("LLM client not initialized")
             spec = json.loads(content)
             return spec
 

@@ -279,8 +279,20 @@ echo ""
 # 创建数据目录
 mkdir -p data/postgres data/redis data/qdrant data/projects
 
+# Build latest ai-service image
+docker-compose -f docker-compose.cloud.yml build ai-service
+
+# Build latest project-service image
+docker-compose -f docker-compose.cloud.yml build project-service
+
 # 启动服务
 docker-compose -f docker-compose.cloud.yml up -d
+
+# Ensure ai-service is running the freshly built image
+docker-compose -f docker-compose.cloud.yml up -d --no-deps --force-recreate ai-service
+
+# Ensure project-service is running the freshly built image
+docker-compose -f docker-compose.cloud.yml up -d --no-deps --force-recreate project-service
 
 echo ""
 echo "⏳ 等待服务启动..."
@@ -296,7 +308,7 @@ echo "✅ 启动完成!"
 echo ""
 echo "📌 服务地址:"
 echo "   - AI Service: http://localhost:8001"
-echo "   - Project Service: http://localhost:8080"
+echo "   - Project Service: http://localhost:9090"
 echo "   - Qdrant: http://localhost:6333"
 echo "   - PostgreSQL: localhost:5432"
 echo ""

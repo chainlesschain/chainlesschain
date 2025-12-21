@@ -11,27 +11,27 @@
 
         <!-- U盾状态 -->
         <a-alert
-          :type="ukeyStatus.detected ? 'success' : 'warning'"
+          :type="ukeyStatus.detected ? 'success' : 'info'"
           :show-icon="false"
         >
           <template #message>
             <a-space>
               <UsbOutlined />
-              <span>{{ ukeyStatus.detected ? 'U盾已连接' : '未检测到U盾' }}</span>
+              <span>{{ ukeyStatus.detected ? 'U盾已连接 - 使用PIN码登录' : '未检测到U盾 - 使用密码登录' }}</span>
               <CheckCircleOutlined
                 v-if="ukeyStatus.detected"
                 :style="{ color: '#52c41a' }"
               />
-              <CloseCircleOutlined
+              <InfoCircleOutlined
                 v-else
-                :style="{ color: '#ff4d4f' }"
+                :style="{ color: '#1890ff' }"
               />
             </a-space>
           </template>
         </a-alert>
 
-        <!-- PIN输入 -->
-        <div>
+        <!-- U盾PIN输入 -->
+        <div v-if="ukeyStatus.detected">
           <div style="margin-bottom: 8px">
             <strong>请输入PIN码:</strong>
           </div>
@@ -40,7 +40,7 @@
             size="large"
             placeholder="输入6位PIN码"
             :maxlength="6"
-            :disabled="!ukeyStatus.detected || loading"
+            :disabled="loading"
             @keypress.enter="handleLogin"
           >
             <template #prefix>
@@ -49,13 +49,48 @@
           </a-input-password>
         </div>
 
+        <!-- 密码登录表单 -->
+        <div v-else>
+          <div style="margin-bottom: 16px">
+            <div style="margin-bottom: 8px">
+              <strong>用户名:</strong>
+            </div>
+            <a-input
+              v-model:value="username"
+              size="large"
+              placeholder="输入用户名"
+              :disabled="loading"
+              @keypress.enter="handleLogin"
+            >
+              <template #prefix>
+                <UserOutlined />
+              </template>
+            </a-input>
+          </div>
+          <div>
+            <div style="margin-bottom: 8px">
+              <strong>密码:</strong>
+            </div>
+            <a-input-password
+              v-model:value="password"
+              size="large"
+              placeholder="输入密码"
+              :disabled="loading"
+              @keypress.enter="handleLogin"
+            >
+              <template #prefix>
+                <LockOutlined />
+              </template>
+            </a-input-password>
+          </div>
+        </div>
+
         <!-- 登录按钮 -->
         <a-button
           type="primary"
           size="large"
           block
           :loading="loading"
-          :disabled="!ukeyStatus.detected"
           @click="handleLogin"
         >
           {{ loading ? '验证中...' : '登录' }}
@@ -64,7 +99,10 @@
         <!-- 提示信息 -->
         <div class="login-hint">
           <a-typography-text type="secondary" :style="{ fontSize: '12px' }">
-            开发模式: 默认PIN为 <a-typography-text code>123456</a-typography-text>
+            {{ ukeyStatus.detected
+              ? '开发模式: 默认PIN为 123456'
+              : '开发模式: 默认用户名 admin, 密码 123456'
+            }}
           </a-typography-text>
         </div>
       </a-space>
@@ -80,15 +118,18 @@ import {
   LockOutlined,
   UsbOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined,
+  InfoCircleOutlined,
+  UserOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
-import { ukeyAPI, systemAPI } from '../utils/ipc';
+import { ukeyAPI, authAPI, systemAPI } from '../utils/ipc';
 
 const router = useRouter();
 const store = useAppStore();
 
 const pin = ref('');
+const username = ref('');
+const password = ref('');
 const loading = ref(false);
 const ukeyStatus = ref({ detected: true, unlocked: false });
 
@@ -114,28 +155,61 @@ onUnmounted(() => {
 
 // 处理登录
 const handleLogin = async () => {
-  if (!pin.value) {
-    message.warning('请输入PIN码');
-    return;
-  }
-
-  if (!ukeyStatus.value.detected) {
-    message.error('未检测到U盾,请插入U盾后重试');
-    return;
-  }
-
   loading.value = true;
 
   try {
-    const success = await ukeyAPI.verifyPIN(pin.value);
+    let success = false;
 
+    // 根据U盾状态选择登录方式
+    if (ukeyStatus.value.detected) {
+      // U盾PIN码登录
+      if (!pin.value) {
+        message.warning('请输入PIN码');
+        loading.value = false;
+        return;
+      }
+
+      const result = await ukeyAPI.verifyPIN(pin.value);
+      success = result;
+
+      if (success) {
+        // 更新U盾状态
+        const newStatus = await ukeyAPI.detect();
+        store.setUKeyStatus(newStatus);
+        store.setDeviceId(newStatus.deviceId || null);
+      } else {
+        message.error('PIN码错误,请重试');
+        pin.value = '';
+      }
+    } else {
+      // 用户名密码登录
+      if (!username.value) {
+        message.warning('请输入用户名');
+        loading.value = false;
+        return;
+      }
+
+      if (!password.value) {
+        message.warning('请输入密码');
+        loading.value = false;
+        return;
+      }
+
+      const result = await authAPI.verifyPassword(username.value, password.value);
+      success = result.success;
+
+      if (success) {
+        // 设置用户信息
+        store.setDeviceId(result.userId || 'local-user');
+      } else {
+        message.error(result.error || '用户名或密码错误');
+        password.value = '';
+      }
+    }
+
+    // 登录成功后的处理
     if (success) {
       message.success('登录成功!');
-
-      // 更新U盾状态
-      const newStatus = await ukeyAPI.detect();
-      store.setUKeyStatus(newStatus);
-      store.setDeviceId(newStatus.deviceId || null);
 
       // 设置为已认证
       store.setAuthenticated(true);
@@ -149,9 +223,6 @@ const handleLogin = async () => {
 
       // 跳转到首页
       router.push('/');
-    } else {
-      message.error('PIN码错误,请重试');
-      pin.value = '';
     }
   } catch (error) {
     console.error('登录失败:', error);

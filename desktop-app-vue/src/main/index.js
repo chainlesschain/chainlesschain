@@ -708,6 +708,37 @@ class ChainlessChainApp {
       }
     });
 
+    // 密码认证 - 用于未检测到U盾时的备用登录方式
+    ipcMain.handle('auth:verify-password', async (_event, username, password) => {
+      try {
+        // 开发模式：默认用户名和密码
+        const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'admin';
+        const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || '123456';
+
+        // 简单的密码验证（生产环境应使用加密存储）
+        if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
+          console.log('[Main] 密码验证成功');
+          return {
+            success: true,
+            userId: 'local-user',
+            username: username,
+          };
+        }
+
+        console.log('[Main] 密码验证失败: 用户名或密码错误');
+        return {
+          success: false,
+          error: '用户名或密码错误',
+        };
+      } catch (error) {
+        console.error('[Main] 密码验证异常:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
     // 数据库操作 - 使用 SQLite
     ipcMain.handle('db:get-knowledge-items', async (_event, limit, offset) => {
       try {

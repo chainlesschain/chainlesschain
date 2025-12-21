@@ -159,15 +159,14 @@ class ZhipuAIClient(BaseLLMClient):
 
 
 class VolcEngineClient(BaseLLMClient):
-    """火山引擎（豆包）客户端"""
+    """火山引擎（豆包）客户端 - 使用ARK SDK"""
 
     def __init__(self, api_key: str, model: str = "doubao-pro-4k"):
         try:
-            from volcengine.maas import MaasService, MaasException
+            from volcenginesdkarkruntime import Ark
+            # api_key格式: "access_key:secret_key" (base64编码)
             self.model = model
-            self.maas = MaasService('maas-api.ml-platform-cn-beijing.volces.com', 'cn-beijing')
-            self.maas.set_ak(api_key.split(':')[0] if ':' in api_key else api_key)
-            self.maas.set_sk(api_key.split(':')[1] if ':' in api_key else '')
+            self.client = Ark(api_key=api_key)
         except ImportError:
             raise Exception("请先安装: pip install volcengine-python-sdk")
 
@@ -178,19 +177,14 @@ class VolcEngineClient(BaseLLMClient):
         max_tokens: int = 2048
     ) -> str:
         try:
-            req = {
-                "model": {
-                    "name": self.model
-                },
-                "messages": messages,
-                "parameters": {
-                    "temperature": temperature,
-                    "max_tokens": max_tokens
-                }
-            }
-
-            response = self.maas.chat(req)
-            return response['choice']['message']['content']
+            # 使用Ark SDK调用豆包模型
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            return completion.choices[0].message.content
         except Exception as e:
             raise Exception(f"火山引擎调用失败: {e}")
 
@@ -453,6 +447,24 @@ def get_llm_client() -> BaseLLMClient:
 
     # 根据provider获取对应的API Key
     provider_lower = provider.lower()
+
+    model_overrides = {
+        "dashscope": "DASHSCOPE_MODEL",
+        "zhipu": "ZHIPU_MODEL",
+        "volcengine": "VOLCENGINE_MODEL",
+        "doubao": "VOLCENGINE_MODEL",
+        "qianfan": "QIANFAN_MODEL",
+        "baidu": "QIANFAN_MODEL",
+        "hunyuan": "HUNYUAN_MODEL",
+        "tencent": "HUNYUAN_MODEL",
+        "spark": "SPARK_MODEL",
+        "xfyun": "SPARK_MODEL",
+        "minimax": "MINIMAX_MODEL",
+        "deepseek": "DEEPSEEK_MODEL",
+    }
+    override_key = model_overrides.get(provider_lower)
+    if override_key:
+        model = os.getenv(override_key, model)
 
     if provider_lower == "openai":
         api_key = os.getenv("OPENAI_API_KEY")

@@ -8,6 +8,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     verifyPIN: (pin) => ipcRenderer.invoke('ukey:verify-pin', pin),
   },
 
+  // 认证相关 - 密码登录
+  auth: {
+    verifyPassword: (username, password) => ipcRenderer.invoke('auth:verify-password', username, password),
+  },
+
   // 数据库操作
   db: {
     getKnowledgeItems: (limit, offset) => ipcRenderer.invoke('db:get-knowledge-items', limit, offset),

@@ -280,8 +280,20 @@ if not exist data\redis mkdir data\redis
 if not exist data\qdrant mkdir data\qdrant
 if not exist data\projects mkdir data\projects
 
+REM Build latest ai-service image
+docker-compose -f docker-compose.cloud.yml build ai-service
+
+REM Build latest project-service image
+docker-compose -f docker-compose.cloud.yml build project-service
+
 REM 启动服务
 docker-compose -f docker-compose.cloud.yml up -d
+
+REM Ensure ai-service is running the freshly built image
+docker-compose -f docker-compose.cloud.yml up -d --no-deps --force-recreate ai-service
+
+REM Ensure project-service is running the freshly built image
+docker-compose -f docker-compose.cloud.yml up -d --no-deps --force-recreate project-service
 
 echo.
 echo 等待服务启动...
@@ -297,7 +309,7 @@ echo 启动完成!
 echo.
 echo 服务地址:
 echo    - AI Service: http://localhost:8001
-echo    - Project Service: http://localhost:8080
+echo    - Project Service: http://localhost:9090
 echo    - Qdrant: http://localhost:6333
 echo    - PostgreSQL: localhost:5432
 echo.

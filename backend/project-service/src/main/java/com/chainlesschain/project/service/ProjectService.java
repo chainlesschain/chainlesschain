@@ -1,6 +1,7 @@
 package com.chainlesschain.project.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.chainlesschain.project.client.AiServiceClient;
 import com.chainlesschain.project.dto.ProjectCreateRequest;
@@ -67,31 +68,45 @@ public class ProjectService {
 
             // 2. 解析AI返回结果
             String projectType = aiResult.path("project_type").asText("web");
+            if (projectType == null || projectType.trim().isEmpty()) {
+                projectType = "web";
+            }
             JsonNode filesNode = aiResult.path("result").path("files");
             JsonNode metadataNode = aiResult.path("result").path("metadata");
 
             // 3. 创建项目记录
+            String userId = request.getUserId();
+            if (userId == null || userId.trim().isEmpty()) {
+                userId = "local-user";
+            }
+            String projectId = IdWorker.get32UUID();
+            String projectPath = Paths.get(projectsRootPath, projectId).toString();
+
             Project project = new Project();
-            project.setUserId(request.getUserId());
+            project.setId(projectId);
+            project.setUserId(userId);
+            project.setOwnerDid(userId);
             project.setName(request.getName() != null ? request.getName() : generateProjectName(request.getUserPrompt()));
             project.setDescription(request.getUserPrompt());
+            project.setType(projectType);
             project.setProjectType(projectType);
             project.setStatus("active");
+            project.setFolderPath(projectPath);
+            project.setRootPath(projectPath);
             project.setTemplateId(request.getTemplateId());
             project.setFileCount(0L);
             project.setTotalSize(0L);
 
             if (metadataNode != null) {
-                project.setMetadata(metadataNode.toString());
+                String metadata = metadataNode.toString();
+                project.setMetadata(metadata);
+                project.setMetadataJson(metadata);
             }
 
             projectMapper.insert(project);
-            String projectId = project.getId();
 
             // 4. 创建项目目录
-            String projectPath = createProjectDirectory(projectId);
-            project.setRootPath(projectPath);
-            projectMapper.updateById(project);
+            createProjectDirectory(projectId);
 
             // 5. 保存文件到磁盘和数据库
             List<ProjectFile> savedFiles = new ArrayList<>();
@@ -108,6 +123,7 @@ public class ProjectService {
             // 7. 记录任务
             ProjectTask task = new ProjectTask();
             task.setProjectId(projectId);
+            task.setDescription(request.getUserPrompt());
             task.setTaskType("generate_file");
             task.setUserPrompt(request.getUserPrompt());
             task.setIntent(aiResult.path("intent").toString());
@@ -159,6 +175,7 @@ public class ProjectService {
             // 3. 记录任务
             ProjectTask task = new ProjectTask();
             task.setProjectId(request.getProjectId());
+            task.setDescription(request.getUserPrompt());
             task.setTaskType(aiResult.path("intent").path("action").asText("unknown"));
             task.setUserPrompt(request.getUserPrompt());
             task.setIntent(aiResult.path("intent").toString());
@@ -265,14 +282,26 @@ public class ProjectService {
         try {
             String filePath = fileNode.path("path").asText();
             String content = fileNode.path("content").asText();
+            String contentEncoding = fileNode.path("content_encoding").asText();
             String fileType = fileNode.path("language").asText(fileNode.path("type").asText());
+
+            byte[] contentBytes = null;
+            if ("base64".equalsIgnoreCase(contentEncoding)) {
+                try {
+                    contentBytes = Base64.getDecoder().decode(content);
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid base64 content for file {}: {}", filePath, e.getMessage());
+                }
+            }
 
             // 保存文件到磁盘
             Path fullPath = Paths.get(projectPath, filePath);
             Files.createDirectories(fullPath.getParent());
 
             if (fileNode.has("content")) {
-                if (fileType.equals("word") || fileType.equals("pdf") || fileType.equals("excel") || fileType.equals("image")) {
+                if (contentBytes != null) {
+                    Files.write(fullPath, contentBytes);
+                } else if (fileType.equals("word") || fileType.equals("pdf") || fileType.equals("excel") || fileType.equals("image")) {
                     // 二进制文件 - 假设content是base64或bytes
                     // 这里简化处理，实际需要根据具体情况解码
                     Files.write(fullPath, content.getBytes());
@@ -289,7 +318,7 @@ public class ProjectService {
             projectFile.setFileName(new File(filePath).getName());
             projectFile.setFileType(fileType);
             projectFile.setLanguage(fileNode.path("language").asText());
-            projectFile.setFileSize((long) content.length());
+            projectFile.setFileSize(contentBytes != null ? (long) contentBytes.length : (long) content.length());
             projectFile.setGeneratedBy(engineType + "_engine");
             projectFile.setVersion(1);
 

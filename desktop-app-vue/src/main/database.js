@@ -888,6 +888,25 @@ class DatabaseManager {
    * @returns {Object} 保存的项目
    */
   saveProject(project) {
+    const safeProject = project || {};
+    const projectType = safeProject.project_type ?? safeProject.projectType ?? 'web';
+    const userId = safeProject.user_id ?? safeProject.userId ?? 'local-user';
+    const rootPath = safeProject.root_path ?? safeProject.rootPath ?? null;
+    const templateId = safeProject.template_id ?? safeProject.templateId ?? null;
+    const coverImageUrl = safeProject.cover_image_url ?? safeProject.coverImageUrl ?? null;
+    const fileCount = safeProject.file_count ?? safeProject.fileCount ?? 0;
+    const totalSize = safeProject.total_size ?? safeProject.totalSize ?? 0;
+    const tagsValue = typeof safeProject.tags === 'string'
+      ? safeProject.tags
+      : JSON.stringify(safeProject.tags || []);
+    const metadataValue = typeof safeProject.metadata === 'string'
+      ? safeProject.metadata
+      : JSON.stringify(safeProject.metadata || {});
+    const createdAt = safeProject.created_at ?? safeProject.createdAt ?? Date.now();
+    const updatedAt = safeProject.updated_at ?? safeProject.updatedAt ?? Date.now();
+    const syncedAt = safeProject.synced_at ?? safeProject.syncedAt ?? null;
+    const syncStatus = safeProject.sync_status ?? safeProject.syncStatus ?? 'pending';
+
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO projects (
         id, user_id, name, description, project_type, status,
@@ -896,27 +915,29 @@ class DatabaseManager {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(
-      project.id,
-      project.user_id,
-      project.name,
-      project.description,
-      project.project_type,
-      project.status || 'active',
-      project.root_path,
-      project.file_count || 0,
-      project.total_size || 0,
-      project.template_id,
-      project.cover_image_url,
-      typeof project.tags === 'string' ? project.tags : JSON.stringify(project.tags || []),
-      typeof project.metadata === 'string' ? project.metadata : JSON.stringify(project.metadata || {}),
-      project.created_at || Date.now(),
-      project.updated_at || Date.now(),
-      project.synced_at,
-      project.sync_status || 'pending'
-    );
+    const params = [
+      safeProject.id,
+      userId,
+      safeProject.name,
+      safeProject.description,
+      projectType,
+      safeProject.status || 'active',
+      rootPath,
+      fileCount,
+      totalSize,
+      templateId,
+      coverImageUrl,
+      tagsValue,
+      metadataValue,
+      createdAt,
+      updatedAt,
+      syncedAt,
+      syncStatus,
+    ].map((value) => (value === undefined ? null : value));
 
-    return this.getProjectById(project.id);
+    stmt.run(...params);
+
+    return this.getProjectById(safeProject.id);
   }
 
   /**
@@ -1000,6 +1021,7 @@ class DatabaseManager {
    * @param {Array} files - 文件列表
    */
   saveProjectFiles(projectId, files) {
+    const safeFiles = Array.isArray(files) ? files : [];
     this.transaction(() => {
       const stmt = this.db.prepare(`
         INSERT OR REPLACE INTO project_files (
@@ -1009,20 +1031,37 @@ class DatabaseManager {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      files.forEach(file => {
-        stmt.run(
-          file.id,
+      safeFiles.forEach(file => {
+        const rawPath = file.file_path ?? file.filePath ?? null;
+        const derivedName = file.file_name
+          ?? file.fileName
+          ?? (rawPath ? rawPath.split(/[\\/]/).pop() : null);
+        const filePath = rawPath || derivedName || '';
+        const fileName = derivedName || filePath || 'untitled';
+        const fileType = file.file_type ?? file.fileType ?? null;
+        const fileSize = file.file_size ?? file.fileSize ?? 0;
+        const content = file.content ?? null;
+        const contentHash = file.content_hash ?? file.contentHash ?? null;
+        const version = file.version ?? 1;
+        const createdAt = file.created_at ?? file.createdAt ?? Date.now();
+        const updatedAt = file.updated_at ?? file.updatedAt ?? Date.now();
+        const fileId = file.id || uuidv4();
+
+        const params = [
+          fileId,
           projectId,
-          file.file_path,
-          file.file_name,
-          file.file_type,
-          file.file_size || 0,
-          file.content,
-          file.content_hash,
-          file.version || 1,
-          file.created_at || Date.now(),
-          file.updated_at || Date.now()
-        );
+          filePath,
+          fileName,
+          fileType,
+          fileSize,
+          content,
+          contentHash,
+          version,
+          createdAt,
+          updatedAt,
+        ].map((value) => (value === undefined ? null : value));
+
+        stmt.run(...params);
       });
     });
   }

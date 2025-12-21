@@ -567,11 +567,15 @@ const handleLogout = () => {
   border-bottom: 1px solid #f0f0f0;
   height: 56px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  /* 允许通过header拖拽窗口 */
+  -webkit-app-region: drag;
 }
 
 .header-left {
   display: flex;
   align-items: center;
+  /* 确保按钮可以点击，不被拖拽覆盖 */
+  -webkit-app-region: no-drag;
 }
 
 .trigger-btn {
@@ -587,6 +591,9 @@ const handleLogout = () => {
 .header-right {
   display: flex;
   align-items: center;
+  /* 为Windows窗口控制按钮预留空间，避免与个人中心等按钮重叠 */
+  padding-right: 140px;
+  -webkit-app-region: no-drag;
 }
 
 .tabs-bar {

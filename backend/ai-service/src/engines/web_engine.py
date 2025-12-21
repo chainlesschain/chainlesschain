@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import ollama
 from openai import AsyncOpenAI
+from src.llm.llm_client import get_llm_client
 
 
 class WebEngine:
@@ -28,12 +29,21 @@ class WebEngine:
             autoescape=select_autoescape(['html', 'xml'])
         )
 
-        if self.llm_provider == "openai" and self.openai_api_key:
-            self.client = AsyncOpenAI(api_key=self.openai_api_key, base_url=self.openai_base_url)
-        else:
-            self.client = None
-
+        self.client = None
+        self.llm_client = None
         self._ready = True
+
+        if self.llm_provider == "openai":
+            if self.openai_api_key:
+                self.client = AsyncOpenAI(api_key=self.openai_api_key, base_url=self.openai_base_url)
+            else:
+                self._ready = False
+        elif self.llm_provider != "ollama":
+            try:
+                self.llm_client = get_llm_client()
+            except Exception as e:
+                print(f"LLM client initialization error: {e}")
+                self._ready = False
 
     def is_ready(self) -> bool:
         """检查引擎是否就绪"""
@@ -147,7 +157,7 @@ class WebEngine:
                     options={"temperature": 0.3}
                 )
                 content = response['message']['content']
-            else:
+            elif self.client is not None:
                 response = await self.client.chat.completions.create(
                     model=self.model_name,
                     messages=[
@@ -157,6 +167,17 @@ class WebEngine:
                     temperature=0.3
                 )
                 content = response.choices[0].message.content
+            elif self.llm_client is not None:
+                content = await self.llm_client.chat(
+                    messages=[
+                        {"role": "system", "content": "You are a web spec assistant. Return valid JSON only."},
+                        {"role": "user", "content": spec_prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=1024
+                )
+            else:
+                raise Exception("LLM client not initialized")
 
             # 解析JSON
             spec = json.loads(content)
@@ -206,7 +227,7 @@ class WebEngine:
                     options={"temperature": 0.2, "num_predict": 2048}
                 )
                 html = response['message']['content']
-            else:
+            elif self.client is not None:
                 response = await self.client.chat.completions.create(
                     model=self.model_name,
                     messages=[
@@ -217,6 +238,17 @@ class WebEngine:
                     max_tokens=2048
                 )
                 html = response.choices[0].message.content
+            elif self.llm_client is not None:
+                html = await self.llm_client.chat(
+                    messages=[
+                        {"role": "system", "content": "You are a frontend engineer. Return plain HTML."},
+                        {"role": "user", "content": html_prompt}
+                    ],
+                    temperature=0.2,
+                    max_tokens=2048
+                )
+            else:
+                raise Exception("LLM client not initialized")
 
             # 清理可能的markdown标记
             html = html.replace("```html", "").replace("```", "").strip()
@@ -263,7 +295,7 @@ class WebEngine:
                     options={"temperature": 0.2, "num_predict": 2048}
                 )
                 css = response['message']['content']
-            else:
+            elif self.client is not None:
                 response = await self.client.chat.completions.create(
                     model=self.model_name,
                     messages=[
@@ -274,6 +306,17 @@ class WebEngine:
                     max_tokens=2048
                 )
                 css = response.choices[0].message.content
+            elif self.llm_client is not None:
+                css = await self.llm_client.chat(
+                    messages=[
+                        {"role": "system", "content": "You are a CSS engineer. Return plain CSS."},
+                        {"role": "user", "content": css_prompt}
+                    ],
+                    temperature=0.2,
+                    max_tokens=2048
+                )
+            else:
+                raise Exception("LLM client not initialized")
 
             css = css.replace("```css", "").replace("```", "").strip()
             return css
@@ -316,7 +359,7 @@ class WebEngine:
                     options={"temperature": 0.2, "num_predict": 2048}
                 )
                 js = response['message']['content']
-            else:
+            elif self.client is not None:
                 response = await self.client.chat.completions.create(
                     model=self.model_name,
                     messages=[
@@ -327,6 +370,17 @@ class WebEngine:
                     max_tokens=2048
                 )
                 js = response.choices[0].message.content
+            elif self.llm_client is not None:
+                js = await self.llm_client.chat(
+                    messages=[
+                        {"role": "system", "content": "You are a JavaScript engineer. Return plain JavaScript."},
+                        {"role": "user", "content": js_prompt}
+                    ],
+                    temperature=0.2,
+                    max_tokens=2048
+                )
+            else:
+                raise Exception("LLM client not initialized")
 
             js = js.replace("```javascript", "").replace("```js", "").replace("```", "").strip()
             return js

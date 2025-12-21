@@ -53,7 +53,8 @@ class IntentClassifier:
             }
         """
         if not self._ready:
-            raise Exception("Intent classifier not ready")
+            print("Intent classifier not ready, using fallback intent.")
+            return self._get_default_intent(text)
 
         # 构建Few-shot Prompt
         prompt = self._build_prompt(text, context)

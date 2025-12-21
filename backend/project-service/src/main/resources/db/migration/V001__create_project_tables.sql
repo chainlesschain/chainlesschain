@@ -17,12 +17,8 @@ CREATE TABLE projects (
     git_repo_path VARCHAR(500), -- Git仓库路径
     metadata_json TEXT, -- 项目元数据（JSON格式）
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 
-    INDEX idx_owner_did (owner_did),
-    INDEX idx_type (type),
-    INDEX idx_status (status),
-    INDEX idx_created_at (created_at)
 );
 
 COMMENT ON TABLE projects IS '项目表 - 存储项目基本信息';
@@ -43,9 +39,7 @@ CREATE TABLE project_files (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    INDEX idx_project_id (project_id),
-    INDEX idx_file_type (file_type)
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE project_files IS '项目文件表 - 记录项目中的所有文件';
@@ -67,9 +61,7 @@ CREATE TABLE project_tasks (
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
 
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    INDEX idx_project_id (project_id),
-    INDEX idx_status (status)
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE project_tasks IS '项目任务表 - AI执行的任务记录';
@@ -87,10 +79,7 @@ CREATE TABLE project_conversations (
     metadata_json TEXT, -- 额外元数据
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    INDEX idx_project_id (project_id),
-    INDEX idx_role (role),
-    INDEX idx_created_at (created_at)
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE project_conversations IS '项目对话历史表 - 用户与AI的对话记录';
@@ -109,9 +98,7 @@ CREATE TABLE project_collaborators (
     accepted_at TIMESTAMP,
 
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    UNIQUE (project_id, collaborator_did),
-    INDEX idx_project_id (project_id),
-    INDEX idx_collaborator_did (collaborator_did)
+    UNIQUE (project_id, collaborator_did)
 );
 
 COMMENT ON TABLE project_collaborators IS '项目协作者表 - 项目协作成员';
@@ -132,10 +119,7 @@ CREATE TABLE project_comments (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    FOREIGN KEY (parent_comment_id) REFERENCES project_comments(id) ON DELETE CASCADE,
-    INDEX idx_project_id (project_id),
-    INDEX idx_file_path (file_path),
-    INDEX idx_author_did (author_did)
+    FOREIGN KEY (parent_comment_id) REFERENCES project_comments(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE project_comments IS '项目评论/批注表 - 协作评论';
@@ -154,11 +138,8 @@ CREATE TABLE project_templates (
     usage_count INT DEFAULT 0,
     is_builtin BOOLEAN DEFAULT FALSE, -- 是否内置模板
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 
-    INDEX idx_type (type),
-    INDEX idx_is_builtin (is_builtin),
-    INDEX idx_usage_count (usage_count)
 );
 
 COMMENT ON TABLE project_templates IS '项目模板表 - 预定义项目模板';
@@ -183,11 +164,7 @@ CREATE TABLE project_marketplace_listings (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    INDEX idx_project_id (project_id),
-    INDEX idx_seller_did (seller_did),
-    INDEX idx_status (status),
-    INDEX idx_rating (rating)
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE project_marketplace_listings IS '项目市场商品表 - 项目市场化';
@@ -204,9 +181,7 @@ CREATE TABLE project_knowledge_links (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    UNIQUE (project_id, knowledge_id, link_type),
-    INDEX idx_project_id (project_id),
-    INDEX idx_knowledge_id (knowledge_id)
+    UNIQUE (project_id, knowledge_id, link_type)
 );
 
 COMMENT ON TABLE project_knowledge_links IS '项目知识关联表 - 项目与知识库关联';
@@ -226,9 +201,7 @@ CREATE TABLE project_automation_rules (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    INDEX idx_project_id (project_id),
-    INDEX idx_is_enabled (is_enabled)
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE project_automation_rules IS '项目自动化规则表 - 工作流自动化';
@@ -267,11 +240,7 @@ CREATE TABLE project_logs (
     metadata_json TEXT, -- 日志元数据（JSON格式）
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    INDEX idx_project_id (project_id),
-    INDEX idx_user_did (user_did),
-    INDEX idx_action (action),
-    INDEX idx_created_at (created_at)
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE project_logs IS '项目操作日志表 - 审计日志';
@@ -324,3 +293,38 @@ CREATE TRIGGER update_project_stats_updated_at BEFORE UPDATE ON project_stats
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 完成
+
+
+-- Indexes
+CREATE INDEX idx_projects_idx_owner_did ON projects (owner_did);
+CREATE INDEX idx_projects_idx_type ON projects (type);
+CREATE INDEX idx_projects_idx_status ON projects (status);
+CREATE INDEX idx_projects_idx_created_at ON projects (created_at);
+CREATE INDEX idx_project_files_idx_project_id ON project_files (project_id);
+CREATE INDEX idx_project_files_idx_file_type ON project_files (file_type);
+CREATE INDEX idx_project_tasks_idx_project_id ON project_tasks (project_id);
+CREATE INDEX idx_project_tasks_idx_status ON project_tasks (status);
+CREATE INDEX idx_project_conversations_idx_project_id ON project_conversations (project_id);
+CREATE INDEX idx_project_conversations_idx_role ON project_conversations (role);
+CREATE INDEX idx_project_conversations_idx_created_at ON project_conversations (created_at);
+CREATE INDEX idx_project_collaborators_idx_project_id ON project_collaborators (project_id);
+CREATE INDEX idx_project_collaborators_idx_collaborator_did ON project_collaborators (collaborator_did);
+CREATE INDEX idx_project_comments_idx_project_id ON project_comments (project_id);
+CREATE INDEX idx_project_comments_idx_file_path ON project_comments (file_path);
+CREATE INDEX idx_project_comments_idx_author_did ON project_comments (author_did);
+CREATE INDEX idx_project_templates_idx_type ON project_templates (type);
+CREATE INDEX idx_project_templates_idx_is_builtin ON project_templates (is_builtin);
+CREATE INDEX idx_project_templates_idx_usage_count ON project_templates (usage_count);
+CREATE INDEX idx_project_marketplace_listings_idx_project_id ON project_marketplace_listings (project_id);
+CREATE INDEX idx_project_marketplace_listings_idx_seller_did ON project_marketplace_listings (seller_did);
+CREATE INDEX idx_project_marketplace_listings_idx_status ON project_marketplace_listings (status);
+CREATE INDEX idx_project_marketplace_listings_idx_rating ON project_marketplace_listings (rating);
+CREATE INDEX idx_project_knowledge_links_idx_project_id ON project_knowledge_links (project_id);
+CREATE INDEX idx_project_knowledge_links_idx_knowledge_id ON project_knowledge_links (knowledge_id);
+CREATE INDEX idx_project_automation_rules_idx_project_id ON project_automation_rules (project_id);
+CREATE INDEX idx_project_automation_rules_idx_is_enabled ON project_automation_rules (is_enabled);
+CREATE INDEX idx_project_logs_idx_project_id ON project_logs (project_id);
+CREATE INDEX idx_project_logs_idx_user_did ON project_logs (user_did);
+CREATE INDEX idx_project_logs_idx_action ON project_logs (action);
+CREATE INDEX idx_project_logs_idx_created_at ON project_logs (created_at);
+
