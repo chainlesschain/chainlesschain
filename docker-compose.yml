@@ -100,7 +100,7 @@ services:
     volumes:
       - ./data/projects:/data/projects
     ports:
-      - "8080:8080"
+      - "9090:9090"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/chainlesschain
       - SPRING_DATASOURCE_USERNAME=chainlesschain
