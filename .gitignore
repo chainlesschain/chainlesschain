@@ -46,6 +46,9 @@ data/git-repos/
 data/qdrant/
 data/chromadb/
 
+# Data directory (all runtime data)
+data/
+
 # AI Models (too large)
 models/
 *.gguf
