@@ -35,6 +35,11 @@
                 <InfoCircleOutlined />
                 查看状态
               </a-menu-item>
+              <a-menu-item key="history">
+                <HistoryOutlined />
+                提交历史
+              </a-menu-item>
+              <a-menu-divider />
               <a-menu-item key="commit">
                 <CheckOutlined />
                 提交更改
@@ -73,6 +78,19 @@
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-container">
       <a-spin size="large" tip="加载项目中..." />
+    </div>
+
+    <!-- 项目不存在 -->
+    <div v-else-if="!currentProject" class="error-container">
+      <div class="error-icon">
+        <ExclamationCircleOutlined />
+      </div>
+      <h3>项目不存在</h3>
+      <p>找不到ID为 {{ projectId }} 的项目</p>
+      <a-button type="primary" @click="handleBackToList">
+        <FolderOpenOutlined />
+        返回项目列表
+      </a-button>
     </div>
 
     <!-- 主内容区 -->
@@ -131,40 +149,24 @@
       </a-button>
     </div>
 
-    <!-- Git状态Modal -->
-    <a-modal
-      v-model:open="showGitStatusModal"
-      title="Git状态"
-      :footer="null"
-      width="600px"
-    >
-      <div v-if="gitStatus" class="git-status-content">
-        <div v-if="gitStatus.modified && gitStatus.modified.length > 0" class="status-section">
-          <h4><EditOutlined /> 已修改 ({{ gitStatus.modified.length }})</h4>
-          <div class="file-list">
-            <div v-for="file in gitStatus.modified" :key="file" class="file-item">
-              {{ file }}
-            </div>
-          </div>
-        </div>
+    <!-- Git状态对话框 -->
+    <GitStatusDialog
+      :visible="showGitStatusModal"
+      :project-id="projectId"
+      :repo-path="currentProject?.root_path || ''"
+      @close="showGitStatusModal = false"
+      @commit="handleShowCommitDialog"
+      @refresh="handleRefreshFiles"
+    />
 
-        <div v-if="gitStatus.untracked && gitStatus.untracked.length > 0" class="status-section">
-          <h4><FileAddOutlined /> 未跟踪 ({{ gitStatus.untracked.length }})</h4>
-          <div class="file-list">
-            <div v-for="file in gitStatus.untracked" :key="file" class="file-item">
-              {{ file }}
-            </div>
-          </div>
-        </div>
-
-        <div v-if="!gitStatus.modified?.length && !gitStatus.untracked?.length" class="status-section">
-          <a-empty description="工作区干净，没有变更" />
-        </div>
-      </div>
-      <div v-else class="git-status-loading">
-        <a-spin tip="加载Git状态..." />
-      </div>
-    </a-modal>
+    <!-- Git历史对话框 -->
+    <GitHistoryDialog
+      :visible="showGitHistoryModal"
+      :project-id="projectId"
+      :repo-path="currentProject?.root_path || ''"
+      @close="showGitHistoryModal = false"
+      @refresh="handleRefreshFiles"
+    />
 
     <!-- Git提交Modal -->
     <a-modal
@@ -209,9 +211,12 @@ import {
   ExclamationCircleOutlined,
   EditOutlined,
   FileAddOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons-vue';
 import FileTree from '@/components/projects/FileTree.vue';
 import FileEditor from '@/components/projects/FileEditor.vue';
+import GitStatusDialog from '@/components/projects/GitStatusDialog.vue';
+import GitHistoryDialog from '@/components/projects/GitHistoryDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -224,9 +229,9 @@ const refreshing = ref(false);
 const committing = ref(false);
 const hasUnsavedChanges = ref(false);
 const showGitStatusModal = ref(false);
+const showGitHistoryModal = ref(false);
 const showGitCommitModal = ref(false);
 const commitMessage = ref('');
-const gitStatus = ref(null);
 
 // 计算属性
 const projectId = computed(() => route.params.id);
@@ -320,6 +325,9 @@ const handleGitAction = async ({ key }) => {
     case 'status':
       await showGitStatus();
       break;
+    case 'history':
+      showGitHistoryModal.value = true;
+      break;
     case 'commit':
       showGitCommitModal.value = true;
       break;
@@ -335,21 +343,12 @@ const handleGitAction = async ({ key }) => {
 // 查看Git状态
 const showGitStatus = async () => {
   showGitStatusModal.value = true;
-  gitStatus.value = null;
+};
 
-  try {
-    const repoPath = currentProject.value.root_path;
-    if (!repoPath) {
-      message.warning('项目未配置Git仓库路径');
-      return;
-    }
-
-    const status = await projectStore.gitStatus(repoPath);
-    gitStatus.value = status;
-  } catch (error) {
-    console.error('Get git status failed:', error);
-    message.error('获取Git状态失败：' + error.message);
-  }
+// 显示提交对话框（从GitStatusDialog触发）
+const handleShowCommitDialog = () => {
+  showGitStatusModal.value = false;
+  showGitCommitModal.value = true;
 };
 
 // 确认提交
