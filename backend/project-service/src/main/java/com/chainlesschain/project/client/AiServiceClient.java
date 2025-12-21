@@ -26,6 +26,9 @@ public class AiServiceClient {
                           @Value("${ai.service.timeout:60000}") long timeout) {
         this.webClient = WebClient.builder()
                 .baseUrl(aiServiceUrl)
+                .codecs(configurer -> configurer
+                        .defaultCodecs()
+                        .maxInMemorySize(50 * 1024 * 1024)) // 50MB，增加内存限制以处理大响应
                 .build();
     }
 
@@ -45,11 +48,27 @@ public class AiServiceClient {
         return webClient.post()
                 .uri("/api/projects/create")
                 .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(JsonNode.class)
-                .timeout(Duration.ofSeconds(60))
-                .doOnError(error -> log.error("AI Service创建项目失败: {}", error.getMessage()));
+                .onStatus(
+                    status -> !status.is2xxSuccessful(),
+                    response -> response.bodyToMono(String.class)
+                        .map(body -> new RuntimeException("AI Service错误: " + body))
+                )
+                .bodyToMono(String.class)
+                .map(body -> {
+                    try {
+                        return new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+                    } catch (Exception e) {
+                        log.error("解析AI Service响应失败，响应体前1000字符: {}",
+                                 body.length() > 1000 ? body.substring(0, 1000) : body);
+                        throw new RuntimeException("解析响应失败: " + e.getMessage(), e);
+                    }
+                })
+                .timeout(Duration.ofSeconds(120))
+                .doOnError(error -> log.error("AI Service创建项目失败: {}", error.getMessage(), error))
+                .doOnSuccess(result -> log.info("AI Service创建项目成功"));
     }
 
     /**
