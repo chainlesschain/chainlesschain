@@ -594,15 +594,32 @@ class ChainlessChainApp {
    * @returns {*} 清理后的对象
    */
   removeUndefinedValues(obj) {
+    // 处理 null 和 undefined
     if (obj === null || obj === undefined) {
       return null;
     }
 
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.removeUndefinedValues(item));
+    // 处理基本类型
+    if (typeof obj !== 'object') {
+      return obj;
     }
 
-    if (typeof obj === 'object') {
+    // 使用 JSON 序列化来确保完全清理
+    // 这会移除所有 undefined 值、函数、Symbol等不可序列化的内容
+    try {
+      const jsonString = JSON.stringify(obj, (key, value) => {
+        // 将 undefined 转换为 null
+        return value === undefined ? null : value;
+      });
+      return JSON.parse(jsonString);
+    } catch (error) {
+      console.error('[Main] JSON序列化失败，使用备用方法:', error);
+
+      // 备用方法：手动清理
+      if (Array.isArray(obj)) {
+        return obj.map(item => this.removeUndefinedValues(item)).filter(item => item !== null);
+      }
+
       const cleaned = {};
       for (const [key, value] of Object.entries(obj)) {
         if (value !== undefined) {
@@ -611,8 +628,6 @@ class ChainlessChainApp {
       }
       return cleaned;
     }
-
-    return obj;
   }
 
   setupIPC() {
