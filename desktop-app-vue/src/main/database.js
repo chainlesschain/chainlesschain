@@ -291,6 +291,93 @@ class DatabaseManager {
       )
     `);
 
+    // ==================== 项目管理表 ====================
+
+    // 项目表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS projects (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app')),
+        status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
+        root_path TEXT,
+        file_count INTEGER DEFAULT 0,
+        total_size INTEGER DEFAULT 0,
+        template_id TEXT,
+        cover_image_url TEXT,
+        tags TEXT,
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        synced_at INTEGER,
+        sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'error'))
+      )
+    `);
+
+    // 项目文件表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS project_files (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        file_type TEXT,
+        file_size INTEGER DEFAULT 0,
+        content TEXT,
+        content_hash TEXT,
+        version INTEGER DEFAULT 1,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 项目模板表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS project_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        project_type TEXT NOT NULL,
+        description TEXT,
+        preview_image_url TEXT,
+        config_json TEXT,
+        file_structure TEXT,
+        usage_count INTEGER DEFAULT 0,
+        is_builtin INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        synced_at INTEGER
+      )
+    `);
+
+    // 项目管理索引
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at DESC);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_projects_type ON projects(project_type);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_projects_sync_status ON projects(sync_status);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_project_files_project_id ON project_files(project_id);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_project_templates_type ON project_templates(project_type);
+    `);
+
     // 保存更改
     this.saveToFile();
     console.log('数据库表创建完成');
@@ -767,6 +854,253 @@ class DatabaseManager {
     const data = this.db.export();
     const buffer = Buffer.from(data);
     fs.writeFileSync(backupPath, buffer);
+  }
+
+  // ==================== 项目管理操作 ====================
+
+  /**
+   * 获取所有项目
+   * @param {string} userId - 用户ID
+   * @returns {Array} 项目列表
+   */
+  getProjects(userId) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM projects
+      WHERE user_id = ?
+      ORDER BY updated_at DESC
+    `);
+    return stmt.all(userId);
+  }
+
+  /**
+   * 根据ID获取项目
+   * @param {string} projectId - 项目ID
+   * @returns {Object|null} 项目
+   */
+  getProjectById(projectId) {
+    const stmt = this.db.prepare('SELECT * FROM projects WHERE id = ?');
+    return stmt.get(projectId);
+  }
+
+  /**
+   * 保存项目
+   * @param {Object} project - 项目数据
+   * @returns {Object} 保存的项目
+   */
+  saveProject(project) {
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO projects (
+        id, user_id, name, description, project_type, status,
+        root_path, file_count, total_size, template_id, cover_image_url,
+        tags, metadata, created_at, updated_at, synced_at, sync_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      project.id,
+      project.user_id,
+      project.name,
+      project.description,
+      project.project_type,
+      project.status || 'active',
+      project.root_path,
+      project.file_count || 0,
+      project.total_size || 0,
+      project.template_id,
+      project.cover_image_url,
+      typeof project.tags === 'string' ? project.tags : JSON.stringify(project.tags || []),
+      typeof project.metadata === 'string' ? project.metadata : JSON.stringify(project.metadata || {}),
+      project.created_at || Date.now(),
+      project.updated_at || Date.now(),
+      project.synced_at,
+      project.sync_status || 'pending'
+    );
+
+    return this.getProjectById(project.id);
+  }
+
+  /**
+   * 更新项目
+   * @param {string} projectId - 项目ID
+   * @param {Object} updates - 更新数据
+   * @returns {Object|null} 更新后的项目
+   */
+  updateProject(projectId, updates) {
+    const fields = [];
+    const values = [];
+
+    // 动态构建更新字段
+    const allowedFields = [
+      'name', 'description', 'status', 'tags', 'cover_image_url',
+      'file_count', 'total_size', 'sync_status', 'synced_at'
+    ];
+
+    allowedFields.forEach(field => {
+      if (updates[field] !== undefined) {
+        fields.push(`${field} = ?`);
+        if (field === 'tags' || field === 'metadata') {
+          values.push(typeof updates[field] === 'string' ? updates[field] : JSON.stringify(updates[field]));
+        } else {
+          values.push(updates[field]);
+        }
+      }
+    });
+
+    // 总是更新 updated_at
+    fields.push('updated_at = ?');
+    values.push(updates.updated_at || Date.now());
+
+    values.push(projectId);
+
+    if (fields.length === 1) {
+      return this.getProjectById(projectId);
+    }
+
+    this.db.run(`
+      UPDATE projects SET ${fields.join(', ')} WHERE id = ?
+    `, values);
+
+    this.saveToFile();
+    return this.getProjectById(projectId);
+  }
+
+  /**
+   * 删除项目
+   * @param {string} projectId - 项目ID
+   * @returns {boolean} 是否删除成功
+   */
+  deleteProject(projectId) {
+    // 删除项目文件
+    this.db.run('DELETE FROM project_files WHERE project_id = ?', [projectId]);
+
+    // 删除项目
+    this.db.run('DELETE FROM projects WHERE id = ?', [projectId]);
+
+    this.saveToFile();
+    return true;
+  }
+
+  /**
+   * 获取项目文件列表
+   * @param {string} projectId - 项目ID
+   * @returns {Array} 文件列表
+   */
+  getProjectFiles(projectId) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM project_files
+      WHERE project_id = ?
+      ORDER BY file_path
+    `);
+    return stmt.all(projectId);
+  }
+
+  /**
+   * 保存项目文件
+   * @param {string} projectId - 项目ID
+   * @param {Array} files - 文件列表
+   */
+  saveProjectFiles(projectId, files) {
+    this.transaction(() => {
+      const stmt = this.db.prepare(`
+        INSERT OR REPLACE INTO project_files (
+          id, project_id, file_path, file_name, file_type,
+          file_size, content, content_hash, version,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      files.forEach(file => {
+        stmt.run(
+          file.id,
+          projectId,
+          file.file_path,
+          file.file_name,
+          file.file_type,
+          file.file_size || 0,
+          file.content,
+          file.content_hash,
+          file.version || 1,
+          file.created_at || Date.now(),
+          file.updated_at || Date.now()
+        );
+      });
+    });
+  }
+
+  /**
+   * 更新单个文件
+   * @param {Object} fileUpdate - 文件更新数据
+   */
+  updateProjectFile(fileUpdate) {
+    const stmt = this.db.prepare(`
+      UPDATE project_files
+      SET content = ?, updated_at = ?, version = ?
+      WHERE id = ?
+    `);
+
+    stmt.run(
+      fileUpdate.content,
+      fileUpdate.updated_at || Date.now(),
+      fileUpdate.version,
+      fileUpdate.id
+    );
+
+    this.saveToFile();
+  }
+
+  /**
+   * 获取所有模板
+   * @returns {Array} 模板列表
+   */
+  getProjectTemplates() {
+    const stmt = this.db.prepare(`
+      SELECT * FROM project_templates
+      ORDER BY is_builtin DESC, usage_count DESC
+    `);
+    return stmt.all();
+  }
+
+  /**
+   * 保存模板
+   * @param {Object} template - 模板数据
+   */
+  saveProjectTemplate(template) {
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO project_templates (
+        id, name, project_type, description, preview_image_url,
+        config_json, file_structure, usage_count, is_builtin,
+        created_at, updated_at, synced_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      template.id,
+      template.name,
+      template.project_type,
+      template.description,
+      template.preview_image_url,
+      typeof template.config_json === 'string' ? template.config_json : JSON.stringify(template.config_json || {}),
+      typeof template.file_structure === 'string' ? template.file_structure : JSON.stringify(template.file_structure || []),
+      template.usage_count || 0,
+      template.is_builtin ? 1 : 0,
+      template.created_at || Date.now(),
+      template.updated_at || Date.now(),
+      template.synced_at
+    );
+
+    this.saveToFile();
+  }
+
+  /**
+   * 批量保存模板
+   * @param {Array} templates - 模板列表
+   */
+  saveProjectTemplates(templates) {
+    this.transaction(() => {
+      templates.forEach(template => {
+        this.saveProjectTemplate(template);
+      });
+    });
   }
 }
 
