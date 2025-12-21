@@ -45,8 +45,9 @@ class DataEngine:
                 self._ready = False
 
         # 设置中文字体（用于matplotlib）
-        plt.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans']
-        plt.rcParams['axes.unicode_minus'] = False
+        # 使用文泉驿字体（在Docker容器中已安装）
+        plt.rcParams['font.sans-serif'] = ['WenQuanYi Zen Hei', 'WenQuanYi Micro Hei', 'DejaVu Sans']
+        plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 
     def is_ready(self) -> bool:
         """检查引擎是否就绪"""
