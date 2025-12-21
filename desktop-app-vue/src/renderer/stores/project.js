@@ -262,6 +262,14 @@ export const useProjectStore = defineStore('project', {
     },
 
     /**
+     * 通过ID获取项目（别名）
+     * @param {string} projectId - 项目ID
+     */
+    async fetchProjectById(projectId) {
+      return this.getProject(projectId);
+    },
+
+    /**
      * 更新项目
      * @param {string} projectId - 项目ID
      * @param {Object} updates - 更新数据
