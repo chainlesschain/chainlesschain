@@ -94,7 +94,7 @@ services:
     build: ./backend/project-service
     container_name: chainlesschain_project_service
     ports:
-      - "8080:8080"
+      - "9090:9090"
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
