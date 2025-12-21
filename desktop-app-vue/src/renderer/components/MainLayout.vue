@@ -11,7 +11,7 @@
       <!-- Logo -->
       <div class="app-logo">
         <div class="logo-icon">
-          <ApiOutlined :style="{ fontSize: '28px' }" />
+          <img src="@/assets/logo.png" alt="ChainlessChain Logo" class="logo-image" />
         </div>
         <h2 v-if="!sidebarCollapsed">ChainlessChain</h2>
       </div>
@@ -389,6 +389,11 @@ watch(
 
     if (menuKey) {
       selectedMenuKeys.value = [menuKey];
+    } else if (newPath.startsWith('/projects/') && newPath !== '/projects/new' &&
+               newPath !== '/projects/templates' && newPath !== '/projects/market' &&
+               newPath !== '/projects/collaboration' && newPath !== '/projects/archived') {
+      // 项目详情页，选中"我的项目"菜单
+      selectedMenuKeys.value = ['projects'];
     }
   },
   { immediate: true }
@@ -491,6 +496,13 @@ const handleLogout = () => {
   height: 40px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 8px;
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
 }
 
 .app-logo h2 {

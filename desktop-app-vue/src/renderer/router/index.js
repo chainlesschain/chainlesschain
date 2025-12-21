@@ -152,6 +152,12 @@ const routes = [
         component: () => import('../pages/projects/ArchivedPage.vue'),
         meta: { title: '已归档项目' },
       },
+      {
+        path: 'projects/:id',
+        name: 'ProjectDetail',
+        component: () => import('../pages/projects/ProjectDetailPage.vue'),
+        meta: { title: '项目详情' },
+      },
       // 知识模块
       {
         path: 'knowledge/list',

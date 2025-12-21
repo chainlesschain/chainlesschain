@@ -180,6 +180,7 @@ import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { useProjectStore } from '@/stores/project';
 import { useAuthStore } from '@/stores/auth';
+import { useAppStore } from '@/stores/app';
 import {
   FolderOpenOutlined,
   PlusOutlined,
@@ -194,6 +195,7 @@ import ProjectListItem from '@/components/projects/ProjectListItem.vue';
 const router = useRouter();
 const projectStore = useProjectStore();
 const authStore = useAuthStore();
+const appStore = useAppStore();
 
 // 响应式状态
 const searchKeyword = ref('');
@@ -279,6 +281,19 @@ const handleCreateProject = () => {
 
 // 处理查看项目
 const handleViewProject = (projectId) => {
+  // 查找项目信息
+  const project = projectStore.projects.find(p => p.id === projectId);
+  const projectName = project ? project.name : '项目详情';
+
+  // 添加标签页
+  appStore.addTab({
+    key: `project-${projectId}`,
+    title: projectName,
+    path: `/projects/${projectId}`,
+    closable: true,
+  });
+
+  // 跳转到项目详情页
   router.push(`/projects/${projectId}`);
 };
 
