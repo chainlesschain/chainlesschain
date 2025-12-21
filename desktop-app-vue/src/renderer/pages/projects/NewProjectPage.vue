@@ -145,8 +145,9 @@ const handleCreateProject = async (createData) => {
 // 处理模板选择
 const handleTemplateSelect = async (template) => {
   const createData = {
+    userPrompt: `使用${template.name}模板创建项目${template.description ? '：' + template.description : ''}`,  // 后端必填
     name: `基于${template.name}的新项目`,
-    project_type: template.project_type,
+    projectType: template.project_type,
     templateId: template.id,
     userId: authStore.currentUser?.id || 'default-user',
   };
