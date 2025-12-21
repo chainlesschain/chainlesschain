@@ -13,11 +13,9 @@ langchain-community==0.0.16
 # 云LLM服务SDK
 dashscope==1.14.1  # 阿里云通义千问
 zhipuai==2.0.1     # 智谱AI (ChatGLM)
-anthropic==0.18.1  # Anthropic Claude (可选)
 volcengine-python-sdk==1.0.79  # 火山引擎（豆包）
 qianfan==0.3.5     # 百度千帆
-huggingface-hub==0.20.3  # HuggingFace (可选)
-minimax==0.1.0     # MiniMax (如果有SDK)
+# 注: 腾讯混元、讯飞星火、MiniMax、DeepSeek均使用OpenAI兼容API，无需额外SDK
 
 # 向量数据库
 qdrant-client==1.7.3
@@ -41,7 +39,6 @@ matplotlib==3.8.2
 seaborn==0.13.1
 
 # 工具库
-pydantic==2.5.3
 python-dotenv==1.0.0
 redis==5.0.1
 aioredis==2.0.1
