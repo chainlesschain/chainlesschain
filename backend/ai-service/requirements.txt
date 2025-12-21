@@ -1,49 +1,51 @@
 # FastAPI Web Framework
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-pydantic==2.5.3
-pydantic-settings==2.1.0
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0,<3.0.0
+pydantic-settings>=2.1.0
 
 # AI / LLM
-ollama==0.1.6
-openai==1.10.0
-langchain==0.1.5
-langchain-community==0.0.16
+ollama>=0.1.6
+openai>=1.10.0
 
 # 云LLM服务SDK
-dashscope==1.14.1  # 阿里云通义千问
-zhipuai==2.0.1     # 智谱AI (ChatGLM)
-volcengine-python-sdk==1.0.79  # 火山引擎（豆包）
-qianfan==0.3.5     # 百度千帆
+dashscope>=1.14.1  # 阿里云通义千问
+zhipuai>=2.0.1     # 智谱AI (ChatGLM)
+volcengine-python-sdk>=1.0.79  # 火山引擎（豆包）
+qianfan>=0.3.5     # 百度千帆
 # 注: 腾讯混元、讯飞星火、MiniMax、DeepSeek均使用OpenAI兼容API，无需额外SDK
 
 # 向量数据库
-qdrant-client==1.7.3
-chromadb==0.4.22
+qdrant-client>=1.7.0
+chromadb>=0.4.22
 
 # Embedding
-sentence-transformers==2.3.1
+sentence-transformers>=2.3.0
 
 # 文件处理
-python-docx==1.1.0
-reportlab==4.0.9
-openpyxl==3.1.2
-pandas==2.2.0
-Pillow==10.2.0
+python-docx>=1.1.0
+reportlab>=4.0.0
+openpyxl>=3.1.0
+pandas>=2.0.0
+Pillow>=10.0.0
 
 # 模板引擎
-jinja2==3.1.3
+jinja2>=3.1.0
 
 # 数据可视化
-matplotlib==3.8.2
-seaborn==0.13.1
+matplotlib>=3.8.0
+seaborn>=0.13.0
 
 # 工具库
-python-dotenv==1.0.0
-redis==5.0.1
-aioredis==2.0.1
+python-dotenv>=1.0.0
+redis>=5.0.0
+aioredis>=2.0.0
+
+# 数据库驱动
+psycopg2-binary>=2.9.0
+sqlalchemy>=2.0.0
 
 # 测试
-pytest==8.0.0
-pytest-asyncio==0.23.3
-httpx==0.25.2  # 兼容ollama 0.1.6 (需要 httpx<0.26.0)
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+httpx>=0.25.2,<0.26.0  # 兼容ollama (需要 httpx<0.26.0)
