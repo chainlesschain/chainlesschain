@@ -1,7 +1,7 @@
 package com.chainlesschain.project.dto;
 
 import lombok.Data;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * 创建项目请求DTO
