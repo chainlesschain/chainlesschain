@@ -16,7 +16,14 @@ import ollama
 from openai import AsyncOpenAI
 import matplotlib
 matplotlib.use('Agg')  # 无GUI后端
+import matplotlib.font_manager as fm
 from src.llm.llm_client import get_llm_client
+
+# 清除matplotlib字体缓存并重新加载
+try:
+    fm._load_fontmanager(try_read_cache=False)
+except:
+    pass
 
 
 class DataEngine:
@@ -46,7 +53,25 @@ class DataEngine:
 
         # 设置中文字体（用于matplotlib）
         # 使用文泉驿字体（在Docker容器中已安装）
-        plt.rcParams['font.sans-serif'] = ['WenQuanYi Zen Hei', 'WenQuanYi Micro Hei', 'DejaVu Sans']
+        import warnings
+        warnings.filterwarnings('ignore', category=UserWarning, module='matplotlib')
+
+        # 尝试多个字体，按优先级排列
+        available_fonts = [f.name for f in fm.fontManager.ttflist]
+        preferred_fonts = ['WenQuanYi Zen Hei', 'WenQuanYi Micro Hei', 'Noto Sans CJK SC', 'SimHei', 'Microsoft YaHei']
+        font_to_use = None
+
+        for font in preferred_fonts:
+            if font in available_fonts:
+                font_to_use = font
+                break
+
+        if font_to_use:
+            plt.rcParams['font.sans-serif'] = [font_to_use, 'DejaVu Sans']
+        else:
+            # 如果没有找到中文字体，使用默认字体（会有警告但不影响功能）
+            plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
+
         plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 
     def is_ready(self) -> bool:

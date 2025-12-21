@@ -9,9 +9,11 @@ RUN apt-get update && apt-get install -y \
     git \
     fonts-wqy-zenhei \
     fonts-wqy-microhei \
+    fonts-noto-cjk \
     fontconfig \
     && fc-cache -fv \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /root/.cache/matplotlib/*
 
 # 复制requirements并安装依赖
 COPY requirements.txt .
