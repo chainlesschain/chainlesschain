@@ -46,4 +46,4 @@ aioredis==2.0.1
 # 测试
 pytest==8.0.0
 pytest-asyncio==0.23.3
-httpx==0.26.0
+httpx==0.25.2  # 兼容ollama 0.1.6 (需要 httpx<0.26.0)
