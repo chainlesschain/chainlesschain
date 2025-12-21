@@ -338,6 +338,47 @@ contextBridge.exposeInMainWorld('electronAPI', {
     import: (importData) => ipcRenderer.invoke('prompt-template:import', importData),
   },
 
+  // 项目管理
+  project: {
+    // 项目CRUD
+    getAll: (userId) => ipcRenderer.invoke('project:get-all', userId),
+    get: (projectId) => ipcRenderer.invoke('project:get', projectId),
+    create: (createData) => ipcRenderer.invoke('project:create', createData),
+    update: (projectId, updates) => ipcRenderer.invoke('project:update', projectId, updates),
+    delete: (projectId) => ipcRenderer.invoke('project:delete', projectId),
+    save: (project) => ipcRenderer.invoke('project:save', project),
+    deleteLocal: (projectId) => ipcRenderer.invoke('project:delete-local', projectId),
+
+    // 后端获取
+    fetchFromBackend: (projectId) => ipcRenderer.invoke('project:fetch-from-backend', projectId),
+
+    // 文件管理
+    getFiles: (projectId) => ipcRenderer.invoke('project:get-files', projectId),
+    getFile: (fileId) => ipcRenderer.invoke('project:get-file', fileId),
+    saveFiles: (projectId, files) => ipcRenderer.invoke('project:save-files', projectId, files),
+    updateFile: (fileUpdate) => ipcRenderer.invoke('project:update-file', fileUpdate),
+    deleteFile: (fileId) => ipcRenderer.invoke('project:delete-file', fileId),
+
+    // 模板管理
+    getTemplates: () => ipcRenderer.invoke('project:get-templates'),
+    getTemplate: (templateId) => ipcRenderer.invoke('project:get-template', templateId),
+
+    // 同步
+    sync: (userId) => ipcRenderer.invoke('project:sync', userId),
+    syncOne: (projectId) => ipcRenderer.invoke('project:sync-one', projectId),
+
+    // Git操作
+    gitInit: (repoPath) => ipcRenderer.invoke('project:git-init', repoPath),
+    gitStatus: (repoPath) => ipcRenderer.invoke('project:git-status', repoPath),
+    gitCommit: (repoPath, message) => ipcRenderer.invoke('project:git-commit', repoPath, message),
+    gitPush: (repoPath) => ipcRenderer.invoke('project:git-push', repoPath),
+    gitPull: (repoPath) => ipcRenderer.invoke('project:git-pull', repoPath),
+
+    // 事件监听
+    on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
+    off: (event, callback) => ipcRenderer.removeListener(event, callback),
+  },
+
   // 系统操作
   system: {
     getVersion: () => ipcRenderer.invoke('system:get-version'),
