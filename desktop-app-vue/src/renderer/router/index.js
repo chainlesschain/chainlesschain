@@ -109,6 +109,12 @@ const routes = [
         component: () => import('../components/trade/CreditScore.vue'),
         meta: { title: '信用评分' },
       },
+      {
+        path: 'my-reviews',
+        name: 'MyReviews',
+        component: () => import('../components/trade/MyReviews.vue'),
+        meta: { title: '我的评价' },
+      },
       // 项目管理模块
       {
         path: 'projects',

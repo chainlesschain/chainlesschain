@@ -306,33 +306,22 @@ const loadContents = async () => {
     loading.value = true;
 
     // 检查API是否存在
-    if (!window.electronAPI?.knowledge?.getContents) {
-      console.warn("知识付费API尚未实现");
-      contents.value = [];
-      loading.value = false;
-      return;
-    }
-    // 检查API是否存在
-    if (!window.electronAPI?.knowledge?.getContents) {
+    if (!window.electronAPI?.knowledge?.listContents) {
       console.warn('知识付费API尚未实现');
       contents.value = [];
       loading.value = false;
       return;
     }
 
-    if (searchKeyword.value) {
-      // 搜索模式
-      contents.value = await window.electronAPI.knowledge.searchContents(
-        searchKeyword.value,
-        { contentType: filterType.value, sortBy: sortBy.value }
-      );
-    } else {
-      // 浏览模式 - 获取所有内容
-      contents.value = await window.electronAPI.knowledge.getContents({
-        contentType: filterType.value,
-        sortBy: sortBy.value,
-      });
-    }
+    // 使用listContents API
+    const filters = {
+      contentType: filterType.value || undefined,
+      sortBy: sortBy.value,
+      keyword: searchKeyword.value || undefined,
+      status: 'active',
+    };
+
+    contents.value = await window.electronAPI.knowledge.listContents(filters);
 
     console.log('内容列表已加载:', contents.value.length);
   } catch (error) {
@@ -395,14 +384,18 @@ const viewContent = async (content) => {
     selectedContent.value = content;
     showDetailModal.value = true;
 
+    // 获取当前用户DID（需要从DID管理器获取）
+    const currentIdentity = await window.electronAPI.did.getCurrentIdentity();
+    const userDid = currentIdentity?.did;
+
     // 检查是否已购买
-    const hasAccess = await window.electronAPI.knowledge.verifyAccess(content.id);
+    const hasAccess = await window.electronAPI.knowledge.checkAccess(content.id, userDid);
     hasPurchased.value = hasAccess;
 
-    // 如果已购买，加载完整内容
+    // 如果已购买，访问完整内容
     if (hasAccess) {
-      const fullContent = await window.electronAPI.knowledge.getContent(content.id);
-      contentDetail.value = fullContent.content;
+      const fullContent = await window.electronAPI.knowledge.accessContent(content.id);
+      contentDetail.value = fullContent.decryptedContent || fullContent.content;
     }
   } catch (error) {
     console.error('查看内容失败:', error);
@@ -415,7 +408,8 @@ const handlePurchase = async (content) => {
   try {
     purchasing.value = true;
 
-    await window.electronAPI.knowledge.purchaseContent(content.id);
+    // 使用默认资产ID（这里假设使用CNY，实际应该让用户选择）
+    await window.electronAPI.knowledge.purchaseContent(content.id, 'CNY');
 
     antMessage.success('购买成功！');
 

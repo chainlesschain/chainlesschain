@@ -261,7 +261,60 @@ const levelColumns = [
 const loadCreditReport = async () => {
   try {
     loading.value = true;
-    creditReport.value = await window.electronAPI.credit.getCreditReport();
+
+    // 获取当前用户DID
+    const currentIdentity = await window.electronAPI.did.getCurrentIdentity();
+    const userDid = currentIdentity?.did;
+
+    if (!userDid) {
+      antMessage.warning('请先创建DID身份');
+      return;
+    }
+
+    // 获取用户信用
+    const userCredit = await window.electronAPI.credit.getUserCredit(userDid);
+
+    // 获取信用等级
+    const levelInfo = await window.electronAPI.credit.getCreditLevel(userCredit.credit_score);
+
+    // 获取信用历史
+    const scoreHistory = await window.electronAPI.credit.getScoreHistory(userDid, 10);
+
+    // 获取权益
+    const benefits = await window.electronAPI.credit.getBenefits(userDid);
+
+    // 组装信用报告
+    creditReport.value = {
+      creditScore: userCredit.credit_score,
+      creditLevel: levelInfo.name,
+      levelColor: levelInfo.color,
+      benefits: levelInfo.benefits || [],
+      statistics: {
+        totalTransactions: userCredit.total_transactions,
+        completedTransactions: userCredit.completed_transactions,
+        completionRate: userCredit.total_transactions > 0
+          ? ((userCredit.completed_transactions / userCredit.total_transactions) * 100).toFixed(1)
+          : 0,
+        positiveReviews: userCredit.positive_reviews,
+        negativeReviews: userCredit.negative_reviews,
+        positiveRate: (userCredit.positive_reviews + userCredit.negative_reviews) > 0
+          ? ((userCredit.positive_reviews / (userCredit.positive_reviews + userCredit.negative_reviews)) * 100).toFixed(1)
+          : 0,
+        totalVolume: userCredit.total_volume,
+        disputes: userCredit.disputes,
+        refunds: userCredit.refunds,
+        avgResponseTime: userCredit.avg_response_time,
+      },
+      recentRecords: scoreHistory.map(record => ({
+        id: record.id,
+        scoreChange: record.score_change,
+        scoreAfter: record.score_after,
+        reason: record.reason,
+        eventType: record.event_type,
+        createdAt: record.created_at,
+      })),
+    };
+
     console.log('信用报告已加载:', creditReport.value);
   } catch (error) {
     console.error('加载信用报告失败:', error);
