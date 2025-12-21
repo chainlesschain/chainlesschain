@@ -168,10 +168,16 @@ const commonTags = [
 const handleSubmit = async () => {
   creating.value = true;
 
+  // 构建用户提示（userPrompt）- 后端必填字段
+  const userPrompt = formData.description
+    ? `创建一个${formData.name}项目：${formData.description}`
+    : `创建一个${formData.name}项目`;
+
   const createData = {
+    userPrompt: userPrompt,  // 后端必填字段
     name: formData.name,
     description: formData.description || undefined,
-    project_type: formData.projectType,
+    projectType: formData.projectType,
     status: formData.status,
     tags: JSON.stringify(formData.tags),
     userId: authStore.currentUser?.id || 'default-user',

@@ -170,7 +170,7 @@ const handleSubmit = async () => {
 
   const createData = {
     userPrompt: formData.userPrompt,
-    project_type: formData.projectType,
+    projectType: formData.projectType,  // 使用驼峰命名与后端一致
     name: formData.name || undefined,
     userId: authStore.currentUser?.id || 'default-user',
   };
