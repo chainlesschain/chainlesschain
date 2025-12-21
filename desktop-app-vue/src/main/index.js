@@ -587,6 +587,34 @@ class ChainlessChainApp {
     console.log('[Main] P2P 加密事件监听已设置');
   }
 
+  /**
+   * 递归移除对象中的undefined值
+   * Electron IPC无法序列化undefined，需要转换为null或删除
+   * @param {*} obj - 要清理的对象
+   * @returns {*} 清理后的对象
+   */
+  removeUndefinedValues(obj) {
+    if (obj === null || obj === undefined) {
+      return null;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.removeUndefinedValues(item));
+    }
+
+    if (typeof obj === 'object') {
+      const cleaned = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          cleaned[key] = this.removeUndefinedValues(value);
+        }
+      }
+      return cleaned;
+    }
+
+    return obj;
+  }
+
   setupIPC() {
     // U盾相关 - 使用真实硬件实现
     ipcMain.handle('ukey:detect', async () => {
@@ -3932,7 +3960,8 @@ class ChainlessChainApp {
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
-        return this.database.getProjects(userId);
+        const projects = this.database.getProjects(userId);
+        return this.removeUndefinedValues(projects);
       } catch (error) {
         console.error('[Main] 获取项目列表失败:', error);
         throw error;
@@ -3945,7 +3974,8 @@ class ChainlessChainApp {
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
-        return this.database.getProjectById(projectId);
+        const project = this.database.getProjectById(projectId);
+        return this.removeUndefinedValues(project);
       } catch (error) {
         console.error('[Main] 获取项目失败:', error);
         throw error;
@@ -3977,7 +4007,9 @@ class ChainlessChainApp {
           }
         }
 
-        return project;
+        // 清理undefined值（IPC无法序列化undefined）
+        const cleanProject = this.removeUndefinedValues(project);
+        return cleanProject;
       } catch (error) {
         console.error('[Main] 创建项目失败:', error);
         throw error;
@@ -3990,7 +4022,8 @@ class ChainlessChainApp {
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
-        return this.database.saveProject(project);
+        const saved = this.database.saveProject(project);
+        return this.removeUndefinedValues(saved);
       } catch (error) {
         console.error('[Main] 保存项目失败:', error);
         throw error;
@@ -4010,7 +4043,8 @@ class ChainlessChainApp {
           sync_status: 'pending',
         };
 
-        return this.database.updateProject(projectId, updatedProject);
+        const result = this.database.updateProject(projectId, updatedProject);
+        return this.removeUndefinedValues(result);
       } catch (error) {
         console.error('[Main] 更新项目失败:', error);
         throw error;
@@ -4063,7 +4097,7 @@ class ChainlessChainApp {
           });
         }
 
-        return project;
+        return this.removeUndefinedValues(project);
       } catch (error) {
         console.error('[Main] 从后端获取项目失败:', error);
         throw error;
@@ -4076,7 +4110,8 @@ class ChainlessChainApp {
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
-        return this.database.getProjectFiles(projectId);
+        const files = this.database.getProjectFiles(projectId);
+        return this.removeUndefinedValues(files);
       } catch (error) {
         console.error('[Main] 获取项目文件失败:', error);
         throw error;
@@ -4090,7 +4125,8 @@ class ChainlessChainApp {
           throw new Error('数据库未初始化');
         }
         const stmt = this.database.db.prepare('SELECT * FROM project_files WHERE id = ?');
-        return stmt.get(fileId);
+        const file = stmt.get(fileId);
+        return this.removeUndefinedValues(file);
       } catch (error) {
         console.error('[Main] 获取文件失败:', error);
         throw error;
