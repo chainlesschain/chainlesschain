@@ -608,18 +608,27 @@ class ChainlessChainApp {
     // 这会移除所有 undefined 值、函数、Symbol等不可序列化的内容
     try {
       const jsonString = JSON.stringify(obj, (key, value) => {
-        // 将 undefined 转换为 null
-        return value === undefined ? null : value;
+        // 记录任何 undefined 值
+        if (value === undefined) {
+          console.log(`[Main] 发现 undefined 值，key: ${key}`);
+          return null;
+        }
+        return value;
       });
-      return JSON.parse(jsonString);
+      const result = JSON.parse(jsonString);
+      return result;
     } catch (error) {
-      console.error('[Main] JSON序列化失败，使用备用方法:', error);
+      console.error('[Main] JSON序列化失败:', error.message);
+      console.error('[Main] 对象类型:', Array.isArray(obj) ? 'Array' : 'Object');
+      console.error('[Main] 对象键:', obj ? Object.keys(obj).slice(0, 10) : 'N/A');
 
       // 备用方法：手动清理
       if (Array.isArray(obj)) {
+        console.log('[Main] 使用备用方法清理数组');
         return obj.map(item => this.removeUndefinedValues(item)).filter(item => item !== null);
       }
 
+      console.log('[Main] 使用备用方法清理对象');
       const cleaned = {};
       for (const [key, value] of Object.entries(obj)) {
         if (value !== undefined) {
@@ -3975,8 +3984,25 @@ class ChainlessChainApp {
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
+
+        console.log('[Main] 获取项目列表，userId:', userId);
         const projects = this.database.getProjects(userId);
-        return this.removeUndefinedValues(projects);
+        console.log('[Main] 原始项目数量:', projects ? projects.length : 0);
+
+        if (!projects || projects.length === 0) {
+          console.log('[Main] 没有项目，返回空数组');
+          return [];
+        }
+
+        // 打印第一个项目的键，帮助调试
+        if (projects[0]) {
+          console.log('[Main] 第一个项目的键:', Object.keys(projects[0]));
+        }
+
+        const cleaned = this.removeUndefinedValues(projects);
+        console.log('[Main] 清理后的项目数量:', cleaned ? cleaned.length : 0);
+
+        return cleaned;
       } catch (error) {
         console.error('[Main] 获取项目列表失败:', error);
         throw error;
