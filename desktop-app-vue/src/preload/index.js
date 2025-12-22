@@ -395,7 +395,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getTemplate: (templateId) => ipcRenderer.invoke('project:get-template', templateId),
 
     // 同步
-    sync: (userId) => ipcRenderer.invoke('project:sync', userId),
+    sync: (userId) => ipcRenderer.invoke('project:sync', userId || 'default-user'),
     syncOne: (projectId) => ipcRenderer.invoke('project:sync-one', projectId),
 
     // Git操作

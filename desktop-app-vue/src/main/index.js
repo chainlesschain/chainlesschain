@@ -4163,9 +4163,12 @@ class ChainlessChainApp {
 
         // 保存到本地数据库
         if (this.database && project) {
+          // 先清理 project 中的 undefined，再保存到数据库
+          const cleanedProject = this._replaceUndefinedWithNull(project);
+
           const localProject = {
-            ...project,
-            user_id: createData.userId,
+            ...cleanedProject,
+            user_id: cleanedCreateData.userId || 'default-user',
             sync_status: 'synced',
             synced_at: Date.now(),
           };
@@ -4173,9 +4176,11 @@ class ChainlessChainApp {
           console.log('[Main] 项目已保存到本地数据库');
 
           // 保存项目文件
-          if (project.files && project.files.length > 0) {
-            await this.database.saveProjectFiles(project.id, project.files);
-            console.log('[Main] 项目文件已保存，数量:', project.files.length);
+          if (cleanedProject.files && cleanedProject.files.length > 0) {
+            // 清理文件数组中的 undefined
+            const cleanedFiles = this._replaceUndefinedWithNull(cleanedProject.files);
+            await this.database.saveProjectFiles(cleanedProject.id, cleanedFiles);
+            console.log('[Main] 项目文件已保存，数量:', cleanedFiles.length);
           }
         }
 
