@@ -4692,6 +4692,99 @@ class ChainlessChainApp {
       }
     });
 
+    // ==================== 预览管理 IPC ====================
+
+    // 启动静态服务器
+    ipcMain.handle('preview:start-static', async (_event, projectId, rootPath, options) => {
+      try {
+        if (!this.previewManager) {
+          throw new Error('预览管理器未初始化');
+        }
+        return await this.previewManager.startStaticServer(projectId, rootPath, options);
+      } catch (error) {
+        console.error('[Main] 启动静态服务器失败:', error);
+        throw error;
+      }
+    });
+
+    // 停止静态服务器
+    ipcMain.handle('preview:stop-static', async (_event, projectId) => {
+      try {
+        if (!this.previewManager) {
+          throw new Error('预览管理器未初始化');
+        }
+        return await this.previewManager.stopStaticServer(projectId);
+      } catch (error) {
+        console.error('[Main] 停止静态服务器失败:', error);
+        throw error;
+      }
+    });
+
+    // 启动开发服务器
+    ipcMain.handle('preview:start-dev', async (_event, projectId, rootPath, command) => {
+      try {
+        if (!this.previewManager) {
+          throw new Error('预览管理器未初始化');
+        }
+        return await this.previewManager.startDevServer(projectId, rootPath, command);
+      } catch (error) {
+        console.error('[Main] 启动开发服务器失败:', error);
+        throw error;
+      }
+    });
+
+    // 停止开发服务器
+    ipcMain.handle('preview:stop-dev', async (_event, projectId) => {
+      try {
+        if (!this.previewManager) {
+          throw new Error('预览管理器未初始化');
+        }
+        return await this.previewManager.stopDevServer(projectId);
+      } catch (error) {
+        console.error('[Main] 停止开发服务器失败:', error);
+        throw error;
+      }
+    });
+
+    // 在文件管理器中打开
+    ipcMain.handle('preview:open-explorer', async (_event, rootPath) => {
+      try {
+        if (!this.previewManager) {
+          throw new Error('预览管理器未初始化');
+        }
+        return await this.previewManager.openInExplorer(rootPath);
+      } catch (error) {
+        console.error('[Main] 打开文件管理器失败:', error);
+        throw error;
+      }
+    });
+
+    // 在外部浏览器中打开
+    ipcMain.handle('preview:open-browser', async (_event, url) => {
+      try {
+        if (!this.previewManager) {
+          throw new Error('预览管理器未初始化');
+        }
+        return await this.previewManager.openInBrowser(url);
+      } catch (error) {
+        console.error('[Main] 打开浏览器失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取服务器信息
+    ipcMain.handle('preview:get-server-info', async (_event, projectId) => {
+      try {
+        if (!this.previewManager) {
+          throw new Error('预览管理器未初始化');
+        }
+        return this.previewManager.getServerInfo(projectId);
+      } catch (error) {
+        console.error('[Main] 获取服务器信息失败:', error);
+        throw error;
+      }
+    });
+
     // 获取模板列表
     ipcMain.handle('project:get-templates', async () => {
       try {
