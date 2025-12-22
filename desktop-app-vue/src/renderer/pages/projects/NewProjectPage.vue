@@ -144,13 +144,18 @@ const handleCreateProject = async (createData) => {
 
 // 处理模板选择
 const handleTemplateSelect = async (template) => {
+  // 构建创建数据，避免 undefined 值
   const createData = {
     userPrompt: `使用${template.name}模板创建项目${template.description ? '：' + template.description : ''}`,  // 后端必填
     name: `基于${template.name}的新项目`,
-    projectType: template.project_type,
-    templateId: template.id,
+    projectType: template.project_type || 'general',
     userId: authStore.currentUser?.id || 'default-user',
   };
+
+  // 只有当 templateId 存在时才添加
+  if (template.id) {
+    createData.templateId = template.id;
+  }
 
   pendingCreateData.value = createData;
   await startCreateProcess(createData);
