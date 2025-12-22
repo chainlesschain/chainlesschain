@@ -138,6 +138,7 @@
               :files="projectFiles"
               :current-file-id="currentFile?.id"
               :loading="refreshing"
+              :git-status="gitStatus"
               @select="handleSelectFile"
             />
           </div>
@@ -288,7 +289,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { useProjectStore } from '@/stores/project';
@@ -341,6 +342,8 @@ const viewMode = ref('auto'); // 'auto' | 'edit' | 'preview'
 const showChatPanel = ref(true); // 默认显示AI助手
 const fileContent = ref(''); // 文件内容
 const editorRef = ref(null);
+const gitStatus = ref({}); // Git 状态
+let gitStatusInterval = null; // Git 状态轮询定时器
 
 // 计算属性
 const projectId = computed(() => route.params.id);
@@ -430,6 +433,23 @@ const getLocalProjectPath = async (path) => {
 // 切换AI助手面板
 const toggleChatPanel = () => {
   showChatPanel.value = !showChatPanel.value;
+};
+
+// 刷新 Git 状态
+const refreshGitStatus = async () => {
+  if (!currentProject.value?.root_path || !hasValidPath.value) {
+    return;
+  }
+
+  try {
+    const status = await window.electronAPI.project.gitStatus(currentProject.value.root_path);
+    if (status) {
+      gitStatus.value = status;
+    }
+  } catch (error) {
+    console.error('[ProjectDetail] 获取 Git 状态失败:', error);
+    // 不显示错误消息，因为可能项目不是 Git 仓库
+  }
 };
 
 // 加载文件内容
@@ -662,11 +682,26 @@ onMounted(async () => {
     if (currentProject.value?.root_path) {
       resolvedProjectPath.value = await getLocalProjectPath(currentProject.value.root_path);
     }
+
+    // 初始化 Git 状态
+    if (hasValidPath.value) {
+      await refreshGitStatus();
+      // 每 10 秒刷新一次 Git 状态
+      gitStatusInterval = setInterval(refreshGitStatus, 10000);
+    }
   } catch (error) {
     console.error('Load project failed:', error);
     message.error('加载项目失败：' + error.message);
   } finally {
     loading.value = false;
+  }
+});
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (gitStatusInterval) {
+    clearInterval(gitStatusInterval);
+    gitStatusInterval = null;
   }
 });
 
