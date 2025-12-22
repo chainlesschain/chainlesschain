@@ -44,7 +44,6 @@ import {
   FileExcelOutlined,
   FilePdfOutlined,
   Html5Outlined,
-  CssOutlined,
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
@@ -88,10 +87,10 @@ const fileIconMap = {
   // Web文件
   html: Html5Outlined,
   htm: Html5Outlined,
-  css: CssOutlined,
-  scss: CssOutlined,
-  sass: CssOutlined,
-  less: CssOutlined,
+  css: CodeOutlined,
+  scss: CodeOutlined,
+  sass: CodeOutlined,
+  less: CodeOutlined,
 
   // 文档文件
   md: FileMarkdownOutlined,

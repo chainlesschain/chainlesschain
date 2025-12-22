@@ -86,7 +86,6 @@ import {
   CodeOutlined,
   FileMarkdownOutlined,
   Html5Outlined,
-  CssOutlined,
 } from '@ant-design/icons-vue';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -122,8 +121,8 @@ const iconMap = {
   vue: CodeOutlined,
   py: CodeOutlined,
   html: Html5Outlined,
-  css: CssOutlined,
-  scss: CssOutlined,
+  css: CodeOutlined,
+  scss: CodeOutlined,
   md: FileMarkdownOutlined,
   txt: FileTextOutlined,
 };

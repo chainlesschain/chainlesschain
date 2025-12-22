@@ -158,6 +158,12 @@ const routes = [
         component: () => import('../pages/projects/ProjectDetailPage.vue'),
         meta: { title: '项目详情' },
       },
+      {
+        path: 'projects/:id/edit',
+        name: 'ProjectEdit',
+        component: () => import('../pages/projects/ProjectDetailPage.vue'),
+        meta: { title: '编辑项目' },
+      },
       // 知识模块
       {
         path: 'knowledge/list',

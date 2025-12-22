@@ -13,6 +13,7 @@ class DatabaseManager {
     this.db = null;
     this.dbPath = null;
     this.SQL = null;
+    this.inTransaction = false; // 跟踪是否在事务中
   }
 
   /**
@@ -109,16 +110,37 @@ class DatabaseManager {
     const rawPrepare = this.db.prepare.bind(this.db);
 
     const normalizeParams = (params) => {
+      let result;
       if (params.length === 1) {
         const first = params[0];
         if (Array.isArray(first)) {
-          return first;
+          result = first;
+        } else if (first && typeof first === 'object') {
+          result = first;
+        } else {
+          result = params;
         }
-        if (first && typeof first === 'object') {
-          return first;
-        }
+      } else {
+        result = params;
       }
-      return params;
+
+      // 将数组中的 undefined 替换为 null（sql.js 不支持 undefined）
+      if (Array.isArray(result)) {
+        return result.map(v => v === undefined ? null : v);
+      }
+
+      // 对象参数也要清理 undefined
+      if (result && typeof result === 'object') {
+        const cleaned = {};
+        for (const key in result) {
+          if (result.hasOwnProperty(key)) {
+            cleaned[key] = result[key] === undefined ? null : result[key];
+          }
+        }
+        return cleaned;
+      }
+
+      return result;
     };
 
     this.db.prepare = (sql) => {
@@ -127,12 +149,43 @@ class DatabaseManager {
       if (!stmt.__betterSqliteCompat) {
         stmt.__betterSqliteCompat = true;
 
+        // 保存原始方法的引用
+        const rawGet = stmt.get ? stmt.get.bind(stmt) : null;
+
         stmt.get = (...params) => {
           const bound = normalizeParams(params);
           if (Array.isArray(bound) ? bound.length : bound && typeof bound === 'object') {
             stmt.bind(bound);
           }
-          const row = stmt.step() ? stmt.getAsObject() : null;
+
+          let row = null;
+          if (stmt.step()) {
+            try {
+              // 获取列名
+              const columns = stmt.getColumnNames();
+              // 调用原始的 get() 方法获取数组值
+              const values = rawGet ? rawGet() : [];
+
+              // 手动构建对象
+              row = {};
+              for (let i = 0; i < columns.length; i++) {
+                const value = values[i];
+                // 只添加非 undefined 的值
+                if (value !== undefined) {
+                  row[columns[i]] = value;
+                }
+              }
+
+              // 如果对象为空，返回 null
+              if (Object.keys(row).length === 0) {
+                row = null;
+              }
+            } catch (err) {
+              console.error('[Database] 构建行对象失败:', err);
+              row = null;
+            }
+          }
+
           stmt.reset();
           return row;
         };
@@ -143,8 +196,37 @@ class DatabaseManager {
             stmt.bind(bound);
           }
           const rows = [];
+
+          // 获取列名
+          let columns = null;
+
           while (stmt.step()) {
-            rows.push(stmt.getAsObject());
+            try {
+              // 第一次迭代时获取列名
+              if (!columns) {
+                columns = stmt.getColumnNames();
+              }
+
+              // 调用原始的 get() 方法获取数组值
+              const values = rawGet ? rawGet() : [];
+
+              // 使用列名手动构建对象
+              const row = {};
+              for (let i = 0; i < columns.length; i++) {
+                const value = values[i];
+                // 只添加非 undefined 的值
+                if (value !== undefined) {
+                  row[columns[i]] = value;
+                }
+              }
+
+              if (Object.keys(row).length > 0) {
+                rows.push(row);
+              }
+            } catch (err) {
+              console.error('[Database] 构建行对象失败:', err);
+              // 跳过这一行，继续处理下一行
+            }
           }
           stmt.reset();
           return rows;
@@ -166,7 +248,10 @@ class DatabaseManager {
             stmt.step();
             stmt.reset();
           }
-          manager.saveToFile();
+          // 只在非事务状态下自动保存文件
+          if (!manager.inTransaction) {
+            manager.saveToFile();
+          }
           if (typeof manager.db.getRowsModified === 'function') {
             return { changes: manager.db.getRowsModified() };
           }
@@ -241,6 +326,9 @@ class DatabaseManager {
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         knowledge_id TEXT,
+        project_id TEXT,
+        context_type TEXT DEFAULT 'global',
+        context_data TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE SET NULL
@@ -328,6 +416,7 @@ class DatabaseManager {
         content TEXT,
         content_hash TEXT,
         version INTEGER DEFAULT 1,
+        fs_path TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
@@ -349,6 +438,19 @@ class DatabaseManager {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         synced_at INTEGER
+      )
+    `);
+
+    // 文件同步状态表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS file_sync_state (
+        file_id TEXT PRIMARY KEY,
+        fs_hash TEXT,
+        db_hash TEXT,
+        last_synced_at INTEGER,
+        sync_direction TEXT DEFAULT 'bidirectional',
+        conflict_detected INTEGER DEFAULT 0,
+        FOREIGN KEY (file_id) REFERENCES project_files(id) ON DELETE CASCADE
       )
     `);
 
@@ -377,10 +479,60 @@ class DatabaseManager {
     this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_project_templates_type ON project_templates(project_type);
     `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_file_sync_state_file_id ON file_sync_state(file_id);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_conversations_project_id ON conversations(project_id);
+    `);
+
+    // 数据库迁移：为已存在的表添加新列
+    this.migrateDatabase();
 
     // 保存更改
     this.saveToFile();
     console.log('数据库表创建完成');
+  }
+
+  /**
+   * 数据库迁移：为已存在的表添加新列
+   */
+  migrateDatabase() {
+    console.log('开始数据库迁移...');
+
+    try {
+      // 检查 conversations 表是否有 project_id 列
+      const conversationsInfo = this.db.prepare("PRAGMA table_info(conversations)").all();
+      const hasProjectId = conversationsInfo.some(col => col.name === 'project_id');
+      const hasContextType = conversationsInfo.some(col => col.name === 'context_type');
+      const hasContextData = conversationsInfo.some(col => col.name === 'context_data');
+
+      if (!hasProjectId) {
+        console.log('添加 conversations.project_id 列');
+        this.db.run('ALTER TABLE conversations ADD COLUMN project_id TEXT');
+      }
+      if (!hasContextType) {
+        console.log('添加 conversations.context_type 列');
+        this.db.run("ALTER TABLE conversations ADD COLUMN context_type TEXT DEFAULT 'global'");
+      }
+      if (!hasContextData) {
+        console.log('添加 conversations.context_data 列');
+        this.db.run('ALTER TABLE conversations ADD COLUMN context_data TEXT');
+      }
+
+      // 检查 project_files 表是否有 fs_path 列
+      const projectFilesInfo = this.db.prepare("PRAGMA table_info(project_files)").all();
+      const hasFsPath = projectFilesInfo.some(col => col.name === 'fs_path');
+
+      if (!hasFsPath) {
+        console.log('添加 project_files.fs_path 列');
+        this.db.run('ALTER TABLE project_files ADD COLUMN fs_path TEXT');
+      }
+
+      console.log('数据库迁移完成');
+    } catch (error) {
+      console.error('数据库迁移失败:', error);
+    }
   }
 
   // ==================== 知识库项操作 ====================
@@ -812,13 +964,36 @@ class DatabaseManager {
    * @param {Function} callback - 事务回调
    */
   transaction(callback) {
+    // 使用原生 exec 方法执行事务控制语句，避免包装方法的干扰
     try {
-      this.db.run('BEGIN TRANSACTION');
+      // 设置事务标志
+      this.inTransaction = true;
+
+      // 开始事务
+      this.db.exec('BEGIN TRANSACTION');
+
+      // 执行回调中的操作
       callback();
-      this.db.run('COMMIT');
+
+      // 提交事务
+      this.db.exec('COMMIT');
+
+      // 清除事务标志
+      this.inTransaction = false;
+
+      // 保存到文件
       this.saveToFile();
     } catch (error) {
-      this.db.run('ROLLBACK');
+      // 回滚事务
+      try {
+        this.db.exec('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('[Database] ROLLBACK 失败:', rollbackError);
+      }
+
+      // 确保清除事务标志
+      this.inTransaction = false;
+
       throw error;
     }
   }
@@ -865,18 +1040,34 @@ class DatabaseManager {
    */
   getProjects(userId) {
     const stmt = this.db.prepare(`
-      SELECT * FROM projects
+      SELECT
+        id, user_id, name, description, project_type, status,
+        root_path, file_count, total_size, template_id, cover_image_url,
+        tags, metadata, created_at, updated_at, synced_at, sync_status
+      FROM projects
       WHERE user_id = ?
       ORDER BY updated_at DESC
     `);
-    const projects = stmt.all(userId);
 
-    // 清理每个项目中的 undefined 值
+    let projects = [];
+    try {
+      projects = stmt.all(userId);
+    } catch (err) {
+      console.error('[Database] getProjects 查询失败:', err);
+      // 返回空数组
+      return [];
+    }
+
+    // 清理每个项目中的 undefined 和 null 值
     return projects.map(project => {
       const cleaned = {};
       for (const key in project) {
-        if (project.hasOwnProperty(key) && project[key] !== undefined) {
-          cleaned[key] = project[key];
+        if (project.hasOwnProperty(key)) {
+          const value = project[key];
+          // 跳过 undefined 和 null
+          if (value !== undefined && value !== null) {
+            cleaned[key] = value;
+          }
         }
       }
       return cleaned;
