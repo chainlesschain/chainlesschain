@@ -4,7 +4,7 @@ export const useAppStore = defineStore('app', {
   state: () => ({
     // 用户认证状态
     isAuthenticated: false,
-    ukeyStatus: { detected: true, unlocked: false }, // MVP模式：默认为true便于开发测试
+    ukeyStatus: { detected: false, unlocked: false },
     deviceId: null,
 
     // 知识库数据

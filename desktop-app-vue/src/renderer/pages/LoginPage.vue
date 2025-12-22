@@ -131,7 +131,7 @@ const pin = ref('');
 const username = ref('');
 const password = ref('');
 const loading = ref(false);
-const ukeyStatus = ref({ detected: true, unlocked: false });
+const ukeyStatus = ref({ detected: false, unlocked: false });
 
 let checkInterval = null;
 
@@ -195,13 +195,17 @@ const handleLogin = async () => {
         return;
       }
 
+      console.log('[Login] 尝试登录 - 用户名:', username.value, '密码长度:', password.value.length);
       const result = await authAPI.verifyPassword(username.value, password.value);
+      console.log('[Login] 登录结果:', result);
       success = result.success;
 
       if (success) {
+        console.log('[Login] 登录成功');
         // 设置用户信息
         store.setDeviceId(result.userId || 'local-user');
       } else {
+        console.log('[Login] 登录失败:', result.error);
         message.error(result.error || '用户名或密码错误');
         password.value = '';
       }

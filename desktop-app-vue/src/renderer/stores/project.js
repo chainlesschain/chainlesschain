@@ -334,8 +334,13 @@ export const useProjectStore = defineStore('project', {
      */
     async loadProjectFiles(projectId) {
       try {
+        console.log('[Store] 加载项目文件, projectId:', projectId);
         const files = await window.electronAPI.project.getFiles(projectId);
-        this.projectFiles = files;
+        console.log('[Store] 接收到文件数量:', files?.length || 0);
+        if (files && files.length > 0) {
+          console.log('[Store] 文件列表:', files.map(f => f.file_name).join(', '));
+        }
+        this.projectFiles = files || [];
       } catch (error) {
         console.error('加载项目文件失败:', error);
         throw error;

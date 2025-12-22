@@ -222,10 +222,15 @@ const getStatusLabel = (status) => {
 
 // 计算树形数据
 const treeData = computed(() => {
+  console.log('[FileTree] 接收到 files prop:', props.files?.length || 0, 'files');
   if (!props.files || props.files.length === 0) {
+    console.log('[FileTree] 没有文件，显示空状态');
     return [];
   }
-  return buildTree(props.files);
+  console.log('[FileTree] 构建树形结构...');
+  const tree = buildTree(props.files);
+  console.log('[FileTree] 树形数据:', tree);
+  return tree;
 });
 
 // 处理节点选择
