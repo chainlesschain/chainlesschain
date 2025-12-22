@@ -76,6 +76,9 @@ class DocumentEngine:
 
         try:
             # 提取上下文信息
+            # 防御性编程：确保context是字典而不是列表
+            if isinstance(context, list):
+                context = context[0] if len(context) > 0 else {}
             entities = context.get("entities", {}) if context else {}
             doc_type = entities.get("doc_type", "report")
             output_format = entities.get("format", "word")  # word, pdf, both

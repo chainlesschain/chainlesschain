@@ -104,6 +104,9 @@ class DataEngine:
 
         try:
             # 提取上下文信息
+            # 防御性编程：确保context是字典而不是列表
+            if isinstance(context, list):
+                context = context[0] if len(context) > 0 else {}
             entities = context.get("entities", {}) if context else {}
             data_type = entities.get("data_source", "sample")
             task = entities.get("task", "analysis")  # analysis, visualization, report
@@ -242,7 +245,8 @@ class DataEngine:
         """生成示例数据"""
 
         columns = spec.get("columns", [])
-        row_count = spec.get("row_count", 10)
+        # Limit to 10 rows for testing to reduce response size
+        row_count = min(spec.get("row_count", 10), 10)
 
         # 根据列定义生成数据
         data = {}
