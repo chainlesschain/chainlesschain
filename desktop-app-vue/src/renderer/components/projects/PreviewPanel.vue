@@ -401,13 +401,28 @@ const loadCode = async (content, fileName) => {
  * 加载 CSV
  */
 const loadCsv = async (content) => {
+  // 检查内容是否为空
+  if (!content || content.trim().length === 0) {
+    throw new Error('CSV 文件为空');
+  }
+
   const result = Papa.parse(content, {
     header: true,
     skipEmptyLines: true,
+    delimiter: '', // 自动检测
+    delimitersToGuess: [',', '\t', '|', ';', Papa.RECORD_SEP, Papa.UNIT_SEP],
   });
 
-  if (result.errors.length > 0) {
-    throw new Error('CSV 解析失败: ' + result.errors[0].message);
+  // 检查是否有严重错误（忽略分隔符检测警告）
+  const criticalErrors = result.errors.filter(err => err.type !== 'Delimiter');
+  if (criticalErrors.length > 0) {
+    console.warn('CSV 解析警告:', result.errors);
+    // 不抛出错误，继续显示可解析的部分
+  }
+
+  // 如果没有解析到数据，尝试作为纯文本显示
+  if (!result.data || result.data.length === 0) {
+    throw new Error('CSV 文件无法解析，没有找到有效数据');
   }
 
   csvData.value = result.data.map((row, index) => ({
@@ -424,6 +439,18 @@ const loadCsv = async (content) => {
       ellipsis: true,
       width: 150,
     }));
+  } else {
+    // 如果没有字段名，从第一行数据生成
+    const firstRow = result.data[0];
+    if (firstRow) {
+      csvColumns.value = Object.keys(firstRow).map((key) => ({
+        title: key,
+        dataIndex: key,
+        key: key,
+        ellipsis: true,
+        width: 150,
+      }));
+    }
   }
 };
 
