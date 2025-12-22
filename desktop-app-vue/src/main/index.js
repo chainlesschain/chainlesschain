@@ -4867,9 +4867,35 @@ class ChainlessChainApp {
         const git = require('isomorphic-git');
         const fs = require('fs');
 
-        const status = await git.statusMatrix({ fs, dir: repoPath });
+        const statusMatrix = await git.statusMatrix({ fs, dir: repoPath });
 
-        return status;
+        // 将状态矩阵转换为更友好的格式
+        const fileStatus = {};
+        for (const [filepath, headStatus, worktreeStatus, stageStatus] of statusMatrix) {
+          let status = '';
+
+          // headStatus: 0 = absent, 1 = present
+          // worktreeStatus: 0 = absent, 1 = identical, 2 = modified
+          // stageStatus: 0 = absent, 1 = identical, 2 = added, 3 = modified
+
+          if (headStatus === 0 && worktreeStatus === 2 && stageStatus === 0) {
+            status = 'untracked'; // 未追踪的新文件
+          } else if (headStatus === 1 && worktreeStatus === 2 && stageStatus === 1) {
+            status = 'modified'; // 已修改
+          } else if (headStatus === 1 && worktreeStatus === 0 && stageStatus === 1) {
+            status = 'deleted'; // 已删除
+          } else if (headStatus === 0 && worktreeStatus === 2 && stageStatus === 2) {
+            status = 'added'; // 已添加到暂存区
+          } else if (headStatus === 1 && worktreeStatus === 2 && stageStatus === 3) {
+            status = 'staged'; // 已暂存的修改
+          }
+
+          if (status) {
+            fileStatus[filepath] = status;
+          }
+        }
+
+        return fileStatus;
       } catch (error) {
         console.error('[Main] Git状态查询失败:', error);
         throw error;

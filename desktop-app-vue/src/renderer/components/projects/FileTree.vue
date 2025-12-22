@@ -15,10 +15,18 @@
       @select="handleSelect"
       @expand="handleExpand"
     >
-      <template #title="{ title, isLeaf, icon }">
+      <template #title="{ title, isLeaf, icon, filePath }">
         <div class="tree-node-title">
           <component :is="icon" class="node-icon" />
           <span>{{ title }}</span>
+          <a-tag
+            v-if="gitStatus && filePath && gitStatus[filePath]"
+            :color="getStatusColor(gitStatus[filePath])"
+            size="small"
+            class="git-status-tag"
+          >
+            {{ getStatusLabel(gitStatus[filePath]) }}
+          </a-tag>
         </div>
       </template>
     </a-tree>
@@ -58,6 +66,10 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false,
+  },
+  gitStatus: {
+    type: Object,
+    default: () => ({}),
   },
 });
 
@@ -170,6 +182,7 @@ const buildTree = (files) => {
         isLeaf,
         icon: getFileIcon(node.name, isLeaf),
         fileId: node.fileId,
+        filePath: isLeaf ? currentPath : null, // 添加文件路径用于 Git 状态匹配
       };
 
       if (!isLeaf && Object.keys(node.children).length > 0) {
@@ -181,6 +194,30 @@ const buildTree = (files) => {
   };
 
   return convertToTreeData(tree);
+};
+
+// Git 状态颜色映射
+const getStatusColor = (status) => {
+  const colorMap = {
+    untracked: 'green',
+    modified: 'orange',
+    deleted: 'red',
+    added: 'blue',
+    staged: 'cyan',
+  };
+  return colorMap[status] || 'default';
+};
+
+// Git 状态标签映射
+const getStatusLabel = (status) => {
+  const labelMap = {
+    untracked: 'U',
+    modified: 'M',
+    deleted: 'D',
+    added: 'A',
+    staged: 'S',
+  };
+  return labelMap[status] || '?';
 };
 
 // 计算树形数据
@@ -262,6 +299,15 @@ watch(treeData, (newTreeData) => {
 .node-icon {
   font-size: 16px;
   color: #667eea;
+}
+
+.git-status-tag {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 0 4px;
+  min-width: 20px;
+  text-align: center;
+  font-weight: bold;
 }
 
 /* 自定义树样式 */
