@@ -4874,24 +4874,36 @@ class ChainlessChainApp {
         // 2. 获取本地项目
         const localProjects = this.database ? this.database.getProjects(userId) : [];
 
-        // 3. 合并数据
+        // 3. 合并数据并同步文件
         if (this.database) {
-          this.database.transaction(() => {
-            backendProjects.forEach(project => {
-              const createdAt = project.createdAt ? new Date(project.createdAt).getTime() : Date.now();
-              const updatedAt = project.updatedAt ? new Date(project.updatedAt).getTime() : Date.now();
+          for (const project of backendProjects) {
+            try {
+              // 获取项目详情（包含文件列表）
+              let projectDetail = project;
+              if (!project.files || project.files.length === 0) {
+                try {
+                  console.log(`[Main] 获取项目 ${project.id} 的详细信息...`);
+                  projectDetail = await httpClient.getProject(project.id);
+                } catch (detailError) {
+                  console.warn(`[Main] 获取项目 ${project.id} 详情失败，使用列表数据:`, detailError.message);
+                  projectDetail = project;
+                }
+              }
+
+              const createdAt = projectDetail.createdAt ? new Date(projectDetail.createdAt).getTime() : Date.now();
+              const updatedAt = projectDetail.updatedAt ? new Date(projectDetail.updatedAt).getTime() : Date.now();
 
               // 构建项目对象，避免 undefined 值
               const projectData = {
-                id: project.id,
-                user_id: project.userId,
-                name: project.name,
-                project_type: project.projectType,
-                status: project.status || 'active',
-                file_count: project.fileCount || 0,
-                total_size: project.totalSize || 0,
-                tags: JSON.stringify(project.tags || []),
-                metadata: JSON.stringify(project.metadata || {}),
+                id: projectDetail.id,
+                user_id: projectDetail.userId,
+                name: projectDetail.name,
+                project_type: projectDetail.projectType,
+                status: projectDetail.status || 'active',
+                file_count: projectDetail.fileCount || 0,
+                total_size: projectDetail.totalSize || 0,
+                tags: JSON.stringify(projectDetail.tags || []),
+                metadata: JSON.stringify(projectDetail.metadata || {}),
                 created_at: createdAt,
                 updated_at: updatedAt,
                 synced_at: Date.now(),
@@ -4899,14 +4911,29 @@ class ChainlessChainApp {
               };
 
               // 只有当字段存在时才添加（避免 undefined）
-              if (project.description) projectData.description = project.description;
-              if (project.rootPath) projectData.root_path = project.rootPath;
-              if (project.templateId) projectData.template_id = project.templateId;
-              if (project.coverImageUrl) projectData.cover_image_url = project.coverImageUrl;
+              if (projectDetail.description) projectData.description = projectDetail.description;
+              if (projectDetail.rootPath) projectData.root_path = projectDetail.rootPath;
+              if (projectDetail.templateId) projectData.template_id = projectDetail.templateId;
+              if (projectDetail.coverImageUrl) projectData.cover_image_url = projectDetail.coverImageUrl;
 
               this.database.saveProject(projectData);
-            });
-          });
+
+              // 同步项目文件
+              if (projectDetail.files && Array.isArray(projectDetail.files) && projectDetail.files.length > 0) {
+                console.log(`[Main] 同步项目 ${projectDetail.id} 的文件，数量:`, projectDetail.files.length);
+                try {
+                  this.database.saveProjectFiles(projectDetail.id, projectDetail.files);
+                  console.log(`[Main] 项目 ${projectDetail.id} 文件同步完成`);
+                } catch (fileError) {
+                  console.error(`[Main] 同步项目 ${projectDetail.id} 文件失败:`, fileError);
+                }
+              } else {
+                console.log(`[Main] 项目 ${projectDetail.id} 没有文件`);
+              }
+            } catch (projectError) {
+              console.error(`[Main] 同步项目 ${project.id} 失败:`, projectError);
+            }
+          }
         }
 
         // 4. 推送本地pending的项目到后端

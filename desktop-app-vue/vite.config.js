@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [
     vue(),
     monacoEditorPlugin({
+      publicPath: 'monacoeditorwork',
       languageWorkers: ['editorWorkerService', 'typescript', 'json', 'css', 'html'],
       customWorkers: [
         {
@@ -27,6 +28,7 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src/renderer', import.meta.url)),
       '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
+      'monaco-editor': path.resolve(__dirname, '../node_modules/monaco-editor'),
     },
   },
   server: {
