@@ -902,9 +902,22 @@ class DatabaseManager {
     const metadataValue = typeof safeProject.metadata === 'string'
       ? safeProject.metadata
       : JSON.stringify(safeProject.metadata || {});
-    const createdAt = safeProject.created_at ?? safeProject.createdAt ?? Date.now();
-    const updatedAt = safeProject.updated_at ?? safeProject.updatedAt ?? Date.now();
-    const syncedAt = safeProject.synced_at ?? safeProject.syncedAt ?? null;
+    // 确保时间戳是数字（毫秒），如果是字符串则转换
+    let createdAt = safeProject.created_at ?? safeProject.createdAt ?? Date.now();
+    if (typeof createdAt === 'string') {
+      createdAt = new Date(createdAt).getTime();
+    }
+
+    let updatedAt = safeProject.updated_at ?? safeProject.updatedAt ?? Date.now();
+    if (typeof updatedAt === 'string') {
+      updatedAt = new Date(updatedAt).getTime();
+    }
+
+    let syncedAt = safeProject.synced_at ?? safeProject.syncedAt ?? null;
+    if (typeof syncedAt === 'string') {
+      syncedAt = new Date(syncedAt).getTime();
+    }
+
     const syncStatus = safeProject.sync_status ?? safeProject.syncStatus ?? 'pending';
 
     const stmt = this.db.prepare(`
@@ -933,22 +946,9 @@ class DatabaseManager {
       updatedAt,
       syncedAt,
       syncStatus,
-    ];
+    ].map((value) => (value === undefined ? null : value));
 
-    // 详细日志：检查每个参数
-    console.log('[Database] saveProject params before map:');
-    params.forEach((param, index) => {
-      console.log(`  [${index}] ${typeof param} = ${param === undefined ? 'UNDEFINED!' : JSON.stringify(param).substring(0, 100)}`);
-    });
-
-    const cleanedParams = params.map((value) => (value === undefined ? null : value));
-
-    console.log('[Database] saveProject params after map:');
-    cleanedParams.forEach((param, index) => {
-      console.log(`  [${index}] ${typeof param} = ${param === undefined ? 'UNDEFINED!' : JSON.stringify(param).substring(0, 100)}`);
-    });
-
-    stmt.run(...cleanedParams);
+    stmt.run(...params);
 
     return this.getProjectById(safeProject.id);
   }
@@ -1056,8 +1056,18 @@ class DatabaseManager {
         const content = file.content ?? null;
         const contentHash = file.content_hash ?? file.contentHash ?? null;
         const version = file.version ?? 1;
-        const createdAt = file.created_at ?? file.createdAt ?? Date.now();
-        const updatedAt = file.updated_at ?? file.updatedAt ?? Date.now();
+
+        // 确保时间戳是数字（毫秒），如果是字符串则转换
+        let createdAt = file.created_at ?? file.createdAt ?? Date.now();
+        if (typeof createdAt === 'string') {
+          createdAt = new Date(createdAt).getTime();
+        }
+
+        let updatedAt = file.updated_at ?? file.updatedAt ?? Date.now();
+        if (typeof updatedAt === 'string') {
+          updatedAt = new Date(updatedAt).getTime();
+        }
+
         const fileId = file.id || uuidv4();
 
         const params = [
