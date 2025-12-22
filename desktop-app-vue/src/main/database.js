@@ -933,9 +933,22 @@ class DatabaseManager {
       updatedAt,
       syncedAt,
       syncStatus,
-    ].map((value) => (value === undefined ? null : value));
+    ];
 
-    stmt.run(...params);
+    // 详细日志：检查每个参数
+    console.log('[Database] saveProject params before map:');
+    params.forEach((param, index) => {
+      console.log(`  [${index}] ${typeof param} = ${param === undefined ? 'UNDEFINED!' : JSON.stringify(param).substring(0, 100)}`);
+    });
+
+    const cleanedParams = params.map((value) => (value === undefined ? null : value));
+
+    console.log('[Database] saveProject params after map:');
+    cleanedParams.forEach((param, index) => {
+      console.log(`  [${index}] ${typeof param} = ${param === undefined ? 'UNDEFINED!' : JSON.stringify(param).substring(0, 100)}`);
+    });
+
+    stmt.run(...cleanedParams);
 
     return this.getProjectById(safeProject.id);
   }
