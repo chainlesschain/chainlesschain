@@ -165,6 +165,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  projectId: {
+    type: String,
+    default: '',
+  },
 });
 
 // 状态
@@ -336,8 +340,14 @@ const loadFileContent = async () => {
  * 加载图片
  */
 const loadImage = async (filePath) => {
+  // 构建完整路径
+  let fullPath = filePath;
+  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    fullPath = `/data/projects/${props.projectId}/${filePath}`;
+  }
+
   // 解析路径
-  const resolvedPath = await window.electronAPI.project.resolvePath(filePath);
+  const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
   imageUrl.value = `file://${resolvedPath}`;
   imageZoom.value = 1;
   imageRotate.value = 0;
@@ -471,7 +481,13 @@ const loadJson = async (content) => {
  * 加载 PDF
  */
 const loadPdf = async (filePath) => {
-  const resolvedPath = await window.electronAPI.project.resolvePath(filePath);
+  // 构建完整路径
+  let fullPath = filePath;
+  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    fullPath = `/data/projects/${props.projectId}/${filePath}`;
+  }
+
+  const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
   pdfUrl.value = `file://${resolvedPath}`;
 };
 
@@ -479,7 +495,13 @@ const loadPdf = async (filePath) => {
  * 加载视频
  */
 const loadVideo = async (filePath) => {
-  const resolvedPath = await window.electronAPI.project.resolvePath(filePath);
+  // 构建完整路径
+  let fullPath = filePath;
+  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    fullPath = `/data/projects/${props.projectId}/${filePath}`;
+  }
+
+  const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
   videoUrl.value = `file://${resolvedPath}`;
 };
 
@@ -487,7 +509,13 @@ const loadVideo = async (filePath) => {
  * 加载音频
  */
 const loadAudio = async (filePath) => {
-  const resolvedPath = await window.electronAPI.project.resolvePath(filePath);
+  // 构建完整路径
+  let fullPath = filePath;
+  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    fullPath = `/data/projects/${props.projectId}/${filePath}`;
+  }
+
+  const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
   audioUrl.value = `file://${resolvedPath}`;
 };
 
