@@ -170,14 +170,14 @@ const handleSubmit = async () => {
 
   // 构建 createData，避免传递 undefined 值（Electron IPC 不支持）
   const createData = {
-    userPrompt: formData.userPrompt,
-    projectType: formData.projectType,  // 使用驼峰命名与后端一致
+    userPrompt: formData.userPrompt || '',  // 确保不是 undefined
+    projectType: formData.projectType || 'general',  // 使用驼峰命名与后端一致，确保有默认值
     userId: authStore.currentUser?.id || 'default-user',
   };
 
   // 只有当 name 有值时才添加到 createData
-  if (formData.name) {
-    createData.name = formData.name;
+  if (formData.name && formData.name.trim()) {
+    createData.name = formData.name.trim();
   }
 
   emit('create', createData);

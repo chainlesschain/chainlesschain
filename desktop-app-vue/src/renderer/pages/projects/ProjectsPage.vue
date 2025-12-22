@@ -254,7 +254,8 @@ const handleViewModeChange = () => {
 // 处理同步
 const handleSync = async () => {
   try {
-    await projectStore.syncProjects(authStore.currentUser?.id);
+    const userId = authStore.currentUser?.id || 'default-user';
+    await projectStore.syncProjects(userId);
     message.success('同步成功');
   } catch (error) {
     console.error('Sync failed:', error);

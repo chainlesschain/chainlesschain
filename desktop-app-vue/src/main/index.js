@@ -4428,12 +4428,15 @@ class ChainlessChainApp {
     // 同步项目
     ipcMain.handle('project:sync', async (_event, userId) => {
       try {
+        console.log('[Main] project:sync 开始同步，userId:', userId, 'type:', typeof userId);
+
         const { getProjectHTTPClient } = require('./project/http-client');
         const httpClient = getProjectHTTPClient();
 
         // 1. 获取后端项目列表
         const response = await httpClient.listProjects(userId, 1, 1000);
         const backendProjects = response.records || [];
+        console.log('[Main] 从后端获取到项目数量:', backendProjects.length);
 
         // 2. 获取本地项目
         const localProjects = this.database ? this.database.getProjects(userId) : [];

@@ -175,16 +175,16 @@ const handleSubmit = async () => {
 
   const createData = {
     userPrompt: userPrompt,  // 后端必填字段
-    name: formData.name,
-    projectType: formData.projectType,
-    status: formData.status,
-    tags: JSON.stringify(formData.tags),
+    name: formData.name || 'New Project',
+    projectType: formData.projectType || 'general',  // 确保有默认值
+    status: formData.status || 'active',  // 确保有默认值
+    tags: JSON.stringify(formData.tags || []),  // 确保是数组
     userId: authStore.currentUser?.id || 'default-user',
   };
 
-  // 只有当description存在时才添加（避免undefined导致IPC序列化错误）
-  if (formData.description) {
-    createData.description = formData.description;
+  // 只有当description存在且不为空时才添加（避免undefined导致IPC序列化错误）
+  if (formData.description && formData.description.trim()) {
+    createData.description = formData.description.trim();
   }
 
   emit('create', createData);
