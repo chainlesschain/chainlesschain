@@ -983,8 +983,18 @@ class DatabaseManager {
     });
 
     console.log('[Database] 开始执行 stmt.run...');
-    stmt.run(...params);
-    console.log('[Database] stmt.run 执行成功');
+    try {
+      stmt.run(...params);
+      console.log('[Database] stmt.run 执行成功');
+    } catch (runError) {
+      console.error('[Database] stmt.run 失败!');
+      console.error('[Database] 错误对象:', runError);
+      console.error('[Database] 错误类型:', typeof runError);
+      console.error('[Database] 错误消息:', runError?.message);
+      console.error('[Database] 错误堆栈:', runError?.stack);
+      console.error('[Database] 错误代码:', runError?.code);
+      throw runError;
+    }
 
     return this.getProjectById(safeProject.id);
   }
