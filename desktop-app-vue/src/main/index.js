@@ -4549,6 +4549,138 @@ class ChainlessChainApp {
       }
     });
 
+    // ==================== 对话管理 IPC ====================
+
+    // 创建对话
+    ipcMain.handle('conversation:create', async (_event, conversationData) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.createConversation(conversationData);
+      } catch (error) {
+        console.error('[Main] 创建对话失败:', error);
+        throw error;
+      }
+    });
+
+    // 根据ID获取对话
+    ipcMain.handle('conversation:get', async (_event, conversationId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.getConversationById(conversationId);
+      } catch (error) {
+        console.error('[Main] 获取对话失败:', error);
+        throw error;
+      }
+    });
+
+    // 根据项目ID获取对话
+    ipcMain.handle('conversation:get-by-project', async (_event, projectId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.getConversationByProject(projectId);
+      } catch (error) {
+        console.error('[Main] 获取项目对话失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取所有对话
+    ipcMain.handle('conversation:get-all', async (_event, options) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.getConversations(options || {});
+      } catch (error) {
+        console.error('[Main] 获取对话列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 更新对话
+    ipcMain.handle('conversation:update', async (_event, conversationId, updates) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.updateConversation(conversationId, updates);
+      } catch (error) {
+        console.error('[Main] 更新对话失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除对话
+    ipcMain.handle('conversation:delete', async (_event, conversationId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.deleteConversation(conversationId);
+      } catch (error) {
+        console.error('[Main] 删除对话失败:', error);
+        throw error;
+      }
+    });
+
+    // 创建消息
+    ipcMain.handle('conversation:create-message', async (_event, messageData) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.createMessage(messageData);
+      } catch (error) {
+        console.error('[Main] 创建消息失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取对话的所有消息
+    ipcMain.handle('conversation:get-messages', async (_event, conversationId, options) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.getMessagesByConversation(conversationId, options || {});
+      } catch (error) {
+        console.error('[Main] 获取消息列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除消息
+    ipcMain.handle('conversation:delete-message', async (_event, messageId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.deleteMessage(messageId);
+      } catch (error) {
+        console.error('[Main] 删除消息失败:', error);
+        throw error;
+      }
+    });
+
+    // 清空对话消息
+    ipcMain.handle('conversation:clear-messages', async (_event, conversationId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.clearConversationMessages(conversationId);
+      } catch (error) {
+        console.error('[Main] 清空对话消息失败:', error);
+        throw error;
+      }
+    });
+
     // 获取模板列表
     ipcMain.handle('project:get-templates', async () => {
       try {

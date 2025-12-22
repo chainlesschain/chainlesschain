@@ -1442,6 +1442,279 @@ class DatabaseManager {
       });
     });
   }
+
+  // ==================== 对话管理操作 ====================
+
+  /**
+   * 创建对话
+   * @param {Object} conversationData - 对话数据
+   * @returns {Object} 创建的对话
+   */
+  createConversation(conversationData) {
+    const id = conversationData.id || `conv_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const now = Date.now();
+
+    const stmt = this.db.prepare(`
+      INSERT INTO conversations (
+        id, title, knowledge_id, project_id, context_type, context_data,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      id,
+      conversationData.title || '新对话',
+      conversationData.knowledge_id || null,
+      conversationData.project_id || null,
+      conversationData.context_type || 'global',
+      conversationData.context_data ? JSON.stringify(conversationData.context_data) : null,
+      conversationData.created_at || now,
+      conversationData.updated_at || now
+    );
+
+    this.saveToFile();
+
+    return this.getConversationById(id);
+  }
+
+  /**
+   * 根据ID获取对话
+   * @param {string} conversationId - 对话ID
+   * @returns {Object|null} 对话对象
+   */
+  getConversationById(conversationId) {
+    const stmt = this.db.prepare('SELECT * FROM conversations WHERE id = ?');
+    const conversation = stmt.get(conversationId);
+
+    if (!conversation) return null;
+
+    // 解析 context_data
+    if (conversation.context_data) {
+      try {
+        conversation.context_data = JSON.parse(conversation.context_data);
+      } catch (e) {
+        console.error('解析 context_data 失败:', e);
+      }
+    }
+
+    return conversation;
+  }
+
+  /**
+   * 根据项目ID获取对话
+   * @param {string} projectId - 项目ID
+   * @returns {Object|null} 对话对象
+   */
+  getConversationByProject(projectId) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM conversations
+      WHERE project_id = ?
+      ORDER BY updated_at DESC
+      LIMIT 1
+    `);
+
+    const conversation = stmt.get(projectId);
+
+    if (!conversation) return null;
+
+    // 解析 context_data
+    if (conversation.context_data) {
+      try {
+        conversation.context_data = JSON.parse(conversation.context_data);
+      } catch (e) {
+        console.error('解析 context_data 失败:', e);
+      }
+    }
+
+    return conversation;
+  }
+
+  /**
+   * 获取所有对话
+   * @param {Object} options - 查询选项
+   * @returns {Array} 对话列表
+   */
+  getConversations(options = {}) {
+    let query = 'SELECT * FROM conversations WHERE 1=1';
+    const params = [];
+
+    if (options.project_id) {
+      query += ' AND project_id = ?';
+      params.push(options.project_id);
+    }
+
+    if (options.knowledge_id) {
+      query += ' AND knowledge_id = ?';
+      params.push(options.knowledge_id);
+    }
+
+    if (options.context_type) {
+      query += ' AND context_type = ?';
+      params.push(options.context_type);
+    }
+
+    query += ' ORDER BY updated_at DESC';
+
+    if (options.limit) {
+      query += ' LIMIT ?';
+      params.push(options.limit);
+    }
+
+    const stmt = this.db.prepare(query);
+    const conversations = stmt.all(...params);
+
+    // 解析 context_data
+    return conversations.map(conv => {
+      if (conv.context_data) {
+        try {
+          conv.context_data = JSON.parse(conv.context_data);
+        } catch (e) {
+          console.error('解析 context_data 失败:', e);
+        }
+      }
+      return conv;
+    });
+  }
+
+  /**
+   * 更新对话
+   * @param {string} conversationId - 对话ID
+   * @param {Object} updates - 更新数据
+   * @returns {Object|null} 更新后的对话
+   */
+  updateConversation(conversationId, updates) {
+    const fields = [];
+    const values = [];
+
+    const allowedFields = ['title', 'context_type', 'context_data'];
+
+    allowedFields.forEach(field => {
+      if (updates[field] !== undefined) {
+        fields.push(`${field} = ?`);
+        if (field === 'context_data' && typeof updates[field] !== 'string') {
+          values.push(JSON.stringify(updates[field]));
+        } else {
+          values.push(updates[field]);
+        }
+      }
+    });
+
+    // 总是更新 updated_at
+    fields.push('updated_at = ?');
+    values.push(Date.now());
+
+    values.push(conversationId);
+
+    if (fields.length === 1) {
+      return this.getConversationById(conversationId);
+    }
+
+    this.db.run(`
+      UPDATE conversations SET ${fields.join(', ')} WHERE id = ?
+    `, values);
+
+    this.saveToFile();
+    return this.getConversationById(conversationId);
+  }
+
+  /**
+   * 删除对话
+   * @param {string} conversationId - 对话ID
+   * @returns {boolean} 是否删除成功
+   */
+  deleteConversation(conversationId) {
+    // 先删除相关消息
+    this.db.run('DELETE FROM messages WHERE conversation_id = ?', [conversationId]);
+
+    // 删除对话
+    this.db.run('DELETE FROM conversations WHERE id = ?', [conversationId]);
+
+    this.saveToFile();
+    return true;
+  }
+
+  /**
+   * 创建消息
+   * @param {Object} messageData - 消息数据
+   * @returns {Object} 创建的消息
+   */
+  createMessage(messageData) {
+    const id = messageData.id || `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const now = Date.now();
+
+    const stmt = this.db.prepare(`
+      INSERT INTO messages (
+        id, conversation_id, role, content, timestamp, tokens
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      id,
+      messageData.conversation_id,
+      messageData.role,
+      messageData.content,
+      messageData.timestamp || now,
+      messageData.tokens || null
+    );
+
+    this.saveToFile();
+
+    // 更新对话的 updated_at
+    this.updateConversation(messageData.conversation_id, {});
+
+    return this.getMessageById(id);
+  }
+
+  /**
+   * 根据ID获取消息
+   * @param {string} messageId - 消息ID
+   * @returns {Object|null} 消息对象
+   */
+  getMessageById(messageId) {
+    const stmt = this.db.prepare('SELECT * FROM messages WHERE id = ?');
+    return stmt.get(messageId);
+  }
+
+  /**
+   * 获取对话的所有消息
+   * @param {string} conversationId - 对话ID
+   * @param {Object} options - 查询选项
+   * @returns {Array} 消息列表
+   */
+  getMessagesByConversation(conversationId, options = {}) {
+    let query = 'SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ASC';
+    const params = [conversationId];
+
+    if (options.limit) {
+      query += ' LIMIT ?';
+      params.push(options.limit);
+    }
+
+    const stmt = this.db.prepare(query);
+    return stmt.all(...params);
+  }
+
+  /**
+   * 删除消息
+   * @param {string} messageId - 消息ID
+   * @returns {boolean} 是否删除成功
+   */
+  deleteMessage(messageId) {
+    this.db.run('DELETE FROM messages WHERE id = ?', [messageId]);
+    this.saveToFile();
+    return true;
+  }
+
+  /**
+   * 清空对话的所有消息
+   * @param {string} conversationId - 对话ID
+   * @returns {boolean} 是否清空成功
+   */
+  clearConversationMessages(conversationId) {
+    this.db.run('DELETE FROM messages WHERE conversation_id = ?', [conversationId]);
+    this.saveToFile();
+    return true;
+  }
 }
 
 module.exports = DatabaseManager;
