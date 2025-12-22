@@ -4224,15 +4224,29 @@ class ChainlessChainApp {
             console.log(`[Main]   ${key}: ${typeof value === 'undefined' ? 'UNDEFINED!' : typeof value} = ${JSON.stringify(value).substring(0, 100)}`);
           });
 
-          await this.database.saveProject(localProject);
-          console.log('[Main] 项目已保存到本地数据库');
+          try {
+            console.log('[Main] 调用 saveProject...');
+            await this.database.saveProject(localProject);
+            console.log('[Main] 项目已保存到本地数据库');
+          } catch (saveError) {
+            console.error('[Main] saveProject 失败:', saveError.message);
+            console.error('[Main] saveProject 堆栈:', saveError.stack);
+            throw saveError;
+          }
 
           // 保存项目文件
           if (cleanedProject.files && cleanedProject.files.length > 0) {
-            // 清理文件数组中的 undefined
-            const cleanedFiles = this._replaceUndefinedWithNull(cleanedProject.files);
-            await this.database.saveProjectFiles(cleanedProject.id, cleanedFiles);
-            console.log('[Main] 项目文件已保存，数量:', cleanedFiles.length);
+            try {
+              console.log('[Main] 开始保存文件，数量:', cleanedProject.files.length);
+              // 清理文件数组中的 undefined
+              const cleanedFiles = this._replaceUndefinedWithNull(cleanedProject.files);
+              await this.database.saveProjectFiles(cleanedProject.id, cleanedFiles);
+              console.log('[Main] 项目文件已保存');
+            } catch (fileError) {
+              console.error('[Main] saveProjectFiles 失败:', fileError.message);
+              console.error('[Main] saveProjectFiles 堆栈:', fileError.stack);
+              throw fileError;
+            }
           }
         }
 
