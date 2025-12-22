@@ -305,8 +305,15 @@ const handleSendMessage = async () => {
   if (!input || isLoading.value) return;
 
   // 检查API是否可用
-  if (!window.electronAPI?.llm || !window.electronAPI?.conversation) {
-    antMessage.warning('AI对话功能暂未实现，请等待后续版本');
+  if (!window.electronAPI?.llm) {
+    console.error('[ChatPanel] LLM API 不可用:', window.electronAPI);
+    antMessage.error('LLM API 不可用，请重启应用');
+    return;
+  }
+
+  if (!window.electronAPI?.conversation) {
+    console.error('[ChatPanel] Conversation API 不可用:', window.electronAPI);
+    antMessage.error('对话 API 不可用，请重启应用');
     return;
   }
 
@@ -318,6 +325,8 @@ const handleSendMessage = async () => {
 
   isLoading.value = true;
   userInput.value = '';
+
+  console.log('[ChatPanel] 准备发送消息，input:', input);
 
   try {
     // 创建用户消息
