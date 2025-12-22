@@ -869,7 +869,18 @@ class DatabaseManager {
       WHERE user_id = ?
       ORDER BY updated_at DESC
     `);
-    return stmt.all(userId);
+    const projects = stmt.all(userId);
+
+    // 清理每个项目中的 undefined 值
+    return projects.map(project => {
+      const cleaned = {};
+      for (const key in project) {
+        if (project.hasOwnProperty(key) && project[key] !== undefined) {
+          cleaned[key] = project[key];
+        }
+      }
+      return cleaned;
+    });
   }
 
   /**
@@ -879,7 +890,19 @@ class DatabaseManager {
    */
   getProjectById(projectId) {
     const stmt = this.db.prepare('SELECT * FROM projects WHERE id = ?');
-    return stmt.get(projectId);
+    const project = stmt.get(projectId);
+
+    // 清理 undefined 值，SQLite 可能返回 undefined
+    if (!project) return null;
+
+    const cleaned = {};
+    for (const key in project) {
+      if (project.hasOwnProperty(key) && project[key] !== undefined) {
+        cleaned[key] = project[key];
+      }
+    }
+
+    return cleaned;
   }
 
   /**
