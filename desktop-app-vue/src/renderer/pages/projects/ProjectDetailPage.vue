@@ -162,6 +162,7 @@
             v-else-if="shouldShowPreview"
             :file="currentFile"
             :project-path="resolvedProjectPath"
+            :project-id="projectId"
             :content="fileContent"
           />
 
@@ -462,7 +463,15 @@ const loadFileContent = async (file) => {
   try {
     // 只为可编辑和可预览的文件加载内容
     if (fileTypeInfo.value && (fileTypeInfo.value.isEditable || fileTypeInfo.value.isMarkdown || fileTypeInfo.value.isData)) {
-      const content = await window.electronAPI.file.readContent(file.file_path);
+      // 构建完整的文件路径：/data/projects/{projectId}/{file_path}
+      let fullPath = file.file_path;
+      if (!fullPath.startsWith('/data/projects/') && !fullPath.includes(projectId.value)) {
+        // 如果路径不包含项目ID，则拼接
+        fullPath = `/data/projects/${projectId.value}/${file.file_path}`;
+      }
+
+      console.log('[ProjectDetail] 读取文件:', fullPath);
+      const content = await window.electronAPI.file.readContent(fullPath);
       fileContent.value = content || '';
     } else {
       fileContent.value = '';

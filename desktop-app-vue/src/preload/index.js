@@ -417,6 +417,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     syncOne: (projectId) => ipcRenderer.invoke('project:sync-one', projectId),
 
     // Git 操作
+    gitStatus: (repoPath) => ipcRenderer.invoke('project:git-status', repoPath),
     gitPush: (projectId, repoPath) => ipcRenderer.invoke('project:git-push', projectId, repoPath),
     gitPull: (projectId, repoPath) => ipcRenderer.invoke('project:git-pull', projectId, repoPath),
 

@@ -4790,7 +4790,19 @@ class ChainlessChainApp {
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
-        return this.database.createMessage(messageData);
+
+        // 确保数据是扁平的，不包含嵌套对象
+        const flatData = {
+          id: messageData.id || null,
+          conversation_id: String(messageData.conversation_id || ''),
+          role: String(messageData.role || 'user'),
+          content: String(messageData.content || ''),
+          timestamp: Number(messageData.timestamp || Date.now()),
+          tokens: messageData.tokens ? Number(messageData.tokens) : null,
+        };
+
+        console.log('[Main] 创建消息, flatData:', flatData);
+        return this.database.createMessage(flatData);
       } catch (error) {
         console.error('[Main] 创建消息失败:', error);
         throw error;
