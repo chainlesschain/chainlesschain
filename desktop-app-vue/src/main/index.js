@@ -13,6 +13,7 @@ const ImageUploader = require('./image/image-uploader');
 const PromptTemplateManager = require('./prompt/prompt-template-manager');
 const NativeMessagingHTTPServer = require('./native-messaging/http-server');
 const FileSyncManager = require('./file-sync/sync-manager');
+const PreviewManager = require('./preview/preview-manager');
 // Trade modules
 const KnowledgePaymentManager = require('./trade/knowledge-payment');
 const CreditScoreManager = require('./trade/credit-score');
@@ -111,6 +112,7 @@ class ChainlessChainApp {
     this.promptTemplateManager = null;
     this.nativeMessagingServer = null;
     this.fileSyncManager = null;
+    this.previewManager = null;
     this.knowledgePaymentManager = null;
     this.creditScoreManager = null;
     this.reviewManager = null;
@@ -541,6 +543,15 @@ class ChainlessChainApp {
       console.log('文件同步管理器初始化成功');
     } catch (error) {
       console.error('文件同步管理器初始化失败:', error);
+    }
+
+    // 初始化预览管理器
+    try {
+      console.log('初始化预览管理器...');
+      this.previewManager = new PreviewManager(this.mainWindow);
+      console.log('预览管理器初始化成功');
+    } catch (error) {
+      console.error('预览管理器初始化失败:', error);
     }
   }
 
