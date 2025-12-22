@@ -27,10 +27,24 @@ const filterPatterns = [
   /interrupted by user/i,
   /û�п���ʵ����/,  // 乱码过滤
   /没有可用实例/,
+  /[\u4e00-\u9fa5].*�/,  // 中文后面跟乱码字符
+  /�.*[\u4e00-\u9fa5]/,  // 乱码字符后面跟中文
+  /^[�\?]{2,}/,  // 连续的乱码字符
 ];
 
 const shouldFilterMessage = (message) => {
   const msgStr = String(message);
+
+  // 过滤空消息或只有空白字符的消息
+  if (!msgStr || msgStr.trim() === '') {
+    return true;
+  }
+
+  // 过滤只有单个字符或数字的消息（如 "[1]"）
+  if (msgStr.trim().length <= 3 && /^[\[\]\d\s]+$/.test(msgStr.trim())) {
+    return true;
+  }
+
   return filterPatterns.some(pattern => pattern.test(msgStr));
 };
 
