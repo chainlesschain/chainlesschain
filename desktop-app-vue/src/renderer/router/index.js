@@ -29,6 +29,12 @@ const routes = [
         component: () => import('../pages/SettingsPage.vue'),
       },
       {
+        path: 'settings/system',
+        name: 'SystemSettings',
+        component: () => import('../pages/settings/SystemSettings.vue'),
+        meta: { title: '系统设置' },
+      },
+      {
         path: 'did',
         name: 'DIDManagement',
         component: () => import('../components/DIDManagement.vue'),
