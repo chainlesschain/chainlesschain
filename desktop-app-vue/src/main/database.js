@@ -1014,19 +1014,30 @@ class DatabaseManager {
       throw runError;
     }
 
-    console.log('[Database] 调用 getProjectById, id:', safeProject.id);
-    try {
-      const result = this.getProjectById(safeProject.id);
-      console.log('[Database] getProjectById 返回结果:', result ? 'OK' : 'NULL');
-      console.log('[Database] 返回结果键:', result ? Object.keys(result) : 'N/A');
-      return result;
-    } catch (getError) {
-      console.error('[Database] getProjectById 失败!');
-      console.error('[Database] 错误对象:', getError);
-      console.error('[Database] 错误消息:', getError?.message);
-      console.error('[Database] 错误堆栈:', getError?.stack);
-      throw getError;
-    }
+    // 不查询数据库，直接返回刚保存的数据（避免查询返回 undefined 字段）
+    console.log('[Database] 直接返回 safeProject（不查询）');
+    const savedProject = {
+      id: safeProject.id,
+      user_id: userId,
+      name: safeProject.name,
+      description: safeProject.description,
+      project_type: projectType,
+      status: safeProject.status || 'active',
+      root_path: rootPath,
+      file_count: fileCount,
+      total_size: totalSize,
+      template_id: templateId,
+      cover_image_url: coverImageUrl,
+      tags: tagsValue,
+      metadata: metadataValue,
+      created_at: createdAt,
+      updated_at: updatedAt,
+      synced_at: syncedAt,
+      sync_status: syncStatus,
+    };
+
+    console.log('[Database] saveProject 完成，返回结果');
+    return savedProject;
   }
 
   /**
