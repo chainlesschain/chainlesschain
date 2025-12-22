@@ -22,8 +22,8 @@
 
       <!-- 右侧：操作按钮 -->
       <div class="toolbar-right">
-        <!-- Git操作下拉菜单 -->
-        <a-dropdown v-if="currentProject">
+        <!-- Git操作下拉菜单 - 仅当有有效路径时显示 -->
+        <a-dropdown v-if="currentProject && hasValidPath">
           <a-button>
             <GitlabOutlined />
             Git操作
@@ -95,45 +95,96 @@
 
     <!-- 主内容区 -->
     <div v-else-if="currentProject" class="content-container">
-      <!-- 左侧：文件树 -->
-      <div class="sidebar">
-        <div class="sidebar-header">
-          <h3>
-            <FolderOutlined />
-            项目文件
-          </h3>
-          <a-button size="small" type="text" @click="handleRefreshFiles">
-            <ReloadOutlined :spin="refreshing" />
-          </a-button>
-        </div>
-
-        <div class="sidebar-content">
-          <FileTree
-            :files="projectFiles"
-            :current-file-id="currentFile?.id"
-            :loading="refreshing"
-            @select="handleSelectFile"
-          />
-        </div>
-      </div>
-
-      <!-- 右侧：文件编辑器 -->
-      <div class="main-content">
-        <FileEditor
-          v-if="currentFile"
-          :file="currentFile"
-          :project-id="projectId"
-          @change="handleFileChange"
-          @save="handleSave"
-        />
-
-        <!-- 空状态 -->
-        <div v-else class="empty-editor">
-          <div class="empty-icon">
-            <FileTextOutlined />
+      <!-- 有本地路径：显示文件编辑器 -->
+      <template v-if="hasValidPath">
+        <!-- 左侧：文件树 -->
+        <div class="sidebar">
+          <div class="sidebar-header">
+            <h3>
+              <FolderOutlined />
+              项目文件
+            </h3>
+            <a-button size="small" type="text" @click="handleRefreshFiles">
+              <ReloadOutlined :spin="refreshing" />
+            </a-button>
           </div>
-          <h3>选择一个文件开始编辑</h3>
-          <p>从左侧文件树中选择一个文件，或创建新文件</p>
+
+          <div class="sidebar-content">
+            <FileTree
+              :files="projectFiles"
+              :current-file-id="currentFile?.id"
+              :loading="refreshing"
+              @select="handleSelectFile"
+            />
+          </div>
+        </div>
+
+        <!-- 右侧：文件编辑器 -->
+        <div class="main-content">
+          <FileEditor
+            v-if="currentFile"
+            :file="currentFile"
+            :project-id="projectId"
+            @change="handleFileChange"
+            @save="handleSave"
+          />
+
+          <!-- 空状态 -->
+          <div v-else class="empty-editor">
+            <div class="empty-icon">
+              <FileTextOutlined />
+            </div>
+            <h3>选择一个文件开始编辑</h3>
+            <p>从左侧文件树中选择一个文件，或创建新文件</p>
+          </div>
+        </div>
+      </template>
+
+      <!-- 无本地路径：显示项目信息 -->
+      <div v-else class="project-info-container">
+        <div class="project-info-card">
+          <div class="info-header">
+            <h2>{{ currentProject.name }}</h2>
+            <a-tag :color="getProjectTypeColor(currentProject.project_type)">
+              {{ getProjectTypeText(currentProject.project_type) }}
+            </a-tag>
+          </div>
+
+          <div class="info-content">
+            <div class="info-section">
+              <h3>项目描述</h3>
+              <p>{{ currentProject.description || '暂无描述' }}</p>
+            </div>
+
+            <div class="info-section">
+              <h3>项目信息</h3>
+              <a-descriptions :column="2" bordered>
+                <a-descriptions-item label="项目状态">
+                  <a-tag :color="getStatusColor(currentProject.status)">
+                    {{ getStatusText(currentProject.status) }}
+                  </a-tag>
+                </a-descriptions-item>
+                <a-descriptions-item label="创建时间">
+                  {{ formatDate(currentProject.created_at) }}
+                </a-descriptions-item>
+                <a-descriptions-item label="最后更新">
+                  {{ formatDate(currentProject.updated_at) }}
+                </a-descriptions-item>
+                <a-descriptions-item label="文件数量">
+                  {{ currentProject.file_count || 0 }} 个文件
+                </a-descriptions-item>
+              </a-descriptions>
+            </div>
+
+            <div class="info-alert">
+              <a-alert
+                message="项目仅存储在后端服务器"
+                description="此项目的文件存储在后端服务器上，暂不支持本地编辑。您可以查看项目信息和元数据。"
+                type="info"
+                show-icon
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -238,6 +289,19 @@ const projectId = computed(() => route.params.id);
 const currentProject = computed(() => projectStore.currentProject);
 const projectFiles = computed(() => projectStore.projectFiles);
 const currentFile = computed(() => projectStore.currentFile);
+
+// 检查项目是否有有效的本地路径
+const hasValidPath = computed(() => {
+  if (!currentProject.value || !currentProject.value.root_path) {
+    return false;
+  }
+  const path = currentProject.value.root_path;
+  // 检查是否是本地路径（以驱动器字母开头或以/开头）
+  return path && (
+    /^[a-zA-Z]:[/\\]/.test(path) || // Windows路径
+    path.startsWith('/') && !path.startsWith('/data/projects/') // Unix路径但不是后端路径
+  );
+});
 
 // 返回项目列表
 const handleBackToList = () => {
@@ -431,6 +495,59 @@ watch(() => route.params.id, async (newId) => {
     loading.value = false;
   }
 });
+
+// 辅助函数
+const getProjectTypeColor = (type) => {
+  const colors = {
+    web: 'blue',
+    document: 'green',
+    data: 'purple',
+    app: 'orange'
+  };
+  return colors[type] || 'default';
+};
+
+const getProjectTypeText = (type) => {
+  const texts = {
+    web: 'Web应用',
+    document: '文档项目',
+    data: '数据分析',
+    app: '应用程序'
+  };
+  return texts[type] || type;
+};
+
+const getStatusColor = (status) => {
+  const colors = {
+    draft: 'default',
+    active: 'success',
+    completed: 'blue',
+    archived: 'warning'
+  };
+  return colors[status] || 'default';
+};
+
+const getStatusText = (status) => {
+  const texts = {
+    draft: '草稿',
+    active: '进行中',
+    completed: '已完成',
+    archived: '已归档'
+  };
+  return texts[status] || status;
+};
+
+const formatDate = (timestamp) => {
+  if (!timestamp) return '-';
+  const date = new Date(timestamp);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 </script>
 
 <style scoped>
@@ -625,3 +742,58 @@ watch(() => route.params.id, async (newId) => {
   text-align: center;
 }
 </style>
+
+/* 项目信息容器样式 */
+.project-info-container {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: #f5f5f5;
+}
+
+.project-info-card {
+  max-width: 900px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 8px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.info-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.info-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.info-section p {
+  color: #666;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.info-alert {
+  margin-top: 16px;
+}

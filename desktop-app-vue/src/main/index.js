@@ -12,6 +12,7 @@ const FileImporter = require('./import/file-importer');
 const ImageUploader = require('./image/image-uploader');
 const PromptTemplateManager = require('./prompt/prompt-template-manager');
 const NativeMessagingHTTPServer = require('./native-messaging/http-server');
+const FileSyncManager = require('./file-sync/sync-manager');
 // Trade modules
 const KnowledgePaymentManager = require('./trade/knowledge-payment');
 const CreditScoreManager = require('./trade/credit-score');
@@ -4141,6 +4142,7 @@ class ChainlessChainApp {
     // 获取所有项目（本地SQLite）
     ipcMain.handle('project:get-all', async (_event, userId) => {
       try {
+        console.log('[Main] ===== 开始获取项目列表 =====');
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
@@ -4157,10 +4159,16 @@ class ChainlessChainApp {
         // 打印第一个项目的键，帮助调试
         if (projects[0]) {
           console.log('[Main] 第一个项目的键:', Object.keys(projects[0]));
+          console.log('[Main] 第一个项目的部分数据:', {
+            id: projects[0].id,
+            name: projects[0].name,
+            project_type: projects[0].project_type
+          });
         }
 
+        console.log('[Main] 开始清理数据...');
         const cleaned = this.removeUndefinedValues(projects);
-        console.log('[Main] 清理后的项目数量:', cleaned ? cleaned.length : 0);
+        console.log('[Main] 清理完成，清理后的项目数量:', cleaned ? cleaned.length : 0);
 
         // 确保返回的是有效的数组
         if (!cleaned || !Array.isArray(cleaned)) {
@@ -4168,9 +4176,11 @@ class ChainlessChainApp {
           return [];
         }
 
+        console.log('[Main] 准备返回项目列表');
         return cleaned;
       } catch (error) {
         console.error('[Main] 获取项目列表失败:', error);
+        console.error('[Main] 错误堆栈:', error.stack);
         // 出错时返回空数组而不是抛出异常，避免IPC序列化错误
         return [];
       }
@@ -4506,7 +4516,10 @@ class ChainlessChainApp {
 
         // 1. 获取后端项目列表
         const response = await httpClient.listProjects(userId, 1, 1000);
-        const backendProjects = response.records || [];
+        console.log('[Main] 后端响应:', response ? 'OK' : 'NULL', 'type:', typeof response);
+
+        // 安全地访问 records
+        const backendProjects = (response && response.records) ? response.records : [];
         console.log('[Main] 从后端获取到项目数量:', backendProjects.length);
 
         // 2. 获取本地项目
