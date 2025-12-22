@@ -4218,7 +4218,9 @@ class ChainlessChainApp {
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
-        const saved = this.database.saveProject(project);
+        // 清理输入的 project 中的 undefined 值
+        const cleanProject = this._replaceUndefinedWithNull(project);
+        const saved = this.database.saveProject(cleanProject);
         return this.removeUndefinedValues(saved);
       } catch (error) {
         console.error('[Main] 保存项目失败:', error);
@@ -4233,8 +4235,11 @@ class ChainlessChainApp {
           throw new Error('数据库未初始化');
         }
 
+        // 清理输入的 updates 中的 undefined 值
+        const cleanUpdates = this._replaceUndefinedWithNull(updates);
+
         const updatedProject = {
-          ...updates,
+          ...cleanUpdates,
           updated_at: Date.now(),
           sync_status: 'pending',
         };
@@ -4440,25 +4445,30 @@ class ChainlessChainApp {
               const createdAt = project.createdAt ? new Date(project.createdAt).getTime() : Date.now();
               const updatedAt = project.updatedAt ? new Date(project.updatedAt).getTime() : Date.now();
 
-              this.database.saveProject({
+              // 构建项目对象，避免 undefined 值
+              const projectData = {
                 id: project.id,
                 user_id: project.userId,
                 name: project.name,
-                description: project.description,
                 project_type: project.projectType,
-                status: project.status,
-                root_path: project.rootPath,
+                status: project.status || 'active',
                 file_count: project.fileCount || 0,
                 total_size: project.totalSize || 0,
-                template_id: project.templateId,
-                cover_image_url: project.coverImageUrl,
                 tags: JSON.stringify(project.tags || []),
                 metadata: JSON.stringify(project.metadata || {}),
                 created_at: createdAt,
                 updated_at: updatedAt,
                 synced_at: Date.now(),
                 sync_status: 'synced',
-              });
+              };
+
+              // 只有当字段存在时才添加（避免 undefined）
+              if (project.description) projectData.description = project.description;
+              if (project.rootPath) projectData.root_path = project.rootPath;
+              if (project.templateId) projectData.template_id = project.templateId;
+              if (project.coverImageUrl) projectData.cover_image_url = project.coverImageUrl;
+
+              this.database.saveProject(projectData);
             });
           });
         }
@@ -4467,7 +4477,9 @@ class ChainlessChainApp {
         const pendingProjects = localProjects.filter(p => p.sync_status === 'pending');
         for (const project of pendingProjects) {
           try {
-            await httpClient.syncProject(project);
+            // 清理 undefined 值后再发送
+            const cleanProject = this._replaceUndefinedWithNull(project);
+            await httpClient.syncProject(cleanProject);
 
             // 更新同步状态
             if (this.database) {
@@ -4503,7 +4515,9 @@ class ChainlessChainApp {
           throw new Error('项目不存在');
         }
 
-        await httpClient.syncProject(project);
+        // 清理 undefined 值后再发送
+        const cleanProject = this._replaceUndefinedWithNull(project);
+        await httpClient.syncProject(cleanProject);
 
         // 更新同步状态
         this.database.updateProject(projectId, {
