@@ -8,6 +8,10 @@
         <a-tag v-if="hasChanges" color="orange" size="small">
           未保存
         </a-tag>
+        <a-tag v-if="saving" color="blue" size="small">
+          <LoadingOutlined />
+          保存中...
+        </a-tag>
       </div>
 
       <div class="header-right">
@@ -24,7 +28,7 @@
           <a-button
             type="text"
             size="small"
-            :disabled="!hasChanges"
+            :disabled="!hasChanges || saving"
             @click="handleSave"
           >
             <SaveOutlined />
@@ -39,26 +43,22 @@
       </div>
     </div>
 
-    <!-- 编辑器内容 -->
+    <!-- 编辑器内容 - Monaco Editor -->
     <div class="editor-content">
-      <!-- 简单文本编辑器 -->
-      <textarea
+      <MonacoEditor
         ref="editorRef"
         v-model="content"
-        class="code-editor"
-        :placeholder="`编辑 ${file.file_name}...`"
-        spellcheck="false"
-        @input="handleInput"
-        @keydown="handleKeyDown"
+        :file="file"
+        :auto-save="autoSave"
+        :auto-save-delay="1000"
+        @change="handleChange"
+        @save="handleSave"
       />
     </div>
 
-    <!-- 编辑器状态栏 -->
+    <!-- 状态栏 -->
     <div class="editor-footer">
       <div class="footer-left">
-        <span class="status-item">
-          行: {{ cursorPosition.line }} | 列: {{ cursorPosition.column }}
-        </span>
         <span class="status-item">
           {{ fileSize }}
         </span>
@@ -77,11 +77,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   SaveOutlined,
   ReloadOutlined,
+  LoadingOutlined,
   FileTextOutlined,
   CodeOutlined,
   FileMarkdownOutlined,
@@ -89,6 +90,7 @@ import {
 } from '@ant-design/icons-vue';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import MonacoEditor from './MonacoEditor.vue';
 
 const props = defineProps({
   file: {
@@ -107,10 +109,9 @@ const emit = defineEmits(['change', 'save']);
 const editorRef = ref(null);
 const content = ref('');
 const hasChanges = ref(false);
-const autoSave = ref(false);
-const cursorPosition = ref({ line: 1, column: 1 });
+const autoSave = ref(true); // 默认启用自动保存
 const lastSaved = ref('');
-const autoSaveTimer = ref(null);
+const saving = ref(false);
 
 // 文件图标映射
 const iconMap = {
@@ -144,79 +145,39 @@ const fileSize = computed(() => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 });
 
-// 处理输入
-const handleInput = () => {
+// 处理内容变化
+const handleChange = (newContent) => {
   hasChanges.value = true;
-  emit('change', content.value);
-
-  // 更新光标位置
-  updateCursorPosition();
-
-  // 如果启用自动保存
-  if (autoSave.value) {
-    clearTimeout(autoSaveTimer.value);
-    autoSaveTimer.value = setTimeout(() => {
-      handleSave();
-    }, 1000); // 1秒后自动保存
-  }
+  emit('change', newContent);
 };
 
-// 更新光标位置
-const updateCursorPosition = () => {
-  if (!editorRef.value) return;
+// 保存文件（使用 file-sync IPC 进行双向同步）
+const handleSave = async () => {
+  if (!hasChanges.value || saving.value) return;
 
-  const textarea = editorRef.value;
-  const textBeforeCursor = content.value.substring(0, textarea.selectionStart);
-  const lines = textBeforeCursor.split('\n');
+  saving.value = true;
 
-  cursorPosition.value = {
-    line: lines.length,
-    column: lines[lines.length - 1].length + 1,
-  };
-};
+  try {
+    // 调用 file-sync:save IPC，实现数据库和文件系统的双向同步
+    await window.electron.invoke('file-sync:save', props.file.id, content.value, props.projectId);
 
-// 处理键盘快捷键
-const handleKeyDown = (event) => {
-  // Ctrl+S 保存
-  if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-    event.preventDefault();
-    handleSave();
-    return;
+    // 更新文件内容
+    props.file.content = content.value;
+
+    hasChanges.value = false;
+    lastSaved.value = formatDistanceToNow(new Date(), {
+      addSuffix: true,
+      locale: zhCN,
+    });
+
+    emit('save');
+    message.success('文件已保存');
+  } catch (error) {
+    console.error('保存文件失败:', error);
+    message.error('保存文件失败: ' + error.message);
+  } finally {
+    saving.value = false;
   }
-
-  // Tab键插入空格
-  if (event.key === 'Tab') {
-    event.preventDefault();
-    const start = event.target.selectionStart;
-    const end = event.target.selectionEnd;
-    const spaces = '  '; // 2个空格
-
-    content.value = content.value.substring(0, start) + spaces + content.value.substring(end);
-
-    // 恢复光标位置
-    setTimeout(() => {
-      event.target.selectionStart = event.target.selectionEnd = start + spaces.length;
-    }, 0);
-
-    handleInput();
-  }
-};
-
-// 保存文件
-const handleSave = () => {
-  if (!hasChanges.value) return;
-
-  // 更新文件内容
-  props.file.content = content.value;
-
-  hasChanges.value = false;
-  lastSaved.value = formatDistanceToNow(new Date(), {
-    addSuffix: true,
-    locale: zhCN,
-  });
-
-  emit('save');
-  message.success('文件已保存');
 };
 
 // 刷新文件
@@ -231,38 +192,16 @@ const handleRefresh = () => {
 };
 
 // 监听文件变化
-watch(() => props.file, (newFile) => {
-  if (newFile) {
-    content.value = newFile.content || '';
-    hasChanges.value = false;
-    cursorPosition.value = { line: 1, column: 1 };
-  }
-}, { immediate: true });
-
-// 监听点击事件更新光标位置
-const handleClick = () => {
-  updateCursorPosition();
-};
-
-// 组件挂载
-onMounted(() => {
-  if (editorRef.value) {
-    editorRef.value.addEventListener('click', handleClick);
-    editorRef.value.addEventListener('keyup', updateCursorPosition);
-  }
-});
-
-// 组件卸载
-onUnmounted(() => {
-  if (autoSaveTimer.value) {
-    clearTimeout(autoSaveTimer.value);
-  }
-
-  if (editorRef.value) {
-    editorRef.value.removeEventListener('click', handleClick);
-    editorRef.value.removeEventListener('keyup', updateCursorPosition);
-  }
-});
+watch(
+  () => props.file,
+  (newFile) => {
+    if (newFile) {
+      content.value = newFile.content || '';
+      hasChanges.value = false;
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
@@ -311,25 +250,7 @@ onUnmounted(() => {
   flex: 1;
   overflow: hidden;
   position: relative;
-}
-
-.code-editor {
-  width: 100%;
-  height: 100%;
-  padding: 16px;
-  border: none;
-  outline: none;
-  resize: none;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #1f2937;
-  background: #ffffff;
-  tab-size: 2;
-}
-
-.code-editor::placeholder {
-  color: #9ca3af;
+  min-height: 0;
 }
 
 /* 编辑器状态栏 */
@@ -354,24 +275,5 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-/* 滚动条样式 */
-.code-editor::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.code-editor::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.code-editor::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-.code-editor::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
 }
 </style>

@@ -2,9 +2,21 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
 import path from 'path';
+import monacoEditorPlugin from 'vite-plugin-monaco-editor';
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    monacoEditorPlugin({
+      languageWorkers: ['editorWorkerService', 'typescript', 'json', 'css', 'html'],
+      customWorkers: [
+        {
+          label: 'yaml',
+          entry: 'monaco-yaml/yaml.worker',
+        },
+      ],
+    }),
+  ],
   root: path.join(process.cwd(), 'src/renderer'),
   base: './',
   build: {
