@@ -4877,12 +4877,23 @@ class ChainlessChainApp {
     });
 
     // Git提交
-    ipcMain.handle('project:git-commit', async (_event, repoPath, message) => {
+    ipcMain.handle('project:git-commit', async (_event, projectId, repoPath, message) => {
       try {
         const git = require('isomorphic-git');
         const fs = require('fs');
 
-        // Add all changes
+        // 1. 提交前：刷新所有数据库更改到文件系统
+        console.log('[Main] Git 提交前，刷新数据库更改到文件系统...');
+        if (this.fileSyncManager && projectId) {
+          try {
+            await this.fileSyncManager.flushAllChanges(projectId);
+            console.log('[Main] 文件刷新完成');
+          } catch (syncError) {
+            console.warn('[Main] 文件刷新失败（继续提交）:', syncError);
+          }
+        }
+
+        // 2. Add all changes
         const status = await git.statusMatrix({ fs, dir: repoPath });
         for (const row of status) {
           const [filepath, , worktreeStatus] = row;
@@ -4891,7 +4902,7 @@ class ChainlessChainApp {
           }
         }
 
-        // Commit
+        // 3. Commit
         const sha = await git.commit({
           fs,
           dir: repoPath,
@@ -4902,6 +4913,7 @@ class ChainlessChainApp {
           },
         });
 
+        console.log('[Main] Git 提交成功:', sha);
         return { success: true, sha };
       } catch (error) {
         console.error('[Main] Git提交失败:', error);
@@ -4933,12 +4945,14 @@ class ChainlessChainApp {
     });
 
     // Git拉取
-    ipcMain.handle('project:git-pull', async (_event, repoPath) => {
+    ipcMain.handle('project:git-pull', async (_event, projectId, repoPath) => {
       try {
         const git = require('isomorphic-git');
         const fs = require('fs');
         const http = require('isomorphic-git/http/node');
 
+        // 1. 执行 Git pull
+        console.log('[Main] 执行 Git pull...');
         await git.pull({
           fs,
           http,
@@ -4947,6 +4961,14 @@ class ChainlessChainApp {
           singleBranch: true,
           onAuth: () => this.gitManager?.auth || {},
         });
+
+        console.log('[Main] Git pull 完成');
+
+        // 2. 拉取后：通知前端刷新项目文件列表
+        if (this.mainWindow && projectId) {
+          console.log('[Main] 通知前端刷新项目文件...');
+          this.mainWindow.webContents.send('git:pulled', { projectId });
+        }
 
         return { success: true };
       } catch (error) {
