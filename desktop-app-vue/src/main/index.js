@@ -4165,6 +4165,7 @@ class ChainlessChainApp {
         if (this.database && project) {
           // 先清理 project 中的 undefined，再保存到数据库
           const cleanedProject = this._replaceUndefinedWithNull(project);
+          console.log('[Main] 清理后的项目:', JSON.stringify(cleanedProject, null, 2));
 
           const localProject = {
             ...cleanedProject,
@@ -4172,6 +4173,14 @@ class ChainlessChainApp {
             sync_status: 'synced',
             synced_at: Date.now(),
           };
+
+          // 检查 localProject 中是否有 undefined
+          console.log('[Main] localProject 准备保存到数据库');
+          Object.keys(localProject).forEach(key => {
+            const value = localProject[key];
+            console.log(`[Main]   ${key}: ${typeof value === 'undefined' ? 'UNDEFINED!' : typeof value} = ${JSON.stringify(value).substring(0, 100)}`);
+          });
+
           await this.database.saveProject(localProject);
           console.log('[Main] 项目已保存到本地数据库');
 
