@@ -1,5 +1,31 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+/**
+ * 清理对象中的 undefined 值
+ * Electron IPC 不支持传递 undefined 值，需要转换为 null 或移除
+ */
+function removeUndefined(obj) {
+  if (obj === undefined || obj === null) {
+    return null;
+  }
+
+  if (typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefined(item));
+  }
+
+  const cleaned = {};
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key) && obj[key] !== undefined) {
+      cleaned[key] = removeUndefined(obj[key]);
+    }
+  }
+  return cleaned;
+}
+
 // 暴露安全的API到渲染进程
 contextBridge.exposeInMainWorld('electronAPI', {
   // U盾相关
@@ -348,10 +374,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 项目CRUD
     getAll: (userId) => ipcRenderer.invoke('project:get-all', userId),
     get: (projectId) => ipcRenderer.invoke('project:get', projectId),
-    create: (createData) => ipcRenderer.invoke('project:create', createData),
-    update: (projectId, updates) => ipcRenderer.invoke('project:update', projectId, updates),
+    create: (createData) => ipcRenderer.invoke('project:create', removeUndefined(createData)),
+    update: (projectId, updates) => ipcRenderer.invoke('project:update', projectId, removeUndefined(updates)),
     delete: (projectId) => ipcRenderer.invoke('project:delete', projectId),
-    save: (project) => ipcRenderer.invoke('project:save', project),
+    save: (project) => ipcRenderer.invoke('project:save', removeUndefined(project)),
     deleteLocal: (projectId) => ipcRenderer.invoke('project:delete-local', projectId),
 
     // 后端获取

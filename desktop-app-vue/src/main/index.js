@@ -4150,12 +4150,15 @@ class ChainlessChainApp {
     // 创建项目（调用后端）
     ipcMain.handle('project:create', async (_event, createData) => {
       try {
-        console.log('[Main] 开始创建项目，参数:', JSON.stringify(createData, null, 2));
+        // 首先清理输入数据中的 undefined 值（IPC 已经不应该传递 undefined，但双重保险）
+        const cleanedCreateData = this._replaceUndefinedWithNull(createData);
+        console.log('[Main] 开始创建项目，参数:', JSON.stringify(cleanedCreateData, null, 2));
+
         const { getProjectHTTPClient } = require('./project/http-client');
         const httpClient = getProjectHTTPClient();
 
         // 调用后端API
-        const project = await httpClient.createProject(createData);
+        const project = await httpClient.createProject(cleanedCreateData);
         console.log('[Main] 后端返回项目，键:', Object.keys(project || {}));
 
         // 保存到本地数据库
