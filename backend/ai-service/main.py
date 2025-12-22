@@ -46,13 +46,27 @@ rag_engine = RAGEngine()
 
 # Encode binary file content so FastAPI can serialize the response.
 def _encode_binary_files(result: Dict[str, Any]) -> Dict[str, Any]:
+    import logging
+    logger = logging.getLogger(__name__)
+
     files = result.get("files")
     if isinstance(files, list):
-        for file_item in files:
+        for idx, file_item in enumerate(files):
             content = file_item.get("content")
+            file_path = file_item.get("path", f"file_{idx}")
+
             if isinstance(content, (bytes, bytearray)):
-                file_item["content"] = base64.b64encode(content).decode("ascii")
+                original_size = len(content)
+                encoded = base64.b64encode(content).decode("ascii")
+                encoded_size = len(encoded)
+
+                logger.info(f"Encoding file {file_path}: {original_size} bytes -> {encoded_size} base64 chars")
+
+                file_item["content"] = encoded
                 file_item["content_encoding"] = "base64"
+            else:
+                logger.warning(f"File {file_path} content is not bytes: type={type(content)}, value={content if not isinstance(content, str) or len(content) < 100 else content[:100]+'...'}")
+
     return result
 
 

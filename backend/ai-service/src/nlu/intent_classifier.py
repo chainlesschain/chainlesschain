@@ -152,6 +152,14 @@ class IntentClassifier:
             # 尝试直接解析
             result = json.loads(response)
 
+            # 如果LLM返回了数组而不是对象，取第一个元素
+            if isinstance(result, list):
+                if len(result) > 0:
+                    result = result[0]
+                else:
+                    # 空数组，返回默认值
+                    return self._get_default_intent("")
+
             # 验证必需字段
             required_fields = ["intent", "project_type", "entities", "confidence", "action"]
             for field in required_fields:
