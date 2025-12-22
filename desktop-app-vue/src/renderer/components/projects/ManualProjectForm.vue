@@ -176,12 +176,16 @@ const handleSubmit = async () => {
   const createData = {
     userPrompt: userPrompt,  // 后端必填字段
     name: formData.name,
-    description: formData.description || undefined,
     projectType: formData.projectType,
     status: formData.status,
     tags: JSON.stringify(formData.tags),
     userId: authStore.currentUser?.id || 'default-user',
   };
+
+  // 只有当description存在时才添加（避免undefined导致IPC序列化错误）
+  if (formData.description) {
+    createData.description = formData.description;
+  }
 
   emit('create', createData);
 
