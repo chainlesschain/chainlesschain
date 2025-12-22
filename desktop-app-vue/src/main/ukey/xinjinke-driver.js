@@ -107,18 +107,19 @@ class XinJinKeDriver extends BaseUKeyDriver {
     // console.log('[XinJinKe] 检测U盾设备...');
 
     try {
-      // 查找U盾盘符（通过查找可移动磁盘）
-      const drives = await this.findRemovableDrives();
+      // 调用U盾特定的DLL函数来检测设备
+      const port = await this.callNativeFunction('xjkFindPort');
 
-      if (drives.length === 0) {
+      // 如果没有找到端口或返回null/undefined，说明没有U盾
+      if (!port || port === 0 || port === -1) {
         return {
           detected: false,
           unlocked: false,
         };
       }
 
-      // 假设第一个是U盾
-      this.driveLetter = drives[0];
+      // 找到U盾，保存端口信息
+      this.driveLetter = port;
 
       return {
         detected: true,
@@ -271,7 +272,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
     }
 
     // 模拟模式
-    console.log(`[XinJinKe] 模拟调用: ${funcName}(${args.join(', ')})`);
+    // console.log(`[XinJinKe] 模拟调用: ${funcName}(${args.join(', ')})`);
 
     switch (funcName) {
       case 'xjkOpenKeyEx':
@@ -300,6 +301,11 @@ class XinJinKeDriver extends BaseUKeyDriver {
 
       case 'xjkCloseKey':
         return true;
+
+      case 'xjkFindPort':
+        // 模拟模式：总是返回0（未找到设备）
+        // 这样在没有真实U盾时不会误报
+        return 0;
 
       default:
         throw new Error(`未知函数: ${funcName}`);

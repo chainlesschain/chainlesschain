@@ -152,10 +152,10 @@ const previewIframe = ref(null);
 // 检查项目是否有本地路径
 const hasValidPath = computed(() => {
   if (!props.projectPath) return false;
-  // 检查是否是本地路径
+  // 桌面版：所有项目都视为本地项目（包括 /data/projects/ 路径）
   return (
     /^[a-zA-Z]:[/\\]/.test(props.projectPath) || // Windows路径
-    (props.projectPath.startsWith('/') && !props.projectPath.startsWith('/data/projects/')) // Unix路径
+    props.projectPath.startsWith('/') // Unix路径（包括 /data/projects/）
   );
 });
 

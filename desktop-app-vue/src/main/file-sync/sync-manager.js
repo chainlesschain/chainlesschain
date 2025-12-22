@@ -33,8 +33,9 @@ class FileSyncManager extends EventEmitter {
     // Windows 路径 (C:\... 或 D:\... 等)
     if (/^[a-zA-Z]:[/\\]/.test(filePath)) return true;
 
-    // Unix 路径 (/ 开头但不是 /data/projects/)
-    if (filePath.startsWith('/') && !filePath.startsWith('/data/projects/')) return true;
+    // Unix 路径 (/ 开头，包括 /data/projects/)
+    // 桌面版：所有以 / 开头的路径都视为本地路径
+    if (filePath.startsWith('/')) return true;
 
     return false;
   }

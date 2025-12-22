@@ -394,16 +394,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getTemplates: () => ipcRenderer.invoke('project:get-templates'),
     getTemplate: (templateId) => ipcRenderer.invoke('project:get-template', templateId),
 
+    // 路径解析
+    resolvePath: (relativePath) => ipcRenderer.invoke('project:resolve-path', relativePath),
+
     // 同步
     sync: (userId) => ipcRenderer.invoke('project:sync', userId || 'default-user'),
     syncOne: (projectId) => ipcRenderer.invoke('project:sync-one', projectId),
 
-    // Git操作
-    gitInit: (repoPath) => ipcRenderer.invoke('project:git-init', repoPath),
-    gitStatus: (repoPath) => ipcRenderer.invoke('project:git-status', repoPath),
-    gitCommit: (repoPath, message) => ipcRenderer.invoke('project:git-commit', repoPath, message),
-    gitPush: (repoPath) => ipcRenderer.invoke('project:git-push', repoPath),
-    gitPull: (repoPath) => ipcRenderer.invoke('project:git-pull', repoPath),
+    // Git 操作
+    gitPush: (projectId, repoPath) => ipcRenderer.invoke('project:git-push', projectId, repoPath),
+    gitPull: (projectId, repoPath) => ipcRenderer.invoke('project:git-pull', projectId, repoPath),
 
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),

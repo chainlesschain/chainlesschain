@@ -176,11 +176,12 @@
               </a-descriptions>
             </div>
 
-            <div class="info-alert">
+            <!-- 桌面版提示：项目文件位置 -->
+            <div class="info-alert" v-if="currentProject.root_path && resolvedProjectPath">
               <a-alert
-                message="项目仅存储在后端服务器"
-                description="此项目的文件存储在后端服务器上，暂不支持本地编辑。您可以查看项目信息和元数据。"
-                type="info"
+                message="项目文件位置"
+                :description="`项目文件存储在本地：${resolvedProjectPath}`"
+                type="success"
                 show-icon
               />
             </div>
@@ -283,6 +284,7 @@ const showGitStatusModal = ref(false);
 const showGitHistoryModal = ref(false);
 const showGitCommitModal = ref(false);
 const commitMessage = ref('');
+const resolvedProjectPath = ref('');
 
 // 计算属性
 const projectId = computed(() => route.params.id);
@@ -296,12 +298,28 @@ const hasValidPath = computed(() => {
     return false;
   }
   const path = currentProject.value.root_path;
-  // 检查是否是本地路径（以驱动器字母开头或以/开头）
+  // 桌面版：所有项目都视为本地项目（包括 /data/projects/ 路径）
+  // 检查是否是有效路径（Windows路径、Unix路径或相对路径）
   return path && (
     /^[a-zA-Z]:[/\\]/.test(path) || // Windows路径
-    path.startsWith('/') && !path.startsWith('/data/projects/') // Unix路径但不是后端路径
+    path.startsWith('/') // Unix路径（包括 /data/projects/）
   );
 });
+
+// 获取本地项目路径（将相对路径转换为绝对路径显示）
+const getLocalProjectPath = async (path) => {
+  if (!path) return '未知路径';
+
+  try {
+    // 调用后端 API 解析路径
+    const resolvedPath = await window.electronAPI.project.resolvePath(path);
+    return resolvedPath;
+  } catch (error) {
+    console.error('解析项目路径失败:', error);
+    // 降级：如果 API 调用失败，返回原路径
+    return path;
+  }
+};
 
 // 返回项目列表
 const handleBackToList = () => {
@@ -478,6 +496,11 @@ onMounted(async () => {
 
     // 加载项目文件
     await projectStore.loadProjectFiles(projectId.value);
+
+    // 解析项目路径
+    if (currentProject.value?.root_path) {
+      resolvedProjectPath.value = await getLocalProjectPath(currentProject.value.root_path);
+    }
   } catch (error) {
     console.error('Load project failed:', error);
     message.error('加载项目失败：' + error.message);
