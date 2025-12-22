@@ -205,11 +205,11 @@ const props = defineProps({
   },
   projectId: {
     type: String,
-    required: true,
+    default: '',
   },
   repoPath: {
     type: String,
-    required: true,
+    default: '',
   },
   title: {
     type: String,

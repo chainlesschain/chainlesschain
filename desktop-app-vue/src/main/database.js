@@ -482,12 +482,14 @@ class DatabaseManager {
     this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_file_sync_state_file_id ON file_sync_state(file_id);
     `);
+
+    // 数据库迁移：为已存在的表添加新列（必须在创建依赖新列的索引之前执行）
+    this.migrateDatabase();
+
+    // 在迁移后创建依赖迁移新增列的索引
     this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_conversations_project_id ON conversations(project_id);
     `);
-
-    // 数据库迁移：为已存在的表添加新列
-    this.migrateDatabase();
 
     // 保存更改
     this.saveToFile();

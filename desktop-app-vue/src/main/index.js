@@ -14,6 +14,7 @@ const PromptTemplateManager = require('./prompt/prompt-template-manager');
 const NativeMessagingHTTPServer = require('./native-messaging/http-server');
 const FileSyncManager = require('./file-sync/sync-manager');
 const PreviewManager = require('./preview/preview-manager');
+const { getProjectConfig } = require('./project/project-config');
 // Trade modules
 const KnowledgePaymentManager = require('./trade/knowledge-payment');
 const CreditScoreManager = require('./trade/credit-score');
@@ -949,6 +950,9 @@ class ChainlessChainApp {
         const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'admin';
         const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || '123456';
 
+        console.log('[Main] 收到登录请求 - 用户名:', username, '密码长度:', password?.length);
+        console.log('[Main] 期望用户名:', DEFAULT_USERNAME, '期望密码:', DEFAULT_PASSWORD);
+
         // 简单的密码验证（生产环境应使用加密存储）
         if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
           console.log('[Main] 密码验证成功');
@@ -960,6 +964,7 @@ class ChainlessChainApp {
         }
 
         console.log('[Main] 密码验证失败: 用户名或密码错误');
+        console.log('[Main] 用户名匹配:', username === DEFAULT_USERNAME, '密码匹配:', password === DEFAULT_PASSWORD);
         return {
           success: false,
           error: '用户名或密码错误',
@@ -4413,7 +4418,12 @@ class ChainlessChainApp {
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
+        console.log('[Main] 获取项目文件, projectId:', projectId);
         const files = this.database.getProjectFiles(projectId);
+        console.log('[Main] 找到文件数量:', files?.length || 0);
+        if (files && files.length > 0) {
+          console.log('[Main] 文件列表:', files.map(f => f.file_name).join(', '));
+        }
         return this.removeUndefinedValues(files);
       } catch (error) {
         console.error('[Main] 获取项目文件失败:', error);
@@ -4829,6 +4839,18 @@ class ChainlessChainApp {
         return stmt.get(templateId);
       } catch (error) {
         console.error('[Main] 获取模板详情失败:', error);
+        throw error;
+      }
+    });
+
+    // 解析项目路径
+    ipcMain.handle('project:resolve-path', async (_event, relativePath) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(relativePath);
+        return resolvedPath;
+      } catch (error) {
+        console.error('[Main] 解析项目路径失败:', error);
         throw error;
       }
     });
