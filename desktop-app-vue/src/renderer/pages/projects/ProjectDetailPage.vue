@@ -20,8 +20,32 @@
         </a-breadcrumb>
       </div>
 
+      <!-- 中间：视图模式切换 -->
+      <div v-if="currentFile && hasValidPath" class="toolbar-center">
+        <a-radio-group v-model:value="viewMode" button-style="solid" size="small">
+          <a-radio-button value="auto">
+            <EyeOutlined />
+            自动
+          </a-radio-button>
+          <a-radio-button value="edit" :disabled="!fileTypeInfo?.isEditable">
+            <EditOutlined />
+            编辑
+          </a-radio-button>
+          <a-radio-button value="preview">
+            <FileSearchOutlined />
+            预览
+          </a-radio-button>
+        </a-radio-group>
+      </div>
+
       <!-- 右侧：操作按钮 -->
       <div class="toolbar-right">
+        <!-- AI助手开关 -->
+        <a-button v-if="hasValidPath" @click="toggleChatPanel">
+          <CommentOutlined />
+          {{ showChatPanel ? '隐藏' : '显示' }} AI助手
+        </a-button>
+
         <!-- Git操作下拉菜单 - 仅当有有效路径时显示 -->
         <a-dropdown v-if="currentProject && hasValidPath">
           <a-button>
@@ -95,10 +119,10 @@
 
     <!-- 主内容区 -->
     <div v-else-if="currentProject" class="content-container">
-      <!-- 有本地路径：显示文件编辑器 -->
+      <!-- 有本地路径：显示三栏布局（文件树 | 编辑器/预览 | AI助手） -->
       <template v-if="hasValidPath">
         <!-- 左侧：文件树 -->
-        <div class="sidebar">
+        <div class="left-sidebar">
           <div class="sidebar-header">
             <h3>
               <FolderOutlined />
@@ -119,14 +143,25 @@
           </div>
         </div>
 
-        <!-- 右侧：文件编辑器 -->
+        <!-- 中间：编辑器/预览面板 -->
         <div class="main-content">
-          <FileEditor
-            v-if="currentFile"
+          <!-- 编辑模式 -->
+          <SimpleEditor
+            v-if="shouldShowEditor"
+            ref="editorRef"
             :file="currentFile"
-            :project-id="projectId"
-            @change="handleFileChange"
-            @save="handleSave"
+            :content="fileContent"
+            :auto-save="true"
+            @change="handleContentChange"
+            @save="handleFileSave"
+          />
+
+          <!-- 预览模式 -->
+          <PreviewPanel
+            v-else-if="shouldShowPreview"
+            :file="currentFile"
+            :project-path="resolvedProjectPath"
+            :content="fileContent"
           />
 
           <!-- 空状态 -->
@@ -135,8 +170,18 @@
               <FileTextOutlined />
             </div>
             <h3>选择一个文件开始编辑</h3>
-            <p>从左侧文件树中选择一个文件，或创建新文件</p>
+            <p>从左侧文件树中选择一个文件</p>
           </div>
+        </div>
+
+        <!-- 右侧：AI助手面板 -->
+        <div v-show="showChatPanel" class="right-sidebar">
+          <ChatPanel
+            :project-id="projectId"
+            :current-file="currentFile"
+            :project-files="projectFiles"
+            @close="showChatPanel = false"
+          />
         </div>
       </template>
 
@@ -264,9 +309,14 @@ import {
   EditOutlined,
   FileAddOutlined,
   HistoryOutlined,
+  EyeOutlined,
+  FileSearchOutlined,
+  CommentOutlined,
 } from '@ant-design/icons-vue';
 import FileTree from '@/components/projects/FileTree.vue';
-import FileEditor from '@/components/projects/FileEditor.vue';
+import SimpleEditor from '@/components/projects/SimpleEditor.vue';
+import PreviewPanel from '@/components/projects/PreviewPanel.vue';
+import ChatPanel from '@/components/projects/ChatPanel.vue';
 import GitStatusDialog from '@/components/projects/GitStatusDialog.vue';
 import GitHistoryDialog from '@/components/projects/GitHistoryDialog.vue';
 
@@ -285,6 +335,12 @@ const showGitHistoryModal = ref(false);
 const showGitCommitModal = ref(false);
 const commitMessage = ref('');
 const resolvedProjectPath = ref('');
+
+// 新增状态
+const viewMode = ref('auto'); // 'auto' | 'edit' | 'preview'
+const showChatPanel = ref(true); // 默认显示AI助手
+const fileContent = ref(''); // 文件内容
+const editorRef = ref(null);
 
 // 计算属性
 const projectId = computed(() => route.params.id);
@@ -306,6 +362,56 @@ const hasValidPath = computed(() => {
   );
 });
 
+// 文件类型信息
+const fileTypeInfo = computed(() => {
+  if (!currentFile.value?.file_name) return null;
+
+  const fileName = currentFile.value.file_name;
+  const ext = fileName.split('.').pop().toLowerCase();
+
+  // 可编辑文本文件
+  const editableExtensions = ['js', 'ts', 'vue', 'jsx', 'tsx', 'html', 'css', 'scss', 'less', 'json', 'md', 'txt', 'xml', 'yml', 'yaml'];
+  // 图片文件
+  const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'];
+  // 文档文件
+  const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+  // 数据文件
+  const dataExtensions = ['csv'];
+  // 视频文件
+  const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
+  // 音频文件
+  const audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac'];
+
+  return {
+    extension: ext,
+    isEditable: editableExtensions.includes(ext),
+    isImage: imageExtensions.includes(ext),
+    isDocument: documentExtensions.includes(ext),
+    isData: dataExtensions.includes(ext),
+    isVideo: videoExtensions.includes(ext),
+    isAudio: audioExtensions.includes(ext),
+    isCode: ['js', 'ts', 'vue', 'jsx', 'tsx'].includes(ext),
+    isMarkdown: ext === 'md',
+  };
+});
+
+// 是否显示编辑器
+const shouldShowEditor = computed(() => {
+  if (!currentFile.value) return false;
+  if (viewMode.value === 'edit') return fileTypeInfo.value?.isEditable;
+  if (viewMode.value === 'preview') return false;
+  if (viewMode.value === 'auto') return fileTypeInfo.value?.isEditable;
+  return false;
+});
+
+// 是否显示预览
+const shouldShowPreview = computed(() => {
+  if (!currentFile.value) return false;
+  if (viewMode.value === 'preview') return true;
+  if (viewMode.value === 'auto') return !fileTypeInfo.value?.isEditable;
+  return false;
+});
+
 // 获取本地项目路径（将相对路径转换为绝对路径显示）
 const getLocalProjectPath = async (path) => {
   if (!path) return '未知路径';
@@ -318,6 +424,61 @@ const getLocalProjectPath = async (path) => {
     console.error('解析项目路径失败:', error);
     // 降级：如果 API 调用失败，返回原路径
     return path;
+  }
+};
+
+// 切换AI助手面板
+const toggleChatPanel = () => {
+  showChatPanel.value = !showChatPanel.value;
+};
+
+// 加载文件内容
+const loadFileContent = async (file) => {
+  if (!file || !file.file_path) {
+    fileContent.value = '';
+    return;
+  }
+
+  try {
+    // 只为可编辑和可预览的文件加载内容
+    if (fileTypeInfo.value && (fileTypeInfo.value.isEditable || fileTypeInfo.value.isMarkdown || fileTypeInfo.value.isData)) {
+      const content = await window.electronAPI.file.readContent(file.file_path);
+      fileContent.value = content || '';
+    } else {
+      fileContent.value = '';
+    }
+  } catch (error) {
+    console.error('加载文件内容失败:', error);
+    message.error('加载文件失败: ' + error.message);
+    fileContent.value = '';
+  }
+};
+
+// 处理编辑器内容变化
+const handleContentChange = (newContent) => {
+  fileContent.value = newContent;
+  hasUnsavedChanges.value = true;
+};
+
+// 处理文件保存（从编辑器触发）
+const handleFileSave = async (content) => {
+  if (!currentFile.value) return;
+
+  saving.value = true;
+  try {
+    // 保存文件内容到磁盘
+    await window.electronAPI.file.writeContent(currentFile.value.file_path, content || fileContent.value);
+
+    // 更新store
+    currentFile.value.content = content || fileContent.value;
+    hasUnsavedChanges.value = false;
+
+    message.success('文件已保存');
+  } catch (error) {
+    console.error('保存文件失败:', error);
+    message.error('保存失败: ' + error.message);
+  } finally {
+    saving.value = false;
   }
 };
 
@@ -519,6 +680,15 @@ watch(() => route.params.id, async (newId) => {
   }
 });
 
+// 监听当前文件变化，加载文件内容
+watch(() => currentFile.value, async (newFile) => {
+  if (newFile) {
+    await loadFileContent(newFile);
+  } else {
+    fileContent.value = '';
+  }
+}, { immediate: false });
+
 // 辅助函数
 const getProjectTypeColor = (type) => {
   const colors = {
@@ -590,10 +760,11 @@ const formatDate = (timestamp) => {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  gap: 16px;
 }
 
 .toolbar-left {
-  flex: 1;
+  flex: 0 0 auto;
 }
 
 .toolbar-left :deep(.ant-breadcrumb) {
@@ -609,7 +780,14 @@ const formatDate = (timestamp) => {
   color: #764ba2;
 }
 
+.toolbar-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
 .toolbar-right {
+  flex: 0 0 auto;
   display: flex;
   gap: 12px;
 }
@@ -630,13 +808,14 @@ const formatDate = (timestamp) => {
   overflow: hidden;
 }
 
-/* 侧边栏 */
-.sidebar {
-  width: 280px;
+/* 左侧边栏 - 文件树 */
+.left-sidebar {
+  width: 200px;
   background: white;
   border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .sidebar-header {
@@ -663,10 +842,23 @@ const formatDate = (timestamp) => {
   padding: 8px;
 }
 
-/* 主编辑区 */
+/* 主编辑区 - 编辑器/预览 */
 .main-content {
   flex: 1;
   background: white;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 右侧边栏 - AI助手 */
+.right-sidebar {
+  width: 300px;
+  background: white;
+  border-left: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
   overflow: hidden;
 }
 

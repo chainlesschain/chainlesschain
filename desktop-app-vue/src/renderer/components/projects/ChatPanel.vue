@@ -239,11 +239,11 @@ const formatTime = (timestamp) => {
 const buildProjectContext = async () => {
   try {
     // 获取项目信息
-    const project = await window.electron.invoke('project:get', props.projectId);
+    const project = await window.electronAPI.project.get(props.projectId);
     if (!project) return '';
 
     // 获取项目文件列表
-    const files = await window.electron.invoke('project:get-files', props.projectId);
+    const files = await window.electronAPI.project.getFiles(props.projectId);
 
     // 构建文件树结构文本
     let context = `# 项目：${project.name}\n\n`;
@@ -304,6 +304,12 @@ const handleSendMessage = async () => {
   const input = userInput.value.trim();
   if (!input || isLoading.value) return;
 
+  // 检查API是否可用
+  if (!window.electronAPI?.llm || !window.electronAPI?.conversation) {
+    antMessage.warning('AI对话功能暂未实现，请等待后续版本');
+    return;
+  }
+
   // 在文件模式下检查是否选择了文件
   if (contextMode.value === 'file' && !props.currentFile) {
     antMessage.warning('请先选择一个文件');
@@ -332,7 +338,7 @@ const handleSendMessage = async () => {
     }
 
     // 保存用户消息到数据库
-    await window.electron.invoke('conversation:create-message', {
+    await window.electronAPI.conversation.createMessage({
       conversation_id: currentConversation.value.id,
       role: 'user',
       content: input,
@@ -347,7 +353,7 @@ const handleSendMessage = async () => {
     const systemPrompt = await buildSystemPrompt();
 
     // 调用 LLM
-    const response = await window.electron.invoke('llm:chat', {
+    const response = await window.electronAPI.llm.chat({
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages.value.slice(-10).map(msg => ({
@@ -372,7 +378,7 @@ const handleSendMessage = async () => {
     messages.value.push(assistantMessage);
 
     // 保存助手消息到数据库
-    await window.electron.invoke('conversation:create-message', {
+    await window.electronAPI.conversation.createMessage({
       conversation_id: currentConversation.value.id,
       role: 'assistant',
       content: assistantMessage.content,
@@ -398,8 +404,16 @@ const handleClearConversation = async () => {
   try {
     if (!currentConversation.value) return;
 
+    // 检查API是否可用
+    if (!window.electronAPI?.conversation) {
+      // 直接清空本地消息
+      messages.value = [];
+      antMessage.success('对话已清空');
+      return;
+    }
+
     // 清空数据库中的消息
-    await window.electron.invoke('conversation:clear-messages', currentConversation.value.id);
+    await window.electronAPI.conversation.clearMessages(currentConversation.value.id);
 
     // 清空本地消息列表
     messages.value = [];
@@ -436,6 +450,12 @@ const scrollToBottom = () => {
  */
 const createConversation = async () => {
   try {
+    // 检查API是否可用
+    if (!window.electronAPI?.conversation) {
+      console.warn('[ChatPanel] 对话API未实现，跳过创建');
+      return;
+    }
+
     const conversationData = {
       title: contextMode.value === 'project' ? '项目对话' : contextMode.value === 'file' ? '文件对话' : '新对话',
       project_id: contextMode.value === 'project' ? props.projectId : null,
@@ -445,7 +465,7 @@ const createConversation = async () => {
         : null,
     };
 
-    currentConversation.value = await window.electron.invoke('conversation:create', conversationData);
+    currentConversation.value = await window.electronAPI.conversation.create(conversationData);
     emit('conversationLoaded', currentConversation.value);
   } catch (error) {
     console.error('创建对话失败:', error);
@@ -458,15 +478,23 @@ const createConversation = async () => {
  */
 const loadConversation = async () => {
   try {
+    // 检查对话API是否可用
+    if (!window.electronAPI?.conversation) {
+      console.warn('[ChatPanel] 对话API未实现，跳过加载');
+      messages.value = [];
+      currentConversation.value = null;
+      return;
+    }
+
     if (contextMode.value === 'project') {
       // 尝试加载项目对话
-      const conversation = await window.electron.invoke('conversation:get-by-project', props.projectId);
+      const conversation = await window.electronAPI.conversation.getByProject(props.projectId);
 
       if (conversation) {
         currentConversation.value = conversation;
 
         // 加载消息
-        const loadedMessages = await window.electron.invoke('conversation:get-messages', conversation.id);
+        const loadedMessages = await window.electronAPI.conversation.getMessages(conversation.id);
         messages.value = loadedMessages || [];
 
         emit('conversationLoaded', conversation);
@@ -486,7 +514,7 @@ const loadConversation = async () => {
     }
   } catch (error) {
     console.error('加载对话失败:', error);
-    antMessage.error('加载对话失败');
+    // 不显示错误消息，因为API可能未实现
   }
 };
 
