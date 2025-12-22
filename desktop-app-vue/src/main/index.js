@@ -45,6 +45,12 @@ const shouldFilterMessage = (message) => {
     return true;
   }
 
+  // 过滤包含大量特殊字符的乱码消息（如 û�п���ʵ����）
+  const specialCharCount = (msgStr.match(/[û�п]/g) || []).length;
+  if (specialCharCount >= 2) {
+    return true;
+  }
+
   return filterPatterns.some(pattern => pattern.test(msgStr));
 };
 
