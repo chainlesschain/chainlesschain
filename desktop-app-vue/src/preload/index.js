@@ -60,6 +60,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkStatus: () => ipcRenderer.invoke('llm:check-status'),
     query: (prompt, options) => ipcRenderer.invoke('llm:query', prompt, options),
     queryStream: (prompt, options) => ipcRenderer.invoke('llm:query-stream', prompt, options),
+    chat: (params) => ipcRenderer.invoke('llm:chat', params),
     getConfig: () => ipcRenderer.invoke('llm:get-config'),
     setConfig: (config) => ipcRenderer.invoke('llm:set-config', config),
     listModels: () => ipcRenderer.invoke('llm:list-models'),
@@ -68,6 +69,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
+  },
+
+  // 对话管理
+  conversation: {
+    create: (conversationData) => ipcRenderer.invoke('conversation:create', conversationData),
+    get: (conversationId) => ipcRenderer.invoke('conversation:get', conversationId),
+    getByProject: (projectId) => ipcRenderer.invoke('conversation:get-by-project', projectId),
+    getAll: (options) => ipcRenderer.invoke('conversation:get-all', options),
+    update: (conversationId, updates) => ipcRenderer.invoke('conversation:update', conversationId, updates),
+    delete: (conversationId) => ipcRenderer.invoke('conversation:delete', conversationId),
+    createMessage: (messageData) => ipcRenderer.invoke('conversation:create-message', messageData),
+    getMessages: (conversationId, options) => ipcRenderer.invoke('conversation:get-messages', conversationId, options),
+    deleteMessage: (messageId) => ipcRenderer.invoke('conversation:delete-message', messageId),
+    clearMessages: (conversationId) => ipcRenderer.invoke('conversation:clear-messages', conversationId),
   },
 
   // Git同步
