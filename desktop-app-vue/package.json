@@ -48,6 +48,7 @@
     "@privacyresearch/libsignal-protocol-typescript": "^0.0.16",
     "axios": "^1.13.2",
     "bip39": "^3.1.0",
+    "chokidar": "^5.0.0",
     "chromadb": "^3.1.8",
     "dotenv": "^16.4.1",
     "isomorphic-git": "^1.25.4",

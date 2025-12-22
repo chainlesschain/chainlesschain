@@ -110,6 +110,7 @@ class ChainlessChainApp {
     this.imageUploader = null;
     this.promptTemplateManager = null;
     this.nativeMessagingServer = null;
+    this.fileSyncManager = null;
     this.knowledgePaymentManager = null;
     this.creditScoreManager = null;
     this.reviewManager = null;
@@ -532,6 +533,15 @@ class ChainlessChainApp {
     this.mainWindow.on('closed', () => {
       this.mainWindow = null;
     });
+
+    // 初始化文件同步管理器
+    try {
+      console.log('初始化文件同步管理器...');
+      this.fileSyncManager = new FileSyncManager(this.database, this.mainWindow);
+      console.log('文件同步管理器初始化成功');
+    } catch (error) {
+      console.error('文件同步管理器初始化失败:', error);
+    }
   }
 
   setupGitEvents() {
@@ -4454,6 +4464,87 @@ class ChainlessChainApp {
         return { success: true };
       } catch (error) {
         console.error('[Main] 删除文件失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 文件同步 IPC ====================
+
+    // 保存文件（双向同步）
+    ipcMain.handle('file-sync:save', async (_event, fileId, content, projectId) => {
+      try {
+        if (!this.fileSyncManager) {
+          throw new Error('文件同步管理器未初始化');
+        }
+        return await this.fileSyncManager.saveFile(fileId, content, projectId);
+      } catch (error) {
+        console.error('[Main] 保存文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 从文件系统同步到数据库
+    ipcMain.handle('file-sync:sync-from-fs', async (_event, projectId, relativePath) => {
+      try {
+        if (!this.fileSyncManager) {
+          throw new Error('文件同步管理器未初始化');
+        }
+        return await this.fileSyncManager.syncFromFilesystem(projectId, relativePath);
+      } catch (error) {
+        console.error('[Main] 从文件系统同步失败:', error);
+        throw error;
+      }
+    });
+
+    // 监听项目文件变化
+    ipcMain.handle('file-sync:watch-project', async (_event, projectId, rootPath) => {
+      try {
+        if (!this.fileSyncManager) {
+          throw new Error('文件同步管理器未初始化');
+        }
+        return await this.fileSyncManager.watchProject(projectId, rootPath);
+      } catch (error) {
+        console.error('[Main] 启动文件监听失败:', error);
+        throw error;
+      }
+    });
+
+    // 停止监听项目
+    ipcMain.handle('file-sync:stop-watch', async (_event, projectId) => {
+      try {
+        if (!this.fileSyncManager) {
+          throw new Error('文件同步管理器未初始化');
+        }
+        this.fileSyncManager.stopWatch(projectId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 停止文件监听失败:', error);
+        throw error;
+      }
+    });
+
+    // 解决文件冲突
+    ipcMain.handle('file-sync:resolve-conflict', async (_event, fileId, resolution, manualContent) => {
+      try {
+        if (!this.fileSyncManager) {
+          throw new Error('文件同步管理器未初始化');
+        }
+        return await this.fileSyncManager.resolveConflict(fileId, resolution, manualContent);
+      } catch (error) {
+        console.error('[Main] 解决冲突失败:', error);
+        throw error;
+      }
+    });
+
+    // 刷新项目所有更改到文件系统（Git 提交前调用）
+    ipcMain.handle('file-sync:flush-all', async (_event, projectId) => {
+      try {
+        if (!this.fileSyncManager) {
+          throw new Error('文件同步管理器未初始化');
+        }
+        return await this.fileSyncManager.flushAllChanges(projectId);
+      } catch (error) {
+        console.error('[Main] 刷新更改失败:', error);
         throw error;
       }
     });
