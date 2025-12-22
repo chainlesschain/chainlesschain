@@ -72,6 +72,29 @@ console.warn = function(...args) {
   }
 };
 
+// 拦截 process.stdout 和 process.stderr 的直接输出
+if (process.stdout && process.stdout.write) {
+  const originalStdoutWrite = process.stdout.write.bind(process.stdout);
+  process.stdout.write = function(chunk, encoding, callback) {
+    const str = String(chunk);
+    if (!shouldFilterMessage(str)) {
+      return originalStdoutWrite(chunk, encoding, callback);
+    }
+    return true;
+  };
+}
+
+if (process.stderr && process.stderr.write) {
+  const originalStderrWrite = process.stderr.write.bind(process.stderr);
+  process.stderr.write = function(chunk, encoding, callback) {
+    const str = String(chunk);
+    if (!shouldFilterMessage(str)) {
+      return originalStderrWrite(chunk, encoding, callback);
+    }
+    return true;
+  };
+}
+
 class ChainlessChainApp {
   constructor() {
     this.mainWindow = null;
