@@ -52,6 +52,8 @@
     "chromadb": "^3.1.8",
     "dompurify": "^3.3.1",
     "dotenv": "^16.4.1",
+    "express": "^5.2.1",
+    "get-port": "^7.1.0",
     "isomorphic-git": "^1.25.4",
     "koffi": "^2.8.10",
     "libp2p": "^3.1.2",
