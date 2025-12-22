@@ -4489,6 +4489,99 @@ class ChainlessChainApp {
       }
     });
 
+    // ==================== 文件内容读写 IPC ====================
+
+    // 读取文件内容（文本文件）
+    ipcMain.handle('file:read-content', async (_event, filePath) => {
+      try {
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        // 解析路径
+        const { getProjectConfig } = require('./project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[Main] 读取文件内容:', resolvedPath);
+
+        // 检查文件是否存在
+        try {
+          await fs.access(resolvedPath);
+        } catch (error) {
+          throw new Error(`文件不存在: ${resolvedPath}`);
+        }
+
+        // 读取文件内容
+        const content = await fs.readFile(resolvedPath, 'utf-8');
+        console.log('[Main] 文件读取成功，大小:', content.length, '字符');
+
+        return content;
+      } catch (error) {
+        console.error('[Main] 读取文件内容失败:', error);
+        throw error;
+      }
+    });
+
+    // 写入文件内容（文本文件）
+    ipcMain.handle('file:write-content', async (_event, filePath, content) => {
+      try {
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        // 解析路径
+        const { getProjectConfig } = require('./project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[Main] 写入文件内容:', resolvedPath, '大小:', content?.length || 0, '字符');
+
+        // 确保目录存在
+        const dir = path.dirname(resolvedPath);
+        await fs.mkdir(dir, { recursive: true });
+
+        // 写入文件
+        await fs.writeFile(resolvedPath, content || '', 'utf-8');
+        console.log('[Main] 文件写入成功');
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 写入文件内容失败:', error);
+        throw error;
+      }
+    });
+
+    // 读取二进制文件内容（图片等）
+    ipcMain.handle('file:read-binary', async (_event, filePath) => {
+      try {
+        const fs = require('fs').promises;
+
+        // 解析路径
+        const { getProjectConfig } = require('./project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[Main] 读取二进制文件:', resolvedPath);
+
+        // 检查文件是否存在
+        try {
+          await fs.access(resolvedPath);
+        } catch (error) {
+          throw new Error(`文件不存在: ${resolvedPath}`);
+        }
+
+        // 读取二进制内容并转为base64
+        const buffer = await fs.readFile(resolvedPath);
+        const base64 = buffer.toString('base64');
+
+        console.log('[Main] 二进制文件读取成功，大小:', buffer.length, '字节');
+
+        return base64;
+      } catch (error) {
+        console.error('[Main] 读取二进制文件失败:', error);
+        throw error;
+      }
+    });
+
     // ==================== 文件同步 IPC ====================
 
     // 保存文件（双向同步）

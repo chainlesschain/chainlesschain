@@ -410,6 +410,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
   },
 
+  // 文件操作
+  file: {
+    readContent: (filePath) => ipcRenderer.invoke('file:read-content', filePath),
+    writeContent: (filePath, content) => ipcRenderer.invoke('file:write-content', filePath, content),
+    readBinary: (filePath) => ipcRenderer.invoke('file:read-binary', filePath),
+  },
+
   // 系统操作
   system: {
     getVersion: () => ipcRenderer.invoke('system:get-version'),
