@@ -17,6 +17,41 @@ const KnowledgePaymentManager = require('./trade/knowledge-payment');
 const CreditScoreManager = require('./trade/credit-score');
 const ReviewManager = require('./trade/review-manager');
 
+// 过滤不需要的控制台输出
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+const filterPatterns = [
+  /Request interrupted/i,
+  /interrupted by user/i,
+  /û�п���ʵ����/,  // 乱码过滤
+  /没有可用实例/,
+];
+
+const shouldFilterMessage = (message) => {
+  const msgStr = String(message);
+  return filterPatterns.some(pattern => pattern.test(msgStr));
+};
+
+console.log = function(...args) {
+  if (!args.some(shouldFilterMessage)) {
+    originalConsoleLog.apply(console, args);
+  }
+};
+
+console.error = function(...args) {
+  if (!args.some(shouldFilterMessage)) {
+    originalConsoleError.apply(console, args);
+  }
+};
+
+console.warn = function(...args) {
+  if (!args.some(shouldFilterMessage)) {
+    originalConsoleWarn.apply(console, args);
+  }
+};
+
 class ChainlessChainApp {
   constructor() {
     this.mainWindow = null;
@@ -87,7 +122,7 @@ class ChainlessChainApp {
 
     // 初始化U盾管理器
     try {
-      console.log('初始化U盾管理器...');
+      // console.log('初始化U盾管理器...');
       this.ukeyManager = new UKeyManager({
         driverType: DriverTypes.XINJINKE,
       });
@@ -99,9 +134,9 @@ class ChainlessChainApp {
       // 监听U盾事件
       this.setupUKeyEvents();
 
-      console.log('U盾管理器初始化成功');
+      // console.log('U盾管理器初始化成功');
     } catch (error) {
-      console.error('U盾管理器初始化失败:', error);
+      // console.error('U盾管理器初始化失败:', error);
       // 即使U盾初始化失败，也继续启动应用（将使用模拟模式）
     }
 
@@ -527,28 +562,28 @@ class ChainlessChainApp {
   setupUKeyEvents() {
     // 监听U盾事件并转发给渲染进程
     this.ukeyManager.on('device-connected', (status) => {
-      console.log('[Main] U盾设备已连接');
+      // console.log('[Main] U盾设备已连接');
       if (this.mainWindow) {
         this.mainWindow.webContents.send('ukey:device-connected', status);
       }
     });
 
     this.ukeyManager.on('device-disconnected', () => {
-      console.log('[Main] U盾设备已断开');
+      // console.log('[Main] U盾设备已断开');
       if (this.mainWindow) {
         this.mainWindow.webContents.send('ukey:device-disconnected');
       }
     });
 
     this.ukeyManager.on('unlocked', (result) => {
-      console.log('[Main] U盾已解锁');
+      // console.log('[Main] U盾已解锁');
       if (this.mainWindow) {
         this.mainWindow.webContents.send('ukey:unlocked', result);
       }
     });
 
     this.ukeyManager.on('locked', () => {
-      console.log('[Main] U盾已锁定');
+      // console.log('[Main] U盾已锁定');
       if (this.mainWindow) {
         this.mainWindow.webContents.send('ukey:locked');
       }
@@ -608,14 +643,30 @@ class ChainlessChainApp {
     // 这会移除所有 undefined 值、函数、Symbol等不可序列化的内容
     try {
       const jsonString = JSON.stringify(obj, (key, value) => {
-        // 记录任何 undefined 值
+        // 转换 undefined 为 null（undefined会被JSON.stringify自动移除）
         if (value === undefined) {
-          console.log(`[Main] 发现 undefined 值，key: ${key}`);
+          console.log(`[Main] 发现 undefined 值，key: ${key}，将其转换为 null`);
+          return null;
+        }
+        // 移除函数、Symbol等不可序列化的类型
+        if (typeof value === 'function' || typeof value === 'symbol') {
+          console.log(`[Main] 发现不可序列化类型，key: ${key}, type: ${typeof value}`);
           return null;
         }
         return value;
       });
+
+      // 确保 JSON.parse 成功
+      if (!jsonString || jsonString === 'null') {
+        console.warn('[Main] JSON 字符串为空或null，返回 null');
+        return null;
+      }
+
       const result = JSON.parse(jsonString);
+
+      // 最后一次检查：确保没有undefined值
+      this._ensureNoUndefined(result);
+
       return result;
     } catch (error) {
       console.error('[Main] JSON序列化失败:', error.message);
@@ -625,18 +676,84 @@ class ChainlessChainApp {
       // 备用方法：手动清理
       if (Array.isArray(obj)) {
         console.log('[Main] 使用备用方法清理数组');
-        return obj.map(item => this.removeUndefinedValues(item)).filter(item => item !== null);
+        const cleaned = obj
+          .map(item => this.removeUndefinedValues(item))
+          .filter(item => item !== null && item !== undefined);
+        return cleaned.length > 0 ? cleaned : [];
       }
 
       console.log('[Main] 使用备用方法清理对象');
       const cleaned = {};
       for (const [key, value] of Object.entries(obj)) {
-        if (value !== undefined) {
-          cleaned[key] = this.removeUndefinedValues(value);
+        if (value !== undefined && typeof value !== 'function' && typeof value !== 'symbol') {
+          try {
+            cleaned[key] = this.removeUndefinedValues(value);
+          } catch (e) {
+            console.error(`[Main] 清理键 ${key} 失败:`, e.message);
+            cleaned[key] = null;
+          }
         }
       }
       return cleaned;
     }
+  }
+
+  /**
+   * 递归检查对象中是否有undefined值
+   * @param {*} obj - 要检查的对象
+   * @param {string} path - 当前路径（用于调试）
+   */
+  _ensureNoUndefined(obj, path = 'root') {
+    if (obj === null || obj === undefined) {
+      if (obj === undefined) {
+        console.error(`[Main] 发现 undefined 在路径: ${path}`);
+      }
+      return;
+    }
+
+    if (typeof obj !== 'object') {
+      return;
+    }
+
+    if (Array.isArray(obj)) {
+      obj.forEach((item, index) => {
+        this._ensureNoUndefined(item, `${path}[${index}]`);
+      });
+    } else {
+      Object.entries(obj).forEach(([key, value]) => {
+        if (value === undefined) {
+          console.error(`[Main] 发现 undefined 值在路径: ${path}.${key}`);
+        }
+        this._ensureNoUndefined(value, `${path}.${key}`);
+      });
+    }
+  }
+
+  /**
+   * 递归替换所有undefined值为null
+   * @param {*} obj - 要处理的对象
+   * @returns {*} 处理后的对象
+   */
+  _replaceUndefinedWithNull(obj) {
+    if (obj === undefined) {
+      return null;
+    }
+
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => this._replaceUndefinedWithNull(item));
+    }
+
+    const result = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        result[key] = this._replaceUndefinedWithNull(obj[key]);
+      }
+    }
+    return result;
   }
 
   setupIPC() {
@@ -4002,10 +4119,17 @@ class ChainlessChainApp {
         const cleaned = this.removeUndefinedValues(projects);
         console.log('[Main] 清理后的项目数量:', cleaned ? cleaned.length : 0);
 
+        // 确保返回的是有效的数组
+        if (!cleaned || !Array.isArray(cleaned)) {
+          console.warn('[Main] 清理后的结果不是数组，返回空数组');
+          return [];
+        }
+
         return cleaned;
       } catch (error) {
         console.error('[Main] 获取项目列表失败:', error);
-        throw error;
+        // 出错时返回空数组而不是抛出异常，避免IPC序列化错误
+        return [];
       }
     });
 
@@ -4054,9 +4178,31 @@ class ChainlessChainApp {
 
         // 清理undefined值（IPC无法序列化undefined）
         console.log('[Main] 开始清理 undefined 值');
+        console.log('[Main] 清理前的项目键值:', JSON.stringify(Object.keys(project)));
+
+        // 检查每个键的值
+        Object.keys(project).forEach(key => {
+          if (project[key] === undefined) {
+            console.warn(`[Main] 发现 undefined 值在键: ${key}`);
+          }
+        });
+
         const cleanProject = this.removeUndefinedValues(project);
         console.log('[Main] 清理完成，返回项目');
-        return cleanProject;
+        console.log('[Main] 清理后的项目键:', Object.keys(cleanProject));
+
+        // 再次检查清理后的值
+        Object.keys(cleanProject).forEach(key => {
+          if (cleanProject[key] === undefined) {
+            console.error(`[Main] 清理后仍有 undefined 值在键: ${key}`);
+          }
+        });
+
+        // 最终安全检查：递归替换所有undefined为null
+        const safeProject = this._replaceUndefinedWithNull(cleanProject);
+        console.log('[Main] 最终安全检查完成');
+
+        return safeProject;
       } catch (error) {
         console.error('[Main] 创建项目失败:', error);
         throw error;

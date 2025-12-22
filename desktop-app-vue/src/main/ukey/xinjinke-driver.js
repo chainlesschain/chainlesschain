@@ -75,25 +75,25 @@ class XinJinKeDriver extends BaseUKeyDriver {
    * 初始化驱动
    */
   async initialize() {
-    console.log('[XinJinKe] 初始化芯劲科U盾驱动...');
+    // console.log('[XinJinKe] 初始化芯劲科U盾驱动...');
 
     try {
       // 尝试加载原生模块
       const loaded = this.nativeBinding.load();
 
       if (loaded) {
-        console.log('[XinJinKe] 原生DLL加载成功');
+        // console.log('[XinJinKe] 原生DLL加载成功');
         this.simulationMode = false;
       } else {
-        console.warn('[XinJinKe] 未找到DLL或加载失败，使用模拟模式');
+        // console.warn('[XinJinKe] 未找到DLL或加载失败，使用模拟模式');
         this.simulationMode = true;
       }
 
       this.isInitialized = true;
-      console.log('[XinJinKe] 驱动初始化成功');
+      // console.log('[XinJinKe] 驱动初始化成功');
       return true;
     } catch (error) {
-      console.error('[XinJinKe] 驱动初始化失败:', error);
+      // console.error('[XinJinKe] 驱动初始化失败:', error);
       this.simulationMode = true;
       this.isInitialized = true; // 使用模拟模式继续
       return true;
@@ -104,7 +104,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
    * 检测U盾设备
    */
   async detect() {
-    console.log('[XinJinKe] 检测U盾设备...');
+    // console.log('[XinJinKe] 检测U盾设备...');
 
     try {
       // 查找U盾盘符（通过查找可移动磁盘）
@@ -574,14 +574,14 @@ class XinJinKeDriver extends BaseUKeyDriver {
    * 关闭驱动
    */
   async close() {
-    console.log('[XinJinKe] 关闭U盾连接...');
+    // console.log('[XinJinKe] 关闭U盾连接...');
 
     if (this.isUnlocked) {
       await this.callNativeFunction('xjkCloseKey');
     }
 
     await super.close();
-    console.log('[XinJinKe] U盾连接已关闭');
+    // console.log('[XinJinKe] U盾连接已关闭');
   }
 
   /**
