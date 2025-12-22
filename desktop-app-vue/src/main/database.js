@@ -889,12 +889,29 @@ class DatabaseManager {
    * @returns {Object|null} 项目
    */
   getProjectById(projectId) {
+    console.log('[Database] getProjectById 输入参数:', projectId, 'type:', typeof projectId);
+
     const stmt = this.db.prepare('SELECT * FROM projects WHERE id = ?');
-    const project = stmt.get(projectId);
+
+    console.log('[Database] 准备执行 stmt.get...');
+    let project;
+    try {
+      project = stmt.get(projectId);
+      console.log('[Database] stmt.get 执行成功，结果:', project ? 'OK' : 'NULL');
+    } catch (getError) {
+      console.error('[Database] stmt.get 失败!');
+      console.error('[Database] 查询参数 projectId:', projectId);
+      console.error('[Database] 错误对象:', getError);
+      throw getError;
+    }
 
     // 清理 undefined 值，SQLite 可能返回 undefined
-    if (!project) return null;
+    if (!project) {
+      console.log('[Database] 未找到项目，返回 null');
+      return null;
+    }
 
+    console.log('[Database] 开始清理 undefined 值...');
     const cleaned = {};
     for (const key in project) {
       if (project.hasOwnProperty(key) && project[key] !== undefined) {
@@ -902,6 +919,7 @@ class DatabaseManager {
       }
     }
 
+    console.log('[Database] 清理完成，返回键:', Object.keys(cleaned));
     return cleaned;
   }
 
