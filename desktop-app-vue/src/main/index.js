@@ -1625,6 +1625,47 @@ class ChainlessChainApp {
       }
     });
 
+    // 聊天对话（支持 messages 数组格式）
+    ipcMain.handle('llm:chat', async (_event, { messages, stream = false, ...options }) => {
+      try {
+        if (!this.llmManager) {
+          throw new Error('LLM服务未初始化');
+        }
+
+        console.log('[Main] LLM 聊天请求, messages:', messages?.length || 0, 'stream:', stream);
+
+        // 将 messages 数组转换为单个 prompt（简化实现）
+        // 实际项目中应该保留完整的 messages 历史
+        const prompt = messages.map(msg => {
+          if (msg.role === 'system') {
+            return `System: ${msg.content}`;
+          } else if (msg.role === 'user') {
+            return `User: ${msg.content}`;
+          } else if (msg.role === 'assistant') {
+            return `Assistant: ${msg.content}`;
+          }
+          return msg.content;
+        }).join('\n\n');
+
+        // 调用 LLM
+        const response = await this.llmManager.query(prompt, options);
+
+        console.log('[Main] LLM 聊天响应成功');
+
+        // 返回 OpenAI 兼容格式
+        return {
+          content: response,
+          message: response,
+          usage: {
+            total_tokens: Math.ceil(response.length / 4), // 粗略估算
+          },
+        };
+      } catch (error) {
+        console.error('[Main] LLM 聊天失败:', error);
+        throw error;
+      }
+    });
+
     ipcMain.handle('llm:query-stream', async (_event, prompt, options = {}) => {
       try {
         if (!this.llmManager) {
