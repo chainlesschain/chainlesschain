@@ -222,7 +222,17 @@ class DataEngine:
                 )
             else:
                 raise Exception("LLM client not initialized")
+
             spec = json.loads(content)
+
+            # 如果 LLM 返回了列表而不是字典，取第一个元素
+            if isinstance(spec, list):
+                spec = spec[0] if len(spec) > 0 else {}
+
+            # 确保 spec 是字典
+            if not isinstance(spec, dict):
+                raise Exception(f"Invalid spec type: {type(spec)}")
+
             return spec
 
         except Exception as e:
