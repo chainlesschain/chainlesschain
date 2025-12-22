@@ -904,18 +904,24 @@ class DatabaseManager {
       : JSON.stringify(safeProject.metadata || {});
     // 确保时间戳是数字（毫秒），如果是字符串则转换
     let createdAt = safeProject.created_at ?? safeProject.createdAt ?? Date.now();
+    console.log('[Database] createdAt 原始值:', createdAt, 'type:', typeof createdAt);
     if (typeof createdAt === 'string') {
       createdAt = new Date(createdAt).getTime();
+      console.log('[Database] createdAt 转换后:', createdAt, 'type:', typeof createdAt);
     }
 
     let updatedAt = safeProject.updated_at ?? safeProject.updatedAt ?? Date.now();
+    console.log('[Database] updatedAt 原始值:', updatedAt, 'type:', typeof updatedAt);
     if (typeof updatedAt === 'string') {
       updatedAt = new Date(updatedAt).getTime();
+      console.log('[Database] updatedAt 转换后:', updatedAt, 'type:', typeof updatedAt);
     }
 
     let syncedAt = safeProject.synced_at ?? safeProject.syncedAt ?? null;
+    console.log('[Database] syncedAt 原始值:', syncedAt, 'type:', typeof syncedAt);
     if (typeof syncedAt === 'string') {
       syncedAt = new Date(syncedAt).getTime();
+      console.log('[Database] syncedAt 转换后:', syncedAt, 'type:', typeof syncedAt);
     }
 
     const syncStatus = safeProject.sync_status ?? safeProject.syncStatus ?? 'pending';
@@ -948,7 +954,14 @@ class DatabaseManager {
       syncStatus,
     ].map((value) => (value === undefined ? null : value));
 
+    console.log('[Database] 最终params准备绑定:');
+    params.forEach((param, index) => {
+      console.log(`  [${index}] ${typeof param} = ${param === undefined ? 'UNDEFINED!' : (param === null ? 'NULL' : JSON.stringify(param).substring(0, 50))}`);
+    });
+
+    console.log('[Database] 开始执行 stmt.run...');
     stmt.run(...params);
+    console.log('[Database] stmt.run 执行成功');
 
     return this.getProjectById(safeProject.id);
   }
