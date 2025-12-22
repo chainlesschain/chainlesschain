@@ -996,7 +996,19 @@ class DatabaseManager {
       throw runError;
     }
 
-    return this.getProjectById(safeProject.id);
+    console.log('[Database] 调用 getProjectById, id:', safeProject.id);
+    try {
+      const result = this.getProjectById(safeProject.id);
+      console.log('[Database] getProjectById 返回结果:', result ? 'OK' : 'NULL');
+      console.log('[Database] 返回结果键:', result ? Object.keys(result) : 'N/A');
+      return result;
+    } catch (getError) {
+      console.error('[Database] getProjectById 失败!');
+      console.error('[Database] 错误对象:', getError);
+      console.error('[Database] 错误消息:', getError?.message);
+      console.error('[Database] 错误堆栈:', getError?.stack);
+      throw getError;
+    }
   }
 
   /**
