@@ -35,6 +35,9 @@ const DEFAULT_CONFIG = {
 
   // 导出路径（相对于仓库路径）
   exportPath: 'knowledge',
+
+  // 是否启用Git日志输出
+  enableLogging: false,
 };
 
 /**
@@ -70,9 +73,14 @@ class GitConfig {
         };
 
         this.loaded = true;
-        console.log('[GitConfig] 配置加载成功');
+        // 加载配置时使用直接console.log，因为gitLog还未初始化
+        if (this.config.enableLogging) {
+          console.log('[GitConfig] 配置加载成功');
+        }
       } else {
-        console.log('[GitConfig] 配置文件不存在，使用默认配置');
+        if (DEFAULT_CONFIG.enableLogging) {
+          console.log('[GitConfig] 配置文件不存在，使用默认配置');
+        }
         this.loaded = false;
       }
     } catch (error) {
@@ -96,7 +104,9 @@ class GitConfig {
 
       fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2), 'utf8');
 
-      console.log('[GitConfig] 配置保存成功');
+      if (this.config.enableLogging) {
+        console.log('[GitConfig] 配置保存成功');
+      }
       return true;
     } catch (error) {
       console.error('[GitConfig] 配置保存失败:', error);
@@ -239,6 +249,38 @@ class GitConfig {
     this.config.exportPath = path;
     this.save();
   }
+
+  isLoggingEnabled() {
+    return this.config.enableLogging === true;
+  }
+
+  setLogging(enabled) {
+    this.config.enableLogging = enabled;
+    this.save();
+  }
+}
+
+/**
+ * Git日志工具函数
+ * 根据配置决定是否输出日志
+ */
+function gitLog(tag, ...args) {
+  const config = getGitConfig();
+  if (config.isLoggingEnabled()) {
+    console.log(`[${tag}]`, ...args);
+  }
+}
+
+function gitError(tag, ...args) {
+  // 错误日志始终输出
+  console.error(`[${tag}]`, ...args);
+}
+
+function gitWarn(tag, ...args) {
+  const config = getGitConfig();
+  if (config.isLoggingEnabled()) {
+    console.warn(`[${tag}]`, ...args);
+  }
 }
 
 // 单例
@@ -256,4 +298,7 @@ module.exports = {
   GitConfig,
   getGitConfig,
   DEFAULT_CONFIG,
+  gitLog,
+  gitError,
+  gitWarn,
 };
