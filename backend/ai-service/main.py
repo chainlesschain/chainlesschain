@@ -28,6 +28,7 @@ from src.utils.stream_utils import format_sse
 # 导入Git管理器
 from src.git.git_manager import GitManager
 from src.git.commit_message_generator import generate_commit_message
+from src.git.conflict_resolver import ConflictResolver
 
 # 导入索引器
 from src.indexing.file_indexer import FileIndexer
@@ -62,6 +63,7 @@ rag_engine = RAGEngine()
 
 # 初始化Git管理器
 git_manager = GitManager()
+conflict_resolver = ConflictResolver()
 
 # 初始化文件索引器
 file_indexer = FileIndexer(rag_engine)
@@ -524,7 +526,9 @@ class MergeRequest(BaseModel):
 
 class ConflictResolveRequest(BaseModel):
     repo_path: str
-    resolutions: Dict[str, Any]
+    file_path: Optional[str] = None  # 指定文件路径，不填则解决所有冲突
+    auto_resolve: bool = False  # 是否自动应用解决方案
+    strategy: Optional[str] = None  # 强制策略: accept_current/accept_incoming/merge_both
 
 
 class CommitMessageRequest(BaseModel):
@@ -675,11 +679,24 @@ async def git_merge(request: MergeRequest):
 async def git_resolve_conflicts(request: ConflictResolveRequest):
     """解决冲突（AI辅助）"""
     try:
-        # TODO: 实现AI辅助冲突解决逻辑
-        return {
-            "success": False,
-            "message": "AI辅助冲突解决功能正在开发中"
-        }
+        if request.file_path:
+            # 解决单个文件冲突
+            import os
+            full_path = os.path.join(request.repo_path, request.file_path)
+            result = await conflict_resolver.resolve_file_conflicts(
+                full_path,
+                request.auto_resolve,
+                request.strategy
+            )
+        else:
+            # 解决整个仓库的冲突
+            result = await conflict_resolver.resolve_repository_conflicts(
+                request.repo_path,
+                request.auto_resolve,
+                request.strategy
+            )
+
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
