@@ -71,12 +71,28 @@ services:
       - ./data/projects:/data/projects
     ports:
       - "8001:8000"
+    env_file:
+      - ./.env  # 使用项目根目录的 .env 文件
     environment:
+      # 基础服务连接
       - OLLAMA_HOST=http://ollama:11434
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
       - REDIS_HOST=redis
       - REDIS_PASSWORD=chainlesschain_redis_2024
+      # LLM配置 - 默认使用云LLM（dashscope），可在.env中配置API Key
+      - LLM_PROVIDER=${LLM_PROVIDER:-dashscope}
+      - LLM_MODEL=${LLM_MODEL:-qwen-turbo}
+      # 云LLM API Keys（从.env文件读取）
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ZHIPU_API_KEY=${ZHIPU_API_KEY:-}
+      - VOLCENGINE_API_KEY=${VOLCENGINE_API_KEY:-}
+      - QIANFAN_API_KEY=${QIANFAN_API_KEY:-}
+      - HUNYUAN_API_KEY=${HUNYUAN_API_KEY:-}
+      - SPARK_API_KEY=${SPARK_API_KEY:-}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
     depends_on:
       - ollama
       - qdrant
