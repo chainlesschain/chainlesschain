@@ -181,7 +181,6 @@
           <ChatPanel
             :project-id="projectId"
             :current-file="currentFile"
-            :project-files="projectFiles"
             @close="showChatPanel = false"
           />
         </div>
