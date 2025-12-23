@@ -402,7 +402,23 @@ class LLMManager extends EventEmitter {
   }
 }
 
+// 单例实例
+let llmManagerInstance = null;
+
+/**
+ * 获取LLM管理器单例
+ * @param {Object} config - 配置对象（仅首次调用时生效）
+ * @returns {LLMManager}
+ */
+function getLLMManager(config = {}) {
+  if (!llmManagerInstance) {
+    llmManagerInstance = new LLMManager(config);
+  }
+  return llmManagerInstance;
+}
+
 module.exports = {
   LLMManager,
   LLMProviders,
+  getLLMManager,
 };
