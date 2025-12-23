@@ -73,7 +73,8 @@ services:
       - "8001:8000"
     environment:
       - OLLAMA_HOST=http://ollama:11434
-      - QDRANT_HOST=http://qdrant:6333
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
       - REDIS_HOST=redis
       - REDIS_PASSWORD=chainlesschain_redis_2024
     depends_on:

@@ -452,6 +452,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // 新增功能 - 项目分享和导出
     shareProject: (params) => ipcRenderer.invoke('project:shareProject', removeUndefined(params)),
+    getShare: (projectId) => ipcRenderer.invoke('project:getShare', projectId),
+    deleteShare: (projectId) => ipcRenderer.invoke('project:deleteShare', projectId),
+    accessShare: (token) => ipcRenderer.invoke('project:accessShare', token),
     shareToWechat: (params) => ipcRenderer.invoke('project:shareToWechat', removeUndefined(params)),
     exportDocument: (params) => ipcRenderer.invoke('project:exportDocument', removeUndefined(params)),
     generatePPT: (params) => ipcRenderer.invoke('project:generatePPT', removeUndefined(params)),

@@ -5,12 +5,16 @@
 
 const path = require('path');
 const fs = require('fs').promises;
+const chokidar = require('chokidar');
+const EventEmitter = require('events');
 
-class ProjectRAGManager {
+class ProjectRAGManager extends EventEmitter {
   constructor() {
+    super();
     this.ragManager = null;
     this.database = null;
     this.initialized = false;
+    this.fileWatchers = new Map(); // projectId -> watcher
   }
 
   /**
@@ -49,14 +53,16 @@ class ProjectRAGManager {
    * 索引项目文件
    * @param {string} projectId - 项目ID
    * @param {Object} options - 选项
+   * @param {Function} onProgress - 进度回调 (current, total, fileName)
    * @returns {Promise<Object>} 索引结果
    */
-  async indexProjectFiles(projectId, options = {}) {
+  async indexProjectFiles(projectId, options = {}, onProgress = null) {
     this.ensureInitialized();
 
     const {
       forceReindex = false,  // 是否强制重新索引
-      fileTypes = null        // 限定文件类型，null表示所有
+      fileTypes = null,       // 限定文件类型，null表示所有
+      enableWatcher = true    // 是否启用文件监听
     } = options;
 
     console.log(`[ProjectRAG] 开始索引项目文件: ${projectId}`);
@@ -93,8 +99,21 @@ class ProjectRAGManager {
       let skippedCount = 0;
       const errors = [];
 
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
         try {
+          // 报告进度
+          if (onProgress) {
+            onProgress(i + 1, files.length, file.file_name);
+          }
+          this.emit('indexing-progress', {
+            current: i + 1,
+            total: files.length,
+            fileName: file.file_name,
+            projectId
+          });
+
           // 检查是否已索引
           if (!forceReindex) {
             const existing = await this.ragManager.getDocument(`project_file_${file.id}`);
@@ -152,6 +171,14 @@ class ProjectRAGManager {
       };
 
       console.log('[ProjectRAG] 索引完成:', result);
+
+      // 4. 启动文件监听
+      if (enableWatcher && project.path) {
+        await this.startFileWatcher(projectId, project.path);
+      }
+
+      this.emit('indexing-complete', result);
+
       return result;
 
     } catch (error) {
@@ -277,7 +304,25 @@ class ProjectRAGManager {
    */
   async searchConversationHistory(projectId, query, limit) {
     try {
-      // 使用FTS全文搜索对话历史
+      // 优先使用向量搜索
+      try {
+        const vectorResults = await this.ragManager.search(query, {
+          filter: {
+            type: 'conversation',
+            projectId: projectId
+          },
+          limit: limit
+        });
+
+        if (vectorResults && vectorResults.length > 0) {
+          console.log(`[ProjectRAG] 使用向量搜索对话历史: ${vectorResults.length} 条`);
+          return vectorResults;
+        }
+      } catch (vectorError) {
+        console.warn('[ProjectRAG] 向量搜索对话失败，使用SQL查询', vectorError);
+      }
+
+      // 降级方案: 使用SQL全文搜索对话历史
       const conversations = this.database.prepare(`
         SELECT
           id,
@@ -471,6 +516,177 @@ class ProjectRAGManager {
 
     } catch (error) {
       console.error('[ProjectRAG] 获取索引统计失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 启动文件监听
+   * @param {string} projectId - 项目ID
+   * @param {string} projectPath - 项目路径
+   */
+  async startFileWatcher(projectId, projectPath) {
+    // 如果已有监听器，先停止
+    if (this.fileWatchers.has(projectId)) {
+      this.stopFileWatcher(projectId);
+    }
+
+    console.log(`[ProjectRAG] 启动文件监听: ${projectPath}`);
+
+    const watcher = chokidar.watch(projectPath, {
+      ignored: /(^|[\/\\])\../, // 忽略隐藏文件
+      persistent: true,
+      ignoreInitial: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 1000,
+        pollInterval: 100
+      }
+    });
+
+    // 监听文件变化
+    watcher
+      .on('add', async (filePath) => {
+        console.log(`[ProjectRAG] 文件新增: ${filePath}`);
+        await this.handleFileChange(projectId, filePath, 'add');
+      })
+      .on('change', async (filePath) => {
+        console.log(`[ProjectRAG] 文件修改: ${filePath}`);
+        await this.handleFileChange(projectId, filePath, 'change');
+      })
+      .on('unlink', async (filePath) => {
+        console.log(`[ProjectRAG] 文件删除: ${filePath}`);
+        await this.handleFileChange(projectId, filePath, 'delete');
+      })
+      .on('error', (error) => {
+        console.error('[ProjectRAG] 文件监听错误:', error);
+      });
+
+    this.fileWatchers.set(projectId, watcher);
+  }
+
+  /**
+   * 停止文件监听
+   * @param {string} projectId - 项目ID
+   */
+  stopFileWatcher(projectId) {
+    const watcher = this.fileWatchers.get(projectId);
+    if (watcher) {
+      watcher.close();
+      this.fileWatchers.delete(projectId);
+      console.log(`[ProjectRAG] 已停止文件监听: ${projectId}`);
+    }
+  }
+
+  /**
+   * 处理文件变化
+   * @param {string} projectId - 项目ID
+   * @param {string} filePath - 文件路径
+   * @param {string} changeType - 变化类型 (add/change/delete)
+   */
+  async handleFileChange(projectId, filePath, changeType) {
+    try {
+      // 查找文件记录
+      const file = this.database.prepare(`
+        SELECT id FROM project_files
+        WHERE project_id = ? AND file_path = ?
+      `).get(projectId, filePath);
+
+      if (changeType === 'delete') {
+        if (file) {
+          // 删除向量索引
+          await this.ragManager.deleteDocument(`project_file_${file.id}`);
+          console.log(`[ProjectRAG] 已删除文件索引: ${filePath}`);
+        }
+      } else if (changeType === 'add' || changeType === 'change') {
+        if (file) {
+          // 更新索引
+          await this.updateFileIndex(file.id);
+          console.log(`[ProjectRAG] 已更新文件索引: ${filePath}`);
+
+          this.emit('file-indexed', {
+            projectId,
+            fileId: file.id,
+            filePath,
+            changeType
+          });
+        }
+      }
+    } catch (error) {
+      console.error(`[ProjectRAG] 处理文件变化失败: ${filePath}`, error);
+    }
+  }
+
+  /**
+   * 索引项目对话历史
+   * @param {string} projectId - 项目ID
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} 索引结果
+   */
+  async indexConversationHistory(projectId, options = {}) {
+    this.ensureInitialized();
+
+    const { limit = 100 } = options;
+
+    console.log(`[ProjectRAG] 开始索引对话历史: ${projectId}`);
+
+    try {
+      // 获取项目对话历史
+      const conversations = this.database.prepare(`
+        SELECT id, role, content, created_at
+        FROM project_conversations
+        WHERE project_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+      `).all(projectId, limit);
+
+      console.log(`[ProjectRAG] 找到 ${conversations.length} 条对话记录`);
+
+      let indexedCount = 0;
+      const errors = [];
+
+      for (const conv of conversations) {
+        try {
+          // 只索引有实质内容的对话
+          if (!conv.content || conv.content.trim().length < 10) {
+            continue;
+          }
+
+          // 添加到向量数据库
+          await this.ragManager.addDocument({
+            id: `conversation_${conv.id}`,
+            content: conv.content,
+            metadata: {
+              type: 'conversation',
+              projectId: projectId,
+              conversationId: conv.id,
+              role: conv.role,
+              createdAt: conv.created_at
+            }
+          });
+
+          indexedCount++;
+        } catch (error) {
+          console.error(`[ProjectRAG] 索引对话失败: ${conv.id}`, error);
+          errors.push({
+            conversationId: conv.id,
+            error: error.message
+          });
+        }
+      }
+
+      const result = {
+        success: true,
+        projectId: projectId,
+        totalConversations: conversations.length,
+        indexedCount: indexedCount,
+        errors: errors
+      };
+
+      console.log('[ProjectRAG] 对话历史索引完成:', result);
+      return result;
+
+    } catch (error) {
+      console.error('[ProjectRAG] 索引对话历史失败:', error);
       throw error;
     }
   }

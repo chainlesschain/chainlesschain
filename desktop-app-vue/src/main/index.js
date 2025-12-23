@@ -4631,6 +4631,61 @@ class ChainlessChainApp {
       }
     });
 
+
+    // 索引项目对话历史
+    ipcMain.handle('project:indexConversations', async (_event, projectId, options = {}) => {
+      try {
+        const { getProjectRAGManager } = require('./project/project-rag');
+        const projectRAG = getProjectRAGManager();
+
+        await projectRAG.initialize();
+
+        const result = await projectRAG.indexConversationHistory(projectId, options);
+
+        console.log('[Main] 对话历史索引完成:', result);
+        return result;
+      } catch (error) {
+        console.error('[Main] 索引对话历史失败:', error);
+        throw error;
+      }
+    });
+
+    // 启动文件监听
+    ipcMain.handle('project:startWatcher', async (_event, projectId, projectPath) => {
+      try {
+        const { getProjectRAGManager } = require('./project/project-rag');
+        const projectRAG = getProjectRAGManager();
+
+        await projectRAG.initialize();
+
+        await projectRAG.startFileWatcher(projectId, projectPath);
+
+        console.log('[Main] 文件监听已启动:', projectPath);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 启动文件监听失败:', error);
+        throw error;
+      }
+    });
+
+    // 停止文件监听
+    ipcMain.handle('project:stopWatcher', async (_event, projectId) => {
+      try {
+        const { getProjectRAGManager } = require('./project/project-rag');
+        const projectRAG = getProjectRAGManager();
+
+        await projectRAG.initialize();
+
+        projectRAG.stopFileWatcher(projectId);
+
+        console.log('[Main] 文件监听已停止:', projectId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 停止文件监听失败:', error);
+        throw error;
+      }
+    });
+
     // ==================== 文件内容读写 IPC ====================
 
     // 读取文件内容（文本文件）
@@ -5429,26 +5484,26 @@ ${content.substring(0, 2000)}
     // ============ 项目分享功能 ============
 
     // 分享项目
+    // 创建或更新项目分享
     ipcMain.handle('project:shareProject', async (_event, params) => {
       try {
-        const { projectId, shareMode } = params;
+        const { projectId, shareMode, expiresInDays, regenerateToken } = params;
         console.log(`[Main] 分享项目: ${projectId}, 模式: ${shareMode}`);
 
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
 
-        // 生成分享token
-        const { v4: uuidv4 } = require('uuid');
-        const shareToken = uuidv4();
-        const shareLink = `https://chainlesschain.com/share/${shareToken}`;
+        // 获取分享管理器
+        if (!this.shareManager) {
+          const { getShareManager } = require('./project/share-manager');
+          this.shareManager = getShareManager(this.database);
+        }
 
-        // 更新项目分享设置
-        this.database.updateProject(projectId, {
-          share_mode: shareMode,
-          share_token: shareToken,
-          share_link: shareLink,
-          shared_at: new Date().toISOString()
+        // 创建或更新分享
+        const result = await this.shareManager.createOrUpdateShare(projectId, shareMode, {
+          expiresInDays,
+          regenerateToken
         });
 
         // 如果是公开模式，可以发布到社交模块（暂未实现）
@@ -5459,12 +5514,105 @@ ${content.substring(0, 2000)}
 
         return {
           success: true,
-          shareLink,
-          shareToken,
-          shareMode
+          shareLink: result.share.share_link,
+          shareToken: result.share.share_token,
+          shareMode: result.share.share_mode,
+          share: result.share
         };
       } catch (error) {
         console.error('[Main] 项目分享失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取项目分享信息
+    ipcMain.handle('project:getShare', async (_event, projectId) => {
+      try {
+        console.log(`[Main] 获取项目分享信息: ${projectId}`);
+
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        if (!this.shareManager) {
+          const { getShareManager } = require('./project/share-manager');
+          this.shareManager = getShareManager(this.database);
+        }
+
+        const share = this.shareManager.getShareByProjectId(projectId);
+
+        return {
+          success: true,
+          share
+        };
+      } catch (error) {
+        console.error('[Main] 获取分享信息失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除项目分享
+    ipcMain.handle('project:deleteShare', async (_event, projectId) => {
+      try {
+        console.log(`[Main] 删除项目分享: ${projectId}`);
+
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        if (!this.shareManager) {
+          const { getShareManager } = require('./project/share-manager');
+          this.shareManager = getShareManager(this.database);
+        }
+
+        const success = this.shareManager.deleteShare(projectId);
+
+        return {
+          success
+        };
+      } catch (error) {
+        console.error('[Main] 删除分享失败:', error);
+        throw error;
+      }
+    });
+
+    // 根据token访问分享项目
+    ipcMain.handle('project:accessShare', async (_event, token) => {
+      try {
+        console.log(`[Main] 访问分享项目: ${token}`);
+
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        if (!this.shareManager) {
+          const { getShareManager } = require('./project/share-manager');
+          this.shareManager = getShareManager(this.database);
+        }
+
+        const share = this.shareManager.getShareByToken(token);
+
+        if (!share) {
+          throw new Error('分享不存在');
+        }
+
+        if (share.is_expired) {
+          throw new Error('分享已过期');
+        }
+
+        if (!share.accessible) {
+          throw new Error('分享已设置为私密');
+        }
+
+        // 增加访问计数
+        this.shareManager.incrementAccessCount(token);
+
+        return {
+          success: true,
+          share
+        };
+      } catch (error) {
+        console.error('[Main] 访问分享失败:', error);
         throw error;
       }
     });

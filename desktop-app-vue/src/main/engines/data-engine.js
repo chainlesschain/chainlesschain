@@ -435,6 +435,206 @@ class DataEngine {
 
     return markdown;
   }
+
+  /**
+   * 处理项目任务
+   * @param {Object} params - 任务参数
+   * @returns {Promise<Object>} 处理结果
+   */
+  async handleProjectTask(params) {
+    const { action, description, outputFiles = [], projectPath, llmManager } = params;
+
+    console.log('[Data Engine] 处理数据任务:', action);
+    console.log('[Data Engine] 项目路径:', projectPath);
+
+    try {
+      switch (action) {
+        case 'read_excel':
+        case 'read_csv': {
+          // 读取CSV/Excel文件
+          // 从输出文件列表或描述中提取文件名
+          const fileName = outputFiles[0] || this.extractFileNameFromDescription(description);
+          const filePath = path.join(projectPath, fileName);
+
+          console.log('[Data Engine] 读取文件:', filePath);
+
+          const data = await this.readCSV(filePath);
+
+          return {
+            type: 'data',
+            action: 'read',
+            filePath,
+            success: true,
+            data
+          };
+        }
+
+        case 'analyze_data': {
+          // 分析数据
+          // 首先需要读取数据文件
+          const fileName = this.extractFileNameFromDescription(description);
+          const filePath = path.join(projectPath, fileName);
+
+          console.log('[Data Engine] 分析文件:', filePath);
+
+          const data = await this.readCSV(filePath);
+          const analysis = this.analyzeData(data);
+
+          // 生成分析报告
+          const reportFileName = 'analysis_report.md';
+          const reportPath = path.join(projectPath, reportFileName);
+          await this.generateReport(analysis, reportPath);
+
+          return {
+            type: 'data',
+            action: 'analyze',
+            filePath,
+            reportPath,
+            success: true,
+            analysis
+          };
+        }
+
+        case 'create_chart': {
+          // 创建图表
+          const fileName = this.extractFileNameFromDescription(description);
+          const filePath = path.join(projectPath, fileName);
+
+          console.log('[Data Engine] 从文件创建图表:', filePath);
+
+          const data = await this.readCSV(filePath);
+
+          // 自动检测X轴和Y轴列（使用前两列）
+          const xColumn = data.headers[0];
+          const yColumn = data.headers[1];
+
+          const chartFileName = 'chart.html';
+          const chartPath = path.join(projectPath, chartFileName);
+
+          const chartResult = await this.generateChart(data, {
+            chartType: 'bar',
+            title: '数据图表',
+            xColumn,
+            yColumn,
+            outputPath: chartPath
+          });
+
+          return {
+            type: 'data',
+            action: 'chart',
+            filePath,
+            chartPath,
+            success: true,
+            ...chartResult
+          };
+        }
+
+        case 'export_csv': {
+          // 导出CSV文件
+          const fileName = outputFiles[0] || 'data.csv';
+          const filePath = path.join(projectPath, fileName);
+
+          console.log('[Data Engine] 导出CSV:', filePath);
+
+          // 使用LLM生成示例数据
+          let sampleData;
+          if (llmManager) {
+            sampleData = await this.generateSampleDataWithLLM(description, llmManager);
+          } else {
+            // 默认示例数据
+            sampleData = {
+              headers: ['名称', '数值'],
+              rows: [
+                { '名称': '项目A', '数值': '100' },
+                { '名称': '项目B', '数值': '200' },
+                { '名称': '项目C', '数值': '150' }
+              ]
+            };
+          }
+
+          await this.writeCSV(filePath, sampleData);
+
+          return {
+            type: 'data',
+            action: 'export',
+            filePath,
+            success: true,
+            rowCount: sampleData.rows.length
+          };
+        }
+
+        default:
+          throw new Error(`不支持的数据操作: ${action}`);
+      }
+    } catch (error) {
+      console.error('[Data Engine] 任务执行失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 从描述中提取文件名
+   * @private
+   */
+  extractFileNameFromDescription(description) {
+    // 尝试从描述中提取文件名（如: "读取sales_data.csv文件"）
+    const filePattern = /[\w\-_]+\.(csv|xlsx|xls)/gi;
+    const matches = description.match(filePattern);
+
+    if (matches && matches.length > 0) {
+      return matches[0];
+    }
+
+    // 默认文件名
+    return 'data.csv';
+  }
+
+  /**
+   * 使用LLM生成示例数据
+   * @private
+   */
+  async generateSampleDataWithLLM(description, llmManager) {
+    const prompt = `根据以下需求，生成CSV格式的示例数据（JSON格式返回）：
+
+${description}
+
+请返回JSON格式：
+{
+  "headers": ["列1", "列2", ...],
+  "rows": [
+    {"列1": "值1", "列2": "值2", ...},
+    ...
+  ]
+}
+
+只返回JSON，不要其他说明文字。`;
+
+    try {
+      const response = await llmManager.chat([
+        { role: 'user', content: prompt }
+      ], {
+        temperature: 0.7,
+        max_tokens: 2000
+      });
+
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (error) {
+      console.warn('[Data Engine] LLM生成数据失败，使用默认数据:', error);
+    }
+
+    // 默认数据
+    return {
+      headers: ['名称', '数值'],
+      rows: [
+        { '名称': '项目A', '数值': '100' },
+        { '名称': '项目B', '数值': '200' },
+        { '名称': '项目C', '数值': '150' }
+      ]
+    };
+  }
 }
 
 module.exports = DataEngine;

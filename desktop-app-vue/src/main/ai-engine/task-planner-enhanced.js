@@ -53,10 +53,16 @@ class TaskPlannerEnhanced extends EventEmitter {
     console.log('[TaskPlannerEnhanced] 开始拆解任务:', userRequest);
 
     try {
-      // 1. 构建拆解提示词
-      const prompt = this.buildDecomposePrompt(userRequest, projectContext);
+      // 1. RAG增强: 检索相关上下文
+      let ragContext = null;
+      if (projectContext.projectId && projectContext.enableRAG !== false) {
+        ragContext = await this.retrieveRAGContext(userRequest, projectContext);
+      }
 
-      // 2. 调用LLM生成任务计划
+      // 2. 构建拆解提示词(异步,集成RAG上下文)
+      const prompt = await this.buildDecomposePrompt(userRequest, projectContext, ragContext);
+
+      // 3. 调用LLM生成任务计划
       const response = await this.llmManager.query(prompt, {
         systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
         temperature: 0.3,
@@ -103,9 +109,39 @@ class TaskPlannerEnhanced extends EventEmitter {
   }
 
   /**
+   * 检索RAG上下文
+   */
+  async retrieveRAGContext(userRequest, projectContext) {
+    try {
+      const { getProjectRAGManager } = require('../project/project-rag');
+      const projectRAG = getProjectRAGManager();
+
+      await projectRAG.initialize();
+
+      const ragResult = await projectRAG.enhancedQuery(
+        projectContext.projectId,
+        userRequest,
+        {
+          projectLimit: 3,
+          knowledgeLimit: 2,
+          conversationLimit: 2,
+          useReranker: true
+        }
+      );
+
+      console.log('[TaskPlannerEnhanced] RAG检索完成，找到', ragResult.totalDocs, '条相关文档');
+
+      return ragResult;
+    } catch (error) {
+      console.warn('[TaskPlannerEnhanced] RAG检索失败，继续使用基础上下文:', error);
+      return null;
+    }
+  }
+
+  /**
    * 构建任务拆解提示词
    */
-  buildDecomposePrompt(userRequest, projectContext) {
+  async buildDecomposePrompt(userRequest, projectContext, ragContext = null) {
     const { projectType, existingFiles = [], projectName, projectDescription, projectPath } = projectContext;
 
     let prompt = `请将以下用户需求拆解为详细的可执行步骤：
@@ -126,6 +162,22 @@ ${userRequest}
     }
     if (existingFiles.length > 0) {
       prompt += `\n- 现有文件: ${existingFiles.slice(0, 10).join(', ')}${existingFiles.length > 10 ? '...' : ''}`;
+    }
+
+    // RAG增强: 添加相关上下文
+    if (ragContext && ragContext.context && ragContext.context.length > 0) {
+      prompt += `\n\n【相关上下文】(从项目文件、知识库和对话历史中检索)`;
+
+      ragContext.context.slice(0, 5).forEach((doc, index) => {
+        const source = doc.source || doc.metadata?.type || 'unknown';
+        const fileName = doc.metadata?.fileName || doc.metadata?.projectName || '未知';
+        const excerpt = doc.content.substring(0, 200).replace(/\n/g, ' ');
+
+        prompt += `\n\n[${index + 1}] 来源: ${source} | 文件: ${fileName}`;
+        prompt += `\n内容摘要: ${excerpt}...`;
+      });
+
+      prompt += `\n\n*请参考以上上下文信息，确保任务拆解与现有代码和对话历史一致。*`;
     }
 
     prompt += `

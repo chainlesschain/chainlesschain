@@ -724,6 +724,33 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_project_logs_created_at ON project_logs(created_at DESC);
     `);
 
+    // 项目分享表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS project_shares (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        share_token TEXT NOT NULL UNIQUE,
+        share_mode TEXT NOT NULL CHECK(share_mode IN ('private', 'public')),
+        share_link TEXT,
+        access_count INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        expires_at INTEGER,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 项目分享索引
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_project_shares_project_id ON project_shares(project_id);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_project_shares_token ON project_shares(share_token);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_project_shares_mode ON project_shares(share_mode);
+    `);
+
     // 数据库迁移：为已存在的表添加新列（必须在创建依赖新列的索引之前执行）
     this.migrateDatabase();
 
