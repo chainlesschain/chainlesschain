@@ -5,6 +5,7 @@
 
 const IntentClassifier = require('./intent-classifier');
 const TaskPlanner = require('./task-planner');
+const TaskPlannerEnhanced = require('./task-planner-enhanced');
 const FunctionCaller = require('./function-caller');
 
 class AIEngineManager {
@@ -13,8 +14,67 @@ class AIEngineManager {
     this.taskPlanner = new TaskPlanner();
     this.functionCaller = new FunctionCaller();
 
+    // 增强版任务规划器（需要初始化）
+    this.taskPlannerEnhanced = null;
+
+    // 依赖项（延迟注入）
+    this.llmManager = null;
+    this.database = null;
+    this.projectConfig = null;
+
     // 执行历史（用于上下文理解）
     this.executionHistory = [];
+  }
+
+  /**
+   * 初始化AI引擎管理器
+   * 注入依赖项并初始化增强版任务规划器
+   */
+  async initialize() {
+    try {
+      // 获取LLM管理器
+      if (!this.llmManager) {
+        const { getLLMManager } = require('../llm/llm-manager');
+        const { getDatabase } = require('../database');
+        const { getProjectConfig } = require('../project/project-config');
+
+        this.llmManager = getLLMManager();
+        this.database = getDatabase();
+        this.projectConfig = getProjectConfig();
+
+        // 确保LLM管理器已初始化
+        if (!this.llmManager.isInitialized) {
+          await this.llmManager.initialize();
+        }
+      }
+
+      // 初始化增强版任务规划器
+      if (!this.taskPlannerEnhanced) {
+        this.taskPlannerEnhanced = new TaskPlannerEnhanced({
+          llmManager: this.llmManager,
+          database: this.database,
+          projectConfig: this.projectConfig
+        });
+
+        console.log('[AIEngineManager] 增强版任务规划器已初始化');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[AIEngineManager] 初始化失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取增强版任务规划器
+   * @returns {TaskPlannerEnhanced}
+   */
+  getTaskPlanner() {
+    if (!this.taskPlannerEnhanced) {
+      throw new Error('增强版任务规划器未初始化，请先调用 initialize()');
+    }
+    return this.taskPlannerEnhanced;
   }
 
   /**
@@ -193,4 +253,21 @@ class AIEngineManager {
   }
 }
 
-module.exports = AIEngineManager;
+// 单例模式
+let aiEngineManagerInstance = null;
+
+/**
+ * 获取AI引擎管理器单例
+ * @returns {AIEngineManager}
+ */
+function getAIEngineManager() {
+  if (!aiEngineManagerInstance) {
+    aiEngineManagerInstance = new AIEngineManager();
+  }
+  return aiEngineManagerInstance;
+}
+
+module.exports = {
+  AIEngineManager,
+  getAIEngineManager
+};

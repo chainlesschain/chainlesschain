@@ -40,6 +40,18 @@
 
       <!-- 右侧：操作按钮 -->
       <div class="toolbar-right">
+        <!-- 文件管理按钮 -->
+        <a-button v-if="hasValidPath" @click="showFileManageModal = true">
+          <FolderOpenOutlined />
+          文件管理
+        </a-button>
+
+        <!-- 分享按钮 -->
+        <a-button v-if="currentProject" @click="showShareModal = true">
+          <ShareAltOutlined />
+          分享
+        </a-button>
+
         <!-- AI助手开关 -->
         <a-button v-if="hasValidPath" @click="toggleChatPanel">
           <CommentOutlined />
@@ -285,6 +297,29 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 文件管理Modal -->
+    <FileManageModal
+      :visible="showFileManageModal"
+      :files="projectFiles"
+      :project-id="projectId"
+      :loading="refreshing"
+      @close="showFileManageModal = false"
+      @file-click="handleFileClickFromModal"
+      @file-preview="handleFilePreviewFromModal"
+      @file-download="handleFileDownloadFromModal"
+      @file-delete="handleFileDeleteFromModal"
+    />
+
+    <!-- 分享项目Modal -->
+    <ShareProjectModal
+      :visible="showShareModal"
+      :project-id="projectId"
+      :project-name="currentProject?.name"
+      :current-share-type="currentProject?.share_type || 'private'"
+      @close="showShareModal = false"
+      @update:shareType="handleUpdateShareType"
+    />
   </div>
 </template>
 
@@ -313,12 +348,15 @@ import {
   EyeOutlined,
   FileSearchOutlined,
   CommentOutlined,
+  ShareAltOutlined,
 } from '@ant-design/icons-vue';
 import FileTree from '@/components/projects/FileTree.vue';
 import SimpleEditor from '@/components/projects/SimpleEditor.vue';
 import PreviewPanel from '@/components/projects/PreviewPanel.vue';
 import ChatPanel from '@/components/projects/ChatPanel.vue';
 import GitStatusDialog from '@/components/projects/GitStatusDialog.vue';
+import FileManageModal from '@/components/projects/FileManageModal.vue';
+import ShareProjectModal from '@/components/projects/ShareProjectModal.vue';
 import GitHistoryDialog from '@/components/projects/GitHistoryDialog.vue';
 
 const route = useRoute();
@@ -344,6 +382,8 @@ const fileContent = ref(''); // 文件内容
 const editorRef = ref(null);
 const gitStatus = ref({}); // Git 状态
 let gitStatusInterval = null; // Git 状态轮询定时器
+const showFileManageModal = ref(false); // 文件管理Modal
+const showShareModal = ref(false); // 分享Modal
 
 // 计算属性
 const projectId = computed(() => route.params.id);
@@ -667,6 +707,75 @@ const handleGitPull = async () => {
   } catch (error) {
     console.error('Git pull failed:', error);
     message.error('拉取失败：' + error.message);
+  }
+};
+
+// ==================== 文件管理Modal事件处理 ====================
+
+// 从文件管理Modal点击文件
+const handleFileClickFromModal = (file) => {
+  showFileManageModal.value = false;
+  handleSelectFile(file.id);
+};
+
+// 从文件管理Modal预览文件
+const handleFilePreviewFromModal = (file) => {
+  // 切换到预览模式
+  viewMode.value = 'preview';
+  handleSelectFile(file.id);
+  showFileManageModal.value = false;
+};
+
+// 从文件管理Modal下载文件
+const handleFileDownloadFromModal = async (file) => {
+  try {
+    // TODO: 实现文件下载功能
+    // 调用Electron API下载文件到用户指定位置
+    await window.electronAPI.file.saveAs(file.file_path);
+    message.success('文件下载成功');
+  } catch (error) {
+    console.error('Download file failed:', error);
+    message.error('下载失败：' + error.message);
+  }
+};
+
+// 从文件管理Modal删除文件
+const handleFileDeleteFromModal = async (file) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除文件 "${file.file_name}" 吗？此操作不可恢复。`,
+    okText: '删除',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        // TODO: 实现文件删除功能
+        await window.electronAPI.project.deleteFile(projectId.value, file.id);
+        message.success('文件已删除');
+        // 刷新文件列表
+        await handleRefreshFiles();
+      } catch (error) {
+        console.error('Delete file failed:', error);
+        message.error('删除失败：' + error.message);
+      }
+    },
+  });
+};
+
+// ==================== 分享Modal事件处理 ====================
+
+// 更新分享类型
+const handleUpdateShareType = async (shareType) => {
+  try {
+    // 更新项目的分享类型
+    await projectStore.updateProject(projectId.value, {
+      share_type: shareType,
+    });
+
+    message.success(shareType === 'public' ? '项目已设置为公开访问' : '项目已设置为私密访问');
+  } catch (error) {
+    console.error('Update share type failed:', error);
+    message.error('更新分享设置失败：' + error.message);
   }
 };
 

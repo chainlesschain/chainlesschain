@@ -4,10 +4,12 @@ ChainlessChain AI Service
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import base64
 import os
+import json
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -19,6 +21,9 @@ from src.engines.doc_engine import DocumentEngine
 from src.engines.data_engine import DataEngine
 from src.nlu.intent_classifier import IntentClassifier
 from src.rag.rag_engine import RAGEngine
+
+# 导入流式工具
+from src.utils.stream_utils import format_sse
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -159,8 +164,11 @@ async def create_project(request: ProjectCreateRequest):
         项目创建结果（项目ID、文件路径等）
     """
     try:
-        # 1. 意图识别
-        intent_result = await intent_classifier.classify(request.user_prompt)
+        # 1. 意图识别（如果已指定project_type，使用快速路径）
+        intent_result = await intent_classifier.classify(
+            request.user_prompt,
+            project_type_hint=request.project_type
+        )
 
         # 2. 根据意图选择引擎
         project_type = request.project_type or intent_result.get("project_type") or "web"
@@ -256,6 +264,195 @@ async def query_knowledge(query: str, project_id: Optional[str] = None):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ========================================
+# 流式生成API端点
+# ========================================
+
+@app.post("/api/projects/create/stream")
+async def create_project_stream(request: ProjectCreateRequest):
+    """
+    流式创建项目接口（SSE）
+
+    Args:
+        request: 包含用户指令、项目类型等
+
+    Returns:
+        Server-Sent Events流式响应
+    """
+    async def event_generator():
+        try:
+            # 1. 意图识别
+            yield format_sse({
+                "type": "progress",
+                "stage": "intent",
+                "message": "正在识别意图..."
+            })
+
+            intent_result = await intent_classifier.classify(
+                request.user_prompt,
+                project_type_hint=request.project_type
+            )
+
+            yield format_sse({
+                "type": "progress",
+                "stage": "intent",
+                "message": "意图识别完成",
+                "intent": intent_result
+            })
+
+            # 2. 根据意图选择引擎
+            project_type = request.project_type or intent_result.get("project_type") or "web"
+            if project_type == "unknown":
+                project_type = "web"
+
+            yield format_sse({
+                "type": "progress",
+                "stage": "engine",
+                "message": f"使用 {project_type} 引擎生成..."
+            })
+
+            # 3. 调用相应引擎进行流式生成
+            if project_type == "web":
+                async for chunk in web_engine.generate_stream(
+                    prompt=request.user_prompt,
+                    context=intent_result
+                ):
+                    # 对于complete类型，需要编码二进制文件
+                    if chunk.get("type") == "complete":
+                        chunk["result"] = _encode_binary_files(chunk)
+
+                    yield format_sse(chunk)
+
+            elif project_type == "document":
+                # TODO: 实现document引擎的流式生成
+                result = await doc_engine.generate(
+                    prompt=request.user_prompt,
+                    context=intent_result
+                )
+                yield format_sse({
+                    "type": "complete",
+                    "result": _encode_binary_files(result)
+                })
+
+            elif project_type == "data":
+                # TODO: 实现data引擎的流式生成
+                result = await data_engine.generate(
+                    prompt=request.user_prompt,
+                    context=intent_result
+                )
+                yield format_sse({
+                    "type": "complete",
+                    "result": _encode_binary_files(result)
+                })
+
+            else:
+                yield format_sse({
+                    "type": "error",
+                    "error": f"不支持的项目类型: {project_type}"
+                })
+
+        except Exception as e:
+            yield format_sse({
+                "type": "error",
+                "error": str(e)
+            })
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # 禁用nginx缓冲
+        }
+    )
+
+
+@app.post("/api/chat/stream")
+async def chat_stream(
+    messages: List[Dict[str, str]],
+    model: Optional[str] = None,
+    temperature: float = 0.7
+):
+    """
+    流式对话接口（通用LLM聊天）
+
+    Args:
+        messages: 对话消息列表 [{"role": "user", "content": "..."}]
+        model: 模型名称（可选）
+        temperature: 温度参数
+
+    Returns:
+        Server-Sent Events流式响应
+    """
+    from src.utils.stream_utils import (
+        stream_ollama_chat,
+        stream_openai_chat,
+        stream_custom_llm_chat
+    )
+
+    llm_provider = os.getenv("LLM_PROVIDER", "ollama")
+    model_name = model or os.getenv("LLM_MODEL", "qwen2:7b")
+
+    async def event_generator():
+        try:
+            if llm_provider == "ollama":
+                async for chunk in stream_ollama_chat(
+                    model=model_name,
+                    messages=messages,
+                    options={"temperature": temperature}
+                ):
+                    yield format_sse(chunk)
+
+            elif llm_provider == "openai":
+                from openai import AsyncOpenAI
+                openai_api_key = os.getenv("OPENAI_API_KEY")
+                openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+
+                if not openai_api_key:
+                    yield format_sse({
+                        "type": "error",
+                        "error": "OpenAI API key not configured"
+                    })
+                    return
+
+                client = AsyncOpenAI(api_key=openai_api_key, base_url=openai_base_url)
+                async for chunk in stream_openai_chat(
+                    client=client,
+                    model=model_name,
+                    messages=messages,
+                    temperature=temperature
+                ):
+                    yield format_sse(chunk)
+
+            else:
+                # 自定义LLM客户端
+                from src.llm.llm_client import get_llm_client
+                llm_client = get_llm_client()
+                async for chunk in stream_custom_llm_chat(
+                    llm_client=llm_client,
+                    messages=messages,
+                    temperature=temperature
+                ):
+                    yield format_sse(chunk)
+
+        except Exception as e:
+            yield format_sse({
+                "type": "error",
+                "error": str(e)
+            })
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 
 if __name__ == "__main__":

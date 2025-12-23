@@ -102,11 +102,33 @@
         <p>尝试选择其他类别或创建新项目</p>
       </div>
     </div>
+
+    <!-- 任务执行监控器弹窗 -->
+    <a-modal
+      v-model:open="showTaskMonitor"
+      title="任务执行监控"
+      :width="900"
+      :footer="null"
+      :maskClosable="false"
+      :keyboard="!isExecutingTask"
+      @cancel="handleCloseTaskMonitor"
+      class="task-monitor-modal"
+    >
+      <TaskExecutionMonitor
+        v-if="currentTaskPlan"
+        :task-plan="currentTaskPlan"
+        @cancel="handleCancelTask"
+        @close="handleCloseTaskMonitor"
+        @viewResults="handleViewTaskResults"
+        @retry="handleRetryTask"
+        @fileClick="handleFileClick"
+      />
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { useProjectStore } from '@/stores/project';
@@ -120,6 +142,7 @@ import {
 import ProjectSidebar from '@/components/projects/ProjectSidebar.vue';
 import ConversationInput from '@/components/projects/ConversationInput.vue';
 import ProjectCard from '@/components/projects/ProjectCard.vue';
+import TaskExecutionMonitor from '@/components/projects/TaskExecutionMonitor.vue';
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -134,6 +157,11 @@ const pageSize = ref(12);
 const activeConversationId = ref('');
 const activeNavItem = ref('');
 const recentConversations = ref([]);
+
+// 任务执行相关
+const currentTaskPlan = ref(null);
+const showTaskMonitor = ref(false);
+const isExecutingTask = ref(false);
 
 // 项目类型列表
 const projectTypes = ref([
@@ -244,25 +272,51 @@ const handleUserAction = (action) => {
 // 处理对话式创建项目
 const handleConversationalCreate = async ({ text, attachments }) => {
   try {
-    message.loading({ content: 'AI正在理解您的需求...', key: 'ai-create', duration: 0 });
+    message.loading({ content: 'AI正在分析您的需求...', key: 'ai-create', duration: 0 });
 
-    // TODO: 调用AI引擎处理用户输入
-    // 临时实现：直接创建项目
+    // 1. 先创建项目
     const userId = authStore.currentUser?.id || 'default-user';
     const projectData = {
+      userPrompt: text,
       name: text.substring(0, 50) || '未命名项目',
-      description: text,
-      project_type: 'web', // 默认类型，后续由AI识别
-      status: 'draft',
-      user_id: userId,
+      projectType: 'web',
+      userId: userId,
     };
 
     const project = await projectStore.createProject(projectData);
 
-    message.success({ content: '项目创建成功！', key: 'ai-create', duration: 2 });
+    message.success({ content: '项目已创建', key: 'ai-create', duration: 2 });
 
-    // 跳转到项目详情页
-    router.push(`/projects/${project.id}`);
+    // 2. AI智能拆解任务
+    try {
+      message.loading({ content: 'AI正在拆解任务...', key: 'ai-decompose', duration: 0 });
+
+      const taskPlan = await window.electronAPI.project.decomposeTask(text, {
+        projectId: project.id,
+        projectType: project.project_type,
+        projectName: project.name,
+        root_path: project.root_path
+      });
+
+      message.success({ content: '任务拆解完成', key: 'ai-decompose', duration: 2 });
+
+      // 3. 显示任务执行监控器
+      currentTaskPlan.value = taskPlan;
+      showTaskMonitor.value = true;
+
+      // 4. 自动开始执行
+      executeTaskPlan(taskPlan);
+    } catch (decomposeError) {
+      console.error('Task decompose failed:', decomposeError);
+      message.warning({
+        content: '任务拆解失败，已创建项目。您可以手动编辑。',
+        key: 'ai-decompose',
+        duration: 3
+      });
+
+      // 即使拆解失败，也跳转到项目页
+      router.push(`/projects/${project.id}`);
+    }
   } catch (error) {
     console.error('Failed to create project:', error);
     message.error({ content: '创建失败：' + error.message, key: 'ai-create', duration: 3 });
@@ -358,15 +412,137 @@ const loadRecentConversations = async () => {
   recentConversations.value = [];
 };
 
-// 组件挂载时加载项目
+// 执行任务计划
+const executeTaskPlan = async (taskPlan) => {
+  try {
+    isExecutingTask.value = true;
+
+    const result = await window.electronAPI.project.executeTaskPlan(
+      taskPlan.id,
+      {
+        projectId: taskPlan.project_id,
+        root_path: projectStore.projects.find(p => p.id === taskPlan.project_id)?.root_path
+      }
+    );
+
+    isExecutingTask.value = false;
+
+    if (result.success) {
+      message.success('任务执行完成！');
+    } else {
+      message.error('任务执行失败：' + result.error);
+    }
+  } catch (error) {
+    isExecutingTask.value = false;
+    console.error('Execute task plan failed:', error);
+    message.error('任务执行失败：' + error.message);
+  }
+};
+
+// 处理任务进度更新
+const handleTaskProgressUpdate = (progress) => {
+  if (!currentTaskPlan.value || progress.taskPlan.id !== currentTaskPlan.value.id) {
+    return;
+  }
+
+  // 更新任务计划状态
+  currentTaskPlan.value = progress.taskPlan;
+
+  // 根据进度类型显示消息
+  if (progress.type === 'subtask-started') {
+    console.log(`开始执行: ${progress.subtask.title}`);
+  } else if (progress.type === 'subtask-completed') {
+    console.log(`已完成: ${progress.subtask.title}`);
+  } else if (progress.type === 'task-completed') {
+    message.success('所有任务已完成！');
+    isExecutingTask.value = false;
+  } else if (progress.type === 'task-failed') {
+    message.error('任务执行失败');
+    isExecutingTask.value = false;
+  }
+};
+
+// 取消任务
+const handleCancelTask = async (taskPlanId) => {
+  Modal.confirm({
+    title: '确认取消',
+    content: '确定要取消当前任务吗？',
+    okText: '取消任务',
+    okType: 'danger',
+    cancelText: '继续执行',
+    onOk: async () => {
+      try {
+        await window.electronAPI.project.cancelTaskPlan(taskPlanId);
+        message.success('任务已取消');
+        showTaskMonitor.value = false;
+        currentTaskPlan.value = null;
+        isExecutingTask.value = false;
+      } catch (error) {
+        console.error('Cancel task failed:', error);
+        message.error('取消失败：' + error.message);
+      }
+    }
+  });
+};
+
+// 关闭任务监控器
+const handleCloseTaskMonitor = () => {
+  if (isExecutingTask.value) {
+    Modal.confirm({
+      title: '任务正在执行',
+      content: '任务仍在执行中，关闭监控器不会停止任务。确定要关闭吗？',
+      okText: '关闭',
+      cancelText: '取消',
+      onOk: () => {
+        showTaskMonitor.value = false;
+      }
+    });
+  } else {
+    showTaskMonitor.value = false;
+  }
+};
+
+// 查看任务结果
+const handleViewTaskResults = (taskPlan) => {
+  const project = projectStore.projects.find(p => p.id === taskPlan.project_id);
+  if (project) {
+    router.push(`/projects/${project.id}`);
+    showTaskMonitor.value = false;
+  }
+};
+
+// 重试任务
+const handleRetryTask = async (taskPlan) => {
+  message.info('重新执行任务...');
+  executeTaskPlan(taskPlan);
+};
+
+// 处理文件点击（预览）
+const handleFileClick = ({ file, subtask, taskPlan }) => {
+  console.log('Preview file:', file);
+  message.info(`预览文件: ${file}`);
+  // TODO: 实现文件预览功能
+};
+
+// 组件挂载时加载项目并监听进度
 onMounted(async () => {
   try {
     const userId = authStore.currentUser?.id || 'default-user';
     await projectStore.fetchProjects(userId);
     await loadRecentConversations();
+
+    // 监听任务进度更新
+    window.electronAPI.project.onTaskProgressUpdate(handleTaskProgressUpdate);
   } catch (error) {
     console.error('Failed to load projects:', error);
     message.error('加载项目失败：' + error.message);
+  }
+});
+
+// 组件卸载时清理监听
+onUnmounted(() => {
+  if (window.electronAPI?.project?.offTaskProgressUpdate) {
+    window.electronAPI.project.offTaskProgressUpdate(handleTaskProgressUpdate);
   }
 });
 </script>
@@ -570,6 +746,20 @@ onMounted(async () => {
 
   &::-webkit-scrollbar-track {
     background: #F9FAFB;
+  }
+}
+
+/* 任务监控器弹窗样式 */
+:deep(.task-monitor-modal) {
+  .ant-modal-body {
+    padding: 0;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .ant-modal-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid #e8e8e8;
   }
 }
 </style>

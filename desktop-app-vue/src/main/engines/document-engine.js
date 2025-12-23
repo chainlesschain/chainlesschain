@@ -498,6 +498,417 @@ pandoc document.md -o document.docx
   getTemplates() {
     return this.templates;
   }
+
+  /**
+   * 导出为PDF
+   * @param {string} markdownPath - Markdown文件路径
+   * @param {string} outputPath - 输出PDF路径
+   */
+  async exportToPDF(markdownPath, outputPath) {
+    console.log('[Document Engine] 导出PDF:', markdownPath);
+
+    try {
+      // 读取Markdown内容
+      const markdownContent = await fs.readFile(markdownPath, 'utf-8');
+
+      // 转换为HTML
+      const htmlContent = this.markdownToHTML(markdownContent);
+
+      // 创建完整HTML
+      const fullHTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      line-height: 1.8;
+      color: #333;
+    }
+    h1, h2, h3 { color: #2c3e50; margin-top: 1.5em; }
+    h1 { font-size: 2.5em; border-bottom: 3px solid #3498db; padding-bottom: 0.5em; }
+    h2 { font-size: 2em; border-bottom: 1px solid #bdc3c7; padding-bottom: 0.3em; }
+    h3 { font-size: 1.5em; }
+    p { margin: 1em 0; }
+    ul, ol { margin-left: 2em; }
+    code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; }
+    pre { background: #f4f4f4; padding: 1rem; border-radius: 5px; overflow-x: auto; }
+    blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin-left: 0; color: #7f8c8d; }
+    table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #3498db; color: white; }
+    @page { margin: 2cm; }
+  </style>
+</head>
+<body>
+  ${htmlContent}
+</body>
+</html>`;
+
+      // 保存临时HTML文件
+      const tempHTMLPath = markdownPath.replace(/\.md$/, '_temp.html');
+      await fs.writeFile(tempHTMLPath, fullHTML, 'utf-8');
+
+      // 注意：真正的PDF生成需要puppeteer或类似工具
+      // 这里提供两种方案：
+      // 方案1: 使用puppeteer（需要安装）
+      // 方案2: 提示用户使用浏览器打印或pandoc工具
+
+      console.log('[Document Engine] 提示：完整的PDF导出需要安装puppeteer');
+      console.log('[Document Engine] 临时方案：已生成HTML文件，可通过浏览器打印为PDF');
+
+      // 尝试使用puppeteer（如果已安装）
+      try {
+        const puppeteer = require('puppeteer');
+        console.log('[Document Engine] 使用puppeteer生成PDF...');
+
+        const browser = await puppeteer.launch({ headless: 'new' });
+        const page = await browser.newPage();
+        await page.goto(`file://${tempHTMLPath}`, { waitUntil: 'networkidle0' });
+        await page.pdf({
+          path: outputPath,
+          format: 'A4',
+          margin: {
+            top: '2cm',
+            right: '2cm',
+            bottom: '2cm',
+            left: '2cm'
+          },
+          printBackground: true
+        });
+        await browser.close();
+
+        // 删除临时HTML
+        await fs.unlink(tempHTMLPath);
+
+        console.log('[Document Engine] PDF生成成功:', outputPath);
+        return { success: true, path: outputPath };
+      } catch (puppeteerError) {
+        console.warn('[Document Engine] puppeteer不可用，已生成HTML文件作为替代');
+
+        // 返回HTML路径作为替代
+        return {
+          success: true,
+          path: tempHTMLPath,
+          message: 'PDF导出需要puppeteer库。已生成HTML文件，可通过浏览器打印为PDF。',
+          alternative: true
+        };
+      }
+    } catch (error) {
+      console.error('[Document Engine] 导出PDF失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 导出为Word文档
+   * @param {string} markdownPath - Markdown文件路径
+   * @param {string} outputPath - 输出Docx路径
+   */
+  async exportToDocx(markdownPath, outputPath) {
+    console.log('[Document Engine] 导出Word文档:', markdownPath);
+
+    try {
+      // 注意：完整的Docx导出需要docx库或pandoc
+      // 这里提供基本实现
+
+      // 检查是否有pandoc（最佳方案）
+      const { exec } = require('child_process');
+      const { promisify } = require('util');
+      const execPromise = promisify(exec);
+
+      try {
+        // 尝试使用pandoc
+        await execPromise(`pandoc "${markdownPath}" -o "${outputPath}"`);
+        console.log('[Document Engine] Word文档生成成功（使用pandoc）');
+        return { success: true, path: outputPath, method: 'pandoc' };
+      } catch (pandocError) {
+        console.warn('[Document Engine] pandoc不可用，尝试使用docx库...');
+
+        // 尝试使用docx库（如果已安装）
+        try {
+          const docx = require('docx');
+          const markdownContent = await fs.readFile(markdownPath, 'utf-8');
+
+          // 简单的Markdown解析和文档创建
+          const doc = this.createDocxFromMarkdown(markdownContent, docx);
+
+          const buffer = await docx.Packer.toBuffer(doc);
+          await fs.writeFile(outputPath, buffer);
+
+          console.log('[Document Engine] Word文档生成成功（使用docx库）');
+          return { success: true, path: outputPath, method: 'docx' };
+        } catch (docxError) {
+          console.warn('[Document Engine] docx库不可用');
+
+          // 降级方案：生成HTML并提示用户
+          const htmlPath = outputPath.replace(/\.docx?$/, '.html');
+          const markdownContent = await fs.readFile(markdownPath, 'utf-8');
+          const htmlContent = this.markdownToHTML(markdownContent);
+          const fullHTML = this.generateHTML('business_report', {
+            title: 'Document',
+            author: '',
+            date: '',
+            content: {}
+          }).replace(/<body>[\s\S]*<\/body>/, `<body>${htmlContent}</body>`);
+
+          await fs.writeFile(htmlPath, fullHTML, 'utf-8');
+
+          return {
+            success: true,
+            path: htmlPath,
+            message: 'Word导出需要pandoc或docx库。已生成HTML文件，可通过Word打开并另存为。',
+            alternative: true
+          };
+        }
+      }
+    } catch (error) {
+      console.error('[Document Engine] 导出Word文档失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 从Markdown创建Docx文档（使用docx库）
+   * @private
+   */
+  createDocxFromMarkdown(markdownContent, docx) {
+    const { Document, Paragraph, TextRun, HeadingLevel } = docx;
+
+    const lines = markdownContent.split('\n');
+    const paragraphs = [];
+
+    for (const line of lines) {
+      if (line.startsWith('# ')) {
+        paragraphs.push(
+          new Paragraph({
+            text: line.substring(2),
+            heading: HeadingLevel.HEADING_1
+          })
+        );
+      } else if (line.startsWith('## ')) {
+        paragraphs.push(
+          new Paragraph({
+            text: line.substring(3),
+            heading: HeadingLevel.HEADING_2
+          })
+        );
+      } else if (line.startsWith('### ')) {
+        paragraphs.push(
+          new Paragraph({
+            text: line.substring(4),
+            heading: HeadingLevel.HEADING_3
+          })
+        );
+      } else if (line.trim()) {
+        paragraphs.push(
+          new Paragraph({
+            children: [new TextRun(line)]
+          })
+        );
+      } else {
+        paragraphs.push(new Paragraph({ text: '' }));
+      }
+    }
+
+    return new Document({
+      sections: [{ children: paragraphs }]
+    });
+  }
+
+  /**
+   * 多格式导出
+   * @param {string} sourcePath - 源文件路径
+   * @param {string} format - 目标格式（pdf/docx/html/txt）
+   * @param {string} outputPath - 输出路径（可选）
+   */
+  async exportTo(sourcePath, format, outputPath = null) {
+    console.log(`[Document Engine] 导出为${format}:`, sourcePath);
+
+    // 确定输出路径
+    if (!outputPath) {
+      outputPath = sourcePath.replace(/\.[^.]+$/, `.${format}`);
+    }
+
+    switch (format.toLowerCase()) {
+      case 'pdf':
+        return await this.exportToPDF(sourcePath, outputPath);
+
+      case 'docx':
+      case 'doc':
+        return await this.exportToDocx(sourcePath, outputPath);
+
+      case 'html':
+        const markdownContent = await fs.readFile(sourcePath, 'utf-8');
+        const htmlContent = this.markdownToHTML(markdownContent);
+        const fullHTML = this.generateHTML('business_report', {
+          title: 'Document',
+          author: '',
+          date: '',
+          content: {}
+        }).replace(/<body>[\s\S]*<\/body>/, `<body>${htmlContent}</body>`);
+        await fs.writeFile(outputPath, fullHTML, 'utf-8');
+        return { success: true, path: outputPath };
+
+      case 'txt':
+        const txtContent = await fs.readFile(sourcePath, 'utf-8');
+        // 移除Markdown标记
+        const plainText = txtContent
+          .replace(/^#{1,6}\s+/gm, '')
+          .replace(/\*\*(.+?)\*\*/g, '$1')
+          .replace(/\*(.+?)\*/g, '$1')
+          .replace(/\[(.+?)\]\(.+?\)/g, '$1');
+        await fs.writeFile(outputPath, plainText, 'utf-8');
+        return { success: true, path: outputPath };
+
+      default:
+        throw new Error(`不支持的格式: ${format}`);
+    }
+  }
+
+  /**
+   * 处理项目任务
+   * @param {Object} params - 任务参数
+   */
+  async handleProjectTask(params) {
+    const { action, description, outputFiles, projectPath, llmManager } = params;
+
+    console.log(`[Document Engine] 处理任务 - ${action}`);
+
+    try {
+      switch (action) {
+        case 'create_document':
+          return await this.createDocumentFromDescription(description, projectPath, llmManager);
+
+        case 'create_markdown':
+          return await this.createMarkdownFromDescription(description, projectPath, llmManager);
+
+        case 'export_pdf':
+          return await this.exportDocumentToPDF(projectPath, outputFiles);
+
+        case 'export_docx':
+          return await this.exportDocumentToDocx(projectPath, outputFiles);
+
+        case 'export_html':
+          return await this.exportDocumentToHTML(projectPath, outputFiles);
+
+        default:
+          return await this.createDocumentFromDescription(description, projectPath, llmManager);
+      }
+    } catch (error) {
+      console.error('[Document Engine] 任务执行失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 根据描述创建文档（使用LLM）
+   */
+  async createDocumentFromDescription(description, projectPath, llmManager) {
+    console.log('[Document Engine] 使用LLM生成文档');
+
+    const prompt = `请根据以下描述生成一份完整的文档内容（Markdown格式）：
+
+${description}
+
+要求：
+1. 包含合适的标题和章节结构
+2. 内容详实、逻辑清晰
+3. 使用Markdown格式
+4. 包含必要的列表、表格等元素`;
+
+    const response = await llmManager.query(prompt, {
+      temperature: 0.7,
+      maxTokens: 3000
+    });
+
+    // 保存为Markdown文件
+    const fileName = `document_${Date.now()}.md`;
+    const filePath = path.join(projectPath, fileName);
+    await fs.writeFile(filePath, response.text, 'utf-8');
+
+    console.log('[Document Engine] 文档生成成功:', filePath);
+
+    return {
+      type: 'document',
+      path: filePath,
+      content: response.text
+    };
+  }
+
+  /**
+   * 创建Markdown文档
+   */
+  async createMarkdownFromDescription(description, projectPath, llmManager) {
+    return await this.createDocumentFromDescription(description, projectPath, llmManager);
+  }
+
+  /**
+   * 导出项目文档为PDF
+   */
+  async exportDocumentToPDF(projectPath, outputFiles) {
+    const mdFiles = await this.findMarkdownFiles(projectPath);
+
+    if (mdFiles.length === 0) {
+      throw new Error('未找到Markdown文件');
+    }
+
+    const sourcePath = mdFiles[0];
+    const outputPath = outputFiles && outputFiles[0]
+      ? path.join(projectPath, outputFiles[0])
+      : sourcePath.replace(/\.md$/, '.pdf');
+
+    return await this.exportToPDF(sourcePath, outputPath);
+  }
+
+  /**
+   * 导出项目文档为Word
+   */
+  async exportDocumentToDocx(projectPath, outputFiles) {
+    const mdFiles = await this.findMarkdownFiles(projectPath);
+
+    if (mdFiles.length === 0) {
+      throw new Error('未找到Markdown文件');
+    }
+
+    const sourcePath = mdFiles[0];
+    const outputPath = outputFiles && outputFiles[0]
+      ? path.join(projectPath, outputFiles[0])
+      : sourcePath.replace(/\.md$/, '.docx');
+
+    return await this.exportToDocx(sourcePath, outputPath);
+  }
+
+  /**
+   * 导出项目文档为HTML
+   */
+  async exportDocumentToHTML(projectPath, outputFiles) {
+    const mdFiles = await this.findMarkdownFiles(projectPath);
+
+    if (mdFiles.length === 0) {
+      throw new Error('未找到Markdown文件');
+    }
+
+    const sourcePath = mdFiles[0];
+    const outputPath = outputFiles && outputFiles[0]
+      ? path.join(projectPath, outputFiles[0])
+      : sourcePath.replace(/\.md$/, '.html');
+
+    return await this.exportTo(sourcePath, 'html', outputPath);
+  }
+
+  /**
+   * 查找项目中的Markdown文件
+   */
+  async findMarkdownFiles(projectPath) {
+    const files = await fs.readdir(projectPath);
+    return files
+      .filter(f => f.endsWith('.md'))
+      .map(f => path.join(projectPath, f));
+  }
 }
 
 module.exports = DocumentEngine;

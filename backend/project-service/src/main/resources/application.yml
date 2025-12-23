@@ -81,7 +81,7 @@ logging:
 ai:
   service:
     url: ${AI_SERVICE_URL:http://localhost:8001}
-    timeout: 60000
+    timeout: 300000
 
 # 项目文件存储配置
 project:

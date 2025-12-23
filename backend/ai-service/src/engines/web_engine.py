@@ -4,11 +4,18 @@ Web Engine - 网页生成引擎
 """
 import os
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, AsyncGenerator
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import ollama
 from openai import AsyncOpenAI
 from src.llm.llm_client import get_llm_client
+from src.templates.web_templates import get_template, has_template
+from src.utils.stream_utils import (
+    stream_ollama_chat,
+    stream_openai_chat,
+    stream_custom_llm_chat,
+    merge_stream_content
+)
 
 
 class WebEngine:
@@ -83,6 +90,39 @@ class WebEngine:
             template_type = entities.get("template", "basic")
             theme = entities.get("theme", "light")
 
+            # 快速路径：如果请求了预定义模板，直接返回
+            if has_template(template_type):
+                print(f"Fast path: Using predefined template '{template_type}'")
+                template_files = get_template(template_type)
+                files = [
+                    {
+                        "path": "index.html",
+                        "content": template_files["index.html"],
+                        "language": "html"
+                    },
+                    {
+                        "path": "styles.css",
+                        "content": template_files["styles.css"],
+                        "language": "css"
+                    },
+                    {
+                        "path": "script.js",
+                        "content": template_files["script.js"],
+                        "language": "javascript"
+                    }
+                ]
+                return {
+                    "files": files,
+                    "metadata": {
+                        "template": template_type,
+                        "theme": theme,
+                        "source": "predefined_template"
+                    }
+                }
+
+            # 慢速路径：使用LLM生成
+            print(f"Slow path: Generating with LLM for template '{template_type}'")
+
             # 生成项目规格说明
             spec = await self._generate_spec(prompt, entities)
 
@@ -119,7 +159,8 @@ class WebEngine:
                 "metadata": {
                     "template": template_type,
                     "theme": theme,
-                    "spec": spec
+                    "spec": spec,
+                    "source": "llm_generated"
                 }
             }
 
@@ -513,3 +554,514 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });"""
+
+    # ========================================
+    # 流式生成方法
+    # ========================================
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        流式生成Web项目文件
+
+        Args:
+            prompt: 用户需求描述
+            context: 意图识别结果
+
+        Yields:
+            流式生成的进度和内容
+        """
+        if not self._ready:
+            yield {"type": "error", "error": "Web engine not ready"}
+            return
+
+        try:
+            # 防御性编程：确保context是字典
+            if isinstance(context, list):
+                context = context[0] if len(context) > 0 else {}
+
+            entities = context.get("entities", {}) if context else {}
+            template_type = entities.get("template", "basic")
+            theme = entities.get("theme", "light")
+
+            # 快速路径：预定义模板
+            if has_template(template_type):
+                yield {
+                    "type": "progress",
+                    "stage": "template",
+                    "message": "使用预定义模板"
+                }
+
+                template_files = get_template(template_type)
+                yield {
+                    "type": "complete",
+                    "files": [
+                        {
+                            "path": "index.html",
+                            "content": template_files["index.html"],
+                            "language": "html"
+                        },
+                        {
+                            "path": "styles.css",
+                            "content": template_files["styles.css"],
+                            "language": "css"
+                        },
+                        {
+                            "path": "script.js",
+                            "content": template_files["script.js"],
+                            "language": "javascript"
+                        }
+                    ],
+                    "metadata": {
+                        "template": template_type,
+                        "theme": theme,
+                        "source": "predefined_template"
+                    }
+                }
+                return
+
+            # 慢速路径：LLM生成
+            yield {
+                "type": "progress",
+                "stage": "spec",
+                "message": "生成项目规格..."
+            }
+
+            # 1. 生成规格（流式）
+            spec = None
+            async for chunk in self._generate_spec_stream(prompt, entities):
+                if chunk.get("type") == "complete":
+                    spec = chunk.get("spec")
+                    yield {
+                        "type": "progress",
+                        "stage": "spec",
+                        "message": "规格生成完成",
+                        "spec": spec
+                    }
+                elif chunk.get("type") == "content":
+                    yield chunk
+
+            if not spec:
+                raise Exception("Failed to generate spec")
+
+            # 2. 生成HTML（流式）
+            yield {
+                "type": "progress",
+                "stage": "html",
+                "message": "生成HTML..."
+            }
+
+            html_content = ""
+            async for chunk in self._generate_html_stream(spec, theme):
+                if chunk.get("type") == "content":
+                    html_content += chunk.get("content", "")
+                    yield chunk
+                elif chunk.get("type") == "complete":
+                    html_content = chunk.get("content", "")
+
+            # 3. 生成CSS（流式）
+            yield {
+                "type": "progress",
+                "stage": "css",
+                "message": "生成CSS..."
+            }
+
+            css_content = ""
+            async for chunk in self._generate_css_stream(spec, theme):
+                if chunk.get("type") == "content":
+                    css_content += chunk.get("content", "")
+                    yield chunk
+                elif chunk.get("type") == "complete":
+                    css_content = chunk.get("content", "")
+
+            # 4. 生成JavaScript（流式）
+            yield {
+                "type": "progress",
+                "stage": "js",
+                "message": "生成JavaScript..."
+            }
+
+            js_content = ""
+            async for chunk in self._generate_js_stream(spec):
+                if chunk.get("type") == "content":
+                    js_content += chunk.get("content", "")
+                    yield chunk
+                elif chunk.get("type") == "complete":
+                    js_content = chunk.get("content", "")
+
+            # 5. 返回最终结果
+            yield {
+                "type": "complete",
+                "files": [
+                    {
+                        "path": "index.html",
+                        "content": html_content,
+                        "language": "html"
+                    },
+                    {
+                        "path": "styles.css",
+                        "content": css_content,
+                        "language": "css"
+                    },
+                    {
+                        "path": "script.js",
+                        "content": js_content,
+                        "language": "javascript"
+                    }
+                ],
+                "metadata": {
+                    "template": template_type,
+                    "theme": theme,
+                    "spec": spec,
+                    "source": "llm_generated"
+                }
+            }
+
+        except Exception as e:
+            yield {
+                "type": "error",
+                "error": str(e)
+            }
+
+    async def _generate_spec_stream(
+        self,
+        prompt: str,
+        entities: Dict[str, Any]
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """流式生成项目规格"""
+
+        spec_prompt = f"""根据用户需求，生成Web项目规格说明。
+
+用户需求: {prompt}
+提取的实体: {json.dumps(entities, ensure_ascii=False)}
+
+请生成包含以下信息的JSON规格说明:
+{{
+    "title": "项目标题",
+    "description": "项目描述",
+    "sections": ["首页", "关于", "联系"],
+    "features": ["响应式设计", "深色模式"],
+    "color_scheme": {{"primary": "#3498db", "secondary": "#2ecc71"}},
+    "fonts": ["Arial", "sans-serif"],
+    "layout": "single-page"
+}}
+
+只返回JSON，不要其他文字:
+"""
+
+        try:
+            full_content = ""
+
+            # 根据提供商选择流式方法
+            if self.llm_provider == "ollama":
+                async for chunk in stream_ollama_chat(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "你是Web项目规格专家，总是返回有效的JSON。"},
+                        {"role": "user", "content": spec_prompt}
+                    ],
+                    options={"temperature": 0.3}
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "spec"}
+
+            elif self.client is not None:
+                async for chunk in stream_openai_chat(
+                    client=self.client,
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "你是Web项目规格专家，总是返回有效的JSON。"},
+                        {"role": "user", "content": spec_prompt}
+                    ],
+                    temperature=0.3
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "spec"}
+
+            elif self.llm_client is not None:
+                async for chunk in stream_custom_llm_chat(
+                    llm_client=self.llm_client,
+                    messages=[
+                        {"role": "system", "content": "You are a web spec assistant. Return valid JSON only."},
+                        {"role": "user", "content": spec_prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=1024
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "spec"}
+
+            # 解析JSON
+            try:
+                spec = json.loads(full_content)
+            except json.JSONDecodeError:
+                # 如果JSON解析失败，使用默认规格
+                spec = {
+                    "title": "我的网站",
+                    "description": "使用AI生成的网站",
+                    "sections": ["首页"],
+                    "features": ["响应式设计"],
+                    "color_scheme": {"primary": "#3498db", "secondary": "#2ecc71"},
+                    "fonts": ["Arial", "sans-serif"],
+                    "layout": "single-page"
+                }
+
+            yield {"type": "complete", "spec": spec}
+
+        except Exception as e:
+            yield {"type": "error", "error": str(e)}
+
+    async def _generate_html_stream(
+        self,
+        spec: Dict[str, Any],
+        theme: str
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """流式生成HTML"""
+
+        html_prompt = f"""生成一个完整的HTML5网页。
+
+项目规格:
+{json.dumps(spec, ensure_ascii=False, indent=2)}
+
+主题: {theme}
+
+要求:
+1. 使用语义化HTML5标签
+2. 包含必要的meta标签
+3. 引用styles.css和script.js
+4. 响应式设计
+5. 代码整洁规范
+
+只返回HTML代码，不要markdown标记:
+"""
+
+        try:
+            full_content = ""
+
+            if self.llm_provider == "ollama":
+                async for chunk in stream_ollama_chat(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "你是专业的前端开发工程师，擅长编写简洁优雅的HTML代码。"},
+                        {"role": "user", "content": html_prompt}
+                    ],
+                    options={"temperature": 0.2, "num_predict": 2048}
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "html"}
+
+            elif self.client is not None:
+                async for chunk in stream_openai_chat(
+                    client=self.client,
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "你是专业的前端开发工程师，擅长编写简洁优雅的HTML代码。"},
+                        {"role": "user", "content": html_prompt}
+                    ],
+                    temperature=0.2,
+                    max_tokens=2048
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "html"}
+
+            elif self.llm_client is not None:
+                async for chunk in stream_custom_llm_chat(
+                    llm_client=self.llm_client,
+                    messages=[
+                        {"role": "system", "content": "You are a frontend engineer. Return plain HTML."},
+                        {"role": "user", "content": html_prompt}
+                    ],
+                    temperature=0.2,
+                    max_tokens=2048
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "html"}
+
+            # 清理markdown标记
+            full_content = full_content.replace("```html", "").replace("```", "").strip()
+            yield {"type": "complete", "content": full_content}
+
+        except Exception as e:
+            # 返回默认HTML
+            default_html = self._get_default_html(spec, theme)
+            yield {"type": "complete", "content": default_html}
+
+    async def _generate_css_stream(
+        self,
+        spec: Dict[str, Any],
+        theme: str
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """流式生成CSS"""
+
+        color_scheme = spec.get("color_scheme", {"primary": "#3498db", "secondary": "#2ecc71"})
+        fonts = spec.get("fonts", ["Arial", "sans-serif"])
+
+        css_prompt = f"""生成一个完整的CSS样式表。
+
+项目规格:
+{json.dumps(spec, ensure_ascii=False, indent=2)}
+
+主题: {theme}
+配色方案: {json.dumps(color_scheme, ensure_ascii=False)}
+字体: {", ".join(fonts)}
+
+要求:
+1. 使用CSS变量定义配色
+2. 响应式设计（媒体查询）
+3. 流畅的动画和过渡效果
+4. 现代化的视觉风格
+5. 支持深色/浅色主题切换
+
+只返回CSS代码，不要markdown标记:
+"""
+
+        try:
+            full_content = ""
+
+            if self.llm_provider == "ollama":
+                async for chunk in stream_ollama_chat(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "你是专业的CSS工程师，擅长现代化响应式设计。"},
+                        {"role": "user", "content": css_prompt}
+                    ],
+                    options={"temperature": 0.2, "num_predict": 2048}
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "css"}
+
+            elif self.client is not None:
+                async for chunk in stream_openai_chat(
+                    client=self.client,
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "你是专业的CSS工程师，擅长现代化响应式设计。"},
+                        {"role": "user", "content": css_prompt}
+                    ],
+                    temperature=0.2,
+                    max_tokens=2048
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "css"}
+
+            elif self.llm_client is not None:
+                async for chunk in stream_custom_llm_chat(
+                    llm_client=self.llm_client,
+                    messages=[
+                        {"role": "system", "content": "You are a CSS engineer. Return plain CSS."},
+                        {"role": "user", "content": css_prompt}
+                    ],
+                    temperature=0.2,
+                    max_tokens=2048
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "css"}
+
+            full_content = full_content.replace("```css", "").replace("```", "").strip()
+            yield {"type": "complete", "content": full_content}
+
+        except Exception as e:
+            default_css = self._get_default_css(spec, theme)
+            yield {"type": "complete", "content": default_css}
+
+    async def _generate_js_stream(
+        self,
+        spec: Dict[str, Any]
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """流式生成JavaScript"""
+
+        features = spec.get("features", [])
+
+        js_prompt = f"""生成JavaScript交互代码。
+
+项目规格:
+{json.dumps(spec, ensure_ascii=False, indent=2)}
+
+功能特性: {", ".join(features)}
+
+要求:
+1. 现代ES6+语法
+2. 实现必要的交互功能
+3. 平滑滚动
+4. 响应式导航菜单
+5. 深色模式切换（如果需要）
+6. 代码简洁易读
+
+只返回JavaScript代码，不要markdown标记:
+"""
+
+        try:
+            full_content = ""
+
+            if self.llm_provider == "ollama":
+                async for chunk in stream_ollama_chat(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "你是专业的JavaScript工程师，擅长编写简洁高效的前端代码。"},
+                        {"role": "user", "content": js_prompt}
+                    ],
+                    options={"temperature": 0.2, "num_predict": 2048}
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "js"}
+
+            elif self.client is not None:
+                async for chunk in stream_openai_chat(
+                    client=self.client,
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "你是专业的JavaScript工程师，擅长编写简洁高效的前端代码。"},
+                        {"role": "user", "content": js_prompt}
+                    ],
+                    temperature=0.2,
+                    max_tokens=2048
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "js"}
+
+            elif self.llm_client is not None:
+                async for chunk in stream_custom_llm_chat(
+                    llm_client=self.llm_client,
+                    messages=[
+                        {"role": "system", "content": "You are a JavaScript engineer. Return plain JavaScript."},
+                        {"role": "user", "content": js_prompt}
+                    ],
+                    temperature=0.2,
+                    max_tokens=2048
+                ):
+                    if chunk.get("type") == "content":
+                        content = chunk.get("content", "")
+                        full_content += content
+                        yield {"type": "content", "content": content, "stage": "js"}
+
+            full_content = full_content.replace("```javascript", "").replace("```js", "").replace("```", "").strip()
+            yield {"type": "complete", "content": full_content}
+
+        except Exception as e:
+            default_js = self._get_default_js()
+            yield {"type": "complete", "content": default_js}
