@@ -53,7 +53,7 @@ class ProjectFileServiceTest {
         // 准备测试项目
         testProject = new Project();
         testProject.setId(testProjectId);
-        testProject.setProjectName("测试项目");
+        testProject.setName("测试项目");
         testProject.setFileCount(0L);
         testProject.setTotalSize(0L);
 

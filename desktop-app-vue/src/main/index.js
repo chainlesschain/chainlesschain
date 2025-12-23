@@ -1,3 +1,6 @@
+// Load environment variables first
+require('dotenv').config();
+
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const DatabaseManager = require('./database');
@@ -28,6 +31,9 @@ const DocumentEngine = require('./engines/document-engine');
 const DataEngine = require('./engines/data-engine');
 const ProjectStructureManager = require('./project-structure');
 const GitAutoCommit = require('./git-auto-commit');
+
+// Backend API clients
+const { ProjectFileAPI, GitAPI, RAGAPI, CodeAPI } = require('./api/backend-client');
 
 // 过滤不需要的控制台输出
 const originalConsoleLog = console.log;
@@ -166,6 +172,14 @@ class ChainlessChainApp {
 
   async onReady() {
     console.log('ChainlessChain Vue 启动中...');
+
+    // 显示后端服务配置
+    console.log('='.repeat(60));
+    console.log('后端服务配置:');
+    console.log('  Java Service (Project):', process.env.PROJECT_SERVICE_URL || 'http://localhost:9090');
+    console.log('  Python Service (AI):', process.env.AI_SERVICE_URL || 'http://localhost:8001');
+    console.log('  备注: 后端不可用时将自动降级到本地处理');
+    console.log('='.repeat(60));
 
     // 初始化数据库
     try {
@@ -4532,20 +4546,38 @@ class ChainlessChainApp {
     });
 
     // 获取项目文件列表
-    ipcMain.handle('project:get-files', async (_event, projectId) => {
+    ipcMain.handle('project:get-files', async (_event, projectId, fileType = null, pageNum = 1, pageSize = 50) => {
       try {
-        if (!this.database) {
-          throw new Error('数据库未初始化');
-        }
         console.log('[Main] 获取项目文件, projectId:', projectId);
-        const files = this.database.getProjectFiles(projectId);
-        console.log('[Main] 找到文件数量:', files?.length || 0);
-        if (files && files.length > 0) {
-          console.log('[Main] 文件列表:', files.map(f => f.file_name).join(', '));
+
+        // 调用后端API
+        const result = await ProjectFileAPI.getFiles(projectId, fileType, pageNum, pageSize);
+
+        // 如果后端不可用，降级到本地数据库
+        if (!result.success || result.status === 0) {
+          console.warn('[Main] 后端服务不可用，使用本地数据库');
+          if (!this.database) {
+            throw new Error('数据库未初始化');
+          }
+          const files = this.database.getProjectFiles(projectId);
+          console.log('[Main] 找到文件数量:', files?.length || 0);
+          return this.removeUndefinedValues(files);
         }
-        return this.removeUndefinedValues(files);
+
+        // 适配后端返回格式
+        if (result.data && result.data.records) {
+          console.log('[Main] 找到文件数量:', result.data.records.length);
+          return result.data.records;
+        }
+
+        return result.data || [];
       } catch (error) {
         console.error('[Main] 获取项目文件失败:', error);
+        // 降级到本地数据库
+        if (this.database) {
+          const files = this.database.getProjectFiles(projectId);
+          return this.removeUndefinedValues(files);
+        }
         throw error;
       }
     });
@@ -4582,13 +4614,32 @@ class ChainlessChainApp {
     // 更新文件
     ipcMain.handle('project:update-file', async (_event, fileUpdate) => {
       try {
-        if (!this.database) {
-          throw new Error('数据库未初始化');
+        const { projectId, fileId, content, is_base64 } = fileUpdate;
+
+        // 调用后端API
+        const result = await ProjectFileAPI.updateFile(projectId, fileId, {
+          content,
+          is_base64
+        });
+
+        // 如果后端不可用，降级到本地数据库
+        if (!result.success || result.status === 0) {
+          console.warn('[Main] 后端服务不可用，使用本地数据库');
+          if (!this.database) {
+            throw new Error('数据库未初始化');
+          }
+          this.database.updateProjectFile(fileUpdate);
+          return { success: true };
         }
-        this.database.updateProjectFile(fileUpdate);
-        return { success: true };
+
+        return result;
       } catch (error) {
         console.error('[Main] 更新文件失败:', error);
+        // 降级到本地数据库
+        if (this.database) {
+          this.database.updateProjectFile(fileUpdate);
+          return { success: true };
+        }
         throw error;
       }
     });
@@ -6909,22 +6960,25 @@ ${content}
     });
 
     // Git初始化
-    ipcMain.handle('project:git-init', async (_event, repoPath) => {
+    ipcMain.handle('project:git-init', async (_event, repoPath, remoteUrl = null) => {
       try {
-        const git = require('isomorphic-git');
-        const fs = require('fs');
-
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(repoPath);
 
-        await git.init({
-          fs,
-          dir: resolvedPath,
-          defaultBranch: 'main',
-        });
+        // 调用后端API
+        const result = await GitAPI.init(resolvedPath, remoteUrl);
 
-        return { success: true };
+        // 如果后端不可用，降级到本地Git
+        if (!result.success || result.status === 0) {
+          console.warn('[Main] 后端服务不可用，使用本地Git');
+          const git = require('isomorphic-git');
+          const fs = require('fs');
+          await git.init({ fs, dir: resolvedPath, defaultBranch: 'main' });
+          return { success: true };
+        }
+
+        return result;
       } catch (error) {
         console.error('[Main] Git初始化失败:', error);
         throw error;
@@ -6934,42 +6988,43 @@ ${content}
     // Git状态查询
     ipcMain.handle('project:git-status', async (_event, repoPath) => {
       try {
-        const git = require('isomorphic-git');
-        const fs = require('fs');
-
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(repoPath);
 
-        const statusMatrix = await git.statusMatrix({ fs, dir: resolvedPath });
+        // 调用后端API
+        const result = await GitAPI.status(resolvedPath);
 
-        // 将状态矩阵转换为更友好的格式
-        const fileStatus = {};
-        for (const [filepath, headStatus, worktreeStatus, stageStatus] of statusMatrix) {
-          let status = '';
+        // 如果后端不可用，降级到本地Git
+        if (!result.success || result.status === 0) {
+          console.warn('[Main] 后端服务不可用，使用本地Git');
+          const git = require('isomorphic-git');
+          const fs = require('fs');
+          const statusMatrix = await git.statusMatrix({ fs, dir: resolvedPath });
 
-          // headStatus: 0 = absent, 1 = present
-          // worktreeStatus: 0 = absent, 1 = identical, 2 = modified
-          // stageStatus: 0 = absent, 1 = identical, 2 = added, 3 = modified
-
-          if (headStatus === 0 && worktreeStatus === 2 && stageStatus === 0) {
-            status = 'untracked'; // 未追踪的新文件
-          } else if (headStatus === 1 && worktreeStatus === 2 && stageStatus === 1) {
-            status = 'modified'; // 已修改
-          } else if (headStatus === 1 && worktreeStatus === 0 && stageStatus === 1) {
-            status = 'deleted'; // 已删除
-          } else if (headStatus === 0 && worktreeStatus === 2 && stageStatus === 2) {
-            status = 'added'; // 已添加到暂存区
-          } else if (headStatus === 1 && worktreeStatus === 2 && stageStatus === 3) {
-            status = 'staged'; // 已暂存的修改
+          // 将状态矩阵转换为更友好的格式
+          const fileStatus = {};
+          for (const [filepath, headStatus, worktreeStatus, stageStatus] of statusMatrix) {
+            let status = '';
+            if (headStatus === 0 && worktreeStatus === 2 && stageStatus === 0) {
+              status = 'untracked';
+            } else if (headStatus === 1 && worktreeStatus === 2 && stageStatus === 1) {
+              status = 'modified';
+            } else if (headStatus === 1 && worktreeStatus === 0 && stageStatus === 1) {
+              status = 'deleted';
+            } else if (headStatus === 0 && worktreeStatus === 2 && stageStatus === 2) {
+              status = 'added';
+            } else if (headStatus === 1 && worktreeStatus === 2 && stageStatus === 3) {
+              status = 'staged';
+            }
+            if (status) {
+              fileStatus[filepath] = status;
+            }
           }
-
-          if (status) {
-            fileStatus[filepath] = status;
-          }
+          return fileStatus;
         }
 
-        return fileStatus;
+        return result.data || {};
       } catch (error) {
         console.error('[Main] Git状态查询失败:', error);
         throw error;
@@ -6977,11 +7032,8 @@ ${content}
     });
 
     // Git提交
-    ipcMain.handle('project:git-commit', async (_event, projectId, repoPath, message) => {
+    ipcMain.handle('project:git-commit', async (_event, projectId, repoPath, message, autoGenerate = false) => {
       try {
-        const git = require('isomorphic-git');
-        const fs = require('fs');
-
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(repoPath);
@@ -6997,28 +7049,32 @@ ${content}
           }
         }
 
-        // 2. Add all changes
-        const status = await git.statusMatrix({ fs, dir: resolvedPath });
-        for (const row of status) {
-          const [filepath, , worktreeStatus] = row;
-          if (worktreeStatus !== 1) {
-            await git.add({ fs, dir: resolvedPath, filepath });
+        // 2. 调用后端API
+        const author = {
+          name: this.gitManager?.author?.name || 'ChainlessChain User',
+          email: this.gitManager?.author?.email || 'user@chainlesschain.com'
+        };
+        const result = await GitAPI.commit(resolvedPath, message, author, autoGenerate);
+
+        // 如果后端不可用，降级到本地Git
+        if (!result.success || result.status === 0) {
+          console.warn('[Main] 后端服务不可用，使用本地Git');
+          const git = require('isomorphic-git');
+          const fs = require('fs');
+          const status = await git.statusMatrix({ fs, dir: resolvedPath });
+          for (const row of status) {
+            const [filepath, , worktreeStatus] = row;
+            if (worktreeStatus !== 1) {
+              await git.add({ fs, dir: resolvedPath, filepath });
+            }
           }
+          const sha = await git.commit({ fs, dir: resolvedPath, message, author });
+          console.log('[Main] Git 提交成功:', sha);
+          return { success: true, sha };
         }
 
-        // 3. Commit
-        const sha = await git.commit({
-          fs,
-          dir: resolvedPath,
-          message,
-          author: {
-            name: this.gitManager?.author?.name || 'ChainlessChain User',
-            email: this.gitManager?.author?.email || 'user@chainlesschain.com',
-          },
-        });
-
-        console.log('[Main] Git 提交成功:', sha);
-        return { success: true, sha };
+        console.log('[Main] Git 提交成功:', result.data?.sha);
+        return result;
       } catch (error) {
         console.error('[Main] Git提交失败:', error);
         throw error;
@@ -7026,26 +7082,33 @@ ${content}
     });
 
     // Git推送
-    ipcMain.handle('project:git-push', async (_event, repoPath) => {
+    ipcMain.handle('project:git-push', async (_event, repoPath, remote = 'origin', branch = null) => {
       try {
-        const git = require('isomorphic-git');
-        const fs = require('fs');
-        const http = require('isomorphic-git/http/node');
-
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(repoPath);
 
-        await git.push({
-          fs,
-          http,
-          dir: resolvedPath,
-          remote: 'origin',
-          ref: 'main',
-          onAuth: () => this.gitManager?.auth || {},
-        });
+        // 调用后端API
+        const result = await GitAPI.push(resolvedPath, remote, branch);
 
-        return { success: true };
+        // 如果后端不可用，降级到本地Git
+        if (!result.success || result.status === 0) {
+          console.warn('[Main] 后端服务不可用，使用本地Git');
+          const git = require('isomorphic-git');
+          const fs = require('fs');
+          const http = require('isomorphic-git/http/node');
+          await git.push({
+            fs,
+            http,
+            dir: resolvedPath,
+            remote: 'origin',
+            ref: 'main',
+            onAuth: () => this.gitManager?.auth || {}
+          });
+          return { success: true };
+        }
+
+        return result;
       } catch (error) {
         console.error('[Main] Git推送失败:', error);
         throw error;
@@ -7053,28 +7116,34 @@ ${content}
     });
 
     // Git拉取
-    ipcMain.handle('project:git-pull', async (_event, projectId, repoPath) => {
+    ipcMain.handle('project:git-pull', async (_event, projectId, repoPath, remote = 'origin', branch = null) => {
       try {
-        const git = require('isomorphic-git');
-        const fs = require('fs');
-        const http = require('isomorphic-git/http/node');
-
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(repoPath);
 
-        // 1. 执行 Git pull
+        // 1. 调用后端API
         console.log('[Main] 执行 Git pull...');
-        await git.pull({
-          fs,
-          http,
-          dir: resolvedPath,
-          ref: 'main',
-          singleBranch: true,
-          onAuth: () => this.gitManager?.auth || {},
-        });
+        const result = await GitAPI.pull(resolvedPath, remote, branch);
 
-        console.log('[Main] Git pull 完成');
+        // 如果后端不可用，降级到本地Git
+        if (!result.success || result.status === 0) {
+          console.warn('[Main] 后端服务不可用，使用本地Git');
+          const git = require('isomorphic-git');
+          const fs = require('fs');
+          const http = require('isomorphic-git/http/node');
+          await git.pull({
+            fs,
+            http,
+            dir: resolvedPath,
+            ref: 'main',
+            singleBranch: true,
+            onAuth: () => this.gitManager?.auth || {}
+          });
+          console.log('[Main] Git pull 完成');
+        } else {
+          console.log('[Main] Git pull 完成');
+        }
 
         // 2. 拉取后：通知前端刷新项目文件列表
         if (this.mainWindow && projectId) {
@@ -7082,10 +7151,218 @@ ${content}
           this.mainWindow.webContents.send('git:pulled', { projectId });
         }
 
-        return { success: true };
+        return result.success ? result : { success: true };
       } catch (error) {
         console.error('[Main] Git拉取失败:', error);
         throw error;
+      }
+    });
+
+    // RAG索引管理
+    ipcMain.handle('project:rag-index', async (_event, projectId, repoPath) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        return await RAGAPI.indexProject(projectId, resolvedPath);
+      } catch (error) {
+        console.error('[Main] RAG索引失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:rag-stats', async (_event, projectId) => {
+      try {
+        return await RAGAPI.getIndexStats(projectId);
+      } catch (error) {
+        console.error('[Main] 获取索引统计失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:rag-query', async (_event, projectId, query, topK = 5) => {
+      try {
+        return await RAGAPI.enhancedQuery(projectId, query, topK);
+      } catch (error) {
+        console.error('[Main] RAG查询失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:rag-update-file', async (_event, projectId, filePath, content) => {
+      try {
+        return await RAGAPI.updateFileIndex(projectId, filePath, content);
+      } catch (error) {
+        console.error('[Main] 更新文件索引失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:rag-delete', async (_event, projectId) => {
+      try {
+        return await RAGAPI.deleteProjectIndex(projectId);
+      } catch (error) {
+        console.error('[Main] 删除项目索引失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 代码助手功能
+    ipcMain.handle('project:code-generate', async (_event, description, language, options = {}) => {
+      try {
+        return await CodeAPI.generate(
+          description,
+          language,
+          options.style || 'modern',
+          options.includeTests || false,
+          options.includeComments !== false,
+          options.context
+        );
+      } catch (error) {
+        console.error('[Main] 代码生成失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:code-review', async (_event, code, language, focusAreas = null) => {
+      try {
+        return await CodeAPI.review(code, language, focusAreas);
+      } catch (error) {
+        console.error('[Main] 代码审查失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:code-refactor', async (_event, code, language, refactorType = 'general') => {
+      try {
+        return await CodeAPI.refactor(code, language, refactorType);
+      } catch (error) {
+        console.error('[Main] 代码重构失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:code-explain', async (_event, code, language) => {
+      try {
+        return await CodeAPI.explain(code, language);
+      } catch (error) {
+        console.error('[Main] 代码解释失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:code-fix-bug', async (_event, code, language, bugDescription) => {
+      try {
+        return await CodeAPI.fixBug(code, language, bugDescription);
+      } catch (error) {
+        console.error('[Main] Bug修复失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:code-generate-tests', async (_event, code, language) => {
+      try {
+        return await CodeAPI.generateTests(code, language);
+      } catch (error) {
+        console.error('[Main] 生成测试失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:code-optimize', async (_event, code, language) => {
+      try {
+        return await CodeAPI.optimize(code, language);
+      } catch (error) {
+        console.error('[Main] 代码优化失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // Git高级操作
+    ipcMain.handle('project:git-log', async (_event, repoPath, limit = 20) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        return await GitAPI.log(resolvedPath, limit);
+      } catch (error) {
+        console.error('[Main] 获取提交历史失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:git-diff', async (_event, repoPath, commit1 = null, commit2 = null) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        return await GitAPI.diff(resolvedPath, commit1, commit2);
+      } catch (error) {
+        console.error('[Main] 获取差异失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:git-branches', async (_event, repoPath) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        return await GitAPI.branches(resolvedPath);
+      } catch (error) {
+        console.error('[Main] 获取分支列表失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:git-create-branch', async (_event, repoPath, branchName, fromBranch = null) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        return await GitAPI.createBranch(resolvedPath, branchName, fromBranch);
+      } catch (error) {
+        console.error('[Main] 创建分支失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:git-checkout', async (_event, repoPath, branchName) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        return await GitAPI.checkoutBranch(resolvedPath, branchName);
+      } catch (error) {
+        console.error('[Main] 切换分支失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:git-merge', async (_event, repoPath, sourceBranch, targetBranch = null) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        return await GitAPI.merge(resolvedPath, sourceBranch, targetBranch);
+      } catch (error) {
+        console.error('[Main] 合并分支失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:git-resolve-conflicts', async (_event, repoPath, filePath = null, strategy = null) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        return await GitAPI.resolveConflicts(resolvedPath, filePath, false, strategy);
+      } catch (error) {
+        console.error('[Main] 解决冲突失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:git-generate-commit-message', async (_event, repoPath) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        return await GitAPI.generateCommitMessage(resolvedPath);
+      } catch (error) {
+        console.error('[Main] 生成提交消息失败:', error);
+        return { success: false, error: error.message };
       }
     });
 
