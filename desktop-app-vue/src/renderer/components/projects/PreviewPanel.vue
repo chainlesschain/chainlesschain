@@ -346,9 +346,25 @@ const loadImage = async (filePath) => {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
-  // 解析路径
-  const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-  imageUrl.value = `file://${resolvedPath}`;
+  // 读取图片为base64
+  const base64 = await window.electronAPI.file.readBinary(fullPath);
+
+  // 根据文件扩展名确定 MIME 类型
+  const ext = props.file.file_name.split('.').pop().toLowerCase();
+  const mimeTypes = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    svg: 'image/svg+xml',
+    webp: 'image/webp',
+    bmp: 'image/bmp',
+    ico: 'image/x-icon'
+  };
+  const mimeType = mimeTypes[ext] || 'image/png';
+
+  // 创建 data URL
+  imageUrl.value = `data:${mimeType};base64,${base64}`;
   imageZoom.value = 1;
   imageRotate.value = 0;
 };
@@ -411,9 +427,12 @@ const loadCode = async (content, fileName) => {
  * 加载 CSV
  */
 const loadCsv = async (content) => {
-  // 检查内容是否为空
+  // 检查内容是否为空（如果为空，可能是还在加载中，不抛出错误）
   if (!content || content.trim().length === 0) {
-    throw new Error('CSV 文件为空');
+    // 清空数据，等待内容加载
+    csvData.value = [];
+    csvColumns.value = [];
+    return;
   }
 
   const result = Papa.parse(content, {

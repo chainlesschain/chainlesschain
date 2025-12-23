@@ -214,11 +214,19 @@ const getInputPlaceholder = () => {
  */
 const renderMarkdown = (content) => {
   try {
-    const rawHTML = marked.parse(content || '');
+    // 确保 content 是字符串
+    let textContent = content;
+    if (typeof content === 'object') {
+      // 如果是对象，尝试提取文本内容
+      textContent = content?.text || content?.content || JSON.stringify(content);
+    }
+    textContent = String(textContent || '');
+
+    const rawHTML = marked.parse(textContent);
     return DOMPurify.sanitize(rawHTML);
   } catch (error) {
     console.error('Markdown 渲染失败:', error);
-    return content;
+    return String(content || '');
   }
 };
 

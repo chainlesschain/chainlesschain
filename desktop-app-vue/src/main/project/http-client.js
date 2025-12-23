@@ -11,7 +11,7 @@ class ProjectHTTPClient {
 
     this.client = axios.create({
       baseURL: baseURL || defaultBaseURL,
-      timeout: 60000, // 60秒超时（AI生成可能需要较长时间）
+      timeout: 300000, // 300秒超时（5分钟，AI生成复杂项目可能需要较长时间）
       headers: {
         'Content-Type': 'application/json',
       },
