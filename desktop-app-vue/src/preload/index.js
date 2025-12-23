@@ -440,4 +440,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     maximize: () => ipcRenderer.invoke('system:maximize'),
     close: () => ipcRenderer.invoke('system:close'),
   },
+
+  // Shell操作
+  shell: {
+    openPath: (path) => ipcRenderer.invoke('shell:open-path', path),
+  },
 });

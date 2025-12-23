@@ -5147,9 +5147,13 @@ class ChainlessChainApp {
         const git = require('isomorphic-git');
         const fs = require('fs');
 
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+
         await git.init({
           fs,
-          dir: repoPath,
+          dir: resolvedPath,
           defaultBranch: 'main',
         });
 
@@ -5166,7 +5170,11 @@ class ChainlessChainApp {
         const git = require('isomorphic-git');
         const fs = require('fs');
 
-        const statusMatrix = await git.statusMatrix({ fs, dir: repoPath });
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+
+        const statusMatrix = await git.statusMatrix({ fs, dir: resolvedPath });
 
         // 将状态矩阵转换为更友好的格式
         const fileStatus = {};
@@ -5207,6 +5215,10 @@ class ChainlessChainApp {
         const git = require('isomorphic-git');
         const fs = require('fs');
 
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+
         // 1. 提交前：刷新所有数据库更改到文件系统
         console.log('[Main] Git 提交前，刷新数据库更改到文件系统...');
         if (this.fileSyncManager && projectId) {
@@ -5219,18 +5231,18 @@ class ChainlessChainApp {
         }
 
         // 2. Add all changes
-        const status = await git.statusMatrix({ fs, dir: repoPath });
+        const status = await git.statusMatrix({ fs, dir: resolvedPath });
         for (const row of status) {
           const [filepath, , worktreeStatus] = row;
           if (worktreeStatus !== 1) {
-            await git.add({ fs, dir: repoPath, filepath });
+            await git.add({ fs, dir: resolvedPath, filepath });
           }
         }
 
         // 3. Commit
         const sha = await git.commit({
           fs,
-          dir: repoPath,
+          dir: resolvedPath,
           message,
           author: {
             name: this.gitManager?.author?.name || 'ChainlessChain User',
@@ -5253,10 +5265,14 @@ class ChainlessChainApp {
         const fs = require('fs');
         const http = require('isomorphic-git/http/node');
 
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+
         await git.push({
           fs,
           http,
-          dir: repoPath,
+          dir: resolvedPath,
           remote: 'origin',
           ref: 'main',
           onAuth: () => this.gitManager?.auth || {},
@@ -5276,12 +5292,16 @@ class ChainlessChainApp {
         const fs = require('fs');
         const http = require('isomorphic-git/http/node');
 
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+
         // 1. 执行 Git pull
         console.log('[Main] 执行 Git pull...');
         await git.pull({
           fs,
           http,
-          dir: repoPath,
+          dir: resolvedPath,
           ref: 'main',
           singleBranch: true,
           onAuth: () => this.gitManager?.auth || {},
@@ -5319,6 +5339,18 @@ class ChainlessChainApp {
 
     ipcMain.handle('system:close', () => {
       this.mainWindow?.close();
+    });
+
+    // Shell操作
+    ipcMain.handle('shell:open-path', async (_event, path) => {
+      try {
+        const { shell } = require('electron');
+        await shell.openPath(path);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 打开路径失败:', error);
+        throw error;
+      }
     });
   }
 
