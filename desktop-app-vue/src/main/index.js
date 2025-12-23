@@ -5377,10 +5377,16 @@ class ChainlessChainApp {
     ipcMain.handle('project:exportDocument', async (_event, params) => {
       try {
         const { projectId, sourcePath, format, outputPath } = params;
-        console.log(`[Main] 导出文档: ${sourcePath} -> ${format}`);
+
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+        const resolvedOutputPath = outputPath ? projectConfig.resolveProjectPath(outputPath) : null;
+
+        console.log(`[Main] 导出文档: ${resolvedSourcePath} -> ${format}`);
 
         const documentEngine = new DocumentEngine();
-        const result = await documentEngine.exportTo(sourcePath, format, outputPath);
+        const result = await documentEngine.exportTo(resolvedSourcePath, format, resolvedOutputPath);
 
         return {
           success: true,
@@ -5397,18 +5403,23 @@ class ChainlessChainApp {
     ipcMain.handle('project:generatePPT', async (_event, params) => {
       try {
         const { projectId, sourcePath } = params;
-        console.log(`[Main] 生成PPT: ${sourcePath}`);
+
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+
+        console.log(`[Main] 生成PPT: ${resolvedSourcePath}`);
 
         const fs = require('fs').promises;
         const PPTEngine = require('./engines/ppt-engine');
 
         // 读取Markdown内容
-        const markdownContent = await fs.readFile(sourcePath, 'utf-8');
+        const markdownContent = await fs.readFile(resolvedSourcePath, 'utf-8');
 
         // 生成PPT
         const pptEngine = new PPTEngine();
         const result = await pptEngine.generateFromMarkdown(markdownContent, {
-          outputPath: sourcePath.replace(/\.md$/, '.pptx'),
+          outputPath: resolvedSourcePath.replace(/\.md$/, '.pptx'),
           llmManager: this.llmManager
         });
 
@@ -5428,12 +5439,17 @@ class ChainlessChainApp {
     ipcMain.handle('project:generatePodcastScript', async (_event, params) => {
       try {
         const { projectId, sourcePath } = params;
-        console.log(`[Main] 生成播客脚本: ${sourcePath}`);
+
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+
+        console.log(`[Main] 生成播客脚本: ${resolvedSourcePath}`);
 
         const fs = require('fs').promises;
 
         // 读取文档内容
-        const content = await fs.readFile(sourcePath, 'utf-8');
+        const content = await fs.readFile(resolvedSourcePath, 'utf-8');
 
         // 使用LLM转换为播客脚本
         const prompt = `请将以下文章内容转换为适合播客朗读的口语化脚本：
@@ -5452,7 +5468,7 @@ ${content}
         });
 
         // 保存脚本
-        const outputPath = sourcePath.replace(/\.[^.]+$/, '_podcast.txt');
+        const outputPath = resolvedSourcePath.replace(/\.[^.]+$/, '_podcast.txt');
         await fs.writeFile(outputPath, response.text, 'utf-8');
 
         return {
@@ -5471,12 +5487,17 @@ ${content}
     ipcMain.handle('project:generateArticleImages', async (_event, params) => {
       try {
         const { projectId, sourcePath } = params;
-        console.log(`[Main] 生成文章配图: ${sourcePath}`);
+
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+
+        console.log(`[Main] 生成文章配图: ${resolvedSourcePath}`);
 
         const fs = require('fs').promises;
 
         // 读取文档内容
-        const content = await fs.readFile(sourcePath, 'utf-8');
+        const content = await fs.readFile(resolvedSourcePath, 'utf-8');
 
         // 使用LLM提取关键主题
         const prompt = `请分析以下文章，提取3-5个适合配图的关键主题：
@@ -5513,7 +5534,7 @@ ${content.substring(0, 2000)}
         }
 
         // 创建图片目录
-        const imageDir = sourcePath.replace(/\.[^.]+$/, '_images');
+        const imageDir = resolvedSourcePath.replace(/\.[^.]+$/, '_images');
         await fs.mkdir(imageDir, { recursive: true });
 
         // 保存主题列表
