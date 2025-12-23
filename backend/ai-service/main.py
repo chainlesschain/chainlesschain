@@ -418,8 +418,8 @@ async def chat_stream(
         stream_custom_llm_chat
     )
 
-    llm_provider = os.getenv("LLM_PROVIDER", "ollama")
-    model_name = model or os.getenv("LLM_MODEL", "qwen2:7b")
+    llm_provider = os.getenv("LLM_PROVIDER", "dashscope")
+    model_name = model or os.getenv("LLM_MODEL", "qwen-turbo")
 
     async def event_generator():
         try:

@@ -424,6 +424,11 @@ def get_llm_client() -> BaseLLMClient:
     """
     根据环境变量自动创建LLM客户端
 
+    智能Fallback机制:
+    1. 优先使用配置的云LLM提供商（如dashscope）
+    2. 如果云LLM的API Key未配置或为空，自动回退到Ollama本地LLM
+    3. 确保服务始终可用
+
     环境变量:
         LLM_PROVIDER: 提供商 (ollama, openai, dashscope, zhipu, volcengine, qianfan,
                                hunyuan, spark, minimax, deepseek)
@@ -438,9 +443,14 @@ def get_llm_client() -> BaseLLMClient:
         SPARK_API_KEY: 讯飞星火API密钥
         MINIMAX_API_KEY: MiniMax API密钥
         DEEPSEEK_API_KEY: DeepSeek API密钥
+        OLLAMA_HOST: Ollama服务地址（fallback用）
+        OLLAMA_MODEL: Ollama模型名称（fallback用）
     """
-    provider = os.getenv("LLM_PROVIDER", "ollama")
-    model = os.getenv("LLM_MODEL", "qwen2:7b")
+    import logging
+    logger = logging.getLogger(__name__)
+
+    provider = os.getenv("LLM_PROVIDER", "dashscope")
+    model = os.getenv("LLM_MODEL", "qwen-turbo")
 
     api_key = None
     base_url = None
@@ -485,6 +495,17 @@ def get_llm_client() -> BaseLLMClient:
         api_key = os.getenv("MINIMAX_API_KEY")
     elif provider_lower == "deepseek":
         api_key = os.getenv("DEEPSEEK_API_KEY")
+
+    # 智能Fallback: 如果云LLM的API Key未配置，自动回退到Ollama
+    if provider_lower != "ollama" and (not api_key or api_key.strip() == ""):
+        logger.warning(
+            f"LLM_PROVIDER设置为'{provider}'，但未配置API Key，"
+            f"自动回退到Ollama本地LLM"
+        )
+        provider = "ollama"
+        provider_lower = "ollama"
+        model = os.getenv("OLLAMA_MODEL", "qwen2:7b")
+        api_key = None
 
     return LLMClientFactory.create_client(
         provider=provider,

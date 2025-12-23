@@ -22,8 +22,8 @@ class WebEngine:
     """Web开发引擎"""
 
     def __init__(self):
-        self.llm_provider = os.getenv("LLM_PROVIDER", "ollama")
-        self.model_name = os.getenv("LLM_MODEL", "qwen2:7b")
+        self.llm_provider = os.getenv("LLM_PROVIDER", "dashscope")
+        self.model_name = os.getenv("LLM_MODEL", "qwen-turbo")
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
