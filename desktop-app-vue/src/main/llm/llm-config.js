@@ -33,6 +33,12 @@ const DEFAULT_CONFIG = {
     model: 'deepseek-chat',
   },
 
+  // 豆包（火山引擎）配置
+  volcengine: {
+    apiKey: '',
+    model: 'doubao-seed-1-6-lite-251015',
+  },
+
   // 自定义配置
   custom: {
     apiKey: '',
@@ -93,6 +99,7 @@ class LLMConfig {
           ollama: { ...DEFAULT_CONFIG.ollama, ...(savedConfig.ollama || {}) },
           openai: { ...DEFAULT_CONFIG.openai, ...(savedConfig.openai || {}) },
           deepseek: { ...DEFAULT_CONFIG.deepseek, ...(savedConfig.deepseek || {}) },
+          volcengine: { ...DEFAULT_CONFIG.volcengine, ...(savedConfig.volcengine || {}) },
           custom: { ...DEFAULT_CONFIG.custom, ...(savedConfig.custom || {}) },
           options: { ...DEFAULT_CONFIG.options, ...(savedConfig.options || {}) },
         };
@@ -207,6 +214,8 @@ class LLMConfig {
         return this.config.openai;
       case 'deepseek':
         return this.config.deepseek;
+      case 'volcengine':
+        return this.config.volcengine;
       case 'custom':
         return this.config.custom;
       default:
@@ -282,6 +291,12 @@ class LLMConfig {
         }
         break;
 
+      case 'volcengine':
+        if (!this.config.volcengine.apiKey) {
+          errors.push('豆包（火山引擎）API Key未配置');
+        }
+        break;
+
       case 'custom':
         if (!this.config.custom.baseURL) {
           errors.push('自定义API URL未配置');
@@ -324,6 +339,13 @@ class LLMConfig {
         };
 
       case 'deepseek':
+        return {
+          ...baseConfig,
+          apiKey: providerConfig.apiKey,
+          model: providerConfig.model,
+        };
+
+      case 'volcengine':
         return {
           ...baseConfig,
           apiKey: providerConfig.apiKey,

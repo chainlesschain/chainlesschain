@@ -545,7 +545,7 @@ class ChainlessChainApp {
       this.documentEngine = new DocumentEngine();
       this.dataEngine = new DataEngine();
       this.projectStructureManager = new ProjectStructureManager();
-      this.gitAutoCommit = new GitAutoCommit({ enabled: true, interval: 5 * 60 * 1000 });
+      this.gitAutoCommit = new GitAutoCommit({ enabled: false, interval: 5 * 60 * 1000 });
 
       // 创建AI引擎管理器
       this.aiEngineManager = new AIEngineManager();

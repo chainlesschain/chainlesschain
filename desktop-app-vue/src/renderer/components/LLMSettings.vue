@@ -12,6 +12,7 @@
           <a-radio-group v-model:value="form.provider" @change="handleProviderChange">
             <a-radio-button value="ollama">Ollama (本地)</a-radio-button>
             <a-radio-button value="openai">OpenAI</a-radio-button>
+            <a-radio-button value="volcengine">豆包 (字节)</a-radio-button>
             <a-radio-button value="deepseek">DeepSeek</a-radio-button>
             <a-radio-button value="custom">自定义API</a-radio-button>
           </a-radio-group>
@@ -130,6 +131,35 @@
               <a-select-option value="deepseek-chat">DeepSeek Chat</a-select-option>
               <a-select-option value="deepseek-coder">DeepSeek Coder</a-select-option>
             </a-select>
+          </a-form-item>
+        </template>
+
+        <!-- 豆包（火山引擎）配置 -->
+        <template v-if="form.provider === 'volcengine'">
+          <a-divider orientation="left">豆包（火山引擎）配置</a-divider>
+
+          <a-form-item label="API Key" required>
+            <a-input-password
+              v-model:value="form.volcengine.apiKey"
+              placeholder="输入火山引擎 API Key"
+            />
+            <div class="form-hint">
+              火山引擎 API 密钥，从 https://console.volcengine.com/ark 获取
+            </div>
+          </a-form-item>
+
+          <a-form-item label="模型">
+            <a-select
+              v-model:value="form.volcengine.model"
+              placeholder="选择模型"
+            >
+              <a-select-option value="doubao-lite-4k">豆包 Lite (免费)</a-select-option>
+              <a-select-option value="doubao-pro-4k">豆包 Pro</a-select-option>
+              <a-select-option value="doubao-seed-1-6-lite-251015">豆包 Seed Lite</a-select-option>
+            </a-select>
+            <div class="form-hint">
+              推荐使用 Lite 版本，免费且速度快
+            </div>
           </a-form-item>
         </template>
 
@@ -343,6 +373,11 @@ const form = reactive({
     model: 'deepseek-chat',
   },
 
+  volcengine: {
+    apiKey: '',
+    model: 'doubao-seed-1-6-lite-251015',
+  },
+
   custom: {
     name: 'Custom Provider',
     apiKey: '',
@@ -447,6 +482,10 @@ const handleReset = () => {
     apiKey: '',
     model: 'deepseek-chat',
   };
+  form.volcengine = {
+    apiKey: '',
+    model: 'doubao-seed-1-6-lite-251015',
+  };
   form.custom = {
     name: 'Custom Provider',
     apiKey: '',
@@ -512,6 +551,7 @@ const getProviderName = (provider) => {
     ollama: 'Ollama (本地)',
     openai: 'OpenAI',
     deepseek: 'DeepSeek',
+    volcengine: '豆包（火山引擎）',
     custom: '自定义API',
   };
   return names[provider] || provider;
