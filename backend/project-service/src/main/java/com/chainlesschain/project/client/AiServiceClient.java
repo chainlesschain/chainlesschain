@@ -66,7 +66,7 @@ public class AiServiceClient {
                         throw new RuntimeException("解析响应失败: " + e.getMessage(), e);
                     }
                 })
-                .timeout(Duration.ofSeconds(120))
+                .timeout(Duration.ofSeconds(300))
                 .doOnError(error -> log.error("AI Service创建项目失败: {}", error.getMessage(), error))
                 .doOnSuccess(result -> log.info("AI Service创建项目成功"));
     }

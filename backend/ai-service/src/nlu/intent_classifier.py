@@ -34,7 +34,8 @@ class IntentClassifier:
     async def classify(
         self,
         text: str,
-        context: Optional[List[str]] = None
+        context: Optional[List[str]] = None,
+        project_type_hint: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         意图识别主方法
@@ -42,6 +43,7 @@ class IntentClassifier:
         Args:
             text: 用户输入文本
             context: 对话上下文（可选）
+            project_type_hint: 项目类型提示（如果已知，跳过LLM识别）
 
         Returns:
             {
@@ -52,6 +54,18 @@ class IntentClassifier:
                 "action": "generate_file"    # 动作类型
             }
         """
+        # 快速路径1：如果项目类型已明确指定，使用规则识别
+        if project_type_hint and project_type_hint in ["web", "document", "data", "app"]:
+            print(f"Fast path: project_type already specified as {project_type_hint}")
+            return self._quick_classify(text, project_type_hint)
+
+        # 快速路径2：使用规则引擎快速识别明确的关键词
+        quick_result = self._rule_based_classify(text)
+        if quick_result and quick_result.get("confidence", 0) > 0.8:
+            print(f"Fast path: rule-based classification with confidence {quick_result['confidence']}")
+            return quick_result
+
+        # 慢速路径：使用LLM进行复杂意图识别
         if not self._ready:
             print("Intent classifier not ready, using fallback intent.")
             return self._get_default_intent(text)
@@ -201,6 +215,183 @@ class IntentClassifier:
             "action": "generate_file"
         }
         return defaults.get(field, None)
+
+    def _quick_classify(self, text: str, project_type: str) -> Dict[str, Any]:
+        """
+        快速分类：项目类型已知，只提取实体
+
+        Args:
+            text: 用户输入文本
+            project_type: 已知的项目类型
+
+        Returns:
+            意图识别结果
+        """
+        text_lower = text.lower()
+        entities = {}
+
+        # 根据项目类型提取特定实体
+        if project_type == "web":
+            # Web项目实体
+            if any(kw in text_lower for kw in ["深色", "暗色", "dark"]):
+                entities["theme"] = "dark"
+            elif any(kw in text_lower for kw in ["浅色", "亮色", "light"]):
+                entities["theme"] = "light"
+
+            # 模板识别（优先级从高到低）
+            if any(kw in text_lower for kw in ["画板", "绘图", "画画", "涂鸦", "画个", "绘画"]):
+                entities["template"] = "drawing"
+            elif any(kw in text_lower for kw in ["记账", "账本", "财务", "开支"]):
+                entities["template"] = "expense"
+            elif any(kw in text_lower for kw in ["计算器", "计算", "算数"]):
+                entities["template"] = "calculator"
+            elif any(kw in text_lower for kw in ["倒计时", "计时器", "timer", "秒表"]):
+                entities["template"] = "timer"
+            elif any(kw in text_lower for kw in ["番茄钟", "番茄", "pomodoro", "专注"]):
+                entities["template"] = "pomodoro"
+            elif any(kw in text_lower for kw in ["笔记", "记事", "note", "备忘"]):
+                entities["template"] = "note"
+            elif any(kw in text_lower for kw in ["音乐", "播放器", "player", "音频", "音乐播放"]):
+                entities["template"] = "music"
+            elif any(kw in text_lower for kw in ["视频", "video", "视频播放"]):
+                entities["template"] = "video"
+            elif any(kw in text_lower for kw in ["日历", "calendar", "日程"]):
+                entities["template"] = "calendar"
+            elif any(kw in text_lower for kw in ["天气", "weather", "天气预报"]):
+                entities["template"] = "weather"
+            elif any(kw in text_lower for kw in ["相册", "照片", "图片", "gallery"]):
+                entities["template"] = "gallery"
+            elif any(kw in text_lower for kw in ["登录", "登陆", "signin", "login"]):
+                entities["template"] = "login"
+            elif any(kw in text_lower for kw in ["问卷", "调查", "表单", "survey"]):
+                entities["template"] = "survey"
+            elif any(kw in text_lower for kw in ["待办", "todo", "任务", "清单"]):
+                entities["template"] = "todo"
+            elif any(kw in text_lower for kw in ["博客", "blog"]):
+                entities["template"] = "blog"
+            elif any(kw in text_lower for kw in ["作品集", "portfolio"]):
+                entities["template"] = "portfolio"
+            # 新增8个模板
+            elif any(kw in text_lower for kw in ["看板", "kanban", "任务板", "项目板"]):
+                entities["template"] = "kanban"
+            elif any(kw in text_lower for kw in ["聊天", "chat", "对话", "消息"]):
+                entities["template"] = "chat"
+            elif any(kw in text_lower for kw in ["颜色选择", "调色板", "color picker", "取色器"]):
+                entities["template"] = "colorpicker"
+            elif any(kw in text_lower for kw in ["贪吃蛇", "snake", "蛇游戏"]):
+                entities["template"] = "snake"
+            elif any(kw in text_lower for kw in ["记忆卡片", "记忆游戏", "memory game", "翻卡片"]):
+                entities["template"] = "memory"
+            elif any(kw in text_lower for kw in ["问答", "quiz", "测验", "答题"]):
+                entities["template"] = "quiz"
+            elif any(kw in text_lower for kw in ["打字测试", "打字", "typing test", "打字速度"]):
+                entities["template"] = "typing"
+            elif any(kw in text_lower for kw in ["单位转换", "转换器", "converter", "单位换算"]):
+                entities["template"] = "converter"
+
+        elif project_type == "document":
+            # 文档项目实体
+            if any(kw in text_lower for kw in ["报告", "report"]):
+                entities["doc_type"] = "report"
+            elif any(kw in text_lower for kw in ["简历", "resume"]):
+                entities["doc_type"] = "resume"
+
+        elif project_type == "data":
+            # 数据项目实体
+            if any(kw in text_lower for kw in ["可视化", "图表", "chart"]):
+                entities["task"] = "visualization"
+            elif any(kw in text_lower for kw in ["分析", "analysis"]):
+                entities["task"] = "analysis"
+
+        return {
+            "intent": "create_project",
+            "project_type": project_type,
+            "entities": entities,
+            "confidence": 0.95,
+            "action": "generate_file",
+            "fast_path": True
+        }
+
+    def _rule_based_classify(self, text: str) -> Optional[Dict[str, Any]]:
+        """
+        基于规则的快速分类（用于明确的关键词）
+
+        Args:
+            text: 用户输入文本
+
+        Returns:
+            如果能高置信度识别则返回结果，否则返回None
+        """
+        text_lower = text.lower()
+
+        # 定义高置信度的关键词模式
+        high_confidence_patterns = {
+            "web": [
+                # 基础网页
+                (["网站", "网页", "html页面"], 0.95),
+                (["博客", "个人博客", "技术博客"], 0.90),
+                (["作品集", "个人网站", "portfolio"], 0.90),
+
+                # 工具类应用
+                (["待办事项", "todo", "任务管理", "清单"], 0.90),
+                (["记账", "账本", "财务管理"], 0.90),
+                (["计算器", "在线计算"], 0.90),
+                (["倒计时", "计时器", "timer"], 0.90),
+                (["日历", "日程", "calendar"], 0.90),
+
+                # 创意类
+                (["画板", "绘图", "画画", "涂鸦"], 0.90),
+                (["相册", "图片展示", "照片墙"], 0.90),
+                (["音乐播放器", "播放器"], 0.85),
+
+                # 商业类
+                (["登录页", "注册页", "登陆"], 0.90),
+                (["电商", "商城", "购物"], 0.85),
+                (["预约", "预订", "booking"], 0.85),
+
+                # 信息类
+                (["简历", "cv", "resume"], 0.90),
+                (["名片", "个人介绍"], 0.90),
+                (["FAQ", "常见问题", "帮助中心"], 0.85),
+
+                # 娱乐类
+                (["游戏", "小游戏"], 0.80),
+                (["问卷", "调查", "表单"], 0.85),
+
+                # 新增8个模板
+                (["看板", "任务板", "kanban"], 0.90),
+                (["聊天", "对话界面", "chat"], 0.85),
+                (["颜色选择器", "调色板", "取色器"], 0.85),
+                (["贪吃蛇", "蛇游戏", "snake"], 0.85),
+                (["记忆卡片", "记忆游戏", "翻卡片"], 0.85),
+                (["问答", "测验", "quiz"], 0.85),
+                (["打字测试", "打字速度", "typing"], 0.85),
+                (["单位转换", "转换器", "converter"], 0.85)
+            ],
+            "document": [
+                (["工作报告", "月报", "周报", "总结"], 0.95),
+                (["个人简历", "求职简历", "CV"], 0.95),
+                (["项目提案", "商业计划", "方案"], 0.90),
+                (["会议纪要", "会议记录"], 0.90),
+                (["合同", "协议"], 0.85)
+            ],
+            "data": [
+                (["数据分析", "数据可视化"], 0.95),
+                (["excel", "csv", "数据表"], 0.90),
+                (["图表", "可视化", "chart"], 0.90),
+                (["统计", "报表"], 0.85),
+                (["看板", "dashboard", "仪表盘"], 0.85)
+            ]
+        }
+
+        # 检查每个模式
+        for project_type, patterns in high_confidence_patterns.items():
+            for keywords, confidence in patterns:
+                if any(kw in text_lower for kw in keywords):
+                    return self._quick_classify(text, project_type)
+
+        # 如果没有高置信度匹配，返回None
+        return None
 
     def _get_default_intent(self, text: str) -> Dict[str, Any]:
         """基于规则的默认意图识别（降级方案）"""

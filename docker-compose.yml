@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Ollama - 本地LLM服务
+  # Ollama - 本地LLM服务（CPU版本）
   ollama:
     image: ollama/ollama:latest
     container_name: chainlesschain-ollama
@@ -11,13 +11,6 @@ services:
       - "11434:11434"
     environment:
       - OLLAMA_MODELS=/root/.ollama/models
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
     restart: unless-stopped
     networks:
       - chainlesschain-network

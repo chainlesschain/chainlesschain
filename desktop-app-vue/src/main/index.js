@@ -4594,13 +4594,36 @@ class ChainlessChainApp {
     });
 
     // 删除文件
-    ipcMain.handle('project:delete-file', async (_event, fileId) => {
+    ipcMain.handle('project:delete-file', async (_event, projectId, fileId) => {
       try {
         if (!this.database) {
           throw new Error('数据库未初始化');
         }
+
+        const fs = require('fs').promises;
+        const { getProjectConfig } = require('./project/project-config');
+        const projectConfig = getProjectConfig();
+
+        // 获取文件信息
+        const file = this.database.db.get('SELECT * FROM project_files WHERE id = ?', [fileId]);
+
+        if (file) {
+          try {
+            // 解析文件路径并删除物理文件
+            const resolvedPath = projectConfig.resolveProjectPath(file.file_path);
+            console.log('[Main] 删除物理文件:', resolvedPath);
+            await fs.unlink(resolvedPath);
+          } catch (error) {
+            console.warn('[Main] 删除物理文件失败 (可能已不存在):', error.message);
+            // 即使物理文件删除失败,也继续删除数据库记录
+          }
+        }
+
+        // 从数据库删除记录
         this.database.db.run('DELETE FROM project_files WHERE id = ?', [fileId]);
         this.database.saveToFile();
+
+        console.log('[Main] 文件删除成功:', fileId);
         return { success: true };
       } catch (error) {
         console.error('[Main] 删除文件失败:', error);
@@ -4697,6 +4720,59 @@ class ChainlessChainApp {
         return base64;
       } catch (error) {
         console.error('[Main] 读取二进制文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 文件另存为（下载文件）
+    ipcMain.handle('file:saveAs', async (_event, filePath) => {
+      try {
+        const fs = require('fs').promises;
+        const path = require('path');
+        const { dialog } = require('electron');
+
+        // 解析源文件路径
+        const { getProjectConfig } = require('./project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[Main] 准备下载文件:', resolvedPath);
+
+        // 检查源文件是否存在
+        try {
+          await fs.access(resolvedPath);
+        } catch (error) {
+          throw new Error(`文件不存在: ${resolvedPath}`);
+        }
+
+        // 获取文件名
+        const fileName = path.basename(resolvedPath);
+
+        // 显示保存对话框
+        const result = await dialog.showSaveDialog({
+          title: '保存文件',
+          defaultPath: fileName,
+          filters: [
+            { name: '所有文件', extensions: ['*'] }
+          ]
+        });
+
+        // 如果用户取消,返回
+        if (result.canceled || !result.filePath) {
+          return { success: false, canceled: true };
+        }
+
+        // 复制文件到目标位置
+        await fs.copyFile(resolvedPath, result.filePath);
+
+        console.log('[Main] 文件下载成功:', result.filePath);
+
+        return {
+          success: true,
+          filePath: result.filePath
+        };
+      } catch (error) {
+        console.error('[Main] 文件下载失败:', error);
         throw error;
       }
     });
@@ -5075,6 +5151,424 @@ class ChainlessChainApp {
         return resolvedPath;
       } catch (error) {
         console.error('[Main] 解析项目路径失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== AI任务智能拆解系统 IPC ====================
+
+    // AI智能拆解任务
+    ipcMain.handle('project:decompose-task', async (_event, userRequest, projectContext) => {
+      try {
+        console.log('[Main] AI任务拆解:', userRequest);
+
+        // 获取 AI 引擎管理器
+        if (!this.aiEngineManager) {
+          const { getAIEngineManager } = require('./ai-engine/ai-engine-manager');
+          this.aiEngineManager = getAIEngineManager();
+          await this.aiEngineManager.initialize();
+        }
+
+        // 获取任务规划器
+        const taskPlanner = this.aiEngineManager.getTaskPlanner();
+
+        // 拆解任务
+        const taskPlan = await taskPlanner.decomposeTask(userRequest, projectContext);
+
+        return taskPlan;
+      } catch (error) {
+        console.error('[Main] AI任务拆解失败:', error);
+        throw error;
+      }
+    });
+
+    // 执行任务计划
+    ipcMain.handle('project:execute-task-plan', async (_event, taskPlanId, projectContext) => {
+      try {
+        console.log('[Main] 执行任务计划:', taskPlanId);
+
+        if (!this.aiEngineManager) {
+          throw new Error('AI引擎管理器未初始化');
+        }
+
+        const taskPlanner = this.aiEngineManager.getTaskPlanner();
+
+        // 获取任务计划
+        const taskPlan = await taskPlanner.getTaskPlan(taskPlanId);
+        if (!taskPlan) {
+          throw new Error(`任务计划不存在: ${taskPlanId}`);
+        }
+
+        // 执行任务计划（使用事件推送进度）
+        const result = await taskPlanner.executeTaskPlan(taskPlan, projectContext, (progress) => {
+          // 通过IPC推送进度更新到渲染进程
+          if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.send('task:progress-update', progress);
+          }
+        });
+
+        return result;
+      } catch (error) {
+        console.error('[Main] 执行任务计划失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取任务计划
+    ipcMain.handle('project:get-task-plan', async (_event, taskPlanId) => {
+      try {
+        if (!this.aiEngineManager) {
+          throw new Error('AI引擎管理器未初始化');
+        }
+
+        const taskPlanner = this.aiEngineManager.getTaskPlanner();
+        const taskPlan = await taskPlanner.getTaskPlan(taskPlanId);
+
+        return taskPlan;
+      } catch (error) {
+        console.error('[Main] 获取任务计划失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取项目的任务计划历史
+    ipcMain.handle('project:get-task-plan-history', async (_event, projectId, limit = 10) => {
+      try {
+        if (!this.aiEngineManager) {
+          throw new Error('AI引擎管理器未初始化');
+        }
+
+        const taskPlanner = this.aiEngineManager.getTaskPlanner();
+        const history = await taskPlanner.getTaskPlanHistory(projectId, limit);
+
+        return history;
+      } catch (error) {
+        console.error('[Main] 获取任务计划历史失败:', error);
+        throw error;
+      }
+    });
+
+    // 取消任务计划
+    ipcMain.handle('project:cancel-task-plan', async (_event, taskPlanId) => {
+      try {
+        if (!this.aiEngineManager) {
+          throw new Error('AI引擎管理器未初始化');
+        }
+
+        const taskPlanner = this.aiEngineManager.getTaskPlanner();
+        await taskPlanner.cancelTaskPlan(taskPlanId);
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 取消任务计划失败:', error);
+        throw error;
+      }
+    });
+
+    // ============ 文档导出功能 ============
+
+    // 导出文档为多种格式
+    ipcMain.handle('project:exportDocument', async (_event, params) => {
+      try {
+        const { projectId, sourcePath, format, outputPath } = params;
+        console.log(`[Main] 导出文档: ${sourcePath} -> ${format}`);
+
+        const documentEngine = new DocumentEngine();
+        const result = await documentEngine.exportTo(sourcePath, format, outputPath);
+
+        return {
+          success: true,
+          fileName: path.basename(result.path),
+          path: result.path
+        };
+      } catch (error) {
+        console.error('[Main] 文档导出失败:', error);
+        throw error;
+      }
+    });
+
+    // 生成PPT
+    ipcMain.handle('project:generatePPT', async (_event, params) => {
+      try {
+        const { projectId, sourcePath } = params;
+        console.log(`[Main] 生成PPT: ${sourcePath}`);
+
+        const fs = require('fs').promises;
+        const PPTEngine = require('./engines/ppt-engine');
+
+        // 读取Markdown内容
+        const markdownContent = await fs.readFile(sourcePath, 'utf-8');
+
+        // 生成PPT
+        const pptEngine = new PPTEngine();
+        const result = await pptEngine.generateFromMarkdown(markdownContent, {
+          outputPath: sourcePath.replace(/\.md$/, '.pptx'),
+          llmManager: this.llmManager
+        });
+
+        return {
+          success: true,
+          fileName: result.fileName,
+          path: result.path,
+          slideCount: result.slideCount
+        };
+      } catch (error) {
+        console.error('[Main] PPT生成失败:', error);
+        throw error;
+      }
+    });
+
+    // 生成播客脚本
+    ipcMain.handle('project:generatePodcastScript', async (_event, params) => {
+      try {
+        const { projectId, sourcePath } = params;
+        console.log(`[Main] 生成播客脚本: ${sourcePath}`);
+
+        const fs = require('fs').promises;
+
+        // 读取文档内容
+        const content = await fs.readFile(sourcePath, 'utf-8');
+
+        // 使用LLM转换为播客脚本
+        const prompt = `请将以下文章内容转换为适合播客朗读的口语化脚本：
+
+${content}
+
+要求：
+1. 使用第一人称，自然流畅
+2. 增加过渡语和互动语言
+3. 适合音频传播
+4. 保持原文核心内容`;
+
+        const response = await this.llmManager.query(prompt, {
+          temperature: 0.7,
+          maxTokens: 3000
+        });
+
+        // 保存脚本
+        const outputPath = sourcePath.replace(/\.[^.]+$/, '_podcast.txt');
+        await fs.writeFile(outputPath, response.text, 'utf-8');
+
+        return {
+          success: true,
+          fileName: path.basename(outputPath),
+          path: outputPath,
+          content: response.text
+        };
+      } catch (error) {
+        console.error('[Main] 播客脚本生成失败:', error);
+        throw error;
+      }
+    });
+
+    // 生成文章配图
+    ipcMain.handle('project:generateArticleImages', async (_event, params) => {
+      try {
+        const { projectId, sourcePath } = params;
+        console.log(`[Main] 生成文章配图: ${sourcePath}`);
+
+        const fs = require('fs').promises;
+
+        // 读取文档内容
+        const content = await fs.readFile(sourcePath, 'utf-8');
+
+        // 使用LLM提取关键主题
+        const prompt = `请分析以下文章，提取3-5个适合配图的关键主题：
+
+${content.substring(0, 2000)}
+
+请以JSON数组格式返回主题列表，每个主题包含：
+- title: 主题标题
+- description: 图片描述（用于AI绘图）
+
+格式示例：
+[
+  {"title": "主题1", "description": "详细的图片描述"},
+  {"title": "主题2", "description": "详细的图片描述"}
+]`;
+
+        const response = await this.llmManager.query(prompt, {
+          temperature: 0.7,
+          maxTokens: 1000
+        });
+
+        // 解析主题
+        let themes = [];
+        try {
+          const jsonMatch = response.text.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            themes = JSON.parse(jsonMatch[0]);
+          }
+        } catch (parseError) {
+          console.warn('[Main] 解析主题失败，使用默认主题');
+          themes = [
+            { title: '文章插图1', description: '根据文章内容创作的插图' }
+          ];
+        }
+
+        // 创建图片目录
+        const imageDir = sourcePath.replace(/\.[^.]+$/, '_images');
+        await fs.mkdir(imageDir, { recursive: true });
+
+        // 保存主题列表
+        const themesPath = path.join(imageDir, 'themes.json');
+        await fs.writeFile(themesPath, JSON.stringify(themes, null, 2), 'utf-8');
+
+        return {
+          success: true,
+          path: imageDir,
+          themes,
+          message: '主题已生成，请使用AI绘图工具生成实际图片'
+        };
+      } catch (error) {
+        console.error('[Main] 文章配图生成失败:', error);
+        throw error;
+      }
+    });
+
+    // ============ 项目分享功能 ============
+
+    // 分享项目
+    ipcMain.handle('project:shareProject', async (_event, params) => {
+      try {
+        const { projectId, shareMode } = params;
+        console.log(`[Main] 分享项目: ${projectId}, 模式: ${shareMode}`);
+
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        // 生成分享token
+        const { v4: uuidv4 } = require('uuid');
+        const shareToken = uuidv4();
+        const shareLink = `https://chainlesschain.com/share/${shareToken}`;
+
+        // 更新项目分享设置
+        this.database.updateProject(projectId, {
+          share_mode: shareMode,
+          share_token: shareToken,
+          share_link: shareLink,
+          shared_at: new Date().toISOString()
+        });
+
+        // 如果是公开模式，可以发布到社交模块（暂未实现）
+        if (shareMode === 'public') {
+          console.log('[Main] 项目设置为公开访问');
+          // TODO: 集成社交模块
+        }
+
+        return {
+          success: true,
+          shareLink,
+          shareToken,
+          shareMode
+        };
+      } catch (error) {
+        console.error('[Main] 项目分享失败:', error);
+        throw error;
+      }
+    });
+
+    // 微信分享（生成二维码）
+    ipcMain.handle('project:shareToWechat', async (_event, params) => {
+      try {
+        const { projectId, shareLink } = params;
+        console.log(`[Main] 微信分享: ${shareLink}`);
+
+        // TODO: 集成二维码生成库
+        // const QRCode = require('qrcode');
+        // const qrCodeDataURL = await QRCode.toDataURL(shareLink);
+
+        return {
+          success: true,
+          message: '微信分享功能开发中，请使用复制链接'
+        };
+      } catch (error) {
+        console.error('[Main] 微信分享失败:', error);
+        throw error;
+      }
+    });
+
+    // ============ AI内容润色功能 ============
+
+    // 润色内容
+    ipcMain.handle('project:polishContent', async (_event, params) => {
+      try {
+        const { content, style } = params;
+        console.log('[Main] AI内容润色');
+
+        const prompt = `请对以下内容进行润色，使其更加专业、流畅：
+
+${content}
+
+要求：
+1. 保持原意不变
+2. 改进表达方式
+3. 修正语法错误
+4. 使用恰当的专业术语
+${style ? `5. 风格：${style}` : ''}`;
+
+        const response = await this.llmManager.query(prompt, {
+          temperature: 0.7,
+          maxTokens: 3000
+        });
+
+        return {
+          success: true,
+          polishedContent: response.text
+        };
+      } catch (error) {
+        console.error('[Main] 内容润色失败:', error);
+        throw error;
+      }
+    });
+
+    // 扩写内容
+    ipcMain.handle('project:expandContent', async (_event, params) => {
+      try {
+        const { content, targetLength } = params;
+        console.log('[Main] AI内容扩写');
+
+        const prompt = `请扩展以下内容，增加更多细节和例子${targetLength ? `，目标字数约${targetLength}字` : ''}：
+
+${content}
+
+要求：
+1. 保持原有观点和结构
+2. 增加具体例子和数据支持
+3. 使内容更加详实完整`;
+
+        const response = await this.llmManager.query(prompt, {
+          temperature: 0.7,
+          maxTokens: 4000
+        });
+
+        return {
+          success: true,
+          expandedContent: response.text
+        };
+      } catch (error) {
+        console.error('[Main] 内容扩写失败:', error);
+        throw error;
+      }
+    });
+
+    // 复制文件
+    ipcMain.handle('project:copyFile', async (_event, params) => {
+      try {
+        const { sourcePath, targetPath } = params;
+        console.log(`[Main] 复制文件: ${sourcePath} -> ${targetPath}`);
+
+        const fs = require('fs').promises;
+        await fs.copyFile(sourcePath, targetPath);
+
+        return {
+          success: true,
+          fileName: path.basename(targetPath),
+          path: targetPath
+        };
+      } catch (error) {
+        console.error('[Main] 文件复制失败:', error);
         throw error;
       }
     });

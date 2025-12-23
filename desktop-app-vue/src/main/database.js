@@ -487,6 +487,30 @@ class DatabaseManager {
       )
     `);
 
+    // 项目任务计划表（AI智能拆解）
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS project_task_plans (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        task_title TEXT NOT NULL,
+        task_type TEXT DEFAULT 'create' CHECK(task_type IN ('create', 'modify', 'analyze', 'export')),
+        user_request TEXT NOT NULL,
+        estimated_duration TEXT,
+        subtasks TEXT NOT NULL,
+        final_output TEXT,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled')),
+        current_step INTEGER DEFAULT 0,
+        total_steps INTEGER DEFAULT 0,
+        progress_percentage INTEGER DEFAULT 0,
+        error_message TEXT,
+        started_at INTEGER,
+        completed_at INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )
+    `);
+
     // 项目协作者表
     this.db.run(`
       CREATE TABLE IF NOT EXISTS project_collaborators (

@@ -403,7 +403,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFile: (fileId) => ipcRenderer.invoke('project:get-file', fileId),
     saveFiles: (projectId, files) => ipcRenderer.invoke('project:save-files', projectId, files),
     updateFile: (fileUpdate) => ipcRenderer.invoke('project:update-file', fileUpdate),
-    deleteFile: (fileId) => ipcRenderer.invoke('project:delete-file', fileId),
+    deleteFile: (projectId, fileId) => ipcRenderer.invoke('project:delete-file', projectId, fileId),
 
     // 模板管理
     getTemplates: () => ipcRenderer.invoke('project:get-templates'),
@@ -421,6 +421,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
     gitPush: (projectId, repoPath) => ipcRenderer.invoke('project:git-push', projectId, repoPath),
     gitPull: (projectId, repoPath) => ipcRenderer.invoke('project:git-pull', projectId, repoPath),
 
+    // AI任务智能拆解系统
+    decomposeTask: (userRequest, projectContext) => ipcRenderer.invoke('project:decompose-task', userRequest, removeUndefined(projectContext)),
+    executeTaskPlan: (taskPlanId, projectContext) => ipcRenderer.invoke('project:execute-task-plan', taskPlanId, removeUndefined(projectContext)),
+    getTaskPlan: (taskPlanId) => ipcRenderer.invoke('project:get-task-plan', taskPlanId),
+    getTaskPlanHistory: (projectId, limit) => ipcRenderer.invoke('project:get-task-plan-history', projectId, limit),
+    cancelTaskPlan: (taskPlanId) => ipcRenderer.invoke('project:cancel-task-plan', taskPlanId),
+
+    // 任务进度更新监听
+    onTaskProgressUpdate: (callback) => ipcRenderer.on('task:progress-update', (_event, progress) => callback(progress)),
+    offTaskProgressUpdate: (callback) => ipcRenderer.removeListener('task:progress-update', callback),
+
+    // 项目分享
+    share: (projectId, shareMode, options) => ipcRenderer.invoke('project:share', projectId, shareMode, removeUndefined(options || {})),
+    unshare: (projectId) => ipcRenderer.invoke('project:unshare', projectId),
+    getByShareToken: (shareToken) => ipcRenderer.invoke('project:get-by-share-token', shareToken),
+
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
@@ -431,6 +447,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     readContent: (filePath) => ipcRenderer.invoke('file:read-content', filePath),
     writeContent: (filePath, content) => ipcRenderer.invoke('file:write-content', filePath, content),
     readBinary: (filePath) => ipcRenderer.invoke('file:read-binary', filePath),
+    saveAs: (filePath) => ipcRenderer.invoke('file:saveAs', filePath),
   },
 
   // AI引擎
