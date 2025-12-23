@@ -404,4 +404,256 @@ public class AiServiceClient {
                 .timeout(Duration.ofSeconds(15))
                 .doOnError(error -> log.error("AI生成提交消息失败: {}", error.getMessage()));
     }
+
+    // ==================== RAG Indexing Operations ====================
+
+    /**
+     * 索引项目文件
+     */
+    public Mono<JsonNode> indexProjectFiles(String projectId, String repoPath, Object fileTypes, Boolean forceReindex) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("project_id", projectId);
+        request.put("repo_path", repoPath);
+        if (fileTypes != null) {
+            request.put("file_types", fileTypes);
+        }
+        if (forceReindex != null) {
+            request.put("force_reindex", forceReindex);
+        }
+
+        return webClient.post()
+                .uri("/api/rag/index/project")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(300))
+                .doOnError(error -> log.error("索引项目文件失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 获取项目索引统计
+     */
+    public Mono<JsonNode> getIndexStats(String projectId) {
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/rag/index/stats")
+                        .queryParam("project_id", projectId)
+                        .build())
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(10))
+                .doOnError(error -> log.error("获取索引统计失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 增强RAG查询
+     */
+    public Mono<JsonNode> enhancedQuery(String projectId, String query, Integer topK, Boolean useReranker, Object sources) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("project_id", projectId);
+        request.put("query", query);
+        if (topK != null) {
+            request.put("top_k", topK);
+        }
+        if (useReranker != null) {
+            request.put("use_reranker", useReranker);
+        }
+        if (sources != null) {
+            request.put("sources", sources);
+        }
+
+        return webClient.post()
+                .uri("/api/rag/query/enhanced")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(30))
+                .doOnError(error -> log.error("增强查询失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 删除项目索引
+     */
+    public Mono<JsonNode> deleteProjectIndex(String projectId) {
+        return webClient.delete()
+                .uri("/api/rag/index/project/" + projectId)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(10))
+                .doOnError(error -> log.error("删除项目索引失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 更新单个文件索引
+     */
+    public Mono<JsonNode> updateFileIndex(String projectId, String filePath, String content) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("project_id", projectId);
+        request.put("file_path", filePath);
+        request.put("content", content);
+
+        return webClient.post()
+                .uri("/api/rag/index/update-file")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(30))
+                .doOnError(error -> log.error("更新文件索引失败: {}", error.getMessage()));
+    }
+
+    // ==================== Code Assistant Operations ====================
+
+    /**
+     * 生成代码
+     */
+    public Mono<JsonNode> generateCode(String description, String language, String style,
+                                      Boolean includeTests, Boolean includeComments, String context) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("description", description);
+        request.put("language", language);
+        if (style != null) {
+            request.put("style", style);
+        }
+        if (includeTests != null) {
+            request.put("include_tests", includeTests);
+        }
+        if (includeComments != null) {
+            request.put("include_comments", includeComments);
+        }
+        if (context != null) {
+            request.put("context", context);
+        }
+
+        return webClient.post()
+                .uri("/api/code/generate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(60))
+                .doOnError(error -> log.error("代码生成失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 代码审查
+     */
+    public Mono<JsonNode> reviewCode(String code, String language, Object focusAreas) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("code", code);
+        request.put("language", language);
+        if (focusAreas != null) {
+            request.put("focus_areas", focusAreas);
+        }
+
+        return webClient.post()
+                .uri("/api/code/review")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(60))
+                .doOnError(error -> log.error("代码审查失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 代码重构
+     */
+    public Mono<JsonNode> refactorCode(String code, String language, String refactorType, String target) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("code", code);
+        request.put("language", language);
+        if (refactorType != null) {
+            request.put("refactor_type", refactorType);
+        }
+        if (target != null) {
+            request.put("target", target);
+        }
+
+        return webClient.post()
+                .uri("/api/code/refactor")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(60))
+                .doOnError(error -> log.error("代码重构失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 代码解释
+     */
+    public Mono<JsonNode> explainCode(String code, String language) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("code", code);
+        request.put("language", language);
+
+        return webClient.post()
+                .uri("/api/code/explain")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(30))
+                .doOnError(error -> log.error("代码解释失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 修复Bug
+     */
+    public Mono<JsonNode> fixBug(String code, String language, String bugDescription) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("code", code);
+        request.put("language", language);
+        if (bugDescription != null) {
+            request.put("bug_description", bugDescription);
+        }
+
+        return webClient.post()
+                .uri("/api/code/fix-bug")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(60))
+                .doOnError(error -> log.error("修复Bug失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 生成单元测试
+     */
+    public Mono<JsonNode> generateTests(String code, String language) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("code", code);
+        request.put("language", language);
+
+        return webClient.post()
+                .uri("/api/code/generate-tests")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(60))
+                .doOnError(error -> log.error("生成测试失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 性能优化
+     */
+    public Mono<JsonNode> optimizeCode(String code, String language) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("code", code);
+        request.put("language", language);
+
+        return webClient.post()
+                .uri("/api/code/optimize")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(60))
+                .doOnError(error -> log.error("代码优化失败: {}", error.getMessage()));
+    }
 }
