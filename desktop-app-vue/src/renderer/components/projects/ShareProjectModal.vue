@@ -120,22 +120,47 @@ const emit = defineEmits(['close', 'update:shareType']);
 const shareType = ref('private');
 const saving = ref(false);
 const copyStatus = ref(''); // '' | 'success'
+const currentShareInfo = ref(null); // 当前分享信息
 
 // 生成分享链接
 const shareLink = computed(() => {
+  if (currentShareInfo.value && currentShareInfo.value.share_link) {
+    return currentShareInfo.value.share_link;
+  }
+  // 默认值（当还没加载时）
   if (!props.projectId) return '';
-  // 这里应该是实际的分享链接生成逻辑
   const baseUrl = window.location.origin;
   return `${baseUrl}/share/project/${props.projectId}`;
 });
 
 // 监听props变化
-watch(() => props.visible, (val) => {
+watch(() => props.visible, async (val) => {
   if (val) {
     shareType.value = props.currentShareType || 'private';
     copyStatus.value = '';
+
+    // 加载现有分享信息
+    await loadShareInfo();
   }
 });
+
+// 加载分享信息
+const loadShareInfo = async () => {
+  if (!props.projectId) return;
+
+  try {
+    const result = await window.electronAPI.project.getShare(props.projectId);
+    if (result.success && result.share) {
+      currentShareInfo.value = result.share;
+      shareType.value = result.share.share_mode;
+    } else {
+      currentShareInfo.value = null;
+    }
+  } catch (error) {
+    console.error('加载分享信息失败:', error);
+    currentShareInfo.value = null;
+  }
+};
 
 // 处理分享类型变化
 const handleShareTypeChange = () => {
@@ -168,12 +193,24 @@ const handleConfirm = async () => {
 
   saving.value = true;
   try {
-    // TODO: 调用后端API保存分享设置
-    // await window.electronAPI.project.updateShare(props.projectId, shareType.value);
+    // 调用后端API保存分享设置
+    const result = await window.electronAPI.project.shareProject({
+      projectId: props.projectId,
+      shareMode: shareType.value,
+      expiresInDays: null, // 永不过期
+      regenerateToken: false // 不重新生成token
+    });
 
-    emit('update:shareType', shareType.value);
-    message.success(shareType.value === 'public' ? '已设置为公开访问' : '已设置为私密访问');
-    handleClose();
+    if (result.success) {
+      // 更新本地分享信息
+      currentShareInfo.value = result.share;
+
+      emit('update:shareType', shareType.value);
+      message.success(shareType.value === 'public' ? '已设置为公开访问' : '已设置为私密访问');
+      handleClose();
+    } else {
+      throw new Error('分享设置失败');
+    }
   } catch (error) {
     console.error('保存分享设置失败:', error);
     message.error('保存失败: ' + error.message);

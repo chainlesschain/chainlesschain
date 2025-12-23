@@ -25,6 +25,18 @@ from src.rag.rag_engine import RAGEngine
 # 导入流式工具
 from src.utils.stream_utils import format_sse
 
+# 导入Git管理器
+from src.git.git_manager import GitManager
+from src.git.commit_message_generator import generate_commit_message
+
+# 导入索引器
+from src.indexing.file_indexer import FileIndexer
+
+# 导入代码助手
+from src.code.code_generator import CodeGenerator
+from src.code.code_reviewer import CodeReviewer
+from src.code.code_refactorer import CodeRefactorer
+
 # 创建FastAPI应用
 app = FastAPI(
     title="ChainlessChain AI Service",
@@ -47,6 +59,17 @@ doc_engine = DocumentEngine()
 data_engine = DataEngine()
 intent_classifier = IntentClassifier()
 rag_engine = RAGEngine()
+
+# 初始化Git管理器
+git_manager = GitManager()
+
+# 初始化文件索引器
+file_indexer = FileIndexer(rag_engine)
+
+# 初始化代码助手
+code_generator = CodeGenerator()
+code_reviewer = CodeReviewer()
+code_refactorer = CodeRefactorer()
 
 
 # Encode binary file content so FastAPI can serialize the response.
@@ -453,6 +476,463 @@ async def chat_stream(
             "X-Accel-Buffering": "no"
         }
     )
+
+
+# ==================== Git Operations API ====================
+
+class GitInitRequest(BaseModel):
+    repo_path: str
+    remote_url: Optional[str] = None
+    branch_name: str = "main"
+
+
+class GitCommitRequest(BaseModel):
+    repo_path: str
+    message: Optional[str] = None
+    files: Optional[List[str]] = None
+    auto_generate_message: bool = False
+
+
+class GitPushRequest(BaseModel):
+    repo_path: str
+    remote: str = "origin"
+    branch: Optional[str] = None
+
+
+class GitPullRequest(BaseModel):
+    repo_path: str
+    remote: str = "origin"
+    branch: Optional[str] = None
+
+
+class BranchCreateRequest(BaseModel):
+    repo_path: str
+    branch_name: str
+    from_branch: Optional[str] = None
+
+
+class BranchCheckoutRequest(BaseModel):
+    repo_path: str
+    branch_name: str
+
+
+class MergeRequest(BaseModel):
+    repo_path: str
+    source_branch: str
+    target_branch: Optional[str] = None
+
+
+class ConflictResolveRequest(BaseModel):
+    repo_path: str
+    resolutions: Dict[str, Any]
+
+
+class CommitMessageRequest(BaseModel):
+    repo_path: str
+    staged_files: Optional[List[str]] = None
+    diff_content: Optional[str] = None
+
+
+@app.post("/api/git/init")
+async def git_init(request: GitInitRequest):
+    """初始化Git仓库"""
+    try:
+        result = git_manager.init_repo(
+            request.repo_path,
+            request.remote_url,
+            request.branch_name
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/git/status")
+async def git_status(repo_path: str):
+    """获取Git状态"""
+    try:
+        result = git_manager.get_status(repo_path)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/git/commit")
+async def git_commit(request: GitCommitRequest):
+    """提交更改"""
+    try:
+        result = await git_manager.commit(
+            request.repo_path,
+            request.message,
+            request.files,
+            request.auto_generate_message
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/git/push")
+async def git_push(request: GitPushRequest):
+    """推送到远程"""
+    try:
+        result = git_manager.push(
+            request.repo_path,
+            request.remote,
+            request.branch
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/git/pull")
+async def git_pull(request: GitPullRequest):
+    """从远程拉取"""
+    try:
+        result = git_manager.pull(
+            request.repo_path,
+            request.remote,
+            request.branch
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/git/log")
+async def git_log(repo_path: str, limit: int = 20):
+    """获取提交历史"""
+    try:
+        result = git_manager.get_log(repo_path, limit)
+        return {"commits": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/git/diff")
+async def git_diff(repo_path: str, commit1: Optional[str] = None, commit2: Optional[str] = None):
+    """获取差异"""
+    try:
+        result = git_manager.get_diff(repo_path, commit1, commit2)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/git/branches")
+async def git_branches(repo_path: str):
+    """列出所有分支"""
+    try:
+        result = git_manager.list_branches(repo_path)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/git/branch/create")
+async def git_create_branch(request: BranchCreateRequest):
+    """创建分支"""
+    try:
+        result = git_manager.create_branch(
+            request.repo_path,
+            request.branch_name,
+            request.from_branch
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/git/branch/checkout")
+async def git_checkout_branch(request: BranchCheckoutRequest):
+    """切换分支"""
+    try:
+        result = git_manager.checkout_branch(
+            request.repo_path,
+            request.branch_name
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/git/merge")
+async def git_merge(request: MergeRequest):
+    """合并分支"""
+    try:
+        result = git_manager.merge_branch(
+            request.repo_path,
+            request.source_branch,
+            request.target_branch
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/git/resolve-conflicts")
+async def git_resolve_conflicts(request: ConflictResolveRequest):
+    """解决冲突（AI辅助）"""
+    try:
+        # TODO: 实现AI辅助冲突解决逻辑
+        return {
+            "success": False,
+            "message": "AI辅助冲突解决功能正在开发中"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/git/generate-commit-message")
+async def git_generate_commit_message(request: CommitMessageRequest):
+    """AI生成提交消息"""
+    try:
+        message = await generate_commit_message(
+            request.repo_path,
+            request.staged_files,
+            request.diff_content
+        )
+        return {
+            "message": message
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== RAG Indexing API ====================
+
+class ProjectIndexRequest(BaseModel):
+    project_id: str
+    repo_path: str
+    file_types: Optional[List[str]] = None
+    force_reindex: bool = False
+
+
+class FileIndexUpdateRequest(BaseModel):
+    project_id: str
+    file_path: str
+    content: str
+
+
+class EnhancedQueryRequest(BaseModel):
+    project_id: str
+    query: str
+    top_k: int = 5
+    use_reranker: bool = False
+    sources: List[str] = ["project"]
+
+
+@app.post("/api/rag/index/project")
+async def index_project_files(request: ProjectIndexRequest):
+    """索引项目所有文件"""
+    try:
+        result = await file_indexer.index_project(
+            request.project_id,
+            request.repo_path,
+            request.file_types,
+            request.force_reindex
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/rag/index/stats")
+async def get_index_stats(project_id: str):
+    """获取项目索引统计"""
+    try:
+        result = await file_indexer.get_index_stats(project_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/rag/query/enhanced")
+async def enhanced_query(request: EnhancedQueryRequest):
+    """增强RAG查询（多源+重排）"""
+    try:
+        result = await rag_engine.enhanced_search(
+            request.query,
+            request.project_id,
+            request.top_k,
+            request.use_reranker,
+            request.sources
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/rag/index/project/{project_id}")
+async def delete_project_index(project_id: str):
+    """删除项目索引"""
+    try:
+        result = await rag_engine.delete_by_project(project_id)
+        return {"success": result, "project_id": project_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/rag/index/update-file")
+async def update_file_index(request: FileIndexUpdateRequest):
+    """更新单个文件索引"""
+    try:
+        result = await file_indexer.update_file_index(
+            request.project_id,
+            request.file_path,
+            request.content
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Code Assistant API ====================
+
+class CodeGenerateRequest(BaseModel):
+    description: str
+    language: str
+    style: str = "modern"
+    include_tests: bool = False
+    include_comments: bool = True
+    context: Optional[str] = None
+
+
+class CodeReviewRequest(BaseModel):
+    code: str
+    language: str
+    focus_areas: Optional[List[str]] = None
+
+
+class CodeRefactorRequest(BaseModel):
+    code: str
+    language: str
+    refactor_type: str = "general"
+    target: Optional[str] = None
+
+
+class CodeExplainRequest(BaseModel):
+    code: str
+    language: str
+
+
+class BugFixRequest(BaseModel):
+    code: str
+    language: str
+    bug_description: Optional[str] = None
+
+
+class TestGenerateRequest(BaseModel):
+    code: str
+    language: str
+
+
+class CodeOptimizeRequest(BaseModel):
+    code: str
+    language: str
+
+
+@app.post("/api/code/generate")
+async def generate_code(request: CodeGenerateRequest):
+    """生成代码"""
+    try:
+        result = await code_generator.generate(
+            request.description,
+            request.language,
+            request.style,
+            request.include_tests,
+            request.include_comments,
+            request.context
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/code/review")
+async def review_code(request: CodeReviewRequest):
+    """代码审查"""
+    try:
+        result = await code_reviewer.review(
+            request.code,
+            request.language,
+            request.focus_areas
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/code/refactor")
+async def refactor_code(request: CodeRefactorRequest):
+    """代码重构"""
+    try:
+        result = await code_refactorer.refactor(
+            request.code,
+            request.language,
+            request.refactor_type,
+            request.target
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/code/explain")
+async def explain_code(request: CodeExplainRequest):
+    """代码解释"""
+    try:
+        explanation = await code_refactorer.explain(
+            request.code,
+            request.language
+        )
+        return {"explanation": explanation}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/code/fix-bug")
+async def fix_bug(request: BugFixRequest):
+    """修复Bug"""
+    try:
+        result = await code_refactorer.fix_bug(
+            request.code,
+            request.language,
+            request.bug_description
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/code/generate-tests")
+async def generate_tests(request: TestGenerateRequest):
+    """生成单元测试"""
+    try:
+        # 利用代码生成器的内部方法
+        result = await code_generator.generate(
+            f"为以下代码生成完整的单元测试",
+            request.language,
+            include_tests=True,
+            context=request.code
+        )
+        return {"tests": result.get("tests", result.get("code"))}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/code/optimize")
+async def optimize_code(request: CodeOptimizeRequest):
+    """性能优化"""
+    try:
+        result = await code_refactorer.optimize(
+            request.code,
+            request.language
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

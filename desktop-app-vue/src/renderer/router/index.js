@@ -7,6 +7,13 @@ const routes = [
     name: 'Login',
     component: () => import('../pages/LoginPage.vue'),
   },
+  // 公开分享页面（无需认证）
+  {
+    path: '/share/project/:token',
+    name: 'ShareProject',
+    component: () => import('../pages/ShareProjectView.vue'),
+    meta: { requiresAuth: false },
+  },
   {
     path: '/',
     name: 'Main',

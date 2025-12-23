@@ -18,6 +18,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    baseline-on-migrate: true
 
   redis:
     host: ${REDIS_HOST:localhost}

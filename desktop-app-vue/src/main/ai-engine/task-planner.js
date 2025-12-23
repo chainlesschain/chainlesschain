@@ -1,401 +1,388 @@
 /**
- * 任务规划器
- * 根据识别的意图生成执行计划
- * 支持模板化规划和动态规划
+ * AI任务智能拆解系统
+ * 负责将用户的复杂需求拆解为可执行的子任务
+ * 参考: 系统设计文档 2.4.6节
  */
 
+const { getLLMService } = require('../llm/llm-manager');
+const { getProjectRAGManager } = require('../project/project-rag');
+
+/**
+ * 任务规划器
+ */
 class TaskPlanner {
   constructor() {
-    // 预定义任务模板
-    this.templates = {
-      // 创建HTML网页
-      create_html: {
-        name: '创建HTML网页',
-        steps: [
-          {
-            name: '创建项目结构',
-            tool: 'create_project_structure',
-            params: { type: 'web' },
-          },
-          {
-            name: '生成HTML文件',
-            tool: 'html_generator',
-            params: { template: 'basic' },
-          },
-          {
-            name: '生成CSS样式',
-            tool: 'css_generator',
-            params: { framework: 'custom' },
-          },
-          {
-            name: '生成JavaScript代码',
-            tool: 'js_generator',
-            params: { features: [] },
-          },
-          {
-            name: '初始化Git仓库',
-            tool: 'git_init',
-            params: {},
-          },
-        ],
-      },
-
-      // 创建文档
-      create_document: {
-        name: '创建文档',
-        steps: [
-          {
-            name: '创建项目结构',
-            tool: 'create_project_structure',
-            params: { type: 'document' },
-          },
-          {
-            name: '生成文档内容',
-            tool: 'document_generator',
-            params: { format: 'markdown' },
-          },
-        ],
-      },
-
-      // 编辑文件
-      edit_file: {
-        name: '编辑文件',
-        steps: [
-          {
-            name: '读取文件内容',
-            tool: 'file_reader',
-            params: {},
-          },
-          {
-            name: '应用修改',
-            tool: 'file_editor',
-            params: {},
-          },
-          {
-            name: '保存文件',
-            tool: 'file_writer',
-            params: {},
-          },
-          {
-            name: '提交Git更改',
-            tool: 'git_commit',
-            params: {},
-          },
-        ],
-      },
-
-      // 查询信息
-      query_info: {
-        name: '查询信息',
-        steps: [
-          {
-            name: '搜索相关信息',
-            tool: 'info_searcher',
-            params: {},
-          },
-          {
-            name: '格式化输出',
-            tool: 'format_output',
-            params: {},
-          },
-        ],
-      },
-
-      // 分析数据
-      analyze_data: {
-        name: '分析数据',
-        steps: [
-          {
-            name: '读取数据文件',
-            tool: 'data_reader',
-            params: {},
-          },
-          {
-            name: '数据分析',
-            tool: 'data_analyzer',
-            params: {},
-          },
-          {
-            name: '生成可视化图表',
-            tool: 'chart_generator',
-            params: {},
-          },
-          {
-            name: '生成分析报告',
-            tool: 'report_generator',
-            params: {},
-          },
-        ],
-      },
-
-      // 导出文件
-      export_file: {
-        name: '导出文件',
-        steps: [
-          {
-            name: '准备导出数据',
-            tool: 'export_preparer',
-            params: {},
-          },
-          {
-            name: '执行导出',
-            tool: 'file_exporter',
-            params: {},
-          },
-        ],
-      },
-
-      // 部署项目
-      deploy_project: {
-        name: '部署项目',
-        steps: [
-          {
-            name: '运行测试',
-            tool: 'run_tests',
-            params: {},
-          },
-          {
-            name: '构建项目',
-            tool: 'build_project',
-            params: {},
-          },
-          {
-            name: '部署到服务器',
-            tool: 'deploy_to_server',
-            params: {},
-          },
-        ],
-      },
-    };
+    this.llmService = null;
+    this.ragManager = null;
+    this.initialized = false;
   }
 
   /**
-   * 生成执行计划
-   * @param {Object} intent - 意图识别结果
-   * @param {Object} context - 上下文信息
-   * @returns {Promise<Object>} 执行计划
+   * 初始化
    */
-  async plan(intent, context = {}) {
-    console.log(`[Task Planner] 开始规划任务，意图: ${intent.intent}`);
+  async initialize() {
+    if (this.initialized) return;
 
-    // 1. 选择合适的模板
-    const template = this.selectTemplate(intent, context);
-
-    if (template) {
-      console.log(`[Task Planner] 使用模板: ${template.name}`);
-
-      // 2. 根据实体信息填充参数
-      const plan = this.fillTemplateParams(template, intent, context);
-
-      return plan;
-    } else {
-      // 3. 如果没有合适的模板，动态生成计划
-      console.log(`[Task Planner] 动态生成计划`);
-
-      return this.generateDynamicPlan(intent, context);
+    try {
+      this.llmService = getLLMService();
+      this.ragManager = getProjectRAGManager();
+      await this.ragManager.initialize();
+      this.initialized = true;
+      console.log('[TaskPlanner] 初始化完成');
+    } catch (error) {
+      console.warn('[TaskPlanner] 初始化失败，部分功能可能不可用:', error.message);
     }
   }
 
   /**
-   * 选择合适的模板
-   * @private
+   * 拆解用户任务
+   * @param {string} userRequest - 用户需求描述
+   * @param {Object} projectContext - 项目上下文
+   * @returns {Promise<Object>} 任务计划
    */
-  selectTemplate(intent, context) {
-    const intentType = intent.intent;
-    const entities = intent.entities || {};
+  async decomposeTask(userRequest, projectContext) {
+    console.log('[TaskPlanner] 开始拆解任务:', userRequest);
 
-    // 根据意图类型和实体选择模板
-    if (intentType === 'create_file') {
-      const fileType = entities.fileType;
+    await this.initialize();
 
-      if (fileType === 'HTML' || fileType === 'CSS' || fileType === 'JavaScript') {
-        return this.templates.create_html;
-      } else if (fileType === 'Word' || fileType === 'PDF' || fileType === 'Markdown') {
-        return this.templates.create_document;
-      }
+    try {
+      // 1. 使用RAG增强项目上下文
+      let enhancedContext = '';
+      if (projectContext.projectId && this.ragManager) {
+        try {
+          const ragResult = await this.ragManager.enhancedQuery(
+            projectContext.projectId,
+            userRequest,
+            {
+              projectLimit: 3,
+              knowledgeLimit: 2,
+              conversationLimit: 2
+            }
+          );
 
-      // 默认使用HTML模板
-      return this.templates.create_html;
-    } else if (intentType === 'edit_file') {
-      return this.templates.edit_file;
-    } else if (intentType === 'query_info') {
-      return this.templates.query_info;
-    } else if (intentType === 'analyze_data') {
-      return this.templates.analyze_data;
-    } else if (intentType === 'export_file') {
-      return this.templates.export_file;
-    } else if (intentType === 'deploy_project') {
-      return this.templates.deploy_project;
-    }
-
-    return null;
-  }
-
-  /**
-   * 填充模板参数
-   * @private
-   */
-  fillTemplateParams(template, intent, context) {
-    const entities = intent.entities || {};
-    const steps = [];
-
-    for (const templateStep of template.steps) {
-      const step = {
-        ...templateStep,
-        params: { ...templateStep.params },
-      };
-
-      // 根据不同的工具类型填充参数
-      if (step.tool === 'html_generator') {
-        // 提取主题、内容描述等
-        step.params.content = intent.originalInput;
-        step.params.title = this.extractTitle(intent.originalInput);
-
-        // 如果有颜色实体，添加到样式参数
-        if (entities.colors && entities.colors.length > 0) {
-          step.params.primaryColor = entities.colors[0];
-        }
-      } else if (step.tool === 'css_generator') {
-        // CSS生成参数
-        if (entities.colors) {
-          step.params.colors = entities.colors;
-        }
-      } else if (step.tool === 'file_editor') {
-        // 文件编辑参数
-        step.params.filePath = context.currentFile?.file_path;
-        step.params.modifications = this.extractModifications(intent, entities);
-      } else if (step.tool === 'file_reader') {
-        // 文件读取参数
-        step.params.filePath = context.currentFile?.file_path;
-      } else if (step.tool === 'file_writer') {
-        // 文件写入参数
-        step.params.filePath = context.currentFile?.file_path;
-      } else if (step.tool === 'create_project_structure') {
-        // 项目结构创建参数
-        step.params.projectName = this.extractProjectName(intent.originalInput);
-        step.params.projectPath = context.projectPath || `/data/projects/${Date.now()}`;
-      } else if (step.tool === 'git_commit') {
-        // Git提交参数
-        step.params.message = `Edit: ${intent.originalInput}`;
-        step.params.repoPath = context.projectPath;
-      } else if (step.tool === 'info_searcher') {
-        // 信息搜索参数
-        step.params.query = intent.originalInput;
-        step.params.projectId = context.projectId;
-      }
-
-      steps.push(step);
-    }
-
-    return {
-      name: template.name,
-      steps,
-      intent: intent.intent,
-      confidence: intent.confidence,
-    };
-  }
-
-  /**
-   * 动态生成计划
-   * @private
-   */
-  generateDynamicPlan(intent, context) {
-    // 简单的动态规划逻辑
-    const steps = [
-      {
-        name: '执行用户请求',
-        tool: 'generic_handler',
-        params: {
-          intent: intent.intent,
-          input: intent.originalInput,
-          entities: intent.entities,
-        },
-      },
-    ];
-
-    return {
-      name: '动态任务',
-      steps,
-      intent: intent.intent,
-      confidence: intent.confidence,
-    };
-  }
-
-  /**
-   * 提取标题
-   * @private
-   */
-  extractTitle(text) {
-    // 简单的标题提取逻辑
-    const match = text.match(/(创建|做|生成)(一个|个)?(.+?)(页面|网站|网页|文档|报告)/);
-
-    if (match) {
-      return match[3].trim();
-    }
-
-    return '我的项目';
-  }
-
-  /**
-   * 提取项目名称
-   * @private
-   */
-  extractProjectName(text) {
-    const title = this.extractTitle(text);
-    // 移除特殊字符，生成合法的文件夹名称
-    return title
-      .replace(/[^\w\u4e00-\u9fa5]/g, '_')
-      .replace(/_+/g, '_')
-      .toLowerCase();
-  }
-
-  /**
-   * 提取修改操作
-   * @private
-   */
-  extractModifications(intent, entities) {
-    const modifications = [];
-
-    // 如果有目标和动作，生成修改指令
-    if (entities.targets && entities.actions) {
-      for (const target of entities.targets) {
-        for (const action of entities.actions) {
-          modifications.push({
-            target,
-            action,
-            value: entities.colors?.[0] || entities.numbers?.[0],
-          });
+          if (ragResult.context && ragResult.context.length > 0) {
+            enhancedContext = '\n\n## 相关知识:\n' + ragResult.context
+              .map((doc, idx) => `${idx + 1}. ${doc.metadata?.fileName || '未知来源'}: ${doc.content.substring(0, 200)}...`)
+              .join('\n');
+          }
+        } catch (error) {
+          console.warn('[TaskPlanner] RAG增强失败，继续执行', error);
         }
       }
-    }
 
-    // 如果没有结构化的修改，使用原始输入作为描述
-    if (modifications.length === 0) {
-      modifications.push({
-        type: 'general',
-        description: intent.originalInput,
+      // 2. 构建提示词
+      const prompt = this.buildDecompositionPrompt(userRequest, projectContext, enhancedContext);
+
+      // 3. 调用LLM生成任务计划
+      const result = await this.llmService.complete({
+        messages: [
+          {
+            role: 'system',
+            content: this.getSystemPrompt()
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.3,  // 降低温度，使输出更确定
+        max_tokens: 2000
       });
+
+      // 4. 解析LLM返回的JSON
+      let taskPlan;
+      try {
+        // 提取JSON部分（可能包含markdown代码块）
+        const jsonMatch = result.match(/```json\n([\s\S]*?)\n```/) || result.match(/\{[\s\S]*\}/);
+        const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : result;
+
+        taskPlan = JSON.parse(jsonStr);
+      } catch (error) {
+        console.error('[TaskPlanner] 解析JSON失败，使用快速拆解模式');
+        return this.quickDecompose(userRequest, projectContext);
+      }
+
+      // 5. 验证和增强任务计划
+      const validatedPlan = this.validateAndEnhancePlan(taskPlan, projectContext);
+
+      console.log('[TaskPlanner] 任务拆解完成:', validatedPlan);
+      return validatedPlan;
+
+    } catch (error) {
+      console.error('[TaskPlanner] 任务拆解失败，使用快速拆解模式:', error);
+      return this.quickDecompose(userRequest, projectContext);
+    }
+  }
+
+  /**
+   * 获取系统提示词
+   */
+  getSystemPrompt() {
+    return `你是ChainlessChain项目管理系统的AI任务规划助手。你的职责是将用户的需求拆解为清晰、可执行的子任务。
+
+# 核心能力
+1. 理解用户意图，识别项目类型和目标
+2. 将复杂任务拆解为有依赖关系的子任务
+3. 为每个子任务选择合适的工具引擎
+4. 估算任务复杂度和所需资源
+
+# 可用工具引擎
+- web-engine: HTML/CSS/JavaScript网页开发
+- document-engine: Word/PDF/Markdown文档处理
+- data-engine: Excel/CSV数据分析和可视化
+- ppt-engine: PowerPoint演示文稿生成
+- code-engine: 代码生成和开发辅助
+- image-engine: 图像设计和处理
+- video-engine: 视频处理和编辑
+
+# 输出格式要求
+必须返回严格的JSON格式，结构如下：
+\`\`\`json
+{
+  "task_title": "任务总标题",
+  "task_type": "项目类型(web/document/data/ppt/code/mixed)",
+  "estimated_duration": 20,
+  "subtasks": [
+    {
+      "step": 1,
+      "title": "子任务标题",
+      "description": "详细描述要做什么",
+      "tool": "使用的工具引擎",
+      "estimated_tokens": 1000,
+      "dependencies": [],
+      "output_files": ["预期生成的文件名"]
+    }
+  ],
+  "final_deliverables": ["最终交付物列表"]
+}
+\`\`\`
+
+# 注意事项
+1. 子任务要具体、可执行
+2. 合理设置依赖关系（后续步骤依赖前序步骤）
+3. 估算要合理（简单任务500-1000 tokens，复杂任务2000-4000 tokens）
+4. 输出必须是纯JSON，不要包含任何其他文字说明`;
+  }
+
+  /**
+   * 构建任务拆解提示词
+   */
+  buildDecompositionPrompt(userRequest, projectContext, enhancedContext) {
+    let prompt = `# 用户需求\n${userRequest}\n\n`;
+
+    // 添加项目上下文
+    prompt += `# 项目信息\n`;
+    prompt += `- 项目类型: ${projectContext.type || '未指定'}\n`;
+
+    if (projectContext.existingFiles && projectContext.existingFiles.length > 0) {
+      prompt += `- 现有文件: ${projectContext.existingFiles.slice(0, 10).join(', ')}`;
+      if (projectContext.existingFiles.length > 10) {
+        prompt += ` (共${projectContext.existingFiles.length}个文件)`;
+      }
+      prompt += '\n';
     }
 
-    return modifications;
+    if (projectContext.description) {
+      prompt += `- 项目描述: ${projectContext.description}\n`;
+    }
+
+    // 添加RAG增强的上下文
+    if (enhancedContext) {
+      prompt += enhancedContext;
+    }
+
+    prompt += `\n# 任务要求\n请将上述用户需求拆解为详细的执行计划，以JSON格式返回。`;
+
+    return prompt;
   }
 
   /**
-   * 添加自定义模板
-   * @param {string} name - 模板名称
-   * @param {Object} template - 模板定义
+   * 验证和增强任务计划
    */
-  addTemplate(name, template) {
-    this.templates[name] = template;
+  validateAndEnhancePlan(taskPlan, projectContext) {
+    // 添加任务ID和时间戳
+    const enhancedPlan = {
+      id: `task_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      ...taskPlan,
+      status: 'pending',
+      progress_percentage: 0,
+      current_step: 0,
+      total_steps: taskPlan.subtasks?.length || 0,
+      created_at: Date.now(),
+      started_at: null,
+      completed_at: null,
+      project_id: projectContext.projectId,
+      project_name: projectContext.projectName || projectContext.name
+    };
+
+    // 为每个子任务添加ID和状态
+    if (enhancedPlan.subtasks && enhancedPlan.subtasks.length > 0) {
+      enhancedPlan.subtasks = enhancedPlan.subtasks.map((subtask, index) => ({
+        id: `subtask_${Date.now()}_${index}`,
+        ...subtask,
+        step: index + 1,
+        status: 'pending',
+        started_at: null,
+        completed_at: null,
+        result: null,
+        error: null,
+        command: null
+      }));
+    }
+
+    // 验证必需字段
+    if (!enhancedPlan.task_title) {
+      enhancedPlan.task_title = '未命名任务';
+    }
+
+    if (!enhancedPlan.task_type) {
+      enhancedPlan.task_type = 'mixed';
+    }
+
+    if (!enhancedPlan.subtasks || enhancedPlan.subtasks.length === 0) {
+      throw new Error('任务计划必须包含至少一个子任务');
+    }
+
+    return enhancedPlan;
   }
 
   /**
-   * 获取所有模板
-   * @returns {Object} 模板字典
+   * 根据文件类型推荐工具引擎
+   * @param {string} taskDescription - 任务描述
+   * @returns {string} 推荐的工具引擎
    */
-  getTemplates() {
-    return this.templates;
+  recommendTool(taskDescription) {
+    const lowerDesc = taskDescription.toLowerCase();
+
+    if (lowerDesc.includes('网页') || lowerDesc.includes('html') || lowerDesc.includes('website')) {
+      return 'web-engine';
+    }
+    if (lowerDesc.includes('ppt') || lowerDesc.includes('演示') || lowerDesc.includes('幻灯片')) {
+      return 'ppt-engine';
+    }
+    if (lowerDesc.includes('excel') || lowerDesc.includes('表格') || lowerDesc.includes('数据分析') || lowerDesc.includes('图表')) {
+      return 'data-engine';
+    }
+    if (lowerDesc.includes('word') || lowerDesc.includes('文档') || lowerDesc.includes('pdf')) {
+      return 'document-engine';
+    }
+    if (lowerDesc.includes('代码') || lowerDesc.includes('程序') || lowerDesc.includes('function') || lowerDesc.includes('class')) {
+      return 'code-engine';
+    }
+    if (lowerDesc.includes('图片') || lowerDesc.includes('图像') || lowerDesc.includes('设计') || lowerDesc.includes('logo')) {
+      return 'image-engine';
+    }
+    if (lowerDesc.includes('视频') || lowerDesc.includes('video')) {
+      return 'video-engine';
+    }
+
+    return 'code-engine'; // 默认
+  }
+
+  /**
+   * 评估任务复杂度
+   * @param {string} taskDescription - 任务描述
+   * @returns {Object} 复杂度评估
+   */
+  assessComplexity(taskDescription) {
+    const wordCount = taskDescription.length;
+
+    let complexity = 'simple';
+    let estimatedTokens = 1000;
+
+    if (wordCount > 200) {
+      complexity = 'complex';
+      estimatedTokens = 4000;
+    } else if (wordCount > 100) {
+      complexity = 'medium';
+      estimatedTokens = 2000;
+    }
+
+    return {
+      complexity,
+      estimatedTokens,
+      estimatedDuration: Math.ceil(estimatedTokens / 50) // 假设50 tokens/分钟
+    };
+  }
+
+  /**
+   * 简单任务快速拆解（不调用LLM）
+   * 用于一些明确的单步任务或LLM调用失败时的fallback
+   */
+  quickDecompose(userRequest, projectContext) {
+    console.log('[TaskPlanner] 使用快速拆解模式');
+
+    const tool = this.recommendTool(userRequest);
+    const complexity = this.assessComplexity(userRequest);
+
+    return {
+      id: `task_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      task_title: userRequest.substring(0, 50) + (userRequest.length > 50 ? '...' : ''),
+      task_type: this.getTaskTypeFromTool(tool),
+      estimated_duration: complexity.estimatedDuration,
+      status: 'pending',
+      progress_percentage: 0,
+      current_step: 0,
+      total_steps: 1,
+      created_at: Date.now(),
+      started_at: null,
+      completed_at: null,
+      project_id: projectContext.projectId,
+      project_name: projectContext.projectName || projectContext.name,
+      subtasks: [
+        {
+          id: `subtask_${Date.now()}_0`,
+          step: 1,
+          title: userRequest,
+          description: userRequest,
+          tool: tool,
+          estimated_tokens: complexity.estimatedTokens,
+          dependencies: [],
+          output_files: [],
+          status: 'pending',
+          started_at: null,
+          completed_at: null,
+          result: null,
+          error: null,
+          command: null
+        }
+      ],
+      final_deliverables: ['根据用户需求生成的文件']
+    };
+  }
+
+  /**
+   * 从工具名获取任务类型
+   */
+  getTaskTypeFromTool(tool) {
+    const mapping = {
+      'web-engine': 'web',
+      'document-engine': 'document',
+      'data-engine': 'data',
+      'ppt-engine': 'ppt',
+      'code-engine': 'code',
+      'image-engine': 'image',
+      'video-engine': 'video'
+    };
+    return mapping[tool] || 'mixed';
   }
 }
 
-module.exports = TaskPlanner;
+// 单例模式
+let taskPlanner = null;
+
+/**
+ * 获取任务规划器实例
+ * @returns {TaskPlanner}
+ */
+function getTaskPlanner() {
+  if (!taskPlanner) {
+    taskPlanner = new TaskPlanner();
+  }
+  return taskPlanner;
+}
+
+module.exports = {
+  TaskPlanner,
+  getTaskPlanner
+};

@@ -138,4 +138,270 @@ public class AiServiceClient {
                 .bodyToMono(JsonNode.class)
                 .timeout(Duration.ofSeconds(5));
     }
+
+    // ==================== Git Operations ====================
+
+    /**
+     * 初始化Git仓库
+     */
+    public Mono<JsonNode> gitInit(String repoPath, String remoteUrl, String branchName) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("repo_path", repoPath);
+        if (remoteUrl != null) {
+            request.put("remote_url", remoteUrl);
+        }
+        if (branchName != null) {
+            request.put("branch_name", branchName);
+        }
+
+        return webClient.post()
+                .uri("/api/git/init")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(10))
+                .doOnError(error -> log.error("Git初始化失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 获取Git状态
+     */
+    public Mono<JsonNode> gitStatus(String repoPath) {
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/git/status")
+                        .queryParam("repo_path", repoPath)
+                        .build())
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(10))
+                .doOnError(error -> log.error("获取Git状态失败: {}", error.getMessage()));
+    }
+
+    /**
+     * Git提交
+     */
+    public Mono<JsonNode> gitCommit(String repoPath, String message, Object files, Boolean autoGenerateMessage) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("repo_path", repoPath);
+        if (message != null) {
+            request.put("message", message);
+        }
+        if (files != null) {
+            request.put("files", files);
+        }
+        if (autoGenerateMessage != null) {
+            request.put("auto_generate_message", autoGenerateMessage);
+        }
+
+        return webClient.post()
+                .uri("/api/git/commit")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(30))
+                .doOnError(error -> log.error("Git提交失败: {}", error.getMessage()));
+    }
+
+    /**
+     * Git推送
+     */
+    public Mono<JsonNode> gitPush(String repoPath, String remote, String branch) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("repo_path", repoPath);
+        if (remote != null) {
+            request.put("remote", remote);
+        }
+        if (branch != null) {
+            request.put("branch", branch);
+        }
+
+        return webClient.post()
+                .uri("/api/git/push")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(60))
+                .doOnError(error -> log.error("Git推送失败: {}", error.getMessage()));
+    }
+
+    /**
+     * Git拉取
+     */
+    public Mono<JsonNode> gitPull(String repoPath, String remote, String branch) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("repo_path", repoPath);
+        if (remote != null) {
+            request.put("remote", remote);
+        }
+        if (branch != null) {
+            request.put("branch", branch);
+        }
+
+        return webClient.post()
+                .uri("/api/git/pull")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(60))
+                .doOnError(error -> log.error("Git拉取失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 获取Git日志
+     */
+    public Mono<JsonNode> gitLog(String repoPath, Integer limit) {
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/git/log")
+                        .queryParam("repo_path", repoPath)
+                        .queryParam("limit", limit != null ? limit : 20)
+                        .build())
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(10))
+                .doOnError(error -> log.error("获取Git日志失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 获取Git差异
+     */
+    public Mono<JsonNode> gitDiff(String repoPath, String commit1, String commit2) {
+        return webClient.get()
+                .uri(uriBuilder -> {
+                    var builder = uriBuilder.path("/api/git/diff")
+                            .queryParam("repo_path", repoPath);
+                    if (commit1 != null) {
+                        builder.queryParam("commit1", commit1);
+                    }
+                    if (commit2 != null) {
+                        builder.queryParam("commit2", commit2);
+                    }
+                    return builder.build();
+                })
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(15))
+                .doOnError(error -> log.error("获取Git差异失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 列出Git分支
+     */
+    public Mono<JsonNode> gitBranches(String repoPath) {
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/git/branches")
+                        .queryParam("repo_path", repoPath)
+                        .build())
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(10))
+                .doOnError(error -> log.error("获取Git分支列表失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 创建Git分支
+     */
+    public Mono<JsonNode> gitCreateBranch(String repoPath, String branchName, String fromBranch) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("repo_path", repoPath);
+        request.put("branch_name", branchName);
+        if (fromBranch != null) {
+            request.put("from_branch", fromBranch);
+        }
+
+        return webClient.post()
+                .uri("/api/git/branch/create")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(10))
+                .doOnError(error -> log.error("创建Git分支失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 切换Git分支
+     */
+    public Mono<JsonNode> gitCheckoutBranch(String repoPath, String branchName) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("repo_path", repoPath);
+        request.put("branch_name", branchName);
+
+        return webClient.post()
+                .uri("/api/git/branch/checkout")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(10))
+                .doOnError(error -> log.error("切换Git分支失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 合并Git分支
+     */
+    public Mono<JsonNode> gitMerge(String repoPath, String sourceBranch, String targetBranch) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("repo_path", repoPath);
+        request.put("source_branch", sourceBranch);
+        if (targetBranch != null) {
+            request.put("target_branch", targetBranch);
+        }
+
+        return webClient.post()
+                .uri("/api/git/merge")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(30))
+                .doOnError(error -> log.error("Git合并失败: {}", error.getMessage()));
+    }
+
+    /**
+     * 解决Git冲突
+     */
+    public Mono<JsonNode> gitResolveConflicts(String repoPath, Map<String, Object> resolutions) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("repo_path", repoPath);
+        request.put("resolutions", resolutions);
+
+        return webClient.post()
+                .uri("/api/git/resolve-conflicts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(30))
+                .doOnError(error -> log.error("解决Git冲突失败: {}", error.getMessage()));
+    }
+
+    /**
+     * AI生成提交消息
+     */
+    public Mono<JsonNode> gitGenerateCommitMessage(String repoPath, Object stagedFiles, String diffContent) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("repo_path", repoPath);
+        if (stagedFiles != null) {
+            request.put("staged_files", stagedFiles);
+        }
+        if (diffContent != null) {
+            request.put("diff_content", diffContent);
+        }
+
+        return webClient.post()
+                .uri("/api/git/generate-commit-message")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(15))
+                .doOnError(error -> log.error("AI生成提交消息失败: {}", error.getMessage()));
+    }
 }

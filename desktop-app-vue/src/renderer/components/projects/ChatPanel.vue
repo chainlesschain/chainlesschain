@@ -48,6 +48,31 @@
 
           <div class="message-content">
             <div class="message-text" v-html="renderMarkdown(message.content)"></div>
+
+            <!-- RAG上下文来源 -->
+            <div v-if="message.sources && message.sources.length > 0" class="context-sources">
+              <div class="source-header">
+                <FileSearchOutlined />
+                <span>引用来源 ({{ message.sources.length }})</span>
+              </div>
+              <div class="source-list">
+                <a-tag
+                  v-for="(source, idx) in message.sources"
+                  :key="idx"
+                  class="source-tag"
+                  @click="openFile(source)"
+                >
+                  <FileTextOutlined v-if="source.source === 'project'" />
+                  <BookOutlined v-else-if="source.source === 'knowledge'" />
+                  <MessageOutlined v-else />
+                  {{ source.fileName || source.title || '未知文件' }}
+                  <span v-if="source.score" class="source-score">
+                    {{ Math.round(source.score * 100) }}%
+                  </span>
+                </a-tag>
+              </div>
+            </div>
+
             <div class="message-meta">
               <span class="message-time">
                 {{ formatTime(message.timestamp) }}
@@ -130,6 +155,8 @@ import {
   DeleteOutlined,
   LoadingOutlined,
   InfoCircleOutlined,
+  FileSearchOutlined,
+  BookOutlined,
 } from '@ant-design/icons-vue';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -239,6 +266,30 @@ const formatTime = (timestamp) => {
   return formatDistanceToNow(new Date(timestamp), {
     addSuffix: true,
     locale: zhCN,
+  });
+};
+
+/**
+ * 打开文件
+ */
+const openFile = (source) => {
+  if (!source) return;
+
+  console.log('[ChatPanel] 打开文件:', source);
+
+  // 获取文件路径
+  const filePath = source.filePath || source.path || source.metadata?.filePath;
+
+  if (!filePath) {
+    antMessage.warning('无法获取文件路径');
+    return;
+  }
+
+  // 触发事件通知父组件打开文件
+  emit('open-file', {
+    path: filePath,
+    fileName: source.fileName || source.title,
+    fileId: source.fileId || source.id
   });
 };
 
@@ -762,6 +813,64 @@ onMounted(() => {
   background: none;
   padding: 0;
   color: inherit;
+}
+
+/* RAG上下文来源 */
+.context-sources {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border-left: 3px solid #3b82f6;
+}
+
+.source-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin-bottom: 8px;
+}
+
+.source-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-tag {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid #3b82f6;
+  color: #3b82f6;
+  border-radius: 12px;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.source-tag:hover {
+  background: #3b82f6;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.source-score {
+  font-weight: 600;
+  margin-left: 4px;
+  padding: 0 4px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+}
+
+.source-tag:hover .source-score {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* 滚动条 */
