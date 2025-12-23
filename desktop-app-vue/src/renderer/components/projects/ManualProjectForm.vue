@@ -121,7 +121,7 @@ const creating = ref(false);
 const formData = reactive({
   name: '',
   description: '',
-  projectType: 'web',
+  projectType: 'web', // 手动创建时保持默认值，用户可以自行选择
   tags: [],
   status: 'active',
 });

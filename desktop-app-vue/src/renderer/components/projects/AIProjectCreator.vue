@@ -118,7 +118,7 @@ const creating = ref(false);
 const formData = reactive({
   userPrompt: '',
   name: '',
-  projectType: 'web',
+  projectType: '', // 留空让后端AI自动识别项目类型
 });
 
 // 表单验证规则
@@ -127,9 +127,7 @@ const rules = {
     { required: true, message: '请输入项目需求描述', trigger: 'blur' },
     { min: 20, message: '需求描述至少20个字符', trigger: 'blur' },
   ],
-  projectType: [
-    { required: true, message: '请选择项目类型', trigger: 'change' },
-  ],
+  // projectType不再必填，留空时让后端AI自动识别
 };
 
 // 示例需求
