@@ -40,6 +40,16 @@
 
       <!-- 右侧：操作按钮 -->
       <div class="toolbar-right">
+        <!-- 文件导出菜单 -->
+        <FileExportMenu
+          v-if="currentFile && hasValidPath"
+          :file="currentFile"
+          :project-id="projectId"
+          @export-start="handleExportStart"
+          @export-complete="handleExportComplete"
+          @export-error="handleExportError"
+        />
+
         <!-- 文件管理按钮 -->
         <a-button v-if="hasValidPath" @click="showFileManageModal = true">
           <FolderOpenOutlined />
@@ -311,14 +321,11 @@
       @file-delete="handleFileDeleteFromModal"
     />
 
-    <!-- 分享项目Modal -->
-    <ShareProjectModal
-      :visible="showShareModal"
-      :project-id="projectId"
-      :project-name="currentProject?.name"
-      :current-share-type="currentProject?.share_type || 'private'"
-      @close="showShareModal = false"
-      @update:shareType="handleUpdateShareType"
+    <!-- 分享项目对话框 -->
+    <ProjectShareDialog
+      v-model:open="showShareModal"
+      :project="currentProject"
+      @share-success="handleShareSuccess"
     />
   </div>
 </template>
@@ -356,7 +363,8 @@ import PreviewPanel from '@/components/projects/PreviewPanel.vue';
 import ChatPanel from '@/components/projects/ChatPanel.vue';
 import GitStatusDialog from '@/components/projects/GitStatusDialog.vue';
 import FileManageModal from '@/components/projects/FileManageModal.vue';
-import ShareProjectModal from '@/components/projects/ShareProjectModal.vue';
+import ProjectShareDialog from '@/components/projects/ProjectShareDialog.vue';
+import FileExportMenu from '@/components/projects/FileExportMenu.vue';
 import GitHistoryDialog from '@/components/projects/GitHistoryDialog.vue';
 
 const route = useRoute();
@@ -777,6 +785,38 @@ const handleUpdateShareType = async (shareType) => {
     console.error('Update share type failed:', error);
     message.error('更新分享设置失败：' + error.message);
   }
+};
+
+// 处理分享成功
+const handleShareSuccess = async (shareData) => {
+  try {
+    // 更新本地项目数据
+    if (currentProject.value) {
+      await projectStore.updateProject(projectId.value, {
+        share_mode: shareData.shareMode,
+        share_token: shareData.shareToken,
+        share_link: shareData.shareLink,
+      });
+    }
+  } catch (error) {
+    console.error('Update share data failed:', error);
+  }
+};
+
+// 处理导出开始
+const handleExportStart = ({ exportType, fileName }) => {
+  console.log('Export started:', exportType, fileName);
+};
+
+// 处理导出完成
+const handleExportComplete = async (result) => {
+  console.log('Export completed:', result);
+  // 可以在这里添加额外的处理，比如显示文件或打开目录
+};
+
+// 处理导出错误
+const handleExportError = ({ exportType, error }) => {
+  console.error('Export error:', exportType, error);
 };
 
 // 组件挂载时加载项目

@@ -437,6 +437,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     unshare: (projectId) => ipcRenderer.invoke('project:unshare', projectId),
     getByShareToken: (shareToken) => ipcRenderer.invoke('project:get-by-share-token', shareToken),
 
+    // 新增功能 - 项目分享和导出
+    shareProject: (params) => ipcRenderer.invoke('project:shareProject', removeUndefined(params)),
+    shareToWechat: (params) => ipcRenderer.invoke('project:shareToWechat', removeUndefined(params)),
+    exportDocument: (params) => ipcRenderer.invoke('project:exportDocument', removeUndefined(params)),
+    generatePPT: (params) => ipcRenderer.invoke('project:generatePPT', removeUndefined(params)),
+    generatePodcastScript: (params) => ipcRenderer.invoke('project:generatePodcastScript', removeUndefined(params)),
+    generateArticleImages: (params) => ipcRenderer.invoke('project:generateArticleImages', removeUndefined(params)),
+    polishContent: (params) => ipcRenderer.invoke('project:polishContent', removeUndefined(params)),
+    expandContent: (params) => ipcRenderer.invoke('project:expandContent', removeUndefined(params)),
+    copyFile: (params) => ipcRenderer.invoke('project:copyFile', removeUndefined(params)),
+
+    // RAG增强功能
+    indexFiles: (projectId, options) => ipcRenderer.invoke('project:indexFiles', projectId, removeUndefined(options || {})),
+    ragQuery: (projectId, query, options) => ipcRenderer.invoke('project:ragQuery', projectId, query, removeUndefined(options || {})),
+    updateFileIndex: (fileId) => ipcRenderer.invoke('project:updateFileIndex', fileId),
+    deleteIndex: (projectId) => ipcRenderer.invoke('project:deleteIndex', projectId),
+    getIndexStats: (projectId) => ipcRenderer.invoke('project:getIndexStats', projectId),
+
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
@@ -458,6 +476,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 事件监听
     onStepUpdate: (callback) => ipcRenderer.on('ai:stepUpdate', (_event, step) => callback(step)),
     offStepUpdate: (callback) => ipcRenderer.removeListener('ai:stepUpdate', callback),
+  },
+
+  // 代码开发引擎
+  code: {
+    generate: (description, options) => ipcRenderer.invoke('code:generate', description, removeUndefined(options || {})),
+    generateTests: (code, language) => ipcRenderer.invoke('code:generateTests', code, language),
+    review: (code, language) => ipcRenderer.invoke('code:review', code, language),
+    refactor: (code, language, refactoringType) => ipcRenderer.invoke('code:refactor', code, language, refactoringType),
+    explain: (code, language) => ipcRenderer.invoke('code:explain', code, language),
+    fixBug: (code, language, errorMessage) => ipcRenderer.invoke('code:fixBug', code, language, errorMessage),
+    generateScaffold: (projectType, options) => ipcRenderer.invoke('code:generateScaffold', projectType, removeUndefined(options || {})),
   },
 
   // 系统操作
