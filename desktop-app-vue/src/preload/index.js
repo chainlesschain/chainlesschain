@@ -369,6 +369,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
   },
 
+  // 视频处理引擎
+  video: {
+    convert: (params) => ipcRenderer.invoke('video:convert', removeUndefined(params)),
+    trim: (params) => ipcRenderer.invoke('video:trim', removeUndefined(params)),
+    merge: (params) => ipcRenderer.invoke('video:merge', removeUndefined(params)),
+    addSubtitles: (params) => ipcRenderer.invoke('video:addSubtitles', removeUndefined(params)),
+    generateSubtitles: (params) => ipcRenderer.invoke('video:generateSubtitles', removeUndefined(params)),
+    extractAudio: (params) => ipcRenderer.invoke('video:extractAudio', removeUndefined(params)),
+    generateThumbnail: (params) => ipcRenderer.invoke('video:generateThumbnail', removeUndefined(params)),
+    compress: (params) => ipcRenderer.invoke('video:compress', removeUndefined(params)),
+    getInfo: (videoPath) => ipcRenderer.invoke('video:getInfo', videoPath),
+  },
+
   // 提示词模板管理
   promptTemplate: {
     getAll: (filters) => ipcRenderer.invoke('prompt-template:get-all', filters),
@@ -487,6 +500,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
     explain: (code, language) => ipcRenderer.invoke('code:explain', code, language),
     fixBug: (code, language, errorMessage) => ipcRenderer.invoke('code:fixBug', code, language, errorMessage),
     generateScaffold: (projectType, options) => ipcRenderer.invoke('code:generateScaffold', projectType, removeUndefined(options || {})),
+  },
+
+  // 项目自动化规则
+  automation: {
+    createRule: (ruleData) => ipcRenderer.invoke('automation:createRule', removeUndefined(ruleData)),
+    getRules: (projectId) => ipcRenderer.invoke('automation:getRules', projectId),
+    getRule: (ruleId) => ipcRenderer.invoke('automation:getRule', ruleId),
+    updateRule: (ruleId, updates) => ipcRenderer.invoke('automation:updateRule', ruleId, removeUndefined(updates)),
+    deleteRule: (ruleId) => ipcRenderer.invoke('automation:deleteRule', ruleId),
+    manualTrigger: (ruleId) => ipcRenderer.invoke('automation:manualTrigger', ruleId),
+    loadProjectRules: (projectId) => ipcRenderer.invoke('automation:loadProjectRules', projectId),
+    stopRule: (ruleId) => ipcRenderer.invoke('automation:stopRule', ruleId),
+    getStatistics: () => ipcRenderer.invoke('automation:getStatistics'),
+  },
+
+  // 协作实时编辑
+  collaboration: {
+    startServer: (options) => ipcRenderer.invoke('collaboration:startServer', removeUndefined(options || {})),
+    stopServer: () => ipcRenderer.invoke('collaboration:stopServer'),
+    joinDocument: (userId, userName, documentId) => ipcRenderer.invoke('collaboration:joinDocument', userId, userName, documentId),
+    submitOperation: (documentId, userId, operation) => ipcRenderer.invoke('collaboration:submitOperation', documentId, userId, operation),
+    getOnlineUsers: (documentId) => ipcRenderer.invoke('collaboration:getOnlineUsers', documentId),
+    getOperationHistory: (documentId, limit) => ipcRenderer.invoke('collaboration:getOperationHistory', documentId, limit),
+    getSessionHistory: (documentId, limit) => ipcRenderer.invoke('collaboration:getSessionHistory', documentId, limit),
+    getStatus: () => ipcRenderer.invoke('collaboration:getStatus'),
   },
 
   // 系统操作
