@@ -6,6 +6,7 @@
 const git = require('isomorphic-git');
 const fs = require('fs');
 const path = require('path');
+const { gitLog, gitError } = require('./git/git-config');
 
 class GitAutoCommit {
   constructor(options = {}) {
@@ -25,7 +26,7 @@ class GitAutoCommit {
    */
   start(projectId, repoPath) {
     if (!this.enabled) {
-      console.log('[Git Auto Commit] 自动提交已禁用');
+      gitLog('Git Auto Commit', '自动提交已禁用');
       return;
     }
 
@@ -34,7 +35,7 @@ class GitAutoCommit {
       this.stop(projectId);
     }
 
-    console.log(`[Git Auto Commit] 开始监视项目: ${projectId} (${repoPath})`);
+    gitLog('Git Auto Commit', `开始监视项目: ${projectId} (${repoPath})`);
 
     // 启动定时器
     const timer = setInterval(async () => {
@@ -60,7 +61,7 @@ class GitAutoCommit {
     if (project) {
       clearInterval(project.timer);
       this.watchedProjects.delete(projectId);
-      console.log(`[Git Auto Commit] 停止监视项目: ${projectId}`);
+      gitLog('Git Auto Commit', `停止监视项目: ${projectId}`);
     }
   }
 
@@ -68,7 +69,7 @@ class GitAutoCommit {
    * 停止所有自动提交
    */
   stopAll() {
-    console.log('[Git Auto Commit] 停止所有自动提交');
+    gitLog('Git Auto Commit', '停止所有自动提交');
 
     for (const [projectId, project] of this.watchedProjects) {
       clearInterval(project.timer);
@@ -85,13 +86,13 @@ class GitAutoCommit {
    */
   async checkAndCommit(projectId, repoPath) {
     try {
-      console.log(`[Git Auto Commit] 检查项目 ${projectId} 的更改...`);
+      gitLog('Git Auto Commit', `检查项目 ${projectId} 的更改...`);
 
       // 检查是否是Git仓库
       const isRepo = await this.isGitRepository(repoPath);
 
       if (!isRepo) {
-        console.log(`[Git Auto Commit] ${repoPath} 不是Git仓库，跳过`);
+        gitLog('Git Auto Commit', `${repoPath} 不是Git仓库，跳过`);
         return;
       }
 
@@ -100,11 +101,11 @@ class GitAutoCommit {
 
       // 如果没有更改，跳过
       if (status.clean) {
-        console.log(`[Git Auto Commit] 项目 ${projectId} 无更改`);
+        gitLog('Git Auto Commit', `项目 ${projectId} 无更改`);
         return;
       }
 
-      console.log(`[Git Auto Commit] 发现更改:`, {
+      gitLog('Git Auto Commit', '发现更改:', {
         modified: status.modified.length,
         added: status.added.length,
         deleted: status.deleted.length,
@@ -117,9 +118,9 @@ class GitAutoCommit {
       const commitMessage = this.generateCommitMessage(status);
       await this.commit(repoPath, commitMessage);
 
-      console.log(`[Git Auto Commit] 自动提交成功: ${commitMessage}`);
+      gitLog('Git Auto Commit', `自动提交成功: ${commitMessage}`);
     } catch (error) {
-      console.error(`[Git Auto Commit] 自动提交失败:`, error);
+      gitError('Git Auto Commit', '自动提交失败:', error);
     }
   }
 
@@ -196,7 +197,7 @@ class GitAutoCommit {
         untracked,
       };
     } catch (error) {
-      console.error('[Git Auto Commit] 获取状态失败:', error);
+      gitError('Git Auto Commit', '获取状态失败:', error);
       throw error;
     }
   }
@@ -229,7 +230,7 @@ class GitAutoCommit {
         });
       }
     } catch (error) {
-      console.error('[Git Auto Commit] 添加文件失败:', error);
+      gitError('Git Auto Commit', '添加文件失败:', error);
       throw error;
     }
   }
@@ -251,7 +252,7 @@ class GitAutoCommit {
 
       return sha;
     } catch (error) {
-      console.error('[Git Auto Commit] 提交失败:', error);
+      gitError('Git Auto Commit', '提交失败:', error);
       throw error;
     }
   }
@@ -300,7 +301,7 @@ class GitAutoCommit {
    */
   setInterval(interval) {
     this.interval = interval;
-    console.log(`[Git Auto Commit] 设置提交间隔: ${interval}ms`);
+    gitLog('Git Auto Commit', `设置提交间隔: ${interval}ms`);
 
     // 重启所有监视
     const projects = Array.from(this.watchedProjects.entries());
@@ -317,7 +318,7 @@ class GitAutoCommit {
    */
   setEnabled(enabled) {
     this.enabled = enabled;
-    console.log(`[Git Auto Commit] ${enabled ? '启用' : '禁用'}自动提交`);
+    gitLog('Git Auto Commit', `${enabled ? '启用' : '禁用'}自动提交`);
 
     if (!enabled) {
       this.stopAll();
@@ -330,7 +331,7 @@ class GitAutoCommit {
    */
   setAuthor(author) {
     this.author = author;
-    console.log(`[Git Auto Commit] 设置作者:`, author);
+    gitLog('Git Auto Commit', '设置作者:', author);
   }
 
   /**

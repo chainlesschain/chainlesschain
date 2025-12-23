@@ -10,6 +10,7 @@ const path = require('path');
 const http = require('isomorphic-git/http/node');
 const { app } = require('electron');
 const EventEmitter = require('events');
+const { gitLog, gitError, gitWarn } = require('./git-config');
 
 /**
  * Git管理器类
@@ -58,8 +59,8 @@ class GitManager extends EventEmitter {
    * 初始化Git管理器
    */
   async initialize() {
-    console.log('[GitManager] 初始化Git管理器...');
-    console.log('[GitManager] 仓库路径:', this.repoPath);
+    gitLog('GitManager', '初始化Git管理器...');
+    gitLog('GitManager', '仓库路径:', this.repoPath);
 
     try {
       // 确保目录存在
@@ -71,15 +72,15 @@ class GitManager extends EventEmitter {
       const isRepo = await this.isGitRepository();
 
       if (!isRepo) {
-        console.log('[GitManager] 初始化新的Git仓库...');
+        gitLog('GitManager', '初始化新的Git仓库...');
         await git.init({
           fs,
           dir: this.repoPath,
           defaultBranch: 'main',
         });
-        console.log('[GitManager] Git仓库初始化成功');
+        gitLog('GitManager', 'Git仓库初始化成功');
       } else {
-        console.log('[GitManager] 使用现有Git仓库');
+        gitLog('GitManager', '使用现有Git仓库');
       }
 
       this.isInitialized = true;
@@ -87,7 +88,7 @@ class GitManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error('[GitManager] 初始化失败:', error);
+      gitError('GitManager', '初始化失败:', error);
       throw error;
     }
   }
@@ -154,7 +155,7 @@ class GitManager extends EventEmitter {
         lastSync,
       };
     } catch (error) {
-      console.error('[GitManager] 获取状态失败:', error);
+      gitError('GitManager', '获取状态失败:', error);
       throw error;
     }
   }
@@ -196,12 +197,12 @@ class GitManager extends EventEmitter {
         });
       }
 
-      console.log('[GitManager] 文件已添加到暂存区:', paths);
+      gitLog('GitManager', '文件已添加到暂存区:', paths);
       this.emit('files-added', paths);
 
       return true;
     } catch (error) {
-      console.error('[GitManager] 添加文件失败:', error);
+      gitError('GitManager', '添加文件失败:', error);
       throw error;
     }
   }
@@ -219,12 +220,12 @@ class GitManager extends EventEmitter {
         author: this.author,
       });
 
-      console.log('[GitManager] 提交成功:', sha);
+      gitLog('GitManager', '提交成功:', sha);
       this.emit('committed', { sha, message });
 
       return sha;
     } catch (error) {
-      console.error('[GitManager] 提交失败:', error);
+      gitError('GitManager', '提交失败:', error);
       throw error;
     }
   }
@@ -249,12 +250,12 @@ class GitManager extends EventEmitter {
         },
       });
 
-      console.log('[GitManager] 推送成功');
+      gitLog('GitManager', '推送成功');
       this.emit('pushed', pushResult);
 
       return pushResult;
     } catch (error) {
-      console.error('[GitManager] 推送失败:', error);
+      gitError('GitManager', '推送失败:', error);
       throw error;
     }
   }
@@ -290,7 +291,7 @@ class GitManager extends EventEmitter {
           author: this.author,
         });
 
-        console.log('[GitManager] 拉取成功');
+        gitLog('GitManager', '拉取成功');
         this.emit('pulled');
 
         return { success: true, hasConflicts: false };
@@ -299,7 +300,7 @@ class GitManager extends EventEmitter {
         if (mergeError.code === git.Errors.MergeNotSupportedError.code ||
             mergeError.code === git.Errors.MergeConflictError.code ||
             mergeError.message.includes('conflict')) {
-          console.warn('[GitManager] 检测到合并冲突');
+          gitWarn('GitManager', '检测到合并冲突');
 
           const conflicts = await this.getConflictFiles();
           this.emit('merge-conflict', { conflicts });
@@ -316,7 +317,7 @@ class GitManager extends EventEmitter {
         throw mergeError;
       }
     } catch (error) {
-      console.error('[GitManager] 拉取失败:', error);
+      gitError('GitManager', '拉取失败:', error);
       throw error;
     }
   }
@@ -351,7 +352,7 @@ class GitManager extends EventEmitter {
 
       return conflicts;
     } catch (error) {
-      console.error('[GitManager] 获取冲突文件失败:', error);
+      gitError('GitManager', '获取冲突文件失败:', error);
       return [];
     }
   }
@@ -364,7 +365,7 @@ class GitManager extends EventEmitter {
       const fullPath = path.join(this.repoPath, filepath);
       return fs.readFileSync(fullPath, 'utf8');
     } catch (error) {
-      console.error(`[GitManager] 读取文件失败: ${filepath}`, error);
+      gitError('GitManager', `读取文件失败: ${filepath}`, error);
       return null;
     }
   }
@@ -389,7 +390,7 @@ class GitManager extends EventEmitter {
         hasConflicts: conflicts.length > 0,
       };
     } catch (error) {
-      console.error(`[GitManager] 获取冲突内容失败: ${filepath}`, error);
+      gitError('GitManager', `获取冲突内容失败: ${filepath}`, error);
       throw error;
     }
   }
@@ -502,12 +503,12 @@ class GitManager extends EventEmitter {
       // 添加到暂存区
       await this.add(filepath);
 
-      console.log(`[GitManager] 冲突已解决: ${filepath} (${resolution})`);
+      gitLog('GitManager', `冲突已解决: ${filepath} (${resolution})`);
       this.emit('conflict-resolved', { filepath, resolution });
 
       return true;
     } catch (error) {
-      console.error(`[GitManager] 解决冲突失败: ${filepath}`, error);
+      gitError('GitManager', `解决冲突失败: ${filepath}`, error);
       throw error;
     }
   }
@@ -528,12 +529,12 @@ class GitManager extends EventEmitter {
         force: true,
       });
 
-      console.log('[GitManager] 合并已中止');
+      gitLog('GitManager', '合并已中止');
       this.emit('merge-aborted');
 
       return true;
     } catch (error) {
-      console.error('[GitManager] 中止合并失败:', error);
+      gitError('GitManager', '中止合并失败:', error);
       throw error;
     }
   }
@@ -552,12 +553,12 @@ class GitManager extends EventEmitter {
       // 提交合并
       const sha = await this.commit(message);
 
-      console.log('[GitManager] 合并已完成');
+      gitLog('GitManager', '合并已完成');
       this.emit('merge-completed', { sha });
 
       return { success: true, sha };
     } catch (error) {
-      console.error('[GitManager] 完成合并失败:', error);
+      gitError('GitManager', '完成合并失败:', error);
       throw error;
     }
   }
@@ -571,7 +572,7 @@ class GitManager extends EventEmitter {
     try {
       const clonePath = targetPath || this.repoPath;
 
-      console.log('[GitManager] 克隆仓库:', url);
+      gitLog('GitManager', '克隆仓库:', url);
 
       await git.clone({
         fs,
@@ -584,12 +585,12 @@ class GitManager extends EventEmitter {
         },
       });
 
-      console.log('[GitManager] 克隆成功');
+      gitLog('GitManager', '克隆成功');
       this.emit('cloned', { url, path: clonePath });
 
       return true;
     } catch (error) {
-      console.error('[GitManager] 克隆失败:', error);
+      gitError('GitManager', '克隆失败:', error);
       throw error;
     }
   }
@@ -610,7 +611,7 @@ class GitManager extends EventEmitter {
 
       this.remote = { name, url };
 
-      console.log('[GitManager] 远程仓库已配置:', url);
+      gitLog('GitManager', '远程仓库已配置:', url);
       this.emit('remote-configured', { name, url });
 
       return true;
@@ -633,7 +634,7 @@ class GitManager extends EventEmitter {
         this.remote = { name, url };
         return true;
       } catch (updateError) {
-        console.error('[GitManager] 配置远程仓库失败:', updateError);
+        gitError('GitManager', '配置远程仓库失败:', updateError);
         throw updateError;
       }
     }
@@ -645,7 +646,7 @@ class GitManager extends EventEmitter {
    */
   setAuth(auth) {
     this.auth = auth;
-    console.log('[GitManager] 认证信息已更新');
+    gitLog('GitManager', '认证信息已更新');
   }
 
   /**
@@ -655,7 +656,7 @@ class GitManager extends EventEmitter {
    */
   setAuthor(name, email) {
     this.author = { name, email };
-    console.log('[GitManager] 作者信息已更新:', this.author);
+    gitLog('GitManager', '作者信息已更新:', this.author);
   }
 
   /**
@@ -677,7 +678,7 @@ class GitManager extends EventEmitter {
         timestamp: new Date(commit.commit.author.timestamp * 1000),
       }));
     } catch (error) {
-      console.error('[GitManager] 获取日志失败:', error);
+      gitError('GitManager', '获取日志失败:', error);
       return [];
     }
   }
@@ -706,7 +707,7 @@ class GitManager extends EventEmitter {
    */
   async autoSync(message = 'Auto sync') {
     try {
-      console.log('[GitManager] 开始自动同步...');
+      gitLog('GitManager', '开始自动同步...');
 
       // 获取状态
       const status = await this.getStatus();
@@ -719,7 +720,7 @@ class GitManager extends EventEmitter {
       ];
 
       if (allFiles.length === 0) {
-        console.log('[GitManager] 没有更改需要同步');
+        gitLog('GitManager', '没有更改需要同步');
         return { synced: false, message: '没有更改' };
       }
 
@@ -736,7 +737,7 @@ class GitManager extends EventEmitter {
         await this.push();
       }
 
-      console.log('[GitManager] 自动同步完成');
+      gitLog('GitManager', '自动同步完成');
       this.emit('auto-synced', { sha, files: allFiles.length });
 
       return {
@@ -745,7 +746,7 @@ class GitManager extends EventEmitter {
         filesCount: allFiles.length,
       };
     } catch (error) {
-      console.error('[GitManager] 自动同步失败:', error);
+      gitError('GitManager', '自动同步失败:', error);
       throw error;
     }
   }
@@ -754,7 +755,7 @@ class GitManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
-    console.log('[GitManager] 关闭Git管理器');
+    gitLog('GitManager', '关闭Git管理器');
     this.isInitialized = false;
     this.emit('closed');
   }
