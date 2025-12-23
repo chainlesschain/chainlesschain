@@ -844,7 +844,11 @@ onMounted(async () => {
     if (hasValidPath.value) {
       await refreshGitStatus();
       // 每 10 秒刷新一次 Git 状态
-      gitStatusInterval = setInterval(refreshGitStatus, 10000);
+      gitStatusInterval = setInterval(() => {
+        refreshGitStatus().catch(err => {
+          console.error('[ProjectDetail] Git status interval error:', err);
+        });
+      }, 10000);
     }
   } catch (error) {
     console.error('Load project failed:', error);

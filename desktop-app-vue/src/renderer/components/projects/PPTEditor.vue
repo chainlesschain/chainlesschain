@@ -1,0 +1,857 @@
+<template>
+  <div class="ppt-editor">
+    <!-- 编辑器头部 -->
+    <div class="editor-header">
+      <div class="header-left">
+        <FilePptOutlined class="file-icon" />
+        <span class="file-name">{{ file.file_name }}</span>
+        <a-tag v-if="hasChanges" color="orange" size="small">
+          未保存
+        </a-tag>
+        <a-tag v-if="saving" color="blue" size="small">
+          <LoadingOutlined />
+          保存中...
+        </a-tag>
+      </div>
+
+      <div class="header-right">
+        <a-tooltip title="保存 (Ctrl+S)">
+          <a-button
+            type="text"
+            size="small"
+            :disabled="!hasChanges || saving"
+            @click="handleSave"
+          >
+            <SaveOutlined />
+          </a-button>
+        </a-tooltip>
+
+        <a-tooltip title="下载PPT">
+          <a-button type="text" size="small" @click="handleDownload">
+            <DownloadOutlined />
+          </a-button>
+        </a-tooltip>
+
+        <a-tooltip title="演示">
+          <a-button type="text" size="small" @click="handlePresent">
+            <PlayCircleOutlined />
+          </a-button>
+        </a-tooltip>
+
+        <a-tooltip title="全屏">
+          <a-button type="text" size="small" @click="toggleFullscreen">
+            <FullscreenOutlined v-if="!isFullscreen" />
+            <FullscreenExitOutlined v-else />
+          </a-button>
+        </a-tooltip>
+      </div>
+    </div>
+
+    <!-- PPT工具栏 -->
+    <div class="ppt-toolbar">
+      <a-tabs v-model:activeKey="activeTab" size="small">
+        <a-tab-pane key="design" tab="设计">
+          <div class="toolbar-group">
+            <a-dropdown>
+              <a-button size="small">
+                <PictureOutlined />
+                主题
+              </a-button>
+              <template #overlay>
+                <a-menu @click="handleThemeChange">
+                  <a-menu-item key="default">默认主题</a-menu-item>
+                  <a-menu-item key="business">商务主题</a-menu-item>
+                  <a-menu-item key="creative">创意主题</a-menu-item>
+                  <a-menu-item key="minimal">简约主题</a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+
+            <a-button size="small" @click="showLayoutPicker">
+              <LayoutOutlined />
+              布局
+            </a-button>
+
+            <a-button size="small" @click="showColorPicker">
+              <BgColorsOutlined />
+              配色
+            </a-button>
+          </div>
+        </a-tab-pane>
+
+        <a-tab-pane key="insert" tab="插入">
+          <div class="toolbar-group">
+            <a-button size="small" @click="insertTextBox">
+              <FontSizeOutlined />
+              文本框
+            </a-button>
+            <a-button size="small" @click="insertImage">
+              <PictureOutlined />
+              图片
+            </a-button>
+            <a-button size="small" @click="insertShape">
+              <BorderOutlined />
+              形状
+            </a-button>
+            <a-button size="small" @click="insertChart">
+              <BarChartOutlined />
+              图表
+            </a-button>
+          </div>
+        </a-tab-pane>
+
+        <a-tab-pane key="animation" tab="动画">
+          <div class="toolbar-group">
+            <a-select v-model:value="selectedAnimation" size="small" style="width: 120px" @change="applyAnimation">
+              <a-select-option value="fade">淡入</a-select-option>
+              <a-select-option value="slide">滑动</a-select-option>
+              <a-select-option value="zoom">缩放</a-select-option>
+              <a-select-option value="rotate">旋转</a-select-option>
+            </a-select>
+
+            <a-button size="small" @click="showAnimationPanel">
+              动画窗格
+            </a-button>
+          </div>
+        </a-tab-pane>
+      </a-tabs>
+    </div>
+
+    <!-- PPT内容区域 -->
+    <div class="ppt-content">
+      <!-- 左侧：幻灯片缩略图列表 -->
+      <div class="slides-sidebar">
+        <div class="sidebar-header">
+          <span>幻灯片</span>
+          <a-button type="text" size="small" @click="addSlide">
+            <PlusOutlined />
+          </a-button>
+        </div>
+
+        <VueDraggable
+          v-model="slides"
+          class="slides-list"
+          :animation="200"
+          handle=".slide-thumb"
+          @end="handleSlidesReorder"
+        >
+          <div
+            v-for="(slide, index) in slides"
+            :key="slide.id"
+            class="slide-item"
+            :class="{ active: currentSlideIndex === index }"
+            @click="selectSlide(index)"
+          >
+            <div class="slide-thumb">
+              <div class="slide-number">{{ index + 1 }}</div>
+              <div class="slide-preview">
+                <div v-html="slide.content" class="slide-content-preview"></div>
+              </div>
+            </div>
+
+            <div class="slide-actions">
+              <a-dropdown>
+                <a-button type="text" size="small" @click.stop>
+                  <EllipsisOutlined />
+                </a-button>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item key="duplicate" @click="duplicateSlide(index)">
+                      <CopyOutlined />
+                      复制
+                    </a-menu-item>
+                    <a-menu-item key="delete" danger @click="deleteSlide(index)">
+                      <DeleteOutlined />
+                      删除
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
+            </div>
+          </div>
+        </VueDraggable>
+      </div>
+
+      <!-- 中央：当前幻灯片编辑区 -->
+      <div class="slide-editor" ref="slideEditorRef">
+        <div class="slide-canvas" :style="canvasStyle">
+          <div
+            v-if="currentSlide"
+            class="slide-content"
+            contenteditable="true"
+            @input="handleSlideContentChange"
+            v-html="currentSlide.content"
+          ></div>
+        </div>
+      </div>
+
+      <!-- 右侧：属性面板 -->
+      <div class="properties-panel" v-if="showProperties">
+        <a-tabs v-model:activeKey="propertiesTab" size="small">
+          <a-tab-pane key="slide" tab="幻灯片">
+            <div class="panel-content">
+              <div class="property-group">
+                <label>背景颜色</label>
+                <input type="color" v-model="currentSlide.backgroundColor" @change="updateSlideStyle" />
+              </div>
+
+              <div class="property-group">
+                <label>背景图片</label>
+                <a-button size="small" @click="selectBackgroundImage">
+                  选择图片
+                </a-button>
+              </div>
+            </div>
+          </a-tab-pane>
+
+          <a-tab-pane key="text" tab="文本">
+            <div class="panel-content">
+              <div class="property-group">
+                <label>字体大小</label>
+                <a-slider v-model:value="fontSize" :min="12" :max="72" @change="applyTextStyle" />
+              </div>
+
+              <div class="property-group">
+                <label>字体颜色</label>
+                <input type="color" v-model="textColor" @change="applyTextStyle" />
+              </div>
+            </div>
+          </a-tab-pane>
+
+          <a-tab-pane key="layout" tab="布局">
+            <div class="panel-content">
+              <div class="layout-templates">
+                <div
+                  v-for="layout in layouts"
+                  :key="layout.id"
+                  class="layout-template"
+                  @click="applyLayout(layout)"
+                >
+                  <div class="layout-preview">{{ layout.name }}</div>
+                </div>
+              </div>
+            </div>
+          </a-tab-pane>
+        </a-tabs>
+      </div>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="editor-footer">
+      <div class="footer-left">
+        <span class="status-item">
+          幻灯片: {{ currentSlideIndex + 1 }} / {{ slides.length }}
+        </span>
+      </div>
+
+      <div class="footer-right">
+        <a-button-group size="small">
+          <a-button @click="zoomOut">
+            <ZoomOutOutlined />
+          </a-button>
+          <a-button>{{ zoomLevel }}%</a-button>
+          <a-button @click="zoomIn">
+            <ZoomInOutlined />
+          </a-button>
+        </a-button-group>
+
+        <span v-if="lastSaved" class="status-item">
+          上次保存: {{ lastSaved }}
+        </span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { message } from 'ant-design-vue';
+import { VueDraggable } from 'vue-draggable-plus';
+import {
+  FilePptOutlined,
+  SaveOutlined,
+  DownloadOutlined,
+  LoadingOutlined,
+  FullscreenOutlined,
+  FullscreenExitOutlined,
+  PlayCircleOutlined,
+  PictureOutlined,
+  LayoutOutlined,
+  BgColorsOutlined,
+  FontSizeOutlined,
+  BorderOutlined,
+  BarChartOutlined,
+  PlusOutlined,
+  EllipsisOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
+} from '@ant-design/icons-vue';
+import { formatDistanceToNow } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
+
+const props = defineProps({
+  file: {
+    type: Object,
+    required: true,
+  },
+  projectId: {
+    type: String,
+    required: true,
+  },
+});
+
+const emit = defineEmits(['change', 'save']);
+
+// 响应式状态
+const slideEditorRef = ref(null);
+const slides = ref([]);
+const currentSlideIndex = ref(0);
+const hasChanges = ref(false);
+const saving = ref(false);
+const lastSaved = ref('');
+const isFullscreen = ref(false);
+const activeTab = ref('design');
+const selectedAnimation = ref('fade');
+const showProperties = ref(true);
+const propertiesTab = ref('slide');
+const zoomLevel = ref(100);
+const fontSize = ref(24);
+const textColor = ref('#000000');
+
+// 布局模板
+const layouts = [
+  { id: 'title', name: '标题幻灯片' },
+  { id: 'content', name: '标题和内容' },
+  { id: 'two-column', name: '两栏布局' },
+  { id: 'blank', name: '空白' },
+];
+
+// 计算属性
+const currentSlide = computed(() => {
+  return slides.value[currentSlideIndex.value];
+});
+
+const canvasStyle = computed(() => {
+  return {
+    transform: `scale(${zoomLevel.value / 100})`,
+    transformOrigin: 'top center',
+  };
+});
+
+// 初始化
+onMounted(() => {
+  initPPT();
+  document.addEventListener('keydown', handleKeydown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown);
+});
+
+// 初始化PPT
+const initPPT = () => {
+  try {
+    if (props.file.content) {
+      const data = typeof props.file.content === 'string'
+        ? JSON.parse(props.file.content)
+        : props.file.content;
+
+      if (data.slides && Array.isArray(data.slides)) {
+        slides.value = data.slides;
+      } else {
+        createDefaultSlide();
+      }
+    } else {
+      createDefaultSlide();
+    }
+  } catch (error) {
+    console.error('解析PPT数据失败:', error);
+    createDefaultSlide();
+  }
+};
+
+// 创建默认幻灯片
+const createDefaultSlide = () => {
+  slides.value = [
+    {
+      id: Date.now(),
+      content: '<h1>标题</h1><p>在此输入内容...</p>',
+      backgroundColor: '#ffffff',
+      backgroundImage: '',
+      animation: 'fade',
+    },
+  ];
+};
+
+// 添加幻灯片
+const addSlide = () => {
+  const newSlide = {
+    id: Date.now(),
+    content: '<h2>新幻灯片</h2><p>在此输入内容...</p>',
+    backgroundColor: '#ffffff',
+    backgroundImage: '',
+    animation: 'fade',
+  };
+  slides.value.push(newSlide);
+  currentSlideIndex.value = slides.value.length - 1;
+  hasChanges.value = true;
+  message.success('已添加新幻灯片');
+};
+
+// 选择幻灯片
+const selectSlide = (index) => {
+  currentSlideIndex.value = index;
+};
+
+// 复制幻灯片
+const duplicateSlide = (index) => {
+  const slide = { ...slides.value[index], id: Date.now() };
+  slides.value.splice(index + 1, 0, slide);
+  hasChanges.value = true;
+  message.success('已复制幻灯片');
+};
+
+// 删除幻灯片
+const deleteSlide = (index) => {
+  if (slides.value.length <= 1) {
+    message.warning('至少需要保留一张幻灯片');
+    return;
+  }
+
+  slides.value.splice(index, 1);
+  if (currentSlideIndex.value >= slides.value.length) {
+    currentSlideIndex.value = slides.value.length - 1;
+  }
+  hasChanges.value = true;
+  message.success('已删除幻灯片');
+};
+
+// 处理幻灯片重新排序
+const handleSlidesReorder = () => {
+  hasChanges.value = true;
+  message.success('幻灯片顺序已更新');
+};
+
+// 处理幻灯片内容变化
+const handleSlideContentChange = (e) => {
+  if (currentSlide.value) {
+    currentSlide.value.content = e.target.innerHTML;
+    hasChanges.value = true;
+  }
+};
+
+// 主题变更
+const handleThemeChange = ({ key }) => {
+  message.info(`应用主题: ${key}`);
+  hasChanges.value = true;
+};
+
+// 插入元素
+const insertTextBox = () => {
+  message.info('插入文本框');
+};
+
+const insertImage = () => {
+  message.info('插入图片');
+};
+
+const insertShape = () => {
+  message.info('插入形状');
+};
+
+const insertChart = () => {
+  message.info('插入图表');
+};
+
+// 应用动画
+const applyAnimation = (value) => {
+  if (currentSlide.value) {
+    currentSlide.value.animation = value;
+    hasChanges.value = true;
+    message.success(`已应用动画: ${value}`);
+  }
+};
+
+// 显示面板
+const showLayoutPicker = () => {
+  propertiesTab.value = 'layout';
+  showProperties.value = true;
+};
+
+const showColorPicker = () => {
+  propertiesTab.value = 'slide';
+  showProperties.value = true;
+};
+
+const showAnimationPanel = () => {
+  message.info('动画窗格');
+};
+
+// 应用布局
+const applyLayout = (layout) => {
+  message.success(`应用布局: ${layout.name}`);
+  hasChanges.value = true;
+};
+
+// 更新样式
+const updateSlideStyle = () => {
+  hasChanges.value = true;
+};
+
+const applyTextStyle = () => {
+  hasChanges.value = true;
+};
+
+const selectBackgroundImage = () => {
+  message.info('选择背景图片');
+};
+
+// 缩放控制
+const zoomIn = () => {
+  if (zoomLevel.value < 200) {
+    zoomLevel.value += 10;
+  }
+};
+
+const zoomOut = () => {
+  if (zoomLevel.value > 50) {
+    zoomLevel.value -= 10;
+  }
+};
+
+// 演示
+const handlePresent = () => {
+  message.info('开始演示');
+  // TODO: 实现全屏演示功能
+};
+
+// 保存
+const handleSave = async () => {
+  if (!hasChanges.value || saving.value) return;
+
+  saving.value = true;
+
+  try {
+    const content = JSON.stringify({
+      slides: slides.value,
+      meta: {
+        lastModified: Date.now(),
+      },
+    });
+
+    await window.electron.invoke('file-sync:save', props.file.id, content, props.projectId);
+
+    props.file.content = content;
+    hasChanges.value = false;
+    lastSaved.value = formatDistanceToNow(new Date(), {
+      addSuffix: true,
+      locale: zhCN,
+    });
+
+    emit('save');
+    message.success('文件已保存');
+  } catch (error) {
+    console.error('保存文件失败:', error);
+    message.error('保存文件失败: ' + error.message);
+  } finally {
+    saving.value = false;
+  }
+};
+
+// 下载
+const handleDownload = () => {
+  message.info('PPT导出功能开发中');
+  // TODO: 使用 pptxgenjs 库导出为真正的 .pptx 文件
+};
+
+// 全屏切换
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value;
+  const container = slideEditorRef.value;
+
+  if (isFullscreen.value) {
+    if (container.requestFullscreen) {
+      container.requestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+};
+
+// 键盘快捷键
+const handleKeydown = (e) => {
+  // Ctrl+S 保存
+  if (e.ctrlKey && e.key === 's') {
+    e.preventDefault();
+    handleSave();
+  }
+};
+
+// 监听文件变化
+watch(
+  () => props.file,
+  (newFile) => {
+    if (newFile) {
+      initPPT();
+      hasChanges.value = false;
+    }
+  }
+);
+</script>
+
+<style scoped lang="scss">
+.ppt-editor {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+}
+
+.editor-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .file-icon {
+      font-size: 18px;
+      color: #d35400;
+    }
+
+    .file-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.ppt-toolbar {
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+
+  :deep(.ant-tabs-nav) {
+    margin-bottom: 0;
+    padding: 0 16px;
+  }
+
+  :deep(.ant-tabs-content) {
+    padding: 8px 16px;
+  }
+
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.ppt-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.slides-sidebar {
+  width: 200px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+
+  .sidebar-header {
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+  }
+
+  .slides-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .slide-item {
+    margin-bottom: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    position: relative;
+
+    &.active {
+      border-color: #1677ff;
+    }
+
+    &:hover {
+      .slide-actions {
+        opacity: 1;
+      }
+    }
+
+    .slide-thumb {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+
+      .slide-number {
+        padding: 4px 8px;
+        background: #f9fafb;
+        font-size: 12px;
+        color: #666;
+        text-align: center;
+      }
+
+      .slide-preview {
+        height: 100px;
+        padding: 8px;
+        overflow: hidden;
+
+        .slide-content-preview {
+          transform: scale(0.5);
+          transform-origin: top left;
+          width: 200%;
+          height: 200%;
+          pointer-events: none;
+        }
+      }
+    }
+
+    .slide-actions {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+  }
+}
+
+.slide-editor {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  .slide-canvas {
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    width: 960px;
+    height: 540px;
+    position: relative;
+    transition: transform 0.2s;
+
+    .slide-content {
+      width: 100%;
+      height: 100%;
+      padding: 40px;
+      outline: none;
+      overflow: auto;
+
+      &:focus {
+        box-shadow: inset 0 0 0 2px #1677ff;
+      }
+    }
+  }
+}
+
+.properties-panel {
+  width: 280px;
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+
+  .panel-content {
+    padding: 16px;
+  }
+
+  .property-group {
+    margin-bottom: 16px;
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 36px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  }
+
+  .layout-templates {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+
+    .layout-template {
+      aspect-ratio: 16/9;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: #1677ff;
+        background: #f0f5ff;
+      }
+    }
+  }
+}
+
+.editor-footer {
+  padding: 8px 16px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  font-size: 12px;
+  color: #6b7280;
+
+  .footer-left,
+  .footer-right {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+</style>

@@ -4,7 +4,7 @@
  */
 
 const IntentClassifier = require('./intent-classifier');
-const TaskPlanner = require('./task-planner');
+const { TaskPlanner } = require('./task-planner');
 const TaskPlannerEnhanced = require('./task-planner-enhanced');
 const FunctionCaller = require('./function-caller');
 

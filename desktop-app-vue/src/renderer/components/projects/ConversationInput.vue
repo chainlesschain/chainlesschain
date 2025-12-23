@@ -67,6 +67,12 @@
             @change="handleFileSelect"
           />
 
+          <!-- 语音输入按钮 -->
+          <VoiceInput
+            @result="handleVoiceResult"
+            @error="handleVoiceError"
+          />
+
           <!-- 已选附件展示 -->
           <div v-if="attachments.length > 0" class="attachments-preview">
             <a-tag
@@ -110,12 +116,14 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
+import { message } from 'ant-design-vue';
 import {
   PaperClipOutlined,
   SendOutlined,
   FileOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons-vue';
+import VoiceInput from './VoiceInput.vue';
 
 const props = defineProps({
   placeholder: {
@@ -321,6 +329,21 @@ const handlePaste = (e) => {
       }
     }
   }
+};
+
+// 处理语音输入结果
+const handleVoiceResult = (text) => {
+  if (text) {
+    // 追加语音识别的文本到输入框
+    inputText.value += (inputText.value ? ' ' : '') + text;
+    autoResize();
+    message.success('语音识别成功');
+  }
+};
+
+// 处理语音输入错误
+const handleVoiceError = (error) => {
+  console.error('语音输入错误:', error);
 };
 
 // 处理聚焦
