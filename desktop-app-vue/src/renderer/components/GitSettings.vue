@@ -114,6 +114,14 @@
               Markdown文件在仓库中的存储路径（相对路径）
             </div>
           </a-form-item>
+
+          <!-- 启用日志输出 -->
+          <a-form-item label="启用日志输出">
+            <a-switch v-model:checked="form.enableLogging" />
+            <div class="form-hint">
+              开启后，Git操作和后端API调用的日志将输出到控制台，用于调试问题
+            </div>
+          </a-form-item>
         </template>
 
         <!-- 操作按钮 -->
@@ -201,6 +209,7 @@ const form = reactive({
   autoSync: false,
   autoSyncInterval: 300000, // 5分钟
   exportPath: 'knowledge',
+  enableLogging: false, // 默认关闭日志输出
 });
 
 const authType = ref('none');
@@ -229,6 +238,7 @@ async function loadConfig() {
     form.autoSync = config.autoSync || false;
     form.autoSyncInterval = config.autoSyncInterval || 300000;
     form.exportPath = config.exportPath || 'knowledge';
+    form.enableLogging = config.enableLogging || false;
 
     // 解析认证信息
     if (config.auth) {

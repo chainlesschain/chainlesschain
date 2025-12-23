@@ -9,6 +9,15 @@ const axios = require('axios');
 const JAVA_SERVICE_URL = process.env.PROJECT_SERVICE_URL || 'http://localhost:9090';
 const PYTHON_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
+// 导入Git配置来控制日志输出
+let getGitConfig = null;
+try {
+  const gitConfigModule = require('../git/git-config');
+  getGitConfig = gitConfigModule.getGitConfig;
+} catch (e) {
+  // Git配置模块不可用时静默失败
+}
+
 /**
  * 创建axios实例
  */
@@ -30,9 +39,25 @@ const pythonClient = axios.create({
 
 /**
  * 错误处理
+ * @param {boolean} silent - 是否静默错误日志（不输出到控制台）
  */
-function handleError(error, context) {
-  console.error(`[BackendClient] ${context} 失败:`, error);
+function handleError(error, context, silent = false) {
+  // 实时获取最新的配置
+  // 只有在非静默模式且明确启用日志时才输出错误
+  // 默认情况下（getGitConfig为null或enableLogging为false）不输出日志
+  let shouldLog = false;
+  if (!silent && getGitConfig) {
+    try {
+      const config = getGitConfig();
+      shouldLog = config.isLoggingEnabled();
+    } catch (e) {
+      // 忽略配置读取错误
+    }
+  }
+
+  if (shouldLog) {
+    console.error(`[BackendClient] ${context} 失败:`, error);
+  }
 
   if (error.response) {
     // 服务器返回错误响应
