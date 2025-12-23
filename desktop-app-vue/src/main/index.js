@@ -20,6 +20,15 @@ const KnowledgePaymentManager = require('./trade/knowledge-payment');
 const CreditScoreManager = require('./trade/credit-score');
 const ReviewManager = require('./trade/review-manager');
 
+// AI Engine modules
+const AIEngineManager = require('./ai-engine/ai-engine-manager');
+const AIEngineIPC = require('./ai-engine/ai-engine-ipc');
+const WebEngine = require('./engines/web-engine');
+const DocumentEngine = require('./engines/document-engine');
+const DataEngine = require('./engines/data-engine');
+const ProjectStructureManager = require('./project-structure');
+const GitAutoCommit = require('./git-auto-commit');
+
 // 过滤不需要的控制台输出
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
@@ -118,6 +127,16 @@ class ChainlessChainApp {
     this.creditScoreManager = null;
     this.reviewManager = null;
     this.autoSyncTimer = null;
+
+    // AI Engine managers
+    this.aiEngineManager = null;
+    this.aiEngineIPC = null;
+    this.webEngine = null;
+    this.documentEngine = null;
+    this.dataEngine = null;
+    this.projectStructureManager = null;
+    this.gitAutoCommit = null;
+
     this.setupApp();
   }
 
@@ -503,6 +522,47 @@ class ChainlessChainApp {
       // 不影响主应用启动
     }
 
+    // 初始化AI引擎和相关模块
+    try {
+      console.log('初始化AI引擎...');
+
+      // 创建引擎实例
+      this.webEngine = new WebEngine();
+      this.documentEngine = new DocumentEngine();
+      this.dataEngine = new DataEngine();
+      this.projectStructureManager = new ProjectStructureManager();
+      this.gitAutoCommit = new GitAutoCommit({ enabled: true, interval: 5 * 60 * 1000 });
+
+      // 创建AI引擎管理器
+      this.aiEngineManager = new AIEngineManager();
+
+      // 注册自定义工具（集成到Function Caller）
+      this.aiEngineManager.registerTool(
+        'create_project_structure',
+        async (params, context) => {
+          return await this.projectStructureManager.createStructure(
+            params.projectPath,
+            params.type,
+            params.projectName
+          );
+        },
+        {
+          name: 'create_project_structure',
+          description: '创建项目目录结构',
+          parameters: {
+            projectPath: { type: 'string', description: '项目路径' },
+            type: { type: 'string', description: '项目类型' },
+            projectName: { type: 'string', description: '项目名称' },
+          },
+        }
+      );
+
+      console.log('AI引擎初始化成功');
+    } catch (error) {
+      console.error('AI引擎初始化失败:', error);
+      // 不影响主应用启动
+    }
+
     this.createWindow();
   }
 
@@ -553,6 +613,24 @@ class ChainlessChainApp {
       console.log('预览管理器初始化成功');
     } catch (error) {
       console.error('预览管理器初始化失败:', error);
+    }
+
+    // 注册AI引擎IPC handlers
+    if (this.aiEngineManager) {
+      try {
+        console.log('注册AI引擎IPC handlers...');
+        this.aiEngineIPC = new AIEngineIPC(
+          this.aiEngineManager,
+          this.webEngine,
+          this.documentEngine,
+          this.dataEngine,
+          this.gitAutoCommit
+        );
+        this.aiEngineIPC.registerHandlers(this.mainWindow);
+        console.log('AI引擎IPC handlers注册成功');
+      } catch (error) {
+        console.error('AI引擎IPC handlers注册失败:', error);
+      }
     }
   }
 

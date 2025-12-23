@@ -433,6 +433,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     readBinary: (filePath) => ipcRenderer.invoke('file:read-binary', filePath),
   },
 
+  // AI引擎
+  ai: {
+    processInput: ({ input, context }) => ipcRenderer.invoke('ai:processInput', { input, context }),
+    getHistory: (limit) => ipcRenderer.invoke('ai:getHistory', limit),
+    clearHistory: () => ipcRenderer.invoke('ai:clearHistory'),
+    // 事件监听
+    onStepUpdate: (callback) => ipcRenderer.on('ai:stepUpdate', (_event, step) => callback(step)),
+    offStepUpdate: (callback) => ipcRenderer.removeListener('ai:stepUpdate', callback),
+  },
+
   // 系统操作
   system: {
     getVersion: () => ipcRenderer.invoke('system:get-version'),

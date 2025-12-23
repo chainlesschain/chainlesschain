@@ -139,7 +139,8 @@ import { zhCN } from 'date-fns/locale';
 const props = defineProps({
   projectId: {
     type: String,
-    required: true,
+    required: false,
+    default: '',
   },
   currentFile: {
     type: Object,

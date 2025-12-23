@@ -1,196 +1,125 @@
 <template>
-  <div class="projects-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-left">
-          <h1>
-            <FolderOpenOutlined />
-            我的项目
-          </h1>
-          <p>AI驱动的项目管理，支持Web开发、文档处理、数据分析等多种项目类型</p>
-        </div>
-        <div class="header-right">
-          <a-button type="primary" size="large" @click="handleCreateProject">
-            <PlusOutlined />
-            新建项目
-          </a-button>
+  <div class="projects-page-wrapper">
+    <!-- 左侧导航栏 -->
+    <ProjectSidebar
+      :conversations="recentConversations"
+      :active-conversation="activeConversationId"
+      :active-item="activeNavItem"
+      :user-name="userName"
+      :user-avatar="userAvatar"
+      @new-conversation="handleNewConversation"
+      @conversation-click="handleConversationClick"
+      @conversation-action="handleConversationAction"
+      @nav-click="handleNavClick"
+      @user-action="handleUserAction"
+    />
+
+    <!-- 中央内容区域 -->
+    <div class="main-content">
+      <!-- 欢迎头部 (无项目时显示) -->
+      <div v-if="!hasProjects && !loading" class="welcome-header">
+        <h1 class="welcome-title">又见面啦！有新的工作安排吗？</h1>
+        <div class="welcome-suggestion">
+          <BulbOutlined />
+          <span>Logo 设计怎么选取权威网站？</span>
+          <ArrowRightOutlined />
         </div>
       </div>
-    </div>
 
-    <!-- 筛选栏 -->
-    <div class="filter-bar">
-      <div class="filter-left">
-        <a-input-search
-          v-model:value="searchKeyword"
-          placeholder="搜索项目名称或描述..."
-          style="width: 300px"
-          @search="handleSearch"
-          @change="debouncedSearch"
-        >
-          <template #prefix>
-            <SearchOutlined />
-          </template>
-        </a-input-search>
-
-        <a-select
-          v-model:value="selectedType"
-          placeholder="项目类型"
-          style="width: 150px"
-          @change="handleTypeChange"
-        >
-          <a-select-option value="">全部类型</a-select-option>
-          <a-select-option value="web">Web开发</a-select-option>
-          <a-select-option value="document">文档处理</a-select-option>
-          <a-select-option value="data">数据分析</a-select-option>
-          <a-select-option value="app">应用开发</a-select-option>
-        </a-select>
-
-        <a-select
-          v-model:value="selectedStatus"
-          placeholder="状态"
-          style="width: 150px"
-          @change="handleStatusChange"
-        >
-          <a-select-option value="">全部状态</a-select-option>
-          <a-select-option value="draft">草稿</a-select-option>
-          <a-select-option value="active">进行中</a-select-option>
-          <a-select-option value="completed">已完成</a-select-option>
-          <a-select-option value="archived">已归档</a-select-option>
-        </a-select>
-
-        <a-select
-          v-model:value="sortConfig"
-          placeholder="排序"
-          style="width: 150px"
-          @change="handleSortChange"
-        >
-          <a-select-option value="updated_at:desc">最近更新</a-select-option>
-          <a-select-option value="created_at:desc">创建时间</a-select-option>
-          <a-select-option value="name:asc">名称 A-Z</a-select-option>
-          <a-select-option value="name:desc">名称 Z-A</a-select-option>
-        </a-select>
+      <!-- 对话输入框 -->
+      <div class="conversation-input-section">
+        <ConversationInput
+          :placeholder="inputPlaceholder"
+          @submit="handleConversationalCreate"
+          @file-upload="handleFileUpload"
+        />
       </div>
 
-      <div class="filter-right">
+      <!-- 项目类型标签栏 -->
+      <div class="category-tabs-section">
+        <a-tabs v-model:activeKey="activeCategory" @change="handleCategoryChange">
+          <a-tab-pane key="all" tab="探索" />
+          <a-tab-pane key="recent" tab="人命相关" />
+          <a-tab-pane key="education" tab="教育学习" />
+          <a-tab-pane key="finance" tab="财经分析" />
+          <a-tab-pane key="life" tab="生活娱乐" />
+          <a-tab-pane key="marketing" tab="市场营销" />
+          <a-tab-pane key="travel" tab="旅游攻略" />
+        </a-tabs>
+      </div>
+
+      <!-- 项目类型快捷按钮 -->
+      <div class="project-type-buttons">
         <a-button
-          :loading="syncing"
-          @click="handleSync"
+          v-for="type in projectTypes"
+          :key="type.key"
+          :type="selectedType === type.key ? 'primary' : 'default'"
+          @click="handleTypeQuickSelect(type.key)"
         >
-          <SyncOutlined :spin="syncing" />
-          同步
+          {{ type.label }}
         </a-button>
-
-        <a-radio-group v-model:value="viewMode" button-style="solid" @change="handleViewModeChange">
-          <a-radio-button value="grid">
-            <AppstoreOutlined />
-          </a-radio-button>
-          <a-radio-button value="list">
-            <UnorderedListOutlined />
-          </a-radio-button>
-        </a-radio-group>
-      </div>
-    </div>
-
-    <!-- 统计栏 -->
-    <div class="stats-bar" v-if="stats">
-      <div class="stat-item">
-        <div class="stat-value">{{ stats.total }}</div>
-        <div class="stat-label">总项目数</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value">{{ stats.active }}</div>
-        <div class="stat-label">进行中</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value">{{ stats.completed }}</div>
-        <div class="stat-label">已完成</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value">{{ stats.draft }}</div>
-        <div class="stat-label">草稿</div>
-      </div>
-    </div>
-
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <a-spin size="large" tip="加载中..." />
-    </div>
-
-    <!-- 项目列表 -->
-    <div v-else-if="paginatedProjects.length > 0" class="projects-container">
-      <!-- 网格视图 -->
-      <div v-if="viewMode === 'grid'" class="projects-grid">
-        <ProjectCard
-          v-for="project in paginatedProjects"
-          :key="project.id"
-          :project="project"
-          @view="handleViewProject"
-          @edit="handleEditProject"
-          @delete="handleDeleteProject"
-        />
       </div>
 
-      <!-- 列表视图 -->
-      <div v-else class="projects-list">
-        <ProjectListItem
-          v-for="project in paginatedProjects"
-          :key="project.id"
-          :project="project"
-          @view="handleViewProject"
-          @edit="handleEditProject"
-          @delete="handleDeleteProject"
-        />
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-container">
+        <a-spin size="large" tip="加载中..." />
       </div>
 
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <a-pagination
-          v-model:current="currentPage"
-          v-model:page-size="pageSize"
-          :total="filteredTotal"
-          :show-total="total => `共 ${total} 个项目`"
-          :show-size-changer="true"
-          :page-size-options="['12', '24', '48', '96']"
-          @change="handlePageChange"
-          @showSizeChange="handlePageSizeChange"
-        />
-      </div>
-    </div>
+      <!-- 项目卡片网格 -->
+      <div v-else-if="filteredProjects.length > 0" class="projects-grid-section">
+        <div class="projects-grid">
+          <ProjectCard
+            v-for="project in paginatedProjects"
+            :key="project.id"
+            :project="project"
+            @view="handleViewProject"
+            @edit="handleEditProject"
+            @delete="handleDeleteProject"
+          />
+        </div>
 
-    <!-- 空状态 -->
-    <div v-else class="empty-state">
-      <div class="empty-icon">
-        <FolderOpenOutlined />
+        <!-- 分页 -->
+        <div class="pagination-container" v-if="filteredTotal > pageSize">
+          <a-pagination
+            v-model:current="currentPage"
+            v-model:page-size="pageSize"
+            :total="filteredTotal"
+            :show-total="total => `共 ${total} 个项目`"
+            :show-size-changer="true"
+            :page-size-options="['12', '24', '48']"
+            @change="handlePageChange"
+            @showSizeChange="handlePageSizeChange"
+          />
+        </div>
       </div>
-      <h3>{{ searchKeyword || selectedType || selectedStatus ? '没有找到匹配的项目' : '还没有项目' }}</h3>
-      <p>{{ searchKeyword || selectedType || selectedStatus ? '尝试调整筛选条件' : '点击右上角"新建项目"按钮开始创建' }}</p>
-      <a-button v-if="!searchKeyword && !selectedType && !selectedStatus" type="primary" size="large" @click="handleCreateProject">
-        <PlusOutlined />
-        创建第一个项目
-      </a-button>
+
+      <!-- 空状态 (有筛选条件但无结果时) -->
+      <div v-else-if="selectedType || activeCategory !== 'all'" class="empty-result">
+        <div class="empty-icon">
+          <SearchOutlined />
+        </div>
+        <h3>没有找到匹配的项目</h3>
+        <p>尝试选择其他类别或创建新项目</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { useProjectStore } from '@/stores/project';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
 import {
-  FolderOpenOutlined,
-  PlusOutlined,
   SearchOutlined,
-  SyncOutlined,
-  AppstoreOutlined,
-  UnorderedListOutlined,
+  BulbOutlined,
+  ArrowRightOutlined,
 } from '@ant-design/icons-vue';
+import ProjectSidebar from '@/components/projects/ProjectSidebar.vue';
+import ConversationInput from '@/components/projects/ConversationInput.vue';
 import ProjectCard from '@/components/projects/ProjectCard.vue';
-import ProjectListItem from '@/components/projects/ProjectListItem.vue';
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -198,95 +127,181 @@ const authStore = useAuthStore();
 const appStore = useAppStore();
 
 // 响应式状态
-const searchKeyword = ref('');
+const activeCategory = ref('all');
 const selectedType = ref('');
-const selectedStatus = ref('');
-const sortConfig = ref('updated_at:desc');
-const viewMode = ref('grid');
 const currentPage = ref(1);
 const pageSize = ref(12);
+const activeConversationId = ref('');
+const activeNavItem = ref('');
+const recentConversations = ref([]);
+
+// 项目类型列表
+const projectTypes = ref([
+  { key: 'write', label: '写作' },
+  { key: 'ppt', label: 'PPT' },
+  { key: 'design', label: '设计' },
+  { key: 'excel', label: 'Excel' },
+  { key: 'web', label: '网页' },
+  { key: 'video', label: '视频' },
+  { key: 'image', label: '图库' },
+]);
 
 // 计算属性
 const loading = computed(() => projectStore.loading);
-const syncing = computed(() => projectStore.syncing);
-const paginatedProjects = computed(() => projectStore.paginatedProjects);
-const filteredTotal = computed(() => projectStore.filteredProjects.length);
-const stats = computed(() => projectStore.projectStats);
+const userName = computed(() => authStore.currentUser?.name || '访客');
+const userAvatar = computed(() => authStore.currentUser?.avatar || '');
+const hasProjects = computed(() => projectStore.projects.length > 0);
+const inputPlaceholder = computed(() => '给我发消息或描述你的任务...');
 
-// 防抖搜索
-let searchTimeout;
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => {
-    handleSearch();
-  }, 300);
-};
+// 过滤项目
+const filteredProjects = computed(() => {
+  let projects = projectStore.projects;
 
-// 处理搜索
-const handleSearch = () => {
-  projectStore.setFilter('searchKeyword', searchKeyword.value);
-  currentPage.value = 1; // 重置到第一页
-};
-
-// 处理类型筛选
-const handleTypeChange = (value) => {
-  projectStore.setFilter('projectType', value);
-  currentPage.value = 1;
-};
-
-// 处理状态筛选
-const handleStatusChange = (value) => {
-  projectStore.setFilter('status', value);
-  currentPage.value = 1;
-};
-
-// 处理排序
-const handleSortChange = (value) => {
-  const [sortBy, sortOrder] = value.split(':');
-  projectStore.setSort(sortBy, sortOrder);
-};
-
-// 处理视图模式切换
-const handleViewModeChange = () => {
-  projectStore.setViewMode(viewMode.value);
-};
-
-// 处理同步
-const handleSync = async () => {
-  try {
-    const userId = authStore.currentUser?.id || 'default-user';
-    await projectStore.syncProjects(userId);
-    message.success('同步成功');
-  } catch (error) {
-    console.error('Sync failed:', error);
-    message.error('同步失败：' + error.message);
+  // 按类型筛选
+  if (selectedType.value) {
+    projects = projects.filter(p => p.project_type === selectedType.value);
   }
+
+  // 按类别筛选
+  if (activeCategory.value !== 'all') {
+    projects = projects.filter(p => p.category === activeCategory.value);
+  }
+
+  return projects;
+});
+
+// 分页项目
+const paginatedProjects = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredProjects.value.slice(start, end);
+});
+
+const filteredTotal = computed(() => filteredProjects.value.length);
+
+// 处理新对话
+const handleNewConversation = () => {
+  router.push('/projects/new');
+};
+
+// 处理对话点击
+const handleConversationClick = (conversation) => {
+  activeConversationId.value = conversation.id;
+  router.push(`/projects/${conversation.project_id}`);
+};
+
+// 处理对话操作
+const handleConversationAction = ({ action, conversation }) => {
+  switch (action) {
+    case 'rename':
+      // TODO: 实现重命名功能
+      message.info('重命名功能开发中...');
+      break;
+    case 'star':
+      // TODO: 实现收藏功能
+      message.info('收藏功能开发中...');
+      break;
+    case 'delete':
+      handleDeleteConversation(conversation);
+      break;
+  }
+};
+
+// 处理导航点击
+const handleNavClick = (item) => {
+  activeNavItem.value = item.id;
+  // 根据不同的导航项执行不同操作
+  if (item.id.startsWith('proj-')) {
+    const typeMap = {
+      'proj-web': 'web',
+      'proj-doc': 'document',
+      'proj-excel': 'data',
+      'proj-ppt': 'ppt',
+      'proj-video': 'video',
+      'proj-design': 'design',
+      'proj-code': 'code',
+    };
+    selectedType.value = typeMap[item.id] || '';
+  }
+};
+
+// 处理用户操作
+const handleUserAction = (action) => {
+  switch (action) {
+    case 'profile':
+      router.push('/profile');
+      break;
+    case 'settings':
+      router.push('/settings');
+      break;
+    case 'logout':
+      authStore.logout();
+      router.push('/login');
+      break;
+  }
+};
+
+// 处理对话式创建项目
+const handleConversationalCreate = async ({ text, attachments }) => {
+  try {
+    message.loading({ content: 'AI正在理解您的需求...', key: 'ai-create', duration: 0 });
+
+    // TODO: 调用AI引擎处理用户输入
+    // 临时实现：直接创建项目
+    const userId = authStore.currentUser?.id || 'default-user';
+    const projectData = {
+      name: text.substring(0, 50) || '未命名项目',
+      description: text,
+      project_type: 'web', // 默认类型，后续由AI识别
+      status: 'draft',
+      user_id: userId,
+    };
+
+    const project = await projectStore.createProject(projectData);
+
+    message.success({ content: '项目创建成功！', key: 'ai-create', duration: 2 });
+
+    // 跳转到项目详情页
+    router.push(`/projects/${project.id}`);
+  } catch (error) {
+    console.error('Failed to create project:', error);
+    message.error({ content: '创建失败：' + error.message, key: 'ai-create', duration: 3 });
+  }
+};
+
+// 处理文件上传
+const handleFileUpload = (files) => {
+  console.log('Files uploaded:', files);
+  // TODO: 处理文件上传
+};
+
+// 处理类别切换
+const handleCategoryChange = (category) => {
+  activeCategory.value = category;
+  currentPage.value = 1;
+};
+
+// 处理类型快捷选择
+const handleTypeQuickSelect = (type) => {
+  selectedType.value = selectedType.value === type ? '' : type;
+  currentPage.value = 1;
 };
 
 // 处理分页变化
 const handlePageChange = (page, size) => {
   currentPage.value = page;
-  projectStore.setPagination(page, size);
 };
 
 const handlePageSizeChange = (current, size) => {
   pageSize.value = size;
   currentPage.value = 1;
-  projectStore.setPagination(1, size);
-};
-
-// 处理创建项目
-const handleCreateProject = () => {
-  router.push('/projects/new');
 };
 
 // 处理查看项目
 const handleViewProject = (projectId) => {
-  // 查找项目信息
   const project = projectStore.projects.find(p => p.id === projectId);
   const projectName = project ? project.name : '项目详情';
 
-  // 添加标签页
   appStore.addTab({
     key: `project-${projectId}`,
     title: projectName,
@@ -294,7 +309,6 @@ const handleViewProject = (projectId) => {
     closable: true,
   });
 
-  // 跳转到项目详情页
   router.push(`/projects/${projectId}`);
 };
 
@@ -323,27 +337,33 @@ const handleDeleteProject = async (projectId) => {
   });
 };
 
-// 监听分页参数变化
-watch([currentPage, pageSize], () => {
-  projectStore.setPagination(currentPage.value, pageSize.value);
-});
+// 处理删除对话
+const handleDeleteConversation = (conversation) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: '确定要删除这个对话吗？',
+    okText: '删除',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk: async () => {
+      // TODO: 实现删除对话功能
+      message.success('对话已删除');
+    },
+  });
+};
+
+// 加载最近对话
+const loadRecentConversations = async () => {
+  // TODO: 从数据库加载最近对话
+  recentConversations.value = [];
+};
 
 // 组件挂载时加载项目
 onMounted(async () => {
   try {
     const userId = authStore.currentUser?.id || 'default-user';
     await projectStore.fetchProjects(userId);
-
-    // 从store恢复状态
-    searchKeyword.value = projectStore.filters.searchKeyword;
-    selectedType.value = projectStore.filters.projectType;
-    selectedStatus.value = projectStore.filters.status;
-    viewMode.value = projectStore.viewMode;
-    currentPage.value = projectStore.pagination.current;
-    pageSize.value = projectStore.pagination.pageSize;
-
-    // 构建排序配置字符串
-    sortConfig.value = `${projectStore.sortBy}:${projectStore.sortOrder}`;
+    await loadRecentConversations();
   } catch (error) {
     console.error('Failed to load projects:', error);
     message.error('加载项目失败：' + error.message);
@@ -351,161 +371,205 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
-.projects-page {
-  padding: 24px;
-  min-height: calc(100vh - 120px);
-  background: #f5f7fa;
-}
-
-.page-header {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.header-content {
+<style scoped lang="scss">
+/* 扣子空间风格 - 项目列表页 */
+.projects-page-wrapper {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  height: 100vh;
+  background: #FFFFFF;
+  overflow: hidden;
 }
 
-.header-left h1 {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
+/* 中央内容区域 */
+.main-content {
+  flex: 1;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #1f2937;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 40px 80px;
+  background: #FFFFFF;
 }
 
-.header-left p {
-  margin: 0;
-  color: #6b7280;
-  font-size: 14px;
-}
-
-/* 筛选栏 */
-.filter-bar {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.filter-left {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.filter-right {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-/* 统计栏 */
-.stats-bar {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  display: flex;
-  gap: 48px;
-}
-
-.stat-item {
+/* 欢迎头部 */
+.welcome-header {
   text-align: center;
+  margin-bottom: 32px;
+  padding: 60px 0 40px;
 }
 
-.stat-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: #667eea;
-  line-height: 1;
-  margin-bottom: 8px;
+.welcome-title {
+  font-size: 36px;
+  font-weight: 400;
+  color: #333333;
+  margin: 0 0 24px 0;
+  line-height: 1.4;
 }
 
-.stat-label {
+.welcome-suggestion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #F5F7FA;
+  border-radius: 24px;
+  color: #666666;
   font-size: 14px;
-  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    background: #E5E7EB;
+    color: #333333;
+  }
+
+  .anticon {
+    color: #FF8C00;
+  }
+}
+
+/* 对话输入框区域 */
+.conversation-input-section {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 32px;
+}
+
+/* 类别标签栏 */
+.category-tabs-section {
+  margin-bottom: 24px;
+
+  :deep(.ant-tabs) {
+    .ant-tabs-nav {
+      margin-bottom: 0;
+    }
+
+    .ant-tabs-tab {
+      padding: 12px 24px;
+      font-size: 15px;
+      color: #666666;
+
+      &:hover {
+        color: #333333;
+      }
+
+      &.ant-tabs-tab-active {
+        .ant-tabs-tab-btn {
+          color: #1677FF;
+          font-weight: 500;
+        }
+      }
+    }
+
+    .ant-tabs-ink-bar {
+      background: #1677FF;
+    }
+  }
+}
+
+/* 项目类型快捷按钮 */
+.project-type-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+
+  :deep(.ant-btn) {
+    border-radius: 20px;
+    padding: 6px 20px;
+    height: auto;
+    font-size: 14px;
+    border-color: #E5E7EB;
+    color: #666666;
+
+    &:hover {
+      border-color: #1677FF;
+      color: #1677FF;
+    }
+
+    &.ant-btn-primary {
+      background: #1677FF;
+      border-color: #1677FF;
+      color: white;
+    }
+  }
 }
 
 /* 加载状态 */
 .loading-container {
-  background: white;
-  border-radius: 8px;
-  padding: 80px;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
 }
 
-/* 项目容器 */
-.projects-container {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+/* 项目网格区域 */
+.projects-grid-section {
+  flex: 1;
 }
 
-/* 网格视图 */
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-/* 列表视图 */
-.projects-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
 }
 
 /* 分页 */
 .pagination-container {
   display: flex;
   justify-content: center;
-  padding-top: 24px;
-  border-top: 1px solid #e5e7eb;
+  padding: 32px 0;
 }
 
-/* 空状态 */
-.empty-state {
-  background: white;
-  border-radius: 8px;
-  padding: 80px 40px;
+/* 空结果状态 */
+.empty-result {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 80px 40px;
+
+  .empty-icon {
+    font-size: 72px;
+    color: #D1D5DB;
+    margin-bottom: 24px;
+  }
+
+  h3 {
+    font-size: 20px;
+    font-weight: 500;
+    color: #374151;
+    margin: 0 0 12px 0;
+  }
+
+  p {
+    font-size: 15px;
+    color: #6B7280;
+    margin: 0;
+  }
 }
 
-.empty-icon {
-  font-size: 80px;
-  color: #d1d5db;
-  margin-bottom: 24px;
-}
+/* 滚动条样式 */
+.main-content {
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
 
-.empty-state h3 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 8px 0;
-}
+  &::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 4px;
 
-.empty-state p {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0 0 24px 0;
+    &:hover {
+      background: #9CA3AF;
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #F9FAFB;
+  }
 }
 </style>
