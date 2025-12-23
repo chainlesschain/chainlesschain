@@ -5573,6 +5573,716 @@ ${content}
       }
     });
 
+    // ==================== 项目RAG增强接口 ====================
+
+    // 索引项目文件
+    ipcMain.handle('project:indexFiles', async (_event, projectId, options = {}) => {
+      try {
+        console.log(`[Main] 索引项目文件: ${projectId}`);
+
+        const { getProjectRAGManager } = require('./project/project-rag');
+        const projectRAG = getProjectRAGManager();
+
+        // 确保初始化
+        await projectRAG.initialize();
+
+        // 执行索引
+        const result = await projectRAG.indexProjectFiles(projectId, options);
+
+        console.log('[Main] 索引完成:', result);
+        return result;
+      } catch (error) {
+        console.error('[Main] 索引项目文件失败:', error);
+        throw error;
+      }
+    });
+
+    // RAG增强查询
+    ipcMain.handle('project:ragQuery', async (_event, projectId, query, options = {}) => {
+      try {
+        console.log(`[Main] RAG增强查询: ${query}`);
+
+        const { getProjectRAGManager } = require('./project/project-rag');
+        const projectRAG = getProjectRAGManager();
+
+        // 确保初始化
+        await projectRAG.initialize();
+
+        // 执行增强查询
+        const result = await projectRAG.enhancedQuery(projectId, query, options);
+
+        console.log('[Main] RAG查询完成，找到', result.totalDocs, '个相关文档');
+        return result;
+      } catch (error) {
+        console.error('[Main] RAG查询失败:', error);
+        throw error;
+      }
+    });
+
+    // 更新单个文件索引
+    ipcMain.handle('project:updateFileIndex', async (_event, fileId) => {
+      try {
+        console.log(`[Main] 更新文件索引: ${fileId}`);
+
+        const { getProjectRAGManager } = require('./project/project-rag');
+        const projectRAG = getProjectRAGManager();
+
+        await projectRAG.initialize();
+
+        const result = await projectRAG.updateFileIndex(fileId);
+
+        console.log('[Main] 文件索引更新完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 更新文件索引失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除项目索引
+    ipcMain.handle('project:deleteIndex', async (_event, projectId) => {
+      try {
+        console.log(`[Main] 删除项目索引: ${projectId}`);
+
+        const { getProjectRAGManager } = require('./project/project-rag');
+        const projectRAG = getProjectRAGManager();
+
+        await projectRAG.initialize();
+
+        const result = await projectRAG.deleteProjectIndex(projectId);
+
+        console.log('[Main] 项目索引删除完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 删除项目索引失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取项目索引统计
+    ipcMain.handle('project:getIndexStats', async (_event, projectId) => {
+      try {
+        const { getProjectRAGManager } = require('./project/project-rag');
+        const projectRAG = getProjectRAGManager();
+
+        await projectRAG.initialize();
+
+        const stats = await projectRAG.getIndexStats(projectId);
+
+        return stats;
+      } catch (error) {
+        console.error('[Main] 获取索引统计失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 项目RAG增强接口结束 ====================
+
+    // ==================== 视频处理引擎接口 ====================
+
+    // 视频格式转换
+    ipcMain.handle('video:convert', async (_event, params) => {
+      try {
+        console.log('[Main] 视频格式转换:', params.outputFormat);
+
+        const { getVideoEngine } = require('./engines/video-engine');
+        const videoEngine = getVideoEngine(this.llmManager);
+
+        const result = await videoEngine.handleProjectTask({
+          taskType: 'convert',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:progress', progress);
+          }
+        });
+
+        console.log('[Main] 视频转换完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 视频转换失败:', error);
+        throw error;
+      }
+    });
+
+    // 视频剪辑
+    ipcMain.handle('video:trim', async (_event, params) => {
+      try {
+        console.log('[Main] 视频剪辑:', params);
+
+        const { getVideoEngine } = require('./engines/video-engine');
+        const videoEngine = getVideoEngine(this.llmManager);
+
+        const result = await videoEngine.handleProjectTask({
+          taskType: 'trim',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:progress', progress);
+          }
+        });
+
+        console.log('[Main] 视频剪辑完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 视频剪辑失败:', error);
+        throw error;
+      }
+    });
+
+    // 合并视频
+    ipcMain.handle('video:merge', async (_event, params) => {
+      try {
+        console.log('[Main] 合并视频:', params.videoList.length, '个文件');
+
+        const { getVideoEngine } = require('./engines/video-engine');
+        const videoEngine = getVideoEngine(this.llmManager);
+
+        const result = await videoEngine.handleProjectTask({
+          taskType: 'merge',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:progress', progress);
+          }
+        });
+
+        console.log('[Main] 视频合并完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 视频合并失败:', error);
+        throw error;
+      }
+    });
+
+    // 添加字幕
+    ipcMain.handle('video:addSubtitles', async (_event, params) => {
+      try {
+        console.log('[Main] 添加字幕');
+
+        const { getVideoEngine } = require('./engines/video-engine');
+        const videoEngine = getVideoEngine(this.llmManager);
+
+        const result = await videoEngine.handleProjectTask({
+          taskType: 'addSubtitles',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:progress', progress);
+          }
+        });
+
+        console.log('[Main] 字幕添加完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 字幕添加失败:', error);
+        throw error;
+      }
+    });
+
+    // AI生成字幕
+    ipcMain.handle('video:generateSubtitles', async (_event, params) => {
+      try {
+        console.log('[Main] AI生成字幕');
+
+        const { getVideoEngine } = require('./engines/video-engine');
+        const videoEngine = getVideoEngine(this.llmManager);
+
+        const result = await videoEngine.handleProjectTask({
+          taskType: 'generateSubtitles',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:progress', progress);
+          }
+        });
+
+        console.log('[Main] 字幕生成完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 字幕生成失败:', error);
+        throw error;
+      }
+    });
+
+    // 提取音频
+    ipcMain.handle('video:extractAudio', async (_event, params) => {
+      try {
+        console.log('[Main] 提取音频');
+
+        const { getVideoEngine } = require('./engines/video-engine');
+        const videoEngine = getVideoEngine(this.llmManager);
+
+        const result = await videoEngine.handleProjectTask({
+          taskType: 'extractAudio',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:progress', progress);
+          }
+        });
+
+        console.log('[Main] 音频提取完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 音频提取失败:', error);
+        throw error;
+      }
+    });
+
+    // 生成缩略图
+    ipcMain.handle('video:generateThumbnail', async (_event, params) => {
+      try {
+        console.log('[Main] 生成缩略图');
+
+        const { getVideoEngine } = require('./engines/video-engine');
+        const videoEngine = getVideoEngine(this.llmManager);
+
+        const result = await videoEngine.handleProjectTask({
+          taskType: 'generateThumbnail',
+          ...params
+        });
+
+        console.log('[Main] 缩略图生成完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 缩略图生成失败:', error);
+        throw error;
+      }
+    });
+
+    // 压缩视频
+    ipcMain.handle('video:compress', async (_event, params) => {
+      try {
+        console.log('[Main] 压缩视频');
+
+        const { getVideoEngine } = require('./engines/video-engine');
+        const videoEngine = getVideoEngine(this.llmManager);
+
+        const result = await videoEngine.handleProjectTask({
+          taskType: 'compress',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:progress', progress);
+          }
+        });
+
+        console.log('[Main] 视频压缩完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 视频压缩失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取视频信息
+    ipcMain.handle('video:getInfo', async (_event, videoPath) => {
+      try {
+        const { getVideoEngine } = require('./engines/video-engine');
+        const videoEngine = getVideoEngine(this.llmManager);
+
+        const info = await videoEngine.getVideoInfo(videoPath);
+        return info;
+      } catch (error) {
+        console.error('[Main] 获取视频信息失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 视频处理引擎接口结束 ====================
+
+    // ==================== 图像设计引擎接口 ====================
+
+    // AI文生图
+    ipcMain.handle('image:generateFromText', async (_event, params) => {
+      try {
+        console.log('[Main] AI文生图:', params.prompt.substring(0, 50));
+
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const result = await imageEngine.handleProjectTask({
+          taskType: 'generateFromText',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('image:generation-progress', progress);
+          }
+        });
+
+        console.log('[Main] 图片生成完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 图片生成失败:', error);
+        throw error;
+      }
+    });
+
+    // 移除背景
+    ipcMain.handle('image:removeBackground', async (_event, params) => {
+      try {
+        console.log('[Main] 移除背景');
+
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const result = await imageEngine.handleProjectTask({
+          taskType: 'removeBackground',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('image:processing-progress', progress);
+          }
+        });
+
+        console.log('[Main] 背景移除完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 背景移除失败:', error);
+        throw error;
+      }
+    });
+
+    // 调整图片大小
+    ipcMain.handle('image:resize', async (_event, params) => {
+      try {
+        console.log('[Main] 调整图片大小:', params.width, 'x', params.height);
+
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const result = await imageEngine.handleProjectTask({
+          taskType: 'resize',
+          ...params
+        });
+
+        console.log('[Main] 图片调整完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 图片调整失败:', error);
+        throw error;
+      }
+    });
+
+    // 裁剪图片
+    ipcMain.handle('image:crop', async (_event, params) => {
+      try {
+        console.log('[Main] 裁剪图片');
+
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const result = await imageEngine.handleProjectTask({
+          taskType: 'crop',
+          ...params
+        });
+
+        console.log('[Main] 图片裁剪完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 图片裁剪失败:', error);
+        throw error;
+      }
+    });
+
+    // 增强图片
+    ipcMain.handle('image:enhance', async (_event, params) => {
+      try {
+        console.log('[Main] 增强图片');
+
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const result = await imageEngine.handleProjectTask({
+          taskType: 'enhance',
+          ...params
+        });
+
+        console.log('[Main] 图片增强完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 图片增强失败:', error);
+        throw error;
+      }
+    });
+
+    // 图片超分辨率
+    ipcMain.handle('image:upscale', async (_event, params) => {
+      try {
+        console.log('[Main] 图片超分辨率');
+
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const result = await imageEngine.handleProjectTask({
+          taskType: 'upscale',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('image:processing-progress', progress);
+          }
+        });
+
+        console.log('[Main] 超分辨率完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 超分辨率失败:', error);
+        throw error;
+      }
+    });
+
+    // 添加水印
+    ipcMain.handle('image:addWatermark', async (_event, params) => {
+      try {
+        console.log('[Main] 添加水印');
+
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const result = await imageEngine.handleProjectTask({
+          taskType: 'addWatermark',
+          ...params
+        });
+
+        console.log('[Main] 水印添加完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 水印添加失败:', error);
+        throw error;
+      }
+    });
+
+    // 批量处理图片
+    ipcMain.handle('image:batchProcess', async (_event, params) => {
+      try {
+        console.log('[Main] 批量处理图片:', params.imageList.length, '张');
+
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const result = await imageEngine.handleProjectTask({
+          taskType: 'batchProcess',
+          ...params
+        }, (progress) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('image:batch-progress', progress);
+          }
+        });
+
+        console.log('[Main] 批量处理完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 批量处理失败:', error);
+        throw error;
+      }
+    });
+
+    // 转换图片格式
+    ipcMain.handle('image:convertFormat', async (_event, params) => {
+      try {
+        console.log('[Main] 转换图片格式:', params.format);
+
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const result = await imageEngine.handleProjectTask({
+          taskType: 'convertFormat',
+          ...params
+        });
+
+        console.log('[Main] 格式转换完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 格式转换失败:', error);
+        throw error;
+      }
+    });
+
+    // 创建图片拼贴
+    ipcMain.handle('image:createCollage', async (_event, params) => {
+      try {
+        console.log('[Main] 创建图片拼贴:', params.imageList.length, '张');
+
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const result = await imageEngine.handleProjectTask({
+          taskType: 'createCollage',
+          ...params
+        });
+
+        console.log('[Main] 拼贴创建完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 拼贴创建失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取图片信息
+    ipcMain.handle('image:getInfo', async (_event, imagePath) => {
+      try {
+        const { getImageEngine } = require('./engines/image-engine');
+        const imageEngine = getImageEngine(this.llmManager);
+
+        const info = await imageEngine.getImageInfo(imagePath);
+        return info;
+      } catch (error) {
+        console.error('[Main] 获取图片信息失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 图像设计引擎接口结束 ====================
+
+    // ==================== 代码开发引擎接口 ====================
+
+    // 生成代码
+    ipcMain.handle('code:generate', async (_event, description, options = {}) => {
+      try {
+        console.log('[Main] 生成代码:', description);
+
+        const { getCodeEngine } = require('./engines/code-engine');
+        const codeEngine = getCodeEngine(this.llmManager);
+
+        const result = await codeEngine.handleProjectTask({
+          taskType: 'generateCode',
+          description: description,
+          language: options.language || 'javascript',
+          options: options
+        });
+
+        console.log('[Main] 代码生成完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 代码生成失败:', error);
+        throw error;
+      }
+    });
+
+    // 生成单元测试
+    ipcMain.handle('code:generateTests', async (_event, code, language) => {
+      try {
+        console.log('[Main] 生成单元测试:', language);
+
+        const { getCodeEngine } = require('./engines/code-engine');
+        const codeEngine = getCodeEngine();
+
+        await codeEngine.initialize();
+
+        const tests = await codeEngine.generateTests(code, language);
+
+        console.log('[Main] 单元测试生成完成');
+        return { success: true, tests };
+      } catch (error) {
+        console.error('[Main] 单元测试生成失败:', error);
+        throw error;
+      }
+    });
+
+    // 代码审查
+    ipcMain.handle('code:review', async (_event, code, language) => {
+      try {
+        console.log('[Main] 代码审查:', language);
+
+        const { getCodeEngine } = require('./engines/code-engine');
+        const codeEngine = getCodeEngine();
+
+        await codeEngine.initialize();
+
+        const result = await codeEngine.reviewCode(code, language);
+
+        console.log('[Main] 代码审查完成，评分:', result.score);
+        return result;
+      } catch (error) {
+        console.error('[Main] 代码审查失败:', error);
+        throw error;
+      }
+    });
+
+    // 代码重构
+    ipcMain.handle('code:refactor', async (_event, code, language, refactoringType) => {
+      try {
+        console.log('[Main] 代码重构:', refactoringType);
+
+        const { getCodeEngine } = require('./engines/code-engine');
+        const codeEngine = getCodeEngine();
+
+        await codeEngine.initialize();
+
+        const result = await codeEngine.refactorCode(code, language, refactoringType);
+
+        console.log('[Main] 代码重构完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 代码重构失败:', error);
+        throw error;
+      }
+    });
+
+    // 解释代码
+    ipcMain.handle('code:explain', async (_event, code, language) => {
+      try {
+        console.log('[Main] 解释代码:', language);
+
+        const { getCodeEngine } = require('./engines/code-engine');
+        const codeEngine = getCodeEngine();
+
+        await codeEngine.initialize();
+
+        const result = await codeEngine.explainCode(code, language);
+
+        console.log('[Main] 代码解释完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 代码解释失败:', error);
+        throw error;
+      }
+    });
+
+    // 修复bug
+    ipcMain.handle('code:fixBug', async (_event, code, language, errorMessage) => {
+      try {
+        console.log('[Main] 修复bug:', language);
+
+        const { getCodeEngine } = require('./engines/code-engine');
+        const codeEngine = getCodeEngine();
+
+        await codeEngine.initialize();
+
+        const result = await codeEngine.fixBug(code, language, errorMessage);
+
+        console.log('[Main] bug修复完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] bug修复失败:', error);
+        throw error;
+      }
+    });
+
+    // 生成项目脚手架
+    ipcMain.handle('code:generateScaffold', async (_event, projectType, options = {}) => {
+      try {
+        console.log('[Main] 生成项目脚手架:', projectType);
+
+        const { getCodeEngine } = require('./engines/code-engine');
+        const codeEngine = getCodeEngine();
+
+        await codeEngine.initialize();
+
+        const result = await codeEngine.generateScaffold(projectType, options);
+
+        console.log('[Main] 项目脚手架生成完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 项目脚手架生成失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 代码开发引擎接口结束 ====================
+
     // 同步项目
     ipcMain.handle('project:sync', async (_event, userId) => {
       try {
