@@ -6167,14 +6167,16 @@ ${content}
         console.log('[Main] 生成单元测试:', language);
 
         const { getCodeEngine } = require('./engines/code-engine');
-        const codeEngine = getCodeEngine();
+        const codeEngine = getCodeEngine(this.llmManager);
 
-        await codeEngine.initialize();
-
-        const tests = await codeEngine.generateTests(code, language);
+        const result = await codeEngine.handleProjectTask({
+          taskType: 'generateTests',
+          sourceCode: code,
+          language: language
+        });
 
         console.log('[Main] 单元测试生成完成');
-        return { success: true, tests };
+        return result;
       } catch (error) {
         console.error('[Main] 单元测试生成失败:', error);
         throw error;
@@ -6187,11 +6189,13 @@ ${content}
         console.log('[Main] 代码审查:', language);
 
         const { getCodeEngine } = require('./engines/code-engine');
-        const codeEngine = getCodeEngine();
+        const codeEngine = getCodeEngine(this.llmManager);
 
-        await codeEngine.initialize();
-
-        const result = await codeEngine.reviewCode(code, language);
+        const result = await codeEngine.handleProjectTask({
+          taskType: 'reviewCode',
+          sourceCode: code,
+          language: language
+        });
 
         console.log('[Main] 代码审查完成，评分:', result.score);
         return result;
@@ -6207,11 +6211,14 @@ ${content}
         console.log('[Main] 代码重构:', refactoringType);
 
         const { getCodeEngine } = require('./engines/code-engine');
-        const codeEngine = getCodeEngine();
+        const codeEngine = getCodeEngine(this.llmManager);
 
-        await codeEngine.initialize();
-
-        const result = await codeEngine.refactorCode(code, language, refactoringType);
+        const result = await codeEngine.handleProjectTask({
+          taskType: 'refactorCode',
+          sourceCode: code,
+          language: language,
+          options: { goal: refactoringType }
+        });
 
         console.log('[Main] 代码重构完成');
         return result;
@@ -6227,11 +6234,13 @@ ${content}
         console.log('[Main] 解释代码:', language);
 
         const { getCodeEngine } = require('./engines/code-engine');
-        const codeEngine = getCodeEngine();
+        const codeEngine = getCodeEngine(this.llmManager);
 
-        await codeEngine.initialize();
-
-        const result = await codeEngine.explainCode(code, language);
+        const result = await codeEngine.handleProjectTask({
+          taskType: 'explainCode',
+          sourceCode: code,
+          language: language
+        });
 
         console.log('[Main] 代码解释完成');
         return result;
@@ -6247,11 +6256,14 @@ ${content}
         console.log('[Main] 修复bug:', language);
 
         const { getCodeEngine } = require('./engines/code-engine');
-        const codeEngine = getCodeEngine();
+        const codeEngine = getCodeEngine(this.llmManager);
 
-        await codeEngine.initialize();
-
-        const result = await codeEngine.fixBug(code, language, errorMessage);
+        const result = await codeEngine.handleProjectTask({
+          taskType: 'fixBugs',
+          sourceCode: code,
+          errorMessage: errorMessage,
+          language: language
+        });
 
         console.log('[Main] bug修复完成');
         return result;
@@ -6267,11 +6279,15 @@ ${content}
         console.log('[Main] 生成项目脚手架:', projectType);
 
         const { getCodeEngine } = require('./engines/code-engine');
-        const codeEngine = getCodeEngine();
+        const codeEngine = getCodeEngine(this.llmManager);
 
-        await codeEngine.initialize();
-
-        const result = await codeEngine.generateScaffold(projectType, options);
+        const result = await codeEngine.handleProjectTask({
+          taskType: 'createScaffold',
+          projectName: options.projectName || projectType,
+          template: projectType,
+          outputDir: options.outputDir || process.cwd(),
+          options: options
+        });
 
         console.log('[Main] 项目脚手架生成完成');
         return result;
