@@ -279,7 +279,7 @@ const handleConversationalCreate = async ({ text, attachments }) => {
     const projectData = {
       userPrompt: text,
       name: text.substring(0, 50) || '未命名项目',
-      projectType: 'web',
+      projectType: '', // 留空让后端AI自动识别项目类型
       userId: userId,
     };
 
