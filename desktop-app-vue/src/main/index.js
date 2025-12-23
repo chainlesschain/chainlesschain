@@ -6299,6 +6299,327 @@ ${content}
 
     // ==================== 代码开发引擎接口结束 ====================
 
+    // ==================== 项目自动化规则接口 ====================
+
+    // 创建自动化规则
+    ipcMain.handle('automation:createRule', async (_event, ruleData) => {
+      try {
+        console.log('[Main] 创建自动化规则:', ruleData.name);
+
+        const { getAutomationManager } = require('./project/automation-manager');
+        const automationManager = getAutomationManager();
+
+        await automationManager.initialize();
+
+        const rule = await automationManager.createRule(ruleData);
+
+        console.log('[Main] 自动化规则创建成功:', rule.id);
+        return rule;
+      } catch (error) {
+        console.error('[Main] 创建自动化规则失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取项目的自动化规则列表
+    ipcMain.handle('automation:getRules', async (_event, projectId) => {
+      try {
+        const { getAutomationManager } = require('./project/automation-manager');
+        const automationManager = getAutomationManager();
+
+        await automationManager.initialize();
+
+        const rules = automationManager.getRules(projectId);
+
+        return rules;
+      } catch (error) {
+        console.error('[Main] 获取自动化规则列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取规则详情
+    ipcMain.handle('automation:getRule', async (_event, ruleId) => {
+      try {
+        const { getAutomationManager } = require('./project/automation-manager');
+        const automationManager = getAutomationManager();
+
+        await automationManager.initialize();
+
+        const rule = automationManager.getRule(ruleId);
+
+        return rule;
+      } catch (error) {
+        console.error('[Main] 获取规则详情失败:', error);
+        throw error;
+      }
+    });
+
+    // 更新自动化规则
+    ipcMain.handle('automation:updateRule', async (_event, ruleId, updates) => {
+      try {
+        console.log('[Main] 更新自动化规则:', ruleId);
+
+        const { getAutomationManager } = require('./project/automation-manager');
+        const automationManager = getAutomationManager();
+
+        await automationManager.initialize();
+
+        const rule = await automationManager.updateRule(ruleId, updates);
+
+        console.log('[Main] 自动化规则更新成功');
+        return rule;
+      } catch (error) {
+        console.error('[Main] 更新自动化规则失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除自动化规则
+    ipcMain.handle('automation:deleteRule', async (_event, ruleId) => {
+      try {
+        console.log('[Main] 删除自动化规则:', ruleId);
+
+        const { getAutomationManager } = require('./project/automation-manager');
+        const automationManager = getAutomationManager();
+
+        await automationManager.initialize();
+
+        await automationManager.deleteRule(ruleId);
+
+        console.log('[Main] 自动化规则删除成功');
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 删除自动化规则失败:', error);
+        throw error;
+      }
+    });
+
+    // 手动触发规则
+    ipcMain.handle('automation:manualTrigger', async (_event, ruleId) => {
+      try {
+        console.log('[Main] 手动触发规则:', ruleId);
+
+        const { getAutomationManager } = require('./project/automation-manager');
+        const automationManager = getAutomationManager();
+
+        await automationManager.initialize();
+
+        const result = await automationManager.manualTrigger(ruleId);
+
+        console.log('[Main] 规则触发完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 触发规则失败:', error);
+        throw error;
+      }
+    });
+
+    // 加载项目规则
+    ipcMain.handle('automation:loadProjectRules', async (_event, projectId) => {
+      try {
+        console.log('[Main] 加载项目规则:', projectId);
+
+        const { getAutomationManager } = require('./project/automation-manager');
+        const automationManager = getAutomationManager();
+
+        await automationManager.initialize();
+
+        const rules = await automationManager.loadProjectRules(projectId);
+
+        console.log('[Main] 项目规则加载完成');
+        return rules;
+      } catch (error) {
+        console.error('[Main] 加载项目规则失败:', error);
+        throw error;
+      }
+    });
+
+    // 停止规则
+    ipcMain.handle('automation:stopRule', async (_event, ruleId) => {
+      try {
+        console.log('[Main] 停止规则:', ruleId);
+
+        const { getAutomationManager } = require('./project/automation-manager');
+        const automationManager = getAutomationManager();
+
+        await automationManager.initialize();
+
+        automationManager.stopRule(ruleId);
+
+        console.log('[Main] 规则已停止');
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 停止规则失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取统计信息
+    ipcMain.handle('automation:getStatistics', async () => {
+      try {
+        const { getAutomationManager } = require('./project/automation-manager');
+        const automationManager = getAutomationManager();
+
+        await automationManager.initialize();
+
+        const stats = automationManager.getStatistics();
+
+        return stats;
+      } catch (error) {
+        console.error('[Main] 获取统计信息失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 项目自动化规则接口结束 ====================
+
+    // ==================== 协作实时编辑接口 ====================
+
+    // 启动协作服务器
+    ipcMain.handle('collaboration:startServer', async (_event, options = {}) => {
+      try {
+        console.log('[Main] 启动协作服务器');
+
+        const { getCollaborationManager } = require('./collaboration/collaboration-manager');
+        const collaborationManager = getCollaborationManager();
+
+        await collaborationManager.initialize(options);
+        const result = await collaborationManager.startServer();
+
+        console.log('[Main] 协作服务器启动成功');
+        return result;
+      } catch (error) {
+        console.error('[Main] 启动协作服务器失败:', error);
+        throw error;
+      }
+    });
+
+    // 停止协作服务器
+    ipcMain.handle('collaboration:stopServer', async () => {
+      try {
+        console.log('[Main] 停止协作服务器');
+
+        const { getCollaborationManager } = require('./collaboration/collaboration-manager');
+        const collaborationManager = getCollaborationManager();
+
+        const result = await collaborationManager.stopServer();
+
+        console.log('[Main] 协作服务器已停止');
+        return result;
+      } catch (error) {
+        console.error('[Main] 停止协作服务器失败:', error);
+        throw error;
+      }
+    });
+
+    // 加入文档协作
+    ipcMain.handle('collaboration:joinDocument', async (_event, userId, userName, documentId) => {
+      try {
+        console.log('[Main] 加入文档协作:', documentId);
+
+        const { getCollaborationManager } = require('./collaboration/collaboration-manager');
+        const collaborationManager = getCollaborationManager();
+
+        await collaborationManager.initialize();
+
+        const result = await collaborationManager.joinDocument(userId, userName, documentId);
+
+        console.log('[Main] 已加入文档协作');
+        return result;
+      } catch (error) {
+        console.error('[Main] 加入文档协作失败:', error);
+        throw error;
+      }
+    });
+
+    // 提交协作操作
+    ipcMain.handle('collaboration:submitOperation', async (_event, documentId, userId, operation) => {
+      try {
+        const { getCollaborationManager } = require('./collaboration/collaboration-manager');
+        const collaborationManager = getCollaborationManager();
+
+        await collaborationManager.initialize();
+
+        const result = await collaborationManager.submitOperation(documentId, userId, operation);
+
+        return result;
+      } catch (error) {
+        console.error('[Main] 提交协作操作失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取在线用户
+    ipcMain.handle('collaboration:getOnlineUsers', async (_event, documentId) => {
+      try {
+        const { getCollaborationManager } = require('./collaboration/collaboration-manager');
+        const collaborationManager = getCollaborationManager();
+
+        await collaborationManager.initialize();
+
+        const users = collaborationManager.getOnlineUsers(documentId);
+
+        return users;
+      } catch (error) {
+        console.error('[Main] 获取在线用户失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取操作历史
+    ipcMain.handle('collaboration:getOperationHistory', async (_event, documentId, limit) => {
+      try {
+        const { getCollaborationManager } = require('./collaboration/collaboration-manager');
+        const collaborationManager = getCollaborationManager();
+
+        await collaborationManager.initialize();
+
+        const history = collaborationManager.getOperationHistory(documentId, limit);
+
+        return history;
+      } catch (error) {
+        console.error('[Main] 获取操作历史失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取会话历史
+    ipcMain.handle('collaboration:getSessionHistory', async (_event, documentId, limit) => {
+      try {
+        const { getCollaborationManager } = require('./collaboration/collaboration-manager');
+        const collaborationManager = getCollaborationManager();
+
+        await collaborationManager.initialize();
+
+        const history = collaborationManager.getSessionHistory(documentId, limit);
+
+        return history;
+      } catch (error) {
+        console.error('[Main] 获取会话历史失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取服务器状态
+    ipcMain.handle('collaboration:getStatus', async () => {
+      try {
+        const { getCollaborationManager } = require('./collaboration/collaboration-manager');
+        const collaborationManager = getCollaborationManager();
+
+        await collaborationManager.initialize();
+
+        const status = collaborationManager.getStatus();
+
+        return status;
+      } catch (error) {
+        console.error('[Main] 获取服务器状态失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 协作实时编辑接口结束 ====================
+
     // 同步项目
     ipcMain.handle('project:sync', async (_event, userId) => {
       try {
