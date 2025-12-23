@@ -96,12 +96,22 @@ services:
     ports:
       - "9090:9090"
     environment:
+      # Spring Boot标准环境变量
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/chainlesschain
       - SPRING_DATASOURCE_USERNAME=chainlesschain
       - SPRING_DATASOURCE_PASSWORD=chainlesschain_pwd_2024
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_DATA_REDIS_PASSWORD=chainlesschain_redis_2024
+      # 自定义环境变量（application.yml中使用）
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=chainlesschain
+      - DB_USER=chainlesschain
+      - DB_PASSWORD=chainlesschain_pwd_2024
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=chainlesschain_redis_2024
       - AI_SERVICE_URL=http://ai-service:8000
     depends_on:
       - postgres
