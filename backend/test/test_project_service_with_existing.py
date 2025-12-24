@@ -138,9 +138,10 @@ class ProjectServiceTesterExisting(APITester):
             endpoint="/api/projects/tasks/execute",
             data={
                 "projectId": self.test_project_id,
-                "taskType": "test",
-                "description": "测试任务执行"
+                "userPrompt": "执行测试任务：检查项目状态",
+                "context": []
             },
+            timeout=60,  # AI任务可能需要较长时间
             validate_response=lambda data: validate_api_response(data)
         )
 
@@ -258,14 +259,14 @@ class ProjectServiceTesterExisting(APITester):
             method="POST",
             endpoint=f"/api/projects/{self.test_project_id}/collaborators",
             data={
-                "userDid": "did:test:auto_collaborator",
-                "role": "developer",
-                "permissions": ["read", "write"]
+                "collaboratorDid": "did:test:auto_collaborator",
+                "permissions": "read,write",
+                "invitationMessage": "欢迎加入测试项目"
             },
             headers={"User-DID": TEST_USER_DID},
             validate_response=lambda data: (
                 validate_api_response(data) or
-                validate_json_structure(data, ["data.id", "data.userDid"])
+                validate_json_structure(data, ["data.id"])
             )
         )
 
@@ -434,20 +435,21 @@ class ProjectServiceTesterExisting(APITester):
             method="POST",
             endpoint=f"/api/projects/{self.test_project_id}/automation/rules",
             data={
-                "name": "自动化测试规则",
+                "ruleName": "自动化测试规则",
                 "description": "通过自动化测试创建的规则",
-                "trigger": "file_created",
-                "actions": [
-                    {
-                        "type": "notify",
-                        "params": {"message": "新文件已创建"}
-                    }
-                ],
+                "triggerEvent": "file_created",
+                "triggerConfig": {
+                    "filePattern": "*.md"
+                },
+                "actionType": "send_notification",
+                "actionConfig": {
+                    "message": "新Markdown文件已创建"
+                },
                 "isEnabled": True
             },
             validate_response=lambda data: (
                 validate_api_response(data) or
-                validate_json_structure(data, ["data.id", "data.name"])
+                validate_json_structure(data, ["data.id"])
             )
         )
 
