@@ -342,9 +342,9 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       message.loading({ content: 'AI正在拆解任务...', key: 'ai-decompose', duration: 0 });
 
       const taskPlan = await window.electronAPI.project.decomposeTask(text, {
-        projectId: project.id,
+        projectId: project.projectId,
         projectType: project.project_type,
-        projectName: project.name,
+        projectName: projectData.name,
         root_path: project.root_path
       });
 
@@ -365,7 +365,7 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       });
 
       // 即使拆解失败，也跳转到项目页
-      router.push(`/projects/${project.id}`);
+      router.push(`/projects/${project.projectId || createdProjectId.value}`);
     }
   } catch (error) {
     console.error('Failed to create project:', error);

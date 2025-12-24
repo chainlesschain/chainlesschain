@@ -2,24 +2,24 @@
 
 ## 测试摘要
 
-- **测试时间**: 2025-12-24 20:35:42
-- **测试时长**: 178.82秒
+- **测试时间**: 2025-12-24 21:07:58
+- **测试时长**: 142.52秒
 - **总测试数**: 22
-- **通过**: 21 ✅
-- **失败**: 1 ❌
+- **通过**: 22 ✅
+- **失败**: 0 ❌
 - **错误**: 0 ⚠️
 - **跳过**: 0 ⏭️
-- **成功率**: 95.45%
+- **成功率**: 100.00%
 
 ## 详细结果
 
 
-### ✅ PASSED (21)
+### ✅ PASSED (22)
 
 #### 项目服务健康检查
 
 - **接口**: `GET /api/projects/health`
-- **耗时**: 0.033秒
+- **耗时**: 0.025秒
 
 **响应数据**:
 ```json
@@ -28,7 +28,7 @@
   "message": "成功",
   "data": {
     "service": "project-service",
-    "timestamp": 1766579742885,
+    "timestamp": 1766581678574,
     "status": "running"
   }
 }
@@ -39,12 +39,12 @@
 #### 创建项目
 
 - **接口**: `POST /api/projects/create`
-- **耗时**: 117.130秒
+- **耗时**: 135.768秒
 
 **请求数据**:
 ```json
 {
-  "userPrompt": "Create a simple web project for testing - c692f0bd",
+  "userPrompt": "Create a simple web project for testing - 9f2a35e8",
   "projectType": "web",
   "userId": "test_user_001"
 }
@@ -56,44 +56,44 @@
   "code": 200,
   "message": "项目创建成功",
   "data": {
-    "id": "0bc94a2f840f38eb92ef00426cd214e8",
+    "id": "448aaa39ef55faadfd22691e4bbdd3a8",
     "userId": "test_user_001",
-    "name": "项目_1766579859742",
-    "description": "Create a simple web project for testing - c692f0bd",
+    "name": "项目_1766581814254",
+    "description": "Create a simple web project for testing - 9f2a35e8",
     "projectType": "web",
     "status": "active",
-    "rootPath": "/data/projects/0bc94a2f840f38eb92ef00426cd214e8",
+    "rootPath": "/data/projects/448aaa39ef55faadfd22691e4bbdd3a8",
     "fileCount": 0,
     "totalSize": 0,
     "templateId": null,
     "coverImageUrl": null,
     "tags": null,
-    "createdAt": "2025-12-24T12:37:39.750030292",
-    "updatedAt": "2025-12-24T12:37:39.750099697",
+    "createdAt": "2025-12-24T13:10:14.263201764",
+    "updatedAt": "2025-12-24T13:10:14.263247867",
     "files": [
       {
-        "id": "90c6a23f57010275cdd0b67af5ff466e",
+        "id": "410532ee35b1f9056dd196879c8f2761",
         "fileName": "index.html",
         "filePath": "index.html",
         "fileType": "html",
-        "fileSize": 1800,
-        "updatedAt": "2025-12-24T12:37:39.786282284"
+        "fileSize": 3169,
+        "updatedAt": "2025-12-24T13:10:14.292642708"
       },
       {
-        "id": "e4742bd104bba2b02ce1abd8253bea2e",
+        "id": "1bcb8d70877c769c4b269c50fe760f26",
         "fileName": "styles.css",
         "filePath": "styles.css",
         "fileType": "css",
-        "fileSize": 3620,
-        "updatedAt": "2025-12-24T12:37:39.810801437"
+        "fileSize": 4194,
+        "updatedAt": "2025-12-24T13:10:14.301109296"
       },
       {
-        "id": "a3f199d4c9c6bfe24d66bccf1eaee553",
+        "id": "dc54a0d13ef5ae636386faaab571f3f3",
         "fileName": "script.js",
         "filePath": "script.js",
         "fileType": "javascript",
-        "fileSize": 1425,
-        "updatedAt": "2025-12-24T12:37:39.820532032"
+        "fileSize": 1399,
+        "updatedAt": "2025-12-24T13:10:14.307661051"
       }
     ]
   }
@@ -105,7 +105,7 @@
 #### 获取项目列表
 
 - **接口**: `GET /api/projects/list`
-- **耗时**: 0.076秒
+- **耗时**: 0.028秒
 
 **响应数据**:
 ```json
@@ -115,20 +115,37 @@
   "data": {
     "records": [
       {
-        "id": "0bc94a2f840f38eb92ef00426cd214e8",
+        "id": "448aaa39ef55faadfd22691e4bbdd3a8",
         "userId": "test_user_001",
-        "name": "项目_1766579859742",
-        "description": "Create a simple web project for testing - c692f0bd",
+        "name": "项目_1766581814254",
+        "description": "Create a simple web project for testing - 9f2a35e8",
         "projectType": "web",
         "status": "active",
-        "rootPath": "/data/projects/0bc94a2f840f38eb92ef00426cd214e8",
+        "rootPath": "/data/projects/448aaa39ef55faadfd22691e4bbdd3a8",
         "fileCount": 3,
-        "totalSize": 6845,
+        "totalSize": 8762,
         "templateId": null,
         "coverImageUrl": null,
         "tags": null,
-        "createdAt": "2025-12-24T12:37:39.75003",
-        "updatedAt": "2025-12-24T12:37:39.752841",
+        "createdAt": "2025-12-24T13:10:14.263202",
+        "updatedAt": "2025-12-24T13:10:14.264963",
+        "files": null
+      },
+      {
+        "id": "98084db0e716cdffbb8708c225452bc8",
+        "userId": "test_user_001",
+        "name": "项目_1766581052145",
+        "description": "Create a simple web project for testing - a25a9f24",
+        "projectType": "web",
+        "status": "active",
+        "rootPath": "/data/projects/98084db0e716cdffbb8708c225452bc8",
+        "fileCount": 3,
+        "totalSize": 7988,
+        "templateId": null,
+        "coverImageUrl": null,
+        "tags": null,
+        "createdAt": "2025-12-24T12:57:32.148472",
+        "updatedAt": "2025-12-24T12:57:32.149547",
         "files": null
       },
       {
@@ -183,7 +200,7 @@
         "files": null
       }
     ],
-    "total": 4,
+    "total": 5,
     "size": 10,
     "current": 1,
     "pages": 1
@@ -195,8 +212,8 @@
 
 #### 获取项目详情
 
-- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8`
-- **耗时**: 0.028秒
+- **接口**: `GET /api/projects/448aaa39ef55faadfd22691e4bbdd3a8`
+- **耗时**: 0.025秒
 
 **响应数据**:
 ```json
@@ -204,44 +221,44 @@
   "code": 200,
   "message": "成功",
   "data": {
-    "id": "0bc94a2f840f38eb92ef00426cd214e8",
+    "id": "448aaa39ef55faadfd22691e4bbdd3a8",
     "userId": "test_user_001",
-    "name": "项目_1766579859742",
-    "description": "Create a simple web project for testing - c692f0bd",
+    "name": "项目_1766581814254",
+    "description": "Create a simple web project for testing - 9f2a35e8",
     "projectType": "web",
     "status": "active",
-    "rootPath": "/data/projects/0bc94a2f840f38eb92ef00426cd214e8",
+    "rootPath": "/data/projects/448aaa39ef55faadfd22691e4bbdd3a8",
     "fileCount": 3,
-    "totalSize": 6845,
+    "totalSize": 8762,
     "templateId": null,
     "coverImageUrl": null,
     "tags": null,
-    "createdAt": "2025-12-24T12:37:39.75003",
-    "updatedAt": "2025-12-24T12:37:39.752841",
+    "createdAt": "2025-12-24T13:10:14.263202",
+    "updatedAt": "2025-12-24T13:10:14.264963",
     "files": [
       {
-        "id": "a3f199d4c9c6bfe24d66bccf1eaee553",
+        "id": "dc54a0d13ef5ae636386faaab571f3f3",
         "fileName": "script.js",
         "filePath": "script.js",
         "fileType": "javascript",
-        "fileSize": 1425,
-        "updatedAt": "2025-12-24T12:37:39.820532"
+        "fileSize": 1399,
+        "updatedAt": "2025-12-24T13:10:14.307661"
       },
       {
-        "id": "e4742bd104bba2b02ce1abd8253bea2e",
+        "id": "1bcb8d70877c769c4b269c50fe760f26",
         "fileName": "styles.css",
         "filePath": "styles.css",
         "fileType": "css",
-        "fileSize": 3620,
-        "updatedAt": "2025-12-24T12:37:39.810801"
+        "fileSize": 4194,
+        "updatedAt": "2025-12-24T13:10:14.301109"
       },
       {
-        "id": "90c6a23f57010275cdd0b67af5ff466e",
+        "id": "410532ee35b1f9056dd196879c8f2761",
         "fileName": "index.html",
         "filePath": "index.html",
         "fileType": "html",
-        "fileSize": 1800,
-        "updatedAt": "2025-12-24T12:37:39.786282"
+        "fileSize": 3169,
+        "updatedAt": "2025-12-24T13:10:14.292643"
       }
     ]
   }
@@ -253,12 +270,12 @@
 #### 执行项目任务
 
 - **接口**: `POST /api/projects/tasks/execute`
-- **耗时**: 60.180秒
+- **耗时**: 6.351秒
 
 **请求数据**:
 ```json
 {
-  "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+  "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
   "userPrompt": "Add error handling to the project",
   "context": []
 }
@@ -267,9 +284,26 @@
 **响应数据**:
 ```json
 {
-  "code": 500,
-  "message": "执行任务失败: java.util.concurrent.TimeoutException: Did not observe any item or terminal signal within 60000ms in 'flatMap' (and no fallback has been configured)",
-  "data": null
+  "code": 200,
+  "message": "任务执行成功",
+  "data": {
+    "result": {
+      "task_id": "task_unknown",
+      "status": "completed",
+      "intent": {
+        "intent": "modify_project",
+        "project_type": "unknown",
+        "entities": {
+          "feature": "error_handling"
+        },
+        "confidence": 0.87,
+        "action": "update_file"
+      },
+      "message": "任务 'update_file' 执行完成"
+    },
+    "taskId": "579126766fdbc09886a952aac455ab4b",
+    "status": "completed"
+  }
 }
 ```
 
@@ -277,8 +311,8 @@
 
 #### 获取文件列表
 
-- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files`
-- **耗时**: 0.042秒
+- **接口**: `GET /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files`
+- **耗时**: 0.010秒
 
 **响应数据**:
 ```json
@@ -288,48 +322,48 @@
   "data": {
     "records": [
       {
-        "id": "a3f199d4c9c6bfe24d66bccf1eaee553",
-        "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+        "id": "dc54a0d13ef5ae636386faaab571f3f3",
+        "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
         "filePath": "script.js",
         "fileName": "script.js",
         "fileType": "javascript",
         "language": "javascript",
-        "fileSize": 1425,
+        "fileSize": 1399,
         "version": 1,
         "commitHash": null,
         "generatedBy": "web_engine",
-        "createdAt": "2025-12-24T12:37:39.820513",
-        "updatedAt": "2025-12-24T12:37:39.820532",
+        "createdAt": "2025-12-24T13:10:14.307634",
+        "updatedAt": "2025-12-24T13:10:14.307661",
         "content": null
       },
       {
-        "id": "e4742bd104bba2b02ce1abd8253bea2e",
-        "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+        "id": "1bcb8d70877c769c4b269c50fe760f26",
+        "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
         "filePath": "styles.css",
         "fileName": "styles.css",
         "fileType": "css",
         "language": "css",
-        "fileSize": 3620,
+        "fileSize": 4194,
         "version": 1,
         "commitHash": null,
         "generatedBy": "web_engine",
-        "createdAt": "2025-12-24T12:37:39.810779",
-        "updatedAt": "2025-12-24T12:37:39.810801",
+        "createdAt": "2025-12-24T13:10:14.301086",
+        "updatedAt": "2025-12-24T13:10:14.301109",
         "content": null
       },
       {
-        "id": "90c6a23f57010275cdd0b67af5ff466e",
-        "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+        "id": "410532ee35b1f9056dd196879c8f2761",
+        "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
         "filePath": "index.html",
         "fileName": "index.html",
         "fileType": "html",
         "language": "html",
-        "fileSize": 1800,
+        "fileSize": 3169,
         "version": 1,
         "commitHash": null,
         "generatedBy": "web_engine",
-        "createdAt": "2025-12-24T12:37:39.786212",
-        "updatedAt": "2025-12-24T12:37:39.786282",
+        "createdAt": "2025-12-24T13:10:14.292614",
+        "updatedAt": "2025-12-24T13:10:14.292643",
         "content": null
       }
     ],
@@ -345,13 +379,13 @@
 
 #### 创建文件
 
-- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files`
-- **耗时**: 0.054秒
+- **接口**: `POST /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files`
+- **耗时**: 0.018秒
 
 **请求数据**:
 ```json
 {
-  "fileName": "test_23aab2be.txt",
+  "fileName": "test_d2810479.txt",
   "filePath": "/test",
   "content": "Test file content",
   "fileType": "text"
@@ -364,18 +398,18 @@
   "code": 200,
   "message": "文件创建成功",
   "data": {
-    "id": "26f51abe4b0f1a6a10263a3ac1ffaaf9",
-    "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+    "id": "cdad28d4584ff828334fb4e111a6d60f",
+    "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
     "filePath": "/test",
-    "fileName": "test_23aab2be.txt",
+    "fileName": "test_d2810479.txt",
     "fileType": "text",
     "language": null,
     "fileSize": 17,
     "version": 1,
     "commitHash": null,
     "generatedBy": "user",
-    "createdAt": "2025-12-24T12:38:40.35776217",
-    "updatedAt": "2025-12-24T12:38:40.357869678",
+    "createdAt": "2025-12-24T13:10:20.762882886",
+    "updatedAt": "2025-12-24T13:10:20.762923689",
     "content": "Test file content"
   }
 }
@@ -385,8 +419,8 @@
 
 #### 获取文件详情
 
-- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/26f51abe4b0f1a6a10263a3ac1ffaaf9`
-- **耗时**: 0.023秒
+- **接口**: `GET /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files/cdad28d4584ff828334fb4e111a6d60f`
+- **耗时**: 0.009秒
 
 **响应数据**:
 ```json
@@ -394,18 +428,18 @@
   "code": 200,
   "message": "成功",
   "data": {
-    "id": "26f51abe4b0f1a6a10263a3ac1ffaaf9",
-    "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+    "id": "cdad28d4584ff828334fb4e111a6d60f",
+    "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
     "filePath": "/test",
-    "fileName": "test_23aab2be.txt",
+    "fileName": "test_d2810479.txt",
     "fileType": "text",
     "language": null,
     "fileSize": 17,
     "version": 1,
     "commitHash": null,
     "generatedBy": "user",
-    "createdAt": "2025-12-24T12:38:40.357762",
-    "updatedAt": "2025-12-24T12:38:40.35787",
+    "createdAt": "2025-12-24T13:10:20.762883",
+    "updatedAt": "2025-12-24T13:10:20.762924",
     "content": "Test file content"
   }
 }
@@ -415,8 +449,8 @@
 
 #### 更新文件
 
-- **接口**: `PUT /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/26f51abe4b0f1a6a10263a3ac1ffaaf9`
-- **耗时**: 0.064秒
+- **接口**: `PUT /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files/cdad28d4584ff828334fb4e111a6d60f`
+- **耗时**: 0.023秒
 
 **请求数据**:
 ```json
@@ -432,18 +466,18 @@
   "code": 200,
   "message": "文件更新成功",
   "data": {
-    "id": "26f51abe4b0f1a6a10263a3ac1ffaaf9",
-    "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+    "id": "cdad28d4584ff828334fb4e111a6d60f",
+    "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
     "filePath": "/test",
-    "fileName": "test_23aab2be.txt",
+    "fileName": "test_d2810479.txt",
     "fileType": "text",
     "language": null,
     "fileSize": 15,
     "version": 2,
     "commitHash": null,
     "generatedBy": "user",
-    "createdAt": "2025-12-24T12:38:40.357762",
-    "updatedAt": "2025-12-24T12:38:40.35787",
+    "createdAt": "2025-12-24T13:10:20.762883",
+    "updatedAt": "2025-12-24T13:10:20.762924",
     "content": "Updated content"
   }
 }
@@ -453,8 +487,8 @@
 
 #### 批量创建文件
 
-- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/batch`
-- **耗时**: 0.098秒
+- **接口**: `POST /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files/batch`
+- **耗时**: 0.042秒
 
 **请求数据**:
 ```json
@@ -481,8 +515,8 @@
   "message": "批量创建文件成功",
   "data": [
     {
-      "id": "e6fbb0ae2e81c8a58bfe6a6543fff952",
-      "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+      "id": "810eda137a578e680f8e5d7c9ebd50be",
+      "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
       "filePath": "/test",
       "fileName": "file1.txt",
       "fileType": "text",
@@ -491,13 +525,13 @@
       "version": 1,
       "commitHash": null,
       "generatedBy": "user",
-      "createdAt": "2025-12-24T12:38:40.523710697",
-      "updatedAt": "2025-12-24T12:38:40.523745999",
+      "createdAt": "2025-12-24T13:10:20.815435477",
+      "updatedAt": "2025-12-24T13:10:20.815462279",
       "content": "Content 1"
     },
     {
-      "id": "851db4df498e4d6ea1c351560d2b2629",
-      "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+      "id": "21319fb8c3dde1191f815cc7dea17b8d",
+      "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
       "filePath": "/test",
       "fileName": "file2.txt",
       "fileType": "text",
@@ -506,8 +540,8 @@
       "version": 1,
       "commitHash": null,
       "generatedBy": "user",
-      "createdAt": "2025-12-24T12:38:40.556524996",
-      "updatedAt": "2025-12-24T12:38:40.5565867",
+      "createdAt": "2025-12-24T13:10:20.833222792",
+      "updatedAt": "2025-12-24T13:10:20.833239293",
       "content": "Content 2"
     }
   ]
@@ -518,8 +552,8 @@
 
 #### 删除文件
 
-- **接口**: `DELETE /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/26f51abe4b0f1a6a10263a3ac1ffaaf9`
-- **耗时**: 0.257秒
+- **接口**: `DELETE /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files/cdad28d4584ff828334fb4e111a6d60f`
+- **耗时**: 0.018秒
 
 **响应数据**:
 ```json
@@ -534,8 +568,8 @@
 
 #### 获取协作者列表
 
-- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators`
-- **耗时**: 0.095秒
+- **接口**: `GET /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/collaborators`
+- **耗时**: 0.014秒
 
 **响应数据**:
 ```json
@@ -550,8 +584,8 @@
 
 #### 添加协作者
 
-- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators`
-- **耗时**: 0.179秒
+- **接口**: `POST /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/collaborators`
+- **耗时**: 0.028秒
 
 **请求数据**:
 ```json
@@ -572,19 +606,42 @@
   "code": 200,
   "message": "协作者添加成功",
   "data": {
-    "id": "7c8bfc4379643997d1c3fb620c0c2184",
-    "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+    "id": "561831cd36e7f878cbadb5a7635baebc",
+    "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
     "collaboratorDid": "did:example:collaborator001",
     "collaboratorName": "did:example:collaborator001",
     "role": "developer",
     "permissions": "read,write",
     "invitedBy": "system",
-    "invitedAt": "2025-12-24T12:38:41.018545865",
+    "invitedAt": "2025-12-24T13:10:20.903684306",
     "acceptedAt": null,
     "status": "pending",
-    "createdAt": "2025-12-24T12:38:41.043801434",
-    "updatedAt": "2025-12-24T12:38:41.04388194"
+    "createdAt": "2025-12-24T13:10:20.904057932",
+    "updatedAt": "2025-12-24T13:10:20.904094934"
   }
+}
+```
+
+---
+
+#### 更新协作者
+
+- **接口**: `PUT /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/collaborators/561831cd36e7f878cbadb5a7635baebc`
+- **耗时**: 0.014秒
+
+**请求数据**:
+```json
+{
+  "permissions": "read,write,admin"
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 500,
+  "message": "\n### Error querying database.  Cause: org.postgresql.util.PSQLException: ERROR: column \"user_id\" does not exist\n  Position: 23\n### The error may exist in com/chainlesschain/project/mapper/ProjectCollaboratorMapper.java (best guess)\n### The error may involve defaultParameterMap\n### The error occurred while setting parameters\n### SQL: SELECT  id,project_id,user_id,collaborator_did,role,permissions,invited_by,invited_at,accepted_at,status,created_at,updated_at,sync_status,synced_at,device_id,deleted  FROM project_collaborators  WHERE deleted=0     AND (id = ? AND project_id = ?)\n### Cause: org.postgresql.util.PSQLException: ERROR: column \"user_id\" does not exist\n  Position: 23\n; bad SQL grammar []",
+  "data": null
 }
 ```
 
@@ -592,8 +649,8 @@
 
 #### 接受协作邀请
 
-- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators/7c8bfc4379643997d1c3fb620c0c2184/accept`
-- **耗时**: 0.053秒
+- **接口**: `POST /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/collaborators/561831cd36e7f878cbadb5a7635baebc/accept`
+- **耗时**: 0.011秒
 
 **响应数据**:
 ```json
@@ -608,8 +665,8 @@
 
 #### 移除协作者
 
-- **接口**: `DELETE /api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators/7c8bfc4379643997d1c3fb620c0c2184`
-- **耗时**: 0.042秒
+- **接口**: `DELETE /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/collaborators/561831cd36e7f878cbadb5a7635baebc`
+- **耗时**: 0.016秒
 
 **响应数据**:
 ```json
@@ -624,8 +681,8 @@
 
 #### 获取评论列表
 
-- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/comments`
-- **耗时**: 0.070秒
+- **接口**: `GET /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/comments`
+- **耗时**: 0.018秒
 
 **响应数据**:
 ```json
@@ -640,8 +697,8 @@
 
 #### 创建评论
 
-- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/comments`
-- **耗时**: 0.089秒
+- **接口**: `POST /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/comments`
+- **耗时**: 0.018秒
 
 **请求数据**:
 ```json
@@ -664,8 +721,8 @@
 
 #### 获取自动化规则列表
 
-- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/automation/rules`
-- **耗时**: 0.102秒
+- **接口**: `GET /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/automation/rules`
+- **耗时**: 0.013秒
 
 **响应数据**:
 ```json
@@ -680,8 +737,8 @@
 
 #### 创建自动化规则
 
-- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/automation/rules`
-- **耗时**: 0.070秒
+- **接口**: `POST /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/automation/rules`
+- **耗时**: 0.034秒
 
 **请求数据**:
 ```json
@@ -717,8 +774,8 @@
 
 #### 获取自动化统计
 
-- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/automation/stats`
-- **耗时**: 0.028秒
+- **接口**: `GET /api/projects/448aaa39ef55faadfd22691e4bbdd3a8/automation/stats`
+- **耗时**: 0.017秒
 
 **响应数据**:
 ```json
@@ -733,8 +790,8 @@
 
 #### 删除项目
 
-- **接口**: `DELETE /api/projects/0bc94a2f840f38eb92ef00426cd214e8`
-- **耗时**: 0.047秒
+- **接口**: `DELETE /api/projects/448aaa39ef55faadfd22691e4bbdd3a8`
+- **耗时**: 0.022秒
 
 **响应数据**:
 ```json
@@ -744,41 +801,6 @@
   "data": null
 }
 ```
-
----
-
-
-### ❌ FAILED (1)
-
-#### 更新协作者
-
-- **接口**: `PUT /api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators/7c8bfc4379643997d1c3fb620c0c2184`
-- **耗时**: 0.060秒
-- **错误信息**: 状态码不匹配
-
-**请求数据**:
-```json
-{
-  "role": "admin",
-  "permissions": [
-    "read",
-    "write",
-    "delete"
-  ]
-}
-```
-
-**响应数据**:
-```json
-{
-  "code": 500,
-  "message": "服务器内部错误，请稍后重试",
-  "data": null
-}
-```
-
-- **期望**: 200
-- **实际**: 500
 
 ---
 

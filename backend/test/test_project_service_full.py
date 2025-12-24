@@ -249,8 +249,7 @@ class ProjectServiceTester(APITester):
             return
 
         update_data = {
-            "role": "admin",
-            "permissions": ["read", "write", "delete"]
+            "permissions": "read,write,admin"  # 字符串格式，逗号分隔
         }
 
         self.run_test(

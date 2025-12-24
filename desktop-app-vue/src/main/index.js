@@ -4633,14 +4633,28 @@ class ChainlessChainApp {
 
                 // 保存项目文件到数据库
                 const cleanedFiles = this._replaceUndefinedWithNull(accumulatedData.files);
+                console.log('[Main] 准备保存文件到数据库，文件数量:', cleanedFiles.length);
+                if (cleanedFiles.length > 0) {
+                  console.log('[Main] 第一个文件:', {
+                    path: cleanedFiles[0].path,
+                    type: cleanedFiles[0].type,
+                    hasContent: !!cleanedFiles[0].content,
+                    contentLength: cleanedFiles[0].content ? cleanedFiles[0].content.length : 0
+                  });
+                }
                 await this.database.saveProjectFiles(localProject.id, cleanedFiles);
                 console.log('[Main] 项目文件已保存到数据库');
+
+                // 验证保存是否成功
+                const savedFiles = this.database.getProjectFiles(localProject.id);
+                console.log('[Main] 验证：数据库中的文件数量:', savedFiles?.length || 0);
 
                 // 写入文件到文件系统（对于document类型）
                 if (projectType === 'document' && accumulatedData.files.length > 0) {
                   try {
+                    const projectConfig = getProjectConfig();
                     const projectRootPath = path.join(
-                      this.projectConfig.getProjectsRootPath(),
+                      projectConfig.getProjectsRootPath(),
                       localProject.id
                     );
 
@@ -4674,6 +4688,7 @@ class ChainlessChainApp {
                     console.log('[Main] 项目root_path已更新');
                   } catch (writeError) {
                     console.error('[Main] 写入文件系统失败:', writeError);
+                    console.error('[Main] 错误堆栈:', writeError.stack);
                     // 不抛出错误，文件已在数据库中，可以后续处理
                   }
                 }
@@ -4840,23 +4855,30 @@ class ChainlessChainApp {
       try {
         console.log('[Main] 获取项目文件, projectId:', projectId);
 
-        // 调用后端API
+        // 优先从本地数据库获取
+        if (this.database) {
+          const localFiles = this.database.getProjectFiles(projectId);
+          console.log('[Main] 本地数据库找到文件数量:', localFiles?.length || 0);
+
+          // 如果本地有数据，直接返回
+          if (localFiles && localFiles.length > 0) {
+            return this.removeUndefinedValues(localFiles);
+          }
+        }
+
+        // 本地没有数据，尝试从后端获取
+        console.log('[Main] 本地无数据，尝试从后端获取');
         const result = await ProjectFileAPI.getFiles(projectId, fileType, pageNum, pageSize);
 
-        // 如果后端不可用，降级到本地数据库
+        // 如果后端不可用，返回空数组
         if (!result.success || result.status === 0) {
-          console.warn('[Main] 后端服务不可用，使用本地数据库');
-          if (!this.database) {
-            throw new Error('数据库未初始化');
-          }
-          const files = this.database.getProjectFiles(projectId);
-          console.log('[Main] 找到文件数量:', files?.length || 0);
-          return this.removeUndefinedValues(files);
+          console.warn('[Main] 后端服务不可用');
+          return [];
         }
 
         // 适配后端返回格式
         if (result.data && result.data.records) {
-          console.log('[Main] 找到文件数量:', result.data.records.length);
+          console.log('[Main] 后端找到文件数量:', result.data.records.length);
           return result.data.records;
         }
 

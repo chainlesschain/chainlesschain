@@ -1,19 +1,19 @@
 {
   "summary": {
     "total": 29,
-    "passed": 28,
-    "failed": 1,
+    "passed": 29,
+    "failed": 0,
     "error": 0,
     "skipped": 0,
-    "success_rate": "96.55%",
-    "duration": 285.782812
+    "success_rate": "100.00%",
+    "duration": 125.795651
   },
-  "start_time": "2025-12-24T20:38:41.691169",
+  "start_time": "2025-12-24T21:10:21.083346",
   "results": [
     {
       "name": "AI服务根路径",
       "status": "PASSED",
-      "duration": 46.69499754905701,
+      "duration": 0.010636568069458008,
       "endpoint": "/",
       "method": "GET",
       "request_data": null,
@@ -29,7 +29,7 @@
     {
       "name": "AI服务健康检查",
       "status": "PASSED",
-      "duration": 0.014719486236572266,
+      "duration": 0.004004001617431641,
       "endpoint": "/health",
       "method": "GET",
       "request_data": null,
@@ -50,7 +50,7 @@
     {
       "name": "意图识别",
       "status": "PASSED",
-      "duration": 0.014121770858764648,
+      "duration": 0.0029954910278320312,
       "endpoint": "/api/intent/classify",
       "method": "POST",
       "request_data": {
@@ -74,7 +74,7 @@
     {
       "name": "AI创建项目",
       "status": "PASSED",
-      "duration": 87.52524757385254,
+      "duration": 109.8450219631195,
       "endpoint": "/api/projects/create",
       "method": "POST",
       "request_data": {
@@ -96,17 +96,17 @@
           "files": [
             {
               "path": "index.html",
-              "content": "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <meta name=\"description\" content=\"一个仅展示Hello World文本的基础HTML页面，满足用户核心需求\">\n    <title>简单Hello World HTML页面</title>\n    <link rel=\"stylesheet\" href=\"styles.css\">\n</head>\n<body>\n    <header class=\"page-header\">\n        <h2>简单Hello World页面</h2>\n    </header>\n\n    <main class=\"main-content\">\n        <h1>Hello World</h1>\n    </main>\n\n    <footer class=\"page-footer\">\n        <p>&copy; 2024 简单Hello World项目</p>\n    </footer>\n\n    <script src=\"script.js\"></script>\n</body>\n</html>",
+              "content": "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta name=\"description\" content=\"一个简单的HTML页面，用于显示Hello World文本\">\n  <title>Hello World HTML页面</title>\n  <link rel=\"stylesheet\" href=\"styles.css\">\n</head>\n<body>\n  <header class=\"site-header\">\n    <h1 class=\"text-primary\">Hello World HTML页面</h1>\n  </header>\n\n  <main class=\"main-content\">\n    <section class=\"home-section\">\n      <h2 class=\"text-secondary\">Hello World!</h2>\n      <p>这是一个符合HTML5语义化规范的响应式页面</p>\n    </section>\n  </main>\n\n  <footer class=\"site-footer\">\n    <p>&copy; 2024 Hello World HTML页面. 保留所有权利。</p>\n  </footer>\n\n  <script src=\"script.js\"></script>\n</body>\n</html>",
               "language": "html"
             },
             {
               "path": "styles.css",
-              "content": ":root {\n  --primary: #3498db;\n  --secondary: #2ecc71;\n  --background: #ffffff;\n  --text: #333333;\n  --shadow: rgba(0, 0, 0, 0.1);\n  --transition-speed: 0.3s;\n}\n\n.dark-theme {\n  --background: #1a1a1a;\n  --text: #ffffff;\n  --shadow: rgba(255, 255, 255, 0.1);\n}\n\n* {\n  box-sizing: border-box;\n  margin: 0;\n  padding: 0;\n}\n\nbody {\n  min-height: 100vh;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  font-family: 'Arial', sans-serif;\n  background-color: var(--background);\n  color: var(--text);\n  transition: background-color var(--transition-speed), color var(--transition-speed);\n}\n\n.container {\n  text-align: center;\n  padding: 2rem 3rem;\n  border-radius: 12px;\n  box-shadow: 0 4px 20px var(--shadow);\n  transition: box-shadow var(--transition-speed);\n}\n\n.container:hover {\n  box-shadow: 0 6px 25px var(--shadow);\n}\n\nh1 {\n  font-size: 3.5rem;\n  font-weight: 700;\n  color: var(--primary);\n  transition: color var(--transition-speed), transform var(--transition-speed);\n  animation: fadeIn 1s ease-in-out;\n}\n\nh1:hover {\n  color: var(--secondary);\n  transform: scale(1.08);\n}\n\n@keyframes fadeIn {\n  from {\n    opacity: 0;\n    transform: translateY(-30px);\n  }\n  to {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n\n@media (max-width: 768px) {\n  h1 {\n    font-size: 2rem;\n  }\n  \n  .container {\n    padding: 1.5rem 2rem;\n  }\n}\n\n@media (max-width: 480px) {\n  h1 {\n    font-size: 1.8rem;\n  }\n  \n  .container {\n    padding: 1rem 1.5rem;\n  }\n}",
+              "content": ":root {\n  --primary: #3498db;\n  --secondary: #2ecc71;\n  --bg-color: #ffffff;\n  --text-color: #333333;\n  --transition: all 0.3s ease;\n  --shadow: 0 4px 12px rgba(0,0,0,0.1);\n}\n\nbody.dark {\n  --bg-color: #1a1a1a;\n  --text-color: #f5f5f5;\n  --primary: #2980b9;\n  --secondary: #27ae60;\n  --shadow: 0 4px 12px rgba(0,0,0,0.3);\n}\n\n* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n\nbody {\n  font-family: Arial, sans-serif;\n  background-color: var(--bg-color);\n  color: var(--text-color);\n  min-height: 100vh;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  align-items: center;\n  padding: 2rem;\n  transition: var(--transition);\n  opacity: 0;\n  animation: fadeIn 0.8s ease forwards;\n}\n\n@keyframes fadeIn {\n  to { opacity: 1; }\n}\n\n.page-container {\n  text-align: center;\n  max-width: 800px;\n  width: 100%;\n  padding: 2rem;\n  border-radius: 12px;\n  background-color: rgba(255,255,255,0.95);\n  box-shadow: var(--shadow);\n  transition: var(--transition);\n}\n\nbody.dark .page-container {\n  background-color: rgba(30,30,30,0.95);\n}\n\nh1 {\n  font-size: 2.5rem;\n  color: var(--primary);\n  margin-bottom: 1.5rem;\n  line-height: 1.2;\n  transition: var(--transition);\n}\n\nh1:hover {\n  transform: scale(1.05);\n  text-shadow: 0 2px 6px rgba(52,152,219,0.2);\n}\n\np {\n  font-size: 1.2rem;\n  line-height: 1.6;\n  margin-bottom: 2rem;\n  color: var(--text-color);\n}\n\n.theme-toggle {\n  padding: 0.8rem 1.5rem;\n  border: none;\n  border-radius: 25px;\n  background-color: var(--secondary);\n  color: white;\n  font-size: 1rem;\n  cursor: pointer;\n  transition: var(--transition);\n  box-shadow: 0 2px 8px rgba(46,204,113,0.2);\n}\n\n.theme-toggle:hover {\n  background-color: #27ae60;\n  transform: translateY(-2px);\n  box-shadow: 0 4px 12px rgba(46,204,113,0.3);\n}\n\n.theme-toggle:active {\n  transform: translateY(0);\n}\n\n@media (max-width: 768px) {\n  h1 {\n    font-size: 2rem;\n  }\n  \n  p {\n    font-size: 1.1rem;\n  }\n  \n  .page-container {\n    padding: 1.5rem;\n  }\n}\n\n@media (max-width: 480px) {\n  h1 {\n    font-size: 1.8rem;\n  }\n  \n  .theme-toggle {\n    padding: 0.7rem 1.2rem;\n    font-size: 0.9rem;\n  }\n}",
               "language": "css"
             },
             {
               "path": "script.js",
-              "content": "document.addEventListener('DOMContentLoaded', () => {\n  // 1. 平滑滚动实现\n  const initSmoothScroll = () => {\n    document.querySelectorAll('a[href^=\"#\"]').forEach(link => {\n      link.addEventListener('click', (e) => {\n        e.preventDefault();\n        const target = document.querySelector(link.getAttribute('href'));\n        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });\n      });\n    });\n  };\n\n  // 2. 响应式导航菜单\n  const initResponsiveNav = () => {\n    const hamburger = document.querySelector('.hamburger');\n    const navMenu = document.querySelector('.nav-menu');\n    \n    if (!hamburger || !navMenu) return;\n\n    // 汉堡按钮切换菜单\n    hamburger.addEventListener('click', () => {\n      navMenu.classList.toggle('active');\n      hamburger.classList.toggle('active');\n    });\n\n    // 点击菜单链接关闭菜单\n    navMenu.querySelectorAll('a').forEach(link => {\n      link.addEventListener('click', () => {\n        navMenu.classList.remove('active');\n        hamburger.classList.remove('active');\n      });\n    });\n  };\n\n  // 3. 深色模式切换（含本地存储持久化）\n  const initDarkMode = () => {\n    const toggleBtn = document.querySelector('.dark-mode-toggle');\n    if (!toggleBtn) return;\n\n    // 页面加载时恢复深色模式状态\n    const isDark = localStorage.getItem('darkMode') === 'true';\n    document.body.classList.toggle('dark', isDark);\n\n    // 切换逻辑\n    toggleBtn.addEventListener('click', () => {\n      const isActive = document.body.classList.toggle('dark');\n      localStorage.setItem('darkMode', isActive);\n    });\n  };\n\n  // 初始化所有交互功能\n  initSmoothScroll();\n  initResponsiveNav();\n  initDarkMode();\n});",
+              "content": "document.addEventListener('DOMContentLoaded', () => {\n  // DOM元素获取\n  const hamburger = document.querySelector('.hamburger');\n  const navMenu = document.querySelector('.nav-menu');\n  const navLinks = document.querySelectorAll('.nav-link');\n  const darkModeToggle = document.querySelector('.dark-mode-toggle');\n  const body = document.body;\n\n  // 汉堡菜单切换逻辑\n  const toggleMobileMenu = () => {\n    hamburger?.classList.toggle('active');\n    navMenu?.classList.toggle('active');\n  };\n\n  // 平滑滚动实现\n  const handleSmoothScroll = (targetId) => {\n    const targetSection = document.getElementById(targetId);\n    if (targetSection) {\n      targetSection.scrollIntoView({ behavior: 'smooth' });\n      // 移动端点击后关闭菜单\n      if (window.innerWidth < 768) toggleMobileMenu();\n    }\n  };\n\n  // 深色模式切换逻辑\n  const toggleDarkMode = () => {\n    const isDark = body.classList.toggle('dark');\n    localStorage.setItem('darkMode', isDark);\n    darkModeToggle?.textContent = isDark ? '☀️' : '🌙';\n  };\n\n  // 初始化配置\n  const initApp = () => {\n    // 读取本地存储的深色模式状态\n    const savedDarkMode = localStorage.getItem('darkMode') === 'true';\n    if (savedDarkMode) {\n      body.classList.add('dark');\n      darkModeToggle?.textContent = '☀️';\n    }\n\n    // 绑定事件监听\n    hamburger?.addEventListener('click', toggleMobileMenu);\n    darkModeToggle?.addEventListener('click', toggleDarkMode);\n    \n    // 导航链接平滑滚动\n    navLinks.forEach(link => {\n      link.addEventListener('click', (e) => {\n        e.preventDefault();\n        const targetId = link.getAttribute('href').slice(1);\n        handleSmoothScroll(targetId);\n      });\n    });\n\n    // 窗口 resize 时处理移动端菜单\n    window.addEventListener('resize', () => {\n      if (window.innerWidth >= 768 && navMenu?.classList.contains('active')) {\n        toggleMobileMenu();\n      }\n    });\n  };\n\n  // 启动应用\n  initApp();\n});",
               "language": "javascript"
             }
           ],
@@ -114,14 +114,13 @@
             "template": "basic",
             "theme": "light",
             "spec": {
-              "title": "简单Hello World HTML页面",
-              "description": "一个仅展示Hello World文本的基础HTML页面，满足用户核心需求",
+              "title": "Hello World HTML页面",
+              "description": "一个简单的HTML页面，用于显示Hello World文本",
               "sections": [
                 "首页"
               ],
               "features": [
-                "基础HTML结构",
-                "Hello World文本显示"
+                "响应式设计"
               ],
               "color_scheme": {
                 "primary": "#3498db",
@@ -161,7 +160,7 @@
     {
       "name": "RAG知识检索",
       "status": "PASSED",
-      "duration": 141.9100272655487,
+      "duration": 5.13483190536499,
       "endpoint": "/api/rag/query",
       "method": "POST",
       "request_data": null,
@@ -176,7 +175,7 @@
     {
       "name": "RAG索引统计",
       "status": "PASSED",
-      "duration": 3.007990837097168,
+      "duration": 0.003993988037109375,
       "endpoint": "/api/rag/index/stats",
       "method": "GET",
       "request_data": null,
@@ -191,7 +190,7 @@
     {
       "name": "RAG增强查询",
       "status": "PASSED",
-      "duration": 0.2848978042602539,
+      "duration": 0.08807539939880371,
       "endpoint": "/api/rag/query/enhanced",
       "method": "POST",
       "request_data": {
@@ -213,7 +212,7 @@
     {
       "name": "Git初始化仓库",
       "status": "PASSED",
-      "duration": 0.21197295188903809,
+      "duration": 0.15746402740478516,
       "endpoint": "/api/git/init",
       "method": "POST",
       "request_data": {
@@ -233,7 +232,7 @@
     {
       "name": "Git状态查询",
       "status": "PASSED",
-      "duration": 0.011113405227661133,
+      "duration": 0.005827665328979492,
       "endpoint": "/api/git/status",
       "method": "GET",
       "request_data": null,
@@ -247,7 +246,7 @@
     {
       "name": "Git提交",
       "status": "PASSED",
-      "duration": 0.04615592956542969,
+      "duration": 0.02872943878173828,
       "endpoint": "/api/git/commit",
       "method": "POST",
       "request_data": {
@@ -267,7 +266,7 @@
     {
       "name": "Git推送",
       "status": "PASSED",
-      "duration": 0.07940220832824707,
+      "duration": 0.030700206756591797,
       "endpoint": "/api/git/push",
       "method": "POST",
       "request_data": {
@@ -285,7 +284,7 @@
     {
       "name": "Git拉取",
       "status": "PASSED",
-      "duration": 0.06743288040161133,
+      "duration": 0.032108306884765625,
       "endpoint": "/api/git/pull",
       "method": "POST",
       "request_data": {
@@ -303,7 +302,7 @@
     {
       "name": "Git提交日志",
       "status": "PASSED",
-      "duration": 0.05390453338623047,
+      "duration": 0.040247201919555664,
       "endpoint": "/api/git/log",
       "method": "GET",
       "request_data": null,
@@ -317,7 +316,7 @@
     {
       "name": "Git差异对比",
       "status": "PASSED",
-      "duration": 0.05235767364501953,
+      "duration": 0.04110598564147949,
       "endpoint": "/api/git/diff",
       "method": "GET",
       "request_data": null,
@@ -334,7 +333,7 @@
     {
       "name": "Git分支列表",
       "status": "PASSED",
-      "duration": 0.06594347953796387,
+      "duration": 0.035718441009521484,
       "endpoint": "/api/git/branches",
       "method": "GET",
       "request_data": null,
@@ -350,7 +349,7 @@
     {
       "name": "Git创建分支",
       "status": "PASSED",
-      "duration": 0.05678534507751465,
+      "duration": 0.01864171028137207,
       "endpoint": "/api/git/branch/create",
       "method": "POST",
       "request_data": {
@@ -367,7 +366,7 @@
     {
       "name": "Git切换分支",
       "status": "PASSED",
-      "duration": 0.048000335693359375,
+      "duration": 0.03389716148376465,
       "endpoint": "/api/git/branch/checkout",
       "method": "POST",
       "request_data": {
@@ -384,7 +383,7 @@
     {
       "name": "Git合并分支",
       "status": "PASSED",
-      "duration": 0.23630690574645996,
+      "duration": 0.07693290710449219,
       "endpoint": "/api/git/merge",
       "method": "POST",
       "request_data": {
@@ -402,7 +401,7 @@
     {
       "name": "Git解决冲突",
       "status": "PASSED",
-      "duration": 0.010650396347045898,
+      "duration": 0.00500035285949707,
       "endpoint": "/api/git/resolve-conflicts",
       "method": "POST",
       "request_data": {
@@ -420,7 +419,7 @@
     {
       "name": "Git生成提交消息",
       "status": "PASSED",
-      "duration": 0.2944459915161133,
+      "duration": 0.13970398902893066,
       "endpoint": "/api/git/generate-commit-message",
       "method": "POST",
       "request_data": {
@@ -440,7 +439,7 @@
     {
       "name": "代码生成",
       "status": "PASSED",
-      "duration": 0.011001110076904297,
+      "duration": 0.0037376880645751953,
       "endpoint": "/api/code/generate",
       "method": "POST",
       "request_data": {
@@ -461,7 +460,7 @@
     {
       "name": "代码审查",
       "status": "PASSED",
-      "duration": 0.009997129440307617,
+      "duration": 0.003283977508544922,
       "endpoint": "/api/code/review",
       "method": "POST",
       "request_data": {
@@ -480,7 +479,7 @@
     {
       "name": "代码重构",
       "status": "PASSED",
-      "duration": 0.008778810501098633,
+      "duration": 0.0032045841217041016,
       "endpoint": "/api/code/refactor",
       "method": "POST",
       "request_data": {
@@ -499,7 +498,7 @@
     {
       "name": "代码解释",
       "status": "PASSED",
-      "duration": 0.008599281311035156,
+      "duration": 0.0026235580444335938,
       "endpoint": "/api/code/explain",
       "method": "POST",
       "request_data": {
@@ -516,7 +515,7 @@
     {
       "name": "代码修复Bug",
       "status": "PASSED",
-      "duration": 0.00800013542175293,
+      "duration": 0.0037419795989990234,
       "endpoint": "/api/code/fix-bug",
       "method": "POST",
       "request_data": {
@@ -535,7 +534,7 @@
     {
       "name": "生成测试代码",
       "status": "PASSED",
-      "duration": 0.009194135665893555,
+      "duration": 0.003205537796020508,
       "endpoint": "/api/code/generate-tests",
       "method": "POST",
       "request_data": {
@@ -553,7 +552,7 @@
     {
       "name": "代码优化",
       "status": "PASSED",
-      "duration": 0.00890970230102539,
+      "duration": 0.0026705265045166016,
       "endpoint": "/api/code/optimize",
       "method": "POST",
       "request_data": {
@@ -571,16 +570,20 @@
     },
     {
       "name": "流式聊天",
-      "status": "FAILED",
-      "duration": 0.1,
+      "status": "PASSED",
+      "duration": 5.0,
       "endpoint": "/api/chat/stream",
       "method": "POST",
-      "request_data": {
-        "message": "Explain what is REST API",
-        "context": []
+      "request_data": [
+        {
+          "role": "user",
+          "content": "Explain what is REST API"
+        }
+      ],
+      "response_data": {
+        "message": "Stream connection established"
       },
-      "response_data": null,
-      "error_message": "Failed to start stream",
+      "error_message": null,
       "expected": null,
       "actual": null
     }

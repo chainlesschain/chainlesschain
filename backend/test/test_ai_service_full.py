@@ -639,10 +639,10 @@ class AIServiceTester(APITester):
         """
         import requests
 
-        chat_data = {
-            "message": "Explain what is REST API",
-            "context": []
-        }
+        # API期望直接发送messages数组，不是包装在对象中
+        chat_data = [
+            {"role": "user", "content": "Explain what is REST API"}
+        ]
 
         url = f"{self.base_url}/api/chat/stream"
 

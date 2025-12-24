@@ -231,6 +231,110 @@ public class ProjectFileService {
     }
 
     /**
+     * 搜索文件（全文搜索）
+     */
+    public Page<ProjectFileDTO> searchFiles(String projectId, String query, String fileType, int pageNum, int pageSize) {
+        log.info("搜索文件: projectId={}, query={}, fileType={}", projectId, query, fileType);
+
+        LambdaQueryWrapper<ProjectFile> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProjectFile::getProjectId, projectId);
+
+        // 文件名搜索或内容搜索
+        wrapper.and(w -> w
+            .like(ProjectFile::getFileName, query)
+            .or()
+            .like(ProjectFile::getFilePath, query)
+            .or()
+            .like(ProjectFile::getContent, query)
+        );
+
+        // 文件类型过滤
+        if (fileType != null && !fileType.trim().isEmpty()) {
+            wrapper.eq(ProjectFile::getFileType, fileType);
+        }
+
+        wrapper.orderByDesc(ProjectFile::getUpdatedAt);
+
+        Page<ProjectFile> page = new Page<>(pageNum, pageSize);
+        Page<ProjectFile> result = projectFileMapper.selectPage(page, wrapper);
+
+        // 转换为DTO
+        Page<ProjectFileDTO> dtoPage = new Page<>(pageNum, pageSize);
+        dtoPage.setTotal(result.getTotal());
+        dtoPage.setRecords(result.getRecords().stream()
+                .map(file -> {
+                    ProjectFileDTO dto = toDTO(file);
+                    // 搜索结果包含内容摘要（前200字符）
+                    if (file.getContent() != null && file.getContent().length() > 200) {
+                        dto.setContent(file.getContent().substring(0, 200) + "...");
+                    } else {
+                        dto.setContent(file.getContent());
+                    }
+                    return dto;
+                })
+                .collect(Collectors.toList()));
+
+        return dtoPage;
+    }
+
+    /**
+     * 获取文件版本历史
+     * 注意：当前实现基于文件的version字段，实际应用中可能需要单独的file_versions表
+     */
+    public List<ProjectFileDTO> getFileVersions(String projectId, String fileId, int limit) {
+        log.info("获取文件版本历史: projectId={}, fileId={}, limit={}", projectId, fileId, limit);
+
+        // 当前简化实现：只返回当前版本
+        // TODO: 需要添加file_versions表来存储完整的版本历史
+        LambdaQueryWrapper<ProjectFile> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProjectFile::getId, fileId)
+                .eq(ProjectFile::getProjectId, projectId);
+
+        ProjectFile file = projectFileMapper.selectOne(wrapper);
+        if (file == null) {
+            throw new RuntimeException("文件不存在: " + fileId);
+        }
+
+        // 返回当前版本（实际应从file_versions表查询）
+        ProjectFileDTO dto = toDTO(file);
+        dto.setContent(file.getContent());
+
+        List<ProjectFileDTO> versions = new ArrayList<>();
+        versions.add(dto);
+
+        log.warn("文件版本历史功能需要完整实现file_versions表");
+        return versions;
+    }
+
+    /**
+     * 恢复到指定版本
+     * 注意：当前实现为占位符，实际应用需要file_versions表支持
+     */
+    @Transactional
+    public ProjectFileDTO restoreFileVersion(String projectId, String fileId, String versionId) {
+        log.info("恢复文件版本: projectId={}, fileId={}, versionId={}", projectId, fileId, versionId);
+
+        // 当前简化实现：直接返回当前文件
+        // TODO: 需要从file_versions表恢复指定版本
+        LambdaQueryWrapper<ProjectFile> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProjectFile::getId, fileId)
+                .eq(ProjectFile::getProjectId, projectId);
+
+        ProjectFile file = projectFileMapper.selectOne(wrapper);
+        if (file == null) {
+            throw new RuntimeException("文件不存在: " + fileId);
+        }
+
+        log.warn("文件版本恢复功能需要完整实现file_versions表");
+
+        // 增加版本号（模拟恢复）
+        file.setVersion(file.getVersion() + 1);
+        projectFileMapper.updateById(file);
+
+        return toDTO(file);
+    }
+
+    /**
      * Entity转DTO（不包含content）
      */
     private ProjectFileDTO toDTO(ProjectFile file) {

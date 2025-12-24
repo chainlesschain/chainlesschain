@@ -2,24 +2,24 @@
 
 ## 测试摘要
 
-- **测试时间**: 2025-12-24 20:38:41
-- **测试时长**: 285.78秒
+- **测试时间**: 2025-12-24 21:10:21
+- **测试时长**: 125.79秒
 - **总测试数**: 29
-- **通过**: 28 ✅
-- **失败**: 1 ❌
+- **通过**: 29 ✅
+- **失败**: 0 ❌
 - **错误**: 0 ⚠️
 - **跳过**: 0 ⏭️
-- **成功率**: 96.55%
+- **成功率**: 100.00%
 
 ## 详细结果
 
 
-### ✅ PASSED (28)
+### ✅ PASSED (29)
 
 #### AI服务根路径
 
 - **接口**: `GET /`
-- **耗时**: 46.695秒
+- **耗时**: 0.011秒
 
 **响应数据**:
 ```json
@@ -35,7 +35,7 @@
 #### AI服务健康检查
 
 - **接口**: `GET /health`
-- **耗时**: 0.015秒
+- **耗时**: 0.004秒
 
 **响应数据**:
 ```json
@@ -56,7 +56,7 @@
 #### 意图识别
 
 - **接口**: `POST /api/intent/classify`
-- **耗时**: 0.014秒
+- **耗时**: 0.003秒
 
 **请求数据**:
 ```json
@@ -85,7 +85,7 @@
 #### AI创建项目
 
 - **接口**: `POST /api/projects/create`
-- **耗时**: 87.525秒
+- **耗时**: 109.845秒
 
 **请求数据**:
 ```json
@@ -112,17 +112,17 @@
     "files": [
       {
         "path": "index.html",
-        "content": "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <meta name=\"description\" content=\"一个仅展示Hello World文本的基础HTML页面，满足用户核心需求\">\n    <title>简单Hello World HTML页面</title>\n    <link rel=\"stylesheet\" href=\"styles.css\">\n</head>\n<body>\n    <header class=\"page-header\">\n        <h2>简单Hello World页面</h2>\n    </header>\n\n    <main class=\"main-content\">\n        <h1>Hello World</h1>\n    </main>\n\n    <footer class=\"page-footer\">\n        <p>&copy; 2024 简单Hello World项目</p>\n    </footer>\n\n    <script src=\"script.js\"></script>\n</body>\n</html>",
+        "content": "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta name=\"description\" content=\"一个简单的HTML页面，用于显示Hello World文本\">\n  <title>Hello World HTML页面</title>\n  <link rel=\"stylesheet\" href=\"styles.css\">\n</head>\n<body>\n  <header class=\"site-header\">\n    <h1 class=\"text-primary\">Hello World HTML页面</h1>\n  </header>\n\n  <main class=\"main-content\">\n    <section class=\"home-section\">\n      <h2 class=\"text-secondary\">Hello World!</h2>\n      <p>这是一个符合HTML5语义化规范的响应式页面</p>\n    </section>\n  </main>\n\n  <footer class=\"site-footer\">\n    <p>&copy; 2024 Hello World HTML页面. 保留所有权利。</p>\n  </footer>\n\n  <script src=\"script.js\"></script>\n</body>\n</html>",
         "language": "html"
       },
       {
         "path": "styles.css",
-        "content": ":root {\n  --primary: #3498db;\n  --secondary: #2ecc71;\n  --background: #ffffff;\n  --text: #333333;\n  --shadow: rgba(0, 0, 0, 0.1);\n  --transition-speed: 0.3s;\n}\n\n.dark-theme {\n  --background: #1a1a1a;\n  --text: #ffffff;\n  --shadow: rgba(255, 255, 255, 0.1);\n}\n\n* {\n  box-sizing: border-box;\n  margin: 0;\n  padding: 0;\n}\n\nbody {\n  min-height: 100vh;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  font-family: 'Arial', sans-serif;\n  background-color: var(--background);\n  color: var(--text);\n  transition: background-color var(--transition-speed), color var(--transition-speed);\n}\n\n.container {\n  text-align: center;\n  padding: 2rem 3rem;\n  border-radius: 12px;\n  box-shadow: 0 4px 20px var(--shadow);\n  transition: box-shadow var(--transition-speed);\n}\n\n.container:hover {\n  box-shadow: 0 6px 25px var(--shadow);\n}\n\nh1 {\n  font-size: 3.5rem;\n  font-weight: 700;\n  color: var(--primary);\n  transition: color var(--transition-speed), transform var(--transition-speed);\n  animation: fadeIn 1s ease-in-out;\n}\n\nh1:hover {\n  color: var(--secondary);\n  transform: scale(1.08);\n}\n\n@keyframes fadeIn {\n  from {\n    opacity: 0;\n    transform: translateY(-30px);\n  }\n  to {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n\n@media (max-width: 768px) {\n  h1 {\n    font-size: 2rem;\n  }\n  \n  .container {\n    padding: 1.5rem 2rem;\n  }\n}\n\n@media (max-width: 480px) {\n  h1 {\n    font-size: 1.8rem;\n  }\n  \n  .container {\n    padding: 1rem 1.5rem;\n  }\n}",
+        "content": ":root {\n  --primary: #3498db;\n  --secondary: #2ecc71;\n  --bg-color: #ffffff;\n  --text-color: #333333;\n  --transition: all 0.3s ease;\n  --shadow: 0 4px 12px rgba(0,0,0,0.1);\n}\n\nbody.dark {\n  --bg-color: #1a1a1a;\n  --text-color: #f5f5f5;\n  --primary: #2980b9;\n  --secondary: #27ae60;\n  --shadow: 0 4px 12px rgba(0,0,0,0.3);\n}\n\n* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n\nbody {\n  font-family: Arial, sans-serif;\n  background-color: var(--bg-color);\n  color: var(--text-color);\n  min-height: 100vh;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  align-items: center;\n  padding: 2rem;\n  transition: var(--transition);\n  opacity: 0;\n  animation: fadeIn 0.8s ease forwards;\n}\n\n@keyframes fadeIn {\n  to { opacity: 1; }\n}\n\n.page-container {\n  text-align: center;\n  max-width: 800px;\n  width: 100%;\n  padding: 2rem;\n  border-radius: 12px;\n  background-color: rgba(255,255,255,0.95);\n  box-shadow: var(--shadow);\n  transition: var(--transition);\n}\n\nbody.dark .page-container {\n  background-color: rgba(30,30,30,0.95);\n}\n\nh1 {\n  font-size: 2.5rem;\n  color: var(--primary);\n  margin-bottom: 1.5rem;\n  line-height: 1.2;\n  transition: var(--transition);\n}\n\nh1:hover {\n  transform: scale(1.05);\n  text-shadow: 0 2px 6px rgba(52,152,219,0.2);\n}\n\np {\n  font-size: 1.2rem;\n  line-height: 1.6;\n  margin-bottom: 2rem;\n  color: var(--text-color);\n}\n\n.theme-toggle {\n  padding: 0.8rem 1.5rem;\n  border: none;\n  border-radius: 25px;\n  background-color: var(--secondary);\n  color: white;\n  font-size: 1rem;\n  cursor: pointer;\n  transition: var(--transition);\n  box-shadow: 0 2px 8px rgba(46,204,113,0.2);\n}\n\n.theme-toggle:hover {\n  background-color: #27ae60;\n  transform: translateY(-2px);\n  box-shadow: 0 4px 12px rgba(46,204,113,0.3);\n}\n\n.theme-toggle:active {\n  transform: translateY(0);\n}\n\n@media (max-width: 768px) {\n  h1 {\n    font-size: 2rem;\n  }\n  \n  p {\n    font-size: 1.1rem;\n  }\n  \n  .page-container {\n    padding: 1.5rem;\n  }\n}\n\n@media (max-width: 480px) {\n  h1 {\n    font-size: 1.8rem;\n  }\n  \n  .theme-toggle {\n    padding: 0.7rem 1.2rem;\n    font-size: 0.9rem;\n  }\n}",
         "language": "css"
       },
       {
         "path": "script.js",
-        "content": "document.addEventListener('DOMContentLoaded', () => {\n  // 1. 平滑滚动实现\n  const initSmoothScroll = () => {\n    document.querySelectorAll('a[href^=\"#\"]').forEach(link => {\n      link.addEventListener('click', (e) => {\n        e.preventDefault();\n        const target = document.querySelector(link.getAttribute('href'));\n        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });\n      });\n    });\n  };\n\n  // 2. 响应式导航菜单\n  const initResponsiveNav = () => {\n    const hamburger = document.querySelector('.hamburger');\n    const navMenu = document.querySelector('.nav-menu');\n    \n    if (!hamburger || !navMenu) return;\n\n    // 汉堡按钮切换菜单\n    hamburger.addEventListener('click', () => {\n      navMenu.classList.toggle('active');\n      hamburger.classList.toggle('active');\n    });\n\n    // 点击菜单链接关闭菜单\n    navMenu.querySelectorAll('a').forEach(link => {\n      link.addEventListener('click', () => {\n        navMenu.classList.remove('active');\n        hamburger.classList.remove('active');\n      });\n    });\n  };\n\n  // 3. 深色模式切换（含本地存储持久化）\n  const initDarkMode = () => {\n    const toggleBtn = document.querySelector('.dark-mode-toggle');\n    if (!toggleBtn) return;\n\n    // 页面加载时恢复深色模式状态\n    const isDark = localStorage.getItem('darkMode') === 'true';\n    document.body.classList.toggle('dark', isDark);\n\n    // 切换逻辑\n    toggleBtn.addEventListener('click', () => {\n      const isActive = document.body.classList.toggle('dark');\n      localStorage.setItem('darkMode', isActive);\n    });\n  };\n\n  // 初始化所有交互功能\n  initSmoothScroll();\n  initResponsiveNav();\n  initDarkMode();\n});",
+        "content": "document.addEventListener('DOMContentLoaded', () => {\n  // DOM元素获取\n  const hamburger = document.querySelector('.hamburger');\n  const navMenu = document.querySelector('.nav-menu');\n  const navLinks = document.querySelectorAll('.nav-link');\n  const darkModeToggle = document.querySelector('.dark-mode-toggle');\n  const body = document.body;\n\n  // 汉堡菜单切换逻辑\n  const toggleMobileMenu = () => {\n    hamburger?.classList.toggle('active');\n    navMenu?.classList.toggle('active');\n  };\n\n  // 平滑滚动实现\n  const handleSmoothScroll = (targetId) => {\n    const targetSection = document.getElementById(targetId);\n    if (targetSection) {\n      targetSection.scrollIntoView({ behavior: 'smooth' });\n      // 移动端点击后关闭菜单\n      if (window.innerWidth < 768) toggleMobileMenu();\n    }\n  };\n\n  // 深色模式切换逻辑\n  const toggleDarkMode = () => {\n    const isDark = body.classList.toggle('dark');\n    localStorage.setItem('darkMode', isDark);\n    darkModeToggle?.textContent = isDark ? '☀️' : '🌙';\n  };\n\n  // 初始化配置\n  const initApp = () => {\n    // 读取本地存储的深色模式状态\n    const savedDarkMode = localStorage.getItem('darkMode') === 'true';\n    if (savedDarkMode) {\n      body.classList.add('dark');\n      darkModeToggle?.textContent = '☀️';\n    }\n\n    // 绑定事件监听\n    hamburger?.addEventListener('click', toggleMobileMenu);\n    darkModeToggle?.addEventListener('click', toggleDarkMode);\n    \n    // 导航链接平滑滚动\n    navLinks.forEach(link => {\n      link.addEventListener('click', (e) => {\n        e.preventDefault();\n        const targetId = link.getAttribute('href').slice(1);\n        handleSmoothScroll(targetId);\n      });\n    });\n\n    // 窗口 resize 时处理移动端菜单\n    window.addEventListener('resize', () => {\n      if (window.innerWidth >= 768 && navMenu?.classList.contains('active')) {\n        toggleMobileMenu();\n      }\n    });\n  };\n\n  // 启动应用\n  initApp();\n});",
         "language": "javascript"
       }
     ],
@@ -130,14 +130,13 @@
       "template": "basic",
       "theme": "light",
       "spec": {
-        "title": "简单Hello World HTML页面",
-        "description": "一个仅展示Hello World文本的基础HTML页面，满足用户核心需求",
+        "title": "Hello World HTML页面",
+        "description": "一个简单的HTML页面，用于显示Hello World文本",
         "sections": [
           "首页"
         ],
         "features": [
-          "基础HTML结构",
-          "Hello World文本显示"
+          "响应式设计"
         ],
         "color_scheme": {
           "primary": "#3498db",
@@ -182,7 +181,7 @@
 #### RAG知识检索
 
 - **接口**: `POST /api/rag/query`
-- **耗时**: 141.910秒
+- **耗时**: 5.135秒
 
 **响应数据**:
 ```json
@@ -197,7 +196,7 @@
 #### RAG索引统计
 
 - **接口**: `GET /api/rag/index/stats`
-- **耗时**: 3.008秒
+- **耗时**: 0.004秒
 
 **响应数据**:
 ```json
@@ -212,7 +211,7 @@
 #### RAG增强查询
 
 - **接口**: `POST /api/rag/query/enhanced`
-- **耗时**: 0.285秒
+- **耗时**: 0.088秒
 
 **请求数据**:
 ```json
@@ -239,7 +238,7 @@
 #### Git初始化仓库
 
 - **接口**: `POST /api/git/init`
-- **耗时**: 0.212秒
+- **耗时**: 0.157秒
 
 **请求数据**:
 ```json
@@ -264,7 +263,7 @@
 #### Git状态查询
 
 - **接口**: `GET /api/git/status`
-- **耗时**: 0.011秒
+- **耗时**: 0.006秒
 
 **响应数据**:
 ```json
@@ -278,7 +277,7 @@
 #### Git提交
 
 - **接口**: `POST /api/git/commit`
-- **耗时**: 0.046秒
+- **耗时**: 0.029秒
 
 **请求数据**:
 ```json
@@ -306,7 +305,7 @@
 #### Git推送
 
 - **接口**: `POST /api/git/push`
-- **耗时**: 0.079秒
+- **耗时**: 0.031秒
 
 **请求数据**:
 ```json
@@ -332,7 +331,7 @@
 #### Git拉取
 
 - **接口**: `POST /api/git/pull`
-- **耗时**: 0.067秒
+- **耗时**: 0.032秒
 
 **请求数据**:
 ```json
@@ -358,7 +357,7 @@
 #### Git提交日志
 
 - **接口**: `GET /api/git/log`
-- **耗时**: 0.054秒
+- **耗时**: 0.040秒
 
 **响应数据**:
 ```json
@@ -372,7 +371,7 @@
 #### Git差异对比
 
 - **接口**: `GET /api/git/diff`
-- **耗时**: 0.052秒
+- **耗时**: 0.041秒
 
 **响应数据**:
 ```json
@@ -389,7 +388,7 @@
 #### Git分支列表
 
 - **接口**: `GET /api/git/branches`
-- **耗时**: 0.066秒
+- **耗时**: 0.036秒
 
 **响应数据**:
 ```json
@@ -405,7 +404,7 @@
 #### Git创建分支
 
 - **接口**: `POST /api/git/branch/create`
-- **耗时**: 0.057秒
+- **耗时**: 0.019秒
 
 **请求数据**:
 ```json
@@ -430,7 +429,7 @@
 #### Git切换分支
 
 - **接口**: `POST /api/git/branch/checkout`
-- **耗时**: 0.048秒
+- **耗时**: 0.034秒
 
 **请求数据**:
 ```json
@@ -455,7 +454,7 @@
 #### Git合并分支
 
 - **接口**: `POST /api/git/merge`
-- **耗时**: 0.236秒
+- **耗时**: 0.077秒
 
 **请求数据**:
 ```json
@@ -481,7 +480,7 @@
 #### Git解决冲突
 
 - **接口**: `POST /api/git/resolve-conflicts`
-- **耗时**: 0.011秒
+- **耗时**: 0.005秒
 
 **请求数据**:
 ```json
@@ -507,7 +506,7 @@
 #### Git生成提交消息
 
 - **接口**: `POST /api/git/generate-commit-message`
-- **耗时**: 0.294秒
+- **耗时**: 0.140秒
 
 **请求数据**:
 ```json
@@ -532,7 +531,7 @@
 #### 代码生成
 
 - **接口**: `POST /api/code/generate`
-- **耗时**: 0.011秒
+- **耗时**: 0.004秒
 
 **请求数据**:
 ```json
@@ -558,7 +557,7 @@
 #### 代码审查
 
 - **接口**: `POST /api/code/review`
-- **耗时**: 0.010秒
+- **耗时**: 0.003秒
 
 **请求数据**:
 ```json
@@ -582,7 +581,7 @@
 #### 代码重构
 
 - **接口**: `POST /api/code/refactor`
-- **耗时**: 0.009秒
+- **耗时**: 0.003秒
 
 **请求数据**:
 ```json
@@ -606,7 +605,7 @@
 #### 代码解释
 
 - **接口**: `POST /api/code/explain`
-- **耗时**: 0.009秒
+- **耗时**: 0.003秒
 
 **请求数据**:
 ```json
@@ -628,7 +627,7 @@
 #### 代码修复Bug
 
 - **接口**: `POST /api/code/fix-bug`
-- **耗时**: 0.008秒
+- **耗时**: 0.004秒
 
 **请求数据**:
 ```json
@@ -652,7 +651,7 @@
 #### 生成测试代码
 
 - **接口**: `POST /api/code/generate-tests`
-- **耗时**: 0.009秒
+- **耗时**: 0.003秒
 
 **请求数据**:
 ```json
@@ -675,7 +674,7 @@
 #### 代码优化
 
 - **接口**: `POST /api/code/optimize`
-- **耗时**: 0.009秒
+- **耗时**: 0.003秒
 
 **请求数据**:
 ```json
@@ -696,20 +695,25 @@
 
 ---
 
-
-### ❌ FAILED (1)
-
 #### 流式聊天
 
 - **接口**: `POST /api/chat/stream`
-- **耗时**: 0.100秒
-- **错误信息**: Failed to start stream
+- **耗时**: 5.000秒
 
 **请求数据**:
 ```json
+[
+  {
+    "role": "user",
+    "content": "Explain what is REST API"
+  }
+]
+```
+
+**响应数据**:
+```json
 {
-  "message": "Explain what is REST API",
-  "context": []
+  "message": "Stream connection established"
 }
 ```
 

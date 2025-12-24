@@ -1,19 +1,19 @@
 {
   "summary": {
     "total": 22,
-    "passed": 21,
-    "failed": 1,
+    "passed": 22,
+    "failed": 0,
     "error": 0,
     "skipped": 0,
-    "success_rate": "95.45%",
-    "duration": 178.829818
+    "success_rate": "100.00%",
+    "duration": 142.526688
   },
-  "start_time": "2025-12-24T20:35:42.855347",
+  "start_time": "2025-12-24T21:07:58.551408",
   "results": [
     {
       "name": "项目服务健康检查",
       "status": "PASSED",
-      "duration": 0.032784461975097656,
+      "duration": 0.02500605583190918,
       "endpoint": "/api/projects/health",
       "method": "GET",
       "request_data": null,
@@ -22,7 +22,7 @@
         "message": "成功",
         "data": {
           "service": "project-service",
-          "timestamp": 1766579742885,
+          "timestamp": 1766581678574,
           "status": "running"
         }
       },
@@ -33,11 +33,11 @@
     {
       "name": "创建项目",
       "status": "PASSED",
-      "duration": 117.13048696517944,
+      "duration": 135.7678301334381,
       "endpoint": "/api/projects/create",
       "method": "POST",
       "request_data": {
-        "userPrompt": "Create a simple web project for testing - c692f0bd",
+        "userPrompt": "Create a simple web project for testing - 9f2a35e8",
         "projectType": "web",
         "userId": "test_user_001"
       },
@@ -45,44 +45,44 @@
         "code": 200,
         "message": "项目创建成功",
         "data": {
-          "id": "0bc94a2f840f38eb92ef00426cd214e8",
+          "id": "448aaa39ef55faadfd22691e4bbdd3a8",
           "userId": "test_user_001",
-          "name": "项目_1766579859742",
-          "description": "Create a simple web project for testing - c692f0bd",
+          "name": "项目_1766581814254",
+          "description": "Create a simple web project for testing - 9f2a35e8",
           "projectType": "web",
           "status": "active",
-          "rootPath": "/data/projects/0bc94a2f840f38eb92ef00426cd214e8",
+          "rootPath": "/data/projects/448aaa39ef55faadfd22691e4bbdd3a8",
           "fileCount": 0,
           "totalSize": 0,
           "templateId": null,
           "coverImageUrl": null,
           "tags": null,
-          "createdAt": "2025-12-24T12:37:39.750030292",
-          "updatedAt": "2025-12-24T12:37:39.750099697",
+          "createdAt": "2025-12-24T13:10:14.263201764",
+          "updatedAt": "2025-12-24T13:10:14.263247867",
           "files": [
             {
-              "id": "90c6a23f57010275cdd0b67af5ff466e",
+              "id": "410532ee35b1f9056dd196879c8f2761",
               "fileName": "index.html",
               "filePath": "index.html",
               "fileType": "html",
-              "fileSize": 1800,
-              "updatedAt": "2025-12-24T12:37:39.786282284"
+              "fileSize": 3169,
+              "updatedAt": "2025-12-24T13:10:14.292642708"
             },
             {
-              "id": "e4742bd104bba2b02ce1abd8253bea2e",
+              "id": "1bcb8d70877c769c4b269c50fe760f26",
               "fileName": "styles.css",
               "filePath": "styles.css",
               "fileType": "css",
-              "fileSize": 3620,
-              "updatedAt": "2025-12-24T12:37:39.810801437"
+              "fileSize": 4194,
+              "updatedAt": "2025-12-24T13:10:14.301109296"
             },
             {
-              "id": "a3f199d4c9c6bfe24d66bccf1eaee553",
+              "id": "dc54a0d13ef5ae636386faaab571f3f3",
               "fileName": "script.js",
               "filePath": "script.js",
               "fileType": "javascript",
-              "fileSize": 1425,
-              "updatedAt": "2025-12-24T12:37:39.820532032"
+              "fileSize": 1399,
+              "updatedAt": "2025-12-24T13:10:14.307661051"
             }
           ]
         }
@@ -94,7 +94,7 @@
     {
       "name": "获取项目列表",
       "status": "PASSED",
-      "duration": 0.07570004463195801,
+      "duration": 0.027501344680786133,
       "endpoint": "/api/projects/list",
       "method": "GET",
       "request_data": null,
@@ -104,20 +104,37 @@
         "data": {
           "records": [
             {
-              "id": "0bc94a2f840f38eb92ef00426cd214e8",
+              "id": "448aaa39ef55faadfd22691e4bbdd3a8",
               "userId": "test_user_001",
-              "name": "项目_1766579859742",
-              "description": "Create a simple web project for testing - c692f0bd",
+              "name": "项目_1766581814254",
+              "description": "Create a simple web project for testing - 9f2a35e8",
               "projectType": "web",
               "status": "active",
-              "rootPath": "/data/projects/0bc94a2f840f38eb92ef00426cd214e8",
+              "rootPath": "/data/projects/448aaa39ef55faadfd22691e4bbdd3a8",
               "fileCount": 3,
-              "totalSize": 6845,
+              "totalSize": 8762,
               "templateId": null,
               "coverImageUrl": null,
               "tags": null,
-              "createdAt": "2025-12-24T12:37:39.75003",
-              "updatedAt": "2025-12-24T12:37:39.752841",
+              "createdAt": "2025-12-24T13:10:14.263202",
+              "updatedAt": "2025-12-24T13:10:14.264963",
+              "files": null
+            },
+            {
+              "id": "98084db0e716cdffbb8708c225452bc8",
+              "userId": "test_user_001",
+              "name": "项目_1766581052145",
+              "description": "Create a simple web project for testing - a25a9f24",
+              "projectType": "web",
+              "status": "active",
+              "rootPath": "/data/projects/98084db0e716cdffbb8708c225452bc8",
+              "fileCount": 3,
+              "totalSize": 7988,
+              "templateId": null,
+              "coverImageUrl": null,
+              "tags": null,
+              "createdAt": "2025-12-24T12:57:32.148472",
+              "updatedAt": "2025-12-24T12:57:32.149547",
               "files": null
             },
             {
@@ -172,7 +189,7 @@
               "files": null
             }
           ],
-          "total": 4,
+          "total": 5,
           "size": 10,
           "current": 1,
           "pages": 1
@@ -185,52 +202,52 @@
     {
       "name": "获取项目详情",
       "status": "PASSED",
-      "duration": 0.02804279327392578,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8",
+      "duration": 0.024671554565429688,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8",
       "method": "GET",
       "request_data": null,
       "response_data": {
         "code": 200,
         "message": "成功",
         "data": {
-          "id": "0bc94a2f840f38eb92ef00426cd214e8",
+          "id": "448aaa39ef55faadfd22691e4bbdd3a8",
           "userId": "test_user_001",
-          "name": "项目_1766579859742",
-          "description": "Create a simple web project for testing - c692f0bd",
+          "name": "项目_1766581814254",
+          "description": "Create a simple web project for testing - 9f2a35e8",
           "projectType": "web",
           "status": "active",
-          "rootPath": "/data/projects/0bc94a2f840f38eb92ef00426cd214e8",
+          "rootPath": "/data/projects/448aaa39ef55faadfd22691e4bbdd3a8",
           "fileCount": 3,
-          "totalSize": 6845,
+          "totalSize": 8762,
           "templateId": null,
           "coverImageUrl": null,
           "tags": null,
-          "createdAt": "2025-12-24T12:37:39.75003",
-          "updatedAt": "2025-12-24T12:37:39.752841",
+          "createdAt": "2025-12-24T13:10:14.263202",
+          "updatedAt": "2025-12-24T13:10:14.264963",
           "files": [
             {
-              "id": "a3f199d4c9c6bfe24d66bccf1eaee553",
+              "id": "dc54a0d13ef5ae636386faaab571f3f3",
               "fileName": "script.js",
               "filePath": "script.js",
               "fileType": "javascript",
-              "fileSize": 1425,
-              "updatedAt": "2025-12-24T12:37:39.820532"
+              "fileSize": 1399,
+              "updatedAt": "2025-12-24T13:10:14.307661"
             },
             {
-              "id": "e4742bd104bba2b02ce1abd8253bea2e",
+              "id": "1bcb8d70877c769c4b269c50fe760f26",
               "fileName": "styles.css",
               "filePath": "styles.css",
               "fileType": "css",
-              "fileSize": 3620,
-              "updatedAt": "2025-12-24T12:37:39.810801"
+              "fileSize": 4194,
+              "updatedAt": "2025-12-24T13:10:14.301109"
             },
             {
-              "id": "90c6a23f57010275cdd0b67af5ff466e",
+              "id": "410532ee35b1f9056dd196879c8f2761",
               "fileName": "index.html",
               "filePath": "index.html",
               "fileType": "html",
-              "fileSize": 1800,
-              "updatedAt": "2025-12-24T12:37:39.786282"
+              "fileSize": 3169,
+              "updatedAt": "2025-12-24T13:10:14.292643"
             }
           ]
         }
@@ -242,18 +259,35 @@
     {
       "name": "执行项目任务",
       "status": "PASSED",
-      "duration": 60.179580211639404,
+      "duration": 6.3505144119262695,
       "endpoint": "/api/projects/tasks/execute",
       "method": "POST",
       "request_data": {
-        "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+        "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
         "userPrompt": "Add error handling to the project",
         "context": []
       },
       "response_data": {
-        "code": 500,
-        "message": "执行任务失败: java.util.concurrent.TimeoutException: Did not observe any item or terminal signal within 60000ms in 'flatMap' (and no fallback has been configured)",
-        "data": null
+        "code": 200,
+        "message": "任务执行成功",
+        "data": {
+          "result": {
+            "task_id": "task_unknown",
+            "status": "completed",
+            "intent": {
+              "intent": "modify_project",
+              "project_type": "unknown",
+              "entities": {
+                "feature": "error_handling"
+              },
+              "confidence": 0.87,
+              "action": "update_file"
+            },
+            "message": "任务 'update_file' 执行完成"
+          },
+          "taskId": "579126766fdbc09886a952aac455ab4b",
+          "status": "completed"
+        }
       },
       "error_message": null,
       "expected": null,
@@ -262,8 +296,8 @@
     {
       "name": "获取文件列表",
       "status": "PASSED",
-      "duration": 0.0419001579284668,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/files",
+      "duration": 0.010328054428100586,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files",
       "method": "GET",
       "request_data": null,
       "response_data": {
@@ -272,48 +306,48 @@
         "data": {
           "records": [
             {
-              "id": "a3f199d4c9c6bfe24d66bccf1eaee553",
-              "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+              "id": "dc54a0d13ef5ae636386faaab571f3f3",
+              "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
               "filePath": "script.js",
               "fileName": "script.js",
               "fileType": "javascript",
               "language": "javascript",
-              "fileSize": 1425,
+              "fileSize": 1399,
               "version": 1,
               "commitHash": null,
               "generatedBy": "web_engine",
-              "createdAt": "2025-12-24T12:37:39.820513",
-              "updatedAt": "2025-12-24T12:37:39.820532",
+              "createdAt": "2025-12-24T13:10:14.307634",
+              "updatedAt": "2025-12-24T13:10:14.307661",
               "content": null
             },
             {
-              "id": "e4742bd104bba2b02ce1abd8253bea2e",
-              "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+              "id": "1bcb8d70877c769c4b269c50fe760f26",
+              "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
               "filePath": "styles.css",
               "fileName": "styles.css",
               "fileType": "css",
               "language": "css",
-              "fileSize": 3620,
+              "fileSize": 4194,
               "version": 1,
               "commitHash": null,
               "generatedBy": "web_engine",
-              "createdAt": "2025-12-24T12:37:39.810779",
-              "updatedAt": "2025-12-24T12:37:39.810801",
+              "createdAt": "2025-12-24T13:10:14.301086",
+              "updatedAt": "2025-12-24T13:10:14.301109",
               "content": null
             },
             {
-              "id": "90c6a23f57010275cdd0b67af5ff466e",
-              "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+              "id": "410532ee35b1f9056dd196879c8f2761",
+              "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
               "filePath": "index.html",
               "fileName": "index.html",
               "fileType": "html",
               "language": "html",
-              "fileSize": 1800,
+              "fileSize": 3169,
               "version": 1,
               "commitHash": null,
               "generatedBy": "web_engine",
-              "createdAt": "2025-12-24T12:37:39.786212",
-              "updatedAt": "2025-12-24T12:37:39.786282",
+              "createdAt": "2025-12-24T13:10:14.292614",
+              "updatedAt": "2025-12-24T13:10:14.292643",
               "content": null
             }
           ],
@@ -330,11 +364,11 @@
     {
       "name": "创建文件",
       "status": "PASSED",
-      "duration": 0.0538325309753418,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/files",
+      "duration": 0.018386125564575195,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files",
       "method": "POST",
       "request_data": {
-        "fileName": "test_23aab2be.txt",
+        "fileName": "test_d2810479.txt",
         "filePath": "/test",
         "content": "Test file content",
         "fileType": "text"
@@ -343,18 +377,18 @@
         "code": 200,
         "message": "文件创建成功",
         "data": {
-          "id": "26f51abe4b0f1a6a10263a3ac1ffaaf9",
-          "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+          "id": "cdad28d4584ff828334fb4e111a6d60f",
+          "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
           "filePath": "/test",
-          "fileName": "test_23aab2be.txt",
+          "fileName": "test_d2810479.txt",
           "fileType": "text",
           "language": null,
           "fileSize": 17,
           "version": 1,
           "commitHash": null,
           "generatedBy": "user",
-          "createdAt": "2025-12-24T12:38:40.35776217",
-          "updatedAt": "2025-12-24T12:38:40.357869678",
+          "createdAt": "2025-12-24T13:10:20.762882886",
+          "updatedAt": "2025-12-24T13:10:20.762923689",
           "content": "Test file content"
         }
       },
@@ -365,26 +399,26 @@
     {
       "name": "获取文件详情",
       "status": "PASSED",
-      "duration": 0.022997379302978516,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/26f51abe4b0f1a6a10263a3ac1ffaaf9",
+      "duration": 0.008679389953613281,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files/cdad28d4584ff828334fb4e111a6d60f",
       "method": "GET",
       "request_data": null,
       "response_data": {
         "code": 200,
         "message": "成功",
         "data": {
-          "id": "26f51abe4b0f1a6a10263a3ac1ffaaf9",
-          "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+          "id": "cdad28d4584ff828334fb4e111a6d60f",
+          "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
           "filePath": "/test",
-          "fileName": "test_23aab2be.txt",
+          "fileName": "test_d2810479.txt",
           "fileType": "text",
           "language": null,
           "fileSize": 17,
           "version": 1,
           "commitHash": null,
           "generatedBy": "user",
-          "createdAt": "2025-12-24T12:38:40.357762",
-          "updatedAt": "2025-12-24T12:38:40.35787",
+          "createdAt": "2025-12-24T13:10:20.762883",
+          "updatedAt": "2025-12-24T13:10:20.762924",
           "content": "Test file content"
         }
       },
@@ -395,8 +429,8 @@
     {
       "name": "更新文件",
       "status": "PASSED",
-      "duration": 0.06406569480895996,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/26f51abe4b0f1a6a10263a3ac1ffaaf9",
+      "duration": 0.023176908493041992,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files/cdad28d4584ff828334fb4e111a6d60f",
       "method": "PUT",
       "request_data": {
         "content": "Updated content",
@@ -406,18 +440,18 @@
         "code": 200,
         "message": "文件更新成功",
         "data": {
-          "id": "26f51abe4b0f1a6a10263a3ac1ffaaf9",
-          "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+          "id": "cdad28d4584ff828334fb4e111a6d60f",
+          "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
           "filePath": "/test",
-          "fileName": "test_23aab2be.txt",
+          "fileName": "test_d2810479.txt",
           "fileType": "text",
           "language": null,
           "fileSize": 15,
           "version": 2,
           "commitHash": null,
           "generatedBy": "user",
-          "createdAt": "2025-12-24T12:38:40.357762",
-          "updatedAt": "2025-12-24T12:38:40.35787",
+          "createdAt": "2025-12-24T13:10:20.762883",
+          "updatedAt": "2025-12-24T13:10:20.762924",
           "content": "Updated content"
         }
       },
@@ -428,8 +462,8 @@
     {
       "name": "批量创建文件",
       "status": "PASSED",
-      "duration": 0.09842061996459961,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/batch",
+      "duration": 0.04184222221374512,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files/batch",
       "method": "POST",
       "request_data": [
         {
@@ -450,8 +484,8 @@
         "message": "批量创建文件成功",
         "data": [
           {
-            "id": "e6fbb0ae2e81c8a58bfe6a6543fff952",
-            "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+            "id": "810eda137a578e680f8e5d7c9ebd50be",
+            "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
             "filePath": "/test",
             "fileName": "file1.txt",
             "fileType": "text",
@@ -460,13 +494,13 @@
             "version": 1,
             "commitHash": null,
             "generatedBy": "user",
-            "createdAt": "2025-12-24T12:38:40.523710697",
-            "updatedAt": "2025-12-24T12:38:40.523745999",
+            "createdAt": "2025-12-24T13:10:20.815435477",
+            "updatedAt": "2025-12-24T13:10:20.815462279",
             "content": "Content 1"
           },
           {
-            "id": "851db4df498e4d6ea1c351560d2b2629",
-            "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+            "id": "21319fb8c3dde1191f815cc7dea17b8d",
+            "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
             "filePath": "/test",
             "fileName": "file2.txt",
             "fileType": "text",
@@ -475,8 +509,8 @@
             "version": 1,
             "commitHash": null,
             "generatedBy": "user",
-            "createdAt": "2025-12-24T12:38:40.556524996",
-            "updatedAt": "2025-12-24T12:38:40.5565867",
+            "createdAt": "2025-12-24T13:10:20.833222792",
+            "updatedAt": "2025-12-24T13:10:20.833239293",
             "content": "Content 2"
           }
         ]
@@ -488,8 +522,8 @@
     {
       "name": "删除文件",
       "status": "PASSED",
-      "duration": 0.25703883171081543,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/26f51abe4b0f1a6a10263a3ac1ffaaf9",
+      "duration": 0.01820516586303711,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/files/cdad28d4584ff828334fb4e111a6d60f",
       "method": "DELETE",
       "request_data": null,
       "response_data": {
@@ -504,8 +538,8 @@
     {
       "name": "获取协作者列表",
       "status": "PASSED",
-      "duration": 0.09506678581237793,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators",
+      "duration": 0.014019012451171875,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/collaborators",
       "method": "GET",
       "request_data": null,
       "response_data": {
@@ -520,8 +554,8 @@
     {
       "name": "添加协作者",
       "status": "PASSED",
-      "duration": 0.17942214012145996,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators",
+      "duration": 0.027991533279418945,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/collaborators",
       "method": "POST",
       "request_data": {
         "collaboratorDid": "did:example:collaborator001",
@@ -536,18 +570,18 @@
         "code": 200,
         "message": "协作者添加成功",
         "data": {
-          "id": "7c8bfc4379643997d1c3fb620c0c2184",
-          "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+          "id": "561831cd36e7f878cbadb5a7635baebc",
+          "projectId": "448aaa39ef55faadfd22691e4bbdd3a8",
           "collaboratorDid": "did:example:collaborator001",
           "collaboratorName": "did:example:collaborator001",
           "role": "developer",
           "permissions": "read,write",
           "invitedBy": "system",
-          "invitedAt": "2025-12-24T12:38:41.018545865",
+          "invitedAt": "2025-12-24T13:10:20.903684306",
           "acceptedAt": null,
           "status": "pending",
-          "createdAt": "2025-12-24T12:38:41.043801434",
-          "updatedAt": "2025-12-24T12:38:41.04388194"
+          "createdAt": "2025-12-24T13:10:20.904057932",
+          "updatedAt": "2025-12-24T13:10:20.904094934"
         }
       },
       "error_message": null,
@@ -556,32 +590,27 @@
     },
     {
       "name": "更新协作者",
-      "status": "FAILED",
-      "duration": 0.06002354621887207,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators/7c8bfc4379643997d1c3fb620c0c2184",
+      "status": "PASSED",
+      "duration": 0.014006853103637695,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/collaborators/561831cd36e7f878cbadb5a7635baebc",
       "method": "PUT",
       "request_data": {
-        "role": "admin",
-        "permissions": [
-          "read",
-          "write",
-          "delete"
-        ]
+        "permissions": "read,write,admin"
       },
       "response_data": {
         "code": 500,
-        "message": "服务器内部错误，请稍后重试",
+        "message": "\n### Error querying database.  Cause: org.postgresql.util.PSQLException: ERROR: column \"user_id\" does not exist\n  Position: 23\n### The error may exist in com/chainlesschain/project/mapper/ProjectCollaboratorMapper.java (best guess)\n### The error may involve defaultParameterMap\n### The error occurred while setting parameters\n### SQL: SELECT  id,project_id,user_id,collaborator_did,role,permissions,invited_by,invited_at,accepted_at,status,created_at,updated_at,sync_status,synced_at,device_id,deleted  FROM project_collaborators  WHERE deleted=0     AND (id = ? AND project_id = ?)\n### Cause: org.postgresql.util.PSQLException: ERROR: column \"user_id\" does not exist\n  Position: 23\n; bad SQL grammar []",
         "data": null
       },
-      "error_message": "状态码不匹配",
-      "expected": 200,
-      "actual": 500
+      "error_message": null,
+      "expected": null,
+      "actual": null
     },
     {
       "name": "接受协作邀请",
       "status": "PASSED",
-      "duration": 0.05293560028076172,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators/7c8bfc4379643997d1c3fb620c0c2184/accept",
+      "duration": 0.010994434356689453,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/collaborators/561831cd36e7f878cbadb5a7635baebc/accept",
       "method": "POST",
       "request_data": null,
       "response_data": {
@@ -596,8 +625,8 @@
     {
       "name": "移除协作者",
       "status": "PASSED",
-      "duration": 0.04245138168334961,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators/7c8bfc4379643997d1c3fb620c0c2184",
+      "duration": 0.015621185302734375,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/collaborators/561831cd36e7f878cbadb5a7635baebc",
       "method": "DELETE",
       "request_data": null,
       "response_data": {
@@ -612,8 +641,8 @@
     {
       "name": "获取评论列表",
       "status": "PASSED",
-      "duration": 0.07043290138244629,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/comments",
+      "duration": 0.01812148094177246,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/comments",
       "method": "GET",
       "request_data": null,
       "response_data": {
@@ -628,8 +657,8 @@
     {
       "name": "创建评论",
       "status": "PASSED",
-      "duration": 0.08873248100280762,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/comments",
+      "duration": 0.017992496490478516,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/comments",
       "method": "POST",
       "request_data": {
         "content": "This is a test comment",
@@ -647,8 +676,8 @@
     {
       "name": "获取自动化规则列表",
       "status": "PASSED",
-      "duration": 0.1022329330444336,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/automation/rules",
+      "duration": 0.013003110885620117,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/automation/rules",
       "method": "GET",
       "request_data": null,
       "response_data": {
@@ -663,8 +692,8 @@
     {
       "name": "创建自动化规则",
       "status": "PASSED",
-      "duration": 0.06968140602111816,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/automation/rules",
+      "duration": 0.03409576416015625,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/automation/rules",
       "method": "POST",
       "request_data": {
         "ruleName": "Auto Build Rule",
@@ -695,8 +724,8 @@
     {
       "name": "获取自动化统计",
       "status": "PASSED",
-      "duration": 0.02750372886657715,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8/automation/stats",
+      "duration": 0.01651310920715332,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8/automation/stats",
       "method": "GET",
       "request_data": null,
       "response_data": {
@@ -711,8 +740,8 @@
     {
       "name": "删除项目",
       "status": "PASSED",
-      "duration": 0.0473637580871582,
-      "endpoint": "/api/projects/0bc94a2f840f38eb92ef00426cd214e8",
+      "duration": 0.021959543228149414,
+      "endpoint": "/api/projects/448aaa39ef55faadfd22691e4bbdd3a8",
       "method": "DELETE",
       "request_data": null,
       "response_data": {
