@@ -99,6 +99,7 @@ class ProjectServiceTester(APITester):
                 "projectType": "web",
                 "name": "测试项目"
             },
+            timeout=120,  # 增加超时时间，因为需要调用AI服务
             validate_response=lambda data: (
                 validate_api_response(data) or
                 validate_json_structure(data, ["data.id", "data.name"])

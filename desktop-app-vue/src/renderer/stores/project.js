@@ -233,6 +233,125 @@ export const useProjectStore = defineStore('project', {
     },
 
     /**
+     * 流式创建项目
+     * @param {Object} createData - 创建数据
+     * @param {Function} onProgress - 进度回调
+     * @returns {Promise<Object>} 创建结果
+     */
+    async createProjectStream(createData, onProgress) {
+      return new Promise((resolve, reject) => {
+        const progressData = {
+          currentStage: '',
+          stages: [],
+          contentByStage: {},
+          logs: [],
+          metadata: {},
+        };
+
+        window.electronAPI.project.createStream(createData, {
+          onProgress: (data) => {
+            // 更新当前阶段
+            progressData.currentStage = data.stage;
+            progressData.stages.push({
+              stage: data.stage,
+              message: data.message,
+              timestamp: Date.now(),
+              status: 'running',
+            });
+            progressData.logs.push({
+              type: 'info',
+              message: data.message,
+              timestamp: Date.now(),
+            });
+
+            // 回调给UI
+            onProgress?.({
+              type: 'progress',
+              ...progressData,
+            });
+          },
+
+          onContent: (data) => {
+            // 累积内容
+            if (!progressData.contentByStage[data.stage]) {
+              progressData.contentByStage[data.stage] = '';
+            }
+            progressData.contentByStage[data.stage] += data.content;
+
+            // 回调给UI
+            onProgress?.({
+              type: 'content',
+              ...progressData,
+            });
+          },
+
+          onComplete: (data) => {
+            // 标记所有阶段完成
+            progressData.stages.forEach(s => s.status = 'completed');
+            progressData.metadata = data.metadata || {};
+            progressData.logs.push({
+              type: 'success',
+              message: `成功生成${data.files?.length || 0}个文件`,
+              timestamp: Date.now(),
+            });
+
+            // 添加到项目列表
+            if (data.projectId) {
+              this.projects.unshift({
+                id: data.projectId,
+                name: createData.name || '未命名项目',
+                project_type: createData.projectType || 'web',
+                files: data.files || [],
+                metadata: data.metadata,
+                created_at: Date.now(),
+                updated_at: Date.now(),
+              });
+              this.pagination.total++;
+            }
+
+            // 回调给UI
+            onProgress?.({
+              type: 'complete',
+              ...progressData,
+              result: data,
+            });
+
+            resolve(data);
+          },
+
+          onError: (error) => {
+            // 标记当前阶段失败
+            const currentStage = progressData.stages.find(s => s.status === 'running');
+            if (currentStage) {
+              currentStage.status = 'error';
+            }
+            progressData.logs.push({
+              type: 'error',
+              message: error.message,
+              timestamp: Date.now(),
+            });
+
+            // 回调给UI
+            onProgress?.({
+              type: 'error',
+              ...progressData,
+              error: error.message,
+            });
+
+            reject(error);
+          },
+        });
+      });
+    },
+
+    /**
+     * 取消流式创建
+     */
+    async cancelProjectStream() {
+      await window.electronAPI.project.cancelStream();
+    },
+
+    /**
      * 获取项目详情
      * @param {string} projectId - 项目ID
      */
