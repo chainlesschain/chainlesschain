@@ -218,14 +218,32 @@ const handleLogin = async () => {
       // 设置为已认证
       store.setAuthenticated(true);
 
-      // 最大化窗口
+      // 生成或获取设备ID
+      let deviceId = store.deviceId;
+      if (!deviceId) {
+        deviceId = `device-${Date.now()}`;
+        store.setDeviceId(deviceId);
+      }
+
+      // 启动后台同步（异步，不阻塞）
+      window.electronAPI.sync.start(deviceId)
+        .then(() => {
+          console.log('[Login] 数据同步完成');
+          message.success('数据同步完成', 2);
+        })
+        .catch(error => {
+          console.error('[Login] 数据同步失败:', error);
+          message.warning('数据同步失败，请稍后手动同步', 3);
+        });
+
+      // 最大化窗口（不等待同步完成）
       try {
         await systemAPI.maximize();
       } catch (error) {
         console.error('窗口最大化失败:', error);
       }
 
-      // 跳转到首页
+      // 立即跳转到首页
       router.push('/');
     }
   } catch (error) {
