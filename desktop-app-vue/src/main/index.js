@@ -5777,15 +5777,21 @@ ${content}
     ipcMain.handle('project:copyFile', async (_event, params) => {
       try {
         const { sourcePath, targetPath } = params;
-        console.log(`[Main] 复制文件: ${sourcePath} -> ${targetPath}`);
+
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+        const resolvedTargetPath = projectConfig.resolveProjectPath(targetPath);
+
+        console.log(`[Main] 复制文件: ${resolvedSourcePath} -> ${resolvedTargetPath}`);
 
         const fs = require('fs').promises;
-        await fs.copyFile(sourcePath, targetPath);
+        await fs.copyFile(resolvedSourcePath, resolvedTargetPath);
 
         return {
           success: true,
-          fileName: path.basename(targetPath),
-          path: targetPath
+          fileName: path.basename(resolvedTargetPath),
+          path: resolvedTargetPath
         };
       } catch (error) {
         console.error('[Main] 文件复制失败:', error);
@@ -7407,10 +7413,16 @@ ${content}
     });
 
     // Shell操作
-    ipcMain.handle('shell:open-path', async (_event, path) => {
+    ipcMain.handle('shell:open-path', async (_event, filePath) => {
       try {
         const { shell } = require('electron');
-        await shell.openPath(path);
+
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[Main] 在系统中打开:', resolvedPath);
+        await shell.openPath(resolvedPath);
         return { success: true };
       } catch (error) {
         console.error('[Main] 打开路径失败:', error);

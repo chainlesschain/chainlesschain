@@ -113,7 +113,7 @@ const handleExportClick = async ({ key }) => {
 
     // 打开文件所在目录
     if (result.path) {
-      await window.electronAPI.openPath(result.path);
+      await window.electronAPI.shell.openPath(result.path);
     }
   } catch (error) {
     console.error('导出失败:', error);
