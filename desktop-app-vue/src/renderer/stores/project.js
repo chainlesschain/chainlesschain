@@ -252,12 +252,39 @@ export const useProjectStore = defineStore('project', {
           onProgress: (data) => {
             // 更新当前阶段
             progressData.currentStage = data.stage;
-            progressData.stages.push({
-              stage: data.stage,
-              message: data.message,
-              timestamp: Date.now(),
-              status: 'running',
-            });
+
+            // 查找是否已有该阶段
+            const existingStage = progressData.stages.find(s => s.stage === data.stage);
+
+            if (existingStage) {
+              // 更新已有阶段
+              existingStage.message = data.message;
+              existingStage.timestamp = Date.now();
+              existingStage.status = 'running';
+
+              // 标记之前的阶段为completed
+              progressData.stages.forEach(s => {
+                if (s.stage !== data.stage && s.status === 'running') {
+                  s.status = 'completed';
+                }
+              });
+            } else {
+              // 标记之前所有running的阶段为completed
+              progressData.stages.forEach(s => {
+                if (s.status === 'running') {
+                  s.status = 'completed';
+                }
+              });
+
+              // 添加新阶段
+              progressData.stages.push({
+                stage: data.stage,
+                message: data.message,
+                timestamp: Date.now(),
+                status: 'running',
+              });
+            }
+
             progressData.logs.push({
               type: 'info',
               message: data.message,

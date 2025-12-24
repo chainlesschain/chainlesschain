@@ -16,6 +16,8 @@ public class ProjectConversation {
 
     private String projectId;
 
+    private String title;
+
     private String role;  // user, assistant, system
 
     private String content;
@@ -33,6 +35,9 @@ public class ProjectConversation {
 
     @TableField("synced_at")
     private LocalDateTime syncedAt;
+
+    @TableField("device_id")
+    private String deviceId;
 
     @TableLogic
     private Integer deleted;

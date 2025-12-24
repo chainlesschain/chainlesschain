@@ -28,8 +28,7 @@ def main():
 
     # 测试项目服务
     if args.service in ['all', 'project']:
-        print("
-[1/2] 测试项目服务 (Spring Boot)...")
+        print("\n[1/2] 测试项目服务 (Spring Boot)...")
         project_tester = ProjectServiceTester(args.project_url)
         project_tester.run_all_tests()
         project_tester.generate_report(
@@ -40,8 +39,7 @@ def main():
 
     # 测试AI服务
     if args.service in ['all', 'ai']:
-        print("
-[2/2] 测试AI服务 (FastAPI)...")
+        print("\n[2/2] 测试AI服务 (FastAPI)...")
         ai_tester = AIServiceTester(args.ai_url)
         ai_tester.run_all_tests()
         ai_tester.generate_report(
@@ -51,8 +49,7 @@ def main():
         all_results.append(('AI服务', ai_tester.reporter.get_summary()))
 
     # 打印综合摘要
-    print("
-" + "="*80)
+    print("\n" + "="*80)
     print("综合测试摘要")
     print("="*80)
 
@@ -62,14 +59,12 @@ def main():
     total_errors = sum(r[1]['error'] for r in all_results)
 
     for service_name, summary in all_results:
-        print(f"
-{service_name}:")
+        print(f"\n{service_name}:")
         print(f"  总数: {summary['total']}, 通过: {summary['passed']}, "
               f"失败: {summary['failed']}, 错误: {summary['error']}")
         print(f"  成功率: {summary['success_rate']}, 耗时: {summary['duration']:.2f}s")
 
-    print(f"
-整体统计:")
+    print(f"\n整体统计:")
     print(f"  总测试数: {total_tests}")
     print(f"  总通过: {total_passed}")
     print(f"  总失败: {total_failed}")

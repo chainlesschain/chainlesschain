@@ -4591,8 +4591,12 @@ class ChainlessChainApp {
 
           // 完成回调
           onComplete: async (data) => {
-            accumulatedData.files = data.files || [];
-            accumulatedData.metadata = data.metadata || {};
+            // 兼容不同引擎的数据结构
+            // Web引擎: { type: "complete", files: [...], metadata: {...} }
+            // Document/Data引擎: { type: "complete", result: { files: [...], metadata: {...} } }
+            const result = data.result || data;
+            accumulatedData.files = result.files || [];
+            accumulatedData.metadata = result.metadata || {};
 
             console.log('[Main] 流式创建完成，文件数量:', accumulatedData.files.length);
 

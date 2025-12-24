@@ -16,10 +16,18 @@ public class ProjectTask {
 
     private String projectId;
 
+    private String title;
+
     @TableField("description")
     private String description;
 
     private String taskType;  // generate_file, update_file, analyze_data, optimize_code
+
+    private String priority;
+
+    private String assignee;
+
+    private LocalDateTime dueDate;
 
     private String userPrompt;
 
@@ -45,6 +53,9 @@ public class ProjectTask {
 
     @TableField("synced_at")
     private LocalDateTime syncedAt;
+
+    @TableField("device_id")
+    private String deviceId;
 
     @TableLogic
     private Integer deleted;

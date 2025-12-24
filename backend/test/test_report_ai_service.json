@@ -1,0 +1,602 @@
+{
+  "summary": {
+    "total": 31,
+    "passed": 16,
+    "failed": 9,
+    "error": 6,
+    "skipped": 0,
+    "success_rate": "51.61%",
+    "duration": 209.386294
+  },
+  "start_time": "2025-12-24T14:24:43.795443",
+  "results": [
+    {
+      "name": "[Root] AI服务根路径",
+      "status": "PASSED",
+      "duration": 0.032001495361328125,
+      "endpoint": "/",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "service": "ChainlessChain AI Service",
+        "version": "1.0.0",
+        "status": "running"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Health] AI服务健康检查",
+      "status": "PASSED",
+      "duration": 0.03133106231689453,
+      "endpoint": "/health",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "status": "healthy",
+        "engines": {
+          "web": true,
+          "document": true,
+          "data": true,
+          "nlu": true,
+          "rag": true
+        }
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Intent] 意图识别 - 创建项目",
+      "status": "PASSED",
+      "duration": 0.018422603607177734,
+      "endpoint": "/api/intent/classify",
+      "method": "POST",
+      "request_data": {
+        "text": "我想创建一个待办事项网页应用",
+        "context": []
+      },
+      "response_data": {
+        "intent": "create_project",
+        "project_type": "web",
+        "entities": {
+          "template": "todo"
+        },
+        "confidence": 0.95,
+        "action": "generate_file",
+        "fast_path": true
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Intent] 意图识别 - 生成代码",
+      "status": "PASSED",
+      "duration": 5.554378032684326,
+      "endpoint": "/api/intent/classify",
+      "method": "POST",
+      "request_data": {
+        "text": "帮我写一个Python函数计算斐波那契数列",
+        "context": []
+      },
+      "response_data": {
+        "intent": "create_project",
+        "project_type": "app",
+        "entities": {
+          "language": "Python",
+          "task": "calculate Fibonacci sequence"
+        },
+        "confidence": 0.9,
+        "action": "generate_file"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Project] 创建Web项目",
+      "status": "ERROR",
+      "duration": 30.005531549453735,
+      "endpoint": "/api/projects/create",
+      "method": "POST",
+      "request_data": {
+        "user_prompt": "创建一个简单的HTML页面，显示Hello World",
+        "project_type": "web"
+      },
+      "response_data": null,
+      "error_message": "请求超时 (>30s)",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Project] 创建数据分析项目",
+      "status": "ERROR",
+      "duration": 30.007875204086304,
+      "endpoint": "/api/projects/create",
+      "method": "POST",
+      "request_data": {
+        "user_prompt": "创建一个数据分析项目，分析销售数据",
+        "project_type": "data"
+      },
+      "response_data": null,
+      "error_message": "请求超时 (>30s)",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Project] 创建文档项目",
+      "status": "ERROR",
+      "duration": 30.016618013381958,
+      "endpoint": "/api/projects/create",
+      "method": "POST",
+      "request_data": {
+        "user_prompt": "帮我写一份技术文档",
+        "project_type": "document"
+      },
+      "response_data": null,
+      "error_message": "请求超时 (>30s)",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Task] 执行任务 - 添加功能",
+      "status": "ERROR",
+      "duration": 30.015463829040527,
+      "endpoint": "/api/tasks/execute",
+      "method": "POST",
+      "request_data": {
+        "project_id": "test_project_a629337a",
+        "user_prompt": "在项目中添加一个新功能：用户登录",
+        "context": []
+      },
+      "response_data": null,
+      "error_message": "请求超时 (>30s)",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[RAG] 简单知识查询",
+      "status": "ERROR",
+      "duration": 30.00766921043396,
+      "endpoint": "/api/rag/query",
+      "method": "POST",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "请求超时 (>30s)",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[RAG] 技术知识查询",
+      "status": "ERROR",
+      "duration": 30.01683473587036,
+      "endpoint": "/api/rag/query",
+      "method": "POST",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "请求超时 (>30s)",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[RAG] 增强知识查询",
+      "status": "FAILED",
+      "duration": 20.95488953590393,
+      "endpoint": "/api/rag/query/enhanced",
+      "method": "POST",
+      "request_data": {
+        "query": "ChainlessChain的架构设计",
+        "top_k": 5,
+        "score_threshold": 0.7
+      },
+      "response_data": {
+        "detail": [
+          {
+            "type": "missing",
+            "loc": [
+              "body",
+              "project_id"
+            ],
+            "msg": "Field required",
+            "input": {
+              "query": "ChainlessChain的架构设计",
+              "top_k": 5,
+              "score_threshold": 0.7
+            }
+          }
+        ]
+      },
+      "error_message": "状态码不匹配",
+      "expected": 200,
+      "actual": 422
+    },
+    {
+      "name": "[RAG] 索引项目文件",
+      "status": "FAILED",
+      "duration": 0.036954641342163086,
+      "endpoint": "/api/rag/index/project",
+      "method": "POST",
+      "request_data": {
+        "project_id": "test_project_a629337a",
+        "project_path": "C:/code/chainlesschain",
+        "file_patterns": [
+          "*.py",
+          "*.js",
+          "*.md"
+        ]
+      },
+      "response_data": {
+        "detail": [
+          {
+            "type": "missing",
+            "loc": [
+              "body",
+              "repo_path"
+            ],
+            "msg": "Field required",
+            "input": {
+              "project_id": "test_project_a629337a",
+              "project_path": "C:/code/chainlesschain",
+              "file_patterns": [
+                "*.py",
+                "*.js",
+                "*.md"
+              ]
+            }
+          }
+        ]
+      },
+      "error_message": "状态码不匹配",
+      "expected": 200,
+      "actual": 422
+    },
+    {
+      "name": "[RAG] 获取索引统计",
+      "status": "FAILED",
+      "duration": 0.05240321159362793,
+      "endpoint": "/api/rag/index/stats",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "detail": [
+          {
+            "type": "missing",
+            "loc": [
+              "query",
+              "project_id"
+            ],
+            "msg": "Field required",
+            "input": null
+          }
+        ]
+      },
+      "error_message": "状态码不匹配",
+      "expected": 200,
+      "actual": 422
+    },
+    {
+      "name": "[RAG] 更新文件索引",
+      "status": "PASSED",
+      "duration": 1.1640632152557373,
+      "endpoint": "/api/rag/index/update-file",
+      "method": "POST",
+      "request_data": {
+        "project_id": "test_project_a629337a",
+        "file_path": "/test/sample.py",
+        "content": "# Sample Python file\nprint('Hello World')"
+      },
+      "response_data": {
+        "success": true,
+        "file_path": "/test/sample.py",
+        "chunks_added": 1
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Git] 查询Git状态",
+      "status": "FAILED",
+      "duration": 0.014731168746948242,
+      "endpoint": "/api/git/status",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "detail": "/app/C:/code/chainlesschain"
+      },
+      "error_message": "状态码不匹配",
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "[Git] 查询Git日志",
+      "status": "FAILED",
+      "duration": 0.013426065444946289,
+      "endpoint": "/api/git/log",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "detail": "/app/C:/code/chainlesschain"
+      },
+      "error_message": "状态码不匹配",
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "[Git] 查询Git差异",
+      "status": "FAILED",
+      "duration": 0.01150822639465332,
+      "endpoint": "/api/git/diff",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "detail": "/app/C:/code/chainlesschain"
+      },
+      "error_message": "状态码不匹配",
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "[Git] 获取分支列表",
+      "status": "FAILED",
+      "duration": 0.00899958610534668,
+      "endpoint": "/api/git/branches",
+      "method": "GET",
+      "request_data": null,
+      "response_data": {
+        "detail": "/app/C:/code/chainlesschain"
+      },
+      "error_message": "状态码不匹配",
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "[Git] 生成提交信息",
+      "status": "PASSED",
+      "duration": 0.00900721549987793,
+      "endpoint": "/api/git/generate-commit-message",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "C:/code/chainlesschain",
+        "diff": "diff --git a/test.py b/test.py\n+print('new line')"
+      },
+      "response_data": {
+        "message": "Update files"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Git] 初始化仓库",
+      "status": "PASSED",
+      "duration": 0.9632270336151123,
+      "endpoint": "/api/git/init",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "C:/temp/test_repo_b689860a"
+      },
+      "response_data": {
+        "success": true,
+        "repo_path": "C:/temp/test_repo_b689860a",
+        "branch": "main",
+        "remote_url": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Git] 创建分支",
+      "status": "FAILED",
+      "duration": 0.01599740982055664,
+      "endpoint": "/api/git/branch/create",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "C:/code/chainlesschain",
+        "branch_name": "test-branch-e9301a80"
+      },
+      "response_data": {
+        "detail": "/app/C:/code/chainlesschain"
+      },
+      "error_message": "状态码不匹配",
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "[Git] 切换分支",
+      "status": "FAILED",
+      "duration": 0.018001317977905273,
+      "endpoint": "/api/git/branch/checkout",
+      "method": "POST",
+      "request_data": {
+        "repo_path": "C:/code/chainlesschain",
+        "branch_name": "main"
+      },
+      "response_data": {
+        "detail": "/app/C:/code/chainlesschain"
+      },
+      "error_message": "状态码不匹配",
+      "expected": 200,
+      "actual": 500
+    },
+    {
+      "name": "[Code] 生成Python代码",
+      "status": "PASSED",
+      "duration": 0.02515697479248047,
+      "endpoint": "/api/code/generate",
+      "method": "POST",
+      "request_data": {
+        "description": "创建一个Python函数，计算斐波那契数列",
+        "language": "python",
+        "style": "modern",
+        "include_tests": false,
+        "include_comments": true
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "code": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Code] 生成JavaScript代码",
+      "status": "PASSED",
+      "duration": 0.013359308242797852,
+      "endpoint": "/api/code/generate",
+      "method": "POST",
+      "request_data": {
+        "description": "创建一个JavaScript函数，实现防抖功能",
+        "language": "javascript",
+        "style": "modern",
+        "include_tests": true,
+        "include_comments": true
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "code": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Code] 解释代码",
+      "status": "PASSED",
+      "duration": 0.020536184310913086,
+      "endpoint": "/api/code/explain",
+      "method": "POST",
+      "request_data": {
+        "code": "\ndef fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)\n",
+        "language": "python"
+      },
+      "response_data": {
+        "explanation": "解释失败: 'VolcEngineClient' object has no attribute 'generate'"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Code] 审查代码",
+      "status": "PASSED",
+      "duration": 0.025503158569335938,
+      "endpoint": "/api/code/review",
+      "method": "POST",
+      "request_data": {
+        "code": "\nfunction calculateTotal(items) {\n    var total = 0;\n    for (var i = 0; i < items.length; i++) {\n        total += items[i].price * items[i].quantity;\n    }\n    return total;\n}\n",
+        "language": "javascript",
+        "focus_areas": [
+          "performance",
+          "best_practices",
+          "security"
+        ]
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "score": 0,
+        "suggestions": []
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Code] 重构代码",
+      "status": "PASSED",
+      "duration": 0.03818035125732422,
+      "endpoint": "/api/code/refactor",
+      "method": "POST",
+      "request_data": {
+        "code": "\ndef calc(a, b, op):\n    if op == '+':\n        return a + b\n    elif op == '-':\n        return a - b\n    elif op == '*':\n        return a * b\n    elif op == '/':\n        return a / b\n",
+        "language": "python",
+        "refactor_goals": [
+          "improve_readability",
+          "add_error_handling"
+        ]
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "refactored_code": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Code] 修复Bug",
+      "status": "PASSED",
+      "duration": 0.023998498916625977,
+      "endpoint": "/api/code/fix-bug",
+      "method": "POST",
+      "request_data": {
+        "code": "\ndef divide(a, b):\n    return a / b\n",
+        "bug_description": "没有处理除零错误",
+        "language": "python"
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "fixed_code": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Code] 生成测试代码",
+      "status": "PASSED",
+      "duration": 0.023092031478881836,
+      "endpoint": "/api/code/generate-tests",
+      "method": "POST",
+      "request_data": {
+        "code": "\ndef add(a, b):\n    return a + b\n\ndef subtract(a, b):\n    return a - b\n",
+        "language": "python",
+        "test_framework": "pytest"
+      },
+      "response_data": {
+        "tests": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[Code] 优化代码",
+      "status": "PASSED",
+      "duration": 0.011294364929199219,
+      "endpoint": "/api/code/optimize",
+      "method": "POST",
+      "request_data": {
+        "code": "\ndef find_duplicates(arr):\n    duplicates = []\n    for i in range(len(arr)):\n        for j in range(i+1, len(arr)):\n            if arr[i] == arr[j] and arr[i] not in duplicates:\n                duplicates.append(arr[i])\n    return duplicates\n",
+        "language": "python",
+        "optimization_focus": "performance"
+      },
+      "response_data": {
+        "error": "'VolcEngineClient' object has no attribute 'generate'",
+        "refactored_code": null
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[RAG] 删除项目索引",
+      "status": "PASSED",
+      "duration": 0.22276973724365234,
+      "endpoint": "/api/rag/index/project/test_project_a629337a",
+      "method": "DELETE",
+      "request_data": null,
+      "response_data": {
+        "success": true,
+        "project_id": "test_project_a629337a"
+      },
+      "error_message": null,
+      "expected": null,
+      "actual": null
+    }
+  ]
+}

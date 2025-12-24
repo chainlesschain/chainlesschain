@@ -57,11 +57,9 @@ class ProjectServiceTester(APITester):
         )
 
     def run_all_tests(self):
-        print("
-" + "="*60)
+        print("\n" + "="*60)
         print("开始测试项目服务 (Spring Boot)")
-        print("="*60 + "
-")
+        print("="*60 + "\n")
 
         self.test_health()
         self.test_create_project()

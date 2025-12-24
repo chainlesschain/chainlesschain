@@ -50,6 +50,9 @@ public class ProjectFile {
     @TableField("content_hash")
     private String contentHash;  // SHA256 hash for content change detection
 
+    @TableField("device_id")
+    private String deviceId;
+
     @TableLogic
     private Integer deleted;
 }
