@@ -266,35 +266,425 @@ public class SyncServiceImpl implements SyncService {
         }
     }
 
+    /**
+     * 插入或更新 Project 记录
+     * @return true 如果检测到冲突
+     */
     private boolean upsertProject(Map<String, Object> record, String deviceId) {
-        // TODO: 实现具体的插入或更新逻辑
-        // 这里需要检测冲突并处理
+        String id = (String) record.get("id");
+        Project existing = projectMapper.selectById(id);
+
+        // 将 Map 转换为 LocalDateTime
+        LocalDateTime clientUpdatedAt = parseDateTime(record.get("updatedAt"));
+
+        // 检测冲突
+        if (existing != null) {
+            LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
+            // 如果服务器端数据更新且不是同一个设备，则存在冲突
+            if (serverUpdatedAt != null && clientUpdatedAt != null &&
+                serverUpdatedAt.isAfter(clientUpdatedAt) &&
+                !deviceId.equals(existing.getDeviceId())) {
+                log.warn("[SyncService] 检测到 Project 冲突: id={}, serverTime={}, clientTime={}",
+                    id, serverUpdatedAt, clientUpdatedAt);
+                return true;
+            }
+        }
+
+        // 构建 Project 实体
+        Project project = new Project();
+        project.setId(id);
+        project.setUserId((String) record.get("userId"));
+        project.setName((String) record.get("name"));
+        project.setDescription((String) record.get("description"));
+        project.setProjectType((String) record.get("projectType"));
+        project.setStatus((String) record.get("status"));
+        project.setRootPath((String) record.get("rootPath"));
+        project.setFileCount(getLong(record.get("fileCount")));
+        project.setTotalSize(getLong(record.get("totalSize")));
+        project.setCreatedAt(parseDateTime(record.get("createdAt")));
+        project.setUpdatedAt(clientUpdatedAt);
+        project.setSyncStatus("synced");
+        project.setSyncedAt(LocalDateTime.now());
+        project.setDeviceId(deviceId);
+        project.setDeleted(getInteger(record.get("deleted")));
+
+        // 执行插入或更新
+        if (existing == null) {
+            projectMapper.insert(project);
+            log.debug("[SyncService] 插入新 Project: id={}", id);
+        } else {
+            projectMapper.updateById(project);
+            log.debug("[SyncService] 更新 Project: id={}", id);
+        }
+
         return false;
     }
 
+    /**
+     * 插入或更新 ProjectFile 记录
+     */
     private boolean upsertProjectFile(Map<String, Object> record, String deviceId) {
+        String id = (String) record.get("id");
+        ProjectFile existing = projectFileMapper.selectById(id);
+
+        LocalDateTime clientUpdatedAt = parseDateTime(record.get("updatedAt"));
+
+        // 检测冲突
+        if (existing != null) {
+            LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
+            if (serverUpdatedAt != null && clientUpdatedAt != null &&
+                serverUpdatedAt.isAfter(clientUpdatedAt) &&
+                !deviceId.equals(existing.getDeviceId())) {
+                log.warn("[SyncService] 检测到 ProjectFile 冲突: id={}", id);
+                return true;
+            }
+        }
+
+        // 构建 ProjectFile 实体
+        ProjectFile file = new ProjectFile();
+        file.setId(id);
+        file.setProjectId((String) record.get("projectId"));
+        file.setFilePath((String) record.get("filePath"));
+        file.setFileName((String) record.get("fileName"));
+        file.setFileType((String) record.get("fileType"));
+        file.setContent((String) record.get("content"));
+        file.setContentHash((String) record.get("contentHash"));
+        file.setVersion(getInteger(record.get("version")));
+        file.setCreatedAt(parseDateTime(record.get("createdAt")));
+        file.setUpdatedAt(clientUpdatedAt);
+        file.setSyncStatus("synced");
+        file.setSyncedAt(LocalDateTime.now());
+        file.setDeviceId(deviceId);
+
+        if (existing == null) {
+            projectFileMapper.insert(file);
+            log.debug("[SyncService] 插入新 ProjectFile: id={}", id);
+        } else {
+            projectFileMapper.updateById(file);
+            log.debug("[SyncService] 更新 ProjectFile: id={}", id);
+        }
+
         return false;
     }
 
+    /**
+     * 插入或更新 ProjectConversation 记录
+     */
     private boolean upsertProjectConversation(Map<String, Object> record, String deviceId) {
+        String id = (String) record.get("id");
+        ProjectConversation existing = projectConversationMapper.selectById(id);
+
+        LocalDateTime clientCreatedAt = parseDateTime(record.get("createdAt"));
+
+        // 对话记录一般不会冲突（只插入不更新），但为了一致性也检查
+        if (existing != null) {
+            log.debug("[SyncService] ProjectConversation 已存在，跳过: id={}", id);
+            return false;
+        }
+
+        // 构建 ProjectConversation 实体
+        ProjectConversation conversation = new ProjectConversation();
+        conversation.setId(id);
+        conversation.setProjectId((String) record.get("projectId"));
+        conversation.setTitle((String) record.get("title"));
+        conversation.setContext((String) record.get("context"));
+        conversation.setCreatedAt(clientCreatedAt);
+        conversation.setSyncStatus("synced");
+        conversation.setSyncedAt(LocalDateTime.now());
+        conversation.setDeviceId(deviceId);
+
+        projectConversationMapper.insert(conversation);
+        log.debug("[SyncService] 插入新 ProjectConversation: id={}", id);
+
         return false;
     }
 
+    /**
+     * 插入或更新 ProjectTask 记录
+     */
     private boolean upsertProjectTask(Map<String, Object> record, String deviceId) {
+        String id = (String) record.get("id");
+        ProjectTask existing = projectTaskMapper.selectById(id);
+
+        LocalDateTime clientUpdatedAt = parseDateTime(record.get("updatedAt"));
+
+        // 检测冲突
+        if (existing != null) {
+            LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
+            if (serverUpdatedAt != null && clientUpdatedAt != null &&
+                serverUpdatedAt.isAfter(clientUpdatedAt) &&
+                !deviceId.equals(existing.getDeviceId())) {
+                log.warn("[SyncService] 检测到 ProjectTask 冲突: id={}", id);
+                return true;
+            }
+        }
+
+        // 构建 ProjectTask 实体
+        ProjectTask task = new ProjectTask();
+        task.setId(id);
+        task.setProjectId((String) record.get("projectId"));
+        task.setTitle((String) record.get("title"));
+        task.setDescription((String) record.get("description"));
+        task.setStatus((String) record.get("status"));
+        task.setPriority((String) record.get("priority"));
+        task.setAssignee((String) record.get("assignee"));
+        task.setDueDate(parseDateTime(record.get("dueDate")));
+        task.setCreatedAt(parseDateTime(record.get("createdAt")));
+        task.setUpdatedAt(clientUpdatedAt);
+        task.setSyncStatus("synced");
+        task.setSyncedAt(LocalDateTime.now());
+        task.setDeviceId(deviceId);
+
+        if (existing == null) {
+            projectTaskMapper.insert(task);
+            log.debug("[SyncService] 插入新 ProjectTask: id={}", id);
+        } else {
+            projectTaskMapper.updateById(task);
+            log.debug("[SyncService] 更新 ProjectTask: id={}", id);
+        }
+
         return false;
     }
 
+    /**
+     * 插入或更新 ProjectCollaborator 记录
+     */
     private boolean upsertProjectCollaborator(Map<String, Object> record, String deviceId) {
+        String id = (String) record.get("id");
+        ProjectCollaborator existing = projectCollaboratorMapper.selectById(id);
+
+        LocalDateTime clientUpdatedAt = parseDateTime(record.get("updatedAt"));
+
+        // 检测冲突
+        if (existing != null) {
+            LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
+            if (serverUpdatedAt != null && clientUpdatedAt != null &&
+                serverUpdatedAt.isAfter(clientUpdatedAt) &&
+                !deviceId.equals(existing.getDeviceId())) {
+                log.warn("[SyncService] 检测到 ProjectCollaborator 冲突: id={}", id);
+                return true;
+            }
+        }
+
+        // 构建 ProjectCollaborator 实体
+        ProjectCollaborator collaborator = new ProjectCollaborator();
+        collaborator.setId(id);
+        collaborator.setProjectId((String) record.get("projectId"));
+        collaborator.setUserId((String) record.get("userId"));
+        collaborator.setRole((String) record.get("role"));
+        collaborator.setPermissions((String) record.get("permissions"));
+        collaborator.setCreatedAt(parseDateTime(record.get("createdAt")));
+        collaborator.setUpdatedAt(clientUpdatedAt);
+        collaborator.setSyncStatus("synced");
+        collaborator.setSyncedAt(LocalDateTime.now());
+        collaborator.setDeviceId(deviceId);
+
+        if (existing == null) {
+            projectCollaboratorMapper.insert(collaborator);
+            log.debug("[SyncService] 插入新 ProjectCollaborator: id={}", id);
+        } else {
+            projectCollaboratorMapper.updateById(collaborator);
+            log.debug("[SyncService] 更新 ProjectCollaborator: id={}", id);
+        }
+
         return false;
     }
 
+    /**
+     * 插入或更新 ProjectComment 记录
+     */
     private boolean upsertProjectComment(Map<String, Object> record, String deviceId) {
+        String id = (String) record.get("id");
+        ProjectComment existing = projectCommentMapper.selectById(id);
+
+        LocalDateTime clientUpdatedAt = parseDateTime(record.get("updatedAt"));
+
+        // 检测冲突
+        if (existing != null) {
+            LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
+            if (serverUpdatedAt != null && clientUpdatedAt != null &&
+                serverUpdatedAt.isAfter(clientUpdatedAt) &&
+                !deviceId.equals(existing.getDeviceId())) {
+                log.warn("[SyncService] 检测到 ProjectComment 冲突: id={}", id);
+                return true;
+            }
+        }
+
+        // 构建 ProjectComment 实体
+        ProjectComment comment = new ProjectComment();
+        comment.setId(id);
+        comment.setProjectId((String) record.get("projectId"));
+        comment.setUserId((String) record.get("userId"));
+        comment.setContent((String) record.get("content"));
+        comment.setParentId((String) record.get("parentId"));
+        comment.setCreatedAt(parseDateTime(record.get("createdAt")));
+        comment.setUpdatedAt(clientUpdatedAt);
+        comment.setSyncStatus("synced");
+        comment.setSyncedAt(LocalDateTime.now());
+        comment.setDeviceId(deviceId);
+
+        if (existing == null) {
+            projectCommentMapper.insert(comment);
+            log.debug("[SyncService] 插入新 ProjectComment: id={}", id);
+        } else {
+            projectCommentMapper.updateById(comment);
+            log.debug("[SyncService] 更新 ProjectComment: id={}", id);
+        }
+
         return false;
     }
 
+    /**
+     * 统计待同步记录数
+     */
     private int countPendingRecords(String tableName, String deviceId) {
-        // TODO: 查询待同步记录数
-        return 0;
+        try {
+            switch (tableName) {
+                case "projects":
+                    QueryWrapper<Project> projectWrapper = new QueryWrapper<>();
+                    projectWrapper.eq("sync_status", "pending")
+                                  .or()
+                                  .isNull("sync_status");
+                    return Math.toIntExact(projectMapper.selectCount(projectWrapper));
+
+                case "project_files":
+                    QueryWrapper<ProjectFile> fileWrapper = new QueryWrapper<>();
+                    fileWrapper.eq("sync_status", "pending")
+                               .or()
+                               .isNull("sync_status");
+                    return Math.toIntExact(projectFileMapper.selectCount(fileWrapper));
+
+                case "project_conversations":
+                    QueryWrapper<ProjectConversation> convWrapper = new QueryWrapper<>();
+                    convWrapper.eq("sync_status", "pending")
+                               .or()
+                               .isNull("sync_status");
+                    return Math.toIntExact(projectConversationMapper.selectCount(convWrapper));
+
+                case "project_tasks":
+                    QueryWrapper<ProjectTask> taskWrapper = new QueryWrapper<>();
+                    taskWrapper.eq("sync_status", "pending")
+                               .or()
+                               .isNull("sync_status");
+                    return Math.toIntExact(projectTaskMapper.selectCount(taskWrapper));
+
+                case "project_collaborators":
+                    QueryWrapper<ProjectCollaborator> collabWrapper = new QueryWrapper<>();
+                    collabWrapper.eq("sync_status", "pending")
+                                 .or()
+                                 .isNull("sync_status");
+                    return Math.toIntExact(projectCollaboratorMapper.selectCount(collabWrapper));
+
+                case "project_comments":
+                    QueryWrapper<ProjectComment> commentWrapper = new QueryWrapper<>();
+                    commentWrapper.eq("sync_status", "pending")
+                                  .or()
+                                  .isNull("sync_status");
+                    return Math.toIntExact(projectCommentMapper.selectCount(commentWrapper));
+
+                default:
+                    return 0;
+            }
+        } catch (Exception e) {
+            log.error("[SyncService] 统计待同步记录失败: table={}, error={}", tableName, e.getMessage());
+            return 0;
+        }
+    }
+
+    // ==================== 辅助转换方法 ====================
+
+    /**
+     * 解析日期时间（支持毫秒时间戳和ISO字符串）
+     */
+    private LocalDateTime parseDateTime(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof LocalDateTime) {
+            return (LocalDateTime) value;
+        }
+
+        if (value instanceof Long) {
+            return LocalDateTime.ofInstant(
+                java.time.Instant.ofEpochMilli((Long) value),
+                ZoneId.systemDefault()
+            );
+        }
+
+        if (value instanceof Integer) {
+            return LocalDateTime.ofInstant(
+                java.time.Instant.ofEpochMilli(((Integer) value).longValue()),
+                ZoneId.systemDefault()
+            );
+        }
+
+        if (value instanceof String) {
+            try {
+                // 尝试解析 ISO 8601 格式
+                return LocalDateTime.parse((String) value);
+            } catch (Exception e) {
+                // 尝试作为时间戳解析
+                try {
+                    long timestamp = Long.parseLong((String) value);
+                    return LocalDateTime.ofInstant(
+                        java.time.Instant.ofEpochMilli(timestamp),
+                        ZoneId.systemDefault()
+                    );
+                } catch (NumberFormatException ex) {
+                    log.warn("[SyncService] 无法解析日期时间: {}", value);
+                    return null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 获取 Integer 值
+     */
+    private Integer getInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
+        if (value instanceof Long) {
+            return ((Long) value).intValue();
+        }
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 获取 Long 值
+     */
+    private Long getLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Long) {
+            return (Long) value;
+        }
+        if (value instanceof Integer) {
+            return ((Integer) value).longValue();
+        }
+        if (value instanceof String) {
+            try {
+                return Long.parseLong((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private void logSync(String tableName, String recordId, String operation,

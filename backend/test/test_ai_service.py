@@ -97,10 +97,7 @@ class AIServiceTester(APITester):
 
     def test_code_explain(self):
         request_data = {
-            "code": "def fibonacci(n):
-    if n <= 1:
-        return n
-    return fibonacci(n-1) + fibonacci(n-2)",
+            "code": "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)",
             "language": "python"
         }
 
@@ -113,11 +110,9 @@ class AIServiceTester(APITester):
         )
 
     def run_all_tests(self):
-        print("
-" + "="*60)
+        print("\n" + "="*60)
         print("开始测试AI服务 (FastAPI)")
-        print("="*60 + "
-")
+        print("="*60 + "\n")
 
         self.test_root()
         self.test_health()

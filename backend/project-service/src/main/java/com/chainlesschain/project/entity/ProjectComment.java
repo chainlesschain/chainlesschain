@@ -16,6 +16,8 @@ public class ProjectComment {
 
     private String projectId;
 
+    private String userId;
+
     private String filePath;
 
     private Integer lineNumber;
@@ -23,6 +25,8 @@ public class ProjectComment {
     private String authorDid;
 
     private String content;
+
+    private String parentId;
 
     private String parentCommentId;
 
@@ -38,6 +42,9 @@ public class ProjectComment {
 
     @TableField("synced_at")
     private LocalDateTime syncedAt;
+
+    @TableField("device_id")
+    private String deviceId;
 
     @TableLogic
     private Integer deleted;

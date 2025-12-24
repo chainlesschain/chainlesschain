@@ -1,0 +1,125 @@
+{
+  "summary": {
+    "total": 8,
+    "passed": 0,
+    "failed": 0,
+    "error": 8,
+    "skipped": 0,
+    "success_rate": "0.00%",
+    "duration": 0.049531
+  },
+  "start_time": "2025-12-24T13:39:14.033801",
+  "results": [
+    {
+      "name": "AI服务根路径",
+      "status": "ERROR",
+      "duration": 0.00900578498840332,
+      "endpoint": "/",
+      "method": "GET",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "AI服务健康检查",
+      "status": "ERROR",
+      "duration": 0.004996061325073242,
+      "endpoint": "/health",
+      "method": "GET",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "意图识别",
+      "status": "ERROR",
+      "duration": 0.005003929138183594,
+      "endpoint": "/api/intent/classify",
+      "method": "POST",
+      "request_data": {
+        "text": "创建一个待办事项网页应用",
+        "context": []
+      },
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "AI创建项目",
+      "status": "ERROR",
+      "duration": 0.005531787872314453,
+      "endpoint": "/api/projects/create",
+      "method": "POST",
+      "request_data": {
+        "user_prompt": "创建一个简单的HTML页面，显示Hello World",
+        "project_type": "web"
+      },
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "RAG知识检索",
+      "status": "ERROR",
+      "duration": 0.007992982864379883,
+      "endpoint": "/api/rag/query",
+      "method": "POST",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "Git状态查询",
+      "status": "ERROR",
+      "duration": 0.006001472473144531,
+      "endpoint": "/api/git/status",
+      "method": "GET",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "代码生成",
+      "status": "ERROR",
+      "duration": 0.004998683929443359,
+      "endpoint": "/api/code/generate",
+      "method": "POST",
+      "request_data": {
+        "description": "创建一个Python函数，计算斐波那契数列",
+        "language": "python",
+        "style": "modern",
+        "include_tests": false,
+        "include_comments": true
+      },
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "代码解释",
+      "status": "ERROR",
+      "duration": 0.004873991012573242,
+      "endpoint": "/api/code/explain",
+      "method": "POST",
+      "request_data": {
+        "code": "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)",
+        "language": "python"
+      },
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    }
+  ]
+}

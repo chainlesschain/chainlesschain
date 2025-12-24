@@ -1,0 +1,131 @@
+{
+  "summary": {
+    "total": 8,
+    "passed": 0,
+    "failed": 0,
+    "error": 8,
+    "skipped": 0,
+    "success_rate": "0.00%",
+    "duration": 209.480563
+  },
+  "start_time": "2025-12-24T14:24:43.695156",
+  "results": [
+    {
+      "name": "[ProjectController] 健康检查",
+      "status": "ERROR",
+      "duration": 0.03151226043701172,
+      "endpoint": "/api/projects/health",
+      "method": "GET",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[SyncController] 同步服务健康检查",
+      "status": "ERROR",
+      "duration": 0.017011642456054688,
+      "endpoint": "/api/sync/health",
+      "method": "GET",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[ProjectController] 创建项目",
+      "status": "ERROR",
+      "duration": 0.013631582260131836,
+      "endpoint": "/api/projects/create",
+      "method": "POST",
+      "request_data": {
+        "name": "综合测试项目_d9e9922d",
+        "description": "这是一个全面的自动化测试项目",
+        "projectType": "web",
+        "userId": "test_user_comprehensive",
+        "template": "react"
+      },
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[ProjectController] 获取项目列表",
+      "status": "ERROR",
+      "duration": 0.006994009017944336,
+      "endpoint": "/api/projects/list",
+      "method": "GET",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[SyncController] 批量上传数据",
+      "status": "ERROR",
+      "duration": 0.010000228881835938,
+      "endpoint": "/api/sync/upload",
+      "method": "POST",
+      "request_data": {
+        "tableName": "notes",
+        "deviceId": "device_8668f2e6",
+        "records": [
+          {
+            "id": "note_0c729e37",
+            "title": "测试笔记",
+            "content": "这是测试内容",
+            "updated_at": 1703001600000
+          }
+        ]
+      },
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[SyncController] 增量下载数据",
+      "status": "ERROR",
+      "duration": 0.007007598876953125,
+      "endpoint": "/api/sync/download/notes",
+      "method": "GET",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[SyncController] 获取同步状态",
+      "status": "ERROR",
+      "duration": 0.004476070404052734,
+      "endpoint": "/api/sync/status",
+      "method": "GET",
+      "request_data": null,
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "name": "[SyncController] 解决同步冲突",
+      "status": "ERROR",
+      "duration": 0.006653785705566406,
+      "endpoint": "/api/sync/resolve-conflict",
+      "method": "POST",
+      "request_data": {
+        "conflictId": "conflict_9a564e95",
+        "resolution": "use_server",
+        "deviceId": "device_8668f2e6"
+      },
+      "response_data": null,
+      "error_message": "无法连接到服务器",
+      "expected": null,
+      "actual": null
+    }
+  ]
+}

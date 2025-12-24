@@ -173,23 +173,56 @@ const activeTab = ref('html');
 const showLogs = ref(false);
 
 // 阶段定义
-const stageDefinitions = [
-  { key: 'intent', name: '意图识别', number: 1 },
-  { key: 'spec', name: '生成规格', number: 2 },
-  { key: 'html', name: '生成HTML', number: 3 },
-  { key: 'css', name: '生成CSS', number: 4 },
-  { key: 'js', name: '生成JavaScript', number: 5 },
-];
+// 根据项目类型动态定义步骤
+const getStageDefinitions = () => {
+  // 从progressData中推断项目类型
+  const stages = props.progressData.stages || [];
+  const hasOutlineStage = stages.some(s => s.stage === 'outline');
+  const hasHtmlStage = stages.some(s => s.stage === 'html');
 
-const fileStages = [
-  { key: 'html', label: 'HTML' },
-  { key: 'css', label: 'CSS' },
-  { key: 'js', label: 'JavaScript' },
-];
+  // Document项目步骤
+  if (hasOutlineStage) {
+    return [
+      { key: 'intent', name: '意图识别', number: 1 },
+      { key: 'engine', name: '引擎选择', number: 2 },
+      { key: 'outline', name: '生成大纲', number: 3 },
+      { key: 'content', name: '生成内容', number: 4 },
+    ];
+  }
+
+  // Web项目步骤（默认）
+  return [
+    { key: 'intent', name: '意图识别', number: 1 },
+    { key: 'spec', name: '生成规格', number: 2 },
+    { key: 'html', name: '生成HTML', number: 3 },
+    { key: 'css', name: '生成CSS', number: 4 },
+    { key: 'js', name: '生成JavaScript', number: 5 },
+  ];
+};
+
+const getFileStages = () => {
+  const stages = props.progressData.stages || [];
+  const hasOutlineStage = stages.some(s => s.stage === 'outline');
+
+  // Document项目没有文件预览
+  if (hasOutlineStage) {
+    return [];
+  }
+
+  // Web项目文件预览
+  return [
+    { key: 'html', label: 'HTML' },
+    { key: 'css', label: 'CSS' },
+    { key: 'js', label: 'JavaScript' },
+  ];
+};
+
+const stageDefinitions = computed(() => getStageDefinitions());
+const fileStages = computed(() => getFileStages());
 
 // 计算属性
 const stageSteps = computed(() => {
-  return stageDefinitions.map(def => {
+  return stageDefinitions.value.map(def => {
     const stageInfo = props.progressData.stages.find(s => s.stage === def.key);
     return {
       ...def,
@@ -200,7 +233,7 @@ const stageSteps = computed(() => {
 });
 
 const overallProgress = computed(() => {
-  const total = stageDefinitions.length;
+  const total = stageDefinitions.value.length;
   const completed = stageSteps.value.filter(s => s.status === 'completed').length;
   return Math.round((completed / total) * 100);
 });

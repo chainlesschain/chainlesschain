@@ -351,11 +351,25 @@ async def create_project_stream(request: ProjectCreateRequest):
                     yield format_sse(chunk)
 
             elif project_type == "document":
-                # TODO: 实现document引擎的流式生成
+                # Document引擎的流式生成（带进度反馈）
+                yield format_sse({
+                    "type": "progress",
+                    "stage": "outline",
+                    "message": "正在生成文档大纲..."
+                })
+
+                # 调用文档生成引擎（非流式，但发送进度事件）
                 result = await doc_engine.generate(
                     prompt=request.user_prompt,
                     context=intent_result
                 )
+
+                yield format_sse({
+                    "type": "progress",
+                    "stage": "content",
+                    "message": "文档生成完成"
+                })
+
                 yield format_sse({
                     "type": "complete",
                     "result": _encode_binary_files(result)

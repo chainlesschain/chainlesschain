@@ -16,7 +16,11 @@ public class ProjectCollaborator {
 
     private String projectId;
 
+    private String userId;
+
     private String collaboratorDid;
+
+    private String role;
 
     private String permissions;  // read, write, admin
 
@@ -40,6 +44,9 @@ public class ProjectCollaborator {
 
     @TableField("synced_at")
     private LocalDateTime syncedAt;
+
+    @TableField("device_id")
+    private String deviceId;
 
     @TableLogic
     private Integer deleted;

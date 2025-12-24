@@ -285,14 +285,14 @@ class APITester:
 
         # 打印实时结果
         status_icon = {
-            TestStatus.PASSED: "✅",
-            TestStatus.FAILED: "❌",
-            TestStatus.ERROR: "⚠️",
-            TestStatus.SKIPPED: "⏭️"
+            TestStatus.PASSED: "[PASS]",
+            TestStatus.FAILED: "[FAIL]",
+            TestStatus.ERROR: "[ERROR]",
+            TestStatus.SKIPPED: "[SKIP]"
         }
         print(f"{status_icon[result.status]} {result.name} ({result.duration:.3f}s)")
         if result.error_message:
-            print(f"   错误: {result.error_message}")
+            print(f"   Error: {result.error_message}")
 
         return result
 
@@ -313,13 +313,13 @@ class APITester:
         # 打印摘要
         summary = self.reporter.get_summary()
         print(f"\n{'='*60}")
-        print(f"测试摘要:")
-        print(f"  总数: {summary['total']}")
-        print(f"  通过: {summary['passed']} ✅")
-        print(f"  失败: {summary['failed']} ❌")
-        print(f"  错误: {summary['error']} ⚠️")
-        print(f"  成功率: {summary['success_rate']}")
-        print(f"  耗时: {summary['duration']:.2f}秒")
+        print(f"Summary:")
+        print(f"  Total: {summary['total']}")
+        print(f"  Passed: {summary['passed']}")
+        print(f"  Failed: {summary['failed']}")
+        print(f"  Error: {summary['error']}")
+        print(f"  Success Rate: {summary['success_rate']}")
+        print(f"  Duration: {summary['duration']:.2f}s")
         print(f"{'='*60}\n")
 
         return reports

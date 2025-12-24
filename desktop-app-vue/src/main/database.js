@@ -838,9 +838,32 @@ class DatabaseManager {
 
       // 为 project_files 表添加同步字段
       const filesSyncInfo = this.db.prepare("PRAGMA table_info(project_files)").all();
+      if (!filesSyncInfo.some(col => col.name === 'sync_status')) {
+        console.log('[Database] 添加 project_files.sync_status 列');
+        this.db.run("ALTER TABLE project_files ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      }
+      if (!filesSyncInfo.some(col => col.name === 'synced_at')) {
+        console.log('[Database] 添加 project_files.synced_at 列');
+        this.db.run('ALTER TABLE project_files ADD COLUMN synced_at INTEGER');
+      }
       if (!filesSyncInfo.some(col => col.name === 'deleted')) {
         console.log('[Database] 添加 project_files.deleted 列');
         this.db.run('ALTER TABLE project_files ADD COLUMN deleted INTEGER DEFAULT 0');
+      }
+
+      // 为 knowledge_items 表添加同步字段
+      const knowledgeInfo = this.db.prepare("PRAGMA table_info(knowledge_items)").all();
+      if (!knowledgeInfo.some(col => col.name === 'sync_status')) {
+        console.log('[Database] 添加 knowledge_items.sync_status 列');
+        this.db.run("ALTER TABLE knowledge_items ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      }
+      if (!knowledgeInfo.some(col => col.name === 'synced_at')) {
+        console.log('[Database] 添加 knowledge_items.synced_at 列');
+        this.db.run('ALTER TABLE knowledge_items ADD COLUMN synced_at INTEGER');
+      }
+      if (!knowledgeInfo.some(col => col.name === 'deleted')) {
+        console.log('[Database] 添加 knowledge_items.deleted 列');
+        this.db.run('ALTER TABLE knowledge_items ADD COLUMN deleted INTEGER DEFAULT 0');
       }
 
       console.log('[Database] 数据库迁移完成');
