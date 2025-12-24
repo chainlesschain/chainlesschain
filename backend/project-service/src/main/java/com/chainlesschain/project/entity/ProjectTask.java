@@ -39,6 +39,13 @@ public class ProjectTask {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 
+    // 同步相关字段
+    @TableField("sync_status")
+    private String syncStatus = "synced";
+
+    @TableField("synced_at")
+    private LocalDateTime syncedAt;
+
     @TableLogic
     private Integer deleted;
 }

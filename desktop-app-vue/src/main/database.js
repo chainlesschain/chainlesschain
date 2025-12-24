@@ -768,9 +768,10 @@ class DatabaseManager {
    * 数据库迁移：为已存在的表添加新列
    */
   migrateDatabase() {
-    console.log('开始数据库迁移...');
+    console.log('[Database] 开始数据库迁移...');
 
     try {
+      // ==================== 原有迁移 ====================
       // 检查 conversations 表是否有 project_id 列
       const conversationsInfo = this.db.prepare("PRAGMA table_info(conversations)").all();
       const hasProjectId = conversationsInfo.some(col => col.name === 'project_id');
@@ -778,15 +779,15 @@ class DatabaseManager {
       const hasContextData = conversationsInfo.some(col => col.name === 'context_data');
 
       if (!hasProjectId) {
-        console.log('添加 conversations.project_id 列');
+        console.log('[Database] 添加 conversations.project_id 列');
         this.db.run('ALTER TABLE conversations ADD COLUMN project_id TEXT');
       }
       if (!hasContextType) {
-        console.log('添加 conversations.context_type 列');
+        console.log('[Database] 添加 conversations.context_type 列');
         this.db.run("ALTER TABLE conversations ADD COLUMN context_type TEXT DEFAULT 'global'");
       }
       if (!hasContextData) {
-        console.log('添加 conversations.context_data 列');
+        console.log('[Database] 添加 conversations.context_data 列');
         this.db.run('ALTER TABLE conversations ADD COLUMN context_data TEXT');
       }
 
@@ -795,13 +796,56 @@ class DatabaseManager {
       const hasFsPath = projectFilesInfo.some(col => col.name === 'fs_path');
 
       if (!hasFsPath) {
-        console.log('添加 project_files.fs_path 列');
+        console.log('[Database] 添加 project_files.fs_path 列');
         this.db.run('ALTER TABLE project_files ADD COLUMN fs_path TEXT');
       }
 
-      console.log('数据库迁移完成');
+      // ==================== 同步字段迁移（V2） ====================
+      console.log('[Database] 执行同步字段迁移 (V2)...');
+
+      // 为 projects 表添加同步字段
+      const projectsInfo = this.db.prepare("PRAGMA table_info(projects)").all();
+      if (!projectsInfo.some(col => col.name === 'synced_at')) {
+        console.log('[Database] 添加 projects.synced_at 列');
+        this.db.run('ALTER TABLE projects ADD COLUMN synced_at INTEGER');
+      }
+      if (!projectsInfo.some(col => col.name === 'deleted')) {
+        console.log('[Database] 添加 projects.deleted 列');
+        this.db.run('ALTER TABLE projects ADD COLUMN deleted INTEGER DEFAULT 0');
+      }
+
+      // 为 conversations 表添加同步字段
+      const convSyncInfo = this.db.prepare("PRAGMA table_info(conversations)").all();
+      if (!convSyncInfo.some(col => col.name === 'sync_status')) {
+        console.log('[Database] 添加 conversations.sync_status 列');
+        this.db.run("ALTER TABLE conversations ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      }
+      if (!convSyncInfo.some(col => col.name === 'synced_at')) {
+        console.log('[Database] 添加 conversations.synced_at 列');
+        this.db.run('ALTER TABLE conversations ADD COLUMN synced_at INTEGER');
+      }
+
+      // 为 messages 表添加同步字段
+      const messagesInfo = this.db.prepare("PRAGMA table_info(messages)").all();
+      if (!messagesInfo.some(col => col.name === 'sync_status')) {
+        console.log('[Database] 添加 messages.sync_status 列');
+        this.db.run("ALTER TABLE messages ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      }
+      if (!messagesInfo.some(col => col.name === 'synced_at')) {
+        console.log('[Database] 添加 messages.synced_at 列');
+        this.db.run('ALTER TABLE messages ADD COLUMN synced_at INTEGER');
+      }
+
+      // 为 project_files 表添加同步字段
+      const filesSyncInfo = this.db.prepare("PRAGMA table_info(project_files)").all();
+      if (!filesSyncInfo.some(col => col.name === 'deleted')) {
+        console.log('[Database] 添加 project_files.deleted 列');
+        this.db.run('ALTER TABLE project_files ADD COLUMN deleted INTEGER DEFAULT 0');
+      }
+
+      console.log('[Database] 数据库迁移完成');
     } catch (error) {
-      console.error('数据库迁移失败:', error);
+      console.error('[Database] 数据库迁移失败:', error);
     }
   }
 
