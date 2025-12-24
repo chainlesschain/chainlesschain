@@ -124,6 +124,18 @@
         @fileClick="handleFileClick"
       />
     </a-modal>
+
+    <!-- 流式创建进度Modal -->
+    <StreamProgressModal
+      :open="showStreamProgress"
+      :progress-data="streamProgressData"
+      :error="createError"
+      @cancel="handleCancelStream"
+      @retry="handleRetryStream"
+      @close="handleCloseStream"
+      @view-project="handleViewCreatedProject"
+      @continue="handleContinueCreate"
+    />
   </div>
 </template>
 
@@ -143,6 +155,7 @@ import ProjectSidebar from '@/components/projects/ProjectSidebar.vue';
 import ConversationInput from '@/components/projects/ConversationInput.vue';
 import ProjectCard from '@/components/projects/ProjectCard.vue';
 import TaskExecutionMonitor from '@/components/projects/TaskExecutionMonitor.vue';
+import StreamProgressModal from '@/components/projects/StreamProgressModal.vue';
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -162,6 +175,18 @@ const recentConversations = ref([]);
 const currentTaskPlan = ref(null);
 const showTaskMonitor = ref(false);
 const isExecutingTask = ref(false);
+
+// 流式创建进度
+const showStreamProgress = ref(false);
+const streamProgressData = ref({
+  currentStage: '',
+  stages: [],
+  contentByStage: {},
+  logs: [],
+  metadata: {},
+});
+const createError = ref('');
+const createdProjectId = ref('');
 
 // 项目类型列表
 const projectTypes = ref([
@@ -269,12 +294,21 @@ const handleUserAction = (action) => {
   }
 };
 
-// 处理对话式创建项目
+// 处理对话式创建项目（流式）
 const handleConversationalCreate = async ({ text, attachments }) => {
   try {
-    message.loading({ content: 'AI正在分析您的需求...', key: 'ai-create', duration: 0 });
+    // 显示流式进度Modal
+    showStreamProgress.value = true;
+    createError.value = '';
+    streamProgressData.value = {
+      currentStage: '',
+      stages: [],
+      contentByStage: {},
+      logs: [],
+      metadata: {},
+    };
 
-    // 1. 先创建项目
+    // 1. 流式创建项目
     const userId = authStore.currentUser?.id || 'default-user';
     const projectData = {
       userPrompt: text,
@@ -283,9 +317,25 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       userId: userId,
     };
 
-    const project = await projectStore.createProject(projectData);
+    const project = await projectStore.createProjectStream(projectData, (progressUpdate) => {
+      // 更新进度数据
+      streamProgressData.value = { ...progressUpdate };
 
-    message.success({ content: '项目已创建', key: 'ai-create', duration: 2 });
+      // 处理不同类型
+      if (progressUpdate.type === 'complete') {
+        createdProjectId.value = progressUpdate.result.projectId;
+        message.success('项目创建成功！');
+      } else if (progressUpdate.type === 'error') {
+        createError.value = progressUpdate.error;
+        message.error('创建项目失败：' + progressUpdate.error);
+        return; // 出错时直接返回，不执行任务拆解
+      }
+    });
+
+    // 如果创建失败，不继续执行任务拆解
+    if (createError.value) {
+      return;
+    }
 
     // 2. AI智能拆解任务
     try {
@@ -500,6 +550,48 @@ const handleCloseTaskMonitor = () => {
   } else {
     showTaskMonitor.value = false;
   }
+};
+
+// 流式创建相关处理方法
+const handleCancelStream = async () => {
+  try {
+    await projectStore.cancelProjectStream();
+    showStreamProgress.value = false;
+    message.info('已取消创建');
+  } catch (error) {
+    message.error('取消失败：' + error.message);
+  }
+};
+
+const handleRetryStream = async () => {
+  // 重试逻辑：重新开始创建
+  showStreamProgress.value = false;
+  createError.value = '';
+};
+
+const handleCloseStream = () => {
+  showStreamProgress.value = false;
+  streamProgressData.value = {
+    currentStage: '',
+    stages: [],
+    contentByStage: {},
+    logs: [],
+    metadata: {},
+  };
+  createError.value = '';
+};
+
+const handleViewCreatedProject = () => {
+  showStreamProgress.value = false;
+  if (createdProjectId.value) {
+    router.push(`/projects/${createdProjectId.value}`);
+  }
+};
+
+const handleContinueCreate = () => {
+  showStreamProgress.value = false;
+  createError.value = '';
+  createdProjectId.value = '';
 };
 
 // 查看任务结果

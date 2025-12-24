@@ -8,6 +8,7 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 from test_project_service import ProjectServiceTester
+from test_project_service_with_existing import ProjectServiceTesterExisting
 from report_generator import ReportGenerator
 from datetime import datetime
 
@@ -30,8 +31,18 @@ def main():
     # 1. 测试 Project Service
     print("\n[PROJECT SERVICE] 开始测试...")
     print("-" * 70)
+
+    # 检查是否使用现有项目（绕过创建项目的性能问题）
+    use_existing = os.getenv("USE_EXISTING_PROJECT", "true").lower() == "true"
+
     try:
-        project_tester = ProjectServiceTester()
+        if use_existing:
+            print("[INFO] 使用现有项目模式（绕过创建项目性能瓶颈）")
+            project_tester = ProjectServiceTesterExisting()
+        else:
+            print("[INFO] 使用完整测试模式（包括创建项目）")
+            project_tester = ProjectServiceTester()
+
         project_tester.run_all_tests()
         all_results["project-service"] = project_tester.results
     except Exception as e:
