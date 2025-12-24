@@ -408,6 +408,47 @@ contextBridge.exposeInMainWorld('electronAPI', {
     save: (project) => ipcRenderer.invoke('project:save', removeUndefined(project)),
     deleteLocal: (projectId) => ipcRenderer.invoke('project:delete-local', projectId),
 
+    // 流式创建项目
+    createStream: (createData, callbacks) => {
+      return new Promise((resolve, reject) => {
+        const handleChunk = (chunkData) => {
+          const { type, data, error } = chunkData;
+
+          switch (type) {
+            case 'progress':
+              callbacks.onProgress?.(data);
+              break;
+            case 'content':
+              callbacks.onContent?.(data);
+              break;
+            case 'complete':
+              callbacks.onComplete?.(data);
+              ipcRenderer.off('project:stream-chunk', handleChunk);
+              resolve(data);
+              break;
+            case 'error':
+              callbacks.onError?.(new Error(error));
+              ipcRenderer.off('project:stream-chunk', handleChunk);
+              reject(new Error(error));
+              break;
+          }
+        };
+
+        // 监听流式事件
+        ipcRenderer.on('project:stream-chunk', handleChunk);
+
+        // 发起流式请求
+        ipcRenderer.invoke('project:create-stream', removeUndefined(createData))
+          .catch((err) => {
+            ipcRenderer.off('project:stream-chunk', handleChunk);
+            reject(err);
+          });
+      });
+    },
+
+    // 取消流式创建
+    cancelStream: () => ipcRenderer.invoke('project:stream-cancel'),
+
     // 后端获取
     fetchFromBackend: (projectId) => ipcRenderer.invoke('project:fetch-from-backend', projectId),
 
