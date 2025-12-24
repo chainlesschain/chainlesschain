@@ -411,22 +411,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 流式创建项目
     createStream: (createData, callbacks) => {
       return new Promise((resolve, reject) => {
-        const handleChunk = (chunkData) => {
+        const handleChunk = (event, chunkData) => {
+          console.log('[Preload] ===== 收到IPC事件 =====');
+          console.log('[Preload] Event data:', chunkData);
+
           const { type, data, error } = chunkData;
+          console.log('[Preload] Event type:', type);
 
           switch (type) {
             case 'progress':
+              console.log('[Preload] 处理progress事件');
               callbacks.onProgress?.(data);
               break;
             case 'content':
+              console.log('[Preload] 处理content事件');
               callbacks.onContent?.(data);
               break;
             case 'complete':
+              console.log('[Preload] ===== 处理complete事件 =====');
+              console.log('[Preload] Complete data:', data);
+              console.log('[Preload] Complete data keys:', Object.keys(data || {}));
+              console.log('[Preload] 调用callbacks.onComplete');
               callbacks.onComplete?.(data);
+              console.log('[Preload] 移除事件监听器');
               ipcRenderer.off('project:stream-chunk', handleChunk);
+              console.log('[Preload] 调用resolve');
               resolve(data);
+              console.log('[Preload] ===== Complete事件处理完毕 =====');
               break;
             case 'error':
+              console.log('[Preload] 处理error事件:', error);
               callbacks.onError?.(new Error(error));
               ipcRenderer.off('project:stream-chunk', handleChunk);
               reject(new Error(error));
@@ -434,12 +448,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
           }
         };
 
+        console.log('[Preload] 开始监听project:stream-chunk事件');
         // 监听流式事件
         ipcRenderer.on('project:stream-chunk', handleChunk);
 
+        console.log('[Preload] 发起流式请求');
         // 发起流式请求
         ipcRenderer.invoke('project:create-stream', removeUndefined(createData))
           .catch((err) => {
+            console.error('[Preload] 流式请求失败:', err);
             ipcRenderer.off('project:stream-chunk', handleChunk);
             reject(err);
           });

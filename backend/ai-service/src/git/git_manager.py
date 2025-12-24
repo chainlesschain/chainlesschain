@@ -238,7 +238,19 @@ class GitManager:
             提交历史列表
         """
         try:
+            # 验证路径存在
+            if not os.path.exists(repo_path):
+                raise ValueError(f"仓库路径不存在: {repo_path}")
+
+            # 验证是否是Git仓库
+            if not os.path.exists(os.path.join(repo_path, '.git')):
+                raise ValueError(f"路径不是Git仓库: {repo_path}")
+
             repo = Repo(repo_path)
+
+            # 检查是否有提交历史
+            if not repo.head.is_valid():
+                return []  # 空仓库，没有提交
 
             commits = []
             for commit in repo.iter_commits(max_count=limit):
@@ -271,7 +283,24 @@ class GitManager:
             包含差异信息的字典
         """
         try:
+            # 验证路径存在
+            if not os.path.exists(repo_path):
+                raise ValueError(f"仓库路径不存在: {repo_path}")
+
+            # 验证是否是Git仓库
+            if not os.path.exists(os.path.join(repo_path, '.git')):
+                raise ValueError(f"路径不是Git仓库: {repo_path}")
+
             repo = Repo(repo_path)
+
+            # 检查是否有提交历史
+            if not repo.head.is_valid():
+                return {
+                    "diff": "",
+                    "commit1": commit1,
+                    "commit2": commit2,
+                    "message": "Empty repository, no commits yet"
+                }
 
             if commit1 and commit2:
                 # 两个提交之间的差异
@@ -333,9 +362,28 @@ class GitManager:
             包含创建结果的字典
         """
         try:
+            # 验证路径存在
+            if not os.path.exists(repo_path):
+                raise ValueError(f"仓库路径不存在: {repo_path}")
+
+            # 验证是否是Git仓库
+            if not os.path.exists(os.path.join(repo_path, '.git')):
+                raise ValueError(f"路径不是Git仓库: {repo_path}")
+
             repo = Repo(repo_path)
 
+            # 检查是否有提交历史
+            if not repo.head.is_valid():
+                raise ValueError("Cannot create branch in empty repository. Please make at least one commit first.")
+
+            # 检查分支是否已存在
+            if branch_name in [b.name for b in repo.branches]:
+                raise ValueError(f"分支已存在: {branch_name}")
+
             if from_branch:
+                # 验证基础分支是否存在
+                if from_branch not in [b.name for b in repo.branches]:
+                    raise ValueError(f"基础分支不存在: {from_branch}")
                 base = repo.branches[from_branch]
                 new_branch = repo.create_head(branch_name, base)
             else:
@@ -365,7 +413,23 @@ class GitManager:
             包含切换结果的字典
         """
         try:
+            # 验证路径存在
+            if not os.path.exists(repo_path):
+                raise ValueError(f"仓库路径不存在: {repo_path}")
+
+            # 验证是否是Git仓库
+            if not os.path.exists(os.path.join(repo_path, '.git')):
+                raise ValueError(f"路径不是Git仓库: {repo_path}")
+
             repo = Repo(repo_path)
+
+            # 检查分支是否存在
+            if branch_name not in [b.name for b in repo.branches]:
+                raise ValueError(f"分支不存在: {branch_name}")
+
+            # 检查工作区是否干净
+            if repo.is_dirty():
+                logger.warning(f"工作区有未提交的更改，仍然尝试切换分支")
 
             repo.git.checkout(branch_name)
 
