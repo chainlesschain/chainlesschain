@@ -620,6 +620,23 @@ class ChainlessChainApp {
       console.error('文件同步管理器初始化失败:', error);
     }
 
+    // 初始化数据库同步管理器
+    try {
+      console.log('初始化数据库同步管理器...');
+      const DBSyncManager = require('./sync/db-sync-manager');
+      this.syncManager = new DBSyncManager(this.database, this.mainWindow);
+
+      // 监听同步事件
+      this.syncManager.on('sync:conflicts-detected', (data) => {
+        console.log('[Main] 检测到同步冲突:', data.conflicts.length);
+      });
+
+      console.log('数据库同步管理器初始化成功');
+    } catch (error) {
+      console.error('数据库同步管理器初始化失败:', error);
+      // 同步功能可选，不影响应用启动
+    }
+
     // 初始化预览管理器
     try {
       console.log('初始化预览管理器...');
@@ -1067,6 +1084,78 @@ class ChainlessChainApp {
           success: false,
           error: error.message,
         };
+      }
+    });
+
+    // ==================== 数据同步 IPC 处理器 ====================
+
+    // 启动同步
+    ipcMain.handle('sync:start', async (_event, deviceId) => {
+      try {
+        if (!this.syncManager) {
+          return { success: false, error: '同步管理器未初始化' };
+        }
+
+        const finalDeviceId = deviceId || `device-${Date.now()}`;
+        console.log('[Main] 启动数据同步, 设备ID:', finalDeviceId);
+
+        await this.syncManager.initialize(finalDeviceId);
+        await this.syncManager.syncAfterLogin();
+
+        console.log('[Main] 数据同步完成');
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 同步失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 解决冲突
+    ipcMain.handle('sync:resolve-conflict', async (_event, conflictId, resolution) => {
+      try {
+        if (!this.syncManager) {
+          return { success: false, error: '同步管理器未初始化' };
+        }
+
+        console.log('[Main] 解决冲突:', conflictId, resolution);
+        await this.syncManager.resolveConflict(conflictId, resolution);
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 解决冲突失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 获取同步状态
+    ipcMain.handle('sync:get-status', async () => {
+      try {
+        if (!this.syncManager || !this.syncManager.httpClient) {
+          return { success: false, error: '同步管理器未初始化' };
+        }
+
+        const status = await this.syncManager.httpClient.getSyncStatus(this.syncManager.deviceId);
+        return { success: true, data: status };
+      } catch (error) {
+        console.error('[Main] 获取同步状态失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 手动触发增量同步
+    ipcMain.handle('sync:incremental', async () => {
+      try {
+        if (!this.syncManager) {
+          return { success: false, error: '同步管理器未初始化' };
+        }
+
+        console.log('[Main] 手动触发增量同步');
+        await this.syncManager.syncIncremental();
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 增量同步失败:', error);
+        return { success: false, error: error.message };
       }
     });
 

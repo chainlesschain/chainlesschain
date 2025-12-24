@@ -183,8 +183,14 @@
         <div class="header-right">
           <a-space :size="16">
             <!-- 同步状态 -->
-            <a-tooltip title="同步状态">
-              <a-badge status="success" text="已同步" />
+            <a-tooltip :title="syncTooltip">
+              <a-button type="text" @click="handleSyncClick" :loading="isSyncing">
+                <template v-if="!isSyncing">
+                  <SyncOutlined v-if="syncStatus === 'synced'" :style="{ color: '#52c41a' }" />
+                  <ExclamationCircleOutlined v-else-if="syncStatus === 'error'" :style="{ color: '#ff4d4f' }" />
+                  <CloudSyncOutlined v-else :style="{ color: '#1890ff' }" />
+                </template>
+              </a-button>
             </a-tooltip>
 
             <!-- AI对话 -->
@@ -277,11 +283,14 @@
         </div>
       </a-layout>
     </a-layout>
+
+    <!-- 同步冲突对话框 -->
+    <SyncConflictDialog />
   </a-layout>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import {
@@ -314,9 +323,12 @@ import {
   PlusCircleOutlined,
   InboxOutlined,
   RobotOutlined,
+  ExclamationCircleOutlined,
+  CloudSyncOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import ChatPanel from './ChatPanel.vue';
+import SyncConflictDialog from './SyncConflictDialog.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -459,6 +471,64 @@ const handleLogout = () => {
   store.logout();
   router.push('/login');
   message.success('已退出登录');
+};
+
+// ==================== 同步状态管理 ====================
+
+const isSyncing = ref(false);
+const syncStatus = ref('synced'); // synced, error, pending
+const syncError = ref(null);
+
+const syncTooltip = computed(() => {
+  if (isSyncing.value) return '正在同步...';
+  if (syncStatus.value === 'error') return '同步失败：' + (syncError.value || '未知错误');
+  if (syncStatus.value === 'synced') return '已同步';
+  return '等待同步';
+});
+
+// 监听同步事件
+onMounted(() => {
+  if (window.electronAPI && window.electronAPI.sync) {
+    window.electronAPI.sync.onSyncStarted(() => {
+      isSyncing.value = true;
+      syncStatus.value = 'pending';
+      syncError.value = null;
+    });
+
+    window.electronAPI.sync.onSyncCompleted(() => {
+      isSyncing.value = false;
+      syncStatus.value = 'synced';
+      syncError.value = null;
+    });
+
+    window.electronAPI.sync.onSyncError((data) => {
+      isSyncing.value = false;
+      syncStatus.value = 'error';
+      syncError.value = data.error || '同步失败';
+    });
+  }
+});
+
+// 手动触发同步
+const handleSyncClick = async () => {
+  if (isSyncing.value) return;
+
+  try {
+    isSyncing.value = true;
+    syncStatus.value = 'pending';
+
+    await window.electronAPI.sync.incremental();
+
+    syncStatus.value = 'synced';
+    message.success('同步完成');
+  } catch (error) {
+    console.error('[MainLayout] 手动同步失败:', error);
+    syncStatus.value = 'error';
+    syncError.value = error.message;
+    message.error('同步失败：' + error.message);
+  } finally {
+    isSyncing.value = false;
+  }
 };
 </script>
 

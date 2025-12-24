@@ -583,4 +583,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   shell: {
     openPath: (path) => ipcRenderer.invoke('shell:open-path', path),
   },
+
+  // 数据同步
+  sync: {
+    start: (deviceId) => ipcRenderer.invoke('sync:start', deviceId),
+    resolveConflict: (conflictId, resolution) => ipcRenderer.invoke('sync:resolve-conflict', conflictId, resolution),
+    getStatus: () => ipcRenderer.invoke('sync:get-status'),
+    incremental: () => ipcRenderer.invoke('sync:incremental'),
+    // 监听同步事件
+    onSyncStarted: (callback) => ipcRenderer.on('sync:started', (_event, ...args) => callback(...args)),
+    onSyncCompleted: (callback) => ipcRenderer.on('sync:completed', (_event, ...args) => callback(...args)),
+    onSyncError: (callback) => ipcRenderer.on('sync:error', (_event, ...args) => callback(...args)),
+    onShowConflicts: (callback) => ipcRenderer.on('sync:show-conflicts', (_event, ...args) => callback(...args)),
+  },
 });
