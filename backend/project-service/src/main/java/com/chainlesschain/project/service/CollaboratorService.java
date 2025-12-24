@@ -66,7 +66,8 @@ public class CollaboratorService {
         collaborator.setId(IdWorker.get32UUID());
         collaborator.setProjectId(projectId);
         collaborator.setCollaboratorDid(request.getCollaboratorDid());
-        collaborator.setPermissions(request.getPermissions());
+        collaborator.setRole(request.getRole());
+        collaborator.setPermissions(request.getPermissionsString());
         collaborator.setInvitedBy(invitedBy);
         collaborator.setInvitedAt(LocalDateTime.now());
         collaborator.setStatus("pending");

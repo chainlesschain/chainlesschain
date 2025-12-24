@@ -17,6 +17,8 @@ public class CollaboratorDTO {
 
     private String collaboratorName;  // 从DID解析或缓存
 
+    private String role;  // owner, admin, developer, viewer
+
     private String permissions;  // read, write, admin
 
     private String invitedBy;

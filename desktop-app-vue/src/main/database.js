@@ -866,6 +866,66 @@ class DatabaseManager {
         this.db.run('ALTER TABLE knowledge_items ADD COLUMN deleted INTEGER DEFAULT 0');
       }
 
+      // 为 project_collaborators 表添加同步字段
+      const collabInfo = this.db.prepare("PRAGMA table_info(project_collaborators)").all();
+      if (!collabInfo.some(col => col.name === 'sync_status')) {
+        console.log('[Database] 添加 project_collaborators.sync_status 列');
+        this.db.run("ALTER TABLE project_collaborators ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      }
+      if (!collabInfo.some(col => col.name === 'synced_at')) {
+        console.log('[Database] 添加 project_collaborators.synced_at 列');
+        this.db.run('ALTER TABLE project_collaborators ADD COLUMN synced_at INTEGER');
+      }
+      if (!collabInfo.some(col => col.name === 'deleted')) {
+        console.log('[Database] 添加 project_collaborators.deleted 列');
+        this.db.run('ALTER TABLE project_collaborators ADD COLUMN deleted INTEGER DEFAULT 0');
+      }
+
+      // 为 project_comments 表添加同步字段
+      const commentsInfo = this.db.prepare("PRAGMA table_info(project_comments)").all();
+      if (!commentsInfo.some(col => col.name === 'sync_status')) {
+        console.log('[Database] 添加 project_comments.sync_status 列');
+        this.db.run("ALTER TABLE project_comments ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      }
+      if (!commentsInfo.some(col => col.name === 'synced_at')) {
+        console.log('[Database] 添加 project_comments.synced_at 列');
+        this.db.run('ALTER TABLE project_comments ADD COLUMN synced_at INTEGER');
+      }
+      if (!commentsInfo.some(col => col.name === 'deleted')) {
+        console.log('[Database] 添加 project_comments.deleted 列');
+        this.db.run('ALTER TABLE project_comments ADD COLUMN deleted INTEGER DEFAULT 0');
+      }
+
+      // 为 project_tasks 表添加同步字段
+      const tasksInfo = this.db.prepare("PRAGMA table_info(project_tasks)").all();
+      if (!tasksInfo.some(col => col.name === 'sync_status')) {
+        console.log('[Database] 添加 project_tasks.sync_status 列');
+        this.db.run("ALTER TABLE project_tasks ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      }
+      if (!tasksInfo.some(col => col.name === 'synced_at')) {
+        console.log('[Database] 添加 project_tasks.synced_at 列');
+        this.db.run('ALTER TABLE project_tasks ADD COLUMN synced_at INTEGER');
+      }
+      if (!tasksInfo.some(col => col.name === 'deleted')) {
+        console.log('[Database] 添加 project_tasks.deleted 列');
+        this.db.run('ALTER TABLE project_tasks ADD COLUMN deleted INTEGER DEFAULT 0');
+      }
+
+      // 为 project_conversations 表添加同步字段
+      const projConvInfo = this.db.prepare("PRAGMA table_info(project_conversations)").all();
+      if (!projConvInfo.some(col => col.name === 'sync_status')) {
+        console.log('[Database] 添加 project_conversations.sync_status 列');
+        this.db.run("ALTER TABLE project_conversations ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      }
+      if (!projConvInfo.some(col => col.name === 'synced_at')) {
+        console.log('[Database] 添加 project_conversations.synced_at 列');
+        this.db.run('ALTER TABLE project_conversations ADD COLUMN synced_at INTEGER');
+      }
+      if (!projConvInfo.some(col => col.name === 'deleted')) {
+        console.log('[Database] 添加 project_conversations.deleted 列');
+        this.db.run('ALTER TABLE project_conversations ADD COLUMN deleted INTEGER DEFAULT 0');
+      }
+
       console.log('[Database] 数据库迁移完成');
     } catch (error) {
       console.error('[Database] 数据库迁移失败:', error);

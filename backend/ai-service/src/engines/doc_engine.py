@@ -122,6 +122,51 @@ class DocumentEngine:
             print(f"Document generation error: {e}")
             raise
 
+    def _get_quick_outline_template(self, doc_type: str, prompt: str) -> Optional[Dict[str, Any]]:
+        """快速模板：对于常见文档类型，直接返回预定义大纲，跳过LLM调用"""
+
+        templates = {
+            "report": {
+                "title": "工作报告",
+                "subtitle": "定期工作总结",
+                "author": "AI助手",
+                "date": "2024-12-24",
+                "sections": [
+                    {
+                        "title": "一、工作概述",
+                        "subsections": ["1.1 本期工作重点", "1.2 完成情况"]
+                    },
+                    {
+                        "title": "二、详细内容",
+                        "subsections": ["2.1 主要成果", "2.2 遇到的问题", "2.3 解决方案"]
+                    },
+                    {
+                        "title": "三、下期计划",
+                        "subsections": ["3.1 工作目标", "3.2 具体安排"]
+                    }
+                ],
+                "include_toc": True,
+                "include_charts": False
+            },
+            "resume": {
+                "title": "个人简历",
+                "subtitle": "",
+                "author": "求职者",
+                "date": "2024-12-24",
+                "sections": [
+                    {"title": "基本信息", "subsections": []},
+                    {"title": "教育背景", "subsections": []},
+                    {"title": "工作经历", "subsections": []},
+                    {"title": "项目经验", "subsections": []},
+                    {"title": "专业技能", "subsections": []}
+                ],
+                "include_toc": False,
+                "include_charts": False
+            }
+        }
+
+        return templates.get(doc_type)
+
     async def _generate_outline(
         self,
         prompt: str,
@@ -129,6 +174,12 @@ class DocumentEngine:
         entities: Dict[str, Any]
     ) -> Dict[str, Any]:
         """生成文档大纲"""
+
+        # 优先使用快速模板
+        quick_template = self._get_quick_outline_template(doc_type, prompt)
+        if quick_template:
+            print(f"Using quick template for doc_type: {doc_type}")
+            return quick_template
 
         outline_prompt = f"""根据用户需求生成文档大纲。
 
@@ -216,11 +267,30 @@ class DocumentEngine:
 
         sections_content = []
 
+        # 使用快速模板生成简单占位内容，避免调用LLM
+        use_quick_template = True  # 默认使用快速模板
+
         for section in outline.get("sections", []):
             section_title = section.get("title", "")
             subsections = section.get("subsections", [])
 
-            # 生成章节内容
+            if use_quick_template:
+                # 快速模板：生成简单占位内容
+                content_parts = [f"【{section_title}】\n"]
+                if subsections:
+                    for sub in subsections:
+                        content_parts.append(f"\n{sub}\n这里是{sub}的详细内容。请根据实际需要填写相关信息。\n")
+                else:
+                    content_parts.append(f"\n这里是{section_title}的详细内容。请根据实际需要填写相关信息。\n")
+
+                sections_content.append({
+                    "title": section_title,
+                    "content": "".join(content_parts),
+                    "subsections": subsections
+                })
+                continue
+
+            # 生成章节内容（LLM模式，较慢）
             content_prompt = f"""为文档章节生成内容。
 
 章节标题: {section_title}

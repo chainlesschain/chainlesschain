@@ -1,0 +1,27 @@
+{
+  "tableName": "projects",
+  "deviceId": "test-device-001",
+  "lastSyncedAt": 0,
+  "records": [
+    {
+      "id": "test-project-001",
+      "userId": "test-user",
+      "name": "测试同步项目",
+      "type": "knowledge",
+      "projectType": "knowledge",
+      "description": "用于测试数据同步功能",
+      "status": "active",
+      "ownerDid": "did:test:user001",
+      "folderPath": "/test/path",
+      "rootPath": "/test/path",
+      "fileCount": 0,
+      "totalSize": 0,
+      "createdAt": "2024-12-24T10:00:00",
+      "updatedAt": "2024-12-24T10:00:00",
+      "syncStatus": "synced",
+      "deviceId": "test-device-001",
+      "deleted": 0
+    }
+  ],
+  "forceOverwrite": false
+}

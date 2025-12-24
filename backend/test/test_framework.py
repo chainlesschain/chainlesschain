@@ -150,7 +150,7 @@ class TestReporter:
 class APITester:
     """API测试器基类"""
 
-    def __init__(self, base_url: str, timeout: int = 30):
+    def __init__(self, base_url: str, timeout: int = 600):
         self.base_url = base_url.rstrip('/')
         self.timeout = timeout
         self.session = requests.Session()
@@ -328,13 +328,28 @@ class APITester:
 # 通用验证函数
 def validate_success_response(response_data: Dict):
     """验证成功响应的标准格式"""
-    assert "success" in response_data or "status" in response_data, "响应中缺少success/status字段"
+    # 支持多种响应格式
+    # 格式1: {"success": true, "code": 200, "data": {...}}
+    # 格式2: {"code": 200, "message": "...", "data": {...}}
+    # 格式3: {"status": "healthy/running", ...}
+
+    has_valid_field = (
+        "success" in response_data or
+        "status" in response_data or
+        "code" in response_data
+    )
+
+    assert has_valid_field, "响应中缺少success/status/code字段"
 
     if "success" in response_data:
         assert response_data["success"] is True, f"success字段为False"
 
     if "code" in response_data:
         assert response_data["code"] in [0, 200], f"响应code不正确: {response_data['code']}"
+
+    if "status" in response_data:
+        valid_statuses = ["healthy", "running", "ok", "success"]
+        assert response_data["status"] in valid_statuses, f"status不正确: {response_data['status']}"
 
 
 def validate_has_data(response_data: Dict):

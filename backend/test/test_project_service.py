@@ -23,11 +23,9 @@ class ProjectServiceTester(APITester):
 
     def test_create_project(self):
         project_data = {
-            "name": f"测试项目_{uuid.uuid4().hex[:8]}",
-            "description": "这是一个自动化测试项目",
+            "userPrompt": f"Create a simple web project for testing - {uuid.uuid4().hex[:8]}",
             "projectType": "web",
-            "userId": "test_user_001",
-            "template": "basic"
+            "userId": "test_user_001"
         }
 
         result = self.run_test(

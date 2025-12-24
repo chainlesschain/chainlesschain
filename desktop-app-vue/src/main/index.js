@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const crypto = require('crypto');
 const DatabaseManager = require('./database');
 const { UKeyManager, DriverTypes } = require('./ukey/ukey-manager');
 const GitManager = require('./git/git-manager');
@@ -4593,27 +4594,31 @@ class ChainlessChainApp {
           onComplete: async (data) => {
             // 兼容不同引擎的数据结构
             // Web引擎: { type: "complete", files: [...], metadata: {...} }
-            // Document/Data引擎: { type: "complete", result: { files: [...], metadata: {...} } }
+            // Document/Data引擎: { type: "complete", project_type: "document", result: { files: [...], metadata: {...} } }
             const result = data.result || data;
             accumulatedData.files = result.files || [];
             accumulatedData.metadata = result.metadata || {};
 
             console.log('[Main] 流式创建完成，文件数量:', accumulatedData.files.length);
+            console.log('[Main] 项目类型:', data.project_type);
 
             // 保存到SQLite数据库
             if (this.database && accumulatedData.files.length > 0) {
               try {
+                // 确定项目类型：优先使用后端返回的类型，然后用户指定的类型，最后默认web
+                const projectType = data.project_type || cleanedCreateData.projectType || 'web';
+
                 // 构建项目对象
                 const localProject = {
-                  id: this._generateUUID(),
+                  id: crypto.randomUUID(),
                   name: cleanedCreateData.name || '未命名项目',
-                  projectType: cleanedCreateData.projectType || 'web',
+                  projectType: projectType,
                   userId: cleanedCreateData.userId || 'default-user',
                   createdAt: Date.now(),
                   updatedAt: Date.now(),
                   metadata: JSON.stringify(accumulatedData.metadata),
                   user_id: cleanedCreateData.userId || 'default-user',
-                  sync_status: 'local',
+                  sync_status: 'pending',
                 };
 
                 console.log('[Main] 保存项目到数据库，ID:', localProject.id);
