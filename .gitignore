@@ -120,6 +120,9 @@ coverage/
 *.lcov
 .nyc_output/
 
+# Test reports
+backend/test/reports/
+
 # Cache
 .cache/
 .parcel-cache/
