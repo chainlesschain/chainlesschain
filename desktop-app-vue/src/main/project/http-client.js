@@ -110,9 +110,28 @@ class ProjectHTTPClient {
     const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
     try {
+      // 转换字段名：camelCase → snake_case（后端API要求）
+      const projectType = createData.projectType || createData.project_type;
+      const backendData = {
+        user_prompt: createData.userPrompt || createData.user_prompt,
+        // 空字符串转为 null，让后端AI自动识别
+        project_type: projectType && projectType.trim() ? projectType : null,
+      };
+
+      // 只添加非空的可选字段
+      const templateId = createData.templateId || createData.template_id;
+      if (templateId && templateId.trim()) {
+        backendData.template_id = templateId;
+      }
+      if (createData.metadata) {
+        backendData.metadata = createData.metadata;
+      }
+
+      console.log('[ProjectHTTP] Stream request data:', backendData);
+
       const response = await this.client.post(
         `${AI_SERVICE_URL}/api/projects/create/stream`,
-        createData,
+        backendData,
         {
           responseType: 'stream',
           adapter: 'http',  // 使用Node.js http adapter
