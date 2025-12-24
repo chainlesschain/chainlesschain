@@ -1,0 +1,74 @@
+{
+  "timestamp": "2025-12-24T09:23:15.187253",
+  "summary": {
+    "total": 3,
+    "passed": 1,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 2
+  },
+  "services": {
+    "project-service": {
+      "total": 3,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 2,
+      "tests": [
+        {
+          "name": "健康检查",
+          "endpoint": "/api/projects/health",
+          "method": "GET",
+          "status": "PASS",
+          "status_code": 200,
+          "response_time": 0.029143333435058594,
+          "error_message": null,
+          "details": {
+            "code": 200,
+            "message": "成功",
+            "data": {
+              "status": "running",
+              "service": "project-service",
+              "timestamp": 1766539395129
+            }
+          },
+          "timestamp": "2025-12-24T09:23:15.103761"
+        },
+        {
+          "name": "创建项目",
+          "endpoint": "/api/projects/create",
+          "method": "POST",
+          "status": "SKIP",
+          "status_code": 400,
+          "response_time": null,
+          "error_message": "需要先创建项目",
+          "details": {
+            "response_body": "{\"timestamp\":\"2025-12-24 09:23:15\",\"status\":400,\"error\":\"Bad Request\",\"path\":\"/api/projects/create\"}"
+          },
+          "timestamp": "2025-12-24T09:23:15.132904"
+        },
+        {
+          "name": "获取项目列表",
+          "endpoint": "/api/projects/list",
+          "method": "GET",
+          "status": "SKIP",
+          "status_code": 200,
+          "response_time": 0.03221869468688965,
+          "error_message": "需要先创建项目",
+          "details": {
+            "code": 200,
+            "message": "成功",
+            "data": {
+              "records": [],
+              "total": 0,
+              "size": 10,
+              "current": 1,
+              "pages": 0
+            }
+          },
+          "timestamp": "2025-12-24T09:23:15.152030"
+        }
+      ]
+    }
+  }
+}

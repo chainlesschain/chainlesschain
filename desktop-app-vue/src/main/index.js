@@ -4452,6 +4452,143 @@ class ChainlessChainApp {
       }
     });
 
+    // 流式创建项目（SSE）
+    ipcMain.handle('project:create-stream', async (event, createData) => {
+      const { getProjectHTTPClient } = require('./project/http-client');
+      const httpClient = getProjectHTTPClient();
+
+      // 流式状态
+      let streamControl = null;
+      let accumulatedData = {
+        stages: [],
+        contentByStage: {},
+        files: [],
+        metadata: {},
+      };
+
+      try {
+        // 清理输入数据中的 undefined 值
+        const cleanedCreateData = this._replaceUndefinedWithNull(createData);
+        console.log('[Main] 开始流式创建项目，参数:', JSON.stringify(cleanedCreateData, null, 2));
+
+        streamControl = await httpClient.createProjectStream(cleanedCreateData, {
+          // 进度回调
+          onProgress: (data) => {
+            accumulatedData.stages.push({
+              stage: data.stage,
+              message: data.message,
+              timestamp: Date.now(),
+            });
+            console.log(`[Main] 流式进度: ${data.stage} - ${data.message}`);
+            event.sender.send('project:stream-chunk', {
+              type: 'progress',
+              data,
+            });
+          },
+
+          // 内容回调
+          onContent: (data) => {
+            if (!accumulatedData.contentByStage[data.stage]) {
+              accumulatedData.contentByStage[data.stage] = '';
+            }
+            accumulatedData.contentByStage[data.stage] += data.content;
+
+            console.log(`[Main] 流式内容: ${data.stage}, 长度: ${data.content.length}`);
+            event.sender.send('project:stream-chunk', {
+              type: 'content',
+              data,
+            });
+          },
+
+          // 完成回调
+          onComplete: async (data) => {
+            accumulatedData.files = data.files || [];
+            accumulatedData.metadata = data.metadata || {};
+
+            console.log('[Main] 流式创建完成，文件数量:', accumulatedData.files.length);
+
+            // 保存到SQLite数据库
+            if (this.database && accumulatedData.files.length > 0) {
+              try {
+                // 构建项目对象
+                const localProject = {
+                  id: this._generateUUID(),
+                  name: cleanedCreateData.name || '未命名项目',
+                  projectType: cleanedCreateData.projectType || 'web',
+                  userId: cleanedCreateData.userId || 'default-user',
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: JSON.stringify(accumulatedData.metadata),
+                  user_id: cleanedCreateData.userId || 'default-user',
+                  sync_status: 'local',
+                };
+
+                console.log('[Main] 保存项目到数据库，ID:', localProject.id);
+                await this.database.saveProject(localProject);
+
+                // 保存项目文件
+                const cleanedFiles = this._replaceUndefinedWithNull(accumulatedData.files);
+                await this.database.saveProjectFiles(localProject.id, cleanedFiles);
+                console.log('[Main] 项目文件已保存');
+
+                // 返回包含本地ID的完整数据
+                data.projectId = localProject.id;
+              } catch (saveError) {
+                console.error('[Main] 保存项目失败:', saveError);
+                event.sender.send('project:stream-chunk', {
+                  type: 'error',
+                  error: `保存失败: ${saveError.message}`,
+                });
+                return;
+              }
+            }
+
+            // 发送完成事件
+            event.sender.send('project:stream-chunk', {
+              type: 'complete',
+              data: this._replaceUndefinedWithNull(data),
+            });
+          },
+
+          // 错误回调
+          onError: (error) => {
+            console.error('[Main] 流式创建错误:', error);
+            event.sender.send('project:stream-chunk', {
+              type: 'error',
+              error: error.message,
+            });
+          },
+        });
+
+        // 监听取消事件
+        const handleCancel = () => {
+          console.log('[Main] 收到取消请求');
+          if (streamControl) {
+            streamControl.cancel();
+          }
+        };
+        ipcMain.once('project:stream-cancel-event', handleCancel);
+
+        return { success: true };
+
+      } catch (error) {
+        console.error('[Main] Stream create failed:', error);
+        event.sender.send('project:stream-chunk', {
+          type: 'error',
+          error: error.message,
+        });
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 取消流式创建
+    ipcMain.handle('project:stream-cancel', () => {
+      console.log('[Main] 触发取消事件');
+      // 触发取消事件
+      ipcMain.emit('project:stream-cancel-event');
+      return { success: true };
+    });
+
     // 保存项目到本地SQLite
     ipcMain.handle('project:save', async (_event, project) => {
       try {

@@ -97,6 +97,90 @@ class ProjectHTTPClient {
   }
 
   /**
+   * 流式创建项目（SSE）
+   * @param {Object} createData - 创建数据
+   * @param {Object} callbacks - 回调函数
+   * @param {Function} callbacks.onProgress - 进度回调 (data) => void
+   * @param {Function} callbacks.onContent - 内容回调 (data) => void
+   * @param {Function} callbacks.onComplete - 完成回调 (data) => void
+   * @param {Function} callbacks.onError - 错误回调 (error) => void
+   * @returns {Promise<Object>} 返回控制对象 { cancel: Function }
+   */
+  async createProjectStream(createData, { onProgress, onContent, onComplete, onError }) {
+    const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await this.client.post(
+        `${AI_SERVICE_URL}/api/projects/create/stream`,
+        createData,
+        {
+          responseType: 'stream',
+          adapter: 'http',  // 使用Node.js http adapter
+          timeout: 600000,  // 10分钟超时
+        }
+      );
+
+      let buffer = '';
+      const cleanup = () => {
+        response.data.removeAllListeners();
+      };
+
+      response.data.on('data', (chunk) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // 保留不完整的行
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              switch (data.type) {
+                case 'progress':
+                  onProgress?.(data);
+                  break;
+                case 'content':
+                  onContent?.(data);
+                  break;
+                case 'complete':
+                  onComplete?.(data);
+                  cleanup();
+                  break;
+                case 'error':
+                  onError?.(new Error(data.error));
+                  cleanup();
+                  break;
+              }
+            } catch (err) {
+              console.error('[StreamParse] Failed to parse SSE:', err);
+            }
+          }
+        }
+      });
+
+      response.data.on('error', (err) => {
+        onError?.(err);
+        cleanup();
+      });
+
+      response.data.on('end', () => {
+        cleanup();
+      });
+
+      return {
+        cancel: () => {
+          response.data.destroy();
+          cleanup();
+        }
+      };
+    } catch (error) {
+      console.error('[ProjectHTTP] Stream create failed:', error);
+      onError?.(error);
+      throw error;
+    }
+  }
+
+  /**
    * 获取项目列表（分页）
    * @param {string} userId - 用户ID
    * @param {number} pageNum - 页码（从1开始）
