@@ -771,9 +771,15 @@ async def index_project_files(request: ProjectIndexRequest):
 
 
 @app.get("/api/rag/index/stats")
-async def get_index_stats(project_id: str):
+async def get_index_stats(project_id: Optional[str] = None):
     """获取项目索引统计"""
     try:
+        if not project_id:
+            # 返回所有项目的统计
+            return {
+                "message": "Please provide project_id parameter",
+                "total_projects": 0
+            }
         result = await file_indexer.get_index_stats(project_id)
         return result
     except Exception as e:

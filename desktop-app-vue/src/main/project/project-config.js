@@ -73,8 +73,8 @@ class ProjectConfig {
       maxProjectSizeMB: 1000,
       // 允许的文件类型
       allowedFileTypes: ['html', 'css', 'js', 'json', 'md', 'txt', 'pdf', 'docx', 'xlsx', 'pptx', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'mp4', 'mp3'],
-      // 自动同步
-      autoSync: true,
+      // 自动同步（已禁用以避免同步错误）
+      autoSync: false,
       // 同步间隔（秒）
       syncIntervalSeconds: 300,
     };

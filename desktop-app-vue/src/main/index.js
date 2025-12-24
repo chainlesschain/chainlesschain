@@ -4602,6 +4602,12 @@ class ChainlessChainApp {
             console.log('[Main] 流式创建完成，文件数量:', accumulatedData.files.length);
             console.log('[Main] 项目类型:', data.project_type);
 
+            // 统一数据结构：将result中的数据提升到顶层
+            if (data.result) {
+              data.files = result.files;
+              data.metadata = result.metadata;
+            }
+
             // 保存到SQLite数据库
             if (this.database && accumulatedData.files.length > 0) {
               try {
@@ -4642,10 +4648,16 @@ class ChainlessChainApp {
             }
 
             // 发送完成事件
+            console.log('[Main] ===== 发送complete事件到前端 =====');
+            console.log('[Main] Complete data keys:', Object.keys(data));
+            console.log('[Main] Complete data.projectId:', data.projectId);
+
             event.sender.send('project:stream-chunk', {
               type: 'complete',
-              data: this._replaceUndefinedWithNull(data),
+              data: data,  // 直接发送，不使用this._replaceUndefinedWithNull
             });
+
+            console.log('[Main] ===== Complete事件已发送 =====');
           },
 
           // 错误回调
