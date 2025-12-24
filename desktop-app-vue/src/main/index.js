@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const DatabaseManager = require('./database');
 const { UKeyManager, DriverTypes } = require('./ukey/ukey-manager');
@@ -4630,10 +4631,52 @@ class ChainlessChainApp {
                 console.log('[Main] 保存项目到数据库，ID:', localProject.id);
                 await this.database.saveProject(localProject);
 
-                // 保存项目文件
+                // 保存项目文件到数据库
                 const cleanedFiles = this._replaceUndefinedWithNull(accumulatedData.files);
                 await this.database.saveProjectFiles(localProject.id, cleanedFiles);
-                console.log('[Main] 项目文件已保存');
+                console.log('[Main] 项目文件已保存到数据库');
+
+                // 写入文件到文件系统（对于document类型）
+                if (projectType === 'document' && accumulatedData.files.length > 0) {
+                  try {
+                    const projectRootPath = path.join(
+                      this.projectConfig.getProjectsRootPath(),
+                      localProject.id
+                    );
+
+                    console.log('[Main] 创建项目目录:', projectRootPath);
+                    await fs.promises.mkdir(projectRootPath, { recursive: true });
+
+                    // 写入每个文件到文件系统
+                    for (const file of accumulatedData.files) {
+                      const filePath = path.join(projectRootPath, file.path);
+                      console.log('[Main] 写入文件:', filePath);
+
+                      // 解码base64内容
+                      let fileContent;
+                      if (file.content_encoding === 'base64') {
+                        fileContent = Buffer.from(file.content, 'base64');
+                        console.log('[Main] 已解码base64内容，大小:', fileContent.length, 'bytes');
+                      } else if (typeof file.content === 'string') {
+                        fileContent = Buffer.from(file.content, 'utf-8');
+                      } else {
+                        fileContent = file.content;
+                      }
+
+                      await fs.promises.writeFile(filePath, fileContent);
+                      console.log('[Main] 文件写入成功:', file.path);
+                    }
+
+                    // 更新项目的root_path
+                    await this.database.updateProject(localProject.id, {
+                      root_path: projectRootPath,
+                    });
+                    console.log('[Main] 项目root_path已更新');
+                  } catch (writeError) {
+                    console.error('[Main] 写入文件系统失败:', writeError);
+                    // 不抛出错误，文件已在数据库中，可以后续处理
+                  }
+                }
 
                 // 返回包含本地ID的完整数据
                 data.projectId = localProject.id;

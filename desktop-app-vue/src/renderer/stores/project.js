@@ -313,6 +313,11 @@ export const useProjectStore = defineStore('project', {
           },
 
           onComplete: (data) => {
+            console.log('[Store] ===== onComplete回调被触发 =====');
+            console.log('[Store] Complete data:', data);
+            console.log('[Store] Complete data.projectId:', data.projectId);
+            console.log('[Store] Complete data.files length:', data.files?.length);
+
             // 标记所有阶段完成
             progressData.stages.forEach(s => s.status = 'completed');
             progressData.metadata = data.metadata || {};
@@ -322,8 +327,11 @@ export const useProjectStore = defineStore('project', {
               timestamp: Date.now(),
             });
 
+            console.log('[Store] 所有阶段已标记为completed');
+
             // 添加到项目列表
             if (data.projectId) {
+              console.log('[Store] 添加项目到列表');
               this.projects.unshift({
                 id: data.projectId,
                 name: createData.name || '未命名项目',
@@ -334,16 +342,22 @@ export const useProjectStore = defineStore('project', {
                 updated_at: Date.now(),
               });
               this.pagination.total++;
+              console.log('[Store] 项目已添加，当前项目总数:', this.projects.length);
+            } else {
+              console.warn('[Store] 警告: data.projectId为空，未添加到列表');
             }
 
             // 回调给UI
+            console.log('[Store] 调用onProgress回调，type=complete');
             onProgress?.({
               type: 'complete',
               ...progressData,
               result: data,
             });
 
+            console.log('[Store] 调用resolve，完成Promise');
             resolve(data);
+            console.log('[Store] ===== onComplete处理完毕 =====');
           },
 
           onError: (error) => {
