@@ -80,8 +80,8 @@ class ProjectServiceTester(APITester):
 
         task_data = {
             "projectId": self.test_project_id,
-            "taskType": "build",
-            "params": {}
+            "userPrompt": "Add error handling to the project",
+            "context": []
         }
 
         self.run_test(
@@ -190,12 +190,11 @@ class ProjectServiceTester(APITester):
             print("[SKIP] 批量创建文件 - 缺少项目ID")
             return
 
-        batch_data = {
-            "files": [
-                {"fileName": "file1.txt", "filePath": "/test", "content": "Content 1"},
-                {"fileName": "file2.txt", "filePath": "/test", "content": "Content 2"}
-            ]
-        }
+        # 直接发送List，不是包装在对象中
+        batch_data = [
+            {"fileName": "file1.txt", "filePath": "/test", "content": "Content 1", "fileType": "text"},
+            {"fileName": "file2.txt", "filePath": "/test", "content": "Content 2", "fileType": "text"}
+        ]
 
         self.run_test(
             name="批量创建文件",
@@ -225,9 +224,10 @@ class ProjectServiceTester(APITester):
             return
 
         collaborator_data = {
-            "userId": "collaborator_001",
+            "collaboratorDid": "did:example:collaborator001",
             "role": "developer",
-            "permissions": ["read", "write"]
+            "permissions": ["read", "write"],
+            "invitationMessage": "Welcome to the project"
         }
 
         result = self.run_test(
@@ -401,10 +401,19 @@ class ProjectServiceTester(APITester):
             return
 
         rule_data = {
-            "name": "Auto Build Rule",
-            "trigger": "on_commit",
-            "actions": ["build", "test"],
-            "enabled": True
+            "ruleName": "Auto Build Rule",
+            "description": "Automatically build and test on file changes",
+            "triggerEvent": "file_modified",
+            "actionType": "run_script",
+            "triggerConfig": {
+                "filePattern": "*.java",
+                "watchPaths": ["/src"]
+            },
+            "actionConfig": {
+                "script": "npm run build && npm run test",
+                "timeout": 300
+            },
+            "isEnabled": True
         }
 
         result = self.run_test(

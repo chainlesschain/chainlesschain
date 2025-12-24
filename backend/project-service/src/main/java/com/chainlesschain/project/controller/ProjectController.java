@@ -95,6 +95,41 @@ public class ProjectController {
     }
 
     /**
+     * 导出项目
+     */
+    @PostMapping("/{projectId}/export")
+    public ApiResponse<Map<String, Object>> exportProject(
+            @PathVariable String projectId,
+            @RequestParam(defaultValue = "zip") String format,
+            @RequestParam(defaultValue = "true") boolean includeHistory,
+            @RequestParam(defaultValue = "true") boolean includeComments) {
+        try {
+            Map<String, Object> result = projectService.exportProject(projectId, format, includeHistory, includeComments);
+            return ApiResponse.success("项目导出成功", result);
+        } catch (Exception e) {
+            log.error("导出项目失败", e);
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 导入项目
+     */
+    @PostMapping("/import")
+    public ApiResponse<ProjectResponse> importProject(
+            @RequestParam String filePath,
+            @RequestParam(required = false) String projectName,
+            @RequestParam(defaultValue = "false") boolean overwrite) {
+        try {
+            ProjectResponse response = projectService.importProject(filePath, projectName, overwrite);
+            return ApiResponse.success("项目导入成功", response);
+        } catch (Exception e) {
+            log.error("导入项目失败", e);
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
      * 健康检查
      */
     @GetMapping("/health")
