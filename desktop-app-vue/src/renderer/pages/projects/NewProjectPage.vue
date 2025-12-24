@@ -47,50 +47,17 @@
       </a-tabs>
     </div>
 
-    <!-- 创建进度Modal -->
-    <a-modal
-      v-model:open="showProgressModal"
-      title="创建项目中"
-      :closable="false"
-      :maskClosable="false"
-      :footer="null"
-      :width="500"
-    >
-      <div class="progress-content">
-        <a-progress
-          :percent="createProgress"
-          :status="progressStatus"
-          stroke-color="#667eea"
-        />
-        <div class="progress-text">{{ progressText }}</div>
-
-        <!-- 创建失败时显示错误信息 -->
-        <div v-if="createError" class="error-message">
-          <ExclamationCircleOutlined />
-          {{ createError }}
-        </div>
-
-        <!-- 创建完成时显示成功信息和操作按钮 -->
-        <div v-if="createProgress === 100 && !createError" class="success-actions">
-          <a-button type="primary" @click="handleViewNewProject">
-            查看项目
-          </a-button>
-          <a-button @click="handleContinueCreate">
-            继续创建
-          </a-button>
-        </div>
-
-        <!-- 创建失败时显示重试按钮 -->
-        <div v-if="createError" class="error-actions">
-          <a-button type="primary" @click="handleRetryCreate">
-            重试
-          </a-button>
-          <a-button @click="handleCancelCreate">
-            取消
-          </a-button>
-        </div>
-      </div>
-    </a-modal>
+    <!-- 流式创建进度Modal -->
+    <StreamProgressModal
+      :open="showProgressModal"
+      :progress-data="streamProgressData"
+      :error="createError"
+      @cancel="handleCancelStream"
+      @retry="handleRetryCreate"
+      @close="handleCloseStream"
+      @view-project="handleViewNewProject"
+      @continue="handleContinueCreate"
+    />
   </div>
 </template>
 
@@ -110,6 +77,7 @@ import {
 import AIProjectCreator from '@/components/projects/AIProjectCreator.vue';
 import TemplateSelector from '@/components/projects/TemplateSelector.vue';
 import ManualProjectForm from '@/components/projects/ManualProjectForm.vue';
+import StreamProgressModal from '@/components/projects/StreamProgressModal.vue';
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -123,6 +91,15 @@ const progressText = ref('准备创建...');
 const createError = ref('');
 const createdProjectId = ref('');
 const pendingCreateData = ref(null);
+
+// 流式进度数据
+const streamProgressData = ref({
+  currentStage: '',
+  stages: [],
+  contentByStage: {},
+  logs: [],
+  metadata: {},
+});
 
 // 计算属性
 const progressStatus = computed(() => {
@@ -161,43 +138,35 @@ const handleTemplateSelect = async (template) => {
   await startCreateProcess(createData);
 };
 
-// 开始创建流程
+// 开始创建流程（流式）
 const startCreateProcess = async (createData) => {
   showProgressModal.value = true;
-  createProgress.value = 0;
   createError.value = '';
-  progressText.value = '准备创建...';
+  streamProgressData.value = {
+    currentStage: '',
+    stages: [],
+    contentByStage: {},
+    logs: [],
+    metadata: {},
+  };
 
   try {
-    // 阶段1: 连接服务
-    progressText.value = '连接AI服务...';
-    createProgress.value = 10;
-    await sleep(500);
+    const result = await projectStore.createProjectStream(createData, (progressUpdate) => {
+      // 更新进度数据
+      streamProgressData.value = { ...progressUpdate };
 
-    // 阶段2: 生成项目
-    progressText.value = '生成项目文件...';
-    createProgress.value = 30;
-
-    // 调用项目创建
-    const project = await projectStore.createProject(createData);
-    createdProjectId.value = project.id;
-    createProgress.value = 70;
-
-    // 阶段3: 保存到本地
-    progressText.value = '保存到本地数据库...';
-    await sleep(300);
-    createProgress.value = 90;
-
-    // 阶段4: 完成
-    progressText.value = '创建完成！';
-    createProgress.value = 100;
-
-    message.success('项目创建成功！');
+      // 处理不同类型
+      if (progressUpdate.type === 'complete') {
+        createdProjectId.value = progressUpdate.result.projectId;
+        message.success('项目创建成功！');
+      } else if (progressUpdate.type === 'error') {
+        createError.value = progressUpdate.error;
+        message.error('创建项目失败：' + progressUpdate.error);
+      }
+    });
   } catch (error) {
-    console.error('Create project failed:', error);
+    console.error('Create project stream failed:', error);
     createError.value = error.message || '创建项目失败';
-    progressText.value = '创建失败';
-    message.error('创建项目失败：' + error.message);
   }
 };
 
@@ -232,8 +201,28 @@ const handleCancelCreate = () => {
   pendingCreateData.value = null;
 };
 
-// 辅助函数：sleep
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+// 取消流式创建
+const handleCancelStream = async () => {
+  try {
+    await projectStore.cancelProjectStream();
+    showProgressModal.value = false;
+    message.info('已取消创建');
+  } catch (error) {
+    message.error('取消失败：' + error.message);
+  }
+};
+
+// 关闭流式Modal
+const handleCloseStream = () => {
+  showProgressModal.value = false;
+  streamProgressData.value = {
+    currentStage: '',
+    stages: [],
+    contentByStage: {},
+    logs: [],
+    metadata: {},
+  };
+};
 </script>
 
 <style scoped>
