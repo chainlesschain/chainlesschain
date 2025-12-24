@@ -1,102 +1,135 @@
-#!/usr/bin/env python3
 """
-测试AI服务优化后的性能
+AI服务 (FastAPI) 接口测试
+端口: 8001
 """
-import requests
-import time
-import json
+from test_framework import APITester, validate_success_response, validate_has_data
+import uuid
 
-API_URL = "http://localhost:8001/api/projects/create"
 
-# 测试用例
-test_cases = [
-    {
-        "name": "待办事项（预定义模板）",
-        "data": {
-            "user_prompt": "创建一个待办事项管理应用",
-            "project_type": "web"
-        }
-    },
-    {
-        "name": "博客（预定义模板）",
-        "data": {
-            "user_prompt": "创建一个个人博客",
-            "project_type": "web"
-        }
-    },
-    {
-        "name": "作品集（预定义模板）",
-        "data": {
-            "user_prompt": "创建一个作品集网站",
-            "project_type": "web"
-        }
-    },
-    {
-        "name": "自定义Web项目（LLM生成）",
-        "data": {
-            "user_prompt": "创建一个电商网站",
-            "project_type": "web"
-        }
-    }
-]
+class AIServiceTester(APITester):
+    def __init__(self, base_url: str = "http://localhost:8001"):
+        super().__init__(base_url)
+        self.test_project_id = None
 
-def test_api(test_case):
-    """测试单个API调用"""
-    print(f"\n测试: {test_case['name']}")
-    print("="*60)
-
-    start_time = time.time()
-
-    try:
-        response = requests.post(
-            API_URL,
-            json=test_case['data'],
-            timeout=30
+    def test_health(self):
+        self.run_test(
+            name="AI服务健康检查",
+            method="GET",
+            endpoint="/health",
+            expected_status=200
         )
 
-        elapsed = time.time() - start_time
+    def test_root(self):
+        self.run_test(
+            name="AI服务根路径",
+            method="GET",
+            endpoint="/",
+            expected_status=200
+        )
 
-        print(f"状态码: {response.status_code}")
-        print(f"耗时: {elapsed:.2f}秒")
+    def test_intent_classify(self):
+        request_data = {
+            "text": "创建一个待办事项网页应用",
+            "context": []
+        }
 
-        if response.status_code == 200:
-            result = response.json()
-            print(f"成功: 项目类型 = {result.get('project_type')}")
-            if 'intent' in result:
-                intent = result['intent']
-                print(f"意图识别: {intent.get('confidence', 0):.2f} 置信度")
-                if intent.get('fast_path'):
-                    print("✓ 使用了快速路径（规则识别）")
+        self.run_test(
+            name="意图识别",
+            method="POST",
+            endpoint="/api/intent/classify",
+            data=request_data,
+            expected_status=200
+        )
 
-            if 'result' in result and 'metadata' in result['result']:
-                metadata = result['result']['metadata']
-                if metadata.get('source') == 'predefined_template':
-                    print("✓ 使用了预定义模板（无需LLM）")
-                elif metadata.get('source') == 'llm_generated':
-                    print("⊗ 使用了LLM生成")
+    def test_create_project(self):
+        request_data = {
+            "user_prompt": "创建一个简单的HTML页面，显示Hello World",
+            "project_type": "web"
+        }
 
-            if 'result' in result and 'files' in result['result']:
-                files = result['result']['files']
-                print(f"生成文件数: {len(files)}")
-                for f in files:
-                    print(f"  - {f['path']}")
-        else:
-            print(f"失败: {response.text}")
+        result = self.run_test(
+            name="AI创建项目",
+            method="POST",
+            endpoint="/api/projects/create",
+            data=request_data,
+            expected_status=200
+        )
 
-    except requests.exceptions.Timeout:
-        print(f"超时: 超过30秒")
-    except Exception as e:
-        print(f"错误: {e}")
+        if result.response_data and "result" in result.response_data:
+            res = result.response_data["result"]
+            if isinstance(res, dict) and "project_id" in res:
+                self.test_project_id = res["project_id"]
 
-def main():
-    print("AI服务性能测试")
-    print("="*60)
+    def test_rag_query(self):
+        self.run_test(
+            name="RAG知识检索",
+            method="POST",
+            endpoint="/api/rag/query",
+            params={"query": "什么是机器学习"},
+            expected_status=200
+        )
 
-    for test_case in test_cases:
-        test_api(test_case)
-        time.sleep(1)  # 避免请求过快
+    def test_git_status(self):
+        self.run_test(
+            name="Git状态查询",
+            method="GET",
+            endpoint="/api/git/status",
+            params={"repo_path": "C:/code/chainlesschain"},
+            expected_status=200
+        )
 
-    print("\n\n测试完成！")
+    def test_code_generate(self):
+        request_data = {
+            "description": "创建一个Python函数，计算斐波那契数列",
+            "language": "python",
+            "style": "modern",
+            "include_tests": False,
+            "include_comments": True
+        }
+
+        self.run_test(
+            name="代码生成",
+            method="POST",
+            endpoint="/api/code/generate",
+            data=request_data,
+            expected_status=200
+        )
+
+    def test_code_explain(self):
+        request_data = {
+            "code": "def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)",
+            "language": "python"
+        }
+
+        self.run_test(
+            name="代码解释",
+            method="POST",
+            endpoint="/api/code/explain",
+            data=request_data,
+            expected_status=200
+        )
+
+    def run_all_tests(self):
+        print("
+" + "="*60)
+        print("开始测试AI服务 (FastAPI)")
+        print("="*60 + "
+")
+
+        self.test_root()
+        self.test_health()
+        self.test_intent_classify()
+        self.test_create_project()
+        self.test_rag_query()
+        self.test_git_status()
+        self.test_code_generate()
+        self.test_code_explain()
+
 
 if __name__ == "__main__":
-    main()
+    tester = AIServiceTester()
+    tester.run_all_tests()
+    tester.generate_report()

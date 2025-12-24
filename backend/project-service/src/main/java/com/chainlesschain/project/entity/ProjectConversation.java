@@ -27,6 +27,13 @@ public class ProjectConversation {
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
+    // 同步相关字段
+    @TableField("sync_status")
+    private String syncStatus = "synced";
+
+    @TableField("synced_at")
+    private LocalDateTime syncedAt;
+
     @TableLogic
     private Integer deleted;
 }

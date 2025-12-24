@@ -40,6 +40,16 @@ public class ProjectFile {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 
+    // 同步相关字段
+    @TableField("sync_status")
+    private String syncStatus = "synced";  // synced, pending, conflict
+
+    @TableField("synced_at")
+    private LocalDateTime syncedAt;
+
+    @TableField("content_hash")
+    private String contentHash;  // SHA256 hash for content change detection
+
     @TableLogic
     private Integer deleted;
 }

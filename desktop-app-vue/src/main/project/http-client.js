@@ -32,6 +32,11 @@ class ProjectHTTPClient {
     // 响应拦截器
     this.client.interceptors.response.use(
       response => {
+        // 如果是流式响应，直接返回原始响应，不进行JSON解析
+        if (response.config.responseType === 'stream') {
+          return response;
+        }
+
         // 后端返回格式: { code: 200, message: "success", data: ... }
         const { code, message, data } = response.data;
 

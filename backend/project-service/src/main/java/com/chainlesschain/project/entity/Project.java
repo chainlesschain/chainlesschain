@@ -63,6 +63,16 @@ public class Project {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 
+    // 同步相关字段
+    @TableField("sync_status")
+    private String syncStatus = "synced";  // synced, pending, conflict
+
+    @TableField("synced_at")
+    private LocalDateTime syncedAt;
+
+    @TableField("device_id")
+    private String deviceId;
+
     @TableLogic
     private Integer deleted;
 }
