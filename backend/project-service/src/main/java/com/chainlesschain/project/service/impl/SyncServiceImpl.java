@@ -119,15 +119,18 @@ public class SyncServiceImpl implements SyncService {
                 LocalDateTime createdAt = (LocalDateTime) record.get("createdAt");
                 LocalDateTime updatedAt = (LocalDateTime) record.get("updatedAt");
 
-                // 转换时间戳为毫秒
-                record.put("createdAt", toMillis(createdAt));
-                record.put("updatedAt", toMillis(updatedAt));
+                // 转换时间戳为毫秒（安全处理 null 值）
+                Long createdAtMillis = toMillis(createdAt);
+                Long updatedAtMillis = toMillis(updatedAt);
+
+                record.put("createdAt", createdAtMillis != null ? createdAtMillis : 0L);
+                record.put("updatedAt", updatedAtMillis != null ? updatedAtMillis : 0L);
 
                 if (deleted != null && deleted == 1) {
                     // 已删除的记录
                     response.getDeletedIds().add((String) record.get("id"));
                     stats.setDeletedCount(stats.getDeletedCount() + 1);
-                } else if (toMillis(createdAt) > lastSyncedAt) {
+                } else if (createdAtMillis != null && createdAtMillis > lastSyncedAt) {
                     // 新增记录
                     response.getNewRecords().add(record);
                     stats.setNewCount(stats.getNewCount() + 1);
