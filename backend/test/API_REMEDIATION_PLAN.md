@@ -2,25 +2,32 @@
 
 ## 测试执行摘要
 
-- **测试时间**: 2025-12-24 14:28:13
-- **总问题数**: 23
-  - 失败: 9
-  - 错误: 14
+- **测试时间**: 2025-12-24 17:04:28
+- **总问题数**: 10
+  - 失败: 8
+  - 错误: 2
 
 ## 问题分类
 
-### AI服务 (FastAPI) (15个问题)
+### 项目服务 (Spring Boot) (2个问题)
+
+#### [ProjectController] 创建项目
+
+- **端点**: `POST /api/projects/create`
+- **错误**: 状态码不匹配
+- **期望**: 200
+- **实际**: 400
+
+#### [SyncController] 解决同步冲突
+
+- **端点**: `POST /api/sync/resolve-conflict`
+- **错误**: success字段为False
+
+### AI服务 (FastAPI) (8个问题)
 
 #### [RAG] 增强知识查询
 
 - **端点**: `POST /api/rag/query/enhanced`
-- **错误**: 状态码不匹配
-- **期望**: 200
-- **实际**: 422
-
-#### [RAG] 索引项目文件
-
-- **端点**: `POST /api/rag/index/project`
 - **错误**: 状态码不匹配
 - **期望**: 200
 - **实际**: 422
@@ -32,13 +39,6 @@
 - **期望**: 200
 - **实际**: 422
 
-#### [Git] 查询Git状态
-
-- **端点**: `GET /api/git/status`
-- **错误**: 状态码不匹配
-- **期望**: 200
-- **实际**: 500
-
 #### [Git] 查询Git日志
 
 - **端点**: `GET /api/git/log`
@@ -49,13 +49,6 @@
 #### [Git] 查询Git差异
 
 - **端点**: `GET /api/git/diff`
-- **错误**: 状态码不匹配
-- **期望**: 200
-- **实际**: 500
-
-#### [Git] 获取分支列表
-
-- **端点**: `GET /api/git/branches`
 - **错误**: 状态码不匹配
 - **期望**: 200
 - **实际**: 500
@@ -74,141 +67,39 @@
 - **期望**: 200
 - **实际**: 500
 
-#### [Project] 创建Web项目
-
-- **端点**: `POST /api/projects/create`
-- **错误**: 请求超时 (>30s)
-
 #### [Project] 创建数据分析项目
 
 - **端点**: `POST /api/projects/create`
-- **错误**: 请求超时 (>30s)
+- **错误**: 请求超时 (>120s)
 
 #### [Project] 创建文档项目
 
 - **端点**: `POST /api/projects/create`
-- **错误**: 请求超时 (>30s)
-
-#### [Task] 执行任务 - 添加功能
-
-- **端点**: `POST /api/tasks/execute`
-- **错误**: 请求超时 (>30s)
-
-#### [RAG] 简单知识查询
-
-- **端点**: `POST /api/rag/query`
-- **错误**: 请求超时 (>30s)
-
-#### [RAG] 技术知识查询
-
-- **端点**: `POST /api/rag/query`
-- **错误**: 请求超时 (>30s)
-
-### 项目服务 (Spring Boot) (8个问题)
-
-#### [ProjectController] 健康检查
-
-- **端点**: `GET /api/projects/health`
-- **错误**: 无法连接到服务器
-
-#### [SyncController] 同步服务健康检查
-
-- **端点**: `GET /api/sync/health`
-- **错误**: 无法连接到服务器
-
-#### [ProjectController] 创建项目
-
-- **端点**: `POST /api/projects/create`
-- **错误**: 无法连接到服务器
-
-#### [ProjectController] 获取项目列表
-
-- **端点**: `GET /api/projects/list`
-- **错误**: 无法连接到服务器
-
-#### [SyncController] 批量上传数据
-
-- **端点**: `POST /api/sync/upload`
-- **错误**: 无法连接到服务器
-
-#### [SyncController] 增量下载数据
-
-- **端点**: `GET /api/sync/download/notes`
-- **错误**: 无法连接到服务器
-
-#### [SyncController] 获取同步状态
-
-- **端点**: `GET /api/sync/status`
-- **错误**: 无法连接到服务器
-
-#### [SyncController] 解决同步冲突
-
-- **端点**: `POST /api/sync/resolve-conflict`
-- **错误**: 无法连接到服务器
+- **错误**: 请求超时 (>120s)
 
 ## 修复优先级
 
-### 🔴 高优先级 (服务不可用/严重错误)
-
-- [ ] **项目服务 (Spring Boot)**: [ProjectController] 健康检查
-  - 端点: `GET /api/projects/health`
-  - 问题: 无法连接到服务器
-  - 修复建议: 检查服务是否启动，检查端口配置，查看服务日志
-
-- [ ] **项目服务 (Spring Boot)**: [SyncController] 同步服务健康检查
-  - 端点: `GET /api/sync/health`
-  - 问题: 无法连接到服务器
-  - 修复建议: 检查服务是否启动，检查端口配置，查看服务日志
+### 🟡 中优先级 (接口缺失/参数错误)
 
 - [ ] **项目服务 (Spring Boot)**: [ProjectController] 创建项目
   - 端点: `POST /api/projects/create`
-  - 问题: 无法连接到服务器
-  - 修复建议: 检查服务是否启动，检查端口配置，查看服务日志
+  - 问题: 状态码不匹配
+  - 修复建议: 检查请求参数格式，验证数据校验规则
 
-- [ ] **项目服务 (Spring Boot)**: [ProjectController] 获取项目列表
-  - 端点: `GET /api/projects/list`
-  - 问题: 无法连接到服务器
-  - 修复建议: 检查服务是否启动，检查端口配置，查看服务日志
-
-- [ ] **项目服务 (Spring Boot)**: [SyncController] 批量上传数据
-  - 端点: `POST /api/sync/upload`
-  - 问题: 无法连接到服务器
-  - 修复建议: 检查服务是否启动，检查端口配置，查看服务日志
-
-- [ ] **项目服务 (Spring Boot)**: [SyncController] 增量下载数据
-  - 端点: `GET /api/sync/download/notes`
-  - 问题: 无法连接到服务器
-  - 修复建议: 检查服务是否启动，检查端口配置，查看服务日志
-
-- [ ] **项目服务 (Spring Boot)**: [SyncController] 获取同步状态
-  - 端点: `GET /api/sync/status`
-  - 问题: 无法连接到服务器
-  - 修复建议: 检查服务是否启动，检查端口配置，查看服务日志
+### 🟢 低优先级 (数据格式/验证问题)
 
 - [ ] **项目服务 (Spring Boot)**: [SyncController] 解决同步冲突
   - 端点: `POST /api/sync/resolve-conflict`
-  - 问题: 无法连接到服务器
-  - 修复建议: 检查服务是否启动，检查端口配置，查看服务日志
-
-### 🟢 低优先级 (数据格式/验证问题)
+  - 问题: success字段为False
+  - 修复建议: 调整响应格式，确保符合API规范
 
 - [ ] **AI服务 (FastAPI)**: [RAG] 增强知识查询
   - 端点: `POST /api/rag/query/enhanced`
   - 问题: 状态码不匹配
   - 修复建议: 调整响应格式，确保符合API规范
 
-- [ ] **AI服务 (FastAPI)**: [RAG] 索引项目文件
-  - 端点: `POST /api/rag/index/project`
-  - 问题: 状态码不匹配
-  - 修复建议: 调整响应格式，确保符合API规范
-
 - [ ] **AI服务 (FastAPI)**: [RAG] 获取索引统计
   - 端点: `GET /api/rag/index/stats`
-  - 问题: 状态码不匹配
-  - 修复建议: 调整响应格式，确保符合API规范
-
-- [ ] **AI服务 (FastAPI)**: [Git] 查询Git状态
-  - 端点: `GET /api/git/status`
   - 问题: 状态码不匹配
   - 修复建议: 调整响应格式，确保符合API规范
 
@@ -219,11 +110,6 @@
 
 - [ ] **AI服务 (FastAPI)**: [Git] 查询Git差异
   - 端点: `GET /api/git/diff`
-  - 问题: 状态码不匹配
-  - 修复建议: 调整响应格式，确保符合API规范
-
-- [ ] **AI服务 (FastAPI)**: [Git] 获取分支列表
-  - 端点: `GET /api/git/branches`
   - 问题: 状态码不匹配
   - 修复建议: 调整响应格式，确保符合API规范
 

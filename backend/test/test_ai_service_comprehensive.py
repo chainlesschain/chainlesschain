@@ -10,9 +10,12 @@ import os
 
 class AIServiceComprehensiveTester(APITester):
     def __init__(self, base_url: str = "http://localhost:8001"):
-        super().__init__(base_url)
+        # AI服务需要更长的超时时间（LLM响应慢）- 10分钟
+        super().__init__(base_url, timeout=600)
         self.test_project_id = None
-        self.test_repo_path = "C:/code/chainlesschain"
+        # 使用容器内的临时测试仓库
+        self.test_repo_path = f"/tmp/test_git_repo_{uuid.uuid4().hex[:8]}"
+        self.git_repo_initialized = False
 
     # ========================================
     # Basic Health Tests
@@ -190,7 +193,7 @@ class AIServiceComprehensiveTester(APITester):
 
         request_data = {
             "project_id": self.test_project_id,
-            "project_path": self.test_repo_path,
+            "repo_path": self.test_repo_path,  # 修正字段名
             "file_patterns": ["*.py", "*.js", "*.md"]
         }
 
@@ -232,6 +235,10 @@ class AIServiceComprehensiveTester(APITester):
     # ========================================
     def test_git_status(self):
         """测试Git状态查询"""
+        if not self.git_repo_initialized:
+            print("  跳过：需要先初始化Git仓库")
+            return
+
         self.run_test(
             name="[Git] 查询Git状态",
             method="GET",
@@ -242,6 +249,10 @@ class AIServiceComprehensiveTester(APITester):
 
     def test_git_log(self):
         """测试Git日志查询"""
+        if not self.git_repo_initialized:
+            print("  跳过：需要先初始化Git仓库")
+            return
+
         self.run_test(
             name="[Git] 查询Git日志",
             method="GET",
@@ -252,6 +263,10 @@ class AIServiceComprehensiveTester(APITester):
 
     def test_git_diff(self):
         """测试Git差异查询"""
+        if not self.git_repo_initialized:
+            print("  跳过：需要先初始化Git仓库")
+            return
+
         self.run_test(
             name="[Git] 查询Git差异",
             method="GET",
@@ -262,6 +277,10 @@ class AIServiceComprehensiveTester(APITester):
 
     def test_git_branches(self):
         """测试Git分支列表"""
+        if not self.git_repo_initialized:
+            print("  跳过：需要先初始化Git仓库")
+            return
+
         self.run_test(
             name="[Git] 获取分支列表",
             method="GET",
@@ -287,19 +306,21 @@ class AIServiceComprehensiveTester(APITester):
 
     def test_git_init(self):
         """测试Git初始化"""
-        test_repo = f"C:/temp/test_repo_{uuid.uuid4().hex[:8]}"
-
         request_data = {
-            "repo_path": test_repo
+            "repo_path": self.test_repo_path
         }
 
-        self.run_test(
+        result = self.run_test(
             name="[Git] 初始化仓库",
             method="POST",
             endpoint="/api/git/init",
             data=request_data,
             expected_status=200
         )
+
+        # 如果初始化成功，设置标志
+        if result.status.value == "PASSED":
+            self.git_repo_initialized = True
 
     # ========================================
     # Code Generation Tests
@@ -480,6 +501,10 @@ def find_duplicates(arr):
     # ========================================
     def test_git_create_branch(self):
         """测试创建Git分支"""
+        if not self.git_repo_initialized:
+            print("  跳过：需要先初始化Git仓库")
+            return
+
         request_data = {
             "repo_path": self.test_repo_path,
             "branch_name": f"test-branch-{uuid.uuid4().hex[:8]}"
@@ -495,6 +520,10 @@ def find_duplicates(arr):
 
     def test_git_checkout_branch(self):
         """测试切换Git分支"""
+        if not self.git_repo_initialized:
+            print("  跳过：需要先初始化Git仓库")
+            return
+
         request_data = {
             "repo_path": self.test_repo_path,
             "branch_name": "main"
@@ -562,14 +591,14 @@ def find_duplicates(arr):
         self.test_rag_index_stats()
         self.test_rag_update_file()
 
-        # 6. Git Operations
+        # 6. Git Operations（先初始化，再测试其他操作）
         print("\n--- Git操作 ---")
+        self.test_git_init()  # 必须先初始化
         self.test_git_status()
         self.test_git_log()
         self.test_git_diff()
         self.test_git_branches()
         self.test_git_generate_commit_message()
-        self.test_git_init()
         self.test_git_create_branch()
         self.test_git_checkout_branch()
 

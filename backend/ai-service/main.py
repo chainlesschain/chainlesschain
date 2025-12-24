@@ -372,6 +372,7 @@ async def create_project_stream(request: ProjectCreateRequest):
 
                 yield format_sse({
                     "type": "complete",
+                    "project_type": project_type,
                     "result": _encode_binary_files(result)
                 })
 

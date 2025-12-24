@@ -43,6 +43,12 @@ services:
       - POSTGRES_DB=chainlesschain
       - POSTGRES_USER=chainlesschain
       - POSTGRES_PASSWORD=chainlesschain_pwd_2024
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chainlesschain -d chainlesschain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
     networks:
       - chainlesschain-network
@@ -56,6 +62,12 @@ services:
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes --requirepass chainlesschain_redis_2024
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     restart: unless-stopped
     networks:
       - chainlesschain-network
@@ -94,9 +106,18 @@ services:
       - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
     depends_on:
-      - ollama
-      - qdrant
-      - redis
+      ollama:
+        condition: service_started
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
     networks:
       - chainlesschain-network
@@ -130,9 +151,18 @@ services:
       - REDIS_PASSWORD=chainlesschain_redis_2024
       - AI_SERVICE_URL=http://ai-service:8000
     depends_on:
-      - postgres
-      - redis
-      - ai-service
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     restart: unless-stopped
     networks:
       - chainlesschain-network
