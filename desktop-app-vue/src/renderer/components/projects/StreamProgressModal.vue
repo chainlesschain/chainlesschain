@@ -288,7 +288,7 @@ const handleContinue = () => emit('continue');
 watch(
   () => props.progressData.currentStage,
   (newStage) => {
-    if (fileStages.some(f => f.key === newStage)) {
+    if (fileStages.value.some(f => f.key === newStage)) {
       activeTab.value = newStage;
     }
   }

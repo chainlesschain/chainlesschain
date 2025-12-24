@@ -122,4 +122,57 @@ public class ProjectFileController {
             return ApiResponse.error(e.getMessage());
         }
     }
+
+    /**
+     * 搜索文件（全文搜索）
+     */
+    @GetMapping("/search")
+    public ApiResponse<Page<ProjectFileDTO>> searchFiles(
+            @PathVariable String projectId,
+            @RequestParam String query,
+            @RequestParam(required = false) String fileType,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        try {
+            Page<ProjectFileDTO> page = projectFileService.searchFiles(projectId, query, fileType, pageNum, pageSize);
+            return ApiResponse.success(page);
+        } catch (Exception e) {
+            log.error("搜索文件失败", e);
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取文件版本历史
+     */
+    @GetMapping("/{fileId}/versions")
+    public ApiResponse<List<ProjectFileDTO>> getFileVersions(
+            @PathVariable String projectId,
+            @PathVariable String fileId,
+            @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<ProjectFileDTO> versions = projectFileService.getFileVersions(projectId, fileId, limit);
+            return ApiResponse.success(versions);
+        } catch (Exception e) {
+            log.error("获取文件版本历史失败", e);
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 恢复到指定版本
+     */
+    @PostMapping("/{fileId}/versions/{versionId}/restore")
+    public ApiResponse<ProjectFileDTO> restoreFileVersion(
+            @PathVariable String projectId,
+            @PathVariable String fileId,
+            @PathVariable String versionId) {
+        try {
+            ProjectFileDTO file = projectFileService.restoreFileVersion(projectId, fileId, versionId);
+            return ApiResponse.success("文件版本恢复成功", file);
+        } catch (Exception e) {
+            log.error("恢复文件版本失败", e);
+            return ApiResponse.error(e.getMessage());
+        }
+    }
 }
