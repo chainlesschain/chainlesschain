@@ -2,24 +2,24 @@
 
 ## 测试摘要
 
-- **测试时间**: 2025-12-24 18:11:20
-- **测试时长**: 116.85秒
-- **总测试数**: 19
-- **通过**: 15 ✅
-- **失败**: 4 ❌
+- **测试时间**: 2025-12-24 20:35:42
+- **测试时长**: 178.82秒
+- **总测试数**: 22
+- **通过**: 21 ✅
+- **失败**: 1 ❌
 - **错误**: 0 ⚠️
 - **跳过**: 0 ⏭️
-- **成功率**: 78.95%
+- **成功率**: 95.45%
 
 ## 详细结果
 
 
-### ✅ PASSED (15)
+### ✅ PASSED (21)
 
 #### 项目服务健康检查
 
 - **接口**: `GET /api/projects/health`
-- **耗时**: 0.025秒
+- **耗时**: 0.033秒
 
 **响应数据**:
 ```json
@@ -28,7 +28,7 @@
   "message": "成功",
   "data": {
     "service": "project-service",
-    "timestamp": 1766571080583,
+    "timestamp": 1766579742885,
     "status": "running"
   }
 }
@@ -39,12 +39,12 @@
 #### 创建项目
 
 - **接口**: `POST /api/projects/create`
-- **耗时**: 115.811秒
+- **耗时**: 117.130秒
 
 **请求数据**:
 ```json
 {
-  "userPrompt": "Create a simple web project for testing - 8c0f3df1",
+  "userPrompt": "Create a simple web project for testing - c692f0bd",
   "projectType": "web",
   "userId": "test_user_001"
 }
@@ -56,44 +56,44 @@
   "code": 200,
   "message": "项目创建成功",
   "data": {
-    "id": "60fab7fb140a2894a8f2f36f7012120a",
+    "id": "0bc94a2f840f38eb92ef00426cd214e8",
     "userId": "test_user_001",
-    "name": "项目_1766571196202",
-    "description": "Create a simple web project for testing - 8c0f3df1",
+    "name": "项目_1766579859742",
+    "description": "Create a simple web project for testing - c692f0bd",
     "projectType": "web",
     "status": "active",
-    "rootPath": "/data/projects/60fab7fb140a2894a8f2f36f7012120a",
+    "rootPath": "/data/projects/0bc94a2f840f38eb92ef00426cd214e8",
     "fileCount": 0,
     "totalSize": 0,
     "templateId": null,
     "coverImageUrl": null,
     "tags": null,
-    "createdAt": "2025-12-24T10:13:16.208116116",
-    "updatedAt": "2025-12-24T10:13:16.208269626",
+    "createdAt": "2025-12-24T12:37:39.750030292",
+    "updatedAt": "2025-12-24T12:37:39.750099697",
     "files": [
       {
-        "id": "95f43e955b6c1ff3d88982dba587e3fc",
+        "id": "90c6a23f57010275cdd0b67af5ff466e",
         "fileName": "index.html",
         "filePath": "index.html",
         "fileType": "html",
-        "fileSize": 1663,
-        "updatedAt": "2025-12-24T10:13:16.238367498"
+        "fileSize": 1800,
+        "updatedAt": "2025-12-24T12:37:39.786282284"
       },
       {
-        "id": "c046291cff95d8d6dc950295ca393ea8",
+        "id": "e4742bd104bba2b02ce1abd8253bea2e",
         "fileName": "styles.css",
         "filePath": "styles.css",
         "fileType": "css",
-        "fileSize": 3511,
-        "updatedAt": "2025-12-24T10:13:16.264879147"
+        "fileSize": 3620,
+        "updatedAt": "2025-12-24T12:37:39.810801437"
       },
       {
-        "id": "703cb0ac091eff5d3d6f56f67d9702a5",
+        "id": "a3f199d4c9c6bfe24d66bccf1eaee553",
         "fileName": "script.js",
         "filePath": "script.js",
         "fileType": "javascript",
-        "fileSize": 1914,
-        "updatedAt": "2025-12-24T10:13:16.275310796"
+        "fileSize": 1425,
+        "updatedAt": "2025-12-24T12:37:39.820532032"
       }
     ]
   }
@@ -105,7 +105,7 @@
 #### 获取项目列表
 
 - **接口**: `GET /api/projects/list`
-- **耗时**: 0.081秒
+- **耗时**: 0.076秒
 
 **响应数据**:
 ```json
@@ -115,20 +115,20 @@
   "data": {
     "records": [
       {
-        "id": "60fab7fb140a2894a8f2f36f7012120a",
+        "id": "0bc94a2f840f38eb92ef00426cd214e8",
         "userId": "test_user_001",
-        "name": "项目_1766571196202",
-        "description": "Create a simple web project for testing - 8c0f3df1",
+        "name": "项目_1766579859742",
+        "description": "Create a simple web project for testing - c692f0bd",
         "projectType": "web",
         "status": "active",
-        "rootPath": "/data/projects/60fab7fb140a2894a8f2f36f7012120a",
+        "rootPath": "/data/projects/0bc94a2f840f38eb92ef00426cd214e8",
         "fileCount": 3,
-        "totalSize": 7088,
+        "totalSize": 6845,
         "templateId": null,
         "coverImageUrl": null,
         "tags": null,
-        "createdAt": "2025-12-24T10:13:16.208116",
-        "updatedAt": "2025-12-24T10:13:16.210355",
+        "createdAt": "2025-12-24T12:37:39.75003",
+        "updatedAt": "2025-12-24T12:37:39.752841",
         "files": null
       },
       {
@@ -195,8 +195,8 @@
 
 #### 获取项目详情
 
-- **接口**: `GET /api/projects/60fab7fb140a2894a8f2f36f7012120a`
-- **耗时**: 0.058秒
+- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8`
+- **耗时**: 0.028秒
 
 **响应数据**:
 ```json
@@ -204,44 +204,44 @@
   "code": 200,
   "message": "成功",
   "data": {
-    "id": "60fab7fb140a2894a8f2f36f7012120a",
+    "id": "0bc94a2f840f38eb92ef00426cd214e8",
     "userId": "test_user_001",
-    "name": "项目_1766571196202",
-    "description": "Create a simple web project for testing - 8c0f3df1",
+    "name": "项目_1766579859742",
+    "description": "Create a simple web project for testing - c692f0bd",
     "projectType": "web",
     "status": "active",
-    "rootPath": "/data/projects/60fab7fb140a2894a8f2f36f7012120a",
+    "rootPath": "/data/projects/0bc94a2f840f38eb92ef00426cd214e8",
     "fileCount": 3,
-    "totalSize": 7088,
+    "totalSize": 6845,
     "templateId": null,
     "coverImageUrl": null,
     "tags": null,
-    "createdAt": "2025-12-24T10:13:16.208116",
-    "updatedAt": "2025-12-24T10:13:16.210355",
+    "createdAt": "2025-12-24T12:37:39.75003",
+    "updatedAt": "2025-12-24T12:37:39.752841",
     "files": [
       {
-        "id": "703cb0ac091eff5d3d6f56f67d9702a5",
+        "id": "a3f199d4c9c6bfe24d66bccf1eaee553",
         "fileName": "script.js",
         "filePath": "script.js",
         "fileType": "javascript",
-        "fileSize": 1914,
-        "updatedAt": "2025-12-24T10:13:16.275311"
+        "fileSize": 1425,
+        "updatedAt": "2025-12-24T12:37:39.820532"
       },
       {
-        "id": "c046291cff95d8d6dc950295ca393ea8",
+        "id": "e4742bd104bba2b02ce1abd8253bea2e",
         "fileName": "styles.css",
         "filePath": "styles.css",
         "fileType": "css",
-        "fileSize": 3511,
-        "updatedAt": "2025-12-24T10:13:16.264879"
+        "fileSize": 3620,
+        "updatedAt": "2025-12-24T12:37:39.810801"
       },
       {
-        "id": "95f43e955b6c1ff3d88982dba587e3fc",
+        "id": "90c6a23f57010275cdd0b67af5ff466e",
         "fileName": "index.html",
         "filePath": "index.html",
         "fileType": "html",
-        "fileSize": 1663,
-        "updatedAt": "2025-12-24T10:13:16.238367"
+        "fileSize": 1800,
+        "updatedAt": "2025-12-24T12:37:39.786282"
       }
     ]
   }
@@ -250,10 +250,35 @@
 
 ---
 
+#### 执行项目任务
+
+- **接口**: `POST /api/projects/tasks/execute`
+- **耗时**: 60.180秒
+
+**请求数据**:
+```json
+{
+  "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+  "userPrompt": "Add error handling to the project",
+  "context": []
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 500,
+  "message": "执行任务失败: java.util.concurrent.TimeoutException: Did not observe any item or terminal signal within 60000ms in 'flatMap' (and no fallback has been configured)",
+  "data": null
+}
+```
+
+---
+
 #### 获取文件列表
 
-- **接口**: `GET /api/projects/60fab7fb140a2894a8f2f36f7012120a/files`
-- **耗时**: 0.055秒
+- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files`
+- **耗时**: 0.042秒
 
 **响应数据**:
 ```json
@@ -263,48 +288,48 @@
   "data": {
     "records": [
       {
-        "id": "703cb0ac091eff5d3d6f56f67d9702a5",
-        "projectId": "60fab7fb140a2894a8f2f36f7012120a",
+        "id": "a3f199d4c9c6bfe24d66bccf1eaee553",
+        "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
         "filePath": "script.js",
         "fileName": "script.js",
         "fileType": "javascript",
         "language": "javascript",
-        "fileSize": 1914,
+        "fileSize": 1425,
         "version": 1,
         "commitHash": null,
         "generatedBy": "web_engine",
-        "createdAt": "2025-12-24T10:13:16.275287",
-        "updatedAt": "2025-12-24T10:13:16.275311",
+        "createdAt": "2025-12-24T12:37:39.820513",
+        "updatedAt": "2025-12-24T12:37:39.820532",
         "content": null
       },
       {
-        "id": "c046291cff95d8d6dc950295ca393ea8",
-        "projectId": "60fab7fb140a2894a8f2f36f7012120a",
+        "id": "e4742bd104bba2b02ce1abd8253bea2e",
+        "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
         "filePath": "styles.css",
         "fileName": "styles.css",
         "fileType": "css",
         "language": "css",
-        "fileSize": 3511,
+        "fileSize": 3620,
         "version": 1,
         "commitHash": null,
         "generatedBy": "web_engine",
-        "createdAt": "2025-12-24T10:13:16.264848",
-        "updatedAt": "2025-12-24T10:13:16.264879",
+        "createdAt": "2025-12-24T12:37:39.810779",
+        "updatedAt": "2025-12-24T12:37:39.810801",
         "content": null
       },
       {
-        "id": "95f43e955b6c1ff3d88982dba587e3fc",
-        "projectId": "60fab7fb140a2894a8f2f36f7012120a",
+        "id": "90c6a23f57010275cdd0b67af5ff466e",
+        "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
         "filePath": "index.html",
         "fileName": "index.html",
         "fileType": "html",
         "language": "html",
-        "fileSize": 1663,
+        "fileSize": 1800,
         "version": 1,
         "commitHash": null,
         "generatedBy": "web_engine",
-        "createdAt": "2025-12-24T10:13:16.238306",
-        "updatedAt": "2025-12-24T10:13:16.238367",
+        "createdAt": "2025-12-24T12:37:39.786212",
+        "updatedAt": "2025-12-24T12:37:39.786282",
         "content": null
       }
     ],
@@ -320,13 +345,13 @@
 
 #### 创建文件
 
-- **接口**: `POST /api/projects/60fab7fb140a2894a8f2f36f7012120a/files`
-- **耗时**: 0.160秒
+- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files`
+- **耗时**: 0.054秒
 
 **请求数据**:
 ```json
 {
-  "fileName": "test_99c918f2.txt",
+  "fileName": "test_23aab2be.txt",
   "filePath": "/test",
   "content": "Test file content",
   "fileType": "text"
@@ -339,18 +364,18 @@
   "code": 200,
   "message": "文件创建成功",
   "data": {
-    "id": "43cc386a9e5b469ee880c2e112de59d4",
-    "projectId": "60fab7fb140a2894a8f2f36f7012120a",
+    "id": "26f51abe4b0f1a6a10263a3ac1ffaaf9",
+    "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
     "filePath": "/test",
-    "fileName": "test_99c918f2.txt",
+    "fileName": "test_23aab2be.txt",
     "fileType": "text",
     "language": null,
     "fileSize": 17,
     "version": 1,
     "commitHash": null,
     "generatedBy": "user",
-    "createdAt": "2025-12-24T10:13:16.756999558",
-    "updatedAt": "2025-12-24T10:13:16.75703416",
+    "createdAt": "2025-12-24T12:38:40.35776217",
+    "updatedAt": "2025-12-24T12:38:40.357869678",
     "content": "Test file content"
   }
 }
@@ -360,8 +385,8 @@
 
 #### 获取文件详情
 
-- **接口**: `GET /api/projects/60fab7fb140a2894a8f2f36f7012120a/files/43cc386a9e5b469ee880c2e112de59d4`
-- **耗时**: 0.064秒
+- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/26f51abe4b0f1a6a10263a3ac1ffaaf9`
+- **耗时**: 0.023秒
 
 **响应数据**:
 ```json
@@ -369,18 +394,18 @@
   "code": 200,
   "message": "成功",
   "data": {
-    "id": "43cc386a9e5b469ee880c2e112de59d4",
-    "projectId": "60fab7fb140a2894a8f2f36f7012120a",
+    "id": "26f51abe4b0f1a6a10263a3ac1ffaaf9",
+    "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
     "filePath": "/test",
-    "fileName": "test_99c918f2.txt",
+    "fileName": "test_23aab2be.txt",
     "fileType": "text",
     "language": null,
     "fileSize": 17,
     "version": 1,
     "commitHash": null,
     "generatedBy": "user",
-    "createdAt": "2025-12-24T10:13:16.757",
-    "updatedAt": "2025-12-24T10:13:16.757034",
+    "createdAt": "2025-12-24T12:38:40.357762",
+    "updatedAt": "2025-12-24T12:38:40.35787",
     "content": "Test file content"
   }
 }
@@ -390,8 +415,8 @@
 
 #### 更新文件
 
-- **接口**: `PUT /api/projects/60fab7fb140a2894a8f2f36f7012120a/files/43cc386a9e5b469ee880c2e112de59d4`
-- **耗时**: 0.058秒
+- **接口**: `PUT /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/26f51abe4b0f1a6a10263a3ac1ffaaf9`
+- **耗时**: 0.064秒
 
 **请求数据**:
 ```json
@@ -407,18 +432,18 @@
   "code": 200,
   "message": "文件更新成功",
   "data": {
-    "id": "43cc386a9e5b469ee880c2e112de59d4",
-    "projectId": "60fab7fb140a2894a8f2f36f7012120a",
+    "id": "26f51abe4b0f1a6a10263a3ac1ffaaf9",
+    "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
     "filePath": "/test",
-    "fileName": "test_99c918f2.txt",
+    "fileName": "test_23aab2be.txt",
     "fileType": "text",
     "language": null,
     "fileSize": 15,
     "version": 2,
     "commitHash": null,
     "generatedBy": "user",
-    "createdAt": "2025-12-24T10:13:16.757",
-    "updatedAt": "2025-12-24T10:13:16.757034",
+    "createdAt": "2025-12-24T12:38:40.357762",
+    "updatedAt": "2025-12-24T12:38:40.35787",
     "content": "Updated content"
   }
 }
@@ -426,10 +451,75 @@
 
 ---
 
+#### 批量创建文件
+
+- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/batch`
+- **耗时**: 0.098秒
+
+**请求数据**:
+```json
+[
+  {
+    "fileName": "file1.txt",
+    "filePath": "/test",
+    "content": "Content 1",
+    "fileType": "text"
+  },
+  {
+    "fileName": "file2.txt",
+    "filePath": "/test",
+    "content": "Content 2",
+    "fileType": "text"
+  }
+]
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "批量创建文件成功",
+  "data": [
+    {
+      "id": "e6fbb0ae2e81c8a58bfe6a6543fff952",
+      "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+      "filePath": "/test",
+      "fileName": "file1.txt",
+      "fileType": "text",
+      "language": null,
+      "fileSize": 9,
+      "version": 1,
+      "commitHash": null,
+      "generatedBy": "user",
+      "createdAt": "2025-12-24T12:38:40.523710697",
+      "updatedAt": "2025-12-24T12:38:40.523745999",
+      "content": "Content 1"
+    },
+    {
+      "id": "851db4df498e4d6ea1c351560d2b2629",
+      "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+      "filePath": "/test",
+      "fileName": "file2.txt",
+      "fileType": "text",
+      "language": null,
+      "fileSize": 9,
+      "version": 1,
+      "commitHash": null,
+      "generatedBy": "user",
+      "createdAt": "2025-12-24T12:38:40.556524996",
+      "updatedAt": "2025-12-24T12:38:40.5565867",
+      "content": "Content 2"
+    }
+  ]
+}
+```
+
+---
+
 #### 删除文件
 
-- **接口**: `DELETE /api/projects/60fab7fb140a2894a8f2f36f7012120a/files/43cc386a9e5b469ee880c2e112de59d4`
-- **耗时**: 0.078秒
+- **接口**: `DELETE /api/projects/0bc94a2f840f38eb92ef00426cd214e8/files/26f51abe4b0f1a6a10263a3ac1ffaaf9`
+- **耗时**: 0.257秒
 
 **响应数据**:
 ```json
@@ -444,8 +534,8 @@
 
 #### 获取协作者列表
 
-- **接口**: `GET /api/projects/60fab7fb140a2894a8f2f36f7012120a/collaborators`
-- **耗时**: 0.045秒
+- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators`
+- **耗时**: 0.095秒
 
 **响应数据**:
 ```json
@@ -458,10 +548,84 @@
 
 ---
 
+#### 添加协作者
+
+- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators`
+- **耗时**: 0.179秒
+
+**请求数据**:
+```json
+{
+  "collaboratorDid": "did:example:collaborator001",
+  "role": "developer",
+  "permissions": [
+    "read",
+    "write"
+  ],
+  "invitationMessage": "Welcome to the project"
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 200,
+  "message": "协作者添加成功",
+  "data": {
+    "id": "7c8bfc4379643997d1c3fb620c0c2184",
+    "projectId": "0bc94a2f840f38eb92ef00426cd214e8",
+    "collaboratorDid": "did:example:collaborator001",
+    "collaboratorName": "did:example:collaborator001",
+    "role": "developer",
+    "permissions": "read,write",
+    "invitedBy": "system",
+    "invitedAt": "2025-12-24T12:38:41.018545865",
+    "acceptedAt": null,
+    "status": "pending",
+    "createdAt": "2025-12-24T12:38:41.043801434",
+    "updatedAt": "2025-12-24T12:38:41.04388194"
+  }
+}
+```
+
+---
+
+#### 接受协作邀请
+
+- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators/7c8bfc4379643997d1c3fb620c0c2184/accept`
+- **耗时**: 0.053秒
+
+**响应数据**:
+```json
+{
+  "code": 500,
+  "message": "\n### Error querying database.  Cause: org.postgresql.util.PSQLException: ERROR: column \"user_id\" does not exist\n  Position: 23\n### The error may exist in com/chainlesschain/project/mapper/ProjectCollaboratorMapper.java (best guess)\n### The error may involve defaultParameterMap\n### The error occurred while setting parameters\n### SQL: SELECT  id,project_id,user_id,collaborator_did,role,permissions,invited_by,invited_at,accepted_at,status,created_at,updated_at,sync_status,synced_at,device_id,deleted  FROM project_collaborators  WHERE deleted=0     AND (id = ? AND project_id = ?)\n### Cause: org.postgresql.util.PSQLException: ERROR: column \"user_id\" does not exist\n  Position: 23\n; bad SQL grammar []",
+  "data": null
+}
+```
+
+---
+
+#### 移除协作者
+
+- **接口**: `DELETE /api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators/7c8bfc4379643997d1c3fb620c0c2184`
+- **耗时**: 0.042秒
+
+**响应数据**:
+```json
+{
+  "code": 500,
+  "message": "\n### Error querying database.  Cause: org.postgresql.util.PSQLException: ERROR: column \"user_id\" does not exist\n  Position: 23\n### The error may exist in com/chainlesschain/project/mapper/ProjectCollaboratorMapper.java (best guess)\n### The error may involve defaultParameterMap\n### The error occurred while setting parameters\n### SQL: SELECT  id,project_id,user_id,collaborator_did,role,permissions,invited_by,invited_at,accepted_at,status,created_at,updated_at,sync_status,synced_at,device_id,deleted  FROM project_collaborators  WHERE deleted=0     AND (id = ? AND project_id = ?)\n### Cause: org.postgresql.util.PSQLException: ERROR: column \"user_id\" does not exist\n  Position: 23\n; bad SQL grammar []",
+  "data": null
+}
+```
+
+---
+
 #### 获取评论列表
 
-- **接口**: `GET /api/projects/60fab7fb140a2894a8f2f36f7012120a/comments`
-- **耗时**: 0.053秒
+- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/comments`
+- **耗时**: 0.070秒
 
 **响应数据**:
 ```json
@@ -476,8 +640,8 @@
 
 #### 创建评论
 
-- **接口**: `POST /api/projects/60fab7fb140a2894a8f2f36f7012120a/comments`
-- **耗时**: 0.054秒
+- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/comments`
+- **耗时**: 0.089秒
 
 **请求数据**:
 ```json
@@ -500,8 +664,8 @@
 
 #### 获取自动化规则列表
 
-- **接口**: `GET /api/projects/60fab7fb140a2894a8f2f36f7012120a/automation/rules`
-- **耗时**: 0.030秒
+- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/automation/rules`
+- **耗时**: 0.102秒
 
 **响应数据**:
 ```json
@@ -514,10 +678,47 @@
 
 ---
 
+#### 创建自动化规则
+
+- **接口**: `POST /api/projects/0bc94a2f840f38eb92ef00426cd214e8/automation/rules`
+- **耗时**: 0.070秒
+
+**请求数据**:
+```json
+{
+  "ruleName": "Auto Build Rule",
+  "description": "Automatically build and test on file changes",
+  "triggerEvent": "file_modified",
+  "actionType": "run_script",
+  "triggerConfig": {
+    "filePattern": "*.java",
+    "watchPaths": [
+      "/src"
+    ]
+  },
+  "actionConfig": {
+    "script": "npm run build && npm run test",
+    "timeout": 300
+  },
+  "isEnabled": true
+}
+```
+
+**响应数据**:
+```json
+{
+  "code": 500,
+  "message": "\n### Error updating database.  Cause: org.postgresql.util.PSQLException: ERROR: column \"description\" of relation \"project_automation_rules\" does not exist\n  Position: 68\n### The error may exist in com/chainlesschain/project/mapper/ProjectAutomationRuleMapper.java (best guess)\n### The error may involve com.chainlesschain.project.mapper.ProjectAutomationRuleMapper.insert-Inline\n### The error occurred while setting parameters\n### SQL: INSERT INTO project_automation_rules  ( id, project_id, rule_name, description, trigger_event, action_type, trigger_config, action_config, is_enabled,  run_count, created_at, updated_at )  VALUES (  ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?  )\n### Cause: org.postgresql.util.PSQLException: ERROR: column \"description\" of relation \"project_automation_rules\" does not exist\n  Position: 68\n; bad SQL grammar []",
+  "data": null
+}
+```
+
+---
+
 #### 获取自动化统计
 
-- **接口**: `GET /api/projects/60fab7fb140a2894a8f2f36f7012120a/automation/stats`
-- **耗时**: 0.018秒
+- **接口**: `GET /api/projects/0bc94a2f840f38eb92ef00426cd214e8/automation/stats`
+- **耗时**: 0.028秒
 
 **响应数据**:
 ```json
@@ -532,8 +733,8 @@
 
 #### 删除项目
 
-- **接口**: `DELETE /api/projects/60fab7fb140a2894a8f2f36f7012120a`
-- **耗时**: 0.016秒
+- **接口**: `DELETE /api/projects/0bc94a2f840f38eb92ef00426cd214e8`
+- **耗时**: 0.047秒
 
 **响应数据**:
 ```json
@@ -547,59 +748,22 @@
 ---
 
 
-### ❌ FAILED (4)
+### ❌ FAILED (1)
 
-#### 执行项目任务
+#### 更新协作者
 
-- **接口**: `POST /api/projects/tasks/execute`
-- **耗时**: 0.116秒
+- **接口**: `PUT /api/projects/0bc94a2f840f38eb92ef00426cd214e8/collaborators/7c8bfc4379643997d1c3fb620c0c2184`
+- **耗时**: 0.060秒
 - **错误信息**: 状态码不匹配
 
 **请求数据**:
 ```json
 {
-  "projectId": "60fab7fb140a2894a8f2f36f7012120a",
-  "taskType": "build",
-  "params": {}
-}
-```
-
-**响应数据**:
-```json
-{
-  "code": 400,
-  "message": "参数校验失败",
-  "data": {
-    "userPrompt": "用户提示不能为空"
-  }
-}
-```
-
-- **期望**: 200
-- **实际**: 400
-
----
-
-#### 批量创建文件
-
-- **接口**: `POST /api/projects/60fab7fb140a2894a8f2f36f7012120a/files/batch`
-- **耗时**: 0.038秒
-- **错误信息**: 状态码不匹配
-
-**请求数据**:
-```json
-{
-  "files": [
-    {
-      "fileName": "file1.txt",
-      "filePath": "/test",
-      "content": "Content 1"
-    },
-    {
-      "fileName": "file2.txt",
-      "filePath": "/test",
-      "content": "Content 2"
-    }
+  "role": "admin",
+  "permissions": [
+    "read",
+    "write",
+    "delete"
   ]
 }
 ```
@@ -615,79 +779,6 @@
 
 - **期望**: 200
 - **实际**: 500
-
----
-
-#### 添加协作者
-
-- **接口**: `POST /api/projects/60fab7fb140a2894a8f2f36f7012120a/collaborators`
-- **耗时**: 0.048秒
-- **错误信息**: 状态码不匹配
-
-**请求数据**:
-```json
-{
-  "userId": "collaborator_001",
-  "role": "developer",
-  "permissions": [
-    "read",
-    "write"
-  ]
-}
-```
-
-**响应数据**:
-```json
-{
-  "code": 400,
-  "message": "参数校验失败",
-  "data": {
-    "collaboratorDid": "协作者DID不能为空"
-  }
-}
-```
-
-- **期望**: 200
-- **实际**: 400
-
----
-
-#### 创建自动化规则
-
-- **接口**: `POST /api/projects/60fab7fb140a2894a8f2f36f7012120a/automation/rules`
-- **耗时**: 0.039秒
-- **错误信息**: 状态码不匹配
-
-**请求数据**:
-```json
-{
-  "name": "Auto Build Rule",
-  "trigger": "on_commit",
-  "actions": [
-    "build",
-    "test"
-  ],
-  "enabled": true
-}
-```
-
-**响应数据**:
-```json
-{
-  "code": 400,
-  "message": "参数校验失败",
-  "data": {
-    "actionType": "动作类型不能为空",
-    "triggerConfig": "触发配置不能为空",
-    "actionConfig": "动作配置不能为空",
-    "ruleName": "规则名称不能为空",
-    "triggerEvent": "触发事件不能为空"
-  }
-}
-```
-
-- **期望**: 200
-- **实际**: 400
 
 ---
 
