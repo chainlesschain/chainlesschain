@@ -810,6 +810,18 @@ pandoc document.md -o document.docx
   async createDocumentFromDescription(description, projectPath, llmManager) {
     console.log('[Document Engine] 使用LLM生成文档');
 
+    // 如果没有提供项目路径，使用临时目录
+    if (!projectPath) {
+      const os = require('os');
+      const { app } = require('electron');
+      const userDataPath = app.getPath('userData');
+      projectPath = path.join(userDataPath, 'temp', `doc_${Date.now()}`);
+      console.log('[Document Engine] 未提供项目路径，使用临时目录:', projectPath);
+
+      // 确保目录存在
+      await fs.mkdir(projectPath, { recursive: true });
+    }
+
     const prompt = `请根据以下描述生成一份完整的文档内容（Markdown格式）：
 
 ${description}
@@ -820,10 +832,19 @@ ${description}
 3. 使用Markdown格式
 4. 包含必要的列表、表格等元素`;
 
-    const response = await llmManager.query(prompt, {
-      temperature: 0.7,
-      maxTokens: 3000
-    });
+    let response;
+    try {
+      response = await llmManager.query(prompt, {
+        temperature: 0.7,
+        maxTokens: 3000
+      });
+    } catch (llmError) {
+      console.warn('[Document Engine] 本地LLM失败，尝试使用后端AI服务:', llmError.message);
+      // 降级到后端AI服务
+      response = await this.queryBackendAI(prompt, {
+        temperature: 0.7
+      });
+    }
 
     // 保存为Markdown文件
     const fileName = `document_${Date.now()}.md`;
@@ -837,6 +858,112 @@ ${description}
       path: filePath,
       content: response.text
     };
+  }
+
+  /**
+   * 查询后端AI服务（降级方案）
+   */
+  async queryBackendAI(prompt, options = {}) {
+    const https = require('https');
+    const http = require('http');
+    const { URL } = require('url');
+
+    const backendURL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+    console.log('[Document Engine] 调用后端AI服务:', backendURL);
+
+    return new Promise((resolve, reject) => {
+      const url = new URL('/api/chat/stream', backendURL);
+      const isHttps = url.protocol === 'https:';
+      const httpModule = isHttps ? https : http;
+
+      const messages = [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: prompt }
+      ];
+
+      const postData = JSON.stringify({
+        messages,
+        temperature: options.temperature || 0.7
+      });
+
+      const requestOptions = {
+        hostname: url.hostname,
+        port: url.port || (isHttps ? 443 : 80),
+        path: url.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        },
+        timeout: 600000 // 10 分钟
+      };
+
+      const req = httpModule.request(requestOptions, (res) => {
+        let fullText = '';
+        let buffer = '';
+
+        res.on('data', (chunk) => {
+          buffer += chunk.toString();
+
+          // 按行处理SSE
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr) {
+                  const data = JSON.parse(jsonStr);
+
+                  if (data.type === 'content' && data.content) {
+                    fullText += data.content;
+                  } else if (data.type === 'error') {
+                    reject(new Error(data.error));
+                    return;
+                  } else if (data.type === 'done') {
+                    resolve({
+                      text: fullText,
+                      tokens: Math.ceil(fullText.length / 4)
+                    });
+                    return;
+                  }
+                }
+              } catch (parseError) {
+                // 忽略解析错误
+              }
+            }
+          }
+        });
+
+        res.on('end', () => {
+          if (fullText) {
+            resolve({
+              text: fullText,
+              tokens: Math.ceil(fullText.length / 4)
+            });
+          } else {
+            reject(new Error('后端AI服务未返回任何内容'));
+          }
+        });
+
+        res.on('error', (err) => {
+          reject(err);
+        });
+      });
+
+      req.on('error', (err) => {
+        reject(err);
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('后端AI服务请求超时'));
+      });
+
+      req.write(postData);
+      req.end();
+    });
   }
 
   /**
