@@ -668,4 +668,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onSyncError: (callback) => ipcRenderer.on('sync:error', (_event, ...args) => callback(...args)),
     onShowConflicts: (callback) => ipcRenderer.on('sync:show-conflicts', (_event, ...args) => callback(...args)),
   },
+
+  // Web IDE
+  webIDE: {
+    // 项目管理
+    saveProject: (data) => ipcRenderer.invoke('webide:saveProject', removeUndefined(data)),
+    loadProject: (projectId) => ipcRenderer.invoke('webide:loadProject', projectId),
+    getProjectList: () => ipcRenderer.invoke('webide:getProjectList'),
+    deleteProject: (projectId) => ipcRenderer.invoke('webide:deleteProject', projectId),
+
+    // 预览服务器
+    startDevServer: (data) => ipcRenderer.invoke('webide:startDevServer', removeUndefined(data)),
+    stopDevServer: (port) => ipcRenderer.invoke('webide:stopDevServer', port),
+    getServerStatus: () => ipcRenderer.invoke('webide:getServerStatus'),
+
+    // 导出功能
+    exportHTML: (data) => ipcRenderer.invoke('webide:exportHTML', removeUndefined(data)),
+    exportZIP: (data) => ipcRenderer.invoke('webide:exportZIP', removeUndefined(data)),
+    captureScreenshot: (options) => ipcRenderer.invoke('webide:captureScreenshot', removeUndefined(options)),
+  },
 });

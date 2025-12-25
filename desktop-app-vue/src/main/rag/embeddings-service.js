@@ -6,6 +6,15 @@
 
 const EventEmitter = require('events');
 
+// 尝试使用lru-cache，如果不可用则降级到Map
+let LRUCache;
+try {
+  LRUCache = require('lru-cache');
+} catch (error) {
+  console.warn('[EmbeddingsService] lru-cache未安装，使用Map作为降级方案');
+  LRUCache = null;
+}
+
 /**
  * 嵌入向量服务类
  */
@@ -13,7 +22,22 @@ class EmbeddingsService extends EventEmitter {
   constructor(llmManager) {
     super();
     this.llmManager = llmManager;
-    this.cache = new Map(); // 向量缓存
+
+    // 使用LRU缓存或Map
+    if (LRUCache) {
+      this.cache = new LRUCache({
+        max: 2000,                // 最多2000条
+        maxAge: 1000 * 60 * 60,   // 1小时过期
+        updateAgeOnGet: true,     // 访问时更新时间
+      });
+      this.useLRU = true;
+      console.log('[EmbeddingsService] 使用LRU缓存');
+    } else {
+      this.cache = new Map();
+      this.useLRU = false;
+      console.log('[EmbeddingsService] 使用Map缓存（降级）');
+    }
+
     this.cacheHits = 0; // 缓存命中次数
     this.cacheMisses = 0; // 缓存未命中次数
     this.isInitialized = false;
@@ -79,9 +103,8 @@ class EmbeddingsService extends EventEmitter {
       // 缓存结果
       this.cache.set(cacheKey, embedding);
 
-      // 限制缓存大小 (使用FIFO策略，可考虑升级为LRU)
-      // TODO: 升级为lru-cache以提升缓存命中率
-      if (this.cache.size > 2000) {
+      // LRU缓存会自动管理大小，Map需要手动限制
+      if (!this.useLRU && this.cache.size > 2000) {
         const firstKey = this.cache.keys().next().value;
         this.cache.delete(firstKey);
       }
@@ -217,11 +240,26 @@ class EmbeddingsService extends EventEmitter {
    * 获取缓存统计
    */
   getCacheStats() {
-    return {
+    const totalRequests = this.cacheHits + this.cacheMisses;
+    const hitRate = totalRequests > 0 ? this.cacheHits / totalRequests : 0;
+
+    const stats = {
       size: this.cache.size,
       maxSize: 2000,
-      hitRate: this.cacheHits / (this.cacheHits + this.cacheMisses) || 0,
+      hitRate: hitRate,
+      hits: this.cacheHits,
+      misses: this.cacheMisses,
+      totalRequests: totalRequests,
+      cacheType: this.useLRU ? 'LRU' : 'Map (FIFO)',
     };
+
+    // 如果使用LRU，添加额外统计
+    if (this.useLRU && this.cache.dump) {
+      const dump = this.cache.dump();
+      stats.entries = dump.length;
+    }
+
+    return stats;
   }
 }
 

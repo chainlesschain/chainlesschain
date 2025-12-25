@@ -148,6 +148,10 @@ class ChainlessChainApp {
     this.projectStructureManager = null;
     this.gitAutoCommit = null;
 
+    // Web IDE
+    this.webideManager = null;
+    this.webideIPC = null;
+
     this.setupApp();
   }
 
@@ -553,6 +557,22 @@ class ChainlessChainApp {
       // 创建引擎实例
       this.webEngine = new WebEngine();
       this.documentEngine = new DocumentEngine();
+    // 初始化 Web IDE
+    console.log('[Main] 初始化 Web IDE...');
+    const WebIDEManager = require('./webide/webide-manager');
+    const WebIDEIPC = require('./webide/webide-ipc');
+    const PreviewServer = require('./engines/preview-server');
+
+    // 初始化 Preview Server（如果还没有）
+    if (!this.previewServer) {
+      this.previewServer = new PreviewServer();
+    }
+
+    this.webideManager = new WebIDEManager();
+    this.webideIPC = new WebIDEIPC(this.webideManager, this.previewServer);
+    this.webideIPC.registerHandlers();
+    console.log('[Main] Web IDE 管理器初始化完成');
+
       this.dataEngine = new DataEngine();
       this.projectStructureManager = new ProjectStructureManager();
       this.gitAutoCommit = new GitAutoCommit({ enabled: false, interval: 5 * 60 * 1000 });

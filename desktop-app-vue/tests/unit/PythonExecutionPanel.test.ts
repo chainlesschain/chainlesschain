@@ -23,7 +23,10 @@ describe('PythonExecutionPanel 组件', () => {
           'a-space': { template: '<div><slot /></div>' },
           'a-alert': { template: '<div><slot name="message" /><slot name="description" /></div>' },
           'a-tabs': { template: '<div><slot /></div>' },
-          'a-tab-pane': { template: '<div><slot /></div>' },
+          'a-tab-pane': {
+            template: '<div>{{ tab }}<slot name="tab" /><slot /></div>',
+            props: ['tab']
+          },
           'a-badge': { template: '<span><slot /></span>' },
           'a-tag': { template: '<span><slot /></span>' },
           'a-tooltip': { template: '<div><slot /></div>' },

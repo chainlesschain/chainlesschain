@@ -170,15 +170,55 @@ ${docList}
 
   /**
    * 使用 Cross-Encoder 模型重排序
-   * 注意: 需要额外的模型支持，当前为占位实现
+   * 支持远程API和本地关键词回退
    */
   async rerankWithCrossEncoder(query, documents, topK) {
-    console.warn('[Reranker] Cross-Encoder 方法尚未完全实现，回退到 LLM 方法');
-    return this.rerankWithLLM(query, documents, topK);
+    // 尝试调用远程CrossEncoder API
+    try {
+      const crossEncoderUrl = process.env.CROSSENCODER_API_URL || 'http://localhost:8001/api/rerank';
 
-    // TODO: 未来实现
-    // 可以使用 ONNX Runtime 运行 bge-reranker-large 模型
-    // 或调用远程重排序 API
+      // 准备请求数据
+      const requestData = {
+        query: query,
+        documents: documents.map(doc => ({
+          id: doc.id,
+          text: doc.content || doc.text || doc.title,
+        })),
+        top_k: topK,
+      };
+
+      // 调用远程API
+      const response = await fetch(crossEncoderUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData),
+        timeout: 10000, // 10秒超时
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+
+        // 将远程结果映射回原始文档
+        const rerankedDocs = result.results.map(item => {
+          const originalDoc = documents.find(d => d.id === item.id);
+          return {
+            ...originalDoc,
+            rerankScore: item.score,
+            originalScore: originalDoc.score || 0,
+            score: item.score,
+          };
+        });
+
+        console.log('[Reranker] CrossEncoder重排序成功');
+        return rerankedDocs.slice(0, topK);
+      }
+    } catch (error) {
+      console.warn('[Reranker] CrossEncoder API调用失败，使用关键词回退:', error.message);
+    }
+
+    // API不可用时，回退到关键词匹配
+    console.log('[Reranker] 使用关键词匹配作为CrossEncoder回退方案');
+    return this.rerankWithKeywordMatch(query, documents, topK);
   }
 
   /**
