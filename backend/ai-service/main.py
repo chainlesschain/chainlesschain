@@ -827,6 +827,57 @@ async def update_file_index(request: FileIndexUpdateRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ==================== CrossEncoder Reranker API ====================
+
+class RerankRequest(BaseModel):
+    query: str
+    documents: List[Dict[str, Any]]
+    top_k: int = 5
+
+
+@app.post("/api/rerank")
+async def rerank_documents(request: RerankRequest):
+    """
+    使用CrossEncoder模型重排序文档
+
+    Args:
+        request: 重排序请求，包含查询和文档列表
+
+    Returns:
+        重排序后的文档列表，按相关性分数降序排列
+    """
+    try:
+        from src.rag.crossencoder_reranker import get_reranker
+
+        # 获取reranker实例
+        reranker = get_reranker()
+
+        # 执行重排序
+        results = await reranker.rerank_async(
+            request.query,
+            request.documents,
+            request.top_k
+        )
+
+        return {
+            "success": True,
+            "query": request.query,
+            "results": results,
+            "count": len(results)
+        }
+
+    except Exception as e:
+        # 如果CrossEncoder失败，返回原始顺序
+        print(f"[API] Rerank失败: {e}")
+        return {
+            "success": False,
+            "query": request.query,
+            "results": request.documents[:request.top_k],
+            "count": len(request.documents[:request.top_k]),
+            "error": str(e)
+        }
+
+
 # ==================== Code Assistant API ====================
 
 class CodeGenerateRequest(BaseModel):

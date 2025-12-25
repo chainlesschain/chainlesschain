@@ -2,62 +2,62 @@
  * CodeExecutor 单元测试
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { spawn } from 'child_process';
+import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import path from 'path';
 import os from 'os';
 
-// Mock child_process
-vi.mock('child_process', () => ({
-  spawn: vi.fn(),
-}));
-
-// Mock fs module (CommonJS style used by code-executor.js)
-vi.mock('fs', () => ({
-  default: {
-    promises: {
+// 使用 vi.hoisted 创建持久的 mock 函数
+const { mockSpawn, mockFsPromises } = vi.hoisted(() => {
+  return {
+    mockSpawn: vi.fn(),
+    mockFsPromises: {
       mkdir: vi.fn().mockResolvedValue(undefined),
       writeFile: vi.fn().mockResolvedValue(undefined),
       unlink: vi.fn().mockResolvedValue(undefined),
       readdir: vi.fn().mockResolvedValue([]),
       stat: vi.fn().mockResolvedValue({}),
     }
-  },
-  promises: {
-    mkdir: vi.fn().mockResolvedValue(undefined),
-    writeFile: vi.fn().mockResolvedValue(undefined),
-    unlink: vi.fn().mockResolvedValue(undefined),
-    readdir: vi.fn().mockResolvedValue([]),
-    stat: vi.fn().mockResolvedValue({}),
-  }
+  };
+});
+
+// Mock child_process
+vi.mock('child_process', () => ({
+  spawn: mockSpawn,
+}));
+
+// Mock fs module
+vi.mock('fs', () => ({
+  promises: mockFsPromises,
 }));
 
 // 动态导入 CodeExecutor (在 mock 之后)
-let CodeExecutor, getCodeExecutor, fs;
+let CodeExecutor, getCodeExecutor;
+let spawn;
+let fs;
+
+// 在所有测试之前加载模块一次
+beforeAll(async () => {
+  // 动态导入模块 - 只加载一次，这样mock才能生效
+  const childProcessModule = await import('child_process');
+  spawn = childProcessModule.spawn;
+
+  const fsModule = await import('fs');
+  fs = fsModule.promises;
+
+  const module = await import('../../src/main/engines/code-executor.js');
+  CodeExecutor = module.CodeExecutor;
+  getCodeExecutor = module.getCodeExecutor;
+});
 
 describe('CodeExecutor', () => {
   let codeExecutor;
 
-  beforeEach(async () => {
-    // 清除模块缓存
-    vi.resetModules();
-
-    // 动态导入 fs 和 CodeExecutor
-    const fsModule = await import('fs');
-    fs = fsModule.promises;
-
-    const module = await import('../../src/main/engines/code-executor.js');
-    CodeExecutor = module.CodeExecutor;
-    getCodeExecutor = module.getCodeExecutor;
-
-    codeExecutor = new CodeExecutor();
-
-    // 重置所有 mocks
+  beforeEach(() => {
+    // 清除所有 mock 调用记录（但不重置模块）
     vi.clearAllMocks();
-  });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+    // 创建新的 CodeExecutor 实例
+    codeExecutor = new CodeExecutor();
   });
 
   describe('初始化', () => {

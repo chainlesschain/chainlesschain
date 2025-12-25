@@ -8,6 +8,9 @@ const EventEmitter = require('events');
 const { EmbeddingsService } = require('./embeddings-service');
 const VectorStore = require('../vector/vector-store');
 const Reranker = require('./reranker');
+const { RecursiveCharacterTextSplitter } = require('./text-splitter');
+const { QueryRewriter } = require('./query-rewriter');
+const { RAGMetrics, MetricTypes } = require('./metrics');
 
 /**
  * RAG配置
@@ -35,6 +38,18 @@ const DEFAULT_CONFIG = {
   // 向量存储配置
   chromaUrl: 'http://localhost:8000', // ChromaDB地址
   useChromaDB: true, // 是否使用ChromaDB (false则使用内存)
+
+  // 文档分块配置
+  enableChunking: true, // 是否启用文档分块
+  chunkSize: 500,
+  chunkOverlap: 50,
+
+  // 查询重写配置
+  enableQueryRewrite: false, // 是否启用查询重写
+  queryRewriteMethod: 'multi_query', // 'multi_query' | 'hyde' | 'step_back' | 'decompose'
+
+  // 性能监控配置
+  enableMetrics: true, // 是否启用性能监控
 };
 
 /**
@@ -66,6 +81,22 @@ class RAGManager extends EventEmitter {
       topK: this.config.rerankTopK,
       scoreThreshold: this.config.rerankScoreThreshold,
     });
+
+    // 文档分块器
+    this.textSplitter = new RecursiveCharacterTextSplitter({
+      chunkSize: this.config.chunkSize,
+      chunkOverlap: this.config.chunkOverlap,
+    });
+
+    // 查询重写器
+    this.queryRewriter = new QueryRewriter(llmManager, {
+      enabled: this.config.enableQueryRewrite,
+      method: this.config.queryRewriteMethod,
+    });
+
+    // 性能监控
+    this.metrics = new RAGMetrics();
+    this.metricsEnabled = this.config.enableMetrics;
 
     // 向量索引缓存 (降级方案)
     this.vectorIndex = new Map();
@@ -206,6 +237,9 @@ class RAGManager extends EventEmitter {
    * @returns {Promise<Array>} 相关知识列表
    */
   async retrieve(query, options = {}) {
+    // 开始总计时
+    const totalTimer = this.metricsEnabled ? this.metrics.startTimer(MetricTypes.TOTAL) : null;
+
     if (!this.config.enableRAG) {
       return [];
     }
@@ -214,52 +248,118 @@ class RAGManager extends EventEmitter {
       topK = this.config.topK,
       similarityThreshold = this.config.similarityThreshold,
       useHybridSearch = this.config.enableHybridSearch,
+      enableQueryRewrite = this.config.enableQueryRewrite,
     } = options;
 
     console.log(`[RAGManager] 检索查询: "${query}"`);
 
     try {
-      let results = [];
+      let queries = [query];
 
-      if (useHybridSearch) {
-        // 混合搜索：向量搜索 + 关键词搜索
-        const vectorResults = await this.vectorSearch(query, topK * 2);
-        const keywordResults = await this.keywordSearch(query, topK * 2);
-
-        // 合并和重排序
-        results = this.mergeResults(vectorResults, keywordResults);
-      } else {
-        // 仅向量搜索
-        results = await this.vectorSearch(query, topK * 2);
+      // 查询重写（如果启用）
+      if (enableQueryRewrite && this.queryRewriter) {
+        const rewriteTimer = this.metricsEnabled ? this.metrics.startTimer(MetricTypes.QUERY_REWRITE) : null;
+        try {
+          const rewriteResult = await this.queryRewriter.rewriteQuery(query, options);
+          queries = rewriteResult.rewrittenQueries || [query];
+          console.log(`[RAGManager] 查询重写生成 ${queries.length} 个变体`);
+          if (rewriteTimer) rewriteTimer({ queryCount: queries.length });
+        } catch (error) {
+          console.error('[RAGManager] 查询重写失败:', error);
+          if (this.metricsEnabled) this.metrics.recordError('query_rewrite', error);
+          if (rewriteTimer) rewriteTimer();
+        }
       }
 
+      // 对每个查询执行检索
+      let allResults = [];
+      const retrievalTimer = this.metricsEnabled ? this.metrics.startTimer(MetricTypes.RETRIEVAL) : null;
+
+      for (const q of queries) {
+        let results = [];
+
+        if (useHybridSearch) {
+          // 混合搜索：向量搜索 + 关键词搜索
+          const vectorResults = await this.vectorSearch(q, topK * 2);
+          const keywordResults = await this.keywordSearch(q, topK * 2);
+
+          // 合并和重排序
+          results = this.mergeResults(vectorResults, keywordResults);
+        } else {
+          // 仅向量搜索
+          results = await this.vectorSearch(q, topK * 2);
+        }
+
+        allResults.push(...results);
+      }
+
+      if (retrievalTimer) retrievalTimer({ resultCount: allResults.length });
+
+      // 去重（根据ID）
+      const uniqueResults = this._deduplicateResults(allResults);
+
       // 应用重排序 (如果启用)
-      if (this.config.enableReranking && results.length > 0) {
+      let finalResults = uniqueResults;
+      if (this.config.enableReranking && uniqueResults.length > 0) {
+        const rerankTimer = this.metricsEnabled ? this.metrics.startTimer(MetricTypes.RERANK) : null;
         console.log(`[RAGManager] 应用重排序，方法: ${this.config.rerankMethod}`);
         try {
-          results = await this.reranker.rerank(query, results, {
+          finalResults = await this.reranker.rerank(query, uniqueResults, {
             topK: this.config.rerankTopK || topK,
             method: this.config.rerankMethod,
           });
-          console.log(`[RAGManager] 重排序后剩余 ${results.length} 个文档`);
+          console.log(`[RAGManager] 重排序后剩余 ${finalResults.length} 个文档`);
+          if (rerankTimer) rerankTimer({ rerankCount: finalResults.length });
         } catch (error) {
           console.error('[RAGManager] 重排序失败，使用原始结果:', error);
+          if (this.metricsEnabled) this.metrics.recordError('rerank', error);
+          if (rerankTimer) rerankTimer();
         }
       }
 
       // 过滤低相似度结果
-      results = results.filter((r) => r.score >= similarityThreshold);
+      finalResults = finalResults.filter((r) => r.score >= similarityThreshold);
 
       // 限制数量
-      results = results.slice(0, topK);
+      finalResults = finalResults.slice(0, topK);
 
-      console.log(`[RAGManager] 检索到 ${results.length} 个相关项目`);
+      console.log(`[RAGManager] 检索到 ${finalResults.length} 个相关项目`);
 
-      return results;
+      // 记录总时间
+      if (totalTimer) totalTimer({ resultCount: finalResults.length });
+
+      return finalResults;
     } catch (error) {
       console.error('[RAGManager] 检索失败:', error);
+      if (this.metricsEnabled) this.metrics.recordError('retrieve', error);
+      if (totalTimer) totalTimer();
       return [];
     }
+  }
+
+  /**
+   * 去重结果
+   * @private
+   */
+  _deduplicateResults(results) {
+    const seen = new Set();
+    const unique = [];
+
+    for (const result of results) {
+      const id = result.id;
+      if (!seen.has(id)) {
+        seen.add(id);
+        unique.push(result);
+      } else {
+        // 如果已存在，保留分数更高的
+        const existingIndex = unique.findIndex(r => r.id === id);
+        if (existingIndex !== -1 && result.score > unique[existingIndex].score) {
+          unique[existingIndex] = result;
+        }
+      }
+    }
+
+    return unique;
   }
 
   /**
@@ -460,28 +560,77 @@ class RAGManager extends EventEmitter {
       return;
     }
 
+    const embeddingTimer = this.metricsEnabled ? this.metrics.startTimer(MetricTypes.EMBEDDING) : null;
+
     try {
       const text = `${item.title}\n${item.content || ''}`;
-      const embedding = await this.embeddingsService.generateEmbedding(text);
 
-      if (this.useChromaDB) {
-        // 添加到ChromaDB
-        await this.vectorStore.addVector(item, embedding);
-      } else {
-        // 添加到内存索引
-        this.vectorIndex.set(item.id, {
-          id: item.id,
-          title: item.title,
-          content: item.content,
-          type: item.type,
-          embedding: embedding,
-          created_at: item.created_at,
+      // 如果启用分块且文档较长
+      if (this.config.enableChunking && text.length > this.config.chunkSize) {
+        console.log(`[RAGManager] 文档较长 (${text.length}字符)，启用分块`);
+
+        const chunks = this.textSplitter.splitText(text, {
+          sourceId: item.id,
+          sourceTitle: item.title,
+          sourceType: item.type,
         });
+
+        console.log(`[RAGManager] 分块为 ${chunks.length} 个片段`);
+
+        // 为每个块生成嵌入并添加
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i];
+          const chunkId = `${item.id}_chunk_${i}`;
+
+          const embedding = await this.embeddingsService.generateEmbedding(chunk.content);
+
+          const chunkItem = {
+            id: chunkId,
+            title: `${item.title} (${i + 1}/${chunks.length})`,
+            content: chunk.content,
+            type: item.type,
+            parentId: item.id,
+            chunkIndex: i,
+            totalChunks: chunks.length,
+            created_at: item.created_at,
+          };
+
+          if (this.useChromaDB) {
+            await this.vectorStore.addVector(chunkItem, embedding);
+          } else {
+            this.vectorIndex.set(chunkId, {
+              ...chunkItem,
+              embedding: embedding,
+            });
+          }
+        }
+
+        console.log(`[RAGManager] 添加 ${chunks.length} 个文档块到索引: ${item.id}`);
+      } else {
+        // 正常添加（不分块）
+        const embedding = await this.embeddingsService.generateEmbedding(text);
+
+        if (this.useChromaDB) {
+          await this.vectorStore.addVector(item, embedding);
+        } else {
+          this.vectorIndex.set(item.id, {
+            id: item.id,
+            title: item.title,
+            content: item.content,
+            type: item.type,
+            embedding: embedding,
+            created_at: item.created_at,
+          });
+        }
+
+        console.log(`[RAGManager] 添加项目到索引: ${item.id}`);
       }
 
-      console.log(`[RAGManager] 添加项目到索引: ${item.id}`);
+      if (embeddingTimer) embeddingTimer();
     } catch (error) {
       console.error('[RAGManager] 添加到索引失败:', error);
+      if (this.metricsEnabled) this.metrics.recordError('add_to_index', error);
+      if (embeddingTimer) embeddingTimer();
     }
   }
 
@@ -582,6 +731,74 @@ class RAGManager extends EventEmitter {
       this.reranker.setEnabled(enabled);
     }
     console.log(`[RAGManager] 重排序${enabled ? '已启用' : '已禁用'}`);
+  }
+
+  /**
+   * 获取性能指标
+   * @param {string} type - 指标类型（可选）
+   * @returns {Object} 性能统计
+   */
+  getPerformanceMetrics(type = null) {
+    if (!this.metricsEnabled || !this.metrics) {
+      return {
+        enabled: false,
+        message: '性能监控未启用',
+      };
+    }
+
+    return {
+      enabled: true,
+      ...this.metrics.getStats(type),
+    };
+  }
+
+  /**
+   * 获取实时性能概览
+   * @returns {Object} 实时性能数据
+   */
+  getRealTimeMetrics() {
+    if (!this.metricsEnabled || !this.metrics) {
+      return { enabled: false };
+    }
+
+    return {
+      enabled: true,
+      ...this.metrics.getRealTimeOverview(),
+    };
+  }
+
+  /**
+   * 获取性能报告
+   * @param {number} timeRange - 时间范围（毫秒）
+   * @returns {Object} 性能报告
+   */
+  getPerformanceReport(timeRange = 3600000) {
+    if (!this.metricsEnabled || !this.metrics) {
+      return { enabled: false };
+    }
+
+    return {
+      enabled: true,
+      ...this.metrics.getPerformanceReport(timeRange),
+    };
+  }
+
+  /**
+   * 重置性能指标
+   */
+  resetMetrics() {
+    if (this.metricsEnabled && this.metrics) {
+      this.metrics.reset();
+      console.log('[RAGManager] 性能指标已重置');
+    }
+  }
+
+  /**
+   * 启用/禁用性能监控
+   */
+  setMetricsEnabled(enabled) {
+    this.metricsEnabled = enabled;
+    console.log(`[RAGManager] 性能监控${enabled ? '已启用' : '已禁用'}`);
   }
 
   /**

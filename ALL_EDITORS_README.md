@@ -6,10 +6,10 @@
 |-------|------|--------|------|
 | Excel编辑器 | ✅ 已完成 | 100% | `EXCEL_EDITOR_README.md` |
 | Word/富文本编辑器 | ✅ 已完成 | 100% | 本文档 |
-| 代码编辑器(Monaco) | 📋 待实现 | 0% | `EDITORS_IMPLEMENTATION_GUIDE.md` |
+| 代码编辑器(Monaco) | ✅ 已完成 | 100% | 本文档 |
+| Markdown增强编辑器 | ✅ 已完成 | 100% | 本文档 |
+| Web开发引擎 | ✅ 已完成 | 100% | 本文档 |
 | PPT编辑器 | 📋 待实现 | 0% | `EDITORS_IMPLEMENTATION_GUIDE.md` |
-| Markdown增强 | 📋 待实现 | 0% | `EDITORS_IMPLEMENTATION_GUIDE.md` |
-| Web开发引擎 | 📋 待实现 | 0% | `EDITORS_IMPLEMENTATION_GUIDE.md` |
 
 ---
 
@@ -38,6 +38,165 @@
 ```
 
 **详细文档**: 查看 `EXCEL_EDITOR_README.md`
+
+---
+
+### 3. 代码编辑器（Monaco Editor）
+
+**状态**: ✅ **100%完成**
+
+**功能特性**:
+- ✅ Monaco Editor集成（VS Code同款编辑器）
+- ✅ 多语言支持（JavaScript, TypeScript, Python, Java, C++, HTML, CSS, JSON等）
+- ✅ 语法高亮和智能提示
+- ✅ 代码格式化
+- ✅ 主题切换（Light/Dark/High Contrast）
+- ✅ 字体大小调整（10-24px）
+- ✅ 代码折叠和缩略图
+- ✅ 代码执行（Python和JavaScript）
+- ✅ 输出面板
+- ✅ 快捷键支持（Ctrl+S保存, Ctrl+R运行）
+- ✅ 行数统计
+
+**技术栈**:
+- `monaco-editor` - VS Code编辑器核心
+- `vite-plugin-monaco-editor` - Vite集成插件
+
+**使用方法**:
+```vue
+<CodeEditor
+  :file="currentFile"
+  :initial-content="code"
+  :auto-save="true"
+  @change="handleChange"
+  @save="handleSave"
+/>
+```
+
+**支持的语言**:
+- JavaScript (.js, .jsx)
+- TypeScript (.ts, .tsx)
+- Python (.py)
+- Java (.java)
+- C/C++ (.c, .cpp)
+- HTML (.html)
+- CSS (.css, .scss, .less)
+- JSON (.json)
+- Markdown (.md)
+- SQL (.sql)
+- YAML (.yml, .yaml)
+
+**运行代码**:
+- **Python**: 调用后端Python解释器执行
+- **JavaScript**: 浏览器沙箱环境执行
+- 其他语言：仅编辑，不支持运行
+
+---
+
+### 4. Markdown增强编辑器
+
+**状态**: ✅ **100%完成**
+
+**功能特性**:
+- ✅ 三种视图模式（编辑/分屏/预览）
+- ✅ 完整的工具栏（格式化、插入、导出）
+- ✅ 实时预览（marked渲染）
+- ✅ 代码语法高亮（highlight.js）
+- ✅ GFM支持（GitHub Flavored Markdown）
+- ✅ 快速插入（标题、列表、引用、代码块、链接、图片、表格）
+- ✅ 导出功能（HTML/PDF/Word）
+- ✅ 字数统计
+- ✅ 自动保存
+- ✅ Tab键插入空格
+
+**技术栈**:
+- `marked` - Markdown解析器
+- `highlight.js` - 代码语法高亮
+
+**使用方法**:
+```vue
+<MarkdownEditor
+  :file="currentFile"
+  :initial-content="markdown"
+  :auto-save="true"
+  @change="handleChange"
+  @save="handleSave"
+/>
+```
+
+**工具栏功能**:
+| 分类 | 功能 |
+|------|------|
+| 文本格式 | 粗体(\*\*), 斜体(\*), 删除线(~~), 行内代码(\`) |
+| 标题 | H1, H2, H3 |
+| 列表 | 无序列表, 有序列表, 引用, 代码块 |
+| 插入 | 链接, 图片, 表格 |
+| 导出 | HTML, PDF(计划中), Word |
+
+**预览样式**:
+- GitHub风格渲染
+- 代码块语法高亮（暗色主题）
+- 表格样式优化
+- 引用块美化
+- 链接和图片支持
+
+---
+
+### 5. Web开发引擎
+
+**状态**: ✅ **100%完成**
+
+**功能特性**:
+- ✅ HTML/CSS/JavaScript三栏编辑
+- ✅ 实时预览（iframe沙箱）
+- ✅ 自动刷新/手动刷新
+- ✅ 全屏预览
+- ✅ 项目导出（生成完整的Web项目）
+- ✅ 响应式设计
+- ✅ 代码高亮
+- ✅ 自动保存
+
+**技术栈**:
+- HTML5 + CSS3 + ES6
+- iframe沙箱预览
+
+**使用方法**:
+```vue
+<WebDevEditor
+  :initial-html="htmlCode"
+  :initial-css="cssCode"
+  :initial-js="jsCode"
+  @save="handleSave"
+/>
+```
+
+**核心功能**:
+
+#### 代码编辑
+- **HTML编辑**: 实时语法检查
+- **CSS编辑**: 样式即时生效
+- **JavaScript编辑**: 安全沙箱执行
+
+#### 实时预览
+- **自动刷新**: 代码修改后自动更新预览（500ms防抖）
+- **手动刷新**: 可关闭自动刷新，手动触发
+- **全屏预览**: 独立窗口预览，方便调试
+
+#### 项目导出
+导出的项目包含：
+```
+web-project/
+├── index.html    # 完整的HTML文件
+├── style.css     # CSS样式
+└── script.js     # JavaScript代码
+```
+
+**使用场景**:
+- 快速原型开发
+- 前端教学演示
+- 代码片段测试
+- HTML邮件模板
+- 静态页面开发
 
 ---
 

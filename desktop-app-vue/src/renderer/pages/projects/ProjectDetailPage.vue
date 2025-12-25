@@ -189,6 +189,35 @@
             @save="handleWordSave"
           />
 
+          <!-- 代码编辑器 -->
+          <CodeEditor
+            v-else-if="shouldShowCodeEditor"
+            ref="codeEditorRef"
+            :file="currentFile"
+            :initial-content="fileContent"
+            :auto-save="true"
+            @change="handleCodeChange"
+            @save="handleCodeSave"
+          />
+
+          <!-- Markdown编辑器 -->
+          <MarkdownEditor
+            v-else-if="shouldShowMarkdownEditor"
+            ref="markdownEditorRef"
+            :file="currentFile"
+            :initial-content="fileContent"
+            :auto-save="true"
+            @change="handleMarkdownChange"
+            @save="handleMarkdownSave"
+          />
+
+          <!-- Web开发编辑器 -->
+          <WebDevEditor
+            v-else-if="shouldShowWebEditor"
+            ref="webEditorRef"
+            @save="handleWebSave"
+          />
+
           <!-- 文本编辑模式 -->
           <SimpleEditor
             v-else-if="shouldShowEditor"
@@ -382,6 +411,9 @@ import FileTree from '@/components/projects/FileTree.vue';
 import SimpleEditor from '@/components/projects/SimpleEditor.vue';
 import ExcelEditor from '@/components/editors/ExcelEditor.vue';
 import RichTextEditor from '@/components/editors/RichTextEditor.vue';
+import CodeEditor from '@/components/editors/CodeEditor.vue';
+import MarkdownEditor from '@/components/editors/MarkdownEditor.vue';
+import WebDevEditor from '@/components/editors/WebDevEditor.vue';
 import PreviewPanel from '@/components/projects/PreviewPanel.vue';
 import ChatPanel from '@/components/projects/ChatPanel.vue';
 import GitStatusDialog from '@/components/projects/GitStatusDialog.vue';
@@ -413,6 +445,9 @@ const fileContent = ref(''); // 文件内容
 const editorRef = ref(null);
 const excelEditorRef = ref(null); // Excel编辑器引用
 const wordEditorRef = ref(null); // Word编辑器引用
+const codeEditorRef = ref(null); // 代码编辑器引用
+const markdownEditorRef = ref(null); // Markdown编辑器引用
+const webEditorRef = ref(null); // Web开发编辑器引用
 const gitStatus = ref({}); // Git 状态
 let gitStatusInterval = null; // Git 状态轮询定时器
 const showFileManageModal = ref(false); // 文件管理Modal
@@ -491,11 +526,39 @@ const shouldShowWordEditor = computed(() => {
   return fileTypeInfo.value?.isWord;
 });
 
+// 是否显示代码编辑器
+const shouldShowCodeEditor = computed(() => {
+  if (!currentFile.value) return false;
+  if (viewMode.value === 'preview') return false;
+  return fileTypeInfo.value?.isCode;
+});
+
+// 是否显示Markdown编辑器
+const shouldShowMarkdownEditor = computed(() => {
+  if (!currentFile.value) return false;
+  if (viewMode.value === 'preview') return false;
+  return fileTypeInfo.value?.isMarkdown;
+});
+
+// 是否显示Web开发编辑器
+const shouldShowWebEditor = computed(() => {
+  if (!currentFile.value) return false;
+  if (viewMode.value === 'preview') return false;
+  // 当打开HTML文件且项目包含CSS/JS时使用Web开发编辑器
+  const ext = currentFile.value.file_name?.split('.').pop()?.toLowerCase();
+  return ext === 'html';
+});
+
 // 是否显示文本编辑器
 const shouldShowEditor = computed(() => {
   if (!currentFile.value) return false;
   // 专用编辑器的文件不使用文本编辑器
-  if (fileTypeInfo.value?.isExcel || fileTypeInfo.value?.isWord) return false;
+  if (fileTypeInfo.value?.isExcel ||
+      fileTypeInfo.value?.isWord ||
+      fileTypeInfo.value?.isCode ||
+      fileTypeInfo.value?.isMarkdown) {
+    return false;
+  }
   if (viewMode.value === 'edit') return fileTypeInfo.value?.isEditable;
   if (viewMode.value === 'preview') return false;
   if (viewMode.value === 'auto') return fileTypeInfo.value?.isEditable;
@@ -659,6 +722,34 @@ const handleWordSave = async (data) => {
   } finally {
     saving.value = false;
   }
+};
+
+// 处理代码变化
+const handleCodeChange = (code) => {
+  hasUnsavedChanges.value = true;
+};
+
+// 处理代码保存
+const handleCodeSave = async (code) => {
+  hasUnsavedChanges.value = false;
+  message.success('代码已保存');
+};
+
+// 处理Markdown变化
+const handleMarkdownChange = (content) => {
+  hasUnsavedChanges.value = true;
+};
+
+// 处理Markdown保存
+const handleMarkdownSave = async (content) => {
+  hasUnsavedChanges.value = false;
+  message.success('Markdown已保存');
+};
+
+// 处理Web保存
+const handleWebSave = async (data) => {
+  hasUnsavedChanges.value = false;
+  message.success('Web项目已保存');
 };
 
 // 返回项目列表

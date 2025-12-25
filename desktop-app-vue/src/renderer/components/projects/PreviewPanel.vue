@@ -35,6 +35,12 @@
             <ExportOutlined />
           </a-button>
         </a-tooltip>
+        <a-tooltip :title="isFullscreen ? '退出全屏 (ESC)' : '全屏 (F11)'">
+          <a-button type="text" size="small" @click="toggleFullscreen">
+            <FullscreenExitOutlined v-if="isFullscreen" />
+            <FullscreenOutlined v-else />
+          </a-button>
+        </a-tooltip>
       </div>
     </div>
 
@@ -152,6 +158,13 @@
         </div>
       </div>
 
+      <!-- 压缩包预览 -->
+      <ArchivePreview
+        v-else-if="fileType === 'archive'"
+        :file="file"
+        :project-id="projectId"
+      />
+
       <!-- 不支持预览的文件类型 -->
       <div v-else class="unsupported-preview">
         <FileUnknownOutlined class="unsupported-icon" />
@@ -186,7 +199,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   FileOutlined,
@@ -199,12 +212,15 @@ import {
   CloseCircleOutlined,
   LeftCircleOutlined,
   RightCircleOutlined,
+  FullscreenOutlined,
+  FullscreenExitOutlined,
 } from '@ant-design/icons-vue';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
 import Papa from 'papaparse';
 import VuePdfEmbed from 'vue-pdf-embed';
+import ArchivePreview from './ArchivePreview.vue';
 
 const props = defineProps({
   file: {
@@ -229,6 +245,7 @@ const props = defineProps({
 const loading = ref(false);
 const error = ref(null);
 const contentRef = ref(null);
+const isFullscreen = ref(false);
 
 // 图片预览
 const imageUrl = ref('');
@@ -279,6 +296,7 @@ const fileType = computed(() => {
     excel: ['xlsx', 'xls'],
     powerpoint: ['pptx', 'ppt']
   };
+  const archiveExtensions = ['zip', 'rar', '7z', 'tar', 'gz', 'bz2'];
 
   if (ext === 'md') return 'markdown';
   if (ext === 'csv') return 'csv';
@@ -291,6 +309,7 @@ const fileType = computed(() => {
   if (officeExtensions.word.includes(ext)) return 'word';
   if (officeExtensions.excel.includes(ext)) return 'excel';
   if (officeExtensions.powerpoint.includes(ext)) return 'powerpoint';
+  if (archiveExtensions.includes(ext)) return 'archive';
 
   return 'unsupported';
 });
@@ -311,6 +330,7 @@ const getFileTypeColor = () => {
     word: 'blue',
     excel: 'green',
     powerpoint: 'volcano',
+    archive: 'gold',
     unsupported: 'default',
   };
   return colorMap[fileType.value] || 'default';
@@ -332,6 +352,7 @@ const getFileTypeLabel = () => {
     word: 'Word文档',
     excel: 'Excel表格',
     powerpoint: 'PowerPoint',
+    archive: '压缩包',
     unsupported: '不支持',
   };
   return labelMap[fileType.value] || '未知';
@@ -738,6 +759,67 @@ const handleRetry = () => {
   loadFileContent();
 };
 
+/**
+ * 切换全屏模式
+ */
+const toggleFullscreen = () => {
+  const panel = document.querySelector('.preview-panel');
+
+  if (!isFullscreen.value) {
+    // 进入全屏
+    if (panel.requestFullscreen) {
+      panel.requestFullscreen();
+    } else if (panel.webkitRequestFullscreen) {
+      panel.webkitRequestFullscreen();
+    } else if (panel.mozRequestFullScreen) {
+      panel.mozRequestFullScreen();
+    } else if (panel.msRequestFullscreen) {
+      panel.msRequestFullscreen();
+    }
+    isFullscreen.value = true;
+  } else {
+    // 退出全屏
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+    isFullscreen.value = false;
+  }
+};
+
+/**
+ * 处理键盘快捷键
+ */
+const handleKeyDown = (event) => {
+  // F11 全屏切换
+  if (event.key === 'F11') {
+    event.preventDefault();
+    toggleFullscreen();
+  }
+  // ESC 退出全屏
+  if (event.key === 'Escape' && isFullscreen.value) {
+    isFullscreen.value = false;
+  }
+};
+
+/**
+ * 监听全屏状态变化
+ */
+const handleFullscreenChange = () => {
+  const isCurrentlyFullscreen = !!(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  );
+  isFullscreen.value = isCurrentlyFullscreen;
+};
+
 // 监听文件变化
 watch(() => props.file, () => {
   loadFileContent();
@@ -752,6 +834,26 @@ watch(() => props.content, () => {
 
 onMounted(() => {
   loadFileContent();
+
+  // 添加键盘事件监听
+  window.addEventListener('keydown', handleKeyDown);
+
+  // 添加全屏状态变化监听
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+  document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+  document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+});
+
+onUnmounted(() => {
+  // 移除键盘事件监听
+  window.removeEventListener('keydown', handleKeyDown);
+
+  // 移除全屏状态变化监听
+  document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+  document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+  document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
 });
 </script>
 
@@ -761,6 +863,85 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: #ffffff;
+  position: relative;
+}
+
+/* 全屏模式 */
+.preview-panel:fullscreen {
+  width: 100vw;
+  height: 100vh;
+}
+
+.preview-panel:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+}
+
+.preview-panel:-moz-full-screen {
+  width: 100vw;
+  height: 100vh;
+}
+
+.preview-panel:-ms-fullscreen {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* 全屏时工具栏默认隐藏 */
+.preview-panel:fullscreen .preview-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.preview-panel:-webkit-full-screen .preview-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.preview-panel:-moz-full-screen .preview-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.preview-panel:-ms-fullscreen .preview-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* 全屏时悬停显示工具栏 */
+.preview-panel:fullscreen:hover .preview-header,
+.preview-panel:-webkit-full-screen:hover .preview-header,
+.preview-panel:-moz-full-screen:hover .preview-header,
+.preview-panel:-ms-fullscreen:hover .preview-header {
+  opacity: 1;
+}
+
+/* 全屏时内容区占满 */
+.preview-panel:fullscreen .preview-content,
+.preview-panel:-webkit-full-screen .preview-content,
+.preview-panel:-moz-full-screen .preview-content,
+.preview-panel:-ms-fullscreen .preview-content {
+  height: 100vh;
 }
 
 /* 头部工具栏 */
