@@ -33,7 +33,9 @@ class TaskPlannerEnhanced extends EventEmitter {
     if (!this.engines[engineName]) {
       try {
         const enginePath = path.join(__dirname, '..', 'engines', `${engineName}.js`);
-        this.engines[engineName] = require(enginePath);
+        const EngineClass = require(enginePath);
+        // 实例化引擎类
+        this.engines[engineName] = new EngineClass();
         console.log(`[TaskPlannerEnhanced] 加载引擎: ${engineName}`);
       } catch (error) {
         console.error(`[TaskPlannerEnhanced] 加载引擎失败 ${engineName}:`, error);
@@ -1032,7 +1034,7 @@ ${userRequest}
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(postData)
         },
-        timeout: 60000
+        timeout: 600000 // 10 分钟
       };
 
       const req = httpModule.request(requestOptions, (res) => {
