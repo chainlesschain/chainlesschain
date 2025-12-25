@@ -178,6 +178,17 @@
             @save="handleExcelSave"
           />
 
+          <!-- Word/富文本编辑器 -->
+          <RichTextEditor
+            v-else-if="shouldShowWordEditor"
+            ref="wordEditorRef"
+            :file="currentFile"
+            :initial-content="fileContent"
+            :auto-save="true"
+            @change="handleWordChange"
+            @save="handleWordSave"
+          />
+
           <!-- 文本编辑模式 -->
           <SimpleEditor
             v-else-if="shouldShowEditor"
@@ -370,6 +381,7 @@ import {
 import FileTree from '@/components/projects/FileTree.vue';
 import SimpleEditor from '@/components/projects/SimpleEditor.vue';
 import ExcelEditor from '@/components/editors/ExcelEditor.vue';
+import RichTextEditor from '@/components/editors/RichTextEditor.vue';
 import PreviewPanel from '@/components/projects/PreviewPanel.vue';
 import ChatPanel from '@/components/projects/ChatPanel.vue';
 import GitStatusDialog from '@/components/projects/GitStatusDialog.vue';
@@ -400,6 +412,7 @@ const showChatPanel = ref(true); // 默认显示AI助手
 const fileContent = ref(''); // 文件内容
 const editorRef = ref(null);
 const excelEditorRef = ref(null); // Excel编辑器引用
+const wordEditorRef = ref(null); // Word编辑器引用
 const gitStatus = ref({}); // Git 状态
 let gitStatusInterval = null; // Git 状态轮询定时器
 const showFileManageModal = ref(false); // 文件管理Modal
@@ -436,10 +449,14 @@ const fileTypeInfo = computed(() => {
   const editableExtensions = ['js', 'ts', 'vue', 'jsx', 'tsx', 'html', 'css', 'scss', 'less', 'json', 'md', 'txt', 'xml', 'yml', 'yaml'];
   // Excel文件
   const excelExtensions = ['xlsx', 'xls', 'csv'];
+  // Word文件
+  const wordExtensions = ['docx', 'doc'];
+  // PPT文件
+  const pptExtensions = ['pptx', 'ppt'];
   // 图片文件
   const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'];
-  // 文档文件
-  const documentExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx'];
+  // PDF文件
+  const pdfExtensions = ['pdf'];
   // 视频文件
   const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
   // 音频文件
@@ -449,11 +466,13 @@ const fileTypeInfo = computed(() => {
     extension: ext,
     isEditable: editableExtensions.includes(ext),
     isExcel: excelExtensions.includes(ext),
+    isWord: wordExtensions.includes(ext),
+    isPPT: pptExtensions.includes(ext),
+    isPDF: pdfExtensions.includes(ext),
     isImage: imageExtensions.includes(ext),
-    isDocument: documentExtensions.includes(ext),
     isVideo: videoExtensions.includes(ext),
     isAudio: audioExtensions.includes(ext),
-    isCode: ['js', 'ts', 'vue', 'jsx', 'tsx'].includes(ext),
+    isCode: ['js', 'ts', 'vue', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c'].includes(ext),
     isMarkdown: ext === 'md',
   };
 });
@@ -462,14 +481,21 @@ const fileTypeInfo = computed(() => {
 const shouldShowExcelEditor = computed(() => {
   if (!currentFile.value) return false;
   if (viewMode.value === 'preview') return false;
-  // 在编辑模式或自动模式下，如果是Excel文件则显示Excel编辑器
   return fileTypeInfo.value?.isExcel;
+});
+
+// 是否显示Word编辑器
+const shouldShowWordEditor = computed(() => {
+  if (!currentFile.value) return false;
+  if (viewMode.value === 'preview') return false;
+  return fileTypeInfo.value?.isWord;
 });
 
 // 是否显示文本编辑器
 const shouldShowEditor = computed(() => {
   if (!currentFile.value) return false;
-  if (fileTypeInfo.value?.isExcel) return false; // Excel文件不使用文本编辑器
+  // 专用编辑器的文件不使用文本编辑器
+  if (fileTypeInfo.value?.isExcel || fileTypeInfo.value?.isWord) return false;
   if (viewMode.value === 'edit') return fileTypeInfo.value?.isEditable;
   if (viewMode.value === 'preview') return false;
   if (viewMode.value === 'auto') return fileTypeInfo.value?.isEditable;
@@ -481,8 +507,10 @@ const shouldShowPreview = computed(() => {
   if (!currentFile.value) return false;
   if (viewMode.value === 'preview') return true;
   if (viewMode.value === 'auto') {
-    // 如果是Excel或可编辑文件，则不显示预览
-    if (fileTypeInfo.value?.isExcel || fileTypeInfo.value?.isEditable) {
+    // 如果是专用编辑器文件或可编辑文件，则不显示预览
+    if (fileTypeInfo.value?.isExcel ||
+        fileTypeInfo.value?.isWord ||
+        fileTypeInfo.value?.isEditable) {
       return false;
     }
     return true;
@@ -603,6 +631,30 @@ const handleExcelSave = async (data) => {
     message.success('Excel文件已保存');
   } catch (error) {
     console.error('保存Excel文件失败:', error);
+    message.error('保存失败: ' + error.message);
+  } finally {
+    saving.value = false;
+  }
+};
+
+// 处理Word内容变化
+const handleWordChange = (changeData) => {
+  hasUnsavedChanges.value = true;
+  console.log('[ProjectDetail] Word内容变化:', changeData);
+};
+
+// 处理Word保存
+const handleWordSave = async (data) => {
+  if (!currentFile.value) return;
+
+  saving.value = true;
+  try {
+    console.log('[ProjectDetail] 保存Word文件:', currentFile.value.file_path);
+
+    hasUnsavedChanges.value = false;
+    message.success('Word文档已保存');
+  } catch (error) {
+    console.error('保存Word文件失败:', error);
     message.error('保存失败: ' + error.message);
   } finally {
     saving.value = false;

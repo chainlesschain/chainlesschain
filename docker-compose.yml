@@ -15,7 +15,7 @@ services:
     networks:
       - chainlesschain-network
 
-  # Qdrant - 向量数据库
+  # Qdrant - 向量数据库（后端AI服务使用）
   qdrant:
     image: qdrant/qdrant:latest
     container_name: chainlesschain-qdrant
@@ -26,6 +26,21 @@ services:
       - "6334:6334"
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
+  # ChromaDB - 向量数据库（Desktop App使用）
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chainlesschain-chromadb
+    volumes:
+      - ./data/chromadb:/chroma/chroma
+    ports:
+      - "8000:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=False
     restart: unless-stopped
     networks:
       - chainlesschain-network

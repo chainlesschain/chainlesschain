@@ -575,6 +575,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     markdownToWord: (markdown, outputPath, options) => ipcRenderer.invoke('file:markdownToWord', markdown, outputPath, options || {}),
     wordToMarkdown: (filePath) => ipcRenderer.invoke('file:wordToMarkdown', filePath),
     htmlToWord: (html, outputPath, options) => ipcRenderer.invoke('file:htmlToWord', html, outputPath, options || {}),
+
+    // Office文件预览
+    previewOffice: (filePath, format) => ipcRenderer.invoke('file:previewOffice', filePath, format),
   },
 
   // 对话框操作

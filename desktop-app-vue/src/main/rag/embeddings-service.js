@@ -14,6 +14,8 @@ class EmbeddingsService extends EventEmitter {
     super();
     this.llmManager = llmManager;
     this.cache = new Map(); // 向量缓存
+    this.cacheHits = 0; // 缓存命中次数
+    this.cacheMisses = 0; // 缓存未命中次数
     this.isInitialized = false;
   }
 
@@ -55,9 +57,12 @@ class EmbeddingsService extends EventEmitter {
     // 检查缓存
     const cacheKey = this.getCacheKey(text);
     if (this.cache.has(cacheKey) && !options.skipCache) {
+      this.cacheHits++;
       console.log('[EmbeddingsService] 使用缓存的向量');
       return this.cache.get(cacheKey);
     }
+
+    this.cacheMisses++;
 
     try {
       // 调用LLM服务生成嵌入
@@ -74,8 +79,9 @@ class EmbeddingsService extends EventEmitter {
       // 缓存结果
       this.cache.set(cacheKey, embedding);
 
-      // 限制缓存大小
-      if (this.cache.size > 1000) {
+      // 限制缓存大小 (使用FIFO策略，可考虑升级为LRU)
+      // TODO: 升级为lru-cache以提升缓存命中率
+      if (this.cache.size > 2000) {
         const firstKey = this.cache.keys().next().value;
         this.cache.delete(firstKey);
       }
@@ -202,6 +208,8 @@ class EmbeddingsService extends EventEmitter {
    */
   clearCache() {
     this.cache.clear();
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
     console.log('[EmbeddingsService] 缓存已清除');
   }
 
@@ -211,7 +219,8 @@ class EmbeddingsService extends EventEmitter {
   getCacheStats() {
     return {
       size: this.cache.size,
-      maxSize: 1000,
+      maxSize: 2000,
+      hitRate: this.cacheHits / (this.cacheHits + this.cacheMisses) || 0,
     };
   }
 }
