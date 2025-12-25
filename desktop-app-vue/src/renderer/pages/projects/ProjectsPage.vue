@@ -318,8 +318,13 @@ const handleConversationalCreate = async ({ text, attachments }) => {
     };
 
     const project = await projectStore.createProjectStream(projectData, (progressUpdate) => {
+      console.log('[ProjectsPage] ===== Progress回调被触发 =====');
+      console.log('[ProjectsPage] Progress update:', progressUpdate);
+      console.log('[ProjectsPage] Progress type:', progressUpdate.type);
+
       // 更新进度数据
       streamProgressData.value = { ...progressUpdate };
+      console.log('[ProjectsPage] streamProgressData.value已更新');
 
       // 处理不同类型
       if (progressUpdate.type === 'complete') {
@@ -341,12 +346,32 @@ const handleConversationalCreate = async ({ text, attachments }) => {
     try {
       message.loading({ content: 'AI正在拆解任务...', key: 'ai-decompose', duration: 0 });
 
-      const taskPlan = await window.electronAPI.project.decomposeTask(text, {
-        projectId: project.projectId,
-        projectType: project.project_type,
+      // 使用正确的projectId（从createProjectStream的回调中获取）
+      console.log('[ProjectsPage] 准备拆解任务');
+      console.log('[ProjectsPage] createdProjectId.value:', createdProjectId.value);
+      console.log('[ProjectsPage] project:', project);
+      console.log('[ProjectsPage] project?.projectId:', project?.projectId);
+      console.log('[ProjectsPage] project?.id:', project?.id);
+
+      const projectId = createdProjectId.value || project?.projectId || project?.id;
+
+      console.log('[ProjectsPage] 最终使用的projectId:', projectId);
+
+      if (!projectId) {
+        console.error('[ProjectsPage] 错误：projectId为空！');
+        throw new Error('项目ID不存在，无法进行任务拆解');
+      }
+
+      const contextData = {
+        projectId: projectId,
+        projectType: project?.project_type || project?.projectType,
         projectName: projectData.name,
-        root_path: project.root_path
-      });
+        root_path: project?.root_path || project?.rootPath
+      };
+
+      console.log('[ProjectsPage] 任务拆解上下文:', contextData);
+
+      const taskPlan = await window.electronAPI.project.decomposeTask(text, contextData);
 
       message.success({ content: '任务拆解完成', key: 'ai-decompose', duration: 2 });
 

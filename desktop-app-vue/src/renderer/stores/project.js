@@ -239,6 +239,11 @@ export const useProjectStore = defineStore('project', {
      * @returns {Promise<Object>} 创建结果
      */
     async createProjectStream(createData, onProgress) {
+      console.log('[Store] ===== createProjectStream被调用 =====');
+      console.log('[Store] createData:', createData);
+      console.log('[Store] onProgress存在?', !!onProgress);
+      console.log('[Store] onProgress类型:', typeof onProgress);
+
       return new Promise((resolve, reject) => {
         const progressData = {
           currentStage: '',
@@ -248,8 +253,13 @@ export const useProjectStore = defineStore('project', {
           metadata: {},
         };
 
-        window.electronAPI.project.createStream(createData, {
+        const callbacks = {
           onProgress: (data) => {
+            console.log('[Store] ===== onProgress回调被触发 =====');
+            console.log('[Store] Progress data:', data);
+            console.log('[Store] Progress stage:', data.stage);
+            console.log('[Store] Progress message:', data.message);
+
             // 更新当前阶段
             progressData.currentStage = data.stage;
 
@@ -381,7 +391,15 @@ export const useProjectStore = defineStore('project', {
 
             reject(error);
           },
-        });
+        };
+
+        // 调用流式创建
+        console.log('[Store] 调用window.electronAPI.project.createStream');
+        window.electronAPI.project.createStream(createData, callbacks)
+          .catch(err => {
+            console.error('[Store] createStream Promise rejected:', err);
+            reject(err);
+          });
       });
     },
 

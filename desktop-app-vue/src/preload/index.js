@@ -411,6 +411,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 流式创建项目
     createStream: (createData, callbacks) => {
       return new Promise((resolve, reject) => {
+        console.log('[Preload] createStream called with callbacks:', {
+          hasOnProgress: !!callbacks?.onProgress,
+          hasOnContent: !!callbacks?.onContent,
+          hasOnComplete: !!callbacks?.onComplete,
+          hasOnError: !!callbacks?.onError,
+        });
+
         const handleChunk = (event, chunkData) => {
           console.log('[Preload] ===== 收到IPC事件 =====');
           console.log('[Preload] Event data:', chunkData);
@@ -421,7 +428,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
           switch (type) {
             case 'progress':
               console.log('[Preload] 处理progress事件');
-              callbacks.onProgress?.(data);
+              console.log('[Preload] callbacks.onProgress存在?', !!callbacks?.onProgress);
+              if (callbacks?.onProgress) {
+                console.log('[Preload] 调用callbacks.onProgress with data:', data);
+                callbacks.onProgress(data);
+                console.log('[Preload] callbacks.onProgress调用完成');
+              } else {
+                console.warn('[Preload] callbacks.onProgress不存在!');
+              }
               break;
             case 'content':
               console.log('[Preload] 处理content事件');

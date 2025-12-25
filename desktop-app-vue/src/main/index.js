@@ -188,6 +188,11 @@ class ChainlessChainApp {
       console.log('初始化数据库...');
       this.database = new DatabaseManager();
       await this.database.initialize();
+
+      // 设置数据库单例（供其他模块使用）
+      const { setDatabase } = require('./database');
+      setDatabase(this.database);
+
       console.log('数据库初始化成功');
     } catch (error) {
       console.error('数据库初始化失败:', error);
@@ -579,10 +584,19 @@ class ChainlessChainApp {
       // 不影响主应用启动
     }
 
-    this.createWindow();
+    await this.createWindow();
   }
 
-  createWindow() {
+  async createWindow() {
+    // 清除会话缓存以解决ERR_CACHE_READ_FAILURE错误
+    const { session } = require('electron');
+    try {
+      await session.defaultSession.clearCache();
+      console.log('[Main] 会话缓存已清除');
+    } catch (error) {
+      console.error('[Main] 清除缓存失败:', error);
+    }
+
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
@@ -7771,9 +7785,9 @@ ${content}
     }
   }
 
-  onActivate() {
+  async onActivate() {
     if (this.mainWindow === null) {
-      this.createWindow();
+      await this.createWindow();
     }
   }
 }

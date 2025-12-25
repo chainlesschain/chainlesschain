@@ -164,7 +164,7 @@ class VolcEngineClient(BaseLLMClient):
     def __init__(self, api_key: str, model: str = "doubao-pro-4k"):
         try:
             from volcenginesdkarkruntime import Ark
-            # api_key格式: "access_key:secret_key" (base64编码)
+            # api_key格式: "access_key:secret_key" (base64编码) 或直接使用API key
             self.model = model
             self.client = Ark(api_key=api_key)
         except ImportError:
@@ -178,15 +178,60 @@ class VolcEngineClient(BaseLLMClient):
     ) -> str:
         try:
             # 使用Ark SDK调用豆包模型
-            completion = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
-            return completion.choices[0].message.content
+            import asyncio
+            loop = asyncio.get_event_loop()
+
+            # 在executor中运行同步API
+            def _sync_call():
+                completion = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                return completion.choices[0].message.content
+
+            return await loop.run_in_executor(None, _sync_call)
         except Exception as e:
             raise Exception(f"火山引擎调用失败: {e}")
+
+    async def chat_stream(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: int = 2048
+    ):
+        """
+        流式对话接口
+
+        Yields:
+            生成的文本块
+        """
+        try:
+            import asyncio
+
+            # 在executor中运行同步流式API
+            def _sync_stream():
+                stream = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=True
+                )
+                return stream
+
+            loop = asyncio.get_event_loop()
+            stream = await loop.run_in_executor(None, _sync_stream)
+
+            # 逐块yield
+            for chunk in stream:
+                if hasattr(chunk, 'choices') and chunk.choices:
+                    delta = chunk.choices[0].delta
+                    if hasattr(delta, 'content') and delta.content:
+                        yield delta.content
+        except Exception as e:
+            raise Exception(f"火山引擎流式调用失败: {e}")
 
 
 class QianfanClient(BaseLLMClient):

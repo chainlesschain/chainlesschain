@@ -63,11 +63,21 @@ class TaskPlannerEnhanced extends EventEmitter {
       const prompt = await this.buildDecomposePrompt(userRequest, projectContext, ragContext);
 
       // 3. 调用LLM生成任务计划
-      const response = await this.llmManager.query(prompt, {
-        systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
-        temperature: 0.3,
-        maxTokens: 2000
-      });
+      let response;
+      try {
+        response = await this.llmManager.query(prompt, {
+          systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
+          temperature: 0.3,
+          maxTokens: 2000
+        });
+      } catch (llmError) {
+        console.warn('[TaskPlannerEnhanced] 本地LLM失败，尝试使用后端AI服务:', llmError.message);
+        // 降级到后端AI服务
+        response = await this.queryBackendAI(prompt, {
+          systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
+          temperature: 0.3
+        });
+      }
 
       console.log('[TaskPlannerEnhanced] LLM响应:', response.text.substring(0, 200) + '...');
 
@@ -101,9 +111,13 @@ class TaskPlannerEnhanced extends EventEmitter {
 
       return normalizedPlan;
     } catch (error) {
-      console.error('[TaskPlannerEnhanced] 任务拆解失败:', error);
+      console.error('[TaskPlannerEnhanced] ❌❌❌ 任务拆解失败 ❌❌❌');
+      console.error('[TaskPlannerEnhanced] 错误类型:', error?.constructor?.name || 'Unknown');
+      console.error('[TaskPlannerEnhanced] 错误信息:', error?.message || String(error));
+      console.error('[TaskPlannerEnhanced] 错误堆栈:', error?.stack?.substring(0, 500) || 'No stack');
 
       // 降级方案：使用简单的单步任务
+      console.log('[TaskPlannerEnhanced] 使用降级方案创建简单任务计划');
       return this.createFallbackPlan(userRequest, projectContext);
     }
   }
@@ -368,6 +382,33 @@ ${userRequest}
    */
   async saveTaskPlan(projectId, taskPlan) {
     try {
+      console.log('[TaskPlannerEnhanced] 准备保存任务计划');
+      console.log('[TaskPlannerEnhanced] projectId:', projectId);
+      console.log('[TaskPlannerEnhanced] taskPlan.id:', taskPlan.id);
+
+      // 🔍 诊断：打印 taskPlan 对象的关键字段
+      console.log('[TaskPlannerEnhanced] 🔍 诊断 taskPlan 对象:');
+      console.log('[TaskPlannerEnhanced] - current_step:', taskPlan.current_step, '(类型:', typeof taskPlan.current_step, ')');
+      console.log('[TaskPlannerEnhanced] - total_steps:', taskPlan.total_steps, '(类型:', typeof taskPlan.total_steps, ')');
+      console.log('[TaskPlannerEnhanced] - progress_percentage:', taskPlan.progress_percentage, '(类型:', typeof taskPlan.progress_percentage, ')');
+      console.log('[TaskPlannerEnhanced] - final_output:', JSON.stringify(taskPlan.final_output || {}).substring(0, 100));
+
+      // 验证projectId
+      if (!projectId) {
+        console.warn('[TaskPlannerEnhanced] 警告: projectId为空，跳过保存任务计划');
+        return;
+      }
+
+      // 验证project是否存在
+      const projectExists = this.database.get('SELECT id FROM projects WHERE id = ?', [projectId]);
+      console.log('[TaskPlannerEnhanced] 项目存在?', !!projectExists);
+
+      if (!projectExists) {
+        console.warn('[TaskPlannerEnhanced] 警告: 项目不存在 (projectId:', projectId, ')，跳过保存任务计划');
+        return;
+      }
+
+      // 将 sql 定义在 try 外部，以便 catch 块可以访问
       const sql = `
         INSERT INTO project_task_plans (
           id, project_id, task_title, task_type, user_request,
@@ -377,29 +418,100 @@ ${userRequest}
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
+      // 🔍 诊断：在构建 params 前再次检查这三个字段
+      console.log('[TaskPlannerEnhanced] ⚠️ 构建params前最后检查:');
+      console.log('[TaskPlannerEnhanced] - taskPlan.current_step:', taskPlan.current_step);
+      console.log('[TaskPlannerEnhanced] - taskPlan.total_steps:', taskPlan.total_steps);
+      console.log('[TaskPlannerEnhanced] - taskPlan.progress_percentage:', taskPlan.progress_percentage);
+
+      // 确保数字字段类型正确
+      const ensureNumber = (value, defaultValue = 0) => {
+        const num = Number(value);
+        return (!isNaN(num) && isFinite(num)) ? num : defaultValue;
+      };
+
       const params = [
-        taskPlan.id,
-        projectId,
-        taskPlan.task_title,
-        taskPlan.task_type,
-        taskPlan.user_request,
-        taskPlan.estimated_duration,
-        JSON.stringify(taskPlan.subtasks),
-        JSON.stringify(taskPlan.final_output),
-        taskPlan.status,
-        taskPlan.current_step,
-        taskPlan.total_steps,
-        taskPlan.progress_percentage,
-        taskPlan.created_at,
-        taskPlan.updated_at
+        taskPlan.id || null,
+        projectId || null,
+        taskPlan.task_title || null,
+        taskPlan.task_type || null,
+        taskPlan.user_request || null,
+        taskPlan.estimated_duration || null,
+        JSON.stringify(taskPlan.subtasks || []),
+        JSON.stringify(taskPlan.final_output || {}),
+        taskPlan.status || 'pending',
+        ensureNumber(taskPlan.current_step, 0),
+        ensureNumber(taskPlan.total_steps, 0),
+        ensureNumber(taskPlan.progress_percentage, 0),
+        taskPlan.created_at || Date.now(),
+        taskPlan.updated_at || Date.now()
       ];
+
+      console.log('[TaskPlannerEnhanced] ========== SQL参数摘要 ==========');
+      console.log('[TaskPlannerEnhanced] 参数数量:', params.length);
+      console.log('[TaskPlannerEnhanced] id:', params[0]);
+      console.log('[TaskPlannerEnhanced] project_id:', params[1]);
+      console.log('[TaskPlannerEnhanced] task_title:', params[2]);
+      console.log('[TaskPlannerEnhanced] status:', params[8]);
+      console.log('[TaskPlannerEnhanced] current_step:', params[9], 'total_steps:', params[10], 'progress:', params[11]);
+      console.log('[TaskPlannerEnhanced] ============ 摘要结束 ============');
+
+      // 检查是否有undefined、NaN或Infinity值
+      const invalidIndices = [];
+      const notNullFields = [0, 1]; // id和project_id不能为null
+      const paramNames = ['id', 'project_id', 'task_title', 'task_type', 'user_request',
+                         'estimated_duration', 'subtasks', 'final_output', 'status',
+                         'current_step', 'total_steps', 'progress_percentage',
+                         'created_at', 'updated_at'];
+
+      params.forEach((p, i) => {
+        if (p === undefined) {
+          invalidIndices.push(`params[${i}](${paramNames[i]}) 是 undefined`);
+        }
+        if (notNullFields.includes(i) && (p === null || p === undefined)) {
+          invalidIndices.push(`params[${i}](${paramNames[i]}) 不能为NULL，但当前为${p}`);
+        }
+        if (typeof p === 'number' && (!isFinite(p))) {
+          invalidIndices.push(`params[${i}](${paramNames[i]}) 是特殊数值 (NaN/Infinity)`);
+        }
+      });
+
+      if (invalidIndices.length > 0) {
+        const errorMsg = `参数验证失败:\n${invalidIndices.join('\n')}`;
+        console.error('[TaskPlannerEnhanced]', errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      if (params.length !== 14) {
+        throw new Error(`参数数组长度错误：期望14个，实际${params.length}个`);
+      }
+
+      console.log('[TaskPlannerEnhanced] 参数验证通过，准备执行SQL插入');
+      console.log('[TaskPlannerEnhanced] 🔹 调用 database.run() 开始...');
 
       this.database.run(sql, params);
 
-      console.log('[TaskPlannerEnhanced] 任务计划已保存到数据库:', taskPlan.id);
+      console.log('[TaskPlannerEnhanced] 🔹 database.run() 调用完成');
+      console.log('[TaskPlannerEnhanced] ✅ 任务计划已保存到数据库:', taskPlan.id);
+
+      // 验证保存成功
+      console.log('[TaskPlannerEnhanced] 开始验证保存结果...');
+      const saved = this.database.get('SELECT id FROM project_task_plans WHERE id = ?', [taskPlan.id]);
+      console.log('[TaskPlannerEnhanced] 保存验证结果:', saved ? '✅ 成功找到记录' : '❌ 未找到记录');
+
+      if (!saved) {
+        console.error('[TaskPlannerEnhanced] ❌ 警告: 数据库插入后查询不到记录，可能保存失败！');
+        throw new Error('任务计划保存失败：插入后无法查询到记录');
+      }
     } catch (error) {
-      console.error('[TaskPlannerEnhanced] 保存任务计划失败:', error);
-      // 不抛出错误，允许继续执行
+      console.error('[TaskPlannerEnhanced] ❌❌❌ 保存任务计划失败 ❌❌❌');
+      console.error('[TaskPlannerEnhanced] Error类型:', error?.constructor?.name || 'Unknown');
+      console.error('[TaskPlannerEnhanced] Error信息:', error?.message || String(error));
+      console.error('[TaskPlannerEnhanced] Error stack前500字:', error?.stack?.substring(0, 500) || 'No stack');
+      console.error('[TaskPlannerEnhanced] projectId:', projectId);
+      console.error('[TaskPlannerEnhanced] taskPlan.id:', taskPlan.id);
+      // 重新抛出错误，让上层处理
+      throw error;
     }
   }
 
@@ -848,13 +960,12 @@ ${userRequest}
         LIMIT ?
       `;
 
-      const stmt = this.database.prepare(sql);
-      const plans = stmt.all(projectId, limit);
+      const plans = this.database.all(sql, [projectId, limit]);
 
       return plans.map(plan => ({
         ...plan,
         subtasks: JSON.parse(plan.subtasks),
-        final_output: JSON.parse(plan.final_output)
+        final_output: JSON.parse(plan.final_output || 'null')
       }));
     } catch (error) {
       console.error('[TaskPlannerEnhanced] 获取任务计划历史失败:', error);
@@ -867,20 +978,134 @@ ${userRequest}
    */
   async getTaskPlan(taskPlanId) {
     try {
+      console.log('[TaskPlannerEnhanced] 查询任务计划:', taskPlanId);
       const sql = `SELECT * FROM project_task_plans WHERE id = ?`;
-      const stmt = this.database.prepare(sql);
-      const plan = stmt.get(taskPlanId);
+      const plan = this.database.get(sql, [taskPlanId]);
+
+      console.log('[TaskPlannerEnhanced] 查询结果:', plan ? '找到' : '未找到');
 
       if (plan) {
         plan.subtasks = JSON.parse(plan.subtasks);
-        plan.final_output = JSON.parse(plan.final_output);
+        plan.final_output = JSON.parse(plan.final_output || 'null');
       }
 
       return plan;
     } catch (error) {
       console.error('[TaskPlannerEnhanced] 获取任务计划失败:', error);
+      console.error('[TaskPlannerEnhanced] Error stack:', error.stack);
       return null;
     }
+  }
+
+  /**
+   * 查询后端AI服务（降级方案）
+   */
+  async queryBackendAI(prompt, options = {}) {
+    const https = require('https');
+    const http = require('http');
+    const { URL } = require('url');
+
+    const backendURL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+    console.log('[TaskPlannerEnhanced] 调用后端AI服务:', backendURL);
+
+    return new Promise((resolve, reject) => {
+      const url = new URL('/api/chat/stream', backendURL);
+      const isHttps = url.protocol === 'https:';
+      const httpModule = isHttps ? https : http;
+
+      const messages = [
+        { role: 'system', content: options.systemPrompt || 'You are a helpful assistant.' },
+        { role: 'user', content: prompt }
+      ];
+
+      const postData = JSON.stringify({
+        messages,
+        temperature: options.temperature || 0.7
+      });
+
+      const requestOptions = {
+        hostname: url.hostname,
+        port: url.port || (isHttps ? 443 : 80),
+        path: url.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        },
+        timeout: 60000
+      };
+
+      const req = httpModule.request(requestOptions, (res) => {
+        let fullText = '';
+        let buffer = '';
+
+        res.on('data', (chunk) => {
+          buffer += chunk.toString();
+
+          // 按行处理SSE
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // 保留最后一个不完整的行
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr) {
+                  const data = JSON.parse(jsonStr);
+
+                  if (data.type === 'content' && data.content) {
+                    fullText += data.content;
+                  } else if (data.type === 'error') {
+                    reject(new Error(data.error));
+                    return;
+                  } else if (data.type === 'done') {
+                    console.log('[TaskPlannerEnhanced] 后端AI响应长度:', fullText.length);
+                    resolve({
+                      text: fullText,
+                      tokens: Math.ceil(fullText.length / 4)
+                    });
+                    return;
+                  }
+                }
+              } catch (parseError) {
+                // 忽略解析错误，继续处理
+              }
+            }
+          }
+        });
+
+        res.on('end', () => {
+          // 如果没有收到done事件，直接返回累积的文本
+          if (fullText) {
+            console.log('[TaskPlannerEnhanced] 后端AI响应完成，长度:', fullText.length);
+            resolve({
+              text: fullText,
+              tokens: Math.ceil(fullText.length / 4)
+            });
+          } else {
+            reject(new Error('后端AI服务未返回任何内容'));
+          }
+        });
+
+        res.on('error', (err) => {
+          console.error('[TaskPlannerEnhanced] 响应错误:', err);
+          reject(err);
+        });
+      });
+
+      req.on('error', (err) => {
+        console.error('[TaskPlannerEnhanced] 请求错误:', err);
+        reject(err);
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('后端AI服务请求超时'));
+      });
+
+      req.write(postData);
+      req.end();
+    });
   }
 
   /**

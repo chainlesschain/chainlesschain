@@ -243,8 +243,8 @@ const handleLogin = async () => {
         console.error('窗口最大化失败:', error);
       }
 
-      // 立即跳转到首页
-      router.push('/');
+      // 立即跳转到我的项目
+      router.push('/projects');
     }
   } catch (error) {
     console.error('登录失败:', error);
