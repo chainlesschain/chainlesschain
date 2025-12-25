@@ -774,9 +774,20 @@ pandoc document.md -o document.docx
    * @param {Object} params - 任务参数
    */
   async handleProjectTask(params) {
-    const { action, description, outputFiles, projectPath, llmManager } = params;
+    let { action, description, outputFiles, projectPath, llmManager } = params;
 
     console.log(`[Document Engine] 处理任务 - ${action}`);
+
+    // 如果没有提供项目路径，创建临时目录
+    if (!projectPath) {
+      const { app } = require('electron');
+      const userDataPath = app.getPath('userData');
+      projectPath = path.join(userDataPath, 'temp', `doc_${Date.now()}`);
+      console.log('[Document Engine] 未提供项目路径，使用临时目录:', projectPath);
+
+      // 确保目录存在
+      await fs.mkdir(projectPath, { recursive: true });
+    }
 
     try {
       switch (action) {
@@ -809,18 +820,6 @@ pandoc document.md -o document.docx
    */
   async createDocumentFromDescription(description, projectPath, llmManager) {
     console.log('[Document Engine] 使用LLM生成文档');
-
-    // 如果没有提供项目路径，使用临时目录
-    if (!projectPath) {
-      const os = require('os');
-      const { app } = require('electron');
-      const userDataPath = app.getPath('userData');
-      projectPath = path.join(userDataPath, 'temp', `doc_${Date.now()}`);
-      console.log('[Document Engine] 未提供项目路径，使用临时目录:', projectPath);
-
-      // 确保目录存在
-      await fs.mkdir(projectPath, { recursive: true });
-    }
 
     const prompt = `请根据以下描述生成一份完整的文档内容（Markdown格式）：
 
