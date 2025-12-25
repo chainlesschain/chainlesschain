@@ -16,12 +16,15 @@ class FileIPC {
   /**
    * 设置引擎实例
    */
-  setEngines({ excelEngine, documentEngine }) {
+  setEngines({ excelEngine, documentEngine, wordEngine }) {
     if (excelEngine) {
       this.excelEngine = excelEngine;
     }
     if (documentEngine) {
       this.documentEngine = documentEngine;
+    }
+    if (wordEngine) {
+      this.wordEngine = wordEngine;
     }
   }
 
@@ -122,6 +125,128 @@ class FileIPC {
         };
       } catch (error) {
         console.error('[File IPC] JSON转Excel失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // ============ Word相关操作 ============
+
+    // 读取Word文档
+    ipcMain.handle('file:readWord', async (event, filePath) => {
+      try {
+        console.log('[File IPC] 读取Word文档:', filePath);
+
+        if (!this.wordEngine) {
+          this.wordEngine = require('../engines/word-engine');
+        }
+
+        const data = await this.wordEngine.readWord(filePath);
+
+        return {
+          success: true,
+          ...data,
+        };
+      } catch (error) {
+        console.error('[File IPC] 读取Word失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 写入Word文档
+    ipcMain.handle('file:writeWord', async (event, filePath, content) => {
+      try {
+        console.log('[File IPC] 写入Word文档:', filePath);
+
+        if (!this.wordEngine) {
+          this.wordEngine = require('../engines/word-engine');
+        }
+
+        const result = await this.wordEngine.writeWord(filePath, content);
+
+        return {
+          success: true,
+          ...result,
+        };
+      } catch (error) {
+        console.error('[File IPC] 写入Word失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // Markdown转Word
+    ipcMain.handle('file:markdownToWord', async (event, markdown, outputPath, options) => {
+      try {
+        console.log('[File IPC] Markdown转Word');
+
+        if (!this.wordEngine) {
+          this.wordEngine = require('../engines/word-engine');
+        }
+
+        const result = await this.wordEngine.markdownToWord(markdown, outputPath, options);
+
+        return {
+          success: true,
+          ...result,
+        };
+      } catch (error) {
+        console.error('[File IPC] Markdown转Word失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // Word转Markdown
+    ipcMain.handle('file:wordToMarkdown', async (event, filePath) => {
+      try {
+        console.log('[File IPC] Word转Markdown');
+
+        if (!this.wordEngine) {
+          this.wordEngine = require('../engines/word-engine');
+        }
+
+        const result = await this.wordEngine.wordToMarkdown(filePath);
+
+        return {
+          success: true,
+          ...result,
+        };
+      } catch (error) {
+        console.error('[File IPC] Word转Markdown失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // HTML转Word
+    ipcMain.handle('file:htmlToWord', async (event, html, outputPath, options) => {
+      try {
+        console.log('[File IPC] HTML转Word');
+
+        if (!this.wordEngine) {
+          this.wordEngine = require('../engines/word-engine');
+        }
+
+        const result = await this.wordEngine.htmlToWord(html, outputPath, options);
+
+        return {
+          success: true,
+          ...result,
+        };
+      } catch (error) {
+        console.error('[File IPC] HTML转Word失败:', error);
         return {
           success: false,
           error: error.message,
@@ -240,6 +365,47 @@ class FileIPC {
       }
     });
 
+    // ============ Office文件预览 ============
+
+    // 预览Office文件 (Word, Excel, PowerPoint)
+    ipcMain.handle('file:previewOffice', async (event, filePath, format) => {
+      try {
+        console.log('[File IPC] 预览Office文件:', filePath, format);
+
+        // 确保documentEngine已加载
+        if (!this.documentEngine) {
+          this.documentEngine = require('../engines/document-engine');
+        }
+
+        let data;
+
+        switch (format) {
+          case 'word':
+            data = await this.previewWord(filePath);
+            break;
+          case 'excel':
+            data = await this.previewExcel(filePath);
+            break;
+          case 'powerpoint':
+            data = await this.previewPowerPoint(filePath);
+            break;
+          default:
+            throw new Error(`不支持的格式: ${format}`);
+        }
+
+        return {
+          success: true,
+          data,
+        };
+      } catch (error) {
+        console.error('[File IPC] Office文件预览失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
     // ============ 对话框操作 ============
 
     // 显示打开文件对话框
@@ -277,6 +443,114 @@ class FileIPC {
     });
 
     console.log('[File IPC] 文件操作IPC处理器已注册');
+  }
+
+  /**
+   * 预览Word文档
+   */
+  async previewWord(filePath) {
+    const docxPreview = require('docx-preview');
+    const fileBuffer = await fs.readFile(filePath);
+
+    // 创建一个临时容器来渲染docx
+    const { JSDOM } = require('jsdom');
+    const dom = new JSDOM('<!DOCTYPE html><html><body><div id="container"></div></body></html>');
+    const container = dom.window.document.getElementById('container');
+
+    await docxPreview.renderAsync(fileBuffer, container, null, {
+      className: 'docx-preview',
+      ignoreWidth: false,
+      ignoreHeight: false,
+      ignoreFonts: false,
+      breakPages: true,
+      debug: false,
+      experimental: false,
+      renderChanges: false,
+      renderHeaders: true,
+      renderFooters: true,
+      renderFootnotes: true,
+      renderEndnotes: true,
+    });
+
+    return {
+      html: container.innerHTML,
+    };
+  }
+
+  /**
+   * 预览Excel表格
+   */
+  async previewExcel(filePath) {
+    const xlsx = require('xlsx');
+    const workbook = xlsx.readFile(filePath);
+
+    const sheets = [];
+
+    for (const sheetName of workbook.SheetNames) {
+      const worksheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: '',
+        blankrows: true,
+      });
+
+      sheets.push({
+        name: sheetName,
+        data: data,
+      });
+    }
+
+    return {
+      sheets,
+      sheetNames: workbook.SheetNames,
+    };
+  }
+
+  /**
+   * 预览PowerPoint
+   */
+  async previewPowerPoint(filePath) {
+    const pptx2json = require('pptx2json');
+
+    return new Promise((resolve, reject) => {
+      pptx2json(filePath, (err, json) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        // 转换pptx2json的输出为我们需要的格式
+        const slides = [];
+
+        if (json && Array.isArray(json)) {
+          for (const slideData of json) {
+            const slide = {
+              title: slideData.title || '',
+              content: [],
+            };
+
+            // 提取文本内容
+            if (slideData.content && Array.isArray(slideData.content)) {
+              slide.content = slideData.content.map(item => {
+                if (typeof item === 'string') {
+                  return item;
+                } else if (item && item.text) {
+                  return item.text;
+                }
+                return String(item);
+              });
+            }
+
+            slides.push(slide);
+          }
+        }
+
+        resolve({
+          slides,
+          slideCount: slides.length,
+        });
+      });
+    });
   }
 }
 

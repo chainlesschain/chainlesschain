@@ -14,23 +14,23 @@ const Reranker = require('./reranker');
  */
 const DEFAULT_CONFIG = {
   // 检索参数
-  topK: 5, // 返回top-K个最相关结果
-  similarityThreshold: 0.7, // 相似度阈值 (提高以获得更好的结果)
-  maxContextLength: 2000, // 最大上下文长度（字符）
+  topK: 10, // 返回top-K个最相关结果 (增加召回量)
+  similarityThreshold: 0.6, // 相似度阈值 (稍微放宽以获得更多候选)
+  maxContextLength: 6000, // 最大上下文长度（字符） (增加以支持更长上下文)
 
   // 启用选项
   enableRAG: true, // 是否启用RAG
-  enableReranking: false, // 是否启用重排序
+  enableReranking: true, // 🔥 启用重排序以提升检索质量
   enableHybridSearch: true, // 是否启用混合搜索（向量+关键词）
 
   // 重排序配置
-  rerankMethod: 'llm', // 重排序方法: 'llm' | 'crossencoder' | 'hybrid' | 'keyword'
+  rerankMethod: 'hybrid', // 重排序方法: 'llm' | 'crossencoder' | 'hybrid' | 'keyword' (混合策略更平衡)
   rerankTopK: 5, // 重排序后保留的文档数量
   rerankScoreThreshold: 0.3, // 重排序最低分数阈值
 
   // 权重
-  vectorWeight: 0.7, // 向量搜索权重
-  keywordWeight: 0.3, // 关键词搜索权重
+  vectorWeight: 0.6, // 向量搜索权重 (稍微降低)
+  keywordWeight: 0.4, // 关键词搜索权重 (提升以增强关键词匹配)
 
   // 向量存储配置
   chromaUrl: 'http://localhost:8000', // ChromaDB地址
@@ -138,8 +138,8 @@ class RAGManager extends EventEmitter {
 
       console.log(`[RAGManager] 为 ${items.length} 个项目生成向量...`);
 
-      // 批量处理
-      const batchSize = 5;
+      // 批量处理 (优化批次大小以提升性能)
+      const batchSize = 20;
       let processed = 0;
 
       for (let i = 0; i < items.length; i += batchSize) {
@@ -582,6 +582,138 @@ class RAGManager extends EventEmitter {
       this.reranker.setEnabled(enabled);
     }
     console.log(`[RAGManager] 重排序${enabled ? '已启用' : '已禁用'}`);
+  }
+
+  /**
+   * 添加文档（兼容ProjectRAG接口）
+   * @param {Object} doc - 文档对象
+   * @returns {Promise<void>}
+   */
+  async addDocument(doc) {
+    const item = {
+      id: doc.id,
+      title: doc.metadata?.title || doc.metadata?.fileName || 'Untitled',
+      content: doc.content || '',
+      type: doc.metadata?.type || 'document',
+      created_at: doc.metadata?.createdAt || new Date().toISOString(),
+      updated_at: doc.metadata?.updatedAt || new Date().toISOString(),
+    };
+
+    await this.addToIndex(item);
+    console.log(`[RAGManager] 添加文档: ${item.id}`);
+  }
+
+  /**
+   * 获取文档（兼容ProjectRAG接口）
+   * @param {string} id - 文档ID
+   * @returns {Promise<Object|null>}
+   */
+  async getDocument(id) {
+    try {
+      if (this.useChromaDB) {
+        // 从ChromaDB/Qdrant获取
+        const results = await this.vectorStore.collection?.get({
+          ids: [id],
+        });
+
+        if (results && results.ids && results.ids.length > 0) {
+          return {
+            id: results.ids[0],
+            content: results.documents[0],
+            metadata: results.metadatas[0],
+          };
+        }
+      } else {
+        // 从内存索引获取
+        const item = this.vectorIndex.get(id);
+        if (item) {
+          return {
+            id: item.id,
+            content: item.content,
+            metadata: {
+              title: item.title,
+              type: item.type,
+              created_at: item.created_at,
+            },
+          };
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`[RAGManager] 获取文档失败 ${id}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * 删除文档（兼容ProjectRAG接口）
+   * @param {string} id - 文档ID
+   * @returns {Promise<void>}
+   */
+  async deleteDocument(id) {
+    await this.removeFromIndex(id);
+    console.log(`[RAGManager] 删除文档: ${id}`);
+  }
+
+  /**
+   * 搜索文档（兼容ProjectRAG接口）
+   * @param {string} query - 查询文本
+   * @param {Object} options - 搜索选项
+   * @returns {Promise<Array>}
+   */
+  async search(query, options = {}) {
+    const {
+      filter = null,
+      limit = this.config.topK,
+      useHybridSearch = this.config.enableHybridSearch,
+    } = options;
+
+    // 调用retrieve方法
+    const results = await this.retrieve(query, {
+      topK: limit,
+      useHybridSearch,
+    });
+
+    // 应用过滤条件（如果有）
+    if (filter) {
+      return results.filter(result => {
+        // 检查metadata是否匹配filter
+        for (const [key, value] of Object.entries(filter)) {
+          const metadataValue = result[key] || result.metadata?.[key];
+          if (metadataValue !== value) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    return results;
+  }
+
+  /**
+   * 重排序文档（兼容ProjectRAG接口）
+   * @param {string} query - 查询文本
+   * @param {Array} documents - 文档列表
+   * @param {Object} options - 重排序选项
+   * @returns {Promise<Array>}
+   */
+  async rerank(query, documents, options = {}) {
+    if (!this.config.enableReranking || !this.reranker) {
+      console.log('[RAGManager] 重排序未启用，返回原始结果');
+      return documents;
+    }
+
+    try {
+      return await this.reranker.rerank(query, documents, {
+        topK: options.topK || this.config.rerankTopK,
+        method: options.method || this.config.rerankMethod,
+      });
+    } catch (error) {
+      console.error('[RAGManager] 重排序失败:', error);
+      return documents;
+    }
   }
 }
 
