@@ -419,11 +419,19 @@ const getStatusColor = (status) => {
   return colorMap[status] || 'default';
 };
 
+/**
+ * 切换步骤展开/收起
+ */
+const toggleStepsExpanded = () => {
+  stepsExpanded.value = !stepsExpanded.value;
+};
+
 // 暴露方法供父组件调用
 defineExpose({
   execute: handleExecute,
   stop: handleStop,
   clear: handleClear,
+  toggleStepsExpanded,
 });
 </script>
 
