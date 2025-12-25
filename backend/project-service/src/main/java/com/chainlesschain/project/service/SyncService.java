@@ -43,4 +43,27 @@ public interface SyncService {
      * @param resolution 冲突解决方案
      */
     void resolveConflict(ConflictResolutionDTO resolution);
+
+    /**
+     * 在独立事务中处理单条记录
+     *
+     * @param tableName 表名
+     * @param record    记录数据
+     * @param deviceId  设备ID
+     * @return true 如果检测到冲突
+     */
+    boolean processRecordInTransaction(String tableName, Map<String, Object> record, String deviceId);
+
+    /**
+     * 在独立事务中记录同步日志
+     *
+     * @param tableName    表名
+     * @param recordId     记录ID
+     * @param operation    操作类型
+     * @param status       状态
+     * @param deviceId     设备ID
+     * @param errorMessage 错误消息
+     */
+    void logSyncInNewTransaction(String tableName, String recordId, String operation,
+                                String status, String deviceId, String errorMessage);
 }

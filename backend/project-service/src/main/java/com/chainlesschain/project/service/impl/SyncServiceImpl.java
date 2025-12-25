@@ -11,7 +11,10 @@ import com.chainlesschain.project.service.SyncService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -45,8 +48,16 @@ public class SyncServiceImpl implements SyncService {
     @Autowired(required = false)
     private SyncLogMapper syncLogMapper;
 
+    private final TransactionTemplate requiresNewTransactionTemplate;
+
+    // 构造函数，创建独立事务的 TransactionTemplate
+    public SyncServiceImpl(PlatformTransactionManager transactionManager) {
+        this.requiresNewTransactionTemplate = new TransactionTemplate(transactionManager);
+        // 设置为 REQUIRES_NEW，确保每次都创建新事务
+        this.requiresNewTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
+
     @Override
-    @Transactional
     public Map<String, Object> uploadBatch(SyncRequestDTO request) {
         long startTime = System.currentTimeMillis();
         log.info("[SyncService] 开始批量上传: table={}, deviceId={}, records={}",
@@ -59,22 +70,31 @@ public class SyncServiceImpl implements SyncService {
 
         for (Map<String, Object> record : request.getRecords()) {
             try {
-                // 根据表名选择对应的Mapper进行插入或更新
-                boolean hasConflict = insertOrUpdateRecord(request.getTableName(), record, request.getDeviceId());
+                // 每条记录在独立的新事务中处理（REQUIRES_NEW）
+                Boolean hasConflict = requiresNewTransactionTemplate.execute(status -> {
+                    try {
+                        return insertOrUpdateRecord(request.getTableName(), record, request.getDeviceId());
+                    } catch (Exception e) {
+                        // 标记事务回滚
+                        status.setRollbackOnly();
+                        throw e;
+                    }
+                });
 
-                if (hasConflict && !request.getForceOverwrite()) {
+                if (hasConflict != null && hasConflict && !request.getForceOverwrite()) {
                     conflictCount++;
                     conflicts.add(record);
                 } else {
                     successCount++;
-                    // 记录同步日志
-                    logSync(request.getTableName(), (String) record.get("id"),
+                    // 记录同步日志（独立事务，REQUIRES_NEW）
+                    logSyncInNewTransaction(request.getTableName(), (String) record.get("id"),
                         "upload", "success", request.getDeviceId(), null);
                 }
             } catch (Exception e) {
                 log.error("[SyncService] 上传记录失败: id={}, error={}", record.get("id"), e.getMessage());
                 failedCount++;
-                logSync(request.getTableName(), (String) record.get("id"),
+                // 记录失败日志（独立事务，REQUIRES_NEW）
+                logSyncInNewTransaction(request.getTableName(), (String) record.get("id"),
                     "upload", "failed", request.getDeviceId(), e.getMessage());
             }
         }
@@ -91,6 +111,51 @@ public class SyncServiceImpl implements SyncService {
         result.put("executionTimeMs", executionTime);
 
         return result;
+    }
+
+    /**
+     * 在独立事务中处理单条记录（使用 REQUIRES_NEW 事务）
+     */
+    public boolean processRecordInTransaction(String tableName, Map<String, Object> record, String deviceId) {
+        Boolean result = requiresNewTransactionTemplate.execute(status -> {
+            try {
+                return insertOrUpdateRecord(tableName, record, deviceId);
+            } catch (Exception e) {
+                status.setRollbackOnly();
+                throw e;
+            }
+        });
+        return result != null && result;
+    }
+
+    /**
+     * 在独立事务中记录同步日志（使用 REQUIRES_NEW 事务，完全独立）
+     */
+    public void logSyncInNewTransaction(String tableName, String recordId, String operation,
+                                        String status, String deviceId, String errorMessage) {
+        if (syncLogMapper == null) return;
+
+        // 在新事务中执行日志记录（REQUIRES_NEW - 完全独立的事务）
+        requiresNewTransactionTemplate.execute(txStatus -> {
+            try {
+                SyncLog syncLog = new SyncLog();
+                syncLog.setTableName(tableName);
+                syncLog.setRecordId(recordId);
+                syncLog.setOperation(operation);
+                syncLog.setDirection("upload");
+                syncLog.setStatus(status);
+                syncLog.setDeviceId(deviceId);
+                syncLog.setErrorMessage(errorMessage);
+
+                syncLogMapper.insert(syncLog);
+            } catch (Exception e) {
+                // 记录到控制台，避免级联失败
+                log.error("[SyncService] 记录同步日志失败: table={}, recordId={}, error={}",
+                    tableName, recordId, e.getMessage());
+                // 不回滚日志事务，即使失败也继续
+            }
+            return null;
+        });
     }
 
     @Override
@@ -181,20 +246,28 @@ public class SyncServiceImpl implements SyncService {
     }
 
     @Override
-    @Transactional
     public void resolveConflict(ConflictResolutionDTO resolution) {
         log.info("[SyncService] 解决冲突: conflictId={}, resolution={}",
             resolution.getConflictId(), resolution.getResolution());
 
-        // 根据解决策略更新数据
-        if ("manual".equals(resolution.getResolution()) && resolution.getMergedData() != null) {
-            insertOrUpdateRecord(resolution.getTableName(), resolution.getMergedData(), resolution.getDeviceId());
-        }
+        try {
+            // 根据解决策略更新数据（独立事务）
+            if ("manual".equals(resolution.getResolution()) && resolution.getMergedData() != null) {
+                processRecordInTransaction(resolution.getTableName(), resolution.getMergedData(), resolution.getDeviceId());
+            }
 
-        // 记录冲突解决日志
-        logSync(resolution.getTableName(), resolution.getRecordId(),
-            "resolve_conflict", "success", resolution.getDeviceId(),
-            "Resolution: " + resolution.getResolution());
+            // 记录冲突解决日志（独立事务）
+            logSyncInNewTransaction(resolution.getTableName(), resolution.getRecordId(),
+                "resolve_conflict", "success", resolution.getDeviceId(),
+                "Resolution: " + resolution.getResolution());
+        } catch (Exception e) {
+            log.error("[SyncService] 解决冲突失败: conflictId={}, error={}",
+                resolution.getConflictId(), e.getMessage());
+            // 记录失败日志
+            logSyncInNewTransaction(resolution.getTableName(), resolution.getRecordId(),
+                "resolve_conflict", "failed", resolution.getDeviceId(), e.getMessage());
+            throw new RuntimeException("解决冲突失败: " + e.getMessage());
+        }
     }
 
     // ==================== 私有辅助方法 ====================
@@ -688,22 +761,6 @@ public class SyncServiceImpl implements SyncService {
             }
         }
         return null;
-    }
-
-    private void logSync(String tableName, String recordId, String operation,
-                        String status, String deviceId, String errorMessage) {
-        if (syncLogMapper == null) return;
-
-        SyncLog log = new SyncLog();
-        log.setTableName(tableName);
-        log.setRecordId(recordId);
-        log.setOperation(operation);
-        log.setDirection("upload");
-        log.setStatus(status);
-        log.setDeviceId(deviceId);
-        log.setErrorMessage(errorMessage);
-
-        syncLogMapper.insert(log);
     }
 
     private Long toMillis(LocalDateTime dateTime) {
