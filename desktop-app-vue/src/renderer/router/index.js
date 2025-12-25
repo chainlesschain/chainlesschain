@@ -190,13 +190,13 @@ const routes = [
         name: 'AIChat',
         component: () => import('../pages/AIChatPage.vue'),
         meta: { title: 'AI对话' },
+      },
       // Web IDE
       {
         path: 'webide',
         name: 'WebIDE',
         component: () => import('../pages/webide/WebIDEPage.vue'),
         meta: { title: 'Web IDE' },
-      },
       },
     ],
   },
