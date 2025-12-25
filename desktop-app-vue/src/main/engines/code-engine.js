@@ -74,7 +74,9 @@ class CodeEngine {
       framework = null,
       includeTests = false,
       includeComments = true,
-      style = 'modern'
+      style = 'modern',
+      streaming = false,
+      onProgress = null
     } = options;
 
     console.log(`[CodeEngine] 生成代码: ${language}`, description);
@@ -83,11 +85,20 @@ class CodeEngine {
       // 构建提示词
       const prompt = this.buildCodePrompt(description, language, framework, includeComments, style);
 
-      // 调用LLM
-      const response = await this.llmManager.query(prompt, {
-        temperature: this.temperatures.code,
-        maxTokens: 2000
-      });
+      // 调用LLM（支持流式输出）
+      let response;
+      if (streaming && onProgress) {
+        response = await this.streamQuery(prompt, {
+          temperature: this.temperatures.code,
+          maxTokens: 2000,
+          onProgress
+        });
+      } else {
+        response = await this.llmManager.query(prompt, {
+          temperature: this.temperatures.code,
+          maxTokens: 2000
+        });
+      }
 
       // 提取代码块
       const code = this.extractCodeBlock(response, language);
@@ -95,8 +106,11 @@ class CodeEngine {
       // 生成单元测试
       let tests = null;
       if (includeTests) {
-        tests = await this.generateTests(code, language);
+        if (onProgress) onProgress({ stage: 'generating_tests', progress: 50 });
+        tests = await this.generateTests(code, language, { onProgress });
       }
+
+      if (onProgress) onProgress({ stage: 'complete', progress: 100 });
 
       return {
         success: true,
@@ -110,6 +124,48 @@ class CodeEngine {
     } catch (error) {
       console.error('[CodeEngine] 代码生成失败:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 流式查询LLM
+   * @param {string} prompt - 提示词
+   * @param {Object} options - 选项
+   * @returns {Promise<string>} 响应内容
+   */
+  async streamQuery(prompt, options = {}) {
+    const { temperature, maxTokens, onProgress } = options;
+
+    let fullResponse = '';
+    let tokenCount = 0;
+
+    // 使用流式API
+    if (this.llmManager.queryStream) {
+      await this.llmManager.queryStream(prompt, {
+        temperature,
+        maxTokens,
+        onChunk: (chunk) => {
+          fullResponse += chunk;
+          tokenCount += chunk.length / 4; // 粗略估计token数
+
+          if (onProgress) {
+            onProgress({
+              stage: 'generating',
+              progress: Math.min(95, (tokenCount / maxTokens) * 100),
+              content: fullResponse
+            });
+          }
+        }
+      });
+
+      return fullResponse;
+    } else {
+      // 降级到普通查询
+      const response = await this.llmManager.query(prompt, { temperature, maxTokens });
+      if (onProgress) {
+        onProgress({ stage: 'generating', progress: 95, content: response });
+      }
+      return response;
     }
   }
 
@@ -173,9 +229,10 @@ class CodeEngine {
    * 生成单元测试
    * @param {string} code - 源代码
    * @param {string} language - 编程语言
+   * @param {Object} options - 选项
    * @returns {Promise<string>} 测试代码
    */
-  async generateTests(code, language) {
+  async generateTests(code, language, options = {}) {
     this.ensureInitialized();
 
     const langInfo = this.supportedLanguages[language] || { testFramework: 'standard' };
@@ -217,16 +274,95 @@ ${code}
   }
 
   /**
-   * 代码审查
+   * 代码审查（增强版，整合复杂度和安全分析）
    * @param {string} code - 源代码
    * @param {string} language - 编程语言
+   * @param {Object} options - 选项
    * @returns {Promise<Object>} 审查结果
    */
-  async reviewCode(code, language) {
+  async reviewCode(code, language, options = {}) {
     this.ensureInitialized();
 
-    console.log(`[CodeEngine] 代码审查: ${language}`);
+    const {
+      includeComplexity = true,
+      includeSecurity = true,
+      detailed = true
+    } = options;
 
+    console.log(`[CodeEngine] 代码审查: ${language} (增强版)`);
+
+    try {
+      // 并行执行基础审查、复杂度分析和安全扫描
+      const tasks = [];
+
+      // 基础代码审查
+      const basicReviewPromise = this.performBasicReview(code, language);
+      tasks.push(basicReviewPromise);
+
+      // 复杂度分析
+      let complexityPromise = null;
+      if (includeComplexity) {
+        complexityPromise = this.analyzeComplexity(code, language);
+        tasks.push(complexityPromise);
+      }
+
+      // 安全扫描
+      let securityPromise = null;
+      if (includeSecurity) {
+        securityPromise = this.scanSecurity(code, language);
+        tasks.push(securityPromise);
+      }
+
+      // 等待所有任务完成
+      const results = await Promise.all(tasks);
+      const basicReview = results[0];
+      const complexity = includeComplexity ? results[1] : null;
+      const security = includeSecurity ? results[includeComplexity ? 2 : 1] : null;
+
+      // 综合评分（基础 40% + 复杂度 30% + 安全 30%）
+      let finalScore = basicReview.score || 5;
+      if (complexity && complexity.metrics.score) {
+        finalScore = finalScore * 0.4 + complexity.metrics.score * 0.3;
+      } else {
+        finalScore = finalScore * 0.7;
+      }
+      if (security && security.score) {
+        finalScore += security.score * 0.3;
+      } else if (!includeComplexity) {
+        finalScore = finalScore * 0.7 + finalScore * 0.3;
+      }
+      finalScore = Math.round(finalScore * 10) / 10;
+
+      // 整合建议
+      const allSuggestions = [
+        ...(basicReview.suggestions || []),
+        ...(complexity ? this.complexityToSuggestions(complexity) : []),
+        ...(security ? this.securityToSuggestions(security) : [])
+      ];
+
+      return {
+        success: true,
+        originalCode: code,
+        language: language,
+        finalScore: finalScore,
+        basicReview: basicReview,
+        complexity: complexity,
+        security: security,
+        suggestions: allSuggestions,
+        improvedCode: security?.fixedCode || basicReview.improvedCode
+      };
+
+    } catch (error) {
+      console.error('[CodeEngine] 代码审查失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 执行基础代码审查
+   * @private
+   */
+  async performBasicReview(code, language) {
     const prompt = `
 你是一位资深的代码审查专家。
 
@@ -239,9 +375,8 @@ ${code}
 请从以下方面评估:
 1. **代码质量**: 可读性、可维护性、命名规范
 2. **性能问题**: 算法复杂度、资源使用
-3. **安全隐患**: 潜在的安全漏洞
-4. **潜在bug**: 逻辑错误、边界情况
-5. **最佳实践**: 是否遵循语言和框架的最佳实践
+3. **潜在bug**: 逻辑错误、边界情况
+4. **最佳实践**: 是否遵循语言和框架的最佳实践
 
 请按以下格式输出:
 
@@ -263,30 +398,59 @@ ${code}
 \`\`\`
 `;
 
-    try {
-      const response = await this.llmManager.query(prompt, {
-        temperature: this.temperatures.review,
-        maxTokens: 2000
+    const response = await this.llmManager.query(prompt, {
+      temperature: this.temperatures.review,
+      maxTokens: 2000
+    });
+
+    const suggestions = this.parseReviewSuggestions(response);
+    const improvedCode = this.extractCodeBlock(response, language);
+    const score = this.extractScore(response);
+
+    return {
+      review: response,
+      score: score,
+      suggestions: suggestions,
+      improvedCode: improvedCode
+    };
+  }
+
+  /**
+   * 将复杂度分析转换为建议
+   * @private
+   */
+  complexityToSuggestions(complexity) {
+    const suggestions = [];
+
+    if (complexity.metrics.cyclomaticComplexity > 7) {
+      suggestions.push({
+        issue: '圈复杂度较高',
+        advice: '建议将复杂函数拆分为更小的函数，提高可维护性',
+        priority: 'high'
       });
-
-      // 解析审查结果
-      const suggestions = this.parseReviewSuggestions(response);
-      const improvedCode = this.extractCodeBlock(response, language);
-      const score = this.extractScore(response);
-
-      return {
-        success: true,
-        originalCode: code,
-        review: response,
-        score: score,
-        suggestions: suggestions,
-        improvedCode: improvedCode
-      };
-
-    } catch (error) {
-      console.error('[CodeEngine] 代码审查失败:', error);
-      throw error;
     }
+
+    if (complexity.metrics.cognitiveComplexity > 7) {
+      suggestions.push({
+        issue: '认知复杂度较高',
+        advice: '建议简化逻辑结构，减少嵌套层数',
+        priority: 'high'
+      });
+    }
+
+    return suggestions;
+  }
+
+  /**
+   * 将安全扫描结果转换为建议
+   * @private
+   */
+  securityToSuggestions(security) {
+    return security.vulnerabilities.map(vuln => ({
+      issue: `安全漏洞: ${vuln.type}`,
+      advice: vuln.recommendation,
+      priority: vuln.severity === '高' ? 'high' : vuln.severity === '中' ? 'medium' : 'low'
+    }));
   }
 
   /**
@@ -555,10 +719,18 @@ ${code}
     const templates = {
       'express_api': this.getExpressTemplate(projectName),
       'react_app': this.getReactTemplate(projectName),
-      'vue_app': this.getVueTemplate(projectName)
+      'vue_app': this.getVueTemplate(projectName),
+      'nextjs_app': this.getNextJsTemplate(projectName),
+      'fastapi_app': this.getFastAPITemplate(projectName)
     };
 
-    return templates[projectType] || { files: [] };
+    const template = templates[projectType];
+
+    if (!template) {
+      throw new Error(`不支持的项目类型: ${projectType}。支持的类型: ${Object.keys(templates).join(', ')}`);
+    }
+
+    return template;
   }
 
   /**
@@ -640,16 +812,986 @@ NODE_ENV=development
    * React App 模板
    */
   getReactTemplate(projectName) {
-    // TODO: 实现React模板
-    return { files: [] };
+    return {
+      files: [
+        {
+          path: 'package.json',
+          content: JSON.stringify({
+            name: projectName,
+            version: '0.1.0',
+            private: true,
+            dependencies: {
+              'react': '^18.2.0',
+              'react-dom': '^18.2.0',
+              'react-router-dom': '^6.11.0'
+            },
+            devDependencies: {
+              '@vitejs/plugin-react': '^4.0.0',
+              'vite': '^4.3.9',
+              'eslint': '^8.42.0'
+            },
+            scripts: {
+              'dev': 'vite',
+              'build': 'vite build',
+              'preview': 'vite preview',
+              'lint': 'eslint src --ext js,jsx'
+            }
+          }, null, 2)
+        },
+        {
+          path: 'vite.config.js',
+          content: `import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 3000
+  }
+})
+`
+        },
+        {
+          path: 'index.html',
+          content: `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${projectName}</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+`
+        },
+        {
+          path: 'src/main.jsx',
+          content: `import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)
+`
+        },
+        {
+          path: 'src/App.jsx',
+          content: `import { useState } from 'react'
+import './App.css'
+
+function App() {
+  const [count, setCount] = useState(0)
+
+  return (
+    <div className="App">
+      <h1>${projectName}</h1>
+      <div className="card">
+        <button onClick={() => setCount((count) => count + 1)}>
+          count is {count}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default App
+`
+        },
+        {
+          path: 'src/index.css',
+          content: `body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+`
+        },
+        {
+          path: 'src/App.css',
+          content: `.App {
+  text-align: center;
+  padding: 2rem;
+}
+
+.card {
+  padding: 2em;
+}
+
+button {
+  font-size: 1em;
+  padding: 0.6em 1.2em;
+  cursor: pointer;
+}
+`
+        },
+        {
+          path: '.gitignore',
+          content: `node_modules
+dist
+.DS_Store
+*.log
+`
+        }
+      ]
+    };
   }
 
   /**
    * Vue App 模板
    */
   getVueTemplate(projectName) {
-    // TODO: 实现Vue模板
-    return { files: [] };
+    return {
+      files: [
+        {
+          path: 'package.json',
+          content: JSON.stringify({
+            name: projectName,
+            version: '0.1.0',
+            private: true,
+            scripts: {
+              'dev': 'vite',
+              'build': 'vite build',
+              'preview': 'vite preview'
+            },
+            dependencies: {
+              'vue': '^3.3.4',
+              'vue-router': '^4.2.2'
+            },
+            devDependencies: {
+              '@vitejs/plugin-vue': '^4.2.3',
+              'vite': '^4.3.9'
+            }
+          }, null, 2)
+        },
+        {
+          path: 'vite.config.js',
+          content: `import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
+export default defineConfig({
+  plugins: [vue()],
+  server: {
+    port: 3000
+  }
+})
+`
+        },
+        {
+          path: 'index.html',
+          content: `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${projectName}</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
+`
+        },
+        {
+          path: 'src/main.js',
+          content: `import { createApp } from 'vue'
+import App from './App.vue'
+import './style.css'
+
+createApp(App).mount('#app')
+`
+        },
+        {
+          path: 'src/App.vue',
+          content: `<template>
+  <div id="app">
+    <h1>{{ title }}</h1>
+    <div class="card">
+      <button @click="count++">Count is {{ count }}</button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const title = '${projectName}'
+const count = ref(0)
+</script>
+
+<style scoped>
+#app {
+  text-align: center;
+  padding: 2rem;
+}
+
+.card {
+  padding: 2em;
+}
+
+button {
+  font-size: 1em;
+  padding: 0.6em 1.2em;
+  cursor: pointer;
+}
+</style>
+`
+        },
+        {
+          path: 'src/style.css',
+          content: `body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+`
+        },
+        {
+          path: '.gitignore',
+          content: `node_modules
+dist
+.DS_Store
+*.log
+`
+        }
+      ]
+    };
+  }
+
+  /**
+   * Next.js App 模板
+   */
+  getNextJsTemplate(projectName) {
+    return {
+      files: [
+        {
+          path: 'package.json',
+          content: JSON.stringify({
+            name: projectName,
+            version: '0.1.0',
+            private: true,
+            scripts: {
+              'dev': 'next dev',
+              'build': 'next build',
+              'start': 'next start',
+              'lint': 'next lint'
+            },
+            dependencies: {
+              'next': '^13.4.5',
+              'react': '^18.2.0',
+              'react-dom': '^18.2.0'
+            },
+            devDependencies: {
+              'eslint': '^8.42.0',
+              'eslint-config-next': '^13.4.5'
+            }
+          }, null, 2)
+        },
+        {
+          path: 'app/page.js',
+          content: `'use client'
+
+import { useState } from 'react'
+import styles from './page.module.css'
+
+export default function Home() {
+  const [count, setCount] = useState(0)
+
+  return (
+    <main className={styles.main}>
+      <h1>${projectName}</h1>
+      <div className={styles.card}>
+        <button onClick={() => setCount(count + 1)}>
+          Count is {count}
+        </button>
+      </div>
+    </main>
+  )
+}
+`
+        },
+        {
+          path: 'app/layout.js',
+          content: `export const metadata = {
+  title: '${projectName}',
+  description: 'Generated by ChainlessChain Code Engine',
+}
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
+}
+`
+        },
+        {
+          path: 'app/page.module.css',
+          content: `.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6rem;
+  min-height: 100vh;
+}
+
+.card {
+  padding: 2rem;
+}
+`
+        },
+        {
+          path: '.gitignore',
+          content: `node_modules
+.next
+out
+.DS_Store
+*.log
+`
+        }
+      ]
+    };
+  }
+
+  /**
+   * FastAPI 模板
+   */
+  getFastAPITemplate(projectName) {
+    return {
+      files: [
+        {
+          path: 'requirements.txt',
+          content: `fastapi==0.100.0
+uvicorn[standard]==0.22.0
+pydantic==2.0.0
+python-dotenv==1.0.0
+`
+        },
+        {
+          path: 'main.py',
+          content: `from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+app = FastAPI(title="${projectName}")
+
+# CORS配置
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class Item(BaseModel):
+    name: str
+    description: str = None
+    price: float
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to ${projectName} API"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "OK"}
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: int):
+    return {"item_id": item_id, "name": "Sample Item"}
+
+@app.post("/items/")
+async def create_item(item: Item):
+    return {"item": item, "message": "Item created successfully"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+`
+        },
+        {
+          path: '.env',
+          content: `APP_NAME=${projectName}
+ENV=development
+DEBUG=True
+`
+        },
+        {
+          path: '.gitignore',
+          content: `__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+.venv/
+*.log
+`
+        },
+        {
+          path: 'README.md',
+          content: `# ${projectName}
+
+FastAPI application generated by ChainlessChain Code Engine.
+
+## Installation
+
+\`\`\`bash
+pip install -r requirements.txt
+\`\`\`
+
+## Run
+
+\`\`\`bash
+uvicorn main:app --reload
+\`\`\`
+
+## API Documentation
+
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+`
+        }
+      ]
+    };
+  }
+
+  /**
+   * 代码格式化和美化
+   * @param {string} code - 源代码
+   * @param {string} language - 编程语言
+   * @param {Object} options - 格式化选项
+   * @returns {Promise<Object>} 格式化结果
+   */
+  async formatCode(code, language, options = {}) {
+    this.ensureInitialized();
+
+    const {
+      style = 'standard', // standard, prettier, airbnb, google
+      indentSize = 2,
+      useTabs = false,
+      semicolons = true,
+      singleQuotes = true
+    } = options;
+
+    console.log(`[CodeEngine] 格式化代码: ${language} (${style})`);
+
+    const prompt = `
+你是一位代码格式化专家。
+
+请将以下${language}代码按照${style}规范进行格式化和美化:
+
+\`\`\`${language}
+${code}
+\`\`\`
+
+格式化要求:
+1. 缩进: ${indentSize}个${useTabs ? '制表符' : '空格'}
+2. 分号: ${semicolons ? '使用' : '不使用'}
+3. 引号: ${singleQuotes ? '单引号' : '双引号'}
+4. 保持代码功能完全一致
+5. 统一代码风格
+6. 移除不必要的空行和空格
+7. 保持良好的代码可读性
+
+只输出格式化后的代码,用\`\`\`${language}代码块包裹。
+`;
+
+    try {
+      const response = await this.llmManager.query(prompt, {
+        temperature: 0.1, // 低温度确保准确性
+        maxTokens: 2000
+      });
+
+      const formattedCode = this.extractCodeBlock(response, language);
+
+      return {
+        success: true,
+        originalCode: code,
+        formattedCode: formattedCode,
+        style: style,
+        language: language
+      };
+
+    } catch (error) {
+      console.error('[CodeEngine] 代码格式化失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 代码复杂度分析
+   * @param {string} code - 源代码
+   * @param {string} language - 编程语言
+   * @returns {Promise<Object>} 分析结果
+   */
+  async analyzeComplexity(code, language) {
+    this.ensureInitialized();
+
+    console.log(`[CodeEngine] 分析代码复杂度: ${language}`);
+
+    const prompt = `
+你是一位代码复杂度分析专家。
+
+请分析以下${language}代码的复杂度:
+
+\`\`\`${language}
+${code}
+\`\`\`
+
+请按以下格式详细分析:
+
+## 整体复杂度评估
+- **圈复杂度**: [1-10之间的数字]
+- **认知复杂度**: [1-10之间的数字]
+- **代码行数**: [总行数 / 有效代码行数]
+- **函数数量**: [函数个数]
+
+## 详细指标
+1. **时间复杂度**: O(?)
+2. **空间复杂度**: O(?)
+3. **嵌套深度**: [最大嵌套层数]
+4. **参数数量**: [平均参数个数]
+
+## 复杂函数列表
+列出复杂度较高的函数（如果有）:
+1. 函数名: [名称], 复杂度: [数字], 建议: [优化建议]
+
+## 优化建议
+1. [具体建议1]
+2. [具体建议2]
+3. [具体建议3]
+
+## 评分
+综合评分: [1-10]/10 ([优秀/良好/一般/需改进])
+`;
+
+    try {
+      const response = await this.llmManager.query(prompt, {
+        temperature: 0.3,
+        maxTokens: 1500
+      });
+
+      // 解析复杂度指标
+      const metrics = this.parseComplexityMetrics(response);
+
+      return {
+        success: true,
+        code: code,
+        language: language,
+        metrics: metrics,
+        analysis: response
+      };
+
+    } catch (error) {
+      console.error('[CodeEngine] 复杂度分析失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 解析复杂度指标
+   * @private
+   */
+  parseComplexityMetrics(analysis) {
+    const metrics = {
+      cyclomaticComplexity: null,
+      cognitiveComplexity: null,
+      linesOfCode: null,
+      functionCount: null,
+      timeComplexity: null,
+      spaceComplexity: null,
+      score: null
+    };
+
+    // 圈复杂度
+    const cyclomaticMatch = analysis.match(/圈复杂度[^\d]*(\d+)/);
+    if (cyclomaticMatch) metrics.cyclomaticComplexity = parseInt(cyclomaticMatch[1]);
+
+    // 认知复杂度
+    const cognitiveMatch = analysis.match(/认知复杂度[^\d]*(\d+)/);
+    if (cognitiveMatch) metrics.cognitiveComplexity = parseInt(cognitiveMatch[1]);
+
+    // 代码行数
+    const locMatch = analysis.match(/代码行数[^\d]*(\d+)/);
+    if (locMatch) metrics.linesOfCode = parseInt(locMatch[1]);
+
+    // 函数数量
+    const funcMatch = analysis.match(/函数数量[^\d]*(\d+)/);
+    if (funcMatch) metrics.functionCount = parseInt(funcMatch[1]);
+
+    // 时间复杂度
+    const timeMatch = analysis.match(/时间复杂度[^\n]*O\(([^)]+)\)/);
+    if (timeMatch) metrics.timeComplexity = `O(${timeMatch[1]})`;
+
+    // 空间复杂度
+    const spaceMatch = analysis.match(/空间复杂度[^\n]*O\(([^)]+)\)/);
+    if (spaceMatch) metrics.spaceComplexity = `O(${spaceMatch[1]})`;
+
+    // 评分
+    const scoreMatch = analysis.match(/综合评分[^\d]*(\d+)/);
+    if (scoreMatch) metrics.score = parseInt(scoreMatch[1]);
+
+    return metrics;
+  }
+
+  /**
+   * 安全漏洞扫描
+   * @param {string} code - 源代码
+   * @param {string} language - 编程语言
+   * @returns {Promise<Object>} 扫描结果
+   */
+  async scanSecurity(code, language) {
+    this.ensureInitialized();
+
+    console.log(`[CodeEngine] 安全漏洞扫描: ${language}`);
+
+    const prompt = `
+你是一位网络安全专家和代码安全审计师。
+
+请对以下${language}代码进行全面的安全漏洞扫描:
+
+\`\`\`${language}
+${code}
+\`\`\`
+
+请检查以下安全问题:
+1. **SQL注入**: 是否存在SQL注入风险
+2. **XSS攻击**: 跨站脚本攻击风险
+3. **CSRF**: 跨站请求伪造风险
+4. **命令注入**: 系统命令注入风险
+5. **路径遍历**: 文件路径遍历风险
+6. **敏感信息泄露**: 硬编码密码、密钥等
+7. **不安全的反序列化**: 反序列化漏洞
+8. **弱加密算法**: 使用过时的加密方法
+9. **认证授权问题**: 认证和授权缺陷
+10. **资源耗尽**: DoS攻击风险
+
+请按以下格式输出:
+
+## 安全等级
+[高危/中危/低危/安全]
+
+## 发现的漏洞
+
+### 1. [漏洞类型]
+- **严重程度**: [高/中/低]
+- **位置**: [代码位置]
+- **描述**: [详细描述]
+- **风险**: [可能造成的影响]
+- **修复建议**: [具体修复方案]
+
+## 安全评分
+综合评分: [1-10]/10
+
+## 修复后的代码
+\`\`\`${language}
+[修复安全问题后的代码]
+\`\`\`
+`;
+
+    try {
+      const response = await this.llmManager.query(prompt, {
+        temperature: 0.2,
+        maxTokens: 2500
+      });
+
+      // 解析安全漏洞
+      const vulnerabilities = this.parseSecurityVulnerabilities(response);
+      const fixedCode = this.extractCodeBlock(response, language);
+      const securityLevel = this.extractSecurityLevel(response);
+      const score = this.extractScore(response);
+
+      return {
+        success: true,
+        code: code,
+        language: language,
+        securityLevel: securityLevel,
+        score: score,
+        vulnerabilities: vulnerabilities,
+        fixedCode: fixedCode,
+        report: response
+      };
+
+    } catch (error) {
+      console.error('[CodeEngine] 安全扫描失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 解析安全漏洞
+   * @private
+   */
+  parseSecurityVulnerabilities(report) {
+    const vulnerabilities = [];
+
+    // 提取"发现的漏洞"部分
+    const sectionMatch = report.match(/##\s*发现的漏洞([\s\S]*?)(?=##|$)/);
+
+    if (sectionMatch) {
+      const section = sectionMatch[1];
+
+      // 匹配每个漏洞
+      const vulnRegex = /###\s*\d+\.\s*(.+?)[\s\S]*?严重程度[^\n]*[：:]\s*([^\n]+)[\s\S]*?位置[^\n]*[：:]\s*([^\n]+)[\s\S]*?描述[^\n]*[：:]\s*([^\n]+)[\s\S]*?风险[^\n]*[：:]\s*([^\n]+)[\s\S]*?修复建议[^\n]*[：:]\s*([^\n]+)/g;
+
+      let match;
+      while ((match = vulnRegex.exec(section)) !== null) {
+        vulnerabilities.push({
+          type: match[1].trim(),
+          severity: match[2].trim(),
+          location: match[3].trim(),
+          description: match[4].trim(),
+          risk: match[5].trim(),
+          recommendation: match[6].trim()
+        });
+      }
+    }
+
+    return vulnerabilities;
+  }
+
+  /**
+   * 提取安全等级
+   * @private
+   */
+  extractSecurityLevel(report) {
+    const match = report.match(/安全等级[^\n]*[：:]\s*([^\n]+)/i);
+    if (match) {
+      const level = match[1].trim();
+      if (level.includes('高危')) return 'critical';
+      if (level.includes('中危')) return 'medium';
+      if (level.includes('低危')) return 'low';
+      if (level.includes('安全')) return 'safe';
+    }
+    return 'unknown';
+  }
+
+  /**
+   * 代码转换/迁移
+   * @param {string} code - 源代码
+   * @param {string} fromLanguage - 源语言
+   * @param {string} toLanguage - 目标语言
+   * @param {Object} options - 转换选项
+   * @returns {Promise<Object>} 转换结果
+   */
+  async convertCode(code, fromLanguage, toLanguage, options = {}) {
+    this.ensureInitialized();
+
+    const { preserveComments = true, modernize = true } = options;
+
+    console.log(`[CodeEngine] 代码转换: ${fromLanguage} -> ${toLanguage}`);
+
+    const conversionTypes = {
+      'javascript-typescript': 'JavaScript转TypeScript（添加类型注解）',
+      'python2-python3': 'Python 2转Python 3（更新语法）',
+      'class-hooks': 'React类组件转函数组件（Hooks）',
+      'commonjs-esm': 'CommonJS转ES Module',
+      'callback-promise': '回调函数转Promise',
+      'promise-async': 'Promise转async/await'
+    };
+
+    const conversionKey = `${fromLanguage}-${toLanguage}`;
+    const conversionDesc = conversionTypes[conversionKey] || `${fromLanguage}转${toLanguage}`;
+
+    const prompt = `
+你是一位代码迁移和转换专家。
+
+请将以下${fromLanguage}代码转换为${toLanguage}:
+
+\`\`\`${fromLanguage}
+${code}
+\`\`\`
+
+转换要求:
+1. 保持功能完全一致
+2. ${preserveComments ? '保留原有注释' : '可以省略注释'}
+3. ${modernize ? '使用现代语法特性' : '使用兼容性较好的语法'}
+4. 遵循${toLanguage}的最佳实践
+5. 确保类型安全（如适用）
+6. 优化代码结构
+
+请按以下格式输出:
+
+## 转换说明
+[说明转换的关键点和注意事项]
+
+## 转换后的代码
+\`\`\`${toLanguage}
+[转换后的代码]
+\`\`\`
+
+## 主要变化
+1. [变化1]
+2. [变化2]
+3. [变化3]
+
+## 兼容性说明
+[如果有兼容性问题，请说明]
+`;
+
+    try {
+      const response = await this.llmManager.query(prompt, {
+        temperature: 0.2,
+        maxTokens: 2500
+      });
+
+      const convertedCode = this.extractCodeBlock(response, toLanguage);
+
+      return {
+        success: true,
+        originalCode: code,
+        convertedCode: convertedCode,
+        fromLanguage: fromLanguage,
+        toLanguage: toLanguage,
+        explanation: response
+      };
+
+    } catch (error) {
+      console.error('[CodeEngine] 代码转换失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 生成集成测试
+   * @param {string} code - 源代码
+   * @param {string} language - 编程语言
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} 测试代码
+   */
+  async generateIntegrationTests(code, language, options = {}) {
+    this.ensureInitialized();
+
+    const { testScenarios = [], framework = null } = options;
+    const langInfo = this.supportedLanguages[language] || { testFramework: 'standard' };
+    const testFramework = framework || langInfo.testFramework;
+
+    console.log(`[CodeEngine] 生成集成测试: ${language} (${testFramework})`);
+
+    let scenariosText = '';
+    if (testScenarios.length > 0) {
+      scenariosText = '\n测试场景:\n' + testScenarios.map((s, i) => `${i + 1}. ${s}`).join('\n');
+    }
+
+    const prompt = `
+你是一位专业的测试工程师,专注于集成测试。
+
+请为以下${language}代码编写完整的集成测试,使用${testFramework}框架:
+
+\`\`\`${language}
+${code}
+\`\`\`
+${scenariosText}
+
+集成测试要求:
+1. 测试多个模块之间的交互
+2. 测试API端点的完整流程
+3. 测试数据库操作（如适用）
+4. 测试外部服务集成（使用mock）
+5. 测试错误处理和边界情况
+6. 设置和清理测试环境
+
+请只输出测试代码,用\`\`\`${language}代码块包裹。
+`;
+
+    try {
+      const response = await this.llmManager.query(prompt, {
+        temperature: 0.3,
+        maxTokens: 2000
+      });
+
+      const tests = this.extractCodeBlock(response, language);
+
+      return {
+        success: true,
+        tests: tests,
+        testType: 'integration',
+        framework: testFramework
+      };
+
+    } catch (error) {
+      console.error('[CodeEngine] 集成测试生成失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 生成E2E测试
+   * @param {string} description - 功能描述
+   * @param {string} framework - 测试框架（Cypress, Playwright, Selenium）
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} 测试代码
+   */
+  async generateE2ETests(description, framework = 'cypress', options = {}) {
+    this.ensureInitialized();
+
+    const { userFlows = [], baseUrl = 'http://localhost:3000' } = options;
+
+    console.log(`[CodeEngine] 生成E2E测试: ${framework}`);
+
+    let flowsText = '';
+    if (userFlows.length > 0) {
+      flowsText = '\n用户流程:\n' + userFlows.map((f, i) => `${i + 1}. ${f}`).join('\n');
+    }
+
+    const prompt = `
+你是一位E2E测试专家。
+
+请为以下功能编写端到端测试,使用${framework}框架:
+
+功能描述: ${description}
+${flowsText}
+
+基础URL: ${baseUrl}
+
+E2E测试要求:
+1. 模拟真实用户操作流程
+2. 测试完整的用户旅程
+3. 包含页面导航和交互
+4. 验证UI元素和内容
+5. 测试表单提交和验证
+6. 处理异步操作和等待
+7. 截图和视频记录（失败时）
+
+请只输出测试代码,用\`\`\`javascript代码块包裹。
+`;
+
+    try {
+      const response = await this.llmManager.query(prompt, {
+        temperature: 0.3,
+        maxTokens: 2000
+      });
+
+      const tests = this.extractCodeBlock(response, 'javascript');
+
+      return {
+        success: true,
+        tests: tests,
+        testType: 'e2e',
+        framework: framework
+      };
+
+    } catch (error) {
+      console.error('[CodeEngine] E2E测试生成失败:', error);
+      throw error;
+    }
   }
 }
 
