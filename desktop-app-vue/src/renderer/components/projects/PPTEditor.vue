@@ -1,5 +1,36 @@
 <template>
   <div class="ppt-editor">
+    <!-- 演示模式 -->
+    <div v-if="isPresentMode" class="presentation-mode">
+      <div class="presentation-slide">
+        <div
+          v-if="slides[presentSlideIndex]"
+          class="presentation-content"
+          v-html="slides[presentSlideIndex].content"
+          :style="{
+            backgroundColor: slides[presentSlideIndex].backgroundColor || '#ffffff'
+          }"
+        ></div>
+      </div>
+
+      <div class="presentation-controls">
+        <div class="slide-indicator">
+          {{ presentSlideIndex + 1 }} / {{ slides.length }}
+        </div>
+        <div class="control-buttons">
+          <a-button @click="prevSlide" :disabled="presentSlideIndex === 0">
+            <LeftOutlined />
+          </a-button>
+          <a-button @click="exitPresent" danger>
+            <CloseOutlined /> 退出
+          </a-button>
+          <a-button @click="nextSlide" :disabled="presentSlideIndex === slides.length - 1">
+            <RightOutlined />
+          </a-button>
+        </div>
+      </div>
+    </div>
+
     <!-- 编辑器头部 -->
     <div class="editor-header">
       <div class="header-left">
@@ -287,6 +318,9 @@ import {
   DeleteOutlined,
   ZoomInOutlined,
   ZoomOutOutlined,
+  LeftOutlined,
+  RightOutlined,
+  CloseOutlined,
 } from '@ant-design/icons-vue';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -450,19 +484,107 @@ const handleThemeChange = ({ key }) => {
 
 // 插入元素
 const insertTextBox = () => {
-  message.info('插入文本框');
+  if (!currentSlide.value) {
+    message.warning('请先选择一张幻灯片');
+    return;
+  }
+
+  const textBoxHTML = '<p contenteditable="true" style="border: 1px dashed #ccc; padding: 10px; margin: 10px 0;">双击编辑文本...</p>';
+  currentSlide.value.content += textBoxHTML;
+  hasChanges.value = true;
+  message.success('已插入文本框');
 };
 
-const insertImage = () => {
-  message.info('插入图片');
+const insertImage = async () => {
+  if (!currentSlide.value) {
+    message.warning('请先选择一张幻灯片');
+    return;
+  }
+
+  try {
+    // 打开文件选择对话框
+    const result = await window.electronAPI.dialog.showOpenDialog({
+      title: '选择图片',
+      filters: [
+        { name: '图片', extensions: ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'] }
+      ],
+      properties: ['openFile']
+    });
+
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      return;
+    }
+
+    const imagePath = result.filePaths[0];
+
+    // 读取图片为 Base64（通过 IPC）
+    const imageBuffer = await window.electronAPI.file.readBinary(imagePath);
+    const base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(imageBuffer)));
+    const ext = imagePath.split('.').pop().toLowerCase();
+    const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+
+    // 插入图片到幻灯片
+    const imageHTML = `<img src="${dataUrl}" style="max-width: 600px; max-height: 400px; display: block; margin: 20px auto;" alt="插入的图片" />`;
+    currentSlide.value.content += imageHTML;
+    hasChanges.value = true;
+    message.success('已插入图片');
+  } catch (error) {
+    console.error('插入图片失败:', error);
+    message.error('插入图片失败: ' + error.message);
+  }
 };
 
 const insertShape = () => {
-  message.info('插入形状');
+  if (!currentSlide.value) {
+    message.warning('请先选择一张幻灯片');
+    return;
+  }
+
+  // 插入一个简单的矩形形状
+  const shapeHTML = `<div style="width: 300px; height: 200px; background: #3498db; border-radius: 8px; margin: 20px auto; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold;" contenteditable="true">点击编辑</div>`;
+  currentSlide.value.content += shapeHTML;
+  hasChanges.value = true;
+  message.success('已插入形状');
 };
 
 const insertChart = () => {
-  message.info('插入图表');
+  if (!currentSlide.value) {
+    message.warning('请先选择一张幻灯片');
+    return;
+  }
+
+  // 插入一个简单的表格作为图表占位符
+  const chartHTML = `
+    <div style="margin: 20px auto; max-width: 600px;">
+      <h4 style="text-align: center; margin-bottom: 10px;">图表标题</h4>
+      <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+        <thead>
+          <tr style="background: #3498db; color: white;">
+            <th style="padding: 8px; border: 1px solid #ddd;">类别</th>
+            <th style="padding: 8px; border: 1px solid #ddd;">数值</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;">项目1</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">100</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;">项目2</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">200</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;">项目3</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">150</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+  currentSlide.value.content += chartHTML;
+  hasChanges.value = true;
+  message.success('已插入图表（导出时会转换为真正的图表）');
 };
 
 // 应用动画
@@ -521,10 +643,52 @@ const zoomOut = () => {
   }
 };
 
+// 演示状态
+const isPresentMode = ref(false);
+const presentSlideIndex = ref(0);
+
 // 演示
 const handlePresent = () => {
-  message.info('开始演示');
-  // TODO: 实现全屏演示功能
+  if (slides.value.length === 0) {
+    message.warning('没有幻灯片可以演示');
+    return;
+  }
+
+  isPresentMode.value = true;
+  presentSlideIndex.value = 0;
+
+  // 进入全屏
+  const elem = document.documentElement;
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  }
+
+  message.info('按 ← → 翻页，ESC 退出演示');
+};
+
+// 下一张幻灯片
+const nextSlide = () => {
+  if (presentSlideIndex.value < slides.value.length - 1) {
+    presentSlideIndex.value++;
+  }
+};
+
+// 上一张幻灯片
+const prevSlide = () => {
+  if (presentSlideIndex.value > 0) {
+    presentSlideIndex.value--;
+  }
+};
+
+// 退出演示
+const exitPresent = () => {
+  isPresentMode.value = false;
+  presentSlideIndex.value = 0;
+
+  // 退出全屏
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  }
 };
 
 // 保存
@@ -541,7 +705,12 @@ const handleSave = async () => {
       },
     });
 
-    await window.electron.invoke('file-sync:save', props.file.id, content, props.projectId);
+    // 通过项目API保存文件
+    await window.electronAPI.project.updateFile({
+      id: props.file.id,
+      content: content,
+      project_id: props.projectId
+    });
 
     props.file.content = content;
     hasChanges.value = false;
@@ -561,9 +730,59 @@ const handleSave = async () => {
 };
 
 // 下载
-const handleDownload = () => {
-  message.info('PPT导出功能开发中');
-  // TODO: 使用 pptxgenjs 库导出为真正的 .pptx 文件
+const handleDownload = async () => {
+  try {
+    // 提取PPT标题
+    let pptTitle = props.file.file_name.replace(/\.(ppt|pptx|json)$/i, '');
+    if (slides.value.length > 0 && slides.value[0].content) {
+      const h1Match = slides.value[0].content.match(/<h1[^>]*>(.*?)<\/h1>/i);
+      if (h1Match) {
+        pptTitle = h1Match[1].replace(/<[^>]*>/g, '').trim();
+      }
+    }
+
+    message.loading({ content: '正在导出PPT...', key: 'export', duration: 0 });
+
+    // 调用主进程导出为 .pptx 文件
+    const result = await window.electronAPI.project.exportPPT({
+      slides: slides.value,
+      title: pptTitle,
+      author: '用户',
+      theme: 'business'
+    });
+
+    message.destroy('export');
+
+    if (result.canceled) {
+      message.info('已取消导出');
+      return;
+    }
+
+    if (result.success) {
+      message.success(`PPT已导出: ${result.fileName}`);
+
+      // 询问是否打开文件
+      const openResult = await window.electronAPI.dialog.showMessageBox({
+        type: 'question',
+        buttons: ['打开文件', '打开文件夹', '关闭'],
+        defaultId: 0,
+        title: '导出成功',
+        message: `PPT已成功导出到:\n${result.path}\n\n是否打开文件？`
+      });
+
+      if (openResult.response === 0) {
+        // 打开文件
+        await window.electronAPI.shell.openPath(result.path);
+      } else if (openResult.response === 1) {
+        // 打开文件夹
+        await window.electronAPI.shell.showItemInFolder(result.path);
+      }
+    }
+  } catch (error) {
+    message.destroy('export');
+    console.error('导出PPT失败:', error);
+    message.error('导出PPT失败: ' + error.message);
+  }
 };
 
 // 全屏切换
@@ -584,7 +803,37 @@ const toggleFullscreen = () => {
 
 // 键盘快捷键
 const handleKeydown = (e) => {
-  // Ctrl+S 保存
+  // 演示模式键盘控制
+  if (isPresentMode.value) {
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'PageDown':
+      case ' ':
+        e.preventDefault();
+        nextSlide();
+        break;
+      case 'ArrowLeft':
+      case 'PageUp':
+        e.preventDefault();
+        prevSlide();
+        break;
+      case 'Escape':
+        e.preventDefault();
+        exitPresent();
+        break;
+      case 'Home':
+        e.preventDefault();
+        presentSlideIndex.value = 0;
+        break;
+      case 'End':
+        e.preventDefault();
+        presentSlideIndex.value = slides.value.length - 1;
+        break;
+    }
+    return;
+  }
+
+  // 编辑模式快捷键
   if (e.ctrlKey && e.key === 's') {
     e.preventDefault();
     handleSave();
@@ -609,6 +858,97 @@ watch(
   display: flex;
   flex-direction: column;
   background: #f5f5f5;
+  position: relative;
+}
+
+// 演示模式样式
+.presentation-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+
+  .presentation-slide {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+
+    .presentation-content {
+      width: 100%;
+      max-width: 1200px;
+      height: 100%;
+      max-height: 675px; // 16:9 比例
+      padding: 60px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      overflow: auto;
+
+      :deep(h1) {
+        font-size: 3.5em;
+        margin-bottom: 0.5em;
+        text-align: center;
+      }
+
+      :deep(h2) {
+        font-size: 2.5em;
+        margin-bottom: 0.4em;
+      }
+
+      :deep(h3) {
+        font-size: 2em;
+        margin-bottom: 0.3em;
+      }
+
+      :deep(p) {
+        font-size: 1.5em;
+        line-height: 1.6;
+        margin-bottom: 0.8em;
+      }
+
+      :deep(ul), :deep(ol) {
+        font-size: 1.5em;
+        line-height: 1.8;
+        margin-left: 2em;
+      }
+
+      :deep(li) {
+        margin-bottom: 0.5em;
+      }
+    }
+  }
+
+  .presentation-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 12px 24px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+    .slide-indicator {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 8px;
+    }
+  }
 }
 
 .editor-header {

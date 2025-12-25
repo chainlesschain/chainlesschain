@@ -238,6 +238,180 @@ class PPTEngine {
   }
 
   /**
+   * 从Markdown生成PPT
+   * @param {string} markdownContent - Markdown内容
+   * @param {Object} options - 生成选项
+   * @returns {Promise<Object>} 生成结果
+   */
+  async generateFromMarkdown(markdownContent, options = {}) {
+    const {
+      theme = 'business',
+      author = '作者',
+      outputPath,
+      llmManager
+    } = options;
+
+    console.log('[PPT Engine] 从Markdown生成PPT');
+
+    try {
+      // 解析Markdown结构
+      const outline = this.parseMarkdownToOutline(markdownContent);
+
+      // 如果解析失败或内容不够，使用LLM增强
+      if (!outline.sections || outline.sections.length === 0) {
+        console.log('[PPT Engine] Markdown解析内容不足，使用LLM增强...');
+        const enhancedOutline = await this.generateOutlineFromDescription(
+          markdownContent.substring(0, 1000),
+          llmManager
+        );
+        outline.sections = enhancedOutline.sections;
+      }
+
+      // 生成PPT
+      return await this.generateFromOutline(outline, {
+        theme,
+        author,
+        outputPath,
+        llmManager
+      });
+    } catch (error) {
+      console.error('[PPT Engine] 从Markdown生成PPT失败:', error);
+      throw new Error(`从Markdown生成PPT失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 解析Markdown为PPT大纲
+   * @param {string} markdown - Markdown内容
+   * @returns {Object} PPT大纲
+   */
+  parseMarkdownToOutline(markdown) {
+    const lines = markdown.split('\n');
+    const outline = {
+      title: '',
+      subtitle: '',
+      sections: []
+    };
+
+    let currentSection = null;
+    let currentSubsection = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // 一级标题作为PPT标题
+      if (line.startsWith('# ')) {
+        if (!outline.title) {
+          outline.title = line.substring(2).trim();
+        } else {
+          // 如果已有标题，一级标题作为章节
+          if (currentSection) {
+            outline.sections.push(currentSection);
+          }
+          currentSection = {
+            title: line.substring(2).trim(),
+            subsections: []
+          };
+          currentSubsection = null;
+        }
+      }
+      // 二级标题作为章节
+      else if (line.startsWith('## ')) {
+        if (currentSection) {
+          outline.sections.push(currentSection);
+        }
+        currentSection = {
+          title: line.substring(3).trim(),
+          subsections: []
+        };
+        currentSubsection = null;
+      }
+      // 三级标题作为子主题
+      else if (line.startsWith('### ')) {
+        if (currentSection) {
+          if (currentSubsection) {
+            currentSection.subsections.push(currentSubsection);
+          }
+          currentSubsection = {
+            title: line.substring(4).trim(),
+            points: []
+          };
+        }
+      }
+      // 列表项作为要点
+      else if (line.match(/^[-*+]\s+(.+)$/)) {
+        const point = line.replace(/^[-*+]\s+/, '').trim();
+        if (currentSubsection) {
+          currentSubsection.points.push(point);
+        } else if (currentSection) {
+          // 如果没有子主题，创建一个默认子主题
+          if (!currentSubsection) {
+            currentSubsection = {
+              title: currentSection.title,
+              points: []
+            };
+          }
+          currentSubsection.points.push(point);
+        }
+      }
+      // 数字列表
+      else if (line.match(/^\d+\.\s+(.+)$/)) {
+        const point = line.replace(/^\d+\.\s+/, '').trim();
+        if (currentSubsection) {
+          currentSubsection.points.push(point);
+        } else if (currentSection) {
+          if (!currentSubsection) {
+            currentSubsection = {
+              title: currentSection.title,
+              points: []
+            };
+          }
+          currentSubsection.points.push(point);
+        }
+      }
+      // 普通段落文本作为要点
+      else if (line && !line.startsWith('#') && currentSection) {
+        // 跳过太短的行和分隔线
+        if (line.length > 10 && !line.match(/^[-=]+$/)) {
+          if (!currentSubsection) {
+            currentSubsection = {
+              title: currentSection.title,
+              points: []
+            };
+          }
+          // 限制每个要点的长度
+          if (line.length > 100) {
+            currentSubsection.points.push(line.substring(0, 100) + '...');
+          } else {
+            currentSubsection.points.push(line);
+          }
+        }
+      }
+    }
+
+    // 添加最后的子主题和章节
+    if (currentSubsection && currentSection) {
+      currentSection.subsections.push(currentSubsection);
+    }
+    if (currentSection) {
+      outline.sections.push(currentSection);
+    }
+
+    // 如果没有标题，使用第一个章节的标题
+    if (!outline.title && outline.sections.length > 0) {
+      outline.title = outline.sections[0].title;
+      outline.sections.shift();
+    }
+
+    // 设置默认副标题
+    if (!outline.subtitle) {
+      outline.subtitle = new Date().toLocaleDateString('zh-CN');
+    }
+
+    return outline;
+  }
+
+  /**
    * 从描述生成PPT大纲
    */
   async generateOutlineFromDescription(description, llmManager) {
@@ -280,6 +454,83 @@ ${description}
         subtitle: '使用ChainlessChain生成',
         sections: []
       };
+    }
+  }
+
+  /**
+   * 添加图表到幻灯片
+   * @param {Object} slide - pptxgenjs幻灯片对象
+   * @param {Object} chartData - 图表数据
+   * @param {Object} theme - 主题配置
+   */
+  addChart(slide, chartData, theme) {
+    const {
+      type = 'bar',
+      title = '图表',
+      data = [],
+      position = { x: 1, y: 2, w: 8, h: 4 }
+    } = chartData;
+
+    try {
+      // 添加图表标题
+      slide.addText(title, {
+        x: position.x,
+        y: position.y - 0.5,
+        w: position.w,
+        h: 0.4,
+        fontSize: 18,
+        bold: true,
+        color: theme.primaryColor,
+        fontFace: 'Microsoft YaHei'
+      });
+
+      // 准备图表数据
+      const chartConfig = {
+        x: position.x,
+        y: position.y,
+        w: position.w,
+        h: position.h,
+        chartColors: [theme.primaryColor, theme.secondaryColor, '10B981', 'F59E0B', 'EF4444']
+      };
+
+      // 根据类型添加图表
+      slide.addChart(type, data, chartConfig);
+    } catch (error) {
+      console.error('[PPT Engine] 添加图表失败:', error);
+    }
+  }
+
+  /**
+   * 添加图片到幻灯片
+   * @param {Object} slide - pptxgenjs幻灯片对象
+   * @param {Object} imageData - 图片数据
+   */
+  addImage(slide, imageData) {
+    const {
+      path: imagePath,
+      data: imageDataUrl,
+      position = { x: 2, y: 2, w: 6, h: 4 }
+    } = imageData;
+
+    try {
+      const imageConfig = {
+        x: position.x,
+        y: position.y,
+        w: position.w,
+        h: position.h,
+        sizing: { type: 'contain' }
+      };
+
+      // 支持文件路径或Data URL
+      if (imagePath) {
+        imageConfig.path = imagePath;
+      } else if (imageDataUrl) {
+        imageConfig.data = imageDataUrl;
+      }
+
+      slide.addImage(imageConfig);
+    } catch (error) {
+      console.error('[PPT Engine] 添加图片失败:', error);
     }
   }
 }
