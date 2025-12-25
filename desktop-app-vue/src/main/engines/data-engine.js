@@ -6,6 +6,14 @@
 const fs = require('fs').promises;
 const path = require('path');
 
+// 尝试加载Excel库（可选依赖）
+let xlsx = null;
+try {
+  xlsx = require('xlsx');
+} catch (e) {
+  console.warn('[Data Engine] xlsx库未安装，Excel功能将不可用。安装命令: npm install xlsx');
+}
+
 class DataEngine {
   constructor() {
     // 图表类型定义
@@ -16,6 +24,9 @@ class DataEngine {
       scatter: '散点图',
       area: '面积图',
     };
+
+    // 检查Excel支持
+    this.excelSupported = xlsx !== null;
   }
 
   /**
@@ -56,6 +67,55 @@ class DataEngine {
       };
     } catch (error) {
       throw new Error(`读取CSV失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 读取Excel数据
+   * @param {string} filePath - Excel文件路径
+   * @returns {Promise<Object>} 数据对象
+   */
+  async readExcel(filePath) {
+    if (!this.excelSupported) {
+      throw new Error('Excel功能不可用，请安装xlsx库: npm install xlsx');
+    }
+
+    try {
+      const buffer = await fs.readFile(filePath);
+      const workbook = xlsx.read(buffer, { type: 'buffer' });
+
+      // 默认读取第一个工作表
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      // 转换为JSON
+      const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+
+      if (jsonData.length === 0) {
+        throw new Error('Excel文件为空');
+      }
+
+      // 解析表头和数据
+      const headers = jsonData[0].map(h => String(h || ''));
+      const rows = [];
+
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = {};
+        headers.forEach((header, index) => {
+          row[header] = jsonData[i][index] !== undefined ? String(jsonData[i][index]) : '';
+        });
+        rows.push(row);
+      }
+
+      return {
+        success: true,
+        headers,
+        rows,
+        rowCount: rows.length,
+        sheetName,
+      };
+    } catch (error) {
+      throw new Error(`读取Excel失败: ${error.message}`);
     }
   }
 
@@ -102,6 +162,53 @@ class DataEngine {
       };
     } catch (error) {
       throw new Error(`写入CSV失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 写入Excel数据
+   * @param {string} filePath - Excel文件路径
+   * @param {Object} data - 数据对象
+   * @returns {Promise<Object>} 写入结果
+   */
+  async writeExcel(filePath, data) {
+    if (!this.excelSupported) {
+      throw new Error('Excel功能不可用，请安装xlsx库: npm install xlsx');
+    }
+
+    try {
+      const { headers, rows } = data;
+
+      // 创建工作簿
+      const workbook = xlsx.utils.book_new();
+
+      // 准备数据（包含表头）
+      const wsData = [headers];
+      for (const row of rows) {
+        const rowData = headers.map(header => row[header] || '');
+        wsData.push(rowData);
+      }
+
+      // 创建工作表
+      const worksheet = xlsx.utils.aoa_to_sheet(wsData);
+
+      // 添加到工作簿
+      xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+
+      // 确保目录存在
+      const dir = path.dirname(filePath);
+      await fs.mkdir(dir, { recursive: true });
+
+      // 写入文件
+      xlsx.writeFile(workbook, filePath);
+
+      return {
+        success: true,
+        filePath,
+        rowCount: rows.length,
+      };
+    } catch (error) {
+      throw new Error(`写入Excel失败: ${error.message}`);
     }
   }
 
@@ -222,7 +329,7 @@ class DataEngine {
   // ========== 私有辅助方法 ==========
 
   /**
-   * 解析CSV行
+   * 解析CSV行（支持双引号转义）
    * @private
    */
   parseCSVLine(line) {
@@ -232,9 +339,16 @@ class DataEngine {
 
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
+      const nextChar = line[i + 1];
 
       if (char === '"') {
-        inQuotes = !inQuotes;
+        // 处理双引号转义 ("" 表示一个引号)
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          i++; // 跳过下一个引号
+        } else {
+          inQuotes = !inQuotes;
+        }
       } else if (char === ',' && !inQuotes) {
         values.push(current.trim());
         current = '';
@@ -299,14 +413,17 @@ class DataEngine {
   }
 
   /**
-   * 标准差
+   * 标准差（样本标准差）
    * @private
    */
   standardDeviation(values) {
+    if (values.length <= 1) return 0;
+
     const avg = this.mean(values);
     const squareDiffs = values.map(value => Math.pow(value - avg, 2));
-    const avgSquareDiff = this.mean(squareDiffs);
-    return Math.sqrt(avgSquareDiff);
+    // 使用 n-1 计算样本标准差
+    const variance = squareDiffs.reduce((sum, val) => sum + val, 0) / (values.length - 1);
+    return Math.sqrt(variance);
   }
 
   /**
@@ -449,14 +566,40 @@ class DataEngine {
 
     try {
       switch (action) {
-        case 'read_excel':
-        case 'read_csv': {
-          // 读取CSV/Excel文件
-          // 从输出文件列表或描述中提取文件名
+        case 'read_excel': {
+          // 读取Excel文件
           const fileName = outputFiles[0] || this.extractFileNameFromDescription(description);
           const filePath = path.join(projectPath, fileName);
 
-          console.log('[Data Engine] 读取文件:', filePath);
+          console.log('[Data Engine] 读取Excel文件:', filePath);
+
+          // 根据文件扩展名选择读取方法
+          const ext = path.extname(filePath).toLowerCase();
+          let data;
+
+          if (ext === '.csv') {
+            data = await this.readCSV(filePath);
+          } else if (ext === '.xlsx' || ext === '.xls') {
+            data = await this.readExcel(filePath);
+          } else {
+            throw new Error(`不支持的文件格式: ${ext}`);
+          }
+
+          return {
+            type: 'data',
+            action: 'read',
+            filePath,
+            success: true,
+            data
+          };
+        }
+
+        case 'read_csv': {
+          // 读取CSV文件
+          const fileName = outputFiles[0] || this.extractFileNameFromDescription(description);
+          const filePath = path.join(projectPath, fileName);
+
+          console.log('[Data Engine] 读取CSV文件:', filePath);
 
           const data = await this.readCSV(filePath);
 
@@ -563,6 +706,40 @@ class DataEngine {
           };
         }
 
+        case 'export_excel': {
+          // 导出Excel文件
+          const fileName = outputFiles[0] || 'data.xlsx';
+          const filePath = path.join(projectPath, fileName);
+
+          console.log('[Data Engine] 导出Excel:', filePath);
+
+          // 使用LLM生成示例数据
+          let sampleData;
+          if (llmManager) {
+            sampleData = await this.generateSampleDataWithLLM(description, llmManager);
+          } else {
+            // 默认示例数据
+            sampleData = {
+              headers: ['名称', '数值'],
+              rows: [
+                { '名称': '项目A', '数值': '100' },
+                { '名称': '项目B', '数值': '200' },
+                { '名称': '项目C', '数值': '150' }
+              ]
+            };
+          }
+
+          await this.writeExcel(filePath, sampleData);
+
+          return {
+            type: 'data',
+            action: 'export',
+            filePath,
+            success: true,
+            rowCount: sampleData.rows.length
+          };
+        }
+
         default:
           throw new Error(`不支持的数据操作: ${action}`);
       }
@@ -573,7 +750,7 @@ class DataEngine {
   }
 
   /**
-   * 从描述中提取文件名
+   * 从描述中提取文件名（带路径安全验证）
    * @private
    */
   extractFileNameFromDescription(description) {
@@ -582,11 +759,32 @@ class DataEngine {
     const matches = description.match(filePattern);
 
     if (matches && matches.length > 0) {
-      return matches[0];
+      const fileName = matches[0];
+      // 验证路径安全：不允许路径遍历
+      if (this.isPathSafe(fileName)) {
+        return fileName;
+      }
     }
 
     // 默认文件名
     return 'data.csv';
+  }
+
+  /**
+   * 验证路径安全性（防止路径遍历攻击）
+   * @private
+   */
+  isPathSafe(filePath) {
+    // 检查是否包含路径遍历字符
+    const dangerousPatterns = [
+      /\.\./,           // 父目录引用
+      /^[\/\\]/,        // 绝对路径
+      /[\/\\]{2,}/,     // 多个斜杠
+      /[\x00-\x1f]/,    // 控制字符
+      /[<>:"|?*]/       // Windows不允许的字符
+    ];
+
+    return !dangerousPatterns.some(pattern => pattern.test(filePath));
   }
 
   /**
@@ -610,19 +808,36 @@ ${description}
 只返回JSON，不要其他说明文字。`;
 
     try {
-      const response = await llmManager.chat([
-        { role: 'user', content: prompt }
-      ], {
-        temperature: 0.7,
-        max_tokens: 2000
-      });
+      // 尝试使用不同的LLM方法（兼容多种接口）
+      let responseText;
 
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (typeof llmManager.query === 'function') {
+        // 使用 query 方法
+        const response = await llmManager.query(prompt, {
+          temperature: 0.7,
+          maxTokens: 2000
+        });
+        responseText = response.text || response;
+      } else if (typeof llmManager.chat === 'function') {
+        // 使用 chat 方法
+        const response = await llmManager.chat([
+          { role: 'user', content: prompt }
+        ], {
+          temperature: 0.7,
+          max_tokens: 2000
+        });
+        responseText = response.text || response.content || response;
+      } else {
+        throw new Error('LLM Manager 没有可用的查询方法');
+      }
+
+      // 提取JSON
+      const jsonMatch = String(responseText).match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
     } catch (error) {
-      console.warn('[Data Engine] LLM生成数据失败，使用默认数据:', error);
+      console.warn('[Data Engine] LLM生成数据失败，使用默认数据:', error.message);
     }
 
     // 默认数据

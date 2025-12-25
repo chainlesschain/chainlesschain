@@ -303,6 +303,42 @@ class AIEngineIPC {
       }
     });
 
+    // 数据引擎：读取Excel
+    ipcMain.handle('data-engine:readExcel', async (_event, filePath) => {
+      try {
+        const result = await this.dataEngineManager.readExcel(filePath);
+
+        return {
+          success: true,
+          ...result,
+        };
+      } catch (error) {
+        console.error('[Data Engine IPC] 读取Excel失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 数据引擎：写入Excel
+    ipcMain.handle('data-engine:writeExcel', async (_event, filePath, data) => {
+      try {
+        const result = await this.dataEngineManager.writeExcel(filePath, data);
+
+        return {
+          success: true,
+          ...result,
+        };
+      } catch (error) {
+        console.error('[Data Engine IPC] 写入Excel失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
     // 数据引擎：分析数据
     ipcMain.handle('data-engine:analyze', async (_event, data, options) => {
       try {
@@ -486,6 +522,8 @@ class AIEngineIPC {
       'document-engine:getTemplates',
       'data-engine:readCSV',
       'data-engine:writeCSV',
+      'data-engine:readExcel',
+      'data-engine:writeExcel',
       'data-engine:analyze',
       'data-engine:generateChart',
       'data-engine:generateReport',
