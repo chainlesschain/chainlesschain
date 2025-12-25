@@ -410,19 +410,20 @@ async def create_project_stream(request: ProjectCreateRequest):
     )
 
 
-@app.post("/api/chat/stream")
-async def chat_stream(
-    messages: List[Dict[str, str]],
-    model: Optional[str] = None,
+class ChatStreamRequest(BaseModel):
+    """流式对话请求"""
+    messages: List[Dict[str, str]]
+    model: Optional[str] = None
     temperature: float = 0.7
-):
+
+
+@app.post("/api/chat/stream")
+async def chat_stream(request: ChatStreamRequest):
     """
     流式对话接口（通用LLM聊天）
 
     Args:
-        messages: 对话消息列表 [{"role": "user", "content": "..."}]
-        model: 模型名称（可选）
-        temperature: 温度参数
+        request: 包含消息列表、模型名称和温度参数
 
     Returns:
         Server-Sent Events流式响应
@@ -434,15 +435,15 @@ async def chat_stream(
     )
 
     llm_provider = os.getenv("LLM_PROVIDER", "dashscope")
-    model_name = model or os.getenv("LLM_MODEL", "qwen-turbo")
+    model_name = request.model or os.getenv("LLM_MODEL", "qwen-turbo")
 
     async def event_generator():
         try:
             if llm_provider == "ollama":
                 async for chunk in stream_ollama_chat(
                     model=model_name,
-                    messages=messages,
-                    options={"temperature": temperature}
+                    messages=request.messages,
+                    options={"temperature": request.temperature}
                 ):
                     yield format_sse(chunk)
 
@@ -462,8 +463,8 @@ async def chat_stream(
                 async for chunk in stream_openai_chat(
                     client=client,
                     model=model_name,
-                    messages=messages,
-                    temperature=temperature
+                    messages=request.messages,
+                    temperature=request.temperature
                 ):
                     yield format_sse(chunk)
 
@@ -473,8 +474,8 @@ async def chat_stream(
                 llm_client = get_llm_client()
                 async for chunk in stream_custom_llm_chat(
                     llm_client=llm_client,
-                    messages=messages,
-                    temperature=temperature
+                    messages=request.messages,
+                    temperature=request.temperature
                 ):
                     yield format_sse(chunk)
 

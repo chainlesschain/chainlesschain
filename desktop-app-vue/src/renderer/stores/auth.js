@@ -10,7 +10,19 @@ export const useAuthStore = defineStore('auth', {
         return null;
       }
 
-      return { id: appStore.deviceId };
+      return {
+        id: appStore.deviceId,
+        name: '用户', // 默认用户名
+        avatar: '', // 默认头像为空
+      };
+    },
+  },
+
+  actions: {
+    logout() {
+      const appStore = useAppStore();
+      appStore.setAuthenticated(false);
+      appStore.setDeviceId(null);
     },
   },
 });

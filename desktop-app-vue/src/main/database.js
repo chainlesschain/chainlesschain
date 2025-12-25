@@ -1277,7 +1277,7 @@ class DatabaseManager {
   // ==================== 工具方法 ====================
 
   /**
-   * Normalize SQL params to avoid undefined values.
+   * Normalize SQL params to avoid undefined values and special number types.
    * @param {Array|Object|null|undefined} params
    * @returns {Array|Object|null|undefined}
    */
@@ -1285,14 +1285,28 @@ class DatabaseManager {
     if (params === undefined || params === null) {
       return params;
     }
+
+    // Helper function to normalize a single value
+    const normalizeValue = (value) => {
+      // Convert undefined to null
+      if (value === undefined) {
+        return null;
+      }
+      // Convert NaN and Infinity to null to avoid SQL binding errors
+      if (typeof value === 'number' && (!isFinite(value))) {
+        console.warn('[Database] 警告: 检测到特殊数值 (NaN/Infinity)，已转换为NULL');
+        return null;
+      }
+      return value;
+    };
+
     if (Array.isArray(params)) {
-      return params.map((value) => (value === undefined ? null : value));
+      return params.map(normalizeValue);
     }
     if (typeof params === 'object') {
       const sanitized = {};
       Object.keys(params).forEach((key) => {
-        const value = params[key];
-        sanitized[key] = value === undefined ? null : value;
+        sanitized[key] = normalizeValue(params[key]);
       });
       return sanitized;
     }
@@ -1308,9 +1322,37 @@ class DatabaseManager {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
-    const safeParams = this.normalizeParams(params);
-    this.db.run(sql, safeParams ?? []);
-    this.saveToFile();
+
+    try {
+      console.log('[Database] 开始执行SQL操作');
+      const safeParams = this.normalizeParams(params);
+      console.log('[Database] 参数规范化完成');
+      console.log('[Database] 执行SQL:', sql.substring(0, 100).replace(/\s+/g, ' '));
+      console.log('[Database] 参数数量:', Array.isArray(safeParams) ? safeParams.length : 'N/A');
+
+      // 打印前3个参数用于调试（避免泄露过多信息）
+      if (Array.isArray(safeParams) && safeParams.length > 0) {
+        console.log('[Database] 前3个参数:', safeParams.slice(0, 3));
+      }
+
+      console.log('[Database] 调用 prepare + run...');
+      // 使用 prepare + run 方式以确保参数正确绑定
+      const stmt = this.db.prepare(sql);
+      stmt.run(safeParams ?? []);
+      console.log('[Database] ✅ SQL执行成功');
+
+      console.log('[Database] 开始保存到文件...');
+      if (!this.inTransaction) {
+        this.saveToFile();
+        console.log('[Database] ✅ 数据已保存到文件');
+      }
+    } catch (error) {
+      console.error('[Database] ❌ SQL执行失败:', error.message);
+      console.error('[Database] Error类型:', error.constructor.name);
+      console.error('[Database] SQL语句前100字:', sql.substring(0, 100));
+      console.error('[Database] 参数数量:', Array.isArray(params) ? params.length : 'N/A');
+      throw error;
+    }
   }
 
   /**
@@ -1324,11 +1366,44 @@ class DatabaseManager {
       throw new Error('Database not initialized');
     }
     const stmt = this.db.prepare(sql);
+
+    // Use the wrapped get() method if available (safer than direct getAsObject)
+    if (stmt.get && typeof stmt.get === 'function' && stmt.__betterSqliteCompat) {
+      const row = stmt.get(params);
+      stmt.free();
+      return row;
+    }
+
+    // Fallback to manual implementation
     const safeParams = this.normalizeParams(params);
     if (safeParams !== undefined && safeParams !== null) {
       stmt.bind(safeParams);
     }
-    const row = stmt.step() ? stmt.getAsObject() : null;
+
+    let row = null;
+    if (stmt.step()) {
+      try {
+        // Manually build object instead of using getAsObject
+        const columns = stmt.getColumnNames();
+        const values = stmt.get ? stmt.get() : [];
+
+        row = {};
+        for (let i = 0; i < columns.length; i++) {
+          const value = values[i];
+          if (value !== undefined) {
+            row[columns[i]] = value;
+          }
+        }
+
+        if (Object.keys(row).length === 0) {
+          row = null;
+        }
+      } catch (err) {
+        console.error('[Database] Error building row object:', err);
+        row = null;
+      }
+    }
+
     stmt.free();
     return row;
   }
@@ -1344,14 +1419,48 @@ class DatabaseManager {
       throw new Error('Database not initialized');
     }
     const stmt = this.db.prepare(sql);
+
+    // Use the wrapped all() method if available (safer than direct getAsObject)
+    if (stmt.all && typeof stmt.all === 'function' && stmt.__betterSqliteCompat) {
+      const rows = stmt.all(params);
+      stmt.free();
+      return rows;
+    }
+
+    // Fallback to manual implementation
     const safeParams = this.normalizeParams(params);
     if (safeParams !== undefined && safeParams !== null) {
       stmt.bind(safeParams);
     }
+
     const rows = [];
+    let columns = null;
+
     while (stmt.step()) {
-      rows.push(stmt.getAsObject());
+      try {
+        if (!columns) {
+          columns = stmt.getColumnNames();
+        }
+
+        const values = stmt.get ? stmt.get() : [];
+        const row = {};
+
+        for (let i = 0; i < columns.length; i++) {
+          const value = values[i];
+          if (value !== undefined) {
+            row[columns[i]] = value;
+          }
+        }
+
+        if (Object.keys(row).length > 0) {
+          rows.push(row);
+        }
+      } catch (err) {
+        console.error('[Database] Error building row object:', err);
+        // Skip this row and continue
+      }
     }
+
     stmt.free();
     return rows;
   }
@@ -2114,4 +2223,28 @@ class DatabaseManager {
   }
 }
 
+// 单例实例
+let databaseInstance = null;
+
+/**
+ * 获取数据库单例实例
+ * @returns {DatabaseManager}
+ */
+function getDatabase() {
+  if (!databaseInstance) {
+    throw new Error('数据库未初始化，请先调用 setDatabase()');
+  }
+  return databaseInstance;
+}
+
+/**
+ * 设置数据库实例（由main index.js调用）
+ * @param {DatabaseManager} instance
+ */
+function setDatabase(instance) {
+  databaseInstance = instance;
+}
+
 module.exports = DatabaseManager;
+module.exports.getDatabase = getDatabase;
+module.exports.setDatabase = setDatabase;
