@@ -122,6 +122,8 @@ coverage/
 
 # Test reports
 backend/test/reports/
+desktop-app-vue/test-data-output/
+desktop-app-vue/test-output/
 
 # Cache
 .cache/
