@@ -420,31 +420,154 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
    * @private
    */
   markdownToHTML(markdown) {
-    let html = markdown;
+    const lines = markdown.split('\n');
+    const htmlLines = [];
+    let inUnorderedList = false;
+    let inOrderedList = false;
+    let inCodeBlock = false;
+    let codeBlockContent = [];
 
-    // 标题
-    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
 
+      // 代码块处理
+      if (line.startsWith('```')) {
+        if (!inCodeBlock) {
+          inCodeBlock = true;
+          codeBlockContent = [];
+          continue;
+        } else {
+          inCodeBlock = false;
+          htmlLines.push('<pre><code>' + this.escapeHtml(codeBlockContent.join('\n')) + '</code></pre>');
+          continue;
+        }
+      }
+
+      if (inCodeBlock) {
+        codeBlockContent.push(line);
+        continue;
+      }
+
+      // 标题处理
+      if (line.match(/^### /)) {
+        this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
+        inUnorderedList = false;
+        inOrderedList = false;
+        htmlLines.push('<h3>' + this.parseInlineMarkdown(line.substring(4)) + '</h3>');
+        continue;
+      }
+      if (line.match(/^## /)) {
+        this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
+        inUnorderedList = false;
+        inOrderedList = false;
+        htmlLines.push('<h2>' + this.parseInlineMarkdown(line.substring(3)) + '</h2>');
+        continue;
+      }
+      if (line.match(/^# /)) {
+        this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
+        inUnorderedList = false;
+        inOrderedList = false;
+        htmlLines.push('<h1>' + this.parseInlineMarkdown(line.substring(2)) + '</h1>');
+        continue;
+      }
+
+      // 分隔线
+      if (line.trim() === '---') {
+        this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
+        inUnorderedList = false;
+        inOrderedList = false;
+        htmlLines.push('<hr>');
+        continue;
+      }
+
+      // 无序列表
+      if (line.match(/^[\-\*]\s+/)) {
+        if (!inUnorderedList) {
+          this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
+          inOrderedList = false;
+          htmlLines.push('<ul>');
+          inUnorderedList = true;
+        }
+        htmlLines.push('<li>' + this.parseInlineMarkdown(line.substring(2)) + '</li>');
+        continue;
+      }
+
+      // 有序列表
+      if (line.match(/^\d+\.\s+/)) {
+        if (!inOrderedList) {
+          this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
+          inUnorderedList = false;
+          htmlLines.push('<ol>');
+          inOrderedList = true;
+        }
+        htmlLines.push('<li>' + this.parseInlineMarkdown(line.replace(/^\d+\.\s+/, '')) + '</li>');
+        continue;
+      }
+
+      // 空行关闭列表
+      if (line.trim() === '') {
+        this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
+        inUnorderedList = false;
+        inOrderedList = false;
+        htmlLines.push('');
+        continue;
+      }
+
+      // 普通段落
+      this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
+      inUnorderedList = false;
+      inOrderedList = false;
+      htmlLines.push('<p>' + this.parseInlineMarkdown(line) + '</p>');
+    }
+
+    // 关闭未闭合的列表
+    this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
+
+    return htmlLines.join('\n');
+  }
+
+  /**
+   * 关闭打开的列表
+   * @private
+   */
+  closeListIfOpen(htmlLines, inUnorderedList, inOrderedList) {
+    if (inUnorderedList) {
+      htmlLines.push('</ul>');
+    }
+    if (inOrderedList) {
+      htmlLines.push('</ol>');
+    }
+  }
+
+  /**
+   * 解析行内Markdown语法
+   * @private
+   */
+  parseInlineMarkdown(text) {
     // 粗体
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     // 斜体
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // 行内代码
+    text = text.replace(/`(.+?)`/g, '<code>$1</code>');
+    // 链接
+    text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>');
+    return text;
+  }
 
-    // 列表
-    html = html.replace(/^\- (.+)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-
-    // 段落
-    html = html.replace(/\n\n/g, '</p><p>');
-    html = '<p>' + html + '</p>';
-
-    // 分隔线
-    html = html.replace(/^---$/gm, '<hr>');
-
-    return html;
+  /**
+   * HTML转义
+   * @private
+   */
+  escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
   }
 
   /**
@@ -582,14 +705,18 @@ pandoc document.md -o document.docx
         await browser.close();
 
         // 删除临时HTML
-        await fs.unlink(tempHTMLPath);
+        try {
+          await fs.unlink(tempHTMLPath);
+        } catch (unlinkError) {
+          console.warn('[Document Engine] 清理临时文件失败:', unlinkError.message);
+        }
 
         console.log('[Document Engine] PDF生成成功:', outputPath);
         return { success: true, path: outputPath };
       } catch (puppeteerError) {
         console.warn('[Document Engine] puppeteer不可用，已生成HTML文件作为替代');
 
-        // 返回HTML路径作为替代
+        // 返回HTML路径作为替代（保留临时文件供用户使用）
         return {
           success: true,
           path: tempHTMLPath,
@@ -599,6 +726,14 @@ pandoc document.md -o document.docx
       }
     } catch (error) {
       console.error('[Document Engine] 导出PDF失败:', error);
+      // 尝试清理可能存在的临时文件
+      const tempHTMLPath = markdownPath.replace(/\.md$/, '_temp.html');
+      try {
+        await fs.unlink(tempHTMLPath);
+        console.log('[Document Engine] 已清理临时文件');
+      } catch (unlinkError) {
+        // 临时文件可能不存在，忽略错误
+      }
       throw error;
     }
   }
@@ -676,12 +811,67 @@ pandoc document.md -o document.docx
    * @private
    */
   createDocxFromMarkdown(markdownContent, docx) {
-    const { Document, Paragraph, TextRun, HeadingLevel } = docx;
+    const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
 
     const lines = markdownContent.split('\n');
     const paragraphs = [];
+    let inCodeBlock = false;
+    let codeLines = [];
 
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // 代码块处理
+      if (line.startsWith('```')) {
+        if (!inCodeBlock) {
+          inCodeBlock = true;
+          codeLines = [];
+          continue;
+        } else {
+          inCodeBlock = false;
+          // 添加代码块（灰色背景）
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: codeLines.join('\n'),
+                  font: 'Courier New',
+                  size: 20,
+                  shading: {
+                    fill: 'F4F4F4'
+                  }
+                })
+              ]
+            })
+          );
+          continue;
+        }
+      }
+
+      if (inCodeBlock) {
+        codeLines.push(line);
+        continue;
+      }
+
+      // 标题处理
+      if (line.startsWith('### ')) {
+        paragraphs.push(
+          new Paragraph({
+            text: line.substring(4),
+            heading: HeadingLevel.HEADING_3
+          })
+        );
+        continue;
+      }
+      if (line.startsWith('## ')) {
+        paragraphs.push(
+          new Paragraph({
+            text: line.substring(3),
+            heading: HeadingLevel.HEADING_2
+          })
+        );
+        continue;
+      }
       if (line.startsWith('# ')) {
         paragraphs.push(
           new Paragraph({
@@ -689,34 +879,130 @@ pandoc document.md -o document.docx
             heading: HeadingLevel.HEADING_1
           })
         );
-      } else if (line.startsWith('## ')) {
-        paragraphs.push(
-          new Paragraph({
-            text: line.substring(3),
-            heading: HeadingLevel.HEADING_2
-          })
-        );
-      } else if (line.startsWith('### ')) {
-        paragraphs.push(
-          new Paragraph({
-            text: line.substring(4),
-            heading: HeadingLevel.HEADING_3
-          })
-        );
-      } else if (line.trim()) {
-        paragraphs.push(
-          new Paragraph({
-            children: [new TextRun(line)]
-          })
-        );
-      } else {
-        paragraphs.push(new Paragraph({ text: '' }));
+        continue;
       }
+
+      // 分隔线
+      if (line.trim() === '---') {
+        paragraphs.push(
+          new Paragraph({
+            text: '─'.repeat(50),
+            alignment: AlignmentType.CENTER
+          })
+        );
+        continue;
+      }
+
+      // 无序列表
+      if (line.match(/^[\-\*]\s+/)) {
+        paragraphs.push(
+          new Paragraph({
+            children: this.parseInlineMarkdownForDocx(line.substring(2), docx),
+            bullet: {
+              level: 0
+            }
+          })
+        );
+        continue;
+      }
+
+      // 有序列表
+      if (line.match(/^\d+\.\s+/)) {
+        paragraphs.push(
+          new Paragraph({
+            children: this.parseInlineMarkdownForDocx(line.replace(/^\d+\.\s+/, ''), docx),
+            numbering: {
+              reference: 'default-numbering',
+              level: 0
+            }
+          })
+        );
+        continue;
+      }
+
+      // 空行
+      if (line.trim() === '') {
+        paragraphs.push(new Paragraph({ text: '' }));
+        continue;
+      }
+
+      // 普通段落（带行内格式）
+      paragraphs.push(
+        new Paragraph({
+          children: this.parseInlineMarkdownForDocx(line, docx)
+        })
+      );
     }
 
     return new Document({
-      sections: [{ children: paragraphs }]
+      sections: [{ children: paragraphs }],
+      numbering: {
+        config: [
+          {
+            reference: 'default-numbering',
+            levels: [
+              {
+                level: 0,
+                format: 'decimal',
+                text: '%1.',
+                alignment: AlignmentType.LEFT
+              }
+            ]
+          }
+        ]
+      }
     });
+  }
+
+  /**
+   * 解析行内Markdown格式为Docx TextRun数组
+   * @private
+   */
+  parseInlineMarkdownForDocx(text, docx) {
+    const { TextRun } = docx;
+    const runs = [];
+
+    // 简单的正则替换法处理行内格式
+    // 这里使用分割和重组的方式
+    const parts = [];
+    let remaining = text;
+
+    // 处理粗体 **text**
+    const boldRegex = /\*\*(.+?)\*\*/g;
+    let match;
+    let lastIndex = 0;
+
+    while ((match = boldRegex.exec(text)) !== null) {
+      // 添加粗体前的文本
+      if (match.index > lastIndex) {
+        parts.push({ text: text.substring(lastIndex, match.index), bold: false });
+      }
+      // 添加粗体文本
+      parts.push({ text: match[1], bold: true });
+      lastIndex = boldRegex.lastIndex;
+    }
+
+    // 添加剩余文本
+    if (lastIndex < text.length) {
+      parts.push({ text: text.substring(lastIndex), bold: false });
+    }
+
+    // 如果没有格式，直接返回
+    if (parts.length === 0) {
+      return [new TextRun(text)];
+    }
+
+    // 转换为TextRun数组
+    for (const part of parts) {
+      if (part.text) {
+        runs.push(new TextRun({
+          text: part.text,
+          bold: part.bold
+        }));
+      }
+    }
+
+    return runs.length > 0 ? runs : [new TextRun(text)];
   }
 
   /**
@@ -777,6 +1063,8 @@ pandoc document.md -o document.docx
     let { action, description, outputFiles, projectPath, llmManager } = params;
 
     console.log(`[Document Engine] 处理任务 - ${action}`);
+    console.log(`[Document Engine] 项目路径: ${projectPath}`);
+    console.log(`[Document Engine] 描述: ${description}`);
 
     // 如果没有提供项目路径，创建临时目录
     if (!projectPath) {
@@ -789,26 +1077,65 @@ pandoc document.md -o document.docx
       await fs.mkdir(projectPath, { recursive: true });
     }
 
+    // 确保项目目录存在
     try {
+      await fs.access(projectPath);
+    } catch (error) {
+      console.log('[Document Engine] 项目目录不存在，创建目录:', projectPath);
+      await fs.mkdir(projectPath, { recursive: true });
+    }
+
+    try {
+      let result;
       switch (action) {
         case 'create_document':
-          return await this.createDocumentFromDescription(description, projectPath, llmManager);
+          result = await this.createDocumentFromDescription(description, projectPath, llmManager);
+          break;
 
         case 'create_markdown':
-          return await this.createMarkdownFromDescription(description, projectPath, llmManager);
+          result = await this.createMarkdownFromDescription(description, projectPath, llmManager);
+          break;
 
         case 'export_pdf':
-          return await this.exportDocumentToPDF(projectPath, outputFiles);
+          // 如果没有Markdown文件，先创建一个
+          const mdFilesForPDF = await this.findMarkdownFiles(projectPath);
+          if (mdFilesForPDF.length === 0 && description) {
+            console.log('[Document Engine] 未找到Markdown文件，先创建文档...');
+            await this.createDocumentFromDescription(description, projectPath, llmManager);
+          }
+          result = await this.exportDocumentToPDF(projectPath, outputFiles);
+          break;
 
         case 'export_docx':
-          return await this.exportDocumentToDocx(projectPath, outputFiles);
+          // 如果没有Markdown文件，先创建一个
+          const mdFilesForDocx = await this.findMarkdownFiles(projectPath);
+          if (mdFilesForDocx.length === 0 && description) {
+            console.log('[Document Engine] 未找到Markdown文件，先创建文档...');
+            await this.createDocumentFromDescription(description, projectPath, llmManager);
+          }
+          result = await this.exportDocumentToDocx(projectPath, outputFiles);
+          break;
 
         case 'export_html':
-          return await this.exportDocumentToHTML(projectPath, outputFiles);
+          // 如果没有Markdown文件，先创建一个
+          const mdFilesForHTML = await this.findMarkdownFiles(projectPath);
+          if (mdFilesForHTML.length === 0 && description) {
+            console.log('[Document Engine] 未找到Markdown文件，先创建文档...');
+            await this.createDocumentFromDescription(description, projectPath, llmManager);
+          }
+          result = await this.exportDocumentToHTML(projectPath, outputFiles);
+          break;
 
         default:
-          return await this.createDocumentFromDescription(description, projectPath, llmManager);
+          result = await this.createDocumentFromDescription(description, projectPath, llmManager);
       }
+
+      // 添加实际使用的项目路径到结果中
+      if (result && typeof result === 'object') {
+        result.projectPath = projectPath;
+      }
+
+      return result;
     } catch (error) {
       console.error('[Document Engine] 任务执行失败:', error);
       throw error;
@@ -976,13 +1303,35 @@ ${description}
    * 导出项目文档为PDF
    */
   async exportDocumentToPDF(projectPath, outputFiles) {
+    console.log('[Document Engine] 查找Markdown文件:', projectPath);
+
     const mdFiles = await this.findMarkdownFiles(projectPath);
 
     if (mdFiles.length === 0) {
-      throw new Error('未找到Markdown文件');
+      console.warn('[Document Engine] 未找到Markdown文件，检查是否有其他文档...');
+
+      // 尝试查找所有文件
+      const allFiles = await fs.readdir(projectPath);
+      console.log('[Document Engine] 项目目录文件列表:', allFiles);
+
+      // 检查是否有 document_*.md 或 *.md 文件
+      const docFiles = allFiles.filter(f => f.includes('document') || f.endsWith('.md'));
+
+      if (docFiles.length > 0) {
+        console.log('[Document Engine] 找到可能的文档文件:', docFiles);
+        const sourcePath = path.join(projectPath, docFiles[0]);
+        const outputPath = outputFiles && outputFiles[0]
+          ? path.join(projectPath, outputFiles[0])
+          : sourcePath.replace(/\.md$/, '.pdf');
+        return await this.exportToPDF(sourcePath, outputPath);
+      }
+
+      throw new Error(`未找到Markdown文件。项目路径: ${projectPath}, 文件列表: ${allFiles.join(', ')}`);
     }
 
     const sourcePath = mdFiles[0];
+    console.log('[Document Engine] 使用Markdown文件:', sourcePath);
+
     const outputPath = outputFiles && outputFiles[0]
       ? path.join(projectPath, outputFiles[0])
       : sourcePath.replace(/\.md$/, '.pdf');
@@ -994,13 +1343,35 @@ ${description}
    * 导出项目文档为Word
    */
   async exportDocumentToDocx(projectPath, outputFiles) {
+    console.log('[Document Engine] 查找Markdown文件:', projectPath);
+
     const mdFiles = await this.findMarkdownFiles(projectPath);
 
     if (mdFiles.length === 0) {
-      throw new Error('未找到Markdown文件');
+      console.warn('[Document Engine] 未找到Markdown文件，检查是否有其他文档...');
+
+      // 尝试查找所有文件
+      const allFiles = await fs.readdir(projectPath);
+      console.log('[Document Engine] 项目目录文件列表:', allFiles);
+
+      // 检查是否有 document_*.md 或 *.md 文件
+      const docFiles = allFiles.filter(f => f.includes('document') || f.endsWith('.md'));
+
+      if (docFiles.length > 0) {
+        console.log('[Document Engine] 找到可能的文档文件:', docFiles);
+        const sourcePath = path.join(projectPath, docFiles[0]);
+        const outputPath = outputFiles && outputFiles[0]
+          ? path.join(projectPath, outputFiles[0])
+          : sourcePath.replace(/\.md$/, '.docx');
+        return await this.exportToDocx(sourcePath, outputPath);
+      }
+
+      throw new Error(`未找到Markdown文件。项目路径: ${projectPath}, 文件列表: ${allFiles.join(', ')}`);
     }
 
     const sourcePath = mdFiles[0];
+    console.log('[Document Engine] 使用Markdown文件:', sourcePath);
+
     const outputPath = outputFiles && outputFiles[0]
       ? path.join(projectPath, outputFiles[0])
       : sourcePath.replace(/\.md$/, '.docx');
