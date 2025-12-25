@@ -56,7 +56,7 @@
             <MessageOutlined />
           </a-button>
           <a-button @click="insertCodeBlock()" title="代码块">
-            <FileCodeOutlined />
+            <FileTextOutlined />
           </a-button>
         </a-button-group>
 
@@ -150,7 +150,7 @@ import {
   UnorderedListOutlined,
   OrderedListOutlined,
   MessageOutlined,
-  FileCodeOutlined,
+  FileTextOutlined,
   LinkOutlined,
   PictureOutlined,
   TableOutlined,
