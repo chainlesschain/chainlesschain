@@ -4842,6 +4842,15 @@ class ChainlessChainApp {
                 const savedFiles = this.database.getProjectFiles(localProject.id);
                 console.log('[Main] 验证：数据库中的文件数量:', savedFiles?.length || 0);
 
+                // 更新项目的file_count
+                if (savedFiles && savedFiles.length > 0) {
+                  await this.database.updateProject(localProject.id, {
+                    file_count: savedFiles.length,
+                    updated_at: Date.now()
+                  });
+                  console.log('[Main] 已更新项目的file_count为:', savedFiles.length);
+                }
+
                 // 写入文件到文件系统（对于document类型）
                 if (projectType === 'document' && accumulatedData.files.length > 0) {
                   try {
