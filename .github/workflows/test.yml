@@ -1,0 +1,157 @@
+name: Automated Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: desktop-app-vue/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: ./desktop-app-vue
+        run: npm ci
+
+      - name: Run linter
+        working-directory: ./desktop-app-vue
+        run: npm run lint --if-present
+        continue-on-error: true
+
+      - name: Run unit tests
+        working-directory: ./desktop-app-vue
+        run: npm run test:unit
+
+      - name: Run integration tests
+        working-directory: ./desktop-app-vue
+        run: npm run test:integration
+
+      - name: Run coverage
+        working-directory: ./desktop-app-vue
+        run: npm run test:coverage
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./desktop-app-vue/coverage/lcov.info
+          flags: unittests
+          name: codecov-${{ matrix.os }}
+          fail_ci_if_error: false
+
+      - name: Archive test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            desktop-app-vue/coverage/
+            desktop-app-vue/test-results/
+          retention-days: 30
+
+  test-database:
+    name: Database Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        working-directory: ./desktop-app-vue
+        run: npm ci
+
+      - name: Run database tests
+        working-directory: ./desktop-app-vue
+        run: npm run test:db
+
+      - name: Run data engine tests
+        working-directory: ./desktop-app-vue
+        run: npm run test:data
+
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        working-directory: ./desktop-app-vue
+        run: npm ci
+
+      - name: Check code formatting
+        working-directory: ./desktop-app-vue
+        run: npm run format:check --if-present
+        continue-on-error: true
+
+      - name: Run ESLint
+        working-directory: ./desktop-app-vue
+        run: npm run lint --if-present
+        continue-on-error: true
+
+  build:
+    name: Build Check
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        working-directory: ./desktop-app-vue
+        run: npm ci
+
+      - name: Build application
+        working-directory: ./desktop-app-vue
+        run: npm run build
+
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+          path: |
+            desktop-app-vue/dist/
+          retention-days: 7
