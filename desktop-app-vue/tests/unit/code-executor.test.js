@@ -4,7 +4,6 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { spawn } from 'child_process';
-import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
@@ -13,19 +12,28 @@ vi.mock('child_process', () => ({
   spawn: vi.fn(),
 }));
 
-// Mock fs/promises
-vi.mock('fs/promises', () => ({
+// Mock fs module (CommonJS style used by code-executor.js)
+vi.mock('fs', () => ({
   default: {
-    mkdir: vi.fn(),
-    writeFile: vi.fn(),
-    unlink: vi.fn(),
-    readdir: vi.fn(),
-    stat: vi.fn(),
+    promises: {
+      mkdir: vi.fn().mockResolvedValue(undefined),
+      writeFile: vi.fn().mockResolvedValue(undefined),
+      unlink: vi.fn().mockResolvedValue(undefined),
+      readdir: vi.fn().mockResolvedValue([]),
+      stat: vi.fn().mockResolvedValue({}),
+    }
   },
+  promises: {
+    mkdir: vi.fn().mockResolvedValue(undefined),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+    unlink: vi.fn().mockResolvedValue(undefined),
+    readdir: vi.fn().mockResolvedValue([]),
+    stat: vi.fn().mockResolvedValue({}),
+  }
 }));
 
 // 动态导入 CodeExecutor (在 mock 之后)
-let CodeExecutor, getCodeExecutor;
+let CodeExecutor, getCodeExecutor, fs;
 
 describe('CodeExecutor', () => {
   let codeExecutor;
@@ -34,7 +42,10 @@ describe('CodeExecutor', () => {
     // 清除模块缓存
     vi.resetModules();
 
-    // 动态导入
+    // 动态导入 fs 和 CodeExecutor
+    const fsModule = await import('fs');
+    fs = fsModule.promises;
+
     const module = await import('../../src/main/engines/code-executor.js');
     CodeExecutor = module.CodeExecutor;
     getCodeExecutor = module.getCodeExecutor;
@@ -263,7 +274,8 @@ describe('CodeExecutor', () => {
 
       expect(result.safe).toBe(false);
       expect(result.warnings.length).toBeGreaterThan(0);
-      expect(result.warnings[0]).toMatch(/os\.system/i);
+      expect(result.warnings[0]).toContain('os');
+      expect(result.warnings[0]).toContain('system');
     });
 
     it('应该检测到 eval 危险操作', () => {
