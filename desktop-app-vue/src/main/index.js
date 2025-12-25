@@ -5859,29 +5859,36 @@ class ChainlessChainApp {
 
         // 确保项目有 root_path，如果没有则创建
         const projectId = projectContext.projectId || projectContext.id;
-        if (projectId && !projectContext.root_path) {
+
+        console.log('[Main] 检查项目路径 - projectId:', projectId, 'root_path:', projectContext.root_path);
+
+        if (!projectContext.root_path) {
           console.log('[Main] 项目没有root_path，创建项目目录...');
           const fs = require('fs').promises;
           const path = require('path');
           const projectConfig = getProjectConfig();
 
+          // 如果没有projectId，使用任务计划ID作为临时目录
+          const dirName = projectId || `task_${taskPlanId}`;
           const projectRootPath = path.join(
             projectConfig.getProjectsRootPath(),
-            projectId
+            dirName
           );
 
           await fs.mkdir(projectRootPath, { recursive: true });
           console.log('[Main] 项目目录已创建:', projectRootPath);
 
-          // 更新项目的 root_path
-          await this.database.updateProject(projectId, {
-            root_path: projectRootPath,
-            updated_at: Date.now()
-          });
+          // 如果有projectId，更新数据库中的项目信息
+          if (projectId) {
+            await this.database.updateProject(projectId, {
+              root_path: projectRootPath,
+              updated_at: Date.now()
+            });
+          }
 
           // 更新 projectContext
           projectContext.root_path = projectRootPath;
-          console.log('[Main] 已更新项目的root_path');
+          console.log('[Main] 已更新项目的root_path:', projectRootPath);
         }
 
         // 执行任务计划（使用事件推送进度）
