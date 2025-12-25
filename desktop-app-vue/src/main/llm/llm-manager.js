@@ -252,6 +252,81 @@ class LLMManager extends EventEmitter {
   }
 
   /**
+   * 聊天对话（支持完整messages数组，非流式）
+   * @param {Array} messages - 消息数组 [{role: 'user'|'assistant'|'system', content: string}]
+   * @param {Object} options - 选项
+   */
+  async chatWithMessages(messages, options = {}) {
+    if (!this.isInitialized) {
+      throw new Error('LLM服务未初始化');
+    }
+
+    try {
+      let result;
+
+      if (this.provider === LLMProviders.OLLAMA) {
+        result = await this.client.chat(messages, options);
+      } else {
+        // OpenAI兼容的API
+        result = await this.client.chat(messages, options);
+      }
+
+      this.emit('chat-completed', { messages, result });
+
+      return {
+        text: result.message?.content || result.text,
+        message: result.message,
+        model: result.model,
+        tokens: result.tokens || result.usage?.total_tokens || 0,
+        usage: result.usage,
+        timestamp: Date.now(),
+      };
+    } catch (error) {
+      console.error('[LLMManager] 聊天失败:', error);
+      this.emit('chat-failed', { messages, error });
+      throw error;
+    }
+  }
+
+  /**
+   * 聊天对话（支持完整messages数组，流式）
+   * @param {Array} messages - 消息数组
+   * @param {Function} onChunk - 回调函数
+   * @param {Object} options - 选项
+   */
+  async chatWithMessagesStream(messages, onChunk, options = {}) {
+    if (!this.isInitialized) {
+      throw new Error('LLM服务未初始化');
+    }
+
+    try {
+      let result;
+
+      if (this.provider === LLMProviders.OLLAMA) {
+        result = await this.client.chatStream(messages, onChunk, options);
+      } else {
+        // OpenAI兼容的API
+        result = await this.client.chatStream(messages, onChunk, options);
+      }
+
+      this.emit('chat-stream-completed', { messages, result });
+
+      return {
+        text: result.message?.content || result.text,
+        message: result.message,
+        model: result.model,
+        tokens: result.tokens || 0,
+        usage: result.usage,
+        timestamp: Date.now(),
+      };
+    } catch (error) {
+      console.error('[LLMManager] 流式聊天失败:', error);
+      this.emit('chat-stream-failed', { messages, error });
+      throw error;
+    }
+  }
+
+  /**
    * 发送查询（流式）
    * @param {string} prompt - 提示词
    * @param {Function} onChunk - 回调函数

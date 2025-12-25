@@ -100,6 +100,58 @@
         </audio>
       </div>
 
+      <!-- Word文档预览 -->
+      <div v-else-if="fileType === 'word'" class="office-preview word-preview">
+        <div v-if="officeContent" v-html="officeContent" class="office-content"></div>
+      </div>
+
+      <!-- Excel表格预览 -->
+      <div v-else-if="fileType === 'excel'" class="office-preview excel-preview">
+        <div v-if="officeContent && officeContent.sheets" class="excel-sheets">
+          <a-tabs v-model:activeKey="activeSheet">
+            <a-tab-pane v-for="(sheet, index) in officeContent.sheets" :key="index" :tab="sheet.name">
+              <div class="excel-table-wrapper">
+                <table class="excel-table">
+                  <tbody>
+                    <tr v-for="(row, rowIndex) in sheet.data" :key="rowIndex">
+                      <td v-for="(cell, colIndex) in row" :key="colIndex">
+                        {{ cell }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </a-tab-pane>
+          </a-tabs>
+        </div>
+      </div>
+
+      <!-- PowerPoint预览 -->
+      <div v-else-if="fileType === 'powerpoint'" class="office-preview ppt-preview">
+        <div v-if="officeContent && officeContent.slides" class="ppt-slides">
+          <a-carousel arrows>
+            <template #prevArrow>
+              <div class="custom-slick-arrow" style="left: 10px; z-index: 1">
+                <LeftCircleOutlined />
+              </div>
+            </template>
+            <template #nextArrow>
+              <div class="custom-slick-arrow" style="right: 10px">
+                <RightCircleOutlined />
+              </div>
+            </template>
+            <div v-for="(slide, index) in officeContent.slides" :key="index" class="ppt-slide">
+              <h3>{{ slide.title || `幻灯片 ${index + 1}` }}</h3>
+              <div v-if="slide.content" class="slide-content">
+                <div v-for="(item, itemIndex) in slide.content" :key="itemIndex" class="slide-item">
+                  {{ item }}
+                </div>
+              </div>
+            </div>
+          </a-carousel>
+        </div>
+      </div>
+
       <!-- 不支持预览的文件类型 -->
       <div v-else class="unsupported-preview">
         <FileUnknownOutlined class="unsupported-icon" />
@@ -145,6 +197,8 @@ import {
   ZoomOutOutlined,
   ReloadOutlined,
   CloseCircleOutlined,
+  LeftCircleOutlined,
+  RightCircleOutlined,
 } from '@ant-design/icons-vue';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
@@ -203,6 +257,11 @@ const pdfUrl = ref('');
 const videoUrl = ref('');
 const audioUrl = ref('');
 
+// Office文件
+const officeContent = ref(null);
+const officeType = ref('');
+const activeSheet = ref(0);
+
 /**
  * 文件类型检测
  */
@@ -215,6 +274,11 @@ const fileType = computed(() => {
   const codeExtensions = ['js', 'ts', 'jsx', 'tsx', 'vue', 'html', 'css', 'scss', 'less', 'xml', 'yml', 'yaml', 'txt'];
   const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
   const audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac'];
+  const officeExtensions = {
+    word: ['docx', 'doc'],
+    excel: ['xlsx', 'xls'],
+    powerpoint: ['pptx', 'ppt']
+  };
 
   if (ext === 'md') return 'markdown';
   if (ext === 'csv') return 'csv';
@@ -224,6 +288,9 @@ const fileType = computed(() => {
   if (codeExtensions.includes(ext)) return 'code';
   if (videoExtensions.includes(ext)) return 'video';
   if (audioExtensions.includes(ext)) return 'audio';
+  if (officeExtensions.word.includes(ext)) return 'word';
+  if (officeExtensions.excel.includes(ext)) return 'excel';
+  if (officeExtensions.powerpoint.includes(ext)) return 'powerpoint';
 
   return 'unsupported';
 });
@@ -241,6 +308,9 @@ const getFileTypeColor = () => {
     pdf: 'red',
     video: 'magenta',
     audio: 'geekblue',
+    word: 'blue',
+    excel: 'green',
+    powerpoint: 'volcano',
     unsupported: 'default',
   };
   return colorMap[fileType.value] || 'default';
@@ -259,6 +329,9 @@ const getFileTypeLabel = () => {
     pdf: 'PDF',
     video: '视频',
     audio: '音频',
+    word: 'Word文档',
+    excel: 'Excel表格',
+    powerpoint: 'PowerPoint',
     unsupported: '不支持',
   };
   return labelMap[fileType.value] || '未知';
@@ -326,6 +399,15 @@ const loadFileContent = async () => {
         break;
       case 'audio':
         await loadAudio(filePath);
+        break;
+      case 'word':
+        await loadWord(filePath);
+        break;
+      case 'excel':
+        await loadExcel(filePath);
+        break;
+      case 'powerpoint':
+        await loadPowerPoint(filePath);
         break;
     }
   } catch (err) {
@@ -536,6 +618,78 @@ const loadAudio = async (filePath) => {
 
   const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
   audioUrl.value = `file://${resolvedPath}`;
+};
+
+/**
+ * 加载Word文档
+ */
+const loadWord = async (filePath) => {
+  // 构建完整路径
+  let fullPath = filePath;
+  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    fullPath = `/data/projects/${props.projectId}/${filePath}`;
+  }
+
+  try {
+    const result = await window.electronAPI.file.previewOffice(fullPath, 'word');
+    if (result.success) {
+      officeContent.value = result.data.html;
+      officeType.value = 'word';
+    } else {
+      throw new Error(result.error || 'Word文档预览失败');
+    }
+  } catch (err) {
+    console.error('[PreviewPanel] Word加载失败:', err);
+    throw err;
+  }
+};
+
+/**
+ * 加载Excel表格
+ */
+const loadExcel = async (filePath) => {
+  // 构建完整路径
+  let fullPath = filePath;
+  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    fullPath = `/data/projects/${props.projectId}/${filePath}`;
+  }
+
+  try {
+    const result = await window.electronAPI.file.previewOffice(fullPath, 'excel');
+    if (result.success) {
+      officeContent.value = result.data;
+      officeType.value = 'excel';
+    } else {
+      throw new Error(result.error || 'Excel表格预览失败');
+    }
+  } catch (err) {
+    console.error('[PreviewPanel] Excel加载失败:', err);
+    throw err;
+  }
+};
+
+/**
+ * 加载PowerPoint
+ */
+const loadPowerPoint = async (filePath) => {
+  // 构建完整路径
+  let fullPath = filePath;
+  if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    fullPath = `/data/projects/${props.projectId}/${filePath}`;
+  }
+
+  try {
+    const result = await window.electronAPI.file.previewOffice(fullPath, 'powerpoint');
+    if (result.success) {
+      officeContent.value = result.data;
+      officeType.value = 'powerpoint';
+    } else {
+      throw new Error(result.error || 'PowerPoint预览失败');
+    }
+  } catch (err) {
+    console.error('[PreviewPanel] PowerPoint加载失败:', err);
+    throw err;
+  }
 };
 
 /**
@@ -912,5 +1066,119 @@ onMounted(() => {
   margin: 0 0 24px 0;
   color: #8c8c8c;
   max-width: 400px;
+}
+
+/* Office文件预览 */
+.office-preview {
+  height: 100%;
+  overflow: auto;
+  background: #fff;
+  padding: 20px;
+}
+
+/* Word文档预览 */
+.word-preview .office-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  min-height: 100%;
+}
+
+.word-preview .office-content :deep(p) {
+  margin-bottom: 1em;
+  line-height: 1.6;
+}
+
+.word-preview .office-content :deep(table) {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+
+.word-preview .office-content :deep(td),
+.word-preview .office-content :deep(th) {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+/* Excel表格预览 */
+.excel-preview {
+  height: 100%;
+  padding: 0;
+}
+
+.excel-table-wrapper {
+  overflow: auto;
+  max-height: calc(100vh - 200px);
+}
+
+.excel-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+.excel-table td {
+  border: 1px solid #d9d9d9;
+  padding: 8px 12px;
+  min-width: 100px;
+  white-space: nowrap;
+}
+
+.excel-table tr:nth-child(even) {
+  background: #fafafa;
+}
+
+/* PowerPoint预览 */
+.ppt-preview {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+}
+
+.ppt-slide {
+  background: #fff;
+  padding: 60px;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.ppt-slide h3 {
+  font-size: 32px;
+  margin-bottom: 30px;
+  color: #262626;
+}
+
+.slide-content {
+  width: 100%;
+}
+
+.slide-item {
+  margin: 15px 0;
+  font-size: 18px;
+  color: #595959;
+  text-align: left;
+}
+
+.custom-slick-arrow {
+  font-size: 32px;
+  color: #1890ff;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 2;
+}
+
+.custom-slick-arrow:hover {
+  color: #40a9ff;
 }
 </style>

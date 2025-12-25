@@ -168,9 +168,19 @@
 
         <!-- 中间：编辑器/预览面板 -->
         <div class="main-content">
-          <!-- 编辑模式 -->
+          <!-- Excel编辑器 -->
+          <ExcelEditor
+            v-if="shouldShowExcelEditor"
+            ref="excelEditorRef"
+            :file="currentFile"
+            :auto-save="true"
+            @change="handleExcelChange"
+            @save="handleExcelSave"
+          />
+
+          <!-- 文本编辑模式 -->
           <SimpleEditor
-            v-if="shouldShowEditor"
+            v-else-if="shouldShowEditor"
             ref="editorRef"
             :file="currentFile"
             :content="fileContent"
@@ -359,6 +369,7 @@ import {
 } from '@ant-design/icons-vue';
 import FileTree from '@/components/projects/FileTree.vue';
 import SimpleEditor from '@/components/projects/SimpleEditor.vue';
+import ExcelEditor from '@/components/editors/ExcelEditor.vue';
 import PreviewPanel from '@/components/projects/PreviewPanel.vue';
 import ChatPanel from '@/components/projects/ChatPanel.vue';
 import GitStatusDialog from '@/components/projects/GitStatusDialog.vue';
@@ -388,6 +399,7 @@ const viewMode = ref('auto'); // 'auto' | 'edit' | 'preview'
 const showChatPanel = ref(true); // 默认显示AI助手
 const fileContent = ref(''); // 文件内容
 const editorRef = ref(null);
+const excelEditorRef = ref(null); // Excel编辑器引用
 const gitStatus = ref({}); // Git 状态
 let gitStatusInterval = null; // Git 状态轮询定时器
 const showFileManageModal = ref(false); // 文件管理Modal
@@ -422,12 +434,12 @@ const fileTypeInfo = computed(() => {
 
   // 可编辑文本文件
   const editableExtensions = ['js', 'ts', 'vue', 'jsx', 'tsx', 'html', 'css', 'scss', 'less', 'json', 'md', 'txt', 'xml', 'yml', 'yaml'];
+  // Excel文件
+  const excelExtensions = ['xlsx', 'xls', 'csv'];
   // 图片文件
   const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'];
   // 文档文件
-  const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
-  // 数据文件
-  const dataExtensions = ['csv'];
+  const documentExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx'];
   // 视频文件
   const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
   // 音频文件
@@ -436,9 +448,9 @@ const fileTypeInfo = computed(() => {
   return {
     extension: ext,
     isEditable: editableExtensions.includes(ext),
+    isExcel: excelExtensions.includes(ext),
     isImage: imageExtensions.includes(ext),
     isDocument: documentExtensions.includes(ext),
-    isData: dataExtensions.includes(ext),
     isVideo: videoExtensions.includes(ext),
     isAudio: audioExtensions.includes(ext),
     isCode: ['js', 'ts', 'vue', 'jsx', 'tsx'].includes(ext),
@@ -446,9 +458,18 @@ const fileTypeInfo = computed(() => {
   };
 });
 
-// 是否显示编辑器
+// 是否显示Excel编辑器
+const shouldShowExcelEditor = computed(() => {
+  if (!currentFile.value) return false;
+  if (viewMode.value === 'preview') return false;
+  // 在编辑模式或自动模式下，如果是Excel文件则显示Excel编辑器
+  return fileTypeInfo.value?.isExcel;
+});
+
+// 是否显示文本编辑器
 const shouldShowEditor = computed(() => {
   if (!currentFile.value) return false;
+  if (fileTypeInfo.value?.isExcel) return false; // Excel文件不使用文本编辑器
   if (viewMode.value === 'edit') return fileTypeInfo.value?.isEditable;
   if (viewMode.value === 'preview') return false;
   if (viewMode.value === 'auto') return fileTypeInfo.value?.isEditable;
@@ -459,7 +480,13 @@ const shouldShowEditor = computed(() => {
 const shouldShowPreview = computed(() => {
   if (!currentFile.value) return false;
   if (viewMode.value === 'preview') return true;
-  if (viewMode.value === 'auto') return !fileTypeInfo.value?.isEditable;
+  if (viewMode.value === 'auto') {
+    // 如果是Excel或可编辑文件，则不显示预览
+    if (fileTypeInfo.value?.isExcel || fileTypeInfo.value?.isEditable) {
+      return false;
+    }
+    return true;
+  }
   return false;
 });
 
@@ -552,6 +579,30 @@ const handleFileSave = async (content) => {
     message.success('文件已保存');
   } catch (error) {
     console.error('保存文件失败:', error);
+    message.error('保存失败: ' + error.message);
+  } finally {
+    saving.value = false;
+  }
+};
+
+// 处理Excel内容变化
+const handleExcelChange = (changeData) => {
+  hasUnsavedChanges.value = true;
+  console.log('[ProjectDetail] Excel数据变化:', changeData);
+};
+
+// 处理Excel保存
+const handleExcelSave = async (data) => {
+  if (!currentFile.value) return;
+
+  saving.value = true;
+  try {
+    console.log('[ProjectDetail] 保存Excel文件:', currentFile.value.file_path);
+
+    hasUnsavedChanges.value = false;
+    message.success('Excel文件已保存');
+  } catch (error) {
+    console.error('保存Excel文件失败:', error);
     message.error('保存失败: ' + error.message);
   } finally {
     saving.value = false;

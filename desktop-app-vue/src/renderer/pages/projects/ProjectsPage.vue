@@ -642,6 +642,19 @@ const handleFileClick = ({ file, subtask, taskPlan }) => {
 };
 
 // 组件挂载时加载项目并监听进度
+// 处理文件更新事件
+const handleFilesUpdated = async (data) => {
+  console.log('项目文件已更新:', data);
+  try {
+    // 重新加载项目列表以显示最新文件数
+    const userId = authStore.currentUser?.id || 'default-user';
+    await projectStore.fetchProjects(userId);
+    message.success(`成功注册 ${data.filesCount} 个新文件`);
+  } catch (error) {
+    console.error('刷新项目失败:', error);
+  }
+};
+
 onMounted(async () => {
   try {
     const userId = authStore.currentUser?.id || 'default-user';
@@ -650,6 +663,9 @@ onMounted(async () => {
 
     // 监听任务进度更新
     window.electronAPI.project.onTaskProgressUpdate(handleTaskProgressUpdate);
+
+    // 监听项目文件更新
+    window.electronAPI.project.onFilesUpdated(handleFilesUpdated);
   } catch (error) {
     console.error('Failed to load projects:', error);
     message.error('加载项目失败：' + error.message);
@@ -660,6 +676,9 @@ onMounted(async () => {
 onUnmounted(() => {
   if (window.electronAPI?.project?.offTaskProgressUpdate) {
     window.electronAPI.project.offTaskProgressUpdate(handleTaskProgressUpdate);
+  }
+  if (window.electronAPI?.project?.offFilesUpdated) {
+    window.electronAPI.project.offFilesUpdated(handleFilesUpdated);
   }
 });
 </script>
