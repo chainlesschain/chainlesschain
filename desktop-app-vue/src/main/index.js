@@ -34,6 +34,9 @@ const DataEngine = require('./engines/data-engine');
 const ProjectStructureManager = require('./project-structure');
 const GitAutoCommit = require('./git-auto-commit');
 
+// File operation IPC
+const FileIPC = require('./ipc/file-ipc');
+
 // Backend API clients
 const { ProjectFileAPI, GitAPI, RAGAPI, CodeAPI } = require('./api/backend-client');
 
@@ -679,6 +682,26 @@ class ChainlessChainApp {
         console.error('AI引擎IPC handlers注册失败:', error);
       }
     }
+
+    // 注册文件操作IPC handlers
+    try {
+      console.log('注册文件操作IPC handlers...');
+      this.fileIPC = new FileIPC();
+
+      // 传递引擎实例
+      const excelEngine = require('./engines/excel-engine');
+      const wordEngine = require('./engines/word-engine');
+      this.fileIPC.setEngines({
+        excelEngine,
+        wordEngine,
+        documentEngine: this.documentEngine,
+      });
+
+      this.fileIPC.registerHandlers(this.mainWindow);
+      console.log('文件操作IPC handlers注册成功');
+    } catch (error) {
+      console.error('文件操作IPC handlers注册失败:', error);
+    }
   }
 
   setupGitEvents() {
@@ -945,6 +968,77 @@ class ChainlessChainApp {
       }
     }
     return result;
+  }
+
+  /**
+   * 将编辑器的幻灯片数据转换为PPT大纲格式
+   * @param {Array} slides - 幻灯片数组
+   * @param {string} title - PPT标题
+   * @returns {Object} PPT大纲
+   */
+  convertSlidesToOutline(slides, title) {
+    const outline = {
+      title: title || '演示文稿',
+      subtitle: new Date().toLocaleDateString('zh-CN'),
+      sections: []
+    };
+
+    slides.forEach((slide, index) => {
+      // 解析幻灯片内容
+      const content = slide.content || '';
+      const tempDiv = { innerHTML: content };
+
+      // 提取标题和内容
+      const h1Match = content.match(/<h1[^>]*>(.*?)<\/h1>/i);
+      const h2Match = content.match(/<h2[^>]*>(.*?)<\/h2>/i);
+      const h3Match = content.match(/<h3[^>]*>(.*?)<\/h3>/i);
+
+      let slideTitle = '';
+      if (h1Match) {
+        slideTitle = h1Match[1].replace(/<[^>]*>/g, '').trim();
+      } else if (h2Match) {
+        slideTitle = h2Match[1].replace(/<[^>]*>/g, '').trim();
+      } else if (h3Match) {
+        slideTitle = h3Match[1].replace(/<[^>]*>/g, '').trim();
+      } else {
+        slideTitle = `幻灯片 ${index + 1}`;
+      }
+
+      // 提取要点（从<p>, <li>等标签）
+      const points = [];
+      const pMatches = content.matchAll(/<p[^>]*>(.*?)<\/p>/gi);
+      for (const match of pMatches) {
+        const text = match[1].replace(/<[^>]*>/g, '').trim();
+        if (text && text.length > 0) {
+          points.push(text);
+        }
+      }
+
+      const liMatches = content.matchAll(/<li[^>]*>(.*?)<\/li>/gi);
+      for (const match of liMatches) {
+        const text = match[1].replace(/<[^>]*>/g, '').trim();
+        if (text && text.length > 0) {
+          points.push(text);
+        }
+      }
+
+      // 创建章节和子章节
+      if (index === 0 && h1Match) {
+        // 第一张幻灯片通常是标题页，跳过
+        outline.title = slideTitle;
+        return;
+      }
+
+      outline.sections.push({
+        title: slideTitle,
+        subsections: [{
+          title: slideTitle,
+          points: points.length > 0 ? points : ['内容...']
+        }]
+      });
+    });
+
+    return outline;
   }
 
   setupIPC() {
@@ -1822,43 +1916,128 @@ class ChainlessChainApp {
       }
     });
 
-    // 聊天对话（支持 messages 数组格式）
-    ipcMain.handle('llm:chat', async (_event, { messages, stream = false, ...options }) => {
+    // 聊天对话（支持 messages 数组格式，保留完整对话历史，自动RAG增强）
+    ipcMain.handle('llm:chat', async (_event, { messages, stream = false, enableRAG = true, ...options }) => {
       try {
         if (!this.llmManager) {
           throw new Error('LLM服务未初始化');
         }
 
-        console.log('[Main] LLM 聊天请求, messages:', messages?.length || 0, 'stream:', stream);
+        console.log('[Main] LLM 聊天请求, messages:', messages?.length || 0, 'stream:', stream, 'RAG:', enableRAG);
 
-        // 将 messages 数组转换为单个 prompt（简化实现）
-        // 实际项目中应该保留完整的 messages 历史
-        const prompt = messages.map(msg => {
-          if (msg.role === 'system') {
-            return `System: ${msg.content}`;
-          } else if (msg.role === 'user') {
-            return `User: ${msg.content}`;
-          } else if (msg.role === 'assistant') {
-            return `Assistant: ${msg.content}`;
+        let enhancedMessages = messages;
+        let retrievedDocs = [];
+
+        // 如果启用RAG，自动检索知识库并增强上下文
+        if (enableRAG && this.ragManager) {
+          try {
+            // 获取最后一条用户消息作为查询
+            const lastUserMessage = [...messages].reverse().find(msg => msg.role === 'user');
+
+            if (lastUserMessage) {
+              const query = lastUserMessage.content;
+
+              // 检索相关知识
+              const ragResult = await this.ragManager.enhanceQuery(query, {
+                topK: options.ragTopK || 3,
+                includeMetadata: true,
+              });
+
+              if (ragResult.retrievedDocs && ragResult.retrievedDocs.length > 0) {
+                console.log('[Main] RAG检索到', ragResult.retrievedDocs.length, '条相关知识');
+                retrievedDocs = ragResult.retrievedDocs;
+
+                // 构建知识库上下文
+                const knowledgeContext = ragResult.retrievedDocs
+                  .map((doc, idx) => `[知识${idx + 1}] ${doc.title || doc.content.substring(0, 50)}\n${doc.content}`)
+                  .join('\n\n');
+
+                // 在消息数组中插入知识库上下文
+                // 如果有系统消息，追加到系统消息；否则创建新的系统消息
+                const systemMsgIndex = messages.findIndex(msg => msg.role === 'system');
+
+                if (systemMsgIndex >= 0) {
+                  enhancedMessages = [...messages];
+                  enhancedMessages[systemMsgIndex] = {
+                    ...messages[systemMsgIndex],
+                    content: `${messages[systemMsgIndex].content}\n\n## 知识库参考\n${knowledgeContext}`,
+                  };
+                } else {
+                  enhancedMessages = [
+                    {
+                      role: 'system',
+                      content: `## 知识库参考\n以下是从知识库中检索到的相关信息，请参考这些内容来回答用户的问题：\n\n${knowledgeContext}`,
+                    },
+                    ...messages,
+                  ];
+                }
+              }
+            }
+          } catch (ragError) {
+            console.error('[Main] RAG检索失败，继续普通对话:', ragError);
           }
-          return msg.content;
-        }).join('\n\n');
+        }
 
-        // 调用 LLM
-        const response = await this.llmManager.query(prompt, options);
+        // 使用新的 chatWithMessages 方法，保留完整的 messages 历史
+        const response = await this.llmManager.chatWithMessages(enhancedMessages, options);
 
-        console.log('[Main] LLM 聊天响应成功');
+        console.log('[Main] LLM 聊天响应成功, tokens:', response.tokens);
 
-        // 返回 OpenAI 兼容格式
+        // 返回 OpenAI 兼容格式，包含检索到的文档
         return {
-          content: response,
-          message: response,
-          usage: {
-            total_tokens: Math.ceil(response.length / 4), // 粗略估算
+          content: response.text,
+          message: response.message || {
+            role: 'assistant',
+            content: response.text,
           },
+          usage: response.usage || {
+            total_tokens: response.tokens || 0,
+          },
+          // 返回检索到的知识库文档，供前端展示引用
+          retrievedDocs: retrievedDocs.map(doc => ({
+            id: doc.id,
+            title: doc.title,
+            content: doc.content.substring(0, 200), // 只返回摘要
+            score: doc.score,
+          })),
         };
       } catch (error) {
         console.error('[Main] LLM 聊天失败:', error);
+        throw error;
+      }
+    });
+
+    // 使用提示词模板进行聊天
+    ipcMain.handle('llm:chat-with-template', async (_event, { templateId, variables, messages = [], ...options }) => {
+      try {
+        if (!this.llmManager) {
+          throw new Error('LLM服务未初始化');
+        }
+
+        if (!this.promptTemplateManager) {
+          throw new Error('提示词模板管理器未初始化');
+        }
+
+        console.log('[Main] 使用模板进行聊天, templateId:', templateId);
+
+        // 填充模板变量
+        const filledPrompt = await this.promptTemplateManager.fillTemplate(templateId, variables);
+
+        console.log('[Main] 模板已填充');
+
+        // 构建消息数组，将填充后的模板作为用户消息
+        const enhancedMessages = [
+          ...messages,
+          {
+            role: 'user',
+            content: filledPrompt,
+          },
+        ];
+
+        // 调用标准的聊天方法
+        return await this.llmManager.chatWithMessages(enhancedMessages, options);
+      } catch (error) {
+        console.error('[Main] 模板聊天失败:', error);
         throw error;
       }
     });
@@ -4998,6 +5177,24 @@ class ChainlessChainApp {
 
         // 从数据库删除记录
         this.database.db.run('DELETE FROM project_files WHERE id = ?', [fileId]);
+
+        // 更新项目的文件统计
+        try {
+          const totalFiles = this.database.db.prepare(
+            `SELECT COUNT(*) as count FROM project_files WHERE project_id = ?`
+          ).get(projectId);
+
+          const fileCount = totalFiles ? totalFiles.count : 0;
+          this.database.db.run(
+            `UPDATE projects SET file_count = ?, updated_at = ? WHERE id = ?`,
+            [fileCount, Date.now(), projectId]
+          );
+
+          console.log(`[Main] 已更新项目的file_count为 ${fileCount}`);
+        } catch (updateError) {
+          console.error('[Main] 更新项目file_count失败:', updateError);
+        }
+
         this.database.saveToFile();
 
         console.log('[Main] 文件删除成功:', fileId);
@@ -5631,6 +5828,33 @@ class ChainlessChainApp {
           throw new Error(`任务计划不存在: ${taskPlanId}`);
         }
 
+        // 确保项目有 root_path，如果没有则创建
+        const projectId = projectContext.projectId || projectContext.id;
+        if (projectId && !projectContext.root_path) {
+          console.log('[Main] 项目没有root_path，创建项目目录...');
+          const fs = require('fs').promises;
+          const path = require('path');
+          const projectConfig = getProjectConfig();
+
+          const projectRootPath = path.join(
+            projectConfig.getProjectsRootPath(),
+            projectId
+          );
+
+          await fs.mkdir(projectRootPath, { recursive: true });
+          console.log('[Main] 项目目录已创建:', projectRootPath);
+
+          // 更新项目的 root_path
+          await this.database.updateProject(projectId, {
+            root_path: projectRootPath,
+            updated_at: Date.now()
+          });
+
+          // 更新 projectContext
+          projectContext.root_path = projectRootPath;
+          console.log('[Main] 已更新项目的root_path');
+        }
+
         // 执行任务计划（使用事件推送进度）
         const result = await taskPlanner.executeTaskPlan(taskPlan, projectContext, (progress) => {
           // 通过IPC推送进度更新到渲染进程
@@ -5638,6 +5862,49 @@ class ChainlessChainApp {
             this.mainWindow.webContents.send('task:progress-update', progress);
           }
         });
+
+        // 任务执行成功后，扫描项目目录并注册新文件
+        if (result.success) {
+          try {
+            const projectId = projectContext.projectId || projectContext.id;
+
+            // 确定要扫描的路径：优先使用任务结果中的路径，其次使用项目的root_path
+            let scanPath = projectContext.root_path;
+
+            // 检查任务结果中是否有文件路径信息
+            if (result.results && Array.isArray(result.results)) {
+              for (const taskResult of result.results) {
+                if (taskResult && taskResult.projectPath) {
+                  scanPath = taskResult.projectPath;
+                  console.log('[Main] 使用任务返回的路径:', scanPath);
+                  break;
+                }
+              }
+            }
+
+            if (scanPath) {
+              console.log('[Main] 扫描项目目录以注册新生成的文件...');
+              console.log('[Main] 项目ID:', projectId);
+              console.log('[Main] 扫描路径:', scanPath);
+
+              const filesRegistered = await this.scanAndRegisterProjectFiles(projectId, scanPath);
+
+              // 如果有文件被注册，通知前端刷新
+              if (filesRegistered > 0 && this.mainWindow && !this.mainWindow.isDestroyed()) {
+                console.log(`[Main] 通知前端刷新项目数据（注册了 ${filesRegistered} 个文件）`);
+                this.mainWindow.webContents.send('project:files-updated', {
+                  projectId: projectId,
+                  filesCount: filesRegistered
+                });
+              }
+            } else {
+              console.warn('[Main] 没有可用的扫描路径，跳过文件注册');
+            }
+          } catch (scanError) {
+            console.error('[Main] 扫描并注册文件失败:', scanError);
+            // 不影响主流程，只记录错误
+          }
+        }
 
         return result;
       } catch (error) {
@@ -5725,6 +5992,43 @@ class ChainlessChainApp {
       }
     });
 
+    // ============ Dialog 对话框 ============
+
+    // 显示打开对话框
+    ipcMain.handle('dialog:showOpenDialog', async (_event, options) => {
+      try {
+        const result = await dialog.showOpenDialog(this.mainWindow, options);
+        return result;
+      } catch (error) {
+        console.error('[Main] 显示打开对话框失败:', error);
+        throw error;
+      }
+    });
+
+    // 显示保存对话框
+    ipcMain.handle('dialog:showSaveDialog', async (_event, options) => {
+      try {
+        const result = await dialog.showSaveDialog(this.mainWindow, options);
+        return result;
+      } catch (error) {
+        console.error('[Main] 显示保存对话框失败:', error);
+        throw error;
+      }
+    });
+
+    // 显示消息框
+    ipcMain.handle('dialog:showMessageBox', async (_event, options) => {
+      try {
+        const result = await dialog.showMessageBox(this.mainWindow, options);
+        return result;
+      } catch (error) {
+        console.error('[Main] 显示消息框失败:', error);
+        throw error;
+      }
+    });
+
+    // ============ PPT 相关功能 ============
+
     // 生成PPT
     ipcMain.handle('project:generatePPT', async (_event, params) => {
       try {
@@ -5757,6 +6061,56 @@ class ChainlessChainApp {
         };
       } catch (error) {
         console.error('[Main] PPT生成失败:', error);
+        throw error;
+      }
+    });
+
+    // 从PPT编辑器导出为 .pptx 文件
+    ipcMain.handle('ppt:export', async (_event, params) => {
+      try {
+        const { slides, title = '演示文稿', author = '作者', theme = 'business', outputPath } = params;
+
+        console.log(`[Main] 导出PPT: ${title}, 幻灯片数: ${slides.length}`);
+
+        const { dialog } = require('electron');
+        const PPTEngine = require('./engines/ppt-engine');
+        const pptEngine = new PPTEngine();
+
+        // 如果没有指定输出路径，让用户选择
+        let savePath = outputPath;
+        if (!savePath) {
+          const result = await dialog.showSaveDialog({
+            title: '导出PPT',
+            defaultPath: `${title}.pptx`,
+            filters: [
+              { name: 'PowerPoint演示文稿', extensions: ['pptx'] }
+            ]
+          });
+
+          if (result.canceled) {
+            return { success: false, canceled: true };
+          }
+          savePath = result.filePath;
+        }
+
+        // 将编辑器的幻灯片数据转换为大纲格式
+        const outline = this.convertSlidesToOutline(slides, title);
+
+        // 生成PPT文件
+        const result = await pptEngine.generateFromOutline(outline, {
+          theme,
+          author,
+          outputPath: savePath
+        });
+
+        return {
+          success: true,
+          path: result.path,
+          fileName: path.basename(result.path),
+          slideCount: result.slideCount
+        };
+      } catch (error) {
+        console.error('[Main] PPT导出失败:', error);
         throw error;
       }
     });
@@ -6849,6 +7203,85 @@ ${content}
       }
     });
 
+    // 执行Python代码
+    ipcMain.handle('code:executePython', async (_event, code, options = {}) => {
+      try {
+        console.log('[Main] 执行Python代码...');
+
+        const { getCodeExecutor } = require('./engines/code-executor');
+        const codeExecutor = getCodeExecutor();
+
+        await codeExecutor.initialize();
+
+        // 基础安全检查
+        const safetyCheck = codeExecutor.checkSafety(code);
+        if (!safetyCheck.safe && !options.ignoreWarnings) {
+          return {
+            success: false,
+            error: 'code_unsafe',
+            warnings: safetyCheck.warnings,
+            message: '代码包含潜在危险操作,执行已阻止'
+          };
+        }
+
+        const result = await codeExecutor.executePython(code, options);
+
+        console.log('[Main] Python代码执行完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] Python代码执行失败:', error);
+        return {
+          success: false,
+          error: 'execution_failed',
+          message: error.message,
+          stdout: '',
+          stderr: error.message
+        };
+      }
+    });
+
+    // 执行代码文件
+    ipcMain.handle('code:executeFile', async (_event, filepath, options = {}) => {
+      try {
+        console.log('[Main] 执行代码文件:', filepath);
+
+        const { getCodeExecutor } = require('./engines/code-executor');
+        const codeExecutor = getCodeExecutor();
+
+        await codeExecutor.initialize();
+
+        const result = await codeExecutor.executeFile(filepath, options);
+
+        console.log('[Main] 代码文件执行完成');
+        return result;
+      } catch (error) {
+        console.error('[Main] 代码文件执行失败:', error);
+        return {
+          success: false,
+          error: 'execution_failed',
+          message: error.message,
+          stdout: '',
+          stderr: error.message
+        };
+      }
+    });
+
+    // 检查代码安全性
+    ipcMain.handle('code:checkSafety', async (_event, code) => {
+      try {
+        const { getCodeExecutor } = require('./engines/code-executor');
+        const codeExecutor = getCodeExecutor();
+
+        return codeExecutor.checkSafety(code);
+      } catch (error) {
+        console.error('[Main] 安全检查失败:', error);
+        return {
+          safe: false,
+          warnings: [error.message]
+        };
+      }
+    });
+
     // ==================== 代码开发引擎接口结束 ====================
 
     // ==================== 项目自动化规则接口 ====================
@@ -7755,6 +8188,171 @@ ${content}
         throw error;
       }
     });
+
+    // 在文件管理器中显示文件
+    ipcMain.handle('shell:show-item-in-folder', async (_event, filePath) => {
+      try {
+        const { shell } = require('electron');
+
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[Main] 在文件夹中显示:', resolvedPath);
+        shell.showItemInFolder(resolvedPath);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 显示文件失败:', error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * 扫描项目目录并注册新文件到数据库
+   */
+  async scanAndRegisterProjectFiles(projectId, projectPath) {
+    const fs = require('fs').promises;
+    const path = require('path');
+    const crypto = require('crypto');
+
+    console.log(`[Main] 扫描项目目录: ${projectPath}`);
+
+    try {
+      // 检查目录是否存在
+      try {
+        await fs.access(projectPath);
+      } catch (error) {
+        console.warn(`[Main] 项目目录不存在: ${projectPath}`);
+        return;
+      }
+
+      // 读取目录中的所有文件
+      const entries = await fs.readdir(projectPath, { withFileTypes: true });
+      const files = entries.filter(entry => entry.isFile());
+
+      console.log(`[Main] 找到 ${files.length} 个文件`);
+
+      let registeredCount = 0;
+
+      for (const file of files) {
+        const fileName = file.name;
+        const filePath = path.join(projectPath, fileName);
+        const relativePath = fileName; // 在项目根目录下，相对路径就是文件名
+
+        // 检查文件是否已在数据库中
+        const existingFile = this.database.db.prepare(
+          `SELECT id FROM project_files WHERE project_id = ? AND file_path = ?`
+        ).get(projectId, relativePath);
+
+        if (existingFile) {
+          console.log(`[Main] 文件已存在于数据库: ${relativePath}`);
+          continue;
+        }
+
+        // 读取文件内容和元数据
+        try {
+          const content = await fs.readFile(filePath, 'utf8');
+          const stats = await fs.stat(filePath);
+
+          // 计算内容哈希
+          const contentHash = crypto.createHash('md5').update(content).digest('hex');
+
+          // 确定文件类型
+          const fileExt = path.extname(fileName).substring(1).toLowerCase();
+          const fileTypeMap = {
+            'md': 'markdown',
+            'txt': 'text',
+            'html': 'html',
+            'htm': 'html',
+            'pdf': 'pdf',
+            'docx': 'docx',
+            'doc': 'doc',
+            'pptx': 'pptx',
+            'ppt': 'ppt',
+            'xlsx': 'xlsx',
+            'xls': 'xls',
+            'json': 'json',
+            'xml': 'xml',
+            'csv': 'csv'
+          };
+          const fileType = fileTypeMap[fileExt] || 'unknown';
+
+          // 生成文件ID
+          const fileId = `file_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+          // 插入到数据库
+          this.database.db.run(
+            `INSERT INTO project_files
+             (id, project_id, file_name, file_path, file_type, content, content_hash, file_size, fs_path, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              fileId,
+              projectId,
+              fileName,
+              relativePath,
+              fileType,
+              content,
+              contentHash,
+              stats.size,
+              filePath,
+              Date.now(),
+              Date.now()
+            ]
+          );
+
+          // 添加同步状态
+          this.database.db.run(
+            `INSERT INTO file_sync_state
+             (file_id, fs_hash, db_hash, last_synced_at, sync_direction)
+             VALUES (?, ?, ?, ?, 'fs_to_db')`,
+            [fileId, contentHash, contentHash, Date.now()]
+          );
+
+          registeredCount++;
+          console.log(`[Main] 注册新文件: ${fileName} (ID: ${fileId})`);
+        } catch (fileError) {
+          console.error(`[Main] 处理文件失败: ${fileName}`, fileError);
+          // 继续处理其他文件
+        }
+      }
+
+      // 更新项目的文件统计
+      if (registeredCount > 0) {
+        try {
+          // 统计该项目的总文件数
+          const totalFiles = this.database.db.prepare(
+            `SELECT COUNT(*) as count FROM project_files WHERE project_id = ?`
+          ).get(projectId);
+
+          const fileCount = totalFiles ? totalFiles.count : 0;
+          console.log(`[Main] 项目 ${projectId} 当前共有 ${fileCount} 个文件`);
+
+          // 更新projects表的file_count字段
+          this.database.db.run(
+            `UPDATE projects SET file_count = ?, updated_at = ? WHERE id = ?`,
+            [fileCount, Date.now(), projectId]
+          );
+
+          console.log(`[Main] 已更新项目的file_count为 ${fileCount}`);
+        } catch (updateError) {
+          console.error('[Main] 更新项目file_count失败:', updateError);
+        }
+      }
+
+      // 保存数据库
+      if (registeredCount > 0) {
+        this.database.saveToFile();
+        console.log(`[Main] 成功注册 ${registeredCount} 个新文件`);
+      } else {
+        console.log('[Main] 没有新文件需要注册');
+      }
+
+      return registeredCount;
+    } catch (error) {
+      console.error('[Main] 扫描并注册文件失败:', error);
+      throw error;
+    }
   }
 
   onWindowAllClosed() {

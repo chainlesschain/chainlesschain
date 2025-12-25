@@ -150,6 +150,8 @@ import ProjectSidebar from '@/components/projects/ProjectSidebar.vue';
 import ConversationInput from '@/components/projects/ConversationInput.vue';
 import BrowserPreview from '@/components/projects/BrowserPreview.vue';
 import StepDisplay from '@/components/projects/StepDisplay.vue';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 const authStore = useAuthStore();
 
@@ -413,26 +415,56 @@ const scrollToBottom = () => {
   }
 };
 
-// 渲染Markdown（简单实现）
+// 配置 marked
+marked.setOptions({
+  highlight: function(code, lang) {
+    // highlight.js 会在 EnhancedCodeBlock 中处理
+    return code;
+  },
+  breaks: true,
+  gfm: true,
+});
+
+// 自定义 marked renderer 来增强代码块
+const renderer = new marked.Renderer();
+const originalCodeRenderer = renderer.code.bind(renderer);
+
+renderer.code = function(code, language) {
+  // 为代码块添加特殊标记，以便后续处理
+  const escapedCode = code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  return `<div class="code-block-wrapper" data-language="${language || ''}" data-code="${escapedCode}">
+    <div class="code-block-placeholder">
+      <pre><code class="language-${language || 'plaintext'}">${escapedCode}</code></pre>
+    </div>
+  </div>`;
+};
+
+marked.use({ renderer });
+
+// 渲染Markdown（使用 marked 库）
 const renderMarkdown = (content) => {
   if (!content) return '';
 
-  // 简单的Markdown渲染（可以后续使用 marked 或其他库）
-  let html = content
-    // 代码块
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
-    // 行内代码
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // 粗体
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    // 斜体
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    // 链接
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    // 换行
-    .replace(/\n/g, '<br>');
+  try {
+    // 使用 marked 解析 markdown
+    const rawHtml = marked.parse(content);
 
-  return html;
+    // 使用 DOMPurify 清理 HTML，防止 XSS
+    const cleanHtml = DOMPurify.sanitize(rawHtml, {
+      ADD_ATTR: ['target', 'data-language', 'data-code'], // 允许这些属性
+    });
+
+    return cleanHtml;
+  } catch (error) {
+    console.error('Markdown 渲染失败:', error);
+    return content;
+  }
 };
 
 // 格式化时间
@@ -458,15 +490,63 @@ const formatTime = (timestamp) => {
   });
 };
 
+// 增强代码块功能（添加复制按钮）
+const enhanceCodeBlocks = () => {
+  nextTick(() => {
+    const codeBlocks = document.querySelectorAll('.code-block-wrapper');
+
+    codeBlocks.forEach((wrapper) => {
+      // 如果已经添加过按钮，跳过
+      if (wrapper.querySelector('.code-copy-btn')) return;
+
+      const code = wrapper.getAttribute('data-code');
+      if (!code) return;
+
+      // 创建复制按钮
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'code-copy-btn';
+      copyBtn.textContent = '复制';
+      copyBtn.onclick = async (e) => {
+        e.stopPropagation();
+        try {
+          // 解码HTML实体
+          const decodedCode = code
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'");
+
+          await navigator.clipboard.writeText(decodedCode);
+          copyBtn.textContent = '✓ 已复制';
+          setTimeout(() => {
+            copyBtn.textContent = '复制';
+          }, 2000);
+        } catch (err) {
+          console.error('复制失败:', err);
+          copyBtn.textContent = '✗ 失败';
+          setTimeout(() => {
+            copyBtn.textContent = '复制';
+          }, 2000);
+        }
+      };
+
+      wrapper.appendChild(copyBtn);
+    });
+  });
+};
+
 // 组件挂载时加载数据
 onMounted(async () => {
   await loadConversations();
+  enhanceCodeBlocks();
 });
 
-// 监听消息变化，自动滚动
+// 监听消息变化，自动滚动并增强代码块
 watch(() => messages.value.length, () => {
   nextTick(() => {
     scrollToBottom();
+    enhanceCodeBlocks();
   });
 });
 </script>
@@ -612,6 +692,7 @@ watch(() => messages.value.length, () => {
   color: #374151;
   word-wrap: break-word;
 
+  /* 行内代码 */
   :deep(code) {
     background: #F3F4F6;
     padding: 2px 6px;
@@ -621,17 +702,79 @@ watch(() => messages.value.length, () => {
     color: #DC2626;
   }
 
+  /* 增强的代码块容器 */
+  :deep(.code-block-wrapper) {
+    position: relative;
+    margin: 12px 0;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #1F2937;
+    transition: all 0.2s ease;
+  }
+
+  :deep(.code-block-wrapper:hover) {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  /* 语言标签 */
+  :deep(.code-block-wrapper::before) {
+    content: attr(data-language);
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    padding: 3px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #9CA3AF;
+    font-size: 11px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    z-index: 2;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  /* 复制按钮（通过JavaScript添加） */
+  :deep(.code-copy-btn) {
+    position: absolute;
+    top: 8px;
+    right: 80px;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #9CA3AF;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    z-index: 2;
+    opacity: 0;
+    transition: all 0.2s ease;
+  }
+
+  :deep(.code-block-wrapper:hover .code-copy-btn) {
+    opacity: 1;
+  }
+
+  :deep(.code-copy-btn:hover) {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+
   :deep(pre) {
     background: #1F2937;
-    padding: 16px;
-    border-radius: 8px;
+    padding: 40px 16px 16px 16px;
+    border-radius: 0;
     overflow-x: auto;
-    margin: 12px 0;
+    margin: 0;
+    position: relative;
 
     code {
       background: transparent;
       color: #E5E7EB;
       padding: 0;
+      font-size: 14px;
+      line-height: 1.8;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     }
   }
 

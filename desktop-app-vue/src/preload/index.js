@@ -517,6 +517,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onTaskProgressUpdate: (callback) => ipcRenderer.on('task:progress-update', (_event, progress) => callback(progress)),
     offTaskProgressUpdate: (callback) => ipcRenderer.removeListener('task:progress-update', callback),
 
+    // 项目文件更新监听
+    onFilesUpdated: (callback) => ipcRenderer.on('project:files-updated', (_event, data) => callback(data)),
+    offFilesUpdated: (callback) => ipcRenderer.removeListener('project:files-updated', callback),
+
     // 项目分享
     share: (projectId, shareMode, options) => ipcRenderer.invoke('project:share', projectId, shareMode, removeUndefined(options || {})),
     unshare: (projectId) => ipcRenderer.invoke('project:unshare', projectId),
@@ -530,6 +534,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     shareToWechat: (params) => ipcRenderer.invoke('project:shareToWechat', removeUndefined(params)),
     exportDocument: (params) => ipcRenderer.invoke('project:exportDocument', removeUndefined(params)),
     generatePPT: (params) => ipcRenderer.invoke('project:generatePPT', removeUndefined(params)),
+    exportPPT: (params) => ipcRenderer.invoke('ppt:export', removeUndefined(params)),
     generatePodcastScript: (params) => ipcRenderer.invoke('project:generatePodcastScript', removeUndefined(params)),
     generateArticleImages: (params) => ipcRenderer.invoke('project:generateArticleImages', removeUndefined(params)),
     polishContent: (params) => ipcRenderer.invoke('project:polishContent', removeUndefined(params)),
@@ -550,10 +555,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 文件操作
   file: {
-    readContent: (filePath) => ipcRenderer.invoke('file:read-content', filePath),
-    writeContent: (filePath, content) => ipcRenderer.invoke('file:write-content', filePath, content),
+    // 通用文件操作
+    readContent: (filePath) => ipcRenderer.invoke('file:readContent', filePath),
+    writeContent: (filePath, content) => ipcRenderer.invoke('file:writeContent', filePath, content),
     readBinary: (filePath) => ipcRenderer.invoke('file:read-binary', filePath),
     saveAs: (filePath) => ipcRenderer.invoke('file:saveAs', filePath),
+    exists: (filePath) => ipcRenderer.invoke('file:exists', filePath),
+    stat: (filePath) => ipcRenderer.invoke('file:stat', filePath),
+
+    // Excel操作
+    readExcel: (filePath) => ipcRenderer.invoke('file:readExcel', filePath),
+    writeExcel: (filePath, data) => ipcRenderer.invoke('file:writeExcel', filePath, data),
+    excelToJSON: (filePath, options) => ipcRenderer.invoke('file:excelToJSON', filePath, options || {}),
+    jsonToExcel: (jsonData, filePath, options) => ipcRenderer.invoke('file:jsonToExcel', jsonData, filePath, options || {}),
+
+    // Word操作
+    readWord: (filePath) => ipcRenderer.invoke('file:readWord', filePath),
+    writeWord: (filePath, content) => ipcRenderer.invoke('file:writeWord', filePath, content),
+    markdownToWord: (markdown, outputPath, options) => ipcRenderer.invoke('file:markdownToWord', markdown, outputPath, options || {}),
+    wordToMarkdown: (filePath) => ipcRenderer.invoke('file:wordToMarkdown', filePath),
+    htmlToWord: (html, outputPath, options) => ipcRenderer.invoke('file:htmlToWord', html, outputPath, options || {}),
+  },
+
+  // 对话框操作
+  dialog: {
+    showOpenDialog: (options) => ipcRenderer.invoke('dialog:showOpenDialog', options || {}),
+    showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options || {}),
   },
 
   // AI引擎
@@ -575,6 +602,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     explain: (code, language) => ipcRenderer.invoke('code:explain', code, language),
     fixBug: (code, language, errorMessage) => ipcRenderer.invoke('code:fixBug', code, language, errorMessage),
     generateScaffold: (projectType, options) => ipcRenderer.invoke('code:generateScaffold', projectType, removeUndefined(options || {})),
+    executePython: (code, options) => ipcRenderer.invoke('code:executePython', code, removeUndefined(options || {})),
+    executeFile: (filepath, options) => ipcRenderer.invoke('code:executeFile', filepath, removeUndefined(options || {})),
+    checkSafety: (code) => ipcRenderer.invoke('code:checkSafety', code),
   },
 
   // 项目自动化规则
@@ -613,6 +643,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Shell操作
   shell: {
     openPath: (path) => ipcRenderer.invoke('shell:open-path', path),
+    showItemInFolder: (path) => ipcRenderer.invoke('shell:show-item-in-folder', path),
+  },
+
+  // Dialog 对话框
+  dialog: {
+    showOpenDialog: (options) => ipcRenderer.invoke('dialog:showOpenDialog', options),
+    showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),
+    showMessageBox: (options) => ipcRenderer.invoke('dialog:showMessageBox', options),
   },
 
   // 数据同步
