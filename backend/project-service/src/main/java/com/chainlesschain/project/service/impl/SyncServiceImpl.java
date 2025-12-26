@@ -430,21 +430,33 @@ public class SyncServiceImpl implements SyncService {
     }
 
     /**
-     * 插入或更新 ProjectFile 记录
+     * 插入或更新 ProjectFile 记录（带乐观锁版本控制）
      */
     private boolean upsertProjectFile(Map<String, Object> record, String deviceId) {
         String id = (String) record.get("id");
         ProjectFile existing = projectFileMapper.selectById(id);
 
+        Integer clientVersion = getInteger(record.get("version"));
         LocalDateTime clientUpdatedAt = parseDateTime(record.get("updatedAt"));
 
         // 检测冲突
         if (existing != null) {
+            Integer serverVersion = existing.getVersion();
             LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
+
+            // 版本号冲突检测
+            if (serverVersion != null && clientVersion != null && serverVersion > clientVersion) {
+                log.warn("[SyncService] 检测到 ProjectFile 版本冲突: id={}, serverVer={}, clientVer={}",
+                    id, serverVersion, clientVersion);
+                return true;
+            }
+
+            // 时间戳冲突检测（备用）
             if (serverUpdatedAt != null && clientUpdatedAt != null &&
                 serverUpdatedAt.isAfter(clientUpdatedAt) &&
                 !deviceId.equals(existing.getDeviceId())) {
-                log.warn("[SyncService] 检测到 ProjectFile 冲突: id={}", id);
+                log.warn("[SyncService] 检测到 ProjectFile 时间冲突: id={}, serverTime={}, clientTime={}",
+                    id, serverUpdatedAt, clientUpdatedAt);
                 return true;
             }
         }
@@ -458,7 +470,6 @@ public class SyncServiceImpl implements SyncService {
         file.setFileType((String) record.get("fileType"));
         file.setContent((String) record.get("content"));
         file.setContentHash((String) record.get("contentHash"));
-        file.setVersion(getInteger(record.get("version")));
         file.setCreatedAt(parseDateTime(record.get("createdAt")));
         file.setUpdatedAt(clientUpdatedAt);
         file.setSyncStatus("synced");
@@ -466,11 +477,25 @@ public class SyncServiceImpl implements SyncService {
         file.setDeviceId(deviceId);
 
         if (existing == null) {
+            // 新记录，版本号初始化为1
+            file.setVersion(1);
             projectFileMapper.insert(file);
-            log.debug("[SyncService] 插入新 ProjectFile: id={}", id);
+            log.debug("[SyncService] 插入新 ProjectFile: id={}, version=1", id);
         } else {
-            projectFileMapper.updateById(file);
-            log.debug("[SyncService] 更新 ProjectFile: id={}", id);
+            // 更新记录，使用CAS（Compare-And-Swap）
+            Integer expectedVersion = existing.getVersion() != null ? existing.getVersion() : 1;
+            Integer newVersion = expectedVersion + 1;
+            file.setVersion(newVersion);
+
+            int updated = projectFileMapper.updateByIdAndVersion(id, expectedVersion, file);
+
+            if (updated == 0) {
+                // CAS更新失败，说明在此期间版本号被其他请求修改了
+                log.warn("[SyncService] CAS更新失败，版本号已被修改: id={}, expectedVer={}", id, expectedVersion);
+                return true;  // 返回冲突
+            }
+
+            log.debug("[SyncService] 更新 ProjectFile: id={}, version={}->{}", id, expectedVersion, newVersion);
         }
 
         return false;
