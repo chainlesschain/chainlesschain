@@ -4688,6 +4688,7 @@ class ChainlessChainApp {
             user_id: cleanedCreateData.userId || 'default-user',
             sync_status: 'synced',
             synced_at: Date.now(),
+            file_count: cleanedProject.files ? cleanedProject.files.length : 0, // 设置文件数量
           };
 
           // 检查 localProject 中是否有 undefined
@@ -4839,6 +4840,7 @@ class ChainlessChainApp {
                   metadata: JSON.stringify(accumulatedData.metadata),
                   user_id: cleanedCreateData.userId || 'default-user',
                   sync_status: 'pending',
+                  file_count: accumulatedData.files.length, // 设置文件数量
                 };
 
                 console.log('[Main] 保存项目到数据库，ID:', localProject.id);

@@ -153,7 +153,10 @@ const buildTree = (files) => {
   const tree = {};
 
   files.forEach(file => {
-    const parts = (file.file_path || file.file_name).split('/');
+    const filePath = file.file_path || file.file_name || 'untitled';
+    console.log('[FileTree] 处理文件:', filePath, 'file对象:', file);
+    // 支持 Windows 和 Unix 路径分隔符
+    const parts = filePath.split(/[\\/]/);
     let current = tree;
 
     parts.forEach((part, index) => {

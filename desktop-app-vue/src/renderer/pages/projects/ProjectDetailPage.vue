@@ -289,7 +289,7 @@
                   {{ formatDate(currentProject.updated_at) }}
                 </a-descriptions-item>
                 <a-descriptions-item label="文件数量">
-                  {{ currentProject.file_count || 0 }} 个文件
+                  {{ projectFiles.length || 0 }} 个文件
                 </a-descriptions-item>
               </a-descriptions>
             </div>
@@ -461,7 +461,18 @@ const currentFile = computed(() => projectStore.currentFile);
 
 // 检查项目是否有有效的本地路径
 const hasValidPath = computed(() => {
-  if (!currentProject.value || !currentProject.value.root_path) {
+  if (!currentProject.value) {
+    return false;
+  }
+
+  // 如果有文件，即使没有 root_path 也显示文件树
+  if (projectFiles.value && projectFiles.value.length > 0) {
+    console.log('[ProjectDetail] 有文件，显示文件树，文件数量:', projectFiles.value.length);
+    return true;
+  }
+
+  // 检查是否有有效的 root_path
+  if (!currentProject.value.root_path) {
     return false;
   }
   const path = currentProject.value.root_path;

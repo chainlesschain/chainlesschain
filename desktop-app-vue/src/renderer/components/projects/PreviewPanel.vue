@@ -46,8 +46,15 @@
 
     <!-- 预览内容区 -->
     <div class="preview-content" ref="contentRef">
+      <!-- 大文件预览（文本类型） -->
+      <LargeFilePreview
+        v-if="isLargeFile && ['markdown', 'code', 'csv', 'json'].includes(fileType)"
+        :file="file"
+        :project-id="projectId"
+      />
+
       <!-- 图片预览 -->
-      <div v-if="fileType === 'image'" class="image-preview">
+      <div v-else-if="fileType === 'image'" class="image-preview">
         <img
           :src="imageUrl"
           :alt="file?.file_name"
@@ -221,6 +228,7 @@ import 'highlight.js/styles/github.css';
 import Papa from 'papaparse';
 import VuePdfEmbed from 'vue-pdf-embed';
 import ArchivePreview from './ArchivePreview.vue';
+import LargeFilePreview from './LargeFilePreview.vue';
 
 const props = defineProps({
   file: {
@@ -246,6 +254,7 @@ const loading = ref(false);
 const error = ref(null);
 const contentRef = ref(null);
 const isFullscreen = ref(false);
+const isLargeFile = ref(false);
 
 // 图片预览
 const imageUrl = ref('');
@@ -391,9 +400,31 @@ const loadFileContent = async () => {
 
   loading.value = true;
   error.value = null;
+  isLargeFile.value = false;
 
   try {
     const filePath = props.file.file_path;
+
+    // 检查是否是大文件（仅对文本类型）
+    if (['markdown', 'code', 'csv', 'json'].includes(fileType.value)) {
+      try {
+        let fullPath = filePath;
+        if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+          fullPath = `/data/projects/${props.projectId}/${filePath}`;
+        }
+        const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
+        const sizeResult = await window.electronAPI.file.stat(resolvedPath);
+
+        if (sizeResult.success && sizeResult.stats.size > 10 * 1024 * 1024) {
+          // 文件大于10MB，使用大文件预览组件
+          isLargeFile.value = true;
+          loading.value = false;
+          return;
+        }
+      } catch (err) {
+        console.warn('[PreviewPanel] 检查文件大小失败:', err);
+      }
+    }
 
     // 根据文件类型加载不同内容
     switch (fileType.value) {

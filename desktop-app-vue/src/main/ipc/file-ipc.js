@@ -11,12 +11,15 @@ class FileIPC {
   constructor() {
     this.excelEngine = null;
     this.documentEngine = null;
+    this.archiveManager = null;
+    this.largeFileReader = null;
+    this.handlersRegistered = false;
   }
 
   /**
    * 设置引擎实例
    */
-  setEngines({ excelEngine, documentEngine, wordEngine }) {
+  setEngines({ excelEngine, documentEngine, wordEngine, archiveManager, largeFileReader }) {
     if (excelEngine) {
       this.excelEngine = excelEngine;
     }
@@ -26,6 +29,12 @@ class FileIPC {
     if (wordEngine) {
       this.wordEngine = wordEngine;
     }
+    if (archiveManager) {
+      this.archiveManager = archiveManager;
+    }
+    if (largeFileReader) {
+      this.largeFileReader = largeFileReader;
+    }
   }
 
   /**
@@ -33,6 +42,12 @@ class FileIPC {
    * @param {BrowserWindow} mainWindow - 主窗口实例
    */
   registerHandlers(mainWindow) {
+    // 防止重复注册
+    if (this.handlersRegistered) {
+      console.log('[File IPC] Handlers already registered, skipping');
+      return;
+    }
+
     // ============ Excel相关操作 ============
 
     // 读取Excel文件
@@ -254,6 +269,180 @@ class FileIPC {
       }
     });
 
+    // ============ PPT相关操作 ============
+
+    // 读取PPT文件
+    ipcMain.handle('file:readPPT', async (event, filePath) => {
+      try {
+        console.log('[File IPC] 读取PPT文件:', filePath);
+
+        if (!this.pptEngine) {
+          const PPTEngine = require('../engines/ppt-engine');
+          this.pptEngine = new PPTEngine();
+        }
+
+        // 注意：pptxgenjs主要用于创建PPT，读取功能有限
+        // 这里返回基本文件信息
+        const stats = await fs.stat(filePath);
+        const fileName = path.basename(filePath);
+
+        return {
+          success: true,
+          metadata: {
+            fileName,
+            size: stats.size,
+            created: stats.birthtime,
+            modified: stats.mtime,
+            filePath,
+          },
+          message: 'PPT文件已加载，使用预览模式查看内容',
+        };
+      } catch (error) {
+        console.error('[File IPC] 读取PPT失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 写入PPT文件
+    ipcMain.handle('file:writePPT', async (event, filePath, data) => {
+      try {
+        console.log('[File IPC] 写入PPT文件:', filePath);
+
+        if (!this.pptEngine) {
+          const PPTEngine = require('../engines/ppt-engine');
+          this.pptEngine = new PPTEngine();
+        }
+
+        // 构建PPT大纲
+        const outline = {
+          title: data.title || '演示文稿',
+          subtitle: data.subtitle || '',
+          sections: [],
+        };
+
+        // 将slides转换为sections格式
+        if (data.slides && Array.isArray(data.slides)) {
+          data.slides.forEach((slide, index) => {
+            const section = {
+              title: `幻灯片 ${index + 1}`,
+              subsections: [
+                {
+                  title: slide.title || `内容 ${index + 1}`,
+                  points: [],
+                },
+              ],
+            };
+
+            // 从元素中提取文本作为要点
+            if (slide.elements && Array.isArray(slide.elements)) {
+              slide.elements.forEach(el => {
+                if (el.text && el.type !== 'title') {
+                  section.subsections[0].points.push(el.text);
+                }
+              });
+            }
+
+            outline.sections.push(section);
+          });
+        }
+
+        // 生成PPT
+        const result = await this.pptEngine.generateFromOutline(outline, {
+          theme: data.theme || 'business',
+          author: data.author || 'ChainlessChain',
+          outputPath: filePath,
+        });
+
+        return {
+          success: true,
+          ...result,
+        };
+      } catch (error) {
+        console.error('[File IPC] 写入PPT失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // Markdown转PPT
+    ipcMain.handle('file:markdownToPPT', async (event, markdown, outputPath, options) => {
+      try {
+        console.log('[File IPC] Markdown转PPT');
+
+        if (!this.pptEngine) {
+          const PPTEngine = require('../engines/ppt-engine');
+          this.pptEngine = new PPTEngine();
+        }
+
+        const result = await this.pptEngine.generateFromMarkdown(markdown, {
+          ...options,
+          outputPath,
+        });
+
+        return {
+          success: true,
+          ...result,
+        };
+      } catch (error) {
+        console.error('[File IPC] Markdown转PPT失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 创建PPT模板
+    ipcMain.handle('file:createPPTTemplate', async (event, templateType, outputPath) => {
+      try {
+        console.log('[File IPC] 创建PPT模板:', templateType);
+
+        if (!this.pptEngine) {
+          const PPTEngine = require('../engines/ppt-engine');
+          this.pptEngine = new PPTEngine();
+        }
+
+        // 创建简单的模板大纲
+        const outline = {
+          title: '演示文稿',
+          subtitle: '使用ChainlessChain创建',
+          sections: [
+            {
+              title: '欢迎',
+              subsections: [
+                {
+                  title: '介绍',
+                  points: ['这是一个演示文稿模板', '您可以自由编辑内容'],
+                },
+              ],
+            },
+          ],
+        };
+
+        const result = await this.pptEngine.generateFromOutline(outline, {
+          theme: templateType || 'business',
+          author: 'ChainlessChain',
+          outputPath,
+        });
+
+        return {
+          success: true,
+          ...result,
+        };
+      } catch (error) {
+        console.error('[File IPC] 创建PPT模板失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
     // ============ 通用文件操作 ============
 
     // 读取文件内容
@@ -406,6 +595,244 @@ class FileIPC {
       }
     });
 
+    // ============ 压缩包操作 ============
+
+    // 列出压缩包内容
+    ipcMain.handle('archive:list', async (event, archivePath) => {
+      try {
+        console.log('[File IPC] 列出压缩包内容:', archivePath);
+
+        // 确保archiveManager已加载
+        if (!this.archiveManager) {
+          const ArchiveManager = require('../archive/archive-manager');
+          this.archiveManager = new ArchiveManager();
+        }
+
+        const contents = await this.archiveManager.listContents(archivePath);
+
+        return {
+          success: true,
+          data: contents,
+        };
+      } catch (error) {
+        console.error('[File IPC] 列出压缩包内容失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 获取压缩包信息
+    ipcMain.handle('archive:getInfo', async (event, archivePath) => {
+      try {
+        console.log('[File IPC] 获取压缩包信息:', archivePath);
+
+        if (!this.archiveManager) {
+          const ArchiveManager = require('../archive/archive-manager');
+          this.archiveManager = new ArchiveManager();
+        }
+
+        const info = await this.archiveManager.getArchiveInfo(archivePath);
+
+        return {
+          success: true,
+          data: info,
+        };
+      } catch (error) {
+        console.error('[File IPC] 获取压缩包信息失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 提取文件到临时目录
+    ipcMain.handle('archive:extract', async (event, archivePath, filePath) => {
+      try {
+        console.log('[File IPC] 提取文件:', archivePath, filePath);
+
+        if (!this.archiveManager) {
+          const ArchiveManager = require('../archive/archive-manager');
+          this.archiveManager = new ArchiveManager();
+        }
+
+        const extractedPath = await this.archiveManager.extractFile(archivePath, filePath);
+
+        return {
+          success: true,
+          data: {
+            path: extractedPath,
+          },
+        };
+      } catch (error) {
+        console.error('[File IPC] 提取文件失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 提取文件到指定位置
+    ipcMain.handle('archive:extractTo', async (event, archivePath, filePath, outputPath) => {
+      try {
+        console.log('[File IPC] 提取文件到:', archivePath, filePath, outputPath);
+
+        if (!this.archiveManager) {
+          const ArchiveManager = require('../archive/archive-manager');
+          this.archiveManager = new ArchiveManager();
+        }
+
+        // 先提取到临时目录
+        const tempPath = await this.archiveManager.extractFile(archivePath, filePath);
+
+        // 复制到目标位置
+        await fs.copyFile(tempPath, outputPath);
+
+        return {
+          success: true,
+          data: {
+            path: outputPath,
+          },
+        };
+      } catch (error) {
+        console.error('[File IPC] 提取文件到指定位置失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // ============ 大文件操作 ============
+
+    // 获取文件信息
+    ipcMain.handle('largeFile:getInfo', async (event, filePath) => {
+      try {
+        console.log('[File IPC] 获取大文件信息:', filePath);
+
+        if (!this.largeFileReader) {
+          const LargeFileReader = require('../file/large-file-reader');
+          this.largeFileReader = new LargeFileReader();
+        }
+
+        const info = await this.largeFileReader.getFileInfo(filePath);
+
+        return {
+          success: true,
+          data: info,
+        };
+      } catch (error) {
+        console.error('[File IPC] 获取大文件信息失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 读取文件行
+    ipcMain.handle('largeFile:readLines', async (event, filePath, startLine, lineCount) => {
+      try {
+        console.log('[File IPC] 读取文件行:', filePath, startLine, lineCount);
+
+        if (!this.largeFileReader) {
+          const LargeFileReader = require('../file/large-file-reader');
+          this.largeFileReader = new LargeFileReader();
+        }
+
+        const result = await this.largeFileReader.readLines(filePath, startLine, lineCount);
+
+        return {
+          success: true,
+          data: result,
+        };
+      } catch (error) {
+        console.error('[File IPC] 读取文件行失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 搜索文件内容
+    ipcMain.handle('largeFile:search', async (event, filePath, query, options) => {
+      try {
+        console.log('[File IPC] 搜索文件:', filePath, query);
+
+        if (!this.largeFileReader) {
+          const LargeFileReader = require('../file/large-file-reader');
+          this.largeFileReader = new LargeFileReader();
+        }
+
+        const result = await this.largeFileReader.searchInFile(filePath, query, options);
+
+        return {
+          success: true,
+          data: result,
+        };
+      } catch (error) {
+        console.error('[File IPC] 搜索文件失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 获取文件头部
+    ipcMain.handle('largeFile:getHead', async (event, filePath, lineCount) => {
+      try {
+        console.log('[File IPC] 获取文件头部:', filePath, lineCount);
+
+        if (!this.largeFileReader) {
+          const LargeFileReader = require('../file/large-file-reader');
+          this.largeFileReader = new LargeFileReader();
+        }
+
+        const lines = await this.largeFileReader.getFileHead(filePath, lineCount);
+
+        return {
+          success: true,
+          data: lines,
+        };
+      } catch (error) {
+        console.error('[File IPC] 获取文件头部失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 获取文件尾部
+    ipcMain.handle('largeFile:getTail', async (event, filePath, lineCount) => {
+      try {
+        console.log('[File IPC] 获取文件尾部:', filePath, lineCount);
+
+        if (!this.largeFileReader) {
+          const LargeFileReader = require('../file/large-file-reader');
+          this.largeFileReader = new LargeFileReader();
+        }
+
+        const lines = await this.largeFileReader.getFileTail(filePath, lineCount);
+
+        return {
+          success: true,
+          data: lines,
+        };
+      } catch (error) {
+        console.error('[File IPC] 获取文件尾部失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
     // ============ 对话框操作 ============
 
     // 显示打开文件对话框
@@ -442,6 +869,7 @@ class FileIPC {
       }
     });
 
+    this.handlersRegistered = true;
     console.log('[File IPC] 文件操作IPC处理器已注册');
   }
 

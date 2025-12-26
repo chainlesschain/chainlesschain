@@ -4,7 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
  * 清理对象中的 undefined 值
  * Electron IPC 不支持传递 undefined 值，需要转换为 null 或移除
  */
-function removeUndefined(obj, seen = new WeakSet()) {
+function removeUndefined(obj) {
   if (obj === undefined || obj === null) {
     return null;
   }
@@ -13,23 +13,14 @@ function removeUndefined(obj, seen = new WeakSet()) {
     return obj;
   }
 
-  // Detect circular references
-  if (seen.has(obj)) {
-    console.warn('[Preload] Circular reference detected, skipping');
-    return '[Circular]';
-  }
-
-  // Mark this object as seen
-  seen.add(obj);
-
   if (Array.isArray(obj)) {
-    return obj.map(item => removeUndefined(item, seen));
+    return obj.map(item => removeUndefined(item));
   }
 
   const cleaned = {};
   for (const key in obj) {
     if (obj.hasOwnProperty(key) && obj[key] !== undefined) {
-      cleaned[key] = removeUndefined(obj[key], seen);
+      cleaned[key] = removeUndefined(obj[key]);
     }
   }
   return cleaned;
@@ -585,31 +576,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     wordToMarkdown: (filePath) => ipcRenderer.invoke('file:wordToMarkdown', filePath),
     htmlToWord: (html, outputPath, options) => ipcRenderer.invoke('file:htmlToWord', html, outputPath, options || {}),
 
-    // PPT操作
-    readPPT: (filePath) => ipcRenderer.invoke('file:readPPT', filePath),
-    writePPT: (filePath, data) => ipcRenderer.invoke('file:writePPT', filePath, data),
-    markdownToPPT: (markdown, outputPath, options) => ipcRenderer.invoke('file:markdownToPPT', markdown, outputPath, options || {}),
-    createPPTTemplate: (templateType, outputPath) => ipcRenderer.invoke('file:createPPTTemplate', templateType, outputPath),
-
     // Office文件预览
     previewOffice: (filePath, format) => ipcRenderer.invoke('file:previewOffice', filePath, format),
-  },
-
-  // 压缩包操作
-  archive: {
-    list: (archivePath) => ipcRenderer.invoke('archive:list', archivePath),
-    getInfo: (archivePath) => ipcRenderer.invoke('archive:getInfo', archivePath),
-    extract: (archivePath, filePath) => ipcRenderer.invoke('archive:extract', archivePath, filePath),
-    extractTo: (archivePath, filePath, outputPath) => ipcRenderer.invoke('archive:extractTo', archivePath, filePath, outputPath),
-  },
-
-  // 大文件操作
-  largeFile: {
-    getInfo: (filePath) => ipcRenderer.invoke('largeFile:getInfo', filePath),
-    readLines: (filePath, startLine, lineCount) => ipcRenderer.invoke('largeFile:readLines', filePath, startLine, lineCount),
-    search: (filePath, query, options) => ipcRenderer.invoke('largeFile:search', filePath, query, options || {}),
-    getHead: (filePath, lineCount) => ipcRenderer.invoke('largeFile:getHead', filePath, lineCount || 100),
-    getTail: (filePath, lineCount) => ipcRenderer.invoke('largeFile:getTail', filePath, lineCount || 100),
   },
 
   // 对话框操作
@@ -699,24 +667,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onSyncCompleted: (callback) => ipcRenderer.on('sync:completed', (_event, ...args) => callback(...args)),
     onSyncError: (callback) => ipcRenderer.on('sync:error', (_event, ...args) => callback(...args)),
     onShowConflicts: (callback) => ipcRenderer.on('sync:show-conflicts', (_event, ...args) => callback(...args)),
-  },
-
-  // Web IDE
-  webIDE: {
-    // 项目管理
-    saveProject: (data) => ipcRenderer.invoke('webide:saveProject', removeUndefined(data)),
-    loadProject: (projectId) => ipcRenderer.invoke('webide:loadProject', projectId),
-    getProjectList: () => ipcRenderer.invoke('webide:getProjectList'),
-    deleteProject: (projectId) => ipcRenderer.invoke('webide:deleteProject', projectId),
-
-    // 预览服务器
-    startDevServer: (data) => ipcRenderer.invoke('webide:startDevServer', removeUndefined(data)),
-    stopDevServer: (port) => ipcRenderer.invoke('webide:stopDevServer', port),
-    getServerStatus: () => ipcRenderer.invoke('webide:getServerStatus'),
-
-    // 导出功能
-    exportHTML: (data) => ipcRenderer.invoke('webide:exportHTML', removeUndefined(data)),
-    exportZIP: (data) => ipcRenderer.invoke('webide:exportZIP', removeUndefined(data)),
-    captureScreenshot: (options) => ipcRenderer.invoke('webide:captureScreenshot', removeUndefined(options)),
   },
 });
