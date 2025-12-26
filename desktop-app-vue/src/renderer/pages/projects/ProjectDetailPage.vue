@@ -67,10 +67,10 @@
           分享
         </a-button>
 
-        <!-- AI助手开关 -->
-        <a-button v-if="hasValidPath" @click="toggleChatPanel">
-          <CommentOutlined />
-          {{ showChatPanel ? '隐藏' : '显示' }} AI助手
+        <!-- 编辑器面板开关 -->
+        <a-button v-if="hasValidPath" @click="toggleEditorPanel">
+          <CodeOutlined />
+          {{ showEditorPanel ? '隐藏' : '显示' }} 编辑器
         </a-button>
 
         <!-- Git操作下拉菜单 - 仅当有有效路径时显示 -->
@@ -146,10 +146,10 @@
 
     <!-- 主内容区 -->
     <div v-else-if="currentProject" class="content-container">
-      <!-- 有本地路径：显示三栏布局（文件树 | 编辑器/预览 | AI助手） -->
+      <!-- 有本地路径：显示四栏布局（文件树 | 对话历史+输入 | 编辑器/预览） -->
       <template v-if="hasValidPath">
-        <!-- 左侧：文件树 -->
-        <div class="left-sidebar">
+        <!-- 左侧：文件树管理器 -->
+        <div class="file-explorer-panel" :style="{ width: fileExplorerWidth + 'px' }">
           <div class="sidebar-header">
             <h3>
               <FolderOutlined />
@@ -161,18 +161,72 @@
           </div>
 
           <div class="sidebar-content">
-            <FileTree
+            <EnhancedFileTree
               :files="projectFiles"
               :current-file-id="currentFile?.id"
               :loading="refreshing"
               :git-status="gitStatus"
+              :project-id="currentProject?.id"
+              :enable-drag="true"
               @select="handleSelectFile"
+              @refresh="loadProjectFiles"
             />
           </div>
         </div>
 
-        <!-- 中间：编辑器/预览面板 -->
-        <div class="main-content">
+        <!-- 拖拽手柄：文件树 <-> 对话面板 -->
+        <ResizeHandle
+          direction="vertical"
+          :min-size="minPanelWidth"
+          :max-size="maxFileExplorerWidth"
+          @resize="handleFileExplorerResize"
+        />
+
+        <!-- 中间：对话历史和输入区域 -->
+        <div class="conversation-panel">
+          <ChatPanel
+            :project-id="projectId"
+            :current-file="currentFile"
+            @close="showChatPanel = false"
+          />
+        </div>
+
+        <!-- 拖拽手柄：对话面板 <-> 编辑器面板 -->
+        <ResizeHandle
+          v-if="showEditorPanel"
+          direction="vertical"
+          :min-size="minPanelWidth"
+          :max-size="maxEditorPanelWidth"
+          @resize="handleEditorPanelResize"
+        />
+
+        <!-- 右侧：编辑器/预览面板 -->
+        <div v-show="showEditorPanel" class="editor-preview-panel" :style="{ width: editorPanelWidth + 'px' }">
+          <!-- 编辑器头部 -->
+          <EditorPanelHeader
+            v-if="currentFile"
+            :file="currentFile"
+            :has-unsaved-changes="hasUnsavedChanges"
+            :is-saving="saving"
+            :view-mode="viewMode"
+            :can-edit="fileTypeInfo?.isEditable || false"
+            @save="handleSave"
+            @close="toggleEditorPanel"
+            @view-mode-change="handleViewModeChange"
+            @export="handleExport"
+          >
+            <template #export-menu>
+              <FileExportMenu
+                v-if="currentFile && hasValidPath"
+                :file="currentFile"
+                :project-id="projectId"
+                @export-start="handleExportStart"
+                @export-complete="handleExportComplete"
+                @export-error="handleExportError"
+              />
+            </template>
+          </EditorPanelHeader>
+
           <!-- Excel编辑器 -->
           <ExcelEditor
             v-if="shouldShowExcelEditor"
@@ -262,15 +316,6 @@
             <p>从左侧文件树中选择一个文件</p>
           </div>
         </div>
-
-        <!-- 右侧：AI助手面板 -->
-        <div v-show="showChatPanel" class="right-sidebar">
-          <ChatPanel
-            :project-id="projectId"
-            :current-file="currentFile"
-            @close="showChatPanel = false"
-          />
-        </div>
       </template>
 
       <!-- 无本地路径：显示项目信息 -->
@@ -346,12 +391,15 @@
                 <a-tabs v-model:activeKey="fileViewMode">
                   <a-tab-pane key="tree" tab="树形视图">
                     <div class="file-tree-wrapper">
-                      <FileTree
+                      <EnhancedFileTree
                         :files="projectFiles"
                         :current-file-id="currentFile?.id"
                         :loading="refreshing"
                         :git-status="gitStatus"
+                        :project-id="currentProject?.id"
+                        :enable-drag="true"
                         @select="handleSelectFileFromInfo"
+                        @refresh="loadProjectFiles"
                       />
                     </div>
                   </a-tab-pane>
@@ -472,8 +520,9 @@ import {
   FileSearchOutlined,
   CommentOutlined,
   ShareAltOutlined,
+  CodeOutlined,
 } from '@ant-design/icons-vue';
-import FileTree from '@/components/projects/FileTree.vue';
+import EnhancedFileTree from '@/components/projects/EnhancedFileTree.vue';
 import SimpleEditor from '@/components/projects/SimpleEditor.vue';
 import ExcelEditor from '@/components/editors/ExcelEditor.vue';
 import RichTextEditor from '@/components/editors/RichTextEditor.vue';
@@ -491,6 +540,8 @@ import GitHistoryDialog from '@/components/projects/GitHistoryDialog.vue';
 import ProjectStatsPanel from '@/components/projects/ProjectStatsPanel.vue';
 import ProjectFileList from '@/components/projects/ProjectFileList.vue';
 import ProjectSidebar from '@/components/ProjectSidebar.vue';
+import EditorPanelHeader from '@/components/projects/EditorPanelHeader.vue';
+import ResizeHandle from '@/components/projects/ResizeHandle.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -510,9 +561,17 @@ const resolvedProjectPath = ref('');
 
 // 新增状态
 const viewMode = ref('auto'); // 'auto' | 'edit' | 'preview'
-const showChatPanel = ref(true); // 默认显示AI助手
+const showChatPanel = ref(true); // 对话面板始终显示在中间
+const showEditorPanel = ref(true); // 默认显示编辑器面板（右侧）
 const fileContent = ref(''); // 文件内容
 const fileViewMode = ref('tree'); // 'tree' | 'list' 文件视图模式
+
+// 面板宽度状态
+const fileExplorerWidth = ref(280); // 文件树宽度
+const editorPanelWidth = ref(600); // 编辑器面板宽度
+const minPanelWidth = 200; // 最小宽度
+const maxFileExplorerWidth = 500; // 文件树最大宽度
+const maxEditorPanelWidth = 1000; // 编辑器最大宽度
 const editorRef = ref(null);
 const excelEditorRef = ref(null); // Excel编辑器引用
 const wordEditorRef = ref(null); // Word编辑器引用
@@ -691,6 +750,26 @@ const getLocalProjectPath = async (path) => {
 // 切换AI助手面板
 const toggleChatPanel = () => {
   showChatPanel.value = !showChatPanel.value;
+};
+
+const toggleEditorPanel = () => {
+  showEditorPanel.value = !showEditorPanel.value;
+};
+
+// 处理文件树面板调整大小
+const handleFileExplorerResize = (delta) => {
+  const newWidth = fileExplorerWidth.value + delta;
+  if (newWidth >= minPanelWidth && newWidth <= maxFileExplorerWidth) {
+    fileExplorerWidth.value = newWidth;
+  }
+};
+
+// 处理编辑器面板调整大小
+const handleEditorPanelResize = (delta) => {
+  const newWidth = editorPanelWidth.value - delta; // 注意：向左拖拽时delta为正，需要减小宽度
+  if (newWidth >= minPanelWidth && newWidth <= maxEditorPanelWidth) {
+    editorPanelWidth.value = newWidth;
+  }
 };
 
 // 刷新 Git 状态
@@ -933,6 +1012,20 @@ const handleSave = async () => {
   } finally {
     saving.value = false;
   }
+};
+
+// 处理视图模式变化
+const handleViewModeChange = (mode) => {
+  viewMode.value = mode;
+  console.log('视图模式已切换为:', mode);
+};
+
+// 处理导出
+const handleExport = (exportType) => {
+  console.log('导出类型:', exportType);
+  message.info(`导出功能开发中: ${exportType}`);
+  // 这里可以根据exportType调用不同的导出方法
+  // 比如调用FileExportMenu中已有的导出功能
 };
 
 // Git操作
@@ -1359,9 +1452,11 @@ const formatDate = (timestamp) => {
   overflow: hidden;
 }
 
-/* 左侧边栏 - 文件树 */
-.left-sidebar {
-  width: 240px;
+/* 左侧：文件管理器面板 */
+.file-explorer-panel {
+  /* width由内联样式动态设置 */
+  min-width: 200px;
+  max-width: 500px;
   background: white;
   border-right: 1px solid #e5e7eb;
   display: flex;
@@ -1393,20 +1488,21 @@ const formatDate = (timestamp) => {
   padding: 8px;
 }
 
-/* 主编辑区 - 编辑器/预览 */
-.main-content {
+/* 中间：对话面板 - 主要区域，弹性扩展 */
+.conversation-panel {
   flex: 1;
+  min-width: 400px;
   background: white;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-width: 0; /* 允许缩小 */
 }
 
-/* 右侧边栏 - AI助手 */
-.right-sidebar {
-  width: 600px; /* 增加宽度使对话区域更宽敞 */
-  max-width: 50%; /* 最大不超过50%屏幕宽度 */
+/* 右侧：编辑/预览面板 - 可调整大小，可折叠 */
+.editor-preview-panel {
+  /* width由内联样式动态设置 */
+  min-width: 200px;
+  max-width: 1000px;
   background: white;
   border-left: 1px solid #e5e7eb;
   display: flex;

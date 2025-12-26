@@ -62,33 +62,21 @@
 
     <!-- 模板展示区域 -->
     <div class="templates-grid-section">
-      <a-spin :spinning="loadingTemplates">
-        <div v-if="templates.length > 0" class="templates-grid">
-          <div
-            v-for="template in templates"
-            :key="template.id"
-            class="template-card"
-            @click="handleTemplateClick(template)"
-          >
-            <div class="template-preview">
-              <img v-if="template.preview" :src="template.preview" :alt="template.name" />
-              <div v-else class="template-placeholder">{{ template.icon || '📄' }}</div>
-            </div>
-            <div class="template-info">
-              <div class="template-name">{{ template.name }}</div>
-              <div class="template-desc">{{ template.description }}</div>
-            </div>
-          </div>
-        </div>
-        <div v-else class="empty-templates">
-          <div class="empty-icon">
-            <FileTextOutlined />
-          </div>
-          <h3>暂无模板</h3>
-          <p>该分类下暂时没有可用的模板</p>
-        </div>
-      </a-spin>
+      <TemplateGallery
+        :category="selectedType"
+        :subcategory="activeCategory !== 'all' ? activeCategory : null"
+        @template-use="handleTemplateUse"
+        @create-custom="handleCreateCustom"
+      />
     </div>
+
+    <!-- 模板变量填写对话框 -->
+    <TemplateVariableModal
+      v-model:visible="showTemplateModal"
+      :template="selectedTemplate"
+      @success="handleTemplateSuccess"
+      @cancel="showTemplateModal = false"
+    />
 
     <!-- 系统状态 -->
     <div class="system-status">
@@ -106,17 +94,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
-import {
-  FileTextOutlined,
-} from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { useAuthStore } from '../stores/auth';
 import LLMStatus from '../components/LLMStatus.vue';
 import GitStatus from '../components/GitStatus.vue';
 import ProjectSidebar from '../components/ProjectSidebar.vue';
+import TemplateGallery from '../components/templates/TemplateGallery.vue';
+import TemplateVariableModal from '../components/templates/TemplateVariableModal.vue';
 
 const router = useRouter();
 const store = useAppStore();
@@ -125,8 +111,8 @@ const authStore = useAuthStore();
 // 状态
 const selectedType = ref('');
 const activeCategory = ref('all');
-const templates = ref([]);
-const loadingTemplates = ref(false);
+const showTemplateModal = ref(false);
+const selectedTemplate = ref(null);
 
 // 项目类型按钮（第一行）
 const projectTypes = ref([
@@ -228,31 +214,6 @@ const todayCount = computed(() => {
   ).length;
 });
 
-// 加载模板
-const loadTemplates = async () => {
-  loadingTemplates.value = true;
-  try {
-    // 构建查询参数
-    const params = {
-      type: selectedType.value || null,
-      category: activeCategory.value !== 'all' ? activeCategory.value : null,
-    };
-
-    // TODO: 调用后端API加载模板
-    // const result = await window.electronAPI.template.list(params);
-    // templates.value = result;
-
-    // 临时：使用示例数据
-    console.log('[HomePage] 加载模板:', params);
-    templates.value = [];
-  } catch (error) {
-    console.error('加载模板失败:', error);
-    message.error('加载模板失败');
-  } finally {
-    loadingTemplates.value = false;
-  }
-};
-
 // 处理类型快捷选择
 const handleTypeQuickSelect = (typeKey) => {
   // 切换选择状态
@@ -269,44 +230,32 @@ const handleTypeQuickSelect = (typeKey) => {
       activeCategory.value = categories[0].key;
     }
   }
-  // 加载对应的模板
-  loadTemplates();
 };
 
 // 处理类别切换
 const handleCategoryChange = (category) => {
   activeCategory.value = category;
-  // 加载对应的模板
-  loadTemplates();
 };
 
-// 处理模板点击
-const handleTemplateClick = async (template) => {
-  try {
-    message.loading({ content: '正在使用模板创建项目...', key: 'create-from-template', duration: 0 });
+// 处理模板使用
+const handleTemplateUse = (template) => {
+  console.log('[HomePage] 使用模板:', template);
+  selectedTemplate.value = template;
+  showTemplateModal.value = true;
+};
 
-    // 使用模板创建项目
-    const userId = authStore.currentUser?.id || 'default-user';
-    const projectData = {
-      name: template.name,
-      description: template.description,
-      projectType: selectedType.value || template.type,
-      category: activeCategory.value,
-      templateId: template.id,
-      userId: userId,
-    };
-
-    // TODO: 调用后端API使用模板创建项目
-    // const project = await window.electronAPI.project.createFromTemplate(template.id, projectData);
-
-    message.success({ content: '项目创建成功！', key: 'create-from-template', duration: 2 });
-
-    // 跳转到项目详情页
-    // router.push(`/projects/${project.id}`);
-  } catch (error) {
-    console.error('使用模板创建项目失败:', error);
-    message.error({ content: '创建失败：' + error.message, key: 'create-from-template', duration: 3 });
+// 处理模板创建成功
+const handleTemplateSuccess = (result) => {
+  console.log('[HomePage] 项目创建成功:', result);
+  // 跳转到项目详情页
+  if (result.projectId) {
+    router.push(`/projects/${result.projectId}`);
   }
+};
+
+// 处理创建自定义项目
+const handleCreateCustom = () => {
+  router.push('/projects/new');
 };
 
 const openTab = (key, path, title) => {
@@ -319,11 +268,6 @@ const openSettings = (tab) => {
   store.addTab({ key, path: '/settings', title: `${tab.toUpperCase()}配置` });
   router.push({ path: '/settings', query: { tab } });
 };
-
-// 组件挂载时加载模板
-onMounted(async () => {
-  await loadTemplates();
-});
 </script>
 
 <style scoped>

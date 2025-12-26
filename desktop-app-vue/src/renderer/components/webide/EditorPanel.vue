@@ -53,7 +53,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Html5Outlined, CssOutlined, CodeOutlined } from '@ant-design/icons-vue';
+import { Html5Outlined, FileTextOutlined, CodeOutlined } from '@ant-design/icons-vue';
 import SimpleEditor from '../projects/SimpleEditor.vue';
 
 const props = defineProps({
@@ -76,7 +76,7 @@ const emit = defineEmits(['update:htmlCode', 'update:cssCode', 'update:jsCode', 
 // 标签页配置
 const tabs = [
   { key: 'html', label: 'HTML', icon: Html5Outlined },
-  { key: 'css', label: 'CSS', icon: CssOutlined },
+  { key: 'css', label: 'CSS', icon: FileTextOutlined },
   { key: 'js', label: 'JavaScript', icon: CodeOutlined },
 ];
 

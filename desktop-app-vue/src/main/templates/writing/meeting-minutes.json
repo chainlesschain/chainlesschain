@@ -1,0 +1,158 @@
+{
+  "id": "tpl_writing_meeting_minutes_001",
+  "name": "meeting_minutes",
+  "display_name": "会议纪要生成器",
+  "description": "快速生成规范的会议纪要，记录会议要点、决议和行动项",
+  "icon": "📋",
+  "cover_image": "/templates/covers/meeting-minutes.png",
+
+  "category": "writing",
+  "subcategory": "office",
+  "tags": ["会议", "纪要", "办公", "协作"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成一份{{meetingType}}的会议纪要，要求：\n\n**会议基本信息：**\n- 会议名称：{{meetingTitle}}\n- 会议类型：{{meetingType}}\n- 会议时间：{{meetingDate}} {{meetingTime}}\n- 会议地点：{{location}}\n- 会议主持：{{host}}\n- 记录人：{{recorder}}\n- 参会人员：{{#each attendees}}{{this}}{{#unless @last}}、{{/unless}}{{/each}}\n{{#if absentees}}\n- 缺席人员：{{#each absentees}}{{this}}{{#unless @last}}、{{/unless}}{{/each}}\n{{/if}}\n\n**会议议程：**\n{{#if agenda}}\n{{#each agenda}}\n{{add @index 1}}. {{this}}\n{{/each}}\n{{else}}\n（请根据会议主题自动生成3-5项议程）\n{{/if}}\n\n**会议内容记录：**\n\n针对以下会议主题：{{meetingTitle}}\n\n请按以下结构生成详细的会议内容：\n\n{{#each agenda}}\n### {{add @index 1}}. {{this}}\n\n**讨论内容：**\n- 主要观点和讨论要点（3-5条）\n- 相关数据和事实依据\n- 不同意见和争议点（如有）\n\n**决议结果：**\n- 最终决定或共识\n- 表决情况（如适用）\n\n**行动项：**\n| 任务描述 | 负责人 | 截止日期 | 优先级 |\n|---------|-------|---------|-------|\n| [具体任务] | [姓名] | [日期] | 高/中/低 |\n\n---\n{{/each}}\n\n**会议总结：**\n1. 本次会议主要成果（3-5条）\n2. 待解决问题（如有）\n3. 下一步工作计划\n\n**后续跟进：**\n- 下次会议时间：{{#if nextMeetingDate}}{{nextMeetingDate}}{{else}}待定{{/if}}\n- 需要准备的材料：\n  * [材料1]\n  * [材料2]\n- 需要通知的相关方：\n\n**附件：**\n{{#if attachments}}\n{{#each attachments}}\n- {{this}}\n{{/each}}\n{{else}}\n- 会议演示文稿\n- 相关数据表格\n{{/if}}\n\n**签字确认：**\n- 主持人签字：_________ 日期：_________\n- 记录人签字：_________ 日期：_________\n\n**格式要求：**\n- 使用Word文档格式\n- 标题使用标题1、2、3样式\n- 表格清晰规范\n- 行动项使用表格形式展示\n- 重要决议和截止日期使用加粗标注\n- 整体风格：{{style}}",
+
+  "variables_schema": [
+    {
+      "name": "meetingTitle",
+      "label": "会议名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：2024年Q1季度总结会、产品功能评审会"
+    },
+    {
+      "name": "meetingType",
+      "label": "会议类型",
+      "type": "select",
+      "required": false,
+      "default": "工作例会",
+      "options": [
+        { "value": "工作例会", "label": "工作例会" },
+        { "value": "项目评审", "label": "项目评审" },
+        { "value": "战略讨论", "label": "战略讨论" },
+        { "value": "培训会议", "label": "培训会议" },
+        { "value": "头脑风暴", "label": "头脑风暴" },
+        { "value": "客户沟通", "label": "客户沟通" }
+      ]
+    },
+    {
+      "name": "meetingDate",
+      "label": "会议日期",
+      "type": "string",
+      "required": false,
+      "default": "2024-01-01",
+      "placeholder": "YYYY-MM-DD"
+    },
+    {
+      "name": "meetingTime",
+      "label": "会议时间",
+      "type": "string",
+      "required": false,
+      "default": "14:00-16:00",
+      "placeholder": "例如：14:00-16:00"
+    },
+    {
+      "name": "location",
+      "label": "会议地点",
+      "type": "string",
+      "required": false,
+      "default": "会议室A",
+      "placeholder": "例如：3楼会议室、线上会议（腾讯会议）"
+    },
+    {
+      "name": "host",
+      "label": "主持人",
+      "type": "string",
+      "required": false,
+      "placeholder": "会议主持人姓名"
+    },
+    {
+      "name": "recorder",
+      "label": "记录人",
+      "type": "string",
+      "required": false,
+      "placeholder": "会议记录人姓名"
+    },
+    {
+      "name": "attendees",
+      "label": "参会人员",
+      "type": "array",
+      "required": false,
+      "default": [],
+      "placeholder": "每行一个参会人员姓名"
+    },
+    {
+      "name": "absentees",
+      "label": "缺席人员",
+      "type": "array",
+      "required": false,
+      "default": [],
+      "placeholder": "每行一个缺席人员姓名（可选）"
+    },
+    {
+      "name": "agenda",
+      "label": "会议议程",
+      "type": "array",
+      "required": false,
+      "default": [],
+      "placeholder": "每行一项议程（可选，留空自动生成）"
+    },
+    {
+      "name": "style",
+      "label": "文档风格",
+      "type": "select",
+      "required": false,
+      "default": "正式",
+      "options": [
+        { "value": "正式", "label": "正式（企业标准）" },
+        { "value": "简洁", "label": "简洁（要点为主）" },
+        { "value": "详细", "label": "详细（完整记录）" }
+      ]
+    },
+    {
+      "name": "nextMeetingDate",
+      "label": "下次会议时间",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：2024-01-15 14:00（可选）"
+    },
+    {
+      "name": "attachments",
+      "label": "附件清单",
+      "type": "array",
+      "required": false,
+      "default": [],
+      "placeholder": "每行一个附件名称（可选）"
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{meetingTitle}}-会议纪要",
+    "files": [
+      {
+        "path": "会议纪要-{{meetingDate}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "行动项跟踪表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "README.md",
+        "type": "markdown",
+        "content": "# {{meetingTitle}}\n\n## 会议信息\n- 时间：{{meetingDate}} {{meetingTime}}\n- 地点：{{location}}\n- 主持：{{host}}\n\n## 重要决议\n（见会议纪要文档）\n\n## 后续跟进\n请查看行动项跟踪表"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

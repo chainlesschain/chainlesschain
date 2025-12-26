@@ -23,78 +23,16 @@
       </a-radio-group>
     </div>
 
-    <!-- 消息列表容器 -->
-    <div ref="messagesContainer" class="messages-container">
-      <!-- 空状态 -->
-      <div v-if="messages.length === 0" class="empty-state">
-        <div class="empty-icon">
-          <RobotOutlined />
-        </div>
-        <h4>{{ getEmptyStateText() }}</h4>
-        <p class="empty-hint">{{ getEmptyHint() }}</p>
-      </div>
-
-      <!-- 消息列表 -->
-      <div v-else class="messages-list">
-        <div
-          v-for="(message, index) in messages"
-          :key="message.id || index"
-          :class="['message-item', message.role]"
-        >
-          <div class="message-avatar">
-            <UserOutlined v-if="message.role === 'user'" />
-            <RobotOutlined v-else />
-          </div>
-
-          <div class="message-content">
-            <div class="message-text" v-html="renderMarkdown(message.content)"></div>
-
-            <!-- RAG上下文来源 -->
-            <div v-if="message.sources && message.sources.length > 0" class="context-sources">
-              <div class="source-header">
-                <FileSearchOutlined />
-                <span>引用来源 ({{ message.sources.length }})</span>
-              </div>
-              <div class="source-list">
-                <a-tag
-                  v-for="(source, idx) in message.sources"
-                  :key="idx"
-                  class="source-tag"
-                  @click="openFile(source)"
-                >
-                  <FileTextOutlined v-if="source.source === 'project'" />
-                  <BookOutlined v-else-if="source.source === 'knowledge'" />
-                  <MessageOutlined v-else />
-                  {{ source.fileName || source.title || '未知文件' }}
-                  <span v-if="source.score" class="source-score">
-                    {{ Math.round(source.score * 100) }}%
-                  </span>
-                </a-tag>
-              </div>
-            </div>
-
-            <div class="message-meta">
-              <span class="message-time">
-                {{ formatTime(message.timestamp) }}
-              </span>
-              <span v-if="message.tokens" class="message-tokens">
-                {{ message.tokens }} tokens
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 加载中指示器 -->
-        <div v-if="isLoading" class="message-item assistant loading">
-          <div class="message-avatar">
-            <LoadingOutlined spin />
-          </div>
-          <div class="message-content">
-            <div class="message-text">正在思考...</div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 对话历史显示组件 -->
+    <ConversationHistoryView
+      :messages="messages"
+      :is-loading="isLoading"
+      :loading-text="'正在思考...'"
+      :empty-title="getEmptyStateText()"
+      :empty-hint="getEmptyHint()"
+      @source-click="openFile"
+      @file-click="handleFileClick"
+    />
 
     <!-- 输入区域 -->
     <div class="input-container">
@@ -149,19 +87,11 @@ import {
   FolderOutlined,
   FileTextOutlined,
   GlobalOutlined,
-  RobotOutlined,
-  UserOutlined,
   SendOutlined,
   DeleteOutlined,
-  LoadingOutlined,
   InfoCircleOutlined,
-  FileSearchOutlined,
-  BookOutlined,
 } from '@ant-design/icons-vue';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-import { formatDistanceToNow } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import ConversationHistoryView from './ConversationHistoryView.vue';
 
 const props = defineProps({
   projectId: {
@@ -290,6 +220,22 @@ const openFile = (source) => {
     path: filePath,
     fileName: source.fileName || source.title,
     fileId: source.fileId || source.id
+  });
+};
+
+/**
+ * 处理文件附件点击
+ */
+const handleFileClick = (file) => {
+  if (!file) return;
+
+  console.log('[ChatPanel] 打开附件文件:', file);
+
+  // 触发事件通知父组件打开文件
+  emit('open-file', {
+    path: file.path || file.filePath,
+    fileName: file.name || file.fileName,
+    fileId: file.id
   });
 };
 
