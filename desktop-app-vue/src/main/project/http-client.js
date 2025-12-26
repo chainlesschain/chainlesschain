@@ -30,6 +30,11 @@ class ProjectHTTPClient {
     );
 
     // 响应拦截器
+    // 错误对象增强说明:
+    // - isExpectedError: true 表示这是预期的错误（如后端服务未启动），调用方可以优雅处理
+    // - isConnectionError: true 表示连接错误（无法连接到服务）
+    // - isHttpError: true 表示HTTP状态码错误
+    // - status: HTTP状态码（如 404, 500）
     this.client.interceptors.response.use(
       response => {
         // 如果是流式响应，直接返回原始响应，不进行JSON解析
@@ -50,36 +55,56 @@ class ProjectHTTPClient {
         return data; // 只返回data部分
       },
       error => {
-        console.error('[ProjectHTTP] Response error:', error);
-
         // 处理不同类型的错误
         if (error.response) {
           // 服务器返回错误状态码
           const status = error.response.status;
           const errorMessage = error.response.data?.message || error.message;
 
+          // 创建增强的错误对象
+          const enhancedError = new Error();
+          enhancedError.status = status;
+          enhancedError.isHttpError = true;
+
           switch (status) {
             case 400:
-              throw new Error(`请求参数错误: ${errorMessage}`);
+              enhancedError.message = `请求参数错误: ${errorMessage}`;
+              break;
             case 401:
-              throw new Error('未授权，请登录');
+              enhancedError.message = '未授权，请登录';
+              break;
             case 403:
-              throw new Error('没有权限访问');
+              enhancedError.message = '没有权限访问';
+              break;
             case 404:
-              throw new Error('资源不存在');
+              enhancedError.message = '资源不存在';
+              enhancedError.isExpectedError = true; // 标记为预期错误（后端服务可能未启动）
+              break;
             case 500:
-              throw new Error(`服务器错误: ${errorMessage}`);
+              enhancedError.message = `服务器错误: ${errorMessage}`;
+              break;
             case 503:
-              throw new Error('服务暂时不可用，请稍后重试');
+              enhancedError.message = '服务暂时不可用，请稍后重试';
+              enhancedError.isExpectedError = true;
+              break;
             default:
-              throw new Error(`请求失败 (${status}): ${errorMessage}`);
+              enhancedError.message = `请求失败 (${status}): ${errorMessage}`;
           }
+
+          console.error(`[ProjectHTTP] ${enhancedError.message}`);
+          throw enhancedError;
         } else if (error.request) {
-          // 请求已发送但没有收到响应
-          throw new Error('无法连接到项目服务，请检查服务是否启动');
+          // 请求已发送但没有收到响应（连接失败）
+          const connectionError = new Error('无法连接到项目服务');
+          connectionError.isConnectionError = true;
+          connectionError.isExpectedError = true; // 后端服务可能未启动，这是预期的
+          console.warn('[ProjectHTTP] 无法连接到后端服务（这是正常的，将使用本地数据）');
+          throw connectionError;
         } else {
           // 请求配置出错
-          throw new Error(`请求配置错误: ${error.message}`);
+          const configError = new Error(`请求配置错误: ${error.message}`);
+          console.error('[ProjectHTTP] Request config error:', configError.message);
+          throw configError;
         }
       }
     );
