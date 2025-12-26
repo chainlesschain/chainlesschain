@@ -754,6 +754,128 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_project_shares_mode ON project_shares(share_mode);
     `);
 
+    // ==================== 项目模板系统 ====================
+
+    // 项目模板表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS project_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        display_name TEXT NOT NULL,
+        description TEXT,
+        icon TEXT,
+        cover_image TEXT,
+
+        -- 分类信息
+        category TEXT NOT NULL CHECK(category IN (
+          'writing',      -- 写作
+          'ppt',          -- PPT演示
+          'excel',        -- Excel数据
+          'web',          -- 网页开发
+          'design',       -- 设计
+          'podcast',      -- 播客
+          'resume',       -- 简历
+          'research',     -- 研究
+          'marketing',    -- 营销
+          'education',    -- 教育
+          'lifestyle',    -- 生活
+          'travel'        -- 旅游
+        )),
+        subcategory TEXT,
+        tags TEXT,
+
+        -- 模板配置
+        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app')),
+        prompt_template TEXT,
+        variables_schema TEXT,
+        file_structure TEXT,
+        default_files TEXT,
+
+        -- 元数据
+        is_builtin INTEGER DEFAULT 0,
+        author TEXT,
+        version TEXT DEFAULT '1.0.0',
+        usage_count INTEGER DEFAULT 0,
+        rating REAL DEFAULT 0,
+        rating_count INTEGER DEFAULT 0,
+
+        -- 时间戳
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+
+        -- 同步
+        sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict')),
+        deleted INTEGER DEFAULT 0
+      )
+    `);
+
+    // 模板使用记录表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS template_usage_history (
+        id TEXT PRIMARY KEY,
+        template_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        project_id TEXT,
+        variables_used TEXT,
+        used_at INTEGER NOT NULL,
+        FOREIGN KEY (template_id) REFERENCES project_templates(id) ON DELETE CASCADE,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+      )
+    `);
+
+    // 模板评价表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS template_ratings (
+        id TEXT PRIMARY KEY,
+        template_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+        review TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (template_id) REFERENCES project_templates(id) ON DELETE CASCADE,
+        UNIQUE(template_id, user_id)
+      )
+    `);
+
+    // 模板索引
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_templates_category ON project_templates(category);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_templates_subcategory ON project_templates(subcategory);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_templates_type ON project_templates(project_type);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_templates_usage ON project_templates(usage_count DESC);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_templates_rating ON project_templates(rating DESC);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_templates_builtin ON project_templates(is_builtin);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_templates_deleted ON project_templates(deleted);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_template_usage_template_id ON template_usage_history(template_id);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_template_usage_user_id ON template_usage_history(user_id);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_template_usage_used_at ON template_usage_history(used_at DESC);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_template_ratings_template_id ON template_ratings(template_id);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_template_ratings_user_id ON template_ratings(user_id);
+    `);
+
     // 数据库迁移：为已存在的表添加新列（必须在创建依赖新列的索引之前执行）
     this.migrateDatabase();
 

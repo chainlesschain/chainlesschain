@@ -1,0 +1,105 @@
+{
+  "id": "tpl_ppt_product_launch_001",
+  "name": "product_launch_presentation",
+  "display_name": "产品发布会PPT",
+  "description": "适用于新产品发布演示，包含产品介绍、功能亮点、市场定位等内容",
+  "icon": "🚀",
+  "cover_image": "/templates/covers/product-launch.png",
+
+  "category": "ppt",
+  "subcategory": "business",
+  "tags": ["产品", "发布会", "演示", "商业"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成一份{{productName}}产品发布会PPT，要求：\n\n**产品信息：**\n- 产品名称：{{productName}}\n- 产品类型：{{productType}}\n- 目标用户：{{targetAudience}}\n- 核心价值：{{coreValue}}\n\n**PPT结构（约{{slideCount}}页）：**\n1. 封面页 - 产品名称、标语、发布日期\n2. 痛点分析 - 当前市场存在的问题\n3. 产品介绍 - 产品定位和概述\n4. 核心功能 - 3-5个关键功能点（每个功能1-2页）\n5. 技术架构 - 技术优势和创新点\n6. 商业模式 - 盈利模式和市场策略\n7. 竞品分析 - 与竞品的对比优势\n8. 发展规划 - 产品路线图\n9. 团队介绍 - 核心团队成员\n10. 结尾页 - 联系方式和致谢\n\n**设计风格：**\n- 主色调：{{mainColor}}\n- 风格：{{designStyle}}\n- 包含产品截图占位符和数据图表",
+
+  "variables_schema": [
+    {
+      "name": "productName",
+      "label": "产品名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "您的产品名称"
+    },
+    {
+      "name": "productType",
+      "label": "产品类型",
+      "type": "select",
+      "required": false,
+      "default": "软件",
+      "options": [
+        { "value": "软件", "label": "软件应用" },
+        { "value": "硬件", "label": "硬件设备" },
+        { "value": "服务", "label": "在线服务" },
+        { "value": "平台", "label": "平台生态" }
+      ]
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标用户",
+      "type": "string",
+      "required": false,
+      "default": "企业用户",
+      "placeholder": "例如：企业用户、个人消费者"
+    },
+    {
+      "name": "coreValue",
+      "label": "核心价值",
+      "type": "string",
+      "required": false,
+      "placeholder": "一句话描述产品核心价值"
+    },
+    {
+      "name": "slideCount",
+      "label": "PPT页数",
+      "type": "number",
+      "required": false,
+      "default": 20,
+      "min": 10,
+      "max": 50
+    },
+    {
+      "name": "mainColor",
+      "label": "主色调",
+      "type": "select",
+      "required": false,
+      "default": "蓝色",
+      "options": [
+        { "value": "蓝色", "label": "商务蓝" },
+        { "value": "红色", "label": "活力红" },
+        { "value": "绿色", "label": "科技绿" },
+        { "value": "紫色", "label": "创新紫" }
+      ]
+    },
+    {
+      "name": "designStyle",
+      "label": "设计风格",
+      "type": "select",
+      "required": false,
+      "default": "现代简约",
+      "options": [
+        { "value": "现代简约", "label": "现代简约" },
+        { "value": "科技未来", "label": "科技未来" },
+        { "value": "商务专业", "label": "商务专业" },
+        { "value": "创意活泼", "label": "创意活泼" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{productName}}-产品发布会",
+    "files": [
+      {
+        "path": "{{productName}}-产品发布会.pptx",
+        "type": "presentation"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

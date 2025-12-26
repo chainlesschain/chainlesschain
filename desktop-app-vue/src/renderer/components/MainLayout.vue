@@ -36,10 +36,6 @@
             <template #icon><FolderOpenOutlined /></template>
             我的项目
           </a-menu-item>
-          <a-menu-item key="project-templates">
-            <template #icon><FileTextOutlined /></template>
-            项目模板
-          </a-menu-item>
           <a-menu-item key="project-market">
             <template #icon><ShopOutlined /></template>
             项目市场
@@ -350,7 +346,6 @@ const selectedMenuKeys = ref(['home']);
 const menuConfig = {
   // 项目管理模块
   projects: { path: '/projects', title: '我的项目' },
-  'project-templates': { path: '/projects/templates', title: '项目模板' },
   'project-market': { path: '/projects/market', title: '项目市场' },
   'project-collaboration': { path: '/projects/collaboration', title: '协作项目' },
   'project-archived': { path: '/projects/archived', title: '已归档项目' },

@@ -1,0 +1,108 @@
+{
+  "id": "tpl_design_poster_001",
+  "name": "event_poster_design",
+  "display_name": "活动海报设计方案",
+  "description": "为线上/线下活动设计宣传海报，提供设计方案和文案建议",
+  "icon": "🎨",
+  "cover_image": "/templates/covers/poster-design.png",
+
+  "category": "design",
+  "subcategory": "graphic",
+  "tags": ["设计", "海报", "活动", "宣传"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我设计一份{{eventName}}活动的宣传海报方案，要求：\n\n**活动信息：**\n- 活动名称：{{eventName}}\n- 活动类型：{{eventType}}\n- 活动时间：{{eventDate}}\n- 活动地点：{{eventLocation}}\n- 目标受众：{{targetAudience}}\n\n**设计方案输出：**\n1. 设计概念\n   - 设计主题和理念\n   - 视觉风格定位\n   - 色彩方案（主色、辅色）\n\n2. 版面布局方案\n   - 海报尺寸：{{posterSize}}\n   - 内容层级规划\n   - 视觉流程设计\n\n3. 文案策划\n   - 主标题（大字）\n   - 副标题/宣传语\n   - 活动信息（时间、地点、参与方式）\n   - CTA文案\n\n4. 视觉元素清单\n   - 主视觉图片建议\n   - 装饰元素\n   - 图标需求\n   - 字体建议\n\n5. 设计规范\n   - 色值RGB/HEX\n   - 字号和字重\n   - 留白和间距\n\n6. 输出文件说明\n   - 提供设计方案文档\n   - 提供HTML/CSS预览代码（简化版）\n\n**设计风格：{{designStyle}}",
+
+  "variables_schema": [
+    {
+      "name": "eventName",
+      "label": "活动名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "您的活动名称"
+    },
+    {
+      "name": "eventType",
+      "label": "活动类型",
+      "type": "select",
+      "required": false,
+      "default": "线下活动",
+      "options": [
+        { "value": "线下活动", "label": "线下活动" },
+        { "value": "线上活动", "label": "线上活动" },
+        { "value": "促销活动", "label": "促销活动" },
+        { "value": "发布会", "label": "发布会" }
+      ]
+    },
+    {
+      "name": "eventDate",
+      "label": "活动时间",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：2025年1月15日"
+    },
+    {
+      "name": "eventLocation",
+      "label": "活动地点",
+      "type": "string",
+      "required": false,
+      "placeholder": "线上或线下地址"
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标受众",
+      "type": "string",
+      "required": false,
+      "default": "年轻群体",
+      "placeholder": "例如：年轻群体、企业客户"
+    },
+    {
+      "name": "posterSize",
+      "label": "海报尺寸",
+      "type": "select",
+      "required": false,
+      "default": "手机竖屏(9:16)",
+      "options": [
+        { "value": "手机竖屏(9:16)", "label": "手机竖屏 9:16" },
+        { "value": "方形(1:1)", "label": "方形 1:1" },
+        { "value": "横屏(16:9)", "label": "横屏 16:9" },
+        { "value": "A4打印", "label": "A4打印" }
+      ]
+    },
+    {
+      "name": "designStyle",
+      "label": "设计风格",
+      "type": "select",
+      "required": false,
+      "default": "现代简约",
+      "options": [
+        { "value": "现代简约", "label": "现代简约" },
+        { "value": "科技感", "label": "科技感" },
+        { "value": "国潮风", "label": "国潮风" },
+        { "value": "复古风", "label": "复古风" },
+        { "value": "扁平化", "label": "扁平化" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{eventName}}-海报设计方案",
+    "files": [
+      {
+        "path": "设计方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "预览示例.html",
+        "type": "html"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

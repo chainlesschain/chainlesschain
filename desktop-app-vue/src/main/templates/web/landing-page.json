@@ -1,0 +1,90 @@
+{
+  "id": "tpl_web_landing_page_001",
+  "name": "product_landing_page",
+  "display_name": "产品营销落地页",
+  "description": "现代化的产品落地页网站，包含Hero区、功能介绍、客户评价、CTA等模块",
+  "icon": "🌐",
+  "cover_image": "/templates/covers/landing-page.png",
+
+  "category": "web",
+  "subcategory": "marketing",
+  "tags": ["网页", "落地页", "营销", "产品"],
+
+  "project_type": "web",
+
+  "prompt_template": "请帮我生成一个{{productName}}产品的营销落地页网站，要求：\n\n**产品信息：**\n- 产品名称：{{productName}}\n- 产品标语：{{tagline}}\n- 目标用户：{{targetAudience}}\n\n**页面结构：**\n1. Hero区域\n   - 大标题：{{productName}}\n   - 副标题/标语：{{tagline}}\n   - CTA按钮：{{ctaText}}\n   - 产品展示图/视频占位符\n\n2. 功能特性区（3-6个核心功能）\n   - 图标 + 标题 + 描述\n   - 采用卡片式布局\n\n3. 使用场景展示\n   - 3个典型应用场景\n   - 配图 + 说明文字\n\n4. 客户评价\n   - 3-5条用户好评\n   - 头像 + 姓名 + 职位 + 评价内容\n\n5. 定价方案（可选）\n   - 2-3个价格套餐\n   - 功能对比表\n\n6. FAQ常见问题\n   - 5-8个常见问题解答\n\n7. CTA区域\n   - 行动号召\n   - 注册/下载按钮\n\n8. 页脚\n   - 导航链接\n   - 社交媒体\n   - 版权信息\n\n**技术栈：**\n- HTML5 + CSS3 + JavaScript\n- 响应式设计（移动端适配）\n- {{framework}}\n- 包含完整的样式和交互代码",
+
+  "variables_schema": [
+    {
+      "name": "productName",
+      "label": "产品名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "您的产品名称"
+    },
+    {
+      "name": "tagline",
+      "label": "产品标语",
+      "type": "string",
+      "required": false,
+      "placeholder": "一句话描述产品价值"
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标用户",
+      "type": "string",
+      "required": false,
+      "default": "中小企业",
+      "placeholder": "例如：中小企业、个人开发者"
+    },
+    {
+      "name": "ctaText",
+      "label": "CTA按钮文字",
+      "type": "string",
+      "required": false,
+      "default": "免费试用",
+      "placeholder": "例如：免费试用、立即下载"
+    },
+    {
+      "name": "framework",
+      "label": "前端框架",
+      "type": "select",
+      "required": false,
+      "default": "原生",
+      "options": [
+        { "value": "原生", "label": "原生 HTML/CSS/JS" },
+        { "value": "Vue3", "label": "Vue 3" },
+        { "value": "React", "label": "React" },
+        { "value": "Tailwind", "label": "Tailwind CSS" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{productName}}-落地页",
+    "files": [
+      {
+        "path": "index.html",
+        "type": "html"
+      },
+      {
+        "path": "css/style.css",
+        "type": "css"
+      },
+      {
+        "path": "js/main.js",
+        "type": "javascript"
+      },
+      {
+        "path": "README.md",
+        "type": "markdown"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
