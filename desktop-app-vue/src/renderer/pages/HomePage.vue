@@ -1,5 +1,8 @@
 <template>
   <div class="home-page">
+    <!-- 项目历史侧边栏 -->
+    <ProjectSidebar />
+
     <!-- 主内容区 -->
     <div class="home-main-content">
     <!-- 欢迎横幅 -->
@@ -224,6 +227,7 @@ import {
 import { useAppStore } from '../stores/app';
 import LLMStatus from '../components/LLMStatus.vue';
 import GitStatus from '../components/GitStatus.vue';
+import ProjectSidebar from '../components/ProjectSidebar.vue';
 
 const router = useRouter();
 const store = useAppStore();
@@ -288,6 +292,7 @@ const openSettings = (tab) => {
 
 <style scoped>
 .home-page {
+  display: flex;
   min-height: 100%;
   padding: 0;
   margin: -24px; /* 抵消 layout-content 的 padding */
