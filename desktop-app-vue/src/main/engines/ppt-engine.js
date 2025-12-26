@@ -433,28 +433,142 @@ ${description}
   ]
 }`;
 
-    const response = await llmManager.query(prompt, {
-      temperature: 0.7,
-      maxTokens: 2000
-    });
-
     try {
-      const jsonMatch = response.text.match(/\{[\s\S]*\}/);
+      let responseText;
+
+      // 尝试使用本地LLM
+      if (llmManager && llmManager.isInitialized) {
+        console.log('[PPT Engine] 使用本地LLM服务');
+        const response = await llmManager.query(prompt, {
+          temperature: 0.7,
+          maxTokens: 2000
+        });
+        responseText = response.text;
+      } else {
+        // 降级到后端AI服务
+        console.log('[PPT Engine] 本地LLM不可用，使用后端AI服务');
+        responseText = await this.queryBackendAI(prompt);
+      }
+
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
-      return {
-        title: description.substring(0, 50),
-        subtitle: '使用ChainlessChain生成',
-        sections: []
-      };
+      return this.getDefaultOutline(description);
     } catch (error) {
-      return {
-        title: description.substring(0, 50),
-        subtitle: '使用ChainlessChain生成',
-        sections: []
-      };
+      console.error('[PPT Engine] 生成大纲失败:', error);
+      return this.getDefaultOutline(description);
     }
+  }
+
+  /**
+   * 查询后端AI服务（降级方案）
+   */
+  async queryBackendAI(prompt) {
+    const http = require('http');
+
+    return new Promise((resolve, reject) => {
+      const postData = JSON.stringify({
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant. Return valid JSON only.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7
+      });
+
+      const options = {
+        hostname: 'localhost',
+        port: 8001,
+        path: '/api/chat/stream',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        },
+        timeout: 60000
+      };
+
+      const req = http.request(options, (res) => {
+        let fullText = '';
+        let buffer = '';
+
+        res.on('data', (chunk) => {
+          buffer += chunk.toString();
+
+          // 处理SSE流
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === 'content' && data.content) {
+                  fullText += data.content;
+                } else if (data.type === 'done') {
+                  resolve(fullText);
+                  return;
+                } else if (data.type === 'error') {
+                  reject(new Error(data.error));
+                  return;
+                }
+              } catch (e) {
+                // 忽略解析错误
+              }
+            }
+          }
+        });
+
+        res.on('end', () => {
+          if (fullText) {
+            resolve(fullText);
+          } else {
+            reject(new Error('后端AI服务未返回内容'));
+          }
+        });
+
+        res.on('error', reject);
+      });
+
+      req.on('error', reject);
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('后端AI服务请求超时'));
+      });
+
+      req.write(postData);
+      req.end();
+    });
+  }
+
+  /**
+   * 获取默认大纲
+   */
+  getDefaultOutline(description) {
+    return {
+      title: description.substring(0, 50),
+      subtitle: '使用ChainlessChain生成',
+      sections: [
+        {
+          title: '概述',
+          subsections: [
+            { title: '背景介绍', points: ['项目背景', '目标说明'] }
+          ]
+        },
+        {
+          title: '详细内容',
+          subsections: [
+            { title: '主要内容', points: ['核心要点', '关键信息'] }
+          ]
+        },
+        {
+          title: '总结',
+          subsections: [
+            { title: '总结与展望', points: ['主要结论', '下一步计划'] }
+          ]
+        }
+      ]
+    };
   }
 
   /**
