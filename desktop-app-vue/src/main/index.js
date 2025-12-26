@@ -27,7 +27,7 @@ const CreditScoreManager = require('./trade/credit-score');
 const ReviewManager = require('./trade/review-manager');
 
 // AI Engine modules
-const { AIEngineManager } = require('./ai-engine/ai-engine-manager');
+const { AIEngineManager, getAIEngineManager } = require('./ai-engine/ai-engine-manager');
 const AIEngineIPC = require('./ai-engine/ai-engine-ipc');
 const WebEngine = require('./engines/web-engine');
 const DocumentEngine = require('./engines/document-engine');
@@ -589,8 +589,8 @@ class ChainlessChainApp {
       this.projectStructureManager = new ProjectStructureManager();
       this.gitAutoCommit = new GitAutoCommit({ enabled: false, interval: 5 * 60 * 1000 });
 
-      // 创建AI引擎管理器
-      this.aiEngineManager = new AIEngineManager();
+      // 创建AI引擎管理器 (使用单例模式)
+      this.aiEngineManager = getAIEngineManager();
 
       // 注册自定义工具（集成到Function Caller）
       this.aiEngineManager.registerTool(
@@ -5742,7 +5742,14 @@ class ChainlessChainApp {
         if (!this.aiEngineManager) {
           const { getAIEngineManager } = require('./ai-engine/ai-engine-manager');
           this.aiEngineManager = getAIEngineManager();
+        }
+
+        // 确保已初始化（每次都检查，以防之前初始化失败）
+        try {
           await this.aiEngineManager.initialize();
+        } catch (initError) {
+          console.error('[Main] AI引擎初始化失败:', initError);
+          throw new Error(`AI引擎初始化失败: ${initError.message}`);
         }
 
         // 获取任务规划器
@@ -5763,8 +5770,18 @@ class ChainlessChainApp {
       try {
         console.log('[Main] 执行任务计划:', taskPlanId);
 
+        // 获取 AI 引擎管理器
         if (!this.aiEngineManager) {
-          throw new Error('AI引擎管理器未初始化');
+          const { getAIEngineManager } = require('./ai-engine/ai-engine-manager');
+          this.aiEngineManager = getAIEngineManager();
+        }
+
+        // 确保已初始化（每次都检查，以防之前初始化失败）
+        try {
+          await this.aiEngineManager.initialize();
+        } catch (initError) {
+          console.error('[Main] AI引擎初始化失败:', initError);
+          throw new Error(`AI引擎初始化失败: ${initError.message}`);
         }
 
         const taskPlanner = this.aiEngineManager.getTaskPlanner();
@@ -5870,8 +5887,18 @@ class ChainlessChainApp {
     // 获取任务计划
     ipcMain.handle('project:get-task-plan', async (_event, taskPlanId) => {
       try {
+        // 获取 AI 引擎管理器
         if (!this.aiEngineManager) {
-          throw new Error('AI引擎管理器未初始化');
+          const { getAIEngineManager } = require('./ai-engine/ai-engine-manager');
+          this.aiEngineManager = getAIEngineManager();
+        }
+
+        // 确保已初始化
+        try {
+          await this.aiEngineManager.initialize();
+        } catch (initError) {
+          console.error('[Main] AI引擎初始化失败:', initError);
+          throw new Error(`AI引擎初始化失败: ${initError.message}`);
         }
 
         const taskPlanner = this.aiEngineManager.getTaskPlanner();
@@ -5887,8 +5914,18 @@ class ChainlessChainApp {
     // 获取项目的任务计划历史
     ipcMain.handle('project:get-task-plan-history', async (_event, projectId, limit = 10) => {
       try {
+        // 获取 AI 引擎管理器
         if (!this.aiEngineManager) {
-          throw new Error('AI引擎管理器未初始化');
+          const { getAIEngineManager } = require('./ai-engine/ai-engine-manager');
+          this.aiEngineManager = getAIEngineManager();
+        }
+
+        // 确保已初始化
+        try {
+          await this.aiEngineManager.initialize();
+        } catch (initError) {
+          console.error('[Main] AI引擎初始化失败:', initError);
+          throw new Error(`AI引擎初始化失败: ${initError.message}`);
         }
 
         const taskPlanner = this.aiEngineManager.getTaskPlanner();
@@ -5904,8 +5941,18 @@ class ChainlessChainApp {
     // 取消任务计划
     ipcMain.handle('project:cancel-task-plan', async (_event, taskPlanId) => {
       try {
+        // 获取 AI 引擎管理器
         if (!this.aiEngineManager) {
-          throw new Error('AI引擎管理器未初始化');
+          const { getAIEngineManager } = require('./ai-engine/ai-engine-manager');
+          this.aiEngineManager = getAIEngineManager();
+        }
+
+        // 确保已初始化
+        try {
+          await this.aiEngineManager.initialize();
+        } catch (initError) {
+          console.error('[Main] AI引擎初始化失败:', initError);
+          throw new Error(`AI引擎初始化失败: ${initError.message}`);
         }
 
         const taskPlanner = this.aiEngineManager.getTaskPlanner();
