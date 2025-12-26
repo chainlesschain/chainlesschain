@@ -22,6 +22,12 @@ public class SyncRequestDTO {
     private String deviceId;
 
     /**
+     * 请求ID（用于幂等性保护）
+     * 客户端生成的唯一UUID，用于防止重复请求
+     */
+    private String requestId;
+
+    /**
      * 最后同步时间戳（毫秒）
      */
     private Long lastSyncedAt;

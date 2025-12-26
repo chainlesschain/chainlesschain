@@ -1505,6 +1505,63 @@ class DatabaseManager {
   }
 
   /**
+   * 更新单条记录的同步状态
+   * 每条记录独立事务，与后端保持一致
+   * @param {string} tableName - 表名
+   * @param {string} recordId - 记录ID
+   * @param {string} status - 同步状态 ('pending'|'synced'|'conflict'|'error')
+   * @param {number|null} syncedAt - 同步时间戳（毫秒），null表示清除
+   * @returns {boolean} 是否更新成功
+   */
+  updateSyncStatus(tableName, recordId, status, syncedAt) {
+    try {
+      this.transaction(() => {
+        const stmt = this.db.prepare(
+          `UPDATE ${tableName}
+           SET sync_status = ?, synced_at = ?
+           WHERE id = ?`
+        );
+
+        stmt.run(status, syncedAt, recordId);
+        stmt.free();
+      });
+
+      return true;
+    } catch (error) {
+      console.error(`[Database] 更新同步状态失败: table=${tableName}, id=${recordId}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 批量更新同步状态（仅用于明确的批量操作场景）
+   * @param {string} tableName - 表名
+   * @param {Array<{id: string, status: string, syncedAt: number}>} updates - 更新列表
+   * @returns {Object} 更新结果统计 {success: number, failed: number}
+   */
+  batchUpdateSyncStatus(tableName, updates) {
+    let success = 0;
+    let failed = 0;
+
+    for (const update of updates) {
+      const result = this.updateSyncStatus(
+        tableName,
+        update.id,
+        update.status,
+        update.syncedAt
+      );
+
+      if (result) {
+        success++;
+      } else {
+        failed++;
+      }
+    }
+
+    return { success, failed };
+  }
+
+  /**
    * 关闭数据库连接
    */
   close() {

@@ -877,108 +877,166 @@ class FileIPC {
    * 预览Word文档
    */
   async previewWord(filePath) {
-    const docxPreview = require('docx-preview');
-    const fileBuffer = await fs.readFile(filePath);
+    console.log('[FileIPC] 开始预览Word文档:', filePath);
 
-    // 创建一个临时容器来渲染docx
-    const { JSDOM } = require('jsdom');
-    const dom = new JSDOM('<!DOCTYPE html><html><body><div id="container"></div></body></html>');
-    const container = dom.window.document.getElementById('container');
+    try {
+      // 检查文件是否存在
+      const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+      if (!fileExists) {
+        throw new Error(`文件不存在: ${filePath}`);
+      }
 
-    await docxPreview.renderAsync(fileBuffer, container, null, {
-      className: 'docx-preview',
-      ignoreWidth: false,
-      ignoreHeight: false,
-      ignoreFonts: false,
-      breakPages: true,
-      debug: false,
-      experimental: false,
-      renderChanges: false,
-      renderHeaders: true,
-      renderFooters: true,
-      renderFootnotes: true,
-      renderEndnotes: true,
-    });
+      // 读取文件
+      const fileBuffer = await fs.readFile(filePath);
+      console.log('[FileIPC] Word文件已读取，大小:', fileBuffer.length, 'bytes');
 
-    return {
-      html: container.innerHTML,
-    };
+      if (fileBuffer.length === 0) {
+        throw new Error('Word文件为空');
+      }
+
+      // 创建一个临时容器来渲染docx
+      const docxPreview = require('docx-preview');
+      const { JSDOM } = require('jsdom');
+      const dom = new JSDOM('<!DOCTYPE html><html><body><div id="container"></div></body></html>');
+      const container = dom.window.document.getElementById('container');
+
+      await docxPreview.renderAsync(fileBuffer, container, null, {
+        className: 'docx-preview',
+        ignoreWidth: false,
+        ignoreHeight: false,
+        ignoreFonts: false,
+        breakPages: true,
+        debug: false,
+        experimental: false,
+        renderChanges: false,
+        renderHeaders: true,
+        renderFooters: true,
+        renderFootnotes: true,
+        renderEndnotes: true,
+      });
+
+      const htmlContent = container.innerHTML;
+      console.log('[FileIPC] Word预览HTML生成成功，长度:', htmlContent.length);
+
+      return {
+        html: htmlContent,
+      };
+    } catch (error) {
+      console.error('[FileIPC] Word预览失败:', error);
+      throw error;
+    }
   }
 
   /**
    * 预览Excel表格
    */
   async previewExcel(filePath) {
-    const xlsx = require('xlsx');
-    const workbook = xlsx.readFile(filePath);
+    console.log('[FileIPC] 开始预览Excel表格:', filePath);
 
-    const sheets = [];
+    try {
+      // 检查文件是否存在
+      const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+      if (!fileExists) {
+        throw new Error(`文件不存在: ${filePath}`);
+      }
 
-    for (const sheetName of workbook.SheetNames) {
-      const worksheet = workbook.Sheets[sheetName];
-      const data = xlsx.utils.sheet_to_json(worksheet, {
-        header: 1,
-        defval: '',
-        blankrows: true,
-      });
+      const xlsx = require('xlsx');
+      const workbook = xlsx.readFile(filePath);
+      console.log('[FileIPC] Excel文件已读取，工作表数量:', workbook.SheetNames.length);
 
-      sheets.push({
-        name: sheetName,
-        data: data,
-      });
+      const sheets = [];
+
+      for (const sheetName of workbook.SheetNames) {
+        const worksheet = workbook.Sheets[sheetName];
+        const data = xlsx.utils.sheet_to_json(worksheet, {
+          header: 1,
+          defval: '',
+          blankrows: true,
+        });
+
+        sheets.push({
+          name: sheetName,
+          data: data,
+        });
+
+        console.log(`[FileIPC] 工作表 "${sheetName}" 已解析，行数:`, data.length);
+      }
+
+      console.log('[FileIPC] Excel预览解析完成');
+
+      return {
+        sheets,
+        sheetNames: workbook.SheetNames,
+      };
+    } catch (error) {
+      console.error('[FileIPC] Excel预览失败:', error);
+      throw error;
     }
-
-    return {
-      sheets,
-      sheetNames: workbook.SheetNames,
-    };
   }
 
   /**
    * 预览PowerPoint
    */
   async previewPowerPoint(filePath) {
-    const pptx2json = require('pptx2json');
+    console.log('[FileIPC] 开始预览PowerPoint:', filePath);
 
-    return new Promise((resolve, reject) => {
-      pptx2json(filePath, (err, json) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+    try {
+      // 检查文件是否存在
+      const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+      if (!fileExists) {
+        throw new Error(`文件不存在: ${filePath}`);
+      }
 
-        // 转换pptx2json的输出为我们需要的格式
-        const slides = [];
+      const pptx2json = require('pptx2json');
 
-        if (json && Array.isArray(json)) {
-          for (const slideData of json) {
-            const slide = {
-              title: slideData.title || '',
-              content: [],
-            };
-
-            // 提取文本内容
-            if (slideData.content && Array.isArray(slideData.content)) {
-              slide.content = slideData.content.map(item => {
-                if (typeof item === 'string') {
-                  return item;
-                } else if (item && item.text) {
-                  return item.text;
-                }
-                return String(item);
-              });
-            }
-
-            slides.push(slide);
+      return new Promise((resolve, reject) => {
+        pptx2json(filePath, (err, json) => {
+          if (err) {
+            console.error('[FileIPC] PowerPoint解析失败:', err);
+            reject(err);
+            return;
           }
-        }
 
-        resolve({
-          slides,
-          slideCount: slides.length,
+          console.log('[FileIPC] PowerPoint解析结果:', json);
+
+          // 转换pptx2json的输出为我们需要的格式
+          const slides = [];
+
+          if (json && Array.isArray(json)) {
+            for (const slideData of json) {
+              const slide = {
+                title: slideData.title || '',
+                content: [],
+              };
+
+              // 提取文本内容
+              if (slideData.content && Array.isArray(slideData.content)) {
+                slide.content = slideData.content.map(item => {
+                  if (typeof item === 'string') {
+                    return item;
+                  } else if (item && item.text) {
+                    return item.text;
+                  }
+                  return String(item);
+                });
+              }
+
+              slides.push(slide);
+            }
+          }
+
+          console.log('[FileIPC] PowerPoint预览解析完成，幻灯片数量:', slides.length);
+
+          resolve({
+            slides,
+            slideCount: slides.length,
+          });
         });
       });
-    });
+    } catch (error) {
+      console.error('[FileIPC] PowerPoint预览外部失败:', error);
+      throw error;
+    }
   }
 }
 

@@ -10,6 +10,7 @@ import com.chainlesschain.project.mapper.*;
 import com.chainlesschain.project.service.SyncService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -19,6 +20,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 数据同步服务实现
@@ -48,6 +50,9 @@ public class SyncServiceImpl implements SyncService {
     @Autowired(required = false)
     private SyncLogMapper syncLogMapper;
 
+    @Autowired(required = false)
+    private RedisTemplate<String, Object> redisTemplate;
+
     private final TransactionTemplate requiresNewTransactionTemplate;
 
     // 构造函数，创建独立事务的 TransactionTemplate
@@ -60,8 +65,24 @@ public class SyncServiceImpl implements SyncService {
     @Override
     public Map<String, Object> uploadBatch(SyncRequestDTO request) {
         long startTime = System.currentTimeMillis();
-        log.info("[SyncService] 开始批量上传: table={}, deviceId={}, records={}",
-            request.getTableName(), request.getDeviceId(), request.getRecords().size());
+        String requestId = request.getRequestId();
+
+        // 幂等性保护：检查是否已处理过此请求
+        if (requestId != null && redisTemplate != null) {
+            String cacheKey = "sync:request:" + requestId;
+            Object cachedResult = redisTemplate.opsForValue().get(cacheKey);
+
+            if (cachedResult != null) {
+                log.info("[SyncService] 检测到重复请求，返回缓存结果: requestId={}, table={}",
+                    requestId, request.getTableName());
+                @SuppressWarnings("unchecked")
+                Map<String, Object> result = (Map<String, Object>) cachedResult;
+                return result;
+            }
+        }
+
+        log.info("[SyncService] 开始批量上传: table={}, deviceId={}, requestId={}, records={}",
+            request.getTableName(), request.getDeviceId(), requestId, request.getRecords().size());
 
         int successCount = 0;
         int failedCount = 0;
@@ -109,6 +130,18 @@ public class SyncServiceImpl implements SyncService {
         result.put("conflictCount", conflictCount);
         result.put("conflicts", conflicts);
         result.put("executionTimeMs", executionTime);
+
+        // 缓存处理结果（24小时过期），用于幂等性保护
+        if (requestId != null && redisTemplate != null) {
+            String cacheKey = "sync:request:" + requestId;
+            try {
+                redisTemplate.opsForValue().set(cacheKey, result, 24, TimeUnit.HOURS);
+                log.debug("[SyncService] 已缓存请求结果: requestId={}, key={}", requestId, cacheKey);
+            } catch (Exception e) {
+                log.warn("[SyncService] 缓存请求结果失败: requestId={}, error={}", requestId, e.getMessage());
+                // 缓存失败不影响业务流程，继续执行
+            }
+        }
 
         return result;
     }
