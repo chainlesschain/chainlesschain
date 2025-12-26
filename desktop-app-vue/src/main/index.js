@@ -6165,10 +6165,10 @@ ${content}
           throw new Error('模板管理器未初始化');
         }
         const templates = await this.templateManager.getAllTemplates(filters);
-        return templates;
+        return { success: true, templates };
       } catch (error) {
         console.error('[Template] 获取模板列表失败:', error);
-        throw error;
+        return { success: false, error: error.message };
       }
     });
 
@@ -6179,10 +6179,10 @@ ${content}
           throw new Error('模板管理器未初始化');
         }
         const template = await this.templateManager.getTemplateById(templateId);
-        return template;
+        return { success: true, template };
       } catch (error) {
         console.error('[Template] 获取模板失败:', error);
-        throw error;
+        return { success: false, error: error.message };
       }
     });
 
@@ -6193,10 +6193,10 @@ ${content}
           throw new Error('模板管理器未初始化');
         }
         const templates = await this.templateManager.searchTemplates(keyword, filters);
-        return templates;
+        return { success: true, templates };
       } catch (error) {
         console.error('[Template] 搜索模板失败:', error);
-        throw error;
+        return { success: false, error: error.message };
       }
     });
 
@@ -6208,10 +6208,10 @@ ${content}
         }
         const template = await this.templateManager.getTemplateById(templateId);
         const renderedPrompt = this.templateManager.renderPrompt(template, userVariables);
-        return renderedPrompt;
+        return { success: true, renderedPrompt };
       } catch (error) {
         console.error('[Template] 渲染模板提示词失败:', error);
-        throw error;
+        return { success: false, error: error.message };
       }
     });
 
@@ -6225,7 +6225,7 @@ ${content}
         return { success: true };
       } catch (error) {
         console.error('[Template] 记录模板使用失败:', error);
-        throw error;
+        return { success: false, error: error.message };
       }
     });
 
@@ -6239,7 +6239,7 @@ ${content}
         return { success: true };
       } catch (error) {
         console.error('[Template] 提交模板评价失败:', error);
-        throw error;
+        return { success: false, error: error.message };
       }
     });
 
@@ -6597,6 +6597,115 @@ ${content}
         };
       } catch (error) {
         console.error('[Main] 文件复制失败:', error);
+        throw error;
+      }
+    });
+
+    // 移动文件（项目内拖拽）
+    ipcMain.handle('project:move-file', async (_event, params) => {
+      try {
+        const { projectId, fileId, sourcePath, targetPath } = params;
+        console.log(`[Main] 移动文件: ${sourcePath} -> ${targetPath}`);
+
+        const fs = require('fs').promises;
+        const projectConfig = getProjectConfig();
+
+        // 解析路径
+        const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+        const resolvedTargetPath = projectConfig.resolveProjectPath(targetPath);
+
+        // 确保目标目录存在
+        const targetDir = path.dirname(resolvedTargetPath);
+        await fs.mkdir(targetDir, { recursive: true });
+
+        // 移动文件
+        await fs.rename(resolvedSourcePath, resolvedTargetPath);
+
+        // 更新数据库中的文件记录
+        if (projectId && fileId) {
+          const db = getDatabaseConnection();
+          const newFileName = path.basename(resolvedTargetPath);
+          const newFilePath = targetPath;
+
+          const updateSQL = `
+            UPDATE project_files
+            SET file_name = ?, file_path = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND project_id = ?
+          `;
+          await db.run(updateSQL, [newFileName, newFilePath, fileId, projectId]);
+          await saveDatabase();
+          console.log(`[Main] 文件记录已更新: ${fileId}`);
+        }
+
+        return {
+          success: true,
+          fileName: path.basename(resolvedTargetPath),
+          path: resolvedTargetPath
+        };
+      } catch (error) {
+        console.error('[Main] 文件移动失败:', error);
+        throw error;
+      }
+    });
+
+    // 从外部导入文件到项目
+    ipcMain.handle('project:import-file', async (_event, params) => {
+      try {
+        const { projectId, externalPath, targetPath } = params;
+        console.log(`[Main] 导入文件: ${externalPath} -> ${targetPath}`);
+
+        const fs = require('fs').promises;
+        const projectConfig = getProjectConfig();
+
+        // 解析目标路径
+        const resolvedTargetPath = projectConfig.resolveProjectPath(targetPath);
+
+        // 确保目标目录存在
+        const targetDir = path.dirname(resolvedTargetPath);
+        await fs.mkdir(targetDir, { recursive: true });
+
+        // 复制文件（保留外部源文件）
+        await fs.copyFile(externalPath, resolvedTargetPath);
+
+        // 获取文件信息
+        const stats = await fs.stat(resolvedTargetPath);
+        const content = await fs.readFile(resolvedTargetPath, 'utf-8');
+
+        // 添加到数据库
+        const db = getDatabaseConnection();
+        const fileId = require('crypto').randomUUID();
+        const fileName = path.basename(resolvedTargetPath);
+        const fileExt = path.extname(fileName).substring(1);
+
+        const insertSQL = `
+          INSERT INTO project_files (
+            id, project_id, file_name, file_path, file_type, file_size, content,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `;
+
+        await db.run(insertSQL, [
+          fileId,
+          projectId,
+          fileName,
+          targetPath,
+          fileExt || 'unknown',
+          stats.size,
+          content
+        ]);
+        await saveDatabase();
+
+        console.log(`[Main] 文件导入成功: ${fileId}`);
+
+        return {
+          success: true,
+          fileId: fileId,
+          fileName: fileName,
+          path: resolvedTargetPath,
+          size: stats.size
+        };
+      } catch (error) {
+        console.error('[Main] 文件导入失败:', error);
         throw error;
       }
     });

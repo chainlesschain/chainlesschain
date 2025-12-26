@@ -406,6 +406,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     import: (importData) => ipcRenderer.invoke('prompt-template:import', importData),
   },
 
+  // 项目模板管理
+  template: {
+    getAll: (filters) => ipcRenderer.invoke('template:getAll', filters),
+    getById: (templateId) => ipcRenderer.invoke('template:getById', templateId),
+    search: (keyword, filters) => ipcRenderer.invoke('template:search', keyword, filters),
+    renderPrompt: (templateId, userVariables) => ipcRenderer.invoke('template:renderPrompt', templateId, userVariables),
+    recordUsage: (templateId, userId, projectId, variablesUsed) => ipcRenderer.invoke('template:recordUsage', templateId, userId, projectId, variablesUsed),
+    rate: (templateId, userId, rating, review) => ipcRenderer.invoke('template:rate', templateId, userId, rating, review),
+    getStats: () => ipcRenderer.invoke('template:getStats'),
+    getRecent: (userId, limit) => ipcRenderer.invoke('template:getRecent', userId, limit),
+    getPopular: (limit) => ipcRenderer.invoke('template:getPopular', limit),
+  },
+
   // 项目管理
   project: {
     // 项目CRUD

@@ -1083,6 +1083,13 @@ class DatabaseManager {
         this.db.run('ALTER TABLE project_conversations ADD COLUMN deleted INTEGER DEFAULT 0');
       }
 
+      // 为 project_templates 表添加 deleted 字段
+      const templatesInfo = this.db.prepare("PRAGMA table_info(project_templates)").all();
+      if (!templatesInfo.some(col => col.name === 'deleted')) {
+        console.log('[Database] 添加 project_templates.deleted 列');
+        this.db.run('ALTER TABLE project_templates ADD COLUMN deleted INTEGER DEFAULT 0');
+      }
+
       console.log('[Database] 数据库迁移完成');
     } catch (error) {
       console.error('[Database] 数据库迁移失败:', error);

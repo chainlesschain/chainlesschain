@@ -1,0 +1,37 @@
+{
+  "id": "tpl_resume_designer_001",
+  "name": "designer_resume",
+  "display_name": "设计师简历",
+  "description": "为UI/UX设计师打造的视觉化简历模板,突出作品集和设计能力",
+  "icon": "🎨",
+  "cover_image": "/templates/covers/designer-resume.png",
+  "category": "resume",
+  "subcategory": "职位",
+  "tags": ["简历", "设计师", "UI", "UX"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成一份{{designType}}设计师简历,要求:\n\n**个人信息:**\n- 姓名: {{name}}\n- 职位: {{designType}}设计师\n- 工作年限: {{experience}}年\n\n# {{name}} - {{designType}}设计师\n\n## 专业技能\n- 设计工具: Figma, Sketch, Adobe XD, Photoshop, Illustrator\n- 原型工具: Axure, Principle, Framer\n- 设计能力: 用户研究, 交互设计, 视觉设计, 动效设计\n\n## 作品集\n1. **[作品1名称]** - [项目类型]\n   - 设计目标: [说明]\n   - 设计方案: [亮点]\n   - 项目成果: [数据/效果]\n\n2. **[作品2名称]** - [项目类型]\n   - 设计目标: [说明]\n   - 设计方案: [亮点]\n   - 项目成果: [数据/效果]\n\n## 工作经历\n### 公司 | {{designType}}设计师 | 时间\n- 主导[数量]个项目的设计工作\n- 提升[指标]达[数据]\n- 建立设计规范和组件库\n\n## 教育背景\n- 学历 | 学校 | 专业\n\n## 获奖经历\n- [奖项名称] | [时间]\n\n**作品集链接:**\n- Behance: [链接]\n- Dribbble: [链接]\n- 个人网站: [链接]\n\n**格式要求:**\n- 精美排版\n- 突出视觉效果\n- 附作品缩略图\n- 风格: {{style}}",
+  "variables_schema": [
+    {"name": "name", "label": "姓名", "type": "string", "required": true},
+    {"name": "designType", "label": "设计类型", "type": "select", "required": false, "default": "UI/UX", "options": [
+      {"value": "UI/UX", "label": "UI/UX设计师"},
+      {"value": "视觉", "label": "视觉设计师"},
+      {"value": "产品", "label": "产品设计师"},
+      {"value": "平面", "label": "平面设计师"}
+    ]},
+    {"name": "experience", "label": "工作年限", "type": "number", "required": false, "default": 3},
+    {"name": "style", "label": "简历风格", "type": "select", "required": false, "default": "创意设计", "options": [
+      {"value": "创意设计", "label": "创意设计"},
+      {"value": "简约现代", "label": "简约现代"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "{{name}}-设计师简历",
+    "files": [
+      {"path": "{{name}}-{{designType}}设计师简历.docx", "type": "document"},
+      {"path": "作品集.pdf", "type": "document"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

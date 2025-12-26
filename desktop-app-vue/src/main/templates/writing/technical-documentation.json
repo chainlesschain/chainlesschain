@@ -1,0 +1,145 @@
+{
+  "id": "tpl_writing_tech_doc_001",
+  "name": "technical_documentation",
+  "display_name": "技术文档生成器",
+  "description": "为软件项目生成专业的技术文档，包含API文档、系统设计、部署指南等",
+  "icon": "📖",
+  "cover_image": "/templates/covers/tech-doc.png",
+
+  "category": "writing",
+  "subcategory": "tech",
+  "tags": ["技术文档", "API", "开发", "文档"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成《{{projectName}}》的{{docType}}技术文档，要求：\n\n**项目基本信息：**\n- 项目名称：{{projectName}}\n- 文档类型：{{docType}}\n- 技术栈：{{techStack}}\n- 目标读者：{{audience}}\n- 项目版本：{{version}}\n\n{{#eq docType \"API文档\"}}\n# {{projectName}} API 文档\n\n## 概述\n\n**API 基础信息：**\n- Base URL: {{baseUrl}}\n- 版本：{{version}}\n- 协议：{{protocol}}\n- 认证方式：{{authMethod}}\n\n**快速开始：**\n```bash\n# 示例请求\ncurl -X GET \"{{baseUrl}}/api/v1/example\" \\\n  -H \"Authorization: Bearer YOUR_ACCESS_TOKEN\" \\\n  -H \"Content-Type: application/json\"\n```\n\n## 认证\n\n### 获取访问令牌\n\n**请求：**\n```http\nPOST {{baseUrl}}/auth/token\nContent-Type: application/json\n\n{\n  \"username\": \"your_username\",\n  \"password\": \"your_password\"\n}\n```\n\n**响应：**\n```json\n{\n  \"access_token\": \"eyJhbGciOiJIUzI1NiIs...\",\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600\n}\n```\n\n## API 端点\n\n### 用户管理\n\n#### 获取用户列表\n\n**请求：**\n```http\nGET {{baseUrl}}/api/v1/users\n```\n\n**查询参数：**\n| 参数 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| page | integer | 否 | 页码，默认1 |\n| limit | integer | 否 | 每页数量，默认20 |\n| search | string | 否 | 搜索关键词 |\n\n**响应示例：**\n```json\n{\n  \"code\": 200,\n  \"message\": \"success\",\n  \"data\": {\n    \"total\": 100,\n    \"page\": 1,\n    \"limit\": 20,\n    \"users\": [\n      {\n        \"id\": \"user_001\",\n        \"username\": \"john_doe\",\n        \"email\": \"john@example.com\",\n        \"created_at\": \"2024-01-01T00:00:00Z\"\n      }\n    ]\n  }\n}\n```\n\n**错误响应：**\n```json\n{\n  \"code\": 401,\n  \"message\": \"Unauthorized\",\n  \"error\": \"Invalid or expired token\"\n}\n```\n\n#### 创建用户\n\n**请求：**\n```http\nPOST {{baseUrl}}/api/v1/users\nContent-Type: application/json\n\n{\n  \"username\": \"new_user\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"secure_password\",\n  \"role\": \"user\"\n}\n```\n\n**请求体参数：**\n| 字段 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| username | string | 是 | 用户名，3-20字符 |\n| email | string | 是 | 邮箱地址 |\n| password | string | 是 | 密码，至少8位 |\n| role | string | 否 | 角色，默认\"user\" |\n\n**响应：**\n```json\n{\n  \"code\": 201,\n  \"message\": \"User created successfully\",\n  \"data\": {\n    \"id\": \"user_002\",\n    \"username\": \"new_user\",\n    \"email\": \"newuser@example.com\"\n  }\n}\n```\n\n---\n\n（根据实际需求生成更多API端点文档...）\n\n## 错误码\n\n| 状态码 | 错误码 | 说明 |\n|--------|--------|------|\n| 200 | SUCCESS | 请求成功 |\n| 400 | BAD_REQUEST | 请求参数错误 |\n| 401 | UNAUTHORIZED | 未授权 |\n| 403 | FORBIDDEN | 无权限 |\n| 404 | NOT_FOUND | 资源不存在 |\n| 500 | INTERNAL_ERROR | 服务器内部错误 |\n\n## 速率限制\n\n- 每个IP每分钟最多 {{rateLimit}} 次请求\n- 超出限制返回 429 状态码\n- 响应头包含速率限制信息：\n  ```\n  X-RateLimit-Limit: 60\n  X-RateLimit-Remaining: 45\n  X-RateLimit-Reset: 1640995200\n  ```\n\n## SDK 示例\n\n### Python\n```python\nimport requests\n\nclass {{projectName}}Client:\n    def __init__(self, api_key):\n        self.base_url = \"{{baseUrl}}\"\n        self.headers = {\n            \"Authorization\": f\"Bearer {api_key}\",\n            \"Content-Type\": \"application/json\"\n        }\n    \n    def get_users(self, page=1, limit=20):\n        response = requests.get(\n            f\"{self.base_url}/api/v1/users\",\n            headers=self.headers,\n            params={\"page\": page, \"limit\": limit}\n        )\n        return response.json()\n```\n\n### JavaScript\n```javascript\nclass {{projectName}}Client {\n  constructor(apiKey) {\n    this.baseUrl = '{{baseUrl}}';\n    this.apiKey = apiKey;\n  }\n\n  async getUsers(page = 1, limit = 20) {\n    const response = await fetch(\n      `${this.baseUrl}/api/v1/users?page=${page}&limit=${limit}`,\n      {\n        headers: {\n          'Authorization': `Bearer ${this.apiKey}`,\n          'Content-Type': 'application/json'\n        }\n      }\n    );\n    return response.json();\n  }\n}\n```\n\n## 变更日志\n\n### v{{version}} (当前版本)\n- 新增用户管理API\n- 优化认证流程\n- 修复已知问题\n\n{{/eq}}\n\n{{#eq docType \"系统设计文档\"}}\n# {{projectName}} 系统设计文档\n\n## 1. 系统概述\n\n### 1.1 背景\n- 项目背景和目标\n- 业务需求概述\n- 系统定位\n\n### 1.2 设计目标\n- 性能目标：{{performanceGoal}}\n- 可用性目标：{{availabilityGoal}}\n- 可扩展性要求\n- 安全性要求\n\n## 2. 系统架构\n\n### 2.1 整体架构\n```\n┌─────────────────────────────────────────┐\n│           前端层（Frontend）             │\n│  - Web应用（React/Vue）                  │\n│  - 移动应用（iOS/Android）               │\n└─────────────┬───────────────────────────┘\n              │ HTTPS/WSS\n┌─────────────┴───────────────────────────┐\n│        网关层（API Gateway）            │\n│  - 路由转发  - 认证鉴权                 │\n│  - 限流熔断  - 日志监控                 │\n└─────────────┬───────────────────────────┘\n              │\n    ┌─────────┴──────────┐\n    │                    │\n┌───┴─────┐      ┌───────┴────┐\n│ 业务服务 │      │  基础服务  │\n│ - 用户   │      │  - 认证    │\n│ - 订单   │      │  - 存储    │\n│ - 支付   │      │  - 消息    │\n└───┬─────┘      └───────┬────┘\n    │                    │\n┌───┴────────────────────┴────┐\n│       数据层（Database）     │\n│  - MySQL/PostgreSQL         │\n│  - Redis                    │\n│  - MongoDB                  │\n└─────────────────────────────┘\n```\n\n### 2.2 技术栈\n- **前端**：{{techStack}}\n- **后端**：[语言/框架]\n- **数据库**：[数据库列表]\n- **缓存**：Redis\n- **消息队列**：[MQ选择]\n- **部署**：Docker + Kubernetes\n\n### 2.3 核心模块\n\n#### 模块1：用户管理\n- **功能**：用户注册、登录、权限管理\n- **技术实现**：JWT认证 + RBAC权限模型\n- **接口**：RESTful API\n\n#### 模块2：业务核心\n- **功能**：[核心业务描述]\n- **技术实现**：[具体实现方案]\n- **接口**：[接口类型]\n\n## 3. 数据库设计\n\n### 3.1 ER图\n```\n┌──────────┐       ┌──────────┐       ┌──────────┐\n│  Users   │───────│  Orders  │───────│ Products │\n│          │ 1:N   │          │ N:M   │          │\n└──────────┘       └──────────┘       └──────────┘\n```\n\n### 3.2 核心表结构\n\n#### users 表\n| 字段名 | 类型 | 约束 | 说明 |\n|--------|------|------|------|\n| id | bigint | PK, AUTO_INCREMENT | 用户ID |\n| username | varchar(50) | UNIQUE, NOT NULL | 用户名 |\n| email | varchar(100) | UNIQUE, NOT NULL | 邮箱 |\n| password_hash | varchar(255) | NOT NULL | 密码哈希 |\n| created_at | timestamp | DEFAULT CURRENT_TIMESTAMP | 创建时间 |\n| updated_at | timestamp | ON UPDATE CURRENT_TIMESTAMP | 更新时间 |\n\n**索引：**\n- PRIMARY KEY (id)\n- UNIQUE KEY (username)\n- UNIQUE KEY (email)\n- INDEX (created_at)\n\n## 4. 接口设计\n\n### 4.1 RESTful API 规范\n- 使用标准HTTP方法（GET/POST/PUT/DELETE）\n- 统一响应格式\n- 版本控制：/api/v1/...\n\n### 4.2 统一响应格式\n```json\n{\n  \"code\": 200,\n  \"message\": \"success\",\n  \"data\": {},\n  \"timestamp\": 1640995200\n}\n```\n\n## 5. 安全设计\n\n### 5.1 认证授权\n- JWT Token机制\n- Token刷新策略\n- 权限模型（RBAC）\n\n### 5.2 数据安全\n- 敏感数据加密（AES-256）\n- HTTPS传输\n- SQL注入防护\n- XSS/CSRF防护\n\n### 5.3 接口安全\n- API签名验证\n- 请求限流\n- IP白名单\n\n## 6. 性能优化\n\n### 6.1 缓存策略\n- Redis缓存热点数据\n- CDN加速静态资源\n- 浏览器缓存策略\n\n### 6.2 数据库优化\n- 索引优化\n- 读写分离\n- 分库分表\n\n### 6.3 性能指标\n- 响应时间：P95 < 200ms\n- 吞吐量：{{throughput}} QPS\n- 并发用户：{{concurrentUsers}} CCU\n\n## 7. 高可用设计\n\n### 7.1 服务高可用\n- 多实例部署\n- 负载均衡\n- 健康检查\n\n### 7.2 数据高可用\n- 主从复制\n- 定期备份\n- 灾难恢复方案\n\n### 7.3 监控告警\n- 系统监控：CPU、内存、磁盘\n- 业务监控：QPS、错误率、响应时间\n- 日志收集：ELK Stack\n\n## 8. 部署方案\n\n### 8.1 环境划分\n- 开发环境（Dev）\n- 测试环境（Test）\n- 预发环境（Staging）\n- 生产环境（Production）\n\n### 8.2 容器化部署\n```yaml\n# docker-compose.yml 示例\nversion: '3'\nservices:\n  app:\n    image: {{projectName}}:{{version}}\n    ports:\n      - \"8080:8080\"\n    environment:\n      - DB_HOST=db\n      - REDIS_HOST=redis\n```\n\n{{/eq}}\n\n{{#eq docType \"部署指南\"}}\n# {{projectName}} 部署指南\n\n## 环境要求\n\n### 硬件要求\n- CPU：{{cpuRequirement}}\n- 内存：{{memoryRequirement}}\n- 磁盘：{{diskRequirement}}\n\n### 软件要求\n- 操作系统：{{osRequirement}}\n- 运行时：{{runtime}}\n- 数据库：{{database}}\n\n## 快速部署\n\n### 使用 Docker Compose（推荐）\n\n1. **克隆项目**\n```bash\ngit clone https://github.com/your-org/{{projectName}}.git\ncd {{projectName}}\n```\n\n2. **配置环境变量**\n```bash\ncp .env.example .env\n# 编辑 .env 文件，填入配置信息\n```\n\n3. **启动服务**\n```bash\ndocker-compose up -d\n```\n\n4. **验证部署**\n```bash\ncurl http://localhost:{{port}}/health\n```\n\n## 详细部署步骤\n\n### 1. 准备工作\n\n#### 1.1 安装依赖\n```bash\n# Ubuntu/Debian\nsudo apt-get update\nsudo apt-get install -y docker.io docker-compose\n\n# CentOS/RHEL\nsudo yum install -y docker docker-compose\n```\n\n#### 1.2 配置数据库\n```sql\n-- 创建数据库\nCREATE DATABASE {{projectName}} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\n\n-- 创建用户\nCREATE USER '{{projectName}}'@'%' IDENTIFIED BY 'your_password';\nGRANT ALL PRIVILEGES ON {{projectName}}.* TO '{{projectName}}'@'%';\nFLUSH PRIVILEGES;\n```\n\n### 2. 应用部署\n\n#### 2.1 构建镜像\n```bash\ndocker build -t {{projectName}}:{{version}} .\n```\n\n#### 2.2 运行容器\n```bash\ndocker run -d \\\n  --name {{projectName}} \\\n  -p {{port}}:{{port}} \\\n  -e DB_HOST=your_db_host \\\n  -e DB_PORT=3306 \\\n  -e DB_NAME={{projectName}} \\\n  -e DB_USER={{projectName}} \\\n  -e DB_PASSWORD=your_password \\\n  {{projectName}}:{{version}}\n```\n\n### 3. 数据库迁移\n\n```bash\n# 执行数据库迁移\ndocker exec {{projectName}} npm run migrate\n\n# 或手动执行SQL\nmysql -h your_db_host -u {{projectName}} -p {{projectName}} < migrations/schema.sql\n```\n\n### 4. 配置反向代理（Nginx）\n\n```nginx\n# /etc/nginx/sites-available/{{projectName}}\nserver {\n    listen 80;\n    server_name {{domain}};\n\n    location / {\n        proxy_pass http://localhost:{{port}};\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection 'upgrade';\n        proxy_set_header Host $host;\n        proxy_cache_bypass $http_upgrade;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    }\n}\n```\n\n```bash\n# 启用站点\nsudo ln -s /etc/nginx/sites-available/{{projectName}} /etc/nginx/sites-enabled/\nsudo nginx -t\nsudo systemctl reload nginx\n```\n\n### 5. SSL 配置（Let's Encrypt）\n\n```bash\n# 安装 certbot\nsudo apt-get install certbot python3-certbot-nginx\n\n# 获取证书\nsudo certbot --nginx -d {{domain}}\n\n# 自动续期\nsudo crontab -e\n# 添加以下行\n0 3 * * * certbot renew --quiet\n```\n\n## 高级配置\n\n### 负载均衡\n\n```nginx\nupstream {{projectName}}_backend {\n    least_conn;\n    server 10.0.1.10:{{port}};\n    server 10.0.1.11:{{port}};\n    server 10.0.1.12:{{port}};\n}\n\nserver {\n    listen 80;\n    server_name {{domain}};\n\n    location / {\n        proxy_pass http://{{projectName}}_backend;\n    }\n}\n```\n\n### 监控配置\n\n```yaml\n# prometheus.yml\nscrape_configs:\n  - job_name: '{{projectName}}'\n    static_configs:\n      - targets: ['localhost:{{port}}']\n```\n\n## 故障排查\n\n### 常见问题\n\n**问题1：容器无法启动**\n```bash\n# 查看日志\ndocker logs {{projectName}}\n\n# 检查配置\ndocker inspect {{projectName}}\n```\n\n**问题2：数据库连接失败**\n```bash\n# 测试数据库连接\nmysql -h your_db_host -u {{projectName}} -p\n\n# 检查防火墙\nsudo ufw status\nsudo ufw allow 3306/tcp\n```\n\n**问题3：性能问题**\n```bash\n# 查看资源使用\ndocker stats {{projectName}}\n\n# 查看慢查询\nmysql> SHOW FULL PROCESSLIST;\n```\n\n## 备份与恢复\n\n### 数据库备份\n```bash\n# 备份\nmysqldump -h your_db_host -u {{projectName}} -p {{projectName}} > backup_$(date +%Y%m%d).sql\n\n# 恢复\nmysql -h your_db_host -u {{projectName}} -p {{projectName}} < backup_20240101.sql\n```\n\n### 应用备份\n```bash\n# 备份应用数据\ntar -czf {{projectName}}_data_$(date +%Y%m%d).tar.gz /var/lib/{{projectName}}/data\n```\n\n## 升级指南\n\n### 滚动升级\n```bash\n# 1. 拉取新版本\ndocker pull {{projectName}}:{{newVersion}}\n\n# 2. 停止旧容器\ndocker stop {{projectName}}\n\n# 3. 启动新容器\ndocker run -d --name {{projectName}}_new ...\n\n# 4. 验证新版本\ncurl http://localhost:{{port}}/version\n\n# 5. 删除旧容器\ndocker rm {{projectName}}\ndocker rename {{projectName}}_new {{projectName}}\n```\n\n{{/eq}}\n\n**格式要求：**\n- 使用Markdown格式\n- 代码块使用语法高亮\n- 清晰的章节结构\n- 丰富的示例代码\n- 风格：{{style}}",
+
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：UserManagementAPI、OrderSystem"
+    },
+    {
+      "name": "docType",
+      "label": "文档类型",
+      "type": "select",
+      "required": false,
+      "default": "API文档",
+      "options": [
+        { "value": "API文档", "label": "API文档" },
+        { "value": "系统设计文档", "label": "系统设计文档" },
+        { "value": "部署指南", "label": "部署指南" }
+      ]
+    },
+    {
+      "name": "version",
+      "label": "项目版本",
+      "type": "string",
+      "required": false,
+      "default": "1.0.0",
+      "placeholder": "例如：1.0.0, v2.3.1"
+    },
+    {
+      "name": "techStack",
+      "label": "技术栈",
+      "type": "string",
+      "required": false,
+      "default": "Node.js + Express",
+      "placeholder": "例如：Spring Boot + MySQL、Django + PostgreSQL"
+    },
+    {
+      "name": "audience",
+      "label": "目标读者",
+      "type": "select",
+      "required": false,
+      "default": "开发者",
+      "options": [
+        { "value": "开发者", "label": "开发者" },
+        { "value": "运维人员", "label": "运维人员" },
+        { "value": "测试人员", "label": "测试人员" },
+        { "value": "产品经理", "label": "产品经理" }
+      ]
+    },
+    {
+      "name": "baseUrl",
+      "label": "API基础URL",
+      "type": "string",
+      "required": false,
+      "default": "https://api.example.com",
+      "placeholder": "例如：https://api.example.com"
+    },
+    {
+      "name": "protocol",
+      "label": "协议",
+      "type": "select",
+      "required": false,
+      "default": "HTTPS",
+      "options": [
+        { "value": "HTTPS", "label": "HTTPS" },
+        { "value": "HTTP", "label": "HTTP" },
+        { "value": "WebSocket", "label": "WebSocket" }
+      ]
+    },
+    {
+      "name": "authMethod",
+      "label": "认证方式",
+      "type": "select",
+      "required": false,
+      "default": "Bearer Token",
+      "options": [
+        { "value": "Bearer Token", "label": "Bearer Token (JWT)" },
+        { "value": "API Key", "label": "API Key" },
+        { "value": "OAuth 2.0", "label": "OAuth 2.0" },
+        { "value": "Basic Auth", "label": "Basic Auth" }
+      ]
+    },
+    {
+      "name": "rateLimit",
+      "label": "速率限制（次/分钟）",
+      "type": "number",
+      "required": false,
+      "default": 60,
+      "min": 10,
+      "max": 10000
+    },
+    {
+      "name": "style",
+      "label": "文档风格",
+      "type": "select",
+      "required": false,
+      "default": "专业详细",
+      "options": [
+        { "value": "专业详细", "label": "专业详细" },
+        { "value": "简洁明了", "label": "简洁明了" },
+        { "value": "新手友好", "label": "新手友好（含教程）" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{projectName}}-技术文档",
+    "files": [
+      {
+        "path": "{{docType}}.md",
+        "type": "markdown"
+      },
+      {
+        "path": "README.md",
+        "type": "markdown",
+        "content": "# {{projectName}} 技术文档\n\n## 版本\n{{version}}\n\n## 文档类型\n{{docType}}\n\n## 技术栈\n{{techStack}}\n\n## 快速导航\n- [完整文档](./{{docType}}.md)\n- [在线API测试]({{baseUrl}}/docs)"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

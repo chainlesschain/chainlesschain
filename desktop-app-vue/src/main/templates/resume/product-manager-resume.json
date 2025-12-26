@@ -1,0 +1,39 @@
+{
+  "id": "tpl_resume_pm_001",
+  "name": "product_manager_resume",
+  "display_name": "产品经理简历",
+  "description": "专为产品经理打造的专业简历模板,突出产品思维和项目经验",
+  "icon": "💼",
+  "cover_image": "/templates/covers/pm-resume.png",
+  "category": "resume",
+  "subcategory": "职位",
+  "tags": ["简历", "产品经理", "求职", "PM"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成一份产品经理简历,要求:\n\n**个人信息:**\n- 姓名: {{name}}\n- 求职意向: {{position}}\n- 工作年限: {{experience}}年\n- 期望薪资: {{salary}}\n\n生成专业的产品经理简历,包含:\n\n# {{name}} - 产品经理\n\n## 个人信息\n- 工作年限: {{experience}}年\n- 手机: {{phone}}\n- 邮箱: {{email}}\n- 期望职位: {{position}}\n- 期望薪资: {{salary}}\n\n## 专业技能\n- 产品设计: Axure/Figma/Sketch\n- 数据分析: SQL/Excel/数据分析工具\n- 项目管理: Agile/Scrum\n- 用户研究: 用户访谈/可用性测试\n\n## 工作经历\n\n### 公司名称 | 产品经理 | 2020.01 - 至今\n\n**负责产品:**\n- [产品名称]: [一句话描述]\n\n**主要成果:**\n- 用户增长: 从X到Y (增长Z%)\n- 核心指标: [具体数据]\n- 重要功能: [功能名称及效果]\n\n**项目经验:**\n1. **[项目名称]** (时间)\n   - 项目背景: [问题/机会]\n   - 解决方案: [产品方案]\n   - 项目成果: [数据/效果]\n   - 个人贡献: [具体工作]\n\n## 项目作品\n- [作品1]: [链接/描述]\n- [作品2]: [链接/描述]\n\n## 教育背景\n- 本科/硕士 | 学校 | 专业 | 时间\n\n**格式要求:**\n- Word文档\n- 简洁专业\n- 突出数据和成果\n- 风格: {{style}}",
+  "variables_schema": [
+    {"name": "name", "label": "姓名", "type": "string", "required": true, "placeholder": "您的姓名"},
+    {"name": "position", "label": "求职职位", "type": "string", "required": false, "default": "产品经理", "placeholder": "例如:高级产品经理"},
+    {"name": "experience", "label": "工作年限", "type": "number", "required": false, "default": 3, "min": 0, "max": 20},
+    {"name": "salary", "label": "期望薪资", "type": "string", "required": false, "placeholder": "例如:20-30K"},
+    {"name": "phone", "label": "联系电话", "type": "string", "required": false, "placeholder": "手机号码"},
+    {"name": "email", "label": "邮箱", "type": "string", "required": false, "placeholder": "邮箱地址"},
+    {"name": "style", "label": "简历风格", "type": "select", "required": false, "default": "专业简约", "options": [
+      {"value": "专业简约", "label": "专业简约"},
+      {"value": "现代时尚", "label": "现代时尚"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "{{name}}-产品经理简历",
+    "files": [
+      {"path": "{{name}}-产品经理简历.docx", "type": "document"},
+      {"path": "README.md", "type": "markdown", "content": "# {{name}} 简历\n\n求职意向: {{position}}\n期望薪资: {{salary}}"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
