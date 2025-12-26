@@ -84,6 +84,7 @@ tmp/
 temp/
 *.tmp
 *.bak
+*.backup
 
 # Docker volumes
 backend/docker/ollama_data/
