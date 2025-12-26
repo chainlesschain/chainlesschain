@@ -219,6 +219,53 @@
         <pre>{{ currentDiff }}</pre>
       </div>
     </a-modal>
+
+    <!-- 提交信息输入Modal -->
+    <a-modal
+      v-model:open="showCommitModal"
+      title="提交更改"
+      :width="600"
+      :confirm-loading="committing"
+      @ok="handleConfirmCommit"
+      @cancel="handleCancelCommit"
+    >
+      <div class="commit-modal-content">
+        <a-form layout="vertical">
+          <a-form-item label="提交信息" required>
+            <a-textarea
+              v-model:value="commitMessage"
+              placeholder="请输入提交信息..."
+              :rows="4"
+              :maxlength="500"
+              show-count
+            />
+          </a-form-item>
+
+          <a-form-item>
+            <a-space>
+              <a-button
+                type="dashed"
+                :loading="generatingAI"
+                :disabled="generatingAI || !hasStaged"
+                @click="handleGenerateAICommit"
+              >
+                <template #icon>
+                  <BulbOutlined />
+                </template>
+                AI生成提交信息
+              </a-button>
+              <a-tooltip v-if="!hasStaged" title="请先暂存文件">
+                <QuestionCircleOutlined style="color: #faad14" />
+              </a-tooltip>
+            </a-space>
+            <div v-if="aiGeneratedMessage" class="ai-generated-hint">
+              <CheckCircleOutlined style="color: #52c41a" />
+              <span>AI已生成提交信息，您可以编辑后提交</span>
+            </div>
+          </a-form-item>
+        </a-form>
+      </div>
+    </a-modal>
   </a-modal>
 </template>
 
@@ -238,6 +285,8 @@ import {
   CheckOutlined,
   ReloadOutlined,
   ExclamationCircleOutlined,
+  BulbOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
@@ -266,6 +315,13 @@ const loading = ref(false);
 const status = ref(null);
 const showDiffModal = ref(false);
 const currentDiff = ref('');
+
+// 提交相关状态
+const showCommitModal = ref(false);
+const commitMessage = ref('');
+const committing = ref(false);
+const generatingAI = ref(false);
+const aiGeneratedMessage = ref(false);
 
 // 计算属性
 const isClean = computed(() => {
@@ -411,9 +467,72 @@ const handleViewDiff = async (file) => {
   }
 };
 
-// 提交更改
+// 提交更改 - 打开提交modal
 const handleCommit = () => {
-  emit('commit');
+  commitMessage.value = '';
+  aiGeneratedMessage.value = false;
+  showCommitModal.value = true;
+};
+
+// AI生成提交信息
+const handleGenerateAICommit = async () => {
+  if (!props.repoPath) {
+    message.error('仓库路径不存在');
+    return;
+  }
+
+  generatingAI.value = true;
+  try {
+    const result = await window.electron.invoke('git:generateCommitMessage', props.repoPath);
+
+    if (result.success && result.message) {
+      commitMessage.value = result.message;
+      aiGeneratedMessage.value = true;
+      message.success('AI已生成提交信息');
+    } else {
+      message.error(result.error || 'AI生成失败');
+    }
+  } catch (error) {
+    console.error('Generate AI commit message failed:', error);
+    message.error('AI生成失败：' + error.message);
+  } finally {
+    generatingAI.value = false;
+  }
+};
+
+// 确认提交
+const handleConfirmCommit = async () => {
+  if (!commitMessage.value.trim()) {
+    message.error('请输入提交信息');
+    return;
+  }
+
+  committing.value = true;
+  try {
+    // 调用git commit
+    await window.electronAPI.project.gitCommit(props.repoPath, commitMessage.value.trim());
+
+    message.success('提交成功');
+    showCommitModal.value = false;
+    commitMessage.value = '';
+    aiGeneratedMessage.value = false;
+
+    // 刷新状态
+    await loadStatus();
+    emit('commit');
+  } catch (error) {
+    console.error('Commit failed:', error);
+    message.error('提交失败：' + error.message);
+  } finally {
+    committing.value = false;
+  }
+};
+
+// 取消提交
+const handleCancelCommit = () => {
+  commitMessage.value = '';
+  aiGeneratedMessage.value = false;
+  showCommitModal.value = false;
 };
 
 // 刷新
@@ -629,5 +748,27 @@ watch(() => props.visible, (newVal) => {
 
 .git-status-dialog::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* 提交Modal样式 */
+.commit-modal-content {
+  padding-top: 16px;
+}
+
+.ai-generated-hint {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #52c41a;
+}
+
+.ai-generated-hint span {
+  color: #389e0d;
 }
 </style>
