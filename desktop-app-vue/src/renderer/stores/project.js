@@ -37,9 +37,6 @@ export const useProjectStore = defineStore('project', {
     // 视图模式
     viewMode: 'grid', // 'grid', 'list'
 
-    // 项目模板
-    templates: [],
-
     // UI状态
     loading: false,
     syncing: false,
@@ -595,19 +592,6 @@ export const useProjectStore = defineStore('project', {
     },
 
     // ==================== 模板管理 ====================
-
-    /**
-     * 获取模板列表
-     */
-    async fetchTemplates() {
-      try {
-        const templates = await window.electronAPI.project.getTemplates();
-        this.templates = templates;
-      } catch (error) {
-        console.error('加载模板列表失败:', error);
-        throw error;
-      }
-    },
 
     // ==================== 同步 ====================
 

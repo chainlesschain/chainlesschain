@@ -318,25 +318,6 @@ class ProjectHTTPClient {
     return this.client.post('/api/projects/tasks/execute', taskData);
   }
 
-  // ==================== 项目模板 ====================
-
-  /**
-   * 获取模板列表
-   * @returns {Promise<Array>} 模板列表
-   */
-  async getTemplates() {
-    return this.client.get('/api/templates');
-  }
-
-  /**
-   * 获取模板详情
-   * @param {string} templateId - 模板ID
-   * @returns {Promise<Object>} 模板详情
-   */
-  async getTemplate(templateId) {
-    return this.client.get(`/api/templates/${templateId}`);
-  }
-
   // ==================== 健康检查 ====================
 
   /**

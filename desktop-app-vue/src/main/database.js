@@ -429,24 +429,6 @@ class DatabaseManager {
       )
     `);
 
-    // 项目模板表
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS project_templates (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        project_type TEXT NOT NULL,
-        description TEXT,
-        preview_image_url TEXT,
-        config_json TEXT,
-        file_structure TEXT,
-        usage_count INTEGER DEFAULT 0,
-        is_builtin INTEGER DEFAULT 0,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL,
-        synced_at INTEGER
-      )
-    `);
-
     // 文件同步状态表
     this.db.run(`
       CREATE TABLE IF NOT EXISTS file_sync_state (
@@ -687,9 +669,6 @@ class DatabaseManager {
     `);
     this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_project_files_project_id ON project_files(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_templates_type ON project_templates(project_type);
     `);
     this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_file_sync_state_file_id ON file_sync_state(file_id);
@@ -2224,61 +2203,6 @@ class DatabaseManager {
     );
 
     this.saveToFile();
-  }
-
-  /**
-   * 获取所有模板
-   * @returns {Array} 模板列表
-   */
-  getProjectTemplates() {
-    const stmt = this.db.prepare(`
-      SELECT * FROM project_templates
-      ORDER BY is_builtin DESC, usage_count DESC
-    `);
-    return stmt.all();
-  }
-
-  /**
-   * 保存模板
-   * @param {Object} template - 模板数据
-   */
-  saveProjectTemplate(template) {
-    const stmt = this.db.prepare(`
-      INSERT OR REPLACE INTO project_templates (
-        id, name, project_type, description, preview_image_url,
-        config_json, file_structure, usage_count, is_builtin,
-        created_at, updated_at, synced_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      template.id,
-      template.name,
-      template.project_type,
-      template.description,
-      template.preview_image_url,
-      typeof template.config_json === 'string' ? template.config_json : JSON.stringify(template.config_json || {}),
-      typeof template.file_structure === 'string' ? template.file_structure : JSON.stringify(template.file_structure || []),
-      template.usage_count || 0,
-      template.is_builtin ? 1 : 0,
-      template.created_at || Date.now(),
-      template.updated_at || Date.now(),
-      template.synced_at
-    );
-
-    this.saveToFile();
-  }
-
-  /**
-   * 批量保存模板
-   * @param {Array} templates - 模板列表
-   */
-  saveProjectTemplates(templates) {
-    this.transaction(() => {
-      templates.forEach(template => {
-        this.saveProjectTemplate(template);
-      });
-    });
   }
 
   // ==================== 对话管理操作 ====================

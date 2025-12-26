@@ -38,7 +38,6 @@ public class ProjectService {
     private final ProjectFileMapper projectFileMapper;
     private final ProjectTaskMapper projectTaskMapper;
     private final ProjectConversationMapper projectConversationMapper;
-    private final ProjectTemplateMapper projectTemplateMapper;
     private final AiServiceClient aiServiceClient;
     private final ObjectMapper objectMapper;
 

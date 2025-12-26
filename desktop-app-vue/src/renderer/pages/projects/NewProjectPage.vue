@@ -23,17 +23,6 @@
           <AIProjectCreator @create="handleCreateProject" />
         </a-tab-pane>
 
-        <!-- 模板创建 -->
-        <a-tab-pane key="template" tab="使用模板">
-          <template #tab>
-            <span>
-              <FileTextOutlined />
-              使用模板
-            </span>
-          </template>
-          <TemplateSelector @select="handleTemplateSelect" />
-        </a-tab-pane>
-
         <!-- 手动创建 -->
         <a-tab-pane key="manual" tab="手动创建">
           <template #tab>
@@ -75,7 +64,6 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons-vue';
 import AIProjectCreator from '@/components/projects/AIProjectCreator.vue';
-import TemplateSelector from '@/components/projects/TemplateSelector.vue';
 import ManualProjectForm from '@/components/projects/ManualProjectForm.vue';
 import StreamProgressModal from '@/components/projects/StreamProgressModal.vue';
 
