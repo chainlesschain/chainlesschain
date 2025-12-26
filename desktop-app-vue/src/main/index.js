@@ -27,7 +27,7 @@ const CreditScoreManager = require('./trade/credit-score');
 const ReviewManager = require('./trade/review-manager');
 
 // AI Engine modules
-const AIEngineManager = require('./ai-engine/ai-engine-manager');
+const { AIEngineManager } = require('./ai-engine/ai-engine-manager');
 const AIEngineIPC = require('./ai-engine/ai-engine-ipc');
 const WebEngine = require('./engines/web-engine');
 const DocumentEngine = require('./engines/document-engine');

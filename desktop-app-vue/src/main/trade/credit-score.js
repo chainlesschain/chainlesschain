@@ -36,7 +36,7 @@ class CreditScoreManager extends EventEmitter {
    */
   initDatabase() {
     // 用户信用表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS user_credits (
         user_did TEXT PRIMARY KEY,
         credit_score INTEGER DEFAULT 0,
@@ -54,7 +54,7 @@ class CreditScoreManager extends EventEmitter {
     `);
 
     // 信用记录表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS credit_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_did TEXT NOT NULL,
@@ -68,7 +68,7 @@ class CreditScoreManager extends EventEmitter {
     `);
 
     // 信用快照表（用于历史追踪）
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS credit_snapshots (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_did TEXT NOT NULL,

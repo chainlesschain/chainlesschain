@@ -33,7 +33,7 @@ class ReviewManager extends EventEmitter {
    */
   initDatabase() {
     // 评价表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS reviews (
         id TEXT PRIMARY KEY,
         transaction_id TEXT NOT NULL,
@@ -53,7 +53,7 @@ class ReviewManager extends EventEmitter {
     `);
 
     // 评价回复表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS review_replies (
         id TEXT PRIMARY KEY,
         review_id TEXT NOT NULL,
@@ -64,7 +64,7 @@ class ReviewManager extends EventEmitter {
     `);
 
     // 评价举报表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS review_reports (
         id TEXT PRIMARY KEY,
         review_id TEXT NOT NULL,
@@ -79,7 +79,7 @@ class ReviewManager extends EventEmitter {
     `);
 
     // 评价有帮助记录表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS review_helpful_votes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         review_id TEXT NOT NULL,

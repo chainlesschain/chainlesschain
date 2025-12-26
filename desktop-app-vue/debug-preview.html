@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Office文件预览调试工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      border-left: 4px solid #1890ff;
+    }
+
+    .section h2 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    button {
+      background: #1890ff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .log-container {
+      margin-top: 20px;
+      padding: 15px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .log-success {
+      color: #4ade80;
+    }
+
+    .log-error {
+      color: #f87171;
+    }
+
+    .log-info {
+      color: #60a5fa;
+    }
+
+    .log-warning {
+      color: #fbbf24;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-pending {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    .result-box {
+      margin-top: 15px;
+      padding: 15px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+    }
+
+    .result-title {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 10px;
+    }
+
+    .result-content {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Office文件预览调试工具</h1>
+    <p class="subtitle">快速诊断和测试Office文件预览功能</p>
+
+    <!-- 步骤1: 项目信息 -->
+    <div class="section">
+      <h2>步骤1: 输入项目信息</h2>
+      <div class="input-group">
+        <label for="projectId">项目ID:</label>
+        <input type="text" id="projectId" placeholder="例如: abc123-def456-ghi789">
+      </div>
+      <div class="input-group">
+        <label for="fileName">文件名:</label>
+        <input type="text" id="fileName" placeholder="例如: 工作报告.docx">
+      </div>
+    </div>
+
+    <!-- 步骤2: 路径测试 -->
+    <div class="section">
+      <h2>步骤2: 测试路径解析</h2>
+      <button onclick="testPathResolution()">测试路径解析</button>
+      <div id="pathResult"></div>
+    </div>
+
+    <!-- 步骤3: 文件检查 -->
+    <div class="section">
+      <h2>步骤3: 检查文件是否存在</h2>
+      <button onclick="testFileExists()">检查文件</button>
+      <div id="fileExistsResult"></div>
+    </div>
+
+    <!-- 步骤4: 文件信息 -->
+    <div class="section">
+      <h2>步骤4: 获取文件信息</h2>
+      <button onclick="testFileInfo()">获取文件信息</button>
+      <div id="fileInfoResult"></div>
+    </div>
+
+    <!-- 步骤5: 预览测试 -->
+    <div class="section">
+      <h2>步骤5: 测试文件预览</h2>
+      <button onclick="testPreview('word')">测试Word预览</button>
+      <button onclick="testPreview('excel')">测试Excel预览</button>
+      <button onclick="testPreview('powerpoint')">测试PPT预览</button>
+      <div id="previewResult"></div>
+    </div>
+
+    <!-- 日志输出 -->
+    <div class="section">
+      <h2>调试日志</h2>
+      <button onclick="clearLog()">清空日志</button>
+      <button onclick="copyLog()">复制日志</button>
+      <div class="log-container" id="logContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    let resolvedPath = '';
+
+    function log(message, type = 'info') {
+      const logContainer = document.getElementById('logContainer');
+      const timestamp = new Date().toLocaleTimeString();
+      const className = `log-${type}`;
+      logContainer.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+      logContainer.scrollTop = logContainer.scrollHeight;
+      console.log(`[${type.toUpperCase()}]`, message);
+    }
+
+    function clearLog() {
+      document.getElementById('logContainer').innerHTML = '';
+      log('日志已清空', 'info');
+    }
+
+    function copyLog() {
+      const logContainer = document.getElementById('logContainer');
+      const text = logContainer.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('日志已复制到剪贴板');
+      });
+    }
+
+    function getFilePath() {
+      const projectId = document.getElementById('projectId').value.trim();
+      const fileName = document.getElementById('fileName').value.trim();
+
+      if (!projectId || !fileName) {
+        log('请先输入项目ID和文件名', 'error');
+        alert('请先输入项目ID和文件名');
+        return null;
+      }
+
+      return `/data/projects/${projectId}/${fileName}`;
+    }
+
+    async function testPathResolution() {
+      log('=== 开始测试路径解析 ===', 'info');
+
+      const filePath = getFilePath();
+      if (!filePath) return;
+
+      log(`输入路径: ${filePath}`, 'info');
+
+      try {
+        const resolved = await window.electronAPI.project.resolvePath(filePath);
+        resolvedPath = resolved;
+
+        log(`✓ 路径解析成功`, 'success');
+        log(`解析后路径: ${resolved}`, 'success');
+
+        document.getElementById('pathResult').innerHTML = `
+          <div class="result-box">
+            <div class="result-title">
+              <span class="status status-success">成功</span>
+              路径解析结果
+            </div>
+            <div class="result-content">
+              <strong>原始路径:</strong> ${filePath}<br>
+              <strong>绝对路径:</strong> ${resolved}
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        log(`✗ 路径解析失败: ${error.message}`, 'error');
+        document.getElementById('pathResult').innerHTML = `
+          <div class="result-box">
+            <div class="result-title">
+              <span class="status status-error">失败</span>
+              路径解析失败
+            </div>
+            <div class="result-content">
+              ${error.message}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    async function testFileExists() {
+      log('=== 开始检查文件是否存在 ===', 'info');
+
+      if (!resolvedPath) {
+        log('请先执行步骤2：测试路径解析', 'warning');
+        alert('请先执行步骤2：测试路径解析');
+        return;
+      }
+
+      log(`检查文件: ${resolvedPath}`, 'info');
+
+      try {
+        const stats = await window.electronAPI.file.stat(resolvedPath);
+
+        if (stats.success) {
+          log(`✓ 文件存在`, 'success');
+          document.getElementById('fileExistsResult').innerHTML = `
+            <div class="result-box">
+              <div class="result-title">
+                <span class="status status-success">文件存在</span>
+              </div>
+              <div class="result-content">
+                文件路径: ${resolvedPath}
+              </div>
+            </div>
+          `;
+        } else {
+          log(`✗ 文件不存在`, 'error');
+          document.getElementById('fileExistsResult').innerHTML = `
+            <div class="result-box">
+              <div class="result-title">
+                <span class="status status-error">文件不存在</span>
+              </div>
+              <div class="result-content">
+                ${stats.error || '文件未找到'}
+              </div>
+            </div>
+          `;
+        }
+      } catch (error) {
+        log(`✗ 文件检查失败: ${error.message}`, 'error');
+        document.getElementById('fileExistsResult').innerHTML = `
+          <div class="result-box">
+            <div class="result-title">
+              <span class="status status-error">检查失败</span>
+            </div>
+            <div class="result-content">
+              ${error.message}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    async function testFileInfo() {
+      log('=== 开始获取文件信息 ===', 'info');
+
+      if (!resolvedPath) {
+        log('请先执行步骤2：测试路径解析', 'warning');
+        alert('请先执行步骤2：测试路径解析');
+        return;
+      }
+
+      log(`获取文件信息: ${resolvedPath}`, 'info');
+
+      try {
+        const stats = await window.electronAPI.file.stat(resolvedPath);
+
+        if (stats.success && stats.stats) {
+          const size = stats.stats.size;
+          const sizeKB = (size / 1024).toFixed(2);
+          const sizeMB = (size / 1024 / 1024).toFixed(2);
+
+          log(`✓ 文件大小: ${size} bytes (${sizeKB} KB, ${sizeMB} MB)`, 'success');
+          log(`修改时间: ${new Date(stats.stats.mtimeMs).toLocaleString()}`, 'info');
+
+          document.getElementById('fileInfoResult').innerHTML = `
+            <div class="result-box">
+              <div class="result-title">
+                <span class="status status-success">文件信息</span>
+              </div>
+              <div class="result-content">
+                <strong>文件大小:</strong> ${size} bytes (${sizeKB} KB)<br>
+                <strong>修改时间:</strong> ${new Date(stats.stats.mtimeMs).toLocaleString()}<br>
+                <strong>是否为文件:</strong> ${stats.stats.isFile ? '是' : '否'}<br>
+                <strong>是否为目录:</strong> ${stats.stats.isDirectory ? '是' : '否'}
+              </div>
+            </div>
+          `;
+
+          if (size === 0) {
+            log('⚠ 警告: 文件大小为0，可能是空文件！', 'warning');
+          }
+        } else {
+          log(`✗ 无法获取文件信息`, 'error');
+          document.getElementById('fileInfoResult').innerHTML = `
+            <div class="result-box">
+              <div class="result-title">
+                <span class="status status-error">获取失败</span>
+              </div>
+              <div class="result-content">
+                ${stats.error || '无法获取文件信息'}
+              </div>
+            </div>
+          `;
+        }
+      } catch (error) {
+        log(`✗ 获取文件信息失败: ${error.message}`, 'error');
+        document.getElementById('fileInfoResult').innerHTML = `
+          <div class="result-box">
+            <div class="result-title">
+              <span class="status status-error">获取失败</span>
+            </div>
+            <div class="result-content">
+              ${error.message}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    async function testPreview(format) {
+      log(`=== 开始测试${format}预览 ===`, 'info');
+
+      if (!resolvedPath) {
+        log('请先执行步骤2：测试路径解析', 'warning');
+        alert('请先执行步骤2：测试路径解析');
+        return;
+      }
+
+      log(`预览文件: ${resolvedPath}`, 'info');
+      log(`预览格式: ${format}`, 'info');
+
+      const startTime = Date.now();
+
+      try {
+        const result = await window.electronAPI.file.previewOffice(resolvedPath, format);
+
+        const duration = Date.now() - startTime;
+        log(`预览耗时: ${duration}ms`, 'info');
+
+        if (result.success) {
+          log(`✓ ${format}预览成功`, 'success');
+
+          let contentInfo = '';
+          if (format === 'word' && result.data.html) {
+            contentInfo = `HTML长度: ${result.data.html.length} 字符`;
+            log(`Word HTML长度: ${result.data.html.length}`, 'success');
+          } else if (format === 'excel' && result.data.sheets) {
+            contentInfo = `工作表数量: ${result.data.sheets.length}`;
+            log(`Excel工作表数量: ${result.data.sheets.length}`, 'success');
+            result.data.sheets.forEach((sheet, i) => {
+              log(`  工作表 ${i + 1}: ${sheet.name}, 行数: ${sheet.data.length}`, 'info');
+            });
+          } else if (format === 'powerpoint' && result.data.slides) {
+            contentInfo = `幻灯片数量: ${result.data.slides.length}`;
+            log(`PowerPoint幻灯片数量: ${result.data.slides.length}`, 'success');
+            result.data.slides.forEach((slide, i) => {
+              log(`  幻灯片 ${i + 1}: ${slide.title || '(无标题)'}`, 'info');
+            });
+          }
+
+          document.getElementById('previewResult').innerHTML = `
+            <div class="result-box">
+              <div class="result-title">
+                <span class="status status-success">预览成功</span>
+              </div>
+              <div class="result-content">
+                <strong>格式:</strong> ${format}<br>
+                <strong>耗时:</strong> ${duration}ms<br>
+                <strong>内容:</strong> ${contentInfo}
+              </div>
+            </div>
+          `;
+        } else {
+          log(`✗ ${format}预览失败: ${result.error}`, 'error');
+          document.getElementById('previewResult').innerHTML = `
+            <div class="result-box">
+              <div class="result-title">
+                <span class="status status-error">预览失败</span>
+              </div>
+              <div class="result-content">
+                ${result.error || '未知错误'}
+              </div>
+            </div>
+          `;
+        }
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        log(`✗ ${format}预览异常: ${error.message} (耗时: ${duration}ms)`, 'error');
+        document.getElementById('previewResult').innerHTML = `
+          <div class="result-box">
+            <div class="result-title">
+              <span class="status status-error">预览异常</span>
+            </div>
+            <div class="result-content">
+              ${error.message}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // 页面加载时显示欢迎信息
+    window.addEventListener('DOMContentLoaded', () => {
+      log('Office文件预览调试工具已启动', 'success');
+      log('请按照步骤1-5依次测试', 'info');
+      log('', 'info');
+    });
+  </script>
+</body>
+</html>
