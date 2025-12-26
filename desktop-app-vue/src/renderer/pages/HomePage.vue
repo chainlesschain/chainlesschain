@@ -33,154 +33,61 @@
       </div>
     </div>
 
-    <!-- 快速操作 -->
-    <div class="quick-actions">
-      <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :sm="12" :md="6">
-          <div class="action-card" @click="openTab('file-import', '/file-import', '文件导入')">
-            <div class="action-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
-              <CloudUploadOutlined />
-            </div>
-            <div class="action-content">
-              <div class="action-title">文件导入</div>
-              <div class="action-desc">导入文档到知识库</div>
-            </div>
-          </div>
-        </a-col>
-
-        <a-col :xs="24" :sm="12" :md="6">
-          <div class="action-card" @click="openTab('image-upload', '/image-upload', '图片上传')">
-            <div class="action-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
-              <FileImageOutlined />
-            </div>
-            <div class="action-content">
-              <div class="action-title">图片识别</div>
-              <div class="action-desc">OCR文字识别</div>
-            </div>
-          </div>
-        </a-col>
-
-        <a-col :xs="24" :sm="12" :md="6">
-          <div class="action-card" @click="openTab('prompt-templates', '/prompt-templates', '提示词模板')">
-            <div class="action-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">
-              <TagsOutlined />
-            </div>
-            <div class="action-content">
-              <div class="action-title">提示词模板</div>
-              <div class="action-desc">AI对话模板</div>
-            </div>
-          </div>
-        </a-col>
-
-        <a-col :xs="24" :sm="12" :md="6">
-          <div class="action-card" @click="openTab('did', '/did', 'DID身份')">
-            <div class="action-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
-              <IdcardOutlined />
-            </div>
-            <div class="action-content">
-              <div class="action-title">DID身份</div>
-              <div class="action-desc">去中心化身份</div>
-            </div>
-          </div>
-        </a-col>
-      </a-row>
+    <!-- 第一行：项目类型按钮 -->
+    <div class="project-type-buttons">
+      <a-button
+        v-for="type in projectTypes"
+        :key="type.key"
+        :type="selectedType === type.key ? 'primary' : 'default'"
+        class="task-quick-button"
+        size="large"
+        @click="handleTypeQuickSelect(type.key)"
+      >
+        <span class="button-label">{{ type.label }}</span>
+      </a-button>
     </div>
 
-    <!-- 功能模块 -->
-    <div class="feature-modules">
-      <a-row :gutter="[16, 16]">
-        <!-- 知识与AI -->
-        <a-col :xs="24" :lg="12">
-          <div class="module-card">
-            <div class="module-header">
-              <div class="module-title">
-                <FileTextOutlined class="module-icon" />
-                <span>知识与AI</span>
-              </div>
-            </div>
-            <div class="module-grid">
-              <div
-                v-for="item in knowledgeModules"
-                :key="item.key"
-                class="module-item"
-                @click="openTab(item.key, item.path, item.title)"
-              >
-                <component :is="item.icon" class="item-icon" />
-                <span class="item-title">{{ item.title }}</span>
-              </div>
-            </div>
-          </div>
-        </a-col>
+    <!-- 第二行：动态子分类按钮 -->
+    <div class="category-buttons-section">
+      <a-button
+        v-for="category in currentCategories"
+        :key="category.key"
+        :type="activeCategory === category.key ? 'primary' : 'default'"
+        class="category-button"
+        @click="handleCategoryChange(category.key)"
+      >
+        {{ category.label }}
+      </a-button>
+    </div>
 
-        <!-- 身份与社交 -->
-        <a-col :xs="24" :lg="12">
-          <div class="module-card">
-            <div class="module-header">
-              <div class="module-title">
-                <TeamOutlined class="module-icon" />
-                <span>身份与社交</span>
-              </div>
+    <!-- 模板展示区域 -->
+    <div class="templates-grid-section">
+      <a-spin :spinning="loadingTemplates">
+        <div v-if="templates.length > 0" class="templates-grid">
+          <div
+            v-for="template in templates"
+            :key="template.id"
+            class="template-card"
+            @click="handleTemplateClick(template)"
+          >
+            <div class="template-preview">
+              <img v-if="template.preview" :src="template.preview" :alt="template.name" />
+              <div v-else class="template-placeholder">{{ template.icon || '📄' }}</div>
             </div>
-            <div class="module-grid">
-              <div
-                v-for="item in socialModules"
-                :key="item.key"
-                class="module-item"
-                @click="openTab(item.key, item.path, item.title)"
-              >
-                <component :is="item.icon" class="item-icon" />
-                <span class="item-title">{{ item.title }}</span>
-              </div>
+            <div class="template-info">
+              <div class="template-name">{{ template.name }}</div>
+              <div class="template-desc">{{ template.description }}</div>
             </div>
           </div>
-        </a-col>
-
-        <!-- 交易系统 -->
-        <a-col :xs="24" :lg="12">
-          <div class="module-card">
-            <div class="module-header">
-              <div class="module-title">
-                <ShopOutlined class="module-icon" />
-                <span>交易系统</span>
-              </div>
-            </div>
-            <div class="module-grid">
-              <div
-                v-for="item in tradeModules"
-                :key="item.key"
-                class="module-item"
-                @click="openTab(item.key, item.path, item.title)"
-              >
-                <component :is="item.icon" class="item-icon" />
-                <span class="item-title">{{ item.title }}</span>
-              </div>
-            </div>
+        </div>
+        <div v-else class="empty-templates">
+          <div class="empty-icon">
+            <FileTextOutlined />
           </div>
-        </a-col>
-
-        <!-- 系统设置 -->
-        <a-col :xs="24" :lg="12">
-          <div class="module-card">
-            <div class="module-header">
-              <div class="module-title">
-                <SettingOutlined class="module-icon" />
-                <span>系统设置</span>
-              </div>
-            </div>
-            <div class="module-grid">
-              <div
-                v-for="item in systemModules"
-                :key="item.key"
-                class="module-item"
-                @click="openTab(item.key, item.path, item.title)"
-              >
-                <component :is="item.icon" class="item-icon" />
-                <span class="item-title">{{ item.title }}</span>
-              </div>
-            </div>
-          </div>
-        </a-col>
-      </a-row>
+          <h3>暂无模板</h3>
+          <p>该分类下暂时没有可用的模板</p>
+        </div>
+      </a-spin>
     </div>
 
     <!-- 系统状态 -->
@@ -199,73 +106,116 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { message } from 'ant-design-vue';
 import {
   FileTextOutlined,
-  TeamOutlined,
-  ShopOutlined,
-  SettingOutlined,
-  CloudUploadOutlined,
-  FileImageOutlined,
-  TagsOutlined,
-  IdcardOutlined,
-  SafetyCertificateOutlined,
-  UserOutlined,
-  CommentOutlined,
-  MessageOutlined,
-  ShoppingCartOutlined,
-  AuditOutlined,
-  StarOutlined,
-  ApiOutlined,
-  SyncOutlined,
-  DatabaseOutlined,
-  SafetyOutlined,
-  FileOutlined,
-  GlobalOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
+import { useAuthStore } from '../stores/auth';
 import LLMStatus from '../components/LLMStatus.vue';
 import GitStatus from '../components/GitStatus.vue';
 import ProjectSidebar from '../components/ProjectSidebar.vue';
 
 const router = useRouter();
 const store = useAppStore();
+const authStore = useAuthStore();
 
-// 知识与AI模块
-const knowledgeModules = [
-  { key: 'file-import', title: '文件导入', path: '/file-import', icon: CloudUploadOutlined },
-  { key: 'image-upload', title: '图片上传', path: '/image-upload', icon: FileImageOutlined },
-  { key: 'prompt-templates', title: '提示词模板', path: '/prompt-templates', icon: TagsOutlined },
-  { key: 'knowledge-store', title: '知识付费', path: '/knowledge-store', icon: ShopOutlined },
-  { key: 'my-purchases', title: '我的购买', path: '/my-purchases', icon: ShoppingCartOutlined },
-];
+// 状态
+const selectedType = ref('');
+const activeCategory = ref('all');
+const templates = ref([]);
+const loadingTemplates = ref(false);
 
-// 身份与社交模块
-const socialModules = [
-  { key: 'did', title: 'DID身份', path: '/did', icon: IdcardOutlined },
-  { key: 'credentials', title: '可验证凭证', path: '/credentials', icon: SafetyCertificateOutlined },
-  { key: 'contacts', title: '联系人', path: '/contacts', icon: TeamOutlined },
-  { key: 'friends', title: '好友管理', path: '/friends', icon: UserOutlined },
-  { key: 'posts', title: '动态广场', path: '/posts', icon: CommentOutlined },
-  { key: 'p2p-messaging', title: 'P2P消息', path: '/p2p-messaging', icon: MessageOutlined },
-];
+// 项目类型按钮（第一行）
+const projectTypes = ref([
+  { key: 'write', label: '写作', prompt: '帮我写一篇关于...的文章' },
+  { key: 'ppt', label: 'PPT', prompt: '制作一份关于...的演示文稿' },
+  { key: 'design', label: '设计', prompt: '设计一个...的海报/Logo' },
+  { key: 'excel', label: 'Excel', prompt: '分析...的数据并生成报表' },
+  { key: 'web', label: '网页', prompt: '创建一个...的网站' },
+  { key: 'podcast', label: '播客', prompt: '为...生成播客脚本' },
+  { key: 'image', label: '图像', prompt: '生成一张...的图片' },
+]);
 
-// 交易系统模块
-const tradeModules = [
-  { key: 'marketplace', title: '交易市场', path: '/marketplace', icon: ShopOutlined },
-  { key: 'contracts', title: '智能合约', path: '/contracts', icon: AuditOutlined },
-  { key: 'credit-score', title: '信用评分', path: '/credit-score', icon: StarOutlined },
-];
+// 子分类配置（第二行，根据项目类型动态变化）
+const categoryConfig = ref({
+  // 默认分类（未选择项目类型时）
+  all: [
+    { key: 'all', label: '探索' },
+    { key: 'portrait', label: '人像摄影' },
+    { key: 'education', label: '教育学习' },
+    { key: 'finance', label: '财经分析' },
+    { key: 'creative', label: '创意设计' },
+    { key: 'life', label: '生活娱乐' },
+    { key: 'marketing', label: '市场营销' },
+    { key: 'travel', label: '旅游攻略' },
+  ],
+  // 写作子分类
+  write: [
+    { key: 'media', label: '自媒体创作' },
+    { key: 'market-research', label: '市场调研' },
+    { key: 'teaching', label: '教学设计' },
+    { key: 'study', label: '学习研究' },
+    { key: 'office', label: '办公写作' },
+    { key: 'marketing-plan', label: '营销策划' },
+    { key: 'resume', label: '简历制作' },
+  ],
+  // PPT子分类
+  ppt: [
+    { key: 'featured', label: '精选模板' },
+    { key: 'persuasion', label: '说服案例' },
+    { key: 'work-report', label: '工作汇报' },
+    { key: 'promotion', label: '宣传推广' },
+    { key: 'education', label: '教育学习' },
+    { key: 'daily', label: '生活日常' },
+  ],
+  // 设计子分类
+  design: [
+    { key: 'logo', label: 'Logo设计' },
+    { key: 'poster', label: '海报设计' },
+    { key: 'banner', label: '横幅设计' },
+    { key: 'card', label: '名片设计' },
+    { key: 'social', label: '社交媒体' },
+  ],
+  // Excel子分类
+  excel: [
+    { key: 'data-analysis', label: '数据分析' },
+    { key: 'financial', label: '财务报表' },
+    { key: 'project-manage', label: '项目管理' },
+    { key: 'schedule', label: '进度安排' },
+  ],
+  // 网页子分类
+  web: [
+    { key: 'landing', label: '落地页' },
+    { key: 'portfolio', label: '作品集' },
+    { key: 'blog', label: '博客' },
+    { key: 'ecommerce', label: '电商' },
+  ],
+  // 播客子分类
+  podcast: [
+    { key: 'interview', label: '访谈节目' },
+    { key: 'storytelling', label: '故事讲述' },
+    { key: 'education', label: '教育内容' },
+    { key: 'news', label: '新闻评论' },
+  ],
+  // 图像子分类
+  image: [
+    { key: 'portrait', label: '人像' },
+    { key: 'landscape', label: '风景' },
+    { key: 'product', label: '产品' },
+    { key: 'abstract', label: '抽象艺术' },
+  ],
+});
 
-// 系统设置模块
-const systemModules = [
-  { key: 'settings', title: '通用设置', path: '/settings', icon: SettingOutlined },
-  { key: 'llm-settings', title: 'LLM配置', path: '/settings', icon: ApiOutlined },
-  { key: 'git-settings', title: 'Git同步', path: '/settings', icon: SyncOutlined },
-  { key: 'rag-settings', title: 'RAG配置', path: '/settings', icon: DatabaseOutlined },
-  { key: 'ukey-settings', title: 'UKey安全', path: '/settings', icon: SafetyOutlined },
-];
+// 当前显示的子分类
+const currentCategories = computed(() => {
+  if (selectedType.value && categoryConfig.value[selectedType.value]) {
+    return categoryConfig.value[selectedType.value];
+  }
+  return categoryConfig.value.all;
+});
 
 // 今日新增数量
 const todayCount = computed(() => {
@@ -278,6 +228,87 @@ const todayCount = computed(() => {
   ).length;
 });
 
+// 加载模板
+const loadTemplates = async () => {
+  loadingTemplates.value = true;
+  try {
+    // 构建查询参数
+    const params = {
+      type: selectedType.value || null,
+      category: activeCategory.value !== 'all' ? activeCategory.value : null,
+    };
+
+    // TODO: 调用后端API加载模板
+    // const result = await window.electronAPI.template.list(params);
+    // templates.value = result;
+
+    // 临时：使用示例数据
+    console.log('[HomePage] 加载模板:', params);
+    templates.value = [];
+  } catch (error) {
+    console.error('加载模板失败:', error);
+    message.error('加载模板失败');
+  } finally {
+    loadingTemplates.value = false;
+  }
+};
+
+// 处理类型快捷选择
+const handleTypeQuickSelect = (typeKey) => {
+  // 切换选择状态
+  if (selectedType.value === typeKey) {
+    // 如果点击已选中的类型，则取消选择，回到默认状态
+    selectedType.value = '';
+    activeCategory.value = 'all';
+  } else {
+    // 选择新类型
+    selectedType.value = typeKey;
+    // 重置子分类为该类型的第一个子分类
+    const categories = categoryConfig.value[typeKey];
+    if (categories && categories.length > 0) {
+      activeCategory.value = categories[0].key;
+    }
+  }
+  // 加载对应的模板
+  loadTemplates();
+};
+
+// 处理类别切换
+const handleCategoryChange = (category) => {
+  activeCategory.value = category;
+  // 加载对应的模板
+  loadTemplates();
+};
+
+// 处理模板点击
+const handleTemplateClick = async (template) => {
+  try {
+    message.loading({ content: '正在使用模板创建项目...', key: 'create-from-template', duration: 0 });
+
+    // 使用模板创建项目
+    const userId = authStore.currentUser?.id || 'default-user';
+    const projectData = {
+      name: template.name,
+      description: template.description,
+      projectType: selectedType.value || template.type,
+      category: activeCategory.value,
+      templateId: template.id,
+      userId: userId,
+    };
+
+    // TODO: 调用后端API使用模板创建项目
+    // const project = await window.electronAPI.project.createFromTemplate(template.id, projectData);
+
+    message.success({ content: '项目创建成功！', key: 'create-from-template', duration: 2 });
+
+    // 跳转到项目详情页
+    // router.push(`/projects/${project.id}`);
+  } catch (error) {
+    console.error('使用模板创建项目失败:', error);
+    message.error({ content: '创建失败：' + error.message, key: 'create-from-template', duration: 3 });
+  }
+};
+
 const openTab = (key, path, title) => {
   store.addTab({ key, path, title });
   router.push(path);
@@ -288,6 +319,11 @@ const openSettings = (tab) => {
   store.addTab({ key, path: '/settings', title: `${tab.toUpperCase()}配置` });
   router.push({ path: '/settings', query: { tab } });
 };
+
+// 组件挂载时加载模板
+onMounted(async () => {
+  await loadTemplates();
+});
 </script>
 
 <style scoped>
@@ -383,129 +419,195 @@ const openSettings = (tab) => {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* 快速操作 */
-.quick-actions {
+/* 第一行：项目类型按钮 */
+.project-type-buttons {
+  display: flex;
+  gap: 12px;
   margin-bottom: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  .task-quick-button {
+    border-radius: 20px;
+    padding: 10px 28px;
+    height: auto;
+    font-size: 15px;
+    border-color: #E5E7EB;
+    color: #666666;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+    background: #FFFFFF;
+
+    .button-label {
+      font-weight: 500;
+    }
+
+    &:hover {
+      border-color: #667eea;
+      color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    }
+
+    &.ant-btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-color: transparent;
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+
+      &:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+      }
+    }
+  }
 }
 
-.action-card {
+/* 第二行：子分类按钮 */
+.category-buttons-section {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: white;
+  gap: 12px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  .category-button {
+    border-radius: 16px;
+    padding: 8px 20px;
+    height: auto;
+    font-size: 14px;
+    border-color: #E5E7EB;
+    color: #666666;
+    transition: all 0.3s;
+    background: #F5F5F5;
+
+    &:hover {
+      border-color: #667eea;
+      color: #667eea;
+      background: #F0F5FF;
+    }
+
+    &.ant-btn-primary {
+      background: #667eea;
+      border-color: #667eea;
+      color: white;
+
+      &:hover {
+        background: #764ba2;
+        border-color: #764ba2;
+      }
+    }
+  }
+}
+
+/* 模板展示区域 */
+.templates-grid-section {
+  margin: 40px 0;
+  min-height: 400px;
+}
+
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.template-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
   border-radius: 12px;
+  overflow: hidden;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  &:hover {
+    border-color: #667eea;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+    transform: translateY(-4px);
+
+    .template-preview img {
+      transform: scale(1.05);
+    }
+  }
+
+  .template-preview {
+    width: 100%;
+    height: 180px;
+    background: #F5F5F5;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+    }
+
+    .template-placeholder {
+      font-size: 64px;
+      color: #D1D5DB;
+    }
+  }
+
+  .template-info {
+    padding: 16px;
+  }
+
+  .template-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .template-desc {
+    font-size: 13px;
+    color: #666666;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
 }
 
-.action-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.action-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: white;
-  flex-shrink: 0;
-}
-
-.action-content {
-  flex: 1;
-}
-
-.action-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: rgba(0, 0, 0, 0.85);
-}
-
-.action-desc {
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.45);
-}
-
-/* 功能模块 */
-.feature-modules {
-  margin-bottom: 24px;
-}
-
-.module-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  height: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s;
-}
-
-.module-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.module-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.module-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.85);
-}
-
-.module-icon {
-  font-size: 18px;
-  color: #1890ff;
-}
-
-.module-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.module-item {
+.empty-templates {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-  background: #fafafa;
-}
+  justify-content: center;
+  min-height: 300px;
+  color: #9CA3AF;
 
-.module-item:hover {
-  background: #e6f7ff;
-  transform: translateY(-2px);
-}
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
 
-.item-icon {
-  font-size: 24px;
-  color: #1890ff;
-}
+  h3 {
+    font-size: 18px;
+    font-weight: 500;
+    color: #6B7280;
+    margin: 0 0 8px 0;
+  }
 
-.item-title {
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.65);
-  text-align: center;
+  p {
+    font-size: 14px;
+    color: #9CA3AF;
+    margin: 0;
+  }
 }
 
 /* 系统状态 */

@@ -24,21 +24,7 @@
         />
       </div>
 
-      <!-- 场景分类标签栏 -->
-      <div class="category-tabs-section">
-        <a-tabs v-model:activeKey="activeCategory" @change="handleCategoryChange">
-          <a-tab-pane key="all" tab="探索" />
-          <a-tab-pane key="portrait" tab="人像摄影" />
-          <a-tab-pane key="education" tab="教育学习" />
-          <a-tab-pane key="finance" tab="财经分析" />
-          <a-tab-pane key="creative" tab="创意设计" />
-          <a-tab-pane key="life" tab="生活娱乐" />
-          <a-tab-pane key="marketing" tab="市场营销" />
-          <a-tab-pane key="travel" tab="旅游攻略" />
-        </a-tabs>
-      </div>
-
-      <!-- 快捷任务按钮（8个） -->
+      <!-- 第一行：项目类型按钮 -->
       <div class="project-type-buttons">
         <a-button
           v-for="type in projectTypes"
@@ -48,24 +34,51 @@
           size="large"
           @click="handleTypeQuickSelect(type.key)"
         >
-          <span class="button-icon">{{ type.icon }}</span>
           <span class="button-label">{{ type.label }}</span>
         </a-button>
       </div>
 
-      <!-- 示例项目展示（无真实项目时） -->
-      <div v-if="!hasProjects && !loading && currentExamples.length > 0" class="examples-grid-section">
-        <div class="examples-grid">
-          <div
-            v-for="example in currentExamples"
-            :key="example.id"
-            class="example-card"
-            @click="handleExampleClick(example)"
-          >
-            <div class="example-thumbnail">{{ example.thumbnail }}</div>
-            <div class="example-name">{{ example.name }}</div>
+      <!-- 第二行：动态子分类按钮 -->
+      <div class="category-buttons-section">
+        <a-button
+          v-for="category in currentCategories"
+          :key="category.key"
+          :type="activeCategory === category.key ? 'primary' : 'default'"
+          class="category-button"
+          @click="handleCategoryChange(category.key)"
+        >
+          {{ category.label }}
+        </a-button>
+      </div>
+
+      <!-- 模板展示区域 -->
+      <div v-if="!loading" class="templates-grid-section">
+        <a-spin :spinning="loadingTemplates">
+          <div v-if="templates.length > 0" class="templates-grid">
+            <div
+              v-for="template in templates"
+              :key="template.id"
+              class="template-card"
+              @click="handleTemplateClick(template)"
+            >
+              <div class="template-preview">
+                <img v-if="template.preview" :src="template.preview" :alt="template.name" />
+                <div v-else class="template-placeholder">{{ template.icon || '📄' }}</div>
+              </div>
+              <div class="template-info">
+                <div class="template-name">{{ template.name }}</div>
+                <div class="template-desc">{{ template.description }}</div>
+              </div>
+            </div>
           </div>
-        </div>
+          <div v-else class="empty-templates">
+            <div class="empty-icon">
+              <FileTextOutlined />
+            </div>
+            <h3>暂无模板</h3>
+            <p>该分类下暂时没有可用的模板</p>
+          </div>
+        </a-spin>
       </div>
 
     </div>
@@ -156,53 +169,95 @@ const streamProgressData = ref({
 const createError = ref('');
 const createdProjectId = ref('');
 
-// 快捷任务按钮（8个）
+// 项目类型按钮（第一行）
 const projectTypes = ref([
-  { key: 'write', label: '写作', icon: '📝', prompt: '帮我写一篇关于...的文章' },
-  { key: 'ppt', label: 'PPT', icon: '📊', prompt: '制作一份关于...的演示文稿' },
-  { key: 'design', label: '设计', icon: '🎨', prompt: '设计一个...的海报/Logo' },
-  { key: 'excel', label: 'Excel', icon: '📈', prompt: '分析...的数据并生成报表' },
-  { key: 'web', label: '网页', icon: '🌐', prompt: '创建一个...的网站' },
-  { key: 'podcast', label: '播客', icon: '🎙️', prompt: '为...生成播客脚本' },
-  { key: 'chart', label: '图表', icon: '📉', prompt: '制作...的可视化图表' },
-  { key: 'image', label: '图像', icon: '🖼️', prompt: '生成一张...的图片' },
+  { key: 'write', label: '写作', prompt: '帮我写一篇关于...的文章' },
+  { key: 'ppt', label: 'PPT', prompt: '制作一份关于...的演示文稿' },
+  { key: 'design', label: '设计', prompt: '设计一个...的海报/Logo' },
+  { key: 'excel', label: 'Excel', prompt: '分析...的数据并生成报表' },
+  { key: 'web', label: '网页', prompt: '创建一个...的网站' },
+  { key: 'podcast', label: '播客', prompt: '为...生成播客脚本' },
+  { key: 'image', label: '图像', prompt: '生成一张...的图片' },
 ]);
 
-// 示例项目数据（按场景分类）
-const exampleProjects = ref({
+// 子分类配置（第二行，根据项目类型动态变化）
+const categoryConfig = ref({
+  // 默认分类（未选择项目类型时）
   all: [
-    { id: 'ex1', name: '短视频脚本文稿制作', thumbnail: '📹', category: 'all', project_type: 'write' },
-    { id: 'ex2', name: '一天建成罗马', thumbnail: '🏛️', category: 'all', project_type: 'web' },
-    { id: 'ex3', name: '终于证件照自由了', thumbnail: '📸', category: 'all', project_type: 'image' },
-    { id: 'ex4', name: '青草词原来这么简单', thumbnail: '🎵', category: 'all', project_type: 'write' },
-    { id: 'ex5', name: '拍子空间清度写作功能', thumbnail: '📝', category: 'all', project_type: 'write' },
-    { id: 'ex6', name: '短视频脚本编辑文稿', thumbnail: '🎬', category: 'all', project_type: 'video' },
+    { key: 'all', label: '探索' },
+    { key: 'portrait', label: '人像摄影' },
+    { key: 'education', label: '教育学习' },
+    { key: 'finance', label: '财经分析' },
+    { key: 'creative', label: '创意设计' },
+    { key: 'life', label: '生活娱乐' },
+    { key: 'marketing', label: '市场营销' },
+    { key: 'travel', label: '旅游攻略' },
   ],
-  portrait: [
-    { id: 'p1', name: '青草词原来这么简单', thumbnail: '🎵', category: 'portrait', project_type: 'image' },
-    { id: 'p2', name: 'Cupcake甜品摄影', thumbnail: '🧁', category: 'portrait', project_type: 'image' },
-    { id: 'p3', name: '一天建成罗马需要多少人？', thumbnail: '🏛️', category: 'portrait', project_type: 'chart' },
+  // 写作子分类
+  write: [
+    { key: 'media', label: '自媒体创作' },
+    { key: 'market-research', label: '市场调研' },
+    { key: 'teaching', label: '教学设计' },
+    { key: 'study', label: '学习研究' },
+    { key: 'office', label: '办公写作' },
+    { key: 'marketing-plan', label: '营销策划' },
+    { key: 'resume', label: '简历制作' },
   ],
-  education: [
-    { id: 'e1', name: '中小学人工智能教育指南', thumbnail: '🎓', category: 'education', project_type: 'ppt' },
-    { id: 'e2', name: '法式光影写真运成', thumbnail: '📷', category: 'education', project_type: 'image' },
+  // PPT子分类
+  ppt: [
+    { key: 'featured', label: '精选模板' },
+    { key: 'persuasion', label: '说服案例' },
+    { key: 'work-report', label: '工作汇报' },
+    { key: 'promotion', label: '宣传推广' },
+    { key: 'education', label: '教育学习' },
+    { key: 'daily', label: '生活日常' },
   ],
-  finance: [
-    { id: 'f1', name: '峥嵘2025经济金融展望报告', thumbnail: '📊', category: 'finance', project_type: 'excel' },
+  // 设计子分类
+  design: [
+    { key: 'logo', label: 'Logo设计' },
+    { key: 'poster', label: '海报设计' },
+    { key: 'banner', label: '横幅设计' },
+    { key: 'card', label: '名片设计' },
+    { key: 'social', label: '社交媒体' },
   ],
-  creative: [
-    { id: 'c1', name: '红色，是危险还是迷人？', thumbnail: '🌹', category: 'creative', project_type: 'image' },
+  // Excel子分类
+  excel: [
+    { key: 'data-analysis', label: '数据分析' },
+    { key: 'financial', label: '财务报表' },
+    { key: 'project-manage', label: '项目管理' },
+    { key: 'schedule', label: '进度安排' },
   ],
-  life: [
-    { id: 'l1', name: '生成产品推广爆款小红书图文', thumbnail: '📱', category: 'life', project_type: 'write' },
+  // 网页子分类
+  web: [
+    { key: 'landing', label: '落地页' },
+    { key: 'portfolio', label: '作品集' },
+    { key: 'blog', label: '博客' },
+    { key: 'ecommerce', label: '电商' },
   ],
-  marketing: [
-    { id: 'm1', name: '拍子空间清度写作功能', thumbnail: '💼', category: 'marketing', project_type: 'write' },
+  // 播客子分类
+  podcast: [
+    { key: 'interview', label: '访谈节目' },
+    { key: 'storytelling', label: '故事讲述' },
+    { key: 'education', label: '教育内容' },
+    { key: 'news', label: '新闻评论' },
   ],
-  travel: [
-    { id: 't1', name: '旅游攻略 - 大理三日游', thumbnail: '✈️', category: 'travel', project_type: 'write' },
+  // 图像子分类
+  image: [
+    { key: 'portrait', label: '人像' },
+    { key: 'landscape', label: '风景' },
+    { key: 'product', label: '产品' },
+    { key: 'abstract', label: '抽象艺术' },
   ],
 });
+
+// 当前显示的子分类
+const currentCategories = computed(() => {
+  if (selectedType.value && categoryConfig.value[selectedType.value]) {
+    return categoryConfig.value[selectedType.value];
+  }
+  return categoryConfig.value.all;
+});
+
 
 // 智能问候语（根据时间）
 const greetingMessage = computed(() => {
@@ -232,10 +287,35 @@ const currentSuggestion = computed(() => {
   return suggestions.value[index];
 });
 
-// 当前显示的示例项目
-const currentExamples = computed(() => {
-  return exampleProjects.value[activeCategory.value] || exampleProjects.value.all;
-});
+// 模板数据
+const templates = ref([]);
+const loadingTemplates = ref(false);
+
+// 加载模板
+const loadTemplates = async () => {
+  loadingTemplates.value = true;
+  try {
+    // 构建查询参数
+    const params = {
+      type: selectedType.value || null,
+      category: activeCategory.value !== 'all' ? activeCategory.value : null,
+    };
+
+    // TODO: 调用后端API加载模板
+    // const result = await window.electronAPI.template.list(params);
+    // templates.value = result;
+
+    // 临时：使用示例数据
+    console.log('[ProjectsPage] 加载模板:', params);
+    templates.value = [];
+  } catch (error) {
+    console.error('加载模板失败:', error);
+    message.error('加载模板失败');
+  } finally {
+    loadingTemplates.value = false;
+  }
+};
+
 
 // 计算属性
 const loading = computed(() => projectStore.loading);
@@ -446,19 +526,29 @@ const handleFileUpload = (files) => {
 const handleCategoryChange = (category) => {
   activeCategory.value = category;
   currentPage.value = 1;
+  // 加载对应的模板
+  loadTemplates();
 };
 
-// 处理类型快捷选择（点击快捷按钮预填充对话框）
+// 处理类型快捷选择
 const handleTypeQuickSelect = (typeKey) => {
-  const typeObj = projectTypes.value.find(t => t.key === typeKey);
-  if (typeObj && typeObj.prompt) {
-    // 触发对话输入框的预填充
-    // 通过事件或ref调用子组件的方法
-    message.info(`已选择：${typeObj.label}`);
-    // TODO: 实现预填充输入框功能
+  // 切换选择状态
+  if (selectedType.value === typeKey) {
+    // 如果点击已选中的类型，则取消选择，回到默认状态
+    selectedType.value = '';
+    activeCategory.value = 'all';
+  } else {
+    // 选择新类型
+    selectedType.value = typeKey;
+    // 重置子分类为该类型的第一个子分类
+    const categories = categoryConfig.value[typeKey];
+    if (categories && categories.length > 0) {
+      activeCategory.value = categories[0].key;
+    }
   }
-  selectedType.value = selectedType.value === typeKey ? '' : typeKey;
   currentPage.value = 1;
+  // 加载对应的模板
+  loadTemplates();
 };
 
 // 处理建议点击（支持两种调用方式）
@@ -476,11 +566,35 @@ const handleSuggestionClick = (params) => {
   }
 };
 
-// 处理示例项目点击
-const handleExampleClick = (example) => {
-  message.info(`点击了示例：${example.name}`);
-  // TODO: 根据示例创建项目或填充输入框
+// 处理模板点击
+const handleTemplateClick = async (template) => {
+  try {
+    message.loading({ content: '正在使用模板创建项目...', key: 'create-from-template', duration: 0 });
+
+    // 使用模板创建项目
+    const userId = authStore.currentUser?.id || 'default-user';
+    const projectData = {
+      name: template.name,
+      description: template.description,
+      projectType: selectedType.value || template.type,
+      category: activeCategory.value,
+      templateId: template.id,
+      userId: userId,
+    };
+
+    // TODO: 调用后端API使用模板创建项目
+    // const project = await window.electronAPI.project.createFromTemplate(template.id, projectData);
+
+    message.success({ content: '项目创建成功！', key: 'create-from-template', duration: 2 });
+
+    // 跳转到项目详情页
+    // router.push(`/projects/${project.id}`);
+  } catch (error) {
+    console.error('使用模板创建项目失败:', error);
+    message.error({ content: '创建失败：' + error.message, key: 'create-from-template', duration: 3 });
+  }
 };
+
 
 // 处理分页变化
 const handlePageChange = (page, size) => {
@@ -736,6 +850,9 @@ onMounted(async () => {
     await projectStore.fetchProjects(userId);
     await loadRecentConversations();
 
+    // 加载初始模板数据
+    await loadTemplates();
+
     // 监听任务进度更新
     window.electronAPI.project.onTaskProgressUpdate(handleTaskProgressUpdate);
 
@@ -841,49 +958,18 @@ onUnmounted(() => {
   margin: 0 auto 32px;
 }
 
-/* 类别标签栏 */
-.category-tabs-section {
-  margin-bottom: 24px;
 
-  :deep(.ant-tabs) {
-    .ant-tabs-nav {
-      margin-bottom: 0;
-    }
-
-    .ant-tabs-tab {
-      padding: 12px 24px;
-      font-size: 15px;
-      color: #666666;
-
-      &:hover {
-        color: #333333;
-      }
-
-      &.ant-tabs-tab-active {
-        .ant-tabs-tab-btn {
-          color: #1677FF;
-          font-weight: 500;
-        }
-      }
-    }
-
-    .ant-tabs-ink-bar {
-      background: #1677FF;
-    }
-  }
-}
-
-/* 快捷任务按钮 */
+/* 第一行：项目类型按钮 */
 .project-type-buttons {
   display: flex;
   gap: 12px;
-  margin-bottom: 40px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
   justify-content: center;
 
   .task-quick-button {
-    border-radius: 24px;
-    padding: 10px 24px;
+    border-radius: 20px;
+    padding: 10px 28px;
     height: auto;
     font-size: 15px;
     border-color: #E5E7EB;
@@ -892,20 +978,17 @@ onUnmounted(() => {
     align-items: center;
     gap: 8px;
     transition: all 0.3s;
-
-    .button-icon {
-      font-size: 18px;
-    }
+    background: #FFFFFF;
 
     .button-label {
-      font-weight: 400;
+      font-weight: 500;
     }
 
     &:hover {
-      border-color: #1677FF;
-      color: #1677FF;
+      border-color: #667eea;
+      color: #667eea;
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
     }
 
     &.ant-btn-primary {
@@ -916,55 +999,154 @@ onUnmounted(() => {
 
       &:hover {
         background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-        transform: translateY(-3px);
+        transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
       }
     }
   }
 }
 
-/* 示例项目网格 */
-.examples-grid-section {
-  margin: 40px 0;
+/* 第二行：子分类按钮 */
+.category-buttons-section {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  .category-button {
+    border-radius: 16px;
+    padding: 8px 20px;
+    height: auto;
+    font-size: 14px;
+    border-color: #E5E7EB;
+    color: #666666;
+    transition: all 0.3s;
+    background: #F5F5F5;
+
+    &:hover {
+      border-color: #667eea;
+      color: #667eea;
+      background: #F0F5FF;
+    }
+
+    &.ant-btn-primary {
+      background: #667eea;
+      border-color: #667eea;
+      color: white;
+
+      &:hover {
+        background: #764ba2;
+        border-color: #764ba2;
+      }
+    }
+  }
 }
 
-.examples-grid {
+/* 模板展示区域 */
+.templates-grid-section {
+  margin: 40px 0;
+  min-height: 400px;
+}
+
+.templates-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
   margin-bottom: 40px;
 }
 
-.example-card {
+.template-card {
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
   border-radius: 12px;
-  padding: 24px;
+  overflow: hidden;
   cursor: pointer;
   transition: all 0.3s;
-  text-align: center;
 
   &:hover {
-    border-color: #1677FF;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border-color: #667eea;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
     transform: translateY(-4px);
 
-    .example-thumbnail {
-      transform: scale(1.1);
+    .template-preview img {
+      transform: scale(1.05);
     }
   }
 
-  .example-thumbnail {
-    font-size: 48px;
-    margin-bottom: 16px;
-    transition: transform 0.3s;
+  .template-preview {
+    width: 100%;
+    height: 180px;
+    background: #F5F5F5;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+    }
+
+    .template-placeholder {
+      font-size: 64px;
+      color: #D1D5DB;
+    }
   }
 
-  .example-name {
-    font-size: 14px;
+  .template-info {
+    padding: 16px;
+  }
+
+  .template-name {
+    font-size: 15px;
+    font-weight: 600;
     color: #333333;
-    font-weight: 400;
-    line-height: 1.4;
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .template-desc {
+    font-size: 13px;
+    color: #666666;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}
+
+.empty-templates {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #9CA3AF;
+
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 500;
+    color: #6B7280;
+    margin: 0 0 8px 0;
+  }
+
+  p {
+    font-size: 14px;
+    color: #9CA3AF;
+    margin: 0;
   }
 }
 
