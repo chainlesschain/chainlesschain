@@ -141,17 +141,17 @@ class SignalSessionManager extends EventEmitter {
 
     try {
       fs.mkdirSync(path.dirname(identityPath), { recursive: true });
-      fs.writeFileSync(
-        identityPath,
-        JSON.stringify(
-          {
-            identityKeyPair: this.identityKeyPair,
-            registrationId: this.registrationId,
-          },
-          null,
-          2
-        )
-      );
+
+      // 序列化身份数据 - 将 ArrayBuffer 转换为可序列化的数组
+      const serializableIdentity = {
+        identityKeyPair: {
+          pubKey: Array.from(new Uint8Array(this.identityKeyPair.pubKey)),
+          privKey: Array.from(new Uint8Array(this.identityKeyPair.privKey)),
+        },
+        registrationId: this.registrationId,
+      };
+
+      fs.writeFileSync(identityPath, JSON.stringify(serializableIdentity, null, 2));
       console.log('[SignalSession] 身份已保存到:', identityPath);
     } catch (error) {
       console.warn('[SignalSession] 保存身份失败:', error.message);
@@ -194,11 +194,16 @@ class SignalSessionManager extends EventEmitter {
     await this.store.storeSignedPreKey(signedPreKeyId, this.signedPreKey.keyPair);
 
     // 生成一批一次性预密钥 (100个)
-    const preKeyId = Math.floor(Math.random() * 16777215);
-    const preKeys = await KeyHelper.generatePreKeys(preKeyId, 100);
+    const basePreKeyId = Math.floor(Math.random() * 16777215);
+    const preKeyCount = 100;
+    const preKeys = [];
 
-    // 存储预密钥
-    for (const preKey of preKeys) {
+    for (let i = 0; i < preKeyCount; i++) {
+      const preKeyId = (basePreKeyId + i) % 16777215;
+      const preKey = await KeyHelper.generatePreKey(preKeyId);
+      preKeys.push(preKey);
+
+      // 存储预密钥
       await this.store.storePreKey(preKey.keyId, preKey.keyPair);
       this.preKeys.set(preKey.keyId, preKey);
     }

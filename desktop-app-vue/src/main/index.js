@@ -698,7 +698,7 @@ class ChainlessChainApp {
     }
 
     // 注册AI引擎IPC handlers
-    if (this.aiEngineManager) {
+    if (this.aiEngineManager && !this.aiEngineIPC) {
       try {
         console.log('注册AI引擎IPC handlers...');
         this.aiEngineIPC = new AIEngineIPC(
@@ -716,11 +716,10 @@ class ChainlessChainApp {
     }
 
     // 注册文件操作IPC handlers
-    try {
-      console.log('注册文件操作IPC handlers...');
+    if (!this.fileIPC) {
+      try {
+        console.log('注册文件操作IPC handlers...');
 
-      // 只在第一次创建时初始化FileIPC
-      if (!this.fileIPC) {
         this.fileIPC = new FileIPC();
 
         // 传递引擎实例
@@ -731,12 +730,12 @@ class ChainlessChainApp {
           wordEngine,
           documentEngine: this.documentEngine,
         });
-      }
 
-      this.fileIPC.registerHandlers(this.mainWindow);
-      console.log('文件操作IPC handlers注册成功');
-    } catch (error) {
-      console.error('文件操作IPC handlers注册失败:', error);
+        this.fileIPC.registerHandlers(this.mainWindow);
+        console.log('文件操作IPC handlers注册成功');
+      } catch (error) {
+        console.error('文件操作IPC handlers注册失败:', error);
+      }
     }
   }
 
@@ -5400,58 +5399,7 @@ class ChainlessChainApp {
       }
     });
 
-    // 文件另存为（下载文件）
-    ipcMain.handle('file:saveAs', async (_event, filePath) => {
-      try {
-        const fs = require('fs').promises;
-        const path = require('path');
-        const { dialog } = require('electron');
-
-        // 解析源文件路径
-        const { getProjectConfig } = require('./project/project-config');
-        const projectConfig = getProjectConfig();
-        const resolvedPath = projectConfig.resolveProjectPath(filePath);
-
-        console.log('[Main] 准备下载文件:', resolvedPath);
-
-        // 检查源文件是否存在
-        try {
-          await fs.access(resolvedPath);
-        } catch (error) {
-          throw new Error(`文件不存在: ${resolvedPath}`);
-        }
-
-        // 获取文件名
-        const fileName = path.basename(resolvedPath);
-
-        // 显示保存对话框
-        const result = await dialog.showSaveDialog({
-          title: '保存文件',
-          defaultPath: fileName,
-          filters: [
-            { name: '所有文件', extensions: ['*'] }
-          ]
-        });
-
-        // 如果用户取消,返回
-        if (result.canceled || !result.filePath) {
-          return { success: false, canceled: true };
-        }
-
-        // 复制文件到目标位置
-        await fs.copyFile(resolvedPath, result.filePath);
-
-        console.log('[Main] 文件下载成功:', result.filePath);
-
-        return {
-          success: true,
-          filePath: result.filePath
-        };
-      } catch (error) {
-        console.error('[Main] 文件下载失败:', error);
-        throw error;
-      }
-    });
+    // 文件另存为（下载文件）- 已移至 FileIPC 类处理
 
     // ==================== 文件同步 IPC ====================
 
@@ -6048,27 +5996,8 @@ class ChainlessChainApp {
 
     // ============ Dialog 对话框 ============
 
-    // 显示打开对话框
-    ipcMain.handle('dialog:showOpenDialog', async (_event, options) => {
-      try {
-        const result = await dialog.showOpenDialog(this.mainWindow, options);
-        return result;
-      } catch (error) {
-        console.error('[Main] 显示打开对话框失败:', error);
-        throw error;
-      }
-    });
-
-    // 显示保存对话框
-    ipcMain.handle('dialog:showSaveDialog', async (_event, options) => {
-      try {
-        const result = await dialog.showSaveDialog(this.mainWindow, options);
-        return result;
-      } catch (error) {
-        console.error('[Main] 显示保存对话框失败:', error);
-        throw error;
-      }
-    });
+    // 显示打开对话框 - 已移至 FileIPC 类处理
+    // 显示保存对话框 - 已移至 FileIPC 类处理
 
     // 显示消息框
     ipcMain.handle('dialog:showMessageBox', async (_event, options) => {
