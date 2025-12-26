@@ -47,7 +47,7 @@ public class SyncServiceImpl implements SyncService {
     @Autowired
     private ProjectCommentMapper projectCommentMapper;
 
-    @Autowired(required = false)
+    @Autowired(required = true)
     private SyncLogMapper syncLogMapper;
 
     @Autowired(required = false)
@@ -163,14 +163,13 @@ public class SyncServiceImpl implements SyncService {
 
     /**
      * 在独立事务中记录同步日志（使用 REQUIRES_NEW 事务，完全独立）
+     * 日志记录失败会抛出异常，确保同步操作的可追溯性
      */
     public void logSyncInNewTransaction(String tableName, String recordId, String operation,
                                         String status, String deviceId, String errorMessage) {
-        if (syncLogMapper == null) return;
-
         // 在新事务中执行日志记录（REQUIRES_NEW - 完全独立的事务）
-        requiresNewTransactionTemplate.execute(txStatus -> {
-            try {
+        try {
+            requiresNewTransactionTemplate.execute(txStatus -> {
                 SyncLog syncLog = new SyncLog();
                 syncLog.setTableName(tableName);
                 syncLog.setRecordId(recordId);
@@ -179,16 +178,30 @@ public class SyncServiceImpl implements SyncService {
                 syncLog.setStatus(status);
                 syncLog.setDeviceId(deviceId);
                 syncLog.setErrorMessage(errorMessage);
+                syncLog.setSyncTime(LocalDateTime.now());
 
-                syncLogMapper.insert(syncLog);
-            } catch (Exception e) {
-                // 记录到控制台，避免级联失败
-                log.error("[SyncService] 记录同步日志失败: table={}, recordId={}, error={}",
-                    tableName, recordId, e.getMessage());
-                // 不回滚日志事务，即使失败也继续
-            }
-            return null;
-        });
+                int inserted = syncLogMapper.insert(syncLog);
+
+                if (inserted == 0) {
+                    throw new RuntimeException("日志插入返回0行，可能插入失败");
+                }
+
+                log.debug("[SyncService] 同步日志已记录: table={}, recordId={}, operation={}, status={}",
+                    tableName, recordId, operation, status);
+
+                return null;
+            });
+        } catch (Exception e) {
+            log.error("[SyncService] 同步日志记录失败，中止操作: table={}, recordId={}, error={}",
+                tableName, recordId, e.getMessage(), e);
+
+            // 抛出异常，确保调用方知道日志记录失败
+            throw new RuntimeException(
+                String.format("同步日志记录失败: table=%s, recordId=%s, error=%s",
+                    tableName, recordId, e.getMessage()),
+                e
+            );
+        }
     }
 
     @Override

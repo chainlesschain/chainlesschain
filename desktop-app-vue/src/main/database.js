@@ -1594,6 +1594,208 @@ class DatabaseManager {
     fs.writeFileSync(backupPath, buffer);
   }
 
+  // ==================== 软删除管理 ====================
+
+  /**
+   * 软删除记录（设置deleted=1而不是物理删除）
+   * @param {string} tableName - 表名
+   * @param {string} id - 记录ID
+   * @returns {boolean} 是否成功
+   */
+  softDelete(tableName, id) {
+    try {
+      const stmt = this.db.prepare(
+        `UPDATE ${tableName}
+         SET deleted = 1,
+             updated_at = ?,
+             sync_status = 'pending'
+         WHERE id = ?`
+      );
+
+      stmt.run(Date.now(), id);
+      stmt.free();
+
+      this.saveToFile();
+      console.log(`[Database] 软删除记录: table=${tableName}, id=${id}`);
+      return true;
+    } catch (error) {
+      console.error(`[Database] 软删除失败: table=${tableName}, id=${id}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 批量软删除记录
+   * @param {string} tableName - 表名
+   * @param {Array<string>} ids - 记录ID列表
+   * @returns {Object} 删除结果统计 {success: number, failed: number}
+   */
+  batchSoftDelete(tableName, ids) {
+    let success = 0;
+    let failed = 0;
+
+    for (const id of ids) {
+      if (this.softDelete(tableName, id)) {
+        success++;
+      } else {
+        failed++;
+      }
+    }
+
+    return { success, failed };
+  }
+
+  /**
+   * 恢复软删除的记录
+   * @param {string} tableName - 表名
+   * @param {string} id - 记录ID
+   * @returns {boolean} 是否成功
+   */
+  restoreSoftDeleted(tableName, id) {
+    try {
+      const stmt = this.db.prepare(
+        `UPDATE ${tableName}
+         SET deleted = 0,
+             updated_at = ?,
+             sync_status = 'pending'
+         WHERE id = ?`
+      );
+
+      stmt.run(Date.now(), id);
+      stmt.free();
+
+      this.saveToFile();
+      console.log(`[Database] 恢复软删除记录: table=${tableName}, id=${id}`);
+      return true;
+    } catch (error) {
+      console.error(`[Database] 恢复失败: table=${tableName}, id=${id}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 物理删除软删除的记录（永久删除）
+   * @param {string} tableName - 表名
+   * @param {number} olderThanDays - 删除多少天前的记录（默认30天）
+   * @returns {Object} 清理结果 {deleted: number, tableName: string}
+   */
+  cleanupSoftDeleted(tableName, olderThanDays = 30) {
+    const cutoffTime = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
+
+    try {
+      const stmt = this.db.prepare(
+        `DELETE FROM ${tableName}
+         WHERE deleted = 1
+           AND updated_at < ?`
+      );
+
+      const info = stmt.run(cutoffTime);
+      stmt.free();
+
+      const deletedCount = info.changes || 0;
+
+      if (deletedCount > 0) {
+        this.saveToFile();
+        console.log(`[Database] 清理${tableName}表: ${deletedCount}条记录`);
+      }
+
+      return { deleted: deletedCount, tableName };
+    } catch (error) {
+      console.error(`[Database] 清理失败: table=${tableName}`, error);
+      return { deleted: 0, tableName, error: error.message };
+    }
+  }
+
+  /**
+   * 清理所有表的软删除记录
+   * @param {number} olderThanDays - 删除多少天前的记录（默认30天）
+   * @returns {Array<Object>} 清理结果列表
+   */
+  cleanupAllSoftDeleted(olderThanDays = 30) {
+    const syncTables = [
+      'projects',
+      'project_files',
+      'knowledge_items',
+      'project_collaborators',
+      'project_comments',
+      'project_tasks'
+    ];
+
+    const results = [];
+    let totalDeleted = 0;
+
+    for (const tableName of syncTables) {
+      const result = this.cleanupSoftDeleted(tableName, olderThanDays);
+      results.push(result);
+      totalDeleted += result.deleted;
+    }
+
+    console.log(`[Database] 总共清理 ${totalDeleted} 条软删除记录`);
+
+    return results;
+  }
+
+  /**
+   * 获取软删除记录的统计信息
+   * @returns {Object} 统计信息 {total: number, byTable: Object}
+   */
+  getSoftDeletedStats() {
+    const syncTables = [
+      'projects',
+      'project_files',
+      'knowledge_items',
+      'project_collaborators',
+      'project_comments',
+      'project_tasks'
+    ];
+
+    const stats = {
+      total: 0,
+      byTable: {}
+    };
+
+    for (const tableName of syncTables) {
+      try {
+        const stmt = this.db.prepare(
+          `SELECT COUNT(*) as count FROM ${tableName} WHERE deleted = 1`
+        );
+
+        stmt.step();
+        const count = stmt.getAsObject().count || 0;
+        stmt.free();
+
+        stats.byTable[tableName] = count;
+        stats.total += count;
+      } catch (error) {
+        console.error(`[Database] 统计失败: table=${tableName}`, error);
+        stats.byTable[tableName] = 0;
+      }
+    }
+
+    return stats;
+  }
+
+  /**
+   * 启动定期清理任务
+   * @param {number} intervalHours - 清理间隔（小时，默认24小时）
+   * @param {number} retentionDays - 保留天数（默认30天）
+   * @returns {Object} 定时器对象
+   */
+  startPeriodicCleanup(intervalHours = 24, retentionDays = 30) {
+    console.log(`[Database] 启动定期清理: 每${intervalHours}小时清理${retentionDays}天前的软删除记录`);
+
+    // 立即执行一次
+    this.cleanupAllSoftDeleted(retentionDays);
+
+    // 定期执行
+    const timer = setInterval(() => {
+      console.log('[Database] 执行定期清理任务...');
+      this.cleanupAllSoftDeleted(retentionDays);
+    }, intervalHours * 60 * 60 * 1000);
+
+    return timer;
+  }
+
   // ==================== 项目管理操作 ====================
 
   /**

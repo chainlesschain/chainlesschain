@@ -42,10 +42,24 @@ class DBSyncManager extends EventEmitter {
     // 启动定期同步（5分钟）
     this.startPeriodicSync();
 
+    // 启动定期清理软删除记录（每24小时，清理30天前的）
+    this.startPeriodicCleanup();
+
     // 监听网络状态
     this.setupNetworkListeners();
 
     this.emit('initialized', { deviceId });
+  }
+
+  /**
+   * 启动定期清理任务
+   * 每24小时清理一次30天前的软删除记录
+   */
+  startPeriodicCleanup() {
+    if (this.database && this.database.startPeriodicCleanup) {
+      this.cleanupTimer = this.database.startPeriodicCleanup(24, 30);
+      console.log('[DBSyncManager] 定期清理任务已启动');
+    }
   }
 
   /**
@@ -336,15 +350,29 @@ class DBSyncManager extends EventEmitter {
         }
       }
 
-      // 处理删除记录
+      // 处理删除记录（使用软删除）
+      let deletedCount = 0;
       for (const deletedId of deletedIds || []) {
-        this.database.db.run(
-          `UPDATE ${tableName} SET deleted = 1 WHERE id = ?`,
-          [deletedId]
-        );
+        // 使用softDelete方法，会自动设置deleted=1并标记sync_status为pending
+        if (this.database.softDelete && typeof this.database.softDelete === 'function') {
+          if (this.database.softDelete(tableName, deletedId)) {
+            deletedCount++;
+          }
+        } else {
+          // 降级处理（兼容旧版本）
+          this.database.db.run(
+            `UPDATE ${tableName}
+             SET deleted = 1,
+                 updated_at = ?,
+                 sync_status = 'pending'
+             WHERE id = ?`,
+            [Date.now(), deletedId]
+          );
+          deletedCount++;
+        }
       }
 
-      console.log(`[DBSyncManager] 下载完成: 新增${newRecords?.length || 0}, 更新${updatedRecords?.length || 0}, 删除${deletedIds?.length || 0}`);
+      console.log(`[DBSyncManager] 下载完成: 新增${newRecords?.length || 0}, 更新${updatedRecords?.length || 0}, 删除${deletedCount}`);
 
       return { conflicts };
     } catch (error) {
@@ -389,7 +417,11 @@ class DBSyncManager extends EventEmitter {
 
     // 无冲突，远程较新，直接更新
     if (backendUpdatedAt > localUpdatedAt) {
-      const converted = this.fieldMapper.toLocal(backendRecord, tableName);
+      // 保留本地的同步状态，避免覆盖pending/error/conflict等状态
+      const converted = this.fieldMapper.toLocal(backendRecord, tableName, {
+        existingRecord: localRecord,
+        preserveLocalStatus: true
+      });
       this.insertOrUpdateLocal(tableName, converted);
     }
 

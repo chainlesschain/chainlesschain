@@ -97,14 +97,44 @@ class FieldMapper {
 
   /**
    * 后端格式 → 本地记录
+   * @param {Object} backendRecord - 后端记录
+   * @param {string} tableName - 表名
+   * @param {Object} options - 转换选项
+   * @param {Object} options.existingRecord - 已存在的本地记录（用于保留本地状态）
+   * @param {boolean} options.preserveLocalStatus - 是否保留本地同步状态（默认false）
+   * @param {string} options.forceSyncStatus - 强制设置的同步状态（优先级最高）
    */
-  toLocal(backendRecord, tableName) {
+  toLocal(backendRecord, tableName, options = {}) {
+    const {
+      existingRecord = null,
+      preserveLocalStatus = false,
+      forceSyncStatus = null
+    } = options;
+
+    // 决定同步状态
+    let syncStatus;
+    let syncedAt;
+
+    if (forceSyncStatus) {
+      // 强制指定的状态（最高优先级）
+      syncStatus = forceSyncStatus;
+      syncedAt = Date.now();
+    } else if (preserveLocalStatus && existingRecord) {
+      // 保留本地状态（用于更新场景）
+      syncStatus = existingRecord.sync_status || 'synced';
+      syncedAt = existingRecord.synced_at || Date.now();
+    } else {
+      // 默认：新记录或强制同步
+      syncStatus = 'synced';
+      syncedAt = Date.now();
+    }
+
     const base = {
       id: backendRecord.id,
       created_at: this.toMillis(backendRecord.createdAt),
       updated_at: this.toMillis(backendRecord.updatedAt),
-      synced_at: Date.now(),
-      sync_status: 'synced'
+      synced_at: syncedAt,
+      sync_status: syncStatus
     };
 
     switch (tableName) {
@@ -167,6 +197,37 @@ class FieldMapper {
       default:
         return base;
     }
+  }
+
+  /**
+   * 将后端记录转换为本地记录（新记录场景）
+   * 明确标记为synced状态
+   */
+  toLocalAsNew(backendRecord, tableName) {
+    return this.toLocal(backendRecord, tableName, {
+      forceSyncStatus: 'synced'
+    });
+  }
+
+  /**
+   * 将后端记录转换为本地记录（更新场景）
+   * 保留本地的同步状态
+   */
+  toLocalForUpdate(backendRecord, tableName, existingRecord) {
+    return this.toLocal(backendRecord, tableName, {
+      existingRecord,
+      preserveLocalStatus: true
+    });
+  }
+
+  /**
+   * 将后端记录转换为本地记录（冲突标记）
+   * 标记为conflict状态
+   */
+  toLocalAsConflict(backendRecord, tableName) {
+    return this.toLocal(backendRecord, tableName, {
+      forceSyncStatus: 'conflict'
+    });
   }
 }
 
