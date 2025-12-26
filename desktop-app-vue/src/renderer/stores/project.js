@@ -517,8 +517,10 @@ export const useProjectStore = defineStore('project', {
         console.log('[Store] 接收到文件数量:', files?.length || 0);
         if (files && files.length > 0) {
           console.log('[Store] 文件列表:', files.map(f => f.file_name).join(', '));
+          console.log('[Store] 第一个文件完整对象:', JSON.stringify(files[0], null, 2));
         }
         this.projectFiles = files || [];
+        console.log('[Store] projectFiles 已更新，长度:', this.projectFiles.length);
       } catch (error) {
         console.error('加载项目文件失败:', error);
         throw error;

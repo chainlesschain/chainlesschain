@@ -1829,17 +1829,34 @@ class DatabaseManager {
       `);
 
       safeFiles.forEach(file => {
-        const rawPath = file.file_path ?? file.filePath ?? null;
+        // 支持多种字段名格式：后端可能返回 path/type，前端可能使用 file_path/filePath
+        const rawPath = file.file_path ?? file.filePath ?? file.path ?? null;
         const derivedName = file.file_name
           ?? file.fileName
           ?? (rawPath ? rawPath.split(/[\\/]/).pop() : null);
         const filePath = rawPath || derivedName || '';
         const fileName = derivedName || filePath || 'untitled';
-        const fileType = file.file_type ?? file.fileType ?? null;
-        const fileSize = file.file_size ?? file.fileSize ?? 0;
+        const fileType = file.file_type ?? file.fileType ?? file.type ?? null;
+        const fileSize = file.file_size ?? file.fileSize ?? null;
         const content = file.content ?? null;
         const contentHash = file.content_hash ?? file.contentHash ?? null;
         const version = file.version ?? 1;
+
+        // 如果没有file_size但有content，自动计算大小
+        let actualFileSize = fileSize;
+        if (!actualFileSize && content) {
+          if (typeof content === 'string') {
+            // base64编码的内容
+            if (file.content_encoding === 'base64') {
+              actualFileSize = Math.floor(content.length * 0.75); // base64解码后约为3/4
+            } else {
+              actualFileSize = Buffer.byteLength(content, 'utf-8');
+            }
+          } else if (Buffer.isBuffer(content)) {
+            actualFileSize = content.length;
+          }
+        }
+        actualFileSize = actualFileSize || 0;
 
         // 确保时间戳是数字（毫秒），如果是字符串则转换
         let createdAt = file.created_at ?? file.createdAt ?? Date.now();
@@ -1860,7 +1877,7 @@ class DatabaseManager {
           filePath,
           fileName,
           fileType,
-          fileSize,
+          actualFileSize,
           content,
           contentHash,
           version,
