@@ -499,10 +499,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateFile: (fileUpdate) => ipcRenderer.invoke('project:update-file', fileUpdate),
     deleteFile: (projectId, fileId) => ipcRenderer.invoke('project:delete-file', projectId, fileId),
 
-    // 模板管理
-    getTemplates: () => ipcRenderer.invoke('project:get-templates'),
-    getTemplate: (templateId) => ipcRenderer.invoke('project:get-template', templateId),
-
     // 路径解析
     resolvePath: (relativePath) => ipcRenderer.invoke('project:resolve-path', relativePath),
 

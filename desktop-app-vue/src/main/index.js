@@ -5719,62 +5719,6 @@ class ChainlessChainApp {
       }
     });
 
-    // 获取模板列表
-    ipcMain.handle('project:get-templates', async () => {
-      try {
-        if (!this.database) {
-          throw new Error('数据库未初始化');
-        }
-
-        // 先从本地获取
-        let templates = this.database.getProjectTemplates();
-
-        // 如果本地为空，从后端获取
-        if (templates.length === 0) {
-          try {
-            const { getProjectHTTPClient } = require('./project/http-client');
-            const httpClient = getProjectHTTPClient();
-
-            templates = await httpClient.getTemplates();
-
-            // 缓存到本地
-            if (templates && templates.length > 0) {
-              this.database.saveProjectTemplates(templates);
-              console.log('[Main] 成功从后端获取并缓存模板');
-            }
-          } catch (backendError) {
-            // 只在非预期错误时显示详细日志
-            if (backendError.isExpectedError || backendError.isConnectionError) {
-              // 预期错误：后端服务未启动，这是正常的
-              console.info('[Main] 后端服务未启动，将使用本地默认模板（这是正常的）');
-            } else {
-              // 非预期错误：需要记录详细信息
-              console.warn('[Main] 从后端获取模板时发生错误:', backendError.message);
-            }
-          }
-        }
-
-        return templates;
-      } catch (error) {
-        console.error('[Main] 获取模板列表失败:', error);
-        throw error;
-      }
-    });
-
-    // 获取模板详情
-    ipcMain.handle('project:get-template', async (_event, templateId) => {
-      try {
-        if (!this.database) {
-          throw new Error('数据库未初始化');
-        }
-        const stmt = this.database.db.prepare('SELECT * FROM project_templates WHERE id = ?');
-        return stmt.get(templateId);
-      } catch (error) {
-        console.error('[Main] 获取模板详情失败:', error);
-        throw error;
-      }
-    });
-
     // 解析项目路径
     ipcMain.handle('project:resolve-path', async (_event, relativePath) => {
       try {
@@ -6764,34 +6708,6 @@ ${content}
       } catch (error) {
         console.error('[Main] 变量验证失败:', error);
         return { valid: false, errors: [{ message: error.message }] };
-      }
-    });
-
-    // 从模板创建项目
-    ipcMain.handle('template:createProject', async (_event, params) => {
-      try {
-        const { template, variables, targetPath } = params;
-        const { getTemplateEngine } = require('./engines/template-engine');
-        const templateEngine = getTemplateEngine();
-
-        console.log('[Main] 开始从模板创建项目:', template.name);
-
-        const result = await templateEngine.createProjectFromTemplate(template, variables, targetPath);
-
-        if (result.success) {
-          console.log('[Main] 项目创建成功, 文件数:', result.filesCreated);
-        } else {
-          console.log('[Main] 项目创建失败:', result.errors);
-        }
-
-        return result;
-      } catch (error) {
-        console.error('[Main] 创建项目失败:', error);
-        return {
-          success: false,
-          filesCreated: 0,
-          errors: [{ message: error.message }]
-        };
       }
     });
 
@@ -7958,7 +7874,6 @@ ${content}
               // 只有当字段存在时才添加（避免 undefined）
               if (projectDetail.description) projectData.description = projectDetail.description;
               if (projectDetail.rootPath) projectData.root_path = projectDetail.rootPath;
-              if (projectDetail.templateId) projectData.template_id = projectDetail.templateId;
               if (projectDetail.coverImageUrl) projectData.cover_image_url = projectDetail.coverImageUrl;
 
               this.database.saveProject(projectData);

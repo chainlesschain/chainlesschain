@@ -397,7 +397,7 @@ watch(
     if (menuKey) {
       selectedMenuKeys.value = [menuKey];
     } else if (newPath.startsWith('/projects/') && newPath !== '/projects/new' &&
-               newPath !== '/projects/templates' && newPath !== '/projects/market' &&
+               newPath !== '/projects/market' &&
                newPath !== '/projects/collaboration' && newPath !== '/projects/archived') {
       // 项目详情页，选中"我的项目"菜单
       selectedMenuKeys.value = ['projects'];

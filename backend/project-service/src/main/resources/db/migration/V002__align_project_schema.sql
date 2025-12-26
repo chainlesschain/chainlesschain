@@ -62,15 +62,3 @@ ALTER TABLE project_conversations
     ADD COLUMN IF NOT EXISTS context TEXT,
     ADD COLUMN IF NOT EXISTS task_id VARCHAR(36),
     ADD COLUMN IF NOT EXISTS deleted INTEGER NOT NULL DEFAULT 0;
-
-ALTER TABLE project_templates
-    ADD COLUMN IF NOT EXISTS project_type VARCHAR(50),
-    ADD COLUMN IF NOT EXISTS preview_image_url VARCHAR(500),
-    ADD COLUMN IF NOT EXISTS file_structure TEXT,
-    ADD COLUMN IF NOT EXISTS author_id VARCHAR(64),
-    ADD COLUMN IF NOT EXISTS deleted INTEGER NOT NULL DEFAULT 0;
-
-UPDATE project_templates
-SET project_type = COALESCE(project_type, type)
-WHERE project_type IS NULL
-  AND type IS NOT NULL;

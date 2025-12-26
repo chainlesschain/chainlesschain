@@ -136,16 +136,16 @@ const routes = [
         meta: { title: '我的项目' },
       },
       {
-        path: 'projects/new',
-        name: 'NewProject',
-        component: () => import('../pages/projects/NewProjectPage.vue'),
-        meta: { title: '新建项目' },
-      },
-      {
         path: 'projects/templates',
         name: 'ProjectTemplates',
         component: () => import('../pages/projects/TemplatesPage.vue'),
         meta: { title: '项目模板' },
+      },
+      {
+        path: 'projects/new',
+        name: 'NewProject',
+        component: () => import('../pages/projects/NewProjectPage.vue'),
+        meta: { title: '新建项目' },
       },
       {
         path: 'projects/market',

@@ -107,23 +107,6 @@
         <h3>没有找到匹配的项目</h3>
         <p>尝试选择其他类别或创建新项目</p>
       </div>
-
-      <!-- 项目模板展示区域 (总是显示在项目列表下方) -->
-      <div class="templates-section" v-if="templates.length > 0">
-        <div class="section-header">
-          <h2>项目模板</h2>
-          <p>选择模板快速开始创建</p>
-        </div>
-
-        <div class="templates-grid">
-          <TemplateCard
-            v-for="template in templates.slice(0, 8)"
-            :key="template.id"
-            :template="template"
-            @use="handleTemplateClick"
-          />
-        </div>
-      </div>
     </div>
 
     <!-- 任务执行监控器弹窗 -->
@@ -161,14 +144,6 @@
       @view-project="handleViewCreatedProject"
       @continue="handleContinueCreate"
     />
-
-    <!-- 模板详情弹窗 -->
-    <TemplateDetailModal
-      :open="showTemplateDetail"
-      :template="selectedTemplate || {}"
-      @close="handleCloseTemplateDetail"
-      @use="handleUseTemplate"
-    />
   </div>
 </template>
 
@@ -188,9 +163,6 @@ import ConversationInput from '@/components/projects/ConversationInput.vue';
 import ProjectCard from '@/components/projects/ProjectCard.vue';
 import TaskExecutionMonitor from '@/components/projects/TaskExecutionMonitor.vue';
 import StreamProgressModal from '@/components/projects/StreamProgressModal.vue';
-import TemplateCard from '@/components/projects/TemplateCard.vue';
-import TemplateDetailModal from '@/components/projects/TemplateDetailModal.vue';
-import { defaultTemplates } from '@/data/defaultTemplates';
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -222,11 +194,6 @@ const streamProgressData = ref({
 });
 const createError = ref('');
 const createdProjectId = ref('');
-
-// 模板相关状态
-const templates = ref([]);
-const showTemplateDetail = ref(false);
-const selectedTemplate = ref(null);
 
 // 快捷任务按钮（8个）
 const projectTypes = ref([
@@ -787,119 +754,7 @@ const handleContinueEdit = ({ file, taskPlan }) => {
   // router.push(`/projects/${taskPlan.project_id}/edit?file=${file.path}`);
 };
 
-// 模板相关处理函数
-const handleTemplateClick = (template) => {
-  selectedTemplate.value = template;
-  showTemplateDetail.value = true;
-};
-
-const handleCloseTemplateDetail = () => {
-  showTemplateDetail.value = false;
-};
-
-const handleUseTemplate = async (template) => {
-  showTemplateDetail.value = false;
-
-  try {
-    const templateName = template.name || '未命名模板';
-    const templateDesc = template.description || '';
-    const userPrompt = `使用"${templateName}"模板创建项目。${templateDesc}`;
-
-    showStreamProgress.value = true;
-    createError.value = '';
-    streamProgressData.value = {
-      currentStage: '',
-      stages: [],
-      contentByStage: {},
-      logs: [],
-      metadata: {},
-    };
-
-    const userId = authStore.currentUser?.id || 'default-user';
-    const projectData = {
-      userPrompt: userPrompt,
-      name: `${templateName} - ${new Date().toLocaleDateString()}`,
-      projectType: template.project_type || '',
-      templateId: template.id,
-      userId: userId,
-    };
-
-    const project = await projectStore.createProjectStream(projectData, (progressUpdate) => {
-      streamProgressData.value = { ...progressUpdate };
-
-      if (progressUpdate.type === 'complete') {
-        createdProjectId.value = progressUpdate.result.projectId;
-        message.success('项目创建成功！');
-      } else if (progressUpdate.type === 'error') {
-        createError.value = progressUpdate.error;
-        message.error('创建项目失败：' + progressUpdate.error);
-        return;
-      }
-    });
-
-    if (createError.value) {
-      return;
-    }
-
-    try {
-      message.loading({ content: 'AI正在根据模板拆解任务...', key: 'ai-decompose', duration: 0 });
-
-      const projectId = createdProjectId.value || project?.projectId || project?.id;
-
-      if (!projectId) {
-        throw new Error('项目ID不存在，无法进行任务拆解');
-      }
-
-      const contextData = {
-        projectId: projectId,
-        projectType: project?.project_type || project?.projectType,
-        projectName: projectData.name,
-        root_path: project?.root_path || project?.rootPath,
-        templateConfig: template.config_json || '{}',
-      };
-
-      const taskPlan = await window.electronAPI.project.decomposeTask(userPrompt, contextData);
-
-      message.success({ content: '任务拆解完成', key: 'ai-decompose', duration: 2 });
-
-      currentTaskPlan.value = taskPlan;
-      showTaskMonitor.value = true;
-
-      executeTaskPlan(taskPlan);
-    } catch (decomposeError) {
-      console.error('Task decompose failed:', decomposeError);
-      message.warning({
-        content: '任务拆解失败，已创建项目。您可以手动编辑。',
-        key: 'ai-decompose',
-        duration: 3
-      });
-
-      router.push(`/projects/${project.projectId || createdProjectId.value}`);
-    }
-  } catch (error) {
-    console.error('Failed to use template:', error);
-    message.error('使用模板失败：' + error.message);
-  }
-};
-
-const loadTemplates = async () => {
-  try {
-    const result = await window.electronAPI.project.getTemplates();
-    templates.value = result || [];
-
-    if (templates.value.length === 0) {
-      templates.value = getDefaultTemplates();
-    }
-  } catch (error) {
-    console.error('Load templates failed:', error);
-    templates.value = getDefaultTemplates();
-  }
-};
-
-const getDefaultTemplates = () => {
-  return defaultTemplates;
-};
-
+// 项目相关处理函数
 // 组件挂载时加载项目并监听进度
 // 处理文件更新事件
 const handleFilesUpdated = async (data) => {
@@ -919,7 +774,6 @@ onMounted(async () => {
     const userId = authStore.currentUser?.id || 'default-user';
     await projectStore.fetchProjects(userId);
     await loadRecentConversations();
-    await loadTemplates(); // 加载模板列表
 
     // 监听任务进度更新
     window.electronAPI.project.onTaskProgressUpdate(handleTaskProgressUpdate);
@@ -1226,34 +1080,4 @@ onUnmounted(() => {
   }
 }
 
-/* 模板展示区域 */
-.templates-section {
-  margin-top: 60px;
-  padding-top: 60px;
-  border-top: 1px solid #E5E7EB;
-}
-
-.templates-section .section-header {
-  text-align: center;
-  margin-bottom: 40px;
-
-  h2 {
-    font-size: 28px;
-    font-weight: 500;
-    color: #333333;
-    margin: 0 0 12px 0;
-  }
-
-  p {
-    font-size: 15px;
-    color: #666666;
-    margin: 0;
-  }
-}
-
-.templates-section .templates-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-}
 </style>
