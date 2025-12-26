@@ -304,6 +304,9 @@
               </a-descriptions>
             </div>
 
+            <!-- 项目统计面板 -->
+            <ProjectStatsPanel v-if="currentProject && resolvedProjectPath" :project-id="currentProject.id" />
+
             <!-- 桌面版提示：项目文件位置 -->
             <div class="info-alert" v-if="currentProject.root_path && resolvedProjectPath">
               <a-alert
@@ -432,6 +435,7 @@ import FileManageModal from '@/components/projects/FileManageModal.vue';
 import ProjectShareDialog from '@/components/projects/ProjectShareDialog.vue';
 import FileExportMenu from '@/components/projects/FileExportMenu.vue';
 import GitHistoryDialog from '@/components/projects/GitHistoryDialog.vue';
+import ProjectStatsPanel from '@/components/projects/ProjectStatsPanel.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -1087,6 +1091,16 @@ onMounted(async () => {
         });
       }, 10000);
     }
+
+    // 启动项目统计收集
+    if (hasValidPath.value && resolvedProjectPath.value) {
+      try {
+        await window.electron.invoke('project:stats:start', projectId.value, resolvedProjectPath.value);
+        console.log('[ProjectDetail] 项目统计收集已启动');
+      } catch (error) {
+        console.error('[ProjectDetail] 启动统计收集失败:', error);
+      }
+    }
   } catch (error) {
     console.error('Load project failed:', error);
     message.error('加载项目失败：' + error.message);
@@ -1096,10 +1110,20 @@ onMounted(async () => {
 });
 
 // 组件卸载时清理定时器
-onUnmounted(() => {
+onUnmounted(async () => {
   if (gitStatusInterval) {
     clearInterval(gitStatusInterval);
     gitStatusInterval = null;
+  }
+
+  // 停止项目统计收集
+  if (projectId.value) {
+    try {
+      await window.electron.invoke('project:stats:stop', projectId.value);
+      console.log('[ProjectDetail] 项目统计收集已停止');
+    } catch (error) {
+      console.error('[ProjectDetail] 停止统计收集失败:', error);
+    }
   }
 });
 

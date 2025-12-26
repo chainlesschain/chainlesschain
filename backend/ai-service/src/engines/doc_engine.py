@@ -81,7 +81,9 @@ class DocumentEngine:
                 context = context[0] if len(context) > 0 else {}
             entities = context.get("entities", {}) if context else {}
             doc_type = entities.get("doc_type", "report")
-            output_format = entities.get("format", "word")  # word, pdf, both
+            output_format = entities.get("format", "word")  # word, pdf, ppt, both
+
+            print(f"[DocumentEngine] 生成文档: doc_type={doc_type}, format={output_format}")
 
             # 生成文档大纲
             outline = await self._generate_outline(prompt, doc_type, entities)
@@ -90,6 +92,15 @@ class DocumentEngine:
             sections = await self._generate_content(outline)
 
             files = []
+
+            # 生成PPT文档
+            if output_format in ["ppt", "powerpoint", "both"]:
+                ppt_bytes = self._create_ppt_document(outline, sections)
+                files.append({
+                    "path": f"{outline.get('title', 'document')}.pptx",
+                    "content": ppt_bytes,
+                    "type": "ppt"
+                })
 
             # 生成Word文档
             if output_format in ["word", "both"]:
@@ -470,5 +481,88 @@ class DocumentEngine:
 
         # 生成PDF
         doc.build(story)
+        buffer.seek(0)
+        return buffer.getvalue()
+
+    def _create_ppt_document(
+        self,
+        outline: Dict[str, Any],
+        sections: List[Dict[str, Any]]
+    ) -> bytes:
+        """创建PowerPoint文档"""
+        try:
+            from pptx import Presentation
+            from pptx.util import Inches, Pt
+            from pptx.enum.text import PP_ALIGN
+            from pptx.dml.color import RGBColor
+        except ImportError:
+            print("[DocumentEngine] python-pptx未安装，使用Word格式替代")
+            return self._create_word_document(outline, sections)
+
+        prs = Presentation()
+        prs.slide_width = Inches(10)
+        prs.slide_height = Inches(7.5)
+
+        # 第一张：标题页
+        title_slide_layout = prs.slide_layouts[0]
+        slide = prs.slides.add_slide(title_slide_layout)
+        title = slide.shapes.title
+        subtitle = slide.placeholders[1]
+
+        title.text = outline.get("title", "文档")
+        subtitle.text = f"{outline.get('subtitle', '')}\n\n{outline.get('author', 'AI助手')}\n{outline.get('date', '2024-01-01')}"
+
+        # 第二张：目录页
+        if outline.get("include_toc", True):
+            bullet_slide_layout = prs.slide_layouts[1]
+            slide = prs.slides.add_slide(bullet_slide_layout)
+            shapes = slide.shapes
+
+            title_shape = shapes.title
+            body_shape = shapes.placeholders[1]
+
+            title_shape.text = '目录'
+
+            tf = body_shape.text_frame
+            tf.clear()
+
+            for idx, section in enumerate(sections, 1):
+                p = tf.add_paragraph()
+                p.text = f"{idx}. {section['title']}"
+                p.level = 0
+
+        # 内容页：每个章节一张或多张幻灯片
+        for section in sections:
+            # 章节标题页
+            title_only_layout = prs.slide_layouts[5]
+            slide = prs.slides.add_slide(title_only_layout)
+            title_shape = slide.shapes.title
+            title_shape.text = section["title"]
+
+            # 章节内容页
+            bullet_slide_layout = prs.slide_layouts[1]
+            slide = prs.slides.add_slide(bullet_slide_layout)
+
+            title_shape = slide.shapes.title
+            body_shape = slide.placeholders[1]
+
+            title_shape.text = section["title"]
+
+            tf = body_shape.text_frame
+            tf.clear()
+
+            # 将内容按段落分割
+            content = section.get("content", "")
+            paragraphs = [p.strip() for p in content.split('\n') if p.strip()]
+
+            for para in paragraphs[:8]:  # 每页最多8个要点
+                p = tf.add_paragraph()
+                p.text = para[:100]  # 限制长度
+                p.level = 0
+                p.font.size = Pt(18)
+
+        # 保存到字节流
+        buffer = io.BytesIO()
+        prs.save(buffer)
         buffer.seek(0)
         return buffer.getvalue()

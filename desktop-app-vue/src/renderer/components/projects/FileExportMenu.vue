@@ -127,19 +127,67 @@ const handleExportClick = async ({ key }) => {
  */
 const exportToPDF = async (fileName) => {
   const filePath = props.file.file_path || props.file.path;
+  const baseName = fileName.replace(/\.[^.]+$/, '');
   const outputPath = filePath.replace(/\.[^.]+$/, '.pdf');
 
-  const result = await window.electronAPI.project.exportDocument({
-    projectId: props.projectId,
-    sourcePath: filePath,
-    format: 'pdf',
-    outputPath
-  });
+  try {
+    // 读取文件内容
+    const content = await window.electron.invoke('file:read', filePath);
 
-  return {
-    fileName: result.fileName || `${fileName}.pdf`,
-    path: result.path
-  };
+    // 根据文件类型选择转换方式
+    const fileExt = filePath.split('.').pop().toLowerCase();
+
+    let result;
+
+    if (fileExt === 'md' || fileExt === 'markdown') {
+      // Markdown转PDF
+      result = await window.electron.invoke('pdf:markdownToPDF', {
+        markdown: content,
+        outputPath,
+        options: {
+          title: baseName,
+          pageSize: 'A4'
+        }
+      });
+    } else if (fileExt === 'html' || fileExt === 'htm') {
+      // HTML文件转PDF
+      result = await window.electron.invoke('pdf:htmlFileToPDF', {
+        htmlPath: filePath,
+        outputPath,
+        options: {
+          pageSize: 'A4'
+        }
+      });
+    } else if (fileExt === 'txt') {
+      // 文本文件转PDF
+      result = await window.electron.invoke('pdf:textFileToPDF', {
+        textPath: filePath,
+        outputPath,
+        options: {
+          title: baseName,
+          pageSize: 'A4'
+        }
+      });
+    } else {
+      // 其他文件类型，尝试作为Markdown处理
+      result = await window.electron.invoke('pdf:markdownToPDF', {
+        markdown: content,
+        outputPath,
+        options: {
+          title: baseName,
+          pageSize: 'A4'
+        }
+      });
+    }
+
+    return {
+      fileName: `${baseName}.pdf`,
+      path: result.outputPath
+    };
+  } catch (error) {
+    console.error('[FileExportMenu] PDF导出失败:', error);
+    throw new Error(`PDF导出失败: ${error.message}`);
+  }
 };
 
 /**
