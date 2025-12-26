@@ -399,8 +399,10 @@ class DatabaseManager {
         metadata TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
+        sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'error')),
         synced_at INTEGER,
-        sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'error'))
+        device_id TEXT,
+        deleted INTEGER DEFAULT 0
       )
     `);
 
@@ -419,6 +421,10 @@ class DatabaseManager {
         fs_path TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
+        sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'error')),
+        synced_at INTEGER,
+        device_id TEXT,
+        deleted INTEGER DEFAULT 0,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
       )
     `);
@@ -469,6 +475,10 @@ class DatabaseManager {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         completed_at INTEGER,
+        sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'error')),
+        synced_at INTEGER,
+        device_id TEXT,
+        deleted INTEGER DEFAULT 0,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
       )
     `);
@@ -517,6 +527,7 @@ class DatabaseManager {
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
         user_id TEXT NOT NULL,
+        collaborator_did TEXT,
         did TEXT,
         role TEXT DEFAULT 'viewer' CHECK(role IN ('owner', 'editor', 'viewer')),
         permissions TEXT,
@@ -524,6 +535,12 @@ class DatabaseManager {
         invited_at INTEGER NOT NULL,
         accepted_at INTEGER,
         status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'declined', 'removed')),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'error')),
+        synced_at INTEGER,
+        device_id TEXT,
+        deleted INTEGER DEFAULT 0,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
         UNIQUE(project_id, user_id)
       )
@@ -535,14 +552,21 @@ class DatabaseManager {
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
         file_id TEXT,
+        file_path TEXT,
         parent_id TEXT,
+        parent_comment_id TEXT,
         user_id TEXT NOT NULL,
+        author_did TEXT,
         did TEXT,
         content TEXT NOT NULL,
         line_number INTEGER,
         resolved INTEGER DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
+        sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'error')),
+        synced_at INTEGER,
+        device_id TEXT,
+        deleted INTEGER DEFAULT 0,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
         FOREIGN KEY (file_id) REFERENCES project_files(id) ON DELETE CASCADE,
         FOREIGN KEY (parent_id) REFERENCES project_comments(id) ON DELETE CASCADE
