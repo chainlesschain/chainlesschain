@@ -49,9 +49,54 @@ class TemplateEngine {
       return a === b;
     });
 
+    // 小于或等于
+    this.handlebars.registerHelper('lte', (a, b) => {
+      return a <= b;
+    });
+
+    // 大于或等于
+    this.handlebars.registerHelper('gte', (a, b) => {
+      return a >= b;
+    });
+
+    // 小于
+    this.handlebars.registerHelper('lt', (a, b) => {
+      return a < b;
+    });
+
+    // 大于
+    this.handlebars.registerHelper('gt', (a, b) => {
+      return a > b;
+    });
+
     // 默认值
     this.handlebars.registerHelper('default', (value, defaultValue) => {
       return value || defaultValue;
+    });
+
+    // 数组/对象查找 - 支持 lookup 语法访问数组元素
+    this.handlebars.registerHelper('lookup', (obj, key) => {
+      if (!obj) return undefined;
+      return obj[key];
+    });
+
+    // 生成数字范围数组
+    this.handlebars.registerHelper('range', (start, end) => {
+      const result = [];
+      for (let i = start; i <= end; i++) {
+        result.push(i);
+      }
+      return result;
+    });
+
+    // 加法
+    this.handlebars.registerHelper('add', (a, b) => {
+      return Number(a) + Number(b);
+    });
+
+    // 减法
+    this.handlebars.registerHelper('subtract', (a, b) => {
+      return Number(a) - Number(b);
     });
   }
 
@@ -63,8 +108,19 @@ class TemplateEngine {
    */
   render(templateString, variables) {
     try {
+      // 添加常用的内置变量
+      const context = {
+        ...variables,
+        // 星期名称数组（中文）
+        dayNames: ['一', '二', '三', '四', '五', '六', '日'],
+        // 星期名称数组（英文）
+        dayNamesEn: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        // 月份名称（中文）
+        monthNames: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+      };
+
       const compiledTemplate = this.handlebars.compile(templateString);
-      return compiledTemplate(variables);
+      return compiledTemplate(context);
     } catch (error) {
       console.error('[TemplateEngine] 渲染失败:', error);
       throw new Error(`模板渲染失败: ${error.message}`);
