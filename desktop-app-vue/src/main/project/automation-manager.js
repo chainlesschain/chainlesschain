@@ -325,9 +325,9 @@ class AutomationManager extends EventEmitter {
 
     console.log(`[AutomationManager] 执行任务: ${taskDescription}`);
 
-    // 调用AI引擎处理任务
-    const { AIEngineManager } = require('../ai-engine/ai-engine-manager');
-    const aiEngine = new AIEngineManager();
+    // 调用AI引擎处理任务 (使用单例)
+    const { getAIEngineManager } = require('../ai-engine/ai-engine-manager');
+    const aiEngine = getAIEngineManager();
     await aiEngine.initialize();
 
     const result = await aiEngine.processUserInput(taskDescription, { projectId });
