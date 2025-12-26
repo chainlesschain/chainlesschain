@@ -242,6 +242,39 @@ public class ProjectService {
     }
 
     /**
+     * 更新项目
+     */
+    @Transactional
+    public ProjectResponse updateProject(String projectId, Map<String, Object> updates) {
+        Project project = projectMapper.selectById(projectId);
+        if (project == null) {
+            throw new RuntimeException("项目不存在");
+        }
+
+        // 更新允许的字段
+        if (updates.containsKey("name")) {
+            project.setName(updates.get("name").toString());
+        }
+        if (updates.containsKey("description")) {
+            project.setDescription(updates.get("description").toString());
+        }
+        if (updates.containsKey("status")) {
+            project.setStatus(updates.get("status").toString());
+        }
+        if (updates.containsKey("tags")) {
+            project.setTags(updates.get("tags").toString());
+        }
+        if (updates.containsKey("coverImageUrl")) {
+            project.setCoverImageUrl(updates.get("coverImageUrl").toString());
+        }
+
+        project.setUpdatedAt(LocalDateTime.now());
+        projectMapper.updateById(project);
+
+        return getProject(projectId);
+    }
+
+    /**
      * 删除项目
      */
     @Transactional

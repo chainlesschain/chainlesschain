@@ -314,3 +314,174 @@ DELETE http://localhost:9090/api/projects/test-proj-002
 **测试执行人**: Claude Code
 **报告生成时间**: 2025-12-26 14:50
 
+---
+
+## BUG修复记录
+
+### BUG-001修复: HuggingFace连接问题
+
+**修复时间**: 2025-12-26 16:00
+**修复方案**: 在docker-compose.yml中添加HuggingFace镜像环境变量
+
+**修改内容**:
+```yaml
+environment:
+  - HF_ENDPOINT=https://hf-mirror.com
+  - TRANSFORMERS_OFFLINE=0
+```
+
+**验证结果**: ✅ 修复成功
+- AI服务正常启动，无HuggingFace连接超时错误
+- 项目创建API正常工作
+- Embedding模型成功从镜像下载
+
+---
+
+## 阶段2: AI功能测试
+
+### TC-PM-001: 创建项目 - 普通模式（重新测试）
+**测试时间**: 2025-12-26 16:05
+**测试状态**: ✅ 通过（BUG-001修复后）
+
+**请求**:
+```json
+{
+  "user_prompt": "创建一个TODO列表网页",
+  "project_type": "web"
+}
+```
+
+**响应**: HTTP 200，成功生成3个文件
+- `index.html` - 完整的HTML结构
+- `styles.css` - 美观的CSS样式
+- `script.js` - 功能完整的JavaScript逻辑
+
+**特点**:
+- ✅ 支持添加/删除/完成任务
+- ✅ 使用localStorage持久化
+- ✅ 响应式设计
+- ✅ 代码质量高，包含注释
+
+**性能**: 响应时间 < 1秒
+
+---
+
+### TC-PM-002: 流式创建项目（SSE）
+**测试时间**: 2025-12-26 16:10
+**测试状态**: ⚠️ 部分通过
+
+**请求**:
+```json
+{
+  "user_prompt": "创建一个计算器网页",
+  "project_type": "web"
+}
+```
+
+**SSE事件序列**:
+```
+1. type: "progress" - 正在识别意图
+2. type: "progress" - 意图识别完成 (confidence: 0.95)
+3. type: "progress" - 使用 web 引擎生成
+4. type: "progress" - 使用预定义模板
+5. type: "error" - Circular reference detected
+```
+
+**验证点**:
+- ✅ SSE流式传输机制正常工作
+- ✅ 正确发送多个progress事件
+- ✅ 前端可以接收并解析SSE事件
+- ❌ 最后遇到"Circular reference detected"错误
+
+**BUG ID**: BUG-004 - 流式创建时循环引用错误
+
+---
+
+### TC-AI-005: 代码生成
+**测试时间**: 2025-12-26 16:08
+**测试状态**: ❌ 失败
+
+**请求**:
+```json
+{
+  "description": "生成一个Python函数，实现二分查找算法",
+  "language": "python",
+  "include_comments": true
+}
+```
+
+**响应**:
+```json
+{
+  "error": "'VolcEngineClient' object has no attribute 'generate'",
+  "code": null
+}
+```
+
+**BUG ID**: BUG-005 - VolcEngineClient缺少generate方法
+
+---
+
+## 阶段2测试总结
+
+**测试完成时间**: 2025-12-26 16:15
+**总测试用例**: 3个（部分）
+**通过**: 1个 (33.3%)
+**部分通过**: 1个 (33.3%)
+**失败**: 1个 (33.3%)
+
+### 通过的测试
+✅ TC-PM-001: 创建项目（修复后）
+
+### 部分通过的测试
+⚠️ TC-PM-002: 流式创建项目（SSE机制正常，但有循环引用bug）
+
+### 失败的测试
+❌ TC-AI-005: 代码生成（VolcEngineClient接口不完整）
+
+---
+
+## 新发现的问题
+
+| BUG ID | 严重程度 | 测试用例 | 问题描述 | 影响范围 |
+|--------|---------|---------|---------|---------|
+| BUG-004 | Medium | TC-PM-002 | 流式创建项目时出现"Circular reference detected"错误 | 流式项目创建 |
+| BUG-005 | High | TC-AI-005 | VolcEngineClient缺少generate方法，导致代码生成功能不可用 | 代码生成、代码审查等代码助手功能 |
+
+---
+
+## 累计问题汇总（包含已修复）
+
+| BUG ID | 状态 | 严重程度 | 问题描述 | 修复方案 |
+|--------|------|---------|---------|---------|
+| BUG-001 | ✅ 已修复 | Critical | AI服务无法连接HuggingFace | 配置HF镜像环境变量 |
+| BUG-002 | ⏳ 待修复 | Medium | 文件内容特殊HTML字符JSON解析失败 | 前端转义或后端宽松解析 |
+| BUG-003 | ⏳ 待修复 | High | 项目更新接口HTTP 500 | 需要检查后端实现 |
+| BUG-004 | ⏳ 待修复 | Medium | 流式创建时循环引用错误 | 需要调试JSON序列化 |
+| BUG-005 | ⏳ 待修复 | High | VolcEngineClient缺少方法 | 实现完整的LLM客户端接口 |
+
+---
+
+## 测试覆盖率更新
+
+- **阶段1（基础功能）**: 85% 通过率
+- **阶段2（AI功能）**: 33% 通过率（部分测试）
+- **BUG修复**: 1/5 (20%)
+
+## 建议
+
+### 高优先级
+1. **BUG-005**: 实现VolcEngineClient完整接口，或切换到可用的LLM提供商
+2. **BUG-003**: 修复项目更新接口500错误
+3. **BUG-004**: 修复流式创建的循环引用问题
+
+### 中优先级
+4. **BUG-002**: 改进JSON特殊字符处理
+
+### 已完成
+- ✅ **BUG-001**: HuggingFace连接问题已解决
+
+---
+
+**最后更新时间**: 2025-12-26 16:15
+

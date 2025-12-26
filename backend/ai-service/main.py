@@ -345,8 +345,8 @@ async def create_project_stream(request: ProjectCreateRequest):
                     context=intent_result
                 ):
                     # 对于complete类型，需要编码二进制文件
-                    if chunk.get("type") == "complete":
-                        chunk["result"] = _encode_binary_files(chunk)
+                    if chunk.get("type") == "complete" and "result" in chunk:
+                        chunk["result"] = _encode_binary_files(chunk["result"])
 
                     yield format_sse(chunk)
 
