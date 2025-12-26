@@ -3,6 +3,20 @@
  * 用于本地 SQLite 与后端 PostgreSQL 之间的数据格式转换
  */
 class FieldMapper {
+  constructor() {
+    // 定义每个表的必填字段（对应数据库的 NOT NULL 约束）
+    this.requiredFields = {
+      projects: ['id', 'user_id', 'name', 'project_type', 'created_at', 'updated_at'],
+      project_files: ['id', 'project_id', 'file_path', 'file_name', 'created_at', 'updated_at'],
+      knowledge_items: ['id', 'title', 'type', 'created_at', 'updated_at'],
+      conversations: ['id', 'title', 'created_at', 'updated_at'],
+      messages: ['id', 'conversation_id', 'role', 'content', 'created_at', 'updated_at'],
+      project_collaborators: ['id', 'project_id', 'user_id', 'created_at'],
+      project_comments: ['id', 'project_id', 'user_id', 'content', 'created_at'],
+      project_tasks: ['id', 'project_id', 'title', 'created_at', 'updated_at']
+    };
+  }
+
   /**
    * 时间戳转换：毫秒 → ISO 8601
    */
@@ -15,6 +29,29 @@ class FieldMapper {
    */
   toMillis(isoString) {
     return isoString ? new Date(isoString).getTime() : null;
+  }
+
+  /**
+   * 验证记录是否包含所有必填字段
+   * @param {Object} record - 待验证的记录
+   * @param {string} tableName - 表名
+   * @returns {Object} { valid: boolean, missingFields: string[] }
+   */
+  validateRequiredFields(record, tableName) {
+    const requiredFields = this.requiredFields[tableName] || [];
+    const missingFields = [];
+
+    for (const field of requiredFields) {
+      const value = record[field];
+      if (value === null || value === undefined || value === '') {
+        missingFields.push(field);
+      }
+    }
+
+    return {
+      valid: missingFields.length === 0,
+      missingFields
+    };
   }
 
   /**

@@ -375,10 +375,26 @@ class DBSyncManager extends EventEmitter {
 
       const { newRecords, updatedRecords, deletedIds } = response;
       const conflicts = [];
+      const skippedRecords = [];
 
       // 处理新增记录
       for (const backendRecord of newRecords || []) {
         const localRecord = this.fieldMapper.toLocal(backendRecord, tableName);
+
+        // 验证必填字段
+        const validation = this.fieldMapper.validateRequiredFields(localRecord, tableName);
+        if (!validation.valid) {
+          console.error(`[DBSyncManager] 跳过无效记录 (表: ${tableName}, ID: ${localRecord.id || 'unknown'}):`,
+            `缺失字段: ${validation.missingFields.join(', ')}`);
+          console.error('[DBSyncManager] 后端数据:', JSON.stringify(backendRecord, null, 2));
+          skippedRecords.push({
+            id: localRecord.id || 'unknown',
+            missingFields: validation.missingFields,
+            backendRecord
+          });
+          continue;
+        }
+
         this.insertOrUpdateLocal(tableName, localRecord);
       }
 
@@ -388,6 +404,16 @@ class DBSyncManager extends EventEmitter {
         if (conflict) {
           conflicts.push(conflict);
         }
+      }
+
+      // 如果有跳过的记录，记录警告
+      if (skippedRecords.length > 0) {
+        console.warn(`[DBSyncManager] 表 ${tableName} 跳过了 ${skippedRecords.length} 条无效记录（后端数据不完整）`);
+        this.emit('sync:invalid-records', {
+          table: tableName,
+          count: skippedRecords.length,
+          records: skippedRecords
+        });
       }
 
       // 处理删除记录（使用软删除）
@@ -432,6 +458,16 @@ class DBSyncManager extends EventEmitter {
     if (!localRecord) {
       // 本地不存在，直接插入
       const converted = this.fieldMapper.toLocal(backendRecord, tableName);
+
+      // 验证必填字段
+      const validation = this.fieldMapper.validateRequiredFields(converted, tableName);
+      if (!validation.valid) {
+        console.error(`[DBSyncManager] 跳过无效更新记录 (表: ${tableName}, ID: ${converted.id || 'unknown'}):`,
+          `缺失字段: ${validation.missingFields.join(', ')}`);
+        console.error('[DBSyncManager] 后端数据:', JSON.stringify(backendRecord, null, 2));
+        return null;
+      }
+
       this.insertOrUpdateLocal(tableName, converted);
       return null;
     }
