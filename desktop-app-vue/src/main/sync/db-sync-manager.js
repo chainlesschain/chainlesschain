@@ -2,6 +2,7 @@ const { EventEmitter } = require('events');
 const SyncHTTPClient = require('./sync-http-client');
 const FieldMapper = require('./field-mapper');
 const SyncQueue = require('./sync-queue');
+const RetryPolicy = require('./retry-policy');
 const config = require('./sync-config');
 const crypto = require('crypto');
 
@@ -17,6 +18,7 @@ class DBSyncManager extends EventEmitter {
     this.httpClient = new SyncHTTPClient();
     this.fieldMapper = new FieldMapper();
     this.syncQueue = new SyncQueue(config.maxConcurrency);
+    this.retryPolicy = new RetryPolicy(6, 100);  // 最大6次重试，初始延迟100ms
     this.deviceId = null;
     this.syncLocks = new Map();
     this.isOnline = true;
@@ -208,11 +210,39 @@ class DBSyncManager extends EventEmitter {
           backendRecord.syncedAt = this.adjustToServerTime(backendRecord.syncedAt);
         }
 
-        // 单条上传
-        const response = await this.httpClient.uploadBatch(
-          tableName,
-          [backendRecord],
-          this.deviceId
+        // 使用重试策略上传
+        const response = await this.retryPolicy.executeWithRetry(
+          async () => {
+            return await this.httpClient.uploadBatch(
+              tableName,
+              [backendRecord],
+              this.deviceId
+            );
+          },
+          `上传${tableName}记录[${record.id}]`,
+          {
+            shouldRetry: (error, attempt) => {
+              // 冲突不重试（需要用户解决）
+              if (error.message && error.message.includes('冲突')) {
+                return false;
+              }
+              // 其他错误可以重试
+              return true;
+            },
+            onRetry: (attempt, error, delay) => {
+              console.log(`[DBSyncManager] 重试上传: table=${tableName}, id=${record.id}, attempt=${attempt + 1}, delay=${delay}ms`);
+
+              // 发送重试事件到前端
+              if (this.mainWindow && this.mainWindow.webContents) {
+                this.mainWindow.webContents.send('sync:retry', {
+                  tableName,
+                  recordId: record.id,
+                  attempt: attempt + 1,
+                  delay
+                });
+              }
+            }
+          }
         );
 
         // 处理上传结果
@@ -245,8 +275,8 @@ class DBSyncManager extends EventEmitter {
         }
 
       } catch (error) {
-        // 捕获异常
-        console.error(`[DBSyncManager] 上传失败: table=${tableName}, id=${record.id}`, error);
+        // 捕获异常（重试失败后）
+        console.error(`[DBSyncManager] 上传最终失败: table=${tableName}, id=${record.id}`, error);
 
         results.failed.push({
           record,
