@@ -132,6 +132,7 @@ import {
   SearchOutlined,
   BulbOutlined,
   ArrowRightOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons-vue';
 import ConversationInput from '@/components/projects/ConversationInput.vue';
 import TaskExecutionMonitor from '@/components/projects/TaskExecutionMonitor.vue';
