@@ -202,103 +202,110 @@ const loadTemplates = async () => {
 const getDefaultTemplates = () => {
   return [
     {
-      id: 'template-vue3',
-      name: 'Vue3 Web应用',
-      description: '基于Vue3 + Vite + TypeScript的现代Web应用模板，包含路由、状态管理、UI组件库等',
+      id: 'tpl_web_blog',
+      name: 'Blog网站',
+      description: '响应式个人博客网站模板，支持文章发布、分类管理、评论功能',
       project_type: 'web',
       is_builtin: true,
-      usage_count: 156,
-      file_structure: JSON.stringify([
-        'src/main.ts',
-        'src/App.vue',
-        'src/router/index.ts',
-        'src/stores/index.ts',
-        'src/components/HelloWorld.vue',
-        'index.html',
-        'package.json',
-        'vite.config.ts',
-        'tsconfig.json',
-      ]),
+      usage_count: 0,
+      config_json: JSON.stringify({
+        style: 'modern',
+        pages: ['index', 'about', 'posts']
+      }),
     },
     {
-      id: 'template-react',
-      name: 'React Web应用',
-      description: '基于React 18 + Vite + TypeScript的Web应用模板',
+      id: 'tpl_web_portfolio',
+      name: '作品集网站',
+      description: '展示个人作品的作品集网站，适合设计师、开发者、艺术家使用',
       project_type: 'web',
       is_builtin: true,
-      usage_count: 142,
-      file_structure: JSON.stringify([
-        'src/main.tsx',
-        'src/App.tsx',
-        'src/components/Counter.tsx',
-        'index.html',
-        'package.json',
-        'vite.config.ts',
-        'tsconfig.json',
-      ]),
+      usage_count: 0,
+      config_json: JSON.stringify({
+        style: 'creative',
+        sections: ['hero', 'projects', 'contact']
+      }),
     },
     {
-      id: 'template-markdown-blog',
-      name: 'Markdown博客',
-      description: '支持Markdown编写的静态博客模板，包含代码高亮、文章分类等功能',
+      id: 'tpl_web_landing',
+      name: '落地页',
+      description: '产品营销落地页模板，适用于产品展示、活动宣传等场景',
+      project_type: 'web',
+      is_builtin: true,
+      usage_count: 0,
+      config_json: JSON.stringify({
+        style: 'minimal',
+        cta: true
+      }),
+    },
+    {
+      id: 'tpl_doc_report',
+      name: '工作报告',
+      description: 'Word工作报告模板，包含摘要、详情、结论等专业章节',
       project_type: 'document',
       is_builtin: true,
-      usage_count: 89,
-      file_structure: JSON.stringify([
-        'posts/hello-world.md',
-        'posts/about.md',
-        'config.json',
-        'index.html',
-        'styles/main.css',
-      ]),
+      usage_count: 0,
+      config_json: JSON.stringify({
+        sections: ['summary', 'details', 'conclusion'],
+        style: 'professional'
+      }),
     },
     {
-      id: 'template-data-dashboard',
-      name: '数据看板',
-      description: '数据可视化看板模板，集成ECharts图表库',
+      id: 'tpl_doc_manual',
+      name: '产品手册',
+      description: '产品使用手册模板，包含目录、技术规格、使用说明等',
+      project_type: 'document',
+      is_builtin: true,
+      usage_count: 0,
+      config_json: JSON.stringify({
+        toc: true,
+        style: 'technical'
+      }),
+    },
+    {
+      id: 'tpl_doc_contract',
+      name: '合同文档',
+      description: '商务合同模板，包含合同方、条款、签署信息等标准格式',
+      project_type: 'document',
+      is_builtin: true,
+      usage_count: 0,
+      config_json: JSON.stringify({
+        sections: ['parties', 'terms', 'signatures'],
+        legal: true
+      }),
+    },
+    {
+      id: 'tpl_data_sales',
+      name: '销售数据分析',
+      description: '销售数据可视化模板，支持折线图、柱状图、饼图等多种图表展示',
       project_type: 'data',
       is_builtin: true,
-      usage_count: 67,
-      file_structure: JSON.stringify([
-        'src/main.js',
-        'src/charts/line.js',
-        'src/charts/bar.js',
-        'src/charts/pie.js',
-        'src/utils/data.js',
-        'index.html',
-        'package.json',
-      ]),
+      usage_count: 0,
+      config_json: JSON.stringify({
+        charts: ['line', 'bar', 'pie'],
+        metrics: ['revenue', 'growth']
+      }),
     },
     {
-      id: 'template-electron-app',
-      name: 'Electron桌面应用',
-      description: 'Electron + Vue3桌面应用模板',
-      project_type: 'app',
+      id: 'tpl_data_financial',
+      name: '财务报表',
+      description: '财务数据分析模板，包含资产负债表、利润表、现金流量表',
+      project_type: 'data',
       is_builtin: true,
-      usage_count: 54,
-      file_structure: JSON.stringify([
-        'src/main/index.js',
-        'src/renderer/App.vue',
-        'src/preload/index.js',
-        'package.json',
-        'electron-builder.json',
-      ]),
+      usage_count: 0,
+      config_json: JSON.stringify({
+        sheets: ['balance', 'income', 'cashflow']
+      }),
     },
     {
-      id: 'template-node-api',
-      name: 'Node.js API服务',
-      description: 'Express + TypeScript的后端API服务模板',
-      project_type: 'web',
+      id: 'tpl_data_dashboard',
+      name: '数据仪表盘',
+      description: '可视化数据仪表盘模板，支持KPI展示、图表分析、数据表格',
+      project_type: 'data',
       is_builtin: true,
-      usage_count: 78,
-      file_structure: JSON.stringify([
-        'src/index.ts',
-        'src/routes/index.ts',
-        'src/controllers/user.ts',
-        'src/models/user.ts',
-        'package.json',
-        'tsconfig.json',
-      ]),
+      usage_count: 0,
+      config_json: JSON.stringify({
+        widgets: ['kpi', 'chart', 'table']
+      }),
     },
   ];
 };

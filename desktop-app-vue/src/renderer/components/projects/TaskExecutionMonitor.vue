@@ -22,8 +22,85 @@
       </div>
     </div>
 
-    <!-- 子任务列表 -->
-    <div class="subtasks-container">
+    <!-- 对话式展示区域 -->
+    <div class="conversation-display">
+      <!-- AI回复消息 -->
+      <div class="ai-message">
+        <div class="message-content">
+          {{ taskPlan.ai_response || '这个要求非常清晰！我这就帮你将PPT的第1页内容整体和机构附件保持一致。' }}
+        </div>
+
+        <!-- 步骤折叠面板 -->
+        <div class="steps-collapse-panel">
+          <div class="steps-header" @click="toggleAllSteps">
+            <CaretRightOutlined :class="['collapse-icon', { expanded: allStepsExpanded }]" />
+            <span class="steps-count">{{ taskPlan.total_steps || taskPlan.subtasks?.length || 0 }}个步骤</span>
+          </div>
+
+          <!-- 展开后的步骤列表 -->
+          <transition name="slide">
+            <div v-show="allStepsExpanded" class="steps-list">
+              <div
+                v-for="subtask in taskPlan.subtasks"
+                :key="subtask.id"
+                :class="['step-item', `status-${subtask.status}`]"
+              >
+                <div class="step-icon">
+                  <CheckCircleOutlined v-if="subtask.status === 'completed'" style="color: #52c41a;" />
+                  <LoadingOutlined v-else-if="subtask.status === 'in_progress'" spin style="color: #1677FF;" />
+                  <ClockCircleOutlined v-else style="color: #d9d9d9;" />
+                </div>
+                <div class="step-content">
+                  <div class="step-title">{{ subtask.title }}</div>
+                  <div class="step-description" v-if="subtask.description">{{ subtask.description }}</div>
+                </div>
+              </div>
+            </div>
+          </transition>
+        </div>
+
+        <!-- 附件文件展示 -->
+        <div class="attachments-section" v-if="completedFiles.length > 0">
+          <div
+            v-for="file in completedFiles"
+            :key="file.path"
+            class="attachment-card"
+            @click="handleFileClick(file.path, file.subtask)"
+          >
+            <div class="file-icon-wrapper">
+              <FileIcon :filename="file.name" size="large" />
+            </div>
+            <div class="file-info">
+              <div class="file-name">{{ file.name }}</div>
+              <div class="file-hint" v-if="file.hint">{{ file.hint }}</div>
+            </div>
+            <div class="file-actions">
+              <a-button type="text" size="small" @click.stop="handleContinueEdit(file)">
+                根据这个来改
+              </a-button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI建议的后续问题 -->
+      <div class="ai-suggestions" v-if="suggestedQuestions.length > 0">
+        <div class="suggestions-label">对第1页进行变更：</div>
+        <div class="suggestions-list">
+          <div
+            v-for="(question, index) in suggestedQuestions"
+            :key="index"
+            class="suggestion-item"
+            @click="handleSuggestionClick(question)"
+          >
+            <span class="suggestion-text">{{ question }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 原有的子任务列表（可选，用于详细调试） -->
+    <div class="subtasks-container" v-if="showDetailedView">
       <div
         v-for="subtask in taskPlan.subtasks"
         :key="subtask.id"
@@ -171,6 +248,7 @@ import { message } from 'ant-design-vue';
 import {
   ToolOutlined,
   CaretDownOutlined,
+  CaretRightOutlined,
   LoadingOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -191,13 +269,77 @@ const props = defineProps({
   showActions: {
     type: Boolean,
     default: true
+  },
+  showDetailedView: {
+    type: Boolean,
+    default: false
   }
 });
 
-const emit = defineEmits(['cancel', 'close', 'viewResults', 'retry', 'fileClick']);
+const emit = defineEmits(['cancel', 'close', 'viewResults', 'retry', 'fileClick', 'continueEdit', 'suggestionClick']);
 
 // 展开的子任务
 const expandedSubtasks = ref(new Set());
+
+// 所有步骤展开状态
+const allStepsExpanded = ref(false);
+
+// 已完成的文件列表
+const completedFiles = computed(() => {
+  const files = [];
+  props.taskPlan.subtasks?.forEach(subtask => {
+    if (subtask.status === 'completed' && subtask.output_files?.length) {
+      subtask.output_files.forEach(filePath => {
+        const fileName = filePath.split('/').pop();
+        files.push({
+          path: filePath,
+          name: fileName,
+          subtask: subtask,
+          hint: getFileHint(fileName)
+        });
+      });
+    }
+  });
+  return files;
+});
+
+// AI建议的后续问题
+const suggestedQuestions = computed(() => {
+  // 可以从taskPlan中获取，或者根据任务类型生成
+  return props.taskPlan.suggested_questions || [
+    '<附件有几页也要有几页 不是第一页 全部要可编辑>'
+  ];
+});
+
+// 获取文件提示文本
+const getFileHint = (fileName) => {
+  const ext = fileName.split('.').pop().toLowerCase();
+  const hints = {
+    'pptx': '可编辑PPT制作指南(修改版1)',
+    'docx': '可编辑文档',
+    'xlsx': '可编辑表格',
+    'pdf': 'PDF文档',
+    'html': '网页文件'
+  };
+  return hints[ext] || '';
+};
+
+// 切换所有步骤展开状态
+const toggleAllSteps = () => {
+  allStepsExpanded.value = !allStepsExpanded.value;
+};
+
+// 处理继续编辑
+const handleContinueEdit = (file) => {
+  emit('continueEdit', { file, taskPlan: props.taskPlan });
+  message.info(`继续编辑：${file.name}`);
+};
+
+// 处理建议点击
+const handleSuggestionClick = (question) => {
+  emit('suggestionClick', { question, taskPlan: props.taskPlan });
+  message.info(`已选择建议：${question}`);
+};
 
 // 计算持续时间
 const duration = computed(() => {
@@ -355,6 +497,236 @@ onMounted(() => {
   border-radius: 8px;
   border: 1px solid #e8e8e8;
   overflow: hidden;
+}
+
+/* 对话式展示区域 */
+.conversation-display {
+  margin-bottom: 24px;
+}
+
+.ai-message {
+  background: #F5F7FA;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+
+  .message-content {
+    font-size: 15px;
+    color: #333333;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+}
+
+/* 步骤折叠面板 */
+.steps-collapse-panel {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+
+  .steps-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s;
+
+    &:hover {
+      background: #F9FAFB;
+    }
+
+    .collapse-icon {
+      font-size: 14px;
+      color: #666666;
+      transition: transform 0.3s;
+
+      &.expanded {
+        transform: rotate(90deg);
+      }
+    }
+
+    .steps-count {
+      font-size: 14px;
+      color: #333333;
+      font-weight: 500;
+    }
+  }
+
+  .steps-list {
+    border-top: 1px solid #E5E7EB;
+    padding: 12px 0;
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 16px;
+      transition: background 0.2s;
+
+      &:hover {
+        background: #F9FAFB;
+      }
+
+      .step-icon {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        margin-top: 2px;
+      }
+
+      .step-content {
+        flex: 1;
+
+        .step-title {
+          font-size: 14px;
+          color: #333333;
+          font-weight: 500;
+          margin-bottom: 4px;
+        }
+
+        .step-description {
+          font-size: 13px;
+          color: #666666;
+          line-height: 1.5;
+        }
+      }
+
+      &.status-completed {
+        opacity: 0.8;
+      }
+
+      &.status-in_progress {
+        background: #F0F9FF;
+      }
+    }
+  }
+}
+
+/* 附件文件展示 */
+.attachments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .attachment-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &:hover {
+      border-color: #1677FF;
+      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .file-icon-wrapper {
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+
+    .file-info {
+      flex: 1;
+
+      .file-name {
+        font-size: 14px;
+        color: #333333;
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+
+      .file-hint {
+        font-size: 13px;
+        color: #999999;
+      }
+    }
+
+    .file-actions {
+      flex-shrink: 0;
+
+      .ant-btn {
+        color: #1677FF;
+        font-size: 13px;
+
+        &:hover {
+          color: #4096FF;
+          background: #F0F9FF;
+        }
+      }
+    }
+  }
+}
+
+/* AI建议的后续问题 */
+.ai-suggestions {
+  background: #FFFBF0;
+  border: 1px solid #FFE7BA;
+  border-radius: 8px;
+  padding: 16px;
+
+  .suggestions-label {
+    font-size: 13px;
+    color: #666666;
+    margin-bottom: 12px;
+  }
+
+  .suggestions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .suggestion-item {
+      padding: 12px;
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+
+      &:hover {
+        border-color: #FAAD14;
+        background: #FFF7E6;
+        transform: translateX(4px);
+      }
+
+      .suggestion-text {
+        font-size: 14px;
+        color: #333333;
+      }
+    }
+  }
+}
+
+/* 幻灯片过渡动画 */
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+  max-height: 500px;
+  overflow: hidden;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  max-height: 0;
+  opacity: 0;
 }
 
 /* 任务头部 */

@@ -1,18 +1,5 @@
 <template>
   <div class="ai-chat-page">
-    <!-- 左侧：项目侧边栏 -->
-    <ProjectSidebar
-      :conversations="conversations"
-      :active-conversation="activeConversationId"
-      :user-name="userName"
-      :user-avatar="userAvatar"
-      :collapsible="true"
-      @new-conversation="handleNewConversation"
-      @conversation-click="handleConversationClick"
-      @conversation-action="handleConversationAction"
-      @nav-click="handleNavClick"
-      @user-action="handleUserAction"
-    />
 
     <!-- 右侧：主内容区 -->
     <div class="main-container">
@@ -146,7 +133,6 @@ import {
   UserOutlined,
   LoadingOutlined,
 } from '@ant-design/icons-vue';
-import ProjectSidebar from '@/components/projects/ProjectSidebar.vue';
 import ConversationInput from '@/components/projects/ConversationInput.vue';
 import BrowserPreview from '@/components/projects/BrowserPreview.vue';
 import StepDisplay from '@/components/projects/StepDisplay.vue';

@@ -218,6 +218,16 @@
             @save="handleWebSave"
           />
 
+          <!-- PPT编辑器 -->
+          <PPTEditor
+            v-else-if="shouldShowPPTEditor"
+            ref="pptEditorRef"
+            :file="currentFile"
+            :auto-save="true"
+            @change="handlePPTChange"
+            @save="handlePPTSave"
+          />
+
           <!-- 文本编辑模式 -->
           <SimpleEditor
             v-else-if="shouldShowEditor"
@@ -414,6 +424,7 @@ import RichTextEditor from '@/components/editors/RichTextEditor.vue';
 import CodeEditor from '@/components/editors/CodeEditor.vue';
 import MarkdownEditor from '@/components/editors/MarkdownEditor.vue';
 import WebDevEditor from '@/components/editors/WebDevEditor.vue';
+import PPTEditor from '@/components/editors/PPTEditor.vue';
 import PreviewPanel from '@/components/projects/PreviewPanel.vue';
 import ChatPanel from '@/components/projects/ChatPanel.vue';
 import GitStatusDialog from '@/components/projects/GitStatusDialog.vue';
@@ -448,6 +459,7 @@ const wordEditorRef = ref(null); // Word编辑器引用
 const codeEditorRef = ref(null); // 代码编辑器引用
 const markdownEditorRef = ref(null); // Markdown编辑器引用
 const webEditorRef = ref(null); // Web开发编辑器引用
+const pptEditorRef = ref(null); // PPT编辑器引用
 const gitStatus = ref({}); // Git 状态
 let gitStatusInterval = null; // Git 状态轮询定时器
 const showFileManageModal = ref(false); // 文件管理Modal
@@ -560,6 +572,13 @@ const shouldShowWebEditor = computed(() => {
   return ext === 'html';
 });
 
+// 是否显示PPT编辑器
+const shouldShowPPTEditor = computed(() => {
+  if (!currentFile.value) return false;
+  if (viewMode.value === 'preview') return false;
+  return fileTypeInfo.value?.isPPT;
+});
+
 // 是否显示文本编辑器
 const shouldShowEditor = computed(() => {
   if (!currentFile.value) return false;
@@ -567,7 +586,8 @@ const shouldShowEditor = computed(() => {
   if (fileTypeInfo.value?.isExcel ||
       fileTypeInfo.value?.isWord ||
       fileTypeInfo.value?.isCode ||
-      fileTypeInfo.value?.isMarkdown) {
+      fileTypeInfo.value?.isMarkdown ||
+      fileTypeInfo.value?.isPPT) {
     return false;
   }
   if (viewMode.value === 'edit') return fileTypeInfo.value?.isEditable;
@@ -584,6 +604,7 @@ const shouldShowPreview = computed(() => {
     // 如果是专用编辑器文件或可编辑文件，则不显示预览
     if (fileTypeInfo.value?.isExcel ||
         fileTypeInfo.value?.isWord ||
+        fileTypeInfo.value?.isPPT ||
         fileTypeInfo.value?.isEditable) {
       return false;
     }
@@ -761,6 +782,17 @@ const handleMarkdownSave = async (content) => {
 const handleWebSave = async (data) => {
   hasUnsavedChanges.value = false;
   message.success('Web项目已保存');
+};
+
+// 处理PPT变化
+const handlePPTChange = (slides) => {
+  hasUnsavedChanges.value = true;
+};
+
+// 处理PPT保存
+const handlePPTSave = async (slides) => {
+  hasUnsavedChanges.value = false;
+  message.success('PPT已保存');
 };
 
 // 返回项目列表
