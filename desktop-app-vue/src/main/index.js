@@ -5740,9 +5740,17 @@ class ChainlessChainApp {
             // 缓存到本地
             if (templates && templates.length > 0) {
               this.database.saveProjectTemplates(templates);
+              console.log('[Main] 成功从后端获取并缓存模板');
             }
           } catch (backendError) {
-            console.warn('[Main] 从后端获取模板失败，使用本地数据:', backendError);
+            // 只在非预期错误时显示详细日志
+            if (backendError.isExpectedError || backendError.isConnectionError) {
+              // 预期错误：后端服务未启动，这是正常的
+              console.info('[Main] 后端服务未启动，将使用本地默认模板（这是正常的）');
+            } else {
+              // 非预期错误：需要记录详细信息
+              console.warn('[Main] 从后端获取模板时发生错误:', backendError.message);
+            }
           }
         }
 
