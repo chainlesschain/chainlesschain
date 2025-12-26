@@ -178,7 +178,7 @@ public class SyncServiceImpl implements SyncService {
                 syncLog.setStatus(status);
                 syncLog.setDeviceId(deviceId);
                 syncLog.setErrorMessage(errorMessage);
-                syncLog.setSyncTime(LocalDateTime.now());
+                // createdAt and updatedAt are auto-filled by MyBatis Plus
 
                 int inserted = syncLogMapper.insert(syncLog);
 

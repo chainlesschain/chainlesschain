@@ -513,7 +513,6 @@ class ChainlessChainApp {
     try {
       console.log('初始化信用评分管理器...');
       this.creditScoreManager = new CreditScoreManager(this.database);
-      await this.creditScoreManager.initialize();
       console.log('信用评分管理器初始化成功');
     } catch (error) {
       console.error('信用评分管理器初始化失败:', error);
@@ -524,7 +523,6 @@ class ChainlessChainApp {
     try {
       console.log('初始化评价管理器...');
       this.reviewManager = new ReviewManager(this.database);
-      await this.reviewManager.initialize();
       console.log('评价管理器初始化成功');
     } catch (error) {
       console.error('评价管理器初始化失败:', error);
@@ -720,16 +718,20 @@ class ChainlessChainApp {
     // 注册文件操作IPC handlers
     try {
       console.log('注册文件操作IPC handlers...');
-      this.fileIPC = new FileIPC();
 
-      // 传递引擎实例
-      const excelEngine = require('./engines/excel-engine');
-      const wordEngine = require('./engines/word-engine');
-      this.fileIPC.setEngines({
-        excelEngine,
-        wordEngine,
-        documentEngine: this.documentEngine,
-      });
+      // 只在第一次创建时初始化FileIPC
+      if (!this.fileIPC) {
+        this.fileIPC = new FileIPC();
+
+        // 传递引擎实例
+        const excelEngine = require('./engines/excel-engine');
+        const wordEngine = require('./engines/word-engine');
+        this.fileIPC.setEngines({
+          excelEngine,
+          wordEngine,
+          documentEngine: this.documentEngine,
+        });
+      }
 
       this.fileIPC.registerHandlers(this.mainWindow);
       console.log('文件操作IPC handlers注册成功');

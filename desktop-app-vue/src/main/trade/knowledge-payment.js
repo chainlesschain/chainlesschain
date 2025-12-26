@@ -22,7 +22,7 @@ class KnowledgePaymentManager extends EventEmitter {
    */
   initDatabase() {
     // 付费内容表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS paid_contents (
         id TEXT PRIMARY KEY,
         content_type TEXT NOT NULL,      -- 'article', 'video', 'audio', 'course', 'consulting'
@@ -47,7 +47,7 @@ class KnowledgePaymentManager extends EventEmitter {
     `);
 
     // 内容购买记录表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS content_purchases (
         id TEXT PRIMARY KEY,
         content_id TEXT NOT NULL,
@@ -64,7 +64,7 @@ class KnowledgePaymentManager extends EventEmitter {
     `);
 
     // 订阅计划表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS subscription_plans (
         id TEXT PRIMARY KEY,
         creator_did TEXT NOT NULL,
@@ -80,7 +80,7 @@ class KnowledgePaymentManager extends EventEmitter {
     `);
 
     // 用户订阅表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS user_subscriptions (
         id TEXT PRIMARY KEY,
         plan_id TEXT NOT NULL,
@@ -96,7 +96,7 @@ class KnowledgePaymentManager extends EventEmitter {
     `);
 
     // 内容访问日志表
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS content_access_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         content_id TEXT NOT NULL,
