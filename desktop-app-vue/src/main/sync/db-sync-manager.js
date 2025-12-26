@@ -122,50 +122,80 @@ class DBSyncManager extends EventEmitter {
   }
 
   /**
-   * 登录后的完整同步流程
+   * 登录后的完整同步流程（并发版本）
    */
   async syncAfterLogin() {
-    console.log('[DBSyncManager] 开始登录后同步');
+    console.log('[DBSyncManager] 开始登录后同步（并发模式）');
 
     this.emit('sync:started', {
-      totalTables: this.syncTables.length
+      totalTables: this.syncTables.length,
+      concurrency: config.maxConcurrency
     });
 
-    let completedTables = 0;
     const conflicts = [];
+    const errors = [];
+    let completedTables = 0;
 
-    for (const tableName of this.syncTables) {
-      try {
-        console.log(`[DBSyncManager] 同步表: ${tableName}`);
+    // 创建同步任务（按优先级）
+    const syncTasks = this.syncTables.map((tableName, index) => {
+      const priority = this.syncTables.length - index;  // 前面的表优先级高
+
+      return this.syncQueue.enqueue(async () => {
+        console.log(`[DBSyncManager] 同步表: ${tableName} (优先级: ${priority})`);
 
         this.emit('sync:table-started', {
           table: tableName,
-          progress: (completedTables / this.syncTables.length) * 100
+          progress: (completedTables / this.syncTables.length) * 100,
+          queueLength: this.syncQueue.length,
+          activeCount: this.syncQueue.active
         });
 
-        // 1. 上传本地新数据
-        await this.uploadLocalChanges(tableName);
+        try {
+          // 1. 上传本地新数据
+          await this.uploadLocalChanges(tableName);
 
-        // 2. 下载远程新数据
-        const result = await this.downloadRemoteChanges(tableName);
+          // 2. 下载远程新数据
+          const result = await this.downloadRemoteChanges(tableName);
 
-        // 3. 检测冲突
-        if (result.conflicts && result.conflicts.length > 0) {
-          conflicts.push(...result.conflicts.map(c => ({ ...c, table: tableName })));
+          // 3. 检测冲突
+          if (result.conflicts && result.conflicts.length > 0) {
+            conflicts.push(...result.conflicts.map(c => ({ ...c, table: tableName })));
+          }
+
+          completedTables++;
+
+          this.emit('sync:table-completed', {
+            table: tableName,
+            progress: (completedTables / this.syncTables.length) * 100,
+            queueLength: this.syncQueue.length,
+            activeCount: this.syncQueue.active
+          });
+
+          return { tableName, success: true };
+        } catch (error) {
+          console.error(`[DBSyncManager] 同步表 ${tableName} 失败:`, error);
+          errors.push({ table: tableName, error: error.message });
+
+          this.emit('sync:error', {
+            table: tableName,
+            error: error.message,
+            queueLength: this.syncQueue.length,
+            activeCount: this.syncQueue.active
+          });
+
+          return { tableName, success: false, error: error.message };
         }
+      }, priority);
+    });
 
-        completedTables++;
+    // 等待所有任务完成
+    const results = await Promise.allSettled(syncTasks);
 
-        this.emit('sync:table-completed', {
-          table: tableName,
-          progress: (completedTables / this.syncTables.length) * 100
-        });
+    // 统计结果
+    const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const failureCount = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
 
-      } catch (error) {
-        console.error(`[DBSyncManager] 同步表 ${tableName} 失败:`, error);
-        this.emit('sync:error', { table: tableName, error: error.message });
-      }
-    }
+    console.log(`[DBSyncManager] 同步完成: 成功${successCount}个表, 失败${failureCount}个表, 冲突${conflicts.length}个`);
 
     // 如果有冲突，通知前端
     if (conflicts.length > 0) {
@@ -177,11 +207,21 @@ class DBSyncManager extends EventEmitter {
     }
 
     this.emit('sync:completed', {
-      totalTables: completedTables,
-      conflicts: conflicts.length
+      totalTables: this.syncTables.length,
+      successCount,
+      failureCount,
+      conflicts: conflicts.length,
+      errors: errors.length
     });
 
     console.log('[DBSyncManager] 登录后同步完成');
+
+    return {
+      success: successCount,
+      failed: failureCount,
+      conflicts: conflicts.length,
+      errors
+    };
   }
 
   /**
@@ -481,9 +521,13 @@ class DBSyncManager extends EventEmitter {
   }
 
   /**
-   * 增量同步（只同步有变更的表）
+   * 增量同步（只同步有变更的表，并发版本）
    */
   async syncIncremental() {
+    console.log('[DBSyncManager] 开始增量同步（并发模式）');
+
+    // 先检查哪些表有待同步的数据
+    const tablesToSync = [];
     for (const tableName of this.syncTables) {
       try {
         const hasPending = this.database.db
@@ -491,13 +535,51 @@ class DBSyncManager extends EventEmitter {
           .get();
 
         if (hasPending.count > 0) {
-          await this.uploadLocalChanges(tableName);
-          await this.downloadRemoteChanges(tableName);
+          tablesToSync.push(tableName);
         }
       } catch (error) {
-        console.error(`[DBSyncManager] 增量同步表 ${tableName} 失败:`, error);
+        console.error(`[DBSyncManager] 检查表 ${tableName} 状态失败:`, error);
       }
     }
+
+    if (tablesToSync.length === 0) {
+      console.log('[DBSyncManager] 没有需要同步的数据');
+      return { success: 0, failed: 0 };
+    }
+
+    console.log(`[DBSyncManager] 发现${tablesToSync.length}个表需要同步:`, tablesToSync);
+
+    // 创建并发同步任务
+    const syncTasks = tablesToSync.map((tableName, index) => {
+      const priority = tablesToSync.length - index;
+
+      return this.syncQueue.enqueue(async () => {
+        console.log(`[DBSyncManager] 增量同步表: ${tableName}`);
+
+        try {
+          await this.uploadLocalChanges(tableName);
+          await this.downloadRemoteChanges(tableName);
+          return { tableName, success: true };
+        } catch (error) {
+          console.error(`[DBSyncManager] 增量同步表 ${tableName} 失败:`, error);
+          return { tableName, success: false, error: error.message };
+        }
+      }, priority);
+    });
+
+    // 等待所有任务完成
+    const results = await Promise.allSettled(syncTasks);
+
+    // 统计结果
+    const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const failureCount = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
+
+    console.log(`[DBSyncManager] 增量同步完成: 成功${successCount}个表, 失败${failureCount}个表`);
+
+    return {
+      success: successCount,
+      failed: failureCount
+    };
   }
 
   /**
