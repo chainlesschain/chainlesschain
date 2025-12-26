@@ -118,7 +118,11 @@ class SignalSessionManager extends EventEmitter {
       if (fs.existsSync(identityPath)) {
         const identityData = JSON.parse(fs.readFileSync(identityPath, 'utf8'));
 
-        this.identityKeyPair = identityData.identityKeyPair;
+        // 重建身份密钥对 - 从 JSON 序列化格式转换回 ArrayBuffer
+        this.identityKeyPair = {
+          pubKey: this.arrayBufferFromObject(identityData.identityKeyPair.pubKey),
+          privKey: this.arrayBufferFromObject(identityData.identityKeyPair.privKey),
+        };
         this.registrationId = identityData.registrationId;
 
         // 存储到 Signal Store
@@ -396,6 +400,43 @@ class SignalSessionManager extends EventEmitter {
       console.error('[SignalSession] 获取会话列表失败:', error);
       return [];
     }
+  }
+
+  /**
+   * 从 JSON 对象重建 ArrayBuffer
+   * @param {Object} obj - JSON 对象 (可能是 { type: 'Buffer', data: [...] } 或数组)
+   * @returns {ArrayBuffer} ArrayBuffer
+   */
+  arrayBufferFromObject(obj) {
+    if (!obj) {
+      return new ArrayBuffer(0);
+    }
+
+    let array;
+    if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
+      // Node.js Buffer 序列化格式
+      array = obj.data;
+    } else if (Array.isArray(obj)) {
+      // 普通数组格式
+      array = obj;
+    } else if (obj instanceof ArrayBuffer) {
+      // 已经是 ArrayBuffer
+      return obj;
+    } else if (ArrayBuffer.isView(obj)) {
+      // TypedArray 或 DataView
+      return obj.buffer.slice(obj.byteOffset, obj.byteOffset + obj.byteLength);
+    } else {
+      console.warn('[SignalSession] 未知的 ArrayBuffer 格式:', typeof obj);
+      return new ArrayBuffer(0);
+    }
+
+    // 从数组创建 ArrayBuffer
+    const buffer = new ArrayBuffer(array.length);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < array.length; i++) {
+      view[i] = array[i];
+    }
+    return buffer;
   }
 
   /**

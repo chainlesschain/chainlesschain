@@ -67,9 +67,11 @@ class VectorStore extends EventEmitter {
         fs.mkdirSync(this.config.cacheDir, { recursive: true });
       }
 
-      // 连接ChromaDB
+      // 连接ChromaDB (使用新的host/port配置而不是废弃的path参数)
+      const url = new URL(this.config.chromaUrl);
       this.client = new ChromaClient({
-        path: this.config.chromaUrl,
+        host: url.hostname,
+        port: url.port || (url.protocol === 'https:' ? 443 : 8000),
       });
 
       // 检查连接
