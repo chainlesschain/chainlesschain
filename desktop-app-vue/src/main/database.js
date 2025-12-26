@@ -827,8 +827,12 @@ class DatabaseManager {
       // ==================== 同步字段迁移（V2） ====================
       console.log('[Database] 执行同步字段迁移 (V2)...');
 
-      // 为 projects 表添加同步字段
+      // 为 projects 表添加设备ID和同步字段
       const projectsInfo = this.db.prepare("PRAGMA table_info(projects)").all();
+      if (!projectsInfo.some(col => col.name === 'device_id')) {
+        console.log('[Database] 添加 projects.device_id 列');
+        this.db.run('ALTER TABLE projects ADD COLUMN device_id TEXT');
+      }
       if (!projectsInfo.some(col => col.name === 'synced_at')) {
         console.log('[Database] 添加 projects.synced_at 列');
         this.db.run('ALTER TABLE projects ADD COLUMN synced_at INTEGER');
@@ -860,8 +864,12 @@ class DatabaseManager {
         this.db.run('ALTER TABLE messages ADD COLUMN synced_at INTEGER');
       }
 
-      // 为 project_files 表添加同步字段
+      // 为 project_files 表添加设备ID和同步字段
       const filesSyncInfo = this.db.prepare("PRAGMA table_info(project_files)").all();
+      if (!filesSyncInfo.some(col => col.name === 'device_id')) {
+        console.log('[Database] 添加 project_files.device_id 列');
+        this.db.run('ALTER TABLE project_files ADD COLUMN device_id TEXT');
+      }
       if (!filesSyncInfo.some(col => col.name === 'sync_status')) {
         console.log('[Database] 添加 project_files.sync_status 列');
         this.db.run("ALTER TABLE project_files ADD COLUMN sync_status TEXT DEFAULT 'pending'");
@@ -875,8 +883,12 @@ class DatabaseManager {
         this.db.run('ALTER TABLE project_files ADD COLUMN deleted INTEGER DEFAULT 0');
       }
 
-      // 为 knowledge_items 表添加同步字段
+      // 为 knowledge_items 表添加设备ID和同步字段
       const knowledgeInfo = this.db.prepare("PRAGMA table_info(knowledge_items)").all();
+      if (!knowledgeInfo.some(col => col.name === 'device_id')) {
+        console.log('[Database] 添加 knowledge_items.device_id 列');
+        this.db.run('ALTER TABLE knowledge_items ADD COLUMN device_id TEXT');
+      }
       if (!knowledgeInfo.some(col => col.name === 'sync_status')) {
         console.log('[Database] 添加 knowledge_items.sync_status 列');
         this.db.run("ALTER TABLE knowledge_items ADD COLUMN sync_status TEXT DEFAULT 'pending'");
@@ -890,8 +902,20 @@ class DatabaseManager {
         this.db.run('ALTER TABLE knowledge_items ADD COLUMN deleted INTEGER DEFAULT 0');
       }
 
-      // 为 project_collaborators 表添加同步字段
+      // 为 project_collaborators 表添加基础和同步字段
       const collabInfo = this.db.prepare("PRAGMA table_info(project_collaborators)").all();
+      if (!collabInfo.some(col => col.name === 'created_at')) {
+        console.log('[Database] 添加 project_collaborators.created_at 列');
+        this.db.run('ALTER TABLE project_collaborators ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0');
+      }
+      if (!collabInfo.some(col => col.name === 'updated_at')) {
+        console.log('[Database] 添加 project_collaborators.updated_at 列');
+        this.db.run('ALTER TABLE project_collaborators ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0');
+      }
+      if (!collabInfo.some(col => col.name === 'device_id')) {
+        console.log('[Database] 添加 project_collaborators.device_id 列');
+        this.db.run('ALTER TABLE project_collaborators ADD COLUMN device_id TEXT');
+      }
       if (!collabInfo.some(col => col.name === 'sync_status')) {
         console.log('[Database] 添加 project_collaborators.sync_status 列');
         this.db.run("ALTER TABLE project_collaborators ADD COLUMN sync_status TEXT DEFAULT 'pending'");
@@ -905,8 +929,12 @@ class DatabaseManager {
         this.db.run('ALTER TABLE project_collaborators ADD COLUMN deleted INTEGER DEFAULT 0');
       }
 
-      // 为 project_comments 表添加同步字段
+      // 为 project_comments 表添加设备ID和同步字段
       const commentsInfo = this.db.prepare("PRAGMA table_info(project_comments)").all();
+      if (!commentsInfo.some(col => col.name === 'device_id')) {
+        console.log('[Database] 添加 project_comments.device_id 列');
+        this.db.run('ALTER TABLE project_comments ADD COLUMN device_id TEXT');
+      }
       if (!commentsInfo.some(col => col.name === 'sync_status')) {
         console.log('[Database] 添加 project_comments.sync_status 列');
         this.db.run("ALTER TABLE project_comments ADD COLUMN sync_status TEXT DEFAULT 'pending'");
@@ -920,8 +948,12 @@ class DatabaseManager {
         this.db.run('ALTER TABLE project_comments ADD COLUMN deleted INTEGER DEFAULT 0');
       }
 
-      // 为 project_tasks 表添加同步字段
+      // 为 project_tasks 表添加设备ID和同步字段
       const tasksInfo = this.db.prepare("PRAGMA table_info(project_tasks)").all();
+      if (!tasksInfo.some(col => col.name === 'device_id')) {
+        console.log('[Database] 添加 project_tasks.device_id 列');
+        this.db.run('ALTER TABLE project_tasks ADD COLUMN device_id TEXT');
+      }
       if (!tasksInfo.some(col => col.name === 'sync_status')) {
         console.log('[Database] 添加 project_tasks.sync_status 列');
         this.db.run("ALTER TABLE project_tasks ADD COLUMN sync_status TEXT DEFAULT 'pending'");
