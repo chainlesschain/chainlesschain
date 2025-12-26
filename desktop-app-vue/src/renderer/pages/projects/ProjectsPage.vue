@@ -1,6 +1,5 @@
 <template>
   <div class="projects-page-wrapper">
-
     <!-- 中央内容区域 -->
     <div class="main-content">
       <!-- 欢迎头部 (总是显示，优化问候语) -->
@@ -66,47 +65,6 @@
         </div>
       </div>
 
-      <!-- 加载状态 -->
-      <div v-if="loading" class="loading-container">
-        <a-spin size="large" tip="加载中..." />
-      </div>
-
-      <!-- 项目卡片网格 -->
-      <div v-else-if="filteredProjects.length > 0" class="projects-grid-section">
-        <div class="projects-grid">
-          <ProjectCard
-            v-for="project in paginatedProjects"
-            :key="project.id"
-            :project="project"
-            @view="handleViewProject"
-            @edit="handleEditProject"
-            @delete="handleDeleteProject"
-          />
-        </div>
-
-        <!-- 分页 -->
-        <div class="pagination-container" v-if="filteredTotal > pageSize">
-          <a-pagination
-            v-model:current="currentPage"
-            v-model:page-size="pageSize"
-            :total="filteredTotal"
-            :show-total="total => `共 ${total} 个项目`"
-            :show-size-changer="true"
-            :page-size-options="['12', '24', '48']"
-            @change="handlePageChange"
-            @showSizeChange="handlePageSizeChange"
-          />
-        </div>
-      </div>
-
-      <!-- 空状态 (有筛选条件但无结果时) -->
-      <div v-else-if="selectedType || activeCategory !== 'all'" class="empty-result">
-        <div class="empty-icon">
-          <SearchOutlined />
-        </div>
-        <h3>没有找到匹配的项目</h3>
-        <p>尝试选择其他类别或创建新项目</p>
-      </div>
     </div>
 
     <!-- 任务执行监控器弹窗 -->
@@ -160,7 +118,6 @@ import {
   ArrowRightOutlined,
 } from '@ant-design/icons-vue';
 import ConversationInput from '@/components/projects/ConversationInput.vue';
-import ProjectCard from '@/components/projects/ProjectCard.vue';
 import TaskExecutionMonitor from '@/components/projects/TaskExecutionMonitor.vue';
 import StreamProgressModal from '@/components/projects/StreamProgressModal.vue';
 
@@ -800,8 +757,10 @@ onUnmounted(() => {
 <style scoped lang="scss">
 /* 扣子空间风格 - 项目列表页 */
 .projects-page-wrapper {
-  display: flex;
-  height: 100vh;
+  min-height: 100%;
+  padding: 0;
+  margin: -24px; /* 抵消 layout-content 的 padding */
+  height: calc(100vh - 56px - 40px); /* 减去 header 和 tabs-bar 的高度 */
   background: #FFFFFF;
   overflow: hidden;
 }
@@ -814,6 +773,23 @@ onUnmounted(() => {
   overflow-y: auto;
   padding: 40px 80px;
   background: #FFFFFF;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+  }
 }
 
 /* 欢迎头部 */

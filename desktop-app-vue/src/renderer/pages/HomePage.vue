@@ -1,5 +1,7 @@
 <template>
   <div class="home-page">
+    <!-- 主内容区 -->
+    <div class="home-main-content">
     <!-- 欢迎横幅 -->
     <div class="welcome-banner">
       <div class="banner-content">
@@ -189,40 +191,6 @@
         </a-col>
       </a-row>
     </div>
-
-    <!-- 最近更新 -->
-    <div v-if="recentItems.length > 0" class="recent-section">
-      <div class="section-header">
-        <h3>最近更新</h3>
-      </div>
-      <a-list
-        :data-source="recentItems"
-        :pagination="false"
-        class="recent-list"
-      >
-        <template #renderItem="{ item }">
-          <a-list-item class="recent-item" @click="viewItem(item)">
-            <a-list-item-meta>
-              <template #avatar>
-                <a-avatar :style="{ background: getTypeColor(item.type) }">
-                  <template #icon>
-                    <component :is="getTypeIcon(item.type)" />
-                  </template>
-                </a-avatar>
-              </template>
-              <template #title>
-                <span class="item-title">{{ item.title }}</span>
-              </template>
-              <template #description>
-                <span class="item-time">{{ formatDate(item.updated_at) }}</span>
-              </template>
-            </a-list-item-meta>
-            <template #actions>
-              <a>查看</a>
-            </template>
-          </a-list-item>
-        </template>
-      </a-list>
     </div>
   </div>
 </template>
@@ -306,54 +274,9 @@ const todayCount = computed(() => {
   ).length;
 });
 
-// 最近更新的项目
-const recentItems = computed(() => {
-  return [...store.knowledgeItems]
-    .sort((a, b) => b.updated_at - a.updated_at)
-    .slice(0, 6);
-});
-
-const formatDate = (timestamp) => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
-
-  return date.toLocaleDateString('zh-CN');
-};
-
-const getTypeIcon = (type) => {
-  const icons = {
-    note: FileTextOutlined,
-    document: FileOutlined,
-    conversation: CommentOutlined,
-    web_clip: GlobalOutlined,
-  };
-  return icons[type] || FileTextOutlined;
-};
-
-const getTypeColor = (type) => {
-  const colors = {
-    note: '#1890ff',
-    document: '#52c41a',
-    conversation: '#faad14',
-    web_clip: '#722ed1',
-  };
-  return colors[type] || '#1890ff';
-};
-
 const openTab = (key, path, title) => {
   store.addTab({ key, path, title });
   router.push(path);
-};
-
-const viewItem = (item) => {
-  store.setCurrentItem(item);
-  router.push(`/knowledge/${item.id}`);
 };
 
 const openSettings = (tab) => {
@@ -367,6 +290,33 @@ const openSettings = (tab) => {
 .home-page {
   min-height: 100%;
   padding: 0;
+  margin: -24px; /* 抵消 layout-content 的 padding */
+  height: calc(100vh - 56px - 40px); /* 减去 header 和 tabs-bar 的高度 */
+  overflow: hidden;
+}
+
+.home-main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: #f5f5f5;
+}
+
+.home-main-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.home-main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.home-main-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.home-main-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
 }
 
 /* 欢迎横幅 */
@@ -556,53 +506,6 @@ const openSettings = (tab) => {
 /* 系统状态 */
 .system-status {
   margin-bottom: 24px;
-}
-
-/* 最近更新 */
-.recent-section {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.section-header {
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.85);
-}
-
-.recent-list {
-  background: transparent;
-}
-
-.recent-item {
-  cursor: pointer;
-  transition: background 0.3s;
-  border-radius: 8px;
-  padding: 12px;
-  margin: -12px;
-}
-
-.recent-item:hover {
-  background: #fafafa;
-}
-
-.item-title {
-  color: rgba(0, 0, 0, 0.85);
-  font-weight: 500;
-}
-
-.item-time {
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 12px;
 }
 
 /* 响应式 */

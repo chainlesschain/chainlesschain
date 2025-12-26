@@ -1,7 +1,8 @@
 <template>
   <a-layout class="main-layout">
-    <!-- 侧边栏 -->
+    <!-- 侧边栏 - 只在首页显示 -->
     <a-layout-sider
+      v-if="showSidebar"
       v-model:collapsed="sidebarCollapsed"
       :trigger="null"
       collapsible
@@ -166,14 +167,22 @@
     </a-layout-sider>
 
     <!-- 主内容区 -->
-    <a-layout>
-      <!-- 顶部栏 -->
-      <a-layout-header class="layout-header">
+    <a-layout class="main-content-area">
+        <!-- 顶部栏 -->
+        <a-layout-header class="layout-header">
         <div class="header-left">
-          <a-button type="text" @click="toggleSidebar" class="trigger-btn">
+          <!-- 只在有侧边栏时显示折叠按钮 -->
+          <a-button v-if="showSidebar" type="text" @click="toggleSidebar" class="trigger-btn">
             <MenuFoldOutlined v-if="!sidebarCollapsed" />
             <MenuUnfoldOutlined v-else />
           </a-button>
+          <!-- 没有侧边栏时显示返回按钮 -->
+          <div v-else class="page-title">
+            <a-button type="text" @click="handleBackToHome" class="back-btn">
+              <ArrowLeftOutlined />
+              返回首页
+            </a-button>
+          </div>
         </div>
 
         <div class="header-right">
@@ -321,6 +330,7 @@ import {
   RobotOutlined,
   ExclamationCircleOutlined,
   CloudSyncOutlined,
+  ArrowLeftOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import ChatPanel from './ChatPanel.vue';
@@ -341,6 +351,11 @@ const chatPanelVisible = computed({
 });
 
 const selectedMenuKeys = ref(['home']);
+
+// 判断是否显示侧边栏（只在首页显示）
+const showSidebar = computed(() => {
+  return route.path === '/';
+});
 
 // 菜单配置
 const menuConfig = {
@@ -468,6 +483,11 @@ const handleLogout = () => {
   message.success('已退出登录');
 };
 
+// 返回首页
+const handleBackToHome = () => {
+  router.push('/');
+};
+
 // ==================== 同步状态管理 ====================
 
 const isSyncing = ref(false);
@@ -536,6 +556,11 @@ const handleSyncClick = async () => {
 .layout-sider {
   background: #001529;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.main-content-area {
+  flex: 1;
+  overflow: hidden;
 }
 
 .app-logo {
@@ -646,6 +671,27 @@ const handleSyncClick = async () => {
 
 .trigger-btn:hover {
   background: rgba(0, 0, 0, 0.025);
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+}
+
+.back-btn {
+  font-size: 14px;
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #667eea;
+  font-weight: 500;
+}
+
+.back-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #764ba2;
 }
 
 .header-right {

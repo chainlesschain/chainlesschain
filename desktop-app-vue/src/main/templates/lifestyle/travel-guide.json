@@ -1,0 +1,133 @@
+{
+  "id": "tpl_lifestyle_travel_001",
+  "name": "travel_guide_plan",
+  "display_name": "深度旅行攻略",
+  "description": "生成详细的旅行攻略，包含景点推荐、行程规划、美食住宿、预算估算等",
+  "icon": "✈️",
+  "cover_image": "/templates/covers/travel-guide.png",
+
+  "category": "lifestyle",
+  "subcategory": "travel",
+  "tags": ["旅行", "攻略", "行程规划", "生活"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成一份{{destination}}的深度旅行攻略，要求：\n\n**旅行基本信息：**\n- 目的地：{{destination}}\n- 旅行天数：{{tripDays}}天{{tripNights}}晚\n- 旅行季节：{{season}}\n- 旅行类型：{{tripType}}\n- 同行人数：{{travelersCount}}人\n- 预算等级：{{budgetLevel}}\n\n**攻略结构：**\n\n【第一部分：目的地概览】\n\n**1. 基本信息**\n- 地理位置和气候特点\n- 最佳旅行时间（为什么选择{{season}}）\n- 时差和语言\n- 货币和汇率\n- 签证要求（中国护照）\n\n**2. 行前准备清单**\n\n必带物品：\n{{#if (eq season \"夏季\")}}\n- 防晒霜（SPF50+）\n- 太阳镜和遮阳帽\n- 轻便透气衣物\n- 防蚊液\n{{else if (eq season \"冬季\")}}\n- 保暖衣物（羽绒服、手套）\n- 保温杯\n- 暖宝宝\n{{else if (eq season \"春季\")}}\n- 薄外套\n- 雨具\n- 口罩（防花粉）\n{{else}}\n- 长袖外套\n- 雨具\n{{/if}}\n- 常用药品\n- 充电器和转换插头\n- 相机/手机稳定器\n{{#if (eq includePhotography \"是\")}}\n- 摄影装备清单（相机、镜头、三脚架）\n{{/if}}\n\n文件准备：\n- 护照（有效期6个月以上）\n- 签证（如需）\n- 机票和酒店确认单\n- 保险单\n- 当地紧急联系方式\n\n**3. 预算估算（{{travelersCount}}人，{{tripDays}}天）**\n\n| 费用类目 | {{budgetLevel}}预算 | 说明 |\n|---------|-------------------|------|\n| 机票 | 往返XXX元/人 | 提前XX天预订 |\n| 住宿 | XX元/晚 × {{tripNights}}晚 = XX元 | {{budgetLevel}}档酒店 |\n| 交通 | XX元/天 × {{tripDays}}天 = XX元 | 包括市内交通和城际 |\n| 餐饮 | XX元/天 × {{tripDays}}天 = XX元 | 早中晚三餐 |\n| 门票 | XX元 | 主要景点门票 |\n| 购物 | XX元 | 纪念品和特产 |\n| 其他 | XX元 | 小费、应急费用 |\n| **总计** | **XX元/人** | |\n\n{{#if (eq budgetLevel \"经济型\")}}\n省钱小贴士：\n- 选择青旅或民宿\n- 自己做饭或吃当地小吃\n- 购买城市通票\n- 避开旅游旺季\n{{/if}}\n\n【第二部分：{{tripDays}}天详细行程】\n\n{{#each (range 1 tripDays)}}\n**第{{this}}天：[主题，如\"老城探索\"或\"自然风光\"]**\n\n上午（9:00-12:00）：\n- 景点1：[名称]\n  * 地址和交通方式\n  * 游览时长：1-2小时\n  * 门票：XX元\n  * 亮点：[必看内容]\n  {{#if (eq ../includePhotography \"是\")}}\n  * 拍照点：[最佳拍摄位置和时间]\n  {{/if}}\n  * 注意事项：[排队、着装等]\n\n中午（12:00-13:30）：\n- 午餐推荐：[餐厅名称]\n  * 特色菜品：[3-5个推荐]\n  * 人均消费：XX元\n  * 预约方式：[是否需要预约]\n\n下午（14:00-18:00）：\n- 景点2：[名称]\n  （同上格式）\n- 景点3：[名称]（如有时间）\n\n晚上（18:00-22:00）：\n- 晚餐+夜生活\n  {{#if (eq ../tripType \"休闲度假\")}}\n  * 悠闲晚餐，酒店休息\n  {{else if (eq ../tripType \"深度体验\")}}\n  * 特色夜市/酒吧街探索\n  * 当地表演或活动\n  {{else}}\n  * 早点休息，为明天储备体力\n  {{/if}}\n\n住宿：[酒店名称]\n- 位置：[便于第二天行程]\n- 价格：XX元/晚\n- 特色：[为什么选这家]\n\n每日开销预估：XX元/人\n\n---\n{{/each}}\n\n【第三部分：美食指南】\n\n**必吃榜单（Top 10）：**\n\n1. [美食名称]\n   - 推荐餐厅：[具体店名和地址]\n   - 价格：XX元\n   - 特色：[为什么必吃]\n   - 营业时间：XX:00-XX:00\n\n2-10. （同上格式）\n\n**美食地图：**\n- 老城区美食街：[具体街道]\n- 海鲜市场：[地址和营业时间]\n- 当地特色小吃集中地：[推荐3-5个]\n\n**避坑指南：**\n- 游客区高价餐厅名单\n- 如何识别本地人常去的店\n- 点菜技巧和忌讳\n\n【第四部分：住宿推荐】\n\n根据{{budgetLevel}}预算，推荐以下住宿：\n\n{{#if (eq budgetLevel \"经济型\")}}\n**青旅/民宿推荐（3家）：**\n1. [名称]\n   - 价格：XX元/晚\n   - 位置：[交通便利度]\n   - 设施：WiFi/早餐/厨房\n   - 预订：[平台链接]\n{{else if (eq budgetLevel \"舒适型\")}}\n**三星/精品酒店推荐（3家）：**\n（同上格式）\n{{else}}\n**高端酒店推荐（3家）：**\n（同上格式）\n{{/if}}\n\n选择建议：\n- 第1-2晚：住在市中心，方便游览主要景点\n- 第3-4晚：住在[特色区域]，体验不同风情\n\n【第五部分：交通攻略】\n\n**到达{{destination}}：**\n- 国际航班：[主要机场]，从中国XX城市直飞/转机\n- 机场到市区：\n  * 机场大巴：XX元，XX分钟\n  * 出租车：XX元，XX分钟\n  * 地铁：XX元，XX分钟（推荐）\n\n**市内交通：**\n{{#if (eq tripType \"自由行\")}}\n- 地铁/公交：购买{{tripDays}}日通票（XX元）\n- 共享单车：适合3公里内短途\n- 打车App：[当地App名称]\n{{else}}\n- 包车游：XX元/天（适合{{travelersCount}}人）\n- 一日游团：XX元/人（含导游）\n{{/if}}\n\n**城际交通（如有）：**\n- [城市A] → [城市B]：高铁/大巴/飞机\n- 时间和价格对比\n- 预订建议\n\n【第六部分：景点深度解析】\n\n选取5-10个必去景点，每个包含：\n- 历史背景和文化意义\n- 游览线路建议（顺时针/逆时针）\n- 最佳游览时间（避开人流高峰）\n{{#if (eq includePhotography \"是\")}}\n- 摄影指南：\n  * 最佳拍摄时间（日出/日落/蓝调时刻）\n  * 经典机位坐标\n  * 推荐器材和参数\n{{/if}}\n- 内部餐厅/商店推荐\n- 周边联动景点\n\n【第七部分：特色体验】\n\n根据{{tripType}}推荐特色活动：\n\n{{#if (eq tripType \"深度体验\")}}\n1. 当地文化体验\n   - 参加传统节日/仪式\n   - 手工艺工坊体验\n   - 烹饪课程\n\n2. 深入当地生活\n   - 菜市场逛吃\n   - 与本地人聊天（推荐咖啡馆）\n   - 参加社区活动\n{{else if (eq tripType \"休闲度假\")}}\n1. Spa和按摩\n2. 海滩/度假村放松\n3. 下午茶和咖啡馆\n{{else if (eq tripType \"户外探险\")}}\n1. 徒步路线推荐\n2. 水上运动\n3. 极限体验项目\n{{else}}\n1. 经典观光项目\n2. 打卡拍照\n3. 购物和美食\n{{/if}}\n\n【第八部分：实用信息】\n\n**紧急联系：**\n- 中国大使馆：[电话]\n- 当地报警电话：XXX\n- 医疗急救：XXX\n\n**常用App：**\n- 导航：[App名称]\n- 翻译：Google翻译/有道\n- 打车：[当地App]\n- 美食：[当地App]\n\n**语言速查：**\n- 你好：[当地语言]\n- 谢谢：[当地语言]\n- 多少钱：[当地语言]\n- 洗手间：[当地语言]\n（列出20个常用短语）\n\n**购物指南：**\n- 特产推荐（Top 5）\n- 购物街区\n- 退税流程\n- 砍价技巧\n\n{{#if (eq includePacking \"是\")}}\n【附录：行李打包清单】\n\n根据{{season}}和{{tripDays}}天行程，提供详细打包清单：\n\n□ 证件类（护照、身份证、驾照）\n□ 电子产品（手机、充电宝、相机）\n□ 衣物（按天数列出）\n□ 洗漱用品\n□ 药品（感冒药、肠胃药、创可贴）\n□ 其他（雨伞、水杯、笔记本）\n{{/if}}\n\n**输出格式：**\n- Word文档 + Excel预算表\n- 包含地图和交通示意图\n- 插入景点图片\n- 超链接到预订网站",
+
+  "variables_schema": [
+    {
+      "name": "destination",
+      "label": "旅行目的地",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：京都、巴厘岛、巴黎"
+    },
+    {
+      "name": "tripDays",
+      "label": "旅行天数",
+      "type": "number",
+      "required": false,
+      "default": 5,
+      "min": 2,
+      "max": 30
+    },
+    {
+      "name": "season",
+      "label": "旅行季节",
+      "type": "select",
+      "required": false,
+      "default": "春季",
+      "options": [
+        { "value": "春季", "label": "春季（3-5月）" },
+        { "value": "夏季", "label": "夏季（6-8月）" },
+        { "value": "秋季", "label": "秋季（9-11月）" },
+        { "value": "冬季", "label": "冬季（12-2月）" }
+      ]
+    },
+    {
+      "name": "tripType",
+      "label": "旅行类型",
+      "type": "select",
+      "required": false,
+      "default": "自由行",
+      "options": [
+        { "value": "自由行", "label": "自由行（灵活安排）" },
+        { "value": "深度体验", "label": "深度体验（融入当地）" },
+        { "value": "休闲度假", "label": "休闲度假（放松为主）" },
+        { "value": "户外探险", "label": "户外探险（挑战刺激）" },
+        { "value": "打卡游", "label": "打卡游（经典景点）" }
+      ]
+    },
+    {
+      "name": "travelersCount",
+      "label": "同行人数",
+      "type": "number",
+      "required": false,
+      "default": 2,
+      "min": 1,
+      "max": 10
+    },
+    {
+      "name": "budgetLevel",
+      "label": "预算等级",
+      "type": "select",
+      "required": false,
+      "default": "舒适型",
+      "options": [
+        { "value": "经济型", "label": "经济型（穷游）" },
+        { "value": "舒适型", "label": "舒适型（标准）" },
+        { "value": "奢华型", "label": "奢华型（高端）" }
+      ]
+    },
+    {
+      "name": "includePhotography",
+      "label": "包含摄影指南",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        { "value": "是", "label": "包含摄影机位和参数" },
+        { "value": "否", "label": "不包含" }
+      ]
+    },
+    {
+      "name": "includePacking",
+      "label": "附带行李清单",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "附带详细打包清单" },
+        { "value": "否", "label": "不附带" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{destination}}-{{tripDays}}日游攻略",
+    "files": [
+      {
+        "path": "{{destination}}旅行攻略.docx",
+        "type": "document"
+      },
+      {
+        "path": "预算表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "行程检查清单.md",
+        "type": "markdown",
+        "content": "# {{destination}} {{tripDays}}日游检查清单\n\n## 出发前\n- [ ] 护照签证\n- [ ] 机票酒店确认\n- [ ] 保险购买\n- [ ] 外币兑换\n- [ ] 手机开通国际漫游\n\n## 每日必带\n- [ ] 护照复印件\n- [ ] 现金和信用卡\n- [ ] 手机和充电宝\n- [ ] 水杯\n- [ ] 相机\n\n## 回程前\n- [ ] 检查行李\n- [ ] 退税办理\n- [ ] 纪念品采购"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
