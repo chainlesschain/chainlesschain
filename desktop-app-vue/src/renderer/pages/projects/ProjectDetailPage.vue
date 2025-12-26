@@ -1361,7 +1361,7 @@ const formatDate = (timestamp) => {
 
 /* 左侧边栏 - 文件树 */
 .left-sidebar {
-  width: 200px;
+  width: 240px;
   background: white;
   border-right: 1px solid #e5e7eb;
   display: flex;
@@ -1400,11 +1400,13 @@ const formatDate = (timestamp) => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0; /* 允许缩小 */
 }
 
 /* 右侧边栏 - AI助手 */
 .right-sidebar {
-  width: 300px;
+  width: 600px; /* 增加宽度使对话区域更宽敞 */
+  max-width: 50%; /* 最大不超过50%屏幕宽度 */
   background: white;
   border-left: 1px solid #e5e7eb;
   display: flex;

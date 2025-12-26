@@ -617,7 +617,7 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #f9fafb;
+  background: #ffffff;
   border-left: 1px solid #e5e7eb;
 }
 
@@ -644,8 +644,15 @@ onMounted(() => {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 32px 16px;
   min-height: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.messages-container > * {
+  width: 100%;
+  max-width: 800px; /* 限制消息最大宽度，使其居中显示 */
 }
 
 /* 空状态 */
@@ -680,12 +687,14 @@ onMounted(() => {
 .messages-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
+  width: 100%;
 }
 
 .message-item {
   display: flex;
-  gap: 12px;
+  gap: 16px;
+  width: 100%;
 }
 
 .message-item.user {
@@ -693,13 +702,13 @@ onMounted(() => {
 }
 
 .message-avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 18px;
   flex-shrink: 0;
 }
 
@@ -725,19 +734,22 @@ onMounted(() => {
 }
 
 .message-text {
-  padding: 12px 16px;
+  padding: 16px 20px;
   border-radius: 12px;
   word-wrap: break-word;
   max-width: 100%;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 .message-item.user .message-text {
-  background: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
 }
 
 .message-item.assistant .message-text {
-  background: white;
+  background: #f9fafb;
   color: #1f2937;
   border: 1px solid #e5e7eb;
 }
@@ -756,15 +768,20 @@ onMounted(() => {
 
 /* 输入区域 */
 .input-container {
-  padding: 16px;
+  padding: 20px 24px;
   background: white;
   border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .input-wrapper {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: flex-end;
+  width: 100%;
+  max-width: 800px; /* 与消息区域同宽 */
 }
 
 .input-wrapper :deep(.ant-input) {
@@ -777,15 +794,17 @@ onMounted(() => {
 }
 
 .context-info {
-  margin-top: 8px;
-  padding: 8px 12px;
+  margin-top: 12px;
+  padding: 10px 16px;
   background: #f3f4f6;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 13px;
   color: #6b7280;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  width: 100%;
+  max-width: 800px;
 }
 
 /* Markdown 样式 */

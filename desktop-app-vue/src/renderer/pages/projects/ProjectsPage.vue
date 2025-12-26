@@ -1,5 +1,8 @@
 <template>
   <div class="projects-page-wrapper">
+    <!-- 项目历史侧边栏 -->
+    <ProjectSidebar />
+
     <!-- 中央内容区域 -->
     <div class="main-content">
       <!-- 欢迎头部 (总是显示，优化问候语) -->
@@ -120,6 +123,7 @@ import {
 import ConversationInput from '@/components/projects/ConversationInput.vue';
 import TaskExecutionMonitor from '@/components/projects/TaskExecutionMonitor.vue';
 import StreamProgressModal from '@/components/projects/StreamProgressModal.vue';
+import ProjectSidebar from '@/components/ProjectSidebar.vue';
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -757,6 +761,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 /* 扣子空间风格 - 项目列表页 */
 .projects-page-wrapper {
+  display: flex;
   min-height: 100%;
   padding: 0;
   margin: -24px; /* 抵消 layout-content 的 padding */
