@@ -735,6 +735,14 @@ class P2PManager extends EventEmitter {
   }
 
   /**
+   * 检查 P2P 节点是否已初始化
+   * @returns {boolean} 是否已初始化
+   */
+  isInitialized() {
+    return this.initialized;
+  }
+
+  /**
    * 获取节点信息
    */
   getNodeInfo() {
