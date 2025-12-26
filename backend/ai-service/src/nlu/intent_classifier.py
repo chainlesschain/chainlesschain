@@ -296,6 +296,20 @@ class IntentClassifier:
             elif any(kw in text_lower for kw in ["简历", "resume"]):
                 entities["doc_type"] = "resume"
 
+            # 识别文档格式（关键修复）
+            if any(kw in text_lower for kw in ["ppt", "演示", "幻灯片", "powerpoint", "slides"]):
+                entities["format"] = "ppt"
+            elif any(kw in text_lower for kw in ["word", "文档", "docx", "doc"]):
+                entities["format"] = "word"
+            elif any(kw in text_lower for kw in ["pdf"]):
+                entities["format"] = "pdf"
+            else:
+                # 默认根据关键词推断：如果提到"演示"/"展示"相关，生成PPT，否则生成Word
+                if any(kw in text_lower for kw in ["演示", "展示", "汇报", "讲解"]):
+                    entities["format"] = "ppt"
+                else:
+                    entities["format"] = "word"
+
         elif project_type == "data":
             # 数据项目实体
             if any(kw in text_lower for kw in ["可视化", "图表", "chart"]):

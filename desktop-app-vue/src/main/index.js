@@ -7,6 +7,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const DatabaseManager = require('./database');
 const { UKeyManager, DriverTypes } = require('./ukey/ukey-manager');
+const ProjectStatsCollector = require('./project/stats-collector');
 const GitManager = require('./git/git-manager');
 const MarkdownExporter = require('./git/markdown-exporter');
 const { getGitConfig } = require('./git/git-config');
@@ -151,6 +152,9 @@ class ChainlessChainApp {
     // Web IDE
     this.webideManager = null;
     this.webideIPC = null;
+
+    // Project stats collector
+    this.statsCollector = null;
 
     this.setupApp();
   }
@@ -443,6 +447,16 @@ class ChainlessChainApp {
       console.log('托管管理器初始化成功');
     } catch (error) {
       console.error('托管管理器初始化失败:', error);
+      // 不影响应用启动
+    }
+
+    // 初始化项目统计收集器
+    try {
+      console.log('初始化项目统计收集器...');
+      this.statsCollector = new ProjectStatsCollector(this.database.db);
+      console.log('项目统计收集器初始化成功');
+    } catch (error) {
+      console.error('项目统计收集器初始化失败:', error);
       // 不影响应用启动
     }
 
@@ -6621,6 +6635,310 @@ ${content}
     });
 
     // ==================== 项目RAG增强接口结束 ====================
+
+    // ==================== 项目统计接口 ====================
+
+    // 开始监听项目统计
+    ipcMain.handle('project:stats:start', async (_event, projectId, projectPath) => {
+      try {
+        if (this.statsCollector) {
+          this.statsCollector.startWatching(projectId, projectPath);
+          return { success: true };
+        }
+        return { success: false, error: '统计收集器未初始化' };
+      } catch (error) {
+        console.error('[Main] 开始统计监听失败:', error);
+        throw error;
+      }
+    });
+
+    // 停止监听项目统计
+    ipcMain.handle('project:stats:stop', async (_event, projectId) => {
+      try {
+        if (this.statsCollector) {
+          this.statsCollector.stopWatching(projectId);
+          return { success: true };
+        }
+        return { success: false, error: '统计收集器未初始化' };
+      } catch (error) {
+        console.error('[Main] 停止统计监听失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取项目统计数据
+    ipcMain.handle('project:stats:get', async (_event, projectId) => {
+      try {
+        if (this.statsCollector) {
+          const stats = this.statsCollector.getStats(projectId);
+          return stats;
+        }
+        return null;
+      } catch (error) {
+        console.error('[Main] 获取项目统计失败:', error);
+        throw error;
+      }
+    });
+
+    // 手动触发统计更新
+    ipcMain.handle('project:stats:update', async (_event, projectId) => {
+      try {
+        if (this.statsCollector) {
+          await this.statsCollector.updateStats(projectId, 'manual', null);
+          return { success: true };
+        }
+        return { success: false, error: '统计收集器未初始化' };
+      } catch (error) {
+        console.error('[Main] 手动更新统计失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 项目统计接口结束 ====================
+
+    // ==================== PDF导出接口 ====================
+
+    // Markdown转PDF
+    ipcMain.handle('pdf:markdownToPDF', async (_event, params) => {
+      try {
+        const { markdown, outputPath, options } = params;
+
+        const { getPDFEngine } = require('./engines/pdf-engine');
+        const pdfEngine = getPDFEngine();
+
+        const result = await pdfEngine.markdownToPDF(markdown, outputPath, options || {});
+
+        console.log('[Main] Markdown转PDF完成:', outputPath);
+        return result;
+      } catch (error) {
+        console.error('[Main] Markdown转PDF失败:', error);
+        throw error;
+      }
+    });
+
+    // HTML文件转PDF
+    ipcMain.handle('pdf:htmlFileToPDF', async (_event, params) => {
+      try {
+        const { htmlPath, outputPath, options } = params;
+
+        const { getPDFEngine } = require('./engines/pdf-engine');
+        const pdfEngine = getPDFEngine();
+
+        const result = await pdfEngine.htmlFileToPDF(htmlPath, outputPath, options || {});
+
+        console.log('[Main] HTML文件转PDF完成:', outputPath);
+        return result;
+      } catch (error) {
+        console.error('[Main] HTML文件转PDF失败:', error);
+        throw error;
+      }
+    });
+
+    // 文本文件转PDF
+    ipcMain.handle('pdf:textFileToPDF', async (_event, params) => {
+      try {
+        const { textPath, outputPath, options } = params;
+
+        const { getPDFEngine } = require('./engines/pdf-engine');
+        const pdfEngine = getPDFEngine();
+
+        const result = await pdfEngine.textFileToPDF(textPath, outputPath, options || {});
+
+        console.log('[Main] 文本文件转PDF完成:', outputPath);
+        return result;
+      } catch (error) {
+        console.error('[Main] 文本文件转PDF失败:', error);
+        throw error;
+      }
+    });
+
+    // 批量转换PDF
+    ipcMain.handle('pdf:batchConvert', async (_event, params) => {
+      try {
+        const { files, outputDir, options } = params;
+
+        const { getPDFEngine } = require('./engines/pdf-engine');
+        const pdfEngine = getPDFEngine();
+
+        const results = await pdfEngine.batchConvert(files, outputDir, options || {});
+
+        console.log('[Main] 批量转换PDF完成:', results.length, '个文件');
+        return results;
+      } catch (error) {
+        console.error('[Main] 批量转换PDF失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== PDF导出接口结束 ====================
+
+    // ==================== Git AI提交信息接口 ====================
+
+    // AI生成提交信息
+    ipcMain.handle('git:generateCommitMessage', async (_event, projectPath) => {
+      try {
+        const AICommitMessageGenerator = require('./git/ai-commit-message');
+        const generator = new AICommitMessageGenerator(this.llmManager);
+
+        const result = await generator.generateCommitMessage(projectPath);
+
+        console.log('[Main] AI生成提交信息成功');
+        return result;
+      } catch (error) {
+        console.error('[Main] AI生成提交信息失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== Git AI提交信息接口结束 ====================
+
+    // ==================== 模板引擎接口 ====================
+
+    // 渲染模板
+    ipcMain.handle('template:render', async (_event, params) => {
+      try {
+        const { template, variables } = params;
+        const { getTemplateEngine } = require('./engines/template-engine');
+        const templateEngine = getTemplateEngine();
+
+        const result = templateEngine.render(template, variables);
+
+        console.log('[Main] 模板渲染成功');
+        return { success: true, result };
+      } catch (error) {
+        console.error('[Main] 模板渲染失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 验证变量
+    ipcMain.handle('template:validate', async (_event, params) => {
+      try {
+        const { variableDefinitions, userVariables } = params;
+        const { getTemplateEngine } = require('./engines/template-engine');
+        const templateEngine = getTemplateEngine();
+
+        const validation = templateEngine.validateVariables(variableDefinitions, userVariables);
+
+        console.log('[Main] 变量验证完成:', validation.valid ? '通过' : '失败');
+        return validation;
+      } catch (error) {
+        console.error('[Main] 变量验证失败:', error);
+        return { valid: false, errors: [{ message: error.message }] };
+      }
+    });
+
+    // 从模板创建项目
+    ipcMain.handle('template:createProject', async (_event, params) => {
+      try {
+        const { template, variables, targetPath } = params;
+        const { getTemplateEngine } = require('./engines/template-engine');
+        const templateEngine = getTemplateEngine();
+
+        console.log('[Main] 开始从模板创建项目:', template.name);
+
+        const result = await templateEngine.createProjectFromTemplate(template, variables, targetPath);
+
+        if (result.success) {
+          console.log('[Main] 项目创建成功, 文件数:', result.filesCreated);
+        } else {
+          console.log('[Main] 项目创建失败:', result.errors);
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[Main] 创建项目失败:', error);
+        return {
+          success: false,
+          filesCreated: 0,
+          errors: [{ message: error.message }]
+        };
+      }
+    });
+
+    // 预览模板渲染结果
+    ipcMain.handle('template:preview', async (_event, params) => {
+      try {
+        const { template, variables } = params;
+        const { getTemplateEngine } = require('./engines/template-engine');
+        const templateEngine = getTemplateEngine();
+
+        const result = templateEngine.preview(template, variables);
+
+        console.log('[Main] 模板预览成功');
+        return result;
+      } catch (error) {
+        console.error('[Main] 模板预览失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 加载模板文件
+    ipcMain.handle('template:loadTemplate', async (_event, templatePath) => {
+      try {
+        const { getTemplateEngine } = require('./engines/template-engine');
+        const templateEngine = getTemplateEngine();
+
+        const template = await templateEngine.loadTemplateFromFile(templatePath);
+
+        console.log('[Main] 模板加载成功:', template.name);
+        return { success: true, template };
+      } catch (error) {
+        console.error('[Main] 模板加载失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 保存模板到文件
+    ipcMain.handle('template:saveTemplate', async (_event, params) => {
+      try {
+        const { template, outputPath } = params;
+        const { getTemplateEngine } = require('./engines/template-engine');
+        const templateEngine = getTemplateEngine();
+
+        await templateEngine.saveTemplateToFile(template, outputPath);
+
+        console.log('[Main] 模板保存成功:', outputPath);
+        return { success: true, outputPath };
+      } catch (error) {
+        console.error('[Main] 模板保存失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 提取模板中的变量
+    ipcMain.handle('template:extractVariables', async (_event, templateString) => {
+      try {
+        const { getTemplateEngine } = require('./engines/template-engine');
+        const templateEngine = getTemplateEngine();
+
+        const variables = templateEngine.extractVariables(templateString);
+
+        console.log('[Main] 变量提取成功, 数量:', variables.length);
+        return { success: true, variables };
+      } catch (error) {
+        console.error('[Main] 变量提取失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 获取变量默认值
+    ipcMain.handle('template:getDefaultVariables', async (_event, variableDefinitions) => {
+      try {
+        const { getTemplateEngine } = require('./engines/template-engine');
+        const templateEngine = getTemplateEngine();
+
+        const defaults = templateEngine.getDefaultVariables(variableDefinitions);
+
+        console.log('[Main] 获取默认值成功');
+        return { success: true, defaults };
+      } catch (error) {
+        console.error('[Main] 获取默认值失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // ==================== 模板引擎接口结束 ====================
 
     // ==================== 视频处理引擎接口 ====================
 

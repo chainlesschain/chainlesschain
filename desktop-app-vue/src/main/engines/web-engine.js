@@ -896,6 +896,99 @@ MIT License
   async changePreviewPort(newPort) {
     return await this.previewServer.changePort(newPort);
   }
+
+  /**
+   * 处理项目任务（AI任务拆解系统集成）
+   * @param {Object} params - 任务参数
+   * @returns {Promise<Object>} 处理结果
+   */
+  async handleProjectTask(params) {
+    const { action, description, outputFiles = [], projectPath, llmManager } = params;
+
+    console.log('[Web Engine] 处理Web任务:', action);
+    console.log('[Web Engine] 项目路径:', projectPath);
+    console.log('[Web Engine] 描述:', description);
+
+    try {
+      // 使用LLM解析需求，提取关键信息
+      const analysisPrompt = `请分析以下Web开发需求，提取关键信息：
+
+需求描述：${description}
+
+请以JSON格式返回以下信息：
+{
+  "template": "模板类型（blog/portfolio/corporate/product/spa之一）",
+  "title": "网站标题",
+  "description": "网站描述",
+  "primaryColor": "主色调（十六进制颜色代码）",
+  "secondaryColor": "辅助色调（十六进制颜色代码）",
+  "content": {
+    "sections": ["需要的主要内容版块"]
+  }
+}
+
+只返回JSON，不要其他说明。`;
+
+      let parsedRequirements;
+      try {
+        const response = await llmManager.query(analysisPrompt, {
+          temperature: 0.3,
+          maxTokens: 500
+        });
+
+        // 提取JSON
+        const jsonMatch = response.text.match(/```json\n?([\s\S]*?)\n?```/) ||
+                         response.text.match(/\{[\s\S]*\}/);
+        const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : response.text;
+        parsedRequirements = JSON.parse(jsonText);
+      } catch (parseError) {
+        console.warn('[Web Engine] LLM解析失败，使用默认配置:', parseError.message);
+        // 使用默认配置
+        parsedRequirements = {
+          template: 'product',
+          title: outputFiles[0]?.replace(/\.(html|htm)$/i, '') || '我的网站',
+          description: description.substring(0, 100),
+          primaryColor: '#667eea',
+          secondaryColor: '#764ba2',
+          content: {}
+        };
+      }
+
+      // 根据action执行不同操作
+      switch (action) {
+        case 'generate_html':
+        case 'generate_css':
+        case 'generate_js':
+        case 'create_web_project':
+        default: {
+          // 生成完整的Web项目
+          const result = await this.generateProject({
+            template: parsedRequirements.template || 'product',
+            title: parsedRequirements.title,
+            description: parsedRequirements.description,
+            primaryColor: parsedRequirements.primaryColor || '#667eea',
+            secondaryColor: parsedRequirements.secondaryColor || '#764ba2',
+            projectPath: projectPath,
+            content: parsedRequirements.content || {}
+          });
+
+          console.log('[Web Engine] Web项目生成成功');
+
+          return {
+            success: true,
+            type: 'web_project',
+            projectPath: result.projectPath,
+            files: result.files,
+            template: result.template,
+            message: `成功生成${this.templates[result.template]?.name || result.template}项目`
+          };
+        }
+      }
+    } catch (error) {
+      console.error('[Web Engine] 处理任务失败:', error);
+      throw new Error(`Web引擎任务失败: ${error.message}`);
+    }
+  }
 }
 
 module.exports = WebEngine;

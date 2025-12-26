@@ -91,13 +91,33 @@ class ProjectHTTPClient {
    * 创建项目（支持AI生成）
    * @param {Object} createData - 创建数据
    * @param {string} createData.userPrompt - 用户需求描述（必填）
-   * @param {string} createData.projectType - 项目类型 (web/document/data/app)
+   * @param {string} createData.projectType - 项目类型 (web/document/data/write)
    * @param {string} createData.templateId - 模板ID（可选）
    * @param {string} createData.name - 项目名称（可选）
    * @param {string} createData.userId - 用户ID
    * @returns {Promise<Object>} 项目数据
    */
   async createProject(createData) {
+    // 项目类型映射：前端类型 -> 后端支持的类型
+    const typeMapping = {
+      'write': 'document',
+      'doc': 'document',
+      'docs': 'document',
+    };
+
+    // 应用类型映射
+    if (createData.projectType && typeMapping[createData.projectType.toLowerCase()]) {
+      createData = {
+        ...createData,
+        projectType: typeMapping[createData.projectType.toLowerCase()]
+      };
+    } else if (createData.project_type && typeMapping[createData.project_type.toLowerCase()]) {
+      createData = {
+        ...createData,
+        project_type: typeMapping[createData.project_type.toLowerCase()]
+      };
+    }
+
     return this.client.post('/api/projects/create', createData);
   }
 
@@ -116,7 +136,21 @@ class ProjectHTTPClient {
 
     try {
       // 转换字段名：camelCase → snake_case（后端API要求）
-      const projectType = createData.projectType || createData.project_type;
+      let projectType = createData.projectType || createData.project_type;
+
+      // 项目类型映射：前端使用的类型 -> 后端支持的类型
+      // 后端仅支持: web, document, data
+      const typeMapping = {
+        'write': 'document',  // 文档写作类型映射到document
+        'doc': 'document',
+        'docs': 'document',
+      };
+
+      // 应用类型映射
+      if (projectType && typeMapping[projectType.toLowerCase()]) {
+        projectType = typeMapping[projectType.toLowerCase()];
+      }
+
       const backendData = {
         user_prompt: createData.userPrompt || createData.user_prompt,
         // 空字符串转为 null，让后端AI自动识别
