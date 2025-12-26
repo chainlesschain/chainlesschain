@@ -12,7 +12,7 @@
 
   "project_type": "document",
 
-  "prompt_template": "请帮我生成一份{{department}}部门的新员工入职培训方案，要求：\n\n**培训对象：**\n- 部门：{{department}}\n- 岗位：{{position}}\n- 培训周期：{{trainingDays}}天\n\n**培训目标：**\n{{#if objectives}}\n{{#each objectives}}\n- {{this}}\n{{/each}}\n{{else}}\n请生成3-5个培训目标\n{{/if}}\n\n**培训内容结构：**\n1. 公司文化与制度（第1天）\n2. 部门职责与流程（第2-3天）\n3. 岗位技能培训（第4-{{trainingDays}}天）\n4. 实操演练与考核\n\n请生成包含以下内容的Word文档：\n- 培训计划表（时间、内容、负责人）\n- 每日培训详细安排\n- 培训考核标准\n- 培训资料清单",
+  "prompt_template": "请帮我生成一份{{department}}部门的{{position}}岗位新员工入职培训方案，要求：\n\n**培训对象：**\n- 部门：{{department}}\n- 岗位：{{position}}\n- 培训周期：{{trainingDays}}天\n- 培训形式：{{trainingType}}\n\n**培训目标：**\n{{#if objectives}}\n{{#each objectives}}\n- {{this}}\n{{/each}}\n{{else}}\n请生成3-5个培训目标（根据{{position}}岗位特点）\n{{/if}}\n\n**Word文档结构：**\n\n【第一部分：培训方案概述】\n1. 培训目的和意义\n2. 培训对象：{{department}}-{{position}}\n3. 培训周期：{{trainingDays}}天\n4. 培训形式：{{trainingType}}\n5. 培训组织架构（导师、协调人）\n\n【第二部分：培训计划表】\n表格格式：\n| 日期 | 时间段 | 培训内容 | 培训形式 | 负责人 | 地点 | 备注 |\n\n内容安排（{{trainingDays}}天）：\n- 第1天：公司文化与制度\n  * 公司发展历程和愿景使命\n  * 组织架构和部门介绍\n  * 规章制度和员工手册\n  * 考勤、薪酬、福利制度\n\n- 第2-3天：{{department}}部门培训\n  * 部门职责和工作流程\n  * 团队介绍和岗位对接\n  * 常用工具和系统培训\n  * 沟通协作机制\n\n- 第4-{{trainingDays}}天：{{position}}岗位技能培训\n  * 岗位职责详解\n  * 工作标准和规范\n  * 业务流程实操\n  * 案例分析和模拟演练\n\n{{#if (eq includeExam \"是\")}}\n- 最后1天：培训考核\n  * 理论知识测试\n  * 实操技能考核\n  * 总结答辩\n{{/if}}\n\n【第三部分：每日培训详细安排】\n每天包含：\n- 上午培训内容（9:00-12:00）\n- 下午培训内容（14:00-17:30）\n- 当日作业或实操任务\n- 学习资料清单\n\n【第四部分：培训考核标准】\n{{#if (eq includeExam \"是\")}}\n1. 考核方式：\n   - 理论考试（40%）：线上/线下闭卷考试\n   - 实操考核（40%）：实际业务场景模拟\n   - 学习态度（20%）：出勤、作业完成度、参与度\n\n2. 考核标准：\n   - 优秀（90分以上）：独立胜任岗位\n   - 良好（80-89分）：基本胜任，需少量指导\n   - 合格（60-79分）：需持续跟进培训\n   - 不合格（60分以下）：延长试用期或调整岗位\n\n3. 补考机制：\n   - 不合格者一周后参加补考\n   - 补考仍不合格需重新培训\n{{else}}\n（本培训方案不包含考核环节，仅关注学习过程）\n{{/if}}\n\n【第五部分：培训资料清单】\n1. 通用资料：\n   - 员工手册\n   - 公司介绍PPT\n   - 组织架构图\n\n2. 部门资料：\n   - {{department}}部门工作手册\n   - 业务流程图\n   - 常用工具操作指南\n\n3. 岗位资料：\n   - {{position}}岗位说明书\n   - 工作标准和规范文档\n   - 案例库和模板库\n\n【第六部分：培训跟踪机制】\n1. 导师反馈表（每日填写）\n2. 学员自评表（每周填写）\n3. 培训效果评估表（培训结束后）\n\n**格式要求：**\n- 使用Word标准格式\n- 表格清晰易读\n- 重点内容加粗或高亮\n- 附录：包含所有表格模板",
 
   "variables_schema": [
     {
@@ -39,6 +39,65 @@
       "max": 30
     },
     {
+      "name": "trainingType",
+      "label": "培训形式",
+      "type": "select",
+      "required": false,
+      "default": "混合式",
+      "options": [
+        { "value": "线下集中", "label": "线下集中培训" },
+        { "value": "线上课程", "label": "线上课程学习" },
+        { "value": "混合式", "label": "线上线下混合" },
+        { "value": "导师带教", "label": "一对一导师带教" }
+      ]
+    },
+    {
+      "name": "employeeLevel",
+      "label": "员工级别",
+      "type": "select",
+      "required": false,
+      "default": "初级",
+      "options": [
+        { "value": "初级", "label": "初级（应届生/转行）" },
+        { "value": "中级", "label": "中级（1-3年经验）" },
+        { "value": "高级", "label": "高级（3年以上经验）" }
+      ]
+    },
+    {
+      "name": "companySize",
+      "label": "公司规模",
+      "type": "select",
+      "required": false,
+      "default": "中型企业",
+      "options": [
+        { "value": "创业公司", "label": "创业公司（50人以下）" },
+        { "value": "中型企业", "label": "中型企业（50-500人）" },
+        { "value": "大型企业", "label": "大型企业（500人以上）" }
+      ]
+    },
+    {
+      "name": "hasRemote",
+      "label": "是否包含远程工作培训",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        { "value": "是", "label": "包含远程工作培训" },
+        { "value": "否", "label": "不包含" }
+      ]
+    },
+    {
+      "name": "includeExam",
+      "label": "是否包含考核",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "包含考核环节" },
+        { "value": "否", "label": "仅培训无考核" }
+      ]
+    },
+    {
       "name": "objectives",
       "label": "培训目标",
       "type": "array",
@@ -49,11 +108,27 @@
   ],
 
   "file_structure": {
-    "root": "{{department}}-入职培训方案",
+    "root": "{{department}}-{{position}}-入职培训方案",
     "files": [
       {
         "path": "入职培训方案.docx",
-        "type": "document"
+        "type": "document",
+        "description": "完整的培训方案文档，包含培训计划、内容安排、考核标准等"
+      },
+      {
+        "path": "培训计划表.xlsx",
+        "type": "spreadsheet",
+        "description": "Excel格式的详细培训计划表，可直接打印和跟踪进度"
+      },
+      {
+        "path": "培训资料清单.md",
+        "type": "markdown",
+        "content": "# {{position}}入职培训资料清单\n\n## 第一周：公司通用培训\n- [ ] 员工手册（HR部门）\n- [ ] 公司介绍PPT\n- [ ] 组织架构图\n- [ ] 考勤系统账号\n- [ ] 邮箱和内部系统账号\n\n## 第二周：部门培训\n- [ ] {{department}}部门工作手册\n- [ ] 业务流程图\n- [ ] 团队成员联系方式\n- [ ] 常用工具和系统操作指南\n\n## 第三周：岗位培训\n- [ ] {{position}}岗位说明书\n- [ ] 工作标准和规范文档\n- [ ] 案例库（至少5个）\n- [ ] 模板库\n- [ ] SOP操作手册\n\n{{#if (eq hasRemote \"是\")}}\n## 远程工作相关\n- [ ] 远程办公工具（Zoom/飞书/钉钉）\n- [ ] VPN访问权限\n- [ ] 远程沟通规范\n- [ ] 时间管理工具\n{{/if}}\n\n## 考核相关\n{{#if (eq includeExam \"是\")}}\n- [ ] 培训考核题库\n- [ ] 实操考核评分表\n- [ ] 答辩PPT模板\n{{else}}\n- [ ] 培训反馈问卷\n{{/if}}"
+      },
+      {
+        "path": "导师指导手册.md",
+        "type": "markdown",
+        "content": "# 导师指导手册\n\n## 导师职责\n1. 每日与新员工沟通不少于30分钟\n2. 及时解答新员工疑问\n3. 每周填写《导师反馈表》\n4. 培训结束时提供综合评价\n\n## 指导重点（根据{{employeeLevel}}）\n{{#if (eq employeeLevel \"初级\")}}\n- 基础知识讲解（不要假设任何前置知识）\n- 手把手演示操作流程\n- 鼓励多提问\n- 容错率高，多次重复没关系\n{{else if (eq employeeLevel \"中级\")}}\n- 快速过基础，重点讲解差异点\n- 分享最佳实践和坑点\n- 鼓励独立思考\n- 适当挑战更高难度任务\n{{else}}\n- 高效沟通关键信息\n- 介绍团队协作方式\n- 分享公司特有的技术/业务know-how\n- 尽快安排独立工作\n{{/if}}\n\n## 沟通频率\n- 第1-3天：每半天沟通一次\n- 第4-7天：每天沟通一次\n- 第2周：每2天沟通一次\n- 第3周及以后：每周沟通一次\n\n## 问题升级机制\n- 新员工连续2天遇到同一问题 → 调整培训方式\n- 新员工表现明显不佳 → 及时与HR和部门主管沟通\n- 新员工提出合理改进建议 → 记录并反馈给培训负责人"
       }
     ]
   },
@@ -62,5 +137,8 @@
 
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
 }

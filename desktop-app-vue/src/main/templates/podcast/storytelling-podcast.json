@@ -1,0 +1,150 @@
+{
+  "id": "tpl_podcast_storytelling_002",
+  "name": "storytelling_podcast_script",
+  "display_name": "故事叙述类播客脚本",
+  "description": "生成故事叙述类播客脚本，适用于历史故事、真实案例、悬疑推理等内容",
+  "icon": "📖",
+  "cover_image": "/templates/covers/storytelling-podcast.png",
+
+  "category": "podcast",
+  "subcategory": "storytelling",
+  "tags": ["播客", "故事", "叙述", "脚本"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成一期{{podcastName}}播客的故事叙述脚本，要求：\n\n**节目信息：**\n- 播客名称：{{podcastName}}\n- 本期主题：{{storyTitle}}\n- 故事类型：{{storyType}}\n- 节目时长：{{duration}}分钟\n- 叙述风格：{{narrativeStyle}}\n- 目标听众：{{targetAudience}}\n\n**脚本结构：**\n\n【片头（1-2分钟）】\n\n【音效】{{storyType}}相关的氛围音效（风声/城市声/悬疑音乐）\n\n主持人旁白：\n"欢迎来到{{podcastName}}，我是主播XXX。\n今天，我要和你分享一个关于{{storyTitle}}的{{storyType}}故事。\n这个故事发生在......（设置悬念，引发好奇）"\n\n【停顿3秒，音乐渐弱】\n\n\n【第一幕：故事背景（5-8分钟）】\n\n**场景设定：**\n- 时间：（根据{{storyTitle}}自动生成）\n- 地点：（根据故事类型确定）\n- 主要人物介绍（2-3个核心角色）\n  * 人物A：姓名、身份、性格特点\n  * 人物B：姓名、身份、与A的关系\n  * （如果是真实案例，使用匿名化处理）\n\n**冲突引入：**\n"一切都开始于......（描述矛盾的起因）"\n\n{{#if includeSound}}\n【音效】根据场景插入环境音（脚步声/对话/物品碰撞）\n{{/if}}\n\n【第二幕：情节发展（{{plotDevelopmentMinutes}}分钟）】\n\n**分段叙述（3-5个小节）：**\n\n小节1：初遇困境\n- 描述主角面临的第一个挑战\n- 心理活动描写\n- 关键对话（如有）\n\n小节2：转折点\n- 意外事件发生\n- 新信息揭示\n- 局势变化\n\n小节3：高潮前夜\n- 紧张氛围营造\n- 多线索交织\n- 悬念升级\n\n{{#if includeSound}}\n【音效】适时插入音效增强沉浸感\n{{/if}}\n\n{{#if includeReflection}}\n**【主持人评论插入】**\n"听到这里，你可能会想......（引导听众思考）\n这让我想起了......（类比或延伸）"\n{{/if}}\n\n【第三幕：故事高潮（8-12分钟）】\n\n**核心冲突：**\n- 最紧张的场景描述\n- 人物抉择的关键时刻\n- 动作场面（如适用）或心理博弈\n\n**叙述技巧：**\n- 使用{{narrativeStyle}}风格\n- 细节描写（环境、人物表情、物品）\n- 对话还原（真实感）\n- 节奏控制（快慢交替）\n\n{{#if includeSound}}\n【音效/音乐】高潮部分的背景音乐（渐强）\n{{/if}}\n\n【第四幕：故事结局（5-8分钟）】\n\n**结局呈现（{{endingType}}）：**\n{{#if (eq endingType \"开放式\")}}\n- 留下思考空间\n- 多种可能性暗示\n- 引导听众自己解读\n{{else if (eq endingType \"反转式\")}}\n- 最后的意外揭示\n- 前期伏笔回收\n- 震撼结论\n{{else}}\n- 清晰的故事收尾\n- 人物命运交代\n- 主题升华\n{{/if}}\n\n【第五幕：故事启示（3-5分钟）】\n\n**主持人总结：**\n1. 故事的核心主题\n2. 现实意义和启发\n3. 与听众生活的关联\n4. 思考题（引导互动）\n\n{{#if includeReferences}}\n**相关资料推荐：**\n- 原始资料来源\n- 延伸阅读书籍\n- 相关纪录片/电影\n{{/if}}\n\n【片尾（1-2分钟）】\n\n"这就是今天{{podcastName}}要讲的故事。\n如果你对{{storyTitle}}还有其他看法，欢迎在评论区留言。\n感谢收听，我们下期再见。"\n\n【音乐】结尾主题曲（渐强）\n【旁白】订阅和评分引导语\n\n\n**附录：**\n\n1. **时间轴（供录制参考）**\n   - 0:00-2:00 片头\n   - 2:00-10:00 背景\n   - 10:00-{{climaxStartTime}}:00 发展\n   - {{climaxStartTime}}:00-{{endingStartTime}}:00 高潮\n   - {{endingStartTime}}:00-{{duration}}:00 结局+总结\n\n2. **叙述提示**\n   - 语速：{{narrativeStyle}}风格建议的语速\n   - 停顿点：关键情节后停顿2-3秒\n   - 语气变化：根据情绪标注（激动/平静/悲伤）\n\n3. **音效清单**\n   {{#if includeSound}}\n   - 开场氛围音效\n   - 场景转换音效\n   - 高潮背景音乐\n   - 结尾主题曲\n   {{else}}\n   （本期不使用音效）\n   {{/if}}\n\n**风格要求：**\n- 叙述风格：{{narrativeStyle}}\n- 语言：{{targetAudience}}能理解的语言难度\n- 节奏：张弛有度，避免平铺直叙\n- 细节：五感描写（视觉、听觉、触觉等）\n\n**输出格式：**\n- Word文档，分幕清晰\n- 旁白文本用常规字体\n- 音效/音乐标注用【】符号\n- 主持人评论用不同颜色或斜体",
+
+  "variables_schema": [
+    {
+      "name": "podcastName",
+      "label": "播客名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：夜听故事、历史的转角"
+    },
+    {
+      "name": "storyTitle",
+      "label": "故事标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：硅谷创业失败案例、二战密码破译"
+    },
+    {
+      "name": "storyType",
+      "label": "故事类型",
+      "type": "select",
+      "required": false,
+      "default": "真实案例",
+      "options": [
+        { "value": "真实案例", "label": "真实案例（事件/人物）" },
+        { "value": "历史故事", "label": "历史故事" },
+        { "value": "悬疑推理", "label": "悬疑推理" },
+        { "value": "科技探秘", "label": "科技探秘" },
+        { "value": "商业传奇", "label": "商业传奇" }
+      ]
+    },
+    {
+      "name": "duration",
+      "label": "节目时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 30,
+      "min": 15,
+      "max": 60
+    },
+    {
+      "name": "narrativeStyle",
+      "label": "叙述风格",
+      "type": "select",
+      "required": false,
+      "default": "沉浸式",
+      "options": [
+        { "value": "沉浸式", "label": "沉浸式（细节丰富，身临其境）" },
+        { "value": "纪实风", "label": "纪实风（客观、冷静）" },
+        { "value": "悬疑感", "label": "悬疑感（神秘、紧张）" },
+        { "value": "幽默诙谐", "label": "幽默诙谐（轻松、搞笑）" }
+      ]
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标听众",
+      "type": "select",
+      "required": false,
+      "default": "成年人",
+      "options": [
+        { "value": "青少年", "label": "青少年（12-18岁）" },
+        { "value": "成年人", "label": "成年人（18-45岁）" },
+        { "value": "全年龄", "label": "全年龄段" }
+      ]
+    },
+    {
+      "name": "endingType",
+      "label": "结局类型",
+      "type": "select",
+      "required": false,
+      "default": "完整结局",
+      "options": [
+        { "value": "完整结局", "label": "完整结局（清晰收尾）" },
+        { "value": "开放式", "label": "开放式（留白思考）" },
+        { "value": "反转式", "label": "反转式（意外结局）" }
+      ]
+    },
+    {
+      "name": "includeSound",
+      "label": "包含音效标注",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "标注音效和音乐插入点" },
+        { "value": "否", "label": "纯文本脚本" }
+      ]
+    },
+    {
+      "name": "includeReflection",
+      "label": "包含主持人评论",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "在情节中插入主持人思考" },
+        { "value": "否", "label": "仅叙述故事，无评论" }
+      ]
+    },
+    {
+      "name": "includeReferences",
+      "label": "附带参考资料",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "提供相关资料推荐" },
+        { "value": "否", "label": "不提供" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{podcastName}}-{{storyTitle}}",
+    "files": [
+      {
+        "path": "故事脚本-{{storyTitle}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "录制备忘.md",
+        "type": "markdown",
+        "content": "# {{storyTitle}} 录制备忘录\n\n## 基本信息\n- 节目：{{podcastName}}\n- 故事：{{storyTitle}}\n- 类型：{{storyType}}\n- 时长：{{duration}}分钟\n- 风格：{{narrativeStyle}}\n\n## 准备事项\n- [ ] 熟读脚本（至少3遍）\n- [ ] 准备音效素材\n- [ ] 录音环境测试\n- [ ] 水和润喉糖准备\n\n## 录制提示\n- 语速：适中，关键处放慢\n- 情绪：根据剧情起伏调整\n- 停顿：重要转折处停顿2-3秒\n- 重录：标记需要重录的段落"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

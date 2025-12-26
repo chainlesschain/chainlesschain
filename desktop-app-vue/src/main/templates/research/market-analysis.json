@@ -12,7 +12,7 @@
 
   "project_type": "document",
 
-  "prompt_template": "请帮我生成一份{{industry}}行业的市场调研分析报告，要求：\n\n**研究对象：**\n- 行业/领域：{{industry}}\n- 研究区域：{{region}}\n- 研究目的：{{purpose}}\n\n**报告结构：**\n1. 执行摘要\n   - 核心发现\n   - 关键结论和建议\n\n2. 研究背景和目的\n   - 研究背景\n   - 研究目的和范围\n   - 研究方法说明\n\n3. 行业概况\n   - 行业定义和分类\n   - 市场规模和增长趋势\n   - 产业链分析\n   - 政策环境分析\n\n4. 市场分析\n   - 市场现状\n   - 市场细分\n   - 区域分布\n   - 发展趋势\n\n5. 竞争格局\n   - 主要竞争者分析\n   - 市场份额分布\n   - 竞争优势对比\n   - SWOT分析\n\n6. 用户研究\n   - 目标用户画像\n   - 用户需求分析\n   - 消费行为特征\n\n7. 机会与挑战\n   - 市场机会点\n   - 潜在风险\n   - 进入壁垒\n\n8. 结论和建议\n   - 核心结论\n   - 战略建议\n   - 实施建议\n\n**数据要求：**\n- 包含市场数据图表\n- 引用权威数据源\n- 提供数据分析说明",
+  "prompt_template": "请帮我生成一份{{industry}}行业的市场调研分析报告，要求：\n\n**研究对象：**\n- 行业/领域：{{industry}}\n- 研究区域：{{region}}\n- 研究目的：{{purpose}}\n- 时间范围：{{timeFrame}}\n- 报告篇幅：{{reportLength}}\n\n**数据来源：**\n- 优先使用{{dataSource}}\n- 确保数据权威性和时效性\n\n**报告结构：**\n1. 执行摘要\n   - 核心发现（3-5条）\n   - 关键结论和建议\n\n2. 研究背景和目的\n   - 研究背景和意义\n   - 研究目的：{{purpose}}\n   - 研究范围：{{region}}市场，{{timeFrame}}数据\n   - 研究方法说明\n\n3. 行业概况\n   - 行业定义和分类\n   - 市场规模和增长趋势（{{timeFrame}}）\n   - 产业链分析（上中下游）\n   - 政策环境分析\n\n4. 市场分析\n   - 市场现状（{{timeFrame}}数据）\n   - 市场细分（按产品类型、应用场景等）\n   - 区域分布（聚焦{{region}}）\n   - 发展趋势和驱动因素\n\n5. 竞争格局\n   - 主要竞争者分析（Top 5-10企业）\n   - 市场份额分布\n   - 竞争优势对比矩阵\n   - SWOT分析\n\n6. 用户研究\n   - 目标用户画像（年龄、收入、职业等）\n   - 用户需求分析（痛点和期望）\n   - 消费行为特征和购买决策因素\n\n7. 机会与挑战\n   - 市场机会点（3-5个）\n   - 潜在风险和挑战\n   - 进入壁垒分析\n\n8. 结论和建议\n   - 核心结论（对应研究目的）\n   - 战略建议（市场定位、差异化策略）\n   - 实施建议和行动计划\n\n**数据要求：**\n- 包含至少8-10个数据图表（市场规模趋势图、竞争格局饼图、SWOT矩阵等）\n- 引用{{dataSource}}的权威数据\n- 每个数据图表提供数据来源说明\n- 使用表格对比竞品关键指标",
 
   "variables_schema": [
     {
@@ -42,6 +42,43 @@
       "required": false,
       "default": "市场进入可行性分析",
       "placeholder": "例如：市场进入、投资决策、战略规划"
+    },
+    {
+      "name": "reportLength",
+      "label": "报告篇幅",
+      "type": "select",
+      "required": false,
+      "default": "标准版",
+      "options": [
+        { "value": "简版", "label": "简版（5-10页）" },
+        { "value": "标准版", "label": "标准版（15-20页）" },
+        { "value": "详尽版", "label": "详尽版（30+页）" }
+      ]
+    },
+    {
+      "name": "dataSource",
+      "label": "数据来源偏好",
+      "type": "select",
+      "required": false,
+      "default": "公开数据",
+      "options": [
+        { "value": "公开数据", "label": "公开数据和研究报告" },
+        { "value": "研究机构", "label": "权威研究机构数据" },
+        { "value": "行业协会", "label": "行业协会统计数据" }
+      ]
+    },
+    {
+      "name": "timeFrame",
+      "label": "时间跨度",
+      "type": "select",
+      "required": false,
+      "default": "近3年",
+      "options": [
+        { "value": "近1年", "label": "近1年" },
+        { "value": "近3年", "label": "近3年" },
+        { "value": "近5年", "label": "近5年" },
+        { "value": "未来5年预测", "label": "未来5年预测" }
+      ]
     }
   ],
 
@@ -63,5 +100,8 @@
 
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
 }

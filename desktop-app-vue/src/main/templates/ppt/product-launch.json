@@ -48,6 +48,7 @@
       "label": "核心价值",
       "type": "string",
       "required": false,
+      "default": "提升效率，创造价值",
       "placeholder": "一句话描述产品核心价值"
     },
     {
@@ -84,6 +85,60 @@
         { "value": "商务专业", "label": "商务专业" },
         { "value": "创意活泼", "label": "创意活泼" }
       ]
+    },
+    {
+      "name": "launchStage",
+      "label": "发布阶段",
+      "type": "select",
+      "required": false,
+      "default": "正式发布",
+      "options": [
+        { "value": "Beta测试", "label": "Beta测试版" },
+        { "value": "正式发布", "label": "正式发布" },
+        { "value": "升级版本", "label": "升级版本" }
+      ]
+    },
+    {
+      "name": "presentationDuration",
+      "label": "演讲时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 30,
+      "min": 10,
+      "max": 60
+    },
+    {
+      "name": "hasDemo",
+      "label": "是否包含产品演示",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "包含现场演示" },
+        { "value": "否", "label": "不包含" }
+      ]
+    },
+    {
+      "name": "hasVideo",
+      "label": "是否包含视频内容",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        { "value": "是", "label": "包含宣传视频" },
+        { "value": "否", "label": "不包含" }
+      ]
+    },
+    {
+      "name": "includeRoadmap",
+      "label": "是否包含产品路线图",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "展示未来规划" },
+        { "value": "否", "label": "不展示" }
+      ]
     }
   ],
 
@@ -92,7 +147,23 @@
     "files": [
       {
         "path": "{{productName}}-产品发布会.pptx",
-        "type": "presentation"
+        "type": "presentation",
+        "description": "完整的发布会演示文稿，约{{slideCount}}页"
+      },
+      {
+        "path": "演讲稿.docx",
+        "type": "document",
+        "description": "逐页演讲稿，包含演讲者备注和时间控制提示"
+      },
+      {
+        "path": "演示流程时间表.md",
+        "type": "markdown",
+        "content": "# {{productName}} 发布会演示流程\n\n**总时长**: {{presentationDuration}}分钟\n**PPT页数**: {{slideCount}}页\n**平均每页**: {{avgTimePerSlide}}秒\n\n## 时间分配建议\n\n| 环节 | 页码 | 时长 | 备注 |\n|------|------|------|------|\n| 开场白 | 1 | 2分钟 | 简短有力，吸引注意 |\n| 痛点分析 | 2-3 | 3分钟 | 引起共鸣 |\n| 产品介绍 | 4-6 | 5分钟 | 核心价值凸显 |\n| 功能演示 | 7-12 | {{featuresTime}}分钟 | 重点环节 |\n{{#if (eq hasDemo \"是\")}}\n| 现场演示 | - | 5分钟 | 提前彩排，准备Plan B |\n{{/if}}\n{{#if (eq hasVideo \"是\")}}\n| 视频播放 | - | 2-3分钟 | 视频前后衔接语 |\n{{/if}}\n| 商业模式 | - | 3分钟 | 突出盈利点 |\n| 竞品对比 | - | 2分钟 | 客观但突出优势 |\n{{#if (eq includeRoadmap \"是\")}}\n| 产品路线图 | - | 2分钟 | 展示愿景 |\n{{/if}}\n| 团队介绍 | - | 1分钟 | 简要即可 |\n| Q&A | - | {{qaTime}}分钟 | 预留互动时间 |\n| 结束语 | 最后1页 | 1分钟 | 留下深刻印象 |\n\n## 注意事项\n1. 每页PPT停留时间不要超过2分钟\n2. 重要信息重复3次（说、展示、总结）\n3. 关键页面留出停顿时间让观众吸收\n4. 提前5分钟到场测试设备\n5. 准备激光笔和备用U盘"
+      },
+      {
+        "path": "问答准备文档.md",
+        "type": "markdown",
+        "content": "# {{productName}} 发布会Q&A准备\n\n## 常见问题及答案\n\n### 关于产品本身\n\n**Q1: {{productName}}和市面上的同类产品有什么区别？**\nA: {{coreValue}}。具体来说，我们的核心优势在于...\n\n**Q2: {{productName}}的目标用户是谁？**\nA: 主要面向{{targetAudience}}，特别是那些...\n\n{{#if (eq productType \"软件\")}}\n**Q3: 支持哪些平台和设备？**\nA: 目前支持...（Web/iOS/Android/Windows/Mac）\n\n**Q4: 数据安全如何保障？**\nA: 我们采用了...（加密、备份、合规等措施）\n{{else if (eq productType \"硬件\")}}\n**Q3: 硬件的性能参数是怎样的？**\nA: CPU/内存/存储/续航等关键指标...\n\n**Q4: 质保和售后服务如何？**\nA: 提供X年质保，全国X个售后网点...\n{{/if}}\n\n**Q5: 价格和购买方式？**\n{{#if (eq launchStage \"Beta测试\")}}\nA: Beta测试期间免费/优惠价，正式版预计...\n{{else if (eq launchStage \"正式发布\")}}\nA: 定价为XX元，通过官网/渠道商购买...\n{{else}}\nA: 升级用户享受X折优惠，新用户价格...\n{{/if}}\n\n### 关于技术实现\n\n**Q6: 采用了哪些核心技术？**\nA: （根据{{productType}}回答技术栈）\n\n**Q7: API和集成能力如何？**\nA: 提供RESTful API / SDK，支持...\n\n### 关于商业模式\n\n**Q8: 盈利模式是什么？**\nA: （订阅制/一次买断/增值服务）\n\n**Q9: 市场规模和竞争情况？**\nA: 目标市场规模约XX亿，主要竞争对手是...\n\n### 关于团队和发展\n\n**Q10: 团队背景如何？**\nA: 核心团队来自...，有X年行业经验...\n\n{{#if (eq includeRoadmap \"是\")}}\n**Q11: 未来的产品规划是什么？**\nA: Q1计划...，Q2计划...（参考路线图）\n{{/if}}\n\n## 棘手问题应对\n\n### 关于竞品\n**Q: 为什么不用XXX（竞品）？**\n策略: 客观承认竞品优点，但强调我们的差异化和独特价值\n\n### 关于价格\n**Q: 价格是不是太贵了？**\n策略: 强调性价比，对比竞品，说明价值所在\n\n### 关于团队\n**Q: 你们团队规模小，能做好吗？**\n策略: 强调精干高效，列举成功案例\n\n### 无法回答的问题\n如果遇到不了解的问题：\n1. 诚实表示：这是个好问题，我需要和技术团队确认后回复您\n2. 记录问题和提问者联系方式\n3. 会后24小时内邮件回复\n\n## 互动技巧\n1. 复述问题确保理解正确\n2. 简洁回答，不要长篇大论\n3. 用数据和案例支撑观点\n4. 保持微笑和眼神交流\n5. 感谢每一个提问者"
       }
     ]
   },
@@ -101,5 +172,8 @@
 
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
 }

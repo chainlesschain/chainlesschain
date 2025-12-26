@@ -1,5 +1,10 @@
 <template>
-  <div class="project-detail-page">
+  <div class="project-detail-page-wrapper">
+    <!-- 项目历史侧边栏 -->
+    <ProjectSidebar />
+
+    <!-- 主内容区 -->
+    <div class="project-detail-page">
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <!-- 左侧：面包屑导航 -->
@@ -316,6 +321,53 @@
                 show-icon
               />
             </div>
+
+            <!-- 文件管理器区域 -->
+            <div class="info-section file-manager-section">
+              <div class="section-header">
+                <h3>
+                  <FolderOpenOutlined />
+                  项目文件
+                </h3>
+                <div class="section-actions">
+                  <a-button size="small" @click="handleRefreshFiles">
+                    <ReloadOutlined :spin="refreshing" />
+                    刷新
+                  </a-button>
+                  <a-button size="small" type="primary" @click="showFileManageModal = true">
+                    <FolderOpenOutlined />
+                    文件管理
+                  </a-button>
+                </div>
+              </div>
+
+              <!-- 文件树和列表视图切换 -->
+              <div class="file-view-container">
+                <a-tabs v-model:activeKey="fileViewMode">
+                  <a-tab-pane key="tree" tab="树形视图">
+                    <div class="file-tree-wrapper">
+                      <FileTree
+                        :files="projectFiles"
+                        :current-file-id="currentFile?.id"
+                        :loading="refreshing"
+                        :git-status="gitStatus"
+                        @select="handleSelectFileFromInfo"
+                      />
+                    </div>
+                  </a-tab-pane>
+                  <a-tab-pane key="list" tab="列表视图">
+                    <ProjectFileList
+                      :files="projectFiles"
+                      :loading="refreshing"
+                      @file-click="handleSelectFileFromInfo"
+                      @file-preview="handleFilePreviewFromInfo"
+                      @file-download="handleFileDownloadFromInfo"
+                      @file-delete="handleFileDeleteFromModal"
+                    />
+                  </a-tab-pane>
+                </a-tabs>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -390,6 +442,7 @@
       :project="currentProject"
       @share-success="handleShareSuccess"
     />
+    </div>
   </div>
 </template>
 
@@ -436,6 +489,8 @@ import ProjectShareDialog from '@/components/projects/ProjectShareDialog.vue';
 import FileExportMenu from '@/components/projects/FileExportMenu.vue';
 import GitHistoryDialog from '@/components/projects/GitHistoryDialog.vue';
 import ProjectStatsPanel from '@/components/projects/ProjectStatsPanel.vue';
+import ProjectFileList from '@/components/projects/ProjectFileList.vue';
+import ProjectSidebar from '@/components/ProjectSidebar.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -457,6 +512,7 @@ const resolvedProjectPath = ref('');
 const viewMode = ref('auto'); // 'auto' | 'edit' | 'preview'
 const showChatPanel = ref(true); // 默认显示AI助手
 const fileContent = ref(''); // 文件内容
+const fileViewMode = ref('tree'); // 'tree' | 'list' 文件视图模式
 const editorRef = ref(null);
 const excelEditorRef = ref(null); // Excel编辑器引用
 const wordEditorRef = ref(null); // Word编辑器引用
@@ -1011,6 +1067,34 @@ const handleFileDeleteFromModal = async (file) => {
   });
 };
 
+// ==================== 从项目信息面板处理文件操作 ====================
+
+// 从项目信息面板选择文件
+const handleSelectFileFromInfo = (fileId) => {
+  // 如果项目有本地路径，切换到文件编辑视图
+  if (hasValidPath.value) {
+    handleSelectFile(fileId);
+  } else {
+    // 如果没有本地路径，显示预览
+    const file = projectFiles.value.find(f => f.id === fileId);
+    if (file) {
+      projectStore.currentFile = file;
+      viewMode.value = 'preview';
+    }
+  }
+};
+
+// 从项目信息面板预览文件
+const handleFilePreviewFromInfo = (file) => {
+  projectStore.currentFile = file;
+  viewMode.value = 'preview';
+};
+
+// 从项目信息面板下载文件
+const handleFileDownloadFromInfo = async (file) => {
+  await handleFileDownloadFromModal(file);
+};
+
 // ==================== 分享Modal事件处理 ====================
 
 // 更新分享类型
@@ -1201,11 +1285,21 @@ const formatDate = (timestamp) => {
 </script>
 
 <style scoped>
+.project-detail-page-wrapper {
+  display: flex;
+  min-height: 100%;
+  padding: 0;
+  margin: -24px; /* 抵消 layout-content 的 padding */
+  height: calc(100vh - 56px - 40px); /* 减去 header 和 tabs-bar 的高度 */
+  overflow: hidden;
+}
+
 .project-detail-page {
-  height: 100vh;
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: #f5f7fa;
+  overflow: hidden;
 }
 
 /* 工具栏 */
@@ -1468,4 +1562,44 @@ const formatDate = (timestamp) => {
 
 .info-alert {
   margin-top: 16px;
+}
+
+/* 文件管理器区域 */
+.file-manager-section {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.section-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.file-view-container {
+  background: white;
+  border-radius: 6px;
+  padding: 16px;
+  min-height: 300px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.file-tree-wrapper {
+  min-height: 250px;
 }

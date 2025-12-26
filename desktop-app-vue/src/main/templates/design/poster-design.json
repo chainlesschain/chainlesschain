@@ -12,7 +12,7 @@
 
   "project_type": "document",
 
-  "prompt_template": "请帮我设计一份{{eventName}}活动的宣传海报方案，要求：\n\n**活动信息：**\n- 活动名称：{{eventName}}\n- 活动类型：{{eventType}}\n- 活动时间：{{eventDate}}\n- 活动地点：{{eventLocation}}\n- 目标受众：{{targetAudience}}\n\n**设计方案输出：**\n1. 设计概念\n   - 设计主题和理念\n   - 视觉风格定位\n   - 色彩方案（主色、辅色）\n\n2. 版面布局方案\n   - 海报尺寸：{{posterSize}}\n   - 内容层级规划\n   - 视觉流程设计\n\n3. 文案策划\n   - 主标题（大字）\n   - 副标题/宣传语\n   - 活动信息（时间、地点、参与方式）\n   - CTA文案\n\n4. 视觉元素清单\n   - 主视觉图片建议\n   - 装饰元素\n   - 图标需求\n   - 字体建议\n\n5. 设计规范\n   - 色值RGB/HEX\n   - 字号和字重\n   - 留白和间距\n\n6. 输出文件说明\n   - 提供设计方案文档\n   - 提供HTML/CSS预览代码（简化版）\n\n**设计风格：{{designStyle}}",
+  "prompt_template": "请帮我设计一份{{eventName}}活动的宣传海报方案，要求：\n\n**活动信息：**\n- 活动名称：{{eventName}}\n- 活动类型：{{eventType}}\n- 活动时间：{{eventDate}}\n- 活动地点：{{eventLocation}}\n- 目标受众：{{targetAudience}}\n- 设计风格：{{designStyle}}\n- 色彩方案：{{colorScheme}}\n- 紧迫感等级：{{urgencyLevel}}\n\n---\n\n## 📐 海报尺寸与规格\n\n**尺寸：{{posterSize}}**\n{{#if (eq posterSize \"手机竖屏(9:16)\")}}\n- 推荐分辨率：1080×1920px（适用于微信、抖音、小红书）\n- 安全区域：上下各留100px，左右各留60px\n- 重点信息放在屏幕中心1/3区域\n{{else if (eq posterSize \"方形(1:1)\")}}\n- 推荐分辨率：1080×1080px（适用于Instagram、朋友圈）\n- 安全区域：四周各留80px\n- 中心视觉最大化\n{{else if (eq posterSize \"横屏(16:9)\")}}\n- 推荐分辨率：1920×1080px（适用于PC端、电视屏幕）\n- 安全区域：四周各留100px\n- 横向视觉流动\n{{else}}\n- 推荐分辨率：2480×3508px（A4，300dpi）\n- 出血位：四周各加3mm\n- 适合打印输出\n{{/if}}\n\n---\n\n## 🎨 色彩方案详细规范\n\n**主色调选择：{{colorScheme}}**\n\n{{#if (eq colorScheme \"暖色系\")}}\n**方案1（活力橙）：**\n- 主色：#FF6B35（橙红色）RGB(255, 107, 53)\n- 辅色1：#FFD23F（明黄色）RGB(255, 210, 63)\n- 辅色2：#EE4E34（深红色）RGB(238, 78, 52)\n- 背景色：#FFF8F0（米白色）RGB(255, 248, 240)\n- 文字色：#2D2D2D（深灰）RGB(45, 45, 45)\n\n**适用场景**：促销活动、美食活动、儿童活动\n**心理效应**：热情、活力、吸引注意力\n\n{{else if (eq colorScheme \"冷色系\")}}\n**方案2（科技蓝）：**\n- 主色：#0077B6（深蓝色）RGB(0, 119, 182)\n- 辅色1：#00B4D8（天蓝色）RGB(0, 180, 216)\n- 辅色2：#90E0EF（浅蓝色）RGB(144, 224, 239)\n- 背景色：#F8FCFF（冰蓝白）RGB(248, 252, 255)\n- 文字色：#1A1A2E（深蓝灰）RGB(26, 26, 46)\n\n**适用场景**：科技发布会、企业活动、教育讲座\n**心理效应**：专业、信任、冷静\n\n{{else if (eq colorScheme \"对比色\")}}\n**方案3（蓝橙对比）：**\n- 主色：#FF5722（橙色）RGB(255, 87, 34)\n- 对比色：#2196F3（蓝色）RGB(33, 150, 243)\n- 中性色：#FAFAFA（浅灰）RGB(250, 250, 250)\n- 强调色：#FFEB3B（黄色）RGB(255, 235, 59)\n- 文字色：#212121（黑色）RGB(33, 33, 33)\n\n**适用场景**：音乐节、运动赛事、创意活动\n**心理效应**：强烈视觉冲击、活力四射\n\n{{else}}\n**方案4（单色系）：**\n- 主色：#6C63FF（紫色）RGB(108, 99, 255)\n- 浅色：#A29BFE（淡紫）RGB(162, 155, 254)\n- 深色：#5048E5（深紫）RGB(80, 72, 229)\n- 背景色：#FFFFFF（纯白）RGB(255, 255, 255)\n- 文字色：#2C2C54（深紫灰）RGB(44, 44, 84)\n\n**适用场景**：艺术展览、时尚活动、品牌发布\n**心理效应**：优雅、统一、高级感\n{{/if}}\n\n**渐变建议**：\n- 背景渐变：从主色（100%）到辅色1（60%透明度）\n- 按钮渐变：从主色到深色（135度角）\n\n---\n\n## 📝 文案策划（根据{{eventType}}和{{urgencyLevel}}）\n\n{{#if (eq eventType \"促销活动\")}}\n**主标题建议**（字号：72-96pt，加粗）：\n- \"{{eventName}} 限时{{urgencyLevel}}折！\"\n- \"全场5折起 | {{eventName}}\"\n- \"错过再等一年！{{eventName}}\"\n\n**副标题**（字号：36-48pt）：\n- \"仅限{{eventDate}}，数量有限\"\n- \"前100名送豪礼\"\n\n**CTA文案**（字号：28-36pt，按钮）：\n- {{ctaText}}（如：\"立即抢购\" / \"马上领券\" / \"点击参与\"）\n\n{{else if (eq eventType \"发布会\")}}\n**主标题建议**（字号：64-80pt，加粗）：\n- \"{{eventName}} 震撼来袭\"\n- \"重新定义XXX | {{eventName}}\"\n- \"未来已来 · {{eventName}}\"\n\n**副标题**（字号：32-40pt）：\n- \"{{eventDate}} {{eventLocation}}\"\n- \"邀您共同见证\"\n\n**CTA文案**（字号：24-32pt）：\n- {{ctaText}}（如：\"预约观看\" / \"报名参加\" / \"了解详情\"）\n\n{{else if (eq eventType \"线上活动\")}}\n**主标题建议**（字号：60-80pt，加粗）：\n- \"线上相约 | {{eventName}}\"\n- \"{{eventName}} 在家也能参与！\"\n\n**副标题**（字号：30-40pt）：\n- \"扫码进入直播间\"\n- \"{{eventDate}} 准时开播\"\n\n**CTA文案**：\n- {{ctaText}}（如：\"扫码观看\" / \"点击进入\" / \"立即预约\"）\n\n{{else}}\n**主标题建议**（字号：56-72pt，加粗）：\n- \"{{eventName}}\"\n- \"[创意标语] · {{eventName}}\"\n\n**副标题**（字号：28-36pt）：\n- \"{{eventDate}}\"\n- \"地点：{{eventLocation}}\"\n\n**CTA文案**：\n- {{ctaText}}（如：\"报名参与\" / \"了解更多\" / \"立即预约\"）\n{{/if}}\n\n**紧迫感文案（{{urgencyLevel}}）**：\n{{#if (eq urgencyLevel \"高\")}}\n- \"仅剩XX小时！\"\n- \"名额告急！\"\n- \"最后XX天！\"\n- 使用倒计时元素\n{{else if (eq urgencyLevel \"中\")}}\n- \"限时优惠\"\n- \"早鸟票热销中\"\n- \"席位有限\"\n{{else}}\n- \"现已开放报名\"\n- \"欢迎参与\"\n{{/if}}\n\n---\n\n## 🎭 版面布局方案（{{designStyle}}风格）\n\n{{#if (eq designStyle \"现代简约\")}}\n**布局特点**：\n- 大量留白（至少30%空白区域）\n- 几何图形装饰（圆形、矩形）\n- 信息层级清晰（3-4层）\n- 字体：无衬线字体（思源黑体/苹方）\n\n**视觉流程**：\n1. 顶部20%：品牌Logo或装饰元素\n2. 中间50%：主标题+主视觉图\n3. 下部30%：活动信息+CTA按钮\n\n{{else if (eq designStyle \"科技感\")}}\n**布局特点**：\n- 渐变背景（深色系）\n- 发光效果和线条\n- 未来感字体\n- 几何线框装饰\n\n**视觉流程**：\n- 对角线构图\n- 光效引导视线\n- 立体元素凸显重点\n\n{{else if (eq designStyle \"国潮风\")}}\n**布局特点**：\n- 中国传统元素（祥云、山水、纹样）\n- 书法字体或仿宋体\n- 红金黑配色为主\n- 对称或黄金分割构图\n\n**视觉流程**：\n- 中轴对称\n- 上下呼应\n- 传统印章点缀\n\n{{else if (eq designStyle \"复古风\")}}\n**布局特点**：\n- 复古纹理背景（纸张、颗粒）\n- 装饰性边框\n- 衬线字体或手写字体\n- 怀旧色调\n\n**视觉流程**：\n- 中心放射构图\n- 徽章式设计\n- 装饰性强\n\n{{else}}\n**扁平化布局**：\n- 纯色块分割\n- 图标化元素\n- 无阴影、无渐变\n- 几何图形拼接\n\n**视觉流程**：\n- 模块化布局\n- 色块引导视线\n- 图标辅助理解\n{{/if}}\n\n---\n\n## 🖼️ 视觉元素清单\n\n**1. 主视觉图片建议**：\n{{#if (eq eventType \"促销活动\")}}\n- 产品特写（高清大图）\n- 人物使用场景\n- 爆炸贴/促销标签\n{{else if (eq eventType \"发布会\")}}\n- 产品渲染图\n- 舞台效果图\n- 科技感背景\n{{else}}\n- 活动主题相关图片\n- 人物参与场景\n- 抽象背景图\n{{/if}}\n\n**2. 装饰元素**：\n- 几何图形（圆形、三角形、线条）\n- 色块分割\n{{#if (eq hasQRCode \"是\")}}\n- 二维码（尺寸：200×200px）\n  * 位置：右下角或底部居中\n  * 周围留白：至少20px\n  * 扫码提示文字：\"扫码{{ctaText}}\"\n{{/if}}\n{{#if (eq includeSponsors \"是\")}}\n- 赞助商Logo区域\n  * 位置：底部，横向排列\n  * 单个Logo尺寸：80×40px\n  * Logo灰度处理（不抢主视觉）\n{{/if}}\n\n**3. 图标需求**：\n- 时间图标（日历）\n- 地点图标（地图标记）\n- 人数图标（如有）\n- 社交媒体图标\n\n**4. 字体规范**：\n- 主标题：{{#if (eq designStyle \"国潮风\")}}站酷快乐体/庞门正道标题体{{else if (eq designStyle \"科技感\")}}Rajdhani/Orbitron{{else}}思源黑体 Bold/苹方粗体{{/if}}\n- 副标题：{{#if (eq designStyle \"复古风\")}}宋体/Times New Roman{{else}}思源黑体 Medium{{/if}}\n- 正文：思源黑体 Regular / PingFang SC Regular\n- CTA按钮：思源黑体 Bold / PingFang SC Semibold\n\n---\n\n## 📏 详细设计规范\n\n**字号规范**（基于{{posterSize}}）：\n{{#if (eq posterSize \"手机竖屏(9:16)\")}}\n- 主标题：72-96pt（加粗）\n- 副标题：36-48pt（中粗）\n- 正文信息：24-32pt（常规）\n- CTA按钮：28-36pt（加粗）\n- 小字说明：18-22pt（常规）\n{{else if (eq posterSize \"A4打印\")}}\n- 主标题：96-120pt\n- 副标题：48-60pt\n- 正文信息：32-40pt\n- CTA按钮：36-44pt\n- 小字说明：24-28pt\n{{else}}\n- 主标题：60-80pt\n- 副标题：30-40pt\n- 正文信息：20-28pt\n- CTA按钮：24-32pt\n- 小字说明：16-20pt\n{{/if}}\n\n**间距规范**：\n- 标题与副标题间距：30-40px\n- 段落间距：20-30px\n- 元素边距：最少20px\n- 按钮内边距：15px上下，40px左右\n\n**按钮设计**：\n- 圆角半径：8-12px（现代感）或0px（硬朗风格）\n- 阴影：0 4px 12px rgba(0,0,0,0.15)\n- 悬停效果：亮度提升10%\n\n---\n\n## 💡 设计心理学应用\n\n**吸引注意力的技巧**：\n1. **对比度**：文字与背景对比度至少4.5:1\n2. **F型视觉流**：重要信息放在F型扫视路径上\n3. **留白**：给重点内容充足呼吸空间\n4. **色彩心理**：\n   - 红色/橙色：紧迫感、促销\n   - 蓝色/绿色：信任、专业\n   - 紫色：创意、神秘\n   - 黄色：活力、注意\n\n**{{urgencyLevel}}紧迫感营造**：\n{{#if (eq urgencyLevel \"高\")}}\n- 使用红色或橙色强调\n- 倒计时数字\n- 闪电/爆炸等图形元素\n- \"限时\"、\"最后\"等关键词放大\n{{else if (eq urgencyLevel \"中\")}}\n- 使用黄色或橙色提示\n- 适度使用强调词\n- 数量限制提示\n{{else}}\n- 平和色调\n- 强调价值而非紧迫\n{{/if}}\n\n---\n\n## 📦 输出文件清单\n\n1. **设计方案文档（Word）**：\n   - 完整的设计说明\n   - 色彩方案RGB/HEX值\n   - 字体规范表\n   - 布局示意图（文字描述）\n\n2. **HTML/CSS预览代码**：\n   - 简化版海报网页\n   - 可在浏览器查看效果\n   - 包含响应式布局\n\n3. **设计规范文档（Markdown）**：\n   - 快速参考的规范表\n   - 导出为PDF后可分享给设计师\n\n4. **素材需求清单**：\n   - 所需图片尺寸和规格\n   - 图标需求列表\n   - 文案最终确认版本\n\n---\n\n**特别说明**：\n本方案提供详细的设计指导，可直接交付给平面设计师执行。如需使用Figma/Photoshop/Canva等工具，所有色值、尺寸、字号均可直接应用。",
 
   "variables_schema": [
     {
@@ -83,6 +83,67 @@
         { "value": "复古风", "label": "复古风" },
         { "value": "扁平化", "label": "扁平化" }
       ]
+    },
+    {
+      "name": "colorScheme",
+      "label": "色彩方案",
+      "type": "select",
+      "required": false,
+      "default": "暖色系",
+      "options": [
+        { "value": "暖色系", "label": "暖色系（橙红黄）" },
+        { "value": "冷色系", "label": "冷色系（蓝绿紫）" },
+        { "value": "对比色", "label": "对比色（蓝橙）" },
+        { "value": "单色系", "label": "单色系（统一色调）" }
+      ]
+    },
+    {
+      "name": "urgencyLevel",
+      "label": "紧迫感等级",
+      "type": "select",
+      "required": false,
+      "default": "中",
+      "options": [
+        { "value": "高", "label": "高（限时抢购）" },
+        { "value": "中", "label": "中（限量优惠）" },
+        { "value": "低", "label": "低（常规活动）" }
+      ]
+    },
+    {
+      "name": "ctaText",
+      "label": "行动号召文案",
+      "type": "select",
+      "required": false,
+      "default": "立即参与",
+      "options": [
+        { "value": "立即参与", "label": "立即参与" },
+        { "value": "马上报名", "label": "马上报名" },
+        { "value": "了解详情", "label": "了解详情" },
+        { "value": "立即抢购", "label": "立即抢购" },
+        { "value": "扫码观看", "label": "扫码观看" }
+      ]
+    },
+    {
+      "name": "hasQRCode",
+      "label": "是否包含二维码",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "包含二维码" },
+        { "value": "否", "label": "不包含" }
+      ]
+    },
+    {
+      "name": "includeSponsors",
+      "label": "是否包含赞助商Logo",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        { "value": "是", "label": "包含赞助商区域" },
+        { "value": "否", "label": "不包含" }
+      ]
     }
   ],
 
@@ -91,11 +152,23 @@
     "files": [
       {
         "path": "设计方案.docx",
-        "type": "document"
+        "type": "document",
+        "description": "完整的设计说明文档，包含色彩、字体、布局等详细规范"
       },
       {
         "path": "预览示例.html",
-        "type": "html"
+        "type": "html",
+        "description": "可在浏览器查看的HTML/CSS预览代码"
+      },
+      {
+        "path": "设计规范.md",
+        "type": "markdown",
+        "content": "# {{eventName}} 海报设计规范\n\n## 色彩方案\n{{colorScheme}}\n\n## 字体规范\n- 主标题：思源黑体 Bold\n- 副标题：思源黑体 Medium\n- 正文：思源黑体 Regular\n\n## 尺寸规范\n海报尺寸：{{posterSize}}\n\n## CTA文案\n{{ctaText}}\n\n## 设计风格\n{{designStyle}}"
+      },
+      {
+        "path": "素材需求清单.md",
+        "type": "markdown",
+        "content": "# 素材需求清单\n\n## 必需素材\n- [ ] 主视觉图片（根据{{eventType}}类型选择）\n- [ ] 品牌Logo\n{{#if (eq hasQRCode \"是\")}}\n- [ ] 活动二维码（200×200px）\n{{/if}}\n{{#if (eq includeSponsors \"是\")}}\n- [ ] 赞助商Logo（80×40px，灰度处理）\n{{/if}}\n\n## 图标需求\n- [ ] 时间图标\n- [ ] 地点图标\n\n## 文案确认\n- 活动名称：{{eventName}}\n- 活动时间：{{eventDate}}\n- 活动地点：{{eventLocation}}\n- CTA文案：{{ctaText}}"
       }
     ]
   },
@@ -104,5 +177,8 @@
 
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
 }
