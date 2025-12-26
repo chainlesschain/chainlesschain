@@ -1,0 +1,66 @@
+{
+  "id": "tpl_writing_office_training_002",
+  "name": "employee_training_plan",
+  "display_name": "员工入职培训方案",
+  "description": "为新员工制定系统化的培训计划，包含培训目标、内容、时间安排等",
+  "icon": "👥",
+  "cover_image": "/templates/covers/training-plan.png",
+
+  "category": "writing",
+  "subcategory": "office",
+  "tags": ["培训", "入职", "人力资源", "办公"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成一份{{department}}部门的新员工入职培训方案，要求：\n\n**培训对象：**\n- 部门：{{department}}\n- 岗位：{{position}}\n- 培训周期：{{trainingDays}}天\n\n**培训目标：**\n{{#if objectives}}\n{{#each objectives}}\n- {{this}}\n{{/each}}\n{{else}}\n请生成3-5个培训目标\n{{/if}}\n\n**培训内容结构：**\n1. 公司文化与制度（第1天）\n2. 部门职责与流程（第2-3天）\n3. 岗位技能培训（第4-{{trainingDays}}天）\n4. 实操演练与考核\n\n请生成包含以下内容的Word文档：\n- 培训计划表（时间、内容、负责人）\n- 每日培训详细安排\n- 培训考核标准\n- 培训资料清单",
+
+  "variables_schema": [
+    {
+      "name": "department",
+      "label": "部门名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：技术部、销售部"
+    },
+    {
+      "name": "position",
+      "label": "岗位名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：软件工程师、销售专员"
+    },
+    {
+      "name": "trainingDays",
+      "label": "培训天数",
+      "type": "number",
+      "required": false,
+      "default": 7,
+      "min": 3,
+      "max": 30
+    },
+    {
+      "name": "objectives",
+      "label": "培训目标",
+      "type": "array",
+      "required": false,
+      "default": [],
+      "placeholder": "请输入培训目标，每行一个（可选）"
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{department}}-入职培训方案",
+    "files": [
+      {
+        "path": "入职培训方案.docx",
+        "type": "document"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

@@ -17,6 +17,7 @@ const { RAGManager } = require('./rag/rag-manager');
 const FileImporter = require('./import/file-importer');
 const ImageUploader = require('./image/image-uploader');
 const PromptTemplateManager = require('./prompt/prompt-template-manager');
+const ProjectTemplateManager = require('./template/template-manager');
 const NativeMessagingHTTPServer = require('./native-messaging/http-server');
 const FileSyncManager = require('./file-sync/sync-manager');
 const PreviewManager = require('./preview/preview-manager');
@@ -217,6 +218,16 @@ class ChainlessChainApp {
       console.log('文件导入器初始化成功');
     } catch (error) {
       console.error('文件导入器初始化失败:', error);
+    }
+
+    // 初始化项目模板管理器
+    try {
+      console.log('初始化项目模板管理器...');
+      this.templateManager = new ProjectTemplateManager(this.database);
+      await this.templateManager.initialize();
+      console.log('项目模板管理器初始化成功');
+    } catch (error) {
+      console.error('项目模板管理器初始化失败:', error);
     }
 
     // 初始化U盾管理器
@@ -6141,6 +6152,135 @@ ${content}
         };
       } catch (error) {
         console.error('[Main] 播客脚本生成失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 项目模板管理 ====================
+
+    // 获取所有模板
+    ipcMain.handle('template:getAll', async (_event, filters = {}) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        const templates = await this.templateManager.getAllTemplates(filters);
+        return templates;
+      } catch (error) {
+        console.error('[Template] 获取模板列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 根据ID获取模板
+    ipcMain.handle('template:getById', async (_event, templateId) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        const template = await this.templateManager.getTemplateById(templateId);
+        return template;
+      } catch (error) {
+        console.error('[Template] 获取模板失败:', error);
+        throw error;
+      }
+    });
+
+    // 搜索模板
+    ipcMain.handle('template:search', async (_event, keyword, filters = {}) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        const templates = await this.templateManager.searchTemplates(keyword, filters);
+        return templates;
+      } catch (error) {
+        console.error('[Template] 搜索模板失败:', error);
+        throw error;
+      }
+    });
+
+    // 渲染模板提示词
+    ipcMain.handle('template:renderPrompt', async (_event, templateId, userVariables) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        const template = await this.templateManager.getTemplateById(templateId);
+        const renderedPrompt = this.templateManager.renderPrompt(template, userVariables);
+        return renderedPrompt;
+      } catch (error) {
+        console.error('[Template] 渲染模板提示词失败:', error);
+        throw error;
+      }
+    });
+
+    // 记录模板使用
+    ipcMain.handle('template:recordUsage', async (_event, templateId, userId, projectId, variablesUsed) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        await this.templateManager.recordTemplateUsage(templateId, userId, projectId, variablesUsed);
+        return { success: true };
+      } catch (error) {
+        console.error('[Template] 记录模板使用失败:', error);
+        throw error;
+      }
+    });
+
+    // 提交模板评价
+    ipcMain.handle('template:rate', async (_event, templateId, userId, rating, review) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        await this.templateManager.rateTemplate(templateId, userId, rating, review);
+        return { success: true };
+      } catch (error) {
+        console.error('[Template] 提交模板评价失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取模板统计
+    ipcMain.handle('template:getStats', async (_event) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        const stats = await this.templateManager.getTemplateStats();
+        return stats;
+      } catch (error) {
+        console.error('[Template] 获取模板统计失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取用户最近使用的模板
+    ipcMain.handle('template:getRecent', async (_event, userId, limit = 10) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        const templates = await this.templateManager.getRecentTemplates(userId, limit);
+        return templates;
+      } catch (error) {
+        console.error('[Template] 获取最近使用模板失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取热门模板
+    ipcMain.handle('template:getPopular', async (_event, limit = 20) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        const templates = await this.templateManager.getPopularTemplates(limit);
+        return templates;
+      } catch (error) {
+        console.error('[Template] 获取热门模板失败:', error);
         throw error;
       }
     });

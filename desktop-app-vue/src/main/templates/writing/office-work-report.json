@@ -1,0 +1,111 @@
+{
+  "id": "tpl_writing_office_work_report_001",
+  "name": "office_work_report",
+  "display_name": "5分钟企业工作汇报",
+  "description": "适用于企业内部工作汇报，支持安全、季度总结、项目进展等多种场景",
+  "icon": "📝",
+  "cover_image": "/templates/covers/office-report.png",
+
+  "category": "writing",
+  "subcategory": "office",
+  "tags": ["办公", "汇报", "总结", "企业"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成一份{{duration}}分钟的{{topic}}工作汇报文档，要求：\n\n**基本信息：**\n- 汇报人：{{default author \"未指定\"}}\n- 汇报对象：{{default audience \"公司领导\"}}\n- 时间跨度：{{default timespan \"本季度\"}}\n\n**核心内容：**\n{{#if keyPoints}}\n{{#each keyPoints}}\n- {{this}}\n{{/each}}\n{{else}}\n请根据主题自动生成3-5个关键要点\n{{/if}}\n\n**风格要求：**\n- 语言风格：{{style}}\n- 字数控制：约{{wordCount}}字\n- 结构：开场白 + 主体内容（3-5个要点） + 总结和号召\n\n请生成Word文档格式，包含：\n1. 封面（包含标题、汇报人、日期）\n2. 目录\n3. 正文内容（使用标题1、2、3层级）\n4. 适当的排版样式和图表占位符",
+
+  "variables_schema": [
+    {
+      "name": "topic",
+      "label": "汇报主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：企业安全管理、季度工作总结、项目进展汇报"
+    },
+    {
+      "name": "duration",
+      "label": "汇报时长（分钟）",
+      "type": "number",
+      "required": true,
+      "default": 5,
+      "min": 3,
+      "max": 30
+    },
+    {
+      "name": "author",
+      "label": "汇报人",
+      "type": "string",
+      "required": false,
+      "placeholder": "您的姓名"
+    },
+    {
+      "name": "audience",
+      "label": "汇报对象",
+      "type": "string",
+      "required": false,
+      "default": "公司领导",
+      "placeholder": "例如：公司领导、部门同事"
+    },
+    {
+      "name": "timespan",
+      "label": "时间跨度",
+      "type": "string",
+      "required": false,
+      "default": "本季度",
+      "placeholder": "例如：2024年第一季度"
+    },
+    {
+      "name": "keyPoints",
+      "label": "关键要点",
+      "type": "array",
+      "required": false,
+      "default": [],
+      "placeholder": "请输入要点，每行一个（可选）"
+    },
+    {
+      "name": "style",
+      "label": "语言风格",
+      "type": "select",
+      "required": false,
+      "default": "formal",
+      "options": [
+        { "value": "formal", "label": "正式" },
+        { "value": "friendly", "label": "亲切" },
+        { "value": "serious", "label": "严肃" }
+      ]
+    },
+    {
+      "name": "wordCount",
+      "label": "目标字数",
+      "type": "number",
+      "required": false,
+      "default": 2000,
+      "min": 500,
+      "max": 10000
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{topic}}-工作汇报",
+    "files": [
+      {
+        "path": "{{topic}}-工作汇报.docx",
+        "type": "document"
+      },
+      {
+        "path": "README.md",
+        "type": "markdown",
+        "content": "# {{topic}}-工作汇报\n\n生成时间：{{formatDate createdAt 'yyyy-MM-dd'}}\n汇报人：{{author}}\n"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

@@ -1,0 +1,69 @@
+{
+  "id": "tpl_excel_project_gantt_001",
+  "name": "project_gantt_chart",
+  "display_name": "施工项目甘特图",
+  "description": "用于项目进度管理的甘特图表格，支持任务分解、时间规划、资源分配",
+  "icon": "📊",
+  "cover_image": "/templates/covers/gantt-chart.png",
+
+  "category": "excel",
+  "subcategory": "planning",
+  "tags": ["项目管理", "甘特图", "进度", "规划"],
+
+  "project_type": "data",
+
+  "prompt_template": "请帮我生成一份{{projectName}}的项目甘特图Excel表格，要求：\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 项目周期：{{projectDuration}}天\n- 开始日期：{{startDate}}\n- 项目阶段数：{{phaseCount}}\n\n**Excel表格结构：**\n1. 项目信息概览工作表\n   - 项目名称、负责人、起止日期\n   - 项目里程碑列表\n   - 整体进度汇总\n\n2. 甘特图主表\n   - 列：任务名称 | 负责人 | 开始日期 | 结束日期 | 工期 | 前置任务 | 进度 | 状态\n   - 包含条件格式化的时间轴视图\n   - 自动计算工期和进度\n\n3. 资源分配表\n   - 人员资源分配\n   - 设备资源安排\n\n4. 里程碑追踪表\n\n**特性：**\n- 使用条件格式突出显示逾期任务\n- 自动生成时间轴甘特图\n- 进度百分比自动计算\n- 支持依赖关系设置",
+
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：办公楼建设项目"
+    },
+    {
+      "name": "projectDuration",
+      "label": "项目周期（天）",
+      "type": "number",
+      "required": false,
+      "default": 90,
+      "min": 7,
+      "max": 365
+    },
+    {
+      "name": "startDate",
+      "label": "开始日期",
+      "type": "string",
+      "required": false,
+      "default": "2025-01-01",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "placeholder": "格式：yyyy-MM-dd"
+    },
+    {
+      "name": "phaseCount",
+      "label": "项目阶段数",
+      "type": "number",
+      "required": false,
+      "default": 5,
+      "min": 3,
+      "max": 20
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{projectName}}-甘特图",
+    "files": [
+      {
+        "path": "{{projectName}}-项目甘特图.xlsx",
+        "type": "spreadsheet"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
