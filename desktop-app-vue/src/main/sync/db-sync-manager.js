@@ -31,7 +31,11 @@ class DBSyncManager extends EventEmitter {
    */
   async initialize(deviceId) {
     this.deviceId = deviceId;
+    this.timeOffset = 0;  // 客户端与服务器的时间偏移（毫秒）
     console.log('[DBSyncManager] 初始化，设备ID:', deviceId);
+
+    // 同步服务器时间
+    await this.syncServerTime();
 
     // 启动定期同步（5分钟）
     this.startPeriodicSync();
@@ -40,6 +44,65 @@ class DBSyncManager extends EventEmitter {
     this.setupNetworkListeners();
 
     this.emit('initialized', { deviceId });
+  }
+
+  /**
+   * 同步服务器时间，计算时间偏移
+   * 解决时间戳不一致问题
+   */
+  async syncServerTime() {
+    try {
+      const clientTime1 = Date.now();
+      const serverTimeInfo = await this.httpClient.getServerTime();
+      const clientTime2 = Date.now();
+
+      // 计算RTT（往返时间）并调整
+      const rtt = clientTime2 - clientTime1;
+      const adjustedServerTime = serverTimeInfo.timestamp + (rtt / 2);
+
+      // 计算时间偏移: 本地时间 - 服务器时间
+      this.timeOffset = clientTime2 - adjustedServerTime;
+
+      console.log('[DBSyncManager] 时间同步完成:', {
+        serverTime: new Date(serverTimeInfo.timestamp).toISOString(),
+        clientTime: new Date(clientTime2).toISOString(),
+        offset: this.timeOffset,
+        offsetMinutes: (this.timeOffset / 60000).toFixed(2),
+        rtt: rtt
+      });
+
+      // 如果偏移超过5分钟，发出警告
+      if (Math.abs(this.timeOffset) > 5 * 60 * 1000) {
+        console.warn('[DBSyncManager] 警告: 客户端与服务器时间偏差超过5分钟!');
+        this.emit('time-offset-warning', {
+          offset: this.timeOffset,
+          offsetMinutes: (this.timeOffset / 60000).toFixed(2)
+        });
+      }
+
+    } catch (error) {
+      console.error('[DBSyncManager] 时间同步失败:', error);
+      // 失败时使用0偏移，继续执行
+      this.timeOffset = 0;
+    }
+  }
+
+  /**
+   * 将本地时间戳调整为服务器时间
+   * @param {number} localTimestamp - 本地时间戳（毫秒）
+   * @returns {number} 调整后的时间戳
+   */
+  adjustToServerTime(localTimestamp) {
+    return localTimestamp - this.timeOffset;
+  }
+
+  /**
+   * 将服务器时间戳调整为本地时间
+   * @param {number} serverTimestamp - 服务器时间戳（毫秒）
+   * @returns {number} 调整后的时间戳
+   */
+  adjustToLocalTime(serverTimestamp) {
+    return serverTimestamp + this.timeOffset;
   }
 
   /**
@@ -106,7 +169,8 @@ class DBSyncManager extends EventEmitter {
   }
 
   /**
-   * 上传本地变更
+   * 上传本地变更（逐条处理版本）
+   * 每条记录独立处理，与后端的独立事务保持一致
    */
   async uploadLocalChanges(tableName) {
     // 查询所有待同步的记录
@@ -116,33 +180,92 @@ class DBSyncManager extends EventEmitter {
 
     if (pendingRecords.length === 0) {
       console.log(`[DBSyncManager] 表 ${tableName} 无待上传数据`);
-      return;
+      return { success: 0, failed: 0, conflicts: 0 };
     }
 
     console.log(`[DBSyncManager] 上传 ${pendingRecords.length} 条记录到表 ${tableName}`);
 
-    // 转换为后端格式
-    const backendRecords = pendingRecords.map(record =>
-      this.fieldMapper.toBackend(record, tableName)
-    );
+    const results = {
+      success: [],
+      failed: [],
+      conflicts: []
+    };
 
-    try {
-      // 批量上传
-      await this.httpClient.uploadBatch(tableName, backendRecords, this.deviceId);
+    // 逐条上传
+    for (const record of pendingRecords) {
+      try {
+        // 转换为后端格式，并调整时间戳
+        const backendRecord = this.fieldMapper.toBackend(record, tableName);
 
-      // 标记为已同步
-      for (const record of pendingRecords) {
-        this.database.db.run(
-          `UPDATE ${tableName} SET sync_status = ?, synced_at = ? WHERE id = ?`,
-          ['synced', Date.now(), record.id]
+        // 调整时间戳到服务器时间
+        if (backendRecord.createdAt) {
+          backendRecord.createdAt = this.adjustToServerTime(backendRecord.createdAt);
+        }
+        if (backendRecord.updatedAt) {
+          backendRecord.updatedAt = this.adjustToServerTime(backendRecord.updatedAt);
+        }
+        if (backendRecord.syncedAt) {
+          backendRecord.syncedAt = this.adjustToServerTime(backendRecord.syncedAt);
+        }
+
+        // 单条上传
+        const response = await this.httpClient.uploadBatch(
+          tableName,
+          [backendRecord],
+          this.deviceId
         );
-      }
 
-      console.log(`[DBSyncManager] 上传完成: ${pendingRecords.length} 条记录`);
-    } catch (error) {
-      console.error(`[DBSyncManager] 上传失败:`, error);
-      throw error;
+        // 处理上传结果
+        if (response.conflictCount > 0) {
+          // 检测到冲突
+          results.conflicts.push({
+            record,
+            conflicts: response.conflicts
+          });
+
+          // 标记为冲突状态
+          this.database.updateSyncStatus(tableName, record.id, 'conflict', null);
+
+          console.warn(`[DBSyncManager] 冲突: table=${tableName}, id=${record.id}`);
+        } else if (response.successCount > 0) {
+          // 上传成功
+          results.success.push(record);
+
+          // 标记为已同步（使用服务器时间）
+          const syncedAt = this.adjustToServerTime(Date.now());
+          this.database.updateSyncStatus(tableName, record.id, 'synced', syncedAt);
+        } else {
+          // 上传失败但没有抛出异常
+          results.failed.push({
+            record,
+            error: 'Unknown error'
+          });
+
+          this.database.updateSyncStatus(tableName, record.id, 'error', null);
+        }
+
+      } catch (error) {
+        // 捕获异常
+        console.error(`[DBSyncManager] 上传失败: table=${tableName}, id=${record.id}`, error);
+
+        results.failed.push({
+          record,
+          error: error.message
+        });
+
+        // 标记为错误状态
+        this.database.updateSyncStatus(tableName, record.id, 'error', null);
+      }
     }
+
+    console.log(`[DBSyncManager] 上传完成: 成功${results.success.length}, 失败${results.failed.length}, 冲突${results.conflicts.length}`);
+
+    return {
+      success: results.success.length,
+      failed: results.failed.length,
+      conflicts: results.conflicts.length,
+      details: results
+    };
   }
 
   /**

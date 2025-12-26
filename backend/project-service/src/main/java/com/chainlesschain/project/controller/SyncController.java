@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.ZoneId;
 import java.util.Map;
 
 /**
@@ -27,6 +28,29 @@ public class SyncController {
 
     @Autowired
     private SyncService syncService;
+
+    /**
+     * 获取服务器时间
+     * 用于客户端时间同步，解决时间戳偏差问题
+     *
+     * @return 服务器当前时间戳（毫秒）和时区信息
+     */
+    @GetMapping("/server-time")
+    @Operation(summary = "获取服务器时间", description = "获取服务器当前时间戳，用于客户端时间同步")
+    public Result<Map<String, Object>> getServerTime() {
+        long timestamp = System.currentTimeMillis();
+        String timezone = ZoneId.systemDefault().toString();
+
+        log.debug("[SyncController] 返回服务器时间: timestamp={}, timezone={}", timestamp, timezone);
+
+        Map<String, Object> timeInfo = Map.of(
+            "timestamp", timestamp,
+            "timezone", timezone,
+            "iso8601", java.time.Instant.ofEpochMilli(timestamp).toString()
+        );
+
+        return Result.success(timeInfo);
+    }
 
     /**
      * 批量上传数据

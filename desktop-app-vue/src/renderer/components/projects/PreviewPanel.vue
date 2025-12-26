@@ -682,11 +682,29 @@ const loadWord = async (filePath) => {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
+  console.log('[PreviewPanel] 加载Word文档:', {
+    原始路径: filePath,
+    构建路径: fullPath,
+    projectId: props.projectId,
+    file对象: props.file
+  });
+
   try {
-    const result = await window.electronAPI.file.previewOffice(fullPath, 'word');
+    // 首先尝试解析路径
+    const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
+    console.log('[PreviewPanel] Word文档解析后路径:', resolvedPath);
+
+    const result = await window.electronAPI.file.previewOffice(resolvedPath, 'word');
+    console.log('[PreviewPanel] Word预览结果:', result);
+
     if (result.success) {
+      if (!result.data || !result.data.html) {
+        console.warn('[PreviewPanel] Word预览返回空内容:', result.data);
+        throw new Error('Word文档内容为空');
+      }
       officeContent.value = result.data.html;
       officeType.value = 'word';
+      console.log('[PreviewPanel] Word内容已设置，长度:', result.data.html.length);
     } else {
       throw new Error(result.error || 'Word文档预览失败');
     }
@@ -706,11 +724,28 @@ const loadExcel = async (filePath) => {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
+  console.log('[PreviewPanel] 加载Excel表格:', {
+    原始路径: filePath,
+    构建路径: fullPath,
+    projectId: props.projectId
+  });
+
   try {
-    const result = await window.electronAPI.file.previewOffice(fullPath, 'excel');
+    // 首先尝试解析路径
+    const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
+    console.log('[PreviewPanel] Excel解析后路径:', resolvedPath);
+
+    const result = await window.electronAPI.file.previewOffice(resolvedPath, 'excel');
+    console.log('[PreviewPanel] Excel预览结果:', result);
+
     if (result.success) {
+      if (!result.data || !result.data.sheets) {
+        console.warn('[PreviewPanel] Excel预览返回空内容:', result.data);
+        throw new Error('Excel文档内容为空');
+      }
       officeContent.value = result.data;
       officeType.value = 'excel';
+      console.log('[PreviewPanel] Excel内容已设置，工作表数量:', result.data.sheets.length);
     } else {
       throw new Error(result.error || 'Excel表格预览失败');
     }
@@ -730,11 +765,28 @@ const loadPowerPoint = async (filePath) => {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
+  console.log('[PreviewPanel] 加载PowerPoint:', {
+    原始路径: filePath,
+    构建路径: fullPath,
+    projectId: props.projectId
+  });
+
   try {
-    const result = await window.electronAPI.file.previewOffice(fullPath, 'powerpoint');
+    // 首先尝试解析路径
+    const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
+    console.log('[PreviewPanel] PowerPoint解析后路径:', resolvedPath);
+
+    const result = await window.electronAPI.file.previewOffice(resolvedPath, 'powerpoint');
+    console.log('[PreviewPanel] PowerPoint预览结果:', result);
+
     if (result.success) {
+      if (!result.data || !result.data.slides) {
+        console.warn('[PreviewPanel] PowerPoint预览返回空内容:', result.data);
+        throw new Error('PowerPoint文档内容为空');
+      }
       officeContent.value = result.data;
       officeType.value = 'powerpoint';
+      console.log('[PreviewPanel] PowerPoint内容已设置，幻灯片数量:', result.data.slides.length);
     } else {
       throw new Error(result.error || 'PowerPoint预览失败');
     }

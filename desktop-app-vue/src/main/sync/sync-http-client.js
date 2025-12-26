@@ -1,5 +1,6 @@
 const axios = require('axios');
 const config = require('./sync-config');
+const crypto = require('crypto');
 
 /**
  * 同步 HTTP 客户端
@@ -80,17 +81,40 @@ class SyncHTTPClient {
   }
 
   /**
+   * 生成唯一请求ID
+   * 用于幂等性保护
+   * @returns {string} UUID格式的请求ID
+   */
+  generateRequestId() {
+    return crypto.randomUUID();
+  }
+
+  /**
+   * 获取服务器时间
+   * 用于客户端时间同步，解决时间戳偏差问题
+   * @returns {Promise<Object>} 服务器时间信息 { timestamp, timezone, iso8601 }
+   */
+  async getServerTime() {
+    return this.client.get('/api/sync/server-time');
+  }
+
+  /**
    * 批量上传数据
    * @param {string} tableName - 表名
    * @param {Array} records - 记录列表
    * @param {string} deviceId - 设备ID
+   * @param {string} requestId - 可选的请求ID，用于幂等性保护
    * @returns {Promise<Object>} 上传结果
    */
-  async uploadBatch(tableName, records, deviceId) {
+  async uploadBatch(tableName, records, deviceId, requestId = null) {
+    // 如果没有提供requestId，自动生成一个
+    const finalRequestId = requestId || this.generateRequestId();
+
     return this.client.post('/api/sync/upload', {
       tableName,
       records,
       deviceId,
+      requestId: finalRequestId,
       lastSyncedAt: Date.now()
     });
   }
