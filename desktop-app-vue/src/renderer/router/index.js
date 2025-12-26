@@ -23,7 +23,7 @@ const routes = [
       {
         path: '',
         name: 'Home',
-        component: () => import('../pages/HomePage.vue'),
+        component: () => import('../pages/projects/ProjectsPage.vue'),
       },
       {
         path: 'knowledge/:id',
