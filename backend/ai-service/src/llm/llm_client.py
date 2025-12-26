@@ -30,6 +30,26 @@ class BaseLLMClient(ABC):
         """
         pass
 
+    async def generate(
+        self,
+        prompt: str,
+        temperature: float = 0.7,
+        max_tokens: int = 2048
+    ) -> str:
+        """
+        文本生成接口（默认实现：将prompt转换为chat调用）
+
+        Args:
+            prompt: 提示词
+            temperature: 温度参数
+            max_tokens: 最大token数
+
+        Returns:
+            生成的文本
+        """
+        messages = [{"role": "user", "content": prompt}]
+        return await self.chat(messages, temperature, max_tokens)
+
 
 class OllamaClient(BaseLLMClient):
     """Ollama本地LLM客户端"""

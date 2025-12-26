@@ -81,6 +81,22 @@ public class ProjectController {
     }
 
     /**
+     * 更新项目
+     */
+    @PutMapping("/{projectId}")
+    public ApiResponse<ProjectResponse> updateProject(
+            @PathVariable String projectId,
+            @RequestBody Map<String, Object> updates) {
+        try {
+            ProjectResponse response = projectService.updateProject(projectId, updates);
+            return ApiResponse.success("项目更新成功", response);
+        } catch (Exception e) {
+            log.error("更新项目失败", e);
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
      * 删除项目
      */
     @DeleteMapping("/{projectId}")
