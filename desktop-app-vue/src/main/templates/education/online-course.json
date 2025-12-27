@@ -12,7 +12,7 @@
 
   "project_type": "document",
 
-  "prompt_template": "请帮我设计一门《{{courseName}}》在线课程的完整大纲，要求：\n\n**课程基本信息：**\n- 课程名称：{{courseName}}\n- 课程类型：{{courseType}}\n- 目标学员：{{targetStudent}}\n- 课程时长：{{totalHours}}小时（{{lessonCount}}节课）\n- 难度等级：{{difficultyLevel}}\n- 授课语言：中文\n\n**课程目标（完成后学员能够）：**\n{{#if learningObjectives}}\n{{#each learningObjectives}}\n- {{this}}\n{{/each}}\n{{else}}\n请根据{{courseName}}自动生成3-5个明确的学习目标\n{{/if}}\n\n**课程结构设计：**\n\n【第一部分：课程总览】\n1. 课程简介（200-300字）\n   - 课程价值和适用人群\n   - 学习路径说明\n   - 前置知识要求\n\n2. 讲师介绍\n   - 资质和经验\n   - 授课风格\n\n3. 学习建议\n   - 每周学习时长建议\n   - 学习方法指导\n   - 完成课程的时间规划\n\n【第二部分：章节大纲】\n\n根据{{lessonCount}}节课，设计{{chapterCount}}个章节：\n\n{{#each (range 1 chapterCount)}}\n**第{{this}}章：[章节标题]**\n\n章节目标：\n- 本章要达成的3-5个学习目标\n\n课时安排（每章{{lessonPerChapter}}节课）：\n\n{{#each (range 1 lessonPerChapter)}}\n第{{parent.this}}.{{this}}课：[课程标题]（{{lessonDuration}}分钟）\n- 知识点1：核心概念讲解\n- 知识点2：实例演示\n- 知识点3：常见误区\n{{#if (eq ../includeHandsOn \"是\")}}\n- 实操练习：[练习名称]\n{{/if}}\n{{/each}}\n\n{{#if (eq ../includeQuiz \"是\")}}\n**章节测验：**\n- 选择题：5-10题\n- 判断题：3-5题\n- 简答题：1-2题（根据难度）\n- 及格分数：{{passingScore}}分\n{{/if}}\n\n{{#if (eq ../includeAssignment \"是\")}}\n**章节作业：**\n- 作业名称：[基于本章内容的实践任务]\n- 作业要求：（500-1000字说明）\n- 提交方式：文档/视频/代码\n- 截止时间：建议1-2周\n- 评分标准：\n  * 完成度（40%）\n  * 创新性（30%）\n  * 规范性（30%）\n{{/if}}\n\n---\n{{/each}}\n\n{{#if (eq includeFinalProject \"是\")}}\n【第三部分：结业项目】\n\n**项目名称：**\n[综合应用{{courseName}}所学知识的实战项目]\n\n**项目目标：**\n- 综合运用课程所学技能\n- 产出可展示的作品/成果\n- 达到{{difficultyLevel}}水平的实际应用能力\n\n**项目要求：**\n1. 需求说明（详细描述项目要做什么）\n2. 功能清单（必须实现的核心功能）\n3. 提交内容：\n   {{#if (eq courseType \"编程开发\")}}\n   - 完整源代码\n   - README文档\n   - 演示视频/截图\n   {{else if (eq courseType \"设计创作\")}}\n   - 设计稿源文件\n   - 设计说明文档\n   - 展示视频\n   {{else}}\n   - 项目报告\n   - 相关资料\n   - 总结文档\n   {{/if}}\n\n**评分标准（100分）：**\n- 完成度（30分）\n- 质量（30分）\n- 创新性（20分）\n- 文档规范（20分）\n\n**时间安排：**\n- 项目周期：2-4周\n- 中期检查：第2周\n- 最终提交：第4周\n{{/if}}\n\n【第四部分：学习资源】\n\n**必读资料：**\n1. 课程配套教材（如有）\n2. 官方文档/参考书籍（3-5本）\n3. 推荐文章/教程（5-10篇）\n\n**拓展资源：**\n1. 进阶书籍推荐\n2. 优秀案例分析\n3. 相关工具和网站\n4. 社区和论坛\n\n**FAQ（常见问题）：**\n1. 零基础可以学吗？\n2. 需要准备什么软件/工具？\n3. 遇到问题如何求助？\n4. 课程有效期多久？\n5. 有证书吗？\n\n【第五部分：教学计划表】\n\n生成详细的教学进度表：\n\n| 周次 | 章节 | 课程内容 | 学习时长 | 作业/测验 | 备注 |\n|------|------|---------|---------|----------|------|\n| 第1周 | 第1章 | 课程1-3 | {{weeklyHours}}小时 | 章节测验 | 破冰周 |\n| 第2周 | 第1-2章 | 课程4-6 | {{weeklyHours}}小时 | 作业1 | 基础巩固 |\n| ... | ... | ... | ... | ... | ... |\n\n**学习节奏建议：**\n- 每周学习时长：{{weeklyHours}}小时\n- 建议学习时间：周末或晚上\n- 学习方式：视频+练习+讨论\n\n【第六部分：考核方式】\n\n{{#if (eq includeCertificate \"是\")}}\n**结业证书获取条件：**\n1. 完成所有章节学习（100%）\n2. 章节测验平均分≥{{passingScore}}分\n{{#if (eq includeAssignment \"是\")}}\n3. 提交所有章节作业\n{{/if}}\n{{#if (eq includeFinalProject \"是\")}}\n4. 结业项目≥{{passingScore}}分\n{{/if}}\n5. 课程满意度评价\n{{else}}\n（本课程不提供证书）\n{{/if}}\n\n**成绩构成：**\n{{#if (eq includeQuiz \"是\")}}\n- 章节测验：30%\n{{/if}}\n{{#if (eq includeAssignment \"是\")}}\n- 章节作业：30%\n{{/if}}\n{{#if (eq includeFinalProject \"是\")}}\n- 结业项目：40%\n{{else}}\n- 课程参与度：40%\n{{/if}}\n\n**输出格式：**\n- Word文档，包含完整目录\n- 使用标题层级清晰区分章节\n- 表格清晰易读\n- 附录：包含所有资源链接",
+  "prompt_template": "请帮我设计一门《{{courseName}}》在线课程的完整大纲，要求：\n\n**课程基本信息�?*\n- 课程名称：{{courseName}}\n- 课程类型：{{courseType}}\n- 目标学员：{{targetStudent}}\n- 课程时长：{{totalHours}}小时（{{lessonCount}}节课）\n- 难度等级：{{difficultyLevel}}\n- 授课语言：中文\n\n**课程目标（完成后学员能够）：**\n{{#if learningObjectives}}\n{{#each learningObjectives}}\n- {{this}}\n{{/each}}\n{{else}}\n请根据{{courseName}}自动生成3-5个明确的学习目标\n{{/if}}\n\n**课程结构设计�?*\n\n【第一部分：课程总览】\n1. 课程简介（200-300字）\n   - 课程价值和适用人群\n   - 学习路径说明\n   - 前置知识要求\n\n2. 讲师介绍\n   - 资质和经验\n   - 授课风格\n\n3. 学习建议\n   - 每周学习时长建议\n   - 学习方法指导\n   - 完成课程的时间规划\n\n【第二部分：章节大纲】\n\n根据{{lessonCount}}节课，设计{{chapterCount}}个章节：\n\n{{#each (range 1 chapterCount)}}\n**第{{this}}章：[章节标题]**\n\n章节目标：\n- 本章要达成的3-5个学习目标\n\n课时安排（每章{{lessonPerChapter}}节课）：\n\n{{#each (range 1 lessonPerChapter)}}\n第{{@../index}}.{{this}}课：[课程标题]（{{lessonDuration}}分钟）\n- 知识�?：核心概念讲解\n- 知识�?：实例演示\n- 知识�?：常见误区\n{{#if (eq ../includeHandsOn \"是\")}}\n- 实操练习：[练习名称]\n{{/if}}\n{{/each}}\n\n{{#if (eq ../includeQuiz \"是\")}}\n**章节测验�?*\n- 选择题：5-10题\n- 判断题：3-5题\n- 简答题�?-2题（根据难度）\n- 及格分数：{{passingScore}}分\n{{/if}}\n\n{{#if (eq ../includeAssignment \"是\")}}\n**章节作业�?*\n- 作业名称：[基于本章内容的实践任务]\n- 作业要求：（500-1000字说明）\n- 提交方式：文�?视频/代码\n- 截止时间：建�?-2周\n- 评分标准：\n  * 完成度（40%）\n  * 创新性（30%）\n  * 规范性（30%）\n{{/if}}\n\n---\n{{/each}}\n\n{{#if (eq includeFinalProject \"是\")}}\n【第三部分：结业项目】\n\n**项目名称�?*\n[综合应用{{courseName}}所学知识的实战项目]\n\n**项目目标�?*\n- 综合运用课程所学技能\n- 产出可展示的作品/成果\n- 达到{{difficultyLevel}}水平的实际应用能力\n\n**项目要求�?*\n1. 需求说明（详细描述项目要做什么）\n2. 功能清单（必须实现的核心功能）\n3. 提交内容：\n   {{#if (eq courseType \"编程开发\")}}\n   - 完整源代码\n   - README文档\n   - 演示视频/截图\n   {{else if (eq courseType \"设计创作\")}}\n   - 设计稿源文件\n   - 设计说明文档\n   - 展示视频\n   {{else}}\n   - 项目报告\n   - 相关资料\n   - 总结文档\n   {{/if}}\n\n**评分标准�?00分）�?*\n- 完成度（30分）\n- 质量�?0分）\n- 创新性（20分）\n- 文档规范�?0分）\n\n**时间安排�?*\n- 项目周期�?-4周\n- 中期检查：�?周\n- 最终提交：�?周\n{{/if}}\n\n【第四部分：学习资源】\n\n**必读资料�?*\n1. 课程配套教材（如有）\n2. 官方文档/参考书籍（3-5本）\n3. 推荐文章/教程�?-10篇）\n\n**拓展资源�?*\n1. 进阶书籍推荐\n2. 优秀案例分析\n3. 相关工具和网站\n4. 社区和论坛\n\n**FAQ（常见问题）�?*\n1. 零基础可以学吗？\n2. 需要准备什么软�?工具？\n3. 遇到问题如何求助？\n4. 课程有效期多久？\n5. 有证书吗？\n\n【第五部分：教学计划表】\n\n生成详细的教学进度表：\n\n| 周次 | 章节 | 课程内容 | 学习时长 | 作业/测验 | 备注 |\n|------|------|---------|---------|----------|------|\n| �?�?| �?�?| 课程1-3 | {{weeklyHours}}小时 | 章节测验 | 破冰�?|\n| �?�?| �?-2�?| 课程4-6 | {{weeklyHours}}小时 | 作业1 | 基础巩固 |\n| ... | ... | ... | ... | ... | ... |\n\n**学习节奏建议�?*\n- 每周学习时长：{{weeklyHours}}小时\n- 建议学习时间：周末或晚上\n- 学习方式：视�?练习+讨论\n\n【第六部分：考核方式】\n\n{{#if (eq includeCertificate \"是\")}}\n**结业证书获取条件�?*\n1. 完成所有章节学习（100%）\n2. 章节测验平均分≥{{passingScore}}分\n{{#if (eq includeAssignment \"是\")}}\n3. 提交所有章节作业\n{{/if}}\n{{#if (eq includeFinalProject \"是\")}}\n4. 结业项目≥{{passingScore}}分\n{{/if}}\n5. 课程满意度评价\n{{else}}\n（本课程不提供证书）\n{{/if}}\n\n**成绩构成�?*\n{{#if (eq includeQuiz \"是\")}}\n- 章节测验�?0%\n{{/if}}\n{{#if (eq includeAssignment \"是\")}}\n- 章节作业�?0%\n{{/if}}\n{{#if (eq includeFinalProject \"是\")}}\n- 结业项目�?0%\n{{else}}\n- 课程参与度：40%\n{{/if}}\n\n**输出格式�?*\n- Word文档，包含完整目录\n- 使用标题层级清晰区分章节\n- 表格清晰易读\n- 附录：包含所有资源链�?,
 
   "variables_schema": [
     {
@@ -27,13 +27,13 @@
       "label": "课程类型",
       "type": "select",
       "required": false,
-      "default": "编程开发",
+      "default": "编程开�?,
       "options": [
-        { "value": "编程开发", "label": "编程开发" },
+        { "value": "编程开�?, "label": "编程开�? },
         { "value": "设计创作", "label": "设计创作" },
         { "value": "数据分析", "label": "数据分析" },
         { "value": "产品运营", "label": "产品运营" },
-        { "value": "职场技能", "label": "职场技能" },
+        { "value": "职场技�?, "label": "职场技�? },
         { "value": "语言学习", "label": "语言学习" }
       ]
     },
@@ -43,11 +43,11 @@
       "type": "string",
       "required": false,
       "default": "零基础学员",
-      "placeholder": "例如：零基础、有一定基础、职场人士"
+      "placeholder": "例如：零基础、有一定基础、职场人�?
     },
     {
       "name": "totalHours",
-      "label": "课程总时长（小时）",
+      "label": "课程总时长（小时�?,
       "type": "number",
       "required": false,
       "default": 20,
@@ -56,7 +56,7 @@
     },
     {
       "name": "lessonCount",
-      "label": "课程总节数",
+      "label": "课程总节�?,
       "type": "number",
       "required": false,
       "default": 30,
@@ -68,11 +68,11 @@
       "label": "难度等级",
       "type": "select",
       "required": false,
-      "default": "入门级",
+      "default": "入门�?,
       "options": [
-        { "value": "入门级", "label": "入门级（零基础）" },
-        { "value": "初级", "label": "初级（有基础）" },
-        { "value": "中级", "label": "中级（有经验）" },
+        { "value": "入门�?, "label": "入门级（零基础�? },
+        { "value": "初级", "label": "初级（有基础�? },
+        { "value": "中级", "label": "中级（有经验�? },
         { "value": "高级", "label": "高级（专业进阶）" }
       ]
     },
@@ -81,10 +81,10 @@
       "label": "包含章节测验",
       "type": "select",
       "required": false,
-      "default": "是",
+      "default": "�?,
       "options": [
-        { "value": "是", "label": "每章包含测验" },
-        { "value": "否", "label": "不包含测验" }
+        { "value": "�?, "label": "每章包含测验" },
+        { "value": "�?, "label": "不包含测�? }
       ]
     },
     {
@@ -92,10 +92,10 @@
       "label": "包含章节作业",
       "type": "select",
       "required": false,
-      "default": "是",
+      "default": "�?,
       "options": [
-        { "value": "是", "label": "每章包含作业" },
-        { "value": "否", "label": "不包含作业" }
+        { "value": "�?, "label": "每章包含作业" },
+        { "value": "�?, "label": "不包含作�? }
       ]
     },
     {
@@ -103,10 +103,10 @@
       "label": "包含实操练习",
       "type": "select",
       "required": false,
-      "default": "是",
+      "default": "�?,
       "options": [
-        { "value": "是", "label": "每课包含实操" },
-        { "value": "否", "label": "纯理论课程" }
+        { "value": "�?, "label": "每课包含实操" },
+        { "value": "�?, "label": "纯理论课�? }
       ]
     },
     {
@@ -114,10 +114,10 @@
       "label": "包含结业项目",
       "type": "select",
       "required": false,
-      "default": "是",
+      "default": "�?,
       "options": [
-        { "value": "是", "label": "包含综合项目" },
-        { "value": "否", "label": "不包含" }
+        { "value": "�?, "label": "包含综合项目" },
+        { "value": "�?, "label": "不包�? }
       ]
     },
     {
@@ -125,10 +125,10 @@
       "label": "提供结业证书",
       "type": "select",
       "required": false,
-      "default": "是",
+      "default": "�?,
       "options": [
-        { "value": "是", "label": "完成后颁发证书" },
-        { "value": "否", "label": "不提供证书" }
+        { "value": "�?, "label": "完成后颁发证�? },
+        { "value": "�?, "label": "不提供证�? }
       ]
     },
     {
@@ -151,14 +151,14 @@
   ],
 
   "file_structure": {
-    "root": "《{{courseName}}》课程大纲",
+    "root": "《{{courseName}}》课程大�?,
     "files": [
       {
         "path": "课程大纲-{{courseName}}.docx",
         "type": "document"
       },
       {
-        "path": "教学计划表.xlsx",
+        "path": "教学计划�?xlsx",
         "type": "spreadsheet"
       },
       {
@@ -178,3 +178,4 @@
   "rating": 0,
   "rating_count": 0
 }
+
