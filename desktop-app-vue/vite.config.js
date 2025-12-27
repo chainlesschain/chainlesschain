@@ -1,16 +1,16 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import monacoEditorPlugin from 'vite-plugin-monaco-editor';
 import { fileURLToPath, URL } from 'node:url';
 import path from 'path';
 
 export default defineConfig({
   plugins: [
     vue(),
-    // 暂时禁用 monaco-editor，后续如需代码编辑器功能再启用
-    // monacoEditorPlugin({
-    //   publicPath: 'monacoeditorwork',
-    //   languageWorkers: ['editorWorkerService', 'typescript', 'json', 'css', 'html'],
-    // }),
+    monacoEditorPlugin({
+      publicPath: 'monacoeditorwork',
+      languageWorkers: ['editorWorkerService', 'typescript', 'json', 'css', 'html'],
+    }),
   ],
   root: path.join(process.cwd(), 'src/renderer'),
   base: './',

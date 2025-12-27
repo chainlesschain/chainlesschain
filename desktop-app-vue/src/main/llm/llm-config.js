@@ -349,6 +349,7 @@ class LLMConfig {
         return {
           ...baseConfig,
           apiKey: providerConfig.apiKey,
+          baseURL: providerConfig.baseURL || 'https://ark.cn-beijing.volces.com/api/v3',
           model: providerConfig.model,
         };
 
