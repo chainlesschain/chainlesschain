@@ -193,9 +193,29 @@ const initEditor = async () => {
 
     // 如果是Word文件，先读取内容
     if (props.file?.file_path && isWordFile(props.file.file_name)) {
-      const result = await window.electronAPI.file.readWord(props.file.file_path);
+      // 构建完整的文件路径
+      let fullPath = props.file.file_path;
+
+      // 如果路径不是绝对路径，需要获取项目根路径
+      if (!fullPath.startsWith('/') && !fullPath.match(/^[a-zA-Z]:[/\\]/)) {
+        // 尝试从URL获取项目ID
+        const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+        const projectId = window.location.hash.match(/\/projects\/([^/?]+)/)?.[1];
+
+        if (projectId && !fullPath.includes(projectId)) {
+          // 拼接完整路径：/data/projects/{projectId}/{file_path}
+          fullPath = `/data/projects/${projectId}/${fullPath}`;
+        }
+      }
+
+      console.log('[RichTextEditor] 读取Word文件:', fullPath);
+      const result = await window.electronAPI.file.readWord(fullPath);
       if (result.success) {
         content = result.html;
+        console.log('[RichTextEditor] Word内容加载成功，HTML长度:', content?.length || 0);
+      } else {
+        console.error('[RichTextEditor] Word读取失败:', result.error);
+        message.error('读取Word文件失败: ' + (result.error || '未知错误'));
       }
     }
 
@@ -335,8 +355,20 @@ const handleSave = async () => {
     const text = editorRef.value?.innerText || '';
 
     if (props.file?.file_path && isWordFile(props.file.file_name)) {
+      // 构建完整的文件路径
+      let fullPath = props.file.file_path;
+
+      // 如果路径不是绝对路径，需要获取项目根路径
+      if (!fullPath.startsWith('/') && !fullPath.match(/^[a-zA-Z]:[/\\]/)) {
+        const projectId = window.location.hash.match(/\/projects\/([^/?]+)/)?.[1];
+        if (projectId && !fullPath.includes(projectId)) {
+          fullPath = `/data/projects/${projectId}/${fullPath}`;
+        }
+      }
+
+      console.log('[RichTextEditor] 保存Word文件:', fullPath);
       // 保存为Word文件
-      await window.electronAPI.file.writeWord(props.file.file_path, {
+      await window.electronAPI.file.writeWord(fullPath, {
         html,
         text,
       });

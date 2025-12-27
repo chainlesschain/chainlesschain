@@ -154,11 +154,18 @@ class FileIPC {
       try {
         console.log('[File IPC] 读取Word文档:', filePath);
 
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const { getProjectConfig } = require('../project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[File IPC] 解析后的路径:', resolvedPath);
+
         if (!this.wordEngine) {
           this.wordEngine = require('../engines/word-engine');
         }
 
-        const data = await this.wordEngine.readWord(filePath);
+        const data = await this.wordEngine.readWord(resolvedPath);
 
         return {
           success: true,
@@ -178,11 +185,18 @@ class FileIPC {
       try {
         console.log('[File IPC] 写入Word文档:', filePath);
 
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const { getProjectConfig } = require('../project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[File IPC] 解析后的路径:', resolvedPath);
+
         if (!this.wordEngine) {
           this.wordEngine = require('../engines/word-engine');
         }
 
-        const result = await this.wordEngine.writeWord(filePath, content);
+        const result = await this.wordEngine.writeWord(resolvedPath, content);
 
         return {
           success: true,
