@@ -138,10 +138,15 @@
             <span>渲染失败: {{ renderError }}</span>
           </div>
 
-          <!-- 初始状态 -->
+          <!-- 初始状态/等待必填字段 -->
           <div v-else class="preview-placeholder">
             <FileTextOutlined />
-            <p>填写变量后，这里将实时显示渲染后的提示词</p>
+            <p v-if="variablesSchema.some(v => v.required)">
+              请填写必填项后，这里将实时显示渲染后的提示词
+            </p>
+            <p v-else>
+              填写变量后，这里将实时显示渲染后的提示词
+            </p>
           </div>
         </div>
 
@@ -325,9 +330,31 @@ function initFormData() {
   console.log('[TemplateVariableModal] 初始化表单数据:', formData.value)
 }
 
+// 检查所有必填字段是否已填写
+function checkRequiredFields() {
+  for (const variable of variablesSchema.value) {
+    if (variable.required) {
+      const value = formData.value[variable.name]
+      // 检查值是否为空
+      if (value === undefined || value === null || value === '' ||
+          (Array.isArray(value) && value.length === 0)) {
+        return false
+      }
+    }
+  }
+  return true
+}
+
 // 渲染预览
 async function renderPreview() {
   if (!props.template || !props.template.id) {
+    return
+  }
+
+  // 如果有必填字段未填写，清空预览并返回
+  if (!checkRequiredFields()) {
+    renderedPrompt.value = ''
+    renderError.value = ''
     return
   }
 
