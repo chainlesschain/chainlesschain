@@ -5100,46 +5100,98 @@ class ChainlessChainApp {
       }
     });
 
-    // 获取项目文件列表
+    // 获取项目文件列表（直接从文件系统读取）
     ipcMain.handle('project:get-files', async (_event, projectId, fileType = null, pageNum = 1, pageSize = 50) => {
       try {
         console.log('[Main] 获取项目文件, projectId:', projectId);
 
-        // 优先从本地数据库获取
-        if (this.database) {
-          const localFiles = this.database.getProjectFiles(projectId);
-          console.log('[Main] 本地数据库找到文件数量:', localFiles?.length || 0);
-
-          // 如果本地有数据，直接返回
-          if (localFiles && localFiles.length > 0) {
-            return this.removeUndefinedValues(localFiles);
-          }
+        // 获取项目根路径
+        if (!this.database) {
+          throw new Error('数据库未初始化');
         }
 
-        // 本地没有数据，尝试从后端获取
-        console.log('[Main] 本地无数据，尝试从后端获取');
-        const result = await ProjectFileAPI.getFiles(projectId, fileType, pageNum, pageSize);
+        const project = this.database.db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
+        if (!project) {
+          throw new Error('项目不存在');
+        }
 
-        // 如果后端不可用，返回空数组
-        if (!result.success || result.status === 0) {
-          console.warn('[Main] 后端服务不可用');
+        const rootPath = project.root_path || project.folder_path;
+        if (!rootPath) {
+          console.warn('[Main] 项目没有根路径');
           return [];
         }
 
-        // 适配后端返回格式
-        if (result.data && result.data.records) {
-          console.log('[Main] 后端找到文件数量:', result.data.records.length);
-          return result.data.records;
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        // 检查项目目录是否存在
+        try {
+          await fs.access(rootPath);
+        } catch (error) {
+          console.warn('[Main] 项目目录不存在:', rootPath);
+          return [];
         }
 
-        return result.data || [];
+        // 递归读取文件系统
+        const files = [];
+
+        async function scanDirectory(dirPath, relativePath = '') {
+          try {
+            const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+            for (const entry of entries) {
+              // 跳过隐藏文件和特定目录
+              if (/(^|[\/\\])\.|node_modules|\.git|dist|build|out/.test(entry.name)) {
+                continue;
+              }
+
+              const fullPath = path.join(dirPath, entry.name);
+              const fileRelativePath = relativePath ? path.join(relativePath, entry.name) : entry.name;
+              const isFolder = entry.isDirectory();
+
+              try {
+                const stats = await fs.stat(fullPath);
+
+                const fileInfo = {
+                  id: 'fs_' + Buffer.from(fileRelativePath).toString('base64').substring(0, 32),
+                  project_id: projectId,
+                  file_name: entry.name,
+                  file_path: fileRelativePath.replace(/\\/g, '/'), // 统一使用正斜杠
+                  file_type: isFolder ? 'folder' : path.extname(entry.name).substring(1) || 'unknown',
+                  is_folder: isFolder,
+                  file_size: stats.size,
+                  created_at: stats.birthtimeMs,
+                  updated_at: stats.mtimeMs,
+                };
+
+                files.push(fileInfo);
+
+                // 递归处理子目录
+                if (isFolder) {
+                  await scanDirectory(fullPath, fileRelativePath);
+                }
+              } catch (statError) {
+                console.error(`[Main] 无法读取文件状态 ${fileRelativePath}:`, statError.message);
+              }
+            }
+          } catch (readError) {
+            console.error(`[Main] 无法读取目录 ${dirPath}:`, readError.message);
+          }
+        }
+
+        await scanDirectory(rootPath);
+
+        console.log('[Main] 从文件系统读取到文件数量:', files.length);
+
+        // 如果指定了文件类型，进行过滤
+        let filteredFiles = files;
+        if (fileType) {
+          filteredFiles = files.filter(f => f.file_type === fileType);
+        }
+
+        return this.removeUndefinedValues(filteredFiles);
       } catch (error) {
         console.error('[Main] 获取项目文件失败:', error);
-        // 降级到本地数据库
-        if (this.database) {
-          const files = this.database.getProjectFiles(projectId);
-          return this.removeUndefinedValues(files);
-        }
         throw error;
       }
     });
@@ -6169,7 +6221,20 @@ class ChainlessChainApp {
         await copyRecursive(resolvedSourcePath, resolvedTargetPath);
 
         console.log('[Main] 文件复制成功');
-        return { success: true, targetPath: path.relative(rootPath, resolvedTargetPath) };
+
+        const newTargetPath = path.relative(rootPath, resolvedTargetPath);
+
+        // 通知渲染进程刷新文件列表
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('project:files-updated', {
+            projectId,
+            action: 'copied',
+            sourcePath,
+            targetPath: newTargetPath
+          });
+        }
+
+        return { success: true, targetPath: newTargetPath };
       } catch (error) {
         console.error('[Main] 复制文件失败:', error);
         throw error;
@@ -6204,7 +6269,20 @@ class ChainlessChainApp {
         await fs.rename(resolvedSourcePath, resolvedTargetPath);
 
         console.log('[Main] 文件移动成功');
-        return { success: true, targetPath: path.relative(rootPath, resolvedTargetPath) };
+
+        const newTargetPath = path.relative(rootPath, resolvedTargetPath);
+
+        // 通知渲染进程刷新文件列表
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('project:files-updated', {
+            projectId,
+            action: 'moved',
+            sourcePath,
+            targetPath: newTargetPath
+          });
+        }
+
+        return { success: true, targetPath: newTargetPath };
       } catch (error) {
         console.error('[Main] 移动文件失败:', error);
         throw error;
@@ -6237,6 +6315,16 @@ class ChainlessChainApp {
         }
 
         console.log('[Main] 文件删除成功');
+
+        // 通知渲染进程刷新文件列表
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('project:files-updated', {
+            projectId,
+            action: 'deleted',
+            filePath
+          });
+        }
+
         return { success: true };
       } catch (error) {
         console.error('[Main] 删除文件失败:', error);
@@ -6267,7 +6355,20 @@ class ChainlessChainApp {
         await fs.rename(resolvedOldPath, resolvedNewPath);
 
         console.log('[Main] 文件重命名成功');
-        return { success: true, newPath: path.relative(rootPath, resolvedNewPath) };
+
+        const newPath = path.relative(rootPath, resolvedNewPath);
+
+        // 通知渲染进程刷新文件列表
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('project:files-updated', {
+            projectId,
+            action: 'renamed',
+            oldPath,
+            newPath
+          });
+        }
+
+        return { success: true, newPath };
       } catch (error) {
         console.error('[Main] 重命名文件失败:', error);
         throw error;
@@ -6298,6 +6399,16 @@ class ChainlessChainApp {
         await fs.writeFile(resolvedPath, content, 'utf-8');
 
         console.log('[Main] 文件创建成功');
+
+        // 通知渲染进程刷新文件列表
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('project:files-updated', {
+            projectId,
+            action: 'created',
+            filePath
+          });
+        }
+
         return { success: true, filePath };
       } catch (error) {
         console.error('[Main] 创建文件失败:', error);
@@ -6326,6 +6437,16 @@ class ChainlessChainApp {
         await fs.mkdir(resolvedPath, { recursive: true });
 
         console.log('[Main] 文件夹创建成功');
+
+        // 通知渲染进程刷新文件列表
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('project:files-updated', {
+            projectId,
+            action: 'created',
+            filePath: folderPath
+          });
+        }
+
         return { success: true, folderPath };
       } catch (error) {
         console.error('[Main] 创建文件夹失败:', error);

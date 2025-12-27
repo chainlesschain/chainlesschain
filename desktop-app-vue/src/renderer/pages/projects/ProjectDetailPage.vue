@@ -26,7 +26,7 @@
       </div>
 
       <!-- 中间：视图模式切换 -->
-      <div v-if="currentFile && hasValidPath" class="toolbar-center">
+      <div v-if="currentFile" class="toolbar-center">
         <a-radio-group v-model:value="viewMode" button-style="solid" size="small">
           <a-radio-button value="auto">
             <EyeOutlined />
@@ -47,7 +47,7 @@
       <div class="toolbar-right">
         <!-- 文件导出菜单 -->
         <FileExportMenu
-          v-if="currentFile && hasValidPath"
+          v-if="currentFile"
           :file="currentFile"
           :project-id="projectId"
           @export-start="handleExportStart"
@@ -56,7 +56,7 @@
         />
 
         <!-- 文件管理按钮 -->
-        <a-button v-if="hasValidPath" @click="showFileManageModal = true">
+        <a-button @click="showFileManageModal = true">
           <FolderOpenOutlined />
           文件管理
         </a-button>
@@ -68,13 +68,13 @@
         </a-button>
 
         <!-- 编辑器面板开关 -->
-        <a-button v-if="hasValidPath" @click="toggleEditorPanel">
+        <a-button @click="toggleEditorPanel">
           <CodeOutlined />
           {{ showEditorPanel ? '隐藏' : '显示' }} 编辑器
         </a-button>
 
-        <!-- Git操作下拉菜单 - 仅当有有效路径时显示 -->
-        <a-dropdown v-if="currentProject && hasValidPath">
+        <!-- Git操作下拉菜单 -->
+        <a-dropdown v-if="currentProject">
           <a-button>
             <GitlabOutlined />
             Git操作
@@ -146,62 +146,60 @@
 
     <!-- 主内容区 -->
     <div v-else-if="currentProject" class="content-container">
-      <!-- 有本地路径：显示四栏布局（文件树 | 对话历史+输入 | 编辑器/预览） -->
-      <template v-if="hasValidPath">
-        <!-- 左侧：文件树管理器 -->
-        <div class="file-explorer-panel" :style="{ width: fileExplorerWidth + 'px' }">
-          <div class="sidebar-header">
-            <h3>
-              <FolderOutlined />
-              项目文件
-            </h3>
-            <a-button size="small" type="text" @click="handleRefreshFiles">
-              <ReloadOutlined :spin="refreshing" />
-            </a-button>
-          </div>
-
-          <div class="sidebar-content">
-            <EnhancedFileTree
-              :files="projectFiles"
-              :current-file-id="currentFile?.id"
-              :loading="refreshing"
-              :git-status="gitStatus"
-              :project-id="currentProject?.id"
-              :enable-drag="true"
-              @select="handleSelectFile"
-              @refresh="handleRefreshFiles"
-            />
-          </div>
+      <!-- 左侧：文件树管理器 -->
+      <div class="file-explorer-panel" :style="{ width: fileExplorerWidth + 'px' }">
+        <div class="sidebar-header">
+          <h3>
+            <FolderOutlined />
+            项目文件
+          </h3>
+          <a-button size="small" type="text" @click="handleRefreshFiles">
+            <ReloadOutlined :spin="refreshing" />
+          </a-button>
         </div>
 
-        <!-- 拖拽手柄：文件树 <-> 对话面板 -->
-        <ResizeHandle
-          direction="vertical"
-          :min-size="minPanelWidth"
-          :max-size="maxFileExplorerWidth"
-          @resize="handleFileExplorerResize"
-        />
-
-        <!-- 中间：对话历史和输入区域 -->
-        <div class="conversation-panel">
-          <ChatPanel
-            :project-id="projectId"
-            :current-file="currentFile"
-            @close="showChatPanel = false"
+        <div class="sidebar-content">
+          <EnhancedFileTree
+            :files="projectFiles"
+            :current-file-id="currentFile?.id"
+            :loading="refreshing"
+            :git-status="gitStatus"
+            :project-id="currentProject?.id"
+            :enable-drag="true"
+            @select="handleSelectFile"
+            @refresh="handleRefreshFiles"
           />
         </div>
+      </div>
 
-        <!-- 拖拽手柄：对话面板 <-> 编辑器面板 -->
-        <ResizeHandle
-          v-if="showEditorPanel"
-          direction="vertical"
-          :min-size="minPanelWidth"
-          :max-size="maxEditorPanelWidth"
-          @resize="handleEditorPanelResize"
+      <!-- 拖拽手柄：文件树 <-> 对话面板 -->
+      <ResizeHandle
+        direction="vertical"
+        :min-size="minPanelWidth"
+        :max-size="maxFileExplorerWidth"
+        @resize="handleFileExplorerResize"
+      />
+
+      <!-- 中间：对话历史和输入区域 -->
+      <div class="conversation-panel">
+        <ChatPanel
+          :project-id="projectId"
+          :current-file="currentFile"
+          @close="showChatPanel = false"
         />
+      </div>
 
-        <!-- 右侧：编辑器/预览面板 -->
-        <div v-show="showEditorPanel" class="editor-preview-panel" :style="{ width: editorPanelWidth + 'px' }">
+      <!-- 拖拽手柄：对话面板 <-> 编辑器面板 -->
+      <ResizeHandle
+        v-if="showEditorPanel"
+        direction="vertical"
+        :min-size="minPanelWidth"
+        :max-size="maxEditorPanelWidth"
+        @resize="handleEditorPanelResize"
+      />
+
+      <!-- 右侧：编辑器/预览面板 -->
+      <div v-show="showEditorPanel" class="editor-preview-panel" :style="{ width: editorPanelWidth + 'px' }">
           <!-- 编辑器头部 -->
           <EditorPanelHeader
             v-if="currentFile"
@@ -217,7 +215,7 @@
           >
             <template #export-menu>
               <FileExportMenu
-                v-if="currentFile && hasValidPath"
+                v-if="currentFile"
                 :file="currentFile"
                 :project-id="projectId"
                 @export-start="handleExportStart"
@@ -316,109 +314,6 @@
             <p>从左侧文件树中选择一个文件</p>
           </div>
         </div>
-      </template>
-
-      <!-- 无本地路径：显示项目信息 -->
-      <div v-else class="project-info-container">
-        <div class="project-info-card">
-          <div class="info-header">
-            <h2>{{ currentProject.name }}</h2>
-            <a-tag :color="getProjectTypeColor(currentProject.project_type)">
-              {{ getProjectTypeText(currentProject.project_type) }}
-            </a-tag>
-          </div>
-
-          <div class="info-content">
-            <div class="info-section">
-              <h3>项目描述</h3>
-              <p>{{ currentProject.description || '暂无描述' }}</p>
-            </div>
-
-            <div class="info-section">
-              <h3>项目信息</h3>
-              <a-descriptions :column="2" bordered>
-                <a-descriptions-item label="项目状态">
-                  <a-tag :color="getStatusColor(currentProject.status)">
-                    {{ getStatusText(currentProject.status) }}
-                  </a-tag>
-                </a-descriptions-item>
-                <a-descriptions-item label="创建时间">
-                  {{ formatDate(currentProject.created_at) }}
-                </a-descriptions-item>
-                <a-descriptions-item label="最后更新">
-                  {{ formatDate(currentProject.updated_at) }}
-                </a-descriptions-item>
-                <a-descriptions-item label="文件数量">
-                  {{ projectFiles.length || 0 }} 个文件
-                </a-descriptions-item>
-              </a-descriptions>
-            </div>
-
-            <!-- 项目统计面板 -->
-            <ProjectStatsPanel v-if="currentProject && resolvedProjectPath" :project-id="currentProject.id" />
-
-            <!-- 桌面版提示：项目文件位置 -->
-            <div class="info-alert" v-if="currentProject.root_path && resolvedProjectPath">
-              <a-alert
-                message="项目文件位置"
-                :description="`项目文件存储在本地：${resolvedProjectPath}`"
-                type="success"
-                show-icon
-              />
-            </div>
-
-            <!-- 文件管理器区域 -->
-            <div class="info-section file-manager-section">
-              <div class="section-header">
-                <h3>
-                  <FolderOpenOutlined />
-                  项目文件
-                </h3>
-                <div class="section-actions">
-                  <a-button size="small" @click="handleRefreshFiles">
-                    <ReloadOutlined :spin="refreshing" />
-                    刷新
-                  </a-button>
-                  <a-button size="small" type="primary" @click="showFileManageModal = true">
-                    <FolderOpenOutlined />
-                    文件管理
-                  </a-button>
-                </div>
-              </div>
-
-              <!-- 文件树和列表视图切换 -->
-              <div class="file-view-container">
-                <a-tabs v-model:activeKey="fileViewMode">
-                  <a-tab-pane key="tree" tab="树形视图">
-                    <div class="file-tree-wrapper">
-                      <EnhancedFileTree
-                        :files="projectFiles"
-                        :current-file-id="currentFile?.id"
-                        :loading="refreshing"
-                        :git-status="gitStatus"
-                        :project-id="currentProject?.id"
-                        :enable-drag="true"
-                        @select="handleSelectFileFromInfo"
-                        @refresh="handleRefreshFiles"
-                      />
-                    </div>
-                  </a-tab-pane>
-                  <a-tab-pane key="list" tab="列表视图">
-                    <ProjectFileList
-                      :files="projectFiles"
-                      :loading="refreshing"
-                      @file-click="handleSelectFileFromInfo"
-                      @file-preview="handleFilePreviewFromInfo"
-                      @file-download="handleFileDownloadFromInfo"
-                      @file-delete="handleFileDeleteFromModal"
-                    />
-                  </a-tab-pane>
-                </a-tabs>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- 错误状态 -->
@@ -564,7 +459,6 @@ const viewMode = ref('auto'); // 'auto' | 'edit' | 'preview'
 const showChatPanel = ref(true); // 对话面板始终显示在中间
 const showEditorPanel = ref(true); // 默认显示编辑器面板（右侧）
 const fileContent = ref(''); // 文件内容
-const fileViewMode = ref('tree'); // 'tree' | 'list' 文件视图模式
 
 // 面板宽度状态
 const fileExplorerWidth = ref(280); // 文件树宽度
@@ -589,31 +483,6 @@ const projectId = computed(() => route.params.id);
 const currentProject = computed(() => projectStore.currentProject);
 const projectFiles = computed(() => projectStore.projectFiles);
 const currentFile = computed(() => projectStore.currentFile);
-
-// 检查项目是否有有效的本地路径
-const hasValidPath = computed(() => {
-  if (!currentProject.value) {
-    return false;
-  }
-
-  // 如果有文件，即使没有 root_path 也显示文件树
-  if (projectFiles.value && projectFiles.value.length > 0) {
-    console.log('[ProjectDetail] 有文件，显示文件树，文件数量:', projectFiles.value.length);
-    return true;
-  }
-
-  // 检查是否有有效的 root_path
-  if (!currentProject.value.root_path) {
-    return false;
-  }
-  const path = currentProject.value.root_path;
-  // 桌面版：所有项目都视为本地项目（包括 /data/projects/ 路径）
-  // 检查是否是有效路径（Windows路径、Unix路径或相对路径）
-  return path && (
-    /^[a-zA-Z]:[/\\]/.test(path) || // Windows路径
-    path.startsWith('/') // Unix路径（包括 /data/projects/）
-  );
-});
 
 // 文件类型信息
 const fileTypeInfo = computed(() => {
@@ -774,7 +643,7 @@ const handleEditorPanelResize = (delta) => {
 
 // 刷新 Git 状态
 const refreshGitStatus = async () => {
-  if (!currentProject.value?.root_path || !hasValidPath.value) {
+  if (!currentProject.value?.root_path) {
     return;
   }
 
@@ -1172,19 +1041,9 @@ const handleFileDeleteFromModal = async (file) => {
 
 // ==================== 从项目信息面板处理文件操作 ====================
 
-// 从项目信息面板选择文件
+// 从项目信息面板选择文件（已废弃，保留兼容性）
 const handleSelectFileFromInfo = (fileId) => {
-  // 如果项目有本地路径，切换到文件编辑视图
-  if (hasValidPath.value) {
-    handleSelectFile(fileId);
-  } else {
-    // 如果没有本地路径，显示预览
-    const file = projectFiles.value.find(f => f.id === fileId);
-    if (file) {
-      projectStore.currentFile = file;
-      viewMode.value = 'preview';
-    }
-  }
+  handleSelectFile(fileId);
 };
 
 // 从项目信息面板预览文件
@@ -1269,18 +1128,16 @@ onMounted(async () => {
     }
 
     // 初始化 Git 状态
-    if (hasValidPath.value) {
-      await refreshGitStatus();
-      // 每 10 秒刷新一次 Git 状态
-      gitStatusInterval = setInterval(() => {
-        refreshGitStatus().catch(err => {
-          console.error('[ProjectDetail] Git status interval error:', err);
-        });
-      }, 10000);
-    }
+    await refreshGitStatus();
+    // 每 10 秒刷新一次 Git 状态
+    gitStatusInterval = setInterval(() => {
+      refreshGitStatus().catch(err => {
+        console.error('[ProjectDetail] Git status interval error:', err);
+      });
+    }, 10000);
 
     // 启动项目统计收集
-    if (hasValidPath.value && resolvedProjectPath.value) {
+    if (resolvedProjectPath.value) {
       try {
         await window.electron.invoke('project:stats:start', projectId.value, resolvedProjectPath.value);
         console.log('[ProjectDetail] 项目统计收集已启动');
@@ -1322,6 +1179,17 @@ onMounted(async () => {
     window.electronAPI.onFileSyncConflict?.((event) => {
       console.warn('[ProjectDetail] 检测到文件同步冲突:', event);
       message.warning(`文件 "${event.fileName}" 存在同步冲突，请手动解决`);
+    });
+
+    // 监听文件列表更新事件（新增、删除、重命名、移动等操作）
+    window.electronAPI.project.onFilesUpdated?.((event) => {
+      console.log('[ProjectDetail] 检测到文件列表更新:', event);
+      // 只刷新当前项目的文件列表
+      if (event.projectId === projectId.value) {
+        projectStore.loadProjectFiles(projectId.value).catch(err => {
+          console.error('[ProjectDetail] 刷新文件列表失败:', err);
+        });
+      }
     });
 
   } catch (error) {
