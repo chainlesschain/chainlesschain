@@ -162,82 +162,96 @@ const createdProjectId = ref('');
 
 // 项目类型按钮（第一行）
 const projectTypes = ref([
-  { key: 'write', label: '写作', prompt: '帮我写一篇关于...的文章' },
-  { key: 'ppt', label: 'PPT', prompt: '制作一份关于...的演示文稿' },
-  { key: 'design', label: '设计', prompt: '设计一个...的海报/Logo' },
+  { key: 'writing', label: '写作', prompt: '帮我写一篇关于...的文章' },
+  { key: 'marketing', label: '营销', prompt: '制定一份...的营销方案' },
   { key: 'excel', label: 'Excel', prompt: '分析...的数据并生成报表' },
-  { key: 'web', label: '网页', prompt: '创建一个...的网站' },
+  { key: 'resume', label: '简历', prompt: '制作一份专业简历' },
+  { key: 'ppt', label: 'PPT', prompt: '制作一份关于...的演示文稿' },
+  { key: 'research', label: '研究', prompt: '进行...的研究分析' },
+  { key: 'education', label: '教育', prompt: '设计一门...的课程' },
+  { key: 'lifestyle', label: '生活', prompt: '规划...的生活计划' },
   { key: 'podcast', label: '播客', prompt: '为...生成播客脚本' },
-  { key: 'image', label: '图像', prompt: '生成一张...的图片' },
+  { key: 'design', label: '设计', prompt: '设计一个...的海报/Logo' },
+  { key: 'web', label: '网页', prompt: '创建一个...的网站' },
 ]);
 
 // 子分类配置（第二行，根据项目类型动态变化）
 const categoryConfig = ref({
   // 默认分类（未选择项目类型时）
   all: [
-    { key: 'all', label: '探索' },
-    { key: 'portrait', label: '人像摄影' },
-    { key: 'education', label: '教育学习' },
-    { key: 'finance', label: '财经分析' },
-    { key: 'creative', label: '创意设计' },
-    { key: 'life', label: '生活娱乐' },
-    { key: 'marketing', label: '市场营销' },
-    { key: 'travel', label: '旅游攻略' },
+    { key: 'all', label: '全部模板' },
+    { key: 'office', label: '办公文档' },
+    { key: 'business', label: '商业' },
+    { key: 'tech', label: '技术' },
+    { key: 'event', label: '活动' },
+    { key: 'finance', label: '财务' },
+    { key: 'analysis', label: '分析' },
+    { key: '职位', label: '求职' },
   ],
   // 写作子分类
-  write: [
-    { key: 'media', label: '自媒体创作' },
-    { key: 'market-research', label: '市场调研' },
-    { key: 'teaching', label: '教学设计' },
-    { key: 'study', label: '学习研究' },
+  writing: [
+    { key: 'all', label: '全部' },
     { key: 'office', label: '办公写作' },
-    { key: 'marketing-plan', label: '营销策划' },
-    { key: 'resume', label: '简历制作' },
+    { key: 'business', label: '商业计划' },
+    { key: 'tech', label: '技术文档' },
+  ],
+  // 营销子分类
+  marketing: [
+    { key: 'all', label: '全部' },
+    { key: 'event', label: '活动策划' },
+    { key: 'content', label: '内容营销' },
   ],
   // PPT子分类
   ppt: [
-    { key: 'featured', label: '精选模板' },
-    { key: 'persuasion', label: '说服案例' },
-    { key: 'work-report', label: '工作汇报' },
-    { key: 'promotion', label: '宣传推广' },
-    { key: 'education', label: '教育学习' },
-    { key: 'daily', label: '生活日常' },
+    { key: 'all', label: '全部' },
+    { key: 'business', label: '商业路演' },
+    { key: 'training', label: '培训课件' },
   ],
   // 设计子分类
   design: [
-    { key: 'logo', label: 'Logo设计' },
+    { key: 'all', label: '全部' },
     { key: 'poster', label: '海报设计' },
-    { key: 'banner', label: '横幅设计' },
-    { key: 'card', label: '名片设计' },
-    { key: 'social', label: '社交媒体' },
   ],
   // Excel子分类
   excel: [
-    { key: 'data-analysis', label: '数据分析' },
-    { key: 'financial', label: '财务报表' },
-    { key: 'project-manage', label: '项目管理' },
-    { key: 'schedule', label: '进度安排' },
+    { key: 'all', label: '全部' },
+    { key: 'finance', label: '财务预算' },
+    { key: 'analysis', label: '数据分析' },
   ],
-  // 网页子分类
-  web: [
-    { key: 'landing', label: '落地页' },
-    { key: 'portfolio', label: '作品集' },
-    { key: 'blog', label: '博客' },
-    { key: 'ecommerce', label: '电商' },
+  // 简历子分类
+  resume: [
+    { key: 'all', label: '全部' },
+    { key: '职位', label: '产品经理' },
+    { key: '职位', label: '设计师' },
+    { key: '职位', label: '技术岗位' },
+  ],
+  // 研究子分类
+  research: [
+    { key: 'all', label: '全部' },
+    { key: 'user', label: '用户研究' },
+    { key: 'market', label: '竞品分析' },
+  ],
+  // 教育子分类
+  education: [
+    { key: 'all', label: '全部' },
+    { key: 'course', label: '在线课程' },
+  ],
+  // 生活子分类
+  lifestyle: [
+    { key: 'all', label: '全部' },
+    { key: 'travel', label: '旅游攻略' },
+    { key: 'wellness', label: '健康计划' },
   ],
   // 播客子分类
   podcast: [
+    { key: 'all', label: '全部' },
     { key: 'interview', label: '访谈节目' },
     { key: 'storytelling', label: '故事讲述' },
-    { key: 'education', label: '教育内容' },
-    { key: 'news', label: '新闻评论' },
   ],
-  // 图像子分类
-  image: [
-    { key: 'portrait', label: '人像' },
-    { key: 'landscape', label: '风景' },
-    { key: 'product', label: '产品' },
-    { key: 'abstract', label: '抽象艺术' },
+  // 网页子分类
+  web: [
+    { key: 'all', label: '全部' },
+    { key: 'landing', label: '落地页' },
   ],
 });
 

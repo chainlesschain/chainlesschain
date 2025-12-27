@@ -1,0 +1,44 @@
+{
+  "id": "tpl_ppt_training_001",
+  "name": "training_course_ppt",
+  "display_name": "培训课件PPT",
+  "description": "为企业培训和教学设计的专业课件模板,支持多种培训场景",
+  "icon": "📚",
+  "cover_image": "/templates/covers/training-ppt.png",
+  "category": "ppt",
+  "subcategory": "training",
+  "tags": ["PPT", "培训", "课件", "教学"],
+  "project_type": "presentation",
+  "prompt_template": "请帮我生成《{{courseTitle}}》培训课件PPT,要求:\n\n**课程信息:**\n- 课程名称: {{courseTitle}}\n- 培训类型: {{trainingType}}\n- 目标学员: {{targetAudience}}\n- 课程时长: {{duration}}小时\n- 难度级别: {{difficulty}}\n\n生成包含以下内容的培训PPT:\n\n## Slide 1: 封面\n- 课程名称: {{courseTitle}}\n- 讲师: [姓名+职位]\n- 时间: [日期]\n\n## Slide 2: 课程目标\n**学习目标:**\n- 掌握[知识点1]\n- 理解[概念2]\n- 能够[技能3]\n\n## Slide 3: 课程大纲\n1. 第一部分: [主题]\n2. 第二部分: [主题]\n3. 第三部分: [主题]\n4. 第四部分: [主题]\n\n## 内容部分 (每个主题3-5页)\n\n### 知识讲解页\n- 标题: [知识点]\n- 定义/概念\n- 要点说明(3-5条)\n- 配图/图表\n\n### 案例分析页\n- 案例背景\n- 问题分析\n- 解决方案\n- 关键启示\n\n### 实操演练页\n- 练习任务\n- 步骤说明\n- 预期结果\n- 常见错误\n\n## 互动环节\n- 小组讨论: [话题]\n- 角色扮演: [场景]\n- 问答环节: [问题]\n\n## 总结回顾\n- 核心要点\n- 行动计划\n- 延伸学习资源\n\n## Q&A\n- 常见问题解答\n\n**设计要求:**\n- 教学风格: {{style}}\n- 配色清晰\n- 图文并茂\n- 重点突出\n- 每页不超过5个要点",
+  "variables_schema": [
+    {"name": "courseTitle", "label": "课程名称", "type": "string", "required": true},
+    {"name": "trainingType", "label": "培训类型", "type": "select", "required": false, "default": "技能培训", "options": [
+      {"value": "新员工入职", "label": "新员工入职培训"},
+      {"value": "技能培训", "label": "专业技能培训"},
+      {"value": "管理培训", "label": "管理能力培训"},
+      {"value": "产品培训", "label": "产品知识培训"}
+    ]},
+    {"name": "targetAudience", "label": "目标学员", "type": "string", "required": false, "default": "全体员工"},
+    {"name": "duration", "label": "课程时长(小时)", "type": "number", "required": false, "default": 2},
+    {"name": "difficulty", "label": "难度级别", "type": "select", "required": false, "default": "中级", "options": [
+      {"value": "入门", "label": "入门级"},
+      {"value": "中级", "label": "中级"},
+      {"value": "高级", "label": "高级"}
+    ]},
+    {"name": "style", "label": "PPT风格", "type": "select", "required": false, "default": "专业清晰", "options": [
+      {"value": "专业清晰", "label": "专业清晰"},
+      {"value": "活泼生动", "label": "活泼生动"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "{{courseTitle}}-培训课件",
+    "files": [
+      {"path": "{{courseTitle}}-课件.pptx", "type": "presentation"},
+      {"path": "讲师手册.docx", "type": "document"},
+      {"path": "学员手册.docx", "type": "document"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
