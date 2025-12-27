@@ -15,6 +15,7 @@ const LLMProviders = {
   OLLAMA: 'ollama',
   OPENAI: 'openai',
   DEEPSEEK: 'deepseek',
+  VOLCENGINE: 'volcengine',
   CUSTOM: 'custom',
 };
 
@@ -94,6 +95,14 @@ class LLMManager extends EventEmitter {
         return new DeepSeekClient({
           apiKey: this.config.apiKey,
           model: this.config.model || 'deepseek-chat',
+          timeout: this.config.timeout,
+        });
+
+      case LLMProviders.VOLCENGINE:
+        return new OpenAIClient({
+          apiKey: this.config.apiKey,
+          baseURL: this.config.baseURL || 'https://ark.cn-beijing.volces.com/api/v3',
+          model: this.config.model || 'doubao-seed-1-6-lite-251015',
           timeout: this.config.timeout,
         });
 

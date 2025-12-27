@@ -459,13 +459,18 @@ onMounted(() => {
 
 <style scoped>
 .system-settings {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .settings-header {
-  margin-bottom: 24px;
+  flex-shrink: 0;
+  padding: 24px 24px 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .settings-header h1 {
@@ -478,13 +483,48 @@ onMounted(() => {
 }
 
 .settings-header p {
-  margin: 0;
+  margin: 0 0 24px 0;
   color: #666;
   font-size: 14px;
 }
 
+:deep(.ant-spin-nested-loading),
+:deep(.ant-spin-container) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.ant-tabs) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+:deep(.ant-tabs-nav) {
+  flex-shrink: 0;
+  margin-bottom: 16px;
+}
+
+:deep(.ant-tabs-content-holder) {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+:deep(.ant-tabs-content) {
+  height: 100%;
+}
+
 .settings-actions {
-  margin-top: 32px;
+  flex-shrink: 0;
+  margin-top: 16px;
+  margin-bottom: 24px;
   padding: 24px;
   background: #f5f5f5;
   border-radius: 8px;

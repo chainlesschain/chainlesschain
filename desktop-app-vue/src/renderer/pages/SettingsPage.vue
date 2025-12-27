@@ -231,22 +231,26 @@ onMounted(() => {
 
 <style scoped>
 .settings-page {
-  height: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   margin: -24px;
+  overflow: hidden;
 }
 
 .settings-content {
   flex: 1;
   overflow: hidden;
   background: #fff;
+  display: flex;
+  flex-direction: column;
 }
 
 .settings-tabs {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .settings-tabs :deep(.ant-tabs-nav) {
@@ -255,13 +259,19 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.settings-tabs :deep(.ant-tabs-content) {
+.settings-tabs :deep(.ant-tabs-content-holder) {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.settings-tabs :deep(.ant-tabs-content) {
+  height: 100%;
 }
 
 .settings-tabs :deep(.ant-tabs-tabpane) {
   padding: 24px;
+  min-height: min-content;
 }
 
 .settings-tabs :deep(.ant-card) {

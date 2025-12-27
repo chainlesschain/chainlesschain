@@ -36,29 +36,29 @@
       :tree-data="treeData"
       :selected-keys="selectedKeys"
       :expanded-keys="expandedKeys"
-      :show-icon="true"
+      :show-icon="false"
       @select="handleSelect"
       @expand="handleExpand"
       @right-click="handleRightClick"
     >
-      <template #title="{ title, isLeaf, icon, filePath, key }">
+      <template #title="{ title, isLeaf, dataRef }">
         <div
           class="tree-node-title"
           :draggable="enableDrag"
-          @dragstart="handleDragStart($event, { title, isLeaf, filePath, key, icon })"
-          @dragover="handleDragOver($event, { title, isLeaf, filePath, key, icon })"
+          @dragstart="handleDragStart($event, dataRef)"
+          @dragover="handleDragOver($event, dataRef)"
           @dragleave="handleDragLeave"
-          @drop="handleDrop($event, { title, isLeaf, filePath, key, icon })"
+          @drop="handleDrop($event, dataRef)"
         >
-          <component :is="icon" class="node-icon" />
+          <component :is="dataRef.icon" class="node-icon" v-if="dataRef.icon" />
           <span class="node-label">{{ title }}</span>
           <a-tag
-            v-if="gitStatus && filePath && gitStatus[filePath]"
-            :color="getStatusColor(gitStatus[filePath])"
+            v-if="gitStatus && dataRef.filePath && gitStatus[dataRef.filePath]"
+            :color="getStatusColor(gitStatus[dataRef.filePath])"
             size="small"
             class="git-status-tag"
           >
-            {{ getStatusLabel(gitStatus[filePath]) }}
+            {{ getStatusLabel(gitStatus[dataRef.filePath]) }}
           </a-tag>
         </div>
       </template>
@@ -216,6 +216,8 @@ const fileIconMap = {
   xml: CodeOutlined,
   xlsx: FileExcelOutlined,
   xls: FileExcelOutlined,
+  doc: FileTextOutlined,
+  docx: FileTextOutlined,
   pdf: FilePdfOutlined,
   png: PictureOutlined,
   jpg: PictureOutlined,

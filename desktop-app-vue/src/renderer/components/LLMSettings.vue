@@ -324,7 +324,7 @@
         <a-descriptions-item label="当前提供商">
           {{ getProviderName(status.provider) }}
         </a-descriptions-item>
-        <a-descriptions-item label="可用模型数" v-if="status.models">
+        <a-descriptions-item label="可用模型数" v-if="status.models" :span="2">
           {{ status.models.length }}
         </a-descriptions-item>
         <a-descriptions-item label="错误信息" v-if="status.error" :span="2">

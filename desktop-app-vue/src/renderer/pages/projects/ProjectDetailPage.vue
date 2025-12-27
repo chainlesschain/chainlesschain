@@ -169,7 +169,7 @@
               :project-id="currentProject?.id"
               :enable-drag="true"
               @select="handleSelectFile"
-              @refresh="loadProjectFiles"
+              @refresh="handleRefreshFiles"
             />
           </div>
         </div>
@@ -399,7 +399,7 @@
                         :project-id="currentProject?.id"
                         :enable-drag="true"
                         @select="handleSelectFileFromInfo"
-                        @refresh="loadProjectFiles"
+                        @refresh="handleRefreshFiles"
                       />
                     </div>
                   </a-tab-pane>
@@ -967,7 +967,9 @@ const handleRefreshFiles = async () => {
 };
 
 // 选择文件
-const handleSelectFile = async (fileId) => {
+const handleSelectFile = async (fileData) => {
+  // 兼容两种调用方式：对象 { id, file_name, file_path } 或直接传 fileId
+  const fileId = typeof fileData === 'object' ? fileData.id : fileData;
   if (hasUnsavedChanges.value) {
     Modal.confirm({
       title: '有未保存的更改',
@@ -985,10 +987,18 @@ const handleSelectFile = async (fileId) => {
 };
 
 const selectFile = (fileId) => {
+  console.log('[ProjectDetail] 选择文件, fileId:', fileId);
   const file = projectFiles.value.find(f => f.id === fileId);
   if (file) {
+    console.log('[ProjectDetail] 找到文件:', file);
     projectStore.currentFile = file;
     hasUnsavedChanges.value = false;
+    // 如果编辑器面板被隐藏，则显示它
+    if (!showEditorPanel.value) {
+      showEditorPanel.value = true;
+    }
+  } else {
+    console.warn('[ProjectDetail] 未找到文件, fileId:', fileId, '可用文件:', projectFiles.value);
   }
 };
 

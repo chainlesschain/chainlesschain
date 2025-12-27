@@ -388,7 +388,7 @@ class DatabaseManager {
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
         description TEXT,
-        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app')),
+        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet')),
         status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
         root_path TEXT,
         file_count INTEGER DEFAULT 0,
@@ -785,7 +785,7 @@ class DatabaseManager {
         tags TEXT,
 
         -- 模板配置
-        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app')),
+        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet')),
         prompt_template TEXT,
         variables_schema TEXT,
         file_structure TEXT,

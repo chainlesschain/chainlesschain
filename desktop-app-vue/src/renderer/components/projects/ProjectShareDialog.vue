@@ -72,7 +72,7 @@ const props = defineProps({
   },
   project: {
     type: Object,
-    required: true
+    default: () => null
   }
 });
 
