@@ -63,6 +63,26 @@ class ProjectTemplateManager {
       return a === b;
     });
 
+    // 小于或等于
+    this.handlebars.registerHelper('lte', (a, b) => {
+      return a <= b;
+    });
+
+    // 大于或等于
+    this.handlebars.registerHelper('gte', (a, b) => {
+      return a >= b;
+    });
+
+    // 小于
+    this.handlebars.registerHelper('lt', (a, b) => {
+      return a < b;
+    });
+
+    // 大于
+    this.handlebars.registerHelper('gt', (a, b) => {
+      return a > b;
+    });
+
     // 默认值
     this.handlebars.registerHelper('default', (value, defaultValue) => {
       return value || defaultValue;
@@ -71,6 +91,31 @@ class ProjectTemplateManager {
     // 数组长度
     this.handlebars.registerHelper('length', (arr) => {
       return Array.isArray(arr) ? arr.length : 0;
+    });
+
+    // 数组/对象查找 - 支持 lookup 语法访问数组元素
+    this.handlebars.registerHelper('lookup', (obj, key) => {
+      if (!obj) return undefined;
+      return obj[key];
+    });
+
+    // 生成数字范围数组
+    this.handlebars.registerHelper('range', (start, end) => {
+      const result = [];
+      for (let i = start; i <= end; i++) {
+        result.push(i);
+      }
+      return result;
+    });
+
+    // 加法
+    this.handlebars.registerHelper('add', (a, b) => {
+      return Number(a) + Number(b);
+    });
+
+    // 减法
+    this.handlebars.registerHelper('subtract', (a, b) => {
+      return Number(a) - Number(b);
     });
   }
 
