@@ -6087,6 +6087,387 @@ class ChainlessChainApp {
       }
     });
 
+    // 在文件管理器中显示文件
+    ipcMain.handle('file:revealInExplorer', async (_event, { projectId, filePath }) => {
+      try {
+        const { shell } = require('electron');
+        const path = require('path');
+        const fs = require('fs');
+        const { getProjectConfig } = require('./project/project-config');
+
+        console.log('[Main] 在文件管理器中显示:', filePath);
+
+        // 获取项目根路径
+        const projectConfig = getProjectConfig();
+        const rootPath = path.join(projectConfig.getProjectsRootPath(), projectId);
+
+        const resolvedPath = path.join(rootPath, filePath);
+
+        console.log('[Main] 解析后的路径:', resolvedPath);
+
+        // 检查文件是否存在
+        if (!fs.existsSync(resolvedPath)) {
+          throw new Error(`文件不存在: ${resolvedPath}`);
+        }
+
+        // 使用 shell.showItemInFolder 在文件管理器中显示文件
+        // 这个方法会在 Windows/Mac/Linux 上自动选择正确的文件管理器
+        shell.showItemInFolder(path.normalize(resolvedPath));
+
+        return { success: true, path: resolvedPath };
+      } catch (error) {
+        console.error('[Main] 在文件管理器中显示失败:', error);
+        throw error;
+      }
+    });
+
+    // 复制文件/文件夹
+    ipcMain.handle('file:copyItem', async (_event, { projectId, sourcePath, targetPath }) => {
+      try {
+        const fs = require('fs').promises;
+        const path = require('path');
+        const { getProjectConfig } = require('./project/project-config');
+        const projectConfig = getProjectConfig();
+
+        console.log('[Main] 复制文件:', { sourcePath, targetPath });
+
+        // 获取项目根路径
+        const project = this.database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
+        if (!project?.root_path) {
+          throw new Error('项目没有根路径');
+        }
+
+        const rootPath = project.root_path;
+        const resolvedSourcePath = path.join(rootPath, sourcePath);
+        const resolvedTargetPath = targetPath ? path.join(rootPath, targetPath, path.basename(sourcePath)) : resolvedSourcePath + '_copy';
+
+        console.log('[Main] 源路径:', resolvedSourcePath);
+        console.log('[Main] 目标路径:', resolvedTargetPath);
+
+        // 递归复制函数
+        async function copyRecursive(src, dest) {
+          const stats = await fs.stat(src);
+
+          if (stats.isDirectory()) {
+            // 复制文件夹
+            await fs.mkdir(dest, { recursive: true });
+            const entries = await fs.readdir(src, { withFileTypes: true });
+
+            for (const entry of entries) {
+              await copyRecursive(
+                path.join(src, entry.name),
+                path.join(dest, entry.name)
+              );
+            }
+          } else {
+            // 复制文件
+            await fs.mkdir(path.dirname(dest), { recursive: true });
+            await fs.copyFile(src, dest);
+          }
+        }
+
+        await copyRecursive(resolvedSourcePath, resolvedTargetPath);
+
+        console.log('[Main] 文件复制成功');
+        return { success: true, targetPath: path.relative(rootPath, resolvedTargetPath) };
+      } catch (error) {
+        console.error('[Main] 复制文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 移动文件/文件夹（用于剪切粘贴）
+    ipcMain.handle('file:moveItem', async (_event, { projectId, sourcePath, targetPath }) => {
+      try {
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        console.log('[Main] 移动文件:', { sourcePath, targetPath });
+
+        // 获取项目根路径
+        const project = this.database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
+        if (!project?.root_path) {
+          throw new Error('项目没有根路径');
+        }
+
+        const rootPath = project.root_path;
+        const resolvedSourcePath = path.join(rootPath, sourcePath);
+        const resolvedTargetPath = path.join(rootPath, targetPath, path.basename(sourcePath));
+
+        console.log('[Main] 源路径:', resolvedSourcePath);
+        console.log('[Main] 目标路径:', resolvedTargetPath);
+
+        // 确保目标目录存在
+        await fs.mkdir(path.dirname(resolvedTargetPath), { recursive: true });
+
+        // 移动文件/文件夹
+        await fs.rename(resolvedSourcePath, resolvedTargetPath);
+
+        console.log('[Main] 文件移动成功');
+        return { success: true, targetPath: path.relative(rootPath, resolvedTargetPath) };
+      } catch (error) {
+        console.error('[Main] 移动文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除文件/文件夹
+    ipcMain.handle('file:deleteItem', async (_event, { projectId, filePath }) => {
+      try {
+        const fs = require('fs').promises;
+        const path = require('path');
+        const { getProjectConfig } = require('./project/project-config');
+
+        console.log('[Main] 删除文件:', filePath);
+
+        // 获取项目根路径
+        const projectConfig = getProjectConfig();
+        const rootPath = path.join(projectConfig.getProjectsRootPath(), projectId);
+
+        const resolvedPath = path.join(rootPath, filePath);
+
+        console.log('[Main] 删除路径:', resolvedPath);
+
+        // 递归删除
+        const stats = await fs.stat(resolvedPath);
+        if (stats.isDirectory()) {
+          await fs.rm(resolvedPath, { recursive: true, force: true });
+        } else {
+          await fs.unlink(resolvedPath);
+        }
+
+        console.log('[Main] 文件删除成功');
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 删除文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 重命名文件/文件夹
+    ipcMain.handle('file:renameItem', async (_event, { projectId, oldPath, newName }) => {
+      try {
+        const fs = require('fs').promises;
+        const path = require('path');
+        const { getProjectConfig } = require('./project/project-config');
+
+        console.log('[Main] 重命名文件:', { oldPath, newName });
+
+        // 获取项目根路径
+        const projectConfig = getProjectConfig();
+        const rootPath = path.join(projectConfig.getProjectsRootPath(), projectId);
+
+        const resolvedOldPath = path.join(rootPath, oldPath);
+        const resolvedNewPath = path.join(path.dirname(resolvedOldPath), newName);
+
+        console.log('[Main] 旧路径:', resolvedOldPath);
+        console.log('[Main] 新路径:', resolvedNewPath);
+
+        // 重命名
+        await fs.rename(resolvedOldPath, resolvedNewPath);
+
+        console.log('[Main] 文件重命名成功');
+        return { success: true, newPath: path.relative(rootPath, resolvedNewPath) };
+      } catch (error) {
+        console.error('[Main] 重命名文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 新建文件
+    ipcMain.handle('file:createFile', async (_event, { projectId, filePath, content = '' }) => {
+      try {
+        const fs = require('fs').promises;
+        const path = require('path');
+        const { getProjectConfig } = require('./project/project-config');
+
+        console.log('[Main] 新建文件:', filePath);
+
+        // 获取项目根路径
+        const projectConfig = getProjectConfig();
+        const rootPath = path.join(projectConfig.getProjectsRootPath(), projectId);
+
+        const resolvedPath = path.join(rootPath, filePath);
+
+        console.log('[Main] 文件路径:', resolvedPath);
+
+        // 确保目录存在
+        await fs.mkdir(path.dirname(resolvedPath), { recursive: true });
+
+        // 创建文件
+        await fs.writeFile(resolvedPath, content, 'utf-8');
+
+        console.log('[Main] 文件创建成功');
+        return { success: true, filePath };
+      } catch (error) {
+        console.error('[Main] 创建文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 新建文件夹
+    ipcMain.handle('file:createFolder', async (_event, { projectId, folderPath }) => {
+      try {
+        const fs = require('fs').promises;
+        const path = require('path');
+        const { getProjectConfig } = require('./project/project-config');
+
+        console.log('[Main] 新建文件夹:', folderPath);
+
+        // 获取项目根路径
+        const projectConfig = getProjectConfig();
+        const rootPath = path.join(projectConfig.getProjectsRootPath(), projectId);
+
+        const resolvedPath = path.join(rootPath, folderPath);
+
+        console.log('[Main] 文件夹路径:', resolvedPath);
+
+        // 创建文件夹
+        await fs.mkdir(resolvedPath, { recursive: true });
+
+        console.log('[Main] 文件夹创建成功');
+        return { success: true, folderPath };
+      } catch (error) {
+        console.error('[Main] 创建文件夹失败:', error);
+        throw error;
+      }
+    });
+
+    // 用系统默认程序打开文件
+    ipcMain.handle('file:openWithDefault', async (_event, { projectId, filePath }) => {
+      try {
+        const { shell } = require('electron');
+        const path = require('path');
+        const fs = require('fs');
+        const { getProjectConfig } = require('./project/project-config');
+
+        console.log('[Main] 用默认程序打开文件:', filePath);
+
+        // 获取项目根路径
+        const projectConfig = getProjectConfig();
+        const rootPath = path.join(projectConfig.getProjectsRootPath(), projectId);
+
+        const resolvedPath = path.join(rootPath, filePath);
+
+        console.log('[Main] 解析后的路径:', resolvedPath);
+
+        // 检查文件是否存在
+        if (!fs.existsSync(resolvedPath)) {
+          throw new Error(`文件不存在: ${resolvedPath}`);
+        }
+
+        // 使用系统默认程序打开文件
+        const result = await shell.openPath(path.normalize(resolvedPath));
+
+        if (result) {
+          // 如果返回非空字符串，表示打开失败
+          throw new Error(`打开文件失败: ${result}`);
+        }
+
+        console.log('[Main] 文件已用默认程序打开');
+        return { success: true, path: resolvedPath };
+      } catch (error) {
+        console.error('[Main] 打开文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 选择程序打开文件（显示系统的"打开方式"对话框）
+    ipcMain.handle('file:openWith', async (_event, { projectId, filePath }) => {
+      try {
+        const { spawn } = require('child_process');
+        const path = require('path');
+        const fs = require('fs');
+        const os = require('os');
+        const { getProjectConfig } = require('./project/project-config');
+
+        console.log('[Main] 选择程序打开文件:', filePath);
+
+        // 获取项目根路径
+        const projectConfig = getProjectConfig();
+        const rootPath = path.join(projectConfig.getProjectsRootPath(), projectId);
+
+        const resolvedPath = path.join(rootPath, filePath);
+
+        console.log('[Main] 解析后的路径:', resolvedPath);
+
+        // 检查文件是否存在
+        if (!fs.existsSync(resolvedPath)) {
+          throw new Error(`文件不存在: ${resolvedPath}`);
+        }
+
+        const normalizedPath = path.normalize(resolvedPath);
+        const platform = os.platform();
+
+        // 根据不同平台调用相应的"打开方式"命令
+        if (platform === 'win32') {
+          // Windows: 使用 rundll32 显示"打开方式"对话框
+          spawn('rundll32.exe', ['shell32.dll,OpenAs_RunDLL', normalizedPath], {
+            detached: true,
+            stdio: 'ignore'
+          }).unref();
+        } else if (platform === 'darwin') {
+          // macOS: 使用 open -a 让用户选择应用
+          // 注意：macOS 没有直接的"打开方式"对话框，这里提供一个替代方案
+          spawn('open', ['-a', 'Finder', normalizedPath], {
+            detached: true,
+            stdio: 'ignore'
+          }).unref();
+        } else {
+          // Linux: 不同发行版有不同的方式
+          // 尝试使用 xdg-open 或让用户手动选择
+          throw new Error('Linux 平台暂不支持"打开方式"对话框，请使用默认程序打开');
+        }
+
+        console.log('[Main] "打开方式"对话框已显示');
+        return { success: true, path: resolvedPath };
+      } catch (error) {
+        console.error('[Main] 显示"打开方式"对话框失败:', error);
+        throw error;
+      }
+    });
+
+    // 用指定程序打开文件
+    ipcMain.handle('file:openWithProgram', async (_event, { filePath, programPath }) => {
+      try {
+        const { spawn } = require('child_process');
+        const path = require('path');
+        const fs = require('fs');
+
+        console.log('[Main] 用指定程序打开文件:', { filePath, programPath });
+
+        // 解析文件路径
+        const { getProjectConfig } = require('./project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedFilePath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[Main] 解析后的文件路径:', resolvedFilePath);
+        console.log('[Main] 程序路径:', programPath);
+
+        // 检查文件是否存在
+        if (!fs.existsSync(resolvedFilePath)) {
+          throw new Error(`文件不存在: ${resolvedFilePath}`);
+        }
+
+        // 检查程序是否存在
+        if (!fs.existsSync(programPath)) {
+          throw new Error(`程序不存在: ${programPath}`);
+        }
+
+        // 使用指定程序打开文件
+        spawn(programPath, [path.normalize(resolvedFilePath)], {
+          detached: true,
+          stdio: 'ignore'
+        }).unref();
+
+        console.log('[Main] 文件已用指定程序打开');
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 用指定程序打开文件失败:', error);
+        throw error;
+      }
+    });
+
     // ============ PPT 相关功能 ============
 
     // 生成PPT

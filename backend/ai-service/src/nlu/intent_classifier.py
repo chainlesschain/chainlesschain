@@ -290,25 +290,30 @@ class IntentClassifier:
                 entities["template"] = "converter"
 
         elif project_type == "document":
-            # 文档项目实体
-            if any(kw in text_lower for kw in ["报告", "report"]):
+            # 文档项目实体 - PPT优先级最高（必须先检查）
+            if any(kw in text_lower for kw in ["ppt", "演示文稿", "幻灯片", "powerpoint", "slides", "发布会"]):
+                entities["doc_type"] = "presentation"
+                entities["format"] = "ppt"
+            elif any(kw in text_lower for kw in ["演示", "展示", "汇报", "讲解"]) and not any(kw in text_lower for kw in ["报告", "简历"]):
+                # 如果提到演示相关但没有明确说报告/简历，生成PPT
+                entities["doc_type"] = "presentation"
+                entities["format"] = "ppt"
+            elif any(kw in text_lower for kw in ["报告", "report"]):
                 entities["doc_type"] = "report"
+                entities["format"] = "word"
             elif any(kw in text_lower for kw in ["简历", "resume"]):
                 entities["doc_type"] = "resume"
-
-            # 识别文档格式（关键修复）
-            if any(kw in text_lower for kw in ["ppt", "演示", "幻灯片", "powerpoint", "slides"]):
-                entities["format"] = "ppt"
+                entities["format"] = "word"
             elif any(kw in text_lower for kw in ["word", "文档", "docx", "doc"]):
+                entities["doc_type"] = "document"
                 entities["format"] = "word"
             elif any(kw in text_lower for kw in ["pdf"]):
+                entities["doc_type"] = "document"
                 entities["format"] = "pdf"
             else:
-                # 默认根据关键词推断：如果提到"演示"/"展示"相关，生成PPT，否则生成Word
-                if any(kw in text_lower for kw in ["演示", "展示", "汇报", "讲解"]):
-                    entities["format"] = "ppt"
-                else:
-                    entities["format"] = "word"
+                # 默认生成Word文档
+                entities["doc_type"] = "document"
+                entities["format"] = "word"
 
         elif project_type == "data":
             # 数据项目实体
@@ -385,6 +390,7 @@ class IntentClassifier:
             "document": [
                 (["工作报告", "月报", "周报", "总结"], 0.95),
                 (["个人简历", "求职简历", "CV"], 0.95),
+                (["PPT", "演示文稿", "幻灯片", "slides", "powerpoint", "演示", "发布会"], 0.95),
                 (["项目提案", "商业计划", "方案"], 0.90),
                 (["会议纪要", "会议记录"], 0.90),
                 (["合同", "协议"], 0.85)

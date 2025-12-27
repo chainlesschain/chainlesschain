@@ -31,16 +31,20 @@
     </div>
 
     <!-- 文件树 -->
-    <a-tree
+    <div
       v-else-if="treeData.length > 0"
-      :tree-data="treeData"
-      :selected-keys="selectedKeys"
-      :expanded-keys="expandedKeys"
-      :show-icon="false"
-      @select="handleSelect"
-      @expand="handleExpand"
-      @right-click="handleRightClick"
+      class="tree-container"
+      @contextmenu="handleEmptySpaceRightClick"
     >
+      <a-tree
+        :tree-data="treeData"
+        :selected-keys="selectedKeys"
+        :expanded-keys="expandedKeys"
+        :show-icon="false"
+        @select="handleSelect"
+        @expand="handleExpand"
+        @right-click="handleRightClick"
+      >
       <template #title="{ title, isLeaf, dataRef }">
         <div
           class="tree-node-title"
@@ -62,7 +66,8 @@
           </a-tag>
         </div>
       </template>
-    </a-tree>
+      </a-tree>
+    </div>
 
     <!-- 空状态 -->
     <div v-else class="tree-empty">
@@ -75,16 +80,19 @@
     </div>
 
     <!-- 右键菜单 -->
-    <a-dropdown
-      v-model:open="contextMenuVisible"
-      :trigger="['contextmenu']"
-      :x="contextMenuX"
-      :y="contextMenuY"
+    <div
+      v-if="contextMenuVisible"
+      class="context-menu-wrapper"
+      :style="{
+        position: 'fixed',
+        left: contextMenuX + 'px',
+        top: contextMenuY + 'px',
+        zIndex: 9999
+      }"
+      @click.stop
     >
-      <div style="position: fixed; pointer-events: none;"></div>
-      <template #overlay>
-        <a-menu @click="handleMenuClick">
-          <!-- 新建操作 -->
+      <a-menu @click="handleMenuClick" mode="vertical" style="min-width: 200px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
+          <!-- 新建操作（空白处和节点右键都显示） -->
           <a-menu-item key="newFile">
             <FileAddOutlined />
             新建文件
@@ -94,50 +102,73 @@
             新建文件夹
           </a-menu-item>
 
-          <a-menu-divider />
+          <!-- 以下选项仅在节点右键时显示 -->
+          <template v-if="!isEmptySpaceContext">
+            <a-menu-divider />
 
-          <!-- 文件操作 -->
-          <a-menu-item key="rename" :disabled="!contextNode">
-            <EditOutlined />
-            重命名
-          </a-menu-item>
-          <a-menu-item key="delete" :disabled="!contextNode">
-            <DeleteOutlined />
-            删除
-          </a-menu-item>
+            <!-- 文件操作 -->
+            <a-menu-item key="rename" :disabled="!contextNode">
+              <EditOutlined />
+              重命名
+            </a-menu-item>
+            <a-menu-item key="delete" :disabled="!contextNode">
+              <DeleteOutlined />
+              删除
+            </a-menu-item>
 
-          <a-menu-divider />
+            <a-menu-divider />
 
-          <!-- 复制操作 -->
-          <a-menu-item key="copy" :disabled="!contextNode">
-            <CopyOutlined />
-            复制
-          </a-menu-item>
-          <a-menu-item key="paste" :disabled="!clipboard">
-            <SnippetsOutlined />
-            粘贴
-          </a-menu-item>
+            <!-- 复制操作 -->
+            <a-menu-item key="copy" :disabled="!contextNode">
+              <CopyOutlined />
+              复制
+            </a-menu-item>
+            <a-menu-item key="paste" :disabled="!clipboard">
+              <SnippetsOutlined />
+              粘贴
+            </a-menu-item>
 
-          <a-menu-divider />
+            <a-menu-divider />
 
-          <!-- 其他操作 -->
-          <a-menu-item key="copyPath" :disabled="!contextNode">
-            <LinkOutlined />
-            复制路径
-          </a-menu-item>
-          <a-menu-item key="reveal" :disabled="!contextNode">
-            <FolderOpenOutlined />
-            在文件管理器中显示
-          </a-menu-item>
-        </a-menu>
-      </template>
-    </a-dropdown>
+            <!-- 打开方式 -->
+            <a-menu-item key="openDefault" :disabled="!contextNode || !contextNode.isLeaf">
+              <FileOutlined />
+              打开
+            </a-menu-item>
+            <a-menu-item key="openWith" :disabled="!contextNode || !contextNode.isLeaf">
+              <FolderOpenOutlined />
+              打开方式...
+            </a-menu-item>
+
+            <a-menu-divider />
+
+            <!-- 其他操作 -->
+            <a-menu-item key="copyPath" :disabled="!contextNode">
+              <LinkOutlined />
+              复制路径
+            </a-menu-item>
+            <a-menu-item key="reveal" :disabled="!contextNode">
+              <FolderOpenOutlined />
+              在文件管理器中显示
+            </a-menu-item>
+          </template>
+      </a-menu>
+    </div>
+
+    <!-- 点击外部关闭菜单的遮罩 -->
+    <div
+      v-if="contextMenuVisible"
+      class="context-menu-backdrop"
+      @click="contextMenuVisible = false"
+      @contextmenu.prevent="contextMenuVisible = false"
+      style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9998;"
+    ></div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, h } from 'vue';
+import { message, Modal, Input } from 'ant-design-vue';
 import {
   FolderOutlined,
   FolderOpenOutlined,
@@ -197,6 +228,7 @@ const contextMenuX = ref(0);
 const contextMenuY = ref(0);
 const contextNode = ref(null);
 const clipboard = ref(null);
+const isEmptySpaceContext = ref(false); // 标记是否为空白处右键
 
 // 文件图标映射
 const fileIconMap = {
@@ -312,10 +344,33 @@ const handleExpand = (keys) => {
   expandedKeys.value = keys;
 };
 
-// 处理右键点击
+// 处理节点右键点击
 const handleRightClick = ({ event, node }) => {
   event.preventDefault();
+  event.stopPropagation(); // 阻止事件冒泡到容器
   contextNode.value = node;
+  isEmptySpaceContext.value = false; // 这是节点右键
+  contextMenuX.value = event.clientX;
+  contextMenuY.value = event.clientY;
+  contextMenuVisible.value = true;
+};
+
+// 处理空白处右键点击
+const handleEmptySpaceRightClick = (event) => {
+  // 检查点击的目标是否是树容器本身或tree组件的包装元素
+  const target = event.target;
+  const isTreeNode = target.closest('.ant-tree-node-content-wrapper') ||
+                     target.closest('.tree-node-title') ||
+                     target.classList.contains('ant-tree-treenode');
+
+  // 如果点击的是节点，不处理（让节点的右键事件处理）
+  if (isTreeNode) {
+    return;
+  }
+
+  event.preventDefault();
+  contextNode.value = null; // 清空当前节点
+  isEmptySpaceContext.value = true; // 这是空白处右键
   contextMenuX.value = event.clientX;
   contextMenuY.value = event.clientY;
   contextMenuVisible.value = true;
@@ -344,6 +399,12 @@ const handleMenuClick = ({ key }) => {
     case 'paste':
       handlePaste();
       break;
+    case 'openDefault':
+      handleOpenDefault();
+      break;
+    case 'openWith':
+      handleOpenWith();
+      break;
     case 'copyPath':
       handleCopyPath();
       break;
@@ -364,42 +425,274 @@ const handleCollapseAll = () => {
 };
 
 // 新建文件
-const handleNewFile = () => {
-  emit('new-file', contextNode.value);
-  message.info('新建文件功能需要IPC支持');
+const handleNewFile = async () => {
+  let fileName = 'newfile.txt';
+
+  Modal.confirm({
+    title: '新建文件',
+    content: h('div', [
+      h('p', { style: { marginBottom: '8px' } }, '请输入文件名：'),
+      h(Input, {
+        defaultValue: fileName,
+        placeholder: '请输入文件名',
+        onInput: (e) => {
+          fileName = e.target.value;
+        },
+        onKeydown: (e) => {
+          if (e.key === 'Enter') {
+            Modal.destroyAll();
+            createFile();
+          }
+        }
+      })
+    ]),
+    okText: '确定',
+    cancelText: '取消',
+    async onOk() {
+      await createFile();
+    }
+  });
+
+  const createFile = async () => {
+    if (!fileName || !fileName.trim()) {
+      message.warning('请输入文件名');
+      return;
+    }
+
+    try {
+      // 计算文件路径
+      const parentPath = contextNode.value?.filePath || '';
+      const filePath = parentPath ? `${parentPath}/${fileName.trim()}` : fileName.trim();
+
+      await window.electronAPI.file.createFile({
+        projectId: props.projectId,
+        filePath,
+        content: ''
+      });
+
+      message.success('文件创建成功');
+      emit('refresh');
+    } catch (error) {
+      console.error('创建文件失败:', error);
+      message.error('创建文件失败：' + error.message);
+    }
+  };
 };
 
 // 新建文件夹
-const handleNewFolder = () => {
-  emit('new-folder', contextNode.value);
-  message.info('新建文件夹功能需要IPC支持');
+const handleNewFolder = async () => {
+  let folderName = 'newfolder';
+
+  Modal.confirm({
+    title: '新建文件夹',
+    content: h('div', [
+      h('p', { style: { marginBottom: '8px' } }, '请输入文件夹名：'),
+      h(Input, {
+        defaultValue: folderName,
+        placeholder: '请输入文件夹名',
+        onInput: (e) => {
+          folderName = e.target.value;
+        },
+        onKeydown: (e) => {
+          if (e.key === 'Enter') {
+            Modal.destroyAll();
+            createFolder();
+          }
+        }
+      })
+    ]),
+    okText: '确定',
+    cancelText: '取消',
+    async onOk() {
+      await createFolder();
+    }
+  });
+
+  const createFolder = async () => {
+    if (!folderName || !folderName.trim()) {
+      message.warning('请输入文件夹名');
+      return;
+    }
+
+    try {
+      // 计算文件夹路径
+      const parentPath = contextNode.value?.filePath || '';
+      const folderPath = parentPath ? `${parentPath}/${folderName.trim()}` : folderName.trim();
+
+      await window.electronAPI.file.createFolder({
+        projectId: props.projectId,
+        folderPath
+      });
+
+      message.success('文件夹创建成功');
+      emit('refresh');
+    } catch (error) {
+      console.error('创建文件夹失败:', error);
+      message.error('创建文件夹失败：' + error.message);
+    }
+  };
 };
 
 // 重命名
-const handleRename = () => {
+const handleRename = async () => {
   if (!contextNode.value) return;
-  emit('rename', contextNode.value);
-  message.info('重命名功能需要IPC支持');
+
+  const currentName = contextNode.value.title;
+  let newName = currentName;
+
+  Modal.confirm({
+    title: '重命名',
+    content: h('div', [
+      h('p', { style: { marginBottom: '8px' } }, '请输入新名称：'),
+      h(Input, {
+        defaultValue: currentName,
+        placeholder: '请输入新名称',
+        onInput: (e) => {
+          newName = e.target.value;
+        },
+        onKeydown: (e) => {
+          if (e.key === 'Enter') {
+            Modal.destroyAll();
+            performRename();
+          }
+        }
+      })
+    ]),
+    okText: '确定',
+    cancelText: '取消',
+    async onOk() {
+      await performRename();
+    }
+  });
+
+  const performRename = async () => {
+    if (!newName || !newName.trim()) {
+      message.warning('请输入新名称');
+      return;
+    }
+
+    if (newName.trim() === currentName) {
+      return; // 名称未改变，不执行操作
+    }
+
+    try {
+      await window.electronAPI.file.renameItem({
+        projectId: props.projectId,
+        oldPath: contextNode.value.filePath,
+        newName: newName.trim()
+      });
+
+      message.success('重命名成功');
+      emit('refresh');
+    } catch (error) {
+      console.error('重命名失败:', error);
+      message.error('重命名失败：' + error.message);
+    }
+  };
 };
 
 // 删除
-const handleDelete = () => {
+const handleDelete = async () => {
   if (!contextNode.value) return;
-  emit('delete', contextNode.value);
+
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除 "${contextNode.value.title}" 吗？`,
+    okText: '确定',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        await window.electronAPI.file.deleteItem({
+          projectId: props.projectId,
+          filePath: contextNode.value.filePath
+        });
+
+        message.success('删除成功');
+        emit('refresh');
+      } catch (error) {
+        console.error('删除失败:', error);
+        message.error('删除失败：' + error.message);
+      }
+    }
+  });
 };
 
 // 复制
 const handleCopy = () => {
   if (!contextNode.value) return;
-  clipboard.value = contextNode.value;
-  message.success('已复制到剪贴板');
+  clipboard.value = {
+    node: contextNode.value,
+    operation: 'copy' // 标记为复制操作
+  };
+  message.success('已复制');
 };
 
 // 粘贴
-const handlePaste = () => {
+const handlePaste = async () => {
   if (!clipboard.value) return;
-  emit('paste', { source: clipboard.value, target: contextNode.value });
-  message.info('粘贴功能需要IPC支持');
+
+  try {
+    const { node, operation } = clipboard.value;
+    const targetPath = contextNode.value?.filePath || '';
+
+    if (operation === 'copy') {
+      // 复制操作
+      await window.electronAPI.file.copyItem({
+        projectId: props.projectId,
+        sourcePath: node.filePath,
+        targetPath
+      });
+      message.success('复制成功');
+    } else if (operation === 'cut') {
+      // 剪切操作
+      await window.electronAPI.file.moveItem({
+        projectId: props.projectId,
+        sourcePath: node.filePath,
+        targetPath
+      });
+      message.success('移动成功');
+      clipboard.value = null; // 剪切后清空剪贴板
+    }
+
+    emit('refresh');
+  } catch (error) {
+    console.error('粘贴失败:', error);
+    message.error('粘贴失败：' + error.message);
+  }
+};
+
+// 用默认程序打开文件
+const handleOpenDefault = async () => {
+  if (!contextNode.value || !contextNode.value.isLeaf) return;
+
+  try {
+    await window.electronAPI.file.openWithDefault({
+      projectId: props.projectId,
+      filePath: contextNode.value.filePath
+    });
+    message.success('文件已打开');
+  } catch (error) {
+    console.error('打开文件失败:', error);
+    message.error('打开文件失败：' + error.message);
+  }
+};
+
+// 选择程序打开文件
+const handleOpenWith = async () => {
+  if (!contextNode.value || !contextNode.value.isLeaf) return;
+
+  try {
+    await window.electronAPI.file.openWith({
+      projectId: props.projectId,
+      filePath: contextNode.value.filePath
+    });
+    // 注意：Windows 会显示"打开方式"对话框，用户可以选择程序
+    // macOS 和 Linux 的行为可能不同
+  } catch (error) {
+    console.error('打开"打开方式"对话框失败:', error);
+    message.error(error.message || '打开失败');
+  }
 };
 
 // 复制路径
@@ -410,10 +703,19 @@ const handleCopyPath = () => {
 };
 
 // 在文件管理器中显示
-const handleReveal = () => {
+const handleReveal = async () => {
   if (!contextNode.value) return;
-  emit('reveal', contextNode.value);
-  message.info('在文件管理器中显示功能需要IPC支持');
+
+  try {
+    await window.electronAPI.file.revealInExplorer({
+      projectId: props.projectId,
+      filePath: contextNode.value.filePath
+    });
+    message.success('已在文件管理器中显示');
+  } catch (error) {
+    console.error('打开文件管理器失败:', error);
+    message.error('打开文件管理器失败：' + error.message);
+  }
 };
 
 // 拖拽状态
@@ -617,6 +919,13 @@ const getStatusLabel = (status) => {
 .tree-empty p {
   margin: 0 0 16px 0;
   font-size: 14px;
+}
+
+/* 树容器 */
+.tree-container {
+  flex: 1;
+  overflow-y: auto;
+  background: transparent;
 }
 
 /* 文件树 */

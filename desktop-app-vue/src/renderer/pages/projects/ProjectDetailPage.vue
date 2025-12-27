@@ -1288,6 +1288,42 @@ onMounted(async () => {
         console.error('[ProjectDetail] 启动统计收集失败:', error);
       }
     }
+
+    // 监听文件变化事件 - 实现自动刷新
+    window.electronAPI.onFileReloaded?.((event) => {
+      console.log('[ProjectDetail] 检测到文件内容更新:', event);
+      // 如果更新的文件是当前打开的文件，自动重新加载
+      if (currentFile.value && currentFile.value.id === event.fileId) {
+        handleFileSelect(currentFile.value);
+      }
+      // 刷新文件列表（保持文件树最新）
+      projectStore.loadProjectFiles(projectId.value);
+    });
+
+    window.electronAPI.onFileAdded?.((event) => {
+      console.log('[ProjectDetail] 检测到新文件添加:', event);
+      message.info(`新文件已添加: ${event.relativePath}`);
+      // 刷新文件列表
+      projectStore.loadProjectFiles(projectId.value);
+    });
+
+    window.electronAPI.onFileDeleted?.((event) => {
+      console.log('[ProjectDetail] 检测到文件删除:', event);
+      message.info(`文件已删除: ${event.relativePath}`);
+      // 如果删除的是当前打开的文件，关闭编辑器
+      if (currentFile.value && currentFile.value.id === event.fileId) {
+        currentFile.value = null;
+        fileContent.value = '';
+      }
+      // 刷新文件列表
+      projectStore.loadProjectFiles(projectId.value);
+    });
+
+    window.electronAPI.onFileSyncConflict?.((event) => {
+      console.warn('[ProjectDetail] 检测到文件同步冲突:', event);
+      message.warning(`文件 "${event.fileName}" 存在同步冲突，请手动解决`);
+    });
+
   } catch (error) {
     console.error('Load project failed:', error);
     message.error('加载项目失败：' + error.message);
