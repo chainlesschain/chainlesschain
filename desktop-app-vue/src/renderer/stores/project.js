@@ -231,8 +231,8 @@ export const useProjectStore = defineStore('project', {
 
     /**
      * 流式创建项目
-     * @param {Object} createData - 创建数据
-     * @param {Function} onProgress - 进度回调
+     * @param {Object} createData - 创建数据（可能包含回调函数）
+     * @param {Function} onProgress - 进度回调（可选，如果createData中有回调则使用createData中的）
      * @returns {Promise<Object>} 创建结果
      */
     async createProjectStream(createData, onProgress) {
@@ -240,6 +240,23 @@ export const useProjectStore = defineStore('project', {
       console.log('[Store] createData:', createData);
       console.log('[Store] onProgress存在?', !!onProgress);
       console.log('[Store] onProgress类型:', typeof onProgress);
+
+      // 从 createData 中提取回调函数（如果存在）
+      const {
+        onProgress: dataOnProgress,
+        onContent: dataOnContent,
+        onComplete: dataOnComplete,
+        onError: dataOnError,
+        ...pureData
+      } = createData;
+
+      console.log('[Store] 提取后的纯数据:', pureData);
+      console.log('[Store] 是否有回调函数:', {
+        onProgress: !!dataOnProgress,
+        onContent: !!dataOnContent,
+        onComplete: !!dataOnComplete,
+        onError: !!dataOnError
+      });
 
       return new Promise((resolve, reject) => {
         const progressData = {
@@ -298,8 +315,14 @@ export const useProjectStore = defineStore('project', {
               timestamp: Date.now(),
             });
 
-            // 回调给UI
-            onProgress?.({
+            // 调用来自 createData 的回调（如果存在）
+            if (dataOnProgress) {
+              dataOnProgress(data.stage);
+            }
+
+            // 回调给UI（使用参数传入的onProgress或createData中的）
+            const progressCallback = onProgress || dataOnProgress;
+            progressCallback?.({
               type: 'progress',
               ...progressData,
             });
@@ -312,8 +335,14 @@ export const useProjectStore = defineStore('project', {
             }
             progressData.contentByStage[data.stage] += data.content;
 
+            // 调用来自 createData 的回调（如果存在）
+            if (dataOnContent) {
+              dataOnContent(data.content);
+            }
+
             // 回调给UI
-            onProgress?.({
+            const progressCallback = onProgress || dataOnProgress;
+            progressCallback?.({
               type: 'content',
               ...progressData,
             });
@@ -341,8 +370,8 @@ export const useProjectStore = defineStore('project', {
               console.log('[Store] 添加项目到列表');
               this.projects.unshift({
                 id: data.projectId,
-                name: createData.name || '未命名项目',
-                project_type: createData.projectType || 'web',
+                name: pureData.name || '未命名项目',
+                project_type: pureData.type || 'web',
                 files: data.files || [],
                 metadata: data.metadata,
                 created_at: Date.now(),
@@ -354,9 +383,15 @@ export const useProjectStore = defineStore('project', {
               console.warn('[Store] 警告: data.projectId为空，未添加到列表');
             }
 
+            // 调用来自 createData 的回调（如果存在）
+            if (dataOnComplete) {
+              dataOnComplete(data);
+            }
+
             // 回调给UI
             console.log('[Store] 调用onProgress回调，type=complete');
-            onProgress?.({
+            const progressCallback = onProgress || dataOnProgress;
+            progressCallback?.({
               type: 'complete',
               ...progressData,
               result: data,
@@ -379,8 +414,14 @@ export const useProjectStore = defineStore('project', {
               timestamp: Date.now(),
             });
 
+            // 调用来自 createData 的回调（如果存在）
+            if (dataOnError) {
+              dataOnError(error);
+            }
+
             // 回调给UI
-            onProgress?.({
+            const progressCallback = onProgress || dataOnProgress;
+            progressCallback?.({
               type: 'error',
               ...progressData,
               error: error.message,
@@ -390,9 +431,9 @@ export const useProjectStore = defineStore('project', {
           },
         };
 
-        // 调用流式创建
-        console.log('[Store] 调用window.electronAPI.project.createStream');
-        window.electronAPI.project.createStream(createData, callbacks)
+        // 调用流式创建 - 只传递纯数据（不包含函数）
+        console.log('[Store] 调用window.electronAPI.project.createStream，传递纯数据');
+        window.electronAPI.project.createStream(pureData, callbacks)
           .catch(err => {
             console.error('[Store] createStream Promise rejected:', err);
             reject(err);

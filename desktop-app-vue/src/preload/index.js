@@ -539,6 +539,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onFilesUpdated: (callback) => ipcRenderer.on('project:files-updated', (_event, data) => callback(data)),
     offFilesUpdated: (callback) => ipcRenderer.removeListener('project:files-updated', callback),
 
+    // 文件同步事件监听（文件系统变化自动刷新）
+    onFileReloaded: (callback) => ipcRenderer.on('file-sync:reloaded', (_event, data) => callback(data)),
+    offFileReloaded: (callback) => ipcRenderer.removeListener('file-sync:reloaded', callback),
+    onFileAdded: (callback) => ipcRenderer.on('file-sync:file-added', (_event, data) => callback(data)),
+    offFileAdded: (callback) => ipcRenderer.removeListener('file-sync:file-added', callback),
+    onFileDeleted: (callback) => ipcRenderer.on('file-sync:file-deleted', (_event, data) => callback(data)),
+    offFileDeleted: (callback) => ipcRenderer.removeListener('file-sync:file-deleted', callback),
+    onFileSyncConflict: (callback) => ipcRenderer.on('file-sync:conflict', (_event, data) => callback(data)),
+    offFileSyncConflict: (callback) => ipcRenderer.removeListener('file-sync:conflict', callback),
+
     // 项目分享
     share: (projectId, shareMode, options) => ipcRenderer.invoke('project:share', projectId, shareMode, removeUndefined(options || {})),
     unshare: (projectId) => ipcRenderer.invoke('project:unshare', projectId),
@@ -580,6 +590,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveAs: (filePath) => ipcRenderer.invoke('file:saveAs', filePath),
     exists: (filePath) => ipcRenderer.invoke('file:exists', filePath),
     stat: (filePath) => ipcRenderer.invoke('file:stat', filePath),
+
+    // 文件/文件夹操作（右键菜单功能）
+    revealInExplorer: (filePath) => ipcRenderer.invoke('file:revealInExplorer', filePath),
+    copyItem: (params) => ipcRenderer.invoke('file:copyItem', removeUndefined(params)),
+    moveItem: (params) => ipcRenderer.invoke('file:moveItem', removeUndefined(params)),
+    deleteItem: (params) => ipcRenderer.invoke('file:deleteItem', removeUndefined(params)),
+    renameItem: (params) => ipcRenderer.invoke('file:renameItem', removeUndefined(params)),
+    createFile: (params) => ipcRenderer.invoke('file:createFile', removeUndefined(params)),
+    createFolder: (params) => ipcRenderer.invoke('file:createFolder', removeUndefined(params)),
+
+    // 打开文件操作
+    openWithDefault: (filePath) => ipcRenderer.invoke('file:openWithDefault', filePath),
+    openWith: (filePath) => ipcRenderer.invoke('file:openWith', filePath),
+    openWithProgram: (params) => ipcRenderer.invoke('file:openWithProgram', removeUndefined(params)),
 
     // Excel操作
     readExcel: (filePath) => ipcRenderer.invoke('file:readExcel', filePath),

@@ -55,12 +55,19 @@ class FileIPC {
       try {
         console.log('[File IPC] 读取Excel文件:', filePath);
 
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const { getProjectConfig } = require('../project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[File IPC] 解析后的路径:', resolvedPath);
+
         // 确保excelEngine已加载
         if (!this.excelEngine) {
           this.excelEngine = require('../engines/excel-engine');
         }
 
-        const data = await this.excelEngine.readExcel(filePath);
+        const data = await this.excelEngine.readExcel(resolvedPath);
 
         return {
           success: true,
@@ -80,11 +87,18 @@ class FileIPC {
       try {
         console.log('[File IPC] 写入Excel文件:', filePath);
 
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const { getProjectConfig } = require('../project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[File IPC] 解析后的路径:', resolvedPath);
+
         if (!this.excelEngine) {
           this.excelEngine = require('../engines/excel-engine');
         }
 
-        const result = await this.excelEngine.writeExcel(filePath, data);
+        const result = await this.excelEngine.writeExcel(resolvedPath, data);
 
         return {
           success: true,
@@ -104,11 +118,18 @@ class FileIPC {
       try {
         console.log('[File IPC] Excel转JSON:', filePath);
 
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const { getProjectConfig } = require('../project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[File IPC] 解析后的路径:', resolvedPath);
+
         if (!this.excelEngine) {
           this.excelEngine = require('../engines/excel-engine');
         }
 
-        const data = await this.excelEngine.excelToJSON(filePath, options);
+        const data = await this.excelEngine.excelToJSON(resolvedPath, options);
 
         return {
           success: true,
@@ -128,11 +149,18 @@ class FileIPC {
       try {
         console.log('[File IPC] JSON转Excel:', filePath);
 
+        // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+        const { getProjectConfig } = require('../project/project-config');
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(filePath);
+
+        console.log('[File IPC] 解析后的路径:', resolvedPath);
+
         if (!this.excelEngine) {
           this.excelEngine = require('../engines/excel-engine');
         }
 
-        const result = await this.excelEngine.jsonToExcel(jsonData, filePath, options);
+        const result = await this.excelEngine.jsonToExcel(jsonData, resolvedPath, options);
 
         return {
           success: true,

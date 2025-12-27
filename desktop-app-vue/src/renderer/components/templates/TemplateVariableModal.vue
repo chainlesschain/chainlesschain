@@ -423,9 +423,13 @@ async function handleSubmit() {
 
         // 5. 记录模板使用
         try {
+          // 获取 userId，优先使用 currentUser.id，否则使用默认值
+          const userId = authStore.currentUser?.id || 'default-user'
+          console.log('[TemplateVariableModal] 记录模板使用, userId:', userId)
+
           await templateStore.recordUsage(
             props.template.id,
-            authStore.userId,
+            userId,
             result.projectId,
             formData.value
           )
