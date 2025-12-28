@@ -37,6 +37,10 @@
             <template #icon><FolderOpenOutlined /></template>
             我的项目
           </a-menu-item>
+          <a-menu-item key="template-management">
+            <template #icon><TagsOutlined /></template>
+            模板管理
+          </a-menu-item>
           <a-menu-item key="project-market">
             <template #icon><ShopOutlined /></template>
             项目市场
@@ -361,6 +365,7 @@ const showSidebar = computed(() => {
 const menuConfig = {
   // 项目管理模块
   projects: { path: '/projects', title: '我的项目' },
+  'template-management': { path: '/template-management', title: '模板管理' },
   'project-market': { path: '/projects/market', title: '项目市场' },
   'project-collaboration': { path: '/projects/collaboration', title: '协作项目' },
   'project-archived': { path: '/projects/archived', title: '已归档项目' },

@@ -81,6 +81,12 @@ const routes = [
         meta: { title: '提示词模板' },
       },
       {
+        path: 'template-management',
+        name: 'TemplateManagement',
+        component: () => import('../pages/templates/TemplateManagementPage.vue'),
+        meta: { title: '项目模板管理' },
+      },
+      {
         path: 'friends',
         name: 'Friends',
         component: () => import('../components/Friends.vue'),

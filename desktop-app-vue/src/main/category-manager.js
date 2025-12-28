@@ -1,0 +1,264 @@
+const { v4: uuidv4 } = require('uuid');
+
+/**
+ * 项目分类管理器
+ * 提供项目分类的CRUD操作
+ */
+class CategoryManager {
+  constructor(db) {
+    this.db = db;
+  }
+
+  /**
+   * 初始化默认项目分类
+   * @param {string} userId - 用户ID
+   */
+  initializeDefaultCategories(userId = 'local-user') {
+    // 检查是否已经初始化过
+    const existingStmt = this.db.prepare('SELECT COUNT(*) as count FROM project_categories WHERE user_id = ?');
+    const result = existingStmt.get(userId);
+
+    if (result && result.count > 0) {
+      console.log('[CategoryManager] 默认分类已存在，跳过初始化');
+      return;
+    }
+
+    console.log('[CategoryManager] 初始化默认项目分类...');
+
+    const now = Date.now();
+    const categories = [
+      // 一级分类
+      { id: uuidv4(), name: '写作', parent_id: null, icon: '✍️', color: '#1890ff', sort_order: 1 },
+      { id: uuidv4(), name: '营销', parent_id: null, icon: '📢', color: '#52c41a', sort_order: 2 },
+      { id: uuidv4(), name: 'Excel', parent_id: null, icon: '📊', color: '#13c2c2', sort_order: 3 },
+      { id: uuidv4(), name: '简历', parent_id: null, icon: '📄', color: '#fa8c16', sort_order: 4 },
+      { id: uuidv4(), name: 'PPT', parent_id: null, icon: '📽️', color: '#eb2f96', sort_order: 5 },
+      { id: uuidv4(), name: '研究', parent_id: null, icon: '🔬', color: '#722ed1', sort_order: 6 },
+      { id: uuidv4(), name: '教育', parent_id: null, icon: '🎓', color: '#fa541c', sort_order: 7 },
+      { id: uuidv4(), name: '生活', parent_id: null, icon: '🏠', color: '#fadb14', sort_order: 8 },
+      { id: uuidv4(), name: '播客', parent_id: null, icon: '🎙️', color: '#2f54eb', sort_order: 9 },
+      { id: uuidv4(), name: '设计', parent_id: null, icon: '🎨', color: '#f5222d', sort_order: 10 },
+      { id: uuidv4(), name: '网页', parent_id: null, icon: '🌐', color: '#52c41a', sort_order: 11 },
+    ];
+
+    // 保存一级分类的ID，用于创建二级分类
+    const categoryIds = {};
+    categories.forEach(cat => {
+      categoryIds[cat.name] = cat.id;
+    });
+
+    // 二级分类
+    const subcategories = [
+      { name: '办公文档', parent_name: '写作', icon: '📝', color: '#1890ff', sort_order: 1 },
+      { name: '商业', parent_name: '营销', icon: '💼', color: '#52c41a', sort_order: 1 },
+      { name: '技术', parent_name: '网页', icon: '⚙️', color: '#722ed1', sort_order: 1 },
+      { name: '活动', parent_name: '营销', icon: '🎉', color: '#fa8c16', sort_order: 2 },
+      { name: '财务', parent_name: 'Excel', icon: '💰', color: '#13c2c2', sort_order: 1 },
+      { name: '分析', parent_name: 'Excel', icon: '📈', color: '#13c2c2', sort_order: 2 },
+      { name: '求职', parent_name: '简历', icon: '🔍', color: '#fa541c', sort_order: 1 },
+    ];
+
+    // 插入所有分类
+    const stmt = this.db.prepare(`
+      INSERT INTO project_categories (
+        id, user_id, name, parent_id, icon, color, sort_order, created_at, updated_at, deleted
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `);
+
+    // 插入一级分类
+    categories.forEach(cat => {
+      stmt.run(cat.id, userId, cat.name, null, cat.icon, cat.color, cat.sort_order, now, now);
+    });
+
+    // 插入二级分类
+    subcategories.forEach(subcat => {
+      const parentId = categoryIds[subcat.parent_name];
+      if (parentId) {
+        const id = uuidv4();
+        stmt.run(id, userId, subcat.name, parentId, subcat.icon, subcat.color, subcat.sort_order, now, now);
+      }
+    });
+
+    this.db.saveToFile();
+    console.log('[CategoryManager] 默认项目分类初始化完成');
+  }
+
+  /**
+   * 获取所有项目分类（树形结构）
+   * @param {string} userId - 用户ID
+   * @returns {Array} 分类树
+   */
+  getProjectCategories(userId = 'local-user') {
+    const stmt = this.db.prepare(`
+      SELECT * FROM project_categories
+      WHERE user_id = ? AND deleted = 0
+      ORDER BY sort_order ASC
+    `);
+
+    const categories = stmt.all(userId);
+
+    // 构建树形结构
+    const categoryMap = {};
+    const rootCategories = [];
+
+    categories.forEach(cat => {
+      categoryMap[cat.id] = { ...cat, children: [] };
+    });
+
+    categories.forEach(cat => {
+      if (cat.parent_id && categoryMap[cat.parent_id]) {
+        categoryMap[cat.parent_id].children.push(categoryMap[cat.id]);
+      } else if (!cat.parent_id) {
+        rootCategories.push(categoryMap[cat.id]);
+      }
+    });
+
+    return rootCategories;
+  }
+
+  /**
+   * 获取单个项目分类
+   * @param {string} categoryId - 分类ID
+   * @returns {Object|null} 分类对象
+   */
+  getProjectCategoryById(categoryId) {
+    const stmt = this.db.prepare('SELECT * FROM project_categories WHERE id = ? AND deleted = 0');
+    return stmt.get(categoryId);
+  }
+
+  /**
+   * 创建项目分类
+   * @param {Object} categoryData - 分类数据
+   * @returns {Object} 创建的分类
+   */
+  createProjectCategory(categoryData) {
+    const id = categoryData.id || uuidv4();
+    const now = Date.now();
+
+    const stmt = this.db.prepare(`
+      INSERT INTO project_categories (
+        id, user_id, name, parent_id, icon, color, sort_order, description, created_at, updated_at, deleted
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `);
+
+    stmt.run(
+      id,
+      categoryData.user_id || 'local-user',
+      categoryData.name,
+      categoryData.parent_id || null,
+      categoryData.icon || '📁',
+      categoryData.color || '#1890ff',
+      categoryData.sort_order || 0,
+      categoryData.description || null,
+      now,
+      now
+    );
+
+    this.db.saveToFile();
+    return this.getProjectCategoryById(id);
+  }
+
+  /**
+   * 更新项目分类
+   * @param {string} categoryId - 分类ID
+   * @param {Object} updates - 更新数据
+   * @returns {Object|null} 更新后的分类
+   */
+  updateProjectCategory(categoryId, updates) {
+    const fields = [];
+    const values = [];
+
+    const allowedFields = ['name', 'parent_id', 'icon', 'color', 'sort_order', 'description'];
+
+    allowedFields.forEach(field => {
+      if (updates[field] !== undefined) {
+        fields.push(`${field} = ?`);
+        values.push(updates[field]);
+      }
+    });
+
+    // 总是更新 updated_at
+    fields.push('updated_at = ?');
+    values.push(Date.now());
+
+    values.push(categoryId);
+
+    if (fields.length === 1) {
+      return this.getProjectCategoryById(categoryId);
+    }
+
+    this.db.run(`
+      UPDATE project_categories SET ${fields.join(', ')} WHERE id = ?
+    `, values);
+
+    this.db.saveToFile();
+    return this.getProjectCategoryById(categoryId);
+  }
+
+  /**
+   * 删除项目分类（软删除）
+   * @param {string} categoryId - 分类ID
+   * @returns {boolean} 是否删除成功
+   */
+  deleteProjectCategory(categoryId) {
+    // 检查是否有子分类
+    const childrenStmt = this.db.prepare(
+      'SELECT COUNT(*) as count FROM project_categories WHERE parent_id = ? AND deleted = 0'
+    );
+    const childrenResult = childrenStmt.get(categoryId);
+
+    if (childrenResult && childrenResult.count > 0) {
+      throw new Error('无法删除：该分类下还有子分类');
+    }
+
+    // 检查是否有关联的项目
+    const projectsStmt = this.db.prepare(
+      'SELECT COUNT(*) as count FROM projects WHERE category_id = ? AND deleted = 0'
+    );
+    const projectsResult = projectsStmt.get(categoryId);
+
+    if (projectsResult && projectsResult.count > 0) {
+      throw new Error('无法删除：该分类下还有项目');
+    }
+
+    // 软删除
+    const stmt = this.db.prepare(`
+      UPDATE project_categories
+      SET deleted = 1, updated_at = ?
+      WHERE id = ?
+    `);
+
+    stmt.run(Date.now(), categoryId);
+    this.db.saveToFile();
+    return true;
+  }
+
+  /**
+   * 批量更新分类排序
+   * @param {Array} sortData - 排序数据 [{id, sort_order}, ...]
+   * @returns {boolean} 是否成功
+   */
+  batchUpdateCategorySort(sortData) {
+    try {
+      this.db.transaction(() => {
+        const stmt = this.db.prepare(`
+          UPDATE project_categories
+          SET sort_order = ?, updated_at = ?
+          WHERE id = ?
+        `);
+
+        const now = Date.now();
+        sortData.forEach(item => {
+          stmt.run(item.sort_order, now, item.id);
+        });
+      });
+
+      return true;
+    } catch (error) {
+      console.error('[CategoryManager] 批量更新分类排序失败:', error);
+      return false;
+    }
+  }
+}
+
+module.exports = CategoryManager;
