@@ -73,10 +73,6 @@
     <div v-else class="tree-empty">
       <FolderOpenOutlined />
       <p>暂无文件</p>
-      <a-button size="small" @click="handleNewFile">
-        <FileAddOutlined />
-        新建文件
-      </a-button>
     </div>
 
     <!-- 右键菜单 -->
@@ -268,36 +264,117 @@ const getFileIcon = (fileName, isFolder) => {
 
 // 构建树形数据
 const treeData = computed(() => {
-  if (!props.files || props.files.length === 0) return [];
+  console.log('[FileTree] ========== 开始构建文件树 ==========');
+  console.log('[FileTree] props.files:', props.files);
+  console.log('[FileTree] 文件数量:', props.files?.length || 0);
 
-  const buildTree = (items, parentPath = '') => {
-    const tree = [];
-    const folders = [];
-    const files = [];
+  if (!props.files || props.files.length === 0) {
+    console.warn('[FileTree] ⚠️  文件列表为空或未定义');
+    return [];
+  }
 
-    items.forEach(file => {
-      const isFolder = file.is_folder || file.type === 'folder';
+  console.log('[FileTree] 前3个文件对象:');
+  props.files.slice(0, 3).forEach((file, idx) => {
+    console.log(`[FileTree] [${idx}]:`, {
+      id: file.id,
+      file_name: file.file_name,
+      file_path: file.file_path,
+      is_folder: file.is_folder,
+      file_type: file.file_type
+    });
+  });
+
+  // 构建树形结构
+  const root = {};
+  let validFileCount = 0;
+  let skippedFileCount = 0;
+
+  props.files.forEach((file, index) => {
+    const filePath = file.file_path || file.path || file.file_name || '';
+    const parts = filePath.split('/').filter(p => p);
+
+    // 特殊处理根目录文件（路径为空但有文件名）
+    if (parts.length === 0 && file.file_name) {
+      parts.push(file.file_name);
+    }
+
+    // 如果仍然没有路径，跳过该文件
+    if (parts.length === 0) {
+      skippedFileCount++;
+      console.warn(`[FileTree] ⏭️  跳过文件 [${index}] (路径为空):`, file);
+      return;
+    }
+
+    validFileCount++;
+
+    let current = root;
+
+    // 构建路径层级
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const isLast = i === parts.length - 1;
+      const currentPath = parts.slice(0, i + 1).join('/');
+
+      if (!current[part]) {
+        current[part] = {
+          name: part,
+          path: currentPath,
+          isFolder: !isLast || file.is_folder,
+          children: {},
+          fileData: isLast ? file : null
+        };
+      }
+
+      current = current[part].children;
+    }
+  });
+
+  // 将对象结构转换为 Ant Design Tree 需要的数组结构
+  const convertToTreeNodes = (obj) => {
+    const nodes = [];
+
+    Object.keys(obj).forEach(key => {
+      const item = obj[key];
+      const isFolder = item.isFolder || Object.keys(item.children).length > 0;
+
       const node = {
-        key: file.id || file.file_path,
-        title: file.file_name || file.name,
+        key: item.fileData?.id || `node_${item.path}` || `temp_${Math.random().toString(36).substring(7)}`,
+        title: item.name,
         isLeaf: !isFolder,
-        icon: getFileIcon(file.file_name || file.name, isFolder),
-        filePath: file.file_path || file.path,
-        children: [],
+        icon: getFileIcon(item.name, isFolder),
+        filePath: item.path,
+        fileData: item.fileData || null, // 保留完整文件数据对象
+        fileType: item.fileData?.file_type || (isFolder ? 'folder' : ''), // 添加文件类型标记
+        children: isFolder ? convertToTreeNodes(item.children) : []
       };
 
       if (isFolder) {
-        folders.push(node);
+        nodes.unshift(node); // 文件夹放在前面
       } else {
-        files.push(node);
+        nodes.push(node); // 文件放在后面
       }
     });
 
-    // 文件夹在前，文件在后
-    return [...folders.sort((a, b) => a.title.localeCompare(b.title)), ...files.sort((a, b) => a.title.localeCompare(b.title))];
+    // 排序：文件夹按名称排序，文件也按名称排序
+    const folders = nodes.filter(n => !n.isLeaf).sort((a, b) => a.title.localeCompare(b.title));
+    const files = nodes.filter(n => n.isLeaf).sort((a, b) => a.title.localeCompare(b.title));
+
+    return [...folders, ...files];
   };
 
-  return buildTree(props.files);
+  const result = convertToTreeNodes(root);
+
+  console.log('[FileTree] 📊 树构建统计:');
+  console.log(`[FileTree]   - 有效文件: ${validFileCount}`);
+  console.log(`[FileTree]   - 跳过文件: ${skippedFileCount}`);
+  console.log(`[FileTree]   - 树节点数: ${result.length}`);
+  console.log('[FileTree] ========== 文件树构建完成 ==========');
+
+  if (result.length > 0) {
+    console.log('[FileTree] 树根节点:', result.map(n => `${n.title} (key: ${n.key})`).join(', '));
+  }
+
+  return result;
 });
 
 // 监听当前文件变化

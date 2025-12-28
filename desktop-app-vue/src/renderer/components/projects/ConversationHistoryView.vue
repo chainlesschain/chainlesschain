@@ -27,6 +27,50 @@
             <!-- 消息文本 -->
             <div class="message-text" v-html="renderMarkdown(message.content)"></div>
 
+            <!-- AI创建进度（如果有） -->
+            <div v-if="message.type === 'creation' && message.progress" class="creation-progress">
+              <!-- 总进度条 -->
+              <a-progress
+                :percent="message.progress.overallProgress || 0"
+                :status="message.progress.status === 'error' ? 'exception' : (message.progress.status === 'completed' ? 'success' : 'active')"
+                stroke-color="#667eea"
+              />
+
+              <!-- 阶段步骤 -->
+              <div v-if="message.progress.stages && message.progress.stages.length > 0" class="creation-stages">
+                <div
+                  v-for="(stage, idx) in message.progress.stages"
+                  :key="idx"
+                  :class="['stage-item', stage.status]"
+                >
+                  <CheckCircleOutlined v-if="stage.status === 'completed'" class="stage-icon completed" />
+                  <LoadingOutlined v-else-if="stage.status === 'running'" class="stage-icon running" spin />
+                  <CloseCircleOutlined v-else-if="stage.status === 'error'" class="stage-icon error" />
+                  <span v-else class="stage-number">{{ idx + 1 }}</span>
+                  <span class="stage-message">{{ stage.message || stage.stage }}</span>
+                </div>
+              </div>
+
+              <!-- 代码预览（可展开） -->
+              <div v-if="message.progress.contentByStage && Object.keys(message.progress.contentByStage).length > 0" class="content-preview">
+                <div class="preview-header" @click="toggleContentPreview(message.id)">
+                  <CaretRightOutlined :class="{ 'expanded': expandedPreviews[message.id] }" />
+                  <span>查看生成内容</span>
+                </div>
+                <div v-show="expandedPreviews[message.id]" class="preview-content">
+                  <a-tabs v-model:activeKey="activePreviewTab[message.id]">
+                    <a-tab-pane
+                      v-for="(content, stageName) in message.progress.contentByStage"
+                      :key="stageName"
+                      :tab="getStageDisplayName(stageName)"
+                    >
+                      <pre class="code-preview"><code>{{ content }}</code></pre>
+                    </a-tab-pane>
+                  </a-tabs>
+                </div>
+              </div>
+            </div>
+
             <!-- 步骤列表（如果有） -->
             <div v-if="message.steps && message.steps.length > 0" class="steps-container">
               <div class="steps-header" @click="toggleSteps(message.id)">
@@ -122,6 +166,7 @@ import {
   CaretRightOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  CloseCircleOutlined,
   PaperClipOutlined,
 } from '@ant-design/icons-vue';
 import { marked } from 'marked';
@@ -161,6 +206,8 @@ const emit = defineEmits(['source-click', 'file-click']);
 // 响应式状态
 const messagesContainer = ref(null);
 const expandedSteps = ref({});
+const expandedPreviews = ref({});
+const activePreviewTab = ref({});
 
 // Markdown渲染配置
 marked.setOptions({
@@ -206,6 +253,26 @@ const formatTime = (timestamp) => {
 // 切换步骤展开/收起
 const toggleSteps = (messageId) => {
   expandedSteps.value[messageId] = !expandedSteps.value[messageId];
+};
+
+// 切换内容预览展开/收起
+const toggleContentPreview = (messageId) => {
+  expandedPreviews.value[messageId] = !expandedPreviews.value[messageId];
+};
+
+// 获取阶段显示名称
+const getStageDisplayName = (stageName) => {
+  const stageNames = {
+    'intent': '意图识别',
+    'spec': '生成规格',
+    'engine': '引擎选择',
+    'outline': '生成大纲',
+    'content': '生成内容',
+    'html': 'HTML',
+    'css': 'CSS',
+    'js': 'JavaScript',
+  };
+  return stageNames[stageName] || stageName;
 };
 
 // 处理来源点击
@@ -577,5 +644,147 @@ onMounted(() => {
   background: #fafafa;
   color: #9ca3af;
   font-style: italic;
+}
+
+/* AI创建进度 */
+.creation-progress {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.creation-progress :deep(.ant-progress) {
+  margin-bottom: 16px;
+}
+
+.creation-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.stage-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s;
+}
+
+.stage-item.completed {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.stage-item.running {
+  border-color: #667eea;
+  background: #eef2ff;
+}
+
+.stage-item.error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.stage-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.stage-icon.completed {
+  color: #10b981;
+}
+
+.stage-icon.running {
+  color: #667eea;
+}
+
+.stage-icon.error {
+  color: #ef4444;
+}
+
+.stage-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #e5e7eb;
+  color: #6b7280;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.stage-message {
+  flex: 1;
+  color: #374151;
+  font-size: 14px;
+}
+
+/* 内容预览 */
+.content-preview {
+  margin-top: 16px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.2s;
+}
+
+.preview-header:hover {
+  background: #f3f4f6;
+}
+
+.preview-header :deep(.anticon) {
+  transition: transform 0.2s;
+  font-size: 12px;
+}
+
+.preview-header :deep(.anticon.expanded) {
+  transform: rotate(90deg);
+}
+
+.preview-content {
+  padding: 12px;
+}
+
+.code-preview {
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.code-preview code {
+  background: none;
+  color: inherit;
+  padding: 0;
 }
 </style>

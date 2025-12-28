@@ -145,9 +145,9 @@
     </div>
 
     <!-- 主内容区 -->
-    <div v-else-if="currentProject" class="content-container">
-      <!-- 左侧：文件树管理器 -->
-      <div class="file-explorer-panel" :style="{ width: fileExplorerWidth + 'px' }">
+    <div v-else-if="currentProject || projectId === 'ai-creating'" class="content-container">
+      <!-- 左侧：文件树管理器（AI创建模式下隐藏） -->
+      <div v-if="projectId !== 'ai-creating'" class="file-explorer-panel" :style="{ width: fileExplorerWidth + 'px' }">
         <div class="sidebar-header">
           <h3>
             <FolderOutlined />
@@ -172,8 +172,9 @@
         </div>
       </div>
 
-      <!-- 拖拽手柄：文件树 <-> 对话面板 -->
+      <!-- 拖拽手柄：文件树 <-> 对话面板（AI创建模式下隐藏） -->
       <ResizeHandle
+        v-if="projectId !== 'ai-creating'"
         direction="vertical"
         :min-size="minPanelWidth"
         :max-size="maxFileExplorerWidth"
@@ -185,21 +186,23 @@
         <ChatPanel
           :project-id="projectId"
           :current-file="currentFile"
+          :ai-creation-data="aiCreationData"
           @close="showChatPanel = false"
+          @creation-complete="handleAICreationComplete"
         />
       </div>
 
-      <!-- 拖拽手柄：对话面板 <-> 编辑器面板 -->
+      <!-- 拖拽手柄：对话面板 <-> 编辑器面板（AI创建模式下隐藏） -->
       <ResizeHandle
-        v-if="showEditorPanel"
+        v-if="showEditorPanel && projectId !== 'ai-creating'"
         direction="vertical"
         :min-size="minPanelWidth"
         :max-size="maxEditorPanelWidth"
         @resize="handleEditorPanelResize"
       />
 
-      <!-- 右侧：编辑器/预览面板 -->
-      <div v-show="showEditorPanel" class="editor-preview-panel" :style="{ width: editorPanelWidth + 'px' }">
+      <!-- 右侧：编辑器/预览面板（AI创建模式下隐藏） -->
+      <div v-show="showEditorPanel && projectId !== 'ai-creating'" class="editor-preview-panel" :style="{ width: editorPanelWidth + 'px' }">
           <!-- 编辑器头部 -->
           <EditorPanelHeader
             v-if="currentFile"
@@ -453,6 +456,7 @@ const showGitHistoryModal = ref(false);
 const showGitCommitModal = ref(false);
 const commitMessage = ref('');
 const resolvedProjectPath = ref('');
+const aiCreationData = ref(null); // AI创建数据
 
 // 新增状态
 const viewMode = ref('auto'); // 'auto' | 'edit' | 'preview'
@@ -481,7 +485,14 @@ const showShareModal = ref(false); // 分享Modal
 // 计算属性
 const projectId = computed(() => route.params.id);
 const currentProject = computed(() => projectStore.currentProject);
-const projectFiles = computed(() => projectStore.projectFiles);
+const projectFiles = computed(() => {
+  const files = projectStore.projectFiles;
+  console.log('[ProjectDetail] projectFiles computed, 文件数量:', files?.length || 0);
+  if (files && files.length > 0) {
+    console.log('[ProjectDetail] 前3个文件:', files.slice(0, 3).map(f => `${f.file_name} (${f.file_path})`));
+  }
+  return files;
+});
 const currentFile = computed(() => projectStore.currentFile);
 
 // 文件类型信息
@@ -1106,11 +1117,42 @@ const handleExportError = ({ exportType, error }) => {
   console.error('Export error:', exportType, error);
 };
 
+// 处理AI创建完成
+const handleAICreationComplete = async (result) => {
+  console.log('[ProjectDetail] AI创建完成:', result);
+  // 清空AI创建数据
+  aiCreationData.value = null;
+
+  // 如果当前是ai-creating模式，需要跳转到真实的项目详情页
+  if (projectId.value === 'ai-creating') {
+    router.replace(`/projects/${result.projectId}`);
+  } else {
+    // 刷新项目信息和文件列表
+    await projectStore.fetchProjectById(result.projectId);
+    await projectStore.loadProjectFiles(result.projectId);
+  }
+};
+
 // 组件挂载时加载项目
 onMounted(async () => {
   loading.value = true;
 
   try {
+    // 检查是否是AI创建模式（projectId为'ai-creating'）
+    if (projectId.value === 'ai-creating' && route.query.createData) {
+      try {
+        aiCreationData.value = JSON.parse(route.query.createData);
+        console.log('[ProjectDetail] 检测到AI创建模式:', aiCreationData.value);
+        // 清除query参数，避免刷新时重复创建
+        router.replace({ path: route.path });
+        // AI创建模式下，不需要加载项目，直接结束loading
+        loading.value = false;
+        return;
+      } catch (error) {
+        console.error('[ProjectDetail] 解析创建数据失败:', error);
+      }
+    }
+
     // 加载项目详情
     await projectStore.fetchProjectById(projectId.value);
 
@@ -1143,6 +1185,16 @@ onMounted(async () => {
         console.log('[ProjectDetail] 项目统计收集已启动');
       } catch (error) {
         console.error('[ProjectDetail] 启动统计收集失败:', error);
+      }
+    }
+
+    // 启动文件系统监听（chokidar）
+    if (currentProject.value?.root_path) {
+      try {
+        await window.electronAPI.project.watchProject(projectId.value, currentProject.value.root_path);
+        console.log('[ProjectDetail] 文件系统监听已启动');
+      } catch (error) {
+        console.error('[ProjectDetail] 启动文件监听失败:', error);
       }
     }
 
@@ -1215,6 +1267,25 @@ onUnmounted(async () => {
     } catch (error) {
       console.error('[ProjectDetail] 停止统计收集失败:', error);
     }
+  }
+
+  // 停止文件系统监听
+  if (projectId.value) {
+    try {
+      await window.electronAPI.project.stopWatchProject(projectId.value);
+      console.log('[ProjectDetail] 文件系统监听已停止');
+    } catch (error) {
+      console.error('[ProjectDetail] 停止文件监听失败:', error);
+    }
+  }
+
+  // 清理文件同步事件监听器
+  if (window.electronAPI.project) {
+    window.electronAPI.project.offFileReloaded?.(() => {});
+    window.electronAPI.project.offFileAdded?.(() => {});
+    window.electronAPI.project.offFileDeleted?.(() => {});
+    window.electronAPI.project.offFileSyncConflict?.(() => {});
+    window.electronAPI.project.offFilesUpdated?.(() => {});
   }
 });
 

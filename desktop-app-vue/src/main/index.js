@@ -885,77 +885,51 @@ class ChainlessChainApp {
   /**
    * 递归移除对象中的undefined值
    * Electron IPC无法序列化undefined，需要转换为null或删除
-   * @param {*} obj - 要清理的对象
-   * @returns {*} 清理后的对象
+   * @param {*} data - 要清理的数据
+   * @returns {*} 清理后的数据
    */
-  removeUndefinedValues(obj) {
-    // 处理 null 和 undefined
-    if (obj === null || obj === undefined) {
-      return null;
+  removeUndefinedValues(data) {
+    // 处理null和undefined
+    if (data === null || data === undefined) {
+      return data === null ? null : undefined;
     }
 
     // 处理基本类型
-    if (typeof obj !== 'object') {
-      return obj;
+    if (typeof data !== 'object') {
+      return data;
     }
 
-    // 使用 JSON 序列化来确保完全清理
-    // 这会移除所有 undefined 值、函数、Symbol等不可序列化的内容
-    try {
-      const jsonString = JSON.stringify(obj, (key, value) => {
-        // 转换 undefined 为 null（undefined会被JSON.stringify自动移除）
-        if (value === undefined) {
-          console.log(`[Main] 发现 undefined 值，key: ${key}，将其转换为 null`);
-          return null;
-        }
-        // 移除函数、Symbol等不可序列化的类型
-        if (typeof value === 'function' || typeof value === 'symbol') {
-          console.log(`[Main] 发现不可序列化类型，key: ${key}, type: ${typeof value}`);
-          return null;
-        }
-        return value;
-      });
-
-      // 确保 JSON.parse 成功
-      if (!jsonString || jsonString === 'null') {
-        console.warn('[Main] JSON 字符串为空或null，返回 null');
-        return null;
-      }
-
-      const result = JSON.parse(jsonString);
-
-      // 最后一次检查：确保没有undefined值
-      this._ensureNoUndefined(result);
-
-      return result;
-    } catch (error) {
-      console.error('[Main] JSON序列化失败:', error.message);
-      console.error('[Main] 对象类型:', Array.isArray(obj) ? 'Array' : 'Object');
-      console.error('[Main] 对象键:', obj ? Object.keys(obj).slice(0, 10) : 'N/A');
-
-      // 备用方法：手动清理
-      if (Array.isArray(obj)) {
-        console.log('[Main] 使用备用方法清理数组');
-        const cleaned = obj
-          .map(item => this.removeUndefinedValues(item))
-          .filter(item => item !== null && item !== undefined);
-        return cleaned.length > 0 ? cleaned : [];
-      }
-
-      console.log('[Main] 使用备用方法清理对象');
-      const cleaned = {};
-      for (const [key, value] of Object.entries(obj)) {
-        if (value !== undefined && typeof value !== 'function' && typeof value !== 'symbol') {
-          try {
-            cleaned[key] = this.removeUndefinedValues(value);
-          } catch (e) {
-            console.error(`[Main] 清理键 ${key} 失败:`, e.message);
-            cleaned[key] = null;
-          }
-        }
-      }
-      return cleaned;
+    // 处理数组
+    if (Array.isArray(data)) {
+      return data
+        .map(item => this.removeUndefinedValues(item))
+        .filter(item => item !== undefined); // 过滤掉undefined元素
     }
+
+    // 处理对象
+    const cleaned = {};
+    Object.keys(data).forEach(key => {
+      const value = data[key];
+
+      // 跳过undefined值
+      if (value === undefined) {
+        return;
+      }
+
+      // 跳过函数和Symbol
+      if (typeof value === 'function' || typeof value === 'symbol') {
+        return;
+      }
+
+      // 递归处理对象和数组
+      if (value !== null && typeof value === 'object') {
+        cleaned[key] = this.removeUndefinedValues(value);
+      } else {
+        cleaned[key] = value;
+      }
+    });
+
+    return cleaned;
   }
 
   /**
@@ -5007,6 +4981,75 @@ class ChainlessChainApp {
       return { success: true };
     });
 
+    // 快速创建项目（不使用AI）
+    ipcMain.handle('project:create-quick', async (_event, createData) => {
+      try {
+        console.log('[Main] 开始快速创建项目，参数:', createData);
+
+        // 生成项目ID
+        const projectId = crypto.randomUUID();
+        const timestamp = Date.now();
+
+        // 创建项目文件夹
+        const projectConfig = getProjectConfig();
+        const projectRootPath = path.join(
+          projectConfig.getProjectsRootPath(),
+          projectId
+        );
+
+        console.log('[Main] 创建项目目录:', projectRootPath);
+        await fs.promises.mkdir(projectRootPath, { recursive: true });
+
+        // 创建一个默认的README.md文件
+        const readmePath = path.join(projectRootPath, 'README.md');
+        const readmeContent = `# ${createData.name}\n\n${createData.description || '这是一个新建的项目。'}\n\n创建时间：${new Date().toLocaleString('zh-CN')}\n`;
+        await fs.promises.writeFile(readmePath, readmeContent, 'utf-8');
+
+        // 构建项目对象
+        const project = {
+          id: projectId,
+          name: createData.name,
+          description: createData.description || '',
+          project_type: createData.projectType || 'document', // 默认为document类型（允许的类型：web, document, data, app）
+          user_id: createData.userId || 'default-user',
+          root_path: projectRootPath,
+          created_at: timestamp,
+          updated_at: timestamp,
+          sync_status: 'pending', // 使用pending状态（允许的类型：synced, pending, conflict, error）
+          file_count: 1, // 包含README.md
+          metadata: JSON.stringify({
+            created_by: 'quick-create',
+            created_at: new Date().toISOString(),
+          }),
+        };
+
+        // 保存到本地数据库
+        if (this.database) {
+          await this.database.saveProject(project);
+          console.log('[Main] 项目已保存到本地数据库');
+
+          // 保存项目文件记录
+          const file = {
+            project_id: projectId,
+            file_name: 'README.md',
+            file_path: 'README.md',
+            file_type: 'markdown',
+            content: readmeContent,
+            created_at: timestamp,
+            updated_at: timestamp,
+          };
+          await this.database.saveProjectFiles(projectId, [file]);
+          console.log('[Main] 项目文件已保存到数据库');
+        }
+
+        console.log('[Main] 快速创建项目成功，ID:', projectId);
+        return this._replaceUndefinedWithNull(project);
+      } catch (error) {
+        console.error('[Main] 快速创建项目失败:', error);
+        throw error;
+      }
+    });
+
     // 保存项目到本地SQLite
     ipcMain.handle('project:save', async (_event, project) => {
       try {
@@ -5103,7 +5146,9 @@ class ChainlessChainApp {
     // 获取项目文件列表（直接从文件系统读取）
     ipcMain.handle('project:get-files', async (_event, projectId, fileType = null, pageNum = 1, pageSize = 50) => {
       try {
-        console.log('[Main] 获取项目文件, projectId:', projectId);
+        console.log('[Main] ========== 开始获取项目文件 ==========');
+        console.log('[Main] ProjectId:', projectId);
+        console.log('[Main] FileType过滤:', fileType);
 
         // 获取项目根路径
         if (!this.database) {
@@ -5112,12 +5157,15 @@ class ChainlessChainApp {
 
         const project = this.database.db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
         if (!project) {
+          console.error('[Main] ❌ 项目不存在, projectId:', projectId);
           throw new Error('项目不存在');
         }
 
         const rootPath = project.root_path || project.folder_path;
+        console.log('[Main] 项目根路径:', rootPath);
+
         if (!rootPath) {
-          console.warn('[Main] 项目没有根路径');
+          console.warn('[Main] ⚠️  项目没有根路径');
           return [];
         }
 
@@ -5127,21 +5175,29 @@ class ChainlessChainApp {
         // 检查项目目录是否存在
         try {
           await fs.access(rootPath);
+          console.log('[Main] ✅ 项目目录存在，开始扫描...');
         } catch (error) {
-          console.warn('[Main] 项目目录不存在:', rootPath);
+          console.error('[Main] ❌ 项目目录不存在:', rootPath, error.message);
           return [];
         }
 
         // 递归读取文件系统
         const files = [];
+        let scanCount = 0;
+        let skipCount = 0;
 
         async function scanDirectory(dirPath, relativePath = '') {
           try {
             const entries = await fs.readdir(dirPath, { withFileTypes: true });
+            console.log(`[Main] 扫描目录: ${relativePath || '/'}, 发现 ${entries.length} 个条目`);
 
             for (const entry of entries) {
+              scanCount++;
+
               // 跳过隐藏文件和特定目录
               if (/(^|[\/\\])\.|node_modules|\.git|dist|build|out/.test(entry.name)) {
+                skipCount++;
+                console.log(`[Main] ⏭️  跳过: ${entry.name} (隐藏文件或排除目录)`);
                 continue;
               }
 
@@ -5153,25 +5209,29 @@ class ChainlessChainApp {
                 const stats = await fs.stat(fullPath);
 
                 const fileInfo = {
-                  id: 'fs_' + Buffer.from(fileRelativePath).toString('base64').substring(0, 32),
+                  id: 'fs_' + crypto.createHash('sha256').update(fileRelativePath).digest('hex').substring(0, 16),
                   project_id: projectId,
                   file_name: entry.name,
                   file_path: fileRelativePath.replace(/\\/g, '/'), // 统一使用正斜杠
-                  file_type: isFolder ? 'folder' : path.extname(entry.name).substring(1) || 'unknown',
+                  file_type: isFolder ? 'folder' : (path.extname(entry.name).substring(1) || 'file'),
                   is_folder: isFolder,
-                  file_size: stats.size,
-                  created_at: stats.birthtimeMs,
-                  updated_at: stats.mtimeMs,
+                  file_size: stats.size || 0,
+                  created_at: stats.birthtimeMs || Date.now(),
+                  updated_at: stats.mtimeMs || Date.now(),
+                  sync_status: 'synced',
+                  deleted: 0,
+                  version: 1,
                 };
 
                 files.push(fileInfo);
+                console.log(`[Main] ✅ 添加${isFolder ? '文件夹' : '文件'}: ${fileInfo.file_path} (id: ${fileInfo.id})`);
 
                 // 递归处理子目录
                 if (isFolder) {
                   await scanDirectory(fullPath, fileRelativePath);
                 }
               } catch (statError) {
-                console.error(`[Main] 无法读取文件状态 ${fileRelativePath}:`, statError.message);
+                console.error(`[Main] ❌ 无法读取文件状态 ${fileRelativePath}:`, statError.message);
               }
             }
           } catch (readError) {
@@ -5181,15 +5241,81 @@ class ChainlessChainApp {
 
         await scanDirectory(rootPath);
 
-        console.log('[Main] 从文件系统读取到文件数量:', files.length);
+        console.log(`[Main] 📊 文件系统扫描完成:`);
+        console.log(`[Main]   - 扫描条目总数: ${scanCount}`);
+        console.log(`[Main]   - 跳过条目数: ${skipCount}`);
+        console.log(`[Main]   - 有效文件数: ${files.length}`);
 
-        // 如果指定了文件类型，进行过滤
-        let filteredFiles = files;
-        if (fileType) {
-          filteredFiles = files.filter(f => f.file_type === fileType);
+        // 从数据库读取文件记录（以获取content等额外信息）
+        const dbFiles = this.database.getProjectFiles(projectId);
+        console.log(`[Main] 📊 数据库查询结果: ${dbFiles.length} 条记录`);
+
+        if (dbFiles.length > 0) {
+          console.log(`[Main] 数据库文件示例: ${dbFiles.slice(0, 3).map(f => f.file_path).join(', ')}`);
         }
 
-        return this.removeUndefinedValues(filteredFiles);
+        // 构建数据库文件映射：file_path -> dbFile
+        const dbFileMap = {};
+        let dbMapCount = 0;
+        dbFiles.forEach(f => {
+          if (f.file_path) {
+            dbFileMap[f.file_path] = f;
+            dbMapCount++;
+          } else {
+            console.warn(`[Main] ⚠️  数据库文件缺少file_path:`, f);
+          }
+        });
+        console.log(`[Main] 构建数据库映射: ${dbMapCount} 个有效路径`);
+
+        // 合并文件系统和数据库数据（以文件系统为准，但保留数据库的额外信息）
+        let mergeMatchCount = 0;
+        let mergeNewCount = 0;
+
+        const mergedFiles = files.map(fsFile => {
+          const dbFile = dbFileMap[fsFile.file_path];
+
+          if (dbFile) {
+            mergeMatchCount++;
+            // 文件系统和数据库都存在：合并数据
+            // 优先使用文件系统的基本信息（size, time），但保留数据库的额外信息（content, hash等）
+            const merged = {
+              ...dbFile,           // 数据库字段（包含content, content_hash等）
+              ...fsFile,           // 文件系统字段（最新的size, time等）
+              id: dbFile.id,       // 保留数据库ID（UUID格式）
+            };
+            console.log(`[Main] 🔗 合并: ${fsFile.file_path} (DB id: ${dbFile.id})`);
+            return merged;
+          } else {
+            mergeNewCount++;
+            // 仅文件系统存在：返回文件系统信息
+            console.log(`[Main] 🆕 新文件: ${fsFile.file_path} (FS id: ${fsFile.id})`);
+            return fsFile;
+          }
+        });
+
+        console.log(`[Main] 📊 数据合并完成:`);
+        console.log(`[Main]   - 合并文件数: ${mergeMatchCount}`);
+        console.log(`[Main]   - 新文件数: ${mergeNewCount}`);
+        console.log(`[Main]   - 总计: ${mergedFiles.length}`);
+
+        // 如果指定了文件类型，进行过滤
+        let filteredFiles = mergedFiles;
+        if (fileType) {
+          const beforeFilter = filteredFiles.length;
+          filteredFiles = mergedFiles.filter(f => f.file_type === fileType);
+          console.log(`[Main] 🔍 类型过滤 (${fileType}): ${beforeFilter} -> ${filteredFiles.length}`);
+        }
+
+        const result = this.removeUndefinedValues(filteredFiles);
+        console.log(`[Main] ========== 返回 ${result.length} 个文件 ==========`);
+
+        if (result.length > 0 && result.length <= 5) {
+          console.log('[Main] 返回的文件列表:', result.map(f => `${f.file_name} (${f.file_path})`).join(', '));
+        } else if (result.length > 5) {
+          console.log('[Main] 前5个文件:', result.slice(0, 5).map(f => `${f.file_name} (${f.file_path})`).join(', '));
+        }
+
+        return result;
       } catch (error) {
         console.error('[Main] 获取项目文件失败:', error);
         throw error;
@@ -5365,6 +5491,122 @@ class ChainlessChainApp {
         return { success: true };
       } catch (error) {
         console.error('[Main] 停止文件监听失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 项目AI对话 IPC ====================
+
+    /**
+     * 项目AI对话 - 支持文件操作
+     * 用户可以通过自然语言与AI对话，AI会根据需要执行文件操作
+     */
+    ipcMain.handle('project:aiChat', async (_event, chatData) => {
+      try {
+        const axios = require('axios');
+        const { parseAIResponse } = require('./ai-engine/response-parser');
+        const { executeOperations, ensureLogTable } = require('./ai-engine/conversation-executor');
+        const path = require('path');
+
+        console.log('[Main] 项目AI对话:', chatData);
+
+        const {
+          projectId,
+          userMessage,
+          conversationHistory,
+          contextMode,
+          currentFile,
+          projectInfo,
+          fileList
+        } = chatData;
+
+        // 1. 检查数据库
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        // 2. 获取项目信息
+        const project = this.database.db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
+
+        if (!project) {
+          throw new Error(`项目不存在: ${projectId}`);
+        }
+
+        const projectPath = project.path;
+
+        // 3. 确保日志表存在
+        await ensureLogTable(this.database);
+
+        // 4. 调用后端AI服务
+        const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+        const response = await axios.post(
+          `${AI_SERVICE_URL}/api/projects/${projectId}/chat`,
+          {
+            project_id: projectId,
+            user_message: userMessage,
+            conversation_history: conversationHistory,
+            context_mode: contextMode,
+            current_file: currentFile,
+            project_info: projectInfo || {
+              name: project.name,
+              description: project.description || '',
+              type: project.type || 'general'
+            },
+            file_list: fileList
+          },
+          {
+            timeout: 60000  // 60秒超时
+          }
+        );
+
+        const { response: aiResponse, operations, rag_sources } = response.data;
+
+        console.log('[Main] AI响应:', aiResponse);
+        console.log('[Main] 文件操作数量:', operations ? operations.length : 0);
+
+        // 5. 解析AI响应（如果后端没有解析）
+        const parsed = parseAIResponse(aiResponse, operations);
+
+        // 6. 执行文件操作
+        let operationResults = [];
+        if (parsed.hasFileOperations) {
+          console.log(`[Main] 执行 ${parsed.operations.length} 个文件操作`);
+
+          try {
+            operationResults = await executeOperations(
+              parsed.operations,
+              projectPath,
+              this.database
+            );
+
+            console.log('[Main] 文件操作完成:', operationResults.length);
+          } catch (error) {
+            console.error('[Main] 文件操作执行失败:', error);
+            // 操作失败不影响对话响应的返回
+            operationResults = [{
+              status: 'error',
+              error: error.message
+            }];
+          }
+        }
+
+        // 7. 返回结果
+        return {
+          success: true,
+          conversationResponse: aiResponse,
+          fileOperations: operationResults,
+          ragSources: rag_sources || [],
+          hasFileOperations: parsed.hasFileOperations
+        };
+
+      } catch (error) {
+        console.error('[Main] 项目AI对话失败:', error);
+
+        // 如果是网络错误或后端不可用，返回友好的错误信息
+        if (error.code === 'ECONNREFUSED') {
+          throw new Error('AI服务连接失败，请确保后端服务已启动');
+        }
+
         throw error;
       }
     });
@@ -6851,6 +7093,82 @@ ${content}
       } catch (error) {
         console.error('[Template] 获取热门模板失败:', error);
         throw error;
+      }
+    });
+
+    // 创建模板
+    ipcMain.handle('template:create', async (_event, templateData) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        const template = await this.templateManager.createTemplate(templateData);
+        return { success: true, template };
+      } catch (error) {
+        console.error('[Template] 创建模板失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 更新模板
+    ipcMain.handle('template:update', async (_event, templateId, updates) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        const template = await this.templateManager.updateTemplate(templateId, updates);
+        return { success: true, template };
+      } catch (error) {
+        console.error('[Template] 更新模板失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 删除模板
+    ipcMain.handle('template:delete', async (_event, templateId) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        await this.templateManager.deleteTemplate(templateId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Template] 删除模板失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 复制模板（用于基于现有模板创建新模板）
+    ipcMain.handle('template:duplicate', async (_event, templateId, newName) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+
+        // 获取原模板
+        const originalTemplate = await this.templateManager.getTemplateById(templateId);
+
+        // 创建副本
+        const duplicateData = {
+          ...originalTemplate,
+          name: newName || `${originalTemplate.name}_copy`,
+          display_name: newName || `${originalTemplate.display_name} (副本)`,
+          is_builtin: false
+        };
+
+        // 删除不需要复制的字段
+        delete duplicateData.id;
+        delete duplicateData.created_at;
+        delete duplicateData.updated_at;
+        delete duplicateData.usage_count;
+        delete duplicateData.rating;
+        delete duplicateData.rating_count;
+
+        const newTemplate = await this.templateManager.createTemplate(duplicateData);
+        return { success: true, template: newTemplate };
+      } catch (error) {
+        console.error('[Template] 复制模板失败:', error);
+        return { success: false, error: error.message };
       }
     });
 

@@ -17,6 +17,10 @@
 
       <!-- 对话输入框 -->
       <div class="conversation-input-section">
+        <div class="ai-input-label">
+          <span class="ai-badge">AI</span>
+          <span class="ai-input-title">使用AI模板创建项目</span>
+        </div>
         <ConversationInput
           :placeholder="inputPlaceholder"
           @submit="handleConversationalCreate"
@@ -67,7 +71,7 @@
     <TemplateVariableModal
       v-model:visible="showTemplateModal"
       :template="selectedTemplate"
-      @success="handleTemplateSuccess"
+      @start-create="handleTemplateCreateStart"
       @cancel="showTemplateModal = false"
     />
 
@@ -106,6 +110,7 @@
       @view-project="handleViewCreatedProject"
       @continue="handleContinueCreate"
     />
+
   </div>
 </template>
 
@@ -116,6 +121,7 @@ import { message, Modal } from 'ant-design-vue';
 import { useProjectStore } from '@/stores/project';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
+import { useTemplateStore } from '@/stores/template';
 import {
   SearchOutlined,
   BulbOutlined,
@@ -133,6 +139,7 @@ const router = useRouter();
 const projectStore = useProjectStore();
 const authStore = useAuthStore();
 const appStore = useAppStore();
+const templateStore = useTemplateStore();
 
 // 响应式状态
 const activeCategory = ref('all');
@@ -549,7 +556,114 @@ const handleTemplateUse = (template) => {
   showTemplateModal.value = true;
 };
 
-// 处理模板创建成功
+// 处理模板创建开始（流式创建 + 进度展示）
+const handleTemplateCreateStart = async (createData) => {
+  try {
+    console.log('[ProjectsPage] 模板创建开始:', createData);
+
+    // 显示流式进度Modal
+    showStreamProgress.value = true;
+    createError.value = '';
+    streamProgressData.value = {
+      currentStage: '',
+      stages: [],
+      contentByStage: {},
+      logs: [],
+      metadata: {},
+    };
+
+    // 获取用户ID
+    const userId = authStore.currentUser?.id || 'default-user';
+
+    // 流式创建项目
+    const project = await projectStore.createProjectStream({
+      userPrompt: createData.renderedPrompt,
+      name: createData.projectName,
+      projectType: createData.projectType,
+      userId: userId,
+    }, (progressUpdate) => {
+      console.log('[ProjectsPage] 模板创建进度更新:', progressUpdate.type);
+
+      // 更新进度数据
+      streamProgressData.value = { ...progressUpdate };
+
+      // 处理不同类型
+      if (progressUpdate.type === 'complete') {
+        createdProjectId.value = progressUpdate.result.projectId;
+        message.success('项目创建成功！');
+
+        // 记录模板使用
+        templateStore.recordUsage(
+          createData.templateId,
+          userId,
+          progressUpdate.result.projectId,
+          createData.variables
+        ).catch(err => {
+          console.error('[ProjectsPage] 记录模板使用失败:', err);
+        });
+      } else if (progressUpdate.type === 'error') {
+        createError.value = progressUpdate.error;
+        message.error('创建项目失败：' + progressUpdate.error);
+        return; // 出错时直接返回，不执行任务拆解
+      }
+    });
+
+    // 如果创建失败，不继续执行任务拆解
+    if (createError.value) {
+      return;
+    }
+
+    // AI智能拆解任务
+    try {
+      message.loading({ content: 'AI正在拆解任务...', key: 'ai-decompose', duration: 0 });
+
+      const projectId = createdProjectId.value || project?.projectId || project?.id;
+
+      if (!projectId) {
+        console.error('[ProjectsPage] 错误：projectId为空！');
+        throw new Error('项目ID不存在，无法进行任务拆解');
+      }
+
+      const contextData = {
+        projectId: projectId,
+        projectType: project?.project_type || project?.projectType,
+        projectName: createData.projectName,
+        root_path: project?.root_path || project?.rootPath
+      };
+
+      console.log('[ProjectsPage] 模板项目任务拆解上下文:', contextData);
+
+      const taskPlan = await window.electronAPI.project.decomposeTask(
+        createData.renderedPrompt,
+        contextData
+      );
+
+      message.success({ content: '任务拆解完成', key: 'ai-decompose', duration: 2 });
+
+      // 显示任务执行监控器
+      currentTaskPlan.value = taskPlan;
+      showTaskMonitor.value = true;
+
+      // 自动开始执行
+      executeTaskPlan(taskPlan);
+    } catch (decomposeError) {
+      console.error('[ProjectsPage] Task decompose failed:', decomposeError);
+      message.warning({
+        content: '任务拆解失败，已创建项目。您可以手动编辑。',
+        key: 'ai-decompose',
+        duration: 3
+      });
+
+      // 即使拆解失败，也跳转到项目页
+      router.push(`/projects/${project.projectId || createdProjectId.value}`);
+    }
+  } catch (error) {
+    console.error('[ProjectsPage] Failed to create project from template:', error);
+    message.error({ content: '创建失败：' + error.message, key: 'template-create', duration: 3 });
+  }
+};
+
+// 处理模板创建成功（已废弃，由 handleTemplateCreateStart 替代）
 const handleTemplateSuccess = (result) => {
   console.log('[ProjectsPage] 项目创建成功:', result);
   // 跳转到项目详情页
@@ -921,6 +1035,33 @@ onUnmounted(() => {
   max-width: 900px;
   width: 100%;
   margin: 0 auto 32px;
+
+  .ai-input-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    .ai-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 12px;
+      letter-spacing: 1px;
+    }
+
+    .ai-input-title {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+  }
 }
 
 
