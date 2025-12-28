@@ -152,7 +152,12 @@ class DBSyncManager extends EventEmitter {
 
         try {
           // 1. 上传本地新数据
-          await this.uploadLocalChanges(tableName);
+          const uploadResult = await this.uploadLocalChanges(tableName);
+
+          // 检查上传是否有失败
+          if (uploadResult.failed > 0) {
+            throw new Error(`上传失败: ${uploadResult.failed} 条记录上传失败`);
+          }
 
           // 2. 下载远程新数据
           const result = await this.downloadRemoteChanges(tableName);

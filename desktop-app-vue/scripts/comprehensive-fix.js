@@ -32,7 +32,8 @@ function sleep(ms) {
 async function checkSystemConfig() {
   log('\n========== 步骤 1: 检查系统配置 ==========', 'cyan');
 
-  const projectRoot = path.join(__dirname, '..');
+  // 项目根目录是 chainlesschain，不是 desktop-app-vue
+  const projectRoot = path.join(__dirname, '../..');
   const defaultProjectsPath = path.join(projectRoot, 'data', 'projects');
 
   log(`项目根目录: ${projectRoot}`);
@@ -54,7 +55,8 @@ async function checkSystemConfig() {
 async function checkDatabase() {
   log('\n========== 步骤 2: 检查数据库 ==========', 'cyan');
 
-  const dbPath = path.join(__dirname, '../data/chainlesschain.db');
+  // 数据库在项目根目录的 data 文件夹下，而不是 desktop-app-vue/data
+  const dbPath = path.join(__dirname, '../../data/chainlesschain.db');
   log(`数据库路径: ${dbPath}`);
 
   try {
@@ -235,6 +237,13 @@ async function main() {
 
     // 3. 初始化数据库
     const database = new Database(dbPath);
+    await database.initialize();
+
+    if (!database.db) {
+      log('❌ 数据库初始化失败', 'red');
+      process.exit(1);
+    }
+    log('✓ 数据库初始化成功', 'green');
 
     // 4. 修复项目
     const results = await fixProjects(database, projectsRootPath);

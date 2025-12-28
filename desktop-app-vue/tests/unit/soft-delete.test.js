@@ -1,9 +1,10 @@
+// @vitest-environment node
 /**
  * 软删除功能测试
  * 测试软删除、恢复、清理和统计功能
  */
 
-const { describe, it, expect, beforeEach } = require('vitest');
+import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('软删除功能测试', () => {
   describe('基本软删除操作', () => {

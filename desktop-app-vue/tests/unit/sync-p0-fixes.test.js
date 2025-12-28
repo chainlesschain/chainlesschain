@@ -1,9 +1,10 @@
+// @vitest-environment node
 /**
  * P0问题修复验证测试
  * 测试时间戳同步、事务对齐和幂等性保护
  */
 
-const { describe, it, expect, beforeEach, afterEach, vi } = require('vitest');
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('P0修复验证 - 时间戳同步', () => {
   it('应该正确计算服务器时间偏移', async () => {

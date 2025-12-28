@@ -1,10 +1,11 @@
+// @vitest-environment node
 /**
  * P1问题修复验证测试
  * 测试乐观锁版本控制、指数退避重试和同步日志
  */
 
-const { describe, it, expect, beforeEach, afterEach, vi } = require('vitest');
-const RetryPolicy = require('../../src/main/sync/retry-policy');
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import RetryPolicy from '../../src/main/sync/retry-policy.js';
 
 describe('P1修复验证 - 乐观锁版本控制', () => {
   it('应该检测版本号冲突', () => {

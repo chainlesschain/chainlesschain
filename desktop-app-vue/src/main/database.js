@@ -1,9 +1,24 @@
 const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
-const { app } = require('electron');
 const { v4: uuidv4 } = require('uuid');
-const { getAppConfig } = require('./app-config');
+
+// Try to load electron, fallback to global.app for testing
+let app;
+try {
+  app = require('electron').app;
+} catch (e) {
+  // In test environment, use global.app if available
+  app = global.app || { isPackaged: false, getPath: () => require('os').tmpdir() };
+}
+
+let getAppConfig;
+try {
+  getAppConfig = require('./app-config').getAppConfig;
+} catch (e) {
+  // Fallback for testing
+  getAppConfig = () => ({ enableEncryption: false });
+}
 
 /**
  * 数据库管理类
@@ -30,7 +45,7 @@ class DatabaseManager {
           // 尝试多个可能的路径
           const possiblePaths = [];
 
-          if (app.isPackaged) {
+          if (app && app.isPackaged) {
             // 生产环境的可能路径
             possiblePaths.push(
               // extraResource 路径（推荐）

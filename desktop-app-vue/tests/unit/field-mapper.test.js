@@ -84,7 +84,7 @@ describe('FieldMapper - 字段映射测试', () => {
 
   describe('时间戳转换', () => {
     it('应该将毫秒时间戳转换为ISO 8601格式', () => {
-      const timestamp = 1703596800000;
+      const timestamp = 1703577600000; // 2023-12-26T08:00:00.000Z
       const iso = mapper.toISO8601(timestamp);
 
       expect(iso).toBe('2023-12-26T08:00:00.000Z');
@@ -94,7 +94,7 @@ describe('FieldMapper - 字段映射测试', () => {
       const iso = '2023-12-26T08:00:00.000Z';
       const timestamp = mapper.toMillis(iso);
 
-      expect(timestamp).toBe(1703596800000);
+      expect(timestamp).toBe(1703577600000);
     });
 
     it('应该处理null值', () => {
@@ -120,10 +120,10 @@ describe('FieldMapper - 字段映射测试', () => {
         root_path: '/path/to/project',
         file_count: 10,
         total_size: 1024000,
-        created_at: 1703596800000,
-        updated_at: 1703596900000,
+        created_at: 1703577600000,
+        updated_at: 1703577900000,
         sync_status: 'pending',
-        synced_at: 1703596850000,
+        synced_at: 1703577850000,
         device_id: 'device-001',
         deleted: 0
       };
@@ -151,8 +151,8 @@ describe('FieldMapper - 字段映射测试', () => {
         content: 'console.log("hello");',
         content_hash: 'abc123',
         version: 3,
-        created_at: 1703596800000,
-        updated_at: 1703596900000,
+        created_at: 1703577600000,
+        updated_at: 1703577900000,
         sync_status: 'synced',
         deleted: 0
       };
@@ -196,8 +196,8 @@ describe('FieldMapper - 字段映射测试', () => {
 
       const localRecord = mapper.toLocal(backendRecord, 'projects');
 
-      expect(localRecord.created_at).toBe(1703596800000);
-      expect(localRecord.updated_at).toBe(1703597100000);
+      expect(localRecord.created_at).toBe(1703577600000);
+      expect(localRecord.updated_at).toBe(1703577900000);
     });
 
     it('应该正确转换字段名（camelCase -> snake_case）', () => {

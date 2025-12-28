@@ -83,6 +83,41 @@
                 </a-select>
               </a-form-item>
 
+              <a-divider>智能选择与备份</a-divider>
+
+              <a-form-item label="AI 自主选择">
+                <a-switch v-model:checked="config.llm.autoSelect" />
+                <span style="margin-left: 8px;">AI 根据任务特点自动选择最优 LLM</span>
+              </a-form-item>
+
+              <a-form-item label="选择策略" v-if="config.llm.autoSelect">
+                <a-select v-model:value="config.llm.selectionStrategy" style="width: 100%;">
+                  <a-select-option value="cost">成本优先</a-select-option>
+                  <a-select-option value="speed">速度优先</a-select-option>
+                  <a-select-option value="quality">质量优先</a-select-option>
+                  <a-select-option value="balanced">平衡模式（推荐）</a-select-option>
+                </a-select>
+              </a-form-item>
+
+              <a-form-item label="自动切换备用">
+                <a-switch v-model:checked="config.llm.autoFallback" />
+                <span style="margin-left: 8px;">当前 LLM 不可用时自动切换到备用</span>
+              </a-form-item>
+
+              <a-form-item label="优先级顺序">
+                <a-select
+                  v-model:value="config.llm.priority"
+                  mode="tags"
+                  style="width: 100%;"
+                  placeholder="拖动调整优先级顺序"
+                  :options="llmProviderOptions"
+                >
+                </a-select>
+                <template #extra>
+                  <span style="color: #999;">从左到右依次尝试，第一个可用的 LLM 将被使用</span>
+                </template>
+              </a-form-item>
+
               <!-- Ollama 配置 -->
               <a-divider v-if="config.llm.provider === 'ollama'">Ollama 配置</a-divider>
               <template v-if="config.llm.provider === 'ollama'">
@@ -453,6 +488,16 @@ const loading = ref(false);
 const saving = ref(false);
 const activeTab = ref('project');
 
+// LLM 提供商选项
+const llmProviderOptions = [
+  { label: 'Ollama（本地）', value: 'ollama' },
+  { label: 'OpenAI', value: 'openai' },
+  { label: '火山引擎（豆包）', value: 'volcengine' },
+  { label: '阿里通义千问', value: 'dashscope' },
+  { label: '智谱 AI', value: 'zhipu' },
+  { label: 'DeepSeek', value: 'deepseek' },
+];
+
 // 数据库配置
 const databaseConfig = ref({
   path: '',
@@ -477,6 +522,10 @@ const config = ref({
   },
   llm: {
     provider: 'volcengine',
+    priority: ['volcengine', 'ollama', 'deepseek'],
+    autoFallback: true,
+    autoSelect: true,
+    selectionStrategy: 'balanced',
     ollamaHost: '',
     ollamaModel: '',
     openaiApiKey: '',
@@ -515,12 +564,28 @@ const config = ref({
   },
 });
 
+// 深度合并配置对象
+const deepMerge = (target, source) => {
+  const result = { ...target };
+  for (const key in source) {
+    if (source.hasOwnProperty(key)) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        result[key] = deepMerge(target[key] || {}, source[key]);
+      } else {
+        result[key] = source[key];
+      }
+    }
+  }
+  return result;
+};
+
 // 加载配置
 const loadConfig = async () => {
   loading.value = true;
   try {
     const allConfig = await window.electronAPI.config.getAll();
-    config.value = allConfig;
+    // 使用深度合并，保留默认值
+    config.value = deepMerge(config.value, allConfig);
 
     // 加载数据库配置
     const dbConfig = await window.electronAPI.db.getConfig();
@@ -586,10 +651,20 @@ const handleReset = () => {
 // 导出为 .env 文件
 const handleExportEnv = async () => {
   try {
-    // 这里应该弹出文件选择对话框，暂时使用默认路径
-    const envPath = 'C:\\code\\chainlesschain\\desktop-app-vue\\.env';
-    await window.electronAPI.config.exportEnv(envPath);
-    message.success('配置已导出到 .env 文件');
+    // 使用 showSaveDialog 让用户选择保存位置
+    const result = await window.electronAPI.dialog.showSaveDialog({
+      title: '导出配置为 .env 文件',
+      defaultPath: '.env',
+      filters: [
+        { name: '环境变量文件', extensions: ['env'] },
+        { name: '所有文件', extensions: ['*'] }
+      ]
+    });
+
+    if (result && !result.canceled && result.filePath) {
+      await window.electronAPI.config.exportEnv(result.filePath);
+      message.success('配置已导出到：' + result.filePath);
+    }
   } catch (error) {
     console.error('导出配置失败:', error);
     message.error('导出配置失败：' + error.message);
