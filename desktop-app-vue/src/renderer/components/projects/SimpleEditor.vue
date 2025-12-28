@@ -190,8 +190,10 @@ const initEditor = () => {
   const languageSupport = getLanguageSupport(props.file?.file_name);
 
   // 创建编辑器状态
+  // 确保 doc 是字符串类型
+  const docContent = typeof props.content === 'string' ? props.content : String(props.content || '');
   const state = EditorState.create({
-    doc: props.content || '',
+    doc: docContent,
     extensions: [
       lineNumbers(),
       highlightActiveLine(),
@@ -300,11 +302,14 @@ const handleSave = async () => {
 const setContent = (newContent) => {
   if (!editorView.value) return;
 
+  // 确保内容是字符串类型
+  const contentStr = typeof newContent === 'string' ? newContent : String(newContent || '');
+
   const transaction = editorView.value.state.update({
     changes: {
       from: 0,
       to: editorView.value.state.doc.length,
-      insert: newContent || '',
+      insert: contentStr,
     },
   });
 

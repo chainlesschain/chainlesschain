@@ -125,6 +125,31 @@ if (process.stderr && process.stderr.write) {
   };
 }
 
+// 递归复制目录的辅助函数
+async function copyDirectory(source, destination) {
+  const fs = require('fs').promises;
+  const path = require('path');
+
+  // 确保目标目录存在
+  await fs.mkdir(destination, { recursive: true });
+
+  // 读取源目录内容
+  const entries = await fs.readdir(source, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const sourcePath = path.join(source, entry.name);
+    const destPath = path.join(destination, entry.name);
+
+    if (entry.isDirectory()) {
+      // 递归复制子目录
+      await copyDirectory(sourcePath, destPath);
+    } else {
+      // 复制文件
+      await fs.copyFile(sourcePath, destPath);
+    }
+  }
+}
+
 class ChainlessChainApp {
   constructor() {
     this.mainWindow = null;
@@ -8200,6 +8225,265 @@ ${content}
         };
       } catch (error) {
         console.error('[Main] 文件导入失败:', error);
+        throw error;
+      }
+    });
+
+    // 导出文件到外部
+    ipcMain.handle('project:export-file', async (_event, params) => {
+      try {
+        const { projectPath, targetPath, isDirectory } = params;
+        console.log(`[Main] 导出文件: ${projectPath} -> ${targetPath}`);
+
+        const fs = require('fs').promises;
+        const projectConfig = getProjectConfig();
+
+        // 解析项目内路径
+        const resolvedSourcePath = projectConfig.resolveProjectPath(projectPath);
+
+        // 检查源文件/文件夹是否存在
+        const stats = await fs.stat(resolvedSourcePath);
+
+        if (stats.isDirectory()) {
+          // 递归复制目录
+          await copyDirectory(resolvedSourcePath, targetPath);
+        } else {
+          // 确保目标目录存在
+          const targetDir = path.dirname(targetPath);
+          await fs.mkdir(targetDir, { recursive: true });
+
+          // 复制单个文件
+          await fs.copyFile(resolvedSourcePath, targetPath);
+        }
+
+        console.log(`[Main] 文件导出成功: ${targetPath}`);
+
+        return {
+          success: true,
+          path: targetPath,
+          isDirectory: stats.isDirectory()
+        };
+      } catch (error) {
+        console.error('[Main] 文件导出失败:', error);
+        throw error;
+      }
+    });
+
+    // 批量导出文件到外部
+    ipcMain.handle('project:export-files', async (_event, params) => {
+      try {
+        const { files, targetDirectory } = params;
+        console.log(`[Main] 批量导出 ${files.length} 个文件到: ${targetDirectory}`);
+
+        const fs = require('fs').promises;
+        const projectConfig = getProjectConfig();
+        const results = [];
+
+        // 确保目标目录存在
+        await fs.mkdir(targetDirectory, { recursive: true });
+
+        for (const file of files) {
+          try {
+            const resolvedSourcePath = projectConfig.resolveProjectPath(file.path);
+            const targetPath = path.join(targetDirectory, file.name);
+
+            const stats = await fs.stat(resolvedSourcePath);
+
+            if (stats.isDirectory()) {
+              await copyDirectory(resolvedSourcePath, targetPath);
+            } else {
+              await fs.copyFile(resolvedSourcePath, targetPath);
+            }
+
+            results.push({
+              success: true,
+              name: file.name,
+              path: targetPath
+            });
+          } catch (error) {
+            console.error(`[Main] 导出文件失败: ${file.name}`, error);
+            results.push({
+              success: false,
+              name: file.name,
+              error: error.message
+            });
+          }
+        }
+
+        const successCount = results.filter(r => r.success).length;
+        console.log(`[Main] 批量导出完成: ${successCount}/${files.length} 成功`);
+
+        return {
+          success: true,
+          results,
+          successCount,
+          totalCount: files.length
+        };
+      } catch (error) {
+        console.error('[Main] 批量导出失败:', error);
+        throw error;
+      }
+    });
+
+    // 选择导出目录对话框
+    ipcMain.handle('project:select-export-directory', async (_event) => {
+      try {
+        const result = await dialog.showOpenDialog(mainWindow, {
+          properties: ['openDirectory', 'createDirectory'],
+          title: '选择导出目录'
+        });
+
+        if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+          return {
+            success: false,
+            canceled: true
+          };
+        }
+
+        return {
+          success: true,
+          path: result.filePaths[0]
+        };
+      } catch (error) {
+        console.error('[Main] 选择导出目录失败:', error);
+        throw error;
+      }
+    });
+
+    // 选择导入文件对话框
+    ipcMain.handle('project:select-import-files', async (_event, options = {}) => {
+      try {
+        const dialogOptions = {
+          properties: ['openFile', 'multiSelections'],
+          title: '选择要导入的文件'
+        };
+
+        // 如果允许选择文件夹
+        if (options.allowDirectory) {
+          dialogOptions.properties.push('openDirectory');
+        }
+
+        // 文件过滤器
+        if (options.filters) {
+          dialogOptions.filters = options.filters;
+        }
+
+        const result = await dialog.showOpenDialog(mainWindow, dialogOptions);
+
+        if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+          return {
+            success: false,
+            canceled: true
+          };
+        }
+
+        return {
+          success: true,
+          filePaths: result.filePaths
+        };
+      } catch (error) {
+        console.error('[Main] 选择导入文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 批量导入文件到项目
+    ipcMain.handle('project:import-files', async (_event, params) => {
+      try {
+        const { projectId, externalPaths, targetDirectory } = params;
+        console.log(`[Main] 批量导入 ${externalPaths.length} 个文件到: ${targetDirectory}`);
+
+        const fs = require('fs').promises;
+        const projectConfig = getProjectConfig();
+        const results = [];
+
+        for (const externalPath of externalPaths) {
+          try {
+            const fileName = path.basename(externalPath);
+            const targetPath = path.join(targetDirectory, fileName);
+            const resolvedTargetPath = projectConfig.resolveProjectPath(targetPath);
+
+            // 确保目标目录存在
+            const targetDir = path.dirname(resolvedTargetPath);
+            await fs.mkdir(targetDir, { recursive: true });
+
+            // 检查源是文件还是目录
+            const stats = await fs.stat(externalPath);
+
+            if (stats.isDirectory()) {
+              await copyDirectory(externalPath, resolvedTargetPath);
+            } else {
+              await fs.copyFile(externalPath, resolvedTargetPath);
+            }
+
+            // 读取文件内容（仅对文件，不对目录）
+            let content = '';
+            let fileSize = 0;
+
+            if (stats.isFile()) {
+              try {
+                content = await fs.readFile(resolvedTargetPath, 'utf-8');
+                fileSize = stats.size;
+              } catch (err) {
+                // 如果是二进制文件，忽略内容读取错误
+                console.log(`[Main] 无法读取文件内容（可能是二进制文件）: ${fileName}`);
+                fileSize = stats.size;
+              }
+            }
+
+            // 添加到数据库
+            const db = getDatabaseConnection();
+            const fileId = require('crypto').randomUUID();
+            const fileExt = path.extname(fileName).substring(1);
+
+            const insertSQL = `
+              INSERT INTO project_files (
+                id, project_id, file_name, file_path, file_type, file_size, content,
+                created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            `;
+
+            await db.run(insertSQL, [
+              fileId,
+              projectId,
+              fileName,
+              targetPath,
+              fileExt || 'unknown',
+              fileSize,
+              content
+            ]);
+
+            results.push({
+              success: true,
+              fileId,
+              name: fileName,
+              path: resolvedTargetPath
+            });
+
+            console.log(`[Main] 文件导入成功: ${fileName}`);
+          } catch (error) {
+            console.error(`[Main] 导入文件失败: ${path.basename(externalPath)}`, error);
+            results.push({
+              success: false,
+              name: path.basename(externalPath),
+              error: error.message
+            });
+          }
+        }
+
+        await saveDatabase();
+
+        const successCount = results.filter(r => r.success).length;
+        console.log(`[Main] 批量导入完成: ${successCount}/${externalPaths.length} 成功`);
+
+        return {
+          success: true,
+          results,
+          successCount,
+          totalCount: externalPaths.length
+        };
+      } catch (error) {
+        console.error('[Main] 批量导入失败:', error);
         throw error;
       }
     });

@@ -370,7 +370,12 @@ const handleSendMessage = async () => {
     scrollToBottom();
 
     // 获取项目信息和文件列表
-    const projectInfo = await buildProjectContext();
+    const project = await window.electronAPI.project.get(props.projectId);
+    const projectInfo = project ? {
+      name: project.name,
+      description: project.description || '',
+      type: project.project_type || 'general'
+    } : null;
     const fileList = await getProjectFiles();
 
     // 构建对话历史（最近10条）

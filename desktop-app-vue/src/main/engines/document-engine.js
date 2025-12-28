@@ -8,7 +8,23 @@ const fs = require('fs').promises;
 const path = require('path');
 
 class DocumentEngine {
-  constructor() {
+  constructor(options = {}) {
+    // Python工具集成选项
+    this.usePythonTools = options.usePythonTools || false;
+    this.pythonBridge = null;
+
+    // 如果启用Python工具，加载桥接器
+    if (this.usePythonTools) {
+      try {
+        const { getPythonBridge } = require('../project/python-bridge');
+        this.pythonBridge = getPythonBridge();
+        console.log('[Document Engine] Python工具已启用');
+      } catch (error) {
+        console.warn('[Document Engine] Python工具加载失败，将使用npm包实现:', error.message);
+        this.usePythonTools = false;
+      }
+    }
+
     // 文档模板定义
     this.templates = {
       business_report: {
@@ -739,12 +755,81 @@ pandoc document.md -o document.docx
   }
 
   /**
+   * 使用Python工具生成Word文档
+   * @param {Object} params - 文档参数
+   * @returns {Promise<Object>} 生成结果
+   */
+  async generateWordWithPython(params) {
+    if (!this.pythonBridge) {
+      throw new Error('Python工具未启用');
+    }
+
+    console.log('[Document Engine] 使用Python生成Word文档');
+
+    const {
+      title = '文档标题',
+      content = '文档内容',
+      output_path,
+      template = 'business',
+      metadata = {}
+    } = params;
+
+    try {
+      const result = await this.pythonBridge.callTool('word_generator', {
+        operation: 'create',
+        title,
+        content,
+        output_path,
+        template,
+        metadata
+      });
+
+      console.log('[Document Engine] Python Word文档生成成功:', result);
+      return result;
+    } catch (error) {
+      console.error('[Document Engine] Python Word生成失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 导出为Word文档
    * @param {string} markdownPath - Markdown文件路径
    * @param {string} outputPath - 输出Docx路径
    */
   async exportToDocx(markdownPath, outputPath) {
     console.log('[Document Engine] 导出Word文档:', markdownPath);
+
+    // 如果启用了Python工具，优先使用Python
+    if (this.usePythonTools && this.pythonBridge) {
+      try {
+        console.log('[Document Engine] 尝试使用Python工具生成Word...');
+
+        // 读取Markdown内容
+        const markdownContent = await fs.readFile(markdownPath, 'utf-8');
+
+        // 提取标题（第一行的#标题）
+        const titleMatch = markdownContent.match(/^#\s+(.+)$/m);
+        const title = titleMatch ? titleMatch[1] : 'Document';
+
+        const result = await this.generateWordWithPython({
+          title,
+          content: markdownContent,
+          output_path: outputPath,
+          template: 'business'
+        });
+
+        return {
+          success: true,
+          path: outputPath,
+          method: 'python-docx',
+          ...result
+        };
+      } catch (pythonError) {
+        console.warn('[Document Engine] Python工具失败，降级到npm包实现:', pythonError.message);
+        // 继续使用下面的npm包实现
+      }
+    }
 
     try {
       // 注意：完整的Docx导出需要docx库或pandoc
