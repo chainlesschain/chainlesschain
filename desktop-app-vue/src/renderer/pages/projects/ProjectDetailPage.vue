@@ -409,7 +409,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { useProjectStore } from '@/stores/project';
@@ -506,11 +506,25 @@ const projectId = computed(() => route.params.id);
 const currentProject = computed(() => projectStore.currentProject);
 const projectFiles = computed(() => {
   const files = projectStore.projectFiles;
-  console.log('[ProjectDetail] projectFiles computed, 文件数量:', files?.length || 0);
-  if (files && files.length > 0) {
-    console.log('[ProjectDetail] 前3个文件:', files.slice(0, 3).map(f => `${f.file_name} (${f.file_path})`));
+  console.log('[ProjectDetail] projectFiles computed 执行');
+  console.log('  文件数量:', files?.length || 0);
+  console.log('  时间戳:', Date.now());
+
+  if (!files || files.length === 0) {
+    console.log('[ProjectDetail] 返回空数组');
+    return [];
   }
-  return files;
+
+  if (files.length > 0 && files.length <= 3) {
+    console.log('[ProjectDetail] 文件列表:', files.map(f => f.file_name).join(', '));
+  } else if (files.length > 3) {
+    console.log('[ProjectDetail] 前3个文件:', files.slice(0, 3).map(f => f.file_name).join(', '));
+  }
+
+  // 🔑 关键：创建新数组引用确保响应式
+  const newRef = [...files];
+  console.log('[ProjectDetail] 创建新引用，长度:', newRef.length);
+  return newRef;
 });
 const currentFile = computed(() => projectStore.currentFile);
 
@@ -853,15 +867,44 @@ const handleBackToList = () => {
   }
 };
 
+/**
+ * 统一的文件加载函数，确保响应式和时序正确
+ */
+const loadFilesWithSync = async (targetProjectId) => {
+  console.log('[ProjectDetail] loadFilesWithSync 开始, projectId:', targetProjectId);
+
+  // 1. 加载文件
+  await projectStore.loadProjectFiles(targetProjectId);
+  console.log('[ProjectDetail]   ✓ Store 已更新');
+
+  // 2-3. 双重 nextTick 确保响应式完成
+  await nextTick();
+  await nextTick();
+  console.log('[ProjectDetail]   ✓ 响应式已传播');
+
+  // 4. 强制重新渲染
+  fileTreeKey.value++;
+  console.log('[ProjectDetail]   ✓ Key 已更新:', fileTreeKey.value);
+
+  // 5. 等待渲染
+  await nextTick();
+  console.log('[ProjectDetail] loadFilesWithSync 完成');
+};
+
 // 刷新文件列表
 const handleRefreshFiles = async () => {
   refreshing.value = true;
   try {
-    await projectStore.loadProjectFiles(projectId.value);
-    // 强制更新文件树组件
-    fileTreeKey.value++;
+    console.log('[ProjectDetail] ===== 开始刷新文件列表 =====');
+    console.log('[ProjectDetail] 项目ID:', projectId.value);
+
+    // 使用统一的加载函数
+    await loadFilesWithSync(projectId.value);
+
     message.success('文件列表已刷新');
+    console.log('[ProjectDetail] ===== 刷新完成 =====');
   } catch (error) {
+    console.error('[ProjectDetail] ===== 刷新失败 =====');
     console.error('Refresh files failed:', error);
     message.error('刷新失败：' + error.message);
   } finally {
@@ -1152,9 +1195,7 @@ const handleAICreationComplete = async (result) => {
   } else {
     // 刷新项目信息和文件列表
     await projectStore.fetchProjectById(result.projectId);
-    await projectStore.loadProjectFiles(result.projectId);
-    // 强制更新文件树组件
-    fileTreeKey.value++;
+    await loadFilesWithSync(result.projectId);
     console.log('[ProjectDetail] AI创建完成，文件树已刷新');
   }
 };
@@ -1187,11 +1228,8 @@ onMounted(async () => {
       return;
     }
 
-    // 加载项目文件
-    await projectStore.loadProjectFiles(projectId.value);
-
-    // 强制更新文件树组件（初始加载）
-    fileTreeKey.value++;
+    // 加载项目文件（使用统一的加载函数）
+    await loadFilesWithSync(projectId.value);
     console.log('[ProjectDetail] 初始文件树已加载');
 
     // 解析项目路径
@@ -1235,18 +1273,18 @@ onMounted(async () => {
       if (currentFile.value && currentFile.value.id === event.fileId) {
         handleFileSelect(currentFile.value);
       }
-      // 刷新文件列表（保持文件树最新）
-      projectStore.loadProjectFiles(projectId.value).then(() => {
-        fileTreeKey.value++;
+      // 刷新文件列表（使用统一的加载函数）
+      loadFilesWithSync(projectId.value).catch(err => {
+        console.error('[ProjectDetail] 文件更新后刷新失败:', err);
       });
     });
 
     window.electronAPI.onFileAdded?.((event) => {
       console.log('[ProjectDetail] 检测到新文件添加:', event);
       message.info(`新文件已添加: ${event.relativePath}`);
-      // 刷新文件列表
-      projectStore.loadProjectFiles(projectId.value).then(() => {
-        fileTreeKey.value++;
+      // 刷新文件列表（使用统一的加载函数）
+      loadFilesWithSync(projectId.value).catch(err => {
+        console.error('[ProjectDetail] 文件添加后刷新失败:', err);
       });
     });
 
@@ -1258,9 +1296,9 @@ onMounted(async () => {
         currentFile.value = null;
         fileContent.value = '';
       }
-      // 刷新文件列表
-      projectStore.loadProjectFiles(projectId.value).then(() => {
-        fileTreeKey.value++;
+      // 刷新文件列表（使用统一的加载函数）
+      loadFilesWithSync(projectId.value).catch(err => {
+        console.error('[ProjectDetail] 文件删除后刷新失败:', err);
       });
     });
 
@@ -1272,11 +1310,9 @@ onMounted(async () => {
     // 监听文件列表更新事件（新增、删除、重命名、移动等操作）
     window.electronAPI.project.onFilesUpdated?.((event) => {
       console.log('[ProjectDetail] 检测到文件列表更新:', event);
-      // 只刷新当前项目的文件列表
+      // 只刷新当前项目的文件列表（使用统一的加载函数）
       if (event.projectId === projectId.value) {
-        projectStore.loadProjectFiles(projectId.value).then(() => {
-          fileTreeKey.value++;
-        }).catch(err => {
+        loadFilesWithSync(projectId.value).catch(err => {
           console.error('[ProjectDetail] 刷新文件列表失败:', err);
         });
       }
@@ -1356,13 +1392,9 @@ watch(() => route.params.id, async (newId, oldId) => {
       await projectStore.fetchProjectById(newId);
       console.log('[ProjectDetail] 项目数据已加载:', currentProject.value?.name);
 
-      // 4. 加载项目文件
-      await projectStore.loadProjectFiles(newId);
+      // 4. 加载项目文件（使用统一的加载函数）
+      await loadFilesWithSync(newId);
       console.log('[ProjectDetail] 项目文件已加载，数量:', projectStore.projectFiles?.length || 0);
-
-      // 4.1 强制更新文件树组件
-      fileTreeKey.value++;
-      console.log('[ProjectDetail] 文件树已强制刷新');
 
       // 5. 解析项目路径
       if (currentProject.value?.root_path) {
