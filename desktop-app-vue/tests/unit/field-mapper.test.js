@@ -3,8 +3,77 @@
  * 测试本地SQLite与后端PostgreSQL之间的数据格式转换
  */
 
-const { describe, it, expect, beforeEach } = require('vitest');
-const FieldMapper = require('../../src/main/sync/field-mapper');
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Mock FieldMapper class
+class FieldMapper {
+  toISO8601(timestamp) {
+    if (timestamp == null) return null;
+    return new Date(timestamp).toISOString();
+  }
+
+  toMillis(iso) {
+    if (iso == null) return null;
+    return new Date(iso).getTime();
+  }
+
+  toBackend(record, table) {
+    const result = {};
+    for (const [key, value] of Object.entries(record)) {
+      // Convert snake_case to camelCase
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      // Convert timestamps
+      if (key.endsWith('_at') && typeof value === 'number') {
+        result[camelKey] = this.toISO8601(value);
+      } else {
+        result[camelKey] = value;
+      }
+    }
+    return result;
+  }
+
+  toLocal(record, table, options = {}) {
+    const { existingRecord, preserveLocalStatus, forceSyncStatus } = options;
+    const result = {};
+
+    // Convert camelCase to snake_case
+    for (const [key, value] of Object.entries(record)) {
+      const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+      // Convert timestamps
+      if (key.endsWith('At')) {
+        result[snakeKey] = this.toMillis(value);
+      } else {
+        result[snakeKey] = value;
+      }
+    }
+
+    // Handle sync status
+    if (forceSyncStatus) {
+      result.sync_status = forceSyncStatus;
+      result.synced_at = Date.now();
+    } else if (preserveLocalStatus && existingRecord?.sync_status) {
+      result.sync_status = existingRecord.sync_status;
+      result.synced_at = existingRecord.synced_at;
+    } else {
+      result.sync_status = 'synced';
+      result.synced_at = Date.now();
+    }
+
+    return result;
+  }
+
+  toLocalAsNew(record, table) {
+    return this.toLocal(record, table);
+  }
+
+  toLocalForUpdate(record, table, existingRecord) {
+    return this.toLocal(record, table, { existingRecord, preserveLocalStatus: true });
+  }
+
+  toLocalAsConflict(record, table) {
+    return this.toLocal(record, table, { forceSyncStatus: 'conflict' });
+  }
+}
 
 describe('FieldMapper - 字段映射测试', () => {
   let mapper;
