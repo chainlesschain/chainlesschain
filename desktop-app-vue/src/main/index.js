@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const DatabaseManager = require('./database');
+const { getAppConfig } = require('./app-config');
 const { UKeyManager, DriverTypes } = require('./ukey/ukey-manager');
 const ProjectStatsCollector = require('./project/stats-collector');
 const GitManager = require('./git/git-manager');
@@ -13,6 +14,7 @@ const MarkdownExporter = require('./git/markdown-exporter');
 const { getGitConfig } = require('./git/git-config');
 const { LLMManager } = require('./llm/llm-manager');
 const { getLLMConfig } = require('./llm/llm-config');
+const LLMSelector = require('./llm/llm-selector');
 const { RAGManager } = require('./rag/rag-manager');
 const FileImporter = require('./import/file-importer');
 const ImageUploader = require('./image/image-uploader');
@@ -38,6 +40,9 @@ const GitAutoCommit = require('./git-auto-commit');
 
 // File operation IPC
 const FileIPC = require('./ipc/file-ipc');
+
+// Category management IPC
+const { registerCategoryIPCHandlers } = require('./category-ipc');
 
 // Backend API clients
 const { ProjectFileAPI, GitAPI, RAGAPI, CodeAPI } = require('./api/backend-client');
@@ -230,6 +235,15 @@ class ChainlessChainApp {
       console.error('项目模板管理器初始化失败:', error);
     }
 
+    // 注册分类管理IPC处理函数
+    try {
+      console.log('注册分类管理IPC处理函数...');
+      registerCategoryIPCHandlers(this.database, this.mainWindow);
+      console.log('分类管理IPC处理函数注册成功');
+    } catch (error) {
+      console.error('分类管理IPC处理函数注册失败:', error);
+    }
+
     // 初始化U盾管理器
     try {
       // console.log('初始化U盾管理器...');
@@ -289,11 +303,31 @@ class ChainlessChainApp {
       // 即使Git初始化失败，也继续启动应用
     }
 
+    // 初始化LLM选择器
+    try {
+      console.log('初始化LLM选择器...');
+      this.llmSelector = new LLMSelector(this.database);
+      console.log('LLM选择器初始化成功');
+    } catch (error) {
+      console.error('LLM选择器初始化失败:', error);
+    }
+
     // 初始化LLM管理器
     try {
       console.log('初始化LLM管理器...');
-      const llmConfig = getLLMConfig();
-      const managerConfig = llmConfig.getManagerConfig();
+
+      // 从数据库读取LLM配置
+      let provider = this.database.getSetting('llm.provider') || 'volcengine';
+      const autoSelect = this.database.getSetting('llm.autoSelect');
+
+      // 如果启用了智能选择，自动选择最优LLM
+      if (autoSelect && this.llmSelector) {
+        provider = this.llmSelector.selectBestLLM({ taskType: 'chat' });
+        console.log(`[Main] 智能选择LLM: ${provider}`);
+      }
+
+      // 构建LLM管理器配置
+      const managerConfig = this.buildLLMManagerConfig(provider);
 
       this.llmManager = new LLMManager(managerConfig);
       await this.llmManager.initialize();
@@ -880,6 +914,54 @@ class ChainlessChainApp {
     });
 
     console.log('[Main] P2P 加密事件监听已设置');
+  }
+
+  /**
+   * 根据提供商从数据库构建LLM管理器配置
+   * @param {string} provider - LLM提供商名称
+   * @returns {Object} LLM管理器配置对象
+   */
+  buildLLMManagerConfig(provider) {
+    const config = {
+      provider,
+      timeout: 120000,
+    };
+
+    switch (provider) {
+      case 'ollama':
+        config.ollamaURL = this.database.getSetting('llm.ollamaHost') || 'http://localhost:11434';
+        config.model = this.database.getSetting('llm.ollamaModel') || 'qwen2:7b';
+        break;
+
+      case 'openai':
+        config.apiKey = this.database.getSetting('llm.openaiApiKey') || '';
+        config.baseURL = this.database.getSetting('llm.openaiBaseUrl') || 'https://api.openai.com/v1';
+        config.model = this.database.getSetting('llm.openaiModel') || 'gpt-3.5-turbo';
+        break;
+
+      case 'volcengine':
+        config.apiKey = this.database.getSetting('llm.volcengineApiKey') || '';
+        config.baseURL = 'https://ark.cn-beijing.volces.com/api/v3';
+        config.model = this.database.getSetting('llm.volcengineModel') || 'doubao-seed-1-6-lite-251015';
+        break;
+
+      case 'deepseek':
+        config.apiKey = this.database.getSetting('llm.deepseekApiKey') || '';
+        config.model = this.database.getSetting('llm.deepseekModel') || 'deepseek-chat';
+        break;
+
+      case 'dashscope':
+        config.apiKey = this.database.getSetting('llm.dashscopeApiKey') || '';
+        config.model = this.database.getSetting('llm.dashscopeModel') || 'qwen-turbo';
+        break;
+
+      case 'zhipu':
+        config.apiKey = this.database.getSetting('llm.zhipuApiKey') || '';
+        config.model = this.database.getSetting('llm.zhipuModel') || 'glm-4';
+        break;
+    }
+
+    return config;
   }
 
   /**
@@ -4708,6 +4790,31 @@ class ChainlessChainApp {
             throw saveError;
           }
 
+          // 为document类型项目创建根目录并设置root_path
+          const projectType = cleanedProject.project_type || cleanedProject.projectType;
+          if (projectType === 'document') {
+            try {
+              const { getProjectConfig } = require('./project/project-config');
+              const projectConfig = getProjectConfig();
+              const projectRootPath = require('path').join(
+                projectConfig.getProjectsRootPath(),
+                cleanedProject.id
+              );
+
+              console.log('[Main] 创建项目目录:', projectRootPath);
+              await require('fs').promises.mkdir(projectRootPath, { recursive: true });
+
+              // 立即更新项目的root_path（无论是否有文件）
+              await this.database.updateProject(cleanedProject.id, {
+                root_path: projectRootPath,
+              });
+              console.log('[Main] 项目root_path已设置:', projectRootPath);
+            } catch (dirError) {
+              console.error('[Main] 创建项目目录失败:', dirError);
+              // 继续执行，不影响项目创建
+            }
+          }
+
           // 保存项目文件
           if (cleanedProject.files && cleanedProject.files.length > 0) {
             try {
@@ -4846,6 +4953,52 @@ class ChainlessChainApp {
                 console.log('[Main] 保存项目到数据库，ID:', localProject.id);
                 await this.database.saveProject(localProject);
 
+                // 为document类型项目创建根目录并设置root_path
+                if (projectType === 'document') {
+                  try {
+                    const projectConfig = getProjectConfig();
+                    const projectRootPath = path.join(
+                      projectConfig.getProjectsRootPath(),
+                      localProject.id
+                    );
+
+                    console.log('[Main] 创建项目目录:', projectRootPath);
+                    await fs.promises.mkdir(projectRootPath, { recursive: true });
+
+                    // 立即更新项目的root_path（无论是否有文件）
+                    await this.database.updateProject(localProject.id, {
+                      root_path: projectRootPath,
+                    });
+                    console.log('[Main] 项目root_path已设置:', projectRootPath);
+
+                    // 如果有文件，写入到文件系统
+                    if (accumulatedData.files.length > 0) {
+                      for (const file of accumulatedData.files) {
+                        const filePath = path.join(projectRootPath, file.path);
+                        console.log('[Main] 写入文件:', filePath);
+
+                        // 解码base64内容
+                        let fileContent;
+                        if (file.content_encoding === 'base64') {
+                          fileContent = Buffer.from(file.content, 'base64');
+                          console.log('[Main] 已解码base64内容，大小:', fileContent.length, 'bytes');
+                        } else if (typeof file.content === 'string') {
+                          fileContent = Buffer.from(file.content, 'utf-8');
+                        } else {
+                          fileContent = file.content;
+                        }
+
+                        await fs.promises.writeFile(filePath, fileContent);
+                        console.log('[Main] 文件写入成功:', file.path);
+                      }
+                    }
+                  } catch (writeError) {
+                    console.error('[Main] 创建项目目录或写入文件失败:', writeError);
+                    console.error('[Main] 错误堆栈:', writeError.stack);
+                    // 不抛出错误，继续处理
+                  }
+                }
+
                 // 保存项目文件到数据库
                 const cleanedFiles = this._replaceUndefinedWithNull(accumulatedData.files);
                 console.log('[Main] 准备保存文件到数据库，文件数量:', cleanedFiles.length);
@@ -4871,50 +5024,6 @@ class ChainlessChainApp {
                     updated_at: Date.now()
                   });
                   console.log('[Main] 已更新项目的file_count为:', savedFiles.length);
-                }
-
-                // 写入文件到文件系统（对于document类型）
-                if (projectType === 'document' && accumulatedData.files.length > 0) {
-                  try {
-                    const projectConfig = getProjectConfig();
-                    const projectRootPath = path.join(
-                      projectConfig.getProjectsRootPath(),
-                      localProject.id
-                    );
-
-                    console.log('[Main] 创建项目目录:', projectRootPath);
-                    await fs.promises.mkdir(projectRootPath, { recursive: true });
-
-                    // 写入每个文件到文件系统
-                    for (const file of accumulatedData.files) {
-                      const filePath = path.join(projectRootPath, file.path);
-                      console.log('[Main] 写入文件:', filePath);
-
-                      // 解码base64内容
-                      let fileContent;
-                      if (file.content_encoding === 'base64') {
-                        fileContent = Buffer.from(file.content, 'base64');
-                        console.log('[Main] 已解码base64内容，大小:', fileContent.length, 'bytes');
-                      } else if (typeof file.content === 'string') {
-                        fileContent = Buffer.from(file.content, 'utf-8');
-                      } else {
-                        fileContent = file.content;
-                      }
-
-                      await fs.promises.writeFile(filePath, fileContent);
-                      console.log('[Main] 文件写入成功:', file.path);
-                    }
-
-                    // 更新项目的root_path
-                    await this.database.updateProject(localProject.id, {
-                      root_path: projectRootPath,
-                    });
-                    console.log('[Main] 项目root_path已更新');
-                  } catch (writeError) {
-                    console.error('[Main] 写入文件系统失败:', writeError);
-                    console.error('[Main] 错误堆栈:', writeError.stack);
-                    // 不抛出错误，文件已在数据库中，可以后续处理
-                  }
                 }
 
                 // 返回包含本地ID的完整数据
@@ -5090,6 +5199,144 @@ class ChainlessChainApp {
       }
     });
 
+    // 修复项目的root_path（为document类型的项目创建目录并设置路径）
+    ipcMain.handle('project:repair-root-path', async (_event, projectId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        const project = this.database.db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
+        if (!project) {
+          throw new Error('项目不存在');
+        }
+
+        const projectType = project.project_type || project.projectType;
+        if (projectType !== 'document') {
+          return { success: false, message: '只能修复document类型的项目' };
+        }
+
+        // 检查是否已有root_path
+        if (project.root_path) {
+          console.log('[Main] 项目已有root_path:', project.root_path);
+          return { success: true, message: '项目已有root_path', rootPath: project.root_path };
+        }
+
+        // 创建项目目录
+        const { getProjectConfig } = require('./project/project-config');
+        const projectConfig = getProjectConfig();
+        const projectRootPath = require('path').join(
+          projectConfig.getProjectsRootPath(),
+          projectId
+        );
+
+        console.log('[Main] 修复项目root_path，创建目录:', projectRootPath);
+        await require('fs').promises.mkdir(projectRootPath, { recursive: true });
+
+        // 更新数据库
+        await this.database.updateProject(projectId, {
+          root_path: projectRootPath,
+        });
+
+        console.log('[Main] 项目root_path修复完成:', projectRootPath);
+        return { success: true, message: '修复成功', rootPath: projectRootPath };
+      } catch (error) {
+        console.error('[Main] 修复项目root_path失败:', error);
+        throw error;
+      }
+    });
+
+    // 批量修复所有缺失root_path的document项目
+    ipcMain.handle('project:repair-all-root-paths', async (_event) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        console.log('[Main] ========== 开始批量修复项目root_path ==========');
+
+        // 查找所有缺失root_path的document项目
+        const brokenProjects = this.database.db.prepare(`
+          SELECT id, name, project_type, root_path
+          FROM projects
+          WHERE project_type = 'document'
+            AND (root_path IS NULL OR root_path = '')
+          ORDER BY created_at DESC
+        `).all();
+
+        console.log(`[Main] 发现 ${brokenProjects.length} 个缺失root_path的项目`);
+
+        if (brokenProjects.length === 0) {
+          return {
+            success: true,
+            message: '所有项目都有正确的root_path',
+            fixed: 0,
+            failed: 0,
+            details: []
+          };
+        }
+
+        const { getProjectConfig } = require('./project/project-config');
+        const projectConfig = getProjectConfig();
+        const results = {
+          success: true,
+          fixed: 0,
+          failed: 0,
+          details: []
+        };
+
+        // 逐个修复
+        for (const project of brokenProjects) {
+          try {
+            const projectRootPath = require('path').join(
+              projectConfig.getProjectsRootPath(),
+              project.id
+            );
+
+            console.log(`[Main] 修复项目: ${project.name} (${project.id})`);
+            console.log(`[Main]   创建目录: ${projectRootPath}`);
+
+            // 创建目录
+            await require('fs').promises.mkdir(projectRootPath, { recursive: true });
+
+            // 更新数据库
+            await this.database.updateProject(project.id, {
+              root_path: projectRootPath,
+            });
+
+            results.fixed++;
+            results.details.push({
+              id: project.id,
+              name: project.name,
+              status: 'fixed',
+              rootPath: projectRootPath
+            });
+
+            console.log(`[Main]   ✅ 修复成功`);
+          } catch (error) {
+            console.error(`[Main]   ❌ 修复失败:`, error.message);
+            results.failed++;
+            results.details.push({
+              id: project.id,
+              name: project.name,
+              status: 'failed',
+              error: error.message
+            });
+          }
+        }
+
+        console.log(`[Main] ========== 批量修复完成 ==========`);
+        console.log(`[Main] 修复成功: ${results.fixed} 个`);
+        console.log(`[Main] 修复失败: ${results.failed} 个`);
+
+        results.message = `修复完成：成功 ${results.fixed} 个，失败 ${results.failed} 个`;
+        return results;
+      } catch (error) {
+        console.error('[Main] 批量修复失败:', error);
+        throw error;
+      }
+    });
+
     // 删除项目（后端）
     ipcMain.handle('project:delete', async (_event, projectId) => {
       try {
@@ -5161,11 +5408,25 @@ class ChainlessChainApp {
           throw new Error('项目不存在');
         }
 
+        console.log('[Main] 📋 项目完整信息:', {
+          id: project.id,
+          name: project.name,
+          root_path: project.root_path,
+          folder_path: project.folder_path,
+          project_type: project.project_type,
+          created_at: project.created_at
+        });
+
         const rootPath = project.root_path || project.folder_path;
         console.log('[Main] 项目根路径:', rootPath);
 
         if (!rootPath) {
-          console.warn('[Main] ⚠️  项目没有根路径');
+          console.error('[Main] ⚠️  项目没有根路径！');
+          console.error('[Main] 可能原因：');
+          console.error('[Main]   1. 项目创建时未设置路径');
+          console.error('[Main]   2. 数据库迁移导致字段丢失');
+          console.error('[Main]   3. 项目记录损坏');
+          console.error('[Main] 建议：检查项目创建流程或重新创建项目');
           return [];
         }
 
@@ -5994,6 +6255,352 @@ class ChainlessChainApp {
         return this.database.clearConversationMessages(conversationId);
       } catch (error) {
         console.error('[Main] 清空对话消息失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 系统配置 IPC ====================
+
+    // 获取所有配置
+    ipcMain.handle('config:get-all', async () => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.getAllSettings();
+      } catch (error) {
+        console.error('[Main] 获取配置失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取单个配置项
+    ipcMain.handle('config:get', async (_event, key) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.getSetting(key);
+      } catch (error) {
+        console.error('[Main] 获取配置项失败:', error);
+        throw error;
+      }
+    });
+
+    // 更新配置
+    ipcMain.handle('config:update', async (_event, config) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.updateSettings(config);
+      } catch (error) {
+        console.error('[Main] 更新配置失败:', error);
+        throw error;
+      }
+    });
+
+    // 设置单个配置项
+    ipcMain.handle('config:set', async (_event, key, value) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.setSetting(key, value);
+      } catch (error) {
+        console.error('[Main] 设置配置项失败:', error);
+        throw error;
+      }
+    });
+
+    // 重置配置为默认值
+    ipcMain.handle('config:reset', async () => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.resetSettings();
+      } catch (error) {
+        console.error('[Main] 重置配置失败:', error);
+        throw error;
+      }
+    });
+
+    // 导出配置为.env文件
+    ipcMain.handle('config:export-env', async (_event, filePath) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        const config = this.database.getAllSettings();
+        const fs = require('fs');
+
+        // 构建.env文件内容
+        let envContent = '# ChainlessChain 系统配置\n';
+        envContent += `# 生成时间: ${new Date().toISOString()}\n\n`;
+
+        // 项目配置
+        envContent += '# 项目配置\n';
+        envContent += `PROJECT_ROOT_PATH=${config.project.rootPath || ''}\n`;
+        envContent += `PROJECT_MAX_SIZE_MB=${config.project.maxSizeMB || 1000}\n`;
+        envContent += `PROJECT_AUTO_SYNC=${config.project.autoSync || false}\n`;
+        envContent += `PROJECT_SYNC_INTERVAL_SECONDS=${config.project.syncIntervalSeconds || 300}\n\n`;
+
+        // LLM配置
+        envContent += '# LLM配置\n';
+        envContent += `LLM_PROVIDER=${config.llm.provider || 'volcengine'}\n`;
+        envContent += `OLLAMA_HOST=${config.llm.ollamaHost || 'http://localhost:11434'}\n`;
+        envContent += `OLLAMA_MODEL=${config.llm.ollamaModel || 'qwen2:7b'}\n`;
+        if (config.llm.openaiApiKey) envContent += `OPENAI_API_KEY=${config.llm.openaiApiKey}\n`;
+        if (config.llm.openaiBaseUrl) envContent += `OPENAI_BASE_URL=${config.llm.openaiBaseUrl}\n`;
+        if (config.llm.openaiModel) envContent += `OPENAI_MODEL=${config.llm.openaiModel}\n`;
+        if (config.llm.volcengineApiKey) envContent += `VOLCENGINE_API_KEY=${config.llm.volcengineApiKey}\n`;
+        if (config.llm.volcengineModel) envContent += `VOLCENGINE_MODEL=${config.llm.volcengineModel}\n`;
+        if (config.llm.dashscopeApiKey) envContent += `DASHSCOPE_API_KEY=${config.llm.dashscopeApiKey}\n`;
+        if (config.llm.dashscopeModel) envContent += `DASHSCOPE_MODEL=${config.llm.dashscopeModel}\n`;
+        if (config.llm.zhipuApiKey) envContent += `ZHIPU_API_KEY=${config.llm.zhipuApiKey}\n`;
+        if (config.llm.zhipuModel) envContent += `ZHIPU_MODEL=${config.llm.zhipuModel}\n`;
+        if (config.llm.deepseekApiKey) envContent += `DEEPSEEK_API_KEY=${config.llm.deepseekApiKey}\n`;
+        if (config.llm.deepseekModel) envContent += `DEEPSEEK_MODEL=${config.llm.deepseekModel}\n\n`;
+
+        // 向量数据库配置
+        envContent += '# 向量数据库配置\n';
+        envContent += `QDRANT_HOST=${config.vector.qdrantHost || 'http://localhost:6333'}\n`;
+        envContent += `QDRANT_PORT=${config.vector.qdrantPort || 6333}\n`;
+        envContent += `QDRANT_COLLECTION=${config.vector.qdrantCollection || 'chainlesschain_vectors'}\n`;
+        envContent += `EMBEDDING_MODEL=${config.vector.embeddingModel || 'bge-base-zh-v1.5'}\n`;
+        envContent += `EMBEDDING_DIMENSION=${config.vector.embeddingDimension || 768}\n\n`;
+
+        // Git配置
+        envContent += '# Git配置\n';
+        envContent += `GIT_ENABLED=${config.git.enabled || false}\n`;
+        envContent += `GIT_AUTO_SYNC=${config.git.autoSync || false}\n`;
+        envContent += `GIT_AUTO_SYNC_INTERVAL=${config.git.autoSyncInterval || 300}\n`;
+        if (config.git.userName) envContent += `GIT_USER_NAME=${config.git.userName}\n`;
+        if (config.git.userEmail) envContent += `GIT_USER_EMAIL=${config.git.userEmail}\n`;
+        if (config.git.remoteUrl) envContent += `GIT_REMOTE_URL=${config.git.remoteUrl}\n\n`;
+
+        // 后端服务配置
+        envContent += '# 后端服务配置\n';
+        envContent += `PROJECT_SERVICE_URL=${config.backend.projectServiceUrl || 'http://localhost:9090'}\n`;
+        envContent += `AI_SERVICE_URL=${config.backend.aiServiceUrl || 'http://localhost:8001'}\n\n`;
+
+        // 数据库配置
+        if (config.database.sqlcipherKey) {
+          envContent += '# 数据库配置\n';
+          envContent += `SQLCIPHER_KEY=${config.database.sqlcipherKey}\n`;
+        }
+
+        fs.writeFileSync(filePath, envContent, 'utf-8');
+        return true;
+      } catch (error) {
+        console.error('[Main] 导出配置失败:', error);
+        throw error;
+      }
+    });
+
+    // 选择文件夹
+    ipcMain.handle('dialog:select-folder', async (_event, options = {}) => {
+      try {
+        const { dialog } = require('electron');
+        const result = await dialog.showOpenDialog({
+          properties: ['openDirectory', 'createDirectory'],
+          title: options.title || '选择文件夹',
+          defaultPath: options.defaultPath,
+          buttonLabel: options.buttonLabel || '选择'
+        });
+
+        if (result.canceled) {
+          return null;
+        }
+
+        return result.filePaths[0];
+      } catch (error) {
+        console.error('[Main] 选择文件夹失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== LLM智能选择 IPC ====================
+
+    // 获取LLM选择器信息
+    ipcMain.handle('llm:get-selector-info', async () => {
+      try {
+        if (!this.llmSelector) {
+          throw new Error('LLM选择器未初始化');
+        }
+
+        return {
+          characteristics: this.llmSelector.getAllCharacteristics(),
+          taskTypes: this.llmSelector.getTaskTypes(),
+        };
+      } catch (error) {
+        console.error('[Main] 获取LLM选择器信息失败:', error);
+        throw error;
+      }
+    });
+
+    // 智能选择最优LLM
+    ipcMain.handle('llm:select-best', async (_event, options = {}) => {
+      try {
+        if (!this.llmSelector) {
+          throw new Error('LLM选择器未初始化');
+        }
+
+        const provider = this.llmSelector.selectBestLLM(options);
+        return provider;
+      } catch (error) {
+        console.error('[Main] 智能选择LLM失败:', error);
+        throw error;
+      }
+    });
+
+    // 生成LLM选择报告
+    ipcMain.handle('llm:generate-report', async (_event, taskType = 'chat') => {
+      try {
+        if (!this.llmSelector) {
+          throw new Error('LLM选择器未初始化');
+        }
+
+        return this.llmSelector.generateSelectionReport(taskType);
+      } catch (error) {
+        console.error('[Main] 生成LLM选择报告失败:', error);
+        throw error;
+      }
+    });
+
+    // 切换LLM提供商
+    ipcMain.handle('llm:switch-provider', async (_event, provider) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        // 保存新的提供商到数据库
+        this.database.setSetting('llm.provider', provider);
+
+        // 重新初始化LLM管理器
+        if (this.llmManager) {
+          await this.llmManager.close();
+        }
+
+        const managerConfig = this.buildLLMManagerConfig(provider);
+        this.llmManager = new LLMManager(managerConfig);
+        await this.llmManager.initialize();
+
+        console.log(`[Main] 已切换到LLM提供商: ${provider}`);
+        return true;
+      } catch (error) {
+        console.error('[Main] 切换LLM提供商失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 数据库配置 IPC ====================
+
+    // 获取数据库配置
+    ipcMain.handle('database:get-config', async () => {
+      try {
+        const appConfig = getAppConfig();
+        return {
+          path: appConfig.getDatabasePath(),
+          defaultPath: appConfig.getDefaultDatabasePath(),
+          exists: appConfig.databaseExists(),
+          autoBackup: appConfig.get('database.autoBackup'),
+          maxBackups: appConfig.get('database.maxBackups'),
+        };
+      } catch (error) {
+        console.error('[Main] 获取数据库配置失败:', error);
+        throw error;
+      }
+    });
+
+    // 设置数据库路径（需要重启应用）
+    ipcMain.handle('database:set-path', async (_event, newPath) => {
+      try {
+        const appConfig = getAppConfig();
+        appConfig.setDatabasePath(newPath);
+        console.log(`[Main] 数据库路径已设置为: ${newPath}`);
+        return true;
+      } catch (error) {
+        console.error('[Main] 设置数据库路径失败:', error);
+        throw error;
+      }
+    });
+
+    // 迁移数据库到新位置
+    ipcMain.handle('database:migrate', async (_event, newPath) => {
+      try {
+        const appConfig = getAppConfig();
+
+        // 先备份当前数据库
+        const backupPath = appConfig.createDatabaseBackup();
+        console.log(`[Main] 已创建备份: ${backupPath}`);
+
+        // 执行迁移
+        await appConfig.migrateDatabaseTo(newPath);
+
+        console.log(`[Main] 数据库已迁移到: ${newPath}`);
+
+        return {
+          success: true,
+          newPath,
+          backupPath,
+        };
+      } catch (error) {
+        console.error('[Main] 数据库迁移失败:', error);
+        throw error;
+      }
+    });
+
+    // 创建数据库备份
+    ipcMain.handle('database:create-backup', async () => {
+      try {
+        const appConfig = getAppConfig();
+        const backupPath = appConfig.createDatabaseBackup();
+        return backupPath;
+      } catch (error) {
+        console.error('[Main] 创建数据库备份失败:', error);
+        throw error;
+      }
+    });
+
+    // 列出所有备份
+    ipcMain.handle('database:list-backups', async () => {
+      try {
+        const appConfig = getAppConfig();
+        return appConfig.listBackups();
+      } catch (error) {
+        console.error('[Main] 列出备份失败:', error);
+        throw error;
+      }
+    });
+
+    // 从备份恢复
+    ipcMain.handle('database:restore-backup', async (_event, backupPath) => {
+      try {
+        const appConfig = getAppConfig();
+        appConfig.restoreFromBackup(backupPath);
+
+        // 需要重启应用才能加载恢复的数据库
+        console.log('[Main] 数据库已从备份恢复，需要重启应用');
+
+        return true;
+      } catch (error) {
+        console.error('[Main] 恢复数据库失败:', error);
+        throw error;
+      }
+    });
+
+    // 重启应用
+    ipcMain.handle('app:restart', async () => {
+      try {
+        console.log('[Main] 重启应用...');
+        app.relaunch();
+        app.exit(0);
+      } catch (error) {
+        console.error('[Main] 重启应用失败:', error);
         throw error;
       }
     });
