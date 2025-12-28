@@ -1138,10 +1138,11 @@ async def project_chat(project_id: str, request: ProjectChatRequest):
         )
 
         # 6. 解析响应提取文件操作
-        # 简单实现：检查响应中是否包含JSON格式的操作指令
         operations = []
 
-        # 尝试解析JSON格式的文件操作
+        logger.info(f"AI Response (first 500 chars): {response_text[:500]}")
+
+        # 方法1: 尝试解析JSON代码块格式
         if "```json" in response_text.lower():
             try:
                 # 提取JSON代码块
@@ -1152,10 +1153,39 @@ async def project_chat(project_id: str, request: ProjectChatRequest):
 
                 if "operations" in parsed_json:
                     operations = parsed_json["operations"]
+                    logger.info(f"Parsed {len(operations)} operations from JSON block")
                 elif isinstance(parsed_json, list):
                     operations = parsed_json
+                    logger.info(f"Parsed {len(operations)} operations from JSON array")
             except Exception as e:
-                print(f"Failed to parse JSON operations: {e}")
+                logger.error(f"Failed to parse JSON operations: {e}")
+                logger.error(f"JSON string: {json_str[:200] if 'json_str' in locals() else 'N/A'}")
+
+        # 方法2: 尝试解析 file_operations() 函数调用格式（回退方案）
+        elif "file_operations(" in response_text:
+            import re
+            logger.warning("AI returned file_operations() format instead of JSON. Attempting to parse...")
+
+            # 提取函数调用参数
+            pattern = r'file_operations\(\s*"(\w+)"\s*,\s*"([^"]+)"(?:\s*,\s*"([^"]*)")?\s*\)'
+            matches = re.findall(pattern, response_text)
+
+            for match in matches:
+                op_type, path, content = match[0], match[1], match[2] if len(match) > 2 else ""
+                operations.append({
+                    "type": op_type,
+                    "path": path,
+                    "content": content,
+                    "language": "text",
+                    "reason": "Parsed from function call format"
+                })
+
+            if operations:
+                logger.info(f"Parsed {len(operations)} operations from function call format")
+            else:
+                logger.error(f"Failed to parse file_operations() calls. Response: {response_text[:300]}")
+        else:
+            logger.info("No file operations found in response (conversational response)")
 
         # 7. 返回结果
         return {

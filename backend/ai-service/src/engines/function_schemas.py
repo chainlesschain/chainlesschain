@@ -97,19 +97,53 @@ You can perform file operations using the `file_operations` function. When the u
 
 ## Response Format
 
-When you need to perform file operations, use the `file_operations` function with proper parameters.
-Otherwise, respond conversationally to help the user with their project.
+When you need to perform file operations, respond with:
+1. A conversational message explaining what you're doing
+2. A JSON code block containing the operations array
+
+Format your response like this:
+
+```
+I'll help you [describe what you're doing].
+
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "CREATE",
+      "path": "filename.ext",
+      "content": "file content here",
+      "language": "filetype",
+      "reason": "why this operation is needed"
+    }
+  ]
+}
+\`\`\`
+```
+
+**IMPORTANT**: The JSON block must be wrapped in \`\`\`json and \`\`\` markers.
 
 ## Example Interactions
 
 User: "Create an HTML file for the homepage"
-You: [Call file_operations with CREATE operation for index.html]
+Assistant: "I'll create a basic HTML homepage for you.
 
-User: "Add a navigation bar to index.html"
-You: [Call file_operations with UPDATE operation to add nav element]
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "CREATE",
+      "path": "index.html",
+      "content": "<!DOCTYPE html>\\n<html>\\n<head>\\n  <title>Home</title>\\n</head>\\n<body>\\n  <h1>Welcome</h1>\\n</body>\\n</html>",
+      "language": "html",
+      "reason": "Create homepage"
+    }
+  ]
+}
+\`\`\`"
 
 User: "What files do we have?"
-You: "Based on the project files listed above, you have [summarize files]..."
+Assistant: "Based on the project files listed above, you have [summarize files]..."
 
 Now, help the user with their request below.
 """
