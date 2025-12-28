@@ -109,6 +109,9 @@ class DatabaseManager {
       // 创建表
       this.createTables();
 
+      // 运行数据库迁移
+      this.runMigrations();
+
       console.log('数据库初始化成功');
       return true;
     } catch (error) {
@@ -638,13 +641,14 @@ class DatabaseManager {
       CREATE TABLE IF NOT EXISTS project_stats (
         project_id TEXT PRIMARY KEY,
         file_count INTEGER DEFAULT 0,
-        total_size INTEGER DEFAULT 0,
+        total_size_kb REAL DEFAULT 0,
         code_lines INTEGER DEFAULT 0,
         comment_lines INTEGER DEFAULT 0,
         blank_lines INTEGER DEFAULT 0,
         commit_count INTEGER DEFAULT 0,
         contributor_count INTEGER DEFAULT 0,
         last_commit_at INTEGER,
+        last_updated_at INTEGER,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
@@ -1050,6 +1054,86 @@ class DatabaseManager {
       console.log('[Database] 数据库迁移完成');
     } catch (error) {
       console.error('[Database] 数据库迁移失败:', error);
+    }
+  }
+
+  /**
+   * 运行数据库迁移 - 增量更新数据库结构
+   */
+  runMigrations() {
+    try {
+      console.log('[Database] 开始运行数据库迁移...');
+
+      // 迁移1: 修复 project_stats 表的列名
+      const statsInfo = this.db.prepare("PRAGMA table_info(project_stats)").all();
+      const hasTotalSize = statsInfo.some(col => col.name === 'total_size');
+      const hasTotalSizeKb = statsInfo.some(col => col.name === 'total_size_kb');
+      const hasLastUpdatedAt = statsInfo.some(col => col.name === 'last_updated_at');
+
+      if (hasTotalSize && !hasTotalSizeKb) {
+        console.log('[Database] 迁移 project_stats 表: total_size -> total_size_kb');
+        // SQLite不支持重命名列，需要重建表
+        this.db.exec(`
+          -- 创建临时表
+          CREATE TABLE project_stats_new (
+            project_id TEXT PRIMARY KEY,
+            file_count INTEGER DEFAULT 0,
+            total_size_kb REAL DEFAULT 0,
+            code_lines INTEGER DEFAULT 0,
+            comment_lines INTEGER DEFAULT 0,
+            blank_lines INTEGER DEFAULT 0,
+            commit_count INTEGER DEFAULT 0,
+            contributor_count INTEGER DEFAULT 0,
+            last_commit_at INTEGER,
+            last_updated_at INTEGER,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+          );
+
+          -- 复制数据，将 total_size (bytes) 转换为 total_size_kb
+          INSERT INTO project_stats_new (
+            project_id, file_count, total_size_kb, code_lines, comment_lines,
+            blank_lines, commit_count, contributor_count, last_commit_at,
+            last_updated_at, created_at, updated_at
+          )
+          SELECT
+            project_id, file_count, CAST(total_size AS REAL) / 1024.0, code_lines, comment_lines,
+            blank_lines, commit_count, contributor_count, last_commit_at,
+            last_commit_at, created_at, updated_at
+          FROM project_stats;
+
+          -- 删除旧表
+          DROP TABLE project_stats;
+
+          -- 重命名新表
+          ALTER TABLE project_stats_new RENAME TO project_stats;
+        `);
+        this.saveToFile();
+        console.log('[Database] project_stats 表迁移完成');
+      } else if (!hasTotalSizeKb) {
+        // 如果两个列都不存在，添加 total_size_kb 列
+        console.log('[Database] 添加 project_stats.total_size_kb 列');
+        this.db.run('ALTER TABLE project_stats ADD COLUMN total_size_kb REAL DEFAULT 0');
+        this.saveToFile();
+
+        // 同时检查并添加 last_updated_at 列
+        if (!hasLastUpdatedAt) {
+          console.log('[Database] 添加 project_stats.last_updated_at 列');
+          this.db.run('ALTER TABLE project_stats ADD COLUMN last_updated_at INTEGER');
+          this.saveToFile();
+        }
+      } else if (!hasLastUpdatedAt) {
+        // 如果 total_size_kb 已存在，但 last_updated_at 不存在
+        console.log('[Database] 添加 project_stats.last_updated_at 列');
+        this.db.run('ALTER TABLE project_stats ADD COLUMN last_updated_at INTEGER');
+        this.saveToFile();
+      }
+
+      console.log('[Database] 数据库迁移任务完成');
+    } catch (error) {
+      console.error('[Database] 运行数据库迁移失败:', error);
+      // 不抛出错误，避免影响应用启动
     }
   }
 

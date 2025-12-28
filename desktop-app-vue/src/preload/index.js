@@ -636,6 +636,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteIndex: (projectId) => ipcRenderer.invoke('project:deleteIndex', projectId),
     getIndexStats: (projectId) => ipcRenderer.invoke('project:getIndexStats', projectId),
 
+    // 项目统计收集
+    startStats: (projectId, projectPath) => ipcRenderer.invoke('project:stats:start', projectId, projectPath),
+    stopStats: (projectId) => ipcRenderer.invoke('project:stats:stop', projectId),
+
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),

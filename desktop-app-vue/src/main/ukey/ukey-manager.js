@@ -5,6 +5,9 @@
  */
 
 const XinJinKeDriver = require('./xinjinke-driver');
+const FeiTianDriver = require('./feitian-driver');
+const WatchDataDriver = require('./watchdata-driver');
+const SimulatedDriver = require('./simulated-driver');
 const EventEmitter = require('events');
 
 /**
@@ -83,16 +86,16 @@ class UKeyManager extends EventEmitter {
         break;
 
       case DriverTypes.FEITIAN:
-        // TODO: 实现飞天诚信驱动
-        throw new Error('飞天诚信驱动尚未实现');
+        driver = new FeiTianDriver(this.config);
+        break;
 
       case DriverTypes.WATCHDATA:
-        // TODO: 实现握奇驱动
-        throw new Error('握奇驱动尚未实现');
+        driver = new WatchDataDriver(this.config);
+        break;
 
       case DriverTypes.SIMULATED:
-        // TODO: 实现模拟驱动（用于开发测试）
-        throw new Error('模拟驱动尚未实现');
+        driver = new SimulatedDriver(this.config);
+        break;
 
       default:
         throw new Error(`不支持的驱动类型: ${driverType}`);
