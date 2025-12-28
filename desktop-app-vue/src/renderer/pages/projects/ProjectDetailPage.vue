@@ -153,13 +153,28 @@
             <FolderOutlined />
             项目文件
           </h3>
+          <a-tooltip>
+            <template #title>
+              <span v-if="useVirtualFileTree">使用虚拟滚动（高性能）</span>
+              <span v-else>使用标准树（兼容模式）</span>
+            </template>
+            <a-switch
+              v-model:checked="useVirtualFileTree"
+              size="small"
+              checked-children="虚拟"
+              un-checked-children="标准"
+              style="margin-left: 8px;"
+            />
+          </a-tooltip>
           <a-button size="small" type="text" @click="handleRefreshFiles">
             <ReloadOutlined :spin="refreshing" />
           </a-button>
         </div>
 
         <div class="sidebar-content">
-          <EnhancedFileTree
+          <!-- 动态组件：根据useVirtualFileTree切换 -->
+          <component
+            :is="useVirtualFileTree ? VirtualFileTree : EnhancedFileTree"
             :files="projectFiles"
             :current-file-id="currentFile?.id"
             :loading="refreshing"
@@ -421,6 +436,7 @@ import {
   CodeOutlined,
 } from '@ant-design/icons-vue';
 import EnhancedFileTree from '@/components/projects/EnhancedFileTree.vue';
+import VirtualFileTree from '@/components/projects/VirtualFileTree.vue';
 import SimpleEditor from '@/components/projects/SimpleEditor.vue';
 import ExcelEditor from '@/components/editors/ExcelEditor.vue';
 import RichTextEditor from '@/components/editors/RichTextEditor.vue';
@@ -481,6 +497,7 @@ const gitStatus = ref({}); // Git 状态
 let gitStatusInterval = null; // Git 状态轮询定时器
 const showFileManageModal = ref(false); // 文件管理Modal
 const showShareModal = ref(false); // 分享Modal
+const useVirtualFileTree = ref(true); // 使用虚拟滚动文件树（性能优化）
 
 // 计算属性
 const projectId = computed(() => route.params.id);
