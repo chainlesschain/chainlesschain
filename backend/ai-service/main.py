@@ -2,15 +2,21 @@
 ChainlessChain AI Service
 主入口文件 - FastAPI应用
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, ValidationError
 from typing import Optional, List, Dict, Any
 import base64
 import os
 import json
 from dotenv import load_dotenv
+import logging
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # 加载环境变量
 load_dotenv()
@@ -53,6 +59,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 添加验证异常处理器，记录详细的422错误
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """处理422验证错误，记录详细信息"""
+    body = await request.body()
+    logger.error(f"Validation error for {request.method} {request.url.path}")
+    logger.error(f"Request body: {body.decode('utf-8') if body else 'empty'}")
+    logger.error(f"Validation errors: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": exc.errors(),
+            "body_preview": (body.decode('utf-8')[:500] if body else 'empty')
+        }
+    )
 
 # 初始化引擎
 web_engine = WebEngine()
@@ -1071,7 +1093,7 @@ async def project_chat(project_id: str, request: ProjectChatRequest):
         rag_context = []
         if request.context_mode == "project":
             try:
-                query_result = await rag_engine.query_enhanced(
+                query_result = await rag_engine.enhanced_search(
                     query=request.user_message,
                     project_id=project_id,
                     top_k=5,
@@ -1079,7 +1101,7 @@ async def project_chat(project_id: str, request: ProjectChatRequest):
                 )
                 rag_context = query_result.get("context", [])
             except Exception as e:
-                print(f"RAG query failed: {e}")
+                logger.error(f"RAG query failed: {e}")
                 # RAG失败不影响对话，继续执行
 
         # 3. 构建系统提示词
