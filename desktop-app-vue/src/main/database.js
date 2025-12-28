@@ -126,6 +126,30 @@ class DatabaseManager {
     }
 
     const manager = this;
+
+    // Wrap Database.run() method for compatibility
+    const originalDbRun = this.db.run ? this.db.run.bind(this.db) : null;
+    this.db.run = function(sql, params) {
+      try {
+        const stmt = manager.db.prepare(sql);
+        if (params && (Array.isArray(params) || typeof params === 'object')) {
+          stmt.bind(manager.normalizeParams(params));
+        }
+        stmt.step();
+        stmt.free();
+
+        // Save to file if not in transaction
+        if (!manager.inTransaction) {
+          manager.saveToFile();
+        }
+
+        return { changes: manager.db.getRowsModified ? manager.db.getRowsModified() : 0 };
+      } catch (error) {
+        console.error('[Database] db.run() failed:', error.message);
+        console.error('[Database] SQL:', sql.substring(0, 100));
+        throw error;
+      }
+    };
     const rawPrepare = this.db.prepare.bind(this.db);
 
     const normalizeParams = (params) => {
@@ -300,8 +324,13 @@ class DatabaseManager {
    * 创建数据库表
    */
   createTables() {
-    // 知识库项表
-    this.db.run(`
+    console.log('[Database] 开始创建数据库表...');
+
+    try {
+      // 使用exec()一次性执行所有SQL语句
+      // 这样可以避免多次调用导致的statement关闭问题
+      this.db.exec(`
+      -- 知识库项表
       CREATE TABLE IF NOT EXISTS knowledge_items (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
@@ -314,21 +343,17 @@ class DatabaseManager {
         git_commit_hash TEXT,
         device_id TEXT,
         sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict'))
-      )
-    `);
+      );
 
-    // 标签表
-    this.db.run(`
+      -- 标签表
       CREATE TABLE IF NOT EXISTS tags (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL UNIQUE,
         color TEXT NOT NULL,
         created_at INTEGER NOT NULL
-      )
-    `);
+      );
 
-    // 知识库项-标签关联表
-    this.db.run(`
+      -- 知识库项-标签关联表
       CREATE TABLE IF NOT EXISTS knowledge_tags (
         knowledge_id TEXT NOT NULL,
         tag_id TEXT NOT NULL,
@@ -336,11 +361,9 @@ class DatabaseManager {
         PRIMARY KEY (knowledge_id, tag_id),
         FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
         FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 对话表
-    this.db.run(`
+      -- 对话表
       CREATE TABLE IF NOT EXISTS conversations (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
@@ -351,11 +374,9 @@ class DatabaseManager {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE SET NULL
-      )
-    `);
+      );
 
-    // 消息表
-    this.db.run(`
+      -- 消息表
       CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY,
         conversation_id TEXT NOT NULL,
@@ -364,44 +385,17 @@ class DatabaseManager {
         timestamp INTEGER NOT NULL,
         tokens INTEGER,
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 创建索引以提高查询性能
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_knowledge_items_created_at ON knowledge_items(created_at DESC);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_knowledge_items_updated_at ON knowledge_items(updated_at DESC);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_knowledge_items_type ON knowledge_items(type);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_knowledge_items_sync_status ON knowledge_items(sync_status);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC);
-    `);
-
-    // sql.js 不支持 FTS5，我们将使用常规表来实现搜索功能
-    // 创建搜索索引表
-    this.db.run(`
+      -- 搜索索引表
       CREATE TABLE IF NOT EXISTS knowledge_search (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         content TEXT,
         FOREIGN KEY (id) REFERENCES knowledge_items(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // ==================== 项目管理表 ====================
-
-    // 项目分类表
-    this.db.run(`
+      -- 项目分类表
       CREATE TABLE IF NOT EXISTS project_categories (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -415,11 +409,9 @@ class DatabaseManager {
         updated_at INTEGER NOT NULL,
         deleted INTEGER DEFAULT 0,
         FOREIGN KEY (parent_id) REFERENCES project_categories(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 项目表
-    this.db.run(`
+      -- 项目表
       CREATE TABLE IF NOT EXISTS projects (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -439,12 +431,11 @@ class DatabaseManager {
         sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'error')),
         synced_at INTEGER,
         device_id TEXT,
-        deleted INTEGER DEFAULT 0
-      )
-    `);
+        deleted INTEGER DEFAULT 0,
+        category_id TEXT
+      );
 
-    // 项目文件表
-    this.db.run(`
+      -- 项目文件表
       CREATE TABLE IF NOT EXISTS project_files (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -463,11 +454,9 @@ class DatabaseManager {
         device_id TEXT,
         deleted INTEGER DEFAULT 0,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 文件同步状态表
-    this.db.run(`
+      -- 文件同步状态表
       CREATE TABLE IF NOT EXISTS file_sync_state (
         file_id TEXT PRIMARY KEY,
         fs_hash TEXT,
@@ -476,11 +465,9 @@ class DatabaseManager {
         sync_direction TEXT DEFAULT 'bidirectional',
         conflict_detected INTEGER DEFAULT 0,
         FOREIGN KEY (file_id) REFERENCES project_files(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 项目任务表
-    this.db.run(`
+      -- 项目任务表
       CREATE TABLE IF NOT EXISTS project_tasks (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -499,11 +486,9 @@ class DatabaseManager {
         device_id TEXT,
         deleted INTEGER DEFAULT 0,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 项目对话历史表
-    this.db.run(`
+      -- 项目对话历史表
       CREATE TABLE IF NOT EXISTS project_conversations (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -513,11 +498,9 @@ class DatabaseManager {
         metadata TEXT,
         created_at INTEGER NOT NULL,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 项目任务计划表（AI智能拆解）
-    this.db.run(`
+      -- 项目任务计划表
       CREATE TABLE IF NOT EXISTS project_task_plans (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -537,11 +520,9 @@ class DatabaseManager {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 项目协作者表
-    this.db.run(`
+      -- 项目协作者表
       CREATE TABLE IF NOT EXISTS project_collaborators (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -562,11 +543,9 @@ class DatabaseManager {
         deleted INTEGER DEFAULT 0,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
         UNIQUE(project_id, user_id)
-      )
-    `);
+      );
 
-    // 系统配置表
-    this.db.run(`
+      -- 系统配置表
       CREATE TABLE IF NOT EXISTS system_settings (
         key TEXT PRIMARY KEY,
         value TEXT,
@@ -574,14 +553,9 @@ class DatabaseManager {
         description TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
-      )
-    `);
+      );
 
-    // 初始化默认配置
-    this.initDefaultSettings();
-
-    // 项目评论表
-    this.db.run(`
+      -- 项目评论表
       CREATE TABLE IF NOT EXISTS project_comments (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -604,11 +578,9 @@ class DatabaseManager {
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
         FOREIGN KEY (file_id) REFERENCES project_files(id) ON DELETE CASCADE,
         FOREIGN KEY (parent_id) REFERENCES project_comments(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 项目市场清单表
-    this.db.run(`
+      -- 项目市场清单表
       CREATE TABLE IF NOT EXISTS project_marketplace_listings (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -630,11 +602,9 @@ class DatabaseManager {
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
         UNIQUE(project_id)
-      )
-    `);
+      );
 
-    // 项目知识链接表
-    this.db.run(`
+      -- 项目知识链接表
       CREATE TABLE IF NOT EXISTS project_knowledge_links (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -645,11 +615,9 @@ class DatabaseManager {
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
         FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
         UNIQUE(project_id, knowledge_id)
-      )
-    `);
+      );
 
-    // 项目自动化规则表
-    this.db.run(`
+      -- 项目自动化规则表
       CREATE TABLE IF NOT EXISTS project_automation_rules (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -664,11 +632,9 @@ class DatabaseManager {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 项目统计表
-    this.db.run(`
+      -- 项目统计表
       CREATE TABLE IF NOT EXISTS project_stats (
         project_id TEXT PRIMARY KEY,
         file_count INTEGER DEFAULT 0,
@@ -682,11 +648,9 @@ class DatabaseManager {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 项目日志表
-    this.db.run(`
+      -- 项目日志表
       CREATE TABLE IF NOT EXISTS project_logs (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -697,102 +661,9 @@ class DatabaseManager {
         user_id TEXT,
         created_at INTEGER NOT NULL,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 项目管理索引
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at DESC);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_projects_type ON projects(project_type);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_projects_sync_status ON projects(sync_status);
-    `);
-
-    // 项目分类索引
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_categories_user_id ON project_categories(user_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_categories_parent_id ON project_categories(parent_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_categories_sort_order ON project_categories(sort_order);
-    `);
-
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_files_project_id ON project_files(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_file_sync_state_file_id ON file_sync_state(file_id);
-    `);
-
-    // 新增项目表索引
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_tasks_project_id ON project_tasks(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_tasks_status ON project_tasks(status);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_conversations_project_id ON project_conversations(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_conversations_created_at ON project_conversations(created_at DESC);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_collaborators_project_id ON project_collaborators(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_collaborators_user_id ON project_collaborators(user_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_comments_project_id ON project_comments(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_comments_file_id ON project_comments(file_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_marketplace_project_id ON project_marketplace_listings(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_marketplace_status ON project_marketplace_listings(status);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_knowledge_links_project_id ON project_knowledge_links(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_knowledge_links_knowledge_id ON project_knowledge_links(knowledge_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_automation_project_id ON project_automation_rules(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_automation_enabled ON project_automation_rules(enabled);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_logs_project_id ON project_logs(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_logs_level ON project_logs(log_level);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_logs_created_at ON project_logs(created_at DESC);
-    `);
-
-    // 项目分享表
-    this.db.run(`
+      -- 项目分享表
       CREATE TABLE IF NOT EXISTS project_shares (
         id TEXT PRIMARY KEY,
         project_id TEXT NOT NULL,
@@ -804,24 +675,9 @@ class DatabaseManager {
         updated_at INTEGER NOT NULL,
         expires_at INTEGER,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      )
-    `);
+      );
 
-    // 项目分享索引
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_shares_project_id ON project_shares(project_id);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_shares_token ON project_shares(share_token);
-    `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_project_shares_mode ON project_shares(share_mode);
-    `);
-
-    // ==================== 项目模板系统 ====================
-
-    // 项目模板表
-    this.db.run(`
+      -- 项目模板表
       CREATE TABLE IF NOT EXISTS project_templates (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -829,52 +685,27 @@ class DatabaseManager {
         description TEXT,
         icon TEXT,
         cover_image TEXT,
-
-        -- 分类信息
-        category TEXT NOT NULL CHECK(category IN (
-          'writing',      -- 写作
-          'ppt',          -- PPT演示
-          'excel',        -- Excel数据
-          'web',          -- 网页开发
-          'design',       -- 设计
-          'podcast',      -- 播客
-          'resume',       -- 简历
-          'research',     -- 研究
-          'marketing',    -- 营销
-          'education',    -- 教育
-          'lifestyle',    -- 生活
-          'travel'        -- 旅游
-        )),
+        category TEXT NOT NULL CHECK(category IN ('writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'research', 'marketing', 'education', 'lifestyle', 'travel')),
         subcategory TEXT,
         tags TEXT,
-
-        -- 模板配置
         project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet')),
         prompt_template TEXT,
         variables_schema TEXT,
         file_structure TEXT,
         default_files TEXT,
-
-        -- 元数据
         is_builtin INTEGER DEFAULT 0,
         author TEXT,
         version TEXT DEFAULT '1.0.0',
         usage_count INTEGER DEFAULT 0,
         rating REAL DEFAULT 0,
         rating_count INTEGER DEFAULT 0,
-
-        -- 时间戳
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
-
-        -- 同步
         sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict')),
         deleted INTEGER DEFAULT 0
-      )
-    `);
+      );
 
-    // 模板使用记录表
-    this.db.run(`
+      -- 模板使用记录表
       CREATE TABLE IF NOT EXISTS template_usage_history (
         id TEXT PRIMARY KEY,
         template_id TEXT NOT NULL,
@@ -884,11 +715,9 @@ class DatabaseManager {
         used_at INTEGER NOT NULL,
         FOREIGN KEY (template_id) REFERENCES project_templates(id) ON DELETE CASCADE,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
-      )
-    `);
+      );
 
-    // 模板评价表
-    this.db.run(`
+      -- 模板评价表
       CREATE TABLE IF NOT EXISTS template_ratings (
         id TEXT PRIMARY KEY,
         template_id TEXT NOT NULL,
@@ -899,61 +728,94 @@ class DatabaseManager {
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (template_id) REFERENCES project_templates(id) ON DELETE CASCADE,
         UNIQUE(template_id, user_id)
-      )
-    `);
+      );
 
-    // 模板索引
-    this.db.run(`
+      -- 创建所有索引
+      CREATE INDEX IF NOT EXISTS idx_knowledge_items_created_at ON knowledge_items(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_knowledge_items_updated_at ON knowledge_items(updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_knowledge_items_type ON knowledge_items(type);
+      CREATE INDEX IF NOT EXISTS idx_knowledge_items_sync_status ON knowledge_items(sync_status);
+      CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
+      CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
+      CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+      CREATE INDEX IF NOT EXISTS idx_projects_type ON projects(project_type);
+      CREATE INDEX IF NOT EXISTS idx_projects_sync_status ON projects(sync_status);
+      CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id);
+
+      CREATE INDEX IF NOT EXISTS idx_project_categories_user_id ON project_categories(user_id);
+      CREATE INDEX IF NOT EXISTS idx_project_categories_parent_id ON project_categories(parent_id);
+      CREATE INDEX IF NOT EXISTS idx_project_categories_sort_order ON project_categories(sort_order);
+
+      CREATE INDEX IF NOT EXISTS idx_project_files_project_id ON project_files(project_id);
+      CREATE INDEX IF NOT EXISTS idx_file_sync_state_file_id ON file_sync_state(file_id);
+
+      CREATE INDEX IF NOT EXISTS idx_project_tasks_project_id ON project_tasks(project_id);
+      CREATE INDEX IF NOT EXISTS idx_project_tasks_status ON project_tasks(status);
+      CREATE INDEX IF NOT EXISTS idx_project_conversations_project_id ON project_conversations(project_id);
+      CREATE INDEX IF NOT EXISTS idx_project_conversations_created_at ON project_conversations(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_project_collaborators_project_id ON project_collaborators(project_id);
+      CREATE INDEX IF NOT EXISTS idx_project_collaborators_user_id ON project_collaborators(user_id);
+      CREATE INDEX IF NOT EXISTS idx_project_comments_project_id ON project_comments(project_id);
+      CREATE INDEX IF NOT EXISTS idx_project_comments_file_id ON project_comments(file_id);
+      CREATE INDEX IF NOT EXISTS idx_project_marketplace_project_id ON project_marketplace_listings(project_id);
+      CREATE INDEX IF NOT EXISTS idx_project_marketplace_status ON project_marketplace_listings(status);
+      CREATE INDEX IF NOT EXISTS idx_project_knowledge_links_project_id ON project_knowledge_links(project_id);
+      CREATE INDEX IF NOT EXISTS idx_project_knowledge_links_knowledge_id ON project_knowledge_links(knowledge_id);
+      CREATE INDEX IF NOT EXISTS idx_project_automation_project_id ON project_automation_rules(project_id);
+      CREATE INDEX IF NOT EXISTS idx_project_automation_enabled ON project_automation_rules(enabled);
+      CREATE INDEX IF NOT EXISTS idx_project_logs_project_id ON project_logs(project_id);
+      CREATE INDEX IF NOT EXISTS idx_project_logs_level ON project_logs(log_level);
+      CREATE INDEX IF NOT EXISTS idx_project_logs_created_at ON project_logs(created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_project_shares_project_id ON project_shares(project_id);
+      CREATE INDEX IF NOT EXISTS idx_project_shares_token ON project_shares(share_token);
+      CREATE INDEX IF NOT EXISTS idx_project_shares_mode ON project_shares(share_mode);
+
       CREATE INDEX IF NOT EXISTS idx_templates_category ON project_templates(category);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_templates_subcategory ON project_templates(subcategory);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_templates_type ON project_templates(project_type);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_templates_usage ON project_templates(usage_count DESC);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_templates_rating ON project_templates(rating DESC);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_templates_builtin ON project_templates(is_builtin);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_templates_deleted ON project_templates(deleted);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_template_usage_template_id ON template_usage_history(template_id);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_template_usage_user_id ON template_usage_history(user_id);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_template_usage_used_at ON template_usage_history(used_at DESC);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_template_ratings_template_id ON template_ratings(template_id);
-    `);
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_template_ratings_user_id ON template_ratings(user_id);
-    `);
 
-    // 数据库迁移：为已存在的表添加新列（必须在创建依赖新列的索引之前执行）
-    this.migrateDatabase();
-
-    // 在迁移后创建依赖迁移新增列的索引
-    this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_conversations_project_id ON conversations(project_id);
     `);
-    this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id);
-    `);
 
-    // 保存更改
-    this.saveToFile();
-    console.log('数据库表创建完成');
+      console.log('[Database] ✓ 所有表和索引创建成功');
+
+      // 保存更改
+      this.saveToFile();
+      console.log('[Database] 数据库表创建完成');
+    } catch (error) {
+      console.error('[Database] 创建表失败:', error);
+      console.error('[Database] 错误详情:', error.message);
+      console.error('[Database] 错误堆栈:', error.stack);
+      throw error;
+    }
+
+    // 初始化默认配置和数据库迁移在表创建成功后单独执行
+    // 这样即使它们失败也不影响表的创建
+    try {
+      this.initDefaultSettings();
+    } catch (error) {
+      console.warn('[Database] 初始化默认配置失败（可忽略）:', error.message);
+    }
+
+    try {
+      this.migrateDatabase();
+    } catch (error) {
+      console.warn('[Database] 数据库迁移失败（可忽略）:', error.message);
+    }
   }
 
   /**
@@ -1168,9 +1030,233 @@ class DatabaseManager {
         // 添加外键约束（注：SQLite的ALTER TABLE不支持直接添加外键，需要在查询时处理）
       }
 
+      // ==================== CHECK约束更新迁移 (V4) ====================
+      console.log('[Database] 执行CHECK约束更新迁移 (V4)...');
+
+      // 检查是否需要重建projects表（通过尝试插入测试数据来判断）
+      const needsProjectsRebuild = this.checkIfTableNeedsRebuild('projects', 'presentation');
+      if (needsProjectsRebuild) {
+        console.log('[Database] 检测到projects表需要更新CHECK约束，开始重建...');
+        this.rebuildProjectsTable();
+      }
+
+      // 检查是否需要重建project_templates表
+      const needsTemplatesRebuild = this.checkIfTableNeedsRebuild('project_templates', 'podcast');
+      if (needsTemplatesRebuild) {
+        console.log('[Database] 检测到project_templates表需要更新CHECK约束，开始重建...');
+        this.rebuildProjectTemplatesTable();
+      }
+
       console.log('[Database] 数据库迁移完成');
     } catch (error) {
       console.error('[Database] 数据库迁移失败:', error);
+    }
+  }
+
+  /**
+   * 检查表是否需要重建（通过测试category值）
+   */
+  checkIfTableNeedsRebuild(tableName, testCategoryValue) {
+    try {
+      // 获取表的SQL定义
+      const stmt = this.db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?");
+      const result = stmt.get([tableName]);
+      stmt.free();
+
+      if (!result || !result.sql) {
+        return false;
+      }
+
+      // 检查SQL定义中是否包含新的值
+      const sql = result.sql;
+
+      if (tableName === 'projects') {
+        // 检查是否包含 'presentation' 和 'spreadsheet'
+        return !sql.includes("'presentation'") || !sql.includes("'spreadsheet'");
+      } else if (tableName === 'project_templates') {
+        // 检查category是否包含所有新类型
+        return !sql.includes("'podcast'") || !sql.includes("'education'");
+      }
+
+      return false;
+    } catch (error) {
+      console.error(`[Database] 检查${tableName}表失败:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 重建projects表（更新CHECK约束）
+   */
+  rebuildProjectsTable() {
+    try {
+      console.log('[Database] 开始重建projects表...');
+
+      // 1. 重命名旧表
+      this.db.run('ALTER TABLE projects RENAME TO projects_old');
+
+      // 2. 创建新表（带更新的CHECK约束）
+      this.db.run(`
+        CREATE TABLE projects (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet')),
+          status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
+          root_path TEXT,
+          file_count INTEGER DEFAULT 0,
+          total_size INTEGER DEFAULT 0,
+          template_id TEXT,
+          cover_image_url TEXT,
+          tags TEXT,
+          metadata TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'error')),
+          synced_at INTEGER,
+          device_id TEXT,
+          deleted INTEGER DEFAULT 0,
+          category_id TEXT
+        )
+      `);
+
+      // 3. 复制数据
+      this.db.run(`
+        INSERT INTO projects
+        SELECT id, user_id, name, description, project_type, status, root_path,
+               file_count, total_size, template_id, cover_image_url, tags, metadata,
+               created_at, updated_at, sync_status, synced_at, device_id, deleted,
+               ${this.checkColumnExists('projects_old', 'category_id') ? 'category_id' : 'NULL'}
+        FROM projects_old
+      `);
+
+      // 4. 删除旧表
+      this.db.run('DROP TABLE projects_old');
+
+      // 5. 重新创建索引
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at DESC)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_type ON projects(project_type)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_sync_status ON projects(sync_status)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id)');
+
+      this.saveToFile();
+      console.log('[Database] projects表重建成功');
+    } catch (error) {
+      console.error('[Database] 重建projects表失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 重建project_templates表（更新CHECK约束）
+   */
+  rebuildProjectTemplatesTable() {
+    try {
+      console.log('[Database] 开始重建project_templates表...');
+
+      // 1. 重命名旧表
+      this.db.run('ALTER TABLE project_templates RENAME TO project_templates_old');
+
+      // 2. 创建新表（带更新的CHECK约束）
+      this.db.run(`
+        CREATE TABLE project_templates (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          display_name TEXT NOT NULL,
+          description TEXT,
+          icon TEXT,
+          cover_image TEXT,
+
+          -- 分类信息
+          category TEXT NOT NULL CHECK(category IN (
+            'writing',      -- 写作
+            'ppt',          -- PPT演示
+            'excel',        -- Excel数据
+            'web',          -- 网页开发
+            'design',       -- 设计
+            'podcast',      -- 播客
+            'resume',       -- 简历
+            'research',     -- 研究
+            'marketing',    -- 营销
+            'education',    -- 教育
+            'lifestyle',    -- 生活
+            'travel'        -- 旅游
+          )),
+          subcategory TEXT,
+          tags TEXT,
+
+          -- 模板配置
+          project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet')),
+          prompt_template TEXT,
+          variables_schema TEXT,
+          file_structure TEXT,
+          default_files TEXT,
+
+          -- 元数据
+          is_builtin INTEGER DEFAULT 0,
+          author TEXT,
+          version TEXT DEFAULT '1.0.0',
+          usage_count INTEGER DEFAULT 0,
+          rating REAL DEFAULT 0,
+          rating_count INTEGER DEFAULT 0,
+
+          -- 时间戳
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+
+          -- 同步
+          sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict')),
+          deleted INTEGER DEFAULT 0
+        )
+      `);
+
+      // 3. 复制数据
+      this.db.run(`
+        INSERT INTO project_templates
+        SELECT id, name, display_name, description, icon, cover_image,
+               category, subcategory, tags,
+               project_type, prompt_template, variables_schema, file_structure, default_files,
+               is_builtin, author, version, usage_count, rating, rating_count,
+               created_at, updated_at, sync_status,
+               ${this.checkColumnExists('project_templates_old', 'deleted') ? 'deleted' : '0'}
+        FROM project_templates_old
+      `);
+
+      // 4. 删除旧表
+      this.db.run('DROP TABLE project_templates_old');
+
+      // 5. 重新创建索引
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_category ON project_templates(category)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_subcategory ON project_templates(subcategory)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_type ON project_templates(project_type)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_usage ON project_templates(usage_count DESC)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_rating ON project_templates(rating DESC)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_builtin ON project_templates(is_builtin)');
+      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_deleted ON project_templates(deleted)');
+
+      this.saveToFile();
+      console.log('[Database] project_templates表重建成功');
+    } catch (error) {
+      console.error('[Database] 重建project_templates表失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 检查列是否存在
+   */
+  checkColumnExists(tableName, columnName) {
+    try {
+      const stmt = this.db.prepare(`PRAGMA table_info(${tableName})`);
+      const columns = stmt.all();
+      stmt.free();
+      return columns.some(col => col.name === columnName);
+    } catch (error) {
+      return false;
     }
   }
 

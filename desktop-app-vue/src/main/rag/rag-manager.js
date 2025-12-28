@@ -934,7 +934,25 @@ class RAGManager extends EventEmitter {
   }
 }
 
+// 单例实例
+let ragManagerInstance = null;
+
+/**
+ * 获取RAG管理器单例实例
+ * @param {Object} databaseManager - 数据库管理器
+ * @param {Object} llmManager - LLM管理器
+ * @param {Object} config - 配置选项
+ * @returns {RAGManager}
+ */
+function getRAGManager(databaseManager = null, llmManager = null, config = {}) {
+  if (!ragManagerInstance && databaseManager && llmManager) {
+    ragManagerInstance = new RAGManager(databaseManager, llmManager, config);
+  }
+  return ragManagerInstance;
+}
+
 module.exports = {
   RAGManager,
   DEFAULT_CONFIG,
+  getRAGManager,
 };

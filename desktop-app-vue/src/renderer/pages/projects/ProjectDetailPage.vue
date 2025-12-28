@@ -712,23 +712,60 @@ const loadFileContent = async (file) => {
   try {
     // 只为可编辑和可预览的文件加载内容
     if (fileTypeInfo.value && (fileTypeInfo.value.isEditable || fileTypeInfo.value.isMarkdown || fileTypeInfo.value.isData)) {
-      // 构建完整的文件路径：/data/projects/{projectId}/{file_path}
-      let fullPath = file.file_path;
-      if (!fullPath.startsWith('/data/projects/') && !fullPath.includes(projectId.value)) {
-        // 如果路径不包含项目ID，则拼接
-        fullPath = `/data/projects/${projectId.value}/${file.file_path}`;
+      // 检查项目信息是否完整
+      if (!currentProject.value || !currentProject.value.root_path) {
+        throw new Error('项目信息不完整，缺少 root_path');
       }
 
-      console.log('[ProjectDetail] 读取文件:', fullPath);
-      const content = await window.electronAPI.file.readContent(fullPath);
-      // 确保 content 是字符串类型
-      fileContent.value = typeof content === 'string' ? content : String(content || '');
+      // 构建完整的文件路径：{root_path}/{file_path}
+      let fullPath = file.file_path;
+
+      // 判断是否已经是绝对路径
+      const isAbsolutePath = /^([a-zA-Z]:[\\/]|\/|\\\\)/.test(fullPath);
+
+      if (!isAbsolutePath) {
+        // 如果是相对路径，拼接项目根路径
+        const rootPath = currentProject.value.root_path;
+        // 处理路径分隔符，统一使用系统分隔符
+        const separator = rootPath.includes('\\') ? '\\' : '/';
+        // 清理 file_path 开头的斜杠
+        const cleanFilePath = file.file_path.replace(/^[\/\\]+/, '');
+        fullPath = `${rootPath}${separator}${cleanFilePath}`;
+      }
+
+      console.log('[ProjectDetail] 项目根路径:', currentProject.value.root_path);
+      console.log('[ProjectDetail] 文件相对路径:', file.file_path);
+      console.log('[ProjectDetail] 完整路径:', fullPath);
+      const result = await window.electronAPI.file.readContent(fullPath);
+
+      // 正确处理 IPC 返回的对象 { success: true, content: '...' }
+      if (result && result.success) {
+        // 确保 content 是字符串类型
+        fileContent.value = typeof result.content === 'string' ? result.content : String(result.content || '');
+        console.log('[ProjectDetail] 文件内容加载成功，长度:', fileContent.value.length);
+      } else {
+        throw new Error(result?.error || '读取文件失败');
+      }
     } else {
       fileContent.value = '';
     }
   } catch (error) {
-    console.error('加载文件内容失败:', error);
-    message.error('加载文件失败: ' + error.message);
+    console.error('[ProjectDetail] 加载文件内容失败:', error);
+    console.error('[ProjectDetail] 错误详情:', {
+      projectId: projectId.value,
+      projectRootPath: currentProject.value?.root_path,
+      fileRelativePath: file.file_path,
+      fileName: file.file_name,
+      error: error.message
+    });
+
+    // 提供更有用的错误消息
+    let errorMsg = '加载文件失败: ' + error.message;
+    if (!currentProject.value?.root_path) {
+      errorMsg += '\n提示：项目缺少 root_path 配置，请检查项目设置';
+    }
+
+    message.error(errorMsg);
     fileContent.value = '';
   }
 };
@@ -1295,7 +1332,7 @@ onMounted(async () => {
       message.info(`文件已删除: ${event.relativePath}`);
       // 如果删除的是当前打开的文件，关闭编辑器
       if (currentFile.value && currentFile.value.id === event.fileId) {
-        currentFile.value = null;
+        projectStore.setCurrentFile(null);
         fileContent.value = '';
       }
       // 刷新文件列表（使用统一的加载函数）
@@ -1385,7 +1422,7 @@ watch(() => route.params.id, async (newId, oldId) => {
       }
 
       // 2. 清空当前状态
-      currentFile.value = null;
+      projectStore.setCurrentFile(null);
       fileContent.value = '';
       gitStatus.value = {};
       resolvedProjectPath.value = '';
