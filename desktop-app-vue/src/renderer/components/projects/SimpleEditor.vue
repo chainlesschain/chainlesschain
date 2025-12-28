@@ -53,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   EditOutlined,
@@ -302,19 +302,28 @@ const handleSave = async () => {
 const setContent = (newContent) => {
   if (!editorView.value) return;
 
-  // 确保内容是字符串类型
-  const contentStr = typeof newContent === 'string' ? newContent : String(newContent || '');
+  try {
+    // 确保内容是字符串类型
+    const contentStr = typeof newContent === 'string' ? newContent : String(newContent || '');
 
-  const transaction = editorView.value.state.update({
-    changes: {
-      from: 0,
-      to: editorView.value.state.doc.length,
-      insert: contentStr,
-    },
-  });
+    // 获取当前编辑器状态快照
+    const currentState = editorView.value.state;
 
-  editorView.value.dispatch(transaction);
-  hasUnsavedChanges.value = false;
+    // 创建基于当前状态的事务
+    const transaction = currentState.update({
+      changes: {
+        from: 0,
+        to: currentState.doc.length,
+        insert: contentStr,
+      },
+    });
+
+    editorView.value.dispatch(transaction);
+    hasUnsavedChanges.value = false;
+  } catch (error) {
+    console.error('[SimpleEditor] setContent 失败:', error);
+    // 静默失败，避免中断用户操作
+  }
 };
 
 /**
@@ -332,10 +341,13 @@ const updateLanguage = (fileName) => {
 // 监听文件变化
 watch(
   () => props.file,
-  (newFile) => {
-    if (newFile) {
-      setContent(props.content);
-      updateLanguage(newFile.file_name);
+  (newFile, oldFile) => {
+    if (newFile && newFile.id !== oldFile?.id) {
+      // 使用 nextTick 确保编辑器状态稳定后再更新
+      nextTick(() => {
+        setContent(props.content);
+        updateLanguage(newFile.file_name);
+      });
     }
   }
 );
@@ -343,9 +355,12 @@ watch(
 // 监听内容变化（外部更新）
 watch(
   () => props.content,
-  (newContent) => {
-    if (editorView.value && !hasUnsavedChanges.value) {
-      setContent(newContent);
+  (newContent, oldContent) => {
+    // 只在编辑器就绪、无未保存更改、且内容确实改变时更新
+    if (editorView.value && !hasUnsavedChanges.value && newContent !== oldContent) {
+      nextTick(() => {
+        setContent(newContent);
+      });
     }
   }
 );

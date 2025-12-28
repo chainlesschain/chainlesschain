@@ -869,25 +869,27 @@ const handleBackToList = () => {
 
 /**
  * 统一的文件加载函数，确保响应式和时序正确
+ * @param {string} targetProjectId - 目标项目ID
+ * @param {boolean} forceRerender - 是否强制重新渲染（默认false）
  */
-const loadFilesWithSync = async (targetProjectId) => {
-  console.log('[ProjectDetail] loadFilesWithSync 开始, projectId:', targetProjectId);
+const loadFilesWithSync = async (targetProjectId, forceRerender = false) => {
+  console.log('[ProjectDetail] loadFilesWithSync 开始, projectId:', targetProjectId, 'forceRerender:', forceRerender);
 
   // 1. 加载文件
   await projectStore.loadProjectFiles(targetProjectId);
   console.log('[ProjectDetail]   ✓ Store 已更新');
 
-  // 2-3. 双重 nextTick 确保响应式完成
-  await nextTick();
+  // 2. 单次 nextTick 让 Vue 响应式自然传播（避免过度更新）
   await nextTick();
   console.log('[ProjectDetail]   ✓ 响应式已传播');
 
-  // 4. 强制重新渲染
-  fileTreeKey.value++;
-  console.log('[ProjectDetail]   ✓ Key 已更新:', fileTreeKey.value);
+  // 3. 仅在必要时强制重新渲染（避免编辑器状态冲突）
+  if (forceRerender) {
+    fileTreeKey.value++;
+    console.log('[ProjectDetail]   ✓ Key 已更新:', fileTreeKey.value);
+    await nextTick();
+  }
 
-  // 5. 等待渲染
-  await nextTick();
   console.log('[ProjectDetail] loadFilesWithSync 完成');
 };
 
@@ -898,8 +900,8 @@ const handleRefreshFiles = async () => {
     console.log('[ProjectDetail] ===== 开始刷新文件列表 =====');
     console.log('[ProjectDetail] 项目ID:', projectId.value);
 
-    // 使用统一的加载函数
-    await loadFilesWithSync(projectId.value);
+    // 手动刷新时强制重新渲染文件树
+    await loadFilesWithSync(projectId.value, true);
 
     message.success('文件列表已刷新');
     console.log('[ProjectDetail] ===== 刷新完成 =====');
