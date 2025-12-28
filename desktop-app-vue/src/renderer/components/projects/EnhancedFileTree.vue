@@ -22,6 +22,11 @@
           <FolderAddOutlined />
         </a-button>
       </a-tooltip>
+      <a-tooltip title="导入文件">
+        <a-button type="text" size="small" @click="handleImportFiles" :loading="importing">
+          <ImportOutlined />
+        </a-button>
+      </a-tooltip>
     </div>
 
     <!-- 加载状态 -->
@@ -147,6 +152,14 @@
               <FolderOpenOutlined />
               在文件管理器中显示
             </a-menu-item>
+
+            <a-menu-divider />
+
+            <!-- 导入导出操作 -->
+            <a-menu-item key="export" :disabled="!contextNode">
+              <ExportOutlined />
+              导出到外部
+            </a-menu-item>
           </template>
       </a-menu>
     </div>
@@ -185,6 +198,8 @@ import {
   CopyOutlined,
   SnippetsOutlined,
   LinkOutlined,
+  ImportOutlined,
+  ExportOutlined,
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
@@ -225,6 +240,8 @@ const contextMenuY = ref(0);
 const contextNode = ref(null);
 const clipboard = ref(null);
 const isEmptySpaceContext = ref(false); // 标记是否为空白处右键
+const importing = ref(false); // 导入状态
+const exporting = ref(false); // 导出状态
 
 // 文件图标映射
 const fileIconMap = {
@@ -487,6 +504,9 @@ const handleMenuClick = ({ key }) => {
       break;
     case 'reveal':
       handleReveal();
+      break;
+    case 'export':
+      handleExport();
       break;
   }
 };
@@ -937,6 +957,93 @@ const getStatusLabel = (status) => {
     renamed: 'R',
   };
   return labelMap[status] || '?';
+};
+
+// 导入文件
+const handleImportFiles = async () => {
+  try {
+    importing.value = true;
+
+    // 选择要导入的文件
+    const result = await window.electron.project.selectImportFiles({
+      allowDirectory: true
+    });
+
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      importing.value = false;
+      return;
+    }
+
+    console.log('[EnhancedFileTree] 选择的文件:', result.filePaths);
+
+    // 批量导入文件
+    const importResult = await window.electron.project.importFiles({
+      projectId: props.projectId,
+      externalPaths: result.filePaths,
+      targetDirectory: `/data/projects/${props.projectId}/`
+    });
+
+    console.log('[EnhancedFileTree] 导入结果:', importResult);
+
+    if (importResult.success) {
+      message.success(`成功导入 ${importResult.successCount}/${importResult.totalCount} 个文件`);
+      emit('refresh');
+    } else {
+      message.error('文件导入失败');
+    }
+  } catch (error) {
+    console.error('[EnhancedFileTree] 导入文件失败:', error);
+    message.error(`导入失败: ${error.message}`);
+  } finally {
+    importing.value = false;
+  }
+};
+
+// 导出文件到外部
+const handleExport = async () => {
+  if (!contextNode.value) return;
+
+  try {
+    exporting.value = true;
+
+    // 选择导出目录
+    const result = await window.electron.project.selectExportDirectory();
+
+    if (result.canceled || !result.path) {
+      exporting.value = false;
+      return;
+    }
+
+    console.log('[EnhancedFileTree] 导出节点:', contextNode.value);
+    console.log('[EnhancedFileTree] 导出到:', result.path);
+
+    // 构建完整的项目路径
+    const projectPath = `/data/projects/${props.projectId}/${contextNode.value.filePath}`;
+    const targetPath = `${result.path}\\${contextNode.value.title}`;
+
+    console.log('[EnhancedFileTree] 项目路径:', projectPath);
+    console.log('[EnhancedFileTree] 目标路径:', targetPath);
+
+    // 导出文件
+    const exportResult = await window.electron.project.exportFile({
+      projectPath: projectPath,
+      targetPath: targetPath,
+      isDirectory: !contextNode.value.isLeaf
+    });
+
+    console.log('[EnhancedFileTree] 导出结果:', exportResult);
+
+    if (exportResult.success) {
+      message.success(`成功导出: ${contextNode.value.title}`);
+    } else {
+      message.error(`文件导出失败: ${exportResult.error || '未知错误'}`);
+    }
+  } catch (error) {
+    console.error('[EnhancedFileTree] 导出文件失败:', error);
+    message.error(`导出失败: ${error.message}`);
+  } finally {
+    exporting.value = false;
+  }
 };
 </script>
 
