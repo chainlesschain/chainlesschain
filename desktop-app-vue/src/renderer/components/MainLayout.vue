@@ -149,6 +149,11 @@
         <a-sub-menu key="system">
           <template #icon><SettingOutlined /></template>
           <template #title>系统设置</template>
+          <a-menu-item key="system-settings">
+            <template #icon><SettingOutlined /></template>
+            系统配置
+            <a-badge count="新" :number-style="{ backgroundColor: '#1890ff', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
+          </a-menu-item>
           <a-menu-item key="settings">
             <template #icon><SettingOutlined /></template>
             通用设置
@@ -398,6 +403,9 @@ const menuConfig = {
   marketplace: { path: '/marketplace', title: '交易市场' },
   contracts: { path: '/contracts', title: '智能合约' },
   'credit-score': { path: '/credit-score', title: '信用评分' },
+
+  // 系统设置模块
+  'system-settings': { path: '/settings/system', title: '系统配置' },
   settings: { path: '/settings', title: '通用设置', query: { tab: 'general' } },
   'llm-settings': { path: '/settings', title: 'LLM配置', query: { tab: 'llm' } },
   'git-settings': { path: '/settings', title: 'Git同步', query: { tab: 'git' } },
