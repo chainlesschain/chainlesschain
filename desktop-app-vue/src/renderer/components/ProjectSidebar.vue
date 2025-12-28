@@ -22,10 +22,21 @@
       <a-button
         type="primary"
         block
-        @click="handleNewProject"
+        @click="handleQuickCreate"
         :icon="h(PlusOutlined)"
+        class="quick-create-btn"
       >
-        新建项目
+        快速新建项目
+      </a-button>
+      <a-button
+        block
+        @click="handleAICreate"
+        class="ai-create-btn"
+      >
+        <template #icon>
+          <span class="ai-icon">AI</span>
+        </template>
+        AI模板新建
       </a-button>
     </div>
 
@@ -140,6 +151,44 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 快速新建项目弹窗 -->
+    <a-modal
+      v-model:open="showQuickCreateModal"
+      title="快速新建项目"
+      :width="500"
+      @ok="handleQuickCreateSubmit"
+      @cancel="showQuickCreateModal = false"
+    >
+      <a-form
+        :model="quickCreateForm"
+        layout="vertical"
+        style="margin-top: 24px;"
+      >
+        <a-form-item
+          label="项目名称"
+          name="name"
+          :rules="[{ required: true, message: '请输入项目名称' }]"
+        >
+          <a-input
+            v-model:value="quickCreateForm.name"
+            placeholder="请输入项目名称"
+            size="large"
+            @pressEnter="handleQuickCreateSubmit"
+          />
+        </a-form-item>
+        <a-form-item
+          label="项目描述（可选）"
+          name="description"
+        >
+          <a-textarea
+            v-model:value="quickCreateForm.description"
+            placeholder="简要描述项目用途"
+            :rows="3"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -180,6 +229,13 @@ const renameModalVisible = ref(false);
 const renameForm = ref({
   projectId: null,
   name: '',
+});
+
+// 快速新建项目相关
+const showQuickCreateModal = ref(false);
+const quickCreateForm = ref({
+  name: '',
+  description: '',
 });
 
 // 从store获取项目列表
@@ -239,9 +295,53 @@ const formatDate = (timestamp) => {
   });
 };
 
-// 新建项目 - 回到首页
-const handleNewProject = () => {
+// 快速新建项目 - 打开弹窗
+const handleQuickCreate = () => {
+  showQuickCreateModal.value = true;
+  quickCreateForm.value = { name: '', description: '' };
+};
+
+// AI模板新建 - 回到首页
+const handleAICreate = () => {
   router.push('/');
+};
+
+// 快速新建项目提交
+const handleQuickCreateSubmit = async () => {
+  if (!quickCreateForm.value.name || !quickCreateForm.value.name.trim()) {
+    message.warning('请输入项目名称');
+    return;
+  }
+
+  try {
+    const userId = authStore.currentUser?.id || 'default-user';
+    const projectData = {
+      name: quickCreateForm.value.name.trim(),
+      description: quickCreateForm.value.description || '',
+      projectType: 'document', // 使用document类型（允许的类型：web, document, data, app）
+      userId: userId,
+    };
+
+    message.loading({ content: '正在创建项目...', key: 'quick-create', duration: 0 });
+
+    // 调用快速创建API
+    const project = await window.electronAPI.project.createQuick(projectData);
+
+    message.success({ content: '项目创建成功！', key: 'quick-create', duration: 2 });
+
+    // 关闭弹窗并重置表单
+    showQuickCreateModal.value = false;
+    quickCreateForm.value = { name: '', description: '' };
+
+    // 刷新项目列表
+    await loadProjects();
+
+    // 跳转到项目详情页
+    router.push(`/projects/${project.id || project.projectId}`);
+  } catch (error) {
+    console.error('快速创建项目失败:', error);
+    message.error({ content: '创建失败：' + error.message, key: 'quick-create', duration: 3 });
+  }
 };
 
 // 选择项目
@@ -411,6 +511,37 @@ onMounted(() => {
   padding: 12px;
   background: white;
   border-bottom: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-create-btn {
+  font-weight: 500;
+}
+
+.ai-create-btn {
+  border: 1px solid #d9d9d9;
+  transition: all 0.3s;
+}
+
+.ai-create-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.ai-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
 }
 
 /* 项目列表 */

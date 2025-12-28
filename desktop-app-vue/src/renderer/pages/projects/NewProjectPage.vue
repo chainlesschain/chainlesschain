@@ -126,35 +126,20 @@ const handleTemplateSelect = async (template) => {
   await startCreateProcess(createData);
 };
 
-// 开始创建流程（流式）
+// 开始创建流程（流式）- 新流程：直接跳转到特殊的创建页面
 const startCreateProcess = async (createData) => {
-  showProgressModal.value = true;
-  createError.value = '';
-  streamProgressData.value = {
-    currentStage: '',
-    stages: [],
-    contentByStage: {},
-    logs: [],
-    metadata: {},
-  };
-
   try {
-    const result = await projectStore.createProjectStream(createData, (progressUpdate) => {
-      // 更新进度数据
-      streamProgressData.value = { ...progressUpdate };
-
-      // 处理不同类型
-      if (progressUpdate.type === 'complete') {
-        createdProjectId.value = progressUpdate.result.projectId;
-        message.success('项目创建成功！');
-      } else if (progressUpdate.type === 'error') {
-        createError.value = progressUpdate.error;
-        message.error('创建项目失败：' + progressUpdate.error);
-      }
+    // 直接跳转到一个特殊的"AI创建"路由，传递创建数据
+    // 使用特殊的路径 /projects/new-ai-creation
+    router.push({
+      path: `/projects/ai-creating`,
+      query: {
+        createData: JSON.stringify(createData),
+      },
     });
   } catch (error) {
-    console.error('Create project stream failed:', error);
-    createError.value = error.message || '创建项目失败';
+    console.error('Start create process failed:', error);
+    message.error('启动创建流程失败：' + error.message);
   }
 };
 

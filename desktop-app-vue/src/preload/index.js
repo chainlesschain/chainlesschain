@@ -417,6 +417,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStats: () => ipcRenderer.invoke('template:getStats'),
     getRecent: (userId, limit) => ipcRenderer.invoke('template:getRecent', userId, limit),
     getPopular: (limit) => ipcRenderer.invoke('template:getPopular', limit),
+    // CRUD 操作
+    create: (templateData) => ipcRenderer.invoke('template:create', removeUndefined(templateData)),
+    update: (templateId, updates) => ipcRenderer.invoke('template:update', templateId, removeUndefined(updates)),
+    delete: (templateId) => ipcRenderer.invoke('template:delete', templateId),
+    duplicate: (templateId, newName) => ipcRenderer.invoke('template:duplicate', templateId, newName),
   },
 
   // 项目管理
@@ -425,6 +430,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAll: (userId) => ipcRenderer.invoke('project:get-all', userId),
     get: (projectId) => ipcRenderer.invoke('project:get', projectId),
     create: (createData) => ipcRenderer.invoke('project:create', removeUndefined(createData)),
+    createQuick: (createData) => ipcRenderer.invoke('project:create-quick', removeUndefined(createData)),
     update: (projectId, updates) => ipcRenderer.invoke('project:update', projectId, removeUndefined(updates)),
     delete: (projectId) => ipcRenderer.invoke('project:delete', projectId),
     save: (project) => ipcRenderer.invoke('project:save', removeUndefined(project)),
@@ -512,6 +518,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateFile: (fileUpdate) => ipcRenderer.invoke('project:update-file', fileUpdate),
     deleteFile: (projectId, fileId) => ipcRenderer.invoke('project:delete-file', projectId, fileId),
 
+    // AI对话 - 支持文件操作
+    aiChat: (chatData) => ipcRenderer.invoke('project:aiChat', removeUndefined(chatData)),
+
     // 路径解析
     resolvePath: (relativePath) => ipcRenderer.invoke('project:resolve-path', relativePath),
 
@@ -540,6 +549,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     offFilesUpdated: (callback) => ipcRenderer.removeListener('project:files-updated', callback),
 
     // 文件同步事件监听（文件系统变化自动刷新）
+    watchProject: (projectId, rootPath) => ipcRenderer.invoke('file-sync:watch-project', projectId, rootPath),
+    stopWatchProject: (projectId) => ipcRenderer.invoke('file-sync:stop-watch', projectId),
     onFileReloaded: (callback) => ipcRenderer.on('file-sync:reloaded', (_event, data) => callback(data)),
     offFileReloaded: (callback) => ipcRenderer.removeListener('file-sync:reloaded', callback),
     onFileAdded: (callback) => ipcRenderer.on('file-sync:file-added', (_event, data) => callback(data)),

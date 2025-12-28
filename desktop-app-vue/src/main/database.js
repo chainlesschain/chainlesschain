@@ -381,6 +381,24 @@ class DatabaseManager {
 
     // ==================== 项目管理表 ====================
 
+    // 项目分类表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS project_categories (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        parent_id TEXT,
+        icon TEXT,
+        color TEXT,
+        sort_order INTEGER DEFAULT 0,
+        description TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        deleted INTEGER DEFAULT 0,
+        FOREIGN KEY (parent_id) REFERENCES project_categories(id) ON DELETE CASCADE
+      )
+    `);
+
     // 项目表
     this.db.run(`
       CREATE TABLE IF NOT EXISTS projects (
@@ -667,6 +685,18 @@ class DatabaseManager {
     this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_projects_sync_status ON projects(sync_status);
     `);
+
+    // 项目分类索引
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_project_categories_user_id ON project_categories(user_id);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_project_categories_parent_id ON project_categories(parent_id);
+    `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_project_categories_sort_order ON project_categories(sort_order);
+    `);
+
     this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_project_files_project_id ON project_files(project_id);
     `);
@@ -883,6 +913,9 @@ class DatabaseManager {
     this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_conversations_project_id ON conversations(project_id);
     `);
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id);
+    `);
 
     // 保存更改
     this.saveToFile();
@@ -1088,6 +1121,17 @@ class DatabaseManager {
       if (!templatesInfo.some(col => col.name === 'deleted')) {
         console.log('[Database] 添加 project_templates.deleted 列');
         this.db.run('ALTER TABLE project_templates ADD COLUMN deleted INTEGER DEFAULT 0');
+      }
+
+      // ==================== 项目分类迁移 (V3) ====================
+      console.log('[Database] 执行项目分类迁移 (V3)...');
+
+      // 为 projects 表添加 category_id 字段
+      const projectsInfoV3 = this.db.prepare("PRAGMA table_info(projects)").all();
+      if (!projectsInfoV3.some(col => col.name === 'category_id')) {
+        console.log('[Database] 添加 projects.category_id 列');
+        this.db.run('ALTER TABLE projects ADD COLUMN category_id TEXT');
+        // 添加外键约束（注：SQLite的ALTER TABLE不支持直接添加外键，需要在查询时处理）
       }
 
       console.log('[Database] 数据库迁移完成');
@@ -2229,7 +2273,7 @@ class DatabaseManager {
   getProjectFiles(projectId) {
     const stmt = this.db.prepare(`
       SELECT * FROM project_files
-      WHERE project_id = ?
+      WHERE project_id = ? AND deleted = 0
       ORDER BY file_path
     `);
     return stmt.all(projectId);

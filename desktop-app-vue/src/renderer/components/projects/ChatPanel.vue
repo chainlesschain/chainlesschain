@@ -103,9 +103,13 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  aiCreationData: {
+    type: Object,
+    default: null,
+  },
 });
 
-const emit = defineEmits(['conversationLoaded']);
+const emit = defineEmits(['conversationLoaded', 'creation-complete']);
 
 // 响应式状态
 const contextMode = ref('project'); // 'project' | 'file' | 'global'
@@ -114,6 +118,7 @@ const userInput = ref('');
 const isLoading = ref(false);
 const messagesContainer = ref(null);
 const currentConversation = ref(null);
+const creationProgress = ref(null); // AI创建进度数据
 
 // 计算属性
 const contextInfo = computed(() => {
@@ -311,9 +316,9 @@ const handleSendMessage = async () => {
   if (!input || isLoading.value) return;
 
   // 检查API是否可用
-  if (!window.electronAPI?.llm) {
-    console.error('[ChatPanel] LLM API 不可用:', window.electronAPI);
-    antMessage.error('LLM API 不可用，请重启应用');
+  if (!window.electronAPI?.project) {
+    console.error('[ChatPanel] Project API 不可用:', window.electronAPI);
+    antMessage.error('Project API 不可用，请重启应用');
     return;
   }
 
@@ -364,29 +369,39 @@ const handleSendMessage = async () => {
     await nextTick();
     scrollToBottom();
 
-    // 构建消息上下文
-    const systemPrompt = await buildSystemPrompt();
+    // 获取项目信息和文件列表
+    const projectInfo = await buildProjectContext();
+    const fileList = await getProjectFiles();
 
-    // 调用 LLM
-    const response = await window.electronAPI.llm.chat({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages.value.slice(-10).map(msg => ({
-          role: msg.role,
-          content: msg.content,
-        })),
-      ],
-      stream: false,
+    // 构建对话历史（最近10条）
+    const conversationHistory = messages.value.slice(-10).map(msg => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+
+    // 调用新的项目AI对话API
+    const response = await window.electronAPI.project.aiChat({
+      projectId: props.projectId,
+      userMessage: input,
+      conversationHistory: conversationHistory,
+      contextMode: contextMode.value,
+      currentFile: props.currentFile,
+      projectInfo: projectInfo,
+      fileList: fileList
     });
+
+    console.log('[ChatPanel] AI响应:', response);
 
     // 创建助手消息
     const assistantMessage = {
       id: `msg_${Date.now()}_assistant`,
       conversation_id: currentConversation.value.id,
       role: 'assistant',
-      content: response.content || response.message || '抱歉，我没有理解你的问题。',
+      content: response.conversationResponse || '抱歉，我没有理解你的问题。',
       timestamp: Date.now(),
-      tokens: response.usage?.total_tokens,
+      fileOperations: response.fileOperations || [],
+      hasFileOperations: response.hasFileOperations || false,
+      ragSources: response.ragSources || []
     };
 
     // 添加到消息列表
@@ -398,8 +413,27 @@ const handleSendMessage = async () => {
       role: 'assistant',
       content: assistantMessage.content,
       timestamp: Date.now(),
-      tokens: response.usage?.total_tokens,
+      metadata: {
+        hasFileOperations: assistantMessage.hasFileOperations,
+        fileOperationCount: assistantMessage.fileOperations.length
+      }
     });
+
+    // 如果有文件操作成功执行，通知用户并刷新文件树
+    if (response.hasFileOperations && response.fileOperations.length > 0) {
+      const successCount = response.fileOperations.filter(op => op.status === 'success').length;
+      const errorCount = response.fileOperations.filter(op => op.status === 'error').length;
+
+      if (successCount > 0) {
+        antMessage.success(`成功执行 ${successCount} 个文件操作`);
+        // 触发文件树刷新事件（如果父组件有监听）
+        emit('files-changed');
+      }
+
+      if (errorCount > 0) {
+        antMessage.warning(`${errorCount} 个文件操作失败`);
+      }
+    }
 
     // 滚动到底部
     await nextTick();
@@ -409,6 +443,21 @@ const handleSendMessage = async () => {
     antMessage.error('发送消息失败: ' + error.message);
   } finally {
     isLoading.value = false;
+  }
+};
+
+/**
+ * 获取项目文件列表
+ */
+const getProjectFiles = async () => {
+  try {
+    if (!props.projectId) return [];
+
+    const result = await window.electronAPI.project.getFiles(props.projectId);
+    return result.files || [];
+  } catch (error) {
+    console.error('获取文件列表失败:', error);
+    return [];
   }
 };
 
@@ -551,6 +600,106 @@ watch(() => props.currentFile, () => {
     // 文件变化时不自动清空对话，只更新上下文
   }
 });
+
+/**
+ * 开始AI创建项目
+ */
+const startAICreation = async (createData) => {
+  console.log('[ChatPanel] 开始AI创建项目:', createData);
+
+  // 创建一个系统消息来展示创建过程
+  const creationMessage = {
+    id: `msg_creation_${Date.now()}`,
+    role: 'system',
+    type: 'creation',
+    content: '正在使用AI创建项目...',
+    timestamp: Date.now(),
+    progress: {
+      currentStage: '',
+      stages: [],
+      contentByStage: {},
+      overallProgress: 0,
+      status: 'running',
+    },
+  };
+
+  messages.value.push(creationMessage);
+  isLoading.value = true;
+
+  try {
+    // 导入projectStore
+    const { useProjectStore } = await import('@/stores/project');
+    const projectStore = useProjectStore();
+
+    // 调用流式创建
+    await projectStore.createProjectStream(createData, (progressUpdate) => {
+      console.log('[ChatPanel] 收到创建进度更新:', progressUpdate);
+
+      // 更新消息中的进度信息
+      const message = messages.value.find(m => m.id === creationMessage.id);
+      if (message) {
+        if (progressUpdate.type === 'progress') {
+          message.progress.currentStage = progressUpdate.currentStage;
+          message.progress.stages = progressUpdate.stages || [];
+          message.content = `正在 ${progressUpdate.currentStage}...`;
+
+          // 计算总进度
+          const completedStages = message.progress.stages.filter(s => s.status === 'completed').length;
+          const totalStages = message.progress.stages.length || 1;
+          message.progress.overallProgress = Math.round((completedStages / totalStages) * 100);
+        } else if (progressUpdate.type === 'content') {
+          if (!message.progress.contentByStage) {
+            message.progress.contentByStage = {};
+          }
+          if (!message.progress.contentByStage[progressUpdate.currentStage]) {
+            message.progress.contentByStage[progressUpdate.currentStage] = '';
+          }
+          message.progress.contentByStage[progressUpdate.currentStage] = progressUpdate.contentByStage[progressUpdate.currentStage] || '';
+        } else if (progressUpdate.type === 'complete') {
+          message.content = '✅ 项目创建完成！';
+          message.progress.status = 'completed';
+          message.progress.overallProgress = 100;
+          message.result = progressUpdate.result;
+
+          // 触发完成事件
+          emit('creation-complete', progressUpdate.result);
+
+          antMessage.success('项目创建成功！');
+        } else if (progressUpdate.type === 'error') {
+          message.content = `❌ 创建失败: ${progressUpdate.error}`;
+          message.progress.status = 'error';
+          message.error = progressUpdate.error;
+
+          antMessage.error('项目创建失败: ' + progressUpdate.error);
+        }
+
+        // 滚动到底部
+        nextTick(() => scrollToBottom());
+      }
+    });
+  } catch (error) {
+    console.error('[ChatPanel] AI创建失败:', error);
+
+    const message = messages.value.find(m => m.id === creationMessage.id);
+    if (message) {
+      message.content = `❌ 创建失败: ${error.message}`;
+      message.progress.status = 'error';
+      message.error = error.message;
+    }
+
+    antMessage.error('创建项目失败: ' + error.message);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// 监听aiCreationData的变化
+watch(() => props.aiCreationData, (newData) => {
+  if (newData) {
+    console.log('[ChatPanel] 检测到AI创建数据:', newData);
+    startAICreation(newData);
+  }
+}, { immediate: true });
 
 // 组件挂载时加载对话
 onMounted(() => {

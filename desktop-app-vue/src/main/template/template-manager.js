@@ -564,6 +564,167 @@ class ProjectTemplateManager {
   }
 
   /**
+   * 创建新模板
+   */
+  async createTemplate(templateData) {
+    const now = Date.now();
+    const templateId = uuidv4();
+
+    try {
+      const stmt = this.db.db.prepare(`
+        INSERT INTO project_templates (
+          id, name, display_name, description, icon, cover_image,
+          category, subcategory, tags,
+          project_type, prompt_template, variables_schema, file_structure, default_files,
+          is_builtin, author, version, usage_count, rating, rating_count,
+          created_at, updated_at, sync_status, deleted
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run([
+        templateId,
+        templateData.name,
+        templateData.display_name,
+        templateData.description || '',
+        templateData.icon || '',
+        templateData.cover_image || '',
+        templateData.category,
+        templateData.subcategory || '',
+        JSON.stringify(templateData.tags || []),
+        templateData.project_type,
+        templateData.prompt_template || '',
+        JSON.stringify(templateData.variables_schema || []),
+        JSON.stringify(templateData.file_structure || {}),
+        JSON.stringify(templateData.default_files || []),
+        0, // 用户创建的模板不是内置模板
+        templateData.author || '',
+        templateData.version || '1.0.0',
+        0, // 初始使用次数为0
+        0, // 初始评分为0
+        0, // 初始评分数为0
+        now,
+        now,
+        'pending',
+        0
+      ]);
+
+      this.db.saveToFile();
+
+      return {
+        id: templateId,
+        ...templateData,
+        created_at: now,
+        updated_at: now
+      };
+    } catch (error) {
+      console.error('[TemplateManager] 创建模板失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新模板
+   */
+  async updateTemplate(templateId, updates) {
+    const now = Date.now();
+
+    try {
+      // 首先检查模板是否存在
+      const existing = await this.getTemplateById(templateId);
+      if (!existing) {
+        throw new Error(`模板不存在: ${templateId}`);
+      }
+
+      // 构建更新语句
+      const fields = [];
+      const values = [];
+
+      if (updates.name !== undefined) {
+        fields.push('name = ?');
+        values.push(updates.name);
+      }
+      if (updates.display_name !== undefined) {
+        fields.push('display_name = ?');
+        values.push(updates.display_name);
+      }
+      if (updates.description !== undefined) {
+        fields.push('description = ?');
+        values.push(updates.description);
+      }
+      if (updates.icon !== undefined) {
+        fields.push('icon = ?');
+        values.push(updates.icon);
+      }
+      if (updates.cover_image !== undefined) {
+        fields.push('cover_image = ?');
+        values.push(updates.cover_image);
+      }
+      if (updates.category !== undefined) {
+        fields.push('category = ?');
+        values.push(updates.category);
+      }
+      if (updates.subcategory !== undefined) {
+        fields.push('subcategory = ?');
+        values.push(updates.subcategory);
+      }
+      if (updates.tags !== undefined) {
+        fields.push('tags = ?');
+        values.push(JSON.stringify(updates.tags));
+      }
+      if (updates.project_type !== undefined) {
+        fields.push('project_type = ?');
+        values.push(updates.project_type);
+      }
+      if (updates.prompt_template !== undefined) {
+        fields.push('prompt_template = ?');
+        values.push(updates.prompt_template);
+      }
+      if (updates.variables_schema !== undefined) {
+        fields.push('variables_schema = ?');
+        values.push(JSON.stringify(updates.variables_schema));
+      }
+      if (updates.file_structure !== undefined) {
+        fields.push('file_structure = ?');
+        values.push(JSON.stringify(updates.file_structure));
+      }
+      if (updates.default_files !== undefined) {
+        fields.push('default_files = ?');
+        values.push(JSON.stringify(updates.default_files));
+      }
+      if (updates.author !== undefined) {
+        fields.push('author = ?');
+        values.push(updates.author);
+      }
+      if (updates.version !== undefined) {
+        fields.push('version = ?');
+        values.push(updates.version);
+      }
+
+      // 总是更新 updated_at
+      fields.push('updated_at = ?');
+      values.push(now);
+
+      // 添加 WHERE 条件的参数
+      values.push(templateId);
+
+      const stmt = this.db.db.prepare(`
+        UPDATE project_templates
+        SET ${fields.join(', ')}
+        WHERE id = ?
+      `);
+
+      stmt.run(values);
+      this.db.saveToFile();
+
+      // 返回更新后的模板
+      return await this.getTemplateById(templateId);
+    } catch (error) {
+      console.error('[TemplateManager] 更新模板失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 删除模板（软删除）
    */
   async deleteTemplate(templateId) {

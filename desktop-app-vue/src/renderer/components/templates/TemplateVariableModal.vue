@@ -186,7 +186,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:visible', 'success', 'cancel'])
+const emit = defineEmits(['update:visible', 'success', 'cancel', 'start-create'])
 
 const router = useRouter()
 const templateStore = useTemplateStore()
@@ -405,55 +405,19 @@ async function handleSubmit() {
       projectName = String(formData.value[firstVariable.name]).substring(0, 50)
     }
 
-    // 4. 创建项目
-    console.log('[TemplateVariableModal] 创建项目...', { projectName })
-
-    const project = await projectStore.createProjectStream({
-      name: projectName,
-      type: props.template.project_type || 'document',
-      userPrompt: renderedPrompt,
-      onProgress: (stage) => {
-        console.log('[TemplateVariableModal] 进度:', stage)
-      },
-      onContent: (content) => {
-        console.log('[TemplateVariableModal] 内容更新:', content.substring(0, 100))
-      },
-      onComplete: async (result) => {
-        console.log('[TemplateVariableModal] 项目创建完成:', result)
-
-        // 5. 记录模板使用
-        try {
-          // 获取 userId，优先使用 currentUser.id，否则使用默认值
-          const userId = authStore.currentUser?.id || 'default-user'
-          console.log('[TemplateVariableModal] 记录模板使用, userId:', userId)
-
-          await templateStore.recordUsage(
-            props.template.id,
-            userId,
-            result.projectId,
-            formData.value
-          )
-        } catch (error) {
-          console.error('[TemplateVariableModal] 记录使用失败:', error)
-        }
-
-        // 6. 重置 creating 状态
-        creating.value = false
-
-        // 7. 成功提示并关闭对话框
-        message.success('项目创建成功！')
-        isVisible.value = false
-        emit('success', result)
-
-        // 8. 跳转到项目页面
-        router.push(`/projects/${result.projectId}`)
-      },
-      onError: (error) => {
-        console.error('[TemplateVariableModal] 创建失败:', error)
-        message.error('创建失败: ' + error.message)
-        creating.value = false
-      }
+    // 4. Emit 创建事件，让父组件处理流式创建和进度展示
+    console.log('[TemplateVariableModal] Emit start-create 事件')
+    emit('start-create', {
+      templateId: props.template.id,
+      projectName: projectName,
+      projectType: props.template.project_type || 'document',
+      renderedPrompt: renderedPrompt,
+      variables: formData.value
     })
+
+    // 5. 重置状态并关闭对话框
+    creating.value = false
+    isVisible.value = false
 
   } catch (error) {
     if (error.errorFields) {

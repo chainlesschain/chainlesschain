@@ -1025,6 +1025,138 @@ async def optimize_code(request: CodeOptimizeRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ==================== Project Conversation API ====================
+
+class ProjectChatRequest(BaseModel):
+    """项目对话请求"""
+    project_id: str
+    user_message: str
+    conversation_history: Optional[List[Dict[str, str]]] = None  # 对话历史
+    context_mode: str = "project"  # project | file | global
+    current_file: Optional[str] = None  # 当前文件路径（file模式下使用）
+    project_info: Optional[Dict[str, Any]] = None  # 项目信息
+    file_list: Optional[List[Dict[str, Any]]] = None  # 文件列表
+
+
+@app.post("/api/projects/{project_id}/chat")
+async def project_chat(project_id: str, request: ProjectChatRequest):
+    """
+    项目对话接口 - 支持AI驱动的文件操作
+
+    用户可以通过自然语言与AI对话，AI会根据需要执行文件操作（CREATE/UPDATE/DELETE/READ）
+
+    Args:
+        project_id: 项目ID
+        request: 对话请求（包含用户消息、上下文模式等）
+
+    Returns:
+        {
+            "response": "AI文本回复",
+            "operations": [文件操作列表],
+            "rag_sources": [RAG检索结果]
+        }
+    """
+    try:
+        from src.llm.llm_client import get_llm_client
+        from src.engines.function_schemas import (
+            FILE_OPERATIONS_SCHEMA,
+            build_system_prompt_with_context
+        )
+        import json
+
+        # 1. 获取LLM客户端
+        llm_client = get_llm_client()
+
+        # 2. RAG检索相关项目文件（如果启用）
+        rag_context = []
+        if request.context_mode == "project":
+            try:
+                query_result = await rag_engine.query_enhanced(
+                    query=request.user_message,
+                    project_id=project_id,
+                    top_k=5,
+                    sources=["project"]
+                )
+                rag_context = query_result.get("context", [])
+            except Exception as e:
+                print(f"RAG query failed: {e}")
+                # RAG失败不影响对话，继续执行
+
+        # 3. 构建系统提示词
+        project_info = request.project_info or {
+            "name": f"Project {project_id}",
+            "description": "A project managed by ChainlessChain",
+            "type": "general"
+        }
+
+        system_prompt = build_system_prompt_with_context(
+            project_info=project_info,
+            file_list=request.file_list,
+            rag_context=rag_context
+        )
+
+        # 4. 构建消息列表
+        messages = [{"role": "system", "content": system_prompt}]
+
+        # 添加对话历史（最多10条）
+        if request.conversation_history:
+            messages.extend(request.conversation_history[-10:])
+
+        # 添加当前用户消息
+        messages.append({"role": "user", "content": request.user_message})
+
+        # 5. 调用LLM（尝试使用function calling）
+        # 注意：不是所有LLM都支持function calling，这里先用基础版本
+        # TODO: 后续可以根据不同LLM提供商使用不同的实现
+
+        response_text = await llm_client.chat(
+            messages=messages,
+            temperature=0.7,
+            max_tokens=2048
+        )
+
+        # 6. 解析响应提取文件操作
+        # 简单实现：检查响应中是否包含JSON格式的操作指令
+        operations = []
+
+        # 尝试解析JSON格式的文件操作
+        if "```json" in response_text.lower():
+            try:
+                # 提取JSON代码块
+                json_start = response_text.lower().find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                json_str = response_text[json_start:json_end].strip()
+                parsed_json = json.loads(json_str)
+
+                if "operations" in parsed_json:
+                    operations = parsed_json["operations"]
+                elif isinstance(parsed_json, list):
+                    operations = parsed_json
+            except Exception as e:
+                print(f"Failed to parse JSON operations: {e}")
+
+        # 7. 返回结果
+        return {
+            "success": True,
+            "response": response_text,
+            "operations": operations,
+            "rag_sources": [
+                {
+                    "text": ctx.get("text", ""),
+                    "file_path": ctx.get("file_path", ""),
+                    "score": ctx.get("score", 0.0)
+                }
+                for ctx in rag_context[:5]
+            ]
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Project chat error: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
