@@ -45,7 +45,7 @@
 
 /**
  * U盾驱动类型
- * @typedef {'dongle'|'feitian'|'watchdata'|'simulated'} UKeyDriverType
+ * @typedef {'xinjinke'|'feitian'|'watchdata'|'huada'|'tdr'|'simulated'} UKeyDriverType
  */
 
 /**

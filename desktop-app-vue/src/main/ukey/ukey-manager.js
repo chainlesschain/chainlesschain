@@ -7,6 +7,8 @@
 const XinJinKeDriver = require('./xinjinke-driver');
 const FeiTianDriver = require('./feitian-driver');
 const WatchDataDriver = require('./watchdata-driver');
+const HuadaDriver = require('./huada-driver');
+const TDRDriver = require('./tdr-driver');
 const SimulatedDriver = require('./simulated-driver');
 const EventEmitter = require('events');
 
@@ -17,6 +19,8 @@ const DriverTypes = {
   XINJINKE: 'xinjinke',
   FEITIAN: 'feitian',
   WATCHDATA: 'watchdata',
+  HUADA: 'huada',
+  TDR: 'tdr',
   SIMULATED: 'simulated',
 };
 
@@ -93,6 +97,14 @@ class UKeyManager extends EventEmitter {
         driver = new WatchDataDriver(this.config);
         break;
 
+      case DriverTypes.HUADA:
+        driver = new HuadaDriver(this.config);
+        break;
+
+      case DriverTypes.TDR:
+        driver = new TDRDriver(this.config);
+        break;
+
       case DriverTypes.SIMULATED:
         driver = new SimulatedDriver(this.config);
         break;
@@ -145,7 +157,14 @@ class UKeyManager extends EventEmitter {
   async autoDetect() {
     // console.log('[UKeyManager] 自动检测U盾类型...');
 
-    const driverTypes = [DriverTypes.XINJINKE, DriverTypes.FEITIAN, DriverTypes.WATCHDATA];
+    // 支持的驱动列表（按优先级排序）
+    const driverTypes = [
+      DriverTypes.XINJINKE,    // 鑫金科
+      DriverTypes.FEITIAN,     // 飞天诚信
+      DriverTypes.WATCHDATA,   // 握奇（卫士通）
+      DriverTypes.HUADA,       // 华大
+      DriverTypes.TDR,         // 天地融
+    ];
 
     for (const type of driverTypes) {
       try {
