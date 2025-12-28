@@ -368,15 +368,26 @@ const insertLinePrefix = (prefix) => {
 const save = async () => {
   if (!hasChanges.value) return;
 
+  if (!props.file?.file_path) {
+    message.warning('文件路径不存在，无法保存');
+    return;
+  }
+
   saving.value = true;
   try {
-    if (props.file?.file_path) {
-      await window.electronAPI.file.writeContent(props.file.file_path, content.value);
-    }
+    console.log('[MarkdownEditor] 保存文件:', props.file.file_path);
+    console.log('[MarkdownEditor] 内容长度:', content.value?.length);
 
-    hasChanges.value = false;
-    emit('save', content.value);
-    message.success('已保存');
+    const result = await window.electronAPI.file.writeContent(props.file.file_path, content.value);
+
+    if (result.success) {
+      hasChanges.value = false;
+      emit('save', content.value);
+      message.success('已保存');
+      console.log('[MarkdownEditor] 保存成功');
+    } else {
+      throw new Error(result.error || '保存失败');
+    }
   } catch (error) {
     console.error('[MarkdownEditor] 保存失败:', error);
     message.error('保存失败: ' + error.message);
@@ -495,23 +506,38 @@ const scheduleAutoSave = () => {
   autoSaveTimer = setTimeout(save, 2000);
 };
 
-// 监听文件变化
-watch(() => props.file, async () => {
-  if (props.file?.file_path) {
-    try {
-      const result = await window.electronAPI.file.readContent(props.file.file_path);
-      if (result.success) {
-        content.value = result.content || '';
-        hasChanges.value = false;
+// 监听 initialContent 变化（主要加载方式）
+watch(() => props.initialContent, (newContent) => {
+  if (newContent !== undefined && newContent !== content.value) {
+    console.log('[MarkdownEditor] initialContent 变化，更新内容，长度:', newContent?.length);
+    content.value = newContent || '';
+    hasChanges.value = false;
+  }
+}, { immediate: true });
+
+// 监听文件变化（作为备用加载方式）
+watch(() => props.file?.id, async (newId, oldId) => {
+  if (newId && newId !== oldId && props.file?.file_path) {
+    // 只有在 initialContent 为空时才尝试直接读取文件
+    if (!props.initialContent) {
+      try {
+        console.log('[MarkdownEditor] 文件变化，直接读取:', props.file.file_path);
+        const result = await window.electronAPI.file.readContent(props.file.file_path);
+        if (result.success) {
+          content.value = result.content || '';
+          hasChanges.value = false;
+        }
+      } catch (error) {
+        console.error('[MarkdownEditor] 读取文件失败:', error);
+        message.error('读取文件失败: ' + error.message);
       }
-    } catch (error) {
-      console.error('[MarkdownEditor] 读取文件失败:', error);
     }
   }
-}, { deep: true });
+});
 
 // 组件挂载
 onMounted(() => {
+  console.log('[MarkdownEditor] 组件挂载，initialContent 长度:', props.initialContent?.length);
   if (props.initialContent) {
     content.value = props.initialContent;
   }
