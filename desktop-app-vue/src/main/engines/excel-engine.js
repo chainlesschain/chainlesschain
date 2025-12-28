@@ -8,11 +8,13 @@ const fsSync = require('fs');
 const path = require('path');
 const Papa = require('papaparse');
 const { getFileHandler } = require('../utils/file-handler');
+const { getFileCache } = require('../utils/file-cache');
 
 class ExcelEngine {
   constructor() {
     this.supportedFormats = ['.xlsx', '.xls', '.csv'];
     this.fileHandler = getFileHandler();
+    this.fileCache = getFileCache();
   }
 
   /**
@@ -124,49 +126,64 @@ class ExcelEngine {
    * 读取CSV文件
    */
   async readCSV(filePath) {
+    // 先检查缓存
+    const cachedResult = await this.fileCache.getCachedParseResult(filePath, 'csv');
+    if (cachedResult) {
+      return cachedResult;
+    }
+
     // 检查是否为大文件
     const isLarge = await this.fileHandler.isLargeFile(filePath);
 
+    let result;
+
     if (isLarge) {
       console.log('[ExcelEngine] 检测到大文件，使用流式处理');
-      return await this.readLargeCSV(filePath);
+      result = await this.readLargeCSV(filePath);
+    } else {
+      // 小文件使用原有逻辑
+      const content = await fs.readFile(filePath, 'utf-8');
+      const parsed = Papa.parse(content, {
+        header: false,
+        skipEmptyLines: false,
+      });
+
+      // 转换为标准表格格式
+      const rows = parsed.data.map((rowValues, rowNumber) => ({
+        rowNumber: rowNumber + 1,
+        values: rowValues.map((value, colNumber) => ({
+          col: colNumber + 1,
+          value: value,
+          type: 'string',
+        })),
+        height: 20,
+      }));
+
+      // 提取列信息(使用第一行作为表头)
+      const columns = parsed.data[0]?.map((header, index) => ({
+        index,
+        header: header || `Column ${index + 1}`,
+        width: 100,
+      })) || [];
+
+      result = {
+        type: 'csv',
+        sheets: [{
+          name: 'Sheet1',
+          id: 1,
+          rows,
+          columns,
+          merges: [],
+        }],
+      };
     }
 
-    // 小文件使用原有逻辑
-    const content = await fs.readFile(filePath, 'utf-8');
-    const parsed = Papa.parse(content, {
-      header: false,
-      skipEmptyLines: false,
-    });
+    // 缓存结果（对于小文件）
+    if (!isLarge) {
+      await this.fileCache.cacheParseResult(filePath, 'csv', result);
+    }
 
-    // 转换为标准表格格式
-    const rows = parsed.data.map((rowValues, rowNumber) => ({
-      rowNumber: rowNumber + 1,
-      values: rowValues.map((value, colNumber) => ({
-        col: colNumber + 1,
-        value: value,
-        type: 'string',
-      })),
-      height: 20,
-    }));
-
-    // 提取列信息(使用第一行作为表头)
-    const columns = parsed.data[0]?.map((header, index) => ({
-      index,
-      header: header || `Column ${index + 1}`,
-      width: 100,
-    })) || [];
-
-    return {
-      type: 'csv',
-      sheets: [{
-        name: 'Sheet1',
-        id: 1,
-        rows,
-        columns,
-        merges: [],
-      }],
-    };
+    return result;
   }
 
   /**
@@ -354,6 +371,13 @@ class ExcelEngine {
    * 转换Excel为JSON
    */
   async excelToJSON(filePath, options = {}) {
+    // 检查缓存
+    const cacheKey = `json:${options.sheetIndex || 0}`;
+    const cachedResult = await this.fileCache.getCachedParseResult(filePath, cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
     const data = await this.readExcel(filePath);
     const sheet = data.sheets[options.sheetIndex || 0];
 
@@ -375,6 +399,11 @@ class ExcelEngine {
       });
 
       jsonData.push(obj);
+    }
+
+    // 缓存JSON结果（如果数据不太大）
+    if (jsonData.length < 10000) {
+      await this.fileCache.cacheParseResult(filePath, cacheKey, jsonData);
     }
 
     return jsonData;
