@@ -219,6 +219,12 @@ const initEditor = async () => {
       }
     }
 
+    // 异步操作后再次检查 DOM 是否仍然有效（防止组件在加载期间被卸载）
+    if (!editorRef.value) {
+      console.warn('[RichTextEditor] 编辑器 DOM 已卸载，取消内容设置');
+      return;
+    }
+
     editorRef.value.innerHTML = content || '<p>开始编辑...</p>';
     updateWordCount();
   } catch (error) {
