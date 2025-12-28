@@ -20,10 +20,19 @@
                 </a-radio-group>
               </a-form-item>
 
-              <a-form-item label="语言">
-                <a-select v-model:value="language" style="width: 200px">
-                  <a-select-option value="zh-CN">简体中文</a-select-option>
-                  <a-select-option value="en-US">English</a-select-option>
+              <a-form-item :label="$t('settings.language')">
+                <a-select
+                  v-model:value="language"
+                  style="width: 200px"
+                  @change="handleLanguageChange"
+                >
+                  <a-select-option
+                    v-for="lang in supportedLanguages"
+                    :key="lang.value"
+                    :value="lang.value"
+                  >
+                    {{ lang.icon }} {{ lang.label }}
+                  </a-select-option>
                 </a-select>
               </a-form-item>
 
@@ -172,6 +181,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import {
   ApiOutlined,
@@ -182,21 +192,33 @@ import {
   DatabaseOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
+import { supportedLocales, setLocale, getLocale } from '../locales';
 import LLMSettings from '../components/LLMSettings.vue';
 import GitSettings from '../components/GitSettings.vue';
 import RAGSettings from '../components/RAGSettings.vue';
 
 const router = useRouter();
 const store = useAppStore();
+const { t } = useI18n();
 
 // 当前激活的标签页
 const activeTab = ref('general');
 
+// 支持的语言列表
+const supportedLanguages = supportedLocales;
+
 // 通用设置
 const theme = ref('light');
-const language = ref('zh-CN');
+const language = ref(getLocale());
 const openOnStartup = ref(false);
 const minimizeToTray = ref(true);
+
+// 处理语言切换
+const handleLanguageChange = (value) => {
+  setLocale(value);
+  const langInfo = supportedLocales.find(lang => lang.value === value);
+  message.success(t('common.success') + ': ' + langInfo.label);
+};
 
 // 返回
 const handleBack = () => {
