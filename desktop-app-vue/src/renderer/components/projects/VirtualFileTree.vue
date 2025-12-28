@@ -130,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, onUpdated, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   SearchOutlined,
@@ -267,18 +267,38 @@ const buildTree = () => {
     top = traverse(root[key], 0, top);
   }
 
-  flattenedNodes.value = flattened;
-  console.log('[VirtualFileTree] 扁平化完成，节点数量:', flattened.length);
+  // 强制创建新引用，确保响应式
+  flattenedNodes.value = [...flattened];
+  console.log('[VirtualFileTree] 扁平化完成，节点数量:', flattenedNodes.value.length);
 };
 
-// 监听文件列表变化
+// 监听文件列表变化 - 增强版
 watch(
   () => props.files,
-  () => {
-    console.log('[VirtualFileTree] 文件列表变化，重新构建树');
+  async (newFiles, oldFiles) => {
+    console.log('[VirtualFileTree] 文件列表变化');
+    console.log('  旧长度:', oldFiles?.length || 0);
+    console.log('  新长度:', newFiles?.length || 0);
+    console.log('  引用改变:', newFiles !== oldFiles);
+
     buildTree();
+
+    // 等待 DOM 更新
+    await nextTick();
+    console.log('[VirtualFileTree] 树构建完成，节点数:', flattenedNodes.value.length);
   },
   { immediate: true, deep: true }
+);
+
+// 添加文件数量变化监听（备用）
+watch(
+  () => props.files?.length,
+  (newLen, oldLen) => {
+    if (newLen !== oldLen) {
+      console.log('[VirtualFileTree] 文件数量变化:', oldLen, '->', newLen);
+      nextTick(() => buildTree());
+    }
+  }
 );
 
 // 监听展开状态变化
@@ -525,11 +545,17 @@ const updateContainerHeight = () => {
 };
 
 onMounted(() => {
+  console.log('[VirtualFileTree] onMounted, files:', props.files?.length || 0);
   updateContainerHeight();
   window.addEventListener('resize', updateContainerHeight);
 });
 
+onUpdated(() => {
+  console.log('[VirtualFileTree] onUpdated, files:', props.files?.length || 0);
+});
+
 onUnmounted(() => {
+  console.log('[VirtualFileTree] onUnmounted');
   window.removeEventListener('resize', updateContainerHeight);
 });
 </script>
