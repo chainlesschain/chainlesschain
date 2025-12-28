@@ -376,7 +376,17 @@ const handleSendMessage = async () => {
       description: project.description || '',
       type: project.project_type || 'general'
     } : null;
-    const fileList = await getProjectFiles();
+    const rawFileList = await getProjectFiles();
+
+    // 清理文件列表，只保留可序列化的字段
+    const fileList = Array.isArray(rawFileList) ? rawFileList.map(file => ({
+      id: file.id,
+      file_name: file.file_name,
+      file_path: file.file_path,
+      file_type: file.file_type,
+      content: file.content,
+      size: file.size
+    })) : [];
 
     // 构建对话历史（最近10条）
     const conversationHistory = messages.value.slice(-10).map(msg => ({
@@ -384,13 +394,23 @@ const handleSendMessage = async () => {
       content: msg.content,
     }));
 
+    // 清理 currentFile，只保留可序列化的字段
+    const cleanCurrentFile = props.currentFile ? {
+      id: props.currentFile.id,
+      file_name: props.currentFile.file_name,
+      file_path: props.currentFile.file_path,
+      file_type: props.currentFile.file_type,
+      content: props.currentFile.content,
+      size: props.currentFile.size
+    } : null;
+
     // 调用新的项目AI对话API
     const response = await window.electronAPI.project.aiChat({
       projectId: props.projectId,
       userMessage: input,
       conversationHistory: conversationHistory,
       contextMode: contextMode.value,
-      currentFile: props.currentFile,
+      currentFile: cleanCurrentFile,
       projectInfo: projectInfo,
       fileList: fileList
     });

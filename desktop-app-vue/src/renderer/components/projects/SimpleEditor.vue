@@ -102,6 +102,8 @@ const cursorColumn = ref(1);
 const lineCount = ref(0);
 const charCount = ref(0);
 const autoSaveTimer = ref(null);
+const isSettingContent = ref(false); // 防止并发 setContent 调用
+const setContentTimer = ref(null); // 防抖定时器
 
 // 语言配置
 const languageCompartment = new Compartment();
@@ -297,33 +299,72 @@ const handleSave = async () => {
 };
 
 /**
- * 设置编辑器内容
+ * 设置编辑器内容（带防抖和锁机制）
  */
 const setContent = (newContent) => {
-  if (!editorView.value) return;
-
-  try {
-    // 确保内容是字符串类型
-    const contentStr = typeof newContent === 'string' ? newContent : String(newContent || '');
-
-    // 获取当前编辑器状态快照
-    const currentState = editorView.value.state;
-
-    // 创建基于当前状态的事务
-    const transaction = currentState.update({
-      changes: {
-        from: 0,
-        to: currentState.doc.length,
-        insert: contentStr,
-      },
-    });
-
-    editorView.value.dispatch(transaction);
-    hasUnsavedChanges.value = false;
-  } catch (error) {
-    console.error('[SimpleEditor] setContent 失败:', error);
-    // 静默失败，避免中断用户操作
+  // 如果编辑器未就绪，直接返回
+  if (!editorView.value) {
+    console.warn('[SimpleEditor] 编辑器未就绪，跳过 setContent');
+    return;
   }
+
+  // 如果正在设置内容，跳过本次调用（防止并发）
+  if (isSettingContent.value) {
+    console.log('[SimpleEditor] 正在设置内容，跳过重复调用');
+    return;
+  }
+
+  // 清除之前的防抖定时器
+  if (setContentTimer.value) {
+    clearTimeout(setContentTimer.value);
+  }
+
+  // 使用防抖，等待 20ms 后执行
+  setContentTimer.value = setTimeout(() => {
+    isSettingContent.value = true;
+
+    try {
+      // 确保内容是字符串类型
+      const contentStr = typeof newContent === 'string' ? newContent : String(newContent || '');
+
+      // 再次检查编辑器是否存在（异步后可能已销毁）
+      if (!editorView.value) {
+        console.warn('[SimpleEditor] 编辑器已销毁，取消 setContent');
+        return;
+      }
+
+      // 获取当前编辑器内容
+      const currentContent = editorView.value.state.doc.toString();
+
+      // 如果内容相同，直接返回（避免不必要的更新）
+      if (currentContent === contentStr) {
+        console.log('[SimpleEditor] 内容未变化，跳过更新');
+        return;
+      }
+
+      // 获取当前编辑器状态快照
+      const currentState = editorView.value.state;
+
+      // 创建基于当前状态的事务
+      const transaction = currentState.update({
+        changes: {
+          from: 0,
+          to: currentState.doc.length,
+          insert: contentStr,
+        },
+      });
+
+      editorView.value.dispatch(transaction);
+      hasUnsavedChanges.value = false;
+      console.log('[SimpleEditor] setContent 成功，内容长度:', contentStr.length);
+    } catch (error) {
+      console.error('[SimpleEditor] setContent 失败:', error);
+      // 静默失败，避免中断用户操作
+    } finally {
+      // 释放锁
+      isSettingContent.value = false;
+    }
+  }, 20);
 };
 
 /**
@@ -342,11 +383,21 @@ const updateLanguage = (fileName) => {
 watch(
   () => props.file,
   (newFile, oldFile) => {
+    // 文件切换时重新初始化编辑器
     if (newFile && newFile.id !== oldFile?.id) {
-      // 使用 nextTick 确保编辑器状态稳定后再更新
+      console.log('[SimpleEditor] 文件切换，重新初始化编辑器:', newFile.file_name);
+
+      // 清理之前的定时器和状态
+      if (setContentTimer.value) {
+        clearTimeout(setContentTimer.value);
+      }
+      isSettingContent.value = false;
+      hasUnsavedChanges.value = false;
+
+      // 使用 nextTick 确保 DOM 更新完成后再重新初始化
       nextTick(() => {
-        setContent(props.content);
-        updateLanguage(newFile.file_name);
+        // 重新初始化编辑器（会自动使用 props.content）
+        initEditor();
       });
     }
   }
@@ -356,8 +407,18 @@ watch(
 watch(
   () => props.content,
   (newContent, oldContent) => {
-    // 只在编辑器就绪、无未保存更改、且内容确实改变时更新
-    if (editorView.value && !hasUnsavedChanges.value && newContent !== oldContent) {
+    // 只在以下条件下更新内容：
+    // 1. 编辑器已就绪
+    // 2. 没有未保存的更改（避免覆盖用户编辑）
+    // 3. 内容确实发生变化
+    // 4. 不是文件切换导致的（文件切换会重新初始化编辑器）
+    if (
+      editorView.value &&
+      !hasUnsavedChanges.value &&
+      newContent !== oldContent &&
+      !isSettingContent.value
+    ) {
+      console.log('[SimpleEditor] 外部内容变化，更新编辑器');
       nextTick(() => {
         setContent(newContent);
       });
@@ -370,10 +431,18 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  // 清理所有定时器
+  if (setContentTimer.value) {
+    clearTimeout(setContentTimer.value);
+  }
+  if (autoSaveTimer.value) {
+    clearTimeout(autoSaveTimer.value);
+  }
+
+  // 销毁编辑器
   if (editorView.value) {
     editorView.value.destroy();
   }
-  clearTimeout(autoSaveTimer.value);
 });
 
 // 暴露方法给父组件
