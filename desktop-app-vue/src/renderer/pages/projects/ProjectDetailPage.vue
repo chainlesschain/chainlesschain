@@ -1153,6 +1153,9 @@ const handleAICreationComplete = async (result) => {
     // 刷新项目信息和文件列表
     await projectStore.fetchProjectById(result.projectId);
     await projectStore.loadProjectFiles(result.projectId);
+    // 强制更新文件树组件
+    fileTreeKey.value++;
+    console.log('[ProjectDetail] AI创建完成，文件树已刷新');
   }
 };
 
@@ -1186,6 +1189,10 @@ onMounted(async () => {
 
     // 加载项目文件
     await projectStore.loadProjectFiles(projectId.value);
+
+    // 强制更新文件树组件（初始加载）
+    fileTreeKey.value++;
+    console.log('[ProjectDetail] 初始文件树已加载');
 
     // 解析项目路径
     if (currentProject.value?.root_path) {
@@ -1352,6 +1359,10 @@ watch(() => route.params.id, async (newId, oldId) => {
       // 4. 加载项目文件
       await projectStore.loadProjectFiles(newId);
       console.log('[ProjectDetail] 项目文件已加载，数量:', projectStore.projectFiles?.length || 0);
+
+      // 4.1 强制更新文件树组件
+      fileTreeKey.value++;
+      console.log('[ProjectDetail] 文件树已强制刷新');
 
       // 5. 解析项目路径
       if (currentProject.value?.root_path) {

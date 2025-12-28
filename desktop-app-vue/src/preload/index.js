@@ -121,11 +121,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     exportEnv: (filePath) => ipcRenderer.invoke('config:export-env', filePath),
   },
 
-  // 对话框
-  dialog: {
-    selectFolder: (options) => ipcRenderer.invoke('dialog:select-folder', options),
-  },
-
   // Git同步
   git: {
     status: () => ipcRenderer.invoke('git:status'),
@@ -480,6 +475,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteLocal: (projectId) => ipcRenderer.invoke('project:delete-local', projectId),
     repairRootPath: (projectId) => ipcRenderer.invoke('project:repair-root-path', projectId),
     repairAllRootPaths: () => ipcRenderer.invoke('project:repair-all-root-paths'),
+    fixPath: (projectId) => ipcRenderer.invoke('project:fix-path', projectId),
 
     // 流式创建项目
     createStream: (createData, callbacks) => {
@@ -625,6 +621,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     expandContent: (params) => ipcRenderer.invoke('project:expandContent', removeUndefined(params)),
     copyFile: (params) => ipcRenderer.invoke('project:copyFile', removeUndefined(params)),
 
+    // 文件导入导出功能
+    exportFile: (params) => ipcRenderer.invoke('project:export-file', removeUndefined(params)),
+    exportFiles: (params) => ipcRenderer.invoke('project:export-files', removeUndefined(params)),
+    selectExportDirectory: () => ipcRenderer.invoke('project:select-export-directory'),
+    selectImportFiles: (options) => ipcRenderer.invoke('project:select-import-files', removeUndefined(options || {})),
+    importFile: (params) => ipcRenderer.invoke('project:import-file', removeUndefined(params)),
+    importFiles: (params) => ipcRenderer.invoke('project:import-files', removeUndefined(params)),
+
     // RAG增强功能
     indexFiles: (projectId, options) => ipcRenderer.invoke('project:indexFiles', projectId, removeUndefined(options || {})),
     ragQuery: (projectId, query, options) => ipcRenderer.invoke('project:ragQuery', projectId, query, removeUndefined(options || {})),
@@ -701,12 +705,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getTail: (filePath, lineCount) => ipcRenderer.invoke('largeFile:getTail', filePath, lineCount || 100),
   },
 
-  // 对话框操作
-  dialog: {
-    showOpenDialog: (options) => ipcRenderer.invoke('dialog:showOpenDialog', options || {}),
-    showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options || {}),
-  },
-
   // AI引擎
   ai: {
     processInput: ({ input, context }) => ipcRenderer.invoke('ai:processInput', { input, context }),
@@ -772,6 +770,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Dialog 对话框
   dialog: {
+    selectFolder: (options) => ipcRenderer.invoke('dialog:select-folder', options),
     showOpenDialog: (options) => ipcRenderer.invoke('dialog:showOpenDialog', options),
     showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),
     showMessageBox: (options) => ipcRenderer.invoke('dialog:showMessageBox', options),

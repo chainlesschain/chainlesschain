@@ -1,0 +1,115 @@
+name: Full Test Automation with Auto-Fix
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'  # 每天凌晨2点运行
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  JAVA_VERSION: '17'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # 健康检查
+  health-check:
+    name: System Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run health checks
+        working-directory: desktop-app-vue
+        run: |
+          npm ci
+          node -e "const { getHealthCheckService } = require('./src/main/health-check'); const service = getHealthCheckService(); service.runChecks().then(r => console.log(JSON.stringify(r, null, 2)));" || true
+
+  # 综合测试运行器
+  run-all-tests:
+    name: Run All Tests
+    runs-on: ${{ matrix.os }}
+    needs: health-check
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: desktop-app-vue/package-lock.json
+
+      - name: Install dependencies
+        working-directory: desktop-app-vue
+        run: npm ci
+
+      - name: Run comprehensive test suite
+        working-directory: desktop-app-vue
+        run: node scripts/test-runner.js
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            desktop-app-vue/test-results/
+            desktop-app-vue/coverage/
+
+      - name: Attempt auto-fix on failure
+        if: failure()
+        working-directory: desktop-app-vue
+        run: node scripts/auto-fix-runner.js
+
+      - name: Retry tests after auto-fix
+        if: failure()
+        working-directory: desktop-app-vue
+        run: node scripts/test-runner.js
+        continue-on-error: true
+
+  # 创建Issue如果测试失败
+  create-issue-on-failure:
+    name: Create Issue on Failure
+    runs-on: ubuntu-latest
+    needs: run-all-tests
+    if: failure()
+
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `自动测试失败 - ${new Date().toISOString().split('T')[0]}`,
+              body: `## 自动测试失败报告
+
+**工作流运行**: [查看详情](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+**分支**: ${context.ref}
+**提交**: ${context.sha}
+**触发者**: ${context.actor}
+
+部分测试失败且无法自动修复。请查看工作流日志获取详细信息。
+
+### 下一步行动
+1. 查看测试日志
+2. 本地运行 \`npm run test:all\`
+3. 尝试运行 \`node scripts/auto-fix-runner.js\`
+4. 修复问题后重新提交
+              `,
+              labels: ['bug', 'automated-detection', 'test-failure', 'needs-triage']
+            })

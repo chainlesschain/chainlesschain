@@ -2236,7 +2236,8 @@ class DatabaseManager {
     // 动态构建更新字段
     const allowedFields = [
       'name', 'description', 'status', 'tags', 'cover_image_url',
-      'file_count', 'total_size', 'sync_status', 'synced_at'
+      'file_count', 'total_size', 'sync_status', 'synced_at',
+      'root_path', 'folder_path', 'project_type'
     ];
 
     allowedFields.forEach(field => {

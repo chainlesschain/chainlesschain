@@ -5,14 +5,17 @@
  */
 
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType } = require('docx');
 const mammoth = require('mammoth');
 const { marked } = require('marked');
+const { getFileHandler } = require('../utils/file-handler');
 
 class WordEngine {
   constructor() {
     this.supportedFormats = ['.docx', '.doc'];
+    this.fileHandler = getFileHandler();
   }
 
   /**
@@ -23,6 +26,21 @@ class WordEngine {
   async readWord(filePath) {
     try {
       console.log('[WordEngine] 读取Word文档:', filePath);
+
+      // 检查文件大小
+      const fileSize = await this.fileHandler.getFileSize(filePath);
+      const isLarge = fileSize > 10 * 1024 * 1024; // 10MB
+
+      if (isLarge) {
+        console.log(`[WordEngine] 检测到大文件 (${(fileSize / 1024 / 1024).toFixed(2)}MB)，使用优化模式`);
+      }
+
+      // 检查内存可用性
+      const memStatus = this.fileHandler.checkAvailableMemory();
+      if (!memStatus.isAvailable) {
+        console.warn('[WordEngine] 内存使用率高，等待内存释放...');
+        await this.fileHandler.waitForMemory();
+      }
 
       // 使用mammoth将Word转换为HTML
       const result = await mammoth.convertToHtml({ path: filePath });
@@ -43,6 +61,7 @@ class WordEngine {
         content,
         messages,
         metadata: await this.extractMetadata(filePath),
+        fileSize,
       };
     } catch (error) {
       console.error('[WordEngine] 读取Word失败:', error);
@@ -96,13 +115,29 @@ class WordEngine {
         sections,
       });
 
-      // 生成文档并保存
+      // 生成文档buffer
       const buffer = await Packer.toBuffer(doc);
-      await fs.writeFile(filePath, buffer);
+
+      // 检查buffer大小，使用适当的写入方法
+      const bufferSize = buffer.length;
+      const isLarge = bufferSize > 10 * 1024 * 1024; // 10MB
+
+      if (isLarge) {
+        console.log(`[WordEngine] 大文档 (${(bufferSize / 1024 / 1024).toFixed(2)}MB)，使用流式写入`);
+
+        // 使用流式写入
+        await this.fileHandler.writeFileStream(filePath, [buffer], {
+          encoding: null // binary data
+        });
+      } else {
+        // 小文件直接写入
+        await fs.writeFile(filePath, buffer);
+      }
 
       return {
         success: true,
         filePath,
+        fileSize: bufferSize,
       };
     } catch (error) {
       console.error('[WordEngine] 写入Word失败:', error);
