@@ -1,28 +1,19 @@
 # 基于U盾和SIMKey的个人移动AI管理系统
-## 系统设计文档 v2.0 (更新至 v0.16.0 实际实现)
-
-**文档版本**: 2.0
-**系统版本**: v0.16.0 (95%完成)
-**最后更新**: 2025-12-28
-**更新内容**: 反映实际代码实现,包含Phase 3交易模块完整实施
+## 系统设计文档 v1.0
 
 ---
 
 ## 一、系统概述
 
 ### 1.1 系统定位
-本系统是一个**去中心化的个人AI助手平台**,整合了知识库管理、**项目管理(⭐核心)**、社交网络和交易辅助四大核心功能,通过U盾(USB Key)和SIMKey提供硬件级安全保障。
-
-**主要应用**: `desktop-app-vue/` (Electron + Vue3 + TypeScript)
-**当前状态**: 知识库和项目管理模块生产可用,社交和交易模块已完成基础实施
+本系统是一个**去中心化的个人AI助手平台**,整合了知识库管理、社交网络和交易辅助三大核心功能,通过U盾(USB Key)和SIMKey提供军事级安全保障。
 
 ### 1.2 核心特性
 - **完全去中心化**: 数据存储在用户自己的设备上,不依赖第三方云服务
-- **硬件安全**: 基于U盾/SIMKey的硬件级密钥保护(支持Windows,模拟模式用于开发)
-- **跨设备同步**: PC端为主,通过Git和HTTP同步实现多设备协作
-- **AI增强**: 集成本地大模型(Ollama)和14+云端LLM API,支持RAG检索增强
+- **端到端加密**: 基于U盾/SIMKey的硬件级加密保护
+- **跨设备同步**: 移动端、PC端、云端无缝协作
+- **AI增强**: 集成本地大模型提供智能问答和知识管理
 - **隐私优先**: 用户完全掌控自己的数据和AI模型
-- **对话式项目管理**: AI驱动的项目创建、文件生成和智能任务拆解
 
 ### 1.3 技术架构图
 
@@ -55,14 +46,11 @@
 │                     数据层                                        │
 ├──────────────────┬─────────────────────┬────────────────────────┤
 │  本地存储         │   分布式存储         │   AI模型层             │
-│  - SQLite DB     │   - Git仓库          │   - 思维模型(LLM)     │
-│    (sql.js)      │   - HTTP同步         │     • Ollama本地      │
-│  - 文件系统       │   - P2P节点(规划)    │     • 14+云端API      │
-│    • knowledge/  │   - IPFS(规划)       │   - 问答模型(RAG)     │
-│    • projects/   │                      │   - 嵌入模型          │
-│    • data/       │                      │     (Ollama内置)      │
-│  - ChromaDB      │                      │   - 多模态模型(规划)  │
-│    (向量存储)    │                      │                       │
+│  - SQLCipher DB  │   - Git仓库          │   - 思维模型(LLM)     │
+│  - 文件系统       │   - IPFS(可选)       │   - 问答模型(RAG)     │
+│    • knowledge/  │   - P2P节点          │   - 嵌入模型(Embedding)│
+│    • projects/   │                      │   - 多模态模型         │
+│  - 向量数据库     │                      │                       │
 └──────────────────┴─────────────────────┴────────────────────────┘
                                ↕
 ┌─────────────────────────────────────────────────────────────────┐
@@ -102,13 +90,11 @@
 │   └── 知识图谱构建
 │
 ├── 存储层
-│   ├── 元数据存储 (SQLite - sql.js)
-│   │   ├── knowledge_items表 ✅已实现
-│   │   ├── tags表 ✅已实现
-│   │   ├── knowledge_tags关联表 ✅已实现
-│   │   ├── conversations表 ✅已实现
-│   │   ├── messages表 ✅已实现
-│   │   └── knowledge_search搜索表 ✅已实现
+│   ├── 元数据存储 (SQLCipher)
+│   │   ├── 知识条目表 (id, title, type, created_at, updated_at)
+│   │   ├── 标签表 (id, name, color)
+│   │   ├── 知识-标签关联表
+│   │   └── 版本历史表 (git commit hash, timestamp)
 │   │
 │   ├── 文件存储
 │   │   ├── 原始文件 (docs/, images/, audio/)
@@ -179,26 +165,23 @@
 6. (可选) 将有价值的对话保存为新知识
 ```
 
-#### 2.1.4 数据模型 ✅已实现
+#### 2.1.4 数据模型
 
-**SQLite数据库表结构** (实际实现):
+**SQLCipher数据库表结构**:
 
 ```sql
--- 知识条目表 ✅
-CREATE TABLE IF NOT EXISTS knowledge_items (
+-- 知识条目表
+CREATE TABLE knowledge_items (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('note', 'document', 'conversation', 'web_clip')),
-    content TEXT,                    -- 实际增加:直接存储短内容
-    content_path TEXT,               -- 文件相对路径
-    embedding_path TEXT,             -- 向量文件路径
+    type TEXT NOT NULL,  -- 'note', 'document', 'conversation', 'web_clip'
+    content_path TEXT,   -- 文件相对路径
+    embedding_path TEXT, -- 向量文件路径
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     git_commit_hash TEXT,
-    device_id TEXT,                  -- 创建设备标识
-    sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict')),
-    synced_at INTEGER,               -- 实际增加:同步时间
-    deleted INTEGER DEFAULT 0        -- 实际增加:软删除标记
+    device_id TEXT,      -- 创建设备标识
+    sync_status TEXT DEFAULT 'synced'  -- 'synced', 'pending', 'conflict'
 );
 
 -- 标签表
@@ -257,19 +240,16 @@ CREATE TABLE devices (
 );
 ```
 
-#### 2.1.5 技术选型 (实际实现)
+#### 2.1.5 技术选型
 
-| 组件 | PC端 (主要) | 移动端 (计划) | 说明 |
-|------|------------|--------------|------|
-| 数据库 | **sql.js** (SQLite WASM) | 同左 | 开发阶段无加密,生产可升级SQLCipher |
-| 向量数据库 | **ChromaDB 3.1.8** | ChromaDB-Lite | 嵌入式向量存储 |
-| LLM | **Ollama** (本地) + 14+云端API | 计划:MLC LLM | 支持Qwen/GLM/GPT等 |
-| Embedding | **Ollama内置** (nomic-embed-text等) | 同左 | 多模型支持 |
-| Git客户端 | **isomorphic-git** | 同左 | 纯JS实现 |
-| 加密库 | node-forge + U盾SDK (Windows) | 计划:原生加密 | 硬件密钥可选 |
-| UI框架 | **Vue 3.4 + Ant Design Vue 4.1** | 计划:uni-app | TypeScript支持 |
-| Markdown | **Milkdown 7.17.3** | 同左 | 所见即所得编辑 |
-| 图像处理 | **Sharp + Tesseract.js** | 计划 | OCR和处理 |
+| 组件 | PC端 | 移动端 | 说明 |
+|------|------|--------|------|
+| 数据库 | SQLCipher | SQLCipher | AES-256加密 |
+| 向量数据库 | ChromaDB/Qdrant | ChromaDB-Lite | PC端可用完整版 |
+| LLM | LLaMA3-8B (Ollama) | MiniCPM-2B | 移动端使用轻量模型 |
+| Embedding模型 | bge-large-zh-v1.5 | bge-small-zh-v1.5 | 中文优化 |
+| Git客户端 | libgit2 | JGit/libgit2 | 原生Git操作 |
+| 加密库 | OpenSSL + U盾SDK | BouncyCastle + SIM卡API | 硬件加密 |
 
 ---
 
@@ -3149,25 +3129,21 @@ class AIRouter:
 
 ## 六、系统实现技术栈
 
-### 6.1 PC端 (跨平台桌面应用) ✅已实现
+### 6.1 PC端 (跨平台桌面应用)
 
-**核心框架**: Electron 39.2.6 + Vue 3.4
+**核心框架**: Electron + React / Tauri + Vue
 
 ```
-实际技术栈:
-├── 前端框架: **Vue 3.4 + TypeScript**
-├── UI库: **Ant Design Vue 4.1**
-├── 状态管理: **Pinia 2.1.7**
-├── Markdown编辑器: **Milkdown 7.17.3**
-├── Git操作: **isomorphic-git**
-├── 数据库: **sql.js** (SQLite WASM)
-├── 向量库: **ChromaDB 3.1.8**
-├── 加密: **node-forge** + U盾SDK (Windows)
-├── P2P: **libp2p 3.1.2**
-├── 图像: **Sharp + Tesseract.js (OCR)**
-├── LLM客户端: **Ollama官方SDK** + 自定义云端客户端
-├── 打包: **Electron Forge + electron-builder**
-└── 代码规范: **ESLint + Prettier**
+技术栈:
+├── 前端框架: React 18 + TypeScript
+├── UI库: Ant Design / shadcn/ui
+├── 状态管理: Zustand / Redux Toolkit
+├── Markdown编辑器: Milkdown / Tiptap
+├── Git操作: isomorphic-git / nodegit
+├── 数据库: better-sqlite3 + SQLCipher
+├── 加密: node-forge / webcrypto
+├── U盾SDK: 原生Node.js addon (C++/Rust)
+└── 打包: Electron Builder / Tauri CLI
 ```
 
 **目录结构**:
@@ -3624,61 +3600,9 @@ interface GitAPI {
 
 ---
 
-## 十一、实施完成总结 (2025-12-28更新)
+## 十一、实施完成总结 (2025-12-19更新)
 
-### ✅ 系统当前实施状态 (v0.16.0)
-
-**整体完成度**: 95%
-**生产可用模块**: 知识库管理、项目管理
-**基础实施完成**: 社交模块、交易模块
-
-### Phase 1-3 实施完成情况
-
-#### ✅ Phase 1: MVP核心功能 (100%完成)
-
-**知识库管理模块**:
-- ✅ 数据库表结构 (knowledge_items, tags, conversations, messages)
-- ✅ Markdown编辑器 (Milkdown 7.17.3集成)
-- ✅ 文件导入 (PDF/Word/Markdown/TXT支持)
-- ✅ Git同步 (isomorphic-git)
-- ✅ AI对话 (Ollama本地 + 14+云端API)
-- ✅ RAG检索 (embeddings-service + vector-store)
-- ✅ 搜索功能 (knowledge_search表 + 全文检索)
-
-**项目管理模块** (⭐核心完成):
-- ✅ 完整数据模型 (14+核心表)
-- ✅ 对话式AI引擎 (task-planner, intent-classifier, function-caller)
-- ✅ 多引擎支持:
-  - Web引擎 (web-engine.js)
-  - 文档引擎 (document-engine.js, pdf-engine.js, ppt-engine.js)
-  - 数据引擎 (data-engine.js, data-viz-engine.js)
-  - 代码引擎 (code-engine.js, code-executor.js)
-  - 图像引擎 (image-engine.js)
-  - 视频引擎 (video-engine.js)
-- ✅ 项目协作 (collaboration-manager.js)
-- ✅ 项目模板系统 (template-manager.js, 42+内置模板)
-- ✅ 项目RAG (project-rag.js - 知识库集成)
-- ✅ 自动化规则 (automation-manager.js)
-- ✅ 项目分享 (share-manager.js)
-
-#### 🚧 Phase 2: 社交功能 (70%完成)
-
-**基础设施已完成**:
-- ✅ DID管理 (did-manager.js)
-- ✅ P2P框架 (p2p-manager.js, libp2p集成)
-- ✅ Signal协议 (signal-session-manager.js)
-- ✅ 设备管理 (device-manager.js, device-sync-manager.js)
-- ✅ 联系人管理 (contact-manager.js)
-- ✅ 好友系统 (friend-manager.js)
-- ✅ 动态发布 (post-manager.js)
-
-**待完善**:
-- 🚧 P2P消息传输优化
-- 🚧 群组功能
-- 🚧 内容加密传输
-- 🚧 前端UI完善
-
-#### ✅ Phase 3: 交易系统 (100%完成)
+### ✅ Phase 3 全部模块已完成实施
 
 截至2025年12月19日,**Phase 3: 去中心化交易系统**的所有6个核心模块已全部完成实施,从理论设计转化为生产代码。
 
@@ -3825,109 +3749,7 @@ interface GitAPI {
 
 ---
 
----
-
-## 附录C: v2.0文档更新说明 (2025-12-28)
-
-### 主要更新内容
-
-#### 1. 技术栈变更
-
-**从设计到实际的关键变化**:
-
-| 组件 | 原设计 | 实际实现 | 原因 |
-|------|--------|---------|------|
-| **数据库** | SQLCipher (加密) | sql.js (无加密) | 开发阶段优先功能实现,加密可后续升级 |
-| **前端框架** | React | Vue 3 | 团队熟悉度,生态成熟 |
-| **UI库** | Ant Design | Ant Design Vue | 配合Vue生态 |
-| **状态管理** | Redux Toolkit | Pinia | Vue官方推荐 |
-| **Git库** | libgit2 (原生) | isomorphic-git (纯JS) | 跨平台兼容性更好 |
-| **Electron版本** | 未指定 | 39.2.6 | 最新稳定版 |
-
-#### 2. 模块实施优先级调整
-
-**实际开发路径**:
-1. ✅ **Phase 1**: 知识库 + 项目管理 (核心功能,100%完成)
-2. 🚧 **Phase 2**: 社交模块 (基础设施完成70%,UI待完善)
-3. ✅ **Phase 3**: 交易模块 (后端100%完成,前端部分完成)
-
-**优先级调整原因**: 项目管理模块被识别为最核心价值,优先开发并深度打磨。
-
-#### 3. 数据库表结构扩展
-
-**实际增加的字段**(相比原设计):
-- **同步字段**: `sync_status`, `synced_at`, `device_id`
-- **软删除**: `deleted` (用于数据恢复)
-- **类别管理**: `category_id` (projects表)
-- **内容存储**: `content` (knowledge_items可直接存储短内容)
-- **文件系统路径**: `fs_path` (project_files表)
-
-**新增表**:
-- `file_sync_state` - 文件同步状态跟踪
-- `project_categories` - 项目分类系统
-- `project_task_plans` - AI任务拆解计划
-- `project_templates` - 项目模板系统
-- `template_usage_history` - 模板使用记录
-- `template_ratings` - 模板评分
-
-#### 4. AI能力增强
-
-**超出原设计的实现**:
-- ✅ **智能任务拆解**: AI自动将复杂需求分解为子任务
-- ✅ **14+云端LLM支持**: 不仅Ollama,还支持阿里通义/智谱GLM/百度千帆等
-- ✅ **多引擎架构**: Web/文档/数据/代码/图像/视频6大处理引擎
-- ✅ **项目RAG**: 项目可以引用知识库进行增强
-- ✅ **对话式编程**: 自然语言驱动的项目创建和文件生成
-
-#### 5. 重要实现细节
-
-**U盾/SIMKey安全**:
-- ✅ U盾SDK集成 (Windows支持,带模拟模式)
-- 🚧 SIMKey集成 (移动端规划中)
-- ✅ 软件模拟模式 (开发友好)
-
-**跨设备同步**:
-- ✅ Git based同步 (isomorphic-git)
-- ✅ HTTP同步服务 (sync-http-client.js)
-- 🚧 P2P直接同步 (基础设施已完成,优化中)
-
-**向量检索**:
-- ✅ ChromaDB集成 (嵌入式部署)
-- ✅ 自定义向量存储 (vector-store.js)
-- ✅ RAG Pipeline (embeddings + reranker + metrics)
-
-### 与CLAUDE.md的一致性
-
-本文档v2.0更新已与项目根目录的`CLAUDE.md`保持一致,反映了以下信息:
-- ✅ 当前版本: v0.16.0
-- ✅ 完成度: 95%
-- ✅ 主要应用: desktop-app-vue/ (Electron + Vue3)
-- ✅ 生产可用: 知识库和项目管理功能
-
-### 下一步规划
-
-**Phase 4: 生态完善** (进行中):
-- 🚧 浏览器扩展 (网页剪藏)
-- 🚧 移动端APP (uni-app,10%完成)
-- 🚧 社交模块UI完善
-- 🚧 交易模块前端集成
-
-**未来优化**:
-- 数据库加密 (升级到SQLCipher)
-- P2P网络优化
-- 性能调优和测试覆盖
-- 多语言支持
-
----
-
-**文档版本**: 2.0 (基于v0.16.0实际实现)
-**最后更新**: 2025-12-28
+**文档版本**: 2.0
+**最后更新**: 2025-12-19
 **作者**: Chainlesschain开发团队
 **许可证**: CC BY-SA 4.0
-
----
-
-**更新记录**:
-- 2025-12-28: v2.0更新,反映v0.16.0实际实现
-- 2025-12-19: 添加Phase 3交易模块实施总结
-- 2024-初版: v1.0理论设计文档
