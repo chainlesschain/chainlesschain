@@ -175,6 +175,7 @@
           <!-- 动态组件：根据useVirtualFileTree切换 -->
           <component
             :is="useVirtualFileTree ? VirtualFileTree : EnhancedFileTree"
+            :key="`filetree-${projectId}-${fileTreeKey}`"
             :files="projectFiles"
             :current-file-id="currentFile?.id"
             :loading="refreshing"
@@ -473,6 +474,7 @@ const showGitCommitModal = ref(false);
 const commitMessage = ref('');
 const resolvedProjectPath = ref('');
 const aiCreationData = ref(null); // AI创建数据
+const fileTreeKey = ref(0); // 文件树刷新计数器
 
 // 新增状态
 const viewMode = ref('auto'); // 'auto' | 'edit' | 'preview'
@@ -497,7 +499,7 @@ const gitStatus = ref({}); // Git 状态
 let gitStatusInterval = null; // Git 状态轮询定时器
 const showFileManageModal = ref(false); // 文件管理Modal
 const showShareModal = ref(false); // 分享Modal
-const useVirtualFileTree = ref(true); // 使用虚拟滚动文件树（性能优化）
+const useVirtualFileTree = ref(false); // 使用虚拟滚动文件树（性能优化）- 暂时禁用，组件开发中
 
 // 计算属性
 const projectId = computed(() => route.params.id);
@@ -705,7 +707,8 @@ const loadFileContent = async (file) => {
 
       console.log('[ProjectDetail] 读取文件:', fullPath);
       const content = await window.electronAPI.file.readContent(fullPath);
-      fileContent.value = content || '';
+      // 确保 content 是字符串类型
+      fileContent.value = typeof content === 'string' ? content : String(content || '');
     } else {
       fileContent.value = '';
     }
@@ -718,7 +721,8 @@ const loadFileContent = async (file) => {
 
 // 处理编辑器内容变化
 const handleContentChange = (newContent) => {
-  fileContent.value = newContent;
+  // 确保内容是字符串类型
+  fileContent.value = typeof newContent === 'string' ? newContent : String(newContent || '');
   hasUnsavedChanges.value = true;
 };
 
@@ -854,6 +858,8 @@ const handleRefreshFiles = async () => {
   refreshing.value = true;
   try {
     await projectStore.loadProjectFiles(projectId.value);
+    // 强制更新文件树组件
+    fileTreeKey.value++;
     message.success('文件列表已刷新');
   } catch (error) {
     console.error('Refresh files failed:', error);
@@ -1223,14 +1229,18 @@ onMounted(async () => {
         handleFileSelect(currentFile.value);
       }
       // 刷新文件列表（保持文件树最新）
-      projectStore.loadProjectFiles(projectId.value);
+      projectStore.loadProjectFiles(projectId.value).then(() => {
+        fileTreeKey.value++;
+      });
     });
 
     window.electronAPI.onFileAdded?.((event) => {
       console.log('[ProjectDetail] 检测到新文件添加:', event);
       message.info(`新文件已添加: ${event.relativePath}`);
       // 刷新文件列表
-      projectStore.loadProjectFiles(projectId.value);
+      projectStore.loadProjectFiles(projectId.value).then(() => {
+        fileTreeKey.value++;
+      });
     });
 
     window.electronAPI.onFileDeleted?.((event) => {
@@ -1242,7 +1252,9 @@ onMounted(async () => {
         fileContent.value = '';
       }
       // 刷新文件列表
-      projectStore.loadProjectFiles(projectId.value);
+      projectStore.loadProjectFiles(projectId.value).then(() => {
+        fileTreeKey.value++;
+      });
     });
 
     window.electronAPI.onFileSyncConflict?.((event) => {
@@ -1255,7 +1267,9 @@ onMounted(async () => {
       console.log('[ProjectDetail] 检测到文件列表更新:', event);
       // 只刷新当前项目的文件列表
       if (event.projectId === projectId.value) {
-        projectStore.loadProjectFiles(projectId.value).catch(err => {
+        projectStore.loadProjectFiles(projectId.value).then(() => {
+          fileTreeKey.value++;
+        }).catch(err => {
           console.error('[ProjectDetail] 刷新文件列表失败:', err);
         });
       }
@@ -1297,22 +1311,73 @@ onUnmounted(async () => {
   }
 
   // 清理文件同步事件监听器
+  if (window.electronAPI) {
+    window.electronAPI.offFileReloaded?.(() => {});
+    window.electronAPI.offFileAdded?.(() => {});
+    window.electronAPI.offFileDeleted?.(() => {});
+    window.electronAPI.offFileSyncConflict?.(() => {});
+  }
   if (window.electronAPI.project) {
-    window.electronAPI.project.offFileReloaded?.(() => {});
-    window.electronAPI.project.offFileAdded?.(() => {});
-    window.electronAPI.project.offFileDeleted?.(() => {});
-    window.electronAPI.project.offFileSyncConflict?.(() => {});
     window.electronAPI.project.offFilesUpdated?.(() => {});
   }
 });
 
 // 监听路由变化
-watch(() => route.params.id, async (newId) => {
-  if (newId && newId !== projectId.value) {
+watch(() => route.params.id, async (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    console.log('[ProjectDetail] 路由变化，切换项目:', { oldId, newId });
     loading.value = true;
-    await projectStore.fetchProjectById(newId);
-    await projectStore.loadProjectFiles(newId);
-    loading.value = false;
+
+    try {
+      // 1. 停止旧项目的文件监听
+      if (oldId && oldId !== 'ai-creating') {
+        try {
+          await window.electronAPI.project.stopWatchProject(oldId);
+          console.log('[ProjectDetail] 已停止旧项目文件监听:', oldId);
+        } catch (error) {
+          console.error('[ProjectDetail] 停止旧项目监听失败:', error);
+        }
+      }
+
+      // 2. 清空当前状态
+      currentFile.value = null;
+      fileContent.value = '';
+      gitStatus.value = {};
+      resolvedProjectPath.value = '';
+
+      // 3. 加载新项目
+      await projectStore.fetchProjectById(newId);
+      console.log('[ProjectDetail] 项目数据已加载:', currentProject.value?.name);
+
+      // 4. 加载项目文件
+      await projectStore.loadProjectFiles(newId);
+      console.log('[ProjectDetail] 项目文件已加载，数量:', projectStore.projectFiles?.length || 0);
+
+      // 5. 解析项目路径
+      if (currentProject.value?.root_path) {
+        resolvedProjectPath.value = await getLocalProjectPath(currentProject.value.root_path);
+        console.log('[ProjectDetail] 项目路径已解析:', resolvedProjectPath.value);
+      }
+
+      // 6. 启动新项目的文件监听
+      if (currentProject.value?.root_path) {
+        try {
+          await window.electronAPI.project.watchProject(newId, currentProject.value.root_path);
+          console.log('[ProjectDetail] 已启动新项目文件监听');
+        } catch (error) {
+          console.error('[ProjectDetail] 启动新项目监听失败:', error);
+        }
+      }
+
+      // 7. 刷新Git状态
+      await refreshGitStatus();
+
+    } catch (error) {
+      console.error('[ProjectDetail] 切换项目失败:', error);
+      message.error('切换项目失败：' + error.message);
+    } finally {
+      loading.value = false;
+    }
   }
 });
 

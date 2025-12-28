@@ -557,8 +557,10 @@ export const useProjectStore = defineStore('project', {
           console.log('[Store] 文件列表:', files.map(f => f.file_name).join(', '));
           console.log('[Store] 第一个文件完整对象:', JSON.stringify(files[0], null, 2));
         }
-        this.projectFiles = files || [];
+        // 强制创建新数组引用，确保 Vue 响应式系统能检测到变化
+        this.projectFiles = files ? [...files] : [];
         console.log('[Store] projectFiles 已更新，长度:', this.projectFiles.length);
+        console.log('[Store] projectFiles 引用已更新，时间戳:', Date.now());
       } catch (error) {
         console.error('加载项目文件失败:', error);
         throw error;
