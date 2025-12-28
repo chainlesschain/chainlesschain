@@ -5224,6 +5224,92 @@ class ChainlessChainApp {
       }
     });
 
+    // 修复项目路径（为没有 root_path 的项目设置路径）
+    ipcMain.handle('project:fix-path', async (_event, projectId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        // 获取项目信息
+        const project = this.database.getProjectById(projectId);
+        if (!project) {
+          throw new Error(`项目不存在: ${projectId}`);
+        }
+
+        // 如果已经有 root_path，不需要修复
+        if (project.root_path) {
+          console.log('[Main] 项目已有 root_path，无需修复:', project.root_path);
+          return { success: true, message: '项目路径正常', path: project.root_path };
+        }
+
+        // 创建项目目录
+        const { getProjectConfig } = require('./project/project-config');
+        const projectConfig = getProjectConfig();
+        const projectRootPath = path.join(
+          projectConfig.getProjectsRootPath(),
+          projectId
+        );
+
+        console.log('[Main] 为项目创建目录:', projectRootPath);
+        await fs.mkdir(projectRootPath, { recursive: true });
+
+        // 更新项目的 root_path
+        this.database.updateProject(projectId, {
+          root_path: projectRootPath,
+        });
+
+        // 获取项目文件并写入文件系统
+        const projectFiles = this.database.db.prepare(
+          'SELECT * FROM project_files WHERE project_id = ?'
+        ).all(projectId);
+
+        let fileCount = 0;
+        if (projectFiles && projectFiles.length > 0) {
+          console.log(`[Main] 写入 ${projectFiles.length} 个文件到文件系统`);
+
+          for (const file of projectFiles) {
+            try {
+              const filePath = path.join(projectRootPath, file.file_path || file.file_name);
+
+              // 确保文件目录存在
+              await fs.mkdir(path.dirname(filePath), { recursive: true });
+
+              // 写入文件内容
+              await fs.writeFile(filePath, file.content || '', 'utf8');
+
+              // 更新文件的 fs_path
+              this.database.db.run(
+                'UPDATE project_files SET fs_path = ? WHERE id = ?',
+                [filePath, file.id]
+              );
+
+              fileCount++;
+            } catch (fileError) {
+              console.error(`[Main] 写入文件失败: ${file.file_name}`, fileError);
+            }
+          }
+        }
+
+        this.database.saveToFile();
+
+        console.log('[Main] 项目路径修复完成:', projectRootPath);
+        return {
+          success: true,
+          message: `路径已修复，写入 ${fileCount} 个文件`,
+          path: projectRootPath,
+          fileCount
+        };
+
+      } catch (error) {
+        console.error('[Main] 修复项目路径失败:', error);
+        throw error;
+      }
+    });
+
     // 修复项目的root_path（为document类型的项目创建目录并设置路径）
     ipcMain.handle('project:repair-root-path', async (_event, projectId) => {
       try {
@@ -8233,19 +8319,29 @@ ${content}
     ipcMain.handle('project:export-file', async (_event, params) => {
       try {
         const { projectPath, targetPath, isDirectory } = params;
-        console.log(`[Main] 导出文件: ${projectPath} -> ${targetPath}`);
+        console.log(`[Main] 导出文件参数:`, params);
 
         const fs = require('fs').promises;
         const projectConfig = getProjectConfig();
 
         // 解析项目内路径
         const resolvedSourcePath = projectConfig.resolveProjectPath(projectPath);
+        console.log(`[Main] 解析后的源路径: ${resolvedSourcePath}`);
+        console.log(`[Main] 目标路径: ${targetPath}`);
 
         // 检查源文件/文件夹是否存在
+        try {
+          await fs.access(resolvedSourcePath);
+        } catch (err) {
+          console.error(`[Main] 源文件不存在: ${resolvedSourcePath}`);
+          throw new Error(`源文件不存在: ${projectPath}`);
+        }
+
         const stats = await fs.stat(resolvedSourcePath);
 
         if (stats.isDirectory()) {
           // 递归复制目录
+          console.log(`[Main] 复制目录: ${resolvedSourcePath} -> ${targetPath}`);
           await copyDirectory(resolvedSourcePath, targetPath);
         } else {
           // 确保目标目录存在
@@ -8253,6 +8349,7 @@ ${content}
           await fs.mkdir(targetDir, { recursive: true });
 
           // 复制单个文件
+          console.log(`[Main] 复制文件: ${resolvedSourcePath} -> ${targetPath}`);
           await fs.copyFile(resolvedSourcePath, targetPath);
         }
 
@@ -8265,7 +8362,10 @@ ${content}
         };
       } catch (error) {
         console.error('[Main] 文件导出失败:', error);
-        throw error;
+        return {
+          success: false,
+          error: error.message
+        };
       }
     });
 

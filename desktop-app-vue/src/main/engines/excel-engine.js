@@ -4,12 +4,15 @@
  */
 
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const Papa = require('papaparse');
+const { getFileHandler } = require('../utils/file-handler');
 
 class ExcelEngine {
   constructor() {
     this.supportedFormats = ['.xlsx', '.xls', '.csv'];
+    this.fileHandler = getFileHandler();
   }
 
   /**
@@ -121,6 +124,15 @@ class ExcelEngine {
    * 读取CSV文件
    */
   async readCSV(filePath) {
+    // 检查是否为大文件
+    const isLarge = await this.fileHandler.isLargeFile(filePath);
+
+    if (isLarge) {
+      console.log('[ExcelEngine] 检测到大文件，使用流式处理');
+      return await this.readLargeCSV(filePath);
+    }
+
+    // 小文件使用原有逻辑
     const content = await fs.readFile(filePath, 'utf-8');
     const parsed = Papa.parse(content, {
       header: false,
@@ -155,6 +167,79 @@ class ExcelEngine {
         merges: [],
       }],
     };
+  }
+
+  /**
+   * 流式读取大CSV文件
+   */
+  async readLargeCSV(filePath) {
+    return new Promise((resolve, reject) => {
+      const rows = [];
+      let columns = [];
+      let rowNumber = 0;
+
+      const readStream = fsSync.createReadStream(filePath, { encoding: 'utf-8' });
+
+      Papa.parse(readStream, {
+        header: false,
+        skipEmptyLines: false,
+        step: (result) => {
+          rowNumber++;
+
+          // 第一行作为列头
+          if (rowNumber === 1) {
+            columns = result.data.map((header, index) => ({
+              index,
+              header: header || `Column ${index + 1}`,
+              width: 100,
+            }));
+          }
+
+          // 转换行数据
+          const row = {
+            rowNumber,
+            values: result.data.map((value, colNumber) => ({
+              col: colNumber + 1,
+              value: value,
+              type: 'string',
+            })),
+            height: 20,
+          };
+
+          rows.push(row);
+
+          // 内存管理：每处理1000行检查一次内存
+          if (rowNumber % 1000 === 0) {
+            const memStatus = this.fileHandler.checkAvailableMemory();
+            if (!memStatus.isAvailable) {
+              console.warn('[ExcelEngine] 内存使用率过高，暂停解析');
+              readStream.pause();
+              setTimeout(() => {
+                if (global.gc) global.gc();
+                readStream.resume();
+              }, 100);
+            }
+          }
+        },
+        complete: () => {
+          console.log(`[ExcelEngine] CSV解析完成，共 ${rowNumber} 行`);
+          resolve({
+            type: 'csv',
+            sheets: [{
+              name: 'Sheet1',
+              id: 1,
+              rows,
+              columns,
+              merges: [],
+            }],
+          });
+        },
+        error: (error) => {
+          console.error('[ExcelEngine] CSV解析失败:', error);
+          reject(error);
+        },
+      });
+    });
   }
 
   /**

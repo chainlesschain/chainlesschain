@@ -370,22 +370,25 @@ const handleImportFiles = async () => {
     importing.value = true;
 
     // 选择要导入的文件
-    const result = await window.electron.ipcRenderer.invoke('project:select-import-files', {
+    const result = await window.electron.project.selectImportFiles({
       allowDirectory: true
     });
 
     if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      importing.value = false;
       return;
     }
 
     console.log('[VirtualFileTree] 选择的文件:', result.filePaths);
 
     // 批量导入文件
-    const importResult = await window.electron.ipcRenderer.invoke('project:import-files', {
+    const importResult = await window.electron.project.importFiles({
       projectId: props.projectId,
       externalPaths: result.filePaths,
       targetDirectory: `/data/projects/${props.projectId}/` // 默认导入到项目根目录
     });
+
+    console.log('[VirtualFileTree] 导入结果:', importResult);
 
     if (importResult.success) {
       message.success(`成功导入 ${importResult.successCount}/${importResult.totalCount} 个文件`);
@@ -409,27 +412,36 @@ const handleExportFile = async (node) => {
     exporting.value = true;
 
     // 选择导出目录
-    const result = await window.electron.ipcRenderer.invoke('project:select-export-directory');
+    const result = await window.electron.project.selectExportDirectory();
 
     if (result.canceled || !result.path) {
+      exporting.value = false;
       return;
     }
 
+    console.log('[VirtualFileTree] 导出节点:', node);
     console.log('[VirtualFileTree] 导出到:', result.path);
 
-    const targetPath = `${result.path}/${node.title}`;
+    // 构建完整的项目路径
+    const projectPath = `/data/projects/${props.projectId}/${node.filePath}`;
+    const targetPath = `${result.path}\\${node.title}`;
+
+    console.log('[VirtualFileTree] 项目路径:', projectPath);
+    console.log('[VirtualFileTree] 目标路径:', targetPath);
 
     // 导出文件
-    const exportResult = await window.electron.ipcRenderer.invoke('project:export-file', {
-      projectPath: node.filePath,
+    const exportResult = await window.electron.project.exportFile({
+      projectPath: projectPath,
       targetPath: targetPath,
       isDirectory: !node.isLeaf
     });
 
+    console.log('[VirtualFileTree] 导出结果:', exportResult);
+
     if (exportResult.success) {
       message.success(`成功导出: ${node.title}`);
     } else {
-      message.error('文件导出失败');
+      message.error(`文件导出失败: ${exportResult.error || '未知错误'}`);
     }
   } catch (error) {
     console.error('[VirtualFileTree] 导出文件失败:', error);
