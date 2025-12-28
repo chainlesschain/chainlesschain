@@ -4830,7 +4830,8 @@ class ChainlessChainApp {
               await require('fs').promises.mkdir(projectRootPath, { recursive: true });
 
               // 立即更新项目的root_path（无论是否有文件）
-              await this.database.updateProject(cleanedProject.id, {
+              // updateProject 是同步函数
+              this.database.updateProject(cleanedProject.id, {
                 root_path: projectRootPath,
               });
               console.log('[Main] 项目root_path已设置:', projectRootPath);
@@ -4991,7 +4992,8 @@ class ChainlessChainApp {
                     await fs.promises.mkdir(projectRootPath, { recursive: true });
 
                     // 立即更新项目的root_path（无论是否有文件）
-                    await this.database.updateProject(localProject.id, {
+                    // updateProject 是同步函数
+                    this.database.updateProject(localProject.id, {
                       root_path: projectRootPath,
                     });
                     console.log('[Main] 项目root_path已设置:', projectRootPath);
@@ -5044,7 +5046,8 @@ class ChainlessChainApp {
 
                 // 更新项目的file_count
                 if (savedFiles && savedFiles.length > 0) {
-                  await this.database.updateProject(localProject.id, {
+                  // updateProject 是同步函数
+                  this.database.updateProject(localProject.id, {
                     file_count: savedFiles.length,
                     updated_at: Date.now()
                   });
@@ -5344,8 +5347,8 @@ class ChainlessChainApp {
         console.log('[Main] 修复项目root_path，创建目录:', projectRootPath);
         await require('fs').promises.mkdir(projectRootPath, { recursive: true });
 
-        // 更新数据库
-        await this.database.updateProject(projectId, {
+        // 更新数据库（updateProject 是同步函数）
+        this.database.updateProject(projectId, {
           root_path: projectRootPath,
         });
 
@@ -5410,8 +5413,8 @@ class ChainlessChainApp {
             // 创建目录
             await require('fs').promises.mkdir(projectRootPath, { recursive: true });
 
-            // 更新数据库
-            await this.database.updateProject(project.id, {
+            // 更新数据库（updateProject 是同步函数）
+            this.database.updateProject(project.id, {
               root_path: projectRootPath,
             });
 
@@ -5532,12 +5535,52 @@ class ChainlessChainApp {
         console.log('[Main] 项目根路径:', rootPath);
 
         if (!rootPath) {
-          console.error('[Main] ⚠️  项目没有根路径！');
-          console.error('[Main] 可能原因：');
-          console.error('[Main]   1. 项目创建时未设置路径');
-          console.error('[Main]   2. 数据库迁移导致字段丢失');
-          console.error('[Main]   3. 项目记录损坏');
-          console.error('[Main] 建议：检查项目创建流程或重新创建项目');
+          console.error('[Main] ⚠️  项目缺少 root_path，尝试自动修复');
+          console.error('[Main] 项目ID:', projectId);
+          console.error('[Main] 项目名称:', project.name);
+          console.error('[Main] 项目类型:', project.project_type);
+
+          // 尝试自动修复
+          if (project.project_type === 'document') {
+            try {
+              console.log('[Main] 开始自动修复...');
+              const { getProjectConfig } = require('./project/project-config');
+              const projectConfig = getProjectConfig();
+              const projectRootPath = require('path').join(
+                projectConfig.getProjectsRootPath(),
+                projectId
+              );
+
+              console.log('[Main] 创建项目目录:', projectRootPath);
+              await require('fs').promises.mkdir(projectRootPath, { recursive: true });
+
+              console.log('[Main] 更新数据库 root_path');
+              await this.database.updateProject(projectId, {
+                root_path: projectRootPath,
+              });
+
+              console.log('[Main] ✅ 自动修复成功，继续文件扫描');
+              console.log('[Main] 修复后的路径:', projectRootPath);
+
+              // 使用修复后的路径继续扫描（将继续使用下面的扫描逻辑）
+              // 更新 project 对象以便后续使用
+              project.root_path = projectRootPath;
+            } catch (repairError) {
+              console.error('[Main] ❌ 自动修复失败:', repairError.message);
+              console.error('[Main] 建议：手动运行 await window.electronAPI.project.repairRootPath("' + projectId + '")');
+              return [];
+            }
+          } else {
+            console.error('[Main] 非 document 类型项目无法自动修复');
+            console.error('[Main] 建议：检查项目创建流程或重新创建项目');
+            return [];
+          }
+        }
+
+        // 重新获取 rootPath（可能已被修复）
+        const finalRootPath = project.root_path || project.folder_path;
+        if (!finalRootPath) {
+          console.error('[Main] 修复后仍无法获取 root_path');
           return [];
         }
 
@@ -5546,10 +5589,10 @@ class ChainlessChainApp {
 
         // 检查项目目录是否存在
         try {
-          await fs.access(rootPath);
+          await fs.access(finalRootPath);
           console.log('[Main] ✅ 项目目录存在，开始扫描...');
         } catch (error) {
-          console.error('[Main] ❌ 项目目录不存在:', rootPath, error.message);
+          console.error('[Main] ❌ 项目目录不存在:', finalRootPath, error.message);
           return [];
         }
 
@@ -5611,7 +5654,7 @@ class ChainlessChainApp {
           }
         }
 
-        await scanDirectory(rootPath);
+        await scanDirectory(finalRootPath);
 
         console.log(`[Main] 📊 文件系统扫描完成:`);
         console.log(`[Main]   - 扫描条目总数: ${scanCount}`);
@@ -6461,6 +6504,10 @@ class ChainlessChainApp {
         // LLM配置
         envContent += '# LLM配置\n';
         envContent += `LLM_PROVIDER=${config.llm.provider || 'volcengine'}\n`;
+        if (config.llm.priority) envContent += `LLM_PRIORITY=${JSON.stringify(config.llm.priority)}\n`;
+        envContent += `LLM_AUTO_FALLBACK=${config.llm.autoFallback !== undefined ? config.llm.autoFallback : true}\n`;
+        envContent += `LLM_AUTO_SELECT=${config.llm.autoSelect !== undefined ? config.llm.autoSelect : true}\n`;
+        envContent += `LLM_SELECTION_STRATEGY=${config.llm.selectionStrategy || 'balanced'}\n`;
         envContent += `OLLAMA_HOST=${config.llm.ollamaHost || 'http://localhost:11434'}\n`;
         envContent += `OLLAMA_MODEL=${config.llm.ollamaModel || 'qwen2:7b'}\n`;
         if (config.llm.openaiApiKey) envContent += `OPENAI_API_KEY=${config.llm.openaiApiKey}\n`;
@@ -6905,7 +6952,8 @@ class ChainlessChainApp {
 
           // 如果有projectId，更新数据库中的项目信息
           if (projectId) {
-            await this.database.updateProject(projectId, {
+            // updateProject 是同步函数
+            this.database.updateProject(projectId, {
               root_path: projectRootPath,
               updated_at: Date.now()
             });
