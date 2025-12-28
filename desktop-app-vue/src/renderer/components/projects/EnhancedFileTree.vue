@@ -176,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, h } from 'vue';
+import { ref, computed, watch, h, nextTick, onMounted, onUpdated } from 'vue';
 import { message, Modal, Input } from 'ant-design-vue';
 import {
   FolderOutlined,
@@ -281,14 +281,16 @@ const getFileIcon = (fileName, isFolder) => {
 
 // 构建树形数据
 const treeData = computed(() => {
-  console.log('[FileTree] ========== 开始构建文件树 ==========');
-  console.log('[FileTree] props.files:', props.files);
-  console.log('[FileTree] 文件数量:', props.files?.length || 0);
+  console.log('[EnhancedFileTree] ========== treeData computed 执行 ==========');
+  console.log('[EnhancedFileTree] props.files:', props.files?.length || 0);
+  console.log('[EnhancedFileTree] 时间戳:', Date.now());
 
   if (!props.files || props.files.length === 0) {
-    console.warn('[FileTree] ⚠️  文件列表为空或未定义');
+    console.log('[EnhancedFileTree] 文件列表为空，返回空数组');
     return [];
   }
+
+  console.log('[EnhancedFileTree] 文件数量:', props.files.length);
 
   console.log('[FileTree] 前3个文件对象:');
   props.files.slice(0, 3).forEach((file, idx) => {
@@ -381,18 +383,41 @@ const treeData = computed(() => {
 
   const result = convertToTreeNodes(root);
 
-  console.log('[FileTree] 📊 树构建统计:');
-  console.log(`[FileTree]   - 有效文件: ${validFileCount}`);
-  console.log(`[FileTree]   - 跳过文件: ${skippedFileCount}`);
-  console.log(`[FileTree]   - 树节点数: ${result.length}`);
-  console.log('[FileTree] ========== 文件树构建完成 ==========');
-
-  if (result.length > 0) {
-    console.log('[FileTree] 树根节点:', result.map(n => `${n.title} (key: ${n.key})`).join(', '));
-  }
+  console.log('[EnhancedFileTree] 树构建完成，节点数:', result.length);
+  console.log('[EnhancedFileTree] ========== treeData computed 结束 ==========');
 
   return result;
 });
+
+// 显式监听 props.files 变化
+watch(
+  () => props.files,
+  (newFiles, oldFiles) => {
+    console.log('[EnhancedFileTree] Files prop 变化');
+    console.log('  旧:', oldFiles?.length || 0);
+    console.log('  新:', newFiles?.length || 0);
+    console.log('  引用:', newFiles !== oldFiles ? '已改变' : '相同');
+
+    // 强制 treeData computed 重新计算
+    if (newFiles && newFiles.length > 0) {
+      nextTick(() => {
+        console.log('[EnhancedFileTree] 触发 treeData 重新计算');
+        const _ = treeData.value;  // 访问 computed 强制计算
+      });
+    }
+  },
+  { immediate: true, deep: true }
+);
+
+// 文件数量变化监听（备用）
+watch(
+  () => props.files?.length,
+  (newLen, oldLen) => {
+    if (newLen !== oldLen) {
+      console.log('[EnhancedFileTree] 文件数量变化:', oldLen, '->', newLen);
+    }
+  }
+);
 
 // 监听当前文件变化
 watch(() => props.currentFileId, (newId) => {
@@ -1045,6 +1070,15 @@ const handleExport = async () => {
     exporting.value = false;
   }
 };
+
+// 生命周期日志
+onMounted(() => {
+  console.log('[EnhancedFileTree] onMounted, files:', props.files?.length || 0);
+});
+
+onUpdated(() => {
+  console.log('[EnhancedFileTree] onUpdated, files:', props.files?.length || 0);
+});
 </script>
 
 <style scoped>
