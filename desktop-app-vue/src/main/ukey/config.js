@@ -41,6 +41,12 @@ const DEFAULT_CONFIG = {
     },
     feitian: {},
     watchdata: {},
+    huada: {
+      supportSM: true, // 支持国密算法
+    },
+    tdr: {
+      paymentMode: false, // 是否启用支付模式
+    },
   },
 };
 
