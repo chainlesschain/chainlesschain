@@ -33,6 +33,10 @@
             <span>项目管理</span>
             <a-badge count="核心" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
           </template>
+                    <a-menu-item key="project-categories">
+            <template #icon><AppstoreOutlined /></template>
+            项目分类
+          </a-menu-item>
           <a-menu-item key="projects">
             <template #icon><FolderOpenOutlined /></template>
             我的项目
@@ -335,6 +339,7 @@ import {
   ExclamationCircleOutlined,
   CloudSyncOutlined,
   ArrowLeftOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import ChatPanel from './ChatPanel.vue';
@@ -364,6 +369,7 @@ const showSidebar = computed(() => {
 // 菜单配置
 const menuConfig = {
   // 项目管理模块
+    'project-categories': { path: '/projects/categories', title: '项目分类' },
   projects: { path: '/projects', title: '我的项目' },
   'template-management': { path: '/template-management', title: '模板管理' },
   'project-market': { path: '/projects/market', title: '项目市场' },

@@ -135,6 +135,12 @@ const routes = [
         meta: { title: '我的评价' },
       },
       // 项目管理模块
+            {
+        path: 'projects/categories',
+        name: 'ProjectCategories',
+        component: () => import('../pages/projects/CategoryManagePage.vue'),
+        meta: { title: '项目分类' },
+      },
       {
         path: 'projects',
         name: 'Projects',
