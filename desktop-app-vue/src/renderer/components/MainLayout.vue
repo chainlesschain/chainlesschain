@@ -218,6 +218,9 @@
               </a-button>
             </a-tooltip>
 
+            <!-- 语言切换 -->
+            <LanguageSwitcher />
+
             <!-- 用户菜单 -->
             <a-dropdown>
               <a-button type="text">
@@ -349,6 +352,7 @@ import {
 import { useAppStore } from '../stores/app';
 import ChatPanel from './ChatPanel.vue';
 import SyncConflictDialog from './SyncConflictDialog.vue';
+import LanguageSwitcher from './LanguageSwitcher.vue';
 
 const router = useRouter();
 const route = useRoute();
