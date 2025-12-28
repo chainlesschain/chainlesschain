@@ -549,20 +549,35 @@ export const useProjectStore = defineStore('project', {
      * @param {string} projectId - 项目ID
      */
     async loadProjectFiles(projectId) {
+      const startTime = Date.now();
+      console.log('[Store] ========== loadProjectFiles 开始 ==========');
+      console.log('[Store] 项目ID:', projectId);
+      console.log('[Store] 当前文件数:', this.projectFiles.length);
+
       try {
-        console.log('[Store] 加载项目文件, projectId:', projectId);
         const files = await window.electronAPI.project.getFiles(projectId);
-        console.log('[Store] 接收到文件数量:', files?.length || 0);
+        const elapsed = Date.now() - startTime;
+
+        console.log('[Store] ✓ IPC 返回，耗时:', elapsed, 'ms');
+        console.log('[Store] 接收文件数:', files?.length || 0);
+
         if (files && files.length > 0) {
-          console.log('[Store] 文件列表:', files.map(f => f.file_name).join(', '));
-          console.log('[Store] 第一个文件完整对象:', JSON.stringify(files[0], null, 2));
+          console.log('[Store] 前3个文件:', files.slice(0, 3).map(f => f.file_name).join(', '));
         }
+
         // 强制创建新数组引用，确保 Vue 响应式系统能检测到变化
         this.projectFiles = files ? [...files] : [];
-        console.log('[Store] projectFiles 已更新，长度:', this.projectFiles.length);
-        console.log('[Store] projectFiles 引用已更新，时间戳:', Date.now());
+
+        console.log('[Store] ✓ projectFiles 已更新');
+        console.log('[Store] 新长度:', this.projectFiles.length);
+        console.log('[Store] 引用已改变: true');
+        console.log('[Store] 更新时间戳:', Date.now());
+        console.log('[Store] ========== loadProjectFiles 结束 ==========');
+
+        return this.projectFiles;
       } catch (error) {
-        console.error('加载项目文件失败:', error);
+        console.error('[Store] ========== loadProjectFiles 错误 ==========');
+        console.error('[Store] Error:', error);
         throw error;
       }
     },
