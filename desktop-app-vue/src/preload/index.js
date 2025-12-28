@@ -62,6 +62,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStatistics: () => ipcRenderer.invoke('db:get-statistics'),
     getPath: () => ipcRenderer.invoke('db:get-path'),
     backup: (backupPath) => ipcRenderer.invoke('db:backup', backupPath),
+    // 数据库配置
+    getConfig: () => ipcRenderer.invoke('database:get-config'),
+    setPath: (newPath) => ipcRenderer.invoke('database:set-path', newPath),
+    migrate: (newPath) => ipcRenderer.invoke('database:migrate', newPath),
+    createBackup: () => ipcRenderer.invoke('database:create-backup'),
+    listBackups: () => ipcRenderer.invoke('database:list-backups'),
+    restoreBackup: (backupPath) => ipcRenderer.invoke('database:restore-backup', backupPath),
+  },
+
+  // 应用管理
+  app: {
+    restart: () => ipcRenderer.invoke('app:restart'),
   },
 
   // LLM服务
@@ -75,6 +87,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listModels: () => ipcRenderer.invoke('llm:list-models'),
     clearContext: (conversationId) => ipcRenderer.invoke('llm:clear-context', conversationId),
     embeddings: (text) => ipcRenderer.invoke('llm:embeddings', text),
+    // 智能选择
+    getSelectorInfo: () => ipcRenderer.invoke('llm:get-selector-info'),
+    selectBest: (options) => ipcRenderer.invoke('llm:select-best', options),
+    generateReport: (taskType) => ipcRenderer.invoke('llm:generate-report', taskType),
+    switchProvider: (provider) => ipcRenderer.invoke('llm:switch-provider', provider),
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
@@ -92,6 +109,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getMessages: (conversationId, options) => ipcRenderer.invoke('conversation:get-messages', conversationId, options),
     deleteMessage: (messageId) => ipcRenderer.invoke('conversation:delete-message', messageId),
     clearMessages: (conversationId) => ipcRenderer.invoke('conversation:clear-messages', conversationId),
+  },
+
+  // 系统配置管理
+  config: {
+    getAll: () => ipcRenderer.invoke('config:get-all'),
+    get: (key) => ipcRenderer.invoke('config:get', key),
+    update: (config) => ipcRenderer.invoke('config:update', config),
+    set: (key, value) => ipcRenderer.invoke('config:set', key, value),
+    reset: () => ipcRenderer.invoke('config:reset'),
+    exportEnv: (filePath) => ipcRenderer.invoke('config:export-env', filePath),
+  },
+
+  // 对话框
+  dialog: {
+    selectFolder: (options) => ipcRenderer.invoke('dialog:select-folder', options),
   },
 
   // Git同步
@@ -424,6 +456,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     duplicate: (templateId, newName) => ipcRenderer.invoke('template:duplicate', templateId, newName),
   },
 
+  // 项目分类管理
+  category: {
+    initializeDefaults: (userId) => ipcRenderer.invoke('category:initialize-defaults', userId),
+    getAll: (userId) => ipcRenderer.invoke('category:get-all', userId),
+    get: (categoryId) => ipcRenderer.invoke('category:get', categoryId),
+    create: (categoryData) => ipcRenderer.invoke('category:create', removeUndefined(categoryData)),
+    update: (categoryId, updates) => ipcRenderer.invoke('category:update', categoryId, removeUndefined(updates)),
+    delete: (categoryId) => ipcRenderer.invoke('category:delete', categoryId),
+    updateSort: (sortData) => ipcRenderer.invoke('category:update-sort', sortData),
+  },
+
   // 项目管理
   project: {
     // 项目CRUD
@@ -435,6 +478,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     delete: (projectId) => ipcRenderer.invoke('project:delete', projectId),
     save: (project) => ipcRenderer.invoke('project:save', removeUndefined(project)),
     deleteLocal: (projectId) => ipcRenderer.invoke('project:delete-local', projectId),
+    repairRootPath: (projectId) => ipcRenderer.invoke('project:repair-root-path', projectId),
+    repairAllRootPaths: () => ipcRenderer.invoke('project:repair-all-root-paths'),
 
     // 流式创建项目
     createStream: (createData, callbacks) => {
