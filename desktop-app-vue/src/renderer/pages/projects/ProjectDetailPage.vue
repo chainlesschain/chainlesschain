@@ -860,13 +860,19 @@ const handleCodeSave = async (code) => {
 
 // 处理Markdown变化
 const handleMarkdownChange = (content) => {
+  console.log('[ProjectDetail] Markdown内容变化，长度:', content?.length);
   hasUnsavedChanges.value = true;
+  // 更新 fileContent 以保持同步
+  fileContent.value = content;
 };
 
 // 处理Markdown保存
 const handleMarkdownSave = async (content) => {
+  console.log('[ProjectDetail] Markdown保存完成，长度:', content?.length);
   hasUnsavedChanges.value = false;
-  message.success('Markdown已保存');
+  // 更新 fileContent
+  fileContent.value = content;
+  // 不需要再显示消息，MarkdownEditor 已经显示了
 };
 
 // 处理Web保存
@@ -1288,7 +1294,7 @@ onMounted(async () => {
     // 启动项目统计收集
     if (resolvedProjectPath.value) {
       try {
-        await window.electron.invoke('project:stats:start', projectId.value, resolvedProjectPath.value);
+        await window.electronAPI.project.startStats(projectId.value, resolvedProjectPath.value);
         console.log('[ProjectDetail] 项目统计收集已启动');
       } catch (error) {
         console.error('[ProjectDetail] 启动统计收集失败:', error);
@@ -1375,7 +1381,7 @@ onUnmounted(async () => {
   // 停止项目统计收集
   if (projectId.value) {
     try {
-      await window.electron.invoke('project:stats:stop', projectId.value);
+      await window.electronAPI.project.stopStats(projectId.value);
       console.log('[ProjectDetail] 项目统计收集已停止');
     } catch (error) {
       console.error('[ProjectDetail] 停止统计收集失败:', error);
