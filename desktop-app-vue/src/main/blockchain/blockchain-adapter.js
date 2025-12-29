@@ -47,15 +47,38 @@ class BlockchainAdapter extends EventEmitter {
 
       for (const chainId of supportedChains) {
         try {
-          const rpcUrl = getRpcUrl(chainId);
-          if (rpcUrl) {
-            const provider = new ethers.JsonRpcProvider(rpcUrl);
+          const config = getNetworkConfig(chainId);
+          let provider = null;
 
-            // 验证连接
-            await provider.getNetwork();
+          // 尝试所有RPC URL直到找到一个可用的
+          for (const rpcUrl of config.rpcUrls) {
+            // 跳过包含占位符API key的URL
+            if (rpcUrl.includes('your-api-key')) {
+              continue;
+            }
 
-            this.providers.set(chainId, provider);
-            console.log(`[BlockchainAdapter] 链 ${chainId} 提供者初始化成功`);
+            try {
+              provider = new ethers.JsonRpcProvider(rpcUrl);
+
+              // 验证连接（添加超时）
+              await Promise.race([
+                provider.getNetwork(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('连接超时')), 5000))
+              ]);
+
+              // 连接成功
+              this.providers.set(chainId, provider);
+              console.log(`[BlockchainAdapter] 链 ${chainId} 提供者初始化成功 (${rpcUrl})`);
+              break;
+            } catch (rpcError) {
+              console.warn(`[BlockchainAdapter] RPC URL ${rpcUrl} 失败:`, rpcError.message);
+              // 尝试下一个RPC URL
+              continue;
+            }
+          }
+
+          if (!this.providers.has(chainId)) {
+            console.warn(`[BlockchainAdapter] 链 ${chainId} 所有RPC URL均不可用`);
           }
         } catch (error) {
           console.warn(`[BlockchainAdapter] 链 ${chainId} 初始化失败:`, error.message);

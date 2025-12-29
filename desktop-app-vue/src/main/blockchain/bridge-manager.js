@@ -47,7 +47,16 @@ class BridgeManager extends EventEmitter {
   _loadABIs() {
     try {
       // 加载 AssetBridge ABI
-      const bridgeArtifactPath = path.join(__dirname, '../../contracts/artifacts/contracts/bridge/AssetBridge.sol/AssetBridge.json');
+      // In dev mode, __dirname is src/main/blockchain
+      // In production/dist mode, __dirname is dist/main/blockchain
+      // Contracts are always at project root, so we need to go up to project root
+      let bridgeArtifactPath = path.join(__dirname, '../../contracts/artifacts/contracts/bridge/AssetBridge.sol/AssetBridge.json');
+
+      // If not found, try from dist folder (go up 3 levels: dist/main/blockchain -> project root)
+      if (!fs.existsSync(bridgeArtifactPath)) {
+        bridgeArtifactPath = path.join(__dirname, '../../../contracts/artifacts/contracts/bridge/AssetBridge.sol/AssetBridge.json');
+      }
+
       if (fs.existsSync(bridgeArtifactPath)) {
         const bridgeArtifact = JSON.parse(fs.readFileSync(bridgeArtifactPath, 'utf8'));
         this.bridgeABI = bridgeArtifact.abi;
@@ -97,7 +106,7 @@ class BridgeManager extends EventEmitter {
    * 初始化数据库表
    */
   async initializeTables() {
-    return new Promise((resolve, reject) => {
+    try {
       this.database.run(`
         CREATE TABLE IF NOT EXISTS bridge_transfers (
           id TEXT PRIMARY KEY,
@@ -117,15 +126,12 @@ class BridgeManager extends EventEmitter {
           completed_at INTEGER,
           error_message TEXT
         )
-      `, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          console.log('[BridgeManager] bridge_transfers 表初始化完成');
-          resolve();
-        }
-      });
-    });
+      `);
+      console.log('[BridgeManager] bridge_transfers 表初始化完成');
+    } catch (error) {
+      console.error('[BridgeManager] 表初始化失败:', error);
+      throw error;
+    }
   }
 
   /**
@@ -487,19 +493,15 @@ class BridgeManager extends EventEmitter {
    * @private
    */
   async _getAssetInfo(assetId) {
-    return new Promise((resolve, reject) => {
-      this.database.get(
+    try {
+      return this.database.get(
         'SELECT * FROM blockchain_assets WHERE local_asset_id = ?',
-        [assetId],
-        (err, row) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(row);
-          }
-        }
+        [assetId]
       );
-    });
+    } catch (error) {
+      console.error('[BridgeManager] 获取资产信息失败:', error);
+      throw error;
+    }
   }
 
   /**
@@ -613,7 +615,7 @@ class BridgeManager extends EventEmitter {
    * @private
    */
   async _saveBridgeRecord(record) {
-    return new Promise((resolve, reject) => {
+    try {
       const sql = `
         INSERT INTO bridge_transfers (
           id, from_chain_id, to_chain_id, from_tx_hash, to_tx_hash,
@@ -639,14 +641,11 @@ class BridgeManager extends EventEmitter {
         record.created_at,
         record.completed_at || null,
         record.error_message || null,
-      ], (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+      ]);
+    } catch (error) {
+      console.error('[BridgeManager] 保存桥接记录失败:', error);
+      throw error;
+    }
   }
 
   /**
@@ -654,22 +653,18 @@ class BridgeManager extends EventEmitter {
    * @private
    */
   async _updateBridgeRecord(bridgeId, updates) {
-    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
-    const values = Object.values(updates);
+    try {
+      const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+      const values = Object.values(updates);
 
-    return new Promise((resolve, reject) => {
       this.database.run(
         `UPDATE bridge_transfers SET ${fields} WHERE id = ?`,
-        [...values, bridgeId],
-        (err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        }
+        [...values, bridgeId]
       );
-    });
+    } catch (error) {
+      console.error('[BridgeManager] 更新桥接记录失败:', error);
+      throw error;
+    }
   }
 
   /**
@@ -678,19 +673,15 @@ class BridgeManager extends EventEmitter {
    * @returns {Promise<Object>} 桥接记录
    */
   async getBridgeRecord(bridgeId) {
-    return new Promise((resolve, reject) => {
-      this.database.get(
+    try {
+      return this.database.get(
         'SELECT * FROM bridge_transfers WHERE id = ?',
-        [bridgeId],
-        (err, row) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(row);
-          }
-        }
+        [bridgeId]
       );
-    });
+    } catch (error) {
+      console.error('[BridgeManager] 获取桥接记录失败:', error);
+      throw error;
+    }
   }
 
   /**
@@ -699,40 +690,37 @@ class BridgeManager extends EventEmitter {
    * @returns {Promise<Array>} 桥接记录列表
    */
   async getBridgeHistory(filters = {}) {
-    let sql = 'SELECT * FROM bridge_transfers WHERE 1=1';
-    const params = [];
+    try {
+      let sql = 'SELECT * FROM bridge_transfers WHERE 1=1';
+      const params = [];
 
-    if (filters.status) {
-      sql += ' AND status = ?';
-      params.push(filters.status);
+      if (filters.status) {
+        sql += ' AND status = ?';
+        params.push(filters.status);
+      }
+
+      if (filters.from_chain_id) {
+        sql += ' AND from_chain_id = ?';
+        params.push(filters.from_chain_id);
+      }
+
+      if (filters.to_chain_id) {
+        sql += ' AND to_chain_id = ?';
+        params.push(filters.to_chain_id);
+      }
+
+      if (filters.sender_address) {
+        sql += ' AND sender_address = ?';
+        params.push(filters.sender_address);
+      }
+
+      sql += ' ORDER BY created_at DESC LIMIT 100';
+
+      return this.database.all(sql, params) || [];
+    } catch (error) {
+      console.error('[BridgeManager] 获取桥接历史失败:', error);
+      throw error;
     }
-
-    if (filters.from_chain_id) {
-      sql += ' AND from_chain_id = ?';
-      params.push(filters.from_chain_id);
-    }
-
-    if (filters.to_chain_id) {
-      sql += ' AND to_chain_id = ?';
-      params.push(filters.to_chain_id);
-    }
-
-    if (filters.sender_address) {
-      sql += ' AND sender_address = ?';
-      params.push(filters.sender_address);
-    }
-
-    sql += ' ORDER BY created_at DESC LIMIT 100';
-
-    return new Promise((resolve, reject) => {
-      this.database.all(sql, params, (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows || []);
-        }
-      });
-    });
   }
 
   /**

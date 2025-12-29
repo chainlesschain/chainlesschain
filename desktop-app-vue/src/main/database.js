@@ -3229,13 +3229,17 @@ class DatabaseManager {
     }
 
     const syncStatus = safeProject.sync_status ?? safeProject.syncStatus ?? 'pending';
+    const deviceId = safeProject.device_id ?? safeProject.deviceId ?? null;
+    const deleted = safeProject.deleted ?? 0;
+    const categoryId = safeProject.category_id ?? safeProject.categoryId ?? null;
 
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO projects (
         id, user_id, name, description, project_type, status,
         root_path, file_count, total_size, template_id, cover_image_url,
-        tags, metadata, created_at, updated_at, synced_at, sync_status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        tags, metadata, created_at, updated_at, sync_status, synced_at,
+        device_id, deleted, category_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const params = [
@@ -3254,8 +3258,11 @@ class DatabaseManager {
       metadataValue,
       createdAt,
       updatedAt,
-      syncedAt,
       syncStatus,
+      syncedAt,
+      deviceId,
+      deleted,
+      categoryId,
     ].map((value) => (value === undefined ? null : value));
 
     console.log('[Database] 最终params准备绑定:');
@@ -3295,8 +3302,11 @@ class DatabaseManager {
       metadata: metadataValue,
       created_at: createdAt,
       updated_at: updatedAt,
-      synced_at: syncedAt,
       sync_status: syncStatus,
+      synced_at: syncedAt,
+      device_id: deviceId,
+      deleted: deleted,
+      category_id: categoryId,
     };
 
     console.log('[Database] saveProject 完成，返回结果');

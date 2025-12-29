@@ -18,6 +18,22 @@ class KnowledgePaymentManager extends EventEmitter {
   }
 
   /**
+   * 初始化知识付费管理器
+   */
+  async initialize() {
+    console.log('[KnowledgePayment] 初始化知识付费管理器...');
+
+    try {
+      // 数据库表已在构造函数中初始化
+      console.log('[KnowledgePayment] 知识付费管理器初始化成功');
+      return true;
+    } catch (error) {
+      console.error('[KnowledgePayment] 初始化失败:', error);
+      return false;
+    }
+  }
+
+  /**
    * 初始化数据库表
    */
   initDatabase() {

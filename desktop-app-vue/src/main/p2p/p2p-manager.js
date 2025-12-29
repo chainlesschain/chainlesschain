@@ -1481,34 +1481,53 @@ class P2PManager extends EventEmitter {
   buildTransports({ tcp, webSockets, webRTC, circuitRelayTransport, config, natInfo }) {
     const transports = [];
 
-    // 根据NAT类型和配置智能选择
+    // 根据NAT类型和配置智能选择（优先顺序）
     if (config.transports.autoSelect && natInfo) {
       console.log(`[P2PManager] 智能传输选择: NAT类型=${natInfo.type}`);
 
-      // Full Cone NAT: WebRTC最优
-      if ((natInfo.type === 'full-cone' || natInfo.type === 'restricted') && config.transports.webrtc) {
-        transports.push(webRTC({ iceServers: this.buildICEServers() }));
-        console.log('[P2PManager] 添加WebRTC传输（适合Full Cone/Restricted NAT）');
-      }
-
-      // 对称NAT: WebSocket最优
-      if (natInfo.type === 'symmetric' && config.transports.websocket) {
-        transports.push(webSockets());
-        console.log('[P2PManager] 添加WebSocket传输（适合对称NAT）');
-      }
-
-      // 本地网络: TCP最优
-      if ((natInfo.type === 'none' || !natInfo.type) && config.transports.tcp) {
-        transports.push(tcp());
-        console.log('[P2PManager] 添加TCP传输（无NAT或未知）');
-      }
-
-      // 如果智能选择没有添加任何传输，添加所有已启用的传输
-      if (transports.length === 0) {
-        console.log('[P2PManager] 智能选择未匹配，启用所有配置的传输');
-        if (config.transports.tcp) transports.push(tcp());
-        if (config.transports.websocket) transports.push(webSockets());
-        if (config.transports.webrtc) transports.push(webRTC({ iceServers: this.buildICEServers() }));
+      // 基于NAT类型优化传输层顺序，但仍然启用所有配置的传输
+      if (natInfo.type === 'full-cone' || natInfo.type === 'restricted') {
+        // Full Cone/Restricted NAT: WebRTC优先，然后WebSocket，最后TCP
+        if (config.transports.webrtc) {
+          transports.push(webRTC({ iceServers: this.buildICEServers() }));
+          console.log('[P2PManager] 添加WebRTC传输（优先 - 适合Full Cone/Restricted NAT）');
+        }
+        if (config.transports.websocket) {
+          transports.push(webSockets());
+          console.log('[P2PManager] 添加WebSocket传输（后备）');
+        }
+        if (config.transports.tcp) {
+          transports.push(tcp());
+          console.log('[P2PManager] 添加TCP传输（后备）');
+        }
+      } else if (natInfo.type === 'symmetric') {
+        // 对称NAT: WebSocket优先，然后WebRTC，最后TCP
+        if (config.transports.websocket) {
+          transports.push(webSockets());
+          console.log('[P2PManager] 添加WebSocket传输（优先 - 适合对称NAT）');
+        }
+        if (config.transports.webrtc) {
+          transports.push(webRTC({ iceServers: this.buildICEServers() }));
+          console.log('[P2PManager] 添加WebRTC传输（后备）');
+        }
+        if (config.transports.tcp) {
+          transports.push(tcp());
+          console.log('[P2PManager] 添加TCP传输（后备）');
+        }
+      } else {
+        // 本地网络或未知: TCP优先，然后WebSocket，最后WebRTC
+        if (config.transports.tcp) {
+          transports.push(tcp());
+          console.log('[P2PManager] 添加TCP传输（优先 - 无NAT或未知）');
+        }
+        if (config.transports.websocket) {
+          transports.push(webSockets());
+          console.log('[P2PManager] 添加WebSocket传输（后备）');
+        }
+        if (config.transports.webrtc) {
+          transports.push(webRTC({ iceServers: this.buildICEServers() }));
+          console.log('[P2PManager] 添加WebRTC传输（后备）');
+        }
       }
     } else {
       // 非智能模式：启用所有配置的传输层
