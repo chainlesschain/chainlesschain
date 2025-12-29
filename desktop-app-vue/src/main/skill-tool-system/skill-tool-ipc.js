@@ -485,6 +485,173 @@ function registerSkillToolIPC(ipcMain, skillManager, toolManager) {
     }
   });
 
+  // ===================================
+  // 智能推荐IPC (需要传入skillRecommender)
+  // ===================================
+
+  /**
+   * 推荐技能
+   */
+  ipcMain.handle('skill:recommend', async (event, userInput, options = {}) => {
+    try {
+      if (!global.skillRecommender) {
+        return { success: false, error: '推荐引擎未初始化' };
+      }
+      const recommendations = await global.skillRecommender.recommendSkills(userInput, options);
+      return { success: true, data: recommendations };
+    } catch (error) {
+      console.error('[IPC] skill:recommend 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取热门技能
+   */
+  ipcMain.handle('skill:get-popular', async (event, limit = 10) => {
+    try {
+      if (!global.skillRecommender) {
+        return { success: false, error: '推荐引擎未初始化' };
+      }
+      const popular = await global.skillRecommender.getPopularSkills(limit);
+      return { success: true, data: popular };
+    } catch (error) {
+      console.error('[IPC] skill:get-popular 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取相关技能
+   */
+  ipcMain.handle('skill:get-related', async (event, skillId, limit = 5) => {
+    try {
+      if (!global.skillRecommender) {
+        return { success: false, error: '推荐引擎未初始化' };
+      }
+      const related = await global.skillRecommender.getRelatedSkills(skillId, limit);
+      return { success: true, data: related };
+    } catch (error) {
+      console.error('[IPC] skill:get-related 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 搜索技能
+   */
+  ipcMain.handle('skill:search', async (event, query, options = {}) => {
+    try {
+      if (!global.skillRecommender) {
+        return { success: false, error: '推荐引擎未初始化' };
+      }
+      const results = await global.skillRecommender.searchSkills(query, options);
+      return { success: true, data: results };
+    } catch (error) {
+      console.error('[IPC] skill:search 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // ===================================
+  // 配置导入导出IPC (需要传入configManager)
+  // ===================================
+
+  /**
+   * 导出技能配置
+   */
+  ipcMain.handle('config:export-skills', async (event, skillIds, options = {}) => {
+    try {
+      if (!global.configManager) {
+        return { success: false, error: '配置管理器未初始化' };
+      }
+      const data = await global.configManager.exportSkills(skillIds, options);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] config:export-skills 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 导出工具配置
+   */
+  ipcMain.handle('config:export-tools', async (event, toolIds, options = {}) => {
+    try {
+      if (!global.configManager) {
+        return { success: false, error: '配置管理器未初始化' };
+      }
+      const data = await global.configManager.exportTools(toolIds, options);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] config:export-tools 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 导出到文件
+   */
+  ipcMain.handle('config:export-to-file', async (event, data, filePath, format = 'json') => {
+    try {
+      if (!global.configManager) {
+        return { success: false, error: '配置管理器未初始化' };
+      }
+      return await global.configManager.exportToFile(data, filePath, format);
+    } catch (error) {
+      console.error('[IPC] config:export-to-file 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 从文件导入配置
+   */
+  ipcMain.handle('config:import-from-file', async (event, filePath, options = {}) => {
+    try {
+      if (!global.configManager) {
+        return { success: false, error: '配置管理器未初始化' };
+      }
+      const result = await global.configManager.importFromFile(filePath, options);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('[IPC] config:import-from-file 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 导入配置
+   */
+  ipcMain.handle('config:import', async (event, data, options = {}) => {
+    try {
+      if (!global.configManager) {
+        return { success: false, error: '配置管理器未初始化' };
+      }
+      const result = await global.configManager.importConfig(data, options);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('[IPC] config:import 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 创建配置模板
+   */
+  ipcMain.handle('config:create-template', async (event, templateType = 'skill') => {
+    try {
+      if (!global.configManager) {
+        return { success: false, error: '配置管理器未初始化' };
+      }
+      const template = global.configManager.createTemplate(templateType);
+      return { success: true, data: template };
+    } catch (error) {
+      console.error('[IPC] config:create-template 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   console.log('[Skill-Tool IPC] IPC handlers 注册完成');
 }
 
