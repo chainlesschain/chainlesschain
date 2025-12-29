@@ -20,9 +20,7 @@
               </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="订单状态">
-              <a-tag :color="getOrderStatusColor(order.status)">
-                {{ getOrderStatusName(order.status) }}
-              </a-tag>
+              <status-badge :status="order.status" type="order" show-icon />
             </a-descriptions-item>
             <a-descriptions-item label="订单标题" :span="2">
               <strong>{{ order.title }}</strong>
@@ -101,9 +99,7 @@
                   <template #title>
                     <a-space>
                       <span>交易 ID: {{ shortenId(item.id) }}</span>
-                      <a-tag :color="getTransactionStatusColor(item.status)">
-                        {{ getTransactionStatusName(item.status) }}
-                      </a-tag>
+                      <status-badge :status="item.status" type="transaction" show-icon />
                     </a-space>
                   </template>
                   <template #description>
@@ -182,6 +178,11 @@ import {
   EnvironmentOutlined,
   PhoneOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+import StatusBadge from './common/StatusBadge.vue';
+
+// Store
+const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
@@ -201,12 +202,16 @@ const emit = defineEmits(['purchased', 'cancelled', 'update:visible']);
 // 状态
 const showPurchaseModal = ref(false);
 const purchaseQuantity = ref(1);
-const transactions = ref([]);
 const currentDid = ref('');
+
+// 从 store 获取数据
+const transactions = computed(() =>
+  tradeStore.marketplace.transactions.filter(t => t.order_id === props.order?.id)
+);
 
 // 计算属性
 const isMyOrder = computed(() => {
-  return props.order && props.order.creator_did === currentDid.value;
+  return props.order && props.order.seller_did === currentDid.value;
 });
 
 const hasMetadata = computed(() => {
@@ -218,20 +223,20 @@ const hasMetadata = computed(() => {
 // 工具函数
 const getOrderTypeColor = (type) => {
   const colors = {
-    buy: 'blue',
     sell: 'green',
-    service: 'purple',
-    barter: 'orange',
+    buy: 'blue',
+    auction: 'purple',
+    exchange: 'orange',
   };
   return colors[type] || 'default';
 };
 
 const getOrderTypeName = (type) => {
   const names = {
-    buy: '求购',
     sell: '出售',
-    service: '服务',
-    barter: '以物换物',
+    buy: '求购',
+    auction: '拍卖',
+    exchange: '交换',
   };
   return names[type] || type;
 };
@@ -304,11 +309,11 @@ const loadTransactions = async () => {
   if (!props.order) return;
 
   try {
-    transactions.value = await window.electronAPI.marketplace.getTransactions({
-      orderId: props.order.id,
-    });
+    // 使用 store 加载交易记录
+    await tradeStore.loadTransactions({ orderId: props.order.id });
+    console.log('[OrderDetail] 交易记录已加载:', transactions.value.length);
   } catch (error) {
-    console.error('加载交易列表失败:', error);
+    console.error('[OrderDetail] 加载交易列表失败:', error);
   }
 };
 
@@ -333,18 +338,17 @@ const handleConfirmPurchase = async () => {
   try {
     if (!props.order) return;
 
-    await window.electronAPI.marketplace.matchOrder(
-      props.order.id,
-      purchaseQuantity.value
-    );
+    // 使用 store 购买订单
+    await tradeStore.purchaseOrder(props.order.id, purchaseQuantity.value);
 
+    console.log('[OrderDetail] 订单购买成功:', props.order.id);
     antMessage.success('购买成功！');
     showPurchaseModal.value = false;
     emit('purchased');
     emit('update:visible', false);
   } catch (error) {
-    console.error('购买失败:', error);
-    antMessage.error('购买失败: ' + error.message);
+    console.error('[OrderDetail] 购买失败:', error);
+    antMessage.error(error.message || '购买失败');
   }
 };
 
@@ -357,13 +361,16 @@ const handleCancel = () => {
     cancelText: '取消',
     async onOk() {
       try {
-        await window.electronAPI.marketplace.cancelOrder(props.order.id);
+        // 使用 store 取消订单
+        await tradeStore.cancelOrder(props.order.id);
+
+        console.log('[OrderDetail] 订单已取消:', props.order.id);
         antMessage.success('订单已取消');
         emit('cancelled');
         emit('update:visible', false);
       } catch (error) {
-        console.error('取消订单失败:', error);
-        antMessage.error('取消订单失败: ' + error.message);
+        console.error('[OrderDetail] 取消订单失败:', error);
+        antMessage.error(error.message || '取消订单失败');
       }
     },
   });

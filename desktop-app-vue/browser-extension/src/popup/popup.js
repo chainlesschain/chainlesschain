@@ -80,6 +80,9 @@ function initializeElements() {
 
   // 截图功能元素
   elements.captureScreenshotBtn = document.getElementById('captureScreenshotBtn');
+
+  // 批量剪藏元素
+  elements.openBatchClipperBtn = document.getElementById('openBatchClipperBtn');
 }
 
 /**
@@ -218,6 +221,11 @@ function bindEvents() {
   // 截图功能按钮
   if (elements.captureScreenshotBtn) {
     elements.captureScreenshotBtn.addEventListener('click', handleCaptureScreenshot);
+  }
+
+  // 批量剪藏按钮
+  if (elements.openBatchClipperBtn) {
+    elements.openBatchClipperBtn.addEventListener('click', handleOpenBatchClipper);
   }
 }
 
@@ -425,6 +433,31 @@ async function handleCaptureScreenshot() {
     alert('截图失败: ' + error.message);
     btn.textContent = originalText;
     btn.disabled = false;
+  }
+}
+
+/**
+ * Handle opening batch clipper
+ */
+async function handleOpenBatchClipper() {
+  try {
+    console.log('[Popup] Opening batch clipper...');
+
+    // Open batch clipper in a new window
+    const batchClipperUrl = browserAdapter.runtime.getURL('batch/batch-clipper.html');
+
+    await browserAdapter.windows.create({
+      url: batchClipperUrl,
+      type: 'popup',
+      width: 900,
+      height: 700,
+    });
+
+    // Close the popup
+    window.close();
+  } catch (error) {
+    console.error('[Popup] Failed to open batch clipper:', error);
+    alert('打开批量剪藏失败: ' + error.message);
   }
 }
 

@@ -915,6 +915,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 统计信息
     getStats: (userId) => ipcRenderer.invoke('speech:get-stats', userId),
 
+    // 音频降噪和增强
+    denoiseAudio: (inputPath, outputPath, options) => ipcRenderer.invoke('speech:denoise-audio', inputPath, outputPath, options),
+    enhanceAudio: (inputPath, outputPath, options) => ipcRenderer.invoke('speech:enhance-audio', inputPath, outputPath, options),
+    enhanceForRecognition: (inputPath, outputPath) => ipcRenderer.invoke('speech:enhance-for-recognition', inputPath, outputPath),
+
+    // 语言检测
+    detectLanguage: (audioPath) => ipcRenderer.invoke('speech:detect-language', audioPath),
+    detectLanguages: (audioPaths) => ipcRenderer.invoke('speech:detect-languages', audioPaths),
+
+    // 字幕生成
+    generateSubtitle: (audioId, outputPath, format) => ipcRenderer.invoke('speech:generate-subtitle', audioId, outputPath, format),
+    transcribeAndGenerateSubtitle: (audioPath, subtitlePath, options) => ipcRenderer.invoke('speech:transcribe-and-generate-subtitle', audioPath, subtitlePath, options),
+    batchGenerateSubtitles: (audioIds, outputDir, format) => ipcRenderer.invoke('speech:batch-generate-subtitles', audioIds, outputDir, format),
+
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),

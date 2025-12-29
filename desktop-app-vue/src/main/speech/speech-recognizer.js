@@ -223,6 +223,121 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
 
     return results;
   }
+
+  /**
+   * 自动检测音频语言
+   * @param {string} audioPath - 音频文件路径
+   * @returns {Promise<Object>} 语言检测结果
+   */
+  async detectLanguage(audioPath) {
+    try {
+      console.log('[WhisperAPI] 开始检测语言:', path.basename(audioPath));
+
+      // 不指定语言参数，让 Whisper 自动检测
+      const result = await this.recognize(audioPath, {
+        language: undefined,  // 不指定语言
+        responseFormat: 'json',
+      });
+
+      return {
+        success: true,
+        language: result.language,
+        languageName: this.getLanguageName(result.language),
+        confidence: 0.9,
+        text: result.text,
+      };
+    } catch (error) {
+      console.error('[WhisperAPI] 语言检测失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取语言名称
+   * @param {string} code - 语言代码
+   * @returns {string}
+   */
+  getLanguageName(code) {
+    const languages = {
+      'zh': '中文',
+      'en': 'English',
+      'ja': '日本語',
+      'ko': '한국어',
+      'fr': 'Français',
+      'de': 'Deutsch',
+      'es': 'Español',
+      'ru': 'Русский',
+      'ar': 'العربية',
+      'pt': 'Português',
+      'it': 'Italiano',
+      'nl': 'Nederlands',
+      'pl': 'Polski',
+      'tr': 'Türkçe',
+      'vi': 'Tiếng Việt',
+      'th': 'ไทย',
+      'id': 'Bahasa Indonesia',
+      'ms': 'Bahasa Melayu',
+      'hi': 'हिन्दी',
+      'bn': 'বাংলা',
+      'ta': 'தமிழ்',
+      'te': 'తెలుగు',
+      'ur': 'اردو',
+      'fa': 'فارسی',
+      'he': 'עברית',
+      'uk': 'Українська',
+      'cs': 'Čeština',
+      'sv': 'Svenska',
+      'no': 'Norsk',
+      'da': 'Dansk',
+      'fi': 'Suomi',
+      'el': 'Ελληνικά',
+      'hu': 'Magyar',
+      'ro': 'Română',
+      'bg': 'Български',
+      'hr': 'Hrvatski',
+      'sr': 'Српски',
+      'sk': 'Slovenčina',
+      'sl': 'Slovenščina',
+      'lt': 'Lietuvių',
+      'lv': 'Latviešu',
+      'et': 'Eesti',
+    };
+
+    return languages[code] || code;
+  }
+
+  /**
+   * 批量语言检测
+   * @param {Array} audioPaths - 音频文件路径列表
+   * @returns {Promise<Array>}
+   */
+  async detectLanguages(audioPaths) {
+    const results = [];
+    const delay = 1000;
+
+    for (let i = 0; i < audioPaths.length; i++) {
+      try {
+        const result = await this.detectLanguage(audioPaths[i]);
+        results.push({
+          success: true,
+          path: audioPaths[i],
+          ...result,
+        });
+
+        if (i < audioPaths.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      } catch (error) {
+        results.push({
+          success: false,
+          path: audioPaths[i],
+          error: error.message,
+        });
+      }
+    }
+
+    return results;
+  }
 }
 
 /**

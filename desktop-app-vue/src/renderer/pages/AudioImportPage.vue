@@ -60,6 +60,7 @@
                 <template #actions>
                   <a @click="viewHistoryDetail(item)">查看</a>
                   <a @click="copyText(item.text)">复制</a>
+                  <a @click="generateSubtitleForHistory(item)">生成字幕</a>
                   <a-popconfirm
                     title="确定删除此记录？"
                     ok-text="确定"
@@ -181,6 +182,31 @@
               </div>
             </a-form-item>
 
+            <a-divider>高级功能</a-divider>
+
+            <a-form-item label="音频增强">
+              <a-switch v-model:checked="enableAudioEnhancement" />
+              <div class="form-hint">转录前自动进行降噪、音量归一化等处理</div>
+            </a-form-item>
+
+            <a-form-item label="自动检测语言">
+              <a-switch v-model:checked="autoDetectLanguage" />
+              <div class="form-hint">自动识别音频语言（支持40+种语言）</div>
+            </a-form-item>
+
+            <a-form-item label="自动生成字幕">
+              <a-switch v-model:checked="autoGenerateSubtitles" />
+              <div class="form-hint">转录完成后自动生成字幕文件</div>
+            </a-form-item>
+
+            <a-form-item v-if="autoGenerateSubtitles" label="字幕格式">
+              <a-radio-group v-model:value="subtitleFormat">
+                <a-radio value="srt">SRT (SubRip)</a-radio>
+                <a-radio value="vtt">VTT (WebVTT)</a-radio>
+              </a-radio-group>
+              <div class="form-hint">选择字幕文件格式</div>
+            </a-form-item>
+
             <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
               <a-button type="primary" @click="saveSettings">保存设置</a-button>
             </a-form-item>
@@ -272,6 +298,12 @@ const selectedEngine = ref('whisper-api');
 const availableEngines = ref([]);
 const autoSaveToKnowledge = ref(true);
 const apiKey = ref('');
+
+// Phase 3 新增设置
+const enableAudioEnhancement = ref(false);
+const autoDetectLanguage = ref(false);
+const autoGenerateSubtitles = ref(false);
+const subtitleFormat = ref('srt');
 
 // 详情
 const showDetailModal = ref(false);
@@ -417,6 +449,43 @@ const viewFileDetail = (file) => {
 // 重新转录
 const retranscribe = async (file) => {
   message.info('重新转录功能开发中');
+};
+
+// 生成字幕（从转录历史）
+const generateSubtitleForHistory = async (item) => {
+  try {
+    if (!item.audio_file_id) {
+      message.warning('该记录没有关联的音频文件，无法生成字幕');
+      return;
+    }
+
+    // 选择保存位置
+    const result = await window.electronAPI.dialog.showSaveDialog({
+      title: '保存字幕文件',
+      defaultPath: `subtitle_${item.id.substring(0, 8)}.${subtitleFormat.value}`,
+      filters: [
+        { name: '字幕文件', extensions: [subtitleFormat.value] },
+        { name: '所有文件', extensions: ['*'] }
+      ]
+    });
+
+    if (result.canceled || !result.filePath) {
+      return;
+    }
+
+    message.loading({ content: '正在生成字幕...', key: 'subtitle', duration: 0 });
+
+    await window.electronAPI.speech.generateSubtitle(
+      item.audio_file_id,
+      result.filePath,
+      subtitleFormat.value
+    );
+
+    message.success({ content: '字幕生成成功！', key: 'subtitle' });
+  } catch (error) {
+    console.error('生成字幕失败:', error);
+    message.error({ content: `生成字幕失败: ${error.message}`, key: 'subtitle' });
+  }
 };
 
 // 复制文本

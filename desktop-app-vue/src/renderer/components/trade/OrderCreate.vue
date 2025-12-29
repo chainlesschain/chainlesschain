@@ -12,17 +12,17 @@
         <!-- 订单类型 -->
         <a-form-item label="订单类型" required>
           <a-radio-group v-model:value="form.type" button-style="solid">
-            <a-radio-button value="buy">
-              <shopping-outlined /> 求购
-            </a-radio-button>
             <a-radio-button value="sell">
               <dollar-outlined /> 出售
             </a-radio-button>
-            <a-radio-button value="service">
-              <tool-outlined /> 服务
+            <a-radio-button value="buy">
+              <shopping-outlined /> 求购
             </a-radio-button>
-            <a-radio-button value="barter">
-              <swap-outlined /> 以物换物
+            <a-radio-button value="auction">
+              <tool-outlined /> 拍卖
+            </a-radio-button>
+            <a-radio-button value="exchange">
+              <swap-outlined /> 交换
             </a-radio-button>
           </a-radio-group>
         </a-form-item>
@@ -48,14 +48,16 @@
           >
             <a-select-option
               v-for="asset in myAssets"
-              :key="asset.asset_id"
-              :value="asset.asset_id"
+              :key="asset.id"
+              :value="asset.id"
               :label="asset.name"
             >
               <a-space>
                 <span>{{ asset.name }}</span>
                 <a-tag v-if="asset.symbol" color="blue">{{ asset.symbol }}</a-tag>
-                <span style="color: #999; font-size: 12px">余额: {{ formatAmount(asset.amount, asset.decimals) }}</span>
+                <span style="color: #999; font-size: 12px">
+                  余额: {{ formatAmount(asset.total_supply || 0) }}
+                </span>
               </a-space>
             </a-select-option>
           </a-select>
@@ -71,7 +73,7 @@
             placeholder="订单数量"
           />
           <template v-if="form.type === 'sell' && selectedAsset" #extra>
-            可用余额: {{ formatAmount(selectedAsset.amount, selectedAsset.decimals) }}
+            可用余额: {{ formatAmount(selectedAsset.total_supply || 0) }}
           </template>
         </a-form-item>
 
@@ -84,8 +86,8 @@
           >
             <a-select-option
               v-for="asset in paymentAssets"
-              :key="asset.asset_id"
-              :value="asset.asset_id"
+              :key="asset.id"
+              :value="asset.id"
             >
               <a-space>
                 <span>{{ asset.name }}</span>
@@ -197,6 +199,11 @@ import {
   ToolOutlined,
   SwapOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+import PriceInput from './common/PriceInput.vue';
+
+// Store
+const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
@@ -210,9 +217,6 @@ const props = defineProps({
 const emit = defineEmits(['created', 'cancel', 'update:visible']);
 
 // 状态
-const creating = ref(false);
-const myAssets = ref([]);
-const paymentAssets = ref([]);
 const currentDid = ref('');
 
 const form = reactive({
@@ -230,14 +234,21 @@ const form = reactive({
   },
 });
 
+// 从 store 获取数据
+const creating = computed(() => tradeStore.marketplace.creating);
+const myAssets = computed(() => tradeStore.asset.myAssets);
+const paymentAssets = computed(() =>
+  tradeStore.asset.myAssets.filter(a => a.asset_type === 'token')
+);
+
 // 计算属性
 const selectedAsset = computed(() => {
-  return myAssets.value.find(a => a.asset_id === form.assetId);
+  return myAssets.value.find(a => a.id === form.assetId);
 });
 
 const selectedPriceAsset = computed(() => {
   if (!form.priceAssetId) return null;
-  return paymentAssets.value.find(a => a.asset_id === form.priceAssetId);
+  return paymentAssets.value.find(a => a.id === form.priceAssetId);
 });
 
 const isFormValid = computed(() => {
@@ -245,37 +256,36 @@ const isFormValid = computed(() => {
 });
 
 // 工具函数
-const formatAmount = (amount, decimals = 0) => {
-  if (decimals === 0) {
-    return amount.toString();
-  }
-  const divisor = Math.pow(10, decimals);
-  return (amount / divisor).toFixed(decimals);
+const formatAmount = (amount) => {
+  if (!amount && amount !== 0) return '0';
+  const num = parseFloat(amount);
+  if (isNaN(num)) return '0';
+  return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
 };
 
 const getMaxQuantity = () => {
   if (form.type === 'sell' && selectedAsset.value) {
-    return parseFloat(formatAmount(selectedAsset.value.amount, selectedAsset.value.decimals));
+    return parseFloat(selectedAsset.value.total_supply || 0);
   }
   return 1000000; // 求购订单没有数量限制
 };
 
 const getOrderTypeColor = (type) => {
   const colors = {
-    buy: 'blue',
     sell: 'green',
-    service: 'purple',
-    barter: 'orange',
+    buy: 'blue',
+    auction: 'purple',
+    exchange: 'orange',
   };
   return colors[type] || 'default';
 };
 
 const getOrderTypeName = (type) => {
   const names = {
-    buy: '求购',
     sell: '出售',
-    service: '服务',
-    barter: '以物换物',
+    buy: '求购',
+    auction: '拍卖',
+    exchange: '交换',
   };
   return names[type] || type;
 };
@@ -295,22 +305,23 @@ const loadMyAssets = async () => {
     }
 
     if (!currentDid.value) {
+      antMessage.warning('请先创建或选择身份');
       return;
     }
 
-    myAssets.value = await window.electronAPI.asset.getByOwner(currentDid.value);
+    // 使用 store 加载资产
+    await tradeStore.loadMyAssets(currentDid.value);
 
-    // 筛选出 token 类型资产作为支付选项
-    paymentAssets.value = myAssets.value.filter(a => a.asset_type === 'token');
+    console.log('[OrderCreate] 资产列表已加载:', myAssets.value.length);
   } catch (error) {
-    console.error('加载资产列表失败:', error);
+    console.error('[OrderCreate] 加载资产列表失败:', error);
     antMessage.error('加载资产列表失败: ' + error.message);
   }
 };
 
 // 处理资产选择变化
 const handleAssetChange = (assetId) => {
-  const asset = myAssets.value.find(a => a.asset_id === assetId);
+  const asset = myAssets.value.find(a => a.id === assetId);
   if (asset) {
     // 自动设置数量上限
     const maxQty = getMaxQuantity();
@@ -323,54 +334,33 @@ const handleAssetChange = (assetId) => {
 // 创建订单
 const handleCreate = async () => {
   try {
-    // 验证
-    if (!form.title || form.title.trim().length === 0) {
-      antMessage.warning('请输入订单标题');
+    // 验证表单
+    if (!validateForm()) {
       return;
     }
-
-    if (form.type === 'sell' && !form.assetId) {
-      antMessage.warning('请选择要出售的资产');
-      return;
-    }
-
-    if (form.quantity <= 0) {
-      antMessage.warning('订单数量必须大于 0');
-      return;
-    }
-
-    if (form.priceAmount <= 0) {
-      antMessage.warning('单价必须大于 0');
-      return;
-    }
-
-    // 检查余额
-    if (form.type === 'sell' && selectedAsset.value) {
-      const maxQty = getMaxQuantity();
-      if (form.quantity > maxQty) {
-        antMessage.warning('订单数量超过可用余额');
-        return;
-      }
-    }
-
-    creating.value = true;
 
     const options = {
-      type: form.type,
+      orderType: form.type,
       assetId: form.assetId,
-      title: form.title.trim(),
-      description: form.description,
-      priceAssetId: form.priceAssetId,
-      priceAmount: form.priceAmount,
+      assetName: selectedAsset.value?.name || form.title,
+      assetSymbol: selectedAsset.value?.symbol || '',
+      assetType: selectedAsset.value?.asset_type || 'token',
       quantity: form.quantity,
+      priceAmount: form.priceAmount,
+      priceAssetId: form.priceAssetId || null,
+      priceAssetSymbol: selectedPriceAsset.value?.symbol || 'CC',
+      description: form.description.trim(),
       metadata: {
         ...form.metadata,
         createdAt: Date.now(),
+        title: form.title.trim(),
       },
     };
 
-    const order = await window.electronAPI.marketplace.createOrder(options);
+    // 使用 store 创建订单
+    const order = await tradeStore.createOrder(options);
 
+    console.log('[OrderCreate] 订单创建成功:', order.id);
     antMessage.success('订单创建成功！');
 
     // 通知父组件
@@ -382,11 +372,56 @@ const handleCreate = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('创建订单失败:', error);
-    antMessage.error('创建订单失败: ' + error.message);
-  } finally {
-    creating.value = false;
+    console.error('[OrderCreate] 创建订单失败:', error);
+    antMessage.error(error.message || '创建订单失败');
   }
+};
+
+// 验证表单
+const validateForm = () => {
+  if (!form.title || form.title.trim().length === 0) {
+    antMessage.warning('请输入订单标题');
+    return false;
+  }
+
+  if (form.title.trim().length < 5) {
+    antMessage.warning('订单标题至少需要 5 个字符');
+    return false;
+  }
+
+  if (form.type === 'sell' && !form.assetId) {
+    antMessage.warning('请选择要出售的资产');
+    return false;
+  }
+
+  if (form.quantity <= 0) {
+    antMessage.warning('订单数量必须大于 0');
+    return false;
+  }
+
+  if (form.priceAmount <= 0) {
+    antMessage.warning('单价必须大于 0');
+    return false;
+  }
+
+  // 检查余额
+  if (form.type === 'sell' && selectedAsset.value) {
+    const maxQty = getMaxQuantity();
+    if (form.quantity > maxQty) {
+      antMessage.warning('订单数量超过可用余额');
+      return false;
+    }
+  }
+
+  // 检查总价是否合理
+  const totalPrice = form.quantity * form.priceAmount;
+  if (totalPrice > 1000000000) {
+    // 10亿上限
+    antMessage.warning('订单总价过高，请调整数量或单价');
+    return false;
+  }
+
+  return true;
 };
 
 // 取消

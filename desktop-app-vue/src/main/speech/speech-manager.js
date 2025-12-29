@@ -13,6 +13,7 @@ const SpeechConfig = require('./speech-config');
 const AudioProcessor = require('./audio-processor');
 const AudioStorage = require('./audio-storage');
 const { SpeechRecognizer } = require('./speech-recognizer');
+const { SubtitleGenerator } = require('./subtitle-generator');
 
 /**
  * 语音识别管理器类
@@ -28,6 +29,7 @@ class SpeechManager extends EventEmitter {
     this.processor = null;
     this.storage = null;
     this.recognizer = null;
+    this.subtitleGenerator = null;
 
     // 任务队列
     this.taskQueue = [];
@@ -68,6 +70,9 @@ class SpeechManager extends EventEmitter {
       // 初始化识别器
       const engineConfig = this.config.getEngineConfig(settings.defaultEngine);
       this.recognizer = new SpeechRecognizer(settings.defaultEngine, engineConfig);
+
+      // 初始化字幕生成器
+      this.subtitleGenerator = new SubtitleGenerator();
 
       // 设置并发任务数
       this.maxConcurrentTasks = settings.performance.maxConcurrentJobs || 2;
@@ -495,6 +500,318 @@ class SpeechManager extends EventEmitter {
   async getStats(userId = 'local-user') {
     this.ensureInitialized();
     return await this.storage.getStats(userId);
+  }
+
+  /**
+   * 音频降噪
+   * @param {string} inputPath - 输入音频路径
+   * @param {string} outputPath - 输出音频路径
+   * @param {Object} options - 降噪选项
+   * @returns {Promise<Object>}
+   */
+  async denoiseAudio(inputPath, outputPath, options = {}) {
+    this.ensureInitialized();
+
+    try {
+      console.log('[SpeechManager] 开始音频降噪:', path.basename(inputPath));
+
+      const result = await this.processor.denoiseAudio(inputPath, outputPath, options);
+
+      console.log('[SpeechManager] 降噪完成');
+
+      return result;
+    } catch (error) {
+      console.error('[SpeechManager] 降噪失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 音频增强（综合处理：降噪+归一化+均衡）
+   * @param {string} inputPath - 输入音频路径
+   * @param {string} outputPath - 输出音频路径
+   * @param {Object} options - 增强选项
+   * @returns {Promise<Object>}
+   */
+  async enhanceAudio(inputPath, outputPath, options = {}) {
+    this.ensureInitialized();
+
+    try {
+      console.log('[SpeechManager] 开始音频增强:', path.basename(inputPath));
+
+      const result = await this.processor.enhanceAudio(inputPath, outputPath, options);
+
+      console.log('[SpeechManager] 增强完成，应用了', result.appliedFilters, '个滤镜');
+
+      return result;
+    } catch (error) {
+      console.error('[SpeechManager] 增强失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 语音增强（专门针对语音识别优化）
+   * @param {string} inputPath - 输入音频路径
+   * @param {string} outputPath - 输出音频路径
+   * @returns {Promise<Object>}
+   */
+  async enhanceForSpeechRecognition(inputPath, outputPath) {
+    this.ensureInitialized();
+
+    try {
+      console.log('[SpeechManager] 开始语音增强:', path.basename(inputPath));
+
+      const result = await this.processor.enhanceForSpeechRecognition(inputPath, outputPath);
+
+      console.log('[SpeechManager] 语音增强完成');
+
+      return result;
+    } catch (error) {
+      console.error('[SpeechManager] 语音增强失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 自动检测音频语言
+   * @param {string} audioPath - 音频文件路径
+   * @returns {Promise<Object>}
+   */
+  async detectLanguage(audioPath) {
+    this.ensureInitialized();
+
+    try {
+      console.log('[SpeechManager] 开始检测语言:', path.basename(audioPath));
+
+      // 使用识别器的语言检测功能
+      const result = await this.recognizer.engine.detectLanguage(audioPath);
+
+      console.log('[SpeechManager] 检测到语言:', result.languageName, `(${result.language})`);
+
+      return result;
+    } catch (error) {
+      console.error('[SpeechManager] 语言检测失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量检测语言
+   * @param {Array} audioPaths - 音频文件路径列表
+   * @returns {Promise<Array>}
+   */
+  async detectLanguages(audioPaths) {
+    this.ensureInitialized();
+
+    try {
+      console.log('[SpeechManager] 开始批量语言检测，文件数:', audioPaths.length);
+
+      const results = await this.recognizer.engine.detectLanguages(audioPaths);
+
+      const summary = {
+        total: audioPaths.length,
+        succeeded: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length,
+        results: results,
+      };
+
+      console.log('[SpeechManager] 批量语言检测完成:', summary);
+
+      return summary;
+    } catch (error) {
+      console.error('[SpeechManager] 批量语言检测失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 生成字幕文件
+   * @param {string} audioId - 音频文件ID
+   * @param {string} outputPath - 输出路径
+   * @param {string} format - 格式 (srt|vtt)
+   * @returns {Promise<Object>}
+   */
+  async generateSubtitle(audioId, outputPath, format = 'srt') {
+    this.ensureInitialized();
+
+    try {
+      console.log('[SpeechManager] 开始生成字幕:', audioId);
+
+      // 获取音频记录
+      const audioRecord = await this.storage.getAudioRecord(audioId);
+
+      if (!audioRecord) {
+        throw new Error(`未找到音频记录: ${audioId}`);
+      }
+
+      if (!audioRecord.transcription_text) {
+        throw new Error('该音频尚未转录，无法生成字幕');
+      }
+
+      // 生成字幕条目
+      const subtitles = this.subtitleGenerator.generateFromText(
+        audioRecord.transcription_text,
+        audioRecord.duration
+      );
+
+      // 保存字幕文件
+      const result = await this.subtitleGenerator.saveSubtitleFile(
+        subtitles,
+        outputPath,
+        format
+      );
+
+      console.log('[SpeechManager] 字幕生成完成:', result.outputPath);
+
+      return result;
+    } catch (error) {
+      console.error('[SpeechManager] 字幕生成失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 转录并生成字幕（一步完成）
+   * @param {string} audioPath - 音频文件路径
+   * @param {string} subtitlePath - 字幕输出路径
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>}
+   */
+  async transcribeAndGenerateSubtitle(audioPath, subtitlePath, options = {}) {
+    this.ensureInitialized();
+
+    const {
+      format = 'srt',
+      language = 'zh',
+      enhanceAudio = false,
+    } = options;
+
+    try {
+      console.log('[SpeechManager] 开始转录并生成字幕:', path.basename(audioPath));
+
+      let processedPath = audioPath;
+
+      // 1. 音频增强（可选）
+      if (enhanceAudio) {
+        const enhancedPath = path.join(
+          path.dirname(audioPath),
+          `enhanced_${path.basename(audioPath)}`
+        );
+        await this.enhanceForSpeechRecognition(audioPath, enhancedPath);
+        processedPath = enhancedPath;
+      }
+
+      // 2. 使用 Whisper API 直接生成字幕（如果引擎支持）
+      const engineType = this.config.get('defaultEngine');
+
+      if (engineType === 'whisper-api') {
+        // Whisper API 支持直接返回 SRT/VTT 格式
+        const whisperFormat = format === 'srt' ? 'srt' : 'vtt';
+
+        const result = await this.recognizer.recognize(processedPath, {
+          language: language,
+          responseFormat: whisperFormat,
+        });
+
+        // 保存 Whisper 返回的字幕
+        await this.subtitleGenerator.saveWhisperSubtitle(
+          result.text,
+          subtitlePath,
+          format
+        );
+
+        console.log('[SpeechManager] 使用 Whisper API 直接生成字幕完成');
+
+        return {
+          success: true,
+          subtitlePath: subtitlePath,
+          format: format,
+          text: result.text,
+          method: 'whisper-api-direct',
+        };
+      } else {
+        // 3. 其他引擎：先转录，再生成字幕
+        const transcribeResult = await this.transcribeFile(processedPath, {
+          language: language,
+          saveToDatabase: true,
+        });
+
+        const subtitles = this.subtitleGenerator.generateFromText(
+          transcribeResult.text,
+          transcribeResult.duration
+        );
+
+        await this.subtitleGenerator.saveSubtitleFile(subtitles, subtitlePath, format);
+
+        console.log('[SpeechManager] 转录并生成字幕完成');
+
+        return {
+          success: true,
+          subtitlePath: subtitlePath,
+          format: format,
+          text: transcribeResult.text,
+          audioId: transcribeResult.id,
+          method: 'transcribe-then-generate',
+        };
+      }
+    } catch (error) {
+      console.error('[SpeechManager] 转录并生成字幕失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量生成字幕
+   * @param {Array} audioIds - 音频ID列表
+   * @param {string} outputDir - 输出目录
+   * @param {string} format - 格式
+   * @returns {Promise<Array>}
+   */
+  async batchGenerateSubtitles(audioIds, outputDir, format = 'srt') {
+    this.ensureInitialized();
+
+    try {
+      console.log('[SpeechManager] 开始批量生成字幕，数量:', audioIds.length);
+
+      const results = [];
+
+      for (const audioId of audioIds) {
+        try {
+          const audioRecord = await this.storage.getAudioRecord(audioId);
+          const baseName = path.basename(audioRecord.file_name, path.extname(audioRecord.file_name));
+          const outputPath = path.join(outputDir, `${baseName}.${format}`);
+
+          const result = await this.generateSubtitle(audioId, outputPath, format);
+
+          results.push({
+            success: true,
+            audioId: audioId,
+            ...result,
+          });
+        } catch (error) {
+          results.push({
+            success: false,
+            audioId: audioId,
+            error: error.message,
+          });
+        }
+      }
+
+      const summary = {
+        total: audioIds.length,
+        succeeded: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length,
+        results: results,
+      };
+
+      console.log('[SpeechManager] 批量字幕生成完成:', summary);
+
+      return summary;
+    } catch (error) {
+      console.error('[SpeechManager] 批量字幕生成失败:', error);
+      throw error;
+    }
   }
 
   /**
