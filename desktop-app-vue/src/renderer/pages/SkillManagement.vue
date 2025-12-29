@@ -77,6 +77,34 @@
       </a-space>
     </div>
 
+    <!-- 批量操作栏 -->
+    <div v-if="selectedSkills.length > 0" class="batch-action-bar">
+      <div class="selection-info">
+        <a-checkbox
+          :checked="isAllSelected"
+          :indeterminate="selectedSkills.length > 0 && !isAllSelected"
+          @change="handleSelectAll"
+        >
+          已选择 {{ selectedSkills.length }} 项
+        </a-checkbox>
+      </div>
+      <a-space>
+        <a-button @click="handleBatchEnable">
+          <template #icon><CheckOutlined /></template>
+          批量启用
+        </a-button>
+        <a-button @click="handleBatchDisable">
+          <template #icon><CloseOutlined /></template>
+          批量禁用
+        </a-button>
+        <a-button danger @click="handleBatchDelete">
+          <template #icon><DeleteOutlined /></template>
+          批量删除
+        </a-button>
+        <a-button @click="handleClearSelection">清空选择</a-button>
+      </a-space>
+    </div>
+
     <!-- 技能列表 -->
     <div v-if="skillStore.loading" class="loading-container">
       <a-spin size="large" tip="加载中...">
@@ -88,14 +116,19 @@
     </div>
 
     <div v-else class="skill-grid">
-      <SkillCard
-        v-for="skill in skillStore.filteredSkills"
-        :key="skill.id"
-        :skill="skill"
-        @view-details="handleViewDetails"
-        @toggle-enabled="handleToggleEnabled"
-        @view-doc="handleViewDoc"
-      />
+      <div v-for="skill in skillStore.filteredSkills" :key="skill.id" class="skill-card-wrapper">
+        <a-checkbox
+          v-model:checked="selectedSkillIds[skill.id]"
+          class="skill-checkbox"
+          @change="handleSkillSelect(skill)"
+        />
+        <SkillCard
+          :skill="skill"
+          @view-details="handleViewDetails"
+          @toggle-enabled="handleToggleEnabled"
+          @view-doc="handleViewDoc"
+        />
+      </div>
     </div>
 
     <!-- 技能详情抽屉 -->
@@ -161,14 +194,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { message, Modal } from 'ant-design-vue';
 import {
   SearchOutlined,
   ReloadOutlined,
   PlusOutlined,
   BarChartOutlined,
   ApartmentOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons-vue';
 import { useSkillStore } from '../stores/skill';
 import { useToolStore } from '../stores/tool';
@@ -206,6 +242,16 @@ const statsVisible = ref(false);
 const graphVisible = ref(false);
 const allTools = ref([]);
 const allSkillTools = ref([]);
+
+// 批量操作
+const selectedSkillIds = reactive({});
+const selectedSkills = computed(() => {
+  return skillStore.filteredSkills.filter(skill => selectedSkillIds[skill.id]);
+});
+const isAllSelected = computed(() => {
+  return skillStore.filteredSkills.length > 0 &&
+    skillStore.filteredSkills.every(skill => selectedSkillIds[skill.id]);
+});
 
 // 初始化
 onMounted(async () => {
@@ -336,6 +382,123 @@ const showDependencyGraph = async () => {
     message.error('加载依赖关系失败');
   }
 };
+
+// 批量操作相关函数
+const handleSkillSelect = (skill) => {
+  // 选择状态已通过 v-model 自动更新
+};
+
+const handleSelectAll = (e) => {
+  const checked = e.target.checked;
+  skillStore.filteredSkills.forEach(skill => {
+    selectedSkillIds[skill.id] = checked;
+  });
+};
+
+const handleClearSelection = () => {
+  Object.keys(selectedSkillIds).forEach(key => {
+    delete selectedSkillIds[key];
+  });
+};
+
+const handleBatchEnable = () => {
+  const count = selectedSkills.value.length;
+  Modal.confirm({
+    title: '确认批量启用？',
+    content: `将启用 ${count} 个技能，是否继续？`,
+    okText: '确认',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        let successCount = 0;
+        for (const skill of selectedSkills.value) {
+          if (!skill.enabled) {
+            const success = await skillStore.enable(skill.id);
+            if (success) successCount++;
+          } else {
+            successCount++; // 已启用的也算成功
+          }
+        }
+        message.success(`成功启用 ${successCount} 个技能`);
+        handleClearSelection();
+        await skillStore.fetchAll();
+      } catch (error) {
+        console.error(error);
+        message.error('批量启用失败');
+      }
+    },
+  });
+};
+
+const handleBatchDisable = () => {
+  const count = selectedSkills.value.length;
+  Modal.confirm({
+    title: '确认批量禁用？',
+    content: `将禁用 ${count} 个技能，是否继续？`,
+    okText: '确认',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        let successCount = 0;
+        for (const skill of selectedSkills.value) {
+          if (skill.enabled) {
+            const success = await skillStore.disable(skill.id);
+            if (success) successCount++;
+          } else {
+            successCount++; // 已禁用的也算成功
+          }
+        }
+        message.success(`成功禁用 ${successCount} 个技能`);
+        handleClearSelection();
+        await skillStore.fetchAll();
+      } catch (error) {
+        console.error(error);
+        message.error('批量禁用失败');
+      }
+    },
+  });
+};
+
+const handleBatchDelete = () => {
+  const count = selectedSkills.value.length;
+  const skillNames = selectedSkills.value.map(s => s.display_name || s.name).join('、');
+
+  Modal.confirm({
+    title: '确认批量删除？',
+    content: (
+      <div>
+        <p>将删除以下 {count} 个技能：</p>
+        <p style="color: #ff4d4f; max-height: 200px; overflow-y: auto;">
+          {skillNames}
+        </p>
+        <p style="font-weight: bold; color: #ff4d4f;">此操作不可恢复，是否继续？</p>
+      </div>
+    ),
+    okText: '确认删除',
+    okType: 'danger',
+    cancelText: '取消',
+    width: 600,
+    async onOk() {
+      try {
+        let successCount = 0;
+        const skillIds = selectedSkills.value.map(s => s.id);
+
+        for (const skillId of skillIds) {
+          const success = await skillStore.delete(skillId);
+          if (success) successCount++;
+        }
+
+        message.success(`成功删除 ${successCount} 个技能`);
+        handleClearSelection();
+        await skillStore.fetchAll();
+      } catch (error) {
+        console.error(error);
+        message.error('批量删除失败');
+      }
+    },
+  });
+};
 </script>
 
 <style scoped lang="scss">
@@ -407,11 +570,58 @@ const showDependencyGraph = async () => {
     border-radius: 8px;
   }
 
+  .batch-action-bar {
+    background: #e6f7ff;
+    border: 1px solid #91d5ff;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideDown 0.3s ease;
+
+    .selection-info {
+      font-weight: 500;
+      color: #0050b3;
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .skill-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 16px;
     margin-top: 16px;
+
+    .skill-card-wrapper {
+      position: relative;
+
+      .skill-checkbox {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+        background: white;
+        padding: 4px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+        &:hover {
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+        }
+      }
+    }
   }
 }
 </style>

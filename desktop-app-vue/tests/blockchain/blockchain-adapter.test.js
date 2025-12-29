@@ -42,17 +42,20 @@ class MockWalletManager extends EventEmitter {
     // 使用 Hardhat 默认的测试账户
     this.testWallet = ethers.Wallet.createRandom();
     this.provider = null;
+    this.connectedWallet = null;
   }
 
   setProvider(provider) {
     this.provider = provider;
+    // 创建一个连接的钱包实例并缓存，这样 nonce 会被正确跟踪
+    this.connectedWallet = this.testWallet.connect(provider);
   }
 
   async unlockWallet(walletId, password) {
     console.log('[MockWalletManager] unlockWallet:', walletId);
-    // 返回一个连接到 provider 的钱包，这样 nonce 会被自动管理
-    if (this.provider) {
-      return this.testWallet.connect(this.provider);
+    // 始终返回同一个连接的钱包实例，这样 nonce 会被正确管理
+    if (this.connectedWallet) {
+      return this.connectedWallet;
     }
     return this.testWallet;
   }

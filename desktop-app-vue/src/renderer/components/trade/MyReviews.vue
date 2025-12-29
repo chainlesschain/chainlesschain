@@ -149,11 +149,15 @@ import {
   EditOutlined,
   DeleteOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+
+// Store
+const tradeStore = useTradeStore();
 
 // 状态
-const loading = ref(false);
+const loading = computed(() => tradeStore.review.loading);
 const updating = ref(false);
-const reviews = ref([]);
+const reviews = computed(() => tradeStore.review.myReviews);
 const showEditModal = ref(false);
 const editingReview = ref(null);
 
@@ -184,8 +188,6 @@ const recommendRate = computed(() => {
 // 加载我的评价
 const loadMyReviews = async () => {
   try {
-    loading.value = true;
-
     // 获取当前用户DID
     const currentIdentity = await window.electronAPI.did.getCurrentIdentity();
     const userDid = currentIdentity?.did;
@@ -195,14 +197,13 @@ const loadMyReviews = async () => {
       return;
     }
 
-    reviews.value = await window.electronAPI.review.getMyReviews(userDid);
+    // 使用 store 加载我的评价
+    await tradeStore.loadMyReviews(userDid);
 
-    console.log('我的评价已加载:', reviews.value.length);
+    console.log('[MyReviews] 我的评价已加载:', reviews.value.length);
   } catch (error) {
-    console.error('加载评价失败:', error);
-    antMessage.error('加载评价失败: ' + error.message);
-  } finally {
-    loading.value = false;
+    console.error('[MyReviews] 加载评价失败:', error);
+    antMessage.error(error.message || '加载评价失败');
   }
 };
 
@@ -225,20 +226,23 @@ const handleUpdate = async () => {
 
     updating.value = true;
 
+    // 注意：update 和 delete 功能直接使用 IPC（trade store 未实现）
     await window.electronAPI.review.update(editingReview.value.id, {
       rating: editForm.rating,
       content: editForm.content,
       isRecommended: editForm.isRecommended,
     });
 
+    console.log('[MyReviews] 评价已更新:', editingReview.value.id);
     antMessage.success('评价已更新！');
+
     showEditModal.value = false;
     editingReview.value = null;
 
-    loadMyReviews();
+    await loadMyReviews();
   } catch (error) {
-    console.error('更新评价失败:', error);
-    antMessage.error('更新评价失败: ' + error.message);
+    console.error('[MyReviews] 更新评价失败:', error);
+    antMessage.error(error.message || '更新评价失败');
   } finally {
     updating.value = false;
   }
@@ -248,11 +252,14 @@ const handleUpdate = async () => {
 const deleteReview = async (review) => {
   try {
     await window.electronAPI.review.delete(review.id);
+
+    console.log('[MyReviews] 评价已删除:', review.id);
     antMessage.success('评价已删除！');
-    loadMyReviews();
+
+    await loadMyReviews();
   } catch (error) {
-    console.error('删除评价失败:', error);
-    antMessage.error('删除评价失败: ' + error.message);
+    console.error('[MyReviews] 删除评价失败:', error);
+    antMessage.error(error.message || '删除评价失败');
   }
 };
 

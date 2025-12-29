@@ -137,44 +137,15 @@
     </a-card>
 
     <!-- 内容详情对话框 -->
-    <a-modal
+    <content-detail
       v-model:visible="showDetailModal"
-      :title="selectedContent?.title"
-      width="900px"
-      :footer="null"
-    >
-      <div v-if="selectedContent">
-        <a-descriptions bordered size="small">
-          <a-descriptions-item label="类型">
-            <a-tag :color="getTypeColor(selectedContent.contentType)">
-              {{ getTypeName(selectedContent.contentType) }}
-            </a-tag>
-          </a-descriptions-item>
-          <a-descriptions-item label="创作者">
-            {{ shortenDid(selectedContent.creatorDid) }}
-          </a-descriptions-item>
-          <a-descriptions-item label="购买价格">
-            <a-tag color="orange">¥{{ selectedContent.pricePaid }}</a-tag>
-          </a-descriptions-item>
-        </a-descriptions>
-
-        <a-divider />
-
-        <!-- 内容正文 -->
-        <div class="content-body" v-if="contentDetail">
-          <a-spin :spinning="loadingDetail">
-            <div style="white-space: pre-wrap; line-height: 1.8">
-              {{ contentDetail }}
-            </div>
-          </a-spin>
-        </div>
-      </div>
-    </a-modal>
+      :content="selectedContent"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message as antMessage, Modal } from 'ant-design-vue';
 import {
@@ -184,39 +155,44 @@ import {
   FileTextOutlined,
   CalendarOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+import ContentDetail from './ContentDetail.vue';
 
 const router = useRouter();
 
-// 状态
-const loading = ref(false);
+// Store
+const tradeStore = useTradeStore();
+
+// 从 store 获取状态
+const loading = computed(() => tradeStore.knowledge.loading);
+const purchases = computed(() => tradeStore.knowledge.myPurchases);
+const subscriptions = computed(() => tradeStore.knowledge.mySubscriptions);
+
+// 本地状态
 const loadingSubscriptions = ref(false);
-const loadingDetail = ref(false);
-const purchases = ref([]);
-const subscriptions = ref([]);
 const activeTab = ref('purchases');
 const showDetailModal = ref(false);
 const selectedContent = ref(null);
-const contentDetail = ref('');
 
 // 加载购买列表
 const loadPurchases = async () => {
   try {
-    loading.value = true;
+    // 获取当前用户DID
+    const currentIdentity = await window.electronAPI.did.getCurrentIdentity();
+    const userDid = currentIdentity?.did;
 
-    // 检查API是否存在
-    if (!window.electronAPI?.knowledge?.getMyPurchases) {
-      console.warn("购买API尚未实现");
-      purchases.value = [];
-      loading.value = false;
+    if (!userDid) {
+      antMessage.warning('请先创建DID身份');
       return;
     }
-    purchases.value = await window.electronAPI.knowledge.getMyPurchases();
-    console.log('购买列表已加载:', purchases.value.length);
+
+    // 使用 store 加载购买记录
+    await tradeStore.loadMyPurchases(userDid);
+
+    console.log('[MyPurchases] 购买列表已加载:', purchases.value.length);
   } catch (error) {
-    console.error('加载购买列表失败:', error);
-    antMessage.error('加载购买列表失败: ' + error.message);
-  } finally {
-    loading.value = false;
+    console.error('[MyPurchases] 加载购买列表失败:', error);
+    antMessage.error(error.message || '加载购买列表失败');
   }
 };
 
@@ -224,11 +200,22 @@ const loadPurchases = async () => {
 const loadSubscriptions = async () => {
   try {
     loadingSubscriptions.value = true;
-    subscriptions.value = await window.electronAPI.knowledge.getMySubscriptions();
-    console.log('订阅列表已加载:', subscriptions.value.length);
+
+    // 获取当前用户DID
+    const currentIdentity = await window.electronAPI.did.getCurrentIdentity();
+    const userDid = currentIdentity?.did;
+
+    if (!userDid) {
+      return;
+    }
+
+    // 使用 store 加载订阅记录
+    await tradeStore.loadMySubscriptions(userDid);
+
+    console.log('[MyPurchases] 订阅列表已加载:', subscriptions.value.length);
   } catch (error) {
-    console.error('加载订阅列表失败:', error);
-    antMessage.error('加载订阅列表失败: ' + error.message);
+    console.error('[MyPurchases] 加载订阅列表失败:', error);
+    antMessage.error(error.message || '加载订阅列表失败');
   } finally {
     loadingSubscriptions.value = false;
   }
@@ -237,17 +224,18 @@ const loadSubscriptions = async () => {
 // 查看内容
 const viewContent = async (purchase) => {
   try {
-    selectedContent.value = purchase;
+    // 使用购买记录中的内容信息打开详情对话框
+    selectedContent.value = {
+      id: purchase.contentId,
+      title: purchase.title,
+      contentType: purchase.contentType,
+      creatorDid: purchase.creatorDid,
+      priceAmount: purchase.pricePaid,
+    };
     showDetailModal.value = true;
-    loadingDetail.value = true;
-
-    const fullContent = await window.electronAPI.knowledge.getContent(purchase.contentId);
-    contentDetail.value = fullContent.content;
   } catch (error) {
-    console.error('加载内容失败:', error);
-    antMessage.error('加载内容失败: ' + error.message);
-  } finally {
-    loadingDetail.value = false;
+    console.error('[MyPurchases] 打开内容失败:', error);
+    antMessage.error(error.message || '打开内容失败');
   }
 };
 

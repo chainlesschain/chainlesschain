@@ -137,131 +137,22 @@
     </a-card>
 
     <!-- 创建内容对话框 -->
-    <a-modal
+    <content-create
       v-model:visible="showCreateModal"
-      title="发布付费内容"
-      width="800px"
-      :confirm-loading="creating"
-      @ok="handleCreate"
-    >
-      <a-form layout="vertical">
-        <a-form-item label="内容类型" required>
-          <a-select v-model:value="form.contentType">
-            <a-select-option value="article">文章</a-select-option>
-            <a-select-option value="video">视频</a-select-option>
-            <a-select-option value="audio">音频</a-select-option>
-            <a-select-option value="course">课程</a-select-option>
-            <a-select-option value="consulting">咨询</a-select-option>
-          </a-select>
-        </a-form-item>
-
-        <a-form-item label="标题" required>
-          <a-input v-model:value="form.title" placeholder="输入内容标题" />
-        </a-form-item>
-
-        <a-form-item label="描述">
-          <a-textarea v-model:value="form.description" :rows="3" placeholder="简要描述内容..." />
-        </a-form-item>
-
-        <a-form-item label="内容" required>
-          <a-textarea v-model:value="form.content" :rows="10" placeholder="输入正文内容..." />
-        </a-form-item>
-
-        <a-form-item label="预览内容">
-          <a-textarea v-model:value="form.preview" :rows="3" placeholder="输入预览内容（可选）..." />
-        </a-form-item>
-
-        <a-form-item label="定价模式" required>
-          <a-radio-group v-model:value="form.pricingModel">
-            <a-radio value="one_time">一次性购买</a-radio>
-            <a-radio value="subscription">订阅制</a-radio>
-            <a-radio value="donation">打赏</a-radio>
-          </a-radio-group>
-        </a-form-item>
-
-        <a-form-item label="价格" required>
-          <a-input-number
-            v-model:value="form.priceAmount"
-            :min="0"
-            style="width: 100%"
-            placeholder="设置价格（0 表示免费）"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
+      @created="handleContentCreated"
+    />
 
     <!-- 内容详情对话框 -->
-    <a-modal
+    <content-detail
       v-model:visible="showDetailModal"
-      :title="selectedContent?.title"
-      width="900px"
-      :footer="null"
-    >
-      <div v-if="selectedContent">
-        <a-descriptions bordered size="small">
-          <a-descriptions-item label="类型">
-            <a-tag :color="getTypeColor(selectedContent.contentType)">
-              {{ getTypeName(selectedContent.contentType) }}
-            </a-tag>
-          </a-descriptions-item>
-          <a-descriptions-item label="价格">
-            <a-tag color="orange">¥{{ selectedContent.priceAmount }}</a-tag>
-          </a-descriptions-item>
-          <a-descriptions-item label="浏览">
-            {{ selectedContent.viewCount }}
-          </a-descriptions-item>
-          <a-descriptions-item label="购买">
-            {{ selectedContent.purchaseCount }}
-          </a-descriptions-item>
-          <a-descriptions-item label="评分" v-if="selectedContent.rating > 0">
-            <a-rate :value="selectedContent.rating" disabled allow-half />
-            {{ selectedContent.rating.toFixed(1) }}
-          </a-descriptions-item>
-          <a-descriptions-item label="创作者" :span="2">
-            {{ shortenDid(selectedContent.creatorDid) }}
-          </a-descriptions-item>
-        </a-descriptions>
-
-        <a-divider />
-
-        <!-- 预览内容 -->
-        <div v-if="selectedContent.preview" class="content-preview-text">
-          <h4>内容预览</h4>
-          <p>{{ selectedContent.preview }}</p>
-        </div>
-
-        <!-- 已购买显示完整内容 -->
-        <div v-if="hasPurchased" class="content-full">
-          <a-alert
-            message="您已购买此内容"
-            type="success"
-            show-icon
-            style="margin-bottom: 16px"
-          />
-          <div class="content-body">
-            {{ contentDetail }}
-          </div>
-        </div>
-
-        <!-- 未购买显示购买按钮 -->
-        <div v-else style="text-align: center; margin-top: 24px">
-          <a-button
-            type="primary"
-            size="large"
-            :loading="purchasing"
-            @click="handlePurchase(selectedContent)"
-          >
-            <template #icon><shopping-outlined /></template>
-            立即购买 ¥{{ selectedContent.priceAmount }}
-          </a-button>
-        </div>
-      </div>
-    </a-modal>
+      :content="selectedContent"
+      @purchased="handleContentPurchased"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
   BookOutlined,
@@ -274,46 +165,28 @@ import {
   UserOutlined,
   FileTextOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+import ContentCreate from './ContentCreate.vue';
+import ContentDetail from './ContentDetail.vue';
 
-// 状态
-const loading = ref(false);
-const creating = ref(false);
-const purchasing = ref(false);
-const contents = ref([]);
+// Store
+const tradeStore = useTradeStore();
+
+// 从 store 获取状态
+const loading = computed(() => tradeStore.knowledge.loading);
+const contents = computed(() => tradeStore.knowledge.contents);
+
+// 本地状态
 const searchKeyword = ref('');
 const filterType = ref('');
 const sortBy = ref('created_at');
 const showCreateModal = ref(false);
 const showDetailModal = ref(false);
 const selectedContent = ref(null);
-const hasPurchased = ref(false);
-const contentDetail = ref('');
-
-// 表单
-const form = reactive({
-  contentType: 'article',
-  title: '',
-  description: '',
-  content: '',
-  preview: '',
-  pricingModel: 'one_time',
-  priceAmount: 0,
-});
 
 // 加载内容列表
 const loadContents = async () => {
   try {
-    loading.value = true;
-
-    // 检查API是否存在
-    if (!window.electronAPI?.knowledge?.listContents) {
-      console.warn('知识付费API尚未实现');
-      contents.value = [];
-      loading.value = false;
-      return;
-    }
-
-    // 使用listContents API
     const filters = {
       contentType: filterType.value || undefined,
       sortBy: sortBy.value,
@@ -321,14 +194,13 @@ const loadContents = async () => {
       status: 'active',
     };
 
-    contents.value = await window.electronAPI.knowledge.listContents(filters);
+    // 使用 store 加载内容
+    await tradeStore.loadKnowledgeContents(filters);
 
-    console.log('内容列表已加载:', contents.value.length);
+    console.log('[ContentStore] 内容列表已加载:', contents.value.length);
   } catch (error) {
-    console.error('加载内容列表失败:', error);
-    antMessage.error('加载内容列表失败: ' + error.message);
-  } finally {
-    loading.value = false;
+    console.error('[ContentStore] 加载内容列表失败:', error);
+    antMessage.error(error.message || '加载内容列表失败');
   }
 };
 
@@ -337,90 +209,20 @@ const handleSearch = () => {
   loadContents();
 };
 
-// 创建内容
-const handleCreate = async () => {
-  try {
-    if (!form.title || !form.content) {
-      antMessage.warning('请填写标题和内容');
-      return;
-    }
+// 内容创建成功
+const handleContentCreated = () => {
+  loadContents();
+};
 
-    creating.value = true;
-
-    await window.electronAPI.knowledge.createContent({
-      contentType: form.contentType,
-      title: form.title,
-      description: form.description,
-      content: form.content,
-      preview: form.preview ? { text: form.preview } : null,
-      priceAssetId: 'CNY', // 暂时使用人民币
-      priceAmount: form.priceAmount,
-      pricingModel: form.pricingModel,
-    });
-
-    antMessage.success('内容发布成功！');
-    showCreateModal.value = false;
-
-    // 重置表单
-    Object.keys(form).forEach(key => {
-      if (key === 'contentType') form[key] = 'article';
-      else if (key === 'pricingModel') form[key] = 'one_time';
-      else if (key === 'priceAmount') form[key] = 0;
-      else form[key] = '';
-    });
-
-    loadContents();
-  } catch (error) {
-    console.error('发布内容失败:', error);
-    antMessage.error('发布内容失败: ' + error.message);
-  } finally {
-    creating.value = false;
-  }
+// 内容购买成功
+const handleContentPurchased = () => {
+  loadContents();
 };
 
 // 查看内容详情
-const viewContent = async (content) => {
-  try {
-    selectedContent.value = content;
-    showDetailModal.value = true;
-
-    // 获取当前用户DID（需要从DID管理器获取）
-    const currentIdentity = await window.electronAPI.did.getCurrentIdentity();
-    const userDid = currentIdentity?.did;
-
-    // 检查是否已购买
-    const hasAccess = await window.electronAPI.knowledge.checkAccess(content.id, userDid);
-    hasPurchased.value = hasAccess;
-
-    // 如果已购买，访问完整内容
-    if (hasAccess) {
-      const fullContent = await window.electronAPI.knowledge.accessContent(content.id);
-      contentDetail.value = fullContent.decryptedContent || fullContent.content;
-    }
-  } catch (error) {
-    console.error('查看内容失败:', error);
-    antMessage.error('查看内容失败: ' + error.message);
-  }
-};
-
-// 购买内容
-const handlePurchase = async (content) => {
-  try {
-    purchasing.value = true;
-
-    // 使用默认资产ID（这里假设使用CNY，实际应该让用户选择）
-    await window.electronAPI.knowledge.purchaseContent(content.id, 'CNY');
-
-    antMessage.success('购买成功！');
-
-    // 重新加载内容
-    await viewContent(content);
-  } catch (error) {
-    console.error('购买失败:', error);
-    antMessage.error('购买失败: ' + error.message);
-  } finally {
-    purchasing.value = false;
-  }
+const viewContent = (content) => {
+  selectedContent.value = content;
+  showDetailModal.value = true;
 };
 
 // 工具函数

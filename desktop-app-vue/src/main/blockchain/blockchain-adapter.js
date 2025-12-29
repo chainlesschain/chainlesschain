@@ -126,7 +126,8 @@ class BlockchainAdapter extends EventEmitter {
     // 获取钱包
     const wallet = await this.walletManager.unlockWallet(walletId, options.password);
     const provider = this.getProvider();
-    const signer = wallet.connect(provider);
+    // 如果钱包已经连接到 provider，直接使用；否则连接
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
 
     // 加载合约 artifact
     const { abi, bytecode } = getChainlessTokenArtifact();
@@ -174,7 +175,8 @@ class BlockchainAdapter extends EventEmitter {
     // 获取钱包
     const wallet = await this.walletManager.unlockWallet(walletId, options.password);
     const provider = this.getProvider();
-    const signer = wallet.connect(provider);
+    // 如果钱包已经连接到 provider，直接使用；否则连接
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
 
     // 加载合约 artifact
     const { abi, bytecode } = getChainlessNFTArtifact();
@@ -215,7 +217,7 @@ class BlockchainAdapter extends EventEmitter {
     // 获取钱包
     const wallet = await this.walletManager.unlockWallet(walletId, password);
     const provider = this.getProvider();
-    const signer = wallet.connect(provider);
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
 
     // 加载 NFT 合约
     const { abi } = getChainlessNFTArtifact();
@@ -268,7 +270,7 @@ class BlockchainAdapter extends EventEmitter {
     // 获取钱包
     const wallet = await this.walletManager.unlockWallet(walletId, password);
     const provider = this.getProvider();
-    const signer = wallet.connect(provider);
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
 
     // 加载 ERC-20 合约
     const abi = getERC20ABI();
