@@ -25,6 +25,15 @@
               <tool-outlined /> 服务凭证
             </a-radio-button>
           </a-radio-group>
+
+          <!-- 类型说明 -->
+          <a-alert
+            :message="assetTypeHints.title"
+            :description="`${assetTypeHints.description} ${assetTypeHints.examples}`"
+            type="info"
+            show-icon
+            style="margin-top: 12px"
+          />
         </a-form-item>
 
         <!-- 资产名称 -->
@@ -151,6 +160,7 @@ import {
   PlusOutlined,
   DeleteOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
 
 // Props
 const props = defineProps({
@@ -171,8 +181,11 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['created', 'cancel', 'update:visible']);
 
+// Store
+const tradeStore = useTradeStore();
+
 // 状态
-const creating = ref(false);
+const creating = computed(() => tradeStore.asset.creating);
 const form = reactive({
   type: 'token',
   name: '',
@@ -189,6 +202,33 @@ const form = reactive({
 
 const customDataStr = ref('');
 
+// 资产类型提示
+const assetTypeHints = computed(() => {
+  const hints = {
+    token: {
+      title: 'Token（通证）',
+      description: '可分割、可交易的数字资产，适合作为积分、货币等',
+      examples: '例如：社区积分、游戏代币、会员权益等',
+    },
+    nft: {
+      title: 'NFT（非同质化代币）',
+      description: '独一无二的数字资产，适合艺术品、收藏品等',
+      examples: '例如：数字艺术、音乐作品、虚拟土地等',
+    },
+    knowledge: {
+      title: '知识产品',
+      description: '知识付费类资产，适合课程、文章、教程等',
+      examples: '例如：在线课程、电子书、专业咨询等',
+    },
+    service: {
+      title: '服务凭证',
+      description: '服务权益凭证，适合预约、会员等',
+      examples: '例如：预约券、服务套餐、会员卡等',
+    },
+  };
+  return hints[form.type] || hints.token;
+});
+
 // 添加 NFT 属性
 const addAttribute = () => {
   form.metadata.attributes.push({
@@ -202,39 +242,63 @@ const removeAttribute = (index) => {
   form.metadata.attributes.splice(index, 1);
 };
 
+// 表单验证
+const validateForm = () => {
+  if (!form.name || form.name.trim().length === 0) {
+    antMessage.warning('请输入资产名称');
+    return false;
+  }
+
+  if (form.type === 'token') {
+    if (!form.symbol || form.symbol.trim().length === 0) {
+      antMessage.warning('Token 资产必须指定符号');
+      return false;
+    }
+
+    if (form.symbol.length < 2 || form.symbol.length > 10) {
+      antMessage.warning('资产符号长度应在 2-10 个字符之间');
+      return false;
+    }
+
+    if (form.totalSupply <= 0) {
+      antMessage.warning('初始供应量必须大于 0');
+      return false;
+    }
+
+    if (form.decimals < 0 || form.decimals > 18) {
+      antMessage.warning('小数位数应在 0-18 之间');
+      return false;
+    }
+  }
+
+  // 验证自定义数据 JSON 格式
+  if (customDataStr.value) {
+    try {
+      JSON.parse(customDataStr.value);
+    } catch (error) {
+      antMessage.warning('自定义数据格式错误，请输入有效的 JSON');
+      return false;
+    }
+  }
+
+  return true;
+};
+
 // 创建资产
 const handleCreate = async () => {
   try {
-    // 验证
-    if (!form.name || form.name.trim().length === 0) {
-      antMessage.warning('请输入资产名称');
+    // 验证表单
+    if (!validateForm()) {
       return;
     }
-
-    if (form.type === 'token' && !form.symbol) {
-      antMessage.warning('Token 资产必须指定符号');
-      return;
-    }
-
-    if (form.type === 'token' && form.totalSupply <= 0) {
-      antMessage.warning('初始供应量必须大于 0');
-      return;
-    }
-
-    creating.value = true;
 
     // 合并元数据
     const metadata = { ...form.metadata };
 
     // 添加自定义数据
     if (customDataStr.value) {
-      try {
-        const customData = JSON.parse(customDataStr.value);
-        metadata.custom = customData;
-      } catch (error) {
-        antMessage.warning('自定义数据格式错误，请输入有效的 JSON');
-        return;
-      }
+      const customData = JSON.parse(customDataStr.value);
+      metadata.custom = customData;
     }
 
     // 清理空属性
@@ -247,14 +311,15 @@ const handleCreate = async () => {
     const options = {
       type: form.type,
       name: form.name.trim(),
-      symbol: form.type === 'token' ? form.symbol.toUpperCase() : null,
-      description: form.description,
+      symbol: form.type === 'token' ? form.symbol.trim().toUpperCase() : null,
+      description: form.description.trim(),
       metadata,
       totalSupply: form.type === 'token' ? form.totalSupply : 1,
       decimals: form.type === 'token' ? form.decimals : 0,
     };
 
-    const asset = await window.electronAPI.asset.create(options);
+    // 使用 store action 创建资产
+    const asset = await tradeStore.createAsset(options);
 
     antMessage.success(`资产 ${asset.name} 创建成功！`);
 
@@ -267,10 +332,8 @@ const handleCreate = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('创建资产失败:', error);
-    antMessage.error('创建资产失败: ' + error.message);
-  } finally {
-    creating.value = false;
+    console.error('[AssetCreate] 创建资产失败:', error);
+    antMessage.error(error.message || '创建资产失败');
   }
 };
 

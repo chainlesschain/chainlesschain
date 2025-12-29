@@ -1,11 +1,11 @@
 /**
  * SQLCipher 数据库包装器
  *
- * 提供与 sql.js 兼容的 API，使用 @journeyapps/sqlcipher 实现
+ * 提供与 sql.js 兼容的 API，使用 better-sqlite3-multiple-ciphers 实现
  * 支持 AES-256 加密
  */
 
-const Database = require('@journeyapps/sqlcipher').Database;
+const Database = require('better-sqlite3-multiple-ciphers');
 const fs = require('fs');
 
 /**
@@ -237,9 +237,9 @@ class SQLCipherWrapper {
       this.db.pragma(`cipher_hmac_algorithm = ${SQLCIPHER_CONFIG.hmacAlgorithm}`);
       this.db.pragma(`cipher_kdf_algorithm = ${SQLCIPHER_CONFIG.kdfAlgorithm}`);
 
-      // 测试密钥是否正确
+      // 测试密钥是否正确（尝试读取schema）
       try {
-        this.db.pragma('cipher_integrity_check');
+        this.db.prepare('SELECT count(*) FROM sqlite_master').get();
       } catch (error) {
         throw new Error('Invalid encryption key or corrupted database');
       }

@@ -1,0 +1,29 @@
+{
+  "name": "chainlesschain-web-clipper",
+  "version": "2.0.0",
+  "description": "ChainlessChain Web Clipper - Multi-browser extension for clipping web content",
+  "scripts": {
+    "build:chrome": "webpack --env browser=chrome",
+    "build:firefox": "webpack --env browser=firefox",
+    "build:safari": "webpack --env browser=safari",
+    "build:all": "npm run build:chrome && npm run build:firefox && npm run build:safari",
+    "watch:chrome": "webpack --env browser=chrome --watch",
+    "watch:firefox": "webpack --env browser=firefox --watch",
+    "clean": "rm -rf build/*"
+  },
+  "keywords": [
+    "browser-extension",
+    "web-clipper",
+    "knowledge-base"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "devDependencies": {
+    "copy-webpack-plugin": "^12.0.2",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "fabric": "^6.5.2"
+  }
+}

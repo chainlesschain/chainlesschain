@@ -51,6 +51,9 @@ const { ProjectFileAPI, GitAPI, RAGAPI, CodeAPI } = require('./api/backend-clien
 // Plugin System (Phase 1)
 const { PluginManager, setPluginManager } = require('./plugins/plugin-manager');
 
+// Database Encryption IPC
+const DatabaseEncryptionIPC = require('./database-encryption-ipc');
+
 // 过滤不需要的控制台输出
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
@@ -194,6 +197,9 @@ class ChainlessChainApp {
     // Project stats collector
     this.statsCollector = null;
 
+    // Database Encryption IPC
+    this.dbEncryptionIPC = null;
+
     this.setupApp();
   }
 
@@ -211,6 +217,9 @@ class ChainlessChainApp {
         this.mainWindow.focus();
       }
     });
+
+    // 初始化数据库加密 IPC
+    this.dbEncryptionIPC = new DatabaseEncryptionIPC(app);
 
     // 应用事件
     app.whenReady().then(() => this.onReady());
@@ -241,6 +250,11 @@ class ChainlessChainApp {
       // 设置数据库单例（供其他模块使用）
       const { setDatabase } = require('./database');
       setDatabase(this.database);
+
+      // 设置数据库加密 IPC 的数据库引用
+      if (this.dbEncryptionIPC) {
+        this.dbEncryptionIPC.setDatabaseManager(this.database);
+      }
 
       // 初始化知识图谱提取器
       this.graphExtractor = new GraphExtractor(this.database);
@@ -773,6 +787,11 @@ class ChainlessChainApp {
     this.mainWindow.on('closed', () => {
       this.mainWindow = null;
     });
+
+    // 设置数据库加密 IPC 的主窗口引用
+    if (this.dbEncryptionIPC) {
+      this.dbEncryptionIPC.setMainWindow(this.mainWindow);
+    }
 
     // 初始化文件同步管理器
     try {
@@ -4637,6 +4656,70 @@ class ChainlessChainApp {
         return { success: true };
       } catch (error) {
         console.error('[Main] 停止设备同步失败:', error);
+        throw error;
+      }
+    });
+
+    // NAT检测
+    ipcMain.handle('p2p:detect-nat', async () => {
+      try {
+        if (!this.p2pManager || !this.p2pManager.natDetector) {
+          throw new Error('P2P管理器未初始化');
+        }
+        return await this.p2pManager.natDetector.detectNATType(
+          this.p2pManager.p2pConfig.stun.servers
+        );
+      } catch (error) {
+        console.error('[Main] NAT检测失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取NAT信息
+    ipcMain.handle('p2p:get-nat-info', async () => {
+      try {
+        if (!this.p2pManager) {
+          throw new Error('P2P管理器未初始化');
+        }
+        return this.p2pManager.natInfo;
+      } catch (error) {
+        console.error('[Main] 获取NAT信息失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取中继信息
+    ipcMain.handle('p2p:get-relay-info', async () => {
+      try {
+        if (!this.p2pManager || !this.p2pManager.node) {
+          return [];
+        }
+
+        const connections = this.p2pManager.node.getConnections();
+        const relays = connections.filter(conn =>
+          conn.remoteAddr.toString().includes('/p2p-circuit')
+        );
+
+        return relays.map(relay => ({
+          peerId: relay.remotePeer.toString(),
+          addr: relay.remoteAddr.toString(),
+          status: relay.status,
+        }));
+      } catch (error) {
+        console.error('[Main] 获取中继信息失败:', error);
+        throw error;
+      }
+    });
+
+    // 运行诊断
+    ipcMain.handle('p2p:run-diagnostics', async () => {
+      try {
+        if (!this.p2pManager || !this.p2pManager.transportDiagnostics) {
+          throw new Error('P2P管理器未初始化');
+        }
+        return await this.p2pManager.transportDiagnostics.runFullDiagnostics();
+      } catch (error) {
+        console.error('[Main] 运行诊断失败:', error);
         throw error;
       }
     });
@@ -11251,6 +11334,194 @@ ${content}
       }
     });
 
+    // ==================== 语音识别系统 ====================
+    // 语音识别管理器（延迟初始化）
+    let speechManager = null;
+
+    const initializeSpeechManager = async () => {
+      if (!speechManager) {
+        const SpeechManager = require('./speech/speech-manager');
+        speechManager = new SpeechManager(this.database, this.ragManager);
+        await speechManager.initialize();
+      }
+      return speechManager;
+    };
+
+    // 转录音频文件
+    ipcMain.handle('speech:transcribe-file', async (event, filePath, options = {}) => {
+      try {
+        const manager = await initializeSpeechManager();
+
+        // 转发进度事件
+        manager.on('transcribe-progress', (progress) => {
+          event.sender.send('speech:progress', progress);
+        });
+
+        return await manager.transcribeFile(filePath, options);
+      } catch (error) {
+        console.error('[Main] 转录音频失败:', error);
+        throw error;
+      }
+    });
+
+    // 批量转录音频文件
+    ipcMain.handle('speech:transcribe-batch', async (event, filePaths, options = {}) => {
+      try {
+        const manager = await initializeSpeechManager();
+
+        // 转发批处理进度事件
+        manager.on('batch-progress', (progress) => {
+          event.sender.send('speech:batch-progress', progress);
+        });
+
+        return await manager.transcribeBatch(filePaths, options);
+      } catch (error) {
+        console.error('[Main] 批量转录失败:', error);
+        throw error;
+      }
+    });
+
+    // 选择音频文件
+    ipcMain.handle('speech:select-audio-files', async () => {
+      try {
+        const { dialog } = require('electron');
+        const result = await dialog.showOpenDialog({
+          properties: ['openFile', 'multiSelections'],
+          filters: [
+            { name: '音频文件', extensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'webm'] },
+            { name: '所有文件', extensions: ['*'] }
+          ]
+        });
+
+        return result.canceled ? [] : result.filePaths;
+      } catch (error) {
+        console.error('[Main] 选择音频文件失败:', error);
+        return [];
+      }
+    });
+
+    // 获取配置
+    ipcMain.handle('speech:get-config', async () => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.getConfig();
+      } catch (error) {
+        console.error('[Main] 获取语音配置失败:', error);
+        throw error;
+      }
+    });
+
+    // 更新配置
+    ipcMain.handle('speech:update-config', async (_event, config) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.updateConfig(config);
+      } catch (error) {
+        console.error('[Main] 更新语音配置失败:', error);
+        throw error;
+      }
+    });
+
+    // 设置识别引擎
+    ipcMain.handle('speech:set-engine', async (_event, engineType) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.setEngine(engineType);
+      } catch (error) {
+        console.error('[Main] 设置识别引擎失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取可用引擎列表
+    ipcMain.handle('speech:get-available-engines', async () => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.getAvailableEngines();
+      } catch (error) {
+        console.error('[Main] 获取可用引擎列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取转录历史
+    ipcMain.handle('speech:get-history', async (_event, limit = 100, offset = 0) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.getHistory(limit, offset);
+      } catch (error) {
+        console.error('[Main] 获取转录历史失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除转录历史
+    ipcMain.handle('speech:delete-history', async (_event, id) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.deleteHistory(id);
+      } catch (error) {
+        console.error('[Main] 删除转录历史失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取音频文件
+    ipcMain.handle('speech:get-audio-file', async (_event, id) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.getAudioFile(id);
+      } catch (error) {
+        console.error('[Main] 获取音频文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 列出所有音频文件
+    ipcMain.handle('speech:list-audio-files', async (_event, options = {}) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.listAudioFiles(options);
+      } catch (error) {
+        console.error('[Main] 列出音频文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 搜索音频文件
+    ipcMain.handle('speech:search-audio-files', async (_event, query, options = {}) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.searchAudioFiles(query, options);
+      } catch (error) {
+        console.error('[Main] 搜索音频文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除音频文件
+    ipcMain.handle('speech:delete-audio-file', async (_event, id) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.deleteAudioFile(id);
+      } catch (error) {
+        console.error('[Main] 删除音频文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取统计信息
+    ipcMain.handle('speech:get-stats', async (_event, userId = 'local-user') => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.getStats(userId);
+      } catch (error) {
+        console.error('[Main] 获取统计信息失败:', error);
+        throw error;
+      }
+    });
+
+    console.log('[Main] 语音识别系统 IPC handlers 注册完成');
     console.log('[Main] 插件系统 IPC handlers 注册完成');
   }
 

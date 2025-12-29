@@ -435,6 +435,260 @@
             </a-form>
           </a-card>
         </a-tab-pane>
+
+        <!-- P2P 网络配置 -->
+        <a-tab-pane key="p2p" tab="P2P 网络">
+          <template #tab>
+            <GlobalOutlined />
+            P2P 网络
+          </template>
+
+          <!-- 传输层配置 -->
+          <a-card title="传输层配置" style="margin-bottom: 16px;">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+              <a-form-item label="WebRTC 传输">
+                <a-switch
+                  v-model:checked="config.p2p.transports.webrtc.enabled"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
+                <template #extra>
+                  <span style="color: #52c41a;">推荐</span> - 适合大多数NAT环境，提供最佳穿透能力
+                </template>
+              </a-form-item>
+
+              <a-form-item label="WebSocket 传输">
+                <a-switch
+                  v-model:checked="config.p2p.transports.websocket.enabled"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
+                <template #extra>
+                  HTTP兼容，防火墙友好，适合企业网络环境
+                </template>
+              </a-form-item>
+
+              <a-form-item label="TCP 传输">
+                <a-switch
+                  v-model:checked="config.p2p.transports.tcp.enabled"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
+                <template #extra>
+                  直连传输，局域网性能最佳（向后兼容必需）
+                </template>
+              </a-form-item>
+
+              <a-form-item label="智能自动选择">
+                <a-switch
+                  v-model:checked="config.p2p.transports.autoSelect"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
+                <template #extra>
+                  根据NAT类型自动选择最优传输层
+                </template>
+              </a-form-item>
+
+              <a-form-item label="WebSocket 端口">
+                <a-input-number
+                  v-model:value="config.p2p.websocket.port"
+                  :min="1024"
+                  :max="65535"
+                  style="width: 200px;"
+                />
+              </a-form-item>
+            </a-form>
+          </a-card>
+
+          <!-- NAT 穿透状态 -->
+          <a-card title="NAT 穿透状态" style="margin-bottom: 16px;">
+            <a-space direction="vertical" size="middle" style="width: 100%;">
+              <a-row :gutter="16">
+                <a-col :span="6">
+                  <a-statistic title="NAT 类型">
+                    <template #formatter>
+                      <a-tag :color="getNATTypeColor(natInfo?.type)">
+                        {{ getNATTypeName(natInfo?.type) }}
+                      </a-tag>
+                    </template>
+                  </a-statistic>
+                </a-col>
+                <a-col :span="6">
+                  <a-statistic title="公网 IP" :value="natInfo?.publicIP || '未检测'" />
+                </a-col>
+                <a-col :span="6">
+                  <a-statistic title="本地 IP" :value="natInfo?.localIP || '未知'" />
+                </a-col>
+                <a-col :span="6">
+                  <a-button type="primary" @click="handleDetectNAT" :loading="detectingNAT">
+                    <ReloadOutlined />
+                    重新检测
+                  </a-button>
+                </a-col>
+              </a-row>
+
+              <a-alert
+                v-if="natInfo?.description"
+                :message="natInfo.description"
+                :type="natInfo.type === 'symmetric' ? 'warning' : 'info'"
+                show-icon
+              />
+
+              <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+                <a-form-item label="自动检测 NAT">
+                  <a-switch
+                    v-model:checked="config.p2p.nat.autoDetect"
+                    checked-children="启用"
+                    un-checked-children="禁用"
+                  />
+                  <template #extra>
+                    启动时自动检测NAT类型并选择最优传输策略
+                  </template>
+                </a-form-item>
+
+                <a-form-item label="检测间隔">
+                  <a-input-number
+                    v-model:value="config.p2p.nat.detectionInterval"
+                    :min="60000"
+                    :max="86400000"
+                    :step="60000"
+                    :formatter="value => `${Math.floor(value / 60000)} 分钟`"
+                    :parser="value => parseInt(value) * 60000"
+                    style="width: 200px;"
+                  />
+                  <template #extra>
+                    定期重新检测NAT类型（网络环境变化时）
+                  </template>
+                </a-form-item>
+              </a-form>
+            </a-space>
+          </a-card>
+
+          <!-- Circuit Relay 设置 -->
+          <a-card title="Circuit Relay 中继设置" style="margin-bottom: 16px;">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+              <a-form-item label="启用中继">
+                <a-switch
+                  v-model:checked="config.p2p.relay.enabled"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
+                <template #extra>
+                  通过中继节点建立连接（NAT穿透的后备方案）
+                </template>
+              </a-form-item>
+
+              <a-form-item label="最大预留数量">
+                <a-slider
+                  v-model:value="config.p2p.relay.maxReservations"
+                  :min="1"
+                  :max="5"
+                  :marks="{ 1: '1', 2: '2', 3: '3', 4: '4', 5: '5' }"
+                />
+                <template #extra>
+                  同时保持的中继节点预留数量
+                </template>
+              </a-form-item>
+
+              <a-form-item label="自动升级直连">
+                <a-switch
+                  v-model:checked="config.p2p.relay.autoUpgrade"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
+                <template #extra>
+                  通过DCUTr尝试将中继连接升级为直连（提升性能）
+                </template>
+              </a-form-item>
+
+              <a-form-item label="当前中继节点">
+                <a-button @click="handleRefreshRelays" :loading="refreshingRelays">
+                  <ReloadOutlined />
+                  刷新列表
+                </a-button>
+                <a-list
+                  v-if="relayInfo.length > 0"
+                  :data-source="relayInfo"
+                  style="margin-top: 12px;"
+                >
+                  <template #renderItem="{ item }">
+                    <a-list-item>
+                      <a-list-item-meta>
+                        <template #title>
+                          {{ item.peerId.substring(0, 20) }}...
+                        </template>
+                        <template #description>
+                          {{ item.addr }}
+                        </template>
+                      </a-list-item-meta>
+                      <template #extra>
+                        <a-tag :color="item.status === 'open' ? 'green' : 'orange'">
+                          {{ item.status }}
+                        </a-tag>
+                      </template>
+                    </a-list-item>
+                  </template>
+                </a-list>
+                <a-empty v-else description="暂无中继连接" style="margin-top: 12px;" />
+              </a-form-item>
+            </a-form>
+          </a-card>
+
+          <!-- 网络诊断 -->
+          <a-card title="网络诊断">
+            <a-space direction="vertical" size="middle" style="width: 100%;">
+              <a-button type="primary" @click="handleRunDiagnostics" :loading="runningDiagnostics">
+                <ExperimentOutlined />
+                运行完整诊断
+              </a-button>
+
+              <a-descriptions v-if="diagnosticResults" bordered :column="3">
+                <a-descriptions-item label="总传输层">
+                  {{ diagnosticResults.summary?.totalTransports || 0 }}
+                </a-descriptions-item>
+                <a-descriptions-item label="可用传输层">
+                  <a-tag color="green">
+                    {{ diagnosticResults.summary?.availableTransports || 0 }}
+                  </a-tag>
+                </a-descriptions-item>
+                <a-descriptions-item label="活跃连接">
+                  {{ diagnosticResults.summary?.activeConnections || 0 }}
+                </a-descriptions-item>
+              </a-descriptions>
+
+              <a-table
+                v-if="diagnosticResults?.transports"
+                :columns="diagnosticColumns"
+                :data-source="formatDiagnosticData(diagnosticResults.transports)"
+                :pagination="false"
+                size="small"
+              >
+                <template #bodyCell="{ column, record }">
+                  <template v-if="column.key === 'status'">
+                    <a-tag :color="record.available ? 'green' : 'red'">
+                      {{ record.available ? '可用' : '不可用' }}
+                    </a-tag>
+                  </template>
+                  <template v-if="column.key === 'addresses'">
+                    <div v-if="record.listenAddresses">
+                      <div v-for="(addr, i) in record.listenAddresses" :key="i" style="font-size: 12px;">
+                        {{ addr }}
+                      </div>
+                    </div>
+                    <span v-else>-</span>
+                  </template>
+                  <template v-if="column.key === 'error'">
+                    <a-tooltip v-if="record.error" :title="record.error">
+                      <a-tag color="red">有错误</a-tag>
+                    </a-tooltip>
+                    <span v-else>-</span>
+                  </template>
+                </template>
+              </a-table>
+            </a-space>
+          </a-card>
+        </a-tab-pane>
       </a-tabs>
 
       <!-- 操作按钮 -->
@@ -480,6 +734,8 @@ import {
   SaveOutlined,
   ReloadOutlined,
   ExportOutlined,
+  GlobalOutlined,
+  ExperimentOutlined,
 } from '@ant-design/icons-vue';
 
 const router = useRouter();
@@ -562,6 +818,41 @@ const config = ref({
   database: {
     sqlcipherKey: '',
   },
+  p2p: {
+    transports: {
+      webrtc: { enabled: true },
+      websocket: { enabled: true },
+      tcp: { enabled: true },
+      autoSelect: true,
+    },
+    stun: {
+      servers: [
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+        'stun:stun2.l.google.com:19302'
+      ],
+    },
+    relay: {
+      enabled: true,
+      maxReservations: 2,
+      autoUpgrade: true,
+    },
+    nat: {
+      autoDetect: true,
+      detectionInterval: 3600000,
+    },
+    connection: {
+      dialTimeout: 30000,
+      maxRetries: 3,
+      healthCheckInterval: 60000,
+    },
+    websocket: {
+      port: 9001,
+    },
+    compatibility: {
+      detectLegacy: true,
+    },
+  },
 });
 
 // 深度合并配置对象
@@ -608,6 +899,100 @@ const loadBackupList = async () => {
     message.error('加载备份列表失败：' + error.message);
   } finally {
     loadingBackups.value = false;
+  }
+};
+
+// P2P 网络相关
+const natInfo = ref(null);
+const relayInfo = ref([]);
+const diagnosticResults = ref(null);
+const detectingNAT = ref(false);
+const refreshingRelays = ref(false);
+const runningDiagnostics = ref(false);
+
+// 诊断表格列定义
+const diagnosticColumns = [
+  { title: '传输层', dataIndex: 'transport', key: 'transport' },
+  { title: '状态', dataIndex: 'available', key: 'status' },
+  { title: '监听地址', dataIndex: 'listenAddresses', key: 'addresses' },
+  { title: '错误信息', dataIndex: 'error', key: 'error' },
+];
+
+// NAT类型名称映射
+const getNATTypeName = (type) => {
+  const names = {
+    'none': '无NAT（公网IP）',
+    'full-cone': '完全锥形NAT',
+    'restricted': '受限锥形NAT',
+    'port-restricted': '端口受限NAT',
+    'symmetric': '对称NAT',
+    'unknown': '未知'
+  };
+  return names[type] || '未检测';
+};
+
+// NAT类型颜色映射
+const getNATTypeColor = (type) => {
+  const colors = {
+    'none': 'green',
+    'full-cone': 'green',
+    'restricted': 'blue',
+    'port-restricted': 'orange',
+    'symmetric': 'red',
+    'unknown': 'gray'
+  };
+  return colors[type] || 'gray';
+};
+
+// 格式化诊断数据
+const formatDiagnosticData = (transports) => {
+  return Object.entries(transports).map(([transport, info]) => ({
+    transport: transport.toUpperCase(),
+    available: info.available,
+    listenAddresses: info.listenAddresses,
+    error: info.error,
+  }));
+};
+
+// NAT检测
+const handleDetectNAT = async () => {
+  detectingNAT.value = true;
+  try {
+    natInfo.value = await window.electronAPI.p2p.detectNAT();
+    message.success('NAT检测完成');
+  } catch (error) {
+    console.error('NAT检测失败:', error);
+    message.error('NAT检测失败：' + error.message);
+  } finally {
+    detectingNAT.value = false;
+  }
+};
+
+// 刷新中继信息
+const handleRefreshRelays = async () => {
+  refreshingRelays.value = true;
+  try {
+    relayInfo.value = await window.electronAPI.p2p.getRelayInfo();
+    message.success('中继信息已更新');
+  } catch (error) {
+    console.error('获取中继信息失败:', error);
+    message.error('获取中继信息失败：' + error.message);
+  } finally {
+    refreshingRelays.value = false;
+  }
+};
+
+// 运行诊断
+const handleRunDiagnostics = async () => {
+  runningDiagnostics.value = true;
+  try {
+    diagnosticResults.value = await window.electronAPI.p2p.runDiagnostics();
+    message.success('诊断完成');
+  } catch (error) {
+    console.error('诊断失败:', error);
+    message.error('诊断失败：' + error.message);
+  } finally {
+    runningDiagnostics.value = false;
   }
 };
 
@@ -820,9 +1205,16 @@ const formatDate = (date) => {
   return d.toLocaleString('zh-CN');
 };
 
-onMounted(() => {
+onMounted(async () => {
   loadConfig();
   loadBackupList();
+
+  // 加载P2P NAT信息
+  try {
+    natInfo.value = await window.electronAPI.p2p.getNATInfo();
+  } catch (error) {
+    console.error('加载NAT信息失败:', error);
+  }
 });
 </script>
 

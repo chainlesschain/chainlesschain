@@ -125,6 +125,29 @@
           </a-card>
         </a-tab-pane>
 
+        <!-- 数据库安全 -->
+        <a-tab-pane key="database" tab="数据库安全">
+          <template #tab>
+            <span>
+              <lock-outlined />
+              数据库安全
+            </span>
+          </template>
+          <a-card>
+            <a-result
+              status="info"
+              title="数据库加密设置"
+              sub-title="完整的数据库安全设置请访问专用页面"
+            >
+              <template #extra>
+                <a-button type="primary" @click="router.push('/settings/database-security')">
+                  <lock-outlined /> 进入数据库安全设置
+                </a-button>
+              </template>
+            </a-result>
+          </a-card>
+        </a-tab-pane>
+
         <!-- 关于 -->
         <a-tab-pane key="about" tab="关于">
           <template #tab>
@@ -190,6 +213,7 @@ import {
   SettingOutlined,
   InfoCircleOutlined,
   DatabaseOutlined,
+  LockOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { supportedLocales, setLocale, getLocale } from '../locales';

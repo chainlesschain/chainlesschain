@@ -24,17 +24,15 @@
 
         <!-- 接收者 DID -->
         <a-form-item label="接收者 DID" required>
-          <a-input
+          <did-selector
             v-model:value="form.toDid"
-            placeholder="输入接收者的 DID"
-          >
-            <template #prefix><user-outlined /></template>
-          </a-input>
+            placeholder="选择接收者 DID"
+            :exclude-dids="[currentUserDid]"
+            show-quick-actions
+            @create-did="handleCreateDid"
+          />
           <template #extra>
-            或从好友列表选择:
-            <a-button type="link" size="small" @click="showFriendSelector = true">
-              选择好友
-            </a-button>
+            从您的身份列表或好友列表中选择接收者
           </template>
         </a-form-item>
 
@@ -94,48 +92,6 @@
         </a-card>
       </a-form>
     </a-modal>
-
-    <!-- 好友选择器 -->
-    <a-modal
-      v-model:visible="showFriendSelector"
-      title="选择好友"
-      width="500px"
-      @ok="handleSelectFriend"
-    >
-      <a-list
-        :data-source="friends"
-        :loading="loadingFriends"
-      >
-        <template #renderItem="{ item }">
-          <a-list-item>
-            <a-list-item-meta>
-              <template #avatar>
-                <a-avatar :style="{ backgroundColor: getAvatarColor(item.friend_did) }">
-                  <template #icon><user-outlined /></template>
-                </a-avatar>
-              </template>
-              <template #title>
-                {{ item.nickname || shortenDid(item.friend_did) }}
-              </template>
-              <template #description>
-                <a-typography-text copyable style="font-size: 12px">
-                  {{ item.friend_did }}
-                </a-typography-text>
-              </template>
-            </a-list-item-meta>
-            <template #actions>
-              <a-button
-                type="link"
-                size="small"
-                @click="selectFriendDid(item.friend_did)"
-              >
-                选择
-              </a-button>
-            </template>
-          </a-list-item>
-        </template>
-      </a-list>
-    </a-modal>
   </div>
 </template>
 
@@ -145,6 +101,8 @@ import { message as antMessage } from 'ant-design-vue';
 import {
   UserOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+import DIDSelector from './common/DIDSelector.vue';
 
 // Props
 const props = defineProps({
@@ -161,11 +119,12 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['transferred', 'cancel', 'update:visible']);
 
+// Store
+const tradeStore = useTradeStore();
+
 // 状态
-const transferring = ref(false);
-const showFriendSelector = ref(false);
-const loadingFriends = ref(false);
-const friends = ref([]);
+const transferring = computed(() => tradeStore.asset.loading);
+const currentUserDid = ref('');
 
 const form = reactive({
   toDid: '',
@@ -187,12 +146,6 @@ const shortenDid = (did) => {
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
-const getAvatarColor = (did) => {
-  const colors = ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae', '#1890ff'];
-  const hash = did.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return colors[hash % colors.length];
-};
-
 const getMinAmount = () => {
   return props.asset?.decimals > 0 ? 1 / Math.pow(10, props.asset.decimals) : 1;
 };
@@ -210,69 +163,63 @@ const setMaxAmount = () => {
   form.amount = getMaxAmount();
 };
 
-// 加载好友列表
-const loadFriends = async () => {
-  try {
-    loadingFriends.value = true;
-    friends.value = await window.electronAPI.friend.getFriends();
-  } catch (error) {
-    console.error('加载好友列表失败:', error);
-    antMessage.error('加载好友列表失败: ' + error.message);
-  } finally {
-    loadingFriends.value = false;
+// DID 事件处理
+const handleCreateDid = () => {
+  antMessage.info('请前往身份管理页面创建新的 DID');
+};
+
+// 表单验证
+const validateForm = () => {
+  if (!form.toDid || form.toDid.trim().length === 0) {
+    antMessage.warning('请选择接收者 DID');
+    return false;
   }
-};
 
-// 选择好友
-const selectFriendDid = (did) => {
-  form.toDid = did;
-  showFriendSelector.value = false;
-};
+  if (form.toDid === currentUserDid.value) {
+    antMessage.warning('不能转账给自己');
+    return false;
+  }
 
-const handleSelectFriend = () => {
-  showFriendSelector.value = false;
+  if (form.amount <= 0) {
+    antMessage.warning('转账数量必须大于 0');
+    return false;
+  }
+
+  if (!props.asset) {
+    antMessage.error('资产信息不存在');
+    return false;
+  }
+
+  // 检查余额
+  const maxAmount = getMaxAmount();
+  if (form.amount > maxAmount) {
+    antMessage.warning(`转账数量超过可用余额（最大: ${maxAmount}）`);
+    return false;
+  }
+
+  return true;
 };
 
 // 转账
 const handleTransfer = async () => {
   try {
-    // 验证
-    if (!form.toDid || form.toDid.trim().length === 0) {
-      antMessage.warning('请输入接收者 DID');
+    // 验证表单
+    if (!validateForm()) {
       return;
     }
-
-    if (form.amount <= 0) {
-      antMessage.warning('转账数量必须大于 0');
-      return;
-    }
-
-    if (!props.asset) {
-      antMessage.error('资产信息不存在');
-      return;
-    }
-
-    // 检查余额
-    const maxAmount = getMaxAmount();
-    if (form.amount > maxAmount) {
-      antMessage.warning('转账数量超过可用余额');
-      return;
-    }
-
-    transferring.value = true;
 
     // 转换数量（考虑小数位）
     const actualAmount = Math.floor(form.amount * Math.pow(10, props.asset.decimals));
 
-    // 执行转账
-    await window.electronAPI.asset.transfer(
-      props.asset.asset_id,
+    // 使用 store action 执行转账
+    await tradeStore.transferAsset(
+      props.asset.id || props.asset.asset_id,
       form.toDid.trim(),
       actualAmount,
-      form.memo
+      form.memo.trim()
     );
 
-    antMessage.success('转账成功！');
+    antMessage.success(`成功转账 ${form.amount} ${props.asset.symbol || props.asset.name}！`);
 
     // 通知父组件
     emit('transferred');
@@ -283,10 +230,8 @@ const handleTransfer = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('转账失败:', error);
-    antMessage.error('转账失败: ' + error.message);
-  } finally {
-    transferring.value = false;
+    console.error('[AssetTransfer] 转账失败:', error);
+    antMessage.error(error.message || '转账失败');
   }
 };
 
@@ -304,19 +249,34 @@ const resetForm = () => {
   form.memo = '';
 };
 
+// 获取当前用户 DID
+const loadCurrentUserDid = async () => {
+  try {
+    const identity = await window.electronAPI.did.getCurrentIdentity();
+    if (identity) {
+      currentUserDid.value = identity.did;
+    }
+  } catch (error) {
+    console.error('[AssetTransfer] 获取当前用户 DID 失败:', error);
+  }
+};
+
 // 监听对话框打开
-watch(() => props.visible, (newVal) => {
-  if (newVal && props.asset) {
+watch(() => props.visible, async (newVal) => {
+  if (newVal) {
     // 重置表单
     resetForm();
+
+    // 加载当前用户 DID
+    if (!currentUserDid.value) {
+      await loadCurrentUserDid();
+    }
   }
 });
 
-// 监听好友选择器打开
-watch(() => showFriendSelector.value, (newVal) => {
-  if (newVal && friends.value.length === 0) {
-    loadFriends();
-  }
+// 生命周期
+onMounted(() => {
+  loadCurrentUserDid();
 });
 </script>
 
