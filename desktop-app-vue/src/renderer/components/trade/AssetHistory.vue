@@ -1,6 +1,6 @@
 <template>
   <a-drawer
-    :open="visible"
+    :open="open"
     :title="`${asset ? asset.name : '资产'} - 转账历史`"
     width="700px"
     placement="right"

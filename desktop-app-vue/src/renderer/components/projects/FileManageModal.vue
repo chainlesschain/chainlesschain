@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :open="visible"
+    :open="open"
     title="文件"
     :width="720"
     :footer="null"

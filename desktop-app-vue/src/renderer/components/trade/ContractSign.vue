@@ -1,7 +1,7 @@
 <template>
   <div class="contract-sign">
     <a-modal
-      :open="visible"
+      :open="open"
       title="签名合约"
       width="700px"
       :confirm-loading="signing"

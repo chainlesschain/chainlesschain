@@ -1,7 +1,7 @@
 <template>
   <div class="content-create">
     <a-modal
-      :open="visible"
+      :open="open"
       title="发布付费内容"
       width="900px"
       :confirm-loading="creating"

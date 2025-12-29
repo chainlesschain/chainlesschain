@@ -1,7 +1,7 @@
 <template>
   <div class="order-detail">
     <a-modal
-      :open="visible"
+      :open="open"
       title="订单详情"
       width="800px"
       :footer="null"

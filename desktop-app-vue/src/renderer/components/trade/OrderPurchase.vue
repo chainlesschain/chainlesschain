@@ -1,7 +1,7 @@
 <template>
   <div class="order-purchase">
     <a-modal
-      :open="visible"
+      :open="open"
       title="购买订单"
       width="600px"
       :confirm-loading="purchasing"

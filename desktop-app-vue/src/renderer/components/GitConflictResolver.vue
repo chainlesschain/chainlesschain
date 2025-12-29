@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :open="visible"
+    :open="open"
     title="解决Git合并冲突"
     :width="1000"
     :footer="null"

@@ -1,7 +1,7 @@
 <template>
   <div class="asset-transfer">
     <a-modal
-      :open="visible"
+      :open="open"
       title="转账资产"
       width="600px"
       :confirm-loading="transferring"

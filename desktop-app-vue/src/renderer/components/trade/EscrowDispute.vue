@@ -1,7 +1,7 @@
 <template>
   <div class="escrow-dispute">
     <a-modal
-      :open="visible"
+      :open="open"
       title="发起争议"
       width="650px"
       :confirm-loading="disputing"

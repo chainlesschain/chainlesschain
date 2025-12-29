@@ -1,7 +1,7 @@
 <template>
   <div class="contract-create">
     <a-modal
-      :open="visible"
+      :open="open"
       title="创建智能合约"
       width="900px"
       :confirm-loading="creating"

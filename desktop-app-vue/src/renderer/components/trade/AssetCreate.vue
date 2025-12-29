@@ -1,7 +1,7 @@
 <template>
   <div class="asset-create">
     <a-modal
-      :open="visible"
+      :open="open"
       :title="editing ? '编辑资产' : '创建资产'"
       width="700px"
       :confirm-loading="creating"
