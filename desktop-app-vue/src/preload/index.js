@@ -9,8 +9,21 @@ function removeUndefined(obj, seen = new WeakSet()) {
     return null;
   }
 
-  if (typeof obj !== 'object') {
+  // Filter out non-serializable types
+  const type = typeof obj;
+  if (type === 'function' || type === 'symbol') {
+    console.warn('[Preload] Non-serializable type detected, skipping:', type);
+    return null;
+  }
+
+  // Handle primitive types
+  if (type !== 'object') {
     return obj;
+  }
+
+  // Handle Date objects
+  if (obj instanceof Date) {
+    return obj.toISOString();
   }
 
   // Detect circular references
@@ -22,14 +35,29 @@ function removeUndefined(obj, seen = new WeakSet()) {
   // Mark this object as seen
   seen.add(obj);
 
+  // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => removeUndefined(item, seen));
+    return obj
+      .map(item => removeUndefined(item, seen))
+      .filter(item => item !== null && item !== undefined);
   }
 
+  // Handle plain objects
   const cleaned = {};
   for (const key in obj) {
-    if (obj.hasOwnProperty(key) && obj[key] !== undefined) {
-      cleaned[key] = removeUndefined(obj[key], seen);
+    if (obj.hasOwnProperty(key)) {
+      const value = obj[key];
+      const valueType = typeof value;
+
+      // Skip functions, symbols, and undefined values
+      if (valueType === 'function' || valueType === 'symbol' || value === undefined) {
+        continue;
+      }
+
+      const cleanedValue = removeUndefined(value, seen);
+      if (cleanedValue !== null && cleanedValue !== undefined) {
+        cleaned[key] = cleanedValue;
+      }
     }
   }
   return cleaned;
@@ -295,6 +323,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     accessContent: (contentId) => ipcRenderer.invoke('knowledge:access-content', contentId),
     checkAccess: (contentId, userDid) => ipcRenderer.invoke('knowledge:check-access', contentId, userDid),
     getStatistics: (creatorDid) => ipcRenderer.invoke('knowledge:get-statistics', creatorDid),
+  },
+
+  // 知识图谱
+  graph: {
+    getGraphData: (options) => ipcRenderer.invoke('graph:get-graph-data', options || {}),
+    processNote: (noteId, content, tags) => ipcRenderer.invoke('graph:process-note', noteId, content, tags || []),
+    processAllNotes: (noteIds) => ipcRenderer.invoke('graph:process-all-notes', noteIds),
+    getKnowledgeRelations: (knowledgeId) => ipcRenderer.invoke('graph:get-knowledge-relations', knowledgeId),
+    findRelatedNotes: (sourceId, targetId, maxDepth) => ipcRenderer.invoke('graph:find-related-notes', sourceId, targetId, maxDepth || 3),
+    findPotentialLinks: (noteId, content) => ipcRenderer.invoke('graph:find-potential-links', noteId, content),
+    addRelation: (sourceId, targetId, type, weight, metadata) => ipcRenderer.invoke('graph:add-relation', sourceId, targetId, type, weight || 1.0, metadata || null),
+    deleteRelations: (noteId, types) => ipcRenderer.invoke('graph:delete-relations', noteId, types || []),
+    buildTagRelations: () => ipcRenderer.invoke('graph:build-tag-relations'),
+    buildTemporalRelations: (windowDays) => ipcRenderer.invoke('graph:build-temporal-relations', windowDays || 7),
+    extractSemanticRelations: (noteId, content) => ipcRenderer.invoke('graph:extract-semantic-relations', noteId, content),
   },
 
   // 信用评分
@@ -791,6 +834,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onSyncCompleted: (callback) => ipcRenderer.on('sync:completed', (_event, ...args) => callback(...args)),
     onSyncError: (callback) => ipcRenderer.on('sync:error', (_event, ...args) => callback(...args)),
     onShowConflicts: (callback) => ipcRenderer.on('sync:show-conflicts', (_event, ...args) => callback(...args)),
+  },
+
+  // 插件管理
+  plugin: {
+    // 插件查询
+    getPlugins: (filters) => ipcRenderer.invoke('plugin:get-plugins', filters),
+    getPlugin: (pluginId) => ipcRenderer.invoke('plugin:get-plugin', pluginId),
+
+    // 插件生命周期
+    install: (source, options) => ipcRenderer.invoke('plugin:install', source, options),
+    uninstall: (pluginId) => ipcRenderer.invoke('plugin:uninstall', pluginId),
+    enable: (pluginId) => ipcRenderer.invoke('plugin:enable', pluginId),
+    disable: (pluginId) => ipcRenderer.invoke('plugin:disable', pluginId),
+
+    // 权限管理
+    getPermissions: (pluginId) => ipcRenderer.invoke('plugin:get-permissions', pluginId),
+    updatePermission: (pluginId, permission, granted) => ipcRenderer.invoke('plugin:update-permission', pluginId, permission, granted),
+
+    // 扩展点
+    triggerExtensionPoint: (name, context) => ipcRenderer.invoke('plugin:trigger-extension-point', name, context),
+
+    // 工具
+    openPluginsDir: () => ipcRenderer.invoke('plugin:open-plugins-dir'),
+
+    // 事件监听
+    on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
+    off: (event, callback) => ipcRenderer.removeListener(event, callback),
   },
 
   // Web IDE

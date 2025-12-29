@@ -366,6 +366,20 @@ class DatabaseManager {
         FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
       );
 
+      -- 知识关系表（图谱）
+      CREATE TABLE IF NOT EXISTS knowledge_relations (
+        id TEXT PRIMARY KEY,
+        source_id TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        relation_type TEXT NOT NULL CHECK(relation_type IN ('link', 'tag', 'semantic', 'temporal')),
+        weight REAL DEFAULT 1.0,
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (source_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (target_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
+        UNIQUE(source_id, target_id, relation_type)
+      );
+
       -- 对话表
       CREATE TABLE IF NOT EXISTS conversations (
         id TEXT PRIMARY KEY,
@@ -739,6 +753,10 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_knowledge_items_updated_at ON knowledge_items(updated_at DESC);
       CREATE INDEX IF NOT EXISTS idx_knowledge_items_type ON knowledge_items(type);
       CREATE INDEX IF NOT EXISTS idx_knowledge_items_sync_status ON knowledge_items(sync_status);
+      CREATE INDEX IF NOT EXISTS idx_kr_source ON knowledge_relations(source_id);
+      CREATE INDEX IF NOT EXISTS idx_kr_target ON knowledge_relations(target_id);
+      CREATE INDEX IF NOT EXISTS idx_kr_type ON knowledge_relations(relation_type);
+      CREATE INDEX IF NOT EXISTS idx_kr_weight ON knowledge_relations(weight DESC);
       CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
       CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC);
 
@@ -1387,6 +1405,50 @@ class DatabaseManager {
     const result = stmt.step() ? stmt.getAsObject() : null;
     stmt.free();
     return result;
+  }
+
+  /**
+   * 根据ID获取知识库项（别名）
+   * @param {string} id - 项目ID
+   * @returns {Object|null} 知识库项
+   */
+  getKnowledgeItem(id) {
+    return this.getKnowledgeItemById(id);
+  }
+
+  /**
+   * 根据标题获取知识库项
+   * @param {string} title - 标题
+   * @returns {Object|null} 知识库项
+   */
+  getKnowledgeItemByTitle(title) {
+    if (!title) {
+      return null;
+    }
+    const stmt = this.db.prepare('SELECT * FROM knowledge_items WHERE title = ? LIMIT 1');
+    stmt.bind([title]);
+
+    const result = stmt.step() ? stmt.getAsObject() : null;
+    stmt.free();
+    return result;
+  }
+
+  /**
+   * 获取所有知识库项（无限制）
+   * @returns {Array} 知识库项列表
+   */
+  getAllKnowledgeItems() {
+    const stmt = this.db.prepare(`
+      SELECT * FROM knowledge_items
+      ORDER BY updated_at DESC
+    `);
+
+    const results = [];
+    while (stmt.step()) {
+      results.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return results;
   }
 
   /**
@@ -2206,6 +2268,481 @@ class DatabaseManager {
     }, intervalHours * 60 * 60 * 1000);
 
     return timer;
+  }
+
+  // ==================== 知识图谱操作 ====================
+
+  /**
+   * 添加知识关系
+   * @param {string} sourceId - 源笔记ID
+   * @param {string} targetId - 目标笔记ID
+   * @param {string} type - 关系类型 (link/tag/semantic/temporal)
+   * @param {number} weight - 关系权重 (0.0-1.0)
+   * @param {object} metadata - 元数据
+   * @returns {object} 创建的关系
+   */
+  addRelation(sourceId, targetId, type, weight = 1.0, metadata = null) {
+    const id = this.generateId();
+    const createdAt = Date.now();
+    const metadataStr = metadata ? JSON.stringify(metadata) : null;
+
+    const stmt = this.db.prepare(`
+      INSERT INTO knowledge_relations (id, source_id, target_id, relation_type, weight, metadata, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run([id, sourceId, targetId, type, weight, metadataStr, createdAt]);
+    stmt.free();
+
+    return { id, sourceId, targetId, type, weight, metadata, createdAt };
+  }
+
+  /**
+   * 批量添加知识关系
+   * @param {Array} relations - 关系数组
+   * @returns {number} 添加的关系数量
+   */
+  addRelations(relations) {
+    if (!relations || relations.length === 0) return 0;
+
+    const stmt = this.db.prepare(`
+      INSERT OR IGNORE INTO knowledge_relations (id, source_id, target_id, relation_type, weight, metadata, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    let count = 0;
+    relations.forEach(rel => {
+      const id = this.generateId();
+      const createdAt = Date.now();
+      const metadataStr = rel.metadata ? JSON.stringify(rel.metadata) : null;
+
+      try {
+        stmt.run([id, rel.sourceId, rel.targetId, rel.type, rel.weight || 1.0, metadataStr, createdAt]);
+        count++;
+      } catch (error) {
+        console.error(`[Database] 添加关系失败 (${rel.sourceId} -> ${rel.targetId}):`, error);
+      }
+    });
+
+    stmt.free();
+    return count;
+  }
+
+  /**
+   * 删除指定笔记的关系
+   * @param {string} noteId - 笔记ID
+   * @param {Array<string>} types - 要删除的关系类型列表，如 ['link', 'semantic']。空数组则删除所有类型
+   * @returns {number} 删除的关系数量
+   */
+  deleteRelations(noteId, types = []) {
+    if (!noteId) return 0;
+
+    let query;
+    let params;
+
+    if (types && types.length > 0) {
+      const placeholders = types.map(() => '?').join(',');
+      query = `
+        DELETE FROM knowledge_relations
+        WHERE (source_id = ? OR target_id = ?)
+        AND relation_type IN (${placeholders})
+      `;
+      params = [noteId, noteId, ...types];
+    } else {
+      query = `
+        DELETE FROM knowledge_relations
+        WHERE source_id = ? OR target_id = ?
+      `;
+      params = [noteId, noteId];
+    }
+
+    const stmt = this.db.prepare(query);
+    stmt.run(params);
+    const changes = this.db.getRowsModified();
+    stmt.free();
+
+    return changes;
+  }
+
+  /**
+   * 获取图谱数据
+   * @param {object} options - 查询选项
+   * @returns {object} { nodes, edges }
+   */
+  getGraphData(options = {}) {
+    const {
+      relationTypes = ['link', 'tag', 'semantic', 'temporal'],
+      minWeight = 0.0,
+      nodeTypes = ['note', 'document', 'conversation', 'web_clip'],
+      limit = 500
+    } = options;
+
+    // 1. 查询涉及关系的所有笔记ID
+    const relationTypesList = relationTypes.map(() => '?').join(',');
+    const relStmt = this.db.prepare(`
+      SELECT DISTINCT source_id as id FROM knowledge_relations
+      WHERE relation_type IN (${relationTypesList}) AND weight >= ?
+      UNION
+      SELECT DISTINCT target_id as id FROM knowledge_relations
+      WHERE relation_type IN (${relationTypesList}) AND weight >= ?
+      LIMIT ?
+    `);
+    relStmt.bind([...relationTypes, minWeight, ...relationTypes, minWeight, limit]);
+
+    const nodeIds = [];
+    while (relStmt.step()) {
+      nodeIds.push(relStmt.getAsObject().id);
+    }
+    relStmt.free();
+
+    // 2. 查询这些笔记的详细信息
+    const nodes = [];
+    if (nodeIds.length > 0) {
+      const nodeTypesFilter = nodeTypes.map(() => '?').join(',');
+      const idsFilter = nodeIds.map(() => '?').join(',');
+      const nodeStmt = this.db.prepare(`
+        SELECT id, title, type, created_at, updated_at
+        FROM knowledge_items
+        WHERE id IN (${idsFilter}) AND type IN (${nodeTypesFilter})
+      `);
+      nodeStmt.bind([...nodeIds, ...nodeTypes]);
+
+      while (nodeStmt.step()) {
+        const node = nodeStmt.getAsObject();
+        nodes.push({
+          id: node.id,
+          title: node.title,
+          type: node.type,
+          createdAt: node.created_at,
+          updatedAt: node.updated_at,
+        });
+      }
+      nodeStmt.free();
+    }
+
+    // 3. 查询这些节点之间的关系
+    const edges = [];
+    if (nodeIds.length > 0) {
+      const idsFilter = nodeIds.map(() => '?').join(',');
+      const relationTypesFilter = relationTypes.map(() => '?').join(',');
+      const edgeStmt = this.db.prepare(`
+        SELECT id, source_id, target_id, relation_type, weight, metadata
+        FROM knowledge_relations
+        WHERE source_id IN (${idsFilter})
+          AND target_id IN (${idsFilter})
+          AND relation_type IN (${relationTypesFilter})
+          AND weight >= ?
+      `);
+      edgeStmt.bind([...nodeIds, ...nodeIds, ...relationTypes, minWeight]);
+
+      while (edgeStmt.step()) {
+        const edge = edgeStmt.getAsObject();
+        edges.push({
+          id: edge.id,
+          source: edge.source_id,
+          target: edge.target_id,
+          type: edge.relation_type,
+          weight: edge.weight,
+          metadata: edge.metadata ? JSON.parse(edge.metadata) : null,
+        });
+      }
+      edgeStmt.free();
+    }
+
+    return { nodes, edges };
+  }
+
+  /**
+   * 获取笔记的所有关系
+   * @param {string} knowledgeId - 笔记ID
+   * @returns {Array} 关系列表
+   */
+  getKnowledgeRelations(knowledgeId) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM knowledge_relations
+      WHERE source_id = ? OR target_id = ?
+      ORDER BY weight DESC
+    `);
+    stmt.bind([knowledgeId, knowledgeId]);
+
+    const relations = [];
+    while (stmt.step()) {
+      const rel = stmt.getAsObject();
+      relations.push({
+        id: rel.id,
+        source: rel.source_id,
+        target: rel.target_id,
+        type: rel.relation_type,
+        weight: rel.weight,
+        metadata: rel.metadata ? JSON.parse(rel.metadata) : null,
+        createdAt: rel.created_at,
+      });
+    }
+    stmt.free();
+
+    return relations;
+  }
+
+  /**
+   * 查找两个笔记之间的关系路径（BFS）
+   * @param {string} sourceId - 源笔记ID
+   * @param {string} targetId - 目标笔记ID
+   * @param {number} maxDepth - 最大搜索深度
+   * @returns {object|null} 路径信息
+   */
+  findRelationPath(sourceId, targetId, maxDepth = 3) {
+    if (sourceId === targetId) {
+      return { nodes: [sourceId], edges: [], length: 0 };
+    }
+
+    // BFS算法
+    const queue = [{ id: sourceId, path: [sourceId], edgePath: [] }];
+    const visited = new Set([sourceId]);
+
+    // 获取所有关系（双向）
+    const stmt = this.db.prepare(`
+      SELECT source_id, target_id, id as edge_id, relation_type, weight
+      FROM knowledge_relations
+    `);
+
+    const graph = new Map();
+    while (stmt.step()) {
+      const rel = stmt.getAsObject();
+
+      // 正向边
+      if (!graph.has(rel.source_id)) {
+        graph.set(rel.source_id, []);
+      }
+      graph.get(rel.source_id).push({
+        to: rel.target_id,
+        edgeId: rel.edge_id,
+        type: rel.relation_type,
+        weight: rel.weight,
+      });
+
+      // 反向边（无向图）
+      if (!graph.has(rel.target_id)) {
+        graph.set(rel.target_id, []);
+      }
+      graph.get(rel.target_id).push({
+        to: rel.source_id,
+        edgeId: rel.edge_id,
+        type: rel.relation_type,
+        weight: rel.weight,
+      });
+    }
+    stmt.free();
+
+    // BFS搜索
+    while (queue.length > 0) {
+      const current = queue.shift();
+
+      if (current.path.length > maxDepth) {
+        continue;
+      }
+
+      const neighbors = graph.get(current.id) || [];
+      for (const neighbor of neighbors) {
+        if (neighbor.to === targetId) {
+          // 找到目标
+          return {
+            nodes: [...current.path, targetId],
+            edges: [...current.edgePath, neighbor.edgeId],
+            length: current.path.length,
+          };
+        }
+
+        if (!visited.has(neighbor.to)) {
+          visited.add(neighbor.to);
+          queue.push({
+            id: neighbor.to,
+            path: [...current.path, neighbor.to],
+            edgePath: [...current.edgePath, neighbor.edgeId],
+          });
+        }
+      }
+    }
+
+    return null; // 未找到路径
+  }
+
+  /**
+   * 获取笔记的邻居节点（一度或多度关系）
+   * @param {string} knowledgeId - 笔记ID
+   * @param {number} depth - 深度
+   * @returns {object} { nodes, edges }
+   */
+  getKnowledgeNeighbors(knowledgeId, depth = 1) {
+    const allNodes = new Set([knowledgeId]);
+    const allEdges = new Map();
+    let currentLevel = [knowledgeId];
+
+    for (let d = 0; d < depth; d++) {
+      const nextLevel = [];
+
+      currentLevel.forEach(nodeId => {
+        const stmt = this.db.prepare(`
+          SELECT id, source_id, target_id, relation_type, weight, metadata
+          FROM knowledge_relations
+          WHERE source_id = ? OR target_id = ?
+        `);
+        stmt.bind([nodeId, nodeId]);
+
+        while (stmt.step()) {
+          const edge = stmt.getAsObject();
+          const otherId = edge.source_id === nodeId ? edge.target_id : edge.source_id;
+
+          if (!allNodes.has(otherId)) {
+            allNodes.add(otherId);
+            nextLevel.push(otherId);
+          }
+
+          if (!allEdges.has(edge.id)) {
+            allEdges.set(edge.id, {
+              id: edge.id,
+              source: edge.source_id,
+              target: edge.target_id,
+              type: edge.relation_type,
+              weight: edge.weight,
+              metadata: edge.metadata ? JSON.parse(edge.metadata) : null,
+            });
+          }
+        }
+        stmt.free();
+      });
+
+      currentLevel = nextLevel;
+    }
+
+    // 查询节点详情
+    const nodes = [];
+    const nodeIds = Array.from(allNodes);
+    if (nodeIds.length > 0) {
+      const idsFilter = nodeIds.map(() => '?').join(',');
+      const stmt = this.db.prepare(`
+        SELECT id, title, type, created_at, updated_at
+        FROM knowledge_items
+        WHERE id IN (${idsFilter})
+      `);
+      stmt.bind(nodeIds);
+
+      while (stmt.step()) {
+        const node = stmt.getAsObject();
+        nodes.push({
+          id: node.id,
+          title: node.title,
+          type: node.type,
+          createdAt: node.created_at,
+          updatedAt: node.updated_at,
+        });
+      }
+      stmt.free();
+    }
+
+    return {
+      nodes,
+      edges: Array.from(allEdges.values()),
+    };
+  }
+
+  /**
+   * 构建标签关系
+   * 为共享标签的笔记建立关系
+   * @returns {number} 创建的关系数量
+   */
+  buildTagRelations() {
+    // 清除旧的标签关系
+    const deleteStmt = this.db.prepare(`
+      DELETE FROM knowledge_relations WHERE relation_type = 'tag'
+    `);
+    deleteStmt.step();
+    deleteStmt.free();
+
+    // 查询共享标签的笔记对
+    const stmt = this.db.prepare(`
+      SELECT
+        k1.knowledge_id as source_id,
+        k2.knowledge_id as target_id,
+        COUNT(*) as shared_tags
+      FROM knowledge_tags k1
+      JOIN knowledge_tags k2 ON k1.tag_id = k2.tag_id
+      WHERE k1.knowledge_id < k2.knowledge_id
+      GROUP BY k1.knowledge_id, k2.knowledge_id
+      HAVING shared_tags > 0
+    `);
+
+    const relations = [];
+    while (stmt.step()) {
+      const row = stmt.getAsObject();
+
+      // 计算权重：共享标签数 / 最大标签数
+      const source = this.getKnowledgeTags(row.source_id);
+      const target = this.getKnowledgeTags(row.target_id);
+      const maxTags = Math.max(source.length, target.length);
+      const weight = maxTags > 0 ? row.shared_tags / maxTags : 0;
+
+      relations.push({
+        sourceId: row.source_id,
+        targetId: row.target_id,
+        type: 'tag',
+        weight: weight,
+        metadata: { sharedTags: row.shared_tags },
+      });
+    }
+    stmt.free();
+
+    // 批量插入
+    return this.addRelations(relations);
+  }
+
+  /**
+   * 构建时间序列关系
+   * @param {number} windowDays - 时间窗口（天）
+   * @returns {number} 创建的关系数量
+   */
+  buildTemporalRelations(windowDays = 7) {
+    // 清除旧的时间关系
+    const deleteStmt = this.db.prepare(`
+      DELETE FROM knowledge_relations WHERE relation_type = 'temporal'
+    `);
+    deleteStmt.step();
+    deleteStmt.free();
+
+    const windowMs = windowDays * 24 * 60 * 60 * 1000;
+
+    // 查询时间接近的笔记对
+    const stmt = this.db.prepare(`
+      SELECT
+        k1.id as source_id,
+        k2.id as target_id,
+        k1.created_at as source_time,
+        k2.created_at as target_time
+      FROM knowledge_items k1
+      JOIN knowledge_items k2 ON k1.id < k2.id
+      WHERE ABS(k1.created_at - k2.created_at) <= ?
+      ORDER BY k1.created_at ASC
+    `);
+    stmt.bind([windowMs]);
+
+    const relations = [];
+    while (stmt.step()) {
+      const row = stmt.getAsObject();
+      const timeDiff = Math.abs(row.target_time - row.source_time);
+      const daysDiff = timeDiff / (24 * 60 * 60 * 1000);
+
+      // 权重：时间越近权重越高
+      const weight = 1 / (1 + daysDiff);
+
+      relations.push({
+        sourceId: row.source_time < row.target_time ? row.source_id : row.target_id,
+        targetId: row.source_time < row.target_time ? row.target_id : row.source_id,
+        type: 'temporal',
+        weight: weight,
+        metadata: { daysDiff: daysDiff.toFixed(2) },
+      });
+    }
+    stmt.free();
+
+    return this.addRelations(relations);
   }
 
   // ==================== 项目管理操作 ====================
