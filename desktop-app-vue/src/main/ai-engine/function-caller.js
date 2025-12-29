@@ -11,8 +11,20 @@ class FunctionCaller {
     // 注册的工具字典
     this.tools = new Map();
 
+    // ToolManager引用（用于统计）
+    this.toolManager = null;
+
     // 注册内置工具
     this.registerBuiltInTools();
+  }
+
+  /**
+   * 设置ToolManager（用于统计功能）
+   * @param {ToolManager} toolManager - 工具管理器
+   */
+  setToolManager(toolManager) {
+    this.toolManager = toolManager;
+    console.log('[Function Caller] ToolManager已设置');
   }
 
   /**
@@ -519,6 +531,7 @@ function initializeInteractions() {
    * @returns {Promise<any>} 工具执行结果
    */
   async call(toolName, params = {}, context = {}) {
+    const startTime = Date.now();
     const tool = this.tools.get(toolName);
 
     if (!tool) {
@@ -529,9 +542,28 @@ function initializeInteractions() {
 
     try {
       const result = await tool.handler(params, context);
+
+      // 记录成功统计
+      if (this.toolManager) {
+        const duration = Date.now() - startTime;
+        this.toolManager.recordToolUsage(toolName, true, duration).catch(err => {
+          console.error('[Function Caller] 记录统计失败:', err);
+        });
+      }
+
       return result;
     } catch (error) {
       console.error(`[Function Caller] 工具 "${toolName}" 执行失败:`, error);
+
+      // 记录失败统计
+      if (this.toolManager) {
+        const duration = Date.now() - startTime;
+        const errorType = error.name || 'Error';
+        this.toolManager.recordToolUsage(toolName, false, duration, errorType).catch(err => {
+          console.error('[Function Caller] 记录统计失败:', err);
+        });
+      }
+
       throw error;
     }
   }

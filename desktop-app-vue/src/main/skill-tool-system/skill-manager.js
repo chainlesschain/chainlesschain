@@ -4,6 +4,7 @@
  */
 
 const { v4: uuidv4 } = require('uuid');
+const DocGenerator = require('./doc-generator');
 
 class SkillManager {
   constructor(database, toolManager) {
@@ -12,6 +13,9 @@ class SkillManager {
 
     // 技能元数据缓存
     this.skills = new Map(); // skillId -> skillObject
+
+    // 文档生成器
+    this.docGenerator = new DocGenerator();
 
     this.isInitialized = false;
   }
@@ -23,11 +27,17 @@ class SkillManager {
     try {
       console.log('[SkillManager] 初始化技能管理器...');
 
-      // 1. 加载内置技能
+      // 1. 初始化文档生成器
+      await this.docGenerator.initialize();
+
+      // 2. 加载内置技能
       await this.loadBuiltInSkills();
 
-      // 2. 加载插件提供的技能
+      // 3. 加载插件提供的技能
       await this.loadPluginSkills();
+
+      // 4. 生成所有技能的文档
+      await this.generateAllDocs();
 
       this.isInitialized = true;
       console.log(`[SkillManager] 初始化完成，共加载 ${this.skills.size} 个技能`);
@@ -681,6 +691,80 @@ class SkillManager {
       console.log(`[SkillManager] 插件技能加载完成，共 ${pluginSkills.length} 个`);
     } catch (error) {
       console.error('[SkillManager] 加载插件技能失败:', error);
+    }
+  }
+
+  // ===================================
+  // 文档管理
+  // ===================================
+
+  /**
+   * 生成所有技能的文档
+   */
+  async generateAllDocs() {
+    try {
+      console.log('[SkillManager] 生成技能文档...');
+
+      const skillsWithTools = [];
+
+      // 获取所有技能及其工具
+      for (const [skillId, skill] of this.skills) {
+        const tools = await this.getSkillTools(skillId);
+        skillsWithTools.push({ skill, tools });
+      }
+
+      const count = await this.docGenerator.generateAllSkillDocs(skillsWithTools);
+      console.log(`[SkillManager] 技能文档生成完成，共 ${count} 个`);
+    } catch (error) {
+      console.error('[SkillManager] 生成技能文档失败:', error);
+      // 文档生成失败不影响系统运行
+    }
+  }
+
+  /**
+   * 获取技能文档
+   * @param {string} skillId - 技能ID
+   * @returns {Promise<string>} 文档内容（Markdown格式）
+   */
+  async getSkillDoc(skillId) {
+    try {
+      const content = await this.docGenerator.readSkillDoc(skillId);
+
+      if (!content) {
+        // 文档不存在，尝试生成
+        const skill = await this.getSkill(skillId);
+        if (skill) {
+          const tools = await this.getSkillTools(skillId);
+          await this.docGenerator.generateSkillDoc(skill, tools);
+          return await this.docGenerator.readSkillDoc(skillId);
+        }
+      }
+
+      return content;
+    } catch (error) {
+      console.error('[SkillManager] 获取技能文档失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 重新生成技能文档
+   * @param {string} skillId - 技能ID
+   */
+  async regenerateDoc(skillId) {
+    try {
+      const skill = await this.getSkill(skillId);
+      if (!skill) {
+        throw new Error(`技能不存在: ${skillId}`);
+      }
+
+      const tools = await this.getSkillTools(skillId);
+      await this.docGenerator.generateSkillDoc(skill, tools);
+
+      console.log(`[SkillManager] 技能文档已重新生成: ${skillId}`);
+    } catch (error) {
+      console.error('[SkillManager] 重新生成技能文档失败:', error);
+      throw error;
     }
   }
 }

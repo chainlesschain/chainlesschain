@@ -50,98 +50,36 @@
 
       <!-- 合约列表 -->
       <a-spin :spinning="loading">
-        <a-list
-          :data-source="filteredContracts"
-          :grid="{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 3, xxl: 3 }"
+        <a-row :gutter="[16, 16]">
+          <a-col
+            v-for="contract in filteredContracts"
+            :key="contract.id"
+            :xs="24"
+            :sm="12"
+            :md="12"
+            :lg="8"
+            :xl="8"
+          >
+            <contract-card
+              :contract="contract"
+              :current-user-did="currentDid"
+              @view="handleViewContract"
+              @sign="handleSign"
+              @execute="handleExecute"
+              @cancel="handleCancel"
+            />
+          </a-col>
+        </a-row>
+
+        <!-- 空状态 -->
+        <a-empty
+          v-if="!loading && filteredContracts.length === 0"
+          description="暂无合约"
         >
-          <template #renderItem="{ item }">
-            <a-list-item>
-              <a-card hoverable class="contract-card" @click="handleViewContract(item)">
-                <template #actions>
-                  <a-tooltip title="查看详情">
-                    <eye-outlined @click.stop="handleViewContract(item)" />
-                  </a-tooltip>
-                  <a-dropdown v-if="canOperate(item)">
-                    <ellipsis-outlined />
-                    <template #overlay>
-                      <a-menu>
-                        <a-menu-item v-if="item.status === 'draft' && isParty(item)" @click.stop="handleActivate(item)">
-                          <check-circle-outlined /> 激活合约
-                        </a-menu-item>
-                        <a-menu-item v-if="item.status === 'draft' && item.escrow_type === 'multisig'" @click.stop="handleSign(item)">
-                          <edit-outlined /> 签名合约
-                        </a-menu-item>
-                        <a-menu-item v-if="item.status === 'active'" @click.stop="handleCheckConditions(item)">
-                          <check-square-outlined /> 检查条件
-                        </a-menu-item>
-                        <a-menu-item v-if="item.status === 'active' && isParty(item)" @click.stop="handleExecute(item)">
-                          <play-circle-outlined /> 执行合约
-                        </a-menu-item>
-                        <a-menu-divider />
-                        <a-menu-item v-if="['draft', 'active'].includes(item.status) && isParty(item)" danger @click.stop="handleCancel(item)">
-                          <close-circle-outlined /> 取消合约
-                        </a-menu-item>
-                        <a-menu-item v-if="item.status === 'active' && isParty(item)" danger @click.stop="handleInitiateArbitration(item)">
-                          <warning-outlined /> 发起仲裁
-                        </a-menu-item>
-                      </a-menu>
-                    </template>
-                  </a-dropdown>
-                </template>
-
-                <!-- 状态标签 -->
-                <a-tag
-                  :color="getStatusColor(item.status)"
-                  style="position: absolute; top: 8px; right: 8px"
-                >
-                  {{ getStatusName(item.status) }}
-                </a-tag>
-
-                <a-card-meta>
-                  <template #title>
-                    <div class="contract-title">{{ item.title }}</div>
-                  </template>
-                  <template #description>
-                    <div class="contract-info">
-                      <div class="contract-type">
-                        <a-tag :color="getTypeColor(item.contract_type)">
-                          {{ getTypeName(item.contract_type) }}
-                        </a-tag>
-                        <a-tag :color="getEscrowTypeColor(item.escrow_type)">
-                          {{ getEscrowTypeName(item.escrow_type) }}
-                        </a-tag>
-                      </div>
-                      <div v-if="item.description" class="contract-description">
-                        {{ item.description }}
-                      </div>
-                      <div class="contract-meta">
-                        <div class="contract-parties">
-                          <user-outlined />
-                          <span>{{ item.parties.length }} 方参与</span>
-                        </div>
-                        <div class="contract-time">
-                          {{ formatTime(item.created_at) }}
-                        </div>
-                      </div>
-                      <div v-if="item.expires_at" class="contract-expires">
-                        <clock-circle-outlined />
-                        <span>到期: {{ formatTime(item.expires_at) }}</span>
-                      </div>
-                    </div>
-                  </template>
-                </a-card-meta>
-              </a-card>
-            </a-list-item>
-          </template>
-
-          <template #empty>
-            <a-empty description="暂无合约">
-              <a-button type="primary" @click="showCreateModal = true">
-                创建第一个合约
-              </a-button>
-            </a-empty>
-          </template>
-        </a-list>
+          <a-button type="primary" @click="showCreateModal = true">
+            创建第一个合约
+          </a-button>
+        </a-empty>
       </a-spin>
     </a-card>
 
@@ -158,6 +96,20 @@
       @activated="handleContractUpdated"
       @executed="handleContractUpdated"
       @cancelled="handleContractUpdated"
+    />
+
+    <!-- 合约签名对话框 -->
+    <contract-sign
+      v-model:visible="showSignModal"
+      :contract="selectedContract"
+      @signed="handleContractUpdated"
+    />
+
+    <!-- 合约执行对话框 -->
+    <contract-execute
+      v-model:visible="showExecuteModal"
+      :contract="selectedContract"
+      @executed="handleContractUpdated"
     />
   </div>
 </template>
@@ -180,18 +132,29 @@ import {
   UserOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+import ContractCard from './common/ContractCard.vue';
 import ContractCreate from './ContractCreate.vue';
 import ContractDetail from './ContractDetail.vue';
+import ContractSign from './ContractSign.vue';
+import ContractExecute from './ContractExecute.vue';
+
+// Store
+const tradeStore = useTradeStore();
 
 // 状态
-const loading = ref(false);
-const contracts = ref([]);
 const filterStatus = ref('');
 const filterType = ref('');
 const currentDid = ref('');
 const showCreateModal = ref(false);
 const showDetailModal = ref(false);
+const showSignModal = ref(false);
+const showExecuteModal = ref(false);
 const selectedContract = ref(null);
+
+// 从 store 获取数据
+const loading = computed(() => tradeStore.contract.loading);
+const contracts = computed(() => tradeStore.contract.contracts);
 
 // 筛选后的合约
 const filteredContracts = computed(() => {
@@ -295,8 +258,6 @@ const canOperate = (contract) => {
 // 加载合约列表
 const loadContracts = async () => {
   try {
-    loading.value = true;
-
     // 获取当前用户 DID
     if (!currentDid.value) {
       const identity = await window.electronAPI.did.getCurrentIdentity();
@@ -305,13 +266,12 @@ const loadContracts = async () => {
       }
     }
 
-    contracts.value = await window.electronAPI.contract.getList({});
-    console.log('合约列表已加载:', contracts.value.length);
+    // 使用 store 加载合约
+    await tradeStore.loadContracts({});
+    console.log('[ContractList] 合约列表已加载:', contracts.value.length);
   } catch (error) {
-    console.error('加载合约列表失败:', error);
+    console.error('[ContractList] 加载合约列表失败:', error);
     antMessage.error('加载合约列表失败: ' + error.message);
-  } finally {
-    loading.value = false;
   }
 };
 
@@ -358,24 +318,8 @@ const handleActivate = (contract) => {
 
 // 签名合约
 const handleSign = (contract) => {
-  Modal.confirm({
-    title: '签名合约',
-    content: '确定要签名这个合约吗？',
-    okText: '确定',
-    cancelText: '取消',
-    async onOk() {
-      try {
-        // 简化处理：使用用户 DID 作为签名
-        const signature = `signature_${currentDid.value}_${Date.now()}`;
-        await window.electronAPI.contract.sign(contract.id, signature);
-        antMessage.success('合约已签名');
-        loadContracts();
-      } catch (error) {
-        console.error('签名合约失败:', error);
-        antMessage.error('签名合约失败: ' + error.message);
-      }
-    },
-  });
+  selectedContract.value = contract;
+  showSignModal.value = true;
 };
 
 // 检查条件
@@ -402,22 +346,8 @@ const handleCheckConditions = async (contract) => {
 
 // 执行合约
 const handleExecute = (contract) => {
-  Modal.confirm({
-    title: '执行合约',
-    content: '确定要执行这个合约吗？执行前会检查所有条件是否满足。',
-    okText: '确定执行',
-    cancelText: '取消',
-    async onOk() {
-      try {
-        await window.electronAPI.contract.execute(contract.id);
-        antMessage.success('合约执行成功');
-        loadContracts();
-      } catch (error) {
-        console.error('执行合约失败:', error);
-        antMessage.error('执行合约失败: ' + error.message);
-      }
-    },
-  });
+  selectedContract.value = contract;
+  showExecuteModal.value = true;
 };
 
 // 取消合约
@@ -430,12 +360,15 @@ const handleCancel = (contract) => {
     cancelText: '取消',
     async onOk() {
       try {
-        await window.electronAPI.contract.cancel(contract.id, '用户取消');
+        // 使用 store 取消合约
+        await tradeStore.cancelContract(contract.id, '用户取消');
+
+        console.log('[ContractList] 合约已取消:', contract.id);
         antMessage.success('合约已取消');
-        loadContracts();
+        await loadContracts();
       } catch (error) {
-        console.error('取消合约失败:', error);
-        antMessage.error('取消合约失败: ' + error.message);
+        console.error('[ContractList] 取消合约失败:', error);
+        antMessage.error(error.message || '取消合约失败');
       }
     },
   });

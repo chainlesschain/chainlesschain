@@ -521,7 +521,111 @@ class PluginManager extends EventEmitter {
 
   async handleAIFunctionToolExtension(context) {
     console.log('[PluginManager] 处理AI Function工具扩展:', context);
-    // Phase 4 实现
+
+    const { pluginId, config } = context;
+    const { tools = [], skills = [] } = config;
+
+    try {
+      // 1. 注册插件提供的工具
+      for (const toolDef of tools) {
+        const toolId = `${pluginId}_${toolDef.name}`;
+
+        // 获取插件实例以绑定handler
+        const plugin = this.plugins.get(pluginId);
+        if (!plugin || !plugin.sandbox) {
+          console.warn(`[PluginManager] 插件未加载，跳过工具注册: ${pluginId}`);
+          continue;
+        }
+
+        // 从插件实例获取handler方法
+        let handler = null;
+        if (typeof toolDef.handler === 'string') {
+          // handler是方法名，从插件实例获取
+          handler = async (params, context) => {
+            return await plugin.sandbox.callMethod(toolDef.handler, params, context);
+          };
+        } else if (typeof toolDef.handler === 'function') {
+          handler = toolDef.handler;
+        }
+
+        if (!handler) {
+          console.warn(`[PluginManager] 工具handler无效: ${toolDef.name}`);
+          continue;
+        }
+
+        // 注册工具到ToolManager
+        if (this.systemContext.toolManager) {
+          await this.systemContext.toolManager.registerTool({
+            id: toolId,
+            name: toolDef.name,
+            display_name: toolDef.displayName || toolDef.name,
+            description: toolDef.description || '',
+            category: toolDef.category || 'custom',
+            parameters_schema: toolDef.parameters || {},
+            return_schema: toolDef.returnSchema || {},
+            plugin_id: pluginId,
+            is_builtin: 0,
+            enabled: 1,
+            tool_type: toolDef.type || 'function',
+            required_permissions: toolDef.requiredPermissions || [],
+            risk_level: toolDef.riskLevel || 2,
+          }, handler);
+
+          console.log(`[PluginManager] 插件工具已注册: ${toolDef.name}`);
+        }
+      }
+
+      // 2. 注册插件提供的技能
+      for (const skillDef of skills) {
+        const skillId = `${pluginId}_${skillDef.id}`;
+
+        if (this.systemContext.skillManager) {
+          await this.systemContext.skillManager.registerSkill({
+            id: skillId,
+            name: skillDef.name,
+            display_name: skillDef.displayName || skillDef.name,
+            description: skillDef.description || '',
+            category: skillDef.category || 'custom',
+            icon: skillDef.icon || null,
+            plugin_id: pluginId,
+            is_builtin: 0,
+            enabled: 1,
+            tags: skillDef.tags || [],
+            config: skillDef.config || {},
+          });
+
+          // 3. 关联技能和工具
+          if (skillDef.tools && skillDef.tools.length > 0) {
+            for (let i = 0; i < skillDef.tools.length; i++) {
+              const toolName = skillDef.tools[i];
+              const toolId = `${pluginId}_${toolName}`;
+
+              // 查找工具
+              const tool = await this.systemContext.toolManager.getToolByName(toolName) ||
+                           await this.systemContext.toolManager.getTool(toolId);
+
+              if (tool) {
+                await this.systemContext.skillManager.addToolToSkill(
+                  skillId,
+                  tool.id,
+                  i === 0 ? 'primary' : 'secondary',
+                  skillDef.tools.length - i
+                );
+              } else {
+                console.warn(`[PluginManager] 工具不存在，跳过关联: ${toolName}`);
+              }
+            }
+          }
+
+          console.log(`[PluginManager] 插件技能已注册: ${skillDef.name}`);
+        }
+      }
+
+      console.log('[PluginManager] AI工具扩展处理完成');
+    } catch (error) {
+      console.error('[PluginManager] 处理AI工具扩展失败:', error);
+      throw error;
+    }
   }
 
   async handleLifecycleHookExtension(context) {

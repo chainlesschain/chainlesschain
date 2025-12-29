@@ -54,6 +54,18 @@ const routes = [
         meta: { title: '数据库安全' },
       },
       {
+        path: 'settings/skills',
+        name: 'SkillManagement',
+        component: () => import('../pages/SkillManagement.vue'),
+        meta: { title: '技能管理' },
+      },
+      {
+        path: 'settings/tools',
+        name: 'ToolManagement',
+        component: () => import('../pages/ToolManagement.vue'),
+        meta: { title: '工具管理' },
+      },
+      {
         path: 'did',
         name: 'DIDManagement',
         component: () => import('../components/DIDManagement.vue'),
@@ -116,6 +128,15 @@ const routes = [
         component: () => import('../components/PostFeed.vue'),
         meta: { title: '动态' },
       },
+      // ===== 交易系统 =====
+      // 交易中心统一入口
+      {
+        path: 'trading',
+        name: 'TradingHub',
+        component: () => import('../pages/TradingHub.vue'),
+        meta: { title: '交易中心' },
+      },
+      // 独立快捷入口（保留）
       {
         path: 'marketplace',
         name: 'Marketplace',

@@ -4,6 +4,7 @@
  */
 
 const { v4: uuidv4 } = require('uuid');
+const DocGenerator = require('./doc-generator');
 
 class ToolManager {
   constructor(database, functionCaller) {
@@ -12,6 +13,9 @@ class ToolManager {
 
     // 工具元数据缓存
     this.tools = new Map(); // toolId -> toolMeta
+
+    // 文档生成器（与SkillManager共享）
+    this.docGenerator = new DocGenerator();
 
     this.isInitialized = false;
   }
@@ -23,14 +27,17 @@ class ToolManager {
     try {
       console.log('[ToolManager] 初始化工具管理器...');
 
-      // 1. 确保数据库表已创建（迁移脚本应该已经执行）
-      // 这里可以添加额外的检查
+      // 1. 初始化文档生成器
+      await this.docGenerator.initialize();
 
       // 2. 加载内置工具
       await this.loadBuiltInTools();
 
       // 3. 加载插件提供的工具
       await this.loadPluginTools();
+
+      // 4. 生成所有工具的文档
+      await this.generateAllDocs();
 
       this.isInitialized = true;
       console.log(`[ToolManager] 初始化完成，共加载 ${this.tools.size} 个工具`);
@@ -696,6 +703,73 @@ class ToolManager {
       console.log(`[ToolManager] 插件工具加载完成，共 ${pluginTools.length} 个`);
     } catch (error) {
       console.error('[ToolManager] 加载插件工具失败:', error);
+    }
+  }
+
+  // ===================================
+  // 文档管理
+  // ===================================
+
+  /**
+   * 生成所有工具的文档
+   */
+  async generateAllDocs() {
+    try {
+      console.log('[ToolManager] 生成工具文档...');
+
+      const tools = Array.from(this.tools.values());
+      const count = await this.docGenerator.generateAllToolDocs(tools);
+
+      console.log(`[ToolManager] 工具文档生成完成，共 ${count} 个`);
+    } catch (error) {
+      console.error('[ToolManager] 生成工具文档失败:', error);
+      // 文档生成失败不影响系统运行
+    }
+  }
+
+  /**
+   * 获取工具文档
+   * @param {string} toolId - 工具ID
+   * @returns {Promise<string>} 文档内容（Markdown格式）
+   */
+  async getToolDoc(toolId) {
+    try {
+      const tool = await this.getTool(toolId);
+      if (!tool) {
+        throw new Error(`工具不存在: ${toolId}`);
+      }
+
+      let content = await this.docGenerator.readToolDoc(tool.name);
+
+      if (!content) {
+        // 文档不存在，尝试生成
+        await this.docGenerator.generateToolDoc(tool);
+        content = await this.docGenerator.readToolDoc(tool.name);
+      }
+
+      return content;
+    } catch (error) {
+      console.error('[ToolManager] 获取工具文档失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 重新生成工具文档
+   * @param {string} toolId - 工具ID
+   */
+  async regenerateDoc(toolId) {
+    try {
+      const tool = await this.getTool(toolId);
+      if (!tool) {
+        throw new Error(`工具不存在: ${toolId}`);
+      }
+
+      await this.docGenerator.generateToolDoc(tool);
+      console.log(`[ToolManager] 工具文档已重新生成: ${tool.name}`);
+    } catch (error) {
+      console.error('[ToolManager] 重新生成工具文档失败:', error);
+      throw error;
     }
   }
 }

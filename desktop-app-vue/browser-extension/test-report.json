@@ -1,0 +1,111 @@
+{
+  "timestamp": "2025-12-29T04:19:06.746Z",
+  "summary": {
+    "total": 20,
+    "passed": 16,
+    "failed": 4,
+    "passRate": "80.00%"
+  },
+  "tests": [
+    {
+      "name": "T1.1 - 构建目录存在",
+      "passed": true,
+      "message": "C:\\code\\chainlesschain\\desktop-app-vue\\browser-extension\\build\\chrome"
+    },
+    {
+      "name": "T1.2 - manifest.json",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "T1.2 - popup/popup.html",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "T1.2 - popup/popup.js",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "T1.2 - background/background.js",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "T1.2 - content/content-script.js",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "T1.2 - annotation/annotation-editor.js",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "T1.2 - batch/batch-clipper.js",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "T2.1 - API Ping",
+      "passed": false,
+      "message": ""
+    },
+    {
+      "name": "T2.2 - 剪藏 API",
+      "passed": false,
+      "message": ""
+    },
+    {
+      "name": "T3.1 - AI 标签生成 API",
+      "passed": false,
+      "message": ""
+    },
+    {
+      "name": "T3.2 - AI 摘要生成 API",
+      "passed": false,
+      "message": ""
+    },
+    {
+      "name": "T4.1 - manifest.json 有效",
+      "passed": true,
+      "message": "v2.0.0"
+    },
+    {
+      "name": "T4.2 - 版本号",
+      "passed": true,
+      "message": "2.0.0"
+    },
+    {
+      "name": "T4.3 - 权限配置",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "T4.4 - Background 配置",
+      "passed": true,
+      "message": ""
+    },
+    {
+      "name": "T4.5 - popup/popup.js 大小",
+      "passed": true,
+      "message": "65.71 KB"
+    },
+    {
+      "name": "T4.5 - background/background.js 大小",
+      "passed": true,
+      "message": "59.35 KB"
+    },
+    {
+      "name": "T4.5 - batch/batch-clipper.js 大小",
+      "passed": true,
+      "message": "68.94 KB"
+    },
+    {
+      "name": "T4.5 - annotation/annotation-editor.js 大小",
+      "passed": true,
+      "message": "56.56 KB"
+    }
+  ]
+}

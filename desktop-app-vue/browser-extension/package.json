@@ -9,7 +9,9 @@
     "build:all": "npm run build:chrome && npm run build:firefox && npm run build:safari",
     "watch:chrome": "webpack --env browser=chrome --watch",
     "watch:firefox": "webpack --env browser=firefox --watch",
-    "clean": "rm -rf build/*"
+    "clean": "rm -rf build/*",
+    "test": "node test-runner.js",
+    "test:quick": "node test-runner.js"
   },
   "keywords": [
     "browser-extension",
