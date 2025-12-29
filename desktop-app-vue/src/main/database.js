@@ -1391,6 +1391,26 @@ class DatabaseManager {
         }
       }
 
+      // 迁移3: 技能和工具管理系统
+      const skillTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='skills'").get();
+
+      if (!skillTableExists) {
+        console.log('[Database] 创建技能和工具管理系统表...');
+        try {
+          const migrationPath = path.join(__dirname, 'database', 'migrations', '003_skill_tool_system.sql');
+          if (fs.existsSync(migrationPath)) {
+            const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+            this.db.exec(migrationSQL);
+            this.saveToFile();
+            console.log('[Database] 技能和工具管理系统表创建完成');
+          } else {
+            console.warn('[Database] 技能工具系统迁移文件不存在:', migrationPath);
+          }
+        } catch (skillToolError) {
+          console.error('[Database] 创建技能工具系统表失败:', skillToolError);
+        }
+      }
+
       console.log('[Database] 数据库迁移任务完成');
     } catch (error) {
       console.error('[Database] 运行数据库迁移失败:', error);
