@@ -384,6 +384,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getMessageStatus: (messageId) => ipcRenderer.invoke('p2p:get-message-status', messageId),
     startDeviceSync: (deviceId) => ipcRenderer.invoke('p2p:start-device-sync', deviceId),
     stopDeviceSync: (deviceId) => ipcRenderer.invoke('p2p:stop-device-sync', deviceId),
+    // NAT检测和诊断
+    detectNAT: () => ipcRenderer.invoke('p2p:detect-nat'),
+    getNATInfo: () => ipcRenderer.invoke('p2p:get-nat-info'),
+    getRelayInfo: () => ipcRenderer.invoke('p2p:get-relay-info'),
+    runDiagnostics: () => ipcRenderer.invoke('p2p:run-diagnostics'),
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
@@ -880,5 +885,38 @@ contextBridge.exposeInMainWorld('electronAPI', {
     exportHTML: (data) => ipcRenderer.invoke('webide:exportHTML', removeUndefined(data)),
     exportZIP: (data) => ipcRenderer.invoke('webide:exportZIP', removeUndefined(data)),
     captureScreenshot: (options) => ipcRenderer.invoke('webide:captureScreenshot', removeUndefined(options)),
+  },
+
+  // 语音识别系统
+  speech: {
+    // 音频文件转录
+    transcribeFile: (filePath, options) => ipcRenderer.invoke('speech:transcribe-file', filePath, options),
+    transcribeBatch: (filePaths, options) => ipcRenderer.invoke('speech:transcribe-batch', filePaths, options),
+
+    // 文件选择
+    selectAudioFiles: () => ipcRenderer.invoke('speech:select-audio-files'),
+
+    // 配置管理
+    getConfig: () => ipcRenderer.invoke('speech:get-config'),
+    updateConfig: (config) => ipcRenderer.invoke('speech:update-config', config),
+    setEngine: (engineType) => ipcRenderer.invoke('speech:set-engine', engineType),
+    getAvailableEngines: () => ipcRenderer.invoke('speech:get-available-engines'),
+
+    // 历史记录
+    getHistory: (limit, offset) => ipcRenderer.invoke('speech:get-history', limit, offset),
+    deleteHistory: (id) => ipcRenderer.invoke('speech:delete-history', id),
+
+    // 音频文件管理
+    getAudioFile: (id) => ipcRenderer.invoke('speech:get-audio-file', id),
+    listAudioFiles: (options) => ipcRenderer.invoke('speech:list-audio-files', options),
+    searchAudioFiles: (query, options) => ipcRenderer.invoke('speech:search-audio-files', query, options),
+    deleteAudioFile: (id) => ipcRenderer.invoke('speech:delete-audio-file', id),
+
+    // 统计信息
+    getStats: (userId) => ipcRenderer.invoke('speech:get-stats', userId),
+
+    // 事件监听
+    on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
+    off: (event, callback) => ipcRenderer.removeListener(event, callback),
   },
 });

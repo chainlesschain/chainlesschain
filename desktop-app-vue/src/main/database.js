@@ -3,6 +3,16 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
+// 导入数据库加密模块
+let createDatabaseAdapter;
+try {
+  const dbModule = require('./database/index');
+  createDatabaseAdapter = dbModule.createDatabaseAdapter;
+} catch (e) {
+  console.warn('[Database] 加密模块不可用，将使用sql.js:', e.message);
+  createDatabaseAdapter = null;
+}
+
 // Try to load electron, fallback to global.app for testing
 let app;
 try {
@@ -22,15 +32,18 @@ try {
 
 /**
  * 数据库管理类
- * 使用 sql.js 管理本地 SQLite 数据库
+ * 使用 SQLCipher（加密）或 sql.js 管理本地 SQLite 数据库
  */
 class DatabaseManager {
-  constructor(customPath = null) {
+  constructor(customPath = null, options = {}) {
     this.db = null;
     this.dbPath = null;
     this.SQL = null;
+    this.adapter = null; // 数据库适配器
     this.inTransaction = false; // 跟踪是否在事务中
     this.customPath = customPath; // 允许指定自定义路径
+    this.encryptionPassword = options.password || null; // 加密密码
+    this.encryptionEnabled = options.encryptionEnabled !== false; // 默认启用加密
   }
 
   /**
@@ -38,86 +51,126 @@ class DatabaseManager {
    */
   async initialize() {
     try {
-      // 初始化 sql.js
-      this.SQL = await initSqlJs({
-        // sql.js 使用 WebAssembly，需要加载 .wasm 文件
-        locateFile: file => {
-          // 尝试多个可能的路径
-          const possiblePaths = [];
-
-          if (app && app.isPackaged) {
-            // 生产环境的可能路径
-            possiblePaths.push(
-              // extraResource 路径（推荐）
-              path.join(process.resourcesPath, file),
-              // node_modules 路径
-              path.join(process.resourcesPath, 'app', 'node_modules', 'sql.js', 'dist', file),
-              path.join(process.resourcesPath, 'node_modules', 'sql.js', 'dist', file),
-              path.join(__dirname, '..', '..', 'node_modules', 'sql.js', 'dist', file)
-            );
-          } else {
-            // 开发环境：Monorepo workspace，sql.js可能在父目录或本地node_modules中
-            possiblePaths.push(
-              path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file),
-              path.join(process.cwd(), '../node_modules/sql.js/dist', file),
-              path.join(__dirname, '..', '..', '..', 'node_modules', 'sql.js', 'dist', file)
-            );
-          }
-
-          // 找到第一个存在的路径
-          for (const filePath of possiblePaths) {
-            if (fs.existsSync(filePath)) {
-              console.log('Found sql.js WASM at:', filePath);
-              return filePath;
-            }
-          }
-
-          // 如果都不存在，返回第一个路径并记录错误
-          console.error('Could not find sql.js WASM file. Tried:', possiblePaths);
-          return possiblePaths[0];
-        }
-      });
-
       // 获取数据库路径
       if (this.customPath) {
-        // 使用自定义路径
         this.dbPath = this.customPath;
       } else {
-        // 从AppConfig获取路径
         const appConfig = getAppConfig();
         this.dbPath = appConfig.getDatabasePath();
-
-        // 确保数据库目录存在
         appConfig.ensureDatabaseDir();
       }
 
       console.log('数据库路径:', this.dbPath);
 
-      // 加载或创建数据库
-      if (fs.existsSync(this.dbPath)) {
-        const buffer = fs.readFileSync(this.dbPath);
-        this.db = new this.SQL.Database(buffer);
-      } else {
-        this.db = new this.SQL.Database();
+      // 尝试使用加密数据库适配器
+      if (createDatabaseAdapter && this.encryptionEnabled) {
+        try {
+          await this.initializeWithAdapter();
+          console.log('数据库初始化成功（SQLCipher 加密模式）');
+          return true;
+        } catch (error) {
+          console.warn('[Database] 加密初始化失败，回退到 sql.js:', error.message);
+          // 继续使用 sql.js
+        }
       }
 
-      // 启用外键约束
-      this.applyStatementCompat();
-      // Enable foreign key constraints.
-      this.db.run('PRAGMA foreign_keys = ON');
-
-      // 创建表
-      this.createTables();
-
-      // 运行数据库迁移
-      this.runMigrations();
-
-      console.log('数据库初始化成功');
+      // Fallback: 使用 sql.js
+      await this.initializeWithSqlJs();
+      console.log('数据库初始化成功（sql.js 模式）');
       return true;
     } catch (error) {
       console.error('数据库初始化失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 使用数据库适配器初始化（支持加密）
+   */
+  async initializeWithAdapter() {
+    const appConfig = getAppConfig();
+
+    // 创建数据库适配器
+    this.adapter = await createDatabaseAdapter({
+      dbPath: this.dbPath,
+      encryptionEnabled: this.encryptionEnabled,
+      password: this.encryptionPassword,
+      autoMigrate: true,
+      configPath: path.join(app.getPath('userData'), 'db-key-config.json')
+    });
+
+    // 创建数据库
+    this.db = await this.adapter.createDatabase();
+
+    // 应用兼容性补丁
+    this.applyStatementCompat();
+
+    // 启用外键约束
+    if (this.db.pragma) {
+      this.db.pragma('foreign_keys = ON');
+    } else if (this.db.run) {
+      this.db.run('PRAGMA foreign_keys = ON');
+    }
+
+    // 创建表
+    this.createTables();
+
+    // 运行数据库迁移
+    this.runMigrations();
+  }
+
+  /**
+   * 使用 sql.js 初始化（传统方式）
+   */
+  async initializeWithSqlJs() {
+    this.SQL = await initSqlJs({
+      locateFile: file => {
+        const possiblePaths = [];
+
+        if (app && app.isPackaged) {
+          possiblePaths.push(
+            path.join(process.resourcesPath, file),
+            path.join(process.resourcesPath, 'app', 'node_modules', 'sql.js', 'dist', file),
+            path.join(process.resourcesPath, 'node_modules', 'sql.js', 'dist', file),
+            path.join(__dirname, '..', '..', 'node_modules', 'sql.js', 'dist', file)
+          );
+        } else {
+          possiblePaths.push(
+            path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file),
+            path.join(process.cwd(), '../node_modules/sql.js/dist', file),
+            path.join(__dirname, '..', '..', '..', 'node_modules', 'sql.js', 'dist', file)
+          );
+        }
+
+        for (const filePath of possiblePaths) {
+          if (fs.existsSync(filePath)) {
+            console.log('Found sql.js WASM at:', filePath);
+            return filePath;
+          }
+        }
+
+        console.error('Could not find sql.js WASM file. Tried:', possiblePaths);
+        return possiblePaths[0];
+      }
+    });
+
+    // 加载或创建数据库
+    if (fs.existsSync(this.dbPath)) {
+      const buffer = fs.readFileSync(this.dbPath);
+      this.db = new this.SQL.Database(buffer);
+    } else {
+      this.db = new this.SQL.Database();
+    }
+
+    // 启用外键约束
+    this.applyStatementCompat();
+    this.db.run('PRAGMA foreign_keys = ON');
+
+    // 创建表
+    this.createTables();
+
+    // 运行数据库迁移
+    this.runMigrations();
   }
 
   /**
@@ -318,9 +371,19 @@ class DatabaseManager {
     if (!this.db) {
       throw new Error('数据库未初始化');
     }
-    const data = this.db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(this.dbPath, buffer);
+
+    // 如果使用适配器（SQLCipher），数据库自动保存
+    if (this.adapter) {
+      this.adapter.saveDatabase(this.db);
+      return;
+    }
+
+    // sql.js 需要手动导出
+    if (this.db.export) {
+      const data = this.db.export();
+      const buffer = Buffer.from(data);
+      fs.writeFileSync(this.dbPath, buffer);
+    }
   }
 
   /**
@@ -853,6 +916,101 @@ class DatabaseManager {
         created_at INTEGER NOT NULL
       );
 
+      -- ============================
+      -- 区块链相关表
+      -- ============================
+
+      -- 区块链钱包表
+      CREATE TABLE IF NOT EXISTS blockchain_wallets (
+        id TEXT PRIMARY KEY,
+        address TEXT UNIQUE NOT NULL,
+        wallet_type TEXT NOT NULL CHECK(wallet_type IN ('internal', 'external')),
+        provider TEXT CHECK(provider IN ('builtin', 'metamask', 'walletconnect')),
+        encrypted_private_key TEXT,
+        mnemonic_encrypted TEXT,
+        derivation_path TEXT,
+        chain_id INTEGER,
+        is_default INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL
+      );
+
+      -- 链上资产表
+      CREATE TABLE IF NOT EXISTS blockchain_assets (
+        id TEXT PRIMARY KEY,
+        local_asset_id TEXT,
+        contract_address TEXT NOT NULL,
+        chain_id INTEGER NOT NULL,
+        token_type TEXT CHECK(token_type IN ('ERC20', 'ERC721', 'ERC1155')),
+        token_id TEXT,
+        deployment_tx TEXT,
+        deployed_at INTEGER,
+        UNIQUE(contract_address, chain_id, token_id),
+        FOREIGN KEY (local_asset_id) REFERENCES assets(id) ON DELETE SET NULL
+      );
+
+      -- 区块链交易表
+      CREATE TABLE IF NOT EXISTS blockchain_transactions (
+        id TEXT PRIMARY KEY,
+        tx_hash TEXT UNIQUE NOT NULL,
+        chain_id INTEGER NOT NULL,
+        from_address TEXT NOT NULL,
+        to_address TEXT,
+        value TEXT,
+        gas_used TEXT,
+        gas_price TEXT,
+        status TEXT CHECK(status IN ('pending', 'confirmed', 'failed')),
+        block_number INTEGER,
+        tx_type TEXT,
+        local_ref_id TEXT,
+        created_at INTEGER NOT NULL,
+        confirmed_at INTEGER
+      );
+
+      -- 智能合约部署记录
+      CREATE TABLE IF NOT EXISTS deployed_contracts (
+        id TEXT PRIMARY KEY,
+        contract_name TEXT NOT NULL,
+        contract_type TEXT,
+        contract_address TEXT NOT NULL,
+        chain_id INTEGER NOT NULL,
+        deployment_tx TEXT,
+        deployer_address TEXT,
+        abi_json TEXT,
+        local_contract_id TEXT,
+        deployed_at INTEGER NOT NULL,
+        UNIQUE(contract_address, chain_id),
+        FOREIGN KEY (local_contract_id) REFERENCES contracts(id) ON DELETE SET NULL
+      );
+
+      -- 跨链桥记录
+      CREATE TABLE IF NOT EXISTS bridge_transfers (
+        id TEXT PRIMARY KEY,
+        from_chain_id INTEGER NOT NULL,
+        to_chain_id INTEGER NOT NULL,
+        from_tx_hash TEXT,
+        to_tx_hash TEXT,
+        asset_id TEXT,
+        amount TEXT,
+        status TEXT CHECK(status IN ('pending', 'completed', 'failed')),
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER
+      );
+
+      -- 区块链索引
+      CREATE INDEX IF NOT EXISTS idx_blockchain_wallets_address ON blockchain_wallets(address);
+      CREATE INDEX IF NOT EXISTS idx_blockchain_wallets_chain ON blockchain_wallets(chain_id);
+      CREATE INDEX IF NOT EXISTS idx_blockchain_assets_contract ON blockchain_assets(contract_address, chain_id);
+      CREATE INDEX IF NOT EXISTS idx_blockchain_assets_local ON blockchain_assets(local_asset_id);
+      CREATE INDEX IF NOT EXISTS idx_blockchain_txs_hash ON blockchain_transactions(tx_hash);
+      CREATE INDEX IF NOT EXISTS idx_blockchain_txs_from ON blockchain_transactions(from_address);
+      CREATE INDEX IF NOT EXISTS idx_blockchain_txs_to ON blockchain_transactions(to_address);
+      CREATE INDEX IF NOT EXISTS idx_blockchain_txs_status ON blockchain_transactions(status);
+      CREATE INDEX IF NOT EXISTS idx_blockchain_txs_created ON blockchain_transactions(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_deployed_contracts_address ON deployed_contracts(contract_address, chain_id);
+      CREATE INDEX IF NOT EXISTS idx_bridge_transfers_status ON bridge_transfers(status);
+      CREATE INDEX IF NOT EXISTS idx_bridge_transfers_from_tx ON bridge_transfers(from_tx_hash);
+      CREATE INDEX IF NOT EXISTS idx_bridge_transfers_to_tx ON bridge_transfers(to_tx_hash);
+
       -- 聊天和通知索引
       CREATE INDEX IF NOT EXISTS idx_chat_sessions_participant ON chat_sessions(participant_did);
       CREATE INDEX IF NOT EXISTS idx_chat_sessions_updated_at ON chat_sessions(updated_at DESC);
@@ -1201,6 +1359,26 @@ class DatabaseManager {
         console.log('[Database] 添加 project_stats.last_updated_at 列');
         this.db.run('ALTER TABLE project_stats ADD COLUMN last_updated_at INTEGER');
         this.saveToFile();
+      }
+
+      // 迁移2: 音频系统 (语音识别)
+      const audioTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='audio_files'").get();
+
+      if (!audioTableExists) {
+        console.log('[Database] 创建音频系统表...');
+        try {
+          const migrationPath = path.join(__dirname, 'database', 'migrations', '002_audio_system.sql');
+          if (fs.existsSync(migrationPath)) {
+            const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+            this.db.exec(migrationSQL);
+            this.saveToFile();
+            console.log('[Database] 音频系统表创建完成');
+          } else {
+            console.warn('[Database] 音频系统迁移文件不存在:', migrationPath);
+          }
+        } catch (audioError) {
+          console.error('[Database] 创建音频系统表失败:', audioError);
+        }
       }
 
       console.log('[Database] 数据库迁移任务完成');
@@ -3520,7 +3698,40 @@ class DatabaseManager {
       { key: 'backend.aiServiceUrl', value: 'http://localhost:8001', type: 'string', description: 'AI服务地址' },
 
       // 数据库配置
-      { key: 'database.sqlcipherKey', value: '', type: 'string', description: 'SQLCipher加密密钥' }
+      { key: 'database.sqlcipherKey', value: '', type: 'string', description: 'SQLCipher加密密钥' },
+
+      // P2P 网络配置
+      { key: 'p2p.transports.webrtc.enabled', value: 'true', type: 'boolean', description: '启用WebRTC传输（推荐）' },
+      { key: 'p2p.transports.websocket.enabled', value: 'true', type: 'boolean', description: '启用WebSocket传输' },
+      { key: 'p2p.transports.tcp.enabled', value: 'true', type: 'boolean', description: '启用TCP传输（向后兼容）' },
+      { key: 'p2p.transports.autoSelect', value: 'true', type: 'boolean', description: '智能自动选择传输层' },
+
+      // STUN 配置（仅公共免费服务器）
+      { key: 'p2p.stun.servers', value: JSON.stringify([
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+        'stun:stun2.l.google.com:19302'
+      ]), type: 'json', description: 'STUN服务器列表' },
+
+      // Circuit Relay 配置
+      { key: 'p2p.relay.enabled', value: 'true', type: 'boolean', description: '启用Circuit Relay v2中继' },
+      { key: 'p2p.relay.maxReservations', value: '2', type: 'number', description: '最大中继预留数量' },
+      { key: 'p2p.relay.autoUpgrade', value: 'true', type: 'boolean', description: '自动升级中继为直连（DCUTr）' },
+
+      // NAT 穿透配置
+      { key: 'p2p.nat.autoDetect', value: 'true', type: 'boolean', description: '启动时自动检测NAT类型' },
+      { key: 'p2p.nat.detectionInterval', value: '3600000', type: 'number', description: 'NAT检测间隔（毫秒，默认1小时）' },
+
+      // 连接配置
+      { key: 'p2p.connection.dialTimeout', value: '30000', type: 'number', description: '连接超时时间（毫秒）' },
+      { key: 'p2p.connection.maxRetries', value: '3', type: 'number', description: '最大重试次数' },
+      { key: 'p2p.connection.healthCheckInterval', value: '60000', type: 'number', description: '健康检查间隔（毫秒）' },
+
+      // WebSocket 端口配置
+      { key: 'p2p.websocket.port', value: '9001', type: 'number', description: 'WebSocket监听端口' },
+
+      // 向后兼容
+      { key: 'p2p.compatibility.detectLegacy', value: 'true', type: 'boolean', description: '自动检测并兼容旧版TCP节点' }
     ];
 
     const stmt = this.db.prepare('SELECT key FROM system_settings WHERE key = ?');

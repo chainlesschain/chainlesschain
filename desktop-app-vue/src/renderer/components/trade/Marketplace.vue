@@ -44,77 +44,37 @@
 
           <!-- 订单列表 -->
           <a-spin :spinning="loading">
-            <a-list
-              :data-source="filteredOrders"
-              :grid="{ gutter: 16, xs: 1, sm: 2, md: 2, lg: 3, xl: 4, xxl: 4 }"
+            <a-row :gutter="[16, 16]">
+              <a-col
+                v-for="order in filteredOrders"
+                :key="order.id"
+                :xs="24"
+                :sm="12"
+                :md="12"
+                :lg="8"
+                :xl="6"
+              >
+                <order-card
+                  :order="order"
+                  :current-user-did="currentDid"
+                  @view="handleViewOrder"
+                  @purchase="handlePurchase"
+                  @cancel="handleCancelOrder"
+                  @edit="handleEditOrder"
+                  @share="handleShareOrder"
+                />
+              </a-col>
+            </a-row>
+
+            <!-- 空状态 -->
+            <a-empty
+              v-if="!loading && filteredOrders.length === 0"
+              :description="searchKeyword || filterType ? '没有找到匹配的订单' : '暂无订单'"
             >
-              <template #renderItem="{ item }">
-                <a-list-item>
-                  <a-card hoverable class="order-card" @click="handleViewOrder(item)">
-                    <template #actions>
-                      <a-tooltip title="查看详情">
-                        <eye-outlined @click.stop="handleViewOrder(item)" />
-                      </a-tooltip>
-                      <a-tooltip v-if="!isMyOrder(item)" title="购买">
-                        <shopping-cart-outlined @click.stop="handlePurchase(item)" />
-                      </a-tooltip>
-                      <a-tooltip v-else title="取消订单">
-                        <delete-outlined @click.stop="handleCancelOrder(item)" />
-                      </a-tooltip>
-                    </template>
-
-                    <!-- 订单类型标签 -->
-                    <a-tag
-                      :color="getOrderTypeColor(item.order_type)"
-                      style="position: absolute; top: 8px; right: 8px"
-                    >
-                      {{ getOrderTypeName(item.order_type) }}
-                    </a-tag>
-
-                    <a-card-meta>
-                      <template #title>
-                        <div class="order-title">{{ item.title }}</div>
-                      </template>
-                      <template #description>
-                        <div class="order-info">
-                          <div class="order-price">
-                            <span class="price-label">单价:</span>
-                            <span class="price-value">{{ item.price_amount }}</span>
-                          </div>
-                          <div class="order-quantity">
-                            <span>数量: {{ item.quantity }}</span>
-                          </div>
-                          <div class="order-total">
-                            <span class="total-label">总价:</span>
-                            <strong class="total-value">
-                              {{ (item.price_amount * item.quantity).toFixed(2) }}
-                            </strong>
-                          </div>
-                          <div v-if="item.description" class="order-description">
-                            {{ item.description }}
-                          </div>
-                          <div class="order-footer">
-                            <a-space size="small">
-                              <user-outlined />
-                              <span class="seller-did">{{ shortenDid(item.creator_did) }}</span>
-                            </a-space>
-                            <span class="order-time">{{ formatTime(item.created_at) }}</span>
-                          </div>
-                        </div>
-                      </template>
-                    </a-card-meta>
-                  </a-card>
-                </a-list-item>
-              </template>
-
-              <template #empty>
-                <a-empty description="暂无订单">
-                  <a-button type="primary" @click="showCreateModal = true">
-                    发布第一个订单
-                  </a-button>
-                </a-empty>
-              </template>
-            </a-list>
+              <a-button v-if="!searchKeyword && !filterType" type="primary" @click="showCreateModal = true">
+                发布第一个订单
+              </a-button>
+            </a-empty>
           </a-spin>
         </a-tab-pane>
 
@@ -299,29 +259,35 @@ import {
   ShopOutlined,
   PlusOutlined,
   ReloadOutlined,
-  EyeOutlined,
-  ShoppingCartOutlined,
-  DeleteOutlined,
-  UserOutlined,
+  SearchOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+import OrderCard from './common/OrderCard.vue';
 import OrderCreate from './OrderCreate.vue';
 import OrderDetail from './OrderDetail.vue';
 
-// 状态
-const loading = ref(false);
-const loadingMyOrders = ref(false);
+// Store
+const tradeStore = useTradeStore();
+
+// 本地状态
 const activeTab = ref('market');
-const filterType = ref('');
 const searchKeyword = ref('');
-const orders = ref([]);
-const myCreatedOrders = ref([]);
-const myPurchasedOrders = ref([]);
-const currentDid = ref('');
 const showCreateModal = ref(false);
 const showDetailModal = ref(false);
 const showPurchaseModal = ref(false);
 const selectedOrder = ref(null);
 const purchaseQuantity = ref(1);
+const currentDid = ref('');
+
+// 从 store 获取数据
+const loading = computed(() => tradeStore.marketplace.loading);
+const orders = computed(() => tradeStore.marketplace.orders);
+const myCreatedOrders = computed(() => tradeStore.marketplace.myCreatedOrders);
+const myPurchasedOrders = computed(() => tradeStore.marketplace.myPurchasedOrders);
+const filterType = computed({
+  get: () => tradeStore.marketplace.filters.orderType,
+  set: (value) => tradeStore.setMarketplaceFilter('orderType', value),
+});
 
 // 筛选后的订单
 const filteredOrders = computed(() => {
@@ -438,14 +404,11 @@ const isMyOrder = (order) => {
 // 加载订单列表
 const loadOrders = async () => {
   try {
-    loading.value = true;
-    orders.value = await window.electronAPI.marketplace.getOrders({ status: 'open' });
-    console.log('订单列表已加载:', orders.value.length);
+    await tradeStore.loadOrders({ status: 'open' });
+    console.log('[Marketplace] 订单列表已加载:', orders.value.length);
   } catch (error) {
-    console.error('加载订单列表失败:', error);
+    console.error('[Marketplace] 加载订单列表失败:', error);
     antMessage.error('加载订单列表失败: ' + error.message);
-  } finally {
-    loading.value = false;
   }
 };
 
@@ -453,16 +416,11 @@ const loadOrders = async () => {
 const loadMyOrders = async () => {
   try {
     if (!currentDid.value) return;
-
-    loadingMyOrders.value = true;
-    const result = await window.electronAPI.marketplace.getMyOrders(currentDid.value);
-    myCreatedOrders.value = result.createdOrders || [];
-    myPurchasedOrders.value = result.purchasedOrders || [];
+    await tradeStore.loadMyOrders(currentDid.value);
+    console.log('[Marketplace] 我的订单已加载');
   } catch (error) {
-    console.error('加载我的订单失败:', error);
+    console.error('[Marketplace] 加载我的订单失败:', error);
     antMessage.error('加载我的订单失败: ' + error.message);
-  } finally {
-    loadingMyOrders.value = false;
   }
 };
 
@@ -512,18 +470,18 @@ const handleConfirmPurchase = async () => {
   try {
     if (!selectedOrder.value) return;
 
-    await window.electronAPI.marketplace.matchOrder(
+    await tradeStore.purchaseOrder(
       selectedOrder.value.id,
       purchaseQuantity.value
     );
 
     antMessage.success('购买成功！');
     showPurchaseModal.value = false;
-    loadOrders();
-    loadMyOrders();
+    await loadOrders();
+    await loadMyOrders();
   } catch (error) {
-    console.error('购买失败:', error);
-    antMessage.error('购买失败: ' + error.message);
+    console.error('[Marketplace] 购买失败:', error);
+    antMessage.error(error.message || '购买失败');
   }
 };
 
@@ -536,13 +494,13 @@ const handleCancelOrder = (order) => {
     cancelText: '取消',
     async onOk() {
       try {
-        await window.electronAPI.marketplace.cancelOrder(order.id);
+        await tradeStore.cancelOrder(order.id);
         antMessage.success('订单已取消');
-        loadOrders();
-        loadMyOrders();
+        await loadOrders();
+        await loadMyOrders();
       } catch (error) {
-        console.error('取消订单失败:', error);
-        antMessage.error('取消订单失败: ' + error.message);
+        console.error('[Marketplace] 取消订单失败:', error);
+        antMessage.error(error.message || '取消订单失败');
       }
     },
   });
@@ -560,6 +518,18 @@ const handleOrderCancelled = () => {
   loadMyOrders();
 };
 
+// 编辑订单
+const handleEditOrder = (order) => {
+  // TODO: 实现编辑订单功能
+  antMessage.info('编辑订单功能即将开放');
+};
+
+// 分享订单
+const handleShareOrder = (order) => {
+  // TODO: 实现分享订单功能
+  antMessage.info('分享订单功能即将开放');
+};
+
 // 确认收货
 const handleConfirmDelivery = (transaction) => {
   Modal.confirm({
@@ -569,12 +539,12 @@ const handleConfirmDelivery = (transaction) => {
     cancelText: '取消',
     async onOk() {
       try {
-        await window.electronAPI.marketplace.confirmDelivery(transaction.id);
+        await tradeStore.confirmDelivery(transaction.id);
         antMessage.success('已确认收货');
-        loadMyOrders();
+        await loadMyOrders();
       } catch (error) {
-        console.error('确认收货失败:', error);
-        antMessage.error('确认收货失败: ' + error.message);
+        console.error('[Marketplace] 确认收货失败:', error);
+        antMessage.error(error.message || '确认收货失败');
       }
     },
   });
@@ -589,12 +559,12 @@ const handleRequestRefund = (transaction) => {
     cancelText: '取消',
     async onOk() {
       try {
-        await window.electronAPI.marketplace.requestRefund(transaction.id, '买家申请退款');
+        await tradeStore.requestRefund(transaction.id, '买家申请退款');
         antMessage.success('已申请退款');
-        loadMyOrders();
+        await loadMyOrders();
       } catch (error) {
-        console.error('申请退款失败:', error);
-        antMessage.error('申请退款失败: ' + error.message);
+        console.error('[Marketplace] 申请退款失败:', error);
+        antMessage.error(error.message || '申请退款失败');
       }
     },
   });

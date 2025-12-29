@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChainlessChain Web Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <div class="header">
+      <img src="../icons/icon48.png" alt="ChainlessChain" class="logo">
+      <h1>ChainlessChain</h1>
+    </div>
+
+    <!-- 状态指示器 -->
+    <div class="status" id="status">
+      <div class="status-indicator" id="statusIndicator"></div>
+      <span id="statusText">检查连接...</span>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="content" id="content">
+      <!-- 页面信息预览 -->
+      <div class="preview" id="preview">
+        <h3 class="preview-title" id="previewTitle">加载中...</h3>
+        <div class="preview-meta">
+          <span id="previewDomain"></span>
+          <span id="previewDate"></span>
+        </div>
+      </div>
+
+      <!-- 表单 -->
+      <form id="clipForm">
+        <div class="form-group">
+          <label for="title">标题</label>
+          <input
+            type="text"
+            id="title"
+            class="form-control"
+            placeholder="网页标题"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="type">类型</label>
+          <select id="type" class="form-control">
+            <option value="web_clip">网页剪藏</option>
+            <option value="article">文章</option>
+            <option value="note">笔记</option>
+            <option value="document">文档</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="tags">标签</label>
+          <input
+            type="text"
+            id="tags"
+            class="form-control"
+            placeholder="标签1, 标签2, ..."
+          >
+          <small class="form-hint">用逗号分隔多个标签</small>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="readability" checked>
+            <span>使用 Readability 提取（推荐）</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="includeImages">
+            <span>包含图片</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="autoIndex" checked>
+            <span>自动添加到 RAG 索引</span>
+          </label>
+        </div>
+
+        <!-- 按钮组 -->
+        <div class="button-group">
+          <button type="submit" class="btn btn-primary" id="clipBtn">
+            <span class="btn-text">保存到知识库</span>
+            <span class="btn-loading" style="display: none;">
+              <span class="spinner"></span>
+              保存中...
+            </span>
+          </button>
+        </div>
+      </form>
+
+      <!-- 成功消息 -->
+      <div class="success-message" id="successMessage" style="display: none;">
+        <div class="success-icon">✓</div>
+        <p>已成功保存到知识库！</p>
+        <button class="btn btn-secondary" id="viewInApp">在应用中查看</button>
+      </div>
+    </div>
+
+    <!-- 错误消息 -->
+    <div class="error-message" id="errorMessage" style="display: none;">
+      <div class="error-icon">✗</div>
+      <p id="errorText"></p>
+      <button class="btn btn-secondary" id="retryBtn">重试</button>
+    </div>
+
+    <!-- 未连接消息 -->
+    <div class="disconnected-message" id="disconnectedMessage" style="display: none;">
+      <div class="warning-icon">⚠</div>
+      <h3>未连接到 ChainlessChain</h3>
+      <p>请确保 ChainlessChain 桌面应用正在运行</p>
+      <ol class="steps">
+        <li>打开 ChainlessChain 桌面应用</li>
+        <li>点击"重新连接"按钮</li>
+      </ol>
+      <button class="btn btn-primary" id="reconnectBtn">重新连接</button>
+    </div>
+  </div>
+
+  <!-- 页脚 -->
+  <div class="footer">
+    <a href="#" id="settingsLink">设置</a>
+    <a href="https://github.com/chainlesschain/chainlesschain" target="_blank">帮助</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

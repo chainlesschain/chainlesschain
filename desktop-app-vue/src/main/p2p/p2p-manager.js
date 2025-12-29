@@ -11,9 +11,12 @@ const path = require('path');
 const SignalSessionManager = require('./signal-session-manager');
 const DeviceManager = require('./device-manager');
 const { DeviceSyncManager, MessageStatus, SyncMessageType } = require('./device-sync-manager');
+const NATDetector = require('./nat-detector');
+const TransportDiagnostics = require('./transport-diagnostics');
 
 // 动态导入 ESM 模块
 let createLibp2p, tcp, noise, mplex, kadDHT, mdns, bootstrap, multiaddr;
+let webSockets, webRTC, yamux, circuitRelayTransport, dcutr, identify, ping;
 
 /**
  * P2P 配置
@@ -49,7 +52,98 @@ class P2PManager extends EventEmitter {
       this.postProtocolsRegistered = false;
       this.pendingPostProtocolRegistration = false;
       this.initialized = false;
+
+      // NAT穿透相关
+      this.p2pConfig = null;      // P2P配置（从数据库加载）
+      this.natDetector = null;    // NAT检测器
+      this.natInfo = null;        // NAT信息
+      this.transportDiagnostics = null; // 传输诊断工具
     }
+
+  /**
+   * 从数据库加载P2P配置
+   */
+  async loadP2PConfig() {
+    try {
+      // 从数据库加载P2P配置
+      const Database = require('../database');
+      const db = Database.getInstance();
+      const settings = await db.getAllSettings();
+
+      return {
+        transports: {
+          webrtc: settings['p2p.transports.webrtc.enabled'] !== 'false',
+          websocket: settings['p2p.transports.websocket.enabled'] !== 'false',
+          tcp: settings['p2p.transports.tcp.enabled'] !== 'false',
+          autoSelect: settings['p2p.transports.autoSelect'] !== 'false',
+        },
+        stun: {
+          servers: settings['p2p.stun.servers'] ? JSON.parse(settings['p2p.stun.servers']) : [
+            'stun:stun.l.google.com:19302',
+            'stun:stun1.l.google.com:19302'
+          ],
+        },
+        relay: {
+          enabled: settings['p2p.relay.enabled'] !== 'false',
+          maxReservations: parseInt(settings['p2p.relay.maxReservations']) || 2,
+          autoUpgrade: settings['p2p.relay.autoUpgrade'] !== 'false',
+        },
+        nat: {
+          autoDetect: settings['p2p.nat.autoDetect'] !== 'false',
+          detectionInterval: parseInt(settings['p2p.nat.detectionInterval']) || 3600000,
+        },
+        connection: {
+          dialTimeout: parseInt(settings['p2p.connection.dialTimeout']) || 30000,
+          maxRetries: parseInt(settings['p2p.connection.maxRetries']) || 3,
+          healthCheckInterval: parseInt(settings['p2p.connection.healthCheckInterval']) || 60000,
+        },
+        websocket: {
+          port: parseInt(settings['p2p.websocket.port']) || 9001,
+        },
+        compatibility: {
+          detectLegacy: settings['p2p.compatibility.detectLegacy'] !== 'false',
+        },
+      };
+    } catch (error) {
+      console.warn('[P2PManager] 加载P2P配置失败，使用默认值:', error);
+      // 返回默认配置
+      return {
+        transports: {
+          webrtc: true,
+          websocket: true,
+          tcp: true,
+          autoSelect: true,
+        },
+        stun: {
+          servers: [
+            'stun:stun.l.google.com:19302',
+            'stun:stun1.l.google.com:19302',
+            'stun:stun2.l.google.com:19302'
+          ],
+        },
+        relay: {
+          enabled: true,
+          maxReservations: 2,
+          autoUpgrade: true,
+        },
+        nat: {
+          autoDetect: true,
+          detectionInterval: 3600000,
+        },
+        connection: {
+          dialTimeout: 30000,
+          maxRetries: 3,
+          healthCheckInterval: 60000,
+        },
+        websocket: {
+          port: 9001,
+        },
+        compatibility: {
+          detectLegacy: true,
+        },
+      };
+    }
+  }
 
   /**
    * 初始化 P2P 节点
@@ -84,6 +178,58 @@ class P2PManager extends EventEmitter {
 
         const multiaddrModule = await import('multiaddr');
         multiaddr = multiaddrModule.multiaddr;
+
+        // 新增传输层模块
+        console.log('[P2PManager] 加载新传输层模块...');
+        const webSocketsModule = await import('@libp2p/websockets');
+        webSockets = webSocketsModule.webSockets;
+
+        const webRTCModule = await import('@libp2p/webrtc');
+        webRTC = webRTCModule.webRTC;
+
+        const yamuxModule = await import('@chainsafe/libp2p-yamux');
+        yamux = yamuxModule.yamux;
+
+        const circuitRelayModule = await import('@libp2p/circuit-relay-v2');
+        circuitRelayTransport = circuitRelayModule.circuitRelayTransport;
+
+        const dcutrModule = await import('@libp2p/dcutr');
+        dcutr = dcutrModule.dcutr;
+
+        const identifyModule = await import('@libp2p/identify');
+        identify = identifyModule.identify;
+
+        const pingModule = await import('@libp2p/ping');
+        ping = pingModule.ping;
+      }
+
+      // 加载P2P配置
+      this.p2pConfig = await this.loadP2PConfig();
+      console.log('[P2PManager] P2P配置已加载');
+
+      // 初始化NAT检测器
+      this.natDetector = new NATDetector();
+
+      // NAT类型检测
+      this.natInfo = null;
+      if (this.p2pConfig.nat.autoDetect) {
+        console.log('[P2P] 正在检测NAT类型...');
+        try {
+          this.natInfo = await this.natDetector.detectNATType(this.p2pConfig.stun.servers);
+          console.log(`[P2P] NAT类型: ${this.natInfo.type}, 公网IP: ${this.natInfo.publicIP || '未知'}`);
+
+          // 定期重新检测
+          setInterval(() => {
+            this.natDetector.detectNATType(this.p2pConfig.stun.servers).then(info => {
+              this.natInfo = info;
+              console.log(`[P2P] NAT重新检测: ${this.natInfo.type}`);
+            }).catch(err => {
+              console.warn('[P2P] NAT重新检测失败:', err.message);
+            });
+          }, this.p2pConfig.nat.detectionInterval);
+        } catch (error) {
+          console.warn('[P2P] NAT检测失败:', error.message);
+        }
       }
 
       // 加载或生成 PeerId
@@ -93,20 +239,53 @@ class P2PManager extends EventEmitter {
         return false;
       }
 
+      // 构建监听地址
+      const listenAddresses = [
+        `/ip4/0.0.0.0/tcp/${this.config.port}`,
+        `/ip4/127.0.0.1/tcp/${this.config.port}`,
+      ];
+
+      // 如果启用WebSocket，添加WebSocket监听地址
+      if (this.p2pConfig.transports.websocket) {
+        listenAddresses.push(`/ip4/0.0.0.0/tcp/${this.p2pConfig.websocket.port}/ws`);
+        listenAddresses.push(`/ip4/127.0.0.1/tcp/${this.p2pConfig.websocket.port}/ws`);
+      }
+
+      // 根据配置和NAT类型智能选择传输层
+      const transports = this.buildTransports({
+        tcp,
+        webSockets,
+        webRTC,
+        circuitRelayTransport,
+        config: this.p2pConfig,
+        natInfo: this.natInfo,
+      });
+
+      console.log(`[P2PManager] 启用传输层: ${transports.length} 个`);
+
       // 创建 libp2p 节点
       this.node = await createLibp2p({
         peerId: this.peerId,
         addresses: {
-          listen: [
-            `/ip4/0.0.0.0/tcp/${this.config.port}`,
-            `/ip4/127.0.0.1/tcp/${this.config.port}`,
-          ],
+          listen: listenAddresses,
         },
-        transports: [tcp()],
-        streamMuxers: [mplex()],
+        transports: transports,
+        streamMuxers: [mplex(), yamux()],  // 支持mplex和yamux
         connectionEncryption: [noise()],
         peerDiscovery: this.getPeerDiscoveryConfig(),
-        dht: this.config.enableDHT ? kadDHT() : undefined,
+        services: {
+          identify: identify(),           // 协议协商
+          ping: ping(),                   // 心跳检测（DHT依赖）
+          dcutr: dcutr(),                // NAT打洞
+          dht: this.config.enableDHT ? kadDHT() : undefined,
+        },
+        connectionManager: {
+          maxConnections: 100,
+          minConnections: 5,
+          dialTimeout: this.p2pConfig.connection.dialTimeout,
+          maxParallelDials: 5,
+          maxDialsPerPeer: this.p2pConfig.connection.maxRetries,
+        }
       });
 
       // 设置事件监听
@@ -118,6 +297,15 @@ class P2PManager extends EventEmitter {
       // 获取 DHT 实例
       if (this.config.enableDHT) {
         this.dht = this.node.services.dht;
+      }
+
+      // 初始化传输诊断工具
+      this.transportDiagnostics = new TransportDiagnostics(this);
+      console.log('[P2PManager] 传输诊断工具已初始化');
+
+      // 可选：启动健康监控
+      if (this.p2pConfig.connection.healthCheckInterval > 0) {
+        this.transportDiagnostics.startHealthMonitoring(this.p2pConfig.connection.healthCheckInterval);
       }
 
       // 初始化设备管理器
@@ -1279,7 +1467,86 @@ class P2PManager extends EventEmitter {
     this.initialized = false;
     this.peers.clear();
 
+    // 停止健康监控
+    if (this.transportDiagnostics) {
+      this.transportDiagnostics.stopHealthMonitoring();
+    }
+
     this.emit('closed');
+  }
+
+  /**
+   * 根据配置和NAT类型构建传输层数组
+   */
+  buildTransports({ tcp, webSockets, webRTC, circuitRelayTransport, config, natInfo }) {
+    const transports = [];
+
+    // 根据NAT类型和配置智能选择
+    if (config.transports.autoSelect && natInfo) {
+      console.log(`[P2PManager] 智能传输选择: NAT类型=${natInfo.type}`);
+
+      // Full Cone NAT: WebRTC最优
+      if ((natInfo.type === 'full-cone' || natInfo.type === 'restricted') && config.transports.webrtc) {
+        transports.push(webRTC({ iceServers: this.buildICEServers() }));
+        console.log('[P2PManager] 添加WebRTC传输（适合Full Cone/Restricted NAT）');
+      }
+
+      // 对称NAT: WebSocket最优
+      if (natInfo.type === 'symmetric' && config.transports.websocket) {
+        transports.push(webSockets());
+        console.log('[P2PManager] 添加WebSocket传输（适合对称NAT）');
+      }
+
+      // 本地网络: TCP最优
+      if ((natInfo.type === 'none' || !natInfo.type) && config.transports.tcp) {
+        transports.push(tcp());
+        console.log('[P2PManager] 添加TCP传输（无NAT或未知）');
+      }
+
+      // 如果智能选择没有添加任何传输，添加所有已启用的传输
+      if (transports.length === 0) {
+        console.log('[P2PManager] 智能选择未匹配，启用所有配置的传输');
+        if (config.transports.tcp) transports.push(tcp());
+        if (config.transports.websocket) transports.push(webSockets());
+        if (config.transports.webrtc) transports.push(webRTC({ iceServers: this.buildICEServers() }));
+      }
+    } else {
+      // 非智能模式：启用所有配置的传输层
+      console.log('[P2PManager] 标准模式：启用所有配置的传输');
+      if (config.transports.tcp) {
+        transports.push(tcp());
+      }
+      if (config.transports.websocket) {
+        transports.push(webSockets());
+      }
+      if (config.transports.webrtc) {
+        transports.push(webRTC({ iceServers: this.buildICEServers() }));
+      }
+    }
+
+    // Circuit Relay 作为通用后备（所有模式都启用）
+    if (config.relay.enabled) {
+      transports.push(circuitRelayTransport({
+        discoverRelays: config.relay.maxReservations,
+        reservationCompletionTimeout: 10000,
+      }));
+      console.log('[P2PManager] 添加Circuit Relay传输（通用后备）');
+    }
+
+    return transports;
+  }
+
+  /**
+   * 构建ICE服务器配置（用于WebRTC）
+   */
+  buildICEServers() {
+    if (!this.p2pConfig || !this.p2pConfig.stun || !this.p2pConfig.stun.servers) {
+      return [];
+    }
+
+    return this.p2pConfig.stun.servers.map(server => ({
+      urls: server
+    }));
   }
 }
 

@@ -48,6 +48,12 @@ const routes = [
         meta: { title: '插件管理' },
       },
       {
+        path: 'settings/database-security',
+        name: 'DatabaseSecurity',
+        component: () => import('../pages/settings/DatabaseSecurity.vue'),
+        meta: { title: '数据库安全' },
+      },
+      {
         path: 'did',
         name: 'DIDManagement',
         component: () => import('../components/DIDManagement.vue'),
