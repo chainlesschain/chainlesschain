@@ -1,0 +1,32 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 外圆环 -->
+  <circle cx="100" cy="100" r="85" fill="none" stroke="url(#logoGradient)" stroke-width="8" opacity="0.3"/>
+
+  <!-- 链条环节 1 -->
+  <ellipse cx="70" cy="100" rx="25" ry="35" fill="none" stroke="url(#logoGradient)" stroke-width="6" transform="rotate(-30 70 100)"/>
+
+  <!-- 链条环节 2 -->
+  <ellipse cx="130" cy="100" rx="25" ry="35" fill="none" stroke="url(#logoGradient)" stroke-width="6" transform="rotate(30 130 100)"/>
+
+  <!-- 中心连接 -->
+  <line x1="85" y1="85" x2="115" y2="115" stroke="url(#logoGradient)" stroke-width="6" stroke-linecap="round"/>
+  <line x1="85" y1="115" x2="115" y2="85" stroke="url(#logoGradient)" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- AI 标志 -->
+  <circle cx="100" cy="100" r="18" fill="url(#logoGradient)"/>
+  <text x="100" y="108" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">AI</text>
+
+  <!-- 装饰点 -->
+  <circle cx="40" cy="60" r="4" fill="#667eea" opacity="0.6"/>
+  <circle cx="160" cy="60" r="4" fill="#764ba2" opacity="0.6"/>
+  <circle cx="40" cy="140" r="4" fill="#f093fb" opacity="0.6"/>
+  <circle cx="160" cy="140" r="4" fill="#667eea" opacity="0.6"/>
+</svg>
