@@ -70,11 +70,23 @@ class TransportDiagnostics {
         }
       }
 
-      console.log(`[Transport Diagnostics] ${transport} 测试完成:`, result.available ? '可用' : '不可用');
+      // 只在状态变化时记录
+      const prevHealth = this.getTransportHealth(transport);
+      if (prevHealth.lastCheck === null || prevHealth.successCount === 0) {
+        console.log(`[Transport Diagnostics] ${transport} 测试完成: 可用`);
+      }
 
     } catch (error) {
       result.error = error.message;
-      console.error(`[Transport Diagnostics] ${transport} 测试失败:`, error);
+
+      // 只在状态变化或首次检测时记录错误
+      const prevHealth = this.getTransportHealth(transport);
+      const shouldLog = prevHealth.lastCheck === null ||
+                       (prevHealth.successCount > 0 && prevHealth.failureCount === 0);
+
+      if (shouldLog) {
+        console.error(`[Transport Diagnostics] ${transport} 测试失败:`, error);
+      }
     }
 
     result.testDuration = Date.now() - startTime;
@@ -212,10 +224,15 @@ class TransportDiagnostics {
     }
 
     const total = health.successCount + health.failureCount;
+    const oldSuccessRate = health.successRate;
     health.successRate = total > 0 ? (health.successCount / total) * 100 : 0;
     health.lastCheck = Date.now();
 
-    console.log(`[Transport Diagnostics] ${transport} 健康更新: 成功率 ${health.successRate.toFixed(1)}%, 平均延迟 ${health.avgLatency.toFixed(0)}ms`);
+    // 只在首次检测或成功率变化超过10%时记录
+    const rateChanged = Math.abs(health.successRate - oldSuccessRate) > 10;
+    if (total === 1 || rateChanged) {
+      console.log(`[Transport Diagnostics] ${transport} 健康更新: 成功率 ${health.successRate.toFixed(1)}%, 平均延迟 ${health.avgLatency.toFixed(0)}ms`);
+    }
   }
 
   /**

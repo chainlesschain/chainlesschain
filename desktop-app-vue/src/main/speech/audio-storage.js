@@ -110,7 +110,7 @@ class AudioStorage {
     `;
 
     try {
-      await this.db.db.run(sql, [
+      await this.db.run(sql, [
         id, file_name, file_path, file_size,
         duration, format, sample_rate, channels,
         transcription_text, transcription_engine, transcription_confidence,
@@ -168,7 +168,7 @@ class AudioStorage {
     const sql = `UPDATE audio_files SET ${fields.join(', ')} WHERE id = ?`;
 
     try {
-      await this.db.db.run(sql, values);
+      await this.db.run(sql, values);
       console.log('[AudioStorage] 音频记录已更新:', id);
 
       return { success: true, id };
@@ -187,7 +187,7 @@ class AudioStorage {
     const sql = `SELECT * FROM audio_files WHERE id = ?`;
 
     try {
-      const record = await this.db.db.get(sql, [id]);
+      const record = await this.db.get(sql, [id]);
       return record || null;
     } catch (error) {
       console.error('[AudioStorage] 获取音频记录失败:', error);
@@ -217,7 +217,7 @@ class AudioStorage {
     `;
 
     try {
-      const records = await this.db.db.all(sql, [user_id, limit, offset]);
+      const records = await this.db.all(sql, [user_id, limit, offset]);
       return records || [];
     } catch (error) {
       console.error('[AudioStorage] 获取音频列表失败:', error);
@@ -251,7 +251,7 @@ class AudioStorage {
     const searchPattern = `%${query}%`;
 
     try {
-      const records = await this.db.db.all(sql, [user_id, searchPattern, searchPattern, limit]);
+      const records = await this.db.all(sql, [user_id, searchPattern, searchPattern, limit]);
       return records || [];
     } catch (error) {
       console.error('[AudioStorage] 搜索音频失败:', error);
@@ -283,7 +283,7 @@ class AudioStorage {
 
       // 删除数据库记录
       const sql = `DELETE FROM audio_files WHERE id = ?`;
-      await this.db.db.run(sql, [id]);
+      await this.db.run(sql, [id]);
 
       console.log('[AudioStorage] 音频记录已删除:', id);
 
@@ -319,7 +319,7 @@ class AudioStorage {
     `;
 
     try {
-      await this.db.db.run(sql, [
+      await this.db.run(sql, [
         id, audio_file_id, engine, text, confidence,
         duration, status, error,
       ]);
@@ -346,7 +346,7 @@ class AudioStorage {
     `;
 
     try {
-      const records = await this.db.db.all(sql, [audio_file_id]);
+      const records = await this.db.all(sql, [audio_file_id]);
       return records || [];
     } catch (error) {
       console.error('[AudioStorage] 获取转录历史失败:', error);
@@ -374,7 +374,7 @@ class AudioStorage {
     `;
 
     try {
-      const records = await this.db.db.all(sql, [limit, offset]);
+      const records = await this.db.all(sql, [limit, offset]);
       return records || [];
     } catch (error) {
       console.error('[AudioStorage] 获取转录历史失败:', error);
@@ -391,7 +391,7 @@ class AudioStorage {
     const sql = `DELETE FROM transcription_history WHERE id = ?`;
 
     try {
-      await this.db.db.run(sql, [id]);
+      await this.db.run(sql, [id]);
       console.log('[AudioStorage] 转录历史已删除:', id);
 
       return { success: true, id };
@@ -410,22 +410,22 @@ class AudioStorage {
     try {
       // 总文件数
       const countSql = `SELECT COUNT(*) as count FROM audio_files WHERE user_id = ?`;
-      const countResult = await this.db.db.get(countSql, [user_id]);
+      const countResult = await this.db.get(countSql, [user_id]);
 
       // 总大小
       const sizeSql = `SELECT SUM(file_size) as total_size FROM audio_files WHERE user_id = ?`;
-      const sizeResult = await this.db.db.get(sizeSql, [user_id]);
+      const sizeResult = await this.db.get(sizeSql, [user_id]);
 
       // 总时长
       const durationSql = `SELECT SUM(duration) as total_duration FROM audio_files WHERE user_id = ?`;
-      const durationResult = await this.db.db.get(durationSql, [user_id]);
+      const durationResult = await this.db.get(durationSql, [user_id]);
 
       // 已转录数量
       const transcribedSql = `
         SELECT COUNT(*) as count FROM audio_files
         WHERE user_id = ? AND transcription_text IS NOT NULL
       `;
-      const transcribedResult = await this.db.db.get(transcribedSql, [user_id]);
+      const transcribedResult = await this.db.get(transcribedSql, [user_id]);
 
       return {
         totalFiles: countResult.count || 0,
@@ -451,7 +451,7 @@ class AudioStorage {
     `;
 
     try {
-      const oldFiles = await this.db.db.all(sql);
+      const oldFiles = await this.db.all(sql);
       let deletedCount = 0;
 
       for (const file of oldFiles) {

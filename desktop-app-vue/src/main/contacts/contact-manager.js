@@ -44,13 +44,13 @@ class ContactManager extends EventEmitter {
   async ensureTables() {
     try {
       // 检查 contacts 表
-      const result = this.db.db.exec(
+      const result = this.db.exec(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='contacts'"
       );
 
       if (!result || result.length === 0) {
         // 创建 contacts 表
-        this.db.db.exec(`
+        this.db.exec(`
           CREATE TABLE IF NOT EXISTS contacts (
             did TEXT PRIMARY KEY,
             nickname TEXT,
@@ -70,12 +70,12 @@ class ContactManager extends EventEmitter {
       }
 
       // 创建好友请求表
-      const requestResult = this.db.db.exec(
+      const requestResult = this.db.exec(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='friend_requests'"
       );
 
       if (!requestResult || requestResult.length === 0) {
-        this.db.db.exec(`
+        this.db.exec(`
           CREATE TABLE IF NOT EXISTS friend_requests (
             id TEXT PRIMARY KEY,
             from_did TEXT NOT NULL,
@@ -122,7 +122,7 @@ class ContactManager extends EventEmitter {
         notes: contact.notes || null,
       };
 
-      this.db.db.exec(
+      this.db.exec(
         `
         INSERT OR REPLACE INTO contacts (
           did, nickname, avatar_url, public_key_sign, public_key_encrypt,
@@ -191,7 +191,7 @@ class ContactManager extends EventEmitter {
    */
   getAllContacts() {
     try {
-      const result = this.db.db.exec('SELECT * FROM contacts ORDER BY added_at DESC');
+      const result = this.db.exec('SELECT * FROM contacts ORDER BY added_at DESC');
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -219,7 +219,7 @@ class ContactManager extends EventEmitter {
    */
   getContactByDID(did) {
     try {
-      const result = this.db.db.exec('SELECT * FROM contacts WHERE did = ?', [did]);
+      const result = this.db.exec('SELECT * FROM contacts WHERE did = ?', [did]);
 
       if (!result || result.length === 0 || !result[0].values || result[0].values.length === 0) {
         return null;
@@ -271,7 +271,7 @@ class ContactManager extends EventEmitter {
 
       values.push(did);
 
-      this.db.db.exec(`UPDATE contacts SET ${fields.join(', ')} WHERE did = ?`, values);
+      this.db.exec(`UPDATE contacts SET ${fields.join(', ')} WHERE did = ?`, values);
 
       this.db.saveToFile();
 
@@ -297,7 +297,7 @@ class ContactManager extends EventEmitter {
         throw new Error('联系人不存在');
       }
 
-      this.db.db.exec('DELETE FROM contacts WHERE did = ?', [did]);
+      this.db.exec('DELETE FROM contacts WHERE did = ?', [did]);
       this.db.saveToFile();
 
       console.log('[ContactManager] 联系人已删除:', did);
@@ -316,7 +316,7 @@ class ContactManager extends EventEmitter {
    */
   searchContacts(query) {
     try {
-      const result = this.db.db.exec(
+      const result = this.db.exec(
         `SELECT * FROM contacts
          WHERE nickname LIKE ? OR did LIKE ? OR notes LIKE ?
          ORDER BY trust_score DESC, added_at DESC`,
@@ -348,7 +348,7 @@ class ContactManager extends EventEmitter {
    */
   getFriends() {
     try {
-      const result = this.db.db.exec(
+      const result = this.db.exec(
         "SELECT * FROM contacts WHERE relationship = 'friend' ORDER BY trust_score DESC"
       );
 
@@ -378,7 +378,7 @@ class ContactManager extends EventEmitter {
    */
   async updateLastSeen(did) {
     try {
-      this.db.db.exec('UPDATE contacts SET last_seen = ? WHERE did = ?', [Date.now(), did]);
+      this.db.exec('UPDATE contacts SET last_seen = ? WHERE did = ?', [Date.now(), did]);
 
       this.db.saveToFile();
 
@@ -406,7 +406,7 @@ class ContactManager extends EventEmitter {
       // 限制在 0-100 范围内
       newScore = Math.max(0, Math.min(100, newScore));
 
-      this.db.db.exec('UPDATE contacts SET trust_score = ? WHERE did = ?', [newScore, did]);
+      this.db.exec('UPDATE contacts SET trust_score = ? WHERE did = ?', [newScore, did]);
 
       this.db.saveToFile();
 
@@ -426,17 +426,17 @@ class ContactManager extends EventEmitter {
   getStatistics() {
     try {
       // 总联系人数
-      const totalResult = this.db.db.exec('SELECT COUNT(*) as count FROM contacts');
+      const totalResult = this.db.exec('SELECT COUNT(*) as count FROM contacts');
       const total = totalResult[0]?.values[0]?.[0] || 0;
 
       // 好友数
-      const friendsResult = this.db.db.exec(
+      const friendsResult = this.db.exec(
         "SELECT COUNT(*) as count FROM contacts WHERE relationship = 'friend'"
       );
       const friends = friendsResult[0]?.values[0]?.[0] || 0;
 
       // 按关系类型统计
-      const byRelationshipResult = this.db.db.exec(
+      const byRelationshipResult = this.db.exec(
         'SELECT relationship, COUNT(*) as count FROM contacts GROUP BY relationship'
       );
 

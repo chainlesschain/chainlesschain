@@ -71,13 +71,13 @@ class VCManager extends EventEmitter {
    */
   async ensureTables() {
     try {
-      const result = this.db.db.exec(
+      const result = this.db.exec(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='verifiable_credentials'"
       );
 
       if (!result || result.length === 0) {
         // 创建可验证凭证表
-        this.db.db.exec(`
+        this.db.exec(`
           CREATE TABLE IF NOT EXISTS verifiable_credentials (
             id TEXT PRIMARY KEY,
             type TEXT NOT NULL,
@@ -93,7 +93,7 @@ class VCManager extends EventEmitter {
         `);
 
         // 创建索引
-        this.db.db.exec(`
+        this.db.exec(`
           CREATE INDEX IF NOT EXISTS idx_vc_issuer ON verifiable_credentials(issuer_did);
           CREATE INDEX IF NOT EXISTS idx_vc_subject ON verifiable_credentials(subject_did);
           CREATE INDEX IF NOT EXISTS idx_vc_type ON verifiable_credentials(type);
@@ -307,7 +307,7 @@ class VCManager extends EventEmitter {
    */
   async saveCredential(vcRecord) {
     try {
-      this.db.db.exec(`
+      this.db.exec(`
         INSERT OR REPLACE INTO verifiable_credentials (
           id, type, issuer_did, subject_did, claims,
           vc_document, issued_at, expires_at, status, created_at
@@ -364,7 +364,7 @@ class VCManager extends EventEmitter {
 
       query += ' ORDER BY created_at DESC';
 
-      const result = this.db.db.exec(query, params);
+      const result = this.db.exec(query, params);
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -393,7 +393,7 @@ class VCManager extends EventEmitter {
    */
   getCredentialById(id) {
     try {
-      const result = this.db.db.exec(
+      const result = this.db.exec(
         'SELECT * FROM verifiable_credentials WHERE id = ?',
         [id]
       );
@@ -435,7 +435,7 @@ class VCManager extends EventEmitter {
         throw new Error('只有颁发者可以撤销凭证');
       }
 
-      this.db.db.exec(
+      this.db.exec(
         'UPDATE verifiable_credentials SET status = ? WHERE id = ?',
         [VC_STATUS.REVOKED, id]
       );
@@ -465,7 +465,7 @@ class VCManager extends EventEmitter {
         throw new Error('凭证不存在');
       }
 
-      this.db.db.exec('DELETE FROM verifiable_credentials WHERE id = ?', [id]);
+      this.db.exec('DELETE FROM verifiable_credentials WHERE id = ?', [id]);
       this.db.saveToFile();
 
       console.log('[VCManager] 凭证已删除:', id);
@@ -512,8 +512,8 @@ class VCManager extends EventEmitter {
         receivedParams.push(did);
       }
 
-      const issuedResult = this.db.db.exec(issuedQuery, issuedParams);
-      const receivedResult = this.db.db.exec(receivedQuery, receivedParams);
+      const issuedResult = this.db.exec(issuedQuery, issuedParams);
+      const receivedResult = this.db.exec(receivedQuery, receivedParams);
 
       const issued = issuedResult?.[0]?.values?.[0]?.[0] || 0;
       const received = receivedResult?.[0]?.values?.[0]?.[0] || 0;
@@ -523,7 +523,7 @@ class VCManager extends EventEmitter {
         ? 'SELECT type, COUNT(*) as count FROM verifiable_credentials WHERE subject_did = ? GROUP BY type'
         : 'SELECT type, COUNT(*) as count FROM verifiable_credentials GROUP BY type';
       const typeParams = did ? [did] : [];
-      const typeResult = this.db.db.exec(typeQuery, typeParams);
+      const typeResult = this.db.exec(typeQuery, typeParams);
 
       const byType = {};
       if (typeResult && typeResult[0] && typeResult[0].values) {

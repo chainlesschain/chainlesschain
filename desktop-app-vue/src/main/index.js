@@ -3344,8 +3344,10 @@ class ChainlessChainApp {
     // 获取聊天会话列表
     ipcMain.handle('chat:get-sessions', async () => {
       try {
-        const db = this.database.getDatabase();
-        const sessions = db
+        if (!this.database || !this.database.db) {
+          throw new Error('数据库未初始化');
+        }
+        const sessions = this.database.db
           .prepare('SELECT * FROM chat_sessions ORDER BY updated_at DESC')
           .all();
         return sessions;
@@ -3358,8 +3360,10 @@ class ChainlessChainApp {
     // 获取聊天消息
     ipcMain.handle('chat:get-messages', async (_event, sessionId, limit = 50, offset = 0) => {
       try {
-        const db = this.database.getDatabase();
-        const messages = db
+        if (!this.database || !this.database.db) {
+          throw new Error('数据库未初始化');
+        }
+        const messages = this.database.db
           .prepare(
             'SELECT * FROM p2p_chat_messages WHERE session_id = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?'
           )
@@ -3374,10 +3378,12 @@ class ChainlessChainApp {
     // 保存消息
     ipcMain.handle('chat:save-message', async (_event, message) => {
       try {
-        const db = this.database.getDatabase();
+        if (!this.database || !this.database.db) {
+          throw new Error('数据库未初始化');
+        }
 
         // 保存消息
-        db.prepare(`
+        this.database.db.prepare(`
           INSERT INTO p2p_chat_messages (
             id, session_id, sender_did, receiver_did, content,
             message_type, file_path, encrypted, status, device_id, timestamp
@@ -3398,12 +3404,12 @@ class ChainlessChainApp {
         );
 
         // 更新会话
-        const session = db
+        const session = this.database.db
           .prepare('SELECT * FROM chat_sessions WHERE id = ?')
           .get(message.sessionId);
 
         if (session) {
-          db.prepare(`
+          this.database.db.prepare(`
             UPDATE chat_sessions
             SET last_message = ?, last_message_time = ?, updated_at = ?
             WHERE id = ?
@@ -3445,8 +3451,10 @@ class ChainlessChainApp {
     // 更新消息状态
     ipcMain.handle('chat:update-message-status', async (_event, messageId, status) => {
       try {
-        const db = this.database.getDatabase();
-        db.prepare('UPDATE p2p_chat_messages SET status = ? WHERE id = ?').run(status, messageId);
+        if (!this.database || !this.database.db) {
+          throw new Error('数据库未初始化');
+        }
+        this.database.db.prepare('UPDATE p2p_chat_messages SET status = ? WHERE id = ?').run(status, messageId);
         this.database.saveToFile();
         return { success: true };
       } catch (error) {
@@ -3458,8 +3466,10 @@ class ChainlessChainApp {
     // 标记会话为已读
     ipcMain.handle('chat:mark-as-read', async (_event, sessionId) => {
       try {
-        const db = this.database.getDatabase();
-        db.prepare('UPDATE chat_sessions SET unread_count = 0 WHERE id = ?').run(sessionId);
+        if (!this.database || !this.database.db) {
+          throw new Error('数据库未初始化');
+        }
+        this.database.db.prepare('UPDATE chat_sessions SET unread_count = 0 WHERE id = ?').run(sessionId);
         this.database.saveToFile();
         return { success: true };
       } catch (error) {
@@ -3473,8 +3483,10 @@ class ChainlessChainApp {
     // 获取所有通知
     ipcMain.handle('notification:get-all', async (_event, limit = 50) => {
       try {
-        const db = this.database.getDatabase();
-        const notifications = db
+        if (!this.database || !this.database.db) {
+          throw new Error('数据库未初始化');
+        }
+        const notifications = this.database.db
           .prepare('SELECT * FROM notifications ORDER BY created_at DESC LIMIT ?')
           .all(limit);
         return notifications;
@@ -3487,8 +3499,10 @@ class ChainlessChainApp {
     // 标记通知为已读
     ipcMain.handle('notification:mark-read', async (_event, id) => {
       try {
-        const db = this.database.getDatabase();
-        db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(id);
+        if (!this.database || !this.database.db) {
+          throw new Error('数据库未初始化');
+        }
+        this.database.db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(id);
         this.database.saveToFile();
         return { success: true };
       } catch (error) {
@@ -3500,8 +3514,10 @@ class ChainlessChainApp {
     // 全部标记为已读
     ipcMain.handle('notification:mark-all-read', async () => {
       try {
-        const db = this.database.getDatabase();
-        db.prepare('UPDATE notifications SET is_read = 1').run();
+        if (!this.database || !this.database.db) {
+          throw new Error('数据库未初始化');
+        }
+        this.database.db.prepare('UPDATE notifications SET is_read = 1').run();
         this.database.saveToFile();
         return { success: true };
       } catch (error) {
@@ -3513,8 +3529,10 @@ class ChainlessChainApp {
     // 获取未读通知数量
     ipcMain.handle('notification:get-unread-count', async () => {
       try {
-        const db = this.database.getDatabase();
-        const result = db
+        if (!this.database || !this.database.db) {
+          throw new Error('数据库未初始化');
+        }
+        const result = this.database.db
           .prepare('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0')
           .get();
         return result.count || 0;

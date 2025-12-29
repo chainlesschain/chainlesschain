@@ -79,13 +79,13 @@ class DIDManager extends EventEmitter {
     // identities 表应该在数据库初始化时已创建
     // 这里只做检查
     try {
-      const result = this.db.db.exec(
+      const result = this.db.exec(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='identities'"
       );
 
       if (!result || result.length === 0) {
         // 创建 identities 表
-        this.db.db.exec(`
+        this.db.exec(`
           CREATE TABLE IF NOT EXISTS identities (
             did TEXT PRIMARY KEY,
             nickname TEXT,
@@ -336,7 +336,7 @@ class DIDManager extends EventEmitter {
    */
   async saveIdentity(identity) {
     try {
-      this.db.db.exec(`
+      this.db.exec(`
         INSERT OR REPLACE INTO identities (
           did, nickname, avatar_path, bio,
           public_key_sign, public_key_encrypt, private_key_ref,
@@ -368,7 +368,7 @@ class DIDManager extends EventEmitter {
    */
   getAllIdentities() {
     try {
-      const result = this.db.db.exec('SELECT * FROM identities ORDER BY created_at DESC');
+      const result = this.db.exec('SELECT * FROM identities ORDER BY created_at DESC');
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -397,7 +397,7 @@ class DIDManager extends EventEmitter {
    */
   getIdentityByDID(did) {
     try {
-      const result = this.db.db.exec('SELECT * FROM identities WHERE did = ?', [did]);
+      const result = this.db.exec('SELECT * FROM identities WHERE did = ?', [did]);
 
       if (!result || result.length === 0 || !result[0].values || result[0].values.length === 0) {
         return null;
@@ -425,10 +425,10 @@ class DIDManager extends EventEmitter {
   async setDefaultIdentity(did) {
     try {
       // 清除所有默认标记
-      this.db.db.exec('UPDATE identities SET is_default = 0');
+      this.db.exec('UPDATE identities SET is_default = 0');
 
       // 设置新的默认身份
-      this.db.db.exec('UPDATE identities SET is_default = 1 WHERE did = ?', [did]);
+      this.db.exec('UPDATE identities SET is_default = 1 WHERE did = ?', [did]);
 
       this.db.saveToFile();
 
@@ -448,7 +448,7 @@ class DIDManager extends EventEmitter {
    */
   async loadDefaultIdentity() {
     try {
-      const result = this.db.db.exec('SELECT * FROM identities WHERE is_default = 1 LIMIT 1');
+      const result = this.db.exec('SELECT * FROM identities WHERE is_default = 1 LIMIT 1');
 
       if (result && result.length > 0 && result[0].values && result[0].values.length > 0) {
         const columns = result[0].columns;
@@ -505,7 +505,7 @@ class DIDManager extends EventEmitter {
 
       values.push(did);
 
-      this.db.db.exec(
+      this.db.exec(
         `UPDATE identities SET ${fields.join(', ')} WHERE did = ?`,
         values
       );
@@ -552,7 +552,7 @@ class DIDManager extends EventEmitter {
         throw new Error('不能删除默认身份');
       }
 
-      this.db.db.exec('DELETE FROM identities WHERE did = ?', [did]);
+      this.db.exec('DELETE FROM identities WHERE did = ?', [did]);
       this.db.saveToFile();
 
       console.log('[DIDManager] 身份已删除:', did);
