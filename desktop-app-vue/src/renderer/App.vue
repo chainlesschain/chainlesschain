@@ -13,7 +13,7 @@
 
     <!-- 首次启动加密设置向导 -->
     <DatabaseEncryptionWizard
-      v-model:visible="showWizard"
+      v-model:open="showWizard"
       @complete="onWizardComplete"
       @skip="onWizardSkip"
     />

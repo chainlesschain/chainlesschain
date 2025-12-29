@@ -1,7 +1,7 @@
 <template>
   <div class="contract-detail">
     <a-modal
-      :visible="visible"
+      :open="visible"
       title="合约详情"
       width="1000px"
       :footer="null"
@@ -239,7 +239,7 @@ const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -250,7 +250,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['activated', 'executed', 'cancelled', 'update:visible']);
+const emit = defineEmits(['activated', 'executed', 'cancelled', 'update:open']);
 
 // 状态
 const loadingConditions = ref(false);
@@ -494,7 +494,7 @@ const handleActivate = async () => {
         await window.electronAPI.contract.activate(props.contract.id);
         antMessage.success('合约已激活');
         emit('activated');
-        emit('update:visible', false);
+        emit('update:open', false);
       } catch (error) {
         console.error('激活合约失败:', error);
         antMessage.error('激活合约失败: ' + error.message);
@@ -563,7 +563,7 @@ const handleExecute = async () => {
         antMessage.success('合约执行成功');
 
         emit('executed');
-        emit('update:visible', false);
+        emit('update:open', false);
       } catch (error) {
         console.error('[ContractDetail] 执行合约失败:', error);
         antMessage.error(error.message || '执行合约失败');
@@ -588,7 +588,7 @@ const handleCancel = async () => {
         antMessage.success('合约已取消');
 
         emit('cancelled');
-        emit('update:visible', false);
+        emit('update:open', false);
       } catch (error) {
         console.error('[ContractDetail] 取消合约失败:', error);
         antMessage.error(error.message || '取消合约失败');
@@ -626,11 +626,11 @@ const handleInitiateArbitration = async () => {
 
 // 关闭对话框
 const handleClose = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
 };
 
 // 监听对话框打开
-watch(() => props.visible, async (newVal) => {
+watch(() => props.open, async (newVal) => {
   if (newVal && props.contract) {
     // 获取当前用户 DID
     const identity = await window.electronAPI.did.getCurrentIdentity();

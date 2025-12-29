@@ -148,7 +148,7 @@
 
     <!-- 托管详情抽屉 -->
     <escrow-detail
-      :visible="showDetailDrawer"
+      :open="showDetailDrawer"
       :escrow="selectedEscrow"
       @close="showDetailDrawer = false"
       @dispute="handleDisputeFromDetail"
@@ -156,7 +156,7 @@
 
     <!-- 争议发起对话框 -->
     <escrow-dispute
-      v-model:visible="showDisputeModal"
+      v-model:open="showDisputeModal"
       :escrow="selectedEscrow"
       @disputed="handleDisputed"
     />

@@ -1,7 +1,7 @@
 <template>
   <div class="order-create">
     <a-modal
-      :visible="visible"
+      :open="visible"
       title="创建订单"
       width="700px"
       :confirm-loading="creating"
@@ -207,14 +207,14 @@ const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
 });
 
 // Emits
-const emit = defineEmits(['created', 'cancel', 'update:visible']);
+const emit = defineEmits(['created', 'cancel', 'update:open']);
 
 // 状态
 const currentDid = ref('');
@@ -367,7 +367,7 @@ const handleCreate = async () => {
     emit('created', order);
 
     // 关闭对话框
-    emit('update:visible', false);
+    emit('update:open', false);
 
     // 重置表单
     resetForm();
@@ -427,7 +427,7 @@ const validateForm = () => {
 // 取消
 const handleCancel = () => {
   emit('cancel');
-  emit('update:visible', false);
+  emit('update:open', false);
   resetForm();
 };
 
@@ -448,7 +448,7 @@ const resetForm = () => {
 };
 
 // 监听对话框打开
-watch(() => props.visible, (newVal) => {
+watch(() => props.open, (newVal) => {
   if (newVal) {
     loadMyAssets();
     resetForm();

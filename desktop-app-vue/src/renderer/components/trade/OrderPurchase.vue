@@ -1,7 +1,7 @@
 <template>
   <div class="order-purchase">
     <a-modal
-      :visible="visible"
+      :open="visible"
       title="购买订单"
       width="600px"
       :confirm-loading="purchasing"
@@ -174,7 +174,7 @@ const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -185,7 +185,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['purchased', 'cancel', 'update:visible']);
+const emit = defineEmits(['purchased', 'cancel', 'update:open']);
 
 // 表单状态
 const form = reactive({
@@ -268,7 +268,7 @@ const handlePurchase = async () => {
     });
 
     // 关闭对话框
-    emit('update:visible', false);
+    emit('update:open', false);
 
     // 重置表单
     resetForm();
@@ -306,7 +306,7 @@ const validateForm = () => {
 // 取消
 const handleCancel = () => {
   emit('cancel');
-  emit('update:visible', false);
+  emit('update:open', false);
   resetForm();
 };
 
@@ -317,7 +317,7 @@ const resetForm = () => {
 };
 
 // 监听对话框打开
-watch(() => props.visible, (newVal) => {
+watch(() => props.open, (newVal) => {
   if (newVal && props.order) {
     // 重置表单
     resetForm();

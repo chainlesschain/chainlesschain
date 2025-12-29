@@ -1,6 +1,6 @@
 <template>
   <a-drawer
-    :visible="visible"
+    :open="visible"
     title="托管详情"
     width="720px"
     @close="handleClose"
@@ -151,7 +151,7 @@ const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -284,7 +284,7 @@ const loadCurrentUserDid = async () => {
 
 // 监听抽屉打开
 watch(
-  () => props.visible,
+  () => props.open,
   async (newVal) => {
     if (newVal) {
       await loadCurrentUserDid();

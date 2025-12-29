@@ -69,7 +69,7 @@
 
     <!-- 模板变量填写对话框 -->
     <TemplateVariableModal
-      v-model:visible="showTemplateModal"
+      v-model:open="showTemplateModal"
       :template="selectedTemplate"
       @start-create="handleTemplateCreateStart"
       @cancel="showTemplateModal = false"

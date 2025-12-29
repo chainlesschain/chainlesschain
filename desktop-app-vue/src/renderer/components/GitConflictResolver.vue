@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :visible="visible"
+    :open="visible"
     title="解决Git合并冲突"
     :width="1000"
     :footer="null"
@@ -162,7 +162,7 @@ import {
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -172,7 +172,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:visible', 'resolved', 'aborted']);
+const emit = defineEmits(['update:open', 'resolved', 'aborted']);
 
 const loading = ref(false);
 const activeKeys = ref([]);
@@ -265,7 +265,7 @@ const handleCompleteMerge = async () => {
 
     message.success('合并已完成');
     emit('resolved');
-    emit('update:visible', false);
+    emit('update:open', false);
   } catch (error) {
     console.error('完成合并失败:', error);
     message.error(`完成合并失败: ${error.message}`);
@@ -283,7 +283,7 @@ const handleAbortMerge = async () => {
 
     message.info('合并已中止');
     emit('aborted');
-    emit('update:visible', false);
+    emit('update:open', false);
   } catch (error) {
     console.error('中止合并失败:', error);
     message.error(`中止合并失败: ${error.message}`);
@@ -294,7 +294,7 @@ const handleAbortMerge = async () => {
 
 // 取消
 const handleCancel = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
 };
 </script>
 

@@ -1,7 +1,7 @@
 <template>
   <div class="contract-execute">
     <a-modal
-      :visible="visible"
+      :open="visible"
       title="执行合约"
       width="750px"
       :confirm-loading="executing"
@@ -137,7 +137,7 @@ const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -148,7 +148,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['executed', 'update:visible']);
+const emit = defineEmits(['executed', 'update:open']);
 
 // 状态
 const executing = ref(false);
@@ -249,7 +249,7 @@ const handleExecute = async () => {
     });
 
     // 关闭对话框
-    emit('update:visible', false);
+    emit('update:open', false);
 
     // 重置表单
     resetForm();
@@ -288,7 +288,7 @@ const validateForm = () => {
 
 // 取消
 const handleCancel = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
   resetForm();
 };
 
@@ -302,7 +302,7 @@ const resetForm = () => {
 
 // 监听对话框打开
 watch(
-  () => props.visible,
+  () => props.open,
   async (newVal) => {
     if (newVal && props.contract) {
       resetForm();

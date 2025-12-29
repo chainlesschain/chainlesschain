@@ -92,7 +92,7 @@
 
     <!-- 创建凭证模态框 -->
     <a-modal
-      v-model:visible="showCreateModal"
+      v-model:open="showCreateModal"
       title="颁发可验证凭证"
       :width="700"
       @ok="handleCreateCredential"
@@ -250,7 +250,7 @@
 
     <!-- 凭证详情模态框 -->
     <a-modal
-      v-model:visible="showDetailModal"
+      v-model:open="showDetailModal"
       :title="currentCredential ? getTypeName(currentCredential.type) + ' - 详情' : '凭证详情'"
       :width="800"
       :footer="null"
@@ -302,7 +302,7 @@
 
     <!-- 验证结果模态框 -->
     <a-modal
-      v-model:visible="showVerifyModal"
+      v-model:open="showVerifyModal"
       title="凭证验证结果"
       :footer="null"
     >
@@ -315,7 +315,7 @@
 
     <!-- 模板管理模态框 -->
     <a-modal
-      v-model:visible="showTemplateManagerModal"
+      v-model:open="showTemplateManagerModal"
       title="模板管理"
       :width="900"
       :footer="null"
@@ -426,7 +426,7 @@
 
     <!-- 凭证分享模态框 -->
     <a-modal
-      v-model:visible="showShareModal"
+      v-model:open="showShareModal"
       title="分享凭证"
       :width="500"
       :footer="null"
@@ -471,7 +471,7 @@
 
     <!-- 导入分享凭证模态框 -->
     <a-modal
-      v-model:visible="showImportShareModal"
+      v-model:open="showImportShareModal"
       title="扫码接收凭证"
       :width="600"
       @ok="handleImportShare"

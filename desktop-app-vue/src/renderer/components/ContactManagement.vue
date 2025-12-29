@@ -79,7 +79,7 @@
 
     <!-- 扫码添加模态框 -->
     <a-modal
-      v-model:visible="showScanModal"
+      v-model:open="showScanModal"
       title="扫描二维码添加联系人"
       @ok="handleScanComplete"
       @cancel="showScanModal = false"
@@ -100,7 +100,7 @@
 
     <!-- 添加联系人模态框 -->
     <a-modal
-      v-model:visible="showAddModal"
+      v-model:open="showAddModal"
       title="添加联系人"
       @ok="handleAddContact"
       :confirm-loading="adding"
@@ -159,7 +159,7 @@
 
     <!-- 查看联系人详情 -->
     <a-modal
-      v-model:visible="showDetailModal"
+      v-model:open="showDetailModal"
       :title="currentContact?.nickname + ' - 详情'"
       :footer="null"
       width="700px"

@@ -141,7 +141,7 @@
 
     <!-- 添加好友对话框 -->
     <a-modal
-      v-model:visible="showAddFriendModal"
+      v-model:open="showAddFriendModal"
       title="添加好友"
       :confirm-loading="adding"
       @ok="handleAddFriend"
@@ -167,7 +167,7 @@
 
     <!-- 好友请求列表对话框 -->
     <a-modal
-      v-model:visible="showRequestsModal"
+      v-model:open="showRequestsModal"
       title="好友请求"
       width="600px"
       :footer="null"
@@ -230,7 +230,7 @@
 
     <!-- 修改备注对话框 -->
     <a-modal
-      v-model:visible="showEditNicknameModal"
+      v-model:open="showEditNicknameModal"
       title="修改备注"
       @ok="handleSaveNickname"
     >
@@ -241,7 +241,7 @@
 
     <!-- 修改分组对话框 -->
     <a-modal
-      v-model:visible="showChangeGroupModal"
+      v-model:open="showChangeGroupModal"
       title="修改分组"
       @ok="handleSaveGroup"
     >

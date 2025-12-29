@@ -103,20 +103,20 @@
 
     <!-- 创建资产对话框 -->
     <asset-create
-      v-model:visible="showCreateModal"
+      v-model:open="showCreateModal"
       @created="handleAssetCreated"
     />
 
     <!-- 转账对话框 -->
     <asset-transfer
-      v-model:visible="showTransferModal"
+      v-model:open="showTransferModal"
       :asset="selectedAsset"
       @transferred="handleTransferred"
     />
 
     <!-- 资产详情抽屉 -->
     <asset-detail
-      :visible="showDetailDrawer"
+      :open="showDetailDrawer"
       :asset="selectedAsset"
       :balance="selectedAsset ? (balances[selectedAsset.id] || selectedAsset.total_supply || 0) : 0"
       :current-user-did="props.ownerDid || tradeStore.ui.selectedDid"
@@ -130,7 +130,7 @@
 
     <!-- 历史记录抽屉 -->
     <asset-history
-      :visible="showHistoryDrawer"
+      :open="showHistoryDrawer"
       :asset="selectedAsset"
       :current-user-did="props.ownerDid || tradeStore.ui.selectedDid"
       @close="showHistoryDrawer = false"

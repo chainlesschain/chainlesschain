@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:visible="dialogVisible"
+    v-model:open="dialogVisible"
     title="分类管理"
     width="800px"
     :footer="null"
@@ -120,7 +120,7 @@
 
     <!-- 编辑/添加分类对话框 -->
     <a-modal
-      v-model:visible="editDialogVisible"
+      v-model:open="editDialogVisible"
       :title="editingCategory ? '编辑分类' : '添加分类'"
       @ok="handleSave"
       @cancel="handleEditCancel"
@@ -185,13 +185,13 @@ import {
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
 });
 
-const emit = defineEmits(['update:visible', 'refresh']);
+const emit = defineEmits(['update:open', 'refresh']);
 
 const categoryStore = useCategoryStore();
 
@@ -309,12 +309,12 @@ const handleEditCancel = () => {
 
 // 关闭主对话框
 const handleCancel = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
 };
 
-// 监听 visible 变化
+// 监听 open 变化
 watch(
-  () => props.visible,
+  () => props.open,
   (newValue) => {
     dialogVisible.value = newValue;
     if (newValue) {
@@ -326,7 +326,7 @@ watch(
 );
 
 watch(dialogVisible, (newValue) => {
-  emit('update:visible', newValue);
+  emit('update:open', newValue);
 });
 </script>
 

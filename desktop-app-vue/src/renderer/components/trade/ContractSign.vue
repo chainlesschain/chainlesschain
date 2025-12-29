@@ -1,7 +1,7 @@
 <template>
   <div class="contract-sign">
     <a-modal
-      :visible="visible"
+      :open="visible"
       title="签名合约"
       width="700px"
       :confirm-loading="signing"
@@ -169,7 +169,7 @@ const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -180,7 +180,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['signed', 'update:visible']);
+const emit = defineEmits(['signed', 'update:open']);
 
 // 状态
 const signing = ref(false);
@@ -295,7 +295,7 @@ const handleSign = async () => {
     });
 
     // 关闭对话框
-    emit('update:visible', false);
+    emit('update:open', false);
 
     // 重置表单
     resetForm();
@@ -348,7 +348,7 @@ const validateForm = () => {
 
 // 取消
 const handleCancel = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
   resetForm();
 };
 
@@ -373,7 +373,7 @@ const loadCurrentUserDid = async () => {
 
 // 监听对话框打开
 watch(
-  () => props.visible,
+  () => props.open,
   async (newVal) => {
     if (newVal) {
       await loadCurrentUserDid();

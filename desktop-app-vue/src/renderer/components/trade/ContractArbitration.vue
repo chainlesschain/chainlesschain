@@ -135,7 +135,7 @@
 
     <!-- 提交裁决对话框 -->
     <a-modal
-      v-model:visible="showResolutionModal"
+      v-model:open="showResolutionModal"
       title="提交仲裁裁决"
       width="700px"
       :confirm-loading="submitting"

@@ -1,7 +1,7 @@
 <template>
   <div class="contract-create">
     <a-modal
-      :visible="visible"
+      :open="visible"
       title="创建智能合约"
       width="900px"
       :confirm-loading="creating"
@@ -370,14 +370,14 @@ const blockchainStore = useBlockchainStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
 });
 
 // Emits
-const emit = defineEmits(['created', 'cancel', 'update:visible']);
+const emit = defineEmits(['created', 'cancel', 'update:open']);
 
 // 状态
 const currentStep = ref(0);
@@ -560,7 +560,7 @@ const handleCreate = async () => {
     emit('created', contract);
 
     // 关闭对话框
-    emit('update:visible', false);
+    emit('update:open', false);
 
     // 重置
     reset();
@@ -573,7 +573,7 @@ const handleCreate = async () => {
 // 取消
 const handleCancel = () => {
   emit('cancel');
-  emit('update:visible', false);
+  emit('update:open', false);
   reset();
 };
 
@@ -665,7 +665,7 @@ const disabledDate = (current) => {
 };
 
 // 监听对话框打开
-watch(() => props.visible, (newVal) => {
+watch(() => props.open, (newVal) => {
   if (newVal) {
     loadTemplates();
     reset();

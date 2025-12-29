@@ -138,13 +138,13 @@
 
     <!-- 创建内容对话框 -->
     <content-create
-      v-model:visible="showCreateModal"
+      v-model:open="showCreateModal"
       @created="handleContentCreated"
     />
 
     <!-- 内容详情对话框 -->
     <content-detail
-      v-model:visible="showDetailModal"
+      v-model:open="showDetailModal"
       :content="selectedContent"
       @purchased="handleContentPurchased"
     />

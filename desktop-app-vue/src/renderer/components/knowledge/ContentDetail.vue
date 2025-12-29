@@ -1,7 +1,7 @@
 <template>
   <div class="content-detail">
     <a-modal
-      :visible="visible"
+      :open="visible"
       :title="content?.title"
       width="1000px"
       :footer="null"
@@ -159,7 +159,7 @@ const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -170,7 +170,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['purchased', 'update:visible']);
+const emit = defineEmits(['purchased', 'update:open']);
 
 // 状态
 const purchasing = ref(false);
@@ -313,12 +313,12 @@ const handlePurchase = async () => {
 
 // 关闭对话框
 const handleClose = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
 };
 
 // 监听对话框打开
 watch(
-  () => props.visible,
+  () => props.open,
   async (newVal) => {
     if (newVal && props.content) {
       await checkAccess();

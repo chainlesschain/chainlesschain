@@ -102,7 +102,7 @@
 
     <!-- 创建/编辑订阅计划对话框 -->
     <a-modal
-      v-model:visible="showCreateModal"
+      v-model:open="showCreateModal"
       :title="editingPlan ? '编辑订阅计划' : '创建订阅计划'"
       width="700px"
       :confirm-loading="saving"

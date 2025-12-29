@@ -1,6 +1,6 @@
 <template>
   <a-drawer
-    :visible="visible"
+    :open="visible"
     :title="asset ? asset.name : '资产详情'"
     width="600px"
     placement="right"
@@ -161,7 +161,7 @@ import {
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },

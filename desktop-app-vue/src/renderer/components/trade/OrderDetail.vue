@@ -1,7 +1,7 @@
 <template>
   <div class="order-detail">
     <a-modal
-      :visible="visible"
+      :open="visible"
       title="订单详情"
       width="800px"
       :footer="null"
@@ -134,7 +134,7 @@
 
     <!-- 购买确认对话框 -->
     <a-modal
-      v-model:visible="showPurchaseModal"
+      v-model:open="showPurchaseModal"
       title="确认购买"
       @ok="handleConfirmPurchase"
     >
@@ -186,7 +186,7 @@ const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -197,7 +197,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['purchased', 'cancelled', 'update:visible']);
+const emit = defineEmits(['purchased', 'cancelled', 'update:open']);
 
 // 状态
 const showPurchaseModal = ref(false);
@@ -345,7 +345,7 @@ const handleConfirmPurchase = async () => {
     antMessage.success('购买成功！');
     showPurchaseModal.value = false;
     emit('purchased');
-    emit('update:visible', false);
+    emit('update:open', false);
   } catch (error) {
     console.error('[OrderDetail] 购买失败:', error);
     antMessage.error(error.message || '购买失败');
@@ -367,7 +367,7 @@ const handleCancel = () => {
         console.log('[OrderDetail] 订单已取消:', props.order.id);
         antMessage.success('订单已取消');
         emit('cancelled');
-        emit('update:visible', false);
+        emit('update:open', false);
       } catch (error) {
         console.error('[OrderDetail] 取消订单失败:', error);
         antMessage.error(error.message || '取消订单失败');
@@ -378,7 +378,7 @@ const handleCancel = () => {
 
 // 关闭对话框
 const handleClose = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
 };
 
 // 监听订单变化
@@ -389,7 +389,7 @@ watch(() => props.order, (newOrder) => {
 }, { immediate: true });
 
 // 监听对话框打开
-watch(() => props.visible, async (newVal) => {
+watch(() => props.open, async (newVal) => {
   if (newVal) {
     // 获取当前用户 DID
     const identity = await window.electronAPI.did.getCurrentIdentity();
