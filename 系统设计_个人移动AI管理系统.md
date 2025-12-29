@@ -3178,21 +3178,34 @@ class AIRouter:
 
 **目录结构**:
 ```
-desktop-app/
+desktop-app-vue/
 ├── src/
 │   ├── main/              # 主进程 (Node.js)
-│   │   ├── ukey.ts        # U盾操作
-│   │   ├── database.ts    # 数据库管理
-│   │   ├── git.ts         # Git同步
-│   │   └── llm.ts         # LLM API封装
-│   ├── renderer/          # 渲染进程 (React)
+│   │   ├── ukey/          # U盾操作 (5品牌支持)
+│   │   ├── database/      # 数据库管理
+│   │   ├── git/           # Git同步
+│   │   ├── llm/           # LLM API封装
+│   │   ├── speech/        # 语音识别 ⭐新增
+│   │   ├── plugins/       # 插件系统 ⭐新增
+│   │   ├── skill-tool-system/  # 技能工具 ⭐新增
+│   │   ├── blockchain/    # 区块链集成 ⭐新增
+│   │   ├── ai-engine/     # AI引擎
+│   │   ├── project/       # 项目管理
+│   │   ├── social/        # 社交模块
+│   │   └── trade/         # 交易模块
+│   ├── renderer/          # 渲染进程 (Vue3)
 │   │   ├── pages/
-│   │   │   ├── Knowledge.tsx  # 知识库页面
-│   │   │   ├── Social.tsx     # 社交页面
-│   │   │   └── Transaction.tsx # 交易页面
+│   │   │   ├── Knowledge.vue      # 知识库页面
+│   │   │   ├── ProjectManagement.vue  # 项目管理
+│   │   │   ├── Social.vue         # 社交页面
+│   │   │   ├── Marketplace.vue    # 交易市场
+│   │   │   ├── SkillManagement.vue  # 技能管理 ⭐新增
+│   │   │   └── PluginManagement.vue # 插件管理 ⭐新增
 │   │   ├── components/
-│   │   └── hooks/
+│   │   └── stores/        # Pinia状态管理
 │   └── shared/            # 共享代码
+├── browser-extension/     # 浏览器扩展 ⭐新增
+├── contracts/             # 智能合约 ⭐新增
 ├── resources/             # 资源文件
 └── package.json
 ```
