@@ -71,6 +71,12 @@ function initializeElements() {
   elements.previewDate = document.getElementById('previewDate');
   elements.reconnectBtn = document.getElementById('reconnectBtn');
   elements.retryBtn = document.getElementById('retryBtn');
+
+  // AI功能元素
+  elements.generateTagsBtn = document.getElementById('generateTagsBtn');
+  elements.generateSummaryBtn = document.getElementById('generateSummaryBtn');
+  elements.summarySection = document.getElementById('summarySection');
+  elements.summaryTextarea = document.getElementById('summary');
 }
 
 /**
@@ -196,6 +202,15 @@ function bindEvents() {
       showContent();
     });
   }
+
+  // AI功能按钮
+  if (elements.generateTagsBtn) {
+    elements.generateTagsBtn.addEventListener('click', handleGenerateTags);
+  }
+
+  if (elements.generateSummaryBtn) {
+    elements.generateSummaryBtn.addEventListener('click', handleGenerateSummary);
+  }
 }
 
 /**
@@ -257,6 +272,101 @@ async function handleClip(event) {
     elements.clipBtn.disabled = false;
     elements.btnText.style.display = 'inline';
     elements.btnLoading.style.display = 'none';
+  }
+}
+
+/**
+ * Handle AI tag generation
+ */
+async function handleGenerateTags() {
+  const btn = elements.generateTagsBtn;
+  const originalText = btn.textContent;
+
+  // Disable button
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+
+  try {
+    // Send request to background script
+    const response = await browserAdapter.runtime.sendMessage({
+      action: 'generateTags',
+      data: {
+        title: currentPage.title,
+        content: currentPage.content || currentPage.excerpt,
+        url: currentPage.url,
+        excerpt: currentPage.excerpt,
+      },
+    });
+
+    if (response && response.success && response.data.tags) {
+      const tags = response.data.tags;
+      console.log('[Popup] AI generated tags:', tags);
+
+      // Update tags input
+      elements.tagsInput.value = tags.join(', ');
+
+      // Show success feedback
+      btn.textContent = '✓ 已生成';
+      setTimeout(() => {
+        btn.textContent = originalText;
+      }, 2000);
+    } else {
+      throw new Error(response?.error || 'AI标签生成失败');
+    }
+  } catch (error) {
+    console.error('[Popup] Tag generation failed:', error);
+    alert('标签生成失败: ' + error.message);
+    btn.textContent = originalText;
+  } finally {
+    // Re-enable button
+    btn.disabled = false;
+  }
+}
+
+/**
+ * Handle AI summary generation
+ */
+async function handleGenerateSummary() {
+  const btn = elements.generateSummaryBtn;
+  const originalText = btn.textContent;
+
+  // Disable button
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+
+  try {
+    // Send request to background script
+    const response = await browserAdapter.runtime.sendMessage({
+      action: 'generateSummary',
+      data: {
+        title: currentPage.title,
+        content: currentPage.content || currentPage.excerpt,
+      },
+    });
+
+    if (response && response.success && response.data.summary) {
+      const summary = response.data.summary;
+      console.log('[Popup] AI generated summary:', summary.substring(0, 50) + '...');
+
+      // Show summary section
+      elements.summarySection.style.display = 'block';
+      elements.summaryTextarea.value = summary;
+
+      // Show success feedback
+      btn.textContent = '✓ 已生成';
+      setTimeout(() => {
+        btn.textContent = originalText;
+      }, 2000);
+    } else {
+      throw new Error(response?.error || 'AI摘要生成失败');
+    }
+  } catch (error) {
+    console.error('[Popup] Summary generation failed:', error);
+    alert('摘要生成失败: ' + error.message);
+    btn.textContent = originalText;
+  } finally {
+    // Re-enable button
+    btn.disabled = false;
   }
 }
 
