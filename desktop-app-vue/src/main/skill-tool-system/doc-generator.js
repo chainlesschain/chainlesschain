@@ -5,12 +5,20 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const { app } = require('electron');
 
 class DocGenerator {
   constructor() {
-    // 文档目录路径
-    this.docsPath = path.join(app.getPath('userData'), 'docs');
+    // 文档目录路径 - 兼容Electron和Node.js环境
+    let basePath;
+    try {
+      const { app } = require('electron');
+      basePath = app.getPath('userData');
+    } catch (error) {
+      // 非Electron环境，使用项目根目录
+      basePath = path.join(process.cwd(), '..');
+    }
+
+    this.docsPath = path.join(basePath, 'docs');
     this.skillsDocsPath = path.join(this.docsPath, 'skills');
     this.toolsDocsPath = path.join(this.docsPath, 'tools');
   }

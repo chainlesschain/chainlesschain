@@ -772,6 +772,16 @@ class ToolManager {
       throw error;
     }
   }
+
+  /**
+   * recordExecution 方法（别名，用于兼容 ToolRunner）
+   * @param {string} toolName - 工具名称
+   * @param {boolean} success - 是否成功
+   * @param {number} duration - 执行时长(ms)
+   */
+  async recordExecution(toolName, success, duration) {
+    return this.recordToolUsage(toolName, success, duration);
+  }
 }
 
 module.exports = ToolManager;

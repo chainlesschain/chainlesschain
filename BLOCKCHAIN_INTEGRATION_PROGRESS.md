@@ -380,28 +380,27 @@
 
 ## 📝 下一步行动
 
-### 立即开始
+### 立即开始 - 阶段5
 
-1. **完善 blockchain-adapter.js**
-   - 实现网络提供者初始化
-   - 实现 switchChain() 方法
-   - 实现 getProvider() 方法
+1. **扩展 AssetManager**
+   - 修改 `createAsset()` 方法支持链上部署
+   - 修改 `transferAsset()` 方法支持链上转账
+   - 添加 `_saveBlockchainAsset()` 和 `_getBlockchainAsset()` 方法
 
-2. **创建 contract-deployer.js**
-   - 实现各合约的部署方法
-   - 加载合约 ABI
-   - 处理部署交易
+2. **扩展 SmartContractEngine**
+   - 修改 `createContract()` 方法支持链上部署
+   - 添加 `_deployEscrowContract()` 等部署方法
+   - 集成 blockchain-adapter
 
-3. **实现合约交互功能**
-   - 代币转账
-   - NFT 铸造
-   - 托管合约调用
+3. **实现链上链下数据同步**
+   - 监听链上事件更新本地数据库
+   - 定期同步确保数据一致性
 
 ### 并行开发建议
 
-- **后端团队**: 区块链适配器 + 合约部署器
-- **合约团队**: 剩余测试编写 + 测试网部署
-- **前端团队**: 开始设计 UI 和 Pinia Store
+- **后端团队**: AssetManager 和 SmartContractEngine 扩展
+- **前端团队**: 开始设计钱包管理 UI 和 Pinia Store
+- **测试团队**: 准备集成测试方案
 
 ---
 

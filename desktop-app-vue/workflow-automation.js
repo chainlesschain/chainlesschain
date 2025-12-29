@@ -29,12 +29,14 @@ class WorkflowAutomation {
 
     // 初始化数据库
     this.db = new Database();
+    await this.db.initialize();
     console.log('✅ 数据库初始化完成');
 
-    // 初始化管理器
-    this.skillManager = new SkillManager(this.db);
-    this.toolManager = new ToolManager(this.db);
+    // 初始化管理器（注意：ToolManager需要先初始化，SkillManager依赖它）
+    this.toolManager = new ToolManager(this.db, null); // functionCaller可选
     this.toolRunner = new ToolRunner(this.toolManager);
+
+    this.skillManager = new SkillManager(this.db, this.toolManager);
 
     // 初始化执行器
     this.skillExecutor = new SkillExecutor(this.skillManager, this.toolManager);

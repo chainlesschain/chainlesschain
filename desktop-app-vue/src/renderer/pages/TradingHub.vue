@@ -151,6 +151,24 @@
           <TransactionList v-if="selectedDid" />
           <a-empty v-else description="请先选择DID身份" />
         </a-tab-pane>
+
+        <!-- 9. 统计面板 -->
+        <a-tab-pane key="statistics">
+          <template #tab>
+            <span class="tab-label">
+              <bar-chart-outlined />
+              统计面板
+            </span>
+          </template>
+          <a-row :gutter="[16, 16]">
+            <a-col :span="24">
+              <TransactionStatistics />
+            </a-col>
+            <a-col :span="24">
+              <AssetStatistics />
+            </a-col>
+          </a-row>
+        </a-tab-pane>
       </a-tabs>
     </a-card>
   </div>
@@ -171,6 +189,7 @@ import {
   HistoryOutlined,
   ReloadOutlined,
   UserOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons-vue';
 
 // 导入子组件（部分组件尚未创建，使用动态导入处理）
@@ -237,6 +256,22 @@ const TransactionList = defineAsyncComponent({
   loadingComponent: { template: '<a-spin />' },
   errorComponent: {
     template: '<a-result status="warning" title="交易记录组件加载失败" sub-title="请刷新页面重试" />',
+  },
+});
+
+const TransactionStatistics = defineAsyncComponent({
+  loader: () => import('../components/trade/TransactionStatistics.vue'),
+  loadingComponent: { template: '<a-spin />' },
+  errorComponent: {
+    template: '<a-result status="warning" title="交易统计组件加载失败" sub-title="请刷新页面重试" />',
+  },
+});
+
+const AssetStatistics = defineAsyncComponent({
+  loader: () => import('../components/trade/AssetStatistics.vue'),
+  loadingComponent: { template: '<a-spin />' },
+  errorComponent: {
+    template: '<a-result status="warning" title="资产统计组件加载失败" sub-title="请刷新页面重试" />',
   },
 });
 

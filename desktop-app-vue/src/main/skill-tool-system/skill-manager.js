@@ -767,6 +767,16 @@ class SkillManager {
       throw error;
     }
   }
+
+  /**
+   * recordExecution 方法（别名，用于兼容 SkillExecutor）
+   * @param {string} skillId - 技能ID
+   * @param {boolean} success - 是否成功
+   * @param {number} duration - 执行时长(ms)
+   */
+  async recordExecution(skillId, success, duration) {
+    return this.recordSkillUsage(skillId, success, duration / 1000); // 转换为秒
+  }
 }
 
 module.exports = SkillManager;
