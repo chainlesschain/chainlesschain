@@ -79,6 +79,28 @@
       </a-space>
     </div>
 
+    <!-- 批量操作栏 -->
+    <div v-if="selectedTools.length > 0" class="batch-action-bar">
+      <div class="selection-info">
+        已选择 {{ selectedTools.length }} 项
+      </div>
+      <a-space>
+        <a-button @click="handleBatchEnable">
+          <template #icon><CheckOutlined /></template>
+          批量启用
+        </a-button>
+        <a-button @click="handleBatchDisable">
+          <template #icon><CloseOutlined /></template>
+          批量禁用
+        </a-button>
+        <a-button danger @click="handleBatchDelete">
+          <template #icon><DeleteOutlined /></template>
+          批量删除
+        </a-button>
+        <a-button @click="handleClearSelection">清空选择</a-button>
+      </a-space>
+    </div>
+
     <!-- 工具列表 -->
     <div v-if="toolStore.loading" class="loading-container">
       <a-spin size="large" tip="加载中..."></a-spin>
@@ -93,6 +115,7 @@
         :columns="columns"
         :data-source="toolStore.filteredTools"
         :row-key="record => record.id"
+        :row-selection="rowSelection"
         :pagination="pagination"
         @change="handleTableChange"
       >
@@ -248,14 +271,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { message, Modal } from 'ant-design-vue';
 import {
   SearchOutlined,
   ReloadOutlined,
   PlusOutlined,
   ApartmentOutlined,
   BarChartOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons-vue';
 import { useToolStore } from '../stores/tool';
 import { useSkillStore } from '../stores/skill';
@@ -312,6 +338,19 @@ const pagination = reactive({
   showSizeChanger: true,
   showTotal: (total) => `共 ${total} 条`,
 });
+
+// 批量操作
+const selectedToolKeys = ref([]);
+const selectedTools = computed(() => {
+  return toolStore.filteredTools.filter(tool => selectedToolKeys.value.includes(tool.id));
+});
+
+const rowSelection = computed(() => ({
+  selectedRowKeys: selectedToolKeys.value,
+  onChange: (selectedKeys) => {
+    selectedToolKeys.value = selectedKeys;
+  },
+}));
 
 // 表格列定义
 const columns = [
@@ -527,6 +566,110 @@ const showAnalytics = () => {
   statsVisible.value = true;
 };
 
+// 批量操作相关函数
+const handleClearSelection = () => {
+  selectedToolKeys.value = [];
+};
+
+const handleBatchEnable = () => {
+  const count = selectedTools.value.length;
+  Modal.confirm({
+    title: '确认批量启用？',
+    content: `将启用 ${count} 个工具，是否继续？`,
+    okText: '确认',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        let successCount = 0;
+        for (const tool of selectedTools.value) {
+          if (!tool.enabled) {
+            const success = await toolStore.enable(tool.id);
+            if (success) successCount++;
+          } else {
+            successCount++;
+          }
+        }
+        message.success(`成功启用 ${successCount} 个工具`);
+        handleClearSelection();
+        await toolStore.fetchAll();
+      } catch (error) {
+        console.error(error);
+        message.error('批量启用失败');
+      }
+    },
+  });
+};
+
+const handleBatchDisable = () => {
+  const count = selectedTools.value.length;
+  Modal.confirm({
+    title: '确认批量禁用？',
+    content: `将禁用 ${count} 个工具，是否继续？`,
+    okText: '确认',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        let successCount = 0;
+        for (const tool of selectedTools.value) {
+          if (tool.enabled) {
+            const success = await toolStore.disable(tool.id);
+            if (success) successCount++;
+          } else {
+            successCount++;
+          }
+        }
+        message.success(`成功禁用 ${successCount} 个工具`);
+        handleClearSelection();
+        await toolStore.fetchAll();
+      } catch (error) {
+        console.error(error);
+        message.error('批量禁用失败');
+      }
+    },
+  });
+};
+
+const handleBatchDelete = () => {
+  const count = selectedTools.value.length;
+  const toolNames = selectedTools.value.map(t => t.display_name || t.name).join('、');
+
+  Modal.confirm({
+    title: '确认批量删除？',
+    content: (
+      <div>
+        <p>将删除以下 {count} 个工具：</p>
+        <p style="color: #ff4d4f; max-height: 200px; overflow-y: auto;">
+          {toolNames}
+        </p>
+        <p style="font-weight: bold; color: #ff4d4f;">此操作不可恢复，是否继续？</p>
+      </div>
+    ),
+    okText: '确认删除',
+    okType: 'danger',
+    cancelText: '取消',
+    width: 600,
+    async onOk() {
+      try {
+        let successCount = 0;
+        const toolIds = selectedTools.value.map(t => t.id);
+
+        for (const toolId of toolIds) {
+          const success = await toolStore.delete(toolId);
+          if (success) successCount++;
+        }
+
+        message.success(`成功删除 ${successCount} 个工具`);
+        handleClearSelection();
+        await toolStore.fetchAll();
+      } catch (error) {
+        console.error(error);
+        message.error('批量删除失败');
+      }
+    },
+  });
+};
+
 // 辅助函数
 const getCategoryColor = (category) => {
   const colorMap = {
@@ -676,6 +819,34 @@ const getSuccessRateColor = (tool) => {
         -webkit-box-orient: vertical;
         overflow: hidden;
       }
+    }
+  }
+
+  .batch-action-bar {
+    background: #e6f7ff;
+    border: 1px solid #91d5ff;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideDown 0.3s ease;
+
+    .selection-info {
+      font-weight: 500;
+      color: #0050b3;
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 }

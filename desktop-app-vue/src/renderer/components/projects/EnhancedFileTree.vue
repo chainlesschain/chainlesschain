@@ -124,9 +124,13 @@
               <CopyOutlined />
               复制
             </a-menu-item>
+            <a-menu-item key="cut" :disabled="!contextNode">
+              <ScissorOutlined />
+              剪切
+            </a-menu-item>
             <a-menu-item key="paste" :disabled="!clipboard">
               <SnippetsOutlined />
-              粘贴
+              粘贴{{ clipboard ? ` (${clipboard.operation === 'cut' ? '移动' : '复制'})` : '' }}
             </a-menu-item>
 
             <a-menu-divider />
@@ -196,6 +200,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   CopyOutlined,
+  ScissorOutlined,
   SnippetsOutlined,
   LinkOutlined,
   ImportOutlined,
@@ -515,6 +520,9 @@ const handleMenuClick = ({ key }) => {
     case 'copy':
       handleCopy();
       break;
+    case 'cut':
+      handleCut();
+      break;
     case 'paste':
       handlePaste();
       break;
@@ -747,16 +755,63 @@ const handleCopy = () => {
     node: contextNode.value,
     operation: 'copy' // 标记为复制操作
   };
-  message.success('已复制');
+  console.log('[EnhancedFileTree] 已复制文件:', contextNode.value.title);
+  message.success(`已复制: ${contextNode.value.title}`);
+};
+
+// 剪切
+const handleCut = () => {
+  if (!contextNode.value) return;
+  clipboard.value = {
+    node: contextNode.value,
+    operation: 'cut' // 标记为剪切操作
+  };
+  console.log('[EnhancedFileTree] 已剪切文件:', contextNode.value.title);
+  message.success(`已剪切: ${contextNode.value.title}`);
 };
 
 // 粘贴
 const handlePaste = async () => {
-  if (!clipboard.value) return;
+  if (!clipboard.value) {
+    console.warn('[EnhancedFileTree] 剪贴板为空，无法粘贴');
+    return;
+  }
 
   try {
     const { node, operation } = clipboard.value;
-    const targetPath = contextNode.value?.filePath || '';
+    // 目标路径：如果是空白处右键，则粘贴到根目录；否则粘贴到选中的文件夹
+    let targetPath = '';
+
+    if (contextNode.value) {
+      // 如果右键点击的是文件（而不是文件夹），则粘贴到其父目录
+      if (contextNode.value.isLeaf) {
+        const parts = contextNode.value.filePath.split('/');
+        parts.pop(); // 移除文件名
+        targetPath = parts.join('/');
+      } else {
+        // 如果是文件夹，直接粘贴到这个文件夹
+        targetPath = contextNode.value.filePath;
+      }
+    }
+
+    console.log('[EnhancedFileTree] 粘贴操作:', {
+      operation,
+      sourcePath: node.filePath,
+      targetPath,
+      isEmptySpace: isEmptySpaceContext.value
+    });
+
+    // 检查是否粘贴到自己
+    if (node.filePath === targetPath) {
+      message.warning('不能粘贴到相同位置');
+      return;
+    }
+
+    // 检查是否粘贴到自己的子目录（防止循环）
+    if (targetPath.startsWith(node.filePath + '/')) {
+      message.warning('不能粘贴到自己的子目录');
+      return;
+    }
 
     if (operation === 'copy') {
       // 复制操作
@@ -765,21 +820,21 @@ const handlePaste = async () => {
         sourcePath: node.filePath,
         targetPath
       });
-      message.success('复制成功');
+      message.success(`已复制 "${node.title}" 到 "${targetPath || '根目录'}"`);
     } else if (operation === 'cut') {
-      // 剪切操作
+      // 剪切操作（移动）
       await window.electronAPI.file.moveItem({
         projectId: props.projectId,
         sourcePath: node.filePath,
         targetPath
       });
-      message.success('移动成功');
+      message.success(`已移动 "${node.title}" 到 "${targetPath || '根目录'}"`);
       clipboard.value = null; // 剪切后清空剪贴板
     }
 
     emit('refresh');
   } catch (error) {
-    console.error('粘贴失败:', error);
+    console.error('[EnhancedFileTree] 粘贴失败:', error);
     message.error('粘贴失败：' + error.message);
   }
 };

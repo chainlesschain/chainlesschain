@@ -36,12 +36,13 @@ const TransactionType = {
  * 资产管理器类
  */
 class AssetManager extends EventEmitter {
-  constructor(database, didManager, p2pManager) {
+  constructor(database, didManager, p2pManager, blockchainAdapter = null) {
     super();
 
     this.database = database;
     this.didManager = didManager;
     this.p2pManager = p2pManager;
+    this.blockchainAdapter = blockchainAdapter;
 
     this.initialized = false;
   }
@@ -115,6 +116,22 @@ class AssetManager extends EventEmitter {
       )
     `);
 
+    // 区块链资产表
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS blockchain_assets (
+        id TEXT PRIMARY KEY,
+        local_asset_id TEXT NOT NULL,
+        contract_address TEXT NOT NULL,
+        chain_id INTEGER NOT NULL,
+        token_type TEXT NOT NULL,
+        token_id TEXT,
+        deployment_tx TEXT,
+        deployed_at INTEGER,
+        UNIQUE(contract_address, chain_id, token_id),
+        FOREIGN KEY (local_asset_id) REFERENCES assets(id)
+      )
+    `);
+
     // 创建索引
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_assets_creator ON assets(creator_did);
@@ -123,6 +140,8 @@ class AssetManager extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_transfers_asset ON asset_transfers(asset_id);
       CREATE INDEX IF NOT EXISTS idx_transfers_from ON asset_transfers(from_did);
       CREATE INDEX IF NOT EXISTS idx_transfers_to ON asset_transfers(to_did);
+      CREATE INDEX IF NOT EXISTS idx_blockchain_assets_local ON blockchain_assets(local_asset_id);
+      CREATE INDEX IF NOT EXISTS idx_blockchain_assets_contract ON blockchain_assets(contract_address, chain_id);
     `);
 
     console.log('[AssetManager] 数据库表初始化完成');
@@ -138,8 +157,24 @@ class AssetManager extends EventEmitter {
    * @param {Object} options.metadata - 元数据
    * @param {number} options.totalSupply - 总供应量
    * @param {number} options.decimals - 小数位数
+   * @param {boolean} options.onChain - 是否部署到区块链
+   * @param {number} options.chainId - 目标链 ID
+   * @param {string} options.walletId - 钱包 ID
+   * @param {string} options.password - 钱包密码
    */
-  async createAsset({ type, name, symbol, description, metadata = {}, totalSupply = 0, decimals = 0 }) {
+  async createAsset({
+    type,
+    name,
+    symbol,
+    description,
+    metadata = {},
+    totalSupply = 0,
+    decimals = 0,
+    onChain = false,
+    chainId = null,
+    walletId = null,
+    password = null
+  }) {
     try {
       const currentDid = this.didManager?.getCurrentIdentity()?.did;
 
@@ -207,6 +242,29 @@ class AssetManager extends EventEmitter {
       };
 
       console.log('[AssetManager] 已创建资产:', assetId);
+
+      // 如果需要部署到区块链
+      if (onChain && this.blockchainAdapter) {
+        try {
+          await this._deployAssetToBlockchain(assetId, {
+            type,
+            name,
+            symbol,
+            decimals,
+            totalSupply,
+            chainId,
+            walletId,
+            password
+          });
+
+          console.log('[AssetManager] 资产已成功部署到区块链');
+          this.emit('asset:deployed', { asset });
+        } catch (error) {
+          console.error('[AssetManager] 区块链部署失败:', error);
+          // 部署失败不影响本地资产创建，只记录错误
+          this.emit('asset:deployment-failed', { assetId, error: error.message });
+        }
+      }
 
       this.emit('asset:created', { asset });
 
@@ -579,6 +637,113 @@ class AssetManager extends EventEmitter {
     } catch (error) {
       console.error('[AssetManager] 获取资产列表失败:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 部署资产到区块链（私有方法）
+   * @param {string} assetId - 资产 ID
+   * @param {Object} options - 部署选项
+   */
+  async _deployAssetToBlockchain(assetId, options) {
+    const { type, name, symbol, decimals, totalSupply, chainId, walletId, password } = options;
+
+    if (!this.blockchainAdapter) {
+      throw new Error('区块链适配器未初始化');
+    }
+
+    if (!chainId || !walletId || !password) {
+      throw new Error('缺少必要参数: chainId, walletId, password');
+    }
+
+    // 切换到目标链
+    await this.blockchainAdapter.switchChain(chainId);
+
+    let contractAddress, deploymentTx, tokenType;
+
+    if (type === AssetType.TOKEN) {
+      // 部署 ERC-20 代币
+      const result = await this.blockchainAdapter.deployERC20Token(walletId, {
+        name,
+        symbol,
+        decimals,
+        initialSupply: totalSupply.toString(),
+        password
+      });
+
+      contractAddress = result.address;
+      deploymentTx = result.txHash;
+      tokenType = 'ERC20';
+
+      console.log(`[AssetManager] ERC-20 代币已部署: ${contractAddress}`);
+    } else if (type === AssetType.NFT) {
+      // 部署 ERC-721 NFT
+      const result = await this.blockchainAdapter.deployNFT(walletId, {
+        name,
+        symbol,
+        password
+      });
+
+      contractAddress = result.address;
+      deploymentTx = result.txHash;
+      tokenType = 'ERC721';
+
+      console.log(`[AssetManager] ERC-721 NFT 已部署: ${contractAddress}`);
+    } else {
+      throw new Error(`不支持的资产类型部署到区块链: ${type}`);
+    }
+
+    // 保存区块链资产记录
+    await this._saveBlockchainAsset({
+      localAssetId: assetId,
+      contractAddress,
+      chainId,
+      tokenType,
+      deploymentTx
+    });
+
+    return { contractAddress, deploymentTx, tokenType };
+  }
+
+  /**
+   * 保存区块链资产记录（私有方法）
+   * @param {Object} options - 区块链资产信息
+   */
+  async _saveBlockchainAsset(options) {
+    const { localAssetId, contractAddress, chainId, tokenType, tokenId = null, deploymentTx } = options;
+
+    const db = this.database.db;
+    const now = Date.now();
+    const id = uuidv4();
+
+    db.prepare(`
+      INSERT INTO blockchain_assets
+      (id, local_asset_id, contract_address, chain_id, token_type, token_id, deployment_tx, deployed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, localAssetId, contractAddress, chainId, tokenType, tokenId, deploymentTx, now);
+
+    console.log(`[AssetManager] 已保存区块链资产记录: ${id}`);
+
+    return id;
+  }
+
+  /**
+   * 获取资产的区块链信息（私有方法）
+   * @param {string} assetId - 资产 ID
+   */
+  async _getBlockchainAsset(assetId) {
+    try {
+      const db = this.database.db;
+
+      const blockchainAsset = db.prepare(`
+        SELECT * FROM blockchain_assets
+        WHERE local_asset_id = ?
+      `).get(assetId);
+
+      return blockchainAsset || null;
+    } catch (error) {
+      console.error('[AssetManager] 获取区块链资产失败:', error);
+      return null;
     }
   }
 
