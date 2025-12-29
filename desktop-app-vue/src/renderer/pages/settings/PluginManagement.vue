@@ -412,8 +412,14 @@ const showPluginDetail = (plugin) => {
 const showPluginPermissions = async (plugin) => {
   currentPlugin.value = plugin;
   try {
-    const permissions = await window.electronAPI.plugin.getPermissions(plugin.plugin_id);
-    pluginPermissions.value = permissions;
+    const result = await window.electronAPI.plugin.getPermissions(plugin.plugin_id);
+
+    // Handle response object structure
+    if (result && !result.success) {
+      throw new Error(result.error || '获取权限失败');
+    }
+
+    pluginPermissions.value = result?.permissions || [];
     showPermissionsModal.value = true;
   } catch (error) {
     console.error('获取插件权限失败:', error);
