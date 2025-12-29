@@ -266,7 +266,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import dayjs from 'dayjs';
 import {
@@ -277,6 +277,12 @@ import {
   SafetyOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+import DIDSelector from './common/DIDSelector.vue';
+import PriceInput from './common/PriceInput.vue';
+
+// Store
+const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
@@ -290,21 +296,23 @@ const props = defineProps({
 const emit = defineEmits(['created', 'cancel', 'update:visible']);
 
 // 状态
-const creating = ref(false);
 const currentStep = ref(0);
-const templates = ref([]);
 const selectedTemplate = ref(null);
 const formData = reactive({});
 const participantsText = ref('');
 const unlockDate = ref(null);
 
+// 从 store 获取数据
+const creating = computed(() => tradeStore.contract.creating);
+const templates = computed(() => tradeStore.contract.templates);
+
 // 加载模板
 const loadTemplates = async () => {
   try {
-    templates.value = await window.electronAPI.contract.getTemplates();
+    await tradeStore.loadContractTemplates();
   } catch (error) {
-    console.error('加载合约模板失败:', error);
-    antMessage.error('加载合约模板失败: ' + error.message);
+    console.error('[ContractCreate] 加载合约模板失败:', error);
+    antMessage.error(error.message || '加载合约模板失败');
   }
 };
 
@@ -363,8 +371,6 @@ const prevStep = () => {
 // 创建合约
 const handleCreate = async () => {
   try {
-    creating.value = true;
-
     // 准备参数
     const params = { ...formData };
 
@@ -389,12 +395,13 @@ const handleCreate = async () => {
       params.unlockDate = unlockDate.value.format('YYYY-MM-DD HH:mm:ss');
     }
 
-    // 调用 API 创建合约
-    const contract = await window.electronAPI.contract.createFromTemplate(
+    // 使用 store 创建合约
+    const contract = await tradeStore.createContractFromTemplate(
       selectedTemplate.value.id,
       params
     );
 
+    console.log('[ContractCreate] 合约创建成功:', contract.id);
     antMessage.success('合约创建成功！');
 
     // 通知父组件
@@ -406,10 +413,8 @@ const handleCreate = async () => {
     // 重置
     reset();
   } catch (error) {
-    console.error('创建合约失败:', error);
-    antMessage.error('创建合约失败: ' + error.message);
-  } finally {
-    creating.value = false;
+    console.error('[ContractCreate] 创建合约失败:', error);
+    antMessage.error(error.message || '创建合约失败');
   }
 };
 
