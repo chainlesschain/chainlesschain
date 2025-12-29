@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :open="visible"
+    :open="open"
     :title="tool ? '编辑工具' : '创建工具'"
     :width="800"
     :confirm-loading="saving"
@@ -174,7 +174,7 @@ import { message } from 'ant-design-vue';
 import ToolParamEditor from './ToolParamEditor.vue';
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -184,7 +184,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:visible', 'save']);
+const emit = defineEmits(['update:open', 'save']);
 
 const activeTab = ref('basic');
 
@@ -381,7 +381,7 @@ const handleSave = async () => {
 
 // 取消
 const handleCancel = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
 };
 </script>
 

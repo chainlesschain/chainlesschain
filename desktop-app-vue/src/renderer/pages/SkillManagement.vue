@@ -193,7 +193,7 @@
 
     <!-- 技能编辑器模态框 -->
     <SkillEditor
-      v-model:visible="editorVisible"
+      v-model:open="editorVisible"
       :skill="editingSkill"
       @save="handleSaveSkill"
     />
