@@ -1,7 +1,7 @@
 <template>
   <div class="contract-execute">
     <a-modal
-      :open="visible"
+      :open="open"
       title="执行合约"
       width="750px"
       :confirm-loading="executing"

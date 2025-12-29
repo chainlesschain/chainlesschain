@@ -1,7 +1,7 @@
 <template>
   <div class="contract-detail">
     <a-modal
-      :open="visible"
+      :open="open"
       title="合约详情"
       width="1000px"
       :footer="null"

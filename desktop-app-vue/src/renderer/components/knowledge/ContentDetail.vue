@@ -1,7 +1,7 @@
 <template>
   <div class="content-detail">
     <a-modal
-      :open="visible"
+      :open="open"
       :title="content?.title"
       width="1000px"
       :footer="null"

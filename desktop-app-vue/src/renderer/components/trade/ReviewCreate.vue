@@ -1,7 +1,7 @@
 <template>
   <div class="review-create">
     <a-modal
-      :open="visible"
+      :open="open"
       title="发表评价"
       width="700px"
       :confirm-loading="creating"

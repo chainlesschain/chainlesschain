@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:open="visible"
+    v-model:open="open"
     title="数据库加密设置向导"
     :closable="false"
     :maskClosable="false"

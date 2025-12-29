@@ -1,7 +1,7 @@
 <template>
   <div class="order-create">
     <a-modal
-      :open="visible"
+      :open="open"
       title="创建订单"
       width="700px"
       :confirm-loading="creating"

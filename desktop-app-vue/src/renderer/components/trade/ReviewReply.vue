@@ -1,7 +1,7 @@
 <template>
   <div class="review-reply">
     <a-modal
-      :open="visible"
+      :open="open"
       title="回复评价"
       width="600px"
       :confirm-loading="replying"

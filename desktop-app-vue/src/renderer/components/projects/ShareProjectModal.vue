@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :open="visible"
+    :open="open"
     title="分享公开对话"
     :width="520"
     :footer="null"

@@ -1,6 +1,6 @@
 <template>
   <a-drawer
-    :open="visible"
+    :open="open"
     :title="asset ? asset.name : '资产详情'"
     width="600px"
     placement="right"

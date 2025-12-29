@@ -1,6 +1,6 @@
 <template>
   <a-drawer
-    :open="visible"
+    :open="open"
     title="托管详情"
     width="720px"
     @close="handleClose"
