@@ -623,6 +623,68 @@ class ChainlessChainApp {
       // 不影响应用启动
     }
 
+    // ============================
+    // 初始化区块链模块
+    // ============================
+
+    // 初始化钱包管理器
+    try {
+      console.log('初始化区块链钱包管理器...');
+      const { WalletManager } = require('./blockchain/wallet-manager');
+      this.walletManager = new WalletManager(this.database, this.ukeyManager, null);
+      await this.walletManager.initialize();
+      console.log('区块链钱包管理器初始化成功');
+    } catch (error) {
+      console.error('区块链钱包管理器初始化失败:', error);
+      // 不影响应用启动
+    }
+
+    // 初始化区块链适配器
+    try {
+      console.log('初始化区块链适配器...');
+      const BlockchainAdapter = require('./blockchain/blockchain-adapter');
+      this.blockchainAdapter = new BlockchainAdapter(this.database, this.walletManager);
+      await this.blockchainAdapter.initialize();
+
+      // 设置钱包管理器的区块链适配器引用
+      if (this.walletManager) {
+        this.walletManager.blockchainAdapter = this.blockchainAdapter;
+      }
+
+      console.log('区块链适配器初始化成功');
+    } catch (error) {
+      console.error('区块链适配器初始化失败:', error);
+      // 不影响应用启动
+    }
+
+    // 初始化交易监控器
+    try {
+      console.log('初始化区块链交易监控器...');
+      const { TransactionMonitor } = require('./blockchain/transaction-monitor');
+      this.transactionMonitor = new TransactionMonitor(this.blockchainAdapter, this.database);
+      await this.transactionMonitor.initialize();
+      console.log('区块链交易监控器初始化成功');
+    } catch (error) {
+      console.error('区块链交易监控器初始化失败:', error);
+      // 不影响应用启动
+    }
+
+    // 初始化外部钱包连接器
+    try {
+      console.log('初始化外部钱包连接器...');
+      const { ExternalWalletConnector } = require('./blockchain/external-wallet-connector');
+      this.externalWalletConnector = new ExternalWalletConnector(this.database);
+      await this.externalWalletConnector.initialize();
+      console.log('外部钱包连接器初始化成功');
+    } catch (error) {
+      console.error('外部钱包连接器初始化失败:', error);
+      // 不影响应用启动
+    }
+
+    // ============================
+    // 区块链模块初始化完成
+    // ============================
+
     // 初始化可验证凭证管理器
     try {
       console.log('初始化可验证凭证管理器...');
@@ -3412,6 +3474,266 @@ class ChainlessChainApp {
         console.error('[Main] 发送桌面通知失败:', error);
         // 不抛出错误，允许通知失败时应用继续运行
         return { success: false, error: error.message };
+      }
+    });
+
+    // ==================== 区块链钱包管理 ====================
+
+    // 创建钱包
+    ipcMain.handle('wallet:create', async (_event, { password, chainId = 1 }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        return await this.walletManager.createWallet(password, chainId);
+      } catch (error) {
+        console.error('[Main] 创建钱包失败:', error);
+        throw error;
+      }
+    });
+
+    // 从助记词导入钱包
+    ipcMain.handle('wallet:import-mnemonic', async (_event, { mnemonic, password, chainId = 1 }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        return await this.walletManager.importFromMnemonic(mnemonic, password, chainId);
+      } catch (error) {
+        console.error('[Main] 导入钱包失败:', error);
+        throw error;
+      }
+    });
+
+    // 从私钥导入钱包
+    ipcMain.handle('wallet:import-private-key', async (_event, { privateKey, password, chainId = 1 }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        return await this.walletManager.importFromPrivateKey(privateKey, password, chainId);
+      } catch (error) {
+        console.error('[Main] 从私钥导入钱包失败:', error);
+        throw error;
+      }
+    });
+
+    // 解锁钱包
+    ipcMain.handle('wallet:unlock', async (_event, { walletId, password }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        const wallet = await this.walletManager.unlockWallet(walletId, password);
+        return { address: wallet.address };
+      } catch (error) {
+        console.error('[Main] 解锁钱包失败:', error);
+        throw error;
+      }
+    });
+
+    // 锁定钱包
+    ipcMain.handle('wallet:lock', async (_event, { walletId }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        this.walletManager.lockWallet(walletId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 锁定钱包失败:', error);
+        throw error;
+      }
+    });
+
+    // 签名交易
+    ipcMain.handle('wallet:sign-transaction', async (_event, { walletId, transaction, useUKey = false }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        return await this.walletManager.signTransaction(walletId, transaction, useUKey);
+      } catch (error) {
+        console.error('[Main] 签名交易失败:', error);
+        throw error;
+      }
+    });
+
+    // 签名消息
+    ipcMain.handle('wallet:sign-message', async (_event, { walletId, message, useUKey = false }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        return await this.walletManager.signMessage(walletId, message, useUKey);
+      } catch (error) {
+        console.error('[Main] 签名消息失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取余额
+    ipcMain.handle('wallet:get-balance', async (_event, { address, chainId, tokenAddress = null }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        return await this.walletManager.getBalance(address, chainId, tokenAddress);
+      } catch (error) {
+        console.error('[Main] 获取余额失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取所有钱包
+    ipcMain.handle('wallet:get-all', async () => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        return await this.walletManager.getAllWallets();
+      } catch (error) {
+        console.error('[Main] 获取钱包列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取钱包详情
+    ipcMain.handle('wallet:get', async (_event, { walletId }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        return await this.walletManager.getWallet(walletId);
+      } catch (error) {
+        console.error('[Main] 获取钱包详情失败:', error);
+        throw error;
+      }
+    });
+
+    // 设置默认钱包
+    ipcMain.handle('wallet:set-default', async (_event, { walletId }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        await this.walletManager.setDefaultWallet(walletId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 设置默认钱包失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除钱包
+    ipcMain.handle('wallet:delete', async (_event, { walletId }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        await this.walletManager.deleteWallet(walletId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 删除钱包失败:', error);
+        throw error;
+      }
+    });
+
+    // 导出私钥
+    ipcMain.handle('wallet:export-private-key', async (_event, { walletId, password }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        return await this.walletManager.exportPrivateKey(walletId, password);
+      } catch (error) {
+        console.error('[Main] 导出私钥失败:', error);
+        throw error;
+      }
+    });
+
+    // 导出助记词
+    ipcMain.handle('wallet:export-mnemonic', async (_event, { walletId, password }) => {
+      try {
+        if (!this.walletManager) {
+          throw new Error('钱包管理器未初始化');
+        }
+
+        return await this.walletManager.exportMnemonic(walletId, password);
+      } catch (error) {
+        console.error('[Main] 导出助记词失败:', error);
+        throw error;
+      }
+    });
+
+    // 保存外部钱包
+    ipcMain.handle('wallet:save-external', async (_event, { address, provider, chainId }) => {
+      try {
+        if (!this.externalWalletConnector) {
+          throw new Error('外部钱包连接器未初始化');
+        }
+
+        await this.externalWalletConnector._saveExternalWallet({ address, provider, chainId });
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 保存外部钱包失败:', error);
+        throw error;
+      }
+    });
+
+    // 切换区块链网络
+    ipcMain.handle('blockchain:switch-chain', async (_event, { chainId }) => {
+      try {
+        if (!this.blockchainAdapter) {
+          throw new Error('区块链适配器未初始化');
+        }
+
+        await this.blockchainAdapter.switchChain(chainId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 切换网络失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取交易历史
+    ipcMain.handle('blockchain:get-tx-history', async (_event, { address, chainId, limit = 100, offset = 0 }) => {
+      try {
+        if (!this.transactionMonitor) {
+          throw new Error('交易监控器未初始化');
+        }
+
+        return await this.transactionMonitor.getTxHistory({ address, chainId, limit, offset });
+      } catch (error) {
+        console.error('[Main] 获取交易历史失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取交易详情
+    ipcMain.handle('blockchain:get-transaction', async (_event, { txHash }) => {
+      try {
+        if (!this.transactionMonitor) {
+          throw new Error('交易监控器未初始化');
+        }
+
+        return await this.transactionMonitor.getTxDetail(txHash);
+      } catch (error) {
+        console.error('[Main] 获取交易详情失败:', error);
+        throw error;
       }
     });
 

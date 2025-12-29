@@ -11,6 +11,7 @@ module.exports = (env) => {
       'popup/popup': './src/popup/popup.js',
       'background/background': './src/background/background.js',
       'content/content-script': './src/content/content-script.js',
+      'annotation/annotation-editor': './src/annotation/annotation-editor.js',
     },
     output: {
       path: path.resolve(__dirname, `build/${browser}`),
@@ -32,6 +33,16 @@ module.exports = (env) => {
           {
             from: 'src/popup/*.css',
             to: 'popup/[name][ext]',
+            noErrorOnMissing: true,
+          },
+          {
+            from: 'src/annotation/*.html',
+            to: 'annotation/[name][ext]',
+            noErrorOnMissing: true,
+          },
+          {
+            from: 'src/annotation/*.css',
+            to: 'annotation/[name][ext]',
             noErrorOnMissing: true,
           },
           {

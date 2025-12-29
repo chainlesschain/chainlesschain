@@ -92,6 +92,8 @@ class NativeMessagingHTTPServer {
       await this.handleGenerateTagsRequest(req, res);
     } else if (url.pathname === '/api/generate-summary') {
       await this.handleGenerateSummaryRequest(req, res);
+    } else if (url.pathname === '/api/upload-screenshot') {
+      await this.handleUploadScreenshotRequest(req, res);
     } else {
       this.sendError(res, 404, 'Not Found');
     }
@@ -288,6 +290,81 @@ class NativeMessagingHTTPServer {
     const textContent = content.replace(/<[^>]*>/g, '').trim();
     // 取前200字
     return textContent.substring(0, 200) + (textContent.length > 200 ? '...' : '');
+  }
+
+  /**
+   * 处理截图上传请求
+   */
+  async handleUploadScreenshotRequest(req, res) {
+    try {
+      // 读取请求体
+      const body = await this.readRequestBody(req);
+      const data = JSON.parse(body);
+
+      console.log('[NativeMessagingHTTPServer] 收到截图上传请求');
+
+      // 验证数据
+      if (!data.image) {
+        this.sendError(res, 400, '缺少必要字段: image');
+        return;
+      }
+
+      // 解码base64图片
+      const base64Data = data.image.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // 获取用户数据路径
+      const { app } = require('electron');
+      const path = require('path');
+      const fs = require('fs').promises;
+
+      // 确保screenshots目录存在
+      const screenshotsDir = path.join(app.getPath('userData'), 'screenshots');
+      await fs.mkdir(screenshotsDir, { recursive: true });
+
+      // 生成文件名
+      const filename = `screenshot-${Date.now()}.png`;
+      const filepath = path.join(screenshotsDir, filename);
+
+      // 保存文件
+      await fs.writeFile(filepath, buffer);
+
+      console.log('[NativeMessagingHTTPServer] 截图已保存:', filepath);
+
+      // 保存到数据库
+      const { v4: uuidv4 } = require('uuid');
+      const screenshotId = uuidv4();
+
+      // 如果有关联的knowledge item，保存关联
+      if (this.database && this.database.db) {
+        const now = Date.now();
+
+        // 插入截图记录
+        this.database.db.run(`
+          INSERT INTO screenshots (
+            id, knowledge_item_id, image_path, annotations, created_at
+          ) VALUES (?, ?, ?, ?, ?)
+        `, [
+          screenshotId,
+          data.knowledgeItemId || null,
+          filepath,
+          data.annotations || null,
+          now
+        ]);
+
+        console.log('[NativeMessagingHTTPServer] 截图记录已保存到数据库');
+      }
+
+      // 返回成功响应
+      this.sendSuccess(res, {
+        id: screenshotId,
+        path: filepath,
+      });
+
+    } catch (error) {
+      console.error('[NativeMessagingHTTPServer] 截图上传失败:', error);
+      this.sendError(res, 500, error.message);
+    }
   }
 
   /**

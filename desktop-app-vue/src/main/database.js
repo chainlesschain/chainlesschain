@@ -475,6 +475,16 @@ class DatabaseManager {
         FOREIGN KEY (id) REFERENCES knowledge_items(id) ON DELETE CASCADE
       );
 
+      -- 截图表
+      CREATE TABLE IF NOT EXISTS screenshots (
+        id TEXT PRIMARY KEY,
+        knowledge_item_id TEXT,
+        image_path TEXT NOT NULL,
+        annotations TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_item_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
+      );
+
       -- 项目分类表
       CREATE TABLE IF NOT EXISTS project_categories (
         id TEXT PRIMARY KEY,

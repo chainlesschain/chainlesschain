@@ -210,6 +210,26 @@ async function generateAISummary(data) {
 }
 
 /**
+ * Save screenshot
+ */
+async function saveScreenshot(data) {
+  try {
+    console.log('[Background] Saving screenshot');
+
+    const result = await handleDirectAPI({
+      action: 'uploadScreenshot',
+      data: data,
+    });
+
+    console.log('[Background] Screenshot saved:', result);
+    return result;
+  } catch (error) {
+    console.error('[Background] Screenshot save failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Message listener
  */
 const chromeAPI = typeof chrome !== 'undefined' ? chrome : browser;
@@ -244,6 +264,14 @@ chromeAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Generate AI summary
   if (request.action === 'generateSummary') {
     generateAISummary(request.data)
+      .then(sendResponse)
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  // Save screenshot
+  if (request.action === 'saveScreenshot') {
+    saveScreenshot(request.data)
       .then(sendResponse)
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
