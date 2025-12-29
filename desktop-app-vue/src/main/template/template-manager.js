@@ -390,6 +390,23 @@ class ProjectTemplateManager {
     this.initializeTemplateEngine();
 
     try {
+      // 检查模板是否有效
+      if (!template) {
+        throw new Error('模板对象不能为空');
+      }
+
+      // 检查 prompt_template 是否存在
+      if (!template.prompt_template || typeof template.prompt_template !== 'string') {
+        console.error('[TemplateManager] 模板数据:', {
+          id: template.id,
+          name: template.name,
+          display_name: template.display_name,
+          prompt_template: template.prompt_template,
+          prompt_template_type: typeof template.prompt_template
+        });
+        throw new Error(`模板 "${template.display_name || template.name}" 缺少有效的 prompt_template 字段`);
+      }
+
       // 验证变量
       const validation = this.validateVariables(template.variables_schema, userVariables);
       if (!validation.valid) {

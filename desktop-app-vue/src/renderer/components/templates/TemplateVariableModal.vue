@@ -348,6 +348,7 @@ function checkRequiredFields() {
 // 渲染预览
 async function renderPreview() {
   if (!props.template || !props.template.id) {
+    console.warn('[TemplateVariableModal] 模板或模板ID为空')
     return
   }
 
@@ -362,14 +363,20 @@ async function renderPreview() {
     renderingPreview.value = true
     renderError.value = ''
 
-    // 调用 API 渲染 prompt
+    console.log('[TemplateVariableModal] 开始渲染预览:', {
+      templateId: props.template.id,
+      templateName: props.template.display_name,
+      variables: formData.value
+    })
+
+    // 调用 API 渲染 prompt（renderPrompt 内部会调用 getTemplateById 获取完整数据）
     const prompt = await templateStore.renderPrompt(
       props.template.id,
       formData.value
     )
 
     renderedPrompt.value = prompt
-    console.log('[TemplateVariableModal] 预览渲染成功, 长度:', prompt.length)
+    console.log('[TemplateVariableModal] 预览渲染成功, 长度:', prompt?.length || 0)
   } catch (error) {
     console.error('[TemplateVariableModal] 预览渲染失败:', error)
     renderError.value = error.message || '渲染失败'
