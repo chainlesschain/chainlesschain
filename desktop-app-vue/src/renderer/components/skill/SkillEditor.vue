@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :open="visible"
+    :open="open"
     :title="skill ? '编辑技能' : '创建技能'"
     :width="720"
     :confirm-loading="saving"
@@ -102,7 +102,7 @@ import { ref, watch, computed } from 'vue';
 import { message } from 'ant-design-vue';
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -112,7 +112,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:visible', 'save']);
+const emit = defineEmits(['update:open', 'save']);
 
 // 表单数据
 const form = ref({
@@ -231,7 +231,7 @@ const handleSave = async () => {
 
 // 取消
 const handleCancel = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
 };
 </script>
 

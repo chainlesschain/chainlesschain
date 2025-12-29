@@ -241,7 +241,7 @@
 
     <!-- 工具编辑器模态框 -->
     <ToolEditor
-      v-model:visible="editorVisible"
+      v-model:open="editorVisible"
       :tool="editingTool"
       @save="handleSaveTool"
     />
