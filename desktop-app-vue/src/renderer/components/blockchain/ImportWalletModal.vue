@@ -161,18 +161,18 @@ import {
 import { useBlockchainStore } from '@/stores/blockchain';
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
 });
 
-const emit = defineEmits(['update:visible', 'imported']);
+const emit = defineEmits(['update:open', 'imported']);
 
 // Computed property for modal visibility (two-way binding with prop)
 const modalVisible = computed({
-  get: () => props.visible,
-  set: (value) => emit('update:visible', value),
+  get: () => props.open,
+  set: (value) => emit('update:open', value),
 });
 
 const blockchainStore = useBlockchainStore();
@@ -367,7 +367,7 @@ const handleImport = async () => {
  * 取消
  */
 const handleCancel = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
 };
 
 /**
@@ -388,9 +388,9 @@ const resetForms = () => {
   activeTab.value = 'mnemonic';
 };
 
-// 监听 visible 变化
+// 监听 open 变化
 watch(
-  () => props.visible,
+  () => props.open,
   (newValue) => {
     if (!newValue) {
       // 对话框关闭时重置表单
