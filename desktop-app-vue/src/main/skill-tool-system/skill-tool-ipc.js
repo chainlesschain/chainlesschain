@@ -162,8 +162,8 @@ function registerSkillToolIPC(ipcMain, skillManager, toolManager) {
    */
   ipcMain.handle('skill:get-doc', async (event, skillId) => {
     try {
-      const docPath = await skillManager.getSkillDoc(skillId);
-      return { success: true, data: docPath };
+      const content = await skillManager.getSkillDoc(skillId);
+      return { success: true, content };
     } catch (error) {
       console.error('[IPC] skill:get-doc 失败:', error);
       return { success: false, error: error.message };
@@ -309,8 +309,8 @@ function registerSkillToolIPC(ipcMain, skillManager, toolManager) {
    */
   ipcMain.handle('tool:get-doc', async (event, toolId) => {
     try {
-      const docPath = await toolManager.getToolDoc(toolId);
-      return { success: true, data: docPath };
+      const content = await toolManager.getToolDoc(toolId);
+      return { success: true, content };
     } catch (error) {
       console.error('[IPC] tool:get-doc 失败:', error);
       return { success: false, error: error.message };

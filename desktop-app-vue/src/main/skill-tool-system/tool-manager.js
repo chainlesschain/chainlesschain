@@ -590,7 +590,7 @@ class ToolManager {
    * @param {string} toolId - 工具ID
    * @returns {Promise<string|null>} 文档路径
    */
-  async getToolDoc(toolId) {
+  async getToolDocPath(toolId) {
     const tool = await this.getTool(toolId);
     return tool ? tool.doc_path : null;
   }
