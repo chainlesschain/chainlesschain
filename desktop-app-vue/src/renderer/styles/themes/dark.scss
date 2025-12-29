@@ -1,0 +1,378 @@
+/**
+ * 暗色主题样式
+ */
+
+.dark-theme {
+  // ========== 颜色变量 ==========
+
+  // 背景色
+  --bg-color: #141414;
+  --bg-color-secondary: #1f1f1f;
+  --bg-color-tertiary: #2a2a2a;
+  --bg-color-elevated: #262626;
+
+  // 文字颜色
+  --text-color: rgba(255, 255, 255, 0.85);
+  --text-color-secondary: rgba(255, 255, 255, 0.65);
+  --text-color-tertiary: rgba(255, 255, 255, 0.45);
+  --text-color-disabled: rgba(255, 255, 255, 0.25);
+
+  // 边框颜色
+  --border-color: rgba(255, 255, 255, 0.12);
+  --border-color-light: rgba(255, 255, 255, 0.06);
+
+  // 主题色（保持不变）
+  --primary-color: #1890ff;
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --error-color: #ff4d4f;
+  --info-color: #1890ff;
+
+  // 阴影
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --box-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.55);
+
+  // ========== 全局样式 ==========
+
+  background-color: var(--bg-color);
+  color: var(--text-color);
+
+  // ========== 组件样式覆盖 ==========
+
+  // 卡片
+  .ant-card {
+    background-color: var(--bg-color-secondary);
+    border-color: var(--border-color);
+
+    .ant-card-head {
+      background-color: var(--bg-color-tertiary);
+      border-color: var(--border-color);
+      color: var(--text-color);
+    }
+
+    .ant-card-body {
+      color: var(--text-color);
+    }
+  }
+
+  // 表格
+  .ant-table {
+    background-color: var(--bg-color-secondary);
+    color: var(--text-color);
+
+    .ant-table-thead > tr > th {
+      background-color: var(--bg-color-tertiary);
+      border-color: var(--border-color);
+      color: var(--text-color);
+    }
+
+    .ant-table-tbody > tr > td {
+      border-color: var(--border-color);
+      color: var(--text-color);
+    }
+
+    .ant-table-tbody > tr:hover > td {
+      background-color: rgba(255, 255, 255, 0.04);
+    }
+  }
+
+  // 输入框
+  .ant-input,
+  .ant-input-number,
+  .ant-select-selector,
+  .ant-picker {
+    background-color: var(--bg-color-tertiary) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+
+    &::placeholder {
+      color: var(--text-color-tertiary);
+    }
+
+    &:hover,
+    &:focus {
+      background-color: var(--bg-color-elevated) !important;
+      border-color: var(--primary-color) !important;
+    }
+  }
+
+  // 下拉菜单
+  .ant-select-dropdown,
+  .ant-dropdown-menu,
+  .ant-picker-dropdown {
+    background-color: var(--bg-color-elevated);
+    border-color: var(--border-color);
+  }
+
+  .ant-select-item,
+  .ant-dropdown-menu-item {
+    color: var(--text-color);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &-selected {
+      background-color: rgba(24, 144, 255, 0.2);
+    }
+  }
+
+  // 模态框
+  .ant-modal-content {
+    background-color: var(--bg-color-secondary);
+    color: var(--text-color);
+
+    .ant-modal-header {
+      background-color: var(--bg-color-tertiary);
+      border-color: var(--border-color);
+
+      .ant-modal-title {
+        color: var(--text-color);
+      }
+    }
+
+    .ant-modal-footer {
+      border-color: var(--border-color);
+    }
+  }
+
+  // 抽屉
+  .ant-drawer-content {
+    background-color: var(--bg-color-secondary);
+    color: var(--text-color);
+
+    .ant-drawer-header {
+      background-color: var(--bg-color-tertiary);
+      border-color: var(--border-color);
+
+      .ant-drawer-title {
+        color: var(--text-color);
+      }
+    }
+  }
+
+  // 按钮
+  .ant-btn-default {
+    background-color: var(--bg-color-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-color);
+
+    &:hover,
+    &:focus {
+      background-color: var(--bg-color-elevated);
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+  }
+
+  // 标签
+  .ant-tag {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-color);
+    color: var(--text-color-secondary);
+  }
+
+  // 分页
+  .ant-pagination-item {
+    background-color: var(--bg-color-tertiary);
+    border-color: var(--border-color);
+
+    a {
+      color: var(--text-color);
+    }
+
+    &:hover {
+      background-color: var(--bg-color-elevated);
+      border-color: var(--primary-color);
+
+      a {
+        color: var(--primary-color);
+      }
+    }
+
+    &-active {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+
+      a {
+        color: #fff;
+      }
+    }
+  }
+
+  // 空状态
+  .ant-empty-description {
+    color: var(--text-color-secondary);
+  }
+
+  // 消息提示
+  .ant-message-notice-content {
+    background-color: var(--bg-color-elevated);
+    color: var(--text-color);
+    box-shadow: var(--box-shadow);
+  }
+
+  // 通知
+  .ant-notification-notice {
+    background-color: var(--bg-color-elevated);
+    border-color: var(--border-color);
+    color: var(--text-color);
+
+    .ant-notification-notice-message {
+      color: var(--text-color);
+    }
+
+    .ant-notification-notice-description {
+      color: var(--text-color-secondary);
+    }
+  }
+
+  // 折叠面板
+  .ant-collapse {
+    background-color: var(--bg-color-secondary);
+    border-color: var(--border-color);
+
+    .ant-collapse-item {
+      border-color: var(--border-color);
+
+      .ant-collapse-header {
+        color: var(--text-color);
+        background-color: var(--bg-color-tertiary);
+      }
+
+      .ant-collapse-content {
+        background-color: var(--bg-color-secondary);
+        border-color: var(--border-color);
+        color: var(--text-color-secondary);
+      }
+    }
+  }
+
+  // 统计数字
+  .ant-statistic {
+    .ant-statistic-title {
+      color: var(--text-color-secondary);
+    }
+
+    .ant-statistic-content {
+      color: var(--text-color);
+    }
+  }
+
+  // 分割线
+  .ant-divider {
+    border-color: var(--border-color);
+  }
+
+  // ========== 自定义组件样式 ==========
+
+  // 技能卡片
+  .skill-card {
+    background-color: var(--bg-color-secondary);
+    border-color: var(--border-color);
+    box-shadow: var(--box-shadow);
+
+    &:hover {
+      box-shadow: var(--box-shadow-hover);
+    }
+
+    &.disabled {
+      background-color: rgba(255, 255, 255, 0.04);
+      opacity: 0.7;
+    }
+
+    .skill-name {
+      color: var(--text-color);
+    }
+
+    .description {
+      color: var(--text-color-secondary);
+    }
+
+    .label {
+      color: var(--text-color-tertiary);
+    }
+
+    .value {
+      color: var(--text-color);
+    }
+  }
+
+  // 工具卡片
+  .tool-card {
+    background-color: var(--bg-color-secondary);
+    border-color: var(--border-color);
+
+    &.disabled {
+      background-color: rgba(255, 255, 255, 0.04);
+      opacity: 0.7;
+    }
+  }
+
+  // 批量操作栏
+  .batch-action-bar {
+    background-color: rgba(24, 144, 255, 0.12);
+    border-color: rgba(24, 144, 255, 0.3);
+
+    .selection-info {
+      color: #91d5ff;
+    }
+  }
+
+  // 页面头部
+  .page-header {
+    background-color: var(--bg-color-secondary);
+    box-shadow: var(--box-shadow);
+
+    h1 {
+      color: var(--text-color);
+    }
+
+    .subtitle {
+      color: var(--text-color-secondary);
+    }
+  }
+
+  // 工具栏
+  .toolbar {
+    background-color: var(--bg-color-secondary);
+    box-shadow: var(--box-shadow);
+  }
+
+  // 加载容器
+  .loading-container,
+  .empty-container {
+    background-color: var(--bg-color-secondary);
+  }
+
+  // 帮助中心
+  .help-content {
+    .link-card {
+      background-color: var(--bg-color-tertiary);
+      border-color: var(--border-color);
+
+      &:hover {
+        background-color: var(--bg-color-elevated);
+      }
+
+      p {
+        color: var(--text-color-tertiary);
+      }
+    }
+  }
+
+  // 虚拟网格
+  .virtual-grid {
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.4);
+      }
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--bg-color-tertiary);
+    }
+  }
+}

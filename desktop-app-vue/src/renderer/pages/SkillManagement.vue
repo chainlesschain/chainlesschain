@@ -225,6 +225,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { message, Modal } from 'ant-design-vue';
+import { useKeyboardShortcuts, SHORTCUTS } from '../composables/useKeyboardShortcuts';
 import {
   SearchOutlined,
   ReloadOutlined,
@@ -248,9 +249,13 @@ import MarkdownViewer from '../components/common/MarkdownViewer.vue';
 const skillStore = useSkillStore();
 const toolStore = useToolStore();
 
+// 键盘快捷键
+const { registerShortcut, unregisterShortcut } = useKeyboardShortcuts();
+
 // 搜索和筛选
 const searchKeyword = ref('');
 const categoryFilter = ref('all');
+const searchInputRef = ref(null);
 
 // 详情抽屉
 const detailsVisible = ref(false);
@@ -307,10 +312,49 @@ onMounted(async () => {
   // 响应式网格
   updateGridColumns();
   window.addEventListener('resize', updateGridColumns);
+
+  // 注册键盘快捷键
+  registerShortcut(SHORTCUTS.SEARCH, () => {
+    // 聚焦搜索框
+    const searchInput = document.querySelector('.skill-management input[placeholder*="搜索"]');
+    if (searchInput) {
+      searchInput.focus();
+    }
+  }, { global: true });
+
+  registerShortcut(SHORTCUTS.NEW, () => {
+    handleCreateSkill();
+  }, { global: true });
+
+  registerShortcut(SHORTCUTS.REFRESH, () => {
+    handleRefresh();
+  }, { global: true });
+
+  registerShortcut(SHORTCUTS.DELETE, () => {
+    if (selectedSkills.value.length > 0) {
+      handleBatchDelete();
+    }
+  });
+
+  registerShortcut(SHORTCUTS.SELECT_ALL, () => {
+    handleSelectAll({ target: { checked: true } });
+  });
+
+  registerShortcut(SHORTCUTS.DESELECT, () => {
+    handleClearSelection();
+  });
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateGridColumns);
+
+  // 注销快捷键
+  unregisterShortcut(SHORTCUTS.SEARCH);
+  unregisterShortcut(SHORTCUTS.NEW);
+  unregisterShortcut(SHORTCUTS.REFRESH);
+  unregisterShortcut(SHORTCUTS.DELETE);
+  unregisterShortcut(SHORTCUTS.SELECT_ALL);
+  unregisterShortcut(SHORTCUTS.DESELECT);
 });
 
 // 搜索处理
