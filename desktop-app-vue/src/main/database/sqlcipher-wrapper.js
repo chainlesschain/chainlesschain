@@ -5,7 +5,7 @@
  * 支持 AES-256 加密
  */
 
-const Database = require('@journeyapps/sqlcipher').default;
+const Database = require('@journeyapps/sqlcipher').Database;
 const fs = require('fs');
 
 /**
@@ -199,12 +199,14 @@ class SQLCipherWrapper {
     }
 
     try {
-      // 创建或打开数据库
-      this.db = new Database(this.dbPath, this.options);
-
-      // 如果提供了密钥，设置加密
+      // 如果提供了密钥，使用加密模式创建数据库
       if (this.key) {
+        // 使用未加密模式打开，然后立即设置密钥
+        this.db = new Database(this.dbPath, this.options);
         this._setupEncryption(this.key);
+      } else {
+        // 未加密模式
+        this.db = new Database(this.dbPath, this.options);
       }
 
       // 启用外键约束
