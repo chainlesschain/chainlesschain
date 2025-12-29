@@ -167,12 +167,14 @@
       :width="720"
       placement="right"
     >
-      <SkillDetails
-        v-if="currentSkill"
-        :skill="currentSkill"
-        @update="handleUpdateSkill"
-        @close="detailsVisible = false"
-      />
+      <ErrorBoundary>
+        <SkillDetails
+          v-if="currentSkill"
+          :skill="currentSkill"
+          @update="handleUpdateSkill"
+          @close="detailsVisible = false"
+        />
+      </ErrorBoundary>
     </a-drawer>
 
     <!-- 文档查看器抽屉 -->
@@ -245,6 +247,7 @@ import SkillStats from '../components/skill/SkillStats.vue';
 import SkillDependencyGraph from '../components/skill/SkillDependencyGraph.vue';
 import VirtualGrid from '../components/common/VirtualGrid.vue';
 import MarkdownViewer from '../components/common/MarkdownViewer.vue';
+import ErrorBoundary from '../components/common/ErrorBoundary.vue';
 
 const skillStore = useSkillStore();
 const toolStore = useToolStore();

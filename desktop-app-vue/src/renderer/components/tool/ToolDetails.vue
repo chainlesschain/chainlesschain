@@ -110,6 +110,20 @@
       无特殊权限要求
     </div>
 
+    <!-- 文档 -->
+    <a-divider>文档</a-divider>
+
+    <ErrorBoundary>
+      <MarkdownViewer
+        v-if="tool.doc_path"
+        :doc-path="tool.doc_path"
+        :enable-link-navigation="true"
+        @skill-link-click="handleSkillLinkClick"
+        @tool-link-click="handleToolLinkClick"
+      />
+      <a-empty v-else description="暂无文档" :image="simpleImage" />
+    </ErrorBoundary>
+
     <!-- 统计信息 -->
     <a-divider>统计信息</a-divider>
 
@@ -153,6 +167,9 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { message, Empty } from 'ant-design-vue';
+import { useRouter } from 'vue-router';
+import MarkdownViewer from '../common/MarkdownViewer.vue';
+import ErrorBoundary from '../common/ErrorBoundary.vue';
 
 const props = defineProps({
   tool: {
@@ -163,6 +180,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update', 'close']);
 
+const router = useRouter();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
 
 const editing = ref(false);
@@ -295,6 +313,18 @@ const saveEdit = async () => {
 // 取消编辑
 const cancelEdit = () => {
   editing.value = false;
+};
+
+// 处理技能链接点击
+const handleSkillLinkClick = (skillId) => {
+  console.log('Navigate to skill:', skillId);
+  router.push({ name: 'SkillManagement', query: { skillId } });
+};
+
+// 处理工具链接点击
+const handleToolLinkClick = (toolId) => {
+  console.log('Navigate to tool:', toolId);
+  router.push({ name: 'ToolManagement', query: { toolId } });
 };
 </script>
 
