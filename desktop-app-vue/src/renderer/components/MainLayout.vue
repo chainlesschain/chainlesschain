@@ -230,6 +230,15 @@
             <!-- 语言切换 -->
             <LanguageSwitcher />
 
+            <!-- 通知中心 -->
+            <a-badge :count="socialStore.totalUnreadCount" :overflow-count="99">
+              <a-tooltip title="通知中心">
+                <a-button type="text" @click="toggleNotificationPanel">
+                  <BellOutlined />
+                </a-button>
+              </a-tooltip>
+            </a-badge>
+
             <!-- 用户菜单 -->
             <a-dropdown>
               <a-button type="text">
@@ -316,6 +325,18 @@
 
     <!-- 同步冲突对话框 -->
     <SyncConflictDialog />
+
+    <!-- 通知中心抽屉 -->
+    <a-drawer
+      v-model:open="notificationPanelVisible"
+      title="通知中心"
+      placement="right"
+      :width="400"
+      :closable="true"
+      :body-style="{ padding: 0 }"
+    >
+      <NotificationCenter />
+    </a-drawer>
   </a-layout>
 </template>
 
@@ -358,15 +379,19 @@ import {
   ArrowLeftOutlined,
   AppstoreOutlined,
   NodeIndexOutlined,
+  BellOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
+import { useSocialStore } from '../stores/social';
 import ChatPanel from './ChatPanel.vue';
 import SyncConflictDialog from './SyncConflictDialog.vue';
 import LanguageSwitcher from './LanguageSwitcher.vue';
+import NotificationCenter from './social/NotificationCenter.vue';
 
 const router = useRouter();
 const route = useRoute();
 const store = useAppStore();
+const socialStore = useSocialStore();
 
 const sidebarCollapsed = computed({
   get: () => store.sidebarCollapsed,
@@ -459,6 +484,16 @@ const toggleChat = () => {
   chatPanelVisible.value = !chatPanelVisible.value;
 };
 
+// 通知中心面板
+const notificationPanelVisible = computed({
+  get: () => socialStore.notificationPanelVisible,
+  set: (val) => socialStore.toggleNotificationPanel(val)
+});
+
+const toggleNotificationPanel = () => {
+  socialStore.toggleNotificationPanel();
+};
+
 const handleMenuClick = ({ key }) => {
   const config = menuConfig[key];
   if (!config) return;
@@ -537,7 +572,18 @@ const syncTooltip = computed(() => {
 });
 
 // 监听同步事件
-onMounted(() => {
+onMounted(async () => {
+  // 加载社交数据
+  try {
+    await Promise.all([
+      socialStore.loadNotifications(),
+      socialStore.loadChatSessions(),
+      socialStore.loadFriends()
+    ]);
+  } catch (error) {
+    console.error('加载社交数据失败:', error);
+  }
+
   if (window.electronAPI && window.electronAPI.sync) {
     window.electronAPI.sync.onSyncStarted(() => {
       isSyncing.value = true;
