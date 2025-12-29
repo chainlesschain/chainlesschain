@@ -660,6 +660,18 @@ class ChainlessChainApp {
         this.walletManager.blockchainAdapter = this.blockchainAdapter;
       }
 
+      // 设置资产管理器的区块链适配器引用
+      if (this.assetManager) {
+        this.assetManager.blockchainAdapter = this.blockchainAdapter;
+        console.log('已注入区块链适配器到资产管理器');
+      }
+
+      // 设置合约引擎的区块链适配器引用
+      if (this.smartContractEngine) {
+        this.smartContractEngine.blockchainAdapter = this.blockchainAdapter;
+        console.log('已注入区块链适配器到合约引擎');
+      }
+
       console.log('区块链适配器初始化成功');
     } catch (error) {
       console.error('区块链适配器初始化失败:', error);
@@ -3903,6 +3915,20 @@ class ChainlessChainApp {
       } catch (error) {
         console.error('[Main] 获取余额失败:', error);
         return 0;
+      }
+    });
+
+    // 获取资产的区块链部署信息
+    ipcMain.handle('asset:get-blockchain-info', async (_event, assetId) => {
+      try {
+        if (!this.assetManager) {
+          return null;
+        }
+
+        return await this.assetManager._getBlockchainAsset(assetId);
+      } catch (error) {
+        console.error('[Main] 获取区块链资产信息失败:', error);
+        return null;
       }
     });
 
@@ -8204,6 +8230,206 @@ class ChainlessChainApp {
         return { success: true, targetPath: newTargetPath };
       } catch (error) {
         console.error('[Main] 移动文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 复制文件到系统剪贴板
+    ipcMain.handle('file:copyToSystemClipboard', async (_event, { projectId, filePath, fullPath, isDirectory, fileName }) => {
+      try {
+        const { clipboard } = require('electron');
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        console.log('[Main] 复制文件到系统剪贴板:', { filePath, fullPath });
+
+        // 获取项目根路径
+        const project = this.database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
+        if (!project?.root_path) {
+          throw new Error('项目没有根路径');
+        }
+
+        const rootPath = project.root_path;
+        const resolvedPath = path.join(rootPath, filePath);
+
+        console.log('[Main] 解析后的路径:', resolvedPath);
+
+        // 检查文件是否存在
+        const exists = await fs.access(resolvedPath).then(() => true).catch(() => false);
+        if (!exists) {
+          throw new Error(`文件不存在: ${resolvedPath}`);
+        }
+
+        // 将文件路径写入系统剪贴板（使用 Electron 的 clipboard API）
+        // Windows 使用 CF_HDROP 格式
+        clipboard.writeBuffer('FileNameW', Buffer.from(resolvedPath + '\0', 'ucs2'));
+
+        console.log('[Main] 文件路径已写入系统剪贴板');
+
+        return { success: true, filePath: resolvedPath };
+      } catch (error) {
+        console.error('[Main] 复制到系统剪贴板失败:', error);
+        throw error;
+      }
+    });
+
+    // 剪切文件到系统剪贴板
+    ipcMain.handle('file:cutToSystemClipboard', async (_event, { projectId, filePath, fullPath, isDirectory, fileName }) => {
+      try {
+        const { clipboard } = require('electron');
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        console.log('[Main] 剪切文件到系统剪贴板:', { filePath, fullPath });
+
+        // 获取项目根路径
+        const project = this.database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
+        if (!project?.root_path) {
+          throw new Error('项目没有根路径');
+        }
+
+        const rootPath = project.root_path;
+        const resolvedPath = path.join(rootPath, filePath);
+
+        console.log('[Main] 解析后的路径:', resolvedPath);
+
+        // 检查文件是否存在
+        const exists = await fs.access(resolvedPath).then(() => true).catch(() => false);
+        if (!exists) {
+          throw new Error(`文件不存在: ${resolvedPath}`);
+        }
+
+        // 剪切模式：将文件路径写入剪贴板，并标记为剪切操作
+        // 使用特殊的标记来区分复制和剪切（Windows的Preferred DropEffect）
+        clipboard.writeBuffer('FileNameW', Buffer.from(resolvedPath + '\0', 'ucs2'));
+        clipboard.writeBuffer('Preferred DropEffect', Buffer.from([2, 0, 0, 0])); // DROPEFFECT_MOVE = 2
+
+        console.log('[Main] 文件已标记为剪切并写入系统剪贴板');
+
+        return { success: true, filePath: resolvedPath };
+      } catch (error) {
+        console.error('[Main] 剪切到系统剪贴板失败:', error);
+        throw error;
+      }
+    });
+
+    // 从系统剪贴板粘贴文件
+    ipcMain.handle('file:pasteFromSystemClipboard', async () => {
+      try {
+        const { clipboard } = require('electron');
+
+        console.log('[Main] 读取系统剪贴板');
+
+        // 尝试读取文件路径
+        const filePathBuffer = clipboard.readBuffer('FileNameW');
+
+        if (!filePathBuffer || filePathBuffer.length === 0) {
+          console.log('[Main] 系统剪贴板中没有文件');
+          return { success: true, hasFiles: false };
+        }
+
+        // 解析文件路径（Windows使用UCS-2编码）
+        const filePathStr = filePathBuffer.toString('ucs2').replace(/\0/g, '');
+        const filePaths = filePathStr.split('\n').filter(p => p.trim());
+
+        if (filePaths.length === 0) {
+          return { success: true, hasFiles: false };
+        }
+
+        // 检查是否是剪切操作
+        const dropEffectBuffer = clipboard.readBuffer('Preferred DropEffect');
+        const isCut = dropEffectBuffer && dropEffectBuffer.length >= 4 && dropEffectBuffer[0] === 2;
+
+        console.log('[Main] 系统剪贴板文件:', filePaths);
+        console.log('[Main] 是否为剪切:', isCut);
+
+        return {
+          success: true,
+          hasFiles: true,
+          filePaths,
+          isCut
+        };
+      } catch (error) {
+        console.error('[Main] 读取系统剪贴板失败:', error);
+        return { success: true, hasFiles: false };
+      }
+    });
+
+    // 从系统剪贴板导入文件到项目
+    ipcMain.handle('file:importFromSystemClipboard', async (_event, { projectId, targetPath, clipboardData }) => {
+      try {
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        console.log('[Main] 从系统剪贴板导入文件:', clipboardData);
+
+        // 获取项目根路径
+        const project = this.database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
+        if (!project?.root_path) {
+          throw new Error('项目没有根路径');
+        }
+
+        const rootPath = project.root_path;
+        const resolvedTargetPath = targetPath ? path.join(rootPath, targetPath) : rootPath;
+
+        console.log('[Main] 目标路径:', resolvedTargetPath);
+
+        // 确保目标目录存在
+        await fs.mkdir(resolvedTargetPath, { recursive: true });
+
+        let count = 0;
+
+        // 递归复制函数
+        async function copyRecursive(src, dest) {
+          const stats = await fs.stat(src);
+
+          if (stats.isDirectory()) {
+            await fs.mkdir(dest, { recursive: true });
+            const entries = await fs.readdir(src, { withFileTypes: true });
+            for (const entry of entries) {
+              await copyRecursive(
+                path.join(src, entry.name),
+                path.join(dest, entry.name)
+              );
+            }
+          } else {
+            await fs.mkdir(path.dirname(dest), { recursive: true });
+            await fs.copyFile(src, dest);
+            count++;
+          }
+        }
+
+        // 复制或移动每个文件
+        for (const sourcePath of clipboardData.filePaths) {
+          const fileName = path.basename(sourcePath);
+          const destPath = path.join(resolvedTargetPath, fileName);
+
+          if (clipboardData.isCut) {
+            // 剪切：移动文件
+            await fs.rename(sourcePath, destPath);
+            count++;
+            console.log('[Main] 移动文件:', sourcePath, '->', destPath);
+          } else {
+            // 复制：递归复制
+            await copyRecursive(sourcePath, destPath);
+            console.log('[Main] 复制文件:', sourcePath, '->', destPath);
+          }
+        }
+
+        console.log('[Main] 系统剪贴板导入完成，文件数:', count);
+
+        // 通知渲染进程刷新文件列表
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('project:files-updated', {
+            projectId,
+            action: 'imported',
+            targetPath
+          });
+        }
+
+        return { success: true, count };
+      } catch (error) {
+        console.error('[Main] 从系统剪贴板导入失败:', error);
         throw error;
       }
     });

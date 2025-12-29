@@ -748,53 +748,120 @@ const handleDelete = async () => {
   });
 };
 
-// 复制
-const handleCopy = () => {
+// 复制（同时复制到系统剪贴板）
+const handleCopy = async () => {
   if (!contextNode.value) return;
+
+  // 内部剪贴板（用于项目内部复制粘贴）
   clipboard.value = {
     node: contextNode.value,
-    operation: 'copy' // 标记为复制操作
+    operation: 'copy'
   };
-  console.log('[EnhancedFileTree] 已复制文件:', contextNode.value.title);
-  message.success(`已复制: ${contextNode.value.title}`);
-};
-
-// 剪切
-const handleCut = () => {
-  if (!contextNode.value) return;
-  clipboard.value = {
-    node: contextNode.value,
-    operation: 'cut' // 标记为剪切操作
-  };
-  console.log('[EnhancedFileTree] 已剪切文件:', contextNode.value.title);
-  message.success(`已剪切: ${contextNode.value.title}`);
-};
-
-// 粘贴
-const handlePaste = async () => {
-  if (!clipboard.value) {
-    console.warn('[EnhancedFileTree] 剪贴板为空，无法粘贴');
-    return;
-  }
 
   try {
-    const { node, operation } = clipboard.value;
-    // 目标路径：如果是空白处右键，则粘贴到根目录；否则粘贴到选中的文件夹
-    let targetPath = '';
+    // 复制到系统剪贴板（用于跨项目/跨应用复制粘贴）
+    const fullPath = `/data/projects/${props.projectId}/${contextNode.value.filePath}`;
 
+    // 调用Electron API将文件路径写入系统剪贴板
+    await window.electronAPI.file.copyToSystemClipboard({
+      projectId: props.projectId,
+      filePath: contextNode.value.filePath,
+      fullPath: fullPath,
+      isDirectory: !contextNode.value.isLeaf,
+      fileName: contextNode.value.title
+    });
+
+    console.log('[EnhancedFileTree] 已复制文件到系统剪贴板:', contextNode.value.title);
+    message.success(`已复制: ${contextNode.value.title}（可粘贴到任何位置）`);
+  } catch (error) {
+    console.error('[EnhancedFileTree] 复制到系统剪贴板失败:', error);
+    // 即使系统剪贴板失败，内部剪贴板仍然可用
+    message.success(`已复制: ${contextNode.value.title}（仅限项目内粘贴）`);
+  }
+};
+
+// 剪切（同时复制到系统剪贴板）
+const handleCut = async () => {
+  if (!contextNode.value) return;
+
+  // 内部剪贴板
+  clipboard.value = {
+    node: contextNode.value,
+    operation: 'cut'
+  };
+
+  try {
+    // 复制到系统剪贴板（标记为剪切）
+    const fullPath = `/data/projects/${props.projectId}/${contextNode.value.filePath}`;
+
+    await window.electronAPI.file.cutToSystemClipboard({
+      projectId: props.projectId,
+      filePath: contextNode.value.filePath,
+      fullPath: fullPath,
+      isDirectory: !contextNode.value.isLeaf,
+      fileName: contextNode.value.title
+    });
+
+    console.log('[EnhancedFileTree] 已剪切文件到系统剪贴板:', contextNode.value.title);
+    message.success(`已剪切: ${contextNode.value.title}（可移动到任何位置）`);
+  } catch (error) {
+    console.error('[EnhancedFileTree] 剪切到系统剪贴板失败:', error);
+    message.success(`已剪切: ${contextNode.value.title}（仅限项目内移动）`);
+  }
+};
+
+// 粘贴（支持系统剪贴板）
+const handlePaste = async () => {
+  try {
+    // 1. 首先尝试从系统剪贴板粘贴
+    let systemClipboardResult = null;
+    try {
+      systemClipboardResult = await window.electronAPI.file.pasteFromSystemClipboard();
+      console.log('[EnhancedFileTree] 系统剪贴板内容:', systemClipboardResult);
+    } catch (error) {
+      console.log('[EnhancedFileTree] 系统剪贴板为空或读取失败:', error);
+    }
+
+    // 确定目标路径
+    let targetPath = '';
     if (contextNode.value) {
-      // 如果右键点击的是文件（而不是文件夹），则粘贴到其父目录
       if (contextNode.value.isLeaf) {
+        // 如果右键点击的是文件，粘贴到其父目录
         const parts = contextNode.value.filePath.split('/');
-        parts.pop(); // 移除文件名
+        parts.pop();
         targetPath = parts.join('/');
       } else {
-        // 如果是文件夹，直接粘贴到这个文件夹
+        // 如果是文件夹，粘贴到这个文件夹
         targetPath = contextNode.value.filePath;
       }
     }
 
-    console.log('[EnhancedFileTree] 粘贴操作:', {
+    // 2. 如果系统剪贴板有内容，优先从系统剪贴板粘贴
+    if (systemClipboardResult && systemClipboardResult.hasFiles) {
+      console.log('[EnhancedFileTree] 从系统剪贴板粘贴文件:', systemClipboardResult);
+
+      const result = await window.electronAPI.file.importFromSystemClipboard({
+        projectId: props.projectId,
+        targetPath: targetPath,
+        clipboardData: systemClipboardResult
+      });
+
+      if (result.success) {
+        message.success(`已从系统剪贴板粘贴 ${result.count} 个文件`);
+        emit('refresh');
+        return;
+      }
+    }
+
+    // 3. 否则使用内部剪贴板
+    if (!clipboard.value) {
+      message.warning('剪贴板为空，请先复制或剪切文件');
+      return;
+    }
+
+    const { node, operation } = clipboard.value;
+
+    console.log('[EnhancedFileTree] 内部剪贴板粘贴操作:', {
       operation,
       sourcePath: node.filePath,
       targetPath,
