@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-12-29T04:19:06.746Z",
+  "timestamp": "2025-12-29T08:20:23.789Z",
   "summary": {
     "total": 20,
-    "passed": 16,
-    "failed": 4,
-    "passRate": "80.00%"
+    "passed": 19,
+    "failed": 1,
+    "passRate": "95.00%"
   },
   "tests": [
     {
@@ -49,23 +49,23 @@
     },
     {
       "name": "T2.1 - API Ping",
-      "passed": false,
-      "message": ""
+      "passed": true,
+      "message": "{\"success\":true,\"data\":{\"message\":\"pong\"}}"
     },
     {
       "name": "T2.2 - 剪藏 API",
       "passed": false,
-      "message": ""
+      "message": "{\"success\":false,\"error\":\"Cannot read properties of null (reading '0')\"}"
     },
     {
       "name": "T3.1 - AI 标签生成 API",
-      "passed": false,
-      "message": ""
+      "passed": true,
+      "message": "标签: example, 指南"
     },
     {
       "name": "T3.2 - AI 摘要生成 API",
-      "passed": false,
-      "message": ""
+      "passed": true,
+      "message": "长度: 103 字符"
     },
     {
       "name": "T4.1 - manifest.json 有效",
