@@ -315,8 +315,13 @@ const loadPlugins = async () => {
 
     const result = await window.electronAPI.plugin.getPlugins(filters);
 
+    // Handle response object structure
+    if (result && !result.success) {
+      throw new Error(result.error || '获取插件列表失败');
+    }
+
     // Ensure result is an array before mapping
-    const pluginList = Array.isArray(result) ? result : (result?.data || result?.plugins || []);
+    const pluginList = Array.isArray(result) ? result : (result?.plugins || result?.data || []);
 
     plugins.value = pluginList.map(p => ({
       ...p,
