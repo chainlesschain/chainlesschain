@@ -173,6 +173,13 @@ const routes = [
         component: () => import('../components/trade/MyReviews.vue'),
         meta: { title: '我的评价' },
       },
+      // ===== 区块链钱包 =====
+      {
+        path: 'wallet',
+        name: 'Wallet',
+        component: () => import('../pages/Wallet.vue'),
+        meta: { title: '钱包管理' },
+      },
       // 项目管理模块
             {
         path: 'projects/categories',
