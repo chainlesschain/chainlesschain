@@ -251,6 +251,13 @@ class P2PManager extends EventEmitter {
         listenAddresses.push(`/ip4/127.0.0.1/tcp/${this.p2pConfig.websocket.port}/ws`);
       }
 
+      // 如果启用WebRTC，添加WebRTC监听地址
+      if (this.p2pConfig.transports.webrtc) {
+        const webrtcPort = this.config.webrtcPort || 9095;
+        listenAddresses.push(`/ip4/0.0.0.0/udp/${webrtcPort}/webrtc`);
+        listenAddresses.push(`/ip4/127.0.0.1/udp/${webrtcPort}/webrtc`);
+      }
+
       // 根据配置和NAT类型智能选择传输层
       const transports = this.buildTransports({
         tcp,
@@ -1481,6 +1488,20 @@ class P2PManager extends EventEmitter {
   buildTransports({ tcp, webSockets, webRTC, circuitRelayTransport, config, natInfo }) {
     const transports = [];
 
+    // Helper function to safely add WebRTC transport
+    const addWebRTCTransport = (priority = '后备') => {
+      try {
+        transports.push(webRTC({ iceServers: this.buildICEServers() }));
+        console.log(`[P2PManager] 添加WebRTC传输（${priority}）`);
+        return true;
+      } catch (error) {
+        console.warn('[P2PManager] WebRTC传输初始化失败，跳过:', error.message);
+        // Note: WebRTC may not be fully supported in Node.js/Electron environments
+        // Consider using @libp2p/webrtc-direct for peer-to-peer in Node.js
+        return false;
+      }
+    };
+
     // 根据NAT类型和配置智能选择（优先顺序）
     if (config.transports.autoSelect && natInfo) {
       console.log(`[P2PManager] 智能传输选择: NAT类型=${natInfo.type}`);
@@ -1489,8 +1510,7 @@ class P2PManager extends EventEmitter {
       if (natInfo.type === 'full-cone' || natInfo.type === 'restricted') {
         // Full Cone/Restricted NAT: WebRTC优先，然后WebSocket，最后TCP
         if (config.transports.webrtc) {
-          transports.push(webRTC({ iceServers: this.buildICEServers() }));
-          console.log('[P2PManager] 添加WebRTC传输（优先 - 适合Full Cone/Restricted NAT）');
+          addWebRTCTransport('优先 - 适合Full Cone/Restricted NAT');
         }
         if (config.transports.websocket) {
           transports.push(webSockets());
@@ -1507,8 +1527,7 @@ class P2PManager extends EventEmitter {
           console.log('[P2PManager] 添加WebSocket传输（优先 - 适合对称NAT）');
         }
         if (config.transports.webrtc) {
-          transports.push(webRTC({ iceServers: this.buildICEServers() }));
-          console.log('[P2PManager] 添加WebRTC传输（后备）');
+          addWebRTCTransport('后备');
         }
         if (config.transports.tcp) {
           transports.push(tcp());
@@ -1525,8 +1544,7 @@ class P2PManager extends EventEmitter {
           console.log('[P2PManager] 添加WebSocket传输（后备）');
         }
         if (config.transports.webrtc) {
-          transports.push(webRTC({ iceServers: this.buildICEServers() }));
-          console.log('[P2PManager] 添加WebRTC传输（后备）');
+          addWebRTCTransport('后备');
         }
       }
     } else {
@@ -1539,7 +1557,7 @@ class P2PManager extends EventEmitter {
         transports.push(webSockets());
       }
       if (config.transports.webrtc) {
-        transports.push(webRTC({ iceServers: this.buildICEServers() }));
+        addWebRTCTransport();
       }
     }
 
