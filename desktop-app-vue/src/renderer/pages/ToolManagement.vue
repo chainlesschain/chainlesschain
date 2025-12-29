@@ -64,13 +64,17 @@
       </a-space>
 
       <a-space>
-        <a-button type="link" @click="showDependencyGraph">
-          <template #icon><ApartmentOutlined /></template>
-          依赖关系图
+        <a-button type="primary" @click="handleCreateTool">
+          <template #icon><PlusOutlined /></template>
+          创建工具
         </a-button>
         <a-button type="link" @click="showAnalytics">
           <template #icon><BarChartOutlined /></template>
-          使用分析
+          使用统计
+        </a-button>
+        <a-button type="link" @click="showDependencyGraph">
+          <template #icon><ApartmentOutlined /></template>
+          依赖关系图
         </a-button>
       </a-space>
     </div>
@@ -209,6 +213,37 @@
         v-model:result="testResult"
       />
     </a-modal>
+
+    <!-- 工具编辑器模态框 -->
+    <ToolEditor
+      v-model:visible="editorVisible"
+      :tool="editingTool"
+      @save="handleSaveTool"
+    />
+
+    <!-- 工具统计分析模态框 -->
+    <a-modal
+      v-model:open="statsVisible"
+      title="工具统计分析"
+      :width="1200"
+      :footer="null"
+    >
+      <ToolStats :tools="toolStore.tools" />
+    </a-modal>
+
+    <!-- 依赖关系图模态框 -->
+    <a-modal
+      v-model:open="graphVisible"
+      title="技能-工具依赖关系图"
+      :width="1400"
+      :footer="null"
+    >
+      <SkillDependencyGraph
+        :skills="allSkills"
+        :tools="toolStore.tools"
+        :skillTools="allSkillTools"
+      />
+    </a-modal>
   </div>
 </template>
 
@@ -218,15 +253,21 @@ import { message } from 'ant-design-vue';
 import {
   SearchOutlined,
   ReloadOutlined,
+  PlusOutlined,
   ApartmentOutlined,
   BarChartOutlined,
 } from '@ant-design/icons-vue';
 import { useToolStore } from '../stores/tool';
+import { useSkillStore } from '../stores/skill';
 import ToolDetails from '../components/tool/ToolDetails.vue';
+import ToolEditor from '../components/tool/ToolEditor.vue';
+import ToolStats from '../components/tool/ToolStats.vue';
 import ToolTester from '../components/tool/ToolTester.vue';
+import SkillDependencyGraph from '../components/skill/SkillDependencyGraph.vue';
 import MarkdownViewer from '../components/common/MarkdownViewer.vue';
 
 const toolStore = useToolStore();
+const skillStore = useSkillStore();
 
 // 搜索和筛选
 const searchKeyword = ref('');
@@ -250,6 +291,18 @@ const testVisible = ref(false);
 const testing = ref(false);
 const testParams = ref({});
 const testResult = ref(null);
+
+// 工具编辑
+const editorVisible = ref(false);
+const editingTool = ref(null);
+
+// 统计分析
+const statsVisible = ref(false);
+
+// 依赖关系图
+const graphVisible = ref(false);
+const allSkills = ref([]);
+const allSkillTools = ref([]);
 
 // 分页
 const pagination = reactive({
@@ -308,7 +361,9 @@ const columns = [
 // 初始化
 onMounted(async () => {
   await toolStore.fetchAll();
+  await skillStore.fetchAll();
   pagination.total = toolStore.totalCount;
+  allSkills.value = skillStore.skills;
 });
 
 // 搜索处理
@@ -424,14 +479,52 @@ const handleUpdateTool = async (toolId, updates) => {
   }
 };
 
+// 创建工具
+const handleCreateTool = () => {
+  editingTool.value = null;
+  editorVisible.value = true;
+};
+
+// 保存工具
+const handleSaveTool = async (toolData) => {
+  try {
+    let success;
+    if (editingTool.value) {
+      // 更新现有工具
+      success = await toolStore.update(editingTool.value.id, toolData);
+    } else {
+      // 创建新工具
+      success = await toolStore.create(toolData);
+    }
+
+    if (success) {
+      message.success(editingTool.value ? '更新成功' : '创建成功');
+      editorVisible.value = false;
+      await toolStore.fetchAll();
+    } else {
+      message.error(editingTool.value ? '更新失败' : '创建失败');
+    }
+  } catch (error) {
+    console.error(error);
+    message.error('操作失败');
+  }
+};
+
 // 显示依赖关系图
-const showDependencyGraph = () => {
-  message.info('依赖关系图功能开发中...');
+const showDependencyGraph = async () => {
+  try {
+    const relations = await window.electron.invoke('skill-tool:get-all-relations');
+    allSkillTools.value = relations;
+    graphVisible.value = true;
+  } catch (error) {
+    console.error(error);
+    message.error('加载依赖关系失败');
+  }
 };
 
 // 显示使用分析
 const showAnalytics = () => {
-  message.info('使用分析功能开发中...');
+  statsVisible.value = true;
 };
 
 // 辅助函数

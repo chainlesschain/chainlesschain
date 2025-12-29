@@ -60,6 +60,21 @@
           刷新
         </a-button>
       </a-space>
+
+      <a-space>
+        <a-button type="primary" @click="handleCreateSkill">
+          <template #icon><PlusOutlined /></template>
+          创建技能
+        </a-button>
+        <a-button type="link" @click="showStats">
+          <template #icon><BarChartOutlined /></template>
+          统计分析
+        </a-button>
+        <a-button type="link" @click="showDependencyGraph">
+          <template #icon><ApartmentOutlined /></template>
+          依赖关系图
+        </a-button>
+      </a-space>
     </div>
 
     <!-- 技能列表 -->
@@ -111,19 +126,61 @@
       />
       <a-spin v-else-if="loadingDoc" />
     </a-drawer>
+
+    <!-- 技能编辑器模态框 -->
+    <SkillEditor
+      v-model:visible="editorVisible"
+      :skill="editingSkill"
+      @save="handleSaveSkill"
+    />
+
+    <!-- 统计分析模态框 -->
+    <a-modal
+      v-model:open="statsVisible"
+      title="技能统计分析"
+      :width="1200"
+      :footer="null"
+    >
+      <SkillStats :skills="skillStore.skills" />
+    </a-modal>
+
+    <!-- 依赖关系图模态框 -->
+    <a-modal
+      v-model:open="graphVisible"
+      title="技能-工具依赖关系图"
+      :width="1400"
+      :footer="null"
+    >
+      <SkillDependencyGraph
+        :skills="skillStore.skills"
+        :tools="allTools"
+        :skillTools="allSkillTools"
+      />
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons-vue';
+import {
+  SearchOutlined,
+  ReloadOutlined,
+  PlusOutlined,
+  BarChartOutlined,
+  ApartmentOutlined,
+} from '@ant-design/icons-vue';
 import { useSkillStore } from '../stores/skill';
+import { useToolStore } from '../stores/tool';
 import SkillCard from '../components/skill/SkillCard.vue';
 import SkillDetails from '../components/skill/SkillDetails.vue';
+import SkillEditor from '../components/skill/SkillEditor.vue';
+import SkillStats from '../components/skill/SkillStats.vue';
+import SkillDependencyGraph from '../components/skill/SkillDependencyGraph.vue';
 import MarkdownViewer from '../components/common/MarkdownViewer.vue';
 
 const skillStore = useSkillStore();
+const toolStore = useToolStore();
 
 // 搜索和筛选
 const searchKeyword = ref('');
@@ -138,9 +195,23 @@ const docVisible = ref(false);
 const currentDoc = ref(null);
 const loadingDoc = ref(false);
 
+// 技能编辑
+const editorVisible = ref(false);
+const editingSkill = ref(null);
+
+// 统计分析
+const statsVisible = ref(false);
+
+// 依赖关系图
+const graphVisible = ref(false);
+const allTools = ref([]);
+const allSkillTools = ref([]);
+
 // 初始化
 onMounted(async () => {
   await skillStore.fetchAll();
+  await toolStore.fetchAll();
+  allTools.value = toolStore.tools;
 });
 
 // 搜索处理
@@ -216,6 +287,55 @@ const handleUpdateSkill = async (skillId, updates) => {
     message.error('更新失败');
   }
 };
+
+// 创建技能
+const handleCreateSkill = () => {
+  editingSkill.value = null;
+  editorVisible.value = true;
+};
+
+// 保存技能
+const handleSaveSkill = async (skillData) => {
+  try {
+    let success;
+    if (editingSkill.value) {
+      // 更新现有技能
+      success = await skillStore.update(editingSkill.value.id, skillData);
+    } else {
+      // 创建新技能
+      success = await skillStore.create(skillData);
+    }
+
+    if (success) {
+      message.success(editingSkill.value ? '更新成功' : '创建成功');
+      editorVisible.value = false;
+      await skillStore.fetchAll();
+    } else {
+      message.error(editingSkill.value ? '更新失败' : '创建失败');
+    }
+  } catch (error) {
+    console.error(error);
+    message.error('操作失败');
+  }
+};
+
+// 显示统计分析
+const showStats = () => {
+  statsVisible.value = true;
+};
+
+// 显示依赖关系图
+const showDependencyGraph = async () => {
+  // 加载技能-工具关联关系
+  try {
+    const relations = await window.electron.invoke('skill-tool:get-all-relations');
+    allSkillTools.value = relations;
+    graphVisible.value = true;
+  } catch (error) {
+    console.error(error);
+    message.error('加载依赖关系失败');
+  }
+};
 </script>
 
 <style scoped lang="scss">
@@ -272,6 +392,9 @@ const handleUpdateSkill = async (skillId, updates) => {
     border-radius: 8px;
     margin-bottom: 16px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .loading-container,
