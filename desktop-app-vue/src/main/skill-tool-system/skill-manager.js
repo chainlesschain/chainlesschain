@@ -559,7 +559,7 @@ class SkillManager {
    * @param {string} skillId - 技能ID
    * @returns {Promise<string|null>} 文档路径
    */
-  async getSkillDoc(skillId) {
+  async getSkillDocPath(skillId) {
     const skill = await this.getSkill(skillId);
     return skill ? skill.doc_path : null;
   }
