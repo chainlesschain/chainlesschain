@@ -108,6 +108,9 @@
       </a-space>
     </a-card>
 
+    <!-- 性能监控 -->
+    <DatabasePerformanceMonitor style="margin-top: 16px" />
+
     <a-card title="高级选项" style="margin-top: 16px">
       <a-space direction="vertical" style="width: 100%">
         <div>
@@ -162,6 +165,7 @@ import { message, Modal } from 'ant-design-vue';
 import DatabaseEncryptionStatus from '../../components/DatabaseEncryptionStatus.vue';
 import DatabasePasswordDialog from '../../components/DatabasePasswordDialog.vue';
 import DatabaseEncryptionWizard from '../../components/DatabaseEncryptionWizard.vue';
+import DatabasePerformanceMonitor from '../../components/DatabasePerformanceMonitor.vue';
 
 const statusRef = ref();
 const loading = ref(false);

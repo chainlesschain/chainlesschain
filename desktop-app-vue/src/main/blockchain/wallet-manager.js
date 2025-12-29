@@ -459,11 +459,79 @@ class WalletManager extends EventEmitter {
    * @private
    */
   async _signWithUKey(walletId, transaction) {
-    // TODO: 集成 U-Key 签名逻辑
-    // 1. 序列化交易数据
-    // 2. 调用 ukeyManager.sign(data)
-    // 3. 返回签名后的交易
-    throw new Error('U-Key 签名功能待实现');
+    if (!this.ukeyManager) {
+      throw new Error('U-Key 管理器未初始化');
+    }
+
+    try {
+      // 1. 获取钱包信息
+      const walletData = await this.getWallet(walletId);
+      if (!walletData) {
+        throw new Error('钱包不存在');
+      }
+
+      // 2. 序列化交易（使用 ethers.js 的序列化）
+      const unsignedTx = ethers.Transaction.from(transaction);
+      const txHash = unsignedTx.unsignedHash;
+
+      console.log('[WalletManager] 交易哈希:', txHash);
+
+      // 3. 使用 U-Key 签名哈希
+      // 将十六进制哈希转换为 Buffer
+      const hashBuffer = Buffer.from(txHash.substring(2), 'hex');
+
+      // 调用 U-Key 签名
+      const ukeySignature = await this.ukeyManager.sign(hashBuffer);
+
+      // 4. 将 U-Key 签名转换为以太坊签名格式
+      // U-Key 返回的签名格式通常是 DER 或 原始 r,s 格式
+      // 这里需要根据实际的 U-Key 返回格式进行转换
+
+      // 假设 ukeySignature 是一个包含 r, s 的对象或 Buffer
+      // 需要添加 v 值（恢复 ID）
+      let signature;
+
+      if (Buffer.isBuffer(ukeySignature)) {
+        // 如果是 Buffer，假设是 64 字节 (r: 32字节, s: 32字节)
+        const r = '0x' + ukeySignature.subarray(0, 32).toString('hex');
+        const s = '0x' + ukeySignature.subarray(32, 64).toString('hex');
+
+        // 尝试恢复正确的 v 值
+        for (const v of [27, 28]) {
+          try {
+            const sig = ethers.Signature.from({ r, s, v });
+            const recoveredAddress = ethers.recoverAddress(txHash, sig);
+
+            if (recoveredAddress.toLowerCase() === walletData.address.toLowerCase()) {
+              signature = sig;
+              break;
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+
+        if (!signature) {
+          throw new Error('无法从 U-Key 签名中恢复地址');
+        }
+      } else if (ukeySignature.signature) {
+        // 如果返回的是字符串签名
+        signature = ethers.Signature.from(ukeySignature.signature);
+      } else {
+        throw new Error('不支持的 U-Key 签名格式');
+      }
+
+      // 5. 组装签名后的交易
+      unsignedTx.signature = signature;
+      const signedTx = unsignedTx.serialized;
+
+      console.log('[WalletManager] U-Key 签名交易成功');
+
+      return signedTx;
+    } catch (error) {
+      console.error('[WalletManager] U-Key 签名交易失败:', error);
+      throw error;
+    }
   }
 
   /**
@@ -471,8 +539,65 @@ class WalletManager extends EventEmitter {
    * @private
    */
   async _signMessageWithUKey(walletId, message) {
-    // TODO: 集成 U-Key 消息签名逻辑
-    throw new Error('U-Key 消息签名功能待实现');
+    if (!this.ukeyManager) {
+      throw new Error('U-Key 管理器未初始化');
+    }
+
+    try {
+      // 1. 获取钱包信息
+      const walletData = await this.getWallet(walletId);
+      if (!walletData) {
+        throw new Error('钱包不存在');
+      }
+
+      // 2. 计算消息哈希（符合 EIP-191 标准）
+      const messageHash = ethers.hashMessage(message);
+
+      console.log('[WalletManager] 消息哈希:', messageHash);
+
+      // 3. 使用 U-Key 签名哈希
+      const hashBuffer = Buffer.from(messageHash.substring(2), 'hex');
+      const ukeySignature = await this.ukeyManager.sign(hashBuffer);
+
+      // 4. 将 U-Key 签名转换为以太坊签名格式
+      let signature;
+
+      if (Buffer.isBuffer(ukeySignature)) {
+        // 64 字节签名 (r: 32, s: 32)
+        const r = '0x' + ukeySignature.subarray(0, 32).toString('hex');
+        const s = '0x' + ukeySignature.subarray(32, 64).toString('hex');
+
+        // 尝试恢复正确的 v 值
+        for (const v of [27, 28]) {
+          try {
+            const sig = ethers.Signature.from({ r, s, v });
+            const recoveredAddress = ethers.recoverAddress(messageHash, sig);
+
+            if (recoveredAddress.toLowerCase() === walletData.address.toLowerCase()) {
+              signature = sig.serialized;
+              break;
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+
+        if (!signature) {
+          throw new Error('无法从 U-Key 签名中恢复地址');
+        }
+      } else if (ukeySignature.signature) {
+        signature = ukeySignature.signature;
+      } else {
+        throw new Error('不支持的 U-Key 签名格式');
+      }
+
+      console.log('[WalletManager] U-Key 签名消息成功');
+
+      return signature;
+    } catch (error) {
+      console.error('[WalletManager] U-Key 签名消息失败:', error);
+      throw error;
+    }
   }
 
   /**

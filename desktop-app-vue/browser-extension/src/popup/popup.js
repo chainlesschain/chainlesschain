@@ -77,6 +77,9 @@ function initializeElements() {
   elements.generateSummaryBtn = document.getElementById('generateSummaryBtn');
   elements.summarySection = document.getElementById('summarySection');
   elements.summaryTextarea = document.getElementById('summary');
+
+  // 截图功能元素
+  elements.captureScreenshotBtn = document.getElementById('captureScreenshotBtn');
 }
 
 /**
@@ -210,6 +213,11 @@ function bindEvents() {
 
   if (elements.generateSummaryBtn) {
     elements.generateSummaryBtn.addEventListener('click', handleGenerateSummary);
+  }
+
+  // 截图功能按钮
+  if (elements.captureScreenshotBtn) {
+    elements.captureScreenshotBtn.addEventListener('click', handleCaptureScreenshot);
   }
 }
 
@@ -366,6 +374,56 @@ async function handleGenerateSummary() {
     btn.textContent = originalText;
   } finally {
     // Re-enable button
+    btn.disabled = false;
+  }
+}
+
+/**
+ * Handle screenshot capture
+ */
+async function handleCaptureScreenshot() {
+  const btn = elements.captureScreenshotBtn;
+  const originalText = btn.textContent;
+
+  // Disable button
+  btn.disabled = true;
+  btn.textContent = '截图中...';
+
+  try {
+    console.log('[Popup] Capturing screenshot...');
+
+    // Get current tab
+    const [tab] = await browserAdapter.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab) {
+      throw new Error('无法获取当前标签页');
+    }
+
+    // Capture visible tab
+    const screenshotDataUrl = await browserAdapter.tabs.captureVisibleTab(null, {
+      format: 'png',
+    });
+
+    console.log('[Popup] Screenshot captured, opening editor...');
+
+    // Close popup (it will interfere with the editor window)
+    // Instead, open annotation editor in a new window
+    const editorUrl = browserAdapter.runtime.getURL('annotation/annotation-editor.html') +
+      '?screenshot=' + encodeURIComponent(screenshotDataUrl);
+
+    await browserAdapter.windows.create({
+      url: editorUrl,
+      type: 'popup',
+      width: 1200,
+      height: 800,
+    });
+
+    // Close the popup
+    window.close();
+  } catch (error) {
+    console.error('[Popup] Screenshot capture failed:', error);
+    alert('截图失败: ' + error.message);
+    btn.textContent = originalText;
     btn.disabled = false;
   }
 }
