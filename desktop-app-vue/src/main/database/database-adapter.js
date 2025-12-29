@@ -32,6 +32,21 @@ class DatabaseAdapter {
     this.pin = options.pin;               // U-Key PIN码
     this.password = options.password;     // 密码
     this.configPath = options.configPath; // 配置文件路径
+    this.developmentMode = this.isDevelopmentMode(); // 开发模式标志
+  }
+
+  /**
+   * 检查是否为开发模式
+   */
+  isDevelopmentMode() {
+    return process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+  }
+
+  /**
+   * 获取开发模式默认密码
+   */
+  getDevDefaultPassword() {
+    return process.env.DEV_DB_PASSWORD || 'dev_password_2024';
   }
 
   /**
@@ -41,14 +56,21 @@ class DatabaseAdapter {
   detectEngine() {
     // 优先级：
     // 1. 如果存在 .encrypted 数据库 -> SQLCipher
-    // 2. 如果启用加密 -> SQLCipher
-    // 3. 否则 -> sql.js
+    // 2. 开发模式且没有密码 -> sql.js（跳过加密）
+    // 3. 如果启用加密 -> SQLCipher
+    // 4. 否则 -> sql.js
 
     const encryptedDbPath = this.getEncryptedDbPath();
 
     if (fs.existsSync(encryptedDbPath)) {
       console.log('[DatabaseAdapter] 检测到加密数据库，使用 SQLCipher');
       return DatabaseEngine.SQLCIPHER;
+    }
+
+    // 开发模式：如果没有密码，直接使用 sql.js
+    if (this.developmentMode && !this.password) {
+      console.log('[DatabaseAdapter] 开发模式且未设置密码，使用 sql.js（跳过加密）');
+      return DatabaseEngine.SQL_JS;
     }
 
     if (this.encryptionEnabled) {
@@ -161,14 +183,21 @@ class DatabaseAdapter {
       throw new Error('密钥管理器未初始化');
     }
 
+    // 开发模式：如果没有提供密码，使用默认密码
+    let effectivePassword = this.password;
+    if (this.developmentMode && !effectivePassword) {
+      effectivePassword = this.getDevDefaultPassword();
+      console.log('[DatabaseAdapter] 开发模式：使用默认密码');
+    }
+
     // 加载已保存的元数据
     const metadata = this.keyManager.loadKeyMetadata();
 
     return await this.keyManager.getOrCreateKey({
-      password: this.password,
+      password: effectivePassword,
       pin: this.pin,
       salt: metadata ? metadata.salt : undefined,
-      forcePassword: this.password ? true : false // 有密码时强制使用密码模式
+      forcePassword: effectivePassword ? true : false // 有密码时强制使用密码模式
     });
   }
 

@@ -48,7 +48,9 @@ class DatabaseEncryptionIPC {
           isEncrypted: config.isEncryptionEnabled(),
           method: config.getEncryptionMethod(),
           engine: this.databaseManager?.adapter?.getEngine() || 'sql.js',
-          firstTimeSetup: config.isFirstTimeSetup()
+          firstTimeSetup: config.isFirstTimeSetup(),
+          developmentMode: config.isDevelopmentMode(),
+          canSkipPassword: config.canSkipPassword()
         };
       } catch (error) {
         console.error('[DatabaseEncryptionIPC] 获取加密状态失败:', error);
@@ -57,6 +59,8 @@ class DatabaseEncryptionIPC {
           method: null,
           engine: 'sql.js',
           firstTimeSetup: true,
+          developmentMode: false,
+          canSkipPassword: false,
           error: error.message
         };
       }
@@ -66,6 +70,22 @@ class DatabaseEncryptionIPC {
     ipcMain.handle('database:setup-encryption', async (_event, options) => {
       try {
         const config = this.initConfigManager();
+
+        // 开发模式：如果跳过密码，禁用加密
+        if (config.isDevelopmentMode() && options.skipPassword) {
+          config.setMultiple({
+            encryptionEnabled: false,
+            encryptionMethod: 'password',
+            firstTimeSetup: false
+          });
+
+          console.log('[DatabaseEncryptionIPC] 开发模式：跳过密码，禁用加密');
+
+          return {
+            success: true,
+            message: '开发模式：已跳过密码设置'
+          };
+        }
 
         // 保存配置
         config.setMultiple({

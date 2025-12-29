@@ -12,6 +12,13 @@ class EncryptionConfigManager {
   }
 
   /**
+   * 检查是否为开发模式
+   */
+  isDevelopmentMode() {
+    return process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+  }
+
+  /**
    * 加载配置
    */
   loadConfig() {
@@ -25,11 +32,15 @@ class EncryptionConfigManager {
     }
 
     // 返回默认配置
+    // 开发模式下默认禁用加密
+    const defaultEncryptionEnabled = !this.isDevelopmentMode();
+
     return {
-      encryptionEnabled: false,
+      encryptionEnabled: defaultEncryptionEnabled,
       encryptionMethod: 'password', // 'password' | 'ukey' | 'mixed'
       autoMigrate: true,
-      firstTimeSetup: true
+      firstTimeSetup: true,
+      developmentMode: this.isDevelopmentMode()
     };
   }
 
@@ -131,14 +142,30 @@ class EncryptionConfigManager {
   }
 
   /**
+   * 获取开发模式状态
+   */
+  getDevelopmentMode() {
+    return this.get('developmentMode', this.isDevelopmentMode());
+  }
+
+  /**
+   * 是否可以跳过密码设置（仅开发模式）
+   */
+  canSkipPassword() {
+    return this.isDevelopmentMode();
+  }
+
+  /**
    * 重置配置
    */
   reset() {
+    const defaultEncryptionEnabled = !this.isDevelopmentMode();
     this.config = {
-      encryptionEnabled: false,
+      encryptionEnabled: defaultEncryptionEnabled,
       encryptionMethod: 'password',
       autoMigrate: true,
-      firstTimeSetup: true
+      firstTimeSetup: true,
+      developmentMode: this.isDevelopmentMode()
     };
     return this.saveConfig();
   }
