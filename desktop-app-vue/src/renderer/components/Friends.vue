@@ -258,7 +258,9 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { message as antMessage } from 'ant-design-vue';
+import { useSocialStore } from '../stores/social';
 import {
   UserOutlined,
   UserAddOutlined,
@@ -275,6 +277,9 @@ import {
 } from '@ant-design/icons-vue';
 
 // 状态
+const router = useRouter();
+const socialStore = useSocialStore();
+
 const loading = ref(false);
 const loadingRequests = ref(false);
 const adding = ref(false);
@@ -502,9 +507,19 @@ const handleRejectRequest = async (requestId) => {
 };
 
 // 打开聊天
-const handleOpenChat = (friend) => {
-  // TODO: 跳转到聊天页面或打开聊天窗口
-  antMessage.info('聊天功能即将开放');
+const handleOpenChat = async (friend) => {
+  try {
+    // 使用 socialStore 打开与好友的聊天
+    await socialStore.openChatWithFriend(friend);
+
+    // 跳转到聊天窗口页面
+    router.push('/chat');
+
+    antMessage.success(`已打开与 ${friend.nickname || friend.friend_did.substring(0, 16)} 的聊天`);
+  } catch (error) {
+    console.error('打开聊天失败:', error);
+    antMessage.error('打开聊天失败');
+  }
 };
 
 // 修改备注

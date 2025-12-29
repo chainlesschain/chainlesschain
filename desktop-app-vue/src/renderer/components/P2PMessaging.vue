@@ -390,6 +390,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
+import { useSocialStore } from '../stores/social';
 import {
   TeamOutlined,
   ReloadOutlined,
@@ -403,6 +404,9 @@ import {
 } from '@ant-design/icons-vue';
 
 // 状态
+// 社交模块 Store
+const socialStore = useSocialStore();
+
 const loading = ref(false);
 const connecting = ref(false);
 const sending = ref(false);
@@ -810,11 +814,30 @@ const handleSendMessage = async () => {
 
     chatMessages.value.push(newMessage);
 
-    // 保存到历史记录
+    // 保存到历史记录（内存）
     const key = getSessionKey(currentChatPeer.value, currentChatDeviceId.value);
     const history = chatHistoryStore.get(key) || [];
     history.push(newMessage);
     chatHistoryStore.set(key, history);
+
+    // 【新增】保存到数据库持久化
+    try {
+      await window.electron.ipcRenderer.invoke('chat:save-message', {
+        id: `msg_${messageId}_${Math.random().toString(36).substr(2, 9)}`,
+        sessionId: `session_${currentChatPeer.value}_${currentChatDeviceId.value}`,
+        senderDid: await socialStore.getCurrentUserDid(),
+        receiverDid: currentChatPeer.value,
+        content: content,
+        messageType: 'text',
+        encrypted: 1,
+        status: result.status || 'sent',
+        deviceId: currentChatDeviceId.value,
+        timestamp: Date.now()
+      });
+    } catch (dbError) {
+      console.error('保存消息到数据库失败:', dbError);
+      // 不影响消息发送，只记录错误
+    }
 
     // 清空输入框
     messageInput.value = '';
@@ -867,13 +890,28 @@ const handleEncryptedMessageReceived = (data) => {
     });
   }
 
-  // 保存到历史记录 (使用发送者的某个设备ID，这里需要改进)
+  // 保存到历史记录（内存）
   const devices = peerDevices.get(data.from) || [];
   const deviceId = devices.length > 0 ? devices[0].deviceId : 'unknown';
   const key = getSessionKey(data.from, deviceId);
   const history = chatHistoryStore.get(key) || [];
   history.push(newMessage);
   chatHistoryStore.set(key, history);
+
+  // 【新增】保存到数据库并通过 socialStore 处理
+  (async () => {
+    try {
+      await socialStore.receiveMessage({
+        messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        senderDid: data.from,
+        content: data.message,
+        messageType: 'text',
+        timestamp: Date.now()
+      });
+    } catch (dbError) {
+      console.error('保存接收消息到数据库失败:', dbError);
+    }
+  })();
 
   // 显示通知
   antMessage.info(`收到来自 ${shortenPeerId(data.from)} 的加密消息`);

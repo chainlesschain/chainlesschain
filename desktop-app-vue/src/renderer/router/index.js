@@ -69,6 +69,12 @@ const routes = [
         meta: { title: 'P2P加密消息' },
       },
       {
+        path: 'chat',
+        name: 'Chat',
+        component: () => import('../components/social/ChatWindow.vue'),
+        meta: { title: '聊天' },
+      },
+      {
         path: 'image-upload',
         name: 'ImageUpload',
         component: () => import('../components/ImageUpload.vue'),
