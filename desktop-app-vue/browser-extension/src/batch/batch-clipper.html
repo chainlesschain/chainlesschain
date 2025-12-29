@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>批量剪藏 - ChainlessChain</title>
+  <link rel="stylesheet" href="batch-clipper.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>📚 批量剪藏</h1>
+      <p class="subtitle">选择要保存到知识库的标签页</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="control-group">
+        <button id="selectAllBtn" class="btn-secondary">
+          <span class="icon">☑️</span>
+          全选
+        </button>
+        <button id="deselectAllBtn" class="btn-secondary">
+          <span class="icon">☐</span>
+          取消全选
+        </button>
+        <button id="selectCurrentBtn" class="btn-secondary">
+          <span class="icon">👆</span>
+          仅当前窗口
+        </button>
+      </div>
+      <div class="filter-group">
+        <input
+          type="text"
+          id="filterInput"
+          class="filter-input"
+          placeholder="🔍 搜索标签页标题或URL..."
+        >
+      </div>
+    </div>
+
+    <!-- Tab List -->
+    <div id="tabList" class="tab-list">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>正在加载标签页...</p>
+      </div>
+    </div>
+
+    <!-- Footer / Action Bar -->
+    <div class="footer">
+      <div class="footer-info">
+        <span class="selected-count">
+          已选择 <strong id="selectedCount">0</strong> 个标签页
+        </span>
+        <span class="separator">•</span>
+        <span class="total-count">
+          共 <strong id="totalCount">0</strong> 个
+        </span>
+      </div>
+      <div class="footer-actions">
+        <button id="cancelBtn" class="btn-cancel">
+          取消
+        </button>
+        <button id="batchClipBtn" class="btn-primary" disabled>
+          <span class="btn-text">开始剪藏</span>
+          <span class="btn-icon">🚀</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Progress Panel (hidden initially) -->
+    <div id="progressPanel" class="progress-panel hidden">
+      <div class="progress-header">
+        <h2>正在剪藏...</h2>
+        <button id="stopBtn" class="btn-stop">⏹ 停止</button>
+      </div>
+      <div class="progress-bar-container">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div class="progress-info">
+        <span class="progress-text">
+          已保存 <strong id="savedCount">0</strong> / <strong id="totalProcessCount">0</strong>
+        </span>
+        <span class="progress-percentage" id="progressPercentage">0%</span>
+      </div>
+      <div class="progress-details">
+        <div id="currentProcessing" class="current-processing"></div>
+        <div id="errorList" class="error-list hidden"></div>
+      </div>
+    </div>
+
+    <!-- Success Panel (hidden initially) -->
+    <div id="successPanel" class="success-panel hidden">
+      <div class="success-icon">✅</div>
+      <h2>批量剪藏完成！</h2>
+      <p class="success-summary">
+        成功保存 <strong id="successCount">0</strong> 个页面
+        <span id="errorSummary" class="hidden">，<strong id="errorCount">0</strong> 个失败</span>
+      </p>
+      <div class="success-actions">
+        <button id="viewErrorsBtn" class="btn-secondary hidden">
+          查看失败列表
+        </button>
+        <button id="closeBtn" class="btn-primary">
+          完成
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="batch-clipper.js"></script>
+</body>
+</html>

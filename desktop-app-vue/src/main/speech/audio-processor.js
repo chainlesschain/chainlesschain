@@ -260,6 +260,159 @@ class AudioProcessor extends EventEmitter {
   }
 
   /**
+   * 音频降噪（使用 FFmpeg afftdn 滤镜）
+   * @param {string} inputPath - 输入文件路径
+   * @param {string} outputPath - 输出文件路径
+   * @param {Object} options - 降噪选项
+   * @returns {Promise<Object>}
+   */
+  async denoiseAudio(inputPath, outputPath, options = {}) {
+    const {
+      noiseReduction = '12',      // 降噪强度 (0-97dB)
+      noiseFloor = '-50',         // 噪音底限 (dB)
+      noiseType = 'w',            // 噪音类型: w=white, v=vinyl, s=shellac, c=custom
+      trackNoise = true,          // 是否跟踪噪音
+    } = options;
+
+    return new Promise((resolve, reject) => {
+      this.emit('denoise-start', { inputPath, options });
+
+      // afftdn: FFT 降噪滤镜
+      const filterString = `afftdn=nr=${noiseReduction}:nf=${noiseFloor}:tn=${trackNoise ? '1' : '0'}:nt=${noiseType}`;
+
+      ffmpeg(inputPath)
+        .audioFilters(filterString)
+        .on('progress', (progress) => {
+          this.emit('denoise-progress', {
+            inputPath,
+            percent: progress.percent || 0,
+          });
+        })
+        .on('end', () => {
+          this.emit('denoise-complete', { inputPath, outputPath });
+          resolve({ success: true, outputPath });
+        })
+        .on('error', (error) => {
+          console.error('[AudioProcessor] 降噪失败:', error);
+          this.emit('denoise-error', { inputPath, error });
+          reject(error);
+        })
+        .save(outputPath);
+    });
+  }
+
+  /**
+   * 高级音频增强（综合处理）
+   * @param {string} inputPath - 输入文件路径
+   * @param {string} outputPath - 输出文件路径
+   * @param {Object} options - 增强选项
+   * @returns {Promise<Object>}
+   */
+  async enhanceAudio(inputPath, outputPath, options = {}) {
+    const {
+      denoise = true,             // 是否降噪
+      normalize = true,           // 是否归一化
+      highpass = true,            // 高通滤波（去除低频噪音）
+      lowpass = false,            // 低通滤波
+      compressor = true,          // 动态范围压缩
+      eq = false,                 // 均衡器
+      eqPreset = 'voice',         // 均衡器预设: voice, music, podcast
+    } = options;
+
+    return new Promise((resolve, reject) => {
+      this.emit('enhance-start', { inputPath, options });
+
+      const filters = [];
+
+      // 1. 高通滤波 (去除 80Hz 以下低频噪音)
+      if (highpass) {
+        filters.push('highpass=f=80');
+      }
+
+      // 2. 低通滤波 (去除高频噪音)
+      if (lowpass) {
+        filters.push('lowpass=f=3000');
+      }
+
+      // 3. 降噪
+      if (denoise) {
+        filters.push('afftdn=nr=12:nf=-50:tn=1');
+      }
+
+      // 4. 动态范围压缩 (让音量更均衡)
+      if (compressor) {
+        filters.push('acompressor=threshold=-20dB:ratio=4:attack=5:release=50');
+      }
+
+      // 5. 均衡器
+      if (eq) {
+        if (eqPreset === 'voice') {
+          // 语音优化: 增强中频，减少低频和高频
+          filters.push('equalizer=f=300:width_type=h:width=200:g=2');   // 增强 300Hz
+          filters.push('equalizer=f=1000:width_type=h:width=500:g=3');  // 增强 1kHz
+          filters.push('equalizer=f=3000:width_type=h:width=1000:g=2'); // 增强 3kHz
+        } else if (eqPreset === 'podcast') {
+          // 播客优化
+          filters.push('equalizer=f=100:width_type=h:width=100:g=-3');  // 减少低频
+          filters.push('equalizer=f=1000:width_type=h:width=800:g=4');  // 增强人声
+        }
+      }
+
+      // 6. 响度归一化 (最后一步)
+      if (normalize) {
+        filters.push('loudnorm=I=-16:TP=-1.5:LRA=11');
+      }
+
+      const command = ffmpeg(inputPath);
+
+      if (filters.length > 0) {
+        command.audioFilters(filters);
+      }
+
+      command
+        .on('progress', (progress) => {
+          this.emit('enhance-progress', {
+            inputPath,
+            percent: progress.percent || 0,
+          });
+        })
+        .on('end', () => {
+          this.emit('enhance-complete', { inputPath, outputPath });
+          resolve({
+            success: true,
+            outputPath,
+            appliedFilters: filters.length,
+            filters: filters,
+          });
+        })
+        .on('error', (error) => {
+          console.error('[AudioProcessor] 增强失败:', error);
+          this.emit('enhance-error', { inputPath, error });
+          reject(error);
+        })
+        .save(outputPath);
+    });
+  }
+
+  /**
+   * 语音增强预设（专门针对语音识别优化）
+   * @param {string} inputPath - 输入文件路径
+   * @param {string} outputPath - 输出文件路径
+   * @returns {Promise<Object>}
+   */
+  async enhanceForSpeechRecognition(inputPath, outputPath) {
+    return this.enhanceAudio(inputPath, outputPath, {
+      denoise: true,
+      normalize: true,
+      highpass: true,
+      lowpass: false,
+      compressor: true,
+      eq: true,
+      eqPreset: 'voice',
+    });
+  }
+
+  /**
    * 提取音频（从视频文件）
    * @param {string} videoPath - 视频文件路径
    * @param {string} outputPath - 输出音频路径

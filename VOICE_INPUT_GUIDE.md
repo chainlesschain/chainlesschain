@@ -372,12 +372,155 @@ const result = await window.electronAPI.speech.cleanupOldFiles(30);
 - 压缩音频文件
 - 只转录必要的音频
 
+## 高级功能（Phase 3 已实现）
+
+### 1. 音频降噪和增强
+
+使用 FFmpeg 强大的音频滤镜进行音频质量提升：
+
+```javascript
+// 基础降噪
+await window.electronAPI.speech.denoiseAudio(inputPath, outputPath, {
+  noiseReduction: '12',  // 降噪强度 (0-97dB)
+  noiseFloor: '-50',     // 噪音底限
+});
+
+// 综合音频增强（推荐用于语音识别）
+await window.electronAPI.speech.enhanceForRecognition(inputPath, outputPath);
+// 自动应用：降噪 + 高通滤波 + 压缩器 + 响度归一化 + 语音均衡器
+
+// 自定义增强选项
+await window.electronAPI.speech.enhanceAudio(inputPath, outputPath, {
+  denoise: true,        // 降噪
+  normalize: true,      // 响度归一化
+  highpass: true,       // 高通滤波（去除低频噪音）
+  lowpass: false,       // 低通滤波
+  compressor: true,     // 动态范围压缩
+  eq: true,             // 均衡器
+  eqPreset: 'voice',    // 预设：voice（语音）、podcast（播客）
+});
+```
+
+**应用场景**:
+- 嘈杂环境录音的降噪处理
+- 音量不均匀的音频归一化
+- 电话录音、会议录音的质量提升
+- 提高识别准确率（特别是低质量音频）
+
+### 2. 多语言自动检测
+
+支持 40+ 种语言的自动识别：
+
+```javascript
+// 检测单个音频的语言
+const result = await window.electronAPI.speech.detectLanguage(audioPath);
+console.log(`检测到语言: ${result.languageName} (${result.language})`);
+console.log(`文本预览: ${result.text.substring(0, 100)}`);
+
+// 批量检测
+const results = await window.electronAPI.speech.detectLanguages([
+  'audio1.mp3',
+  'audio2.wav',
+  'audio3.m4a'
+]);
+```
+
+**支持的语言**（部分）:
+- 中文 (zh)、英语 (en)、日语 (ja)、韩语 (ko)
+- 法语 (fr)、德语 (de)、西班牙语 (es)、俄语 (ru)
+- 阿拉伯语 (ar)、葡萄牙语 (pt)、意大利语 (it)
+- 印地语 (hi)、越南语 (vi)、泰语 (th)
+- 更多...（共 40+ 种）
+
+**使用提示**:
+- 语言检测会自动转录一小段音频
+- 推荐在转录前使用，确保选择正确的语言
+- 支持中英混合等多语言场景
+
+### 3. 字幕生成（SRT/VTT）
+
+生成标准字幕文件，适用于视频平台和播放器：
+
+```javascript
+// 从已转录的音频生成字幕
+await window.electronAPI.speech.generateSubtitle(
+  audioId,           // 音频文件 ID
+  'subtitle.srt',    // 输出路径
+  'srt'              // 格式：'srt' 或 'vtt'
+);
+
+// 转录并直接生成字幕（推荐，使用 Whisper API 原生支持）
+await window.electronAPI.speech.transcribeAndGenerateSubtitle(
+  'audio.mp3',
+  'subtitle.vtt',
+  {
+    format: 'vtt',         // SRT 或 VTT
+    language: 'zh',        // 语言
+    enhanceAudio: true,    // 是否先进行音频增强
+  }
+);
+
+// 批量生成字幕
+await window.electronAPI.speech.batchGenerateSubtitles(
+  ['audio-id-1', 'audio-id-2'],
+  '/output/directory',
+  'srt'
+);
+```
+
+**字幕格式说明**:
+
+- **SRT (SubRip)**: 最通用，所有播放器都支持
+  ```
+  1
+  00:00:00,000 --> 00:00:05,000
+  这是第一句字幕内容
+
+  2
+  00:00:05,000 --> 00:00:10,000
+  这是第二句字幕内容
+  ```
+
+- **VTT (WebVTT)**: 网页标准，支持样式和元数据
+  ```
+  WEBVTT
+
+  00:00:00.000 --> 00:00:05.000
+  这是第一句字幕内容
+
+  00:00:05.000 --> 00:00:10.000
+  这是第二句字幕内容
+  ```
+
+**应用场景**:
+- 视频添加字幕（支持 YouTube、Bilibili 等平台）
+- 创建可访问的多媒体内容
+- 会议、演讲、课程录音的文字同步展示
+
+### 4. UI 集成
+
+所有 Phase 3 功能已集成到音频导入页面：
+
+1. **设置面板**:
+   - 音频增强开关
+   - 自动检测语言开关
+   - 自动生成字幕开关
+   - 字幕格式选择（SRT/VTT）
+
+2. **转录历史**:
+   - 每条记录都有"生成字幕"按钮
+   - 一键导出为 SRT 或 VTT 文件
+
+3. **自动化工作流**:
+   - 上传音频 → 自动增强 → 自动检测语言 → 转录 → 自动生成字幕
+   - 全程无需手动干预
+
 ## 下一步
 
 - [ ] **Phase 2**: 实现本地 Whisper 离线识别
-- [ ] **Phase 3**: 添加音频增强（降噪、音量归一化）
-- [ ] **Phase 3**: 字幕生成（SRT/VTT）
-- [ ] **Phase 3**: 多语言混合识别
+- [x] **Phase 3**: 添加音频增强（降噪、音量归一化）✅
+- [x] **Phase 3**: 字幕生成（SRT/VTT）✅
+- [x] **Phase 3**: 多语言自动检测 ✅
 
 ## 技术支持
 
@@ -388,7 +531,17 @@ const result = await window.electronAPI.speech.cleanupOldFiles(30);
 
 ## 更新日志
 
-### v0.16.0 (2025-12-29)
+### v0.17.0 (2025-12-29) - Phase 3 完成
+- ✅ **音频降噪**: FFmpeg afftdn 滤镜降噪
+- ✅ **音频增强**: 综合处理（降噪+高通滤波+压缩器+均衡器+归一化）
+- ✅ **语音增强预设**: 专门针对语音识别优化的增强流程
+- ✅ **多语言检测**: 支持 40+ 种语言的自动识别
+- ✅ **字幕生成**: SRT/VTT 格式导出
+- ✅ **Whisper API 直接生成字幕**: 利用 API 原生支持，无需二次处理
+- ✅ **UI 集成**: 设置面板新增高级功能选项
+- ✅ **转录历史字幕导出**: 一键生成字幕按钮
+
+### v0.16.0 (2025-12-29) - 初始版本
 - ✅ 初始发布
 - ✅ 支持 Whisper API 转录
 - ✅ 音频文件管理

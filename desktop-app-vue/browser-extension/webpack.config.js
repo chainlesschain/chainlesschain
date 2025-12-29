@@ -12,6 +12,7 @@ module.exports = (env) => {
       'background/background': './src/background/background.js',
       'content/content-script': './src/content/content-script.js',
       'annotation/annotation-editor': './src/annotation/annotation-editor.js',
+      'batch/batch-clipper': './src/batch/batch-clipper.js',
     },
     output: {
       path: path.resolve(__dirname, `build/${browser}`),
@@ -43,6 +44,16 @@ module.exports = (env) => {
           {
             from: 'src/annotation/*.css',
             to: 'annotation/[name][ext]',
+            noErrorOnMissing: true,
+          },
+          {
+            from: 'src/batch/*.html',
+            to: 'batch/[name][ext]',
+            noErrorOnMissing: true,
+          },
+          {
+            from: 'src/batch/*.css',
+            to: 'batch/[name][ext]',
             noErrorOnMissing: true,
           },
           {

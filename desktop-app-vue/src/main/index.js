@@ -11843,6 +11843,94 @@ ${content}
       }
     });
 
+    // 音频降噪
+    ipcMain.handle('speech:denoise-audio', async (_event, inputPath, outputPath, options = {}) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.denoiseAudio(inputPath, outputPath, options);
+      } catch (error) {
+        console.error('[Main] 音频降噪失败:', error);
+        throw error;
+      }
+    });
+
+    // 音频增强
+    ipcMain.handle('speech:enhance-audio', async (_event, inputPath, outputPath, options = {}) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.enhanceAudio(inputPath, outputPath, options);
+      } catch (error) {
+        console.error('[Main] 音频增强失败:', error);
+        throw error;
+      }
+    });
+
+    // 语音增强（针对语音识别优化）
+    ipcMain.handle('speech:enhance-for-recognition', async (_event, inputPath, outputPath) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.enhanceForSpeechRecognition(inputPath, outputPath);
+      } catch (error) {
+        console.error('[Main] 语音增强失败:', error);
+        throw error;
+      }
+    });
+
+    // 语言检测
+    ipcMain.handle('speech:detect-language', async (_event, audioPath) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.detectLanguage(audioPath);
+      } catch (error) {
+        console.error('[Main] 语言检测失败:', error);
+        throw error;
+      }
+    });
+
+    // 批量语言检测
+    ipcMain.handle('speech:detect-languages', async (_event, audioPaths) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.detectLanguages(audioPaths);
+      } catch (error) {
+        console.error('[Main] 批量语言检测失败:', error);
+        throw error;
+      }
+    });
+
+    // 生成字幕
+    ipcMain.handle('speech:generate-subtitle', async (_event, audioId, outputPath, format = 'srt') => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.generateSubtitle(audioId, outputPath, format);
+      } catch (error) {
+        console.error('[Main] 生成字幕失败:', error);
+        throw error;
+      }
+    });
+
+    // 转录并生成字幕
+    ipcMain.handle('speech:transcribe-and-generate-subtitle', async (_event, audioPath, subtitlePath, options = {}) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.transcribeAndGenerateSubtitle(audioPath, subtitlePath, options);
+      } catch (error) {
+        console.error('[Main] 转录并生成字幕失败:', error);
+        throw error;
+      }
+    });
+
+    // 批量生成字幕
+    ipcMain.handle('speech:batch-generate-subtitles', async (_event, audioIds, outputDir, format = 'srt') => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.batchGenerateSubtitles(audioIds, outputDir, format);
+      } catch (error) {
+        console.error('[Main] 批量生成字幕失败:', error);
+        throw error;
+      }
+    });
+
     console.log('[Main] 语音识别系统 IPC handlers 注册完成');
     console.log('[Main] 插件系统 IPC handlers 注册完成');
   }
