@@ -811,6 +811,61 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_template_ratings_user_id ON template_ratings(user_id);
 
       CREATE INDEX IF NOT EXISTS idx_conversations_project_id ON conversations(project_id);
+
+      -- 社交模块：聊天会话表
+      CREATE TABLE IF NOT EXISTS chat_sessions (
+        id TEXT PRIMARY KEY,
+        participant_did TEXT NOT NULL,
+        friend_nickname TEXT,
+        last_message TEXT,
+        last_message_time INTEGER,
+        unread_count INTEGER DEFAULT 0,
+        is_pinned INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 社交模块：P2P消息持久化表
+      CREATE TABLE IF NOT EXISTS p2p_chat_messages (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        sender_did TEXT NOT NULL,
+        receiver_did TEXT NOT NULL,
+        content TEXT NOT NULL,
+        message_type TEXT DEFAULT 'text' CHECK(message_type IN ('text', 'image', 'file', 'voice', 'video')),
+        file_path TEXT,
+        encrypted INTEGER DEFAULT 1,
+        status TEXT DEFAULT 'sent' CHECK(status IN ('sent', 'delivered', 'read', 'failed')),
+        device_id TEXT,
+        timestamp INTEGER NOT NULL,
+        FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+      );
+
+      -- 通知表
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        user_did TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('friend_request', 'message', 'like', 'comment', 'system')),
+        title TEXT NOT NULL,
+        content TEXT,
+        data TEXT,
+        is_read INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL
+      );
+
+      -- 聊天和通知索引
+      CREATE INDEX IF NOT EXISTS idx_chat_sessions_participant ON chat_sessions(participant_did);
+      CREATE INDEX IF NOT EXISTS idx_chat_sessions_updated_at ON chat_sessions(updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_chat_sessions_unread ON chat_sessions(unread_count DESC);
+      CREATE INDEX IF NOT EXISTS idx_p2p_messages_session ON p2p_chat_messages(session_id);
+      CREATE INDEX IF NOT EXISTS idx_p2p_messages_timestamp ON p2p_chat_messages(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_p2p_messages_sender ON p2p_chat_messages(sender_did);
+      CREATE INDEX IF NOT EXISTS idx_p2p_messages_receiver ON p2p_chat_messages(receiver_did);
+      CREATE INDEX IF NOT EXISTS idx_p2p_messages_status ON p2p_chat_messages(status);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_did);
+      CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
+      CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
     `);
 
       console.log('[Database] ✓ 所有表和索引创建成功');
