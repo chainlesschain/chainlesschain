@@ -3861,6 +3861,48 @@ class ChainlessChainApp {
       }
     });
 
+    // 查询资产余额
+    ipcMain.handle('bridge:get-balance', async (_event, { address, tokenAddress, chainId }) => {
+      try {
+        if (!this.bridgeManager) {
+          throw new Error('跨链桥管理器未初始化');
+        }
+
+        return await this.bridgeManager.getAssetBalance(address, tokenAddress, chainId);
+      } catch (error) {
+        console.error('[Main] 查询资产余额失败:', error);
+        throw error;
+      }
+    });
+
+    // 批量查询余额
+    ipcMain.handle('bridge:get-batch-balances', async (_event, { address, assets }) => {
+      try {
+        if (!this.bridgeManager) {
+          throw new Error('跨链桥管理器未初始化');
+        }
+
+        return await this.bridgeManager.getBatchBalances(address, assets);
+      } catch (error) {
+        console.error('[Main] 批量查询余额失败:', error);
+        throw error;
+      }
+    });
+
+    // 查询锁定余额
+    ipcMain.handle('bridge:get-locked-balance', async (_event, { tokenAddress, chainId }) => {
+      try {
+        if (!this.bridgeManager) {
+          throw new Error('跨链桥管理器未初始化');
+        }
+
+        return await this.bridgeManager.getLockedBalance(tokenAddress, chainId);
+      } catch (error) {
+        console.error('[Main] 查询锁定余额失败:', error);
+        throw error;
+      }
+    });
+
     // ==================== 资产管理 ====================
 
     // 创建资产

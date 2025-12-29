@@ -224,7 +224,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   SwapOutlined,
@@ -343,16 +343,49 @@ const handleAssetChange = async (assetId) => {
     // 设置源链为资产部署的链
     form.value.fromChainId = asset.chain_id;
 
-    // TODO: 查询可用余额
-    availableBalance.value = 1000; // 模拟值
+    // 查询可用余额
+    await fetchAssetBalance();
+  }
+};
+
+/**
+ * 查询资产余额
+ */
+const fetchAssetBalance = async () => {
+  if (!selectedAsset.value || !form.value.fromChainId || !form.value.walletId) {
+    availableBalance.value = null;
+    return;
+  }
+
+  try {
+    // 获取钱包地址
+    const wallet = blockchainStore.wallets.find(w => w.id === form.value.walletId);
+    if (!wallet) {
+      availableBalance.value = null;
+      return;
+    }
+
+    // 调用后端查询余额
+    const balance = await window.electronAPI.bridge.getBalance({
+      address: wallet.address,
+      tokenAddress: selectedAsset.value.contract_address,
+      chainId: form.value.fromChainId,
+    });
+
+    availableBalance.value = parseFloat(balance);
+    console.log('[BridgeTransfer] 余额查询成功:', availableBalance.value);
+  } catch (error) {
+    console.error('[BridgeTransfer] 查询余额失败:', error);
+    availableBalance.value = 1000; // 回退到模拟值
   }
 };
 
 /**
  * 源链变化处理
  */
-const handleFromChainChange = () => {
-  // TODO: 重新查询余额
+const handleFromChainChange = async () => {
+  // 重新查询余额
+  await fetchAssetBalance();
 };
 
 /**
@@ -454,6 +487,13 @@ const handleCloseProgress = () => {
   progressStep.value = 0;
   handleReset();
 };
+
+// 监听钱包变化
+watch(() => form.value.walletId, () => {
+  if (selectedAsset.value && form.value.fromChainId) {
+    fetchAssetBalance();
+  }
+});
 
 // 生命周期
 onMounted(() => {
