@@ -274,75 +274,31 @@ const loadReviews = async () => {
   }
 };
 
-// 提交评价
-const handleSubmit = async () => {
-  try {
-    if (!reviewForm.content) {
-      antMessage.warning('请填写评价内容');
-      return;
-    }
+// 评价创建成功
+const handleReviewCreated = () => {
+  loadReviews();
+};
 
-    submitting.value = true;
-
-    // 获取当前用户DID
-    const currentIdentity = await window.electronAPI.did.getCurrentIdentity();
-    const userDid = currentIdentity?.did;
-
-    if (!userDid) {
-      antMessage.warning('请先创建DID身份');
-      return;
-    }
-
-    if (replyingTo.value) {
-      // 回复评价
-      await window.electronAPI.review.reply(replyingTo.value.id, reviewForm.content);
-      antMessage.success('回复成功！');
-    } else {
-      // 创建新评价
-      await window.electronAPI.review.create({
-        targetId: props.targetId,
-        targetType: props.targetType,
-        reviewerDid: userDid,
-        rating: reviewForm.rating,
-        content: reviewForm.content,
-        isRecommended: reviewForm.isRecommended,
-      });
-      antMessage.success('评价发布成功！');
-    }
-
-    showReviewModal.value = false;
-    replyingTo.value = null;
-
-    // 重置表单
-    reviewForm.rating = 5;
-    reviewForm.content = '';
-    reviewForm.isRecommended = true;
-
-    loadReviews();
-  } catch (error) {
-    console.error('提交评价失败:', error);
-    antMessage.error('提交评价失败: ' + error.message);
-  } finally {
-    submitting.value = false;
-  }
+// 评价回复成功
+const handleReviewReplied = () => {
+  loadReviews();
 };
 
 // 标记有帮助
 const markHelpful = async (review, helpful) => {
   try {
-    await window.electronAPI.review.markHelpful(review.id, helpful);
-    loadReviews();
+    await tradeStore.markReviewHelpful(review.id, helpful);
+    await loadReviews();
   } catch (error) {
-    console.error('标记失败:', error);
-    antMessage.error('操作失败: ' + error.message);
+    console.error('[ReviewList] 标记失败:', error);
+    antMessage.error(error.message || '操作失败');
   }
 };
 
 // 回复评价
 const replyToReview = (review) => {
-  replyingTo.value = review;
-  reviewForm.content = '';
-  showReviewModal.value = true;
+  replyingReview.value = review;
+  showReplyModal.value = true;
 };
 
 // 举报评价
@@ -363,18 +319,20 @@ const handleReport = async () => {
 
     reporting.value = true;
 
-    await window.electronAPI.review.report(
+    await tradeStore.reportReview(
       reportingReview.value.id,
       reportForm.reason,
       reportForm.description
     );
 
+    console.log('[ReviewList] 举报已提交:', reportingReview.value.id);
     antMessage.success('举报已提交，我们会尽快处理');
+
     showReportModal.value = false;
     reportingReview.value = null;
   } catch (error) {
-    console.error('举报失败:', error);
-    antMessage.error('举报失败: ' + error.message);
+    console.error('[ReviewList] 举报失败:', error);
+    antMessage.error(error.message || '举报失败');
   } finally {
     reporting.value = false;
   }
