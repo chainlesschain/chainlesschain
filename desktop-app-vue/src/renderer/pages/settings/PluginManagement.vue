@@ -314,7 +314,11 @@ const loadPlugins = async () => {
     }
 
     const result = await window.electronAPI.plugin.getPlugins(filters);
-    plugins.value = result.map(p => ({
+
+    // Ensure result is an array before mapping
+    const pluginList = Array.isArray(result) ? result : (result?.data || result?.plugins || []);
+
+    plugins.value = pluginList.map(p => ({
       ...p,
       switching: false,
       extensionPoints: p.extension_points ? JSON.parse(p.extension_points) : []
