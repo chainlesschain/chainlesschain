@@ -199,12 +199,14 @@
       :width="720"
       placement="right"
     >
-      <ToolDetails
-        v-if="currentTool"
-        :tool="currentTool"
-        @update="handleUpdateTool"
-        @close="detailsVisible = false"
-      />
+      <ErrorBoundary>
+        <ToolDetails
+          v-if="currentTool"
+          :tool="currentTool"
+          @update="handleUpdateTool"
+          @close="detailsVisible = false"
+        />
+      </ErrorBoundary>
     </a-drawer>
 
     <!-- 文档查看器 -->
@@ -291,6 +293,7 @@ import ToolStats from '../components/tool/ToolStats.vue';
 import ToolTester from '../components/tool/ToolTester.vue';
 import SkillDependencyGraph from '../components/skill/SkillDependencyGraph.vue';
 import MarkdownViewer from '../components/common/MarkdownViewer.vue';
+import ErrorBoundary from '../components/common/ErrorBoundary.vue';
 
 const toolStore = useToolStore();
 const skillStore = useSkillStore();
