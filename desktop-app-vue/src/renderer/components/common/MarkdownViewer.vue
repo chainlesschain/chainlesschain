@@ -1,36 +1,200 @@
 <template>
   <div class="markdown-viewer">
-    <div v-html="renderedContent" class="markdown-content"></div>
+    <div v-if="loading" class="loading">
+      <a-spin />
+    </div>
+    <div v-else-if="error" class="error">
+      <a-alert
+        type="error"
+        :message="error"
+        show-icon
+      />
+    </div>
+    <div
+      v-else
+      ref="contentRef"
+      class="markdown-content"
+      v-html="renderedContent"
+      @click="handleClick"
+    ></div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { marked } from 'marked';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github.css';
+import DOMPurify from 'dompurify';
 
 const props = defineProps({
   content: {
     type: String,
     default: '',
   },
+  // 文档路径，从IPC加载
+  docPath: {
+    type: String,
+    default: '',
+  },
+  // 是否启用链接跳转
+  enableLinkNavigation: {
+    type: Boolean,
+    default: true,
+  },
 });
 
-// 配置 marked
+const emit = defineEmits(['link-click', 'skill-link-click', 'tool-link-click']);
+
+const contentRef = ref(null);
+const loading = ref(false);
+const error = ref('');
+const markdownContent = ref('');
+
+// 配置 marked 支持代码高亮
 marked.setOptions({
   gfm: true,
   breaks: true,
   headerIds: true,
   mangle: false,
+  highlight: function(code, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(code, { language: lang }).value;
+      } catch (err) {
+        console.error('Highlight error:', err);
+      }
+    }
+    return hljs.highlightAuto(code).value;
+  },
 });
 
 const renderedContent = computed(() => {
-  if (!props.content) return '';
-  return marked.parse(props.content);
+  const content = markdownContent.value || props.content;
+  if (!content) return '';
+
+  try {
+    const rawHtml = marked.parse(content);
+    // 使用DOMPurify清理HTML，防止XSS
+    return DOMPurify.sanitize(rawHtml, {
+      ADD_ATTR: ['target'],
+    });
+  } catch (err) {
+    console.error('Markdown parse error:', err);
+    error.value = 'Markdown解析失败: ' + err.message;
+    return '';
+  }
+});
+
+// 从IPC加载文档
+const loadDocFromPath = async () => {
+  if (!props.docPath) return;
+
+  loading.value = true;
+  error.value = '';
+
+  try {
+    const result = await window.electron.ipcRenderer.invoke('skill:get-doc', props.docPath);
+    if (result.success) {
+      markdownContent.value = result.content;
+    } else {
+      error.value = result.error || '加载文档失败';
+    }
+  } catch (err) {
+    console.error('Load doc error:', err);
+    error.value = '加载文档失败: ' + err.message;
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 处理链接点击
+const handleClick = (event) => {
+  if (!props.enableLinkNavigation) return;
+
+  const target = event.target;
+
+  if (target.tagName === 'A') {
+    event.preventDefault();
+    const href = target.getAttribute('href');
+
+    if (!href) return;
+
+    // 内部锚点链接
+    if (href.startsWith('#')) {
+      const anchorId = href.substring(1);
+      const anchorElement = contentRef.value?.querySelector(`[id="${anchorId}"]`);
+      if (anchorElement) {
+        anchorElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    // 技能链接 (skill:skill_id)
+    if (href.startsWith('skill:')) {
+      const skillId = href.substring(6);
+      emit('skill-link-click', skillId);
+      return;
+    }
+
+    // 工具链接 (tool:tool_id)
+    if (href.startsWith('tool:')) {
+      const toolId = href.substring(5);
+      emit('tool-link-click', toolId);
+      return;
+    }
+
+    // 外部链接
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      window.electron.shell.openExternal(href);
+      return;
+    }
+
+    // 相对路径文档链接
+    if (href.endsWith('.md')) {
+      emit('link-click', href);
+      return;
+    }
+
+    emit('link-click', href);
+  }
+};
+
+// 监听props变化
+watch(() => props.content, (newContent) => {
+  if (newContent) {
+    markdownContent.value = newContent;
+  }
+}, { immediate: true });
+
+watch(() => props.docPath, () => {
+  if (props.docPath) {
+    loadDocFromPath();
+  }
+}, { immediate: true });
+
+onMounted(() => {
+  if (props.content) {
+    markdownContent.value = props.content;
+  } else if (props.docPath) {
+    loadDocFromPath();
+  }
 });
 </script>
 
 <style scoped lang="scss">
 .markdown-viewer {
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+  }
+
+  .error {
+    padding: 16px;
+  }
+
   .markdown-content {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     line-height: 1.6;
