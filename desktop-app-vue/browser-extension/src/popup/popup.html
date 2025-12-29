@@ -56,13 +56,36 @@
 
         <div class="form-group">
           <label for="tags">标签</label>
-          <input
-            type="text"
-            id="tags"
-            class="form-control"
-            placeholder="标签1, 标签2, ..."
-          >
+          <div class="input-with-button">
+            <input
+              type="text"
+              id="tags"
+              class="form-control"
+              placeholder="标签1, 标签2, ..."
+            >
+            <button type="button" class="btn-ai" id="generateTagsBtn" title="AI生成标签">
+              🤖 AI生成
+            </button>
+          </div>
           <small class="form-hint">用逗号分隔多个标签</small>
+        </div>
+
+        <div class="form-group" id="summarySection" style="display: none;">
+          <label for="summary">智能摘要</label>
+          <textarea
+            id="summary"
+            class="form-control"
+            rows="3"
+            readonly
+            placeholder="点击下方按钮生成AI摘要..."
+          ></textarea>
+        </div>
+
+        <!-- AI功能按钮组 -->
+        <div class="ai-features">
+          <button type="button" class="btn-ai-secondary" id="generateSummaryBtn">
+            📝 生成摘要
+          </button>
         </div>
 
         <div class="form-group">

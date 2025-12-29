@@ -501,6 +501,135 @@ function getLLMManager(config = {}) {
   return llmManagerInstance;
 }
 
+/**
+ * 为LLMManager添加AI标签生成和摘要生成功能
+ */
+LLMManager.prototype.generateTags = async function({ title, content, url }) {
+  if (!this.isInitialized) {
+    console.warn('[LLMManager] LLM服务未初始化，使用fallback');
+    // Fallback: 简单的关键词提取
+    return this.generateTagsFallback({ title, content, url });
+  }
+
+  try {
+    // 限制内容长度
+    const limitedContent = content.substring(0, 500);
+
+    const prompt = `分析以下网页内容，生成3-5个最相关的标签（中文或英文）。
+只返回标签列表，用逗号分隔，不要其他内容。
+
+标题: ${title}
+URL: ${url}
+内容: ${limitedContent}
+
+标签:`;
+
+    const result = await this.query(prompt, {
+      temperature: 0.3,
+      max_tokens: 50,
+    });
+
+    // 解析标签
+    const responseText = result.text || result.message?.content || '';
+    const tags = responseText
+      .split(/[,，、]/)
+      .map(t => t.trim())
+      .filter(t => t.length > 0 && t.length < 20)
+      .slice(0, 5);
+
+    console.log('[LLMManager] AI生成标签:', tags);
+    return tags;
+  } catch (error) {
+    console.error('[LLMManager] 标签生成失败:', error);
+    // Fallback
+    return this.generateTagsFallback({ title, content, url });
+  }
+};
+
+/**
+ * Fallback标签生成（简单关键词提取）
+ */
+LLMManager.prototype.generateTagsFallback = function({ title, content, url }) {
+  const tags = [];
+
+  // 从URL提取域名
+  if (url) {
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname.split('.').slice(-2, -1)[0];
+      if (domain) {
+        tags.push(domain);
+      }
+    } catch (e) {
+      // 忽略
+    }
+  }
+
+  // 从标题提取关键词
+  if (title) {
+    const keywords = ['教程', '指南', '文档', '博客', '新闻', '技术', '开发', 'Tutorial', 'Guide', 'Documentation', 'Blog'];
+    for (const keyword of keywords) {
+      if (title.toLowerCase().includes(keyword.toLowerCase())) {
+        tags.push(keyword);
+        if (tags.length >= 3) break;
+      }
+    }
+  }
+
+  return tags.slice(0, 3);
+};
+
+/**
+ * 生成内容摘要
+ */
+LLMManager.prototype.generateSummary = async function({ title, content }) {
+  if (!this.isInitialized) {
+    console.warn('[LLMManager] LLM服务未初始化，使用fallback');
+    // Fallback: 简单截取
+    return this.generateSummaryFallback({ content });
+  }
+
+  try {
+    // 限制内容长度
+    const limitedContent = content.substring(0, 3000);
+
+    const prompt = `请为以下文章生成一段简洁的摘要（100-200字）。
+只返回摘要内容，不要其他说明。
+
+标题: ${title}
+内容: ${limitedContent}
+
+摘要:`;
+
+    const result = await this.query(prompt, {
+      temperature: 0.5,
+      max_tokens: 300,
+    });
+
+    const summary = (result.text || result.message?.content || '').trim();
+
+    console.log('[LLMManager] AI生成摘要:', summary.substring(0, 50) + '...');
+    return summary;
+  } catch (error) {
+    console.error('[LLMManager] 摘要生成失败:', error);
+    // Fallback
+    return this.generateSummaryFallback({ content });
+  }
+};
+
+/**
+ * Fallback摘要生成（简单截取）
+ */
+LLMManager.prototype.generateSummaryFallback = function({ content }) {
+  // 提取纯文本（去除HTML）
+  const textContent = content.replace(/<[^>]*>/g, '').trim();
+
+  // 取前200字
+  const summary = textContent.substring(0, 200);
+
+  return summary + (textContent.length > 200 ? '...' : '');
+};
+
 module.exports = {
   LLMManager,
   LLMProviders,
