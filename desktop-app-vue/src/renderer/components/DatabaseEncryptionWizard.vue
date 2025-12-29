@@ -2,11 +2,12 @@
   <a-modal
     v-model:open="open"
     title="数据库加密设置向导"
-    :closable="false"
-    :maskClosable="false"
-    :keyboard="false"
+    :closable="(developmentMode && canSkipPassword) || currentStep === 3"
+    :maskClosable="(developmentMode && canSkipPassword) || currentStep === 3"
+    :keyboard="(developmentMode && canSkipPassword) || currentStep === 3"
     width="600px"
     :footer="null"
+    @cancel="handleClose"
   >
     <a-steps :current="currentStep" style="margin-bottom: 24px">
       <a-step title="欢迎" />
@@ -17,6 +18,15 @@
 
     <!-- 步骤 0: 欢迎 -->
     <div v-if="currentStep === 0" class="step-content">
+      <a-alert
+        v-if="developmentMode && canSkipPassword"
+        message="开发模式"
+        description="开发模式下可以跳过数据库加密设置。您可以点击右上角 X 关闭此向导，或者点击下方按钮继续。"
+        type="warning"
+        show-icon
+        style="margin-bottom: 16px"
+      />
+
       <a-result
         status="info"
         title="欢迎使用 ChainlessChain"
@@ -118,6 +128,15 @@
           style="margin-bottom: 16px"
         />
 
+        <a-alert
+          v-if="developmentMode && canSkipPassword"
+          message="开发模式"
+          description="开发模式下可以跳过密码设置，数据库将不加密存储。"
+          type="warning"
+          show-icon
+          style="margin-bottom: 16px"
+        />
+
         <a-form-item label="加密密码" name="password">
           <a-input-password
             v-model:value="formState.password"
@@ -192,9 +211,15 @@
         <a-space>
           <a-button @click="prevStep">上一步</a-button>
           <a-button
+            v-if="developmentMode && canSkipPassword"
+            @click="handleSkipPassword"
+          >
+            跳过密码设置
+          </a-button>
+          <a-button
             type="primary"
             :loading="loading"
-            :disabled="!canSubmit"
+            :disabled="!canSubmit && !(developmentMode && canSkipPassword)"
             @click="handlePasswordSubmit"
           >
             下一步
@@ -256,13 +281,15 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'complete', 'skip']);
 
-const visible = ref(props.modelValue);
+const open = ref(props.modelValue);
 const currentStep = ref(0);
 const encryptionMethod = ref('password');
 const setupSuccess = ref(false);
 const errorMessage = ref('');
 const loading = ref(false);
 const formRef = ref();
+const developmentMode = ref(false);
+const canSkipPassword = ref(false);
 
 const formState = reactive({
   password: '',
@@ -311,12 +338,18 @@ const canSubmit = computed(() => {
 });
 
 // 表单验证规则
-const passwordRules = {
+const passwordRules = computed(() => ({
   password: [
-    { required: true, message: '请输入密码' },
+    {
+      required: !(developmentMode.value && canSkipPassword.value),
+      message: '请输入密码'
+    },
     { min: 12, message: '密码至少需要12个字符' },
     {
       validator: (_, value) => {
+        if (!value && developmentMode.value && canSkipPassword.value) {
+          return Promise.resolve();
+        }
         if (!value) return Promise.resolve();
         if (!Object.values(requirements.value).every(v => v)) {
           return Promise.reject('密码不符合安全要求');
@@ -326,9 +359,15 @@ const passwordRules = {
     }
   ],
   confirmPassword: [
-    { required: true, message: '请确认密码' },
+    {
+      required: !(developmentMode.value && canSkipPassword.value),
+      message: '请确认密码'
+    },
     {
       validator: (_, value) => {
+        if (!value && developmentMode.value && canSkipPassword.value) {
+          return Promise.resolve();
+        }
         if (value !== formState.password) {
           return Promise.reject('两次输入的密码不一致');
         }
@@ -336,10 +375,23 @@ const passwordRules = {
       }
     }
   ]
+}));
+
+// 加载开发模式状态
+const loadDevelopmentMode = async () => {
+  try {
+    const result = await window.electron.ipcRenderer.invoke('database:get-encryption-status');
+    if (result) {
+      developmentMode.value = result.developmentMode || false;
+      canSkipPassword.value = result.canSkipPassword || false;
+    }
+  } catch (error) {
+    console.error('获取开发模式状态失败:', error);
+  }
 };
 
-watch(() => props.modelValue, (val) => {
-  visible.value = val;
+watch(() => props.modelValue, async (val) => {
+  open.value = val;
   if (val) {
     // 重置状态
     currentStep.value = 0;
@@ -347,10 +399,13 @@ watch(() => props.modelValue, (val) => {
     errorMessage.value = '';
     formState.password = '';
     formState.confirmPassword = '';
+
+    // 加载开发模式状态
+    await loadDevelopmentMode();
   }
 });
 
-watch(visible, (val) => {
+watch(open, (val) => {
   emit('update:modelValue', val);
 });
 
@@ -368,13 +423,18 @@ const prevStep = () => {
 
 const handlePasswordSubmit = async () => {
   try {
-    await formRef.value.validate();
+    // 开发模式下允许跳过验证
+    if (!(developmentMode.value && canSkipPassword.value)) {
+      await formRef.value.validate();
+    }
+
     loading.value = true;
 
     // 调用后端设置加密
     const result = await window.electron.ipcRenderer.invoke('database:setup-encryption', {
       method: encryptionMethod.value,
-      password: formState.password
+      password: formState.password || undefined,
+      skipPassword: (developmentMode.value && canSkipPassword.value && !formState.password) || false
     });
 
     if (result.success) {
@@ -397,6 +457,33 @@ const handlePasswordSubmit = async () => {
   }
 };
 
+const handleSkipPassword = async () => {
+  if (!developmentMode.value || !canSkipPassword.value) {
+    message.warning('仅开发模式下可以跳过密码设置');
+    return;
+  }
+
+  loading.value = true;
+  try {
+    const result = await window.electron.ipcRenderer.invoke('database:setup-encryption', {
+      method: encryptionMethod.value,
+      skipPassword: true
+    });
+
+    if (result.success) {
+      setupSuccess.value = true;
+      currentStep.value = 3;
+      message.success('已跳过密码设置（开发模式）');
+    } else {
+      throw new Error(result.error || '操作失败');
+    }
+  } catch (error) {
+    message.error('操作失败: ' + error.message);
+  } finally {
+    loading.value = false;
+  }
+};
+
 const retrySetup = () => {
   currentStep.value = 1;
   setupSuccess.value = false;
@@ -406,12 +493,20 @@ const retrySetup = () => {
 const skipEncryption = () => {
   message.info('您可以稍后在设置中启用加密');
   emit('skip');
-  visible.value = false;
+  open.value = false;
+};
+
+const handleClose = () => {
+  if (developmentMode.value && canSkipPassword.value) {
+    skipEncryption();
+  } else if (currentStep.value === 3) {
+    open.value = false;
+  }
 };
 
 const finish = () => {
   emit('complete');
-  visible.value = false;
+  open.value = false;
 };
 </script>
 
