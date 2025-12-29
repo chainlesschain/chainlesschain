@@ -175,7 +175,7 @@
 
     <!-- Git冲突解决器 -->
     <GitConflictResolver
-      v-model:visible="showConflictResolver"
+      v-model:open="showConflictResolver"
       :conflicts="conflicts"
       @resolved="handleConflictResolved"
       @aborted="handleConflictAborted"

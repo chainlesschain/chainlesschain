@@ -1,7 +1,7 @@
 <template>
   <div class="content-create">
     <a-modal
-      :visible="visible"
+      :open="visible"
       title="发布付费内容"
       width="900px"
       :confirm-loading="creating"
@@ -173,14 +173,14 @@ const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
 });
 
 // Emits
-const emit = defineEmits(['created', 'update:visible']);
+const emit = defineEmits(['created', 'update:open']);
 
 // 状态
 const creating = ref(false);
@@ -233,7 +233,7 @@ const handleCreate = async () => {
     emit('created', content);
 
     // 关闭对话框
-    emit('update:visible', false);
+    emit('update:open', false);
 
     // 重置表单
     resetForm();
@@ -277,7 +277,7 @@ const validateForm = () => {
 
 // 取消
 const handleCancel = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
   resetForm();
 };
 
@@ -295,7 +295,7 @@ const resetForm = () => {
 };
 
 // 监听对话框打开
-watch(() => props.visible, (newVal) => {
+watch(() => props.open, (newVal) => {
   if (newVal) {
     resetForm();
   }

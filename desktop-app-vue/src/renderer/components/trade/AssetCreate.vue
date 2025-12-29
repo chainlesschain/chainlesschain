@@ -1,7 +1,7 @@
 <template>
   <div class="asset-create">
     <a-modal
-      :visible="visible"
+      :open="visible"
       :title="editing ? '编辑资产' : '创建资产'"
       width="700px"
       :confirm-loading="creating"
@@ -253,7 +253,7 @@ import ChainSelector from '../blockchain/ChainSelector.vue';
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -268,7 +268,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['created', 'cancel', 'update:visible']);
+const emit = defineEmits(['created', 'cancel', 'update:open']);
 
 // Store
 const tradeStore = useTradeStore();
@@ -485,7 +485,7 @@ const handleCreate = async () => {
     emit('created', asset);
 
     // 关闭对话框
-    emit('update:visible', false);
+    emit('update:open', false);
 
     // 重置表单
     resetForm();
@@ -498,7 +498,7 @@ const handleCreate = async () => {
 // 取消
 const handleCancel = () => {
   emit('cancel');
-  emit('update:visible', false);
+  emit('update:open', false);
   resetForm();
 };
 

@@ -348,7 +348,7 @@
 
     <!-- Git状态对话框 -->
     <GitStatusDialog
-      :visible="showGitStatusModal"
+      :open="showGitStatusModal"
       :project-id="projectId"
       :repo-path="currentProject?.root_path || ''"
       @close="showGitStatusModal = false"
@@ -358,7 +358,7 @@
 
     <!-- Git历史对话框 -->
     <GitHistoryDialog
-      :visible="showGitHistoryModal"
+      :open="showGitHistoryModal"
       :project-id="projectId"
       :repo-path="currentProject?.root_path || ''"
       @close="showGitHistoryModal = false"
@@ -387,7 +387,7 @@
 
     <!-- 文件管理Modal -->
     <FileManageModal
-      :visible="showFileManageModal"
+      :open="showFileManageModal"
       :files="projectFiles"
       :project-id="projectId"
       :loading="refreshing"

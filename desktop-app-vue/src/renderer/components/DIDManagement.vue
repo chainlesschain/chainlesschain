@@ -116,7 +116,7 @@
 
     <!-- 创建身份模态框 -->
     <a-modal
-      v-model:visible="showCreateModal"
+      v-model:open="showCreateModal"
       title="创建新的 DID 身份"
       :width="700"
       @ok="handleCreateIdentity"
@@ -198,7 +198,7 @@
 
     <!-- 身份详情模态框 -->
     <a-modal
-      v-model:visible="showDetailsModal"
+      v-model:open="showDetailsModal"
       :title="currentIdentity?.nickname + ' - 身份详情'"
       :width="800"
       :footer="null"
@@ -327,7 +327,7 @@
 
     <!-- DID 文档查看器 -->
     <a-modal
-      v-model:visible="showDocumentModal"
+      v-model:open="showDocumentModal"
       title="DID 文档"
       :width="800"
       :footer="null"
@@ -343,7 +343,7 @@
 
     <!-- 二维码模态框 -->
     <a-modal
-      v-model:visible="showQRModal"
+      v-model:open="showQRModal"
       title="DID 身份二维码"
       :width="500"
       :footer="null"
@@ -360,7 +360,7 @@
 
     <!-- 自动重新发布设置模态框 -->
     <a-modal
-      v-model:visible="showAutoRepublishModal"
+      v-model:open="showAutoRepublishModal"
       title="自动重新发布设置"
       :width="600"
       @ok="handleSaveAutoRepublishConfig"
@@ -420,7 +420,7 @@
 
     <!-- 助记词显示模态框（新创建身份后） -->
     <a-modal
-      v-model:visible="showMnemonicDisplayModal"
+      v-model:open="showMnemonicDisplayModal"
       title="备份助记词"
       :width="700"
       :closable="false"
@@ -486,7 +486,7 @@
 
     <!-- 助记词导出模态框（导出现有身份） -->
     <a-modal
-      v-model:visible="showMnemonicExportModal"
+      v-model:open="showMnemonicExportModal"
       title="导出助记词"
       :width="700"
       :footer="null"

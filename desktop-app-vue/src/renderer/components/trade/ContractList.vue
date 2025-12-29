@@ -85,13 +85,13 @@
 
     <!-- 创建合约对话框 -->
     <contract-create
-      v-model:visible="showCreateModal"
+      v-model:open="showCreateModal"
       @created="handleContractCreated"
     />
 
     <!-- 合约详情对话框 -->
     <contract-detail
-      v-model:visible="showDetailModal"
+      v-model:open="showDetailModal"
       :contract="selectedContract"
       @activated="handleContractUpdated"
       @executed="handleContractUpdated"
@@ -100,14 +100,14 @@
 
     <!-- 合约签名对话框 -->
     <contract-sign
-      v-model:visible="showSignModal"
+      v-model:open="showSignModal"
       :contract="selectedContract"
       @signed="handleContractUpdated"
     />
 
     <!-- 合约执行对话框 -->
     <contract-execute
-      v-model:visible="showExecuteModal"
+      v-model:open="showExecuteModal"
       :contract="selectedContract"
       @executed="handleContractUpdated"
     />

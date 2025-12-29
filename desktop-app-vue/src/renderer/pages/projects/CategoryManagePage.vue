@@ -209,7 +209,7 @@
 
     <!-- 编辑/添加分类对话框 -->
     <a-modal
-      v-model:visible="editDialogVisible"
+      v-model:open="editDialogVisible"
       :title="editingCategory ? '编辑分类' : '添加分类'"
       @ok="handleSave"
       @cancel="handleEditCancel"

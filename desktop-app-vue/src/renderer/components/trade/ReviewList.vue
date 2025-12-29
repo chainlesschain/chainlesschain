@@ -146,7 +146,7 @@
 
     <!-- 创建评价对话框 -->
     <review-create
-      v-model:visible="showReviewModal"
+      v-model:open="showReviewModal"
       :target-id="props.targetId"
       :target-type="props.targetType"
       :target="{ name: props.title }"
@@ -155,14 +155,14 @@
 
     <!-- 回复评价对话框 -->
     <review-reply
-      v-model:visible="showReplyModal"
+      v-model:open="showReplyModal"
       :review="replyingReview"
       @replied="handleReviewReplied"
     />
 
     <!-- 举报对话框 -->
     <a-modal
-      v-model:visible="showReportModal"
+      v-model:open="showReportModal"
       title="举报评价"
       width="500px"
       :confirm-loading="reporting"

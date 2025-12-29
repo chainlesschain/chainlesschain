@@ -41,7 +41,7 @@
 
     <!-- 分类管理对话框 -->
     <CategoryManageDialog
-      v-model:visible="manageDialogVisible"
+      v-model:open="manageDialogVisible"
       @refresh="handleRefresh"
     />
   </div>

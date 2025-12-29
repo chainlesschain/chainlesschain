@@ -1,7 +1,7 @@
 <template>
   <div class="review-reply">
     <a-modal
-      :visible="visible"
+      :open="visible"
       title="回复评价"
       width="600px"
       :confirm-loading="replying"
@@ -103,7 +103,7 @@ const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -114,7 +114,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['replied', 'update:visible']);
+const emit = defineEmits(['replied', 'update:open']);
 
 // 状态
 const replying = ref(false);
@@ -166,7 +166,7 @@ const handleReply = async () => {
     emit('replied', reply);
 
     // 关闭对话框
-    emit('update:visible', false);
+    emit('update:open', false);
 
     // 重置表单
     resetForm();
@@ -195,7 +195,7 @@ const validateForm = () => {
 
 // 取消
 const handleCancel = () => {
-  emit('update:visible', false);
+  emit('update:open', false);
   resetForm();
 };
 
@@ -205,7 +205,7 @@ const resetForm = () => {
 };
 
 // 监听对话框打开
-watch(() => props.visible, (newVal) => {
+watch(() => props.open, (newVal) => {
   if (newVal) {
     resetForm();
   }

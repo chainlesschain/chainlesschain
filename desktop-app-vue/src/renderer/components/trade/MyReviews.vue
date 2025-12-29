@@ -107,7 +107,7 @@
 
     <!-- 编辑评价对话框 -->
     <a-modal
-      v-model:visible="showEditModal"
+      v-model:open="showEditModal"
       title="编辑评价"
       width="600px"
       :confirm-loading="updating"

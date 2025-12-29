@@ -141,7 +141,7 @@
 
     <!-- 设备列表模态框 -->
     <a-modal
-      v-model:visible="showDevicesModal"
+      v-model:open="showDevicesModal"
       :title="`${currentPeerDevices?.peerId ? shortenPeerId(currentPeerDevices.peerId) : ''} 的设备列表`"
       width="600px"
       :footer="null"
@@ -207,7 +207,7 @@
 
     <!-- 设备统计模态框 -->
     <a-modal
-      v-model:visible="showDeviceStatsModal"
+      v-model:open="showDeviceStatsModal"
       title="设备统计"
       width="500px"
       :footer="null"
@@ -238,7 +238,7 @@
 
     <!-- 同步统计模态框 -->
     <a-modal
-      v-model:visible="showSyncStatsModal"
+      v-model:open="showSyncStatsModal"
       title="消息同步统计"
       width="600px"
       :footer="null"
@@ -283,7 +283,7 @@
 
     <!-- 聊天对话框 -->
     <a-modal
-      v-model:visible="showChatModal"
+      v-model:open="showChatModal"
       :title="getChatTitle()"
       width="600px"
       :footer="null"

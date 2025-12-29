@@ -336,7 +336,7 @@
           class="chat-panel-container"
           :style="{ width: chatPanelVisible ? '400px' : '0' }"
         >
-          <ChatPanel :visible="chatPanelVisible" @toggle="toggleChat" />
+          <ChatPanel :open="chatPanelVisible" @toggle="toggleChat" />
         </div>
       </a-layout>
     </a-layout>

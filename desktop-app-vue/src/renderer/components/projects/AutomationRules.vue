@@ -77,7 +77,7 @@
 
       <!-- 创建/编辑规则对话框 -->
       <a-modal
-        v-model:visible="modalVisible"
+        v-model:open="modalVisible"
         :title="editingRule ? '编辑规则' : '创建规则'"
         width="800px"
         @ok="handleSaveRule"

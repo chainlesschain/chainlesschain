@@ -1,6 +1,6 @@
 <template>
   <a-drawer
-    :visible="visible"
+    :open="visible"
     :title="`${asset ? asset.name : '资产'} - 转账历史`"
     width="700px"
     placement="right"
@@ -158,7 +158,7 @@ import {
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -413,7 +413,7 @@ const handleClose = () => {
 };
 
 // 监听抽屉打开
-watch(() => props.visible, (newVal) => {
+watch(() => props.open, (newVal) => {
   if (newVal && props.asset) {
     // 重置状态
     filterType.value = '';

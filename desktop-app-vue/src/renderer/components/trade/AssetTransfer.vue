@@ -1,7 +1,7 @@
 <template>
   <div class="asset-transfer">
     <a-modal
-      :visible="visible"
+      :open="visible"
       title="转账资产"
       width="600px"
       :confirm-loading="transferring"
@@ -106,7 +106,7 @@ import DIDSelector from './common/DIDSelector.vue';
 
 // Props
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -117,7 +117,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['transferred', 'cancel', 'update:visible']);
+const emit = defineEmits(['transferred', 'cancel', 'update:open']);
 
 // Store
 const tradeStore = useTradeStore();
@@ -225,7 +225,7 @@ const handleTransfer = async () => {
     emit('transferred');
 
     // 关闭对话框
-    emit('update:visible', false);
+    emit('update:open', false);
 
     // 重置表单
     resetForm();
@@ -238,7 +238,7 @@ const handleTransfer = async () => {
 // 取消
 const handleCancel = () => {
   emit('cancel');
-  emit('update:visible', false);
+  emit('update:open', false);
   resetForm();
 };
 
@@ -262,7 +262,7 @@ const loadCurrentUserDid = async () => {
 };
 
 // 监听对话框打开
-watch(() => props.visible, async (newVal) => {
+watch(() => props.open, async (newVal) => {
   if (newVal) {
     // 重置表单
     resetForm();

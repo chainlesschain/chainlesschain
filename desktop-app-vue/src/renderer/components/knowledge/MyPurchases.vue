@@ -138,7 +138,7 @@
 
     <!-- 内容详情对话框 -->
     <content-detail
-      v-model:visible="showDetailModal"
+      v-model:open="showDetailModal"
       :content="selectedContent"
     />
   </div>

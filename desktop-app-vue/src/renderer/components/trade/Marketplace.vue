@@ -204,13 +204,13 @@
 
     <!-- 创建订单对话框 -->
     <order-create
-      v-model:visible="showCreateModal"
+      v-model:open="showCreateModal"
       @created="handleOrderCreated"
     />
 
     <!-- 订单详情对话框 -->
     <order-detail
-      v-model:visible="showDetailModal"
+      v-model:open="showDetailModal"
       :order="selectedOrder"
       @purchased="handleOrderPurchased"
       @cancelled="handleOrderCancelled"
@@ -218,7 +218,7 @@
 
     <!-- 购买确认对话框 -->
     <a-modal
-      v-model:visible="showPurchaseModal"
+      v-model:open="showPurchaseModal"
       title="确认购买"
       @ok="handleConfirmPurchase"
     >

@@ -221,13 +221,13 @@
 
     <!-- 创建钱包对话框 -->
     <create-wallet-modal
-      v-model:visible="createWalletModalVisible"
+      v-model:open="createWalletModalVisible"
       @created="handleWalletCreated"
     />
 
     <!-- 导入钱包对话框 -->
     <import-wallet-modal
-      v-model:visible="importWalletModalVisible"
+      v-model:open="importWalletModalVisible"
       @imported="handleWalletImported"
     />
   </div>
