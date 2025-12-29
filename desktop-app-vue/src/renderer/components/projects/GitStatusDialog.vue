@@ -290,7 +290,7 @@ import {
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -547,7 +547,7 @@ const handleClose = () => {
 };
 
 // 监听visible变化
-watch(() => props.visible, (newVal) => {
+watch(() => props.open, (newVal) => {
   if (newVal) {
     loadStatus();
   }

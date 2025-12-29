@@ -199,7 +199,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -437,7 +437,7 @@ const handleClose = () => {
 };
 
 // 监听visible变化
-watch(() => props.visible, (newVal) => {
+watch(() => props.open, (newVal) => {
   if (newVal) {
     currentPage.value = 1;
     expandedCommit.value = null;
