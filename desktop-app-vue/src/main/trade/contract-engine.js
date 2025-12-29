@@ -61,13 +61,14 @@ const ConditionType = {
  * 智能合约引擎类
  */
 class SmartContractEngine extends EventEmitter {
-  constructor(database, didManager, assetManager, escrowManager) {
+  constructor(database, didManager, assetManager, escrowManager, blockchainAdapter = null) {
     super();
 
     this.database = database;
     this.didManager = didManager;
     this.assetManager = assetManager;
     this.escrowManager = escrowManager;
+    this.blockchainAdapter = blockchainAdapter;
 
     this.initialized = false;
     this.checkTimer = null; // 条件检查定时器
@@ -176,6 +177,24 @@ class SmartContractEngine extends EventEmitter {
       )
     `);
 
+    // 区块链合约部署记录表
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS deployed_contracts (
+        id TEXT PRIMARY KEY,
+        local_contract_id TEXT NOT NULL,
+        contract_name TEXT NOT NULL,
+        contract_type TEXT,
+        contract_address TEXT NOT NULL,
+        chain_id INTEGER NOT NULL,
+        deployment_tx TEXT,
+        deployer_address TEXT,
+        abi_json TEXT,
+        deployed_at INTEGER NOT NULL,
+        UNIQUE(contract_address, chain_id),
+        FOREIGN KEY (local_contract_id) REFERENCES contracts(id)
+      )
+    `);
+
     // 创建索引
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_contracts_creator ON contracts(creator_did);
@@ -185,6 +204,8 @@ class SmartContractEngine extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_contract_events_contract ON contract_events(contract_id);
       CREATE INDEX IF NOT EXISTS idx_contract_signatures_contract ON contract_signatures(contract_id);
       CREATE INDEX IF NOT EXISTS idx_arbitrations_contract ON arbitrations(contract_id);
+      CREATE INDEX IF NOT EXISTS idx_deployed_contracts_local ON deployed_contracts(local_contract_id);
+      CREATE INDEX IF NOT EXISTS idx_deployed_contracts_address ON deployed_contracts(contract_address, chain_id);
     `);
 
     console.log('[ContractEngine] 数据库表初始化完成');
@@ -204,6 +225,10 @@ class SmartContractEngine extends EventEmitter {
     conditions = [],
     expiresIn = null,
     metadata = {},
+    onChain = false,
+    chainId = null,
+    walletId = null,
+    password = null,
   }) {
     try {
       const currentDid = this.didManager?.getCurrentIdentity()?.did;

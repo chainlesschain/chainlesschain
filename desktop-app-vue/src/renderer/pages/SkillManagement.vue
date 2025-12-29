@@ -115,19 +115,48 @@
       <a-empty description="暂无技能数据" />
     </div>
 
-    <div v-else class="skill-grid">
-      <div v-for="skill in skillStore.filteredSkills" :key="skill.id" class="skill-card-wrapper">
-        <a-checkbox
-          v-model:checked="selectedSkillIds[skill.id]"
-          class="skill-checkbox"
-          @change="handleSkillSelect(skill)"
-        />
-        <SkillCard
-          :skill="skill"
-          @view-details="handleViewDetails"
-          @toggle-enabled="handleToggleEnabled"
-          @view-doc="handleViewDoc"
-        />
+    <!-- 使用虚拟滚动优化大数据集 -->
+    <div v-else class="skill-list-container">
+      <VirtualGrid
+        v-if="skillStore.filteredSkills.length > 50"
+        :items="skillStore.filteredSkills"
+        :item-height="240"
+        :columns="gridColumns"
+        :gap="16"
+        item-key="id"
+      >
+        <template #default="{ item: skill }">
+          <div class="skill-card-wrapper">
+            <a-checkbox
+              v-model:checked="selectedSkillIds[skill.id]"
+              class="skill-checkbox"
+              @change="handleSkillSelect(skill)"
+            />
+            <SkillCard
+              :skill="skill"
+              @view-details="handleViewDetails"
+              @toggle-enabled="handleToggleEnabled"
+              @view-doc="handleViewDoc"
+            />
+          </div>
+        </template>
+      </VirtualGrid>
+
+      <!-- 少量数据直接渲染 -->
+      <div v-else class="skill-grid">
+        <div v-for="skill in skillStore.filteredSkills" :key="skill.id" class="skill-card-wrapper">
+          <a-checkbox
+            v-model:checked="selectedSkillIds[skill.id]"
+            class="skill-checkbox"
+            @change="handleSkillSelect(skill)"
+          />
+          <SkillCard
+            :skill="skill"
+            @view-details="handleViewDetails"
+            @toggle-enabled="handleToggleEnabled"
+            @view-doc="handleViewDoc"
+          />
+        </div>
       </div>
     </div>
 
@@ -194,7 +223,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
   SearchOutlined,
@@ -213,6 +242,7 @@ import SkillDetails from '../components/skill/SkillDetails.vue';
 import SkillEditor from '../components/skill/SkillEditor.vue';
 import SkillStats from '../components/skill/SkillStats.vue';
 import SkillDependencyGraph from '../components/skill/SkillDependencyGraph.vue';
+import VirtualGrid from '../components/common/VirtualGrid.vue';
 import MarkdownViewer from '../components/common/MarkdownViewer.vue';
 
 const skillStore = useSkillStore();
@@ -253,11 +283,34 @@ const isAllSelected = computed(() => {
     skillStore.filteredSkills.every(skill => selectedSkillIds[skill.id]);
 });
 
+// 响应式网格列数
+const gridColumns = ref(3);
+const updateGridColumns = () => {
+  const width = window.innerWidth;
+  if (width < 768) {
+    gridColumns.value = 1;
+  } else if (width < 1200) {
+    gridColumns.value = 2;
+  } else if (width < 1600) {
+    gridColumns.value = 3;
+  } else {
+    gridColumns.value = 4;
+  }
+};
+
 // 初始化
 onMounted(async () => {
   await skillStore.fetchAll();
   await toolStore.fetchAll();
   allTools.value = toolStore.tools;
+
+  // 响应式网格
+  updateGridColumns();
+  window.addEventListener('resize', updateGridColumns);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateGridColumns);
 });
 
 // 搜索处理
@@ -598,12 +651,38 @@ const handleBatchDelete = () => {
     }
   }
 
+  .skill-list-container {
+    height: calc(100vh - 320px);
+    min-height: 600px;
+  }
+
   .skill-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 16px;
     margin-top: 16px;
 
+    .skill-card-wrapper {
+      position: relative;
+
+      .skill-checkbox {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+        background: white;
+        padding: 4px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+        &:hover {
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+        }
+      }
+    }
+  }
+
+  :deep(.virtual-grid) {
     .skill-card-wrapper {
       position: relative;
 
