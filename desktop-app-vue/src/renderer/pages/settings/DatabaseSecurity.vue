@@ -140,6 +140,8 @@
       v-model="showPasswordDialog"
       :is-first-time="config.firstTimeSetup"
       :show-old-password="!config.firstTimeSetup"
+      :development-mode="config.developmentMode"
+      :can-skip-password="config.canSkipPassword"
       @submit="handlePasswordSubmit"
     />
 
@@ -177,7 +179,9 @@ const config = reactive({
   encryptionMethod: 'password',
   autoMigrate: true,
   firstTimeSetup: true,
-  engine: null
+  engine: null,
+  developmentMode: false,
+  canSkipPassword: false
 });
 
 const encryptionMethodText = computed(() => {
@@ -208,7 +212,9 @@ const loadConfig = async () => {
         encryptionEnabled: statusResult.isEncrypted,
         encryptionMethod: statusResult.method || 'password',
         firstTimeSetup: statusResult.firstTimeSetup,
-        engine: statusResult.engine
+        engine: statusResult.engine,
+        developmentMode: statusResult.developmentMode || false,
+        canSkipPassword: statusResult.canSkipPassword || false
       });
     }
 
@@ -305,7 +311,8 @@ const handlePasswordSubmit = async (data) => {
       {
         method: config.encryptionMethod,
         password: data.password,
-        oldPassword: data.oldPassword
+        oldPassword: data.oldPassword,
+        skipPassword: data.skipPassword || false
       }
     );
 

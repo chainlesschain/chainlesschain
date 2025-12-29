@@ -24,10 +24,22 @@
         style="margin-bottom: 16px"
       />
 
-      <a-form-item label="加密密码" name="password">
+      <a-alert
+        v-if="developmentMode && canSkipPassword"
+        message="开发模式"
+        description="开发模式下可以跳过密码设置，数据库将不加密存储。注意：生产环境下请务必设置密码。"
+        type="warning"
+        show-icon
+        style="margin-bottom: 16px"
+      />
+
+      <a-form-item
+        :label="developmentMode && canSkipPassword ? '加密密码（可选）' : '加密密码'"
+        name="password"
+      >
         <a-input-password
           v-model:value="formState.password"
-          placeholder="请输入加密密码（至少12位）"
+          :placeholder="developmentMode && canSkipPassword ? '请输入加密密码（可跳过）' : '请输入加密密码（至少12位）'"
           autocomplete="new-password"
         >
           <template #prefix>
@@ -110,9 +122,15 @@
       <a-space>
         <a-button v-if="!isRequired" @click="handleCancel">取消</a-button>
         <a-button
+          v-if="developmentMode && canSkipPassword"
+          @click="handleSkip"
+        >
+          跳过密码设置
+        </a-button>
+        <a-button
           type="primary"
           :loading="loading"
-          :disabled="!canSubmit"
+          :disabled="!canSubmit && !(developmentMode && canSkipPassword)"
           @click="handleSubmit"
         >
           {{ submitButtonText }}
@@ -146,6 +164,14 @@ const props = defineProps({
     default: false
   },
   showOldPassword: {
+    type: Boolean,
+    default: false
+  },
+  developmentMode: {
+    type: Boolean,
+    default: false
+  },
+  canSkipPassword: {
     type: Boolean,
     default: false
   }
@@ -215,12 +241,18 @@ const submitButtonText = computed(() => {
 });
 
 // 表单验证规则
-const rules = {
+const rules = computed(() => ({
   password: [
-    { required: true, message: '请输入密码' },
+    {
+      required: !(props.developmentMode && props.canSkipPassword),
+      message: '请输入密码'
+    },
     { min: 12, message: '密码至少需要12个字符' },
     {
       validator: (_, value) => {
+        if (!value && props.developmentMode && props.canSkipPassword) {
+          return Promise.resolve();
+        }
         if (!value) return Promise.resolve();
         if (!Object.values(requirements.value).every(v => v)) {
           return Promise.reject('密码不符合安全要求');
@@ -230,9 +262,15 @@ const rules = {
     }
   ],
   confirmPassword: [
-    { required: true, message: '请确认密码' },
+    {
+      required: !(props.developmentMode && props.canSkipPassword),
+      message: '请确认密码'
+    },
     {
       validator: (_, value) => {
+        if (!value && props.developmentMode && props.canSkipPassword) {
+          return Promise.resolve();
+        }
         if (value !== formState.password) {
           return Promise.reject('两次输入的密码不一致');
         }
@@ -246,7 +284,7 @@ const rules = {
       message: '请输入当前密码'
     }
   ]
-};
+}));
 
 // 提交表单
 const handleSubmit = async () => {
@@ -269,12 +307,29 @@ const handleSubmit = async () => {
 
 // 取消
 const handleCancel = () => {
-  if (props.isRequired) {
+  if (props.isRequired && !props.canSkipPassword) {
     message.warning('必须设置数据库密码才能继续使用');
     return;
   }
   emit('cancel');
   visible.value = false;
+};
+
+// 跳过密码设置（仅开发模式）
+const handleSkip = () => {
+  if (!props.developmentMode || !props.canSkipPassword) {
+    message.warning('仅开发模式下可以跳过密码设置');
+    return;
+  }
+
+  loading.value = true;
+
+  try {
+    emit('submit', { skipPassword: true });
+    message.success('已跳过密码设置（开发模式）');
+  } finally {
+    loading.value = false;
+  }
 };
 
 // 重置表单
