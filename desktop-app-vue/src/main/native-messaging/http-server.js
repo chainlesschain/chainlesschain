@@ -8,9 +8,10 @@ const http = require('http');
 const DEFAULT_PORT = 23456;
 
 class NativeMessagingHTTPServer {
-  constructor(database, ragManager) {
+  constructor(database, ragManager, llmManager = null) {
     this.database = database;
     this.ragManager = ragManager;
+    this.llmManager = llmManager;
     this.server = null;
     this.port = DEFAULT_PORT;
   }
@@ -87,6 +88,10 @@ class NativeMessagingHTTPServer {
       await this.handleClipRequest(req, res);
     } else if (url.pathname === '/api/ping') {
       this.handlePingRequest(req, res);
+    } else if (url.pathname === '/api/generate-tags') {
+      await this.handleGenerateTagsRequest(req, res);
+    } else if (url.pathname === '/api/generate-summary') {
+      await this.handleGenerateSummaryRequest(req, res);
     } else {
       this.sendError(res, 404, 'Not Found');
     }
@@ -157,6 +162,132 @@ class NativeMessagingHTTPServer {
       console.error('[NativeMessagingHTTPServer] 处理剪藏请求失败:', error);
       this.sendError(res, 500, error.message);
     }
+  }
+
+  /**
+   * 处理AI标签生成请求
+   */
+  async handleGenerateTagsRequest(req, res) {
+    try {
+      // 读取请求体
+      const body = await this.readRequestBody(req);
+      const data = JSON.parse(body);
+
+      console.log('[NativeMessagingHTTPServer] 收到AI标签生成请求');
+
+      // 验证数据
+      if (!data.title) {
+        this.sendError(res, 400, '缺少必要字段: title');
+        return;
+      }
+
+      // 检查LLM服务
+      if (!this.llmManager) {
+        console.warn('[NativeMessagingHTTPServer] LLM服务未配置，使用fallback');
+        // 使用简单的关键词提取作为fallback
+        const tags = this.extractSimpleTags(data);
+        this.sendSuccess(res, { tags });
+        return;
+      }
+
+      // 调用LLM生成标签
+      const tags = await this.llmManager.generateTags({
+        title: data.title,
+        content: data.content || data.excerpt || '',
+        url: data.url || '',
+      });
+
+      console.log('[NativeMessagingHTTPServer] AI生成标签:', tags);
+
+      this.sendSuccess(res, { tags });
+    } catch (error) {
+      console.error('[NativeMessagingHTTPServer] 标签生成失败:', error);
+      this.sendError(res, 500, error.message);
+    }
+  }
+
+  /**
+   * 处理AI摘要生成请求
+   */
+  async handleGenerateSummaryRequest(req, res) {
+    try {
+      // 读取请求体
+      const body = await this.readRequestBody(req);
+      const data = JSON.parse(body);
+
+      console.log('[NativeMessagingHTTPServer] 收到AI摘要生成请求');
+
+      // 验证数据
+      if (!data.content) {
+        this.sendError(res, 400, '缺少必要字段: content');
+        return;
+      }
+
+      // 检查LLM服务
+      if (!this.llmManager) {
+        console.warn('[NativeMessagingHTTPServer] LLM服务未配置，使用fallback');
+        // 使用简单的截取作为fallback
+        const summary = this.extractSimpleSummary(data.content);
+        this.sendSuccess(res, { summary });
+        return;
+      }
+
+      // 调用LLM生成摘要
+      const summary = await this.llmManager.generateSummary({
+        title: data.title || '',
+        content: data.content,
+      });
+
+      console.log('[NativeMessagingHTTPServer] AI生成摘要:', summary.substring(0, 50) + '...');
+
+      this.sendSuccess(res, { summary });
+    } catch (error) {
+      console.error('[NativeMessagingHTTPServer] 摘要生成失败:', error);
+      this.sendError(res, 500, error.message);
+    }
+  }
+
+  /**
+   * 简单的标签提取（fallback）
+   */
+  extractSimpleTags(data) {
+    const tags = [];
+
+    // 从域名提取
+    if (data.url) {
+      try {
+        const url = new URL(data.url);
+        const domain = url.hostname.split('.').slice(-2, -1)[0];
+        if (domain) {
+          tags.push(domain);
+        }
+      } catch (e) {
+        // 忽略
+      }
+    }
+
+    // 从标题提取关键词
+    if (data.title) {
+      const keywords = ['教程', '指南', '文档', '博客', '新闻', '技术', '开发'];
+      for (const keyword of keywords) {
+        if (data.title.includes(keyword)) {
+          tags.push(keyword);
+          break;
+        }
+      }
+    }
+
+    return tags.slice(0, 3);
+  }
+
+  /**
+   * 简单的摘要提取（fallback）
+   */
+  extractSimpleSummary(content) {
+    // 去除HTML标签
+    const textContent = content.replace(/<[^>]*>/g, '').trim();
+    // 取前200字
+    return textContent.substring(0, 200) + (textContent.length > 200 ? '...' : '');
   }
 
   /**
