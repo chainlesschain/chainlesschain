@@ -102,6 +102,7 @@
     "koffi": "^2.8.10",
     "libp2p": "^3.1.2",
     "lodash.debounce": "^4.0.8",
+    "lru-cache": "^6.0.0",
     "mammoth": "^1.11.0",
     "markdown-it": "^14.0.0",
     "marked": "^14.1.4",
