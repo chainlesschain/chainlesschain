@@ -263,7 +263,7 @@ class PromptTemplateManager {
       const isSystem = template.is_system ? 1 : 0;
 
       await this.db.run(
-        `INSERT INTO prompt_templates
+        `INSERT OR IGNORE INTO prompt_templates
          (id, name, description, template, variables, category, is_system, usage_count, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
