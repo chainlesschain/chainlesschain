@@ -6088,30 +6088,28 @@ class ChainlessChainApp {
             throw saveError;
           }
 
-          // 为document类型项目创建根目录并设置root_path
+          // 为所有类型项目创建根目录并设置root_path（统一从系统配置读取）
           const projectType = cleanedProject.project_type || cleanedProject.projectType;
-          if (projectType === 'document') {
-            try {
-              const { getProjectConfig } = require('./project/project-config');
-              const projectConfig = getProjectConfig();
-              const projectRootPath = require('path').join(
-                projectConfig.getProjectsRootPath(),
-                cleanedProject.id
-              );
+          try {
+            const { getProjectConfig } = require('./project/project-config');
+            const projectConfig = getProjectConfig();
+            const projectRootPath = require('path').join(
+              projectConfig.getProjectsRootPath(),
+              cleanedProject.id
+            );
 
-              console.log('[Main] 创建项目目录:', projectRootPath);
-              await require('fs').promises.mkdir(projectRootPath, { recursive: true });
+            console.log('[Main] 创建项目目录:', projectRootPath, '项目类型:', projectType);
+            await require('fs').promises.mkdir(projectRootPath, { recursive: true });
 
-              // 立即更新项目的root_path（无论是否有文件）
-              // updateProject 是同步函数
-              this.database.updateProject(cleanedProject.id, {
-                root_path: projectRootPath,
-              });
-              console.log('[Main] 项目root_path已设置:', projectRootPath);
-            } catch (dirError) {
-              console.error('[Main] 创建项目目录失败:', dirError);
-              // 继续执行，不影响项目创建
-            }
+            // 立即更新项目的root_path（无论项目类型和是否有文件）
+            // updateProject 是同步函数
+            this.database.updateProject(cleanedProject.id, {
+              root_path: projectRootPath,
+            });
+            console.log('[Main] 项目root_path已设置:', projectRootPath);
+          } catch (dirError) {
+            console.error('[Main] 创建项目目录失败:', dirError);
+            // 继续执行，不影响项目创建
           }
 
           // 保存项目文件
@@ -6252,51 +6250,49 @@ class ChainlessChainApp {
                 console.log('[Main] 保存项目到数据库，ID:', localProject.id);
                 await this.database.saveProject(localProject);
 
-                // 为document类型项目创建根目录并设置root_path
-                if (projectType === 'document') {
-                  try {
-                    const projectConfig = getProjectConfig();
-                    const projectRootPath = path.join(
-                      projectConfig.getProjectsRootPath(),
-                      localProject.id
-                    );
+                // 为所有类型项目创建根目录并设置root_path（统一从系统配置读取）
+                try {
+                  const projectConfig = getProjectConfig();
+                  const projectRootPath = path.join(
+                    projectConfig.getProjectsRootPath(),
+                    localProject.id
+                  );
 
-                    console.log('[Main] 创建项目目录:', projectRootPath);
-                    await fs.promises.mkdir(projectRootPath, { recursive: true });
+                  console.log('[Main] 创建项目目录:', projectRootPath, '项目类型:', projectType);
+                  await fs.promises.mkdir(projectRootPath, { recursive: true });
 
-                    // 立即更新项目的root_path（无论是否有文件）
-                    // updateProject 是同步函数
-                    this.database.updateProject(localProject.id, {
-                      root_path: projectRootPath,
-                    });
-                    console.log('[Main] 项目root_path已设置:', projectRootPath);
+                  // 立即更新项目的root_path（无论项目类型和是否有文件）
+                  // updateProject 是同步函数
+                  this.database.updateProject(localProject.id, {
+                    root_path: projectRootPath,
+                  });
+                  console.log('[Main] 项目root_path已设置:', projectRootPath);
 
-                    // 如果有文件，写入到文件系统
-                    if (accumulatedData.files.length > 0) {
-                      for (const file of accumulatedData.files) {
-                        const filePath = path.join(projectRootPath, file.path);
-                        console.log('[Main] 写入文件:', filePath);
+                  // 如果有文件，写入到文件系统
+                  if (accumulatedData.files.length > 0) {
+                    for (const file of accumulatedData.files) {
+                      const filePath = path.join(projectRootPath, file.path);
+                      console.log('[Main] 写入文件:', filePath);
 
-                        // 解码base64内容
-                        let fileContent;
-                        if (file.content_encoding === 'base64') {
-                          fileContent = Buffer.from(file.content, 'base64');
-                          console.log('[Main] 已解码base64内容，大小:', fileContent.length, 'bytes');
-                        } else if (typeof file.content === 'string') {
-                          fileContent = Buffer.from(file.content, 'utf-8');
-                        } else {
-                          fileContent = file.content;
-                        }
-
-                        await fs.promises.writeFile(filePath, fileContent);
-                        console.log('[Main] 文件写入成功:', file.path);
+                      // 解码base64内容
+                      let fileContent;
+                      if (file.content_encoding === 'base64') {
+                        fileContent = Buffer.from(file.content, 'base64');
+                        console.log('[Main] 已解码base64内容，大小:', fileContent.length, 'bytes');
+                      } else if (typeof file.content === 'string') {
+                        fileContent = Buffer.from(file.content, 'utf-8');
+                      } else {
+                        fileContent = file.content;
                       }
+
+                      await fs.promises.writeFile(filePath, fileContent);
+                      console.log('[Main] 文件写入成功:', file.path);
                     }
-                  } catch (writeError) {
-                    console.error('[Main] 创建项目目录或写入文件失败:', writeError);
-                    console.error('[Main] 错误堆栈:', writeError.stack);
-                    // 不抛出错误，继续处理
                   }
+                } catch (writeError) {
+                  console.error('[Main] 创建项目目录或写入文件失败:', writeError);
+                  console.error('[Main] 错误堆栈:', writeError.stack);
+                  // 不抛出错误，继续处理
                 }
 
                 // 保存项目文件到数据库
@@ -6813,39 +6809,34 @@ class ChainlessChainApp {
           console.error('[Main] 项目名称:', project.name);
           console.error('[Main] 项目类型:', project.project_type);
 
-          // 尝试自动修复
-          if (project.project_type === 'document') {
-            try {
-              console.log('[Main] 开始自动修复...');
-              const { getProjectConfig } = require('./project/project-config');
-              const projectConfig = getProjectConfig();
-              const projectRootPath = require('path').join(
-                projectConfig.getProjectsRootPath(),
-                projectId
-              );
+          // 尝试自动修复（支持所有项目类型）
+          try {
+            console.log('[Main] 开始自动修复...');
+            console.log('[Main] 项目类型:', project.project_type);
+            const { getProjectConfig } = require('./project/project-config');
+            const projectConfig = getProjectConfig();
+            const projectRootPath = require('path').join(
+              projectConfig.getProjectsRootPath(),
+              projectId
+            );
 
-              console.log('[Main] 创建项目目录:', projectRootPath);
-              await require('fs').promises.mkdir(projectRootPath, { recursive: true });
+            console.log('[Main] 创建项目目录:', projectRootPath);
+            await require('fs').promises.mkdir(projectRootPath, { recursive: true });
 
-              console.log('[Main] 更新数据库 root_path');
-              await this.database.updateProject(projectId, {
-                root_path: projectRootPath,
-              });
+            console.log('[Main] 更新数据库 root_path');
+            await this.database.updateProject(projectId, {
+              root_path: projectRootPath,
+            });
 
-              console.log('[Main] ✅ 自动修复成功，继续文件扫描');
-              console.log('[Main] 修复后的路径:', projectRootPath);
+            console.log('[Main] ✅ 自动修复成功，继续文件扫描');
+            console.log('[Main] 修复后的路径:', projectRootPath);
 
-              // 使用修复后的路径继续扫描（将继续使用下面的扫描逻辑）
-              // 更新 project 对象以便后续使用
-              project.root_path = projectRootPath;
-            } catch (repairError) {
-              console.error('[Main] ❌ 自动修复失败:', repairError.message);
-              console.error('[Main] 建议：手动运行 await window.electronAPI.project.repairRootPath("' + projectId + '")');
-              return [];
-            }
-          } else {
-            console.error('[Main] 非 document 类型项目无法自动修复');
-            console.error('[Main] 建议：检查项目创建流程或重新创建项目');
+            // 使用修复后的路径继续扫描（将继续使用下面的扫描逻辑）
+            // 更新 project 对象以便后续使用
+            project.root_path = projectRootPath;
+          } catch (repairError) {
+            console.error('[Main] ❌ 自动修复失败:', repairError.message);
+            console.error('[Main] 建议：手动运行 await window.electronAPI.project.repairRootPath("' + projectId + '")');
             return [];
           }
         }
