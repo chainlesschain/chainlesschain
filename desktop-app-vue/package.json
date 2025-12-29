@@ -43,6 +43,7 @@
   "license": "MIT",
   "dependencies": {
     "@chainsafe/libp2p-yamux": "^8.0.1",
+    "@chroma-core/default-embed": "^0.1.9",
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-html": "^6.4.11",
     "@codemirror/lang-javascript": "^6.2.4",

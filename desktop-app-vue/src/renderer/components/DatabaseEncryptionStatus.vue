@@ -73,7 +73,7 @@ const statusTooltip = computed(() => {
 // 获取加密状态
 const fetchEncryptionStatus = async () => {
   try {
-    const status = await window.electron.ipcRenderer.invoke('database:get-encryption-status');
+    const status = await window.electronAPI.db.getEncryptionStatus();
     encryptionInfo.value = status;
   } catch (error) {
     console.error('获取加密状态失败:', error);
@@ -82,11 +82,6 @@ const fetchEncryptionStatus = async () => {
 
 onMounted(() => {
   fetchEncryptionStatus();
-
-  // 监听加密状态变化
-  window.electron.ipcRenderer.on('database:encryption-status-changed', (_, status) => {
-    encryptionInfo.value = status;
-  });
 });
 
 // 导出刷新方法

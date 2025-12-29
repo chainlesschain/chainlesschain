@@ -866,7 +866,7 @@ class SmartContractEngine extends EventEmitter {
         .run('resolved', resolution, currentDid, now, arbitrationId);
 
       // 更新合约状态
-      db.prepare('UPDATE contracts SET status = ? WHERE contract_id = ?')
+      db.prepare('UPDATE contracts SET status = ? WHERE id = ?')
         .run(ContractStatus.ARBITRATED, arbitration.contract_id);
 
       // 根据解决方案执行相应操作

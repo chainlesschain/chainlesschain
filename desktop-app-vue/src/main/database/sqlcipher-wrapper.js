@@ -96,7 +96,9 @@ class StatementWrapper {
 
     try {
       const results = this.stmt.all(params);
-      return results.map(row => Object.values(row));
+      // Return objects as-is for compatibility with PRAGMA queries
+      // (e.g., PRAGMA table_info() returns objects with 'name' property)
+      return results;
     } catch (error) {
       throw new Error(`All error: ${error.message}`);
     }

@@ -269,13 +269,13 @@ class VCTemplateManager extends EventEmitter {
    */
   async ensureTables() {
     try {
-      const result = this.db.db.exec(
+      const result = this.db.exec(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='vc_templates'"
       );
 
       if (!result || result.length === 0) {
         // 创建模板表
-        this.db.db.exec(`
+        this.db.exec(`
           CREATE TABLE IF NOT EXISTS vc_templates (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -291,7 +291,7 @@ class VCTemplateManager extends EventEmitter {
         `);
 
         // 创建索引
-        this.db.db.exec(`
+        this.db.exec(`
           CREATE INDEX IF NOT EXISTS idx_template_type ON vc_templates(type);
           CREATE INDEX IF NOT EXISTS idx_template_creator ON vc_templates(created_by_did);
           CREATE INDEX IF NOT EXISTS idx_template_public ON vc_templates(is_public);
@@ -341,7 +341,7 @@ class VCTemplateManager extends EventEmitter {
 
       query += ' ORDER BY usage_count DESC, created_at DESC';
 
-      const result = this.db.db.exec(query, params);
+      const result = this.db.exec(query, params);
 
       let userTemplates = [];
       if (result && result.length > 0 && result[0].values) {
@@ -384,7 +384,7 @@ class VCTemplateManager extends EventEmitter {
       }
 
       // 查询用户自定义模板
-      const result = this.db.db.exec('SELECT * FROM vc_templates WHERE id = ?', [id]);
+      const result = this.db.exec('SELECT * FROM vc_templates WHERE id = ?', [id]);
 
       if (!result || result.length === 0 || !result[0].values || result[0].values.length === 0) {
         return null;
@@ -436,7 +436,7 @@ class VCTemplateManager extends EventEmitter {
         created_at: now,
       };
 
-      this.db.db.exec(`
+      this.db.exec(`
         INSERT INTO vc_templates (
           id, name, type, description, icon, fields,
           created_by_did, is_public, usage_count, created_at
@@ -522,7 +522,7 @@ class VCTemplateManager extends EventEmitter {
 
       params.push(id);
 
-      this.db.db.exec(
+      this.db.exec(
         `UPDATE vc_templates SET ${fields.join(', ')} WHERE id = ?`,
         params
       );
@@ -556,7 +556,7 @@ class VCTemplateManager extends EventEmitter {
         throw new Error('模板不存在');
       }
 
-      this.db.db.exec('DELETE FROM vc_templates WHERE id = ?', [id]);
+      this.db.exec('DELETE FROM vc_templates WHERE id = ?', [id]);
       this.db.saveToFile();
 
       console.log('[VCTemplateManager] 模板已删除:', id);
@@ -580,7 +580,7 @@ class VCTemplateManager extends EventEmitter {
         return;
       }
 
-      this.db.db.exec(
+      this.db.exec(
         'UPDATE vc_templates SET usage_count = usage_count + 1 WHERE id = ?',
         [id]
       );
@@ -632,10 +632,10 @@ class VCTemplateManager extends EventEmitter {
     try {
       const builtInCount = Object.keys(BUILT_IN_TEMPLATES).length;
 
-      const customResult = this.db.db.exec('SELECT COUNT(*) as count FROM vc_templates');
+      const customResult = this.db.exec('SELECT COUNT(*) as count FROM vc_templates');
       const customCount = customResult?.[0]?.values?.[0]?.[0] || 0;
 
-      const publicResult = this.db.db.exec('SELECT COUNT(*) as count FROM vc_templates WHERE is_public = 1');
+      const publicResult = this.db.exec('SELECT COUNT(*) as count FROM vc_templates WHERE is_public = 1');
       const publicCount = publicResult?.[0]?.values?.[0]?.[0] || 0;
 
       return {

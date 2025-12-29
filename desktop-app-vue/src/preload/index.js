@@ -97,6 +97,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     createBackup: () => ipcRenderer.invoke('database:create-backup'),
     listBackups: () => ipcRenderer.invoke('database:list-backups'),
     restoreBackup: (backupPath) => ipcRenderer.invoke('database:restore-backup', backupPath),
+    // 数据库加密
+    getEncryptionStatus: () => ipcRenderer.invoke('database:get-encryption-status'),
+    setupEncryption: (options) => ipcRenderer.invoke('database:setup-encryption', options),
+    changeEncryptionPassword: (data) => ipcRenderer.invoke('database:change-encryption-password', data),
+    enableEncryption: () => ipcRenderer.invoke('database:enable-encryption'),
+    disableEncryption: () => ipcRenderer.invoke('database:disable-encryption'),
+    getEncryptionConfig: () => ipcRenderer.invoke('database:get-encryption-config'),
+    updateEncryptionConfig: (config) => ipcRenderer.invoke('database:update-encryption-config', config),
+    resetEncryptionConfig: () => ipcRenderer.invoke('database:reset-encryption-config'),
   },
 
   // 应用管理
@@ -933,4 +942,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
   },
+});
+
+// Also expose a direct electron object for components that use window.electron.ipcRenderer
+contextBridge.exposeInMainWorld('electron', {
+  ipcRenderer: {
+    invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+    on: (channel, func) => ipcRenderer.on(channel, (event, ...args) => func(event, ...args)),
+    once: (channel, func) => ipcRenderer.once(channel, (event, ...args) => func(event, ...args)),
+    removeListener: (channel, func) => ipcRenderer.removeListener(channel, func),
+    removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+  }
 });

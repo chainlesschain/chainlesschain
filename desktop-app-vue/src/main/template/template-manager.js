@@ -186,7 +186,7 @@ class ProjectTemplateManager {
     const now = Date.now();
 
     try {
-      const stmt = this.db.db.prepare(`
+      const stmt = this.db.prepare(`
         INSERT OR REPLACE INTO project_templates (
           id, name, display_name, description, icon, cover_image,
           category, subcategory, tags,
@@ -234,6 +234,11 @@ class ProjectTemplateManager {
    * 获取所有模板
    */
   async getAllTemplates(filters = {}) {
+    if (!this.db) {
+      console.error('[ProjectTemplateManager] 数据库未初始化');
+      return [];
+    }
+
     let query = 'SELECT * FROM project_templates WHERE deleted = 0';
     const params = [];
 
@@ -260,7 +265,7 @@ class ProjectTemplateManager {
     // 排序：优先显示高使用量和高评分的模板
     query += ' ORDER BY usage_count DESC, rating DESC, created_at DESC';
 
-    const stmt = this.db.db.prepare(query);
+    const stmt = this.db.prepare(query);
     const templates = stmt.all(params);
 
     return templates.map(t => this.parseTemplateData(t));
@@ -270,7 +275,7 @@ class ProjectTemplateManager {
    * 根据ID获取模板
    */
   async getTemplateById(templateId) {
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       SELECT * FROM project_templates WHERE id = ? AND deleted = 0
     `);
     const template = stmt.get([templateId]);
@@ -423,7 +428,7 @@ class ProjectTemplateManager {
 
     try {
       // 记录使用历史
-      const historyStmt = this.db.db.prepare(`
+      const historyStmt = this.db.prepare(`
         INSERT INTO template_usage_history (id, template_id, user_id, project_id, variables_used, used_at)
         VALUES (?, ?, ?, ?, ?, ?)
       `);
@@ -437,7 +442,7 @@ class ProjectTemplateManager {
       ]);
 
       // 增加使用计数
-      const updateStmt = this.db.db.prepare(`
+      const updateStmt = this.db.prepare(`
         UPDATE project_templates
         SET usage_count = usage_count + 1, updated_at = ?
         WHERE id = ?
@@ -477,7 +482,7 @@ class ProjectTemplateManager {
 
     query += ' ORDER BY usage_count DESC, rating DESC LIMIT 50';
 
-    const stmt = this.db.db.prepare(query);
+    const stmt = this.db.prepare(query);
     const templates = stmt.all(params);
 
     return templates.map(t => this.parseTemplateData(t));
@@ -495,7 +500,7 @@ class ProjectTemplateManager {
 
     try {
       // 保存或更新评价
-      const ratingStmt = this.db.db.prepare(`
+      const ratingStmt = this.db.prepare(`
         INSERT OR REPLACE INTO template_ratings (id, template_id, user_id, rating, review, created_at, updated_at)
         VALUES (
           COALESCE((SELECT id FROM template_ratings WHERE template_id = ? AND user_id = ?), ?),
@@ -508,7 +513,7 @@ class ProjectTemplateManager {
       ]);
 
       // 重新计算模板平均评分
-      const avgStmt = this.db.db.prepare(`
+      const avgStmt = this.db.prepare(`
         SELECT AVG(rating) as avg_rating, COUNT(*) as count
         FROM template_ratings
         WHERE template_id = ?
@@ -516,7 +521,7 @@ class ProjectTemplateManager {
       const result = avgStmt.get([templateId]);
 
       // 更新模板评分
-      const updateStmt = this.db.db.prepare(`
+      const updateStmt = this.db.prepare(`
         UPDATE project_templates
         SET rating = ?, rating_count = ?, updated_at = ?
         WHERE id = ?
@@ -539,16 +544,16 @@ class ProjectTemplateManager {
    * 获取模板统计信息
    */
   async getTemplateStats() {
-    const totalStmt = this.db.db.prepare(`
+    const totalStmt = this.db.prepare(`
       SELECT COUNT(*) as total FROM project_templates WHERE deleted = 0
     `);
-    const builtinStmt = this.db.db.prepare(`
+    const builtinStmt = this.db.prepare(`
       SELECT COUNT(*) as count FROM project_templates WHERE deleted = 0 AND is_builtin = 1
     `);
-    const customStmt = this.db.db.prepare(`
+    const customStmt = this.db.prepare(`
       SELECT COUNT(*) as count FROM project_templates WHERE deleted = 0 AND is_builtin = 0
     `);
-    const categoriesStmt = this.db.db.prepare(`
+    const categoriesStmt = this.db.prepare(`
       SELECT category, COUNT(*) as count
       FROM project_templates
       WHERE deleted = 0
@@ -571,7 +576,7 @@ class ProjectTemplateManager {
     const templateId = uuidv4();
 
     try {
-      const stmt = this.db.db.prepare(`
+      const stmt = this.db.prepare(`
         INSERT INTO project_templates (
           id, name, display_name, description, icon, cover_image,
           category, subcategory, tags,
@@ -707,7 +712,7 @@ class ProjectTemplateManager {
       // 添加 WHERE 条件的参数
       values.push(templateId);
 
-      const stmt = this.db.db.prepare(`
+      const stmt = this.db.prepare(`
         UPDATE project_templates
         SET ${fields.join(', ')}
         WHERE id = ?
@@ -729,7 +734,7 @@ class ProjectTemplateManager {
    */
   async deleteTemplate(templateId) {
     const now = Date.now();
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       UPDATE project_templates
       SET deleted = 1, updated_at = ?
       WHERE id = ?
@@ -742,7 +747,7 @@ class ProjectTemplateManager {
    * 获取用户最近使用的模板
    */
   async getRecentTemplates(userId, limit = 10) {
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       SELECT DISTINCT t.*
       FROM project_templates t
       INNER JOIN template_usage_history h ON t.id = h.template_id
@@ -758,7 +763,7 @@ class ProjectTemplateManager {
    * 获取热门模板
    */
   async getPopularTemplates(limit = 20) {
-    const stmt = this.db.db.prepare(`
+    const stmt = this.db.prepare(`
       SELECT * FROM project_templates
       WHERE deleted = 0
       ORDER BY usage_count DESC, rating DESC
