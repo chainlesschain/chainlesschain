@@ -48,6 +48,23 @@ class TransportDiagnostics {
       });
 
       if (transportAddrs.length === 0) {
+        // Special handling for WebRTC - it may be enabled but not create traditional listen addresses
+        if (transport === 'webrtc') {
+          // Check if WebRTC transport is actually configured even without listen addresses
+          const allTransports = this.p2pManager.node._components?.transportManager?.getTransports?.() || [];
+          const hasWebRTC = Array.from(allTransports).some(t =>
+            t.constructor.name.toLowerCase().includes('webrtc')
+          );
+
+          if (hasWebRTC) {
+            result.available = true;
+            result.listenAddresses = [];
+            result.note = 'WebRTC传输已配置，但在Node.js环境中不创建传统监听地址';
+            // Don't log this as success since it's a special case
+            return result;
+          }
+        }
+
         throw new Error(`${transport}传输层未启用或未监听`);
       }
 
@@ -85,7 +102,12 @@ class TransportDiagnostics {
                        (prevHealth.successCount > 0 && prevHealth.failureCount === 0);
 
       if (shouldLog) {
-        console.error(`[Transport Diagnostics] ${transport} 测试失败:`, error);
+        // Special handling for WebRTC - log as info instead of error
+        if (transport === 'webrtc' && error.message.includes('未启用或未监听')) {
+          console.info(`[Transport Diagnostics] ${transport} 在Node.js环境中不可用（这是正常的）`);
+        } else {
+          console.error(`[Transport Diagnostics] ${transport} 测试失败:`, error);
+        }
       }
     }
 
