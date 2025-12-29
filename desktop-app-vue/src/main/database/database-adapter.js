@@ -99,9 +99,11 @@ class DatabaseAdapter {
     console.log('[DatabaseAdapter] 初始化加密功能...');
 
     // 创建密钥管理器
+    // 注意：如果提供了密码，禁用U-Key以使用密码模式
     this.keyManager = new KeyManager({
       encryptionEnabled: this.encryptionEnabled,
-      configPath: this.configPath
+      configPath: this.configPath,
+      ukeyEnabled: this.password ? false : true // 有密码时禁用U-Key
     });
 
     await this.keyManager.initialize();
@@ -165,7 +167,8 @@ class DatabaseAdapter {
     return await this.keyManager.getOrCreateKey({
       password: this.password,
       pin: this.pin,
-      salt: metadata ? metadata.salt : undefined
+      salt: metadata ? metadata.salt : undefined,
+      forcePassword: this.password ? true : false // 有密码时强制使用密码模式
     });
   }
 

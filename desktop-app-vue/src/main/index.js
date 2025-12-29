@@ -253,7 +253,12 @@ class ChainlessChainApp {
     // 初始化数据库
     try {
       console.log('初始化数据库...');
-      this.database = new DatabaseManager();
+      // 使用默认密码进行数据库加密（与认证密码一致）
+      const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || '123456';
+      this.database = new DatabaseManager(null, {
+        password: DEFAULT_PASSWORD,
+        encryptionEnabled: true
+      });
       await this.database.initialize();
 
       // 设置数据库单例（供其他模块使用）
@@ -3798,6 +3803,213 @@ class ChainlessChainApp {
         return await this.transactionMonitor.getTxDetail(txHash);
       } catch (error) {
         console.error('[Main] 获取交易详情失败:', error);
+        throw error;
+      }
+    });
+
+    // 部署 ERC-20 代币
+    ipcMain.handle('blockchain:deploy-token', async (_event, options) => {
+      try {
+        if (!this.blockchainAdapter) {
+          throw new Error('区块链适配器未初始化');
+        }
+
+        const { walletId, name, symbol, decimals, initialSupply, chainId } = options;
+        return await this.blockchainAdapter.deployERC20Token(walletId, {
+          name,
+          symbol,
+          decimals,
+          initialSupply,
+          chainId,
+        });
+      } catch (error) {
+        console.error('[Main] 部署 ERC-20 代币失败:', error);
+        throw error;
+      }
+    });
+
+    // 部署 NFT
+    ipcMain.handle('blockchain:deploy-nft', async (_event, options) => {
+      try {
+        if (!this.blockchainAdapter) {
+          throw new Error('区块链适配器未初始化');
+        }
+
+        const { walletId, name, symbol, chainId } = options;
+        return await this.blockchainAdapter.deployNFT(walletId, {
+          name,
+          symbol,
+          chainId,
+        });
+      } catch (error) {
+        console.error('[Main] 部署 NFT 失败:', error);
+        throw error;
+      }
+    });
+
+    // 铸造 NFT
+    ipcMain.handle('blockchain:mint-nft', async (_event, options) => {
+      try {
+        if (!this.blockchainAdapter) {
+          throw new Error('区块链适配器未初始化');
+        }
+
+        const { walletId, contractAddress, to, metadataURI, chainId } = options;
+        return await this.blockchainAdapter.mintNFT(walletId, contractAddress, to, metadataURI, chainId);
+      } catch (error) {
+        console.error('[Main] 铸造 NFT 失败:', error);
+        throw error;
+      }
+    });
+
+    // 转账代币
+    ipcMain.handle('blockchain:transfer-token', async (_event, options) => {
+      try {
+        if (!this.blockchainAdapter) {
+          throw new Error('区块链适配器未初始化');
+        }
+
+        const { walletId, tokenAddress, to, amount, chainId } = options;
+        return await this.blockchainAdapter.transferToken(walletId, tokenAddress, to, amount, chainId);
+      } catch (error) {
+        console.error('[Main] 转账代币失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取 Gas 价格
+    ipcMain.handle('blockchain:get-gas-price', async (_event, { chainId }) => {
+      try {
+        if (!this.blockchainAdapter) {
+          throw new Error('区块链适配器未初始化');
+        }
+
+        return await this.blockchainAdapter.getGasPrice(chainId);
+      } catch (error) {
+        console.error('[Main] 获取 Gas 价格失败:', error);
+        throw error;
+      }
+    });
+
+    // 估算 Gas
+    ipcMain.handle('blockchain:estimate-gas', async (_event, { transaction, chainId }) => {
+      try {
+        if (!this.blockchainAdapter) {
+          throw new Error('区块链适配器未初始化');
+        }
+
+        return await this.blockchainAdapter.estimateGas(transaction, chainId);
+      } catch (error) {
+        console.error('[Main] 估算 Gas 失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取区块信息
+    ipcMain.handle('blockchain:get-block', async (_event, { blockNumber, chainId }) => {
+      try {
+        if (!this.blockchainAdapter) {
+          throw new Error('区块链适配器未初始化');
+        }
+
+        return await this.blockchainAdapter.getBlock(blockNumber, chainId);
+      } catch (error) {
+        console.error('[Main] 获取区块信息失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取当前区块号
+    ipcMain.handle('blockchain:get-block-number', async (_event, { chainId }) => {
+      try {
+        if (!this.blockchainAdapter) {
+          throw new Error('区块链适配器未初始化');
+        }
+
+        return await this.blockchainAdapter.getBlockNumber(chainId);
+      } catch (error) {
+        console.error('[Main] 获取区块号失败:', error);
+        throw error;
+      }
+    });
+
+    // 监听合约事件
+    ipcMain.handle('blockchain:listen-events', async (_event, { contractAddress, eventName, abi, chainId }) => {
+      try {
+        if (!this.blockchainAdapter) {
+          throw new Error('区块链适配器未初始化');
+        }
+
+        await this.blockchainAdapter.listenToEvents(contractAddress, eventName, abi, chainId, (event) => {
+          // 发送事件到渲染进程
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('blockchain:event', {
+              contractAddress,
+              eventName,
+              data: event,
+            });
+          }
+        });
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 监听合约事件失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取合约部署记录
+    ipcMain.handle('blockchain:get-deployed-contracts', async (_event, { chainId = null }) => {
+      try {
+        return new Promise((resolve, reject) => {
+          let sql = 'SELECT * FROM deployed_contracts WHERE 1=1';
+          const params = [];
+
+          if (chainId !== null) {
+            sql += ' AND chain_id = ?';
+            params.push(chainId);
+          }
+
+          sql += ' ORDER BY deployed_at DESC';
+
+          this.database.all(sql, params, (err, rows) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(rows || []);
+            }
+          });
+        });
+      } catch (error) {
+        console.error('[Main] 获取合约部署记录失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取链上资产
+    ipcMain.handle('blockchain:get-deployed-assets', async (_event, { chainId = null }) => {
+      try {
+        return new Promise((resolve, reject) => {
+          let sql = 'SELECT * FROM blockchain_assets WHERE 1=1';
+          const params = [];
+
+          if (chainId !== null) {
+            sql += ' AND chain_id = ?';
+            params.push(chainId);
+          }
+
+          sql += ' ORDER BY deployed_at DESC';
+
+          this.database.all(sql, params, (err, rows) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(rows || []);
+            }
+          });
+        });
+      } catch (error) {
+        console.error('[Main] 获取链上资产失败:', error);
         throw error;
       }
     });
