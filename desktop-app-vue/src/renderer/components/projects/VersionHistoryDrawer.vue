@@ -1,6 +1,6 @@
 <template>
   <a-drawer
-    v-model:open="visible"
+    v-model:open="modalVisible"
     title="版本历史"
     :width="400"
     placement="right"
