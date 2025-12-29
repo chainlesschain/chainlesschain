@@ -239,13 +239,13 @@ import ConversationHistory from './ConversationHistory.vue';
 import MarkdownIt from 'markdown-it';
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: true,
   },
 });
 
-const emit = defineEmits(['update:visible', 'toggle']);
+const emit = defineEmits(['update:open', 'toggle']);
 
 const router = useRouter();
 const llmStore = useLLMStore();

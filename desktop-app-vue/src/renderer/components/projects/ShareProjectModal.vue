@@ -97,7 +97,7 @@ import {
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
@@ -134,7 +134,7 @@ const shareLink = computed(() => {
 });
 
 // 监听props变化
-watch(() => props.visible, async (val) => {
+watch(() => props.open, async (val) => {
   if (val) {
     shareType.value = props.currentShareType || 'private';
     copyStatus.value = '';

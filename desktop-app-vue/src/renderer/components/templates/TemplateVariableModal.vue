@@ -176,7 +176,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false
   },
@@ -186,7 +186,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:visible', 'success', 'cancel', 'start-create'])
+const emit = defineEmits(['update:open', 'success', 'cancel', 'start-create'])
 
 const router = useRouter()
 const templateStore = useTemplateStore()
@@ -204,8 +204,8 @@ const renderError = ref('')
 let renderDebounceTimer = null
 
 const isVisible = computed({
-  get: () => props.visible,
-  set: (val) => emit('update:visible', val)
+  get: () => props.open,
+  set: (val) => emit('update:open', val)
 })
 
 const modalTitle = computed(() => {
@@ -278,7 +278,7 @@ watch(
 
 // 监听 visible 变化，重置表单
 watch(
-  () => props.visible,
+  () => props.open,
   (visible) => {
     if (visible) {
       nextTick(() => {

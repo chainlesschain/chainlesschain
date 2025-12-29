@@ -112,7 +112,7 @@ import {
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
     default: false,
   },
