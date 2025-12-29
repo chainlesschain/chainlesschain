@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品演示 - ChainlessChain无链之链</title>
+    <meta name="description" content="ChainlessChain产品功能演示视频，3分钟快速了解知识库、社交、交易三大核心功能。">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .demo-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 120px 0 80px;
+            color: white;
+            text-align: center;
+        }
+
+        .demo-hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .video-container {
+            max-width: 1000px;
+            margin: 60px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+            overflow: hidden;
+            background: #000;
+            border-radius: 8px;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .video-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
+            border-radius: 8px;
+            color: #666;
+        }
+
+        .video-placeholder .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+
+        .video-tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .video-tab {
+            padding: 12px 24px;
+            background: #f5f5f5;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .video-tab.active {
+            background: #1890ff;
+            color: white;
+            border-color: #1890ff;
+        }
+
+        .video-tab:hover {
+            background: #e6f7ff;
+        }
+
+        .video-description {
+            margin-top: 24px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #1890ff;
+            border-radius: 4px;
+        }
+
+        .video-description h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: #1890ff;
+        }
+
+        .video-description ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .video-description li {
+            padding: 6px 0;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .video-description li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #1890ff;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="index.html" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
+                        <img src="logo.png" alt="ChainlessChain" style="width: 40px;">
+                        <span>无链之链</span>
+                    </a>
+                </div>
+                <div class="nav-menu">
+                    <a href="index.html" class="nav-link">首页</a>
+                    <a href="index.html#products" class="nav-link">产品</a>
+                    <a href="demo.html" class="nav-link active">演示</a>
+                    <a href="index.html#download" class="nav-link">下载</a>
+                    <a href="index.html#contact" class="nav-link">联系我们</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="demo-hero">
+        <div class="container">
+            <h1>产品演示</h1>
+            <p style="font-size: 20px; opacity: 0.95;">3分钟快速了解ChainlessChain核心功能</p>
+        </div>
+    </section>
+
+    <section style="padding: 80px 0;">
+        <div class="container">
+            <div class="video-tabs">
+                <button class="video-tab active" onclick="switchVideo('overview')">产品概览</button>
+                <button class="video-tab" onclick="switchVideo('knowledge')">知识库功能</button>
+                <button class="video-tab" onclick="switchVideo('social')">社交功能</button>
+                <button class="video-tab" onclick="switchVideo('trading')">交易功能</button>
+            </div>
+
+            <div class="video-container">
+                <!-- 视频内容区域 -->
+                <div id="video-content">
+                    <!-- 默认显示占位符 -->
+                    <div class="video-placeholder">
+                        <div class="icon">🎬</div>
+                        <h3 style="margin-bottom: 16px;">演示视频即将上线</h3>
+                        <p style="margin-bottom: 24px;">我们正在制作高质量的产品演示视频，敬请期待！</p>
+                        <a href="index.html#download" class="btn-primary">立即下载体验完整功能</a>
+                    </div>
+                </div>
+
+                <!-- 视频描述 -->
+                <div id="video-description" class="video-description" style="display: none;">
+                    <h3>产品概览</h3>
+                    <ul>
+                        <li>ChainlessChain简介</li>
+                        <li>三大核心功能介绍</li>
+                        <li>安全架构说明</li>
+                        <li>快速上手指南</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 其他演示资源 -->
+            <div style="margin-top: 60px;">
+                <h2 class="section-title">更多演示资源</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; margin-top: 40px;">
+                    <div style="background: white; padding: 32px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📚</div>
+                        <h3 style="margin-bottom: 12px;">在线文档</h3>
+                        <p style="color: #666; margin-bottom: 20px;">详细的功能说明和使用教程</p>
+                        <a href="https://docs.chainlesschain.com" target="_blank" class="btn-product-primary" style="display: inline-block; padding: 10px 24px; text-decoration: none;">查看文档</a>
+                    </div>
+
+                    <div style="background: white; padding: 32px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
+                        <h3 style="margin-bottom: 12px;">社区论坛</h3>
+                        <p style="color: #666; margin-bottom: 20px;">与其他用户交流使用经验</p>
+                        <a href="https://forum.chainlesschain.com" target="_blank" class="btn-product-primary" style="display: inline-block; padding: 10px 24px; text-decoration: none;">访问论坛</a>
+                    </div>
+
+                    <div style="background: white; padding: 32px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📞</div>
+                        <h3 style="margin-bottom: 12px;">预约演示</h3>
+                        <p style="color: #666; margin-bottom: 20px;">一对一专业演示和咨询</p>
+                        <a href="index.html#contact" class="btn-product-primary" style="display: inline-block; padding: 10px 24px; text-decoration: none;">立即预约</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom" style="text-align: center; padding: 20px 0;">
+                <p>&copy; 2025 厦门无链之链科技有限公司</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        // 视频切换功能
+        const videoData = {
+            overview: {
+                title: '产品概览',
+                description: [
+                    'ChainlessChain简介',
+                    '三大核心功能介绍',
+                    '安全架构说明',
+                    '快速上手指南'
+                ],
+                // 待添加实际视频URL
+                // youtube: 'VIDEO_ID',
+                // bilibili: 'BV_ID'
+            },
+            knowledge: {
+                title: '知识库功能演示',
+                description: [
+                    '硬件加密存储演示',
+                    '本地AI问答体验',
+                    'RAG检索功能展示',
+                    '多格式导入演示',
+                    'Git版本控制'
+                ]
+            },
+            social: {
+                title: '社交功能演示',
+                description: [
+                    'DID身份创建',
+                    'E2E加密通信',
+                    'P2P网络连接',
+                    '好友管理',
+                    '社交动态发布'
+                ]
+            },
+            trading: {
+                title: '交易功能演示',
+                description: [
+                    '数字资产管理',
+                    '智能合约创建',
+                    '托管服务使用',
+                    '信用评分系统',
+                    '区块链钱包'
+                ]
+            }
+        };
+
+        function switchVideo(type) {
+            // 更新标签状态
+            document.querySelectorAll('.video-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 更新视频内容
+            const data = videoData[type];
+            const videoContent = document.getElementById('video-content');
+            const videoDescription = document.getElementById('video-description');
+
+            // 这里可以根据实际视频URL动态加载
+            // 目前显示占位符
+            videoContent.innerHTML = `
+                <div class="video-placeholder">
+                    <div class="icon">🎬</div>
+                    <h3 style="margin-bottom: 16px;">${data.title} 即将上线</h3>
+                    <p style="margin-bottom: 24px;">我们正在制作高质量的演示视频，敬请期待！</p>
+                    <a href="index.html#download" class="btn-primary">立即下载体验完整功能</a>
+                </div>
+            `;
+
+            // 更新描述
+            videoDescription.style.display = 'block';
+            videoDescription.innerHTML = `
+                <h3>${data.title}</h3>
+                <ul>
+                    ${data.description.map(item => `<li>${item}</li>`).join('')}
+                </ul>
+            `;
+        }
+
+        // 如果有实际视频URL，可以使用以下函数加载
+        function loadVideo(platform, videoId) {
+            const videoContent = document.getElementById('video-content');
+
+            if (platform === 'youtube') {
+                videoContent.innerHTML = `
+                    <div class="video-wrapper">
+                        <iframe
+                            src="https://www.youtube.com/embed/${videoId}"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                `;
+            } else if (platform === 'bilibili') {
+                videoContent.innerHTML = `
+                    <div class="video-wrapper">
+                        <iframe
+                            src="https://player.bilibili.com/player.html?bvid=${videoId}"
+                            scrolling="no"
+                            border="0"
+                            frameborder="no"
+                            framespacing="0"
+                            allowfullscreen="true">
+                        </iframe>
+                    </div>
+                `;
+            }
+        }
+
+        // 示例：加载YouTube视频
+        // loadVideo('youtube', 'dQw4w9WgXcQ');
+
+        // 示例：加载Bilibili视频
+        // loadVideo('bilibili', 'BV1xx411c7mD');
+    </script>
+</body>
+</html>

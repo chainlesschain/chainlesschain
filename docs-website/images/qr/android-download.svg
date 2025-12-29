@@ -1,0 +1,120 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- 二维码背景 -->
+  <rect width="300" height="300" fill="white"/>
+
+  <!-- 二维码边框 -->
+  <rect x="10" y="10" width="280" height="280" fill="none" stroke="#e0e0e0" stroke-width="2"/>
+
+  <!-- 定位点 - 左上角 -->
+  <rect x="30" y="30" width="70" height="70" fill="black"/>
+  <rect x="40" y="40" width="50" height="50" fill="white"/>
+  <rect x="50" y="50" width="30" height="30" fill="black"/>
+
+  <!-- 定位点 - 右上角 -->
+  <rect x="200" y="30" width="70" height="70" fill="black"/>
+  <rect x="210" y="40" width="50" height="50" fill="white"/>
+  <rect x="220" y="50" width="30" height="30" fill="black"/>
+
+  <!-- 定位点 - 左下角 -->
+  <rect x="30" y="200" width="70" height="70" fill="black"/>
+  <rect x="40" y="210" width="50" height="50" fill="white"/>
+  <rect x="50" y="220" width="30" height="30" fill="black"/>
+
+  <!-- 模拟二维码数据块 -->
+  <g fill="black">
+    <!-- 行1 -->
+    <rect x="120" y="30" width="10" height="10"/>
+    <rect x="140" y="30" width="10" height="10"/>
+    <rect x="160" y="30" width="10" height="10"/>
+
+    <!-- 行2 -->
+    <rect x="110" y="50" width="10" height="10"/>
+    <rect x="130" y="50" width="10" height="10"/>
+    <rect x="150" y="50" width="10" height="10"/>
+    <rect x="170" y="50" width="10" height="10"/>
+
+    <!-- 行3 -->
+    <rect x="120" y="70" width="10" height="10"/>
+    <rect x="140" y="70" width="10" height="10"/>
+    <rect x="160" y="70" width="10" height="10"/>
+
+    <!-- 中间区域 - 模拟数据 -->
+    <rect x="30" y="120" width="10" height="10"/>
+    <rect x="50" y="120" width="10" height="10"/>
+    <rect x="70" y="120" width="10" height="10"/>
+    <rect x="90" y="120" width="10" height="10"/>
+
+    <rect x="40" y="140" width="10" height="10"/>
+    <rect x="60" y="140" width="10" height="10"/>
+    <rect x="80" y="140" width="10" height="10"/>
+
+    <rect x="110" y="120" width="10" height="10"/>
+    <rect x="130" y="120" width="10" height="10"/>
+    <rect x="150" y="120" width="10" height="10"/>
+    <rect x="170" y="120" width="10" height="10"/>
+
+    <rect x="120" y="140" width="10" height="10"/>
+    <rect x="140" y="140" width="10" height="10"/>
+    <rect x="160" y="140" width="10" height="10"/>
+
+    <rect x="200" y="120" width="10" height="10"/>
+    <rect x="220" y="120" width="10" height="10"/>
+    <rect x="240" y="120" width="10" height="10"/>
+    <rect x="260" y="120" width="10" height="10"/>
+
+    <rect x="210" y="140" width="10" height="10"/>
+    <rect x="230" y="140" width="10" height="10"/>
+    <rect x="250" y="140" width="10" height="10"/>
+
+    <!-- 底部区域 -->
+    <rect x="110" y="200" width="10" height="10"/>
+    <rect x="130" y="200" width="10" height="10"/>
+    <rect x="150" y="200" width="10" height="10"/>
+
+    <rect x="120" y="220" width="10" height="10"/>
+    <rect x="140" y="220" width="10" height="10"/>
+    <rect x="160" y="220" width="10" height="10"/>
+
+    <rect x="110" y="240" width="10" height="10"/>
+    <rect x="130" y="240" width="10" height="10"/>
+    <rect x="150" y="240" width="10" height="10"/>
+    <rect x="170" y="240" width="10" height="10"/>
+
+    <rect x="200" y="200" width="10" height="10"/>
+    <rect x="220" y="200" width="10" height="10"/>
+    <rect x="240" y="200" width="10" height="10"/>
+    <rect x="260" y="200" width="10" height="10"/>
+
+    <rect x="210" y="220" width="10" height="10"/>
+    <rect x="230" y="220" width="10" height="10"/>
+    <rect x="250" y="220" width="10" height="10"/>
+
+    <rect x="200" y="240" width="10" height="10"/>
+    <rect x="220" y="240" width="10" height="10"/>
+    <rect x="240" y="240" width="10" height="10"/>
+    <rect x="260" y="240" width="10" height="10"/>
+
+    <!-- 额外的数据点 -->
+    <rect x="30" y="160" width="10" height="10"/>
+    <rect x="50" y="160" width="10" height="10"/>
+    <rect x="70" y="160" width="10" height="10"/>
+    <rect x="90" y="160" width="10" height="10"/>
+
+    <rect x="40" y="180" width="10" height="10"/>
+    <rect x="60" y="180" width="10" height="10"/>
+    <rect x="80" y="180" width="10" height="10"/>
+
+    <rect x="200" y="160" width="10" height="10"/>
+    <rect x="220" y="160" width="10" height="10"/>
+    <rect x="240" y="160" width="10" height="10"/>
+    <rect x="260" y="160" width="10" height="10"/>
+
+    <rect x="210" y="180" width="10" height="10"/>
+    <rect x="230" y="180" width="10" height="10"/>
+    <rect x="250" y="180" width="10" height="10"/>
+  </g>
+
+  <!-- 中心Logo -->
+  <rect x="125" y="125" width="50" height="50" fill="white" stroke="black" stroke-width="2"/>
+  <text x="150" y="155" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold" fill="#667eea">CC</text>
+</svg>

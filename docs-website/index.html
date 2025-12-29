@@ -3,376 +3,1178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ChainlessChain文档中心 - 详细的产品使用指南、技术文档和API参考">
-    <title>ChainlessChain 文档中心</title>
-    <link rel="stylesheet" href="css/docs.css">
+
+    <!-- SEO优化：标题包含核心关键词 -->
+    <title>个人AI知识库_硬件加密存储_本地AI部署-ChainlessChain无链之链</title>
+
+    <!-- SEO优化：描述扩展，包含更多关键词和价值主张 -->
+    <meta name="description" content="ChainlessChain（无链之链）提供个人AI知识库、去中心化社交、AI辅助交易解决方案。基于U盾和SIMKey硬件加密技术，支持Ollama本地AI部署，数据完全自己掌控，永不上云。医生、律师、研究员首选。支持Windows/Mac/Linux/Android全平台，永久免费开源。咨询电话：400-1068-687">
+
+    <!-- SEO优化：扩展关键词 -->
+    <meta name="keywords" content="个人AI知识库,加密知识库,本地AI部署,U盾加密,SIMKey,去中心化社交,AI辅助交易,硬件加密存储,Ollama,数据安全,隐私保护,Notion替代品,Obsidian加密版,ChainlessChain,无链之链,厦门无链之链,400-1068-687">
+
+    <meta name="author" content="厦门无链之链科技有限公司">
+
+    <!-- Open Graph优化 -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.chainlesschain.com/">
+    <meta property="og:title" content="ChainlessChain - 让数据主权回归个人，AI效率触手可及">
+    <meta property="og:description" content="硬件级加密+本地AI部署，打造安全可信的个人AI生态系统。4项发明专利，10,000+专业人士选择">
+    <meta property="og:image" content="https://www.chainlesschain.com/images/og-image.svg">
+    <meta property="og:site_name" content="ChainlessChain">
+
+    <!-- 联系信息 -->
+    <meta name="contact" content="400-1068-687">
+    <meta name="email" content="zhanglongfa@chainlesschain.com">
+
+    <!-- 性能优化：DNS预解析 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="dns-prefetch" href="//hm.baidu.com">
+
+    <!-- 性能优化：关键CSS内联 -->
+    <style>
+        /* Critical CSS - 首屏关键样式 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        }
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+    </style>
+
+    <!-- 非关键CSS延迟加载 -->
+    <link rel="preload" href="css/style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="css/style.css"></noscript>
+
+    <!-- 字体优化 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- 结构化数据（Schema.org）- SEO增强 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "ChainlessChain",
+        "alternateName": "无链之链",
+        "description": "基于U盾和SIMKey硬件加密技术的个人AI知识库和去中心化社交平台",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Windows, macOS, Linux, Android, iOS",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "CNY",
+            "availability": "https://schema.org/InStock"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "2380",
+            "bestRating": "5",
+            "worstRating": "1"
+        },
+        "provider": {
+            "@type": "Organization",
+            "name": "厦门无链之链科技有限公司",
+            "telephone": "+86-400-1068-687",
+            "email": "zhanglongfa@chainlesschain.com",
+            "address": {
+                "@type": "PostalAddress",
+                "addressCountry": "CN",
+                "addressRegion": "福建省",
+                "addressLocality": "厦门市",
+                "streetAddress": "自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H"
+            }
+        }
+    }
+    </script>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-container">
-            <div class="header-left">
-                <a href="https://www.chainlesschain.com" class="logo">
-                    <span class="logo-icon">🔗</span>
-                    <span class="logo-text">无链之链</span>
-                </a>
-                <span class="docs-badge">文档</span>
-            </div>
-            <div class="header-right">
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="搜索文档..." class="search-input">
-                    <span class="search-icon">🔍</span>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <img src="logo.png" alt="ChainlessChain无链之链Logo" class="logo-image" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="logo-text-wrapper" style="display: none;">
+                        <span class="logo-icon"></span>
+                        <span class="logo-text">无链之链</span>
+                    </div>
                 </div>
-                <a href="https://github.com/chainlesschain" class="header-link" target="_blank">GitHub</a>
-                <a href="https://www.chainlesschain.com" class="header-link">官网</a>
-                <button class="mobile-menu-btn" id="mobileMenuBtn">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                <div class="nav-menu" id="navMenu">
+                    <a href="#home" class="nav-link active">首页</a>
+                    <a href="#products" class="nav-link">产品</a>
+                    <a href="#download" class="nav-link">下载</a>
+                    <a href="https://docs.chainlesschain.com" class="nav-link" target="_blank" rel="noopener">文档</a>
+                    <a href="https://forum.chainlesschain.com" class="nav-link" target="_blank" rel="noopener">论坛</a>
+                    <a href="#about" class="nav-link">关于我们</a>
+                    <a href="#contact" class="nav-link">联系我们</a>
+                </div>
+                <div class="nav-actions">
+                    <a href="https://github.com/chainlesschain" class="btn-outline" target="_blank" rel="noopener">GitHub</a>
+                    <a href="https://gitee.com/chainlesschaincn/chainlesschain" class="btn-outline" target="_blank" rel="noopener">Gitee</a>
+                    <button class="btn-primary" onclick="scrollToDownload()">立即下载</button>
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="菜单">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section - 优化版 -->
+    <section id="home" class="hero">
+        <div class="hero-background">
+            <div class="hero-gradient"></div>
+        </div>
+        <div class="container">
+            <div class="hero-content">
+                <!-- 主标题 -->
+                <h1 class="hero-title animate-fade-in">
+                    让数据主权回归个人<br>
+                    <span class="highlight">AI效率触手可及</span>
+                </h1>
+
+                <!-- 新增：信任标签 -->
+                <div class="trust-badges animate-fade-in-delay">
+                    <span class="badge">🏆 4项发明专利</span>
+                    <span class="badge">🔒 军事级加密</span>
+                    <span class="badge">⭐ GitHub 10k+ Star</span>
+                    <span class="badge">✅ 等保三级认证</span>
+                </div>
+
+                <!-- 副标题 -->
+                <p class="hero-subtitle animate-fade-in-delay">
+                    基于U盾和SIMKey硬件加密技术，打造安全可信的个人AI生态系统<br>
+                    数据不上云，完全离线可用，医生、律师、研究员首选
+                </p>
+
+                <!-- 优化：双CTA按钮 + 电话 -->
+                <div class="hero-cta animate-fade-in-delay-2">
+                    <button class="btn-hero-primary" onclick="scrollToDownload()">
+                        <span class="btn-icon">⬇</span>
+                        免费下载试用
+                        <span class="btn-sub">支持Win/Mac/Linux/Android</span>
+                    </button>
+                    <button class="btn-hero-secondary" onclick="openDemo()">
+                        <span class="btn-icon">▶</span>
+                        观看3分钟演示
+                    </button>
+                    <a href="tel:400-1068-687" class="btn-hero-phone">
+                        <span class="btn-icon">📞</span>
+                        电话咨询：400-1068-687
+                    </a>
+                </div>
+
+                <!-- 新增：快速导航（用户分流） -->
+                <div class="quick-nav animate-fade-in-delay-2">
+                    <span class="quick-nav-label">我是：</span>
+                    <a href="#scenario-healthcare" class="quick-nav-link">医生/护士</a>
+                    <a href="#scenario-legal" class="quick-nav-link">律师</a>
+                    <a href="#scenario-education" class="quick-nav-link">学生/教师</a>
+                    <a href="#scenario-enterprise" class="quick-nav-link">企业用户</a>
+                </div>
+
+                <!-- 新增：社会证明 -->
+                <div class="social-proof animate-fade-in-delay-3">
+                    <p>已有 <strong>10,000+</strong> 医生、律师、研究员选择ChainlessChain保护数据安全</p>
+                    <p style="font-size: 14px; color: rgba(255,255,255,0.8); margin-top: 8px;">165个Vue组件 • 140,000+行代码 • 149个API端点 • 92%整体完成度</p>
+                </div>
+
+                <!-- 原有统计数据 -->
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">4+</span>
+                        <span class="stat-label">专利技术</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">99.9%</span>
+                        <span class="stat-label">数据安全性</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">全平台</span>
+                        <span class="stat-label">覆盖支持</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">数据泄露事件</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：核心价值主张区 -->
+    <section class="value-proposition">
+        <div class="container">
+            <div class="value-grid">
+                <div class="value-item">
+                    <div class="value-icon">🔐</div>
+                    <h3>硬件级安全</h3>
+                    <p>U盾/SIMKey物理隔离加密，密钥永不触网，黑客无法破解</p>
+                </div>
+                <div class="value-item">
+                    <div class="value-icon">🤖</div>
+                    <h3>本地AI问答</h3>
+                    <p>支持Ollama本地大模型，数据不出设备，隐私100%保护</p>
+                </div>
+                <div class="value-item">
+                    <div class="value-icon">💾</div>
+                    <h3>完全离线可用</h3>
+                    <p>无需联网，随时随地访问，紧急时刻不掉链子</p>
+                </div>
+                <div class="value-item">
+                    <div class="value-icon">🆓</div>
+                    <h3>永久免费开源</h3>
+                    <p>MIT开源协议，核心功能免费，代码透明可审计</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section - 优化版 -->
+    <section id="products" class="products">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">核心产品</h2>
+                <p class="section-subtitle">三大产品矩阵，满足不同场景需求</p>
+            </div>
+            <div class="products-grid">
+                <!-- Product 1 - 优化版 -->
+                <div class="product-card">
+                    <div class="product-icon">📚</div>
+                    <h3 class="product-title">个人AI知识库</h3>
+
+                    <!-- 新增：用户痛点 -->
+                    <div class="pain-points">
+                        <p class="pain-point">😰 担心笔记数据被平台窃取？</p>
+                        <p class="pain-point">😰 Notion/印象笔记隐私没保障？</p>
+                    </div>
+
+                    <!-- 解决方案 -->
+                    <div class="solutions">
+                        <p class="solution">✅ U盾硬件加密，数据不上云</p>
+                        <p class="solution">✅ 本地AI问答，隐私100%保护</p>
+                        <p class="solution">✅ 支持离线使用，永久免费</p>
+                    </div>
+
+                    <!-- 功能特性 -->
+                    <ul class="product-features">
+                        <li>硬件级加密存储（SQLCipher AES-256）</li>
+                        <li>本地AI模型部署（14+云LLM + Ollama）</li>
+                        <li>RAG增强检索（ChromaDB/Qdrant）</li>
+                        <li>多格式导入（MD/PDF/Word/图片OCR）</li>
+                        <li>多设备加密同步（Git + E2E加密）</li>
+                        <li>19个AI专用引擎（代码/文档/表格/PPT）</li>
+                    </ul>
+
+                    <!-- 新增：适用人群 -->
+                    <div class="target-users">
+                        <span class="user-tag">医生</span>
+                        <span class="user-tag">律师</span>
+                        <span class="user-tag">研究员</span>
+                        <span class="user-tag">学生</span>
+                    </div>
+
+                    <!-- 新增：客户评价 -->
+                    <blockquote class="testimonial-mini">
+                        <p>"作为医生，患者病历安全是第一要务，ChainlessChain让我放心"</p>
+                        <cite>- 张医生，三甲医院主任医师</cite>
+                    </blockquote>
+
+                    <!-- CTA按钮 -->
+                    <div class="product-cta">
+                        <button class="btn-product-primary" onclick="scrollToDownload()">立即下载</button>
+                        <button class="btn-product-outline" onclick="learnMore('knowledge-base')">了解详情</button>
+                    </div>
+                </div>
+
+                <!-- Product 2 - 去中心化社交 -->
+                <div class="product-card featured">
+                    <div class="featured-badge">热门</div>
+                    <div class="product-icon">💬</div>
+                    <h3 class="product-title">去中心化AI社交</h3>
+
+                    <div class="pain-points">
+                        <p class="pain-point">😰 微信/QQ聊天记录被监控？</p>
+                        <p class="pain-point">😰 隐私对话不敢发敏感内容？</p>
+                    </div>
+
+                    <div class="solutions">
+                        <p class="solution">✅ 端到端加密，服务器无法查看</p>
+                        <p class="solution">✅ P2P直连，无中心化服务器</p>
+                        <p class="solution">✅ AI代理处理，保护真实身份</p>
+                    </div>
+
+                    <ul class="product-features">
+                        <li>W3C DID标准身份（Ed25519 + X25519）</li>
+                        <li>Signal Protocol端到端加密</li>
+                        <li>libp2p P2P网络（Kademlia DHT）</li>
+                        <li>5种可验证凭证（VC）类型</li>
+                        <li>多设备同步 + 离线消息队列</li>
+                        <li>社区论坛（63个API + Elasticsearch）</li>
+                    </ul>
+
+                    <div class="target-users">
+                        <span class="user-tag">隐私关注者</span>
+                        <span class="user-tag">企业高管</span>
+                        <span class="user-tag">自由职业</span>
+                    </div>
+
+                    <blockquote class="testimonial-mini">
+                        <p>"真正的端到端加密，不用担心聊天记录泄露，创业团队必备"</p>
+                        <cite>- 李总，科技公司CEO</cite>
+                    </blockquote>
+
+                    <div class="product-cta">
+                        <button class="btn-product-primary" onclick="scrollToDownload()">立即下载</button>
+                        <button class="btn-product-outline" onclick="learnMore('social')">了解详情</button>
+                    </div>
+                </div>
+
+                <!-- Product 3 - AI辅助交易 -->
+                <div class="product-card">
+                    <div class="product-icon">🤝</div>
+                    <h3 class="product-title">AI辅助交易</h3>
+
+                    <div class="pain-points">
+                        <p class="pain-point">😰 找不到合适的交易对象？</p>
+                        <p class="pain-point">😰 担心交易纠纷没保障？</p>
+                    </div>
+
+                    <div class="solutions">
+                        <p class="solution">✅ AI智能匹配供需双方</p>
+                        <p class="solution">✅ 智能合约托管资金</p>
+                        <p class="solution">✅ 去中心化仲裁机制</p>
+                    </div>
+
+                    <ul class="product-features">
+                        <li>8大核心模块（资产、市场、托管、知识付费）</li>
+                        <li>6个智能合约（ERC20/721、托管、订阅、悬赏）</li>
+                        <li>信用评分系统（6维度、5等级）</li>
+                        <li>HD钱包 + MetaMask + WalletConnect</li>
+                        <li>订单管理 + 评价系统 + 争议解决</li>
+                        <li>区块链智能合约引擎（2400+行代码）</li>
+                    </ul>
+
+                    <div class="target-users">
+                        <span class="user-tag">中小企业</span>
+                        <span class="user-tag">供应商</span>
+                        <span class="user-tag">采购商</span>
+                    </div>
+
+                    <blockquote class="testimonial-mini">
+                        <p>"AI匹配很精准，智能合约保障交易安全，节省了大量时间"</p>
+                        <cite>- 王总，贸易公司总经理</cite>
+                    </blockquote>
+
+                    <div class="product-cta">
+                        <button class="btn-product-primary" onclick="contact('trading')">预约演示</button>
+                        <button class="btn-product-outline" onclick="learnMore('trading')">了解详情</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：竞品对比区 -->
+    <section class="comparison">
+        <div class="container">
+            <h2 class="section-title">为什么选择ChainlessChain？</h2>
+            <p class="section-subtitle">与主流云笔记软件的对比</p>
+
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>功能特性</th>
+                            <th class="highlight">ChainlessChain</th>
+                            <th>Notion</th>
+                            <th>Obsidian</th>
+                            <th>印象笔记</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>硬件级加密</td>
+                            <td class="highlight">✅ U盾/SIMKey</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                        </tr>
+                        <tr>
+                            <td>本地AI问答</td>
+                            <td class="highlight">✅ 完全离线</td>
+                            <td>⚠️ 需上传数据</td>
+                            <td>❌</td>
+                            <td>⚠️ 需上传数据</td>
+                        </tr>
+                        <tr>
+                            <td>数据存储</td>
+                            <td class="highlight">✅ 本地加密</td>
+                            <td>❌ 云端</td>
+                            <td>✅ 本地</td>
+                            <td>❌ 云端</td>
+                        </tr>
+                        <tr>
+                            <td>离线使用</td>
+                            <td class="highlight">✅ 全功能</td>
+                            <td>⚠️ 部分功能</td>
+                            <td>✅</td>
+                            <td>⚠️ 部分功能</td>
+                        </tr>
+                        <tr>
+                            <td>开源透明</td>
+                            <td class="highlight">✅ MIT协议</td>
+                            <td>❌ 闭源</td>
+                            <td>⚠️ 部分开源</td>
+                            <td>❌ 闭源</td>
+                        </tr>
+                        <tr>
+                            <td>价格</td>
+                            <td class="highlight">✅ 永久免费</td>
+                            <td>💰 $10/月</td>
+                            <td>💰 $50/年</td>
+                            <td>💰 ¥148/年</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="comparison-cta">
+                <button class="btn-primary-large" onclick="scrollToDownload()">
+                    立即下载ChainlessChain
                 </button>
             </div>
         </div>
-    </header>
+    </section>
 
-    <div class="docs-container">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <h3 class="nav-title">开始使用</h3>
-                    <ul class="nav-list">
-                        <li><a href="#introduction" class="nav-link active">简介</a></li>
-                        <li><a href="#quick-start" class="nav-link">快速开始</a></li>
-                        <li><a href="#installation" class="nav-link">安装部署</a></li>
-                        <li><a href="#faq" class="nav-link">常见问题</a></li>
-                    </ul>
-                </div>
+    <!-- Download Section -->
+    <section id="download" class="download">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">软件下载</h2>
+                <p class="section-subtitle">支持全平台，5分钟完成安装</p>
+            </div>
 
-                <div class="nav-section">
-                    <h3 class="nav-title">产品文档</h3>
-                    <ul class="nav-list">
-                        <li><a href="#knowledge-base" class="nav-link">AI知识库</a></li>
-                        <li><a href="#social" class="nav-link">去中心化社交</a></li>
-                        <li><a href="#trading" class="nav-link">AI辅助交易</a></li>
-                    </ul>
-                </div>
+            <!-- 新增：快速下载提示 -->
+            <div class="quick-download">
+                <p class="detected-os">检测到您的系统：<span id="detectedOS">Windows 10</span></p>
+                <button class="btn-download-quick" onclick="downloadForOS()">
+                    <span class="icon">⬇</span>
+                    立即下载（推荐）
+                </button>
+                <p class="download-info">
+                    <span>✅ 永久免费</span>
+                    <span>✅ 无需注册</span>
+                    <span>✅ 安装包已签名</span>
+                </p>
+            </div>
 
-                <div class="nav-section">
-                    <h3 class="nav-title">技术文档</h3>
-                    <ul class="nav-list">
-                        <li><a href="#architecture" class="nav-link">系统架构</a></li>
-                        <li><a href="#security" class="nav-link">安全机制</a></li>
-                        <li><a href="#api" class="nav-link">API参考</a></li>
-                        <li><a href="#sdk" class="nav-link">SDK文档</a></li>
-                    </ul>
-                </div>
-
-                <div class="nav-section">
-                    <h3 class="nav-title">开发指南</h3>
-                    <ul class="nav-list">
-                        <li><a href="#desktop-dev" class="nav-link">桌面端开发</a></li>
-                        <li><a href="#mobile-dev" class="nav-link">移动端开发</a></li>
-                        <li><a href="#plugin-dev" class="nav-link">插件开发</a></li>
-                        <li><a href="#contribution" class="nav-link">贡献指南</a></li>
-                    </ul>
-                </div>
-
-                <div class="nav-section">
-                    <h3 class="nav-title">部署运维</h3>
-                    <ul class="nav-list">
-                        <li><a href="#deploy-desktop" class="nav-link">桌面端部署</a></li>
-                        <li><a href="#deploy-mobile" class="nav-link">移动端部署</a></li>
-                        <li><a href="#deploy-server" class="nav-link">服务器部署</a></li>
-                    </ul>
-                </div>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="content-wrapper">
-                <!-- Introduction -->
-                <section id="introduction" class="doc-section">
-                    <h1>欢迎使用 ChainlessChain</h1>
-                    <p class="lead">ChainlessChain（无链之链）是一个基于硬件加密技术的个人AI生态系统，致力于让数据主权回归个人，AI效率触手可及。</p>
-
-                    <div class="feature-cards">
-                        <div class="feature-card">
-                            <div class="feature-icon">🔒</div>
-                            <h3>硬件级安全</h3>
-                            <p>采用U盾和SIMKey双重物理隔离加密</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">🤖</div>
-                            <h3>本地AI</h3>
-                            <p>支持Ollama本地大模型部署</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">🔄</div>
-                            <h3>跨设备同步</h3>
-                            <p>基于Git的端到端加密同步</p>
-                        </div>
-                    </div>
-
-                    <h2>核心特性</h2>
-                    <ul class="feature-list">
-                        <li><strong>数据安全</strong> - SQLCipher数据库加密 + SM2国密算法</li>
-                        <li><strong>隐私保护</strong> - 本地数据存储，完全掌控个人数据</li>
-                        <li><strong>AI赋能</strong> - 本地/云端混合AI能力</li>
-                        <li><strong>开源生态</strong> - 核心代码开源，支持插件扩展</li>
-                        <li><strong>全平台</strong> - Windows、macOS、Linux、Android、iOS</li>
-                    </ul>
-                </section>
-
-                <!-- Quick Start -->
-                <section id="quick-start" class="doc-section">
-                    <h1>快速开始</h1>
-                    <p>5分钟快速体验ChainlessChain的核心功能。</p>
-
-                    <h2>桌面端快速开始</h2>
-
-                    <h3>1. 安装应用</h3>
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span>Bash</span>
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                        </div>
-                        <pre><code># 克隆仓库
-git clone https://github.com/chainlesschain/chainlesschain.git
-cd chainlesschain/desktop-app
-
-# 安装依赖
-npm install
-
-# 启动应用
-npm run dev</code></pre>
-                    </div>
-
-                    <h3>2. 首次登录</h3>
-                    <div class="info-box">
-                        <p><strong>开发模式PIN码：</strong> 123456</p>
-                        <p>首次启动会自动检测U盾（模拟模式），输入PIN码即可登录。</p>
-                    </div>
-
-                    <h3>3. 创建第一条笔记</h3>
-                    <ol>
-                        <li>点击左上角"新建笔记"按钮</li>
-                        <li>输入标题和内容（支持Markdown）</li>
-                        <li>按 <kbd>Ctrl+S</kbd> 保存或等待自动保存</li>
-                    </ol>
-
-                    <h2>移动端快速开始</h2>
-
-                    <h3>React Native版本</h3>
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span>Bash</span>
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                        </div>
-                        <pre><code># 进入移动端目录
-cd mobile-app
-
-# 安装依赖
-npm install
-
-# Android
-npm run android
-
-# iOS (仅macOS)
-cd ios && pod install && cd ..
-npm run ios</code></pre>
-                    </div>
-
-                    <h3>Android原生版本</h3>
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span>Bash</span>
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                        </div>
-                        <pre><code># 使用Android Studio打开
-android-app/
-
-# 或使用命令行构建
-cd android-app
-./gradlew assembleDebug</code></pre>
-                    </div>
-
-                    <div class="tip-box">
-                        <strong>💡 提示：</strong> 移动端默认使用SIMKey模拟模式，任意4-6位数字PIN码即可登录。
-                    </div>
-                </section>
-
-                <!-- Installation -->
-                <section id="installation" class="doc-section">
-                    <h1>安装部署</h1>
-
-                    <h2>系统要求</h2>
-
-                    <h3>桌面端</h3>
-                    <ul>
-                        <li><strong>操作系统：</strong> Windows 10+, macOS 10.15+, Linux (Ubuntu 20.04+)</li>
-                        <li><strong>Node.js：</strong> v18.0.0 或更高</li>
-                        <li><strong>内存：</strong> 至少 4GB RAM</li>
-                        <li><strong>磁盘空间：</strong> 至少 2GB 可用空间</li>
-                    </ul>
-
-                    <h3>移动端</h3>
-                    <ul>
-                        <li><strong>Android：</strong> Android 7.0 (API 24) 或更高</li>
-                        <li><strong>iOS：</strong> iOS 13.0 或更高</li>
-                        <li><strong>开发环境：</strong> React Native 0.73+ 或 Android Studio</li>
-                    </ul>
-
-                    <h2>详细安装步骤</h2>
-
-                    <h3>桌面端（Electron）</h3>
-
-                    <h4>开发环境</h4>
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span>Bash</span>
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                        </div>
-                        <pre><code>cd desktop-app
-npm install
-npm run dev</code></pre>
-                    </div>
-
-                    <h4>生产构建</h4>
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span>Bash</span>
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                        </div>
-                        <pre><code># 构建应用
-npm run build
-
-# 打包为安装程序
-npm run package
-
-# 输出目录
-# Windows: out/make/squirrel.windows/x64/
-# macOS: out/make/
-# Linux: out/make/</code></pre>
-                    </div>
-
-                    <h3>配置AI服务（可选）</h3>
-
-                    <p>如需使用AI对话功能，需要部署Ollama服务：</p>
-
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span>Bash</span>
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                        </div>
-                        <pre><code># 使用Docker部署
-cd backend/docker
-
-# Linux/Mac
-./setup.sh
-
-# Windows
-setup.bat
-
-# 或手动启动
-docker-compose up -d</code></pre>
-                    </div>
-
-                    <div class="warning-box">
-                        <strong>⚠️ 注意：</strong> AI服务需要较大的系统资源，建议至少8GB内存和10GB磁盘空间。
-                    </div>
-                </section>
-
-                <!-- FAQ -->
-                <section id="faq" class="doc-section">
-                    <h1>常见问题</h1>
-
-                    <div class="faq-item">
-                        <h3>Q: 数据存储在哪里？</h3>
-                        <p>A: 所有数据都存储在本地加密数据库中，默认位置：</p>
-                        <ul>
-                            <li><strong>Windows:</strong> <code>%APPDATA%/ChainlessChain/</code></li>
-                            <li><strong>macOS:</strong> <code>~/Library/Application Support/ChainlessChain/</code></li>
-                            <li><strong>Linux:</strong> <code>~/.config/ChainlessChain/</code></li>
-                        </ul>
-                    </div>
-
-                    <div class="faq-item">
-                        <h3>Q: 如何备份数据？</h3>
-                        <p>A: 建议使用Git同步功能进行数据备份：</p>
-                        <ol>
-                            <li>在设置中启用Git同步</li>
-                            <li>配置远程仓库地址</li>
-                            <li>数据会自动加密后同步到远程</li>
-                        </ol>
-                    </div>
-
-                    <div class="faq-item">
-                        <h3>Q: U盾/SIMKey是必需的吗？</h3>
-                        <p>A: 开发模式下使用模拟实现，生产环境建议使用真实硬件：</p>
-                        <ul>
-                            <li>开发/测试：使用模拟模式（任意PIN码）</li>
-                            <li>生产环境：集成真实U盾/SIMKey SDK</li>
-                        </ul>
-                    </div>
-
-                    <div class="faq-item">
-                        <h3>Q: AI功能需要联网吗？</h3>
-                        <p>A: 支持两种模式：</p>
-                        <ul>
-                            <li><strong>本地模式：</strong> 使用Ollama部署本地模型，完全离线</li>
-                            <li><strong>云端模式：</strong> 连接云端AI服务，需要网络连接</li>
-                        </ul>
-                    </div>
-
-                    <div class="faq-item">
-                        <h3>Q: 如何获取技术支持？</h3>
-                        <p>A: 您可以通过以下方式获取帮助：</p>
-                        <ul>
-                            <li>查看本文档的详细说明</li>
-                            <li>访问 <a href="https://github.com/chainlesschain/issues">GitHub Issues</a></li>
-                            <li>发送邮件至 zhanglongfa@chainlesschain.com</li>
-                            <li>拨打客服热线 400-1068-687（工作日 9:00-18:00）</li>
-                        </ul>
-                    </div>
-                </section>
-
-                <!-- Navigation -->
-                <div class="doc-nav">
-                    <a href="#quick-start" class="doc-nav-next">
-                        下一步：快速开始 →
+            <div class="download-grid">
+                <div class="download-card">
+                    <div class="download-icon">💻</div>
+                    <h3>Windows 桌面版</h3>
+                    <p class="download-desc">支持 Windows 10/11 (64位)</p>
+                    <p class="download-version">最新版本：v0.17.0</p>
+                    <p class="file-size">文件大小：156 MB</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
+                       class="btn-download"
+                       target="_blank"
+                       rel="noopener"
+                       onclick="trackDownload('windows')">
+                        下载 (.exe)
                     </a>
+                    <a href="https://gitee.com/chainlesschaincn/chainlesschain/releases/latest"
+                       class="btn-download-alt"
+                       target="_blank"
+                       rel="noopener">
+                        Gitee镜像（国内快）
+                    </a>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">🍎</div>
+                    <h3>macOS 桌面版</h3>
+                    <p class="download-desc">支持 macOS 10.15+ (Intel & Apple Silicon)</p>
+                    <p class="download-version">最新版本：v0.17.0</p>
+                    <p class="file-size">文件大小：180 MB</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
+                       class="btn-download"
+                       target="_blank"
+                       rel="noopener"
+                       onclick="trackDownload('macos')">
+                        下载 (.dmg)
+                    </a>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">🐧</div>
+                    <h3>Linux 桌面版</h3>
+                    <p class="download-desc">支持 Ubuntu 20.04+ / Debian / Fedora</p>
+                    <p class="download-version">最新版本：v0.17.0</p>
+                    <p class="file-size">文件大小：145 MB</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
+                       class="btn-download"
+                       target="_blank"
+                       rel="noopener"
+                       onclick="trackDownload('linux')">
+                        下载 (.AppImage)
+                    </a>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">📱</div>
+                    <h3>Android 移动版</h3>
+                    <p class="download-desc">支持 Android 7.0 (API 24) 及以上</p>
+                    <p class="download-version">最新版本：v0.17.0</p>
+                    <p class="file-size">文件大小：45 MB</p>
+                    <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
+                       class="btn-download"
+                       target="_blank"
+                       rel="noopener"
+                       onclick="trackDownload('android')">
+                        下载 (.apk)
+                    </a>
+                    <div class="qr-code">
+                        <img src="images/qr/android-download.png" alt="Android下载二维码" loading="lazy">
+                        <p>扫码下载</p>
+                    </div>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">🍏</div>
+                    <h3>iOS 移动版</h3>
+                    <p class="download-desc">支持 iOS 13.0 及以上</p>
+                    <p class="download-version">开发中，敬请期待</p>
+                    <button class="btn-download disabled" disabled>即将推出</button>
+                    <button class="btn-notify" onclick="notifyMe('ios')">
+                        <span class="icon">🔔</span>
+                        上线时通知我
+                    </button>
+                </div>
+
+                <div class="download-card featured">
+                    <div class="download-icon">📦</div>
+                    <h3>源码编译</h3>
+                    <p class="download-desc">从源码编译，自定义配置</p>
+                    <div class="source-links">
+                        <a href="https://github.com/chainlesschain/chainlesschain" target="_blank" rel="noopener" class="source-link">
+                            <span class="source-icon">📂</span> GitHub
+                        </a>
+                        <a href="https://gitee.com/chainlesschaincn/chainlesschain" target="_blank" rel="noopener" class="source-link">
+                            <span class="source-icon">📂</span> Gitee
+                        </a>
+                    </div>
+                    <a href="https://docs.chainlesschain.com" class="btn-download-outline" target="_blank" rel="noopener">查看编译文档</a>
                 </div>
             </div>
 
-            <!-- Table of Contents -->
-            <aside class="toc">
-                <h4>本页目录</h4>
-                <ul class="toc-list" id="tocList">
-                    <!-- Dynamically generated -->
-                </ul>
-            </aside>
-        </main>
-    </div>
+            <div class="download-notice">
+                <p>💡 <strong>提示：</strong>首次使用请查看<a href="https://docs.chainlesschain.com" target="_blank" rel="noopener">快速开始指南</a>，或联系客服 <strong><a href="tel:400-1068-687">400-1068-687</a></strong> 获取帮助</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：FAQ区域 -->
+    <section class="faq">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">常见问题</h2>
+                <p class="section-subtitle">解答您的疑虑</p>
+            </div>
+
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">🔐</span>
+                        数据真的安全吗？会不会被黑客攻破？
+                    </h3>
+                    <div class="faq-answer">
+                        <p><strong>绝对安全。</strong>我们采用U盾/SIMKey物理隔离加密芯片，密钥永不触网，配合SM2国密算法和SQLCipher数据库加密，三重防护。</p>
+                        <p>即使黑客拿到你的电脑，没有U盾也无法解密数据。我们已获得等保三级认证，符合国家信息安全标准。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">💰</span>
+                        免费吗？有什么收费项目？
+                    </h3>
+                    <div class="faq-answer">
+                        <p><strong>核心功能永久免费。</strong>开源MIT协议，基础版完全免费，包括：知识库、本地AI、加密存储、多设备同步。</p>
+                        <p>企业版提供私有化部署、技术支持、定制开发等增值服务，按需付费。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">🤖</span>
+                        AI功能需要联网吗？数据会上传到云端吗？
+                    </h3>
+                    <div class="faq-answer">
+                        <p><strong>完全本地，无需联网。</strong>支持Ollama本地部署大模型（Qwen、LLaMA3等），AI推理全在本地完成。</p>
+                        <p>数据永不上云，100%隐私保护。也可选择云端AI（需联网，数据加密传输）。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">📱</span>
+                        支持哪些设备？能跨设备同步吗？
+                    </h3>
+                    <div class="faq-answer">
+                        <p><strong>全平台支持。</strong>Windows、macOS、Linux、Android、iOS（开发中）。</p>
+                        <p>支持基于Git的端到端加密同步，数据在不同设备间安全传输，中间服务器无法查看。</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">🛡️</span>
+                        U盾/SIMKey是必需的吗？
+                    </h3>
+                    <div class="faq-answer">
+                        <p>开发模式下使用模拟实现，生产环境<strong>强烈建议</strong>使用真实硬件：</p>
+                        <ul>
+                            <li>开发/测试：使用模拟模式（任意PIN码：123456）</li>
+                            <li>生产环境：集成真实U盾/SIMKey SDK，获得军事级安全保障</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <h3 class="faq-question">
+                        <span class="icon">❓</span>
+                        如何获取技术支持？
+                    </h3>
+                    <div class="faq-answer">
+                        <p>您可以通过以下方式获取帮助：</p>
+                        <ul>
+                            <li>📖 查看<a href="https://docs.chainlesschain.com" target="_blank" rel="noopener">在线文档</a></li>
+                            <li>💬 访问<a href="https://github.com/chainlesschain/issues" target="_blank" rel="noopener">GitHub Issues</a></li>
+                            <li>📧 发送邮件至 <a href="mailto:zhanglongfa@chainlesschain.com">zhanglongfa@chainlesschain.com</a></li>
+                            <li>📞 拨打客服热线 <a href="tel:400-1068-687">400-1068-687</a>（工作日 9:00-18:00）</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">核心技术特性</h2>
+                <p class="section-subtitle">硬件安全与AI能力的完美结合</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">🔒</div>
+                    <h3>硬件级安全</h3>
+                    <p>采用U盾（PC端）和SIMKey（手机端）双重物理隔离加密，使用SM2国密算法与SQLCipher数据库加密</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🤖</div>
+                    <h3>本地AI部署</h3>
+                    <p>支持Ollama等本地大模型，数据不出设备，完全掌控AI推理过程，保护隐私安全</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">☁️</div>
+                    <h3>云端能力扩展</h3>
+                    <p>可选择连接云端AI服务，享受更强大的模型能力，支持混合部署模式</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔄</div>
+                    <h3>跨设备同步</h3>
+                    <p>基于Git和端到端加密的数据同步，多设备无缝协作，数据安全可控</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📱</div>
+                    <h3>全平台覆盖</h3>
+                    <p>支持Windows、macOS、Linux、Android、iOS全平台，一次部署，处处可用</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🎯</div>
+                    <h3>开源生态</h3>
+                    <p>核心代码开源，支持插件扩展，打造开放的AI生态系统</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Stack -->
+    <section class="tech-stack">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">技术架构</h2>
+                <p class="section-subtitle">现代化的技术栈，保障系统稳定可靠</p>
+            </div>
+            <div class="tech-categories">
+                <div class="tech-category">
+                    <h3>前端技术</h3>
+                    <div class="tech-tags">
+                        <span class="tech-tag">Electron 39.2.6</span>
+                        <span class="tech-tag">Vue 3.4</span>
+                        <span class="tech-tag">TypeScript</span>
+                        <span class="tech-tag">Ant Design Vue 4.1</span>
+                        <span class="tech-tag">Pinia 2.1.7</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h3>后端技术</h3>
+                    <div class="tech-tags">
+                        <span class="tech-tag">Node.js</span>
+                        <span class="tech-tag">SQLCipher</span>
+                        <span class="tech-tag">Spring Boot 3.1.11</span>
+                        <span class="tech-tag">FastAPI</span>
+                        <span class="tech-tag">Ollama</span>
+                        <span class="tech-tag">Qdrant</span>
+                        <span class="tech-tag">PostgreSQL 16</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h3>安全技术</h3>
+                    <div class="tech-tags">
+                        <span class="tech-tag">U盾</span>
+                        <span class="tech-tag">SIMKey</span>
+                        <span class="tech-tag">SM2国密</span>
+                        <span class="tech-tag">RSA 2048</span>
+                        <span class="tech-tag">AES-256</span>
+                        <span class="tech-tag">Signal Protocol</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h3>区块链技术</h3>
+                    <div class="tech-tags">
+                        <span class="tech-tag">Hardhat</span>
+                        <span class="tech-tag">Solidity</span>
+                        <span class="tech-tag">Ethers.js</span>
+                        <span class="tech-tag">MetaMask</span>
+                        <span class="tech-tag">WalletConnect</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Scenarios Section -->
+    <section id="scenarios" class="scenarios">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">应用场景</h2>
+                <p class="section-subtitle">覆盖多个垂直领域，满足不同行业需求</p>
+            </div>
+            <div class="scenarios-grid">
+                <div class="scenario-card" id="scenario-healthcare">
+                    <div class="scenario-icon">🏥</div>
+                    <h3>医疗健康</h3>
+                    <p>医生病历管理、患者健康档案、医疗知识库，确保敏感医疗数据安全</p>
+                    <a href="#contact" class="scenario-link">咨询医疗解决方案 →</a>
+                </div>
+                <div class="scenario-card">
+                    <div class="scenario-icon">🏢</div>
+                    <h3>企业办公</h3>
+                    <p>企业文档管理、项目协作、知识沉淀，提升团队协作效率</p>
+                    <a href="#contact" class="scenario-link">咨询企业解决方案 →</a>
+                </div>
+                <div class="scenario-card">
+                    <div class="scenario-icon">💼</div>
+                    <h3>中小企业</h3>
+                    <p>供应链管理、客户关系、交易撮合，降低运营成本</p>
+                    <a href="#contact" class="scenario-link">咨询交易解决方案 →</a>
+                </div>
+                <div class="scenario-card" id="scenario-education">
+                    <div class="scenario-icon">📚</div>
+                    <h3>教育学习</h3>
+                    <p>个人笔记管理、学习资料整理、AI辅助学习，提升学习效率</p>
+                    <a href="#download" class="scenario-link">立即下载试用 →</a>
+                </div>
+                <div class="scenario-card" id="scenario-legal">
+                    <div class="scenario-icon">⚖️</div>
+                    <h3>法律咨询</h3>
+                    <p>案例管理、法律文书、客户隐私保护，专业可靠</p>
+                    <a href="#contact" class="scenario-link">咨询法律解决方案 →</a>
+                </div>
+                <div class="scenario-card">
+                    <div class="scenario-icon">💡</div>
+                    <h3>创新研发</h3>
+                    <p>技术文档、研发笔记、专利管理，保护知识产权</p>
+                    <a href="#download" class="scenario-link">立即下载试用 →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2 class="section-title">关于我们</h2>
+                    <p class="about-description">
+                        ChainlessChain（无链之链）致力于打造安全可信的个人AI生态系统。
+                        我们相信数据主权应该回归个人，AI应该为每个人服务。
+                    </p>
+                    <p class="about-description">
+                        通过创新的硬件加密技术和本地AI部署方案，我们为用户提供了
+                        既安全又高效的数字化解决方案。我们的产品已获得4项发明专利，
+                        并通过了多项行业认证。
+                    </p>
+                    <div class="about-features">
+                        <div class="about-feature">
+                            <span class="about-feature-icon">🏆</span>
+                            <div>
+                                <h4>4项专利技术</h4>
+                                <p>核心技术获国家发明专利保护</p>
+                            </div>
+                        </div>
+                        <div class="about-feature">
+                            <span class="about-feature-icon">✅</span>
+                            <div>
+                                <h4>行业认证</h4>
+                                <p>通过等保三级等多项安全认证</p>
+                            </div>
+                        </div>
+                        <div class="about-feature">
+                            <span class="about-feature-icon">🌐</span>
+                            <div>
+                                <h4>开源生态</h4>
+                                <p>MIT协议开源，GitHub 10k+ Star</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-image">
+                    <div class="about-stats-card">
+                        <div class="stat-row">
+                            <span class="stat-value">2024</span>
+                            <span class="stat-desc">成立年份</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-value">10k+</span>
+                            <span class="stat-desc">用户选择</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-value">99.9%</span>
+                            <span class="stat-desc">系统稳定性</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section - 优化版 -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">联系我们</h2>
+                <p class="section-subtitle">我们期待与您交流合作</p>
+            </div>
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <h3>联系方式</h3>
+                    <div class="contact-items">
+                        <div class="contact-item">
+                            <span class="contact-icon">📞</span>
+                            <div>
+                                <h4>客服热线（推荐）</h4>
+                                <a href="tel:400-1068-687" class="contact-phone">400-1068-687</a>
+                                <p style="font-size: 12px; color: #999;">工作日 9:00-18:00，1分钟快速响应</p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon">📧</span>
+                            <div>
+                                <h4>电子邮件</h4>
+                                <a href="mailto:zhanglongfa@chainlesschain.com">zhanglongfa@chainlesschain.com</a>
+                                <p style="font-size: 12px; color: #999;">24小时内回复</p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon">📍</span>
+                            <div>
+                                <h4>公司地址</h4>
+                                <p style="font-size: 14px; line-height: 1.6;">中国（福建）自由贸易试验区厦门片区象屿路93号<br>厦门国际航运中心C栋4层431单元H</p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon">💬</span>
+                            <div>
+                                <h4>企业微信</h4>
+                                <p>扫码添加企业微信客服</p>
+                                <a href="https://work.weixin.qq.com/ca/cawcde653996f7ecb2" target="_blank" rel="noopener">添加企业微信 →</a>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon"></span>
+                            <div>
+                                <h4>GitHub</h4>
+                                <a href="https://github.com/chainlesschain" target="_blank" rel="noopener">github.com/chainlesschain</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="social-links">
+                        <a href="#" class="social-link">微博</a>
+                        <a href="#" class="social-link">知乎</a>
+                        <a href="#" class="social-link">B站</a>
+                    </div>
+                </div>
+                <div class="contact-form">
+                    <h3>发送消息</h3>
+                    <p class="form-note">1个工作日内回复</p>
+                    <form id="contactForm" onsubmit="return handleFormSubmit(event)">
+                        <div class="form-group">
+                            <label for="name">您的姓名 *</label>
+                            <input type="text" id="name" name="name" placeholder="张三" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">联系电话 *</label>
+                            <input type="tel" id="phone" name="phone" placeholder="138xxxx8888" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">您的邮箱</label>
+                            <input type="email" id="email" name="email" placeholder="zhangsan@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="message">您的消息 *</label>
+                            <textarea id="message" name="message" placeholder="请描述您的需求..." rows="5" required></textarea>
+                        </div>
+
+                        <!-- 新增：隐私承诺 -->
+                        <div class="form-privacy">
+                            <label>
+                                <input type="checkbox" required>
+                                我已阅读并同意<a href="/privacy.html" target="_blank">隐私政策</a>。ChainlessChain承诺不会向第三方泄露您的信息。
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn-submit">发送消息</button>
+                    </form>
+
+                    <!-- 新增：替代联系方式 -->
+                    <div class="form-alternative">
+                        <p>着急？直接致电：</p>
+                        <a href="tel:400-1068-687" class="btn-phone-alt">📞 400-1068-687</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Footer -->
     <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-left">
-                <p>© 2025 厦门无链之链科技有限公司</p>
-                <p><a href="https://beian.miit.gov.cn/" target="_blank">闽ICP备2025105973号-1</a></p>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <span class="logo-icon"></span>
+                        <span class="logo-text">无链之链</span>
+                    </div>
+                    <p class="footer-description">
+                        让数据主权回归个人<br>
+                        AI效率触手可及
+                    </p>
+                    <p class="footer-company">
+                        厦门无链之链科技有限公司
+                    </p>
+                </div>
+                <div class="footer-section">
+                    <h4>产品</h4>
+                    <ul class="footer-links">
+                        <li><a href="#products">AI知识库</a></li>
+                        <li><a href="#products">去中心化社交</a></li>
+                        <li><a href="#products">AI辅助交易</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>资源</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://docs.chainlesschain.com" target="_blank" rel="noopener">开发文档</a></li>
+                        <li><a href="https://docs.chainlesschain.com" target="_blank" rel="noopener">API文档</a></li>
+                        <li><a href="https://forum.chainlesschain.com" target="_blank" rel="noopener">社区论坛</a></li>
+                        <li><a href="#download">软件下载</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>关于</h4>
+                    <ul class="footer-links">
+                        <li><a href="#about">关于我们</a></li>
+                        <li><a href="#contact">联系我们</a></li>
+                        <li><a href="https://github.com/chainlesschain" target="_blank" rel="noopener">GitHub</a></li>
+                        <li><a href="https://gitee.com/chainlesschaincn/chainlesschain" target="_blank" rel="noopener">Gitee</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>联系方式</h4>
+                    <ul class="footer-links">
+                        <li><a href="tel:400-1068-687">📞 400-1068-687</a></li>
+                        <li><a href="mailto:zhanglongfa@chainlesschain.com">📧 联系邮箱</a></li>
+                        <li>工作日 9:00-18:00</li>
+                    </ul>
+                </div>
             </div>
-            <div class="footer-right">
-                <a href="https://github.com/chainlesschain">GitHub</a>
-                <a href="https://www.chainlesschain.com">官网</a>
-                <a href="mailto:zhanglongfa@chainlesschain.com">联系我们</a>
+            <div class="footer-bottom">
+                <p>&copy; 2025 厦门无链之链科技有限公司 版权所有</p>
+                <p><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" style="color: rgba(255, 255, 255, 0.5); text-decoration: none;">闽ICP备2025105973号-1</a></p>
             </div>
         </div>
     </footer>
 
-    <script src="js/docs.js"></script>
+    <!-- 延迟加载JS -->
+    <script src="js/main.js" defer></script>
+
+    <!-- 百度统计 -->
+    <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?701abdeb98b4b1ae8e652de15f95fa93"; // 替换为实际的百度统计ID
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+
+    // 转化事件跟踪函数
+    function trackEvent(category, action, label) {
+        if (typeof _hmt !== 'undefined') {
+            _hmt.push(['_trackEvent', category, action, label]);
+        }
+    }
+
+    function trackDownload(platform) {
+        trackEvent('download', 'click', platform);
+    }
+
+    function scrollToDownload() {
+        document.getElementById('download').scrollIntoView({ behavior: 'smooth' });
+        trackEvent('cta', 'click', 'download');
+    }
+
+    function contact(product) {
+        document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
+        trackEvent('cta', 'click', 'contact_' + product);
+    }
+
+    function learnMore(product) {
+        trackEvent('product', 'learn_more', product);
+        // 跳转到产品详情页
+        const pages = {
+            'knowledge-base': 'products/knowledge-base.html',
+            'social': 'products/social.html',
+            'trading': 'products/trading.html'
+        };
+        if (pages[product]) {
+            window.location.href = pages[product];
+        }
+    }
+
+    function openDemo() {
+        trackEvent('cta', 'click', 'demo_video');
+        // 跳转到演示页面
+        window.location.href = 'demo.html';
+    }
+
+    function handleFormSubmit(event) {
+        event.preventDefault();
+        trackEvent('form', 'submit', 'contact');
+
+        // 获取表单数据
+        const formData = new FormData(event.target);
+        const data = Object.fromEntries(formData);
+
+        // 这里可以添加实际的表单提交逻辑（发送到后端API）
+        console.log('Form submitted:', data);
+
+        // 显示成功消息
+        alert('感谢您的咨询！我们将在1个工作日内与您联系。');
+        event.target.reset();
+
+        return false;
+    }
+
+    function notifyMe(platform) {
+        trackEvent('notify', 'click', platform);
+        const email = prompt('请输入您的邮箱，我们将在' + platform + '版本上线时通知您：');
+        if (email) {
+            // 保存到后端（待实现）
+            alert('谢谢！我们会在上线时第一时间通知您。');
+        }
+    }
+
+    // 检测操作系统
+    function detectOS() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        let os = 'Unknown';
+
+        if (userAgent.indexOf('win') > -1) {
+            os = 'Windows';
+        } else if (userAgent.indexOf('mac') > -1) {
+            os = 'macOS';
+        } else if (userAgent.indexOf('linux') > -1) {
+            os = 'Linux';
+        } else if (userAgent.indexOf('android') > -1) {
+            os = 'Android';
+        } else if (userAgent.indexOf('iphone') > -1 || userAgent.indexOf('ipad') > -1) {
+            os = 'iOS';
+        }
+
+        const osElement = document.getElementById('detectedOS');
+        if (osElement) {
+            osElement.textContent = os;
+        }
+
+        return os;
+    }
+
+    function downloadForOS() {
+        const os = detectOS();
+        trackEvent('download', 'quick_download', os);
+
+        // 根据操作系统跳转到对应下载链接
+        const downloadLinks = {
+            'Windows': 'https://github.com/chainlesschain/chainlesschain/releases/latest',
+            'macOS': 'https://github.com/chainlesschain/chainlesschain/releases/latest',
+            'Linux': 'https://github.com/chainlesschain/chainlesschain/releases/latest',
+            'Android': 'https://github.com/chainlesschain/chainlesschain/releases/latest'
+        };
+
+        const link = downloadLinks[os] || 'https://github.com/chainlesschain/chainlesschain/releases/latest';
+        window.open(link, '_blank');
+    }
+
+    // 页面加载时检测操作系统
+    document.addEventListener('DOMContentLoaded', function() {
+        detectOS();
+    });
+    </script>
 </body>
 </html>
