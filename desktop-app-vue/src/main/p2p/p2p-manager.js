@@ -66,8 +66,8 @@ class P2PManager extends EventEmitter {
   async loadP2PConfig() {
     try {
       // 从数据库加载P2P配置
-      const Database = require('../database');
-      const db = Database.getInstance();
+      const { getDatabase } = require('../database');
+      const db = getDatabase();
       const settings = await db.getAllSettings();
 
       return {

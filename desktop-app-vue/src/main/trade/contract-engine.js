@@ -1100,7 +1100,7 @@ class SmartContractEngine extends EventEmitter {
       const now = Date.now();
       const expiredContracts = db.prepare(
         'SELECT id FROM contracts WHERE status = ? AND expires_at IS NOT NULL AND expires_at <= ?'
-      ).all(ContractStatus.ACTIVE, now);
+      ).all([ContractStatus.ACTIVE, now]);
 
       for (const contract of expiredContracts) {
         console.log('[ContractEngine] 合约已过期，自动处理:', contract.id);
