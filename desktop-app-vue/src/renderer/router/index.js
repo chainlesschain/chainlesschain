@@ -180,6 +180,12 @@ const routes = [
         component: () => import('../pages/Wallet.vue'),
         meta: { title: '钱包管理' },
       },
+      {
+        path: 'bridge',
+        name: 'Bridge',
+        component: () => import('../pages/Bridge.vue'),
+        meta: { title: '跨链桥' },
+      },
       // 项目管理模块
             {
         path: 'projects/categories',

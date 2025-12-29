@@ -5,6 +5,7 @@
 
 const path = require('path');
 const EventEmitter = require('events');
+const cron = require('node-cron');
 
 class SkillExecutor extends EventEmitter {
   constructor(skillManager, toolManager) {
@@ -14,6 +15,7 @@ class SkillExecutor extends EventEmitter {
     this.executionQueue = [];
     this.isProcessing = false;
     this.executionHistory = [];
+    this.scheduledTasks = new Map(); // 存储定时任务
   }
 
   /**
@@ -490,12 +492,102 @@ class SkillExecutor extends EventEmitter {
   }
 
   /**
-   * 定时执行工作流（简化版）
+   * 定时执行工作流
+   * @param {object} workflow - 工作流配置
+   * @param {string} workflow.name - 工作流名称
+   * @param {string} workflow.schedule - Cron表达式 (e.g., '0 0 * * *' for daily at midnight)
+   * @param {string} workflow.skillId - 技能ID
+   * @param {object} workflow.params - 执行参数
+   * @param {boolean} workflow.enabled - 是否启用
+   * @returns {string} 任务ID
    */
   scheduleWorkflow(workflow) {
-    // 实际应用中应使用 node-cron 等库
-    console.log(`[SkillExecutor] 工作流已调度: ${workflow.name}, 计划: ${workflow.schedule}`);
-    // TODO: 实现定时任务
+    const { name, schedule, skillId, params = {}, enabled = true } = workflow;
+
+    if (!name || !schedule || !skillId) {
+      throw new Error('工作流配置不完整: name, schedule 和 skillId 是必需的');
+    }
+
+    // 验证Cron表达式
+    if (!cron.validate(schedule)) {
+      throw new Error(`无效的Cron表达式: ${schedule}`);
+    }
+
+    const taskId = `workflow_${name}_${Date.now()}`;
+
+    if (!enabled) {
+      console.log(`[SkillExecutor] 工作流已调度但未启用: ${name}`);
+      this.scheduledTasks.set(taskId, { workflow, task: null, enabled: false });
+      return taskId;
+    }
+
+    // 创建定时任务
+    const task = cron.schedule(schedule, async () => {
+      console.log(`[SkillExecutor] 定时工作流触发: ${name}`);
+      try {
+        await this.executeSkill(skillId, params, {
+          source: 'scheduled',
+          workflowName: name
+        });
+        this.emit('workflow:success', { taskId, name, timestamp: Date.now() });
+      } catch (error) {
+        console.error(`[SkillExecutor] 定时工作流执行失败: ${name}`, error);
+        this.emit('workflow:error', { taskId, name, error: error.message, timestamp: Date.now() });
+      }
+    }, {
+      scheduled: true,
+      timezone: 'Asia/Shanghai' // 可根据需要配置时区
+    });
+
+    this.scheduledTasks.set(taskId, { workflow, task, enabled: true });
+    console.log(`[SkillExecutor] 工作流已调度: ${name}, 计划: ${schedule}, 任务ID: ${taskId}`);
+
+    return taskId;
+  }
+
+  /**
+   * 停止定时工作流
+   * @param {string} taskId - 任务ID
+   */
+  stopWorkflow(taskId) {
+    const scheduled = this.scheduledTasks.get(taskId);
+    if (!scheduled) {
+      throw new Error(`任务不存在: ${taskId}`);
+    }
+
+    if (scheduled.task) {
+      scheduled.task.stop();
+    }
+
+    this.scheduledTasks.delete(taskId);
+    console.log(`[SkillExecutor] 工作流已停止: ${scheduled.workflow.name}`);
+  }
+
+  /**
+   * 获取所有定时任务
+   * @returns {Array} 定时任务列表
+   */
+  getScheduledWorkflows() {
+    return Array.from(this.scheduledTasks.entries()).map(([taskId, scheduled]) => ({
+      taskId,
+      name: scheduled.workflow.name,
+      schedule: scheduled.workflow.schedule,
+      skillId: scheduled.workflow.skillId,
+      enabled: scheduled.enabled
+    }));
+  }
+
+  /**
+   * 清理所有定时任务
+   */
+  cleanup() {
+    for (const [taskId, scheduled] of this.scheduledTasks.entries()) {
+      if (scheduled.task) {
+        scheduled.task.stop();
+      }
+    }
+    this.scheduledTasks.clear();
+    console.log('[SkillExecutor] 所有定时任务已清理');
   }
 }
 

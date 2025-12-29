@@ -690,6 +690,18 @@ class ChainlessChainApp {
       // 不影响应用启动
     }
 
+    // 初始化跨链桥管理器
+    try {
+      console.log('初始化跨链桥管理器...');
+      const BridgeManager = require('./blockchain/bridge-manager');
+      this.bridgeManager = new BridgeManager(this.blockchainAdapter, this.database);
+      await this.bridgeManager.initialize();
+      console.log('跨链桥管理器初始化成功');
+    } catch (error) {
+      console.error('跨链桥管理器初始化失败:', error);
+      // 不影响应用启动
+    }
+
     // 初始化外部钱包连接器
     try {
       console.log('初始化外部钱包连接器...');
@@ -3786,6 +3798,65 @@ class ChainlessChainApp {
         return await this.transactionMonitor.getTxDetail(txHash);
       } catch (error) {
         console.error('[Main] 获取交易详情失败:', error);
+        throw error;
+      }
+    });
+
+    // ==================== 跨链桥 ====================
+
+    // 桥接资产
+    ipcMain.handle('bridge:transfer', async (_event, options) => {
+      try {
+        if (!this.bridgeManager) {
+          throw new Error('跨链桥管理器未初始化');
+        }
+
+        return await this.bridgeManager.bridgeAsset(options);
+      } catch (error) {
+        console.error('[Main] 桥接资产失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取桥接历史
+    ipcMain.handle('bridge:get-history', async (_event, filters = {}) => {
+      try {
+        if (!this.bridgeManager) {
+          throw new Error('跨链桥管理器未初始化');
+        }
+
+        return await this.bridgeManager.getBridgeHistory(filters);
+      } catch (error) {
+        console.error('[Main] 获取桥接历史失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取桥接记录详情
+    ipcMain.handle('bridge:get-record', async (_event, { bridgeId }) => {
+      try {
+        if (!this.bridgeManager) {
+          throw new Error('跨链桥管理器未初始化');
+        }
+
+        return await this.bridgeManager.getBridgeRecord(bridgeId);
+      } catch (error) {
+        console.error('[Main] 获取桥接记录失败:', error);
+        throw error;
+      }
+    });
+
+    // 注册桥接合约
+    ipcMain.handle('bridge:register-contract', async (_event, { chainId, contractAddress }) => {
+      try {
+        if (!this.bridgeManager) {
+          throw new Error('跨链桥管理器未初始化');
+        }
+
+        this.bridgeManager.registerBridgeContract(chainId, contractAddress);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 注册桥接合约失败:', error);
         throw error;
       }
     });

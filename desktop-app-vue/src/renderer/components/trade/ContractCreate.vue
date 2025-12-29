@@ -214,6 +214,83 @@
               <a-input v-model:value="formData.purpose" placeholder="说明托管用途" />
             </a-form-item>
           </template>
+
+          <!-- 区块链部署选项 -->
+          <a-divider />
+          <a-form-item>
+            <template #label>
+              <span>
+                <rocket-outlined /> 部署到区块链
+                <a-tooltip title="将合约部署为链上智能合约（需要先实现对应的 Solidity 合约）">
+                  <question-circle-outlined style="margin-left: 4px; color: #8c8c8c" />
+                </a-tooltip>
+              </span>
+            </template>
+            <a-switch v-model:checked="formData.onChain">
+              <template #checkedChildren>启用</template>
+              <template #unCheckedChildren>禁用</template>
+            </a-switch>
+          </a-form-item>
+
+          <!-- 链上部署配置（仅当启用时显示） -->
+          <template v-if="formData.onChain">
+            <a-alert
+              message="链上部署"
+              description="合约将部署到区块链网络。当前使用 ERC-20 作为占位合约，生产环境需要部署实际的托管/订阅/悬赏合约。"
+              type="warning"
+              show-icon
+              :style="{ marginBottom: '16px' }"
+            />
+
+            <a-form-item label="选择钱包" required>
+              <wallet-selector
+                v-model="formData.walletId"
+                :show-balance="true"
+                :chain-id="formData.chainId"
+                :show-quick-actions="true"
+              />
+            </a-form-item>
+
+            <a-form-item label="选择网络" required>
+              <chain-selector
+                v-model="formData.chainId"
+                :width="'100%'"
+                :show-quick-info="true"
+              />
+            </a-form-item>
+
+            <a-form-item label="钱包密码" required>
+              <a-input-password
+                v-model:value="formData.password"
+                placeholder="用于签名交易的钱包密码"
+                autocomplete="new-password"
+              >
+                <template #prefix>
+                  <lock-outlined />
+                </template>
+              </a-input-password>
+              <template #extra>
+                此密码用于解密私钥并签名部署交易
+              </template>
+            </a-form-item>
+
+            <!-- Gas 估算 -->
+            <a-form-item v-if="estimatedGas" label="预估 Gas">
+              <a-statistic
+                :value="estimatedGas"
+                suffix="Gas"
+                :value-style="{ fontSize: '14px' }"
+              />
+              <template #extra>
+                <span class="gas-info">
+                  预估费用: {{ formatGasFee(estimatedGas) }}
+                  <a-button type="link" size="small" @click="fetchGasEstimate">
+                    刷新估算
+                  </a-button>
+                </span>
+              </template>
+            </a-form-item>
+          </template>
         </a-form>
 
         <div style="text-align: right; margin-top: 16px">
@@ -276,13 +353,20 @@ import {
   SwapOutlined,
   SafetyOutlined,
   ClockCircleOutlined,
+  RocketOutlined,
+  QuestionCircleOutlined,
+  LockOutlined,
 } from '@ant-design/icons-vue';
 import { useTradeStore } from '../../stores/trade';
+import { useBlockchainStore } from '../../stores/blockchain';
 import DIDSelector from './common/DIDSelector.vue';
 import PriceInput from './common/PriceInput.vue';
+import WalletSelector from '../blockchain/WalletSelector.vue';
+import ChainSelector from '../blockchain/ChainSelector.vue';
 
 // Store
 const tradeStore = useTradeStore();
+const blockchainStore = useBlockchainStore();
 
 // Props
 const props = defineProps({
@@ -298,9 +382,16 @@ const emit = defineEmits(['created', 'cancel', 'update:visible']);
 // 状态
 const currentStep = ref(0);
 const selectedTemplate = ref(null);
-const formData = reactive({});
+const formData = reactive({
+  // 区块链部署选项（初始值）
+  onChain: false,
+  walletId: '',
+  chainId: 31337,
+  password: '',
+});
 const participantsText = ref('');
 const unlockDate = ref(null);
+const estimatedGas = ref(null);
 
 // 从 store 获取数据
 const creating = computed(() => tradeStore.contract.creating);
@@ -324,7 +415,19 @@ const selectTemplate = (template) => {
 
 // 重置表单数据
 const resetFormData = () => {
+  // 保留链上部署选项
+  const blockchainOptions = {
+    onChain: formData.onChain || false,
+    walletId: formData.walletId || '',
+    chainId: formData.chainId || 31337,
+    password: formData.password || '',
+  };
+
+  // 清空所有字段
   Object.keys(formData).forEach(key => delete formData[key]);
+
+  // 恢复链上部署选项
+  Object.assign(formData, blockchainOptions);
 
   // 根据模板设置默认值
   if (selectedTemplate.value) {
@@ -354,6 +457,33 @@ const resetFormData = () => {
   }
 };
 
+// 格式化 Gas 费用
+const formatGasFee = (gas) => {
+  if (!gas || !blockchainStore.gasPrice) return '-';
+
+  const gasPriceWei = blockchainStore.gasPrice.gasPrice || '1000000000';
+  const totalWei = BigInt(gas) * BigInt(gasPriceWei);
+  const etherValue = Number(totalWei) / 1e18;
+
+  const network = blockchainStore.currentNetwork;
+  const symbol = network?.symbol || 'ETH';
+
+  return `~${etherValue.toFixed(6)} ${symbol}`;
+};
+
+// 获取 Gas 估算
+const fetchGasEstimate = async () => {
+  try {
+    // 合约部署 Gas 估算（简化版本）
+    estimatedGas.value = 1000000; // 合约部署约 100 万 gas
+
+    antMessage.success('Gas 估算已更新');
+  } catch (error) {
+    console.error('[ContractCreate] Gas 估算失败:', error);
+    antMessage.error('Gas 估算失败');
+  }
+};
+
 // 下一步
 const nextStep = () => {
   if (currentStep.value < 2) {
@@ -371,6 +501,22 @@ const prevStep = () => {
 // 创建合约
 const handleCreate = async () => {
   try {
+    // 验证链上部署选项
+    if (formData.onChain) {
+      if (!formData.walletId) {
+        antMessage.warning('请选择钱包');
+        return;
+      }
+      if (!formData.chainId) {
+        antMessage.warning('请选择网络');
+        return;
+      }
+      if (!formData.password || formData.password.length < 8) {
+        antMessage.warning('请输入钱包密码（至少8位）');
+        return;
+      }
+    }
+
     // 准备参数
     const params = { ...formData };
 
@@ -402,7 +548,13 @@ const handleCreate = async () => {
     );
 
     console.log('[ContractCreate] 合约创建成功:', contract.id);
-    antMessage.success('合约创建成功！');
+
+    if (formData.onChain) {
+      antMessage.success('合约创建成功，正在部署到区块链...');
+      // 注意：部署是异步的，成功/失败会通过事件通知
+    } else {
+      antMessage.success('合约创建成功！');
+    }
 
     // 通知父组件
     emit('created', contract);
@@ -519,11 +671,41 @@ watch(() => props.visible, (newVal) => {
     reset();
   }
 });
+
+// 监听链上部署开关
+watch(() => formData.onChain, (enabled) => {
+  if (enabled) {
+    // 自动选择当前钱包和链
+    if (blockchainStore.currentWallet) {
+      formData.walletId = blockchainStore.currentWallet.id;
+    }
+    formData.chainId = blockchainStore.currentChainId;
+
+    // 获取 Gas 估算
+    fetchGasEstimate();
+
+    // 获取 Gas 价格
+    if (!blockchainStore.gasPrice) {
+      blockchainStore.fetchGasPrice();
+    }
+  } else {
+    // 禁用时清空相关字段
+    estimatedGas.value = null;
+  }
+});
 </script>
 
 <style scoped>
 .contract-create {
   /* 样式 */
+}
+
+.gas-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #595959;
 }
 
 .template-card {
