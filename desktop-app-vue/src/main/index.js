@@ -4339,6 +4339,20 @@ class ChainlessChainApp {
       }
     });
 
+    // 获取合约的区块链部署信息
+    ipcMain.handle('contract:get-blockchain-info', async (_event, contractId) => {
+      try {
+        if (!this.contractEngine) {
+          return null;
+        }
+
+        return await this.contractEngine._getDeployedContract(contractId);
+      } catch (error) {
+        console.error('[Main] 获取合约部署信息失败:', error);
+        return null;
+      }
+    });
+
     // === 知识付费系统 ===
     ipcMain.handle('knowledge:create-content', async (_event, options) => {
       try {

@@ -319,6 +319,27 @@ class SmartContractEngine extends EventEmitter {
 
       console.log('[ContractEngine] 已创建合约:', contractId);
 
+      // 如果需要部署到区块链
+      if (onChain && this.blockchainAdapter) {
+        try {
+          await this._deployContractToBlockchain(contractId, {
+            contractType,
+            title,
+            terms,
+            chainId,
+            walletId,
+            password
+          });
+
+          console.log('[ContractEngine] 合约已成功部署到区块链');
+          this.emit('contract:deployed', { contract });
+        } catch (error) {
+          console.error('[ContractEngine] 区块链部署失败:', error);
+          // 部署失败不影响本地合约创建，只记录错误
+          this.emit('contract:deployment-failed', { contractId, error: error.message });
+        }
+      }
+
       this.emit('contract:created', { contract });
 
       return contract;
@@ -1103,6 +1124,114 @@ class SmartContractEngine extends EventEmitter {
       clearInterval(this.checkTimer);
       this.checkTimer = null;
       console.log('[ContractEngine] 自动检查已停止');
+    }
+  }
+
+  /**
+   * 部署合约到区块链（私有方法）
+   * @param {string} contractId - 合约 ID
+   * @param {Object} options - 部署选项
+   */
+  async _deployContractToBlockchain(contractId, options) {
+    const { contractType, title, terms, chainId, walletId, password } = options;
+
+    if (!this.blockchainAdapter) {
+      throw new Error('区块链适配器未初始化');
+    }
+
+    if (!chainId || !walletId || !password) {
+      throw new Error('缺少必要参数: chainId, walletId, password');
+    }
+
+    // 切换到目标链
+    await this.blockchainAdapter.switchChain(chainId);
+
+    let contractAddress, deploymentTx, contractName;
+
+    // 根据合约类型部署不同的智能合约
+    // 注意：目前我们只支持托管合约(Escrow)部署，其他类型需要相应的智能合约实现
+    // TODO: 实现订阅合约、悬赏合约等的部署逻辑
+
+    // 这里为简化，使用 ERC-20 代币作为示例（实际应该部署托管合约）
+    // 实际部署托管合约需要 EscrowContract.sol 的 artifacts
+    console.warn('[ContractEngine] 链上合约部署当前使用 ERC-20 代币作为示例');
+    console.warn('[ContractEngine] 生产环境需要部署实际的托管、订阅、悬赏合约');
+
+    const result = await this.blockchainAdapter.deployERC20Token(walletId, {
+      name: title,
+      symbol: 'CONTRACT',
+      decimals: 0,
+      initialSupply: '0',
+      password
+    });
+
+    contractAddress = result.address;
+    deploymentTx = result.txHash;
+    contractName = title;
+
+    console.log(`[ContractEngine] 合约已部署到区块链: ${contractAddress}`);
+
+    // 保存部署记录
+    await this._saveDeployedContract({
+      localContractId: contractId,
+      contractName,
+      contractType,
+      contractAddress,
+      chainId,
+      deploymentTx
+    });
+
+    return { contractAddress, deploymentTx };
+  }
+
+  /**
+   * 保存合约部署记录（私有方法）
+   * @param {Object} options - 部署信息
+   */
+  async _saveDeployedContract(options) {
+    const {
+      localContractId,
+      contractName,
+      contractType,
+      contractAddress,
+      chainId,
+      deploymentTx,
+      deployerAddress = null,
+      abiJson = null
+    } = options;
+
+    const db = this.database.db;
+    const now = Date.now();
+    const id = uuidv4();
+
+    db.prepare(`
+      INSERT INTO deployed_contracts
+      (id, local_contract_id, contract_name, contract_type, contract_address, chain_id, deployment_tx, deployer_address, abi_json, deployed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, localContractId, contractName, contractType, contractAddress, chainId, deploymentTx, deployerAddress, abiJson, now);
+
+    console.log(`[ContractEngine] 已保存合约部署记录: ${id}`);
+
+    return id;
+  }
+
+  /**
+   * 获取合约的区块链部署信息（私有方法）
+   * @param {string} contractId - 合约 ID
+   */
+  async _getDeployedContract(contractId) {
+    try {
+      const db = this.database.db;
+
+      const deployedContract = db.prepare(`
+        SELECT * FROM deployed_contracts
+        WHERE local_contract_id = ?
+      `).get(contractId);
+
+      return deployedContract || null;
+    } catch (error) {
+      console.error('[ContractEngine] 获取合约部署信息失败:', error);
+      return null;
     }
   }
 
