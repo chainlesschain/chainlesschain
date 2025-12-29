@@ -2,7 +2,7 @@
  * 全局键盘快捷键 Hook
  */
 
-import { onMounted, onBeforeUnmount } from 'vue';
+import { onMounted, onBeforeUnmount, h } from 'vue';
 import { message } from 'ant-design-vue';
 
 // 快捷键映射表
@@ -178,12 +178,11 @@ export function showShortcutHelp() {
     .join('\n');
 
   message.info({
-    content: (
-      <div style="white-space: pre-line; text-align: left;">
-        <strong>键盘快捷键：</strong><br/>
-        {content}
-      </div>
-    ),
+    content: h('div', { style: { whiteSpace: 'pre-line', textAlign: 'left' } }, [
+      h('strong', '键盘快捷键：'),
+      h('br'),
+      content
+    ]),
     duration: 5,
   });
 }

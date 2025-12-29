@@ -14,7 +14,7 @@
 
     <!-- 帮助面板 -->
     <a-drawer
-      v-model:open="visible"
+      v-model:open="modalVisible"
       title="帮助中心"
       placement="right"
       :width="480"

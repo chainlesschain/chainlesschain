@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:open="visible"
+    v-model:open="modalVisible"
     title="导入钱包"
     :width="600"
     :confirm-loading="loading"
@@ -168,6 +168,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:visible', 'imported']);
+
+// Computed property for modal visibility (two-way binding with prop)
+const modalVisible = computed({
+  get: () => props.visible,
+  set: (value) => emit('update:visible', value),
+});
 
 const blockchainStore = useBlockchainStore();
 

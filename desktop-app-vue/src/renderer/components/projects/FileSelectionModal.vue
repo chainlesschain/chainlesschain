@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:open="visible"
+    v-model:open="modalVisible"
     title="文件"
     :width="680"
     :footer="null"

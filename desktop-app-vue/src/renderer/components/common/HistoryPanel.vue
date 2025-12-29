@@ -1,7 +1,7 @@
 <template>
   <div class="history-panel">
     <a-drawer
-      v-model:open="visible"
+      v-model:open="modalVisible"
       title="操作历史"
       placement="right"
       :width="420"

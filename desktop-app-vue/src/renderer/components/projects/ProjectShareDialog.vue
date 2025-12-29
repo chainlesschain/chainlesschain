@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:open="visible"
+    v-model:open="modalVisible"
     title="分享公开对话"
     :width="500"
     @ok="handleShareConfirm"
