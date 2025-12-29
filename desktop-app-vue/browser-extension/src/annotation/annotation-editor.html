@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>截图标注编辑器 - ChainlessChain</title>
+  <link rel="stylesheet" href="annotation-editor.css">
+</head>
+<body>
+  <div class="editor-container">
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <h2>截图标注</h2>
+      </div>
+
+      <div class="toolbar-center">
+        <button class="tool-btn" id="selectBtn" title="选择工具" data-tool="select">
+          <span>🔍</span> 选择
+        </button>
+        <button class="tool-btn" id="penBtn" title="画笔" data-tool="pen">
+          <span>✏️</span> 画笔
+        </button>
+        <button class="tool-btn" id="highlightBtn" title="高亮" data-tool="highlight">
+          <span>🖍️</span> 高亮
+        </button>
+        <button class="tool-btn" id="textBtn" title="文本" data-tool="text">
+          <span>📝</span> 文本
+        </button>
+        <button class="tool-btn" id="arrowBtn" title="箭头" data-tool="arrow">
+          <span>➡️</span> 箭头
+        </button>
+        <button class="tool-btn" id="rectBtn" title="矩形" data-tool="rect">
+          <span>⬜</span> 矩形
+        </button>
+
+        <div class="separator"></div>
+
+        <!-- 颜色选择器 -->
+        <div class="color-picker">
+          <input type="color" id="colorPicker" value="#ff0000" title="选择颜色">
+          <label for="colorPicker">颜色</label>
+        </div>
+
+        <div class="separator"></div>
+
+        <button class="tool-btn" id="undoBtn" title="撤销">
+          <span>↶</span> 撤销
+        </button>
+        <button class="tool-btn" id="clearBtn" title="清除全部">
+          <span>🗑️</span> 清除
+        </button>
+      </div>
+
+      <div class="toolbar-right">
+        <button class="btn-cancel" id="cancelBtn">取消</button>
+        <button class="btn-save" id="saveBtn">保存</button>
+      </div>
+    </div>
+
+    <!-- 画布容器 -->
+    <div class="canvas-container" id="canvasContainer">
+      <canvas id="annotationCanvas"></canvas>
+    </div>
+
+    <!-- 加载指示器 -->
+    <div class="loading" id="loading" style="display: none;">
+      <div class="spinner"></div>
+      <p>保存中...</p>
+    </div>
+  </div>
+
+  <!-- 引入Fabric.js -->
+  <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+  <script type="module" src="annotation-editor.js"></script>
+</body>
+</html>

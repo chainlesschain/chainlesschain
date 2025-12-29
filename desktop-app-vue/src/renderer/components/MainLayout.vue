@@ -220,6 +220,9 @@
               </a-button>
             </a-tooltip>
 
+            <!-- 数据库加密状态 -->
+            <DatabaseEncryptionStatus />
+
             <!-- AI对话 -->
             <a-tooltip title="AI对话">
               <a-button type="text" @click="toggleChat">
@@ -387,6 +390,7 @@ import ChatPanel from './ChatPanel.vue';
 import SyncConflictDialog from './SyncConflictDialog.vue';
 import LanguageSwitcher from './LanguageSwitcher.vue';
 import NotificationCenter from './social/NotificationCenter.vue';
+import DatabaseEncryptionStatus from './DatabaseEncryptionStatus.vue';
 
 const router = useRouter();
 const route = useRoute();
