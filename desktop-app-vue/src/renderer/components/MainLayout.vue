@@ -71,6 +71,10 @@
             <template #icon><FileTextOutlined /></template>
             我的知识
           </a-menu-item>
+          <a-menu-item key="knowledge-graph">
+            <template #icon><NodeIndexOutlined /></template>
+            知识图谱
+          </a-menu-item>
           <a-menu-item key="file-import">
             <template #icon><CloudUploadOutlined /></template>
             文件导入
@@ -157,6 +161,11 @@
           <a-menu-item key="settings">
             <template #icon><SettingOutlined /></template>
             通用设置
+          </a-menu-item>
+          <a-menu-item key="plugin-management">
+            <template #icon><AppstoreOutlined /></template>
+            插件管理
+            <a-badge count="新" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
           </a-menu-item>
           <a-menu-item key="llm-settings">
             <template #icon><ApiOutlined /></template>
@@ -348,6 +357,7 @@ import {
   CloudSyncOutlined,
   ArrowLeftOutlined,
   AppstoreOutlined,
+  NodeIndexOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import ChatPanel from './ChatPanel.vue';
@@ -388,6 +398,7 @@ const menuConfig = {
   // 知识与AI模块
   home: { path: '/', title: '知识首页', closable: false },
   'knowledge-list': { path: '/knowledge/list', title: '我的知识' },
+  'knowledge-graph': { path: '/knowledge/graph', title: '知识图谱' },
   'file-import': { path: '/file-import', title: '文件导入' },
   'image-upload': { path: '/image-upload', title: '图片上传' },
   'prompt-templates': { path: '/prompt-templates', title: '提示词模板' },
@@ -411,6 +422,7 @@ const menuConfig = {
   // 系统设置模块
   'system-settings': { path: '/settings/system', title: '系统配置' },
   settings: { path: '/settings', title: '通用设置', query: { tab: 'general' } },
+  'plugin-management': { path: '/settings/plugins', title: '插件管理' },
   'llm-settings': { path: '/settings', title: 'LLM配置', query: { tab: 'llm' } },
   'git-settings': { path: '/settings', title: 'Git同步', query: { tab: 'git' } },
   'rag-settings': { path: '/settings', title: 'RAG配置', query: { tab: 'rag' } },

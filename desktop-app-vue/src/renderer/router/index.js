@@ -42,6 +42,12 @@ const routes = [
         meta: { title: '系统设置' },
       },
       {
+        path: 'settings/plugins',
+        name: 'PluginManagement',
+        component: () => import('../pages/settings/PluginManagement.vue'),
+        meta: { title: '插件管理' },
+      },
+      {
         path: 'did',
         name: 'DIDManagement',
         component: () => import('../components/DIDManagement.vue'),
@@ -189,6 +195,12 @@ const routes = [
         name: 'KnowledgeList',
         component: () => import('../pages/KnowledgeListPage.vue'),
         meta: { title: '我的知识' },
+      },
+      {
+        path: 'knowledge/graph',
+        name: 'KnowledgeGraph',
+        component: () => import('../pages/KnowledgeGraphPage.vue'),
+        meta: { title: '知识图谱' },
       },
       // AI对话
       {

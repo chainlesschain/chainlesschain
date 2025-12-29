@@ -1,0 +1,111 @@
+{
+  "timestamp": "2025-12-29T00:36:58.823Z",
+  "summary": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "passRate": "100.0%"
+  },
+  "tests": [
+    {
+      "name": "插件目录存在",
+      "passed": true,
+      "message": "路径: C:\\code\\chainlesschain\\desktop-app-vue\\test-plugin"
+    },
+    {
+      "name": "plugin.json 存在",
+      "passed": true,
+      "message": "路径: C:\\code\\chainlesschain\\desktop-app-vue\\test-plugin\\plugin.json"
+    },
+    {
+      "name": "index.js 存在",
+      "passed": true,
+      "message": "路径: C:\\code\\chainlesschain\\desktop-app-vue\\test-plugin\\index.js"
+    },
+    {
+      "name": "manifest 格式正确",
+      "passed": true,
+      "message": "插件ID: com.chainlesschain.hello-world, 版本: 1.0.0"
+    },
+    {
+      "name": "manifest 必需字段完整",
+      "passed": true,
+      "message": "所有必需字段都存在"
+    },
+    {
+      "name": "manifest 包含权限配置",
+      "passed": true,
+      "message": "权限数量: 2"
+    },
+    {
+      "name": "manifest 包含扩展点配置",
+      "passed": true,
+      "message": "扩展点数量: 1"
+    },
+    {
+      "name": "index.js 导出插件类",
+      "passed": true,
+      "message": "Class exported successfully"
+    },
+    {
+      "name": "插件可以实例化",
+      "passed": true,
+      "message": "实例名称: Hello World Plugin"
+    },
+    {
+      "name": "插件包含生命周期方法",
+      "passed": true,
+      "message": "onEnable, onDisable, onUninstall"
+    },
+    {
+      "name": "PluginManager 模块存在",
+      "passed": true,
+      "message": "路径: C:\\code\\chainlesschain\\desktop-app-vue\\dist\\main\\plugins\\plugin-manager.js"
+    },
+    {
+      "name": "PluginRegistry 模块存在",
+      "passed": true,
+      "message": "路径: C:\\code\\chainlesschain\\desktop-app-vue\\dist\\main\\plugins\\plugin-registry.js"
+    },
+    {
+      "name": "PluginLoader 模块存在",
+      "passed": true,
+      "message": "路径: C:\\code\\chainlesschain\\desktop-app-vue\\dist\\main\\plugins\\plugin-loader.js"
+    },
+    {
+      "name": "插件系统数据库迁移文件存在",
+      "passed": true,
+      "message": "路径: C:\\code\\chainlesschain\\desktop-app-vue\\dist\\main\\database\\migrations\\001_plugin_system.sql"
+    },
+    {
+      "name": "迁移文件包含所有必需表",
+      "passed": true,
+      "message": "7 个表"
+    },
+    {
+      "name": "Preload 脚本存在",
+      "passed": true,
+      "message": "路径: C:\\code\\chainlesschain\\desktop-app-vue\\dist\\preload\\index.js"
+    },
+    {
+      "name": "Preload 包含 plugin API",
+      "passed": true,
+      "message": "找到 plugin API 定义"
+    },
+    {
+      "name": "Preload 包含所有插件 IPC 调用",
+      "passed": true,
+      "message": "6 个 IPC 调用"
+    },
+    {
+      "name": "PluginManagement 组件存在",
+      "passed": true,
+      "message": "路径: C:\\code\\chainlesschain\\desktop-app-vue\\src\\renderer\\pages\\settings\\PluginManagement.vue"
+    },
+    {
+      "name": "组件包含所有必需功能",
+      "passed": true,
+      "message": "5 个功能"
+    }
+  ]
+}

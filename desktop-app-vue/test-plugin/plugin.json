@@ -1,0 +1,27 @@
+{
+  "id": "com.chainlesschain.hello-world",
+  "name": "Hello World Plugin",
+  "version": "1.0.0",
+  "author": "ChainlessChain Team",
+  "description": "一个简单的测试插件，用于验证插件系统",
+  "homepage": "https://github.com/chainlesschain/hello-world-plugin",
+  "license": "MIT",
+  "main": "index.js",
+  "category": "custom",
+  "permissions": [
+    "database:read",
+    "ui:component"
+  ],
+  "extensionPoints": [
+    {
+      "point": "ui.menu",
+      "config": {
+        "label": "Hello World",
+        "position": "tools"
+      }
+    }
+  ],
+  "compatibility": {
+    "chainlesschain": ">=0.16.0"
+  }
+}

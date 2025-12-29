@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const DatabaseManager = require('./database');
+const GraphExtractor = require('./graph-extractor');
 const { getAppConfig } = require('./app-config');
 const { UKeyManager, DriverTypes } = require('./ukey/ukey-manager');
 const ProjectStatsCollector = require('./project/stats-collector');
@@ -46,6 +47,9 @@ const { registerCategoryIPCHandlers } = require('./category-ipc');
 
 // Backend API clients
 const { ProjectFileAPI, GitAPI, RAGAPI, CodeAPI } = require('./api/backend-client');
+
+// Plugin System (Phase 1)
+const { PluginManager, setPluginManager } = require('./plugins/plugin-manager');
 
 // 过滤不需要的控制台输出
 const originalConsoleLog = console.log;
@@ -180,6 +184,9 @@ class ChainlessChainApp {
     this.projectStructureManager = null;
     this.gitAutoCommit = null;
 
+    // Plugin System (Phase 1)
+    this.pluginManager = null;
+
     // Web IDE
     this.webideManager = null;
     this.webideIPC = null;
@@ -234,6 +241,9 @@ class ChainlessChainApp {
       // 设置数据库单例（供其他模块使用）
       const { setDatabase } = require('./database');
       setDatabase(this.database);
+
+      // 初始化知识图谱提取器
+      this.graphExtractor = new GraphExtractor(this.database);
 
       console.log('数据库初始化成功');
     } catch (error) {
@@ -689,6 +699,38 @@ class ChainlessChainApp {
       // 不影响主应用启动
     }
 
+    // 初始化插件系统 (Phase 2)
+    try {
+      console.log('初始化插件系统...');
+      const { getPluginManager } = require('./plugins/plugin-manager');
+      this.pluginManager = getPluginManager(this.database, {
+        pluginsDir: path.join(app.getPath('userData'), 'plugins'),
+      });
+
+      // 设置系统上下文（提供给插件API）
+      this.pluginManager.setSystemContext({
+        database: this.database,
+        llmManager: this.llmManager,
+        ragManager: this.ragManager,
+        gitManager: this.gitManager,
+        fileImporter: this.fileImporter,
+        imageUploader: this.imageUploader,
+        aiEngineManager: this.aiEngineManager,
+        webEngine: this.webEngine,
+        documentEngine: this.documentEngine,
+        dataEngine: this.dataEngine,
+      });
+
+      await this.pluginManager.initialize();
+      console.log('插件系统初始化成功');
+
+      // 监听插件事件
+      this.setupPluginEvents();
+    } catch (error) {
+      console.error('插件系统初始化失败:', error);
+      // 不影响主应用启动
+    }
+
     await this.createWindow();
   }
 
@@ -939,6 +981,64 @@ class ChainlessChainApp {
     });
 
     console.log('[Main] P2P 加密事件监听已设置');
+  }
+
+  setupPluginEvents() {
+    if (!this.pluginManager) {
+      return;
+    }
+
+    // 监听插件事件并转发给渲染进程
+    this.pluginManager.on('initialized', (data) => {
+      console.log('[Main] 插件系统已初始化:', data);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('plugin:initialized', data);
+      }
+    });
+
+    this.pluginManager.on('plugin:installed', (data) => {
+      console.log('[Main] 插件已安装:', data.pluginId);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('plugin:installed', data);
+      }
+    });
+
+    this.pluginManager.on('plugin:uninstalled', (data) => {
+      console.log('[Main] 插件已卸载:', data.pluginId);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('plugin:uninstalled', data);
+      }
+    });
+
+    this.pluginManager.on('plugin:enabled', (data) => {
+      console.log('[Main] 插件已启用:', data.pluginId);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('plugin:enabled', data);
+      }
+    });
+
+    this.pluginManager.on('plugin:disabled', (data) => {
+      console.log('[Main] 插件已禁用:', data.pluginId);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('plugin:disabled', data);
+      }
+    });
+
+    this.pluginManager.on('plugin:load-failed', (data) => {
+      console.error('[Main] 插件加载失败:', data.pluginId, data.error);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('plugin:load-failed', data);
+      }
+    });
+
+    this.pluginManager.on('extension:error', (data) => {
+      console.error('[Main] 扩展执行失败:', data.extension, data.error);
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('plugin:extension-error', data);
+      }
+    });
+
+    console.log('[Main] 插件系统事件监听已设置');
   }
 
   /**
@@ -3780,6 +3880,142 @@ class ChainlessChainApp {
       }
     });
 
+    // === 知识图谱系统 ===
+    ipcMain.handle('graph:get-graph-data', async (_event, options) => {
+      try {
+        if (!this.database) {
+          return { nodes: [], edges: [] };
+        }
+        return this.database.getGraphData(options);
+      } catch (error) {
+        console.error('[Main] 获取图谱数据失败:', error);
+        return { nodes: [], edges: [] };
+      }
+    });
+
+    ipcMain.handle('graph:process-note', async (_event, noteId, content, tags) => {
+      try {
+        if (!this.graphExtractor) {
+          console.warn('[Main] GraphExtractor 未初始化');
+          return 0;
+        }
+        return this.graphExtractor.processNote(noteId, content, tags);
+      } catch (error) {
+        console.error('[Main] 处理笔记关系失败:', error);
+        return 0;
+      }
+    });
+
+    ipcMain.handle('graph:process-all-notes', async (_event, noteIds) => {
+      try {
+        if (!this.graphExtractor) {
+          console.warn('[Main] GraphExtractor 未初始化');
+          return { processed: 0, linkRelations: 0, tagRelations: 0, temporalRelations: 0 };
+        }
+        return this.graphExtractor.processAllNotes(noteIds);
+      } catch (error) {
+        console.error('[Main] 批量处理笔记失败:', error);
+        return { processed: 0, linkRelations: 0, tagRelations: 0, temporalRelations: 0 };
+      }
+    });
+
+    ipcMain.handle('graph:get-knowledge-relations', async (_event, knowledgeId) => {
+      try {
+        if (!this.database) {
+          return [];
+        }
+        return this.database.getKnowledgeRelations(knowledgeId);
+      } catch (error) {
+        console.error('[Main] 获取笔记关系失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('graph:find-related-notes', async (_event, sourceId, targetId, maxDepth) => {
+      try {
+        if (!this.database) {
+          return null;
+        }
+        return this.database.findRelatedNotes(sourceId, targetId, maxDepth);
+      } catch (error) {
+        console.error('[Main] 查找关联路径失败:', error);
+        return null;
+      }
+    });
+
+    ipcMain.handle('graph:find-potential-links', async (_event, noteId, content) => {
+      try {
+        if (!this.graphExtractor) {
+          return [];
+        }
+        return this.graphExtractor.findPotentialLinks(noteId, content);
+      } catch (error) {
+        console.error('[Main] 查找潜在链接失败:', error);
+        return [];
+      }
+    });
+
+    ipcMain.handle('graph:add-relation', async (_event, sourceId, targetId, type, weight, metadata) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+        return this.database.addRelation(sourceId, targetId, type, weight, metadata);
+      } catch (error) {
+        console.error('[Main] 添加关系失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('graph:delete-relations', async (_event, noteId, types) => {
+      try {
+        if (!this.database) {
+          return 0;
+        }
+        return this.database.deleteRelations(noteId, types);
+      } catch (error) {
+        console.error('[Main] 删除关系失败:', error);
+        return 0;
+      }
+    });
+
+    ipcMain.handle('graph:build-tag-relations', async (_event) => {
+      try {
+        if (!this.database) {
+          return 0;
+        }
+        return this.database.buildTagRelations();
+      } catch (error) {
+        console.error('[Main] 构建标签关系失败:', error);
+        return 0;
+      }
+    });
+
+    ipcMain.handle('graph:build-temporal-relations', async (_event, windowDays) => {
+      try {
+        if (!this.database) {
+          return 0;
+        }
+        return this.database.buildTemporalRelations(windowDays);
+      } catch (error) {
+        console.error('[Main] 构建时间关系失败:', error);
+        return 0;
+      }
+    });
+
+    ipcMain.handle('graph:extract-semantic-relations', async (_event, noteId, content) => {
+      try {
+        if (!this.graphExtractor || !this.llmManager) {
+          console.warn('[Main] GraphExtractor 或 LLMManager 未初始化');
+          return [];
+        }
+        return await this.graphExtractor.extractSemanticRelations(noteId, content, this.llmManager);
+      } catch (error) {
+        console.error('[Main] 提取语义关系失败:', error);
+        return [];
+      }
+    });
+
     // === 信用评分系统 ===
     ipcMain.handle('credit:get-user-credit', async (_event, userDid) => {
       try {
@@ -5947,28 +6183,49 @@ class ChainlessChainApp {
           throw new Error(`项目不存在: ${projectId}`);
         }
 
-        const projectPath = project.path;
+        const projectPath = project.root_path;
+
+        // 验证项目路径
+        if (!projectPath) {
+          throw new Error(`项目路径未设置: ${projectId}，请在项目设置中指定项目根目录`);
+        }
+
+        console.log('[Main] 项目路径:', projectPath);
 
         // 3. 确保日志表存在
         await ensureLogTable(this.database);
 
-        // 4. 调用后端AI服务
+        // 4. 准备后端API请求数据
+        // 注意：后端期望 current_file 是文件路径字符串，不是对象
+        const currentFilePath = currentFile && typeof currentFile === 'object'
+          ? currentFile.file_path
+          : currentFile;
+
+        // 5. 调用后端AI服务
         const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+
+        const requestData = {
+          project_id: projectId,
+          user_message: userMessage,
+          conversation_history: conversationHistory || [],
+          context_mode: contextMode || 'project',
+          current_file: currentFilePath || null,
+          project_info: projectInfo || {
+            name: project.name,
+            description: project.description || '',
+            type: project.project_type || 'general'
+          },
+          file_list: fileList || []
+        };
+
+        console.log('[Main] 发送到AI服务的数据:', JSON.stringify({
+          ...requestData,
+          file_list: `[${fileList?.length || 0} files]`
+        }, null, 2));
+
         const response = await axios.post(
           `${AI_SERVICE_URL}/api/projects/${projectId}/chat`,
-          {
-            project_id: projectId,
-            user_message: userMessage,
-            conversation_history: conversationHistory,
-            context_mode: contextMode,
-            current_file: currentFile,
-            project_info: projectInfo || {
-              name: project.name,
-              description: project.description || '',
-              type: project.type || 'general'
-            },
-            file_list: fileList
-          },
+          requestData,
           {
             timeout: 60000  // 60秒超时
           }
@@ -10638,6 +10895,155 @@ ${content}
         throw error;
       }
     });
+
+    // ============================================
+    // 插件系统 IPC Handlers (Phase 1)
+    // ============================================
+
+    // 获取所有插件
+    ipcMain.handle('plugin:get-plugins', async (_event, filters) => {
+      try {
+        if (!this.pluginManager) {
+          return { success: false, error: '插件系统未初始化' };
+        }
+        const plugins = this.pluginManager.getPlugins(filters);
+        return { success: true, plugins };
+      } catch (error) {
+        console.error('[Main] 获取插件列表失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 获取单个插件信息
+    ipcMain.handle('plugin:get-plugin', async (_event, pluginId) => {
+      try {
+        if (!this.pluginManager) {
+          throw new Error('插件系统未初始化');
+        }
+        const plugin = this.pluginManager.getPlugin(pluginId);
+        return { success: true, plugin };
+      } catch (error) {
+        console.error('[Main] 获取插件信息失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 安装插件
+    ipcMain.handle('plugin:install', async (_event, source, options) => {
+      try {
+        if (!this.pluginManager) {
+          throw new Error('插件系统未初始化');
+        }
+        console.log('[Main] 安装插件:', source);
+        const result = await this.pluginManager.installPlugin(source, options);
+        return { success: true, ...result };
+      } catch (error) {
+        console.error('[Main] 安装插件失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 卸载插件
+    ipcMain.handle('plugin:uninstall', async (_event, pluginId) => {
+      try {
+        if (!this.pluginManager) {
+          throw new Error('插件系统未初始化');
+        }
+        console.log('[Main] 卸载插件:', pluginId);
+        await this.pluginManager.uninstallPlugin(pluginId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 卸载插件失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 启用插件
+    ipcMain.handle('plugin:enable', async (_event, pluginId) => {
+      try {
+        if (!this.pluginManager) {
+          throw new Error('插件系统未初始化');
+        }
+        console.log('[Main] 启用插件:', pluginId);
+        await this.pluginManager.enablePlugin(pluginId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 启用插件失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 禁用插件
+    ipcMain.handle('plugin:disable', async (_event, pluginId) => {
+      try {
+        if (!this.pluginManager) {
+          throw new Error('插件系统未初始化');
+        }
+        console.log('[Main] 禁用插件:', pluginId);
+        await this.pluginManager.disablePlugin(pluginId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 禁用插件失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 获取插件权限
+    ipcMain.handle('plugin:get-permissions', async (_event, pluginId) => {
+      try {
+        if (!this.pluginManager) {
+          throw new Error('插件系统未初始化');
+        }
+        const permissions = this.pluginManager.registry.getPluginPermissions(pluginId);
+        return { success: true, permissions };
+      } catch (error) {
+        console.error('[Main] 获取插件权限失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 更新插件权限
+    ipcMain.handle('plugin:update-permission', async (_event, pluginId, permission, granted) => {
+      try {
+        if (!this.pluginManager) {
+          throw new Error('插件系统未初始化');
+        }
+        await this.pluginManager.registry.updatePermission(pluginId, permission, granted);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 更新插件权限失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 触发扩展点
+    ipcMain.handle('plugin:trigger-extension-point', async (_event, name, context) => {
+      try {
+        if (!this.pluginManager) {
+          throw new Error('插件系统未初始化');
+        }
+        const results = await this.pluginManager.triggerExtensionPoint(name, context);
+        return { success: true, results };
+      } catch (error) {
+        console.error('[Main] 触发扩展点失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 打开插件目录
+    ipcMain.handle('plugin:open-plugins-dir', async () => {
+      try {
+        const { shell } = require('electron');
+        const pluginsDir = path.join(app.getPath('userData'), 'plugins');
+        await shell.openPath(pluginsDir);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 打开插件目录失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    console.log('[Main] 插件系统 IPC handlers 注册完成');
   }
 
   /**
