@@ -639,15 +639,7 @@ const handleBatchDelete = () => {
 
   Modal.confirm({
     title: '确认批量删除？',
-    content: (
-      <div>
-        <p>将删除以下 {count} 个工具：</p>
-        <p style="color: #ff4d4f; max-height: 200px; overflow-y: auto;">
-          {toolNames}
-        </p>
-        <p style="font-weight: bold; color: #ff4d4f;">此操作不可恢复，是否继续？</p>
-      </div>
-    ),
+    content: `将删除以下 ${count} 个工具：\n\n${toolNames}\n\n此操作不可恢复，是否继续？`,
     okText: '确认删除',
     okType: 'danger',
     cancelText: '取消',
