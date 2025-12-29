@@ -2,12 +2,13 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.16.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.17.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Progress](https://img.shields.io/badge/progress-95%25-brightgreen.svg)
+![Progress](https://img.shields.io/badge/progress-92%25-brightgreen.svg)
 ![Phase 1](https://img.shields.io/badge/Phase%201-100%25-brightgreen.svg)
 ![Phase 2](https://img.shields.io/badge/Phase%202-100%25-brightgreen.svg)
 ![Phase 3](https://img.shields.io/badge/Phase%203-100%25-brightgreen.svg)
+![Blockchain](https://img.shields.io/badge/Blockchain-50%25-yellow.svg)
 
 **去中心化 · 隐私优先 · AI原生**
 
@@ -19,26 +20,33 @@
 
 ---
 
-## ⭐ 当前版本: v0.16.0 (2025-12-28)
+## ⭐ 当前版本: v0.17.0 (2025-12-29)
 
 ### 最新更新
-- ✅ **Phase 3 去中心化交易系统完成** - 8大模块全部实现（5625+行代码），包括数字资产管理、交易市场、智能合约托管、托管服务、知识付费、信用评分、评价系统、订单管理
+- ✅ **区块链集成Phase 1-3完成** - 智能合约系统(6个合约 + 测试 + 部署)、钱包系统(内置+外部)、Hardhat开发环境
+- ✅ **智能合约开发** - ChainlessToken(ERC20)、ChainlessNFT(ERC721)、托管合约、订阅合约、悬赏合约、跨链桥，2400+行代码
+- ✅ **技能工具系统集成** - ToolManager + SkillManager集成到主进程，文档自动生成，前端管理页面和组件
+- ✅ **浏览器扩展完善** - 自动化测试框架、用户/开发者/测试指南、测试报告生成
+- ✅ **插件系统增强** - 集成技能工具系统，支持动态加载和热更新
+- ✅ **语音识别系统完成** - Phase 3高级功能，音频增强、多语言检测、字幕生成
 - ✅ **19个AI专用引擎** - 代码生成/审查、文档处理(Word/PDF/Excel/PPT)、图像/视频处理、Web开发、数据分析等专业引擎
 - ✅ **完整后端服务体系** - Project Service (Spring Boot, 48 API) + AI Service (FastAPI, 38 API) + Community Forum (63 API)
-- ✅ **125个Vue组件** - 18个页面、54个项目组件、12个交易组件、25个社交组件、6个编辑器
-- ✅ **数据库同步系统** - SQLite ↔ PostgreSQL 双向同步，软删除、字段映射、冲突解决
-- ✅ **完整P2P网络** - libp2p 3.1.2 + Signal协议E2E加密 + 多设备管理 + 离线消息队列
-- ✅ **测试框架完善** - 19个测试文件（14单元+2集成+3性能），400+测试用例
+- ✅ **139个Vue组件** - 12个页面、54个项目组件、交易组件(含托管UI)、社交组件、编辑器、技能工具组件
 
-### 项目状态 (整体完成度: 90%)
+### 项目状态 (整体完成度: 92%)
 - 🟢 **知识库管理**: 95% 完成 - **生产就绪**
 - 🟢 **AI引擎系统**: 85% 完成 - **19个专用引擎**
 - 🟢 **RAG检索系统**: 85% 完成 - **混合搜索+重排序**
 - 🟢 **后端服务**: 90% 完成 - **3个微服务可用**
+- 🟢 **技能工具系统**: 90% 完成 - **管理器+前端完整**
+- 🟢 **插件系统**: 85% 完成 - **动态加载+热更新**
+- 🟢 **语音识别**: 90% 完成 - **高级功能完成**
+- 🟡 **区块链集成**: 50% 完成 - **阶段1-3完成** ⭐新增
 - 🟡 **去中心化身份**: 75% 完成 - **DID+VC核心实现**
 - 🟡 **P2P通信**: 75% 完成 - **E2E加密完成**
 - 🟡 **社交系统**: 85% 完成 - **好友+动态+论坛**
-- 🟡 **交易系统**: 80% 完成 - **8大模块实现**
+- 🟡 **交易系统**: 85% 完成 - **8大模块+链上合约**
+- 🟡 **浏览器扩展**: 70% 完成 - **测试框架+文档完善**
 - 🔴 **U盾集成**: 40% 完成 - **仅XinJinKe驱动**
 - 🟡 **移动端应用**: 10% 完成 - **框架搭建中**
 
@@ -48,11 +56,16 @@
 - 🌐 **完全去中心化**: P2P网络(libp2p 3.1.2) + DHT + 本地数据存储，无需中心服务器 ✅
 - 🧠 **AI原生**: 支持14+云LLM提供商 + Ollama本地部署 + RAG增强检索 ✅
 - 🎯 **19个AI引擎**: 代码/文档/表格/PPT/PDF/图像/视频专业处理，覆盖全场景 ✅
+- ⛓️ **区块链集成**: 6个智能合约 + HD钱包系统 + MetaMask/WalletConnect + Hardhat开发环境 ✅
+- 🔧 **技能工具系统**: 动态技能管理 + 工具注册 + 文档生成 + AI集成 ✅
+- 🔌 **插件系统**: 动态加载 + 热更新 + 生命周期管理 + API扩展 ✅
+- 🎤 **语音识别**: 实时转写 + 音频增强 + 多语言检测 + 字幕生成 ✅
 - 📱 **跨设备协作**: Git同步 + 多设备P2P通信 + 离线消息队列 ✅
-- 🔓 **开源自主**: 100,000+行代码，125个Vue组件，完全透明可审计 ✅
+- 🔓 **开源自主**: 140,000+行代码，139个Vue组件，完全透明可审计 ✅
 - 📸 **智能图片处理**: Tesseract.js OCR + Sharp图像处理 + 自动索引 ✅
 - 💼 **微服务架构**: Project Service + AI Service + Community Forum，149个API端点 ✅
 - 🔄 **数据库同步**: SQLite ↔ PostgreSQL 双向同步，软删除+冲突解决 ✅
+- 🌐 **浏览器扩展**: 网页标注 + 内容提取 + AI辅助 + 自动化测试 ✅
 
 ## 三大核心功能
 
@@ -117,9 +130,9 @@
 - ✅ Elasticsearch全文搜索 + Redis缓存
 - ✅ JWT认证 + Spring Security权限管理
 
-### 3️⃣ 去中心化交易系统 (80% 完成) ✅
+### 3️⃣ 去中心化交易系统 (85% 完成) ✅
 
-总代码量: **5625+行**，8大核心模块完整实现
+总代码量: **8000+行**，8大核心模块 + 区块链智能合约
 
 **1. 数字资产管理** (600行):
 - ✅ 4种资产类型: Token、NFT、知识产品、服务凭证
@@ -173,10 +186,50 @@
 - ✅ 批量订单处理
 - ✅ 订单通知和提醒
 
-**交易UI组件** (12个):
+**9. 区块链智能合约系统** (2400+行) ⭐新增:
+- ✅ **ChainlessToken** (ERC-20代币合约, 70行)
+  - 自定义名称、符号、小数位
+  - Mint/Burn功能，Ownable权限控制
+- ✅ **ChainlessNFT** (ERC-721 NFT合约, 140行)
+  - 元数据URI支持，批量铸造
+  - ERC721Enumerable可枚举扩展
+- ✅ **EscrowContract** (托管合约, 260行)
+  - 支持ETH/MATIC + ERC20代币
+  - 争议解决机制 + 仲裁者功能
+  - ReentrancyGuard防重入攻击
+- ✅ **SubscriptionContract** (订阅合约, 300行)
+  - 按月/按季/按年订阅
+  - 自动续订机制
+- ✅ **BountyContract** (悬赏合约, 330行)
+  - 任务发布、申领、提交审核
+  - 支持多人完成，奖金分配
+- ✅ **AssetBridge** (跨链桥合约, 300行)
+  - 锁定-铸造模式
+  - 中继者权限管理，防重复铸造
+- ✅ **完整测试套件** (600+行, 45+测试用例)
+- ✅ **部署脚本** (支持多网络部署)
+
+**10. 钱包系统** (3000+行) ⭐新增:
+- ✅ **内置HD钱包** (900行)
+  - BIP39助记词 + BIP44路径
+  - AES-256-GCM强加密存储
+  - U-Key硬件签名集成
+  - EIP-155/EIP-191签名
+- ✅ **外部钱包集成** (420行)
+  - MetaMask连接
+  - WalletConnect v1支持
+  - 网络切换和事件监听
+- ✅ **交易监控** (350行)
+  - 交易状态追踪
+  - 自动确认等待
+  - 数据库持久化
+
+**交易UI组件** (20+个):
 - AssetCreate/List/Transfer - 资产管理
 - Marketplace/OrderCreate/OrderDetail - 市场和订单
-- ContractCreate/Detail/List - 智能合约
+- ContractCreate/Detail/List/Execute/Sign - 智能合约
+- EscrowList/Detail/Dispute/Statistics - 托管管理
+- ContractCard/TransactionTimeline - 通用组件
 - CreditScore/ReviewList/MyReviews - 信用和评价
 
 ## 技术架构
@@ -184,16 +237,21 @@
 ```
 ┌───────────────────────────────────────────────────────────────────┐
 │                         前端应用层                                  │
-│  Desktop(Electron+Vue3,125组件) │ Mobile(uni-app) │ Web(Vue3)    │
+│  Desktop(Electron+Vue3,139组件) │ Browser Ext │ Mobile(uni-app) │
 ├───────────────────────────────────────────────────────────────────┤
 │                        业务功能层                                   │
-│  知识库(95%) │ AI引擎(85%) │ 社交(85%) │ 交易(80%) │ P2P(75%)   │
+│ 知识库(95%) │ AI引擎(85%) │ 社交(85%) │ 交易(85%) │ 区块链(50%) │
+│ 技能工具(90%) │ 插件系统(85%) │ 语音识别(90%) │ P2P(75%)      │
 ├───────────────────────────────────────────────────────────────────┤
 │                        后端服务层                                   │
 │  Project Service    │    AI Service      │   Community Forum     │
 │  (Spring Boot 3.1)  │   (FastAPI)        │   (Spring Boot 3.1)   │
 │  48 API端点         │   38 API端点       │   63 API端点          │
 │  PostgreSQL + Redis │   Ollama + Qdrant  │   MySQL + Redis       │
+├───────────────────────────────────────────────────────────────────┤
+│                        区块链层                                     │
+│  Hardhat │ Ethers.js v6 │ 6个智能合约 │ HD钱包 │ MetaMask/WC   │
+│  Ethereum/Polygon  │  ERC-20/ERC-721  │  托管/订阅/悬赏/跨链   │
 ├───────────────────────────────────────────────────────────────────┤
 │                        数据存储层                                   │
 │  SQLite/SQLCipher  │  PostgreSQL  │  MySQL  │  ChromaDB/Qdrant   │
@@ -305,8 +363,8 @@ cd android-app
 ```
 chainlesschain/
 ├── desktop-app-vue/              # 🖥️ PC端桌面应用 (Electron + Vue3)
-│   ├── src/main/                 # 主进程 (Node.js, 150+文件)
-│   │   ├── database.js           # SQLite数据库 (20+张表)
+│   ├── src/main/                 # 主进程 (Node.js, 149个文件)
+│   │   ├── database.js           # SQLite数据库 (26张表含区块链)
 │   │   ├── ukey/                 # U盾管理 (XinJinKe驱动)
 │   │   ├── llm/                  # LLM服务 (支持14+提供商)
 │   │   ├── rag/                  # RAG系统 (6个核心模块)
@@ -316,9 +374,23 @@ chainlesschain/
 │   │   ├── p2p/                  # P2P网络 (libp2p + Signal)
 │   │   ├── social/               # 社交功能 (好友+动态)
 │   │   ├── trade/                # 交易系统 (8模块, 5625+行)
+│   │   ├── blockchain/           # 区块链集成 (3000+行) ⭐新增
+│   │   │   ├── wallet-manager.js      # HD钱包管理 (900行)
+│   │   │   ├── external-wallet-connector.js  # MetaMask/WC (420行)
+│   │   │   ├── transaction-monitor.js # 交易监控 (350行)
+│   │   │   ├── blockchain-adapter.js  # 多链适配器
+│   │   │   └── blockchain-config.js   # 网络配置
+│   │   ├── skill-tool-system/    # 技能工具系统 ⭐新增
+│   │   │   ├── skill-manager.js       # 技能管理
+│   │   │   ├── tool-manager.js        # 工具管理
+│   │   │   └── doc-generator.js       # 文档生成
+│   │   ├── plugins/              # 插件系统 ⭐新增
+│   │   │   └── plugin-manager.js      # 插件管理
+│   │   ├── speech/               # 语音识别系统 ⭐新增
+│   │   │   └── speech-service.js      # 语音服务
 │   │   ├── vc/                   # 可验证凭证 (5种类型)
 │   │   ├── ai-engine/            # AI引擎 (5个组件)
-│   │   ├── engines/              # 19个专用引擎 ⭐
+│   │   ├── engines/              # 19个专用引擎
 │   │   │   ├── code-engine.js    # 代码生成/审查/重构
 │   │   │   ├── document-engine.js # Word处理
 │   │   │   ├── excel-engine.js   # Excel编辑
@@ -328,24 +400,47 @@ chainlesschain/
 │   │   │   ├── video-engine.js   # 视频处理
 │   │   │   ├── web-engine.js     # HTML/CSS/JS
 │   │   │   ├── data-engine.js    # 数据处理
-│   │   │   └── ...              # 更多引擎
+│   │   │   └── ...               # 更多引擎
 │   │   ├── sync/                 # 数据库同步 (4个模块)
 │   │   ├── import/               # 文件导入 (4种格式)
 │   │   ├── prompt/               # 提示词管理 (50+模板)
 │   │   └── vector/               # 向量数据库 (ChromaDB)
 │   │
-│   ├── src/renderer/             # 渲染进程 (Vue3, 125个组件)
-│   │   ├── pages/                # 18个页面视图
+│   ├── src/renderer/             # 渲染进程 (Vue3, 139个组件)
+│   │   ├── pages/                # 12个页面视图
 │   │   │   ├── HomePage.vue
 │   │   │   ├── AIChatPage.vue
-│   │   │   ├── ProjectsPage.vue
+│   │   │   ├── TradingHub.vue
+│   │   │   ├── SkillManagement.vue    # ⭐新增
+│   │   │   ├── ToolManagement.vue     # ⭐新增
 │   │   │   └── ...
 │   │   ├── components/           # 业务组件
 │   │   │   ├── project/          # 54个项目组件
-│   │   │   ├── trade/            # 12个交易组件
+│   │   │   ├── trade/            # 20+交易组件(含区块链)
 │   │   │   ├── social/           # 25个社交组件
+│   │   │   ├── skill/            # 技能组件 ⭐新增
+│   │   │   ├── tool/             # 工具组件 ⭐新增
+│   │   │   ├── common/           # 通用组件 ⭐新增
 │   │   │   └── editors/          # 6个编辑器
 │   │   └── stores/               # Pinia状态管理
+│   │       ├── skill.js          # ⭐新增
+│   │       └── tool.js           # ⭐新增
+│   │
+│   ├── contracts/                # 🔗 智能合约 (Hardhat) ⭐新增
+│   │   ├── contracts/            # Solidity合约 (6个)
+│   │   │   ├── tokens/           # ERC-20/ERC-721代币
+│   │   │   ├── marketplace/      # 托管合约
+│   │   │   ├── payment/          # 订阅/悬赏合约
+│   │   │   └── bridge/           # 跨链桥
+│   │   ├── test/                 # 合约测试 (45+用例)
+│   │   ├── scripts/              # 部署脚本
+│   │   └── hardhat.config.js     # Hardhat配置
+│   │
+│   ├── browser-extension/        # 🌐 浏览器扩展 ⭐新增
+│   │   ├── background.js         # 后台脚本
+│   │   ├── content.js            # 内容脚本
+│   │   ├── test-runner.js        # 测试框架
+│   │   └── *.md                  # 用户/开发者指南
 │   │
 │   ├── tests/                    # 测试套件 (19个文件)
 │   │   ├── unit/                 # 14个单元测试
@@ -419,29 +514,43 @@ chainlesschain/
 
 | 项目 | 技术栈 | 代码量 | API | 完成度 | 状态 |
 |------|--------|--------|-----|-------|------|
-| **desktop-app-vue** | Electron 39 + Vue3 | 100,000+行 | 100+ IPC | 90% | ✅ 生产就绪 |
+| **desktop-app-vue** | Electron 39 + Vue3 | 110,000+行 | 120+ IPC | 92% | ✅ 生产就绪 |
+| **contracts** | Hardhat + Solidity | 2,400行 | - | 100% | ✅ 已完成 |
+| **browser-extension** | Vanilla JS | 2,000+行 | - | 70% | 🚧 开发中 |
 | **backend/project-service** | Spring Boot 3.1 + Java 17 | 5,679行 | 48 API | 95% | ✅ 生产就绪 |
 | **backend/ai-service** | FastAPI + Python 3.9+ | 12,417行 | 38 API | 85% | ✅ 功能完整 |
 | **community-forum/backend** | Spring Boot 3.1 + MySQL | 5,679行 | 63 API | 90% | ✅ 生产可用 |
 | **community-forum/frontend** | Vue3 + Element Plus | 10,958行 | - | 85% | ✅ 功能完整 |
 | **mobile-app-uniapp** | uni-app + Vue3 | 少量 | - | 10% | 🚧 开发中 |
-| **总计** | - | **135,000+行** | **149 API** | **89%** | ✅ 可投入使用 |
+| **总计** | - | **150,000+行** | **149 API** | **92%** | ✅ 可投入使用 |
 
 ### 代码规模统计
 
 **桌面应用 (desktop-app-vue)**:
-- 主进程: 150+ JavaScript文件
-- 渲染进程: 125个Vue组件
+- 主进程: 149个JavaScript文件
+- 渲染进程: 139个Vue组件 (12页面 + 127组件)
 - 交易系统: 8个模块, 5625+行代码
+- 区块链系统: 钱包+合约, 5400+行代码 ⭐新增
+- 技能工具系统: 集成完成 ⭐新增
+- 插件系统: 动态加载完成 ⭐新增
+- 语音识别: 高级功能完成 ⭐新增
+- 浏览器扩展: 测试框架+文档 ⭐新增
 - 19个AI引擎
 - 测试文件: 19个
+
+**智能合约 (contracts)**:
+- Solidity合约: 6个, 1,500+行
+- 测试文件: 3个, 600+行
+- 部署脚本: 4个, 500+行
+- 测试用例: 45+个
 
 **后端服务**:
 - Java代码: 132个文件, 11,358行
 - Python代码: 31个文件, 12,417行
 - Vue3代码: 45个文件, 10,958行
-- 数据库表: 26张 (12+14)
+- 数据库表: 31张 (12+14+5区块链)
 - API端点: 149个
+- IPC处理器: 120+个
 
 ## 🗓️ 开发路线图
 
@@ -469,7 +578,7 @@ chainlesschain/
   - [x] 好友管理系统 (好友请求、在线状态、分组)
   - [x] 社交动态系统 (发布、点赞、评论、图片)
 
-- [x] **Phase 3 (去中心化交易系统)**: 80% 完成
+- [x] **Phase 3 (去中心化交易系统)**: 100% 完成
   - [x] 数字资产管理 (asset-manager.js - 600行)
   - [x] 交易市场 (marketplace-manager.js - 685行)
   - [x] 智能合约引擎 (contract-engine.js - 1102行 + 合约模板 526行)
@@ -478,25 +587,45 @@ chainlesschain/
   - [x] 信用评分系统 (credit-score.js - 637行)
   - [x] 评价和反馈系统 (review-manager.js - 671行)
   - [x] 订单管理 (集成在交易市场)
-  - [x] 完整前端UI (12个交易组件)
+  - [x] 完整前端UI (20+交易组件)
+
+### 进行中 🚧
+
+- [x] **Phase 4 (区块链集成)**: 50% 完成 ⭐
+  - [x] 阶段1: 基础设施搭建 (Hardhat + 数据库扩展)
+  - [x] 阶段2: 钱包系统实现 (内置HD钱包 + 外部钱包)
+  - [x] 阶段3: 智能合约开发 (6个合约 + 测试 + 部署)
+  - [ ] 阶段4: 区块链适配器实现 (20%)
+  - [ ] 阶段5: 集成到现有模块
+  - [ ] 阶段6: 前端UI适配
+
+- [x] **Phase 5 (生态完善)**: 85% 完成 ⭐
+  - [x] 语音识别功能 (Phase 3完成)
+  - [x] 浏览器扩展 (测试框架+文档完善, 70%)
+  - [x] 技能工具系统 (集成完成, 90%)
+  - [x] 插件系统 (动态加载+热更新, 85%)
+  - [ ] 完善U盾驱动 (FeiTian、WatchData、模拟驱动)
+  - [ ] P2P WebRTC支持和NAT穿透优化
+  - [ ] 移动端UI完善
+  - [ ] 知识图谱可视化
+  - [ ] 多语言支持
+  - [ ] 企业版功能
 
 ### 计划中 ⏳
 
-- [ ] **Phase 4 (生态完善)**: 规划中
-  - [ ] 完善U盾驱动 (FeiTian、WatchData、模拟驱动)
-  - [ ] P2P WebRTC支持和NAT穿透优化
-  - [ ] 语音输入功能
-  - [ ] 浏览器扩展 (网页剪藏)
-  - [ ] 移动端UI完善
-  - [ ] 知识图谱可视化
-  - [ ] 插件系统
-  - [ ] 多语言支持
-  - [ ] 企业版功能
+- [ ] **Phase 6 (生产优化)**: 规划中
+  - [ ] 完整的区块链适配器
+  - [ ] 跨链桥生产级实现
+  - [ ] 完善的测试覆盖率
+  - [ ] 性能优化和监控
+  - [ ] 安全审计
+  - [ ] 文档完善
 
 ### 版本历史
 
 | 版本 | 日期 | 主要更新 |
 |------|------|---------|
+| v0.17.0 | 2025-12-29 | **区块链集成Phase 1-3**: 智能合约系统(6合约+测试+部署)+钱包系统(HD+外部)+技能工具系统+插件系统+浏览器扩展+语音识别Phase 3 |
 | v0.16.0 | 2025-12-28 | **Phase 3完成**: 8大交易模块(5625+行)+19个AI引擎+后端服务体系(149 API)+数据库同步+测试框架 |
 | v0.11.0 | 2025-12-18 | 图片上传和OCR功能 (Tesseract.js + Sharp) |
 | v0.10.0 | 2025-12 | RAG重排序器(3种算法) + 查询重写 |
@@ -593,10 +722,25 @@ chainlesschain/
 - **RAG系统**: AnythingLLM (可选)
 - **Git服务**: Gitea (可选)
 
-### 区块链 (规划中)
-- **智能合约**: Solidity + Hardhat
-- **交互**: Ethers.js v6
-- **网络**: Ethereum / Polygon
+### 区块链 (50% 完成) ⭐
+- **智能合约**: Solidity 0.8+ + Hardhat 2.28
+- **开发框架**: Hardhat Toolbox 5.0
+- **合约库**: OpenZeppelin Contracts 5.4
+- **交互**: Ethers.js v6.13
+- **钱包**:
+  - 内置: BIP39 + BIP44 + AES-256-GCM加密
+  - 外部: MetaMask + WalletConnect v1
+- **网络**:
+  - 主网: Ethereum (Chain ID: 1), Polygon (Chain ID: 137)
+  - 测试网: Sepolia (11155111), Mumbai (80001)
+  - 本地: Hardhat Network (31337)
+- **合约类型**:
+  - ERC-20代币 (ChainlessToken)
+  - ERC-721 NFT (ChainlessNFT)
+  - 托管合约 (EscrowContract)
+  - 订阅合约 (SubscriptionContract)
+  - 悬赏合约 (BountyContract)
+  - 跨链桥 (AssetBridge)
 
 ## 🤝 贡献指南
 
@@ -619,17 +763,19 @@ chainlesschain/
 
 ### 优先级任务
 1. 🔴 **高优先级**:
+   - 完成区块链适配器实现 (阶段4-6)
    - 完善U盾驱动 (FeiTian、WatchData、模拟模式)
    - P2P WebRTC支持和NAT穿透
    - 移动端UI完善
 2. 🟡 **中优先级**:
-   - 语音输入功能
-   - 浏览器扩展 (网页剪藏)
+   - 浏览器扩展完善 (剩余30%)
+   - 跨链桥生产级实现 (替换简化版)
    - MyBatis Plus升级到3.5.9
+   - 技能工具系统完善 (剩余10%)
 3. 🟢 **低优先级**:
    - 知识图谱可视化
-   - 插件系统
    - 多语言支持
+   - 企业版功能
 
 ## 🔒 安全声明
 
@@ -647,6 +793,13 @@ chainlesschain/
 - FeiTian、WatchData驱动待实现
 - macOS/Linux需要模拟模式
 
+**区块链集成**:
+- 区块链适配器未完成（阶段4-6待开发）
+- 跨链桥为简化版本（生产环境建议使用Chainlink CCIP或LayerZero）
+- 合约未经第三方安全审计
+- 仅支持Ethereum和Polygon
+- 前端UI适配未完成
+
 **P2P网络**:
 - WebRTC传输未实现（框架已准备）
 - NAT穿透需要优化
@@ -661,11 +814,10 @@ chainlesschain/
 - uni-app版本仅完成10%
 - SIMKey集成未开发
 
-**待开发功能**:
-- 语音输入
-- 浏览器扩展
-- 知识图谱可视化
-- 插件系统
+**其他**:
+- 浏览器扩展完成70%（剩余功能开发中）
+- 知识图谱可视化未实现
+- 多语言UI未实现
 
 ## 📜 许可证
 
@@ -736,21 +888,31 @@ chainlesschain/
 
 ### 整体代码统计
 
-**代码总量**: 135,000+ 行
-- Desktop App: 100,000+ 行 (JavaScript/TypeScript/Vue)
+**代码总量**: 150,000+ 行
+- Desktop App: 110,000+ 行 (JavaScript/TypeScript/Vue)
+- Smart Contracts: 2,400 行 (Solidity + 测试 + 脚本)
+- Browser Extension: 2,000+ 行 (JavaScript)
 - Backend Services: 23,775 行 (Java + Python)
 - Community Forum: 10,958 行 (Vue3)
 
 **组件和文件**:
-- Vue组件: 170+ 个 (桌面125 + 论坛45)
-- JavaScript/TypeScript文件: 150+ 个
+- Vue组件: 184+ 个 (桌面139 + 论坛45)
+- JavaScript文件: 149 个 (主进程)
+- Solidity合约: 6 个
 - Java文件: 132 个
 - Python文件: 31 个
-- 测试文件: 19 个
+- 测试文件: 22 个 (桌面19 + 合约3)
 
 **功能模块**:
 - 19个AI专用引擎
 - 8大交易模块 (5625+行)
+- 区块链系统 (5400+行) ⭐新增
+  - 钱包系统 (3000+行)
+  - 智能合约 (2400+行)
+- 技能工具系统 ⭐新增
+- 插件系统 ⭐新增
+- 语音识别系统 ⭐新增
+- 浏览器扩展 ⭐新增
 - 6个RAG核心模块
 - 5个AI引擎组件
 - 4个数据库同步模块
@@ -760,16 +922,16 @@ chainlesschain/
   - Project Service: 48 API
   - AI Service: 38 API
   - Community Forum: 63 API
-- 数据库表: 26张
-- IPC处理器: 100+ 个
+- 数据库表: 31张 (含5张区块链表)
+- IPC处理器: 120+ 个
 
 **测试覆盖**:
-- 单元测试: 14个文件
+- 单元测试: 17个文件 (桌面14 + 合约3)
 - 集成测试: 2个文件
 - 性能测试: 3个文件
-- 测试用例: 400+个
+- 测试用例: 445+个 (桌面400+ + 合约45+)
 
-**整体完成度: 89%**
+**整体完成度: 92%**
 
 **用技术捍卫隐私,用AI赋能个人**
 
