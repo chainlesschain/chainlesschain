@@ -67,9 +67,16 @@ class DatabaseManager {
         try {
           await this.initializeWithAdapter();
           console.log('数据库初始化成功（SQLCipher 加密模式）');
+
+          // Verify database is actually initialized
+          if (!this.db) {
+            throw new Error('数据库对象为null，初始化失败');
+          }
+
           return true;
         } catch (error) {
           console.warn('[Database] 加密初始化失败，回退到 sql.js:', error.message);
+          console.warn('[Database] 错误堆栈:', error.stack);
           // 继续使用 sql.js
         }
       }
@@ -77,9 +84,16 @@ class DatabaseManager {
       // Fallback: 使用 sql.js
       await this.initializeWithSqlJs();
       console.log('数据库初始化成功（sql.js 模式）');
+
+      // Verify database is actually initialized
+      if (!this.db) {
+        throw new Error('数据库对象为null，sql.js初始化失败');
+      }
+
       return true;
     } catch (error) {
       console.error('数据库初始化失败:', error);
+      console.error('错误堆栈:', error.stack);
       throw error;
     }
   }
@@ -137,8 +151,9 @@ class DatabaseManager {
         } else {
           possiblePaths.push(
             path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file),
-            path.join(process.cwd(), '../node_modules/sql.js/dist', file),
-            path.join(__dirname, '..', '..', '..', 'node_modules', 'sql.js', 'dist', file)
+            path.join(process.cwd(), 'desktop-app-vue', 'node_modules', 'sql.js', 'dist', file),
+            path.join(__dirname, '..', '..', '..', 'node_modules', 'sql.js', 'dist', file),
+            path.join(__dirname, '..', '..', '..', '..', 'node_modules', 'sql.js', 'dist', file)
           );
         }
 
@@ -1634,23 +1649,34 @@ class DatabaseManager {
    * @returns {Array} 知识库项列表
    */
   getKnowledgeItems(limit = 100, offset = 0) {
+    // 数据库未初始化检查
+    if (!this.db) {
+      console.warn('[Database] 数据库未初始化，无法获取知识库项');
+      return [];
+    }
+
     const parsedLimit = Number(limit);
     const parsedOffset = Number(offset);
     const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.floor(parsedLimit) : 100;
     const safeOffset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? Math.floor(parsedOffset) : 0;
 
-    const stmt = this.db.prepare(`
-      SELECT * FROM knowledge_items
-      ORDER BY updated_at DESC
-      LIMIT ${safeLimit} OFFSET ${safeOffset}
-    `);
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM knowledge_items
+        ORDER BY updated_at DESC
+        LIMIT ${safeLimit} OFFSET ${safeOffset}
+      `);
 
-    const results = [];
-    while (stmt.step()) {
-      results.push(stmt.getAsObject());
+      const results = [];
+      while (stmt.step()) {
+        results.push(stmt.getAsObject());
+      }
+      stmt.free();
+      return results;
+    } catch (error) {
+      console.error('[Database] 获取知识库项失败:', error.message);
+      return [];
     }
-    stmt.free();
-    return results;
   }
 
   /**
@@ -1659,15 +1685,21 @@ class DatabaseManager {
    * @returns {Object|null} 知识库项
    */
   getKnowledgeItemById(id) {
-    if (!id) {
+    if (!id || !this.db) {
       return null;
     }
-    const stmt = this.db.prepare('SELECT * FROM knowledge_items WHERE id = ?');
-    stmt.bind([id]);
 
-    const result = stmt.step() ? stmt.getAsObject() : null;
-    stmt.free();
-    return result;
+    try {
+      const stmt = this.db.prepare('SELECT * FROM knowledge_items WHERE id = ?');
+      stmt.bind([id]);
+
+      const result = stmt.step() ? stmt.getAsObject() : null;
+      stmt.free();
+      return result;
+    } catch (error) {
+      console.error('[Database] 获取知识库项失败:', error.message);
+      return null;
+    }
   }
 
   /**
@@ -1685,15 +1717,21 @@ class DatabaseManager {
    * @returns {Object|null} 知识库项
    */
   getKnowledgeItemByTitle(title) {
-    if (!title) {
+    if (!title || !this.db) {
       return null;
     }
-    const stmt = this.db.prepare('SELECT * FROM knowledge_items WHERE title = ? LIMIT 1');
-    stmt.bind([title]);
 
-    const result = stmt.step() ? stmt.getAsObject() : null;
-    stmt.free();
-    return result;
+    try {
+      const stmt = this.db.prepare('SELECT * FROM knowledge_items WHERE title = ? LIMIT 1');
+      stmt.bind([title]);
+
+      const result = stmt.step() ? stmt.getAsObject() : null;
+      stmt.free();
+      return result;
+    } catch (error) {
+      console.error('[Database] 根据标题获取知识库项失败:', error.message);
+      return null;
+    }
   }
 
   /**
@@ -1701,17 +1739,27 @@ class DatabaseManager {
    * @returns {Array} 知识库项列表
    */
   getAllKnowledgeItems() {
-    const stmt = this.db.prepare(`
-      SELECT * FROM knowledge_items
-      ORDER BY updated_at DESC
-    `);
-
-    const results = [];
-    while (stmt.step()) {
-      results.push(stmt.getAsObject());
+    if (!this.db) {
+      console.warn('[Database] 数据库未初始化，无法获取知识库项');
+      return [];
     }
-    stmt.free();
-    return results;
+
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM knowledge_items
+        ORDER BY updated_at DESC
+      `);
+
+      const results = [];
+      while (stmt.step()) {
+        results.push(stmt.getAsObject());
+      }
+      stmt.free();
+      return results;
+    } catch (error) {
+      console.error('[Database] 获取所有知识库项失败:', error.message);
+      return [];
+    }
   }
 
   /**
@@ -2200,6 +2248,42 @@ class DatabaseManager {
 
     stmt.free();
     return rows;
+  }
+
+  /**
+   * Execute SQL and return raw results (for DDL or queries)
+   * @param {string} sql - SQL statement
+   * @returns {Array} Raw query results
+   */
+  exec(sql) {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+    try {
+      return this.db.exec(sql);
+    } catch (error) {
+      console.error('[Database] exec() failed:', error.message);
+      console.error('[Database] SQL:', sql.substring(0, 100));
+      throw error;
+    }
+  }
+
+  /**
+   * Prepare a SQL statement
+   * @param {string} sql - SQL statement
+   * @returns {Object} Prepared statement
+   */
+  prepare(sql) {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+    try {
+      return this.db.prepare(sql);
+    } catch (error) {
+      console.error('[Database] prepare() failed:', error.message);
+      console.error('[Database] SQL:', sql.substring(0, 100));
+      throw error;
+    }
   }
 
   /**
@@ -3016,6 +3100,10 @@ class DatabaseManager {
    * @returns {Array} 项目列表
    */
   getProjects(userId) {
+    if (!this.db) {
+      console.error('[DatabaseManager] 数据库未初始化');
+      return [];
+    }
     const stmt = this.db.prepare(`
       SELECT
         id, user_id, name, description, project_type, status,
@@ -3097,6 +3185,13 @@ class DatabaseManager {
    * @returns {Object} 保存的项目
    */
   saveProject(project) {
+    // Check if database is initialized
+    if (!this.db) {
+      const errorMsg = '数据库未初始化，无法保存项目。请检查数据库配置和加密设置。';
+      console.error('[Database]', errorMsg);
+      throw new Error(errorMsg);
+    }
+
     const safeProject = project || {};
     const projectType = safeProject.project_type ?? safeProject.projectType ?? 'web';
     const userId = safeProject.user_id ?? safeProject.userId ?? 'local-user';
@@ -3290,6 +3385,13 @@ class DatabaseManager {
    * @param {Array} files - 文件列表
    */
   saveProjectFiles(projectId, files) {
+    // Check if database is initialized
+    if (!this.db) {
+      const errorMsg = '数据库未初始化，无法保存项目文件。请检查数据库配置和加密设置。';
+      console.error('[Database]', errorMsg);
+      throw new Error(errorMsg);
+    }
+
     const safeFiles = Array.isArray(files) ? files : [];
     this.transaction(() => {
       const stmt = this.db.prepare(`

@@ -47,15 +47,19 @@ class DatabaseMigrator {
         // 在开发环境中查找 WASM 文件
         const possiblePaths = [
           path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file),
-          path.join(__dirname, '..', '..', '..', 'node_modules', 'sql.js', 'dist', file)
+          path.join(process.cwd(), 'desktop-app-vue', 'node_modules', 'sql.js', 'dist', file),
+          path.join(__dirname, '..', '..', '..', 'node_modules', 'sql.js', 'dist', file),
+          path.join(__dirname, '..', '..', '..', '..', 'node_modules', 'sql.js', 'dist', file)
         ];
 
         for (const filePath of possiblePaths) {
           if (fs.existsSync(filePath)) {
+            console.log('[Migration] Found sql.js WASM at:', filePath);
             return filePath;
           }
         }
 
+        console.error('[Migration] Could not find sql.js WASM file. Tried:', possiblePaths);
         return file;
       }
     });
