@@ -221,7 +221,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
   TrophyOutlined,
@@ -236,9 +236,25 @@ import {
   UndoOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
 
-// 状态
-const loading = ref(false);
+// Store
+const tradeStore = useTradeStore();
+
+// Props
+const props = defineProps({
+  userDid: {
+    type: String,
+    default: null,
+  },
+});
+
+// 从 store 获取状态
+const loading = computed(() => tradeStore.credit.loading);
+const userCredit = computed(() => tradeStore.credit.userCredit);
+const scoreHistory = computed(() => tradeStore.credit.scoreHistory);
+
+// 本地状态 - 用于组装信用报告
 const creditReport = ref(null);
 
 // 信用等级定义
@@ -260,67 +276,91 @@ const levelColumns = [
 // 加载信用报告
 const loadCreditReport = async () => {
   try {
-    loading.value = true;
+    // 确定用户DID
+    let targetDid = props.userDid;
 
-    // 获取当前用户DID
-    const currentIdentity = await window.electronAPI.did.getCurrentIdentity();
-    const userDid = currentIdentity?.did;
+    if (!targetDid) {
+      // 获取当前用户DID
+      const currentIdentity = await window.electronAPI.did.getCurrentIdentity();
+      targetDid = currentIdentity?.did;
+    }
 
-    if (!userDid) {
+    if (!targetDid) {
       antMessage.warning('请先创建DID身份');
       return;
     }
 
-    // 获取用户信用
-    const userCredit = await window.electronAPI.credit.getUserCredit(userDid);
+    // 使用 store 加载用户信用
+    await tradeStore.loadUserCredit(targetDid);
 
-    // 获取信用等级
-    const levelInfo = await window.electronAPI.credit.getCreditLevel(userCredit.credit_score);
+    // 使用 store 加载信用历史
+    await tradeStore.loadScoreHistory(targetDid, 10);
 
-    // 获取信用历史
-    const scoreHistory = await window.electronAPI.credit.getScoreHistory(userDid, 10);
+    // 如果成功加载，组装信用报告
+    if (userCredit.value) {
+      const credit = userCredit.value;
 
-    // 获取权益
-    const benefits = await window.electronAPI.credit.getBenefits(userDid);
+      // 获取信用等级信息
+      const levelInfo = creditLevels.find(
+        level => credit.credit_score >= level.min && credit.credit_score <= level.max
+      ) || creditLevels[0];
 
-    // 组装信用报告
-    creditReport.value = {
-      creditScore: userCredit.credit_score,
-      creditLevel: levelInfo.name,
-      levelColor: levelInfo.color,
-      benefits: levelInfo.benefits || [],
-      statistics: {
-        totalTransactions: userCredit.total_transactions,
-        completedTransactions: userCredit.completed_transactions,
-        completionRate: userCredit.total_transactions > 0
-          ? ((userCredit.completed_transactions / userCredit.total_transactions) * 100).toFixed(1)
-          : 0,
-        positiveReviews: userCredit.positive_reviews,
-        negativeReviews: userCredit.negative_reviews,
-        positiveRate: (userCredit.positive_reviews + userCredit.negative_reviews) > 0
-          ? ((userCredit.positive_reviews / (userCredit.positive_reviews + userCredit.negative_reviews)) * 100).toFixed(1)
-          : 0,
-        totalVolume: userCredit.total_volume,
-        disputes: userCredit.disputes,
-        refunds: userCredit.refunds,
-        avgResponseTime: userCredit.avg_response_time,
-      },
-      recentRecords: scoreHistory.map(record => ({
-        id: record.id,
-        scoreChange: record.score_change,
-        scoreAfter: record.score_after,
-        reason: record.reason,
-        eventType: record.event_type,
-        createdAt: record.created_at,
-      })),
-    };
+      // 计算完成率
+      const completionRate = credit.total_transactions > 0
+        ? ((credit.completed_transactions / credit.total_transactions) * 100).toFixed(1)
+        : 0;
 
-    console.log('信用报告已加载:', creditReport.value);
+      // 计算好评率
+      const totalReviews = credit.positive_reviews + credit.negative_reviews;
+      const positiveRate = totalReviews > 0
+        ? ((credit.positive_reviews / totalReviews) * 100).toFixed(1)
+        : 0;
+
+      // 计算纠纷率
+      const disputeRate = credit.total_transactions > 0
+        ? ((credit.disputes / credit.total_transactions) * 100).toFixed(1)
+        : 0;
+
+      // 计算退款率
+      const refundRate = credit.total_transactions > 0
+        ? ((credit.refunds / credit.total_transactions) * 100).toFixed(1)
+        : 0;
+
+      // 组装信用报告
+      creditReport.value = {
+        creditScore: credit.credit_score,
+        creditLevel: levelInfo.name,
+        levelColor: levelInfo.color,
+        benefits: levelInfo.benefits || [],
+        statistics: {
+          totalTransactions: credit.total_transactions,
+          completedTransactions: credit.completed_transactions,
+          completionRate,
+          positiveReviews: credit.positive_reviews,
+          negativeReviews: credit.negative_reviews,
+          positiveRate,
+          totalVolume: credit.total_volume,
+          disputes: credit.disputes,
+          refunds: credit.refunds,
+          disputeRate,
+          refundRate,
+          avgResponseTime: credit.avg_response_time,
+        },
+        recentRecords: scoreHistory.value.map(record => ({
+          id: record.id,
+          scoreChange: record.score_change,
+          scoreAfter: record.score_after,
+          reason: record.reason,
+          eventType: record.event_type,
+          createdAt: record.created_at,
+        })),
+      };
+
+      console.log('[CreditScore] 信用报告已加载:', creditReport.value);
+    }
   } catch (error) {
-    console.error('加载信用报告失败:', error);
-    antMessage.error('加载信用报告失败: ' + error.message);
-  } finally {
-    loading.value = false;
+    console.error('[CreditScore] 加载信用报告失败:', error);
+    antMessage.error(error.message || '加载信用报告失败');
   }
 };
 

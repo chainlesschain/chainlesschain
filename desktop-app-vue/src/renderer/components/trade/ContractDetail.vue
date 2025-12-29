@@ -11,9 +11,7 @@
         <!-- 合约基本信息 -->
         <a-card title="基本信息" size="small" style="margin-bottom: 16px">
           <template #extra>
-            <a-tag :color="getStatusColor(contract.status)">
-              {{ getStatusName(contract.status) }}
-            </a-tag>
+            <status-badge :status="contract.status" type="contract" show-icon />
           </template>
 
           <a-descriptions :column="2" bordered>
@@ -233,6 +231,11 @@ import {
   FileTextOutlined,
   AuditOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+import StatusBadge from './common/StatusBadge.vue';
+
+// Store
+const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
@@ -452,10 +455,12 @@ const loadConditions = async () => {
 
   try {
     loadingConditions.value = true;
-    conditions.value = await window.electronAPI.contract.getConditions(props.contract.id);
+    const result = await tradeStore.checkContractConditions(props.contract.id);
+    conditions.value = result.conditions || [];
+    console.log('[ContractDetail] 条件加载完成:', conditions.value.length);
   } catch (error) {
-    console.error('加载合约条件失败:', error);
-    antMessage.error('加载合约条件失败: ' + error.message);
+    console.error('[ContractDetail] 加载合约条件失败:', error);
+    antMessage.error(error.message || '加载合约条件失败');
   } finally {
     loadingConditions.value = false;
   }
@@ -467,10 +472,11 @@ const loadEvents = async () => {
 
   try {
     loadingEvents.value = true;
-    events.value = await window.electronAPI.contract.getEvents(props.contract.id);
+    events.value = await tradeStore.loadContractEvents(props.contract.id);
+    console.log('[ContractDetail] 事件加载完成:', events.value.length);
   } catch (error) {
-    console.error('加载合约事件失败:', error);
-    antMessage.error('加载合约事件失败: ' + error.message);
+    console.error('[ContractDetail] 加载合约事件失败:', error);
+    antMessage.error(error.message || '加载合约事件失败');
   } finally {
     loadingEvents.value = false;
   }
@@ -507,12 +513,15 @@ const handleSign = async () => {
     async onOk() {
       try {
         const signature = `signature_${currentDid.value}_${Date.now()}`;
-        await window.electronAPI.contract.sign(props.contract.id, signature);
+        await tradeStore.signContract(props.contract.id, signature);
+
+        console.log('[ContractDetail] 合约已签名:', props.contract.id);
         antMessage.success('合约已签名');
-        loadEvents();
+
+        await loadEvents();
       } catch (error) {
-        console.error('签名合约失败:', error);
-        antMessage.error('签名合约失败: ' + error.message);
+        console.error('[ContractDetail] 签名合约失败:', error);
+        antMessage.error(error.message || '签名合约失败');
       }
     },
   });
@@ -521,7 +530,9 @@ const handleSign = async () => {
 // 检查条件
 const handleCheckConditions = async () => {
   try {
-    const result = await window.electronAPI.contract.checkConditions(props.contract.id);
+    const result = await tradeStore.checkContractConditions(props.contract.id);
+
+    console.log('[ContractDetail] 条件检查完成:', result);
 
     Modal.info({
       title: '合约条件检查',
@@ -532,8 +543,8 @@ const handleCheckConditions = async () => {
       },
     });
   } catch (error) {
-    console.error('检查条件失败:', error);
-    antMessage.error('检查条件失败: ' + error.message);
+    console.error('[ContractDetail] 检查条件失败:', error);
+    antMessage.error(error.message || '检查条件失败');
   }
 };
 
@@ -546,13 +557,16 @@ const handleExecute = async () => {
     cancelText: '取消',
     async onOk() {
       try {
-        await window.electronAPI.contract.execute(props.contract.id);
+        await tradeStore.executeContract(props.contract.id);
+
+        console.log('[ContractDetail] 合约执行成功:', props.contract.id);
         antMessage.success('合约执行成功');
+
         emit('executed');
         emit('update:visible', false);
       } catch (error) {
-        console.error('执行合约失败:', error);
-        antMessage.error('执行合约失败: ' + error.message);
+        console.error('[ContractDetail] 执行合约失败:', error);
+        antMessage.error(error.message || '执行合约失败');
       }
     },
   });
@@ -568,13 +582,16 @@ const handleCancel = async () => {
     cancelText: '取消',
     async onOk() {
       try {
-        await window.electronAPI.contract.cancel(props.contract.id, '用户取消');
+        await tradeStore.cancelContract(props.contract.id, '用户取消');
+
+        console.log('[ContractDetail] 合约已取消:', props.contract.id);
         antMessage.success('合约已取消');
+
         emit('cancelled');
         emit('update:visible', false);
       } catch (error) {
-        console.error('取消合约失败:', error);
-        antMessage.error('取消合约失败: ' + error.message);
+        console.error('[ContractDetail] 取消合约失败:', error);
+        antMessage.error(error.message || '取消合约失败');
       }
     },
   });
@@ -589,16 +606,19 @@ const handleInitiateArbitration = async () => {
     cancelText: '取消',
     async onOk() {
       try {
-        await window.electronAPI.contract.initiateArbitration(
+        await tradeStore.initiateArbitration(
           props.contract.id,
           '合约执行出现争议',
           null
         );
+
+        console.log('[ContractDetail] 仲裁已发起:', props.contract.id);
         antMessage.success('仲裁已发起');
-        loadEvents();
+
+        await loadEvents();
       } catch (error) {
-        console.error('发起仲裁失败:', error);
-        antMessage.error('发起仲裁失败: ' + error.message);
+        console.error('[ContractDetail] 发起仲裁失败:', error);
+        antMessage.error(error.message || '发起仲裁失败');
       }
     },
   });

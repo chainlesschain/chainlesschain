@@ -144,35 +144,21 @@
       </a-spin>
     </a-card>
 
-    <!-- 创建/回复评价对话框 -->
-    <a-modal
+    <!-- 创建评价对话框 -->
+    <review-create
       v-model:visible="showReviewModal"
-      :title="replyingTo ? '回复评价' : '写评价'"
-      width="600px"
-      :confirm-loading="submitting"
-      @ok="handleSubmit"
-    >
-      <a-form layout="vertical">
-        <a-form-item label="评分" v-if="!replyingTo" required>
-          <a-rate v-model:value="reviewForm.rating" allow-half />
-        </a-form-item>
+      :target-id="props.targetId"
+      :target-type="props.targetType"
+      :target="{ name: props.title }"
+      @created="handleReviewCreated"
+    />
 
-        <a-form-item :label="replyingTo ? '回复内容' : '评价内容'" required>
-          <a-textarea
-            v-model:value="reviewForm.content"
-            :rows="6"
-            :placeholder="replyingTo ? '输入您的回复...' : '分享您的使用体验...'"
-          />
-        </a-form-item>
-
-        <a-form-item label="是否推荐" v-if="!replyingTo">
-          <a-radio-group v-model:value="reviewForm.isRecommended">
-            <a-radio :value="true">推荐</a-radio>
-            <a-radio :value="false">不推荐</a-radio>
-          </a-radio-group>
-        </a-form-item>
-      </a-form>
-    </a-modal>
+    <!-- 回复评价对话框 -->
+    <review-reply
+      v-model:visible="showReplyModal"
+      :review="replyingReview"
+      @replied="handleReviewReplied"
+    />
 
     <!-- 举报对话框 -->
     <a-modal
@@ -206,7 +192,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
   StarOutlined,
@@ -219,6 +205,12 @@ import {
   MessageOutlined,
   WarningOutlined,
 } from '@ant-design/icons-vue';
+import { useTradeStore } from '../../stores/trade';
+import ReviewCreate from './ReviewCreate.vue';
+import ReviewReply from './ReviewReply.vue';
+
+// Store
+const tradeStore = useTradeStore();
 
 // Props
 const props = defineProps({
@@ -228,7 +220,7 @@ const props = defineProps({
   },
   targetType: {
     type: String,
-    required: true, // 'product', 'content', 'transaction', etc.
+    required: true, // 'user', 'order', 'contract', 'transaction'
   },
   title: String,
   showCreateButton: {
@@ -241,25 +233,20 @@ const props = defineProps({
   },
 });
 
-// 状态
-const loading = ref(false);
-const submitting = ref(false);
+// 从 store 获取状态
+const loading = computed(() => tradeStore.review.loading);
+const reviews = computed(() => tradeStore.review.reviews);
+const statistics = computed(() => tradeStore.review.statistics);
+
+// 本地状态
 const reporting = ref(false);
-const reviews = ref([]);
-const statistics = ref(null);
 const filterRating = ref(0);
 const sortBy = ref('created_at');
 const showReviewModal = ref(false);
+const showReplyModal = ref(false);
 const showReportModal = ref(false);
-const replyingTo = ref(null);
+const replyingReview = ref(null);
 const reportingReview = ref(null);
-
-// 表单
-const reviewForm = reactive({
-  rating: 5,
-  content: '',
-  isRecommended: true,
-});
 
 const reportForm = reactive({
   reason: '',
@@ -269,31 +256,21 @@ const reportForm = reactive({
 // 加载评价列表
 const loadReviews = async () => {
   try {
-    loading.value = true;
-
     const filters = {
       rating: filterRating.value || undefined,
       sortBy: sortBy.value,
     };
 
-    reviews.value = await window.electronAPI.review.getByTarget(
-      props.targetId,
-      props.targetType,
-      filters
-    );
+    // 使用 store 加载评价
+    await tradeStore.loadReviews(props.targetId, props.targetType, filters);
 
-    // 加载统计信息
-    statistics.value = await window.electronAPI.review.getStatistics(
-      props.targetId,
-      props.targetType
-    );
+    // 使用 store 加载统计信息
+    await tradeStore.loadReviewStatistics(props.targetId, props.targetType);
 
-    console.log('评价列表已加载:', reviews.value.length);
+    console.log('[ReviewList] 评价列表已加载:', reviews.value.length);
   } catch (error) {
-    console.error('加载评价失败:', error);
-    antMessage.error('加载评价失败: ' + error.message);
-  } finally {
-    loading.value = false;
+    console.error('[ReviewList] 加载评价失败:', error);
+    antMessage.error(error.message || '加载评价失败');
   }
 };
 
