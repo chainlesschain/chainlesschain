@@ -135,6 +135,13 @@
         <a-sub-menu key="trade">
           <template #icon><ShopOutlined /></template>
           <template #title>交易系统</template>
+          <!-- 统一入口 -->
+          <a-menu-item key="trading">
+            <template #icon><DashboardOutlined /></template>
+            交易中心
+          </a-menu-item>
+          <a-menu-divider />
+          <!-- 快捷入口 -->
           <a-menu-item key="marketplace">
             <template #icon><ShopOutlined /></template>
             交易市场
@@ -166,6 +173,14 @@
             <template #icon><AppstoreOutlined /></template>
             插件管理
             <a-badge count="新" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
+          </a-menu-item>
+          <a-menu-item key="skill-management">
+            <template #icon><ThunderboltOutlined /></template>
+            技能管理
+          </a-menu-item>
+          <a-menu-item key="tool-management">
+            <template #icon><ToolOutlined /></template>
+            工具管理
           </a-menu-item>
           <a-menu-item key="llm-settings">
             <template #icon><ApiOutlined /></template>
@@ -383,6 +398,9 @@ import {
   AppstoreOutlined,
   NodeIndexOutlined,
   BellOutlined,
+  DashboardOutlined,
+  ThunderboltOutlined,
+  ToolOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { useSocialStore } from '../stores/social';
@@ -444,6 +462,7 @@ const menuConfig = {
   'p2p-messaging': { path: '/p2p-messaging', title: 'P2P加密消息' },
 
   // 交易系统模块
+  trading: { path: '/trading', title: '交易中心' },
   marketplace: { path: '/marketplace', title: '交易市场' },
   contracts: { path: '/contracts', title: '智能合约' },
   'credit-score': { path: '/credit-score', title: '信用评分' },
@@ -452,6 +471,8 @@ const menuConfig = {
   'system-settings': { path: '/settings/system', title: '系统配置' },
   settings: { path: '/settings', title: '通用设置', query: { tab: 'general' } },
   'plugin-management': { path: '/settings/plugins', title: '插件管理' },
+  'skill-management': { path: '/settings/skills', title: '技能管理' },
+  'tool-management': { path: '/settings/tools', title: '工具管理' },
   'llm-settings': { path: '/settings', title: 'LLM配置', query: { tab: 'llm' } },
   'git-settings': { path: '/settings', title: 'Git同步', query: { tab: 'git' } },
   'rag-settings': { path: '/settings', title: 'RAG配置', query: { tab: 'rag' } },

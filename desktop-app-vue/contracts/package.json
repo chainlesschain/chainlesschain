@@ -1,0 +1,24 @@
+{
+  "name": "chainlesschain-contracts",
+  "version": "1.0.0",
+  "description": "ChainlessChain Smart Contracts",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile",
+    "deploy:localhost": "hardhat run scripts/deploy-all.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy-all.js --network sepolia",
+    "deploy:mumbai": "hardhat run scripts/deploy-all.js --network mumbai",
+    "node": "hardhat node",
+    "clean": "hardhat clean",
+    "coverage": "hardhat coverage"
+  },
+  "keywords": ["blockchain", "ethereum", "polygon", "smart-contracts"],
+  "author": "ChainlessChain",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.2.0",
+    "@openzeppelin/hardhat-upgrades": "^3.2.0",
+    "hardhat": "^2.22.0"
+  }
+}

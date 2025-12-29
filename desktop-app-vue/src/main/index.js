@@ -51,6 +51,11 @@ const { ProjectFileAPI, GitAPI, RAGAPI, CodeAPI } = require('./api/backend-clien
 // Plugin System (Phase 1)
 const { PluginManager, setPluginManager } = require('./plugins/plugin-manager');
 
+// Skill and Tool Management System
+const ToolManager = require('./skill-tool-system/tool-manager');
+const SkillManager = require('./skill-tool-system/skill-manager');
+const { registerSkillToolIPC } = require('./skill-tool-system/skill-tool-ipc');
+
 // Database Encryption IPC
 const DatabaseEncryptionIPC = require('./database-encryption-ipc');
 
@@ -189,6 +194,10 @@ class ChainlessChainApp {
 
     // Plugin System (Phase 1)
     this.pluginManager = null;
+
+    // Skill and Tool Management System
+    this.toolManager = null;
+    this.skillManager = null;
 
     // Web IDE
     this.webideManager = null;
@@ -775,6 +784,30 @@ class ChainlessChainApp {
       // 不影响主应用启动
     }
 
+    // 初始化技能和工具管理系统
+    try {
+      console.log('[Main] 初始化技能和工具管理系统...');
+
+      const functionCaller = this.aiEngineManager?.functionCaller;
+      if (!functionCaller) {
+        throw new Error('FunctionCaller未初始化');
+      }
+
+      this.toolManager = new ToolManager(this.database, functionCaller);
+      this.skillManager = new SkillManager(this.database, this.toolManager);
+
+      await this.toolManager.initialize();
+      await this.skillManager.initialize();
+
+      // 设置FunctionCaller的ToolManager引用
+      functionCaller.setToolManager(this.toolManager);
+
+      console.log('[Main] 技能和工具管理系统初始化完成');
+    } catch (error) {
+      console.error('[Main] 技能和工具管理系统初始化失败:', error);
+      // 不影响主应用启动
+    }
+
     // 初始化插件系统 (Phase 2)
     try {
       console.log('初始化插件系统...');
@@ -795,6 +828,8 @@ class ChainlessChainApp {
         webEngine: this.webEngine,
         documentEngine: this.documentEngine,
         dataEngine: this.dataEngine,
+        skillManager: this.skillManager,
+        toolManager: this.toolManager,
       });
 
       await this.pluginManager.initialize();
@@ -1350,6 +1385,12 @@ class ChainlessChainApp {
   }
 
   setupIPC() {
+    // 注册技能和工具IPC handlers
+    if (this.skillManager && this.toolManager) {
+      registerSkillToolIPC(ipcMain, this.skillManager, this.toolManager);
+      console.log('[Main] 技能和工具IPC handlers已注册');
+    }
+
     // U盾相关 - 使用真实硬件实现
     ipcMain.handle('ukey:detect', async () => {
       try {

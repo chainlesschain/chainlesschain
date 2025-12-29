@@ -1,10 +1,10 @@
 # 基于U盾和SIMKey的个人移动AI管理系统
-## 系统设计文档 v2.0 (更新至 v0.16.0 实际实现)
+## 系统设计文档 v2.1 (更新至 v0.17.0 实际实现)
 
-**文档版本**: 2.0
-**系统版本**: v0.16.0 (95%完成)
-**最后更新**: 2025-12-28
-**更新内容**: 反映实际代码实现,包含Phase 3交易模块完整实施
+**文档版本**: 2.1
+**系统版本**: v0.17.0 (97%完成)
+**最后更新**: 2025-12-29
+**更新内容**: 反映最新代码实现,新增插件系统、语音输入系统(Phase 1-3)、U-Key多品牌支持、技能工具系统、浏览器扩展等
 
 ---
 
@@ -14,7 +14,7 @@
 本系统是一个**去中心化的个人AI助手平台**,整合了知识库管理、**项目管理(⭐核心)**、社交网络和交易辅助四大核心功能,通过U盾(USB Key)和SIMKey提供硬件级安全保障。
 
 **主要应用**: `desktop-app-vue/` (Electron + Vue3 + TypeScript)
-**当前状态**: 知识库和项目管理模块生产可用,社交和交易模块已完成基础实施
+**当前状态**: 知识库和项目管理模块生产可用,社交和交易模块已完成基础实施,插件系统、语音输入系统、技能工具系统已完成
 
 ### 1.2 核心特性
 - **完全去中心化**: 数据存储在用户自己的设备上,不依赖第三方云服务
@@ -3162,10 +3162,16 @@ class AIRouter:
 ├── Git操作: **isomorphic-git**
 ├── 数据库: **sql.js** (SQLite WASM)
 ├── 向量库: **ChromaDB 3.1.8**
-├── 加密: **node-forge** + U盾SDK (Windows)
+├── 加密: **node-forge** + U盾SDK (Windows,5品牌支持)
 ├── P2P: **libp2p 3.1.2**
 ├── 图像: **Sharp + Tesseract.js (OCR)**
 ├── LLM客户端: **Ollama官方SDK** + 自定义云端客户端
+├── 语音识别: **OpenAI Whisper API** ⭐新增
+├── 音频处理: **FFmpeg** (降噪、增强、字幕) ⭐新增
+├── 插件系统: **自研插件框架** (沙箱隔离) ⭐新增
+├── 国际化: **Vue I18n 9.x** ⭐新增
+├── 区块链: **Hardhat + ethers.js** ⭐新增
+├── 浏览器扩展: **Chrome Extension Manifest V3** ⭐新增
 ├── 打包: **Electron Forge + electron-builder**
 └── 代码规范: **ESLint + Prettier**
 ```
@@ -3624,13 +3630,13 @@ interface GitAPI {
 
 ---
 
-## 十一、实施完成总结 (2025-12-28更新)
+## 十一、实施完成总结 (2025-12-29更新)
 
-### ✅ 系统当前实施状态 (v0.16.0)
+### ✅ 系统当前实施状态 (v0.17.0)
 
-**整体完成度**: 95%
-**生产可用模块**: 知识库管理、项目管理
-**基础实施完成**: 社交模块、交易模块
+**整体完成度**: 97%
+**生产可用模块**: 知识库管理、项目管理、插件系统、语音输入系统、国际化
+**基础实施完成**: 社交模块、交易模块、技能工具系统、浏览器扩展、区块链集成
 
 ### Phase 1-3 实施完成情况
 
@@ -3804,19 +3810,132 @@ interface GitAPI {
 - **Commit 9f1db66** (2025-12-19): 完成模块4-6 (知识付费、信用、评价)
 - **Commit b94339f** (2025-12-19): 更新所有进度文档
 
+#### ✅ Phase 4: 生态系统扩展 (85%完成)
+
+截至2025年12月29日,**Phase 4: 生态系统扩展**中的核心功能已完成实施,包括插件系统、语音输入系统、技能工具系统等。
+
+**模块1: 插件系统** ✅ (100%完成)
+- **实现文件**:
+  - `plugin-manager.js` - 插件管理核心
+  - `plugin-loader.js` - 插件加载器
+  - `plugin-registry.js` - 插件注册表
+  - `plugin-sandbox.js` - 插件沙箱隔离
+  - `permission-checker.js` - 权限检查器
+- **核心功能**:
+  - 插件生命周期管理 (加载、启动、停止、卸载)
+  - 扩展点机制 (Extension Points)
+  - 插件沙箱隔离 (安全执行)
+  - 权限系统 (细粒度控制)
+  - 插件API (plugin-api.js)
+  - 插件热更新
+- **完成报告**: `plan/completed/PLUGIN_SYSTEM_*.md` (3个文件)
+
+**模块2: 语音输入系统** ✅ (100%完成, Phase 1-3)
+- **实现文件**:
+  - `speech-manager.js` - 语音管理核心
+  - `speech-recognizer.js` - 语音识别
+  - `audio-processor.js` - 音频处理
+  - `audio-storage.js` - 音频存储
+  - `subtitle-generator.js` (530行) - 字幕生成
+  - `speech-config.js` - 语音配置
+- **核心功能**:
+  - 实时语音转文字 (Whisper AI)
+  - 音频降噪和增强 (FFmpeg滤镜)
+  - 多语言自动检测 (40+种语言)
+  - 字幕生成 (SRT/VTT格式)
+  - 音频存储管理
+  - 语音识别历史记录
+- **技术栈**: OpenAI Whisper API, FFmpeg
+- **完成报告**: `plan/completed/VOICE_INPUT_*.md` (3个文件)
+
+**模块3: U-Key多品牌支持** ✅ (100%完成)
+- **实现文件**:
+  - `ukey/huada-driver.js` - 华大U盾驱动
+  - `ukey/tdr-driver.js` - 天地融U盾驱动
+  - `ukey/ukey-manager.js` (升级) - 多品牌管理
+  - `ukey/multi-brand-test.js` - 多品牌测试
+- **核心功能**:
+  - 支持5种主流U盾品牌:
+    - 鑫金科 (xinjinke)
+    - 飞天诚信 (feitian)
+    - 握奇/卫士通 (watchdata)
+    - 华大 (huada) - ⭐ 新增,支持国密算法
+    - 天地融 (tdr) - ⭐ 新增,支持支付密码器
+  - 自动检测品牌
+  - 动态驱动切换
+  - 国密算法支持 (SM2/SM3/SM4)
+- **完成报告**: `plan/completed/UKEY_UPDATE_2025-12-28.md`
+
+**模块4: 技能工具系统** 🚧 (60%完成)
+- **实现文件**:
+  - `skill-tool-system/skill-manager.js` - 技能管理
+  - `skill-tool-system/tool-manager.js` - 工具管理
+  - `skill-tool-system/builtin-skills.js` - 内置技能
+  - `skill-tool-system/doc-generator.js` - 文档生成
+- **核心功能**:
+  - 技能注册和管理
+  - 工具注册和执行
+  - 内置技能库
+  - 技能文档生成
+  - IPC接口 (skill-tool-ipc.js)
+- **待完善**:
+  - 前端UI集成 (SkillManagement.vue已创建)
+  - 更多内置技能
+  - 技能市场
+- **完成报告**: `SKILL_TOOL_INTEGRATION_GUIDE.md`
+
+**模块5: 浏览器扩展** 🚧 (70%完成)
+- **实现目录**: `desktop-app-vue/browser-extension/`
+- **核心功能**:
+  - 网页内容保存
+  - 网页标注编辑器
+  - AI标签生成
+  - AI摘要生成
+  - 与桌面应用通信 (Native Messaging)
+- **技术栈**: Chrome Extension Manifest V3, Readability.js
+- **待完善**:
+  - Chrome Web Store发布
+  - 更多浏览器支持 (Firefox, Edge)
+  - 完整测试覆盖
+- **文档**: `browser-extension/README.md`, `DEVELOPER_GUIDE.md`, `USER_GUIDE.md`
+
+**模块6: 国际化系统** ✅ (100%完成)
+- **实现**: Vue I18n集成
+- **支持语言**: 中文(简体/繁体)、英文
+- **覆盖范围**: 全部UI组件
+- **完成报告**: `plan/completed/I18N_IMPLEMENTATION_REPORT.md`
+
+**模块7: 区块链集成** 🚧 (50%完成)
+- **实现文件**:
+  - `blockchain/blockchain-adapter.js` - 区块链适配器
+  - `blockchain/wallet-manager.js` - 钱包管理
+  - `blockchain/transaction-monitor.js` - 交易监控
+  - `blockchain/external-wallet-connector.js` - 外部钱包连接
+  - `contracts/` - Hardhat智能合约项目
+- **核心功能**:
+  - 多链支持 (Ethereum, Polygon, BSC等)
+  - 外部钱包连接 (MetaMask, WalletConnect)
+  - 智能合约部署和调用
+  - 交易监控和确认
+- **待完善**:
+  - 合约测试和审计
+  - 前端集成
+  - 更多链支持
+- **进度报告**: `BLOCKCHAIN_INTEGRATION_PROGRESS.md`
+
 ### 下一步计划
 
-#### Phase 4: Web Extension (待开始)
-- 浏览器扩展开发
-- 网页标注和保存
-- 一键保存到知识库
-- 网页内容摘要
-
-#### 系统优化
-- IPC API集成完善
-- 单元测试和集成测试
-- 性能优化
+#### Phase 5: 完善和优化 (计划中)
+- v1.0.0路线图实施 (RAG增强、代码引擎、视频/图像引擎)
+- 文件树系统Critical Bug修复
+- 系统性能优化
+- 测试覆盖率提升
 - 文档完善
+
+#### 参考文档
+- `plan/V1.0.0_ROADMAP_ASSESSMENT.md` - v1.0.0可行性评估
+- `plan/FILE_TREE_CRITICAL_FIX.md` - 文件树紧急修复方案
+- `plan/TEAM_REVIEW_HIGH_PRIORITY.md` - 高优先级计划清单
 
 详见项目文档:
 - `CURRENT_STATUS.md` - 当前开发状态
@@ -3827,9 +3946,69 @@ interface GitAPI {
 
 ---
 
-## 附录C: v2.0文档更新说明 (2025-12-28)
+## 附录C: v2.1文档更新说明 (2025-12-29)
 
-### 主要更新内容
+### v2.1更新内容 (相比v2.0)
+
+#### 新增Phase 4功能模块
+
+**1. 插件系统** (100%完成)
+- 完整的插件生命周期管理
+- 扩展点机制和沙箱隔离
+- 权限系统和插件API
+- 报告: `plan/completed/PLUGIN_SYSTEM_*.md` (3个文件)
+
+**2. 语音输入系统** (100%完成, Phase 1-3)
+- 实时语音转文字 (Whisper AI)
+- 音频降噪和增强 (FFmpeg)
+- 多语言检测 (40+种)
+- 字幕生成 (SRT/VTT)
+- 报告: `plan/completed/VOICE_INPUT_*.md` (3个文件)
+
+**3. U-Key多品牌支持** (100%完成)
+- 新增华大驱动 (国密算法支持)
+- 新增天地融驱动 (支付密码器)
+- 支持5种主流U盾品牌
+- 报告: `plan/completed/UKEY_UPDATE_2025-12-28.md`
+
+**4. 技能工具系统** (60%完成)
+- 技能和工具管理框架
+- 内置技能库
+- 文档自动生成
+- 报告: `SKILL_TOOL_INTEGRATION_GUIDE.md`
+
+**5. 浏览器扩展** (70%完成)
+- Chrome Extension开发
+- 网页内容保存和标注
+- AI标签/摘要生成
+- Native Messaging通信
+
+**6. 国际化系统** (100%完成)
+- Vue I18n集成
+- 中英文支持
+- 报告: `plan/completed/I18N_IMPLEMENTATION_REPORT.md`
+
+**7. 区块链集成** (50%完成)
+- Hardhat智能合约项目
+- 多链支持和钱包连接
+- 报告: `BLOCKCHAIN_INTEGRATION_PROGRESS.md`
+
+#### 版本更新
+- 系统版本: v0.16.0 → v0.17.0
+- 完成度: 95% → 97%
+- 最后更新: 2025-12-28 → 2025-12-29
+
+#### 技术栈新增
+- **语音识别**: OpenAI Whisper API
+- **音频处理**: FFmpeg (afftdn, acompressor, loudnorm等滤镜)
+- **插件系统**: 自研插件框架 + 沙箱机制
+- **国际化**: Vue I18n 9.x
+- **区块链**: Hardhat, ethers.js
+- **浏览器扩展**: Manifest V3, Readability.js
+
+---
+
+### v2.0主要更新内容 (2025-12-28)
 
 #### 1. 技术栈变更
 
@@ -3898,36 +4077,53 @@ interface GitAPI {
 
 ### 与CLAUDE.md的一致性
 
-本文档v2.0更新已与项目根目录的`CLAUDE.md`保持一致,反映了以下信息:
-- ✅ 当前版本: v0.16.0
-- ✅ 完成度: 95%
+本文档v2.1更新已与项目根目录的`CLAUDE.md`保持一致,反映了以下信息:
+- ✅ 当前版本: v0.17.0
+- ✅ 完成度: 97%
 - ✅ 主要应用: desktop-app-vue/ (Electron + Vue3)
 - ✅ 生产可用: 知识库和项目管理功能
+- ✅ 新增功能: 插件系统、语音输入、U-Key多品牌、技能工具、国际化
 
 ### 下一步规划
 
-**Phase 4: 生态完善** (进行中):
-- 🚧 浏览器扩展 (网页剪藏)
+**Phase 5: v1.0.0路线图** (计划中):
+- RAG增强的项目AI
+- 代码开发引擎增强
+- 视频处理引擎
+- 图像设计引擎
+- 项目自动化规则
+- 协作实时编辑 (可选)
+- 详见: `plan/V1.0.0_ROADMAP_ASSESSMENT.md`
+
+**紧急修复** (高优先级):
+- 文件树系统Critical Bug
+- 详见: `plan/FILE_TREE_CRITICAL_FIX.md`
+
+**生态完善** (进行中):
+- 🚧 浏览器扩展 (70%完成,待发布)
 - 🚧 移动端APP (uni-app,10%完成)
 - 🚧 社交模块UI完善
 - 🚧 交易模块前端集成
+- 🚧 技能工具系统前端 (40%待完成)
+- 🚧 区块链集成 (50%待完成)
 
 **未来优化**:
 - 数据库加密 (升级到SQLCipher)
 - P2P网络优化
 - 性能调优和测试覆盖
-- 多语言支持
+- 更多语言支持
 
 ---
 
-**文档版本**: 2.0 (基于v0.16.0实际实现)
-**最后更新**: 2025-12-28
+**文档版本**: 2.1 (基于v0.17.0实际实现)
+**最后更新**: 2025-12-29
 **作者**: Chainlesschain开发团队
 **许可证**: CC BY-SA 4.0
 
 ---
 
 **更新记录**:
+- 2025-12-29: v2.1更新,新增Phase 4功能 (插件系统、语音输入、U-Key多品牌、技能工具、浏览器扩展、国际化、区块链)
 - 2025-12-28: v2.0更新,反映v0.16.0实际实现
 - 2025-12-19: 添加Phase 3交易模块实施总结
 - 2024-初版: v1.0理论设计文档
