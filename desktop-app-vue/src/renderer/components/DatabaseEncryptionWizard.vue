@@ -366,27 +366,34 @@ const prevStep = () => {
   }
 };
 
-const handlePasswordSubmit = async (data) => {
+const handlePasswordSubmit = async () => {
   try {
+    await formRef.value.validate();
+    loading.value = true;
+
     // 调用后端设置加密
     const result = await window.electron.ipcRenderer.invoke('database:setup-encryption', {
       method: encryptionMethod.value,
-      password: data.password
+      password: formState.password
     });
 
     if (result.success) {
       setupSuccess.value = true;
-      showPasswordDialog.value = false;
       currentStep.value = 3;
       message.success('数据库加密设置成功');
     } else {
       throw new Error(result.error || '设置失败');
     }
   } catch (error) {
-    setupSuccess.value = false;
-    errorMessage.value = error.message;
-    currentStep.value = 3;
-    message.error('加密设置失败: ' + error.message);
+    console.error('密码提交失败:', error);
+    if (error.message) {
+      setupSuccess.value = false;
+      errorMessage.value = error.message;
+      currentStep.value = 3;
+      message.error('加密设置失败: ' + error.message);
+    }
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -436,5 +443,71 @@ const finish = () => {
 .selected {
   border-color: #1890ff;
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.password-strength {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .strength-bar {
+    flex: 1;
+    height: 4px;
+    background-color: #f0f0f0;
+    border-radius: 2px;
+    overflow: hidden;
+
+    .strength-fill {
+      height: 100%;
+      transition: all 0.3s;
+
+      &.weak {
+        background-color: #ff4d4f;
+      }
+
+      &.medium {
+        background-color: #faad14;
+      }
+
+      &.strong {
+        background-color: #52c41a;
+      }
+    }
+  }
+
+  .strength-text {
+    font-size: 12px;
+    min-width: 24px;
+    text-align: center;
+
+    &.weak {
+      color: #ff4d4f;
+    }
+
+    &.medium {
+      color: #faad14;
+    }
+
+    &.strong {
+      color: #52c41a;
+    }
+  }
+}
+
+.requirement-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 14px;
+
+  &.valid {
+    color: #52c41a;
+  }
+
+  :deep(.anticon) {
+    font-size: 16px;
+  }
 }
 </style>
