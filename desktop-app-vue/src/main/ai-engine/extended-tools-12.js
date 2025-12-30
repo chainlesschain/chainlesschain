@@ -309,11 +309,18 @@ class ExtendedTools12 {
      * 剪切视频片段、提取音频
      */
     functionCaller.registerTool('video_cutter', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.cutVideoReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         input_path,
         output_path,
         start_time,
         end_time,
+        duration,
         extract_audio = false,
         audio_format = 'mp3'
       } = params;
@@ -325,9 +332,16 @@ class ExtendedTools12 {
           return parts[0] * 3600 + parts[1] * 60 + parts[2];
         };
 
-        const startSec = parseTime(start_time);
-        const endSec = parseTime(end_time);
-        const duration = endSec - startSec;
+        let durationSec;
+        if (duration) {
+          durationSec = parseTime(duration);
+        } else if (start_time && end_time) {
+          const startSec = parseTime(start_time);
+          const endSec = parseTime(end_time);
+          durationSec = endSec - startSec;
+        } else {
+          durationSec = 60; // 默认1分钟
+        }
 
         // 模拟处理
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -336,10 +350,14 @@ class ExtendedTools12 {
           success: true,
           input_path: input_path,
           output_path: output_path,
-          start_time: start_time,
-          end_time: end_time,
-          duration: `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}`,
-          file_size: Math.floor(duration * 5000000) // 约5MB/秒
+          start_time: start_time || '00:00:00',
+          end_time: end_time || 'auto',
+          duration: duration || `${Math.floor(durationSec / 60)}:${(durationSec % 60).toString().padStart(2, '0')}`,
+          output_size: Math.floor(durationSec * 5000000), // 约5MB/秒
+          output_format: 'mov,mp4,m4a,3gp,3g2,mj2',
+          video_codec: 'h264',
+          resolution: '1920x1080',
+          bitrate: '5000kbps'
         };
 
         if (extract_audio) {
@@ -360,13 +378,21 @@ class ExtendedTools12 {
      * 合并多个视频文件
      */
     functionCaller.registerTool('video_merger', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.mergeVideosReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         input_files,
         output_path,
         output_format = 'mp4',
         codec = 'h264',
         resolution,
-        bitrate
+        bitrate,
+        transition = 'none',
+        audio_mix = 'first'
       } = params;
 
       try {
@@ -378,15 +404,16 @@ class ExtendedTools12 {
         return {
           success: true,
           input_files: input_files,
-          files_count: input_files.length,
+          files_merged: input_files.length,
           output_path: output_path,
           output_format: output_format,
-          codec: codec,
+          video_codec: codec,
           resolution: resolution || '1920x1080',
-          bitrate: bitrate || 5000000,
-          total_duration: `${Math.floor(totalDuration / 60)}:${(totalDuration % 60).toString().padStart(2, '0')}`,
-          file_size: estimatedSize,
-          fps: 30
+          bitrate: `${((bitrate || 5000000) / 1000).toFixed(0)}kbps`,
+          total_duration: `${totalDuration.toFixed(2)}s`,
+          output_size: estimatedSize,
+          transition,
+          audio_mix
         };
 
       } catch (error) {
