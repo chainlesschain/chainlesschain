@@ -1,0 +1,148 @@
+{
+  "id": "tpl_tech_docs_api_001",
+  "name": "api_documentation",
+  "display_name": "API接口文档",
+  "description": "专业的RESTful API文档模板,包含接口说明、请求/响应示例、错误码、认证方式等完整内容",
+  "icon": "📡",
+  "category": "tech-docs",
+  "subcategory": "API文档",
+  "tags": ["API", "接口文档", "RESTful", "技术文档", "开发文档"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成API接口文档，要求:\n\n# {{apiName}} API文档\n\n## 1. 概述\n\n**版本**: {{apiVersion}}\n**Base URL**: `{{baseUrl}}`\n**协议**: {{protocol}}\n**认证方式**: {{authMethod}}\n\n### 1.1 简介\n\n{{apiDescription}}\n\n### 1.2 变更日志\n\n| 版本 | 日期 | 变更内容 |\n|------|------|----------|\n| {{apiVersion}} | {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}} | 初始版本 |\n\n## 2. 认证\n\n{{#eq authMethod \"JWT\"}}\n### JWT Token认证\n\n所有API请求都需要在请求头中携带JWT Token:\n\n```http\nAuthorization: Bearer <your_jwt_token>\n```\n\n**获取Token**:\n\n```http\nPOST {{baseUrl}}/auth/login\nContent-Type: application/json\n\n{\n  \"username\": \"user@example.com\",\n  \"password\": \"your_password\"\n}\n```\n\n**响应**:\n\n```json\n{\n  \"code\": 200,\n  \"message\": \"登录成功\",\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"expiresIn\": 3600,\n    \"tokenType\": \"Bearer\"\n  }\n}\n```\n{{/eq}}\n\n{{#eq authMethod \"API Key\"}}\n### API Key认证\n\n在请求头中携带API Key:\n\n```http\nX-API-Key: <your_api_key>\n```\n\n或者作为查询参数:\n\n```http\nGET {{baseUrl}}/endpoint?api_key=<your_api_key>\n```\n{{/eq}}\n\n{{#eq authMethod \"OAuth 2.0\"}}\n### OAuth 2.0认证\n\n支持以下授权方式:\n- Authorization Code\n- Client Credentials\n- Refresh Token\n\n**授权流程**:\n\n1. 获取授权码:\n```http\nGET {{baseUrl}}/oauth/authorize?client_id=<client_id>&redirect_uri=<redirect_uri>&response_type=code\n```\n\n2. 使用授权码获取Access Token:\n```http\nPOST {{baseUrl}}/oauth/token\nContent-Type: application/x-www-form-urlencoded\n\nclient_id=<client_id>&client_secret=<client_secret>&code=<authorization_code>&grant_type=authorization_code\n```\n{{/eq}}\n\n## 3. 通用规范\n\n### 3.1 请求格式\n\n- **Content-Type**: `application/json`\n- **字符编码**: UTF-8\n- **时间格式**: ISO 8601 (例: `2024-01-15T10:30:00Z`)\n- **分页参数**: `page`(页码, 从1开始), `pageSize`(每页数量, 默认20)\n\n### 3.2 响应格式\n\n所有API响应均采用统一格式:\n\n```json\n{\n  \"code\": 200,\n  \"message\": \"success\",\n  \"data\": {},\n  \"timestamp\": \"2024-01-15T10:30:00Z\"\n}\n```\n\n**字段说明**:\n\n| 字段 | 类型 | 说明 |\n|------|------|------|\n| code | Integer | 状态码 |\n| message | String | 响应消息 |\n| data | Object/Array | 业务数据 |\n| timestamp | String | 响应时间戳 |\n\n### 3.3 状态码\n\n| 状态码 | 说明 |\n|--------|------|\n| 200 | 请求成功 |\n| 201 | 创建成功 |\n| 204 | 删除成功(无内容) |\n| 400 | 请求参数错误 |\n| 401 | 未授权/Token过期 |\n| 403 | 无权限访问 |\n| 404 | 资源不存在 |\n| 409 | 资源冲突(如重复创建) |\n| 422 | 请求参数验证失败 |\n| 429 | 请求过于频繁 |\n| 500 | 服务器内部错误 |\n| 503 | 服务暂时不可用 |\n\n### 3.4 错误响应\n\n```json\n{\n  \"code\": 400,\n  \"message\": \"参数验证失败\",\n  \"errors\": [\n    {\n      \"field\": \"email\",\n      \"message\": \"邮箱格式不正确\"\n    },\n    {\n      \"field\": \"age\",\n      \"message\": \"年龄必须大于0\"\n    }\n  ],\n  \"timestamp\": \"2024-01-15T10:30:00Z\"\n}\n```\n\n### 3.5 分页响应\n\n```json\n{\n  \"code\": 200,\n  \"message\": \"success\",\n  \"data\": {\n    \"items\": [...],\n    \"pagination\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalPages\": 5,\n      \"totalItems\": 95\n    }\n  },\n  \"timestamp\": \"2024-01-15T10:30:00Z\"\n}\n```\n\n## 4. API端点\n\n### 4.1 用户管理\n\n#### 4.1.1 获取用户列表\n\n**接口地址**: `GET {{baseUrl}}/users`\n\n**请求参数**:\n\n| 参数 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| page | Integer | 否 | 页码(默认1) |\n| pageSize | Integer | 否 | 每页数量(默认20) |\n| status | String | 否 | 用户状态(active/inactive) |\n| keyword | String | 否 | 搜索关键词 |\n\n**请求示例**:\n\n```http\nGET {{baseUrl}}/users?page=1&pageSize=20&status=active\nAuthorization: Bearer <token>\n```\n\n**响应示例**:\n\n```json\n{\n  \"code\": 200,\n  \"message\": \"success\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"123e4567-e89b-12d3-a456-426614174000\",\n        \"username\": \"john_doe\",\n        \"email\": \"john@example.com\",\n        \"status\": \"active\",\n        \"createdAt\": \"2024-01-01T00:00:00Z\",\n        \"updatedAt\": \"2024-01-15T10:30:00Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalPages\": 1,\n      \"totalItems\": 15\n    }\n  },\n  \"timestamp\": \"2024-01-15T10:30:00Z\"\n}\n```\n\n#### 4.1.2 获取用户详情\n\n**接口地址**: `GET {{baseUrl}}/users/{userId}`\n\n**路径参数**:\n\n| 参数 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| userId | String | 是 | 用户ID |\n\n**请求示例**:\n\n```http\nGET {{baseUrl}}/users/123e4567-e89b-12d3-a456-426614174000\nAuthorization: Bearer <token>\n```\n\n**响应示例**:\n\n```json\n{\n  \"code\": 200,\n  \"message\": \"success\",\n  \"data\": {\n    \"id\": \"123e4567-e89b-12d3-a456-426614174000\",\n    \"username\": \"john_doe\",\n    \"email\": \"john@example.com\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"avatar\": \"https://example.com/avatars/john.jpg\",\n    \"status\": \"active\",\n    \"role\": \"user\",\n    \"createdAt\": \"2024-01-01T00:00:00Z\",\n    \"updatedAt\": \"2024-01-15T10:30:00Z\"\n  },\n  \"timestamp\": \"2024-01-15T10:30:00Z\"\n}\n```\n\n#### 4.1.3 创建用户\n\n**接口地址**: `POST {{baseUrl}}/users`\n\n**请求体**:\n\n| 字段 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| username | String | 是 | 用户名(3-20字符) |\n| email | String | 是 | 邮箱 |\n| password | String | 是 | 密码(8-20字符) |\n| firstName | String | 否 | 名 |\n| lastName | String | 否 | 姓 |\n| role | String | 否 | 角色(默认user) |\n\n**请求示例**:\n\n```http\nPOST {{baseUrl}}/users\nAuthorization: Bearer <token>\nContent-Type: application/json\n\n{\n  \"username\": \"jane_doe\",\n  \"email\": \"jane@example.com\",\n  \"password\": \"SecurePass123\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\"\n}\n```\n\n**响应示例**:\n\n```json\n{\n  \"code\": 201,\n  \"message\": \"用户创建成功\",\n  \"data\": {\n    \"id\": \"234e5678-e89b-12d3-a456-426614174001\",\n    \"username\": \"jane_doe\",\n    \"email\": \"jane@example.com\",\n    \"firstName\": \"Jane\",\n    \"lastName\": \"Doe\",\n    \"status\": \"active\",\n    \"role\": \"user\",\n    \"createdAt\": \"2024-01-15T10:30:00Z\"\n  },\n  \"timestamp\": \"2024-01-15T10:30:00Z\"\n}\n```\n\n#### 4.1.4 更新用户\n\n**接口地址**: `PUT {{baseUrl}}/users/{userId}`\n\n**路径参数**:\n\n| 参数 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| userId | String | 是 | 用户ID |\n\n**请求体**:\n\n| 字段 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| firstName | String | 否 | 名 |\n| lastName | String | 否 | 姓 |\n| avatar | String | 否 | 头像URL |\n| status | String | 否 | 状态 |\n\n**请求示例**:\n\n```http\nPUT {{baseUrl}}/users/123e4567-e89b-12d3-a456-426614174000\nAuthorization: Bearer <token>\nContent-Type: application/json\n\n{\n  \"firstName\": \"John\",\n  \"lastName\": \"Smith\",\n  \"status\": \"active\"\n}\n```\n\n**响应示例**:\n\n```json\n{\n  \"code\": 200,\n  \"message\": \"用户更新成功\",\n  \"data\": {\n    \"id\": \"123e4567-e89b-12d3-a456-426614174000\",\n    \"username\": \"john_doe\",\n    \"email\": \"john@example.com\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Smith\",\n    \"status\": \"active\",\n    \"updatedAt\": \"2024-01-15T11:00:00Z\"\n  },\n  \"timestamp\": \"2024-01-15T11:00:00Z\"\n}\n```\n\n#### 4.1.5 删除用户\n\n**接口地址**: `DELETE {{baseUrl}}/users/{userId}`\n\n**路径参数**:\n\n| 参数 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| userId | String | 是 | 用户ID |\n\n**请求示例**:\n\n```http\nDELETE {{baseUrl}}/users/123e4567-e89b-12d3-a456-426614174000\nAuthorization: Bearer <token>\n```\n\n**响应示例**:\n\n```json\n{\n  \"code\": 204,\n  \"message\": \"用户删除成功\",\n  \"timestamp\": \"2024-01-15T11:00:00Z\"\n}\n```\n\n## 5. 限流规则\n\n为保护API服务，我们对请求频率进行了限制:\n\n| 端点类型 | 限制 |\n|----------|------|\n| 认证端点 | 5次/分钟 |\n| 读取端点(GET) | 100次/分钟 |\n| 写入端点(POST/PUT/DELETE) | 30次/分钟 |\n\n**超出限制响应**:\n\n```json\n{\n  \"code\": 429,\n  \"message\": \"请求过于频繁，请稍后再试\",\n  \"retryAfter\": 60,\n  \"timestamp\": \"2024-01-15T11:00:00Z\"\n}\n```\n\n响应头会包含限流信息:\n\n```http\nX-RateLimit-Limit: 100\nX-RateLimit-Remaining: 0\nX-RateLimit-Reset: 1705318800\n```\n\n## 6. Webhook\n\n{{#eq includeWebhook \"是\"}}\n### 6.1 Webhook配置\n\nWebhook允许您在特定事件发生时接收HTTP回调。\n\n**配置Webhook**:\n\n```http\nPOST {{baseUrl}}/webhooks\nAuthorization: Bearer <token>\nContent-Type: application/json\n\n{\n  \"url\": \"https://your-domain.com/webhook\",\n  \"events\": [\"user.created\", \"user.updated\"],\n  \"secret\": \"your_webhook_secret\"\n}\n```\n\n### 6.2 Webhook事件\n\n| 事件 | 说明 |\n|------|------|\n| user.created | 用户创建 |\n| user.updated | 用户更新 |\n| user.deleted | 用户删除 |\n\n### 6.3 Webhook负载\n\n```json\n{\n  \"event\": \"user.created\",\n  \"timestamp\": \"2024-01-15T11:00:00Z\",\n  \"data\": {\n    \"id\": \"123e4567-e89b-12d3-a456-426614174000\",\n    \"username\": \"john_doe\",\n    \"email\": \"john@example.com\"\n  }\n}\n```\n\n### 6.4 签名验证\n\n所有Webhook请求都包含签名头:\n\n```http\nX-Webhook-Signature: sha256=<signature>\n```\n\n验证签名(Node.js示例):\n\n```javascript\nconst crypto = require('crypto');\n\nfunction verifySignature(payload, signature, secret) {\n  const hash = crypto\n    .createHmac('sha256', secret)\n    .update(JSON.stringify(payload))\n    .digest('hex');\n  \n  return `sha256=${hash}` === signature;\n}\n```\n{{/eq}}\n\n## 7. SDK示例\n\n### 7.1 JavaScript/Node.js\n\n```javascript\nconst axios = require('axios');\n\nconst client = axios.create({\n  baseURL: '{{baseUrl}}',\n  headers: {\n    'Authorization': 'Bearer ' + token,\n    'Content-Type': 'application/json'\n  }\n});\n\n// 获取用户列表\nasync function getUsers() {\n  try {\n    const response = await client.get('/users', {\n      params: { page: 1, pageSize: 20 }\n    });\n    console.log(response.data);\n  } catch (error) {\n    console.error(error.response.data);\n  }\n}\n\n// 创建用户\nasync function createUser(userData) {\n  try {\n    const response = await client.post('/users', userData);\n    console.log(response.data);\n  } catch (error) {\n    console.error(error.response.data);\n  }\n}\n```\n\n### 7.2 Python\n\n```python\nimport requests\n\nclass APIClient:\n    def __init__(self, base_url, token):\n        self.base_url = base_url\n        self.headers = {\n            'Authorization': f'Bearer {token}',\n            'Content-Type': 'application/json'\n        }\n    \n    def get_users(self, page=1, page_size=20):\n        url = f'{self.base_url}/users'\n        params = {'page': page, 'pageSize': page_size}\n        \n        response = requests.get(url, headers=self.headers, params=params)\n        return response.json()\n    \n    def create_user(self, user_data):\n        url = f'{self.base_url}/users'\n        \n        response = requests.post(url, headers=self.headers, json=user_data)\n        return response.json()\n\n# 使用示例\nclient = APIClient('{{baseUrl}}', 'your_token')\nusers = client.get_users(page=1)\nprint(users)\n```\n\n### 7.3 cURL\n\n```bash\n# 获取用户列表\ncurl -X GET '{{baseUrl}}/users?page=1&pageSize=20' \\\n  -H 'Authorization: Bearer <token>'\n\n# 创建用户\ncurl -X POST '{{baseUrl}}/users' \\\n  -H 'Authorization: Bearer <token>' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"username\": \"john_doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"SecurePass123\"\n  }'\n```\n\n## 8. 常见问题\n\n**Q: Token过期了怎么办？**\nA: Token过期后会返回401状态码，需要重新调用登录接口获取新Token。建议在客户端实现自动刷新机制。\n\n**Q: 如何处理大量数据导出？**\nA: 对于大量数据，建议使用分页方式分批获取，或联系我们开通异步导出功能。\n\n**Q: API响应时间较慢怎么办？**\nA: 检查请求参数是否合理，使用合适的分页大小。如持续慢速，请联系技术支持。\n\n**Q: 如何获取API Key？**\nA: 登录开发者控制台，在\"API密钥\"页面可以生成和管理API Key。\n\n## 9. 联系我们\n\n- **技术支持**: {{#if supportEmail}}{{supportEmail}}{{else}}support@example.com{{/if}}\n- **开发者论坛**: {{#if forumUrl}}{{forumUrl}}{{else}}https://forum.example.com{{/if}}\n- **Status页面**: {{#if statusUrl}}{{statusUrl}}{{else}}https://status.example.com{{/if}}\n\n---\n\n**文档版本**: {{apiVersion}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {
+      "name": "apiName",
+      "type": "text",
+      "label": "API名称",
+      "default": "示例API",
+      "required": true,
+      "description": "API的名称"
+    },
+    {
+      "name": "apiVersion",
+      "type": "text",
+      "label": "API版本",
+      "default": "v1.0.0",
+      "required": true,
+      "description": "当前API版本号"
+    },
+    {
+      "name": "baseUrl",
+      "type": "text",
+      "label": "Base URL",
+      "default": "https://api.example.com/v1",
+      "required": true,
+      "description": "API的基础URL"
+    },
+    {
+      "name": "protocol",
+      "type": "select",
+      "label": "协议",
+      "default": "HTTPS",
+      "required": true,
+      "options": [
+        {"value": "HTTP", "label": "HTTP"},
+        {"value": "HTTPS", "label": "HTTPS"}
+      ],
+      "description": "API使用的协议"
+    },
+    {
+      "name": "authMethod",
+      "type": "select",
+      "label": "认证方式",
+      "default": "JWT",
+      "required": true,
+      "options": [
+        {"value": "JWT", "label": "JWT Token"},
+        {"value": "API Key", "label": "API Key"},
+        {"value": "OAuth 2.0", "label": "OAuth 2.0"},
+        {"value": "Basic Auth", "label": "Basic Auth"}
+      ],
+      "description": "API的认证方式"
+    },
+    {
+      "name": "apiDescription",
+      "type": "textarea",
+      "label": "API简介",
+      "default": "本API提供完整的用户管理、数据查询和业务操作功能，支持RESTful规范。",
+      "required": true,
+      "description": "API的简要描述"
+    },
+    {
+      "name": "includeWebhook",
+      "type": "select",
+      "label": "是否包含Webhook",
+      "default": "否",
+      "required": false,
+      "options": [
+        {"value": "是", "label": "是"},
+        {"value": "否", "label": "否"}
+      ],
+      "description": "是否在文档中包含Webhook相关内容"
+    },
+    {
+      "name": "supportEmail",
+      "type": "text",
+      "label": "技术支持邮箱",
+      "default": "",
+      "required": false,
+      "description": "技术支持联系邮箱（可选）"
+    },
+    {
+      "name": "forumUrl",
+      "type": "text",
+      "label": "开发者论坛URL",
+      "default": "",
+      "required": false,
+      "description": "开发者论坛地址（可选）"
+    },
+    {
+      "name": "statusUrl",
+      "type": "text",
+      "label": "Status页面URL",
+      "default": "",
+      "required": false,
+      "description": "服务状态页面地址（可选）"
+    },
+    {
+      "name": "updateDate",
+      "type": "text",
+      "label": "更新日期",
+      "default": "",
+      "required": false,
+      "description": "文档最后更新日期（可选）"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{apiName}}_API文档",
+    "children": [
+      {"type": "file", "name": "README.md", "description": "API文档主文件"},
+      {"type": "file", "name": "openapi.yaml", "description": "OpenAPI规范文件"},
+      {
+        "type": "folder",
+        "name": "examples",
+        "children": [
+          {"type": "file", "name": "javascript.js", "description": "JavaScript SDK示例"},
+          {"type": "file", "name": "python.py", "description": "Python SDK示例"},
+          {"type": "file", "name": "curl.sh", "description": "cURL示例"}
+        ]
+      },
+      {
+        "type": "folder",
+        "name": "postman",
+        "children": [
+          {"type": "file", "name": "collection.json", "description": "Postman集合"}
+        ]
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T10:00:00Z"
+}

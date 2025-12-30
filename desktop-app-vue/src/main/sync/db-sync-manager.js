@@ -423,24 +423,48 @@ class DBSyncManager extends EventEmitter {
 
       // 处理删除记录（使用软删除）
       let deletedCount = 0;
+      let skippedLocalRecords = 0;
       for (const deletedId of deletedIds || []) {
-        // 使用softDelete方法，会自动设置deleted=1并标记sync_status为pending
-        if (this.database.softDelete && typeof this.database.softDelete === 'function') {
-          if (this.database.softDelete(tableName, deletedId)) {
-            deletedCount++;
+        // 在删除前检查：如果是本地待同步的记录，不应该被后端同步删除
+        // 这防止了本地新创建但还未上传到后端的记录被错误删除
+        try {
+          const localRecord = this.database.db
+            .prepare(`SELECT sync_status, synced_at FROM ${tableName} WHERE id = ?`)
+            .get(deletedId);
+
+          if (localRecord) {
+            // 如果是本地待同步且从未同步过的记录，跳过删除
+            if (localRecord.sync_status === 'pending' && !localRecord.synced_at) {
+              console.log(`[DBSyncManager] 跳过删除本地待同步记录: ${tableName}.${deletedId}`);
+              skippedLocalRecords++;
+              continue;
+            }
+
+            // 如果记录已经同步过，则可以安全删除
+            if (this.database.softDelete && typeof this.database.softDelete === 'function') {
+              if (this.database.softDelete(tableName, deletedId)) {
+                deletedCount++;
+              }
+            } else {
+              // 降级处理（兼容旧版本）
+              this.database.db.run(
+                `UPDATE ${tableName}
+                 SET deleted = 1,
+                     updated_at = ?,
+                     sync_status = 'pending'
+                 WHERE id = ?`,
+                [Date.now(), deletedId]
+              );
+              deletedCount++;
+            }
           }
-        } else {
-          // 降级处理（兼容旧版本）
-          this.database.db.run(
-            `UPDATE ${tableName}
-             SET deleted = 1,
-                 updated_at = ?,
-                 sync_status = 'pending'
-             WHERE id = ?`,
-            [Date.now(), deletedId]
-          );
-          deletedCount++;
+        } catch (err) {
+          console.error(`[DBSyncManager] 处理删除记录失败: ${tableName}.${deletedId}`, err);
         }
+      }
+
+      if (skippedLocalRecords > 0) {
+        console.log(`[DBSyncManager] 保护了 ${skippedLocalRecords} 条本地待同步记录，防止被错误删除`);
       }
 
       console.log(`[DBSyncManager] 下载完成: 新增${newRecords?.length || 0}, 更新${updatedRecords?.length || 0}, 删除${deletedCount}`);

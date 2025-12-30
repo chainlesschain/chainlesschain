@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
+const ical = require('ical-generator').default;
 
 // 配置FFmpeg路径
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -1073,6 +1074,376 @@ async function editNoteReal(params) {
 }
 
 /**
+ * ==================== 日历管理工具 ====================
+ */
+
+/**
+ * 日历管理器 (真实实现)
+ * 使用ical-generator创建和管理日历事件
+ */
+async function calendarManagerReal(params) {
+  const { action, event, date_range, calendar_id, calendar_path } = params;
+
+  try {
+    switch (action) {
+      case 'create': {
+        // 创建新日历事件
+        const calendar = ical({
+          name: event.calendar_name || 'ChainlessChain Calendar',
+          timezone: event.timezone || 'Asia/Shanghai'
+        });
+
+        const eventId = crypto.randomBytes(8).toString('hex');
+        const calEvent = calendar.createEvent({
+          id: eventId,
+          start: new Date(event.start_time),
+          end: new Date(event.end_time),
+          summary: event.title,
+          description: event.description || '',
+          location: event.location || '',
+          url: event.url || ''
+        });
+
+        // 添加参与者
+        if (event.attendees && event.attendees.length > 0) {
+          event.attendees.forEach(attendee => {
+            calEvent.createAttendee({
+              email: attendee.email || attendee,
+              name: attendee.name || attendee,
+              role: attendee.role || 'REQ-PARTICIPANT',
+              status: 'NEEDS-ACTION'
+            });
+          });
+        }
+
+        // 添加重复规则
+        if (event.recurrence && event.recurrence !== 'none') {
+          const recurrenceMap = {
+            'daily': 'DAILY',
+            'weekly': 'WEEKLY',
+            'monthly': 'MONTHLY',
+            'yearly': 'YEARLY'
+          };
+          if (recurrenceMap[event.recurrence]) {
+            calEvent.repeating({
+              freq: recurrenceMap[event.recurrence],
+              count: event.recurrence_count || 10
+            });
+          }
+        }
+
+        // 添加提醒
+        if (event.reminder_minutes) {
+          calEvent.createAlarm({
+            type: 'display',
+            trigger: event.reminder_minutes * 60
+          });
+        }
+
+        // 保存到文件
+        const outputPath = calendar_path || path.join(__dirname, '../../test-output', `event_${eventId}.ics`);
+        await fsp.mkdir(path.dirname(outputPath), { recursive: true });
+        await fsp.writeFile(outputPath, calendar.toString(), 'utf8');
+
+        return {
+          success: true,
+          action: 'created',
+          event_id: eventId,
+          calendar_path: outputPath,
+          event: {
+            id: eventId,
+            title: event.title,
+            start_time: event.start_time,
+            end_time: event.end_time,
+            location: event.location,
+            attendees: event.attendees || [],
+            recurrence: event.recurrence || 'none'
+          }
+        };
+      }
+
+      case 'update': {
+        // 更新日历事件
+        // 读取现有.ics文件，修改并保存
+        const eventPath = calendar_path || path.join(__dirname, '../../test-output', `event_${event.id}.ics`);
+
+        // 创建新的日历对象
+        const calendar = ical({
+          name: event.calendar_name || 'ChainlessChain Calendar'
+        });
+
+        const calEvent = calendar.createEvent({
+          id: event.id,
+          start: new Date(event.start_time),
+          end: new Date(event.end_time),
+          summary: event.title,
+          description: event.description || '',
+          location: event.location || ''
+        });
+
+        await fsp.writeFile(eventPath, calendar.toString(), 'utf8');
+
+        return {
+          success: true,
+          action: 'updated',
+          event_id: event.id,
+          calendar_path: eventPath,
+          changes: Object.keys(event).filter(k => k !== 'id')
+        };
+      }
+
+      case 'delete': {
+        // 删除日历事件文件
+        const eventPath = calendar_path || path.join(__dirname, '../../test-output', `event_${event.id}.ics`);
+
+        try {
+          await fsp.unlink(eventPath);
+        } catch (err) {
+          if (err.code !== 'ENOENT') throw err;
+        }
+
+        return {
+          success: true,
+          action: 'deleted',
+          event_id: event.id,
+          message: '事件已删除'
+        };
+      }
+
+      case 'query': {
+        // 查询日历事件（从目录读取所有.ics文件）
+        const eventsDir = calendar_path || path.join(__dirname, '../../test-output');
+
+        try {
+          const files = await fsp.readdir(eventsDir);
+          const icsFiles = files.filter(f => f.endsWith('.ics'));
+
+          const events = [];
+          for (const file of icsFiles) {
+            try {
+              const content = await fsp.readFile(path.join(eventsDir, file), 'utf8');
+
+              // 简单解析.ics文件提取信息
+              const titleMatch = content.match(/SUMMARY:(.+)/);
+              const startMatch = content.match(/DTSTART(?:;[^:]+)?:(.+)/);
+              const endMatch = content.match(/DTEND(?:;[^:]+)?:(.+)/);
+              const locationMatch = content.match(/LOCATION:(.+)/);
+              const uidMatch = content.match(/UID:(.+)/);
+
+              if (titleMatch && startMatch && endMatch) {
+                const event = {
+                  id: uidMatch ? uidMatch[1].trim() : file.replace('.ics', ''),
+                  title: titleMatch[1].trim(),
+                  start_time: startMatch[1].trim(),
+                  end_time: endMatch[1].trim(),
+                  location: locationMatch ? locationMatch[1].trim() : '',
+                  file_path: path.join(eventsDir, file)
+                };
+
+                // 日期范围过滤
+                if (date_range) {
+                  const eventStart = new Date(event.start_time);
+                  const rangeStart = date_range.start ? new Date(date_range.start) : null;
+                  const rangeEnd = date_range.end ? new Date(date_range.end) : null;
+
+                  if (rangeStart && eventStart < rangeStart) continue;
+                  if (rangeEnd && eventStart > rangeEnd) continue;
+                }
+
+                events.push(event);
+              }
+            } catch (err) {
+              console.warn(`解析文件 ${file} 失败:`, err.message);
+            }
+          }
+
+          return {
+            success: true,
+            action: 'queried',
+            date_range: date_range,
+            events: events,
+            count: events.length
+          };
+        } catch (err) {
+          // 目录不存在，返回空列表
+          return {
+            success: true,
+            action: 'queried',
+            date_range: date_range,
+            events: [],
+            count: 0
+          };
+        }
+      }
+
+      default:
+        return {
+          success: false,
+          error: `不支持的操作: ${action}`
+        };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * ==================== 笔记搜索工具 ====================
+ */
+
+/**
+ * 笔记搜索器 (真实实现)
+ * 基于文件系统的笔记全文搜索
+ */
+async function searchNotesReal(params) {
+  const {
+    query,
+    filters = {},
+    sort_by = 'updated_at',
+    limit = 20,
+    notes_directory
+  } = params;
+
+  try {
+    // 确定搜索目录
+    const searchDir = notes_directory || path.join(__dirname, '../../test-output');
+
+    // 读取所有JSON笔记文件
+    let files = [];
+    try {
+      files = await fsp.readdir(searchDir);
+    } catch (err) {
+      return {
+        success: true,
+        query: query,
+        filters: filters,
+        sort_by: sort_by,
+        results: [],
+        total_count: 0
+      };
+    }
+
+    const jsonFiles = files.filter(f => f.endsWith('.json'));
+    const results = [];
+
+    // 处理每个笔记文件
+    for (const file of jsonFiles) {
+      try {
+        const filePath = path.join(searchDir, file);
+        const content = await fsp.readFile(filePath, 'utf8');
+        const noteData = JSON.parse(content);
+
+        // 应用标签过滤
+        if (filters.tags && filters.tags.length > 0) {
+          const noteTags = noteData.tags || [];
+          const hasMatchingTag = filters.tags.some(tag => noteTags.includes(tag));
+          if (!hasMatchingTag) continue;
+        }
+
+        // 应用文件夹过滤
+        if (filters.folder) {
+          const noteFolder = noteData.folder || path.dirname(filePath);
+          if (noteFolder !== filters.folder) continue;
+        }
+
+        // 全文搜索匹配
+        let relevance = 0;
+        let snippet = '';
+        const searchTerm = (query || '').toLowerCase();
+
+        if (searchTerm) {
+          const title = (noteData.title || '').toLowerCase();
+          const noteContent = (noteData.content || '').toLowerCase();
+
+          // 标题匹配（权重更高）
+          if (title.includes(searchTerm)) {
+            relevance += 0.5;
+          }
+
+          // 内容匹配
+          if (noteContent.includes(searchTerm)) {
+            relevance += 0.3;
+
+            // 提取包含搜索词的片段
+            const index = noteContent.indexOf(searchTerm);
+            const start = Math.max(0, index - 50);
+            const end = Math.min(noteContent.length, index + searchTerm.length + 50);
+            snippet = '...' + noteData.content.substring(start, end) + '...';
+          }
+
+          // 标签匹配
+          const noteTags = noteData.tags || [];
+          if (noteTags.some(tag => tag.toLowerCase().includes(searchTerm))) {
+            relevance += 0.2;
+          }
+
+          // 如果没有匹配，跳过这个笔记
+          if (relevance === 0) continue;
+        } else {
+          // 没有搜索词，返回所有笔记
+          relevance = 0.5;
+          snippet = (noteData.content || '').substring(0, 100) + '...';
+        }
+
+        results.push({
+          id: file.replace('.json', ''),
+          file_name: file,
+          file_path: filePath,
+          title: noteData.title,
+          snippet: snippet || (noteData.content || '').substring(0, 100) + '...',
+          tags: noteData.tags || [],
+          folder: noteData.folder || searchDir,
+          created_at: noteData.metadata?.created_at,
+          updated_at: noteData.metadata?.updated_at,
+          relevance: relevance
+        });
+      } catch (err) {
+        console.warn(`读取笔记 ${file} 失败:`, err.message);
+      }
+    }
+
+    // 排序
+    const sortFunctions = {
+      'created_at': (a, b) => {
+        const dateA = new Date(a.created_at || a.updated_at || 0);
+        const dateB = new Date(b.created_at || b.updated_at || 0);
+        return dateB - dateA;
+      },
+      'updated_at': (a, b) => {
+        const dateA = new Date(a.updated_at || 0);
+        const dateB = new Date(b.updated_at || 0);
+        return dateB - dateA;
+      },
+      'title': (a, b) => (a.title || '').localeCompare(b.title || ''),
+      'relevance': (a, b) => b.relevance - a.relevance
+    };
+
+    results.sort(sortFunctions[sort_by] || sortFunctions['updated_at']);
+
+    // 应用限制
+    const limitedResults = results.slice(0, limit);
+
+    return {
+      success: true,
+      query: query,
+      filters: filters,
+      sort_by: sort_by,
+      results: limitedResults,
+      total_count: limitedResults.length,
+      total_found: results.length
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * ==================== 原有辅助函数 ====================
  */
 
@@ -1157,5 +1528,9 @@ module.exports = {
 
   // 日常工具
   generatePasswordAdvancedReal,
-  editNoteReal
+  editNoteReal,
+
+  // 日历和笔记
+  calendarManagerReal,
+  searchNotesReal
 };
