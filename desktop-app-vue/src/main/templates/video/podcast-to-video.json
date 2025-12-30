@@ -1,0 +1,47 @@
+{
+  "id": "tpl_video_podcast_002",
+  "name": "podcast_to_video",
+  "display_name": "播客视频化",
+  "description": "将音频播客转化为视频内容，增加视觉元素和传播性",
+  "icon": "🎙️",
+  "cover_image": "/templates/covers/podcast-video.png",
+  "category": "video",
+  "subcategory": "interview",
+  "tags": ["播客", "音频转视频", "视频播客"],
+  "project_type": "document",
+  "prompt_template": "请帮我将播客内容视频化，要求：\n\n**播客信息：**\n- 播客名称：{{podcastName}}\n- 本期主题：{{episodeTheme}}\n- 音频时长：{{audioDuration}}分钟\n- 视觉风格：{{visualStyle}}\n\n**视频化策略：**\n\n{{#eq visualStyle \"静态画面\"}}\n【静态画面方案】（最简单）\n\n画面构成：\n- 背景：纯色/渐变/品牌背景\n- 中央：播客封面/Logo\n- 底部：滚动字幕\n- 角落：主播头像（可选）\n\n优点：\n- 制作简单快速\n- 文件体积小\n- 适合音频为主的内容\n\n制作工具：\n- Canva（在线设计）\n- Headliner（专业播客视频化工具）\n- 剪映/CapCut\n{{/eq}}\n\n{{#eq visualStyle \"动态波形\"}}\n【动态波形方案】（推荐）\n\n画面构成：\n- 背景：动态背景或纯色\n- 中央：音频波形动画\n- 字幕：关键语句显示\n- 装饰：节目信息、时间轴\n\n波形样式：\n- 圆形波形（Apple Podcasts风格）\n- 条形波形（Spotify风格）\n- 粒子波形（科技感）\n\n制作工具：\n- Adobe Premiere Pro（音频波形效果）\n- After Effects（高级动画）\n- Headliner（自动生成）\n{{/eq}}\n\n{{#eq visualStyle \"真人出镜\"}}\n【真人出镜方案】（最专业）\n\n拍摄设置：\n- 主播：正面或45度角\n- 背景：工作室/书房\n- 设备：摄像头录制\n- 灯光：三点布光\n\n画面元素：\n- 主画面：主播讲话\n- 字幕：全程字幕\n- 插图：话题相关图片/视频\n- B-Roll：补充画面\n\n后期剪辑：\n- 音画同步\n- 表情特写\n- 多机位切换（如有嘉宾）\n- 添加视觉元素\n{{/eq}}\n\n{{#eq visualStyle \"混合形式\"}}\n【混合形式方案】（最丰富）\n\n画面组合：\n1. 开场：真人介绍（30秒）\n2. 主体：波形+字幕+插图（主要时长）\n3. 重点：真人出镜讲解（关键观点）\n4. 结尾：真人总结+CTA（30秒）\n\n视觉素材：\n- 相关图片（话题配图）\n- 短视频片段（B-Roll）\n- 图表数据（信息可视化）\n- 动画元素（转场、图标）\n{{/eq}}\n\n---\n\n**字幕制作：**\n\n{{#if includeSubtitles}}\n**自动生成：**\n1. 使用AI工具识别音频\n   - 剪映（中文识别率高）\n   - Premiere Pro（Auto Transcription）\n   - Otter.ai（英文）\n   - 讯飞听见（中文）\n\n2. 人工校对\n   - 修正错别字\n   - 添加标点符号\n   - 分段断句\n\n**字幕样式：**\n- 完整字幕：全程显示（便于无声观看）\n- 关键字幕：重要观点高亮放大\n- 双语字幕：中英文对照（国际化）\n\n**字幕设计：**\n- 字体：清晰易读（思源黑体、微软雅黑）\n- 颜色：白字黑边（高对比度）\n- 位置：下方1/5或上方1/5\n- 动画：淡入淡出或打字效果\n{{/if}}\n\n---\n\n**视觉增强元素：**\n\n{{#if includeVisuals}}\n1. **章节标记**\n   - 时间轴显示\n   - 话题切换提示\n   - 章节标题卡片\n\n2. **信息图表**\n   - 数据可视化\n   - 关键概念图解\n   - 流程图/思维导图\n\n3. **引用素材**\n   - 书籍封面（推荐的书）\n   - 产品图片（提到的产品）\n   - 人物照片（嘉宾介绍）\n\n4. **动画元素**\n   - Logo动画\n   - 订阅按钮动画\n   - 转场特效\n   - 片头片尾\n{{/if}}\n\n---\n\n**多平台优化：**\n\n**YouTube优化：**\n- 尺寸：1920x1080（16:9）\n- 时长：完整版（不剪辑）\n- 章节：添加视频章节（时间戳）\n- 描述：详细的show notes\n\n**短视频平台优化：**\n- 尺寸：1080x1920（9:16竖屏）\n- 时长：精华剪辑（1-3分钟）\n- 内容：选取最精彩片段\n- 字幕：完整字幕必备\n\n**B站优化：**\n- 尺寸：1920x1080\n- 分P：可按话题分P\n- 弹幕：预留弹幕保护时间\n- 封面：精心设计（三连引导）\n\n**音频平台同步：**\n- 保持原音频更新\n- 视频描述中链接音频平台\n- 音频和视频封面保持一致\n\n---\n\n**发布策略：**\n\n**内容切片（Clips）：**\n从完整播客中提取：\n1. 金句片段（30-60秒）- 适合社交媒体\n2. 完整话题讨论（3-5分钟）- 适合短视频平台\n3. 预告片（1分钟）- 引流到完整版\n4. 精彩合集（10分钟）- 月度/年度回顾\n\n**发布时间表：**\n- Day 1: 音频平台发布\n- Day 2: YouTube完整视频\n- Day 3-7: 短视频切片陆续发布\n- 持续：社交媒体推广\n\n**SEO优化：**\n- 标题：{{podcastName}} EP{{episodeNumber}}: {{episodeTheme}}\n- 标签：播客名、嘉宾名、话题关键词\n- 描述：详细的时间戳和show notes\n\n---\n\n**制作流程：**\n\n第一步：音频准备\n- 导出高质量音频（WAV/FLAC）\n- 音频后期处理（降噪、均衡）\n\n第二步：视觉设计\n- 设计封面/背景图\n- 准备字幕文件\n- 收集相关图片/视频素材\n\n第三步：视频制作\n- 导入音频到剪辑软件\n- 添加视觉元素\n- 同步字幕\n- 添加动画和特效\n\n第四步：导出优化\n- 选择合适的输出格式\n- 针对不同平台调整参数\n- 批量导出多版本\n\n---\n\n**工具推荐：**\n\n**自动化工具：**\n- Headliner - 播客视频化专业工具\n- Wavve - 音频波形视频生成\n- Audiogram - 免费开源方案\n\n**专业剪辑：**\n- Adobe Premiere Pro\n- Final Cut Pro\n- DaVinci Resolve\n\n**简易制作：**\n- 剪映（中文友好）\n- CapCut（国际版剪映）\n- Canva（在线设计）\n\n---\n\n**输出格式：**\n- 视频化方案文档\n- 视觉设计模板\n- 多平台发布清单\n- 制作流程图",
+  "variables_schema": [
+    {"name": "podcastName", "label": "播客名称", "type": "string", "required": true},
+    {"name": "episodeTheme", "label": "本期主题", "type": "string", "required": true},
+    {"name": "audioDuration", "label": "音频时长（分钟）", "type": "number", "required": false, "default": 60},
+    {"name": "visualStyle", "label": "视觉风格", "type": "select", "required": true, "options": [
+      {"value": "静态画面", "label": "静态画面（简单）"},
+      {"value": "动态波形", "label": "动态波形（推荐）"},
+      {"value": "真人出镜", "label": "真人出镜（专业）"},
+      {"value": "混合形式", "label": "混合形式（丰富）"}
+    ]},
+    {"name": "includeSubtitles", "label": "包含字幕方案", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "提供字幕制作指南"},
+      {"value": "否", "label": "不需要"}
+    ]},
+    {"name": "includeVisuals", "label": "包含视觉增强", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "提供视觉元素建议"},
+      {"value": "否", "label": "不需要"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "播客视频化-{{podcastName}}",
+    "files": [
+      {"path": "视频化方案.docx", "type": "document"},
+      {"path": "发布计划.xlsx", "type": "spreadsheet"},
+      {"path": "视觉设计模板.psd", "type": "design"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

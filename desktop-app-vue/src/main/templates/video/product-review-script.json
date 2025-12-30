@@ -1,0 +1,39 @@
+{
+  "id": "tpl_video_product_review_001",
+  "name": "product_review_script",
+  "display_name": "产品测评脚本",
+  "description": "产品开箱和深度测评视频脚本，包含评测维度和打分体系",
+  "icon": "📦",
+  "cover_image": "/templates/covers/product-review.png",
+  "category": "video",
+  "subcategory": "review",
+  "tags": ["产品测评", "开箱", "评测", "种草"],
+  "project_type": "document",
+  "prompt_template": "请帮我创建产品测评脚本，要求：\n\n**产品信息：**\n- 产品名称：{{productName}}\n- 产品类别：{{productCategory}}\n- 价格：{{price}}元\n- 测评时长：{{duration}}分钟\n\n**测评结构：**\n\n1. 开场（0-1分钟）\n   - Hook：\"今天测评{{productName}}，值不值得买？\"\n   - 产品基本信息\n   - 购买渠道和价格\n\n2. 开箱（1-3分钟）\n   - 包装设计\n   - 配件清单\n   - 第一印象\n\n3. 外观设计（3-5分钟）\n   - 材质和做工\n   - 尺寸和重量\n   - 颜值评分\n\n4. 功能测试（5-{{subtract duration 3}}分钟）\n   - 核心功能演示\n   - 使用场景测试\n   - 性能数据\n   - 与竞品对比\n\n5. 优缺点总结（{{subtract duration 3}}-{{subtract duration 1}}分钟）\n   - 优点（3-5条）\n   - 缺点（1-3条，真实客观）\n   - 适合人群\n\n6. 总结推荐（{{subtract duration 1}}-{{duration}}分钟）\n   - 综合评分：★★★★☆\n   - 购买建议\n   - 链接位置\n\n**评分维度：**\n- 外观设计：★★★★★\n- 性能表现：★★★★☆\n- 使用体验：★★★★★\n- 性价比：★★★★☆\n- 综合评分：★★★★☆\n\n**拍摄要点：**\n- 产品多角度特写\n- 真实使用演示\n- 对比测试画面\n- 数据图表展示\n\n---\n\n**输出格式：**\n- 测评脚本\n- 评分表\n- 拍摄清单",
+  "variables_schema": [
+    {"name": "productName", "label": "产品名称", "type": "string", "required": true},
+    {"name": "productCategory", "label": "产品类别", "type": "select", "required": true, "options": [
+      {"value": "数码", "label": "数码产品"},
+      {"value": "美妆", "label": "美妆护肤"},
+      {"value": "家居", "label": "家居用品"},
+      {"value": "食品", "label": "食品饮料"},
+      {"value": "其他", "label": "其他"}
+    ]},
+    {"name": "price", "label": "价格（元）", "type": "number", "required": false},
+    {"name": "duration", "label": "时长（分钟）", "type": "number", "required": false, "default": 10}
+  ],
+  "file_structure": {
+    "root": "测评-{{productName}}",
+    "files": [
+      {"path": "测评脚本.docx", "type": "document"},
+      {"path": "评分表.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
