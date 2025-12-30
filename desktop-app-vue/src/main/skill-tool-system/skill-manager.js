@@ -7,15 +7,20 @@ const { v4: uuidv4 } = require('uuid');
 const DocGenerator = require('./doc-generator');
 
 class SkillManager {
-  constructor(database, toolManager) {
+  constructor(database, toolManager, dependencies = {}) {
     this.db = database;
     this.toolManager = toolManager;
+
+    // 依赖注入支持（用于测试）
+    this.dependencies = {
+      DocGeneratorClass: dependencies.DocGeneratorClass || DocGenerator,
+    };
 
     // 技能元数据缓存
     this.skills = new Map(); // skillId -> skillObject
 
     // 文档生成器
-    this.docGenerator = new DocGenerator();
+    this.docGenerator = new this.dependencies.DocGeneratorClass();
 
     this.isInitialized = false;
   }
