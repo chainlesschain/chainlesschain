@@ -2,11 +2,27 @@
  * 第十二批扩展工具 (237-256): 日常实用工具
  * 包含文件压缩、图片编辑、视频编辑、文档转换、二维码工具、
  * 截图录屏、日程管理、笔记管理、密码管理、网络诊断等实用功能
+ *
+ * 支持真实实现和模拟实现切换
+ * 环境变量 USE_REAL_TOOLS=true 启用真实实现
  */
 
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
+
+// 真实功能实现模块（仅当启用时加载）
+const USE_REAL_IMPLEMENTATION = process.env.USE_REAL_TOOLS === 'true' || false;
+let realImpl = null;
+
+if (USE_REAL_IMPLEMENTATION) {
+  try {
+    realImpl = require('./real-implementations');
+    console.log('✅ ExtendedTools12: 已启用真实功能实现');
+  } catch (error) {
+    console.warn('⚠️ ExtendedTools12: 真实功能模块加载失败，将使用模拟实现:', error.message);
+  }
+}
 
 class ExtendedTools12 {
   /**
@@ -21,6 +37,12 @@ class ExtendedTools12 {
      * 压缩文件和文件夹为ZIP/RAR/7Z格式
      */
     functionCaller.registerTool('file_compressor', async (params) => {
+      // 如果启用了真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.compressFilesReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         files,
         output_path,
@@ -83,6 +105,12 @@ class ExtendedTools12 {
      * 解压ZIP/RAR/7Z等格式压缩包
      */
     functionCaller.registerTool('file_decompressor', async (params) => {
+      // 如果启用了真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.decompressFileReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         archive_path,
         output_dir,
