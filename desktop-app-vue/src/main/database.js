@@ -1183,10 +1183,46 @@ class DatabaseManager {
         resource_id TEXT NOT NULL,
         local_version INTEGER DEFAULT 1,
         remote_version INTEGER DEFAULT 1,
+        vector_clock TEXT, -- JSON: {did: version}
         cid TEXT,
         sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict')),
         last_synced_at INTEGER,
         UNIQUE(org_id, resource_type, resource_id)
+      );
+
+      -- 离线同步队列表
+      CREATE TABLE IF NOT EXISTS sync_queue (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        action TEXT NOT NULL CHECK(action IN ('create', 'update', 'delete')),
+        resource_type TEXT NOT NULL,
+        resource_id TEXT NOT NULL,
+        data TEXT, -- JSON
+        version INTEGER NOT NULL,
+        vector_clock TEXT, -- JSON
+        created_at INTEGER NOT NULL,
+        retry_count INTEGER DEFAULT 0,
+        last_retry_at INTEGER,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'processing', 'failed', 'completed'))
+      );
+
+      -- 冲突记录表
+      CREATE TABLE IF NOT EXISTS sync_conflicts (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        resource_type TEXT NOT NULL,
+        resource_id TEXT NOT NULL,
+        local_version INTEGER NOT NULL,
+        remote_version INTEGER NOT NULL,
+        local_data TEXT, -- JSON
+        remote_data TEXT, -- JSON
+        local_vector_clock TEXT, -- JSON
+        remote_vector_clock TEXT, -- JSON
+        resolution_strategy TEXT, -- 'lww', 'merge', 'manual', 'local_wins', 'remote_wins'
+        resolved INTEGER DEFAULT 0,
+        resolved_at INTEGER,
+        resolved_by_did TEXT,
+        created_at INTEGER NOT NULL
       );
 
       -- 企业版索引
@@ -1198,6 +1234,9 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_activities_actor ON organization_activities(actor_did);
       CREATE INDEX IF NOT EXISTS idx_sync_state_status ON p2p_sync_state(org_id, sync_status);
       CREATE INDEX IF NOT EXISTS idx_sync_state_version ON p2p_sync_state(org_id, resource_type, remote_version);
+      CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(org_id, status, created_at);
+      CREATE INDEX IF NOT EXISTS idx_sync_queue_resource ON sync_queue(org_id, resource_type, resource_id);
+      CREATE INDEX IF NOT EXISTS idx_sync_conflicts_unresolved ON sync_conflicts(org_id, resolved, created_at);
     `);
 
       console.log('[Database] ✓ 所有表和索引创建成功');
