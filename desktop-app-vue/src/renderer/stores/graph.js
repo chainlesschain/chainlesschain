@@ -1,5 +1,13 @@
 import { defineStore } from 'pinia';
 
+// Strip Vue proxies before IPC/state updates to avoid structured clone errors.
+const toPlainObject = (value) => {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+  return JSON.parse(JSON.stringify(value));
+};
+
 export const useGraphStore = defineStore('graph', {
   state: () => ({
     // 图谱数据
@@ -88,8 +96,8 @@ export const useGraphStore = defineStore('graph', {
 
       try {
         const mergedOptions = {
-          ...this.filters,
-          ...options,
+          ...toPlainObject(this.filters),
+          ...toPlainObject(options),
         };
 
         const result = await window.electronAPI.graph.getGraphData(mergedOptions);
@@ -309,8 +317,8 @@ export const useGraphStore = defineStore('graph', {
      */
     updateFilters(newFilters) {
       this.filters = {
-        ...this.filters,
-        ...newFilters,
+        ...toPlainObject(this.filters),
+        ...toPlainObject(newFilters),
       };
     },
 

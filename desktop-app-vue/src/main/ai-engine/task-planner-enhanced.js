@@ -237,7 +237,7 @@ ${userRequest}
 【action操作说明】
 - web-engine: generate_html, generate_css, generate_js, create_web_project
 - document-engine: create_document, create_markdown, export_pdf, export_docx
-- data-engine: read_excel, analyze_data, create_chart, export_csv
+- data-engine: read_excel, analyze_data, calculate_nutrition, create_chart, export_csv
 - ppt-engine: generate_presentation
 - code-engine: generate_code, create_project_structure
 

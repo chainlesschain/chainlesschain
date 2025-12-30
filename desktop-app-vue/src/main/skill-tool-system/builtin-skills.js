@@ -245,5 +245,198 @@ module.exports = [
     "tools": [],
     "enabled": 1,
     "is_builtin": 1
+  },
+
+  // === 新增技能 (16-25) ===
+
+  {
+    "id": "skill_data_transformation",
+    "name": "数据转换",
+    "display_name": "Data Transformation",
+    "description": "JSON/YAML/CSV/XML等格式互转和数据处理",
+    "category": "data",
+    "icon": "swap",
+    "tags": "[\"数据\",\"转换\",\"格式化\"]",
+    "config": "{\"autoDetectFormat\":true,\"preserveTypes\":true}",
+    "doc_path": "docs/skills/data-transformation.md",
+    "tools": [
+      "json_parser",
+      "yaml_parser",
+      "csv_handler",
+      "file_reader",
+      "file_writer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_text_processing",
+    "name": "文本处理",
+    "display_name": "Text Processing",
+    "description": "文本分析、正则匹配、格式转换等高级文本操作",
+    "category": "text",
+    "icon": "font-size",
+    "tags": "[\"文本\",\"分析\",\"正则\"]",
+    "config": "{\"encoding\":\"utf8\",\"lineEnding\":\"auto\"}",
+    "doc_path": "docs/skills/text-processing.md",
+    "tools": [
+      "text_analyzer",
+      "regex_tester",
+      "markdown_converter",
+      "file_reader",
+      "file_writer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_encryption_security",
+    "name": "加密安全",
+    "display_name": "Encryption & Security",
+    "description": "数据加密、哈希计算、Base64编解码等安全操作",
+    "category": "security",
+    "icon": "lock",
+    "tags": "[\"加密\",\"安全\",\"哈希\"]",
+    "config": "{\"defaultAlgorithm\":\"sha256\",\"secureRandom\":true}",
+    "doc_path": "docs/skills/encryption-security.md",
+    "tools": [
+      "crypto_handler",
+      "base64_handler",
+      "file_reader",
+      "file_writer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_api_integration",
+    "name": "API集成",
+    "display_name": "API Integration",
+    "description": "HTTP请求、RESTful API调用、数据同步",
+    "category": "network",
+    "icon": "cloud",
+    "tags": "[\"API\",\"HTTP\",\"集成\"]",
+    "config": "{\"timeout\":30000,\"retryCount\":3,\"followRedirects\":true}",
+    "doc_path": "docs/skills/api-integration.md",
+    "tools": [
+      "http_client",
+      "url_parser",
+      "json_parser",
+      "format_output"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_database_operations",
+    "name": "数据库操作",
+    "display_name": "Database Operations",
+    "description": "SQL查询构建、数据导入导出、数据库管理",
+    "category": "database",
+    "icon": "database",
+    "tags": "[\"数据库\",\"SQL\",\"查询\"]",
+    "config": "{\"autoCommit\":true,\"batchSize\":1000}",
+    "doc_path": "docs/skills/database-operations.md",
+    "tools": [
+      "sql_builder",
+      "csv_handler",
+      "excel_reader",
+      "json_parser"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_file_compression",
+    "name": "文件压缩",
+    "display_name": "File Compression",
+    "description": "ZIP压缩解压、批量文件打包",
+    "category": "file",
+    "icon": "file-zip",
+    "tags": "[\"压缩\",\"ZIP\",\"归档\"]",
+    "config": "{\"compressionLevel\":6,\"preservePermissions\":true}",
+    "doc_path": "docs/skills/file-compression.md",
+    "tools": [
+      "zip_handler",
+      "file_searcher",
+      "file_reader"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_format_conversion",
+    "name": "格式转换",
+    "display_name": "Format Conversion",
+    "description": "Markdown、HTML、PDF等文档格式互转",
+    "category": "document",
+    "icon": "file-sync",
+    "tags": "[\"格式转换\",\"文档\",\"导出\"]",
+    "config": "{\"preserveStyles\":true,\"embedImages\":false}",
+    "doc_path": "docs/skills/format-conversion.md",
+    "tools": [
+      "markdown_converter",
+      "html_generator",
+      "file_reader",
+      "file_writer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_configuration_management",
+    "name": "配置管理",
+    "display_name": "Configuration Management",
+    "description": "环境变量、配置文件管理和验证",
+    "category": "config",
+    "icon": "tool",
+    "tags": "[\"配置\",\"环境变量\",\"设置\"]",
+    "config": "{\"validateSchema\":true,\"backupBeforeChange\":true}",
+    "doc_path": "docs/skills/configuration-management.md",
+    "tools": [
+      "env_manager",
+      "json_parser",
+      "yaml_parser",
+      "file_reader",
+      "file_writer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_datetime_operations",
+    "name": "日期时间操作",
+    "display_name": "DateTime Operations",
+    "description": "日期计算、格式化、时区转换",
+    "category": "utility",
+    "icon": "clock-circle",
+    "tags": "[\"日期\",\"时间\",\"格式化\"]",
+    "config": "{\"defaultFormat\":\"YYYY-MM-DD HH:mm:ss\",\"timezone\":\"local\"}",
+    "doc_path": "docs/skills/datetime-operations.md",
+    "tools": [
+      "datetime_handler"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_batch_processing",
+    "name": "批量处理",
+    "display_name": "Batch Processing",
+    "description": "批量文件操作、数据处理和转换",
+    "category": "automation",
+    "icon": "block",
+    "tags": "[\"批量\",\"自动化\",\"处理\"]",
+    "config": "{\"maxConcurrent\":5,\"continueOnError\":true,\"progressCallback\":true}",
+    "doc_path": "docs/skills/batch-processing.md",
+    "tools": [
+      "file_searcher",
+      "file_reader",
+      "file_writer",
+      "file_editor",
+      "format_output"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
   }
 ];

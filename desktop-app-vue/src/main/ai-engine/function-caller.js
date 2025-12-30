@@ -5,6 +5,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
+const ExtendedTools = require('./extended-tools');
 
 class FunctionCaller {
   constructor() {
@@ -467,6 +468,9 @@ function initializeInteractions() {
         },
       }
     );
+
+    // 注册扩展工具
+    ExtendedTools.registerAll(this);
   }
 
   /**
