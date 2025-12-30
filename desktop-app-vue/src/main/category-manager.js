@@ -146,7 +146,10 @@ class CategoryManager {
       }
     });
 
-    this.db.saveToFile();
+    // better-sqlite3 自动保存，不需要手动调用 saveToFile
+    if (this.db.saveToFile && typeof this.db.saveToFile === 'function') {
+      this.db.saveToFile();
+    }
     console.log('[CategoryManager] 默认项目分类初始化完成');
   }
 
@@ -222,7 +225,10 @@ class CategoryManager {
       0
     );
 
-    this.db.saveToFile();
+    // better-sqlite3 自动保存
+    if (this.db.saveToFile && typeof this.db.saveToFile === 'function') {
+      this.db.saveToFile();
+    }
     return this.getProjectCategoryById(id);
   }
 
@@ -259,7 +265,10 @@ class CategoryManager {
       UPDATE project_categories SET ${fields.join(', ')} WHERE id = ?
     `, values);
 
-    this.db.saveToFile();
+    // better-sqlite3 自动保存
+    if (this.db.saveToFile && typeof this.db.saveToFile === 'function') {
+      this.db.saveToFile();
+    }
     return this.getProjectCategoryById(categoryId);
   }
 
@@ -297,7 +306,11 @@ class CategoryManager {
     `);
 
     stmt.run(Date.now(), categoryId);
-    this.db.saveToFile();
+
+    // better-sqlite3 自动保存
+    if (this.db.saveToFile && typeof this.db.saveToFile === 'function') {
+      this.db.saveToFile();
+    }
     return true;
   }
 
