@@ -238,8 +238,8 @@ describe('DocGenerator', () => {
       const markdown = generator._buildSkillMarkdown(skill, tools);
 
       expect(markdown).toContain('包含的工具');
-      expect(markdown).toContain('html_generator');
-      expect(markdown).toContain('css_generator');
+      expect(markdown).toContain('HTML Generator');
+      expect(markdown).toContain('CSS Generator');
     });
 
     it('should show primary tool with star icon', () => {
