@@ -95,7 +95,7 @@ export const useSkillStore = defineStore('skill', {
     async fetchAll(options = {}) {
       this.loading = true;
       try {
-        const result = await window.electronAPI.invoke('skill:get-all', options);
+        const result = await window.electronAPI.skill.getAll(options);
         if (result.success) {
           this.skills = result.data.map(skill => ({
             ...skill,
@@ -117,7 +117,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async fetchById(skillId) {
       try {
-        const result = await window.electronAPI.invoke('skill:get-by-id', skillId);
+        const result = await window.electronAPI.skill.getById(skillId);
         if (result.success) {
           this.currentSkill = {
             ...result.data,
@@ -140,7 +140,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async fetchByCategory(category) {
       try {
-        const result = await window.electronAPI.invoke('skill:get-by-category', category);
+        const result = await window.electronAPI.skill.getByCategory(category);
         if (result.success) {
           return result.data;
         } else {
@@ -158,7 +158,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async enable(skillId) {
       try {
-        const result = await window.electronAPI.invoke('skill:enable', skillId);
+        const result = await window.electronAPI.skill.enable(skillId);
         if (result.success) {
           // 更新本地状态
           const skill = this.skills.find(s => s.id === skillId);
@@ -181,7 +181,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async disable(skillId) {
       try {
-        const result = await window.electronAPI.invoke('skill:disable', skillId);
+        const result = await window.electronAPI.skill.disable(skillId);
         if (result.success) {
           // 更新本地状态
           const skill = this.skills.find(s => s.id === skillId);
@@ -204,7 +204,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async updateConfig(skillId, config) {
       try {
-        const result = await window.electronAPI.invoke('skill:update-config', skillId, config);
+        const result = await window.electronAPI.skill.updateConfig(skillId, config);
         if (result.success) {
           // 更新本地状态
           const skill = this.skills.find(s => s.id === skillId);
@@ -227,7 +227,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async update(skillId, updates) {
       try {
-        const result = await window.electronAPI.invoke('skill:update', skillId, updates);
+        const result = await window.electronAPI.skill.update(skillId, updates);
         if (result.success) {
           // 更新本地状态
           const index = this.skills.findIndex(s => s.id === skillId);
@@ -250,7 +250,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async fetchStats(skillId, dateRange = null) {
       try {
-        const result = await window.electronAPI.invoke('skill:get-stats', skillId, dateRange);
+        const result = await window.electronAPI.skill.getStats(skillId, dateRange);
         if (result.success) {
           return result.data;
         } else {
@@ -268,7 +268,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async fetchTools(skillId) {
       try {
-        const result = await window.electronAPI.invoke('skill:get-tools', skillId);
+        const result = await window.electronAPI.skill.getTools(skillId);
         if (result.success) {
           return result.data;
         } else {
@@ -286,7 +286,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async addTool(skillId, toolId, role = 'primary') {
       try {
-        const result = await window.electronAPI.invoke('skill:add-tool', skillId, toolId, role);
+        const result = await window.electronAPI.skill.addTool(skillId, toolId, role);
         if (result.success) {
           return true;
         } else {
@@ -304,7 +304,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async removeTool(skillId, toolId) {
       try {
-        const result = await window.electronAPI.invoke('skill:remove-tool', skillId, toolId);
+        const result = await window.electronAPI.skill.removeTool(skillId, toolId);
         if (result.success) {
           return true;
         } else {
@@ -322,7 +322,7 @@ export const useSkillStore = defineStore('skill', {
      */
     async fetchDoc(skillId) {
       try {
-        const result = await window.electronAPI.invoke('skill:get-doc', skillId);
+        const result = await window.electronAPI.skill.getDoc(skillId);
         if (result.success) {
           return result.data;
         } else {

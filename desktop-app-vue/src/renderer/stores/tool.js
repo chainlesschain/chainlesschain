@@ -115,7 +115,7 @@ export const useToolStore = defineStore('tool', {
     async fetchAll(options = {}) {
       this.loading = true;
       try {
-        const result = await window.electronAPI.invoke('tool:get-all', options);
+        const result = await window.electronAPI.tool.getAll(options);
         if (result.success) {
           this.tools = result.data.map(tool => ({
             ...tool,
@@ -144,7 +144,7 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchById(toolId) {
       try {
-        const result = await window.electronAPI.invoke('tool:get-by-id', toolId);
+        const result = await window.electronAPI.tool.getById(toolId);
         if (result.success) {
           this.currentTool = {
             ...result.data,
@@ -174,7 +174,7 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchByCategory(category) {
       try {
-        const result = await window.electronAPI.invoke('tool:get-by-category', category);
+        const result = await window.electronAPI.tool.getByCategory(category);
         if (result.success) {
           return result.data;
         } else {
@@ -192,7 +192,7 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchBySkill(skillId) {
       try {
-        const result = await window.electronAPI.invoke('tool:get-by-skill', skillId);
+        const result = await window.electronAPI.tool.getBySkill(skillId);
         if (result.success) {
           return result.data;
         } else {
@@ -210,7 +210,7 @@ export const useToolStore = defineStore('tool', {
      */
     async enable(toolId) {
       try {
-        const result = await window.electronAPI.invoke('tool:enable', toolId);
+        const result = await window.electronAPI.tool.enable(toolId);
         if (result.success) {
           const tool = this.tools.find(t => t.id === toolId);
           if (tool) {
@@ -232,7 +232,7 @@ export const useToolStore = defineStore('tool', {
      */
     async disable(toolId) {
       try {
-        const result = await window.electronAPI.invoke('tool:disable', toolId);
+        const result = await window.electronAPI.tool.disable(toolId);
         if (result.success) {
           const tool = this.tools.find(t => t.id === toolId);
           if (tool) {
@@ -254,7 +254,7 @@ export const useToolStore = defineStore('tool', {
      */
     async updateConfig(toolId, config) {
       try {
-        const result = await window.electronAPI.invoke('tool:update-config', toolId, config);
+        const result = await window.electronAPI.tool.updateConfig(toolId, config);
         if (result.success) {
           const tool = this.tools.find(t => t.id === toolId);
           if (tool) {
@@ -276,7 +276,7 @@ export const useToolStore = defineStore('tool', {
      */
     async updateSchema(toolId, schema) {
       try {
-        const result = await window.electronAPI.invoke('tool:update-schema', toolId, schema);
+        const result = await window.electronAPI.tool.updateSchema(toolId, schema);
         if (result.success) {
           const tool = this.tools.find(t => t.id === toolId);
           if (tool) {
@@ -298,7 +298,7 @@ export const useToolStore = defineStore('tool', {
      */
     async update(toolId, updates) {
       try {
-        const result = await window.electronAPI.invoke('tool:update', toolId, updates);
+        const result = await window.electronAPI.tool.update(toolId, updates);
         if (result.success) {
           const index = this.tools.findIndex(t => t.id === toolId);
           if (index !== -1) {
@@ -320,7 +320,7 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchStats(toolId, dateRange = null) {
       try {
-        const result = await window.electronAPI.invoke('tool:get-stats', toolId, dateRange);
+        const result = await window.electronAPI.tool.getStats(toolId, dateRange);
         if (result.success) {
           return result.data;
         } else {
@@ -338,7 +338,7 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchDoc(toolId) {
       try {
-        const result = await window.electronAPI.invoke('tool:get-doc', toolId);
+        const result = await window.electronAPI.tool.getDoc(toolId);
         if (result.success) {
           return result.data;
         } else {
@@ -356,7 +356,7 @@ export const useToolStore = defineStore('tool', {
      */
     async test(toolId, params = {}) {
       try {
-        const result = await window.electronAPI.invoke('tool:test', toolId, params);
+        const result = await window.electronAPI.tool.test(toolId, params);
         if (result.success) {
           return result.data;
         } else {
