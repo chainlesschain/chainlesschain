@@ -464,6 +464,12 @@ class ExtendedTools12 {
      * 生成自定义样式的二维码
      */
     functionCaller.registerTool('qrcode_generator_advanced', async (params) => {
+      // 如果启用了真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.generateQRCodeReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         content,
         output_path,
@@ -512,6 +518,12 @@ class ExtendedTools12 {
      * 识别图片中的二维码/条形码
      */
     functionCaller.registerTool('qrcode_scanner', async (params) => {
+      // 如果启用了真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.scanQRCodeReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         image_path,
         scan_type = 'auto',
