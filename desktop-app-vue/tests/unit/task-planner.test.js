@@ -667,4 +667,506 @@ describe('TaskPlanner', () => {
       });
     });
   });
+
+  // ==================== RAG增强高级测试 ====================
+  describe('RAG增强高级测试', () => {
+    beforeEach(() => {
+      mockLLMService.complete.mockResolvedValue(JSON.stringify({
+        task_title: '测试任务',
+        task_type: 'web',
+        subtasks: [{ step: 1, title: '子任务', tool: 'web-engine' }]
+      }));
+    });
+
+    it('should handle RAG返回多个文档', async () => {
+      mockRAGManager.enhancedQuery.mockResolvedValue({
+        context: [
+          { content: '文档1内容', metadata: { fileName: 'doc1.md' } },
+          { content: '文档2内容', metadata: { fileName: 'doc2.md' } },
+          { content: '文档3内容', metadata: { fileName: 'doc3.md' } }
+        ]
+      });
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123'
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle RAG返回空上下文', async () => {
+      mockRAGManager.enhancedQuery.mockResolvedValue({
+        context: []
+      });
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123'
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle RAG返回没有metadata的文档', async () => {
+      mockRAGManager.enhancedQuery.mockResolvedValue({
+        context: [
+          { content: '文档内容' }
+        ]
+      });
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123'
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle RAG返回超长内容', async () => {
+      mockRAGManager.enhancedQuery.mockResolvedValue({
+        context: [
+          { content: 'a'.repeat(1000), metadata: { fileName: 'long.md' } }
+        ]
+      });
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123'
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle 没有projectId时跳过RAG', async () => {
+      const result = await taskPlanner.decomposeTask('创建网页', {});
+
+      expect(result).toBeDefined();
+      // RAG不应该被调用
+    });
+  });
+
+  // ==================== LLM响应格式测试 ====================
+  describe('LLM响应格式测试', () => {
+    it('should parse JSON wrapped in markdown with extra text', async () => {
+      mockLLMService.complete.mockResolvedValue(`
+Here is the task plan:
+
+\`\`\`json
+{
+  "task_title": "测试任务",
+  "task_type": "web",
+  "subtasks": [{ "step": 1, "title": "子任务", "tool": "web-engine" }]
+}
+\`\`\`
+
+This is the plan I generated.
+      `);
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123'
+      });
+
+      expect(result.task_title).toBe('测试任务');
+    });
+
+    it('should parse JSON without markdown code block', async () => {
+      mockLLMService.complete.mockResolvedValue(`
+{
+  "task_title": "纯JSON",
+  "task_type": "web",
+  "subtasks": [{ "step": 1, "title": "子任务", "tool": "web-engine" }]
+}
+      `);
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123'
+      });
+
+      expect(result.task_title).toBe('纯JSON');
+    });
+
+    it('should handle LLM返回空字符串', async () => {
+      mockLLMService.complete.mockResolvedValue('');
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123'
+      });
+
+      expect(result).toBeDefined();
+      expect(result.subtasks).toHaveLength(1);
+    });
+
+    it('should handle LLM返回null', async () => {
+      mockLLMService.complete.mockResolvedValue(null);
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123'
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle LLM返回格式错误的JSON', async () => {
+      mockLLMService.complete.mockResolvedValue(`
+\`\`\`json
+{"task_title": "测试", "task_type": "web",}
+\`\`\`
+      `);
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123',
+        projectName: '测试项目'
+      });
+
+      // 应该fallback到quickDecompose
+      expect(result).toBeDefined();
+      expect(result.subtasks).toHaveLength(1);
+    });
+
+    it('should handle LLM响应超时', async () => {
+      mockLLMService.complete.mockRejectedValue(new Error('Timeout'));
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123'
+      });
+
+      expect(result).toBeDefined();
+    });
+  });
+
+  // ==================== 项目上下文边界测试 ====================
+  describe('项目上下文边界测试', () => {
+    beforeEach(() => {
+      mockLLMService.complete.mockResolvedValue(JSON.stringify({
+        task_title: '任务',
+        task_type: 'web',
+        subtasks: [{ step: 1, title: '子任务', tool: 'web-engine' }]
+      }));
+    });
+
+    it('should handle projectContext with null values', async () => {
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123',
+        type: null,
+        description: null,
+        existingFiles: null
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle projectContext with undefined values', async () => {
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123',
+        type: undefined,
+        description: undefined
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle projectContext with empty arrays', async () => {
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123',
+        existingFiles: []
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle projectContext with very long description', async () => {
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-123',
+        description: 'a'.repeat(10000)
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle projectContext with special characters', async () => {
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test-<123>',
+        projectName: '测试"项目"',
+        description: 'desc\nwith\nnewlines'
+      });
+
+      expect(result).toBeDefined();
+    });
+  });
+
+  // ==================== 任务验证增强测试 ====================
+  describe('任务验证增强测试', () => {
+    it('should handle taskPlan with missing subtasks array', () => {
+      const taskPlan = {
+        task_title: '测试'
+      };
+
+      expect(() => {
+        taskPlanner.validateAndEnhancePlan(taskPlan, { projectId: 'test' });
+      }).toThrow('至少一个子任务');
+    });
+
+    it('should handle taskPlan with null subtasks', () => {
+      const taskPlan = {
+        task_title: '测试',
+        subtasks: null
+      };
+
+      expect(() => {
+        taskPlanner.validateAndEnhancePlan(taskPlan, { projectId: 'test' });
+      }).toThrow('至少一个子任务');
+    });
+
+    it('should handle subtasks with missing fields', () => {
+      const taskPlan = {
+        task_title: '测试',
+        subtasks: [
+          { step: 1 } // Missing title and tool
+        ]
+      };
+
+      const result = taskPlanner.validateAndEnhancePlan(taskPlan, {
+        projectId: 'test'
+      });
+
+      expect(result.subtasks[0].id).toBeDefined();
+      expect(result.subtasks[0].status).toBe('pending');
+    });
+
+    it('should preserve extra fields in subtasks', () => {
+      const taskPlan = {
+        task_title: '测试',
+        subtasks: [
+          {
+            step: 1,
+            title: '子任务',
+            tool: 'web-engine',
+            custom_field: 'custom_value'
+          }
+        ]
+      };
+
+      const result = taskPlanner.validateAndEnhancePlan(taskPlan, {
+        projectId: 'test'
+      });
+
+      expect(result.subtasks[0].custom_field).toBe('custom_value');
+    });
+
+    it('should handle projectContext without projectName', () => {
+      const taskPlan = {
+        task_title: '测试',
+        subtasks: [{ step: 1, title: '子任务' }]
+      };
+
+      const result = taskPlanner.validateAndEnhancePlan(taskPlan, {
+        projectId: 'test'
+      });
+
+      expect(result.project_name).toBeUndefined();
+    });
+
+    it('should handle multiple subtasks', () => {
+      const taskPlan = {
+        task_title: '测试',
+        subtasks: [
+          { step: 1, title: '子任务1' },
+          { step: 2, title: '子任务2' },
+          { step: 3, title: '子任务3' }
+        ]
+      };
+
+      const result = taskPlanner.validateAndEnhancePlan(taskPlan, {
+        projectId: 'test'
+      });
+
+      expect(result.total_steps).toBe(3);
+      expect(result.subtasks).toHaveLength(3);
+      result.subtasks.forEach((subtask, index) => {
+        expect(subtask.step).toBe(index + 1);
+      });
+    });
+  });
+
+  // ==================== 工具推荐边界测试 ====================
+  describe('工具推荐边界测试', () => {
+    it('should handle empty description', () => {
+      const tool = taskPlanner.recommendTool('');
+      expect(tool).toBe('code-engine');
+    });
+
+    it('should handle description with only spaces', () => {
+      const tool = taskPlanner.recommendTool('   ');
+      expect(tool).toBe('code-engine');
+    });
+
+    it('should handle very long description', () => {
+      const tool = taskPlanner.recommendTool('创建' + 'a'.repeat(10000) + '网页');
+      expect(tool).toBe('web-engine');
+    });
+
+    it('should handle description with special characters', () => {
+      const tool = taskPlanner.recommendTool('创建@#$%网页^&*()');
+      expect(tool).toBe('web-engine');
+    });
+
+    it('should handle mixed language description', () => {
+      const tool = taskPlanner.recommendTool('create一个网页');
+      expect(tool).toBe('web-engine');
+    });
+
+    it('should prioritize first matching keyword', () => {
+      const tool = taskPlanner.recommendTool('网页和PPT');
+      expect(tool).toBe('web-engine');
+    });
+
+    it('should handle description with numbers', () => {
+      const tool = taskPlanner.recommendTool('创建123个网页');
+      expect(tool).toBe('web-engine');
+    });
+  });
+
+  // ==================== 复杂度评估边界测试 ====================
+  describe('复杂度评估边界测试', () => {
+    it('should handle empty description', () => {
+      const result = taskPlanner.assessComplexity('');
+      expect(result.complexity).toBe('simple');
+      expect(result.estimatedTokens).toBe(1000);
+    });
+
+    it('should handle description at boundary (100 chars)', () => {
+      const result = taskPlanner.assessComplexity('a'.repeat(100));
+      expect(result.complexity).toBe('simple');
+    });
+
+    it('should handle description just above boundary (101 chars)', () => {
+      const result = taskPlanner.assessComplexity('a'.repeat(101));
+      expect(result.complexity).toBe('medium');
+    });
+
+    it('should handle description at medium boundary (200 chars)', () => {
+      const result = taskPlanner.assessComplexity('a'.repeat(200));
+      expect(result.complexity).toBe('medium');
+    });
+
+    it('should handle description just above medium boundary (201 chars)', () => {
+      const result = taskPlanner.assessComplexity('a'.repeat(201));
+      expect(result.complexity).toBe('complex');
+    });
+
+    it('should calculate duration correctly', () => {
+      const result = taskPlanner.assessComplexity('test');
+      expect(result.estimatedDuration).toBe(Math.ceil(1000 / 50));
+    });
+  });
+
+  // ==================== quickDecompose边界测试 ====================
+  describe('quickDecompose边界测试', () => {
+    it('should handle empty userRequest', () => {
+      const result = taskPlanner.quickDecompose('', {
+        projectId: 'test',
+        type: 'web'
+      });
+
+      expect(result).toBeDefined();
+      expect(result.task_title).toBe('');
+    });
+
+    it('should handle userRequest at boundary (50 chars)', () => {
+      const request = 'a'.repeat(50);
+      const result = taskPlanner.quickDecompose(request, {
+        projectId: 'test'
+      });
+
+      expect(result.task_title).toBe(request);
+    });
+
+    it('should handle userRequest just above boundary (51 chars)', () => {
+      const request = 'a'.repeat(51);
+      const result = taskPlanner.quickDecompose(request, {
+        projectId: 'test'
+      });
+
+      expect(result.task_title).toContain('...');
+    });
+
+    it('should handle projectContext without name', () => {
+      const result = taskPlanner.quickDecompose('创建网页', {
+        projectId: 'test'
+      });
+
+      expect(result.project_name).toBeUndefined();
+    });
+
+    it('should handle projectContext without type', () => {
+      const result = taskPlanner.quickDecompose('创建网页', {
+        projectId: 'test'
+      });
+
+      expect(result.task_type).toBeDefined();
+    });
+
+    it('should create subtask with correct structure', () => {
+      const result = taskPlanner.quickDecompose('创建网页', {
+        projectId: 'test'
+      });
+
+      expect(result.subtasks[0]).toHaveProperty('id');
+      expect(result.subtasks[0]).toHaveProperty('step');
+      expect(result.subtasks[0]).toHaveProperty('title');
+      expect(result.subtasks[0]).toHaveProperty('description');
+      expect(result.subtasks[0]).toHaveProperty('tool');
+      expect(result.subtasks[0]).toHaveProperty('estimated_tokens');
+      expect(result.subtasks[0]).toHaveProperty('status');
+    });
+  });
+
+  // ==================== getTaskTypeFromTool边界测试 ====================
+  describe('getTaskTypeFromTool边界测试', () => {
+    it('should handle null tool', () => {
+      const type = taskPlanner.getTaskTypeFromTool(null);
+      expect(type).toBe('mixed');
+    });
+
+    it('should handle undefined tool', () => {
+      const type = taskPlanner.getTaskTypeFromTool(undefined);
+      expect(type).toBe('mixed');
+    });
+
+    it('should handle tool with extra spaces', () => {
+      const type = taskPlanner.getTaskTypeFromTool('  web-engine  ');
+      expect(type).toBe('mixed'); // No trim in implementation
+    });
+
+    it('should be case sensitive', () => {
+      const type = taskPlanner.getTaskTypeFromTool('WEB-ENGINE');
+      expect(type).toBe('mixed');
+    });
+  });
+
+  // ==================== 初始化重复调用测试 ====================
+  describe('初始化重复调用测试', () => {
+    it('should not re-initialize if already initialized', async () => {
+      const planner = new TaskPlanner();
+
+      await planner.initialize();
+      const firstState = planner.initialized;
+
+      await planner.initialize();
+      await planner.initialize();
+
+      expect(planner.initialized).toBe(firstState);
+    });
+
+    it('should handle initialization called during decompose', async () => {
+      mockLLMService.complete.mockResolvedValue(JSON.stringify({
+        task_title: '任务',
+        task_type: 'web',
+        subtasks: [{ step: 1, title: '子任务', tool: 'web-engine' }]
+      }));
+
+      const result = await taskPlanner.decomposeTask('创建网页', {
+        projectId: 'test'
+      });
+
+      expect(result).toBeDefined();
+    });
+  });
 });

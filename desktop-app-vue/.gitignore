@@ -25,3 +25,6 @@ Thumbs.db
 
 # Electron
 *.lnk
+
+# Playwright
+playwright-report/
