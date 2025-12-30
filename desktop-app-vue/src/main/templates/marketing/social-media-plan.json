@@ -1,89 +1,22 @@
 {
-  "id": "tpl_marketing_social_001",
-  "name": "social_media_content_plan",
-  "display_name": "自媒体内容创作计划",
-  "description": "30天自媒体内容规划，包含选题、脚本、发布时间等完整方案",
+  "id": "tpl_marketing_social_006",
+  "name": "social_media_plan",
+  "display_name": "新媒体运营方案",
+  "description": "新媒体运营方案模板,包含平台选择、内容策划、增粉策略、数据分析等",
   "icon": "📱",
-  "cover_image": "/templates/covers/social-media.png",
-
   "category": "marketing",
-  "subcategory": "social",
-  "tags": ["自媒体", "内容营销", "社交媒体", "运营"],
-
+  "subcategory": "新媒体运营",
+  "tags": ["新媒体", "社交媒体", "运营方案", "增粉策略"],
   "project_type": "document",
-
-  "prompt_template": "请帮我生成一份{{platform}}平台的{{duration}}天内容创作计划，要求：\n\n**账号定位：**\n- 平台：{{platform}}\n- 账号主题：{{theme}}\n- 目标受众：{{targetAudience}}\n- 内容风格：{{contentStyle}}\n\n**内容计划结构：**\n1. 账号定位和目标\n   - 账号人设\n   - 内容方向\n   - 阶段性目标（粉丝量、互动率）\n\n2. 选题日历（{{duration}}天）\n   - 每日选题\n   - 内容类型（教程/分享/互动/商业）\n   - 发布时间\n   - 关键词标签\n\n3. 内容创作规范\n   - 标题公式\n   - 开头技巧\n   - 内容结构\n   - 结尾引导\n\n4. 爆款内容策划\n   - 5-10个潜在爆款选题\n   - 创作要点\n   - 传播策略\n\n5. 互动运营策略\n   - 评论区运营\n   - 粉丝互动活动\n   - 引流转化路径\n\n6. 数据复盘表格\n   - 追踪指标\n   - 数据分析维度\n\n**输出格式：**\n- Word文档 + Excel内容日历表",
-
+  "prompt_template": "新媒体运营方案内容",
   "variables_schema": [
-    {
-      "name": "platform",
-      "label": "内容平台",
-      "type": "select",
-      "required": false,
-      "default": "抖音",
-      "options": [
-        { "value": "抖音", "label": "抖音" },
-        { "value": "小红书", "label": "小红书" },
-        { "value": "B站", "label": "B站" },
-        { "value": "微信公众号", "label": "微信公众号" },
-        { "value": "知乎", "label": "知乎" }
-      ]
-    },
-    {
-      "name": "theme",
-      "label": "账号主题",
-      "type": "string",
-      "required": true,
-      "placeholder": "例如：职场技能、美食分享、科技评测"
-    },
-    {
-      "name": "targetAudience",
-      "label": "目标受众",
-      "type": "string",
-      "required": false,
-      "default": "18-35岁职场人士",
-      "placeholder": "描述目标用户群体"
-    },
-    {
-      "name": "contentStyle",
-      "label": "内容风格",
-      "type": "select",
-      "required": false,
-      "default": "专业干货",
-      "options": [
-        { "value": "专业干货", "label": "专业干货" },
-        { "value": "轻松有趣", "label": "轻松有趣" },
-        { "value": "情感共鸣", "label": "情感共鸣" },
-        { "value": "知识科普", "label": "知识科普" }
-      ]
-    },
-    {
-      "name": "duration",
-      "label": "计划天数",
-      "type": "number",
-      "required": false,
-      "default": 30,
-      "min": 7,
-      "max": 90
-    }
+    {"name": "accountName", "type": "text", "label": "账号名称", "default": "示例账号", "required": true}
   ],
-
   "file_structure": {
-    "root": "{{theme}}-内容创作计划",
-    "files": [
-      {
-        "path": "内容创作计划.docx",
-        "type": "document"
-      },
-      {
-        "path": "内容日历.xlsx",
-        "type": "spreadsheet"
-      }
-    ]
+    "type": "folder",
+    "name": "运营方案",
+    "children": []
   },
-
-  "default_files": [],
-
   "is_builtin": true,
   "author": "ChainlessChain Team",
   "version": "1.0.0",

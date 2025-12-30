@@ -623,6 +623,12 @@ class ExtendedTools12 {
      * 屏幕截图和标注
      */
     functionCaller.registerTool('screenshot_tool', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.screenshotToolReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         output_path,
         capture_type = 'fullscreen',
@@ -671,6 +677,12 @@ class ExtendedTools12 {
      * 录制屏幕视频或GIF
      */
     functionCaller.registerTool('screen_recorder', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.screenRecorderReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         output_path,
         output_format = 'mp4',
@@ -682,7 +694,7 @@ class ExtendedTools12 {
         duration
       } = params;
 
-      try {
+      try{
         const qualitySettings = {
           'low': { bitrate: 1000000, size_multiplier: 1 },
           'medium': { bitrate: 2500000, size_multiplier: 2.5 },
@@ -1325,6 +1337,12 @@ class ExtendedTools12 {
      * 测试网络上传和下载速度
      */
     functionCaller.registerTool('network_speed_tester', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.networkSpeedTesterReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         test_type = 'both',
         server,
@@ -1373,6 +1391,12 @@ class ExtendedTools12 {
      * Ping、端口扫描、DNS查询、路由追踪
      */
     functionCaller.registerTool('network_diagnostic_tool', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.networkDiagnosticToolReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         operation,
         target,
