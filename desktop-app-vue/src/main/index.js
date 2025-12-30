@@ -6043,6 +6043,19 @@ class ChainlessChainApp {
       }
     });
 
+    // 调试：获取数据库统计信息
+    ipcMain.handle('database:get-stats', async () => {
+      try {
+        if (!this.database) {
+          return { error: '数据库未初始化' };
+        }
+        return this.database.getDatabaseStats();
+      } catch (error) {
+        console.error('[Main] 获取数据库统计失败:', error);
+        return { error: error.message };
+      }
+    });
+
     // 创建项目（调用后端）
     ipcMain.handle('project:create', async (_event, createData) => {
       try {
