@@ -125,6 +125,7 @@ coverage/
 backend/test/reports/
 desktop-app-vue/test-data-output/
 desktop-app-vue/test-output/
+desktop-app-vue/playwright-report/
 
 # Cache
 .cache/
