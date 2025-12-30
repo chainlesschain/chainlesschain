@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue'
+import { watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { FileTextOutlined } from '@ant-design/icons-vue'
@@ -67,9 +67,14 @@ const emit = defineEmits(['template-use', 'template-click', 'create-custom'])
 const router = useRouter()
 const templateStore = useTemplateStore()
 
+const normalizeCategory = (value) => (value === 'all' || value === '' ? null : value)
+const normalizeSubcategory = (value) => (value === 'all' || value === '' ? null : value)
+
+const effectiveCategory = computed(() => normalizeCategory(props.category))
+
 const emptyDescription = computed(() => {
-  if (props.category) {
-    return `暂无"${getCategoryName(props.category)}"分类的模板`
+  if (effectiveCategory.value) {
+    return `暂无"${getCategoryName(effectiveCategory.value)}"分类的模板`
   }
   return '暂无可用模板'
 })
@@ -86,32 +91,20 @@ const displayTemplates = computed(() => {
 watch(
   [() => props.category, () => props.subcategory],
   async ([newCategory, newSubcategory]) => {
-    console.log('[TemplateGallery] 分类变化:', { newCategory, newSubcategory })
+    const category = normalizeCategory(newCategory)
+    const subcategory = normalizeSubcategory(newSubcategory)
 
-    if (newCategory) {
-      try {
-        await templateStore.loadTemplatesByCategory(newCategory, newSubcategory)
-      } catch (error) {
-        console.error('[TemplateGallery] 加载模板失败:', error)
-        message.error('加载模板失败: ' + error.message)
-      }
+    console.log('[TemplateGallery] 分类变化:', { category, subcategory })
+
+    try {
+      await templateStore.loadTemplatesByCategory(category, subcategory)
+    } catch (error) {
+      console.error('[TemplateGallery] 加载模板失败:', error)
+      message.error('加载模板失败: ' + error.message)
     }
   },
   { immediate: true }
 )
-
-// 组件挂载时加载模板
-onMounted(async () => {
-  // 如果没有指定分类，加载所有模板
-  if (!props.category && templateStore.templates.length === 0) {
-    try {
-      await templateStore.fetchTemplates()
-    } catch (error) {
-      console.error('[TemplateGallery] 初始化加载失败:', error)
-      message.error('加载模板失败')
-    }
-  }
-})
 
 function handleTemplateUse(template) {
   console.log('[TemplateGallery] 使用模板:', template.display_name)
@@ -141,7 +134,19 @@ function getCategoryName(category) {
     marketing: '营销',
     education: '教育',
     lifestyle: '生活',
-    travel: '旅行'
+    travel: '旅行',
+    video: '视频',
+    'social-media': '社交媒体',
+    'creative-writing': '创意写作',
+    'code-project': '代码项目',
+    'data-science': '数据科学',
+    'tech-docs': '技术文档',
+    ecommerce: '电商',
+    'marketing-pro': '营销推广',
+    legal: '法律',
+    learning: '学习',
+    health: '健康',
+    'time-management': '时间管理'
   }
   return categoryNames[category] || category
 }
