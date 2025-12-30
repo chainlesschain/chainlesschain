@@ -13,6 +13,7 @@ class DatabaseWrapper {
     this._db = db;
   }
 
+  // Wrapped API (database.js style)
   run(sql, ...params) {
     try {
       const stmt = this._db.prepare(sql);
@@ -41,6 +42,11 @@ class DatabaseWrapper {
       console.error('SQL Error:', error.message, '\nSQL:', sql);
       throw error;
     }
+  }
+
+  // Native better-sqlite3 API (for P2PSyncEngine)
+  prepare(sql) {
+    return this._db.prepare(sql);
   }
 
   exec(sql) {
@@ -340,7 +346,7 @@ describe('P2PSyncEngine', () => {
         vector_clock: { 'did:test:bob': 2 },
         timestamp: 2000,
         action: 'update',
-        data: { id: resourceId, name: 'Bob' }
+        data: { id: resourceId, title: 'Updated Title', content: 'Updated Content' }
       };
 
       // 创建知识库条目（用于测试）

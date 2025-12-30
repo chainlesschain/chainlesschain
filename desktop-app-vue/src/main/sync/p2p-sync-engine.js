@@ -548,7 +548,7 @@ class P2PSyncEngine {
     return this.db.prepare(`
       SELECT * FROM p2p_sync_state
       WHERE org_id = ? AND resource_type = ? AND resource_id = ?
-    `).get(orgId, resourceType, resourceId);
+    `).get(orgId, resourceType, resourceId) || null;
   }
 
   /**
