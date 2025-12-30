@@ -525,6 +525,18 @@ class ChainlessChainApp {
       // 组织管理器初始化失败不影响应用启动
     }
 
+    // 初始化P2P同步引擎
+    try {
+      console.log('初始化P2P同步引擎...');
+      const P2PSyncEngine = require('./sync/p2p-sync-engine');
+      this.syncEngine = new P2PSyncEngine(this.database, this.didManager, this.p2pManager);
+      await this.syncEngine.initialize();
+      console.log('P2P同步引擎初始化成功');
+    } catch (error) {
+      console.error('P2P同步引擎初始化失败:', error);
+      // 同步引擎初始化失败不影响应用启动
+    }
+
     // 初始化好友管理器
     try {
       console.log('初始化好友管理器...');
@@ -3380,6 +3392,183 @@ class ChainlessChainApp {
         return permissions;
       } catch (error) {
         console.error('[Main] 获取权限列表失败:', error);
+        throw error;
+      }
+    });
+
+    // ============================
+    // P2P同步引擎相关 IPC Handler
+    // ============================
+
+    // 启动自动同步
+    ipcMain.handle('sync:start-auto-sync', async (_event, orgId) => {
+      try {
+        if (!this.syncEngine) {
+          throw new Error('同步引擎未初始化');
+        }
+
+        this.syncEngine.startAutoSync(orgId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 启动自动同步失败:', error);
+        throw error;
+      }
+    });
+
+    // 停止自动同步
+    ipcMain.handle('sync:stop-auto-sync', async (_event) => {
+      try {
+        if (!this.syncEngine) {
+          throw new Error('同步引擎未初始化');
+        }
+
+        this.syncEngine.stopAutoSync();
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 停止自动同步失败:', error);
+        throw error;
+      }
+    });
+
+    // 手动同步
+    ipcMain.handle('sync:sync-now', async (_event, orgId, options) => {
+      try {
+        if (!this.syncEngine) {
+          throw new Error('同步引擎未初始化');
+        }
+
+        const result = await this.syncEngine.sync(orgId, options);
+        return result;
+      } catch (error) {
+        console.error('[Main] 手动同步失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取同步统计
+    ipcMain.handle('sync:get-stats', async (_event, orgId) => {
+      try {
+        if (!this.syncEngine) {
+          throw new Error('同步引擎未初始化');
+        }
+
+        const stats = this.syncEngine.getSyncStats(orgId);
+        return stats;
+      } catch (error) {
+        console.error('[Main] 获取同步统计失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取未解决冲突列表
+    ipcMain.handle('sync:get-conflicts', async (_event, orgId) => {
+      try {
+        if (!this.syncEngine) {
+          return [];
+        }
+
+        const conflicts = this.database.prepare(`
+          SELECT * FROM sync_conflicts
+          WHERE org_id = ? AND resolved = 0
+          ORDER BY created_at DESC
+          LIMIT 100
+        `).all(orgId);
+
+        return conflicts.map(c => ({
+          ...c,
+          local_data: JSON.parse(c.local_data || '{}'),
+          remote_data: JSON.parse(c.remote_data || '{}'),
+          local_vector_clock: JSON.parse(c.local_vector_clock || '{}'),
+          remote_vector_clock: JSON.parse(c.remote_vector_clock || '{}')
+        }));
+      } catch (error) {
+        console.error('[Main] 获取冲突列表失败:', error);
+        return [];
+      }
+    });
+
+    // 手动解决冲突
+    ipcMain.handle('sync:resolve-conflict', async (_event, conflictId, resolution) => {
+      try {
+        if (!this.syncEngine) {
+          throw new Error('同步引擎未初始化');
+        }
+
+        // 获取冲突详情
+        const conflict = this.database.prepare(`
+          SELECT * FROM sync_conflicts WHERE id = ?
+        `).get(conflictId);
+
+        if (!conflict) {
+          throw new Error('冲突不存在');
+        }
+
+        // 根据解决方案应用变更
+        const { strategy, data } = resolution;
+
+        if (strategy === 'local_wins') {
+          // 保持本地，不做任何操作
+        } else if (strategy === 'remote_wins') {
+          // 应用远程数据
+          const remoteData = JSON.parse(conflict.remote_data);
+          await this.syncEngine.applyResourceChange(
+            conflict.resource_type,
+            conflict.resource_id,
+            'update',
+            remoteData
+          );
+        } else if (strategy === 'manual') {
+          // 应用手动合并的数据
+          await this.syncEngine.applyResourceChange(
+            conflict.resource_type,
+            conflict.resource_id,
+            'update',
+            data
+          );
+        }
+
+        // 获取当前用户DID
+        const currentIdentity = await this.didManager.getDefaultIdentity();
+
+        // 更新冲突状态
+        this.database.run(`
+          UPDATE sync_conflicts
+          SET resolution_strategy = ?,
+              resolved = 1,
+              resolved_at = ?,
+              resolved_by_did = ?
+          WHERE id = ?
+        `, [strategy, Date.now(), currentIdentity.did, conflictId]);
+
+        // 更新同步状态
+        this.syncEngine.updateSyncState(
+          conflict.org_id,
+          conflict.resource_type,
+          conflict.resource_id,
+          {
+            sync_status: 'synced',
+            last_synced_at: Date.now()
+          }
+        );
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 解决冲突失败:', error);
+        throw error;
+      }
+    });
+
+    // 添加到离线队列
+    ipcMain.handle('sync:add-to-queue', async (_event, orgId, action, resourceType, resourceId, data) => {
+      try {
+        if (!this.syncEngine) {
+          throw new Error('同步引擎未初始化');
+        }
+
+        const queueId = this.syncEngine.addToQueue(orgId, action, resourceType, resourceId, data);
+        return { success: true, queueId };
+      } catch (error) {
+        console.error('[Main] 添加到离线队列失败:', error);
         throw error;
       }
     });
@@ -12087,6 +12276,116 @@ ${content}
         throw error;
       }
     });
+
+    // ==================== 项目恢复接口开始 ====================
+
+    // 扫描可恢复的项目
+    ipcMain.handle('project:scan-recoverable', async () => {
+      try {
+        const ProjectRecovery = require('./sync/project-recovery');
+        const recovery = new ProjectRecovery(this.database);
+        const recoverableProjects = recovery.scanRecoverableProjects();
+
+        console.log(`[Main] 扫描到 ${recoverableProjects.length} 个可恢复的项目`);
+        return {
+          success: true,
+          projects: recoverableProjects,
+        };
+      } catch (error) {
+        console.error('[Main] 扫描可恢复项目失败:', error);
+        return {
+          success: false,
+          error: error.message,
+          projects: [],
+        };
+      }
+    });
+
+    // 恢复单个项目
+    ipcMain.handle('project:recover', async (_event, projectId) => {
+      try {
+        const ProjectRecovery = require('./sync/project-recovery');
+        const recovery = new ProjectRecovery(this.database);
+        const success = recovery.recoverProject(projectId);
+
+        if (success) {
+          console.log(`[Main] 成功恢复项目: ${projectId}`);
+          return { success: true };
+        } else {
+          throw new Error('恢复失败');
+        }
+      } catch (error) {
+        console.error(`[Main] 恢复项目失败: ${projectId}`, error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 批量恢复项目
+    ipcMain.handle('project:recover-batch', async (_event, projectIds) => {
+      try {
+        const ProjectRecovery = require('./sync/project-recovery');
+        const recovery = new ProjectRecovery(this.database);
+        const results = recovery.recoverProjects(projectIds);
+
+        console.log(`[Main] 批量恢复完成: 成功 ${results.success.length}, 失败 ${results.failed.length}`);
+        return {
+          success: true,
+          results,
+        };
+      } catch (error) {
+        console.error('[Main] 批量恢复项目失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 自动恢复所有可恢复的项目
+    ipcMain.handle('project:auto-recover', async () => {
+      try {
+        const ProjectRecovery = require('./sync/project-recovery');
+        const recovery = new ProjectRecovery(this.database);
+        const results = recovery.autoRecoverAll();
+
+        console.log(`[Main] 自动恢复完成: 成功 ${results.success.length}, 失败 ${results.failed.length}`);
+        return {
+          success: true,
+          results,
+        };
+      } catch (error) {
+        console.error('[Main] 自动恢复失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // 获取恢复统计信息
+    ipcMain.handle('project:recovery-stats', async () => {
+      try {
+        const ProjectRecovery = require('./sync/project-recovery');
+        const recovery = new ProjectRecovery(this.database);
+        const stats = recovery.getRecoveryStats();
+
+        return {
+          success: true,
+          stats,
+        };
+      } catch (error) {
+        console.error('[Main] 获取恢复统计失败:', error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    // ==================== 项目恢复接口结束 ====================
 
     // 同步单个项目
     ipcMain.handle('project:sync-one', async (_event, projectId) => {

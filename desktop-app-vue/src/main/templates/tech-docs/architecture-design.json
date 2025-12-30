@@ -1,0 +1,187 @@
+{
+  "id": "tpl_tech_docs_arch_002",
+  "name": "architecture_design",
+  "display_name": "系统架构设计文档",
+  "description": "专业的系统架构设计文档模板,包含系统概述、技术选型、架构设计、部署方案、安全设计等完整内容",
+  "icon": "🏗️",
+  "category": "tech-docs",
+  "subcategory": "架构设计",
+  "tags": ["架构设计", "系统设计", "技术架构", "设计文档"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成系统架构设计文档，要求:\n\n# {{systemName}} 系统架构设计文档\n\n## 1. 文档信息\n\n| 项目 | 内容 |\n|------|------|\n| 系统名称 | {{systemName}} |\n| 文档版本 | {{docVersion}} |\n| 架构师 | {{#if architect}}{{architect}}{{else}}架构团队{{/if}} |\n| 创建日期 | {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}} |\n| 更新日期 | {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}} |\n\n## 2. 系统概述\n\n### 2.1 业务背景\n\n{{businessBackground}}\n\n### 2.2 系统定位\n\n{{systemDescription}}\n\n### 2.3 核心功能\n\n{{coreFunctions}}\n\n### 2.4 非功能性需求\n\n| 需求类型 | 目标指标 |\n|----------|----------|\n| **性能** | {{#if performanceTarget}}{{performanceTarget}}{{else}}QPS > 1000, 响应时间 < 200ms{{/if}} |\n| **可用性** | {{#if availabilityTarget}}{{availabilityTarget}}{{else}}99.9%{{/if}} |\n| **并发** | {{#if concurrencyTarget}}{{concurrencyTarget}}{{else}}支持10000+在线用户{{/if}} |\n| **扩展性** | {{#if scalabilityTarget}}{{scalabilityTarget}}{{else}}支持水平扩展{{/if}} |\n| **安全性** | {{#if securityTarget}}{{securityTarget}}{{else}}数据加密、权限控制{{/if}} |\n\n## 3. 技术选型\n\n### 3.1 技术栈\n\n{{#eq architecturePattern \"微服务\"}}\n**架构模式**: 微服务架构\n\n| 技术类型 | 选型 | 理由 |\n|----------|------|------|\n| **后端框架** | {{#if backendFramework}}{{backendFramework}}{{else}}Spring Boot 3.x{{/if}} | 成熟稳定，生态完善 |\n| **服务注册** | {{#if serviceRegistry}}{{serviceRegistry}}{{else}}Nacos / Eureka{{/if}} | 服务发现与配置管理 |\n| **API网关** | {{#if apiGateway}}{{apiGateway}}{{else}}Spring Cloud Gateway{{/if}} | 统一入口，路由转发 |\n| **负载均衡** | {{#if loadBalancer}}{{loadBalancer}}{{else}}Ribbon / LoadBalancer{{/if}} | 客户端负载均衡 |\n| **熔断降级** | {{#if circuitBreaker}}{{circuitBreaker}}{{else}}Resilience4j{{/if}} | 服务容错保护 |\n| **分布式追踪** | {{#if tracing}}{{tracing}}{{else}}Zipkin / Skywalking{{/if}} | 链路追踪 |\n{{/eq}}\n\n{{#eq architecturePattern \"单体应用\"}}\n**架构模式**: 单体应用架构\n\n| 技术类型 | 选型 | 理由 |\n|----------|------|------|\n| **后端框架** | {{#if backendFramework}}{{backendFramework}}{{else}}Spring Boot{{/if}} | 快速开发，易于维护 |\n| **ORM框架** | {{#if ormFramework}}{{ormFramework}}{{else}}MyBatis Plus / JPA{{/if}} | 数据库访问 |\n| **缓存** | {{#if cache}}{{cache}}{{else}}Redis{{/if}} | 提升性能 |\n{{/eq}}\n\n{{#eq architecturePattern \"前后端分离\"}}\n**架构模式**: 前后端分离架构\n\n| 技术类型 | 选型 | 理由 |\n|----------|------|------|\n| **前端框架** | {{#if frontendFramework}}{{frontendFramework}}{{else}}Vue 3 / React{{/if}} | 现代化UI开发 |\n| **状态管理** | {{#if stateManagement}}{{stateManagement}}{{else}}Pinia / Redux{{/if}} | 状态管理 |\n| **后端框架** | {{#if backendFramework}}{{backendFramework}}{{else}}Spring Boot{{/if}} | RESTful API开发 |\n| **接口规范** | {{#if apiSpec}}{{apiSpec}}{{else}}OpenAPI 3.0{{/if}} | API文档标准化 |\n{{/eq}}\n\n| **数据库** | {{#if database}}{{database}}{{else}}PostgreSQL / MySQL{{/if}} | 关系型数据存储 |\n| **缓存** | {{#if cache}}{{cache}}{{else}}Redis{{/if}} | 缓存热点数据 |\n| **消息队列** | {{#if messageQueue}}{{messageQueue}}{{else}}RabbitMQ / Kafka{{/if}} | 异步处理、削峰填谷 |\n| **搜索引擎** | {{#if searchEngine}}{{searchEngine}}{{else}}Elasticsearch{{/if}} | 全文检索 |\n| **对象存储** | {{#if objectStorage}}{{objectStorage}}{{else}}MinIO / OSS{{/if}} | 文件存储 |\n| **监控告警** | {{#if monitoring}}{{monitoring}}{{else}}Prometheus + Grafana{{/if}} | 系统监控 |\n| **日志收集** | {{#if logging}}{{logging}}{{else}}ELK Stack{{/if}} | 日志聚合分析 |\n\n### 3.2 开发工具\n\n- **版本控制**: Git + GitHub/GitLab\n- **CI/CD**: {{#if cicd}}{{cicd}}{{else}}Jenkins / GitLab CI{{/if}}\n- **容器化**: Docker + Kubernetes\n- **项目管理**: {{#if projectManagement}}{{projectManagement}}{{else}}JIRA / 禅道{{/if}}\n- **API测试**: Postman / Apifox\n- **代码质量**: SonarQube\n\n## 4. 系统架构设计\n\n### 4.1 总体架构\n\n```\n┌─────────────────────────────────────────────────────┐\n│                     用户端                          │\n│        Web浏览器 / 移动App / 小程序               │\n└──────────────────┬──────────────────────────────────┘\n                   │ HTTPS\n                   ▼\n┌─────────────────────────────────────────────────────┐\n│                  CDN / 负载均衡                     │\n│                 Nginx / ALB                         │\n└──────────────────┬──────────────────────────────────┘\n                   │\n                   ▼\n{{#eq architecturePattern \"微服务\"}}\n┌─────────────────────────────────────────────────────┐\n│                   API网关层                         │\n│            Spring Cloud Gateway                     │\n│        (路由、认证、限流、日志)                    │\n└──────────────────┬──────────────────────────────────┘\n                   │\n         ┌─────────┴─────────┬─────────────┐\n         ▼                   ▼             ▼\n┌─────────────┐    ┌─────────────┐  ┌─────────────┐\n│  用户服务   │    │  订单服务   │  │  商品服务   │\n│             │    │             │  │             │\n│ Spring Boot │    │ Spring Boot │  │ Spring Boot │\n└──────┬──────┘    └──────┬──────┘  └──────┬──────┘\n       │                  │                │\n       └──────────────────┴────────────────┘\n                          │\n                          ▼\n           ┌──────────────────────────┐\n           │      服务注册中心        │\n           │         Nacos            │\n           └──────────────────────────┘\n{{/eq}}\n\n{{#eq architecturePattern \"单体应用\"}}\n┌─────────────────────────────────────────────────────┐\n│                  应用服务层                         │\n│                 Spring Boot                         │\n│        (Controller / Service / Repository)          │\n└──────────────────┬──────────────────────────────────┘\n{{/eq}}\n                   │\n         ┌─────────┴─────────┬─────────────┐\n         ▼                   ▼             ▼\n┌─────────────┐    ┌─────────────┐  ┌─────────────┐\n│   数据库    │    │    缓存     │  │  消息队列   │\n│  PostgreSQL │    │    Redis    │  │  RabbitMQ   │\n└─────────────┘    └─────────────┘  └─────────────┘\n```\n\n### 4.2 分层架构\n\n```\n┌─────────────────────────────────────┐\n│         接入层 (Access Layer)       │  ← Web/App请求\n├─────────────────────────────────────┤\n│        网关层 (Gateway Layer)       │  ← 路由、认证、限流\n├─────────────────────────────────────┤\n│       业务层 (Business Layer)       │  ← 业务逻辑处理\n│     • Controller (控制器)           │\n│     • Service (业务服务)            │\n│     • Manager (通用业务处理)        │\n├─────────────────────────────────────┤\n│       数据层 (Data Layer)           │  ← 数据访问\n│     • Repository (数据仓库)         │\n│     • DAO (数据访问对象)            │\n├─────────────────────────────────────┤\n│      基础设施层 (Infrastructure)     │  ← 数据库、缓存、MQ\n└─────────────────────────────────────┘\n```\n\n### 4.3 核心模块\n\n#### 4.3.1 用户模块\n\n- **功能**: 用户注册、登录、权限管理\n- **技术**: Spring Security + JWT\n- **数据表**: users, roles, permissions\n\n#### 4.3.2 业务模块\n\n- **功能**: {{businessModuleDescription}}\n- **技术**: {{businessModuleTech}}\n- **数据表**: {{businessModuleTables}}\n\n### 4.4 数据模型\n\n#### 4.4.1 核心实体\n\n```sql\n-- 用户表\nCREATE TABLE users (\n    id BIGINT PRIMARY KEY AUTO_INCREMENT,\n    username VARCHAR(50) UNIQUE NOT NULL,\n    email VARCHAR(100) UNIQUE NOT NULL,\n    password_hash VARCHAR(255) NOT NULL,\n    status VARCHAR(20) DEFAULT 'active',\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n    INDEX idx_email (email),\n    INDEX idx_status (status)\n);\n\n-- 角色表\nCREATE TABLE roles (\n    id BIGINT PRIMARY KEY AUTO_INCREMENT,\n    name VARCHAR(50) UNIQUE NOT NULL,\n    description VARCHAR(200),\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- 用户角色关联表\nCREATE TABLE user_roles (\n    user_id BIGINT NOT NULL,\n    role_id BIGINT NOT NULL,\n    PRIMARY KEY (user_id, role_id),\n    FOREIGN KEY (user_id) REFERENCES users(id),\n    FOREIGN KEY (role_id) REFERENCES roles(id)\n);\n```\n\n#### 4.4.2 数据库设计原则\n\n1. **规范化**: 遵循第三范式，避免数据冗余\n2. **索引优化**: 为常用查询字段建立索引\n3. **分区分表**: 对大表进行分区或分表处理\n4. **软删除**: 使用deleted_at字段标记删除\n\n## 5. 接口设计\n\n### 5.1 RESTful API规范\n\n- **资源命名**: 使用名词复数形式 (如 `/users`, `/orders`)\n- **HTTP方法**:\n  - GET: 查询资源\n  - POST: 创建资源\n  - PUT: 完整更新资源\n  - PATCH: 部分更新资源\n  - DELETE: 删除资源\n- **状态码**: 遵循HTTP标准状态码\n- **版本控制**: URL路径版本 (`/api/v1/users`)\n\n### 5.2 接口安全\n\n1. **认证**: JWT Token认证\n2. **授权**: RBAC权限控制\n3. **加密**: HTTPS传输加密\n4. **防护**: 接口限流、防重放攻击\n5. **审计**: 操作日志记录\n\n## 6. 缓存设计\n\n### 6.1 缓存策略\n\n| 数据类型 | 缓存策略 | 过期时间 |\n|----------|----------|----------|\n| 用户信息 | Cache-Aside | 30分钟 |\n| 配置信息 | Read-Through | 1小时 |\n| 热点数据 | Write-Behind | 根据业务 |\n\n### 6.2 缓存层级\n\n```\n浏览器缓存 → CDN缓存 → 应用缓存(本地) → Redis缓存 → 数据库\n```\n\n### 6.3 缓存问题处理\n\n- **缓存穿透**: 布隆过滤器 + 空值缓存\n- **缓存击穿**: 互斥锁 + 热点数据永不过期\n- **缓存雪崩**: 随机过期时间 + 多级缓存\n\n## 7. 高可用设计\n\n### 7.1 服务高可用\n\n- **负载均衡**: Nginx / ALB多节点部署\n- **服务降级**: Resilience4j熔断器\n- **限流保护**: 令牌桶 / 漏桶算法\n- **故障转移**: 主备切换 + 健康检查\n\n### 7.2 数据高可用\n\n- **数据库**: 主从复制 + 读写分离\n- **缓存**: Redis哨兵/集群模式\n- **消息队列**: 集群部署 + 持久化\n- **备份**: 定时全量备份 + 增量备份\n\n### 7.3 容灾方案\n\n- **同城双活**: 两个机房互为备份\n- **异地容灾**: 异地数据中心热备\n- **灾难恢复**: RTO < 4小时, RPO < 15分钟\n\n## 8. 安全设计\n\n### 8.1 认证授权\n\n```\n用户登录 → 生成JWT Token → Token携带在请求头 → 网关验证Token → \n权限校验 → 访问资源\n```\n\n### 8.2 数据安全\n\n- **传输安全**: HTTPS/TLS 1.3\n- **存储安全**: 敏感数据加密(AES-256)\n- **密码安全**: BCrypt哈希 + Salt\n- **SQL注入**: 参数化查询\n- **XSS防护**: 输入验证 + 输出编码\n- **CSRF防护**: Token验证\n\n### 8.3 安全监控\n\n- **异常检测**: 登录失败次数限制\n- **审计日志**: 操作日志记录与分析\n- **安全扫描**: 定期漏洞扫描\n- **应急响应**: 安全事件应急预案\n\n## 9. 性能优化\n\n### 9.1 数据库优化\n\n- **索引优化**: 合理建立索引\n- **查询优化**: 避免N+1查询\n- **连接池**: HikariCP连接池\n- **读写分离**: 主库写，从库读\n- **分库分表**: 水平/垂直拆分\n\n### 9.2 应用优化\n\n- **异步处理**: CompletableFuture / @Async\n- **批量操作**: 减少网络IO\n- **对象池化**: 复用对象减少GC\n- **懒加载**: 延迟加载非必需数据\n\n### 9.3 前端优化\n\n- **资源压缩**: Gzip/Brotli压缩\n- **CDN加速**: 静态资源CDN分发\n- **懒加载**: 图片/组件懒加载\n- **Code Splitting**: 代码分割按需加载\n\n## 10. 监控运维\n\n### 10.1 监控指标\n\n| 监控类型 | 指标 | 工具 |\n|----------|------|------|\n| **应用监控** | QPS、响应时间、错误率 | Prometheus + Grafana |\n| **系统监控** | CPU、内存、磁盘、网络 | Node Exporter |\n| **日志监控** | 错误日志、业务日志 | ELK Stack |\n| **链路追踪** | 请求链路、依赖关系 | Zipkin / Skywalking |\n| **业务监控** | 订单量、用户活跃度 | 自定义Dashboard |\n\n### 10.2 告警策略\n\n- **紧急告警**: 服务宕机、数据库连接失败 → 短信+电话\n- **重要告警**: 错误率>5%、响应时间>1s → 短信+邮件\n- **一般告警**: 磁盘使用率>80% → 邮件\n\n### 10.3 日志规范\n\n```java\n// 日志级别使用\nlogger.error(\"系统错误\", exception);  // 需要立即处理的错误\nlogger.warn(\"可疑行为\");              // 警告信息\nlogger.info(\"用户登录成功\");          // 重要业务日志\nlogger.debug(\"调试信息\");             // 开发调试信息\n```\n\n## 11. 部署架构\n\n### 11.1 部署环境\n\n| 环境 | 说明 | 配置 |\n|------|------|------|\n| **开发环境** | 本地开发 | 单机部署 |\n| **测试环境** | 功能测试 | 2台服务器 |\n| **预发环境** | 生产验证 | 与生产一致 |\n| **生产环境** | 正式服务 | {{#if prodConfig}}{{prodConfig}}{{else}}高可用集群{{/if}} |\n\n### 11.2 容器化部署\n\n```yaml\n# docker-compose.yml\nversion: '3.8'\n\nservices:\n  app:\n    image: {{systemName}}:{{docVersion}}\n    ports:\n      - \"8080:8080\"\n    environment:\n      - SPRING_PROFILES_ACTIVE=prod\n    depends_on:\n      - db\n      - redis\n  \n  db:\n    image: postgres:15\n    environment:\n      POSTGRES_DB: {{systemName}}\n      POSTGRES_PASSWORD: ${DB_PASSWORD}\n    volumes:\n      - db-data:/var/lib/postgresql/data\n  \n  redis:\n    image: redis:7-alpine\n    ports:\n      - \"6379:6379\"\n\nvolumes:\n  db-data:\n```\n\n### 11.3 K8s部署\n\n```yaml\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: {{systemName}}\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: {{systemName}}\n  template:\n    metadata:\n      labels:\n        app: {{systemName}}\n    spec:\n      containers:\n      - name: {{systemName}}\n        image: {{systemName}}:{{docVersion}}\n        ports:\n        - containerPort: 8080\n        resources:\n          requests:\n            memory: \"512Mi\"\n            cpu: \"500m\"\n          limits:\n            memory: \"1Gi\"\n            cpu: \"1000m\"\n```\n\n## 12. 技术债务与改进计划\n\n### 12.1 当前技术债务\n\n1. {{#if techDebt1}}{{techDebt1}}{{else}}部分老旧依赖需要升级{{/if}}\n2. {{#if techDebt2}}{{techDebt2}}{{else}}单元测试覆盖率偏低(<60%){{/if}}\n3. {{#if techDebt3}}{{techDebt3}}{{else}}部分接口性能需要优化{{/if}}\n\n### 12.2 改进计划\n\n| 优先级 | 改进项 | 计划时间 |\n|--------|--------|----------|\n| P0 | {{#if improvement1}}{{improvement1}}{{else}}性能优化{{/if}} | Q1 |\n| P1 | {{#if improvement2}}{{improvement2}}{{else}}测试覆盖率提升{{/if}} | Q2 |\n| P2 | {{#if improvement3}}{{improvement3}}{{else}}技术栈升级{{/if}} | Q3 |\n\n## 13. 附录\n\n### 13.1 术语表\n\n- **QPS**: Queries Per Second, 每秒查询次数\n- **RT**: Response Time, 响应时间\n- **RTO**: Recovery Time Objective, 恢复时间目标\n- **RPO**: Recovery Point Objective, 恢复点目标\n\n### 13.2 参考文档\n\n- [Spring Boot官方文档](https://spring.io/projects/spring-boot)\n- [Redis最佳实践](https://redis.io/docs/manual/)\n- [MySQL性能优化](https://dev.mysql.com/doc/refman/8.0/en/optimization.html)\n\n---\n\n**文档版本**: {{docVersion}}\n**架构师**: {{#if architect}}{{architect}}{{else}}架构团队{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {
+      "name": "systemName",
+      "type": "text",
+      "label": "系统名称",
+      "default": "示例系统",
+      "required": true,
+      "description": "系统的名称"
+    },
+    {
+      "name": "docVersion",
+      "type": "text",
+      "label": "文档版本",
+      "default": "v1.0.0",
+      "required": true,
+      "description": "文档版本号"
+    },
+    {
+      "name": "architecturePattern",
+      "type": "select",
+      "label": "架构模式",
+      "default": "微服务",
+      "required": true,
+      "options": [
+        {"value": "微服务", "label": "微服务架构"},
+        {"value": "单体应用", "label": "单体应用"},
+        {"value": "前后端分离", "label": "前后端分离"}
+      ],
+      "description": "系统采用的架构模式"
+    },
+    {
+      "name": "businessBackground",
+      "type": "textarea",
+      "label": "业务背景",
+      "default": "随着业务快速发展，现有系统面临性能瓶颈和扩展性问题，需要重新设计系统架构。",
+      "required": true,
+      "description": "项目的业务背景"
+    },
+    {
+      "name": "systemDescription",
+      "type": "textarea",
+      "label": "系统描述",
+      "default": "本系统是一个面向C端用户的在线服务平台，提供用户注册、商品浏览、订单管理等核心功能。",
+      "required": true,
+      "description": "系统的定位和描述"
+    },
+    {
+      "name": "coreFunctions",
+      "type": "textarea",
+      "label": "核心功能",
+      "default": "1. 用户管理\n2. 商品管理\n3. 订单管理\n4. 支付结算",
+      "required": true,
+      "description": "系统的核心功能列表"
+    },
+    {
+      "name": "businessModuleDescription",
+      "type": "text",
+      "label": "业务模块描述",
+      "default": "订单管理、库存管理",
+      "required": false,
+      "description": "核心业务模块的描述"
+    },
+    {
+      "name": "businessModuleTech",
+      "type": "text",
+      "label": "业务模块技术",
+      "default": "Spring Boot + MyBatis",
+      "required": false,
+      "description": "业务模块使用的技术"
+    },
+    {
+      "name": "businessModuleTables",
+      "type": "text",
+      "label": "业务模块数据表",
+      "default": "orders, order_items, inventory",
+      "required": false,
+      "description": "业务模块相关的数据表"
+    },
+    {
+      "name": "architect",
+      "type": "text",
+      "label": "架构师",
+      "default": "",
+      "required": false,
+      "description": "负责架构设计的架构师（可选）"
+    },
+    {
+      "name": "performanceTarget",
+      "type": "text",
+      "label": "性能目标",
+      "default": "",
+      "required": false,
+      "description": "系统性能指标目标（可选）"
+    },
+    {
+      "name": "availabilityTarget",
+      "type": "text",
+      "label": "可用性目标",
+      "default": "",
+      "required": false,
+      "description": "系统可用性目标（可选）"
+    },
+    {
+      "name": "backendFramework",
+      "type": "text",
+      "label": "后端框架",
+      "default": "",
+      "required": false,
+      "description": "后端使用的框架（可选）"
+    },
+    {
+      "name": "frontendFramework",
+      "type": "text",
+      "label": "前端框架",
+      "default": "",
+      "required": false,
+      "description": "前端使用的框架（可选）"
+    },
+    {
+      "name": "database",
+      "type": "text",
+      "label": "数据库",
+      "default": "",
+      "required": false,
+      "description": "使用的数据库（可选）"
+    },
+    {
+      "name": "createDate",
+      "type": "text",
+      "label": "创建日期",
+      "default": "",
+      "required": false,
+      "description": "文档创建日期（可选）"
+    },
+    {
+      "name": "updateDate",
+      "type": "text",
+      "label": "更新日期",
+      "default": "",
+      "required": false,
+      "description": "文档最后更新日期（可选）"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{systemName}}_架构文档",
+    "children": [
+      {"type": "file", "name": "README.md", "description": "架构文档主文件"},
+      {
+        "type": "folder",
+        "name": "diagrams",
+        "children": [
+          {"type": "file", "name": "architecture.drawio", "description": "架构图"},
+          {"type": "file", "name": "deployment.png", "description": "部署架构图"},
+          {"type": "file", "name": "data-model.sql", "description": "数据模型"}
+        ]
+      },
+      {
+        "type": "folder",
+        "name": "adr",
+        "children": [
+          {"type": "file", "name": "001-tech-stack.md", "description": "技术选型决策"},
+          {"type": "file", "name": "002-cache-strategy.md", "description": "缓存策略决策"}
+        ]
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T10:00:00Z"
+}

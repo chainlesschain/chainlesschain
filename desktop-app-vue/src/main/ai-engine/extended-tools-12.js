@@ -720,6 +720,12 @@ class ExtendedTools12 {
      * 创建和管理日历事件
      */
     functionCaller.registerTool('calendar_manager', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.calendarManagerReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         action,
         event,
@@ -994,6 +1000,12 @@ class ExtendedTools12 {
      * 搜索和筛选笔记
      */
     functionCaller.registerTool('note_searcher', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.searchNotesReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         query,
         filters = {},
