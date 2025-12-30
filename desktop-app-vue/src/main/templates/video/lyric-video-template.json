@@ -1,0 +1,50 @@
+{
+  "id": "tpl_video_lyric_001",
+  "name": "lyric_video_template",
+  "display_name": "歌词视频模板",
+  "description": "纯歌词视频制作模板，适用于音乐发布、社交媒体分享",
+  "icon": "📝",
+  "cover_image": "/templates/covers/lyric-video.png",
+  "category": "video",
+  "subcategory": "music",
+  "tags": ["歌词视频", "音乐", "Lyric Video"],
+  "project_type": "document",
+  "prompt_template": "请帮我设计一个歌词视频，要求：\n\n**歌曲信息：**\n- 歌曲：《{{songTitle}}》\n- 歌手：{{artist}}\n- 时长：{{duration}}分{{seconds}}秒\n- 风格：{{visualStyle}}\n- 平台：{{platform}}\n\n**歌词视频类型：**\n\n{{#eq visualStyle \"简约文字\"}}\n【简约文字风格】\n\n设计特点：\n- 纯色/渐变背景\n- 清晰易读字体\n- 最小化装饰\n- 专注歌词本身\n\n适用场景：\n- 快速制作\n- 正式发布\n- 官方版本\n\n制作要点：\n- 字体选择（{{fontFamily}}）\n- 字号：{{fontSize}}pt\n- 颜色：高对比度\n- 位置：居中或下1/3\n\n歌词动效：\n- 逐行淡入淡出\n- 逐字高亮（卡拉OK效果）\n- 简单平移\n{{/eq}}\n\n{{#eq visualStyle \"动态背景\"}}\n【动态背景风格】\n\n背景类型：\n1. **音频波形**\n   - 实时音频可视化\n   - 波形样式：圆形/条形/粒子\n   - 颜色随节奏变化\n\n2. **抽象动画**\n   - 几何图形运动\n   - 粒子系统\n   - 流体动画\n\n3. **视频素材**\n   - 模糊运动背景\n   - 自然风景（延时/慢动作）\n   - 抽象纹理循环\n\n歌词层级：\n- 背景：动态元素（30%透明度）\n- 中层：装饰元素\n- 前景：歌词文字（100%清晰）\n{{/eq}}\n\n{{#eq visualStyle \"创意设计\"}}\n【创意设计风格】\n\n创意方向：\n1. **手写效果**\n   - 笔迹书写动画\n   - 手绘插画配合\n   - 涂鸦风格\n\n2. **打字机效果**\n   - 逐字打出\n   - 打字音效\n   - 光标闪烁\n\n3. **霓虹灯效果**\n   - 发光文字\n   - 闪烁动画\n   - 赛博朋克风\n\n4. **3D立体**\n   - 文字3D建模\n   - 空间旋转\n   - 深度视差\n{{/eq}}\n\n{{#eq visualStyle \"配图风格\"}}\n【配图风格】\n\n图片来源：\n- 歌手/乐队照片\n- 专辑封面\n- 相关场景图\n- AI生成图片\n\n图片处理：\n- 高斯模糊（背景）\n- 双色调/单色调\n- 颗粒质感\n- 暗角效果\n\n歌词叠加方式：\n- 图片上层覆盖\n- 半透明黑框\n- 描边文字（清晰可读）\n{{/eq}}\n\n---\n\n**歌词排版设计：**\n\n单行显示：\n```\n      当前歌词居中显示\n```\n- 适合：慢歌、抒情歌\n- 优点：专注、易读\n\n双行显示：\n```\n    上一句歌词（半透明）\n   → 当前歌词（高亮）\n```\n- 适合：中速歌曲\n- 优点：上下文连贯\n\n多行显示：\n```\n   已唱过的（灰色）\n → 正在唱的（彩色高亮）\n   即将唱的（半透明）\n```\n- 适合：快歌、说唱\n- 优点：整体把握\n\n---\n\n**字体选择建议：**\n\n{{#eq musicStyle \"流行\"}}\n流行歌曲字体：\n- 中文：思源黑体、阿里巴巴普惠体\n- 英文：Montserrat, Poppins\n- 特点：现代、清晰\n{{/eq}}\n\n{{#eq musicStyle \"民谣\"}}\n民谣歌曲字体：\n- 中文：康熙字典体、方正清刻本\n- 英文：Georgia, Merriweather\n- 特点：温暖、手写感\n{{/eq}}\n\n{{#eq musicStyle \"摇滚\"}}\n摇滚歌曲字体：\n- 中文：造字工房力黑\n- 英文：Impact, Bebas Neue\n- 特点：有力、粗犷\n{{/eq}}\n\n{{#eq musicStyle \"电子\"}}\n电子音乐字体：\n- 中文：未来荧黑\n- 英文：Orbitron, Exo\n- 特点：科技感、未来感\n{{/eq}}\n\n---\n\n**颜色方案：**\n\n单色方案：\n- 背景：{{backgroundColor}}\n- 文字：{{textColor}}\n- 高对比度确保可读性\n\n渐变方案：\n- 背景：{{gradientColor1}} → {{gradientColor2}}\n- 文字：白色/黑色（根据背景）\n\n专辑配色：\n- 从专辑封面提取主色\n- 保持品牌一致性\n\n情绪配色：\n{{#eq mood \"快乐\"}}\n- 明亮：黄、橙、粉\n- 高饱和度\n{{/eq}}\n{{#eq mood \"悲伤\"}}\n- 冷色：蓝、灰、紫\n- 低饱和度\n{{/eq}}\n{{#eq mood \"浪漫\"}}\n- 柔和：粉、紫、玫瑰金\n- 渐变过渡\n{{/eq}}\n\n---\n\n**时间轴同步：**\n\nLRC歌词格式：\n```\n[00:12.00]第一句歌词\n[00:17.50]第二句歌词\n[00:23.00]第三句歌词\n```\n\n同步方法：\n1. **自动识别**（AI工具）\n   - 剪映自动识别\n   - Aegisub + 音频\n\n2. **手动打轴**\n   - 逐句听歌标记\n   - 精确到0.1秒\n\n3. **卡拉OK效果**\n   - 逐字时间轴\n   - 进度条动画\n\n---\n\n**动画设计：**\n\n入场动画（每句歌词出现）：\n- 淡入（经典）\n- 从下方滑入\n- 缩放弹出\n- 打字效果\n\n强调动画（副歌/重点）：\n- 字号放大\n- 颜色变化\n- 抖动/脉冲\n- 外发光\n\n出场动画（歌词消失）：\n- 淡出\n- 向上滑出\n- 缩小消失\n- 模糊消失\n\n---\n\n**平台优化：**\n\n{{#eq platform \"YouTube\"}}\n**YouTube优化：**\n- 尺寸：1920x1080（16:9）\n- 时长：完整歌曲\n- 封面：专辑封面或歌词截图\n- 标题：歌名 + \"Lyric Video\" + 歌手名\n- 描述：歌词全文\n- 标签：歌手、歌名、Lyric Video\n{{/eq}}\n\n{{#eq platform \"抖音\"}}\n**抖音/TikTok优化：**\n- 尺寸：1080x1920（9:16竖屏）\n- 时长：完整或精华片段\n- 字体：更大（移动端可读）\n- 动画：更快节奏\n- 添加：音乐来源标注\n{{/eq}}\n\n{{#eq platform \"B站\"}}\n**B站优化：**\n- 尺寸：1920x1080\n- 分P：可按专辑分P\n- 弹幕保护：歌词位置留白\n- 互动：歌词本在简介区\n{{/eq}}\n\n{{#eq platform \"Instagram\"}}\n**Instagram优化：**\n- 尺寸：1080x1080（方形）或1080x1920（Story）\n- 时长：60秒内（Feed）或完整（IGTV）\n- 风格：视觉吸引力优先\n{{/eq}}\n\n---\n\n**制作工具：**\n\n专业工具：\n- Adobe After Effects（最专业）\n  - 模板：VideoHive歌词模板\n  - 插件：TypeMonkey（文字动画）\n\n- Adobe Premiere Pro\n  - Essential Graphics模板\n  - 字幕工具\n\n简易工具：\n- 剪映/CapCut\n  - 自动识别歌词\n  - 内置动画模板\n\n- Canva\n  - 在线制作\n  - 拖拽式操作\n\n- LyricFire（专用）\n  - 歌词视频专用工具\n\n在线工具：\n- Kapwing Lyric Video Maker\n- Animaker Music Visualizer\n\n---\n\n**完整制作流程：**\n\n第一步：准备素材（30分钟）\n- 获取高质量音频\n- 准备歌词文本（LRC或纯文本）\n- 收集背景图片/视频（如需要）\n\n第二步：设计风格（1小时）\n- 确定视觉风格\n- 选择字体和颜色\n- 设计背景\n\n第三步：制作视频（2-4小时）\n- 导入音频\n- 添加歌词\n- 调整时间轴同步\n- 添加动画效果\n\n第四步：优化导出（30分钟）\n- 检查同步精度\n- 调整视觉细节\n- 导出高清视频\n\n---\n\n**技术参数：**\n\n视频设置：\n- 分辨率：1080p或4K\n- 帧率：30fps或60fps\n- 编码：H.264\n- 比特率：10-20 Mbps\n\n音频设置：\n- 格式：AAC\n- 比特率：320kbps\n- 采样率：48kHz\n- 声道：立体声\n\n---\n\n**创意增强元素：**\n\n{{#if includeEnhancements}}\n可选增强：\n1. **艺人照片**\n   - 渐变切换\n   - 与歌词情绪匹配\n\n2. **专辑信息**\n   - 片头：专辑封面 + 歌名\n   - 片尾：发行信息\n\n3. **社交媒体**\n   - 订阅提示\n   - 社交账号\n\n4. **互动元素**\n   - \"你最喜欢哪句歌词？\"\n   - \"评论区告诉我\"\n{{/if}}\n\n---\n\n**检查清单：**\n\n技术检查：\n- [ ] 歌词无错别字\n- [ ] 时间轴精确同步\n- [ ] 文字清晰可读（手机端测试）\n- [ ] 音频质量良好\n- [ ] 视频无卡顿\n\n视觉检查：\n- [ ] 字体风格统一\n- [ ] 颜色搭配和谐\n- [ ] 动画流畅自然\n- [ ] 背景不干扰阅读\n\n平台检查：\n- [ ] 尺寸符合平台要求\n- [ ] 时长符合限制\n- [ ] 格式兼容\n\n---\n\n**输出成果：**\n- 完整歌词视频（MP4）\n- 多平台版本（横版/竖版）\n- 歌词文本文件\n- 项目工程文件（备份）",
+  "variables_schema": [
+    {"name": "songTitle", "label": "歌曲名", "type": "string", "required": true},
+    {"name": "artist", "label": "歌手/乐队", "type": "string", "required": true},
+    {"name": "duration", "label": "时长（分钟）", "type": "number", "required": false, "default": 3},
+    {"name": "seconds", "label": "秒数", "type": "number", "required": false, "default": 30, "min": 0, "max": 59},
+    {"name": "visualStyle", "label": "视觉风格", "type": "select", "required": false, "default": "动态背景", "options": [
+      {"value": "简约文字", "label": "简约文字"},
+      {"value": "动态背景", "label": "动态背景"},
+      {"value": "创意设计", "label": "创意设计"},
+      {"value": "配图风格", "label": "配图风格"}
+    ]},
+    {"name": "platform", "label": "发布平台", "type": "select", "required": false, "default": "YouTube", "options": [
+      {"value": "YouTube", "label": "YouTube"},
+      {"value": "抖音", "label": "抖音/TikTok"},
+      {"value": "B站", "label": "B站"},
+      {"value": "Instagram", "label": "Instagram"}
+    ]},
+    {"name": "includeEnhancements", "label": "包含增强元素", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "包含"},
+      {"value": "否", "label": "不包含"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "歌词视频-《{{songTitle}}》",
+    "files": [
+      {"path": "设计方案.docx", "type": "document"},
+      {"path": "歌词文本.txt", "type": "text"},
+      {"path": "制作清单.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
