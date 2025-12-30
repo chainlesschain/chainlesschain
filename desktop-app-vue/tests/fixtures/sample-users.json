@@ -1,0 +1,82 @@
+[
+  {
+    "id": "user-001",
+    "username": "alice_chen",
+    "email": "alice.chen@example.com",
+    "display_name": "Alice Chen",
+    "avatar": "https://avatar.example.com/alice.jpg",
+    "bio": "Full-stack developer passionate about AI and web technologies",
+    "role": "developer",
+    "created_at": 1703462400000,
+    "last_login": 1705708800000,
+    "preferences": {
+      "theme": "dark",
+      "language": "zh-CN",
+      "notifications": true
+    }
+  },
+  {
+    "id": "user-002",
+    "username": "bob_wang",
+    "email": "bob.wang@example.com",
+    "display_name": "Bob Wang",
+    "avatar": "https://avatar.example.com/bob.jpg",
+    "bio": "Data scientist exploring machine learning and analytics",
+    "role": "data_scientist",
+    "created_at": 1703548800000,
+    "last_login": 1705622400000,
+    "preferences": {
+      "theme": "light",
+      "language": "en-US",
+      "notifications": true
+    }
+  },
+  {
+    "id": "user-003",
+    "username": "carol_liu",
+    "email": "carol.liu@example.com",
+    "display_name": "Carol Liu",
+    "avatar": "https://avatar.example.com/carol.jpg",
+    "bio": "Product manager with a focus on user experience",
+    "role": "product_manager",
+    "created_at": 1703635200000,
+    "last_login": 1705536000000,
+    "preferences": {
+      "theme": "auto",
+      "language": "zh-CN",
+      "notifications": false
+    }
+  },
+  {
+    "id": "user-004",
+    "username": "david_zhang",
+    "email": "david.zhang@example.com",
+    "display_name": "David Zhang",
+    "avatar": "https://avatar.example.com/david.jpg",
+    "bio": "UI/UX designer creating beautiful and intuitive interfaces",
+    "role": "designer",
+    "created_at": 1703721600000,
+    "last_login": 1705449600000,
+    "preferences": {
+      "theme": "dark",
+      "language": "zh-CN",
+      "notifications": true
+    }
+  },
+  {
+    "id": "user-005",
+    "username": "emma_li",
+    "email": "emma.li@example.com",
+    "display_name": "Emma Li",
+    "avatar": "https://avatar.example.com/emma.jpg",
+    "bio": "Technical writer documenting complex systems clearly",
+    "role": "technical_writer",
+    "created_at": 1703808000000,
+    "last_login": 1705363200000,
+    "preferences": {
+      "theme": "light",
+      "language": "en-US",
+      "notifications": true
+    }
+  }
+]

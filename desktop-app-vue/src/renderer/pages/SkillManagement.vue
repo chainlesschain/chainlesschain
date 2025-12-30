@@ -707,6 +707,10 @@ const handleBatchDelete = () => {
     gap: 16px;
     margin-top: 16px;
 
+    :deep(.skill-card) {
+      padding-left: 44px;
+    }
+
     .skill-card-wrapper {
       position: relative;
 
@@ -728,6 +732,10 @@ const handleBatchDelete = () => {
   }
 
   :deep(.virtual-grid) {
+    :deep(.skill-card) {
+      padding-left: 44px;
+    }
+
     .skill-card-wrapper {
       position: relative;
 

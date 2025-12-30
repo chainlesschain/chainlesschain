@@ -1,0 +1,57 @@
+[
+  {
+    "id": "note-001",
+    "title": "AI技术学习笔记",
+    "content": "# AI技术学习笔记\n\n## 机器学习基础\n\n机器学习是人工智能的一个分支，它使计算机能够从数据中学习模式和规律。\n\n### 主要类型\n\n1. **监督学习**：使用标注数据训练模型\n2. **无监督学习**：从未标注数据中发现模式\n3. **强化学习**：通过试错学习最优策略\n\n## 深度学习\n\n深度学习使用多层神经网络处理复杂数据。\n\n### 应用领域\n\n- 图像识别\n- 自然语言处理\n- 语音识别\n- 推荐系统",
+    "tags": ["AI", "机器学习", "深度学习"],
+    "category": "technology",
+    "created_at": 1704067200000,
+    "updated_at": 1704153600000,
+    "is_favorite": true,
+    "is_archived": false
+  },
+  {
+    "id": "note-002",
+    "title": "项目管理最佳实践",
+    "content": "# 项目管理最佳实践\n\n## 敏捷开发\n\n敏捷开发强调快速迭代和持续交付。\n\n### Scrum框架\n\n- Sprint计划\n- 每日站会\n- Sprint评审\n- 回顾会议\n\n## 任务跟踪\n\n使用看板系统跟踪任务进度：\n\n- TODO\n- In Progress\n- Testing\n- Done",
+    "tags": ["项目管理", "敏捷", "Scrum"],
+    "category": "management",
+    "created_at": 1704240000000,
+    "updated_at": 1704326400000,
+    "is_favorite": false,
+    "is_archived": false
+  },
+  {
+    "id": "note-003",
+    "title": "JavaScript性能优化",
+    "content": "# JavaScript性能优化\n\n## 代码优化\n\n1. 避免全局变量\n2. 使用事件委托\n3. 防抖和节流\n4. 懒加载\n\n## 网络优化\n\n- 压缩资源\n- CDN加速\n- HTTP/2\n- 缓存策略\n\n## 渲染优化\n\n- 虚拟列表\n- requestAnimationFrame\n- Web Workers",
+    "tags": ["JavaScript", "性能优化", "前端"],
+    "category": "programming",
+    "created_at": 1704412800000,
+    "updated_at": 1704499200000,
+    "is_favorite": true,
+    "is_archived": false
+  },
+  {
+    "id": "note-004",
+    "title": "健康生活指南",
+    "content": "# 健康生活指南\n\n## 饮食建议\n\n- 多吃蔬菜水果\n- 适量蛋白质\n- 少油少盐少糖\n- 充足饮水\n\n## 运动计划\n\n每周至少150分钟中等强度运动：\n\n- 慢跑\n- 游泳\n- 骑行\n- 力量训练\n\n## 睡眠习惯\n\n- 固定作息\n- 睡前放松\n- 避免电子设备\n- 舒适环境",
+    "tags": ["健康", "生活", "运动"],
+    "category": "lifestyle",
+    "created_at": 1704585600000,
+    "updated_at": 1704672000000,
+    "is_favorite": false,
+    "is_archived": false
+  },
+  {
+    "id": "note-005",
+    "title": "会议记录 - 2025年1月产品规划",
+    "content": "# 会议记录\n\n**日期**：2025年1月15日\n**参会人员**：产品团队全体成员\n\n## 讨论议题\n\n### Q1功能规划\n\n1. AI助手功能增强\n   - 多模型支持\n   - 上下文记忆优化\n   - 个性化推荐\n\n2. 知识库改进\n   - 全文检索\n   - 智能分类\n   - 图谱可视化\n\n3. 协作功能\n   - 实时协同编辑\n   - 评论系统\n   - 权限管理\n\n## 行动项\n\n- [ ] 完成技术调研（张三，1月20日）\n- [ ] 设计原型（李四，1月25日）\n- [ ] 开发排期（王五，1月30日）",
+    "tags": ["会议", "产品规划", "2025"],
+    "category": "work",
+    "created_at": 1705276800000,
+    "updated_at": 1705363200000,
+    "is_favorite": false,
+    "is_archived": false
+  }
+]
