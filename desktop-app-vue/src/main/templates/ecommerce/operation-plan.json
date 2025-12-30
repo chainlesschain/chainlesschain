@@ -1,0 +1,155 @@
+{
+  "id": "tpl_ecommerce_operation_002",
+  "name": "operation_plan",
+  "display_name": "电商运营计划",
+  "description": "全面的电商运营计划模板,包含运营目标、策略规划、推广计划、数据分析等,适用于店铺运营、活动策划、季度规划",
+  "icon": "📊",
+  "category": "ecommerce",
+  "subcategory": "运营策划",
+  "tags": ["运营计划", "电商策略", "店铺运营", "活动策划", "数据分析"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成电商运营计划，要求:\n\n# {{storeName}} {{planPeriod}}运营计划\n\n## 1. 计划概述\n\n**店铺名称**: {{storeName}}\n**平台**: {{platform}}\n**计划周期**: {{planPeriod}}\n**计划时间**: {{startDate}} 至 {{endDate}}\n**负责人**: {{#if planOwner}}{{planOwner}}{{else}}运营团队{{/if}}\n**编制日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n\n---\n\n## 2. 现状分析\n\n### 2.1 店铺现状\n\n**基础数据**(截至{{analysisDate}}):\n\n| 指标 | 数据 | 环比 |\n|------|------|------|\n| **总销售额** | ¥{{totalSales}} | {{salesGrowth}}% |\n| **订单量** | {{orderCount}}单 | {{orderGrowth}}% |\n| **客单价** | ¥{{avgOrderValue}} | {{aovGrowth}}% |\n| **转化率** | {{conversionRate}}% | {{conversionGrowth}}% |\n| **访客数** | {{visitorCount}}人 | {{visitorGrowth}}% |\n| **店铺粉丝** | {{followerCount}}人 | {{followerGrowth}}% |\n| **DSR评分** | {{dsrScore}}/5.0 | - |\n| **好评率** | {{positiveRate}}% | - |\n\n### 2.2 优势分析(S)\n\n{{#if strength1}}✅ {{strength1}}{{else}}✅ 产品质量稳定，回购率高{{/if}}\n{{#if strength2}}✅ {{strength2}}{{else}}✅ 客服响应快，售后服务好{{/if}}\n{{#if strength3}}✅ {{strength3}}{{else}}✅ 供应链稳定，发货速度快{{/if}}\n\n### 2.3 劣势分析(W)\n\n{{#if weakness1}}❌ {{weakness1}}{{else}}❌ 品牌知名度不足{{/if}}\n{{#if weakness2}}❌ {{weakness2}}{{else}}❌ 营销投入有限{{/if}}\n{{#if weakness3}}❌ {{weakness3}}{{else}}❌ SKU数量较少{{/if}}\n\n### 2.4 机会分析(O)\n\n{{#if opportunity1}}🎯 {{opportunity1}}{{else}}🎯 行业增长迅速，市场空间大{{/if}}\n{{#if opportunity2}}🎯 {{opportunity2}}{{else}}🎯 平台政策扶持新商家{{/if}}\n{{#if opportunity3}}🎯 {{opportunity3}}{{else}}🎯 消费升级，用户需求旺盛{{/if}}\n\n### 2.5 威胁分析(T)\n\n{{#if threat1}}⚠️ {{threat1}}{{else}}⚠️ 竞争对手价格战{{/if}}\n{{#if threat2}}⚠️ {{threat2}}{{else}}⚠️ 平台规则变化频繁{{/if}}\n{{#if threat3}}⚠️ {{threat3}}{{else}}⚠️ 流量成本持续上涨{{/if}}\n\n---\n\n## 3. 运营目标\n\n### 3.1 核心目标(KPI)\n\n| 指标 | 当前 | 目标 | 增长率 |\n|------|------|------|--------|\n| **销售额** | ¥{{currentSales}} | ¥{{targetSales}} | +{{salesTargetGrowth}}% |\n| **订单量** | {{currentOrders}}单 | {{targetOrders}}单 | +{{orderTargetGrowth}}% |\n| **客单价** | ¥{{currentAOV}} | ¥{{targetAOV}} | +{{aovTargetGrowth}}% |\n| **转化率** | {{currentCR}}% | {{targetCR}}% | +{{crTargetGrowth}}% |\n| **访客数** | {{currentVisitors}}人 | {{targetVisitors}}人 | +{{visitorTargetGrowth}}% |\n| **新增粉丝** | - | {{targetNewFollowers}}人 | - |\n\n### 3.2 阶段目标\n\n{{#eq planPeriod \"月度\"}}\n**第1周**: {{week1Target}}\n**第2周**: {{week2Target}}\n**第3周**: {{week3Target}}\n**第4周**: {{week4Target}}\n{{/eq}}\n\n{{#eq planPeriod \"季度\"}}\n**第1个月**: {{month1Target}}\n**第2个月**: {{month2Target}}\n**第3个月**: {{month3Target}}\n{{/eq}}\n\n{{#eq planPeriod \"年度\"}}\n**Q1**: {{q1Target}}\n**Q2**: {{q2Target}}\n**Q3**: {{q3Target}}\n**Q4**: {{q4Target}}\n{{/eq}}\n\n---\n\n## 4. 运营策略\n\n### 4.1 产品策略\n\n#### 4.1.1 产品规划\n\n**主打产品**:\n- {{mainProduct1}} (预计贡献{{mainProduct1Contribution}}%销售额)\n- {{mainProduct2}} (预计贡献{{mainProduct2Contribution}}%销售额)\n- {{mainProduct3}} (预计贡献{{mainProduct3Contribution}}%销售额)\n\n**引流产品**:\n- {{trafficProduct1}} (低价引流)\n- {{trafficProduct2}} (新品试水)\n\n**利润产品**:\n- {{profitProduct1}} (高利润率)\n- {{profitProduct2}} (高客单价)\n\n#### 4.1.2 新品上架计划\n\n| 时间 | 新品名称 | 预期SKU | 定价策略 |\n|------|----------|---------|----------|\n| {{newProduct1Date}} | {{newProduct1}} | {{newProduct1SKU}}个 | {{newProduct1Price}} |\n| {{newProduct2Date}} | {{newProduct2}} | {{newProduct2SKU}}个 | {{newProduct2Price}} |\n| {{newProduct3Date}} | {{newProduct3}} | {{newProduct3SKU}}个 | {{newProduct3Price}} |\n\n#### 4.1.3 库存管理\n\n- 畅销品备货量: {{bestsellerStock}}\n- 新品测试备货: {{newProductStock}}\n- 安全库存周期: {{safetyStockDays}}天\n- 滞销品清仓: {{slowMovingStrategy}}\n\n### 4.2 价格策略\n\n#### 4.2.1 定价策略\n\n**成本加成法**:\n```\n产品成本 + 运营成本 + 目标利润 = 售价\n\n示例:\n成本: ¥{{costPrice}}\n运营成本(30%): ¥{{operatingCost}}\n目标毛利(40%): ¥{{targetProfit}}\n建议售价: ¥{{recommendedPrice}}\n```\n\n**竞争导向定价**:\n- 竞品A价格: ¥{{competitorAPrice}}\n- 竞品B价格: ¥{{competitorBPrice}}\n- 我们的差异化: {{pricingDifferentiation}}\n- 定价策略: {{pricingStrategy}}\n\n#### 4.2.2 促销策略\n\n**常规促销**:\n- 满减: 满{{fullReductionThreshold}}减{{fullReductionAmount}}\n- 优惠券: {{couponAmount}}元无门槛券\n- 会员价: 会员专享9折\n\n**活动促销**:\n- 618大促: {{activity618Strategy}}\n- 双11: {{activity1111Strategy}}\n- 年货节: {{activityCnyStrategy}}\n\n### 4.3 推广策略\n\n#### 4.3.1 站内推广\n\n**付费推广**:\n\n| 推广方式 | 预算(元/月) | 预期ROI | 负责人 |\n|----------|-------------|---------|--------|\n| {{adChannel1}} | {{adBudget1}} | {{adROI1}} | {{adOwner1}} |\n| {{adChannel2}} | {{adBudget2}} | {{adROI2}} | {{adOwner2}} |\n| {{adChannel3}} | {{adBudget3}} | {{adROI3}} | {{adOwner3}} |\n| **合计** | **{{totalAdBudget}}** | **{{overallROI}}** | - |\n\n**免费推广**:\n- 店铺首页优化\n- 商品详情页优化\n- SEO关键词优化\n- 微淘/逛逛内容发布\n- 直播带货\n\n#### 4.3.2 站外推广\n\n**社交媒体**:\n- 小红书种草: {{xiaohongshuPlan}}\n- 抖音短视频: {{douyinPlan}}\n- 微信公众号: {{wechatPlan}}\n- 社群运营: {{communityPlan}}\n\n**达人合作**:\n- KOL合作: {{kolPlan}}\n- KOC种草: {{kocPlan}}\n- 直播带货: {{livePlan}}\n\n**预算分配**:\n```\n站内推广: {{internalAdBudget}}元 ({{internalAdPercent}}%)\n站外推广: {{externalAdBudget}}元 ({{externalAdPercent}}%)\n达人合作: {{influencerBudget}}元 ({{influencerPercent}}%)\n其他: {{otherBudget}}元 ({{otherPercent}}%)\n\n总预算: {{totalMarketingBudget}}元\n```\n\n### 4.4 客户运营策略\n\n#### 4.4.1 客户分层\n\n**新客户**:\n- 占比: {{newCustomerPercent}}%\n- 策略: {{newCustomerStrategy}}\n- 转化目标: {{newCustomerConversionTarget}}%\n\n**老客户**:\n- 占比: {{oldCustomerPercent}}%\n- 策略: {{oldCustomerStrategy}}\n- 复购目标: {{repurchaseTarget}}%\n\n**会员客户**:\n- 占比: {{memberPercent}}%\n- 策略: {{memberStrategy}}\n- 贡献目标: {{memberContributionTarget}}%\n\n#### 4.4.2 会员体系\n\n**会员等级**:\n\n| 等级 | 门槛 | 权益 |\n|------|------|------|\n| 普通会员 | 注册即可 | 积分兑换 |\n| 银卡会员 | 消费满{{silverThreshold}}元 | {{silverBenefits}} |\n| 金卡会员 | 消费满{{goldThreshold}}元 | {{goldBenefits}} |\n| 钻石会员 | 消费满{{diamondThreshold}}元 | {{diamondBenefits}} |\n\n**积分规则**:\n- 消费1元 = {{pointsPerYuan}}积分\n- {{pointsValue}}积分 = 1元\n- 积分有效期: {{pointsValidity}}个月\n\n#### 4.4.3 客户维护\n\n**日常维护**:\n- 每日问候: {{dailyGreeting}}\n- 生日祝福: {{birthdayGift}}\n- 节日关怀: {{festivalCare}}\n\n**售后服务**:\n- 7天无理由退换\n- 24小时客服在线\n- 质量问题包来回运费\n- 终身售后支持\n\n---\n\n## 5. 活动策划\n\n### 5.1 大促活动\n\n{{#eq planPeriod \"季度\"}}\n#### Q{{quarter}}重点活动\n\n**活动1: {{majorActivity1}}**\n- 时间: {{activity1Date}}\n- 目标: {{activity1Target}}\n- 策略: {{activity1Strategy}}\n- 预算: {{activity1Budget}}元\n\n**活动2: {{majorActivity2}}**\n- 时间: {{activity2Date}}\n- 目标: {{activity2Target}}\n- 策略: {{activity2Strategy}}\n- 预算: {{activity2Budget}}元\n{{/eq}}\n\n### 5.2 日常活动\n\n**每周活动**:\n- 周一: 会员日(会员专享9折)\n- 周三: 新品首发日\n- 周五: 限时秒杀\n- 周日: 粉丝福利日\n\n**每月活动**:\n- 每月5日: 超级品牌日\n- 每月15日: 清仓特卖\n- 每月25日: 新品预售\n\n---\n\n## 6. 数据分析与优化\n\n### 6.1 核心指标监控\n\n**日常监控**(每日更新):\n```\n✅ 销售额\n✅ 订单量\n✅ 访客数\n✅ 转化率\n✅ 客单价\n✅ 退款率\n```\n\n**周度复盘**(每周一):\n```\n✅ 上周数据汇总\n✅ 环比/同比分析\n✅ 异常数据排查\n✅ 优化措施制定\n```\n\n**月度分析**(每月初):\n```\n✅ 月度目标达成率\n✅ 产品销售排行\n✅ 流量来源分析\n✅ 竞品对比分析\n✅ 下月计划调整\n```\n\n### 6.2 数据看板\n\n**销售漏斗**:\n```\n曝光: {{impressions}}次\n    ↓ ({{impressionToCTR}}%)\n点击: {{clicks}}次\n    ↓ ({{CTRToVisit}}%)\n访问: {{visits}}次\n    ↓ ({{visitToCart}}%)\n加购: {{addToCart}}次\n    ↓ ({{cartToOrder}}%)\n下单: {{orders}}单\n    ↓ ({{orderToPay}}%)\n支付: {{payments}}单\n```\n\n**流量结构**:\n```\n搜索流量: {{searchTrafficPercent}}%\n推广流量: {{promotionTrafficPercent}}%\n免费流量: {{freeTrafficPercent}}%\n其他流量: {{otherTrafficPercent}}%\n```\n\n### 6.3 优化方向\n\n**提升转化率**:\n- 优化商品详情页: {{detailPageOptimization}}\n- 优化主图点击率: {{mainImageOptimization}}\n- 优化价格策略: {{pricingOptimization}}\n\n**提升客单价**:\n- 关联销售: {{crossSellingStrategy}}\n- 满减活动: {{fullReductionStrategy}}\n- 套餐组合: {{bundlingStrategy}}\n\n**提升流量**:\n- SEO优化: {{seoOptimization}}\n- 付费推广: {{paidAdsOptimization}}\n- 内容营销: {{contentMarketingOptimization}}\n\n---\n\n## 7. 团队分工\n\n| 角色 | 姓名 | 职责 | KPI |\n|------|------|------|-----|\n| **运营总监** | {{operationDirector}} | 整体规划、目标达成 | 销售额 |\n| **推广专员** | {{promotionSpecialist}} | 付费推广、ROI优化 | 推广ROI |\n| **内容运营** | {{contentOperator}} | 详情页、微淘内容 | 内容转化率 |\n| **客服主管** | {{csManager}} | 客户服务、售后 | 客户满意度 |\n| **数据分析** | {{dataAnalyst}} | 数据监控、分析报告 | 数据准确性 |\n\n---\n\n## 8. 风险应对\n\n### 8.1 潜在风险\n\n**供应链风险**:\n- 风险: {{supplyChainRisk}}\n- 应对: {{supplyChainSolution}}\n\n**竞争风险**:\n- 风险: {{competitionRisk}}\n- 应对: {{competitionSolution}}\n\n**政策风险**:\n- 风险: {{policyRisk}}\n- 应对: {{policySolution}}\n\n### 8.2 应急预案\n\n**库存不足**:\n```\n1. 紧急联系供应商补货\n2. 调整预售周期\n3. 限购措施\n4. 推荐替代产品\n```\n\n**物流延误**:\n```\n1. 及时通知客户\n2. 提供补偿方案\n3. 更换物流商\n4. 建立备用物流渠道\n```\n\n**差评危机**:\n```\n1. 第一时间联系客户\n2. 了解问题并道歉\n3. 提供解决方案\n4. 跟进处理结果\n5. 优化产品/服务\n```\n\n---\n\n## 9. 预算规划\n\n### 9.1 费用预算\n\n| 费用项目 | 预算(元) | 占比 |\n|----------|----------|------|\n| **推广费用** | {{promotionBudget}} | {{promotionPercent}}% |\n| **人力成本** | {{laborCost}} | {{laborPercent}}% |\n| **平台费用** | {{platformFee}} | {{platformPercent}}% |\n| **物流成本** | {{logisticsCost}} | {{logisticsPercent}}% |\n| **其他费用** | {{otherCost}} | {{otherCostPercent}}% |\n| **总计** | **{{totalBudget}}** | **100%** |\n\n### 9.2 收入预测\n\n```\n预计销售额: ¥{{projectedRevenue}}\n成本费用: ¥{{projectedCost}}\n预计利润: ¥{{projectedProfit}}\n利润率: {{profitMargin}}%\n```\n\n---\n\n## 10. 总结与展望\n\n### 10.1 成功关键因素\n\n1. {{successFactor1}}\n2. {{successFactor2}}\n3. {{successFactor3}}\n\n### 10.2 下阶段规划\n\n{{nextPhasePlan}}\n\n---\n\n**计划制定**: {{#if planOwner}}{{planOwner}}{{else}}运营团队{{/if}}\n**审核批准**: {{#if approver}}{{approver}}{{else}}运营总监{{/if}}\n**生效日期**: {{#if effectiveDate}}{{effectiveDate}}{{else}}{{currentDate}}{{/if}}\n\n---\n\n**备注**: 本计划根据实际运营情况动态调整，每周复盘，每月优化。",
+  "variables_schema": [
+    {
+      "name": "storeName",
+      "type": "text",
+      "label": "店铺名称",
+      "default": "示例店铺",
+      "required": true,
+      "description": "店铺的名称"
+    },
+    {
+      "name": "platform",
+      "type": "select",
+      "label": "平台",
+      "default": "淘宝/天猫",
+      "required": true,
+      "options": [
+        {"value": "淘宝/天猫", "label": "淘宝/天猫"},
+        {"value": "京东", "label": "京东"},
+        {"value": "拼多多", "label": "拼多多"},
+        {"value": "抖音电商", "label": "抖音电商"}
+      ],
+      "description": "电商平台"
+    },
+    {
+      "name": "planPeriod",
+      "type": "select",
+      "label": "计划周期",
+      "default": "季度",
+      "required": true,
+      "options": [
+        {"value": "月度", "label": "月度"},
+        {"value": "季度", "label": "季度"},
+        {"value": "年度", "label": "年度"}
+      ],
+      "description": "运营计划的周期"
+    },
+    {
+      "name": "startDate",
+      "type": "text",
+      "label": "开始日期",
+      "default": "2024-01-01",
+      "required": true,
+      "description": "计划开始日期"
+    },
+    {
+      "name": "endDate",
+      "type": "text",
+      "label": "结束日期",
+      "default": "2024-03-31",
+      "required": true,
+      "description": "计划结束日期"
+    },
+    {
+      "name": "currentSales",
+      "type": "text",
+      "label": "当前销售额",
+      "default": "100000",
+      "required": true,
+      "description": "当前销售额(元)"
+    },
+    {
+      "name": "targetSales",
+      "type": "text",
+      "label": "目标销售额",
+      "default": "150000",
+      "required": true,
+      "description": "目标销售额(元)"
+    },
+    {
+      "name": "currentOrders",
+      "type": "text",
+      "label": "当前订单量",
+      "default": "500",
+      "required": true,
+      "description": "当前订单量"
+    },
+    {
+      "name": "targetOrders",
+      "type": "text",
+      "label": "目标订单量",
+      "default": "750",
+      "required": true,
+      "description": "目标订单量"
+    },
+    {
+      "name": "totalMarketingBudget",
+      "type": "text",
+      "label": "营销总预算",
+      "default": "30000",
+      "required": true,
+      "description": "营销推广总预算(元)"
+    },
+    {
+      "name": "mainProduct1",
+      "type": "text",
+      "label": "主打产品1",
+      "default": "爆款A",
+      "required": true,
+      "description": "第一个主打产品"
+    },
+    {
+      "name": "mainProduct2",
+      "type": "text",
+      "label": "主打产品2",
+      "default": "爆款B",
+      "required": true,
+      "description": "第二个主打产品"
+    },
+    {
+      "name": "planOwner",
+      "type": "text",
+      "label": "计划负责人",
+      "default": "",
+      "required": false,
+      "description": "运营计划负责人(可选)"
+    },
+    {
+      "name": "createDate",
+      "type": "text",
+      "label": "创建日期",
+      "default": "",
+      "required": false,
+      "description": "计划创建日期(可选)"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{storeName}}_{{planPeriod}}运营计划",
+    "children": [
+      {"type": "file", "name": "运营计划.md", "description": "运营计划主文件"},
+      {"type": "file", "name": "数据看板.xlsx", "description": "数据监控表"},
+      {"type": "file", "name": "活动排期表.xlsx", "description": "活动日历"},
+      {"type": "file", "name": "预算明细.xlsx", "description": "预算分配表"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T10:00:00Z"
+}

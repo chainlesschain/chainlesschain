@@ -1,0 +1,161 @@
+{
+  "id": "tpl_video_tiktok_001",
+  "name": "tiktok_international_script",
+  "display_name": "TikTok海外脚本",
+  "description": "为TikTok国际版创建15-60秒英文短视频脚本，针对海外市场优化",
+  "icon": "🎵",
+  "cover_image": "/templates/covers/tiktok-international.png",
+
+  "category": "video",
+  "subcategory": "short-form",
+  "tags": ["TikTok", "短视频", "海外营销", "英文内容", "国际化"],
+
+  "project_type": "document",
+
+  "prompt_template": "Create a TikTok video script for international audience:\n\n**Video Info:**\n- Theme: {{videoTheme}}\n- Duration: {{duration}} seconds\n- Content Type: {{contentType}}\n- Target Region: {{targetRegion}}\n- Language: English\n\n**TikTok Algorithm Optimization**\n\n- Format: Vertical 9:16 (1080x1920)\n- Best Duration: 15-30s (highest completion rate)\n- Trending Sounds: Use TikTok's trending audio library\n- Hashtags: 3-5 relevant hashtags\n- Post Time: Based on target region timezone\n\n---\n\n**Hook (First 3 Seconds)**\n\n{{#eq hookType \"Question\"}}\nScript: \"Did you know that {{fact}}?\"\nVisual: [Close-up + Text overlay]\nSound: [Attention-grabbing SFX]\n{{/eq}}\n\n{{#eq hookType \"Shock\"}}\nScript: \"This will blow your mind!\"\nVisual: [Dramatic reveal]\nSound: [Dramatic music sting]\n{{/eq}}\n\n{{#eq hookType \"Trend\"}}\nScript: \"POV: {{trending scenario}}\"\nVisual: [Trending format]\nSound: [Trending audio]\n{{/eq}}\n\n---\n\n**Main Content**\n\n{{#eq contentType \"Educational\"}}\n【Educational Content Structure】\n\nPart 1 ({{divide duration 3}}s): Introduction\n- \"Here's what you need to know about {{topic}}\"\n- Visual: [Clear, simple graphics]\n\nPart 2 ({{divide duration 3}}s): Key Points\n- \"First: {{point1}}\"\n- \"Second: {{point2}}\"\n- \"Third: {{point3}}\"\n- Visual: [Step-by-step demonstration]\n\nPart 3 ({{divide duration 3}}s): Conclusion\n- \"And that's how you {{result}}!\"\n- Visual: [Final result showcase]\n{{/eq}}\n\n{{#eq contentType \"Entertainment\"}}\n【Entertainment Content Structure】\n\nSetup ({{multiply duration 0.3}}s):\n- Introduce the scenario\n- Build anticipation\n\nPunch ({{multiply duration 0.5}}s):\n- Deliver the punchline/twist\n- Maximum engagement moment\n\nCallback ({{multiply duration 0.2}}s):\n- Reinforce the humor\n- End on a high note\n{{/eq}}\n\n{{#eq contentType \"Lifestyle\"}}\n【Lifestyle Content Structure】\n\nMorning/Beginning ({{divide duration 3}}s):\n- \"Starting my day with...\"\n- Aesthetic visuals\n\nMiddle/Activity ({{divide duration 3}}s):\n- Main content/routine\n- Engaging moments\n\nEvening/End ({{divide duration 3}}s):\n- Wrap up\n- Satisfying conclusion\n{{/eq}}\n\n---\n\n**Captions & Text Overlays**\n\n{{#if includeTextGuide}}\n**Text Style:**\n- Font: Bold, Sans-serif (easy to read)\n- Size: Large (minimum 1/3 screen height)\n- Color: White with black stroke OR Yellow\n- Position: Center or upper third\n\n**Text Timing:**\n- Sync with voice-over\n- 1-2 seconds per text overlay\n- Use emojis sparingly (Gen-Z friendly)\n\n**Common Text Patterns:**\n- \"Wait for it...\" (build suspense)\n- \"Part 1/2/3\" (series content)\n- \"Day X of {{challenge}}\" (challenge format)\n{{/if}}\n\n---\n\n**Sound/Music Strategy**\n\n{{#if includeMusicStrategy}}\n**Trending Audio:**\n- Check TikTok's \"Discover\" page daily\n- Use sounds with 100K+ videos\n- Jump on trends early (first 48 hours)\n\n**Original Audio:**\n- Clear voice-over (use good mic)\n- Background music at -20dB\n- Add captions (60% watch muted)\n\n**Sound Effects:**\n- Whoosh (transitions)\n- Pop (reveals)\n- Boom (punchlines)\n{{/if}}\n\n---\n\n**Hashtag Strategy**\n\n{{#if includeHashtagStrategy}}\nUse 3-5 hashtags:\n\n1. **Mega Tag (10M+ views):**\n   #fyp #foryou #viral #trending\n\n2. **Niche Tags (100K-1M views):**\n   #{{videoTheme}} #{{contentType}}\n\n3. **Specific Tags (10K-100K views):**\n   [Target specific community]\n\n**Example:**\n\"#fyp #lifehacks #cleaning #organization #homehacks\"\n{{/if}}\n\n---\n\n**Regional Optimization**\n\n{{#eq targetRegion \"United States\"}}\n- Post time: 6-10 AM EST, 7-9 PM EST\n- Content style: Fast-paced, direct\n- Humor: Self-deprecating, relatable\n- Trending: Dance challenges, life hacks\n{{/eq}}\n\n{{#eq targetRegion \"United Kingdom\"}}\n- Post time: 7-9 AM GMT, 6-8 PM GMT\n- Content style: Witty, dry humor\n- Trending: Commentary, British humor\n{{/eq}}\n\n{{#eq targetRegion \"Southeast Asia\"}}\n- Post time: 12-2 PM, 7-10 PM local\n- Content style: Wholesome, family-friendly\n- Trending: Food, culture, K-pop\n{{/eq}}\n\n---\n\n**Call-to-Action**\n\n{{#eq ctaType \"Follow\"}}\n\"Follow for more {{content type}}!\"\nVisual: [Follow button animation]\n{{/eq}}\n\n{{#eq ctaType \"Engage\"}}\n\"Comment your thoughts below!\"\nVisual: [Comment icon bounce]\n{{/eq}}\n\n{{#eq ctaType \"Series\"}}\n\"Part 2 coming soon!\"\nVisual: [\"To be continued\" text]\n{{/eq}}\n\n---\n\n**Shooting Checklist**\n\n- [ ] Smartphone (vertical mode)\n- [ ] Ring light (even lighting)\n- [ ] Tripod/stabilizer\n- [ ] Wireless mic (clear audio)\n- [ ] Props (if needed)\n- [ ] Clean background\n\n---\n\n**Editing Tips**\n\n{{#if includeEditingTips}}\n- Use TikTok's native editor (better algorithm favor)\n- Transitions: Every 2-3 seconds\n- Effects: Trending filters and effects\n- Speed: Mix normal/fast/slow for variety\n- Captions: Auto-generate then edit for accuracy\n{{/if}}\n\n---\n\n**Output Files:**\n- Full English script with timestamps\n- Shooting storyboard\n- Caption template (copy-paste ready)\n- Hashtag list\n- Post timing recommendations",
+
+  "variables_schema": [
+    {
+      "name": "videoTheme",
+      "label": "Video Theme",
+      "type": "string",
+      "required": true,
+      "placeholder": "e.g., Life Hacks, Cooking Tips, Fitness"
+    },
+    {
+      "name": "duration",
+      "label": "Duration (seconds)",
+      "type": "number",
+      "required": false,
+      "default": 30,
+      "min": 15,
+      "max": 60
+    },
+    {
+      "name": "contentType",
+      "label": "Content Type",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "Educational", "label": "Educational (How-to)" },
+        { "value": "Entertainment", "label": "Entertainment (Comedy)" },
+        { "value": "Lifestyle", "label": "Lifestyle (Day-in-life)" },
+        { "value": "Product", "label": "Product Review" }
+      ]
+    },
+    {
+      "name": "targetRegion",
+      "label": "Target Region",
+      "type": "select",
+      "required": false,
+      "default": "United States",
+      "options": [
+        { "value": "United States", "label": "United States" },
+        { "value": "United Kingdom", "label": "United Kingdom" },
+        { "value": "Southeast Asia", "label": "Southeast Asia" },
+        { "value": "Europe", "label": "Europe" },
+        { "value": "Global", "label": "Global" }
+      ]
+    },
+    {
+      "name": "hookType",
+      "label": "Hook Type",
+      "type": "select",
+      "required": false,
+      "default": "Question",
+      "options": [
+        { "value": "Question", "label": "Question Hook" },
+        { "value": "Shock", "label": "Shock Value" },
+        { "value": "Trend", "label": "Trending Format" }
+      ]
+    },
+    {
+      "name": "ctaType",
+      "label": "Call-to-Action",
+      "type": "select",
+      "required": false,
+      "default": "Follow",
+      "options": [
+        { "value": "Follow", "label": "Follow for More" },
+        { "value": "Engage", "label": "Comment/Like" },
+        { "value": "Series", "label": "Series Continuation" }
+      ]
+    },
+    {
+      "name": "includeTextGuide",
+      "label": "Include Text Overlay Guide",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "Yes" },
+        { "value": "否", "label": "No" }
+      ]
+    },
+    {
+      "name": "includeMusicStrategy",
+      "label": "Include Music Strategy",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "Yes" },
+        { "value": "否", "label": "No" }
+      ]
+    },
+    {
+      "name": "includeHashtagStrategy",
+      "label": "Include Hashtag Strategy",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "Yes" },
+        { "value": "否", "label": "No" }
+      ]
+    },
+    {
+      "name": "includeEditingTips",
+      "label": "Include Editing Tips",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "Yes" },
+        { "value": "否", "label": "No" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "TikTok-{{videoTheme}}",
+    "files": [
+      {
+        "path": "Script-{{videoTheme}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "Storyboard.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "Caption-Template.txt",
+        "type": "text"
+      },
+      {
+        "path": "Shooting-Checklist.md",
+        "type": "markdown",
+        "content": "# Shooting Checklist\n\n## Equipment\n- [ ] Smartphone\n- [ ] Ring light\n- [ ] Tripod\n- [ ] Microphone\n\n## Setup\n- [ ] Vertical orientation\n- [ ] Clean background\n- [ ] Good lighting\n\n## Post-Production\n- [ ] Edit in TikTok app\n- [ ] Add captions\n- [ ] Add trending sound\n- [ ] Add hashtags"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

@@ -261,6 +261,13 @@ const routes = [
         component: () => import('../pages/AIChatPage.vue'),
         meta: { title: 'AI对话' },
       },
+      // AI提示词模板
+      {
+        path: 'ai/prompts',
+        name: 'AIPrompts',
+        component: () => import('../pages/AIPromptsPage.vue'),
+        meta: { title: 'AI助手' },
+      },
       // Web IDE
       {
         path: 'webide',

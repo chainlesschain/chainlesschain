@@ -1,0 +1,148 @@
+{
+  "id": "tpl_ecommerce_promotion_003",
+  "name": "promotion_campaign",
+  "display_name": "促销活动方案",
+  "description": "电商促销活动策划方案模板,包含活动主题、玩法设计、预算规划、执行计划等,适用于618、双11、店庆等各类促销活动",
+  "icon": "🎁",
+  "category": "ecommerce",
+  "subcategory": "活动策划",
+  "tags": ["促销活动", "活动策划", "营销方案", "大促", "活动玩法"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成促销活动方案，要求:\n\n# {{campaignName}} 促销活动方案\n\n## 1. 活动概述\n\n**活动名称**: {{campaignName}}\n**活动主题**: {{campaignTheme}}\n**活动类型**: {{campaignType}}\n**活动时间**: {{startDate}} {{startTime}} 至 {{endDate}} {{endTime}}\n**目标平台**: {{platform}}\n**负责人**: {{#if campaignOwner}}{{campaignOwner}}{{else}}活动策划团队{{/if}}\n\n**活动Slogan**: {{slogan}}\n\n---\n\n## 2. 活动目标\n\n### 2.1 业务目标\n\n| 指标 | 目标值 | 对比基准 |\n|------|--------|----------|\n| **销售额** | ¥{{salesTarget}} | 日常{{salesMultiple}}倍 |\n| **订单量** | {{orderTarget}}单 | 日常{{orderMultiple}}倍 |\n| **访客数** | {{visitorTarget}}人 | 日常{{visitorMultiple}}倍 |\n| **转化率** | {{conversionTarget}}% | 提升{{conversionIncrease}}% |\n| **客单价** | ¥{{aovTarget}} | 提升{{aovIncrease}}% |\n| **新增粉丝** | {{followerTarget}}人 | - |\n\n### 2.2 品牌目标\n\n- {{brandGoal1}}\n- {{brandGoal2}}\n- {{brandGoal3}}\n\n---\n\n## 3. 目标用户\n\n**核心用户画像**:\n- 年龄: {{userAge}}\n- 性别: {{userGender}}\n- 地域: {{userLocation}}\n- 消费能力: {{userIncome}}\n- 兴趣偏好: {{userInterest}}\n\n**用户需求**:\n1. {{userNeed1}}\n2. {{userNeed2}}\n3. {{userNeed3}}\n\n---\n\n## 4. 活动玩法设计\n\n### 4.1 主玩法\n\n{{#eq campaignType \"满减活动\"}}\n#### 满减玩法\n\n**规则设计**:\n```\n满{{threshold1}}减{{reduction1}}\n满{{threshold2}}减{{reduction2}}\n满{{threshold3}}减{{reduction3}}\n```\n\n**示例**:\n- 购买¥200商品，实付¥{{example1Pay}}\n- 购买¥500商品，实付¥{{example2Pay}}\n- 购买¥1000商品，实付¥{{example3Pay}}\n\n**优惠力度**: 最高{{maxDiscountPercent}}%折扣\n{{/eq}}\n\n{{#eq campaignType \"秒杀活动\"}}\n#### 限时秒杀\n\n**时间段安排**:\n| 时间段 | 商品 | 原价 | 秒杀价 | 数量 |\n|--------|------|------|--------|------|\n| {{slot1Time}} | {{slot1Product}} | ¥{{slot1Original}} | ¥{{slot1Seckill}} | {{slot1Quantity}}件 |\n| {{slot2Time}} | {{slot2Product}} | ¥{{slot2Original}} | ¥{{slot2Seckill}} | {{slot2Quantity}}件 |\n| {{slot3Time}} | {{slot3Product}} | ¥{{slot3Original}} | ¥{{slot3Seckill}} | {{slot3Quantity}}件 |\n\n**抢购规则**:\n- 每人限购{{limitPerPerson}}件\n- 售完即止\n- 不退不换\n{{/eq}}\n\n{{#eq campaignType \"买赠活动\"}}\n#### 买赠玩法\n\n**赠品方案**:\n```\n买1件，赠{{gift1}}\n买2件，赠{{gift2}}\n买3件及以上，赠{{gift3}}\n```\n\n**赠品价值**: 总价值¥{{totalGiftValue}}\n{{/eq}}\n\n{{#eq campaignType \"抽奖活动\"}}\n#### 幸运抽奖\n\n**参与方式**:\n- 下单即可抽奖{{drawCount}}次\n- 分享增加{{shareBonus}}次机会\n- 每日签到增加{{signinBonus}}次机会\n\n**奖品设置**:\n| 奖项 | 奖品 | 中奖概率 | 数量 |\n|------|------|----------|------|\n| 一等奖 | {{prize1}} | {{prize1Prob}}% | {{prize1Qty}}份 |\n| 二等奖 | {{prize2}} | {{prize2Prob}}% | {{prize2Qty}}份 |\n| 三等奖 | {{prize3}} | {{prize3Prob}}% | {{prize3Qty}}份 |\n| 参与奖 | {{consolationPrize}} | 100% | 不限 |\n{{/eq}}\n\n### 4.2 辅助玩法\n\n#### 优惠券发放\n\n**券种设置**:\n```\n【无门槛券】¥{{nothresholdCoupon}}元，限量{{nothresholdQty}}张\n【满减券】满¥{{couponThreshold}}减¥{{couponAmount}}，限量{{couponQty}}张\n【折扣券】全场{{discountRate}}折，限量{{discountQty}}张\n```\n\n**领取规则**:\n- 时间: {{couponStartDate}} - {{couponEndDate}}\n- 使用期限: 领取后{{couponValidity}}天内有效\n- 每人限领{{couponLimit}}张\n\n#### 预售/预约\n\n**预售时间**: {{presaleStartDate}} - {{presaleEndDate}}\n\n**预售优惠**:\n- 定金{{depositAmount}}元抵{{depositValue}}元\n- 前{{earlyBirdQty}}名享受{{earlyBirdDiscount}}折\n- 预售专属赠品: {{presaleGift}}\n\n**尾款支付**: {{finalPaymentDate}}\n\n---\n\n## 5. 商品规划\n\n### 5.1 活动商品池\n\n| 商品类型 | 商品名称 | 活动价 | 利润率 | 预计销量 | 备货量 |\n|----------|----------|--------|--------|----------|--------|\n| **引流款** | {{trafficProduct}} | ¥{{trafficPrice}} | {{trafficMargin}}% | {{trafficTarget}}件 | {{trafficStock}}件 |\n| **爆款** | {{hitProduct}} | ¥{{hitPrice}} | {{hitMargin}}% | {{hitTarget}}件 | {{hitStock}}件 |\n| **利润款** | {{profitProduct}} | ¥{{profitPrice}} | {{profitMargin}}% | {{profitTarget}}件 | {{profitStock}}件 |\n| **新品** | {{newProduct}} | ¥{{newPrice}} | {{newMargin}}% | {{newTarget}}件 | {{newStock}}件 |\n\n### 5.2 库存准备\n\n**总备货**: {{totalStock}}件\n**总货值**: ¥{{totalInventoryValue}}\n**库存周转目标**: {{targetTurnoverDays}}天\n\n**风险控制**:\n- 畅销品加大备货{{bestseller备货倍数}}倍\n- 新品小批量测试\n- 设置库存预警线{{stockWarningPercent}}%\n\n---\n\n## 6. 推广计划\n\n### 6.1 预热期({{preheatStartDate}} - {{preheatEndDate}})\n\n**目标**: 制造话题，积累人气\n\n**推广动作**:\n1. **{{preheatDay1}}**\n   - 活动官宣\n   - 预售开启\n   - 优惠券预热\n\n2. **{{preheatDay2}}**\n   - KOL种草\n   - 直播预告\n   - 互动抽奖\n\n3. **{{preheatDay3}}**\n   - 倒计时海报\n   - 爆款预告\n   - 社群推送\n\n**预算**: ¥{{preheatBudget}}\n\n### 6.2 爆发期(活动当天)\n\n**目标**: 销售爆发，冲击GMV\n\n**推广动作**:\n- 00:00 开门红秒杀\n- 10:00 上午场秒杀\n- 14:00 下午场秒杀  \n- 20:00 晚场秒杀\n- 全天直播不间断\n- 实时推送战报\n\n**预算**: ¥{{peakBudget}}\n\n### 6.3 返场期({{encoreStartDate}} - {{encoreEndDate}})\n\n**目标**: 消化库存，延续热度\n\n**推广动作**:\n- 返场专场\n- 尾货清仓\n- 晒单有礼\n\n**预算**: ¥{{encoreBudget}}\n\n### 6.4 推广渠道\n\n| 渠道 | 预算 | 预期ROI | 负责人 |\n|------|------|---------|--------|\n| {{channel1}} | ¥{{channel1Budget}} | {{channel1ROI}} | {{channel1Owner}} |\n| {{channel2}} | ¥{{channel2Budget}} | {{channel2ROI}} | {{channel2Owner}} |\n| {{channel3}} | ¥{{channel3Budget}} | {{channel3ROI}} | {{channel3Owner}} |\n| {{channel4}} | ¥{{channel4Budget}} | {{channel4ROI}} | {{channel4Owner}} |\n| **总计** | **¥{{totalPromotionBudget}}** | **{{overallROI}}** | - |\n\n---\n\n## 7. 执行计划\n\n### 7.1 时间轴\n\n```\nD-15: 方案确定、商品选品\nD-10: 详情页制作、素材准备\nD-7:  预热开始、优惠券上架\nD-3:  预售开启、直播预告\nD-1:  最后检查、库存确认\nD-Day: 活动开始\nD+3:  活动结束、数据复盘\nD+7:  返场活动\n```\n\n### 7.2 分工明细\n\n| 环节 | 负责人 | 交付物 | 截止时间 |\n|------|--------|--------|----------|\n| 活动策划 | {{planner}} | 活动方案 | {{planDeadline}} |\n| 商品选品 | {{merchandiser}} | 商品清单 | {{merchandiseDeadline}} |\n| 视觉设计 | {{designer}} | 活动海报、详情页 | {{designDeadline}} |\n| 文案撰写 | {{copywriter}} | 推广文案 | {{copyDeadline}} |\n| 技术开发 | {{developer}} | 活动页面 | {{devDeadline}} |\n| 推广投放 | {{promoter}} | 投放计划 | {{promotionDeadline}} |\n| 客服培训 | {{csTrainer}} | 话术手册 | {{trainingDeadline}} |\n| 数据分析 | {{analyst}} | 数据看板 | {{analysisDeadline}} |\n\n---\n\n## 8. 预算规划\n\n### 8.1 成本预算\n\n| 项目 | 金额(元) | 占比 |\n|------|----------|------|\n| **推广费用** | {{promotionCost}} | {{promotionPercent}}% |\n| **优惠让利** | {{discountCost}} | {{discountPercent}}% |\n| **赠品成本** | {{giftCost}} | {{giftPercent}}% |\n| **物流补贴** | {{shippingSubsidy}} | {{shippingPercent}}% |\n| **人力成本** | {{laborCost}} | {{laborPercent}}% |\n| **其他** | {{otherCost}} | {{otherPercent}}% |\n| **总计** | **{{totalCost}}** | **100%** |\n\n### 8.2 收益预测\n\n```\n预计销售额: ¥{{projectedRevenue}}\n活动成本: ¥{{totalCost}}\n预计毛利: ¥{{projectedGrossProfit}}\n毛利率: {{grossMarginPercent}}%\n\nROI: {{roi}}倍\n```\n\n---\n\n## 9. 风险管控\n\n### 9.1 潜在风险\n\n| 风险类型 | 风险描述 | 应对措施 |\n|----------|----------|----------|\n| **系统风险** | {{systemRisk}} | {{systemSolution}} |\n| **库存风险** | {{inventoryRisk}} | {{inventorySolution}} |\n| **物流风险** | {{logisticsRisk}} | {{logisticsSolution}} |\n| **舆情风险** | {{prRisk}} | {{prSolution}} |\n\n### 9.2 应急预案\n\n**库存不足**:\n1. 启动备选商品\n2. 调整活动力度\n3. 紧急补货\n\n**系统崩溃**:\n1. 立即切换备用服务器\n2. 发布公告安抚用户\n3. 延长活动时间补偿\n\n**物流爆仓**:\n1. 提前对接物流商\n2. 启用多家物流\n3. 分批发货\n\n---\n\n## 10. 数据监控\n\n### 10.1 实时监控指标\n\n```\n✅ 销售额(小时级)\n✅ 订单量\n✅ 访客数\n✅ 转化率\n✅ 库存余量\n✅ 退款率\n✅ 客服响应时间\n```\n\n### 10.2 战报发布\n\n**发布频率**: 每小时一次\n\n**战报内容**:\n```\n🎉 {{campaignName}}战报\n\n截至{{reportTime}}\n✨ 销售额: ¥{{currentSales}} (目标完成{{completionPercent}}%)\n📦 订单量: {{currentOrders}}单\n🔥 爆款: {{topProduct}} 已售{{topProductSold}}件\n💰 客单价: ¥{{currentAOV}}\n\n继续加油！冲刺¥{{nextMilestone}}！\n```\n\n---\n\n## 11. 复盘总结\n\n### 11.1 数据回顾\n\n**目标达成情况**:\n\n| 指标 | 目标 | 实际 | 达成率 |\n|------|------|------|--------|\n| 销售额 | ¥{{salesTarget}} | ¥{{actualSales}} | {{salesAchievementRate}}% |\n| 订单量 | {{orderTarget}}单 | {{actualOrders}}单 | {{orderAchievementRate}}% |\n| 转化率 | {{conversionTarget}}% | {{actualConversion}}% | {{conversionAchievementRate}}% |\n\n### 11.2 成功经验\n\n1. {{successPoint1}}\n2. {{successPoint2}}\n3. {{successPoint3}}\n\n### 11.3 改进建议\n\n1. {{improvementPoint1}}\n2. {{improvementPoint2}}\n3. {{improvementPoint3}}\n\n---\n\n**方案制定**: {{#if campaignOwner}}{{campaignOwner}}{{else}}活动策划团队{{/if}}\n**审核批准**: {{#if approver}}{{approver}}{{else}}运营总监{{/if}}\n**版本**: v{{version}}\n**更新日期**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {
+      "name": "campaignName",
+      "type": "text",
+      "label": "活动名称",
+      "default": "618年中大促",
+      "required": true,
+      "description": "促销活动的名称"
+    },
+    {
+      "name": "campaignTheme",
+      "type": "text",
+      "label": "活动主题",
+      "default": "全场狂欢，买到就是赚到",
+      "required": true,
+      "description": "活动的主题slogan"
+    },
+    {
+      "name": "campaignType",
+      "type": "select",
+      "label": "活动类型",
+      "default": "满减活动",
+      "required": true,
+      "options": [
+        {"value": "满减活动", "label": "满减活动"},
+        {"value": "秒杀活动", "label": "限时秒杀"},
+        {"value": "买赠活动", "label": "买赠活动"},
+        {"value": "抽奖活动", "label": "幸运抽奖"}
+      ],
+      "description": "促销活动的类型"
+    },
+    {
+      "name": "startDate",
+      "type": "text",
+      "label": "开始日期",
+      "default": "2024-06-18",
+      "required": true,
+      "description": "活动开始日期"
+    },
+    {
+      "name": "endDate",
+      "type": "text",
+      "label": "结束日期",
+      "default": "2024-06-20",
+      "required": true,
+      "description": "活动结束日期"
+    },
+    {
+      "name": "platform",
+      "type": "select",
+      "label": "目标平台",
+      "default": "淘宝/天猫",
+      "required": true,
+      "options": [
+        {"value": "淘宝/天猫", "label": "淘宝/天猫"},
+        {"value": "京东", "label": "京东"},
+        {"value": "拼多多", "label": "拼多多"},
+        {"value": "抖音电商", "label": "抖音电商"}
+      ],
+      "description": "活动平台"
+    },
+    {
+      "name": "salesTarget",
+      "type": "text",
+      "label": "销售额目标",
+      "default": "1000000",
+      "required": true,
+      "description": "目标销售额(元)"
+    },
+    {
+      "name": "orderTarget",
+      "type": "text",
+      "label": "订单量目标",
+      "default": "5000",
+      "required": true,
+      "description": "目标订单量"
+    },
+    {
+      "name": "totalPromotionBudget",
+      "type": "text",
+      "label": "推广预算",
+      "default": "100000",
+      "required": true,
+      "description": "推广总预算(元)"
+    },
+    {
+      "name": "slogan",
+      "type": "text",
+      "label": "活动口号",
+      "default": "全年最低价，错过等一年！",
+      "required": false,
+      "description": "活动宣传口号(可选)"
+    },
+    {
+      "name": "campaignOwner",
+      "type": "text",
+      "label": "活动负责人",
+      "default": "",
+      "required": false,
+      "description": "活动负责人姓名(可选)"
+    },
+    {
+      "name": "version",
+      "type": "text",
+      "label": "方案版本",
+      "default": "1.0",
+      "required": false,
+      "description": "方案版本号(可选)"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{campaignName}}_活动方案",
+    "children": [
+      {"type": "file", "name": "活动方案.md", "description": "活动方案主文件"},
+      {"type": "file", "name": "执行计划.xlsx", "description": "执行时间表"},
+      {"type": "file", "name": "预算明细.xlsx", "description": "预算分配表"},
+      {
+        "type": "folder",
+        "name": "素材",
+        "children": [
+          {"type": "file", "name": "活动海报.psd", "description": "海报设计稿"},
+          {"type": "file", "name": "推广文案.docx", "description": "文案文档"}
+        ]
+      },
+      {"type": "file", "name": "数据看板.xlsx", "description": "数据监控表"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T10:00:00Z"
+}

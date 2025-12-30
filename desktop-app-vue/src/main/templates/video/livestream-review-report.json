@@ -1,0 +1,43 @@
+{
+  "id": "tpl_video_livestream_review_001",
+  "name": "livestream_review_report",
+  "display_name": "直播复盘报告",
+  "description": "直播结束后的数据分析和复盘报告，优化下次直播策略",
+  "icon": "📊",
+  "cover_image": "/templates/covers/livestream-review.png",
+  "category": "video",
+  "subcategory": "livestream",
+  "tags": ["直播复盘", "数据分析", "优化策略"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成直播复盘报告，要求：\n\n**直播基本信息：**\n- 直播主题：{{streamTheme}}\n- 直播时长：{{duration}}小时\n- 直播日期：{{streamDate}}\n- 直播平台：{{platform}}\n\n**一、数据概览**\n\n观看数据：\n- 累计观看人数：{{totalViews}}人\n- 最高在线人数：{{peakViewers}}人\n- 平均在线人数：{{avgViewers}}人\n- 观看时长：平均{{avgWatchTime}}分钟\n\n互动数据：\n- 评论数：{{commentCount}}条\n- 点赞数：{{likeCount}}个\n- 礼物价值：{{giftValue}}元\n- 分享次数：{{shareCount}}次\n\n{{#if isEcommerce}}\n转化数据：\n- 成交订单：{{orderCount}}单\n- 成交金额：{{salesAmount}}元\n- 客单价：{{avgOrderValue}}元\n- 转化率：{{conversionRate}}%\n{{/if}}\n\n**二、时段分析**\n\n流量曲线：\n- 开播前5分钟：{{first5minViewers}}人（冷启动效果）\n- 高峰时段：{{peakTime}}，{{peakViewers}}人\n- 低谷时段：{{lowTime}}，{{lowViewers}}人\n- 流失时间点：{{dropTime}}（分析原因）\n\n**三、内容分析**\n\n表现好的环节：\n1. {{goodSegment1}} - 互动率：{{goodSegment1Engagement}}%\n2. {{goodSegment2}} - 互动率：{{goodSegment2Engagement}}%\n3. {{goodSegment3}} - 互动率：{{goodSegment3Engagement}}%\n\n表现差的环节：\n1. {{badSegment1}} - 流失率：{{badSegment1Dropout}}%\n   - 原因分析：{{badSegment1Reason}}\n   - 改进建议：{{badSegment1Improvement}}\n\n**四、问题总结**\n\n技术问题：\n- [ ] 画面卡顿/黑屏\n- [ ] 声音问题\n- [ ] 网络不稳定\n- [ ] 其他：{{technicalIssues}}\n\n内容问题：\n- [ ] 节奏拖沓\n- [ ] 信息量不足\n- [ ] 互动不够\n- [ ] 其他：{{contentIssues}}\n\n**五、优化建议**\n\n下次直播改进点：\n1. {{improvement1}}\n2. {{improvement2}}\n3. {{improvement3}}\n\n固定保留的优势：\n1. {{strength1}}\n2. {{strength2}}\n\n---\n\n**输出格式：**\n- 复盘报告文档\n- 数据可视化图表\n- 改进行动清单",
+  "variables_schema": [
+    {"name": "streamTheme", "label": "直播主题", "type": "string", "required": true},
+    {"name": "duration", "label": "直播时长（小时）", "type": "number", "required": false, "default": 2},
+    {"name": "streamDate", "label": "直播日期", "type": "string", "required": false},
+    {"name": "platform", "label": "直播平台", "type": "select", "required": false, "default": "抖音", "options": [
+      {"value": "抖音", "label": "抖音"},
+      {"value": "淘宝", "label": "淘宝直播"},
+      {"value": "快手", "label": "快手"},
+      {"value": "B站", "label": "B站"}
+    ]},
+    {"name": "isEcommerce", "label": "是否直播带货", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "是（包含销售数据）"},
+      {"value": "否", "label": "否"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "直播复盘-{{streamDate}}",
+    "files": [
+      {"path": "复盘报告.docx", "type": "document"},
+      {"path": "数据分析.xlsx", "type": "spreadsheet"},
+      {"path": "改进清单.md", "type": "markdown", "content": "# 改进清单\n\n## 立即改进\n- [ ] \n\n## 中期优化\n- [ ] \n\n## 长期规划\n- [ ] "}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

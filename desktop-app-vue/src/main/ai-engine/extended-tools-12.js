@@ -811,6 +811,12 @@ class ExtendedTools12 {
      * 设置和管理提醒事项
      */
     functionCaller.registerTool('reminder_scheduler', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.reminderSchedulerReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         action,
         reminder
@@ -1184,6 +1190,12 @@ class ExtendedTools12 {
      * 加密存储和管理密码
      */
     functionCaller.registerTool('password_vault', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.passwordVaultReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         action,
         entry,

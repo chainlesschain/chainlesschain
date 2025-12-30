@@ -1,0 +1,44 @@
+{
+  "id": "tpl_video_documentary_001",
+  "name": "documentary_planning",
+  "display_name": "纪录片策划案",
+  "description": "创建专业纪录片策划方案，包含叙事结构、采访安排和拍摄计划",
+  "icon": "🎬",
+  "cover_image": "/templates/covers/documentary.png",
+  "category": "video",
+  "subcategory": "long-form",
+  "tags": ["纪录片", "深度内容", "采访", "叙事"],
+  "project_type": "document",
+  "prompt_template": "请帮我策划一部纪录片，要求：\n\n**纪录片信息：**\n- 主题：{{documentaryTheme}}\n- 时长：{{duration}}分钟\n- 叙事风格：{{narrativeStyle}}\n- 目标平台：{{platform}}\n\n**三幕式结构：**\n\n第一幕：建立（0-{{divide duration 4}}分钟）\n- 引入主题和人物\n- 提出核心问题\n- 建立情感连接\n\n第二幕：发展（{{divide duration 4}}-{{multiply duration 0.75}}分钟）\n- 深入探索主题\n- 展示冲突和挑战\n- 多角度呈现\n\n第三幕：高潮和结局（{{multiply duration 0.75}}-{{duration}}分钟）\n- 问题解答或升华\n- 情感高潮\n- 留下思考\n\n**采访对象规划：**\n\n主要受访者（3-5人）：\n1. {{interviewee1}} - 角色：[核心人物]\n   - 采访重点：{{interviewTopic1}}\n   - 预计时长：{{interviewDuration1}}分钟\n\n2. {{interviewee2}} - 角色：[专家/见证者]\n   - 采访重点：{{interviewTopic2}}\n\n次要受访者（2-3人）：\n- 补充视角\n- 增加深度\n\n**拍摄素材清单：**\n\n- A-Roll（主线素材）：采访、关键事件\n- B-Roll（补充画面）：环境、细节、过渡\n- 资料素材：历史影像、照片、文档\n- 空镜：环境氛围、转场\n\n**后期制作：**\n\n- 剪辑风格：{{editingStyle}}\n- 音乐：{{musicStyle}}\n- 旁白：{{narratorStyle}}\n- 字幕：关键信息标注\n\n---\n\n**输出格式：**\n- 策划案完整文档\n- 拍摄计划时间表\n- 采访提纲\n- 预算估算",
+  "variables_schema": [
+    {"name": "documentaryTheme", "label": "纪录片主题", "type": "string", "required": true},
+    {"name": "duration", "label": "时长（分钟）", "type": "number", "required": false, "default": 30, "min": 10, "max": 120},
+    {"name": "narrativeStyle", "label": "叙事风格", "type": "select", "required": false, "default": "纪实", "options": [
+      {"value": "纪实", "label": "纪实风格"},
+      {"value": "观察", "label": "观察式"},
+      {"value": "访谈", "label": "访谈为主"},
+      {"value": "诗意", "label": "诗意表达"}
+    ]},
+    {"name": "platform", "label": "目标平台", "type": "select", "required": false, "default": "B站", "options": [
+      {"value": "B站", "label": "B站"},
+      {"value": "YouTube", "label": "YouTube"},
+      {"value": "电视台", "label": "电视台"},
+      {"value": "影展", "label": "影展"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "纪录片-{{documentaryTheme}}",
+    "files": [
+      {"path": "策划案.docx", "type": "document"},
+      {"path": "拍摄计划.xlsx", "type": "spreadsheet"},
+      {"path": "采访提纲.docx", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

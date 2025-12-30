@@ -1,0 +1,87 @@
+{
+  "id": "tpl_ecommerce_cs_005",
+  "name": "customer_service_script",
+  "display_name": "客服话术手册",
+  "description": "电商客服标准话术模板,包含售前咨询、售中跟进、售后处理等全流程话术,提升客服效率和转化率",
+  "icon": "💬",
+  "category": "ecommerce",
+  "subcategory": "客服管理",
+  "tags": ["客服话术", "客户服务", "售前", "售后", "投诉处理"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成客服话术手册，要求:\n\n# {{storeName}} 客服话术手册\n\n## 1. 基本原则\n\n**服务理念**: {{servicePhilosophy}}\n\n**话术要求**:\n✅ 热情礼貌，语气亲切\n✅ 快速响应，不超过{{responseTime}}秒\n✅ 专业准确，了解产品\n✅ 主动引导，促进成交\n✅ 耐心细致，解决问题\n\n---\n\n## 2. 售前咨询话术\n\n### 2.1 问候开场\n\n**首次咨询**:\n```\n亲，您好！欢迎光临{{storeName}}！\n我是客服{{csName}}，很高兴为您服务😊\n请问有什么可以帮您的吗？\n```\n\n**老客户**:\n```\n{{customerName}}亲，欢迎再次光临！\n感谢您对我们的信任和支持💕\n请问这次需要什么呢？\n```\n\n### 2.2 产品咨询\n\n**尺码咨询**:\n```\nQ: 这个怎么选尺码？\nA: 亲，我们有详细的尺码表哦📏\n   您的身高体重是多少呢？我帮您推荐合适的尺码~\n   \n   温馨提示：\n   - S码适合{{sSize}}\n   - M码适合{{mSize}}\n   - L码适合{{lSize}}\n   \n   如果您拿不准，建议选{{recommendedSize}}，\n   穿着更舒适哦！\n```\n\n**材质咨询**:\n```\nQ: 这是什么材质的？\nA: 亲，这款采用{{material}}材质哦！\n   \n   特点：\n   ✨ {{feature1}}\n   ✨ {{feature2}}\n   ✨ {{feature3}}\n   \n   非常适合{{suitableScene}}，\n   很多客户反馈都很满意呢😊\n```\n\n**颜色咨询**:\n```\nQ: 有什么颜色？\nA: 亲，我们有{{color1}}、{{color2}}、{{color3}}等多种颜色可选哦🌈\n   \n   最受欢迎的是{{popularColor}}，\n   百搭又时尚，回购率超高！\n   \n   您喜欢什么颜色呢？我可以发实拍图给您看~\n```\n\n**价格咨询**:\n```\nQ: 能便宜点吗？\nA: 亲，非常理解您的心情！\n   我们的价格已经是全网最优惠的了哦💰\n   \n   现在还有活动：\n   🎁 {{promotion1}}\n   🎁 {{promotion2}}\n   \n   相当于{{discountRate}}折，\n   真的很划算了呢！\n   \n   而且我们还承诺：\n   ✅ 7天无理由退换\n   ✅ 正品保障\n   ✅ {{warranty}}质保\n   \n   买得放心，用得安心！💕\n```\n\n### 2.3 促单话术\n\n**库存紧张**:\n```\n亲，这款非常热销哦🔥\n目前{{color}}色只剩{{stockCount}}件了，\n建议您尽快下单，以免错过呢！\n\n我先帮您锁定库存15分钟，\n您考虑一下，尽快拍哦~\n```\n\n**活动即将结束**:\n```\n温馨提示：\n⏰ 活动还有{{remainingTime}}就结束了！\n💰 现在下单可享{{discount}}，\n   活动结束恢复原价¥{{originalPrice}}！\n\n错过要再等{{waitDays}}天哦，\n建议您抓紧时间下单呢~\n```\n\n**优惠组合**:\n```\n亲，给您推荐更优惠的组合！\n\n【方案A】单买 ¥{{singlePrice}}\n【方案B】买2件 ¥{{twoPrice}} (省¥{{saveMoney}})\n【方案C】买3件 ¥{{threePrice}} (省¥{{saveMore}})\n\n多买多省，还送{{gift}}哦！\n很多客户都选方案B/C呢💕\n```\n\n---\n\n## 3. 售中服务话术\n\n### 3.1 催付话术\n\n**未付款提醒**:\n```\n亲，您的订单{{orderNo}}还未付款哦~\n\n为了避免缺货，\n建议您尽快完成支付！\n\n如有疑问随时找我哦😊\n```\n\n**优惠即将失效**:\n```\n亲，温馨提醒：\n您的订单优惠券还有{{remainingTime}}就要过期了！\n\n过期后需要补差价{{priceDiff}}元，\n建议您尽快付款哦~\n\n有任何问题都可以联系我！💕\n```\n\n### 3.2 发货通知\n\n```\n亲，好消息！🎉\n您的订单{{orderNo}}已发货啦！\n\n📦 物流公司：{{logistics}}\n🚚 运单号：{{trackingNo}}\n⏰ 预计{{deliveryDays}}天送达\n\n您可以点击查看物流进度~\n收到货后记得确认哦！\n\n祝您购物愉快！💕\n```\n\n---\n\n## 4. 售后服务话术\n\n### 4.1 退换货处理\n\n**退货申请**:\n```\nQ: 我要退货\nA: 亲，非常抱歉给您带来不愉快的体验！\n   \n   请问是什么原因需要退货呢？\n   - 尺码不合适？\n   - 颜色不喜欢？\n   - 质量问题？\n   - 其他原因？\n   \n   您方便和我说一下具体情况吗？\n   我会尽力帮您解决的！\n```\n\n**尺码不合适**:\n```\n亲，理解您的情况！\n我们支持7天无理由退换货哦~\n\n【换货方案】（推荐）\n您可以换一个合适的尺码，\n来回运费我们承担！\n\n【退货方案】\n如果确实不需要了，\n也可以申请退货退款。\n\n您看哪种方案更合适呢？\n```\n\n**质量问题**:\n```\n亲，真的非常抱歉！\n出现质量问题是我们的责任！\n\n麻烦您拍几张图片给我看一下好吗？\n📷 问题部位特写\n📷 整体照片\n\n确认后我们会：\n✅ 免费换货（包来回运费）\n或\n✅ 全额退款 + ¥{{compensation}}补偿\n\n给您添麻烦了，真的很抱歉！😔\n```\n\n### 4.2 物流问题\n\n**物流延误**:\n```\n亲，让您久等了，真的很抱歉！😔\n\n我帮您查询了一下，\n您的包裹目前在{{currentLocation}}，\n预计{{estimatedDelivery}}送达。\n\n由于物流延误给您带来不便，\n我们会赠送您{{compensationGift}}作为补偿！\n\n请您再耐心等待一下好吗？\n有任何问题随时联系我！💕\n```\n\n**包裹丢失**:\n```\n亲，真的非常抱歉！\n包裹丢失是我们的责任！\n\n请您放心，我们会：\n\n【方案A】立即补发（推荐）\n选择更可靠的物流，\n{{urgentDeliveryDays}}天内送达。\n\n【方案B】全额退款\n马上处理退款，\n预计{{refundDays}}个工作日到账。\n\n您看选哪个方案呢？\n再次向您道歉！😔\n```\n\n### 4.3 投诉处理\n\n**客户不满**:\n```\n亲，真的很抱歉让您不满意！😔\n\n您的感受我完全理解，\n这确实是我们工作的失误。\n\n请您详细说明一下情况，\n我会立即向上级反馈，\n并在{{responseTime}}内给您满意的答复！\n\n您的建议对我们很重要，\n帮助我们改进服务！\n\n再次向您道歉，\n请给我们一次弥补的机会！🙏\n```\n\n**差评威胁**:\n```\n亲，先别着急生气！\n能理解您的心情！\n\n您遇到的问题我们一定负责到底！\n\n请告诉我具体情况，\n我会尽最大努力帮您解决：\n✅ 换货\n✅ 退款\n✅ 补偿\n\n只要您满意就好！\n\n给我们一次改正的机会好吗？\n相信我们能让您满意的！💕\n```\n\n---\n\n## 5. 常见问题FAQ\n\n**Q1: 什么时候发货？**\n```\nA: 亲，我们承诺：\n   - {{normalDeliveryTime}}内发货\n   - 偏远地区可能延迟1-2天\n   - 节假日顺延\n   \n   您的订单会尽快安排发货的！\n```\n\n**Q2: 支持货到付款吗？**\n```\nA: 亲，目前暂不支持货到付款哦~\n   但我们支持多种支付方式：\n   💳 支付宝\n   💳 微信支付\n   💳 银行卡\n   \n   而且我们承诺：\n   ✅ 7天无理由退换\n   ✅ 正品保障\n   \n   请您放心购买！💕\n```\n\n**Q3: 有发票吗？**\n```\nA: 亲，有的哦！\n   我们可以提供{{invoiceType}}！\n   \n   下单时备注：\n   - 发票抬头\n   - 纳税人识别号\n   \n   我们会随货寄出~\n```\n\n---\n\n## 6. 结束语\n\n**满意服务**:\n```\n亲，很高兴能帮到您！😊\n\n如果还有其他问题，\n随时联系我哦！\n\n祝您购物愉快！💕\n期待您的好评和再次光临！\n\n{{storeName}}全体员工祝您生活愉快！🌸\n```\n\n**未成交**:\n```\n亲，没关系哦！\n感谢您的咨询！\n\n我们{{storeName}}随时欢迎您！\n有需要随时联系我~\n\n祝您生活愉快！💕\n```\n\n---\n\n## 7. 禁用语\n\n❌ 不知道\n❌ 不清楚\n❌ 不归我管\n❌ 你自己看\n❌ 爱买不买\n❌ 没办法\n❌ 不可能\n❌ 你怎么这样\n\n✅ 我帮您查一下\n✅ 我了解一下\n✅ 我帮您反馈\n✅ 详情页有介绍\n✅ 请您考虑一下\n✅ 我帮您想办法\n✅ 我们尽力协调\n✅ 请您理解\n\n---\n\n## 8. 客服考核标准\n\n| 指标 | 目标值 |\n|------|--------|\n| **响应时间** | <{{responseTime}}秒 |\n| **好评率** | >{{positiveRateTarget}}% |\n| **转化率** | >{{conversionTarget}}% |\n| **退款率** | <{{refundRateTarget}}% |\n| **工作时长** | {{workingHours}} |\n\n---\n\n**手册版本**: v{{version}}\n**更新日期**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}\n**编制人**: {{#if csManager}}{{csManager}}{{else}}客服主管{{/if}}",
+  "variables_schema": [
+    {
+      "name": "storeName",
+      "type": "text",
+      "label": "店铺名称",
+      "default": "示例店铺",
+      "required": true,
+      "description": "店铺的名称"
+    },
+    {
+      "name": "servicePhilosophy",
+      "type": "text",
+      "label": "服务理念",
+      "default": "客户至上，用心服务",
+      "required": true,
+      "description": "客服服务理念"
+    },
+    {
+      "name": "responseTime",
+      "type": "text",
+      "label": "响应时间",
+      "default": "30",
+      "required": true,
+      "description": "客服响应时间(秒)"
+    },
+    {
+      "name": "csName",
+      "type": "text",
+      "label": "客服昵称",
+      "default": "小美",
+      "required": false,
+      "description": "客服的昵称(可选)"
+    },
+    {
+      "name": "material",
+      "type": "text",
+      "label": "产品材质",
+      "default": "纯棉",
+      "required": false,
+      "description": "产品材质描述(可选)"
+    },
+    {
+      "name": "warranty",
+      "type": "text",
+      "label": "质保期",
+      "default": "1年",
+      "required": false,
+      "description": "产品质保期(可选)"
+    },
+    {
+      "name": "version",
+      "type": "text",
+      "label": "手册版本",
+      "default": "1.0",
+      "required": false,
+      "description": "话术手册版本号(可选)"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{storeName}}_客服手册",
+    "children": [
+      {"type": "file", "name": "客服话术.md", "description": "话术手册"},
+      {"type": "file", "name": "常见问题FAQ.xlsx", "description": "FAQ列表"},
+      {"type": "file", "name": "快捷回复设置.txt", "description": "快捷回复"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T10:00:00Z"
+}
