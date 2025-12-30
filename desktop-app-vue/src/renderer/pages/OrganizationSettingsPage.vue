@@ -122,6 +122,21 @@
       <!-- 权限设置 -->
       <a-card title="权限设置" class="settings-card">
         <a-form layout="vertical">
+          <!-- 角色管理快捷入口 -->
+          <a-alert
+            message="角色与权限管理"
+            description="管理组织中的角色和权限配置，包括创建自定义角色、分配权限等"
+            type="info"
+            show-icon
+            style="margin-bottom: 24px"
+          >
+            <template #action>
+              <a-button type="primary" size="small" @click="handleGoToRolesPage">
+                <SafetyCertificateOutlined /> 管理角色
+              </a-button>
+            </template>
+          </a-alert>
+
           <a-form-item>
             <template #label>
               <span>可见性</span>
@@ -343,6 +358,7 @@ import {
   CloudSyncOutlined,
   DatabaseOutlined,
   SafetyOutlined,
+  SafetyCertificateOutlined,
   CheckCircleOutlined,
   ExportOutlined,
   SyncOutlined,
@@ -498,6 +514,11 @@ const handleSaveSettings = async () => {
   } finally {
     saving.value = false;
   }
+};
+
+// 跳转到角色管理页面
+const handleGoToRolesPage = () => {
+  router.push('/organization/roles');
 };
 
 // 上传头像

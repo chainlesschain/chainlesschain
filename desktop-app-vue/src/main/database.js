@@ -791,7 +791,7 @@ class DatabaseManager {
         description TEXT,
         icon TEXT,
         cover_image TEXT,
-        category TEXT NOT NULL CHECK(category IN ('writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'research', 'marketing', 'education', 'lifestyle', 'travel')),
+        category TEXT NOT NULL CHECK(category IN ('writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'research', 'marketing', 'education', 'lifestyle', 'travel', 'video', 'social-media', 'creative-writing', 'code-project', 'data-science', 'tech-docs', 'ecommerce', 'marketing-pro', 'legal', 'learning', 'health', 'productivity')),
         subcategory TEXT,
         tags TEXT,
         project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet')),
@@ -1759,6 +1759,7 @@ class DatabaseManager {
 
           -- 分类信息
           category TEXT NOT NULL CHECK(category IN (
+            -- 原有分类
             'writing',      -- 写作
             'ppt',          -- PPT演示
             'excel',        -- Excel数据
@@ -1770,7 +1771,20 @@ class DatabaseManager {
             'marketing',    -- 营销
             'education',    -- 教育
             'lifestyle',    -- 生活
-            'travel'        -- 旅游
+            'travel',       -- 旅游
+            -- 新增分类 (v0.19.0)
+            'video',            -- 视频内容
+            'social-media',     -- 社交媒体
+            'creative-writing', -- 创意写作
+            'code-project',     -- 代码项目
+            'data-science',     -- 数据科学
+            'tech-docs',        -- 技术文档
+            'ecommerce',        -- 电商运营
+            'marketing-pro',    -- 营销推广
+            'legal',            -- 法律文档
+            'learning',         -- 学习成长
+            'health',           -- 健康生活
+            'productivity'      -- 时间管理
           )),
           subcategory TEXT,
           tags TEXT,

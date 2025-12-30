@@ -3290,6 +3290,100 @@ class ChainlessChainApp {
       }
     });
 
+    // ============================
+    // 角色管理相关 IPC Handler
+    // ============================
+
+    // 获取组织所有角色
+    ipcMain.handle('org:get-roles', async (_event, orgId) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        const roles = await this.organizationManager.getRoles(orgId);
+        return roles;
+      } catch (error) {
+        console.error('[Main] 获取角色列表失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取单个角色
+    ipcMain.handle('org:get-role', async (_event, roleId) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        const role = await this.organizationManager.getRole(roleId);
+        return role;
+      } catch (error) {
+        console.error('[Main] 获取角色失败:', error);
+        throw error;
+      }
+    });
+
+    // 创建自定义角色
+    ipcMain.handle('org:create-custom-role', async (_event, orgId, roleData, creatorDID) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        const role = await this.organizationManager.createCustomRole(orgId, roleData, creatorDID);
+        return role;
+      } catch (error) {
+        console.error('[Main] 创建自定义角色失败:', error);
+        throw error;
+      }
+    });
+
+    // 更新角色
+    ipcMain.handle('org:update-role', async (_event, roleId, updates, updaterDID) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        const role = await this.organizationManager.updateRole(roleId, updates, updaterDID);
+        return role;
+      } catch (error) {
+        console.error('[Main] 更新角色失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除角色
+    ipcMain.handle('org:delete-role', async (_event, roleId, deleterDID) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        await this.organizationManager.deleteRole(roleId, deleterDID);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 删除角色失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取所有可用权限列表
+    ipcMain.handle('org:get-all-permissions', async (_event) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        const permissions = this.organizationManager.getAllPermissions();
+        return permissions;
+      } catch (error) {
+        console.error('[Main] 获取权限列表失败:', error);
+        throw error;
+      }
+    });
+
     // 联系人管理
     ipcMain.handle('contact:add', async (_event, contact) => {
       try {

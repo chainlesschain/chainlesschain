@@ -1,0 +1,49 @@
+{
+  "id": "tpl_social_wechat_001",
+  "name": "wechat_official_account_article",
+  "display_name": "微信公众号文章",
+  "description": "生成10万+爆款公众号文章，包含吸睛标题、排版设计和引导话术",
+  "icon": "💬",
+  "cover_image": "/templates/covers/wechat-article.png",
+  "category": "social-media",
+  "subcategory": "wechat",
+  "tags": ["微信公众号", "文章", "10万+", "排版"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成微信公众号文章，要求：\n\n**文章信息：**\n- 主题：{{articleTheme}}\n- 文章类型：{{articleType}}\n- 目标字数：{{wordCount}}字\n- 目标读者：{{targetReader}}\n\n**10万+标题公式（5个备选）：**\n\n{{#eq articleType \"干货教程\"}}\n1. [数字+结果] {{articleTheme}}的{{tipCount}}个技巧，第{{highlightNumber}}个绝了！\n2. [反常识] 你以为{{articleTheme}}要这样做？大错特错！\n3. [独家揭秘] {{articleTheme}}内幕曝光，90%的人不知道\n4. [避坑指南] {{articleTheme}}的{{mistakeCount}}个大坑，千万别踩！\n5. [效果承诺] 学会{{articleTheme}}，让你{{benefit}}\n{{/eq}}\n\n{{#eq articleType \"情感故事\"}}\n1. [情感共鸣] {{articleTheme}}：那些让我泪流满面的瞬间\n2. [人物故事] 她用{{articleTheme}}改变了命运，你也可以\n3. [扎心金句] 关于{{articleTheme}}，这是我听过最真实的话\n4. [生活感悟] {{articleTheme}}教会我的人生道理\n5. [时代记忆] 还记得那些年的{{articleTheme}}吗？\n{{/eq}}\n\n{{#eq articleType \"热点评论\"}}\n1. [热点切入] {{articleTheme}}刷屏了，但真相是...\n2. [独特视角] 关于{{articleTheme}}，我有不同看法\n3. [深度解读] {{articleTheme}}背后的{{deepInsight}}\n4. [价值观输出] {{articleTheme}}事件，折射出的社会问题\n5. [冷思考] 当所有人都在谈{{articleTheme}}时，我们更应该思考什么\n{{/eq}}\n\n**文章结构：**\n\n【开头（黄金3秒法则）】\n\n{{#if useStoryOpening}}\n- 故事开头：用一个真实/虚构的小故事引入\n- 示例：\"上周末，朋友小王跟我抱怨：{{relatedProblem}}...\"\n{{else}}\n{{#if useQuestionOpening}}\n- 提问开头：用一个引发思考的问题\n- 示例：\"你有没有遇到过这种情况：{{commonScenario}}？\"\n{{else}}\n- 金句开头：用一句震撼/共鸣的话\n- 示例：\"{{articleTheme}}，是每个{{targetReader}}都会经历的坎。\"\n{{/if}}\n{{/if}}\n\n- 痛点描述（50-100字）\n- 价值承诺：\"今天这篇文章，将彻底解决你的困扰。\"\n\n【主体内容】\n\n{{#eq articleType \"干货教程\"}}\n**知识点1：[小标题]**\n- 原理解释\n- 操作步骤（1/2/3）\n- 案例说明\n- 常见误区\n\n**知识点2：[小标题]**\n...\n\n**知识点3：[小标题]**\n...\n{{/eq}}\n\n{{#eq articleType \"情感故事\"}}\n**第一部分：故事背景**\n- 人物介绍\n- 事件起因\n- 情感铺垫\n\n**第二部分：冲突与转折**\n- 问题出现\n- 情绪爆发\n- 关键决策\n\n**第三部分：结局与感悟**\n- 如何解决\n- 成长收获\n- 升华主题\n{{/eq}}\n\n{{#eq articleType \"热点评论\"}}\n**现象还原：**\n{{articleTheme}}事件回顾\n\n**观点表达：**\n我的3个核心看法\n- 观点1\n- 观点2  \n- 观点3\n\n**深度分析：**\n为什么会这样？\n\n**价值输出：**\n我们应该怎么做？\n{{/eq}}\n\n【结尾】\n\n- 总结要点（3条金句）\n- 行动号召：\"如果这篇文章对你有帮助，点个'在看'吧！\"\n- 互动引导：\"你有什么{{articleTheme}}的经历？欢迎在评论区分享～\"\n- 推荐阅读：往期精彩文章推荐\n\n**排版设计建议：**\n\n{{#if includeDesign}}\n1. **字体和字号**\n   - 正文：14-16号，深灰色（#3e3e3e）\n   - 小标题：加粗，16-18号\n   - 重点：红色/蓝色强调\n\n2. **段落间距**\n   - 每段3-4行，不超过5行\n   - 段落间距：1.5-2倍行距\n   - 大标题前后留白\n\n3. **配图要求**\n   - 每300-500字配一张图\n   - 图片尺寸：900px宽\n   - 风格统一（真实照片/插画/图表）\n\n4. **视觉元素**\n   - 引用框：重要观点用框线突出\n   - 分隔线：章节之间用分割线\n   - Emoji：适度使用（每段0-1个）\n\n5. **封面图设计**\n   - 尺寸：900x500px\n   - 包含：主题关键词 + 吸睛图片\n   - 文字：大字号，高对比度\n{{/if}}\n\n**引导关注话术：**\n\n- 文中植入（软性）：\"（想了解更多{{relatedTopic}}，关注我，持续分享干货）\"\n- 文末引导（直接）：\"喜欢这篇文章的话，记得点'在看'和转发哦～你的支持是我创作的最大动力！💪\"\n- 福利引导：\"关注公众号，回复'{{keyword}}'，免费领取{{freebie}}\"\n\n**SEO优化：**\n\n- 关键词：{{articleTheme}}（出现5-8次）\n- 标签：#{{articleTheme}} #{{tag1}} #{{tag2}}\n- 摘要：用一句话总结文章核心价值（用于分享预览）\n\n**发布时间建议：**\n- 工作日：早上7:00-9:00（上班路上）、中午12:00-13:00（午休）、晚上19:00-22:00（下班后）\n- 周末：上午10:00-11:00、下午15:00-16:00\n\n**输出格式：**\n- Word文档（带格式）或Markdown\n- 配图位置标注\n- 封面图设计需求说明",
+  "variables_schema": [
+    {"name": "articleTheme", "label": "文章主题", "type": "string", "required": true, "placeholder": "例如：职场晋升、亲子教育、理财投资"},
+    {"name": "articleType", "label": "文章类型", "type": "select", "required": true, "options": [
+      {"value": "干货教程", "label": "干货教程（实用技巧）"},
+      {"value": "情感故事", "label": "情感故事（走心共鸣）"},
+      {"value": "热点评论", "label": "热点评论（观点输出）"}
+    ]},
+    {"name": "wordCount", "label": "目标字数", "type": "number", "required": false, "default": 2000, "min": 800, "max": 5000},
+    {"name": "targetReader", "label": "目标读者", "type": "string", "required": false, "default": "职场人士", "placeholder": "例如：大学生、宝妈、创业者"},
+    {"name": "useStoryOpening", "label": "使用故事开头", "type": "select", "required": false, "default": "否", "options": [
+      {"value": "是", "label": "用故事开头"},
+      {"value": "否", "label": "不用"}
+    ]},
+    {"name": "useQuestionOpening", "label": "使用提问开头", "type": "select", "required": false, "default": "否", "options": [
+      {"value": "是", "label": "用提问开头"},
+      {"value": "否", "label": "不用"}
+    ]},
+    {"name": "includeDesign", "label": "包含排版设计建议", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "提供排版指导"},
+      {"value": "否", "label": "仅提供文案"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "公众号-{{articleTheme}}",
+    "files": [
+      {"path": "文章正文.md", "type": "markdown"},
+      {"path": "配图需求.md", "type": "markdown", "content": "# 配图需求\n\n## 封面图\n- 尺寸：900x500px\n- 设计要求：\n\n## 文中配图（{{divide wordCount 400}}张）\n1. 图片1：\n2. 图片2："}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
