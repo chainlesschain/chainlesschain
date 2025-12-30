@@ -41,10 +41,11 @@
             const hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
             const ext = path.extname(relativePath).substring(1);
             const fileId = 'file_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+            const now = Date.now();
 
             this.database.db.run(
-              'INSERT INTO project_files (id, project_id, file_name, file_path, file_type, content, content_hash, file_size, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              [fileId, projectId, path.basename(relativePath), relativePath, ext || 'unknown', content, hash, stats.size, Date.now(), Date.now()]
+              'INSERT INTO project_files (id, project_id, file_name, file_path, file_type, content, content_hash, file_size, version, fs_path, created_at, updated_at, sync_status, synced_at, device_id, deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [fileId, projectId, path.basename(relativePath), relativePath, ext || 'unknown', content, hash, stats.size, 1, fullPath, now, now, 'pending', null, null, 0]
             );
             added++;
           } catch (err) {
