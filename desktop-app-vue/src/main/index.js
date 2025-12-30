@@ -55,6 +55,9 @@ const { PluginManager, setPluginManager } = require('./plugins/plugin-manager');
 const ToolManager = require('./skill-tool-system/tool-manager');
 const SkillManager = require('./skill-tool-system/skill-manager');
 const { registerSkillToolIPC } = require('./skill-tool-system/skill-tool-ipc');
+const SkillExecutor = require('./skill-tool-system/skill-executor');
+const AISkillScheduler = require('./skill-tool-system/ai-skill-scheduler');
+const ChatSkillBridge = require('./skill-tool-system/chat-skill-bridge');
 
 // Database Encryption IPC
 const DatabaseEncryptionIPC = require('./database-encryption-ipc');
@@ -198,6 +201,9 @@ class ChainlessChainApp {
     // Skill and Tool Management System
     this.toolManager = null;
     this.skillManager = null;
+    this.skillExecutor = null;
+    this.aiScheduler = null;
+    this.chatSkillBridge = null;
 
     // Web IDE
     this.webideManager = null;
@@ -235,12 +241,18 @@ class ChainlessChainApp {
     app.on('window-all-closed', () => this.onWindowAllClosed());
     app.on('activate', () => this.onActivate());
 
-    // IPC通信
-    this.setupIPC();
   }
 
   async onReady() {
     console.log('ChainlessChain Vue 启动中...');
+    // IPC handlers
+    try {
+      this.setupIPC();
+    } catch (error) {
+      console.error('[Main] IPC setup failed:', error);
+    } finally {
+      this.registerCoreIPCHandlers();
+    }
 
     // 显示后端服务配置
     console.log('='.repeat(60));
@@ -864,11 +876,30 @@ class ChainlessChainApp {
       // 设置FunctionCaller的ToolManager引用
       functionCaller.setToolManager(this.toolManager);
 
+      // 初始化技能执行器
+      this.skillExecutor = new SkillExecutor(this.skillManager, this.toolManager);
+
+      // 初始化AI调度器（需要LLM服务）
+      this.aiScheduler = new AISkillScheduler(
+        this.skillManager,
+        this.toolManager,
+        this.skillExecutor,
+        this.llmManager
+      );
+
+      // 初始化对话-技能桥接器
+      this.chatSkillBridge = new ChatSkillBridge(
+        this.skillManager,
+        this.toolManager,
+        this.skillExecutor,
+        this.aiScheduler
+      );
+
       // 注册技能和工具IPC handlers（在初始化完成后）
       registerSkillToolIPC(ipcMain, this.skillManager, this.toolManager);
       console.log('[Main] 技能和工具IPC handlers已注册');
 
-      console.log('[Main] 技能和工具管理系统初始化完成');
+      console.log('[Main] 技能和工具管理系统初始化完成（含桥接器）');
     } catch (error) {
       console.error('[Main] 技能和工具管理系统初始化失败:', error);
       // 不影响主应用启动
@@ -1640,21 +1671,22 @@ class ChainlessChainApp {
     });
 
     // 解决冲突
-    ipcMain.handle('sync:resolve-conflict', async (_event, conflictId, resolution) => {
-      try {
-        if (!this.syncManager) {
-          return { success: false, error: '同步管理器未初始化' };
-        }
-
-        console.log('[Main] 解决冲突:', conflictId, resolution);
-        await this.syncManager.resolveConflict(conflictId, resolution);
-
-        return { success: true };
-      } catch (error) {
-        console.error('[Main] 解决冲突失败:', error);
-        return { success: false, error: error.message };
-      }
-    });
+    // NOTE: Duplicate handler removed - using the more complete implementation at line 3491
+    // ipcMain.handle('sync:resolve-conflict', async (_event, conflictId, resolution) => {
+    //   try {
+    //     if (!this.syncManager) {
+    //       return { success: false, error: '同步管理器未初始化' };
+    //     }
+    //
+    //     console.log('[Main] 解决冲突:', conflictId, resolution);
+    //     await this.syncManager.resolveConflict(conflictId, resolution);
+    //
+    //     return { success: true };
+    //   } catch (error) {
+    //     console.error('[Main] 解决冲突失败:', error);
+    //     return { success: false, error: error.message };
+    //   }
+    // });
 
     // 获取同步状态
     ipcMain.handle('sync:get-status', async () => {
@@ -7889,10 +7921,52 @@ class ChainlessChainApp {
         console.log('[Main] AI响应:', aiResponse);
         console.log('[Main] 文件操作数量:', operations ? operations.length : 0);
 
-        // 5. 解析AI响应（如果后端没有解析）
+        // 5. 使用ChatSkillBridge拦截并处理
+        let bridgeResult = null;
+        if (this.chatSkillBridge) {
+          try {
+            console.log('[Main] 使用ChatSkillBridge处理响应...');
+            bridgeResult = await this.chatSkillBridge.interceptAndProcess(
+              userMessage,
+              aiResponse,
+              {
+                projectId,
+                projectPath,
+                currentFile: currentFilePath,
+                conversationHistory
+              }
+            );
+
+            console.log('[Main] 桥接器处理结果:', {
+              shouldIntercept: bridgeResult.shouldIntercept,
+              toolCallsCount: bridgeResult.toolCalls?.length || 0
+            });
+          } catch (error) {
+            console.error('[Main] ChatSkillBridge处理失败:', error);
+            // 如果桥接器失败，继续使用原有逻辑
+          }
+        }
+
+        // 6. 如果桥接器成功处理，返回增强响应
+        if (bridgeResult && bridgeResult.shouldIntercept) {
+          console.log('[Main] 使用桥接器处理结果');
+          return {
+            success: true,
+            conversationResponse: bridgeResult.enhancedResponse,
+            fileOperations: bridgeResult.executionResults || [],
+            ragSources: rag_sources || [],
+            hasFileOperations: bridgeResult.toolCalls.length > 0,
+            usedBridge: true,
+            toolCalls: bridgeResult.toolCalls,
+            bridgeSummary: bridgeResult.summary
+          };
+        }
+
+        // 7. 否则使用原有的解析逻辑（兼容后备）
+        console.log('[Main] 使用原有解析逻辑');
         const parsed = parseAIResponse(aiResponse, operations);
 
-        // 6. 执行文件操作
+        // 8. 执行文件操作
         let operationResults = [];
         if (parsed.hasFileOperations) {
           console.log(`[Main] 执行 ${parsed.operations.length} 个文件操作`);
@@ -7915,13 +7989,14 @@ class ChainlessChainApp {
           }
         }
 
-        // 7. 返回结果
+        // 9. 返回结果
         return {
           success: true,
           conversationResponse: aiResponse,
           fileOperations: operationResults,
           ragSources: rag_sources || [],
-          hasFileOperations: parsed.hasFileOperations
+          hasFileOperations: parsed.hasFileOperations,
+          usedBridge: false
         };
 
       } catch (error) {
@@ -13305,6 +13380,63 @@ ${content}
 
     console.log('[Main] 语音识别系统 IPC handlers 注册完成');
     console.log('[Main] 插件系统 IPC handlers 注册完成');
+  }
+
+  registerCoreIPCHandlers() {
+    const registerFallback = (channel, handler) => {
+      try {
+        ipcMain.handle(channel, handler);
+        console.warn(`[Main] Registered fallback IPC handler for ${channel}`);
+      } catch (error) {
+        const message = String(error?.message || error);
+        const isDuplicate = message.includes('second handler') || message.includes('register a second handler');
+        if (!isDuplicate) {
+          console.error(`[Main] Failed to register IPC handler: ${channel}`, error);
+        }
+      }
+    };
+
+    registerFallback('system:maximize', () => {
+      if (!this.mainWindow?.isMaximized()) {
+        this.mainWindow?.maximize();
+      }
+    });
+
+    registerFallback('project:get-all', async (_event, userId) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库未初始化');
+        }
+
+        const projects = this.database.getProjects(userId);
+        if (!projects || projects.length === 0) {
+          return [];
+        }
+
+        const cleaned = this.removeUndefinedValues(projects);
+        if (!cleaned || !Array.isArray(cleaned)) {
+          return [];
+        }
+
+        return cleaned;
+      } catch (error) {
+        console.error('[Main] 获取项目列表失败:', error);
+        return [];
+      }
+    });
+
+    registerFallback('template:getAll', async (_event, filters = {}) => {
+      try {
+        if (!this.templateManager) {
+          throw new Error('模板管理器未初始化');
+        }
+        const templates = await this.templateManager.getAllTemplates(filters);
+        return { success: true, templates };
+      } catch (error) {
+        console.error('[Template] 获取模板列表失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
   }
 
   /**
