@@ -159,7 +159,7 @@ const handleSave = async () => {
 
   try {
     // 调用 file-sync:save IPC，实现数据库和文件系统的双向同步
-    await window.electron.invoke('file-sync:save', props.file.id, content.value, props.projectId);
+    await window.electron.ipcRenderer.invoke('file-sync:save', props.file.id, content.value, props.projectId);
 
     // 更新文件内容
     props.file.content = content.value;

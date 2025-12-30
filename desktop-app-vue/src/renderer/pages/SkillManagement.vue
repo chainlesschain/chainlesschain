@@ -474,7 +474,7 @@ const showStats = () => {
 const showDependencyGraph = async () => {
   // 加载技能-工具关联关系
   try {
-    const relations = await window.electron.invoke('skill-tool:get-all-relations');
+    const relations = await window.electronAPI.skillTool.getAllRelations();
     allSkillTools.value = relations;
     graphVisible.value = true;
   } catch (error) {

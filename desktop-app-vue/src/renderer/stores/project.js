@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { electronAPI } from '../utils/ipc';
 
 /**
  * 项目管理Store
@@ -175,7 +176,7 @@ export const useProjectStore = defineStore('project', {
       this.loading = true;
       try {
         // 1. 从本地SQLite加载
-        const localProjects = await window.electronAPI.project.getAll(userId);
+        const localProjects = await electronAPI.project.getAll(userId);
         this.projects = localProjects;
         this.pagination.total = localProjects.length;
 
@@ -664,10 +665,10 @@ export const useProjectStore = defineStore('project', {
       this.syncError = null;
 
       try {
-        await window.electronAPI.project.sync(userId);
+        await electronAPI.project.sync(userId);
 
         // 重新加载本地数据
-        const localProjects = await window.electronAPI.project.getAll(userId);
+        const localProjects = await electronAPI.project.getAll(userId);
         this.projects = localProjects;
 
         // 更新最后同步时间

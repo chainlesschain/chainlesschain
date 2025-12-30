@@ -1,4 +1,10 @@
 import { defineStore } from 'pinia'
+import { createRetryableIPC } from '../utils/ipc'
+
+// 创建带重试的 IPC 对象
+const ipcRenderer = createRetryableIPC(window.electron.ipcRenderer, {
+  silentErrors: true, // 静默错误以避免控制台污染
+})
 
 /**
  * 社交模块统一状态管理
@@ -86,7 +92,7 @@ export const useSocialStore = defineStore('social', {
     async loadFriends() {
       this.friendsLoading = true
       try {
-        const friends = await window.electron.ipcRenderer.invoke('friend:get-friends')
+        const friends = await ipcRenderer.invoke('friend:get-friends')
         this.friends = friends
 
         // 获取好友在线状态
@@ -107,7 +113,7 @@ export const useSocialStore = defineStore('social', {
      */
     async loadFriendRequests() {
       try {
-        const requests = await window.electron.ipcRenderer.invoke('friend:get-pending-requests')
+        const requests = await ipcRenderer.invoke('friend:get-pending-requests')
         this.friendRequests = requests
       } catch (error) {
         console.error('加载好友请求失败:', error)
@@ -119,7 +125,7 @@ export const useSocialStore = defineStore('social', {
      */
     async sendFriendRequest(friendDid, message) {
       try {
-        await window.electron.ipcRenderer.invoke('friend:send-request', friendDid, message)
+        await ipcRenderer.invoke('friend:send-request', friendDid, message)
         // 添加通知
         this.addNotification({
           type: 'system',
@@ -137,7 +143,7 @@ export const useSocialStore = defineStore('social', {
      */
     async acceptFriendRequest(requestId) {
       try {
-        await window.electron.ipcRenderer.invoke('friend:accept-request', requestId)
+        await ipcRenderer.invoke('friend:accept-request', requestId)
         await this.loadFriends()
         await this.loadFriendRequests()
 
@@ -157,7 +163,7 @@ export const useSocialStore = defineStore('social', {
      */
     async rejectFriendRequest(requestId) {
       try {
-        await window.electron.ipcRenderer.invoke('friend:reject-request', requestId)
+        await ipcRenderer.invoke('friend:reject-request', requestId)
         await this.loadFriendRequests()
       } catch (error) {
         console.error('拒绝好友请求失败:', error)
@@ -220,7 +226,7 @@ export const useSocialStore = defineStore('social', {
      */
     async loadChatSessions() {
       try {
-        const sessions = await window.electron.ipcRenderer.invoke('chat:get-sessions')
+        const sessions = await ipcRenderer.invoke('chat:get-sessions')
         this.chatSessions = sessions
 
         // 计算未读消息总数
@@ -236,7 +242,7 @@ export const useSocialStore = defineStore('social', {
     async loadMessages(sessionId, limit = 50, offset = 0) {
       this.messagesLoading = true
       try {
-        const messages = await window.electron.ipcRenderer.invoke(
+        const messages = await ipcRenderer.invoke(
           'chat:get-messages',
           sessionId,
           limit,
@@ -283,10 +289,10 @@ export const useSocialStore = defineStore('social', {
         this.currentMessages.push(messageData)
 
         // 保存到数据库
-        await window.electron.ipcRenderer.invoke('chat:save-message', messageData)
+        await ipcRenderer.invoke('chat:save-message', messageData)
 
         // 通过P2P发送加密消息
-        await window.electron.ipcRenderer.invoke(
+        await ipcRenderer.invoke(
           'p2p:send-encrypted-message',
           session.participant_did,
           {
@@ -363,7 +369,7 @@ export const useSocialStore = defineStore('social', {
           timestamp: message.timestamp,
         }
 
-        await window.electron.ipcRenderer.invoke('chat:save-message', messageData)
+        await ipcRenderer.invoke('chat:save-message', messageData)
 
         // 如果是当前会话，添加到消息列表
         if (this.currentChatSession && this.currentChatSession.id === session.id) {
@@ -389,7 +395,7 @@ export const useSocialStore = defineStore('social', {
      */
     async markAsRead(sessionId) {
       try {
-        await window.electron.ipcRenderer.invoke('chat:mark-as-read', sessionId)
+        await ipcRenderer.invoke('chat:mark-as-read', sessionId)
 
         const session = this.chatSessions.find((s) => s.id === sessionId)
         if (session) {
@@ -406,7 +412,7 @@ export const useSocialStore = defineStore('social', {
      */
     async getCurrentUserDid() {
       try {
-        const identities = await window.electron.ipcRenderer.invoke('did:get-identities')
+        const identities = await ipcRenderer.invoke('did:get-identities')
         if (identities && identities.length > 0) {
           return identities[0].did
         }
@@ -425,7 +431,7 @@ export const useSocialStore = defineStore('social', {
     async loadPosts(filter = 'all') {
       this.postsLoading = true
       try {
-        const posts = await window.electron.ipcRenderer.invoke('post:get-feed', filter)
+        const posts = await ipcRenderer.invoke('post:get-feed', filter)
         this.posts = posts
       } catch (error) {
         console.error('加载动态失败:', error)
@@ -439,7 +445,7 @@ export const useSocialStore = defineStore('social', {
      */
     async createPost(post) {
       try {
-        const newPost = await window.electron.ipcRenderer.invoke('post:create', post)
+        const newPost = await ipcRenderer.invoke('post:create', post)
         this.posts.unshift(newPost)
         this.myPosts.unshift(newPost)
         return newPost
@@ -454,7 +460,7 @@ export const useSocialStore = defineStore('social', {
      */
     async likePost(postId) {
       try {
-        await window.electron.ipcRenderer.invoke('post:like', postId)
+        await ipcRenderer.invoke('post:like', postId)
 
         const post = this.posts.find((p) => p.id === postId)
         if (post) {
@@ -472,7 +478,7 @@ export const useSocialStore = defineStore('social', {
      */
     async unlikePost(postId) {
       try {
-        await window.electron.ipcRenderer.invoke('post:unlike', postId)
+        await ipcRenderer.invoke('post:unlike', postId)
 
         const post = this.posts.find((p) => p.id === postId)
         if (post) {
@@ -493,7 +499,7 @@ export const useSocialStore = defineStore('social', {
     async loadNotifications(limit = 50) {
       this.notificationsLoading = true
       try {
-        const notifications = await window.electron.ipcRenderer.invoke('notification:get-all', limit)
+        const notifications = await ipcRenderer.invoke('notification:get-all', limit)
         this.notifications = notifications
         this.unreadNotifications = notifications.filter((n) => n.is_read === 0).length
       } catch (error) {
@@ -521,7 +527,7 @@ export const useSocialStore = defineStore('social', {
       this.unreadNotifications++
 
       // 发送桌面通知
-      window.electron.ipcRenderer.invoke('notification:send-desktop', notification.title, notification.content)
+      ipcRenderer.invoke('notification:send-desktop', notification.title, notification.content)
     },
 
     /**
@@ -529,7 +535,7 @@ export const useSocialStore = defineStore('social', {
      */
     async markNotificationAsRead(id) {
       try {
-        await window.electron.ipcRenderer.invoke('notification:mark-read', id)
+        await ipcRenderer.invoke('notification:mark-read', id)
 
         const notification = this.notifications.find((n) => n.id === id)
         if (notification && notification.is_read === 0) {
@@ -546,7 +552,7 @@ export const useSocialStore = defineStore('social', {
      */
     async markAllNotificationsAsRead() {
       try {
-        await window.electron.ipcRenderer.invoke('notification:mark-all-read')
+        await ipcRenderer.invoke('notification:mark-all-read')
 
         this.notifications.forEach((n) => {
           n.is_read = 1

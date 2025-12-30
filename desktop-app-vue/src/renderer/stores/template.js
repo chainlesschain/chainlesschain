@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, toRaw } from 'vue'
+import { electronAPI } from '../utils/ipc'
 
 export const useTemplateStore = defineStore('template', () => {
   // State
@@ -41,7 +42,7 @@ export const useTemplateStore = defineStore('template', () => {
   async function fetchTemplates(filters = {}) {
     loading.value = true
     try {
-      const result = await window.electronAPI.template.getAll(filters)
+      const result = await electronAPI.template.getAll(filters)
 
       if (result.success) {
         templates.value = result.templates || []
@@ -85,7 +86,7 @@ export const useTemplateStore = defineStore('template', () => {
       // 使用 JSON 序列化进行深拷贝，确保移除所有响应式引用
       const plainVariables = JSON.parse(JSON.stringify(toRaw(variables)))
 
-      const result = await window.electronAPI.template.recordUsage(
+      const result = await electronAPI.template.recordUsage(
         templateId,
         userId,
         projectId,
@@ -112,7 +113,7 @@ export const useTemplateStore = defineStore('template', () => {
 
   async function getTemplateById(templateId) {
     try {
-      const result = await window.electronAPI.template.getById(templateId)
+      const result = await electronAPI.template.getById(templateId)
 
       if (result.success) {
         return result.template
@@ -128,7 +129,7 @@ export const useTemplateStore = defineStore('template', () => {
   async function searchTemplates(keyword, filters = {}) {
     loading.value = true
     try {
-      const result = await window.electronAPI.template.search(keyword, filters)
+      const result = await electronAPI.template.search(keyword, filters)
 
       if (result.success) {
         return result.templates || []
@@ -149,7 +150,7 @@ export const useTemplateStore = defineStore('template', () => {
       // 使用 JSON 序列化进行深拷贝，确保移除所有响应式引用
       const plainVariables = JSON.parse(JSON.stringify(toRaw(variables)))
 
-      const result = await window.electronAPI.template.renderPrompt(
+      const result = await electronAPI.template.renderPrompt(
         templateId,
         plainVariables
       )
@@ -168,7 +169,7 @@ export const useTemplateStore = defineStore('template', () => {
   async function createTemplate(templateData) {
     try {
       const plainData = JSON.parse(JSON.stringify(toRaw(templateData)))
-      const result = await window.electronAPI.template.create(plainData)
+      const result = await electronAPI.template.create(plainData)
 
       if (result.success) {
         // 添加到本地列表
@@ -187,7 +188,7 @@ export const useTemplateStore = defineStore('template', () => {
   async function updateTemplate(templateId, updates) {
     try {
       const plainUpdates = JSON.parse(JSON.stringify(toRaw(updates)))
-      const result = await window.electronAPI.template.update(templateId, plainUpdates)
+      const result = await electronAPI.template.update(templateId, plainUpdates)
 
       if (result.success) {
         // 更新本地列表
@@ -208,7 +209,7 @@ export const useTemplateStore = defineStore('template', () => {
 
   async function deleteTemplate(templateId) {
     try {
-      const result = await window.electronAPI.template.delete(templateId)
+      const result = await electronAPI.template.delete(templateId)
 
       if (result.success) {
         // 从本地列表移除
@@ -229,7 +230,7 @@ export const useTemplateStore = defineStore('template', () => {
 
   async function duplicateTemplate(templateId, newName) {
     try {
-      const result = await window.electronAPI.template.duplicate(templateId, newName)
+      const result = await electronAPI.template.duplicate(templateId, newName)
 
       if (result.success) {
         // 添加到本地列表
@@ -247,7 +248,7 @@ export const useTemplateStore = defineStore('template', () => {
 
   async function getTemplateStats() {
     try {
-      const stats = await window.electronAPI.template.getStats()
+      const stats = await electronAPI.template.getStats()
       return stats
     } catch (error) {
       console.error('[TemplateStore] 获取模板统计异常:', error)

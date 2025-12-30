@@ -113,7 +113,7 @@ const totalSizeMB = computed(() => {
 const loadStats = async () => {
   try {
     loading.value = true;
-    const result = await window.electron.invoke('project:stats:get', props.projectId);
+    const result = await window.electron.ipcRenderer.invoke('project:stats:get', props.projectId);
 
     if (result) {
       stats.value = result;
@@ -129,7 +129,7 @@ const loadStats = async () => {
 const refreshStats = async () => {
   try {
     loading.value = true;
-    await window.electron.invoke('project:stats:update', props.projectId);
+    await window.electron.ipcRenderer.invoke('project:stats:update', props.projectId);
     await loadStats();
   } catch (error) {
     console.error('刷新统计数据失败:', error);
