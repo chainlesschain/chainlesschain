@@ -17,6 +17,8 @@ const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
 const ical = require('ical-generator').default;
+const screenshot = require('screenshot-desktop');
+const speedTest = require('speedtest-net');
 
 // 配置FFmpeg路径
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -1891,6 +1893,140 @@ async function saveEncryptedVault(vaultFile, entries, key) {
 }
 
 /**
+ * ==================== 截图工具 ====================
+ */
+
+/**
+ * 截图工具 (真实实现)
+ * 使用screenshot-desktop进行屏幕截图
+ */
+async function screenshotToolReal(params) {
+  const {
+    output_path,
+    screen_index = 0,
+    format = 'png',
+    quality = 100
+  } = params;
+
+  try {
+    // 确保输出目录存在
+    const dir = path.dirname(output_path);
+    await fsp.mkdir(dir, { recursive: true });
+
+    // 获取所有显示器列表
+    const displays = await screenshot.listDisplays();
+
+    if (screen_index >= displays.length) {
+      return {
+        success: false,
+        error: `屏幕索引超出范围。可用屏幕: 0-${displays.length - 1}`
+      };
+    }
+
+    // 截取指定屏幕
+    const imgBuffer = await screenshot({ screen: displays[screen_index].id });
+
+    // 保存截图
+    await fsp.writeFile(output_path, imgBuffer);
+
+    // 获取文件信息
+    const stats = await fsp.stat(output_path);
+
+    return {
+      success: true,
+      output_path: output_path,
+      screen_index: screen_index,
+      screen_id: displays[screen_index].id,
+      screen_name: displays[screen_index].name,
+      file_size: stats.size,
+      format: format,
+      quality: quality,
+      available_screens: displays.length,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * ==================== 网速测试工具 ====================
+ */
+
+/**
+ * 网速测试器 (真实实现)
+ * 使用speedtest-net测试网络速度
+ */
+async function networkSpeedTesterReal(params) {
+  const {
+    test_type = 'both',
+    server_id,
+    max_time = 10000
+  } = params;
+
+  try {
+    console.log('开始网速测试，请稍候...');
+
+    // 配置测试选项
+    const options = {
+      acceptLicense: true,
+      acceptGdpr: true
+    };
+
+    if (server_id) {
+      options.serverId = server_id;
+    }
+
+    // 执行速度测试
+    const result = await speedTest(options);
+
+    // 转换速度单位 (Mbps)
+    const downloadMbps = (result.download.bandwidth * 8 / 1000000).toFixed(2);
+    const uploadMbps = (result.upload.bandwidth * 8 / 1000000).toFixed(2);
+
+    return {
+      success: true,
+      test_type: test_type,
+      download: {
+        bandwidth: result.download.bandwidth,
+        speed_mbps: parseFloat(downloadMbps),
+        bytes: result.download.bytes,
+        elapsed: result.download.elapsed
+      },
+      upload: {
+        bandwidth: result.upload.bandwidth,
+        speed_mbps: parseFloat(uploadMbps),
+        bytes: result.upload.bytes,
+        elapsed: result.upload.elapsed
+      },
+      ping: {
+        latency: result.ping.latency,
+        jitter: result.ping.jitter
+      },
+      server: {
+        id: result.server.id,
+        name: result.server.name,
+        location: result.server.location,
+        country: result.server.country,
+        host: result.server.host,
+        ip: result.server.ip
+      },
+      result_url: result.result?.url || '',
+      isp: result.isp,
+      timestamp: result.timestamp
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * ==================== 原有辅助函数 ====================
  */
 
@@ -1983,5 +2119,9 @@ module.exports = {
 
   // 提醒和密码库
   reminderSchedulerReal,
-  passwordVaultReal
+  passwordVaultReal,
+
+  // 截图和网速
+  screenshotToolReal,
+  networkSpeedTesterReal
 };
