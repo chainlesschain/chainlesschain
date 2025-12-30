@@ -211,6 +211,13 @@ class ProjectTemplateManager {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
+      const promptTemplate = templateData.prompt_template || '';
+
+      // 调试日志：记录写入前的 prompt_template 长度
+      console.log(`[TemplateManager] 准备保存模板 ${templateData.id}:`);
+      console.log(`  - display_name: ${templateData.display_name}`);
+      console.log(`  - prompt_template 长度: ${promptTemplate.length}`);
+
       stmt.run([
         templateData.id,
         templateData.name,
@@ -222,7 +229,7 @@ class ProjectTemplateManager {
         templateData.subcategory || '',
         JSON.stringify(templateData.tags || []),
         templateData.project_type,
-        templateData.prompt_template || '',
+        promptTemplate,
         JSON.stringify(templateData.variables_schema || []),
         JSON.stringify(templateData.file_structure || {}),
         JSON.stringify(templateData.default_files || []),
@@ -239,6 +246,10 @@ class ProjectTemplateManager {
       ]);
 
       this.db.saveToFile();
+
+      // 调试日志：验证写入后的数据
+      const verify = this.db.prepare('SELECT id, LENGTH(prompt_template) as len FROM project_templates WHERE id = ?').get([templateData.id]);
+      console.log(`[TemplateManager] 写入后验证: ${verify.id}, prompt_template长度=${verify.len}`);
     } catch (error) {
       console.error('[TemplateManager] 保存模板失败:', templateData.id, error);
       throw error;

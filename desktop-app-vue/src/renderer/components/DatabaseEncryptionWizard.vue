@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:open="open"
+    v-model:open="isOpen"
     title="数据库加密设置向导"
     :closable="(developmentMode && canSkipPassword) || currentStep === 3"
     :maskClosable="(developmentMode && canSkipPassword) || currentStep === 3"
@@ -273,15 +273,18 @@ import {
 import { message } from 'ant-design-vue';
 
 const props = defineProps({
-  modelValue: {
+  open: {
     type: Boolean,
     default: false
   }
 });
 
-const emit = defineEmits(['update:modelValue', 'complete', 'skip']);
+const emit = defineEmits(['update:open', 'complete', 'skip']);
 
-const open = ref(props.modelValue);
+const isOpen = computed({
+  get: () => props.open,
+  set: (val) => emit('update:open', val)
+});
 const currentStep = ref(0);
 const encryptionMethod = ref('password');
 const setupSuccess = ref(false);
@@ -390,8 +393,7 @@ const loadDevelopmentMode = async () => {
   }
 };
 
-watch(() => props.modelValue, async (val) => {
-  open.value = val;
+watch(() => props.open, async (val) => {
   if (val) {
     // 重置状态
     currentStep.value = 0;
@@ -403,10 +405,6 @@ watch(() => props.modelValue, async (val) => {
     // 加载开发模式状态
     await loadDevelopmentMode();
   }
-});
-
-watch(open, (val) => {
-  emit('update:modelValue', val);
 });
 
 const nextStep = () => {
@@ -493,20 +491,20 @@ const retrySetup = () => {
 const skipEncryption = () => {
   message.info('您可以稍后在设置中启用加密');
   emit('skip');
-  open.value = false;
+  isOpen.value = false;
 };
 
 const handleClose = () => {
   if (developmentMode.value && canSkipPassword.value) {
     skipEncryption();
   } else if (currentStep.value === 3) {
-    open.value = false;
+    isOpen.value = false;
   }
 };
 
 const finish = () => {
   emit('complete');
-  open.value = false;
+  isOpen.value = false;
 };
 </script>
 
