@@ -1386,7 +1386,27 @@ class DatabaseManager {
         this.saveToFile();
       }
 
-      // 迁移2: 音频系统 (语音识别)
+      // 迁移2: 插件系统
+      const pluginTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='plugins'").get();
+
+      if (!pluginTableExists) {
+        console.log('[Database] 创建插件系统表...');
+        try {
+          const migrationPath = path.join(__dirname, 'database', 'migrations', '001_plugin_system.sql');
+          if (fs.existsSync(migrationPath)) {
+            const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+            this.db.exec(migrationSQL);
+            this.saveToFile();
+            console.log('[Database] 插件系统表创建完成');
+          } else {
+            console.warn('[Database] 插件系统迁移文件不存在:', migrationPath);
+          }
+        } catch (pluginError) {
+          console.error('[Database] 创建插件系统表失败:', pluginError);
+        }
+      }
+
+      // 迁移3: 音频系统 (语音识别)
       const audioTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='audio_files'").get();
 
       if (!audioTableExists) {
@@ -1406,7 +1426,7 @@ class DatabaseManager {
         }
       }
 
-      // 迁移3: 技能和工具管理系统
+      // 迁移4: 技能和工具管理系统
       const skillTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='skills'").get();
 
       if (!skillTableExists) {
