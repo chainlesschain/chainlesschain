@@ -1,0 +1,153 @@
+{
+  "id": "tpl_video_vlog_001",
+  "name": "vlog_shooting_plan",
+  "display_name": "Vlog拍摄计划",
+  "description": "为个人Vlog或生活记录视频制定拍摄计划，包含叙事结构、镜头设计和剪辑思路",
+  "icon": "📹",
+  "cover_image": "/templates/covers/vlog.png",
+
+  "category": "video",
+  "subcategory": "vlog",
+  "tags": ["Vlog", "生活记录", "拍摄计划", "视频日记"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我制定一期Vlog的拍摄计划，要求：\n\n**Vlog信息：**\n- 主题：{{vlogTheme}}\n- 拍摄日期：{{shootingDate}}\n- 预计时长：{{duration}}分钟\n- Vlog类型：{{vlogType}}\n- 拍摄风格：{{shootingStyle}}\n\n**叙事结构设计**\n\n【开场（0:00-0:30）】\n- Hook：用一个有趣/震撼的镜头开场\n- 自我介绍（如果是新观众）\n- 今日主题：\"今天带你们{{vlogTheme}}\"\n\n{{#eq vlogType \"一日生活\"}}\n【主体：时间线叙事】\n- 早晨（6:00-9:00）\n  - 起床画面\n  - 早餐制作/外出准备\n  - 出门前的念叨\n  \n- 上午（9:00-12:00）\n  - 主要活动1\n  - 有趣的小插曲\n  \n- 中午（12:00-14:00）\n  - 午餐\n  - 短暂休息\n  \n- 下午（14:00-18:00）\n  - 主要活动2\n  - 遇到的人/事\n  \n- 晚上（18:00-22:00）\n  - 晚餐\n  - 放松时刻\n  - 一天总结\n{{/eq}}\n\n{{#eq vlogType \"旅行游记\"}}\n【主体：地点线叙事】\n- 第一站：[地点名称]\n  - 到达画面（环境展示）\n  - 活动内容\n  - 个人感受旁白\n  \n- 第二站：[地点名称]\n  - ...\n  \n- 第三站：[地点名称]\n  - ...\n  \n- 意外收获\n  - 计划外的惊喜\n{{/eq}}\n\n{{#eq vlogType \"挑战记录\"}}\n【主体：任务线叙事】\n- 挑战介绍\n  - 为什么要做这个挑战\n  - 挑战规则\n  \n- 准备阶段\n  - 物资准备\n  - 心理准备\n  \n- 挑战过程\n  - 第一阶段：顺利开局\n  - 第二阶段：遇到困难\n  - 第三阶段：突破/放弃\n  \n- 挑战结果\n  - 成功/失败\n  - 经验教训\n{{/eq}}\n\n【结尾（{{subtract duration 2}}:00-{{duration}}:00）】\n- 今日总结\n- 感想和收获\n- 互动引导（点赞/评论/订阅）\n- 下期预告\n\n---\n\n**拍摄清单（按时间顺序）**\n\n根据主题{{vlogTheme}}和类型{{vlogType}}，需要拍摄以下镜头：\n\n| 时间 | 地点 | 镜头内容 | 拍摄要点 | 设备 |\n|------|------|----------|----------|-网---|\n| {{shootingDate}} 上午 | [地点1] | 开场镜头 | 特写/广角切换 | 手持稳定器 |\n| | | 活动过程 | 多角度记录 | 三脚架 |\n| | [地点2] | 转场镜头 | 运镜流畅 | 手持 |\n| 下午 | [地点3] | 重点场景 | 慢动作/延时 | 三脚架 |\n| | | 人物对话 | 收音清晰 | 领夹麦 |\n| 傍晚 | [地点4] | 氛围镜头 | 黄金时段拍摄 | 手持 |\n| 晚上 | 家中 | 总结镜头 | 打光充足 | 三脚架 |\n\n---\n\n**镜头设计（Cinematography）**\n\n{{#if includeAdvancedShots}}\n1. **必拍镜头（Establishing Shots）**\n   - 地点全景（Wide Shot）：展示环境\n   - 中景（Medium Shot）：人物活动\n   - 特写（Close-up）：细节/表情\n\n2. **进阶镜头**\n   - 运镜镜头（Camera Movement）\n     - 跟拍（Follow Shot）\n     - 环绕（Orbit Shot）\n     - 推拉（Push In/Pull Out）\n   \n   - 时间控制（Time Manipulation）\n     - 慢动作（Slow Motion）：情绪化场景\n     - 延时摄影（Timelapse）：时间流逝\n     - 快进（Hyperlapse）：移动延时\n   \n   - 转场镜头（Transition Shots）\n     - 挥手遮镜头\n     - 旋转转场\n     - 相似物体匹配\n\n3. **情绪镜头**\n   - 快乐：明亮、动态镜头\n   - 平静：稳定、长镜头\n   - 紧张：手持晃动\n   - 怀旧：暖色调、浅景深\n{{/if}}\n\n---\n\n**拍摄技巧**\n\n1. **构图原则**\n   - 三分法（Rule of Thirds）\n   - 对称构图（Symmetry）\n   - 引导线（Leading Lines）\n   - 前景框架（Framing）\n\n2. **光线运用**\n   - 自然光：\n     - 黄金时段（日出后/日落前1小时）\n     - 蓝调时刻（天还没完全黑）\n     - 阴天柔光（避免强烈阴影）\n   - 人造光：\n     - 室内补光\n     - 环境光氛围\n\n3. **声音收录**\n   - 环境声（Ambient Sound）：营造氛围\n   - 旁白（Voiceover）：讲述故事\n   - 音乐（Background Music）：情绪渲染\n   - 音效（Sound Effects）：增强真实感\n\n---\n\n**剪辑思路**\n\n{{#if includeEditingGuide}}\n1. **节奏控制**\n   - 开场：快节奏（1-2秒一镜）吸引注意\n   - 主体：中等节奏（3-5秒一镜）讲述故事\n   - 高潮：快或慢镜头强化情绪\n   - 结尾：稍慢节奏，留下余味\n\n2. **音乐选择**\n   - 开场：欢快/激昂BGM\n   - 平静时刻：轻音乐/钢琴\n   - 高潮时刻：节奏感强的音乐\n   - 结尾：温暖/回味的音乐\n\n3. **颜色调色**\n   - {{shootingStyle}}风格调色方案\n   - 色温、饱和度、对比度调整建议\n\n4. **字幕和特效**\n   - 关键信息用字幕标注\n   - 地点/时间标注\n   - 适度使用转场特效\n   - 避免过度特效（保持真实）\n\n5. **音频处理**\n   - 降噪处理\n   - 音量平衡\n   - 背景音乐音量（人声-10至-15dB）\n{{/if}}\n\n---\n\n**旁白文案（Voiceover Script）**\n\n根据拍摄的画面，准备以下旁白：\n\n**开场旁白：**\n\"{{openingLine}}\n今天我要带你们{{vlogTheme}}，\n这是我[时间]以来最期待的一天！\"\n\n**过程旁白（3-5段）：**\n- [场景1] 旁白：描述当下感受\n- [场景2] 旁白：讲述发生的故事\n- [场景3] 旁白：分享有趣的想法\n\n**结尾旁白：**\n\"今天的{{vlogTheme}}就是这样啦，\n[总结感受]\n[互动引导]\n我们下次再见！\"\n\n---\n\n**设备和物资清单**\n\n**拍摄设备：**\n- [ ] 相机/手机（主机）\n- [ ] 备用电池\n- [ ] 存储卡（建议备份）\n- [ ] 三脚架\n- [ ] 手持稳定器/云台\n- [ ] 麦克风（领夹麦/枪型麦）\n- [ ] 补光灯（可选）\n\n**辅助道具：**\n- [ ] 反光板\n- [ ] 充电宝\n- [ ] 镜头清洁布\n- [ ] {{vlogTheme}}相关道具\n\n**个人物品：**\n- [ ] 服装（{{outfitStyle}}风格）\n- [ ] 化妆品（如需要）\n- [ ] 水/零食\n\n---\n\n**拍摄注意事项**\n\n1. **拍摄前**\n   - 检查设备电量和存储空间\n   - 试拍几个镜头测试效果\n   - 确认拍摄许可（如需要）\n\n2. **拍摄中**\n   - 每个场景多角度拍摄（剪辑时有更多选择）\n   - 留足够的空镜头（用于转场）\n   - 记录环境声（后期混音用）\n   - 随时检查画面和声音\n\n3. **拍摄后**\n   - 立即备份素材\n   - 整理标注（方便后期查找）\n   - 记录拍摄笔记（哪些镜头好用）\n\n---\n\n**发布计划**\n\n- 拍摄日期：{{shootingDate}}\n- 剪辑时间：拍摄后{{editingDays}}天\n- 发布日期：[具体日期]\n- 发布平台：{{platform}}\n- 最佳发布时间：{{publishTime}}\n\n**标题建议（3个备选）：**\n1. [悬念式] {{vlogTheme}}竟然是这样的？\n2. [描述式] 和我一起{{vlogTheme}}的一天\n3. [情感式] {{vlogTheme}}，这是我最难忘的经历\n\n**封面设计：**\n- 从视频中选择3-5个高质量画面作为备选封面\n- 建议使用表情丰富/场景震撼的镜头\n- 添加简洁文字（3-5字）\n\n---\n\n**输出格式：**\n- 主文档：拍摄计划（Markdown/Word）\n- 附件1：拍摄清单（可打印）\n- 附件2：旁白文案\n- 附件3：剪辑大纲\n- 附件4：封面备选图",
+
+  "variables_schema": [
+    {
+      "name": "vlogTheme",
+      "label": "Vlog主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：日本旅行、一日三餐、搬家记录"
+    },
+    {
+      "name": "shootingDate",
+      "label": "拍摄日期",
+      "type": "string",
+      "required": false,
+      "default": "待定",
+      "placeholder": "例如：2025-01-15"
+    },
+    {
+      "name": "duration",
+      "label": "预计时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 10,
+      "min": 5,
+      "max": 30
+    },
+    {
+      "name": "vlogType",
+      "label": "Vlog类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "一日生活", "label": "一日生活（Day in my life）" },
+        { "value": "旅行游记", "label": "旅行游记（Travel Vlog）" },
+        { "value": "挑战记录", "label": "挑战记录（Challenge）" },
+        { "value": "活动参加", "label": "活动参加（Event）" }
+      ]
+    },
+    {
+      "name": "shootingStyle",
+      "label": "拍摄风格",
+      "type": "select",
+      "required": false,
+      "default": "电影感",
+      "options": [
+        { "value": "电影感", "label": "电影感（Cinematic）" },
+        { "value": "清新自然", "label": "清新自然（Fresh）" },
+        { "value": "复古怀旧", "label": "复古怀旧（Vintage）" },
+        { "value": "简约极简", "label": "简约极简（Minimalist）" }
+      ]
+    },
+    {
+      "name": "includeAdvancedShots",
+      "label": "包含进阶镜头设计",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "提供专业镜头指导" },
+        { "value": "否", "label": "基础拍摄即可" }
+      ]
+    },
+    {
+      "name": "includeEditingGuide",
+      "label": "包含剪辑指导",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "提供剪辑建议" },
+        { "value": "否", "label": "不需要" }
+      ]
+    },
+    {
+      "name": "editingDays",
+      "label": "计划剪辑天数",
+      "type": "number",
+      "required": false,
+      "default": 3,
+      "min": 1,
+      "max": 14
+    },
+    {
+      "name": "platform",
+      "label": "发布平台",
+      "type": "select",
+      "required": false,
+      "default": "B站",
+      "options": [
+        { "value": "B站", "label": "B站" },
+        { "value": "YouTube", "label": "YouTube" },
+        { "value": "抖音", "label": "抖音" },
+        { "value": "小红书", "label": "小红书" }
+      ]
+    },
+    {
+      "name": "publishTime",
+      "label": "最佳发布时间",
+      "type": "select",
+      "required": false,
+      "default": "晚上19:00-21:00",
+      "options": [
+        { "value": "早上7:00-9:00", "label": "早上7:00-9:00" },
+        { "value": "中午12:00-14:00", "label": "中午12:00-14:00" },
+        { "value": "晚上19:00-21:00", "label": "晚上19:00-21:00" },
+        { "value": "深夜22:00-24:00", "label": "深夜22:00-24:00" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "Vlog-{{vlogTheme}}-{{shootingDate}}",
+    "files": [
+      {
+        "path": "拍摄计划.md",
+        "type": "markdown"
+      },
+      {
+        "path": "拍摄清单.md",
+        "type": "markdown",
+        "content": "# 拍摄清单 - {{vlogTheme}}\n\n## 拍摄日期\n{{shootingDate}}\n\n## 设备检查\n- [ ] 相机/手机\n- [ ] 电池\n- [ ] 存储卡\n- [ ] 三脚架\n- [ ] 稳定器\n- [ ] 麦克风\n\n## 拍摄地点\n- 地点1：\n- 地点2：\n\n## 镜头列表\n- [ ] 开场镜头\n- [ ] 转场镜头\n- [ ] 空镜头"
+      },
+      {
+        "path": "旁白文案.docx",
+        "type": "document"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

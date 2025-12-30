@@ -1,0 +1,132 @@
+{
+  "id": "tpl_video_short_001",
+  "name": "short_video_script",
+  "display_name": "短视频脚本（抖音/快手）",
+  "description": "为抖音、快手等短视频平台生成15-60秒的爆款脚本，包含黄金3秒开场和完播率设计",
+  "icon": "📱",
+  "cover_image": "/templates/covers/short-video.png",
+
+  "category": "video",
+  "subcategory": "short-form",
+  "tags": ["短视频", "抖音", "快手", "TikTok", "爆款脚本"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成一条短视频脚本，要求：\n\n**视频信息：**\n- 视频主题：{{videoTheme}}\n- 视频时长：{{duration}}秒\n- 目标平台：{{platform}}\n- 内容类型：{{contentType}}\n- 目标人群：{{targetGroup}}\n\n**黄金3秒开场（前3秒，决定80%完播率）**\n\n设计强力Hook，选择以下一种方式：\n\n{{#eq hookType \"疑问句\"}}\n- 提出一个让人好奇的问题\n- 示例：\"你知道为什么有钱人都在偷偷做这件事吗？\"\n- 镜头：[特写镜头 + 神秘表情]\n{{/eq}}\n\n{{#eq hookType \"震惊事实\"}}\n- 抛出一个颠覆认知的事实/数据\n- 示例：\"90%的人都不知道，这样做能省1000块！\"\n- 镜头：[震撼画面 + 数字动画]\n{{/eq}}\n\n{{#eq hookType \"冲突对比\"}}\n- 展示强烈的前后对比\n- 示例：\"同样的食材，为什么餐厅的就是比家里的好吃10倍？\"\n- 镜头：[左右分屏对比]\n{{/eq}}\n\n{{#eq hookType \"情绪共鸣\"}}\n- 说出观众的痛点\n- 示例：\"打工人每天最累的不是工作，而是...（停顿）\"\n- 镜头：[特写 + 疲惫表情]\n{{/eq}}\n\n---\n\n**主体内容结构（根据时长{{duration}}秒设计）**\n\n{{#if (lte duration 15)}}\n【15秒超短视频】\n第1-3秒：Hook开场\n第4-10秒：核心内容（1个要点，直接给答案）\n第11-15秒：CTA引导（关注、点赞、评论）\n{{/if}}\n\n{{#if (gte duration 16) (lte duration 30)}}\n【30秒短视频】\n第1-3秒：Hook开场\n第4-8秒：问题/背景铺垫\n第9-20秒：核心内容（2-3个要点/步骤）\n第21-27秒：结果展示/总结\n第28-30秒：CTA引导\n{{/if}}\n\n{{#if (gt duration 30)}}\n【60秒中视频】\n第1-3秒：Hook开场\n第4-10秒：故事/场景设定\n第11-45秒：主体内容（完整起承转合）\n  - 问题出现\n  - 解决方案（3-5个步骤/要点）\n  - 效果展示\n第46-55秒：金句/升华/彩蛋\n第56-60秒：CTA引导\n{{/if}}\n\n---\n\n**详细脚本（根据内容类型{{contentType}}生成）**\n\n{{#eq contentType \"知识干货\"}}\n【知识干货类脚本】\n\n旁白：\n\"[Hook开场问题/事实]\n今天教你{{videoTheme}}的3个技巧，学会能省XX元/提升XX%\n\n第一个：[技巧1名称]\n[简短解释，20字内]\n[视觉演示]\n\n第二个：[技巧2名称]\n[简短解释]\n[视觉演示]\n\n第三个：[技巧3名称]\n[简短解释]\n[视觉演示]\n\n学会了吗？点赞收藏，别划走哦！\"\n\n画面提示：\n- 开场：特写镜头 + 文字动画\n- 讲解：分屏展示 + 步骤序号\n- 结尾：订阅动画\n{{/eq}}\n\n{{#eq contentType \"情感故事\"}}\n【情感故事类脚本】\n\n场景：{{videoTheme}}相关的真实/虚构场景\n\n旁白/对话：\n\"[Hook情感引入]\n那天，[主角]遇到了[事件]...\n\n[情节发展，描述细节和情绪]\n\n就在[关键时刻]，[转折发生]\n\n[结局和升华]\n[引发共鸣的金句]\n\n你经历过类似的事吗？评论区告诉我\"\n\n画面提示：\n- 运用慢镜头、特写、景深表达情绪\n- 背景音乐：催泪/温馨BGM\n- 字幕：突出金句和关键词\n{{/eq}}\n\n{{#eq contentType \"娱乐搞笑\"}}\n【娱乐搞笑类脚本】\n\n设定：夸张/荒诞/反转的情境\n\n剧本：\n\"[Hook：抛出荒谬问题或设定]\n\n【场景1】\n[角色A]：[搞笑对白]\n[角色B]：[反差回应]\n\n【场景2】\n[冲突升级，笑点密集]\n[夸张表情/动作]\n\n【反转】\n[意想不到的结局]\n[笑点爆发]\n\n是不是你？哈哈哈哈，关注我看更多沙雕视频！\"\n\n画面提示：\n- 快切镜头，节奏感强\n- 夸张特效和音效\n- 表情包式字幕\n{{/eq}}\n\n{{#eq contentType \"好物种草\"}}\n【好物种草类脚本】\n\n产品：{{videoTheme}}相关的产品\n\n旁白：\n\"[Hook：产品痛点/需求]\n\n姐妹们，我发现了一个宝藏好物！\n\n【展示产品】\n它能解决[痛点1、2、3]\n\n【使用演示】\n看我实际使用效果\n[前后对比]\n\n【价格和购买】\n才XX元，性价比超高\n链接放在橱窗啦，冲！\"\n\n画面提示：\n- 产品特写（多角度）\n- 使用过程（加速/慢动作）\n- 效果对比（左右分屏）\n- 价格标注（动画强调）\n{{/eq}}\n\n{{#eq contentType \"美食探店\"}}\n【美食探店类脚本】\n\n地点：{{videoTheme}}相关餐厅/美食\n\n旁白：\n\"[Hook：诱人画面 + 问题]\n\n来到[地点名称]\n这家店的招牌是[菜品名]\n\n【点菜过程】\n我点了[菜品1、2、3]\n\n【上菜 + 品尝】\n[美食特写镜头]\n第一口下去...[描述口感]\n[表情反应]\n\n【总结评价】\n人均XX元\n推荐指数：⭐⭐⭐⭐⭐\n\n地址和菜单我放评论区啦！\"\n\n画面提示：\n- 美食特写（慢镜头、俯拍）\n- 拉丝/流心镜头\n- 真实品尝反应（不要假吃）\n{{/eq}}\n\n---\n\n**完播率提升技巧**\n\n{{#if includeRetentionTips}}\n1. **节奏控制**\n   - 每5秒一个信息点/笑点/冲突点\n   - 避免冗余，删除所有废话\n   - 使用快切镜头（1-3秒一个镜头）\n\n2. **悬念设置**\n   - 在第10秒、20秒设置小悬念\n   - \"接下来这一步最关键\"\n   - \"你绝对想不到结局是什么\"\n\n3. **互动设计**\n   - 提问：\"你会选择A还是B？\"\n   - 投票：\"觉得好用的扣1\"\n   - 找茬：\"画面里藏了一个彩蛋，你发现了吗？\"\n\n4. **黄金结尾**\n   - 最后3秒放反转/彩蛋\n   - 引导关注：\"关注我，下期更精彩\"\n   - 评论引导：\"你还知道哪些方法？评论区分享\"\n{{/if}}\n\n---\n\n**字幕设计**\n\n{{#if includeSubtitles}}\n- 使用大字号、高对比度\n- 关键词变色/加粗/放大\n- 每行不超过10个字\n- 停留时间与语速同步\n- 添加表情符号增强表达：✅❌⚠️💰🔥\n{{/if}}\n\n---\n\n**音乐音效建议**\n\n- 开场：高能BGM（吸引注意力）\n- 主体：根据情绪选择BGM（知识类用轻快、情感类用温暖、搞笑类用魔性）\n- 转折点：音效强化（唰/嘭/叮）\n- 结尾：渐弱或突停（引导互动）\n\n---\n\n**标题文案建议**\n\n生成3个备选标题（最多20字）：\n1. [悬念式] {{videoTheme}}的秘密，90%的人不知道\n2. [利益式] 学会这招{{videoTheme}}，省下1000元\n3. [共鸣式] {{videoTheme}}太难了？试试这个方法\n\n---\n\n**话题标签建议**\n\n- 主话题：#{{videoTheme}}\n- 平台热门：#{{platform}}推荐 #涨知识 #生活小技巧\n- 垂直领域：根据{{contentType}}生成细分标签\n\n---\n\n**评论区互动话术**\n\n第一条评论（置顶）：\n\"{{videoTheme}}你学会了吗？还有哪些想知道的，评论区告诉我，下期安排！💪\"\n\n---\n\n**输出格式：**\n- 分镜头表格：序号 | 时间 | 画面 | 旁白 | 字幕 | 音效\n- 备用方案（如果第一版效果不好，提供2个变体）\n- 拍摄清单（所需道具、场景、服装）",
+
+  "variables_schema": [
+    {
+      "name": "videoTheme",
+      "label": "视频主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：省钱技巧、化妆教程、搞笑段子"
+    },
+    {
+      "name": "duration",
+      "label": "视频时长（秒）",
+      "type": "number",
+      "required": false,
+      "default": 30,
+      "min": 15,
+      "max": 60
+    },
+    {
+      "name": "platform",
+      "label": "目标平台",
+      "type": "select",
+      "required": false,
+      "default": "抖音",
+      "options": [
+        { "value": "抖音", "label": "抖音" },
+        { "value": "快手", "label": "快手" },
+        { "value": "视频号", "label": "微信视频号" },
+        { "value": "B站", "label": "B站（动态视频）" }
+      ]
+    },
+    {
+      "name": "contentType",
+      "label": "内容类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "知识干货", "label": "知识干货" },
+        { "value": "情感故事", "label": "情感故事" },
+        { "value": "娱乐搞笑", "label": "娱乐搞笑" },
+        { "value": "好物种草", "label": "好物种草" },
+        { "value": "美食探店", "label": "美食探店" }
+      ]
+    },
+    {
+      "name": "targetGroup",
+      "label": "目标人群",
+      "type": "string",
+      "required": false,
+      "default": "18-35岁年轻人",
+      "placeholder": "例如：大学生、宝妈、职场人"
+    },
+    {
+      "name": "hookType",
+      "label": "开场Hook类型",
+      "type": "select",
+      "required": false,
+      "default": "疑问句",
+      "options": [
+        { "value": "疑问句", "label": "疑问句（引发好奇）" },
+        { "value": "震惊事实", "label": "震惊事实（颠覆认知）" },
+        { "value": "冲突对比", "label": "冲突对比（前后反差）" },
+        { "value": "情绪共鸣", "label": "情绪共鸣（痛点）" }
+      ]
+    },
+    {
+      "name": "includeRetentionTips",
+      "label": "包含完播率技巧",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "提供完播率优化建议" },
+        { "value": "否", "label": "不需要" }
+      ]
+    },
+    {
+      "name": "includeSubtitles",
+      "label": "字幕设计指导",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "提供字幕设计建议" },
+        { "value": "否", "label": "不需要" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "短视频-{{videoTheme}}",
+    "files": [
+      {
+        "path": "脚本-{{videoTheme}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "分镜头表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "拍摄清单.md",
+        "type": "markdown",
+        "content": "# 拍摄清单\n\n## 场景\n- 场景1：\n- 场景2：\n\n## 道具\n- 道具1：\n- 道具2：\n\n## 服装\n- 服装要求：\n\n## 设备\n- 相机/手机\n- 补光灯\n- 稳定器\n- 麦克风"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

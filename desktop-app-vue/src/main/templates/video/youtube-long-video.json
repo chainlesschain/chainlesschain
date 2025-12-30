@@ -1,0 +1,164 @@
+{
+  "id": "tpl_video_youtube_long_001",
+  "name": "youtube_long_video_script",
+  "display_name": "YouTube长视频脚本",
+  "description": "为YouTube长视频（10-30分钟）生成完整脚本，包含开场、主体内容、互动和结尾",
+  "icon": "🎬",
+  "cover_image": "/templates/covers/youtube-long-video.png",
+
+  "category": "video",
+  "subcategory": "youtube",
+  "tags": ["YouTube", "视频脚本", "长视频", "内容创作"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成一期YouTube长视频的完整脚本，要求：\n\n**视频信息：**\n- 视频标题：{{videoTitle}}\n- 主题类型：{{videoType}}\n- 目标时长：{{duration}}分钟\n- 目标观众：{{targetAudience}}\n- 视频风格：{{videoStyle}}\n\n**脚本结构：**\n\n【第一部分：开场（0:00-1:00）】\n\n**钩子Hook（前5秒）**\n- 用一个引人注目的问题/事实/场景吸引观众\n- 示例：\"你知道吗？90%的人都不知道这个技巧...\"\n- 视觉提示：{{#if includeVisuals}}[插入震撼画面/动画]{{/if}}\n\n**简短介绍（5-15秒）**\n- 频道问候语：\"大家好，我是[创作者名]，欢迎来到[频道名]\"\n- 本期内容预告：今天要讲解{{videoTitle}}\n\n**价值主张（15-30秒）**\n- 观众能学到什么？\n- 为什么要看完这个视频？\n- 列出3个关键收获\n\n**订阅提示（30-60秒）**\n{{#if includeSubscribeCall}}\n- \"如果你想学习更多关于{{videoType}}的内容，别忘了点赞订阅加小铃铛\"\n- 视觉提示：[订阅按钮动画]\n{{/if}}\n\n---\n\n【第二部分：内容导航（1:00-2:00）】\n\n**时间戳章节预告**\n为本期视频创建清晰的章节划分（YouTube时间戳功能）：\n\n{{#if includeChapters}}\n0:00 - 开场介绍\n2:00 - 第一部分：[章节1标题]\n[duration的25%] - 第二部分：[章节2标题]\n[duration的50%] - 第三部分：[章节3标题]\n[duration的75%] - 第四部分：[章节4标题]\n[duration-3:00] - 总结和行动建议\n{{/if}}\n\n---\n\n【第三部分：主体内容（2:00-{{subtract duration 3}}:00）】\n\n根据主题{{videoTitle}}和类型{{videoType}}，生成以下内容：\n\n**内容类型A：教学/教程类**\n{{#eq videoType \"教学教程\"}}\n第一步：问题背景\n- 为什么需要学习这个？\n- 常见误区有哪些？\n\n第二步：核心知识点（3-5个）\n- 知识点1：[标题]\n  - 详细讲解（包含案例/演示）\n  - 常见错误和正确做法对比\n  - 视觉提示：{{#if includeVisuals}}[屏幕录制/图表展示]{{/if}}\n\n- 知识点2：[标题]\n  - ...\n\n第三步：实战演练\n- 跟着我一起操作\n- 分步骤演示\n- 效果展示\n{{/eq}}\n\n**内容类型B：故事/Vlog类**\n{{#eq videoType \"故事Vlog\"}}\n【起】设定背景\n- 时间、地点、人物\n- 发生了什么事件\n\n【承】情节发展\n- 矛盾冲突出现\n- 情绪起伏\n\n【转】高潮转折\n- 意外发生\n- 关键决策时刻\n\n【合】结局升华\n- 问题如何解决\n- 我学到了什么\n- 观众能得到什么启发\n{{/eq}}\n\n**内容类型C：评测/分析类**\n{{#eq videoType \"评测分析\"}}\n第一部分：产品/话题介绍\n- 基本信息\n- 为什么选择评测它\n\n第二部分：详细评测（5-7个维度）\n- 维度1：外观设计 [评分/10]\n- 维度2：功能性能 [评分/10]\n- 维度3：性价比 [评分/10]\n- ...\n\n第三部分：优缺点总结\n- 优点：列举3-5条\n- 缺点：列举2-3条\n- 适合人群\n\n第四部分：购买建议\n- 值不值得买？\n- 什么情况下推荐/不推荐\n{{/eq}}\n\n**内容类型D：榜单/盘点类**\n{{#eq videoType \"榜单盘点\"}}\n开场：榜单主题介绍\n- 评选标准是什么\n- 为什么这个话题值得关注\n\n倒序呈现（从低到高）：\n- 第5名：[名称]\n  - 简介（30秒）\n  - 亮点和不足\n  \n- 第4名：[名称]\n  - ...\n\n- 第1名（重点）：[名称]\n  - 详细介绍（2-3分钟）\n  - 为什么排名第一\n  - 实际演示/案例\n{{/eq}}\n\n---\n\n【第四部分：互动环节（{{subtract duration 3}}:00-{{subtract duration 2}}:00）】\n\n{{#if includeInteraction}}\n**观众互动设计**\n- 提问：\"你们有没有遇到过类似的问题？在评论区告诉我\"\n- 投票：\"你更喜欢方案A还是方案B？\"\n- 挑战：\"试试看能不能完成这个任务，拍视频@我\"\n- 彩蛋：\"看到这里的观众，评论区回复'我看到了'，我会抽3位送小礼物\"\n{{/if}}\n\n---\n\n【第五部分：总结和CTA（{{subtract duration 2}}:00-{{duration}}:00）】\n\n**快速回顾（30秒）**\n- 今天讲了什么（3个要点）\n- 最重要的一句话总结\n\n**行动建议（30秒）**\n- 观众接下来应该做什么\n- 下一步学习路径\n{{#if includeResources}}\n- 相关资源链接（放在简介区）\n{{/if}}\n\n**频道推广（30秒）**\n- \"如果这个视频对你有帮助，记得点赞支持\"\n- \"想看更多{{videoType}}内容，订阅我的频道\"\n- 推荐相关视频：\"点击右边的卡片看我之前做的[相关视频]\"\n\n**结尾彩蛋/预告（30秒）**\n{{#if includeTeaser}}\n- 下期内容预告\n- 幕后花絮\n- 搞笑片段\n{{/if}}\n\n**结束语**\n- \"今天的视频就到这里，我们下期再见！\"\n- 结束画面：[片尾动画 + 推荐视频缩略图]\n\n---\n\n**附录A：B-Roll建议**\n{{#if includeVisuals}}\n为以下片段准备B-Roll素材（插入画面）：\n- 开场：动态转场、文字动画\n- 讲解部分：图表、屏幕录制、实物特写\n- 过渡：转场动画、音效\n- 结尾：订阅动画、片尾卡片\n{{/if}}\n\n**附录B：字幕关键词**\n为提高SEO和可访问性，标注以下关键词（加粗字幕）：\n- {{videoTitle}}\n- {{videoType}}\n- 重要概念（生成3-5个）\n\n**附录C：视频描述文案**\n生成YouTube视频描述区文案：\n- 视频简介（100-150字）\n- 时间戳章节\n- 相关链接\n- 社交媒体账号\n- 标签建议（#标签1 #标签2 #标签3）\n\n**附录D：缩略图建议**\n- 主要文字：{{videoTitle}}中的核心关键词（3-5个字）\n- 视觉元素：震撼表情/箭头/对比图\n- 颜色方案：高对比度，吸引眼球\n\n**风格要求：**\n- 语言风格：{{videoStyle}}\n- 节奏：快节奏（无冗余信息），每30秒一个信息点\n- 互动性：每3-5分钟设计一个互动点（提问/投票/挑战）\n- 可视化：标注所有需要插入图像/动画/特效的位置\n\n**输出格式：**\n- Word文档，左侧为旁白文稿，右侧为视觉提示\n- 使用时间戳标注每个段落（方便剪辑）\n- 用不同颜色区分：旁白（黑色）、视觉提示（蓝色）、音效/BGM（绿色）、互动（红色）",
+
+  "variables_schema": [
+    {
+      "name": "videoTitle",
+      "label": "视频标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：零基础学Python、iPhone 15深度评测"
+    },
+    {
+      "name": "videoType",
+      "label": "视频类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "教学教程", "label": "教学教程（How-to）" },
+        { "value": "故事Vlog", "label": "故事Vlog（叙事性）" },
+        { "value": "评测分析", "label": "评测分析（Review）" },
+        { "value": "榜单盘点", "label": "榜单盘点（Top X）" },
+        { "value": "观点讨论", "label": "观点讨论（Opinion）" }
+      ]
+    },
+    {
+      "name": "duration",
+      "label": "目标时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 15,
+      "min": 10,
+      "max": 30
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标观众",
+      "type": "string",
+      "required": false,
+      "default": "普通观众",
+      "placeholder": "例如：程序员、美妆爱好者、大学生"
+    },
+    {
+      "name": "videoStyle",
+      "label": "视频风格",
+      "type": "select",
+      "required": false,
+      "default": "轻松活泼",
+      "options": [
+        { "value": "专业严谨", "label": "专业严谨（学术、技术）" },
+        { "value": "轻松活泼", "label": "轻松活泼（娱乐、有趣）" },
+        { "value": "幽默搞笑", "label": "幽默搞笑（段子、梗）" },
+        { "value": "深度分析", "label": "深度分析（思考、洞察）" }
+      ]
+    },
+    {
+      "name": "includeChapters",
+      "label": "包含章节时间戳",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "生成章节时间戳" },
+        { "value": "否", "label": "不需要" }
+      ]
+    },
+    {
+      "name": "includeVisuals",
+      "label": "标注视觉元素",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "标注B-Roll和特效位置" },
+        { "value": "否", "label": "纯文字脚本" }
+      ]
+    },
+    {
+      "name": "includeInteraction",
+      "label": "包含互动环节",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "设计观众互动" },
+        { "value": "否", "label": "不包含" }
+      ]
+    },
+    {
+      "name": "includeSubscribeCall",
+      "label": "订阅提醒",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "包含订阅引导" },
+        { "value": "否", "label": "不包含" }
+      ]
+    },
+    {
+      "name": "includeTeaser",
+      "label": "结尾预告",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "包含下期预告" },
+        { "value": "否", "label": "不包含" }
+      ]
+    },
+    {
+      "name": "includeResources",
+      "label": "附加资源",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        { "value": "是", "label": "提供学习资源链接" },
+        { "value": "否", "label": "不提供" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "YouTube-{{videoTitle}}",
+    "files": [
+      {
+        "path": "视频脚本.docx",
+        "type": "document"
+      },
+      {
+        "path": "视频描述文案.md",
+        "type": "markdown",
+        "content": "# {{videoTitle}}\n\n## 视频简介\n[AI将生成100-150字的简介]\n\n## 时间戳章节\n0:00 开场\n...\n\n## 相关链接\n- 资源1：[链接]\n- 资源2：[链接]\n\n## 标签\n#{{videoType}} #YouTube #{{targetAudience}}"
+      },
+      {
+        "path": "缩略图设计需求.md",
+        "type": "markdown",
+        "content": "# 缩略图设计需求\n\n## 主要文字\n{{videoTitle}}的核心关键词（3-5字）\n\n## 视觉元素\n- 震撼表情/箭头/对比图\n\n## 颜色方案\n- 高对比度，吸引眼球"
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
