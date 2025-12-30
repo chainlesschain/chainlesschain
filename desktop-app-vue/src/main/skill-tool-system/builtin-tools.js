@@ -4989,4 +4989,1428 @@ module.exports = [
     is_builtin: 1,
     enabled: 1,
   },
+
+  // ==================== 第五批扩展工具 (93-112) ====================
+
+  {
+    id: 'tool_encrypt_decrypt',
+    name: 'encrypt_decrypt',
+    display_name: '加密解密器',
+    description: '对称/非对称加密、AES、RSA',
+    category: 'security',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['encrypt', 'decrypt']
+        },
+        data: {
+          type: 'string',
+          description: '要处理的数据'
+        },
+        algorithm: {
+          type: 'string',
+          description: '加密算法',
+          enum: ['aes-256-gcm', 'aes-128-cbc', 'rsa']
+        },
+        key: {
+          type: 'string',
+          description: '密钥'
+        },
+        iv: {
+          type: 'string',
+          description: '初始向量（对称加密）'
+        }
+      },
+      required: ['action', 'data', 'algorithm', 'key']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: 'AES加密文本',
+        params: {
+          action: 'encrypt',
+          data: 'sensitive data',
+          algorithm: 'aes-256-gcm',
+          key: '32byteskey...'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_digital_signer',
+    name: 'digital_signer',
+    display_name: '数字签名器',
+    description: '数字签名和验证',
+    category: 'security',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['sign', 'verify']
+        },
+        data: {
+          type: 'string',
+          description: '要签名的数据'
+        },
+        privateKey: {
+          type: 'string',
+          description: '私钥（签名时）'
+        },
+        publicKey: {
+          type: 'string',
+          description: '公钥（验证时）'
+        },
+        signature: {
+          type: 'string',
+          description: '签名（验证时）'
+        },
+        algorithm: {
+          type: 'string',
+          description: '签名算法',
+          enum: ['RSA-SHA256', 'ECDSA'],
+          default: 'RSA-SHA256'
+        }
+      },
+      required: ['action', 'data']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        signature: { type: 'string' },
+        verified: { type: 'boolean' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '签名数据',
+        params: {
+          action: 'sign',
+          data: 'message to sign',
+          privateKey: '-----BEGIN PRIVATE KEY-----...'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_key_generator',
+    name: 'key_generator',
+    display_name: '密钥生成器',
+    description: '生成加密密钥、密钥对',
+    category: 'security',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          description: '密钥类型',
+          enum: ['symmetric', 'rsa', 'ec']
+        },
+        keySize: {
+          type: 'number',
+          description: '密钥大小（位）',
+          enum: [128, 192, 256, 1024, 2048, 4096]
+        },
+        format: {
+          type: 'string',
+          description: '输出格式',
+          enum: ['pem', 'der', 'hex'],
+          default: 'pem'
+        }
+      },
+      required: ['type']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        privateKey: { type: 'string' },
+        publicKey: { type: 'string' },
+        key: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '生成RSA密钥对',
+        params: {
+          type: 'rsa',
+          keySize: 2048,
+          format: 'pem'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_time_series_analyzer',
+    name: 'time_series_analyzer',
+    display_name: '时间序列分析器',
+    description: '时间序列数据分析、模式识别',
+    category: 'data',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: '时间序列数据',
+          items: {
+            type: 'object',
+            properties: {
+              timestamp: { type: 'string' },
+              value: { type: 'number' }
+            }
+          }
+        },
+        analysis: {
+          type: 'array',
+          description: '分析类型',
+          items: {
+            type: 'string',
+            enum: ['trend', 'seasonality', 'anomaly', 'forecast']
+          }
+        },
+        forecastPeriods: {
+          type: 'number',
+          description: '预测周期数',
+          default: 10
+        }
+      },
+      required: ['data', 'analysis']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        results: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '分析销售趋势',
+        params: {
+          data: [{timestamp: '2024-01-01', value: 100}, {timestamp: '2024-01-02', value: 120}],
+          analysis: ['trend', 'forecast'],
+          forecastPeriods: 7
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_trend_detector',
+    name: 'trend_detector',
+    display_name: '趋势检测器',
+    description: '检测数据趋势（上升、下降、平稳）',
+    category: 'data',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: '数值数组',
+          items: { type: 'number' }
+        },
+        window: {
+          type: 'number',
+          description: '滑动窗口大小',
+          default: 5
+        },
+        sensitivity: {
+          type: 'number',
+          description: '灵敏度（0-1）',
+          default: 0.1
+        }
+      },
+      required: ['data']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        trend: {
+          type: 'string',
+          enum: ['upward', 'downward', 'stable', 'volatile']
+        },
+        strength: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '检测股价趋势',
+        params: {
+          data: [100, 102, 105, 103, 108, 112, 115],
+          window: 3
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_file_watcher',
+    name: 'file_watcher',
+    display_name: '文件监视器',
+    description: '监视文件变化（修改、创建、删除）',
+    category: 'file',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['watch', 'unwatch']
+        },
+        path: {
+          type: 'string',
+          description: '监视路径'
+        },
+        events: {
+          type: 'array',
+          description: '监听事件',
+          items: {
+            type: 'string',
+            enum: ['change', 'add', 'unlink', 'addDir', 'unlinkDir']
+          }
+        },
+        callback: {
+          type: 'string',
+          description: '回调函数ID'
+        }
+      },
+      required: ['action', 'path']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        watcherId: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '监视配置文件变化',
+        params: {
+          action: 'watch',
+          path: '/config/app.json',
+          events: ['change']
+        }
+      }
+    ],
+    required_permissions: ['file:watch'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_directory_monitor',
+    name: 'directory_monitor',
+    display_name: '目录监控器',
+    description: '监控目录内文件变化',
+    category: 'file',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        directory: {
+          type: 'string',
+          description: '目录路径'
+        },
+        recursive: {
+          type: 'boolean',
+          description: '是否递归监控子目录',
+          default: true
+        },
+        filter: {
+          type: 'string',
+          description: '文件过滤规则（glob）'
+        },
+        debounce: {
+          type: 'number',
+          description: '防抖延迟（毫秒）',
+          default: 500
+        }
+      },
+      required: ['directory']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        monitorId: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '监控日志目录',
+        params: {
+          directory: '/var/log',
+          recursive: false,
+          filter: '*.log'
+        }
+      }
+    ],
+    required_permissions: ['file:watch'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_cron_scheduler',
+    name: 'cron_scheduler',
+    display_name: 'Cron调度器',
+    description: '使用Cron表达式调度任务',
+    category: 'automation',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['schedule', 'cancel', 'list']
+        },
+        cronExpression: {
+          type: 'string',
+          description: 'Cron表达式（如：0 0 * * *）'
+        },
+        taskId: {
+          type: 'string',
+          description: '任务ID'
+        },
+        task: {
+          type: 'object',
+          description: '任务定义'
+        },
+        timezone: {
+          type: 'string',
+          description: '时区',
+          default: 'UTC'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        taskId: { type: 'string' },
+        nextRun: { type: 'string' },
+        tasks: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '每天凌晨0点执行备份',
+        params: {
+          action: 'schedule',
+          cronExpression: '0 0 * * *',
+          task: { type: 'backup', target: 'database' }
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_task_timer',
+    name: 'task_timer',
+    display_name: '任务定时器',
+    description: '延时执行任务、间隔执行',
+    category: 'automation',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['setTimeout', 'setInterval', 'clear']
+        },
+        delay: {
+          type: 'number',
+          description: '延迟时间（毫秒）'
+        },
+        interval: {
+          type: 'number',
+          description: '间隔时间（毫秒）'
+        },
+        timerId: {
+          type: 'string',
+          description: '定时器ID'
+        },
+        task: {
+          type: 'object',
+          description: '要执行的任务'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        timerId: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '5秒后发送通知',
+        params: {
+          action: 'setTimeout',
+          delay: 5000,
+          task: { type: 'notification', message: 'Time is up!' }
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_migration_runner',
+    name: 'migration_runner',
+    display_name: '迁移执行器',
+    description: '执行数据库迁移脚本',
+    category: 'database',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['up', 'down', 'latest', 'rollback', 'status']
+        },
+        steps: {
+          type: 'number',
+          description: '执行步数',
+          default: 1
+        },
+        dryRun: {
+          type: 'boolean',
+          description: '是否模拟执行',
+          default: false
+        },
+        dbConfig: {
+          type: 'object',
+          description: '数据库配置'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        executed: { type: 'array' },
+        pending: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '执行所有待处理迁移',
+        params: {
+          action: 'latest',
+          dryRun: false
+        }
+      }
+    ],
+    required_permissions: ['database:write'],
+    risk_level: 4,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_schema_differ',
+    name: 'schema_differ',
+    display_name: 'Schema差异检测器',
+    description: '比较数据库Schema差异',
+    category: 'database',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        source: {
+          type: 'object',
+          description: '源Schema'
+        },
+        target: {
+          type: 'object',
+          description: '目标Schema'
+        },
+        options: {
+          type: 'object',
+          description: '比较选项',
+          properties: {
+            ignoreColumnOrder: { type: 'boolean', default: true },
+            ignoreConstraints: { type: 'boolean', default: false }
+          }
+        }
+      },
+      required: ['source', 'target']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        differences: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string' },
+              table: { type: 'string' },
+              column: { type: 'string' },
+              change: { type: 'string' }
+            }
+          }
+        },
+        sqlStatements: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '比较开发和生产环境Schema',
+        params: {
+          source: { /* dev schema */ },
+          target: { /* prod schema */ }
+        }
+      }
+    ],
+    required_permissions: ['database:read'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_websocket_server',
+    name: 'websocket_server',
+    display_name: 'WebSocket服务器',
+    description: '创建和管理WebSocket服务器',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['start', 'stop', 'broadcast', 'send']
+        },
+        port: {
+          type: 'number',
+          description: '端口号',
+          default: 8080
+        },
+        message: {
+          type: 'any',
+          description: '消息内容'
+        },
+        clientId: {
+          type: 'string',
+          description: '客户端ID（发送单个消息时）'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        serverId: { type: 'string' },
+        clients: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '启动WebSocket服务器',
+        params: {
+          action: 'start',
+          port: 8080
+        }
+      }
+    ],
+    required_permissions: ['network:listen'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_websocket_client',
+    name: 'websocket_client',
+    display_name: 'WebSocket客户端',
+    description: '连接WebSocket服务器',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['connect', 'disconnect', 'send', 'subscribe']
+        },
+        url: {
+          type: 'string',
+          description: 'WebSocket URL'
+        },
+        message: {
+          type: 'any',
+          description: '消息内容'
+        },
+        connectionId: {
+          type: 'string',
+          description: '连接ID'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        connectionId: { type: 'string' },
+        data: { type: 'any' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '连接WebSocket服务器',
+        params: {
+          action: 'connect',
+          url: 'ws://localhost:8080'
+        }
+      }
+    ],
+    required_permissions: ['network:http'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_barcode_generator',
+    name: 'barcode_generator',
+    display_name: '条形码生成器',
+    description: '生成各类条形码（Code128、EAN、UPC等）',
+    category: 'image',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'string',
+          description: '条形码数据'
+        },
+        format: {
+          type: 'string',
+          description: '条形码格式',
+          enum: ['CODE128', 'EAN13', 'EAN8', 'UPC', 'CODE39']
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        options: {
+          type: 'object',
+          description: '生成选项',
+          properties: {
+            width: { type: 'number', default: 2 },
+            height: { type: 'number', default: 100 },
+            displayValue: { type: 'boolean', default: true }
+          }
+        }
+      },
+      required: ['data', 'format', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        imagePath: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '生成EAN13条形码',
+        params: {
+          data: '1234567890128',
+          format: 'EAN13',
+          outputPath: '/barcodes/product.png'
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_code_recognizer',
+    name: 'code_recognizer',
+    display_name: '码识别器',
+    description: '识别图片中的二维码和条形码',
+    category: 'image',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        imagePath: {
+          type: 'string',
+          description: '图片路径'
+        },
+        type: {
+          type: 'string',
+          description: '识别类型',
+          enum: ['qrcode', 'barcode', 'auto'],
+          default: 'auto'
+        }
+      },
+      required: ['imagePath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        codes: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string' },
+              data: { type: 'string' },
+              format: { type: 'string' }
+            }
+          }
+        },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '识别图片中的二维码',
+        params: {
+          imagePath: '/images/qr.png',
+          type: 'qrcode'
+        }
+      }
+    ],
+    required_permissions: ['file:read'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_geocoder',
+    name: 'geocoder',
+    display_name: '地理编码器',
+    description: '地址和坐标互相转换',
+    category: 'location',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['geocode', 'reverse']
+        },
+        address: {
+          type: 'string',
+          description: '地址（正向编码）'
+        },
+        latitude: {
+          type: 'number',
+          description: '纬度（反向编码）'
+        },
+        longitude: {
+          type: 'number',
+          description: '经度（反向编码）'
+        },
+        provider: {
+          type: 'string',
+          description: '服务提供商',
+          enum: ['google', 'baidu', 'amap'],
+          default: 'google'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        latitude: { type: 'number' },
+        longitude: { type: 'number' },
+        address: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '地址转坐标',
+        params: {
+          action: 'geocode',
+          address: '北京市朝阳区',
+          provider: 'baidu'
+        }
+      }
+    ],
+    required_permissions: ['network:http'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_distance_calculator',
+    name: 'distance_calculator',
+    display_name: '距离计算器',
+    description: '计算两点间距离（支持多种算法）',
+    category: 'location',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        point1: {
+          type: 'object',
+          description: '起点坐标',
+          properties: {
+            latitude: { type: 'number' },
+            longitude: { type: 'number' }
+          }
+        },
+        point2: {
+          type: 'object',
+          description: '终点坐标',
+          properties: {
+            latitude: { type: 'number' },
+            longitude: { type: 'number' }
+          }
+        },
+        algorithm: {
+          type: 'string',
+          description: '计算算法',
+          enum: ['haversine', 'vincenty'],
+          default: 'haversine'
+        },
+        unit: {
+          type: 'string',
+          description: '距离单位',
+          enum: ['km', 'mi', 'm'],
+          default: 'km'
+        }
+      },
+      required: ['point1', 'point2']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        distance: { type: 'number' },
+        unit: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '计算北京到上海距离',
+        params: {
+          point1: {latitude: 39.9042, longitude: 116.4074},
+          point2: {latitude: 31.2304, longitude: 121.4737},
+          unit: 'km'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_coordinate_converter',
+    name: 'coordinate_converter',
+    display_name: '坐标转换器',
+    description: '不同坐标系统间转换（WGS84、GCJ02、BD09）',
+    category: 'location',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        latitude: {
+          type: 'number',
+          description: '纬度'
+        },
+        longitude: {
+          type: 'number',
+          description: '经度'
+        },
+        from: {
+          type: 'string',
+          description: '源坐标系',
+          enum: ['WGS84', 'GCJ02', 'BD09']
+        },
+        to: {
+          type: 'string',
+          description: '目标坐标系',
+          enum: ['WGS84', 'GCJ02', 'BD09']
+        }
+      },
+      required: ['latitude', 'longitude', 'from', 'to']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        latitude: { type: 'number' },
+        longitude: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: 'WGS84转GCJ02（GPS转高德）',
+        params: {
+          latitude: 39.9042,
+          longitude: 116.4074,
+          from: 'WGS84',
+          to: 'GCJ02'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_video_editor',
+    name: 'video_editor',
+    display_name: '视频编辑器',
+    description: '视频剪辑、合并、裁剪',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['cut', 'merge', 'crop', 'watermark']
+        },
+        inputPath: {
+          type: 'string',
+          description: '输入视频路径'
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出视频路径'
+        },
+        startTime: {
+          type: 'string',
+          description: '开始时间（HH:MM:SS）'
+        },
+        endTime: {
+          type: 'string',
+          description: '结束时间（HH:MM:SS）'
+        },
+        watermark: {
+          type: 'object',
+          description: '水印配置'
+        }
+      },
+      required: ['action', 'inputPath', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        outputPath: { type: 'string' },
+        duration: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '剪辑视频片段',
+        params: {
+          action: 'cut',
+          inputPath: '/videos/source.mp4',
+          outputPath: '/videos/output.mp4',
+          startTime: '00:01:00',
+          endTime: '00:02:30'
+        }
+      }
+    ],
+    required_permissions: ['file:read', 'file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_video_transcoder',
+    name: 'video_transcoder',
+    display_name: '视频转码器',
+    description: '视频格式转换、编码转换',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        inputPath: {
+          type: 'string',
+          description: '输入视频路径'
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出视频路径'
+        },
+        codec: {
+          type: 'string',
+          description: '视频编码',
+          enum: ['h264', 'h265', 'vp9', 'av1']
+        },
+        resolution: {
+          type: 'string',
+          description: '分辨率',
+          enum: ['480p', '720p', '1080p', '4k']
+        },
+        bitrate: {
+          type: 'string',
+          description: '比特率'
+        }
+      },
+      required: ['inputPath', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        outputPath: { type: 'string' },
+        size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '转码为H265 1080p',
+        params: {
+          inputPath: '/videos/source.mp4',
+          outputPath: '/videos/compressed.mp4',
+          codec: 'h265',
+          resolution: '1080p'
+        }
+      }
+    ],
+    required_permissions: ['file:read', 'file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_video_screenshot',
+    name: 'video_screenshot',
+    display_name: '视频截图器',
+    description: '从视频中截取帧作为图片',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        videoPath: {
+          type: 'string',
+          description: '视频文件路径'
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出图片路径'
+        },
+        timestamp: {
+          type: 'string',
+          description: '时间点（HH:MM:SS）'
+        },
+        count: {
+          type: 'number',
+          description: '截图数量',
+          default: 1
+        },
+        interval: {
+          type: 'number',
+          description: '间隔（秒）'
+        }
+      },
+      required: ['videoPath', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        screenshots: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '截取视频第10秒画面',
+        params: {
+          videoPath: '/videos/movie.mp4',
+          outputPath: '/screenshots/frame.jpg',
+          timestamp: '00:00:10'
+        }
+      }
+    ],
+    required_permissions: ['file:read', 'file:write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_code_linter',
+    name: 'code_linter',
+    display_name: '代码检查器',
+    description: '代码质量和风格检查',
+    category: 'code',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: '代码内容'
+        },
+        language: {
+          type: 'string',
+          description: '编程语言',
+          enum: ['javascript', 'typescript', 'python', 'java', 'go']
+        },
+        rules: {
+          type: 'object',
+          description: '检查规则配置'
+        },
+        fix: {
+          type: 'boolean',
+          description: '是否自动修复',
+          default: false
+        }
+      },
+      required: ['code', 'language']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        issues: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              line: { type: 'number' },
+              column: { type: 'number' },
+              severity: { type: 'string' },
+              message: { type: 'string' },
+              rule: { type: 'string' }
+            }
+          }
+        },
+        fixedCode: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '检查JavaScript代码',
+        params: {
+          code: 'var x = 1;\nconsole.log(x)',
+          language: 'javascript',
+          fix: true
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_ast_parser',
+    name: 'ast_parser',
+    display_name: 'AST解析器',
+    description: '解析代码为抽象语法树',
+    category: 'code',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: '代码内容'
+        },
+        language: {
+          type: 'string',
+          description: '编程语言',
+          enum: ['javascript', 'typescript', 'python', 'java']
+        },
+        includeComments: {
+          type: 'boolean',
+          description: '是否包含注释',
+          default: false
+        }
+      },
+      required: ['code', 'language']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        ast: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '解析JavaScript代码',
+        params: {
+          code: 'function add(a, b) { return a + b; }',
+          language: 'javascript'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_complexity_calculator',
+    name: 'complexity_calculator',
+    display_name: '复杂度计算器',
+    description: '计算代码圈复杂度、认知复杂度',
+    category: 'code',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: '代码内容'
+        },
+        language: {
+          type: 'string',
+          description: '编程语言',
+          enum: ['javascript', 'typescript', 'python', 'java']
+        },
+        metrics: {
+          type: 'array',
+          description: '要计算的指标',
+          items: {
+            type: 'string',
+            enum: ['cyclomatic', 'cognitive', 'halstead', 'loc']
+          }
+        }
+      },
+      required: ['code', 'language']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        complexity: {
+          type: 'object',
+          properties: {
+            cyclomatic: { type: 'number' },
+            cognitive: { type: 'number' },
+            halstead: { type: 'object' },
+            loc: { type: 'number' }
+          }
+        },
+        functions: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '计算函数复杂度',
+        params: {
+          code: 'function complex(x) { if (x > 0) { for (let i = 0; i < x; i++) { if (i % 2 === 0) { console.log(i); } } } }',
+          language: 'javascript',
+          metrics: ['cyclomatic', 'cognitive']
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
 ];
