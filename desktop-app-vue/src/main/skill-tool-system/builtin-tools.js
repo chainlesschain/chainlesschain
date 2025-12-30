@@ -11921,4 +11921,1413 @@ module.exports = [
     is_builtin: 1,
     enabled: 1,
   },
+
+  // ========== 第十一批工具 (217-236): 前沿物理与尖端科学工具 ==========
+
+  {
+    id: 'tool_ligo_data_analyzer',
+    name: 'ligo_data_analyzer',
+    display_name: 'LIGO数据分析器',
+    description: '引力波探测器数据分析和信号处理',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        detector: {
+          type: 'string',
+          description: '探测器',
+          enum: ['LIGO-Hanford', 'LIGO-Livingston', 'Virgo', 'KAGRA']
+        },
+        data_segment: {
+          type: 'object',
+          description: '数据段',
+          properties: {
+            start_gps: { type: 'number', description: 'GPS开始时间' },
+            duration: { type: 'number', description: '持续时间(秒)' }
+          },
+          required: ['start_gps', 'duration']
+        },
+        preprocessing: {
+          type: 'object',
+          description: '预处理选项',
+          properties: {
+            whitening: { type: 'boolean', description: '白化处理' },
+            bandpass: {
+              type: 'object',
+              properties: {
+                low_freq: { type: 'number' },
+                high_freq: { type: 'number' }
+              }
+            },
+            notch_filters: { type: 'array', items: { type: 'number' } }
+          }
+        },
+        analysis_method: {
+          type: 'string',
+          description: '分析方法',
+          enum: ['matched_filter', 'burst', 'stochastic', 'continuous']
+        }
+      },
+      required: ['detector', 'data_segment', 'analysis_method']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        strain_data: { type: 'array', description: '应变数据' },
+        psd: { type: 'object', description: '功率谱密度' },
+        triggers: { type: 'array', description: '触发事件' },
+        quality_flags: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.physics'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_waveform_matcher',
+    name: 'waveform_matcher',
+    display_name: '引力波波形匹配器',
+    description: '模板匹配和参数估计',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        strain_data: {
+          type: 'array',
+          description: '应变数据'
+        },
+        template_bank: {
+          type: 'object',
+          description: '模板库',
+          properties: {
+            mass_range: {
+              type: 'object',
+              properties: {
+                m1_min: { type: 'number' },
+                m1_max: { type: 'number' },
+                m2_min: { type: 'number' },
+                m2_max: { type: 'number' }
+              }
+            },
+            spin_range: { type: 'object' }
+          }
+        },
+        search_params: {
+          type: 'object',
+          description: '搜索参数',
+          properties: {
+            snr_threshold: { type: 'number', description: '信噪比阈值' },
+            chi_squared_threshold: { type: 'number' }
+          }
+        },
+        parameter_estimation: {
+          type: 'boolean',
+          description: '是否进行参数估计'
+        }
+      },
+      required: ['strain_data', 'template_bank']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        matches: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              snr: { type: 'number' },
+              chirp_mass: { type: 'number' },
+              total_mass: { type: 'number' },
+              distance_mpc: { type: 'number' },
+              merger_time: { type: 'number' }
+            }
+          }
+        },
+        best_match_params: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.physics'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_particle_simulator',
+    name: 'particle_simulator',
+    display_name: '粒子碰撞模拟器',
+    description: '高能粒子碰撞模拟',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        collider: {
+          type: 'string',
+          description: '对撞机',
+          enum: ['LHC', 'Tevatron', 'RHIC', 'ILC', 'FCC']
+        },
+        collision_energy: {
+          type: 'number',
+          description: '碰撞能量(TeV)'
+        },
+        beam_particles: {
+          type: 'object',
+          description: '束流粒子',
+          properties: {
+            particle1: { type: 'string', enum: ['proton', 'electron', 'positron', 'heavy_ion'] },
+            particle2: { type: 'string', enum: ['proton', 'electron', 'positron', 'heavy_ion'] }
+          }
+        },
+        process: {
+          type: 'string',
+          description: '物理过程',
+          enum: ['Higgs_production', 'top_pair', 'SUSY', 'exotic', 'QCD']
+        },
+        num_events: {
+          type: 'number',
+          description: '事例数'
+        },
+        detector_simulation: {
+          type: 'boolean',
+          description: '是否模拟探测器响应'
+        }
+      },
+      required: ['collider', 'collision_energy', 'process']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        events: { type: 'array', description: '事例列表' },
+        cross_section: { type: 'number', description: '截面(pb)' },
+        kinematics: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.physics'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_event_generator',
+    name: 'event_generator',
+    display_name: '粒子事例生成器',
+    description: 'Monte Carlo事例生成',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        generator: {
+          type: 'string',
+          description: '生成器',
+          enum: ['Pythia', 'Herwig', 'Sherpa', 'MadGraph']
+        },
+        process: {
+          type: 'string',
+          description: '物理过程'
+        },
+        pdf_set: {
+          type: 'string',
+          description: 'PDF集合',
+          enum: ['NNPDF', 'CT18', 'MMHT2014']
+        },
+        hadronization: {
+          type: 'object',
+          description: '强子化模型',
+          properties: {
+            model: { type: 'string', enum: ['string', 'cluster'] },
+            tune: { type: 'string' }
+          }
+        },
+        cuts: {
+          type: 'object',
+          description: '运动学切割',
+          properties: {
+            pt_min: { type: 'number' },
+            eta_max: { type: 'number' },
+            invariant_mass_range: { type: 'array' }
+          }
+        },
+        num_events: {
+          type: 'number',
+          description: '生成事例数'
+        }
+      },
+      required: ['generator', 'process', 'num_events']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        events: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              event_id: { type: 'number' },
+              particles: { type: 'array' },
+              weight: { type: 'number' }
+            }
+          }
+        },
+        histograms: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.physics'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_wimp_detector',
+    name: 'wimp_detector',
+    display_name: 'WIMP探测器',
+    description: '弱相互作用大质量粒子直接探测',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        detector_type: {
+          type: 'string',
+          description: '探测器类型',
+          enum: ['xenon_TPC', 'germanium', 'scintillator', 'bubble_chamber']
+        },
+        target_material: {
+          type: 'string',
+          description: '靶材料',
+          enum: ['Xe', 'Ge', 'Ar', 'Si', 'NaI']
+        },
+        exposure: {
+          type: 'object',
+          description: '曝光量',
+          properties: {
+            mass_kg: { type: 'number' },
+            time_days: { type: 'number' }
+          }
+        },
+        energy_threshold: {
+          type: 'number',
+          description: '能量阈值(keV)'
+        },
+        background_model: {
+          type: 'object',
+          description: '本底模型',
+          properties: {
+            radon: { type: 'number' },
+            cosmogenic: { type: 'number' },
+            neutron: { type: 'number' }
+          }
+        },
+        wimp_params: {
+          type: 'object',
+          description: 'WIMP参数',
+          properties: {
+            mass_gev: { type: 'number' },
+            cross_section: { type: 'number' }
+          }
+        }
+      },
+      required: ['detector_type', 'target_material', 'exposure']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        events: { type: 'array', description: '候选事例' },
+        exclusion_limit: { type: 'object', description: '排除限' },
+        significance: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.physics'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_axion_searcher',
+    name: 'axion_searcher',
+    display_name: '轴子搜寻器',
+    description: '轴子暗物质搜寻',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        search_method: {
+          type: 'string',
+          description: '搜寻方法',
+          enum: ['cavity_haloscope', 'helioscope', 'light_shining']
+        },
+        mass_range: {
+          type: 'object',
+          description: '质量范围(μeV)',
+          properties: {
+            min: { type: 'number' },
+            max: { type: 'number' }
+          }
+        },
+        cavity_params: {
+          type: 'object',
+          description: '腔体参数',
+          properties: {
+            frequency_ghz: { type: 'number' },
+            quality_factor: { type: 'number' },
+            volume_liters: { type: 'number' }
+          }
+        },
+        magnetic_field: {
+          type: 'number',
+          description: '磁场强度(T)'
+        },
+        integration_time: {
+          type: 'number',
+          description: '积分时间(hours)'
+        },
+        coupling_constant: {
+          type: 'number',
+          description: '耦合常数g_aγγ'
+        }
+      },
+      required: ['search_method', 'mass_range']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        signal_power: { type: 'number', description: '信号功率(W)' },
+        sensitivity: { type: 'number' },
+        exclusion_plot: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.physics'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_tokamak_simulator',
+    name: 'tokamak_simulator',
+    display_name: '托卡马克模拟器',
+    description: '托卡马克等离子体模拟',
+    category: 'energy',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        device: {
+          type: 'string',
+          description: '装置',
+          enum: ['ITER', 'EAST', 'JET', 'SPARC', 'DEMO']
+        },
+        plasma_params: {
+          type: 'object',
+          description: '等离子体参数',
+          properties: {
+            major_radius: { type: 'number', description: '大半径(m)' },
+            minor_radius: { type: 'number', description: '小半径(m)' },
+            toroidal_field: { type: 'number', description: '环向磁场(T)' },
+            plasma_current: { type: 'number', description: '等离子体电流(MA)' }
+          }
+        },
+        operating_scenario: {
+          type: 'string',
+          description: '运行模式',
+          enum: ['L-mode', 'H-mode', 'I-mode', 'advanced']
+        },
+        heating_systems: {
+          type: 'object',
+          description: '加热系统',
+          properties: {
+            nbi_power: { type: 'number', description: 'NBI功率(MW)' },
+            ec_power: { type: 'number', description: 'EC功率(MW)' },
+            ic_power: { type: 'number', description: 'IC功率(MW)' }
+          }
+        },
+        simulation_type: {
+          type: 'string',
+          description: '模拟类型',
+          enum: ['equilibrium', 'transport', 'stability', 'disruption']
+        },
+        duration: {
+          type: 'number',
+          description: '模拟时长(s)'
+        }
+      },
+      required: ['device', 'plasma_params', 'simulation_type']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        fusion_power: { type: 'number', description: '聚变功率(MW)' },
+        q_factor: { type: 'number', description: '能量增益因子Q' },
+        confinement_time: { type: 'number', description: '约束时间(s)' },
+        beta: { type: 'number', description: 'β值' },
+        profiles: { type: 'object', description: '剖面' },
+        stability: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['energy.nuclear'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_plasma_controller',
+    name: 'plasma_controller',
+    display_name: '等离子体控制器',
+    description: '等离子体位形和稳定性控制',
+    category: 'energy',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        control_objectives: {
+          type: 'object',
+          description: '控制目标',
+          properties: {
+            vertical_position: { type: 'number' },
+            elongation: { type: 'number' },
+            triangularity: { type: 'number' },
+            q95: { type: 'number' }
+          }
+        },
+        actuators: {
+          type: 'object',
+          description: '执行器',
+          properties: {
+            poloidal_field_coils: { type: 'array', description: 'PF线圈电流' },
+            neutral_beam: { type: 'number' },
+            gas_puffing: { type: 'number' }
+          }
+        },
+        controller_type: {
+          type: 'string',
+          description: '控制器类型',
+          enum: ['PID', 'model_predictive', 'neural_network', 'fuzzy']
+        },
+        feedback_sensors: {
+          type: 'array',
+          description: '反馈传感器',
+          items: { type: 'string' }
+        },
+        constraints: {
+          type: 'object',
+          description: '约束条件',
+          properties: {
+            max_coil_current: { type: 'number' },
+            max_power: { type: 'number' }
+          }
+        }
+      },
+      required: ['control_objectives', 'controller_type']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        control_signals: { type: 'object' },
+        plasma_state: { type: 'object' },
+        stability_margin: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['energy.nuclear'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_photonic_router',
+    name: 'photonic_router',
+    display_name: '光子路由器',
+    description: '全光网络路由和交换',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        architecture: {
+          type: 'string',
+          description: '架构',
+          enum: ['wavelength_routing', 'optical_burst', 'optical_packet']
+        },
+        wavelength_channels: {
+          type: 'number',
+          description: '波长信道数'
+        },
+        switching_technology: {
+          type: 'string',
+          description: '交换技术',
+          enum: ['MEMS', 'SOA', 'electro_optic', 'thermo_optic']
+        },
+        modulation_format: {
+          type: 'string',
+          description: '调制格式',
+          enum: ['OOK', 'DPSK', 'QPSK', 'QAM16', 'QAM64']
+        },
+        routing_table: {
+          type: 'array',
+          description: '路由表',
+          items: {
+            type: 'object',
+            properties: {
+              source: { type: 'string' },
+              destination: { type: 'string' },
+              wavelength: { type: 'number' }
+            }
+          }
+        },
+        qos_requirements: {
+          type: 'object',
+          description: 'QoS要求',
+          properties: {
+            latency_ms: { type: 'number' },
+            bandwidth_gbps: { type: 'number' },
+            ber_threshold: { type: 'number' }
+          }
+        }
+      },
+      required: ['architecture', 'wavelength_channels']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        routes: { type: 'array' },
+        wavelength_assignment: { type: 'object' },
+        throughput_gbps: { type: 'number' },
+        blocking_probability: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['network.admin'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_optical_nn_designer',
+    name: 'optical_nn_designer',
+    display_name: '光学神经网络设计器',
+    description: '光学神经网络架构设计',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        architecture: {
+          type: 'string',
+          description: '架构类型',
+          enum: ['diffractive', 'interferometric', 'reservoir', 'hybrid']
+        },
+        layers: {
+          type: 'array',
+          description: '网络层',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', enum: ['phase_mask', 'mzi_mesh', 'free_space'] },
+              size: { type: 'number' }
+            }
+          }
+        },
+        optical_components: {
+          type: 'object',
+          description: '光学元件',
+          properties: {
+            wavelength_nm: { type: 'number' },
+            nonlinearity: { type: 'string', enum: ['none', 'saturable_absorber', 'kerr'] }
+          }
+        },
+        training_method: {
+          type: 'string',
+          description: '训练方法',
+          enum: ['in_situ', 'digital_twin', 'hybrid']
+        },
+        task: {
+          type: 'string',
+          description: '任务类型',
+          enum: ['classification', 'regression', 'generation']
+        },
+        dataset: {
+          type: 'object',
+          description: '数据集'
+        }
+      },
+      required: ['architecture', 'layers']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        model_id: { type: 'string' },
+        performance: { type: 'object' },
+        power_consumption_mw: { type: 'number' },
+        latency_ns: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_topological_state_calculator',
+    name: 'topological_state_calculator',
+    display_name: '拓扑态计算器',
+    description: '拓扑不变量和能带结构计算',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        material: {
+          type: 'object',
+          description: '材料信息',
+          properties: {
+            lattice: { type: 'string', description: '晶格类型' },
+            atoms: { type: 'array' },
+            symmetry: { type: 'string' }
+          }
+        },
+        hamiltonian: {
+          type: 'object',
+          description: '哈密顿量',
+          properties: {
+            tight_binding: { type: 'object' },
+            spin_orbit_coupling: { type: 'number' }
+          }
+        },
+        topological_invariant: {
+          type: 'string',
+          description: '拓扑不变量',
+          enum: ['chern_number', 'z2_invariant', 'winding_number', 'berry_phase']
+        },
+        k_points: {
+          type: 'object',
+          description: 'k点网格',
+          properties: {
+            grid: { type: 'array' },
+            path: { type: 'array', description: '高对称路径' }
+          }
+        },
+        calculation_method: {
+          type: 'string',
+          description: '计算方法',
+          enum: ['wannier', 'berry_curvature', 'edge_states']
+        }
+      },
+      required: ['material', 'topological_invariant']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        invariant_value: { type: 'number' },
+        band_structure: { type: 'object' },
+        edge_states: { type: 'array' },
+        topological_phase: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.physics'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_majorana_detector',
+    name: 'majorana_detector',
+    display_name: '马约拉纳费米子探测器',
+    description: '马约拉纳零能模探测',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        system_type: {
+          type: 'string',
+          description: '系统类型',
+          enum: ['nanowire', 'vortex', 'edge_state', 'junction']
+        },
+        experimental_setup: {
+          type: 'object',
+          description: '实验装置',
+          properties: {
+            temperature_mk: { type: 'number', description: '温度(mK)' },
+            magnetic_field_t: { type: 'number' },
+            gate_voltages: { type: 'array' }
+          }
+        },
+        measurement_type: {
+          type: 'string',
+          description: '测量类型',
+          enum: ['tunneling_spectroscopy', 'conductance', 'braiding', 'interference']
+        },
+        bias_voltage_range: {
+          type: 'object',
+          description: '偏压范围(mV)',
+          properties: {
+            min: { type: 'number' },
+            max: { type: 'number' },
+            step: { type: 'number' }
+          }
+        },
+        signature_criteria: {
+          type: 'object',
+          description: '特征判据',
+          properties: {
+            zero_bias_peak: { type: 'boolean' },
+            quantized_conductance: { type: 'boolean' },
+            non_abelian_statistics: { type: 'boolean' }
+          }
+        }
+      },
+      required: ['system_type', 'measurement_type']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        differential_conductance: { type: 'array' },
+        zero_bias_peak_height: { type: 'number' },
+        majorana_probability: { type: 'number' },
+        topological_gap: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.physics'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_ice_core_analyzer',
+    name: 'ice_core_analyzer',
+    display_name: '冰芯分析器',
+    description: '冰芯物理化学分析',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        core_info: {
+          type: 'object',
+          description: '冰芯信息',
+          properties: {
+            location: { type: 'string', enum: ['Antarctica', 'Greenland', 'Tibet', 'Alps'] },
+            depth_m: { type: 'number' },
+            age_ka: { type: 'number', description: '年龄(千年)' }
+          }
+        },
+        analysis_types: {
+          type: 'array',
+          description: '分析类型',
+          items: {
+            type: 'string',
+            enum: ['isotope', 'greenhouse_gas', 'chemistry', 'dust', 'microstructure']
+          }
+        },
+        isotope_ratios: {
+          type: 'object',
+          description: '同位素比值',
+          properties: {
+            delta_O18: { type: 'boolean' },
+            delta_D: { type: 'boolean' },
+            deuterium_excess: { type: 'boolean' }
+          }
+        },
+        gas_measurements: {
+          type: 'object',
+          description: '气体测量',
+          properties: {
+            CO2: { type: 'boolean' },
+            CH4: { type: 'boolean' },
+            N2O: { type: 'boolean' }
+          }
+        },
+        resolution: {
+          type: 'number',
+          description: '分辨率(cm)'
+        },
+        dating_method: {
+          type: 'string',
+          description: '定年方法',
+          enum: ['layer_counting', 'volcanic_markers', 'orbital_tuning']
+        }
+      },
+      required: ['core_info', 'analysis_types']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        isotope_profile: { type: 'array' },
+        gas_concentrations: { type: 'object' },
+        temperature_reconstruction: { type: 'array' },
+        age_depth_model: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.environment'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_climate_reconstructor',
+    name: 'climate_reconstructor',
+    display_name: '气候重建器',
+    description: '古气候重建和模拟',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        proxy_data: {
+          type: 'object',
+          description: '代用指标数据',
+          properties: {
+            ice_cores: { type: 'array' },
+            tree_rings: { type: 'array' },
+            sediments: { type: 'array' },
+            corals: { type: 'array' }
+          }
+        },
+        reconstruction_method: {
+          type: 'string',
+          description: '重建方法',
+          enum: ['transfer_function', 'analog', 'bayesian', 'data_assimilation']
+        },
+        target_variable: {
+          type: 'string',
+          description: '目标变量',
+          enum: ['temperature', 'precipitation', 'sea_level', 'ice_volume']
+        },
+        time_period: {
+          type: 'object',
+          description: '时间段',
+          properties: {
+            start_ka: { type: 'number' },
+            end_ka: { type: 'number' }
+          }
+        },
+        spatial_resolution: {
+          type: 'string',
+          description: '空间分辨率',
+          enum: ['global', 'hemispheric', 'regional', 'local']
+        },
+        climate_model: {
+          type: 'string',
+          description: '气候模型',
+          enum: ['CESM', 'HadCM3', 'IPSL', 'MPI-ESM']
+        }
+      },
+      required: ['proxy_data', 'reconstruction_method', 'target_variable']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        reconstruction: { type: 'array', description: '重建序列' },
+        uncertainty: { type: 'object' },
+        forcing_factors: { type: 'object' },
+        climate_sensitivity: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.environment'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_magma_simulator',
+    name: 'magma_simulator',
+    display_name: '岩浆模拟器',
+    description: '岩浆动力学模拟',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        volcano_type: {
+          type: 'string',
+          description: '火山类型',
+          enum: ['shield', 'stratovolcano', 'caldera', 'cinder_cone']
+        },
+        magma_properties: {
+          type: 'object',
+          description: '岩浆性质',
+          properties: {
+            composition: { type: 'string', enum: ['basaltic', 'andesitic', 'rhyolitic'] },
+            temperature_c: { type: 'number' },
+            viscosity: { type: 'number' },
+            volatile_content: {
+              type: 'object',
+              properties: {
+                H2O_wt: { type: 'number' },
+                CO2_ppm: { type: 'number' },
+                SO2_ppm: { type: 'number' }
+              }
+            }
+          }
+        },
+        chamber_geometry: {
+          type: 'object',
+          description: '岩浆房几何',
+          properties: {
+            depth_km: { type: 'number' },
+            volume_km3: { type: 'number' },
+            shape: { type: 'string', enum: ['spherical', 'ellipsoidal', 'sill'] }
+          }
+        },
+        conduit_model: {
+          type: 'object',
+          description: '管道模型',
+          properties: {
+            diameter_m: { type: 'number' },
+            length_m: { type: 'number' }
+          }
+        },
+        simulation_type: {
+          type: 'string',
+          description: '模拟类型',
+          enum: ['eruption', 'degassing', 'crystallization', 'mixing']
+        },
+        boundary_conditions: {
+          type: 'object',
+          description: '边界条件',
+          properties: {
+            pressure_mpa: { type: 'number' },
+            mass_flux: { type: 'number' }
+          }
+        }
+      },
+      required: ['volcano_type', 'magma_properties', 'simulation_type']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        eruption_dynamics: { type: 'object' },
+        mass_eruption_rate: { type: 'number' },
+        plume_height_km: { type: 'number' },
+        gas_emissions: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.geology'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_volcanic_monitor',
+    name: 'volcanic_monitor',
+    display_name: '火山监测器',
+    description: '火山活动监测和预警',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        volcano_name: {
+          type: 'string',
+          description: '火山名称'
+        },
+        monitoring_systems: {
+          type: 'object',
+          description: '监测系统',
+          properties: {
+            seismic: {
+              type: 'object',
+              properties: {
+                stations: { type: 'number' },
+                event_threshold: { type: 'number' }
+              }
+            },
+            deformation: {
+              type: 'object',
+              properties: {
+                method: { type: 'string', enum: ['GPS', 'InSAR', 'tiltmeter'] },
+                baseline_mm: { type: 'number' }
+              }
+            },
+            gas: {
+              type: 'object',
+              properties: {
+                species: { type: 'array', items: { type: 'string', enum: ['SO2', 'CO2', 'H2S'] } },
+                doas_stations: { type: 'number' }
+              }
+            },
+            thermal: {
+              type: 'boolean',
+              description: '热红外监测'
+            }
+          }
+        },
+        alert_criteria: {
+          type: 'object',
+          description: '预警判据',
+          properties: {
+            earthquake_rate: { type: 'number' },
+            uplift_threshold_cm: { type: 'number' },
+            so2_flux_threshold: { type: 'number' }
+          }
+        },
+        data_window: {
+          type: 'object',
+          description: '数据窗口',
+          properties: {
+            start_time: { type: 'string' },
+            end_time: { type: 'string' }
+          }
+        }
+      },
+      required: ['volcano_name', 'monitoring_systems']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        alert_level: { type: 'string', enum: ['green', 'yellow', 'orange', 'red'] },
+        seismic_activity: { type: 'object' },
+        deformation_rate: { type: 'number' },
+        gas_flux: { type: 'object' },
+        eruption_probability: { type: 'number' },
+        recommendations: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.geology'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_radiocarbon_dater',
+    name: 'radiocarbon_dater',
+    display_name: '放射性碳测年器',
+    description: '碳14年代测定',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        sample_info: {
+          type: 'object',
+          description: '样品信息',
+          properties: {
+            material_type: { type: 'string', enum: ['wood', 'charcoal', 'bone', 'shell', 'sediment'] },
+            mass_mg: { type: 'number' },
+            pretreatment: { type: 'string', enum: ['acid_alkali_acid', 'ultrafiltration', 'none'] }
+          }
+        },
+        measurement_method: {
+          type: 'string',
+          description: '测量方法',
+          enum: ['AMS', 'LSC', 'gas_counting']
+        },
+        c14_measurement: {
+          type: 'object',
+          description: 'C14测量结果',
+          properties: {
+            fraction_modern: { type: 'number' },
+            uncertainty: { type: 'number' },
+            delta_c13: { type: 'number', description: 'δ13C同位素分馏校正' }
+          }
+        },
+        calibration_curve: {
+          type: 'string',
+          description: '校正曲线',
+          enum: ['IntCal20', 'SHCal20', 'Marine20']
+        },
+        reservoir_effect: {
+          type: 'object',
+          description: '库效应',
+          properties: {
+            delta_r: { type: 'number' },
+            uncertainty: { type: 'number' }
+          }
+        }
+      },
+      required: ['sample_info', 'measurement_method', 'c14_measurement']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        radiocarbon_age_bp: { type: 'number', description: 'C14年龄(BP)' },
+        calibrated_age: {
+          type: 'object',
+          properties: {
+            median_cal_bp: { type: 'number' },
+            range_68_2: { type: 'array', description: '68.2%置信区间' },
+            range_95_4: { type: 'array', description: '95.4%置信区间' }
+          }
+        },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.archaeology'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_artifact_reconstructor',
+    name: 'artifact_reconstructor',
+    display_name: '文物3D重建器',
+    description: '文物三维重建和虚拟修复',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        artifact_type: {
+          type: 'string',
+          description: '文物类型',
+          enum: ['pottery', 'statue', 'building', 'inscription', 'painting']
+        },
+        scanning_method: {
+          type: 'string',
+          description: '扫描方法',
+          enum: ['photogrammetry', 'laser_scan', 'ct_scan', 'structured_light']
+        },
+        input_data: {
+          type: 'object',
+          description: '输入数据',
+          properties: {
+            images: { type: 'array', description: '图像列表' },
+            point_cloud: { type: 'object', description: '点云数据' }
+          }
+        },
+        reconstruction_settings: {
+          type: 'object',
+          description: '重建设置',
+          properties: {
+            resolution_mm: { type: 'number' },
+            texture_quality: { type: 'string', enum: ['low', 'medium', 'high', 'ultra'] },
+            mesh_optimization: { type: 'boolean' }
+          }
+        },
+        virtual_restoration: {
+          type: 'object',
+          description: '虚拟修复',
+          properties: {
+            fill_gaps: { type: 'boolean' },
+            symmetry_completion: { type: 'boolean' },
+            reference_models: { type: 'array' }
+          }
+        },
+        export_format: {
+          type: 'string',
+          description: '导出格式',
+          enum: ['OBJ', 'STL', 'PLY', 'FBX', 'GLTF']
+        }
+      },
+      required: ['artifact_type', 'scanning_method', 'input_data']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        model_id: { type: 'string' },
+        mesh_vertices: { type: 'number' },
+        texture_resolution: { type: 'string' },
+        completeness: { type: 'number', description: '完整度百分比' },
+        download_url: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.archaeology'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_flexible_sensor_designer',
+    name: 'flexible_sensor_designer',
+    display_name: '柔性传感器设计器',
+    description: '柔性可穿戴传感器设计',
+    category: 'hardware',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        sensor_type: {
+          type: 'string',
+          description: '传感器类型',
+          enum: ['strain', 'pressure', 'temperature', 'chemical', 'biopotential']
+        },
+        substrate: {
+          type: 'object',
+          description: '柔性基底',
+          properties: {
+            material: { type: 'string', enum: ['PET', 'PI', 'PDMS', 'paper', 'textile'] },
+            thickness_um: { type: 'number' },
+            flexibility: { type: 'string', enum: ['flexible', 'stretchable', 'ultra_conformable'] }
+          }
+        },
+        active_material: {
+          type: 'object',
+          description: '活性材料',
+          properties: {
+            type: { type: 'string', enum: ['graphene', 'CNT', 'AgNW', 'conducting_polymer', 'MXene'] },
+            deposition_method: { type: 'string', enum: ['inkjet', 'screen_print', 'spray', 'transfer'] }
+          }
+        },
+        design_parameters: {
+          type: 'object',
+          description: '设计参数',
+          properties: {
+            sensing_area_mm2: { type: 'number' },
+            electrode_pattern: { type: 'string', enum: ['interdigitated', 'serpentine', 'mesh'] },
+            target_sensitivity: { type: 'number' }
+          }
+        },
+        application: {
+          type: 'string',
+          description: '应用场景',
+          enum: ['health_monitoring', 'motion_capture', 'human_machine_interface', 'smart_textiles']
+        },
+        performance_requirements: {
+          type: 'object',
+          description: '性能要求',
+          properties: {
+            response_time_ms: { type: 'number' },
+            power_budget_uw: { type: 'number' },
+            wireless_capability: { type: 'boolean' }
+          }
+        }
+      },
+      required: ['sensor_type', 'substrate', 'active_material']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        design_id: { type: 'string' },
+        predicted_performance: { type: 'object' },
+        fabrication_steps: { type: 'array' },
+        estimated_cost: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['hardware.design'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_biochip_analyzer',
+    name: 'biochip_analyzer',
+    display_name: '生物芯片分析器',
+    description: '生物芯片数据分析',
+    category: 'science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        chip_type: {
+          type: 'string',
+          description: '芯片类型',
+          enum: ['microarray', 'microfluidic', 'lab_on_chip', 'organ_on_chip']
+        },
+        assay_type: {
+          type: 'string',
+          description: '检测类型',
+          enum: ['gene_expression', 'protein', 'metabolite', 'cell_culture', 'diagnostic']
+        },
+        raw_data: {
+          type: 'object',
+          description: '原始数据',
+          properties: {
+            signal_intensities: { type: 'array' },
+            channels: { type: 'number' },
+            control_spots: { type: 'array' }
+          }
+        },
+        normalization: {
+          type: 'string',
+          description: '归一化方法',
+          enum: ['quantile', 'loess', 'vsn', 'rma']
+        },
+        background_correction: {
+          type: 'boolean',
+          description: '背景校正'
+        },
+        statistical_analysis: {
+          type: 'object',
+          description: '统计分析',
+          properties: {
+            differential_expression: { type: 'boolean' },
+            clustering: { type: 'string', enum: ['hierarchical', 'kmeans', 'dbscan'] },
+            pathway_analysis: { type: 'boolean' }
+          }
+        },
+        quality_control: {
+          type: 'object',
+          description: '质控参数',
+          properties: {
+            snr_threshold: { type: 'number' },
+            cv_threshold: { type: 'number' }
+          }
+        }
+      },
+      required: ['chip_type', 'assay_type', 'raw_data']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        processed_data: { type: 'object' },
+        differentially_expressed: { type: 'array' },
+        clusters: { type: 'object' },
+        pathways: { type: 'array' },
+        quality_metrics: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['science.biology'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
 ];

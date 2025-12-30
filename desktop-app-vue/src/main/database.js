@@ -1135,6 +1135,23 @@ class DatabaseManager {
         created_at INTEGER NOT NULL
       );
 
+      -- 组织DID邀请表（点对点邀请）
+      CREATE TABLE IF NOT EXISTS organization_did_invitations (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        org_name TEXT NOT NULL,
+        invited_by_did TEXT NOT NULL,
+        invited_by_name TEXT,
+        invited_did TEXT NOT NULL,
+        role TEXT DEFAULT 'member',
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'rejected', 'expired')),
+        message TEXT,
+        expire_at INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        UNIQUE(org_id, invited_did)
+      );
+
       -- 组织项目表
       CREATE TABLE IF NOT EXISTS organization_projects (
         id TEXT PRIMARY KEY,
