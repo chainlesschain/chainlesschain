@@ -186,6 +186,21 @@ class ProjectTemplateManager {
     const now = Date.now();
 
     try {
+      // 验证必需字段
+      if (!templateData.id) {
+        throw new Error('模板缺少ID');
+      }
+      if (!templateData.name) {
+        throw new Error(`模板 ${templateData.id} 缺少name字段`);
+      }
+      if (!templateData.display_name) {
+        throw new Error(`模板 ${templateData.id} 缺少display_name字段`);
+      }
+      if (!templateData.prompt_template || templateData.prompt_template.trim() === '') {
+        console.warn(`[TemplateManager] 警告: 模板 ${templateData.id} (${templateData.display_name}) 缺少prompt_template字段`);
+        // 不抛出错误，但记录警告
+      }
+
       const stmt = this.db.prepare(`
         INSERT OR REPLACE INTO project_templates (
           id, name, display_name, description, icon, cover_image,
@@ -225,7 +240,7 @@ class ProjectTemplateManager {
 
       this.db.saveToFile();
     } catch (error) {
-      console.error('[TemplateManager] 保存模板失败:', error);
+      console.error('[TemplateManager] 保存模板失败:', templateData.id, error);
       throw error;
     }
   }
@@ -395,16 +410,18 @@ class ProjectTemplateManager {
         throw new Error('模板对象不能为空');
       }
 
-      // 检查 prompt_template 是否存在
-      if (!template.prompt_template || typeof template.prompt_template !== 'string') {
-        console.error('[TemplateManager] 模板数据:', {
+      // 检查 prompt_template 是否存在（注意：空字符串也视为无效）
+      if (!template.prompt_template || typeof template.prompt_template !== 'string' || template.prompt_template.trim() === '') {
+        console.error('[TemplateManager] 模板数据不完整:', {
           id: template.id,
           name: template.name,
           display_name: template.display_name,
-          prompt_template: template.prompt_template,
-          prompt_template_type: typeof template.prompt_template
+          prompt_template_exists: !!template.prompt_template,
+          prompt_template_type: typeof template.prompt_template,
+          prompt_template_length: template.prompt_template ? template.prompt_template.length : 0,
+          all_keys: Object.keys(template)
         });
-        throw new Error(`模板 "${template.display_name || template.name}" 缺少有效的 prompt_template 字段`);
+        throw new Error(`模板 "${template.display_name || template.name || template.id}" 缺少有效的 prompt_template 字段`);
       }
 
       // 验证变量
