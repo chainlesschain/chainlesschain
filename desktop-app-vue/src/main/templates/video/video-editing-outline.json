@@ -1,0 +1,157 @@
+{
+  "id": "tpl_video_editing_001",
+  "name": "video_editing_outline",
+  "display_name": "视频剪辑提纲",
+  "description": "为视频剪辑生成详细提纲，包含剪辑点、转场设计、音效配乐和调色方案",
+  "icon": "✂️",
+  "cover_image": "/templates/covers/video-editing.png",
+
+  "category": "video",
+  "subcategory": "post-production",
+  "tags": ["视频剪辑", "后期制作", "剪辑思路", "调色"],
+
+  "project_type": "document",
+
+  "prompt_template": "请帮我生成视频剪辑提纲，要求：\n\n**项目信息：**\n- 视频标题：{{videoTitle}}\n- 原始素材时长：{{rawFootage}}分钟\n- 目标成片时长：{{targetDuration}}分钟\n- 视频类型：{{videoType}}\n- 剪辑风格：{{editingStyle}}\n\n**剪辑流程规划**\n\n### 第一阶段：素材整理（1-2小时）\n\n1. **素材分类**\n   - 创建文件夹结构\n     ```\n     项目名称/\n     ├── 01-原始素材/\n     │   ├── A-Camera/\n     │   ├── B-Camera/\n     │   └── Audio/\n     ├── 02-音乐音效/\n     ├── 03-图片素材/\n     ├── 04-字幕文件/\n     └── 05-成品导出/\n     ```\n\n2. **素材筛选**\n   - 标记可用镜头（⭐⭐⭐ 优秀，⭐⭐ 可用，⭐ 备用）\n   - 删除废片（失焦、抖动严重、曝光问题）\n   - 创建精选素材箱\n\n3. **音画同步**\n   - 如果有单独录音，先同步音频\n   - 检查音画是否对齐\n\n---\n\n### 第二阶段：粗剪（2-4小时）\n\n**剪辑大纲（时间轴规划）**\n\n{{#eq videoType \"叙事视频\"}}\n【三幕式结构】\n\n第一幕：开端（0:00-{{divide targetDuration 4}}:00）\n- 建立背景和人物\n- 提出核心问题/冲突\n- 剪辑节奏：稍慢，建立情绪\n\n第二幕：发展（{{divide targetDuration 4}}:00-{{multiply targetDuration 0.75}}:00）\n- 情节推进\n- 矛盾升级\n- 剪辑节奏：中等，保持张力\n\n第三幕：高潮和结局（{{multiply targetDuration 0.75}}:00-{{targetDuration}}:00）\n- 冲突爆发\n- 问题解决\n- 情感升华\n- 剪辑节奏：快或慢（根据情绪）\n{{/eq}}\n\n{{#eq videoType \"教程视频\"}}\n【步骤式结构】\n\n开场（0:00-1:00）\n- Hook吸引\n- 内容预告\n\n步骤1（1:00-{{divide targetDuration 3}}:00）\n- 理论讲解\n- 演示操作\n\n步骤2、3、4...（依次展开）\n\n总结（{{subtract targetDuration 2}}:00-{{targetDuration}}:00）\n- 要点回顾\n- CTA引导\n{{/eq}}\n\n{{#eq videoType \"Vlog\"}}\n【时间线/主题式结构】\n\n根据拍摄素材，选择最有趣的片段组合：\n- 精彩片段前置（防止观众流失）\n- 平淡部分压缩或删除\n- 高潮部分放在中后段\n- 结尾留彩蛋/预告\n{{/eq}}\n\n**粗剪要点：**\n- 只关注叙事流畅，不追求细节\n- 保留稍长的镜头（精剪时再缩短）\n- 标记需要补拍/B-Roll的位置\n\n---\n\n### 第三阶段：精剪（3-6小时）\n\n**镜头优化**\n\n1. **节奏控制**\n   {{#eq editingStyle \"快节奏\"}}\n   - 每个镜头1-3秒\n   - 多用跳切（Jump Cut）\n   - 配合快节奏音乐\n   {{/eq}}\n   \n   {{#eq editingStyle \"电影感\"}}\n   - 每个镜头3-7秒\n   - 使用长镜头和慢动作\n   - 留白和呼吸感\n   {{/eq}}\n   \n   {{#eq editingStyle \"节奏变化\"}}\n   - 平静场景：慢节奏（3-5秒/镜）\n   - 紧张场景：快节奏（1-2秒/镜）\n   - 高潮场景：极快或极慢\n   {{/eq}}\n\n2. **剪辑点选择**\n   - 在动作上剪（Action Cut）：更流畅\n   - 在音乐节拍上剪：更有节奏感\n   - 在对话停顿处剪：更自然\n   - 避免在静止画面中间剪：会突兀\n\n3. **画面构图调整**\n   - 裁剪（Crop）：改善构图\n   - 稳定（Stabilization）：修复抖动\n   - 缩放（Scale）：突出重点\n   - 旋转（Rotation）：修正水平\n\n---\n\n**转场设计**\n\n{{#if includeTransitions}}\n| 转场类型 | 使用场景 | 使用频率 |\n|---------|---------|----------|\n| 直接切（Cut） | 90%的镜头 | ⭐⭐⭐⭐⭐ |\n| 淡入淡出（Fade） | 时间/地点变化 | ⭐⭐⭐ |\n| 溶解（Dissolve） | 情绪过渡、回忆 | ⭐⭐ |\n| 擦除（Wipe） | 创意视频、复古风 | ⭐ |\n| 变形（Morph） | 物体相似时 | ⭐ |\n| 匹配剪辑（Match Cut） | 强调关联性 | ⭐⭐⭐ |\n| J-Cut/L-Cut | 对话场景 | ⭐⭐⭐⭐ |\n\n**创意转场技巧：**\n- 遮挡转场：手/物体遮住镜头\n- 旋转转场：相机旋转360度\n- 闪白转场：过曝效果\n- 音效转场：用声音引导画面切换\n\n**原则：少即是多！**\n- 炫酷转场不要超过5%\n- 大部分用直接切（无转场）\n{{/if}}\n\n---\n\n**音频处理**\n\n{{#if includeAudio}}\n1. **人声处理**\n   - 降噪（Noise Reduction）\n   - 均衡器（EQ）：增强清晰度\n   - 压缩器（Compressor）：平衡音量\n   - 去齿音（De-esser）：减少\"s\"音\n\n2. **背景音乐（BGM）**\n   \n   **音乐分段建议：**\n   - 开场：高能音乐（吸引注意）\n   - 主体：根据内容选择（知识类-轻快，情感类-温暖）\n   - 高潮：音乐推向climax\n   - 结尾：渐弱或温暖收尾\n   \n   **音量控制：**\n   - 无人声段落：-10dB 至 -15dB\n   - 有人声段落：-25dB 至 -30dB（闪避/Ducking）\n   - 音乐淡入淡出：2-3秒\n\n3. **音效（Sound Effects）**\n   - 转场音效（唰、嘭、叮）\n   - 强调音效（点击、敲击）\n   - 环境音（Ambience）：营造真实感\n   \n   **音效使用原则：**\n   - 不要过度使用（会很吵）\n   - 音量略低于人声\n   - 配合画面节奏\n{{/if}}\n\n---\n\n**字幕添加**\n\n{{#if includeSubtitles}}\n1. **字幕类型**\n   - 全程字幕：教程类、对话类\n   - 关键字幕：突出重点\n   - 装饰字幕：标题、地点、时间\n\n2. **字幕样式设计**\n   - 字体：清晰易读（推荐：思源黑体、微软雅黑）\n   - 大小：占屏幕宽度的70-80%\n   - 颜色：白色/黄色底色+黑色描边（提高可读性）\n   - 位置：屏幕下方1/5处，避免遮挡重要画面\n\n3. **字幕动画**\n   - 入场：淡入或弹跳\n   - 强调：缩放、变色、抖动\n   - 出场：淡出\n\n4. **字幕时间控制**\n   - 每行不超过15个字\n   - 停留时间 = 字数 / 4 秒（阅读时间）\n   - 与语速同步\n{{/if}}\n\n---\n\n### 第四阶段：调色（2-4小时）\n\n**调色流程**\n\n{{#if includeColorGrading}}\n1. **一级调色（Primary Color Correction）**\n   - 白平衡校正\n   - 曝光调整\n   - 对比度优化\n   - 确保所有镜头色调一致\n\n2. **二级调色（Secondary Color Grading）**\n   \n   根据{{editingStyle}}风格选择LUT或手动调色：\n   \n   {{#eq editingStyle \"电影感\"}}\n   **电影感调色方案：**\n   - 暗部偏蓝绿\n   - 高光偏橙黄\n   - 降低饱和度（-10至-20）\n   - 增加对比度\n   - 添加电影黑边（2.35:1画幅）\n   {{/eq}}\n   \n   {{#eq editingStyle \"清新自然\"}}\n   **清新自然调色方案：**\n   - 提亮画面\n   - 增加饱和度（+10至+20）\n   - 绿色偏青\n   - 肤色偏粉\n   {{/eq}}\n   \n   {{#eq editingStyle \"复古怀旧\"}}\n   **复古怀旧调色方案：**\n   - 褪色效果（降低对比度）\n   - 暖色调（偏黄/橙）\n   - 添加颗粒感（Film Grain）\n   - 暗角效果（Vignette）\n   {{/eq}}\n\n3. **肤色校正**\n   - 使用肤色工具（Skin Tone Indicator）\n   - 确保肤色自然（不要偏绿或偏红）\n\n4. **创意调色**\n   - 分离式调色（高光和阴影不同色调）\n   - 选择性调色（只调某个颜色）\n   - 氛围营造（冷暖对比）\n{{/if}}\n\n---\n\n### 第五阶段：特效和图形（1-3小时）\n\n**常用特效**\n\n{{#if includeEffects}}\n1. **文字动画**\n   - 标题动画（Title Animation）\n   - 下三分位字幕（Lower Third）\n   - 结尾字幕（End Credits）\n\n2. **运动图形（Motion Graphics）**\n   - 数据可视化（图表、曲线）\n   - Logo动画\n   - 订阅按钮动画\n\n3. **视觉特效（VFX）**\n   - 画面稳定\n   - 去除穿帮（Object Removal）\n   - 色键抠像（Green Screen）\n   - 时间重映射（Time Remapping）\n\n**原则：服务于内容**\n- 不要为了特效而特效\n- 保持品牌一致性\n- 特效要快速渲染（避免拖慢工作流）\n{{/if}}\n\n---\n\n### 第六阶段：输出和优化（30分钟）\n\n**导出设置**\n\n| 平台 | 分辨率 | 帧率 | 码率 | 格式 |\n|------|--------|------|------|------|\n| YouTube | 1080p | 30fps | 8Mbps | H.264/MP4 |\n| B站 | 1080p | 60fps | 12Mbps | H.264/MP4 |\n| 抖音 | 1080x1920 (竖屏) | 30fps | 6Mbps | H.264/MP4 |\n| 小红书 | 1080x1350 (4:5) | 30fps | 6Mbps | H.264/MP4 |\n\n**导出前检查清单：**\n- [ ] 检查全片有无跳帧、卡顿\n- [ ] 音频是否有爆音、底噪\n- [ ] 字幕是否有错别字\n- [ ] 画面是否有穿帮\n- [ ] 片头片尾是否完整\n\n---\n\n**剪辑技巧总结**\n\n1. **故事为王**：技术服务于故事，不要炫技\n2. **节奏感**：音乐、画面、剪辑点要配合\n3. **减法思维**：删除不必要的镜头（每个镜头都要有存在价值）\n4. **声音很重要**：好音频能提升50%观感\n5. **休息再看**：剪完后隔天再看，能发现很多问题\n\n---\n\n**时间管理建议**\n\n- 总预计时间：{{calculateEditingHours rawFootage targetDuration}}小时\n- 建议分{{calculateDays rawFootage}}天完成\n- 每天工作{{dailyHours}}小时\n- 留出缓冲时间应对意外\n\n---\n\n**输出格式：**\n- 主文档：剪辑提纲（详细步骤）\n- 附件1：剪辑时间表（Gantt图）\n- 附件2：素材清单\n- 附件3：音乐音效列表\n- 附件4：调色LUT文件/参数",
+
+  "variables_schema": [
+    {
+      "name": "videoTitle",
+      "label": "视频标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：旅行Vlog、产品评测"
+    },
+    {
+      "name": "rawFootage",
+      "label": "原始素材时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 60,
+      "min": 10,
+      "max": 300
+    },
+    {
+      "name": "targetDuration",
+      "label": "目标成片时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 10,
+      "min": 3,
+      "max": 60
+    },
+    {
+      "name": "videoType",
+      "label": "视频类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "叙事视频", "label": "叙事视频（故事/纪录片）" },
+        { "value": "教程视频", "label": "教程视频（教学/讲解）" },
+        { "value": "Vlog", "label": "Vlog（生活记录）" },
+        { "value": "商业广告", "label": "商业广告" }
+      ]
+    },
+    {
+      "name": "editingStyle",
+      "label": "剪辑风格",
+      "type": "select",
+      "required": false,
+      "default": "快节奏",
+      "options": [
+        { "value": "快节奏", "label": "快节奏（抖音风格）" },
+        { "value": "电影感", "label": "电影感（Cinematic）" },
+        { "value": "清新自然", "label": "清新自然" },
+        { "value": "复古怀旧", "label": "复古怀旧（Vintage）" },
+        { "value": "节奏变化", "label": "节奏变化（根据内容调整）" }
+      ]
+    },
+    {
+      "name": "includeTransitions",
+      "label": "包含转场设计",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "提供转场方案" },
+        { "value": "否", "label": "不需要" }
+      ]
+    },
+    {
+      "name": "includeAudio",
+      "label": "包含音频处理",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "提供音频指导" },
+        { "value": "否", "label": "不需要" }
+      ]
+    },
+    {
+      "name": "includeSubtitles",
+      "label": "包含字幕指导",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "提供字幕方案" },
+        { "value": "否", "label": "不需要" }
+      ]
+    },
+    {
+      "name": "includeColorGrading",
+      "label": "包含调色方案",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        { "value": "是", "label": "提供调色指导" },
+        { "value": "否", "label": "不需要" }
+      ]
+    },
+    {
+      "name": "includeEffects",
+      "label": "包含特效设计",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        { "value": "是", "label": "提供特效建议" },
+        { "value": "否", "label": "不需要" }
+      ]
+    }
+  ],
+
+  "file_structure": {
+    "root": "{{videoTitle}}-剪辑项目",
+    "files": [
+      {
+        "path": "剪辑提纲.md",
+        "type": "markdown"
+      },
+      {
+        "path": "素材清单.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "时间表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "音乐列表.md",
+        "type": "markdown",
+        "content": "# 音乐音效列表\n\n## 背景音乐\n1. 开场BGM：\n2. 主体BGM：\n3. 结尾BGM：\n\n## 音效\n- 转场音效：\n- 强调音效："
+      }
+    ]
+  },
+
+  "default_files": [],
+
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
