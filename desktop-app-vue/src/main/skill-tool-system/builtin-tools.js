@@ -3818,4 +3818,1175 @@ module.exports = [
     is_builtin: 1,
     enabled: 1,
   },
+
+  // ==================== 第四批扩展工具 (73-92) ====================
+
+  {
+    id: 'tool_blockchain_client',
+    name: 'blockchain_client',
+    display_name: '区块链客户端',
+    description: '连接区块链网络，查询区块、交易信息',
+    category: 'blockchain',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        network: {
+          type: 'string',
+          description: '区块链网络',
+          enum: ['ethereum', 'bsc', 'polygon', 'bitcoin']
+        },
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['getBlock', 'getTransaction', 'getBalance', 'getGasPrice']
+        },
+        params: {
+          type: 'object',
+          description: '操作参数'
+        }
+      },
+      required: ['network', 'action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '查询以太坊余额',
+        params: {
+          network: 'ethereum',
+          action: 'getBalance',
+          params: { address: '0x...' }
+        }
+      }
+    ],
+    required_permissions: ['network:http'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_smart_contract_caller',
+    name: 'smart_contract_caller',
+    display_name: '智能合约调用器',
+    description: '调用智能合约函数、发送交易',
+    category: 'blockchain',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        contractAddress: {
+          type: 'string',
+          description: '合约地址'
+        },
+        abi: {
+          type: 'array',
+          description: '合约ABI'
+        },
+        method: {
+          type: 'string',
+          description: '方法名'
+        },
+        args: {
+          type: 'array',
+          description: '方法参数'
+        },
+        from: {
+          type: 'string',
+          description: '调用者地址'
+        }
+      },
+      required: ['contractAddress', 'abi', 'method']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        transactionHash: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '调用ERC20合约查询余额',
+        params: {
+          contractAddress: '0x...',
+          abi: [],
+          method: 'balanceOf',
+          args: ['0x...']
+        }
+      }
+    ],
+    required_permissions: ['network:http', 'wallet:access'],
+    risk_level: 4,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_wallet_manager',
+    name: 'wallet_manager',
+    display_name: '钱包管理器',
+    description: '创建钱包、导入私钥、签名交易',
+    category: 'blockchain',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['create', 'import', 'sign', 'export']
+        },
+        privateKey: {
+          type: 'string',
+          description: '私钥（导入时使用）'
+        },
+        mnemonic: {
+          type: 'string',
+          description: '助记词'
+        },
+        transaction: {
+          type: 'object',
+          description: '要签名的交易'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        address: { type: 'string' },
+        privateKey: { type: 'string' },
+        mnemonic: { type: 'string' },
+        signature: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '创建新钱包',
+        params: {
+          action: 'create'
+        }
+      }
+    ],
+    required_permissions: ['wallet:create'],
+    risk_level: 5,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_email_sender',
+    name: 'email_sender',
+    display_name: '邮件发送器',
+    description: '通过SMTP发送邮件（支持HTML、附件）',
+    category: 'communication',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        from: {
+          type: 'string',
+          description: '发件人邮箱'
+        },
+        to: {
+          type: 'array',
+          description: '收件人列表',
+          items: { type: 'string' }
+        },
+        subject: {
+          type: 'string',
+          description: '邮件主题'
+        },
+        text: {
+          type: 'string',
+          description: '纯文本内容'
+        },
+        html: {
+          type: 'string',
+          description: 'HTML内容'
+        },
+        attachments: {
+          type: 'array',
+          description: '附件列表'
+        },
+        smtpConfig: {
+          type: 'object',
+          description: 'SMTP配置'
+        }
+      },
+      required: ['from', 'to', 'subject']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        messageId: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '发送文本邮件',
+        params: {
+          from: 'sender@example.com',
+          to: ['recipient@example.com'],
+          subject: 'Test Email',
+          text: 'Hello World'
+        }
+      }
+    ],
+    required_permissions: ['network:smtp'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_email_reader',
+    name: 'email_reader',
+    display_name: '邮件读取器',
+    description: '通过IMAP读取邮件',
+    category: 'communication',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        imapConfig: {
+          type: 'object',
+          description: 'IMAP配置',
+          properties: {
+            host: { type: 'string' },
+            port: { type: 'number' },
+            user: { type: 'string' },
+            password: { type: 'string' },
+            tls: { type: 'boolean' }
+          }
+        },
+        mailbox: {
+          type: 'string',
+          description: '邮箱文件夹',
+          default: 'INBOX'
+        },
+        limit: {
+          type: 'number',
+          description: '读取数量',
+          default: 10
+        },
+        filter: {
+          type: 'object',
+          description: '过滤条件'
+        }
+      },
+      required: ['imapConfig']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        emails: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              from: { type: 'string' },
+              subject: { type: 'string' },
+              date: { type: 'string' },
+              body: { type: 'string' }
+            }
+          }
+        },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '读取收件箱邮件',
+        params: {
+          imapConfig: {
+            host: 'imap.example.com',
+            port: 993,
+            user: 'user@example.com',
+            password: 'password',
+            tls: true
+          },
+          limit: 10
+        }
+      }
+    ],
+    required_permissions: ['network:imap'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_email_attachment_handler',
+    name: 'email_attachment_handler',
+    display_name: '邮件附件处理器',
+    description: '提取、保存、发送邮件附件',
+    category: 'communication',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['extract', 'save', 'attach']
+        },
+        emailId: {
+          type: 'string',
+          description: '邮件ID'
+        },
+        attachmentIndex: {
+          type: 'number',
+          description: '附件索引'
+        },
+        savePath: {
+          type: 'string',
+          description: '保存路径'
+        },
+        filePath: {
+          type: 'string',
+          description: '文件路径（添加附件时）'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        attachments: { type: 'array' },
+        savedPath: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '提取邮件附件',
+        params: {
+          action: 'extract',
+          emailId: '12345'
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_pdf_generator',
+    name: 'pdf_generator',
+    display_name: 'PDF生成器',
+    description: '从HTML、Markdown或模板生成PDF文件',
+    category: 'document',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: '内容（HTML或Markdown）'
+        },
+        contentType: {
+          type: 'string',
+          description: '内容类型',
+          enum: ['html', 'markdown', 'template']
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        options: {
+          type: 'object',
+          description: 'PDF选项',
+          properties: {
+            format: { type: 'string', default: 'A4' },
+            margin: { type: 'object' },
+            landscape: { type: 'boolean' }
+          }
+        }
+      },
+      required: ['content', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' },
+        size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '从HTML生成PDF',
+        params: {
+          content: '<h1>Hello PDF</h1>',
+          contentType: 'html',
+          outputPath: '/path/to/output.pdf'
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_pdf_text_extractor',
+    name: 'pdf_text_extractor',
+    display_name: 'PDF文本提取器',
+    description: '从PDF文件中提取文本内容',
+    category: 'document',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        pdfPath: {
+          type: 'string',
+          description: 'PDF文件路径'
+        },
+        pages: {
+          type: 'array',
+          description: '要提取的页码（不指定则全部）',
+          items: { type: 'number' }
+        },
+        preserveLayout: {
+          type: 'boolean',
+          description: '保持布局',
+          default: false
+        }
+      },
+      required: ['pdfPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        text: { type: 'string' },
+        pageCount: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '提取PDF全文',
+        params: {
+          pdfPath: '/path/to/document.pdf'
+        }
+      }
+    ],
+    required_permissions: ['file:read'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_pdf_merger',
+    name: 'pdf_merger',
+    display_name: 'PDF合并器',
+    description: '合并多个PDF文件、拆分PDF',
+    category: 'document',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['merge', 'split']
+        },
+        inputFiles: {
+          type: 'array',
+          description: '输入PDF文件列表',
+          items: { type: 'string' }
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        pageRanges: {
+          type: 'array',
+          description: '页码范围（拆分时使用）'
+        }
+      },
+      required: ['action', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        outputPath: { type: 'string' },
+        pageCount: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '合并多个PDF',
+        params: {
+          action: 'merge',
+          inputFiles: ['/path/to/1.pdf', '/path/to/2.pdf'],
+          outputPath: '/path/to/merged.pdf'
+        }
+      }
+    ],
+    required_permissions: ['file:read', 'file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_speech_recognizer',
+    name: 'speech_recognizer',
+    display_name: '语音识别器',
+    description: '将语音转换为文本（ASR）',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        audioPath: {
+          type: 'string',
+          description: '音频文件路径'
+        },
+        language: {
+          type: 'string',
+          description: '语言代码',
+          default: 'zh-CN'
+        },
+        model: {
+          type: 'string',
+          description: '识别模型',
+          enum: ['default', 'whisper', 'google', 'baidu']
+        }
+      },
+      required: ['audioPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        text: { type: 'string' },
+        confidence: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '识别中文语音',
+        params: {
+          audioPath: '/path/to/audio.wav',
+          language: 'zh-CN'
+        }
+      }
+    ],
+    required_permissions: ['file:read'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_text_to_speech',
+    name: 'text_to_speech',
+    display_name: '文本转语音',
+    description: '将文本转换为语音（TTS）',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: '要转换的文本'
+        },
+        language: {
+          type: 'string',
+          description: '语言代码',
+          default: 'zh-CN'
+        },
+        voice: {
+          type: 'string',
+          description: '声音类型',
+          enum: ['male', 'female', 'neutral']
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出音频路径'
+        },
+        speed: {
+          type: 'number',
+          description: '语速（0.5-2.0）',
+          default: 1.0
+        }
+      },
+      required: ['text', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        audioPath: { type: 'string' },
+        duration: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '中文文本转语音',
+        params: {
+          text: '你好，世界',
+          language: 'zh-CN',
+          voice: 'female',
+          outputPath: '/path/to/output.mp3'
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_audio_converter',
+    name: 'audio_converter',
+    display_name: '音频格式转换器',
+    description: '转换音频格式（MP3、WAV、OGG等）',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        inputPath: {
+          type: 'string',
+          description: '输入文件路径'
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        format: {
+          type: 'string',
+          description: '目标格式',
+          enum: ['mp3', 'wav', 'ogg', 'flac', 'aac']
+        },
+        bitrate: {
+          type: 'string',
+          description: '比特率',
+          default: '192k'
+        }
+      },
+      required: ['inputPath', 'outputPath', 'format']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        outputPath: { type: 'string' },
+        size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: 'WAV转MP3',
+        params: {
+          inputPath: '/path/to/audio.wav',
+          outputPath: '/path/to/audio.mp3',
+          format: 'mp3',
+          bitrate: '192k'
+        }
+      }
+    ],
+    required_permissions: ['file:read', 'file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_chart_renderer',
+    name: 'chart_renderer',
+    display_name: '图表渲染器',
+    description: '渲染各类图表为图片（PNG、SVG）',
+    category: 'visualization',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        chartConfig: {
+          type: 'object',
+          description: '图表配置（Chart.js格式）'
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        format: {
+          type: 'string',
+          description: '输出格式',
+          enum: ['png', 'svg', 'pdf'],
+          default: 'png'
+        },
+        width: {
+          type: 'number',
+          description: '宽度',
+          default: 800
+        },
+        height: {
+          type: 'number',
+          description: '高度',
+          default: 600
+        }
+      },
+      required: ['chartConfig', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        imagePath: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '渲染折线图',
+        params: {
+          chartConfig: {
+            type: 'line',
+            data: { labels: ['Jan', 'Feb'], datasets: [{ data: [10, 20] }] }
+          },
+          outputPath: '/path/to/chart.png'
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_web_crawler',
+    name: 'web_crawler',
+    display_name: '网页爬虫',
+    description: '爬取网页内容、下载资源',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: '目标URL'
+        },
+        selectors: {
+          type: 'object',
+          description: 'CSS选择器映射'
+        },
+        followLinks: {
+          type: 'boolean',
+          description: '是否跟随链接',
+          default: false
+        },
+        maxDepth: {
+          type: 'number',
+          description: '最大深度',
+          default: 1
+        },
+        headers: {
+          type: 'object',
+          description: '请求头'
+        }
+      },
+      required: ['url']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        data: { type: 'object' },
+        links: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '爬取网页标题和内容',
+        params: {
+          url: 'https://example.com',
+          selectors: {
+            title: 'h1',
+            content: '.content'
+          }
+        }
+      }
+    ],
+    required_permissions: ['network:http'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_html_extractor',
+    name: 'html_extractor',
+    display_name: 'HTML内容提取器',
+    description: '从HTML中提取特定内容、表格、图片等',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        html: {
+          type: 'string',
+          description: 'HTML内容'
+        },
+        extractType: {
+          type: 'string',
+          description: '提取类型',
+          enum: ['text', 'links', 'images', 'tables', 'metadata']
+        },
+        selector: {
+          type: 'string',
+          description: 'CSS选择器'
+        }
+      },
+      required: ['html', 'extractType']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        extracted: { type: 'any' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '提取所有图片链接',
+        params: {
+          html: '<html>...</html>',
+          extractType: 'images'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_data_validator',
+    name: 'data_validator',
+    display_name: '数据验证器',
+    description: '验证数据类型、范围、格式等',
+    category: 'data',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'any',
+          description: '要验证的数据'
+        },
+        rules: {
+          type: 'array',
+          description: '验证规则',
+          items: {
+            type: 'object',
+            properties: {
+              field: { type: 'string' },
+              type: { type: 'string' },
+              required: { type: 'boolean' },
+              min: { type: 'number' },
+              max: { type: 'number' },
+              pattern: { type: 'string' }
+            }
+          }
+        }
+      },
+      required: ['data', 'rules']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        valid: { type: 'boolean' },
+        errors: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '验证用户数据',
+        params: {
+          data: { name: 'John', age: 25 },
+          rules: [
+            { field: 'name', type: 'string', required: true },
+            { field: 'age', type: 'number', min: 0, max: 120 }
+          ]
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_schema_validator',
+    name: 'schema_validator',
+    display_name: 'Schema验证器',
+    description: '使用JSON Schema验证数据结构',
+    category: 'data',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'any',
+          description: '要验证的数据'
+        },
+        schema: {
+          type: 'object',
+          description: 'JSON Schema'
+        }
+      },
+      required: ['data', 'schema']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        valid: { type: 'boolean' },
+        errors: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '验证用户对象',
+        params: {
+          data: { name: 'John', age: 25 },
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              age: { type: 'number' }
+            },
+            required: ['name', 'age']
+          }
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_cache_manager',
+    name: 'cache_manager',
+    display_name: '缓存管理器',
+    description: '内存缓存、Redis缓存操作',
+    category: 'storage',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['get', 'set', 'delete', 'clear', 'has']
+        },
+        key: {
+          type: 'string',
+          description: '缓存键'
+        },
+        value: {
+          type: 'any',
+          description: '缓存值'
+        },
+        ttl: {
+          type: 'number',
+          description: '过期时间（秒）'
+        },
+        type: {
+          type: 'string',
+          description: '缓存类型',
+          enum: ['memory', 'redis'],
+          default: 'memory'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        value: { type: 'any' },
+        exists: { type: 'boolean' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '设置缓存',
+        params: {
+          action: 'set',
+          key: 'user:123',
+          value: { name: 'John' },
+          ttl: 3600
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_message_queue_client',
+    name: 'message_queue_client',
+    display_name: '消息队列客户端',
+    description: '发布订阅消息、队列操作',
+    category: 'messaging',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['publish', 'subscribe', 'consume', 'ack']
+        },
+        queue: {
+          type: 'string',
+          description: '队列名称'
+        },
+        message: {
+          type: 'any',
+          description: '消息内容'
+        },
+        exchange: {
+          type: 'string',
+          description: '交换机名称'
+        },
+        routingKey: {
+          type: 'string',
+          description: '路由键'
+        }
+      },
+      required: ['action', 'queue']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        messageId: { type: 'string' },
+        messages: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '发布消息',
+        params: {
+          action: 'publish',
+          queue: 'tasks',
+          message: { task: 'process', data: {} }
+        }
+      }
+    ],
+    required_permissions: ['network:amqp'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_docker_manager',
+    name: 'docker_manager',
+    display_name: 'Docker管理器',
+    description: '管理Docker容器、镜像、网络',
+    category: 'devops',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['list', 'start', 'stop', 'remove', 'create', 'exec', 'logs']
+        },
+        resource: {
+          type: 'string',
+          description: '资源类型',
+          enum: ['container', 'image', 'network', 'volume']
+        },
+        id: {
+          type: 'string',
+          description: '容器/镜像ID'
+        },
+        config: {
+          type: 'object',
+          description: '创建配置'
+        },
+        command: {
+          type: 'string',
+          description: '执行命令'
+        }
+      },
+      required: ['action', 'resource']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        output: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '列出所有容器',
+        params: {
+          action: 'list',
+          resource: 'container'
+        }
+      }
+    ],
+    required_permissions: ['docker:access'],
+    risk_level: 4,
+    is_builtin: 1,
+    enabled: 1,
+  },
 ];

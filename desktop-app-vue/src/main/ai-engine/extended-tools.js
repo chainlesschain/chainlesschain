@@ -797,42 +797,7 @@ class ExtendedTools {
       }
     );
 
-    // 14. 模板渲染器
-    functionCaller.registerTool(
-      'template_renderer',
-      async (params) => {
-        try {
-          const { template, variables, syntax = 'mustache' } = params;
-
-          if (syntax === 'mustache' || syntax === 'handlebars') {
-            // 简单的Mustache模板引擎实现
-            let result = template;
-            Object.entries(variables).forEach(([key, value]) => {
-              const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-              result = result.replace(regex, value);
-            });
-
-            return {
-              success: true,
-              result
-            };
-          }
-
-          throw new Error(`不支持的模板语法: ${syntax}`);
-        } catch (error) {
-          return { success: false, error: error.message };
-        }
-      },
-      {
-        name: 'template_renderer',
-        description: '模板渲染',
-        parameters: {
-          template: { type: 'string', description: '模板字符串' },
-          variables: { type: 'object', description: '变量对象' },
-          syntax: { type: 'string', description: '模板语法' }
-        }
-      }
-    );
+    // 注意: template_renderer 已移至 ExtendedTools3，避免重复注册
 
     console.log('[Extended Tools] 已注册所有扩展工具');
   }
