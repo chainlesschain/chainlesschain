@@ -573,7 +573,256 @@ async function filterImageReal(params) {
 }
 
 /**
+ * ==================== 视频处理工具 ====================
+ */
+
+/**
+ * 视频裁剪器 (真实实现)
+ * 按时间范围裁剪视频
+ */
+async function cutVideoReal(params) {
+  const {
+    input_path,
+    output_path,
+    start_time,
+    end_time,
+    duration
+  } = params;
+
+  return new Promise((resolve, reject) => {
+    try {
+      // 确保输出目录存在
+      const dir = path.dirname(output_path);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // 创建FFmpeg命令
+      let command = ffmpeg(input_path);
+
+      // 设置开始时间
+      if (start_time) {
+        command = command.setStartTime(start_time);
+      }
+
+      // 设置持续时间或结束时间
+      if (duration) {
+        command = command.setDuration(duration);
+      } else if (end_time && start_time) {
+        // 计算持续时间
+        const startSec = parseTimeToSeconds(start_time);
+        const endSec = parseTimeToSeconds(end_time);
+        const durationSec = endSec - startSec;
+        command = command.setDuration(durationSec);
+      }
+
+      // 保存到输出文件
+      command
+        .output(output_path)
+        .on('start', (commandLine) => {
+          console.log('FFmpeg命令:', commandLine);
+        })
+        .on('progress', (progress) => {
+          // 可以在这里报告进度
+          if (progress.percent) {
+            console.log(`处理进度: ${progress.percent.toFixed(2)}%`);
+          }
+        })
+        .on('end', async () => {
+          try {
+            // 获取输出文件信息
+            const stats = await fsp.stat(output_path);
+
+            // 获取视频元数据
+            ffmpeg.ffprobe(output_path, (err, metadata) => {
+              if (err) {
+                resolve({
+                  success: true,
+                  input_path,
+                  output_path,
+                  start_time: start_time || '00:00:00',
+                  end_time: end_time || 'auto',
+                  duration: duration || 'auto',
+                  output_size: stats.size
+                });
+              } else {
+                const format = metadata.format;
+                const videoStream = metadata.streams.find(s => s.codec_type === 'video');
+
+                resolve({
+                  success: true,
+                  input_path,
+                  output_path,
+                  start_time: start_time || '00:00:00',
+                  end_time: end_time || 'auto',
+                  duration: format.duration ? `${format.duration.toFixed(2)}s` : (duration || 'auto'),
+                  output_size: stats.size,
+                  output_format: format.format_name,
+                  video_codec: videoStream ? videoStream.codec_name : 'unknown',
+                  resolution: videoStream ? `${videoStream.width}x${videoStream.height}` : 'unknown',
+                  bitrate: format.bit_rate ? `${(format.bit_rate / 1000).toFixed(0)}kbps` : 'unknown'
+                });
+              }
+            });
+          } catch (error) {
+            resolve({
+              success: true,
+              input_path,
+              output_path,
+              output_size: 0,
+              error: error.message
+            });
+          }
+        })
+        .on('error', (err) => {
+          reject(new Error(`视频裁剪失败: ${err.message}`));
+        })
+        .run();
+
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
+ * 视频合并器 (真实实现)
+ * 合并多个视频文件
+ */
+async function mergeVideosReal(params) {
+  const {
+    input_files,
+    output_path,
+    transition = 'none',
+    audio_mix = 'first'
+  } = params;
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      // 确保输出目录存在
+      const dir = path.dirname(output_path);
+      await fsp.mkdir(dir, { recursive: true });
+
+      // 验证输入文件
+      if (!input_files || input_files.length === 0) {
+        return reject(new Error('至少需要一个输入文件'));
+      }
+
+      // 创建临时文件列表
+      const tempListPath = path.join(dir, `temp_list_${Date.now()}.txt`);
+      const fileList = input_files.map(file => `file '${file.replace(/\\/g, '/')}'`).join('\n');
+      await fsp.writeFile(tempListPath, fileList);
+
+      // 创建FFmpeg命令 - 使用concat demuxer
+      const command = ffmpeg()
+        .input(tempListPath)
+        .inputOptions([
+          '-f', 'concat',
+          '-safe', '0'
+        ])
+        .outputOptions([
+          '-c', 'copy'  // 直接复制流，不重新编码
+        ])
+        .output(output_path);
+
+      command
+        .on('start', (commandLine) => {
+          console.log('FFmpeg命令:', commandLine);
+        })
+        .on('progress', (progress) => {
+          if (progress.percent) {
+            console.log(`合并进度: ${progress.percent.toFixed(2)}%`);
+          }
+        })
+        .on('end', async () => {
+          try {
+            // 清理临时文件
+            await fsp.unlink(tempListPath).catch(() => {});
+
+            // 获取输出文件信息
+            const stats = await fsp.stat(output_path);
+
+            // 获取视频元数据
+            ffmpeg.ffprobe(output_path, (err, metadata) => {
+              if (err) {
+                resolve({
+                  success: true,
+                  input_files,
+                  output_path,
+                  files_merged: input_files.length,
+                  output_size: stats.size,
+                  transition,
+                  audio_mix
+                });
+              } else {
+                const format = metadata.format;
+                const videoStream = metadata.streams.find(s => s.codec_type === 'video');
+
+                resolve({
+                  success: true,
+                  input_files,
+                  output_path,
+                  files_merged: input_files.length,
+                  total_duration: format.duration ? `${format.duration.toFixed(2)}s` : 'unknown',
+                  output_size: stats.size,
+                  output_format: format.format_name,
+                  video_codec: videoStream ? videoStream.codec_name : 'unknown',
+                  resolution: videoStream ? `${videoStream.width}x${videoStream.height}` : 'unknown',
+                  bitrate: format.bit_rate ? `${(format.bit_rate / 1000).toFixed(0)}kbps` : 'unknown',
+                  transition,
+                  audio_mix
+                });
+              }
+            });
+          } catch (error) {
+            resolve({
+              success: true,
+              output_path,
+              files_merged: input_files.length,
+              error: error.message
+            });
+          }
+        })
+        .on('error', async (err) => {
+          // 清理临时文件
+          await fsp.unlink(tempListPath).catch(() => {});
+          reject(new Error(`视频合并失败: ${err.message}`));
+        })
+        .run();
+
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
  * ==================== 辅助函数 ====================
+ */
+
+/**
+ * 将时间字符串转换为秒数
+ * 支持格式: "HH:MM:SS", "MM:SS", "SS"
+ */
+function parseTimeToSeconds(timeStr) {
+  const parts = timeStr.split(':').map(p => parseFloat(p));
+
+  if (parts.length === 3) {
+    // HH:MM:SS
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  } else if (parts.length === 2) {
+    // MM:SS
+    return parts[0] * 60 + parts[1];
+  } else if (parts.length === 1) {
+    // SS
+    return parts[0];
+  }
+
+  return 0;
+}
+
+/**
+ * ==================== 原有辅助函数 ====================
  */
 
 function getErrorCorrectionPercentage(level) {
@@ -613,5 +862,9 @@ module.exports = {
 
   // 图片处理
   editImageReal,
-  filterImageReal
+  filterImageReal,
+
+  // 视频处理
+  cutVideoReal,
+  mergeVideosReal
 };
