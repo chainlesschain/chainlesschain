@@ -864,9 +864,9 @@ class P2PSyncEngine {
     const stats = this.db.prepare(`
       SELECT
         COUNT(*) as total,
-        SUM(CASE WHEN sync_status = 'synced' THEN 1 ELSE 0 END) as synced,
-        SUM(CASE WHEN sync_status = 'pending' THEN 1 ELSE 0 END) as pending,
-        SUM(CASE WHEN sync_status = 'conflict' THEN 1 ELSE 0 END) as conflicts,
+        COALESCE(SUM(CASE WHEN sync_status = 'synced' THEN 1 ELSE 0 END), 0) as synced,
+        COALESCE(SUM(CASE WHEN sync_status = 'pending' THEN 1 ELSE 0 END), 0) as pending,
+        COALESCE(SUM(CASE WHEN sync_status = 'conflict' THEN 1 ELSE 0 END), 0) as conflicts,
         MAX(last_synced_at) as last_sync_time
       FROM p2p_sync_state
       WHERE org_id = ?
@@ -879,7 +879,7 @@ class P2PSyncEngine {
 
     return {
       ...stats,
-      queue_size: queueSize.count,
+      queue_size: queueSize.count || 0,
       last_sync_time: this.lastSyncTime
     };
   }

@@ -1,0 +1,44 @@
+{
+  "id": "tpl_video_color_grading_001",
+  "name": "color_grading_plan",
+  "display_name": "视频调色方案",
+  "description": "专业视频调色方案设计，包含LUT选择和色彩风格定义",
+  "icon": "🎨",
+  "cover_image": "/templates/covers/color-grading.png",
+  "category": "video",
+  "subcategory": "post-production",
+  "tags": ["调色", "LUT", "色彩风格", "后期"],
+  "project_type": "document",
+  "prompt_template": "请帮我设计视频调色方案，要求：\n\n**视频信息：**\n- 项目名称：{{projectName}}\n- 调色风格：{{colorStyle}}\n- 视频类型：{{videoType}}\n- 目标平台：{{platform}}\n\n**调色流程：**\n\n第一步：一级调色（Color Correction）\n- 白平衡校正\n- 曝光调整（目标中灰值：50IRE）\n- 对比度优化\n- 确保所有镜头色调一致\n\n第二步：二级调色（Color Grading）\n\n{{#eq colorStyle \"电影感\"}}\n**电影感调色方案：**\n\n色彩搭配：\n- 暗部：偏蓝绿（Shadows: Teal）\n- 高光：偏橙黄（Highlights: Orange）\n- 中间调：降饱和度-15%\n\nLUT推荐：\n- FilmConvert Nitrate\n- Kodak 2383\n- Fuji Eterna\n\n技术参数：\n- 对比度：+20\n- 饱和度：-10\n- 黑位抬高：+5\n- 添加电影黑边（2.39:1）\n{{/eq}}\n\n{{#eq colorStyle \"清新自然\"}}\n**清新自然调色方案：**\n\n色彩搭配：\n- 提亮画面（+10-15%）\n- 增加饱和度（+15-20%）\n- 绿色偏青\n- 肤色偏粉\n\nLUT推荐：\n- VSCO C1\n- Kodak Portra\n- Instagram Valencia\n\n技术参数：\n- 曝光：+0.3\n- 饱和度：+15\n- 清晰度：+10\n{{/eq}}\n\n{{#eq colorStyle \"复古怀旧\"}}\n**复古怀旧调色方案：**\n\n色彩搭配：\n- 褪色效果（降低对比度）\n- 暖色调（偏黄/橙）\n- 添加颗粒感（Film Grain）\n- 暗角效果（Vignette）\n\nLUT推荐：\n- Kodak Gold\n- Fujifilm 400H\n- Vintage Film\n\n技术参数：\n- 对比度：-15\n- 色温：+300K\n- 颗粒强度：20%\n- 暗角：-20\n{{/eq}}\n\n第三步：肤色校正\n- 使用肤色指示器（Skin Tone Line）\n- 确保肤色自然（不偏绿或偏红）\n- 统一所有人物肤色\n\n第四步：特殊场景调色\n- 日景：保持天空蓝色纯净\n- 夜景：控制噪点，适度降噪\n- 室内：注意灯光色温统一\n\n**色彩参考：**\n\n色轮设置：\n- 阴影：{{shadowColor}}\n- 中间调：{{midtoneColor}}\n- 高光：{{highlightColor}}\n\nRGB曲线：\n- 红通道：{{redCurve}}\n- 绿通道：{{greenCurve}}\n- 蓝通道：{{blueCurve}}\n\n**导出设置：**\n\n色彩空间：\n- SDR：Rec.709\n- HDR：Rec.2020 / HLG\n\n位深：\n- 中间格式：10-bit ProRes\n- 最终输出：8-bit H.264\n\n---\n\n**输出格式：**\n- 调色方案文档\n- LUT文件包\n- 参数设置截图",
+  "variables_schema": [
+    {"name": "projectName", "label": "项目名称", "type": "string", "required": true},
+    {"name": "colorStyle", "label": "调色风格", "type": "select", "required": true, "options": [
+      {"value": "电影感", "label": "电影感（Cinematic）"},
+      {"value": "清新自然", "label": "清新自然"},
+      {"value": "复古怀旧", "label": "复古怀旧"},
+      {"value": "商业广告", "label": "商业广告"},
+      {"value": "纪录片", "label": "纪录片"}
+    ]},
+    {"name": "videoType", "label": "视频类型", "type": "string", "required": false},
+    {"name": "platform", "label": "目标平台", "type": "select", "required": false, "default": "通用", "options": [
+      {"value": "通用", "label": "通用"},
+      {"value": "电影院", "label": "电影院"},
+      {"value": "网络", "label": "网络平台"},
+      {"value": "电视", "label": "电视"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "调色方案-{{projectName}}",
+    "files": [
+      {"path": "调色方案.docx", "type": "document"},
+      {"path": "参数设置.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

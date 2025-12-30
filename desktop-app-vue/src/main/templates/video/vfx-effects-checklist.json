@@ -1,0 +1,42 @@
+{
+  "id": "tpl_video_vfx_001",
+  "name": "vfx_effects_checklist",
+  "display_name": "视频特效清单",
+  "description": "视频特效和动画制作清单，包含AE模板和特效素材",
+  "icon": "✨",
+  "cover_image": "/templates/covers/vfx.png",
+  "category": "video",
+  "subcategory": "post-production",
+  "tags": ["视频特效", "AE", "动画", "特效"],
+  "project_type": "document",
+  "prompt_template": "请帮我规划视频特效制作，要求：\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 特效类型：{{effectsType}}\n- 软件：{{software}}\n\n**常用特效分类：**\n\n**1. 文字动画**\n- 片头标题动画\n- 字幕入场/出场\n- 文字跟踪（Text Tracking）\n- 打字机效果\n- 霓虹灯文字\n\nAE模板推荐：\n- Typographic Titles\n- Kinetic Typography\n\n**2. 转场特效**\n- 无缝转场（Seamless Transition）\n- 擦除转场（Wipe）\n- 变形转场（Morph）\n- 光效转场（Light Leak）\n- 故障转场（Glitch）\n\n**3. 运动图形（MG动画）**\n- Logo演绎\n- 图表动画（Chart Animation）\n- 信息图动画（Infographic）\n- 下三分位字幕（Lower Third）\n\nAE插件推荐：\n- Element 3D（3D图形）\n- Plexus（粒子线条）\n- Optical Flares（光晕）\n\n**4. 视觉特效（VFX）**\n- 色键抠像（Chroma Key/Green Screen）\n- 物体移除（Object Removal）\n- 画面稳定（Stabilization）\n- 时间重映射（Time Remapping）\n- 克隆效果（Clone Effect）\n\n**5. 粒子效果**\n- 粒子logo\n- 尘埃/光斑\n- 烟雾/火焰\n- 能量波\n\n插件推荐：\n- Trapcode Particular（粒子）\n- Red Giant Universe（综合特效包）\n\n**制作流程：**\n\n前期准备：\n- 确定特效需求点\n- 准备素材（绿幕/图片/Logo）\n- 参考案例收集\n\n制作步骤：\n1. 素材导入AE\n2. 合成设置（1920x1080, 30fps）\n3. 应用特效/模板\n4. 参数调整\n5. 渲染输出（ProRes/PNG序列）\n\n导入剪辑软件：\n- 透明背景使用PNG或ProRes 4444\n- 替换占位符\n- 调整时长和位置\n\n**渲染设置：**\n\n最佳质量：\n- 格式：QuickTime (ProRes 422 HQ)\n- 分辨率：与项目一致\n- 帧率：与项目一致\n- Alpha通道：勾选（如需透明）\n\n快速预览：\n- 格式：H.264\n- 比特率：10 Mbps\n\n---\n\n**输出格式：**\n- 特效需求清单\n- AE项目文件\n- 渲染设置指南",
+  "variables_schema": [
+    {"name": "projectName", "label": "项目名称", "type": "string", "required": true},
+    {"name": "effectsType", "label": "特效类型", "type": "select", "required": false, "default": "综合", "options": [
+      {"value": "综合", "label": "综合特效"},
+      {"value": "文字动画", "label": "文字动画"},
+      {"value": "MG动画", "label": "运动图形"},
+      {"value": "VFX", "label": "视觉特效"}
+    ]},
+    {"name": "software", "label": "使用软件", "type": "select", "required": false, "default": "After Effects", "options": [
+      {"value": "After Effects", "label": "After Effects"},
+      {"value": "Premiere Pro", "label": "Premiere Pro"},
+      {"value": "Final Cut Pro", "label": "Final Cut Pro"},
+      {"value": "DaVinci Resolve", "label": "DaVinci Resolve"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "特效-{{projectName}}",
+    "files": [
+      {"path": "特效清单.docx", "type": "document"},
+      {"path": "渲染设置.md", "type": "markdown"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
