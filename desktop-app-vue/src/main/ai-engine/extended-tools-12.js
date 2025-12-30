@@ -167,10 +167,16 @@ class ExtendedTools12 {
      * 图片裁剪、缩放、旋转、翻转
      */
     functionCaller.registerTool('image_editor', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.editImageReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         input_path,
         output_path,
-        operations = [],
+        operations = {},
         format,
         quality = 85
       } = params;
@@ -181,31 +187,27 @@ class ExtendedTools12 {
 
         const appliedOperations = [];
 
-        for (const op of operations) {
-          const { type, params: opParams } = op;
-
-          switch (type) {
-            case 'crop':
-              width = opParams.width || width;
-              height = opParams.height || height;
-              appliedOperations.push(`裁剪到 ${width}x${height}`);
-              break;
-            case 'resize':
-              width = opParams.width || Math.floor(width * (opParams.scale || 1));
-              height = opParams.height || Math.floor(height * (opParams.scale || 1));
-              appliedOperations.push(`缩放到 ${width}x${height}`);
-              break;
-            case 'rotate':
-              const angle = opParams.angle || 90;
-              if (angle % 180 !== 0) {
-                [width, height] = [height, width];
-              }
-              appliedOperations.push(`旋转 ${angle}度`);
-              break;
-            case 'flip':
-              appliedOperations.push(`翻转 ${opParams.direction || 'horizontal'}`);
-              break;
+        // 处理operations对象
+        if (operations.crop) {
+          width = operations.crop.width || width;
+          height = operations.crop.height || height;
+          appliedOperations.push(`裁剪到 ${width}x${height}`);
+        }
+        if (operations.resize) {
+          width = operations.resize.width || Math.floor(width * (operations.resize.scale || 1));
+          height = operations.resize.height || Math.floor(height * (operations.resize.scale || 1));
+          appliedOperations.push(`缩放到 ${width}x${height}`);
+        }
+        if (operations.rotate) {
+          const angle = operations.rotate.angle || 90;
+          if (angle % 180 !== 0) {
+            [width, height] = [height, width];
           }
+          appliedOperations.push(`旋转 ${angle}度`);
+        }
+        if (operations.flip) {
+          if (operations.flip.horizontal) appliedOperations.push('水平翻转');
+          if (operations.flip.vertical) appliedOperations.push('垂直翻转');
         }
 
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -215,10 +217,11 @@ class ExtendedTools12 {
           input_path: input_path,
           output_path: output_path,
           format: format || 'png',
-          quality: quality,
-          final_dimensions: { width, height },
+          quality: quality || operations.quality,
+          original_dimensions: { width: 1920, height: 1080, format: 'png', size: 1920 * 1080 * 3 },
+          output_dimensions: { width, height, size: Math.floor(width * height * 3 * (quality / 100)) },
           operations_applied: appliedOperations,
-          file_size: Math.floor(width * height * 3 * (quality / 100))
+          size_reduction: '0%'
         };
 
       } catch (error) {
@@ -231,9 +234,16 @@ class ExtendedTools12 {
      * 应用滤镜、调整亮度对比度、添加水印
      */
     functionCaller.registerTool('image_filter', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return await realImpl.filterImageReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         input_path,
         output_path,
+        filters = {},
         filter,
         brightness = 0,
         contrast = 0,
@@ -241,7 +251,7 @@ class ExtendedTools12 {
       } = params;
 
       try {
-        const filters = {
+        const filterNames = {
           'grayscale': '灰度',
           'sepia': '怀旧',
           'blur': '模糊',
@@ -252,7 +262,17 @@ class ExtendedTools12 {
         };
 
         const appliedEffects = [];
-        if (filter) appliedEffects.push(`滤镜: ${filters[filter] || filter}`);
+
+        // 支持filters对象（新格式）
+        if (filters.grayscale) appliedEffects.push('灰度');
+        if (filters.blur) appliedEffects.push(`模糊(σ=${filters.blur.sigma || 3})`);
+        if (filters.sharpen) appliedEffects.push(`锐化(σ=${filters.sharpen.sigma || 1})`);
+        if (filters.brightness) appliedEffects.push(`亮度(${filters.brightness.value || 1.0})`);
+        if (filters.negate) appliedEffects.push('反色');
+        if (filters.normalize) appliedEffects.push('归一化');
+
+        // 兼容旧格式
+        if (filter) appliedEffects.push(`滤镜: ${filterNames[filter] || filter}`);
         if (brightness !== 0) appliedEffects.push(`亮度: ${brightness > 0 ? '+' : ''}${brightness}`);
         if (contrast !== 0) appliedEffects.push(`对比度: ${contrast > 0 ? '+' : ''}${contrast}`);
         if (watermark) appliedEffects.push(`水印: ${watermark.text || '已添加'}`);
@@ -263,13 +283,18 @@ class ExtendedTools12 {
           success: true,
           input_path: input_path,
           output_path: output_path,
-          effects_applied: appliedEffects,
-          filter: filter,
-          adjustments: {
-            brightness: brightness,
-            contrast: contrast
+          original_info: {
+            width: 1920,
+            height: 1080,
+            format: 'png',
+            size: 1920 * 1080 * 3
           },
-          watermark_added: !!watermark
+          output_info: {
+            size: 1920 * 1080 * 3,
+            format: 'png'
+          },
+          filters_applied: appliedEffects,
+          filter_count: appliedEffects.length
         };
 
       } catch (error) {
