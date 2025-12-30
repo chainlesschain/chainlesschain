@@ -9268,7 +9268,25 @@ ${content}
         if (!this.templateManager) {
           throw new Error('模板管理器未初始化');
         }
-        const template = await this.templateManager.getTemplateById(templateId);
+
+        let template = await this.templateManager.getTemplateById(templateId);
+
+        // 如果模板的 prompt_template 为空，尝试重新加载
+        if (!template.prompt_template || template.prompt_template.trim() === '') {
+          console.warn(`[Template] 模板 ${templateId} 的 prompt_template 为空，尝试重新初始化模板`);
+
+          // 重新初始化模板（强制重新加载）
+          this.templateManager.templatesLoaded = false;
+          await this.templateManager.initialize();
+
+          // 重新获取模板
+          template = await this.templateManager.getTemplateById(templateId);
+
+          if (!template.prompt_template || template.prompt_template.trim() === '') {
+            throw new Error(`模板 ${templateId} (${template.display_name}) 的 prompt_template 字段为空，请检查模板文件是否正确`);
+          }
+        }
+
         const renderedPrompt = this.templateManager.renderPrompt(template, userVariables);
         return { success: true, renderedPrompt };
       } catch (error) {
