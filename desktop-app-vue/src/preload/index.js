@@ -942,6 +942,73 @@ contextBridge.exposeInMainWorld('electronAPI', {
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
   },
+
+  // 技能管理
+  skill: {
+    // 技能查询
+    getAll: (options) => ipcRenderer.invoke('skill:get-all', options),
+    getById: (skillId) => ipcRenderer.invoke('skill:get-by-id', skillId),
+    getByCategory: (category) => ipcRenderer.invoke('skill:get-by-category', category),
+
+    // 技能操作
+    enable: (skillId) => ipcRenderer.invoke('skill:enable', skillId),
+    disable: (skillId) => ipcRenderer.invoke('skill:disable', skillId),
+    update: (skillId, updates) => ipcRenderer.invoke('skill:update', skillId, updates),
+    updateConfig: (skillId, config) => ipcRenderer.invoke('skill:update-config', skillId, config),
+
+    // 技能统计
+    getStats: (skillId, dateRange) => ipcRenderer.invoke('skill:get-stats', skillId, dateRange),
+
+    // 技能工具关系
+    getTools: (skillId) => ipcRenderer.invoke('skill:get-tools', skillId),
+    addTool: (skillId, toolId, role) => ipcRenderer.invoke('skill:add-tool', skillId, toolId, role),
+    removeTool: (skillId, toolId) => ipcRenderer.invoke('skill:remove-tool', skillId, toolId),
+
+    // 技能文档
+    getDoc: (skillId) => ipcRenderer.invoke('skill:get-doc', skillId),
+
+    // 智能推荐
+    recommend: (userInput, options) => ipcRenderer.invoke('skill:recommend', userInput, options),
+    getPopular: (limit) => ipcRenderer.invoke('skill:get-popular', limit),
+    getRelated: (skillId, limit) => ipcRenderer.invoke('skill:get-related', skillId, limit),
+    search: (query, options) => ipcRenderer.invoke('skill:search', query, options),
+  },
+
+  // 工具管理
+  tool: {
+    // 工具查询
+    getAll: (options) => ipcRenderer.invoke('tool:get-all', options),
+    getById: (toolId) => ipcRenderer.invoke('tool:get-by-id', toolId),
+    getByCategory: (category) => ipcRenderer.invoke('tool:get-by-category', category),
+    getBySkill: (skillId) => ipcRenderer.invoke('tool:get-by-skill', skillId),
+
+    // 工具操作
+    enable: (toolId) => ipcRenderer.invoke('tool:enable', toolId),
+    disable: (toolId) => ipcRenderer.invoke('tool:disable', toolId),
+    update: (toolId, updates) => ipcRenderer.invoke('tool:update', toolId, updates),
+    updateConfig: (toolId, config) => ipcRenderer.invoke('tool:update-config', toolId, config),
+    updateSchema: (toolId, schema) => ipcRenderer.invoke('tool:update-schema', toolId, schema),
+
+    // 工具测试
+    test: (toolId, params) => ipcRenderer.invoke('tool:test', toolId, params),
+
+    // 工具统计
+    getStats: (toolId, dateRange) => ipcRenderer.invoke('tool:get-stats', toolId, dateRange),
+
+    // 工具文档
+    getDoc: (toolId) => ipcRenderer.invoke('tool:get-doc', toolId),
+  },
+
+  // 技能工具系统通用
+  skillTool: {
+    // 依赖关系
+    getDependencyGraph: () => ipcRenderer.invoke('skill-tool:get-dependency-graph'),
+    getAllRelations: () => ipcRenderer.invoke('skill-tool:get-all-relations'),
+
+    // 使用分析
+    getUsageAnalytics: (dateRange) => ipcRenderer.invoke('skill-tool:get-usage-analytics', dateRange),
+    getCategoryStats: () => ipcRenderer.invoke('skill-tool:get-category-stats'),
+  },
 });
 
 // Also expose a direct electron object for components that use window.electron.ipcRenderer

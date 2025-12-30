@@ -555,9 +555,15 @@ const handleSaveTool = async (toolData) => {
 // 显示依赖关系图
 const showDependencyGraph = async () => {
   try {
-    const relations = await window.electron.invoke('skill-tool:get-all-relations');
-    allSkillTools.value = relations;
-    graphVisible.value = true;
+    const result = await window.electronAPI.skillTool.getDependencyGraph();
+    if (result.success) {
+      // Extract edges (relations) from the dependency graph
+      allSkillTools.value = result.data.edges || [];
+      graphVisible.value = true;
+    } else {
+      console.error(result.error);
+      message.error('加载依赖关系失败');
+    }
   } catch (error) {
     console.error(error);
     message.error('加载依赖关系失败');

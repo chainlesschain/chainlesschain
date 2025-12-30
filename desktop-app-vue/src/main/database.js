@@ -3407,9 +3407,9 @@ class DatabaseManager {
       const stmt = this.db.prepare(`
         INSERT OR REPLACE INTO project_files (
           id, project_id, file_path, file_name, file_type,
-          file_size, content, content_hash, version,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          file_size, content, content_hash, version, fs_path,
+          created_at, updated_at, sync_status, synced_at, device_id, deleted
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       safeFiles.forEach(file => {
@@ -3425,6 +3425,11 @@ class DatabaseManager {
         const content = file.content ?? null;
         const contentHash = file.content_hash ?? file.contentHash ?? null;
         const version = file.version ?? 1;
+        const fsPath = file.fs_path ?? file.fsPath ?? null;
+        const syncStatus = file.sync_status ?? file.syncStatus ?? 'pending';
+        const syncedAt = file.synced_at ?? file.syncedAt ?? null;
+        const deviceId = file.device_id ?? file.deviceId ?? null;
+        const deleted = file.deleted ?? 0;
 
         // 如果没有file_size但有content，自动计算大小
         let actualFileSize = fileSize;
@@ -3465,8 +3470,13 @@ class DatabaseManager {
           content,
           contentHash,
           version,
+          fsPath,
           createdAt,
           updatedAt,
+          syncStatus,
+          syncedAt,
+          deviceId,
+          deleted,
         ].map((value) => (value === undefined ? null : value));
 
         stmt.run(...params);
