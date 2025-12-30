@@ -1685,4 +1685,2137 @@ module.exports = [
     is_builtin: 1,
     enabled: 1,
   },
+
+  // === 第二批新增工具 (33-52) ===
+
+  // 33. QR码生成器
+  {
+    id: 'tool_qrcode_generator',
+    name: 'qrcode_generator',
+    display_name: 'QR码生成器',
+    description: '生成QR二维码图片',
+    category: 'image',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'string',
+          description: '要编码的数据（URL、文本等）'
+        },
+        size: {
+          type: 'number',
+          description: '二维码尺寸（像素）',
+          default: 256
+        },
+        format: {
+          type: 'string',
+          description: '输出格式',
+          enum: ['png', 'svg', 'dataurl'],
+          default: 'png'
+        },
+        errorLevel: {
+          type: 'string',
+          description: '错误纠正级别',
+          enum: ['L', 'M', 'Q', 'H'],
+          default: 'M'
+        }
+      },
+      required: ['data']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'string' },
+        format: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '生成网站QR码',
+        params: {
+          data: 'https://example.com',
+          size: 256
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 34. Diff比较器
+  {
+    id: 'tool_diff_comparator',
+    name: 'diff_comparator',
+    display_name: 'Diff比较器',
+    description: '比较两个文本或文件的差异',
+    category: 'text',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        text1: {
+          type: 'string',
+          description: '第一个文本'
+        },
+        text2: {
+          type: 'string',
+          description: '第二个文本'
+        },
+        format: {
+          type: 'string',
+          description: '输出格式',
+          enum: ['unified', 'side-by-side', 'json'],
+          default: 'unified'
+        },
+        ignoreWhitespace: {
+          type: 'boolean',
+          description: '忽略空白字符',
+          default: false
+        }
+      },
+      required: ['text1', 'text2']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        diff: { type: 'string' },
+        changes: { type: 'number' },
+        additions: { type: 'number' },
+        deletions: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '比较两段文本',
+        params: {
+          text1: 'Hello World',
+          text2: 'Hello ChainlessChain'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 35. Hash校验器
+  {
+    id: 'tool_hash_verifier',
+    name: 'hash_verifier',
+    display_name: 'Hash校验器',
+    description: '计算和验证文件/文本的Hash值',
+    category: 'security',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        filePath: {
+          type: 'string',
+          description: '文件路径'
+        },
+        text: {
+          type: 'string',
+          description: '文本内容'
+        },
+        algorithm: {
+          type: 'string',
+          description: 'Hash算法',
+          enum: ['md5', 'sha1', 'sha256', 'sha512'],
+          default: 'sha256'
+        },
+        expectedHash: {
+          type: 'string',
+          description: '期望的Hash值（用于验证）'
+        }
+      }
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        hash: { type: 'string' },
+        algorithm: { type: 'string' },
+        verified: { type: 'boolean' }
+      }
+    },
+    examples: [
+      {
+        description: '计算文件SHA256',
+        params: {
+          filePath: './file.zip',
+          algorithm: 'sha256'
+        }
+      }
+    ],
+    required_permissions: ['file:read'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 36. IP地址工具
+  {
+    id: 'tool_ip_utility',
+    name: 'ip_utility',
+    display_name: 'IP地址工具',
+    description: 'IP地址验证、解析和查询',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['validate', 'parse', 'lookup', 'cidr'],
+          default: 'validate'
+        },
+        ip: {
+          type: 'string',
+          description: 'IP地址'
+        },
+        cidr: {
+          type: 'string',
+          description: 'CIDR表示法'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        isValid: { type: 'boolean' },
+        version: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '验证IP地址',
+        params: {
+          action: 'validate',
+          ip: '192.168.1.1'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 37. User-Agent解析器
+  {
+    id: 'tool_useragent_parser',
+    name: 'useragent_parser',
+    display_name: 'User-Agent解析器',
+    description: '解析User-Agent字符串',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        userAgent: {
+          type: 'string',
+          description: 'User-Agent字符串'
+        }
+      },
+      required: ['userAgent']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        browser: { type: 'object' },
+        os: { type: 'object' },
+        device: { type: 'object' }
+      }
+    },
+    examples: [
+      {
+        description: '解析浏览器UA',
+        params: {
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)...'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 38. Cron表达式解析器
+  {
+    id: 'tool_cron_parser',
+    name: 'cron_parser',
+    display_name: 'Cron表达式解析器',
+    description: '解析和生成Cron表达式',
+    category: 'utility',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['parse', 'generate', 'next'],
+          default: 'parse'
+        },
+        expression: {
+          type: 'string',
+          description: 'Cron表达式'
+        },
+        description: {
+          type: 'string',
+          description: '时间描述（用于生成）'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        description: { type: 'string' },
+        nextRun: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '解析Cron表达式',
+        params: {
+          action: 'parse',
+          expression: '0 0 * * *'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 39. 代码美化器
+  {
+    id: 'tool_code_formatter',
+    name: 'code_formatter',
+    display_name: '代码美化器',
+    description: '格式化各种编程语言的代码',
+    category: 'code',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: '要格式化的代码'
+        },
+        language: {
+          type: 'string',
+          description: '编程语言',
+          enum: ['javascript', 'json', 'html', 'css', 'sql', 'python'],
+          default: 'javascript'
+        },
+        options: {
+          type: 'object',
+          description: '格式化选项',
+          properties: {
+            indent: { type: 'number', default: 2 },
+            semicolons: { type: 'boolean', default: true }
+          }
+        }
+      },
+      required: ['code', 'language']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        formatted: { type: 'string' },
+        language: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '格式化JavaScript代码',
+        params: {
+          code: 'function test(){return 42}',
+          language: 'javascript'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 40. 文本编码检测器
+  {
+    id: 'tool_encoding_detector',
+    name: 'encoding_detector',
+    display_name: '文本编码检测器',
+    description: '检测文本或文件的字符编码',
+    category: 'text',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        filePath: {
+          type: 'string',
+          description: '文件路径'
+        },
+        buffer: {
+          type: 'string',
+          description: 'Buffer数据（base64）'
+        }
+      }
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        encoding: { type: 'string' },
+        confidence: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '检测文件编码',
+        params: {
+          filePath: './document.txt'
+        }
+      }
+    ],
+    required_permissions: ['file:read'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 41. 版本号比较器
+  {
+    id: 'tool_version_comparator',
+    name: 'version_comparator',
+    display_name: '版本号比较器',
+    description: 'Semver版本号比较和验证',
+    category: 'utility',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['compare', 'validate', 'bump', 'parse'],
+          default: 'compare'
+        },
+        version1: {
+          type: 'string',
+          description: '第一个版本号'
+        },
+        version2: {
+          type: 'string',
+          description: '第二个版本号'
+        },
+        bumpType: {
+          type: 'string',
+          description: '升级类型',
+          enum: ['major', 'minor', 'patch']
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        comparison: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '比较版本号',
+        params: {
+          action: 'compare',
+          version1: '1.2.3',
+          version2: '1.2.4'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 42. JWT解析器
+  {
+    id: 'tool_jwt_parser',
+    name: 'jwt_parser',
+    display_name: 'JWT解析器',
+    description: '解析和验证JWT令牌',
+    category: 'security',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        token: {
+          type: 'string',
+          description: 'JWT令牌'
+        },
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['decode', 'verify'],
+          default: 'decode'
+        },
+        secret: {
+          type: 'string',
+          description: '密钥（用于验证）'
+        }
+      },
+      required: ['token']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        header: { type: 'object' },
+        payload: { type: 'object' },
+        signature: { type: 'string' },
+        verified: { type: 'boolean' }
+      }
+    },
+    examples: [
+      {
+        description: '解析JWT令牌',
+        params: {
+          token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          action: 'decode'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 43. XML解析器
+  {
+    id: 'tool_xml_parser',
+    name: 'xml_parser',
+    display_name: 'XML解析器',
+    description: '解析和生成XML数据',
+    category: 'data',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['parse', 'stringify', 'validate'],
+          default: 'parse'
+        },
+        xml: {
+          type: 'string',
+          description: 'XML字符串'
+        },
+        data: {
+          type: 'object',
+          description: '要转换为XML的数据'
+        },
+        options: {
+          type: 'object',
+          description: '解析选项'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        valid: { type: 'boolean' }
+      }
+    },
+    examples: [
+      {
+        description: '解析XML',
+        params: {
+          action: 'parse',
+          xml: '<root><item>value</item></root>'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 44. HTML解析器
+  {
+    id: 'tool_html_parser',
+    name: 'html_parser',
+    display_name: 'HTML解析器',
+    description: '解析HTML并提取内容',
+    category: 'web',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        html: {
+          type: 'string',
+          description: 'HTML字符串'
+        },
+        selector: {
+          type: 'string',
+          description: 'CSS选择器'
+        },
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['parse', 'query', 'extract', 'text'],
+          default: 'parse'
+        }
+      },
+      required: ['html', 'action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        elements: { type: 'array' }
+      }
+    },
+    examples: [
+      {
+        description: '提取HTML文本',
+        params: {
+          html: '<div><p>Hello</p></div>',
+          action: 'text'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 45. TOML解析器
+  {
+    id: 'tool_toml_parser',
+    name: 'toml_parser',
+    display_name: 'TOML解析器',
+    description: '解析和生成TOML配置文件',
+    category: 'config',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['parse', 'stringify'],
+          default: 'parse'
+        },
+        toml: {
+          type: 'string',
+          description: 'TOML字符串'
+        },
+        data: {
+          type: 'object',
+          description: '要转换为TOML的数据'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' }
+      }
+    },
+    examples: [
+      {
+        description: '解析TOML配置',
+        params: {
+          action: 'parse',
+          toml: '[server]\nport = 8080'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 46. INI解析器
+  {
+    id: 'tool_ini_parser',
+    name: 'ini_parser',
+    display_name: 'INI解析器',
+    description: '解析和生成INI配置文件',
+    category: 'config',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['parse', 'stringify'],
+          default: 'parse'
+        },
+        ini: {
+          type: 'string',
+          description: 'INI字符串'
+        },
+        data: {
+          type: 'object',
+          description: '要转换为INI的数据'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' }
+      }
+    },
+    examples: [
+      {
+        description: '解析INI文件',
+        params: {
+          action: 'parse',
+          ini: '[section]\nkey=value'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 47. DNS查询器
+  {
+    id: 'tool_dns_lookup',
+    name: 'dns_lookup',
+    display_name: 'DNS查询器',
+    description: '查询DNS记录',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        domain: {
+          type: 'string',
+          description: '域名'
+        },
+        recordType: {
+          type: 'string',
+          description: '记录类型',
+          enum: ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME'],
+          default: 'A'
+        }
+      },
+      required: ['domain']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        records: { type: 'array' },
+        type: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '查询A记录',
+        params: {
+          domain: 'example.com',
+          recordType: 'A'
+        }
+      }
+    ],
+    required_permissions: ['network:dns'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 48. 端口检测器
+  {
+    id: 'tool_port_checker',
+    name: 'port_checker',
+    display_name: '端口检测器',
+    description: '检测端口是否开放',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        host: {
+          type: 'string',
+          description: '主机地址'
+        },
+        port: {
+          type: 'number',
+          description: '端口号'
+        },
+        timeout: {
+          type: 'number',
+          description: '超时时间（毫秒）',
+          default: 3000
+        }
+      },
+      required: ['host', 'port']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        isOpen: { type: 'boolean' },
+        host: { type: 'string' },
+        port: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '检测端口80',
+        params: {
+          host: 'example.com',
+          port: 80
+        }
+      }
+    ],
+    required_permissions: ['network:connect'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 49. 邮件解析器
+  {
+    id: 'tool_email_parser',
+    name: 'email_parser',
+    display_name: '邮件解析器',
+    description: '解析电子邮件地址和内容',
+    category: 'email',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['validate', 'parse', 'extract'],
+          default: 'validate'
+        },
+        email: {
+          type: 'string',
+          description: '邮件地址'
+        },
+        content: {
+          type: 'string',
+          description: '邮件内容'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        isValid: { type: 'boolean' }
+      }
+    },
+    examples: [
+      {
+        description: '验证邮箱地址',
+        params: {
+          action: 'validate',
+          email: 'user@example.com'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 50. Slug生成器
+  {
+    id: 'tool_slug_generator',
+    name: 'slug_generator',
+    display_name: 'Slug生成器',
+    description: '生成URL友好的slug字符串',
+    category: 'text',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: '要转换的文本'
+        },
+        separator: {
+          type: 'string',
+          description: '分隔符',
+          default: '-'
+        },
+        lowercase: {
+          type: 'boolean',
+          description: '是否转小写',
+          default: true
+        }
+      },
+      required: ['text']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        slug: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '生成文章slug',
+        params: {
+          text: 'Hello World - 你好世界!'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 51. Git Diff解析器
+  {
+    id: 'tool_gitdiff_parser',
+    name: 'gitdiff_parser',
+    display_name: 'Git Diff解析器',
+    description: '解析Git diff输出',
+    category: 'version-control',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        diff: {
+          type: 'string',
+          description: 'Git diff输出'
+        }
+      },
+      required: ['diff']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        files: { type: 'array' },
+        additions: { type: 'number' },
+        deletions: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '解析Git diff',
+        params: {
+          diff: 'diff --git a/file.js b/file.js...'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // 52. 语言检测器
+  {
+    id: 'tool_language_detector',
+    name: 'language_detector',
+    display_name: '语言检测器',
+    description: '检测文本的自然语言',
+    category: 'text',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: '要检测的文本'
+        }
+      },
+      required: ['text']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        language: { type: 'string' },
+        confidence: { type: 'number' },
+        alternatives: { type: 'array' }
+      }
+    },
+    examples: [
+      {
+        description: '检测文本语言',
+        params: {
+          text: 'Hello World'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  // ==================== 第三批扩展工具 (53-72) ====================
+
+  {
+    id: 'tool_video_metadata_reader',
+    name: 'video_metadata_reader',
+    display_name: '视频元数据读取器',
+    description: '读取视频文件的元信息（分辨率、时长、编码、帧率等）',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        filePath: {
+          type: 'string',
+          description: '视频文件路径'
+        }
+      },
+      required: ['filePath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        metadata: {
+          type: 'object',
+          properties: {
+            duration: { type: 'number', description: '时长（秒）' },
+            width: { type: 'number' },
+            height: { type: 'number' },
+            codec: { type: 'string' },
+            fps: { type: 'number' },
+            bitrate: { type: 'number' }
+          }
+        },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '读取视频元数据',
+        params: {
+          filePath: '/path/to/video.mp4'
+        }
+      }
+    ],
+    required_permissions: ['file:read'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_audio_duration_calculator',
+    name: 'audio_duration_calculator',
+    display_name: '音频时长计算器',
+    description: '计算音频文件的时长和其他音频属性',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        filePath: {
+          type: 'string',
+          description: '音频文件路径'
+        }
+      },
+      required: ['filePath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        duration: { type: 'number', description: '时长（秒）' },
+        format: { type: 'string' },
+        sampleRate: { type: 'number' },
+        channels: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '计算音频时长',
+        params: {
+          filePath: '/path/to/audio.mp3'
+        }
+      }
+    ],
+    required_permissions: ['file:read'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_subtitle_parser',
+    name: 'subtitle_parser',
+    display_name: '字幕解析器',
+    description: '解析 SRT、VTT、ASS 等字幕格式',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: '字幕文件内容或路径'
+        },
+        format: {
+          type: 'string',
+          description: '字幕格式',
+          enum: ['srt', 'vtt', 'ass', 'auto']
+        }
+      },
+      required: ['content']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        subtitles: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              index: { type: 'number' },
+              start: { type: 'string' },
+              end: { type: 'string' },
+              text: { type: 'string' }
+            }
+          }
+        },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '解析 SRT 字幕',
+        params: {
+          content: '1\n00:00:00,000 --> 00:00:05,000\nHello World',
+          format: 'srt'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_model_predictor',
+    name: 'model_predictor',
+    display_name: '模型预测器',
+    description: '加载机器学习模型并执行推理预测',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        modelPath: {
+          type: 'string',
+          description: '模型文件路径'
+        },
+        input: {
+          type: 'any',
+          description: '输入数据'
+        },
+        framework: {
+          type: 'string',
+          description: '框架类型',
+          enum: ['onnx', 'tensorflow', 'pytorch']
+        }
+      },
+      required: ['modelPath', 'input']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        prediction: { type: 'any' },
+        confidence: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '图像分类预测',
+        params: {
+          modelPath: '/models/resnet50.onnx',
+          input: [/* image tensor */],
+          framework: 'onnx'
+        }
+      }
+    ],
+    required_permissions: ['file:read'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_data_aggregator',
+    name: 'data_aggregator',
+    display_name: '数据聚合器',
+    description: '对数据进行分组、聚合、统计计算',
+    category: 'data',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: '数据数组'
+        },
+        groupBy: {
+          type: 'string',
+          description: '分组字段'
+        },
+        aggregations: {
+          type: 'array',
+          description: '聚合操作列表',
+          items: {
+            type: 'object',
+            properties: {
+              field: { type: 'string' },
+              operation: {
+                type: 'string',
+                enum: ['sum', 'avg', 'min', 'max', 'count']
+              }
+            }
+          }
+        }
+      },
+      required: ['data', 'aggregations']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '计算销售数据统计',
+        params: {
+          data: [{category: 'A', sales: 100}, {category: 'A', sales: 200}],
+          groupBy: 'category',
+          aggregations: [{field: 'sales', operation: 'sum'}]
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_statistical_calculator',
+    name: 'statistical_calculator',
+    display_name: '统计计算器',
+    description: '计算均值、方差、标准差、百分位数等统计指标',
+    category: 'data',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: '数值数组',
+          items: { type: 'number' }
+        },
+        metrics: {
+          type: 'array',
+          description: '要计算的指标',
+          items: {
+            type: 'string',
+            enum: ['mean', 'median', 'mode', 'variance', 'stddev', 'min', 'max', 'percentile']
+          }
+        },
+        percentile: {
+          type: 'number',
+          description: '百分位数（0-100）',
+          default: 50
+        }
+      },
+      required: ['data', 'metrics']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        statistics: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '计算数据集统计信息',
+        params: {
+          data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          metrics: ['mean', 'median', 'stddev']
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_chart_data_generator',
+    name: 'chart_data_generator',
+    display_name: '图表数据生成器',
+    description: '为各种图表（折线图、柱状图、饼图）生成数据格式',
+    category: 'data',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: '原始数据'
+        },
+        chartType: {
+          type: 'string',
+          description: '图表类型',
+          enum: ['line', 'bar', 'pie', 'scatter', 'area']
+        },
+        xField: {
+          type: 'string',
+          description: 'X 轴字段'
+        },
+        yField: {
+          type: 'string',
+          description: 'Y 轴字段'
+        }
+      },
+      required: ['data', 'chartType']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        chartData: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '生成折线图数据',
+        params: {
+          data: [{month: 'Jan', value: 100}, {month: 'Feb', value: 150}],
+          chartType: 'line',
+          xField: 'month',
+          yField: 'value'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_template_renderer',
+    name: 'template_renderer',
+    display_name: '模板渲染器',
+    display_name: '模板渲染器',
+    description: '使用 Mustache/Handlebars 语法渲染模板',
+    category: 'document',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        template: {
+          type: 'string',
+          description: '模板字符串'
+        },
+        data: {
+          type: 'object',
+          description: '数据对象'
+        },
+        engine: {
+          type: 'string',
+          description: '模板引擎',
+          enum: ['mustache', 'handlebars', 'ejs'],
+          default: 'mustache'
+        }
+      },
+      required: ['template', 'data']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        rendered: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '渲染欢迎邮件模板',
+        params: {
+          template: 'Hello {{name}}, welcome to {{company}}!',
+          data: {name: 'John', company: 'Acme Inc'},
+          engine: 'mustache'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_api_requester',
+    name: 'api_requester',
+    display_name: 'API请求器',
+    description: '发送 HTTP 请求（GET/POST/PUT/DELETE）并处理响应',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'API URL'
+        },
+        method: {
+          type: 'string',
+          description: 'HTTP 方法',
+          enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+        },
+        headers: {
+          type: 'object',
+          description: '请求头'
+        },
+        body: {
+          type: 'any',
+          description: '请求体'
+        },
+        timeout: {
+          type: 'number',
+          description: '超时时间（毫秒）',
+          default: 30000
+        }
+      },
+      required: ['url', 'method']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        status: { type: 'number' },
+        data: { type: 'any' },
+        headers: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '获取用户信息',
+        params: {
+          url: 'https://api.example.com/users/123',
+          method: 'GET',
+          headers: {'Authorization': 'Bearer token123'}
+        }
+      }
+    ],
+    required_permissions: ['network:http'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_oauth_helper',
+    name: 'oauth_helper',
+    display_name: 'OAuth助手',
+    description: '处理 OAuth 2.0 认证流程',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['authorize', 'token', 'refresh']
+        },
+        clientId: {
+          type: 'string',
+          description: '客户端ID'
+        },
+        clientSecret: {
+          type: 'string',
+          description: '客户端密钥'
+        },
+        authorizationUrl: {
+          type: 'string',
+          description: '授权URL'
+        },
+        tokenUrl: {
+          type: 'string',
+          description: '令牌URL'
+        },
+        refreshToken: {
+          type: 'string',
+          description: '刷新令牌'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        accessToken: { type: 'string' },
+        refreshToken: { type: 'string' },
+        expiresIn: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '获取访问令牌',
+        params: {
+          action: 'token',
+          clientId: 'your-client-id',
+          clientSecret: 'your-secret',
+          tokenUrl: 'https://oauth.example.com/token'
+        }
+      }
+    ],
+    required_permissions: ['network:http'],
+    risk_level: 4,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_s3_client',
+    name: 's3_client',
+    display_name: 'S3客户端',
+    description: '与 AWS S3 或兼容服务交互（上传、下载、列表）',
+    category: 'storage',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['upload', 'download', 'list', 'delete']
+        },
+        bucket: {
+          type: 'string',
+          description: '存储桶名称'
+        },
+        key: {
+          type: 'string',
+          description: '对象键'
+        },
+        localPath: {
+          type: 'string',
+          description: '本地文件路径'
+        },
+        credentials: {
+          type: 'object',
+          description: 'AWS 凭证',
+          properties: {
+            accessKeyId: { type: 'string' },
+            secretAccessKey: { type: 'string' },
+            region: { type: 'string' }
+          }
+        }
+      },
+      required: ['action', 'bucket']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '上传文件到 S3',
+        params: {
+          action: 'upload',
+          bucket: 'my-bucket',
+          key: 'files/document.pdf',
+          localPath: '/path/to/document.pdf'
+        }
+      }
+    ],
+    required_permissions: ['network:http', 'file:read'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_oss_client',
+    name: 'oss_client',
+    display_name: '阿里云OSS客户端',
+    description: '与阿里云 OSS 交互（上传、下载、管理）',
+    category: 'storage',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['upload', 'download', 'list', 'delete']
+        },
+        bucket: {
+          type: 'string',
+          description: 'Bucket 名称'
+        },
+        objectKey: {
+          type: 'string',
+          description: '对象键'
+        },
+        localPath: {
+          type: 'string',
+          description: '本地文件路径'
+        },
+        credentials: {
+          type: 'object',
+          description: 'OSS 凭证',
+          properties: {
+            accessKeyId: { type: 'string' },
+            accessKeySecret: { type: 'string' },
+            region: { type: 'string' }
+          }
+        }
+      },
+      required: ['action', 'bucket']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '上传文件到阿里云 OSS',
+        params: {
+          action: 'upload',
+          bucket: 'my-oss-bucket',
+          objectKey: 'images/photo.jpg',
+          localPath: '/path/to/photo.jpg'
+        }
+      }
+    ],
+    required_permissions: ['network:http', 'file:read'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_log_parser',
+    name: 'log_parser',
+    display_name: '日志解析器',
+    description: '解析 Nginx、Apache、JSON 等格式的日志',
+    category: 'devops',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        logContent: {
+          type: 'string',
+          description: '日志内容'
+        },
+        format: {
+          type: 'string',
+          description: '日志格式',
+          enum: ['nginx', 'apache', 'json', 'syslog', 'auto']
+        },
+        filter: {
+          type: 'object',
+          description: '过滤条件'
+        }
+      },
+      required: ['logContent']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        entries: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              timestamp: { type: 'string' },
+              level: { type: 'string' },
+              message: { type: 'string' },
+              metadata: { type: 'object' }
+            }
+          }
+        },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '解析 Nginx 访问日志',
+        params: {
+          logContent: '127.0.0.1 - - [01/Jan/2024:12:00:00 +0000] "GET / HTTP/1.1" 200',
+          format: 'nginx'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_performance_profiler',
+    name: 'performance_profiler',
+    display_name: '性能分析器',
+    description: '分析代码执行性能，收集性能指标',
+    category: 'devops',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['start', 'stop', 'snapshot', 'report']
+        },
+        target: {
+          type: 'string',
+          description: '分析目标'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        metrics: {
+          type: 'object',
+          properties: {
+            cpuUsage: { type: 'number' },
+            memoryUsage: { type: 'number' },
+            executionTime: { type: 'number' }
+          }
+        },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '启动性能分析',
+        params: {
+          action: 'start',
+          target: 'main-process'
+        }
+      }
+    ],
+    required_permissions: ['system:monitor'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_memory_monitor',
+    name: 'memory_monitor',
+    display_name: '内存监控器',
+    description: '监控内存使用情况，检测内存泄漏',
+    category: 'devops',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['snapshot', 'compare', 'heapdump']
+        },
+        previousSnapshot: {
+          type: 'string',
+          description: '之前的快照ID'
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        snapshot: {
+          type: 'object',
+          properties: {
+            heapUsed: { type: 'number' },
+            heapTotal: { type: 'number' },
+            external: { type: 'number' },
+            rss: { type: 'number' }
+          }
+        },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '获取内存快照',
+        params: {
+          action: 'snapshot'
+        }
+      }
+    ],
+    required_permissions: ['system:monitor'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_translator',
+    name: 'translator',
+    display_name: '翻译器',
+    description: '多语言文本翻译（支持主流语言）',
+    category: 'text',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: '要翻译的文本'
+        },
+        from: {
+          type: 'string',
+          description: '源语言',
+          default: 'auto'
+        },
+        to: {
+          type: 'string',
+          description: '目标语言'
+        },
+        service: {
+          type: 'string',
+          description: '翻译服务',
+          enum: ['google', 'baidu', 'youdao', 'deepl'],
+          default: 'google'
+        }
+      },
+      required: ['text', 'to']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        translated: { type: 'string' },
+        detectedLanguage: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '中译英',
+        params: {
+          text: '你好，世界',
+          to: 'en'
+        }
+      }
+    ],
+    required_permissions: ['network:http'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_locale_formatter',
+    name: 'locale_formatter',
+    display_name: '本地化格式化器',
+    description: '格式化日期、数字、货币等本地化内容',
+    category: 'text',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        value: {
+          type: 'any',
+          description: '要格式化的值'
+        },
+        type: {
+          type: 'string',
+          description: '格式化类型',
+          enum: ['date', 'time', 'number', 'currency', 'percent']
+        },
+        locale: {
+          type: 'string',
+          description: '本地化标识符',
+          default: 'en-US'
+        },
+        options: {
+          type: 'object',
+          description: '格式化选项'
+        }
+      },
+      required: ['value', 'type']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        formatted: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '格式化货币',
+        params: {
+          value: 1234.56,
+          type: 'currency',
+          locale: 'zh-CN',
+          options: {currency: 'CNY'}
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_workflow_executor',
+    name: 'workflow_executor',
+    display_name: '工作流执行器',
+    description: '执行定义好的工作流步骤',
+    category: 'automation',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        workflow: {
+          type: 'object',
+          description: '工作流定义',
+          properties: {
+            steps: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  tool: { type: 'string' },
+                  params: { type: 'object' },
+                  condition: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        context: {
+          type: 'object',
+          description: '执行上下文'
+        }
+      },
+      required: ['workflow']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        results: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '执行数据处理工作流',
+        params: {
+          workflow: {
+            steps: [
+              {id: 'read', tool: 'file_reader', params: {filePath: 'data.csv'}},
+              {id: 'parse', tool: 'csv_handler', params: {action: 'parse'}}
+            ]
+          }
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_event_emitter',
+    name: 'event_emitter',
+    display_name: '事件发射器',
+    description: '发布订阅模式的事件系统',
+    category: 'automation',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['emit', 'on', 'off', 'once']
+        },
+        event: {
+          type: 'string',
+          description: '事件名称'
+        },
+        data: {
+          type: 'any',
+          description: '事件数据'
+        },
+        handler: {
+          type: 'string',
+          description: '处理函数ID'
+        }
+      },
+      required: ['action', 'event']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'any' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '发射数据更新事件',
+        params: {
+          action: 'emit',
+          event: 'data:updated',
+          data: {id: 123, status: 'completed'}
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_pipeline_builder',
+    name: 'pipeline_builder',
+    display_name: '数据管道构建器',
+    description: '构建和执行数据处理管道',
+    category: 'automation',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        pipeline: {
+          type: 'array',
+          description: '管道步骤',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              transform: { type: 'string' },
+              params: { type: 'object' }
+            }
+          }
+        },
+        input: {
+          type: 'any',
+          description: '输入数据'
+        }
+      },
+      required: ['pipeline', 'input']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        output: { type: 'any' },
+        error: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '数据清洗管道',
+        params: {
+          pipeline: [
+            {name: 'filter', transform: 'removeNull'},
+            {name: 'map', transform: 'uppercase'}
+          ],
+          input: ['hello', null, 'world']
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
 ];

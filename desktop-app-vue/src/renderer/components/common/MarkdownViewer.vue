@@ -37,6 +37,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  docType: {
+    type: String,
+    default: 'skill',
+  },
   // 是否启用链接跳转
   enableLinkNavigation: {
     type: Boolean,
@@ -94,9 +98,10 @@ const loadDocFromPath = async () => {
   error.value = '';
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('skill:get-doc', props.docPath);
+    const channel = props.docType === 'tool' ? 'tool:get-doc' : 'skill:get-doc';
+    const result = await window.electron.ipcRenderer.invoke(channel, props.docPath);
     if (result.success) {
-      markdownContent.value = result.content;
+      markdownContent.value = result.content ?? result.data ?? '';
     } else {
       error.value = result.error || '加载文档失败';
     }

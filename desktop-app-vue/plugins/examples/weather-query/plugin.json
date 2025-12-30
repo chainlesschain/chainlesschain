@@ -1,0 +1,121 @@
+{
+  "id": "weather-query",
+  "name": "天气查询插件",
+  "version": "1.0.0",
+  "author": "ChainlessChain Team",
+  "description": "提供实时天气查询和天气预报功能",
+  "category": "custom",
+  "main": "index.js",
+  "homepage": "https://github.com/chainlesschain/plugin-weather-query",
+  "license": "MIT",
+  "keywords": ["weather", "query", "forecast"],
+  "chainlesschain": {
+    "apiVersion": "1.0",
+    "minVersion": "0.16.0",
+    "permissions": [
+      "network:http"
+    ],
+    "skills": [
+      {
+        "id": "skill_weather_query",
+        "name": "天气查询",
+        "display_name": "Weather Query",
+        "description": "查询指定城市的实时天气和天气预报",
+        "category": "utility",
+        "icon": "cloud",
+        "tags": ["天气", "查询", "预报"],
+        "config": {
+          "defaultCity": "北京",
+          "units": "metric",
+          "lang": "zh_CN"
+        },
+        "tools": ["weather_current", "weather_forecast"]
+      }
+    ],
+    "tools": [
+      {
+        "id": "tool_weather_current",
+        "name": "weather_current",
+        "display_name": "当前天气",
+        "description": "查询指定城市的当前天气状况",
+        "category": "weather",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string",
+              "description": "城市名称（中文或英文）"
+            },
+            "units": {
+              "type": "string",
+              "description": "温度单位",
+              "enum": ["metric", "imperial"],
+              "default": "metric"
+            }
+          },
+          "required": ["city"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "city": { "type": "string" },
+            "temperature": { "type": "number" },
+            "weather": { "type": "string" },
+            "humidity": { "type": "number" },
+            "windSpeed": { "type": "number" }
+          }
+        },
+        "required_permissions": ["network:http"],
+        "risk_level": 1
+      },
+      {
+        "id": "tool_weather_forecast",
+        "name": "weather_forecast",
+        "display_name": "天气预报",
+        "description": "获取指定城市未来7天的天气预报",
+        "category": "weather",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string",
+              "description": "城市名称"
+            },
+            "days": {
+              "type": "number",
+              "description": "预报天数（1-7天）",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 7
+            }
+          },
+          "required": ["city"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "city": { "type": "string" },
+            "forecast": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "date": { "type": "string" },
+                  "tempMax": { "type": "number" },
+                  "tempMin": { "type": "number" },
+                  "weather": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "required_permissions": ["network:http"],
+        "risk_level": 1
+      }
+    ]
+  }
+}

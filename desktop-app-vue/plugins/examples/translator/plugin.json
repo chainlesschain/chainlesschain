@@ -1,0 +1,155 @@
+{
+  "id": "translator",
+  "name": "多语言翻译插件",
+  "version": "1.0.0",
+  "author": "ChainlessChain Team",
+  "description": "提供多语言文本翻译和语言检测功能",
+  "category": "custom",
+  "main": "index.js",
+  "homepage": "https://github.com/chainlesschain/plugin-translator",
+  "license": "MIT",
+  "keywords": ["translate", "language", "i18n"],
+  "chainlesschain": {
+    "apiVersion": "1.0",
+    "minVersion": "0.16.0",
+    "permissions": [
+      "network:http"
+    ],
+    "skills": [
+      {
+        "id": "skill_translation",
+        "name": "文本翻译",
+        "display_name": "Text Translation",
+        "description": "多语言文本翻译、语言检测和批量翻译",
+        "category": "text",
+        "icon": "translation",
+        "tags": ["翻译", "语言", "国际化"],
+        "config": {
+          "sourceLang": "auto",
+          "targetLang": "zh-CN",
+          "cacheResults": true
+        },
+        "tools": ["text_translate", "language_detect", "batch_translate"]
+      }
+    ],
+    "tools": [
+      {
+        "id": "tool_text_translate",
+        "name": "text_translate",
+        "display_name": "文本翻译",
+        "description": "将文本从一种语言翻译为另一种语言",
+        "category": "translation",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "要翻译的文本"
+            },
+            "from": {
+              "type": "string",
+              "description": "源语言代码（auto表示自动检测）",
+              "default": "auto"
+            },
+            "to": {
+              "type": "string",
+              "description": "目标语言代码",
+              "default": "zh-CN"
+            }
+          },
+          "required": ["text", "to"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "originalText": { "type": "string" },
+            "translatedText": { "type": "string" },
+            "sourceLang": { "type": "string" },
+            "targetLang": { "type": "string" }
+          }
+        },
+        "required_permissions": ["network:http"],
+        "risk_level": 1
+      },
+      {
+        "id": "tool_language_detect",
+        "name": "language_detect",
+        "display_name": "语言检测",
+        "description": "自动检测文本的语言类型",
+        "category": "translation",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "要检测的文本"
+            }
+          },
+          "required": ["text"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "language": { "type": "string" },
+            "languageName": { "type": "string" },
+            "confidence": { "type": "number" }
+          }
+        },
+        "required_permissions": [],
+        "risk_level": 1
+      },
+      {
+        "id": "tool_batch_translate",
+        "name": "batch_translate",
+        "display_name": "批量翻译",
+        "description": "批量翻译多个文本片段",
+        "category": "translation",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "texts": {
+              "type": "array",
+              "description": "要翻译的文本数组",
+              "items": { "type": "string" }
+            },
+            "from": {
+              "type": "string",
+              "description": "源语言代码",
+              "default": "auto"
+            },
+            "to": {
+              "type": "string",
+              "description": "目标语言代码",
+              "default": "zh-CN"
+            }
+          },
+          "required": ["texts", "to"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "original": { "type": "string" },
+                  "translated": { "type": "string" }
+                }
+              }
+            },
+            "totalCount": { "type": "number" }
+          }
+        },
+        "required_permissions": ["network:http"],
+        "risk_level": 1
+      }
+    ]
+  }
+}

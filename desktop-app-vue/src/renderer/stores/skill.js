@@ -142,7 +142,7 @@ export const useSkillStore = defineStore('skill', {
       try {
         const result = await window.electronAPI.skill.getByCategory(category);
         if (result.success) {
-          return result.data;
+          return result.content ?? result.data;
         } else {
           console.error('获取技能失败:', result.error);
           return [];
