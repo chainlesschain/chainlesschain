@@ -1,0 +1,187 @@
+{
+  "id": "tpl_tech_docs_deploy_006",
+  "name": "deployment_guide",
+  "display_name": "部署运维文档",
+  "display_name": "部署运维文档",
+  "description": "详细的系统部署与运维文档模板,包含环境准备、部署步骤、配置说明、监控告警、故障处理等,适用于各种部署场景",
+  "icon": "🚀",
+  "category": "tech-docs",
+  "subcategory": "部署文档",
+  "tags": ["部署文档", "运维手册", "DevOps", "服务器配置"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成部署运维文档，要求:\n\n# {{systemName}} 部署运维文档\n\n## 1. 文档信息\n\n| 项目 | 内容 |\n|------|------|\n| 系统名称 | {{systemName}} |\n| 文档版本 | {{docVersion}} |\n| 部署环境 | {{deploymentEnv}} |\n| 运维负责人 | {{#if opsOwner}}{{opsOwner}}{{else}}运维团队{{/if}} |\n| 更新日期 | {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}} |\n\n---\n\n## 2. 系统架构概览\n\n### 2.1 部署架构\n\n```\n{{#eq deploymentType \"云原生\"}}\n┌─────────────────────────────────────────┐\n│           负载均衡 (ALB/NLB)            │\n└──────────────────┬──────────────────────┘\n                   │\n         ┌─────────┴─────────┐\n         ▼                   ▼\n   ┌──────────┐        ┌──────────┐\n   │  K8s集群  │        │  K8s集群  │\n   │ (Zone A) │        │ (Zone B) │\n   └──────────┘        └──────────┘\n         │                   │\n         └─────────┬─────────┘\n                   ▼\n         ┌─────────────────┐\n         │   RDS主从集群   │\n         └─────────────────┘\n{{/eq}}\n\n{{#eq deploymentType \"传统部署\"}}\n┌──────────────────┐\n│   Nginx(主/备)   │\n└────────┬─────────┘\n         │\n    ┌────┴────┐\n    ▼         ▼\n┌───────┐ ┌───────┐\n│应用服务1│ │应用服务2│\n└───┬───┘ └───┬───┘\n    │         │\n    └────┬────┘\n         ▼\n    ┌────────┐\n    │ 数据库  │\n    │(主/从) │\n    └────────┘\n{{/eq}}\n```\n\n### 2.2 服务器清单\n\n| 服务器名称 | IP地址 | 角色 | 配置 | 系统 |\n|-----------|--------|------|------|------|\n| {{server1Name}} | {{server1IP}} | {{server1Role}} | {{server1Config}} | {{server1OS}} |\n| {{server2Name}} | {{server2IP}} | {{server2Role}} | {{server2Config}} | {{server2OS}} |\n| {{server3Name}} | {{server3IP}} | {{server3Role}} | {{server3Config}} | {{server3OS}} |\n\n**推荐配置**(生产环境):\n- **应用服务器**: 8核16GB, SSD 200GB\n- **数据库服务器**: 16核32GB, SSD 500GB\n- **Redis服务器**: 4核8GB, SSD 100GB\n\n---\n\n## 3. 环境准备\n\n### 3.1 操作系统要求\n\n{{#eq serverOS \"Linux\"}}\n**推荐系统**: Ubuntu 20.04 LTS / CentOS 8 / Rocky Linux 8\n\n**系统初始化**:\n\n```bash\n# 更新系统\nsudo apt update && sudo apt upgrade -y  # Ubuntu/Debian\nsudo yum update -y                       # CentOS/Rocky\n\n# 设置时区\nsudo timedatectl set-timezone Asia/Shanghai\n\n# 配置主机名\nsudo hostnamectl set-hostname {{systemName}}-app-01\n\n# 关闭SELinux(CentOS)\nsudo setenforce 0\nsudo sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config\n\n# 配置防火墙\nsudo ufw allow 22/tcp    # SSH\nsudo ufw allow 80/tcp    # HTTP\nsudo ufw allow 443/tcp   # HTTPS\nsudo ufw allow 3306/tcp  # MySQL(仅数据库服务器)\nsudo ufw enable\n\n# 调整系统参数\nsudo sysctl -w vm.max_map_count=262144\nsudo sysctl -w net.core.somaxconn=1024\necho \"vm.max_map_count=262144\" | sudo tee -a /etc/sysctl.conf\necho \"net.core.somaxconn=1024\" | sudo tee -a /etc/sysctl.conf\n```\n{{/eq}}\n\n### 3.2 依赖软件安装\n\n{{#eq techStack \"Java\"}}\n#### 安装Java\n\n```bash\n# 安装OpenJDK 17\nsudo apt install openjdk-17-jdk -y  # Ubuntu\nsudo yum install java-17-openjdk -y # CentOS\n\n# 验证安装\njava -version\n\n# 配置JAVA_HOME\necho 'export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64' >> ~/.bashrc\necho 'export PATH=$JAVA_HOME/bin:$PATH' >> ~/.bashrc\nsource ~/.bashrc\n```\n{{/eq}}\n\n{{#eq techStack \"Node.js\"}}\n#### 安装Node.js\n\n```bash\n# 使用nvm安装\ncurl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash\nsource ~/.bashrc\n\nnvm install 18\nnvm use 18\n\n# 验证安装\nnode -v\nnpm -v\n\n# 配置npm镜像\nnpm config set registry https://registry.npmmirror.com\n```\n{{/eq}}\n\n{{#eq techStack \"Python\"}}\n#### 安装Python\n\n```bash\n# 安装Python 3.11\nsudo apt install python3.11 python3.11-venv python3-pip -y\n\n# 验证安装\npython3 --version\npip3 --version\n\n# 配置pip镜像\npip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple\n```\n{{/eq}}\n\n#### 安装Docker\n\n```bash\n# 安装Docker\ncurl -fsSL https://get.docker.com | bash -s docker\n\n# 启动Docker\nsudo systemctl start docker\nsudo systemctl enable docker\n\n# 添加当前用户到docker组\nsudo usermod -aG docker $USER\n\n# 配置Docker镜像加速\nsudo mkdir -p /etc/docker\nsudo tee /etc/docker/daemon.json <<-'EOF'\n{\n  \"registry-mirrors\": [\n    \"https://docker.mirrors.ustc.edu.cn\",\n    \"https://hub-mirror.c.163.com\"\n  ],\n  \"log-driver\": \"json-file\",\n  \"log-opts\": {\n    \"max-size\": \"10m\",\n    \"max-file\": \"3\"\n  }\n}\nEOF\n\nsudo systemctl daemon-reload\nsudo systemctl restart docker\n\n# 验证安装\ndocker --version\n```\n\n#### 安装Docker Compose\n\n```bash\nsudo curl -L \"https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose\nsudo chmod +x /usr/local/bin/docker-compose\n\n# 验证安装\ndocker-compose --version\n```\n\n---\n\n## 4. 数据库部署\n\n### 4.1 MySQL部署\n\n{{#eq database \"MySQL\"}}\n#### Docker方式部署\n\n```bash\n# 创建数据目录\nmkdir -p /data/mysql/{data,conf,logs}\n\n# 创建配置文件\ncat > /data/mysql/conf/my.cnf << 'EOF'\n[mysqld]\nuser=mysql\nport=3306\ncharacter-set-server=utf8mb4\ncollation-server=utf8mb4_unicode_ci\ndefault-time-zone='+08:00'\n\n# InnoDB配置\ninnodb_buffer_pool_size=2G\ninnodb_log_file_size=256M\ninnodb_flush_log_at_trx_commit=2\ninnodb_flush_method=O_DIRECT\n\n# 连接配置\nmax_connections=1000\nmax_connect_errors=100000\n\n# 慢查询日志\nslow_query_log=1\nslow_query_log_file=/var/log/mysql/slow.log\nlong_query_time=2\n\n[client]\ndefault-character-set=utf8mb4\nEOF\n\n# 启动MySQL容器\ndocker run -d \\\n  --name mysql \\\n  --restart=always \\\n  -p 3306:3306 \\\n  -e MYSQL_ROOT_PASSWORD={{dbPassword}} \\\n  -v /data/mysql/data:/var/lib/mysql \\\n  -v /data/mysql/conf/my.cnf:/etc/mysql/conf.d/my.cnf \\\n  -v /data/mysql/logs:/var/log/mysql \\\n  mysql:8.0\n\n# 等待MySQL启动\nsleep 30\n\n# 创建数据库和用户\ndocker exec -i mysql mysql -uroot -p{{dbPassword}} << 'EOF'\nCREATE DATABASE IF NOT EXISTS {{dbName}} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\nCREATE USER IF NOT EXISTS '{{dbUser}}'@'%' IDENTIFIED BY '{{dbPassword}}';\nGRANT ALL PRIVILEGES ON {{dbName}}.* TO '{{dbUser}}'@'%';\nFLUSH PRIVILEGES;\nEOF\n\n# 导入初始化SQL\ndocker exec -i mysql mysql -u{{dbUser}} -p{{dbPassword}} {{dbName}} < init.sql\n```\n{{/eq}}\n\n### 4.2 Redis部署\n\n```bash\n# 创建Redis配置\nmkdir -p /data/redis/{data,conf}\n\ncat > /data/redis/conf/redis.conf << 'EOF'\nbind 0.0.0.0\nprotected-mode yes\nport 6379\nrequirepass {{redisPassword}}\n\n# 持久化配置\nappendonly yes\nappendfilename \"appendonly.aof\"\nappendfsync everysec\n\n# 内存配置\nmaxmemory 2gb\nmaxmemory-policy allkeys-lru\n\n# 慢查询日志\nslowlog-log-slower-than 10000\nslowlog-max-len 128\nEOF\n\n# 启动Redis容器\ndocker run -d \\\n  --name redis \\\n  --restart=always \\\n  -p 6379:6379 \\\n  -v /data/redis/data:/data \\\n  -v /data/redis/conf/redis.conf:/etc/redis/redis.conf \\\n  redis:7-alpine redis-server /etc/redis/redis.conf\n\n# 验证Redis\ndocker exec -it redis redis-cli -a {{redisPassword}} ping\n```\n\n---\n\n## 5. 应用部署\n\n### 5.1 获取部署包\n\n```bash\n# 创建应用目录\nmkdir -p /opt/{{systemName}}\ncd /opt/{{systemName}}\n\n# 从Git仓库获取代码\ngit clone {{gitRepo}} .\ngit checkout {{deployBranch}}\n\n# 或从CI/CD获取制品\nwget {{artifactUrl}}/{{systemName}}-{{deployVersion}}.tar.gz\ntar -xzf {{systemName}}-{{deployVersion}}.tar.gz\n```\n\n### 5.2 配置文件\n\n{{#eq deploymentType \"Docker\"}}\n#### docker-compose.yml\n\n```yaml\nversion: '3.8'\n\nservices:\n  app:\n    image: {{dockerRegistry}}/{{systemName}}:{{deployVersion}}\n    container_name: {{systemName}}-app\n    restart: always\n    ports:\n      - \"8080:8080\"\n    environment:\n      - SPRING_PROFILES_ACTIVE={{profileActive}}\n      - DB_HOST={{dbHost}}\n      - DB_PORT=3306\n      - DB_NAME={{dbName}}\n      - DB_USER={{dbUser}}\n      - DB_PASSWORD={{dbPassword}}\n      - REDIS_HOST={{redisHost}}\n      - REDIS_PORT=6379\n      - REDIS_PASSWORD={{redisPassword}}\n    volumes:\n      - ./logs:/app/logs\n      - ./config:/app/config\n    networks:\n      - app-network\n    depends_on:\n      - mysql\n      - redis\n    healthcheck:\n      test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:8080/actuator/health\"]\n      interval: 30s\n      timeout: 10s\n      retries: 3\n      start_period: 40s\n\nnetworks:\n  app-network:\n    driver: bridge\n```\n{{/eq}}\n\n{{#eq deploymentType \"云原生\"}}\n#### Kubernetes部署配置\n\n```yaml\n# deployment.yaml\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: {{systemName}}\n  namespace: {{k8sNamespace}}\nspec:\n  replicas: {{replicaCount}}\n  selector:\n    matchLabels:\n      app: {{systemName}}\n  template:\n    metadata:\n      labels:\n        app: {{systemName}}\n    spec:\n      containers:\n      - name: {{systemName}}\n        image: {{dockerRegistry}}/{{systemName}}:{{deployVersion}}\n        ports:\n        - containerPort: 8080\n        env:\n        - name: SPRING_PROFILES_ACTIVE\n          value: \"{{profileActive}}\"\n        - name: DB_HOST\n          valueFrom:\n            secretKeyRef:\n              name: {{systemName}}-secret\n              key: db-host\n        - name: DB_PASSWORD\n          valueFrom:\n            secretKeyRef:\n              name: {{systemName}}-secret\n              key: db-password\n        resources:\n          requests:\n            memory: \"512Mi\"\n            cpu: \"500m\"\n          limits:\n            memory: \"2Gi\"\n            cpu: \"2000m\"\n        livenessProbe:\n          httpGet:\n            path: /actuator/health\n            port: 8080\n          initialDelaySeconds: 60\n          periodSeconds: 30\n        readinessProbe:\n          httpGet:\n            path: /actuator/health\n            port: 8080\n          initialDelaySeconds: 30\n          periodSeconds: 10\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: {{systemName}}-service\n  namespace: {{k8sNamespace}}\nspec:\n  type: LoadBalancer\n  ports:\n  - port: 80\n    targetPort: 8080\n  selector:\n    app: {{systemName}}\n```\n{{/eq}}\n\n### 5.3 启动应用\n\n{{#eq deploymentType \"Docker\"}}\n```bash\n# 启动应用\ndocker-compose up -d\n\n# 查看日志\ndocker-compose logs -f app\n\n# 检查状态\ndocker-compose ps\n\n# 健康检查\ncurl http://localhost:8080/actuator/health\n```\n{{/eq}}\n\n{{#eq deploymentType \"云原生\"}}\n```bash\n# 创建命名空间\nkubectl create namespace {{k8sNamespace}}\n\n# 创建Secret\nkubectl create secret generic {{systemName}}-secret \\\n  --from-literal=db-host={{dbHost}} \\\n  --from-literal=db-password={{dbPassword}} \\\n  -n {{k8sNamespace}}\n\n# 部署应用\nkubectl apply -f deployment.yaml\n\n# 查看部署状态\nkubectl get pods -n {{k8sNamespace}}\nkubectl get svc -n {{k8sNamespace}}\n\n# 查看日志\nkubectl logs -f deployment/{{systemName}} -n {{k8sNamespace}}\n\n# 扩容\nkubectl scale deployment {{systemName}} --replicas={{replicaCount}} -n {{k8sNamespace}}\n```\n{{/eq}}\n\n---\n\n## 6. Nginx配置\n\n### 6.1 安装Nginx\n\n```bash\nsudo apt install nginx -y\nsudo systemctl start nginx\nsudo systemctl enable nginx\n```\n\n### 6.2 配置反向代理\n\n```bash\nsudo tee /etc/nginx/sites-available/{{systemName}} << 'EOF'\nupstream {{systemName}}_backend {\n    server 127.0.0.1:8080;\n    # 如果有多个应用实例\n    # server 192.168.1.11:8080;\n    # server 192.168.1.12:8080;\n}\n\nserver {\n    listen 80;\n    server_name {{serverDomain}};\n    \n    # HTTPS重定向\n    return 301 https://$server_name$request_uri;\n}\n\nserver {\n    listen 443 ssl http2;\n    server_name {{serverDomain}};\n    \n    # SSL证书\n    ssl_certificate /etc/nginx/ssl/{{serverDomain}}.crt;\n    ssl_certificate_key /etc/nginx/ssl/{{serverDomain}}.key;\n    ssl_protocols TLSv1.2 TLSv1.3;\n    ssl_ciphers HIGH:!aNULL:!MD5;\n    \n    # 日志\n    access_log /var/log/nginx/{{systemName}}_access.log;\n    error_log /var/log/nginx/{{systemName}}_error.log;\n    \n    # Gzip压缩\n    gzip on;\n    gzip_types text/plain text/css application/json application/javascript;\n    \n    # 静态资源\n    location /static/ {\n        alias /opt/{{systemName}}/static/;\n        expires 30d;\n        add_header Cache-Control \"public, immutable\";\n    }\n    \n    # API代理\n    location / {\n        proxy_pass http://{{systemName}}_backend;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        \n        proxy_connect_timeout 60s;\n        proxy_send_timeout 60s;\n        proxy_read_timeout 60s;\n        \n        proxy_buffering off;\n        proxy_request_buffering off;\n    }\n}\nEOF\n\n# 启用站点\nsudo ln -s /etc/nginx/sites-available/{{systemName}} /etc/nginx/sites-enabled/\n\n# 测试配置\nsudo nginx -t\n\n# 重载Nginx\nsudo systemctl reload nginx\n```\n\n---\n\n## 7. 监控与告警\n\n### 7.1 Prometheus监控\n\n```yaml\n# prometheus.yml\nglobal:\n  scrape_interval: 15s\n\nscrape_configs:\n  - job_name: '{{systemName}}'\n    static_configs:\n      - targets: ['localhost:8080']\n    metrics_path: '/actuator/prometheus'\n```\n\n### 7.2 Grafana Dashboard\n\n导入Dashboard ID: 4701 (JVM Micrometer)\n\n### 7.3 告警规则\n\n```yaml\n# alert-rules.yml\ngroups:\n  - name: {{systemName}}_alerts\n    rules:\n      - alert: HighErrorRate\n        expr: rate(http_server_requests_total{status=~\"5..\"}[5m]) > 0.05\n        for: 5m\n        labels:\n          severity: critical\n        annotations:\n          summary: \"High error rate detected\"\n      \n      - alert: HighResponseTime\n        expr: histogram_quantile(0.95, http_server_requests_seconds) > 1\n        for: 5m\n        labels:\n          severity: warning\n        annotations:\n          summary: \"P95 response time > 1s\"\n```\n\n---\n\n## 8. 日志管理\n\n### 8.1 日志配置\n\n日志路径: `/opt/{{systemName}}/logs/`\n\n- `app.log` - 应用日志\n- `error.log` - 错误日志\n- `access.log` - 访问日志\n\n### 8.2 日志轮转\n\n```bash\nsudo tee /etc/logrotate.d/{{systemName}} << 'EOF'\n/opt/{{systemName}}/logs/*.log {\n    daily\n    rotate 30\n    compress\n    delaycompress\n    missingok\n    notifempty\n    create 0644 {{appUser}} {{appUser}}\n    sharedscripts\n    postrotate\n        docker-compose -f /opt/{{systemName}}/docker-compose.yml restart app > /dev/null 2>&1 || true\n    endscript\n}\nEOF\n```\n\n---\n\n## 9. 备份与恢复\n\n### 9.1 数据库备份\n\n```bash\n# 创建备份脚本\ncat > /opt/scripts/backup-db.sh << 'EOF'\n#!/bin/bash\nBACKUP_DIR=\"/data/backup/mysql\"\nDATE=$(date +%Y%m%d_%H%M%S)\n\nmkdir -p $BACKUP_DIR\n\ndocker exec mysql mysqldump \\\n  -u{{dbUser}} -p{{dbPassword}} \\\n  {{dbName}} > $BACKUP_DIR/{{dbName}}_$DATE.sql\n\n# 压缩备份\ngzip $BACKUP_DIR/{{dbName}}_$DATE.sql\n\n# 删除7天前的备份\nfind $BACKUP_DIR -name \"*.sql.gz\" -mtime +7 -delete\n\necho \"Backup completed: {{dbName}}_$DATE.sql.gz\"\nEOF\n\nchmod +x /opt/scripts/backup-db.sh\n\n# 添加定时任务(每天2:00执行)\ncrontab -e\n0 2 * * * /opt/scripts/backup-db.sh >> /var/log/backup.log 2>&1\n```\n\n### 9.2 数据恢复\n\n```bash\n# 解压备份文件\ngunzip {{dbName}}_20240115_020000.sql.gz\n\n# 恢复数据库\ndocker exec -i mysql mysql -u{{dbUser}} -p{{dbPassword}} {{dbName}} < {{dbName}}_20240115_020000.sql\n```\n\n---\n\n## 10. 常见运维操作\n\n### 10.1 应用更新\n\n```bash\n# 1. 备份当前版本\ncp -r /opt/{{systemName}} /opt/{{systemName}}_backup_$(date +%Y%m%d)\n\n# 2. 拉取新镜像\ndocker pull {{dockerRegistry}}/{{systemName}}:{{newVersion}}\n\n# 3. 更新docker-compose.yml中的镜像版本\n\n# 4. 滚动更新\ndocker-compose up -d --no-deps --build app\n\n# 5. 验证新版本\ncurl http://localhost:8080/actuator/info\n\n# 6. 如果有问题，回滚\n# docker-compose down\n# mv /opt/{{systemName}}_backup_$(date +%Y%m%d) /opt/{{systemName}}\n# docker-compose up -d\n```\n\n### 10.2 扩容\n\n```bash\n# 增加应用实例\ndocker-compose up -d --scale app=3\n\n# Kubernetes扩容\nkubectl scale deployment {{systemName}} --replicas=5 -n {{k8sNamespace}}\n```\n\n### 10.3 故障排查\n\n**应用无法启动**:\n```bash\n# 查看日志\ndocker logs {{systemName}}-app\n\n# 检查端口占用\nsudo netstat -tulpn | grep 8080\n\n# 检查资源使用\ndocker stats {{systemName}}-app\n```\n\n**数据库连接失败**:\n```bash\n# 测试数据库连接\ndocker exec -it mysql mysql -u{{dbUser}} -p{{dbPassword}} -e \"SELECT 1\"\n\n# 检查网络\ntelnet {{dbHost}} 3306\n```\n\n---\n\n## 11. 安全加固\n\n### 11.1 系统加固\n\n- ✅ 禁用root SSH登录\n- ✅ 使用SSH密钥认证\n- ✅ 配置防火墙规则\n- ✅ 定期更新系统补丁\n- ✅ 最小权限原则\n\n### 11.2 应用安全\n\n- ✅ HTTPS加密传输\n- ✅ 数据库密码复杂度\n- ✅ API限流防护\n- ✅ SQL注入防护\n- ✅ XSS防护\n\n---\n\n## 12. 应急预案\n\n### 12.1 服务宕机\n\n**处理步骤**:\n1. 检查应用状态\n2. 查看错误日志\n3. 尝试重启服务\n4. 切换备用节点\n5. 通知相关人员\n6. 记录故障原因\n\n### 12.2 数据丢失\n\n**处理步骤**:\n1. 停止应用写入\n2. 评估数据丢失范围\n3. 从最近备份恢复\n4. 验证数据完整性\n5. 恢复应用服务\n6. 事后分析改进\n\n---\n\n## 13. 联系信息\n\n**运维团队**:\n- 负责人: {{#if opsOwner}}{{opsOwner}}{{else}}运维经理{{/if}}\n- 邮箱: {{#if opsEmail}}{{opsEmail}}{{else}}ops@example.com{{/if}}\n- 电话: {{#if opsPhone}}{{opsPhone}}{{else}}400-XXX-XXXX{{/if}}\n\n**紧急联系**:\n- 7x24小时值班: {{#if emergencyPhone}}{{emergencyPhone}}{{else}}138-XXXX-XXXX{{/if}}\n\n---\n\n**文档版本**: {{docVersion}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {
+      "name": "systemName",
+      "type": "text",
+      "label": "系统名称",
+      "default": "example-system",
+      "required": true,
+      "description": "系统的名称"
+    },
+    {
+      "name": "docVersion",
+      "type": "text",
+      "label": "文档版本",
+      "default": "v1.0.0",
+      "required": true,
+      "description": "文档版本号"
+    },
+    {
+      "name": "deploymentEnv",
+      "type": "select",
+      "label": "部署环境",
+      "default": "生产环境",
+      "required": true,
+      "options": [
+        {"value": "开发环境", "label": "开发环境"},
+        {"value": "测试环境", "label": "测试环境"},
+        {"value": "预发环境", "label": "预发环境"},
+        {"value": "生产环境", "label": "生产环境"}
+      ],
+      "description": "目标部署环境"
+    },
+    {
+      "name": "deploymentType",
+      "type": "select",
+      "label": "部署方式",
+      "default": "Docker",
+      "required": true,
+      "options": [
+        {"value": "Docker", "label": "Docker Compose"},
+        {"value": "云原生", "label": "Kubernetes"},
+        {"value": "传统部署", "label": "传统部署"}
+      ],
+      "description": "应用部署方式"
+    },
+    {
+      "name": "techStack",
+      "type": "select",
+      "label": "技术栈",
+      "default": "Java",
+      "required": true,
+      "options": [
+        {"value": "Java", "label": "Java/Spring Boot"},
+        {"value": "Node.js", "label": "Node.js"},
+        {"value": "Python", "label": "Python"},
+        {"value": "Go", "label": "Go"}
+      ],
+      "description": "应用使用的技术栈"
+    },
+    {
+      "name": "serverOS",
+      "type": "select",
+      "label": "服务器系统",
+      "default": "Linux",
+      "required": true,
+      "options": [
+        {"value": "Linux", "label": "Linux"},
+        {"value": "Windows", "label": "Windows Server"}
+      ],
+      "description": "服务器操作系统"
+    },
+    {
+      "name": "database",
+      "type": "select",
+      "label": "数据库",
+      "default": "MySQL",
+      "required": true,
+      "options": [
+        {"value": "MySQL", "label": "MySQL"},
+        {"value": "PostgreSQL", "label": "PostgreSQL"},
+        {"value": "MongoDB", "label": "MongoDB"}
+      ],
+      "description": "使用的数据库"
+    },
+    {
+      "name": "dbName",
+      "type": "text",
+      "label": "数据库名",
+      "default": "app_db",
+      "required": true,
+      "description": "应用数据库名称"
+    },
+    {
+      "name": "dbUser",
+      "type": "text",
+      "label": "数据库用户",
+      "default": "app_user",
+      "required": true,
+      "description": "数据库用户名"
+    },
+    {
+      "name": "serverDomain",
+      "type": "text",
+      "label": "服务器域名",
+      "default": "api.example.com",
+      "required": false,
+      "description": "服务器域名或IP"
+    },
+    {
+      "name": "deployVersion",
+      "type": "text",
+      "label": "部署版本",
+      "default": "v1.0.0",
+      "required": false,
+      "description": "要部署的版本号"
+    },
+    {
+      "name": "opsOwner",
+      "type": "text",
+      "label": "运维负责人",
+      "default": "",
+      "required": false,
+      "description": "运维负责人姓名（可选）"
+    },
+    {
+      "name": "opsEmail",
+      "type": "text",
+      "label": "运维邮箱",
+      "default": "",
+      "required": false,
+      "description": "运维团队邮箱（可选）"
+    },
+    {
+      "name": "updateDate",
+      "type": "text",
+      "label": "更新日期",
+      "default": "",
+      "required": false,
+      "description": "文档最后更新日期（可选）"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{systemName}}_部署文档",
+    "children": [
+      {"type": "file", "name": "部署文档.md", "description": "部署文档主文件"},
+      {
+        "type": "folder",
+        "name": "scripts",
+        "children": [
+          {"type": "file", "name": "deploy.sh", "description": "部署脚本"},
+          {"type": "file", "name": "backup-db.sh", "description": "数据库备份脚本"},
+          {"type": "file", "name": "health-check.sh", "description": "健康检查脚本"}
+        ]
+      },
+      {
+        "type": "folder",
+        "name": "config",
+        "children": [
+          {"type": "file", "name": "docker-compose.yml", "description": "Docker Compose配置"},
+          {"type": "file", "name": "nginx.conf", "description": "Nginx配置"},
+          {"type": "file", "name": "prometheus.yml", "description": "Prometheus配置"}
+        ]
+      },
+      {"type": "file", "name": "应急预案.md", "description": "应急处理预案"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T10:00:00Z"
+}

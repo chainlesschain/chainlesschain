@@ -3,9 +3,54 @@
  */
 
 const P2PSyncEngine = require('../../src/main/sync/p2p-sync-engine');
-const Database = require('better-sqlite3');
+const BetterSQLite3 = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
+
+// Database wrapper to match database.js API
+class DatabaseWrapper {
+  constructor(db) {
+    this._db = db;
+  }
+
+  run(sql, ...params) {
+    try {
+      const stmt = this._db.prepare(sql);
+      return stmt.run(...params);
+    } catch (error) {
+      console.error('SQL Error:', error.message, '\nSQL:', sql);
+      throw error;
+    }
+  }
+
+  query(sql, ...params) {
+    try {
+      const stmt = this._db.prepare(sql);
+      return stmt.all(...params);
+    } catch (error) {
+      console.error('SQL Error:', error.message, '\nSQL:', sql);
+      throw error;
+    }
+  }
+
+  get(sql, ...params) {
+    try {
+      const stmt = this._db.prepare(sql);
+      return stmt.get(...params) || null;
+    } catch (error) {
+      console.error('SQL Error:', error.message, '\nSQL:', sql);
+      throw error;
+    }
+  }
+
+  exec(sql) {
+    return this._db.exec(sql);
+  }
+
+  close() {
+    return this._db.close();
+  }
+}
 
 // Mock DIDManager
 class MockDIDManager {
@@ -59,11 +104,19 @@ describe('P2PSyncEngine', () => {
   beforeEach(async () => {
     // 创建临时测试数据库
     dbPath = path.join(__dirname, '../temp/test-sync-engine.db');
+
+    // 确保temp目录存在
+    const tempDir = path.dirname(dbPath);
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
     if (fs.existsSync(dbPath)) {
       fs.unlinkSync(dbPath);
     }
 
-    db = new Database(dbPath);
+    const rawDb = new BetterSQLite3(dbPath);
+    db = new DatabaseWrapper(rawDb);
 
     // 创建必要的表
     db.exec(`
@@ -291,10 +344,10 @@ describe('P2PSyncEngine', () => {
       };
 
       // 创建知识库条目（用于测试）
-      db.prepare(`
+      db.run(`
         INSERT INTO knowledge_items (id, title, content, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
-      `).run(resourceId, 'Test', 'Content', Date.now(), Date.now());
+      `, resourceId, 'Test', 'Content', Date.now(), Date.now());
 
       const resolved = await syncEngine.resolveLWW(
         orgId,
@@ -307,10 +360,10 @@ describe('P2PSyncEngine', () => {
       expect(resolved).toBe(true);
 
       // 检查冲突是否被标记为已解决
-      const conflict = db.prepare(`
+      const conflict = db.get(`
         SELECT * FROM sync_conflicts
         WHERE org_id = ? AND resource_type = ? AND resource_id = ? AND resolved = 1
-      `).get(orgId, 'knowledge', resourceId);
+      `, orgId, 'knowledge', resourceId);
 
       expect(conflict).toBeDefined();
       expect(conflict.resolution_strategy).toBe('lww');
@@ -331,10 +384,10 @@ describe('P2PSyncEngine', () => {
         data: { id: resourceId, name: 'Bob' }
       };
 
-      db.prepare(`
+      db.run(`
         INSERT INTO knowledge_items (id, title, content, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
-      `).run(resourceId, 'Test', 'Content', Date.now(), Date.now());
+      `, resourceId, 'Test', 'Content', Date.now(), Date.now());
 
       const resolved = await syncEngine.resolveLWW(
         orgId,
@@ -369,7 +422,7 @@ describe('P2PSyncEngine', () => {
 
       expect(queueId).toBeDefined();
 
-      const item = db.prepare('SELECT * FROM sync_queue WHERE id = ?').get(queueId);
+      const item = db.get('SELECT * FROM sync_queue WHERE id = ?', queueId);
       expect(item).toBeDefined();
       expect(item.action).toBe('update');
       expect(item.resource_type).toBe('knowledge');
@@ -397,16 +450,16 @@ describe('P2PSyncEngine', () => {
       );
 
       // 模拟失败
-      db.prepare(`
+      db.run(`
         UPDATE sync_queue SET status = 'failed', retry_count = 1 WHERE id = ?
-      `).run(queueId);
+      `, queueId);
 
       // 重新标记为待处理
-      db.prepare(`
+      db.run(`
         UPDATE sync_queue SET status = 'pending' WHERE id = ?
-      `).run(queueId);
+      `, queueId);
 
-      const item = db.prepare('SELECT * FROM sync_queue WHERE id = ?').get(queueId);
+      const item = db.get('SELECT * FROM sync_queue WHERE id = ?', queueId);
       expect(item.retry_count).toBe(1);
     });
 
@@ -420,11 +473,11 @@ describe('P2PSyncEngine', () => {
       );
 
       // 设置超过最大重试次数
-      db.prepare(`
+      db.run(`
         UPDATE sync_queue SET retry_count = ? WHERE id = ?
-      `).run(syncEngine.config.maxRetryCount + 1, queueId);
+      `, syncEngine.config.maxRetryCount + 1, queueId);
 
-      const item = db.prepare('SELECT * FROM sync_queue WHERE id = ?').get(queueId);
+      const item = db.get('SELECT * FROM sync_queue WHERE id = ?', queueId);
       expect(item.retry_count).toBeGreaterThan(syncEngine.config.maxRetryCount);
     });
   });
@@ -563,10 +616,10 @@ describe('P2PSyncEngine', () => {
       };
 
       // 创建知识库条目
-      db.prepare(`
+      db.run(`
         INSERT INTO knowledge_items (id, title, content, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
-      `).run('kb_001', 'Original', 'Original content', Date.now(), Date.now());
+      `, 'kb_001', 'Original', 'Original content', Date.now(), Date.now());
 
       await syncEngine.handleSyncChange(message);
 

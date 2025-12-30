@@ -1,0 +1,133 @@
+{
+  "id": "tpl_ecommerce_listing_004",
+  "name": "product_listing_copy",
+  "display_name": "商品上架文案",
+  "description": "电商商品上架文案模板,包含商品标题优化、关键词布局、属性填写、五点描述等,快速完成商品上架",
+  "icon": "📝",
+  "category": "ecommerce",
+  "subcategory": "商品运营",
+  "tags": ["商品上架", "标题优化", "SEO", "商品文案"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成商品上架文案，要求:\n\n# {{productName}} 商品上架文案\n\n## 1. 商品基本信息\n\n**商品名称**: {{productName}}\n**商品类目**: {{category}}\n**品牌**: {{brandName}}\n**货号/SKU**: {{sku}}\n**上架平台**: {{platform}}\n\n---\n\n## 2. 商品标题(30字以内)\n\n### 主标题\n\n```\n{{titleTemplate}}\n```\n\n**关键词布局**:\n- 品牌词: {{brandName}}\n- 核心词: {{coreKeyword}}\n- 属性词: {{attribute1}}, {{attribute2}}\n- 营销词: {{marketingWord}}\n\n### 标题优化建议\n\n1. 包含核心关键词，提升搜索排名\n2. 突出产品卖点和差异化\n3. 适当添加营销词增加吸引力\n4. 避免违禁词和极限词\n\n---\n\n## 3. 商品卖点(五点描述)\n\n### 卖点1: {{sellingPoint1}}\n### 卖点2: {{sellingPoint2}}\n### 卖点3: {{sellingPoint3}}\n### 卖点4: {{sellingPoint4}}\n### 卖点5: {{sellingPoint5}}\n\n---\n\n## 4. 商品规格参数\n\n| 参数名称 | 参数值 |\n|----------|--------|\n| {{param1Name}} | {{param1Value}} |\n| {{param2Name}} | {{param2Value}} |\n| {{param3Name}} | {{param3Value}} |\n| {{param4Name}} | {{param4Value}} |\n| {{param5Name}} | {{param5Value}} |\n\n---\n\n## 5. 商品简介\n\n{{productBrief}}\n\n---\n\n## 6. 搜索关键词\n\n**主关键词**: {{mainKeyword}}\n\n**长尾关键词**:\n- {{longtailKeyword1}}\n- {{longtailKeyword2}}\n- {{longtailKeyword3}}\n- {{longtailKeyword4}}\n- {{longtailKeyword5}}\n\n---\n\n## 7. 商品属性填写\n\n**类目属性**:\n- 适用年龄: {{applicableAge}}\n- 适用性别: {{applicableGender}}\n- 风格: {{style}}\n- 材质: {{material}}\n- 产地: {{origin}}\n\n---\n\n## 8. 定价策略\n\n**成本价**: ¥{{costPrice}}\n**建议零售价**: ¥{{retailPrice}}\n**活动价**: ¥{{promotionPrice}}\n**会员价**: ¥{{memberPrice}}\n\n---\n\n## 9. 商品图片要求\n\n**主图**(5张):\n1. 产品正面白底图(800x800)\n2. 产品侧面/细节图\n3. 使用场景图\n4. 卖点图(图文结合)\n5. 尺寸/参数图\n\n**详情页图片**: 15-20张，展示细节、场景、对比等\n\n---\n\n## 10. 物流设置\n\n**发货地**: {{shipFrom}}\n**运费模板**: {{freightTemplate}}\n**发货时间**: {{shipTime}}\n**包邮条件**: {{freeShippingCondition}}\n\n---\n\n## 11. 售后服务\n\n✅ 7天无理由退换\n✅ 正品保障\n✅ 质量问题包来回运费\n✅ {{warrantyPeriod}}质保\n✅ 24小时在线客服\n\n---\n\n**上架日期**: {{#if listingDate}}{{listingDate}}{{else}}{{currentDate}}{{/if}}\n**负责人**: {{#if productManager}}{{productManager}}{{else}}商品运营{{/if}}",
+  "variables_schema": [
+    {
+      "name": "productName",
+      "type": "text",
+      "label": "商品名称",
+      "default": "示例商品",
+      "required": true,
+      "description": "商品的名称"
+    },
+    {
+      "name": "category",
+      "type": "text",
+      "label": "商品类目",
+      "default": "服装/女装/连衣裙",
+      "required": true,
+      "description": "商品所属类目"
+    },
+    {
+      "name": "brandName",
+      "type": "text",
+      "label": "品牌名称",
+      "default": "示例品牌",
+      "required": true,
+      "description": "商品品牌"
+    },
+    {
+      "name": "platform",
+      "type": "select",
+      "label": "上架平台",
+      "default": "淘宝/天猫",
+      "required": true,
+      "options": [
+        {"value": "淘宝/天猫", "label": "淘宝/天猫"},
+        {"value": "京东", "label": "京东"},
+        {"value": "拼多多", "label": "拼多多"},
+        {"value": "抖音电商", "label": "抖音电商"}
+      ],
+      "description": "商品上架的平台"
+    },
+    {
+      "name": "titleTemplate",
+      "type": "text",
+      "label": "商品标题",
+      "default": "【品牌】商品名称 核心卖点 促销活动",
+      "required": true,
+      "description": "商品标题模板"
+    },
+    {
+      "name": "coreKeyword",
+      "type": "text",
+      "label": "核心关键词",
+      "default": "连衣裙",
+      "required": true,
+      "description": "核心搜索关键词"
+    },
+    {
+      "name": "sellingPoint1",
+      "type": "text",
+      "label": "卖点1",
+      "default": "优质面料，舒适透气",
+      "required": true,
+      "description": "第一个卖点"
+    },
+    {
+      "name": "sellingPoint2",
+      "type": "text",
+      "label": "卖点2",
+      "default": "时尚设计，百搭显瘦",
+      "required": true,
+      "description": "第二个卖点"
+    },
+    {
+      "name": "sellingPoint3",
+      "type": "text",
+      "label": "卖点3",
+      "default": "精湛工艺，品质保证",
+      "required": true,
+      "description": "第三个卖点"
+    },
+    {
+      "name": "retailPrice",
+      "type": "text",
+      "label": "零售价",
+      "default": "299",
+      "required": true,
+      "description": "建议零售价"
+    },
+    {
+      "name": "promotionPrice",
+      "type": "text",
+      "label": "活动价",
+      "default": "199",
+      "required": false,
+      "description": "促销价格(可选)"
+    },
+    {
+      "name": "productBrief",
+      "type": "textarea",
+      "label": "商品简介",
+      "default": "这是一款时尚百搭的商品，采用优质材料，精心设计，适合日常穿着。",
+      "required": true,
+      "description": "商品的简要描述"
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{productName}}_上架资料",
+    "children": [
+      {"type": "file", "name": "商品文案.md", "description": "商品文案"},
+      {"type": "file", "name": "关键词清单.txt", "description": "SEO关键词"},
+      {"type": "file", "name": "属性填写表.xlsx", "description": "商品属性"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T10:00:00Z"
+}
