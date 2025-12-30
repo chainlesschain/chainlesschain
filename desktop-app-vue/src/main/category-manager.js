@@ -37,8 +37,23 @@ class CategoryManager {
       { id: uuidv4(), name: '教育', parent_id: null, icon: '🎓', color: '#fa541c', sort_order: 7 },
       { id: uuidv4(), name: '生活', parent_id: null, icon: '🏠', color: '#fadb14', sort_order: 8 },
       { id: uuidv4(), name: '播客', parent_id: null, icon: '🎙️', color: '#2f54eb', sort_order: 9 },
-      { id: uuidv4(), name: '设计', parent_id: null, icon: '🎨', color: '#f5222d', sort_order: 10 },
-      { id: uuidv4(), name: '网页', parent_id: null, icon: '🌐', color: '#52c41a', sort_order: 11 },
+      { id: uuidv4(), name: '视频', parent_id: null, icon: '🎬', color: '#ff4d4f', sort_order: 10 },
+      { id: uuidv4(), name: '设计', parent_id: null, icon: '🎨', color: '#f5222d', sort_order: 11 },
+      { id: uuidv4(), name: '网页', parent_id: null, icon: '🌐', color: '#52c41a', sort_order: 12 },
+      // 新增分类 - 日常生活与个人成长
+      { id: uuidv4(), name: '学习', parent_id: null, icon: '📚', color: '#40a9ff', sort_order: 13 },
+      { id: uuidv4(), name: '健康', parent_id: null, icon: '💪', color: '#73d13d', sort_order: 14 },
+      { id: uuidv4(), name: '时间管理', parent_id: null, icon: '⏰', color: '#fa8c16', sort_order: 15 },
+      { id: uuidv4(), name: '效率', parent_id: null, icon: '⚡', color: '#faad14', sort_order: 16 },
+      // 新增分类 - 专业领域
+      { id: uuidv4(), name: '编程', parent_id: null, icon: '💻', color: '#722ed1', sort_order: 17 },
+      { id: uuidv4(), name: '数据科学', parent_id: null, icon: '📈', color: '#2f54eb', sort_order: 18 },
+      { id: uuidv4(), name: '技术文档', parent_id: null, icon: '📖', color: '#597ef7', sort_order: 19 },
+      { id: uuidv4(), name: '法律', parent_id: null, icon: '⚖️', color: '#722ed1', sort_order: 20 },
+      // 新增分类 - 内容创作
+      { id: uuidv4(), name: '创意写作', parent_id: null, icon: '✒️', color: '#9254de', sort_order: 21 },
+      { id: uuidv4(), name: '社交媒体', parent_id: null, icon: '📱', color: '#eb2f96', sort_order: 22 },
+      { id: uuidv4(), name: '电商', parent_id: null, icon: '🛒', color: '#52c41a', sort_order: 23 },
     ];
 
     // 保存一级分类的ID，用于创建二级分类
@@ -49,6 +64,7 @@ class CategoryManager {
 
     // 二级分类
     const subcategories = [
+      // 原有二级分类
       { name: '办公文档', parent_name: '写作', icon: '📝', color: '#1890ff', sort_order: 1 },
       { name: '商业', parent_name: '营销', icon: '💼', color: '#52c41a', sort_order: 1 },
       { name: '技术', parent_name: '网页', icon: '⚙️', color: '#722ed1', sort_order: 1 },
@@ -56,6 +72,57 @@ class CategoryManager {
       { name: '财务', parent_name: 'Excel', icon: '💰', color: '#13c2c2', sort_order: 1 },
       { name: '分析', parent_name: 'Excel', icon: '📈', color: '#13c2c2', sort_order: 2 },
       { name: '求职', parent_name: '简历', icon: '🔍', color: '#fa541c', sort_order: 1 },
+      { name: '短视频', parent_name: '视频', icon: '📱', color: '#ff4d4f', sort_order: 1 },
+      { name: '长视频', parent_name: '视频', icon: '📺', color: '#ff4d4f', sort_order: 2 },
+      { name: '直播', parent_name: '视频', icon: '📡', color: '#ff4d4f', sort_order: 3 },
+      { name: 'Vlog', parent_name: '视频', icon: '📹', color: '#ff4d4f', sort_order: 4 },
+      { name: '动画', parent_name: '视频', icon: '🎨', color: '#ff4d4f', sort_order: 5 },
+      { name: '测评', parent_name: '视频', icon: '🎮', color: '#ff4d4f', sort_order: 6 },
+
+      // 学习分类
+      { name: '笔记整理', parent_name: '学习', icon: '📔', color: '#40a9ff', sort_order: 1 },
+      { name: '学习规划', parent_name: '学习', icon: '🎯', color: '#40a9ff', sort_order: 2 },
+
+      // 健康分类
+      { name: '健身运动', parent_name: '健康', icon: '🏃', color: '#73d13d', sort_order: 1 },
+      { name: '饮食营养', parent_name: '健康', icon: '🥗', color: '#73d13d', sort_order: 2 },
+      { name: '健康管理', parent_name: '健康', icon: '💊', color: '#73d13d', sort_order: 3 },
+
+      // 时间管理分类
+      { name: '目标规划', parent_name: '时间管理', icon: '🎯', color: '#fa8c16', sort_order: 1 },
+      { name: '日常管理', parent_name: '时间管理', icon: '📅', color: '#fa8c16', sort_order: 2 },
+
+      // 编程分类
+      { name: '前端开发', parent_name: '编程', icon: '🎨', color: '#722ed1', sort_order: 1 },
+      { name: '后端开发', parent_name: '编程', icon: '⚙️', color: '#722ed1', sort_order: 2 },
+      { name: '小程序', parent_name: '编程', icon: '📱', color: '#722ed1', sort_order: 3 },
+
+      // 数据科学分类
+      { name: '数据处理', parent_name: '数据科学', icon: '🔧', color: '#2f54eb', sort_order: 1 },
+      { name: '数据分析', parent_name: '数据科学', icon: '📊', color: '#2f54eb', sort_order: 2 },
+      { name: '机器学习', parent_name: '数据科学', icon: '🤖', color: '#2f54eb', sort_order: 3 },
+
+      // 技术文档分类
+      { name: '开发文档', parent_name: '技术文档', icon: '📝', color: '#597ef7', sort_order: 1 },
+      { name: '系统文档', parent_name: '技术文档', icon: '🏗️', color: '#597ef7', sort_order: 2 },
+
+      // 法律分类
+      { name: '合同协议', parent_name: '法律', icon: '📋', color: '#722ed1', sort_order: 1 },
+      { name: '法律文书', parent_name: '法律', icon: '📜', color: '#722ed1', sort_order: 2 },
+
+      // 创意写作分类
+      { name: '小说/故事', parent_name: '创意写作', icon: '📖', color: '#9254de', sort_order: 1 },
+      { name: '诗歌/歌词', parent_name: '创意写作', icon: '🎵', color: '#9254de', sort_order: 2 },
+      { name: '剧本', parent_name: '创意写作', icon: '🎭', color: '#9254de', sort_order: 3 },
+
+      // 社交媒体分类
+      { name: '微信生态', parent_name: '社交媒体', icon: '💬', color: '#eb2f96', sort_order: 1 },
+      { name: '内容平台', parent_name: '社交媒体', icon: '📢', color: '#eb2f96', sort_order: 2 },
+
+      // 电商分类
+      { name: '商品运营', parent_name: '电商', icon: '📦', color: '#52c41a', sort_order: 1 },
+      { name: '营销活动', parent_name: '电商', icon: '🎁', color: '#52c41a', sort_order: 2 },
+      { name: '客服/直播', parent_name: '电商', icon: '🎥', color: '#52c41a', sort_order: 3 },
     ];
 
     // 插入所有分类
