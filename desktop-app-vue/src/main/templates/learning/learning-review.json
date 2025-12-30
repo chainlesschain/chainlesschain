@@ -1,0 +1,40 @@
+{
+  "id": "tpl_learning_review_005",
+  "name": "learning_review",
+  "display_name": "学习复盘",
+  "description": "学习复盘模板，用于定期回顾学习过程，总结经验教训，优化学习方法",
+  "icon": "🔄",
+  "category": "learning",
+  "subcategory": "学习反思",
+  "tags": ["学习复盘", "反思总结", "学习方法", "成长记录"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成学习复盘，要求:\n\n# {{reviewTitle}}\n\n**复盘周期**: {{reviewPeriod}}\n**复盘日期**: {{#if reviewDate}}{{reviewDate}}{{else}}{{currentDate}}{{/if}}\n**学习领域**: {{learningArea}}\n\n## 一、复盘概述\n\n### 1.1 复盘背景\n\n{{reviewContext}}\n\n### 1.2 复盘目的\n\n{{reviewPurpose}}\n\n## 二、目标达成情况\n\n### 2.1 原定目标\n\n{{originalGoals}}\n\n### 2.2 完成情况\n\n| 目标 | 计划完成度 | 实际完成度 | 状态 | 备注 |\n|------|-----------|-----------|------|------|\n| {{goal1}} | {{planned1}} | {{actual1}} | {{status1}} | {{note1}} |\n| {{goal2}} | {{planned2}} | {{actual2}} | {{status2}} | {{note2}} |\n| {{goal3}} | {{planned3}} | {{actual3}} | {{status3}} | {{note3}} |\n\n**总体完成率**: {{overallCompletion}}%\n\n### 2.3 目标分析\n\n**超预期完成的目标**:\n{{exceededGoals}}\n\n**未完成的目标**:\n{{unfinishedGoals}}\n\n**未完成原因分析**:\n{{reasonsForUnfinished}}\n\n## 三、学习过程回顾\n\n### 3.1 时间投入\n\n**计划学习时间**: {{plannedTime}}\n**实际学习时间**: {{actualTime}}\n**时间利用率**: {{timeUtilization}}%\n\n**时间分布**:\n{{timeDistribution}}\n\n### 3.2 学习内容\n\n**已完成的学习内容**:\n{{completedContent}}\n\n**进行中的内容**:\n{{ongoingContent}}\n\n**未开始的内容**:\n{{notStartedContent}}\n\n### 3.3 学习方法\n\n**使用的学习方法**:\n{{learningMethods}}\n\n**有效的方法**:\n{{effectiveMethods}}\n\n**需要改进的方法**:\n{{methodsToImprove}}\n\n## 四、成果展示\n\n### 4.1 知识收获\n\n{{knowledgeGained}}\n\n### 4.2 技能提升\n\n| 技能 | 提升前水平 | 提升后水平 | 提升幅度 |\n|------|-----------|-----------|----------|\n| {{skill1}} | {{before1}} | {{after1}} | {{improvement1}} |\n| {{skill2}} | {{before2}} | {{after2}} | {{improvement2}} |\n| {{skill3}} | {{before3}} | {{after3}} | {{improvement3}} |\n\n### 4.3 项目成果\n\n{{projectOutcomes}}\n\n### 4.4 证书认证\n\n{{certifications}}\n\n## 五、问题与挑战\n\n### 5.1 遇到的困难\n\n{{challenges}}\n\n### 5.2 解决方案\n\n{{solutions}}\n\n### 5.3 待解决的问题\n\n{{pendingIssues}}\n\n## 六、经验总结\n\n### 6.1 成功经验\n\n{{successExperiences}}\n\n### 6.2 失败教训\n\n{{lessons}}\n\n### 6.3 意外收获\n\n{{unexpectedGains}}\n\n## 七、自我评价\n\n### 7.1 优点与进步\n\n{{strengths}}\n\n### 7.2 不足与差距\n\n{{weaknesses}}\n\n### 7.3 综合评分\n\n**学习态度**: {{attitudeScore}}/10\n**学习效率**: {{efficiencyScore}}/10\n**知识掌握**: {{masteryScore}}/10\n**实践能力**: {{practiceScore}}/10\n**总体评分**: {{overallScore}}/10\n\n## 八、数据分析\n\n### 8.1 学习数据统计\n\n{{learningStats}}\n\n### 8.2 进度曲线\n\n{{progressCurve}}\n\n### 8.3 效率分析\n\n{{efficiencyAnalysis}}\n\n## 九、改进计划\n\n### 9.1 需要改进的方面\n\n{{areasForImprovement}}\n\n### 9.2 具体改进措施\n\n{{improvementActions}}\n\n### 9.3 优化策略\n\n{{optimizationStrategy}}\n\n## 十、下一阶段规划\n\n### 10.1 新的学习目标\n\n{{newGoals}}\n\n### 10.2 学习计划调整\n\n{{planAdjustment}}\n\n### 10.3 资源准备\n\n{{resourcePreparation}}\n\n### 10.4 时间安排\n\n{{timeSchedule}}\n\n## 十一、行动清单\n\n### 立即执行（本周）\n\n{{immediateActions}}\n\n### 近期执行（本月）\n\n{{nearTermActions}}\n\n### 长期执行（本季度）\n\n{{longTermActions}}\n\n## 十二、反思与感悟\n\n### 12.1 心路历程\n\n{{mentalJourney}}\n\n### 12.2 成长感悟\n\n{{growthInsights}}\n\n### 12.3 对未来的期许\n\n{{futureExpectations}}\n\n## 附录\n\n### A. 学习记录\n\n{{learningLog}}\n\n### B. 作品展示\n\n{{portfolioShowcase}}\n\n### C. 参考资料\n\n{{references}}\n\n---\n\n**复盘人**: {{#if reviewer}}{{reviewer}}{{else}}学习者{{/if}}\n**复盘方式**: {{#if reviewMethod}}{{reviewMethod}}{{else}}个人复盘{{/if}}\n**下次复盘时间**: {{#if nextReview}}{{nextReview}}{{else}}待定{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {"name": "reviewTitle", "type": "text", "label": "复盘标题", "default": "学习复盘", "required": true},
+    {"name": "reviewPeriod", "type": "select", "label": "复盘周期", "default": "月度", "required": true, "options": [
+      {"value": "周度", "label": "周度复盘"},
+      {"value": "月度", "label": "月度复盘"},
+      {"value": "季度", "label": "季度复盘"},
+      {"value": "年度", "label": "年度复盘"}
+    ]},
+    {"name": "learningArea", "type": "text", "label": "学习领域", "default": "技术学习", "required": true},
+    {"name": "overallCompletion", "type": "text", "label": "总体完成率(%)", "default": "80", "required": true},
+    {"name": "overallScore", "type": "text", "label": "总体评分", "default": "8", "required": true}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{reviewTitle}}",
+    "children": [
+      {"type": "file", "name": "复盘报告.md", "description": "复盘正文"},
+      {"type": "file", "name": "数据分析.xlsx", "description": "学习数据"},
+      {"type": "file", "name": "改进计划.md", "description": "改进措施"},
+      {"type": "file", "name": "成果展示/", "description": "学习成果"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

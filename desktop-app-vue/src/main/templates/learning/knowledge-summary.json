@@ -1,0 +1,46 @@
+{
+  "id": "tpl_learning_summary_004",
+  "name": "knowledge_summary",
+  "display_name": "知识总结",
+  "description": "知识点总结模板，用于整理某个主题的完整知识体系，包含概念、原理、应用等",
+  "icon": "🧠",
+  "category": "learning",
+  "subcategory": "知识管理",
+  "tags": ["知识总结", "知识体系", "概念整理", "学习笔记"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成知识总结，要求:\n\n# {{topicTitle}} - 知识总结\n\n**整理日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**知识领域**: {{knowledgeArea}}\n**难度等级**: {{difficultyLevel}}\n**预计学习时间**: {{estimatedTime}}\n\n## 概述\n\n{{overview}}\n\n## 知识地图\n\n{{knowledgeMap}}\n\n## 一、基础概念\n\n### 1.1 核心定义\n\n{{coreDefinition}}\n\n### 1.2 相关术语\n\n| 术语 | 定义 | 示例 |\n|------|------|------|\n| {{term1}} | {{definition1}} | {{example1}} |\n| {{term2}} | {{definition2}} | {{example2}} |\n| {{term3}} | {{definition3}} | {{example3}} |\n\n### 1.3 历史发展\n\n{{history}}\n\n## 二、核心原理\n\n### 2.1 基本原理\n\n{{basicPrinciples}}\n\n### 2.2 工作机制\n\n{{workingMechanism}}\n\n### 2.3 关键特性\n\n{{keyFeatures}}\n\n## 三、分类体系\n\n### 3.1 主要分类\n\n{{mainCategories}}\n\n### 3.2 分类对比\n\n| 类型 | 特点 | 优势 | 劣势 | 适用场景 |\n|------|------|------|------|----------|\n| {{type1}} | {{feature1}} | {{pros1}} | {{cons1}} | {{useCase1}} |\n| {{type2}} | {{feature2}} | {{pros2}} | {{cons2}} | {{useCase2}} |\n| {{type3}} | {{feature3}} | {{pros3}} | {{cons3}} | {{useCase3}} |\n\n## 四、实践应用\n\n### 4.1 应用场景\n\n{{applicationScenarios}}\n\n### 4.2 实践案例\n\n#### 案例1：{{case1Title}}\n\n**背景**: {{case1Background}}\n**实施**: {{case1Implementation}}\n**效果**: {{case1Result}}\n\n#### 案例2：{{case2Title}}\n\n**背景**: {{case2Background}}\n**实施**: {{case2Implementation}}\n**效果**: {{case2Result}}\n\n### 4.3 最佳实践\n\n{{bestPractices}}\n\n### 4.4 常见误区\n\n{{commonMistakes}}\n\n## 五、技术实现\n\n### 5.1 实现方法\n\n{{implementationMethods}}\n\n### 5.2 代码示例\n\n```{{programmingLanguage}}\n{{codeExample}}\n```\n\n**代码说明**:\n{{codeExplanation}}\n\n### 5.3 工具支持\n\n{{toolsAndLibraries}}\n\n## 六、进阶内容\n\n### 6.1 高级特性\n\n{{advancedFeatures}}\n\n### 6.2 性能优化\n\n{{performanceOptimization}}\n\n### 6.3 扩展阅读\n\n{{furtherReading}}\n\n## 七、对比分析\n\n### 7.1 与相关技术对比\n\n{{comparison}}\n\n### 7.2 优劣势分析\n\n**优势**:\n{{advantages}}\n\n**劣势**:\n{{disadvantages}}\n\n### 7.3 选择建议\n\n{{selectionGuidance}}\n\n## 八、问题与解答\n\n### Q1: {{question1}}\n\n**A**: {{answer1}}\n\n### Q2: {{question2}}\n\n**A**: {{answer2}}\n\n### Q3: {{question3}}\n\n**A**: {{answer3}}\n\n## 九、学习路径\n\n### 9.1 入门阶段\n\n{{beginnerPath}}\n\n### 9.2 进阶阶段\n\n{{intermediatePath}}\n\n### 9.3 高级阶段\n\n{{advancedPath}}\n\n## 十、参考资料\n\n### 10.1 推荐书籍\n\n{{recommendedBooks}}\n\n### 10.2 在线资源\n\n{{onlineResources}}\n\n### 10.3 开源项目\n\n{{openSourceProjects}}\n\n### 10.4 论文文献\n\n{{papers}}\n\n## 十一、总结\n\n### 核心要点\n\n{{keyTakeaways}}\n\n### 记忆技巧\n\n{{memoryTips}}\n\n### 复习建议\n\n{{reviewSuggestions}}\n\n## 附录\n\n### A. 术语表\n\n{{glossary}}\n\n### B. 参考链接\n\n{{referenceLinks}}\n\n### C. 思维导图\n\n{{mindMap}}\n\n---\n\n**整理人**: {{#if author}}{{author}}{{else}}学习者{{/if}}\n**版本**: {{#if version}}{{version}}{{else}}v1.0{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {"name": "topicTitle", "type": "text", "label": "主题标题", "default": "知识主题", "required": true},
+    {"name": "knowledgeArea", "type": "select", "label": "知识领域", "default": "技术", "required": true, "options": [
+      {"value": "技术", "label": "技术/编程"},
+      {"value": "科学", "label": "科学/数学"},
+      {"value": "商业", "label": "商业/管理"},
+      {"value": "人文", "label": "人文/社科"},
+      {"value": "其他", "label": "其他"}
+    ]},
+    {"name": "difficultyLevel", "type": "select", "label": "难度等级", "default": "中级", "required": true, "options": [
+      {"value": "入门", "label": "入门"},
+      {"value": "初级", "label": "初级"},
+      {"value": "中级", "label": "中级"},
+      {"value": "高级", "label": "高级"},
+      {"value": "专家", "label": "专家级"}
+    ]},
+    {"name": "programmingLanguage", "type": "text", "label": "编程语言", "default": "python", "required": false},
+    {"name": "estimatedTime", "type": "text", "label": "预计学习时间", "default": "10小时", "required": false}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{topicTitle}}_知识总结",
+    "children": [
+      {"type": "file", "name": "知识总结.md", "description": "知识总结正文"},
+      {"type": "file", "name": "思维导图.png", "description": "知识地图"},
+      {"type": "file", "name": "代码示例/", "description": "代码示例目录"},
+      {"type": "file", "name": "参考资料/", "description": "参考资料"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating_count": 0
+}

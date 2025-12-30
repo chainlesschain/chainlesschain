@@ -1,0 +1,40 @@
+{
+  "id": "tpl_time_weekly_003",
+  "name": "weekly_review",
+  "display_name": "周报/周总结",
+  "description": "周报和周总结模板，用于回顾一周工作、总结经验、规划下周",
+  "icon": "📅",
+  "category": "time-management",
+  "subcategory": "定期总结",
+  "tags": ["周报", "周总结", "工作总结", "复盘"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成周报/周总结，要求:\n\n# {{reviewTitle}}\n\n**时间范围**: {{weekRange}}\n**撰写日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**撰写人**: {{author}}\n\n## 一、本周概况\n\n### 1.1 一句话总结\n\n{{oneLineSummary}}\n\n### 1.2 关键数据\n\n| 指标 | 本周 | 上周 | 变化 |\n|------|------|------|------|\n| 工作时长 | {{workHours}}h | {{lastWeekHours}}h | {{hoursChange}} |\n| 完成任务 | {{completedTasks}} | {{lastWeekTasks}} | {{tasksChange}} |\n| 会议时间 | {{meetingHours}}h | {{lastWeekMeetings}}h | {{meetingsChange}} |\n| 专注时间 | {{focusHours}}h | {{lastWeekFocus}}h | {{focusChange}} |\n\n### 1.3 整体评价\n\n**完成度**: {{completionRate}}%\n**效率评分**: {{efficiencyScore}}/10\n**满意度**: {{satisfactionScore}}/10\n\n---\n\n## 二、本周工作完成情况\n\n### 2.1 重点工作\n\n#### 工作1：{{task1Title}}\n\n**优先级**: {{task1Priority}}\n**状态**: {{task1Status}}\n**进度**: {{task1Progress}}%\n**时间投入**: {{task1Hours}}h\n\n**完成情况**:\n{{task1Description}}\n\n**成果/产出**:\n{{task1Deliverables}}\n\n**遇到的问题**:\n{{task1Issues}}\n\n---\n\n#### 工作2：{{task2Title}}\n\n**优先级**: {{task2Priority}}\n**状态**: {{task2Status}}\n**进度**: {{task2Progress}}%\n**时间投入**: {{task2Hours}}h\n\n**完成情况**:\n{{task2Description}}\n\n**成果/产出**:\n{{task2Deliverables}}\n\n---\n\n#### 工作3：{{task3Title}}\n\n**优先级**: {{task3Priority}}\n**状态**: {{task3Status}}\n**进度**: {{task3Progress}}%\n\n**完成情况**:\n{{task3Description}}\n\n---\n\n### 2.2 日常工作\n\n{{routineWork}}\n\n### 2.3 其他工作\n\n{{otherWork}}\n\n### 2.4 未完成工作\n\n{{unfinishedWork}}\n\n---\n\n## 三、本周亮点与成就\n\n### 3.1 主要成就\n\n{{achievements}}\n\n### 3.2 突破与创新\n\n{{breakthroughs}}\n\n### 3.3 获得的认可\n\n{{recognition}}\n\n---\n\n## 四、本周挑战与问题\n\n### 4.1 遇到的困难\n\n#### 问题1：{{challenge1}}\n\n**影响**: {{challenge1Impact}}\n**当前状态**: {{challenge1Status}}\n**解决方案**: {{challenge1Solution}}\n\n#### 问题2：{{challenge2}}\n\n**影响**: {{challenge2Impact}}\n**解决方案**: {{challenge2Solution}}\n\n### 4.2 待解决事项\n\n{{pendingIssues}}\n\n### 4.3 需要的支持\n\n{{supportNeeded}}\n\n---\n\n## 五、学习与成长\n\n### 5.1 本周学到的\n\n{{learnings}}\n\n### 5.2 技能提升\n\n{{skillImprovements}}\n\n### 5.3 阅读/学习\n\n**读完的书/文章**: {{readingMaterials}}\n**在线课程**: {{courses}}\n**技术分享**: {{techSharing}}\n\n---\n\n## 六、数据分析\n\n### 6.1 时间分配\n\n```\n项目A: ████████░░░░░░░░░░ 40%\n项目B: ██████░░░░░░░░░░░░ 30%\n会议:  ████░░░░░░░░░░░░░░ 20%\n其他:  ██░░░░░░░░░░░░░░░░ 10%\n```\n\n### 6.2 任务类型分布\n\n{{taskTypeDistribution}}\n\n### 6.3 效率分析\n\n{{efficiencyAnalysis}}\n\n---\n\n## 七、本周反思\n\n### 7.1 做得好的地方\n\n{{whatWentWell}}\n\n### 7.2 可以改进的地方\n\n{{whatCouldImprove}}\n\n### 7.3 经验教训\n\n{{lessonsLearned}}\n\n### 7.4 感悟与思考\n\n{{reflections}}\n\n---\n\n## 八、下周计划\n\n### 8.1 重点工作\n\n#### 下周优先级1：{{nextWeekTask1}}\n\n**目标**: {{nextWeekGoal1}}\n**预计时间**: {{nextWeekTime1}}\n**关键里程碑**: {{nextWeekMilestone1}}\n\n#### 下周优先级2：{{nextWeekTask2}}\n\n**目标**: {{nextWeekGoal2}}\n**预计时间**: {{nextWeekTime2}}\n\n#### 下周优先级3：{{nextWeekTask3}}\n\n**目标**: {{nextWeekGoal3}}\n**预计时间**: {{nextWeekTime3}}\n\n### 8.2 会议安排\n\n{{nextWeekMeetings}}\n\n### 8.3 学习计划\n\n{{nextWeekLearning}}\n\n### 8.4 需要跟进的事项\n\n{{followUps}}\n\n---\n\n## 九、OKR/KPI进度（如适用）\n\n### 9.1 季度目标进度\n\n{{quarterlyProgress}}\n\n### 9.2 关键指标\n\n{{keyMetrics}}\n\n---\n\n## 十、团队协作\n\n### 10.1 跨部门协作\n\n{{crossTeamCollaboration}}\n\n### 10.2 团队贡献\n\n{{teamContributions}}\n\n### 10.3 需要协调的事项\n\n{{coordinationNeeds}}\n\n---\n\n## 十一、工作生活平衡\n\n### 11.1 加班情况\n\n**本周加班**: {{overtimeHours}}h\n**原因**: {{overtimeReason}}\n\n### 11.2 健康状况\n\n**运动**: {{exercise}}\n**睡眠**: {{sleep}}\n**压力水平**: {{stressLevel}}/10\n\n### 11.3 生活亮点\n\n{{lifeHighlights}}\n\n---\n\n## 十二、其他说明\n\n{{additionalNotes}}\n\n---\n\n## 附录\n\n### A. 本周日程回顾\n\n{{weeklySchedule}}\n\n### B. 重要邮件/对话记录\n\n{{importantCommunications}}\n\n### C. 数据截图/附件\n\n{{attachments}}\n\n---\n\n**撰写人**: {{#if author}}{{author}}{{else}}用户{{/if}}\n**提交给**: {{#if recipient}}{{recipient}}{{else}}主管{{/if}}\n**撰写时间**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**下次周报时间**: {{#if nextReview}}{{nextReview}}{{else}}下周五{{/if}}",
+  "variables_schema": [
+    {"name": "reviewTitle", "type": "text", "label": "周报标题", "default": "第X周工作总结", "required": true},
+    {"name": "weekRange", "type": "text", "label": "周范围", "default": "2024.01.01-01.07", "required": true},
+    {"name": "author", "type": "text", "label": "撰写人", "default": "张三", "required": true},
+    {"name": "completionRate", "type": "text", "label": "完成度(%)", "default": "85", "required": true},
+    {"name": "task1Title", "type": "text", "label": "重点工作1", "default": "项目开发", "required": true},
+    {"name": "task1Status", "type": "select", "label": "工作1状态", "default": "已完成", "required": true, "options": [
+      {"value": "已完成", "label": "已完成"},
+      {"value": "进行中", "label": "进行中"},
+      {"value": "未开始", "label": "未开始"},
+      {"value": "已延期", "label": "已延期"}
+    ]}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{reviewTitle}}",
+    "children": [
+      {"type": "file", "name": "周报.md", "description": "周报正文"},
+      {"type": "file", "name": "数据分析.xlsx", "description": "数据表格"},
+      {"type": "file", "name": "附件/", "description": "附件文件"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

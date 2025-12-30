@@ -1,0 +1,50 @@
+{
+  "id": "tpl_learning_course_003",
+  "name": "course_notes",
+  "display_name": "课程笔记",
+  "description": "在线课程学习笔记模板，适用于慕课、网课、培训课程等，包含课程信息、章节笔记、作业记录等",
+  "icon": "🎓",
+  "category": "learning",
+  "subcategory": "课程学习",
+  "tags": ["课程笔记", "在线学习", "MOOC", "培训"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成课程笔记，要求:\n\n# {{courseTitle}} - 课程笔记\n\n## 课程基本信息\n\n**课程名称**: {{courseTitle}}\n**授课老师**: {{instructor}}\n**课程平台**: {{platform}}\n**课程类型**: {{courseType}}\n**难度级别**: {{difficultyLevel}}\n**总课时**: {{totalHours}}\n**学习周期**: {{studyPeriod}}\n**开始日期**: {{startDate}}\n**结束日期**: {{endDate}}\n\n## 课程目标\n\n{{courseObjectives}}\n\n## 课程大纲\n\n{{courseSyllabus}}\n\n## 学习进度\n\n**当前进度**: {{currentProgress}}%\n\n| 章节 | 标题 | 状态 | 完成日期 |\n|------|------|------|----------|\n| 第1章 | {{chapter1}} | {{status1}} | {{date1}} |\n| 第2章 | {{chapter2}} | {{status2}} | {{date2}} |\n| 第3章 | {{chapter3}} | {{status3}} | {{date3}} |\n| 第4章 | {{chapter4}} | {{status4}} | {{date4}} |\n| 第5章 | {{chapter5}} | {{status5}} | {{date5}} |\n\n## 第一周学习笔记\n\n### Week 1 - {{week1Topic}}\n\n#### 📚 学习内容\n\n{{week1Content}}\n\n#### 🔑 关键知识点\n\n{{week1KeyPoints}}\n\n#### 💻 代码示例\n\n```{{codeLanguage}}\n{{week1Code}}\n```\n\n#### ❓ 课后习题\n\n{{week1Exercises}}\n\n#### 📝 个人笔记\n\n{{week1Notes}}\n\n---\n\n## 第二周学习笔记\n\n### Week 2 - {{week2Topic}}\n\n#### 📚 学习内容\n\n{{week2Content}}\n\n#### 🔑 关键知识点\n\n{{week2KeyPoints}}\n\n#### 💻 代码示例\n\n```{{codeLanguage}}\n{{week2Code}}\n```\n\n#### ❓ 课后习题\n\n{{week2Exercises}}\n\n#### 📝 个人笔记\n\n{{week2Notes}}\n\n---\n\n## 第三周学习笔记\n\n### Week 3 - {{week3Topic}}\n\n#### 📚 学习内容\n\n{{week3Content}}\n\n#### 🔑 关键知识点\n\n{{week3KeyPoints}}\n\n#### 💻 代码示例\n\n```{{codeLanguage}}\n{{week3Code}}\n```\n\n#### ❓ 课后习题\n\n{{week3Exercises}}\n\n#### 📝 个人笔记\n\n{{week3Notes}}\n\n---\n\n## 作业记录\n\n### 作业1：{{assignment1Title}}\n\n**截止日期**: {{assignment1Deadline}}\n**完成状态**: {{assignment1Status}}\n**得分**: {{assignment1Score}}\n\n**作业要求**:\n{{assignment1Requirements}}\n\n**我的方案**:\n{{assignment1Solution}}\n\n**老师反馈**:\n{{assignment1Feedback}}\n\n---\n\n### 作业2：{{assignment2Title}}\n\n**截止日期**: {{assignment2Deadline}}\n**完成状态**: {{assignment2Status}}\n**得分**: {{assignment2Score}}\n\n**作业要求**:\n{{assignment2Requirements}}\n\n**我的方案**:\n{{assignment2Solution}}\n\n**老师反馈**:\n{{assignment2Feedback}}\n\n---\n\n## 项目实践\n\n### 课程项目：{{projectTitle}}\n\n**项目描述**: {{projectDescription}}\n**技术栈**: {{techStack}}\n**项目链接**: {{projectLink}}\n\n**实现过程**:\n{{implementationProcess}}\n\n**遇到的问题**:\n{{challenges}}\n\n**解决方案**:\n{{solutions}}\n\n## 知识点汇总\n\n### 重要概念\n\n{{importantConcepts}}\n\n### 技能清单\n\n{{skillsAcquired}}\n\n### 工具使用\n\n{{toolsUsed}}\n\n## 学习资源\n\n### 推荐阅读\n\n{{recommendedReading}}\n\n### 参考资料\n\n{{references}}\n\n### 扩展学习\n\n{{furtherLearning}}\n\n## 学习心得\n\n### 收获总结\n\n{{learningOutcomes}}\n\n### 困难与突破\n\n{{challengesAndBreakthroughs}}\n\n### 下一步计划\n\n{{nextSteps}}\n\n## 课程评价\n\n**内容质量**: {{contentRating}}/5 ⭐\n**讲师水平**: {{instructorRating}}/5 ⭐\n**实用性**: {{practicalityRating}}/5 ⭐\n**推荐度**: {{recommendationRating}}/5 ⭐\n\n**优点**:\n{{pros}}\n\n**不足**:\n{{cons}}\n\n**建议**:\n{{suggestions}}\n\n---\n\n**学习者**: {{#if learner}}{{learner}}{{else}}学员{{/if}}\n**笔记创建**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {"name": "courseTitle", "type": "text", "label": "课程名称", "default": "示例课程", "required": true},
+    {"name": "instructor", "type": "text", "label": "授课老师", "default": "讲师姓名", "required": true},
+    {"name": "platform", "type": "select", "label": "课程平台", "default": "其他", "required": true, "options": [
+      {"value": "中国大学MOOC", "label": "中国大学MOOC"},
+      {"value": "网易云课堂", "label": "网易云课堂"},
+      {"value": "腾讯课堂", "label": "腾讯课堂"},
+      {"value": "B站", "label": "哔哩哔哩"},
+      {"value": "Coursera", "label": "Coursera"},
+      {"value": "Udemy", "label": "Udemy"},
+      {"value": "其他", "label": "其他平台"}
+    ]},
+    {"name": "courseType", "type": "select", "label": "课程类型", "default": "技术课程", "required": true, "options": [
+      {"value": "技术课程", "label": "技术/编程"},
+      {"value": "商业管理", "label": "商业/管理"},
+      {"value": "语言学习", "label": "语言学习"},
+      {"value": "职业技能", "label": "职业技能"},
+      {"value": "其他", "label": "其他"}
+    ]},
+    {"name": "codeLanguage", "type": "text", "label": "编程语言", "default": "python", "required": false},
+    {"name": "currentProgress", "type": "text", "label": "当前进度(%)", "default": "0", "required": true}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{courseTitle}}_课程笔记",
+    "children": [
+      {"type": "file", "name": "课程笔记.md", "description": "笔记正文"},
+      {"type": "file", "name": "作业/", "description": "作业目录"},
+      {"type": "file", "name": "项目代码/", "description": "项目代码"},
+      {"type": "file", "name": "资料下载/", "description": "课程资料"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
