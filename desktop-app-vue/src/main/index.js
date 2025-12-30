@@ -831,6 +831,10 @@ class ChainlessChainApp {
       // 设置FunctionCaller的ToolManager引用
       functionCaller.setToolManager(this.toolManager);
 
+      // 注册技能和工具IPC handlers（在初始化完成后）
+      registerSkillToolIPC(ipcMain, this.skillManager, this.toolManager);
+      console.log('[Main] 技能和工具IPC handlers已注册');
+
       console.log('[Main] 技能和工具管理系统初始化完成');
     } catch (error) {
       console.error('[Main] 技能和工具管理系统初始化失败:', error);
@@ -1415,10 +1419,7 @@ class ChainlessChainApp {
 
   setupIPC() {
     // 注册技能和工具IPC handlers
-    if (this.skillManager && this.toolManager) {
-      registerSkillToolIPC(ipcMain, this.skillManager, this.toolManager);
-      console.log('[Main] 技能和工具IPC handlers已注册');
-    }
+    // 注意：实际注册在 onReady() 中进行，因为需要等待 skillManager 和 toolManager 初始化完成
 
     // U盾相关 - 使用真实硬件实现
     ipcMain.handle('ukey:detect', async () => {
@@ -7542,10 +7543,11 @@ class ChainlessChainApp {
             const hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
             const ext = path.extname(relativePath).substring(1);
             const fileId = 'file_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+            const now = Date.now();
 
             this.database.db.run(
-              'INSERT INTO project_files (id, project_id, file_name, file_path, file_type, content, content_hash, file_size, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              [fileId, projectId, path.basename(relativePath), relativePath, ext || 'unknown', content, hash, stats.size, Date.now(), Date.now()]
+              'INSERT INTO project_files (id, project_id, file_name, file_path, file_type, content, content_hash, file_size, version, fs_path, created_at, updated_at, sync_status, synced_at, device_id, deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [fileId, projectId, path.basename(relativePath), relativePath, ext || 'unknown', content, hash, stats.size, 1, fullPath, now, now, 'pending', null, null, 0]
             );
             added++;
           } catch (err) {
