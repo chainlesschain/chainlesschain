@@ -3,7 +3,7 @@ const CategoryManager = require('./category-manager');
 
 /**
  * 注册项目分类管理的IPC处理函数
- * @param {Object} database - 数据库实例
+ * @param {Object} database - 数据库实例（DatabaseManager）
  * @param {Object} mainWindow - 主窗口实例
  */
 function registerCategoryIPCHandlers(database, mainWindow) {
@@ -12,7 +12,12 @@ function registerCategoryIPCHandlers(database, mainWindow) {
   // 获取或创建 CategoryManager 实例
   const getCategoryManager = () => {
     if (!categoryManager) {
-      categoryManager = new CategoryManager(database);
+      // 从 DatabaseManager 中获取真正的数据库连接
+      const db = database.db;
+      if (!db) {
+        throw new Error('数据库未初始化');
+      }
+      categoryManager = new CategoryManager(db);
     }
     return categoryManager;
   };
