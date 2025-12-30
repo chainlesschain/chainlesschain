@@ -216,8 +216,8 @@ describe('SkillExecutor', () => {
       const stats = executor.getExecutionStats();
 
       expect(stats).toBeDefined();
-      expect(stats).toHaveProperty('totalExecutions');
-      expect(stats.totalExecutions).toBeGreaterThanOrEqual(2);
+      expect(stats).toHaveProperty('total');
+      expect(stats.total).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -245,10 +245,10 @@ describe('SkillExecutor', () => {
         skillId: 'skill-1',
       };
 
-      const result = executor.scheduleWorkflow(workflow);
+      const taskId = executor.scheduleWorkflow(workflow);
 
-      expect(result).toBeDefined();
-      expect(executor.scheduledTasks.has('scheduled_task')).toBe(true);
+      expect(taskId).toBeDefined();
+      expect(executor.scheduledTasks.has(taskId)).toBe(true);
     });
 
     it('should reject invalid cron expression', () => {
