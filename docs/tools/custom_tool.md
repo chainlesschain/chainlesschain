@@ -1,6 +1,6 @@
 ---
 id: tool-1
-name: file_reader
+name: custom_tool
 category: file
 type: io
 risk_level: 1
@@ -40,7 +40,7 @@ Read files from disk
 
 ```javascript
 // 通过 FunctionCaller 调用
-const result = await functionCaller.call('file_reader', {
+const result = await functionCaller.call('custom_tool', {
   "filePath": "示例filePath"
 });
 

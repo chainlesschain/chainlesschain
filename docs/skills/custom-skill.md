@@ -1,5 +1,5 @@
 ---
-id: skill-1
+id: custom-skill
 name: skill_web_development
 category: web
 enabled: true

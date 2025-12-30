@@ -355,6 +355,29 @@ describe('P2PSyncEngine', () => {
         VALUES (?, ?, ?, ?, ?)
       `, resourceId, 'Test', 'Content', Date.now(), Date.now());
 
+      // 先创建冲突记录
+      db.run(`
+        INSERT INTO sync_conflicts (
+          id, org_id, resource_type, resource_id,
+          local_version, remote_version,
+          local_data, remote_data,
+          local_vector_clock, remote_vector_clock,
+          created_at, resolved
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        'conflict_' + resourceId,
+        orgId,
+        'knowledge',
+        resourceId,
+        2, 2,
+        JSON.stringify({ title: 'Test', content: 'Content' }),
+        JSON.stringify(remoteChange.data),
+        JSON.stringify({ 'did:test:alice': 2 }),
+        JSON.stringify({ 'did:test:bob': 2 }),
+        Date.now(),
+        0
+      );
+
       const resolved = await syncEngine.resolveLWW(
         orgId,
         'knowledge',
