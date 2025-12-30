@@ -2113,5 +2113,187 @@ module.exports = [
     ],
     "enabled": 1,
     "is_builtin": 1
+  },
+
+  // ========== 第十一批技能 (116-125): 前沿物理与尖端科学 ==========
+
+  {
+    "id": "skill_gravitational_wave_detection",
+    "name": "引力波探测",
+    "display_name": "Gravitational Wave Detection",
+    "description": "LIGO/Virgo数据分析、引力波信号处理、黑洞碰撞模拟、中子星合并",
+    "category": "science",
+    "icon": "radar-chart",
+    "tags": "[\"引力波\",\"LIGO\",\"天文\",\"物理\"]",
+    "config": "{\"detector\":\"LIGO\",\"sensitivity\":\"advanced\"}",
+    "doc_path": "docs/skills/gravitational-wave-detection.md",
+    "tools": [
+      "ligo_data_analyzer",
+      "waveform_matcher"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_particle_physics",
+    "name": "粒子物理",
+    "display_name": "Particle Physics",
+    "description": "高能物理模拟、粒子碰撞分析、标准模型计算、新粒子搜寻",
+    "category": "science",
+    "icon": "experiment",
+    "tags": "[\"粒子\",\"高能\",\"LHC\",\"量子场论\"]",
+    "config": "{\"collider\":\"LHC\",\"energy\":\"13TeV\"}",
+    "doc_path": "docs/skills/particle-physics.md",
+    "tools": [
+      "particle_simulator",
+      "event_generator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_dark_matter_detection",
+    "name": "暗物质探测",
+    "display_name": "Dark Matter Detection",
+    "description": "WIMP探测、轴子搜寻、直接探测实验、间接探测分析",
+    "category": "science",
+    "icon": "search",
+    "tags": "[\"暗物质\",\"WIMP\",\"轴子\",\"探测器\"]",
+    "config": "{\"method\":\"direct\",\"target\":\"WIMP\"}",
+    "doc_path": "docs/skills/dark-matter-detection.md",
+    "tools": [
+      "wimp_detector",
+      "axion_searcher"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_controlled_fusion",
+    "name": "可控核聚变",
+    "display_name": "Controlled Nuclear Fusion",
+    "description": "托卡马克模拟、磁约束聚变、惯性约束聚变、等离子体控制",
+    "category": "energy",
+    "icon": "thunderbolt",
+    "tags": "[\"核聚变\",\"托卡马克\",\"等离子体\",\"ITER\"]",
+    "config": "{\"device\":\"tokamak\",\"confinement\":\"magnetic\"}",
+    "doc_path": "docs/skills/controlled-fusion.md",
+    "tools": [
+      "tokamak_simulator",
+      "plasma_controller"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_photonic_computing",
+    "name": "光子计算",
+    "display_name": "Photonic Computing",
+    "description": "全光网络、光子芯片设计、光学神经网络、光子存储",
+    "category": "ai",
+    "icon": "highlight",
+    "tags": "[\"光子\",\"光学\",\"光计算\",\"芯片\"]",
+    "config": "{\"wavelength\":\"1550nm\",\"modulation\":\"phase\"}",
+    "doc_path": "docs/skills/photonic-computing.md",
+    "tools": [
+      "photonic_router",
+      "optical_nn_designer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_topological_quantum",
+    "name": "拓扑量子",
+    "display_name": "Topological Quantum",
+    "description": "拓扑绝缘体、马约拉纳费米子、拓扑量子计算、量子霍尔效应",
+    "category": "ai",
+    "icon": "gateway",
+    "tags": "[\"拓扑\",\"量子\",\"马约拉纳\",\"拓扑序\"]",
+    "config": "{\"dimension\":\"2D\",\"phase\":\"topological\"}",
+    "doc_path": "docs/skills/topological-quantum.md",
+    "tools": [
+      "topological_state_calculator",
+      "majorana_detector"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_polar_science",
+    "name": "极地科学",
+    "display_name": "Polar Science",
+    "description": "南北极考察、冰芯分析、气候重建、极地生态研究",
+    "category": "science",
+    "icon": "heat-map",
+    "tags": "[\"极地\",\"冰芯\",\"气候\",\"南极\"]",
+    "config": "{\"region\":\"Antarctica\",\"depth\":\"3000m\"}",
+    "doc_path": "docs/skills/polar-science.md",
+    "tools": [
+      "ice_core_analyzer",
+      "climate_reconstructor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_volcanology",
+    "name": "火山学",
+    "display_name": "Volcanology",
+    "description": "岩浆模拟、火山监测、喷发预警、地球化学分析",
+    "category": "science",
+    "icon": "fire",
+    "tags": "[\"火山\",\"岩浆\",\"预警\",\"地质\"]",
+    "config": "{\"monitoring\":\"real-time\",\"alert_level\":\"normal\"}",
+    "doc_path": "docs/skills/volcanology.md",
+    "tools": [
+      "magma_simulator",
+      "volcanic_monitor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_archaeological_technology",
+    "name": "考古科技",
+    "display_name": "Archaeological Technology",
+    "description": "碳14测年、3D重建、文物保护、遗址勘探",
+    "category": "science",
+    "icon": "bank",
+    "tags": "[\"考古\",\"碳14\",\"3D重建\",\"文物\"]",
+    "config": "{\"method\":\"radiocarbon\",\"calibration\":\"IntCal20\"}",
+    "doc_path": "docs/skills/archaeological-technology.md",
+    "tools": [
+      "radiocarbon_dater",
+      "artifact_reconstructor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_bioelectronics",
+    "name": "生物电子学",
+    "display_name": "Bioelectronics",
+    "description": "有机电子、柔性传感器、生物芯片、可穿戴设备",
+    "category": "hardware",
+    "icon": "heart",
+    "tags": "[\"生物电子\",\"柔性\",\"传感器\",\"可穿戴\"]",
+    "config": "{\"material\":\"organic\",\"flexibility\":\"high\"}",
+    "doc_path": "docs/skills/bioelectronics.md",
+    "tools": [
+      "flexible_sensor_designer",
+      "biochip_analyzer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
   }
 ];

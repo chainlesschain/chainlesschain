@@ -3211,6 +3211,85 @@ class ChainlessChainApp {
       }
     });
 
+    // ============================
+    // DID邀请相关 IPC Handler
+    // ============================
+
+    // 通过DID邀请用户
+    ipcMain.handle('org:invite-by-did', async (_event, orgId, inviteData) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        const invitation = await this.organizationManager.inviteByDID(orgId, inviteData);
+        return invitation;
+      } catch (error) {
+        console.error('[Main] 通过DID邀请失败:', error);
+        throw error;
+      }
+    });
+
+    // 接受DID邀请
+    ipcMain.handle('org:accept-did-invitation', async (_event, invitationId) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        const org = await this.organizationManager.acceptDIDInvitation(invitationId);
+        return org;
+      } catch (error) {
+        console.error('[Main] 接受DID邀请失败:', error);
+        throw error;
+      }
+    });
+
+    // 拒绝DID邀请
+    ipcMain.handle('org:reject-did-invitation', async (_event, invitationId) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        const result = await this.organizationManager.rejectDIDInvitation(invitationId);
+        return { success: result };
+      } catch (error) {
+        console.error('[Main] 拒绝DID邀请失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取待处理的DID邀请
+    ipcMain.handle('org:get-pending-did-invitations', async (_event) => {
+      try {
+        if (!this.organizationManager) {
+          return [];
+        }
+
+        const invitations = await this.organizationManager.getPendingDIDInvitations();
+        return invitations;
+      } catch (error) {
+        console.error('[Main] 获取待处理DID邀请失败:', error);
+        return [];
+      }
+    });
+
+    // 获取组织的DID邀请列表
+    ipcMain.handle('org:get-did-invitations', async (_event, orgId, options) => {
+      try {
+        if (!this.organizationManager) {
+          return [];
+        }
+
+        const invitations = await this.organizationManager.getDIDInvitations(orgId, options);
+        return invitations;
+      } catch (error) {
+        console.error('[Main] 获取DID邀请列表失败:', error);
+        return [];
+      }
+    });
+
     // 联系人管理
     ipcMain.handle('contact:add', async (_event, contact) => {
       try {
