@@ -1,0 +1,47 @@
+{
+  "id": "tpl_video_mg_animation_001",
+  "name": "mg_animation_script",
+  "display_name": "MG动画脚本",
+  "description": "Motion Graphics动画脚本，适用于产品介绍、品牌宣传等扁平化动画制作",
+  "icon": "🎨",
+  "cover_image": "/templates/covers/mg-animation.png",
+  "category": "video",
+  "subcategory": "animation",
+  "tags": ["MG动画", "Motion Graphics", "扁平化", "产品介绍"],
+  "project_type": "document",
+  "prompt_template": "请帮我创作一个MG动画脚本，要求：\n\n**项目信息：**\n- 动画主题：{{animationTheme}}\n- 时长：{{duration}}秒\n- 风格：{{style}}\n- 应用场景：{{scenario}}\n\n**脚本结构：**\n\n{{#eq scenario \"产品介绍\"}}\n【产品介绍MG动画】\n\n第一部分：开场（0-{{divide duration 6}}秒）\n- Logo动画出现\n- 主题文字飞入\n- 背景色彩渐变\n- BGM起\n\n第二部分：痛点展示（{{divide duration 6}}-{{divide duration 3}}秒）\n- 用户痛点场景动画\n- 问号/叹号图标动效\n- 文字说明：\"你是否遇到...？\"\n\n第三部分：产品亮相（{{divide duration 3}}-{{divide duration 2}}秒）\n- 产品图形化呈现\n- 特点图标展开（3-5个）\n- 动态线条连接\n- 文字：\"{{productName}}来了！\"\n\n第四部分：功能演示（{{divide duration 2}}-{{multiply duration 0.83}}秒）\n- 功能1：图标+动画+文字（{{divide duration 6}}秒）\n- 功能2：图标+动画+文字（{{divide duration 6}}秒）\n- 功能3：图标+动画+文字（{{divide duration 6}}秒）\n- 转场：流畅过渡效果\n\n第五部分：价值呈现（{{multiply duration 0.83}}-{{subtract duration 3}}秒）\n- 数据可视化（图表动画）\n- 用户评价（星级/笑脸）\n- 对比动画（使用前后）\n\n第六部分：行动号召（{{subtract duration 3}}-{{duration}}秒）\n- CTA按钮弹出\n- 二维码/下载方式\n- Logo回归\n- 结束动画\n{{/eq}}\n\n{{#eq scenario \"品牌宣传\"}}\n【品牌宣传MG动画】\n\n第一幕：品牌故事起源（0-{{divide duration 4}}秒）\n- 时间轴动画\n- 里程碑图标\n- 历史画面抽象化\n\n第二幕：品牌理念（{{divide duration 4}}-{{divide duration 2}}秒）\n- 核心价值观文字动效\n- 图形化符号系统\n- 色彩情感传递\n\n第三幕：产品/服务展示（{{divide duration 2}}-{{multiply duration 0.75}}秒）\n- 产品线图形排列\n- 服务流程动画\n- 用户场景模拟\n\n第四幕：社会影响（{{multiply duration 0.75}}-{{duration}}秒）\n- 数据增长动画\n- 地图扩散效果\n- 品牌愿景呈现\n{{/eq}}\n\n{{#eq scenario \"知识科普\"}}\n【知识科普MG动画】\n\n引入（0-{{divide duration 5}}秒）\n- 问题提出\n- 好奇心钩子\n\n知识点1（{{divide duration 5}}-{{multiply duration 0.4}}秒）\n- 概念解释（图形化）\n- 举例说明（小场景动画）\n- 关键词高亮\n\n知识点2（{{multiply duration 0.4}}-{{multiply duration 0.7}}秒）\n- 概念展开\n- 对比/类比动画\n\n知识点3（{{multiply duration 0.7}}-{{multiply duration 0.9}}秒）\n- 深入讲解\n- 流程图/思维导图\n\n总结（{{multiply duration 0.9}}-{{duration}}秒）\n- 要点回顾\n- 记忆口诀\n{{/eq}}\n\n---\n\n**分镜设计：**\n\n| 镜号 | 时长 | 画面内容 | 动效 | 文案 | 音效 |\n|------|------|----------|------|------|------|\n| 001 | 2s | Logo从中心扩散 | 缩放+旋转 | {{brandName}} | Swoosh |\n| 002 | 3s | 主题文字飞入 | 弹性动画 | {{animationTheme}} | Pop |\n| 003 | 4s | 场景转换 | 擦除转场 | - | Transition |\n| 004 | 5s | 图标展开 | 顺序出现 | 核心功能 | Click |\n| ... | ... | ... | ... | ... | ... |\n\n---\n\n**动效细节：**\n\n{{#eq style \"简约\"}}\n**简约风格动效：**\n- 基础动效：淡入淡出、平移、缩放\n- 缓动曲线：ease-in-out（柔和）\n- 转场方式：直接切换、简单擦除\n- 色彩：2-3种主色\n- 字体：无衬线，粗细对比\n{{/eq}}\n\n{{#eq style \"活泼\"}}\n**活泼风格动效：**\n- 进阶动效：弹跳、弹性、摇摆\n- 缓动曲线：elastic、bounce\n- 转场方式：液态变形、粒子爆炸\n- 色彩：多彩渐变\n- 字体：圆润、可爱\n{{/eq}}\n\n{{#eq style \"科技\"}}\n**科技风格动效：**\n- 特效动效：数字雨、线条生长、光效\n- 缓动曲线：linear（匀速）、快进快出\n- 转场方式：故障效果、像素转场\n- 色彩：蓝色系、荧光色\n- 字体：等宽字体、未来感\n{{/eq}}\n\n{{#eq style \"商务\"}}\n**商务风格动效：**\n- 专业动效：图表增长、数据可视化\n- 缓动曲线：ease-out（稳重）\n- 转场方式：淡入淡出、推移\n- 色彩：深蓝、灰色、金色\n- 字体：衬线体、端庄\n{{/eq}}\n\n---\n\n**图形元素库：**\n\n基础图形：\n- 圆形、方形、三角形\n- 线条、箭头、分割线\n- 点、网格、波浪\n\n图标系统：\n- 产品图标（简化设计）\n- 功能图标（统一风格）\n- 装饰图标（点缀）\n\n文字设计：\n- 标题：{{titleFont}}，{{titleSize}}号\n- 正文：{{bodyFont}}，{{bodySize}}号\n- 强调：加粗/变色/放大\n\n色彩方案：\n- 主色：{{primaryColor}}\n- 辅色：{{secondaryColor}}\n- 背景：{{backgroundColor}}\n- 强调色：{{accentColor}}\n\n---\n\n**音频设计：**\n\n背景音乐：\n- 风格：{{musicStyle}}\n- 节奏：{{tempo}} BPM\n- 情绪：{{mood}}\n\n音效库：\n- Swoosh（飞入飞出）\n- Pop（弹出）\n- Click（点击）\n- Whoosh（转场）\n- Ding（提示）\n\n旁白/配音：\n{{#if includeVoiceover}}\n- 语速：{{voiceSpeed}}字/分钟\n- 音色：{{voiceTone}}\n- 情感：{{voiceEmotion}}\n- 时间轴对应脚本\n{{else}}\n- 纯音乐版本（无旁白）\n{{/if}}\n\n---\n\n**制作工具推荐：**\n\n**After Effects插件：**\n- Motion 3（运动图形）\n- Ease & Wizz（缓动曲线）\n- Duik（角色绑定）\n- Animation Composer（预设库）\n\n**在线工具：**\n- Canva（简单MG动画）\n- Figma + 插件（原型动画）\n- Visme（演示动画）\n\n**素材资源：**\n- Freepik（图形素材）\n- Motion Elements（AE模板）\n- Mixkit（免费素材）\n\n---\n\n**制作流程：**\n\n第一步：脚本定稿\n- 确认时长和内容\n- 撰写文案\n- 设计分镜\n\n第二步：设计风格\n- 制作风格板（Style Guide）\n- 确定色彩方案\n- 设计图形元素\n\n第三步：动画制作\n- AE中搭建场景\n- 逐镜制作动画\n- 添加动效和转场\n\n第四步：音频制作\n- 配音录制（如需要）\n- 添加背景音乐\n- 同步音效\n\n第五步：渲染输出\n- 设置渲染参数（1080p/4K）\n- 导出视频文件\n- 多格式输出（MP4/MOV）\n\n---\n\n**技术参数：**\n\n分辨率：\n- 横版：1920x1080（16:9）\n- 竖版：1080x1920（9:16）\n- 方形：1080x1080（1:1）\n\n帧率：\n- 流畅版：60fps\n- 标准版：30fps\n- 电影感：24fps\n\n导出格式：\n- H.264（通用）\n- H.265（高压缩）\n- ProRes（无损）\n\n---\n\n**交付清单：**\n- MG动画成品视频\n- 分镜脚本文档\n- AE工程文件（可选）\n- 素材资源包\n- 风格指南PDF",
+  "variables_schema": [
+    {"name": "animationTheme", "label": "动画主题", "type": "string", "required": true},
+    {"name": "duration", "label": "时长（秒）", "type": "number", "required": false, "default": 60, "min": 15, "max": 180},
+    {"name": "style", "label": "动画风格", "type": "select", "required": false, "default": "简约", "options": [
+      {"value": "简约", "label": "简约风（扁平化）"},
+      {"value": "活泼", "label": "活泼风（趣味性）"},
+      {"value": "科技", "label": "科技风（未来感）"},
+      {"value": "商务", "label": "商务风（专业性）"}
+    ]},
+    {"name": "scenario", "label": "应用场景", "type": "select", "required": true, "options": [
+      {"value": "产品介绍", "label": "产品介绍"},
+      {"value": "品牌宣传", "label": "品牌宣传"},
+      {"value": "知识科普", "label": "知识科普"}
+    ]},
+    {"name": "includeVoiceover", "label": "包含配音", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "需要配音脚本"},
+      {"value": "否", "label": "纯音乐版"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "MG动画-{{animationTheme}}",
+    "files": [
+      {"path": "脚本文案.docx", "type": "document"},
+      {"path": "分镜设计.xlsx", "type": "spreadsheet"},
+      {"path": "风格指南.pdf", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

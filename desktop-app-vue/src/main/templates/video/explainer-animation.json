@@ -1,0 +1,51 @@
+{
+  "id": "tpl_video_explainer_001",
+  "name": "explainer_animation",
+  "display_name": "解说动画策划",
+  "description": "知识科普类动画视频策划，用动画形式讲解复杂概念，适合教育、科普内容",
+  "icon": "🎓",
+  "cover_image": "/templates/covers/explainer.png",
+  "category": "video",
+  "subcategory": "animation",
+  "tags": ["解说动画", "知识科普", "教育", "动画"],
+  "project_type": "document",
+  "prompt_template": "请帮我策划一个解说动画视频，要求：\n\n**项目信息：**\n- 主题：{{topic}}\n- 目标观众：{{targetAudience}}\n- 时长：{{duration}}分钟\n- 动画风格：{{animationStyle}}\n\n**内容结构：**\n\n开场（0-{{divide duration 10}}分钟）\n- 引入问题/现象\n- \"你是否想过...？\"\n- \"今天我们来聊聊...\"\n- 开场动画：吸引注意力\n\n主体内容（{{divide duration 10}}-{{multiply duration 0.85}}分钟）\n{{#if useThreeActStructure}}\n【三幕结构】\n\n第一幕：是什么（What）\n- 定义和基本概念\n- 简单类比\n- 动画：概念可视化\n\n第二幕：为什么（Why）\n- 原理解释\n- 原因分析\n- 动画：因果关系展示\n\n第三幕：怎么样（How）\n- 应用场景\n- 实际案例\n- 动画：流程演示\n{{else}}\n【渐进式讲解】\n\n基础知识（30%）\n- 背景介绍\n- 基础概念\n\n深入讲解（40%）\n- 核心原理\n- 关键细节\n\n拓展应用（30%）\n- 实际应用\n- 延伸思考\n{{/if}}\n\n结尾（{{multiply duration 0.85}}-{{duration}}分钟）\n- 总结要点\n- 知识回顾\n- 引导互动（点赞、评论、关注）\n\n---\n\n**动画表现手法：**\n\n{{#eq animationStyle \"手绘\"}}\n【手绘风格】\n\n特点：\n- 线条手绘感\n- 绘制过程动画\n- 黑白或彩色插画\n- 温暖、亲切\n\n适用场景：\n- 人文历史\n- 生活常识\n- 心理学\n\n动画技巧：\n- 描边动画（Stroke）\n- 笔触质感\n- 手写文字\n{{/eq}}\n\n{{#eq animationStyle \"白板\"}}\n【白板动画】\n\n特点：\n- 白色背景\n- 黑色线条\n- 手在画面中绘制\n- 简洁、专注\n\n适用场景：\n- 商业讲解\n- 流程说明\n- 概念解释\n\n动画技巧：\n- VideoScribe风格\n- 手势指引\n- 实时绘制效果\n{{/eq}}\n\n{{#eq animationStyle \"扁平化\"}}\n【扁平化MG动画】\n\n特点：\n- 几何图形\n- 纯色填充\n- 运动图形\n- 现代、时尚\n\n适用场景：\n- 科技产品\n- 数据可视化\n- 商业内容\n\n动画技巧：\n- 形状变换\n- 图表动画\n- 信息图动效\n{{/eq}}\n\n{{#eq animationStyle \"角色\"}}\n【角色动画】\n\n特点：\n- 卡通角色\n- 表情丰富\n- 场景互动\n- 生动、有趣\n\n适用场景：\n- 儿童教育\n- 故事化讲解\n- 社会问题\n\n动画技巧：\n- 角色绑定（Rigging）\n- 口型同步\n- 情绪表达\n{{/eq}}\n\n---\n\n**脚本撰写原则：**\n\n{{#eq targetAudience \"儿童\"}}\n【儿童受众脚本】\n\n语言特点：\n- 简单句式\n- 拟声词（嗖~、嘭！）\n- 提问互动\n\n举例方式：\n- 生活常见事物\n- 动画片角色类比\n- 游戏化讲解\n\n节奏控制：\n- 快节奏（保持注意力）\n- 每15-20秒一个视觉变化\n{{/eq}}\n\n{{#eq targetAudience \"青少年\"}}\n【青少年受众脚本】\n\n语言特点：\n- 网络流行语适量\n- 幽默风趣\n- 激发好奇心\n\n举例方式：\n- 流行文化\n- 游戏/动漫\n- 科技产品\n\n节奏控制：\n- 信息密度适中\n- 适当留白思考\n{{/eq}}\n\n{{#eq targetAudience \"成人\"}}\n【成人受众脚本】\n\n语言特点：\n- 专业但通俗\n- 数据支撑\n- 逻辑清晰\n\n举例方式：\n- 工作生活场景\n- 时事热点\n- 历史案例\n\n节奏控制：\n- 深度与广度平衡\n- 重点信息强调\n{{/eq}}\n\n---\n\n**知识点可视化策略：**\n\n抽象概念具象化：\n- 用实物类比（如：互联网 = 蜘蛛网）\n- 拟人化（如：病毒小怪兽vs免疫系统战士）\n- 颜色编码（如：不同类型用不同颜色）\n\n数据可视化：\n- 柱状图/饼图动画\n- 数字增长动效\n- 对比动画（前后/AB对比）\n\n流程可视化：\n- 时间轴动画\n- 流程图演示\n- 步骤拆解动画\n\n关系可视化：\n- 思维导图\n- 网络关系图\n- 因果链条\n\n---\n\n**旁白脚本示例：**\n\n【开场】\n\"你知道吗？{{interestingFact}}。今天，我们就来深入了解一下{{topic}}。\"\n\n【引入】\n\"首先，让我们从一个简单的问题开始：{{openingQuestion}}？\"\n\n【讲解】\n\"{{topic}}其实就是{{simpleDefinition}}。听起来很复杂？别担心，让我用一个例子来说明...\"\n\n【深入】\n\"那么，为什么会这样呢？关键在于{{keyPoint}}...\"\n\n【举例】\n\"举个例子，{{example}}。是不是一下子就明白了？\"\n\n【总结】\n\"总结一下，今天我们学到了：第一，{{point1}}；第二，{{point2}}；第三，{{point3}}。\"\n\n【结尾】\n\"如果你觉得有收获，别忘了点赞、评论、关注三连！下期见~\"\n\n---\n\n**动画分镜表：**\n\n| 时间码 | 旁白内容 | 画面描述 | 动画动作 | 音效 |\n|--------|---------|---------|---------|------|\n| 00:00-00:05 | 开场白 | 主题文字+背景 | 文字飞入 | BGM起 |\n| 00:05-00:15 | 引入问题 | 问题场景动画 | 角色困惑表情 | 疑问音效 |\n| 00:15-00:30 | 概念解释 | 定义可视化 | 图形展开 | Whoosh |\n| 00:30-01:00 | 举例说明 | 案例动画 | 分步演示 | Click |\n| ... | ... | ... | ... | ... |\n\n---\n\n**参考案例平台：**\n\n国内优秀频道：\n- 回形针PaperClip（硬核科普）\n- 柴知道（社科动画）\n- 所长林超（知识动画）\n\n国外优秀频道：\n- Kurzgesagt（精美动画）\n- TED-Ed（教育动画）\n- CrashCourse（系列课程）\n\n---\n\n**制作工具：**\n\n动画制作：\n- Adobe Animate（2D动画）\n- After Effects（MG动画）\n- Blender（3D动画）\n- VideoScribe（白板动画）\n\n配音录制：\n- Adobe Audition\n- Audacity（免费）\n\n剪辑合成：\n- Premiere Pro\n- Final Cut Pro\n\n---\n\n**SEO优化：**\n\n标题公式：\n- \"{{数字}}分钟看懂{{topic}}\"\n- \"{{topic}}是什么？{{有趣角度}}\"\n- \"关于{{topic}}，你不知道的{{数字}}件事\"\n\n标签建议：\n- 主话题关键词\n- 相关领域词\n- 平台热门标签\n\n封面设计：\n- 主视觉元素\n- 大字标题\n- 高对比度\n- 吸引眼球的画面\n\n---\n\n**互动设计：**\n\n{{#if includeInteraction}}\n视频中互动：\n- 提问暂停（\"你觉得答案是什么？暂停想一想...\"）\n- 投票引导（\"A还是B？评论区告诉我\"）\n- 弹幕互动（\"这里记得发弹幕哦\"）\n\n系列规划：\n- 连续剧式（第一集、第二集...）\n- 专题系列（{{topic}}系列）\n- 定期更新（每周三更新）\n{{/if}}\n\n---\n\n**输出清单：**\n- 完整解说脚本\n- 分镜头设计表\n- 动画风格参考\n- 素材需求清单\n- 制作时间规划",
+  "variables_schema": [
+    {"name": "topic", "label": "解说主题", "type": "string", "required": true, "placeholder": "例如：光合作用、区块链原理"},
+    {"name": "targetAudience", "label": "目标观众", "type": "select", "required": false, "default": "青少年", "options": [
+      {"value": "儿童", "label": "儿童（6-12岁）"},
+      {"value": "青少年", "label": "青少年（13-18岁）"},
+      {"value": "成人", "label": "成人（18岁以上）"}
+    ]},
+    {"name": "duration", "label": "时长（分钟）", "type": "number", "required": false, "default": 3, "min": 1, "max": 10},
+    {"name": "animationStyle", "label": "动画风格", "type": "select", "required": false, "default": "扁平化", "options": [
+      {"value": "手绘", "label": "手绘风格"},
+      {"value": "白板", "label": "白板动画"},
+      {"value": "扁平化", "label": "扁平化MG"},
+      {"value": "角色", "label": "角色动画"}
+    ]},
+    {"name": "useThreeActStructure", "label": "使用三幕结构", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "是（What-Why-How）"},
+      {"value": "否", "label": "否（渐进式）"}
+    ]},
+    {"name": "includeInteraction", "label": "包含互动设计", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "包含"},
+      {"value": "否", "label": "不包含"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "解说动画-{{topic}}",
+    "files": [
+      {"path": "解说脚本.docx", "type": "document"},
+      {"path": "分镜表.xlsx", "type": "spreadsheet"},
+      {"path": "风格参考.pdf", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
