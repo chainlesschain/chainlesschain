@@ -2295,5 +2295,187 @@ module.exports = [
     ],
     "enabled": 1,
     "is_builtin": 1
+  },
+
+  // ========== 第十二批技能 (126-135): 日常实用工具 ==========
+
+  {
+    "id": "skill_file_compression",
+    "name": "文件压缩",
+    "display_name": "File Compression",
+    "description": "ZIP/RAR/7Z压缩、解压、加密压缩包、批量压缩",
+    "category": "file",
+    "icon": "file-zip",
+    "tags": "[\"压缩\",\"解压\",\"ZIP\",\"RAR\"]",
+    "config": "{\"default_format\":\"zip\",\"compression_level\":\"standard\"}",
+    "doc_path": "docs/skills/file-compression.md",
+    "tools": [
+      "file_compressor",
+      "file_decompressor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_image_editing",
+    "name": "图片编辑",
+    "display_name": "Image Editing",
+    "description": "图片裁剪、缩放、旋转、滤镜、水印、格式转换",
+    "category": "media",
+    "icon": "picture",
+    "tags": "[\"图片\",\"编辑\",\"滤镜\",\"水印\"]",
+    "config": "{\"output_quality\":\"high\",\"preserve_metadata\":true}",
+    "doc_path": "docs/skills/image-editing.md",
+    "tools": [
+      "image_editor",
+      "image_filter"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_video_editing",
+    "name": "视频编辑",
+    "display_name": "Video Editing",
+    "description": "视频剪辑、合并、转码、添加字幕、提取音频",
+    "category": "media",
+    "icon": "video-camera",
+    "tags": "[\"视频\",\"剪辑\",\"转码\",\"字幕\"]",
+    "config": "{\"output_format\":\"mp4\",\"codec\":\"h264\"}",
+    "doc_path": "docs/skills/video-editing.md",
+    "tools": [
+      "video_cutter",
+      "video_merger"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_document_conversion",
+    "name": "文档转换",
+    "display_name": "Document Conversion",
+    "description": "PDF/Word/Excel互转、Markdown转换、批量转换",
+    "category": "document",
+    "icon": "file-text",
+    "tags": "[\"PDF\",\"Word\",\"转换\",\"文档\"]",
+    "config": "{\"preserve_layout\":true,\"ocr_enabled\":false}",
+    "doc_path": "docs/skills/document-conversion.md",
+    "tools": [
+      "pdf_converter",
+      "office_converter"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_qrcode_tools",
+    "name": "二维码工具",
+    "display_name": "QR Code Tools",
+    "description": "二维码生成、扫描识别、批量生成、自定义样式",
+    "category": "utility",
+    "icon": "qrcode",
+    "tags": "[\"二维码\",\"条形码\",\"生成\",\"识别\"]",
+    "config": "{\"default_size\":256,\"error_correction\":\"M\"}",
+    "doc_path": "docs/skills/qrcode-tools.md",
+    "tools": [
+      "qrcode_generator_advanced",
+      "qrcode_scanner"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_screen_capture",
+    "name": "截图录屏",
+    "display_name": "Screen Capture",
+    "description": "屏幕截图、录屏、GIF录制、截图标注",
+    "category": "media",
+    "icon": "camera",
+    "tags": "[\"截图\",\"录屏\",\"GIF\",\"标注\"]",
+    "config": "{\"capture_cursor\":true,\"audio_enabled\":true}",
+    "doc_path": "docs/skills/screen-capture.md",
+    "tools": [
+      "screenshot_tool",
+      "screen_recorder"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_calendar_schedule",
+    "name": "日程管理",
+    "display_name": "Calendar & Schedule",
+    "description": "日历管理、事件提醒、待办事项、日程安排",
+    "category": "productivity",
+    "icon": "calendar",
+    "tags": "[\"日历\",\"日程\",\"提醒\",\"待办\"]",
+    "config": "{\"default_view\":\"month\",\"reminder_minutes\":15}",
+    "doc_path": "docs/skills/calendar-schedule.md",
+    "tools": [
+      "calendar_manager",
+      "reminder_scheduler"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_note_management",
+    "name": "笔记管理",
+    "display_name": "Note Management",
+    "description": "Markdown笔记、富文本编辑、笔记搜索、标签分类",
+    "category": "document",
+    "icon": "book",
+    "tags": "[\"笔记\",\"Markdown\",\"搜索\",\"标签\"]",
+    "config": "{\"auto_save\":true,\"sync_enabled\":false}",
+    "doc_path": "docs/skills/note-management.md",
+    "tools": [
+      "note_editor",
+      "note_searcher"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_password_manager",
+    "name": "密码管理",
+    "display_name": "Password Manager",
+    "description": "密码生成、安全存储、密码强度检测、自动填充",
+    "category": "security",
+    "icon": "lock",
+    "tags": "[\"密码\",\"安全\",\"加密\",\"管理\"]",
+    "config": "{\"encryption\":\"AES-256\",\"master_password_required\":true}",
+    "doc_path": "docs/skills/password-manager.md",
+    "tools": [
+      "password_generator_advanced",
+      "password_vault"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_network_diagnostics",
+    "name": "网络诊断",
+    "display_name": "Network Diagnostics",
+    "description": "网速测试、Ping测试、端口扫描、DNS查询、路由追踪",
+    "category": "network",
+    "icon": "global",
+    "tags": "[\"网络\",\"测速\",\"Ping\",\"诊断\"]",
+    "config": "{\"timeout\":5000,\"max_hops\":30}",
+    "doc_path": "docs/skills/network-diagnostics.md",
+    "tools": [
+      "network_speed_tester",
+      "network_diagnostic_tool"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
   }
 ];

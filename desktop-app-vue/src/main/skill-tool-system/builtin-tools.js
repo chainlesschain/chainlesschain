@@ -13330,4 +13330,1074 @@ module.exports = [
     is_builtin: 1,
     enabled: 1,
   },
+
+  // ========== 第十二批工具 (237-256): 日常实用工具 ==========
+
+  {
+    id: 'tool_file_compressor',
+    name: 'file_compressor',
+    display_name: '文件压缩器',
+    description: '压缩文件和文件夹为ZIP/RAR/7Z格式',
+    category: 'file',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'array',
+          description: '待压缩文件列表',
+          items: { type: 'string' }
+        },
+        output_path: {
+          type: 'string',
+          description: '输出压缩包路径'
+        },
+        format: {
+          type: 'string',
+          description: '压缩格式',
+          enum: ['zip', 'rar', '7z', 'tar.gz']
+        },
+        compression_level: {
+          type: 'string',
+          description: '压缩级别',
+          enum: ['store', 'fastest', 'fast', 'normal', 'maximum', 'ultra']
+        },
+        password: {
+          type: 'string',
+          description: '压缩包密码(可选)'
+        },
+        split_size: {
+          type: 'number',
+          description: '分卷大小(MB, 可选)'
+        }
+      },
+      required: ['files', 'output_path']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        archive_path: { type: 'string' },
+        compressed_size: { type: 'number' },
+        original_size: { type: 'number' },
+        compression_ratio: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_file_decompressor',
+    name: 'file_decompressor',
+    display_name: '文件解压器',
+    description: '解压ZIP/RAR/7Z等格式压缩包',
+    category: 'file',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        archive_path: {
+          type: 'string',
+          description: '压缩包路径'
+        },
+        output_dir: {
+          type: 'string',
+          description: '解压目标目录'
+        },
+        password: {
+          type: 'string',
+          description: '密码(如果加密)'
+        },
+        overwrite: {
+          type: 'boolean',
+          description: '是否覆盖已存在文件'
+        },
+        extract_files: {
+          type: 'array',
+          description: '指定解压文件(可选)',
+          items: { type: 'string' }
+        }
+      },
+      required: ['archive_path', 'output_dir']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        extracted_files: { type: 'array' },
+        total_files: { type: 'number' },
+        total_size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_image_editor',
+    name: 'image_editor',
+    display_name: '图片编辑器',
+    description: '图片裁剪、缩放、旋转、翻转',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        input_path: {
+          type: 'string',
+          description: '输入图片路径'
+        },
+        output_path: {
+          type: 'string',
+          description: '输出图片路径'
+        },
+        operations: {
+          type: 'array',
+          description: '操作列表',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', enum: ['crop', 'resize', 'rotate', 'flip'] },
+              params: { type: 'object' }
+            }
+          }
+        },
+        format: {
+          type: 'string',
+          description: '输出格式',
+          enum: ['jpg', 'png', 'webp', 'bmp', 'gif']
+        },
+        quality: {
+          type: 'number',
+          description: '输出质量(1-100)'
+        }
+      },
+      required: ['input_path', 'output_path']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        output_path: { type: 'string' },
+        width: { type: 'number' },
+        height: { type: 'number' },
+        size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_image_filter',
+    name: 'image_filter',
+    display_name: '图片滤镜器',
+    description: '应用滤镜、调整亮度对比度、添加水印',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        input_path: {
+          type: 'string',
+          description: '输入图片路径'
+        },
+        output_path: {
+          type: 'string',
+          description: '输出图片路径'
+        },
+        filter: {
+          type: 'string',
+          description: '滤镜类型',
+          enum: ['grayscale', 'sepia', 'blur', 'sharpen', 'vintage', 'warm', 'cool']
+        },
+        brightness: {
+          type: 'number',
+          description: '亮度调整(-100到100)'
+        },
+        contrast: {
+          type: 'number',
+          description: '对比度调整(-100到100)'
+        },
+        watermark: {
+          type: 'object',
+          description: '水印配置',
+          properties: {
+            text: { type: 'string' },
+            position: { type: 'string', enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'] },
+            opacity: { type: 'number' }
+          }
+        }
+      },
+      required: ['input_path', 'output_path']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        output_path: { type: 'string' },
+        filter_applied: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_video_cutter',
+    name: 'video_cutter',
+    display_name: '视频剪辑器',
+    description: '剪切视频片段、提取音频',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        input_path: {
+          type: 'string',
+          description: '输入视频路径'
+        },
+        output_path: {
+          type: 'string',
+          description: '输出视频路径'
+        },
+        start_time: {
+          type: 'string',
+          description: '开始时间(HH:MM:SS)'
+        },
+        end_time: {
+          type: 'string',
+          description: '结束时间(HH:MM:SS)'
+        },
+        extract_audio: {
+          type: 'boolean',
+          description: '是否提取音频'
+        },
+        audio_format: {
+          type: 'string',
+          description: '音频格式',
+          enum: ['mp3', 'wav', 'aac', 'm4a']
+        }
+      },
+      required: ['input_path', 'output_path']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        output_path: { type: 'string' },
+        duration: { type: 'number' },
+        size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_video_merger',
+    name: 'video_merger',
+    display_name: '视频合并器',
+    description: '合并多个视频文件',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        input_files: {
+          type: 'array',
+          description: '输入视频列表',
+          items: { type: 'string' }
+        },
+        output_path: {
+          type: 'string',
+          description: '输出视频路径'
+        },
+        output_format: {
+          type: 'string',
+          description: '输出格式',
+          enum: ['mp4', 'avi', 'mkv', 'mov']
+        },
+        codec: {
+          type: 'string',
+          description: '视频编码器',
+          enum: ['h264', 'h265', 'vp9', 'av1']
+        },
+        resolution: {
+          type: 'string',
+          description: '输出分辨率',
+          enum: ['original', '1080p', '720p', '480p']
+        }
+      },
+      required: ['input_files', 'output_path']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        output_path: { type: 'string' },
+        total_duration: { type: 'number' },
+        file_size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_pdf_converter',
+    name: 'pdf_converter',
+    display_name: 'PDF转换器',
+    description: 'PDF与其他格式互转',
+    category: 'document',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        input_path: {
+          type: 'string',
+          description: '输入文件路径'
+        },
+        output_path: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        conversion_type: {
+          type: 'string',
+          description: '转换类型',
+          enum: ['to_pdf', 'from_pdf']
+        },
+        target_format: {
+          type: 'string',
+          description: '目标格式',
+          enum: ['pdf', 'docx', 'xlsx', 'pptx', 'txt', 'html', 'jpg', 'png']
+        },
+        options: {
+          type: 'object',
+          description: '转换选项',
+          properties: {
+            preserve_layout: { type: 'boolean' },
+            ocr_enabled: { type: 'boolean' },
+            image_quality: { type: 'number' }
+          }
+        }
+      },
+      required: ['input_path', 'output_path', 'target_format']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        output_path: { type: 'string' },
+        pages: { type: 'number' },
+        size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_office_converter',
+    name: 'office_converter',
+    display_name: 'Office文档转换器',
+    description: 'Word/Excel/PPT格式互转',
+    category: 'document',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        input_path: {
+          type: 'string',
+          description: '输入文件路径'
+        },
+        output_path: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        source_format: {
+          type: 'string',
+          description: '源格式',
+          enum: ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp']
+        },
+        target_format: {
+          type: 'string',
+          description: '目标格式',
+          enum: ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf', 'html', 'txt']
+        },
+        preserve_formatting: {
+          type: 'boolean',
+          description: '保留格式'
+        }
+      },
+      required: ['input_path', 'output_path', 'target_format']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        output_path: { type: 'string' },
+        size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_qrcode_generator_advanced',
+    name: 'qrcode_generator_advanced',
+    display_name: '高级二维码生成器',
+    description: '生成自定义样式的二维码',
+    category: 'utility',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: '二维码内容'
+        },
+        output_path: {
+          type: 'string',
+          description: '输出图片路径'
+        },
+        size: {
+          type: 'number',
+          description: '尺寸(像素)',
+          default: 256
+        },
+        error_correction: {
+          type: 'string',
+          description: '容错级别',
+          enum: ['L', 'M', 'Q', 'H']
+        },
+        style: {
+          type: 'object',
+          description: '样式配置',
+          properties: {
+            foreground_color: { type: 'string' },
+            background_color: { type: 'string' },
+            logo_path: { type: 'string' },
+            logo_size_ratio: { type: 'number' }
+          }
+        },
+        format: {
+          type: 'string',
+          description: '输出格式',
+          enum: ['png', 'jpg', 'svg']
+        }
+      },
+      required: ['content', 'output_path']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        qrcode_path: { type: 'string' },
+        size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_qrcode_scanner',
+    name: 'qrcode_scanner',
+    display_name: '二维码扫描器',
+    description: '识别图片中的二维码/条形码',
+    category: 'utility',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        image_path: {
+          type: 'string',
+          description: '图片路径或URL'
+        },
+        scan_type: {
+          type: 'string',
+          description: '扫描类型',
+          enum: ['qrcode', 'barcode', 'auto']
+        },
+        multiple: {
+          type: 'boolean',
+          description: '识别多个码'
+        }
+      },
+      required: ['image_path']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        codes: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string' },
+              data: { type: 'string' },
+              position: { type: 'object' }
+            }
+          }
+        },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.read'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_screenshot_tool',
+    name: 'screenshot_tool',
+    display_name: '截图工具',
+    description: '屏幕截图和标注',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        output_path: {
+          type: 'string',
+          description: '输出图片路径'
+        },
+        capture_type: {
+          type: 'string',
+          description: '截图类型',
+          enum: ['fullscreen', 'window', 'region', 'active_window']
+        },
+        region: {
+          type: 'object',
+          description: '截图区域',
+          properties: {
+            x: { type: 'number' },
+            y: { type: 'number' },
+            width: { type: 'number' },
+            height: { type: 'number' }
+          }
+        },
+        include_cursor: {
+          type: 'boolean',
+          description: '包含鼠标指针'
+        },
+        format: {
+          type: 'string',
+          description: '图片格式',
+          enum: ['png', 'jpg', 'bmp']
+        }
+      },
+      required: ['output_path']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        screenshot_path: { type: 'string' },
+        width: { type: 'number' },
+        height: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['system.screen'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_screen_recorder',
+    name: 'screen_recorder',
+    display_name: '屏幕录制器',
+    description: '录制屏幕视频或GIF',
+    category: 'media',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        output_path: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        output_format: {
+          type: 'string',
+          description: '输出格式',
+          enum: ['mp4', 'avi', 'gif', 'webm']
+        },
+        capture_type: {
+          type: 'string',
+          description: '录制类型',
+          enum: ['fullscreen', 'window', 'region']
+        },
+        region: {
+          type: 'object',
+          description: '录制区域'
+        },
+        fps: {
+          type: 'number',
+          description: '帧率(FPS)'
+        },
+        record_audio: {
+          type: 'boolean',
+          description: '是否录制音频'
+        },
+        duration: {
+          type: 'number',
+          description: '录制时长(秒)'
+        }
+      },
+      required: ['output_path']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        video_path: { type: 'string' },
+        duration: { type: 'number' },
+        size: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['system.screen', 'system.audio'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_calendar_manager',
+    name: 'calendar_manager',
+    display_name: '日历管理器',
+    description: '创建和管理日历事件',
+    category: 'productivity',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作类型',
+          enum: ['create', 'update', 'delete', 'query']
+        },
+        event: {
+          type: 'object',
+          description: '事件信息',
+          properties: {
+            id: { type: 'string' },
+            title: { type: 'string' },
+            description: { type: 'string' },
+            start_time: { type: 'string' },
+            end_time: { type: 'string' },
+            location: { type: 'string' },
+            attendees: { type: 'array' },
+            recurrence: { type: 'object' }
+          }
+        },
+        date_range: {
+          type: 'object',
+          description: '查询日期范围',
+          properties: {
+            start: { type: 'string' },
+            end: { type: 'string' }
+          }
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        event: { type: 'object' },
+        events: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['calendar.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_reminder_scheduler',
+    name: 'reminder_scheduler',
+    display_name: '提醒调度器',
+    description: '设置和管理提醒事项',
+    category: 'productivity',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作',
+          enum: ['create', 'update', 'delete', 'list']
+        },
+        reminder: {
+          type: 'object',
+          description: '提醒信息',
+          properties: {
+            id: { type: 'string' },
+            title: { type: 'string' },
+            description: { type: 'string' },
+            remind_time: { type: 'string' },
+            repeat: { type: 'string', enum: ['none', 'daily', 'weekly', 'monthly'] },
+            priority: { type: 'string', enum: ['low', 'medium', 'high'] }
+          }
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        reminder: { type: 'object' },
+        reminders: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['notification.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_note_editor',
+    name: 'note_editor',
+    display_name: '笔记编辑器',
+    description: 'Markdown笔记编辑和管理',
+    category: 'document',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作',
+          enum: ['create', 'read', 'update', 'delete']
+        },
+        note: {
+          type: 'object',
+          description: '笔记信息',
+          properties: {
+            id: { type: 'string' },
+            title: { type: 'string' },
+            content: { type: 'string' },
+            tags: { type: 'array' },
+            folder: { type: 'string' },
+            format: { type: 'string', enum: ['markdown', 'rich_text', 'plain'] }
+          }
+        }
+      },
+      required: ['action']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        note: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_note_searcher',
+    name: 'note_searcher',
+    display_name: '笔记搜索器',
+    description: '搜索和筛选笔记',
+    category: 'document',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: '搜索关键词'
+        },
+        filters: {
+          type: 'object',
+          description: '筛选条件',
+          properties: {
+            tags: { type: 'array' },
+            folder: { type: 'string' },
+            date_from: { type: 'string' },
+            date_to: { type: 'string' },
+            format: { type: 'string' }
+          }
+        },
+        sort_by: {
+          type: 'string',
+          description: '排序方式',
+          enum: ['created_at', 'updated_at', 'title', 'relevance']
+        },
+        limit: {
+          type: 'number',
+          description: '返回数量限制'
+        }
+      },
+      required: []
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        notes: { type: 'array' },
+        total: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['file.read'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_password_generator_advanced',
+    name: 'password_generator_advanced',
+    display_name: '高级密码生成器',
+    description: '生成强密码并评估强度',
+    category: 'security',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        length: {
+          type: 'number',
+          description: '密码长度',
+          default: 16
+        },
+        include_uppercase: {
+          type: 'boolean',
+          description: '包含大写字母'
+        },
+        include_lowercase: {
+          type: 'boolean',
+          description: '包含小写字母'
+        },
+        include_numbers: {
+          type: 'boolean',
+          description: '包含数字'
+        },
+        include_symbols: {
+          type: 'boolean',
+          description: '包含特殊字符'
+        },
+        exclude_ambiguous: {
+          type: 'boolean',
+          description: '排除易混淆字符(0,O,l,1等)'
+        },
+        custom_charset: {
+          type: 'string',
+          description: '自定义字符集'
+        },
+        count: {
+          type: 'number',
+          description: '生成数量',
+          default: 1
+        }
+      },
+      required: []
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        passwords: { type: 'array' },
+        strength: { type: 'string' },
+        entropy: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_password_vault',
+    name: 'password_vault',
+    display_name: '密码保险库',
+    description: '加密存储和管理密码',
+    category: 'security',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: '操作',
+          enum: ['add', 'get', 'update', 'delete', 'list']
+        },
+        entry: {
+          type: 'object',
+          description: '密码条目',
+          properties: {
+            id: { type: 'string' },
+            title: { type: 'string' },
+            username: { type: 'string' },
+            password: { type: 'string' },
+            url: { type: 'string' },
+            notes: { type: 'string' },
+            tags: { type: 'array' }
+          }
+        },
+        master_password: {
+          type: 'string',
+          description: '主密码'
+        },
+        search_query: {
+          type: 'string',
+          description: '搜索关键词'
+        }
+      },
+      required: ['action', 'master_password']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        entry: { type: 'object' },
+        entries: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['security.password'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_network_speed_tester',
+    name: 'network_speed_tester',
+    display_name: '网速测试器',
+    description: '测试网络上传和下载速度',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        test_type: {
+          type: 'string',
+          description: '测试类型',
+          enum: ['download', 'upload', 'both', 'ping_only']
+        },
+        server: {
+          type: 'string',
+          description: '测速服务器(可选)'
+        },
+        duration: {
+          type: 'number',
+          description: '测试时长(秒)'
+        }
+      },
+      required: []
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        download_speed: { type: 'number', description: 'Mbps' },
+        upload_speed: { type: 'number', description: 'Mbps' },
+        ping: { type: 'number', description: 'ms' },
+        jitter: { type: 'number', description: 'ms' },
+        server_location: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['network.test'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_network_diagnostic_tool',
+    name: 'network_diagnostic_tool',
+    display_name: '网络诊断工具',
+    description: 'Ping、端口扫描、DNS查询、路由追踪',
+    category: 'network',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        operation: {
+          type: 'string',
+          description: '诊断操作',
+          enum: ['ping', 'port_scan', 'dns_lookup', 'traceroute', 'whois']
+        },
+        target: {
+          type: 'string',
+          description: '目标主机或域名'
+        },
+        options: {
+          type: 'object',
+          description: '操作选项',
+          properties: {
+            count: { type: 'number', description: 'Ping次数' },
+            timeout: { type: 'number', description: '超时(ms)' },
+            ports: { type: 'array', description: '端口列表' },
+            port_range: { type: 'object', properties: { start: { type: 'number' }, end: { type: 'number' } } },
+            dns_server: { type: 'string' },
+            max_hops: { type: 'number' }
+          }
+        }
+      },
+      required: ['operation', 'target']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['network.diagnostic'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
 ];
