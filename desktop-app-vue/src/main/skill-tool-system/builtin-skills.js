@@ -1006,5 +1006,192 @@ module.exports = [
     ],
     "enabled": 1,
     "is_builtin": 1
+  },
+
+  // ==================== 第五批扩展技能 (56-65) ====================
+
+  {
+    "id": "skill_cryptography",
+    "name": "密码学工具",
+    "display_name": "Cryptography",
+    "description": "加密解密、数字签名、哈希计算、密钥生成",
+    "category": "security",
+    "icon": "lock",
+    "tags": "[\"加密\",\"签名\",\"哈希\",\"密钥\"]",
+    "config": "{\"algorithm\":\"aes-256-gcm\",\"keySize\":256}",
+    "doc_path": "docs/skills/cryptography.md",
+    "tools": [
+      "encrypt_decrypt",
+      "digital_signer",
+      "key_generator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_time_series_analysis",
+    "name": "时间序列分析",
+    "display_name": "Time Series Analysis",
+    "description": "时间序列数据处理、趋势分析、预测",
+    "category": "data",
+    "icon": "line-chart",
+    "tags": "[\"时间序列\",\"预测\",\"趋势分析\",\"数据分析\"]",
+    "config": "{\"interval\":\"daily\",\"window\":30}",
+    "doc_path": "docs/skills/time-series-analysis.md",
+    "tools": [
+      "time_series_analyzer",
+      "trend_detector"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_file_monitoring",
+    "name": "文件监控",
+    "display_name": "File Monitoring",
+    "description": "监控文件系统变化、目录监听、文件变更通知",
+    "category": "file",
+    "icon": "eye",
+    "tags": "[\"监控\",\"文件系统\",\"变更检测\",\"事件\"]",
+    "config": "{\"recursive\":true,\"debounce\":500}",
+    "doc_path": "docs/skills/file-monitoring.md",
+    "tools": [
+      "file_watcher",
+      "directory_monitor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_task_scheduling",
+    "name": "任务调度",
+    "display_name": "Task Scheduling",
+    "description": "Cron任务调度、定时任务、周期性执行",
+    "category": "automation",
+    "icon": "clock",
+    "tags": "[\"调度\",\"定时任务\",\"Cron\",\"自动化\"]",
+    "config": "{\"timezone\":\"Asia/Shanghai\",\"maxConcurrent\":10}",
+    "doc_path": "docs/skills/task-scheduling.md",
+    "tools": [
+      "cron_scheduler",
+      "task_timer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_database_migration",
+    "name": "数据库迁移",
+    "display_name": "Database Migration",
+    "description": "数据库版本管理、Schema迁移、数据迁移",
+    "category": "database",
+    "icon": "database",
+    "tags": "[\"数据库\",\"迁移\",\"版本管理\",\"Schema\"]",
+    "config": "{\"driver\":\"mysql\",\"migrationsPath\":\"./migrations\"}",
+    "doc_path": "docs/skills/database-migration.md",
+    "tools": [
+      "migration_runner",
+      "schema_differ"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_websocket_communication",
+    "name": "WebSocket通信",
+    "display_name": "WebSocket Communication",
+    "description": "实时双向通信、WebSocket服务器/客户端",
+    "category": "network",
+    "icon": "swap",
+    "tags": "[\"WebSocket\",\"实时通信\",\"双向\",\"推送\"]",
+    "config": "{\"port\":8080,\"pingInterval\":30000}",
+    "doc_path": "docs/skills/websocket-communication.md",
+    "tools": [
+      "websocket_server",
+      "websocket_client"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_barcode_qrcode",
+    "name": "条形码二维码",
+    "display_name": "Barcode & QR Code",
+    "description": "生成和识别条形码、二维码",
+    "category": "image",
+    "icon": "qrcode",
+    "tags": "[\"二维码\",\"条形码\",\"生成\",\"识别\"]",
+    "config": "{\"errorCorrectionLevel\":\"M\",\"margin\":4}",
+    "doc_path": "docs/skills/barcode-qrcode.md",
+    "tools": [
+      "qrcode_generator",
+      "barcode_generator",
+      "code_recognizer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_geolocation_services",
+    "name": "地理位置服务",
+    "display_name": "Geolocation Services",
+    "description": "地理编码、距离计算、地图服务集成",
+    "category": "location",
+    "icon": "environment",
+    "tags": "[\"地理位置\",\"地图\",\"距离计算\",\"坐标转换\"]",
+    "config": "{\"provider\":\"google\",\"units\":\"km\"}",
+    "doc_path": "docs/skills/geolocation-services.md",
+    "tools": [
+      "geocoder",
+      "distance_calculator",
+      "coordinate_converter"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_video_processing",
+    "name": "视频处理",
+    "display_name": "Video Processing",
+    "description": "视频剪辑、转码、截图、水印添加",
+    "category": "media",
+    "icon": "video-camera",
+    "tags": "[\"视频\",\"剪辑\",\"转码\",\"截图\"]",
+    "config": "{\"codec\":\"h264\",\"quality\":\"high\"}",
+    "doc_path": "docs/skills/video-processing.md",
+    "tools": [
+      "video_editor",
+      "video_transcoder",
+      "video_screenshot"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_code_analysis",
+    "name": "代码分析",
+    "display_name": "Code Analysis",
+    "description": "代码质量检查、AST分析、复杂度计算",
+    "category": "code",
+    "icon": "code",
+    "tags": "[\"代码分析\",\"质量检查\",\"AST\",\"复杂度\"]",
+    "config": "{\"language\":\"javascript\",\"strictMode\":true}",
+    "doc_path": "docs/skills/code-analysis.md",
+    "tools": [
+      "code_linter",
+      "ast_parser",
+      "complexity_calculator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
   }
 ];
