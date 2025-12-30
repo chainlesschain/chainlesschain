@@ -8,7 +8,7 @@
       </div>
       <div class="header-right">
         <a-button
-          v-if="canInviteMembers"
+          v-permission="'member.invite'"
           type="primary"
           @click="showInviteModal = true"
         >
@@ -143,7 +143,8 @@
           <a-space>
             <!-- 修改角色 -->
             <a-button
-              v-if="canManageMembers && record.member_did !== currentUserDID"
+              v-if="record.member_did !== currentUserDID"
+              v-permission="'member.manage'"
               size="small"
               @click="showChangeRoleModal(record)"
             >
@@ -159,11 +160,15 @@
 
             <!-- 移除成员 -->
             <a-popconfirm
-              v-if="canManageMembers && record.member_did !== currentUserDID && record.role !== 'owner'"
+              v-if="record.member_did !== currentUserDID && record.role !== 'owner'"
               title="确定要移除该成员吗？"
               @confirm="handleRemoveMember(record)"
             >
-              <a-button size="small" danger>
+              <a-button
+                v-permission="'member.remove'"
+                size="small"
+                danger
+              >
                 <DeleteOutlined />
                 移除
               </a-button>

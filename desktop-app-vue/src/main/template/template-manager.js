@@ -132,6 +132,7 @@ class ProjectTemplateManager {
 
     const templatesDir = path.join(__dirname, '../templates');
     const categories = [
+      // 原有分类
       'writing',
       'ppt',
       'excel',
@@ -143,7 +144,20 @@ class ProjectTemplateManager {
       'marketing',
       'education',
       'lifestyle',
-      'travel'
+      'travel',
+      // 新增分类（v0.19.0）
+      'video',                // 视频内容
+      'social-media',         // 社交媒体
+      'creative-writing',     // 创意写作
+      'code-project',         // 代码项目
+      'data-science',         // 数据科学
+      'tech-docs',            // 技术文档
+      'ecommerce',            // 电商运营
+      'marketing-pro',        // 营销推广
+      'legal',                // 法律文档
+      'learning',             // 学习成长
+      'health',               // 健康生活
+      'productivity'          // 时间管理
     ];
 
     let loadedCount = 0;
