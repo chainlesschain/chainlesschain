@@ -266,6 +266,45 @@ const categoryLabelMap = {
   'time-management': '时间管理'
 };
 
+const subcategoryLabelOverrides = {
+  animation: '动画',
+  backend: '后端',
+  bilibili: '哔哩哔哩',
+  browser: '浏览器插件',
+  commercial: '商业广告',
+  education: '教育类',
+  frontend: '前端',
+  graphic: '平面设计',
+  livestream: '直播',
+  'long-form': '长视频',
+  lyrics: '歌词',
+  'machine-learning': '机器学习',
+  marketing: '营销',
+  mobile: '移动端',
+  music: '音乐',
+  notebook: 'Jupyter笔记本',
+  novel: '小说',
+  planning: '项目规划',
+  poetry: '诗歌',
+  'post-production': '后期制作',
+  production: '制作',
+  python: 'Python开发',
+  review: '测评',
+  screenplay: '剧本',
+  'short-form': '短视频',
+  shooting: '拍摄',
+  story: '故事',
+  theater: '戏剧',
+  tutorial: '教程',
+  visualization: '数据可视化',
+  vlog: '视频日志',
+  wechat: '微信',
+  weibo: '微博',
+  xiaohongshu: '小红书',
+  youtube: 'YouTube视频',
+  zhihu: '知乎'
+};
+
 const templateCategoryOptions = computed(() => {
   const categories = new Map();
   templateStore.templates.forEach((template) => {
@@ -287,7 +326,7 @@ const displayProjectTypes = computed(() => {
 });
 
 const subcategoryLabelMap = computed(() => {
-  const labels = {};
+  const labels = { ...subcategoryLabelOverrides };
   Object.values(categoryConfig.value).forEach((items) => {
     items.forEach((item) => {
       if (item?.key && item?.label && !labels[item.key]) {
