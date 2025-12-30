@@ -8,9 +8,17 @@ const jsQR = require('jsqr');
 const { createCanvas, loadImage } = require('canvas');
 const archiver = require('archiver');
 const decompress = require('decompress');
+const sharp = require('sharp');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const ffprobePath = require('@ffprobe-installer/ffprobe').path;
 const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
+
+// 配置FFmpeg路径
+ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobePath);
 
 /**
  * ==================== 二维码工具 ====================
@@ -335,6 +343,236 @@ async function decompressFileReal(params) {
 }
 
 /**
+ * ==================== 图片处理工具 ====================
+ */
+
+/**
+ * 图片编辑器 (真实实现)
+ * 支持裁剪、缩放、旋转、翻转、调整质量
+ */
+async function editImageReal(params) {
+  const {
+    input_path,
+    output_path,
+    operations = {}
+  } = params;
+
+  try {
+    // 确保输出目录存在
+    const dir = path.dirname(output_path);
+    await fsp.mkdir(dir, { recursive: true });
+
+    // 创建Sharp实例
+    let image = sharp(input_path);
+
+    // 获取原始图片元数据
+    const metadata = await image.metadata();
+    let outputMetadata = { ...metadata };
+
+    // 应用操作
+    const appliedOps = [];
+
+    // 1. 裁剪
+    if (operations.crop) {
+      const { x, y, width, height } = operations.crop;
+      image = image.extract({ left: x, top: y, width, height });
+      appliedOps.push(`裁剪(${width}x${height})`);
+      outputMetadata.width = width;
+      outputMetadata.height = height;
+    }
+
+    // 2. 缩放
+    if (operations.resize) {
+      const { width, height, fit = 'cover' } = operations.resize;
+      image = image.resize(width, height, { fit });
+      appliedOps.push(`缩放(${width}x${height})`);
+      outputMetadata.width = width;
+      outputMetadata.height = height;
+    }
+
+    // 3. 旋转
+    if (operations.rotate) {
+      const angle = operations.rotate.angle || 0;
+      image = image.rotate(angle);
+      appliedOps.push(`旋转(${angle}°)`);
+    }
+
+    // 4. 翻转
+    if (operations.flip) {
+      if (operations.flip.horizontal) {
+        image = image.flop();
+        appliedOps.push('水平翻转');
+      }
+      if (operations.flip.vertical) {
+        image = image.flip();
+        appliedOps.push('垂直翻转');
+      }
+    }
+
+    // 5. 质量调整
+    if (operations.quality) {
+      const quality = Math.max(1, Math.min(100, operations.quality));
+      const format = path.extname(output_path).substring(1).toLowerCase();
+
+      if (format === 'jpg' || format === 'jpeg') {
+        image = image.jpeg({ quality });
+      } else if (format === 'png') {
+        image = image.png({ quality });
+      } else if (format === 'webp') {
+        image = image.webp({ quality });
+      }
+      appliedOps.push(`质量(${quality}%)`);
+    }
+
+    // 保存文件
+    await image.toFile(output_path);
+
+    // 获取输出文件信息
+    const outputStats = await fsp.stat(output_path);
+
+    return {
+      success: true,
+      input_path,
+      output_path,
+      original_dimensions: {
+        width: metadata.width,
+        height: metadata.height,
+        format: metadata.format,
+        size: metadata.size
+      },
+      output_dimensions: {
+        width: outputMetadata.width,
+        height: outputMetadata.height,
+        size: outputStats.size
+      },
+      operations_applied: appliedOps,
+      size_reduction: metadata.size > 0
+        ? `${((1 - outputStats.size / metadata.size) * 100).toFixed(2)}%`
+        : '0%'
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 图片滤镜 (真实实现)
+ * 支持各种滤镜效果
+ */
+async function filterImageReal(params) {
+  const {
+    input_path,
+    output_path,
+    filters = {}
+  } = params;
+
+  try {
+    // 确保输出目录存在
+    const dir = path.dirname(output_path);
+    await fsp.mkdir(dir, { recursive: true });
+
+    // 创建Sharp实例
+    let image = sharp(input_path);
+
+    // 获取原始图片元数据
+    const metadata = await image.metadata();
+    const appliedFilters = [];
+
+    // 1. 灰度/黑白
+    if (filters.grayscale) {
+      image = image.grayscale();
+      appliedFilters.push('灰度');
+    }
+
+    // 2. 模糊
+    if (filters.blur) {
+      const sigma = filters.blur.sigma || 3;
+      image = image.blur(sigma);
+      appliedFilters.push(`模糊(σ=${sigma})`);
+    }
+
+    // 3. 锐化
+    if (filters.sharpen) {
+      const sigma = filters.sharpen.sigma || 1;
+      image = image.sharpen(sigma);
+      appliedFilters.push(`锐化(σ=${sigma})`);
+    }
+
+    // 4. 亮度调整
+    if (filters.brightness) {
+      const value = filters.brightness.value || 1.0;
+      image = image.modulate({ brightness: value });
+      appliedFilters.push(`亮度(${value})`);
+    }
+
+    // 5. 对比度和饱和度
+    if (filters.modulate) {
+      const { brightness = 1, saturation = 1, hue = 0 } = filters.modulate;
+      image = image.modulate({ brightness, saturation, hue });
+      appliedFilters.push(`调制(亮度=${brightness}, 饱和度=${saturation})`);
+    }
+
+    // 6. 色调调整
+    if (filters.tint) {
+      const color = filters.tint.color || '#000000';
+      image = image.tint(color);
+      appliedFilters.push(`色调(${color})`);
+    }
+
+    // 7. 反色
+    if (filters.negate) {
+      image = image.negate();
+      appliedFilters.push('反色');
+    }
+
+    // 8. 归一化（增强对比度）
+    if (filters.normalize) {
+      image = image.normalize();
+      appliedFilters.push('归一化');
+    }
+
+    // 9. 伽马校正
+    if (filters.gamma) {
+      const value = filters.gamma.value || 2.2;
+      image = image.gamma(value);
+      appliedFilters.push(`伽马(${value})`);
+    }
+
+    // 保存文件
+    await image.toFile(output_path);
+
+    // 获取输出文件信息
+    const outputStats = await fsp.stat(output_path);
+
+    return {
+      success: true,
+      input_path,
+      output_path,
+      original_info: {
+        width: metadata.width,
+        height: metadata.height,
+        format: metadata.format,
+        size: metadata.size
+      },
+      output_info: {
+        size: outputStats.size,
+        format: path.extname(output_path).substring(1)
+      },
+      filters_applied: appliedFilters,
+      filter_count: appliedFilters.length
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * ==================== 辅助函数 ====================
  */
 
@@ -371,5 +609,9 @@ module.exports = {
 
   // 文件压缩
   compressFilesReal,
-  decompressFileReal
+  decompressFileReal,
+
+  // 图片处理
+  editImageReal,
+  filterImageReal
 };
