@@ -144,7 +144,6 @@ class ProjectTemplateManager {
       'marketing',
       'education',
       'lifestyle',
-      'travel',
       // 新增分类（v0.19.0）
       'video',                // 视频内容
       'social-media',         // 社交媒体
@@ -157,7 +156,7 @@ class ProjectTemplateManager {
       'legal',                // 法律文档
       'learning',             // 学习成长
       'health',               // 健康生活
-      'productivity'          // 时间管理
+      'time-management'       // 时间管理
     ];
 
     let loadedCount = 0;
