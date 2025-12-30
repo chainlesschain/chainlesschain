@@ -598,6 +598,226 @@ VALUES
 ('st_027', 'skill_video_analytics', 'tool_competitor_analyzer', 'primary', 9, strftime('%s', 'now')),
 ('st_028', 'skill_video_analytics', 'tool_roi_calculator', 'secondary', 8, strftime('%s', 'now'));
 
+-- 工具11: 字幕样式模板库
+INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, examples, required_permissions, risk_level, usage_count, success_count, created_at, updated_at)
+VALUES (
+  'tool_subtitle_templates',
+  'subtitle_style_templates',
+  '字幕样式模板库',
+  '提供多种字幕样式模板，快速应用专业字幕效果',
+  'function',
+  'media',
+  '{"type": "object", "properties": {"videoStyle": {"type": "string"}, "platform": {"type": "string"}}}',
+  1,
+  1,
+  '{"styles": ["简约", "炫酷", "卡通", "商务", "抖音风格", "B站风格"]}',
+  '[]',
+  '[]',
+  1,
+  0,
+  0,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
+);
+
+-- 工具12: 字幕时间轴同步
+INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, examples, required_permissions, risk_level, usage_count, success_count, created_at, updated_at)
+VALUES (
+  'tool_subtitle_sync',
+  'subtitle_timeline_sync',
+  '字幕时间轴同步',
+  '自动或手动同步字幕与音频时间轴',
+  'function',
+  'media',
+  '{"type": "object", "properties": {"audioFile": {"type": "string"}, "subtitleFile": {"type": "string"}}}',
+  1,
+  1,
+  '{"sync_methods": ["自动识别", "手动打轴", "波形对齐"]}',
+  '[]',
+  '[]',
+  1,
+  0,
+  0,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
+);
+
+-- 工具13: 平台规格查询
+INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, examples, required_permissions, risk_level, usage_count, success_count, created_at, updated_at)
+VALUES (
+  'tool_platform_specs',
+  'platform_specifications',
+  '平台规格查询',
+  '查询各视频平台的规格要求（分辨率、比例、时长、大小）',
+  'function',
+  'media',
+  '{"type": "object", "properties": {"platform": {"type": "string"}}}',
+  1,
+  1,
+  '{"platforms": ["抖音", "快手", "B站", "YouTube", "视频号", "Instagram", "TikTok"]}',
+  '[]',
+  '[]',
+  1,
+  0,
+  0,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
+);
+
+-- 工具14: 标题生成器
+INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, examples, required_permissions, risk_level, usage_count, success_count, created_at, updated_at)
+VALUES (
+  'tool_title_generator',
+  'video_title_generator',
+  '视频标题生成器',
+  '基于AI生成吸引眼球的视频标题',
+  'llm',
+  'content',
+  '{"type": "object", "properties": {"videoTopic": {"type": "string"}, "targetAudience": {"type": "string"}, "style": {"type": "string"}}}',
+  1,
+  1,
+  '{"strategies": ["悬念式", "数字式", "疑问式", "蹭热点"]}',
+  '[]',
+  '[]',
+  1,
+  0,
+  0,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
+);
+
+-- 工具15: 标签推荐器
+INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, examples, required_permissions, risk_level, usage_count, success_count, created_at, updated_at)
+VALUES (
+  'tool_hashtag_recommender',
+  'hashtag_recommender',
+  '标签推荐器',
+  '推荐热门和相关的视频标签',
+  'function',
+  'media',
+  '{"type": "object", "properties": {"videoContent": {"type": "string"}, "platform": {"type": "string"}}}',
+  1,
+  1,
+  '{"tag_types": ["热门标签", "精准标签", "长尾标签"]}',
+  '[]',
+  '[]',
+  1,
+  0,
+  0,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
+);
+
+-- 工具16: 封面设计助手
+INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, examples, required_permissions, risk_level, usage_count, success_count, created_at, updated_at)
+VALUES (
+  'tool_thumbnail_designer',
+  'thumbnail_designer',
+  '封面设计助手',
+  '辅助设计吸引点击的视频封面',
+  'function',
+  'media',
+  '{"type": "object", "properties": {"videoTheme": {"type": "string"}, "keyElements": {"type": "array"}}}',
+  1,
+  1,
+  '{"design_elements": ["大字标题", "表情夸张", "高对比度", "关键元素突出"]}',
+  '[]',
+  '[]',
+  1,
+  0,
+  0,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
+);
+
+-- 工具17: 留存率分析器
+INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, examples, required_permissions, risk_level, usage_count, success_count, created_at, updated_at)
+VALUES (
+  'tool_retention_analyzer',
+  'retention_analyzer',
+  '留存率分析器',
+  '分析视频留存率曲线，找出流失节点',
+  'function',
+  'data',
+  '{"type": "object", "properties": {"videoId": {"type": "string"}, "platform": {"type": "string"}}}',
+  1,
+  1,
+  '{"metrics": ["完播率", "跳出时间点", "高峰时段", "回放次数"]}',
+  '[]',
+  '[]',
+  1,
+  0,
+  0,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
+);
+
+-- 工具18: 爆款预测器
+INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, examples, required_permissions, risk_level, usage_count, success_count, created_at, updated_at)
+VALUES (
+  'tool_virality_predictor',
+  'virality_predictor',
+  '爆款预测器',
+  '基于多维度数据预测视频爆款潜力',
+  'llm',
+  'data',
+  '{"type": "object", "properties": {"videoData": {"type": "object"}, "historicalData": {"type": "array"}}}',
+  1,
+  1,
+  '{"prediction_factors": ["选题", "标题", "封面", "发布时间", "历史表现"]}',
+  '[]',
+  '[]',
+  1,
+  0,
+  0,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
+);
+
+-- 工具19: 竞品分析器
+INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, examples, required_permissions, risk_level, usage_count, success_count, created_at, updated_at)
+VALUES (
+  'tool_competitor_analyzer',
+  'competitor_analyzer',
+  '竞品分析器',
+  '分析竞品视频数据，提供优化建议',
+  'function',
+  'data',
+  '{"type": "object", "properties": {"competitorChannel": {"type": "string"}, "platform": {"type": "string"}}}',
+  1,
+  1,
+  '{"analysis_dimensions": ["选题方向", "更新频率", "互动数据", "粉丝画像"]}',
+  '[]',
+  '[]',
+  1,
+  0,
+  0,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
+);
+
+-- 工具20: ROI计算器
+INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, examples, required_permissions, risk_level, usage_count, success_count, created_at, updated_at)
+VALUES (
+  'tool_roi_calculator',
+  'video_roi_calculator',
+  '视频ROI计算器',
+  '计算视频制作投入产出比',
+  'function',
+  'data',
+  '{"type": "object", "properties": {"cost": {"type": "number"}, "revenue": {"type": "number"}, "metrics": {"type": "object"}}}',
+  1,
+  1,
+  '{"calculates": ["制作成本", "推广成本", "收益", "ROI", "CPM", "转化率"]}',
+  '[]',
+  '[]',
+  1,
+  0,
+  0,
+  strftime('%s', 'now'),
+  strftime('%s', 'now')
+);
+
 -- ============================================
 -- 迁移完成
 -- ============================================
