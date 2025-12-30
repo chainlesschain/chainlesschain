@@ -7,6 +7,8 @@ const fs = require('fs').promises;
 const path = require('path');
 const ExtendedTools = require('./extended-tools');
 const ExtendedTools2 = require('./extended-tools-2');
+const ExtendedTools3 = require('./extended-tools-3');
+const ExtendedTools4 = require('./extended-tools-4');
 
 class FunctionCaller {
   constructor() {
@@ -475,6 +477,12 @@ function initializeInteractions() {
 
     // 注册第二批扩展工具
     ExtendedTools2.registerAll(this);
+
+    // 注册第三批扩展工具
+    ExtendedTools3.registerAll(this);
+
+    // 注册第四批扩展工具
+    ExtendedTools4.registerAll(this);
   }
 
   /**

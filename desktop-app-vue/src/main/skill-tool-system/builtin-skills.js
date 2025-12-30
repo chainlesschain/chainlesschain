@@ -822,5 +822,189 @@ module.exports = [
     ],
     "enabled": 1,
     "is_builtin": 1
+  },
+
+  // ==================== 第四批扩展技能 (46-55) ====================
+
+  {
+    "id": "skill_blockchain_integration",
+    "name": "区块链集成",
+    "display_name": "Blockchain Integration",
+    "description": "与区块链网络交互、智能合约调用、钱包管理",
+    "category": "blockchain",
+    "icon": "link",
+    "tags": "[\"区块链\",\"智能合约\",\"加密货币\",\"Web3\"]",
+    "config": "{\"network\":\"ethereum\",\"chainId\":1}",
+    "doc_path": "docs/skills/blockchain-integration.md",
+    "tools": [
+      "blockchain_client",
+      "smart_contract_caller",
+      "wallet_manager"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_email_management",
+    "name": "邮件管理",
+    "display_name": "Email Management",
+    "description": "发送邮件、读取邮件、处理附件",
+    "category": "communication",
+    "icon": "mail",
+    "tags": "[\"邮件\",\"SMTP\",\"IMAP\",\"附件\"]",
+    "config": "{\"provider\":\"smtp\",\"ssl\":true}",
+    "doc_path": "docs/skills/email-management.md",
+    "tools": [
+      "email_sender",
+      "email_reader",
+      "email_attachment_handler"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_pdf_processing",
+    "name": "PDF处理",
+    "display_name": "PDF Processing",
+    "description": "PDF生成、文本提取、页面合并、表单填充",
+    "category": "document",
+    "icon": "file-pdf",
+    "tags": "[\"PDF\",\"文档\",\"提取\",\"合并\"]",
+    "config": "{\"quality\":\"high\",\"compression\":true}",
+    "doc_path": "docs/skills/pdf-processing.md",
+    "tools": [
+      "pdf_generator",
+      "pdf_text_extractor",
+      "pdf_merger"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_speech_processing",
+    "name": "语音处理",
+    "display_name": "Speech Processing",
+    "description": "语音识别、文本转语音、音频格式转换",
+    "category": "media",
+    "icon": "audio",
+    "tags": "[\"语音\",\"TTS\",\"ASR\",\"音频转换\"]",
+    "config": "{\"language\":\"zh-CN\",\"voice\":\"female\"}",
+    "doc_path": "docs/skills/speech-processing.md",
+    "tools": [
+      "speech_recognizer",
+      "text_to_speech",
+      "audio_converter"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_chart_visualization",
+    "name": "图表可视化",
+    "display_name": "Chart Visualization",
+    "description": "生成各类图表（折线图、柱状图、饼图等）",
+    "category": "visualization",
+    "icon": "line-chart",
+    "tags": "[\"图表\",\"可视化\",\"数据展示\",\"报表\"]",
+    "config": "{\"theme\":\"default\",\"responsive\":true}",
+    "doc_path": "docs/skills/chart-visualization.md",
+    "tools": [
+      "chart_renderer",
+      "chart_data_generator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_web_scraping",
+    "name": "网页爬虫",
+    "display_name": "Web Scraping",
+    "description": "网页数据爬取、HTML解析、内容提取",
+    "category": "network",
+    "icon": "spider",
+    "tags": "[\"爬虫\",\"数据采集\",\"网页解析\",\"自动化\"]",
+    "config": "{\"userAgent\":\"Mozilla/5.0\",\"timeout\":30000}",
+    "doc_path": "docs/skills/web-scraping.md",
+    "tools": [
+      "web_crawler",
+      "html_extractor",
+      "html_parser"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_data_validation",
+    "name": "数据验证",
+    "display_name": "Data Validation",
+    "description": "数据校验、Schema验证、规则引擎",
+    "category": "data",
+    "icon": "check-circle",
+    "tags": "[\"验证\",\"校验\",\"规则\",\"质量检查\"]",
+    "config": "{\"strictMode\":true,\"autoConvert\":false}",
+    "doc_path": "docs/skills/data-validation.md",
+    "tools": [
+      "data_validator",
+      "schema_validator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_cache_management",
+    "name": "缓存管理",
+    "display_name": "Cache Management",
+    "description": "缓存读写、过期管理、分布式缓存",
+    "category": "storage",
+    "icon": "database",
+    "tags": "[\"缓存\",\"Redis\",\"内存\",\"性能优化\"]",
+    "config": "{\"ttl\":3600,\"maxSize\":1000}",
+    "doc_path": "docs/skills/cache-management.md",
+    "tools": [
+      "cache_manager"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_message_queue",
+    "name": "消息队列",
+    "display_name": "Message Queue",
+    "description": "消息发布订阅、队列管理、异步处理",
+    "category": "messaging",
+    "icon": "message",
+    "tags": "[\"消息队列\",\"RabbitMQ\",\"Kafka\",\"异步\"]",
+    "config": "{\"durable\":true,\"autoAck\":false}",
+    "doc_path": "docs/skills/message-queue.md",
+    "tools": [
+      "message_queue_client"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_container_management",
+    "name": "容器管理",
+    "display_name": "Container Management",
+    "description": "Docker容器操作、镜像管理、容器编排",
+    "category": "devops",
+    "icon": "container",
+    "tags": "[\"Docker\",\"容器\",\"镜像\",\"编排\"]",
+    "config": "{\"host\":\"unix:///var/run/docker.sock\"}",
+    "doc_path": "docs/skills/container-management.md",
+    "tools": [
+      "docker_manager"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
   }
 ];

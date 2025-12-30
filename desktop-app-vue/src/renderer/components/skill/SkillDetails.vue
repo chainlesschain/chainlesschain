@@ -126,7 +126,7 @@
     <ErrorBoundary>
       <MarkdownViewer
         v-if="skill.doc_path"
-        :doc-path="skill.doc_path"
+        :doc-path="skill.id"
         :enable-link-navigation="true"
         @skill-link-click="handleSkillLinkClick"
         @tool-link-click="handleToolLinkClick"
