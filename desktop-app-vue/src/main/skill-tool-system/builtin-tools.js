@@ -10900,4 +10900,1025 @@ module.exports = [
     is_builtin: 1,
     enabled: 1,
   },
+
+  // ==================== 第十批工具 (197-216) ====================
+
+  {
+    id: 'tool_quantum_key_distributor',
+    name: 'quantum_key_distributor',
+    display_name: '量子密钥分发器',
+    description: 'BB84/E91协议量子密钥分发',
+    category: 'security',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        protocol: {
+          type: 'string',
+          description: 'QKD协议',
+          enum: ['BB84', 'E91', 'B92', 'SARG04']
+        },
+        key_length: {
+          type: 'number',
+          description: '密钥长度(bits)'
+        },
+        channel: {
+          type: 'object',
+          description: '量子信道参数',
+          properties: {
+            distance: { type: 'number' },
+            loss_db: { type: 'number' },
+            noise: { type: 'number' }
+          }
+        },
+        error_correction: {
+          type: 'boolean',
+          description: '是否纠错',
+          default: true
+        }
+      },
+      required: ['protocol', 'key_length']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        key: { type: 'string' },
+        qber: { type: 'number' },
+        secure: { type: 'boolean' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['security.encryption'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_quantum_teleporter',
+    name: 'quantum_teleporter',
+    display_name: '量子隐形传态器',
+    description: '量子态传输和量子纠缠操作',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        quantum_state: {
+          type: 'object',
+          description: '待传输的量子态',
+          properties: {
+            alpha: { type: 'number' },
+            beta: { type: 'number' }
+          }
+        },
+        entanglement_quality: {
+          type: 'number',
+          description: '纠缠质量(0-1)'
+        },
+        classical_channel: {
+          type: 'object',
+          description: '经典信道参数'
+        }
+      },
+      required: ['quantum_state']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        fidelity: { type: 'number' },
+        measurement_results: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_eeg_processor',
+    name: 'eeg_processor',
+    display_name: '脑电信号处理器',
+    description: 'EEG信号滤波、特征提取、伪迹去除',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        eeg_data: {
+          type: 'array',
+          description: 'EEG原始数据'
+        },
+        sampling_rate: {
+          type: 'number',
+          description: '采样率(Hz)'
+        },
+        channels: {
+          type: 'array',
+          description: '通道列表'
+        },
+        processing: {
+          type: 'object',
+          description: '处理参数',
+          properties: {
+            filter: { type: 'string', enum: ['bandpass', 'notch', 'highpass'] },
+            artifact_removal: { type: 'boolean' },
+            feature_extraction: { type: 'array' }
+          }
+        }
+      },
+      required: ['eeg_data', 'sampling_rate']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        processed_data: { type: 'array' },
+        features: { type: 'object' },
+        quality_metrics: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_bci_decoder',
+    name: 'bci_decoder',
+    display_name: '脑机接口解码器',
+    description: '解码脑电信号识别用户意图',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        features: {
+          type: 'object',
+          description: 'EEG特征'
+        },
+        task_type: {
+          type: 'string',
+          description: '任务类型',
+          enum: ['motor_imagery', 'p300', 'ssvep', 'error_potential']
+        },
+        model: {
+          type: 'string',
+          description: '解码模型',
+          enum: ['lda', 'svm', 'cnn', 'rnn']
+        },
+        calibration_data: {
+          type: 'array',
+          description: '校准数据'
+        }
+      },
+      required: ['features', 'task_type']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        intent: { type: 'string' },
+        confidence: { type: 'number' },
+        probabilities: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_gene_editor',
+    name: 'gene_editor',
+    display_name: '基因编辑器',
+    description: 'CRISPR-Cas9基因编辑设计和模拟',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        target_gene: {
+          type: 'string',
+          description: '目标基因序列'
+        },
+        edit_type: {
+          type: 'string',
+          description: '编辑类型',
+          enum: ['knockout', 'knockin', 'base_editing', 'prime_editing']
+        },
+        editor: {
+          type: 'string',
+          description: 'CRISPR系统',
+          enum: ['Cas9', 'Cas12', 'Cas13', 'base_editor']
+        },
+        pam_sequence: {
+          type: 'string',
+          description: 'PAM序列'
+        },
+        grna_design: {
+          type: 'object',
+          description: 'gRNA设计参数'
+        }
+      },
+      required: ['target_gene', 'edit_type']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        grna_sequences: { type: 'array' },
+        off_targets: { type: 'array' },
+        efficiency_score: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_protein_designer',
+    name: 'protein_designer',
+    display_name: '蛋白质设计器',
+    description: 'De novo蛋白质设计和结构优化',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        design_goal: {
+          type: 'string',
+          description: '设计目标',
+          enum: ['enzyme', 'antibody', 'scaffold', 'binder']
+        },
+        sequence: {
+          type: 'string',
+          description: '初始序列(可选)'
+        },
+        structure_constraints: {
+          type: 'object',
+          description: '结构约束'
+        },
+        function_requirements: {
+          type: 'object',
+          description: '功能要求',
+          properties: {
+            binding_target: { type: 'string' },
+            catalytic_residues: { type: 'array' }
+          }
+        },
+        optimization_cycles: {
+          type: 'number',
+          description: '优化轮数',
+          default: 10
+        }
+      },
+      required: ['design_goal']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        sequence: { type: 'string' },
+        structure: { type: 'object' },
+        stability_score: { type: 'number' },
+        function_score: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_nano_simulator',
+    name: 'nano_simulator',
+    display_name: '纳米模拟器',
+    description: '分子动力学和纳米材料模拟',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        system: {
+          type: 'object',
+          description: '模拟体系',
+          properties: {
+            atoms: { type: 'array' },
+            lattice: { type: 'object' },
+            temperature: { type: 'number' }
+          }
+        },
+        method: {
+          type: 'string',
+          description: '模拟方法',
+          enum: ['MD', 'MC', 'DFT', 'tight_binding']
+        },
+        simulation_time: {
+          type: 'number',
+          description: '模拟时长(ps)'
+        },
+        force_field: {
+          type: 'string',
+          description: '力场',
+          enum: ['LAMMPS', 'AMBER', 'CHARMM', 'ReaxFF']
+        }
+      },
+      required: ['system', 'method']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        trajectory: { type: 'array' },
+        energy: { type: 'number' },
+        properties: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_nano_fabricator',
+    name: 'nano_fabricator',
+    display_name: '纳米加工器',
+    description: '纳米加工工艺设计和模拟',
+    category: 'system',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        process: {
+          type: 'string',
+          description: '加工工艺',
+          enum: ['lithography', 'etching', 'deposition', 'self_assembly']
+        },
+        pattern: {
+          type: 'object',
+          description: '图案设计'
+        },
+        materials: {
+          type: 'array',
+          description: '材料列表'
+        },
+        parameters: {
+          type: 'object',
+          description: '工艺参数',
+          properties: {
+            resolution: { type: 'number' },
+            temperature: { type: 'number' },
+            pressure: { type: 'number' }
+          }
+        }
+      },
+      required: ['process', 'pattern']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        fabrication_plan: { type: 'object' },
+        yield_estimate: { type: 'number' },
+        defects: { type: 'array' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['system.admin'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_reactor_simulator',
+    name: 'reactor_simulator',
+    display_name: '反应堆模拟器',
+    description: '核反应堆物理和热工水力模拟',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        reactor_type: {
+          type: 'string',
+          description: '反应堆类型',
+          enum: ['PWR', 'BWR', 'CANDU', 'fast_reactor']
+        },
+        power_level: {
+          type: 'number',
+          description: '功率水平(MW)'
+        },
+        fuel_composition: {
+          type: 'object',
+          description: '燃料成分'
+        },
+        control_rods: {
+          type: 'object',
+          description: '控制棒位置'
+        },
+        simulation_type: {
+          type: 'string',
+          description: '模拟类型',
+          enum: ['steady_state', 'transient', 'accident']
+        }
+      },
+      required: ['reactor_type', 'power_level']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        keff: { type: 'number' },
+        power_distribution: { type: 'array' },
+        temperature_distribution: { type: 'array' },
+        safety_parameters: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['system.admin'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_radiation_monitor',
+    name: 'radiation_monitor',
+    display_name: '辐射监测器',
+    description: '辐射剂量监测和核素分析',
+    category: 'system',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        detector_type: {
+          type: 'string',
+          description: '探测器类型',
+          enum: ['GM', 'scintillator', 'semiconductor', 'ionization_chamber']
+        },
+        measurement_type: {
+          type: 'string',
+          description: '测量类型',
+          enum: ['dose_rate', 'contamination', 'spectroscopy']
+        },
+        location: {
+          type: 'object',
+          description: '监测位置'
+        },
+        background: {
+          type: 'number',
+          description: '本底值'
+        }
+      },
+      required: ['detector_type', 'measurement_type']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        dose_rate: { type: 'number' },
+        nuclides: { type: 'array' },
+        alarm_level: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['system.admin'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_underwater_navigator',
+    name: 'underwater_navigator',
+    display_name: '水下导航器',
+    description: 'INS/DVL/USBL组合水下导航',
+    category: 'data',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        navigation_mode: {
+          type: 'string',
+          description: '导航模式',
+          enum: ['INS', 'DVL', 'USBL', 'integrated']
+        },
+        sensor_data: {
+          type: 'object',
+          description: '传感器数据',
+          properties: {
+            imu: { type: 'object' },
+            dvl: { type: 'object' },
+            depth: { type: 'number' }
+          }
+        },
+        initial_position: {
+          type: 'object',
+          description: '初始位置'
+        },
+        current: {
+          type: 'object',
+          description: '海流信息'
+        }
+      },
+      required: ['navigation_mode', 'sensor_data']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        position: { type: 'object' },
+        velocity: { type: 'object' },
+        accuracy: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['data.read'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_deep_sea_mapper',
+    name: 'deep_sea_mapper',
+    display_name: '深海测绘器',
+    description: '多波束声呐深海地形测绘',
+    category: 'data',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        sonar_type: {
+          type: 'string',
+          description: '声呐类型',
+          enum: ['multibeam', 'sidescan', 'synthetic_aperture']
+        },
+        survey_area: {
+          type: 'object',
+          description: '测量区域',
+          properties: {
+            bounds: { type: 'array' },
+            depth_range: { type: 'object' }
+          }
+        },
+        resolution: {
+          type: 'number',
+          description: '分辨率(m)'
+        },
+        raw_data: {
+          type: 'array',
+          description: '原始声呐数据'
+        }
+      },
+      required: ['sonar_type', 'survey_area']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        bathymetry: { type: 'array' },
+        features: { type: 'array' },
+        coverage: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['data.read'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_asteroid_analyzer',
+    name: 'asteroid_analyzer',
+    display_name: '小行星分析器',
+    description: '小行星成分、轨道和资源评估',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        asteroid_id: {
+          type: 'string',
+          description: '小行星编号'
+        },
+        analysis_type: {
+          type: 'string',
+          description: '分析类型',
+          enum: ['composition', 'orbit', 'resources', 'mining_feasibility']
+        },
+        spectral_data: {
+          type: 'array',
+          description: '光谱数据'
+        },
+        orbital_elements: {
+          type: 'object',
+          description: '轨道根数'
+        }
+      },
+      required: ['asteroid_id', 'analysis_type']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        composition: { type: 'object' },
+        resources: { type: 'object' },
+        value_estimate: { type: 'number' },
+        accessibility: { type: 'string' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_lunar_miner',
+    name: 'lunar_miner',
+    display_name: '月球采矿器',
+    description: '月球资源开采规划和模拟',
+    category: 'system',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        site: {
+          type: 'object',
+          description: '采矿位置',
+          properties: {
+            coordinates: { type: 'object' },
+            terrain: { type: 'string' }
+          }
+        },
+        target_resource: {
+          type: 'string',
+          description: '目标资源',
+          enum: ['water_ice', 'helium3', 'rare_earth', 'regolith']
+        },
+        equipment: {
+          type: 'array',
+          description: '采矿设备'
+        },
+        extraction_method: {
+          type: 'string',
+          description: '提取方法',
+          enum: ['excavation', 'heating', 'electrolysis']
+        }
+      },
+      required: ['site', 'target_resource']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        mining_plan: { type: 'object' },
+        yield_estimate: { type: 'number' },
+        energy_required: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['system.admin'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_cloud_seeder',
+    name: 'cloud_seeder',
+    display_name: '云播种器',
+    description: '人工降雨云播种作业规划',
+    category: 'system',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        operation_type: {
+          type: 'string',
+          description: '作业类型',
+          enum: ['precipitation_enhancement', 'hail_suppression', 'fog_dispersal']
+        },
+        seeding_agent: {
+          type: 'string',
+          description: '催化剂',
+          enum: ['silver_iodide', 'dry_ice', 'hygroscopic_salt']
+        },
+        target_area: {
+          type: 'object',
+          description: '作业区域'
+        },
+        weather_conditions: {
+          type: 'object',
+          description: '气象条件',
+          properties: {
+            cloud_type: { type: 'string' },
+            temperature: { type: 'number' },
+            humidity: { type: 'number' }
+          }
+        },
+        aircraft: {
+          type: 'object',
+          description: '作业飞机'
+        }
+      },
+      required: ['operation_type', 'seeding_agent', 'target_area']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        flight_plan: { type: 'object' },
+        dosage: { type: 'number' },
+        effectiveness_estimate: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['system.admin'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_weather_modeler',
+    name: 'weather_modeler',
+    display_name: '天气建模器',
+    description: '数值天气预报和气候模拟',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        model: {
+          type: 'string',
+          description: '模式',
+          enum: ['WRF', 'GFS', 'ECMWF', 'regional']
+        },
+        domain: {
+          type: 'object',
+          description: '模拟区域',
+          properties: {
+            bounds: { type: 'array' },
+            resolution: { type: 'number' }
+          }
+        },
+        initial_conditions: {
+          type: 'object',
+          description: '初始场'
+        },
+        forecast_hours: {
+          type: 'number',
+          description: '预报时效'
+        },
+        physics_options: {
+          type: 'object',
+          description: '物理方案'
+        }
+      },
+      required: ['model', 'domain', 'forecast_hours']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        forecast: { type: 'object' },
+        fields: { type: 'array' },
+        uncertainty: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_material_designer',
+    name: 'material_designer',
+    display_name: '材料设计器',
+    description: 'AI驱动的材料设计和优化',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        material_class: {
+          type: 'string',
+          description: '材料类别',
+          enum: ['metal', 'ceramic', 'polymer', 'composite', 'semiconductor']
+        },
+        target_properties: {
+          type: 'object',
+          description: '目标性能',
+          properties: {
+            strength: { type: 'number' },
+            conductivity: { type: 'number' },
+            density: { type: 'number' }
+          }
+        },
+        constraints: {
+          type: 'object',
+          description: '约束条件',
+          properties: {
+            elements: { type: 'array' },
+            cost: { type: 'number' },
+            toxicity: { type: 'string' }
+          }
+        },
+        design_method: {
+          type: 'string',
+          description: '设计方法',
+          enum: ['ML', 'DFT', 'empirical', 'hybrid']
+        }
+      },
+      required: ['material_class', 'target_properties']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        compositions: { type: 'array' },
+        predicted_properties: { type: 'object' },
+        synthesis_route: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_property_predictor',
+    name: 'property_predictor',
+    display_name: '性能预测器',
+    description: '材料性能预测和筛选',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        material: {
+          type: 'object',
+          description: '材料信息',
+          properties: {
+            composition: { type: 'string' },
+            structure: { type: 'object' }
+          }
+        },
+        properties: {
+          type: 'array',
+          description: '待预测性能',
+          items: {
+            type: 'string',
+            enum: ['band_gap', 'formation_energy', 'elastic_modulus', 'thermal_conductivity']
+          }
+        },
+        method: {
+          type: 'string',
+          description: '预测方法',
+          enum: ['ML', 'DFT', 'MD', 'empirical']
+        }
+      },
+      required: ['material', 'properties']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        predictions: { type: 'object' },
+        confidence: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_snn_builder',
+    name: 'snn_builder',
+    display_name: '脉冲神经网络构建器',
+    description: '构建和训练脉冲神经网络',
+    category: 'ai',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        architecture: {
+          type: 'object',
+          description: '网络架构',
+          properties: {
+            layers: { type: 'array' },
+            neuron_model: { type: 'string', enum: ['LIF', 'Izhikevich', 'AdEx'] },
+            topology: { type: 'string' }
+          }
+        },
+        learning_rule: {
+          type: 'string',
+          description: '学习规则',
+          enum: ['STDP', 'R-STDP', 'backprop', 'surrogate_gradient']
+        },
+        encoding: {
+          type: 'string',
+          description: '编码方式',
+          enum: ['rate', 'temporal', 'population', 'burst']
+        },
+        training_data: {
+          type: 'array',
+          description: '训练数据'
+        }
+      },
+      required: ['architecture']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        model_id: { type: 'string' },
+        performance: { type: 'object' },
+        spike_statistics: { type: 'object' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['ai.inference'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1,
+  },
+
+  {
+    id: 'tool_neuromorphic_accelerator',
+    name: 'neuromorphic_accelerator',
+    display_name: '神经形态加速器',
+    description: '神经形态硬件加速和部署',
+    category: 'system',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        hardware: {
+          type: 'string',
+          description: '硬件平台',
+          enum: ['Loihi', 'TrueNorth', 'SpiNNaker', 'BrainScaleS']
+        },
+        model: {
+          type: 'object',
+          description: 'SNN模型'
+        },
+        optimization: {
+          type: 'object',
+          description: '优化选项',
+          properties: {
+            power_mode: { type: 'string', enum: ['low', 'balanced', 'high'] },
+            latency_target: { type: 'number' }
+          }
+        },
+        input_data: {
+          type: 'object',
+          description: '输入数据'
+        }
+      },
+      required: ['hardware', 'model']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        output: { type: 'object' },
+        latency_ms: { type: 'number' },
+        power_consumption: { type: 'number' },
+        error: { type: 'string' }
+      }
+    },
+    required_permissions: ['system.admin'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1,
+  },
 ];
