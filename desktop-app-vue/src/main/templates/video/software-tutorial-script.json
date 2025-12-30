@@ -1,0 +1,37 @@
+{
+  "id": "tpl_video_software_tutorial_001",
+  "name": "software_tutorial_script",
+  "display_name": "软件教程脚本",
+  "description": "软件操作教学视频脚本，包含屏幕录制和讲解要点",
+  "icon": "💻",
+  "cover_image": "/templates/covers/software-tutorial.png",
+  "category": "video",
+  "subcategory": "tutorial",
+  "tags": ["软件教程", "屏幕录制", "操作演示"],
+  "project_type": "document",
+  "prompt_template": "请帮我创建软件教程脚本，要求：\n\n**教程信息：**\n- 软件名称：{{softwareName}}\n- 教程主题：{{tutorialTopic}}\n- 目标学员：{{targetLevel}}\n- 时长：{{duration}}分钟\n\n**教程结构：**\n\n开场（0-30秒）：\n- \"大家好，今天教大家用{{softwareName}}完成{{tutorialTopic}}\"\n- 成果预览（完成效果展示）\n- 适用人群说明\n\n准备工作（30秒-2分钟）：\n- 软件版本：{{softwareVersion}}\n- 需要素材：{{requiredAssets}}\n- 前置知识：{{prerequisites}}\n\n主体教学（2-{{subtract duration 2}}分钟）：\n\n步骤1：{{step1Title}}（{{step1Duration}}分钟）\n- 操作路径：{{step1Path}}\n- 关键参数：{{step1Parameters}}\n- 注意事项：{{step1Notes}}\n\n步骤2：{{step2Title}}（{{step2Duration}}分钟）\n- ...\n\n步骤3：{{step3Title}}（{{step3Duration}}分钟）\n- ...\n\n结尾（{{subtract duration 2}}-{{duration}}分钟）：\n- 最终效果展示\n- 常见问题解答\n- 扩展技巧\n\n**录制技巧：**\n\n屏幕录制设置：\n- 分辨率：1920x1080\n- 帧率：30fps\n- 录制软件：OBS/Camtasia\n- 录制区域：软件窗口\n\n鼠标和快捷键：\n- 显示鼠标点击\n- 显示按键提示\n- 操作速度适中\n\n音频处理：\n- 使用专业麦克风\n- 降噪处理\n- 音量一致\n\n**后期制作：**\n\n字幕标注：\n- 操作步骤文字\n- 快捷键提示\n- 参数数值\n\n视觉增强：\n- 重点操作放大\n- 箭头指示\n- 高亮标注\n\n节奏控制：\n- 复杂操作放慢\n- 重复操作加速\n- 等待时间剪掉\n\n---\n\n**输出格式：**\n- 教程脚本\n- 操作步骤清单\n- 素材准备清单",
+  "variables_schema": [
+    {"name": "softwareName", "label": "软件名称", "type": "string", "required": true},
+    {"name": "tutorialTopic", "label": "教程主题", "type": "string", "required": true},
+    {"name": "targetLevel", "label": "目标学员水平", "type": "select", "required": false, "default": "初学者", "options": [
+      {"value": "零基础", "label": "零基础"},
+      {"value": "初学者", "label": "初学者"},
+      {"value": "进阶", "label": "进阶"}
+    ]},
+    {"name": "duration", "label": "时长（分钟）", "type": "number", "required": false, "default": 10}
+  ],
+  "file_structure": {
+    "root": "教程-{{softwareName}}-{{tutorialTopic}}",
+    "files": [
+      {"path": "脚本.docx", "type": "document"},
+      {"path": "步骤清单.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

@@ -1,0 +1,39 @@
+{
+  "id": "tpl_video_travel_vlog_001",
+  "name": "travel_vlog_plan",
+  "display_name": "旅行Vlog规划",
+  "description": "旅行视频完整规划，包含行程+拍摄点+设备清单",
+  "icon": "✈️",
+  "cover_image": "/templates/covers/travel-vlog.png",
+  "category": "video",
+  "subcategory": "vlog",
+  "tags": ["旅行Vlog", "旅拍", "行程规划"],
+  "project_type": "document",
+  "prompt_template": "请帮我规划旅行Vlog，要求：\n\n**旅行信息：**\n- 目的地：{{destination}}\n- 旅行天数：{{days}}天\n- 成片时长：{{finalDuration}}分钟\n- Vlog风格：{{vlogStyle}}\n\n**每日拍摄规划：**\n\n{{#each dayPlans}}\n第{{dayNumber}}天：{{dayTheme}}\n\n必拍场景：\n- 清晨：{{morningScene}}（日出/街景）\n- 上午：{{morningActivity}}（主要活动）\n- 下午：{{afternoonActivity}}（探索/体验）\n- 傍晚：{{eveningScene}}（日落/夜景）\n\n拍摄清单：\n- [ ] 建立镜头（地标/全景）\n- [ ] 转场镜头（交通/过渡）\n- [ ] 美食特写\n- [ ] 人物互动\n- [ ] 细节捕捉\n{{/each}}\n\n**设备和素材管理：**\n\n随身设备：\n- 主机：{{mainCamera}}\n- 备机：手机\n- 稳定器/三脚架\n- 备用电池×3\n- 存储卡（每天{{storageNeeded}}GB）\n\n每日素材备份：\n- 晚上整理当天素材\n- 标记精彩片段\n- 云端备份\n\n**后期剪辑大纲：**\n\n开场（0-30秒）：\n- 精彩预告剪辑\n- 片头字幕\n\n主体（30秒-{{subtract finalDuration 1}}分钟）：\n- 按天或主题剪辑\n- 节奏：快慢结合\n- BGM：3-4首切换\n\n结尾（{{subtract finalDuration 1}}-{{finalDuration}}分钟）：\n- 旅行感悟\n- 彩蛋/花絮\n- 片尾字幕\n\n---\n\n**输出格式：**\n- 拍摄计划表\n- 设备清单\n- 剪辑大纲",
+  "variables_schema": [
+    {"name": "destination", "label": "目的地", "type": "string", "required": true},
+    {"name": "days", "label": "旅行天数", "type": "number", "required": false, "default": 5, "min": 1, "max": 30},
+    {"name": "finalDuration", "label": "成片时长（分钟）", "type": "number", "required": false, "default": 10},
+    {"name": "vlogStyle", "label": "Vlog风格", "type": "select", "required": false, "default": "纪实", "options": [
+      {"value": "纪实", "label": "纪实风格"},
+      {"value": "电影感", "label": "电影感"},
+      {"value": "轻松", "label": "轻松有趣"},
+      {"value": "文艺", "label": "文艺清新"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "旅行Vlog-{{destination}}",
+    "files": [
+      {"path": "拍摄计划.xlsx", "type": "spreadsheet"},
+      {"path": "设备清单.md", "type": "markdown"},
+      {"path": "剪辑大纲.docx", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
