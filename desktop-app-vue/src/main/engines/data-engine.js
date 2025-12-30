@@ -554,6 +554,119 @@ class DataEngine {
   }
 
   /**
+   * 生成营养分析报告Markdown
+   * @private
+   */
+  generateNutritionReportMarkdown(analysisResults, options = {}) {
+    const { analysis, columns } = analysisResults || {};
+    const { sourceFile, description, rowCount } = options;
+
+    let markdown = `# 营养分析报告\n\n`;
+
+    if (sourceFile) {
+      markdown += `**来源文件**: ${sourceFile}\n\n`;
+    }
+
+    if (description) {
+      markdown += `**需求描述**: ${description}\n\n`;
+    }
+
+    if (typeof rowCount === 'number') {
+      markdown += `**数据行数**: ${rowCount}\n\n`;
+    }
+
+    if (!Array.isArray(columns) || columns.length === 0) {
+      markdown += `未检测到可用于营养分析的数值列。\n`;
+      return markdown;
+    }
+
+    markdown += `## 汇总\n\n`;
+    markdown += `| 指标 | 数量 | 总和 | 平均值 | 最小值 | 最大值 | 标准差 |\n`;
+    markdown += `|---|---|---|---|---|---|---|\n`;
+
+    for (const column of columns) {
+      const stats = analysis ? analysis[column] : null;
+      if (!stats) continue;
+      markdown += `| ${column} | ${stats.count} | ${stats.sum.toFixed(2)} | ${stats.mean.toFixed(2)} | ${stats.min.toFixed(2)} | ${stats.max.toFixed(2)} | ${stats.stdDev.toFixed(2)} |\n`;
+    }
+
+    return markdown;
+  }
+
+  /**
+   * 查找营养相关列
+   * @private
+   */
+  findNutritionColumns(headers) {
+    if (!Array.isArray(headers)) return [];
+
+    const keywords = [
+      'calorie', 'calories', 'kcal', 'energy',
+      'protein', 'fat', 'lipid',
+      'carb', 'carbohydrate', 'fiber', 'sugar',
+      'sodium', 'cholesterol',
+      '热量', '能量', '蛋白', '蛋白质', '脂肪',
+      '碳水', '碳水化合物', '膳食纤维', '纤维',
+      '糖', '钠', '胆固醇'
+    ];
+
+    return headers.filter((header) => {
+      const normalized = String(header).toLowerCase();
+      return keywords.some(keyword => normalized.includes(keyword));
+    });
+  }
+
+  /**
+   * 使用LLM生成营养分析报告
+   * @private
+   */
+  async generateNutritionReportWithLLM(description, llmManager) {
+    const prompt = `根据以下需求生成营养分析报告（Markdown格式）。如果缺少分量，请给出合理假设并明确说明。包含表格（项目、热量、蛋白质、脂肪、碳水）以及总计行。只返回Markdown。\n\n${description}`;
+
+    try {
+      let responseText;
+
+      if (typeof llmManager.query === 'function') {
+        const response = await llmManager.query(prompt, {
+          temperature: 0.4,
+          maxTokens: 1500
+        });
+        responseText = response.text || response;
+      } else if (typeof llmManager.chat === 'function') {
+        const response = await llmManager.chat([
+          { role: 'user', content: prompt }
+        ], {
+          temperature: 0.4,
+          max_tokens: 1500
+        });
+        responseText = response.text || response.content || response;
+      } else {
+        throw new Error('LLM Manager 没有可用的查询方法');
+      }
+
+      return String(responseText || '').trim();
+    } catch (error) {
+      console.warn('[Data Engine] LLM生成营养报告失败，使用兜底报告:', error.message);
+      return this.generateNutritionFallbackMarkdown(description);
+    }
+  }
+
+  /**
+   * 生成营养分析兜底报告
+   * @private
+   */
+  generateNutritionFallbackMarkdown(description) {
+    let markdown = `# 营养分析报告\n\n`;
+
+    if (description) {
+      markdown += `**需求描述**: ${description}\n\n`;
+    }
+
+    markdown += `未提供可读取的数据文件，无法计算营养信息。\n`;
+    return markdown;
+  }
+
+  /**
    * 处理项目任务
    * @param {Object} params - 任务参数
    * @returns {Promise<Object>} 处理结果
@@ -632,6 +745,61 @@ class DataEngine {
             type: 'data',
             action: 'analyze',
             filePath,
+            reportPath,
+            success: true,
+            analysis
+          };
+        }
+
+        case 'calculate_nutrition': {
+          const reportFileName = outputFiles[0] || 'nutrition_report.md';
+          const reportPath = path.join(projectPath, reportFileName);
+
+          const safeDescription = description || '';
+          const fileMatch = safeDescription.match(/[\w\-_]+\.(csv|xlsx|xls)/i);
+          const fileName = fileMatch && this.isPathSafe(fileMatch[0]) ? fileMatch[0] : null;
+
+          let data = null;
+          let sourcePath = null;
+
+          if (fileName) {
+            sourcePath = path.join(projectPath, fileName);
+            const ext = path.extname(sourcePath).toLowerCase();
+            try {
+              if (ext === '.csv') {
+                data = await this.readCSV(sourcePath);
+              } else if (ext === '.xlsx' || ext === '.xls') {
+                data = await this.readExcel(sourcePath);
+              }
+            } catch (error) {
+              console.warn('[Data Engine] 读取营养数据文件失败，尝试降级处理:', error.message);
+            }
+          }
+
+          let reportMarkdown;
+          let analysis = null;
+
+          if (data) {
+            const nutritionColumns = this.findNutritionColumns(data.headers);
+            analysis = this.analyzeData(data, { columns: nutritionColumns });
+            reportMarkdown = this.generateNutritionReportMarkdown(analysis, {
+              sourceFile: fileName,
+              description: safeDescription,
+              rowCount: data.rowCount || data.rows.length
+            });
+          } else if (llmManager) {
+            reportMarkdown = await this.generateNutritionReportWithLLM(safeDescription, llmManager);
+          } else {
+            reportMarkdown = this.generateNutritionFallbackMarkdown(safeDescription);
+          }
+
+          await fs.mkdir(path.dirname(reportPath), { recursive: true });
+          await fs.writeFile(reportPath, reportMarkdown, 'utf-8');
+
+          return {
+            type: 'data',
+            action: 'calculate_nutrition',
+            filePath: sourcePath,
             reportPath,
             success: true,
             analysis

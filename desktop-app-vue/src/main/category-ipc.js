@@ -12,7 +12,7 @@ function registerCategoryIPCHandlers(database, mainWindow) {
   // 获取或创建 CategoryManager 实例
   const getCategoryManager = () => {
     if (!categoryManager) {
-      categoryManager = new CategoryManager(database.db);
+      categoryManager = new CategoryManager(database);
     }
     return categoryManager;
   };
