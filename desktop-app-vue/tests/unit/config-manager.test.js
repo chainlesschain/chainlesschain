@@ -287,21 +287,36 @@ describe('ConfigManager', () => {
   });
 
   describe('exportToFile()', () => {
+    beforeEach(() => {
+      mockFs.writeFile.mockResolvedValue(undefined);
+    });
+
     it('should export to JSON file', async () => {
       const data = { version: '1.0.0', skills: [] };
-      const result = await configManager.exportToFile(data, '/path/to/file.json', 'json');
+
+      // Spy on console.log to verify it was called
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await configManager.exportToFile(data, 'test-file.json', 'json');
 
       expect(result.success).toBe(true);
-      expect(result.filePath).toBe('/path/to/file.json');
-      expect(mockFs.writeFile).toHaveBeenCalled();
+      expect(result.filePath).toBe('test-file.json');
+      expect(mockFs.writeFile).toHaveBeenCalledWith('test-file.json', expect.any(String), 'utf-8');
+
+      consoleSpy.mockRestore();
     });
 
     it('should export to YAML file', async () => {
       const data = { version: '1.0.0', skills: [] };
-      const result = await configManager.exportToFile(data, '/path/to/file.yaml', 'yaml');
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await configManager.exportToFile(data, 'test-file.yaml', 'yaml');
 
       expect(result.success).toBe(true);
       expect(mockFs.writeFile).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
     });
 
     it('should throw error for unsupported format', async () => {
@@ -334,18 +349,20 @@ describe('ConfigManager', () => {
 
       mockFs.readFile.mockResolvedValueOnce(JSON.stringify(configData));
 
-      const result = await configManager.importFromFile('/path/to/config.json');
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const result = await configManager.importFromFile('test-config.json');
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
-      expect(mockFs.readFile).toHaveBeenCalledWith('/path/to/config.json', 'utf-8');
+      expect(mockFs.readFile).toHaveBeenCalledWith('test-config.json', 'utf-8');
+
+      consoleSpy.mockRestore();
     });
 
     it('should throw error for unsupported file format', async () => {
-      mockFs.readFile.mockResolvedValueOnce('data');
-
       await expect(
-        configManager.importFromFile('/path/to/file.xml')
+        configManager.importFromFile('test-file.xml')
       ).rejects.toThrow('不支持的文件格式: .xml');
     });
   });
