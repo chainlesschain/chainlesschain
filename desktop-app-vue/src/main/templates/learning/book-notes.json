@@ -1,0 +1,42 @@
+{
+  "id": "tpl_learning_book_002",
+  "name": "book_notes",
+  "display_name": "读书笔记",
+  "description": "读书笔记模板，采用康奈尔笔记法，包含书籍信息、章节笔记、核心观点、读后感等",
+  "icon": "📖",
+  "category": "learning",
+  "subcategory": "读书学习",
+  "tags": ["读书笔记", "康奈尔笔记", "知识管理", "阅读"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成读书笔记，要求:\n\n# 《{{bookTitle}}》读书笔记\n\n## 书籍信息\n\n**书名**: {{bookTitle}}\n**作者**: {{author}}\n**出版社**: {{publisher}}\n**出版时间**: {{publishDate}}\n**ISBN**: {{isbn}}\n**页数**: {{pageCount}}\n**阅读时间**: {{readingPeriod}}\n**推荐指数**: {{rating}}/5 ⭐\n\n## 阅读目的\n\n{{readingPurpose}}\n\n## 书籍简介\n\n{{bookSummary}}\n\n## 目录结构\n\n{{tableOfContents}}\n\n## 章节笔记\n\n### 第一章：{{chapter1Title}}\n\n#### 📝 主要内容\n\n{{chapter1Content}}\n\n#### 💡 核心观点\n\n{{chapter1KeyPoints}}\n\n#### 🤔 个人思考\n\n{{chapter1Reflection}}\n\n#### 📌 重点摘录\n\n> {{chapter1Quote}}\n\n---\n\n### 第二章：{{chapter2Title}}\n\n#### 📝 主要内容\n\n{{chapter2Content}}\n\n#### 💡 核心观点\n\n{{chapter2KeyPoints}}\n\n#### 🤔 个人思考\n\n{{chapter2Reflection}}\n\n#### 📌 重点摘录\n\n> {{chapter2Quote}}\n\n---\n\n### 第三章：{{chapter3Title}}\n\n#### 📝 主要内容\n\n{{chapter3Content}}\n\n#### 💡 核心观点\n\n{{chapter3KeyPoints}}\n\n#### 🤔 个人思考\n\n{{chapter3Reflection}}\n\n#### 📌 重点摘录\n\n> {{chapter3Quote}}\n\n---\n\n## 全书总结\n\n### 核心思想\n\n{{coreIdeas}}\n\n### 知识框架\n\n{{knowledgeFramework}}\n\n### 金句摘录\n\n{{goldenQuotes}}\n\n## 读后感\n\n### 启发与收获\n\n{{insights}}\n\n### 实践应用\n\n{{practicalApplication}}\n\n### 待深入研究的问题\n\n{{furtherQuestions}}\n\n## 行动计划\n\n基于本书内容，我计划采取以下行动：\n\n{{actionPlan}}\n\n## 相关阅读\n\n{{relatedBooks}}\n\n## 思维导图\n\n{{mindMap}}\n\n## 笔记标签\n\n{{tags}}\n\n---\n\n**笔记整理人**: {{#if noteAuthor}}{{noteAuthor}}{{else}}读者{{/if}}\n**整理日期**: {{#if noteDate}}{{noteDate}}{{else}}{{currentDate}}{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {"name": "bookTitle", "type": "text", "label": "书名", "default": "示例书籍", "required": true},
+    {"name": "author", "type": "text", "label": "作者", "default": "作者姓名", "required": true},
+    {"name": "publisher", "type": "text", "label": "出版社", "default": "XX出版社", "required": false},
+    {"name": "readingPurpose", "type": "textarea", "label": "阅读目的", "default": "学习XX知识，解决XX问题", "required": true},
+    {"name": "rating", "type": "select", "label": "推荐指数", "default": "5", "required": true, "options": [
+      {"value": "5", "label": "5星-强烈推荐"},
+      {"value": "4", "label": "4星-值得一读"},
+      {"value": "3", "label": "3星-一般"},
+      {"value": "2", "label": "2星-可读可不读"},
+      {"value": "1", "label": "1星-不推荐"}
+    ]},
+    {"name": "chapter1Title", "type": "text", "label": "第一章标题", "default": "章节标题", "required": true}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "《{{bookTitle}}》读书笔记",
+    "children": [
+      {"type": "file", "name": "读书笔记.md", "description": "笔记正文"},
+      {"type": "file", "name": "思维导图.png", "description": "知识框架图"},
+      {"type": "file", "name": "金句摘录.md", "description": "精彩摘录"},
+      {"type": "file", "name": "行动清单.md", "description": "行动计划"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

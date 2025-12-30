@@ -1,0 +1,41 @@
+{
+  "id": "tpl_time_okr_002",
+  "name": "okr_planning",
+  "display_name": "OKR目标管理",
+  "description": "OKR（Objectives and Key Results）目标与关键成果法，用于设定和追踪目标",
+  "icon": "🎯",
+  "category": "time-management",
+  "subcategory": "目标管理",
+  "tags": ["OKR", "目标管理", "KPI", "绩效管理"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成OKR目标管理，要求:\n\n# {{okrTitle}}\n\n**周期**: {{okrPeriod}}\n**制定日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**负责人**: {{owner}}\n\n## OKR概述\n\nOKR（Objectives and Key Results）是一套目标管理框架，由Intel提出，Google发扬光大。\n\n**核心理念**:\n- **O（Objective）**: 目标 - 你想去哪里？定性的、鼓舞人心的\n- **KR（Key Results）**: 关键结果 - 如何知道到了？定量的、可衡量的\n\n**OKR原则**:\n1. 目标要有挑战性（通常60-70%完成度即为成功）\n2. 关键结果要可量化\n3. 公开透明\n4. 定期回顾（周度/月度/季度）\n\n---\n\n## 一、公司级OKR（如适用）\n\n### Objective 1: {{companyO1}}\n\n**关键结果**:\n- KR1: {{companyKR1_1}} - 完成度: {{companyKR1_1Progress}}%\n- KR2: {{companyKR1_2}} - 完成度: {{companyKR1_2Progress}}%\n- KR3: {{companyKR1_3}} - 完成度: {{companyKR1_3Progress}}%\n\n---\n\n## 二、个人OKR\n\n### Objective 1: {{objective1}}\n\n**为什么重要**: {{objective1Why}}\n\n**对齐上级OKR**: {{objective1Alignment}}\n\n#### 关键结果\n\n**KR1**: {{kr1_1}}\n- 初始值: {{kr1_1Baseline}}\n- 目标值: {{kr1_1Target}}\n- 当前进度: {{kr1_1Progress}}%\n- 负责人: {{kr1_1Owner}}\n- 关键行动:\n  - {{kr1_1Action1}}\n  - {{kr1_1Action2}}\n  - {{kr1_1Action3}}\n\n**KR2**: {{kr1_2}}\n- 初始值: {{kr1_2Baseline}}\n- 目标值: {{kr1_2Target}}\n- 当前进度: {{kr1_2Progress}}%\n- 负责人: {{kr1_2Owner}}\n- 关键行动:\n  - {{kr1_2Action1}}\n  - {{kr1_2Action2}}\n\n**KR3**: {{kr1_3}}\n- 初始值: {{kr1_3Baseline}}\n- 目标值: {{kr1_3Target}}\n- 当前进度: {{kr1_3Progress}}%\n- 负责人: {{kr1_3Owner}}\n- 关键行动:\n  - {{kr1_3Action1}}\n  - {{kr1_3Action2}}\n\n**O1整体进度**: {{objective1Progress}}%\n\n---\n\n### Objective 2: {{objective2}}\n\n**为什么重要**: {{objective2Why}}\n\n**对齐上级OKR**: {{objective2Alignment}}\n\n#### 关键结果\n\n**KR1**: {{kr2_1}}\n- 初始值: {{kr2_1Baseline}}\n- 目标值: {{kr2_1Target}}\n- 当前进度: {{kr2_1Progress}}%\n- 关键行动:\n  - {{kr2_1Action1}}\n  - {{kr2_1Action2}}\n\n**KR2**: {{kr2_2}}\n- 初始值: {{kr2_2Baseline}}\n- 目标值: {{kr2_2Target}}\n- 当前进度: {{kr2_2Progress}}%\n- 关键行动:\n  - {{kr2_2Action1}}\n  - {{kr2_2Action2}}\n\n**KR3**: {{kr2_3}}\n- 初始值: {{kr2_3Baseline}}\n- 目标值: {{kr2_3Target}}\n- 当前进度: {{kr2_3Progress}}%\n- 关键行动:\n  - {{kr2_3Action1}}\n  - {{kr2_3Action2}}\n\n**O2整体进度**: {{objective2Progress}}%\n\n---\n\n### Objective 3: {{objective3}}\n\n**为什么重要**: {{objective3Why}}\n\n#### 关键结果\n\n**KR1**: {{kr3_1}}\n- 目标值: {{kr3_1Target}}\n- 当前进度: {{kr3_1Progress}}%\n\n**KR2**: {{kr3_2}}\n- 目标值: {{kr3_2Target}}\n- 当前进度: {{kr3_2Progress}}%\n\n**KR3**: {{kr3_3}}\n- 目标值: {{kr3_3Target}}\n- 当前进度: {{kr3_3Progress}}%\n\n**O3整体进度**: {{objective3Progress}}%\n\n---\n\n## 三、执行计划\n\n### 3.1 本周关键任务\n\n**Week {{currentWeek}}**\n\n| 任务 | 关联KR | 优先级 | 截止日期 | 状态 |\n|------|--------|--------|---------|------|\n| {{weekTask1}} | {{weekTask1KR}} | {{weekTask1Priority}} | {{weekTask1Due}} | {{weekTask1Status}} |\n| {{weekTask2}} | {{weekTask2KR}} | {{weekTask2Priority}} | {{weekTask2Due}} | {{weekTask2Status}} |\n| {{weekTask3}} | {{weekTask3KR}} | {{weekTask3Priority}} | {{weekTask3Due}} | {{weekTask3Status}} |\n\n### 3.2 本月里程碑\n\n{{monthlyMilestones}}\n\n### 3.3 资源需求\n\n{{resourceNeeds}}\n\n---\n\n## 四、进度跟踪\n\n### 4.1 周度更新\n\n#### Week 1\n\n**日期**: {{week1Date}}\n**整体进度**: {{week1Progress}}%\n**本周亮点**: {{week1Highlights}}\n**遇到的挑战**: {{week1Challenges}}\n**下周计划**: {{week1NextWeek}}\n\n#### Week 2\n\n{{week2Update}}\n\n#### Week 3\n\n{{week3Update}}\n\n#### Week 4\n\n{{week4Update}}\n\n### 4.2 月度回顾\n\n{{monthlyReview}}\n\n### 4.3 进度仪表盘\n\n```\nObjective 1: {{objective1}}\n████████████░░░░░░░░ {{objective1Progress}}%\n\nObjective 2: {{objective2}}\n██████████░░░░░░░░░░ {{objective2Progress}}%\n\nObjective 3: {{objective3}}\n███████░░░░░░░░░░░░░ {{objective3Progress}}%\n\n总体进度: {{overallProgress}}%\n```\n\n---\n\n## 五、风险与问题\n\n### 5.1 当前风险\n\n| 风险描述 | 影响OKR | 可能性 | 影响度 | 应对措施 |\n|---------|---------|--------|--------|----------|\n| {{risk1}} | {{risk1OKR}} | {{risk1Probability}} | {{risk1Impact}} | {{risk1Mitigation}} |\n| {{risk2}} | {{risk2OKR}} | {{risk2Probability}} | {{risk2Impact}} | {{risk2Mitigation}} |\n\n### 5.2 待解决问题\n\n{{openIssues}}\n\n### 5.3 需要的支持\n\n{{supportNeeded}}\n\n---\n\n## 六、季度总结（周期结束时填写）\n\n### 6.1 完成情况\n\n| Objective | 完成度 | 评分 |\n|-----------|--------|------|\n| {{objective1}} | {{objective1FinalProgress}}% | {{objective1Score}}/1.0 |\n| {{objective2}} | {{objective2FinalProgress}}% | {{objective2Score}}/1.0 |\n| {{objective3}} | {{objective3FinalProgress}}% | {{objective3Score}}/1.0 |\n\n**整体评分**: {{overallScore}}/1.0\n\n### 6.2 成功因素\n\n{{successFactors}}\n\n### 6.3 失败教训\n\n{{lessonsLearned}}\n\n### 6.4 对下期的建议\n\n{{nextPeriodRecommendations}}\n\n---\n\n## 七、OKR最佳实践\n\n### 7.1 制定OKR的技巧\n\n{{okrWritingTips}}\n\n### 7.2 常见错误\n\n{{commonMistakes}}\n\n### 7.3 评分标准\n\n- **0.0-0.3**: 未达成，需要深度反思\n- **0.4-0.6**: 基本达成，有进步空间\n- **0.7-1.0**: 超预期完成，目标设定可能过低\n\n**理想评分**: 0.6-0.7（说明目标有挑战性且努力可达）\n\n---\n\n## 八、对齐与透明\n\n### 8.1 对齐上级OKR\n\n{{alignmentMap}}\n\n### 8.2 团队成员OKR\n\n{{teamOKRs}}\n\n### 8.3 跨部门协作\n\n{{crossFunctionalAlignment}}\n\n---\n\n## 附录\n\n### A. OKR模板\n\n{{okrTemplate}}\n\n### B. 评分规则\n\n{{scoringRules}}\n\n### C. 参考资源\n\n{{references}}\n\n---\n\n**负责人**: {{#if owner}}{{owner}}{{else}}用户{{/if}}\n**周期**: {{#if okrPeriod}}{{okrPeriod}}{{else}}Q1 2024{{/if}}\n**制定日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {"name": "okrTitle", "type": "text", "label": "OKR标题", "default": "2024 Q1 OKR", "required": true},
+    {"name": "okrPeriod", "type": "select", "label": "OKR周期", "default": "季度", "required": true, "options": [
+      {"value": "季度", "label": "季度（推荐）"},
+      {"value": "半年", "label": "半年"},
+      {"value": "年度", "label": "年度"},
+      {"value": "月度", "label": "月度"}
+    ]},
+    {"name": "owner", "type": "text", "label": "负责人", "default": "用户", "required": true},
+    {"name": "objective1", "type": "text", "label": "目标1", "default": "示例目标", "required": true},
+    {"name": "kr1_1", "type": "text", "label": "O1-KR1", "default": "关键结果1", "required": true},
+    {"name": "kr1_1Target", "type": "text", "label": "O1-KR1目标值", "default": "100", "required": true}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{okrTitle}}",
+    "children": [
+      {"type": "file", "name": "OKR.md", "description": "OKR正文"},
+      {"type": "file", "name": "周报/", "description": "周度更新"},
+      {"type": "file", "name": "进度跟踪.xlsx", "description": "数据表格"},
+      {"type": "file", "name": "季度总结.md", "description": "总结报告"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

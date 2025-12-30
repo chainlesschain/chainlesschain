@@ -1,0 +1,42 @@
+{
+  "id": "tpl_health_weightloss_003",
+  "name": "weight_loss_plan",
+  "display_name": "减肥计划",
+  "description": "科学减肥计划模板，包含减重目标、运动饮食方案、心理调节、进度跟踪等",
+  "icon": "⚖️",
+  "category": "health",
+  "subcategory": "体重管理",
+  "tags": ["减肥", "减重", "减脂", "体重管理"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成减肥计划，要求:\n\n# {{planTitle}}\n\n**开始日期**: {{#if startDate}}{{startDate}}{{else}}{{currentDate}}{{/if}}\n**计划周期**: {{planDuration}}\n**减重目标**: {{weightLossGoal}}\n\n## 一、现状分析\n\n### 1.1 身体数据\n\n**当前体重**: {{currentWeight}} kg\n**目标体重**: {{targetWeight}} kg\n**需减重**: {{totalLoss}} kg\n**身高**: {{height}} cm\n**当前BMI**: {{currentBMI}}\n**目标BMI**: {{targetBMI}}\n**当前体脂率**: {{currentBodyFat}}%\n**目标体脂率**: {{targetBodyFat}}%\n\n### 1.2 肥胖原因分析\n\n{{obesityCauses}}\n\n### 1.3 减肥史\n\n{{weightLossHistory}}\n\n### 1.4 健康评估\n\n{{healthAssessment}}\n\n## 二、减重目标\n\n### 2.1 SMART目标\n\n**Specific**: {{specificGoal}}\n**Measurable**: 减重{{totalLoss}}kg，体脂率降至{{targetBodyFat}}%\n**Achievable**: 每周减重{{weeklyLoss}}kg\n**Relevant**: {{relevantGoal}}\n**Time-bound**: {{planDuration}}内完成\n\n### 2.2 分阶段目标\n\n| 阶段 | 周期 | 减重目标 | 体脂率 | 关键任务 |\n|------|------|----------|--------|----------|\n| 第一阶段 | {{phase1Duration}} | {{phase1Weight}}kg | {{phase1BodyFat}}% | {{phase1Tasks}} |\n| 第二阶段 | {{phase2Duration}} | {{phase2Weight}}kg | {{phase2BodyFat}}% | {{phase2Tasks}} |\n| 第三阶段 | {{phase3Duration}} | {{phase3Weight}}kg | {{phase3BodyFat}}% | {{phase3Tasks}} |\n\n### 2.3 非体重目标\n\n{{nonScaleGoals}}\n\n## 三、饮食方案\n\n### 3.1 热量控制\n\n**基础代谢率(BMR)**: {{bmr}} kcal\n**日常消耗(TDEE)**: {{tdee}} kcal\n**目标摄入**: {{targetCalories}} kcal\n**每日热量缺口**: {{calorieDeficit}} kcal\n\n### 3.2 营养配比\n\n**蛋白质**: {{protein}}g ({{proteinPercent}}%)\n**碳水化合物**: {{carbs}}g ({{carbsPercent}}%)\n**脂肪**: {{fat}}g ({{fatPercent}}%)\n\n### 3.3 饮食原则\n\n{{dietPrinciples}}\n\n### 3.4 推荐食物\n\n**高蛋白低脂**: {{proteinFoods}}\n**复合碳水**: {{complexCarbs}}\n**健康脂肪**: {{healthyFats}}\n**高纤维蔬菜**: {{vegetables}}\n\n### 3.5 禁忌食物\n\n{{forbiddenFoods}}\n\n### 3.6 每日食谱示例\n\n#### 早餐 ({{breakfastCal}} kcal)\n{{breakfast}}\n\n#### 上午加餐 ({{snack1Cal}} kcal)\n{{snack1}}\n\n#### 午餐 ({{lunchCal}} kcal)\n{{lunch}}\n\n#### 下午加餐 ({{snack2Cal}} kcal)\n{{snack2}}\n\n#### 晚餐 ({{dinnerCal}} kcal)\n{{dinner}}\n\n## 四、运动方案\n\n### 4.1 运动目标\n\n**每周运动**: {{weeklyExercise}}\n**运动类型**: {{exerciseType}}\n\n### 4.2 有氧运动\n\n| 运动 | 频率 | 时长 | 强度 | 消耗 |\n|------|------|------|------|------|\n| {{cardio1}} | {{cardio1Freq}} | {{cardio1Duration}} | {{cardio1Intensity}} | {{cardio1Burn}}kcal |\n| {{cardio2}} | {{cardio2Freq}} | {{cardio2Duration}} | {{cardio2Intensity}} | {{cardio2Burn}}kcal |\n| {{cardio3}} | {{cardio3Freq}} | {{cardio3Duration}} | {{cardio3Intensity}} | {{cardio3Burn}}kcal |\n\n### 4.3 力量训练\n\n{{strengthTraining}}\n\n### 4.4 每周运动计划\n\n{{weeklySchedule}}\n\n### 4.5 日常活动\n\n{{dailyActivity}}\n\n## 五、生活习惯\n\n### 5.1 睡眠管理\n\n{{sleepManagement}}\n\n### 5.2 压力管理\n\n{{stressManagement}}\n\n### 5.3 饮水习惯\n\n**每日饮水**: {{dailyWater}}\n**饮水时间**: {{waterTiming}}\n\n### 5.4 作息调整\n\n{{scheduleAdjustment}}\n\n## 六、心理建设\n\n### 6.1 动机强化\n\n**减肥原因**: {{motivation}}\n\n**目标愿景**: {{vision}}\n\n### 6.2 应对策略\n\n**情绪性进食**: {{emotionalEating}}\n**社交压力**: {{socialPressure}}\n**挫折应对**: {{setbackCoping}}\n\n### 6.3 自我激励\n\n{{selfMotivation}}\n\n## 七、进度跟踪\n\n### 7.1 测量方式\n\n**体重**: {{weightMeasure}}\n**体脂率**: {{bodyFatMeasure}}\n**围度**: {{circumferenceMeasure}}\n**照片对比**: {{photoFrequency}}\n\n### 7.2 记录表格\n\n| 日期 | 体重(kg) | 体脂率(%) | 腰围(cm) | 饮食达标 | 运动完成 | 备注 |\n|------|---------|----------|---------|---------|---------|------|\n| | | | | | | |\n\n### 7.3 数据分析\n\n{{dataAnalysis}}\n\n## 八、平台期应对\n\n### 8.1 识别平台期\n\n{{plateauIdentification}}\n\n### 8.2 突破策略\n\n{{plateauBreaking}}\n\n### 8.3 作弊日安排\n\n{{cheatDay}}\n\n## 九、常见问题\n\n### Q1: 减肥速度多快合适？\n\n{{speedQuestion}}\n\n### Q2: 饿了怎么办？\n\n{{hungerQuestion}}\n\n### Q3: 聚餐怎么吃？\n\n{{socialEating}}\n\n### Q4: 经期如何减肥？\n\n{{periodQuestion}}\n\n## 十、风险提示\n\n### 10.1 健康警示\n\n{{healthWarnings}}\n\n### 10.2 不当减肥危害\n\n{{unsafeRisks}}\n\n### 10.3 何时停止\n\n{{stopSignals}}\n\n## 十一、保持体重\n\n### 11.1 维持策略\n\n{{maintenanceStrategy}}\n\n### 11.2 反弹预防\n\n{{reboundPrevention}}\n\n### 11.3 长期习惯\n\n{{longTermHabits}}\n\n## 十二、支持系统\n\n### 12.1 家人支持\n\n{{familySupport}}\n\n### 12.2 减肥伙伴\n\n{{buddySystem}}\n\n### 12.3 专业指导\n\n{{professionalGuidance}}\n\n### 12.4 推荐工具\n\n{{recommendedTools}}\n\n## 行动清单\n\n### 立即行动\n\n- [ ] 购买体重秤和体脂秤\n- [ ] 清理家中不健康食品\n- [ ] 下载饮食记录APP\n- [ ] 拍摄对比照片\n- [ ] {{action1}}\n\n### 本周目标\n\n- [ ] {{weekGoal1}}\n- [ ] {{weekGoal2}}\n- [ ] {{weekGoal3}}\n\n### 本月目标\n\n- [ ] {{monthGoal1}}\n- [ ] {{monthGoal2}}\n- [ ] {{monthGoal3}}\n\n---\n\n**制定人**: {{#if author}}{{author}}{{else}}减肥者{{/if}}\n**指导教练**: {{#if coach}}{{coach}}{{else}}自主减肥{{/if}}\n**监督人**: {{#if supervisor}}{{supervisor}}{{else}}自我监督{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {"name": "planTitle", "type": "text", "label": "计划标题", "default": "我的减肥计划", "required": true},
+    {"name": "planDuration", "type": "select", "label": "计划周期", "default": "3个月", "required": true, "options": [
+      {"value": "1个月", "label": "1个月"},
+      {"value": "3个月", "label": "3个月"},
+      {"value": "6个月", "label": "6个月"},
+      {"value": "1年", "label": "1年"}
+    ]},
+    {"name": "currentWeight", "type": "text", "label": "当前体重(kg)", "default": "70", "required": true},
+    {"name": "targetWeight", "type": "text", "label": "目标体重(kg)", "default": "60", "required": true},
+    {"name": "totalLoss", "type": "text", "label": "需减重(kg)", "default": "10", "required": true},
+    {"name": "weeklyLoss", "type": "text", "label": "每周减重(kg)", "default": "0.5-1", "required": true}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{planTitle}}",
+    "children": [
+      {"type": "file", "name": "减肥计划.md", "description": "计划正文"},
+      {"type": "file", "name": "食谱库/", "description": "低卡食谱"},
+      {"type": "file", "name": "运动记录/", "description": "运动日志"},
+      {"type": "file", "name": "进度对比/", "description": "照片对比"},
+      {"type": "file", "name": "数据跟踪.xlsx", "description": "体重记录"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
