@@ -1,0 +1,42 @@
+{
+  "id": "tpl_legal_disclaimer_006",
+  "name": "disclaimer",
+  "display_name": "免责声明",
+  "description": "免责声明模板，适用于网站、APP、公众号等平台的法律免责条款",
+  "icon": "⚠️",
+  "category": "legal",
+  "subcategory": "声明文书",
+  "tags": ["免责声明", "法律声明", "使用须知", "风险提示"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成免责声明，要求:\n\n# {{platformName}} 免责声明\n\n**生效日期**: {{#if effectiveDate}}{{effectiveDate}}{{else}}{{currentDate}}{{/if}}\n**版本**: {{version}}\n\n## 重要提示\n\n欢迎访问/使用{{platformName}}（以下简称\"本平台\"）。请您在使用本平台前，仔细阅读本免责声明。\n\n**您一旦使用本平台，即视为您已完全理解并接受本声明的所有内容。**如您不同意本声明的任何内容，请立即停止使用本平台。\n\n## 一、平台性质\n\n{{platformNature}}\n\n本平台由{{companyName}}运营。\n\n## 二、内容声明\n\n### 2.1 内容来源\n\n{{contentSource}}\n\n### 2.2 内容准确性\n\n{{accuracyDisclaimer}}\n\n我们不对以下情况承担责任：\n\n- 信息的准确性、完整性、及时性\n- 因信息错误、遗漏造成的损失\n- 第三方内容的真实性\n- 用户基于平台内容做出的决策后果\n\n### 2.3 观点声明\n\n{{opinionDisclaimer}}\n\n## 三、知识产权声明\n\n### 3.1 平台内容版权\n\n{{copyrightStatement}}\n\n### 3.2 用户内容\n\n{{userContentStatement}}\n\n### 3.3 侵权处理\n\n{{infringementHandling}}\n\n## 四、第三方链接\n\n### 4.1 外部链接\n\n本平台可能包含指向第三方网站或服务的链接。我们对第三方网站的内容、隐私政策、安全性不承担任何责任。\n\n### 4.2 广告内容\n\n{{advertisingDisclaimer}}\n\n## 五、服务可用性\n\n### 5.1 服务中断\n\n{{serviceInterruption}}\n\n我们不对以下情况承担责任：\n\n- 系统维护导致的服务暂停\n- 不可抗力（自然灾害、战争、罢工等）\n- 黑客攻击、病毒侵入\n- 电信部门技术调整\n- 政府管制\n- 其他不可预见的情况\n\n### 5.2 数据安全\n\n{{dataSecurityDisclaimer}}\n\n## 六、用户行为\n\n### 6.1 使用责任\n\n用户应对自己在本平台的行为承担全部责任，包括但不限于：\n\n- 发布内容的合法性\n- 遵守平台规则\n- 保管账号安全\n- 承担使用后果\n\n### 6.2 禁止行为\n\n{{prohibitedActivities}}\n\n### 6.3 违规后果\n\n{{violationConsequences}}\n\n## 七、专业建议免责\n\n### 7.1 医疗健康\n\n{{medicalDisclaimer}}\n\n### 7.2 法律咨询\n\n{{legalAdviceDisclaimer}}\n\n### 7.3 金融投资\n\n{{financialDisclaimer}}\n\n### 7.4 其他专业领域\n\n{{otherProfessionalDisclaimer}}\n\n## 八、隐私保护\n\n我们重视用户隐私保护，具体请参见《{{privacyPolicyName}}》。\n\n## 九、未成年人保护\n\n{{minorProtection}}\n\n## 十、责任限制\n\n### 10.1 损害赔偿限制\n\n在法律允许的最大范围内，我们对以下损失不承担责任：\n\n- 间接损失、附带损失、惩罚性损失\n- 利润损失、商誉损失\n- 数据丢失\n- 其他无形损失\n\n### 10.2 赔偿上限\n\n{{liabilityLimit}}\n\n## 十一、适用法律与争议解决\n\n### 11.1 适用法律\n\n本声明适用中华人民共和国法律（不含冲突法）。\n\n### 11.2 管辖法院\n\n{{jurisdiction}}\n\n## 十二、声明修改\n\n我们有权随时修改本声明，修改后的声明一经在本平台公布即生效。您继续使用本平台，视为接受修改后的声明。\n\n## 十三、其他条款\n\n### 13.1 可分割性\n\n如本声明任何条款被认定为无效或不可执行，不影响其他条款的效力。\n\n### 13.2 完整协议\n\n本声明与《用户协议》《隐私政策》等文件共同构成您与我们之间的完整协议。\n\n### 13.3 解释权\n\n{{interpretationRight}}\n\n## 联系我们\n\n如您对本声明有任何疑问，请通过以下方式联系我们：\n\n**运营主体**: {{companyName}}\n**注册地址**: {{companyAddress}}\n**联系邮箱**: {{contactEmail}}\n{{#if contactPhone}}**联系电话**: {{contactPhone}}{{/if}}\n\n---\n\n**最后更新日期**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {"name": "platformName", "type": "text", "label": "平台名称", "default": "示例网站", "required": true},
+    {"name": "platformType", "type": "select", "label": "平台类型", "default": "信息平台", "required": true, "options": [
+      {"value": "信息平台", "label": "信息/资讯平台"},
+      {"value": "电商平台", "label": "电商平台"},
+      {"value": "社交平台", "label": "社交平台"},
+      {"value": "工具平台", "label": "工具/服务平台"},
+      {"value": "其他", "label": "其他"}
+    ]},
+    {"name": "companyName", "type": "text", "label": "公司名称", "default": "XX科技有限公司", "required": true},
+    {"name": "version", "type": "text", "label": "声明版本", "default": "1.0", "required": true},
+    {"name": "contactEmail", "type": "text", "label": "联系邮箱", "default": "contact@example.com", "required": true},
+    {"name": "companyAddress", "type": "text", "label": "注册地址", "default": "XX市XX区XX路XX号", "required": true},
+    {"name": "jurisdiction", "type": "text", "label": "管辖法院", "default": "公司注册地人民法院", "required": true}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{platformName}}_免责声明",
+    "children": [
+      {"type": "file", "name": "免责声明.md", "description": "免责声明正文"},
+      {"type": "file", "name": "用户协议.md", "description": "用户协议"},
+      {"type": "file", "name": "隐私政策.md", "description": "隐私政策"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

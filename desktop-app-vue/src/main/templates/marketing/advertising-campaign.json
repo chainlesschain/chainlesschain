@@ -1,0 +1,34 @@
+{
+  "id": "tpl_marketing_ads_004",
+  "name": "advertising_campaign",
+  "display_name": "广告投放计划",
+  "description": "广告投放计划模板,包含渠道选择、预算分配、素材策划、效果监控等",
+  "icon": "📢",
+  "category": "marketing",
+  "subcategory": "广告投放",
+  "tags": ["广告投放", "信息流广告", "SEM", "投放策略"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成广告投放计划，要求:\n\n# {{campaignName}} 广告投放计划\n\n## 1. 投放目标\n\n**投放目的**: {{objective}}\n**目标受众**: {{targetAudience}}\n**投放周期**: {{duration}}\n**总预算**: {{totalBudget}}\n**目标ROI**: {{targetROI}}\n\n## 2. 渠道策略\n\n| 渠道 | 预算 | 预期曝光 | 预期点击 | 预期转化 |\n|------|------|----------|----------|----------|\n| {{channel1}} | {{budget1}} | {{impression1}} | {{click1}} | {{conversion1}} |\n| {{channel2}} | {{budget2}} | {{impression2}} | {{click2}} | {{conversion2}} |\n| {{channel3}} | {{budget3}} | {{impression3}} | {{click3}} | {{conversion3}} |\n\n## 3. 素材策划\n\n### 3.1 创意方向\n{{creativeDirection}}\n\n### 3.2 素材要求\n- 图片尺寸: {{imageSize}}\n- 视频时长: {{videoDuration}}\n- 文案字数: {{copyLength}}\n\n### 3.3 A/B测试\n- 方案A: {{planA}}\n- 方案B: {{planB}}\n\n## 4. 投放设置\n\n**投放时段**: {{schedule}}\n**地域定向**: {{geoTargeting}}\n**人群定向**: {{audienceTargeting}}\n**出价策略**: {{biddingStrategy}}\n\n## 5. 数据监控\n\n**核心指标**:\n- 曝光量(Impression): {{impressionMetric}}\n- 点击率(CTR): {{ctrMetric}}\n- 转化率(CVR): {{cvrMetric}}\n- 成本(CPA): {{cpaMetric}}\n- ROI: {{roiMetric}}\n\n## 6. 优化策略\n\n{{optimizationStrategy}}\n\n---\n\n**投放负责人**: {{#if adManager}}{{adManager}}{{else}}广告团队{{/if}}\n**日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {"name": "campaignName", "type": "text", "label": "campaign名称", "default": "Q1广告投放", "required": true},
+    {"name": "objective", "type": "select", "label": "投放目的", "default": "品牌曝光", "required": true, "options": [{"value": "品牌曝光", "label": "品牌曝光"}, {"value": "效果转化", "label": "效果转化"}, {"value": "APP下载", "label": "APP下载"}]},
+    {"name": "totalBudget", "type": "text", "label": "总预算", "default": "50万元", "required": true},
+    {"name": "targetROI", "type": "text", "label": "目标ROI", "default": "1:3", "required": true},
+    {"name": "channel1", "type": "text", "label": "渠道1", "default": "百度搜索", "required": true}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{campaignName}}_广告投放",
+    "children": [
+      {"type": "file", "name": "投放计划.md", "description": "投放方案"},
+      {"type": "file", "name": "素材包.zip", "description": "广告素材"},
+      {"type": "file", "name": "数据报告.xlsx", "description": "投放数据"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

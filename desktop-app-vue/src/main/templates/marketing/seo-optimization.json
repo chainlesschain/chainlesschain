@@ -1,0 +1,35 @@
+{
+  "id": "tpl_marketing_seo_002",
+  "name": "seo_optimization",
+  "display_name": "SEO优化方案",
+  "description": "网站SEO优化方案模板,包含关键词策略、内容优化、外链建设、技术优化等",
+  "icon": "🔍",
+  "category": "marketing",
+  "subcategory": "SEO优化",
+  "tags": ["SEO", "搜索优化", "关键词", "网站优化"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成SEO优化方案，要求:\n\n# {{websiteName}} SEO优化方案\n\n## 1. 网站现状分析\n\n**网站URL**: {{websiteUrl}}\n**当前排名**: {{currentRanking}}\n**月访问量**: {{monthlyVisits}}\n**跳出率**: {{bounceRate}}\n**平均停留时间**: {{avgDuration}}\n\n## 2. 关键词策略\n\n### 2.1 核心关键词\n{{coreKeywords}}\n\n### 2.2 长尾关键词\n{{longtailKeywords}}\n\n### 2.3 竞争对手关键词\n{{competitorKeywords}}\n\n## 3. 内容优化\n\n### 3.1 标题优化(Title)\n- 包含核心关键词\n- 长度控制在60字符内\n- 吸引用户点击\n\n### 3.2 描述优化(Description)\n- 包含关键词和长尾词\n- 长度150-160字符\n- 突出页面价值\n\n### 3.3 内容质量\n{{contentQuality}}\n\n## 4. 技术优化\n\n### 4.1 页面速度\n- 压缩图片\n- 启用CDN\n- 代码压缩\n- 缓存优化\n\n### 4.2 移动适配\n- 响应式设计\n- 移动端优化\n- AMP支持\n\n### 4.3 结构化数据\n- Schema标记\n- 面包屑导航\n- 站点地图\n\n## 5. 外链建设\n\n**目标**: {{backlinkTarget}}\n\n**策略**:\n- 高质量内容营销\n- 行业网站合作\n- 社交媒体分享\n- 客座博客\n\n## 6. 执行计划\n\n| 月份 | 重点任务 | 目标 |\n|------|----------|------|\n| 第1月 | {{month1Task}} | {{month1Goal}} |\n| 第2月 | {{month2Task}} | {{month2Goal}} |\n| 第3月 | {{month3Task}} | {{month3Goal}} |\n\n## 7. 效果预期\n\n- 3个月排名提升至: {{threeMonthRanking}}\n- 6个月排名提升至: {{sixMonthRanking}}\n- 流量增长: {{trafficGrowth}}\n\n---\n\n**SEO专员**: {{#if seoSpecialist}}{{seoSpecialist}}{{else}}SEO团队{{/if}}\n**日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {"name": "websiteName", "type": "text", "label": "网站名称", "default": "示例网站", "required": true},
+    {"name": "websiteUrl", "type": "text", "label": "网站URL", "default": "https://example.com", "required": true},
+    {"name": "coreKeywords", "type": "textarea", "label": "核心关键词", "default": "关键词1, 关键词2, 关键词3", "required": true},
+    {"name": "currentRanking", "type": "text", "label": "当前排名", "default": "50-100名", "required": true},
+    {"name": "threeMonthRanking", "type": "text", "label": "3个月目标排名", "default": "20-30名", "required": true},
+    {"name": "trafficGrowth", "type": "text", "label": "流量增长目标", "default": "提升200%", "required": false}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{websiteName}}_SEO方案",
+    "children": [
+      {"type": "file", "name": "SEO方案.md", "description": "SEO方案"},
+      {"type": "file", "name": "关键词库.xlsx", "description": "关键词"},
+      {"type": "file", "name": "数据监控.xlsx", "description": "效果跟踪"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

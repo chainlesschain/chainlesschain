@@ -1,0 +1,47 @@
+{
+  "id": "tpl_legal_auth_004",
+  "name": "authorization",
+  "display_name": "授权委托书",
+  "description": "授权委托书模板，适用于法律事务、商务代理、行政办理等授权场景",
+  "icon": "✍️",
+  "category": "legal",
+  "subcategory": "授权文书",
+  "tags": ["授权书", "委托书", "代理", "法律授权"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成授权委托书，要求:\n\n# {{authorizationTitle}}\n\n**编号**: {{authorizationNumber}}\n**出具日期**: {{#if issueDate}}{{issueDate}}{{else}}{{currentDate}}{{/if}}\n\n## 委托人（授权方）\n\n{{#if principalType}}{{#eq principalType \"企业\"}}**名称**: {{principalName}}\n**法定代表人**: {{principalLegalRep}}\n**统一社会信用代码**: {{principalCode}}\n**地址**: {{principalAddress}}\n**联系方式**: {{principalContact}}{{else}}**姓名**: {{principalName}}\n**性别**: {{principalGender}}\n**身份证号**: {{principalID}}\n**住址**: {{principalAddress}}\n**联系方式**: {{principalContact}}{{/eq}}{{/if}}\n\n## 受托人（被授权方）\n\n{{#if agentType}}{{#eq agentType \"企业\"}}**名称**: {{agentName}}\n**法定代表人**: {{agentLegalRep}}\n**统一社会信用代码**: {{agentCode}}\n**地址**: {{agentAddress}}\n**联系方式**: {{agentContact}}{{else}}**姓名**: {{agentName}}\n**性别**: {{agentGender}}\n**身份证号**: {{agentID}}\n**住址**: {{agentAddress}}\n**联系方式**: {{agentContact}}{{/eq}}{{/if}}\n\n## 授权事项\n\n现委托{{agentName}}为本人/本单位的合法代理人，就以下事项行使代理权：\n\n### 一、授权范围\n\n{{authorizationScope}}\n\n### 二、具体权限\n\n受托人在授权范围内有权：\n\n{{specificAuthority}}\n\n### 三、授权期限\n\n**授权有效期**: {{authorizationPeriod}}\n\n自{{startDate}}起至{{endDate}}止。\n\n{{#if earlyTermination}}**提前终止条件**: {{earlyTermination}}{{/if}}\n\n## 法律效力\n\n### 1. 代理效力\n\n受托人在授权范围内以委托人名义实施的法律行为，其法律后果由委托人承担。\n\n### 2. 转委托\n\n{{subAuthorizationProvision}}\n\n### 3. 撤销与变更\n\n{{revocationProvision}}\n\n## 其他约定\n\n### 1. 费用承担\n\n{{expenseProvision}}\n\n### 2. 责任承担\n\n{{liabilityProvision}}\n\n### 3. 争议解决\n\n{{disputeResolution}}\n\n## 附件\n\n{{#if attachments}}{{attachments}}{{else}}1. 委托人身份证明复印件\n2. 受托人身份证明复印件{{/if}}\n\n## 特别声明\n\n{{specialStatement}}\n\n---\n\n**委托人（签字/盖章）**: _________________\n\n{{#if principalType}}{{#eq principalType \"企业\"}}**法定代表人签字**: _________________{{/eq}}{{/if}}\n\n**日期**: _________________\n\n\n**受托人（签字/盖章）**: _________________\n\n**日期**: _________________\n\n---\n\n**见证人（如有）**: _________________\n\n**日期**: _________________",
+  "variables_schema": [
+    {"name": "authorizationTitle", "type": "text", "label": "授权书标题", "default": "授权委托书", "required": true},
+    {"name": "authorizationType", "type": "select", "label": "授权类型", "default": "一般授权", "required": true, "options": [
+      {"value": "一般授权", "label": "一般授权"},
+      {"value": "特别授权", "label": "特别授权（诉讼）"},
+      {"value": "商务代理", "label": "商务代理"},
+      {"value": "行政办理", "label": "行政事务办理"}
+    ]},
+    {"name": "principalName", "type": "text", "label": "委托人名称/姓名", "default": "张三/XX公司", "required": true},
+    {"name": "principalType", "type": "select", "label": "委托人类型", "default": "个人", "required": true, "options": [
+      {"value": "个人", "label": "个人"},
+      {"value": "企业", "label": "企业"}
+    ]},
+    {"name": "agentName", "type": "text", "label": "受托人名称/姓名", "default": "李四/XX律所", "required": true},
+    {"name": "agentType", "type": "select", "label": "受托人类型", "default": "个人", "required": true, "options": [
+      {"value": "个人", "label": "个人"},
+      {"value": "企业", "label": "企业"}
+    ]},
+    {"name": "authorizationScope", "type": "textarea", "label": "授权范围", "default": "代理办理XX事项", "required": true},
+    {"name": "authorizationPeriod", "type": "text", "label": "授权期限", "default": "一年", "required": true}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{authorizationTitle}}",
+    "children": [
+      {"type": "file", "name": "授权委托书.md", "description": "授权书正文"},
+      {"type": "file", "name": "身份证明材料.pdf", "description": "身份证明"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

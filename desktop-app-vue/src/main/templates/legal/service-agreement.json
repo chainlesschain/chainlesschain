@@ -1,0 +1,40 @@
+{
+  "id": "tpl_legal_service_002",
+  "name": "service_agreement",
+  "display_name": "服务协议",
+  "description": "互联网服务协议模板，适用于APP、网站、SaaS平台的用户服务协议",
+  "icon": "📱",
+  "category": "legal",
+  "subcategory": "网络协议",
+  "tags": ["服务协议", "用户协议", "使用条款", "互联网"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成服务协议，要求:\n\n# {{serviceName}} 用户服务协议\n\n**生效日期**: {{#if effectiveDate}}{{effectiveDate}}{{else}}{{currentDate}}{{/if}}\n**版本号**: {{version}}\n\n## 特别提示\n\n欢迎您使用{{serviceName}}！\n\n在使用{{serviceName}}服务之前，请您务必审慎阅读、充分理解本协议各条款内容，特别是**免除或限制责任的条款、争议解决和法律适用条款**。\n\n{{#if keyPoints}}{{keyPoints}}{{/if}}\n\n如您不同意本协议的任何内容，请勿注册、登录或使用本服务。您点击\"同意\"按钮或实际使用本服务，即视为您已阅读并同意受本协议约束。\n\n## 第一条 定义与解释\n\n1.1 **{{serviceName}}**: 指由{{companyName}}运营的{{serviceDescription}}。\n\n1.2 **用户**: 指注册、登录、使用本服务的个人或组织。\n\n1.3 **账号**: 指用户在本服务中注册的账户。\n\n## 第二条 账号注册与管理\n\n### 2.1 注册资格\n\n{{registrationRequirement}}\n\n### 2.2 注册信息\n\n用户应提供真实、准确、完整的注册信息，并及时更新。如因提供虚假信息造成的损失，由用户自行承担。\n\n### 2.3 账号安全\n\n- 用户应妥善保管账号和密码\n- 不得将账号转让、出借给他人使用\n- 如发现账号被盗用，应立即通知我们\n\n### 2.4 账号注销\n\n{{accountDeletion}}\n\n## 第三条 服务内容\n\n### 3.1 服务范围\n\n{{serviceScope}}\n\n### 3.2 服务变更\n\n我们有权根据业务调整随时变更、中断或终止部分或全部服务，恕不另行通知。\n\n### 3.3 收费服务\n\n{{pricingModel}}\n\n## 第四条 用户行为规范\n\n### 4.1 用户承诺\n\n用户在使用本服务时，应遵守以下规范：\n\n{{userObligations}}\n\n### 4.2 禁止行为\n\n用户不得从事以下行为：\n\n- 发布违法违规信息\n- 侵犯他人知识产权\n- 传播病毒、恶意代码\n- 利用技术手段破坏服务\n- 批量注册账号、刷量作弊\n- 其他违反法律法规或本协议的行为\n\n### 4.3 违规处理\n\n如用户违反上述规定，我们有权采取以下措施：\n\n- 删除违规内容\n- 暂停或终止服务\n- 封禁账号\n- 追究法律责任\n\n## 第五条 知识产权\n\n### 5.1 平台权利\n\n{{platformIP}}\n\n### 5.2 用户内容\n\n{{userContentIP}}\n\n## 第六条 隐私保护\n\n我们重视用户隐私保护，具体请参见《{{privacyPolicyName}}》。\n\n主要内容包括：\n- 我们收集哪些信息\n- 如何使用您的信息\n- 如何保护您的信息\n- 您的权利\n\n## 第七条 免责声明\n\n### 7.1 不可抗力\n\n因不可抗力（自然灾害、战争、政府行为等）导致服务中断或数据丢失的，我们不承担责任。\n\n### 7.2 技术限制\n\n{{technicalDisclaimer}}\n\n### 7.3 第三方服务\n\n本服务可能包含第三方链接或服务，我们对第三方服务不承担责任。\n\n## 第八条 违约责任\n\n{{breachLiability}}\n\n## 第九条 协议修改\n\n我们有权根据法律法规变化或业务需要修改本协议。修改后的协议将在本服务中公布，并自公布之日起生效。\n\n如您不接受修改后的协议，您有权停止使用本服务；您继续使用本服务，视为接受修改后的协议。\n\n## 第十条 争议解决\n\n### 10.1 适用法律\n\n本协议适用中华人民共和国法律（不含冲突法）。\n\n### 10.2 争议解决\n\n{{disputeResolution}}\n\n## 第十一条 其他条款\n\n### 11.1 可分割性\n\n如本协议任何条款被认定为无效或不可执行，不影响其他条款的效力。\n\n### 11.2 完整协议\n\n本协议构成双方就本服务的完整协议，取代此前的任何口头或书面协议。\n\n### 11.3 联系方式\n\n**运营主体**: {{companyName}}\n**联系邮箱**: {{contactEmail}}\n**联系地址**: {{companyAddress}}\n\n---\n\n**最后更新日期**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
+  "variables_schema": [
+    {"name": "serviceName", "type": "text", "label": "服务名称", "default": "示例APP", "required": true},
+    {"name": "companyName", "type": "text", "label": "公司名称", "default": "XX科技有限公司", "required": true},
+    {"name": "serviceDescription", "type": "text", "label": "服务描述", "default": "移动应用程序及相关服务", "required": true},
+    {"name": "version", "type": "text", "label": "协议版本", "default": "1.0", "required": true},
+    {"name": "contactEmail", "type": "text", "label": "联系邮箱", "default": "service@example.com", "required": true},
+    {"name": "pricingModel", "type": "select", "label": "收费模式", "default": "免费", "required": true, "options": [
+      {"value": "免费", "label": "完全免费"},
+      {"value": "增值服务", "label": "基础免费+增值付费"},
+      {"value": "订阅制", "label": "订阅制"},
+      {"value": "按需付费", "label": "按需付费"}
+    ]}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{serviceName}}_服务协议",
+    "children": [
+      {"type": "file", "name": "服务协议.md", "description": "用户服务协议"},
+      {"type": "file", "name": "隐私政策.md", "description": "隐私政策"},
+      {"type": "file", "name": "版本历史.md", "description": "协议版本记录"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}

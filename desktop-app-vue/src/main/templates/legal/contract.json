@@ -1,0 +1,46 @@
+{
+  "id": "tpl_legal_contract_001",
+  "name": "contract",
+  "display_name": "合同模板",
+  "description": "通用合同模板，包含买卖合同、服务合同、租赁合同等多种类型",
+  "icon": "📄",
+  "category": "legal",
+  "subcategory": "合同文书",
+  "tags": ["合同", "协议", "法律文件", "商务合同"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成合同，要求:\n\n# {{contractTitle}}\n\n**合同编号**: {{contractNumber}}\n**签订日期**: {{#if signDate}}{{signDate}}{{else}}{{currentDate}}{{/if}}\n**签订地点**: {{signPlace}}\n\n## 甲方（{{partyARole}}）\n\n**名称**: {{partyAName}}\n**法定代表人**: {{partyALegalRep}}\n**地址**: {{partyAAddress}}\n**联系电话**: {{partyAPhone}}\n**统一社会信用代码**: {{partyACode}}\n\n## 乙方（{{partyBRole}}）\n\n**名称**: {{partyBName}}\n**法定代表人**: {{partyBLegalRep}}\n**地址**: {{partyBAddress}}\n**联系电话**: {{partyBPhone}}\n**统一社会信用代码**: {{partyBCode}}\n\n## 鉴于\n\n{{recitals}}\n\n经甲乙双方友好协商，本着平等互利、诚实信用的原则，就{{contractSubject}}事宜达成如下协议：\n\n## 第一条 合同标的\n\n{{article1}}\n\n## 第二条 {{#if contractType}}{{#eq contractType \"服务合同\"}}服务内容与标准{{else}}{{#eq contractType \"买卖合同\"}}产品规格与数量{{else}}合同内容{{/eq}}{{/eq}}{{else}}合同内容{{/if}}\n\n{{article2}}\n\n## 第三条 合同金额与支付方式\n\n**合同总金额**: {{totalAmount}}\n\n**支付方式**:\n{{paymentTerms}}\n\n## 第四条 履行期限与地点\n\n**履行期限**: {{performancePeriod}}\n**履行地点**: {{performancePlace}}\n**交付方式**: {{deliveryMethod}}\n\n## 第五条 质量标准与验收\n\n{{qualityStandards}}\n\n## 第六条 双方的权利与义务\n\n### 6.1 甲方的权利与义务\n\n{{partyARights}}\n\n### 6.2 乙方的权利与义务\n\n{{partyBRights}}\n\n## 第七条 保密条款\n\n{{confidentiality}}\n\n## 第八条 知识产权\n\n{{intellectualProperty}}\n\n## 第九条 违约责任\n\n{{breachLiability}}\n\n## 第十条 不可抗力\n\n因不可抗力导致合同无法履行的，遭受不可抗力的一方应及时通知对方，并在合理期限内提供相关证明。双方可根据不可抗力的影响，协商决定是否解除合同、部分免除履行义务或延期履行。\n\n## 第十一条 争议解决\n\n**争议解决方式**: {{disputeResolution}}\n\n凡因本合同引起的或与本合同有关的任何争议，双方应友好协商解决；协商不成的，任何一方均可向{{disputeJurisdiction}}提起诉讼。\n\n## 第十二条 合同的变更与解除\n\n{{amendmentTerms}}\n\n## 第十三条 其他约定\n\n{{otherTerms}}\n\n## 第十四条 合同生效与份数\n\n本合同自{{effectiveCondition}}之日起生效。\n\n本合同一式{{copies}}份，甲方执{{partyACopies}}份，乙方执{{partyBCopies}}份，具有同等法律效力。\n\n---\n\n**甲方（盖章）**: _________________\n\n**法定代表人/授权代表（签字）**: _________________\n\n**日期**: _________________\n\n\n**乙方（盖章）**: _________________\n\n**法定代表人/授权代表（签字）**: _________________\n\n**日期**: _________________",
+  "variables_schema": [
+    {"name": "contractTitle", "type": "text", "label": "合同名称", "default": "XX合同", "required": true},
+    {"name": "contractType", "type": "select", "label": "合同类型", "default": "服务合同", "required": true, "options": [
+      {"value": "服务合同", "label": "服务合同"},
+      {"value": "买卖合同", "label": "买卖合同"},
+      {"value": "租赁合同", "label": "租赁合同"},
+      {"value": "技术合同", "label": "技术合同"},
+      {"value": "其他", "label": "其他"}
+    ]},
+    {"name": "contractNumber", "type": "text", "label": "合同编号", "default": "HT2024001", "required": true},
+    {"name": "contractSubject", "type": "text", "label": "合同标的", "default": "XX项目", "required": true},
+    {"name": "partyAName", "type": "text", "label": "甲方名称", "default": "XX公司", "required": true},
+    {"name": "partyBName", "type": "text", "label": "乙方名称", "default": "XX公司", "required": true},
+    {"name": "totalAmount", "type": "text", "label": "合同金额", "default": "人民币XX元", "required": true},
+    {"name": "paymentTerms", "type": "textarea", "label": "支付方式", "default": "签订合同后X日内支付", "required": true},
+    {"name": "disputeResolution", "type": "select", "label": "争议解决方式", "default": "诉讼", "required": true, "options": [
+      {"value": "诉讼", "label": "诉讼"},
+      {"value": "仲裁", "label": "仲裁"}
+    ]}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "{{contractTitle}}",
+    "children": [
+      {"type": "file", "name": "合同正文.md", "description": "合同正文"},
+      {"type": "file", "name": "附件清单.md", "description": "附件列表"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
