@@ -889,17 +889,33 @@ class ExtendedTools12 {
      * Markdown笔记编辑和管理
      */
     functionCaller.registerTool('note_editor', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        // 转换参数格式以适配真实实现
+        const realParams = {
+          operation: params.action || params.operation,
+          note_path: params.note_path || params.note?.file_path,
+          content: params.content || params.note?.content,
+          title: params.title || params.note?.title,
+          tags: params.tags || params.note?.tags || [],
+          metadata: params.metadata || {}
+        };
+        return await realImpl.editNoteReal(realParams);
+      }
+
+      // 否则使用模拟实现
       const {
         action,
         note
       } = params;
 
       try {
+        const crypto = require('crypto');
         const actionHandlers = {
           'create': async () => {
             const noteId = crypto.randomBytes(8).toString('hex');
             return {
-              action: 'created',
+              operation: 'create',
               note_id: noteId,
               note: {
                 id: noteId,
@@ -914,7 +930,7 @@ class ExtendedTools12 {
           },
           'read': async () => {
             return {
-              action: 'read',
+              operation: 'read',
               note_id: note.id,
               note: {
                 id: note.id,
@@ -930,7 +946,7 @@ class ExtendedTools12 {
           },
           'update': async () => {
             return {
-              action: 'updated',
+              operation: 'update',
               note_id: note.id,
               changes: Object.keys(note).filter(k => k !== 'id'),
               updated_at: new Date().toISOString()
@@ -938,8 +954,20 @@ class ExtendedTools12 {
           },
           'delete': async () => {
             return {
-              action: 'deleted',
-              note_id: note.id
+              operation: 'delete',
+              note_id: note.id,
+              message: '笔记已删除'
+            };
+          },
+          'list': async () => {
+            return {
+              operation: 'list',
+              directory: note?.folder || 'default',
+              total_notes: 5,
+              notes: [
+                { title: '示例笔记1', tags: ['work'], created_at: '2024-01-15' },
+                { title: '示例笔记2', tags: ['personal'], created_at: '2024-01-16' }
+              ]
             };
           }
         };
@@ -1039,6 +1067,12 @@ class ExtendedTools12 {
      * 生成强密码并评估强度
      */
     functionCaller.registerTool('password_generator_advanced', async (params) => {
+      // 如果启用真实实现，使用真实功能
+      if (USE_REAL_IMPLEMENTATION && realImpl) {
+        return realImpl.generatePasswordAdvancedReal(params);
+      }
+
+      // 否则使用模拟实现
       const {
         length = 16,
         include_uppercase = true,
@@ -1047,7 +1081,8 @@ class ExtendedTools12 {
         include_symbols = true,
         exclude_ambiguous = true,
         custom_characters,
-        memorable = false
+        memorable = false,
+        count = 1
       } = params;
 
       try {
@@ -1070,48 +1105,60 @@ class ExtendedTools12 {
         }
 
         // 生成密码
-        let password = '';
-        if (memorable) {
-          // 生成易记忆的密码（单词组合）
-          const words = ['Rainbow', 'Dragon', 'Castle', 'Phoenix', 'Thunder'];
-          password = words[Math.floor(Math.random() * words.length)] +
-                    Math.floor(Math.random() * 100) +
-                    '!@#'[Math.floor(Math.random() * 3)];
-        } else {
-          for (let i = 0; i < length; i++) {
-            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        const passwords = [];
+        for (let n = 0; n < count; n++) {
+          let password = '';
+          if (memorable) {
+            // 生成易记忆的密码（单词组合）
+            const words = ['Rainbow', 'Dragon', 'Castle', 'Phoenix', 'Thunder'];
+            password = words[Math.floor(Math.random() * words.length)] +
+                      Math.floor(Math.random() * 100) +
+                      '!@#'[Math.floor(Math.random() * 3)];
+          } else {
+            for (let i = 0; i < length; i++) {
+              password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
           }
+
+          // 评估密码强度
+          let strength = 0;
+          if (password.length >= 12) strength += 25;
+          if (password.length >= 16) strength += 25;
+          if (/[a-z]/.test(password)) strength += 10;
+          if (/[A-Z]/.test(password)) strength += 10;
+          if (/[0-9]/.test(password)) strength += 15;
+          if (/[^a-zA-Z0-9]/.test(password)) strength += 15;
+
+          const strengthLevel = strength >= 75 ? 'very_strong' :
+                               strength >= 50 ? 'strong' :
+                               strength >= 25 ? 'medium' : 'weak';
+
+          passwords.push({
+            password,
+            length: password.length,
+            strength: strengthLevel,
+            strength_score: strength,
+            has_uppercase: /[A-Z]/.test(password),
+            has_lowercase: /[a-z]/.test(password),
+            has_numbers: /[0-9]/.test(password),
+            has_symbols: /[^a-zA-Z0-9]/.test(password),
+            entropy: Math.log2(Math.pow(chars.length, length)).toFixed(2)
+          });
         }
-
-        // 评估密码强度
-        let strength = 0;
-        if (password.length >= 12) strength += 25;
-        if (password.length >= 16) strength += 25;
-        if (/[a-z]/.test(password)) strength += 10;
-        if (/[A-Z]/.test(password)) strength += 10;
-        if (/[0-9]/.test(password)) strength += 15;
-        if (/[^a-zA-Z0-9]/.test(password)) strength += 15;
-
-        const strengthLevel = strength >= 75 ? 'very_strong' :
-                             strength >= 50 ? 'strong' :
-                             strength >= 25 ? 'medium' : 'weak';
-
-        const entropyBits = Math.log2(Math.pow(chars.length, length));
 
         return {
           success: true,
-          password: password,
-          length: password.length,
-          strength: {
-            score: strength,
-            level: strengthLevel,
-            entropy_bits: entropyBits.toFixed(2)
-          },
-          character_types: {
-            uppercase: /[A-Z]/.test(password),
-            lowercase: /[a-z]/.test(password),
-            numbers: /[0-9]/.test(password),
-            symbols: /[^a-zA-Z0-9]/.test(password)
+          passwords: count === 1 ? passwords[0].password : passwords.map(p => p.password),
+          password_details: passwords,
+          count,
+          charset_size: chars.length,
+          settings: {
+            length,
+            include_uppercase,
+            include_lowercase,
+            include_numbers,
+            include_symbols,
+            exclude_ambiguous
           }
         };
 
