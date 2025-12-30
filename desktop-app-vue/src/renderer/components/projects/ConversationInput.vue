@@ -68,10 +68,12 @@
           />
 
           <!-- 语音输入按钮 -->
-          <VoiceInput
-            @result="handleVoiceResult"
-            @error="handleVoiceError"
-          />
+          <div class="voice-input-wrapper">
+            <VoiceInput
+              @result="handleVoiceResult"
+              @error="handleVoiceError"
+            />
+          </div>
 
           <!-- 已选附件展示 -->
           <div v-if="attachments.length > 0" class="attachments-preview">
@@ -520,6 +522,10 @@ defineExpose({
 .toolbar-btn {
   color: #6B7280;
   padding: 4px 8px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   .icon {
     font-size: 18px;
@@ -529,6 +535,42 @@ defineExpose({
   &:hover {
     color: #1677FF;
     background: #F0F5FF;
+  }
+}
+
+.voice-input-wrapper {
+  display: inline-flex;
+  align-items: center;
+  
+  :deep(.voice-button) {
+    color: #6B7280;
+    padding: 4px 8px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    
+    // 隐藏按钮文字，只显示图标
+    font-size: 0;
+    
+    .anticon {
+      font-size: 18px;
+    }
+    
+    &:hover {
+      color: #1677FF;
+      background: #F0F5FF;
+    }
+    
+    &.ant-btn-primary {
+      animation: none;
+      background: transparent;
+      color: #1677FF;
+      
+      &:hover {
+        background: #F0F5FF;
+      }
+    }
   }
 }
 

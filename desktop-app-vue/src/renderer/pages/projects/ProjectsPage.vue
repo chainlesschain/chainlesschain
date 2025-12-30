@@ -8,19 +8,10 @@
       <!-- 欢迎头部 (总是显示，优化问候语) -->
       <div class="welcome-header">
         <h1 class="welcome-title">{{ greetingMessage }}</h1>
-        <div class="welcome-suggestion" @click="handleSuggestionClick">
-          <BulbOutlined />
-          <span>{{ currentSuggestion }}</span>
-          <ArrowRightOutlined />
-        </div>
       </div>
 
       <!-- 对话输入框 -->
       <div class="conversation-input-section">
-        <div class="ai-input-label">
-          <span class="ai-badge">AI</span>
-          <span class="ai-input-title">使用AI模板创建项目</span>
-        </div>
         <ConversationInput
           :placeholder="inputPlaceholder"
           @submit="handleConversationalCreate"
@@ -31,7 +22,7 @@
       <!-- 第一行：项目类型按钮 -->
       <div class="project-type-buttons">
         <a-button
-          v-for="type in projectTypes"
+          v-for="type in displayProjectTypes"
           :key="type.key"
           :type="selectedType === type.key ? 'primary' : 'default'"
           class="task-quick-button"
@@ -58,7 +49,7 @@
       <!-- 模板展示区域 -->
       <div v-if="!loading" class="templates-grid-section">
         <TemplateGallery
-          :category="selectedType"
+          :category="selectedType && selectedType !== 'all' ? selectedType : null"
           :subcategory="activeCategory !== 'all' ? activeCategory : null"
           @template-use="handleTemplateUse"
           @create-custom="handleCreateCustom"
@@ -124,8 +115,6 @@ import { useAppStore } from '@/stores/app';
 import { useTemplateStore } from '@/stores/template';
 import {
   SearchOutlined,
-  BulbOutlined,
-  ArrowRightOutlined,
   FileTextOutlined,
 } from '@ant-design/icons-vue';
 import ConversationInput from '@/components/projects/ConversationInput.vue';
@@ -143,7 +132,7 @@ const templateStore = useTemplateStore();
 
 // 响应式状态
 const activeCategory = ref('all');
-const selectedType = ref('');
+const selectedType = ref('all');
 const currentPage = ref(1);
 const pageSize = ref(12);
 const activeConversationId = ref('');
@@ -262,12 +251,87 @@ const categoryConfig = ref({
   ],
 });
 
+const categoryLabelMap = {
+  video: '视频',
+  'social-media': '社交媒体',
+  'creative-writing': '创意写作',
+  'code-project': '代码项目',
+  'data-science': '数据科学',
+  'tech-docs': '技术文档',
+  ecommerce: '电商',
+  'marketing-pro': '营销推广',
+  legal: '法律',
+  learning: '学习',
+  health: '健康',
+  'time-management': '时间管理'
+};
+
+const templateCategoryOptions = computed(() => {
+  const categories = new Map();
+  templateStore.templates.forEach((template) => {
+    const key = template.category || 'other';
+    if (!categories.has(key)) {
+      categories.set(key, { key, label: categoryLabelMap[key] || key });
+    }
+  });
+  const items = Array.from(categories.values());
+  items.sort((a, b) => a.label.localeCompare(b.label, 'zh-CN'));
+  return items;
+});
+
+const displayProjectTypes = computed(() => {
+  const staticList = projectTypes.value || [];
+  const staticKeys = new Set(staticList.map((item) => item.key));
+  const dynamicList = templateCategoryOptions.value.filter((item) => !staticKeys.has(item.key));
+  return [{ key: 'all', label: '全部' }, ...staticList, ...dynamicList];
+});
+
+const subcategoryLabelMap = computed(() => {
+  const labels = {};
+  Object.values(categoryConfig.value).forEach((items) => {
+    items.forEach((item) => {
+      if (item?.key && item?.label && !labels[item.key]) {
+        labels[item.key] = item.label;
+      }
+    });
+  });
+  return labels;
+});
+
+const templateSubcategoryOptions = computed(() => {
+  const options = {};
+  templateStore.templates.forEach((template) => {
+    const category = template.category || 'other';
+    const subcategory = template.subcategory || '';
+    if (!subcategory) {
+      return;
+    }
+    if (!options[category]) {
+      options[category] = [];
+    }
+    if (!options[category].some((item) => item.key === subcategory)) {
+      options[category].push({
+        key: subcategory,
+        label: subcategoryLabelMap.value[subcategory] || subcategory
+      });
+    }
+  });
+  Object.keys(options).forEach((category) => {
+    options[category].sort((a, b) => a.label.localeCompare(b.label, 'zh-CN'));
+  });
+  return options;
+});
+
 // 当前显示的子分类
 const currentCategories = computed(() => {
-  if (selectedType.value && categoryConfig.value[selectedType.value]) {
-    return categoryConfig.value[selectedType.value];
+  if (!selectedType.value || selectedType.value === 'all') {
+    return [{ key: 'all', label: '全部' }];
   }
-  return categoryConfig.value.all;
+  const dynamic = templateSubcategoryOptions.value[selectedType.value];
+  if (dynamic && dynamic.length > 0) {
+    return [{ key: 'all', label: '全部' }, ...dynamic];
+  }
+  return categoryConfig.value[selectedType.value] || [{ key: 'all', label: '全部' }];
 });
 
 
@@ -280,23 +344,6 @@ const greetingMessage = computed(() => {
   if (hour < 18) return '下午好！有新的工作安排吗？';
   if (hour < 22) return '晚上好！今天还有什么要完成的？';
   return '夜深了！还在工作吗？';
-});
-
-// 智能建议列表
-const suggestions = ref([
-  'Logo 设计怎么选取权威网站？',
-  '如何快速制作年度工作总结PPT？',
-  '帮我分析最近3个月的销售数据趋势',
-  '生成一份产品介绍网站需要哪些页面？',
-  '制作一张古风美女插画需要什么提示词？',
-  '如何为播客节目撰写吸引人的标题？',
-  '数据可视化图表有哪些常见类型？',
-  '个人简历网站应该包含哪些模块？',
-]);
-
-const currentSuggestion = computed(() => {
-  const index = Math.floor(Date.now() / 10000) % suggestions.value.length;
-  return suggestions.value[index];
 });
 
 // 模板相关
@@ -316,7 +363,7 @@ const filteredProjects = computed(() => {
   let projects = projectStore.projects;
 
   // 按类型筛选
-  if (selectedType.value) {
+  if (selectedType.value && selectedType.value !== 'all') {
     projects = projects.filter(p => p.project_type === selectedType.value);
   }
 
@@ -518,34 +565,28 @@ const handleCategoryChange = (category) => {
 // 处理类型快捷选择
 const handleTypeQuickSelect = (typeKey) => {
   // 切换选择状态
-  if (selectedType.value === typeKey) {
+  if (typeKey === 'all' || selectedType.value === typeKey) {
     // 如果点击已选中的类型，则取消选择，回到默认状态
-    selectedType.value = '';
+    selectedType.value = 'all';
     activeCategory.value = 'all';
   } else {
     // 选择新类型
     selectedType.value = typeKey;
     // 重置子分类为该类型的第一个子分类
-    const categories = categoryConfig.value[typeKey];
-    if (categories && categories.length > 0) {
-      activeCategory.value = categories[0].key;
-    }
+    const dynamic = templateSubcategoryOptions.value[typeKey];
+    const fallback = categoryConfig.value[typeKey] || [];
+    const categories = dynamic && dynamic.length > 0 ? dynamic : fallback;
+    activeCategory.value = categories.length > 0 ? categories[0].key : 'all';
   }
   currentPage.value = 1;
 };
 
-// 处理建议点击（支持两种调用方式）
+// 处理建议点击（来自TaskExecutionMonitor组件）
 const handleSuggestionClick = (params) => {
-  // 如果有参数，说明来自TaskExecutionMonitor组件
   if (params && params.question) {
     console.log('Suggestion clicked from TaskMonitor:', params.question);
     message.info(`正在处理建议：${params.question}`);
     // TODO: 将建议作为新的对话输入，发送给AI处理
-  } else {
-    // 无参数，说明是点击欢迎区的建议
-    console.log('Suggestion clicked from welcome:', currentSuggestion.value);
-    message.info('功能开发中：将建议填充到输入框');
-    // TODO: 实现填充输入框功能
   }
 };
 
@@ -927,20 +968,28 @@ const handleFilesUpdated = async (data) => {
 };
 
 onMounted(async () => {
+  const userId = authStore.currentUser?.id || 'default-user';
+
   try {
-    const userId = authStore.currentUser?.id || 'default-user';
     await projectStore.fetchProjects(userId);
     await loadRecentConversations();
-
-    // 监听任务进度更新
-    window.electronAPI.project.onTaskProgressUpdate(handleTaskProgressUpdate);
-
-    // 监听项目文件更新
-    window.electronAPI.project.onFilesUpdated(handleFilesUpdated);
   } catch (error) {
     console.error('Failed to load projects:', error);
     message.error('加载项目失败：' + error.message);
   }
+
+  try {
+    await templateStore.fetchTemplates();
+  } catch (error) {
+    console.error('[ProjectsPage] 加载模板失败:', error);
+    message.error('加载模板失败：' + error.message);
+  }
+
+  // 监听任务进度更新
+  window.electronAPI.project.onTaskProgressUpdate(handleTaskProgressUpdate);
+
+  // 监听项目文件更新
+  window.electronAPI.project.onFilesUpdated(handleFilesUpdated);
 });
 
 // 组件卸载时清理监听
@@ -996,38 +1045,16 @@ onUnmounted(() => {
 /* 欢迎头部 */
 .welcome-header {
   text-align: center;
-  margin-bottom: 32px;
-  padding: 60px 0 40px;
+  margin-bottom: 20px;
+  padding: 20px 0 10px;
 }
 
 .welcome-title {
-  font-size: 36px;
+  font-size: 24px;
   font-weight: 400;
   color: #333333;
-  margin: 0 0 24px 0;
+  margin: 0;
   line-height: 1.4;
-}
-
-.welcome-suggestion {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: #F5F7FA;
-  border-radius: 24px;
-  color: #666666;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s;
-
-  &:hover {
-    background: #E5E7EB;
-    color: #333333;
-  }
-
-  .anticon {
-    color: #FF8C00;
-  }
 }
 
 /* 对话输入框区域 */
@@ -1035,33 +1062,6 @@ onUnmounted(() => {
   max-width: 900px;
   width: 100%;
   margin: 0 auto 32px;
-
-  .ai-input-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 12px;
-
-    .ai-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4px 12px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 12px;
-      letter-spacing: 1px;
-    }
-
-    .ai-input-title {
-      font-size: 14px;
-      color: #666;
-      font-weight: 500;
-    }
-  }
 }
 
 
