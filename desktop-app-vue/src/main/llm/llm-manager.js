@@ -46,18 +46,25 @@ class LLMManager extends EventEmitter {
       this.client = await this.createClient(this.provider);
 
       if (this.client) {
-        // 检查服务状态
-        const status = await this.client.checkStatus();
+        // 检查服务状态（不阻塞初始化）
+        try {
+          const status = await this.client.checkStatus();
 
-        if (status.available) {
+          if (status.available) {
+            this.isInitialized = true;
+            console.log('[LLMManager] LLM服务可用');
+            console.log('[LLMManager] 可用模型数:', status.models?.length || 0);
+            this.emit('initialized', status);
+          } else {
+            console.warn('[LLMManager] LLM服务状态检查失败:', status.error);
+            // 即使状态检查失败，也标记为已初始化（允许后续调用时重试）
+            this.isInitialized = true;
+            this.emit('unavailable', status);
+          }
+        } catch (statusError) {
+          console.warn('[LLMManager] 无法检查服务状态（将在实际调用时重试）:', statusError.message);
+          // 即使状态检查失败，也标记为已初始化（允许后续调用时重试）
           this.isInitialized = true;
-          console.log('[LLMManager] LLM服务可用');
-          console.log('[LLMManager] 可用模型数:', status.models?.length || 0);
-          this.emit('initialized', status);
-        } else {
-          console.warn('[LLMManager] LLM服务不可用:', status.error);
-          this.isInitialized = false;
-          this.emit('unavailable', status);
         }
       }
 

@@ -395,7 +395,12 @@ class ChainlessChainApp {
 
       // 使用LLMConfig的getManagerConfig方法获取完整配置
       const managerConfig = llmConfig.getManagerConfig();
-      console.log(`[Main] LLM管理器配置:`, { provider: managerConfig.provider, model: managerConfig.model, baseURL: managerConfig.baseURL });
+      console.log(`[Main] LLM管理器配置:`, {
+        provider: managerConfig.provider,
+        model: managerConfig.model,
+        baseURL: managerConfig.baseURL,
+        apiKey: managerConfig.apiKey ? `${managerConfig.apiKey.substring(0, 8)}...` : '(未设置)'
+      });
 
       this.llmManager = new LLMManager(managerConfig);
       await this.llmManager.initialize();
