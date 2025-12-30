@@ -68,17 +68,17 @@ class StatementWrapper {
 
   /**
    * 执行并获取单行
-   * @param {Array|Object} params - 参数
+   * @param {...any} params - 参数
    * @returns {Array|null}
    */
-  get(params = []) {
+  get(...params) {
     if (!this.stmt) {
       this._prepare();
     }
 
     try {
-      const result = this.stmt.get(params);
-      return result ? Object.values(result) : null;
+      const result = this.stmt.get(...params);
+      return result || null;
     } catch (error) {
       throw new Error(`Get error: ${error.message}`);
     }
@@ -86,16 +86,16 @@ class StatementWrapper {
 
   /**
    * 执行并获取所有行
-   * @param {Array|Object} params - 参数
+   * @param {...any} params - 参数
    * @returns {Array}
    */
-  all(params = []) {
+  all(...params) {
     if (!this.stmt) {
       this._prepare();
     }
 
     try {
-      const results = this.stmt.all(params);
+      const results = this.stmt.all(...params);
       // Return objects as-is for compatibility with PRAGMA queries
       // (e.g., PRAGMA table_info() returns objects with 'name' property)
       return results;
@@ -106,16 +106,16 @@ class StatementWrapper {
 
   /**
    * 执行 (INSERT/UPDATE/DELETE)
-   * @param {Array|Object} params - 参数
+   * @param {...any} params - 参数
    * @returns {Object} 执行结果
    */
-  run(params = []) {
+  run(...params) {
     if (!this.stmt) {
       this._prepare();
     }
 
     try {
-      const info = this.stmt.run(params);
+      const info = this.stmt.run(...params);
       return {
         changes: info.changes,
         lastInsertRowid: info.lastInsertRowid
