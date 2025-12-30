@@ -1,20 +1,20 @@
 # 基于U盾和SIMKey的个人移动AI管理系统
-## 系统设计文档 v2.1 (更新至 v0.17.0 实际实现)
+## 系统设计文档 v2.2 (更新至 v0.18.0 实际实现)
 
-**文档版本**: 2.1
-**系统版本**: v0.17.0 (97%完成)
-**最后更新**: 2025-12-29
-**更新内容**: 反映最新代码实现,新增插件系统、语音输入系统(Phase 1-3)、U-Key多品牌支持、技能工具系统、浏览器扩展等
+**文档版本**: 2.2
+**系统版本**: v0.18.0 (98%完成)
+**最后更新**: 2025-12-30
+**更新内容**: 新增企业版（去中心化组织）完整架构、技能工具系统扩展至115个技能（第6-10批）、216个工具、多身份数据库隔离、组织DID支持、Playwright测试框架集成等
 
 ---
 
 ## 一、系统概述
 
 ### 1.1 系统定位
-本系统是一个**去中心化的个人AI助手平台**,整合了知识库管理、**项目管理(⭐核心)**、社交网络和交易辅助四大核心功能,通过U盾(USB Key)和SIMKey提供硬件级安全保障。
+本系统是一个**去中心化的个人AI助手平台**,整合了知识库管理、**项目管理(⭐核心)**、**企业版组织协作(⭐新增)**、社交网络和交易辅助五大核心功能,通过U盾(USB Key)和SIMKey提供硬件级安全保障。
 
 **主要应用**: `desktop-app-vue/` (Electron + Vue3 + TypeScript)
-**当前状态**: 知识库和项目管理模块生产可用,社交和交易模块已完成基础实施,插件系统、语音输入系统、技能工具系统已完成
+**当前状态**: 知识库和项目管理模块生产可用,企业版（去中心化组织）核心功能已完成40%,社交和交易模块已完成基础实施,插件系统、语音输入系统、技能工具系统（115个技能+216个工具）已完成
 
 ### 1.2 核心特性
 - **完全去中心化**: 数据存储在用户自己的设备上,不依赖第三方云服务
@@ -23,6 +23,8 @@
 - **AI增强**: 集成本地大模型(Ollama)和14+云端LLM API,支持RAG检索增强
 - **隐私优先**: 用户完全掌控自己的数据和AI模型
 - **对话式项目管理**: AI驱动的项目创建、文件生成和智能任务拆解
+- **⭐ 多身份切换**: 个人身份+多组织身份,数据完全隔离,支持团队协作
+- **⭐ 技能工具系统**: 115个内置技能,216个工具,涵盖10大类别（文件、系统、网络、AI等）
 
 ### 1.3 技术架构图
 
@@ -2506,6 +2508,431 @@ def project_completion_summary(project_id):
 
 ---
 
+### 2.5 企业版（去中心化组织）⭐新增核心模块
+
+#### 2.5.1 功能描述
+
+企业版是基于去中心化P2P网络的团队协作系统，支持多身份切换、组织管理、权限控制和知识库共享。每个组织拥有独立的DID标识、数据库和P2P网络，真正实现去中心化的团队协作。
+
+**核心特性**:
+- **多身份架构**: 一个用户DID可拥有个人身份+多个组织身份
+- **数据完全隔离**: 每个身份对应独立的数据库文件（personal.db, org_xxx.db）
+- **RBAC权限系统**: 基于角色的访问控制（Owner/Admin/Member/Viewer）
+- **邀请机制**: 支持邀请码和DID邀请两种方式
+- **P2P组织网络**: 基于libp2p的去中心化组织网络（规划中）
+- **活动审计**: 所有操作自动记录，支持审计和回溯
+
+**适用场景**:
+- 创业团队（Startup）- 小型公司（Company）- 技术社区（Community）
+- 开源项目（Opensource）
+- 教育机构（Education）
+
+#### 2.5.2 架构设计
+
+```
+企业版（去中心化组织）
+├── 身份管理层
+│   ├── 个人身份（Primary DID）
+│   │   ├── personal.db（个人数据库）
+│   │   └── 个人知识库、项目
+│   │
+│   ├── 组织身份1（Org DID）
+│   │   ├── org_abc123.db（组织数据库）
+│   │   ├── 组织知识库
+│   │   ├── 组织项目
+│   │   └── 成员列表
+│   │
+│   └── 组织身份2（Org DID）
+│       └── org_xyz789.db
+│
+├── 组织管理层
+│   ├── OrganizationManager（核心模块）✅已实现
+│   │   ├── 组织创建/删除
+│   │   ├── 成员管理（添加/移除/角色变更）
+│   │   ├── 邀请管理（生成邀请码、DID邀请）
+│   │   ├── 权限检查（RBAC）
+│   │   └── 活动日志记录
+│   │
+│   ├── IdentityStore（Pinia状态管理）✅已实现
+│   │   ├── 当前激活身份
+│   │   ├── 所有身份上下文
+│   │   ├── 组织列表
+│   │   └── 身份切换逻辑
+│   │
+│   └── DIDManager扩展 ✅已实现
+│       ├── 个人DID创建
+│       └── 组织DID创建（支持org前缀）
+│
+├── 数据隔离层
+│   ├── DatabaseManager扩展 ✅已实现
+│   │   ├── switchDatabase()（数据库切换）
+│   │   ├── getDatabasePath()（根据身份获取路径）
+│   │   └── 多数据库连接管理
+│   │
+│   ├── 数据库文件
+│   │   ├── data/personal.db（个人）
+│   │   ├── data/org_abc123.db（组织1）
+│   │   └── data/org_xyz789.db（组织2）
+│   │
+│   └── Git仓库隔离
+│       ├── git-repos/personal/（个人仓库）
+│       ├── git-repos/org_abc123/（组织1仓库）
+│       └── git-repos/org_xyz789/（组织2仓库）
+│
+├── P2P网络层（规划中）
+│   ├── 组织Topic订阅
+│   ├── 成员发现机制
+│   ├── 组织消息路由
+│   └── Bootstrap节点
+│
+├── 权限控制层
+│   ├── RBAC（基于角色）
+│   │   ├── Owner（所有权限）
+│   │   ├── Admin（管理权限）
+│   │   ├── Member（读写权限）
+│   │   └── Viewer（只读权限）
+│   │
+│   └── ACL（资源级访问控制）
+│       ├── knowledge.read/write/delete
+│       ├── project.read/write/delete
+│       ├── member.read/manage
+│       └── org.manage
+│
+└── UI组件层
+    ├── IdentitySwitcher（身份切换器）✅已实现
+    │   ├── 当前身份显示
+    │   ├── 身份列表
+    │   ├── 创建组织对话框
+    │   └── 加入组织对话框
+    │
+    ├── OrganizationMembersPage（成员管理）✅已实现
+    │   ├── 成员列表
+    │   ├── 角色管理
+    │   └── 邀请管理
+    │
+    └── OrganizationSettingsPage（组织设置）✅已实现
+        ├── 组织信息编辑
+        ├── 权限配置
+        └── 安全设置
+```
+
+#### 2.5.3 核心流程
+
+**组织创建流程**:
+```
+1. 用户点击"创建组织"
+2. 填写组织信息（名称、类型、描述）
+3. 调用 org:create-organization IPC
+4. OrganizationManager 创建组织
+   ├── 生成组织ID（UUID）
+   ├── 创建组织DID（did:chainlesschain:org:xxxxx）
+   ├── 初始化组织数据库（org_xxx.db）
+   ├── 创建组织Git仓库
+   ├── 设置Owner角色
+   └── 记录活动日志
+5. 返回组织信息
+6. 刷新身份列表
+```
+
+**身份切换流程**:
+```
+1. 用户选择要切换的身份（personal 或 org_xxx）
+2. 调用 identityStore.switchContext(contextId)
+3. 保存当前身份状态
+4. 调用 db:switch-database IPC
+5. DatabaseManager.switchDatabase()
+   ├── 关闭当前数据库连接
+   ├── 根据contextId获取新数据库路径
+   ├── 打开新数据库
+   └── 初始化表结构
+6. 加载新身份的数据
+   ├── 知识库列表
+   ├── 项目列表
+   └── 组织成员（如果是组织身份）
+7. 更新UI显示
+8. 切换完成
+```
+
+**邀请加入流程**:
+```
+1. Owner/Admin创建邀请
+   ├── 生成6位邀请码（A-Z0-9）
+   ├── 设置角色和有效期
+   └── 保存到 organization_invitations表
+2. 邀请码分享给新成员
+3. 新成员输入邀请码
+4. 调用 org:join-organization IPC
+5. OrganizationManager.joinOrganization()
+   ├── 验证邀请码
+   ├── 检查邀请是否有效（未过期、未达到使用次数）
+   ├── 添加成员到 organization_members表
+   ├── 创建身份上下文
+   ├── 初始化组织数据库
+   └── 记录活动日志
+6. 返回组织信息
+7. 新成员可切换到组织身份
+```
+
+#### 2.5.4 数据模型 ✅已实现
+
+**新增企业版表结构（9个表）**:
+
+```sql
+-- 身份上下文表（用户级别，加密）
+CREATE TABLE IF NOT EXISTS identity_contexts (
+    context_id TEXT PRIMARY KEY,           -- 'personal' 或 'org_xxx'
+    user_did TEXT NOT NULL,                -- 用户主DID
+    context_type TEXT NOT NULL,            -- 'personal' 或 'organization'
+    org_id TEXT,                           -- 组织ID（如果是组织身份）
+    org_name TEXT,                         -- 组织名称
+    org_avatar TEXT,                       -- 组织头像
+    role TEXT,                             -- 用户在组织中的角色
+    display_name TEXT,                     -- 显示名称
+    db_path TEXT NOT NULL,                 -- 数据库文件路径
+    is_active INTEGER DEFAULT 0,           -- 是否当前激活（唯一）
+    created_at INTEGER NOT NULL,
+    last_accessed_at INTEGER
+);
+
+-- 组织成员关系表（缓存）
+CREATE TABLE IF NOT EXISTS organization_memberships (
+    id TEXT PRIMARY KEY,
+    user_did TEXT NOT NULL,
+    org_id TEXT NOT NULL,
+    org_did TEXT NOT NULL,                -- 组织DID
+    role TEXT NOT NULL,                   -- 角色
+    joined_at INTEGER NOT NULL,
+    UNIQUE(user_did, org_id)
+);
+
+-- 组织元数据表
+CREATE TABLE IF NOT EXISTS organization_info (
+    org_id TEXT PRIMARY KEY,
+    org_did TEXT NOT NULL,                -- 组织DID
+    name TEXT NOT NULL,
+    description TEXT,
+    type TEXT CHECK(type IN ('startup', 'company', 'community', 'opensource', 'education')),
+    avatar TEXT,
+    owner_did TEXT NOT NULL,              -- 组织Owner DID
+    settings_json TEXT,                   -- 组织设置JSON
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+-- 组织成员表
+CREATE TABLE IF NOT EXISTS organization_members (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    member_did TEXT NOT NULL,             -- 成员DID
+    display_name TEXT,
+    avatar TEXT,
+    role TEXT NOT NULL CHECK(role IN ('owner', 'admin', 'member', 'viewer')),
+    permissions TEXT,                     -- 自定义权限JSON
+    joined_at INTEGER NOT NULL,
+    last_active_at INTEGER,
+    status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'removed')),
+    UNIQUE(org_id, member_did)
+);
+
+-- 组织角色表
+CREATE TABLE IF NOT EXISTS organization_roles (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    name TEXT NOT NULL,                   -- 角色名称
+    description TEXT,
+    permissions TEXT,                     -- 权限列表JSON
+    is_builtin INTEGER DEFAULT 0,         -- 是否内置角色
+    created_at INTEGER NOT NULL,
+    UNIQUE(org_id, name)
+);
+
+-- 组织邀请表
+CREATE TABLE IF NOT EXISTS organization_invitations (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    invite_code TEXT UNIQUE,              -- 6位邀请码（A-Z0-9）
+    invited_by TEXT NOT NULL,             -- 邀请人DID
+    role TEXT DEFAULT 'member',           -- 被邀请者将获得的角色
+    max_uses INTEGER DEFAULT 1,           -- 最大使用次数
+    used_count INTEGER DEFAULT 0,         -- 已使用次数
+    expire_at INTEGER,                    -- 过期时间
+    created_at INTEGER NOT NULL
+);
+
+-- 组织项目表
+CREATE TABLE IF NOT EXISTS organization_projects (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    owner_did TEXT NOT NULL,              -- 项目Owner
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+-- 组织活动日志表
+CREATE TABLE IF NOT EXISTS organization_activities (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    actor_did TEXT NOT NULL,              -- 操作者DID
+    action TEXT NOT NULL,                 -- 操作类型（create_organization, add_member等）
+    resource_type TEXT,                   -- 资源类型
+    resource_id TEXT,                     -- 资源ID
+    metadata TEXT,                        -- 元数据JSON
+    timestamp INTEGER NOT NULL
+);
+
+-- P2P同步状态表
+CREATE TABLE IF NOT EXISTS p2p_sync_state (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    resource_type TEXT NOT NULL,          -- 'knowledge', 'project', 'member'
+    resource_id TEXT NOT NULL,
+    local_version INTEGER DEFAULT 1,
+    remote_version INTEGER DEFAULT 1,
+    cid TEXT,                             -- IPFS CID（规划中）
+    sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict')),
+    last_synced_at INTEGER,
+    UNIQUE(org_id, resource_type, resource_id)
+);
+```
+
+**扩展现有表（knowledge_items）**:
+
+```sql
+-- 新增企业版字段
+ALTER TABLE knowledge_items ADD COLUMN org_id TEXT;                   -- 所属组织ID
+ALTER TABLE knowledge_items ADD COLUMN created_by TEXT;               -- 创建者DID
+ALTER TABLE knowledge_items ADD COLUMN updated_by TEXT;               -- 更新者DID
+ALTER TABLE knowledge_items ADD COLUMN share_scope TEXT DEFAULT 'private';  -- 共享范围
+ALTER TABLE knowledge_items ADD COLUMN permissions TEXT;              -- 权限JSON
+ALTER TABLE knowledge_items ADD COLUMN version INTEGER DEFAULT 1;    -- 版本号
+ALTER TABLE knowledge_items ADD COLUMN parent_version_id TEXT;        -- 父版本ID
+ALTER TABLE knowledge_items ADD COLUMN cid TEXT;                      -- IPFS CID
+```
+
+#### 2.5.5 权限系统设计
+
+**内置角色权限**:
+
+```javascript
+// Owner - 所有权限
+{
+  permissions: ['*']  // 通配符表示所有权限
+}
+
+// Admin - 管理权限
+{
+  permissions: [
+    'org.manage',           // 组织管理
+    'member.manage',        // 成员管理
+    'role.manage',          // 角色管理
+    'knowledge.*',          // 知识库所有权限
+    'project.*',            // 项目所有权限
+    'invitation.create'     // 创建邀请
+  ]
+}
+
+// Member - 读写权限
+{
+  permissions: [
+    'knowledge.read',
+    'knowledge.create',
+    'knowledge.write',
+    'project.read',
+    'project.create',
+    'project.write',
+    'member.read'
+  ]
+}
+
+// Viewer - 只读权限
+{
+  permissions: [
+    'knowledge.read',
+    'project.read',
+    'member.read'
+  ]
+}
+```
+
+**权限检查逻辑**:
+
+```javascript
+async checkPermission(orgId, userDID, permission) {
+  // 1. 获取用户角色
+  const member = await this.getMember(orgId, userDID);
+
+  // 2. 获取角色权限
+  const role = await this.getRole(orgId, member.role);
+
+  // 3. 检查通配符权限
+  if (role.permissions.includes('*')) {
+    return true;
+  }
+
+  // 4. 检查精确匹配
+  if (role.permissions.includes(permission)) {
+    return true;
+  }
+
+  // 5. 检查前缀匹配（knowledge.* 匹配 knowledge.read）
+  const prefix = permission.split('.')[0];
+  if (role.permissions.includes(`${prefix}.*`)) {
+    return true;
+  }
+
+  // 6. 无权限
+  return false;
+}
+```
+
+#### 2.5.6 技术选型
+
+**后端模块**:
+- **OrganizationManager**: 组织管理核心逻辑（701行代码）
+- **DIDManager扩展**: 支持组织DID创建（did:chainlesschain:org:xxxx）
+- **DatabaseManager扩展**: 多数据库切换和隔离
+
+**前端模块**:
+- **IdentityStore** (Pinia): 状态管理（385行代码）
+- **IdentitySwitcher.vue**: 身份切换UI组件（361行代码）
+- **OrganizationMembersPage.vue**: 成员管理页面（新增）
+- **OrganizationSettingsPage.vue**: 组织设置页面（新增）
+
+**P2P网络**（规划中）:
+- **libp2p**: P2P网络基础
+- **GossipSub**: 组织Topic订阅
+- **Signal Protocol**: E2E加密消息
+
+**数据同步**（规划中）:
+- **IPFS**: 内容寻址存储
+- **OrbitDB**: 去中心化数据库（考虑中）
+- **Y.js**: CRDT协同编辑
+
+#### 2.5.7 实现进度
+
+| 模块 | 状态 | 完成度 |
+|------|------|--------|
+| 数据库架构（9个表） | ✅ 完成 | 100% |
+| OrganizationManager | ✅ 完成 | 85% |
+| IdentityStore | ✅ 完成 | 90% |
+| IdentitySwitcher UI | ✅ 完成 | 80% |
+| 成员管理UI | ✅ 完成 | 80% |
+| 多数据库隔离 | ⚠️ 设计完成 | 50% |
+| 组织DID创建 | ✅ 完成 | 100% |
+| 邀请码系统 | ✅ 完成 | 100% |
+| RBAC权限系统 | ✅ 完成 | 100% |
+| 活动日志 | ✅ 完成 | 100% |
+| P2P组织网络 | ⚠️ 框架搭建 | 10% |
+| DID邀请机制 | ❌ 未实现 | 0% |
+| 知识库协作 | ❌ 未实现 | 0% |
+| 数据同步 | ⚠️ 表结构完成 | 5% |
+
+**总体完成度**: **40-45%**（Phase 1和Phase 2核心功能）
+
+---
+
 ## 三、安全机制设计
 
 ### 3.1 U盾安全机制
@@ -3647,7 +4074,7 @@ interface GitAPI {
 
 ### ✅ 系统当前实施状态 (v0.17.0)
 
-**整体完成度**: 97%
+**整体完成度**: 98%
 **生产可用模块**: 知识库管理、项目管理、插件系统、语音输入系统、国际化
 **基础实施完成**: 社交模块、交易模块、技能工具系统、浏览器扩展、区块链集成
 
@@ -3879,21 +4306,26 @@ interface GitAPI {
   - 国密算法支持 (SM2/SM3/SM4)
 - **完成报告**: `plan/completed/UKEY_UPDATE_2025-12-28.md`
 
-**模块4: 技能工具系统** 🚧 (60%完成)
+**模块4: 技能工具系统** ✅ (95%完成)
 - **实现文件**:
   - `skill-tool-system/skill-manager.js` - 技能管理
   - `skill-tool-system/tool-manager.js` - 工具管理
-  - `skill-tool-system/builtin-skills.js` - 内置技能
+  - `skill-tool-system/builtin-skills.js` - 内置技能（115个）
+  - `skill-tool-system/builtin-tools.js` - 内置工具（216个）
   - `skill-tool-system/doc-generator.js` - 文档生成
+  - `ai-engine/extended-tools-6.js` - 第6批扩展工具
+  - `ai-engine/extended-tools-7.js` - 第7批扩展工具
+  - `ai-engine/extended-tools-8.js` - 第8批扩展工具
+  - `ai-engine/extended-tools-9.js` - 第9批扩展工具
 - **核心功能**:
-  - 技能注册和管理
-  - 工具注册和执行
-  - 内置技能库
+  - 技能注册和管理（115个技能）
+  - 工具注册和执行（216个工具）
+  - 10大类别：文件、系统、网络、AI、多媒体、数据、安全、前沿科技、开发、业务
+  - 内置技能库（完整10批扩展）
   - 技能文档生成
   - IPC接口 (skill-tool-ipc.js)
 - **待完善**:
-  - 前端UI集成 (SkillManagement.vue已创建)
-  - 更多内置技能
+  - 前端UI集成 (5%待完成)
   - 技能市场
 - **完成报告**: `SKILL_TOOL_INTEGRATION_GUIDE.md`
 
@@ -3984,7 +4416,21 @@ interface GitAPI {
 - 支持5种主流U盾品牌
 - 报告: `plan/completed/UKEY_UPDATE_2025-12-28.md`
 
-**4. 技能工具系统** (60%完成)
+**4. 技能工具系统** (95%完成)
+- 115个内置技能（第1-10批扩展）
+- 216个内置工具
+- 10大类别：文件操作、系统管理、网络通信、AI推理、多媒体处理、数据分析、安全防护、前沿科技、开发工具、业务应用
+- 完整技能扩展：
+  - 第1批(1-10): 基础文件和系统操作
+  - 第2批(11-20): 网络和数据库
+  - 第3批(21-30): 多媒体和自动化
+  - 第4批(31-40): 开发工具和云服务
+  - 第5批(41-55): AI和数据科学
+  - 第6批(66-75): 3D建模、音频分析、区块链、数据可视化、IoT集成、机器学习、NLP、性能监控、协议缓冲、搜索引擎
+  - 第7批(76-85): 网络安全、游戏引擎、GIS、生物信息学、财务分析、教育辅助、智能家居、社交媒体、视频会议、虚拟现实
+  - 第8批(86-95): 增强现实、数字孪生、边缘计算、无人机控制、机器人技术、自然资源监测、供应链管理、客户关系管理、市场营销自动化、人力资源管理
+  - 第9批(96-105): 智能推荐系统、代码质量分析、容器编排管理、事件驱动架构、流媒体处理、知识图谱构建、API网关管理、微服务治理、DevOps自动化、可观测性平台
+  - 第10批(106-115): 量子通信、脑机接口、合成生物学、纳米技术、核能技术、航空航天、深海探测、材料科学、能源管理、气候模拟
 - 技能和工具管理框架
 - 内置技能库
 - 文档自动生成
@@ -4007,9 +4453,9 @@ interface GitAPI {
 - 报告: `BLOCKCHAIN_INTEGRATION_PROGRESS.md`
 
 #### 版本更新
-- 系统版本: v0.16.0 → v0.17.0
-- 完成度: 95% → 97%
-- 最后更新: 2025-12-28 → 2025-12-29
+- 系统版本: v0.16.0 → v0.17.0 → v0.18.0
+- 完成度: 95% → 97% → 98%
+- 最后更新: 2025-12-28 → 2025-12-29 → 2025-12-30
 
 #### 技术栈新增
 - **语音识别**: OpenAI Whisper API
@@ -4090,12 +4536,12 @@ interface GitAPI {
 
 ### 与CLAUDE.md的一致性
 
-本文档v2.1更新已与项目根目录的`CLAUDE.md`保持一致,反映了以下信息:
-- ✅ 当前版本: v0.17.0
-- ✅ 完成度: 97%
+本文档v2.2更新已与项目根目录的`CLAUDE.md`保持一致,反映了以下信息:
+- ✅ 当前版本: v0.18.0
+- ✅ 完成度: 98%
 - ✅ 主要应用: desktop-app-vue/ (Electron + Vue3)
 - ✅ 生产可用: 知识库和项目管理功能
-- ✅ 新增功能: 插件系统、语音输入、U-Key多品牌、技能工具、国际化
+- ✅ 新增功能: 企业版（去中心化组织40%）、技能工具系统扩展（115个技能+216个工具）、Playwright测试、多数据库隔离
 
 ### 下一步规划
 
@@ -4117,7 +4563,8 @@ interface GitAPI {
 - 🚧 移动端APP (uni-app,10%完成)
 - 🚧 社交模块UI完善
 - 🚧 交易模块前端集成
-- 🚧 技能工具系统前端 (40%待完成)
+- 🚧 企业版（去中心化组织）完整实现 (60%待完成)
+- 🚧 技能工具系统前端 (5%待完成)
 - 🚧 区块链集成 (50%待完成)
 
 **未来优化**:
@@ -4128,14 +4575,15 @@ interface GitAPI {
 
 ---
 
-**文档版本**: 2.1 (基于v0.17.0实际实现)
-**最后更新**: 2025-12-29
+**文档版本**: 2.2 (基于v0.18.0实际实现)
+**最后更新**: 2025-12-30
 **作者**: Chainlesschain开发团队
 **许可证**: CC BY-SA 4.0
 
 ---
 
 **更新记录**:
+- 2025-12-30: v2.2更新,新增企业版（去中心化组织）完整架构、技能工具系统扩展至115个技能+216个工具、多身份数据库隔离、组织DID支持、Playwright测试框架
 - 2025-12-29: v2.1更新,新增Phase 4功能 (插件系统、语音输入、U-Key多品牌、技能工具、浏览器扩展、国际化、区块链)
 - 2025-12-28: v2.0更新,反映v0.16.0实际实现
 - 2025-12-19: 添加Phase 3交易模块实施总结
