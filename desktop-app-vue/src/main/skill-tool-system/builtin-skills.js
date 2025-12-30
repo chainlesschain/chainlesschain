@@ -1931,5 +1931,187 @@ module.exports = [
     ],
     "enabled": 1,
     "is_builtin": 1
+  },
+
+  // ==================== 第十批技能 (106-115) ====================
+
+  {
+    "id": "skill_quantum_communication",
+    "name": "量子通信",
+    "display_name": "Quantum Communication",
+    "description": "量子密钥分发、量子隐形传态、量子纠缠、量子中继",
+    "category": "ai",
+    "icon": "link",
+    "tags": "[\"量子\",\"通信\",\"加密\",\"安全\"]",
+    "config": "{\"protocol\":\"BB84\",\"security_level\":\"unconditional\"}",
+    "doc_path": "docs/skills/quantum-communication.md",
+    "tools": [
+      "quantum_key_distributor",
+      "quantum_teleporter"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_brain_computer_interface",
+    "name": "脑机接口",
+    "display_name": "Brain-Computer Interface",
+    "description": "脑电信号处理、意图识别、神经反馈、康复训练",
+    "category": "ai",
+    "icon": "radar-chart",
+    "tags": "[\"BCI\",\"脑电\",\"神经\",\"康复\"]",
+    "config": "{\"channels\":64,\"sampling_rate\":1000,\"signal_type\":\"EEG\"}",
+    "doc_path": "docs/skills/brain-computer-interface.md",
+    "tools": [
+      "eeg_processor",
+      "bci_decoder"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_synthetic_biology",
+    "name": "合成生物学",
+    "display_name": "Synthetic Biology",
+    "description": "基因编辑、代谢工程、蛋白质设计、合成基因回路",
+    "category": "ai",
+    "icon": "experiment",
+    "tags": "[\"基因\",\"合成生物\",\"CRISPR\",\"蛋白质\"]",
+    "config": "{\"editor\":\"CRISPR-Cas9\",\"organism\":\"E.coli\"}",
+    "doc_path": "docs/skills/synthetic-biology.md",
+    "tools": [
+      "gene_editor",
+      "protein_designer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_nanotechnology",
+    "name": "纳米技术",
+    "display_name": "Nanotechnology",
+    "description": "纳米材料模拟、纳米加工、纳米传感、分子动力学",
+    "category": "ai",
+    "icon": "dot-chart",
+    "tags": "[\"纳米\",\"材料\",\"模拟\",\"加工\"]",
+    "config": "{\"scale\":\"nanometer\",\"method\":\"molecular_dynamics\"}",
+    "doc_path": "docs/skills/nanotechnology.md",
+    "tools": [
+      "nano_simulator",
+      "nano_fabricator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_nuclear_technology",
+    "name": "核能技术",
+    "display_name": "Nuclear Technology",
+    "description": "反应堆模拟、辐射监测、核燃料管理、核安全评估",
+    "category": "system",
+    "icon": "alert",
+    "tags": "[\"核能\",\"反应堆\",\"辐射\",\"安全\"]",
+    "config": "{\"reactor_type\":\"PWR\",\"safety_level\":\"high\"}",
+    "doc_path": "docs/skills/nuclear-technology.md",
+    "tools": [
+      "reactor_simulator",
+      "radiation_monitor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_deep_sea_exploration",
+    "name": "深海探测",
+    "display_name": "Deep Sea Exploration",
+    "description": "水下导航、深海测绘、ROV控制、海底资源勘探",
+    "category": "data",
+    "icon": "compass",
+    "tags": "[\"深海\",\"探测\",\"ROV\",\"测绘\"]",
+    "config": "{\"max_depth\":11000,\"navigation\":\"INS+DVL\"}",
+    "doc_path": "docs/skills/deep-sea-exploration.md",
+    "tools": [
+      "underwater_navigator",
+      "deep_sea_mapper"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_space_resources",
+    "name": "太空资源",
+    "display_name": "Space Resources",
+    "description": "小行星分析、月球采矿、太空制造、资源评估",
+    "category": "data",
+    "icon": "gold",
+    "tags": "[\"太空\",\"采矿\",\"资源\",\"小行星\"]",
+    "config": "{\"target\":\"asteroid\",\"method\":\"in-situ\"}",
+    "doc_path": "docs/skills/space-resources.md",
+    "tools": [
+      "asteroid_analyzer",
+      "lunar_miner"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_weather_modification",
+    "name": "气象控制",
+    "display_name": "Weather Modification",
+    "description": "人工降雨、云播种、气候干预、天气建模",
+    "category": "ai",
+    "icon": "cloud-sync",
+    "tags": "[\"气象\",\"人工降雨\",\"气候\",\"建模\"]",
+    "config": "{\"method\":\"cloud_seeding\",\"agent\":\"silver_iodide\"}",
+    "doc_path": "docs/skills/weather-modification.md",
+    "tools": [
+      "cloud_seeder",
+      "weather_modeler"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_materials_science",
+    "name": "材料科学",
+    "display_name": "Materials Science",
+    "description": "材料设计、性能预测、晶体结构、材料筛选",
+    "category": "ai",
+    "icon": "build",
+    "tags": "[\"材料\",\"设计\",\"预测\",\"晶体\"]",
+    "config": "{\"method\":\"DFT\",\"database\":\"Materials_Project\"}",
+    "doc_path": "docs/skills/materials-science.md",
+    "tools": [
+      "material_designer",
+      "property_predictor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_neuromorphic_computing",
+    "name": "神经形态计算",
+    "display_name": "Neuromorphic Computing",
+    "description": "脉冲神经网络、神经形态芯片、类脑计算、事件驱动计算",
+    "category": "ai",
+    "icon": "deployment-unit",
+    "tags": "[\"神经形态\",\"SNN\",\"类脑\",\"芯片\"]",
+    "config": "{\"architecture\":\"spiking\",\"hardware\":\"Loihi\"}",
+    "doc_path": "docs/skills/neuromorphic-computing.md",
+    "tools": [
+      "snn_builder",
+      "neuromorphic_accelerator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
   }
 ];
