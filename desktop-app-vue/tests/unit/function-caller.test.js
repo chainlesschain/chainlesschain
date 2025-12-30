@@ -762,4 +762,550 @@ describe('FunctionCaller', () => {
       expect(structure.directories).toContain('src');
     });
   });
+
+  // ==================== 工具注册边界情况测试 ====================
+  describe('工具注册边界情况', () => {
+    it('should handle registering tool with null handler', () => {
+      expect(() => {
+        caller.registerTool('null_handler', null, {});
+      }).not.toThrow();
+    });
+
+    it('should handle registering tool with undefined handler', () => {
+      expect(() => {
+        caller.registerTool('undefined_handler', undefined, {});
+      }).not.toThrow();
+    });
+
+    it('should handle registering tool with null schema', () => {
+      const handler = vi.fn().mockResolvedValue({ success: true });
+      caller.registerTool('null_schema', handler, null);
+
+      expect(caller.hasTool('null_schema')).toBe(true);
+    });
+
+    it('should handle registering tool with empty name', () => {
+      const handler = vi.fn();
+      caller.registerTool('', handler, {});
+
+      expect(caller.hasTool('')).toBe(true);
+    });
+
+    it('should handle registering tool with special characters in name', () => {
+      const handler = vi.fn();
+      caller.registerTool('tool-with-dash', handler, {});
+      caller.registerTool('tool_with_underscore', handler, {});
+      caller.registerTool('tool.with.dot', handler, {});
+
+      expect(caller.hasTool('tool-with-dash')).toBe(true);
+      expect(caller.hasTool('tool_with_underscore')).toBe(true);
+      expect(caller.hasTool('tool.with.dot')).toBe(true);
+    });
+
+    it('should handle registering many tools', () => {
+      for (let i = 0; i < 100; i++) {
+        caller.registerTool(`tool_${i}`, vi.fn(), {});
+      }
+
+      expect(caller.getAvailableTools().length).toBeGreaterThanOrEqual(100);
+    });
+  });
+
+  // ==================== 工具调用边界情况补充测试 ====================
+  describe('工具调用边界情况补充', () => {
+    it('should handle calling with null params', async () => {
+      const handler = vi.fn().mockResolvedValue({ success: true });
+      caller.registerTool('test', handler, {});
+
+      await caller.call('test', null);
+
+      expect(handler).toHaveBeenCalledWith({}, {});
+    });
+
+    it('should handle calling with undefined params', async () => {
+      const handler = vi.fn().mockResolvedValue({ success: true });
+      caller.registerTool('test', handler, {});
+
+      await caller.call('test', undefined);
+
+      expect(handler).toHaveBeenCalledWith({}, {});
+    });
+
+    it('should handle calling with null context', async () => {
+      const handler = vi.fn().mockResolvedValue({ success: true });
+      caller.registerTool('test', handler, {});
+
+      await caller.call('test', {}, null);
+
+      expect(handler).toHaveBeenCalledWith({}, {});
+    });
+
+    it('should handle calling with undefined context', async () => {
+      const handler = vi.fn().mockResolvedValue({ success: true });
+      caller.registerTool('test', handler, {});
+
+      await caller.call('test', {}, undefined);
+
+      expect(handler).toHaveBeenCalledWith({}, {});
+    });
+
+    it('should handle tool that throws synchronous error', async () => {
+      const handler = vi.fn(() => {
+        throw new Error('Sync error');
+      });
+      caller.registerTool('sync_error', handler, {});
+
+      await expect(caller.call('sync_error')).rejects.toThrow('Sync error');
+    });
+
+    it('should handle tool that throws async error', async () => {
+      const handler = vi.fn(async () => {
+        throw new Error('Async error');
+      });
+      caller.registerTool('async_error', handler, {});
+
+      await expect(caller.call('async_error')).rejects.toThrow('Async error');
+    });
+
+    it('should handle tool with very large params', async () => {
+      const handler = vi.fn().mockResolvedValue({ success: true });
+      caller.registerTool('large_params', handler, {});
+
+      const largeParams = {
+        data: 'a'.repeat(100000)
+      };
+
+      await caller.call('large_params', largeParams);
+
+      expect(handler).toHaveBeenCalledWith(largeParams, {});
+    });
+
+    it('should handle tool with circular reference in params', async () => {
+      const handler = vi.fn().mockResolvedValue({ success: true });
+      caller.registerTool('circular', handler, {});
+
+      const circularParams = { a: 1 };
+      circularParams.self = circularParams;
+
+      await caller.call('circular', circularParams);
+
+      expect(handler).toHaveBeenCalled();
+    });
+
+    it('should handle tool that returns promise of promise', async () => {
+      const handler = vi.fn(() => Promise.resolve(Promise.resolve({ value: 42 })));
+      caller.registerTool('nested_promise', handler, {});
+
+      const result = await caller.call('nested_promise');
+
+      expect(result.value).toBe(42);
+    });
+
+    it('should handle calling unregistered tool with empty string name', async () => {
+      await expect(caller.call('')).rejects.toThrow('不存在');
+    });
+
+    it('should handle calling tool with null name', async () => {
+      await expect(caller.call(null)).rejects.toThrow();
+    });
+
+    it('should handle calling tool with undefined name', async () => {
+      await expect(caller.call(undefined)).rejects.toThrow();
+    });
+  });
+
+  // ==================== 性能监控边界测试 ====================
+  describe('性能监控边界测试', () => {
+    it('should record very fast tool execution', async () => {
+      caller.setToolManager(mockToolManager);
+
+      const handler = vi.fn().mockResolvedValue({ success: true });
+      caller.registerTool('fast_tool', handler, {});
+
+      await caller.call('fast_tool', {});
+
+      const [, , duration] = mockToolManager.recordToolUsage.mock.calls[0];
+      expect(duration).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should record tool execution with custom error type', async () => {
+      caller.setToolManager(mockToolManager);
+
+      class CustomError extends Error {
+        constructor(message) {
+          super(message);
+          this.name = 'CustomError';
+        }
+      }
+
+      const handler = vi.fn().mockRejectedValue(new CustomError('Custom'));
+      caller.registerTool('custom_error', handler, {});
+
+      try {
+        await caller.call('custom_error', {});
+      } catch (e) {
+        // Expected
+      }
+
+      expect(mockToolManager.recordToolUsage).toHaveBeenCalledWith(
+        'custom_error',
+        false,
+        expect.any(Number),
+        'CustomError'
+      );
+    });
+
+    it('should handle toolManager throwing error during recording', async () => {
+      mockToolManager.recordToolUsage.mockRejectedValueOnce(new Error('Recording failed'));
+      caller.setToolManager(mockToolManager);
+
+      const handler = vi.fn().mockResolvedValue({ success: true });
+      caller.registerTool('test', handler, {});
+
+      // Should not throw even if recording fails
+      await expect(caller.call('test', {})).resolves.toBeDefined();
+    });
+
+    it('should record multiple consecutive calls', async () => {
+      caller.setToolManager(mockToolManager);
+
+      const handler = vi.fn().mockResolvedValue({ success: true });
+      caller.registerTool('multi_call', handler, {});
+
+      await caller.call('multi_call', {});
+      await caller.call('multi_call', {});
+      await caller.call('multi_call', {});
+
+      expect(mockToolManager.recordToolUsage).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  // ==================== getAvailableTools边界测试 ====================
+  describe('getAvailableTools边界测试', () => {
+    it('should return empty array when no tools registered', () => {
+      const emptyCaller = new FunctionCaller();
+      emptyCaller.tools.clear();
+
+      const tools = emptyCaller.getAvailableTools();
+
+      expect(Array.isArray(tools)).toBe(true);
+      // May still have built-in tools
+    });
+
+    it('should return tools in consistent order', () => {
+      const tools1 = caller.getAvailableTools();
+      const tools2 = caller.getAvailableTools();
+
+      expect(tools1).toEqual(tools2);
+    });
+
+    it('should include all registered tool properties', () => {
+      const handler = vi.fn();
+      caller.registerTool('detailed_tool', handler, {
+        name: 'detailed_tool',
+        description: 'Detailed description',
+        parameters: {
+          param1: { type: 'string', description: 'Parameter 1' },
+          param2: { type: 'number', description: 'Parameter 2' }
+        }
+      });
+
+      const tools = caller.getAvailableTools();
+      const detailedTool = tools.find(t => t.name === 'detailed_tool');
+
+      expect(detailedTool).toBeDefined();
+      expect(detailedTool.description).toBe('Detailed description');
+      expect(detailedTool.parameters).toHaveProperty('param1');
+      expect(detailedTool.parameters).toHaveProperty('param2');
+    });
+
+    it('should handle tools with minimal schema', () => {
+      const handler = vi.fn();
+      caller.registerTool('minimal', handler, { name: 'minimal' });
+
+      const tools = caller.getAvailableTools();
+      const minimal = tools.find(t => t.name === 'minimal');
+
+      expect(minimal).toBeDefined();
+    });
+  });
+
+  // ==================== 内置工具错误处理补充测试 ====================
+  describe('内置工具错误处理补充', () => {
+    describe('file_reader边界情况', () => {
+      it('should handle context without currentFile', async () => {
+        const context = { someOtherProperty: 'value' };
+
+        await expect(caller.call('file_reader', {}, context)).rejects.toThrow(
+          '未指定文件路径'
+        );
+      });
+
+      it('should handle context with null currentFile', async () => {
+        const context = { currentFile: null };
+
+        await expect(caller.call('file_reader', {}, context)).rejects.toThrow(
+          '未指定文件路径'
+        );
+      });
+
+      it('should handle context with currentFile but no file_path', async () => {
+        const context = { currentFile: { otherProp: 'value' } };
+
+        await expect(caller.call('file_reader', {}, context)).rejects.toThrow(
+          '未指定文件路径'
+        );
+      });
+    });
+
+    describe('file_writer边界情况', () => {
+      it('should handle content being empty string', async () => {
+        mockMkdir.mockResolvedValue(undefined);
+        mockWriteFile.mockResolvedValue(undefined);
+
+        const result = await caller.call('file_writer', {
+          filePath: '/test/empty.txt',
+          content: ''
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.size).toBe(0);
+      });
+
+      it('should handle content being 0', async () => {
+        mockMkdir.mockResolvedValue(undefined);
+        mockWriteFile.mockResolvedValue(undefined);
+
+        const result = await caller.call('file_writer', {
+          filePath: '/test/zero.txt',
+          content: 0
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle content being false', async () => {
+        mockMkdir.mockResolvedValue(undefined);
+        mockWriteFile.mockResolvedValue(undefined);
+
+        const result = await caller.call('file_writer', {
+          filePath: '/test/false.txt',
+          content: false
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should reject when content is truly undefined', async () => {
+        await expect(
+          caller.call('file_writer', { filePath: '/test.txt', content: undefined })
+        ).rejects.toThrow('未指定文件内容');
+      });
+
+      it('should handle very long file paths', async () => {
+        mockMkdir.mockResolvedValue(undefined);
+        mockWriteFile.mockResolvedValue(undefined);
+
+        const longPath = '/test/' + 'a/'.repeat(50) + 'file.txt';
+
+        const result = await caller.call('file_writer', {
+          filePath: longPath,
+          content: 'test'
+        });
+
+        expect(result.success).toBe(true);
+      });
+    });
+
+    describe('html_generator边界情况', () => {
+      it('should handle all parameters being empty strings', async () => {
+        const result = await caller.call('html_generator', {
+          title: '',
+          content: '',
+          primaryColor: ''
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.html).toContain('<!DOCTYPE html>');
+      });
+
+      it('should handle very long title', async () => {
+        const result = await caller.call('html_generator', {
+          title: 'a'.repeat(1000)
+        });
+
+        expect(result.html).toContain('a'.repeat(1000));
+      });
+
+      it('should handle HTML special characters in content', async () => {
+        const result = await caller.call('html_generator', {
+          content: '<script>alert("xss")</script>'
+        });
+
+        expect(result.html).toContain('<script>alert("xss")</script>');
+      });
+
+      it('should handle Unicode in content', async () => {
+        const result = await caller.call('html_generator', {
+          content: '你好世界 🚀'
+        });
+
+        expect(result.html).toContain('你好世界 🚀');
+      });
+    });
+
+    describe('css_generator边界情况', () => {
+      it('should handle empty colors array', async () => {
+        const result = await caller.call('css_generator', {
+          colors: []
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.css).toBeDefined();
+      });
+
+      it('should handle single color', async () => {
+        const result = await caller.call('css_generator', {
+          colors: ['#ff0000']
+        });
+
+        expect(result.css).toContain('#ff0000');
+      });
+
+      it('should handle many colors', async () => {
+        const colors = Array.from({ length: 10 }, (_, i) => `#${i}${i}${i}${i}${i}${i}`);
+        const result = await caller.call('css_generator', {
+          colors
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle invalid color formats', async () => {
+        const result = await caller.call('css_generator', {
+          colors: ['not-a-color', 'invalid']
+        });
+
+        expect(result.success).toBe(true);
+      });
+    });
+
+    describe('js_generator边界情况', () => {
+      it('should handle empty features array', async () => {
+        const result = await caller.call('js_generator', {
+          features: []
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle unknown features', async () => {
+        const result = await caller.call('js_generator', {
+          features: ['unknown_feature', 'invalid_feature']
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle null features', async () => {
+        const result = await caller.call('js_generator', {
+          features: null
+        });
+
+        expect(result.success).toBe(true);
+      });
+    });
+
+    describe('git_commit边界情况', () => {
+      it('should handle very long commit message', async () => {
+        const result = await caller.call('git_commit', {
+          message: 'a'.repeat(10000)
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle commit message with special characters', async () => {
+        const result = await caller.call('git_commit', {
+          message: 'Fix: <script>alert("xss")</script>'
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle commit message with newlines', async () => {
+        const result = await caller.call('git_commit', {
+          message: 'Line 1\nLine 2\nLine 3'
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle empty commit message', async () => {
+        const result = await caller.call('git_commit', {
+          message: ''
+        });
+
+        expect(result.message).toBe('');
+      });
+    });
+
+    describe('format_output边界情况', () => {
+      it('should handle null data', async () => {
+        const result = await caller.call('format_output', {
+          data: null
+        });
+
+        expect(result.formatted).toContain('null');
+      });
+
+      it('should handle undefined data', async () => {
+        const result = await caller.call('format_output', {
+          data: undefined
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle circular data', async () => {
+        const circular = { a: 1 };
+        circular.self = circular;
+
+        const result = await caller.call('format_output', {
+          data: circular
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle very nested data', async () => {
+        let nested = { value: 'deep' };
+        for (let i = 0; i < 100; i++) {
+          nested = { child: nested };
+        }
+
+        const result = await caller.call('format_output', {
+          data: nested
+        });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle Date objects', async () => {
+        const result = await caller.call('format_output', {
+          data: { timestamp: new Date('2024-01-01') }
+        });
+
+        expect(result.formatted).toContain('2024');
+      });
+
+      it('should handle RegExp objects', async () => {
+        const result = await caller.call('format_output', {
+          data: { pattern: /test/gi }
+        });
+
+        expect(result.success).toBe(true);
+      });
+    });
+  });
 });
