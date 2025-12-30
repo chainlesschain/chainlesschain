@@ -1049,6 +1049,138 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
       CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+
+      -- ============================
+      -- 企业版（去中心化组织）表结构
+      -- ============================
+
+      -- 身份上下文表（用户级别，加密）
+      CREATE TABLE IF NOT EXISTS identity_contexts (
+        context_id TEXT PRIMARY KEY,
+        user_did TEXT NOT NULL,
+        context_type TEXT NOT NULL CHECK(context_type IN ('personal', 'organization')),
+        org_id TEXT,
+        org_name TEXT,
+        org_avatar TEXT,
+        role TEXT,
+        display_name TEXT,
+        db_path TEXT NOT NULL,
+        is_active INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        last_accessed_at INTEGER
+      );
+
+      -- 组织成员关系表（缓存）
+      CREATE TABLE IF NOT EXISTS organization_memberships (
+        id TEXT PRIMARY KEY,
+        user_did TEXT NOT NULL,
+        org_id TEXT NOT NULL,
+        org_did TEXT NOT NULL,
+        role TEXT NOT NULL,
+        joined_at INTEGER NOT NULL,
+        UNIQUE(user_did, org_id)
+      );
+
+      -- 组织元数据表
+      CREATE TABLE IF NOT EXISTS organization_info (
+        org_id TEXT PRIMARY KEY,
+        org_did TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        type TEXT CHECK(type IN ('startup', 'company', 'community', 'opensource', 'education')),
+        avatar TEXT,
+        owner_did TEXT NOT NULL,
+        settings_json TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 组织成员表
+      CREATE TABLE IF NOT EXISTS organization_members (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        member_did TEXT NOT NULL,
+        display_name TEXT,
+        avatar TEXT,
+        role TEXT NOT NULL CHECK(role IN ('owner', 'admin', 'member', 'viewer')),
+        permissions TEXT,
+        joined_at INTEGER NOT NULL,
+        last_active_at INTEGER,
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'removed')),
+        UNIQUE(org_id, member_did)
+      );
+
+      -- 组织角色表
+      CREATE TABLE IF NOT EXISTS organization_roles (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        permissions TEXT,
+        is_builtin INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        UNIQUE(org_id, name)
+      );
+
+      -- 组织邀请表
+      CREATE TABLE IF NOT EXISTS organization_invitations (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        invite_code TEXT UNIQUE,
+        invited_by TEXT NOT NULL,
+        role TEXT DEFAULT 'member',
+        max_uses INTEGER DEFAULT 1,
+        used_count INTEGER DEFAULT 0,
+        expire_at INTEGER,
+        created_at INTEGER NOT NULL
+      );
+
+      -- 组织项目表
+      CREATE TABLE IF NOT EXISTS organization_projects (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        owner_did TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 组织活动日志表
+      CREATE TABLE IF NOT EXISTS organization_activities (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        actor_did TEXT NOT NULL,
+        action TEXT NOT NULL,
+        resource_type TEXT,
+        resource_id TEXT,
+        metadata TEXT,
+        timestamp INTEGER NOT NULL
+      );
+
+      -- P2P同步状态表
+      CREATE TABLE IF NOT EXISTS p2p_sync_state (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        resource_type TEXT NOT NULL,
+        resource_id TEXT NOT NULL,
+        local_version INTEGER DEFAULT 1,
+        remote_version INTEGER DEFAULT 1,
+        cid TEXT,
+        sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict')),
+        last_synced_at INTEGER,
+        UNIQUE(org_id, resource_type, resource_id)
+      );
+
+      -- 企业版索引
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_active_context ON identity_contexts(is_active) WHERE is_active = 1;
+      CREATE INDEX IF NOT EXISTS idx_org_members_org_did ON organization_members(org_id, member_did);
+      CREATE INDEX IF NOT EXISTS idx_org_members_role ON organization_members(org_id, role);
+      CREATE INDEX IF NOT EXISTS idx_knowledge_org_id ON knowledge_items(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_activities_org_timestamp ON organization_activities(org_id, timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_activities_actor ON organization_activities(actor_did);
+      CREATE INDEX IF NOT EXISTS idx_sync_state_status ON p2p_sync_state(org_id, sync_status);
+      CREATE INDEX IF NOT EXISTS idx_sync_state_version ON p2p_sync_state(org_id, resource_type, remote_version);
     `);
 
       console.log('[Database] ✓ 所有表和索引创建成功');
@@ -1190,6 +1322,43 @@ class DatabaseManager {
       if (!knowledgeInfo.some(col => col.name === 'deleted')) {
         console.log('[Database] 添加 knowledge_items.deleted 列');
         this.db.run('ALTER TABLE knowledge_items ADD COLUMN deleted INTEGER DEFAULT 0');
+      }
+
+      // ==================== 企业版字段迁移 ====================
+      console.log('[Database] 执行企业版字段迁移...');
+
+      // 为 knowledge_items 表添加组织相关字段
+      if (!knowledgeInfo.some(col => col.name === 'org_id')) {
+        console.log('[Database] 添加 knowledge_items.org_id 列');
+        this.db.run('ALTER TABLE knowledge_items ADD COLUMN org_id TEXT');
+      }
+      if (!knowledgeInfo.some(col => col.name === 'created_by')) {
+        console.log('[Database] 添加 knowledge_items.created_by 列');
+        this.db.run('ALTER TABLE knowledge_items ADD COLUMN created_by TEXT');
+      }
+      if (!knowledgeInfo.some(col => col.name === 'updated_by')) {
+        console.log('[Database] 添加 knowledge_items.updated_by 列');
+        this.db.run('ALTER TABLE knowledge_items ADD COLUMN updated_by TEXT');
+      }
+      if (!knowledgeInfo.some(col => col.name === 'share_scope')) {
+        console.log('[Database] 添加 knowledge_items.share_scope 列');
+        this.db.run("ALTER TABLE knowledge_items ADD COLUMN share_scope TEXT DEFAULT 'private'");
+      }
+      if (!knowledgeInfo.some(col => col.name === 'permissions')) {
+        console.log('[Database] 添加 knowledge_items.permissions 列');
+        this.db.run('ALTER TABLE knowledge_items ADD COLUMN permissions TEXT');
+      }
+      if (!knowledgeInfo.some(col => col.name === 'version')) {
+        console.log('[Database] 添加 knowledge_items.version 列');
+        this.db.run('ALTER TABLE knowledge_items ADD COLUMN version INTEGER DEFAULT 1');
+      }
+      if (!knowledgeInfo.some(col => col.name === 'parent_version_id')) {
+        console.log('[Database] 添加 knowledge_items.parent_version_id 列');
+        this.db.run('ALTER TABLE knowledge_items ADD COLUMN parent_version_id TEXT');
+      }
+      if (!knowledgeInfo.some(col => col.name === 'cid')) {
+        console.log('[Database] 添加 knowledge_items.cid 列');
+        this.db.run('ALTER TABLE knowledge_items ADD COLUMN cid TEXT');
       }
 
       // 为 project_collaborators 表添加基础和同步字段
@@ -2411,6 +2580,78 @@ class DatabaseManager {
       this.db.close();
       console.log('数据库连接已关闭');
     }
+  }
+
+  /**
+   * 切换到另一个数据库文件
+   * @param {string} newDbPath - 新数据库文件的路径
+   * @param {Object} options - 选项（password, encryptionEnabled）
+   * @returns {Promise<boolean>} 切换是否成功
+   */
+  async switchDatabase(newDbPath, options = {}) {
+    console.log('[Database] 切换数据库:', newDbPath);
+
+    try {
+      // 1. 保存并关闭当前数据库
+      if (this.db) {
+        console.log('[Database] 保存并关闭当前数据库...');
+        this.saveToFile();
+        this.db.close();
+        this.db = null;
+      }
+
+      // 2. 更新数据库路径和加密选项
+      this.dbPath = newDbPath;
+      if (options.password !== undefined) {
+        this.encryptionPassword = options.password;
+      }
+      if (options.encryptionEnabled !== undefined) {
+        this.encryptionEnabled = options.encryptionEnabled;
+      }
+
+      // 3. 初始化新数据库
+      await this.initialize();
+
+      console.log('[Database] ✓ 数据库切换成功:', newDbPath);
+      return true;
+    } catch (error) {
+      console.error('[Database] 切换数据库失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 根据身份上下文获取数据库路径
+   * @param {string} contextId - 身份上下文ID ('personal' 或 'org_xxx')
+   * @returns {string} 数据库文件路径
+   */
+  getDatabasePath(contextId) {
+    const appConfig = getAppConfig();
+    const dataDir = appConfig.getDatabaseDir ? appConfig.getDatabaseDir() : path.join(app.getPath('userData'), 'data');
+
+    // 确保数据目录存在
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
+    if (contextId === 'personal') {
+      // 个人数据库
+      return path.join(dataDir, 'personal.db');
+    } else if (contextId.startsWith('org_')) {
+      // 组织数据库
+      return path.join(dataDir, `${contextId}.db`);
+    } else {
+      // 默认数据库（向后兼容）
+      return path.join(dataDir, 'chainlesschain.db');
+    }
+  }
+
+  /**
+   * 获取当前数据库路径
+   * @returns {string|null} 当前数据库路径
+   */
+  getCurrentDatabasePath() {
+    return this.dbPath;
   }
 
   /**
