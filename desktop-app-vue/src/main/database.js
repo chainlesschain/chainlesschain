@@ -3110,7 +3110,7 @@ class DatabaseManager {
         root_path, file_count, total_size, template_id, cover_image_url,
         tags, metadata, created_at, updated_at, synced_at, sync_status
       FROM projects
-      WHERE user_id = ?
+      WHERE user_id = ? AND deleted = 0
       ORDER BY updated_at DESC
     `);
 
@@ -3137,6 +3137,64 @@ class DatabaseManager {
       }
       return cleaned;
     });
+  }
+
+  /**
+   * 调试：获取数据库统计信息
+   * @returns {Object} 数据库统计信息
+   */
+  getDatabaseStats() {
+    if (!this.db) {
+      return { error: '数据库未初始化' };
+    }
+
+    try {
+      const stats = {};
+
+      // 获取projects表统计
+      const projectsCount = this.db.prepare('SELECT COUNT(*) as count FROM projects').get();
+      const projectsDeleted = this.db.prepare('SELECT COUNT(*) as count FROM projects WHERE deleted = 1').get();
+      const projectsActive = this.db.prepare('SELECT COUNT(*) as count FROM projects WHERE deleted = 0').get();
+
+      // 获取project_files表统计
+      const filesCount = this.db.prepare('SELECT COUNT(*) as count FROM project_files').get();
+      const filesDeleted = this.db.prepare('SELECT COUNT(*) as count FROM project_files WHERE deleted = 1').get();
+      const filesActive = this.db.prepare('SELECT COUNT(*) as count FROM project_files WHERE deleted = 0').get();
+
+      // 获取所有用户ID
+      const users = this.db.prepare('SELECT DISTINCT user_id FROM projects').all();
+
+      stats.projects = {
+        total: projectsCount.count,
+        active: projectsActive.count,
+        deleted: projectsDeleted.count,
+      };
+
+      stats.files = {
+        total: filesCount.count,
+        active: filesActive.count,
+        deleted: filesDeleted.count,
+      };
+
+      stats.users = users.map(u => u.user_id);
+
+      // 获取数据库路径和大小
+      stats.dbPath = this.dbPath;
+      if (fs.existsSync(this.dbPath)) {
+        const fileStats = fs.statSync(this.dbPath);
+        stats.dbSize = fileStats.size;
+        stats.dbSizeMB = (fileStats.size / 1024 / 1024).toFixed(2) + ' MB';
+        stats.dbModified = new Date(fileStats.mtime).toISOString();
+      }
+
+      // 是否使用加密
+      stats.encrypted = !!this.adapter;
+
+      return stats;
+    } catch (error) {
+      console.error('[Database] getDatabaseStats 失败:', error);
+      return { error: error.message };
+    }
   }
 
   /**
