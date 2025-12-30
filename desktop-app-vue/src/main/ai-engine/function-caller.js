@@ -16,6 +16,7 @@ const ExtendedTools8 = require('./extended-tools-8');
 const ExtendedTools9 = require('./extended-tools-9');
 const ExtendedTools10 = require('./extended-tools-10');
 const ExtendedTools11 = require('./extended-tools-11');
+const ExtendedTools12 = require('./extended-tools-12');
 
 class FunctionCaller {
   constructor() {
@@ -511,6 +512,9 @@ function initializeInteractions() {
 
     // 注册第十一批扩展工具
     ExtendedTools11.registerAll(this);
+
+    // 注册第十二批扩展工具
+    ExtendedTools12.registerAll(this);
   }
 
   /**

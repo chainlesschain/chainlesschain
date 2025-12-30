@@ -1,0 +1,47 @@
+{
+  "id": "tpl_social_moments_001",
+  "name": "wechat_moments_marketing",
+  "display_name": "朋友圈营销文案",
+  "description": "生成不刷屏的朋友圈营销文案，包含九宫格策划和评论区互动",
+  "icon": "👥",
+  "category": "social-media",
+  "subcategory": "wechat",
+  "tags": ["朋友圈", "微商", "私域", "营销"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成朋友圈营销文案，要求：\n\n**朋友圈信息：**\n- 主题：{{momentsTheme}}\n- 文案类型：{{postType}}\n- 配图数量：{{imageCount}}\n\n**文案版本（5个，可轮换发布）：**\n\n{{#eq postType \"产品推广\"}}\n版本1（痛点型）：\n还在为问题烦恼吗？\n试试{{productName}}，效果显著！\n已帮助众多用户解决问题～\n\n版本2（效果展示型）：\n用了{{productName}}后，效果太惊喜了！\n强烈推荐给大家～\n[前后对比图]\n\n版本3（客户见证型）：\n今天又收到客户好评反馈！\n看到大家的认可，所有努力都值得！\n[客户评价截图]\n\n版本4（限时优惠型）：\n重要通知！\n{{productName}}限时特价！\n仅限今天，数量有限！\n需要的抓紧～\n\n版本5（知识分享型）：\n关于{{topic}}，分享几个实用小技巧：\n1. 技巧一\n2. 技巧二\n3. 技巧三\n觉得有用的话，帮忙点个赞～\n{{/eq}}\n\n{{#eq postType \"个人生活\"}}\n版本1（日常分享）：\n分享生活中的美好瞬间\n平淡的日子，也有小确幸～\n\n版本2（感悟金句）：\n [金句]\n与你共勉。\n\n版本3（工作状态）：\n今日工作状态分享\n继续加油！\n{{/eq}}\n\n{{#eq postType \"活动通知\"}}\n重要活动通知！\n\n活动主题：{{eventName}}\n活动时间：{{eventTime}}\n活动地点：{{eventLocation}}\n报名方式：私聊联系\n\n名额有限，先到先得！\n[活动海报]\n{{/eq}}\n\n**不刷屏策略：**\n\n{{#if avoidSpam}}\n1. 发布频率：\n   - 每天不超过3条\n   - 间隔至少4小时\n\n2. 最佳时间：\n   - 早上7:00-8:00（上班路上）\n   - 中午12:00-13:00（午休）\n   - 晚上19:00-21:00（下班后）\n\n3. 内容搭配：\n   - 产品 + 生活 + 干货\n   - 避免全是广告\n{{/if}}\n\n**配图策略：**\n\n{{#eq imageCount \"1张\"}}\n单图：\n- 尺寸：正方形（1080x1080px）\n- 内容：产品特写或核心信息\n{{/eq}}\n\n{{#eq imageCount \"3张\"}}\n三图：\n- 图1：产品/主题\n- 图2：细节/效果\n- 图3：使用场景\n{{/eq}}\n\n{{#eq imageCount \"9张\"}}\n九宫格：\n- 图1：主打图\n- 图2-4：产品多角度\n- 图5-7：使用场景/效果\n- 图8：客户好评\n- 图9：联系方式\n{{/eq}}\n\n**评论区互动：**\n\n{{#if includeCommentInteraction}}\n1. 自己评论（置顶）：\n   - 补充信息\n   - 答疑解惑\n\n2. 引导评论：\n   - 用过的朋友说说感受～\n   - 你们更喜欢哪款？\n\n3. 及时回复：\n   - 30分钟内回复咨询\n   - 点赞所有评论\n{{/if}}\n\n**文案技巧：**\n\n1. emoji使用：每条2-5个，避免过度\n2. 话题标签：适度使用 #话题#\n3. 分段换行：提高可读性\n4. 真实性：用真实案例和照片\n\n**输出格式：**\n- 5个版本文案（可复制）\n- 配图建议\n- 一周发布计划",
+  "variables_schema": [
+    {"name": "momentsTheme", "label": "朋友圈主题", "type": "string", "required": true, "placeholder": "例如：护肤品推广、活动通知"},
+    {"name": "postType", "label": "文案类型", "type": "select", "required": true, "options": [
+      {"value": "产品推广", "label": "产品推广"},
+      {"value": "个人生活", "label": "个人生活"},
+      {"value": "活动通知", "label": "活动通知"}
+    ]},
+    {"name": "imageCount", "label": "配图数量", "type": "select", "required": false, "default": "9张", "options": [
+      {"value": "1张", "label": "单图"},
+      {"value": "3张", "label": "三图"},
+      {"value": "9张", "label": "九宫格"}
+    ]},
+    {"name": "avoidSpam", "label": "防刷屏策略", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "提供防刷屏建议"},
+      {"value": "否", "label": "不需要"}
+    ]},
+    {"name": "includeCommentInteraction", "label": "评论区互动", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "包含互动设计"},
+      {"value": "否", "label": "不需要"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "朋友圈-{{momentsTheme}}",
+    "files": [
+      {"path": "文案合集（5版本）.md", "type": "markdown"},
+      {"path": "一周发布计划.md", "type": "markdown", "content": "# 一周发布计划\n\n## 周一\n- 07:30 版本1\n- 12:30 版本2\n- 20:00 版本3"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
