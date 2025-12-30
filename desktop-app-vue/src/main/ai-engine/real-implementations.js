@@ -1444,6 +1444,453 @@ async function searchNotesReal(params) {
 }
 
 /**
+ * ==================== 提醒调度器 ====================
+ */
+
+/**
+ * 提醒调度器 (真实实现)
+ * 使用JSON文件存储和管理提醒
+ */
+async function reminderSchedulerReal(params) {
+  const { action, reminder, reminders_directory } = params;
+
+  const remindersDir = reminders_directory || path.join(__dirname, '../../test-output/reminders');
+  const remindersFile = path.join(remindersDir, 'reminders.json');
+
+  try {
+    // 确保目录存在
+    await fsp.mkdir(remindersDir, { recursive: true });
+
+    // 读取现有提醒
+    let reminders = [];
+    try {
+      const content = await fsp.readFile(remindersFile, 'utf8');
+      reminders = JSON.parse(content);
+    } catch (err) {
+      // 文件不存在，使用空数组
+      reminders = [];
+    }
+
+    switch (action) {
+      case 'create': {
+        const reminderId = crypto.randomBytes(8).toString('hex');
+        const newReminder = {
+          id: reminderId,
+          title: reminder.title,
+          remind_time: reminder.remind_time,
+          repeat: reminder.repeat || 'none',
+          priority: reminder.priority || 'medium',
+          description: reminder.description || '',
+          enabled: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        reminders.push(newReminder);
+        await fsp.writeFile(remindersFile, JSON.stringify(reminders, null, 2), 'utf8');
+
+        // 计算下一次触发时间
+        const nextTrigger = calculateNextTrigger(newReminder.remind_time, newReminder.repeat);
+
+        return {
+          success: true,
+          action: 'created',
+          reminder_id: reminderId,
+          reminder: newReminder,
+          next_trigger: nextTrigger
+        };
+      }
+
+      case 'update': {
+        const index = reminders.findIndex(r => r.id === reminder.id);
+        if (index === -1) {
+          return {
+            success: false,
+            error: `提醒不存在: ${reminder.id}`
+          };
+        }
+
+        // 更新提醒
+        const updated = {
+          ...reminders[index],
+          ...reminder,
+          id: reminders[index].id, // 保持ID不变
+          updated_at: new Date().toISOString()
+        };
+
+        reminders[index] = updated;
+        await fsp.writeFile(remindersFile, JSON.stringify(reminders, null, 2), 'utf8');
+
+        return {
+          success: true,
+          action: 'updated',
+          reminder_id: reminder.id,
+          changes: Object.keys(reminder).filter(k => k !== 'id')
+        };
+      }
+
+      case 'delete': {
+        const index = reminders.findIndex(r => r.id === reminder.id);
+        if (index === -1) {
+          return {
+            success: false,
+            error: `提醒不存在: ${reminder.id}`
+          };
+        }
+
+        reminders.splice(index, 1);
+        await fsp.writeFile(remindersFile, JSON.stringify(reminders, null, 2), 'utf8');
+
+        return {
+          success: true,
+          action: 'deleted',
+          reminder_id: reminder.id
+        };
+      }
+
+      case 'list': {
+        // 计算每个提醒的下一次触发时间
+        const remindersWithTrigger = reminders.map(r => ({
+          ...r,
+          next_trigger: calculateNextTrigger(r.remind_time, r.repeat)
+        }));
+
+        return {
+          success: true,
+          action: 'listed',
+          reminders: remindersWithTrigger,
+          count: remindersWithTrigger.length
+        };
+      }
+
+      case 'get': {
+        const found = reminders.find(r => r.id === reminder.id);
+        if (!found) {
+          return {
+            success: false,
+            error: `提醒不存在: ${reminder.id}`
+          };
+        }
+
+        return {
+          success: true,
+          action: 'retrieved',
+          reminder: {
+            ...found,
+            next_trigger: calculateNextTrigger(found.remind_time, found.repeat)
+          }
+        };
+      }
+
+      default:
+        return {
+          success: false,
+          error: `不支持的操作: ${action}`
+        };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 计算下一次触发时间
+ */
+function calculateNextTrigger(remindTime, repeat) {
+  const now = new Date();
+
+  // 如果是绝对时间（ISO格式）
+  if (remindTime.includes('T') || remindTime.includes('-')) {
+    const targetTime = new Date(remindTime);
+
+    if (repeat === 'none') {
+      return targetTime > now ? remindTime : null;
+    }
+
+    // 重复提醒
+    let nextTime = new Date(targetTime);
+
+    while (nextTime <= now) {
+      switch (repeat) {
+        case 'daily':
+          nextTime.setDate(nextTime.getDate() + 1);
+          break;
+        case 'weekly':
+          nextTime.setDate(nextTime.getDate() + 7);
+          break;
+        case 'monthly':
+          nextTime.setMonth(nextTime.getMonth() + 1);
+          break;
+        case 'yearly':
+          nextTime.setFullYear(nextTime.getFullYear() + 1);
+          break;
+        default:
+          return null;
+      }
+    }
+
+    return nextTime.toISOString();
+  }
+
+  // 相对时间（HH:MM格式）
+  const [hours, minutes] = remindTime.split(':').map(Number);
+  const nextTime = new Date(now);
+  nextTime.setHours(hours, minutes, 0, 0);
+
+  // 如果今天的时间已过，移到明天
+  if (nextTime <= now) {
+    if (repeat === 'daily' || repeat === 'none') {
+      nextTime.setDate(nextTime.getDate() + 1);
+    }
+  }
+
+  return nextTime.toISOString();
+}
+
+/**
+ * ==================== 密码保险库 ====================
+ */
+
+/**
+ * 密码保险库 (真实实现)
+ * 使用AES-256-GCM加密存储密码
+ */
+async function passwordVaultReal(params) {
+  const { action, entry, master_password, search_query, vault_directory } = params;
+
+  if (!master_password) {
+    return {
+      success: false,
+      error: '需要提供主密码'
+    };
+  }
+
+  const vaultDir = vault_directory || path.join(__dirname, '../../test-output/vault');
+  const vaultFile = path.join(vaultDir, 'passwords.vault');
+
+  try {
+    // 确保目录存在
+    await fsp.mkdir(vaultDir, { recursive: true });
+
+    // 生成加密密钥（从主密码派生）
+    const key = crypto.scryptSync(master_password, 'salt', 32);
+
+    // 读取现有保险库
+    let entries = [];
+    let vaultData = null;
+
+    try {
+      const encryptedContent = await fsp.readFile(vaultFile, 'utf8');
+      vaultData = JSON.parse(encryptedContent);
+
+      // 解密entries
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(vaultData.iv, 'hex'));
+      decipher.setAuthTag(Buffer.from(vaultData.authTag, 'hex'));
+
+      let decrypted = decipher.update(vaultData.encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+
+      entries = JSON.parse(decrypted);
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        // 文件存在但解密失败
+        if (err.message.includes('Unsupported state') || err.message.includes('auth')) {
+          return {
+            success: false,
+            error: '主密码错误或数据已损坏'
+          };
+        }
+      }
+      // 文件不存在，使用空数组
+      entries = [];
+    }
+
+    switch (action) {
+      case 'add': {
+        const entryId = crypto.randomBytes(8).toString('hex');
+        const newEntry = {
+          id: entryId,
+          title: entry.title,
+          username: entry.username,
+          password: entry.password,
+          url: entry.url || '',
+          notes: entry.notes || '',
+          tags: entry.tags || [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        entries.push(newEntry);
+
+        // 加密并保存
+        await saveEncryptedVault(vaultFile, entries, key);
+
+        return {
+          success: true,
+          action: 'added',
+          entry_id: entryId,
+          title: newEntry.title,
+          username: newEntry.username,
+          url: newEntry.url,
+          tags: newEntry.tags,
+          encrypted: true,
+          created_at: newEntry.created_at
+        };
+      }
+
+      case 'get': {
+        const found = entries.find(e => e.id === entry.id);
+        if (!found) {
+          return {
+            success: false,
+            error: `密码条目不存在: ${entry.id}`
+          };
+        }
+
+        return {
+          success: true,
+          action: 'retrieved',
+          entry_id: found.id,
+          title: found.title,
+          username: found.username,
+          password: found.password,
+          url: found.url,
+          notes: found.notes,
+          tags: found.tags,
+          created_at: found.created_at,
+          updated_at: found.updated_at
+        };
+      }
+
+      case 'update': {
+        const index = entries.findIndex(e => e.id === entry.id);
+        if (index === -1) {
+          return {
+            success: false,
+            error: `密码条目不存在: ${entry.id}`
+          };
+        }
+
+        // 更新条目
+        const updated = {
+          ...entries[index],
+          ...entry,
+          id: entries[index].id,
+          created_at: entries[index].created_at,
+          updated_at: new Date().toISOString()
+        };
+
+        entries[index] = updated;
+
+        // 加密并保存
+        await saveEncryptedVault(vaultFile, entries, key);
+
+        return {
+          success: true,
+          action: 'updated',
+          entry_id: entry.id,
+          changes: Object.keys(entry).filter(k => k !== 'id'),
+          updated_at: updated.updated_at
+        };
+      }
+
+      case 'delete': {
+        const index = entries.findIndex(e => e.id === entry.id);
+        if (index === -1) {
+          return {
+            success: false,
+            error: `密码条目不存在: ${entry.id}`
+          };
+        }
+
+        entries.splice(index, 1);
+
+        // 加密并保存
+        await saveEncryptedVault(vaultFile, entries, key);
+
+        return {
+          success: true,
+          action: 'deleted',
+          entry_id: entry.id
+        };
+      }
+
+      case 'list': {
+        let results = entries;
+
+        // 搜索过滤
+        if (search_query) {
+          const query = search_query.toLowerCase();
+          results = results.filter(e =>
+            e.title.toLowerCase().includes(query) ||
+            e.username.toLowerCase().includes(query) ||
+            (e.url && e.url.toLowerCase().includes(query)) ||
+            (e.tags && e.tags.some(tag => tag.toLowerCase().includes(query)))
+          );
+        }
+
+        // 不返回密码（安全考虑）
+        const safeEntries = results.map(e => ({
+          id: e.id,
+          title: e.title,
+          username: e.username,
+          url: e.url,
+          tags: e.tags,
+          created_at: e.created_at,
+          updated_at: e.updated_at
+        }));
+
+        return {
+          success: true,
+          action: 'listed',
+          entries: safeEntries,
+          count: safeEntries.length,
+          vault_encrypted: true
+        };
+      }
+
+      default:
+        return {
+          success: false,
+          error: `不支持的操作: ${action}`
+        };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 保存加密的保险库
+ */
+async function saveEncryptedVault(vaultFile, entries, key) {
+  // 加密entries
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+
+  let encrypted = cipher.update(JSON.stringify(entries), 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  const authTag = cipher.getAuthTag();
+
+  const vaultData = {
+    version: '1.0',
+    algorithm: 'aes-256-gcm',
+    iv: iv.toString('hex'),
+    authTag: authTag.toString('hex'),
+    encrypted: encrypted
+  };
+
+  await fsp.writeFile(vaultFile, JSON.stringify(vaultData, null, 2), 'utf8');
+}
+
+/**
  * ==================== 原有辅助函数 ====================
  */
 
@@ -1532,5 +1979,9 @@ module.exports = {
 
   // 日历和笔记
   calendarManagerReal,
-  searchNotesReal
+  searchNotesReal,
+
+  // 提醒和密码库
+  reminderSchedulerReal,
+  passwordVaultReal
 };
