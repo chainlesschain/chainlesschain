@@ -722,4 +722,321 @@ describe('IntentClassifier', () => {
       expect(result.confidence).toBeGreaterThanOrEqual(0.9);
     });
   });
+
+  // ==================== mentionsFileType方法测试 ====================
+  describe('mentionsFileType', () => {
+    it('should detect HTML file type mention', async () => {
+      const result = await classifier.classify('创建HTML文件');
+      expect(result.entities.fileType).toBe('HTML');
+    });
+
+    it('should detect CSS file type mention', async () => {
+      const result = await classifier.classify('修改CSS样式表');
+      expect(result.entities.fileType).toBe('CSS');
+    });
+
+    it('should detect JavaScript file type mention', async () => {
+      const result = await classifier.classify('写一个JS脚本');
+      expect(result.entities.fileType).toBe('JavaScript');
+    });
+
+    it('should not detect file type when none mentioned', async () => {
+      const result = await classifier.classify('创建一个项目');
+      expect(result.entities.fileType).toBeUndefined();
+    });
+
+    it('should detect file type in Chinese description', async () => {
+      const result = await classifier.classify('创建一个网页项目');
+      expect(result.entities.fileType).toBe('HTML');
+    });
+
+    it('should detect multiple file type patterns', async () => {
+      const result = await classifier.classify('创建html页面');
+      expect(result.entities.fileType).toBe('HTML');
+    });
+  });
+
+  // ==================== 上下文边界条件测试 ====================
+  describe('上下文边界条件', () => {
+    it('should handle context with only currentFile', async () => {
+      const context = { currentFile: 'test.html' };
+      const result = await classifier.classify('修改', context);
+      expect(result.intent).toBe(classifier.INTENTS.EDIT_FILE);
+    });
+
+    it('should handle context with only projectType', async () => {
+      const context = { projectType: 'data' };
+      const result = await classifier.classify('统计数据', context);
+      expect(result.intent).toBe(classifier.INTENTS.ANALYZE_DATA);
+    });
+
+    it('should handle empty context object', async () => {
+      const result = await classifier.classify('创建文件', {});
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+    });
+
+    it('should handle null context', async () => {
+      const result = await classifier.classify('创建文件', null);
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+    });
+
+    it('should not adjust intent for long input with currentFile', async () => {
+      const context = { currentFile: 'index.html' };
+      const longInput = '创建一个全新的网页项目包含完整结构';
+      const result = await classifier.classify(longInput, context);
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+    });
+
+    it('should handle context with both currentFile and projectType', async () => {
+      const context = {
+        currentFile: 'data.csv',
+        projectType: 'data'
+      };
+      const result = await classifier.classify('分析', context);
+      expect(result.intent).toBe(classifier.INTENTS.ANALYZE_DATA);
+    });
+  });
+
+  // ==================== 实体提取边界条件测试 ====================
+  describe('实体提取边界条件', () => {
+    it('should handle text with no entities', async () => {
+      const result = await classifier.classify('做点什么');
+      expect(result.entities).toBeDefined();
+      expect(Object.keys(result.entities).length).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should extract entities from complex mixed query', async () => {
+      const result = await classifier.classify(
+        '修改index.html中的header标题为蓝色#0066cc，添加3个按钮'
+      );
+
+      expect(result.entities.fileName).toBe('index.html');
+      expect(result.entities.targets).toContain('header');
+      expect(result.entities.targets).toContain('标题');
+      expect(result.entities.targets).toContain('按钮');
+      expect(result.entities.colors).toContain('蓝色');
+      expect(result.entities.colors).toContain('#0066cc');
+      expect(result.entities.numbers).toContain(3);
+      expect(result.entities.actions).toContain('修改');
+      expect(result.entities.actions).toContain('添加');
+    });
+
+    it('should handle overlapping color patterns', async () => {
+      const result = await classifier.classify('用红色red和蓝色blue');
+      expect(result.entities.colors.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should extract 3-digit hex colors', async () => {
+      const result = await classifier.classify('颜色改为 #F00 或 #0F0');
+      expect(result.entities.colors).toContain('#F00');
+      expect(result.entities.colors).toContain('#0F0');
+    });
+
+    it('should extract 6-digit hex colors', async () => {
+      const result = await classifier.classify('使用 #FF5733 和 #C70039');
+      expect(result.entities.colors).toContain('#FF5733');
+      expect(result.entities.colors).toContain('#C70039');
+    });
+
+    it('should extract decimal numbers correctly', async () => {
+      const result = await classifier.classify('透明度设置为0.5和0.75');
+      expect(result.entities.numbers).toContain(0.5);
+      expect(result.entities.numbers).toContain(0.75);
+    });
+
+    it('should extract very small decimal numbers', async () => {
+      const result = await classifier.classify('设置为0.01和0.001');
+      expect(result.entities.numbers).toContain(0.01);
+      expect(result.entities.numbers).toContain(0.001);
+    });
+
+    it('should handle file extensions case sensitivity', async () => {
+      const result = await classifier.classify('编辑INDEX.HTML');
+      expect(result.entities.fileName).toBe('INDEX.HTML');
+    });
+
+    it('should extract multiple actions in sequence', async () => {
+      const result = await classifier.classify('删除、添加、修改、更新、替换元素');
+      expect(result.entities.actions).toContain('删除');
+      expect(result.entities.actions).toContain('添加');
+      expect(result.entities.actions).toContain('修改');
+      expect(result.entities.actions).toContain('更新');
+      expect(result.entities.actions).toContain('替换');
+    });
+
+    it('should extract English and Chinese targets together', async () => {
+      const result = await classifier.classify('修改header标题和footer页脚');
+      expect(result.entities.targets).toContain('header');
+      expect(result.entities.targets).toContain('标题');
+      expect(result.entities.targets).toContain('footer');
+      expect(result.entities.targets).toContain('页脚');
+    });
+  });
+
+  // ==================== 分类器边界情况补充测试 ====================
+  describe('分类器边界情况补充', () => {
+    it('should handle text with only spaces and tabs', async () => {
+      const result = await classifier.classify('  \t  \t  ');
+      expect(result.intent).toBeDefined();
+      expect(result.confidence).toBe(0.5);
+    });
+
+    it('should handle text with line breaks', async () => {
+      const result = await classifier.classify('创建文件\n新建项目');
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+    });
+
+    it('should handle text with multiple spaces', async () => {
+      const result = await classifier.classify('创建    一个    文件');
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+    });
+
+    it('should handle text with URL', async () => {
+      const result = await classifier.classify('创建https://example.com的链接');
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+      expect(result.entities.targets).toContain('链接');
+    });
+
+    it('should handle text with email', async () => {
+      const result = await classifier.classify('修改test@example.com的联系方式');
+      expect(result.intent).toBe(classifier.INTENTS.EDIT_FILE);
+    });
+
+    it('should handle text with punctuation only', async () => {
+      const result = await classifier.classify('!@#$%^&*()');
+      expect(result.intent).toBeDefined();
+    });
+
+    it('should handle mixed case keywords', async () => {
+      const result = await classifier.classify('CrEaTe一个FiLe');
+      // 关键词匹配区分大小写，但应该能正常处理
+      expect(result.intent).toBeDefined();
+    });
+
+    it('should handle repeated keywords', async () => {
+      const result = await classifier.classify('创建创建创建文件');
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+      expect(result.confidence).toBeGreaterThanOrEqual(0.9);
+    });
+
+    it('should handle extremely short input (single character)', async () => {
+      const result = await classifier.classify('改');
+      expect(result.intent).toBe(classifier.INTENTS.EDIT_FILE);
+    });
+
+    it('should handle input with only file name', async () => {
+      const result = await classifier.classify('index.html');
+      expect(result.intent).toBeDefined();
+      expect(result.entities.fileName).toBe('index.html');
+    });
+
+    it('should handle input with only color code', async () => {
+      const result = await classifier.classify('#FF5733');
+      expect(result.intent).toBeDefined();
+      expect(result.entities.colors).toContain('#FF5733');
+    });
+
+    it('should handle input with only numbers', async () => {
+      const result = await classifier.classify('123 456 789');
+      expect(result.intent).toBeDefined();
+      expect(result.entities.numbers).toEqual([123, 456, 789]);
+    });
+  });
+
+  // ==================== 关键词匹配精确性测试 ====================
+  describe('关键词匹配精确性', () => {
+    it('should match exact keyword "创建"', async () => {
+      const result = await classifier.classify('创建');
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+    });
+
+    it('should match keyword at start of sentence', async () => {
+      const result = await classifier.classify('创建一些东西');
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+    });
+
+    it('should match keyword at end of sentence', async () => {
+      const result = await classifier.classify('我想要创建');
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+    });
+
+    it('should match keyword in middle of sentence', async () => {
+      const result = await classifier.classify('帮我创建一个文件');
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+    });
+
+    it('should handle partial keyword matches', async () => {
+      const result = await classifier.classify('生成器');
+      // "生成" 是CREATE_FILE关键词，应该被匹配
+      expect(result.intent).toBe(classifier.INTENTS.CREATE_FILE);
+    });
+
+    it('should prioritize most specific intent', async () => {
+      const result = await classifier.classify('修改文件并部署');
+      // "修改" 应该优先于 "部署"
+      expect(result.intent).toBe(classifier.INTENTS.EDIT_FILE);
+    });
+  });
+
+  // ==================== 置信度边界测试 ====================
+  describe('置信度边界测试', () => {
+    it('should have exact confidence for 0 matches', async () => {
+      const result = await classifier.classify('xyz abc def');
+      expect(result.confidence).toBe(0.5);
+    });
+
+    it('should have exact confidence for 1 match', async () => {
+      const result = await classifier.classify('创建xyz');
+      expect(result.confidence).toBe(0.7);
+    });
+
+    it('should have exact confidence for 2+ matches', async () => {
+      const result = await classifier.classify('创建新建文件');
+      expect(result.confidence).toBe(0.9);
+    });
+
+    it('should calculate confidence correctly for mixed intents', async () => {
+      const result = await classifier.classify('创建和修改');
+      // 应该基于最终选择的意图计算置信度
+      expect(result.confidence).toBeGreaterThan(0.5);
+    });
+  });
+
+  // ==================== 特殊文件类型测试 ====================
+  describe('特殊文件类型', () => {
+    it('should extract file type from "网页" keyword', async () => {
+      const result = await classifier.classify('创建一个网页');
+      expect(result.entities.fileType).toBe('HTML');
+    });
+
+    it('should extract file type from "页面" keyword', async () => {
+      const result = await classifier.classify('新建一个页面');
+      expect(result.entities.fileType).toBe('HTML');
+    });
+
+    it('should extract file type from "样式表" keyword', async () => {
+      const result = await classifier.classify('生成样式表');
+      expect(result.entities.fileType).toBe('CSS');
+    });
+
+    it('should extract file type from "表格" keyword', async () => {
+      const result = await classifier.classify('创建数据表格');
+      expect(result.entities.fileType).toBe('Excel');
+    });
+
+    it('should extract file type from "电子表格" keyword', async () => {
+      const result = await classifier.classify('生成电子表格');
+      expect(result.entities.fileType).toBe('Excel');
+    });
+
+    it('should extract file type from lowercase extensions', async () => {
+      const result = await classifier.classify('打开file.html');
+      expect(result.entities.fileName).toBe('file.html');
+    });
+
+    it('should extract file type from uppercase extensions', async () => {
+      const result = await classifier.classify('编辑FILE.HTML');
+      expect(result.entities.fileName).toBe('FILE.HTML');
+    });
+  });
 });
