@@ -483,7 +483,7 @@ const handleGenerateAICommit = async () => {
 
   generatingAI.value = true;
   try {
-    const result = await window.electron.invoke('git:generateCommitMessage', props.repoPath);
+    const result = await window.electron.ipcRenderer.invoke('git:generateCommitMessage', props.repoPath);
 
     if (result.success && result.message) {
       commitMessage.value = result.message;

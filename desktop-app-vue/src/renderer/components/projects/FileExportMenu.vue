@@ -132,7 +132,7 @@ const exportToPDF = async (fileName) => {
 
   try {
     // 读取文件内容
-    const content = await window.electron.invoke('file:read', filePath);
+    const content = await window.electron.ipcRenderer.invoke('file:read', filePath);
 
     // 根据文件类型选择转换方式
     const fileExt = filePath.split('.').pop().toLowerCase();
@@ -141,7 +141,7 @@ const exportToPDF = async (fileName) => {
 
     if (fileExt === 'md' || fileExt === 'markdown') {
       // Markdown转PDF
-      result = await window.electron.invoke('pdf:markdownToPDF', {
+      result = await window.electron.ipcRenderer.invoke('pdf:markdownToPDF', {
         markdown: content,
         outputPath,
         options: {
@@ -151,7 +151,7 @@ const exportToPDF = async (fileName) => {
       });
     } else if (fileExt === 'html' || fileExt === 'htm') {
       // HTML文件转PDF
-      result = await window.electron.invoke('pdf:htmlFileToPDF', {
+      result = await window.electron.ipcRenderer.invoke('pdf:htmlFileToPDF', {
         htmlPath: filePath,
         outputPath,
         options: {
@@ -160,7 +160,7 @@ const exportToPDF = async (fileName) => {
       });
     } else if (fileExt === 'txt') {
       // 文本文件转PDF
-      result = await window.electron.invoke('pdf:textFileToPDF', {
+      result = await window.electron.ipcRenderer.invoke('pdf:textFileToPDF', {
         textPath: filePath,
         outputPath,
         options: {
@@ -170,7 +170,7 @@ const exportToPDF = async (fileName) => {
       });
     } else {
       // 其他文件类型，尝试作为Markdown处理
-      result = await window.electron.invoke('pdf:markdownToPDF', {
+      result = await window.electron.ipcRenderer.invoke('pdf:markdownToPDF', {
         markdown: content,
         outputPath,
         options: {

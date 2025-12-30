@@ -203,7 +203,7 @@ const handleSearch = async () => {
 
   searching.value = true;
   try {
-    const result = await window.electron.invoke('skill:recommend', searchInput.value, {
+    const result = await window.electron.ipcRenderer.invoke('skill:recommend', searchInput.value, {
       limit: recommendLimit.value,
       includeUsageStats: includeUsageStats.value
     });
@@ -225,7 +225,7 @@ const handleSearch = async () => {
 
 const loadPopularSkills = async () => {
   try {
-    const result = await window.electron.invoke('skill:get-popular', 10);
+    const result = await window.electron.ipcRenderer.invoke('skill:get-popular', 10);
     if (result.success) {
       popularSkills.value = result.data;
     }
@@ -236,7 +236,7 @@ const loadPopularSkills = async () => {
 
 const loadRelatedSkills = async (skillId) => {
   try {
-    const result = await window.electron.invoke('skill:get-related', skillId, 5);
+    const result = await window.electron.ipcRenderer.invoke('skill:get-related', skillId, 5);
     if (result.success) {
       relatedSkills.value = result.data;
     }

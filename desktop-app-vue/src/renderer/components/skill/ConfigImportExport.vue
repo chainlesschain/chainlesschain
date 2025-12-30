@@ -230,7 +230,7 @@ const importing = ref(false);
 const loadAvailableItems = async () => {
   try {
     // 加载技能
-    const skillsResult = await window.electron.invoke('skill:get-all', {});
+    const skillsResult = await window.electron.ipcRenderer.invoke('skill:get-all', {});
     if (skillsResult.success) {
       availableSkills.value = skillsResult.data.map(skill => ({
         key: skill.id,
@@ -240,7 +240,7 @@ const loadAvailableItems = async () => {
     }
 
     // 加载工具
-    const toolsResult = await window.electron.invoke('tool:get-all', {});
+    const toolsResult = await window.electron.ipcRenderer.invoke('tool:get-all', {});
     if (toolsResult.success) {
       availableTools.value = toolsResult.data.map(tool => ({
         key: tool.id,
@@ -263,19 +263,19 @@ const handleGeneratePreview = async () => {
     let result;
 
     if (exportType.value === 'skills') {
-      result = await window.electron.invoke('config:export-skills',
+      result = await window.electron.ipcRenderer.invoke('config:export-skills',
         selectedSkills.value.length > 0 ? selectedSkills.value : null,
         exportOptions.value
       );
     } else if (exportType.value === 'tools') {
-      result = await window.electron.invoke('config:export-tools',
+      result = await window.electron.ipcRenderer.invoke('config:export-tools',
         selectedTools.value.length > 0 ? selectedTools.value : null,
         { includeBuiltin: exportOptions.value.includeBuiltin, includeStats: exportOptions.value.includeStats }
       );
     } else {
       // 导出全部
-      const skillsResult = await window.electron.invoke('config:export-skills', null, exportOptions.value);
-      const toolsResult = await window.electron.invoke('config:export-tools', null, exportOptions.value);
+      const skillsResult = await window.electron.ipcRenderer.invoke('config:export-skills', null, exportOptions.value);
+      const toolsResult = await window.electron.ipcRenderer.invoke('config:export-tools', null, exportOptions.value);
 
       result = {
         success: true,
@@ -305,7 +305,7 @@ const handleExportToFile = async () => {
   exporting.value = true;
   try {
     // 使用Electron的dialog选择保存位置
-    const savePath = await window.electron.invoke('dialog:showSaveDialog', {
+    const savePath = await window.electron.ipcRenderer.invoke('dialog:showSaveDialog', {
       defaultPath: `skill-tool-config-${Date.now()}.json`,
       filters: [
         { name: 'JSON Files', extensions: ['json'] },
@@ -317,7 +317,7 @@ const handleExportToFile = async () => {
       return;
     }
 
-    const result = await window.electron.invoke('config:export-to-file', exportPreview.value, savePath.filePath);
+    const result = await window.electron.ipcRenderer.invoke('config:export-to-file', exportPreview.value, savePath.filePath);
 
     if (result.success) {
       message.success(`配置已导出到: ${savePath.filePath}`);
@@ -373,7 +373,7 @@ const handleJsonChange = () => {
 
 const loadTemplate = async () => {
   try {
-    const result = await window.electron.invoke('config:create-template', templateType.value);
+    const result = await window.electron.ipcRenderer.invoke('config:create-template', templateType.value);
     if (result.success) {
       importJson.value = JSON.stringify(result.data, null, 2);
       importData.value = result.data;
@@ -389,7 +389,7 @@ const handleValidate = async () => {
 
   validating.value = true;
   try {
-    const result = await window.electron.invoke('config:import', importData.value, {
+    const result = await window.electron.ipcRenderer.invoke('config:import', importData.value, {
       ...importOptions.value,
       validateOnly: true
     });
@@ -412,7 +412,7 @@ const handleImport = async () => {
 
   importing.value = true;
   try {
-    const result = await window.electron.invoke('config:import', importData.value, importOptions.value);
+    const result = await window.electron.ipcRenderer.invoke('config:import', importData.value, importOptions.value);
 
     if (result.success) {
       importResult.value = result.data;

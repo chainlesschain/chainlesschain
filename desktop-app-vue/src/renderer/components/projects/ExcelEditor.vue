@@ -448,7 +448,7 @@ const handleSave = async () => {
     const data = getSpreadsheetData();
     const content = JSON.stringify({ data, activeSheet: activeSheet.value });
 
-    await window.electron.invoke('file-sync:save', props.file.id, content, props.projectId);
+    await window.electron.ipcRenderer.invoke('file-sync:save', props.file.id, content, props.projectId);
 
     props.file.content = content;
     hasChanges.value = false;
