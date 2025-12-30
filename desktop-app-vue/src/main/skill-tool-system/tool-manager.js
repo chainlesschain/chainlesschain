@@ -7,15 +7,20 @@ const { v4: uuidv4 } = require('uuid');
 const DocGenerator = require('./doc-generator');
 
 class ToolManager {
-  constructor(database, functionCaller) {
+  constructor(database, functionCaller, dependencies = {}) {
     this.db = database;
     this.functionCaller = functionCaller;
+
+    // 依赖注入支持（用于测试）
+    this.dependencies = {
+      DocGeneratorClass: dependencies.DocGeneratorClass || DocGenerator,
+    };
 
     // 工具元数据缓存
     this.tools = new Map(); // toolId -> toolMeta
 
     // 文档生成器（与SkillManager共享）
-    this.docGenerator = new DocGenerator();
+    this.docGenerator = new this.dependencies.DocGeneratorClass();
 
     this.isInitialized = false;
   }
