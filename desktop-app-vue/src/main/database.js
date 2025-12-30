@@ -5,12 +5,22 @@ const { v4: uuidv4 } = require('uuid');
 
 // 导入数据库加密模块
 let createDatabaseAdapter;
+let createBetterSQLiteAdapter;
 try {
   const dbModule = require('./database/index');
   createDatabaseAdapter = dbModule.createDatabaseAdapter;
 } catch (e) {
   console.warn('[Database] 加密模块不可用，将使用sql.js:', e.message);
   createDatabaseAdapter = null;
+}
+
+// 导入 Better-SQLite3 适配器（用于开发环境）
+try {
+  const betterSqliteModule = require('./database/better-sqlite-adapter');
+  createBetterSQLiteAdapter = betterSqliteModule.createBetterSQLiteAdapter;
+} catch (e) {
+  console.warn('[Database] Better-SQLite3 适配器不可用:', e.message);
+  createBetterSQLiteAdapter = null;
 }
 
 // Try to load electron, fallback to global.app for testing
@@ -62,6 +72,25 @@ class DatabaseManager {
 
       console.log('数据库路径:', this.dbPath);
 
+      // 开发环境优先使用 Better-SQLite3
+      const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+      if (isDevelopment && createBetterSQLiteAdapter) {
+        try {
+          await this.initializeWithBetterSQLite();
+          console.log('数据库初始化成功（Better-SQLite3 开发模式）');
+
+          // Verify database is actually initialized
+          if (!this.db) {
+            throw new Error('数据库对象为null，初始化失败');
+          }
+
+          return true;
+        } catch (error) {
+          console.warn('[Database] Better-SQLite3 初始化失败，尝试其他方式:', error.message);
+          console.warn('[Database] 错误堆栈:', error.stack);
+        }
+      }
+
       // 尝试使用加密数据库适配器
       if (createDatabaseAdapter && this.encryptionEnabled) {
         try {
@@ -96,6 +125,46 @@ class DatabaseManager {
       console.error('错误堆栈:', error.stack);
       throw error;
     }
+  }
+
+  /**
+   * 使用 Better-SQLite3 初始化（开发模式）
+   */
+  async initializeWithBetterSQLite() {
+    console.log('[Database] 使用 Better-SQLite3 初始化数据库...');
+
+    // 创建适配器
+    this.adapter = await createBetterSQLiteAdapter({
+      dbPath: this.dbPath
+    });
+
+    // 获取数据库实例
+    this.db = this.adapter.db;
+
+    // 不需要应用兼容性补丁 - Better-SQLite3 已经有正确的 API
+    // applyStatementCompat() 只适用于 sql.js
+
+    // 为 Better-SQLite3 添加 run() 方法以兼容旧代码
+    if (!this.db.run && this.db.exec) {
+      this.db.run = (sql, params) => {
+        if (params && (Array.isArray(params) || typeof params === 'object')) {
+          return this.db.prepare(sql).run(params);
+        } else {
+          this.db.exec(sql);
+        }
+      };
+    }
+
+    // 启用外键约束
+    if (this.db.pragma) {
+      this.db.pragma('foreign_keys = ON');
+    }
+
+    // 创建表
+    this.createTables();
+
+    // 运行数据库迁移
+    this.runMigrations();
   }
 
   /**

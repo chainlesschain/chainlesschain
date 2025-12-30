@@ -49,6 +49,17 @@
           <a-select-option value="education">教育</a-select-option>
           <a-select-option value="lifestyle">生活</a-select-option>
           <a-select-option value="travel">旅游</a-select-option>
+          <a-select-option value="video">视频</a-select-option>
+          <a-select-option value="social-media">社交媒体</a-select-option>
+          <a-select-option value="code-project">代码项目</a-select-option>
+          <a-select-option value="creative-writing">创意写作</a-select-option>
+          <a-select-option value="data-science">数据科学</a-select-option>
+          <a-select-option value="ecommerce">电商</a-select-option>
+          <a-select-option value="health">健康</a-select-option>
+          <a-select-option value="learning">学习</a-select-option>
+          <a-select-option value="legal">法律</a-select-option>
+          <a-select-option value="time-management">时间管理</a-select-option>
+          <a-select-option value="tech-docs">技术文档</a-select-option>
         </a-select>
 
         <span>项目类型：</span>
@@ -322,36 +333,31 @@ const columns = [
     title: '模板名称',
     dataIndex: 'display_name',
     key: 'name',
-    width: 200,
-    slots: { customRender: 'name' }
+    width: 200
   },
   {
     title: '分类',
     dataIndex: 'category',
     key: 'category',
-    width: 180,
-    slots: { customRender: 'category' }
+    width: 180
   },
   {
     title: '项目类型',
     dataIndex: 'project_type',
     key: 'project_type',
-    width: 120,
-    slots: { customRender: 'project_type' }
+    width: 120
   },
   {
     title: '来源',
     dataIndex: 'is_builtin',
     key: 'is_builtin',
-    width: 80,
-    slots: { customRender: 'is_builtin' }
+    width: 80
   },
   {
     title: '使用次数',
     dataIndex: 'usage_count',
     key: 'usage_count',
     width: 100,
-    slots: { customRender: 'usage_count' },
     sorter: (a, b) => (a.usage_count || 0) - (b.usage_count || 0)
   },
   {
@@ -359,15 +365,13 @@ const columns = [
     dataIndex: 'rating',
     key: 'rating',
     width: 180,
-    slots: { customRender: 'rating' },
     sorter: (a, b) => (a.rating || 0) - (b.rating || 0)
   },
   {
     title: '操作',
     key: 'action',
     width: 260,
-    fixed: 'right',
-    slots: { customRender: 'action' }
+    fixed: 'right'
   }
 ]
 
@@ -430,7 +434,18 @@ function getCategoryLabel(category) {
     marketing: '营销',
     education: '教育',
     lifestyle: '生活',
-    travel: '旅游'
+    travel: '旅游',
+    video: '视频',
+    'social-media': '社交媒体',
+    'code-project': '代码项目',
+    'creative-writing': '创意写作',
+    'data-science': '数据科学',
+    ecommerce: '电商',
+    health: '健康',
+    learning: '学习',
+    legal: '法律',
+    'time-management': '时间管理',
+    'tech-docs': '技术文档'
   }
   return categoryMap[category] || category
 }

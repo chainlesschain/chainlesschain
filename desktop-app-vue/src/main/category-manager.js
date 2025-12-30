@@ -128,13 +128,13 @@ class CategoryManager {
     // 插入所有分类
     const stmt = this.db.prepare(`
       INSERT INTO project_categories (
-        id, user_id, name, parent_id, icon, color, sort_order, created_at, updated_at, deleted
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        id, user_id, name, parent_id, icon, color, sort_order, description, created_at, updated_at, deleted
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     // 插入一级分类
     categories.forEach(cat => {
-      stmt.run(cat.id, userId, cat.name, null, cat.icon, cat.color, cat.sort_order, now, now);
+      stmt.run(cat.id, userId, cat.name, null, cat.icon, cat.color, cat.sort_order, null, now, now, 0);
     });
 
     // 插入二级分类
@@ -142,7 +142,7 @@ class CategoryManager {
       const parentId = categoryIds[subcat.parent_name];
       if (parentId) {
         const id = uuidv4();
-        stmt.run(id, userId, subcat.name, parentId, subcat.icon, subcat.color, subcat.sort_order, now, now);
+        stmt.run(id, userId, subcat.name, parentId, subcat.icon, subcat.color, subcat.sort_order, null, now, now, 0);
       }
     });
 
@@ -205,7 +205,7 @@ class CategoryManager {
     const stmt = this.db.prepare(`
       INSERT INTO project_categories (
         id, user_id, name, parent_id, icon, color, sort_order, description, created_at, updated_at, deleted
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -218,7 +218,8 @@ class CategoryManager {
       categoryData.sort_order || 0,
       categoryData.description || null,
       now,
-      now
+      now,
+      0
     );
 
     this.db.saveToFile();
