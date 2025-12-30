@@ -17,12 +17,24 @@ const { SubtitleGenerator } = require('./subtitle-generator');
 
 /**
  * 语音识别管理器类
+ *
+ * 支持依赖注入以提高可测试性
  */
 class SpeechManager extends EventEmitter {
-  constructor(databaseManager, ragManager = null) {
+  constructor(databaseManager, ragManager = null, dependencies = {}) {
     super();
     this.db = databaseManager;
     this.ragManager = ragManager;
+
+    // 依赖注入：允许在测试中替换实现
+    // 如果未提供，则使用默认实现
+    this.dependencies = {
+      ConfigClass: dependencies.ConfigClass || SpeechConfig,
+      ProcessorClass: dependencies.ProcessorClass || AudioProcessor,
+      StorageClass: dependencies.StorageClass || AudioStorage,
+      RecognizerClass: dependencies.RecognizerClass || SpeechRecognizer,
+      SubtitleClass: dependencies.SubtitleClass || SubtitleGenerator,
+    };
 
     // 子模块（延迟初始化）
     this.config = null;
@@ -42,19 +54,21 @@ class SpeechManager extends EventEmitter {
 
   /**
    * 初始化管理器
+   *
+   * 使用依赖注入的类来创建实例，提高可测试性
    */
   async initialize() {
     try {
       console.log('[SpeechManager] 初始化语音识别管理器...');
 
-      // 加载配置
-      this.config = new SpeechConfig();
+      // 加载配置（使用注入的或默认的类）
+      this.config = new this.dependencies.ConfigClass();
       await this.config.load();
 
       const settings = this.config.getAll();
 
-      // 初始化音频处理器
-      this.processor = new AudioProcessor(settings.audio);
+      // 初始化音频处理器（使用注入的或默认的类）
+      this.processor = new this.dependencies.ProcessorClass(settings.audio);
       this.setupProcessorEvents();
 
       // 检查 FFmpeg
@@ -63,16 +77,16 @@ class SpeechManager extends EventEmitter {
         console.warn('[SpeechManager] FFmpeg 不可用，某些音频处理功能可能无法使用');
       }
 
-      // 初始化存储
-      this.storage = new AudioStorage(this.db, settings.storage.savePath);
+      // 初始化存储（使用注入的或默认的类）
+      this.storage = new this.dependencies.StorageClass(this.db, settings.storage.savePath);
       await this.storage.initialize();
 
-      // 初始化识别器
+      // 初始化识别器（使用注入的或默认的类）
       const engineConfig = this.config.getEngineConfig(settings.defaultEngine);
-      this.recognizer = new SpeechRecognizer(settings.defaultEngine, engineConfig);
+      this.recognizer = new this.dependencies.RecognizerClass(settings.defaultEngine, engineConfig);
 
-      // 初始化字幕生成器
-      this.subtitleGenerator = new SubtitleGenerator();
+      // 初始化字幕生成器（使用注入的或默认的类）
+      this.subtitleGenerator = new this.dependencies.SubtitleClass();
 
       // 设置并发任务数
       this.maxConcurrentTasks = settings.performance.maxConcurrentJobs || 2;

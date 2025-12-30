@@ -89,8 +89,8 @@ sixthBatchTools.forEach((tool, index) => {
 
 // 最终验证
 console.log('\n\n========== 测试结果 ==========');
-const expectedSkills = 125;  // 第十一批后的总数
-const expectedTools = 236;  // 第十一批后的总数
+const expectedSkills = 135;  // 第十二批后的总数
+const expectedTools = 256;  // 第十二批后的总数
 
 if (builtinSkills.length === expectedSkills && builtinTools.length === expectedTools) {
   console.log('✅ 测试通过!');

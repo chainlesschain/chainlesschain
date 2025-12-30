@@ -1,0 +1,53 @@
+{
+  "id": "tpl_code_react_002",
+  "name": "react_app_template",
+  "display_name": "React应用项目",
+  "description": "快速搭建React前端项目，包含路由、状态管理、UI库和构建配置",
+  "icon": "⚛️",
+  "category": "code-project",
+  "subcategory": "frontend",
+  "tags": ["React", "前端", "TypeScript", "Vite"],
+  "project_type": "app",
+  "prompt_template": "请帮我生成React项目初始化方案，要求:\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 项目类型：{{appType}}\n- TypeScript：{{useTypeScript}}\n- UI库：{{uiLibrary}}\n- 状态管理：{{stateManagement}}\n\n**项目结构：**\n\n```\n{{projectName}}/\n├── public/\n│   ├── index.html\n│   └── favicon.ico\n│\n├── src/\n│   ├── main.{{#eq useTypeScript \"是\"}}tsx{{else}}jsx{{/eq}}\n│   ├── App.{{#eq useTypeScript \"是\"}}tsx{{else}}jsx{{/eq}}\n│   ├── index.css\n│   │\n│   ├── components/          # 可复用组件\n│   │   ├── common/\n│   │   └── layout/\n│   │\n│   ├── pages/              # 页面组件\n{{#eq appType \"单页应用(SPA)\"}}\n│   │   ├── Home/\n│   │   ├── About/\n│   │   └── NotFound/\n{{/eq}}\n{{#eq appType \"后台管理系统\"}}\n│   │   ├── Dashboard/\n│   │   ├── Users/\n│   │   ├── Settings/\n│   │   └── Login/\n{{/eq}}\n{{#eq appType \"电商前台\"}}\n│   │   ├── Home/\n│   │   ├── ProductList/\n│   │   ├── ProductDetail/\n│   │   ├── Cart/\n│   │   └── Checkout/\n{{/eq}}\n│   │\n{{#eq stateManagement \"Redux Toolkit\"}}\n│   ├── store/              # Redux状态管理\n│   │   ├── index.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   └── slices/\n{{/eq}}\n{{#eq stateManagement \"Zustand\"}}\n│   ├── stores/             # Zustand状态管理\n│   │   └── useStore.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n{{/eq}}\n│   │\n│   ├── hooks/              # 自定义Hooks\n│   ├── utils/              # 工具函数\n│   ├── services/           # API服务\n│   ├── types/              # TypeScript类型定义\n│   └── assets/             # 静态资源\n│\n├── package.json\n├── vite.config.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n{{#eq useTypeScript \"是\"}}\n├── tsconfig.json\n├── tsconfig.node.json\n{{/eq}}\n├── .eslintrc.cjs\n├── .prettierrc\n├── .gitignore\n└── README.md\n```\n\n**package.json：**\n\n```json\n{\n  \"name\": \"{{projectName}}\",\n  \"version\": \"0.1.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"{{#eq useTypeScript \"是\"}}tsc && {{/eq}}vite build\",\n    \"preview\": \"vite preview\",\n    \"lint\": \"eslint . --ext {{#eq useTypeScript \"是\"}}ts,tsx{{else}}js,jsx{{/eq}}\",\n    \"format\": \"prettier --write \\\"src/**/*.{{{#eq useTypeScript \"是\"}}ts,tsx{{else}}js,jsx{{/eq}},css}\\\"\"\n  },\n  \"dependencies\": {\n    \"react\": \"^18.2.0\",\n    \"react-dom\": \"^18.2.0\",\n    \"react-router-dom\": \"^6.20.0\",\n{{#eq uiLibrary \"Ant Design\"}}\n    \"antd\": \"^5.12.0\",\n{{/eq}}\n{{#eq uiLibrary \"Material-UI\"}}\n    \"@mui/material\": \"^5.14.0\",\n    \"@emotion/react\": \"^11.11.0\",\n    \"@emotion/styled\": \"^11.11.0\",\n{{/eq}}\n{{#eq uiLibrary \"Chakra UI\"}}\n    \"@chakra-ui/react\": \"^2.8.0\",\n    \"@emotion/react\": \"^11.11.0\",\n    \"@emotion/styled\": \"^11.11.0\",\n    \"framer-motion\": \"^10.16.0\",\n{{/eq}}\n{{#eq stateManagement \"Redux Toolkit\"}}\n    \"@reduxjs/toolkit\": \"^2.0.0\",\n    \"react-redux\": \"^9.0.0\",\n{{/eq}}\n{{#eq stateManagement \"Zustand\"}}\n    \"zustand\": \"^4.4.0\",\n{{/eq}}\n    \"axios\": \"^1.6.0\"\n  },\n  \"devDependencies\": {\n{{#eq useTypeScript \"是\"}}\n    \"@types/react\": \"^18.2.0\",\n    \"@types/react-dom\": \"^18.2.0\",\n    \"typescript\": \"^5.3.0\",\n{{/eq}}\n    \"@vitejs/plugin-react\": \"^4.2.0\",\n    \"vite\": \"^5.0.0\",\n    \"eslint\": \"^8.55.0\",\n    \"eslint-plugin-react\": \"^7.33.0\",\n    \"prettier\": \"^3.1.0\"\n  }\n}\n```\n\n**vite.config.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\nimport { defineConfig } from 'vite'\nimport react from '@vitejs/plugin-react'\nimport path from 'path'\n\nexport default defineConfig({\n  plugins: [react()],\n  resolve: {\n    alias: {\n      '@': path.resolve(__dirname, './src')\n    }\n  },\n  server: {\n    port: 3000,\n    proxy: {\n      '/api': {\n        target: 'http://localhost:8000',\n        changeOrigin: true\n      }\n    }\n  }\n})\n```\n\n{{#eq useTypeScript \"是\"}}\n**tsconfig.json：**\n\n```json\n{\n  \"compilerOptions\": {\n    \"target\": \"ES2020\",\n    \"useDefineForClassFields\": true,\n    \"lib\": [\"ES2020\", \"DOM\", \"DOM.Iterable\"],\n    \"module\": \"ESNext\",\n    \"skipLibCheck\": true,\n    \"moduleResolution\": \"bundler\",\n    \"allowImportingTsExtensions\": true,\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"noEmit\": true,\n    \"jsx\": \"react-jsx\",\n    \"strict\": true,\n    \"noUnusedLocals\": true,\n    \"noUnusedParameters\": true,\n    \"noFallthroughCasesInSwitch\": true,\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"./src/*\"]\n    }\n  },\n  \"include\": [\"src\"],\n  \"references\": [{ \"path\": \"./tsconfig.node.json\" }]\n}\n```\n{{/eq}}\n\n**README.md：**\n\n```markdown\n# {{projectName}}\n\n{{projectDescription}}\n\n## 技术栈\n\n- React 18\n{{#eq useTypeScript \"是\"}}\n- TypeScript 5\n{{/eq}}\n- Vite 5\n- React Router 6\n- {{uiLibrary}}\n{{#if stateManagement}}\n- {{stateManagement}}\n{{/if}}\n\n## 功能特性\n\n{{#eq appType \"后台管理系统\"}}\n- 用户管理\n- 权限控制\n- 数据统计\n- 系统设置\n{{/eq}}\n{{#eq appType \"电商前台\"}}\n- 商品展示\n- 购物车\n- 订单管理\n- 用户中心\n{{/eq}}\n- 响应式设计\n- 暗黑模式支持\n- 国际化（i18n）\n\n## 快速开始\n\n### 环境要求\n\n- Node.js 18+\n- npm 或 yarn 或 pnpm\n\n### 安装\n\n```bash\n# 克隆项目\ngit clone https://github.com/yourname/{{projectName}}.git\ncd {{projectName}}\n\n# 安装依赖\nnpm install\n# 或\nyarn\n# 或\npnpm install\n```\n\n### 开发\n\n```bash\n# 启动开发服务器\nnpm run dev\n\n# 浏览器访问 http://localhost:3000\n```\n\n### 构建\n\n```bash\n# 生产环境构建\nnpm run build\n\n# 预览构建结果\nnpm run preview\n```\n\n### 代码规范\n\n```bash\n# ESLint检查\nnpm run lint\n\n# Prettier格式化\nnpm run format\n```\n\n## 项目结构说明\n\n- `src/components/` - 通用可复用组件\n- `src/pages/` - 页面级组件\n- `src/hooks/` - 自定义React Hooks\n- `src/services/` - API请求封装\n- `src/utils/` - 工具函数\n{{#eq useTypeScript \"是\"}}\n- `src/types/` - TypeScript类型定义\n{{/eq}}\n\n## 开发建议\n\n1. **组件设计**\n   - 遵循单一职责原则\n   - 优先使用函数组件和Hooks\n   - 合理拆分组件粒度\n\n2. **性能优化**\n   - 使用React.memo避免无效渲染\n   - 合理使用useMemo和useCallback\n   - 路由懒加载（React.lazy）\n\n3. **代码规范**\n   - 遵循Airbnb React规范\n{{#eq useTypeScript \"是\"}}\n   - 合理使用TypeScript类型\n{{/eq}}\n   - 统一的命名规范\n\n4. **状态管理**\n{{#eq stateManagement \"Redux Toolkit\"}}\n   - 使用createSlice创建reducer\n   - 异步逻辑使用createAsyncThunk\n{{/eq}}\n{{#eq stateManagement \"Zustand\"}}\n   - 状态按功能模块划分\n   - 使用immer中间件简化更新\n{{/eq}}\n   - 避免过度使用全局状态\n\n## 部署\n\n### Vercel部署\n\n```bash\nnpm i -g vercel\nvercel\n```\n\n### Nginx部署\n\n```nginx\nserver {\n  listen 80;\n  server_name example.com;\n  root /var/www/{{projectName}}/dist;\n  \n  location / {\n    try_files $uri $uri/ /index.html;\n  }\n}\n```\n\n## 许可证\n\nMIT\n```\n\n**.gitignore：**\n\n```\n# 依赖\nnode_modules/\n.pnp\n.pnp.js\n\n# 构建输出\ndist/\nbuild/\n\n# 测试\ncoverage/\n\n# 环境变量\n.env\n.env.local\n.env.*.local\n\n# 编辑器\n.vscode/\n.idea/\n*.swp\n*.swo\n*~\n\n# 系统文件\n.DS_Store\nThumbs.db\n\n# 日志\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\npnpm-debug.log*\n\n# TypeScript\n*.tsbuildinfo\n```\n\n**开发最佳实践：**\n\n1. **组件结构**\n   - 每个组件一个文件夹\n   - index.{{#eq useTypeScript \"是\"}}tsx{{else}}jsx{{/eq}} + styles.module.css\n   - 组件内部状态优先使用useState\n\n2. **API调用**\n   - 统一封装axios实例\n   - 请求/响应拦截器\n   - 错误统一处理\n\n3. **路由管理**\n   - 使用路由懒加载\n   - 配置路由守卫\n   - 面包屑导航\n\n4. **样式方案**\n   - CSS Modules（推荐）\n   - Styled Components\n   - Tailwind CSS\n\n5. **测试**\n   - 使用Vitest + React Testing Library\n   - 组件测试覆盖率 > 70%\n   - E2E测试使用Playwright",
+  "variables_schema": [
+    {"name": "projectName", "label": "项目名称", "type": "string", "required": true, "placeholder": "例如：my-react-app"},
+    {"name": "projectDescription", "label": "项目描述", "type": "string", "required": false, "default": "基于React的现代化Web应用", "placeholder": "简短描述项目功能"},
+    {"name": "appType", "label": "应用类型", "type": "select", "required": true, "options": [
+      {"value": "单页应用(SPA)", "label": "单页应用(SPA)"},
+      {"value": "后台管理系统", "label": "后台管理系统"},
+      {"value": "电商前台", "label": "电商前台"}
+    ]},
+    {"name": "useTypeScript", "label": "使用TypeScript", "type": "select", "required": false, "default": "是", "options": [
+      {"value": "是", "label": "使用TypeScript"},
+      {"value": "否", "label": "使用JavaScript"}
+    ]},
+    {"name": "uiLibrary", "label": "UI组件库", "type": "select", "required": false, "default": "Ant Design", "options": [
+      {"value": "Ant Design", "label": "Ant Design"},
+      {"value": "Material-UI", "label": "Material-UI"},
+      {"value": "Chakra UI", "label": "Chakra UI"},
+      {"value": "无", "label": "不使用UI库"}
+    ]},
+    {"name": "stateManagement", "label": "状态管理", "type": "select", "required": false, "default": "Redux Toolkit", "options": [
+      {"value": "Redux Toolkit", "label": "Redux Toolkit"},
+      {"value": "Zustand", "label": "Zustand"},
+      {"value": "Context API", "label": "Context API"},
+      {"value": "无", "label": "不需要"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "{{projectName}}",
+    "files": [
+      {"path": "README.md", "type": "markdown"},
+      {"path": "package.json", "type": "document"},
+      {"path": ".gitignore", "type": "document"},
+      {"path": "vite.config.js", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0
+}
