@@ -10,6 +10,10 @@ const ExtendedTools2 = require('./extended-tools-2');
 const ExtendedTools3 = require('./extended-tools-3');
 const ExtendedTools4 = require('./extended-tools-4');
 const ExtendedTools5 = require('./extended-tools-5');
+const ExtendedTools6 = require('./extended-tools-6');
+const ExtendedTools7 = require('./extended-tools-7');
+const ExtendedTools8 = require('./extended-tools-8');
+const ExtendedTools9 = require('./extended-tools-9');
 
 class FunctionCaller {
   constructor() {
@@ -487,6 +491,18 @@ function initializeInteractions() {
 
     // 注册第五批扩展工具
     ExtendedTools5.registerAll(this);
+
+    // 注册第六批扩展工具
+    ExtendedTools6.registerAll(this);
+
+    // 注册第七批扩展工具
+    ExtendedTools7.registerAll(this);
+
+    // 注册第八批扩展工具
+    ExtendedTools8.registerAll(this);
+
+    // 注册第九批扩展工具
+    ExtendedTools9.registerAll(this);
   }
 
   /**

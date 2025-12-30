@@ -188,14 +188,82 @@ class DIDManager extends EventEmitter {
   }
 
   /**
+   * 为组织创建 DID
+   * @param {string} orgId - 组织ID
+   * @param {string} orgName - 组织名称
+   * @returns {Promise<string>} 组织DID
+   */
+  async createOrganizationDID(orgId, orgName) {
+    console.log('[DIDManager] 为组织创建DID:', orgName);
+
+    try {
+      // 1. 生成组织专用密钥对
+      const signKeyPair = nacl.sign.keyPair();
+      const encryptKeyPair = nacl.box.keyPair();
+
+      // 2. 生成组织DID标识符（使用org前缀）
+      const did = this.generateDID(signKeyPair.publicKey, 'org');
+
+      // 3. 创建组织DID文档
+      const didDocument = this.createDIDDocument(did, {
+        signPublicKey: signKeyPair.publicKey,
+        encryptPublicKey: encryptKeyPair.publicKey,
+        profile: {
+          nickname: orgName,
+          bio: `Organization DID for ${orgName}`,
+          type: 'organization',
+          orgId: orgId
+        },
+      });
+
+      // 4. 签名DID文档
+      const signedDocument = this.signDIDDocument(didDocument, signKeyPair.secretKey);
+
+      // 5. 存储到数据库
+      const identity = {
+        did,
+        nickname: orgName,
+        avatar_path: null,
+        bio: `Organization: ${orgName}`,
+        public_key_sign: naclUtil.encodeBase64(signKeyPair.publicKey),
+        public_key_encrypt: naclUtil.encodeBase64(encryptKeyPair.publicKey),
+        private_key_ref: JSON.stringify({
+          sign: naclUtil.encodeBase64(signKeyPair.secretKey),
+          encrypt: naclUtil.encodeBase64(encryptKeyPair.secretKey),
+          orgId: orgId, // 关联组织ID
+        }),
+        did_document: JSON.stringify(signedDocument),
+        created_at: Date.now(),
+        is_default: 0, // 组织DID不能是默认身份
+      };
+
+      await this.saveIdentity(identity);
+
+      console.log('[DIDManager] ✓ 组织DID创建成功:', did);
+      this.emit('organization-did-created', { did, orgId, orgName });
+
+      return did;
+    } catch (error) {
+      console.error('[DIDManager] 创建组织DID失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 生成 DID 标识符
    * @param {Uint8Array} publicKey - 公钥
+   * @param {string} prefix - 可选前缀（例如 'org' 用于组织）
    * @returns {string} DID 标识符
    */
-  generateDID(publicKey) {
+  generateDID(publicKey, prefix = null) {
     // 使用公钥的 SHA-256 哈希的前 20 字节作为标识符
     const hash = crypto.createHash('sha256').update(publicKey).digest();
     const identifier = hash.slice(0, 20).toString('hex');
+
+    // 如果有前缀，加上前缀（例如：did:chainlesschain:org:xxxxx）
+    if (prefix) {
+      return `did:${this.config.method}:${prefix}:${identifier}`;
+    }
 
     return `did:${this.config.method}:${identifier}`;
   }

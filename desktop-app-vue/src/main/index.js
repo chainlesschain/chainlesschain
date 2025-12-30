@@ -514,6 +514,17 @@ class ChainlessChainApp {
       console.error('联系人管理器初始化失败:', error);
     }
 
+    // 初始化组织管理器（企业版）
+    try {
+      console.log('初始化组织管理器...');
+      const OrganizationManager = require('./organization/organization-manager');
+      this.organizationManager = new OrganizationManager(this.database, this.didManager, this.p2pManager);
+      console.log('组织管理器初始化成功');
+    } catch (error) {
+      console.error('组织管理器初始化失败:', error);
+      // 组织管理器初始化失败不影响应用启动
+    }
+
     // 初始化好友管理器
     try {
       console.log('初始化好友管理器...');
@@ -1784,6 +1795,51 @@ class ChainlessChainApp {
       return this.database?.getDatabasePath() || null;
     });
 
+    // 数据库切换（企业版多身份）
+    ipcMain.handle('db:switch-database', async (_event, contextId, options = {}) => {
+      try {
+        if (!this.database) {
+          throw new Error('数据库管理器未初始化');
+        }
+
+        // 获取新数据库路径
+        const newDbPath = this.database.getDatabasePath(contextId);
+        console.log('[Main] 切换数据库到:', newDbPath, 'contextId:', contextId);
+
+        // 切换数据库
+        await this.database.switchDatabase(newDbPath, options);
+
+        console.log('[Main] ✓ 数据库切换成功');
+        return { success: true, path: newDbPath };
+      } catch (error) {
+        console.error('[Main] 切换数据库失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取数据库路径（根据身份上下文）
+    ipcMain.handle('db:get-context-path', async (_event, contextId) => {
+      try {
+        if (!this.database) {
+          return null;
+        }
+        return this.database.getDatabasePath(contextId);
+      } catch (error) {
+        console.error('[Main] 获取数据库路径失败:', error);
+        return null;
+      }
+    });
+
+    // 获取当前数据库路径
+    ipcMain.handle('db:get-current-path', async () => {
+      try {
+        return this.database?.getCurrentDatabasePath() || null;
+      } catch (error) {
+        console.error('[Main] 获取当前数据库路径失败:', error);
+        return null;
+      }
+    });
+
     ipcMain.handle('db:backup', async (_event, backupPath) => {
       try {
         await this.database?.backup(backupPath);
@@ -2976,6 +3032,182 @@ class ChainlessChainApp {
       } catch (error) {
         console.error('[Main] 检查助记词失败:', error);
         return false;
+      }
+    });
+
+    // ============================
+    // 企业版：组织管理IPC Handler
+    // ============================
+
+    // 创建组织
+    ipcMain.handle('org:create-organization', async (_event, orgData) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        return await this.organizationManager.createOrganization(orgData);
+      } catch (error) {
+        console.error('[Main] 创建组织失败:', error);
+        throw error;
+      }
+    });
+
+    // 通过邀请码加入组织
+    ipcMain.handle('org:join-organization', async (_event, inviteCode) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        return await this.organizationManager.joinOrganization(inviteCode);
+      } catch (error) {
+        console.error('[Main] 加入组织失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取组织信息
+    ipcMain.handle('org:get-organization', async (_event, orgId) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        return await this.organizationManager.getOrganization(orgId);
+      } catch (error) {
+        console.error('[Main] 获取组织信息失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取用户所属组织列表
+    ipcMain.handle('org:get-user-organizations', async (_event, userDID) => {
+      try {
+        if (!this.organizationManager) {
+          return [];
+        }
+
+        return await this.organizationManager.getUserOrganizations(userDID);
+      } catch (error) {
+        console.error('[Main] 获取用户组织列表失败:', error);
+        return [];
+      }
+    });
+
+    // 获取组织成员列表
+    ipcMain.handle('org:get-members', async (_event, orgId) => {
+      try {
+        if (!this.organizationManager) {
+          return [];
+        }
+
+        return await this.organizationManager.getOrganizationMembers(orgId);
+      } catch (error) {
+        console.error('[Main] 获取组织成员失败:', error);
+        return [];
+      }
+    });
+
+    // 更新成员角色
+    ipcMain.handle('org:update-member-role', async (_event, orgId, memberDID, newRole) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        await this.organizationManager.updateMemberRole(orgId, memberDID, newRole);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 更新成员角色失败:', error);
+        throw error;
+      }
+    });
+
+    // 移除成员
+    ipcMain.handle('org:remove-member', async (_event, orgId, memberDID) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        await this.organizationManager.removeMember(orgId, memberDID);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 移除成员失败:', error);
+        throw error;
+      }
+    });
+
+    // 创建邀请
+    ipcMain.handle('org:create-invitation', async (_event, orgId, inviteData) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        return await this.organizationManager.createInvitation(orgId, inviteData);
+      } catch (error) {
+        console.error('[Main] 创建邀请失败:', error);
+        throw error;
+      }
+    });
+
+    // 检查权限
+    ipcMain.handle('org:check-permission', async (_event, orgId, userDID, permission) => {
+      try {
+        if (!this.organizationManager) {
+          return false;
+        }
+
+        return await this.organizationManager.checkPermission(orgId, userDID, permission);
+      } catch (error) {
+        console.error('[Main] 检查权限失败:', error);
+        return false;
+      }
+    });
+
+    // 获取组织活动日志
+    ipcMain.handle('org:get-activities', async (_event, orgId, limit) => {
+      try {
+        if (!this.organizationManager) {
+          return [];
+        }
+
+        return await this.organizationManager.getOrganizationActivities(orgId, limit);
+      } catch (error) {
+        console.error('[Main] 获取活动日志失败:', error);
+        return [];
+      }
+    });
+
+    // 离开组织
+    ipcMain.handle('org:leave-organization', async (_event, orgId, userDID) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        await this.organizationManager.leaveOrganization(orgId, userDID);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 离开组织失败:', error);
+        throw error;
+      }
+    });
+
+    // 删除组织
+    ipcMain.handle('org:delete-organization', async (_event, orgId, userDID) => {
+      try {
+        if (!this.organizationManager) {
+          throw new Error('组织管理器未初始化');
+        }
+
+        await this.organizationManager.deleteOrganization(orgId, userDID);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 删除组织失败:', error);
+        throw error;
       }
     });
 

@@ -1193,5 +1193,743 @@ module.exports = [
     ],
     "enabled": 1,
     "is_builtin": 1
+  },
+
+  // =============== 第六批技能扩展 (66-75) ===============
+
+  {
+    "id": "skill_3d_modeling",
+    "name": "3D建模工具",
+    "display_name": "3D Modeling",
+    "description": "3D模型生成、转换、渲染、材质编辑",
+    "category": "media",
+    "icon": "cube",
+    "tags": "[\"3D\",\"建模\",\"渲染\",\"模型转换\"]",
+    "config": "{\"renderer\":\"webgl\",\"quality\":\"high\"}",
+    "doc_path": "docs/skills/3d-modeling.md",
+    "tools": [
+      "model_generator",
+      "model_converter",
+      "model_renderer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_audio_analysis",
+    "name": "音频分析",
+    "display_name": "Audio Analysis",
+    "description": "语音识别、音频指纹、声音分析、频谱分析",
+    "category": "media",
+    "icon": "sound",
+    "tags": "[\"音频\",\"语音识别\",\"频谱分析\",\"指纹\"]",
+    "config": "{\"sampleRate\":44100,\"channels\":2}",
+    "doc_path": "docs/skills/audio-analysis.md",
+    "tools": [
+      "speech_recognizer",
+      "audio_fingerprint",
+      "spectrum_analyzer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_blockchain",
+    "name": "区块链工具",
+    "display_name": "Blockchain",
+    "description": "智能合约交互、钱包管理、链上查询、交易签名",
+    "category": "network",
+    "icon": "link",
+    "tags": "[\"区块链\",\"智能合约\",\"钱包\",\"交易\"]",
+    "config": "{\"network\":\"mainnet\",\"chain\":\"ethereum\"}",
+    "doc_path": "docs/skills/blockchain.md",
+    "tools": [
+      "contract_caller",
+      "wallet_manager",
+      "chain_query"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_data_visualization",
+    "name": "数据可视化",
+    "display_name": "Data Visualization",
+    "description": "图表生成、图形绘制、仪表板创建、数据展示",
+    "category": "data",
+    "icon": "bar-chart",
+    "tags": "[\"可视化\",\"图表\",\"仪表板\",\"绘图\"]",
+    "config": "{\"chartType\":\"line\",\"theme\":\"light\"}",
+    "doc_path": "docs/skills/data-visualization.md",
+    "tools": [
+      "chart_generator",
+      "graph_plotter",
+      "dashboard_creator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_iot_integration",
+    "name": "IoT集成",
+    "display_name": "IoT Integration",
+    "description": "设备管理、MQTT通信、传感器数据处理、设备控制",
+    "category": "network",
+    "icon": "wifi",
+    "tags": "[\"IoT\",\"设备\",\"MQTT\",\"传感器\"]",
+    "config": "{\"protocol\":\"mqtt\",\"qos\":1}",
+    "doc_path": "docs/skills/iot-integration.md",
+    "tools": [
+      "device_manager",
+      "mqtt_client",
+      "sensor_processor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_machine_learning",
+    "name": "机器学习",
+    "display_name": "Machine Learning",
+    "description": "模型训练、预测、特征工程、模型评估",
+    "category": "ai",
+    "icon": "robot",
+    "tags": "[\"机器学习\",\"训练\",\"预测\",\"特征工程\"]",
+    "config": "{\"framework\":\"tensorflow\",\"backend\":\"cpu\"}",
+    "doc_path": "docs/skills/machine-learning.md",
+    "tools": [
+      "model_trainer",
+      "model_predictor",
+      "feature_engineer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_natural_language",
+    "name": "自然语言处理",
+    "display_name": "Natural Language Processing",
+    "description": "文本分类、命名实体识别、情感分析、语义分析",
+    "category": "ai",
+    "icon": "message",
+    "tags": "[\"NLP\",\"文本分类\",\"实体识别\",\"情感分析\"]",
+    "config": "{\"model\":\"bert\",\"language\":\"zh\"}",
+    "doc_path": "docs/skills/natural-language.md",
+    "tools": [
+      "text_classifier",
+      "entity_recognizer",
+      "sentiment_analyzer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_performance_monitoring",
+    "name": "性能监控",
+    "display_name": "Performance Monitoring",
+    "description": "CPU/内存监控、性能分析、基准测试、资源追踪",
+    "category": "system",
+    "icon": "dashboard",
+    "tags": "[\"性能\",\"监控\",\"基准测试\",\"分析\"]",
+    "config": "{\"interval\":1000,\"metrics\":[\"cpu\",\"memory\"]}",
+    "doc_path": "docs/skills/performance-monitoring.md",
+    "tools": [
+      "resource_monitor",
+      "performance_profiler",
+      "benchmark_runner"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_protocol_buffer",
+    "name": "协议缓冲",
+    "display_name": "Protocol Buffer",
+    "description": "Protobuf编码解码、模式管理、数据序列化",
+    "category": "data",
+    "icon": "file-protect",
+    "tags": "[\"Protobuf\",\"序列化\",\"编码\",\"模式\"]",
+    "config": "{\"syntax\":\"proto3\",\"optimize\":\"speed\"}",
+    "doc_path": "docs/skills/protocol-buffer.md",
+    "tools": [
+      "protobuf_encoder",
+      "protobuf_decoder",
+      "schema_manager"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_search_engine",
+    "name": "搜索引擎",
+    "display_name": "Search Engine",
+    "description": "全文搜索、索引构建、排序算法、搜索优化",
+    "category": "data",
+    "icon": "search",
+    "tags": "[\"搜索\",\"索引\",\"排序\",\"全文检索\"]",
+    "config": "{\"analyzer\":\"standard\",\"scoring\":\"bm25\"}",
+    "doc_path": "docs/skills/search-engine.md",
+    "tools": [
+      "search_indexer",
+      "search_query",
+      "search_ranker"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  // =============== 第七批技能扩展 (76-85) ===============
+
+  {
+    "id": "skill_network_security",
+    "name": "网络安全工具",
+    "display_name": "Network Security",
+    "description": "漏洞扫描、渗透测试、安全审计、加密分析",
+    "category": "security",
+    "icon": "safety",
+    "tags": "[\"安全\",\"漏洞扫描\",\"渗透测试\",\"审计\"]",
+    "config": "{\"scanDepth\":\"medium\",\"reportFormat\":\"json\"}",
+    "doc_path": "docs/skills/network-security.md",
+    "tools": [
+      "vulnerability_scanner",
+      "security_auditor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_game_engine",
+    "name": "游戏引擎工具",
+    "display_name": "Game Engine",
+    "description": "游戏逻辑、物理引擎、碰撞检测、粒子系统",
+    "category": "media",
+    "icon": "rocket",
+    "tags": "[\"游戏\",\"物理引擎\",\"碰撞检测\",\"粒子\"]",
+    "config": "{\"physics\":\"box2d\",\"fps\":60}",
+    "doc_path": "docs/skills/game-engine.md",
+    "tools": [
+      "physics_engine",
+      "collision_detector"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_gis",
+    "name": "地理信息系统",
+    "display_name": "Geographic Information System",
+    "description": "GIS分析、地图渲染、空间查询、路径规划",
+    "category": "data",
+    "icon": "environment",
+    "tags": "[\"GIS\",\"地图\",\"空间分析\",\"路径规划\"]",
+    "config": "{\"projection\":\"EPSG:4326\",\"tileSize\":256}",
+    "doc_path": "docs/skills/gis.md",
+    "tools": [
+      "spatial_analyzer",
+      "route_planner"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_bioinformatics",
+    "name": "生物信息学",
+    "display_name": "Bioinformatics",
+    "description": "序列分析、蛋白质结构预测、基因组分析、进化树",
+    "category": "ai",
+    "icon": "experiment",
+    "tags": "[\"生物信息\",\"基因组\",\"蛋白质\",\"序列分析\"]",
+    "config": "{\"database\":\"ncbi\",\"algorithm\":\"blast\"}",
+    "doc_path": "docs/skills/bioinformatics.md",
+    "tools": [
+      "sequence_aligner",
+      "protein_predictor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_financial_analysis",
+    "name": "财务分析",
+    "display_name": "Financial Analysis",
+    "description": "财务建模、风险评估、投资组合优化、估值分析",
+    "category": "data",
+    "icon": "dollar",
+    "tags": "[\"财务\",\"风险评估\",\"投资\",\"估值\"]",
+    "config": "{\"currency\":\"USD\",\"riskModel\":\"var\"}",
+    "doc_path": "docs/skills/financial-analysis.md",
+    "tools": [
+      "financial_modeler",
+      "risk_analyzer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_education_assistant",
+    "name": "教育辅助",
+    "display_name": "Education Assistant",
+    "description": "习题生成、自动批改、学习分析、知识图谱",
+    "category": "ai",
+    "icon": "book",
+    "tags": "[\"教育\",\"习题\",\"批改\",\"学习分析\"]",
+    "config": "{\"difficulty\":\"medium\",\"subject\":\"math\"}",
+    "doc_path": "docs/skills/education-assistant.md",
+    "tools": [
+      "exercise_generator",
+      "auto_grader"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_medical_health",
+    "name": "医疗健康",
+    "display_name": "Medical Health",
+    "description": "医学影像分析、诊断辅助、健康监测、药物查询",
+    "category": "ai",
+    "icon": "medicine-box",
+    "tags": "[\"医疗\",\"影像分析\",\"诊断\",\"健康监测\"]",
+    "config": "{\"imageType\":\"ct\",\"model\":\"resnet\"}",
+    "doc_path": "docs/skills/medical-health.md",
+    "tools": [
+      "medical_image_analyzer",
+      "health_monitor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_legal_assistant",
+    "name": "法律辅助",
+    "display_name": "Legal Assistant",
+    "description": "法律文书生成、案例检索、合规检查、合同审查",
+    "category": "ai",
+    "icon": "file-protect",
+    "tags": "[\"法律\",\"文书\",\"案例\",\"合规\"]",
+    "config": "{\"jurisdiction\":\"cn\",\"docType\":\"contract\"}",
+    "doc_path": "docs/skills/legal-assistant.md",
+    "tools": [
+      "legal_document_generator",
+      "case_searcher"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_architecture_design",
+    "name": "建筑设计",
+    "display_name": "Architecture Design",
+    "description": "BIM建模、结构分析、能耗计算、日照分析",
+    "category": "media",
+    "icon": "home",
+    "tags": "[\"建筑\",\"BIM\",\"结构分析\",\"能耗\"]",
+    "config": "{\"standard\":\"gb\",\"accuracy\":\"high\"}",
+    "doc_path": "docs/skills/architecture-design.md",
+    "tools": [
+      "bim_modeler",
+      "structure_analyzer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_ecommerce",
+    "name": "电子商务",
+    "display_name": "E-Commerce",
+    "description": "推荐系统、库存管理、定价优化、用户画像",
+    "category": "data",
+    "icon": "shopping-cart",
+    "tags": "[\"电商\",\"推荐\",\"库存\",\"定价\"]",
+    "config": "{\"algorithm\":\"collaborative\",\"updateFreq\":\"hourly\"}",
+    "doc_path": "docs/skills/ecommerce.md",
+    "tools": [
+      "recommendation_engine",
+      "inventory_manager"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  // =============== 第八批技能扩展 (86-95) ===============
+
+  {
+    "id": "skill_cloud_devops",
+    "name": "云计算DevOps",
+    "display_name": "Cloud & DevOps",
+    "description": "容器编排、CI/CD、云资源管理、自动化部署",
+    "category": "system",
+    "icon": "cloud",
+    "tags": "[\"云计算\",\"DevOps\",\"容器\",\"CI/CD\"]",
+    "config": "{\"platform\":\"kubernetes\",\"ci\":\"jenkins\"}",
+    "doc_path": "docs/skills/cloud-devops.md",
+    "tools": [
+      "container_orchestrator",
+      "cicd_pipeline"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_quantum_computing",
+    "name": "量子计算",
+    "display_name": "Quantum Computing",
+    "description": "量子算法、量子电路设计、量子模拟、量子优化",
+    "category": "ai",
+    "icon": "experiment",
+    "tags": "[\"量子计算\",\"量子算法\",\"量子电路\",\"优化\"]",
+    "config": "{\"backend\":\"simulator\",\"qubits\":5}",
+    "doc_path": "docs/skills/quantum-computing.md",
+    "tools": [
+      "quantum_circuit_builder",
+      "quantum_simulator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_ar_vr",
+    "name": "增强现实/虚拟现实",
+    "display_name": "AR/VR",
+    "description": "AR内容创建、VR场景构建、3D交互、空间锚点",
+    "category": "media",
+    "icon": "eye",
+    "tags": "[\"AR\",\"VR\",\"3D\",\"交互\"]",
+    "config": "{\"platform\":\"webxr\",\"tracking\":\"6dof\"}",
+    "doc_path": "docs/skills/ar-vr.md",
+    "tools": [
+      "ar_content_creator",
+      "vr_scene_builder"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_speech_synthesis",
+    "name": "语音合成",
+    "display_name": "Speech Synthesis",
+    "description": "文字转语音、语音克隆、情感语音、多语言TTS",
+    "category": "media",
+    "icon": "sound",
+    "tags": "[\"TTS\",\"语音合成\",\"语音克隆\",\"情感\"]",
+    "config": "{\"engine\":\"neural\",\"voice\":\"female\"}",
+    "doc_path": "docs/skills/speech-synthesis.md",
+    "tools": [
+      "text_to_speech",
+      "voice_cloner"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_computer_vision",
+    "name": "计算机视觉",
+    "display_name": "Computer Vision",
+    "description": "目标检测、图像分割、人脸识别、姿态估计",
+    "category": "ai",
+    "icon": "camera",
+    "tags": "[\"视觉\",\"检测\",\"识别\",\"分割\"]",
+    "config": "{\"model\":\"yolo\",\"confidence\":0.5}",
+    "doc_path": "docs/skills/computer-vision.md",
+    "tools": [
+      "object_detector",
+      "image_segmenter"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_automated_testing",
+    "name": "自动化测试",
+    "display_name": "Automated Testing",
+    "description": "单元测试、集成测试、E2E测试、性能测试",
+    "category": "code",
+    "icon": "check-circle",
+    "tags": "[\"测试\",\"自动化\",\"质量保证\",\"CI\"]",
+    "config": "{\"framework\":\"jest\",\"coverage\":80}",
+    "doc_path": "docs/skills/automated-testing.md",
+    "tools": [
+      "test_generator",
+      "test_runner"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_content_management",
+    "name": "内容管理系统",
+    "display_name": "Content Management",
+    "description": "内容发布、媒体管理、工作流审批、版本控制",
+    "category": "data",
+    "icon": "file-text",
+    "tags": "[\"CMS\",\"内容\",\"发布\",\"媒体\"]",
+    "config": "{\"storage\":\"s3\",\"cdn\":\"cloudflare\"}",
+    "doc_path": "docs/skills/content-management.md",
+    "tools": [
+      "content_publisher",
+      "media_manager"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_social_media_analytics",
+    "name": "社交媒体分析",
+    "display_name": "Social Media Analytics",
+    "description": "舆情监控、影响力分析、话题追踪、粉丝画像",
+    "category": "data",
+    "icon": "team",
+    "tags": "[\"社交\",\"舆情\",\"分析\",\"监控\"]",
+    "config": "{\"platforms\":[\"twitter\",\"weibo\"],\"realtime\":true}",
+    "doc_path": "docs/skills/social-media-analytics.md",
+    "tools": [
+      "sentiment_monitor",
+      "influencer_analyzer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_supply_chain",
+    "name": "供应链管理",
+    "display_name": "Supply Chain Management",
+    "description": "物流优化、供应商管理、需求预测、配送规划",
+    "category": "data",
+    "icon": "deployment-unit",
+    "tags": "[\"供应链\",\"物流\",\"优化\",\"预测\"]",
+    "config": "{\"optimization\":\"linear_programming\"}",
+    "doc_path": "docs/skills/supply-chain.md",
+    "tools": [
+      "logistics_optimizer",
+      "demand_forecaster"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_environmental_science",
+    "name": "环境科学",
+    "display_name": "Environmental Science",
+    "description": "气象分析、环境监测、污染预测、生态建模",
+    "category": "ai",
+    "icon": "global",
+    "tags": "[\"环境\",\"气象\",\"监测\",\"生态\"]",
+    "config": "{\"dataSource\":\"weather_api\",\"resolution\":\"hourly\"}",
+    "doc_path": "docs/skills/environmental-science.md",
+    "tools": [
+      "weather_analyzer",
+      "pollution_predictor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  // ==================== 第九批技能 (96-105) ====================
+
+  {
+    "id": "skill_iot_platform",
+    "name": "物联网平台",
+    "display_name": "IoT Platform",
+    "description": "设备管理、数据采集、MQTT通信、远程控制",
+    "category": "system",
+    "icon": "api",
+    "tags": "[\"物联网\",\"IoT\",\"设备\",\"传感器\"]",
+    "config": "{\"protocol\":\"mqtt\",\"broker\":\"emqx\"}",
+    "doc_path": "docs/skills/iot-platform.md",
+    "tools": [
+      "iot_device_manager",
+      "mqtt_broker"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_edge_computing",
+    "name": "边缘计算",
+    "display_name": "Edge Computing",
+    "description": "边缘节点管理、本地推理、数据预处理、低延迟计算",
+    "category": "system",
+    "icon": "cluster",
+    "tags": "[\"边缘计算\",\"推理\",\"低延迟\",\"分布式\"]",
+    "config": "{\"runtime\":\"k3s\",\"inference\":\"onnx\"}",
+    "doc_path": "docs/skills/edge-computing.md",
+    "tools": [
+      "edge_node_manager",
+      "edge_inferencer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_digital_twin",
+    "name": "数字孪生",
+    "display_name": "Digital Twin",
+    "description": "虚拟模型构建、实时同步、仿真预测、故障诊断",
+    "category": "ai",
+    "icon": "fork",
+    "tags": "[\"数字孪生\",\"仿真\",\"预测\",\"建模\"]",
+    "config": "{\"sync_interval\":1000,\"precision\":\"high\"}",
+    "doc_path": "docs/skills/digital-twin.md",
+    "tools": [
+      "twin_model_builder",
+      "twin_simulator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_industrial_automation",
+    "name": "工业自动化",
+    "display_name": "Industrial Automation",
+    "description": "PLC控制、SCADA系统、生产调度、质量检测",
+    "category": "system",
+    "icon": "control",
+    "tags": "[\"工业\",\"自动化\",\"PLC\",\"SCADA\"]",
+    "config": "{\"plc_type\":\"siemens\",\"protocol\":\"modbus\"}",
+    "doc_path": "docs/skills/industrial-automation.md",
+    "tools": [
+      "plc_controller",
+      "production_scheduler"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_smart_home",
+    "name": "智能家居",
+    "display_name": "Smart Home",
+    "description": "场景自动化、设备联动、能源管理、语音控制",
+    "category": "system",
+    "icon": "home",
+    "tags": "[\"智能家居\",\"自动化\",\"IoT\",\"场景\"]",
+    "config": "{\"hub\":\"homeassistant\",\"voice\":\"alexa\"}",
+    "doc_path": "docs/skills/smart-home.md",
+    "tools": [
+      "scene_automator",
+      "device_linker"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_agriculture_tech",
+    "name": "农业科技",
+    "display_name": "Agriculture Technology",
+    "description": "精准农业、作物监测、灌溉控制、病虫害预测",
+    "category": "ai",
+    "icon": "fire",
+    "tags": "[\"农业\",\"精准农业\",\"监测\",\"预测\"]",
+    "config": "{\"sensors\":[\"soil\",\"weather\"],\"ai\":true}",
+    "doc_path": "docs/skills/agriculture-tech.md",
+    "tools": [
+      "crop_monitor",
+      "irrigation_controller"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_smart_city",
+    "name": "智慧城市",
+    "display_name": "Smart City",
+    "description": "交通管理、公共安全、能源优化、垃圾分类",
+    "category": "system",
+    "icon": "bank",
+    "tags": "[\"智慧城市\",\"交通\",\"安全\",\"能源\"]",
+    "config": "{\"modules\":[\"traffic\",\"energy\",\"safety\"]}",
+    "doc_path": "docs/skills/smart-city.md",
+    "tools": [
+      "traffic_controller",
+      "public_safety_monitor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_aerospace",
+    "name": "航空航天",
+    "display_name": "Aerospace Engineering",
+    "description": "轨道计算、飞行规划、卫星通信、航迹优化",
+    "category": "data",
+    "icon": "rocket",
+    "tags": "[\"航空\",\"航天\",\"轨道\",\"卫星\"]",
+    "config": "{\"precision\":\"double\",\"units\":\"metric\"}",
+    "doc_path": "docs/skills/aerospace.md",
+    "tools": [
+      "orbit_calculator",
+      "flight_planner"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_ocean_science",
+    "name": "海洋科学",
+    "display_name": "Ocean Science",
+    "description": "海洋监测、航海路径规划、海洋生态、气候分析",
+    "category": "ai",
+    "icon": "cloud",
+    "tags": "[\"海洋\",\"航海\",\"生态\",\"监测\"]",
+    "config": "{\"data_source\":\"satellite\",\"resolution\":\"1km\"}",
+    "doc_path": "docs/skills/ocean-science.md",
+    "tools": [
+      "ocean_monitor",
+      "navigation_planner"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_energy_management",
+    "name": "能源管理",
+    "display_name": "Energy Management",
+    "description": "电力调度、新能源预测、储能优化、碳排放管理",
+    "category": "data",
+    "icon": "thunderbolt",
+    "tags": "[\"能源\",\"电力\",\"新能源\",\"碳排放\"]",
+    "config": "{\"grid_type\":\"smart\",\"renewables\":true}",
+    "doc_path": "docs/skills/energy-management.md",
+    "tools": [
+      "power_dispatcher",
+      "renewable_forecaster"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
   }
 ];
