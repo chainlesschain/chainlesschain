@@ -41,6 +41,10 @@
             <template #icon><FolderOpenOutlined /></template>
             我的项目
           </a-menu-item>
+          <a-menu-item key="project-list-management">
+            <template #icon><TableOutlined /></template>
+            项目列表管理
+          </a-menu-item>
           <a-menu-item key="template-management">
             <template #icon><TagsOutlined /></template>
             模板管理
@@ -401,6 +405,7 @@ import {
   DashboardOutlined,
   ThunderboltOutlined,
   ToolOutlined,
+  TableOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { useSocialStore } from '../stores/social';
@@ -437,6 +442,7 @@ const menuConfig = {
   // 项目管理模块
     'project-categories': { path: '/projects/categories', title: '项目分类' },
   projects: { path: '/projects', title: '我的项目' },
+  'project-list-management': { path: '/projects/management', title: '项目列表管理' },
   'template-management': { path: '/template-management', title: '模板管理' },
   'project-market': { path: '/projects/market', title: '项目市场' },
   'project-collaboration': { path: '/projects/collaboration', title: '协作项目' },
@@ -493,7 +499,8 @@ watch(
       selectedMenuKeys.value = [menuKey];
     } else if (newPath.startsWith('/projects/') && newPath !== '/projects/new' &&
                newPath !== '/projects/market' &&
-               newPath !== '/projects/collaboration' && newPath !== '/projects/archived') {
+               newPath !== '/projects/collaboration' && newPath !== '/projects/archived' &&
+               newPath !== '/projects/management' && newPath !== '/projects/categories') {
       // 项目详情页，选中"我的项目"菜单
       selectedMenuKeys.value = ['projects'];
     }

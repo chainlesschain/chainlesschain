@@ -438,5 +438,389 @@ module.exports = [
     ],
     "enabled": 1,
     "is_builtin": 1
+  },
+
+  // === 第二批新增技能 (26-35) ===
+
+  {
+    "id": "skill_code_quality",
+    "name": "代码质量",
+    "display_name": "Code Quality",
+    "description": "代码格式化、diff比较、版本管理",
+    "category": "code",
+    "icon": "check-circle",
+    "tags": "[\"代码\",\"质量\",\"格式化\"]",
+    "config": "{\"autoFormat\":true,\"strictMode\":false}",
+    "doc_path": "docs/skills/code-quality.md",
+    "tools": [
+      "code_formatter",
+      "diff_comparator",
+      "version_comparator",
+      "gitdiff_parser",
+      "file_reader",
+      "file_writer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_config_parser",
+    "name": "配置解析",
+    "display_name": "Config Parser",
+    "description": "解析和转换各种配置文件格式（XML/TOML/INI）",
+    "category": "config",
+    "icon": "file-text",
+    "tags": "[\"配置\",\"解析\",\"格式\"]",
+    "config": "{\"autoDetect\":true,\"preserveComments\":false}",
+    "doc_path": "docs/skills/config-parser.md",
+    "tools": [
+      "xml_parser",
+      "toml_parser",
+      "ini_parser",
+      "json_parser",
+      "yaml_parser",
+      "file_reader",
+      "file_writer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_web_scraping",
+    "name": "网页抓取",
+    "display_name": "Web Scraping",
+    "description": "HTML解析、内容提取、网页数据采集",
+    "category": "web",
+    "icon": "spider",
+    "tags": "[\"爬虫\",\"抓取\",\"HTML\"]",
+    "config": "{\"userAgent\":\"Mozilla/5.0\",\"timeout\":10000,\"respectRobots\":true}",
+    "doc_path": "docs/skills/web-scraping.md",
+    "tools": [
+      "http_client",
+      "html_parser",
+      "url_parser",
+      "file_writer",
+      "json_parser"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_network_tools",
+    "name": "网络工具",
+    "display_name": "Network Tools",
+    "description": "DNS查询、端口检测、IP工具、网络诊断",
+    "category": "network",
+    "icon": "radar-chart",
+    "tags": "[\"网络\",\"DNS\",\"端口\"]",
+    "config": "{\"timeout\":5000,\"retries\":3}",
+    "doc_path": "docs/skills/network-tools.md",
+    "tools": [
+      "dns_lookup",
+      "port_checker",
+      "ip_utility",
+      "http_client"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_security_tools",
+    "name": "安全工具",
+    "display_name": "Security Tools",
+    "description": "Hash校验、JWT解析、文件完整性验证",
+    "category": "security",
+    "icon": "safety",
+    "tags": "[\"安全\",\"验证\",\"JWT\"]",
+    "config": "{\"defaultAlgorithm\":\"sha256\",\"strictMode\":true}",
+    "doc_path": "docs/skills/security-tools.md",
+    "tools": [
+      "hash_verifier",
+      "jwt_parser",
+      "crypto_handler",
+      "base64_handler"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_text_utilities",
+    "name": "文本工具",
+    "display_name": "Text Utilities",
+    "description": "编码检测、语言识别、Slug生成、邮件解析",
+    "category": "text",
+    "icon": "font-colors",
+    "tags": "[\"文本\",\"编码\",\"语言\"]",
+    "config": "{\"defaultEncoding\":\"utf-8\"}",
+    "doc_path": "docs/skills/text-utilities.md",
+    "tools": [
+      "encoding_detector",
+      "language_detector",
+      "slug_generator",
+      "email_parser",
+      "text_analyzer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_qrcode_barcode",
+    "name": "二维码条形码",
+    "display_name": "QR & Barcode",
+    "description": "生成QR二维码和条形码",
+    "category": "image",
+    "icon": "qrcode",
+    "tags": "[\"二维码\",\"条形码\",\"生成\"]",
+    "config": "{\"defaultSize\":256,\"errorLevel\":\"M\"}",
+    "doc_path": "docs/skills/qrcode-barcode.md",
+    "tools": [
+      "qrcode_generator",
+      "file_writer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_task_scheduler",
+    "name": "任务调度",
+    "display_name": "Task Scheduler",
+    "description": "Cron表达式解析、定时任务管理",
+    "category": "automation",
+    "icon": "schedule",
+    "tags": "[\"定时\",\"调度\",\"Cron\"]",
+    "config": "{\"timezone\":\"local\"}",
+    "doc_path": "docs/skills/task-scheduler.md",
+    "tools": [
+      "cron_parser",
+      "datetime_handler"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_browser_automation",
+    "name": "浏览器自动化",
+    "display_name": "Browser Automation",
+    "description": "User-Agent解析、浏览器指纹、自动化测试",
+    "category": "automation",
+    "icon": "chrome",
+    "tags": "[\"浏览器\",\"自动化\",\"测试\"]",
+    "config": "{\"headless\":true,\"defaultViewport\":{\"width\":1920,\"height\":1080}}",
+    "doc_path": "docs/skills/browser-automation.md",
+    "tools": [
+      "useragent_parser",
+      "http_client",
+      "html_parser"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "skill_multi_format_data",
+    "name": "多格式数据处理",
+    "display_name": "Multi-Format Data",
+    "description": "处理XML、HTML、TOML、INI等多种数据格式",
+    "category": "data",
+    "icon": "file-done",
+    "tags": "[\"数据\",\"格式\",\"转换\"]",
+    "config": "{\"autoConvert\":true,\"preserveStructure\":true}",
+    "doc_path": "docs/skills/multi-format-data.md",
+    "tools": [
+      "xml_parser",
+      "html_parser",
+      "toml_parser",
+      "ini_parser",
+      "json_parser",
+      "file_reader",
+      "file_writer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  // ==================== 第三批扩展技能 (36-45) ====================
+
+  {
+    "id": "skill_video_audio_processing",
+    "name": "视频音频处理",
+    "display_name": "Video & Audio Processing",
+    "description": "视频音频元数据读取、格式转换、时长计算",
+    "category": "media",
+    "icon": "video-camera",
+    "tags": "[\"视频\",\"音频\",\"媒体\",\"元数据\"]",
+    "config": "{\"supportedFormats\":[\"mp4\",\"mp3\",\"wav\",\"avi\",\"mkv\"],\"maxFileSize\":\"500MB\"}",
+    "doc_path": "docs/skills/video-audio-processing.md",
+    "tools": [
+      "video_metadata_reader",
+      "audio_duration_calculator",
+      "subtitle_parser"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_ml_inference",
+    "name": "机器学习推理",
+    "display_name": "Machine Learning Inference",
+    "description": "加载和运行机器学习模型进行预测推理",
+    "category": "ai",
+    "icon": "robot",
+    "tags": "[\"机器学习\",\"AI\",\"推理\",\"预测\"]",
+    "config": "{\"modelPath\":\"\",\"framework\":\"onnx\"}",
+    "doc_path": "docs/skills/ml-inference.md",
+    "tools": [
+      "model_predictor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_data_analytics",
+    "name": "数据分析统计",
+    "display_name": "Data Analytics",
+    "description": "数据聚合、统计分析、图表数据生成",
+    "category": "data",
+    "icon": "bar-chart",
+    "tags": "[\"数据分析\",\"统计\",\"图表\",\"可视化\"]",
+    "config": "{\"precision\":2,\"chartTypes\":[\"line\",\"bar\",\"pie\"]}",
+    "doc_path": "docs/skills/data-analytics.md",
+    "tools": [
+      "data_aggregator",
+      "statistical_calculator",
+      "chart_data_generator"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_document_templating",
+    "name": "文档模板生成",
+    "display_name": "Document Templating",
+    "description": "支持 Mustache、Handlebars、EJS 等模板引擎",
+    "category": "document",
+    "icon": "file-text",
+    "tags": "[\"模板\",\"文档\",\"生成\",\"渲染\"]",
+    "config": "{\"defaultEngine\":\"mustache\",\"escapeHtml\":true}",
+    "doc_path": "docs/skills/document-templating.md",
+    "tools": [
+      "template_renderer",
+      "file_writer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_api_integration",
+    "name": "API集成工具",
+    "display_name": "API Integration",
+    "description": "HTTP请求、OAuth认证、API调用管理",
+    "category": "network",
+    "icon": "api",
+    "tags": "[\"API\",\"HTTP\",\"认证\",\"集成\"]",
+    "config": "{\"timeout\":30000,\"retries\":3}",
+    "doc_path": "docs/skills/api-integration.md",
+    "tools": [
+      "api_requester",
+      "oauth_helper",
+      "jwt_parser"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_cloud_storage",
+    "name": "云存储管理",
+    "display_name": "Cloud Storage",
+    "description": "支持 AWS S3、阿里云 OSS 等云存储服务",
+    "category": "storage",
+    "icon": "cloud",
+    "tags": "[\"云存储\",\"S3\",\"OSS\",\"文件上传\"]",
+    "config": "{\"provider\":\"s3\",\"region\":\"us-east-1\"}",
+    "doc_path": "docs/skills/cloud-storage.md",
+    "tools": [
+      "s3_client",
+      "oss_client"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_log_analysis",
+    "name": "日志分析",
+    "display_name": "Log Analysis",
+    "description": "解析和分析各种日志格式（Nginx、Apache、JSON日志等）",
+    "category": "devops",
+    "icon": "file-search",
+    "tags": "[\"日志\",\"分析\",\"监控\",\"调试\"]",
+    "config": "{\"logFormats\":[\"nginx\",\"apache\",\"json\",\"syslog\"]}",
+    "doc_path": "docs/skills/log-analysis.md",
+    "tools": [
+      "log_parser",
+      "text_analyzer"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_performance_monitoring",
+    "name": "性能监控",
+    "display_name": "Performance Monitoring",
+    "description": "性能分析、内存监控、资源使用统计",
+    "category": "devops",
+    "icon": "dashboard",
+    "tags": "[\"性能\",\"监控\",\"分析\",\"优化\"]",
+    "config": "{\"sampleInterval\":1000,\"metricsRetention\":\"7d\"}",
+    "doc_path": "docs/skills/performance-monitoring.md",
+    "tools": [
+      "performance_profiler",
+      "memory_monitor"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_i18n_translation",
+    "name": "国际化翻译",
+    "display_name": "Internationalization",
+    "description": "多语言翻译、本地化格式化、语言检测",
+    "category": "text",
+    "icon": "global",
+    "tags": "[\"国际化\",\"翻译\",\"本地化\",\"多语言\"]",
+    "config": "{\"defaultLocale\":\"zh-CN\",\"supportedLocales\":[\"en-US\",\"zh-CN\",\"ja-JP\"]}",
+    "doc_path": "docs/skills/i18n-translation.md",
+    "tools": [
+      "translator",
+      "locale_formatter",
+      "language_detector"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
+  },
+
+  {
+    "id": "skill_workflow_automation",
+    "name": "工作流自动化",
+    "display_name": "Workflow Automation",
+    "description": "工作流编排、事件驱动、数据管道构建",
+    "category": "automation",
+    "icon": "branches",
+    "tags": "[\"工作流\",\"自动化\",\"编排\",\"管道\"]",
+    "config": "{\"maxConcurrent\":5,\"retryPolicy\":\"exponential\"}",
+    "doc_path": "docs/skills/workflow-automation.md",
+    "tools": [
+      "workflow_executor",
+      "event_emitter",
+      "pipeline_builder"
+    ],
+    "enabled": 1,
+    "is_builtin": 1
   }
 ];

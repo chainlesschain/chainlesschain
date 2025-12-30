@@ -194,6 +194,12 @@ const routes = [
         meta: { title: '项目分类' },
       },
       {
+        path: 'projects/management',
+        name: 'ProjectManagement',
+        component: () => import('../pages/projects/ProjectManagementPage.vue'),
+        meta: { title: '项目列表管理' },
+      },
+      {
         path: 'projects',
         name: 'Projects',
         component: () => import('../pages/projects/ProjectsPage.vue'),

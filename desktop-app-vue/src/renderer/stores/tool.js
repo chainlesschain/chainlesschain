@@ -176,7 +176,7 @@ export const useToolStore = defineStore('tool', {
       try {
         const result = await window.electronAPI.tool.getByCategory(category);
         if (result.success) {
-          return result.data;
+          return result.content ?? result.data;
         } else {
           console.error('获取工具失败:', result.error);
           return [];

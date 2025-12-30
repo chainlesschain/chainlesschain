@@ -1,0 +1,240 @@
+{
+  "id": "markdown-exporter",
+  "name": "Markdown增强导出插件",
+  "version": "1.0.0",
+  "author": "ChainlessChain Team",
+  "description": "提供Markdown文档的高级导出、美化和格式转换功能",
+  "category": "custom",
+  "main": "index.js",
+  "homepage": "https://github.com/chainlesschain/plugin-markdown-exporter",
+  "license": "MIT",
+  "keywords": ["markdown", "export", "pdf", "html"],
+  "chainlesschain": {
+    "apiVersion": "1.0",
+    "minVersion": "0.16.0",
+    "permissions": [
+      "file:read",
+      "file:write"
+    ],
+    "skills": [
+      {
+        "id": "skill_markdown_enhance",
+        "name": "Markdown增强",
+        "display_name": "Markdown Enhancement",
+        "description": "Markdown文档美化、导出和格式转换",
+        "category": "document",
+        "icon": "file-markdown",
+        "tags": ["Markdown", "导出", "美化"],
+        "config": {
+          "theme": "github",
+          "includeTableOfContents": true,
+          "codeHighlight": true
+        },
+        "tools": ["markdown_beautify", "markdown_to_pdf", "markdown_to_html", "markdown_toc"]
+      }
+    ],
+    "tools": [
+      {
+        "id": "tool_markdown_beautify",
+        "name": "markdown_beautify",
+        "display_name": "Markdown美化",
+        "description": "格式化和美化Markdown文档",
+        "category": "format",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "markdown": {
+              "type": "string",
+              "description": "Markdown内容"
+            },
+            "options": {
+              "type": "object",
+              "description": "美化选项",
+              "properties": {
+                "indentSize": {
+                  "type": "number",
+                  "description": "缩进大小",
+                  "default": 2
+                },
+                "lineWidth": {
+                  "type": "number",
+                  "description": "每行最大宽度",
+                  "default": 80
+                },
+                "addTableOfContents": {
+                  "type": "boolean",
+                  "description": "是否添加目录",
+                  "default": false
+                }
+              }
+            }
+          },
+          "required": ["markdown"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "beautified": { "type": "string" },
+            "stats": {
+              "type": "object",
+              "properties": {
+                "lines": { "type": "number" },
+                "headings": { "type": "number" },
+                "codeBlocks": { "type": "number" }
+              }
+            }
+          }
+        },
+        "required_permissions": [],
+        "risk_level": 1
+      },
+      {
+        "id": "tool_markdown_to_pdf",
+        "name": "markdown_to_pdf",
+        "display_name": "导出为PDF",
+        "description": "将Markdown文档导出为PDF格式",
+        "category": "export",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "markdown": {
+              "type": "string",
+              "description": "Markdown内容"
+            },
+            "outputPath": {
+              "type": "string",
+              "description": "PDF输出路径"
+            },
+            "options": {
+              "type": "object",
+              "description": "PDF选项",
+              "properties": {
+                "theme": {
+                  "type": "string",
+                  "enum": ["github", "default", "academic"],
+                  "default": "github"
+                },
+                "pageSize": {
+                  "type": "string",
+                  "enum": ["A4", "Letter"],
+                  "default": "A4"
+                }
+              }
+            }
+          },
+          "required": ["markdown", "outputPath"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "outputPath": { "type": "string" },
+            "fileSize": { "type": "number" },
+            "pages": { "type": "number" }
+          }
+        },
+        "required_permissions": ["file:write"],
+        "risk_level": 2
+      },
+      {
+        "id": "tool_markdown_to_html",
+        "name": "markdown_to_html",
+        "display_name": "导出为HTML",
+        "description": "将Markdown文档导出为HTML格式",
+        "category": "export",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "markdown": {
+              "type": "string",
+              "description": "Markdown内容"
+            },
+            "outputPath": {
+              "type": "string",
+              "description": "HTML输出路径（可选）"
+            },
+            "options": {
+              "type": "object",
+              "description": "HTML选项",
+              "properties": {
+                "includeCSS": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "theme": {
+                  "type": "string",
+                  "default": "github"
+                },
+                "standalone": {
+                  "type": "boolean",
+                  "description": "是否生成完整的HTML文档",
+                  "default": true
+                }
+              }
+            }
+          },
+          "required": ["markdown"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "html": { "type": "string" },
+            "outputPath": { "type": "string" }
+          }
+        },
+        "required_permissions": ["file:write"],
+        "risk_level": 2
+      },
+      {
+        "id": "tool_markdown_toc",
+        "name": "markdown_toc",
+        "display_name": "生成目录",
+        "description": "为Markdown文档生成目录（Table of Contents）",
+        "category": "format",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "markdown": {
+              "type": "string",
+              "description": "Markdown内容"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "maxDepth": {
+                  "type": "number",
+                  "description": "最大标题深度",
+                  "default": 3,
+                  "minimum": 1,
+                  "maximum": 6
+                },
+                "ordered": {
+                  "type": "boolean",
+                  "description": "是否使用有序列表",
+                  "default": false
+                }
+              }
+            }
+          },
+          "required": ["markdown"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "toc": { "type": "string" },
+            "headingCount": { "type": "number" }
+          }
+        },
+        "required_permissions": [],
+        "risk_level": 1
+      }
+    ]
+  }
+}
