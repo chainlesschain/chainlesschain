@@ -12,6 +12,7 @@ const sharp = require('sharp');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
+const crypto = require('crypto');
 const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
@@ -822,7 +823,293 @@ function parseTimeToSeconds(timeStr) {
 }
 
 /**
+ * ==================== 日常工具 ====================
+ */
+
+/**
+ * 高级密码生成器 (真实实现)
+ * 生成强度高、符合要求的随机密码
+ */
+function generatePasswordAdvancedReal(params) {
+  const {
+    length = 16,
+    include_uppercase = true,
+    include_lowercase = true,
+    include_numbers = true,
+    include_symbols = true,
+    exclude_ambiguous = false,
+    custom_characters,
+    count = 1
+  } = params;
+
+  try {
+    // 定义字符集
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    const ambiguous = 'il1Lo0O';
+
+    let charset = '';
+
+    // 使用自定义字符集
+    if (custom_characters) {
+      charset = custom_characters;
+    } else {
+      // 构建字符集
+      if (include_uppercase) charset += uppercase;
+      if (include_lowercase) charset += lowercase;
+      if (include_numbers) charset += numbers;
+      if (include_symbols) charset += symbols;
+
+      // 排除模糊字符
+      if (exclude_ambiguous && charset) {
+        charset = charset.split('').filter(char => !ambiguous.includes(char)).join('');
+      }
+    }
+
+    // 验证字符集
+    if (!charset || charset.length === 0) {
+      return {
+        success: false,
+        error: '字符集为空，请至少选择一种字符类型'
+      };
+    }
+
+    // 生成密码
+    const passwords = [];
+    const charsetLength = charset.length;
+
+    for (let i = 0; i < count; i++) {
+      let password = '';
+      const bytes = crypto.randomBytes(length);
+
+      for (let j = 0; j < length; j++) {
+        const randomIndex = bytes[j] % charsetLength;
+        password += charset[randomIndex];
+      }
+
+      // 验证密码强度
+      const strength = calculatePasswordStrength(password, {
+        include_uppercase,
+        include_lowercase,
+        include_numbers,
+        include_symbols
+      });
+
+      passwords.push({
+        password,
+        length: password.length,
+        strength: strength.level,
+        strength_score: strength.score,
+        has_uppercase: /[A-Z]/.test(password),
+        has_lowercase: /[a-z]/.test(password),
+        has_numbers: /[0-9]/.test(password),
+        has_symbols: /[^A-Za-z0-9]/.test(password),
+        entropy: Math.log2(Math.pow(charsetLength, length)).toFixed(2)
+      });
+    }
+
+    return {
+      success: true,
+      passwords: count === 1 ? passwords[0].password : passwords.map(p => p.password),
+      password_details: passwords,
+      count: count,
+      charset_size: charsetLength,
+      settings: {
+        length,
+        include_uppercase,
+        include_lowercase,
+        include_numbers,
+        include_symbols,
+        exclude_ambiguous
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 笔记编辑器 (真实实现)
+ * 创建、读取、更新、删除笔记文件
+ */
+async function editNoteReal(params) {
+  const {
+    operation,  // create, read, update, delete, list
+    note_path,
+    content,
+    title,
+    tags = [],
+    metadata = {}
+  } = params;
+
+  try {
+    switch (operation) {
+      case 'create':
+      case 'update': {
+        // 确保目录存在
+        const dir = path.dirname(note_path);
+        await fsp.mkdir(dir, { recursive: true });
+
+        // 构建笔记内容
+        const noteData = {
+          title: title || path.basename(note_path, path.extname(note_path)),
+          content: content || '',
+          tags: tags,
+          metadata: {
+            ...metadata,
+            created_at: metadata.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        };
+
+        // 写入文件
+        await fsp.writeFile(note_path, JSON.stringify(noteData, null, 2), 'utf8');
+
+        const stats = await fsp.stat(note_path);
+
+        return {
+          success: true,
+          operation: operation,
+          note_path: note_path,
+          title: noteData.title,
+          content_length: noteData.content.length,
+          tags: noteData.tags,
+          file_size: stats.size,
+          created_at: noteData.metadata.created_at,
+          updated_at: noteData.metadata.updated_at
+        };
+      }
+
+      case 'read': {
+        // 读取笔记
+        const fileContent = await fsp.readFile(note_path, 'utf8');
+        const noteData = JSON.parse(fileContent);
+        const stats = await fsp.stat(note_path);
+
+        return {
+          success: true,
+          operation: 'read',
+          note_path: note_path,
+          title: noteData.title,
+          content: noteData.content,
+          content_length: noteData.content.length,
+          tags: noteData.tags || [],
+          metadata: noteData.metadata || {},
+          file_size: stats.size,
+          created_at: noteData.metadata?.created_at,
+          updated_at: noteData.metadata?.updated_at
+        };
+      }
+
+      case 'delete': {
+        // 删除笔记
+        await fsp.unlink(note_path);
+
+        return {
+          success: true,
+          operation: 'delete',
+          note_path: note_path,
+          message: '笔记已删除'
+        };
+      }
+
+      case 'list': {
+        // 列出目录中的所有笔记
+        const dir = note_path || process.cwd();
+        const files = await fsp.readdir(dir);
+
+        const notes = [];
+        for (const file of files) {
+          if (file.endsWith('.json')) {
+            try {
+              const filePath = path.join(dir, file);
+              const fileContent = await fsp.readFile(filePath, 'utf8');
+              const noteData = JSON.parse(fileContent);
+              const stats = await fsp.stat(filePath);
+
+              notes.push({
+                file_name: file,
+                file_path: filePath,
+                title: noteData.title,
+                tags: noteData.tags || [],
+                file_size: stats.size,
+                created_at: noteData.metadata?.created_at,
+                updated_at: noteData.metadata?.updated_at,
+                content_preview: noteData.content.substring(0, 100) + '...'
+              });
+            } catch (err) {
+              // 跳过无效文件
+              continue;
+            }
+          }
+        }
+
+        return {
+          success: true,
+          operation: 'list',
+          directory: dir,
+          total_notes: notes.length,
+          notes: notes
+        };
+      }
+
+      default:
+        return {
+          success: false,
+          error: `不支持的操作: ${operation}`
+        };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * ==================== 原有辅助函数 ====================
+ */
+
+/**
+ * 计算密码强度
+ */
+function calculatePasswordStrength(password, requirements) {
+  let score = 0;
+  let level = 'weak';
+
+  // 长度分数
+  if (password.length >= 8) score += 20;
+  if (password.length >= 12) score += 20;
+  if (password.length >= 16) score += 10;
+
+  // 字符类型分数
+  if (/[a-z]/.test(password)) score += 15;
+  if (/[A-Z]/.test(password)) score += 15;
+  if (/[0-9]/.test(password)) score += 15;
+  if (/[^A-Za-z0-9]/.test(password)) score += 15;
+
+  // 多样性分数
+  const uniqueChars = new Set(password).size;
+  if (uniqueChars / password.length > 0.7) score += 10;
+
+  // 确定强度级别
+  if (score >= 80) level = 'very_strong';
+  else if (score >= 60) level = 'strong';
+  else if (score >= 40) level = 'medium';
+  else if (score >= 20) level = 'weak';
+  else level = 'very_weak';
+
+  return { score, level };
+}
+
+/**
+ * ==================== 继续原有辅助函数 ====================
  */
 
 function getErrorCorrectionPercentage(level) {
@@ -866,5 +1153,9 @@ module.exports = {
 
   // 视频处理
   cutVideoReal,
-  mergeVideosReal
+  mergeVideosReal,
+
+  // 日常工具
+  generatePasswordAdvancedReal,
+  editNoteReal
 };
