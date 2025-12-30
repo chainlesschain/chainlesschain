@@ -379,18 +379,23 @@ class ChainlessChainApp {
     try {
       console.log('初始化LLM管理器...');
 
-      // 从数据库读取LLM配置
-      let provider = this.database.getSetting('llm.provider') || 'volcengine';
+      // 从llm-config.json加载配置
+      const llmConfig = getLLMConfig();
+      const provider = llmConfig.getProvider();
+      console.log(`[Main] 当前LLM提供商: ${provider}`);
+
       const autoSelect = this.database.getSetting('llm.autoSelect');
 
       // 如果启用了智能选择，自动选择最优LLM
       if (autoSelect && this.llmSelector) {
-        provider = this.llmSelector.selectBestLLM({ taskType: 'chat' });
-        console.log(`[Main] 智能选择LLM: ${provider}`);
+        const selectedProvider = this.llmSelector.selectBestLLM({ taskType: 'chat' });
+        console.log(`[Main] 智能选择LLM: ${selectedProvider}`);
+        llmConfig.setProvider(selectedProvider);
       }
 
-      // 构建LLM管理器配置
-      const managerConfig = this.buildLLMManagerConfig(provider);
+      // 使用LLMConfig的getManagerConfig方法获取完整配置
+      const managerConfig = llmConfig.getManagerConfig();
+      console.log(`[Main] LLM管理器配置:`, { provider: managerConfig.provider, model: managerConfig.model, baseURL: managerConfig.baseURL });
 
       this.llmManager = new LLMManager(managerConfig);
       await this.llmManager.initialize();
@@ -1232,6 +1237,13 @@ class ChainlessChainApp {
       case 'zhipu':
         config.apiKey = this.database.getSetting('llm.zhipuApiKey') || '';
         config.model = this.database.getSetting('llm.zhipuModel') || 'glm-4';
+        break;
+
+      case 'custom':
+        config.apiKey = this.database.getSetting('llm.customApiKey') || '';
+        config.baseURL = this.database.getSetting('llm.customBaseUrl') || '';
+        config.model = this.database.getSetting('llm.customModel') || '';
+        console.log('[Main] Custom LLM配置:', { baseURL: config.baseURL, model: config.model });
         break;
     }
 
@@ -7935,15 +7947,18 @@ class ChainlessChainApp {
           throw new Error('数据库未初始化');
         }
 
-        // 保存新的提供商到数据库
-        this.database.setSetting('llm.provider', provider);
+        // 保存新的提供商到llm-config.json
+        const llmConfig = getLLMConfig();
+        llmConfig.setProvider(provider);
 
         // 重新初始化LLM管理器
         if (this.llmManager) {
           await this.llmManager.close();
         }
 
-        const managerConfig = this.buildLLMManagerConfig(provider);
+        const managerConfig = llmConfig.getManagerConfig();
+        console.log(`[Main] 切换到LLM提供商: ${provider}, 配置:`, { model: managerConfig.model, baseURL: managerConfig.baseURL });
+
         this.llmManager = new LLMManager(managerConfig);
         await this.llmManager.initialize();
 
