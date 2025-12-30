@@ -572,11 +572,8 @@ const handleTypeQuickSelect = (typeKey) => {
   } else {
     // 选择新类型
     selectedType.value = typeKey;
-    // 重置子分类为该类型的第一个子分类
-    const dynamic = templateSubcategoryOptions.value[typeKey];
-    const fallback = categoryConfig.value[typeKey] || [];
-    const categories = dynamic && dynamic.length > 0 ? dynamic : fallback;
-    activeCategory.value = categories.length > 0 ? categories[0].key : 'all';
+    // 默认显示该分类下的全部模板
+    activeCategory.value = 'all';
   }
   currentPage.value = 1;
 };
