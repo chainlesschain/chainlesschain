@@ -14,6 +14,12 @@ import SignalSessionManager from '../../src/main/p2p/signal-session-manager.js';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { webcrypto } from 'crypto';
+
+// 确保全局 crypto 对象可用（Node.js 环境）
+if (typeof global !== 'undefined' && !global.crypto) {
+  global.crypto = webcrypto;
+}
 
 describe('Signal 协议 E2E 加密测试', () => {
   let alice, bob, charlie;
