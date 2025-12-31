@@ -275,6 +275,37 @@ const routes = [
         component: () => import('../pages/webide/WebIDEPage.vue'),
         meta: { title: 'Web IDE' },
       },
+      // ===== 企业版: 组织管理 =====
+      {
+        path: 'organizations',
+        name: 'Organizations',
+        component: () => import('../pages/OrganizationsPage.vue'),
+        meta: { title: '我的组织' },
+      },
+      {
+        path: 'org/:orgId/members',
+        name: 'OrganizationMembers',
+        component: () => import('../pages/OrganizationMembersPage.vue'),
+        meta: { title: '成员管理' },
+      },
+      {
+        path: 'org/:orgId/roles',
+        name: 'OrganizationRoles',
+        component: () => import('../pages/OrganizationRolesPage.vue'),
+        meta: { title: '角色管理' },
+      },
+      {
+        path: 'org/:orgId/settings',
+        name: 'OrganizationSettings',
+        component: () => import('../pages/OrganizationSettingsPage.vue'),
+        meta: { title: '组织设置' },
+      },
+      {
+        path: 'org/:orgId/activities',
+        name: 'OrganizationActivities',
+        component: () => import('../pages/OrganizationActivityLogPage.vue'),
+        meta: { title: '活动日志' },
+      },
     ],
   },
 ];
