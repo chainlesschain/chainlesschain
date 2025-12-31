@@ -100,9 +100,15 @@ echo [%date% %time%] Building Java backend >> "%BUILD_LOG%"
 
 if "%SKIP_JAVA_BUILD%"=="1" (
     echo %YELLOW%Skipping Java build (Maven not available)%RESET%
-    if exist "%BACKEND_DIR%\project-service\target\project-service.jar" (
-        echo   %GREEN%✓ Using existing JAR file%RESET%
-    ) else (
+    REM Check for any JAR file in target directory
+    set JAR_FOUND=0
+    for %%F in ("%BACKEND_DIR%\project-service\target\*.jar") do (
+        if exist "%%F" (
+            echo   %GREEN%✓ Using existing JAR file: %%~nxF%RESET%
+            set JAR_FOUND=1
+        )
+    )
+    if !JAR_FOUND!==0 (
         echo   %RED%ERROR: No JAR file found and Maven not available%RESET%
         echo   %RED%Please build backend/project-service manually%RESET%
         echo [%date% %time%] ERROR: No JAR file and no Maven >> "%BUILD_LOG%"

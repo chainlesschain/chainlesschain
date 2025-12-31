@@ -1,0 +1,39 @@
+{
+  "id": "tpl_excel_expense_007",
+  "name": "expense_report",
+  "display_name": "费用报销单",
+  "description": "差旅报销和日常费用报销表单，包含费用分类、审批流程和财务核算",
+  "icon": "💰",
+  "category": "excel",
+  "subcategory": "finance",
+  "tags": ["报销", "费用", "财务", "差旅"],
+  "project_type": "spreadsheet",
+  "prompt_template": "费用报销单\n\n**报销人：** {{applicant}}\n**部门：** {{department}}\n**报销单号：** {{reportNumber}}\n**申请日期：** {{applyDate}}\n\n# 费用报销明细表\n\n## 1. 报销人信息\n\n| 项目 | 内容 |\n|------|------|\n| 姓名 | {{applicant}} |\n| 工号 | {{employeeId}} |\n| 部门 | {{department}} |\n| 职位 | {{position}} |\n| 联系电话 | {{phone}} |\n| 银行账号 | {{bankAccount}} |\n| 开户行 | {{bankName}} |\n\n---\n\n## 2. 费用明细\n\n{{#eq expenseType \"差旅报销\"}}\n### 差旅信息\n\n| 项目 | 内容 |\n|------|------|\n| 出差事由 | {{tripPurpose}} |\n| 出差地点 | {{tripDestination}} |\n| 出发日期 | {{departureDate}} |\n| 返回日期 | {{returnDate}} |\n| 出差天数 | {{tripDays}}天 |\n| 同行人员 | {{companions}} |\n\n### 费用明细\n\n| 序号 | 费用类别 | 发生日期 | 金额（元） | 备注 |\n|------|----------|----------|------------|------|\n| 1 | 交通费 | {{expense1Date}} | {{expense1Amount}} | {{expense1Note}} |\n| 2 | 住宿费 | {{expense2Date}} | {{expense2Amount}} | {{expense2Note}} |\n| 3 | 餐费 | {{expense3Date}} | {{expense3Amount}} | {{expense3Note}} |\n| 4 | 其他 | {{expense4Date}} | {{expense4Amount}} | {{expense4Note}} |\n| **合计** | | | **{{totalAmount}}** | |\n{{/eq}}\n\n{{#eq expenseType \"日常报销\"}}\n### 费用明细\n\n| 序号 | 费用类别 | 发生日期 | 供应商/商户 | 发票号码 | 金额（元） | 备注 |\n|------|----------|----------|-------------|----------|------------|------|\n| 1 | {{category1}} | {{date1}} | {{vendor1}} | {{invoice1}} | {{amount1}} | {{note1}} |\n| 2 | {{category2}} | {{date2}} | {{vendor2}} | {{invoice2}} | {{amount2}} | {{note2}} |\n| 3 | {{category3}} | {{date3}} | {{vendor3}} | {{invoice3}} | {{amount3}} | {{note3}} |\n| 4 | {{category4}} | {{date4}} | {{vendor4}} | {{invoice4}} | {{amount4}} | {{note4}} |\n| 5 | {{category5}} | {{date5}} | {{vendor5}} | {{invoice5}} | {{amount5}} | {{note5}} |\n| **合计** | | | | | **{{totalAmount}}** | |\n{{/eq}}\n\n**费用总计：** ¥{{totalAmount}}\n**大写：** {{totalAmountChinese}}\n\n---\n\n## 3. 发票信息\n\n| 发票类型 | 发票号码 | 金额（元） | 备注 |\n|----------|----------|------------|------|\n| {{invoiceType1}} | {{invoiceNo1}} | {{invoiceAmount1}} | {{invoiceNote1}} |\n| {{invoiceType2}} | {{invoiceNo2}} | {{invoiceAmount2}} | {{invoiceNote2}} |\n| {{invoiceType3}} | {{invoiceNo3}} | {{invoiceAmount3}} | {{invoiceNote3}} |\n\n**发票总额：** ¥{{invoiceTotalAmount}}\n\n---\n\n## 4. 审批流程\n\n| 审批环节 | 审批人 | 审批意见 | 签字 | 日期 |\n|----------|--------|----------|------|------|\n| 部门主管 | {{managerName}} | {{managerOpinion}} | | {{managerDate}} |\n| 财务审核 | {{financeReviewer}} | {{financeOpinion}} | | {{financeDate}} |\n| 总经理批准 | {{gmName}} | {{gmOpinion}} | | {{gmDate}} |\n\n---\n\n## 5. 财务信息\n\n**会计科目：** {{accountingSubject}}\n**成本中心：** {{costCenter}}\n**项目编号：** {{projectCode}}\n**预算科目：** {{budgetItem}}\n\n**支付方式：** {{paymentMethod}}\n**支付日期：** {{paymentDate}}\n**凭证号：** {{voucherNumber}}\n\n---\n\n## 附件清单\n\n- [ ] 原始发票\n- [ ] 费用明细清单\n- [ ] 出差审批单（如适用）\n- [ ] 其他证明材料：{{otherAttachments}}\n\n---\n\n## 说明\n\n1. 本报销单需真实、完整地填写所有信息\n2. 所有费用需附原始发票或收据\n3. 差旅费报销需附出差审批单\n4. 超出标准部分需特别说明并经上级批准\n5. 报销单一经批准，不得更改\n",
+  "variables_schema": [
+    {"name": "applicant", "label": "报销人", "type": "string", "required": true},
+    {"name": "department", "label": "部门", "type": "string", "required": true},
+    {"name": "reportNumber", "label": "报销单号", "type": "string", "required": false},
+    {
+      "name": "expenseType",
+      "label": "报销类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "差旅报销", "label": "差旅报销"},
+        {"value": "日常报销", "label": "日常报销"}
+      ]
+    },
+    {"name": "totalAmount", "label": "费用总额", "type": "number", "required": false}
+  ],
+  "file_structure": {
+    "root": "费用报销-{{applicant}}-{{applyDate}}",
+    "files": [
+      {"path": "报销单.xlsx", "type": "spreadsheet"},
+      {"path": "发票附件/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
