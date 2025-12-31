@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <defs>
+    <!-- Electron Icon -->
+    <symbol id="icon-electron" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="28" fill="none" stroke="#47848F" stroke-width="2"/>
+      <ellipse cx="32" cy="32" rx="10" ry="26" fill="none" stroke="#47848F" stroke-width="2" transform="rotate(60 32 32)"/>
+      <ellipse cx="32" cy="32" rx="10" ry="26" fill="none" stroke="#47848F" stroke-width="2" transform="rotate(-60 32 32)"/>
+      <circle cx="32" cy="32" r="4" fill="#47848F"/>
+    </symbol>
+
+    <!-- Vue Icon -->
+    <symbol id="icon-vue" viewBox="0 0 64 64">
+      <path d="M40 16L32 30 24 16H14L32 48 50 16z" fill="#42b883"/>
+      <path d="M40 16L32 30 24 16H19L32 39 45 16z" fill="#35495e"/>
+    </symbol>
+
+    <!-- TypeScript Icon -->
+    <symbol id="icon-typescript" viewBox="0 0 64 64">
+      <rect x="12" y="12" width="40" height="40" rx="4" fill="#3178c6"/>
+      <text x="32" y="42" font-family="Arial" font-size="28" font-weight="bold" text-anchor="middle" fill="white">TS</text>
+    </symbol>
+
+    <!-- Node.js Icon -->
+    <symbol id="icon-nodejs" viewBox="0 0 64 64">
+      <path d="M32 12l-16 9v18l16 9 16-9V21z" fill="none" stroke="#68a063" stroke-width="2.5"/>
+      <path d="M32 30v18M24 25l8 5 8-5" stroke="#68a063" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Spring Boot Icon -->
+    <symbol id="icon-spring" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="20" fill="none" stroke="#6db33f" stroke-width="2.5"/>
+      <path d="M24 32c0-4 3-7 8-7M40 32c0 4-3 7-8 7" fill="none" stroke="#6db33f" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="32" cy="32" r="3" fill="#6db33f"/>
+    </symbol>
+
+    <!-- FastAPI/Python Icon -->
+    <symbol id="icon-python" viewBox="0 0 64 64">
+      <path d="M32 12c-8 0-12 3-12 8v4h12v2H20c-4 0-7 3-7 8s3 8 7 8h4v-6c0-4 3-8 8-8h12c4 0 7-3 7-7v-9c0-5-4-8-12-8zM28 18c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2z" fill="#3776ab"/>
+      <path d="M32 52c8 0 12-3 12-8v-4H32v-2h12c4 0 7-3 7-8s-3-8-7-8h-4v6c0 4-3 8-8 8H20c-4 0-7 3-7 7v9c0 5 4 8 12 8zM36 46c1 0 2 1 2 2s-1 2-2 2-2-1-2-2 1-2 2-2z" fill="#ffd343"/>
+    </symbol>
+
+    <!-- PostgreSQL Icon -->
+    <symbol id="icon-postgresql" viewBox="0 0 64 64">
+      <ellipse cx="32" cy="24" rx="18" ry="8" fill="none" stroke="#336791" stroke-width="2.5"/>
+      <path d="M14 24v16c0 4.4 8 8 18 8s18-3.6 18-8V24" fill="none" stroke="#336791" stroke-width="2.5"/>
+      <ellipse cx="32" cy="32" rx="18" ry="8" fill="none" stroke="#336791" stroke-width="2"/>
+    </symbol>
+
+    <!-- Redis Icon -->
+    <symbol id="icon-redis" viewBox="0 0 64 64">
+      <path d="M32 18l16 6-16 6-16-6z" fill="#dc382d"/>
+      <path d="M32 30l16-6v8l-16 6z" fill="#c6302b"/>
+      <path d="M16 24v8l16 6V30z" fill="#a41e11"/>
+    </symbol>
+
+    <!-- Ollama/AI Icon -->
+    <symbol id="icon-ollama" viewBox="0 0 64 64">
+      <circle cx="32" cy="28" r="10" fill="none" stroke="#ff6b6b" stroke-width="2.5"/>
+      <path d="M22 34c0 5.5 4.5 10 10 10s10-4.5 10-10" fill="none" stroke="#ff6b6b" stroke-width="2.5"/>
+      <circle cx="28" cy="26" r="2" fill="#ff6b6b"/>
+      <circle cx="36" cy="26" r="2" fill="#ff6b6b"/>
+      <path d="M28 32c1 2 3 3 4 3s3-1 4-3" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Qdrant/Vector DB Icon -->
+    <symbol id="icon-vectordb" viewBox="0 0 64 64">
+      <rect x="18" y="18" width="10" height="10" fill="#667eea" opacity="0.3" rx="2"/>
+      <rect x="36" y="18" width="10" height="10" fill="#667eea" opacity="0.5" rx="2"/>
+      <rect x="18" y="36" width="10" height="10" fill="#667eea" opacity="0.7" rx="2"/>
+      <rect x="36" y="36" width="10" height="10" fill="#667eea" rx="2"/>
+      <line x1="28" y1="23" x2="36" y2="23" stroke="#667eea" stroke-width="2"/>
+      <line x1="23" y1="28" x2="23" y2="36" stroke="#667eea" stroke-width="2"/>
+      <line x1="28" y1="41" x2="36" y2="41" stroke="#667eea" stroke-width="2"/>
+      <line x1="41" y1="28" x2="41" y2="36" stroke="#667eea" stroke-width="2"/>
+    </symbol>
+
+    <!-- SQLCipher/Database Icon -->
+    <symbol id="icon-sqlcipher" viewBox="0 0 64 64">
+      <ellipse cx="32" cy="24" rx="14" ry="6" fill="none" stroke="#52c41a" stroke-width="2"/>
+      <path d="M18 24v16c0 3.3 6.3 6 14 6s14-2.7 14-6V24" fill="none" stroke="#52c41a" stroke-width="2"/>
+      <path d="M28 34l2 2 4-4" stroke="#52c41a" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- libp2p/P2P Icon -->
+    <symbol id="icon-libp2p" viewBox="0 0 64 64">
+      <circle cx="22" cy="22" r="5" fill="#13c2c2"/>
+      <circle cx="42" cy="22" r="5" fill="#13c2c2"/>
+      <circle cx="22" cy="42" r="5" fill="#13c2c2"/>
+      <circle cx="42" cy="42" r="5" fill="#13c2c2"/>
+      <path d="M27 22h10M22 27v10M42 27v10M27 42h10" stroke="#13c2c2" stroke-width="2" stroke-dasharray="3,3"/>
+    </symbol>
+
+    <!-- Signal Protocol Icon -->
+    <symbol id="icon-signal" viewBox="0 0 64 64">
+      <path d="M32 16l-8 8v16l8 8 8-8V24z" fill="none" stroke="#2f54eb" stroke-width="2.5"/>
+      <circle cx="32" cy="32" r="4" fill="#2f54eb"/>
+      <path d="M28 28l8 8M36 28l-8 8" stroke="#2f54eb" stroke-width="2"/>
+    </symbol>
+
+    <!-- Docker Icon -->
+    <symbol id="icon-docker" viewBox="0 0 64 64">
+      <rect x="16" y="26" width="6" height="6" fill="#2496ed"/>
+      <rect x="24" y="26" width="6" height="6" fill="#2496ed"/>
+      <rect x="32" y="26" width="6" height="6" fill="#2496ed"/>
+      <rect x="24" y="34" width="6" height="6" fill="#2496ed"/>
+      <rect x="32" y="34" width="6" height="6" fill="#2496ed"/>
+      <path d="M12 32h40c0 6-8 10-20 10s-20-4-20-10z" fill="none" stroke="#2496ed" stroke-width="2"/>
+    </symbol>
+
+    <!-- Git Icon -->
+    <symbol id="icon-git" viewBox="0 0 64 64">
+      <path d="M30 14l18 18-18 18-18-18z" fill="none" stroke="#f05032" stroke-width="2.5"/>
+      <circle cx="22" cy="24" r="3" fill="#f05032"/>
+      <circle cx="42" cy="24" r="3" fill="#f05032"/>
+      <circle cx="32" cy="40" r="3" fill="#f05032"/>
+      <line x1="25" y1="24" x2="39" y2="24" stroke="#f05032" stroke-width="2"/>
+      <line x1="24" y1="27" x2="32" y2="37" stroke="#f05032" stroke-width="2"/>
+      <line x1="40" y1="27" x2="32" y2="37" stroke="#f05032" stroke-width="2"/>
+    </symbol>
+
+    <!-- Hardhat/Blockchain Icon -->
+    <symbol id="icon-hardhat" viewBox="0 0 64 64">
+      <rect x="16" y="28" width="10" height="8" fill="none" stroke="#ffc107" stroke-width="2" rx="1"/>
+      <rect x="27" y="28" width="10" height="8" fill="none" stroke="#ffc107" stroke-width="2" rx="1"/>
+      <rect x="38" y="28" width="10" height="8" fill="none" stroke="#ffc107" stroke-width="2" rx="1"/>
+      <path d="M14 36h36l-2 8H16z" fill="#ffc107" opacity="0.5"/>
+      <line x1="26" y1="32" x2="27" y2="32" stroke="#ffc107" stroke-width="2"/>
+      <line x1="37" y1="32" x2="38" y2="32" stroke="#ffc107" stroke-width="2"/>
+    </symbol>
+
+    <!-- Chrome Extension Icon -->
+    <symbol id="icon-chrome" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="18" fill="none" stroke="#4285f4" stroke-width="2.5"/>
+      <circle cx="32" cy="32" r="8" fill="#4285f4"/>
+      <path d="M32 14v10M18 23l8 6M46 23l-8 6" stroke="#4285f4" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
