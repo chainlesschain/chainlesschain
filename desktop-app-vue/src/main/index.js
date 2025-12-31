@@ -18,6 +18,7 @@ const { getLLMConfig } = require('./llm/llm-config');
 const LLMSelector = require('./llm/llm-selector');
 const { RAGManager } = require('./rag/rag-manager');
 const FileImporter = require('./import/file-importer');
+const VideoImporter = require('./video/video-importer');
 const ImageUploader = require('./image/image-uploader');
 const PromptTemplateManager = require('./prompt/prompt-template-manager');
 const ProjectTemplateManager = require('./template/template-manager');
@@ -361,6 +362,16 @@ class ChainlessChainApp {
       console.log('文件导入器初始化成功');
     } catch (error) {
       console.error('文件导入器初始化失败:', error);
+    }
+
+    // 初始化视频导入器
+    try {
+      console.log('初始化视频导入器...');
+      this.videoImporter = new VideoImporter(this.database, app.getPath('userData'));
+      await this.videoImporter.initializeStorageDirectories();
+      console.log('视频导入器初始化成功');
+    } catch (error) {
+      console.error('视频导入器初始化失败:', error);
     }
 
     // 初始化项目模板管理器
@@ -2373,6 +2384,215 @@ class ChainlessChainApp {
         };
       } catch (error) {
         console.error('[Main] 检查文件失败:', error);
+        throw error;
+      }
+    });
+
+    // 视频导入
+    ipcMain.handle('video:select-files', async () => {
+      try {
+        if (!this.videoImporter) {
+          throw new Error('视频导入器未初始化');
+        }
+
+        const result = await dialog.showOpenDialog(this.mainWindow, {
+          title: '选择要导入的视频文件',
+          filters: [
+            { name: 'Video Files', extensions: ['mp4', 'avi', 'mov', 'mkv', 'flv', 'webm', 'wmv', 'mpg', 'mpeg', 'm4v', '3gp'] },
+            { name: 'All Files', extensions: ['*'] },
+          ],
+          properties: ['openFile', 'multiSelections'],
+        });
+
+        if (result.canceled) {
+          return { canceled: true };
+        }
+
+        return {
+          canceled: false,
+          filePaths: result.filePaths,
+        };
+      } catch (error) {
+        console.error('[Main] 选择视频文件失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('video:import-file', async (_event, filePath, options) => {
+      try {
+        if (!this.videoImporter) {
+          throw new Error('视频导入器未初始化');
+        }
+
+        // 设置事件监听器，向渲染进程发送进度
+        this.videoImporter.on('import:start', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:import:start', data);
+          }
+        });
+
+        this.videoImporter.on('import:progress', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:import:progress', data);
+          }
+        });
+
+        this.videoImporter.on('import:complete', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:import:complete', data);
+          }
+        });
+
+        this.videoImporter.on('import:error', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:import:error', data);
+          }
+        });
+
+        this.videoImporter.on('analysis:start', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:analysis:start', data);
+          }
+        });
+
+        this.videoImporter.on('analysis:progress', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:analysis:progress', data);
+          }
+        });
+
+        this.videoImporter.on('analysis:complete', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:analysis:complete', data);
+          }
+        });
+
+        this.videoImporter.on('analysis:error', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:analysis:error', data);
+          }
+        });
+
+        const result = await this.videoImporter.importVideo(filePath, options);
+        return result;
+      } catch (error) {
+        console.error('[Main] 导入视频失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('video:import-files', async (_event, filePaths, options) => {
+      try {
+        if (!this.videoImporter) {
+          throw new Error('视频导入器未初始化');
+        }
+
+        // 设置事件监听器，向渲染进程发送批量导入进度
+        this.videoImporter.on('batch:start', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:batch:start', data);
+          }
+        });
+
+        this.videoImporter.on('batch:progress', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:batch:progress', data);
+          }
+        });
+
+        this.videoImporter.on('batch:complete', (data) => {
+          if (this.mainWindow) {
+            this.mainWindow.webContents.send('video:batch:complete', data);
+          }
+        });
+
+        const results = await this.videoImporter.importVideoBatch(filePaths, options);
+        return results;
+      } catch (error) {
+        console.error('[Main] 批量导入视频失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('video:get-video', async (_event, videoId) => {
+      try {
+        if (!this.videoImporter) {
+          throw new Error('视频导入器未初始化');
+        }
+        return await this.videoImporter.storage.getVideoFile(videoId);
+      } catch (error) {
+        console.error('[Main] 获取视频信息失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('video:get-videos', async (_event, options) => {
+      try {
+        if (!this.videoImporter) {
+          throw new Error('视频导入器未初始化');
+        }
+        return await this.videoImporter.storage.getAllVideos(options);
+      } catch (error) {
+        console.error('[Main] 获取视频列表失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('video:get-analysis', async (_event, videoId) => {
+      try {
+        if (!this.videoImporter) {
+          throw new Error('视频导入器未初始化');
+        }
+        return await this.videoImporter.storage.getVideoAnalysisByVideoId(videoId);
+      } catch (error) {
+        console.error('[Main] 获取视频分析失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('video:get-keyframes', async (_event, videoId) => {
+      try {
+        if (!this.videoImporter) {
+          throw new Error('视频导入器未初始化');
+        }
+        return await this.videoImporter.storage.getKeyframesByVideoId(videoId);
+      } catch (error) {
+        console.error('[Main] 获取关键帧失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('video:delete-video', async (_event, videoId) => {
+      try {
+        if (!this.videoImporter) {
+          throw new Error('视频导入器未初始化');
+        }
+        await this.videoImporter.storage.deleteVideoFile(videoId);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 删除视频失败:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('video:get-stats', async () => {
+      try {
+        if (!this.videoImporter) {
+          throw new Error('视频导入器未初始化');
+        }
+        const count = await this.videoImporter.storage.getVideoCount();
+        const totalDuration = await this.videoImporter.storage.getTotalDuration();
+        const totalSize = await this.videoImporter.storage.getTotalStorageSize();
+        const statusStats = await this.videoImporter.storage.getVideoCountByStatus();
+
+        return {
+          count,
+          totalDuration,
+          totalSize,
+          statusStats
+        };
+      } catch (error) {
+        console.error('[Main] 获取视频统计失败:', error);
         throw error;
       }
     });
