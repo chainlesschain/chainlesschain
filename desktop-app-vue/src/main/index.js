@@ -4122,23 +4122,19 @@ class ChainlessChainApp {
     // 获取版本历史
     ipcMain.handle('knowledge:get-version-history', async (_event, params) => {
       try {
-        const { knowledgeId } = params;
-        const db = this.dbManager.db;
+        const { knowledgeId, limit = 50 } = params;
 
-        // 目前版本历史是通过version字段维护的
-        // 完整的版本历史需要单独的version_history表
-        // 这里先返回当前版本的信息
-        const knowledge = db.prepare('SELECT * FROM knowledge_items WHERE id = ?').get(knowledgeId);
-
-        if (!knowledge) {
-          return { success: false, error: '知识不存在', versions: [] };
+        if (!this.versionManager) {
+          return { success: false, error: '版本管理器未初始化', versions: [] };
         }
 
-        // TODO: 实现完整的版本历史表
-        // 目前只返回当前版本
-        const versions = [knowledge];
+        // 使用版本管理器获取完整版本历史
+        const versions = this.versionManager.getVersionHistory(knowledgeId, limit);
 
-        return { success: true, versions };
+        // 获取版本统计信息
+        const stats = this.versionManager.getVersionStats(knowledgeId);
+
+        return { success: true, versions, stats };
       } catch (error) {
         console.error('[Main] 获取版本历史失败:', error);
         return { success: false, error: error.message, versions: [] };
@@ -4148,16 +4144,41 @@ class ChainlessChainApp {
     // 恢复版本
     ipcMain.handle('knowledge:restore-version', async (_event, params) => {
       try {
-        const { knowledgeId, versionId } = params;
-        const db = this.dbManager.db;
+        const { knowledgeId, versionId, restoredBy } = params;
 
-        // TODO: 实现版本恢复逻辑
-        // 这需要version_history表的支持
-        console.warn('[Main] 版本恢复功能待实现，需要version_history表支持');
+        if (!this.versionManager) {
+          return { success: false, error: '版本管理器未初始化' };
+        }
 
-        return { success: false, error: '版本恢复功能开发中' };
+        // 使用版本管理器恢复版本
+        const result = await this.versionManager.restoreVersion(
+          knowledgeId,
+          versionId,
+          restoredBy
+        );
+
+        return result;
       } catch (error) {
         console.error('[Main] 恢复版本失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 对比版本
+    ipcMain.handle('knowledge:compare-versions', async (_event, params) => {
+      try {
+        const { versionId1, versionId2 } = params;
+
+        if (!this.versionManager) {
+          return { success: false, error: '版本管理器未初始化' };
+        }
+
+        // 使用版本管理器对比版本
+        const result = this.versionManager.compareVersions(versionId1, versionId2);
+
+        return result;
+      } catch (error) {
+        console.error('[Main] 对比版本失败:', error);
         return { success: false, error: error.message };
       }
     });
