@@ -1,5 +1,17 @@
 # ChainlessChain Windows 打包 - 快速开始
 
+## 💻 选择你的环境
+
+### 方式 A: Windows CMD/PowerShell（推荐新手）
+使用 `.bat` 批处理脚本
+
+### 方式 B: Git Bash/WSL（推荐熟悉Unix的用户）
+使用 `.sh` Shell脚本
+
+> 💡 **提示**: 两种方式功能完全相同，选择你喜欢的即可！
+
+---
+
 ## 🚀 3 步完成打包
 
 ### 步骤 1: 下载组件 (10-20分钟)
@@ -31,9 +43,19 @@ mvn clean package -DskipTests
 
 ### 步骤 3: 运行构建 (15-30分钟)
 
+#### 方式 A: Windows CMD/PowerShell
 ```batch
 cd C:\code\chainlesschain
 build-windows-package.bat
+```
+
+#### 方式 B: Git Bash/WSL
+```bash
+cd /c/code/chainlesschain        # Git Bash
+# 或
+cd /mnt/c/code/chainlesschain    # WSL
+
+./build-windows-package.sh
 ```
 
 **输出**: `packaging\dist\ChainlessChain-Setup-0.16.0.exe` (~1GB)
@@ -44,10 +66,18 @@ build-windows-package.bat
 
 运行构建前，确认：
 
+#### Windows CMD/PowerShell
 ```batch
 # 运行验证脚本
 cd packaging\scripts
 check-components.bat
+```
+
+#### Git Bash/WSL
+```bash
+# 运行验证脚本
+cd packaging/scripts
+./check-components.sh
 ```
 
 或手动检查：
@@ -65,6 +95,7 @@ check-components.bat
 - **当前状态**: `packaging/CURRENT_STATUS.md`
 - **构建说明**: `packaging/BUILD_INSTRUCTIONS.md`
 - **设计文档**: `packaging/WINDOWS_PACKAGE_DESIGN.md`
+- **Shell脚本指南**: `packaging/SHELL_SCRIPTS_GUIDE.md` ⭐ 新增
 
 ---
 
