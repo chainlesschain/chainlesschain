@@ -1,0 +1,47 @@
+{
+  "id": "tpl_research_lit_004",
+  "name": "literature_review",
+  "display_name": "文献综述报告",
+  "description": "学术文献综述撰写指南，包含文献检索、分析和总结",
+  "icon": "📚",
+  "category": "research",
+  "subcategory": "academic",
+  "tags": [
+    "文献综述",
+    "学术研究",
+    "文献分析",
+    "研究方法"
+  ],
+  "project_type": "document",
+  "prompt_template": "文献综述报告\n\n**研究信息：**\n- 研究主题：{{researchTopic}}\n- 研究领域：{{researchField}}\n- 文献数量：{{literatureCount}}篇\n- 时间跨度：{{timeSpan}}\n\n# 文献综述完整指南\n\n## 综述结构\n\n### 1. 引言\n- 研究背景\n- 研究意义\n- 综述范围\n\n### 2. 文献检索方法\n- 数据库：Web of Science, CNKI, Google Scholar\n- 检索词：{{keywords}}\n- 筛选标准\n\n### 3. 研究现状\n- 理论基础\n- 研究方法\n- 主要发现\n\n### 4. 研究空白\n- 未解决问题\n- 研究机会\n\n### 5. 总结与展望",
+  "variables_schema": [
+    {
+      "name": "researchTopic",
+      "label": "研究主题",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "researchField",
+      "label": "研究领域",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "计算机科学", "label": "计算机科学"},
+        {"value": "管理学", "label": "管理学"},
+        {"value": "教育学", "label": "教育学"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "文献综述-{{researchTopic}}",
+    "files": [
+      {"path": "综述报告.docx", "type": "document"},
+      {"path": "文献目录/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

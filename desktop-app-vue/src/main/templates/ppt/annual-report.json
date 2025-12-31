@@ -1,0 +1,66 @@
+{
+  "id": "tpl_ppt_annual_004",
+  "name": "annual_report",
+  "display_name": "年度总结汇报PPT",
+  "description": "年度工作总结汇报PPT，包含成果展示、数据分析和明年规划",
+  "icon": "📅",
+  "category": "ppt",
+  "subcategory": "business",
+  "tags": [
+    "年度总结",
+    "工作汇报",
+    "述职报告",
+    "年终总结"
+  ],
+  "project_type": "document",
+  "prompt_template": "年度总结汇报PPT\n\n**汇报信息：**\n- 汇报人：{{presenter}}\n- 部门/团队：{{department}}\n- 汇报对象：{{audience}}\n- 汇报时长：{{duration}}分钟\n- 年度：{{year}}\n\n# 年度总结汇报PPT完整大纲\n\n## PPT结构（{{totalSlides}}页）\n\n### 第一部分：开场（1-2页）\n\n**封面页（第1页）**\n\n```\n标题：{{year}}年度工作总结汇报\n副标题：{{department}} {{presenter}}\n日期：{{presentationDate}}\n公司Logo\n\n设计：\n- 使用品牌色渐变背景\n- 大标题居中\n- 简洁专业\n```\n\n**目录页（第2页）**\n\n```\n01 年度回顾\n02 核心成果\n03 数据分析\n04 问题与挑战\n05 明年规划\n\n设计：\n- 左侧数字+右侧标题\n- 图标点缀\n- 进度条\n```\n\n### 第二部分：年度回顾（3-5页）\n\n**年度大事记（第3页）**\n\n```\n时间轴设计：\n\n1月  ━━━●  完成{{achievement1}}\n3月  ━━━●  启动{{project1}}\n6月  ━━━●  突破{{milestone1}}\n9月  ━━━●  达成{{target1}}\n12月 ━━━●  超额完成年度目标\n\n设计：\n- 横向时间轴\n- 关键节点用圆点标记\n- 配小图标\n```\n\n**团队概况（第4页）**\n\n```\n团队规模：\n- 年初：{{teamSizeStart}}人\n- 年末：{{teamSizeEnd}}人\n- 增长：{{teamGrowth}}%\n\n团队结构：\n- 产品团队：{{productTeam}}人\n- 技术团队：{{techTeam}}人\n- 运营团队：{{opsTeam}}人\n\n设计：\n- 饼图或柱状图\n- 头像墙\n```\n\n**业务概览（第5页）**\n\n```\n核心业务指标：\n\n[大数字卡片]\n¥{{revenue}}M    {{users}}K    {{projects}}个\n营业收入          用户数        完成项目\n\n↑15.3%           ↑28.5%       ↑12个\nvs {{year-1}}    vs {{year-1}} vs {{year-1}}\n\n设计：\n- 3列布局\n- 卡片式设计\n- 向上箭头（绿色）表示增长\n```\n\n### 第三部分：核心成果（6-12页）\n\n**重点项目1（第6-7页）**\n\n```\n项目名称：{{project1Name}}\n\n项目背景：\n- 市场需求：{{marketNeed}}\n- 业务痛点：{{painPoint}}\n\n解决方案：\n- 方案设计：{{solution}}\n- 技术实现：{{implementation}}\n\n项目成果：\n- 用户增长：{{userGrowth}}%\n- 营收贡献：¥{{revenue1}}M\n- 市场反馈：{{feedback}}\n\n设计：\n- 问题→方案→成果三段式\n- 数据可视化\n- 配实际产品截图\n```\n\n**重点项目2（第8-9页）**\n\n```\n项目名称：{{project2Name}}\n\n（结构同上）\n```\n\n**其他成果（第10页）**\n\n```\n成果清单（精简版）：\n\n✅ {{achievement1}}\n✅ {{achievement2}}\n✅ {{achievement3}}\n✅ {{achievement4}}\n✅ {{achievement5}}\n\n设计：\n- 列表形式\n- 勾选图标\n- 简洁描述\n```\n\n**团队荣誉（第11页）**\n\n```\n获奖情况：\n\n🏆 {{award1}}\n   {{awardDescription1}}\n\n🏆 {{award2}}\n   {{awardDescription2}}\n\n媒体报道：\n- {{media1}}报道{{report1}}\n- {{media2}}专访{{interview1}}\n\n设计：\n- 奖杯/奖牌图标\n- 媒体Logo展示\n```\n\n**客户案例（第12页）**\n\n```\n标杆客户：\n\n[客户Logo1]  [客户Logo2]  [客户Logo3]\n\n客户证言：\n\"{{testimonial1}}\"\n—— {{client1}}，{{clientTitle1}}\n\n设计：\n- 客户Logo墙\n- 引用格式展示评价\n```\n\n### 第四部分：数据分析（13-17页）\n\n**关键指标达成（第13页）**\n\n```\n指标     目标    实际    达成率\n━━━━━━━━━━━━━━━━━━━━\n营收     100M    115M    115% ✅\n用户     50K     62K     124% ✅\n项目     20个    22个    110% ✅\n满意度   85%     92%     108% ✅\n\n设计：\n- 表格形式\n- 达成率用进度条\n- 超额完成用绿色勾\n```\n\n**营收分析（第14页）**\n\n```\n月度营收趋势图：\n\n￥\n|\n|        /\\    /\\\n|       /  \\  /  \\\n|  /\\  /    \\/    \\\n| /  \\/\n└─────────────────────\n 1月 3月 6月 9月 12月\n\n营收构成（饼图）：\n- 产品A：45%\n- 产品B：30%\n- 产品C：25%\n\n设计：\n- 折线图+饼图组合\n- 双色配色\n```\n\n**用户增长分析（第15页）**\n\n```\n用户增长曲线（累计用户）：\n\n指数增长趋势\n\n关键增长节点：\n- 3月：营销活动，新增5K用户\n- 7月：产品升级，新增8K用户\n- 11月：双十一，新增10K用户\n\n用户留存率：\n- 次日留存：{{day1Retention}}%\n- 7日留存：{{day7Retention}}%\n- 30日留存：{{day30Retention}}%\n\n设计：\n- S型增长曲线\n- 标注关键事件\n- 漏斗图展示留存\n```\n\n**效率提升（第16页）**\n\n```\n对比分析：\n\n指标           {{year-1}}    {{year}}    提升\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n项目交付周期   30天         20天        33%↑\n客户响应时间   4小时        1小时       75%↑\n代码质量       85分         92分        8%↑\n\n设计：\n- 对比柱状图\n- 箭头标识提升幅度\n```\n\n**市场份额（第17页）**\n\n```\n竞争格局（市场份额饼图）：\n\n我们：25% （+5% vs {{year-1}}）\n竞品A：30%\n竞品B：20%\n竞品C：15%\n其他：10%\n\n设计：\n- 饼图\n- 我们的部分突出显示\n```\n\n### 第五部分：问题与挑战（18-20页）\n\n**遇到的问题（第18页）**\n\n```\n问题清单：\n\n❌ 问题1：{{problem1}}\n   影响：{{impact1}}\n   \n❌ 问题2：{{problem2}}\n   影响：{{impact2}}\n\n❌ 问题3：{{problem3}}\n   影响：{{impact3}}\n\n设计：\n- 诚实客观\n- 问题+影响\n- 红色X图标\n```\n\n**解决措施（第19页）**\n\n```\n问题1解决方案：\n- 措施：{{solution1}}\n- 进展：{{progress1}}\n- 预期效果：{{expectedResult1}}\n\n问题2解决方案：\n- 措施：{{solution2}}\n- 进展：{{progress2}}\n\n设计：\n- 问题→措施→结果\n- 绿色勾表示已解决\n- 黄色表示进行中\n```\n\n**外部挑战（第20页）**\n\n```\nSWOT分析：\n\n┌─────────────┬─────────────┐\n│ Strengths   │ Weaknesses  │\n│ 优势        │ 劣势        │\n│ {{strength}}│ {{weakness}}│\n├─────────────┼─────────────┤\n│Opportunities│  Threats    │\n│ 机会        │ 威胁        │\n│{{opportunity}}│ {{threat}} │\n└─────────────┴─────────────┘\n\n设计：\n- 四象限\n- 简洁文字\n```\n\n### 第六部分：明年规划（21-25页）\n\n**战略目标（第21页）**\n\n```\n{{year+1}}年度目标：\n\n总体目标：{{overallGoal}}\n\n核心目标（OKR）：\n\nO1：{{objective1}}\n├─ KR1.1：{{kr1_1}}\n├─ KR1.2：{{kr1_2}}\n└─ KR1.3：{{kr1_3}}\n\nO2：{{objective2}}\n├─ KR2.1：{{kr2_1}}\n└─ KR2.2：{{kr2_2}}\n\n设计：\n- OKR树状图\n- 大标题+小指标\n```\n\n**核心项目（第22页）**\n\n```\n{{year+1}}年重点项目：\n\n项目1：{{newProject1}}\n- 启动时间：{{startDate1}}\n- 预期收益：{{expectedRevenue1}}\n- 资源需求：{{resourceNeed1}}\n\n项目2：{{newProject2}}\n- 启动时间：{{startDate2}}\n- 预期收益：{{expectedRevenue2}}\n\n设计：\n- 项目卡片\n- 时间轴\n```\n\n**资源规划（第23页）**\n\n```\n人力规划：\n- 计划招聘：{{hiringPlan}}人\n- 重点岗位：{{keyRoles}}\n\n预算规划：\n- 研发投入：¥{{rdBudget}}M\n- 市场推广：¥{{marketingBudget}}M\n- 基础设施：¥{{infraBudget}}M\n\n设计：\n- 组织架构图\n- 预算饼图\n```\n\n**行动计划（第24页）**\n\n```\nQ1: {{q1Plan}}\nQ2: {{q2Plan}}\nQ3: {{q3Plan}}\nQ4: {{q4Plan}}\n\n里程碑：\n- 3月：{{milestone1}}\n- 6月：{{milestone2}}\n- 9月：{{milestone3}}\n- 12月：{{milestone4}}\n\n设计：\n- 季度时间轴\n- 里程碑旗帜图标\n```\n\n**预期成果（第25页）**\n\n```\n{{year+1}}年预期目标：\n\n[大数字展示]\n¥{{targetRevenue}}M    {{targetUsers}}K    {{targetProjects}}个\n目标营收              目标用户            计划项目\n\n增长率：\n+{{revenueGrowth}}%   +{{userGrowth}}%    +{{projectGrowth}}%\n\n设计：\n- 与年初对比\n- 增长箭头\n```\n\n### 第七部分：总结致谢（26-27页）\n\n**核心总结（第26页）**\n\n```\n三句话总结{{year}}：\n\n1️⃣ {{summary1}}\n\n2️⃣ {{summary2}}\n\n3️⃣ {{summary3}}\n\n设计：\n- 大数字+简洁文字\n- 居中对齐\n```\n\n**感谢页（第27页）**\n\n```\n谢谢大家！\n\n感谢团队的努力\n感谢领导的支持\n感谢客户的信任\n\n让我们一起迎接{{year+1}}年的挑战！\n\n联系方式：{{contactInfo}}\n\n设计：\n- 温暖色调\n- 团队合影（可选）\n```\n\n## 设计规范\n\n**配色方案：**\n\n```\n主色：{{primaryColor}}（品牌色）\n辅助色：{{secondaryColor}}\n强调色：{{accentColor}}（数据、箭头）\n背景色：白色或浅灰\n文字色：深灰#333\n\n配色建议：\n- 正向数据：绿色\n- 负向数据：红色\n- 中性数据：蓝色/灰色\n```\n\n**字体规范：**\n\n```\n标题：微软雅黑 Bold，28-36pt\n副标题：微软雅黑 Regular，20-24pt\n正文：微软雅黑 Regular，16-18pt\n数据：Arial/DIN Bold，24-48pt\n\n英文：Arial/Helvetica\n```\n\n**版式设计：**\n\n```\n页边距：上下左右各0.5英寸\n标题区：页面上方1/5\n内容区：页面中部3/5\n页脚：页码+Logo\n\n布局：\n- 单栏：文字为主\n- 双栏：对比、前后\n- 三栏：并列、分类\n```\n\n## 演讲技巧\n\n**时间分配（{{duration}}分钟）：**\n\n```\n开场：1分钟\n年度回顾：2分钟\n核心成果：5分钟（重点）\n数据分析：3分钟\n问题挑战：2分钟\n明年规划：4分钟\nQ&A：3分钟\n```\n\n**演讲要点：**\n\n- 开场吸引注意（用数据/故事）\n- 结果导向（先说结论）\n- 数据支撑（用图表）\n- 坦诚问题（客观分析）\n- 展望未来（信心满满）\n\n**互动建议：**\n\n- 关键数据暂停（让听众消化）\n- 提问引导（\"大家觉得原因是什么？\"）\n- 眼神交流（不要只看PPT）\n- 控制语速（不要太快）\n\n## 附件准备\n\n**备用材料：**\n\n- 详细数据表（Excel）\n- 项目演示视频\n- 客户案例详细版\n- 预算明细\n\n**应急预案：**\n\n- 打印版PPT（防设备故障）\n- PDF备份\n- 简化版（如时间缩短）",
+  "variables_schema": [
+    {
+      "name": "presenter",
+      "label": "汇报人",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "department",
+      "label": "部门/团队",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "year",
+      "label": "年度",
+      "type": "number",
+      "required": false,
+      "default": 2025
+    },
+    {
+      "name": "duration",
+      "label": "汇报时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 20
+    }
+  ],
+  "file_structure": {
+    "root": "年度总结-{{year}}",
+    "files": [
+      {
+        "path": "年度总结PPT.pptx",
+        "type": "presentation"
+      },
+      {
+        "path": "演讲稿.md",
+        "type": "markdown"
+      },
+      {
+        "path": "数据附件/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

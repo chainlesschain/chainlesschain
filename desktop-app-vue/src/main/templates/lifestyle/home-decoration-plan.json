@@ -1,0 +1,55 @@
+{
+  "id": "tpl_lifestyle_deco_004",
+  "name": "home_decoration_plan",
+  "display_name": "家居装修方案",
+  "description": "家居装修完整规划，包含风格设计、预算清单和施工流程",
+  "icon": "🏠",
+  "category": "lifestyle",
+  "subcategory": "home",
+  "tags": [
+    "装修设计",
+    "家居",
+    "室内设计",
+    "装修预算"
+  ],
+  "project_type": "document",
+  "prompt_template": "家居装修方案\n\n**房屋信息：**\n- 房屋面积：{{area}}㎡\n- 户型：{{layout}}\n- 装修风格：{{style}}\n- 预算：¥{{budget}}\n\n# 装修完整方案\n\n## 1. 风格设计\n\n### 装修风格：{{style}}\n\n**设计要点：**\n- 色彩搭配\n- 空间布局\n- 家具选择\n\n## 2. 空间规划\n\n### 客厅（{{livingArea}}㎡）\n- 功能分区\n- 家具摆放\n- 灯光设计\n\n### 卧室（{{bedroomArea}}㎡）\n- 床具选择\n- 收纳设计\n\n### 厨房/卫生间\n- 动线设计\n- 防水处理\n\n## 3. 预算清单\n\n| 项目 | 预算 |\n|------|------|\n| 基础工程 | ¥{{baseWork}} |\n| 主材 | ¥{{mainMaterials}} |\n| 家具家电 | ¥{{furniture}} |\n| 软装 | ¥{{softDecor}} |\n\n## 4. 施工流程\n\n1. 拆改（1周）\n2. 水电（2周）\n3. 泥瓦（2周）\n4. 木工（2周）\n5. 油漆（1周）\n6. 安装（1周）\n\n总工期：{{totalDuration}}天",
+  "variables_schema": [
+    {
+      "name": "area",
+      "label": "房屋面积（㎡）",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "style",
+      "label": "装修风格",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "现代简约", "label": "现代简约"},
+        {"value": "北欧", "label": "北欧"},
+        {"value": "中式", "label": "中式"},
+        {"value": "美式", "label": "美式"}
+      ]
+    },
+    {
+      "name": "budget",
+      "label": "装修预算（元）",
+      "type": "number",
+      "required": false,
+      "default": 200000
+    }
+  ],
+  "file_structure": {
+    "root": "装修方案-{{style}}",
+    "files": [
+      {"path": "装修方案.docx", "type": "document"},
+      {"path": "预算清单.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

@@ -1,0 +1,43 @@
+{
+  "id": "tpl_research_abtest_006",
+  "name": "ab_test_report",
+  "display_name": "A/B测试报告",
+  "description": "A/B测试实验设计与结果分析报告，包含假设、指标和统计检验",
+  "icon": "🧪",
+  "category": "research",
+  "subcategory": "experiment",
+  "tags": [
+    "A/B测试",
+    "实验设计",
+    "数据分析",
+    "假设检验"
+  ],
+  "project_type": "document",
+  "prompt_template": "A/B测试报告\n\n**实验信息：**\n- 实验名称：{{experimentName}}\n- 测试目标：{{testGoal}}\n- 样本量：{{sampleSize}}\n- 实验周期：{{duration}}天\n\n# A/B测试完整报告\n\n## 实验设计\n\n### 1. 假设\n- 原假设H0：{{nullHypothesis}}\n- 备择假设H1：{{altHypothesis}}\n\n### 2. 实验变量\n- 自变量：{{independentVar}}\n- 因变量：{{dependentVar}}\n- 控制变量：{{controlVars}}\n\n### 3. 实验组设置\n- 对照组A：{{controlGroup}}\n- 实验组B：{{treatmentGroup}}\n- 流量分配：50/50\n\n### 4. 评估指标\n- 主要指标：{{primaryMetric}}\n- 次要指标：{{secondaryMetrics}}\n\n## 数据分析\n\n### 1. 描述统计\n- 均值、标准差\n- 置信区间\n\n### 2. 统计检验\n- t检验/卡方检验\n- p值计算\n- 显著性水平：0.05\n\n### 3. 结论\n- 拒绝/接受原假设\n- 业务建议",
+  "variables_schema": [
+    {
+      "name": "experimentName",
+      "label": "实验名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "sampleSize",
+      "label": "样本量",
+      "type": "number",
+      "required": false,
+      "default": 10000
+    }
+  ],
+  "file_structure": {
+    "root": "AB测试-{{experimentName}}",
+    "files": [
+      {"path": "测试报告.md", "type": "markdown"},
+      {"path": "数据分析.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

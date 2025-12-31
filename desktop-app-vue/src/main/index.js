@@ -3876,6 +3876,94 @@ class ChainlessChainApp {
       }
     });
 
+    // 更新组织信息
+    ipcMain.handle('org:update-organization', async (_event, params) => {
+      try {
+        if (!this.organizationManager) {
+          return { success: false, error: '组织管理器未初始化' };
+        }
+
+        const { orgId, name, type, description, visibility, p2pEnabled, syncMode } = params;
+
+        const result = await this.organizationManager.updateOrganization(orgId, {
+          name,
+          type,
+          description,
+          visibility,
+          p2p_enabled: p2pEnabled ? 1 : 0,
+          sync_mode: syncMode
+        });
+
+        return result;
+      } catch (error) {
+        console.error('[Main] 更新组织失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 获取邀请列表（包括邀请码和DID邀请）
+    ipcMain.handle('org:get-invitations', async (_event, orgId) => {
+      try {
+        if (!this.organizationManager) {
+          return { success: false, error: '组织管理器未初始化', invitations: [] };
+        }
+
+        const invitations = this.organizationManager.getInvitations(orgId);
+        return { success: true, invitations };
+      } catch (error) {
+        console.error('[Main] 获取邀请列表失败:', error);
+        return { success: false, error: error.message, invitations: [] };
+      }
+    });
+
+    // 撤销邀请
+    ipcMain.handle('org:revoke-invitation', async (_event, params) => {
+      try {
+        if (!this.organizationManager) {
+          return { success: false, error: '组织管理器未初始化' };
+        }
+
+        const { orgId, invitationId } = params;
+        const result = await this.organizationManager.revokeInvitation(orgId, invitationId);
+        return result;
+      } catch (error) {
+        console.error('[Main] 撤销邀请失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 删除邀请
+    ipcMain.handle('org:delete-invitation', async (_event, params) => {
+      try {
+        if (!this.organizationManager) {
+          return { success: false, error: '组织管理器未初始化' };
+        }
+
+        const { orgId, invitationId } = params;
+        const result = await this.organizationManager.deleteInvitation(orgId, invitationId);
+        return result;
+      } catch (error) {
+        console.error('[Main] 删除邀请失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 获取成员活动历史
+    ipcMain.handle('org:get-member-activities', async (_event, params) => {
+      try {
+        if (!this.organizationManager) {
+          return { success: false, error: '组织管理器未初始化', activities: [] };
+        }
+
+        const { orgId, memberDID, limit = 10 } = params;
+        const activities = this.organizationManager.getMemberActivities(orgId, memberDID, limit);
+        return { success: true, activities };
+      } catch (error) {
+        console.error('[Main] 获取成员活动失败:', error);
+        return { success: false, error: error.message, activities: [] };
+      }
+    });
+
     // ============================
     // P2P同步引擎相关 IPC Handler
     // ============================

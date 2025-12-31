@@ -1,0 +1,48 @@
+{
+  "id": "tpl_lifestyle_finance_005",
+  "name": "personal_finance_plan",
+  "display_name": "个人理财规划",
+  "description": "个人/家庭理财方案，包含预算管理、投资配置和目标规划",
+  "icon": "💵",
+  "category": "lifestyle",
+  "subcategory": "finance",
+  "tags": [
+    "理财规划",
+    "投资",
+    "预算管理",
+    "财务自由"
+  ],
+  "project_type": "document",
+  "prompt_template": "个人理财规划\n\n**财务信息：**\n- 月收入：¥{{monthlyIncome}}\n- 月支出：¥{{monthlyExpense}}\n- 储蓄率：{{savingsRate}}%\n- 理财目标：{{financialGoal}}\n\n# 理财完整方案\n\n## 1. 财务现状\n\n### 收入分析\n- 工资收入：¥{{salary}}\n- 副业收入：¥{{sideIncome}}\n- 投资收益：¥{{investmentIncome}}\n\n### 支出分析\n- 固定支出（房租/房贷）：{{fixedExpense}}%\n- 生活支出：{{livingExpense}}%\n- 娱乐支出：{{entertainment}}%\n- 储蓄投资：{{savings}}%\n\n## 2. 预算规划（50/30/20法则）\n\n- 必需品：50%\n- 想要的：30%\n- 储蓄投资：20%\n\n## 3. 投资配置\n\n### 资产配置\n- 现金/货币基金：{{cashRatio}}%\n- 债券/固收：{{bondRatio}}%\n- 股票/基金：{{stockRatio}}%\n- 房产：{{realEstateRatio}}%\n\n### 风险评估\n- 风险偏好：{{riskTolerance}}\n- 投资期限：{{investmentHorizon}}年\n\n## 4. 财务目标\n\n### 短期目标（1年）\n- {{shortTermGoal1}}\n- 所需金额：¥{{shortTermAmount}}\n\n### 中期目标（3-5年）\n- {{midTermGoal1}}\n- 所需金额：¥{{midTermAmount}}\n\n### 长期目标（10年+）\n- {{longTermGoal1}}\n- 所需金额：¥{{longTermAmount}}\n\n## 5. 保险规划\n\n- 重疾险\n- 医疗险\n- 意外险\n- 寿险（有家庭责任）\n\n## 6. 行动计划\n\n月度检查清单：\n- [ ] 记账\n- [ ] 检查预算执行\n- [ ] 定投基金\n- [ ] 复盘投资",
+  "variables_schema": [
+    {
+      "name": "monthlyIncome",
+      "label": "月收入（元）",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "financialGoal",
+      "label": "理财目标",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "财务自由", "label": "财务自由"},
+        {"value": "买房", "label": "买房"},
+        {"value": "子女教育", "label": "子女教育"},
+        {"value": "退休养老", "label": "退休养老"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "理财规划",
+    "files": [
+      {"path": "理财方案.md", "type": "markdown"},
+      {"path": "预算表.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

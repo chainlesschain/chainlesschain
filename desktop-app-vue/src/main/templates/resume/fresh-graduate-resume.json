@@ -1,0 +1,47 @@
+{
+  "id": "tpl_resume_grad_005",
+  "name": "fresh_graduate_resume",
+  "display_name": "应届生简历",
+  "description": "应届毕业生简历模板，突出项目经验、实习和技能",
+  "icon": "🎓",
+  "category": "resume",
+  "subcategory": "entry-level",
+  "tags": [
+    "应届生",
+    "校招",
+    "实习经历",
+    "项目经验"
+  ],
+  "project_type": "document",
+  "prompt_template": "应届生简历\n\n**个人信息：**\n- 姓名：{{name}}\n- 学校：{{university}}\n- 专业：{{major}}\n- 毕业时间：{{graduationDate}}\n\n# 应届生简历模板\n\n## 简历结构\n\n### 1. 个人信息\n- 姓名\n- 电话\n- 邮箱\n- GitHub（技术岗）\n\n### 2. 教育背景\n**{{university}}** | {{major}} | {{degree}}\n- 毕业时间：{{graduationDate}}\n- GPA：{{gpa}}/4.0（可选）\n- 主修课程：{{courses}}\n- 荣誉奖学金：{{awards}}\n\n### 3. 实习经历\n**公司名称** | 实习岗位 | 时间\n- 工作内容：\n  • {{internTask1}}\n  • {{internTask2}}\n- 项目成果：{{internAchievement}}\n\n### 4. 项目经验\n**项目名称** | 角色 | 时间\n- 项目描述：{{projectDesc}}\n- 技术栈：{{techStack}}\n- 个人贡献：{{contribution}}\n- 项目成果：{{projectResult}}\n\n### 5. 技能证书\n- 专业技能：{{skills}}\n- 英语水平：CET-6/雅思/托福\n- 证书：{{certifications}}\n\n### 6. 校园活动（可选）\n- 学生会/社团经历\n- 志愿者活动",
+  "variables_schema": [
+    {
+      "name": "name",
+      "label": "姓名",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "university",
+      "label": "学校",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "major",
+      "label": "专业",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "应届生简历-{{name}}",
+    "files": [
+      {"path": "简历.docx", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

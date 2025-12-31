@@ -1,0 +1,47 @@
+{
+  "id": "tpl_resume_change_006",
+  "name": "career_change_resume",
+  "display_name": "转行简历",
+  "description": "职业转型简历模板，突出可迁移技能和学习能力",
+  "icon": "🔄",
+  "category": "resume",
+  "subcategory": "transition",
+  "tags": [
+    "转行",
+    "职业转型",
+    "可迁移技能",
+    "跨界"
+  ],
+  "project_type": "document",
+  "prompt_template": "转行简历\n\n**个人信息：**\n- 姓名：{{name}}\n- 当前行业：{{currentIndustry}}\n- 目标行业：{{targetIndustry}}\n- 转行原因：{{transitionReason}}\n\n# 转行简历模板\n\n## 简历结构\n\n### 1. 职业摘要\n- 强调可迁移技能\n- 展现学习能力\n- 说明转行动机\n\n示例：\n\"拥有{{yearsExp}}年{{currentIndustry}}经验的专业人士，擅长{{transferableSkills}}。通过自学{{newSkills}}，完成{{transitionProjects}}个项目，现寻求转入{{targetIndustry}}领域。\"\n\n### 2. 核心技能\n- 可迁移技能：\n  • 项目管理\n  • 数据分析\n  • 沟通协调\n  • 问题解决\n\n- 新学技能：\n  • {{newSkill1}}\n  • {{newSkill2}}\n  • {{newSkill3}}\n\n### 3. 转行项目/培训\n**项目名称** | 个人项目 | 时间\n- 项目说明：{{projectDesc}}\n- 技能应用：{{skillsUsed}}\n- 项目成果：{{outcome}}\n\n### 4. 工作经历\n- 重新包装过往经验\n- 强调与目标岗位相关的部分\n- 淡化不相关内容\n\n### 5. 教育与培训\n- 学历背景\n- 职业培训课程\n- 在线课程证书\n\n### 6. 附加说明\n- 转行决心声明\n- 愿意从较低职级开始",
+  "variables_schema": [
+    {
+      "name": "name",
+      "label": "姓名",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "currentIndustry",
+      "label": "当前行业",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "targetIndustry",
+      "label": "目标行业",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "转行简历-{{name}}",
+    "files": [
+      {"path": "简历.docx", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

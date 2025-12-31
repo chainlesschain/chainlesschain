@@ -1,0 +1,43 @@
+{
+  "id": "tpl_research_survey_005",
+  "name": "survey_design",
+  "display_name": "问卷调查设计",
+  "description": "专业问卷调查设计方案，包含问卷结构、题目设计和数据分析",
+  "icon": "📋",
+  "category": "research",
+  "subcategory": "survey",
+  "tags": [
+    "问卷调查",
+    "调研设计",
+    "数据收集",
+    "统计分析"
+  ],
+  "project_type": "document",
+  "prompt_template": "问卷调查设计方案\n\n**调查信息：**\n- 调查主题：{{surveyTopic}}\n- 目标人群：{{targetPopulation}}\n- 样本量：{{sampleSize}}\n- 调查方式：{{surveyMethod}}\n\n# 问卷调查完整方案\n\n## 调查设计\n\n### 1. 调查目的\n- 研究问题\n- 调查目标\n- 预期成果\n\n### 2. 问卷结构\n- 开场语\n- 基本信息（5题）\n- 核心问题（15-20题）\n- 开放问题（2-3题）\n- 致谢语\n\n### 3. 题目类型\n- 单选题\n- 多选题\n- 量表题（Likert 5点）\n- 开放题\n\n### 4. 数据分析\n- 描述性统计\n- 相关分析\n- 回归分析",
+  "variables_schema": [
+    {
+      "name": "surveyTopic",
+      "label": "调查主题",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "sampleSize",
+      "label": "样本量",
+      "type": "number",
+      "required": false,
+      "default": 300
+    }
+  ],
+  "file_structure": {
+    "root": "问卷调查-{{surveyTopic}}",
+    "files": [
+      {"path": "调查方案.docx", "type": "document"},
+      {"path": "问卷模板.docx", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

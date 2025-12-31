@@ -1,0 +1,65 @@
+{
+  "id": "tpl_excel_sales_004",
+  "name": "sales_tracker",
+  "display_name": "销售业绩追踪系统",
+  "description": "销售团队业绩追踪表，包含目标管理、佣金计算和排名分析",
+  "icon": "💰",
+  "category": "excel",
+  "subcategory": "sales",
+  "tags": [
+    "销售管理",
+    "业绩追踪",
+    "佣金计算",
+    "目标管理"
+  ],
+  "project_type": "document",
+  "prompt_template": "销售业绩追踪系统\n\n**项目信息：**\n- 公司名称：{{companyName}}\n- 销售团队：{{salesTeam}}人\n- 考核周期：{{assessmentPeriod}}\n- 佣金模式：{{commissionModel}}\n\n# 销售业绩追踪Excel系统\n\n## 系统概述\n\n**目标：**\n- 实时追踪销售业绩\n- 自动计算佣金\n- 可视化销售排名\n- 目标达成分析\n\n## 工作表结构\n\nSheet 1: 仪表板\nSheet 2: 销售明细\nSheet 3: 销售员信息\nSheet 4: 产品目录\nSheet 5: 佣金设置\nSheet 6: 月度汇总\nSheet 7: 排名分析",
+  "variables_schema": [
+    {
+      "name": "companyName",
+      "label": "公司名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "salesTeam",
+      "label": "销售团队人数",
+      "type": "number",
+      "required": false,
+      "default": 10
+    },
+    {
+      "name": "assessmentPeriod",
+      "label": "考核周期",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "月度",
+          "label": "月度"
+        },
+        {
+          "value": "季度",
+          "label": "季度"
+        },
+        {
+          "value": "年度",
+          "label": "年度"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "销售追踪-{{companyName}}",
+    "files": [
+      {
+        "path": "销售追踪表.xlsx",
+        "type": "spreadsheet"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
