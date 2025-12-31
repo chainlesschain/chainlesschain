@@ -12,6 +12,7 @@
           <a-radio-group v-model:value="form.provider" @change="handleProviderChange">
             <a-radio-button value="ollama">Ollama (本地)</a-radio-button>
             <a-radio-button value="openai">OpenAI</a-radio-button>
+            <a-radio-button value="anthropic">Claude (Anthropic)</a-radio-button>
             <a-radio-button value="volcengine">豆包 (字节)</a-radio-button>
             <a-radio-button value="deepseek">DeepSeek</a-radio-button>
             <a-radio-button value="custom">自定义API</a-radio-button>
@@ -106,6 +107,42 @@
             <div class="form-hint">
               组织ID（可选）
             </div>
+          </a-form-item>
+        </template>
+
+        <!-- Anthropic Claude 配置 -->
+        <template v-if="form.provider === 'anthropic'">
+          <a-divider orientation="left">Claude (Anthropic) 配置</a-divider>
+
+          <a-form-item label="API Key" required>
+            <a-input-password
+              v-model:value="form.anthropic.apiKey"
+              placeholder="sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            />
+            <div class="form-hint">
+              Anthropic API 密钥
+            </div>
+          </a-form-item>
+
+          <a-form-item label="API 地址">
+            <a-input
+              v-model:value="form.anthropic.baseURL"
+              placeholder="https://api.anthropic.com"
+            />
+            <div class="form-hint">
+              默认官方 API 地址，可用于代理/私有部署
+            </div>
+          </a-form-item>
+
+          <a-form-item label="模型">
+            <a-select
+              v-model:value="form.anthropic.model"
+              placeholder="选择模型"
+            >
+              <a-select-option value="claude-3-opus-20240229">Claude 3 Opus</a-select-option>
+              <a-select-option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</a-select-option>
+              <a-select-option value="claude-3-haiku-20240307">Claude 3 Haiku</a-select-option>
+            </a-select>
           </a-form-item>
         </template>
 
@@ -368,6 +405,13 @@ const form = reactive({
     organization: '',
   },
 
+  anthropic: {
+    apiKey: '',
+    baseURL: 'https://api.anthropic.com',
+    model: 'claude-3-opus-20240229',
+    version: '2023-06-01',
+  },
+
   deepseek: {
     apiKey: '',
     model: 'deepseek-chat',
@@ -478,6 +522,12 @@ const handleReset = () => {
     model: 'gpt-3.5-turbo',
     organization: '',
   };
+  form.anthropic = {
+    apiKey: '',
+    baseURL: 'https://api.anthropic.com',
+    model: 'claude-3-opus-20240229',
+    version: '2023-06-01',
+  };
   form.deepseek = {
     apiKey: '',
     model: 'deepseek-chat',
@@ -550,6 +600,7 @@ const getProviderName = (provider) => {
   const names = {
     ollama: 'Ollama (本地)',
     openai: 'OpenAI',
+    anthropic: 'Claude (Anthropic)',
     deepseek: 'DeepSeek',
     volcengine: '豆包（火山引擎）',
     custom: '自定义API',

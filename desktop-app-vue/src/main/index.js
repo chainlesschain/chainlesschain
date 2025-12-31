@@ -8864,6 +8864,206 @@ class ChainlessChainApp {
       }
     });
 
+    // ==================== 设计工具 IPC ====================
+
+    const { DesignManager } = require('./design/design-manager');
+
+    /**
+     * 创建设计项目
+     */
+    ipcMain.handle('design:create-project', async (_event, projectData) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        const project = await designManager.createDesignProject(projectData);
+        console.log('[Design] 设计项目创建成功:', project.id);
+        return project;
+      } catch (error) {
+        console.error('[Design] 创建设计项目失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 获取设计项目
+     */
+    ipcMain.handle('design:get-project', async (_event, projectId) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        return await designManager.getDesignProject(projectId);
+      } catch (error) {
+        console.error('[Design] 获取设计项目失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 获取项目的所有画板
+     */
+    ipcMain.handle('design:get-artboards', async (_event, projectId) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        return await designManager.getProjectArtboards(projectId);
+      } catch (error) {
+        console.error('[Design] 获取画板列表失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 创建画板
+     */
+    ipcMain.handle('design:create-artboard', async (_event, artboardData) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        const artboardId = await designManager.createArtboard(artboardData);
+
+        // 返回完整的画板信息
+        const artboard = this.database.db.prepare(
+          'SELECT * FROM design_artboards WHERE id = ?'
+        ).get(artboardId);
+
+        console.log('[Design] 画板创建成功:', artboardId);
+        return artboard;
+      } catch (error) {
+        console.error('[Design] 创建画板失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 获取画板详情（包含所有对象）
+     */
+    ipcMain.handle('design:get-artboard', async (_event, artboardId) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        return await designManager.getArtboard(artboardId);
+      } catch (error) {
+        console.error('[Design] 获取画板失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 更新画板
+     */
+    ipcMain.handle('design:update-artboard', async (_event, { artboardId, updates }) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        return await designManager.updateArtboard(artboardId, updates);
+      } catch (error) {
+        console.error('[Design] 更新画板失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 删除画板
+     */
+    ipcMain.handle('design:delete-artboard', async (_event, artboardId) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        return await designManager.deleteArtboard(artboardId);
+      } catch (error) {
+        console.error('[Design] 删除画板失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 添加设计对象
+     */
+    ipcMain.handle('design:add-object', async (_event, objectData) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        const objectId = await designManager.addObject(objectData);
+        console.log('[Design] 对象添加成功:', objectId);
+        return { id: objectId };
+      } catch (error) {
+        console.error('[Design] 添加对象失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 更新设计对象
+     */
+    ipcMain.handle('design:update-object', async (_event, { id, ...updates }) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        return await designManager.updateObject(id, updates);
+      } catch (error) {
+        console.error('[Design] 更新对象失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 删除设计对象
+     */
+    ipcMain.handle('design:delete-object', async (_event, objectId) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        return await designManager.deleteObject(objectId);
+      } catch (error) {
+        console.error('[Design] 删除对象失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 保存画板（批量更新所有对象）
+     */
+    ipcMain.handle('design:save-artboard', async (_event, { artboard_id, objects }) => {
+      try {
+        const designManager = new DesignManager(this.database.db);
+        return await designManager.saveArtboard(artboard_id, objects);
+      } catch (error) {
+        console.error('[Design] 保存画板失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 获取组件库
+     */
+    ipcMain.handle('design:get-components', async (_event, { projectId, category }) => {
+      try {
+        let query = 'SELECT * FROM design_components WHERE is_system = 1';
+        const params = [];
+
+        if (projectId) {
+          query += ' OR project_id = ?';
+          params.push(projectId);
+        }
+
+        if (category) {
+          query += ' AND category = ?';
+          params.push(category);
+        }
+
+        const components = this.database.db.prepare(query).all(...params);
+        return components;
+      } catch (error) {
+        console.error('[Design] 获取组件库失败:', error);
+        throw error;
+      }
+    });
+
+    /**
+     * 获取 Design Tokens
+     */
+    ipcMain.handle('design:get-tokens', async (_event, projectId) => {
+      try {
+        const tokens = this.database.db.prepare(
+          'SELECT * FROM design_tokens WHERE project_id = ? ORDER BY token_type, token_name'
+        ).all(projectId);
+        return tokens;
+      } catch (error) {
+        console.error('[Design] 获取 Design Tokens 失败:', error);
+        throw error;
+      }
+    });
+
     // ==================== 项目AI对话 IPC ====================
 
     /**

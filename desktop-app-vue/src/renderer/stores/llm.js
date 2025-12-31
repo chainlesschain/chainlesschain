@@ -26,6 +26,13 @@ export const useLLMStore = defineStore('llm', {
         organization: '',
       },
 
+      anthropic: {
+        apiKey: '',
+        baseURL: 'https://api.anthropic.com',
+        model: 'claude-3-opus-20240229',
+        version: '2023-06-01',
+      },
+
       deepseek: {
         apiKey: '',
         model: 'deepseek-chat',
@@ -84,6 +91,8 @@ export const useLLMStore = defineStore('llm', {
           return state.config.ollama;
         case 'openai':
           return state.config.openai;
+        case 'anthropic':
+          return state.config.anthropic;
         case 'deepseek':
           return state.config.deepseek;
         case 'custom':
@@ -107,12 +116,13 @@ export const useLLMStore = defineStore('llm', {
 
     // 提供商显示名称
     providerDisplayName: (state) => {
-      const names = {
-        ollama: 'Ollama (本地)',
-        openai: 'OpenAI',
-        deepseek: 'DeepSeek',
-        custom: state.config.custom.name || '自定义API',
-      };
+        const names = {
+          ollama: 'Ollama (本地)',
+          openai: 'OpenAI',
+          anthropic: 'Claude (Anthropic)',
+          deepseek: 'DeepSeek',
+          custom: state.config.custom.name || '自定义API',
+        };
       return names[state.config.provider] || state.config.provider;
     },
   },

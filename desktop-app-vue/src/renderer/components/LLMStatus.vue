@@ -199,6 +199,9 @@ const checkStatus = async () => {
         case 'openai':
           currentModel.value = config.openai?.model || '';
           break;
+        case 'anthropic':
+          currentModel.value = config.anthropic?.model || '';
+          break;
         case 'deepseek':
           currentModel.value = config.deepseek?.model || '';
           break;
@@ -264,8 +267,9 @@ const handleTest = async () => {
 const getProviderName = (provider) => {
   const names = {
     ollama: 'Ollama',
-    openai: 'OpenAI',
-    deepseek: 'DeepSeek',
+      openai: 'OpenAI',
+      anthropic: 'Claude (Anthropic)',
+      deepseek: 'DeepSeek',
     custom: '自定义',
   };
   return names[provider] || provider || '未知';
@@ -276,6 +280,7 @@ const getProviderColor = (provider) => {
   const colors = {
     ollama: 'blue',
     openai: 'green',
+    anthropic: 'geekblue',
     deepseek: 'purple',
     custom: 'orange',
   };

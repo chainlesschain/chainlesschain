@@ -241,6 +241,13 @@ const routes = [
         component: () => import('../pages/projects/ProjectDetailPage.vue'),
         meta: { title: '项目详情' },
       },
+      // 设计工具编辑器
+      {
+        path: 'design/:projectId',
+        name: 'DesignEditor',
+        component: () => import('../pages/design/DesignEditorPage.vue'),
+        meta: { title: '设计编辑器' },
+      },
       {
         path: 'projects/:id/edit',
         name: 'ProjectEdit',
