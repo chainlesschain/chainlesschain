@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300">
+  <defs>
+    <linearGradient id="stepGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="300" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="450" y="30" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#2c3e50">
+    5分钟快速上手流程
+  </text>
+
+  <!-- Step 1 -->
+  <g id="step1" transform="translate(70, 100)">
+    <!-- Circle -->
+    <circle cx="0" cy="0" r="35" fill="url(#stepGrad)" filter="url(#shadow)"/>
+    <text x="0" y="8" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">1</text>
+
+    <!-- Icon -->
+    <g transform="translate(0, 70)">
+      <circle cx="0" cy="0" r="25" fill="#f0f0f0"/>
+      <text x="0" y="8" font-size="24" text-anchor="middle">💻</text>
+    </g>
+
+    <!-- Text -->
+    <text x="0" y="130" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2c3e50">
+      下载安装
+    </text>
+    <text x="0" y="150" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#6c757d">
+      全平台支持
+    </text>
+    <text x="0" y="166" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#6c757d">
+      一键安装
+    </text>
+
+    <!-- Time -->
+    <rect x="-30" y="180" width="60" height="22" rx="11" fill="#e6f7ff" stroke="#1890ff" stroke-width="1"/>
+    <text x="0" y="195" font-family="Arial, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" fill="#1890ff">
+      1分钟
+    </text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <g transform="translate(140, 100)">
+    <line x1="0" y1="0" x2="100" y2="0" stroke="#e0e0e0" stroke-width="3" marker-end="url(#arrowhead)"/>
+    <defs>
+      <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+        <polygon points="0 0, 10 3, 0 6" fill="#e0e0e0" />
+      </marker>
+    </defs>
+  </g>
+
+  <!-- Step 2 -->
+  <g id="step2" transform="translate(280, 100)">
+    <!-- Circle -->
+    <circle cx="0" cy="0" r="35" fill="url(#stepGrad)" filter="url(#shadow)"/>
+    <text x="0" y="8" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">2</text>
+
+    <!-- Icon -->
+    <g transform="translate(0, 70)">
+      <circle cx="0" cy="0" r="25" fill="#f0f0f0"/>
+      <text x="0" y="8" font-size="24" text-anchor="middle">🏢</text>
+    </g>
+
+    <!-- Text -->
+    <text x="0" y="130" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2c3e50">
+      创建组织
+    </text>
+    <text x="0" y="150" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#6c757d">
+      填写组织名称
+    </text>
+    <text x="0" y="166" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#6c757d">
+      生成DID身份
+    </text>
+
+    <!-- Time -->
+    <rect x="-30" y="180" width="60" height="22" rx="11" fill="#e6f7ff" stroke="#1890ff" stroke-width="1"/>
+    <text x="0" y="195" font-family="Arial, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" fill="#1890ff">
+      1分钟
+    </text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <g transform="translate(350, 100)">
+    <line x1="0" y1="0" x2="100" y2="0" stroke="#e0e0e0" stroke-width="3" marker-end="url(#arrowhead2)"/>
+    <defs>
+      <marker id="arrowhead2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+        <polygon points="0 0, 10 3, 0 6" fill="#e0e0e0" />
+      </marker>
+    </defs>
+  </g>
+
+  <!-- Step 3 -->
+  <g id="step3" transform="translate(490, 100)">
+    <!-- Circle -->
+    <circle cx="0" cy="0" r="35" fill="url(#stepGrad)" filter="url(#shadow)"/>
+    <text x="0" y="8" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">3</text>
+
+    <!-- Icon -->
+    <g transform="translate(0, 70)">
+      <circle cx="0" cy="0" r="25" fill="#f0f0f0"/>
+      <text x="0" y="8" font-size="24" text-anchor="middle">👥</text>
+    </g>
+
+    <!-- Text -->
+    <text x="0" y="130" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2c3e50">
+      邀请成员
+    </text>
+    <text x="0" y="150" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#6c757d">
+      分享邀请码
+    </text>
+    <text x="0" y="166" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#6c757d">
+      P2P自动连接
+    </text>
+
+    <!-- Time -->
+    <rect x="-30" y="180" width="60" height="22" rx="11" fill="#e6f7ff" stroke="#1890ff" stroke-width="1"/>
+    <text x="0" y="195" font-family="Arial, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" fill="#1890ff">
+      2分钟
+    </text>
+  </g>
+
+  <!-- Arrow 3 -->
+  <g transform="translate(560, 100)">
+    <line x1="0" y1="0" x2="100" y2="0" stroke="#e0e0e0" stroke-width="3" marker-end="url(#arrowhead3)"/>
+    <defs>
+      <marker id="arrowhead3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+        <polygon points="0 0, 10 3, 0 6" fill="#e0e0e0" />
+      </marker>
+    </defs>
+  </g>
+
+  <!-- Step 4 -->
+  <g id="step4" transform="translate(700, 100)">
+    <!-- Circle -->
+    <circle cx="0" cy="0" r="35" fill="url(#stepGrad)" filter="url(#shadow)"/>
+    <text x="0" y="8" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">4</text>
+
+    <!-- Icon -->
+    <g transform="translate(0, 70)">
+      <circle cx="0" cy="0" r="25" fill="#f0f0f0"/>
+      <text x="0" y="8" font-size="24" text-anchor="middle">🚀</text>
+    </g>
+
+    <!-- Text -->
+    <text x="0" y="130" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2c3e50">
+      开始协作
+    </text>
+    <text x="0" y="150" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#6c757d">
+      共享知识库
+    </text>
+    <text x="0" y="166" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#6c757d">
+      AI项目管理
+    </text>
+
+    <!-- Time -->
+    <rect x="-30" y="180" width="60" height="22" rx="11" fill="#e6f7ff" stroke="#1890ff" stroke-width="1"/>
+    <text x="0" y="195" font-family="Arial, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" fill="#1890ff">
+      1分钟
+    </text>
+  </g>
+
+  <!-- Success badge -->
+  <g transform="translate(820, 100)">
+    <circle cx="0" cy="0" r="30" fill="#52c41a" filter="url(#shadow)"/>
+    <text x="0" y="8" font-size="28" text-anchor="middle">✓</text>
+    <text x="0" y="50" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#52c41a">
+      完成!
+    </text>
+  </g>
+
+  <!-- Total time highlight -->
+  <g transform="translate(450, 270)">
+    <rect x="-80" y="-18" width="160" height="36" rx="18" fill="#fff3e0" stroke="#ff9800" stroke-width="2" filter="url(#shadow)"/>
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#e65100">
+      总计时间:
+    </text>
+    <text x="0" y="18" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#e65100">
+      约 5 分钟
+    </text>
+  </g>
+</svg>
