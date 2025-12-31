@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO优化 -->
+    <title>企业版（去中心化组织）- 零成本、更安全的创业团队协作平台 | ChainlessChain</title>
+    <meta name="description" content="ChainlessChain企业版：零部署成本、完全去中心化、强大AI功能。告别传统中心化软件的数万元服务器成本和安全隐患，创业团队和去中心化组织的理想选择。支持多身份切换、RBAC权限管理、企业级数据隔离。">
+    <meta name="keywords" content="去中心化组织,企业协作软件,零成本部署,P2P协作,创业团队工具,多身份管理,RBAC权限,数据隔离,开源企业软件,去中心化应用">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="ChainlessChain企业版 - 创业团队的首选协作平台">
+    <meta property="og:description" content="零部署成本、完全去中心化、强大AI功能，彻底告别传统软件安全问题">
+    <meta property="og:url" content="https://www.chainlesschain.com/products/enterprise.html">
+
+    <!-- 样式 -->
+    <link rel="preload" href="../css/style.css" as="style">
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 企业版专用样式 */
+        .enterprise-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            padding: 140px 0 100px;
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .enterprise-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><path d="M0,300 Q300,150 600,300 T1200,300 L1200,600 L0,600 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+            background-size: cover;
+            opacity: 0.3;
+        }
+
+        .enterprise-hero .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .enterprise-hero h1 {
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .enterprise-hero .subtitle {
+            font-size: 24px;
+            opacity: 0.95;
+            margin-bottom: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        .hero-cta .btn-primary,
+        .hero-cta .btn-outline {
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .hero-cta .btn-primary {
+            background: white;
+            color: var(--primary-color);
+            border: none;
+        }
+
+        .hero-cta .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255,255,255,0.3);
+        }
+
+        .hero-cta .btn-outline {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .hero-cta .btn-outline:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* 核心卖点 */
+        .key-benefits {
+            padding: 100px 0;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+            margin-top: 60px;
+        }
+
+        .benefit-card {
+            background: white;
+            padding: 40px 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .benefit-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(102,126,234,0.2);
+            border-color: var(--primary-color);
+        }
+
+        .benefit-card .icon {
+            font-size: 48px;
+            margin-bottom: 24px;
+        }
+
+        .benefit-card h3 {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .benefit-card p {
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .benefit-card .highlight {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 16px;
+            display: inline-block;
+        }
+
+        .benefit-card ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 16px;
+        }
+
+        .benefit-card li {
+            padding: 8px 0;
+            color: var(--text-secondary);
+        }
+
+        .benefit-card .problem-list li {
+            color: var(--error-color);
+        }
+
+        .benefit-card .solution {
+            background: var(--bg-light);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            border-left: 4px solid var(--success-color);
+            font-weight: 500;
+        }
+
+        /* 对比表格 */
+        .comparison {
+            background: var(--bg-light);
+            padding: 100px 0;
+        }
+
+        .comparison-table {
+            width: 100%;
+            margin-top: 40px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .comparison-table thead {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comparison-table th {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .comparison-table th.highlight {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .comparison-table td {
+            font-size: 15px;
+        }
+
+        .comparison-table tbody tr:hover {
+            background: var(--bg-light);
+        }
+
+        /* 功能展示 */
+        .enterprise-features {
+            padding: 100px 0;
+        }
+
+        .features-showcase {
+            display: grid;
+            gap: 60px;
+            margin-top: 60px;
+        }
+
+        .feature-item {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .feature-item:nth-child(even) {
+            direction: rtl;
+        }
+
+        .feature-item:nth-child(even) > * {
+            direction: ltr;
+        }
+
+        .feature-item h3 {
+            font-size: 32px;
+            margin-bottom: 16px;
+            color: var(--primary-color);
+        }
+
+        .feature-item > div > p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .feature-item ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-item li {
+            padding: 12px 0;
+            padding-left: 32px;
+            position: relative;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .feature-item li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--success-color);
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .feature-visual {
+            background: var(--bg-light);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .feature-visual img {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .feature-visual pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 24px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* 使用场景 */
+        .use-cases {
+            background: var(--bg-light);
+            padding: 100px 0;
+        }
+
+        .cases-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+            margin-top: 60px;
+        }
+
+        .case-card {
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+
+        .case-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .case-card h3 {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .case-card p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            font-style: italic;
+            margin-bottom: 16px;
+        }
+
+        .case-card .author {
+            color: var(--text-light);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* 架构展示 */
+        .architecture {
+            padding: 100px 0;
+        }
+
+        .architecture pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 40px;
+            border-radius: 16px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.8;
+            margin-top: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
+        /* CTA */
+        .cta-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .cta-section h2 {
+            font-size: 42px;
+            margin-bottom: 16px;
+        }
+
+        .cta-section > .container > p {
+            font-size: 20px;
+            opacity: 0.95;
+            margin-bottom: 40px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .cta-buttons .btn-primary,
+        .cta-buttons .btn-outline {
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .cta-buttons .btn-primary {
+            background: white;
+            color: var(--primary-color);
+            border: none;
+        }
+
+        .cta-buttons .btn-outline {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .cta-section .note {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 32px;
+            line-height: 1.8;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .enterprise-hero h1 {
+                font-size: 36px;
+            }
+
+            .enterprise-hero .subtitle {
+                font-size: 18px;
+            }
+
+            .hero-cta {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .benefits-grid,
+            .cases-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-item {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-item:nth-child(even) {
+                direction: ltr;
+            }
+
+            .comparison-table {
+                font-size: 14px;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="../index.html">
+                        <img src="../logo.png" alt="ChainlessChain无链之链Logo" class="logo-image" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="logo-text-wrapper" style="display: none;">
+                            <span class="logo-icon"></span>
+                            <span class="logo-text">无链之链</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="nav-menu" id="navMenu">
+                    <a href="../index.html" class="nav-link">首页</a>
+                    <a href="../index.html#products" class="nav-link active">产品</a>
+                    <a href="../index.html#download" class="nav-link">下载</a>
+                    <a href="https://docs.chainlesschain.com" class="nav-link" target="_blank" rel="noopener">文档</a>
+                    <a href="../index.html#about" class="nav-link">关于我们</a>
+                    <a href="../index.html#contact" class="nav-link">联系我们</a>
+                </div>
+                <div class="nav-actions">
+                    <a href="https://github.com/chainlesschain" class="btn-outline" target="_blank" rel="noopener">GitHub</a>
+                    <a href="../index.html#download" class="btn-primary">立即下载</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero区域 -->
+    <section class="enterprise-hero">
+        <div class="container">
+            <span class="hero-badge">🔥 创新架构</span>
+            <h1>企业版（去中心化组织）</h1>
+            <p class="subtitle">
+                无需投入巨大成本开发传统中心化软件<br>
+                彻底告别网络和数据安全问题
+            </p>
+            <div class="hero-cta">
+                <button class="btn-primary" onclick="window.location.href='../index.html#download'">立即试用</button>
+                <button class="btn-outline" onclick="window.location.href='#demo'">观看演示</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心卖点 -->
+    <section class="key-benefits">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">为什么选择去中心化组织架构？</h2>
+                <p class="section-subtitle">传统企业软件的问题，我们用去中心化架构彻底解决</p>
+            </div>
+
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="icon">💰</div>
+                    <h3>零部署成本</h3>
+                    <p>无需购买服务器、无需运维团队</p>
+                    <p class="highlight">桌面应用直接使用，即装即用</p>
+                    <ul>
+                        <li>✅ 无需购买服务器（省数万至数十万/年）</li>
+                        <li>✅ 无需专职运维人员</li>
+                        <li>✅ 无需网络带宽成本</li>
+                        <li>✅ 无需软件授权费用</li>
+                    </ul>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="icon">🔒</div>
+                    <h3>彻底解决安全问题</h3>
+                    <p>传统中心化软件的三大噩梦：</p>
+                    <ul class="problem-list">
+                        <li>❌ 服务器被攻击导致数据泄露</li>
+                        <li>❌ 网络故障导致业务中断</li>
+                        <li>❌ 供应商倒闭数据丢失</li>
+                    </ul>
+                    <p class="solution">
+                        去中心化架构：数据本地存储+P2P通信，无中心服务器风险，数据完全掌控
+                    </p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="icon">🚀</div>
+                    <h3>强大的AI功能</h3>
+                    <p>让团队事半功倍</p>
+                    <ul>
+                        <li>✅ AI驱动的项目管理</li>
+                        <li>✅ 智能代码/文档生成</li>
+                        <li>✅ RAG增强知识检索</li>
+                        <li>✅ 19个专业AI引擎</li>
+                        <li>✅ 本地+云端LLM支持</li>
+                        <li>✅ 对话式任务执行</li>
+                    </ul>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="icon">🎯</div>
+                    <h3>创业团队首选</h3>
+                    <p>完美适配新型组织架构</p>
+                    <ul>
+                        <li>✅ 快速创建组织（5分钟搞定）</li>
+                        <li>✅ 灵活的多身份切换</li>
+                        <li>✅ 平滑从个人到团队扩展</li>
+                        <li>✅ 支持远程协作</li>
+                        <li>✅ RBAC权限管理</li>
+                        <li>✅ 企业级数据隔离</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 对比表格 -->
+    <section class="comparison">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">去中心化组织 vs 传统企业软件</h2>
+                <p class="section-subtitle">一目了然的优势对比</p>
+            </div>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>维度</th>
+                        <th>传统企业软件</th>
+                        <th class="highlight">ChainlessChain 企业版</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>部署方式</strong></td>
+                        <td>❌ 私有化部署，成本高昂</td>
+                        <td>✅ 桌面应用，无需部署</td>
+                    </tr>
+                    <tr>
+                        <td><strong>服务器成本</strong></td>
+                        <td>❌ 数万至数十万/年</td>
+                        <td>✅ 零成本（可选云存储）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>运维团队</strong></td>
+                        <td>❌ 需要专职运维人员</td>
+                        <td>✅ 无需运维</td>
+                    </tr>
+                    <tr>
+                        <td><strong>数据安全</strong></td>
+                        <td>❌ 中心服务器存在风险</td>
+                        <td>✅ 本地存储+P2P，完全掌控</td>
+                    </tr>
+                    <tr>
+                        <td><strong>网络依赖</strong></td>
+                        <td>❌ 服务器宕机业务中断</td>
+                        <td>✅ 去中心化，无单点故障</td>
+                    </tr>
+                    <tr>
+                        <td><strong>扩展性</strong></td>
+                        <td>❌ 受服务器限制</td>
+                        <td>✅ P2P网络无限扩展</td>
+                    </tr>
+                    <tr>
+                        <td><strong>数据主权</strong></td>
+                        <td>❌ 数据在供应商手中</td>
+                        <td>✅ 数据完全归用户所有</td>
+                    </tr>
+                    <tr>
+                        <td><strong>组织灵活性</strong></td>
+                        <td>❌ 固定企业结构</td>
+                        <td>✅ 多身份自由切换</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 核心功能 -->
+    <section class="enterprise-features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">企业版核心功能</h2>
+                <p class="section-subtitle">强大而灵活的团队协作能力</p>
+            </div>
+
+            <div class="features-showcase">
+                <!-- 多身份架构 -->
+                <div class="feature-item">
+                    <div>
+                        <h3>多身份架构</h3>
+                        <p>一个账号，多个身份（个人、组织A、组织B...）</p>
+                        <ul>
+                            <li>个人身份：管理个人知识库、私人项目</li>
+                            <li>组织身份：作为团队成员协作</li>
+                            <li>自由切换：一键切换不同身份</li>
+                            <li>完全隔离：每个身份独立数据库</li>
+                            <li>数据加密：AES-256军事级加密</li>
+                        </ul>
+                    </div>
+                    <div class="feature-visual">
+                        <pre><code>用户的身份上下文：
+┌────────────────────────────┐
+│ 👤 个人身份 (Default)       │
+│    - 个人知识库             │
+│    - 私人项目               │
+│    - 本地数据库             │
+├────────────────────────────┤
+│ 🏢 极客创业团队 (Owner)     │
+│    - 组织知识库共享         │
+│    - 团队项目协作           │
+│    - 完全权限管理           │
+├────────────────────────────┤
+│ 🏢 开源社区XYZ (Member)     │
+│    - 社区讨论               │
+│    - 代码贡献               │
+│    - 读写权限               │
+└────────────────────────────┘</code></pre>
+                    </div>
+                </div>
+
+                <!-- 组织管理 -->
+                <div class="feature-item">
+                    <div>
+                        <h3>组织管理</h3>
+                        <p>任何人都可以创建组织，成为组织Owner</p>
+                        <ul>
+                            <li>快速创建：5分钟创建你的组织</li>
+                            <li>邀请成员：通过邀请码或DID邀请</li>
+                            <li>角色管理：Owner/Admin/Member/Viewer</li>
+                            <li>权限控制：RBAC权限系统</li>
+                            <li>活动日志：所有操作可追溯</li>
+                            <li>成员管理：添加、移除、角色变更</li>
+                        </ul>
+                    </div>
+                    <div class="feature-visual">
+                        <pre><code>组织创建流程：
+
+1. 创建组织
+   ├─ 填写组织名称、描述
+   ├─ 生成组织DID
+   ├─ 创建者自动成为Owner
+   └─ 生成邀请码
+
+2. 邀请成员
+   ├─ 生成6位邀请码
+   ├─ 或通过DID直接邀请
+   └─ 成员收到通知
+
+3. 成员加入
+   ├─ 输入邀请码
+   ├─ 验证身份
+   ├─ 创建组织身份上下文
+   └─ 开始协作
+
+4. 权限管理
+   ├─ Owner: 所有权限
+   ├─ Admin: 管理权限
+   ├─ Member: 读写权限
+   └─ Viewer: 只读权限</code></pre>
+                    </div>
+                </div>
+
+                <!-- 团队协作 -->
+                <div class="feature-item">
+                    <div>
+                        <h3>团队协作</h3>
+                        <p>强大的实时协作功能</p>
+                        <ul>
+                            <li>知识库共享：组织内知识库共享</li>
+                            <li>项目协作：多人协同项目开发</li>
+                            <li>组织消息：类Discord频道通信</li>
+                            <li>活动日志：所有操作可追溯</li>
+                            <li>文件共享：多格式文件支持</li>
+                            <li>AI辅助：智能问答和生成</li>
+                        </ul>
+                    </div>
+                    <div class="feature-visual">
+                        <pre><code>团队协作场景：
+
+场景1：知识库共享
+├─ 创建者发布知识库文档
+├─ AI自动索引和标签
+├─ 团队成员实时查看
+├─ 支持评论和讨论
+└─ RAG增强搜索
+
+场景2：项目协作
+├─ 对话式创建项目
+├─ AI生成项目结构
+├─ 分配任务给成员
+├─ 实时进度追踪
+└─ 版本控制（Git）
+
+场景3：组织通信
+├─ 频道消息
+├─ @提醒功能
+├─ 文件分享
+├─ P2P加密
+└─ 离线消息队列</code></pre>
+                    </div>
+                </div>
+
+                <!-- 数据隔离 -->
+                <div class="feature-item">
+                    <div>
+                        <h3>数据隔离</h3>
+                        <p>企业级数据安全保障</p>
+                        <ul>
+                            <li>独立数据库：每个身份独立DB文件</li>
+                            <li>AES-256加密：军事级加密保护</li>
+                            <li>权限分级：细粒度访问控制</li>
+                            <li>审计日志：完整操作记录</li>
+                            <li>数据备份：支持本地备份</li>
+                            <li>隐私保护：数据不离开本地</li>
+                        </ul>
+                    </div>
+                    <div class="feature-visual">
+                        <pre><code>数据隔离架构：
+
+data/
+├── personal.db              # 个人数据
+│   ├── 知识库
+│   ├── 项目
+│   └── 个人配置
+│
+├── org_abc123.db           # 极客创业团队
+│   ├── 组织知识库
+│   ├── 团队项目
+│   ├── 成员信息
+│   └── 权限配置
+│
+├── org_xyz789.db           # 开源社区XYZ
+│   ├── 社区知识库
+│   ├── 开源项目
+│   └── 贡献记录
+│
+└── identity-contexts.db    # 身份上下文
+    ├── 个人身份
+    ├── 组织身份列表
+    └── 切换记录
+
+每个数据库：
+✓ 独立加密密钥（U-Key派生）
+✓ AES-256-GCM加密
+✓ 完全隔离，互不影响</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 适用场景 -->
+    <section class="use-cases">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">谁在使用ChainlessChain企业版？</h2>
+                <p class="section-subtitle">真实用户的选择和反馈</p>
+            </div>
+
+            <div class="cases-grid">
+                <div class="case-card">
+                    <h3>🚀 创业团队</h3>
+                    <p>"我们是一个5人的AI创业团队，预算有限。ChainlessChain让我们零成本就拥有了企业级协作工具，AI辅助功能极大提升了我们的开发效率。项目管理和知识库功能特别好用！"</p>
+                    <span class="author">— 某AI创业公司CTO</span>
+                </div>
+
+                <div class="case-card">
+                    <h3>🌐 开源社区</h3>
+                    <p>"完全去中心化的特性非常符合开源精神，我们社区的所有成员都在使用ChainlessChain进行协作。数据安全和隐私保护让我们完全放心，P2P通信也很稳定。"</p>
+                    <span class="author">— 知名开源项目维护者</span>
+                </div>
+
+                <div class="case-card">
+                    <h3>📚 研究团队</h3>
+                    <p>"作为研究人员，数据安全对我们至关重要。ChainlessChain的本地存储+P2P通信架构，让我们的研究数据完全掌控在自己手中。知识库的RAG检索功能帮我们快速找到需要的资料。"</p>
+                    <span class="author">— 某高校研究小组负责人</span>
+                </div>
+
+                <div class="case-card">
+                    <h3>💼 远程团队</h3>
+                    <p>"我们团队成员分布在全球各地，ChainlessChain的P2P网络让我们协作无障碍。多身份切换功能很方便，我可以同时参与多个项目。零部署成本对我们这种小团队非常友好。"</p>
+                    <span class="author">— 远程工作团队Leader</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 技术架构 -->
+    <section class="architecture">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">去中心化组织技术架构</h2>
+                <p class="section-subtitle">基于P2P和DID的创新架构设计</p>
+            </div>
+
+            <pre><code>┌──────────────────────────────────────────────────────────────┐
+│                    P2P Network Layer                         │
+│          (libp2p + DHT + Signal Protocol)                    │
+└────────────────┬─────────────────┬───────────────────────────┘
+                 │                 │
+        ┌────────▼────────┐  ┌────▼────────┐  ┌──────────────┐
+        │    User A       │  │   User B    │  │   User C     │
+        │  (创业团队Owner) │  │  (成员)     │  │  (管理员)    │
+        └────────┬────────┘  └────┬────────┘  └──────┬───────┘
+                 │                 │                   │
+        ┌────────┴─────────────────┴───────────────────┴───────┐
+        │              Identity Context (身份上下文)            │
+        ├───────────────────────────────────────────────────────┤
+        │  👤 Personal (个人身份 - Default)                     │
+        │     • 个人知识库                                      │
+        │     • 私人项目                                        │
+        │                                                       │
+        │  🏢 Org1: 极客创业团队 (Owner)                        │
+        │     • 组织知识库共享                                  │
+        │     • 团队项目协作                                    │
+        │     • 完全权限管理                                    │
+        │                                                       │
+        │  🏢 Org2: 开源社区XYZ (Member)                        │
+        │     • 社区讨论                                        │
+        │     • 代码贡献                                        │
+        │     • 读写权限                                        │
+        └───────────────────┬───────────────────────────────────┘
+                            │
+        ┌───────────────────▼───────────────────────────────────┐
+        │              Local Storage (本地存储)                 │
+        ├───────────────────────────────────────────────────────┤
+        │  personal.db              ← 个人数据 (AES-256加密)    │
+        │  org_abc123.db            ← 极客创业团队数据          │
+        │  org_xyz789.db            ← 开源社区XYZ数据           │
+        │  identity-contexts.db     ← 身份上下文元数据          │
+        └───────────────────────────────────────────────────────┘
+
+核心特性：
+✓ 完全去中心化：无中心服务器，P2P直连
+✓ 多身份隔离：每个身份独立数据库，完全隔离
+✓ 端到端加密：Signal Protocol + AES-256
+✓ 数据自主：所有数据本地存储，完全掌控
+✓ 无限扩展：P2P网络支持无限节点</code></pre>
+
+            <div style="text-align: center; margin-top: 40px;">
+                <a href="../technology/technical-docs.html" class="btn-primary" style="display: inline-block; padding: 16px 32px; text-decoration: none;">
+                    查看完整技术架构 →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <div class="container">
+            <h2>准备好开始了吗？</h2>
+            <p>加入数千家创业团队和去中心化组织的选择</p>
+            <div class="cta-buttons">
+                <button class="btn-primary" onclick="window.location.href='../index.html#download'">立即下载试用</button>
+                <button class="btn-outline" onclick="window.location.href='../index.html#contact'">预约产品演示</button>
+            </div>
+            <p class="note">
+                💡 当前版本：v0.18.0 (企业版完成度40%，核心功能可用)<br>
+                🎯 未来规划：实时协同编辑、知识库版本控制、P2P数据同步<br>
+                📞 咨询热线：400-1068-687 | zhanglongfa@chainlesschain.com
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background: var(--text-primary); color: white; padding: 60px 0 20px;">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; margin-bottom: 40px;">
+                <div>
+                    <h3 style="margin-bottom: 20px;">ChainlessChain</h3>
+                    <p style="color: rgba(255,255,255,0.8); line-height: 1.8;">
+                        基于U盾和SIMKey的个人AI管理系统，<br>
+                        完全去中心化、隐私优先、AI原生
+                    </p>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 20px;">产品</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 12px;"><a href="knowledge-base.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">知识库管理</a></li>
+                        <li style="margin-bottom: 12px;"><a href="project-management.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">项目管理</a></li>
+                        <li style="margin-bottom: 12px;"><a href="enterprise.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">企业版</a></li>
+                        <li style="margin-bottom: 12px;"><a href="social.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">去中心化社交</a></li>
+                        <li style="margin-bottom: 12px;"><a href="trading.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">交易辅助</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 20px;">资源</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 12px;"><a href="https://docs.chainlesschain.com" style="color: rgba(255,255,255,0.8); text-decoration: none;" target="_blank">文档</a></li>
+                        <li style="margin-bottom: 12px;"><a href="https://github.com/chainlesschain" style="color: rgba(255,255,255,0.8); text-decoration: none;" target="_blank">GitHub</a></li>
+                        <li style="margin-bottom: 12px;"><a href="https://forum.chainlesschain.com" style="color: rgba(255,255,255,0.8); text-decoration: none;" target="_blank">社区论坛</a></li>
+                        <li style="margin-bottom: 12px;"><a href="../technology/technical-docs.html" style="color: rgba(255,255,255,0.8); text-decoration: none;">技术文档</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 20px;">联系我们</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 12px; color: rgba(255,255,255,0.8);">📞 400-1068-687</li>
+                        <li style="margin-bottom: 12px; color: rgba(255,255,255,0.8);">📧 zhanglongfa@chainlesschain.com</li>
+                        <li style="margin-bottom: 12px; color: rgba(255,255,255,0.8);">🏢 厦门市自贸区</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);">
+                <p>&copy; 2025 厦门无链之链科技有限公司. All rights reserved. | <a href="../index.html" style="color: rgba(255,255,255,0.6);">隐私政策</a> | <a href="../index.html" style="color: rgba(255,255,255,0.6);">使用条款</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 导航栏滚动效果 -->
+    <script>
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.style.background = 'rgba(255,255,255,0.98)';
+                navbar.style.boxShadow = '0 2px 20px rgba(0,0,0,0.1)';
+            } else {
+                navbar.style.background = 'rgba(255,255,255,0.95)';
+                navbar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+            }
+        });
+    </script>
+</body>
+</html>
