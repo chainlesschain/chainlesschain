@@ -1329,6 +1329,123 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(org_id, status, created_at);
       CREATE INDEX IF NOT EXISTS idx_sync_queue_resource ON sync_queue(org_id, resource_type, resource_id);
       CREATE INDEX IF NOT EXISTS idx_sync_conflicts_unresolved ON sync_conflicts(org_id, resolved, created_at);
+
+      -- ============================
+      -- 视频处理系统表结构
+      -- ============================
+
+      -- 视频文件主表
+      CREATE TABLE IF NOT EXISTS video_files (
+        id TEXT PRIMARY KEY,
+        file_name TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_size INTEGER,
+        duration REAL,
+        width INTEGER,
+        height INTEGER,
+        fps REAL,
+        format TEXT,
+        video_codec TEXT,
+        audio_codec TEXT,
+        bitrate INTEGER,
+        has_audio INTEGER DEFAULT 1,
+        thumbnail_path TEXT,
+        knowledge_id TEXT,
+        analysis_status TEXT DEFAULT 'pending',
+        analysis_progress INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
+      );
+
+      -- 视频分析结果表
+      CREATE TABLE IF NOT EXISTS video_analysis (
+        id TEXT PRIMARY KEY,
+        video_file_id TEXT NOT NULL,
+        audio_path TEXT,
+        transcription_text TEXT,
+        transcription_confidence REAL,
+        summary TEXT,
+        tags TEXT,
+        key_topics TEXT,
+        sentiment TEXT,
+        ocr_text TEXT,
+        ocr_confidence REAL,
+        analysis_engine TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (video_file_id) REFERENCES video_files(id) ON DELETE CASCADE
+      );
+
+      -- 视频关键帧表
+      CREATE TABLE IF NOT EXISTS video_keyframes (
+        id TEXT PRIMARY KEY,
+        video_file_id TEXT NOT NULL,
+        frame_path TEXT NOT NULL,
+        timestamp REAL NOT NULL,
+        scene_change_score REAL,
+        ocr_text TEXT,
+        ocr_confidence REAL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (video_file_id) REFERENCES video_files(id) ON DELETE CASCADE
+      );
+
+      -- 视频字幕表
+      CREATE TABLE IF NOT EXISTS video_subtitles (
+        id TEXT PRIMARY KEY,
+        video_file_id TEXT NOT NULL,
+        subtitle_type TEXT NOT NULL,
+        language TEXT NOT NULL,
+        format TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        content TEXT,
+        source TEXT,
+        is_default INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (video_file_id) REFERENCES video_files(id) ON DELETE CASCADE
+      );
+
+      -- 视频编辑历史表
+      CREATE TABLE IF NOT EXISTS video_edit_history (
+        id TEXT PRIMARY KEY,
+        original_video_id TEXT NOT NULL,
+        output_video_id TEXT,
+        output_path TEXT,
+        operation_type TEXT NOT NULL,
+        operation_params TEXT,
+        status TEXT DEFAULT 'pending',
+        progress INTEGER DEFAULT 0,
+        duration REAL,
+        error_message TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        completed_at TEXT,
+        FOREIGN KEY (original_video_id) REFERENCES video_files(id) ON DELETE CASCADE
+      );
+
+      -- 视频场景表
+      CREATE TABLE IF NOT EXISTS video_scenes (
+        id TEXT PRIMARY KEY,
+        video_file_id TEXT NOT NULL,
+        scene_index INTEGER NOT NULL,
+        start_time REAL NOT NULL,
+        end_time REAL NOT NULL,
+        duration REAL,
+        keyframe_path TEXT,
+        description TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (video_file_id) REFERENCES video_files(id) ON DELETE CASCADE
+      );
+
+      -- 视频系统索引
+      CREATE INDEX IF NOT EXISTS idx_video_files_knowledge ON video_files(knowledge_id);
+      CREATE INDEX IF NOT EXISTS idx_video_files_created ON video_files(created_at);
+      CREATE INDEX IF NOT EXISTS idx_video_files_status ON video_files(analysis_status);
+      CREATE INDEX IF NOT EXISTS idx_video_analysis_video ON video_analysis(video_file_id);
+      CREATE INDEX IF NOT EXISTS idx_keyframes_video ON video_keyframes(video_file_id);
+      CREATE INDEX IF NOT EXISTS idx_keyframes_timestamp ON video_keyframes(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_subtitles_video ON video_subtitles(video_file_id);
+      CREATE INDEX IF NOT EXISTS idx_edit_history_original ON video_edit_history(original_video_id);
+      CREATE INDEX IF NOT EXISTS idx_scenes_video ON video_scenes(video_file_id);
     `);
 
       console.log('[Database] ✓ 所有表和索引创建成功');
