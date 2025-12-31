@@ -1,0 +1,34 @@
+{
+  "id": "tpl_gaming_level_002",
+  "name": "game_level_design",
+  "display_name": "游戏关卡设计",
+  "description": "游戏关卡设计文档，包含布局、敌人配置和难度曲线",
+  "icon": "🗺️",
+  "category": "gaming",
+  "subcategory": "level-design",
+  "tags": ["关卡设计", "游戏设计", "地图"],
+  "project_type": "document",
+  "prompt_template": "游戏关卡设计\n\n**关卡信息：**\n- 关卡名称：{{levelName}}\n- 关卡编号：{{levelNumber}}\n- 难度：{{difficulty}}\n- 预计游戏时长：{{duration}}分钟\n\n# 关卡设计文档\n\n## 关卡概述\n\n**名称：**{{levelName}}\n**主题：**{{theme}}\n**环境：**{{environment}}\n**音乐：**{{bgm}}\n\n## 设计目标\n\n**学习目标：**教会玩家{{teachingGoal}}\n**挑战目标：**测试玩家{{challengeGoal}}\n\n## 关卡布局\n\n### 区域划分\n\n**起点区：**{{startArea}}\n**中段区：**{{middleArea}}\n**Boss区：**{{bossArea}}\n**终点：**{{endArea}}\n\n## 敌人配置\n\n| 敌人类型 | 数量 | 位置 | 难度 |\n|---------|------|------|------|\n| {{enemy1}} | {{count1}} | {{pos1}} | {{diff1}} |\n| {{enemy2}} | {{count2}} | {{pos2}} | {{diff2}} |\n\n## 道具设置\n\n**生命值道具：**{{healthItems}}\n**武器升级：**{{weaponUpgrades}}\n**隐藏道具：**{{secretItems}}\n\n## 难度曲线\n\n```\n开始（简单）→ 渐进（中等）→ 高潮（困难）→ 缓和（中等）→ Boss（高难）\n```\n\n## 检查点设置\n\n- 检查点1：{{checkpoint1}}\n- 检查点2：{{checkpoint2}}\n\n## 测试要点\n\n- [ ] 难度适中\n- [ ] 无卡关点\n- [ ] 流程顺畅\n- [ ] 性能良好",
+  "variables_schema": [
+    {"name": "levelName", "label": "关卡名称", "type": "string", "required": true},
+    {"name": "levelNumber", "label": "关卡编号", "type": "number", "required": false},
+    {"name": "difficulty", "label": "难度", "type": "select", "required": false, "options": [
+      {"value": "简单", "label": "简单"},
+      {"value": "中等", "label": "中等"},
+      {"value": "困难", "label": "困难"},
+      {"value": "噩梦", "label": "噩梦"}
+    ]},
+    {"name": "duration", "label": "预计时长（分钟）", "type": "number", "required": false}
+  ],
+  "file_structure": {
+    "root": "关卡-{{levelName}}",
+    "files": [
+      {"path": "设计文档.docx", "type": "document"},
+      {"path": "关卡地图.png", "type": "image"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

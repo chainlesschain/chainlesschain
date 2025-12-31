@@ -1,0 +1,34 @@
+{
+  "id": "tpl_marketing_pro_viral_003",
+  "name": "viral_marketing_campaign",
+  "display_name": "病毒式营销方案",
+  "description": "设计具有传播力的病毒式营销活动，实现指数级增长",
+  "icon": "🚀",
+  "category": "marketing-pro",
+  "subcategory": "viral",
+  "tags": ["病毒营销", "增长黑客", "传播", "裂变"],
+  "project_type": "document",
+  "prompt_template": "病毒式营销方案\n\n**活动信息：**\n- 活动名称：{{campaignName}}\n- 产品：{{product}}\n- 目标：{{goal}}\n\n# 病毒营销方案\n\n## 核心创意\n\n**Hook（钩子）：**{{hook}}\n- 为什么用户会分享？\n- 情感触发点：{{emotionalTrigger}}\n\n## 传播机制\n\n### 用户获益\n\n**分享者获得：**{{sharerBenefit}}\n**被邀请者获得：**{{inviteeBenefit}}\n\n### 传播路径\n\n```\n用户A分享 → 好友B看到 → 注册获得奖励 → B继续分享 → 裂变增长\n```\n\n## K因子设计\n\n**目标K值：**{{targetK}} （>1才能实现病毒传播）\n\n公式：K = i × c\n- i = 每个用户平均邀请数：{{invitesPerUser}}\n- c = 转化率：{{conversionRate}}%\n\n## 传播激励\n\n{{#eq incentiveType \"积分奖励\"}}\n**积分奖励机制：**\n- 邀请1人：+{{points1}}积分\n- 邀请5人：+{{points5}}积分（额外奖励）\n- 积分可兑换：{{pointsRedemption}}\n{{/eq}}\n\n{{#eq incentiveType \"优惠券\"}}\n**优惠券机制：**\n- 分享得{{discount}}元券\n- 好友注册双方各得{{bothDiscount}}元\n{{/eq}}\n\n{{#eq incentiveType \"实物奖品\"}}\n**实物奖励：**\n- 邀请达标送：{{physicalReward}}\n{{/eq}}\n\n## 传播内容设计\n\n### 分享文案\n\n**标题：**{{shareTitle}}\n（制造好奇/稀缺/紧迫感）\n\n**正文：**\n{{shareContent}}\n\n**CTA：**{{shareCTA}}\n\n### 分享素材\n\n**海报：**{{posterDesign}}\n**视频：**{{videoContent}}\n\n## 传播渠道\n\n**主渠道：**{{primaryChannel}}\n- 微信朋友圈\n- 微信群\n- 小程序\n\n**辅助渠道：**\n- 抖音\n- 小红书\n- 微博\n\n## 数据监测\n\n**核心指标：**\n- 分享率：{{shareRate}}%\n- 邀请转化率：{{inviteConversion}}%\n- K因子实际值：{{actualK}}\n- 病毒周期：{{viralCycle}}小时\n\n## 风险控制\n\n**防作弊机制：**\n- IP限制\n- 设备指纹\n- 行为检测\n- 人工审核\n\n**合规检查：**\n- 避免诱导分享\n- 遵守平台规则\n- 奖励合理合法",
+  "variables_schema": [
+    {"name": "campaignName", "label": "活动名称", "type": "string", "required": true},
+    {"name": "product", "label": "产品名称", "type": "string", "required": false},
+    {"name": "goal", "label": "活动目标", "type": "string", "required": false},
+    {"name": "incentiveType", "label": "激励类型", "type": "select", "required": false, "options": [
+      {"value": "积分奖励", "label": "积分奖励"},
+      {"value": "优惠券", "label": "优惠券"},
+      {"value": "实物奖品", "label": "实物奖品"},
+      {"value": "会员权益", "label": "会员权益"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "病毒营销-{{campaignName}}",
+    "files": [
+      {"path": "活动方案.docx", "type": "document"},
+      {"path": "传播素材/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
