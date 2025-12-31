@@ -1,0 +1,108 @@
+{
+  "id": "tpl_education_thesis_001",
+  "name": "thesis_guide",
+  "display_name": "研究生论文写作指南",
+  "description": "研究生学位论文写作全流程指导，包含选题、文献综述、实验设计、数据分析、论文撰写",
+  "icon": "📚",
+  "cover_image": "/templates/covers/thesis-guide.png",
+  "category": "education",
+  "subcategory": "academic",
+  "tags": ["论文", "研究生", "学术写作", "学位论文"],
+  "project_type": "document",
+  "prompt_template": "请帮我制定{{degreeType}}学位论文写作计划，要求：\n\n**论文信息：**\n- 学位类型：{{degreeType}}\n- 研究方向：{{researchField}}\n- 论文主题：{{thesisTopic}}\n- 预计完成时间：{{deadline}}\n- 字数要求：{{wordCount}}字\n\n**论文写作完整指南：**\n\n## 📖 第一阶段：选题与开题（1-2个月）\n\n### 1. 选题标准\n- ✅ 创新性：有新的发现或方法\n- ✅ 可行性：资源、时间、能力范围内\n- ✅ 学术价值：填补研究空白\n- ✅ 实用价值：解决实际问题\n- ✅ 导师支持：与导师研究方向契合\n\n### 2. 文献调研\n**数据库资源：**\n- 中文：知网CNKI、万方、维普\n- 英文：Web of Science、Google Scholar、PubMed\n- 专利：国家知识产权局、USPTO\n\n**文献阅读策略：**\n1. 读综述（了解研究现状）\n2. 读经典（奠基性论文）\n3. 读最新（近3年高引论文）\n4. 读方法（学习研究设计）\n\n**文献管理工具：**\n- EndNote/Zotero（文献管理）\n- {{referenceManager}}\n\n### 3. 开题报告结构\n```\n一、选题背景与意义\n二、国内外研究现状\n三、研究内容与目标\n四、研究方法与技术路线\n五、创新点\n六、预期成果\n七、研究计划与时间安排\n八、参考文献\n```\n\n---\n\n## 🔬 第二阶段：研究实施（6-12个月）\n\n### 实验/调研方案设计\n\n{{#eq researchField \"理工科\"}}\n**实验设计**\n- 实验假设\n- 实验变量（自变量、因变量、控制变量）\n- 实验组/对照组\n- 样本量计算\n- 实验步骤\n- 数据记录表格\n{{/eq}}\n\n{{#eq researchField \"社会科学\"}}\n**调研方案**\n- 研究问题\n- 调研方法（问卷/访谈/观察）\n- 样本选择（抽样方法、样本量）\n- 问卷设计（信度、效度检验）\n- 数据收集计划\n{{/eq}}\n\n### 数据分析\n\n**统计软件：**\n- SPSS（社会科学）\n- R/Python（数据科学）\n- Matlab（工程）\n- Origin（物理化学）\n\n**常用分析方法：**\n- 描述性统计\n- 相关分析\n- 回归分析\n- 方差分析（ANOVA）\n- 因子分析\n\n---\n\n## ✍️ 第三阶段：论文撰写（3-6个月）\n\n### {{degreeType}}论文结构\n\n**摘要（500字）**\n- 研究背景（1-2句）\n- 研究目的（1句）\n- 研究方法（2-3句）\n- 主要结果（3-5句）\n- 结论（1-2句）\n- 关键词（3-5个）\n\n**第一章 绪论**\n1.1 研究背景与意义\n1.2 国内外研究现状\n1.3 研究内容与目标\n1.4 研究方法与技术路线\n1.5 论文结构安排\n\n**第二章 理论基础/文献综述**\n2.1 相关理论\n2.2 关键概念界定\n2.3 理论框架\n\n**第三章 研究设计与方法**\n3.1 研究设计\n3.2 数据来源\n3.3 研究方法\n3.4 数据处理\n\n**第四章 实证分析/实验结果**\n4.1 数据描述\n4.2 实证结果\n4.3 结果分析\n4.4 稳健性检验\n\n**第五章 讨论**\n5.1 主要发现\n5.2 理论贡献\n5.3 实践启示\n5.4 研究局限性\n\n**第六章 结论与展望**\n6.1 主要结论\n6.2 研究创新点\n6.3 政策建议/应用价值\n6.4 未来研究方向\n\n**参考文献**\n- {{degreeType}}要求：{{references}}篇以上\n- 外文文献占比：{{foreignRatio}}%以上\n- 近5年文献占比：{{recentRatio}}%以上\n\n**附录**\n- 问卷/访谈提纲\n- 数据表格\n- 代码\n\n### 写作技巧\n\n**学术语言规范：**\n- ✅ 客观、严谨、准确\n- ✅ 逻辑清晰、层次分明\n- ✅ 避免口语化、情绪化表达\n- ❌ \"我认为\"→\"研究表明\"\n- ❌ \"很好\"→\"显著\"\n\n**图表规范：**\n- 图：下方标题（图1 XXX）\n- 表：上方标题（表1 XXX）\n- 清晰、美观、信息完整\n- 图表与正文相互呼应\n\n**引用规范：**\n- 格式：{{citationStyle}}\n- 避免过度引用/引用不足\n- 引用最新权威文献\n\n---\n\n## 🎯 第四阶段：修改完善（1-2个月）\n\n### 自查清单\n\n**内容审查**\n- [ ] 研究问题明确\n- [ ] 逻辑严密无矛盾\n- [ ] 数据真实可靠\n- [ ] 结论有充分支撑\n- [ ] 创新点突出\n\n**格式审查**\n- [ ] 符合学校模板\n- [ ] 字体、字号统一\n- [ ] 页眉页脚正确\n- [ ] 图表编号连续\n- [ ] 参考文献格式统一\n\n**查重检测**\n- 学校要求：重复率<{{plagiarismThreshold}}%\n- 查重系统：{{plagiarismChecker}}\n- 修改技巧：改写、扩写、调整句式\n\n### 导师反馈\n- 提交初稿给导师\n- 记录修改意见\n- 逐条修改并标注\n- 提交修改说明\n\n---\n\n## 📅 时间管理计划\n\n### 倒推时间表（以{{deadline}}为deadline）\n\n| 阶段 | 任务 | 时长 | 截止日期 |\n|------|------|------|----------|\n| 第1阶段 | 选题、文献调研、开题 | 2个月 | {{stage1Deadline}} |\n| 第2阶段 | 实验/调研、数据收集 | 6个月 | {{stage2Deadline}} |\n| 第3阶段 | 数据分析 | 2个月 | {{stage3Deadline}} |\n| 第4阶段 | 撰写初稿 | 3个月 | {{stage4Deadline}} |\n| 第5阶段 | 修改完善（导师反馈）| 1个月 | {{stage5Deadline}} |\n| 第6阶段 | 查重、格式调整 | 2周 | {{stage6Deadline}} |\n| 第7阶段 | 打印装订、提交 | 1周 | {{deadline}} |\n| 第8阶段 | 准备答辩PPT | 2周 | {{defenseDate}} |\n\n---\n\n## 🛠️ 工具推荐\n\n**写作工具**\n- Word/LaTeX（论文排版）\n- Grammarly（英文语法检查）\n- QuillBot（改写工具）\n\n**文献管理**\n- EndNote/Zotero/Mendeley\n\n**数据分析**\n- SPSS、R、Python、Stata\n\n**绘图工具**\n- Origin、GraphPad Prism（科研作图）\n- Visio、ProcessOn（流程图）\n- Adobe Illustrator（矢量图）\n\n**查重检测**\n- {{plagiarismChecker}}\n\n---\n\n## ⚠️ 常见问题与解决\n\n**1. 数据不显著怎么办？**\n- 检查样本量是否足够\n- 调整研究假设\n- 讨论章节解释原因\n- 零假设也是发现！\n\n**2. 文献看不懂？**\n- 先读中文综述打基础\n- 使用翻译工具（DeepL）\n- 跳读（摘要→结论→方法）\n- 请教师兄师姐\n\n**3. 写作卡壳？**\n- 先写容易的章节（不按顺序）\n- 列提纲，逐条扩写\n- 每天定量（500-1000字）\n- 参考同类论文结构\n\n**4. 查重率过高？**\n- 改写红色部分\n- 增加原创内容\n- 图表替代文字描述\n- 调整引用方式\n\n---\n\n**祝论文顺利完成！🎓**\n\n*生成时间：{{currentDate}}*",
+  "variables_schema": [
+    {
+      "name": "degreeType",
+      "label": "学位类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "硕士", "label": "硕士学位"},
+        {"value": "博士", "label": "博士学位"}
+      ]
+    },
+    {
+      "name": "researchField",
+      "label": "研究领域",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "理工科", "label": "理工科（实验型）"},
+        {"value": "社会科学", "label": "社会科学（调研型）"},
+        {"value": "人文艺术", "label": "人文艺术"}
+      ]
+    },
+    {
+      "name": "thesisTopic",
+      "label": "论文主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：基于深度学习的XXX研究"
+    },
+    {
+      "name": "deadline",
+      "label": "预计提交时间",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：2026-05-01"
+    },
+    {
+      "name": "wordCount",
+      "label": "字数要求",
+      "type": "select",
+      "required": false,
+      "default": "3-5万",
+      "options": [
+        {"value": "3-5万", "label": "3-5万字（硕士）"},
+        {"value": "8-10万", "label": "8-10万字（博士）"}
+      ]
+    },
+    {
+      "name": "citationStyle",
+      "label": "引用格式",
+      "type": "select",
+      "required": false,
+      "default": "GB/T 7714",
+      "options": [
+        {"value": "GB/T 7714", "label": "GB/T 7714（国标）"},
+        {"value": "APA", "label": "APA"},
+        {"value": "MLA", "label": "MLA"},
+        {"value": "Chicago", "label": "Chicago"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "论文写作计划-{{thesisTopic}}",
+    "files": [
+      {
+        "path": "论文写作指南.docx",
+        "type": "document"
+      },
+      {
+        "path": "时间管理表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "文献管理清单.xlsx",
+        "type": "spreadsheet"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_excel_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

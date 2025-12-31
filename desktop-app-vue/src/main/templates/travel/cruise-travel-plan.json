@@ -1,0 +1,176 @@
+{
+  "id": "tpl_travel_cruise_001",
+  "name": "cruise_travel_plan",
+  "display_name": "邮轮旅行计划",
+  "description": "豪华邮轮旅行全方位规划，包含航线选择、舱位预订、岸上观光、船上活动",
+  "icon": "🚢",
+  "cover_image": "/templates/covers/cruise-travel.png",
+  "category": "travel",
+  "subcategory": "luxury",
+  "tags": [
+    "邮轮",
+    "海上旅行",
+    "豪华游",
+    "度假"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我规划一次{{cruiseName}}邮轮旅行，要求：\n\n**旅行信息：**\n- 邮轮公司：{{cruiseLine}}\n- 航线：{{cruiseRoute}}\n- 出发日期：{{departureDate}}\n- 行程天数：{{duration}}天{{nights}}晚\n- 同行人数：{{travelers}}人\n- 预算范围：{{budget}}\n\n**邮轮旅行规划方案：**\n\n---\n\n## 📋 第一部分：出发前准备（提前3个月）\n\n### 1. 邮轮选择与预订\n\n**邮轮信息**\n- 邮轮公司：{{cruiseLine}}\n- 船名：{{cruiseName}}\n- 吨位：约{{tonnage}}吨\n- 载客量：{{capacity}}人\n- 船龄：{{shipAge}}年\n- 特色设施：\n  - {{#if includePool}}🏊 游泳池（室内/室外）{{/if}}\n  - {{#if includeSpa}}💆 水疗中心{{/if}}\n  - {{#if includeTheater}}🎭 剧院（百老汇演出）{{/if}}\n  - {{#if includeGym}}💪 健身房{{/if}}\n  - 赌场、图书馆、儿童俱乐部等\n\n**航线详情**\n- 航线：{{cruiseRoute}}\n- 出发港口：{{departurePort}}\n- 停靠港口（{{portCount}}个）：\n  1. {{port1}} - 停留{{hours1}}小时\n  2. {{port2}} - 停留{{hours2}}小时\n  3. {{port3}} - 停留{{hours3}}小时\n  4. {{#if port4}}{{port4}} - 停留{{hours4}}小时{{/if}}\n  5. {{#if port5}}{{port5}} - 停留{{hours5}}小时{{/if}}\n- 海上航行天数：{{seaDays}}天\n\n**舱位选择建议**\n\n{{#eq cabinType \"内舱房\"}}\n✅ **内舱房（Inside Cabin）**\n- 特点：无窗户，价格最实惠\n- 适合人群：预算有限、不常待房间\n- 参考价格：¥{{cabinPrice}}/人\n- 优势：性价比高，适合睡眠\n- 劣势：无自然光，空间较小\n{{/eq}}\n\n{{#eq cabinType \"海景房\"}}\n✅ **海景房（Oceanview Cabin）**\n- 特点：有圆形窗户，可看海景\n- 适合人群：想要自然光和海景\n- 参考价格：¥{{cabinPrice}}/人\n- 优势：采光好，可观景\n- 劣势：窗户不可开启\n{{/eq}}\n\n{{#eq cabinType \"阳台房\"}}\n✅ **阳台房（Balcony Cabin）** ⭐推荐\n- 特点：私人阳台，落地窗\n- 适合人群：想要私密空间、拍照\n- 参考价格：¥{{cabinPrice}}/人\n- 优势：私人阳台，看日出日落\n- 劣势：价格较高\n{{/eq}}\n\n{{#eq cabinType \"套房\"}}\n✅ **套房（Suite）**\n- 特点：超大空间，VIP服务\n- 适合人群：预算充足、追求极致体验\n- 参考价格：¥{{cabinPrice}}/人\n- 优势：专属管家、优先登船、免费饮料\n- 劣势：价格昂贵\n{{/eq}}\n\n**位置选择建议：**\n- 楼层：中层（稳定性好，不易晕船）\n- 位置：船中部（摇晃最小）\n- 避免：低层（噪音大）、靠近电梯/剧院（吵闹）\n\n### 2. 签证与文件准备\n\n**必备文件**\n- ✅ 护照（有效期需6个月以上）\n- ✅ 签证：\n  {{#each visaList}}\n  - {{this.country}}：{{this.visaType}}（{{this.processDays}}天）\n  {{/each}}\n- ✅ 邮轮船票（电子票）\n- ✅ 旅行保险单\n- ✅ 信用卡（船上消费）\n- ✅ 健康证明（如需要）\n\n**签证办理时间表**\n- 提前90天：提交签证申请\n- 提前60天：获得签证批准\n- 提前30天：打印所有文件\n\n### 3. 预订岸上观光（Shore Excursions）\n\n**方式对比：**\n\n| 方式 | 优点 | 缺点 | 推荐指数 |\n|------|------|------|----------|\n| 邮轮官方团 | 有保障，不会误船 | 价格贵，时间紧凑 | ⭐⭐⭐⭐ |\n| 第三方平台 | 价格适中，选择多 | 需自行安排时间 | ⭐⭐⭐⭐⭐ |\n| 自由行 | 最自由，最便宜 | 风险高，可能误船 | ⭐⭐⭐ |\n\n**每个港口观光计划：**\n\n{{#each ports}}\n#### {{this.name}}（停留{{this.hours}}小时）\n\n**推荐活动：**\n1. {{this.activity1}}（{{this.duration1}}小时，{{this.price1}}元）\n2. {{this.activity2}}（{{this.duration2}}小时，{{this.price2}}元）\n3. {{this.activity3}}（{{this.duration3}}小时，{{this.price3}}元）\n\n**时间安排：**\n- 08:00 - 邮轮靠岸\n- 08:30 - 下船集合\n- 09:00-12:00 - {{this.activity1}}\n- 12:00-13:30 - 午餐（推荐：{{this.restaurant}}）\n- 13:30-16:00 - {{this.activity2}}\n- 16:30 - 返回码头\n- 17:00 - 登船截止⚠️\n- 18:00 - 邮轮启航\n\n**注意事项：**\n- ⚠️ 务必在{{this.boardingTime}}前返回邮轮！\n- 💰 准备现金（{{this.currency}}{{this.cashAmount}}）\n- 📸 必拍景点：{{this.photoSpot}}\n{{/each}}\n\n### 4. 物品准备清单\n\n**衣物**\n- {{#if formalNight}}✅ 正装（船长晚宴用）：男士西装/女士礼服{{/if}}\n- ✅ 休闲装（{{casualOutfits}}套）\n- ✅ 泳衣（{{swimsuits}}件）\n- ✅ 运动鞋/拖鞋/高跟鞋\n- ✅ 防晒衣/遮阳帽/太阳镜\n- ✅ 薄外套（船上空调冷）\n\n**日用品**\n- ✅ 防晒霜（SPF50+）\n- ✅ 晕船药/常备药\n- ✅ 充电器/转换插头\n- ✅ 相机/自拍杆\n- ✅ 护肤品/化妆品\n- ✅ 洗漱用品（船上不提供牙刷牙膏）\n\n**其他**\n- ✅ 信用卡（Visa/Master）\n- ✅ 少量现金（岸上用）\n- ✅ 防水袋/腰包\n- ✅ 书籍/Kindle（海上航行日用）\n\n---\n\n## 🛳️ 第二部分：船上生活指南\n\n### 1. 每日作息建议\n\n**典型一天（海上航行日）**\n\n- 07:00-08:30 **早餐**\n  - 选择：自助餐厅（Lido Deck）或主餐厅\n  - 推荐：现做煎蛋、新鲜水果、咖啡\n\n- 09:00-10:30 **晨间活动**\n  - 甲板慢跑（Jogging Track）\n  - 瑜伽课（健身房）\n  - 或在阳台发呆看海\n\n- 11:00-12:00 **参加船上活动**\n  - 烹饪课/调酒课\n  - 艺术拍卖会\n  - 赌场试手气\n\n- 12:30-14:00 **午餐**\n  - 池畔烧烤（BBQ）\n  - 或主餐厅\n\n- 14:30-17:00 **下午时光**\n  - 游泳池/水疗中心\n  - 阅读/电影院\n  - 参观船长驾驶室（特定时间）\n\n- 17:30-18:30 **晚餐前鸡尾酒**\n  - 酒吧小酌\n  - 观看日落\n\n- 19:00-21:00 **晚餐**\n  - 主餐厅（正式用餐）\n  - 或特色餐厅（需预约）\n\n- 21:30-23:00 **夜间娱乐**\n  - 百老汇歌舞秀\n  - 现场乐队表演\n  - 魔术秀/喜剧秀\n\n- 23:00- **夜生活**\n  - 酒吧/夜总会\n  - 赌场\n  - 或返回房间休息\n\n### 2. 餐饮攻略\n\n**免费餐厅（含在船票）**\n- 主餐厅（Main Dining Room）：正式晚餐，3道式\n- 自助餐厅（Buffet）：24小时，选择丰富\n- 池畔烧烤：午餐时间\n- 披萨/冰淇淋站：全天供应\n\n**付费餐厅（需额外付费）**\n{{#if includeSpecialtyDining}}\n- 🥩 牛排馆：人均$50-80\n- 🍣 日料餐厅：人均$40-60\n- 🇮🇹 意式餐厅：人均$35-50\n- 推荐：预订1-2次特色餐厅，体验更佳\n{{/if}}\n\n**用餐建议**\n- 晚餐时段选择：早批（6:00pm）或晚批（8:30pm）\n- 座位：建议预约靠窗座位\n- 着装：{{#if formalNight}}正装晚宴需穿正装{{/if}}\n- 小费：已含在船票（或按$15/人/天结算）\n\n### 3. 娱乐活动日历\n\n**每天必做事项：**\n- 📰 阅读《每日航程》（Daily Program）\n  - 送到房间，列出当天所有活动\n  - 提前规划感兴趣的活动\n\n**推荐活动：**\n- 🎭 百老汇歌舞秀（必看！）\n- 🎤 卡拉OK之夜\n- 🍸 鸡尾酒制作课\n- 🎨 艺术品拍卖会\n- 🏀 甲板运动比赛\n- 🌊 水上滑梯/冲浪模拟器\n- 🎰 赌场（21岁+）\n\n**儿童/青少年项目**\n{{#if hasFamilyMembers}}\n- 儿童俱乐部（3-12岁）：托管服务\n- 青少年区（13-17岁）：游戏室、派对\n{{/if}}\n\n### 4. 消费与小费\n\n**船上消费系统**\n- 登船时绑定信用卡/现金账户\n- 使用房卡刷卡消费\n- 下船前结清账单\n\n**额外费用包括：**\n- 酒精饮料（$8-15/杯）\n- {{#if includeDrinkPackage}}🍹 饮料套餐：$50-80/天（无限畅饮）{{/if}}\n- 付费餐厅\n- 水疗服务（$100-300）\n- Wi-Fi（$20-30/天）\n- 岸上观光\n- 赌场\n- 照片（摄影师拍摄）\n\n**小费说明**\n- 自动收取：$12-15/人/天\n- 可调整（在Guest Services）\n- 房间服务员小费：已包含\n\n---\n\n## 🎯 第三部分：实用贴士\n\n### 1. 避免晕船\n- 选择中层、船中部舱位\n- 提前服用晕船药\n- 看远处水平线\n- 避免阅读\n- 戴晕船手环\n\n### 2. 省钱技巧\n- ✅ 预订早鸟优惠（提前6个月）\n- ✅ 选择淡季出行（非暑假/节假日）\n- ✅ 自带酒水（通常允许1-2瓶红酒）\n- ✅ 跳过Wi-Fi（使用港口免费Wi-Fi）\n- ✅ 岸上自由行代替官方团\n- ✅ 免税店购物（最后一晚）\n\n### 3. 安全注意事项\n- ⚠️ 参加安全演习（登船后强制）\n- ⚠️ 记住房间号和集合站位置\n- ⚠️ 贵重物品存保险箱\n- ⚠️ 岸上观光注意时间，别误船！\n- ⚠️ 防止晒伤（海上紫外线强）\n\n### 4. 拍照打卡点\n- 📸 船头观景台（日出/日落）\n- 📸 中庭大堂（华丽装饰）\n- 📸 甲板泳池\n- 📸 船长晚宴（正装照）\n- 📸 每个港口地标\n\n---\n\n## 📊 预算明细表\n\n| 项目 | 费用（人民币） | 备注 |\n|------|----------------|------|\n| 邮轮船票 | ¥{{cruiseTicket}} × {{travelers}}人 | 含食宿、娱乐 |\n| 小费 | ¥{{tips}} | 自动收取 |\n| 签证 | ¥{{visaFee}} | {{visaCount}}国签证 |\n| 往返机票 | ¥{{flights}} | 至出发港口 |\n| 岸上观光 | ¥{{shoreExcursions}} | {{portCount}}个港口 |\n| 付费餐饮 | ¥{{specialtyDining}} | 可选 |\n| 饮料套餐 | ¥{{drinkPackage}} | 可选 |\n| Wi-Fi | ¥{{wifi}} | 可选 |\n| 购物预算 | ¥{{shopping}} | 免税店 |\n| 其他 | ¥{{miscellaneous}} | 备用金 |\n| **总计** | **¥{{totalBudget}}** | {{travelers}}人 |\n\n---\n\n## 📅 行程总览（Day-by-Day）\n\n{{#each itinerary}}\n### Day {{this.day}} - {{this.date}} {{this.dayOfWeek}}\n**{{this.location}}** {{this.icon}}\n\n{{#if this.isSeaDay}}\n**海上航行日**\n- 全天在海上，享受船上设施\n- 推荐活动：{{this.activities}}\n- 晚餐：{{this.dinner}}\n{{else}}\n**港口：{{this.port}}**\n- 靠岸时间：{{this.arrivalTime}}\n- 离港时间：{{this.departureTime}}\n- 岸上观光：{{this.excursion}}\n- 登船截止：{{this.allAboard}}\n{{/if}}\n\n{{/each}}\n\n---\n\n## 📞 紧急联系方式\n\n- 邮轮公司客服：{{cruiseLinePhone}}\n- 中国驻各港口使馆：{{embassyContacts}}\n- 旅行保险公司：{{insurancePhone}}\n- 家人紧急联系人：{{emergencyContact}}\n\n---\n\n**祝您旅途愉快！⚓**\n\n*生成时间：{{currentDate}}*\n*生成工具：ChainlessChain AI助手*",
+  "variables_schema": [
+    {
+      "name": "cruiseLine",
+      "label": "邮轮公司",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "皇家加勒比", "label": "皇家加勒比（Royal Caribbean）"},
+        {"value": "公主邮轮", "label": "公主邮轮（Princess）"},
+        {"value": "歌诗达邮轮", "label": "歌诗达邮轮（Costa）"},
+        {"value": "迪士尼邮轮", "label": "迪士尼邮轮（Disney）"},
+        {"value": "挪威邮轮", "label": "挪威邮轮（Norwegian）"}
+      ]
+    },
+    {
+      "name": "cruiseName",
+      "label": "邮轮名称",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：海洋量子号、盛世公主号"
+    },
+    {
+      "name": "cruiseRoute",
+      "label": "航线",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "日本航线", "label": "日本航线（东京、大阪、冲绳）"},
+        {"value": "东南亚航线", "label": "东南亚航线（新加坡、泰国、越南）"},
+        {"value": "地中海航线", "label": "地中海航线（意大利、希腊、西班牙）"},
+        {"value": "加勒比海航线", "label": "加勒比海航线（巴哈马、墨西哥）"},
+        {"value": "阿拉斯加航线", "label": "阿拉斯加航线（冰川、野生动物）"}
+      ]
+    },
+    {
+      "name": "departureDate",
+      "label": "出发日期",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：2025-07-15"
+    },
+    {
+      "name": "duration",
+      "label": "行程天数",
+      "type": "number",
+      "required": true,
+      "default": 7,
+      "min": 3,
+      "max": 30
+    },
+    {
+      "name": "travelers",
+      "label": "同行人数",
+      "type": "number",
+      "required": false,
+      "default": 2,
+      "min": 1,
+      "max": 10
+    },
+    {
+      "name": "cabinType",
+      "label": "舱位类型",
+      "type": "select",
+      "required": true,
+      "default": "阳台房",
+      "options": [
+        {"value": "内舱房", "label": "内舱房（最实惠）"},
+        {"value": "海景房", "label": "海景房（有窗）"},
+        {"value": "阳台房", "label": "阳台房（推荐）"},
+        {"value": "套房", "label": "套房（豪华）"}
+      ]
+    },
+    {
+      "name": "budget",
+      "label": "预算范围（每人）",
+      "type": "select",
+      "required": false,
+      "default": "1-2万",
+      "options": [
+        {"value": "5000-1万", "label": "¥5000-1万（经济）"},
+        {"value": "1-2万", "label": "¥1-2万（舒适）"},
+        {"value": "2-3万", "label": "¥2-3万（豪华）"},
+        {"value": "3万+", "label": "¥3万+（奢华）"}
+      ]
+    },
+    {
+      "name": "formalNight",
+      "label": "船长晚宴",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {"value": "是", "label": "参加正装晚宴"},
+        {"value": "否", "label": "不参加"}
+      ]
+    },
+    {
+      "name": "includeDrinkPackage",
+      "label": "饮料套餐",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {"value": "是", "label": "购买饮料套餐"},
+        {"value": "否", "label": "单点消费"}
+      ]
+    },
+    {
+      "name": "includeSpecialtyDining",
+      "label": "付费餐厅",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {"value": "是", "label": "预订特色餐厅"},
+        {"value": "否", "label": "仅免费餐厅"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{cruiseName}}-邮轮旅行计划",
+    "files": [
+      {
+        "path": "邮轮旅行完整方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "每日行程表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "预算明细.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "物品清单.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing",
+    "skill_data_analysis"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_excel_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

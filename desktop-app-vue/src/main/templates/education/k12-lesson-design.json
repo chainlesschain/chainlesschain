@@ -1,0 +1,153 @@
+{
+  "id": "tpl_education_k12_lesson_001",
+  "name": "k12_lesson_design",
+  "display_name": "K12教案设计",
+  "description": "中小学教案设计，符合新课标要求，包含教学目标、教学过程、板书设计、课后反思",
+  "icon": "👨‍🏫",
+  "cover_image": "/templates/covers/k12-lesson.png",
+  "category": "education",
+  "subcategory": "teaching",
+  "tags": ["教案", "K12", "教学设计", "课堂教学"],
+  "project_type": "document",
+  "prompt_template": "请帮我设计一节{{subject}}课的教案，要求：\n\n**课程信息：**\n- 学科：{{subject}}\n- 年级：{{grade}}\n- 课题：{{lessonTitle}}\n- 课型：{{lessonType}}\n- 课时：{{duration}}分钟\n\n**教案设计：**\n\n# {{lessonTitle}}\n\n## 一、教学基本信息\n\n| 项目 | 内容 |\n|------|------|\n| 学科 | {{subject}} |\n| 年级 | {{grade}} |\n| 课题 | {{lessonTitle}} |\n| 课型 | {{lessonType}} |\n| 课时 | 第{{currentPeriod}}/{{totalPeriods}}课时，{{duration}}分钟 |\n| 授课教师 | {{teacherName}} |\n| 授课日期 | {{teachingDate}} |\n\n---\n\n## 二、教材分析\n\n**本课在教材中的地位：**\n本课是{{textbookVersion}}{{grade}}{{subject}}教材第{{chapter}}章第{{section}}节内容。本节课承上启下，前面学习了{{previousContent}}，为本课打下基础；后续将学习{{nextContent}}，本课起到铺垫作用。\n\n**教学重点：**\n{{#each teachingFocus}}\n{{this.index}}. {{this.content}}\n{{/each}}\n\n**教学难点：**\n{{#each teachingDifficulty}}\n{{this.index}}. {{this.content}}\n{{/each}}\n\n**突破策略：**\n- 重点：通过{{focusStrategy}}强化学习\n- 难点：运用{{difficultyStrategy}}帮助理解\n\n---\n\n## 三、学情分析\n\n**学生认知基础：**\n- 已掌握：{{priorKnowledge}}\n- 认知特点：{{grade}}学生{{cognitiveCharacteristics}}\n- 学习能力：{{learningAbility}}\n\n**学习困难预测：**\n{{#each potentialDifficulties}}\n- {{this}}\n{{/each}}\n\n**因材施教策略：**\n- 优等生：{{advancedStrategy}}\n- 中等生：{{averageStrategy}}\n- 学困生：{{strugglingStrategy}}\n\n---\n\n## 四、教学目标（三维目标）\n\n### 1. 知识与技能\n{{#each knowledgeObjectives}}\n- {{this}}\n{{/each}}\n\n### 2. 过程与方法\n{{#each processObjectives}}\n- {{this}}\n{{/each}}\n\n### 3. 情感态度与价值观\n{{#each emotionalObjectives}}\n- {{this}}\n{{/each}}\n\n**核心素养培养：**\n{{coreLiteracy}}\n\n---\n\n## 五、教学方法\n\n**教法：**\n- {{teachingMethod1}}（如讲授法、演示法、讨论法）\n- {{teachingMethod2}}\n- {{teachingMethod3}}\n\n**学法：**\n- {{learningMethod1}}（如自主学习、合作探究、实验探索）\n- {{learningMethod2}}\n- {{learningMethod3}}\n\n---\n\n## 六、教学准备\n\n**教具：**\n{{#each teachingAids}}\n- {{this}}\n{{/each}}\n\n**学具：**\n{{#each studentMaterials}}\n- {{this}}\n{{/each}}\n\n**课件/资源：**\n- PPT课件（{{slideCount}}页）\n- {{#if includeVideo}}教学视频（{{videoLength}}分钟）{{/if}}\n- {{#if includeWorksheet}}学案/导学案{{/if}}\n- 其他：{{otherResources}}\n\n---\n\n## 七、教学过程\n\n### 【环节一】导入新课（{{warmupTime}}分钟）\n\n**设计意图：** 激发兴趣，引出课题\n\n**活动内容：**\n{{#eq warmupMethod \"情境导入\"}}\n1. 教师展示{{warmupMaterial}}（图片/视频/实物）\n2. 提出问题：\"{{warmupQuestion}}\"\n3. 学生思考讨论\n4. 引出课题：《{{lessonTitle}}》\n{{/eq}}\n\n{{#eq warmupMethod \"复习导入\"}}\n1. 提问：上节课我们学习了什么？\n2. 学生回答：{{previousContent}}\n3. 过渡：今天我们在此基础上学习{{lessonTitle}}\n{{/eq}}\n\n{{#eq warmupMethod \"问题导入\"}}\n1. 提出问题：{{warmupQuestion}}\n2. 学生尝试回答\n3. 引出今天的学习内容\n{{/eq}}\n\n**师生互动：**\n- 教师：{{teacherAction1}}\n- 学生：{{studentResponse1}}\n\n**设计亮点：** {{warmupHighlight}}\n\n---\n\n### 【环节二】新知探究（{{explorationTime}}分钟）\n\n#### 活动1：{{activity1Title}}（{{activity1Time}}分钟）\n\n**学习目标：** {{activity1Objective}}\n\n**教学步骤：**\n1. **教师讲解**\n   - 出示PPT：{{ppt1Content}}\n   - 重点强调：{{keyPoint1}}\n   - 板书：{{boardwriting1}}\n\n2. **学生活动**\n   - 形式：{{studentActivity1}}（个人/小组/全班）\n   - 任务：{{task1}}\n   - 时间：{{task1Time}}分钟\n\n3. **交流展示**\n   - 请{{displayStudents}}名学生展示\n   - 教师点评、补充\n   - 总结规律：{{summary1}}\n\n**问题设计：**\n- 铺垫问题：{{question1}}\n- 核心问题：{{question2}}\n- 拓展问题：{{question3}}\n\n#### 活动2：{{activity2Title}}（{{activity2Time}}分钟）\n\n**学习目标：** {{activity2Objective}}\n\n**教学步骤：**\n{{#if includeExperiment}}\n1. **实验探究**\n   - 实验器材：{{experimentMaterials}}\n   - 实验步骤：{{experimentSteps}}\n   - 观察记录：{{observationTable}}\n   - 得出结论：{{experimentConclusion}}\n{{/if}}\n\n{{#if includeGroupWork}}\n1. **小组合作**\n   - 分组：{{groupSize}}人一组\n   - 任务分工：{{roleAssignment}}\n   - 讨论问题：{{discussionTopic}}\n   - 成果展示：{{presentationFormat}}\n{{/if}}\n\n**教师巡视指导：**\n- 关注学困生，及时帮扶\n- 发现典型问题，全班讲评\n\n---\n\n### 【环节三】巩固练习（{{practiceTime}}分钟）\n\n**练习设计（分层）**\n\n**基础题（必做）：**\n{{#each basicExercises}}\n{{this.number}}. {{this.question}}\n{{/each}}\n\n**提高题（选做）：**\n{{#each advancedExercises}}\n{{this.number}}. {{this.question}}\n{{/each}}\n\n**练习方式：**\n- 独立完成（{{independentTime}}分钟）\n- 同桌互批\n- 教师讲评重难点\n\n**即时反馈：**\n- 通过{{feedbackMethod}}（举手/投票器/课堂练习本）了解掌握情况\n- 正确率：预计{{accuracyRate}}%\n\n---\n\n### 【环节四】课堂小结（{{summaryTime}}分钟）\n\n**总结方式：** {{summaryMethod}}\n\n{{#eq summaryMethod \"师生共同总结\"}}\n1. 教师提问：今天我们学习了什么？\n2. 学生回答（2-3名）\n3. 教师梳理知识点，形成知识网络\n{{/eq}}\n\n{{#eq summaryMethod \"思维导图\"}}\n1. 学生绘制思维导图（个人/小组）\n2. 展示优秀作品\n3. 教师完善补充\n{{/eq}}\n\n**知识结构图：**\n```\n{{lessonTitle}}\n  ├─ {{concept1}}\n  │   ├─ {{subConcept1-1}}\n  │   └─ {{subConcept1-2}}\n  ├─ {{concept2}}\n  │   └─ {{subConcept2-1}}\n  └─ {{concept3}}\n```\n\n---\n\n### 【环节五】作业布置（{{homeworkTime}}分钟）\n\n**必做作业：**\n1. {{requiredHomework1}}\n2. {{requiredHomework2}}\n\n**选做作业：**\n1. {{optionalHomework1}}\n\n**实践作业（可选）：**\n{{#if includePracticalHomework}}\n{{practicalHomework}}\n{{/if}}\n\n**作业要求：**\n- 书写工整\n- 按时完成\n- 独立思考\n\n---\n\n## 八、板书设计\n\n```\n┌─────────────────────────────────┐\n│     {{lessonTitle}}              │\n├─────────────────────────────────┤\n│ 一、{{boardSection1}}            │\n│    1. {{boardPoint1-1}}         │\n│    2. {{boardPoint1-2}}         │\n│                                  │\n│ 二、{{boardSection2}}            │\n│    1. {{boardPoint2-1}}         │\n│    2. {{boardPoint2-2}}         │\n│                                  │\n│ 三、{{boardSection3}}            │\n│    {{boardFormula/图示}}        │\n└─────────────────────────────────┘\n```\n\n**板书特点：**\n- 重点突出（彩色粉笔）\n- 层次清晰\n- 图文并茂\n\n---\n\n## 九、教学反思（课后填写）\n\n### 1. 教学效果评价\n- 教学目标达成度：□优秀 □良好 □一般 □待改进\n- 学生参与度：□高 □中 □低\n- 课堂氛围：□活跃 □一般 □沉闷\n\n### 2. 成功之处\n{{successfulAspects}}\n\n### 3. 不足之处\n{{areasForImprovement}}\n\n### 4. 改进措施\n{{improvementPlan}}\n\n### 5. 学生反馈\n{{studentFeedback}}\n\n---\n\n**附件：**\n- 课件PPT\n- 学案/导学案\n- 课后练习题\n- 教学视频（链接）\n\n*教案设计时间：{{currentDate}}*\n*ChainlessChain AI助手生成*",
+  "variables_schema": [
+    {
+      "name": "subject",
+      "label": "学科",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "语文", "label": "语文"},
+        {"value": "数学", "label": "数学"},
+        {"value": "英语", "label": "英语"},
+        {"value": "物理", "label": "物理"},
+        {"value": "化学", "label": "化学"},
+        {"value": "生物", "label": "生物"},
+        {"value": "历史", "label": "历史"},
+        {"value": "地理", "label": "地理"},
+        {"value": "政治", "label": "政治"}
+      ]
+    },
+    {
+      "name": "grade",
+      "label": "年级",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "一年级", "label": "一年级"},
+        {"value": "二年级", "label": "二年级"},
+        {"value": "三年级", "label": "三年级"},
+        {"value": "四年级", "label": "四年级"},
+        {"value": "五年级", "label": "五年级"},
+        {"value": "六年级", "label": "六年级"},
+        {"value": "七年级", "label": "初一（七年级）"},
+        {"value": "八年级", "label": "初二（八年级）"},
+        {"value": "九年级", "label": "初三（九年级）"},
+        {"value": "高一", "label": "高一"},
+        {"value": "高二", "label": "高二"},
+        {"value": "高三", "label": "高三"}
+      ]
+    },
+    {
+      "name": "lessonTitle",
+      "label": "课题名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：勾股定理、赤壁赋"
+    },
+    {
+      "name": "lessonType",
+      "label": "课型",
+      "type": "select",
+      "required": false,
+      "default": "新授课",
+      "options": [
+        {"value": "新授课", "label": "新授课"},
+        {"value": "复习课", "label": "复习课"},
+        {"value": "习题课", "label": "习题课"},
+        {"value": "实验课", "label": "实验课"},
+        {"value": "活动课", "label": "活动课"}
+      ]
+    },
+    {
+      "name": "duration",
+      "label": "课时时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 45,
+      "options": [40, 45, 50]
+    },
+    {
+      "name": "includeVideo",
+      "label": "使用教学视频",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {"value": "是", "label": "包含教学视频"},
+        {"value": "否", "label": "不使用视频"}
+      ]
+    },
+    {
+      "name": "includeExperiment",
+      "label": "实验探究",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {"value": "是", "label": "包含实验"},
+        {"value": "否", "label": "无实验"}
+      ]
+    },
+    {
+      "name": "includeGroupWork",
+      "label": "小组合作",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {"value": "是", "label": "包含小组活动"},
+        {"value": "否", "label": "无小组活动"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{lessonTitle}}-教案",
+    "files": [
+      {
+        "path": "教案.docx",
+        "type": "document"
+      },
+      {
+        "path": "课件PPT.pptx",
+        "type": "presentation"
+      },
+      {
+        "path": "学案.docx",
+        "type": "document"
+      },
+      {
+        "path": "课后练习.docx",
+        "type": "document"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing",
+    "skill_office_suite"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_ppt_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

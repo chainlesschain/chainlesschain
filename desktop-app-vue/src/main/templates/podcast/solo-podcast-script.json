@@ -1,0 +1,166 @@
+{
+  "id": "tpl_podcast_solo_001",
+  "name": "solo_podcast_script",
+  "display_name": "独播节目脚本",
+  "description": "为单人主持的播客节目生成完整脚本，适合知识分享、观点评论、故事讲述等类型",
+  "icon": "🎙️",
+  "cover_image": "/templates/covers/solo-podcast.png",
+  "category": "podcast",
+  "subcategory": "solo",
+  "tags": [
+    "播客",
+    "独播",
+    "脚本",
+    "单人主持"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成一期{{podcastName}}独播节目的脚本，要求：\n\n**节目信息：**\n- 播客名称：{{podcastName}}\n- 本期主题：{{episodeTitle}}\n- 节目编号：第{{episodeNumber}}期\n- 节目时长：{{duration}}分钟\n- 内容类型：{{contentType}}\n- 目标听众：{{targetAudience}}\n\n**脚本结构：**\n\n【开场部分（1-2分钟）】\n- 标志性开场语（节目slogan）\n- 自我介绍和节目定位\n- 本期主题引入：{{episodeTitle}}\n- 内容概览（3个核心要点）\n\n{{#if includeBgm}}\n【音乐】开场音乐（15-30秒，渐弱）\n{{/if}}\n\n【主体内容部分（{{mainContentMinutes}}分钟）】\n\n根据内容类型{{contentType}}，设计以下脚本：\n\n**第一段：背景铺垫**\n- 为什么选择这个话题？\n- 话题的重要性和相关性\n- 个人经验或观察切入点\n\n**第二段：核心内容展开**\n\n{{#if contentType == \"知识分享\"}}\n- 知识点1：概念解释 + 实例说明\n- 知识点2：深度分析 + 数据支撑\n- 知识点3：实践应用 + 操作建议\n- 知识点4：常见误区 + 避坑指南\n{{else if contentType == \"观点评论\"}}\n- 事件背景介绍\n- 多角度分析（至少3个视角）\n- 个人观点阐述\n- 反方观点考虑\n- 总结和展望\n{{else if contentType == \"故事讲述\"}}\n- 故事背景设定\n- 情节发展（起承转合）\n- 人物刻画和细节描述\n- 故事高潮\n- 结局和启示\n{{else if contentType == \"案例分析\"}}\n- 案例背景介绍\n- 关键事件梳理\n- 成功/失败因素分析\n- 可复制的经验总结\n- 对听众的启示\n{{/if}}\n\n**第三段：延伸思考**\n- 相关话题拓展\n- 不同场景下的应用\n- 未来趋势预测\n\n{{#if includeInteraction}}\n【互动环节（2-3分钟）】\n- 向听众提出思考问题\n- 征集听众意见和案例\n- 互动方式说明（评论区/社群/邮件）\n{{/if}}\n\n{{#if includeRecommendation}}\n【推荐环节（1-2分钟）】\n- 相关书籍推荐（1-2本）\n- 优质资源分享（工具/网站/课程）\n- 关联内容推荐（往期节目/其他播客）\n{{/if}}\n\n【总结收尾（2-3分钟）】\n- 核心观点回顾（3条精华）\n- 行动建议（可执行的3个步骤）\n- 金句提炼（可用于社交媒体传播）\n- 下期预告\n- 订阅和评价引导\n- 标志性结束语\n\n{{#if includeBgm}}\n【音乐】结尾音乐（20-30秒，渐强）\n{{/if}}\n\n**脚本撰写要求：**\n\n1. **语言风格**\n   - 口语化表达，避免书面语\n   - 使用第一人称，增强亲切感\n   - 根据目标听众{{targetAudience}}调整用词\n\n2. **节奏把控**\n   - 每个部分标注建议时长\n   - 设置语气停顿点（用「...」标注）\n   - 标注语速提示（正常/快/慢）\n   - 标注情绪起伏点（平静/激动/严肃）\n\n3. **内容密度**\n   - 平均每分钟200-250字\n   - 每3-5分钟设置一个小高潮\n   - 避免连续5分钟无互动或变化\n\n4. **增强效果**\n   - 使用提问引发思考\n   - 穿插个人故事增加真实感\n   - 使用类比和比喻帮助理解\n   - 引用权威数据和研究\n\n**附加材料：**\n\n1. **准备清单**\n   - 核心论据和数据来源\n   - 备用案例（防止内容不足）\n   - 引用来源列表\n\n2. **录制提示**\n   - 录音环境要求\n   - 设备检查清单\n   - 精力状态建议（最佳录制时间）\n\n3. **后期制作笔记**\n   - 需要剪辑的部分\n   - 音乐插入点\n   - 音效添加建议\n\n**输出格式：**\n- Word文档，清晰的标题层级\n- 正文使用易读字体（14-16号）\n- 时间节点和提示用不同颜色标注\n- 重点内容加粗或高亮\n- 留出手写批注空间",
+  "variables_schema": [
+    {
+      "name": "podcastName",
+      "label": "播客名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：思维实验室、读书笔记"
+    },
+    {
+      "name": "episodeTitle",
+      "label": "本期标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：为什么AI不会取代人类创造力"
+    },
+    {
+      "name": "episodeNumber",
+      "label": "期数",
+      "type": "number",
+      "required": false,
+      "default": 1,
+      "min": 1
+    },
+    {
+      "name": "duration",
+      "label": "节目时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 30,
+      "min": 10,
+      "max": 90
+    },
+    {
+      "name": "contentType",
+      "label": "内容类型",
+      "type": "select",
+      "required": false,
+      "default": "知识分享",
+      "options": [
+        {
+          "value": "知识分享",
+          "label": "知识分享（干货、教学）"
+        },
+        {
+          "value": "观点评论",
+          "label": "观点评论（时事、评论）"
+        },
+        {
+          "value": "故事讲述",
+          "label": "故事讲述（叙事、经历）"
+        },
+        {
+          "value": "案例分析",
+          "label": "案例分析（拆解、复盘）"
+        }
+      ]
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标听众",
+      "type": "string",
+      "required": false,
+      "default": "年轻职场人",
+      "placeholder": "例如：大学生、创业者、设计师"
+    },
+    {
+      "name": "includeInteraction",
+      "label": "包含互动环节",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含听众互动"
+        },
+        {
+          "value": "否",
+          "label": "不包含"
+        }
+      ]
+    },
+    {
+      "name": "includeRecommendation",
+      "label": "包含推荐环节",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含资源推荐"
+        },
+        {
+          "value": "否",
+          "label": "不包含"
+        }
+      ]
+    },
+    {
+      "name": "includeBgm",
+      "label": "标注背景音乐",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "在脚本中标注BGM"
+        },
+        {
+          "value": "否",
+          "label": "不标注"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{podcastName}}-第{{episodeNumber}}期",
+    "files": [
+      {
+        "path": "脚本-{{episodeTitle}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "准备材料.md",
+        "type": "markdown",
+        "content": "# {{podcastName}} 第{{episodeNumber}}期准备材料\n\n## 节目信息\n- 标题：{{episodeTitle}}\n- 时长：{{duration}}分钟\n- 类型：{{contentType}}\n- 听众：{{targetAudience}}\n\n## 参考资料\n- [ ] 核心数据和来源\n- [ ] 引用案例\n- [ ] 相关书籍/文章\n\n## 录制清单\n- [ ] 脚本熟悉（至少读3遍）\n- [ ] 设备测试\n- [ ] 环境准备（安静空间）\n- [ ] 状态准备（声音、精力）\n\n## 后期制作\n- [ ] 剪辑要点\n- [ ] BGM选择\n- [ ] 音效需求"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_audio_editing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_audio_editor",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "audio"
+}

@@ -1,0 +1,256 @@
+{
+  "id": "tpl_web_blog_website_001",
+  "name": "blog_website",
+  "display_name": "博客网站",
+  "description": "个人/技术博客网站，支持Markdown、评论、标签、搜索等功能",
+  "icon": "📝",
+  "cover_image": "/templates/covers/blog-website.png",
+  "category": "web",
+  "subcategory": "content",
+  "tags": [
+    "博客",
+    "内容网站",
+    "Markdown",
+    "静态网站"
+  ],
+  "project_type": "web",
+  "prompt_template": "请帮我生成一个{{blogName}}博客网站，要求：\n\n**博客信息：**\n- 博客名称：{{blogName}}\n- 博客类型：{{blogType}}\n- 技术方案：{{techStack}}\n- 主题风格：{{themeStyle}}\n\n**网站架构：**\n\n1. 目录结构\n\n{{#eq techStack \"静态网站生成器\"}}\n```\n{{blogName}}/\n├── content/             # Markdown文章\n│   ├── posts/\n│   └── pages/\n├── public/              # 静态资源\n│   ├── images/\n│   └── favicon.ico\n├── src/\n│   ├── components/      # 组件\n│   ├── layouts/         # 布局\n│   ├── pages/           # 页面\n│   └── styles/          # 样式\n├── config.yml           # 站点配置\n└── package.json\n```\n{{/eq}}\n\n{{#eq techStack \"动态网站\"}}\n```\n{{blogName}}/\n├── frontend/            # 前端（Vue/React）\n│   ├── src/\n│   └── public/\n├── backend/             # 后端（Node.js/Python）\n│   ├── routes/\n│   ├── models/\n│   ├── controllers/\n│   └── middleware/\n├── database/            # 数据库脚本\n└── docker-compose.yml\n```\n{{/eq}}\n\n2. 页面设计\n\n**首页（index.html / Home.vue）**\n- 博客标题和描述\n- 最新文章列表（5-10篇）\n  - 文章标题\n  - 摘要（前150字）\n  - 发布日期\n  - 标签\n  - 阅读时长估算\n  - 封面图（可选）\n- 分页导航\n- 侧边栏：\n  - 关于我\n  - 标签云\n  - 最热文章\n  - 归档（按月份）\n\n**文章详情页（post.html / Post.vue）**\n- 文章标题\n- 作者信息 + 发布日期\n- Markdown渲染\n  - 代码高亮（支持{{codeHighlightTheme}}主题）\n  - 图片懒加载\n  - 表格样式\n  - 引用块样式\n- 目录导航（TOC）\n- 标签列表\n- 上一篇/下一篇导航\n- {{#if includeComments}}评论系统（{{commentSystem}}）{{/if}}\n- 分享按钮（微博、Twitter、复制链接）\n\n**归档页（archive.html）**\n- 按时间线展示所有文章\n- 年份 > 月份 > 文章列表\n- 搜索框\n\n**标签页（tags.html）**\n- 标签云展示\n- 点击标签显示相关文章\n\n**关于页（about.html）**\n- 博主介绍\n- 联系方式\n- 友情链接\n\n**搜索页（search.html）**\n{{#if includeSearch}}\n- 搜索框\n- 实时搜索结果\n- 关键词高亮\n{{/if}}\n\n3. 核心功能\n\n**Markdown处理**\n{{#eq techStack \"静态网站生成器\"}}\n- 使用marked.js或markdown-it解析\n- 代码高亮：highlight.js或Prism.js\n- GFM（GitHub Flavored Markdown）支持\n- 自定义Markdown扩展：\n  - 警告框（:::warning、:::tip）\n  - 数学公式（KaTeX）\n  - Mermaid图表\n{{/eq}}\n\n**文章元数据（Front Matter）**\n```yaml\n---\ntitle: 文章标题\ndate: 2025-01-01\ntags: [{{blogType}}, 技术]\ncategory: {{blogType}}\nexcerpt: 文章摘要\ncover: /images/cover.jpg\nauthor: {{authorName}}\n---\n```\n\n**RSS订阅**\n- 生成RSS/Atom feed\n- feed.xml文件\n- 订阅按钮\n\n**SEO优化**\n- Meta标签（title、description、keywords）\n- Open Graph标签（社交分享）\n- Sitemap.xml生成\n- Robots.txt配置\n- 结构化数据（JSON-LD）\n\n**性能优化**\n- 图片懒加载\n- 代码分割\n- 静态资源CDN\n- Service Worker（PWA）\n- 压缩和缓存策略\n\n4. 样式设计\n\n**主题风格：{{themeStyle}}**\n\n{{#eq themeStyle \"简约现代\"}}\n- 配色：黑白灰主色调，蓝色强调色\n- 字体：思源宋体/Merriweather（正文），Sans-serif（标题）\n- 布局：居中单栏，最大宽度800px\n- 留白：充足的行间距和段落间距\n{{/eq}}\n\n{{#eq themeStyle \"技术极客\"}}\n- 配色：深色背景（#1e1e1e），绿色/青色代码高亮\n- 字体：等宽字体（Fira Code、JetBrains Mono）\n- 布局：终端风格，命令行提示符\n- 动画：打字机效果、矩阵雨背景（可选）\n{{/eq}}\n\n{{#eq themeStyle \"文艺清新\"}}\n- 配色：浅色背景，柔和的彩色标签\n- 字体：圆体、楷体\n- 布局：卡片式设计，圆角阴影\n- 插图：手绘风格图标\n{{/eq}}\n\n**响应式设计**\n- 桌面端（>1024px）：双栏布局（内容 + 侧边栏）\n- 平板端（768-1024px）：单栏布局，侧边栏折叠\n- 移动端（<768px）：单栏，汉堡菜单\n\n**暗黑模式**\n{{#if includeDarkMode}}\n- 颜色变量定义（CSS Variables）\n- 切换按钮（月亮/太阳图标）\n- localStorage保存用户偏好\n- 平滑过渡动画\n{{/if}}\n\n5. 组件设计\n\n**Header组件**\n- 博客标题/Logo\n- 导航菜单（首页、归档、标签、关于）\n- 搜索按钮\n- 主题切换按钮\n\n**Footer组件**\n- 版权信息\n- 备案号（如需要）\n- RSS订阅链接\n- 社交媒体图标\n\n**PostCard组件**\n- 文章封面\n- 标题\n- 摘要\n- 元信息（日期、标签、阅读时长）\n\n**TOC组件（目录）**\n- 自动提取h2-h4标题\n- 当前阅读位置高亮\n- 点击跳转\n- 固定在侧边（桌面端）\n\n6. 技术实现\n\n{{#eq techStack \"静态网站生成器\"}}\n**推荐方案：**\n- VitePress（Vue生态）\n- Next.js + MDX（React生态）\n- Astro（多框架支持）\n- Hugo（Go，超快速度）\n\n**构建流程：**\n1. Markdown文件放在content/目录\n2. 运行构建命令生成静态HTML\n3. 部署到Netlify/Vercel/GitHub Pages\n{{/eq}}\n\n{{#eq techStack \"动态网站\"}}\n**技术栈：**\n- 前端：Vue 3 + Vite\n- 后端：Node.js + Express / FastAPI\n- 数据库：MongoDB / PostgreSQL\n- 缓存：Redis\n- Markdown编辑器：Vditor / Tiptap\n\n**API端点：**\n- GET /api/posts - 获取文章列表\n- GET /api/posts/:id - 获取文章详情\n- GET /api/tags - 获取标签列表\n- GET /api/search?q=keyword - 搜索文章\n{{/eq}}\n\n7. 部署方案\n\n**静态托管**\n- Vercel（推荐，自动部署）\n- Netlify\n- GitHub Pages\n- Cloudflare Pages\n\n**自建服务器**\n- Nginx配置\n- Docker部署\n- HTTPS证书（Let's Encrypt）\n\n8. 附加功能（可选）\n\n{{#if includeAnalytics}}\n**数据统计**\n- Google Analytics\n- 百度统计\n- 自建统计（umami）\n{{/if}}\n\n{{#if includeComments}}\n**评论系统：{{commentSystem}}**\n{{#eq commentSystem \"Giscus\"}}\n- 基于GitHub Discussions\n- 无需后端服务器\n{{/eq}}\n{{#eq commentSystem \"Waline\"}}\n- 支持Markdown\n- 邮件通知\n- 表情包\n{{/eq}}\n{{/if}}\n\n**其他功能**\n- 阅读进度条\n- 打赏功能（支付宝/微信二维码）\n- 文章加密（输入密码查看）\n- 文章浏览量统计\n- 相关文章推荐\n\n**技术栈：**\n- 核心：{{techStack}}\n- Markdown解析：marked.js / markdown-it\n- 代码高亮：highlight.js\n- 评论：{{commentSystem}}\n- 部署：Vercel / Netlify\n\n**输出要求：**\n1. 完整的项目结构（所有文件和文件夹）\n2. 核心页面代码（首页、文章详情、归档）\n3. 样式文件（CSS/SCSS）\n4. 配置文件（config.yml、package.json）\n5. 示例Markdown文章（3篇）\n6. README.md使用指南（安装、写作、部署）\n7. 响应式布局代码",
+  "variables_schema": [
+    {
+      "name": "blogName",
+      "label": "博客名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：技术笔记、个人博客"
+    },
+    {
+      "name": "blogType",
+      "label": "博客类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "技术博客",
+          "label": "技术博客（编程、开发）"
+        },
+        {
+          "value": "个人博客",
+          "label": "个人博客（生活、随笔）"
+        },
+        {
+          "value": "知识分享",
+          "label": "知识分享（教程、笔记）"
+        }
+      ]
+    },
+    {
+      "name": "techStack",
+      "label": "技术方案",
+      "type": "select",
+      "required": true,
+      "default": "静态网站生成器",
+      "options": [
+        {
+          "value": "静态网站生成器",
+          "label": "静态网站生成器（VitePress/Hugo）"
+        },
+        {
+          "value": "动态网站",
+          "label": "动态网站（前后端分离）"
+        }
+      ]
+    },
+    {
+      "name": "themeStyle",
+      "label": "主题风格",
+      "type": "select",
+      "required": false,
+      "default": "简约现代",
+      "options": [
+        {
+          "value": "简约现代",
+          "label": "简约现代（黑白灰）"
+        },
+        {
+          "value": "技术极客",
+          "label": "技术极客（深色主题）"
+        },
+        {
+          "value": "文艺清新",
+          "label": "文艺清新（柔和色彩）"
+        }
+      ]
+    },
+    {
+      "name": "authorName",
+      "label": "作者名称",
+      "type": "string",
+      "required": false,
+      "default": "博主",
+      "placeholder": "您的名字或昵称"
+    },
+    {
+      "name": "includeDarkMode",
+      "label": "暗黑模式",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "支持暗黑模式切换"
+        },
+        {
+          "value": "否",
+          "label": "仅浅色模式"
+        }
+      ]
+    },
+    {
+      "name": "includeComments",
+      "label": "评论系统",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "集成评论功能"
+        },
+        {
+          "value": "否",
+          "label": "不需要评论"
+        }
+      ]
+    },
+    {
+      "name": "commentSystem",
+      "label": "评论方案",
+      "type": "select",
+      "required": false,
+      "default": "Giscus",
+      "options": [
+        {
+          "value": "Giscus",
+          "label": "Giscus（基于GitHub）"
+        },
+        {
+          "value": "Waline",
+          "label": "Waline（独立部署）"
+        },
+        {
+          "value": "Disqus",
+          "label": "Disqus（第三方）"
+        }
+      ]
+    },
+    {
+      "name": "includeSearch",
+      "label": "搜索功能",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "全文搜索"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    },
+    {
+      "name": "includeAnalytics",
+      "label": "数据统计",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "集成Google Analytics"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    },
+    {
+      "name": "codeHighlightTheme",
+      "label": "代码高亮主题",
+      "type": "select",
+      "required": false,
+      "default": "GitHub Dark",
+      "options": [
+        {
+          "value": "GitHub Dark",
+          "label": "GitHub Dark"
+        },
+        {
+          "value": "Dracula",
+          "label": "Dracula"
+        },
+        {
+          "value": "Monokai",
+          "label": "Monokai"
+        },
+        {
+          "value": "One Dark",
+          "label": "One Dark"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{blogName}}",
+    "files": [
+      {
+        "path": "index.html",
+        "type": "html"
+      },
+      {
+        "path": "css/style.css",
+        "type": "css"
+      },
+      {
+        "path": "js/main.js",
+        "type": "javascript"
+      },
+      {
+        "path": "content/posts/example.md",
+        "type": "markdown"
+      },
+      {
+        "path": "config.yml",
+        "type": "yaml"
+      },
+      {
+        "path": "README.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_web_development",
+    "skill_content_creation",
+    "skill_code_development"
+  ],
+  "required_tools": [
+    "tool_html_generator",
+    "tool_css_generator",
+    "tool_js_generator",
+    "tool_create_project_structure",
+    "tool_file_writer"
+  ],
+  "execution_engine": "web"
+}

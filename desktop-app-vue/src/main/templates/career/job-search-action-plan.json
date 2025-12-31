@@ -1,0 +1,151 @@
+{
+  "id": "tpl_career_job_search_001",
+  "name": "job_search_action_plan",
+  "display_name": "求职行动计划",
+  "description": "系统化求职行动方案，包含简历优化、投递策略、面试准备和offer谈判",
+  "icon": "🎯",
+  "cover_image": "https://example.com/covers/job-search.jpg",
+  "category": "career",
+  "subcategory": "job-hunting",
+  "tags": [
+    "求职",
+    "简历优化",
+    "面试技巧",
+    "职业规划",
+    "跳槽"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我创建求职行动计划：\n\n**求职信息：**\n- 目标职位：{{targetPosition}}\n- 目标行业：{{targetIndustry}}\n- 期望薪资：{{expectedSalary}}元/月\n- 求职时间：{{jobSearchDuration}}\n\n# 求职行动完整计划\n\n## 求职目标设定\n\n**基本信息：**\n- 姓名：{{name}}\n- 当前状态：{{currentStatus}}\n- 工作年限：{{yearsOfExperience}}年\n- 学历背景：{{education}}\n- 所在城市：{{currentCity}}\n\n**求职目标：**\n- 目标职位：{{targetPosition}}\n- 目标行业：{{targetIndustry}}\n- 目标公司类型：{{companyType}}\n- 目标城市：{{targetCity}}\n\n**期望待遇：**\n- 期望月薪：{{expectedSalary}}元\n- 可接受范围：{{salaryRange}}元\n- 其他要求：{{otherRequirements}}\n\n**求职时限：**\n- 期望入职时间：{{desiredStartDate}}\n- 求职周期：{{jobSearchDuration}}\n- 是否裸辞：{{resignationStatus}}\n\n### 自我评估\n\n**核心竞争力：**\n1. {{coreCompetency1}}\n2. {{coreCompetency2}}\n3. {{coreCompetency3}}\n\n**专业技能清单：**\n- 技能1：{{skill1}} - 熟练度：{{skill1Level}}\n- 技能2：{{skill2}} - 熟练度：{{skill2Level}}\n- 技能3：{{skill3}} - 熟练度：{{skill3Level}}\n- 技能4：{{skill4}} - 熟练度：{{skill4Level}}\n\n**工作成就（量化）：**\n1. {{achievement1}}\n2. {{achievement2}}\n3. {{achievement3}}\n4. {{achievement4}}\n\n**技能短板：**\n- 待提升技能1：{{skillGap1}}\n- 待提升技能2：{{skillGap2}}\n- 弥补计划：{{skillImprovementPlan}}\n\n### 市场调研\n\n**行业分析：**\n- 行业趋势：{{industryTrend}}\n- 市场需求：{{marketDemand}}\n- 薪资水平：{{industrySalary}}\n- 发展前景：{{industryOutlook}}\n\n**岗位需求分析：**\n- 核心技能要求：{{jobRequirements}}\n- 加分项：{{bonusSkills}}\n- 常见任职资格：{{qualifications}}\n\n**目标公司列表：**\n\n**梦想公司（Dream）：**\n1. {{dreamCompany1}} - {{dreamCompany1Why}}\n2. {{dreamCompany2}} - {{dreamCompany2Why}}\n3. {{dreamCompany3}} - {{dreamCompany3Why}}\n\n**目标公司（Target）：**\n1. {{targetCompany1}}\n2. {{targetCompany2}}\n3. {{targetCompany3}}\n4. {{targetCompany4}}\n5. {{targetCompany5}}\n\n**保底公司（Safety）：**\n1. {{safetyCompany1}}\n2. {{safetyCompany2}}\n3. {{safetyCompany3}}\n\n## 简历优化升级\n\n### 简历框架设计\n\n**简历类型选择：**{{resumeType}}\n\n**推荐格式：**\n- 通用型：编年体（Chronological）\n- 转行：功能型（Functional）\n- 高管：混合型（Combination）\n\n**简历结构：**\n\n**1. 个人信息**\n- 姓名\n- 联系方式（手机/邮箱/LinkedIn）\n- 所在城市\n- 工作年限\n- 不要放：照片（除非要求）、详细住址、婚姻状况\n\n**2. 求职意向（可选）**\n{{careerObjective}}\n\n**3. 专业技能**\n{{skillsSection}}\n\n**4. 工作经历**\n**格式：**\n```\n公司名称 | 职位名称 | 时间段\n- 工作成果1（使用STAR法则）\n- 工作成果2（量化数据）\n- 工作成果3\n```\n\n**5. 项目经验（技术岗位）**\n{{projectExperience}}\n\n**6. 教育背景**\n- 学校 | 专业 | 学历 | 时间\n- GPA（3.5+可写）\n- 荣誉奖项\n\n**7. 其他加分项**\n- 证书资质：{{certifications}}\n- 语言能力：{{languages}}\n- 兴趣爱好：{{hobbies}}（与岗位相关）\n\n### 简历优化技巧\n\n**STAR法则描述成果：**\n- Situation（情境）：{{starSituation}}\n- Task（任务）：{{starTask}}\n- Action（行动）：{{starAction}}\n- Result（结果）：{{starResult}}\n\n**示例：**\n不好：负责用户增长\n优秀：{{starExample}}\n\n**关键词优化（ATS系统）：**\n- 从JD提取关键词：{{jdKeywords}}\n- 自然融入简历：{{keywordIntegration}}\n- 避免过度堆砌\n\n**数字量化：**\n- 业绩提升：提升{{performanceIncrease}}%\n- 成本节约：节省{{costSaving}}万元\n- 团队规模：管理{{teamSize}}人团队\n- 用户增长：从{{usersBefore}}增至{{usersAfter}}\n\n**动作动词使用：**\n- 主导类：主导、领导、策划、推动\n- 执行类：完成、实施、优化、改进\n- 创新类：开发、设计、创建、建立\n- 分析类：分析、评估、研究、调研\n\n**排版美化：**\n- 字体：{{resumeFont}}\n- 字号：{{fontSize}}\n- 行距：{{lineSpacing}}\n- 页数：{{resumePages}}页（建议1-2页）\n- 格式：PDF（推荐）或Word\n\n### 多版本简历准备\n\n**通用版：**{{generalResume}}\n\n**定制版（针对特定公司）：**\n- 针对公司A：{{customResumeA}}\n- 针对公司B：{{customResumeB}}\n\n**英文简历：**{{englishResume}}\n\n**作品集/个人网站：**{{portfolio}}\n\n### 简历检查清单\n\n- [ ] 无错别字和语法错误\n- [ ] 联系方式正确有效\n- [ ] 工作时间无断层（有gap需说明）\n- [ ] 业绩数据真实可考\n- [ ] 关键词覆盖JD要求\n- [ ] 格式统一美观\n- [ ] PDF文件命名规范：姓名-职位-公司.pdf\n- [ ] 文件大小<2MB\n\n## 求职渠道策略\n\n### 主要求职渠道\n\n**线上招聘平台：**\n\n**综合平台：**\n- BOSS直聘：{{bossStrategy}}\n  - 特点：直接和HR沟通\n  - 活跃时段：{{bossActiveTime}}\n  - 投递策略：{{bossApplyStrategy}}\n\n- 智联招聘/前程无忧：{{zhilianStrategy}}\n  - 特点：传统大平台\n  - 适合岗位：{{zhilianSuitable}}\n\n- 拉勾网：{{lagonStrategy}}\n  - 特点：互联网行业\n  - 适合：{{lagonSuitable}}\n\n- 猎聘网：{{liepenStrategy}}\n  - 特点：中高端职位\n  - 适合：{{liepenSuitable}}\n\n**垂直平台：**\n- 技术岗：{{techPlatforms}}\n- 设计岗：{{designPlatforms}}\n- 运营岗：{{operationsPlatforms}}\n\n**社交招聘：**\n- LinkedIn：{{linkedinStrategy}}\n  - Profile优化：{{linkedinProfile}}\n  - 主动networking：{{linkedinNetworking}}\n\n- 脉脉：{{maimaiStrategy}}\n\n**内推渠道：**\n\n**内推优势：**{{referralAdvantages}}\n\n**获取内推途径：**\n1. {{referralSource1}}\n2. {{referralSource2}}\n3. {{referralSource3}}\n4. {{referralSource4}}\n\n**内推礼仪：**{{referralEtiquette}}\n\n**猎头合作：**\n\n**寻找猎头：**{{headhunterSourcing}}\n\n**与猎头沟通：**\n- 明确需求：{{headhunterCommunication}}\n- 简历授权：{{resumeAuthorization}}\n- 保持联系：{{headhunterRelationship}}\n\n**校招/社招：**\n- 校园招聘（应届生）：{{campusRecruitment}}\n- 社会招聘：{{socialRecruitment}}\n\n### 投递策略\n\n**投递数量规划：**\n- 每日投递：{{dailyApplications}}份\n- 每周目标：{{weeklyApplications}}份\n- 精准定制简历：{{customizedApps}}%\n\n**投递时间优化：**\n- 最佳时间：{{bestApplyTime}}\n- 原因：{{applyTimeReason}}\n\n**投递优先级：**\n1. 梦想公司：精心准备，定制简历\n2. 目标公司：优化简历，重点投递\n3. 保底公司：通用简历，广泛投递\n\n**跟进策略：**\n- 投递后{{followUpDays}}天无回复：主动询问\n- 跟进话术：{{followUpTemplate}}\n\n### 渠道效果追踪\n\n**投递记录表：**\n\n| 日期 | 公司 | 职位 | 渠道 | 状态 | 备注 |\n|------|------|------|------|------|------|\n| {{date1}} | {{company1}} | {{position1}} | {{channel1}} | {{status1}} | {{note1}} |\n\n**各渠道转化率：**\n- BOSS直聘：投递{{bossApps}}份，回复{{bossReplies}}份，面试{{bossInterviews}}次\n- 内推：投递{{referralApps}}份，面试{{referralInterviews}}次\n- 猎头：推荐{{headhunterRecommendations}}个，面试{{headhunterInterviews}}次\n\n**效果最佳渠道：**{{topChannel}}\n\n## 面试准备体系\n\n### 面试前准备\n\n**公司背景调研：**\n- 公司官网：{{companyWebsite}}\n- 产品体验：{{productResearch}}\n- 新闻报道：{{newsResearch}}\n- 员工评价（看准网/职友集）：{{employeeReviews}}\n- 财务状况：{{financialResearch}}\n\n**岗位深度理解：**\n- JD精读：{{jdAnalysis}}\n- 岗位职责分解：{{responsibilityBreakdown}}\n- 成功要素：{{successFactors}}\n\n**常见问题准备：**\n\n**自我介绍（1-3分钟）：**\n{{selfIntroduction}}\n\n**结构：**\n1. 基本信息（20%）\n2. 工作经历亮点（50%）\n3. 为什么适合（30%）\n\n**离职原因：**\n- 真实原因：{{realReason}}\n- 面试回答：{{interviewReason}}\n- 原则：正面表述，聚焦发展\n\n**优缺点：**\n- 优势：{{strengths3}}\n- 不足：{{weakness}}（真实但不致命，有改进计划）\n\n**职业规划：**\n{{careerPlan}}\n\n**期望薪资：**\n- 策略：{{salaryNegotiationStrategy}}\n- 话术：{{salaryScript}}\n\n**为什么选择我们公司：**\n{{whyThisCompany}}\n\n**你有什么问题要问我：**\n准备3-5个问题：\n1. {{question1}}\n2. {{question2}}\n3. {{question3}}\n\n**专业问题准备：**\n\n**技术岗：**\n- 算法题刷题：{{codingPractice}}\n- 系统设计：{{systemDesign}}\n- 项目深挖：{{projectDeepDive}}\n\n**产品岗：**\n- 产品分析：{{productAnalysis}}\n- 竞品研究：{{competitorAnalysis}}\n- Case Study：{{caseStudy}}\n\n**运营岗：**\n- 数据分析：{{dataAnalytics}}\n- 运营案例：{{operationCase}}\n- 增长策略：{{growthStrategy}}\n\n**行为面试（STAR）：**\n准备5-8个典型故事：\n1. 最大成就：{{biggestAchievement}}\n2. 最大挑战：{{biggestChallenge}}\n3. 团队冲突解决：{{conflictResolution}}\n4. 领导力展示：{{leadershipExample}}\n5. 失败经历：{{failureStory}}\n\n**模拟面试：**\n- 自我练习：{{selfPractice}}\n- 朋友模拟：{{mockInterview}}\n- 专业辅导：{{professionalCoaching}}\n\n### 面试技巧\n\n**第一印象管理：**\n- 着装：{{dresscode}}\n- 仪容：{{grooming}}\n- 肢体语言：{{bodyLanguage}}\n- 准时到达：提前{{arrivalTime}}分钟\n\n**沟通技巧：**\n- 倾听理解问题\n- 结构化回答\n- 举例说明\n- 控制时长：每个问题{{answerDuration}}分钟内\n\n**压力面试应对：**{{stressInterviewHandling}}\n\n**群面/无领导小组讨论：**{{groupInterviewStrategy}}\n\n**英语面试：**{{englishInterviewPrep}}\n\n### 面试后跟进\n\n**感谢邮件：**\n- 发送时间：面试后{{thankYouEmailTiming}}小时内\n- 内容要点：{{thankYouContent}}\n- 模板：{{thankYouTemplate}}\n\n**等待反馈：**\n- 一般等待期：{{feedbackWaitTime}}\n- 主动询问：{{followUpInquiry}}\n\n**面试复盘：**\n- 问题记录：{{interviewReview}}\n- 改进点：{{improvementAreas}}\n\n## Offer评估与谈判\n\n### Offer评估框架\n\n**薪酬福利：**\n- 基本工资：{{baseSalary}}元/月\n- 年终奖：{{bonus}}个月\n- 股权/期权：{{equity}}\n- 五险一金：{{benefits}}\n- 其他补贴：{{allowances}}\n- 年度总包：{{totalCompensation}}元\n\n**成长空间：**\n- 学习机会：{{learningOpportunities}}\n- 晋升路径：{{careerPath}}\n- 导师制度：{{mentorship}}\n\n**工作环境：**\n- 团队氛围：{{teamCulture}}\n- 办公环境：{{officeEnvironment}}\n- 加班情况：{{workLifeBalance}}\n- 通勤时间：{{commuteTime}}\n\n**公司前景：**\n- 行业地位：{{industryPosition}}\n- 发展阶段：{{companyStage}}\n- 融资情况：{{fundingStatus}}\n- 稳定性：{{stability}}\n\n**综合评分：**\n\n| 维度 | 权重 | 评分（1-10） | 加权得分 |\n|------|------|--------------|----------|\n| 薪酬 | {{salaryWeight}}% | {{salaryScore}} | {{salaryWeighted}} |\n| 成长 | {{growthWeight}}% | {{growthScore}} | {{growthWeighted}} |\n| 环境 | {{cultureWeight}}% | {{cultureScore}} | {{cultureWeighted}} |\n| 前景 | {{prospectWeight}}% | {{prospectScore}} | {{prospectWeighted}} |\n| **总分** | 100% | - | {{totalScore}} |\n\n**决策标准：**\n- 8分以上：接受\n- 6-8分：谈判或考虑\n- 6分以下：拒绝\n\n### 薪资谈判策略\n\n**谈判准备：**\n- 市场调研：{{marketResearch}}\n- 自我评估：{{selfValuation}}\n- 底线设定：{{bottomLine}}元（不可低于）\n- 期望值：{{targetSalary}}元\n\n**谈判时机：**\n- 最佳时机：{{negotiationTiming}}\n- 避免：{{negotiationDontDo}}\n\n**谈判话术：**\n\n**初次报价：**\n{{initialOfferScript}}\n\n**反驳低Offer：**\n{{counterOfferScript}}\n\n**强调价值：**\n{{valuePropositionScript}}\n\n**灵活方案：**\n如果薪资不能提高：\n- 要求{{alternativeRequest1}}\n- 要求{{alternativeRequest2}}\n- 要求{{alternativeRequest3}}\n\n**谈判原则：**\n1. {{negotiationPrinciple1}}\n2. {{negotiationPrinciple2}}\n3. {{negotiationPrinciple3}}\n\n### 多Offer选择\n\n**决策矩阵：**\n\n| 公司 | 薪资 | 成长 | 稳定性 | 综合得分 | 选择 |\n|------|------|------|--------|----------|------|\n| {{offerCompany1}} | {{offer1Salary}} | {{offer1Growth}} | {{offer1Stability}} | {{offer1Total}} | {{offer1Decision}} |\n| {{offerCompany2}} | {{offer2Salary}} | {{offer2Growth}} | {{offer2Stability}} | {{offer2Total}} | {{offer2Decision}} |\n\n**拖延技巧（争取更多时间）：**\n{{offerDelayTactics}}\n\n**拒绝Offer礼仪：**\n{{offerRejectionEtiquette}}\n\n## 入职准备\n\n### 离职交接\n\n**提出离职：**\n- 时间：提前{{resignationNotice}}天\n- 方式：{{resignationMethod}}\n- 话术：{{resignationScript}}\n\n**挽留应对：**{{retentionCounterStrategy}}\n\n**工作交接：**\n- 交接清单：{{handoverChecklist}}\n- 文档整理：{{documentationHandover}}\n- 知识转移：{{knowledgeTransfer}}\n\n**离职手续：**\n- 离职证明\n- 社保转移\n- 公积金转移\n- 工作邮箱/账号交接\n\n**维护关系：**{{relationshipMaintenance}}\n\n### 入职准备\n\n**心态调整：**{{mindsetPreparation}}\n\n**知识储备：**\n- 公司业务学习：{{businessLearning}}\n- 行业知识补充：{{industryKnowledge}}\n- 技能提升：{{skillUpgrading}}\n\n**物品准备：**\n- 入职材料：{{onboardingDocuments}}\n- 工作装备：{{workEquipment}}\n\n**试用期规划：**\n- 前30天目标：{{first30Days}}\n- 前90天目标：{{first90Days}}\n- 转正准备：{{probationGoals}}\n\n## 时间管理\n\n### 全职在职求职\n\n**时间分配：**\n- 工作日晚上：{{eveningJobHunt}}小时\n- 周末：{{weekendJobHunt}}小时\n- 请假面试：{{interviewLeave}}\n\n**保密策略：**{{confidentialityStrategy}}\n\n### 全职求职（已离职）\n\n**每日计划：**\n- 9:00-12:00：{{morningRoutine}}\n- 14:00-17:00：{{afternoonRoutine}}\n- 晚上：{{eveningRoutine}}\n\n**避免懈怠：**{{motivationMaintenance}}\n\n### 求职时间表\n\n**第1周：**\n- [ ] {{week1Task1}}\n- [ ] {{week1Task2}}\n- [ ] {{week1Task3}}\n\n**第2周：**\n- [ ] {{week2Task1}}\n- [ ] {{week2Task2}}\n\n**第3-4周：**\n- [ ] {{week34Task1}}\n- [ ] {{week34Task2}}\n\n**第5-8周：**\n- [ ] {{week58Task1}}\n- [ ] {{week58Task2}}\n\n## 心态管理\n\n### 常见挑战应对\n\n**投递无回应：**\n- 原因分析：{{noResponseReasons}}\n- 应对措施：{{noResponseSolutions}}\n\n**面试屡次失败：**\n- 复盘分析：{{interviewFailureAnalysis}}\n- 改进计划：{{improvementPlan}}\n\n**求职周期过长：**\n- 心态调整：{{prolongedSearchMindset}}\n- 策略调整：{{strategyAdjustment}}\n\n### 保持动力\n\n**激励方法：**\n1. {{motivationMethod1}}\n2. {{motivationMethod2}}\n3. {{motivationMethod3}}\n\n**支持系统：**{{supportSystem}}\n\n**庆祝小胜利：**{{celebrateWins}}\n\n## 应急预案\n\n**Plan B：**{{planB}}\n\n**经济压力应对：**{{financialPressure}}\n\n**Gap期规划：**{{gapYearPlan}}\n\n## 资源清单\n\n**工具：**\n- 简历模板：{{resumeTemplates}}\n- 面试题库：{{interviewQuestions}}\n- 薪资查询：{{salaryTools}}\n\n**学习资源：**\n- 求职课程：{{jobSearchCourses}}\n- 行业报告：{{industryReports}}\n\n**社群：**\n- 求职互助群：{{jobSearchCommunity}}\n- 行业交流群：{{industryGroups}}\n\n---\n\n**核心理念：**准备充分、策略清晰、持续优化、心态积极\n**成功关键：**优秀简历 + 精准投递 + 充分准备 + 有效谈判 = 理想Offer",
+  "variables_schema": [
+    {
+      "name": "targetPosition",
+      "label": "目标职位",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "targetIndustry",
+      "label": "目标行业",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "expectedSalary",
+      "label": "期望月薪（元）",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "jobSearchDuration",
+      "label": "求职周期",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "1个月",
+          "label": "1个月（紧急）"
+        },
+        {
+          "value": "2-3个月",
+          "label": "2-3个月（正常）"
+        },
+        {
+          "value": "3-6个月",
+          "label": "3-6个月（从容）"
+        },
+        {
+          "value": "不限",
+          "label": "时间不限（骑驴找马）"
+        }
+      ]
+    },
+    {
+      "name": "currentStatus",
+      "label": "当前状态",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "在职",
+          "label": "在职求职"
+        },
+        {
+          "value": "离职",
+          "label": "已离职"
+        },
+        {
+          "value": "应届生",
+          "label": "应届毕业生"
+        },
+        {
+          "value": "待业",
+          "label": "待业/Gap Year"
+        }
+      ]
+    },
+    {
+      "name": "yearsOfExperience",
+      "label": "工作年限",
+      "type": "number",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "求职行动计划-{{targetPosition}}",
+    "files": [
+      {
+        "path": "求职行动方案.md",
+        "type": "markdown"
+      },
+      {
+        "path": "简历优化指南.md",
+        "type": "markdown"
+      },
+      {
+        "path": "投递记录表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "面试准备清单.md",
+        "type": "markdown"
+      },
+      {
+        "path": "常见问题回答.md",
+        "type": "markdown"
+      },
+      {
+        "path": "Offer评估表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "目标公司研究.md",
+        "type": "markdown"
+      },
+      {
+        "path": "每周任务清单.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "简历撰写",
+    "面试技巧",
+    "自我营销",
+    "谈判能力",
+    "时间管理"
+  ],
+  "required_tools": [
+    "求职平台账号",
+    "简历编辑工具",
+    "LinkedIn账号",
+    "Excel/在线表格"
+  ],
+  "execution_engine": "llm"
+}
