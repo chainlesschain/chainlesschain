@@ -6,7 +6,13 @@
  * 这个文件只提供元数据信息,用于注册到ToolManager
  */
 
-module.exports = [
+
+// 导入额外的工具定义
+const additionalOfficeTools = require('./additional-office-tools');
+const additionalDataScienceTools = require('./additional-datascience-tools');
+const additionalProjectTools = require('./additional-project-tools');
+
+const builtinTools = [
   // 1. 文件读取工具
   {
     id: 'tool_file_reader',
@@ -14400,4 +14406,12 @@ module.exports = [
     is_builtin: 1,
     enabled: 1,
   },
+];
+
+// 合并所有工具（内置工具 + 额外工具）
+module.exports = [
+  ...builtinTools,
+  ...additionalOfficeTools,
+  ...additionalDataScienceTools,
+  ...additionalProjectTools
 ];
