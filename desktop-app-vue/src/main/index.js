@@ -3965,6 +3965,190 @@ class ChainlessChainApp {
     });
 
     // ============================
+    // 组织知识库相关 IPC Handler
+    // ============================
+
+    // 获取组织知识列表
+    ipcMain.handle('org:get-knowledge-items', async (_event, params) => {
+      try {
+        const { orgId } = params;
+        const db = this.dbManager.db;
+
+        // 获取组织的所有知识（share_scope='org' 或 'public'）
+        const items = db.prepare(`
+          SELECT *
+          FROM knowledge_items
+          WHERE org_id = ? AND share_scope IN ('org', 'public')
+          ORDER BY updated_at DESC
+        `).all(orgId);
+
+        return { success: true, items };
+      } catch (error) {
+        console.error('[Main] 获取组织知识列表失败:', error);
+        return { success: false, error: error.message, items: [] };
+      }
+    });
+
+    // 创建组织知识
+    ipcMain.handle('org:create-knowledge', async (_event, params) => {
+      try {
+        const {
+          orgId,
+          title,
+          type,
+          content,
+          shareScope,
+          tags,
+          createdBy
+        } = params;
+
+        const db = this.dbManager.db;
+        const knowledgeId = require('uuid').v4();
+        const now = Date.now();
+
+        // 插入知识
+        db.prepare(`
+          INSERT INTO knowledge_items (
+            id, title, type, content, org_id, created_by, updated_by,
+            share_scope, version, created_at, updated_at, sync_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          knowledgeId,
+          title,
+          type,
+          content,
+          orgId,
+          createdBy,
+          createdBy,
+          shareScope || 'org',
+          1,
+          now,
+          now,
+          'pending'
+        );
+
+        // 添加标签（如果有）
+        if (tags && tags.length > 0) {
+          for (const tagName of tags) {
+            // 查找或创建标签
+            let tag = db.prepare('SELECT * FROM tags WHERE name = ?').get(tagName);
+            if (!tag) {
+              const tagId = require('uuid').v4();
+              db.prepare(`
+                INSERT INTO tags (id, name, color, created_at)
+                VALUES (?, ?, ?, ?)
+              `).run(tagId, tagName, '#1890ff', now);
+              tag = { id: tagId };
+            }
+
+            // 关联标签
+            db.prepare(`
+              INSERT INTO knowledge_tags (knowledge_id, tag_id, created_at)
+              VALUES (?, ?, ?)
+            `).run(knowledgeId, tag.id, now);
+          }
+        }
+
+        // 记录活动
+        if (this.organizationManager) {
+          await this.organizationManager.logActivity(
+            orgId,
+            createdBy,
+            'create_knowledge',
+            'knowledge',
+            knowledgeId,
+            { title }
+          );
+        }
+
+        return { success: true, id: knowledgeId };
+      } catch (error) {
+        console.error('[Main] 创建组织知识失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 删除组织知识
+    ipcMain.handle('org:delete-knowledge', async (_event, params) => {
+      try {
+        const { orgId, knowledgeId } = params;
+        const db = this.dbManager.db;
+
+        // 检查知识是否存在且属于该组织
+        const knowledge = db.prepare(`
+          SELECT * FROM knowledge_items WHERE id = ? AND org_id = ?
+        `).get(knowledgeId, orgId);
+
+        if (!knowledge) {
+          return { success: false, error: '知识不存在或无权删除' };
+        }
+
+        // 删除知识（级联删除关联的标签和搜索索引）
+        db.prepare('DELETE FROM knowledge_items WHERE id = ?').run(knowledgeId);
+
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 删除组织知识失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 获取标签列表
+    ipcMain.handle('knowledge:get-tags', async (_event) => {
+      try {
+        const db = this.dbManager.db;
+        const tags = db.prepare('SELECT * FROM tags ORDER BY name').all();
+        return { success: true, tags };
+      } catch (error) {
+        console.error('[Main] 获取标签列表失败:', error);
+        return { success: false, error: error.message, tags: [] };
+      }
+    });
+
+    // 获取版本历史
+    ipcMain.handle('knowledge:get-version-history', async (_event, params) => {
+      try {
+        const { knowledgeId } = params;
+        const db = this.dbManager.db;
+
+        // 目前版本历史是通过version字段维护的
+        // 完整的版本历史需要单独的version_history表
+        // 这里先返回当前版本的信息
+        const knowledge = db.prepare('SELECT * FROM knowledge_items WHERE id = ?').get(knowledgeId);
+
+        if (!knowledge) {
+          return { success: false, error: '知识不存在', versions: [] };
+        }
+
+        // TODO: 实现完整的版本历史表
+        // 目前只返回当前版本
+        const versions = [knowledge];
+
+        return { success: true, versions };
+      } catch (error) {
+        console.error('[Main] 获取版本历史失败:', error);
+        return { success: false, error: error.message, versions: [] };
+      }
+    });
+
+    // 恢复版本
+    ipcMain.handle('knowledge:restore-version', async (_event, params) => {
+      try {
+        const { knowledgeId, versionId } = params;
+        const db = this.dbManager.db;
+
+        // TODO: 实现版本恢复逻辑
+        // 这需要version_history表的支持
+        console.warn('[Main] 版本恢复功能待实现，需要version_history表支持');
+
+        return { success: false, error: '版本恢复功能开发中' };
+      } catch (error) {
+        console.error('[Main] 恢复版本失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // ============================
     // P2P同步引擎相关 IPC Handler
     // ============================
 

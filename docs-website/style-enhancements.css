@@ -1,0 +1,395 @@
+/* ChainlessChain 网站样式增强 - 紧凑美化版 */
+
+/* ==========================================
+   1. 全局优化 - 更紧凑的间距
+   ========================================== */
+section {
+    padding: 60px 0 !important;
+}
+
+.section-header {
+    margin-bottom: 40px !important;
+}
+
+.section-title {
+    font-size: 32px !important;
+    margin-bottom: 12px !important;
+}
+
+.section-subtitle {
+    font-size: 16px !important;
+}
+
+/* ==========================================
+   2. 卡片统一样式 - 更现代的设计
+   ========================================== */
+.product-card,
+.download-card,
+.feature-item,
+.scenario-card,
+.version-card,
+.benefit-card {
+    border-radius: 12px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.product-card:hover,
+.download-card:hover,
+.feature-item:hover,
+.scenario-card:hover {
+    transform: translateY(-6px) !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* ==========================================
+   3. 按钮优化 - 统一风格
+   ========================================== */
+.btn-primary,
+.btn-hero-primary,
+.btn-product-primary,
+.btn-download,
+.btn-submit {
+    background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%) !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px;
+}
+
+.btn-primary:hover,
+.btn-hero-primary:hover,
+.btn-product-primary:hover,
+.btn-download:hover,
+.btn-submit:hover {
+    background: linear-gradient(135deg, #0050b3 0%, #003a8c 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(24, 144, 255, 0.4) !important;
+}
+
+.btn-outline,
+.btn-hero-secondary,
+.btn-product-outline {
+    border: 2px solid var(--primary-color) !important;
+    font-weight: 600 !important;
+    background: white !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-outline:hover,
+.btn-hero-secondary:hover,
+.btn-product-outline:hover {
+    background: var(--primary-color) !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+}
+
+/* ==========================================
+   4. 定价卡片特别优化
+   ========================================== */
+.version-card {
+    padding: 32px 28px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+.version-card.highlight {
+    border: 2px solid #1890ff !important;
+    box-shadow: 0 8px 24px rgba(24, 144, 255, 0.15) !important;
+}
+
+.version-card h3 {
+    font-size: 24px !important;
+    margin-bottom: 16px !important;
+}
+
+.version-card .price {
+    font-size: 28px !important;
+    margin-bottom: 20px !important;
+}
+
+.version-card .features li {
+    padding: 10px 0 !important;
+    font-size: 14px !important;
+}
+
+/* ==========================================
+   5. 下载区域优化
+   ========================================== */
+.download-card {
+    padding: 28px 24px !important;
+}
+
+.download-icon {
+    font-size: 52px !important;
+    margin-bottom: 12px !important;
+}
+
+.download-card h3 {
+    font-size: 20px !important;
+    margin-bottom: 10px !important;
+}
+
+/* ==========================================
+   6. Hero区域优化 - 更紧凑
+   ========================================== */
+.hero {
+    min-height: 85vh !important;
+    padding-top: 100px !important;
+}
+
+.hero-title {
+    font-size: 48px !important;
+    margin-bottom: 20px !important;
+}
+
+.hero-subtitle {
+    font-size: 18px !important;
+    margin-bottom: 32px !important;
+}
+
+.hero-stats {
+    margin-top: 48px !important;
+    gap: 32px !important;
+}
+
+/* ==========================================
+   7. 功能特性网格优化
+   ========================================== */
+.features-grid,
+.scenarios-grid {
+    gap: 24px !important;
+}
+
+.feature-item,
+.scenario-card {
+    padding: 28px 24px !important;
+}
+
+.feature-icon,
+.scenario-icon {
+    font-size: 48px !important;
+    margin-bottom: 16px !important;
+}
+
+/* ==========================================
+   8. 技术栈标签优化
+   ========================================== */
+.tech-tag {
+    padding: 6px 14px !important;
+    font-size: 13px !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25) !important;
+}
+
+.tech-tag:hover {
+    transform: translateY(-1px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35) !important;
+}
+
+/* ==========================================
+   9. 统计数据卡片优化
+   ========================================== */
+.stat-card,
+.tech-stat-item {
+    padding: 32px 24px !important;
+}
+
+.stat-card .stat-number,
+.tech-stat-item .stat-value {
+    font-size: 36px !important;
+}
+
+/* ==========================================
+   10. FAQ区域优化
+   ========================================== */
+.faq-item {
+    padding: 20px 24px !important;
+}
+
+.faq-question {
+    font-size: 16px !important;
+    margin-bottom: 12px !important;
+}
+
+/* ==========================================
+   11. 企业版Spotlight优化
+   ========================================== */
+.enterprise-spotlight {
+    padding: 80px 0 !important;
+}
+
+.benefit-card {
+    padding: 32px 28px !important;
+}
+
+.benefit-card h3 {
+    font-size: 22px !important;
+    margin-bottom: 14px !important;
+}
+
+/* ==========================================
+   12. 导航栏优化
+   ========================================== */
+.nav-wrapper {
+    padding: 12px 0 !important;
+}
+
+.nav-menu {
+    gap: 24px !important;
+}
+
+/* ==========================================
+   13. 响应式优化
+   ========================================== */
+@media (max-width: 768px) {
+    section {
+        padding: 40px 0 !important;
+    }
+
+    .section-title {
+        font-size: 26px !important;
+    }
+
+    .hero-title {
+        font-size: 32px !important;
+    }
+
+    .version-card,
+    .benefit-card {
+        padding: 24px 20px !important;
+    }
+}
+
+/* ==========================================
+   14. 动画优化 - 更流畅
+   ========================================== */
+* {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ==========================================
+   15. 色彩增强
+   ========================================== */
+:root {
+    --gradient-start: #667eea;
+    --gradient-end: #764ba2;
+    --shadow-color: rgba(0, 0, 0, 0.08);
+    --shadow-hover: rgba(0, 0, 0, 0.12);
+}
+
+/* 渐变背景优化 */
+.hero-gradient,
+.enterprise-spotlight {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+}
+
+/* ==========================================
+   16. 文字排版优化
+   ========================================== */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
+    letter-spacing: -0.02em;
+}
+
+p, li, span {
+    line-height: 1.7 !important;
+}
+
+/* ==========================================
+   17. 图标优化
+   ========================================== */
+.feature-icon,
+.scenario-icon,
+.download-icon,
+.benefit-card .icon {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* ==========================================
+   18. 边框和分隔线优化
+   ========================================== */
+.version-card::before,
+.product-card::before {
+    height: 3px !important;
+}
+
+/* ==========================================
+   19. 悬浮效果统一
+   ========================================== */
+a, button {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ==========================================
+   20. 表格优化
+   ========================================== */
+.comparison-table th,
+.comparison-table td {
+    padding: 16px 20px !important;
+}
+
+/* ==========================================
+   21. 快速下载区域特别优化
+   ========================================== */
+.quick-download {
+    padding: 32px 40px !important;
+    margin-bottom: 48px !important;
+}
+
+/* ==========================================
+   22. 价格突出显示
+   ========================================== */
+.version-card .price {
+    background: linear-gradient(135deg, rgba(24, 144, 255, 0.1), rgba(24, 144, 255, 0.05));
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: inline-block;
+    margin-bottom: 24px !important;
+}
+
+/* ==========================================
+   23. 特色徽章优化
+   ========================================== */
+.featured-badge,
+.version-card.highlight .badge {
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4) !important;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* ==========================================
+   24. 输入框和表单优化
+   ========================================== */
+.form-group input,
+.form-group textarea {
+    padding: 10px 14px !important;
+    border-radius: 6px !important;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.1) !important;
+}
+
+/* ==========================================
+   25. 页脚优化
+   ========================================== */
+.footer {
+    padding: 48px 0 16px !important;
+}
+
+.footer-content {
+    gap: 32px !important;
+    margin-bottom: 32px !important;
+}
