@@ -417,6 +417,22 @@ class SignalSessionManager extends EventEmitter {
       return new ArrayBuffer(0);
     }
 
+    // 已经是 ArrayBuffer - 直接返回
+    if (obj instanceof ArrayBuffer) {
+      return obj;
+    }
+
+    // Buffer 类型 - 转换为 ArrayBuffer
+    if (Buffer.isBuffer(obj)) {
+      return obj.buffer.slice(obj.byteOffset, obj.byteOffset + obj.byteLength);
+    }
+
+    // TypedArray 或 DataView - 提取底层 ArrayBuffer
+    if (ArrayBuffer.isView(obj)) {
+      return obj.buffer.slice(obj.byteOffset, obj.byteOffset + obj.byteLength);
+    }
+
+    // 处理数组格式
     let array;
     if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
       // Node.js Buffer 序列化格式
@@ -424,12 +440,6 @@ class SignalSessionManager extends EventEmitter {
     } else if (Array.isArray(obj)) {
       // 普通数组格式
       array = obj;
-    } else if (obj instanceof ArrayBuffer) {
-      // 已经是 ArrayBuffer
-      return obj;
-    } else if (ArrayBuffer.isView(obj)) {
-      // TypedArray 或 DataView
-      return obj.buffer.slice(obj.byteOffset, obj.byteOffset + obj.byteLength);
     } else {
       console.warn('[SignalSession] 未知的 ArrayBuffer 格式:', typeof obj);
       return new ArrayBuffer(0);
