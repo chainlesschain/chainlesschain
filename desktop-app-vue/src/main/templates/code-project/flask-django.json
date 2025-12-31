@@ -6,34 +6,107 @@
   "icon": "🐍",
   "category": "code-project",
   "subcategory": "backend",
-  "tags": ["Python", "Flask", "Django", "后端"],
+  "tags": [
+    "Python",
+    "Flask",
+    "Django",
+    "后端"
+  ],
   "project_type": "app",
   "prompt_template": "请帮我生成Python Web后端项目，要求:\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 框架选择：{{framework}}\n- 数据库：{{database}}\n- API风格：{{apiStyle}}\n\n**项目结构：**\n\n{{#eq framework \"Flask\"}}\n```\n{{projectName}}/\n├── app/\n│   ├── __init__.py\n│   ├── config.py\n│   │\n│   ├── models/           # 数据模型\n│   │   ├── __init__.py\n│   │   └── user.py\n│   │\n│   ├── routes/           # 路由蓝图\n│   │   ├── __init__.py\n│   │   ├── auth.py\n│   │   └── api.py\n│   │\n│   ├── services/         # 业务逻辑\n│   │   ├── __init__.py\n│   │   └── user_service.py\n│   │\n│   ├── utils/            # 工具函数\n│   │   ├── __init__.py\n│   │   ├── validators.py\n│   │   └── decorators.py\n│   │\n│   └── extensions.py     # Flask扩展\n│\n├── migrations/           # 数据库迁移\n├── tests/               # 测试文件\n│   ├── __init__.py\n│   ├── test_auth.py\n│   └── test_api.py\n│\n├── .env.example\n├── .gitignore\n├── requirements.txt\n├── run.py\n└── README.md\n```\n{{/eq}}\n\n{{#eq framework \"Django\"}}\n```\n{{projectName}}/\n├── {{projectName}}/       # 项目配置\n│   ├── __init__.py\n│   ├── settings.py\n│   ├── urls.py\n│   ├── wsgi.py\n│   └── asgi.py\n│\n├── apps/                 # 应用模块\n│   ├── users/\n│   │   ├── __init__.py\n│   │   ├── models.py\n│   │   ├── views.py\n│   │   ├── serializers.py  # DRF序列化器\n│   │   ├── urls.py\n│   │   └── admin.py\n│   │\n│   └── api/\n│       ├── __init__.py\n│       ├── views.py\n│       └── urls.py\n│\n├── utils/               # 通用工具\n│   ├── __init__.py\n│   └── permissions.py\n│\n├── tests/              # 测试文件\n├── .env.example\n├── .gitignore\n├── requirements.txt\n├── manage.py\n└── README.md\n```\n{{/eq}}\n\n{{#eq framework \"Flask\"}}\n**requirements.txt（Flask）：**\n\n```\nFlask==3.0.0\nFlask-SQLAlchemy==3.1.1\nFlask-Migrate==4.0.5\nFlask-CORS==4.0.0\nFlask-JWT-Extended==4.5.3\n{{#eq apiStyle \"RESTful API\"}}\nflask-restful==0.3.10\n{{/eq}}\n{{#eq database \"PostgreSQL\"}}\npsycopg2-binary==2.9.9\n{{/eq}}\n{{#eq database \"MySQL\"}}\nPyMySQL==1.1.0\n{{/eq}}\n{{#eq database \"MongoDB\"}}\nFlask-PyMongo==2.3.0\n{{/eq}}\npython-dotenv==1.0.0\nWerkzeug==3.0.1\ngunicorn==21.2.0\npytest==7.4.3\npytest-flask==1.3.0\n```\n\n**app/__init__.py（Flask应用工厂）：**\n\n```python\nfrom flask import Flask\nfrom flask_sqlalchemy import SQLAlchemy\nfrom flask_migrate import Migrate\nfrom flask_cors import CORS\nfrom flask_jwt_extended import JWTManager\nfrom app.config import config\n\ndb = SQLAlchemy()\nmigrate = Migrate()\njwt = JWTManager()\n\ndef create_app(config_name='default'):\n    app = Flask(__name__)\n    app.config.from_object(config[config_name])\n    \n    # 初始化扩展\n    db.init_app(app)\n    migrate.init_app(app, db)\n    CORS(app)\n    jwt.init_app(app)\n    \n    # 注册蓝图\n    from app.routes import auth_bp, api_bp\n    app.register_blueprint(auth_bp, url_prefix='/auth')\n    app.register_blueprint(api_bp, url_prefix='/api')\n    \n    # 健康检查\n    @app.route('/health')\n    def health():\n        return {'status': 'ok'}, 200\n    \n    return app\n```\n\n**app/config.py：**\n\n```python\nimport os\nfrom datetime import timedelta\n\nclass Config:\n    SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')\n    SQLALCHEMY_TRACK_MODIFICATIONS = False\n    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key')\n    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)\n    \nclass DevelopmentConfig(Config):\n{{#eq database \"PostgreSQL\"}}\n    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', \n        'postgresql://user:password@localhost/{{projectName}}')\n{{/eq}}\n{{#eq database \"MySQL\"}}\n    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL',\n        'mysql+pymysql://user:password@localhost/{{projectName}}')\n{{/eq}}\n{{#eq database \"SQLite\"}}\n    SQLALCHEMY_DATABASE_URI = 'sqlite:///dev.db'\n{{/eq}}\n    DEBUG = True\n\nclass ProductionConfig(Config):\n    DEBUG = False\n    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')\n\nconfig = {\n    'development': DevelopmentConfig,\n    'production': ProductionConfig,\n    'default': DevelopmentConfig\n}\n```\n\n**app/models/user.py：**\n\n```python\nfrom app import db\nfrom werkzeug.security import generate_password_hash, check_password_hash\nfrom datetime import datetime\n\nclass User(db.Model):\n    __tablename__ = 'users'\n    \n    id = db.Column(db.Integer, primary_key=True)\n    email = db.Column(db.String(120), unique=True, nullable=False, index=True)\n    username = db.Column(db.String(80), unique=True, nullable=False)\n    password_hash = db.Column(db.String(255), nullable=False)\n    created_at = db.Column(db.DateTime, default=datetime.utcnow)\n    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)\n    \n    def set_password(self, password):\n        self.password_hash = generate_password_hash(password)\n    \n    def check_password(self, password):\n        return check_password_hash(self.password_hash, password)\n    \n    def to_dict(self):\n        return {\n            'id': self.id,\n            'email': self.email,\n            'username': self.username,\n            'created_at': self.created_at.isoformat()\n        }\n```\n\n**app/routes/auth.py：**\n\n```python\nfrom flask import Blueprint, request, jsonify\nfrom flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity\nfrom app import db\nfrom app.models.user import User\n\nauth_bp = Blueprint('auth', __name__)\n\n@auth_bp.route('/register', methods=['POST'])\ndef register():\n    data = request.get_json()\n    \n    if User.query.filter_by(email=data['email']).first():\n        return {'error': 'Email already exists'}, 400\n    \n    user = User(\n        email=data['email'],\n        username=data['username']\n    )\n    user.set_password(data['password'])\n    \n    db.session.add(user)\n    db.session.commit()\n    \n    return {'message': 'User created successfully', 'user': user.to_dict()}, 201\n\n@auth_bp.route('/login', methods=['POST'])\ndef login():\n    data = request.get_json()\n    user = User.query.filter_by(email=data['email']).first()\n    \n    if not user or not user.check_password(data['password']):\n        return {'error': 'Invalid credentials'}, 401\n    \n    access_token = create_access_token(identity=user.id)\n    return {'access_token': access_token, 'user': user.to_dict()}\n\n@auth_bp.route('/profile', methods=['GET'])\n@jwt_required()\ndef profile():\n    user_id = get_jwt_identity()\n    user = User.query.get(user_id)\n    return user.to_dict()\n```\n\n**run.py：**\n\n```python\nfrom app import create_app, db\nimport os\n\napp = create_app(os.getenv('FLASK_ENV', 'default'))\n\n@app.shell_context_processor\ndef make_shell_context():\n    return {'db': db}\n\nif __name__ == '__main__':\n    app.run(host='0.0.0.0', port=5000, debug=True)\n```\n{{/eq}}\n\n{{#eq framework \"Django\"}}\n**requirements.txt（Django）：**\n\n```\nDjango==5.0.0\ndjangorestframework==3.14.0\ndjangorestframework-simplejwt==5.3.1\ndjango-cors-headers==4.3.0\ndjango-filter==23.5\n{{#eq database \"PostgreSQL\"}}\npsycopg2-binary==2.9.9\n{{/eq}}\n{{#eq database \"MySQL\"}}\nmysqlclient==2.2.1\n{{/eq}}\npython-dotenv==1.0.0\ngunicorn==21.2.0\npytest==7.4.3\npytest-django==4.7.0\n```\n\n**{{projectName}}/settings.py（核心配置）：**\n\n```python\nimport os\nfrom pathlib import Path\nfrom datetime import timedelta\n\nBASE_DIR = Path(__file__).resolve().parent.parent\n\nSECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')\nDEBUG = os.getenv('DEBUG', 'True') == 'True'\nALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')\n\nINSTALLED_APPS = [\n    'django.contrib.admin',\n    'django.contrib.auth',\n    'django.contrib.contenttypes',\n    'django.contrib.sessions',\n    'django.contrib.messages',\n    'django.contrib.staticfiles',\n    \n    # 第三方\n    'rest_framework',\n    'rest_framework_simplejwt',\n    'corsheaders',\n    'django_filters',\n    \n    # 应用\n    'apps.users',\n    'apps.api',\n]\n\nMIDDLEWARE = [\n    'corsheaders.middleware.CorsMiddleware',\n    'django.middleware.security.SecurityMiddleware',\n    'django.contrib.sessions.middleware.SessionMiddleware',\n    'django.middleware.common.CommonMiddleware',\n    'django.middleware.csrf.CsrfViewMiddleware',\n    'django.contrib.auth.middleware.AuthenticationMiddleware',\n    'django.contrib.messages.middleware.MessageMiddleware',\n    'django.middleware.clickjacking.XFrameOptionsMiddleware',\n]\n\nROOT_URLCONF = '{{projectName}}.urls'\n\n# 数据库配置\nDATABASES = {\n    'default': {\n{{#eq database \"PostgreSQL\"}}\n        'ENGINE': 'django.db.backends.postgresql',\n        'NAME': os.getenv('DB_NAME', '{{projectName}}'),\n        'USER': os.getenv('DB_USER', 'postgres'),\n        'PASSWORD': os.getenv('DB_PASSWORD', 'password'),\n        'HOST': os.getenv('DB_HOST', 'localhost'),\n        'PORT': os.getenv('DB_PORT', '5432'),\n{{/eq}}\n{{#eq database \"MySQL\"}}\n        'ENGINE': 'django.db.backends.mysql',\n        'NAME': os.getenv('DB_NAME', '{{projectName}}'),\n        'USER': os.getenv('DB_USER', 'root'),\n        'PASSWORD': os.getenv('DB_PASSWORD', 'password'),\n        'HOST': os.getenv('DB_HOST', 'localhost'),\n        'PORT': os.getenv('DB_PORT', '3306'),\n{{/eq}}\n{{#eq database \"SQLite\"}}\n        'ENGINE': 'django.db.backends.sqlite3',\n        'NAME': BASE_DIR / 'db.sqlite3',\n{{/eq}}\n    }\n}\n\n# DRF配置\nREST_FRAMEWORK = {\n    'DEFAULT_AUTHENTICATION_CLASSES': [\n        'rest_framework_simplejwt.authentication.JWTAuthentication',\n    ],\n    'DEFAULT_PERMISSION_CLASSES': [\n        'rest_framework.permissions.IsAuthenticated',\n    ],\n    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',\n    'PAGE_SIZE': 20\n}\n\n# JWT配置\nSIMPLE_JWT = {\n    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),\n    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),\n}\n\n# CORS配置\nCORS_ALLOWED_ORIGINS = os.getenv(\n    'CORS_ALLOWED_ORIGINS',\n    'http://localhost:3000,http://localhost:5173'\n).split(',')\n```\n\n**apps/users/serializers.py：**\n\n```python\nfrom rest_framework import serializers\nfrom django.contrib.auth.models import User\n\nclass UserSerializer(serializers.ModelSerializer):\n    class Meta:\n        model = User\n        fields = ('id', 'username', 'email', 'date_joined')\n        read_only_fields = ('id', 'date_joined')\n\nclass RegisterSerializer(serializers.ModelSerializer):\n    password = serializers.CharField(write_only=True)\n    \n    class Meta:\n        model = User\n        fields = ('username', 'email', 'password')\n    \n    def create(self, validated_data):\n        user = User.objects.create_user(\n            username=validated_data['username'],\n            email=validated_data['email'],\n            password=validated_data['password']\n        )\n        return user\n```\n\n**apps/users/views.py：**\n\n```python\nfrom rest_framework import generics, status\nfrom rest_framework.response import Response\nfrom rest_framework.permissions import AllowAny\nfrom rest_framework_simplejwt.views import TokenObtainPairView\nfrom .serializers import UserSerializer, RegisterSerializer\n\nclass RegisterView(generics.CreateAPIView):\n    permission_classes = [AllowAny]\n    serializer_class = RegisterSerializer\n    \n    def create(self, request, *args, **kwargs):\n        serializer = self.get_serializer(data=request.data)\n        serializer.is_valid(raise_exception=True)\n        user = serializer.save()\n        return Response(\n            UserSerializer(user).data,\n            status=status.HTTP_201_CREATED\n        )\n```\n{{/eq}}\n\n**.env.example：**\n\n```\n{{#eq framework \"Flask\"}}\nFLASK_ENV=development\nFLASK_APP=run.py\n{{/eq}}\n{{#eq framework \"Django\"}}\nDJANGO_SETTINGS_MODULE={{projectName}}.settings\nDEBUG=True\nALLOWED_HOSTS=localhost,127.0.0.1\n{{/eq}}\n\nSECRET_KEY=your-secret-key-here\nJWT_SECRET_KEY=your-jwt-secret-here\n\n# 数据库\n{{#eq database \"PostgreSQL\"}}\nDATABASE_URL=postgresql://user:password@localhost/{{projectName}}\nDB_NAME={{projectName}}\nDB_USER=postgres\nDB_PASSWORD=password\nDB_HOST=localhost\nDB_PORT=5432\n{{/eq}}\n{{#eq database \"MySQL\"}}\nDATABASE_URL=mysql://user:password@localhost/{{projectName}}\nDB_NAME={{projectName}}\nDB_USER=root\nDB_PASSWORD=password\nDB_HOST=localhost\nDB_PORT=3306\n{{/eq}}\n```\n\n**README.md：**\n\n```markdown\n# {{projectName}}\n\n{{projectDescription}}\n\n## 技术栈\n\n- Python 3.11+\n- {{framework}}\n{{#eq framework \"Django\"}}\n- Django REST Framework\n{{/eq}}\n- {{database}}\n- JWT认证\n\n## 功能特性\n\n- 用户注册/登录\n- JWT Token认证\n- RESTful API\n- 数据库ORM\n- API文档\n\n## 快速开始\n\n### 安装依赖\n\n```bash\n# 创建虚拟环境\npython -m venv venv\nsource venv/bin/activate  # Windows: venv\\Scripts\\activate\n\n# 安装依赖\npip install -r requirements.txt\n```\n\n### 配置环境变量\n\n```bash\ncp .env.example .env\n# 编辑.env文件\n```\n\n### 数据库迁移\n\n{{#eq framework \"Flask\"}}\n```bash\nflask db init\nflask db migrate -m \"Initial migration\"\nflask db upgrade\n```\n{{/eq}}\n{{#eq framework \"Django\"}}\n```bash\npython manage.py makemigrations\npython manage.py migrate\npython manage.py createsuperuser\n```\n{{/eq}}\n\n### 运行\n\n```bash\n{{#eq framework \"Flask\"}}\npython run.py\n# 或使用gunicorn\ngunicorn -w 4 -b 0.0.0.0:5000 \"app:create_app()\"\n{{/eq}}\n{{#eq framework \"Django\"}}\npython manage.py runserver\n# 或使用gunicorn\ngunicorn {{projectName}}.wsgi:application -b 0.0.0.0:8000\n{{/eq}}\n```\n\n### 测试\n\n```bash\npytest\n```\n\n## API接口\n\n### 认证\n\n{{#eq framework \"Flask\"}}\n- `POST /auth/register` - 注册\n- `POST /auth/login` - 登录\n- `GET /auth/profile` - 获取用户信息\n{{/eq}}\n{{#eq framework \"Django\"}}\n- `POST /api/users/register/` - 注册\n- `POST /api/token/` - 获取Token\n- `POST /api/token/refresh/` - 刷新Token\n{{/eq}}\n\n## 开发建议\n\n1. **代码规范**\n   - 遵循PEP 8\n   - 使用类型提示\n   - 编写文档字符串\n\n2. **安全性**\n   - 永远不要提交.env文件\n   - 使用强密码哈希\n   - 输入验证和清理\n\n3. **性能**\n   - 数据库查询优化\n   - 使用缓存（Redis）\n   - 异步任务（Celery）\n\n4. **测试**\n   - 单元测试覆盖率 > 80%\n   - 集成测试\n   - API测试\n\n## 部署\n\n### Docker\n\n```bash\ndocker build -t {{projectName}} .\ndocker run -p 5000:5000 {{projectName}}\n```\n\n### 生产环境\n\n- 使用Gunicorn/uWSGI\n- Nginx反向代理\n- SSL证书\n- 环境变量配置\n\n## 许可证\n\nMIT\n```\n\n**.gitignore：**\n\n```\n__pycache__/\n*.py[cod]\n*$py.class\n*.so\nvenv/\nENV/\n.env\n{{#eq framework \"Flask\"}}\ninstance/\n*.db\nmigrations/\n{{/eq}}\n{{#eq framework \"Django\"}}\ndb.sqlite3\nmedia/\nstaticfiles/\n{{/eq}}\n.pytest_cache/\n.coverage\n```",
   "variables_schema": [
-    {"name": "projectName", "label": "项目名称", "type": "string", "required": true, "placeholder": "例如：my-backend-api"},
-    {"name": "projectDescription", "label": "项目描述", "type": "string", "required": false, "default": "基于Python的后端API服务", "placeholder": "简短描述项目功能"},
-    {"name": "framework", "label": "框架选择", "type": "select", "required": true, "options": [
-      {"value": "Flask", "label": "Flask（轻量级）"},
-      {"value": "Django", "label": "Django（全栈框架）"}
-    ]},
-    {"name": "database", "label": "数据库", "type": "select", "required": true, "options": [
-      {"value": "PostgreSQL", "label": "PostgreSQL"},
-      {"value": "MySQL", "label": "MySQL"},
-      {"value": "SQLite", "label": "SQLite（开发）"},
-      {"value": "MongoDB", "label": "MongoDB"}
-    ]},
-    {"name": "apiStyle", "label": "API风格", "type": "select", "required": false, "default": "RESTful API", "options": [
-      {"value": "RESTful API", "label": "RESTful API"},
-      {"value": "GraphQL", "label": "GraphQL"}
-    ]}
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：my-backend-api"
+    },
+    {
+      "name": "projectDescription",
+      "label": "项目描述",
+      "type": "string",
+      "required": false,
+      "default": "基于Python的后端API服务",
+      "placeholder": "简短描述项目功能"
+    },
+    {
+      "name": "framework",
+      "label": "框架选择",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "Flask",
+          "label": "Flask（轻量级）"
+        },
+        {
+          "value": "Django",
+          "label": "Django（全栈框架）"
+        }
+      ]
+    },
+    {
+      "name": "database",
+      "label": "数据库",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "PostgreSQL",
+          "label": "PostgreSQL"
+        },
+        {
+          "value": "MySQL",
+          "label": "MySQL"
+        },
+        {
+          "value": "SQLite",
+          "label": "SQLite（开发）"
+        },
+        {
+          "value": "MongoDB",
+          "label": "MongoDB"
+        }
+      ]
+    },
+    {
+      "name": "apiStyle",
+      "label": "API风格",
+      "type": "select",
+      "required": false,
+      "default": "RESTful API",
+      "options": [
+        {
+          "value": "RESTful API",
+          "label": "RESTful API"
+        },
+        {
+          "value": "GraphQL",
+          "label": "GraphQL"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "{{projectName}}",
     "files": [
-      {"path": "README.md", "type": "markdown"},
-      {"path": "requirements.txt", "type": "document"},
-      {"path": ".env.example", "type": "document"},
-      {"path": ".gitignore", "type": "document"}
+      {
+        "path": "README.md",
+        "type": "markdown"
+      },
+      {
+        "path": "requirements.txt",
+        "type": "document"
+      },
+      {
+        "path": ".env.example",
+        "type": "document"
+      },
+      {
+        "path": ".gitignore",
+        "type": "document"
+      }
     ]
   },
   "default_files": [],
@@ -42,5 +115,17 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_code_development",
+    "skill_project_management"
+  ],
+  "required_tools": [
+    "tool_create_project_structure",
+    "tool_git_init",
+    "tool_file_writer",
+    "tool_npm_project_setup",
+    "tool_dockerfile_generator"
+  ],
+  "execution_engine": "code"
 }
