@@ -14,6 +14,9 @@ const AudioProcessor = require('./audio-processor');
 const AudioStorage = require('./audio-storage');
 const { SpeechRecognizer } = require('./speech-recognizer');
 const { SubtitleGenerator } = require('./subtitle-generator');
+const RealtimeVoiceInput = require('./realtime-voice-input');
+const VoiceCommandRecognizer = require('./voice-command-recognizer');
+const AudioCache = require('./audio-cache');
 
 /**
  * 语音识别管理器类
@@ -42,6 +45,9 @@ class SpeechManager extends EventEmitter {
     this.storage = null;
     this.recognizer = null;
     this.subtitleGenerator = null;
+    this.realtimeInput = null;
+    this.commandRecognizer = null;
+    this.audioCache = null;
 
     // 任务队列
     this.taskQueue = [];
@@ -88,11 +94,41 @@ class SpeechManager extends EventEmitter {
       // 初始化字幕生成器（使用注入的或默认的类）
       this.subtitleGenerator = new this.dependencies.SubtitleClass();
 
+      // 初始化音频缓存
+      const cacheDir = path.join(settings.storage.savePath, '.cache', 'audio-transcripts');
+      this.audioCache = new AudioCache(cacheDir, {
+        maxCacheSize: 100 * 1024 * 1024, // 100MB
+        maxCacheAge: 30 * 24 * 60 * 60 * 1000, // 30天
+        maxMemoryEntries: 50
+      });
+      await this.audioCache.initialize();
+
+      // 初始化语音命令识别器
+      this.commandRecognizer = new VoiceCommandRecognizer({
+        language: settings.defaultLanguage || 'zh',
+        minConfidence: 0.7,
+        fuzzyMatch: true,
+        contextAware: true
+      });
+
+      // 初始化实时语音输入
+      this.realtimeInput = new RealtimeVoiceInput(this.recognizer, {
+        sampleRate: 16000,
+        channels: 1,
+        chunkDuration: 3000,
+        silenceThreshold: 0.01,
+        silenceDuration: 1000,
+        maxRecordingTime: 300000
+      });
+
+      // 设置实时输入事件转发
+      this.setupRealtimeEvents();
+
       // 设置并发任务数
       this.maxConcurrentTasks = settings.performance.maxConcurrentJobs || 2;
 
       this.initialized = true;
-      console.log('[SpeechManager] 初始化完成');
+      console.log('[SpeechManager] 初始化完成（含实时语音输入）');
 
       return true;
     } catch (error) {
@@ -114,6 +150,41 @@ class SpeechManager extends EventEmitter {
     // 批处理事件
     this.processor.on('batch-progress', (data) => this.emit('process:batch-progress', data));
     this.processor.on('batch-complete', (data) => this.emit('process:batch-complete', data));
+  }
+
+  /**
+   * 设置实时语音输入事件转发
+   */
+  setupRealtimeEvents() {
+    if (!this.realtimeInput) return;
+
+    // 录音事件
+    this.realtimeInput.on('recording:started', (data) => this.emit('realtime:started', data));
+    this.realtimeInput.on('recording:stopped', (data) => this.emit('realtime:stopped', data));
+    this.realtimeInput.on('recording:paused', (data) => this.emit('realtime:paused', data));
+    this.realtimeInput.on('recording:resumed', (data) => this.emit('realtime:resumed', data));
+    this.realtimeInput.on('recording:cancelled', (data) => this.emit('realtime:cancelled', data));
+
+    // 音频事件
+    this.realtimeInput.on('audio:volume', (data) => this.emit('realtime:volume', data));
+    this.realtimeInput.on('silence:detected', () => this.emit('realtime:silence'));
+
+    // Chunk处理事件
+    this.realtimeInput.on('chunk:processing', (data) => this.emit('realtime:chunk-processing', data));
+    this.realtimeInput.on('chunk:processed', (data) => this.emit('realtime:chunk-processed', data));
+    this.realtimeInput.on('chunk:error', (data) => this.emit('realtime:chunk-error', data));
+
+    // 转录事件
+    this.realtimeInput.on('transcript:partial', (data) => {
+      // 识别命令
+      if (this.commandRecognizer && data.text) {
+        const command = this.commandRecognizer.recognize(data.text);
+        if (command) {
+          this.emit('realtime:command', command);
+        }
+      }
+      this.emit('realtime:partial', data);
+    });
   }
 
   /**
@@ -829,6 +900,116 @@ class SpeechManager extends EventEmitter {
   }
 
   /**
+   * 开始实时录音
+   * @param {Object} options - 录音选项
+   * @returns {Promise<void>}
+   */
+  async startRealtimeRecording(options = {}) {
+    this.ensureInitialized();
+    console.log('[SpeechManager] 开始实时录音');
+    return await this.realtimeInput.startRecording(options);
+  }
+
+  /**
+   * 添加音频数据（来自浏览器端）
+   * @param {Buffer} audioData - PCM音频数据
+   */
+  addRealtimeAudioData(audioData) {
+    this.ensureInitialized();
+    this.realtimeInput.addAudioData(audioData);
+  }
+
+  /**
+   * 暂停实时录音
+   */
+  pauseRealtimeRecording() {
+    this.ensureInitialized();
+    return this.realtimeInput.pause();
+  }
+
+  /**
+   * 恢复实时录音
+   */
+  resumeRealtimeRecording() {
+    this.ensureInitialized();
+    return this.realtimeInput.resume();
+  }
+
+  /**
+   * 停止实时录音
+   * @returns {Promise<Object>} 转录结果
+   */
+  async stopRealtimeRecording() {
+    this.ensureInitialized();
+    console.log('[SpeechManager] 停止实时录音');
+    return await this.realtimeInput.stopRecording();
+  }
+
+  /**
+   * 取消实时录音
+   */
+  cancelRealtimeRecording() {
+    this.ensureInitialized();
+    return this.realtimeInput.cancel();
+  }
+
+  /**
+   * 获取实时录音状态
+   * @returns {Object}
+   */
+  getRealtimeStatus() {
+    this.ensureInitialized();
+    return this.realtimeInput.getStatus();
+  }
+
+  /**
+   * 识别语音命令
+   * @param {string} text - 语音文本
+   * @param {Object} context - 上下文信息
+   * @returns {Object|null} 识别结果
+   */
+  recognizeCommand(text, context = {}) {
+    this.ensureInitialized();
+    return this.commandRecognizer.recognize(text, context);
+  }
+
+  /**
+   * 注册自定义命令
+   * @param {Object} command - 命令配置
+   */
+  registerCommand(command) {
+    this.ensureInitialized();
+    return this.commandRecognizer.registerCommand(command);
+  }
+
+  /**
+   * 获取所有注册的命令
+   * @returns {Array}
+   */
+  getAllCommands() {
+    this.ensureInitialized();
+    return this.commandRecognizer.getAllCommands();
+  }
+
+  /**
+   * 获取缓存统计信息
+   * @returns {Promise<Object>}
+   */
+  async getCacheStats() {
+    this.ensureInitialized();
+    return await this.audioCache.getStats();
+  }
+
+  /**
+   * 清空音频缓存
+   * @returns {Promise<void>}
+   */
+  async clearCache() {
+    this.ensureInitialized();
+    return await this.audioCache.clear();
+  }
+
+  /**
    * 确保已初始化
    */
   ensureInitialized() {
@@ -842,6 +1023,12 @@ class SpeechManager extends EventEmitter {
    */
   async terminate() {
     console.log('[SpeechManager] 终止服务...');
+
+    // 停止实时录音
+    if (this.realtimeInput && this.realtimeInput.isRecording) {
+      this.realtimeInput.cancel();
+    }
+
     // 清理资源
     this.removeAllListeners();
   }

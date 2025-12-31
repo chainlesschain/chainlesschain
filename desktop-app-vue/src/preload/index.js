@@ -949,9 +949,47 @@ contextBridge.exposeInMainWorld('electronAPI', {
     transcribeAndGenerateSubtitle: (audioPath, subtitlePath, options) => ipcRenderer.invoke('speech:transcribe-and-generate-subtitle', audioPath, subtitlePath, options),
     batchGenerateSubtitles: (audioIds, outputDir, format) => ipcRenderer.invoke('speech:batch-generate-subtitles', audioIds, outputDir, format),
 
+    // 实时语音输入
+    startRealtimeRecording: (options) => ipcRenderer.invoke('speech:start-realtime-recording', options),
+    sendAudioData: (audioData) => ipcRenderer.invoke('speech:add-realtime-audio-data', audioData), // 别名
+    addRealtimeAudioData: (audioData) => ipcRenderer.invoke('speech:add-realtime-audio-data', audioData),
+    pauseRealtimeRecording: () => ipcRenderer.invoke('speech:pause-realtime-recording'),
+    resumeRealtimeRecording: () => ipcRenderer.invoke('speech:resume-realtime-recording'),
+    stopRealtimeRecording: () => ipcRenderer.invoke('speech:stop-realtime-recording'),
+    cancelRealtimeRecording: () => ipcRenderer.invoke('speech:cancel-realtime-recording'),
+    getRealtimeStatus: () => ipcRenderer.invoke('speech:get-realtime-status'),
+
+    // 语音命令
+    recognizeCommand: (text, context) => ipcRenderer.invoke('speech:recognize-command', text, context),
+    registerCommand: (command) => ipcRenderer.invoke('speech:register-command', command),
+    getAllCommands: () => ipcRenderer.invoke('speech:get-all-commands'),
+    getAvailableCommands: () => ipcRenderer.invoke('speech:get-all-commands'), // 别名
+
+    // 音频缓存
+    getCacheStats: () => ipcRenderer.invoke('speech:get-cache-stats'),
+    clearCache: () => ipcRenderer.invoke('speech:clear-cache'),
+
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
+
+    // 实时语音输入事件 (原始命名)
+    onRealtimeStarted: (callback) => ipcRenderer.on('speech:realtime-started', (_event, data) => callback(data)),
+    onRealtimeStopped: (callback) => ipcRenderer.on('speech:realtime-stopped', (_event, data) => callback(data)),
+    onRealtimePaused: (callback) => ipcRenderer.on('speech:realtime-paused', (_event, data) => callback(data)),
+    onRealtimeResumed: (callback) => ipcRenderer.on('speech:realtime-resumed', (_event, data) => callback(data)),
+    onRealtimeCancelled: (callback) => ipcRenderer.on('speech:realtime-cancelled', (_event, data) => callback(data)),
+    onRealtimeVolume: (callback) => ipcRenderer.on('speech:realtime-volume', (_event, data) => callback(data)),
+    onRealtimePartial: (callback) => ipcRenderer.on('speech:realtime-partial', (_event, data) => callback(data)),
+    onRealtimeCommand: (callback) => ipcRenderer.on('speech:realtime-command', (_event, command) => callback(command)),
+
+    // 实时语音输入事件 (别名 - 更直观的命名)
+    onTranscriptPartial: (callback) => ipcRenderer.on('speech:realtime-partial', (_event, data) => callback(data)),
+    onVolumeChange: (callback) => ipcRenderer.on('speech:realtime-volume', (_event, data) => callback(data)),
+    onCommandRecognized: (callback) => ipcRenderer.on('speech:realtime-command', (_event, command) => callback(command)),
+
+    // 快捷键事件
+    onShortcutTriggered: (callback) => ipcRenderer.on('shortcut:voice-input', () => callback()),
   },
 
   // 技能管理

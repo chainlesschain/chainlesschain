@@ -66,6 +66,12 @@ const routes = [
         meta: { title: '工具管理' },
       },
       {
+        path: 'settings/voice-input',
+        name: 'VoiceInputTest',
+        component: () => import('../pages/VoiceInputTestPage.vue'),
+        meta: { title: '语音输入测试' },
+      },
+      {
         path: 'did',
         name: 'DIDManagement',
         component: () => import('../components/DIDManagement.vue'),
