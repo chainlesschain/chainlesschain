@@ -6,30 +6,100 @@
   "icon": "😴",
   "category": "health",
   "subcategory": "睡眠健康",
-  "tags": ["睡眠", "失眠", "睡眠质量", "作息调整"],
+  "tags": [
+    "睡眠",
+    "失眠",
+    "睡眠质量",
+    "作息调整"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我生成睡眠改善计划，要求:\n\n# {{planTitle}}\n\n**制定日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**计划周期**: {{planDuration}}\n**改善目标**: {{improvementGoal}}\n\n## 一、睡眠现状评估\n\n### 1.1 基本信息\n\n**平均入睡时间**: {{bedtime}}\n**平均起床时间**: {{wakeTime}}\n**实际睡眠时长**: {{sleepDuration}}\n**理想睡眠时长**: {{targetDuration}}\n\n### 1.2 睡眠质量评分\n\n**入睡难度**: {{fallAsleepDifficulty}}/10\n**夜间醒来**: {{nightWaking}}\n**睡眠深度**: {{sleepDepth}}/10\n**晨起状态**: {{morningCondition}}/10\n**日间疲劳**: {{daytimeTiredness}}/10\n\n**总体睡眠质量**: {{overallQuality}}/10\n\n### 1.3 睡眠问题\n\n{{sleepProblems}}\n\n### 1.4 影响因素\n\n{{influencingFactors}}\n\n## 二、改善目标\n\n### 2.1 总体目标\n\n{{overallGoal}}\n\n### 2.2 具体目标\n\n- 入睡时间：{{targetBedtime}}\n- 起床时间：{{targetWakeTime}}\n- 睡眠时长：{{targetDuration}}\n- 入睡用时：{{targetFallAsleep}}分钟内\n- 夜醒次数：{{targetNightWaking}}次以内\n- 睡眠质量评分：{{targetQuality}}/10以上\n\n### 2.3 阶段目标\n\n#### 第一周 - 建立基础\n{{week1Goal}}\n\n#### 第二周 - 强化习惯\n{{week2Goal}}\n\n#### 第三周 - 优化调整\n{{week3Goal}}\n\n#### 第四周 - 巩固成果\n{{week4Goal}}\n\n## 三、作息调整方案\n\n### 3.1 固定作息\n\n**目标就寝时间**: {{targetBedtime}}\n**目标起床时间**: {{targetWakeTime}}\n**周末作息**: {{weekendSchedule}}\n\n### 3.2 渐进调整\n\n{{gradualAdjustment}}\n\n### 3.3 午睡建议\n\n{{napAdvice}}\n\n## 四、睡前仪式\n\n### 4.1 睡前1-2小时\n\n{{beforeBed2Hours}}\n\n### 4.2 睡前30-60分钟\n\n{{beforeBed1Hour}}\n\n### 4.3 睡前15-30分钟\n\n{{beforeBed30Min}}\n\n### 4.4 放松技巧\n\n#### 呼吸练习\n{{breathingExercises}}\n\n#### 渐进式肌肉放松\n{{muscleRelaxation}}\n\n#### 冥想引导\n{{meditation}}\n\n#### 轻音乐/白噪音\n{{soundTherapy}}\n\n## 五、睡眠环境优化\n\n### 5.1 卧室温度\n\n{{roomTemperature}}\n\n### 5.2 光线控制\n\n{{lightControl}}\n\n### 5.3 噪音管理\n\n{{noiseManagement}}\n\n### 5.4 床品选择\n\n{{beddingChoice}}\n\n### 5.5 环境整理\n\n{{roomOrganization}}\n\n## 六、饮食调整\n\n### 6.1 晚餐建议\n\n**晚餐时间**: {{dinnerTime}}\n**食物选择**: {{dinnerFood}}\n**避免食物**: {{avoidFood}}\n\n### 6.2 睡前饮食\n\n**推荐**: {{sleepAidFood}}\n**禁忌**: {{forbiddenFood}}\n\n### 6.3 饮品管理\n\n**咖啡因**: {{caffeineRule}}\n**酒精**: {{alcoholRule}}\n**饮水**: {{waterIntake}}\n\n## 七、运动建议\n\n### 7.1 运动时间\n\n{{exerciseTiming}}\n\n### 7.2 推荐运动\n\n{{recommendedExercise}}\n\n### 7.3 避免运动\n\n{{avoidExercise}}\n\n## 八、日间管理\n\n### 8.1 光照管理\n\n{{lightExposure}}\n\n### 8.2 压力管理\n\n{{stressManagement}}\n\n### 8.3 能量管理\n\n{{energyManagement}}\n\n### 8.4 电子设备\n\n{{screenTime}}\n\n## 九、特殊情况应对\n\n### 9.1 失眠时怎么办\n\n{{insomniaResponse}}\n\n### 9.2 夜间醒来\n\n{{nightWakingResponse}}\n\n### 9.3 早醒\n\n{{earlyWakingResponse}}\n\n### 9.4 时差调整\n\n{{jetLagAdjustment}}\n\n## 十、睡眠记录\n\n### 10.1 睡眠日志\n\n| 日期 | 就寝时间 | 起床时间 | 睡眠时长 | 入睡用时 | 夜醒次数 | 质量评分 | 备注 |\n|------|---------|---------|---------|---------|---------|---------|------|\n| | | | | | | | |\n\n### 10.2 影响因素记录\n\n{{factorsTracking}}\n\n### 10.3 数据分析\n\n{{dataAnalysis}}\n\n## 十一、辅助工具\n\n### 11.1 推荐APP\n\n{{sleepApps}}\n\n### 11.2 助眠产品\n\n{{sleepAids}}\n\n### 11.3 可穿戴设备\n\n{{wearables}}\n\n## 十二、专业建议\n\n### 12.1 何时就医\n\n{{whenToSeekHelp}}\n\n### 12.2 常见睡眠障碍\n\n{{sleepDisorders}}\n\n### 12.3 药物使用\n\n{{medicationGuidance}}\n\n## 十三、常见误区\n\n{{sleepMyths}}\n\n## 十四、进度评估\n\n### 14.1 每周评估\n\n{{weeklyEvaluation}}\n\n### 14.2 每月总结\n\n{{monthlyReview}}\n\n### 14.3 调整优化\n\n{{planOptimization}}\n\n## 行动清单\n\n### 立即开始\n\n- [ ] 设置固定的睡眠时间\n- [ ] 优化卧室环境\n- [ ] 移除卧室电子设备\n- [ ] 购买遮光窗帘\n- [ ] {{immediateAction}}\n\n### 本周任务\n\n- [ ] {{weekTask1}}\n- [ ] {{weekTask2}}\n- [ ] {{weekTask3}}\n\n### 长期养成\n\n- [ ] {{longTermHabit1}}\n- [ ] {{longTermHabit2}}\n- [ ] {{longTermHabit3}}\n\n---\n\n**制定人**: {{#if author}}{{author}}{{else}}用户{{/if}}\n**专业指导**: {{#if consultant}}{{consultant}}{{else}}自主改善{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
   "variables_schema": [
-    {"name": "planTitle", "type": "text", "label": "计划标题", "default": "睡眠改善计划", "required": true},
-    {"name": "planDuration", "type": "select", "label": "计划周期", "default": "4周", "required": true, "options": [
-      {"value": "2周", "label": "2周"},
-      {"value": "4周", "label": "4周"},
-      {"value": "8周", "label": "8周"},
-      {"value": "12周", "label": "12周"}
-    ]},
-    {"name": "sleepDuration", "type": "text", "label": "当前睡眠时长", "default": "6小时", "required": true},
-    {"name": "targetDuration", "type": "text", "label": "目标睡眠时长", "default": "8小时", "required": true},
-    {"name": "bedtime", "type": "text", "label": "当前就寝时间", "default": "23:30", "required": true},
-    {"name": "targetBedtime", "type": "text", "label": "目标就寝时间", "default": "22:30", "required": true}
+    {
+      "name": "planTitle",
+      "type": "text",
+      "label": "计划标题",
+      "default": "睡眠改善计划",
+      "required": true
+    },
+    {
+      "name": "planDuration",
+      "type": "select",
+      "label": "计划周期",
+      "default": "4周",
+      "required": true,
+      "options": [
+        {
+          "value": "2周",
+          "label": "2周"
+        },
+        {
+          "value": "4周",
+          "label": "4周"
+        },
+        {
+          "value": "8周",
+          "label": "8周"
+        },
+        {
+          "value": "12周",
+          "label": "12周"
+        }
+      ]
+    },
+    {
+      "name": "sleepDuration",
+      "type": "text",
+      "label": "当前睡眠时长",
+      "default": "6小时",
+      "required": true
+    },
+    {
+      "name": "targetDuration",
+      "type": "text",
+      "label": "目标睡眠时长",
+      "default": "8小时",
+      "required": true
+    },
+    {
+      "name": "bedtime",
+      "type": "text",
+      "label": "当前就寝时间",
+      "default": "23:30",
+      "required": true
+    },
+    {
+      "name": "targetBedtime",
+      "type": "text",
+      "label": "目标就寝时间",
+      "default": "22:30",
+      "required": true
+    }
   ],
   "file_structure": {
     "type": "folder",
     "name": "{{planTitle}}",
     "children": [
-      {"type": "file", "name": "改善计划.md", "description": "计划正文"},
-      {"type": "file", "name": "睡眠日志.xlsx", "description": "睡眠记录"},
-      {"type": "file", "name": "放松音频/", "description": "助眠音频"},
-      {"type": "file", "name": "进度报告/", "description": "评估报告"}
+      {
+        "type": "file",
+        "name": "改善计划.md",
+        "description": "计划正文"
+      },
+      {
+        "type": "file",
+        "name": "睡眠日志.xlsx",
+        "description": "睡眠记录"
+      },
+      {
+        "type": "file",
+        "name": "放松音频/",
+        "description": "助眠音频"
+      },
+      {
+        "type": "file",
+        "name": "进度报告/",
+        "description": "评估报告"
+      }
     ]
   },
   "is_builtin": true,
@@ -37,5 +107,14 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
 }
