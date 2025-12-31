@@ -6,46 +6,155 @@
   "icon": "🐍",
   "category": "code-project",
   "subcategory": "python",
-  "tags": ["Python", "项目模板", "开发", "后端"],
+  "tags": [
+    "Python",
+    "项目模板",
+    "开发",
+    "后端"
+  ],
   "project_type": "app",
-  "prompt_template": "请帮我生成Python项目初始化方案，要求：\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 项目类型：{{projectType}}\n- Python版本：{{pythonVersion}}\n- 包管理工具：{{packageManager}}\n\n**项目结构：**\n\n```\n{{projectName}}/\n├── README.md\n├── requirements.txt 或 pyproject.toml\n├── .gitignore\n├── .env.example\n│\n{{#eq projectType \"Web应用\"}}\n├── app/\n│   ├── __init__.py\n│   ├── main.py\n│   ├── models/\n│   ├── routes/\n│   ├── services/\n│   └── utils/\n{{/eq}}\n│\n{{#eq projectType \"CLI工具\"}}\n├── src/\n│   ├── __init__.py\n│   ├── cli.py\n│   ├── commands/\n│   └── utils/\n{{/eq}}\n│\n{{#eq projectType \"数据分析\"}}\n├── data/\n│   ├── raw/\n│   └── processed/\n├── notebooks/\n├── src/\n│   ├── data/\n│   ├── features/\n│   ├── models/\n│   └── visualization/\n{{/eq}}\n│\n├── tests/\n│   ├── __init__.py\n│   └── test_*.py\n│\n├── docs/\n└── scripts/\n```\n\n**README.md内容：**\n\n```markdown\n# {{projectName}}\n\n{{projectDescription}}\n\n## 功能特性\n\n- 功能1\n- 功能2\n- 功能3\n\n## 技术栈\n\n- Python {{pythonVersion}}\n{{#if useFramework}}\n- 框架：{{framework}}\n{{/if}}\n- 数据库：{{database}}\n\n## 快速开始\n\n### 环境要求\n\n- Python {{pythonVersion}}+\n{{#eq packageManager \"pip\"}}\n- pip\n{{/eq}}\n{{#eq packageManager \"poetry\"}}\n- Poetry\n{{/eq}}\n\n### 安装\n\n```bash\n# 克隆项目\ngit clone https://github.com/yourname/{{projectName}}.git\ncd {{projectName}}\n\n# 创建虚拟环境\npython -m venv venv\nsource venv/bin/activate  # Windows: venv\Scripts\activate\n\n{{#eq packageManager \"pip\"}}\n# 安装依赖\npip install -r requirements.txt\n{{/eq}}\n{{#eq packageManager \"poetry\"}}\n# 安装依赖\npoetry install\n{{/eq}}\n\n# 复制环境变量\ncp .env.example .env\n```\n\n### 运行\n\n```bash\n{{#eq projectType \"Web应用\"}}\npython -m app.main\n{{/eq}}\n{{#eq projectType \"CLI工具\"}}\npython -m src.cli\n{{/eq}}\n```\n\n### 测试\n\n```bash\npytest\n```\n\n## 开发\n\n### 代码规范\n\n- 使用 Black 格式化代码\n- 使用 Flake8 检查代码质量\n- 使用 mypy 进行类型检查\n\n```bash\nblack .\nflake8 .\nmypy .\n```\n\n## 部署\n\n[部署说明]\n\n## 许可证\n\nMIT\n```\n\n**requirements.txt：**\n\n{{#eq projectType \"Web应用\"}}\n```\nfastapi==0.104.0\nuvicorn[standard]==0.24.0\nsqlalchemy==2.0.23\npydantic==2.5.0\npython-dotenv==1.0.0\n{{/eq}}\n\n{{#eq projectType \"CLI工具\"}}\n```\nclick==8.1.7\nrich==13.7.0\n{{/eq}}\n\n{{#eq projectType \"数据分析\"}}\n```\npandas==2.1.3\nnumpy==1.26.2\nmatplotlib==3.8.2\nseaborn==0.13.0\njupyter==1.0.0\nscikit-learn==1.3.2\n{{/eq}}\n\n{{#if includeTesting}}\npytest==7.4.3\npytest-cov==4.1.0\n{{/if}}\n\n{{#if includeCodeQuality}}\nblack==23.11.0\nflake8==6.1.0\nmypy==1.7.1\n{{/if}}\n```\n\n**.gitignore：**\n\n```\n# Python\n__pycache__/\n*.py[cod]\n*$py.class\n*.so\n.Python\nvenv/\nENV/\nenv/\n.venv/\n\n# IDE\n.vscode/\n.idea/\n*.swp\n*.swo\n\n# 测试\n.pytest_cache/\n.coverage\nhtmlcov/\n\n# 环境变量\n.env\n\n# 数据\ndata/raw/\ndata/processed/\n*.db\n*.sqlite\n\n# 日志\n*.log\n```\n\n**.env.example：**\n\n```\n# 应用配置\nAPP_NAME={{projectName}}\nENVIRONMENT=development\nDEBUG=True\n\n# 数据库\nDATABASE_URL=sqlite:///./dev.db\n\n# API密钥\nAPI_KEY=your_api_key_here\n```\n\n{{#if includeCI}}\n**GitHub Actions CI/CD (.github/workflows/main.yml)：**\n\n```yaml\nname: CI\n\non:\n  push:\n    branches: [ main ]\n  pull_request:\n    branches: [ main ]\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n    \n    steps:\n    - uses: actions/checkout@v3\n    \n    - name: Set up Python\n      uses: actions/setup-python@v4\n      with:\n        python-version: '{{pythonVersion}}'\n    \n    - name: Install dependencies\n      run: |\n        python -m pip install --upgrade pip\n        pip install -r requirements.txt\n    \n    - name: Run tests\n      run: |\n        pytest --cov=. --cov-report=xml\n    \n    - name: Code quality\n      run: |\n        black --check .\n        flake8 .\n```\n{{/if}}\n\n**开发建议：**\n\n1. **项目结构最佳实践**\n   - 使用模块化设计\n   - 分离业务逻辑和数据访问层\n   - 使用环境变量管理配置\n\n2. **测试**\n   - 单元测试覆盖率 > 80%\n   - 使用 pytest fixtures\n   - Mock 外部依赖\n\n3. **代码质量**\n   - 遵循 PEP 8 规范\n   - 使用类型提示\n   - 编写文档字符串\n\n4. **版本控制**\n   - 使用语义化版本\n   - 编写清晰的 commit message\n   - 使用 PR 进行代码审查",
+  "prompt_template": "请帮我生成Python项目初始化方案，要求：\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 项目类型：{{projectType}}\n- Python版本：{{pythonVersion}}\n- 包管理工具：{{packageManager}}\n\n**项目结构：**\n\n```\n{{projectName}}/\n├── README.md\n├── requirements.txt 或 pyproject.toml\n├── .gitignore\n├── .env.example\n│\n{{#eq projectType \"Web应用\"}}\n├── app/\n│   ├── __init__.py\n│   ├── main.py\n│   ├── models/\n│   ├── routes/\n│   ├── services/\n│   └── utils/\n{{/eq}}\n│\n{{#eq projectType \"CLI工具\"}}\n├── src/\n│   ├── __init__.py\n│   ├── cli.py\n│   ├── commands/\n│   └── utils/\n{{/eq}}\n│\n{{#eq projectType \"数据分析\"}}\n├── data/\n│   ├── raw/\n│   └── processed/\n├── notebooks/\n├── src/\n│   ├── data/\n│   ├── features/\n│   ├── models/\n│   └── visualization/\n{{/eq}}\n│\n├── tests/\n│   ├── __init__.py\n│   └── test_*.py\n│\n├── docs/\n└── scripts/\n```\n\n**README.md内容：**\n\n```markdown\n# {{projectName}}\n\n{{projectDescription}}\n\n## 功能特性\n\n- 功能1\n- 功能2\n- 功能3\n\n## 技术栈\n\n- Python {{pythonVersion}}\n{{#if useFramework}}\n- 框架：{{framework}}\n{{/if}}\n- 数据库：{{database}}\n\n## 快速开始\n\n### 环境要求\n\n- Python {{pythonVersion}}+\n{{#eq packageManager \"pip\"}}\n- pip\n{{/eq}}\n{{#eq packageManager \"poetry\"}}\n- Poetry\n{{/eq}}\n\n### 安装\n\n```bash\n# 克隆项目\ngit clone https://github.com/yourname/{{projectName}}.git\ncd {{projectName}}\n\n# 创建虚拟环境\npython -m venv venv\nsource venv/bin/activate  # Windows: venv\\Scripts\\activate\n\n{{#eq packageManager \"pip\"}}\n# 安装依赖\npip install -r requirements.txt\n{{/eq}}\n{{#eq packageManager \"poetry\"}}\n# 安装依赖\npoetry install\n{{/eq}}\n\n# 复制环境变量\ncp .env.example .env\n```\n\n### 运行\n\n```bash\n{{#eq projectType \"Web应用\"}}\npython -m app.main\n{{/eq}}\n{{#eq projectType \"CLI工具\"}}\npython -m src.cli\n{{/eq}}\n```\n\n### 测试\n\n```bash\npytest\n```\n\n## 开发\n\n### 代码规范\n\n- 使用 Black 格式化代码\n- 使用 Flake8 检查代码质量\n- 使用 mypy 进行类型检查\n\n```bash\nblack .\nflake8 .\nmypy .\n```\n\n## 部署\n\n[部署说明]\n\n## 许可证\n\nMIT\n```\n\n**requirements.txt：**\n\n{{#eq projectType \"Web应用\"}}\n```\nfastapi==0.104.0\nuvicorn[standard]==0.24.0\nsqlalchemy==2.0.23\npydantic==2.5.0\npython-dotenv==1.0.0\n{{/eq}}\n\n{{#eq projectType \"CLI工具\"}}\n```\nclick==8.1.7\nrich==13.7.0\n{{/eq}}\n\n{{#eq projectType \"数据分析\"}}\n```\npandas==2.1.3\nnumpy==1.26.2\nmatplotlib==3.8.2\nseaborn==0.13.0\njupyter==1.0.0\nscikit-learn==1.3.2\n{{/eq}}\n\n{{#if includeTesting}}\npytest==7.4.3\npytest-cov==4.1.0\n{{/if}}\n\n{{#if includeCodeQuality}}\nblack==23.11.0\nflake8==6.1.0\nmypy==1.7.1\n{{/if}}\n```\n\n**.gitignore：**\n\n```\n# Python\n__pycache__/\n*.py[cod]\n*$py.class\n*.so\n.Python\nvenv/\nENV/\nenv/\n.venv/\n\n# IDE\n.vscode/\n.idea/\n*.swp\n*.swo\n\n# 测试\n.pytest_cache/\n.coverage\nhtmlcov/\n\n# 环境变量\n.env\n\n# 数据\ndata/raw/\ndata/processed/\n*.db\n*.sqlite\n\n# 日志\n*.log\n```\n\n**.env.example：**\n\n```\n# 应用配置\nAPP_NAME={{projectName}}\nENVIRONMENT=development\nDEBUG=True\n\n# 数据库\nDATABASE_URL=sqlite:///./dev.db\n\n# API密钥\nAPI_KEY=your_api_key_here\n```\n\n{{#if includeCI}}\n**GitHub Actions CI/CD (.github/workflows/main.yml)：**\n\n```yaml\nname: CI\n\non:\n  push:\n    branches: [ main ]\n  pull_request:\n    branches: [ main ]\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n    \n    steps:\n    - uses: actions/checkout@v3\n    \n    - name: Set up Python\n      uses: actions/setup-python@v4\n      with:\n        python-version: '{{pythonVersion}}'\n    \n    - name: Install dependencies\n      run: |\n        python -m pip install --upgrade pip\n        pip install -r requirements.txt\n    \n    - name: Run tests\n      run: |\n        pytest --cov=. --cov-report=xml\n    \n    - name: Code quality\n      run: |\n        black --check .\n        flake8 .\n```\n{{/if}}\n\n**开发建议：**\n\n1. **项目结构最佳实践**\n   - 使用模块化设计\n   - 分离业务逻辑和数据访问层\n   - 使用环境变量管理配置\n\n2. **测试**\n   - 单元测试覆盖率 > 80%\n   - 使用 pytest fixtures\n   - Mock 外部依赖\n\n3. **代码质量**\n   - 遵循 PEP 8 规范\n   - 使用类型提示\n   - 编写文档字符串\n\n4. **版本控制**\n   - 使用语义化版本\n   - 编写清晰的 commit message\n   - 使用 PR 进行代码审查",
   "variables_schema": [
-    {"name": "projectName", "label": "项目名称", "type": "string", "required": true, "placeholder": "例如：my-awesome-app"},
-    {"name": "projectType", "label": "项目类型", "type": "select", "required": true, "options": [
-      {"value": "Web应用", "label": "Web应用（FastAPI/Django）"},
-      {"value": "CLI工具", "label": "CLI工具"},
-      {"value": "数据分析", "label": "数据分析"}
-    ]},
-    {"name": "pythonVersion", "label": "Python版本", "type": "select", "required": false, "default": "3.11", "options": [
-      {"value": "3.9", "label": "3.9"},
-      {"value": "3.10", "label": "3.10"},
-      {"value": "3.11", "label": "3.11"},
-      {"value": "3.12", "label": "3.12"}
-    ]},
-    {"name": "packageManager", "label": "包管理工具", "type": "select", "required": false, "default": "pip", "options": [
-      {"value": "pip", "label": "pip + requirements.txt"},
-      {"value": "poetry", "label": "Poetry"}
-    ]},
-    {"name": "includeTesting", "label": "包含测试框架", "type": "select", "required": false, "default": "是", "options": [
-      {"value": "是", "label": "包含pytest"},
-      {"value": "否", "label": "不包含"}
-    ]},
-    {"name": "includeCodeQuality", "label": "包含代码质量工具", "type": "select", "required": false, "default": "是", "options": [
-      {"value": "是", "label": "包含Black/Flake8/mypy"},
-      {"value": "否", "label": "不包含"}
-    ]},
-    {"name": "includeCI", "label": "包含CI/CD配置", "type": "select", "required": false, "default": "否", "options": [
-      {"value": "是", "label": "包含GitHub Actions"},
-      {"value": "否", "label": "不包含"}
-    ]}
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：my-awesome-app"
+    },
+    {
+      "name": "projectType",
+      "label": "项目类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "Web应用",
+          "label": "Web应用（FastAPI/Django）"
+        },
+        {
+          "value": "CLI工具",
+          "label": "CLI工具"
+        },
+        {
+          "value": "数据分析",
+          "label": "数据分析"
+        }
+      ]
+    },
+    {
+      "name": "pythonVersion",
+      "label": "Python版本",
+      "type": "select",
+      "required": false,
+      "default": "3.11",
+      "options": [
+        {
+          "value": "3.9",
+          "label": "3.9"
+        },
+        {
+          "value": "3.10",
+          "label": "3.10"
+        },
+        {
+          "value": "3.11",
+          "label": "3.11"
+        },
+        {
+          "value": "3.12",
+          "label": "3.12"
+        }
+      ]
+    },
+    {
+      "name": "packageManager",
+      "label": "包管理工具",
+      "type": "select",
+      "required": false,
+      "default": "pip",
+      "options": [
+        {
+          "value": "pip",
+          "label": "pip + requirements.txt"
+        },
+        {
+          "value": "poetry",
+          "label": "Poetry"
+        }
+      ]
+    },
+    {
+      "name": "includeTesting",
+      "label": "包含测试框架",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含pytest"
+        },
+        {
+          "value": "否",
+          "label": "不包含"
+        }
+      ]
+    },
+    {
+      "name": "includeCodeQuality",
+      "label": "包含代码质量工具",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含Black/Flake8/mypy"
+        },
+        {
+          "value": "否",
+          "label": "不包含"
+        }
+      ]
+    },
+    {
+      "name": "includeCI",
+      "label": "包含CI/CD配置",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含GitHub Actions"
+        },
+        {
+          "value": "否",
+          "label": "不包含"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "{{projectName}}",
     "files": [
-      {"path": "README.md", "type": "markdown"},
-      {"path": "requirements.txt", "type": "document"},
-      {"path": ".gitignore", "type": "document"},
-      {"path": ".env.example", "type": "document"}
+      {
+        "path": "README.md",
+        "type": "markdown"
+      },
+      {
+        "path": "requirements.txt",
+        "type": "document"
+      },
+      {
+        "path": ".gitignore",
+        "type": "document"
+      },
+      {
+        "path": ".env.example",
+        "type": "document"
+      }
     ]
   },
   "default_files": [],

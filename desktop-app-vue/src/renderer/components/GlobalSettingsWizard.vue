@@ -108,6 +108,24 @@
       </div>
     </div>
 
+    <!-- 导入导出按钮 -->
+    <div v-if="canSkip" class="wizard-import-export">
+      <a-space>
+        <a-button @click="handleImport" :loading="importing">
+          <template #icon>
+            <ImportOutlined />
+          </template>
+          导入配置
+        </a-button>
+        <a-button @click="handleExport" :loading="exporting">
+          <template #icon>
+            <ExportOutlined />
+          </template>
+          导出配置
+        </a-button>
+      </a-space>
+    </div>
+
     <div class="wizard-actions">
       <a-button v-if="currentStep > 0" @click="prevStep">
         上一步
@@ -137,6 +155,8 @@ import { message } from 'ant-design-vue';
 import {
   RocketOutlined,
   CheckCircleOutlined,
+  ImportOutlined,
+  ExportOutlined,
 } from '@ant-design/icons-vue';
 import EditionSelector from './settings/EditionSelector.vue';
 import PathSelector from './settings/PathSelector.vue';
@@ -157,6 +177,8 @@ const emit = defineEmits(['complete', 'cancel']);
 
 const currentStep = ref(0);
 const saving = ref(false);
+const importing = ref(false);
+const exporting = ref(false);
 
 const formState = reactive({
   edition: 'personal',
@@ -274,6 +296,70 @@ const handleCancel = () => {
     emit('cancel');
   }
 };
+
+// 导出配置
+const handleExport = async () => {
+  try {
+    exporting.value = true;
+    const result = await window.electronAPI.initialSetup.exportConfig();
+
+    if (result.success) {
+      message.success(`配置已导出到: ${result.filePath}`);
+    } else if (!result.canceled) {
+      message.error('导出配置失败: ' + (result.error || '未知错误'));
+    }
+  } catch (error) {
+    console.error('导出配置失败:', error);
+    message.error('导出配置失败: ' + error.message);
+  } finally {
+    exporting.value = false;
+  }
+};
+
+// 导入配置
+const handleImport = async () => {
+  try {
+    importing.value = true;
+    const result = await window.electronAPI.initialSetup.importConfig();
+
+    if (result.success) {
+      // 应用导入的配置到表单
+      const config = result.config;
+      if (config.edition) {
+        formState.edition = config.edition;
+      }
+      if (config.paths) {
+        formState.projectPath = config.paths.projectRoot || '';
+        formState.databasePath = config.paths.database || '';
+      }
+      if (config.llm) {
+        formState.llm = {
+          mode: 'simple',
+          provider: config.llm.provider || 'ollama',
+          apiKey: config.llm.apiKey || '',
+          baseUrl: config.llm.baseUrl || '',
+          model: config.llm.model || '',
+        };
+      }
+      if (config.enterprise) {
+        formState.enterpriseConfig = {
+          serverUrl: config.enterprise.serverUrl || '',
+          tenantId: config.enterprise.tenantId || '',
+          apiKey: config.enterprise.apiKey || '',
+        };
+      }
+
+      message.success('配置已导入！请检查各项设置');
+    } else if (!result.canceled) {
+      message.error('导入配置失败: ' + (result.error || '未知错误'));
+    }
+  } catch (error) {
+    console.error('导入配置失败:', error);
+    message.error('导入配置失败: ' + error.message);
+  } finally {
+    importing.value = false;
+  }
+};
 </script>
 
 <style scoped>
@@ -313,6 +399,14 @@ const handleCancel = () => {
 
 .welcome-text p {
   margin: 8px 0;
+}
+
+.wizard-import-export {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .wizard-actions {

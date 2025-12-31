@@ -4,27 +4,73 @@
   "display_name": "音乐制作项目",
   "description": "完整的音乐制作项目计划，从编曲到混音母带",
   "icon": "🎧",
-  "category": "music",
+  "category": "creative-writing",
   "subcategory": "production",
-  "tags": ["音乐制作", "编曲", "混音", "DAW"],
+  "tags": [
+    "音乐制作",
+    "编曲",
+    "混音",
+    "DAW"
+  ],
   "project_type": "document",
   "prompt_template": "音乐制作项目\n\n**项目信息：**\n- 歌曲名称：{{songName}}\n- 风格：{{genre}}\n- BPM：{{bpm}}\n- 调式：{{key}}\n\n# 音乐制作流程\n\n## 编曲阶段\n\n**DAW：**{{daw}}\n**工程设置：**\n- 采样率：{{sampleRate}} kHz\n- 位深：{{bitDepth}} bit\n- BPM：{{bpm}}\n\n### 乐器编排\n\n**鼓组：**{{drums}}\n**贝斯：**{{bass}}\n**和声：**{{chords}}\n**主旋律：**{{melody}}\n**氛围音：**{{pads}}\n\n## 录音阶段\n\n**人声录音：**\n- 麦克风：{{microphone}}\n- 前置放大：{{preamp}}\n- 采样率：{{recordSampleRate}}\n\n## 混音阶段\n\n### 音轨处理\n1. EQ均衡\n2. 压缩动态\n3. 混响空间\n4. 延迟效果\n\n### 自动化\n- 音量自动化\n- 效果器自动化\n\n## 母带处理\n\n**目标响度：**{{loudness}} LUFS\n**峰值限制：**{{peakLimit}} dB\n\n## 导出设置\n\n**格式：**WAV ({{exportBitDepth}}-bit/{{exportSampleRate}}kHz)\n**备份：**MP3 320kbps",
   "variables_schema": [
-    {"name": "songName", "label": "歌曲名称", "type": "string", "required": true},
-    {"name": "genre", "label": "音乐风格", "type": "select", "required": false, "options": [
-      {"value": "流行", "label": "流行"},
-      {"value": "电子", "label": "电子"},
-      {"value": "摇滚", "label": "摇滚"},
-      {"value": "R&B", "label": "R&B"}
-    ]},
-    {"name": "bpm", "label": "BPM（节拍）", "type": "number", "required": false, "default": 120},
-    {"name": "key", "label": "调式", "type": "string", "required": false, "placeholder": "例如：C大调"}
+    {
+      "name": "songName",
+      "label": "歌曲名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "genre",
+      "label": "音乐风格",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "流行",
+          "label": "流行"
+        },
+        {
+          "value": "电子",
+          "label": "电子"
+        },
+        {
+          "value": "摇滚",
+          "label": "摇滚"
+        },
+        {
+          "value": "R&B",
+          "label": "R&B"
+        }
+      ]
+    },
+    {
+      "name": "bpm",
+      "label": "BPM（节拍）",
+      "type": "number",
+      "required": false,
+      "default": 120
+    },
+    {
+      "name": "key",
+      "label": "调式",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：C大调"
+    }
   ],
   "file_structure": {
     "root": "制作-{{songName}}",
     "files": [
-      {"path": "项目文件/", "type": "folder"},
-      {"path": "混音笔记.md", "type": "markdown"}
+      {
+        "path": "项目文件/",
+        "type": "folder"
+      },
+      {
+        "path": "混音笔记.md",
+        "type": "markdown"
+      }
     ]
   },
   "default_files": [],

@@ -279,6 +279,28 @@ const handleLogin = async () => {
     loading.value = false;
   }
 };
+
+// 设置完成处理
+const handleSettingsComplete = async () => {
+  showSettings.value = false;
+  message.success('设置已保存，部分配置需要重启应用后生效');
+
+  // 询问是否立即重启
+  Modal.confirm({
+    title: '需要重启应用',
+    content: '配置已更新，是否立即重启应用使配置生效？',
+    okText: '立即重启',
+    cancelText: '稍后重启',
+    onOk: async () => {
+      try {
+        await window.electronAPI.app.restart();
+      } catch (error) {
+        console.error('重启应用失败:', error);
+        message.error('重启失败，请手动重启应用');
+      }
+    },
+  });
+};
 </script>
 
 <style scoped>
@@ -294,6 +316,14 @@ const handleLogin = async () => {
   width: 400px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   animation: fadeIn 0.3s ease-in;
+  position: relative;
+}
+
+.settings-trigger {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1;
 }
 
 .login-header {

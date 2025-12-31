@@ -1,0 +1,34 @@
+{
+  "id": "tpl_web_app_prd_003",
+  "name": "web_app_prd",
+  "display_name": "Web应用PRD",
+  "description": "Web应用产品需求文档，包含功能规格、用户故事和技术要求",
+  "icon": "📱",
+  "category": "web",
+  "subcategory": "product",
+  "tags": ["PRD", "产品文档", "需求分析", "Web应用"],
+  "project_type": "document",
+  "prompt_template": "Web应用产品需求文档\n\n**产品信息：**\n- 产品名称：{{productName}}\n- 产品类型：{{productType}}\n- 目标用户：{{targetUsers}}\n- 版本：{{version}}\n\n# PRD：{{productName}}\n\n## 产品概述\n\n**一句话描述：**{{oneLiner}}\n\n**产品定位：**{{positioning}}\n\n**核心价值：**\n用户能通过本产品{{coreValue}}\n\n## 目标用户\n\n**主要用户画像：**\n- 年龄：{{userAge}}\n- 职业：{{userOccupation}}\n- 痛点：{{userPainPoints}}\n- 使用场景：{{useScenarios}}\n\n## 功能需求\n\n### 核心功能\n\n**1. {{feature1}}**\n- 优先级：P0\n- 用户故事：作为{{user1}}，我希望{{goal1}}，以便{{benefit1}}\n- 验收标准：\n  - {{ac1_1}}\n  - {{ac1_2}}\n\n**2. {{feature2}}**\n- 优先级：P0\n- 用户故事：{{userStory2}}\n\n**3. {{feature3}}**\n- 优先级：P1\n\n### 功能列表\n\n| 功能模块 | 优先级 | 说明 | 版本 |\n|---------|-------|------|------|\n| {{module1}} | P0 | {{desc1}} | v1.0 |\n| {{module2}} | P0 | {{desc2}} | v1.0 |\n| {{module3}} | P1 | {{desc3}} | v1.1 |\n\n## 页面结构\n\n**站点地图：**\n```\n首页\n├── 注册/登录\n├── {{page1}}\n│   ├── {{subpage1_1}}\n│   └── {{subpage1_2}}\n├── {{page2}}\n└── 个人中心\n    ├── 设置\n    └── {{profilePage}}\n```\n\n## 交互设计\n\n**关键交互流程：**\n\n### 用户注册流程\n1. 输入邮箱/手机号\n2. 验证码验证\n3. 设置密码\n4. 完善信息\n5. 注册成功\n\n### {{keyFlow}}流程\n{{flowSteps}}\n\n## 技术要求\n\n**前端技术栈：**\n- 框架：{{frontendFramework}}\n- UI组件库：{{uiLibrary}}\n- 状态管理：{{stateManagement}}\n\n**后端技术栈：**\n- 语言：{{backendLanguage}}\n- 框架：{{backendFramework}}\n- 数据库：{{database}}\n\n**性能要求：**\n- 首屏加载：<{{loadTime}}s\n- 接口响应：<{{apiResponseTime}}ms\n- 支持并发：{{concurrentUsers}}人\n\n**浏览器兼容：**\n- Chrome (最新版)\n- Safari (最新版)\n- Firefox (最新版)\n- Edge (最新版)\n\n## 非功能需求\n\n**安全性：**\n- HTTPS加密\n- 密码加密存储\n- SQL注入防护\n- XSS防护\n- CSRF防护\n\n**可用性：**\n- 系统可用性：{{availability}}%\n- 数据备份：每日备份\n\n**可扩展性：**\n- 模块化设计\n- API标准化\n\n## 数据模型\n\n**核心数据表：**\n\n### 用户表 (users)\n- id\n- email\n- password_hash\n- created_at\n- updated_at\n\n### {{dataModel1}}\n{{fields1}}\n\n## 项目计划\n\n**里程碑：**\n\n| 阶段 | 时间 | 交付物 |\n|------|------|--------|\n| 需求分析 | Week 1 | PRD文档 |\n| 设计 | Week 2-3 | UI设计稿 |\n| 开发 | Week 4-8 | v1.0 Beta |\n| 测试 | Week 9 | 测试报告 |\n| 上线 | Week 10 | v1.0正式版 |\n\n**团队配置：**\n- 产品经理：1人\n- UI设计师：1人\n- 前端开发：{{frontendDevs}}人\n- 后端开发：{{backendDevs}}人\n- 测试：1人\n\n## 成功指标\n\n**KPI：**\n- 注册用户数：{{targetUsers}}+\n- DAU：{{dauTarget}}\n- 留存率（7日）：{{retentionRate}}%+\n- {{customKPI}}\n\n## 风险与对策\n\n**技术风险：**\n- 风险：{{techRisk}}\n- 对策：{{techMitigation}}\n\n**市场风险：**\n- 风险：{{marketRisk}}\n- 对策：{{marketMitigation}}",
+  "variables_schema": [
+    {"name": "productName", "label": "产品名称", "type": "string", "required": true},
+    {"name": "productType", "label": "产品类型", "type": "select", "required": false, "options": [
+      {"value": "SaaS工具", "label": "SaaS工具"},
+      {"value": "社交平台", "label": "社交平台"},
+      {"value": "电商平台", "label": "电商平台"},
+      {"value": "内容平台", "label": "内容平台"},
+      {"value": "企业应用", "label": "企业应用"}
+    ]},
+    {"name": "version", "label": "版本号", "type": "string", "required": false, "default": "v1.0"}
+  ],
+  "file_structure": {
+    "root": "PRD-{{productName}}",
+    "files": [
+      {"path": "PRD.docx", "type": "document"},
+      {"path": "流程图/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

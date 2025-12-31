@@ -4,33 +4,104 @@
   "display_name": "每日计划",
   "description": "每日工作计划模板，包含任务清单、时间安排、优先级管理、每日回顾等",
   "icon": "📝",
-  "category": "time-management",
+  "category": "productivity",
   "subcategory": "日常计划",
-  "tags": ["每日计划", "日程安排", "待办清单", "时间管理"],
+  "tags": [
+    "每日计划",
+    "日程安排",
+    "待办清单",
+    "时间管理"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我生成每日计划，要求:\n\n# {{planDate}} 每日计划\n\n**日期**: {{planDate}}\n**星期**: {{dayOfWeek}}\n**天气**: {{weather}}\n**今日主题**: {{dailyTheme}}\n\n---\n\n## 🌅 晨间准备\n\n### 今日目标\n\n**今天最重要的3件事（MIT - Most Important Things）**:\n\n1. ⭐ {{mit1}}\n2. ⭐ {{mit2}}\n3. ⭐ {{mit3}}\n\n### 今日愿景\n\n{{dailyVision}}\n\n### 感恩事项\n\n- {{gratitude1}}\n- {{gratitude2}}\n- {{gratitude3}}\n\n---\n\n## 📋 任务清单\n\n### 高优先级（必须完成）\n\n- [ ] **{{taskA1}}** - 预计{{taskA1Time}}分钟 #{{taskA1Tag}}\n- [ ] **{{taskA2}}** - 预计{{taskA2Time}}分钟 #{{taskA2Tag}}\n- [ ] **{{taskA3}}** - 预计{{taskA3Time}}分钟 #{{taskA3Tag}}\n\n### 中优先级（应该完成）\n\n- [ ] {{taskB1}} - 预计{{taskB1Time}}分钟\n- [ ] {{taskB2}} - 预计{{taskB2Time}}分钟\n- [ ] {{taskB3}} - 预计{{taskB3Time}}分钟\n\n### 低优先级（可选）\n\n- [ ] {{taskC1}}\n- [ ] {{taskC2}}\n- [ ] {{taskC3}}\n\n### 例行事项\n\n- [ ] {{routine1}}\n- [ ] {{routine2}}\n- [ ] {{routine3}}\n\n---\n\n## ⏰ 时间安排\n\n### 上午（06:00-12:00）\n\n| 时间 | 活动 | 类型 | 状态 |\n|------|------|------|------|\n| {{am1Time}} | {{am1Activity}} | {{am1Type}} | ☐ |\n| {{am2Time}} | {{am2Activity}} | {{am2Type}} | ☐ |\n| {{am3Time}} | {{am3Activity}} | {{am3Type}} | ☐ |\n| {{am4Time}} | {{am4Activity}} | {{am4Type}} | ☐ |\n\n### 下午（12:00-18:00）\n\n| 时间 | 活动 | 类型 | 状态 |\n|------|------|------|------|\n| {{pm1Time}} | {{pm1Activity}} | {{pm1Type}} | ☐ |\n| {{pm2Time}} | {{pm2Activity}} | {{pm2Type}} | ☐ |\n| {{pm3Time}} | {{pm3Activity}} | {{pm3Type}} | ☐ |\n| {{pm4Time}} | {{pm4Activity}} | {{pm4Type}} | ☐ |\n\n### 晚上（18:00-22:00）\n\n| 时间 | 活动 | 类型 | 状态 |\n|------|------|------|------|\n| {{eve1Time}} | {{eve1Activity}} | {{eve1Type}} | ☐ |\n| {{eve2Time}} | {{eve2Activity}} | {{eve2Type}} | ☐ |\n| {{eve3Time}} | {{eve3Activity}} | {{eve3Type}} | ☐ |\n\n---\n\n## 📞 会议安排\n\n### 会议1\n\n**时间**: {{meeting1Time}}\n**主题**: {{meeting1Topic}}\n**参与者**: {{meeting1Attendees}}\n**地点**: {{meeting1Location}}\n**准备事项**:\n- {{meeting1Prep1}}\n- {{meeting1Prep2}}\n\n### 会议2\n\n**时间**: {{meeting2Time}}\n**主题**: {{meeting2Topic}}\n**参与者**: {{meeting2Attendees}}\n\n---\n\n## 🎯 专注时间块\n\n### 深度工作时段1\n\n**时间**: {{focus1Time}}\n**任务**: {{focus1Task}}\n**环境**: 关闭通知、专注模式\n**工具**: {{focus1Tools}}\n\n### 深度工作时段2\n\n**时间**: {{focus2Time}}\n**任务**: {{focus2Task}}\n\n---\n\n## 📞 待联系人员\n\n- [ ] {{contact1}} - 事项：{{contact1Matter}}\n- [ ] {{contact2}} - 事项：{{contact2Matter}}\n- [ ] {{contact3}} - 事项：{{contact3Matter}}\n\n---\n\n## 💡 今日学习\n\n**学习主题**: {{learningTopic}}\n**学习时间**: {{learningTime}}\n**学习资源**: {{learningResources}}\n\n---\n\n## 🏃 健康习惯\n\n### 运动\n\n- [ ] {{exercise}} - {{exerciseTime}}\n\n### 饮食\n\n- 早餐: {{breakfast}}\n- 午餐: {{lunch}}\n- 晚餐: {{dinner}}\n- 饮水: {{waterIntake}}L\n\n### 休息\n\n- [ ] 午休 {{napTime}}\n- [ ] 眼保健操\n- [ ] 伸展运动\n\n---\n\n## 📊 时间预算\n\n**总可用时间**: {{totalAvailableTime}}h\n\n**时间分配**:\n- 深度工作: {{deepWorkTime}}h ({{deepWorkPercent}}%)\n- 会议: {{meetingTime}}h ({{meetingPercent}}%)\n- 沟通协作: {{communicationTime}}h ({{communicationPercent}}%)\n- 学习: {{learningTimeH}}h ({{learningPercent}}%)\n- 休息: {{breakTime}}h ({{breakPercent}}%)\n- 其他: {{otherTime}}h ({{otherPercent}}%)\n\n---\n\n## ⚠️ 注意事项\n\n### 重要提醒\n\n{{importantReminders}}\n\n### 截止日期\n\n{{deadlines}}\n\n### 潜在干扰\n\n{{potentialDistractions}}\n\n---\n\n## 🌙 晚间回顾（当天结束时填写）\n\n### 完成情况\n\n**MIT完成**: {{mitCompleted}}/3\n**任务完成**: {{tasksCompleted}}/{{totalTasks}}\n**完成率**: {{completionRate}}%\n\n### 今日亮点\n\n{{todayHighlights}}\n\n### 遇到的问题\n\n{{todayProblems}}\n\n### 未完成事项\n\n{{unfinishedTasks}}\n\n### 转移到明天\n\n{{carryOverTasks}}\n\n### 今日学到的\n\n{{todayLearnings}}\n\n### 感谢的人\n\n{{gratefulFor}}\n\n### 自我评分\n\n**生产力**: {{productivityScore}}/10\n**专注度**: {{focusScore}}/10\n**满意度**: {{satisfactionScore}}/10\n**精力水平**: {{energyScore}}/10\n\n### 明日改进\n\n{{tomorrowImprovements}}\n\n---\n\n## 📈 个人指标跟踪\n\n### 习惯打卡\n\n- [ ] {{habit1}}\n- [ ] {{habit2}}\n- [ ] {{habit3}}\n- [ ] {{habit4}}\n\n### 数据记录\n\n- 番茄钟: {{pomodoroCount}}个\n- 运动时长: {{exerciseDuration}}分钟\n- 阅读时长: {{readingDuration}}分钟\n- 屏幕时间: {{screenTime}}小时\n\n---\n\n## 💭 随手记录\n\n### 灵感想法\n\n{{ideas}}\n\n### 待整理事项\n\n{{inboxItems}}\n\n### 备忘录\n\n{{notes}}\n\n---\n\n## 附录\n\n### 明日预览\n\n**明日重点**: {{tomorrowPreview}}\n\n### 本周进度\n\n**周目标完成**: {{weekProgress}}%\n\n---\n\n**计划制定时间**: {{#if planTime}}{{planTime}}{{else}}前一晚或当天早晨{{/if}}\n**回顾时间**: {{#if reviewTime}}{{reviewTime}}{{else}}当晚睡前{{/if}}",
   "variables_schema": [
-    {"name": "planDate", "type": "text", "label": "日期", "default": "2024-01-01", "required": true},
-    {"name": "dayOfWeek", "type": "select", "label": "星期", "default": "周一", "required": true, "options": [
-      {"value": "周一", "label": "周一"},
-      {"value": "周二", "label": "周二"},
-      {"value": "周三", "label": "周三"},
-      {"value": "周四", "label": "周四"},
-      {"value": "周五", "label": "周五"},
-      {"value": "周六", "label": "周六"},
-      {"value": "周日", "label": "周日"}
-    ]},
-    {"name": "mit1", "type": "text", "label": "今日最重要的事1", "default": "完成重要任务", "required": true},
-    {"name": "mit2", "type": "text", "label": "今日最重要的事2", "default": "处理紧急事项", "required": true},
-    {"name": "mit3", "type": "text", "label": "今日最重要的事3", "default": "推进关键项目", "required": true},
-    {"name": "totalAvailableTime", "type": "text", "label": "总可用时间(h)", "default": "10", "required": true}
+    {
+      "name": "planDate",
+      "type": "text",
+      "label": "日期",
+      "default": "2024-01-01",
+      "required": true
+    },
+    {
+      "name": "dayOfWeek",
+      "type": "select",
+      "label": "星期",
+      "default": "周一",
+      "required": true,
+      "options": [
+        {
+          "value": "周一",
+          "label": "周一"
+        },
+        {
+          "value": "周二",
+          "label": "周二"
+        },
+        {
+          "value": "周三",
+          "label": "周三"
+        },
+        {
+          "value": "周四",
+          "label": "周四"
+        },
+        {
+          "value": "周五",
+          "label": "周五"
+        },
+        {
+          "value": "周六",
+          "label": "周六"
+        },
+        {
+          "value": "周日",
+          "label": "周日"
+        }
+      ]
+    },
+    {
+      "name": "mit1",
+      "type": "text",
+      "label": "今日最重要的事1",
+      "default": "完成重要任务",
+      "required": true
+    },
+    {
+      "name": "mit2",
+      "type": "text",
+      "label": "今日最重要的事2",
+      "default": "处理紧急事项",
+      "required": true
+    },
+    {
+      "name": "mit3",
+      "type": "text",
+      "label": "今日最重要的事3",
+      "default": "推进关键项目",
+      "required": true
+    },
+    {
+      "name": "totalAvailableTime",
+      "type": "text",
+      "label": "总可用时间(h)",
+      "default": "10",
+      "required": true
+    }
   ],
   "file_structure": {
     "type": "folder",
     "name": "每日计划_{{planDate}}",
     "children": [
-      {"type": "file", "name": "{{planDate}}_计划.md", "description": "每日计划"},
-      {"type": "file", "name": "晚间回顾.md", "description": "当日回顾"}
+      {
+        "type": "file",
+        "name": "{{planDate}}_计划.md",
+        "description": "每日计划"
+      },
+      {
+        "type": "file",
+        "name": "晚间回顾.md",
+        "description": "当日回顾"
+      }
     ]
   },
   "is_builtin": true,

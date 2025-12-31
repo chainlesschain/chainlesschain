@@ -113,6 +113,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     restart: () => ipcRenderer.invoke('app:restart'),
   },
 
+  // 初始设置
+  initialSetup: {
+    getStatus: () => ipcRenderer.invoke('initial-setup:get-status'),
+    getConfig: () => ipcRenderer.invoke('initial-setup:get-config'),
+    saveConfig: (config) => ipcRenderer.invoke('initial-setup:save-config', config),
+    complete: (config) => ipcRenderer.invoke('initial-setup:complete', config),
+    reset: () => ipcRenderer.invoke('initial-setup:reset'),
+    exportConfig: () => ipcRenderer.invoke('initial-setup:export-config'),
+    importConfig: () => ipcRenderer.invoke('initial-setup:import-config'),
+  },
+
   // LLM服务
   llm: {
     checkStatus: () => ipcRenderer.invoke('llm:check-status'),
