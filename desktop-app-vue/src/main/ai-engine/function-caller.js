@@ -18,6 +18,11 @@ const ExtendedTools10 = require('./extended-tools-10');
 const ExtendedTools11 = require('./extended-tools-11');
 const ExtendedTools12 = require('./extended-tools-12');
 
+// 新增：Office、数据科学、项目初始化工具
+const OfficeToolsHandler = require('./extended-tools-office');
+const DataScienceToolsHandler = require('./extended-tools-datascience');
+const ProjectToolsHandler = require('./extended-tools-project');
+
 class FunctionCaller {
   constructor() {
     // 注册的工具字典
@@ -515,6 +520,35 @@ function initializeInteractions() {
 
     // 注册第十二批扩展工具
     ExtendedTools12.registerAll(this);
+
+    // 注册Office工具（Word、Excel、PPT）
+    try {
+      const officeTools = new OfficeToolsHandler();
+      officeTools.register(this);
+      console.log('[FunctionCaller] ✓ Office工具已注册（6个工具）');
+    } catch (error) {
+      console.error('[FunctionCaller] Office工具注册失败:', error.message);
+    }
+
+    // 注册数据科学工具
+    try {
+      const dataScienceTools = new DataScienceToolsHandler();
+      dataScienceTools.register(this);
+      console.log('[FunctionCaller] ✓ 数据科学工具已注册（4个工具）');
+    } catch (error) {
+      console.error('[FunctionCaller] 数据科学工具注册失败:', error.message);
+    }
+
+    // 注册项目初始化工具
+    try {
+      const projectTools = new ProjectToolsHandler();
+      projectTools.register(this);
+      console.log('[FunctionCaller] ✓ 项目初始化工具已注册（6个工具）');
+    } catch (error) {
+      console.error('[FunctionCaller] 项目初始化工具注册失败:', error.message);
+    }
+
+    console.log('[FunctionCaller] 所有工具注册完成（包括16个新增工具）');
   }
 
   /**

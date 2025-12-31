@@ -62,6 +62,12 @@ const ChatSkillBridge = require('./skill-tool-system/chat-skill-bridge');
 // Database Encryption IPC
 const DatabaseEncryptionIPC = require('./database-encryption-ipc');
 
+// Initial Setup IPC
+const InitialSetupIPC = require('./initial-setup-ipc');
+
+// Identity Context Manager (Enterprise)
+const { getIdentityContextManager } = require('./identity/identity-context-manager');
+
 // 过滤不需要的控制台输出
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
@@ -215,6 +221,9 @@ class ChainlessChainApp {
     // Database Encryption IPC
     this.dbEncryptionIPC = null;
 
+    // Identity Context Manager (Enterprise)
+    this.identityContextManager = null;
+
     this.setupApp();
   }
 
@@ -235,6 +244,12 @@ class ChainlessChainApp {
 
     // 初始化数据库加密 IPC
     this.dbEncryptionIPC = new DatabaseEncryptionIPC(app);
+
+    // 初始化全局设置 IPC（在数据库初始化之前，因为可能需要设置数据库路径）
+    const { getAppConfig } = require('./app-config');
+    const { getLLMConfig } = require('./llm/llm-config');
+    // 注意：this.database 此时为 null，会在 onReady 中初始化后传入
+    this.initialSetupIPC = null;
 
     // 应用事件
     app.whenReady().then(() => this.onReady());
@@ -280,6 +295,18 @@ class ChainlessChainApp {
       // 设置数据库加密 IPC 的数据库引用
       if (this.dbEncryptionIPC) {
         this.dbEncryptionIPC.setDatabaseManager(this.database);
+      }
+
+      // 初始化全局设置 IPC（在数据库初始化之后）
+      if (!this.initialSetupIPC) {
+        const { getAppConfig } = require('./app-config');
+        const { getLLMConfig } = require('./llm/llm-config');
+        this.initialSetupIPC = new InitialSetupIPC(
+          app,
+          this.database,
+          getAppConfig(),
+          getLLMConfig()
+        );
       }
 
       // 初始化知识图谱提取器
@@ -524,6 +551,27 @@ class ChainlessChainApp {
       console.log('联系人管理器初始化成功');
     } catch (error) {
       console.error('联系人管理器初始化失败:', error);
+    }
+
+    // 初始化身份上下文管理器（企业版）
+    try {
+      console.log('初始化身份上下文管理器...');
+      const dataDir = path.join(app.getPath('userData'), 'data');
+      this.identityContextManager = getIdentityContextManager(dataDir);
+      await this.identityContextManager.initialize();
+
+      // 确保个人上下文存在
+      if (this.didManager) {
+        const currentDID = await this.didManager.getCurrentDID();
+        if (currentDID) {
+          await this.identityContextManager.createPersonalContext(currentDID, '个人');
+        }
+      }
+
+      console.log('身份上下文管理器初始化成功');
+    } catch (error) {
+      console.error('身份上下文管理器初始化失败:', error);
+      // 身份上下文管理器初始化失败不影响应用启动
     }
 
     // 初始化组织管理器（企业版）
