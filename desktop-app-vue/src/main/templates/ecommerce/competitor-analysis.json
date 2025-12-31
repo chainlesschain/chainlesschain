@@ -1,0 +1,62 @@
+{
+  "id": "tpl_ecommerce_competitor_007",
+  "name": "competitor_analysis",
+  "display_name": "电商竞品分析",
+  "description": "竞争对手分析框架，包含产品对比、价格策略、运营分析和差异化定位",
+  "icon": "🔍",
+  "category": "ecommerce",
+  "subcategory": "strategy",
+  "tags": [
+    "竞品分析",
+    "市场调研",
+    "对标分析",
+    "差异化"
+  ],
+  "project_type": "document",
+  "prompt_template": "电商竞品分析报告\n\n**分析信息：**\n- 我方产品：{{ourProduct}}\n- 主要竞品：{{competitorProduct}}\n- 分析目的：{{analysisGoal}}\n- 平台：{{platform}}\n\n# 竞品分析完整报告\n\n## 执行摘要\n\n**分析日期：** {{analysisDate}}\n**分析对象：** {{competitorProduct}}\n**分析维度：** 产品、价格、流量、运营、用户评价\n\n**核心发现：**\n1. {{keyFinding1}}\n2. {{keyFinding2}}\n3. {{keyFinding3}}\n\n---\n\n## 1. 竞品基础信息\n\n### 1.1 店铺概况\n\n**我方店铺：**\n- 店铺名称：{{ourStoreName}}\n- 开店时间：{{ourStoreAge}}\n- 粉丝数：{{ourFollowers}}\n- 店铺评分：{{ourStoreRating}}/5.0\n- 主营类目：{{ourCategory}}\n\n**竞品店铺：**\n- 店铺名称：{{competitorStoreName}}\n- 开店时间：{{competitorStoreAge}}\n- 粉丝数：{{competitorFollowers}}\n- 店铺评分：{{competitorStoreRating}}/5.0\n- 主营类目：{{competitorCategory}}\n\n### 1.2 产品基本信息对比\n\n| 维度 | 我方 | 竞品 | 对比 |\n|------|------|------|------|\n| 产品名称 | {{ourProduct}} | {{competitorProduct}} | - |\n| SKU数量 | {{ourSKU}} | {{competitorSKU}} | {{skuComparison}} |\n| 月销量 | {{ourMonthlySales}} | {{competitorMonthlySales}} | {{salesComparison}} |\n| 累计销量 | {{ourTotalSales}} | {{competitorTotalSales}} | {{totalSalesComparison}} |\n| 上架时间 | {{ourListingDate}} | {{competitorListingDate}} | {{dateComparison}} |\n\n---\n\n## 2. 产品对比分析\n\n### 2.1 产品定位\n\n**我方产品定位：**\n{{ourProductPositioning}}\n\n**竞品产品定位：**\n{{competitorProductPositioning}}\n\n**定位差异：**\n{{positioningDifference}}\n\n### 2.2 核心卖点对比\n\n**我方卖点：**\n1. {{ourUSP1}}\n2. {{ourUSP2}}\n3. {{ourUSP3}}\n\n**竞品卖点：**\n1. {{competitorUSP1}}\n2. {{competitorUSP2}}\n3. {{competitorUSP3}}\n\n**卖点分析：**\n{{uspAnalysis}}\n\n### 2.3 产品规格对比\n\n| 规格参数 | 我方 | 竞品 | 优劣势 |\n|----------|------|------|--------|\n| {{spec1Name}} | {{ourSpec1}} | {{competitorSpec1}} | {{spec1Comparison}} |\n| {{spec2Name}} | {{ourSpec2}} | {{competitorSpec2}} | {{spec2Comparison}} |\n| {{spec3Name}} | {{ourSpec3}} | {{competitorSpec3}} | {{spec3Comparison}} |\n| {{spec4Name}} | {{ourSpec4}} | {{competitorSpec4}} | {{spec4Comparison}} |\n\n### 2.4 包装与设计\n\n**我方：**\n- 包装风格：{{ourPackaging}}\n- 设计亮点：{{ourDesign}}\n\n**竞品：**\n- 包装风格：{{competitorPackaging}}\n- 设计亮点：{{competitorDesign}}\n\n**设计评价：**\n{{designEvaluation}}\n\n---\n\n## 3. 价格策略分析\n\n### 3.1 价格对比\n\n**基础价格：**\n- 我方售价：¥{{ourPrice}}\n- 竞品售价：¥{{competitorPrice}}\n- 价差：{{priceDifference}}\n- 价格策略：{{priceStrategy}}\n\n**促销价格：**\n- 我方促销价：¥{{ourPromotionPrice}}\n- 竞品促销价：¥{{competitorPromotionPrice}}\n- 促销折扣：{{discountComparison}}\n\n### 3.2 价格带分布\n\n**我方SKU价格分布：**\n- 最低价：¥{{ourMinPrice}}\n- 最高价：¥{{ourMaxPrice}}\n- 主力价格带：¥{{ourMainPriceBand}}\n\n**竞品SKU价格分布：**\n- 最低价：¥{{competitorMinPrice}}\n- 最高价：¥{{competitorMaxPrice}}\n- 主力价格带：¥{{competitorMainPriceBand}}\n\n### 3.3 性价比分析\n\n**价值指数 = 功能/价格**\n\n- 我方价值指数：{{ourValueIndex}}\n- 竞品价值指数：{{competitorValueIndex}}\n\n**性价比结论：**\n{{valueConclusion}}\n\n---\n\n## 4. 流量来源分析\n\n### 4.1 自然流量\n\n**搜索关键词排名：**\n\n| 关键词 | 我方排名 | 竞品排名 | 搜索量 |\n|--------|----------|----------|--------|\n| {{keyword1}} | {{ourRank1}} | {{competitorRank1}} | {{volume1}} |\n| {{keyword2}} | {{ourRank2}} | {{competitorRank2}} | {{volume2}} |\n| {{keyword3}} | {{ourRank3}} | {{competitorRank3}} | {{volume3}} |\n\n**自然流量估算：**\n- 我方日均UV：{{ourDailyUV}}\n- 竞品日均UV：{{competitorDailyUV}}\n\n### 4.2 付费推广\n\n**推广渠道：**\n\n我方活跃推广：\n- 直通车：{{ourDirectDrive}}\n- 超级推荐：{{ourSuperRecommend}}\n- 其他：{{ourOtherAds}}\n\n竞品活跃推广：\n- 直通车：{{competitorDirectDrive}}\n- 超级推荐：{{competitorSuperRecommend}}\n- 其他：{{competitorOtherAds}}\n\n**推广投入估算：**\n- 我方月度推广费用：¥{{ourAdBudget}}\n- 竞品月度推广费用：¥{{competitorAdBudget}}\n\n### 4.3 站外引流\n\n**社交媒体：**\n- 我方：{{ourSocialMedia}}\n- 竞品：{{competitorSocialMedia}}\n\n**达人合作：**\n- 我方合作达人数：{{ourInfluencers}}\n- 竞品合作达人数：{{competitorInfluencers}}\n\n---\n\n## 5. 详情页分析\n\n### 5.1 页面结构\n\n**我方详情页：**\n1. {{ourPageSection1}}\n2. {{ourPageSection2}}\n3. {{ourPageSection3}}\n4. {{ourPageSection4}}\n\n**竞品详情页：**\n1. {{competitorPageSection1}}\n2. {{competitorPageSection2}}\n3. {{competitorPageSection3}}\n4. {{competitorPageSection4}}\n\n### 5.2 视觉表现\n\n**我方：**\n- 主图风格：{{ourMainImageStyle}}\n- 图片数量：{{ourImageCount}}张\n- 视频：{{ourVideoPresence}}\n\n**竞品：**\n- 主图风格：{{competitorMainImageStyle}}\n- 图片数量：{{competitorImageCount}}张\n- 视频：{{competitorVideoPresence}}\n\n**视觉评分：**\n{{visualScoring}}\n\n### 5.3 文案分析\n\n**标题对比：**\n- 我方：{{ourTitle}}\n- 竞品：{{competitorTitle}}\n\n**标题策略：**\n{{titleStrategy}}\n\n**详情页文案特点：**\n- 我方：{{ourCopyStyle}}\n- 竞品：{{competitorCopyStyle}}\n\n---\n\n## 6. 用户评价分析\n\n### 6.1 评价概况\n\n**我方：**\n- 总评价数：{{ourReviewCount}}\n- 好评率：{{ourPositiveRate}}%\n- 平均评分：{{ourAvgRating}}/5.0\n\n**竞品：**\n- 总评价数：{{competitorReviewCount}}\n- 好评率：{{competitorPositiveRate}}%\n- 平均评分：{{competitorAvgRating}}/5.0\n\n### 6.2 高频好评关键词\n\n**我方Top5：**\n1. {{ourPosKeyword1}}\n2. {{ourPosKeyword2}}\n3. {{ourPosKeyword3}}\n4. {{ourPosKeyword4}}\n5. {{ourPosKeyword5}}\n\n**竞品Top5：**\n1. {{competitorPosKeyword1}}\n2. {{competitorPosKeyword2}}\n3. {{competitorPosKeyword3}}\n4. {{competitorPosKeyword4}}\n5. {{competitorPosKeyword5}}\n\n### 6.3 高频差评关键词\n\n**我方Top3：**\n1. {{ourNegKeyword1}}\n2. {{ourNegKeyword2}}\n3. {{ourNegKeyword3}}\n\n**竞品Top3：**\n1. {{competitorNegKeyword1}}\n2. {{competitorNegKeyword2}}\n3. {{competitorNegKeyword3}}\n\n**差评改进建议：**\n{{negativeReviewInsights}}\n\n---\n\n## 7. 运营活动分析\n\n### 7.1 促销频率\n\n**我方：**\n- 日常折扣：{{ourDailyDiscount}}\n- 活动频率：{{ourPromotionFrequency}}\n- 主要促销方式：{{ourPromotionMethods}}\n\n**竞品：**\n- 日常折扣：{{competitorDailyDiscount}}\n- 活动频率：{{competitorPromotionFrequency}}\n- 主要促销方式：{{competitorPromotionMethods}}\n\n### 7.2 会员体系\n\n**我方：**\n{{ourMembershipProgram}}\n\n**竞品：**\n{{competitorMembershipProgram}}\n\n### 7.3 客服服务\n\n**响应速度：**\n- 我方平均响应时间：{{ourResponseTime}}\n- 竞品平均响应时间：{{competitorResponseTime}}\n\n**服务质量：**\n- 我方服务评分：{{ourServiceRating}}\n- 竞品服务评分：{{competitorServiceRating}}\n\n---\n\n## 8. SWOT分析\n\n### 8.1 我方SWOT\n\n**优势 (Strengths)：**\n- {{ourStrength1}}\n- {{ourStrength2}}\n- {{ourStrength3}}\n\n**劣势 (Weaknesses)：**\n- {{ourWeakness1}}\n- {{ourWeakness2}}\n- {{ourWeakness3}}\n\n**机会 (Opportunities)：**\n- {{ourOpportunity1}}\n- {{ourOpportunity2}}\n\n**威胁 (Threats)：**\n- {{ourThreat1}}\n- {{ourThreat2}}\n\n---\n\n## 9. 差异化策略建议\n\n### 9.1 产品差异化\n\n**建议方向：**\n1. {{productDiff1}}\n2. {{productDiff2}}\n3. {{productDiff3}}\n\n### 9.2 价格差异化\n\n**定价建议：**\n{{pricingRecommendation}}\n\n### 9.3 营销差异化\n\n**营销建议：**\n1. {{marketingDiff1}}\n2. {{marketingDiff2}}\n3. {{marketingDiff3}}\n\n### 9.4 服务差异化\n\n**服务提升方向：**\n{{serviceImprovement}}\n\n---\n\n## 10. 行动计划\n\n### 短期（1-3个月）\n- [ ] {{shortTerm1}}\n- [ ] {{shortTerm2}}\n- [ ] {{shortTerm3}}\n\n### 中期（3-6个月）\n- [ ] {{midTerm1}}\n- [ ] {{midTerm2}}\n\n### 长期（6-12个月）\n- [ ] {{longTerm1}}\n- [ ] {{longTerm2}}\n\n---\n\n## 附录\n\n### A. 竞品动态监控表\n\n定期更新（建议每周）：\n\n| 日期 | 价格变化 | 促销活动 | 销量变化 | 新品上架 |\n|------|----------|----------|----------|----------|\n| | | | | |\n\n### B. 数据来源\n\n- {{dataSource1}}\n- {{dataSource2}}\n- {{dataSource3}}\n",
+  "variables_schema": [
+    {
+      "name": "ourProduct",
+      "label": "我方产品",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "competitorProduct",
+      "label": "竞品名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "platform",
+      "label": "电商平台",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "taobao", "label": "淘宝"},
+        {"value": "tmall", "label": "天猫"},
+        {"value": "jd", "label": "京东"},
+        {"value": "pdd", "label": "拼多多"},
+        {"value": "douyin", "label": "抖音电商"}
+      ]
+    },
+    {
+      "name": "analysisGoal",
+      "label": "分析目的",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "竞品分析-{{competitorProduct}}",
+    "files": [
+      {"path": "竞品分析报告.docx", "type": "document"},
+      {"path": "数据对比表.xlsx", "type": "spreadsheet"},
+      {"path": "截图资料/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

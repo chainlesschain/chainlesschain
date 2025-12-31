@@ -1,0 +1,76 @@
+{
+  "id": "tpl_creative_worldbuilding_008",
+  "name": "world_building",
+  "display_name": "世界观构建指南",
+  "description": "虚构世界创建蓝图，包含地理、历史、文化、魔法/科技体系设定",
+  "icon": "🌍",
+  "category": "creative-writing",
+  "subcategory": "fiction",
+  "tags": [
+    "世界观",
+    "设定集",
+    "奇幻创作",
+    "科幻创作"
+  ],
+  "project_type": "document",
+  "prompt_template": "世界观构建指南\n\n**世界信息：**\n- 世界名称：{{worldName}}\n- 世界类型：{{worldType}}\n- 科技水平：{{techLevel}}\n- 魔法体系：{{magicSystem}}\n\n# {{worldName}} 世界设定集\n\n## 概述\n\n**世界简介：**\n{{worldSummary}}\n\n**核心概念：**\n{{coreConcept}}\n\n**独特卖点：**\n{{uniqueSellingPoint}}\n\n---\n\n## 1. 地理与环境\n\n### 1.1 世界地图\n\n**世界规模：**\n- 陆地总面积：{{landArea}} 平方公里\n- 主要大陆数量：{{continentCount}}\n- 海洋覆盖率：{{oceanCoverage}}%\n\n**地形分布：**\n```\n┌─────────────────────────────────┐\n│   世界地图概览                   │\n├─────────────────────────────────┤\n│ 北方：{{northRegion}}           │\n│ 东方：{{eastRegion}}            │\n│ 南方：{{southRegion}}           │\n│ 西方：{{westRegion}}            │\n│ 中央：{{centralRegion}}         │\n└─────────────────────────────────┘\n```\n\n### 1.2 主要地区\n\n**地区1：{{region1Name}}**\n- 地理位置：{{region1Location}}\n- 地形特征：{{region1Terrain}}\n- 气候：{{region1Climate}}\n- 主要城市：{{region1Cities}}\n- 自然资源：{{region1Resources}}\n- 特殊地标：{{region1Landmark}}\n\n**地区2：{{region2Name}}**\n- 地理位置：{{region2Location}}\n- 地形特征：{{region2Terrain}}\n- 气候：{{region2Climate}}\n- 主要城市：{{region2Cities}}\n- 自然资源：{{region2Resources}}\n- 特殊地标：{{region2Landmark}}\n\n**地区3：{{region3Name}}**\n- 地理位置：{{region3Location}}\n- 地形特征：{{region3Terrain}}\n- 气候：{{region3Climate}}\n- 主要城市：{{region3Cities}}\n- 自然资源：{{region3Resources}}\n- 特殊地标：{{region3Landmark}}\n\n### 1.3 自然环境\n\n**生态系统：**\n\n| 生物群系 | 位置 | 特征生物 | 环境危险 |\n|----------|------|----------|----------|\n| {{biome1}} | {{biome1Location}} | {{biome1Creatures}} | {{biome1Danger}} |\n| {{biome2}} | {{biome2Location}} | {{biome2Creatures}} | {{biome2Danger}} |\n| {{biome3}} | {{biome3Location}} | {{biome3Creatures}} | {{biome3Danger}} |\n\n**气候与季节：**\n- 季节系统：{{seasonSystem}}\n- 年历长度：{{yearLength}}天\n- 一天长度：{{dayLength}}小时\n- 月亮数量：{{moonCount}}\n- 特殊天象：{{celestialPhenomena}}\n\n**自然灾害：**\n1. {{disaster1}}：{{disaster1Description}}\n2. {{disaster2}}：{{disaster2Description}}\n\n---\n\n## 2. 历史与时间线\n\n### 2.1 纪年系统\n\n**当前年份：** {{currentYear}}\n\n**历法系统：**\n{{calendarSystem}}\n\n**纪元划分：**\n- 第一纪元：{{era1Name}} ({{era1Years}})\n- 第二纪元：{{era2Name}} ({{era2Years}})\n- 第三纪元：{{era3Name}} ({{era3Years}})\n- 当前纪元：{{currentEra}}\n\n### 2.2 重大历史事件\n\n**远古时期（创世神话）：**\n\n**世界起源：**\n{{creationMyth}}\n\n**古老种族：**\n{{ancientRaces}}\n\n**上古战争：**\n- 时间：{{ancientWarTime}}\n- 冲突方：{{ancientWarFactions}}\n- 起因：{{ancientWarCause}}\n- 结果：{{ancientWarResult}}\n- 遗留影响：{{ancientWarLegacy}}\n\n**中古时期：**\n\n**王国兴衰：**\n{{kingdomRiseAndFall}}\n\n**文明交流：**\n{{culturalExchange}}\n\n**近代历史：**\n\n**关键转折点：**\n1. {{recentEvent1}}（{{event1Year}}年）\n   - 事件：{{event1Description}}\n   - 影响：{{event1Impact}}\n\n2. {{recentEvent2}}（{{event2Year}}年）\n   - 事件：{{event2Description}}\n   - 影响：{{event2Impact}}\n\n3. {{recentEvent3}}（{{event3Year}}年）\n   - 事件：{{event3Description}}\n   - 影响：{{event3Impact}}\n\n### 2.3 当前时代\n\n**政治格局：**\n{{currentPolitics}}\n\n**主要冲突：**\n{{mainConflict}}\n\n**时代特征：**\n{{eraCharacteristics}}\n\n---\n\n## 3. 种族与生物\n\n### 3.1 智慧种族\n\n{{#eq worldType \"奇幻\"}}\n**种族1：{{race1Name}}**\n- 外观特征：{{race1Appearance}}\n- 平均寿命：{{race1Lifespan}}岁\n- 身体特质：{{race1Traits}}\n- 文化特点：{{race1Culture}}\n- 主要聚居地：{{race1Homeland}}\n- 种族天赋：{{race1Abilities}}\n- 与其他种族关系：{{race1Relations}}\n\n**种族2：{{race2Name}}**\n- 外观特征：{{race2Appearance}}\n- 平均寿命：{{race2Lifespan}}岁\n- 身体特质：{{race2Traits}}\n- 文化特点：{{race2Culture}}\n- 主要聚居地：{{race2Homeland}}\n- 种族天赋：{{race2Abilities}}\n- 与其他种族关系：{{race2Relations}}\n\n**种族3：{{race3Name}}**\n- 外观特征：{{race3Appearance}}\n- 平均寿命：{{race3Lifespan}}岁\n- 身体特质：{{race3Traits}}\n- 文化特点：{{race3Culture}}\n- 主要聚居地：{{race3Homeland}}\n- 种族天赋：{{race3Abilities}}\n- 与其他种族关系：{{race3Relations}}\n{{/eq}}\n\n{{#eq worldType \"科幻\"}}\n**人类分支/改造人：**\n{{humanVariants}}\n\n**外星种族：**\n{{alienRaces}}\n\n**人工智能/机器人：**\n{{artificialBeings}}\n{{/eq}}\n\n### 3.2 生物志\n\n**普通生物：**\n- {{commonCreature1}}：{{creature1Description}}\n- {{commonCreature2}}：{{creature2Description}}\n\n**危险生物：**\n- {{dangerousCreature1}}：{{dangerCreature1Description}}\n- {{dangerousCreature2}}：{{dangerCreature2Description}}\n\n**传说生物：**\n- {{legendaryCreature1}}：{{legendCreature1Description}}\n- 目击记录：{{creature1Sightings}}\n- 真实性：{{creature1Reality}}\n\n---\n\n## 4. 魔法/科技体系\n\n{{#eq magicSystem \"是\"}}\n### 4.1 魔法系统\n\n**魔法本质：**\n{{magicNature}}\n\n**能量来源：**\n{{magicSource}}\n\n**魔法分类：**\n\n1. **{{magicSchool1}}**\n   - 描述：{{school1Description}}\n   - 代表法术：{{school1Spells}}\n   - 使用方式：{{school1Method}}\n   - 限制：{{school1Limitation}}\n\n2. **{{magicSchool2}}**\n   - 描述：{{school2Description}}\n   - 代表法术：{{school2Spells}}\n   - 使用方式：{{school2Method}}\n   - 限制：{{school2Limitation}}\n\n3. **{{magicSchool3}}**\n   - 描述：{{school3Description}}\n   - 代表法术：{{school3Spells}}\n   - 使用方式：{{school3Method}}\n   - 限制：{{school3Limitation}}\n\n**魔法规则：**\n- 规则1：{{magicRule1}}\n- 规则2：{{magicRule2}}\n- 规则3：{{magicRule3}}\n- 禁忌：{{magicTaboo}}\n\n**魔力等级：**\n```\n初学者 → 学徒 → 法师 → 大法师 → 传奇法师\n  ↓        ↓      ↓       ↓         ↓\n{{level1}}  {{level2}} {{level3}}  {{level4}}   {{level5}}\n```\n\n**魔法物品：**\n- 魔法工具：{{magicTools}}\n- 魔药：{{potions}}\n- 符文/咒文：{{runes}}\n- 神器：{{artifacts}}\n{{/eq}}\n\n{{#eq worldType \"科幻\"}}\n### 4.2 科技体系\n\n**科技水平：** {{techLevel}}\n\n**核心科技：**\n\n1. **{{tech1Name}}**\n   - 原理：{{tech1Principle}}\n   - 应用：{{tech1Application}}\n   - 普及程度：{{tech1Availability}}\n\n2. **{{tech2Name}}**\n   - 原理：{{tech2Principle}}\n   - 应用：{{tech2Application}}\n   - 普及程度：{{tech2Availability}}\n\n3. **{{tech3Name}}**\n   - 原理：{{tech3Principle}}\n   - 应用：{{tech3Application}}\n   - 普及程度：{{tech3Availability}}\n\n**能源系统：**\n{{energySystem}}\n\n**交通工具：**\n- 短距离：{{shortRangeTransport}}\n- 长距离：{{longRangeTransport}}\n- 星际旅行：{{interstellarTravel}}\n\n**通讯系统：**\n{{communicationSystem}}\n\n**武器技术：**\n{{weaponTech}}\n{{/eq}}\n\n---\n\n## 5. 社会与文化\n\n### 5.1 政治体系\n\n**主要国家/势力：**\n\n**国家1：{{nation1Name}}**\n- 政体：{{nation1Government}}\n- 领导者：{{nation1Leader}}\n- 首都：{{nation1Capital}}\n- 人口：{{nation1Population}}\n- 军事力量：{{nation1Military}}\n- 外交政策：{{nation1Diplomacy}}\n\n**国家2：{{nation2Name}}**\n- 政体：{{nation2Government}}\n- 领导者：{{nation2Leader}}\n- 首都：{{nation2Capital}}\n- 人口：{{nation2Population}}\n- 军事力量：{{nation2Military}}\n- 外交政策：{{nation2Diplomacy}}\n\n**势力关系图：**\n```\n{{nation1Name}} ←→ {{relationshipType}} ←→ {{nation2Name}}\n      ↓                                        ↓\n  {{ally1}}                                {{ally2}}\n```\n\n### 5.2 经济系统\n\n**货币：**\n- 主要货币：{{mainCurrency}}\n- 汇率系统：{{exchangeRate}}\n- 贵金属/珍贵资源：{{preciousResources}}\n\n**贸易：**\n- 主要贸易路线：{{tradeRoutes}}\n- 热门商品：{{tradeGoods}}\n- 商人公会：{{merchantGuilds}}\n\n**经济水平：**\n{{economicLevel}}\n\n### 5.3 社会阶层\n\n**阶级结构：**\n```\n┌──────────────┐\n│  {{class1}}  │ - {{class1Description}}\n├──────────────┤\n│  {{class2}}  │ - {{class2Description}}\n├──────────────┤\n│  {{class3}}  │ - {{class3Description}}\n├──────────────┤\n│  {{class4}}  │ - {{class4Description}}\n└──────────────┘\n```\n\n**社会流动性：**\n{{socialMobility}}\n\n### 5.4 宗教与信仰\n\n**主要宗教：**\n\n**宗教1：{{religion1Name}}**\n- 主神/信仰对象：{{religion1Deity}}\n- 教义核心：{{religion1Doctrine}}\n- 仪式：{{religion1Rituals}}\n- 圣地：{{religion1HolySite}}\n- 影响力：{{religion1Influence}}\n\n**宗教2：{{religion2Name}}**\n- 主神/信仰对象：{{religion2Deity}}\n- 教义核心：{{religion2Doctrine}}\n- 仪式：{{religion2Rituals}}\n- 圣地：{{religion2HolySite}}\n- 影响力：{{religion2Influence}}\n\n**宗教冲突：**\n{{religiousConflict}}\n\n### 5.5 文化传统\n\n**节日庆典：**\n- {{festival1}}：{{festival1Description}}\n- {{festival2}}：{{festival2Description}}\n\n**婚俗：**\n{{marriageCustoms}}\n\n**丧葬：**\n{{funeralCustoms}}\n\n**成年礼：**\n{{comingOfAge}}\n\n**禁忌：**\n- {{taboo1}}\n- {{taboo2}}\n- {{taboo3}}\n\n### 5.6 艺术与娱乐\n\n**文学：**\n{{literature}}\n\n**音乐：**\n{{music}}\n\n**建筑风格：**\n{{architecture}}\n\n**娱乐活动：**\n{{entertainment}}\n\n---\n\n## 6. 教育与知识\n\n### 6.1 教育体系\n\n**基础教育：**\n{{basicEducation}}\n\n**高等教育：**\n{{higherEducation}}\n\n**著名学府：**\n- {{academy1}}：专长{{academy1Specialty}}\n- {{academy2}}：专长{{academy2Specialty}}\n\n### 6.2 语言文字\n\n**通用语：**\n{{commonLanguage}}\n\n**古语言：**\n{{ancientLanguage}}\n\n**文字系统：**\n{{writingSystem}}\n\n**魔法/科技语言：**\n{{specialLanguage}}\n\n---\n\n## 7. 法律与秩序\n\n### 7.1 法律体系\n\n**法律来源：**\n{{lawOrigin}}\n\n**主要法律：**\n1. {{law1}}\n2. {{law2}}\n3. {{law3}}\n\n**禁止行为：**\n- {{crime1}}：刑罚{{punishment1}}\n- {{crime2}}：刑罚{{punishment2}}\n- {{crime3}}：刑罚{{punishment3}}\n\n### 7.2 执法机构\n\n**维安力量：**\n{{lawEnforcement}}\n\n**司法系统：**\n{{judicialSystem}}\n\n**监狱/惩罚：**\n{{prisonSystem}}\n\n---\n\n## 8. 冲突与对立\n\n### 8.1 主要冲突\n\n**核心冲突：**\n{{coreConflict}}\n\n**对立双方：**\n- 阵营A：{{factionA}}\n  - 目标：{{factionAGoal}}\n  - 理念：{{factionAIdeology}}\n  \n- 阵营B：{{factionB}}\n  - 目标：{{factionBGoal}}\n  - 理念：{{factionBIdeology}}\n\n### 8.2 灰色地带\n\n**中立势力：**\n{{neutralFactions}}\n\n**地下组织：**\n{{undergroundOrgs}}\n\n**秘密结社：**\n{{secretSocieties}}\n\n---\n\n## 9. 传说与谜团\n\n### 9.1 神话传说\n\n**创世神话：**\n{{creationLegend}}\n\n**英雄传说：**\n{{heroLegends}}\n\n**预言：**\n{{prophecy}}\n\n### 9.2 未解之谜\n\n**谜团1：{{mystery1}}**\n{{mystery1Description}}\n\n**谜团2：{{mystery2}}**\n{{mystery2Description}}\n\n**失落文明/遗迹：**\n{{lostCivilization}}\n\n---\n\n## 10. 世界观一致性检查\n\n### 10.1 内部逻辑\n\n- [ ] 魔法/科技规则前后一致\n- [ ] 地理与气候符合逻辑\n- [ ] 历史事件有因果关系\n- [ ] 经济系统可持续\n- [ ] 社会结构稳定或有合理冲突\n- [ ] 文化习俗有历史根源\n\n### 10.2 细节深度\n\n- [ ] 日常生活细节完善\n- [ ] 食物、服装、住房有设定\n- [ ] 普通人的生活方式清晰\n- [ ] 旅行和通讯方式明确\n- [ ] 时间和距离计算合理\n\n### 10.3 独特性\n\n- [ ] 与现有作品有明显区别\n- [ ] 有独特的魔法/科技系统\n- [ ] 有原创的文化元素\n- [ ] 有意外的创意点\n\n---\n\n## 附录\n\n### A. 专有名词表\n\n| 术语 | 含义 | 发音 |\n|------|------|------|\n| {{term1}} | {{term1Meaning}} | {{term1Pronunciation}} |\n| {{term2}} | {{term2Meaning}} | {{term2Pronunciation}} |\n| {{term3}} | {{term3Meaning}} | {{term3Pronunciation}} |\n\n### B. 时间线速查\n\n```\n{{ancientTime}} - 上古纪元开始\n{{middleTime}} - 中古时期\n{{modernTime}} - 近代\n{{currentYear}} - 故事当前时间\n```\n\n### C. 地图绘制笔记\n\n{{mapNotes}}\n\n### D. 灵感来源\n\n- 参考作品：{{inspirationWorks}}\n- 真实历史/文化：{{realWorldInspiration}}\n- 原创元素：{{originalElements}}\n",
+  "variables_schema": [
+    {
+      "name": "worldName",
+      "label": "世界名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "worldType",
+      "label": "世界类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "奇幻", "label": "奇幻世界"},
+        {"value": "科幻", "label": "科幻世界"},
+        {"value": "现代奇幻", "label": "现代奇幻"},
+        {"value": "历史架空", "label": "历史架空"},
+        {"value": "蒸汽朋克", "label": "蒸汽朋克"},
+        {"value": "赛博朋克", "label": "赛博朋克"}
+      ]
+    },
+    {
+      "name": "techLevel",
+      "label": "科技水平",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "原始", "label": "原始社会"},
+        {"value": "古代", "label": "古代文明"},
+        {"value": "中世纪", "label": "中世纪"},
+        {"value": "工业", "label": "工业时代"},
+        {"value": "现代", "label": "现代"},
+        {"value": "未来", "label": "未来科技"}
+      ]
+    },
+    {
+      "name": "magicSystem",
+      "label": "是否有魔法体系",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "是", "label": "是"},
+        {"value": "否", "label": "否"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{worldName}}-世界设定",
+    "files": [
+      {"path": "世界观圣经.docx", "type": "document"},
+      {"path": "地图/", "type": "folder"},
+      {"path": "种族志.docx", "type": "document"},
+      {"path": "历史年表.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

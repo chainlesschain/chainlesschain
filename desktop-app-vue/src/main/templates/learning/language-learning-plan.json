@@ -1,0 +1,79 @@
+{
+  "id": "tpl_learning_language_007",
+  "name": "language_learning_plan",
+  "display_name": "语言学习计划",
+  "description": "外语学习路线图，包含学习目标、方法、资源和进度追踪",
+  "icon": "🌐",
+  "category": "learning",
+  "subcategory": "language",
+  "tags": [
+    "语言学习",
+    "外语",
+    "学习计划",
+    "CEFR"
+  ],
+  "project_type": "document",
+  "prompt_template": "语言学习计划\n\n**目标语言：** {{targetLanguage}}\n**当前水平：** {{currentLevel}}\n**目标水平：** {{targetLevel}}\n**学习时长：** {{duration}}\n\n# {{targetLanguage}}学习完整计划\n\n## 1. 学习目标设定\n\n### 1.1 总体目标\n\n**SMART目标：**\n- **具体（Specific）：** {{specificGoal}}\n- **可衡量（Measurable）：** {{measurableGoal}}\n- **可实现（Achievable）：** {{achievableGoal}}\n- **相关性（Relevant）：** {{relevantGoal}}\n- **时限（Time-bound）：** {{timeBoundGoal}}\n\n**学习动机：**\n{{motivation}}\n\n### 1.2 分项目标\n\n**听力目标：** {{listeningGoal}}\n**口语目标：** {{speakingGoal}}\n**阅读目标：** {{readingGoal}}\n**写作目标：** {{writingGoal}}\n\n### 1.3 里程碑\n\n- 第1个月：{{milestone1}}\n- 第3个月：{{milestone3}}\n- 第6个月：{{milestone6}}\n- 第12个月：{{milestone12}}\n\n---\n\n## 2. 当前水平评估\n\n### 2.1 CEFR等级\n\n**当前等级：** {{cefrLevel}}\n\n**CEFR框架：**\n- A1：入门级\n- A2：初级\n- B1：中级\n- B2：中高级\n- C1：高级\n- C2：精通级\n\n### 2.2 四项技能评估\n\n| 技能 | 当前水平 | 优势 | 劣势 |\n|------|----------|------|------|\n| 听力 | {{listeningLevel}} | {{listeningStrength}} | {{listeningWeakness}} |\n| 口语 | {{speakingLevel}} | {{speakingStrength}} | {{speakingWeakness}} |\n| 阅读 | {{readingLevel}} | {{readingStrength}} | {{readingWeakness}} |\n| 写作 | {{writingLevel}} | {{writingStrength}} | {{writingWeakness}} |\n\n### 2.3 词汇量\n\n**当前词汇量：** 约{{vocabularySize}}词\n**目标词汇量：** {{targetVocabularySize}}词\n\n---\n\n## 3. 学习方法\n\n### 3.1 综合学习法\n\n**1. 沉浸式学习**\n{{immersionMethod}}\n\n**2. 间隔重复系统(SRS)**\n- 工具：{{srsApp}}\n- 每日复习：{{dailyReviewCards}}张卡片\n\n**3. 可理解输入(Comprehensible Input)**\n- 材料难度：{{inputLevel}}\n- 每日输入量：{{dailyInput}}\n\n**4. 主动输出**\n- 口语练习：{{speakingPractice}}\n- 写作练习：{{writingPractice}}\n\n### 3.2 分项方法\n\n**听力训练：**\n1. {{listeningMethod1}}\n2. {{listeningMethod2}}\n3. {{listeningMethod3}}\n\n**口语练习：**\n1. {{speakingMethod1}}\n2. {{speakingMethod2}}\n3. {{speakingMethod3}}\n\n**阅读提升：**\n1. {{readingMethod1}}\n2. {{readingMethod2}}\n3. {{readingMethod3}}\n\n**写作训练：**\n1. {{writingMethod1}}\n2. {{writingMethod2}}\n3. {{writingMethod3}}\n\n---\n\n## 4. 学习资源\n\n### 4.1 教材与课程\n\n**主教材：** {{mainTextbook}}\n**辅助教材：** {{supplementaryBooks}}\n\n**在线课程：**\n- {{onlineCourse1}}（{{course1Platform}}）\n- {{onlineCourse2}}（{{course2Platform}}）\n\n### 4.2 数字工具\n\n**词汇学习：**\n- Anki / Quizlet\n- Memrise\n- {{vocabApp}}\n\n**语法学习：**\n- {{grammarApp}}\n\n**听力练习：**\n- Podcast：{{podcast1}}, {{podcast2}}\n- YouTube频道：{{youtubeChannel}}\n\n**口语练习：**\n- {{languageExchangeApp}}\n- iTalki / HelloTalk\n\n### 4.3 原版材料\n\n**阅读材料：**\n- 新闻网站：{{newsWebsite}}\n- 书籍：{{book1}}, {{book2}}\n- 杂志/博客：{{magazine}}\n\n**视听材料：**\n- 影视剧：{{tvShow}}\n- 电影：{{movie}}\n- 纪录片：{{documentary}}\n\n### 4.4 社群资源\n\n**线上社区：**\n- Reddit：r/{{subreddit}}\n- Discord服务器：{{discordServer}}\n\n**线下活动：**\n- 语言角：{{languageCorner}}\n- 见面会：{{meetup}}\n\n---\n\n## 5. 学习时间表\n\n### 5.1 每日学习计划\n\n**总学习时间：** {{dailyStudyTime}}小时\n\n**工作日（{{weekdayHours}}小时）：**\n- 早晨（06:00-07:00）：{{morningActivity}}\n- 通勤（{{commuteTime}}分钟）：{{commuteActivity}}\n- 午休（12:30-13:00）：{{lunchActivity}}\n- 晚上（{{eveningTime}}）：{{eveningActivity}}\n\n**周末（{{weekendHours}}小时）：**\n- 上午：{{weekendMorning}}\n- 下午：{{weekendAfternoon}}\n- 晚上：{{weekendEvening}}\n\n### 5.2 每周学习分配\n\n| 星期 | 重点技能 | 学习内容 | 时长 |\n|------|----------|----------|------|\n| 周一 | {{mon重点}} | {{monContent}} | {{monHours}}h |\n| 周二 | {{tue重点}} | {{tueContent}} | {{tueHours}}h |\n| 周三 | {{wed重点}} | {{wedContent}} | {{wedHours}}h |\n| 周四 | {{thu重点}} | {{thuContent}} | {{thuHours}}h |\n| 周五 | {{fri重点}} | {{friContent}} | {{friHours}}h |\n| 周六 | {{sat重点}} | {{satContent}} | {{satHours}}h |\n| 周日 | 复习/休息 | 总结回顾 | {{sunHours}}h |\n\n### 5.3 月度学习主题\n\n**第1个月：** {{month1Theme}}\n**第2个月：** {{month2Theme}}\n**第3个月：** {{month3Theme}}\n**第4-6个月：** {{month4to6Theme}}\n\n---\n\n## 6. 词汇学习计划\n\n### 6.1 词汇目标\n\n**每日新词：** {{dailyNewWords}}个\n**每周复习：** {{weeklyReviewWords}}个\n**主题词汇：** {{thematicVocabulary}}\n\n### 6.2 高频词表\n\n**基础1000词：** {{basic1000Status}}\n**核心3000词：** {{core3000Status}}\n**进阶5000词：** {{advanced5000Status}}\n\n### 6.3 记忆策略\n\n1. **联想记忆：** {{mnemonicStrategy}}\n2. **词根词缀：** {{morphologyStrategy}}\n3. **情境记忆：** {{contextualStrategy}}\n4. **视觉记忆：** {{visualStrategy}}\n\n---\n\n## 7. 语法学习计划\n\n### 7.1 语法体系\n\n**基础语法（{{basicGrammarDuration}}）：**\n1. {{grammar1}}\n2. {{grammar2}}\n3. {{grammar3}}\n\n**中级语法（{{intermediateGrammarDuration}}）：**\n1. {{grammar4}}\n2. {{grammar5}}\n\n**高级语法（{{advancedGrammarDuration}}）：**\n1. {{grammar6}}\n2. {{grammar7}}\n\n### 7.2 学习方法\n\n- 理解语法规则\n- 大量例句输入\n- 实际应用输出\n- 错误纠正分析\n\n---\n\n## 8. 实践与输出\n\n### 8.1 口语练习计划\n\n**每日练习：**\n- 自言自语：{{selfTalkMinutes}}分钟\n- 跟读模仿：{{shadowingMinutes}}分钟\n- 话题表达：{{topicSpeakingMinutes}}分钟\n\n**每周练习：**\n- 语言交换：{{exchangeTimes}}次 × {{exchangeDuration}}分钟\n- 在线辅导：{{tutoringTimes}}次 × {{tutoringDuration}}分钟\n\n**练习话题：**\n- 周1-2：{{topic1}}\n- 周3-4：{{topic2}}\n- 周5-6：{{topic3}}\n\n### 8.2 写作练习计划\n\n**每日写作：**\n- 日记：{{journalWords}}字\n- 短文：{{essayWords}}字（每周{{essayFrequency}}次）\n\n**写作类型：**\n- 叙述文\n- 议论文\n- 应用文\n\n**修改与反馈：**\n{{writingFeedback}}\n\n---\n\n## 9. 进度追踪\n\n### 9.1 每周回顾\n\n**学习时间统计：**\n- 本周总时长：______小时\n- 听力：______h\n- 口语：______h\n- 阅读：______h\n- 写作：______h\n\n**本周成就：**\n1. _______________________\n2. _______________________\n3. _______________________\n\n**遇到的困难：**\n_______________________\n\n**下周改进：**\n_______________________\n\n### 9.2 月度测试\n\n**测试内容：**\n- 词汇测试（{{vocabTestWords}}词）\n- 听力测试（{{listeningTestDuration}}分钟）\n- 口语录音（{{speakingTestTopic}}）\n- 写作作文（{{writingTestTopic}}）\n\n**进步评估：**\n{{progressEvaluation}}\n\n### 9.3 里程碑检查\n\n- [ ] 第1个月：{{check1}}\n- [ ] 第3个月：{{check3}}\n- [ ] 第6个月：{{check6}}\n- [ ] 第12个月：{{check12}}\n\n---\n\n## 10. 考试准备（如适用）\n\n### 10.1 目标考试\n\n**考试名称：** {{examName}}\n**考试日期：** {{examDate}}\n**目标分数：** {{targetScore}}\n\n**考试结构：**\n{{examStructure}}\n\n### 10.2 备考计划\n\n**冲刺阶段（考前{{sprintWeeks}}周）：**\n- 模拟考试：每周{{mockTestFrequency}}次\n- 弱项强化：{{weaknessTraining}}\n- 真题练习：{{pastPaperPractice}}\n\n**考前准备：**\n- 考试技巧：{{examTips}}\n- 时间管理：{{timeManagement}}\n\n---\n\n## 11. 保持动力\n\n### 11.1 激励策略\n\n**奖励机制：**\n- 每日完成：{{dailyReward}}\n- 每周达标：{{weeklyReward}}\n- 月度进步：{{monthlyReward}}\n\n**可视化进度：**\n{{progressVisualization}}\n\n### 11.2 应对瓶颈\n\n**常见瓶颈：**\n1. {{bottleneck1}}\n   应对：{{solution1}}\n\n2. {{bottleneck2}}\n   应对：{{solution2}}\n\n**调整与休息：**\n{{burnoutPrevention}}\n\n---\n\n## 12. 长期规划\n\n### 12.1 阶段目标\n\n**短期（3个月）：** {{shortTermGoal}}\n**中期（6-12个月）：** {{midTermGoal}}\n**长期（1-2年）：** {{longTermGoal}}\n\n### 12.2 应用场景\n\n**实际应用：**\n- 工作：{{workApplication}}\n- 旅游：{{travelApplication}}\n- 社交：{{socialApplication}}\n- 学术：{{academicApplication}}\n\n---\n\n## 附录\n\n### A. 学习工具清单\n\n- [ ] 字典：{{dictionary}}\n- [ ] 笔记本/App：{{noteApp}}\n- [ ] 录音设备\n- [ ] 耳机\n\n### B. 推荐书单\n\n1. {{recommendedBook1}}\n2. {{recommendedBook2}}\n3. {{recommendedBook3}}\n\n### C. 常用表达卡片\n\n创建主题卡片：\n- 日常对话\n- 商务用语\n- 学术表达\n",
+  "variables_schema": [
+    {
+      "name": "targetLanguage",
+      "label": "目标语言",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "英语", "label": "英语"},
+        {"value": "日语", "label": "日语"},
+        {"value": "韩语", "label": "韩语"},
+        {"value": "法语", "label": "法语"},
+        {"value": "德语", "label": "德语"},
+        {"value": "西班牙语", "label": "西班牙语"},
+        {"value": "其他", "label": "其他"}
+      ]
+    },
+    {
+      "name": "currentLevel",
+      "label": "当前水平",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "A1", "label": "A1 入门"},
+        {"value": "A2", "label": "A2 初级"},
+        {"value": "B1", "label": "B1 中级"},
+        {"value": "B2", "label": "B2 中高级"},
+        {"value": "C1", "label": "C1 高级"},
+        {"value": "C2", "label": "C2 精通"}
+      ]
+    },
+    {
+      "name": "targetLevel",
+      "label": "目标水平",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "A2", "label": "A2 初级"},
+        {"value": "B1", "label": "B1 中级"},
+        {"value": "B2", "label": "B2 中高级"},
+        {"value": "C1", "label": "C1 高级"},
+        {"value": "C2", "label": "C2 精通"}
+      ]
+    },
+    {
+      "name": "duration",
+      "label": "计划时长",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "{{targetLanguage}}学习计划",
+    "files": [
+      {"path": "学习计划.docx", "type": "document"},
+      {"path": "进度追踪.xlsx", "type": "spreadsheet"},
+      {"path": "学习资源/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
