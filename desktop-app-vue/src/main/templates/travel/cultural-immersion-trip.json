@@ -1,0 +1,47 @@
+{
+  "id": "tpl_travel_cultural_005",
+  "name": "cultural_immersion_trip",
+  "display_name": "文化深度游",
+  "description": "深度体验当地文化的旅行计划，包含民俗、历史和生活体验",
+  "icon": "🏛️",
+  "category": "travel",
+  "subcategory": "cultural",
+  "tags": ["文化旅行", "深度游", "民俗体验", "历史探索"],
+  "project_type": "document",
+  "prompt_template": "文化深度游计划\n\n**旅行信息：**\n- 目的地：{{destination}}\n- 旅行天数：{{duration}}天\n- 文化主题：{{culturalTheme}}\n- 深度等级：{{immersionLevel}}\n\n# 文化深度游：{{destination}}\n\n## 目的地文化背景\n\n**历史渊源：**{{historicalBackground}}\n\n**文化特色：**\n- 建筑风格：{{architectureStyle}}\n- 宗教信仰：{{religiousCulture}}\n- 民族构成：{{ethnicGroups}}\n- 语言：{{localLanguage}}\n\n**联合国遗产：**{{uneschoSites}}\n\n## 文化体验主题\n\n**主题：**{{culturalTheme}}\n\n{{#eq culturalTheme \"历史探索\"}}\n**历史线索：**\n- 古代：{{ancientHistory}}\n- 近代：{{modernHistory}}\n- 当代：{{contemporaryHistory}}\n\n**历史遗迹：**\n1. {{historicalSite1}} - {{site1Era}}\n2. {{historicalSite2}} - {{site2Era}}\n3. {{historicalSite3}} - {{site3Era}}\n{{/eq}}\n\n{{#eq culturalTheme \"民俗体验\"}}\n**民俗特色：**\n- 传统节日：{{traditionalFestivals}}\n- 民间艺术：{{folkArts}}\n- 手工艺：{{handicrafts}}\n- 传统服饰：{{traditionalCostume}}\n{{/eq}}\n\n{{#eq culturalTheme \"宗教朝圣\"}}\n**宗教文化：**\n- 主要宗教：{{mainReligion}}\n- 圣地：{{sacredSites}}\n- 宗教仪式：{{religiousCeremonies}}\n- 朝圣路线：{{pilgrimageRoute}}\n{{/eq}}\n\n{{#eq culturalTheme \"艺术鉴赏\"}}\n**艺术形式：**\n- 美术：{{visualArts}}\n- 音乐：{{musicTradition}}\n- 戏剧：{{theaterArts}}\n- 文学：{{literaryHeritage}}\n{{/eq}}\n\n## 深度体验活动\n\n### 1. 博物馆/展览馆\n\n**必去博物馆：**\n- {{museum1}}\n  - 特色：{{museum1Feature}}\n  - 时长：{{museum1Duration}}小时\n  - 门票：¥{{museum1Ticket}}\n  - 讲解：{{museum1Guide}}\n  \n- {{museum2}}\n  - 重点展品：{{museum2Highlight}}\n\n**参观技巧：**\n- 提前预约\n- 租用语音导览\n- 参加专题讲解\n- 避开周一闭馆日\n\n### 2. 历史古迹\n\n**世界遗产：**{{heritageSite}}\n- 开放时间：{{siteHours}}\n- 最佳参观时间：{{bestVisitTime}}\n- 摄影机位：{{photoSpots}}\n\n**导览方式：**{{guideOption}}\n- 专业导游：¥{{guidePrice}}\n- 自助导览：下载App\n\n### 3. 传统工艺体验\n\n**手工艺项目：**\n- {{craft1}} - 体验时长{{craft1Duration}}小时\n  - 地点：{{craft1Location}}\n  - 费用：¥{{craft1Cost}}\n  - 可带走作品\n  \n- {{craft2}} - 跟随老师傅学习\n\n### 4. 当地生活体验\n\n**市场探访：**\n- {{localMarket}} - 早市{{marketTime}}\n- 体验当地人的日常采购\n- 品尝街头小吃\n\n**社区参与：**\n- 参加社区活动\n- 家访当地家庭（如有安排）\n- 学做传统菜肴\n\n### 5. 文化表演\n\n**传统演出：**\n- {{culturalShow1}}\n  - 演出地点：{{show1Venue}}\n  - 票价：¥{{show1Price}}\n  - 演出时长：{{show1Duration}}分钟\n  \n- {{culturalShow2}} - 街头表演（免费）\n\n**音乐/戏曲：**\n- {{musicPerformance}}\n\n### 6. 宗教/仪式\n\n**寺庙/教堂：**\n- {{temple1}}\n  - 参观礼仪：{{temple1Etiquette}}\n  - 开放时间：{{temple1Hours}}\n  - 是否允许拍照：{{temple1Photo}}\n\n**仪式观礼：**\n- {{ceremony}} ({{ceremonyTime}})\n- 注意事项：{{ceremonyRules}}\n\n## 每日行程\n\n### Day 1: 历史概览\n\n**上午：**{{museum1}}\n- 从博物馆了解历史全貌\n- 推荐展馆：{{recommendedHall}}\n\n**下午：**老城区徒步\n- 路线：{{walkingRoute}}\n- 途经：{{landmarks}}\n\n**晚上：**传统演出\n- {{eveningShow}}\n\n### Day 2: 古迹探索\n\n**全天：**{{heritageSiteDay2}}\n- 深度游览\n- 专业导游讲解\n- 拍照打卡\n\n### Day 3: 民俗体验\n\n**上午：**手工艺体验\n- {{craftExperience}}\n\n**下午：**传统茶馆/咖啡馆\n- 与当地人交流\n- 体验慢生活\n\n**晚上：**美食文化\n- 传统餐厅：{{traditionalRestaurant}}\n- 品尝：{{localDishes}}\n\n### Day 4: 郊区文化\n\n**全天：**周边古村落\n- {{nearbyVillage}}\n- 体验田园生活\n- 参观传统民居\n\n### Day 5: 深度交流\n\n**弹性安排：**\n- 回访喜欢的地方\n- 深入某个主题\n- 采购文化纪念品\n\n## 文化学习\n\n### 行前准备\n\n**阅读书籍：**\n1. 《{{book1}}》 - {{book1Author}}\n2. 《{{book2}}》 - {{book2Author}}\n\n**观看纪录片：**\n- {{documentary1}}\n- {{documentary2}}\n\n**学习语言：**\n- 基本问候：{{greeting}}\n- 常用短语：{{commonPhrases}}\n- 数字：{{numbers}}\n\n### 随身笔记\n\n**记录内容：**\n- 历史故事\n- 文化见闻\n- 当地人对话\n- 感悟思考\n\n**摄影主题：**\n- 建筑细节\n- 人文肖像（征得同意）\n- 市井生活\n- 文化符号\n\n## 住宿选择\n\n**住宿类型：**{{accommodationType}}\n\n{{#eq accommodationType \"文化遗产酒店\"}}\n**推荐：**{{heritageHotel}}\n- 特色：修复的历史建筑\n- 价格：¥{{heritagePrice}}/晚\n- 体验传统居住方式\n{{/eq}}\n\n{{#eq accommodationType \"民宿\"}}\n**特色民宿：**{{guesthouse}}\n- 与当地家庭同住\n- 了解日常生活\n- 品尝家常菜\n{{/eq}}\n\n{{#eq accommodationType \"精品酒店\"}}\n**文化主题酒店：**{{boutiqueHotel}}\n- 融合当地设计元素\n- 舒适度与文化体验兼顾\n{{/eq}}\n\n## 美食文化\n\n**传统菜肴：**\n1. {{dish1}} - 历史{{dish1History}}\n   - 推荐餐厅：{{dish1Restaurant}}\n   - 价格：¥{{dish1Price}}\n   \n2. {{dish2}} - 制作工艺：{{dish2Craft}}\n3. {{dish3}}\n\n**街头小吃：**\n- {{streetFood1}}\n- {{streetFood2}}\n- {{streetFood3}}\n\n**饮品：**\n- 传统茶：{{traditionalTea}}\n- 酒类：{{localAlcohol}}\n\n**用餐礼仪：**{{diningEtiquette}}\n\n## 文化纪念品\n\n**值得购买：**\n1. {{souvenir1}} - 手工制作\n   - 价格：¥{{souvenir1Price}}\n   - 购买地点：{{souvenir1Shop}}\n   \n2. {{souvenir2}} - 非遗产品\n3. {{souvenir3}} - 当地特产\n\n**避免购买：**\n- 机器批量生产的"手工艺品"\n- 来路不明的"古董"\n\n## 文化礼仪\n\n**着装要求：**\n- 宗教场所：{{religiousDress}}\n- 正式场合：{{formalDress}}\n\n**行为禁忌：**\n- {{taboo1}}\n- {{taboo2}}\n- {{taboo3}}\n\n**摄影规矩：**\n- 寺庙内部：{{templePhotoRule}}\n- 拍摄当地人：先征得同意\n- 军事设施：禁止拍摄\n\n**社交礼节：**\n- 问候方式：{{greetingCustom}}\n- 小费文化：{{tippingCulture}}\n\n## 预算明细\n\n**总预算：**¥{{totalBudget}}\n\n| 项目 | 金额 | 说明 |\n|------|------|------|\n| 交通 | ¥{{transportCost}} | 往返+当地 |\n| 住宿 | ¥{{accommodationCost}} | 文化特色住宿 |\n| 门票 | ¥{{ticketCost}} | 博物馆+景点+演出 |\n| 导游 | ¥{{guideCost}} | 专业文化导游 |\n| 体验活动 | ¥{{activityCost}} | 手工艺+课程 |\n| 餐饮 | ¥{{foodCost}} | 传统美食 |\n| 纪念品 | ¥{{souvenirBudget}} | 文化产品 |\n| 书籍资料 | ¥{{bookBudget}} | 文化读物 |\n| **总计** | **¥{{totalBudget}}** | |\n\n## 深度旅行建议\n\n**最佳季节：**{{bestSeason}}\n- 避开旅游高峰\n- 参与当地节日\n\n**停留时长：**{{recommendedDuration}}天\n- 文化体验需要时间沉淀\n- 不要赶行程\n\n**心态调整：**\n- 放慢脚步\n- 深度而非广度\n- 与当地人交流\n- 保持开放心态\n\n**可持续旅行：**\n- 支持本地商家\n- 尊重文化遗产\n- 负责任摄影\n- 保护环境\n\n## 旅行成果\n\n**预期收获：**\n- 深入了解{{destination}}文化\n- 历史知识积累\n- 文化视野拓展\n- 跨文化交流能力\n\n**记录方式：**\n- 旅行手账\n- 文化主题摄影集\n- 视频纪录片\n- 文章/博客",
+  "variables_schema": [
+    {"name": "destination", "label": "目的地", "type": "string", "required": true},
+    {"name": "duration", "label": "旅行天数", "type": "number", "required": false, "default": 5},
+    {"name": "culturalTheme", "label": "文化主题", "type": "select", "required": false, "options": [
+      {"value": "历史探索", "label": "历史探索"},
+      {"value": "民俗体验", "label": "民俗体验"},
+      {"value": "宗教朝圣", "label": "宗教朝圣"},
+      {"value": "艺术鉴赏", "label": "艺术鉴赏"},
+      {"value": "建筑研究", "label": "建筑研究"}
+    ]},
+    {"name": "immersionLevel", "label": "深度等级", "type": "select", "required": false, "options": [
+      {"value": "初级", "label": "初级（走马观花）"},
+      {"value": "中级", "label": "中级（有所了解）"},
+      {"value": "高级", "label": "高级（深度沉浸）"},
+      {"value": "学术", "label": "学术（研究性质）"}
+    ]},
+    {"name": "accommodationType", "label": "住宿类型", "type": "select", "required": false, "options": [
+      {"value": "文化遗产酒店", "label": "文化遗产酒店"},
+      {"value": "民宿", "label": "当地民宿"},
+      {"value": "精品酒店", "label": "文化主题精品酒店"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "文化之旅-{{destination}}",
+    "files": [
+      {"path": "文化攻略.docx", "type": "document"},
+      {"path": "学习笔记.md", "type": "markdown"},
+      {"path": "文化摄影/", "type": "folder"},
+      {"path": "纪念品清单.md", "type": "markdown"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
