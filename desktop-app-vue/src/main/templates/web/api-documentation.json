@@ -6,28 +6,81 @@
   "icon": "🔌",
   "category": "web",
   "subcategory": "api",
-  "tags": ["API文档", "RESTful", "接口设计"],
+  "tags": [
+    "API文档",
+    "RESTful",
+    "接口设计"
+  ],
   "project_type": "document",
   "prompt_template": "API接口文档\n\n**API信息：**\n- API名称：{{apiName}}\n- 版本：{{apiVersion}}\n- Base URL：{{baseUrl}}\n- 认证方式：{{authType}}\n\n# API文档：{{apiName}}\n\n## 概述\n\n**API描述：**{{apiDescription}}\n\n**Base URL：**\n- 生产环境：{{productionUrl}}\n- 测试环境：{{stagingUrl}}\n- 开发环境：{{devUrl}}\n\n## 认证\n\n**认证方式：**{{authType}}\n\n{{#eq authType \"JWT\"}}\n**JWT认证流程：**\n1. 登录获取token\n2. 请求头携带：`Authorization: Bearer {token}`\n3. Token有效期：{{tokenExpiry}}小时\n{{/eq}}\n\n{{#eq authType \"API Key\"}}\n**API Key使用：**\n- 请求头：`X-API-Key: {your_api_key}`\n- 获取方式：{{apiKeySource}}\n{{/eq}}\n\n## 通用规范\n\n**请求格式：**JSON\n\n**响应格式：**JSON\n```json\n{\n  \"success\": true,\n  \"data\": {},\n  \"message\": \"操作成功\",\n  \"timestamp\": 1234567890\n}\n```\n\n**HTTP状态码：**\n- 200：成功\n- 201：创建成功\n- 400：请求参数错误\n- 401：未授权\n- 403：禁止访问\n- 404：资源不存在\n- 500：服务器错误\n\n**分页参数：**\n- `page`: 页码（从1开始）\n- `per_page`: 每页数量（默认20，最大100）\n\n**排序参数：**\n- `sort_by`: 排序字段\n- `order`: asc/desc\n\n## 接口列表\n\n### 用户管理\n\n#### 注册用户\n\n**接口：**`POST /api/users/register`\n\n**请求参数：**\n```json\n{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"张三\"\n}\n```\n\n**响应示例：**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": 123,\n    \"email\": \"user@example.com\",\n    \"name\": \"张三\",\n    \"created_at\": \"2025-01-01T00:00:00Z\"\n  }\n}\n```\n\n**错误码：**\n- 4001：邮箱已存在\n- 4002：密码强度不够\n\n#### 用户登录\n\n**接口：**`POST /api/users/login`\n\n**请求参数：**\n```json\n{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}\n```\n\n**响应示例：**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiIs...\",\n    \"expires_in\": 86400,\n    \"user\": {\n      \"id\": 123,\n      \"email\": \"user@example.com\",\n      \"name\": \"张三\"\n    }\n  }\n}\n```\n\n#### 获取用户信息\n\n**接口：**`GET /api/users/{userId}`\n\n**请求头：**\n```\nAuthorization: Bearer {token}\n```\n\n**响应示例：**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": 123,\n    \"email\": \"user@example.com\",\n    \"name\": \"张三\",\n    \"avatar\": \"https://...\",\n    \"created_at\": \"2025-01-01T00:00:00Z\"\n  }\n}\n```\n\n### {{resourceName}}管理\n\n#### 列表查询\n\n**接口：**`GET /api/{{resource}}`\n\n**查询参数：**\n- `page`: 页码\n- `per_page`: 每页数量\n- `keyword`: 搜索关键词\n- `status`: 状态筛选\n\n**响应示例：**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"title\": \"标题\",\n        \"status\": \"active\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"per_page\": 20,\n      \"total\": 100,\n      \"total_pages\": 5\n    }\n  }\n}\n```\n\n#### 创建资源\n\n**接口：**`POST /api/{{resource}}`\n\n**请求参数：**\n```json\n{\n  \"title\": \"标题\",\n  \"content\": \"内容\",\n  \"status\": \"draft\"\n}\n```\n\n#### 更新资源\n\n**接口：**`PUT /api/{{resource}}/{id}`\n\n**请求参数：**\n```json\n{\n  \"title\": \"新标题\",\n  \"status\": \"published\"\n}\n```\n\n#### 删除资源\n\n**接口：**`DELETE /api/{{resource}}/{id}`\n\n**响应示例：**\n```json\n{\n  \"success\": true,\n  \"message\": \"删除成功\"\n}\n```\n\n## 错误处理\n\n**错误响应格式：**\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"code\": 4001,\n    \"message\": \"邮箱已存在\",\n    \"details\": {}\n  }\n}\n```\n\n**错误码表：**\n\n| 错误码 | 说明 |\n|--------|------|\n| 1000 | 系统错误 |\n| 4001 | 参数错误 |\n| 4010 | 未授权 |\n| 4040 | 资源不存在 |\n\n## 限流规则\n\n**速率限制：**\n- 游客：{{guestRateLimit}}次/分钟\n- 登录用户：{{userRateLimit}}次/分钟\n- VIP用户：{{vipRateLimit}}次/分钟\n\n**限流响应头：**\n```\nX-RateLimit-Limit: 60\nX-RateLimit-Remaining: 59\nX-RateLimit-Reset: 1609459200\n```\n\n## WebHook\n\n**WebHook URL配置：**\n在后台配置回调URL\n\n**事件类型：**\n- user.created\n- user.updated\n- {{webhookEvent}}\n\n**Payload示例：**\n```json\n{\n  \"event\": \"user.created\",\n  \"data\": {},\n  \"timestamp\": 1234567890\n}\n```\n\n## SDK示例\n\n**JavaScript：**\n```javascript\nconst api = new APIClient({\n  baseURL: '{{baseUrl}}',\n  apiKey: 'your_api_key'\n});\n\nconst user = await api.users.get(123);\n```\n\n**Python：**\n```python\nfrom api_client import APIClient\n\nclient = APIClient(base_url='{{baseUrl}}', api_key='your_key')\nuser = client.users.get(123)\n```\n\n## 更新日志\n\n**v{{apiVersion}}** ({{releaseDate}})\n- {{changelog1}}\n- {{changelog2}}\n\n## 联系支持\n\n**技术支持：**{{supportEmail}}\n**文档更新：**{{docsUrl}}",
   "variables_schema": [
-    {"name": "apiName", "label": "API名称", "type": "string", "required": true},
-    {"name": "apiVersion", "label": "API版本", "type": "string", "required": false, "default": "v1"},
-    {"name": "baseUrl", "label": "Base URL", "type": "string", "required": false},
-    {"name": "authType", "label": "认证方式", "type": "select", "required": false, "options": [
-      {"value": "JWT", "label": "JWT Token"},
-      {"value": "API Key", "label": "API Key"},
-      {"value": "OAuth 2.0", "label": "OAuth 2.0"}
-    ]}
+    {
+      "name": "apiName",
+      "label": "API名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "apiVersion",
+      "label": "API版本",
+      "type": "string",
+      "required": false,
+      "default": "v1"
+    },
+    {
+      "name": "baseUrl",
+      "label": "Base URL",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "authType",
+      "label": "认证方式",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "JWT",
+          "label": "JWT Token"
+        },
+        {
+          "value": "API Key",
+          "label": "API Key"
+        },
+        {
+          "value": "OAuth 2.0",
+          "label": "OAuth 2.0"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "API文档-{{apiName}}",
     "files": [
-      {"path": "API文档.md", "type": "markdown"},
-      {"path": "Postman集合.json", "type": "json"}
+      {
+        "path": "API文档.md",
+        "type": "markdown"
+      },
+      {
+        "path": "Postman集合.json",
+        "type": "json"
+      }
     ]
   },
   "default_files": [],
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_web_development",
+    "skill_code_development"
+  ],
+  "required_tools": [
+    "tool_html_generator",
+    "tool_css_generator",
+    "tool_js_generator",
+    "tool_create_project_structure",
+    "tool_word_generator"
+  ],
+  "execution_engine": "web"
 }

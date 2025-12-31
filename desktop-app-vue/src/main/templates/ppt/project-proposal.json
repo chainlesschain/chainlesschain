@@ -60,5 +60,16 @@
   "default_files": [],
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_office_suite",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_ppt_generator",
+    "tool_ppt_slide_creator",
+    "tool_template_renderer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "ppt"
 }

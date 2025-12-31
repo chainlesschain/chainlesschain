@@ -163,5 +163,17 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_code_development",
+    "skill_project_management"
+  ],
+  "required_tools": [
+    "tool_create_project_structure",
+    "tool_git_init",
+    "tool_file_writer",
+    "tool_python_project_setup",
+    "tool_requirements_generator"
+  ],
+  "execution_engine": "code"
 }

@@ -91,5 +91,16 @@
   "default_files": [],
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_image_processing",
+    "skill_ui_ux_design"
+  ],
+  "required_tools": [
+    "tool_image_editor",
+    "tool_color_palette_generator",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "design"
 }
