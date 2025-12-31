@@ -191,7 +191,7 @@ import {
   PlusOutlined,
   LinkOutlined
 } from '@ant-design/icons-vue';
-import { useIdentityStore } from '@/stores/identity';
+import { useIdentityStore } from '../stores/identityStore';
 
 // ==================== Store ====================
 const identityStore = useIdentityStore();
@@ -216,10 +216,31 @@ const newOrgForm = ref({
 const inviteCode = ref('');
 
 // ==================== Computed ====================
-const currentIdentity = computed(() => identityStore.currentIdentity);
-const contexts = computed(() => identityStore.contexts);
-const currentContext = computed(() => identityStore.currentContext);
-const organizationIdentities = computed(() => identityStore.organizationIdentities);
+const currentIdentity = computed(() => {
+  const ctx = identityStore.activeContext;
+  if (!ctx) return { displayName: '加载中...', type: 'personal' };
+
+  return {
+    displayName: ctx.display_name,
+    type: ctx.context_type,
+    avatar: ctx.avatar,
+    orgName: ctx.display_name
+  };
+});
+
+const contexts = computed(() => ({
+  personal: identityStore.personalContext || {}
+}));
+
+const currentContext = computed(() => identityStore.currentContextId);
+const organizationIdentities = computed(() => {
+  return identityStore.organizationContexts.map(ctx => ({
+    orgId: ctx.org_id,
+    orgName: ctx.display_name,
+    avatar: ctx.avatar,
+    role: 'member' // TODO: Get actual role from member data
+  }));
+});
 
 // ==================== Methods ====================
 
@@ -233,9 +254,19 @@ async function handleSwitch(contextId) {
   }
 
   try {
-    await identityStore.switchContext(contextId);
-    message.success('身份切换成功');
-    showSwitcher.value = false;
+    const result = await identityStore.switchContext(contextId);
+
+    if (result.success) {
+      message.success(`已切换到: ${result.context.display_name}`);
+      showSwitcher.value = false;
+
+      // 刷新页面内容
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } else {
+      message.error(result.error || '切换身份失败');
+    }
   } catch (error) {
     console.error('切换身份失败:', error);
     message.error(error.message || '切换身份失败');
@@ -254,7 +285,31 @@ async function handleCreateOrg() {
   creating.value = true;
 
   try {
-    await identityStore.createOrganization(newOrgForm.value);
+    // 1. 创建组织
+    const orgResult = await window.electron.invoke('org:create-organization', {
+      name: newOrgForm.value.name,
+      description: newOrgForm.value.description,
+      type: newOrgForm.value.type
+    });
+
+    if (!orgResult.success) {
+      throw new Error(orgResult.error || '创建组织失败');
+    }
+
+    const { organization } = orgResult;
+
+    // 2. 创建组织身份上下文
+    const contextResult = await identityStore.createOrganizationContext(
+      organization.org_id,
+      organization.org_did,
+      organization.name,
+      null
+    );
+
+    if (!contextResult.success) {
+      throw new Error(contextResult.error || '创建身份上下文失败');
+    }
+
     message.success(`组织"${newOrgForm.value.name}"创建成功！`);
 
     // 重置表单
@@ -266,6 +321,9 @@ async function handleCreateOrg() {
     };
 
     showCreateOrg.value = false;
+
+    // 刷新上下文列表
+    await identityStore.loadContexts();
   } catch (error) {
     console.error('创建组织失败:', error);
     message.error(error.message || '创建组织失败');
@@ -286,11 +344,36 @@ async function handleJoinOrg() {
   joining.value = true;
 
   try {
-    const org = await identityStore.joinOrganization(inviteCode.value.toUpperCase());
-    message.success(`成功加入组织"${org.name}"！`);
+    // 1. 加入组织
+    const joinResult = await window.electron.invoke('org:join-organization', {
+      inviteCode: inviteCode.value.toUpperCase()
+    });
+
+    if (!joinResult.success) {
+      throw new Error(joinResult.error || '加入组织失败');
+    }
+
+    const { organization } = joinResult;
+
+    // 2. 创建组织身份上下文
+    const contextResult = await identityStore.createOrganizationContext(
+      organization.org_id,
+      organization.org_did,
+      organization.name,
+      organization.avatar || null
+    );
+
+    if (!contextResult.success) {
+      throw new Error(contextResult.error || '创建身份上下文失败');
+    }
+
+    message.success(`成功加入组织"${organization.name}"！`);
 
     inviteCode.value = '';
     showJoinOrg.value = false;
+
+    // 刷新上下文列表
+    await identityStore.loadContexts();
   } catch (error) {
     console.error('加入组织失败:', error);
     message.error(error.message || '加入组织失败，请检查邀请码是否正确');

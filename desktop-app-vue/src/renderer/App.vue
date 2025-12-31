@@ -11,11 +11,18 @@
     <a-spin v-if="loading" size="large" :tip="$t('app.initializing')" class="loading-overlay" />
     <router-view v-else />
 
-    <!-- 首次启动加密设置向导 -->
+    <!-- 全局设置向导 (首次启动时显示) -->
+    <GlobalSettingsWizard
+      :visible="showGlobalSetupWizard"
+      :canSkip="false"
+      @complete="handleGlobalSetupComplete"
+    />
+
+    <!-- 数据库加密设置向导 -->
     <DatabaseEncryptionWizard
-      v-model:open="showWizard"
-      @complete="onWizardComplete"
-      @skip="onWizardSkip"
+      v-model:open="showEncryptionWizard"
+      @complete="onEncryptionWizardComplete"
+      @skip="onEncryptionWizardSkip"
     />
   </a-config-provider>
 </template>
@@ -27,6 +34,7 @@ import { message } from 'ant-design-vue';
 import { useAppStore } from './stores/app';
 import { ukeyAPI, llmAPI } from './utils/ipc';
 import DatabaseEncryptionWizard from './components/DatabaseEncryptionWizard.vue';
+import GlobalSettingsWizard from './components/GlobalSettingsWizard.vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import zhTW from 'ant-design-vue/es/locale/zh_TW';
@@ -36,7 +44,8 @@ import koKR from 'ant-design-vue/es/locale/ko_KR';
 const store = useAppStore();
 const loading = ref(true);
 const { locale } = useI18n();
-const showWizard = ref(false);
+const showGlobalSetupWizard = ref(false);
+const showEncryptionWizard = ref(false);
 
 // Ant Design Vue locale mapping
 const antdLocaleMap = {
@@ -62,35 +71,75 @@ onMounted(async () => {
     const llmStatus = await llmAPI.checkStatus();
     store.setLLMStatus(llmStatus);
 
-    // 检查数据库加密状态，决定是否显示首次设置向导
+    // 步骤1: 首先检查全局设置是否完成
     if (window.electron?.ipcRenderer) {
       try {
-        const status = await window.electron.ipcRenderer.invoke('database:get-encryption-status');
+        const setupStatus = await window.electron.ipcRenderer.invoke('initial-setup:get-status');
 
-        // 如果是首次设置且未加密，延迟1秒后显示向导
-        if (status.firstTimeSetup && !status.isEncrypted) {
+        if (!setupStatus.completed) {
+          // 首次启动，显示全局设置向导
           setTimeout(() => {
-            showWizard.value = true;
+            showGlobalSetupWizard.value = true;
+          }, 500);
+          loading.value = false;
+          return; // 等待全局设置完成，不继续检查加密状态
+        }
+
+        // 步骤2: 全局设置已完成，检查数据库加密状态
+        const encStatus = await window.electron.ipcRenderer.invoke('database:get-encryption-status');
+
+        // 如果是首次设置且未加密，延迟1秒后显示加密向导
+        if (encStatus.firstTimeSetup && !encStatus.isEncrypted) {
+          setTimeout(() => {
+            showEncryptionWizard.value = true;
           }, 1000);
         }
       } catch (error) {
-        console.error('检查加密状态失败:', error);
+        console.error('检查设置状态失败:', error);
       }
     }
+
+    // 监听托盘菜单触发的全局设置事件
+    if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.on('show-global-settings', () => {
+        showGlobalSetupWizard.value = true;
+      });
+    }
   } catch (error) {
-    console.error($t('app.initializationFailed'), error);
+    console.error('应用初始化失败', error);
   } finally {
     loading.value = false;
   }
 });
 
-// 向导完成处理
-const onWizardComplete = () => {
+// 全局设置向导完成处理
+const handleGlobalSetupComplete = async () => {
+  showGlobalSetupWizard.value = false;
+
+  // 全局设置完成后，立即检查加密状态
+  try {
+    const encStatus = await window.electron.ipcRenderer.invoke('database:get-encryption-status');
+    if (encStatus.firstTimeSetup && !encStatus.isEncrypted) {
+      setTimeout(() => {
+        showEncryptionWizard.value = true;
+      }, 800);
+    } else {
+      // 如果加密已设置或跳过，提示可能需要重启
+      message.success('全局设置已保存，部分配置将在重启后生效');
+    }
+  } catch (error) {
+    console.error('检查加密状态失败:', error);
+    message.success('全局设置已保存');
+  }
+};
+
+// 数据库加密向导完成处理
+const onEncryptionWizardComplete = () => {
   message.success('加密设置完成！应用将在重启后生效。');
 };
 
-// 向导跳过处理
-const onWizardSkip = () => {
+// 数据库加密向导跳过处理
+const onEncryptionWizardSkip = () => {
   message.info('您可以随时在设置中启用数据库加密');
 };
 </script>
