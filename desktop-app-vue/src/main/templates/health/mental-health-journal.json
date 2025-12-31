@@ -1,0 +1,61 @@
+{
+  "id": "tpl_health_mental_007",
+  "name": "mental_health_journal",
+  "display_name": "心理健康日记",
+  "description": "情绪追踪与心理健康管理，包含情绪记录、认知行为疗法练习和心理建设",
+  "icon": "🧠",
+  "category": "health",
+  "subcategory": "mental",
+  "tags": [
+    "心理健康",
+    "情绪管理",
+    "正念",
+    "心理日记"
+  ],
+  "project_type": "document",
+  "prompt_template": "心理健康日记\n\n**日期：** {{date}}\n**今日整体心情：** {{overallMood}}\n**能量水平：** {{energyLevel}}/10\n**压力水平：** {{stressLevel}}/10\n\n# 今日心理健康记录\n\n## 1. 情绪追踪\n\n### 1.1 今日主要情绪\n\n**主导情绪：** {{primaryEmotion}}\n**强度：** {{emotionIntensity}}/10\n**持续时间：** {{emotionDuration}}\n\n**其他情绪：**\n- {{secondaryEmotion1}}（强度{{intensity1}}/10）\n- {{secondaryEmotion2}}（强度{{intensity2}}/10）\n\n### 1.2 情绪触发事件\n\n**事件描述：**\n{{triggerEvent}}\n\n**发生时间：** {{eventTime}}\n**发生地点：** {{eventLocation}}\n**涉及人物：** {{eventPeople}}\n\n**我的即时反应：**\n{{immediateReaction}}\n\n---\n\n## 2. 认知记录（CBT练习）\n\n### 2.1 自动化思维\n\n**当时脑海中的想法：**\n{{automaticThought}}\n\n**这个想法出现的频率：** {{thoughtFrequency}}\n\n### 2.2 认知扭曲识别\n\n是否存在以下认知偏差？\n\n- [ ] 全或无思维（非黑即白）\n- [ ] 过度概括\n- [ ] 心理过滤（只看负面）\n- [ ] 否定正面\n- [ ] 妄下结论\n- [ ] 灾难化思维\n- [ ] 情绪化推理\n- [ ] 应该式思维\n- [ ] 贴标签\n- [ ] 个人化\n\n**识别到的认知扭曲：**\n{{identifiedDistortion}}\n\n### 2.3 理性反驳\n\n**支持这个想法的证据：**\n{{supportingEvidence}}\n\n**反对这个想法的证据：**\n{{contradictingEvidence}}\n\n**更平衡的想法：**\n{{balancedThought}}\n\n**重新评估后的情绪强度：** {{reappraisedIntensity}}/10\n\n---\n\n## 3. 感恩练习\n\n**今天我感激的三件事：**\n\n1. {{gratitude1}}\n   为什么：{{gratitude1Reason}}\n\n2. {{gratitude2}}\n   为什么：{{gratitude2Reason}}\n\n3. {{gratitude3}}\n   为什么：{{gratitude3Reason}}\n\n---\n\n## 4. 成就记录\n\n**今天完成的事情（无论大小）：**\n\n- {{achievement1}}\n- {{achievement2}}\n- {{achievement3}}\n\n**我为此感到：** {{achievementFeeling}}\n\n---\n\n## 5. 人际互动\n\n**今天的重要互动：**\n{{socialInteraction}}\n\n**互动质量：** {{interactionQuality}}/10\n\n**感受：**\n{{interactionFeeling}}\n\n---\n\n## 6. 自我关怀\n\n**今天为自己做的好事：**\n{{selfCareAction}}\n\n**身体照顾：**\n- 睡眠：{{sleepHours}}小时\n- 运动：{{exerciseMinutes}}分钟\n- 饮食：{{dietQuality}}\n- 饮水：{{waterIntake}}ml\n\n**心理照顾：**\n- 冥想/正念：{{meditationMinutes}}分钟\n- 休闲活动：{{leisureActivity}}\n- 社交连接：{{socialConnection}}\n\n---\n\n## 7. 应对策略\n\n**今天使用的应对方法：**\n{{copingStrategy}}\n\n**效果评估：** {{strategyEffectiveness}}/10\n\n**下次可以尝试：**\n{{futureStrategy}}\n\n---\n\n## 8. 目标与计划\n\n**明天的意图：**\n{{tomorrowIntention}}\n\n**需要注意的挑战：**\n{{anticipatedChallenge}}\n\n**应对计划：**\n{{challengePlan}}\n\n---\n\n## 9. 正念时刻\n\n**此时此刻的觉察：**\n\n**我看到：** {{mindfulSight}}\n**我听到：** {{mindfulSound}}\n**我感觉到：** {{mindfulSensation}}\n**我想到：** {{mindfulThought}}\n**我接纳：** {{mindfulAcceptance}}\n\n---\n\n## 10. 每日反思\n\n**今天学到的关于自己的事：**\n{{selfDiscovery}}\n\n**想对自己说的话：**\n{{selfTalk}}\n\n**今日评分：** {{dayRating}}/10\n\n---\n\n## 附录：心理健康资源\n\n**紧急求助热线：**\n- 心理危机干预：400-161-9995\n- 北京心理危机研究与干预中心：010-82951332\n\n**专业帮助：**\n如果连续两周感到低落、焦虑或有自伤想法，请寻求专业心理咨询师或精神科医生帮助。\n",
+  "variables_schema": [
+    {
+      "name": "date",
+      "label": "日期",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "overallMood",
+      "label": "整体心情",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "很好", "label": "很好😊"},
+        {"value": "好", "label": "好🙂"},
+        {"value": "一般", "label": "一般😐"},
+        {"value": "不太好", "label": "不太好😟"},
+        {"value": "糟糕", "label": "糟糕😢"}
+      ]
+    },
+    {
+      "name": "energyLevel",
+      "label": "能量水平(1-10)",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "stressLevel",
+      "label": "压力水平(1-10)",
+      "type": "number",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "心理健康日记-{{date}}",
+    "files": [
+      {"path": "日记.md", "type": "document"},
+      {"path": "情绪趋势图.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

@@ -1,0 +1,60 @@
+{
+  "id": "tpl_ecommerce_persona_008",
+  "name": "user_persona",
+  "display_name": "电商用户画像",
+  "description": "目标客户画像构建，包含人口统计、行为特征、购买动机和营销策略",
+  "icon": "👤",
+  "category": "ecommerce",
+  "subcategory": "marketing",
+  "tags": [
+    "用户画像",
+    "目标客户",
+    "市场细分",
+    "精准营销"
+  ],
+  "project_type": "document",
+  "prompt_template": "电商用户画像\n\n**画像信息：**\n- 产品类目：{{productCategory}}\n- 目标人群：{{targetAudience}}\n- 画像名称：{{personaName}}\n- 画像类型：{{personaType}}\n\n# {{personaName}} 用户画像档案\n\n## 概览\n\n**画像代号：** {{personaName}}\n**创建日期：** {{creationDate}}\n**最后更新：** {{lastUpdate}}\n**用户占比：** {{userPercentage}}%\n**价值评级：** {{valueRating}}/5星\n\n**一句话描述：**\n{{personaSummary}}\n\n---\n\n## 1. 基础信息\n\n### 1.1 人口统计特征\n\n**姓名（虚拟）：** {{fictitiousName}}\n**性别：** {{gender}}\n**年龄：** {{age}}岁\n**年龄段：** {{ageGroup}}\n**婚姻状况：** {{maritalStatus}}\n**家庭结构：** {{familyStructure}}\n**职业：** {{occupation}}\n**行业：** {{industry}}\n**职级：** {{jobLevel}}\n**学历：** {{education}}\n\n### 1.2 地理位置\n\n**城市等级：** {{cityTier}}\n**所在地区：** {{location}}\n**居住环境：** {{livingEnvironment}}\n\n### 1.3 经济状况\n\n**月收入：** ¥{{monthlyIncome}}\n**年收入：** ¥{{annualIncome}}\n**经济压力：** {{financialPressure}}\n**消费能力：** {{spendingPower}}\n\n**支出分配：**\n- 日常开销：{{dailyExpense}}%\n- 娱乐休闲：{{entertainmentExpense}}%\n- 学习提升：{{educationExpense}}%\n- 储蓄投资：{{savingsExpense}}%\n- 其他：{{otherExpense}}%\n\n---\n\n## 2. 购买行为分析\n\n### 2.1 购物习惯\n\n**购物频率：** {{shoppingFrequency}}\n**平均客单价：** ¥{{avgOrderValue}}\n**年度消费额：** ¥{{annualSpending}}\n\n**购物时段：**\n- 工作日：{{weekdayShoppingTime}}\n- 周末：{{weekendShoppingTime}}\n- 最活跃时段：{{peakShoppingTime}}\n\n**购物渠道偏好：**\n1. {{channel1}}：{{channel1Percentage}}%\n2. {{channel2}}：{{channel2Percentage}}%\n3. {{channel3}}：{{channel3Percentage}}%\n\n### 2.2 品类偏好\n\n**主要购买品类：**\n1. {{category1}}（{{category1Frequency}}）\n2. {{category2}}（{{category2Frequency}}）\n3. {{category3}}（{{category3Frequency}}）\n\n**关联品类：**\n{{relatedCategories}}\n\n### 2.3 购买决策过程\n\n**决策周期：** {{decisionCycle}}\n\n**决策路径：**\n```\n需求产生 → {{decisionStep1}} → {{decisionStep2}} → {{decisionStep3}} → 下单购买\n```\n\n**决策因素（按重要性排序）：**\n1. {{decisionFactor1}}（权重{{weight1}}%）\n2. {{decisionFactor2}}（权重{{weight2}}%）\n3. {{decisionFactor3}}（权重{{weight3}}%）\n4. {{decisionFactor4}}（权重{{weight4}}%）\n5. {{decisionFactor5}}（权重{{weight5}}%）\n\n**价格敏感度：** {{priceSensitivity}}/10\n\n### 2.4 信息获取渠道\n\n**主要信息来源：**\n1. {{infoSource1}}\n2. {{infoSource2}}\n3. {{infoSource3}}\n\n**信任来源：**\n- 最信任：{{mostTrusted}}\n- 较信任：{{moderatelyTrusted}}\n- 不太信任：{{lessTrusted}}\n\n---\n\n## 3. 心理特征\n\n### 3.1 价值观与生活态度\n\n**核心价值观：**\n{{coreValues}}\n\n**生活态度：**\n{{lifeAttitude}}\n\n**消费观：**\n{{consumptionAttitude}}\n\n### 3.2 购物动机\n\n**主要动机：**\n{{primaryMotivation}}\n\n**深层需求：**\n- 功能需求：{{functionalNeed}}\n- 情感需求：{{emotionalNeed}}\n- 社交需求：{{socialNeed}}\n\n### 3.3 痛点与困扰\n\n**购物痛点：**\n1. {{painPoint1}}\n2. {{painPoint2}}\n3. {{painPoint3}}\n\n**生活困扰：**\n{{lifeChallenge}}\n\n### 3.4 期待与愿望\n\n**对产品的期待：**\n{{productExpectation}}\n\n**对服务的期待：**\n{{serviceExpectation}}\n\n**理想购物体验：**\n{{idealShoppingExperience}}\n\n---\n\n## 4. 数字行为\n\n### 4.1 设备使用\n\n**主要设备：** {{primaryDevice}}\n**操作系统：** {{operatingSystem}}\n**屏幕使用时间：** {{screenTime}}小时/天\n\n### 4.2 社交媒体使用\n\n**活跃平台：**\n1. {{socialPlatform1}}（日均{{platform1Time}}分钟）\n2. {{socialPlatform2}}（日均{{platform2Time}}分钟）\n3. {{socialPlatform3}}（日均{{platform3Time}}分钟）\n\n**社交行为：**\n- 发帖频率：{{postingFrequency}}\n- 互动程度：{{engagementLevel}}\n- KOL关注：{{kol关注数}}\n\n### 4.3 内容偏好\n\n**喜欢的内容形式：**\n1. {{contentFormat1}}\n2. {{contentFormat2}}\n3. {{contentFormat3}}\n\n**关注话题：**\n{{interestedTopics}}\n\n### 4.4 购物App使用\n\n**常用App（按使用频率）：**\n1. {{shoppingApp1}}\n2. {{shoppingApp2}}\n3. {{shoppingApp3}}\n\n**App内行为：**\n- 浏览时长：{{browsingDuration}}\n- 加购率：{{addToCartRate}}\n- 转化率：{{conversionRate}}\n- 复购率：{{repurchaseRate}}\n\n---\n\n## 5. 生活方式\n\n### 5.1 典型的一天\n\n**06:00 - 09:00**\n{{morningRoutine}}\n\n**09:00 - 12:00**\n{{morningWork}}\n\n**12:00 - 14:00**\n{{lunchBreak}}\n\n**14:00 - 18:00**\n{{afternoonWork}}\n\n**18:00 - 21:00**\n{{eveningActivities}}\n\n**21:00 - 23:00**\n{{nightRoutine}}\n\n### 5.2 兴趣爱好\n\n**主要爱好：**\n1. {{hobby1}}\n2. {{hobby2}}\n3. {{hobby3}}\n\n**娱乐活动：**\n{{entertainment}}\n\n### 5.3 品牌偏好\n\n**喜欢的品牌：**\n- {{favoriteBrand1}}\n- {{favoriteBrand2}}\n- {{favoriteBrand3}}\n\n**品牌忠诚度：** {{brandLoyalty}}/10\n\n**品牌选择标准：**\n{{brandCriteria}}\n\n---\n\n## 6. 购物场景\n\n### 6.1 典型购物场景\n\n**场景1：{{scenario1Name}}**\n\n**背景：**\n{{scenario1Background}}\n\n**触发点：**\n{{scenario1Trigger}}\n\n**购物过程：**\n1. {{scenario1Step1}}\n2. {{scenario1Step2}}\n3. {{scenario1Step3}}\n4. {{scenario1Step4}}\n\n**结果：**\n{{scenario1Outcome}}\n\n**场景2：{{scenario2Name}}**\n\n**背景：**\n{{scenario2Background}}\n\n**触发点：**\n{{scenario2Trigger}}\n\n**购物过程：**\n1. {{scenario2Step1}}\n2. {{scenario2Step2}}\n3. {{scenario2Step3}}\n\n**结果：**\n{{scenario2Outcome}}\n\n---\n\n## 7. 客户旅程地图\n\n### 7.1 认知阶段\n\n**接触点：** {{awarenessTouch点}}\n**心理状态：** {{awarenessEmotion}}\n**行为：** {{awarenessBehavior}}\n**痛点：** {{awarenessPainPoint}}\n**机会点：** {{awarenessOpportunity}}\n\n### 7.2 考虑阶段\n\n**接触点：** {{considerationTouchpoint}}\n**心理状态：** {{considerationEmotion}}\n**行为：** {{considerationBehavior}}\n**痛点：** {{considerationPainPoint}}\n**机会点：** {{considerationOpportunity}}\n\n### 7.3 购买阶段\n\n**接触点：** {{purchaseTouchpoint}}\n**心理状态：** {{purchaseEmotion}}\n**行为：** {{purchaseBehavior}}\n**痛点：** {{purchasePainPoint}}\n**机会点：** {{purchaseOpportunity}}\n\n### 7.4 售后阶段\n\n**接触点：** {{afterSaleTouchpoint}}\n**心理状态：** {{afterSaleEmotion}}\n**行为：** {{afterSaleBehavior}}\n**痛点：** {{afterSalePainPoint}}\n**机会点：** {{afterSaleOpportunity}}\n\n### 7.5 复购/推荐阶段\n\n**接触点：** {{loyaltyTouchpoint}}\n**心理状态：** {{loyaltyEmotion}}\n**行为：** {{loyaltyBehavior}}\n**痛点：** {{loyaltyPainPoint}}\n**机会点：** {{loyaltyOpportunity}}\n\n---\n\n## 8. 营销策略建议\n\n### 8.1 产品策略\n\n**产品定位：**\n{{productPositioning}}\n\n**功能侧重：**\n1. {{productFeature1}}\n2. {{productFeature2}}\n3. {{productFeature3}}\n\n**包装设计：**\n{{packagingRecommendation}}\n\n### 8.2 定价策略\n\n**推荐价格区间：** ¥{{recommendedPriceMin}} - ¥{{recommendedPriceMax}}\n**最优价格点：** ¥{{optimalPrice}}\n**促销策略：** {{promotionStrategy}}\n\n### 8.3 渠道策略\n\n**主推渠道：**\n1. {{primaryChannel}}\n2. {{secondaryChannel}}\n\n**渠道组合：**\n{{channelMix}}\n\n### 8.4 沟通策略\n\n**沟通主题：**\n{{communicationTheme}}\n\n**核心信息：**\n{{keyMessage}}\n\n**沟通语调：**\n{{communicationTone}}\n\n**内容形式：**\n- 主推：{{primaryContentFormat}}\n- 辅助：{{secondaryContentFormat}}\n\n### 8.5 触达策略\n\n**最佳触达时间：**\n{{bestReachTime}}\n\n**最佳触达渠道：**\n1. {{reachChannel1}}（转化率{{conversion1}}%）\n2. {{reachChannel2}}（转化率{{conversion2}}%）\n\n**内容推荐：**\n{{contentRecommendation}}\n\n---\n\n## 9. 数据支撑\n\n### 9.1 数据来源\n\n- 平台数据：{{platformData}}\n- 问卷调研：{{surveyData}}\n- 用户访谈：{{interviewData}}\n- 第三方数据：{{thirdPartyData}}\n\n### 9.2 样本量\n\n- 总样本量：{{sampleSize}}\n- 有效样本：{{validSample}}\n- 数据收集时间：{{dataCollectionPeriod}}\n\n### 9.3 置信度\n\n- 统计置信度：{{confidence}}%\n- 代表性评估：{{representativeness}}\n\n---\n\n## 10. 画像验证与迭代\n\n### 10.1 验证方法\n\n- [ ] A/B测试验证\n- [ ] 小范围投放测试\n- [ ] 用户访谈确认\n- [ ] 销售数据对比\n\n### 10.2 迭代计划\n\n**下次更新时间：** {{nextUpdateDate}}\n\n**需关注变化：**\n1. {{trackChange1}}\n2. {{trackChange2}}\n3. {{trackChange3}}\n\n---\n\n## 附录\n\n### A. 典型语录\n\n> \"{{userQuote1}}\"\n> \"{{userQuote2}}\"\n> \"{{userQuote3}}\"\n\n### B. 视觉板 (Mood Board)\n\n**形象参考：** {{visualReference}}\n**穿衣风格：** {{fashionStyle}}\n**家居风格：** {{homeStyle}}\n\n### C. 竞品用户对比\n\n| 维度 | 我方目标用户 | 竞品A用户 | 竞品B用户 |\n|------|-------------|----------|----------|\n| 年龄 | {{ourAge}} | {{compAAGe}} | {{compBAge}} |\n| 收入 | {{ourIncome}} | {{compAIncome}} | {{compBIncome}} |\n| 购买力 | {{ourPower}} | {{compAPower}} | {{compBPower}} |\n",
+  "variables_schema": [
+    {
+      "name": "personaName",
+      "label": "画像名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "productCategory",
+      "label": "产品类目",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标人群",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "personaType",
+      "label": "画像类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "primary", "label": "主要画像"},
+        {"value": "secondary", "label": "次要画像"},
+        {"value": "negative", "label": "排除画像"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "用户画像-{{personaName}}",
+    "files": [
+      {"path": "画像档案.docx", "type": "document"},
+      {"path": "数据分析.xlsx", "type": "spreadsheet"},
+      {"path": "视觉板/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

@@ -185,7 +185,8 @@
         "icon": "build/icon",
         "extraResource": [
           "../node_modules/sql.js/dist/sql-wasm.wasm"
-        ]
+        ],
+        "prune": false
       },
       "makers": [
         {
