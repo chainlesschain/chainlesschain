@@ -5,7 +5,11 @@
  * 注意：config 和 tags 必须是 JSON 字符串格式（符合数据库 schema）
  */
 
-module.exports = [
+
+// 导入额外的技能定义
+const additionalSkills = require('./additional-skills');
+
+const builtinSkills = [
   {
     "id": "skill_code_development",
     "name": "代码开发",
@@ -2478,4 +2482,10 @@ module.exports = [
     "enabled": 1,
     "is_builtin": 1
   }
+];
+
+// 合并所有技能（内置技能 + 额外技能）
+module.exports = [
+  ...builtinSkills,
+  ...additionalSkills
 ];
