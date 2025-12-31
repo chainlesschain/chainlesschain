@@ -7,7 +7,12 @@
   "cover_image": "/templates/covers/online-course.png",
   "category": "education",
   "subcategory": "course",
-  "tags": ["在线课程", "教学设计", "课程大纲", "教育"],
+  "tags": [
+    "在线课程",
+    "教学设计",
+    "课程大纲",
+    "教育"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我设计一门《{{courseName}}》在线课程的完整大纲，要求：\n\n**课程基本信息：**\n- 课程名称：{{courseName}}\n- 课程类型：{{courseType}}\n- 目标学员：{{targetStudent}}\n- 课程时长：{{totalHours}}小时（{{lessonCount}}节课）\n- 难度等级：{{difficultyLevel}}\n\n**课程目标：**\n{{#if learningObjectives}}\n{{#each learningObjectives}}\n- {{this}}\n{{/each}}\n{{else}}\n请根据{{courseName}}自动生成3-5个明确的学习目标\n{{/if}}\n\n**课程结构：**\n\n1. 课程总览\n   - 课程简介（200-300字）\n   - 讲师介绍\n   - 学习建议\n\n2. 章节大纲\n   - 根据{{lessonCount}}节课，设计合理的章节结构\n   - 每章包含：章节目标、课时安排、知识点\n\n3. 测验与作业\n{{#if (eq includeQuiz \"是\")}}\n   - 章节测验：选择题、判断题、简答题\n   - 及格分数：{{passingScore}}分\n{{/if}}\n{{#if (eq includeAssignment \"是\")}}\n   - 章节作业：实践任务\n   - 评分标准：完成度、创新性、规范性\n{{/if}}\n\n4. 结业项目\n{{#if (eq includeFinalProject \"是\")}}\n   - 综合运用课程所学知识的实战项目\n   - 项目要求和评分标准\n{{/if}}\n\n5. 学习资源\n   - 必读资料\n   - 拓展资源\n   - 常见问题FAQ\n\n6. 教学计划表\n   - 详细的周次安排\n   - 学习时长建议\n\n7. 考核方式\n{{#if (eq includeCertificate \"是\")}}\n   - 结业证书获取条件\n{{/if}}\n   - 成绩构成比例\n\n**输出格式：**\n- Word文档，包含完整目录\n- 使用标题层级清晰区分章节\n- 表格清晰易读",
   "variables_schema": [
@@ -25,12 +30,30 @@
       "required": false,
       "default": "编程开发",
       "options": [
-        { "value": "编程开发", "label": "编程开发" },
-        { "value": "设计创作", "label": "设计创作" },
-        { "value": "数据分析", "label": "数据分析" },
-        { "value": "产品运营", "label": "产品运营" },
-        { "value": "职场技能", "label": "职场技能" },
-        { "value": "语言学习", "label": "语言学习" }
+        {
+          "value": "编程开发",
+          "label": "编程开发"
+        },
+        {
+          "value": "设计创作",
+          "label": "设计创作"
+        },
+        {
+          "value": "数据分析",
+          "label": "数据分析"
+        },
+        {
+          "value": "产品运营",
+          "label": "产品运营"
+        },
+        {
+          "value": "职场技能",
+          "label": "职场技能"
+        },
+        {
+          "value": "语言学习",
+          "label": "语言学习"
+        }
       ]
     },
     {
@@ -66,10 +89,22 @@
       "required": false,
       "default": "入门级",
       "options": [
-        { "value": "入门级", "label": "入门级（零基础）" },
-        { "value": "初级", "label": "初级（有基础）" },
-        { "value": "中级", "label": "中级（有经验）" },
-        { "value": "高级", "label": "高级（专业进阶）" }
+        {
+          "value": "入门级",
+          "label": "入门级（零基础）"
+        },
+        {
+          "value": "初级",
+          "label": "初级（有基础）"
+        },
+        {
+          "value": "中级",
+          "label": "中级（有经验）"
+        },
+        {
+          "value": "高级",
+          "label": "高级（专业进阶）"
+        }
       ]
     },
     {
@@ -79,8 +114,14 @@
       "required": false,
       "default": "是",
       "options": [
-        { "value": "是", "label": "每章包含测验" },
-        { "value": "否", "label": "不包含测验" }
+        {
+          "value": "是",
+          "label": "每章包含测验"
+        },
+        {
+          "value": "否",
+          "label": "不包含测验"
+        }
       ]
     },
     {
@@ -90,8 +131,14 @@
       "required": false,
       "default": "是",
       "options": [
-        { "value": "是", "label": "每章包含作业" },
-        { "value": "否", "label": "不包含作业" }
+        {
+          "value": "是",
+          "label": "每章包含作业"
+        },
+        {
+          "value": "否",
+          "label": "不包含作业"
+        }
       ]
     },
     {
@@ -101,8 +148,14 @@
       "required": false,
       "default": "是",
       "options": [
-        { "value": "是", "label": "每课包含实操" },
-        { "value": "否", "label": "纯理论课程" }
+        {
+          "value": "是",
+          "label": "每课包含实操"
+        },
+        {
+          "value": "否",
+          "label": "纯理论课程"
+        }
       ]
     },
     {
@@ -112,8 +165,14 @@
       "required": false,
       "default": "是",
       "options": [
-        { "value": "是", "label": "包含综合项目" },
-        { "value": "否", "label": "不包含" }
+        {
+          "value": "是",
+          "label": "包含综合项目"
+        },
+        {
+          "value": "否",
+          "label": "不包含"
+        }
       ]
     },
     {
@@ -123,8 +182,14 @@
       "required": false,
       "default": "是",
       "options": [
-        { "value": "是", "label": "完成后颁发证书" },
-        { "value": "否", "label": "不提供证书" }
+        {
+          "value": "是",
+          "label": "完成后颁发证书"
+        },
+        {
+          "value": "否",
+          "label": "不提供证书"
+        }
       ]
     },
     {
@@ -169,5 +234,15 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_ppt_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
 }

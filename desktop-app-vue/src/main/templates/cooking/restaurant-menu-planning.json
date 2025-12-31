@@ -1,0 +1,41 @@
+{
+  "id": "tpl_cooking_restaurant_menu_005",
+  "name": "restaurant_menu_planning",
+  "display_name": "餐厅菜单策划",
+  "description": "餐厅菜单设计与优化，包含成本核算和季节性调整",
+  "icon": "🍽️",
+  "category": "cooking",
+  "subcategory": "business",
+  "tags": ["餐厅管理", "菜单设计", "成本控制"],
+  "project_type": "document",
+  "prompt_template": "餐厅菜单策划\n\n**餐厅信息：**\n- 餐厅名称：{{restaurantName}}\n- 餐厅类型：{{restaurantType}}\n- 客单价：¥{{averagePrice}}\n- 座位数：{{seatingCapacity}}\n\n# 菜单策划方案\n\n## 菜单定位\n\n**目标客群：**{{targetCustomer}}\n**餐厅风格：**{{cuisineStyle}}\n**价格区间：**¥{{priceRange}}\n\n## 菜单结构\n\n### 冷菜（Appetizers）\n\n**推荐菜品：**\n1. {{appetizer1}} - ¥{{app1Price}}\n   - 成本：¥{{app1Cost}}\n   - 毛利率：{{app1Margin}}%\n2. {{appetizer2}} - ¥{{app2Price}}\n3. {{appetizer3}} - ¥{{app3Price}}\n\n**设计原则：**\n- 轻盈开胃\n- 视觉吸引\n- 快速出品（<5分钟）\n\n### 热菜（Main Courses）\n\n**招牌菜：**\n1. {{signature1}} - ¥{{sig1Price}} ⭐\n   - 特色：{{sig1Feature}}\n   - 毛利率：{{sig1Margin}}%\n   \n2. {{signature2}} - ¥{{sig2Price}} ⭐\n\n**经典菜：**\n3. {{classic1}} - ¥{{classic1Price}}\n4. {{classic2}} - ¥{{classic2Price}}\n5. {{classic3}} - ¥{{classic3Price}}\n\n**创新菜：**\n6. {{innovative1}} - ¥{{inn1Price}}\n7. {{innovative2}} - ¥{{inn2Price}}\n\n### 汤品（Soups）\n\n1. {{soup1}} - ¥{{soup1Price}}\n2. {{soup2}} - ¥{{soup2Price}}\n\n### 主食（Staples）\n\n1. {{staple1}} - ¥{{staple1Price}}\n2. {{staple2}} - ¥{{staple2Price}}\n3. {{staple3}} - ¥{{staple3Price}}\n\n### 甜品（Desserts）\n\n1. {{dessert1}} - ¥{{dessert1Price}}\n2. {{dessert2}} - ¥{{dessert2Price}}\n\n### 饮品（Beverages）\n\n**软饮：**\n- 鲜榨果汁 - ¥{{juicePrice}}\n- 特调饮料 - ¥{{mocktailPrice}}\n\n**酒水：**\n- 啤酒 - ¥{{beerPrice}}\n- 红酒 - ¥{{winePrice}}\n\n## 菜单工程分析\n\n### 四象限分类\n\n**明星菜（高销量+高利润）：**\n- {{starDish1}}\n- {{starDish2}}\n策略：重点推广，保持品质\n\n**金牛菜（低销量+高利润）：**\n- {{cashCowDish}}\n策略：提高曝光度\n\n**瘦狗菜（低销量+低利润）：**\n- {{dogDish}}\n策略：考虑下架\n\n**问号菜（高销量+低利润）：**\n- {{questionDish}}\n策略：优化成本或提价\n\n## 成本控制\n\n**目标毛利率：**{{targetMargin}}%\n\n**成本构成：**\n- 食材成本：{{foodCostPercent}}%\n- 人工成本：{{laborCostPercent}}%\n- 房租水电：{{rentUtilitiesPercent}}%\n- 其他：{{otherCostPercent}}%\n\n**采购策略：**\n- 与供应商建立长期合作\n- 季节性食材优先\n- 批量采购折扣\n\n## 季节性菜单\n\n### 春季菜单（3-5月）\n**时令食材：**{{springIngredients}}\n**推荐菜品：**{{springDishes}}\n\n### 夏季菜单（6-8月）\n**时令食材：**{{summerIngredients}}\n**推荐菜品：**{{summerDishes}}\n\n### 秋季菜单（9-11月）\n**时令食材：**{{fallIngredients}}\n**推荐菜品：**{{fallDishes}}\n\n### 冬季菜单（12-2月）\n**时令食材：**{{winterIngredients}}\n**推荐菜品：**{{winterDishes}}\n\n## 套餐设计\n\n**商务午餐套餐：**¥{{lunchSetPrice}}\n- 主菜1选1\n- 汤/沙拉\n- 主食\n- 饮料\n\n**双人套餐：**¥{{coupleSetPrice}}\n- 冷菜2道\n- 热菜3道\n- 汤1份\n- 主食2份\n- 甜品2份\n\n**家庭套餐（4人）：**¥{{familySetPrice}}\n\n## 菜单呈现\n\n**设计要素：**\n- 高清菜品照片\n- 简洁菜品描述\n- 清晰价格标注\n- 推荐标识⭐\n- 过敏原提示⚠️\n\n**菜单类型：**\n{{#eq menuFormat \"纸质菜单\"}}\n- A4双面彩印\n- 覆膜防水\n- 每季度更新\n{{/eq}}\n\n{{#eq menuFormat \"电子菜单\"}}\n- 扫码点餐\n- 实时更新\n- 图文并茂\n- 智能推荐\n{{/eq}}\n\n## 营销策略\n\n**推广重点：**\n1. 招牌菜打造网红效果\n2. 限时特价菜引流\n3. 会员专属菜品\n\n**定价策略：**\n- 锚定价格（高价菜提升整体感知）\n- 尾数定价（¥88而非¥90）\n- 组合优惠\n\n## 更新机制\n\n**常规更新：**\n- 季度菜单调整\n- 每月1-2道新菜\n- 淘汰滞销菜\n\n**数据追踪：**\n- 每日销量统计\n- 顾客反馈收集\n- 利润率分析\n\n**优化方向：**\n- 根据销售数据调整\n- 关注竞品动态\n- 顺应流行趋势",
+  "variables_schema": [
+    {"name": "restaurantName", "label": "餐厅名称", "type": "string", "required": true},
+    {"name": "restaurantType", "label": "餐厅类型", "type": "select", "required": false, "options": [
+      {"value": "中餐", "label": "中餐"},
+      {"value": "西餐", "label": "西餐"},
+      {"value": "日料", "label": "日料"},
+      {"value": "融合菜", "label": "融合菜"},
+      {"value": "快餐", "label": "快餐"}
+    ]},
+    {"name": "averagePrice", "label": "人均消费（元）", "type": "number", "required": false, "default": 80},
+    {"name": "targetMargin", "label": "目标毛利率（%）", "type": "number", "required": false, "default": 65},
+    {"name": "menuFormat", "label": "菜单形式", "type": "select", "required": false, "options": [
+      {"value": "纸质菜单", "label": "纸质菜单"},
+      {"value": "电子菜单", "label": "电子菜单"},
+      {"value": "两者结合", "label": "两者结合"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "菜单-{{restaurantName}}",
+    "files": [
+      {"path": "菜单方案.docx", "type": "document"},
+      {"path": "成本分析.xlsx", "type": "spreadsheet"},
+      {"path": "菜品照片/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

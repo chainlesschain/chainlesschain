@@ -1,0 +1,40 @@
+{
+  "id": "tpl_travel_roadtrip_004",
+  "name": "road_trip_plan",
+  "display_name": "自驾游计划",
+  "description": "详细的自驾游路线规划，包含路线、车辆准备和景点安排",
+  "icon": "🚗",
+  "category": "travel",
+  "subcategory": "road-trip",
+  "tags": ["自驾游", "公路旅行", "路线规划"],
+  "project_type": "document",
+  "prompt_template": "自驾游计划\n\n**旅行信息：**\n- 路线名称：{{routeName}}\n- 总里程：{{totalDistance}}km\n- 旅行天数：{{duration}}天\n- 出行人数：{{travelers}}人\n\n# 自驾游：{{routeName}}\n\n## 路线概览\n\n**起点：**{{startPoint}}\n**终点：**{{endPoint}}\n**路线类型：**{{routeType}}\n\n{{#eq routeType \"环线\"}}\n**环线路线：**\n{{startPoint}} → {{waypoint1}} → {{waypoint2}} → {{waypoint3}} → {{startPoint}}\n\n总里程：{{totalDistance}}km\n预计驾驶时间：{{drivingHours}}小时\n{{/eq}}\n\n{{#eq routeType \"单程\"}}\n**单程路线：**\n{{startPoint}} → {{waypoint1}} → {{waypoint2}} → {{endPoint}}\n\n总里程：{{totalDistance}}km\n预计驾驶时间：{{drivingHours}}小时\n返程：{{returnPlan}}\n{{/eq}}\n\n## 车辆准备\n\n**用车方案：**{{vehicleOption}}\n\n{{#eq vehicleOption \"自有车辆\"}}\n**车辆检查清单：**\n- [ ] 机油/冷却液检查\n- [ ] 轮胎（含备胎）气压\n- [ ] 刹车系统\n- [ ] 电瓶状态\n- [ ] 雨刮器/玻璃水\n- [ ] 灯光系统\n- [ ] 空调制冷\n{{/eq}}\n\n{{#eq vehicleOption \"租车\"}}\n**租车信息：**\n- 租车公司：{{rentalCompany}}\n- 车型：{{carModel}}\n- 租期：{{rentalDays}}天\n- 费用：¥{{rentalCost}}\n- 保险：{{insuranceType}}\n- 取还车地点：{{pickupLocation}}\n{{/eq}}\n\n**车载设备：**\n- [ ] 导航（手机支架+车载充电器）\n- [ ] 行车记录仪\n- [ ] 应急工具（千斤顶、扳手、拖车绳）\n- [ ] 急救包\n- [ ] 灭火器\n- [ ] 警示三角牌\n\n**车内用品：**\n- [ ] 车载冰箱/保温箱\n- [ ] 垃圾袋\n- [ ] 纸巾/湿巾\n- [ ] 遮阳板\n- [ ] 颈枕/腰靠\n\n## 每日行程\n\n### Day 1: {{day1Route}}\n\n**驾驶：**{{day1StartPoint}} → {{day1EndPoint}}\n- 里程：{{day1Distance}}km\n- 预计时长：{{day1DriveTime}}小时\n- 出发时间：{{day1DepartureTime}}\n- 到达时间：{{day1ArrivalTime}}\n\n**沿途景点：**\n1. {{day1Stop1}} - 停留{{day1Stop1Time}}小时\n2. {{day1Stop2}} - 停留{{day1Stop2Time}}小时\n\n**午餐：**{{day1Lunch}} ({{day1LunchLocation}})\n\n**住宿：**{{day1Hotel}}\n- 地址：{{day1HotelAddress}}\n- 价格：¥{{day1HotelPrice}}\n- 停车：{{day1Parking}}\n\n**晚餐：**{{day1Dinner}}\n\n### Day 2: {{day2Route}}\n\n**驾驶：**{{day2StartPoint}} → {{day2EndPoint}}\n- 里程：{{day2Distance}}km\n- 预计时长：{{day2DriveTime}}小时\n\n**重点景区：**{{day2MainAttraction}}\n- 游览时间：{{day2AttractionTime}}小时\n- 门票：¥{{day2Ticket}}\n\n**住宿：**{{day2Hotel}}\n\n### Day 3-{{lastDay}}: 弹性安排\n\n**备选路线：**\n- 路线A：{{alternativeRouteA}} (天气好/时间充裕)\n- 路线B：{{alternativeRouteB}} (恶劣天气/时间紧张)\n\n## 重要景点\n\n### 必去景点 Top 5\n\n**1. {{mustSee1}}**\n- 位置：{{mustSee1Location}}\n- 最佳时间：{{mustSee1Time}}\n- 停留时长：{{mustSee1Duration}}小时\n- 门票：¥{{mustSee1Ticket}}\n- 停车：{{mustSee1Parking}}\n\n**2. {{mustSee2}}**\n- 位置：{{mustSee2Location}}\n- 特色：{{mustSee2Feature}}\n\n**3-5.** {{mustSee3}}, {{mustSee4}}, {{mustSee5}}\n\n### 隐藏景点\n\n- {{hiddenGem1}} - 小众景点，人少景美\n- {{hiddenGem2}} - 适合摄影\n\n## 驾驶注意事项\n\n**路况提示：**\n- 高速路段：{{highwaySection}} ({{highwayDistance}}km)\n- 国道/省道：{{nationalRoadSection}}\n- 山路：{{mountainRoadSection}} (注意急弯、限速)\n- 施工路段：{{constructionArea}} (提前查询)\n\n**安全驾驶：**\n- 每2小时休息一次\n- 服务区位置：{{serviceArea1}}, {{serviceArea2}}\n- 避免夜间山路驾驶\n- 轮流驾驶（如有副驾）\n\n**加油站：**\n- 每{{fuelRange}}km有加油站\n- 进藏/偏远地区：见站就加\n- 建议加油品牌：{{preferredGasStation}}\n\n**限行限速：**\n- {{city1}}限行规则：{{city1Restriction}}\n- 高速限速：{{speedLimit}}km/h\n- 测速点：{{speedCamera}}\n\n## 预算明细\n\n**总预算：**¥{{totalBudget}}\n\n### 交通费用\n- 油费：{{totalDistance}}km ÷ {{fuelEfficiency}}L/100km × ¥{{fuelPrice}}/L = ¥{{fuelCost}}\n- 高速费：¥{{tollCost}}\n- 停车费：¥{{parkingCost}}\n- 租车费（如有）：¥{{rentalCost}}\n\n### 住宿费用\n- {{duration}}晚 × 平均¥{{avgHotelPrice}} = ¥{{totalAccommodation}}\n\n### 餐饮费用\n- {{duration}}天 × {{travelers}}人 × ¥{{perPersonDaily}} = ¥{{totalFood}}\n\n### 门票费用\n- ¥{{totalTickets}}\n\n### 其他费用\n- 车辆保险/保养：¥{{vehicleCost}}\n- 应急备用金：¥{{contingency}}\n\n## 装备清单\n\n### 证件文件\n- [ ] 驾驶证\n- [ ] 行驶证\n- [ ] 身份证\n- [ ] 保险单\n- [ ] 路书打印版\n\n### 衣物（按天气）\n- [ ] 换洗衣物\n- [ ] 户外鞋\n- [ ] 防晒衣/冲锋衣\n- [ ] 帽子/墨镜\n\n### 食品饮水\n- [ ] 矿泉水（12瓶）\n- [ ] 零食（饼干、巧克力、牛肉干）\n- [ ] 水果\n- [ ] 功能饮料\n\n### 摄影设备\n- [ ] 相机+备用电池\n- [ ] 手机稳定器\n- [ ] 充电宝\n- [ ] 车载逆变器（给相机充电）\n\n### 户外用品（如需要）\n- [ ] 帐篷+睡袋\n- [ ] 野营炉具\n- [ ] 头灯/手电\n- [ ] 登山杖\n\n## 特色美食\n\n**沿途必吃：**\n1. {{localFood1}} - 推荐店：{{food1Restaurant}}\n2. {{localFood2}} - 推荐店：{{food2Restaurant}}\n3. {{localFood3}} - 推荐店：{{food3Restaurant}}\n\n## 应急预案\n\n**车辆故障：**\n- 道路救援：{{roadAssistance}}\n- 保险公司：{{insuranceHotline}}\n- 附近修理厂：提前查询\n\n**意外情况：**\n- 报警电话：110\n- 医疗急救：120\n- 高速救援：12122\n\n**备用计划：**\n- 恶劣天气：改住宿地休整\n- 堵车严重：启用备选路线\n- 景区关闭：前往Plan B景点\n\n**紧急联系人：**{{emergencyContact}}\n\n## 摄影打卡点\n\n**日出：**{{sunriseSpot}} ({{sunriseTime}})\n**日落：**{{sunsetSpot}} ({{sunsetTime}})\n**星空：**{{stargazingSpot}} (远离光污染)\n**网红机位：**{{photoSpot}}\n\n## 旅行贴士\n\n**最佳季节：**{{bestSeason}}\n**避开高峰：**{{avoidPeakTime}}\n**天气查询：**提前3天关注天气预报\n**路况查询：**高德/百度地图实时路况\n**住宿预订：**提前{{advanceBooking}}天\n\n**环保自驾：**\n- 不乱扔垃圾\n- 不破坏自然环境\n- 保护野生动物\n- 尊重当地文化",
+  "variables_schema": [
+    {"name": "routeName", "label": "路线名称", "type": "string", "required": true},
+    {"name": "startPoint", "label": "起点", "type": "string", "required": false},
+    {"name": "endPoint", "label": "终点", "type": "string", "required": false},
+    {"name": "totalDistance", "label": "总里程（km）", "type": "number", "required": false},
+    {"name": "duration", "label": "天数", "type": "number", "required": false, "default": 5},
+    {"name": "routeType", "label": "路线类型", "type": "select", "required": false, "options": [
+      {"value": "环线", "label": "环线（起点=终点）"},
+      {"value": "单程", "label": "单程"}
+    ]},
+    {"name": "vehicleOption", "label": "用车方式", "type": "select", "required": false, "options": [
+      {"value": "自有车辆", "label": "自有车辆"},
+      {"value": "租车", "label": "租车"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "自驾游-{{routeName}}",
+    "files": [
+      {"path": "路书.docx", "type": "document"},
+      {"path": "预算表.xlsx", "type": "spreadsheet"},
+      {"path": "车辆检查清单.md", "type": "markdown"},
+      {"path": "沿途照片/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

@@ -1,0 +1,42 @@
+{
+  "id": "tpl_cooking_class_004",
+  "name": "cooking_class_curriculum",
+  "display_name": "烹饪课程大纲",
+  "description": "专业烹饪课程设计，包含课程目标、教学计划和技能进阶",
+  "icon": "👨‍🍳",
+  "category": "cooking",
+  "subcategory": "education",
+  "tags": ["烹饪教学", "课程设计", "技能培训"],
+  "project_type": "document",
+  "prompt_template": "烹饪课程大纲\n\n**课程信息：**\n- 课程名称：{{courseName}}\n- 课程类型：{{courseType}}\n- 课时：{{totalHours}}小时\n- 学员水平：{{studentLevel}}\n\n# 烹饪课程：{{courseName}}\n\n## 课程简介\n\n**课程目标：**\n通过本课程，学员将掌握{{skillGoal}}\n\n**适合人群：**{{targetAudience}}\n\n**课程亮点：**\n- 实操为主，理论为辅\n- 小班教学（{{classSize}}人/班）\n- 提供食材和设备\n- 课后作业+点评\n\n## 课程大纲\n\n### 第1周：基础技能\n\n**第1课：刀工基础**\n- 刀具认识和保养\n- 基本刀法：切、片、丝、丁、末\n- 实操：洋葱丁、胡萝卜丝\n\n**第2课：火候掌控**\n- 炉灶使用\n- 油温判断\n- 火力控制\n- 实操：炒青菜、煎蛋\n\n**第3课：调味基础**\n- 五味调和\n- 基础调味料\n- 酱汁制作\n- 实操：糖醋汁、红烧汁\n\n### 第2周：基础烹饪方法\n\n**第4课：炒**\n- 炒的技巧\n- 实操：{{stirFryDish}}\n\n**第5课：煎**\n- 煎的要领\n- 实操：{{panFryDish}}\n\n**第6课：炖**\n- 炖的方法\n- 实操：{{stewDish}}\n\n### 第3周：进阶技巧\n\n**第7课：蒸**\n- 蒸的技巧\n- 实操：{{steamDish}}\n\n**第8课：烤**\n- 烤箱使用\n- 实操：{{bakeDish}}\n\n**第9课：凉拌**\n- 凉拌技巧\n- 实操：{{saladDish}}\n\n### 第4周：综合应用\n\n**第10课：家常菜1**\n实操：{{dish1}}\n\n**第11课：家常菜2**\n实操：{{dish2}}\n\n**第12课：结业考核**\n独立完成一桌菜（{{examDishes}}）\n\n## 技能进阶路径\n\n**初级（1-4周）：**\n- ✓ 基本刀工\n- ✓ 火候控制\n- ✓ 调味技巧\n- ✓ 6种烹饪方法\n\n**中级（5-8周）：**\n- 高级刀工（花刀）\n- 复合调味\n- 菜品摆盘\n- 营养搭配\n\n**高级（9-12周）：**\n- 菜品创新\n- 宴会策划\n- 成本控制\n\n## 实操菜品清单\n\n### 第一阶段（基础）\n1. 番茄炒蛋\n2. 青椒肉丝\n3. 宫保鸡丁\n4. 红烧肉\n5. 清蒸鱼\n\n### 第二阶段（进阶）\n6. {{advancedDish1}}\n7. {{advancedDish2}}\n8. {{advancedDish3}}\n\n## 评估标准\n\n**技能考核（70%）：**\n- 刀工规范度：20%\n- 火候掌握：20%\n- 调味准确：20%\n- 成品质量：10%\n\n**理论考核（30%）：**\n- 食材知识\n- 烹饪原理\n- 食品安全\n\n## 所需设备\n\n**教室设备：**\n- 厨房工作台（{{classSize}}个）\n- 燃气灶/电磁炉\n- 烤箱\n- 冰箱\n\n**学员工具包：**\n- 菜刀\n- 砧板\n- 围裙\n- 笔记本\n\n## 食材采购\n\n**每周采购预算：**¥{{weeklyBudget}}/人\n\n**常备食材：**\n- 油盐酱醋\n- 葱姜蒜\n- 常用香料\n\n## 课后作业\n\n**每周任务：**\n1. 复习课堂菜品（拍照上传）\n2. 尝试1道新菜品\n3. 写学习心得\n\n**点评方式：**\n- 线上提交作业\n- 老师视频点评\n- 同学互评\n\n## 课程资料\n\n**提供材料：**\n- 课程讲义（PDF）\n- 菜谱合集\n- 教学视频\n- 食材采购指南\n\n## 收费标准\n\n**课程费用：**¥{{courseFee}}\n\n**费用包含：**\n- 所有课时\n- 食材费\n- 工具使用费\n- 课程资料\n\n**优惠政策：**\n- 早鸟优惠：{{earlyBirdDiscount}}%\n- 团报优惠：{{groupDiscount}}%",
+  "variables_schema": [
+    {"name": "courseName", "label": "课程名称", "type": "string", "required": true},
+    {"name": "courseType", "label": "课程类型", "type": "select", "required": false, "options": [
+      {"value": "中餐基础", "label": "中餐基础"},
+      {"value": "西餐入门", "label": "西餐入门"},
+      {"value": "烘焙课程", "label": "烘焙课程"},
+      {"value": "日料制作", "label": "日料制作"},
+      {"value": "素食烹饪", "label": "素食烹饪"}
+    ]},
+    {"name": "totalHours", "label": "总课时（小时）", "type": "number", "required": false, "default": 36},
+    {"name": "studentLevel", "label": "学员水平", "type": "select", "required": false, "options": [
+      {"value": "零基础", "label": "零基础"},
+      {"value": "初级", "label": "初级"},
+      {"value": "中级", "label": "中级"},
+      {"value": "高级", "label": "高级"}
+    ]},
+    {"name": "classSize", "label": "班级人数", "type": "number", "required": false, "default": 12}
+  ],
+  "file_structure": {
+    "root": "课程-{{courseName}}",
+    "files": [
+      {"path": "课程大纲.docx", "type": "document"},
+      {"path": "菜谱合集/", "type": "folder"},
+      {"path": "教学视频/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

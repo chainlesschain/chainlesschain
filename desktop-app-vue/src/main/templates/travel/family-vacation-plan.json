@@ -1,0 +1,37 @@
+{
+  "id": "tpl_travel_family_003",
+  "name": "family_vacation_plan",
+  "display_name": "亲子旅行计划",
+  "description": "适合全家出行的旅行计划，兼顾大人和孩子的需求",
+  "icon": "👨‍👩‍👧‍👦",
+  "category": "travel",
+  "subcategory": "family",
+  "tags": ["亲子游", "家庭旅行", "儿童友好"],
+  "project_type": "document",
+  "prompt_template": "亲子旅行计划\n\n**旅行信息：**\n- 目的地：{{destination}}\n- 旅行天数：{{duration}}天\n- 家庭成员：{{adults}}大{{children}}小\n- 孩子年龄：{{childrenAges}}\n\n# 亲子旅行：{{destination}}\n\n## 行程设计理念\n\n**核心原则：**\n- 寓教于乐\n- 节奏舒缓（避免过度疲劳）\n- 安全第一\n- 兼顾大人小孩需求\n\n**时间安排：**\n- 每天不超过2-3个景点\n- 午休时间充足\n- 早睡早起\n\n## 行程规划\n\n### Day 1: 轻松适应\n\n**上午：**\n- 抵达{{destination}}\n- 酒店入住\n- 孩子午休\n\n**下午：**\n- {{day1Activity}} （儿童友好活动）\n- 时长：2小时\n\n**晚上：**\n- 酒店附近晚餐\n- 早点休息调整时差\n\n### Day 2: 主题乐园日\n\n**全天：**{{themePark}}\n\n**游玩策略：**\n- 开园即到，避开人流高峰\n- 先玩热门项目\n- 带婴儿车（即使孩子会走）\n- 午餐避开12:00-13:00高峰\n\n**必玩项目：**\n1. {{ride1}} - 适合{{ride1Age}}岁+\n2. {{ride2}} - 适合{{ride2Age}}岁+\n3. {{ride3}} - 全家同乐\n\n**注意事项：**\n- 提前下载园区App\n- 预约快速通道\n- 带足零食和水\n\n### Day 3: 自然探索\n\n**目的地：**{{natureSpot}}\n\n**活动：**\n- 简单徒步（{{hikingDistance}}km）\n- 亲近自然\n- 野餐\n\n**教育元素：**\n- 认识植物/动物\n- 观察昆虫\n- 采集树叶做标本\n\n### Day 4: 文化体验\n\n**上午：**{{museum}}\n- 儿童互动展区\n- 参加亲子工作坊\n\n**下午：**\n- 自由活动/酒店休息\n\n**晚上：**\n- {{culturalShow}} （如有）\n\n### Day 5: 休闲娱乐\n\n**酒店设施日：**\n- 游泳池\n- 儿童乐园\n- 家长可轮流放松\n\n**可选活动：**\n- {{optionalActivity}}\n\n## 住宿选择\n\n**酒店：**{{hotelName}}\n\n**选择标准：**\n- ✓ 家庭房/套房\n- ✓ 儿童早餐\n- ✓ 游泳池\n- ✓ 靠近景点/地铁\n- ✓ 周边有便利店\n\n**房型：**{{roomType}}\n- 价格：¥{{roomPrice}}/晚\n- 加床：{{extraBed}}\n\n**儿童政策：**\n- {{childAge}}岁以下免费（不占床）\n- 提供婴儿床\n- 儿童拖鞋/浴袍\n\n## 餐饮安排\n\n**用餐原则：**\n- 卫生安全\n- 营养均衡\n- 适合儿童口味\n- 有高脚椅的餐厅\n\n**推荐餐厅：**\n1. {{restaurant1}} - 儿童套餐¥{{kidsMeal1}}\n2. {{restaurant2}} - 家庭分享餐\n3. {{restaurant3}} - 当地特色（微辣版）\n\n**自备食品：**\n- 小饼干/水果\n- 奶粉（如需要）\n- 儿童水壶\n\n**每日餐饮预算：**¥{{dailyFoodBudget}}\n\n## 行李清单\n\n### 儿童衣物\n- [ ] 换洗衣服（每天1套+备用2套）\n- [ ] 外套/防晒衣\n- [ ] 帽子\n- [ ] 舒适运动鞋\n- [ ] 凉鞋/洞洞鞋\n- [ ] 泳衣+泳圈\n\n### 儿童用品\n- [ ] 纸尿裤（{{diaperCount}}片）\n- [ ] 湿巾\n- [ ] 防晒霜SPF50+\n- [ ] 驱蚊液\n- [ ] 常备药品（退烧、腹泻、创可贴）\n- [ ] 体温计\n\n### 娱乐用品\n- [ ] 小玩具（飞机/火车上用）\n- [ ] 绘本\n- [ ] 平板+儿童耳机\n- [ ] 涂色本+蜡笔\n\n### 婴儿专用（如适用）\n- [ ] 婴儿车（轻便伞车）\n- [ ] 婴儿背带\n- [ ] 奶瓶+奶粉\n- [ ] 辅食/米糊\n- [ ] 保温杯\n\n### 其他必备\n- [ ] 儿童证件（户口本/护照）\n- [ ] 医保卡\n- [ ] 急救包\n- [ ] 塑料袋（晕车/垃圾）\n\n## 交通方案\n\n**往返交通：**{{transportMode}}\n\n{{#eq transportMode \"飞机\"}}\n**航班选择：**\n- 白天航班（避免打乱作息）\n- 直飞优先\n- 选座：靠窗+中间（家长坐两边）\n- 儿童餐提前预订\n{{/eq}}\n\n{{#eq transportMode \"高铁\"}}\n**高铁技巧：**\n- 一等座更宽敞\n- 靠近餐车（方便打热水）\n- 带娱乐用品打发时间\n{{/eq}}\n\n**当地交通：**\n- 租车（配儿童安全座椅）\n- 出租车/网约车\n- 婴儿车可上的公共交通\n\n## 预算明细\n\n**总预算：**¥{{totalBudget}}\n\n| 项目 | 金额 | 备注 |\n|------|------|------|\n| 往返交通 | ¥{{transportCost}} | {{transportDetails}} |\n| 住宿 | ¥{{accommodationCost}} | {{nights}}晚 x ¥{{roomPrice}} |\n| 门票 | ¥{{ticketCost}} | {{ticketDetails}} |\n| 餐饮 | ¥{{foodCost}} | {{duration}}天 x ¥{{dailyFoodBudget}} |\n| 当地交通 | ¥{{localTransportCost}} | 租车/打车 |\n| 购物纪念品 | ¥{{shoppingBudget}} | 玩具/纪念品 |\n| 预备金 | ¥{{contingency}} | 10% |\n| **总计** | **¥{{totalBudget}}** | |\n\n## 安全须知\n\n**防走失：**\n- 给孩子穿鲜艳衣服\n- 联系卡片（写姓名+家长电话）\n- 拍当日全身照（走失时用）\n- 约定走散集合点\n\n**健康安全：**\n- 旅行保险（含儿童）\n- 了解当地医院位置\n- 过敏食物清单\n\n**防晒防暑：**\n- 避开10:00-16:00烈日\n- 勤喝水\n- 及时补防晒\n\n## 教育收获\n\n**旅行前：**\n- 和孩子一起看目的地资料\n- 学习相关历史/地理知识\n- 制定小任务（如：找到5种当地植物）\n\n**旅行中：**\n- 鼓励孩子观察记录\n- 拍照/画画\n- 收集门票/地图做旅行手账\n\n**旅行后：**\n- 整理照片做相册\n- 写/画游记\n- 分享给亲友\n\n## 应急预案\n\n**孩子生病：**\n- 附近医院：{{nearbyHospital}}\n- 24小时药店\n- 保险理赔流程\n\n**行程变更：**\n- 备选室内活动（下雨天）\n- 取消险\n\n**紧急联系：**\n- 酒店：{{hotelContact}}\n- 当地急救：{{emergencyNumber}}\n- 家人：{{familyContact}}",
+  "variables_schema": [
+    {"name": "destination", "label": "目的地", "type": "string", "required": true},
+    {"name": "duration", "label": "旅行天数", "type": "number", "required": false, "default": 5},
+    {"name": "adults", "label": "成人人数", "type": "number", "required": false, "default": 2},
+    {"name": "children", "label": "儿童人数", "type": "number", "required": false, "default": 1},
+    {"name": "childrenAges", "label": "孩子年龄", "type": "string", "required": false, "placeholder": "例如：3岁、6岁"},
+    {"name": "transportMode", "label": "交通方式", "type": "select", "required": false, "options": [
+      {"value": "飞机", "label": "飞机"},
+      {"value": "高铁", "label": "高铁"},
+      {"value": "自驾", "label": "自驾"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "亲子游-{{destination}}",
+    "files": [
+      {"path": "行程计划.docx", "type": "document"},
+      {"path": "行李清单.md", "type": "markdown"},
+      {"path": "预算表.xlsx", "type": "spreadsheet"},
+      {"path": "旅行照片/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
