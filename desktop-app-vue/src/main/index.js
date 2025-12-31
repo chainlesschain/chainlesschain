@@ -569,6 +569,11 @@ class ChainlessChainApp {
           // 确保个人上下文存在
           await this.identityContextManager.createPersonalContext(currentDID, '个人');
 
+          // 监听身份上下文切换事件
+          this.identityContextManager.on('context-switched', async (eventData) => {
+            await this.handleContextSwitch(eventData);
+          });
+
           console.log('身份上下文管理器初始化成功');
         } else {
           console.log('用户尚未创建DID,跳过身份上下文管理器初始化');
@@ -1011,6 +1016,87 @@ class ChainlessChainApp {
     }
 
     await this.createWindow();
+  }
+
+  /**
+   * 处理身份上下文切换
+   * 切换数据库连接到新的身份上下文
+   */
+  async handleContextSwitch(eventData) {
+    try {
+      const { from, to } = eventData;
+      console.log(`\n🔄 处理身份上下文切换: ${from?.display_name || '无'} → ${to.display_name}`);
+
+      // 1. 获取新上下文的数据库路径
+      const newDbPath = to.db_path;
+
+      if (!fs.existsSync(newDbPath)) {
+        console.error(`❌ 数据库文件不存在: ${newDbPath}`);
+        return;
+      }
+
+      // 2. 关闭当前数据库连接
+      if (this.database && this.database.db) {
+        console.log('关闭当前数据库连接...');
+        try {
+          // SQLite 不需要显式关闭,但清理引用
+          this.database.db = null;
+        } catch (error) {
+          console.error('关闭数据库失败:', error);
+        }
+      }
+
+      // 3. 重新初始化数据库管理器到新路径
+      console.log(`初始化新数据库: ${newDbPath}`);
+      const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || '123456';
+      this.database = new DatabaseManager(newDbPath, {
+        password: DEFAULT_PASSWORD,
+        encryptionEnabled: true
+      });
+      await this.database.initialize();
+
+      // 4. 更新数据库单例
+      const { setDatabase } = require('./database');
+      setDatabase(this.database);
+
+      // 5. 重新初始化依赖数据库的模块
+      console.log('重新初始化数据库依赖模块...');
+
+      // 重新初始化知识图谱提取器
+      if (this.graphExtractor) {
+        this.graphExtractor = new GraphExtractor(this.database);
+      }
+
+      // 重新设置数据库加密 IPC
+      if (this.dbEncryptionIPC) {
+        this.dbEncryptionIPC.setDatabaseManager(this.database);
+      }
+
+      // 重新设置 InitialSetupIPC
+      if (this.initialSetupIPC) {
+        const { getAppConfig } = require('./app-config');
+        const { getLLMConfig } = require('./llm/llm-config');
+        this.initialSetupIPC = new InitialSetupIPC(
+          app,
+          this.database,
+          getAppConfig(),
+          getLLMConfig()
+        );
+      }
+
+      // 6. 通知渲染进程数据库已切换
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send('database-switched', {
+          contextId: to.context_id,
+          contextType: to.context_type,
+          displayName: to.display_name
+        });
+      }
+
+      console.log(`✅ 身份上下文切换完成: ${to.display_name}\n`);
+    } catch (error) {
+      console.error('❌ 处理身份上下文切换失败:', error);
+    }
   }
 
   async createWindow() {

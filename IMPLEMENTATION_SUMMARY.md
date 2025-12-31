@@ -95,39 +95,57 @@
 - 显示迁移警告提示
 - 建议用户备份数据
 
-### 4. **企业版服务器连接测试** 📝
-**建议实现位置:** `src/renderer/components/settings/EditionSelector.vue`
+### 4. **企业版服务器连接测试** ✅
+**实现位置:** `src/renderer/components/settings/EditionSelector.vue`
 
-**建议功能:**
-- 测试企业服务器连通性
-- 验证API密钥有效性
-- 显示服务器状态（在线/离线）
-- 延迟测试
+**功能:**
+- 测试企业服务器连通性（带10秒超时）
+- 验证API密钥和租户ID有效性
+- 显示连接状态（成功/失败）
+- 延迟测试（显示响应时间）
+- 详细错误提示（网络错误、认证失败、超时等）
 
-**示例实现:**
+**技术细节:**
+- 使用 Fetch API + AbortController 实现超时控制
+- 状态反馈：成功显示绿色Alert + 延迟时间，失败显示红色Alert + 详细错误信息
+- 按钮状态管理：仅在配置完整时可用
+- 支持的错误类型：
+  - HTTP 401/403：认证失败
+  - AbortError：连接超时
+  - NetworkError：网络错误
+  - 其他HTTP错误：服务器错误
+- UI组件：测试按钮 + 成功/失败Alert + 排查建议列表
+
+**核心代码:**
 ```javascript
-// 在EditionSelector.vue中添加
 const testConnection = async () => {
   try {
     testing.value = true;
-    const result = await fetch(`${enterpriseConfig.serverUrl}/api/health`, {
+    const startTime = Date.now();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(`${enterpriseConfig.serverUrl}/api/health`, {
       headers: {
-        'Authorization': `Bearer ${enterpriseConfig.apiKey}`
-      }
+        'Authorization': `Bearer ${enterpriseConfig.apiKey}`,
+        'X-Tenant-ID': enterpriseConfig.tenantId,
+      },
+      signal: controller.signal,
     });
-    
-    if (result.ok) {
-      message.success('连接成功');
-      connectionStatus.value = 'online';
-    } else {
-      message.error('连接失败: 认证错误');
-      connectionStatus.value = 'offline';
+
+    clearTimeout(timeoutId);
+    latency.value = Date.now() - startTime;
+
+    if (response.ok) {
+      connectionStatus.value = 'success';
+      message.success('企业服务器连接成功！');
+    } else if (response.status === 401 || response.status === 403) {
+      connectionStatus.value = 'error';
+      message.error('认证失败，请检查API密钥和租户ID');
     }
   } catch (error) {
-    message.error('连接失败: ' + error.message);
-    connectionStatus.value = 'offline';
-  } finally {
-    testing.value = false;
+    // 详细的错误处理...
   }
 };
 ```
@@ -142,7 +160,7 @@ const testConnection = async () => {
 | `src/main/initial-setup-config.js` | 150 | 配置管理器 |
 | `src/main/initial-setup-ipc.js` | 164 | IPC处理器(含导入导出) |
 | `src/renderer/components/GlobalSettingsWizard.vue` | 420 | 主向导组件 |
-| `src/renderer/components/settings/EditionSelector.vue` | 210 | 版本选择器 |
+| `src/renderer/components/settings/EditionSelector.vue` | 275 | 版本选择器(含连接测试) |
 | `src/renderer/components/settings/PathSelector.vue` | 200 | 路径选择器 |
 | `src/renderer/components/settings/LLMQuickSetup.vue` | 220 | LLM配置 |
 | `src/renderer/components/PathMigrationWizard.vue` | 410 | 路径迁移向导 |
@@ -157,10 +175,10 @@ const testConnection = async () => {
 | `src/preload/index.js` | 暴露initialSetup API (7个方法) |
 | `src/renderer/pages/settings/SystemSettings.vue` | 添加版本设置标签页 |
 
-**总计:** 
-- 新增代码: ~1,800行
+**总计:**
+- 新增代码: ~1,865行
 - 修改代码: ~300行
-- 总计: ~2,100行
+- 总计: ~2,165行
 
 ---
 
@@ -235,7 +253,7 @@ setupCompleted === false?
 ## 📝 后续优化建议
 
 ### 短期 (1-2周)
-1. ✅ 实现企业版服务器连接测试
+1. ✅ ~~实现企业版服务器连接测试~~ (已完成)
 2. 添加配置版本管理（支持配置升级）
 3. 路径迁移增加进度回调
 4. 添加配置校验规则
@@ -278,12 +296,18 @@ setupCompleted === false?
 - [ ] 配置导出成功
 - [ ] 配置导入成功
 - [ ] 路径迁移向导可用
+- [ ] 企业版服务器连接测试成功
+- [ ] 企业版连接测试显示延迟
+- [ ] 企业版连接测试错误处理正确
 
 ### 边界测试
 - [ ] 导入无效JSON文件
 - [ ] 迁移到无权限路径
 - [ ] 取消导出/导入操作
 - [ ] 企业版空服务器URL
+- [ ] 企业版连接测试超时（>10秒）
+- [ ] 企业版无效API密钥（401/403错误）
+- [ ] 企业版网络不可达（NetworkError）
 
 ### 兼容性测试
 - [ ] Windows系统托盘图标
@@ -307,12 +331,12 @@ setupCompleted === false?
 本功能实现遵循ChainlessChain项目的代码规范，充分利用了现有的架构和组件库，保证了代码的一致性和可维护性。
 
 **代码统计:**
-- 总代码行数: ~2,100行
+- 总代码行数: ~2,165行
 - Vue组件: 7个
 - JS模块: 2个
 - 修改文件: 7个
 - IPC通道: 7个
-- 实现时间: ~4小时
+- 实现时间: ~4.5小时
 
 ---
 
