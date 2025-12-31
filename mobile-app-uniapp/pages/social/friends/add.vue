@@ -116,11 +116,50 @@
         <!-- #endif -->
       </view>
     </view>
+
+    <!-- 我的二维码区域 -->
+    <view class="my-qrcode-section">
+      <button class="show-qrcode-btn" @click="showMyQRCode">
+        <text class="icon">📱</text>
+        <text>我的二维码</text>
+      </button>
+    </view>
+
+    <!-- 二维码弹窗 -->
+    <view class="qrcode-modal" v-if="showQRModal" @click="hideQRCode">
+      <view class="modal-content" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">我的DID二维码</text>
+          <text class="close-btn" @click="hideQRCode">✕</text>
+        </view>
+
+        <view class="qrcode-container">
+          <!-- 使用canvas绘制二维码 -->
+          <canvas
+            canvas-id="qrcodeCanvas"
+            class="qrcode-canvas"
+            :style="{ width: qrcodeSize + 'px', height: qrcodeSize + 'px' }"
+          />
+        </view>
+
+        <view class="my-did-info">
+          <text class="did-label">我的DID</text>
+          <text class="did-text">{{ myDid }}</text>
+          <button class="copy-btn" @click="copyMyDid">复制DID</button>
+        </view>
+
+        <view class="qrcode-tips">
+          <text class="tip-text">• 让好友扫描此二维码添加我为好友</text>
+          <text class="tip-text">• 或分享我的DID给好友手动添加</text>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
 import friendService from '@/services/friends'
+import didService from '@/services/did'
 
 export default {
   data() {
@@ -129,22 +168,71 @@ export default {
       searchResult: null,
       searching: false,
       sending: false,
-      requestMessage: ''
+      requestMessage: '',
+      showQRModal: false,
+      myDid: '',
+      qrcodeSize: 500 // 二维码大小（rpx）
+    }
+  },
+
+  async onLoad() {
+    try {
+      // 获取当前用户的DID
+      const currentIdentity = await didService.getCurrentIdentity()
+      if (currentIdentity) {
+        this.myDid = currentIdentity.did
+      } else {
+        // 如果没有DID，提示用户创建
+        uni.showToast({
+          title: '请先创建DID身份',
+          icon: 'none',
+          duration: 3000
+        })
+      }
+    } catch (error) {
+      console.error('获取当前DID失败:', error)
+      uni.showToast({
+        title: '获取DID身份失败，请稍后重试',
+        icon: 'none',
+        duration: 2000
+      })
     }
   },
 
   methods: {
     async searchUser() {
       if (!this.didInput) {
+        uni.showToast({
+          title: '请输入DID',
+          icon: 'none'
+        })
         return
       }
 
+      // 去除首尾空格
+      const trimmedDid = this.didInput.trim()
+
       // 验证DID格式
-      if (!this.didInput.startsWith('did:chainlesschain:')) {
+      if (!trimmedDid.startsWith('did:chainlesschain:')) {
         uni.showToast({
-          title: '无效的DID格式',
+          title: 'DID格式错误\n正确格式：did:chainlesschain:xxxxx',
+          icon: 'none',
+          duration: 2500
+        })
+        return
+      }
+
+      // 验证DID长度（基本检查）
+      if (trimmedDid.length < 25) {
+        uni.showToast({
+          title: 'DID长度不正确',
           icon: 'none'
         })
+        return
+      }
+
+      // 防止重复搜索
+      if (this.searching) {
         return
       }
 
@@ -152,36 +240,63 @@ export default {
       this.searchResult = null
 
       try {
-        const result = await friendService.searchUserByDid(this.didInput.trim())
+        const result = await friendService.searchUserByDid(trimmedDid)
+
+        if (!result) {
+          uni.showToast({
+            title: '未找到该DID用户',
+            icon: 'none',
+            duration: 2000
+          })
+          return
+        }
+
         this.searchResult = result
 
+        // 提供友好的状态提示
         if (result.isFriend) {
           uni.showToast({
-            title: '该用户已是您的好友',
-            icon: 'none'
+            title: '✓ 该用户已是您的好友',
+            icon: 'none',
+            duration: 1500
           })
         } else if (result.isBlocked) {
           uni.showToast({
             title: '该用户在黑名单中',
-            icon: 'none'
+            icon: 'none',
+            duration: 1500
+          })
+        } else {
+          uni.showToast({
+            title: '找到用户，可以发送好友请求',
+            icon: 'success',
+            duration: 1500
           })
         }
       } catch (error) {
         console.error('搜索用户失败:', error)
 
-        let errorMsg = '搜索失败'
-        if (error.message.includes('不存在')) {
-          errorMsg = 'DID不存在'
-        } else if (error.message.includes('格式')) {
-          errorMsg = 'DID格式错误'
-        } else if (error.message) {
-          errorMsg = error.message
+        let errorMsg = '搜索失败，请稍后重试'
+
+        // 根据错误类型提供友好提示
+        if (error.message) {
+          if (error.message.includes('不存在') || error.message.includes('未找到')) {
+            errorMsg = '该DID不存在或尚未注册'
+          } else if (error.message.includes('格式') || error.message.includes('invalid')) {
+            errorMsg = 'DID格式错误'
+          } else if (error.message.includes('网络') || error.message.includes('timeout')) {
+            errorMsg = '网络连接失败，请检查网络'
+          } else if (error.message.includes('超时')) {
+            errorMsg = '请求超时，请稍后重试'
+          } else {
+            errorMsg = error.message
+          }
         }
 
         uni.showToast({
           title: errorMsg,
           icon: 'none',
-          duration: 2000
+          duration: 2500
         })
       } finally {
         this.searching = false
@@ -189,7 +304,16 @@ export default {
     },
 
     async sendRequest() {
-      if (!this.searchResult || this.sending) {
+      if (!this.searchResult) {
+        uni.showToast({
+          title: '请先搜索用户',
+          icon: 'none'
+        })
+        return
+      }
+
+      // 防止重复提交
+      if (this.sending) {
         return
       }
 
@@ -202,32 +326,44 @@ export default {
         )
 
         uni.showToast({
-          title: '好友请求已发送',
-          icon: 'success'
+          title: '✓ 好友请求已发送',
+          icon: 'success',
+          duration: 1500
         })
 
-        // 延迟返回
+        // 清空验证消息
+        this.requestMessage = ''
+
+        // 延迟返回上一页
         setTimeout(() => {
           uni.navigateBack()
         }, 1500)
       } catch (error) {
         console.error('发送好友请求失败:', error)
 
-        let errorMsg = '发送失败'
-        if (error.message.includes('已是好友')) {
-          errorMsg = '该用户已是您的好友'
-        } else if (error.message.includes('已发送')) {
-          errorMsg = '您已发送过好友请求'
-        } else if (error.message.includes('黑名单')) {
-          errorMsg = '无法向该用户发送请求'
-        } else if (error.message) {
-          errorMsg = error.message
+        let errorMsg = '发送失败，请稍后重试'
+
+        // 根据错误类型提供友好提示
+        if (error.message) {
+          if (error.message.includes('已是好友')) {
+            errorMsg = '该用户已是您的好友'
+          } else if (error.message.includes('已发送') || error.message.includes('pending')) {
+            errorMsg = '您已发送过好友请求，请等待对方回应'
+          } else if (error.message.includes('黑名单') || error.message.includes('blocked')) {
+            errorMsg = '无法向该用户发送请求'
+          } else if (error.message.includes('网络') || error.message.includes('timeout')) {
+            errorMsg = '网络连接失败，请检查网络后重试'
+          } else if (error.message.includes('超时')) {
+            errorMsg = '请求超时，请稍后重试'
+          } else {
+            errorMsg = error.message
+          }
         }
 
         uni.showToast({
           title: errorMsg,
           icon: 'none',
-          duration: 2000
+          duration: 2500
         })
       } finally {
         this.sending = false
@@ -273,22 +409,59 @@ export default {
       uni.scanCode({
         success: (res) => {
           console.log('扫码结果:', res)
-          // 假设二维码内容是DID
-          if (res.result && res.result.startsWith('did:chainlesschain:')) {
+
+          if (!res.result) {
+            uni.showToast({
+              title: '扫码失败，未识别到内容',
+              icon: 'none'
+            })
+            return
+          }
+
+          // 检查是否是有效的DID
+          if (res.result.startsWith('did:chainlesschain:')) {
             this.didInput = res.result
+            // 自动搜索
             this.searchUser()
           } else {
-            uni.showToast({
+            // 尝试解析JSON格式的二维码
+            try {
+              const qrData = JSON.parse(res.result)
+              if (qrData.type === 'did' && qrData.did) {
+                this.didInput = qrData.did
+                this.searchUser()
+                return
+              }
+            } catch (e) {
+              // 不是JSON格式
+            }
+
+            // 无法识别的二维码格式
+            uni.showModal({
               title: '无效的二维码',
-              icon: 'none'
+              content: '这不是有效的DID二维码，请确保扫描的是ChainlessChain的DID二维码',
+              showCancel: false
             })
           }
         },
         fail: (err) => {
           console.error('扫码失败:', err)
+
+          let errorMsg = '扫码失败'
+          if (err.errMsg) {
+            if (err.errMsg.includes('cancel')) {
+              errorMsg = '已取消扫码'
+            } else if (err.errMsg.includes('permission')) {
+              errorMsg = '没有相机权限，请在设置中开启'
+            } else {
+              errorMsg = '扫码失败：' + err.errMsg
+            }
+          }
+
           uni.showToast({
-            title: '扫码失败',
-            icon: 'none'
+            title: errorMsg,
+            icon: 'none',
+            duration: 2000
           })
         }
       })
@@ -307,6 +480,146 @@ export default {
         return did
       }
       return `${did.substring(0, 24)}...${did.slice(-8)}`
+    },
+
+    /**
+     * 显示我的二维码
+     */
+    async showMyQRCode() {
+      if (!this.myDid) {
+        uni.showModal({
+          title: '提示',
+          content: '您还没有DID身份，请先前往设置页面创建DID身份',
+          showCancel: true,
+          confirmText: '前往创建',
+          success: (res) => {
+            if (res.confirm) {
+              // TODO: 跳转到创建DID页面
+              uni.navigateTo({
+                url: '/pages/settings/did/create'
+              })
+            }
+          }
+        })
+        return
+      }
+
+      this.showQRModal = true
+
+      // 延迟生成二维码，确保canvas已渲染
+      setTimeout(() => {
+        this.generateQRCode()
+      }, 100)
+    },
+
+    /**
+     * 隐藏二维码
+     */
+    hideQRCode() {
+      this.showQRModal = false
+    },
+
+    /**
+     * 生成二维码
+     */
+    generateQRCode() {
+      try {
+        // 使用 uni.createCanvasContext 创建画布上下文
+        const ctx = uni.createCanvasContext('qrcodeCanvas', this)
+
+        // 使用简单的二维码生成方法
+        // 实际项目中应该使用专业的二维码库，如 uQRCode
+        this.drawSimpleQRCode(ctx, this.myDid)
+
+        // 提示用户这是占位符
+        uni.showModal({
+          title: '功能说明',
+          content: '当前显示的是二维码占位符。\n\n要使用真实的二维码功能，需要安装 uQRCode 插件：\n1. 在 HBuilderX 中搜索 uQRCode\n2. 安装插件后重新运行',
+          showCancel: false,
+          confirmText: '我知道了'
+        })
+      } catch (error) {
+        console.error('生成二维码失败:', error)
+        uni.showModal({
+          title: '二维码生成失败',
+          content: error.message || '生成二维码时发生错误，请稍后重试',
+          showCancel: false
+        })
+      }
+    },
+
+    /**
+     * 绘制简单的二维码占位符
+     * TODO: 实际项目中应使用 uQRCode 等专业库
+     */
+    drawSimpleQRCode(ctx, text) {
+      const size = this.qrcodeSize
+      const pixelRatio = uni.getSystemInfoSync().pixelRatio || 1
+      const canvasSize = size * pixelRatio
+
+      // 绘制白色背景
+      ctx.setFillStyle('#FFFFFF')
+      ctx.fillRect(0, 0, canvasSize, canvasSize)
+
+      // 绘制简单的占位图案（实际应使用QR算法）
+      ctx.setFillStyle('#000000')
+      const moduleSize = canvasSize / 25
+
+      // 绘制定位点（三个角）
+      this.drawFinderPattern(ctx, moduleSize, moduleSize, moduleSize * 7)
+      this.drawFinderPattern(ctx, canvasSize - moduleSize * 8, moduleSize, moduleSize * 7)
+      this.drawFinderPattern(ctx, moduleSize, canvasSize - moduleSize * 8, moduleSize * 7)
+
+      // 绘制中心文字提示
+      ctx.setFillStyle('#666666')
+      ctx.setFontSize(12 * pixelRatio)
+      ctx.setTextAlign('center')
+      ctx.fillText('DID二维码', canvasSize / 2, canvasSize / 2)
+      ctx.fillText('(需安装二维码库)', canvasSize / 2, canvasSize / 2 + 20 * pixelRatio)
+
+      ctx.draw()
+
+      // 提示用户安装二维码库
+      console.warn('请安装 uQRCode 库以生成真实的二维码')
+    },
+
+    /**
+     * 绘制定位图案
+     */
+    drawFinderPattern(ctx, x, y, size) {
+      // 外框
+      ctx.fillRect(x, y, size, size)
+      // 内白框
+      ctx.setFillStyle('#FFFFFF')
+      ctx.fillRect(x + size * 0.15, y + size * 0.15, size * 0.7, size * 0.7)
+      // 中心点
+      ctx.setFillStyle('#000000')
+      ctx.fillRect(x + size * 0.3, y + size * 0.3, size * 0.4, size * 0.4)
+    },
+
+    /**
+     * 复制我的DID
+     */
+    copyMyDid() {
+      if (!this.myDid) {
+        return
+      }
+
+      uni.setClipboardData({
+        data: this.myDid,
+        success: () => {
+          uni.showToast({
+            title: '已复制DID',
+            icon: 'success'
+          })
+        },
+        fail: () => {
+          uni.showToast({
+            title: '复制失败',
+            icon: 'none'
+          })
+        }
+      })
     }
   }
 }
@@ -602,6 +915,158 @@ export default {
       font-size: 24rpx;
       color: var(--text-secondary);
       line-height: 2;
+    }
+  }
+}
+
+.my-qrcode-section {
+  padding: 32rpx;
+  position: fixed;
+  bottom: 32rpx;
+  left: 32rpx;
+  right: 32rpx;
+
+  .show-qrcode-btn {
+    width: 100%;
+    height: 88rpx;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 2rpx solid var(--border-color);
+    border-radius: 16rpx;
+    font-size: 28rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16rpx;
+
+    &::after {
+      border: none;
+    }
+
+    .icon {
+      font-size: 32rpx;
+    }
+  }
+}
+
+.qrcode-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+
+  .modal-content {
+    width: 640rpx;
+    background: var(--bg-card);
+    border-radius: 24rpx;
+    padding: 32rpx;
+    max-height: 80vh;
+    overflow-y: auto;
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32rpx;
+
+      .modal-title {
+        font-size: 36rpx;
+        font-weight: bold;
+        color: var(--text-primary);
+      }
+
+      .close-btn {
+        font-size: 48rpx;
+        color: var(--text-tertiary);
+        width: 64rpx;
+        height: 64rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+
+        &:active {
+          opacity: 0.6;
+        }
+      }
+    }
+
+    .qrcode-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32rpx;
+      background: white;
+      border-radius: 16rpx;
+      margin-bottom: 32rpx;
+
+      .qrcode-canvas {
+        width: 500rpx;
+        height: 500rpx;
+        border: 2rpx solid #f0f0f0;
+        border-radius: 8rpx;
+      }
+    }
+
+    .my-did-info {
+      background: var(--bg-secondary);
+      border-radius: 16rpx;
+      padding: 24rpx;
+      margin-bottom: 24rpx;
+
+      .did-label {
+        display: block;
+        font-size: 24rpx;
+        color: var(--text-tertiary);
+        margin-bottom: 12rpx;
+      }
+
+      .did-text {
+        display: block;
+        font-size: 22rpx;
+        color: var(--text-primary);
+        font-family: monospace;
+        word-break: break-all;
+        line-height: 1.6;
+        margin-bottom: 16rpx;
+      }
+
+      .copy-btn {
+        width: 100%;
+        height: 72rpx;
+        background: var(--bg-accent);
+        color: var(--text-on-accent);
+        border: none;
+        border-radius: 12rpx;
+        font-size: 28rpx;
+
+        &::after {
+          border: none;
+        }
+
+        &:active {
+          opacity: 0.8;
+        }
+      }
+    }
+
+    .qrcode-tips {
+      padding: 24rpx;
+      background: rgba(102, 126, 234, 0.05);
+      border-radius: 12rpx;
+
+      .tip-text {
+        display: block;
+        font-size: 24rpx;
+        color: var(--text-secondary);
+        line-height: 2;
+      }
     }
   }
 }

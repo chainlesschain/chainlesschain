@@ -1,7 +1,16 @@
 <template>
   <view class="profile-container">
     <view v-if="loading" class="loading">
-      <text>加载中...</text>
+      <text class="loading-icon">⏳</text>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view v-else-if="loadError" class="error-state">
+      <text class="error-icon">⚠️</text>
+      <text class="error-text">{{ loadError }}</text>
+      <button class="retry-btn" @click="loadFriend">
+        重试
+      </button>
     </view>
 
     <view v-else-if="friend" class="profile-content">
@@ -19,7 +28,12 @@
             </button>
           </view>
 
-          <text class="did">{{ formatDid(friend.friendDid) }}</text>
+          <view class="did-section">
+            <text class="did">{{ formatDid(friend.friendDid) }}</text>
+            <button class="copy-btn" @click="copyDid">
+              <text class="icon">📋</text>
+            </button>
+          </view>
 
           <view class="notes-section" v-if="friend.notes">
             <text class="notes-label">备注：</text>
@@ -152,10 +166,13 @@ export default {
       did: '',
       friend: null,
       loading: false,
+      loadError: null,
       showEditNickname: false,
       showEditNotes: false,
       editNickname: '',
-      editNotes: ''
+      editNotes: '',
+      saving: false,
+      deleting: false
     }
   },
 
@@ -177,6 +194,7 @@ export default {
   methods: {
     async loadFriend() {
       this.loading = true
+      this.loadError = null
 
       try {
         await friendService.init()
@@ -184,13 +202,14 @@ export default {
         this.friend = friends.find(f => f.friendDid === this.did)
 
         if (!this.friend) {
-          uni.showToast({
-            title: '好友不存在',
-            icon: 'none'
+          uni.showModal({
+            title: '提示',
+            content: '该好友不存在或已被删除',
+            showCancel: false,
+            success: () => {
+              uni.navigateBack()
+            }
           })
-          setTimeout(() => {
-            uni.navigateBack()
-          }, 1500)
           return
         }
 
@@ -199,9 +218,23 @@ export default {
         this.editNotes = this.friend.notes || ''
       } catch (error) {
         console.error('加载好友信息失败:', error)
+        this.loadError = error.message || '加载失败'
+
+        let errorMsg = '加载失败，请稍后重试'
+        if (error.message) {
+          if (error.message.includes('网络') || error.message.includes('timeout')) {
+            errorMsg = '网络连接失败，请检查网络'
+          } else if (error.message.includes('database') || error.message.includes('数据库')) {
+            errorMsg = '数据库错误，请重启应用'
+          } else {
+            errorMsg = error.message
+          }
+        }
+
         uni.showToast({
-          title: '加载失败',
-          icon: 'none'
+          title: errorMsg,
+          icon: 'none',
+          duration: 2500
         })
       } finally {
         this.loading = false
@@ -209,14 +242,31 @@ export default {
     },
 
     async saveNickname() {
+      // 防止重复提交
+      if (this.saving) {
+        return
+      }
+
+      const trimmedNickname = this.editNickname.trim()
+      if (!trimmedNickname) {
+        uni.showToast({
+          title: '昵称不能为空',
+          icon: 'none'
+        })
+        return
+      }
+
+      this.saving = true
+
       try {
         await friendService.updateFriendInfo(this.did, {
-          nickname: this.editNickname.trim()
+          nickname: trimmedNickname
         })
 
         uni.showToast({
-          title: '保存成功',
-          icon: 'success'
+          title: '✓ 保存成功',
+          icon: 'success',
+          duration: 1500
         })
 
         this.showEditNickname = false
@@ -224,21 +274,32 @@ export default {
       } catch (error) {
         console.error('保存昵称失败:', error)
         uni.showToast({
-          title: error.message || '保存失败',
-          icon: 'none'
+          title: error.message || '保存失败，请稍后重试',
+          icon: 'none',
+          duration: 2000
         })
+      } finally {
+        this.saving = false
       }
     },
 
     async saveNotes() {
+      // 防止重复提交
+      if (this.saving) {
+        return
+      }
+
+      this.saving = true
+
       try {
         await friendService.updateFriendInfo(this.did, {
           notes: this.editNotes.trim()
         })
 
         uni.showToast({
-          title: '保存成功',
-          icon: 'success'
+          title: '✓ 保存成功',
+          icon: 'success',
+          duration: 1500
         })
 
         this.showEditNotes = false
@@ -246,9 +307,12 @@ export default {
       } catch (error) {
         console.error('保存备注失败:', error)
         uni.showToast({
-          title: error.message || '保存失败',
-          icon: 'none'
+          title: error.message || '保存失败，请稍后重试',
+          icon: 'none',
+          duration: 2000
         })
+      } finally {
+        this.saving = false
       }
     },
 
@@ -273,12 +337,20 @@ export default {
     },
 
     async deleteFriend() {
+      // 防止重复操作
+      if (this.deleting) {
+        return
+      }
+
+      this.deleting = true
+
       try {
         await friendService.removeFriend(this.did)
 
         uni.showToast({
-          title: '已删除',
-          icon: 'success'
+          title: '✓ 已删除好友',
+          icon: 'success',
+          duration: 1500
         })
 
         setTimeout(() => {
@@ -286,10 +358,26 @@ export default {
         }, 1500)
       } catch (error) {
         console.error('删除好友失败:', error)
+
+        let errorMsg = '删除失败，请稍后重试'
+        if (error.message) {
+          if (error.message.includes('不存在')) {
+            errorMsg = '该好友已被删除'
+            setTimeout(() => {
+              uni.navigateBack()
+            }, 1500)
+          } else {
+            errorMsg = error.message
+          }
+        }
+
         uni.showToast({
-          title: error.message || '删除失败',
-          icon: 'none'
+          title: errorMsg,
+          icon: 'none',
+          duration: 2000
         })
+
+        this.deleting = false
       }
     },
 
@@ -314,8 +402,9 @@ export default {
         await friendService.blockUser(this.did, reason)
 
         uni.showToast({
-          title: '已拉黑',
-          icon: 'success'
+          title: '✓ 已拉黑用户',
+          icon: 'success',
+          duration: 1500
         })
 
         setTimeout(() => {
@@ -323,11 +412,51 @@ export default {
         }, 1500)
       } catch (error) {
         console.error('拉黑用户失败:', error)
+
+        let errorMsg = '操作失败，请稍后重试'
+        if (error.message) {
+          if (error.message.includes('已拉黑')) {
+            errorMsg = '该用户已在黑名单中'
+            setTimeout(() => {
+              uni.navigateBack()
+            }, 1500)
+          } else {
+            errorMsg = error.message
+          }
+        }
+
         uni.showToast({
-          title: error.message || '操作失败',
-          icon: 'none'
+          title: errorMsg,
+          icon: 'none',
+          duration: 2000
         })
       }
+    },
+
+    /**
+     * 复制DID到剪贴板
+     */
+    copyDid() {
+      if (!this.did) {
+        return
+      }
+
+      uni.setClipboardData({
+        data: this.did,
+        success: () => {
+          uni.showToast({
+            title: '✓ 已复制DID',
+            icon: 'success',
+            duration: 1500
+          })
+        },
+        fail: () => {
+          uni.showToast({
+            title: '复制失败',
+            icon: 'none'
+          })
+        }
+      })
     },
 
     getAvatarText() {
@@ -359,12 +488,55 @@ export default {
   padding: 32rpx;
 }
 
-.loading {
+.loading,
+.error-state {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 120rpx;
-  color: var(--text-secondary);
+  padding: 120rpx 48rpx;
+
+  .loading-icon,
+  .error-icon {
+    font-size: 96rpx;
+    margin-bottom: 24rpx;
+    opacity: 0.5;
+  }
+
+  .loading-text,
+  .error-text {
+    font-size: 28rpx;
+    color: var(--text-secondary);
+    margin-bottom: 32rpx;
+    text-align: center;
+  }
+
+  .retry-btn {
+    background: var(--bg-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 48rpx;
+    padding: 16rpx 48rpx;
+    font-size: 28rpx;
+
+    &::after {
+      border: none;
+    }
+
+    &:active {
+      opacity: 0.8;
+    }
+  }
+}
+
+.error-state {
+  .error-icon {
+    opacity: 0.7;
+  }
+
+  .error-text {
+    color: var(--color-error);
+  }
 }
 
 .profile-card {
@@ -432,10 +604,40 @@ export default {
       }
     }
 
-    .did {
-      font-size: 24rpx;
-      color: var(--text-tertiary);
-      font-family: monospace;
+    .did-section {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+
+      .did {
+        font-size: 24rpx;
+        color: var(--text-tertiary);
+        font-family: monospace;
+      }
+
+      .copy-btn {
+        width: 48rpx;
+        height: 48rpx;
+        background: var(--bg-secondary);
+        border: none;
+        border-radius: 24rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+
+        &::after {
+          border: none;
+        }
+
+        &:active {
+          opacity: 0.7;
+        }
+
+        .icon {
+          font-size: 24rpx;
+        }
+      }
     }
 
     .notes-section {

@@ -27,6 +27,20 @@ class DIDService {
    * @returns {Promise<Object>} DID身份对象
    */
   async generateDID(nickname, pin, bio = '', avatarPath = '') {
+    // 参数验证
+    if (!nickname || typeof nickname !== 'string') {
+      throw new Error('昵称不能为空')
+    }
+    if (!pin || typeof pin !== 'string') {
+      throw new Error('PIN码不能为空')
+    }
+    if (nickname.trim().length === 0) {
+      throw new Error('昵称不能为空')
+    }
+    if (pin.length < 6) {
+      throw new Error('PIN码至少需要6位')
+    }
+
     try {
       // 1. 生成Ed25519密钥对（用于签名）
       const signKeyPair = nacl.sign.keyPair()
@@ -101,7 +115,18 @@ class DIDService {
       }
     } catch (error) {
       console.error('❌ DID生成失败:', error)
-      throw new Error(`DID生成失败: ${error.message}`)
+
+      // 提供友好的错误消息
+      let errorMsg = 'DID生成失败'
+      if (error.message.includes('昵称') || error.message.includes('PIN')) {
+        errorMsg = error.message
+      } else if (error.message.includes('database') || error.message.includes('数据库')) {
+        errorMsg = '数据库操作失败，请稍后重试'
+      } else if (error.message) {
+        errorMsg = `DID生成失败: ${error.message}`
+      }
+
+      throw new Error(errorMsg)
     }
   }
 
@@ -113,6 +138,17 @@ class DIDService {
    * @returns {Promise<string>} Base64编码的签名
    */
   async signData(did, data, pin) {
+    // 参数验证
+    if (!did) {
+      throw new Error('DID不能为空')
+    }
+    if (!data) {
+      throw new Error('签名数据不能为空')
+    }
+    if (!pin) {
+      throw new Error('PIN码不能为空')
+    }
+
     try {
       // 1. 获取私钥
       const secretKey = await this._getSignSecretKey(did, pin)
@@ -128,7 +164,22 @@ class DIDService {
       return naclUtil.encodeBase64(signature)
     } catch (error) {
       console.error('❌ 签名失败:', error)
-      throw new Error(`签名失败: ${error.message}`)
+
+      // 提供友好的错误消息
+      let errorMsg = '签名失败'
+      if (error.message.includes('不能为空')) {
+        errorMsg = error.message
+      } else if (error.message.includes('DID不存在')) {
+        errorMsg = '该DID身份不存在'
+      } else if (error.message.includes('decrypt') || error.message.includes('解密')) {
+        errorMsg = 'PIN码错误，请重新输入'
+      } else if (error.message.includes('Invalid')) {
+        errorMsg = '数据格式无效'
+      } else if (error.message) {
+        errorMsg = `签名失败: ${error.message}`
+      }
+
+      throw new Error(errorMsg)
     }
   }
 
@@ -173,6 +224,20 @@ class DIDService {
    * @returns {Promise<Object>} 加密数据对象
    */
   async encryptFor(recipientDID, data, senderDID, pin) {
+    // 参数验证
+    if (!recipientDID) {
+      throw new Error('接收者DID不能为空')
+    }
+    if (!senderDID) {
+      throw new Error('发送者DID不能为空')
+    }
+    if (!data) {
+      throw new Error('加密数据不能为空')
+    }
+    if (!pin) {
+      throw new Error('PIN码不能为空')
+    }
+
     try {
       // 1. 获取接收者公钥
       const recipientIdentity = await database.getIdentity(recipientDID)
@@ -203,7 +268,22 @@ class DIDService {
       }
     } catch (error) {
       console.error('❌ 加密失败:', error)
-      throw new Error(`加密失败: ${error.message}`)
+
+      // 提供友好的错误消息
+      let errorMsg = '加密失败'
+      if (error.message.includes('不能为空')) {
+        errorMsg = error.message
+      } else if (error.message.includes('接收者DID不存在')) {
+        errorMsg = '接收者DID不存在'
+      } else if (error.message.includes('发送者DID不存在')) {
+        errorMsg = '发送者DID不存在'
+      } else if (error.message.includes('decrypt') || error.message.includes('解密')) {
+        errorMsg = 'PIN码错误'
+      } else if (error.message) {
+        errorMsg = `加密失败: ${error.message}`
+      }
+
+      throw new Error(errorMsg)
     }
   }
 
@@ -215,6 +295,17 @@ class DIDService {
    * @returns {Promise<string>} 解密后的数据
    */
   async decrypt(encryptedData, recipientDID, pin) {
+    // 参数验证
+    if (!encryptedData) {
+      throw new Error('加密数据不能为空')
+    }
+    if (!recipientDID) {
+      throw new Error('接收者DID不能为空')
+    }
+    if (!pin) {
+      throw new Error('PIN码不能为空')
+    }
+
     try {
       const { senderDID, nonce, ciphertext } = encryptedData
 
@@ -242,7 +333,22 @@ class DIDService {
       return naclUtil.encodeUTF8(decrypted)
     } catch (error) {
       console.error('❌ 解密失败:', error)
-      throw new Error(`解密失败: ${error.message}`)
+
+      // 提供友好的错误消息
+      let errorMsg = '解密失败'
+      if (error.message.includes('不能为空')) {
+        errorMsg = error.message
+      } else if (error.message.includes('发送者DID不存在')) {
+        errorMsg = '发送者DID不存在'
+      } else if (error.message.includes('数据可能已损坏')) {
+        errorMsg = '数据已损坏或被篡改'
+      } else if (error.message.includes('decrypt') || error.message.includes('PIN')) {
+        errorMsg = 'PIN码错误或数据格式无效'
+      } else if (error.message) {
+        errorMsg = `解密失败: ${error.message}`
+      }
+
+      throw new Error(errorMsg)
     }
   }
 
@@ -253,6 +359,14 @@ class DIDService {
    * @returns {Promise<string>} 加密的备份数据（JSON字符串）
    */
   async exportDID(did, pin) {
+    // 参数验证
+    if (!did) {
+      throw new Error('DID不能为空')
+    }
+    if (!pin) {
+      throw new Error('PIN码不能为空')
+    }
+
     try {
       // 1. 获取身份信息
       const identity = await database.getIdentity(did)
@@ -281,7 +395,20 @@ class DIDService {
       return JSON.stringify(exportData)
     } catch (error) {
       console.error('❌ 导出DID失败:', error)
-      throw new Error(`导出DID失败: ${error.message}`)
+
+      // 提供友好的错误消息
+      let errorMsg = '导出DID失败'
+      if (error.message.includes('不能为空')) {
+        errorMsg = error.message
+      } else if (error.message.includes('DID不存在')) {
+        errorMsg = '该DID身份不存在'
+      } else if (error.message.includes('decrypt') || error.message.includes('解密')) {
+        errorMsg = 'PIN码错误'
+      } else if (error.message) {
+        errorMsg = `导出DID失败: ${error.message}`
+      }
+
+      throw new Error(errorMsg)
     }
   }
 
@@ -292,6 +419,17 @@ class DIDService {
    * @returns {Promise<Object>} 导入的DID信息
    */
   async importDID(encryptedData, pin) {
+    // 参数验证
+    if (!encryptedData) {
+      throw new Error('备份数据不能为空')
+    }
+    if (!pin) {
+      throw new Error('PIN码不能为空')
+    }
+    if (pin.length < 6) {
+      throw new Error('PIN码至少需要6位')
+    }
+
     try {
       // 1. 解析备份数据
       const importData = JSON.parse(encryptedData)
@@ -339,7 +477,22 @@ class DIDService {
       }
     } catch (error) {
       console.error('❌ 导入DID失败:', error)
-      throw new Error(`导入DID失败: ${error.message}`)
+
+      // 提供友好的错误消息
+      let errorMsg = '导入DID失败'
+      if (error.message.includes('不能为空') || error.message.includes('至少需要')) {
+        errorMsg = error.message
+      } else if (error.message.includes('格式无效') || error.message.includes('JSON')) {
+        errorMsg = '备份数据格式无效'
+      } else if (error.message.includes('已存在')) {
+        errorMsg = '该DID已存在，无法重复导入'
+      } else if (error.message.includes('database') || error.message.includes('数据库')) {
+        errorMsg = '数据库操作失败，请稍后重试'
+      } else if (error.message) {
+        errorMsg = `导入DID失败: ${error.message}`
+      }
+
+      throw new Error(errorMsg)
     }
   }
 
@@ -349,6 +502,11 @@ class DIDService {
    * @returns {Promise<Object>} 二维码数据
    */
   async generateQRCode(did) {
+    // 参数验证
+    if (!did) {
+      throw new Error('DID不能为空')
+    }
+
     try {
       const identity = await database.getIdentity(did)
       if (!identity) {
@@ -367,7 +525,18 @@ class DIDService {
       return qrData
     } catch (error) {
       console.error('❌ 生成二维码失败:', error)
-      throw new Error(`生成二维码失败: ${error.message}`)
+
+      // 提供友好的错误消息
+      let errorMsg = '生成二维码失败'
+      if (error.message.includes('不能为空')) {
+        errorMsg = error.message
+      } else if (error.message.includes('DID不存在')) {
+        errorMsg = '该DID身份不存在'
+      } else if (error.message) {
+        errorMsg = `生成二维码失败: ${error.message}`
+      }
+
+      throw new Error(errorMsg)
     }
   }
 
@@ -395,6 +564,101 @@ class DIDService {
   }
 
   /**
+   * 获取当前活跃的DID身份
+   * @returns {Promise<Object|null>} DID身份对象
+   */
+  async getCurrentIdentity() {
+    try {
+      // 获取默认身份
+      const identity = await database.getDefaultIdentity()
+      if (!identity) {
+        return null
+      }
+
+      // 解析DID文档
+      const didDocument = identity.did_document ? JSON.parse(identity.did_document) : null
+
+      return {
+        did: identity.did,
+        nickname: identity.nickname,
+        bio: identity.bio,
+        avatarPath: identity.avatar_path,
+        publicKeySign: identity.public_key_sign,
+        publicKeyEncrypt: identity.public_key_encrypt,
+        didDocument,
+        createdAt: identity.created_at,
+        isDefault: identity.is_default === 1,
+        isActive: identity.is_active === 1
+      }
+    } catch (error) {
+      console.error('❌ 获取当前身份失败:', error)
+      return null
+    }
+  }
+
+  /**
+   * 解析DID（从本地数据库或网络）
+   * @param {string} did - DID标识符
+   * @returns {Promise<Object|null>} DID文档
+   */
+  async resolveDID(did) {
+    try {
+      // 首先尝试从本地数据库查找
+      const identity = await database.getIdentity(did)
+      if (identity && identity.did_document) {
+        return JSON.parse(identity.did_document)
+      }
+
+      // TODO: 如果本地没有，从网络查询（Week 3-4后期实现）
+      // 暂时返回基本的DID文档结构
+      return {
+        '@context': 'https://www.w3.org/ns/did/v1',
+        id: did,
+        verificationMethod: [
+          {
+            id: `${did}#key-1`,
+            type: 'Ed25519VerificationKey2018',
+            controller: did
+          }
+        ]
+      }
+    } catch (error) {
+      console.error('❌ 解析DID失败:', error)
+      return null
+    }
+  }
+
+  /**
+   * 签名消息（使用当前身份）
+   * @param {string} message - 要签名的消息
+   * @param {string} pin - PIN码（可选，如果已缓存则不需要）
+   * @returns {Promise<string>} Base64编码的签名
+   */
+  async signMessage(message, pin = '123456') {
+    try {
+      const currentIdentity = await this.getCurrentIdentity()
+      if (!currentIdentity) {
+        throw new Error('未找到当前身份')
+      }
+      return await this.signData(currentIdentity.did, message, pin)
+    } catch (error) {
+      console.error('❌ 签名消息失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 验证签名（使用指定DID的公钥）
+   * @param {string} message - 原始消息
+   * @param {string} signature - Base64编码的签名
+   * @param {string} did - 签名者的DID
+   * @returns {Promise<boolean>} 验证结果
+   */
+  async verifyMessageSignature(message, signature, did) {
+    return await this.verifySignature(did, message, signature)
+  }
+
+  /**
    * 清除缓存（用户注销时调用）
    */
   clearCache() {
@@ -418,9 +682,21 @@ class DIDService {
    * @private
    */
   _decryptData(encryptedData, pin) {
-    const key = this._derivePINKey(pin)
-    const bytes = CryptoJS.AES.decrypt(encryptedData, key)
-    return bytes.toString(CryptoJS.enc.Utf8)
+    try {
+      const key = this._derivePINKey(pin)
+      const bytes = CryptoJS.AES.decrypt(encryptedData, key)
+      const decrypted = bytes.toString(CryptoJS.enc.Utf8)
+
+      // 验证解密结果
+      if (!decrypted) {
+        throw new Error('PIN码错误')
+      }
+
+      return decrypted
+    } catch (error) {
+      // 解密失败通常是PIN码错误
+      throw new Error('PIN码错误')
+    }
   }
 
   /**
@@ -452,14 +728,22 @@ class DIDService {
       throw new Error('DID不存在')
     }
 
-    const decrypted = this._decryptData(identity.private_key_encrypted, pin)
-    const privateKeyData = JSON.parse(decrypted)
-    const secretKey = naclUtil.decodeBase64(privateKeyData.signSecretKey)
+    try {
+      const decrypted = this._decryptData(identity.private_key_encrypted, pin)
+      const privateKeyData = JSON.parse(decrypted)
+      const secretKey = naclUtil.decodeBase64(privateKeyData.signSecretKey)
 
-    // 缓存
-    this.keyCache.set(cacheKey, secretKey)
+      // 缓存
+      this.keyCache.set(cacheKey, secretKey)
 
-    return secretKey
+      return secretKey
+    } catch (error) {
+      // 如果是PIN码错误，提供明确的提示
+      if (error.message.includes('PIN码错误')) {
+        throw new Error('PIN码错误')
+      }
+      throw new Error('解密私钥失败')
+    }
   }
 
   /**
@@ -479,14 +763,22 @@ class DIDService {
       throw new Error('DID不存在')
     }
 
-    const decrypted = this._decryptData(identity.private_key_encrypted, pin)
-    const privateKeyData = JSON.parse(decrypted)
-    const secretKey = naclUtil.decodeBase64(privateKeyData.encryptSecretKey)
+    try {
+      const decrypted = this._decryptData(identity.private_key_encrypted, pin)
+      const privateKeyData = JSON.parse(decrypted)
+      const secretKey = naclUtil.decodeBase64(privateKeyData.encryptSecretKey)
 
-    // 缓存
-    this.keyCache.set(cacheKey, secretKey)
+      // 缓存
+      this.keyCache.set(cacheKey, secretKey)
 
-    return secretKey
+      return secretKey
+    } catch (error) {
+      // 如果是PIN码错误，提供明确的提示
+      if (error.message.includes('PIN码错误')) {
+        throw new Error('PIN码错误')
+      }
+      throw new Error('解密私钥失败')
+    }
   }
 }
 
