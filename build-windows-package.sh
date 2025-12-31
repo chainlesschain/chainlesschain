@@ -96,8 +96,10 @@ echo "[$(date)] Building Java backend" >> "$BUILD_LOG"
 
 if [ $SKIP_JAVA_BUILD -eq 1 ]; then
     echo -e "${YELLOW}Skipping Java build (Maven not available)${RESET}"
-    if [ -f "$BACKEND_DIR/project-service/target/project-service.jar" ]; then
-        echo -e "  ${GREEN}✓ Using existing JAR file${RESET}"
+    # Check for any JAR file in target directory
+    JAR_FILE=$(find "$BACKEND_DIR/project-service/target" -maxdepth 1 -name "*.jar" -type f 2>/dev/null | head -n 1)
+    if [ -n "$JAR_FILE" ]; then
+        echo -e "  ${GREEN}✓ Using existing JAR file: $(basename "$JAR_FILE")${RESET}"
     else
         echo -e "  ${RED}ERROR: No JAR file found and Maven not available${RESET}"
         echo -e "  ${RED}Please build backend/project-service manually${RESET}"
