@@ -177,6 +177,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
+import { useIdentityStore } from '@/stores/identityStore';
 import {
   HistoryOutlined,
   ReloadOutlined,
@@ -280,10 +281,14 @@ function handleCompareVersion(version) {
  */
 async function handleRestoreVersion(version) {
   try {
+    // 获取当前用户DID（需要从identityStore获取）
+    const identityStore = useIdentityStore ? useIdentityStore() : null;
+    const restoredBy = identityStore?.currentUserDID || 'system';
+
     const result = await window.electron.invoke('knowledge:restore-version', {
       knowledgeId: props.knowledgeId,
       versionId: version.id,
-      orgId: props.orgId
+      restoredBy
     });
 
     if (result.success) {
