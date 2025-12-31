@@ -1763,6 +1763,30 @@ class DatabaseManager {
         }
       }
 
+      // 迁移5: 初始化内置技能和工具数据
+      const skillsCount = this.db.prepare("SELECT COUNT(*) as count FROM skills WHERE is_builtin = 1").get();
+
+      if (skillTableExists && skillsCount.count === 0) {
+        console.log('[Database] 初始化内置技能和工具数据...');
+        try {
+          const dataInitPath = path.join(__dirname, 'database', 'migrations', '004_video_skills_tools.sql');
+          if (fs.existsSync(dataInitPath)) {
+            const dataInitSQL = fs.readFileSync(dataInitPath, 'utf-8');
+            this.db.exec(dataInitSQL);
+            this.saveToFile();
+
+            // 验证数据是否成功插入
+            const newSkillsCount = this.db.prepare("SELECT COUNT(*) as count FROM skills WHERE is_builtin = 1").get();
+            const newToolsCount = this.db.prepare("SELECT COUNT(*) as count FROM tools WHERE is_builtin = 1").get();
+            console.log(`[Database] 内置数据初始化完成 - 技能: ${newSkillsCount.count}, 工具: ${newToolsCount.count}`);
+          } else {
+            console.warn('[Database] 内置数据初始化文件不存在:', dataInitPath);
+          }
+        } catch (dataInitError) {
+          console.error('[Database] 初始化内置数据失败:', dataInitError);
+        }
+      }
+
       console.log('[Database] 数据库迁移任务完成');
     } catch (error) {
       console.error('[Database] 运行数据库迁移失败:', error);

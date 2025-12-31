@@ -516,19 +516,7 @@ VALUES (
   strftime('%s', 'now')
 );
 
--- 工具11-20 继续添加...
-INSERT INTO tools (id, name, display_name, description, tool_type, category, parameters_schema, is_builtin, enabled, config, risk_level, created_at, updated_at)
-VALUES
-('tool_subtitle_templates', 'subtitle_style_templates', '字幕样式模板库', '预设的字幕样式模板', 'function', 'media', '{}', 1, 1, '{}', 1, strftime('%s', 'now'), strftime('%s', 'now')),
-('tool_subtitle_sync', 'subtitle_sync_tool', '字幕时间轴同步', '调整字幕时间码', 'function', 'media', '{}', 1, 1, '{}', 1, strftime('%s', 'now'), strftime('%s', 'now')),
-('tool_platform_specs', 'platform_specs_query', '平台规格查询', '查询各平台的视频规格要求', 'function', 'media', '{}', 1, 1, '{"platforms": ["抖音", "快手", "B站", "YouTube", "视频号"]}', 1, strftime('%s', 'now'), strftime('%s', 'now')),
-('tool_title_generator', 'video_title_generator', '标题生成器', 'AI生成爆款视频标题', 'ai', 'content', '{}', 1, 1, '{}', 1, strftime('%s', 'now'), strftime('%s', 'now')),
-('tool_hashtag_recommender', 'hashtag_recommender', '标签推荐工具', '推荐热门话题标签', 'ai', 'media', '{}', 1, 1, '{}', 1, strftime('%s', 'now'), strftime('%s', 'now')),
-('tool_thumbnail_designer', 'thumbnail_design_assistant', '封面设计助手', '提供封面文案和配色建议', 'ai', 'media', '{}', 1, 1, '{}', 1, strftime('%s', 'now'), strftime('%s', 'now')),
-('tool_retention_analyzer', 'retention_rate_analyzer', '完播率分析', '分析视频用户流失点', 'function', 'data', '{}', 1, 1, '{}', 1, strftime('%s', 'now'), strftime('%s', 'now')),
-('tool_virality_predictor', 'virality_predictor', '热度预测器', '评估视频爆款潜力', 'ai', 'media', '{}', 1, 1, '{}', 2, strftime('%s', 'now'), strftime('%s', 'now')),
-('tool_competitor_analyzer', 'competitor_analyzer', '竞品分析工具', '分析同类视频数据', 'function', 'data', '{}', 1, 1, '{}', 1, strftime('%s', 'now'), strftime('%s', 'now')),
-('tool_roi_calculator', 'video_roi_calculator', 'ROI计算器', '计算视频投资回报率', 'function', 'data', '{}', 1, 1, '{}', 1, strftime('%s', 'now'), strftime('%s', 'now'));
+-- 工具11-20 在下方详细定义,此处删除重复的批量插入以避免UNIQUE约束冲突
 
 -- ============================================
 -- 3. 建立技能-工具关联 (Skill-Tool Mapping)
