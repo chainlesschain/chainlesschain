@@ -1,0 +1,143 @@
+{
+  "id": "tpl_music_live_001",
+  "name": "live_performance_plan",
+  "display_name": "现场演出策划方案",
+  "description": "为乐队或音乐人现场演出制定详细的策划方案，包括曲目编排、舞台设计、技术需求和执行流程",
+  "icon": "🎸",
+  "cover_image": "/templates/covers/live-performance.png",
+  "category": "music",
+  "subcategory": "performance",
+  "tags": [
+    "音乐",
+    "演出",
+    "现场",
+    "策划"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我制定《{{performanceName}}》现场演出的完整策划方案，要求：\n\n**演出信息：**\n- 演出名称：{{performanceName}}\n- 演出类型：{{performanceType}}\n- 演出日期：{{performanceDate}}\n- 演出时长：{{duration}}分钟\n- 场地：{{venue}}\n- 预计观众：{{audienceSize}}人\n- 音乐风格：{{musicStyle}}\n\n**第一部分：曲目编排（Setlist）**\n\n根据时长{{duration}}分钟和风格{{musicStyle}}，设计完整演出曲目：\n\n**开场（10-15分钟）：**\n1. 开场曲：[高能量歌曲，快速抓住观众注意力]\n   - 推荐特点：节奏明快、大家熟悉、易于互动\n2. 第二首：[延续热烈氛围]\n3. 互动环节：简短自我介绍和欢迎致辞\n\n**主体部分（{{duration-30}}分钟）：**\n- 设计起承转合的节奏变化\n- 快歌慢歌交替（避免听觉疲劳）\n- 每3-4首歌插入MC（主持/互动）\n- 包含：\n  * 热门歌曲（吸引观众）\n  * 新歌首发（如适用）\n  * 经典翻唱或致敬\n  * 乐器solo展示\n  * 观众合唱环节\n\n**结尾（10-15分钟）：**\n- 倒数第二首：情感高潮歌曲\n- 最后一首：经典代表作或大合唱\n- 安可曲（Encore）：1-2首（如观众呼唤）\n\n**总曲目数：** 约{{totalSongs}}首\n**总时长控制：** {{duration}}分钟（含MC和换场）\n\n**第二部分：舞台设计**\n\n根据场地{{venue}}和类型{{performanceType}}：\n\n**舞台布局：**\n- 乐队位置：鼓手居中后方，吉他/贝斯左右，主唱前方\n- 设备摆放：音箱、监听、效果器\n- 走位空间：主唱活动区域\n- 安全通道：紧急出口标识\n\n**灯光设计：**\n- 基础照明：舞台主光、侧光、背光\n- 氛围灯光：根据歌曲情绪变化（暖色/冷色、频闪/渐变）\n- 特效灯光：追光灯（主唱solo）、频闪灯（高潮部分）\n- 灯光cue表：每首歌的灯光变化标注\n\n**视觉元素：**\n- 背景布景/LED屏幕\n- 投影内容（歌词、视觉动画）\n- 乐队Logo和视觉标识\n- 烟雾/干冰效果（可选）\n\n**第三部分：技术需求**\n\n**音响设备：**\n- PA系统（主扩声）\n- 舞台监听（每位乐手独立监听）\n- 调音台（FOH + 监听台）\n- 麦克风：主唱×2、和声、乐器拾音\n- DI盒（键盘、贝斯、吉他）\n\n**乐器和设备：**\n- 鼓组（如场地提供或自带）\n- 吉他音箱 + 效果器\n- 贝斯音箱\n- 键盘/合成器\n- 备用设备（弦、pick、线材、电池）\n\n**技术人员：**\n- 调音师（FOH）\n- 监听工程师\n- 灯光师\n- 舞台监督\n- 技术助理（换场、调试）\n\n**第四部分：彩排计划**\n\n**场地彩排（演出前1天）：**\n- 13:00-14:00：设备装台和线路连接\n- 14:00-15:00：音响调试（Soundcheck）\n  * 每件乐器逐一调试\n  * 调整监听混音\n  * 测试麦克风和人声效果\n- 15:00-17:00：完整走台\n  * 按演出顺序过一遍所有歌曲\n  * 测试灯光cue点\n  * 练习走位和互动\n- 17:00-18:00：重点环节再排练\n  * 开场和结尾\n  * 复杂编排段落\n  * 特殊效果测试\n\n**演出当天：**\n- 提前2小时到场\n- 简短soundcheck（15-30分钟）\n- 设备最后检查\n- 乐手休息和准备\n\n**第五部分：演出流程**\n\n**时间轴（演出日）：**\n\n16:00 - 团队到达场地\n16:30 - 设备检查和soundcheck\n17:00 - 化妆和服装准备\n17:30 - 暖场音乐开始播放\n18:00 - 观众入场\n19:00 - 灯光暗下，开场视频/音乐\n19:05 - 正式演出开始\n20:35 - 演出结束（{{duration}}分钟）\n20:40 - 安可（如有）\n20:50 - 谢幕，观众退场\n21:00 - 设备撤台\n\n**演出中注意事项：**\n- 主唱负责控制节奏和互动\n- 乐手注意监听和相互配合\n- 技术人员standby应对突发状况\n- 准备备用方案（设备故障时快速切换）\n\n**第六部分：营销和宣传**\n\n**演出前（2-4周）：**\n- 海报设计和发布\n- 社交媒体预告（倒计时）\n- 售票链接和购票指南\n- 媒体邀请和新闻稿\n\n**演出前1周：**\n- 发布彩排花絮\n- 曲目预告（teaser）\n- 互动活动（抽奖送票）\n\n**演出当天：**\n- 现场直播或片段分享\n- 鼓励观众拍照打卡\n- 设置话题标签（#{{performanceName}}）\n\n**演出后：**\n- 感谢观众帖子\n- 演出精彩片段剪辑\n- 观众照片征集和分享\n- 评论和媒体报道整理\n\n**第七部分：预算和成本**\n\n- 场地租赁：\n- 音响灯光租赁：\n- 技术人员费用：\n- 宣传物料：\n- 其他（运输、保险）：\n- **总预算：** [根据实际情况填写]\n\n**第八部分：应急预案**\n\n- 设备故障：备用设备和快速切换流程\n- 人员缺席：备选乐手名单\n- 恶劣天气（户外演出）：延期或取消方案\n- 观众安全：医疗急救准备、疏散路线\n\n**附录：**\n1. 完整曲目单（含每首歌时长、调性、速度）\n2. 舞台平面图\n3. 设备清单和连接图\n4. 灯光cue表\n5. 应急联系人列表\n\n**输出格式：**\n- Word文档：完整演出策划方案\n- Excel表格：曲目单、时间表、预算\n- 舞台设计图（可选）",
+  "variables_schema": [
+    {
+      "name": "performanceName",
+      "label": "演出名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：XX乐队2025巡演首站"
+    },
+    {
+      "name": "performanceType",
+      "label": "演出类型",
+      "type": "select",
+      "required": false,
+      "default": "专场演唱会",
+      "options": [
+        {
+          "value": "专场演唱会",
+          "label": "专场演唱会"
+        },
+        {
+          "value": "音乐节",
+          "label": "音乐节演出"
+        },
+        {
+          "value": "LiveHouse",
+          "label": "LiveHouse/小型演出"
+        },
+        {
+          "value": "酒吧驻唱",
+          "label": "酒吧/餐厅驻唱"
+        }
+      ]
+    },
+    {
+      "name": "performanceDate",
+      "label": "演出日期",
+      "type": "string",
+      "required": false,
+      "placeholder": "2025-02-14"
+    },
+    {
+      "name": "duration",
+      "label": "演出时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 90,
+      "min": 30,
+      "max": 240
+    },
+    {
+      "name": "venue",
+      "label": "演出场地",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：XX体育馆、XX LiveHouse"
+    },
+    {
+      "name": "audienceSize",
+      "label": "预计观众人数",
+      "type": "number",
+      "required": false,
+      "default": 500,
+      "min": 50,
+      "max": 50000
+    },
+    {
+      "name": "musicStyle",
+      "label": "音乐风格",
+      "type": "string",
+      "required": false,
+      "default": "流行摇滚",
+      "placeholder": "例如：摇滚、流行、民谣、电子"
+    },
+    {
+      "name": "totalSongs",
+      "label": "总曲目数",
+      "type": "number",
+      "required": false,
+      "default": 15,
+      "min": 5,
+      "max": 50
+    }
+  ],
+  "file_structure": {
+    "root": "{{performanceName}}-演出策划",
+    "files": [
+      {
+        "path": "演出策划方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "曲目单（Setlist）.xlsx",
+        "type": "excel"
+      },
+      {
+        "path": "演出时间表.md",
+        "type": "markdown"
+      },
+      {
+        "path": "技术需求清单.md",
+        "type": "markdown"
+      },
+      {
+        "path": "预算表.xlsx",
+        "type": "excel"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_music_production",
+    "skill_event_planning"
+  ],
+  "required_tools": [
+    "tool_file_writer",
+    "tool_word_generator",
+    "tool_excel_generator"
+  ],
+  "execution_engine": "audio"
+}

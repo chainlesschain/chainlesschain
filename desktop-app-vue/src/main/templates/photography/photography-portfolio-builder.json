@@ -1,0 +1,172 @@
+{
+  "id": "tpl_photography_portfolio_001",
+  "name": "photography_portfolio_builder",
+  "display_name": "摄影作品集构建",
+  "description": "帮助摄影师构建专业的作品集，包括作品选择、排版设计、在线展示和印刷制作",
+  "icon": "🖼️",
+  "cover_image": "/templates/covers/photography-portfolio.png",
+  "category": "photography",
+  "subcategory": "portfolio",
+  "tags": [
+    "摄影",
+    "作品集",
+    "个人品牌",
+    "展示"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我构建一个专业的摄影作品集《{{portfolioName}}》，要求：\n\n**作品集信息：**\n- 作品集名称：{{portfolioName}}\n- 摄影师：{{photographerName}}\n- 摄影类型：{{photographyType}}\n- 目标用途：{{targetPurpose}}\n- 作品集风格：{{portfolioStyle}}\n- 作品总数：约{{totalPhotos}}张\n\n**第一部分：作品集策划**\n\n**1. 目标定位**\n\n根据用途{{targetPurpose}}，明确作品集目标：\n\n{{#if targetPurpose == \"求职应聘\"}}\n- **核心目标：** 展示专业技能和多样化能力\n- **重点内容：** \n  * 商业价值高的作品\n  * 与应聘岗位相关的项目\n  * 展示解决问题的能力\n- **作品集结构：** \n  * 个人简介和联系方式\n  * 最佳作品（20-30张）\n  * 完整项目案例（2-3个）\n  * 技能和工具清单\n  * 客户评价（如有）\n\n{{else if targetPurpose == \"客户展示\"}}\n- **核心目标：** 吸引潜在客户，展示服务质量\n- **重点内容：**\n  * 与目标客户需求匹配的作品\n  * 完整的拍摄项目案例\n  * 前后对比、拍摄过程\n- **作品集结构：**\n  * 品牌故事和摄影理念\n  * 服务项目分类展示\n  * 客户案例和评价\n  * 服务流程和价格（可选）\n  * 联系和预约方式\n\n{{else if targetPurpose == \"艺术展览\"}}\n- **核心目标：** 表达艺术观点，展示创作深度\n- **重点内容：**\n  * 主题性强的系列作品\n  * 艺术价值和视觉冲击力\n  * 创作理念阐述\n- **作品集结构：**\n  * 艺术家陈述（500-1000字）\n  * 主题系列作品（30-50张）\n  * 创作过程和灵感来源\n  * 展览历史和获奖记录\n  * 艺术评论和媒体报道\n\n{{else if targetPurpose == \"社交媒体\"}}\n- **核心目标：** 建立个人品牌，吸引粉丝\n- **重点内容：**\n  * 视觉冲击力强的作品\n  * 易于传播和分享\n  * 一致的风格和色调\n- **作品集结构：**\n  * 个人介绍和标签\n  * 精选作品（9-16张为一组）\n  * 拍摄幕后和故事\n  * 互动和社区建设\n{{/if}}\n\n**2. 受众分析**\n\n- **主要受众：** {{targetAudience}}\n- **他们关注什么：**\n  * 技术能力还是创意想法？\n  * 商业价值还是艺术性？\n  * 特定风格还是多样性？\n- **调整策略：**\n  * 选择符合受众审美的作品\n  * 使用受众熟悉的呈现方式\n  * 提供受众需要的信息\n\n**第二部分：作品选择**\n\n**1. 选片原则**\n\n- **质量优先：**\n  * 技术完美：对焦、曝光、构图无明显瑕疵\n  * 视觉冲击：第一眼吸引人\n  * 独特性：与众不同的视角或处理\n\n- **主题一致：**\n  * 围绕{{photographyType}}选择\n  * 保持风格统一（色调、情绪、处理方式）\n  * 如果多元化，分类清晰\n\n- **讲故事：**\n  * 每组照片有叙事性\n  * 照片之间有逻辑关联\n  * 能引发情感共鸣\n\n**2. 作品分类**\n\n根据摄影类型{{photographyType}}，建议以下分类：\n\n{{#if photographyType == \"商业摄影\"}}\n- 产品摄影（15-20张）\n- 商业人像（10-15张）\n- 广告摄影（10-15张）\n- 建筑/空间（10张）\n{{else if photographyType == \"人像摄影\"}}\n- 环境人像（15张）\n- 棚拍人像（15张）\n- 婚纱/情侣（10张）\n- 创意人像（10张）\n{{else if photographyType == \"风光摄影\"}}\n- 自然风光（20张）\n- 城市风光（15张）\n- 星空/延时（10张）\n- 四季系列（各5张）\n{{else if photographyType == \"纪实摄影\"}}\n- 人文纪实（20张）\n- 事件记录（15张）\n- 街头摄影（15张）\n{{else if photographyType == \"综合类型\"}}\n- 最佳作品（15张，混合类型）\n- 人像系列（10张）\n- 风光系列（10张）\n- 创意/实验（10张）\n{{/if}}\n\n**3. 选片流程**\n\n- **初选：** 从全部作品中选出候选（{{totalPhotos}}张的2-3倍）\n- **精选：** 根据质量和主题缩减到{{totalPhotos}}张\n- **终选：** 排除重复风格，保证多样性\n- **测试：** 让3-5个目标受众提供反馈\n- **调整：** 根据反馈替换5-10张\n\n**第三部分：排版设计**\n\n**1. 排版风格**\n\n根据作品集风格{{portfolioStyle}}：\n\n{{#if portfolioStyle == \"简约现代\"}}\n- 大量留白\n- 简洁的字体（无衬线）\n- 黑白色系为主\n- 每页1-2张照片\n- 照片占版面60-70%\n{{else if portfolioStyle == \"杂志风格\"}}\n- 网格系统布局\n- 照片+文字结合\n- 标题和说明文字\n- 每页2-4张照片\n- 动态的版面节奏\n{{else if portfolioStyle == \"艺术画册\"}}\n- 全出血大图\n- 高质量印刷\n- 特种纸张\n- 每页1张，充分展示细节\n- 跨页大图营造氛围\n{{/if}}\n\n**2. 页面布局**\n\n- **封面设计：**\n  * 代表性作品作为封面\n  * 作品集名称：{{portfolioName}}\n  * 摄影师名字：{{photographerName}}\n  * 简洁的图形元素或纯照片\n\n- **目录/索引：**\n  * 按主题或时间分类\n  * 缩略图导航（在线版）\n  * 页码标注（印刷版）\n\n- **作品页：**\n  * 照片为主，信息为辅\n  * 照片标题或编号\n  * 拍摄参数（可选）：相机、镜头、光圈、快门、ISO\n  * 简短说明（1-2句）\n\n- **项目案例页：**\n  * 项目背景介绍（200-300字）\n  * 5-10张系列照片\n  * 拍摄过程或幕后花絮\n  * 客户评价（如适用）\n\n- **个人简介页：**\n  * 摄影师照片\n  * 个人简介（300-500字）\n  * 摄影理念\n  * 获奖和展览经历\n  * 联系方式和社交媒体\n\n**3. 视觉元素**\n\n- **色彩方案：**\n  * 主色：与作品风格一致\n  * 背景：白色/浅灰（简约）或深色（戏剧性）\n  * 强调色：用于标题和重点信息\n\n- **字体选择：**\n  * 标题：大号、粗体（18-24pt）\n  * 正文：易读字体（10-12pt）\n  * 中文：思源黑体、方正兰亭黑\n  * 英文：Helvetica、Futura、Avenir\n\n- **图形元素：**\n  * Logo/个人标识\n  * 页码和页眉页脚\n  * 分隔线（minimal）\n  * 避免过度装饰\n\n**第四部分：技术实现**\n\n**1. 印刷版作品集**\n\n- **尺寸选择：**\n  * 方形：12x12英寸（30x30cm）- 艺术感\n  * 横向：11x8.5英寸（A4横向）- 风光\n  * 竖向：8.5x11英寸（A4竖向）- 人像\n  * 大开本：14x11英寸 - 高端展示\n\n- **纸张选择：**\n  * 封面：300gsm铜版纸或特种纸\n  * 内页：200-250gsm哑光/绒面纸\n  * 艺术纸：棉浆纸、水彩纸（高端）\n\n- **装订方式：**\n  * 精装：适合艺术画册、永久收藏\n  * 骑马订：适合薄册、经济实惠\n  * 线装/裸背装：艺术感强\n  * 活页：便于更新内容\n\n- **印刷规格：**\n  * 颜色：CMYK四色印刷\n  * 分辨率：300dpi\n  * 色彩管理：ICC配置文件\n  * 覆膜：哑膜（柔和）或亮膜（鲜艳）\n\n- **推荐服务商：**\n  * 国内：世纪开元、改图网、云印\n  * 国外：Blurb、Artifact Uprising\n  * 高端：当地专业印刷厂\n\n**2. 在线数字版**\n\n- **网站平台：**\n  * 专业摄影网站：Format、Squarespace、Adobe Portfolio\n  * 自建网站：WordPress + 摄影主题\n  * 国内：站酷、图虫、LOFTER\n\n- **网站结构：**\n  * 首页：精选作品滚动展示\n  * 作品集页：按类别分组\n  * 关于页：个人简介和理念\n  * 联系页：表单和社交链接\n  * 博客（可选）：拍摄故事和技巧分享\n\n- **技术要求：**\n  * 响应式设计（手机适配）\n  * 照片懒加载（提升速度）\n  * 高清大图展示\n  * SEO优化（标题、描述、Alt标签）\n  * 添加水印保护版权\n\n- **PDF电子书：**\n  * 使用InDesign或Canva制作\n  * 文件大小控制在20MB以内（方便邮件发送）\n  * 添加可点击的链接\n  * 导出为高质量PDF（打印质量）或压缩版（分享用）\n\n**3. 社交媒体版**\n\n- **Instagram：**\n  * 统一滤镜和色调\n  * 网格规划（3x3、6x3）\n  * 精选故事（Highlight）分类展示\n  * 个人简介链接到完整作品集\n\n- **小红书：**\n  * 照片+拍摄技巧笔记\n  * 合集功能整理系列作品\n  * 标签优化\n\n- **Behance/Dribbble：**\n  * 完整项目案例发布\n  * 过程图和最终成品\n  * 项目描述和标签\n\n**第五部分：推广和维护**\n\n**1. 推广策略**\n\n- **线上推广：**\n  * 社交媒体定期发布\n  * 摄影社区分享（知乎、豆瓣、POCO）\n  * 邮件营销（给潜在客户）\n  * SEO优化（Google/百度搜索）\n\n- **线下推广：**\n  * 参加摄影展览和活动\n  * 印刷版作品集寄送（客户、画廊）\n  * 参加摄影比赛\n  * 举办个人摄影分享会\n\n**2. 持续更新**\n\n- **更新频率：**\n  * 每季度审查作品集\n  * 每半年更新5-10张照片\n  * 年度大更新（重新设计或换主题）\n\n- **版本管理：**\n  * V1.0：初始版本\n  * V1.1：小幅更新（替换照片）\n  * V2.0：重大改版（重新设计）\n\n**3. 效果追踪**\n\n- **线上数据：**\n  * 网站访问量和停留时间\n  * 社交媒体互动率\n  * 咨询和预约转化率\n\n- **线下反馈：**\n  * 客户/雇主评价\n  * 同行摄影师意见\n  * 展览观众反应\n\n**第六部分：检查清单**\n\n发布前检查：\n- [ ] 所有照片经过精修和统一调色\n- [ ] 照片分辨率符合要求（印刷300dpi，网页72-150dpi）\n- [ ] 个人信息准确无误（姓名、联系方式、网站）\n- [ ] 文字内容无拼写和语法错误\n- [ ] 版权和署名信息完整\n- [ ] 在多种设备上测试显示效果（网页版）\n- [ ] 印刷打样检查（印刷版）\n- [ ] 获得必要的授权（如包含他人作品或肖像）\n\n**输出格式：**\n- Word文档：完整的作品集构建指南\n- InDesign/Canva模板：可编辑的排版模板\n- 作品选择清单：Excel表格\n- 网站规划文档",
+  "variables_schema": [
+    {
+      "name": "portfolioName",
+      "label": "作品集名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：光影记录、城市印象"
+    },
+    {
+      "name": "photographerName",
+      "label": "摄影师姓名",
+      "type": "string",
+      "required": true,
+      "placeholder": "你的名字或艺名"
+    },
+    {
+      "name": "photographyType",
+      "label": "摄影类型",
+      "type": "select",
+      "required": false,
+      "default": "综合类型",
+      "options": [
+        {
+          "value": "商业摄影",
+          "label": "商业摄影"
+        },
+        {
+          "value": "人像摄影",
+          "label": "人像摄影"
+        },
+        {
+          "value": "风光摄影",
+          "label": "风光摄影"
+        },
+        {
+          "value": "纪实摄影",
+          "label": "纪实摄影"
+        },
+        {
+          "value": "综合类型",
+          "label": "综合类型"
+        }
+      ]
+    },
+    {
+      "name": "targetPurpose",
+      "label": "目标用途",
+      "type": "select",
+      "required": false,
+      "default": "客户展示",
+      "options": [
+        {
+          "value": "求职应聘",
+          "label": "求职应聘"
+        },
+        {
+          "value": "客户展示",
+          "label": "客户展示"
+        },
+        {
+          "value": "艺术展览",
+          "label": "艺术展览"
+        },
+        {
+          "value": "社交媒体",
+          "label": "社交媒体"
+        }
+      ]
+    },
+    {
+      "name": "portfolioStyle",
+      "label": "作品集风格",
+      "type": "select",
+      "required": false,
+      "default": "简约现代",
+      "options": [
+        {
+          "value": "简约现代",
+          "label": "简约现代（极简风）"
+        },
+        {
+          "value": "杂志风格",
+          "label": "杂志风格（丰富多样）"
+        },
+        {
+          "value": "艺术画册",
+          "label": "艺术画册（高端精美）"
+        }
+      ]
+    },
+    {
+      "name": "totalPhotos",
+      "label": "作品总数",
+      "type": "number",
+      "required": false,
+      "default": 50,
+      "min": 20,
+      "max": 200
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标受众",
+      "type": "string",
+      "required": false,
+      "default": "潜在客户",
+      "placeholder": "例如：艺术总监、新人、摄影爱好者"
+    }
+  ],
+  "file_structure": {
+    "root": "{{portfolioName}}-作品集项目",
+    "files": [
+      {
+        "path": "作品集构建指南.docx",
+        "type": "document"
+      },
+      {
+        "path": "作品选择清单.xlsx",
+        "type": "excel",
+        "content": "包含：作品列表、评分、分类、是否入选等字段"
+      },
+      {
+        "path": "排版参考/",
+        "type": "folder"
+      },
+      {
+        "path": "精选作品/",
+        "type": "folder"
+      },
+      {
+        "path": "个人简介.md",
+        "type": "markdown",
+        "content": "# {{photographerName}}\n\n## 摄影师简介\n[300-500字个人介绍]\n\n## 摄影理念\n[你的摄影观点和追求]\n\n## 专长领域\n- {{photographyType}}\n- ...\n\n## 联系方式\n- 邮箱：\n- 电话：\n- 网站：\n- Instagram/微博："
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_photography",
+    "skill_design",
+    "skill_photo_editing"
+  ],
+  "required_tools": [
+    "tool_file_writer",
+    "tool_word_generator",
+    "tool_excel_generator",
+    "tool_image_editor"
+  ],
+  "execution_engine": "document"
+}

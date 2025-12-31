@@ -1,0 +1,159 @@
+{
+  "id": "tpl_cooking_private_chef_001",
+  "name": "private_chef_service_plan",
+  "display_name": "私厨服务方案",
+  "description": "私人厨师服务完整方案，包含服务设计、定价策略、客户获取和运营管理",
+  "icon": "👨‍🍳",
+  "cover_image": "https://example.com/covers/private-chef.jpg",
+  "category": "cooking",
+  "subcategory": "business",
+  "tags": [
+    "私人厨师",
+    "上门服务",
+    "餐饮创业",
+    "私厨运营",
+    "定制餐饮"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我创建私厨服务方案：\n\n**服务信息：**\n- 服务名称：{{serviceName}}\n- 服务模式：{{serviceModel}}\n- 目标客户：{{targetClient}}\n- 服务区域：{{serviceArea}}\n\n# 私人厨师服务完整方案\n\n## 服务概况\n\n**服务品牌：**{{serviceName}}\n\n**品牌定位：**{{brandPositioning}}\n\n**服务理念：**{{serviceMotto}}\n\n**目标愿景：**{{vision}}\n\n**创始人背景：**\n- 姓名：{{chefName}}\n- 专业经历：{{chefBackground}}\n- 擅长菜系：{{cuisineSpecialty}}\n- 烹饪年限：{{yearsOfExperience}}年\n- 资质证书：{{certifications}}\n\n## 服务模式设计\n\n### 核心服务模式：{{serviceModel}}\n\n**模式A：上门私厨服务**\n\n**服务内容：**\n1. 客户家中烹饪：{{homeCookingService}}\n2. 包含环节：\n   - 食材采购：{{ingredientShopping}}\n   - 上门烹饪：{{onSiteCooking}}\n   - 用餐服务：{{servingService}}\n   - 厨房清洁：{{cleaning}}\n\n**时长选择：**\n- 单餐服务：{{singleMeal}}小时\n- 半日服务：{{halfDay}}小时\n- 全日服务：{{fullDay}}小时\n\n**适合场景：**{{homeServiceScenarios}}\n\n**模式B：定制餐宴服务**\n\n**服务类型：**\n- 家庭聚会：{{familyGathering}}\n- 生日派对：{{birthdayParty}}\n- 商务宴请：{{businessDinner}}\n- 节日宴会：{{holidayBanquet}}\n- 婚礼订制：{{weddingCatering}}\n\n**服务流程：**\n1. 前期沟通：{{consultation}}\n2. 菜单设计：{{menuDesign}}\n3. 试菜确认：{{tasting}}\n4. 正式服务：{{eventExecution}}\n\n**模式C：每周配餐服务**\n\n**服务内容：**\n- 频率：{{mealPrepFrequency}}\n- 份数：{{mealPrepPortions}}\n- 定制选项：{{mealPrepCustomization}}\n\n**流程：**{{mealPrepProcess}}\n\n**适合客户：{{mealPrepClients}}\n\n**模式D：烹饪教学服务**\n\n**课程形式：**\n- 一对一教学：{{oneOnOne}}\n- 小班课（2-4人）：{{smallClass}}\n- 团建活动：{{teamBuilding}}\n\n**课程主题：**{{cookingClassThemes}}\n\n**模式E：混合服务包**\n\n**组合方案：**{{hybridPackages}}\n\n### 服务区域范围\n\n**核心服务区：**{{primaryArea}}\n- 免费上门\n- 响应时间：{{responseTime}}\n\n**扩展服务区：**{{secondaryArea}}\n- 附加交通费：{{travelFee}}元\n\n**覆盖城市：**{{serviceCities}}\n\n## 服务体系设计\n\n### 菜单体系\n\n**菜系分类：**\n\n**中餐系列：**\n- 粤菜：{{cantoneseCuisine}}\n- 川菜：{{sichuanCuisine}}\n- 湘菜：{{hunanCuisine}}\n- 江浙菜：{{jiangzheCuisine}}\n- 家常菜：{{homeCooking}}\n\n**西餐系列：**\n- 意大利菜：{{italianCuisine}}\n- 法式料理：{{frenchCuisine}}\n- 美式料理：{{americanCuisine}}\n\n**其他菜系：**\n- 日料：{{japaneseCuisine}}\n- 东南亚菜：{{asianCuisine}}\n- 融合创意菜：{{fusionCuisine}}\n\n**特色主题菜单：**\n\n**主题1：健康轻食**\n- 特点：{{healthyMenuFeatures}}\n- 适合人群：{{healthyMenuClients}}\n- 菜品示例：{{healthyMenuSamples}}\n\n**主题2：儿童营养餐**\n- 特点：{{kidsMenuFeatures}}\n- 菜品示例：{{kidsMenuSamples}}\n\n**主题3：孕产妇月子餐**\n- 特点：{{maternalMenuFeatures}}\n- 营养搭配：{{maternalNutrition}}\n\n**主题4：节日特色**\n- 春节团圆宴：{{springFestivalMenu}}\n- 中秋家宴：{{midAutumnMenu}}\n- 圣诞晚餐：{{christmasMenu}}\n\n**主题5：商务宴请**\n- 规格：{{businessDinnerSpec}}\n- 菜单设计：{{businessMenuDesign}}\n\n**标准套餐设计：**\n\n**套餐A：家庭日常（4人份）**\n- 包含：{{packageAContent}}\n- 价格：{{packageAPrice}}元\n\n**套餐B：朋友聚会（6-8人）**\n- 包含：{{packageBContent}}\n- 价格：{{packageBPrice}}元\n\n**套餐C：高端宴请（8-10人）**\n- 包含：{{packageCContent}}\n- 价格：{{packageCPrice}}元\n\n**定制菜单流程：**\n1. {{customMenuStep1}}\n2. {{customMenuStep2}}\n3. {{customMenuStep3}}\n4. {{customMenuStep4}}\n\n### 服务标准\n\n**服务承诺：**\n1. {{servicePromise1}}\n2. {{servicePromise2}}\n3. {{servicePromise3}}\n4. {{servicePromise4}}\n5. {{servicePromise5}}\n\n**服务流程标准：**\n\n**预约阶段：**\n- 响应时间：{{bookingResponseTime}}\n- 确认信息：{{bookingConfirmation}}\n\n**准备阶段：**\n- 食材采购：{{ingredientSourcing}}\n- 器具准备：{{equipmentPrep}}\n\n**上门服务阶段：**\n- 着装要求：{{dresscode}}\n- 卫生标准：{{hygieneStandards}}\n- 沟通礼仪：{{communicationEtiquette}}\n- 烹饪时间把控：{{timingControl}}\n\n**收尾阶段：**\n- 清洁标准：{{cleaningStandard}}\n- 垃圾处理：{{wasteDisposal}}\n- 离开检查：{{departureChecklist}}\n\n**售后服务：**\n- 反馈收集：{{feedbackCollection}}\n- 问题处理：{{issueResolution}}\n- 回访机制：{{followUp}}\n\n### 食材采购体系\n\n**采购原则：**{{sourcingPrinciples}}\n\n**供应商体系：**\n- 有机蔬菜：{{organicVegetables}}\n- 优质肉类：{{premiumMeat}}\n- 海鲜水产：{{seafood}}\n- 进口食材：{{importedIngredients}}\n- 调料香料：{{seasonings}}\n\n**成本控制：**{{costControl}}\n\n**食材溯源：**{{traceability}}\n\n## 定价策略\n\n### 基础定价体系\n\n**计费方式：**{{pricingMethod}}\n\n**方式1：按服务时长计费**\n- 2小时基础服务：{{2hourPrice}}元\n- 4小时半日服务：{{4hourPrice}}元\n- 8小时全日服务：{{8hourPrice}}元\n- 加时费用：{{overtimeRate}}元/小时\n\n**方式2：按人数计费**\n- 2-4人：{{2to4peoplePrice}}元/人\n- 5-8人：{{5to8peoplePrice}}元/人\n- 9-12人：{{9to12peoplePrice}}元/人\n- 12人以上：{{12plusPrice}}元/人\n\n**方式3：按菜品收费**\n- 家常菜：{{homeDishPrice}}元/道\n- 中高端菜品：{{midDishPrice}}元/道\n- 高端菜品：{{premiumDishPrice}}元/道\n\n**推荐定价（{{serviceModel}}）：**{{recommendedPricing}}\n\n### 附加费用\n\n**交通费：**\n- 核心区域：免费\n- 5-10公里：{{shortDistanceFee}}元\n- 10-20公里：{{mediumDistanceFee}}元\n- 20公里以上：{{longDistanceFee}}元/公里\n\n**食材成本：**\n- 包含在服务费：{{ingredientsIncluded}}\n- 客户自行采购：{{clientSourcing}}\n- 代购加价：{{markupRate}}%\n\n**特殊要求加价：**\n- 节假日服务：+{{holidayPremium}}%\n- 深夜服务（22点后）：+{{lateNightPremium}}%\n- 紧急预约（24小时内）：+{{rushPremium}}%\n- 特殊食材：{{specialIngredients}}\n\n### 会员与套餐\n\n**会员制度：**\n\n**银卡会员：**\n- 充值：{{silverMembership}}元\n- 折扣：{{silverDiscount}}折\n- 权益：{{silverBenefits}}\n\n**金卡会员：**\n- 充值：{{goldMembership}}元\n- 折扣：{{goldDiscount}}折\n- 权益：{{goldBenefits}}\n\n**钻石会员：**\n- 充值：{{diamondMembership}}元\n- 折扣：{{diamondDiscount}}折\n- 权益：{{diamondBenefits}}\n\n**包月套餐：**\n- 每周2次：{{weekly2Package}}元/月\n- 每周3次：{{weekly3Package}}元/月\n- 每周5次（工作日）：{{weekly5Package}}元/月\n\n**季度/年度套餐：**{{longTermPackages}}\n\n### 竞争定价分析\n\n**市场调研：**\n- 同城竞品价格：{{competitorPricing}}\n- 市场平均价：{{marketAverage}}元\n\n**定价策略：**{{pricingStrategy}}\n\n## 客户获取策略\n\n### 目标客户画像\n\n**核心客户群体：**{{coreCustomers}}\n\n**客户A：高端家庭**\n- 特征：{{highEndFamilyProfile}}\n- 需求：{{highEndFamilyNeeds}}\n- 获客渠道：{{highEndFamilyChannels}}\n\n**客户B：职场白领**\n- 特征：{{professionalProfile}}\n- 需求：{{professionalNeeds}}\n- 获客渠道：{{professionalChannels}}\n\n**客户C：企业客户**\n- 特征：{{corporateProfile}}\n- 需求：{{corporateNeeds}}\n- 获客渠道：{{corporateChannels}}\n\n**客户D：特殊需求群体**\n- 孕产妇：{{maternalClients}}\n- 健身人群：{{fitnessClients}}\n- 病患康复：{{recoveryClients}}\n\n### 营销推广渠道\n\n**线上渠道：**\n\n**1. 社交媒体营销**\n- 小红书：{{xiaohongshuStrategy}}\n  - 内容形式：{{xiaohongshuContent}}\n  - 发布频率：{{xiaohongshuFrequency}}\n  - 目标粉丝：{{xiaohongshuFollowers}}\n\n- 抖音/快手：{{douyinStrategy}}\n  - 视频类型：{{douyinContent}}\n  - 直播策略：{{liveStreamStrategy}}\n\n- 微信生态：{{wechatStrategy}}\n  - 公众号运营：{{wechatOfficialAccount}}\n  - 朋友圈营销：{{momentsMarketing}}\n  - 私域流量：{{privateTraffic}}\n\n**2. 本地生活平台**\n- 美团/大众点评：{{meituanStrategy}}\n- 饿了么：{{elemeStrategy}}\n- 好厨师APP：{{chefPlatforms}}\n\n**3. 内容营销**\n- 视频内容：{{videoContent}}\n- 图文内容：{{articleContent}}\n- 客户案例：{{caseStudies}}\n\n**4. SEO/SEM**\n- 本地搜索优化：{{localSEO}}\n- 百度推广：{{baiduAds}}\n\n**线下渠道：**\n\n**1. 合作伙伴**\n- 高端社区物业：{{communityPartnership}}\n- 健身房/瑜伽馆：{{fitnessPartnership}}\n- 月子中心：{{maternalCenterPartnership}}\n- 企业HR部门：{{corporatePartnership}}\n\n**2. 活动营销**\n- 社区试吃会：{{tastingEvents}}\n- 烹饪课堂：{{cookingWorkshops}}\n- 美食沙龙：{{foodSalons}}\n\n**3. 传统推广**\n- 传单派发：{{flyers}}\n- 社区广告：{{communityAds}}\n\n**口碑营销：**\n\n**转介绍激励：**\n- 推荐人奖励：{{referralReward}}\n- 被推荐人优惠：{{referredDiscount}}\n\n**客户评价管理：**{{reviewManagement}}\n\n**KOC培养：**{{kocStrategy}}\n\n### 营销预算分配\n\n**月度营销预算：**{{monthlyMarketingBudget}}元\n\n**分配：**\n- 线上广告：{{onlineAdsPercent}}% - {{onlineAdsBudget}}元\n- 平台佣金/服务费：{{platformFeePercent}}% - {{platformFeeBudget}}元\n- 线下活动：{{offlineEventsPercent}}% - {{offlineEventsBudget}}元\n- 内容创作：{{contentCreationPercent}}% - {{contentCreationBudget}}元\n- 合作推广：{{partnershipPercent}}% - {{partnershipBudget}}元\n\n## 运营管理\n\n### 预约管理系统\n\n**预约方式：**\n- 微信/电话：{{phoneBooking}}\n- 小程序：{{miniProgramBooking}}\n- 平台：{{platformBooking}}\n\n**预约流程：**\n1. {{bookingStep1}}\n2. {{bookingStep2}}\n3. {{bookingStep3}}\n4. {{bookingStep4}}\n5. {{bookingStep5}}\n\n**排期管理：**{{scheduleManagement}}\n\n**取消政策：**\n- 提前48小时：{{cancel48h}}\n- 提前24小时：{{cancel24h}}\n- 24小时内：{{cancelLate}}\n\n### 质量控制\n\n**服务质量标准：**{{qualityStandards}}\n\n**检查清单：**\n- [ ] {{qualityChecklist1}}\n- [ ] {{qualityChecklist2}}\n- [ ] {{qualityChecklist3}}\n- [ ] {{qualityChecklist4}}\n- [ ] {{qualityChecklist5}}\n\n**客户反馈机制：**\n- 服务满意度调查：{{satisfactionSurvey}}\n- 投诉处理流程：{{complaintHandling}}\n- 改进措施：{{improvement}}\n\n### 团队管理（如适用）\n\n**团队规模规划：**\n- 初期（1-3个月）：{{teamPhase1}}\n- 成长期（3-6个月）：{{teamPhase2}}\n- 稳定期（6个月+）：{{teamPhase3}}\n\n**招聘标准：**\n- 厨师要求：{{chefRequirements}}\n- 助理要求：{{assistantRequirements}}\n\n**培训体系：**\n- 入职培训：{{onboarding}}\n- 技能培训：{{skillTraining}}\n- 服务培训：{{serviceTraining}}\n\n**薪酬体系：**{{compensationStructure}}\n\n### 财务管理\n\n**成本结构：**\n\n**固定成本（月）：**\n- 营销推广：{{marketingCost}}元\n- 交通工具：{{transportCost}}元\n- 保险：{{insurance}}元\n- 平台费用：{{platformFee}}元\n- 器具折旧：{{equipmentDepreciation}}元\n- 其他：{{otherFixedCosts}}元\n- **小计：**{{totalFixedCosts}}元\n\n**变动成本（按单）：**\n- 食材成本：{{ingredientCostPerOrder}}元\n- 交通费：{{travelCostPerOrder}}元\n- 耗材：{{consumablesPerOrder}}元\n- **小计：**{{variableCostPerOrder}}元\n\n**目标利润率：**{{targetProfitMargin}}%\n\n**盈亏平衡分析：**\n- 每月需接单：{{breakEvenOrders}}单\n- 对应收入：{{breakEvenRevenue}}元\n\n**收入预测：**\n- 第1个月：{{month1Revenue}}元\n- 第3个月：{{month3Revenue}}元\n- 第6个月：{{month6Revenue}}元\n- 第12个月：{{month12Revenue}}元\n\n### 风险管理\n\n**主要风险：**\n\n**风险1：食品安全**\n- 预防措施：{{foodSafetyPrevention}}\n- 应急预案：{{foodSafetyResponse}}\n\n**风险2：人身意外**\n- 保险配置：{{insuranceCoverage}}\n- 应急预案：{{accidentResponse}}\n\n**风险3：客户纠纷**\n- 预防：{{disputePrevention}}\n- 处理：{{disputeResolution}}\n\n**风险4：突发取消**\n- 应对：{{cancellationStrategy}}\n\n**风险5：竞争加剧**\n- 应对：{{competitionStrategy}}\n\n## 法律合规\n\n### 必备资质\n\n**个人资质：**\n- 健康证：{{healthCertificate}}\n- 厨师资格证：{{chefCertificate}}\n- 营养师证（加分项）：{{nutritionistCert}}\n\n**经营资质：**\n- 营业执照：{{businessLicense}}\n- 食品经营许可：{{foodBusinessPermit}}\n- 税务登记：{{taxRegistration}}\n\n### 合同与协议\n\n**服务合同模板：**{{serviceContract}}\n\n**包含条款：**\n- 服务内容明细\n- 价格与支付方式\n- 取消与退款政策\n- 责任与免责条款\n- 隐私保护条款\n\n**保密协议：**{{ndaAgreement}}\n\n### 保险配置\n\n**推荐保险：**\n- 公众责任险：{{liabilityInsurance}}\n- 食品安全险：{{foodSafetyInsurance}}\n- 意外伤害险：{{accidentInsurance}}\n\n**总保费：**{{totalInsuranceCost}}元/年\n\n## 成长路径规划\n\n### 第一阶段（0-3个月）：起步期\n\n**目标：**\n- 完成首批{{phase1Clients}}个客户\n- 月收入达到{{phase1Revenue}}元\n- 积累{{phase1Reviews}}条好评\n\n**关键任务：**\n1. {{phase1Task1}}\n2. {{phase1Task2}}\n3. {{phase1Task3}}\n\n### 第二阶段（3-6个月）：成长期\n\n**目标：**\n- 月服务{{phase2Orders}}单\n- 月收入{{phase2Revenue}}元\n- 回头客比例{{phase2ReturnRate}}%\n\n**关键任务：**\n1. {{phase2Task1}}\n2. {{phase2Task2}}\n3. {{phase2Task3}}\n\n### 第三阶段（6-12个月）：稳定期\n\n**目标：**\n- 月收入{{phase3Revenue}}元\n- 建立{{phase3Clients}}个稳定客户\n- 团队扩展到{{phase3TeamSize}}人\n\n**关键任务：**\n1. {{phase3Task1}}\n2. {{phase3Task2}}\n3. {{phase3Task3}}\n\n### 长期发展方向\n\n**选项1：规模化运营**\n{{scalingStrategy}}\n\n**选项2：高端精品路线**\n{{premiumStrategy}}\n\n**选项3：多元化服务**\n{{diversificationStrategy}}\n\n**选项4：加盟连锁**\n{{franchiseStrategy}}\n\n## 成功案例参考\n\n**案例1：**{{successStory1}}\n**关键经验：**{{case1Lessons}}\n\n**案例2：**{{successStory2}}\n**关键经验：**{{case2Lessons}}\n\n## 启动清单\n\n### 证照办理\n- [ ] {{license1}}\n- [ ] {{license2}}\n- [ ] {{license3}}\n\n### 设备采购\n- [ ] {{equipment1}}\n- [ ] {{equipment2}}\n- [ ] {{equipment3}}\n\n### 营销准备\n- [ ] {{marketing1}}\n- [ ] {{marketing2}}\n- [ ] {{marketing3}}\n\n### 运营准备\n- [ ] {{operation1}}\n- [ ] {{operation2}}\n- [ ] {{operation3}}\n\n---\n\n**核心理念：**品质第一，服务至上，诚信经营，持续创新\n**成功关键：**专业技能 + 优质服务 + 精准营销 + 口碑积累",
+  "variables_schema": [
+    {
+      "name": "serviceName",
+      "label": "服务品牌名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "serviceModel",
+      "label": "主要服务模式",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "上门私厨",
+          "label": "上门私厨服务"
+        },
+        {
+          "value": "定制餐宴",
+          "label": "定制餐宴服务"
+        },
+        {
+          "value": "每周配餐",
+          "label": "每周配餐服务"
+        },
+        {
+          "value": "烹饪教学",
+          "label": "烹饪教学服务"
+        },
+        {
+          "value": "综合服务",
+          "label": "综合服务"
+        }
+      ]
+    },
+    {
+      "name": "targetClient",
+      "label": "目标客户群",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "高端家庭",
+          "label": "高净值家庭"
+        },
+        {
+          "value": "职场白领",
+          "label": "职场白领/中产"
+        },
+        {
+          "value": "企业客户",
+          "label": "企业团建/商务宴请"
+        },
+        {
+          "value": "特殊需求",
+          "label": "特殊饮食需求群体"
+        },
+        {
+          "value": "综合",
+          "label": "多元化客户"
+        }
+      ]
+    },
+    {
+      "name": "serviceArea",
+      "label": "服务城市/区域",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "chefName",
+      "label": "主厨姓名",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "cuisineSpecialty",
+      "label": "擅长菜系",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "私厨服务方案-{{serviceName}}",
+    "files": [
+      {
+        "path": "服务方案书.md",
+        "type": "markdown"
+      },
+      {
+        "path": "菜单体系.md",
+        "type": "markdown"
+      },
+      {
+        "path": "定价表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "服务合同模板.docx",
+        "type": "document"
+      },
+      {
+        "path": "营销推广计划.md",
+        "type": "markdown"
+      },
+      {
+        "path": "财务预算表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "服务标准手册.md",
+        "type": "markdown"
+      },
+      {
+        "path": "启动清单.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "专业烹饪技能",
+    "服务意识",
+    "营销能力",
+    "客户沟通",
+    "经营管理"
+  ],
+  "required_tools": [
+    "专业厨具",
+    "交通工具",
+    "预约管理系统",
+    "营销平台账号"
+  ],
+  "execution_engine": "llm"
+}

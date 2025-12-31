@@ -1,0 +1,175 @@
+{
+  "id": "tpl_gaming_community_001",
+  "name": "game_community_management_plan",
+  "display_name": "游戏社区管理方案",
+  "description": "游戏社区运营与管理完整方案，包含社群搭建、活动策划、用户增长和危机处理",
+  "icon": "👥",
+  "cover_image": "https://example.com/covers/game-community.jpg",
+  "category": "gaming",
+  "subcategory": "community",
+  "tags": [
+    "社区管理",
+    "游戏运营",
+    "玩家社群",
+    "社区活动",
+    "用户运营"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我创建游戏社区管理方案：\n\n**社区信息：**\n- 游戏名称：{{gameName}}\n- 游戏类型：{{gameType}}\n- 目标规模：{{targetSize}}人\n- 运营平台：{{platforms}}\n\n# 游戏社区管理完整方案\n\n## 社区概况\n\n**游戏信息：**\n- 游戏名称：{{gameName}}\n- 游戏类型：{{gameType}}\n- 发行状态：{{releaseStatus}}\n- 主要玩法：{{gameplayFeatures}}\n\n**社区定位：**\n- 社区名称：{{communityName}}\n- 目标用户：{{targetAudience}}\n- 社区价值观：{{communityValues}}\n- 差异化特色：{{uniqueFeatures}}\n\n**发展目标：**\n- 短期目标（3个月）：{{shortTermGoal}}\n- 中期目标（6个月）：{{midTermGoal}}\n- 长期目标（1年）：{{longTermGoal}}\n\n## 平台架构设计\n\n### 主要平台选择\n\n**核心平台：**{{corePlatform}}\n\n**平台1：Discord/QQ群**\n- 功能：{{platform1Features}}\n- 频道设置：\n  - 📢 公告频道：{{announcementChannel}}\n  - 💬 综合讨论：{{generalChannel}}\n  - 🎮 游戏交流：{{gameChannel}}\n  - 🆘 新手求助：{{helpChannel}}\n  - 🎉 活动专区：{{eventChannel}}\n  - 🎨 创作分享：{{creativeChannel}}\n  - 🎵 语音频道：{{voiceChannels}}\n  - 🤖 机器人区：{{botChannel}}\n\n**平台2：贴吧/论坛**\n- 功能：{{platform2Features}}\n- 板块设置：\n  - 综合讨论区\n  - 攻略心得区\n  - 视频分享区\n  - 同人创作区\n  - 吐槽建议区\n  - 交易市场区\n\n**平台3：社交媒体**\n- 微博：{{weiboStrategy}}\n- B站：{{bilibiliStrategy}}\n- 抖音/快手：{{shortVideoStrategy}}\n\n**平台4：官方网站/论坛**\n- 域名：{{websiteDomain}}\n- 功能模块：{{websiteModules}}\n\n### 平台协同策略\n\n**内容分发：**\n1. 重要公告 → 全平台同步发布\n2. 深度攻略 → 论坛/网站首发\n3. 短视频 → 社交媒体优先\n4. 即时互动 → Discord/QQ群\n\n**用户导流：**\n{{platformSynergy}}\n\n## 团队组织架构\n\n### 核心团队\n\n**社区经理（1人）：**\n- 职责：{{cmResponsibilities}}\n- 要求：{{cmRequirements}}\n- 工作时间：{{cmWorkHours}}\n\n**版主/管理员（{{modCount}}人）：**\n- 职责：{{modResponsibilities}}\n- 招募标准：{{modRequirements}}\n- 培训计划：{{modTraining}}\n- 考核机制：{{modEvaluation}}\n\n**内容创作者（{{creatorCount}}人）：**\n- 职责：{{creatorResponsibilities}}\n- 激励机制：{{creatorIncentives}}\n\n**活动策划（{{eventPlannerCount}}人）：**\n- 职责：{{plannerResponsibilities}}\n\n**技术支持（{{techSupportCount}}人）：**\n- 职责：{{techResponsibilities}}\n\n### 志愿者体系\n\n**志愿者等级：**\n1. 见习志愿者：{{traineeVolunteer}}\n2. 正式志愿者：{{regularVolunteer}}\n3. 资深志愿者：{{seniorVolunteer}}\n4. 核心志愿者：{{coreVolunteer}}\n\n**晋升机制：**{{volunteerPromotion}}\n\n**奖励制度：**\n- 积分系统：{{pointsSystem}}\n- 专属身份：{{exclusiveRoles}}\n- 实物奖励：{{physicalRewards}}\n- 游戏福利：{{gameRewards}}\n\n## 社区规则制度\n\n### 社区公约\n\n**核心原则：**\n1. {{principle1}}\n2. {{principle2}}\n3. {{principle3}}\n4. {{principle4}}\n\n**禁止行为：**\n1. 发布违法违规内容\n2. 人身攻击和辱骂\n3. 刷屏和恶意灌水\n4. 广告和商业推广（未经许可）\n5. 泄露他人隐私\n6. 使用外挂和作弊\n7. {{additionalBans}}\n\n### 处罚机制\n\n**违规等级：**\n\n**轻微违规：**\n- 行为：{{minorViolation}}\n- 处罚：警告、禁言1-24小时\n\n**一般违规：**\n- 行为：{{moderateViolation}}\n- 处罚：禁言3-7天、限制权限\n\n**严重违规：**\n- 行为：{{severeViolation}}\n- 处罚：永久封禁、加入黑名单\n\n**申诉流程：**{{appealProcess}}\n\n### 内容审核标准\n\n**发帖审核：**\n- 新用户：{{newUserModeration}}\n- 敏感词过滤：{{wordFilter}}\n- 人工审核：{{manualReview}}\n\n**举报处理：**\n- 响应时间：{{reportResponseTime}}\n- 处理流程：{{reportHandling}}\n\n## 用户增长策略\n\n### 冷启动阶段（0-1000人）\n\n**种子用户获取：**\n1. {{seedUserStrategy1}}\n2. {{seedUserStrategy2}}\n3. {{seedUserStrategy3}}\n4. {{seedUserStrategy4}}\n\n**早期活动：**\n- 邀请奖励：{{inviteReward}}\n- 签到活动：{{checkInReward}}\n- 首批用户特权：{{earlyAdopterBenefits}}\n\n### 快速增长阶段（1000-10000人）\n\n**推广渠道：**\n1. {{growthChannel1}} - 预期增长：{{channel1Growth}}\n2. {{growthChannel2}} - 预期增长：{{channel2Growth}}\n3. {{growthChannel3}} - 预期增长：{{channel3Growth}}\n4. {{growthChannel4}} - 预期增长：{{channel4Growth}}\n\n**内容营销：**\n- 攻略产出：{{guideStrategy}}\n- 视频内容：{{videoStrategy}}\n- KOL合作：{{kolStrategy}}\n\n**裂变活动：**\n{{viralCampaign}}\n\n### 稳定运营阶段（10000+人）\n\n**留存策略：**\n1. {{retentionStrategy1}}\n2. {{retentionStrategy2}}\n3. {{retentionStrategy3}}\n\n**活跃度提升：**\n- 日常互动：{{dailyEngagement}}\n- 每周活动：{{weeklyActivities}}\n- 月度大事件：{{monthlyEvents}}\n\n**社区文化建设：**{{culturalBuilding}}\n\n## 内容运营规划\n\n### 内容类型矩阵\n\n**官方内容（每周{{officialContentFreq}}篇）：**\n1. 游戏公告：{{gameAnnouncements}}\n2. 版本更新：{{patchNotes}}\n3. 活动预告：{{eventPreviews}}\n4. 开发日志：{{devBlogs}}\n5. 数据报告：{{dataReports}}\n\n**UGC内容鼓励：**\n1. 攻略心得：{{guideIncentive}}\n2. 视频创作：{{videoIncentive}}\n3. 同人作品：{{fanartIncentive}}\n4. Meme创作：{{memeIncentive}}\n\n**精选内容奖励：**{{featuredRewards}}\n\n### 内容日历\n\n**每日内容：**\n- 早安问候：{{morningPost}}\n- 每日话题：{{dailyTopic}}\n- 晚安总结：{{eveningPost}}\n\n**每周内容：**\n- 周一：{{mondayContent}}\n- 周三：{{wednesdayContent}}\n- 周五：{{fridayContent}}\n- 周日：{{sundayContent}}\n\n**每月特辑：**\n- 月度之星：{{monthlyHighlight}}\n- 数据盘点：{{monthlyStats}}\n- 创作精选集：{{monthlyShowcase}}\n\n### SEO与传播优化\n\n**关键词策略：**{{keywordStrategy}}\n**标题优化：**{{titleOptimization}}\n**跨平台分发：**{{contentDistribution}}\n\n## 活动策划体系\n\n### 常规活动（每月）\n\n**活动1：每周挑战赛**\n- 时间：{{weeklyChallenge}}\n- 内容：{{challengeContent}}\n- 奖励：{{challengeRewards}}\n\n**活动2：创作大赛**\n- 主题：{{creativeTheme}}\n- 评选标准：{{judgingCriteria}}\n- 奖品：{{creativeRewards}}\n\n**活动3：线上聚会**\n- 形式：{{onlineGathering}}\n- 频率：{{gatheringFrequency}}\n\n**活动4：问答活动**\n- 类型：{{quizType}}\n- 难度：{{quizDifficulty}}\n\n### 大型活动（每季度）\n\n**周年庆典：**{{anniversaryEvent}}\n**游戏联赛：**{{tournamentPlan}}\n**线下聚会：**{{offlineMeetup}}\n**跨界合作：**{{crossoverEvent}}\n\n### 活动执行流程\n\n**策划阶段（提前2周）：**\n1. {{planningStep1}}\n2. {{planningStep2}}\n3. {{planningStep3}}\n\n**预热阶段（提前1周）：**\n1. {{preheatStep1}}\n2. {{preheatStep2}}\n\n**执行阶段：**\n1. {{executionStep1}}\n2. {{executionStep2}}\n3. {{executionStep3}}\n\n**复盘阶段（活动后3天内）：**\n1. {{reviewStep1}}\n2. {{reviewStep2}}\n\n## 用户分层运营\n\n### 用户分级\n\n**新手用户（0-7天）：**\n- 特征：{{newbieTraits}}\n- 运营策略：{{newbieStrategy}}\n- 转化目标：{{newbieGoal}}\n\n**活跃用户（日活跃）：**\n- 特征：{{activeTraits}}\n- 运营策略：{{activeStrategy}}\n- 维护重点：{{activeFocus}}\n\n**核心用户（月活跃）：**\n- 特征：{{coreTraits}}\n- 运营策略：{{coreStrategy}}\n- 特殊待遇：{{corePerks}}\n\n**沉默用户（30天未登录）：**\n- 唤醒策略：{{reactivationStrategy}}\n- 触达方式：{{reactivationChannels}}\n\n**流失用户（90天未登录）：**\n- 召回活动：{{winBackCampaign}}\n\n### VIP体系设计\n\n**等级划分：**\n- Lv1 新兵：{{level1Requirements}}\n- Lv2 老兵：{{level2Requirements}}\n- Lv3 精英：{{level3Requirements}}\n- Lv4 传奇：{{level4Requirements}}\n- Lv5 名人堂：{{level5Requirements}}\n\n**特权体系：**\n{{vipPrivileges}}\n\n## 数据监控与分析\n\n### 核心指标（每日监控）\n\n**用户指标：**\n- 总用户数：{{totalUsers}}\n- 日新增：{{dailyNewUsers}}\n- 日活跃（DAU）：{{dau}}\n- 周活跃（WAU）：{{wau}}\n- 月活跃（MAU）：{{mau}}\n\n**内容指标：**\n- 日发帖量：{{dailyPosts}}\n- 日评论量：{{dailyComments}}\n- UGC占比：{{ugcRatio}}%\n- 精华帖占比：{{qualityRatio}}%\n\n**互动指标：**\n- 人均发帖：{{postsPerUser}}\n- 人均评论：{{commentsPerUser}}\n- 互动率：{{engagementRate}}%\n\n**留存指标：**\n- 次日留存：{{day1Retention}}%\n- 7日留存：{{day7Retention}}%\n- 30日留存：{{day30Retention}}%\n\n### 数据分析维度\n\n**用户画像分析：**\n- 年龄分布：{{ageDistribution}}\n- 地域分布：{{geoDistribution}}\n- 游戏时长：{{playtimeDistribution}}\n- 付费情况：{{paymentDistribution}}\n\n**内容分析：**\n- 热门话题：{{trendingTopics}}\n- 高频关键词：{{topKeywords}}\n- 内容类型偏好：{{contentPreference}}\n\n**活动效果分析：**\n{{activityAnalysis}}\n\n### 数据应用\n\n**运营优化：**{{dataOptimization}}\n**个性化推荐：**{{personalization}}\n**风险预警：**{{riskWarning}}\n\n## 危机管理预案\n\n### 常见危机类型\n\n**类型1：游戏重大BUG/事故**\n- 响应时间：{{bugResponseTime}}\n- 应对策略：{{bugCrisisResponse}}\n- 沟通话术：{{bugCommunication}}\n\n**类型2：社区冲突/争议**\n- 识别信号：{{conflictSignals}}\n- 处理原则：{{conflictPrinciples}}\n- 调解流程：{{conflictResolution}}\n\n**类型3：负面舆情**\n- 监控渠道：{{sentimentMonitoring}}\n- 响应策略：{{negativePRResponse}}\n- 澄清机制：{{clarificationProcess}}\n\n**类型4：恶意攻击/入侵**\n- 防护措施：{{securityMeasures}}\n- 应急响应：{{securityIncidentResponse}}\n\n**类型5：核心用户流失**\n- 预警指标：{{churnWarning}}\n- 挽留策略：{{retentionMeasures}}\n\n### 危机处理流程\n\n**第一步：快速响应（30分钟内）**\n{{crisisStep1}}\n\n**第二步：事实调查（2小时内）**\n{{crisisStep2}}\n\n**第三步：官方声明（6小时内）**\n{{crisisStep3}}\n\n**第四步：问题解决（24小时内）**\n{{crisisStep4}}\n\n**第五步：复盘总结（3天内）**\n{{crisisStep5}}\n\n### 应急联系人\n\n- 社区经理：{{cmContact}}\n- 技术负责人：{{techContact}}\n- PR负责人：{{prContact}}\n- 法务顾问：{{legalContact}}\n\n## 商业化策略\n\n### 收入模式\n\n**模式1：广告合作**\n- 类型：{{adTypes}}\n- 预期收入：{{adRevenue}}\n\n**模式2：会员订阅**\n- 价格：{{membershipPrice}}\n- 权益：{{membershipBenefits}}\n- 预期订阅：{{expectedSubscribers}}\n\n**模式3：周边商品**\n- 产品：{{merchandiseProducts}}\n- 销售渠道：{{salesChannels}}\n\n**模式4：赛事赞助**\n- 赞助商类型：{{sponsorTypes}}\n- 招商方案：{{sponsorshipPackages}}\n\n**模式5：内容授权**\n{{contentLicensing}}\n\n### 成本预算\n\n**人力成本（月）：**{{personnelCost}}元\n**平台费用（月）：**{{platformCost}}元\n**活动预算（月）：**{{activityBudget}}元\n**推广费用（月）：{{marketingBudget}}元\n**其他支出（月）：**{{otherCosts}}元\n\n**月度总成本：**{{monthlyCost}}元\n**盈亏平衡点：**{{breakEvenPoint}}\n\n## 工具与系统\n\n### 管理工具\n\n**社区管理：**\n- 后台系统：{{adminPanel}}\n- 机器人：{{botTools}}\n- 数据分析：{{analyticsTools}}\n\n**协作工具：**\n- 项目管理：{{projectManagement}}\n- 文档协作：{{documentationTools}}\n- 沟通工具：{{communicationTools}}\n\n**内容创作：**\n- 图片编辑：{{imageTools}}\n- 视频制作：{{videoTools}}\n- 数据可视化：{{dataVizTools}}\n\n### 自动化系统\n\n**自动化功能：**\n1. {{automation1}}\n2. {{automation2}}\n3. {{automation3}}\n4. {{automation4}}\n\n## 长期发展规划\n\n### 第一阶段（1-3个月）：基础建设\n- 目标：{{phase1Goal}}\n- 关键任务：{{phase1Tasks}}\n\n### 第二阶段（4-6个月）：快速增长\n- 目标：{{phase2Goal}}\n- 关键任务：{{phase2Tasks}}\n\n### 第三阶段（7-12个月）：品牌建设\n- 目标：{{phase3Goal}}\n- 关键任务：{{phase3Tasks}}\n\n### 未来展望\n\n**品牌升级：**{{brandUpgrade}}\n**生态扩展：**{{ecosystemExpansion}}\n**国际化：**{{internationalization}}\n\n## 成功案例参考\n\n**案例1：**{{case1}}\n**案例2：**{{case2}}\n**案例3：**{{case3}}\n\n**关键启示：**\n1. {{lesson1}}\n2. {{lesson2}}\n3. {{lesson3}}\n\n## 行动清单\n\n### 即刻执行（本周）\n- [ ] {{action1}}\n- [ ] {{action2}}\n- [ ] {{action3}}\n- [ ] {{action4}}\n\n### 短期任务（本月）\n- [ ] {{shortTermAction1}}\n- [ ] {{shortTermAction2}}\n- [ ] {{shortTermAction3}}\n\n### 中期目标（3个月）\n- [ ] {{midTermAction1}}\n- [ ] {{midTermAction2}}\n\n---\n\n**核心理念：**以玩家为中心，创造价值，建立信任，持续成长\n**成功关键：**专注、坚持、创新、用心",
+  "variables_schema": [
+    {
+      "name": "gameName",
+      "label": "游戏名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "gameType",
+      "label": "游戏类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "MOBA",
+          "label": "MOBA竞技"
+        },
+        {
+          "value": "FPS",
+          "label": "FPS射击"
+        },
+        {
+          "value": "MMORPG",
+          "label": "大型多人在线RPG"
+        },
+        {
+          "value": "生存",
+          "label": "生存建造"
+        },
+        {
+          "value": "卡牌",
+          "label": "卡牌策略"
+        },
+        {
+          "value": "休闲",
+          "label": "休闲游戏"
+        },
+        {
+          "value": "综合",
+          "label": "综合多类型"
+        }
+      ]
+    },
+    {
+      "name": "targetSize",
+      "label": "目标社区规模（人）",
+      "type": "number",
+      "required": false,
+      "default": 10000
+    },
+    {
+      "name": "platforms",
+      "label": "主要运营平台",
+      "type": "multiselect",
+      "required": false,
+      "options": [
+        {
+          "value": "Discord",
+          "label": "Discord"
+        },
+        {
+          "value": "QQ群",
+          "label": "QQ群"
+        },
+        {
+          "value": "贴吧",
+          "label": "百度贴吧"
+        },
+        {
+          "value": "微博",
+          "label": "微博"
+        },
+        {
+          "value": "B站",
+          "label": "哔哩哔哩"
+        },
+        {
+          "value": "论坛",
+          "label": "独立论坛"
+        }
+      ]
+    },
+    {
+      "name": "releaseStatus",
+      "label": "游戏发行状态",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "已上线",
+          "label": "已正式上线"
+        },
+        {
+          "value": "测试中",
+          "label": "测试阶段"
+        },
+        {
+          "value": "即将发布",
+          "label": "即将发布"
+        },
+        {
+          "value": "开发中",
+          "label": "开发中"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "游戏社区管理-{{gameName}}",
+    "files": [
+      {
+        "path": "社区管理方案.md",
+        "type": "markdown"
+      },
+      {
+        "path": "社区规则公约.md",
+        "type": "markdown"
+      },
+      {
+        "path": "活动策划日历.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "团队组织架构.md",
+        "type": "markdown"
+      },
+      {
+        "path": "数据监控看板.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "危机处理预案.md",
+        "type": "markdown"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "社区运营",
+    "活动策划",
+    "用户运营",
+    "数据分析",
+    "危机公关"
+  ],
+  "required_tools": [
+    "社区管理平台",
+    "数据分析工具",
+    "内容创作工具"
+  ],
+  "execution_engine": "llm"
+}
