@@ -104,6 +104,15 @@ onMounted(async () => {
       window.electron.ipcRenderer.on('show-global-settings', () => {
         showGlobalSetupWizard.value = true;
       });
+
+      // 监听数据库切换事件(身份上下文切换)
+      window.electron.ipcRenderer.on('database-switched', (data) => {
+        console.log('数据库已切换:', data);
+        // 刷新页面以重新加载新身份的数据
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
+      });
     }
   } catch (error) {
     console.error('应用初始化失败', error);
