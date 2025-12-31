@@ -1,0 +1,45 @@
+{
+  "id": "tpl_excel_inventory_005",
+  "name": "inventory_management",
+  "display_name": "库存管理系统",
+  "description": "智能库存管理表，包含进销存、库存预警和成本核算",
+  "icon": "📦",
+  "category": "excel",
+  "subcategory": "operations",
+  "tags": [
+    "库存管理",
+    "进销存",
+    "库存预警",
+    "成本核算"
+  ],
+  "project_type": "document",
+  "prompt_template": "库存管理系统\n\n**项目信息：**\n- 仓库名称：{{warehouseName}}\n- 产品类别：{{productCategories}}\n- 预警库存：{{warningLevel}}\n- 盘点周期：{{inventoryCheckPeriod}}\n\n# Excel库存管理系统\n\n## 系统功能\n\n**核心模块：**\n- 入库管理\n- 出库管理\n- 库存查询\n- 库存预警\n- 成本核算\n- 报表分析\n\n## 工作表设计\n\nSheet 1: 库存总览\nSheet 2: 入库记录\nSheet 3: 出库记录\nSheet 4: 产品档案\nSheet 5: 供应商信息\nSheet 6: 预警设置\nSheet 7: 统计报表",
+  "variables_schema": [
+    {
+      "name": "warehouseName",
+      "label": "仓库名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "productCategories",
+      "label": "产品类别数",
+      "type": "number",
+      "required": false,
+      "default": 5
+    }
+  ],
+  "file_structure": {
+    "root": "库存管理-{{warehouseName}}",
+    "files": [
+      {
+        "path": "库存管理表.xlsx",
+        "type": "spreadsheet"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

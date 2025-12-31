@@ -1,0 +1,48 @@
+{
+  "id": "tpl_resume_exec_004",
+  "name": "executive_resume",
+  "display_name": "高管简历",
+  "description": "高管/总监级别简历模板，突出领导力和战略成果",
+  "icon": "👔",
+  "category": "resume",
+  "subcategory": "executive",
+  "tags": [
+    "高管简历",
+    "总监",
+    "领导力",
+    "战略管理"
+  ],
+  "project_type": "document",
+  "prompt_template": "高管简历\n\n**个人信息：**\n- 姓名：{{name}}\n- 职位目标：{{targetPosition}}\n- 工作年限：{{yearsExp}}年\n- 管理经验：{{managementExp}}年\n\n# 高管简历模板\n\n## 简历结构\n\n### 1. 个人信息\n- 姓名、联系方式\n- LinkedIn/个人网站\n\n### 2. 职业摘要\n- 3-5句话概括核心能力\n- 突出领导力和业绩\n- 展现战略思维\n\n### 3. 核心能力\n- 战略规划与执行\n- 团队建设与管理\n- 业务增长与创新\n- P&L管理经验\n\n### 4. 工作经历\n**公司名称** | 职位 | 时间\n- 管理团队：{{teamSize}}人\n- 主要成就：\n  • 带领团队实现{{achievement1}}\n  • 制定并执行{{strategy}}\n  • 营收增长{{revenueGrowth}}%\n\n### 5. 教育背景\n- MBA/EMBA优先\n- 学位、院校、时间\n\n### 6. 荣誉奖项\n- 行业奖项\n- 媒体报道",
+  "variables_schema": [
+    {
+      "name": "name",
+      "label": "姓名",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "targetPosition",
+      "label": "目标职位",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "yearsExp",
+      "label": "工作年限",
+      "type": "number",
+      "required": false,
+      "default": 15
+    }
+  ],
+  "file_structure": {
+    "root": "高管简历-{{name}}",
+    "files": [
+      {"path": "简历.docx", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

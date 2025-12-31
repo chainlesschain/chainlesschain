@@ -1,0 +1,65 @@
+{
+  "id": "tpl_excel_hr_006",
+  "name": "hr_attendance_system",
+  "display_name": "HR考勤工资系统",
+  "description": "员工考勤管理与工资核算，包含打卡记录、请假管理和自动算薪",
+  "icon": "👤",
+  "category": "excel",
+  "subcategory": "hr",
+  "tags": [
+    "考勤管理",
+    "工资核算",
+    "请假管理",
+    "HR系统"
+  ],
+  "project_type": "document",
+  "prompt_template": "HR考勤工资系统\n\n**项目信息：**\n- 公司名称：{{companyName}}\n- 员工人数：{{employeeCount}}\n- 工作制度：{{workSchedule}}\n- 薪资发放日：{{payrollDay}}\n\n# Excel HR考勤工资系统\n\n## 系统模块\n\n**考勤管理：**\n- 每日打卡记录\n- 迟到早退统计\n- 加班时长计算\n- 请假审批记录\n\n**工资核算：**\n- 基本工资\n- 绩效奖金\n- 加班费\n- 扣款（迟到/请假）\n- 五险一金\n- 个税计算\n\n## 工作表结构\n\nSheet 1: 月度工资表\nSheet 2: 考勤记录\nSheet 3: 员工档案\nSheet 4: 薪资结构\nSheet 5: 请假记录\nSheet 6: 加班统计\nSheet 7: 个税计算",
+  "variables_schema": [
+    {
+      "name": "companyName",
+      "label": "公司名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "employeeCount",
+      "label": "员工人数",
+      "type": "number",
+      "required": false,
+      "default": 50
+    },
+    {
+      "name": "workSchedule",
+      "label": "工作制度",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "5天8小时",
+          "label": "5天8小时"
+        },
+        {
+          "value": "6天8小时",
+          "label": "6天8小时"
+        },
+        {
+          "value": "弹性工作制",
+          "label": "弹性工作制"
+        }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "HR系统-{{companyName}}",
+    "files": [
+      {
+        "path": "考勤工资表.xlsx",
+        "type": "spreadsheet"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
