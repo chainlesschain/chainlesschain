@@ -156,7 +156,16 @@ class ProjectTemplateManager {
       'legal',                // 法律文档
       'learning',             // 学习成长
       'health',               // 健康生活
-      'time-management'       // 时间管理
+      'time-management',      // 时间管理
+      // 新增分类（v0.20.0）
+      'productivity',         // 效率工具
+      'finance',              // 财务管理
+      'photography',          // 摄影
+      'music',                // 音乐创作
+      'gaming',               // 游戏设计
+      'travel',               // 旅行规划
+      'cooking',              // 烹饪美食
+      'career'                // 职业发展
     ];
 
     let loadedCount = 0;

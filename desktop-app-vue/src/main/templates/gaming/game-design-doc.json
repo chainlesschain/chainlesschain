@@ -1,0 +1,40 @@
+{
+  "id": "tpl_gaming_design_001",
+  "name": "game_design_document",
+  "display_name": "游戏设计文档",
+  "description": "完整的游戏设计文档(GDD)，包含核心玩法、系统设计和美术风格",
+  "icon": "🎮",
+  "category": "gaming",
+  "subcategory": "design",
+  "tags": ["游戏设计", "GDD", "关卡设计", "玩法"],
+  "project_type": "document",
+  "prompt_template": "请帮我编写游戏设计文档：\n\n**游戏信息：**\n- 游戏名称：{{gameName}}\n- 游戏类型：{{gameGenre}}\n- 平台：{{platform}}\n- 目标玩家：{{targetPlayers}}\n\n# 游戏设计文档\n\n## 游戏概述\n\n**游戏名称：**{{gameName}}\n**类型：**{{gameGenre}}\n**平台：**{{platform}}\n**目标受众：**{{targetPlayers}}\n\n### 核心理念\n{{coreConcept}}\n\n### 独特卖点(USP)\n1. {{usp1}}\n2. {{usp2}}\n3. {{usp3}}\n\n## 核心玩法\n\n### 游戏循环\n1. {{gameLoop1}}\n2. {{gameLoop2}}\n3. {{gameLoop3}}\n\n### 控制方式\n{{controls}}\n\n## 系统设计\n\n### 角色系统\n- 主角：{{protagonist}}\n- 技能：{{skills}}\n- 成长路径：{{progression}}\n\n### 关卡设计\n**第1关：**{{level1}}\n**第2关：**{{level2}}\n\n### 战斗系统\n{{combatSystem}}\n\n### 经济系统\n- 货币：{{currency}}\n- 商店：{{shop}}\n\n## 美术风格\n\n**视觉风格：**{{artStyle}}\n**色调：**{{colorPalette}}\n**UI设计：**{{uiDesign}}\n\n## 音效音乐\n\n- BGM风格：{{bgmStyle}}\n- 音效设计：{{sfxDesign}}\n\n## 技术规格\n\n**引擎：**{{gameEngine}}\n**分辨率：**{{resolution}}\n**帧率目标：**{{targetFPS}} FPS\n\n## 开发计划\n\n**里程碑：**\n- Alpha版：{{alphaDate}}\n- Beta版：{{betaDate}}\n- 正式发布：{{releaseDate}}",
+  "variables_schema": [
+    {"name": "gameName", "label": "游戏名称", "type": "string", "required": true},
+    {"name": "gameGenre", "label": "游戏类型", "type": "select", "required": true, "options": [
+      {"value": "动作", "label": "动作游戏"},
+      {"value": "RPG", "label": "角色扮演"},
+      {"value": "策略", "label": "策略游戏"},
+      {"value": "解谜", "label": "解谜游戏"},
+      {"value": "模拟", "label": "模拟经营"}
+    ]},
+    {"name": "platform", "label": "平台", "type": "select", "required": true, "options": [
+      {"value": "PC", "label": "PC"},
+      {"value": "移动端", "label": "iOS/Android"},
+      {"value": "主机", "label": "PS/Xbox/Switch"},
+      {"value": "Web", "label": "网页游戏"}
+    ]},
+    {"name": "targetPlayers", "label": "目标玩家", "type": "string", "required": false}
+  ],
+  "file_structure": {
+    "root": "游戏设计-{{gameName}}",
+    "files": [
+      {"path": "GDD.docx", "type": "document"},
+      {"path": "关卡设计.md", "type": "markdown"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

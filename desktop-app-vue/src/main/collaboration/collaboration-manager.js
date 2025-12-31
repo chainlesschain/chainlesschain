@@ -10,7 +10,7 @@ const WebSocketJSONStream = require('@teamwork/websocket-json-stream');
 const { EventEmitter } = require('events');
 
 class CollaborationManager extends EventEmitter {
-  constructor() {
+  constructor(organizationManager = null) {
     super();
     this.sharedb = null;
     this.wss = null;
@@ -19,6 +19,7 @@ class CollaborationManager extends EventEmitter {
     this.port = 8080;
     this.initialized = false;
     this.database = null;
+    this.organizationManager = organizationManager; // 组织管理器引用
   }
 
   /**
@@ -215,37 +216,96 @@ class CollaborationManager extends EventEmitter {
    * 处理加入文档
    */
   async handleJoin(connectionId, payload) {
-    const { userId, userName, documentId } = payload;
+    const { userId, userName, documentId, orgId, knowledgeId } = payload;
 
-    const conn = this.connections.get(connectionId);
-    if (conn) {
-      conn.userId = userId;
-      conn.documentId = documentId;
-      conn.userName = userName;
-    }
+    try {
+      // 企业版: 检查组织权限
+      if (orgId && this.organizationManager) {
+        const hasPermission = await this.checkDocumentPermission(
+          userId,
+          orgId,
+          knowledgeId || documentId,
+          'write' // 协作编辑需要写权限
+        );
 
-    // 记录会话
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const now = Date.now();
+        if (!hasPermission) {
+          // 权限不足,拒绝加入
+          const conn = this.connections.get(connectionId);
+          if (conn && conn.ws) {
+            conn.ws.send(JSON.stringify({
+              type: 'error',
+              payload: {
+                code: 'PERMISSION_DENIED',
+                message: '您没有权限编辑此文档',
+                documentId: documentId
+              }
+            }));
+          }
+          console.warn('[CollaborationManager] 用户权限不足:', userId, documentId);
+          return;
+        }
 
-    this.database.prepare(`
-      INSERT INTO collaboration_sessions
-      (id, document_id, user_id, user_name, joined_at, last_seen)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(sessionId, documentId, userId, userName, now, now);
-
-    // 通知其他用户
-    this.broadcastToDocument(documentId, userId, {
-      type: 'user:joined',
-      payload: {
-        userId: userId,
-        userName: userName,
-        sessionId: sessionId
+        console.log('[CollaborationManager] 权限检查通过:', userId, '可编辑', documentId);
       }
-    });
 
-    // 获取当前在线用户
-    const onlineUsers = this.getOnlineUsers(documentId);
+      const conn = this.connections.get(connectionId);
+      if (conn) {
+        conn.userId = userId;
+        conn.documentId = documentId;
+        conn.userName = userName;
+        conn.orgId = orgId; // 保存组织ID
+      }
+
+      // 记录会话
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const now = Date.now();
+
+      this.database.prepare(`
+        INSERT INTO collaboration_sessions
+        (id, document_id, user_id, user_name, joined_at, last_seen)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(sessionId, documentId, userId, userName, now, now);
+
+      // 通知其他用户
+      this.broadcastToDocument(documentId, userId, {
+        type: 'user:joined',
+        payload: {
+          userId: userId,
+          userName: userName,
+          sessionId: sessionId
+        }
+      });
+
+      // 获取当前在线用户
+      const onlineUsers = this.getOnlineUsers(documentId);
+
+      // 发送加入成功消息 (包含在线用户列表)
+      if (conn && conn.ws) {
+        conn.ws.send(JSON.stringify({
+          type: 'join:success',
+          payload: {
+            sessionId: sessionId,
+            onlineUsers: onlineUsers
+          }
+        }));
+      }
+
+    } catch (error) {
+      console.error('[CollaborationManager] 处理加入失败:', error);
+
+      // 发送错误消息
+      const conn = this.connections.get(connectionId);
+      if (conn && conn.ws) {
+        conn.ws.send(JSON.stringify({
+          type: 'error',
+          payload: {
+            code: 'JOIN_FAILED',
+            message: error.message,
+            documentId: documentId
+          }
+        }));
+      }
+    }
 
     // 发送当前用户列表给新加入的用户
     conn.ws.send(JSON.stringify({
@@ -553,6 +613,79 @@ class CollaborationManager extends EventEmitter {
     });
 
     return Array.from(users.values());
+  }
+
+  /**
+   * 检查文档权限 (企业版功能)
+   * @param {string} userDID - 用户DID
+   * @param {string} orgId - 组织ID
+   * @param {string} knowledgeId - 知识库ID
+   * @param {string} action - 操作类型 (read/write/delete)
+   * @returns {Promise<boolean>} 是否有权限
+   */
+  async checkDocumentPermission(userDID, orgId, knowledgeId, action = 'read') {
+    if (!this.organizationManager) {
+      // 如果没有组织管理器,默认允许 (个人版模式)
+      console.warn('[CollaborationManager] 组织管理器未初始化,跳过权限检查');
+      return true;
+    }
+
+    try {
+      // 1. 检查用户是否是组织成员
+      const isMember = await this.organizationManager.checkPermission(
+        orgId,
+        userDID,
+        'knowledge.read' // 至少需要读权限
+      );
+
+      if (!isMember) {
+        console.warn('[CollaborationManager] 用户不是组织成员:', userDID, orgId);
+        return false;
+      }
+
+      // 2. 根据操作类型检查具体权限
+      const permissionMap = {
+        'read': 'knowledge.read',
+        'write': 'knowledge.write',
+        'delete': 'knowledge.delete'
+      };
+
+      const requiredPermission = permissionMap[action] || 'knowledge.read';
+
+      const hasPermission = await this.organizationManager.checkPermission(
+        orgId,
+        userDID,
+        requiredPermission
+      );
+
+      if (!hasPermission) {
+        console.warn('[CollaborationManager] 用户权限不足:', userDID, requiredPermission);
+        return false;
+      }
+
+      // 3. 检查知识库级别的权限 (如果知识库有特定的共享范围)
+      // TODO: 查询knowledge_items表,检查share_scope和permissions字段
+      // const knowledge = await getKnowledge(knowledgeId);
+      // if (knowledge.share_scope === 'private' && knowledge.created_by !== userDID) {
+      //   return false;
+      // }
+
+      console.log('[CollaborationManager] ✓ 权限检查通过:', userDID, requiredPermission);
+      return true;
+
+    } catch (error) {
+      console.error('[CollaborationManager] 权限检查失败:', error);
+      return false; // 出错时拒绝访问,安全优先
+    }
+  }
+
+  /**
+   * 设置组织管理器引用
+   * @param {Object} organizationManager - 组织管理器实例
+   */
+  setOrganizationManager(organizationManager) {
+    this.organizationManager = organizationManager;
+    console.log('[CollaborationManager] ✓ 组织管理器已设置');
   }
 }
 

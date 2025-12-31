@@ -1,0 +1,28 @@
+{
+  "id": "tpl_productivity_gtd_001",
+  "name": "gtd_system_setup",
+  "display_name": "GTD时间管理系统",
+  "description": "建立完整的Getting Things Done (GTD)时间管理系统",
+  "icon": "✅",
+  "category": "productivity",
+  "subcategory": "time-management",
+  "tags": ["GTD", "时间管理", "效率提升", "任务管理"],
+  "project_type": "document",
+  "prompt_template": "请帮我建立GTD时间管理系统：\n\n**个人信息：**\n- 职业：{{occupation}}\n- 主要工作领域：{{workArea}}\n- 当前痛点：{{painPoints}}\n\n# GTD系统搭建指南\n\n## 五个步骤\n\n### 1. 收集 (Capture)\n**收集一切待办事项**\n- 收件箱工具：{{inboxTool}}\n- 收集频率：随时记录\n- 清空频率：每天\n\n### 2. 理清 (Clarify)\n**处理收件箱**\n- 2分钟法则：能立即完成的马上做\n- 可执行？是→下一步行动，否→参考资料/垃圾\n\n### 3. 组织 (Organize)\n**分类管理**\n- 项目清单\n- 下一步行动\n- 等待清单\n- 将来/也许\n- 参考资料\n\n### 4. 回顾 (Reflect)\n**每日回顾：** {{dailyReview}}\n**每周回顾：** {{weeklyReview}}\n\n### 5. 执行 (Engage)\n**执行原则**\n- 情境：{{context}}\n- 时间：{{time}}\n- 精力：{{energy}}\n- 优先级：{{priority}}\n\n## 工具推荐\n\n**数字工具：**\n- {{digitalTool1}}\n- {{digitalTool2}}\n\n**实体工具：**\n- 笔记本\n- 文件夹\n\n## 每日流程\n\n**早晨：** {{morningRoutine}}\n**工作中：** {{workRoutine}}\n**晚上：** {{eveningRoutine}}",
+  "variables_schema": [
+    {"name": "occupation", "label": "职业", "type": "string", "required": false},
+    {"name": "workArea", "label": "工作领域", "type": "string", "required": false},
+    {"name": "painPoints", "label": "当前痛点", "type": "string", "required": false, "placeholder": "例如：任务太多、容易遗忘"}
+  ],
+  "file_structure": {
+    "root": "GTD系统",
+    "files": [
+      {"path": "GTD实施指南.md", "type": "markdown"},
+      {"path": "清单模板.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

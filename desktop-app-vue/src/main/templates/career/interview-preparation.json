@@ -1,0 +1,33 @@
+{
+  "id": "tpl_career_interview_002",
+  "name": "interview_preparation_guide",
+  "display_name": "面试准备指南",
+  "description": "全面的面试准备材料，包含常见问题、回答技巧和注意事项",
+  "icon": "🤝",
+  "category": "career",
+  "subcategory": "interview",
+  "tags": ["面试", "求职", "面试技巧", "职场"],
+  "project_type": "document",
+  "prompt_template": "请帮我准备面试：\n\n**面试信息：**\n- 公司名称：{{companyName}}\n- 应聘职位：{{position}}\n- 面试时间：{{interviewDate}}\n- 面试轮次：{{interviewRound}}\n\n# 面试准备指南\n\n## 公司调研\n\n**公司：**{{companyName}}\n**行业：**{{industry}}\n**规模：**{{companySize}}\n**产品/服务：**{{products}}\n**最近动态：**{{recentNews}}\n\n## 职位分析\n\n**职位：**{{position}}\n**核心职责：**\n1. {{responsibility1}}\n2. {{responsibility2}}\n3. {{responsibility3}}\n\n**技能要求：**\n- {{skill1}}\n- {{skill2}}\n- {{skill3}}\n\n**匹配度分析：**\n✅ 符合：{{match}}\n⚠️ 需要加强：{{improve}}\n\n## 常见问题准备\n\n### 自我介绍（1-3分钟）\n{{selfIntroduction}}\n\n### 行为面试问题\n\n**1. 请举例说明你如何解决冲突**\nSTAR法则回答：\n- Situation（情境）：{{situation1}}\n- Task（任务）：{{task1}}\n- Action（行动）：{{action1}}\n- Result（结果）：{{result1}}\n\n**2. 描述一次你失败的经历**\n回答：{{failureExample}}\n学到什么：{{lesson}}\n\n**3. 为什么离开上一份工作？**\n回答：{{reasonForLeaving}}\n\n### 技术/专业问题\n\n**问题1：**{{technicalQ1}}\n回答：{{technicalA1}}\n\n**问题2：**{{technicalQ2}}\n回答：{{technicalA2}}\n\n### 反问环节\n\n准备3-5个问题：\n1. {{question1}}\n2. {{question2}}\n3. {{question3}}\n\n## 作品集/案例准备\n\n**案例1：**{{case1}}\n- 背景：{{case1Background}}\n- 我的角色：{{case1Role}}\n- 成果：{{case1Result}}\n\n**案例2：**{{case2}}\n\n## 薪资谈判\n\n**期望薪资：**{{expectedSalary}}元\n**可接受最低：**{{minimumSalary}}元\n**谈判策略：**{{negotiationStrategy}}\n\n## 注意事项\n\n### 着装\n- {{dresscode}}\n\n### 携带物品\n- [ ] 简历多份\n- [ ] 作品集\n- [ ] 笔记本+笔\n- [ ] 身份证\n\n### 时间安排\n- 提前{{arrivalTime}}分钟到达\n- 路线：{{route}}\n\n### 面试礼仪\n1. {{etiquette1}}\n2. {{etiquette2}}\n3. {{etiquette3}}\n\n## 面试后跟进\n\n**发感谢邮件：**\n面试后24小时内\n\n**内容要点：**\n- 感谢时间\n- 重申兴趣\n- 补充说明（如有遗漏）",
+  "variables_schema": [
+    {"name": "companyName", "label": "公司名称", "type": "string", "required": true},
+    {"name": "position", "label": "应聘职位", "type": "string", "required": true},
+    {"name": "interviewDate", "label": "面试时间", "type": "string", "required": false},
+    {"name": "interviewRound", "label": "面试轮次", "type": "select", "required": false, "options": [
+      {"value": "一面", "label": "一面/初试"},
+      {"value": "二面", "label": "二面"},
+      {"value": "终面", "label": "终面/HR面"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "面试准备-{{companyName}}",
+    "files": [
+      {"path": "面试准备.docx", "type": "document"},
+      {"path": "问题回答.md", "type": "markdown"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

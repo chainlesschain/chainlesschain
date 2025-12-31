@@ -1,0 +1,31 @@
+{
+  "id": "tpl_travel_itinerary_001",
+  "name": "travel_itinerary_plan",
+  "display_name": "旅行行程规划",
+  "description": "完整的旅行攻略，包含行程安排、预算、住宿和景点推荐",
+  "icon": "✈️",
+  "category": "travel",
+  "subcategory": "planning",
+  "tags": ["旅行", "攻略", "行程规划", "自由行"],
+  "project_type": "document",
+  "prompt_template": "请帮我规划旅行行程：\n\n**旅行信息：**\n- 目的地：{{destination}}\n- 出发日期：{{departureDate}}\n- 旅行天数：{{tripDays}}天\n- 旅行人数：{{travelers}}人\n- 总预算：{{budget}}元\n\n# 旅行行程规划\n\n## 行程概览\n\n**目的地：**{{destination}}\n**时间：**{{departureDate}} - {{returnDate}}\n**天数：**{{tripDays}}天{{nights}}晚\n**人数：**{{travelers}}人\n**旅行类型：**{{travelType}}\n\n## 预算明细\n\n**总预算：{{budget}}元**\n\n| 项目 | 金额 | 人均 |\n|------|------|------|\n| 交通 | {{transportCost}} | {{transportPerPerson}} |\n| 住宿 | {{accommodationCost}} | {{accommodationPerPerson}} |\n| 餐饮 | {{foodCost}} | {{foodPerPerson}} |\n| 景点门票 | {{ticketCost}} | {{ticketPerPerson}} |\n| 购物 | {{shoppingCost}} | {{shoppingPerPerson}} |\n| 预备金 | {{reserve}} | {{reservePerPerson}} |\n| **合计** | **{{totalCost}}** | **{{perPersonCost}}** |\n\n## 详细行程\n\n### Day 1: {{day1Title}}\n**日期：**{{day1Date}}\n\n**上午：**\n- {{day1Morning}}\n- 预计时间：{{day1MorningTime}}\n\n**下午：**\n- {{day1Afternoon}}\n\n**晚上：**\n- {{day1Evening}}\n- 住宿：{{day1Hotel}}\n\n### Day 2: {{day2Title}}\n**日期：{{day2Date}}**\n\n**上午：**{{day2Morning}}\n**下午：**{{day2Afternoon}}\n**晚上：**{{day2Evening}}\n\n### Day 3: {{day3Title}}\n...\n\n## 住宿预订\n\n| 日期 | 酒店名称 | 房型 | 价格 | 预订状态 |\n|------|----------|------|------|----------|\n| {{night1Date}} | {{hotel1}} | {{room1}} | ¥{{price1}} | {{status1}} |\n| {{night2Date}} | {{hotel2}} | {{room2}} | ¥{{price2}} | {{status2}} |\n\n## 交通安排\n\n**往返交通：**\n- 去程：{{outboundTransport}}\n- 返程：{{returnTransport}}\n\n**当地交通：**\n- {{localTransport}}\n\n## 景点清单\n\n### 必去景点\n1. **{{mustSee1}}**\n   - 开放时间：{{hours1}}\n   - 门票：{{ticket1}}元\n   - 建议游玩时长：{{duration1}}\n\n2. **{{mustSee2}}**\n   - 开放时间：{{hours2}}\n   - 门票：{{ticket2}}元\n\n### 可选景点\n- {{optional1}}\n- {{optional2}}\n\n## 美食推荐\n\n1. {{restaurant1}} - {{cuisine1}}\n2. {{restaurant2}} - {{cuisine2}}\n3. {{restaurant3}} - {{cuisine3}}\n\n## 打包清单\n\n### 证件类\n- [ ] 身份证/护照\n- [ ] 签证（如需要）\n- [ ] 酒店/机票预订单\n\n### 衣物类\n- [ ] {{clothing}}\n\n### 电子产品\n- [ ] 手机+充电器\n- [ ] 相机+备用电池\n- [ ] 充电宝\n\n### 日用品\n- [ ] {{toiletries}}\n\n## 注意事项\n\n1. 天气：{{weather}}\n2. 时差：{{timezone}}\n3. 语言：{{language}}\n4. 当地习俗：{{customs}}\n\n## 紧急联系\n\n- 当地报警电话：{{emergencyNumber}}\n- 中国大使馆：{{embassy}}\n- 旅行保险：{{insurance}}",
+  "variables_schema": [
+    {"name": "destination", "label": "目的地", "type": "string", "required": true},
+    {"name": "departureDate", "label": "出发日期", "type": "string", "required": true},
+    {"name": "tripDays", "label": "旅行天数", "type": "number", "required": true},
+    {"name": "travelers", "label": "旅行人数", "type": "number", "required": false, "default": 2},
+    {"name": "budget", "label": "总预算（元）", "type": "number", "required": false}
+  ],
+  "file_structure": {
+    "root": "旅行-{{destination}}",
+    "files": [
+      {"path": "行程计划.docx", "type": "document"},
+      {"path": "预算表.xlsx", "type": "spreadsheet"},
+      {"path": "打包清单.md", "type": "markdown"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
