@@ -6,36 +6,122 @@
   "icon": "✅",
   "category": "health",
   "subcategory": "习惯养成",
-  "tags": ["习惯养成", "打卡", "健康习惯", "自律"],
+  "tags": [
+    "习惯养成",
+    "打卡",
+    "健康习惯",
+    "自律"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我生成习惯养成打卡计划，要求:\n\n# {{trackerTitle}}\n\n**开始日期**: {{#if startDate}}{{startDate}}{{else}}{{currentDate}}{{/if}}\n**挑战周期**: {{challengePeriod}}\n**目标**: {{mainGoal}}\n\n## 一、习惯清单\n\n### 1.1 核心习惯\n\n#### 习惯1：{{habit1}}\n\n**类别**: {{habit1Category}}\n**频率**: {{habit1Frequency}}\n**时间**: {{habit1Time}}\n**预计用时**: {{habit1Duration}}\n**重要性**: {{habit1Importance}}/5 ⭐\n**难度**: {{habit1Difficulty}}/5 💪\n**原因**: {{habit1Reason}}\n\n#### 习惯2：{{habit2}}\n\n**类别**: {{habit2Category}}\n**频率**: {{habit2Frequency}}\n**时间**: {{habit2Time}}\n**预计用时**: {{habit2Duration}}\n**重要性**: {{habit2Importance}}/5 ⭐\n**难度**: {{habit2Difficulty}}/5 💪\n**原因**: {{habit2Reason}}\n\n#### 习惯3：{{habit3}}\n\n**类别**: {{habit3Category}}\n**频率**: {{habit3Frequency}}\n**时间**: {{habit3Time}}\n**预计用时**: {{habit3Duration}}\n**重要性**: {{habit3Importance}}/5 ⭐\n**难度**: {{habit3Difficulty}}/5 💪\n**原因**: {{habit3Reason}}\n\n### 1.2 辅助习惯\n\n{{supportingHabits}}\n\n### 1.3 要戒除的习惯\n\n{{badHabits}}\n\n## 二、习惯养成策略\n\n### 2.1 习惯堆叠\n\n{{habitStacking}}\n\n### 2.2 触发机制\n\n{{triggers}}\n\n### 2.3 环境设计\n\n{{environmentDesign}}\n\n### 2.4 最小行动\n\n{{minimumViableAction}}\n\n## 三、打卡日历\n\n### 第1周打卡表\n\n| 日期 | {{habit1}} | {{habit2}} | {{habit3}} | 其他 | 完成率 | 备注 |\n|------|-----------|-----------|-----------|------|--------|------|\n| 周一 | ☐ | ☐ | ☐ | | | |\n| 周二 | ☐ | ☐ | ☐ | | | |\n| 周三 | ☐ | ☐ | ☐ | | | |\n| 周四 | ☐ | ☐ | ☐ | | | |\n| 周五 | ☐ | ☐ | ☐ | | | |\n| 周六 | ☐ | ☐ | ☐ | | | |\n| 周日 | ☐ | ☐ | ☐ | | | |\n\n### 第2周打卡表\n\n{{week2Tracker}}\n\n### 第3周打卡表\n\n{{week3Tracker}}\n\n### 第4周打卡表\n\n{{week4Tracker}}\n\n## 四、每日作息计划\n\n### 4.1 理想作息表\n\n| 时间 | 活动 | 习惯关联 |\n|------|------|----------|\n| {{slot1Time}} | {{slot1Activity}} | {{slot1Habit}} |\n| {{slot2Time}} | {{slot2Activity}} | {{slot2Habit}} |\n| {{slot3Time}} | {{slot3Activity}} | {{slot3Habit}} |\n| {{slot4Time}} | {{slot4Activity}} | {{slot4Habit}} |\n| {{slot5Time}} | {{slot5Activity}} | {{slot5Habit}} |\n| {{slot6Time}} | {{slot6Activity}} | {{slot6Habit}} |\n\n### 4.2 晨间仪式\n\n{{morningRoutine}}\n\n### 4.3 晚间仪式\n\n{{eveningRoutine}}\n\n## 五、进度追踪\n\n### 5.1 完成率统计\n\n**本周完成率**:\n- {{habit1}}: {{habit1Rate}}%\n- {{habit2}}: {{habit2Rate}}%\n- {{habit3}}: {{habit3Rate}}%\n- 总体: {{overallRate}}%\n\n**累计完成天数**:\n- {{habit1}}: {{habit1Days}}天\n- {{habit2}}: {{habit2Days}}天\n- {{habit3}}: {{habit3Days}}天\n\n**最长连续天数**:\n- {{habit1}}: {{habit1Streak}}天\n- {{habit2}}: {{habit2Streak}}天\n- {{habit3}}: {{habit3Streak}}天\n\n### 5.2 习惯曲线\n\n{{habitCurve}}\n\n### 5.3 数据分析\n\n{{dataAnalysis}}\n\n## 六、激励系统\n\n### 6.1 里程碑奖励\n\n| 里程碑 | 奖励 | 状态 |\n|--------|------|------|\n| 连续7天 | {{reward7}} | ☐ |\n| 连续21天 | {{reward21}} | ☐ |\n| 连续30天 | {{reward30}} | ☐ |\n| 连续66天 | {{reward66}} | ☐ |\n| 连续100天 | {{reward100}} | ☐ |\n\n### 6.2 积分系统\n\n{{pointSystem}}\n\n### 6.3 可视化激励\n\n{{visualization}}\n\n## 七、应对挑战\n\n### 7.1 常见障碍\n\n{{commonObstacles}}\n\n### 7.2 应对策略\n\n#### 忘记打卡\n{{forgetSolution}}\n\n#### 没时间\n{{timeSolution}}\n\n#### 缺乏动力\n{{motivationSolution}}\n\n#### 中断后重启\n{{restartSolution}}\n\n### 7.3 紧急预案\n\n{{emergencyPlan}}\n\n## 八、社交支持\n\n### 8.1 监督伙伴\n\n{{accountabilityPartner}}\n\n### 8.2 打卡社群\n\n{{community}}\n\n### 8.3 公开承诺\n\n{{publicCommitment}}\n\n## 九、每周回顾\n\n### 第1周回顾\n\n**完成情况**: {{week1Completion}}\n**收获**: {{week1Gains}}\n**困难**: {{week1Challenges}}\n**改进**: {{week1Improvements}}\n\n### 第2周回顾\n\n{{week2Review}}\n\n### 第3周回顾\n\n{{week3Review}}\n\n### 第4周回顾\n\n{{week4Review}}\n\n## 十、习惯科学\n\n### 10.1 习惯回路\n\n{{habitLoop}}\n\n### 10.2 21天理论\n\n{{21DayTheory}}\n\n### 10.3 原子习惯\n\n{{atomicHabits}}\n\n### 10.4 复利效应\n\n{{compoundEffect}}\n\n## 十一、调整优化\n\n### 11.1 难度调整\n\n{{difficultyAdjustment}}\n\n### 11.2 习惯替换\n\n{{habitSubstitution}}\n\n### 11.3 计划优化\n\n{{planOptimization}}\n\n## 十二、长期维持\n\n### 12.1 习惯自动化\n\n{{automation}}\n\n### 12.2 防止反弹\n\n{{relapsePrevention}}\n\n### 12.3 新习惯叠加\n\n{{habitLayering}}\n\n## 十三、工具推荐\n\n### 13.1 打卡APP\n\n{{habitApps}}\n\n### 13.2 提醒工具\n\n{{reminderTools}}\n\n### 13.3 数据追踪\n\n{{trackingTools}}\n\n## 十四、成功案例\n\n{{successStories}}\n\n## 十五、自我承诺\n\n{{selfCommitment}}\n\n## 附录\n\n### A. 打卡模板\n\n{{checkInTemplate}}\n\n### B. 习惯清单库\n\n{{habitLibrary}}\n\n### C. 激励语录\n\n{{motivationalQuotes}}\n\n---\n\n**打卡人**: {{#if participant}}{{participant}}{{else}}用户{{/if}}\n**监督人**: {{#if supervisor}}{{supervisor}}{{else}}自我监督{{/if}}\n**开始日期**: {{#if startDate}}{{startDate}}{{else}}{{currentDate}}{{/if}}\n**目标完成日**: {{#if targetDate}}{{targetDate}}{{else}}待定{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}",
   "variables_schema": [
-    {"name": "trackerTitle", "type": "text", "label": "打卡标题", "default": "习惯养成挑战", "required": true},
-    {"name": "challengePeriod", "type": "select", "label": "挑战周期", "default": "30天", "required": true, "options": [
-      {"value": "7天", "label": "7天"},
-      {"value": "21天", "label": "21天"},
-      {"value": "30天", "label": "30天"},
-      {"value": "66天", "label": "66天"},
-      {"value": "100天", "label": "100天"}
-    ]},
-    {"name": "habit1", "type": "text", "label": "习惯1", "default": "每天运动30分钟", "required": true},
-    {"name": "habit1Frequency", "type": "select", "label": "习惯1频率", "default": "每天", "required": true, "options": [
-      {"value": "每天", "label": "每天"},
-      {"value": "每周5次", "label": "每周5次"},
-      {"value": "每周3次", "label": "每周3次"},
-      {"value": "自定义", "label": "自定义"}
-    ]},
-    {"name": "habit2", "type": "text", "label": "习惯2", "default": "阅读30分钟", "required": false},
-    {"name": "habit3", "type": "text", "label": "习惯3", "default": "早睡早起", "required": false}
+    {
+      "name": "trackerTitle",
+      "type": "text",
+      "label": "打卡标题",
+      "default": "习惯养成挑战",
+      "required": true
+    },
+    {
+      "name": "challengePeriod",
+      "type": "select",
+      "label": "挑战周期",
+      "default": "30天",
+      "required": true,
+      "options": [
+        {
+          "value": "7天",
+          "label": "7天"
+        },
+        {
+          "value": "21天",
+          "label": "21天"
+        },
+        {
+          "value": "30天",
+          "label": "30天"
+        },
+        {
+          "value": "66天",
+          "label": "66天"
+        },
+        {
+          "value": "100天",
+          "label": "100天"
+        }
+      ]
+    },
+    {
+      "name": "habit1",
+      "type": "text",
+      "label": "习惯1",
+      "default": "每天运动30分钟",
+      "required": true
+    },
+    {
+      "name": "habit1Frequency",
+      "type": "select",
+      "label": "习惯1频率",
+      "default": "每天",
+      "required": true,
+      "options": [
+        {
+          "value": "每天",
+          "label": "每天"
+        },
+        {
+          "value": "每周5次",
+          "label": "每周5次"
+        },
+        {
+          "value": "每周3次",
+          "label": "每周3次"
+        },
+        {
+          "value": "自定义",
+          "label": "自定义"
+        }
+      ]
+    },
+    {
+      "name": "habit2",
+      "type": "text",
+      "label": "习惯2",
+      "default": "阅读30分钟",
+      "required": false
+    },
+    {
+      "name": "habit3",
+      "type": "text",
+      "label": "习惯3",
+      "default": "早睡早起",
+      "required": false
+    }
   ],
   "file_structure": {
     "type": "folder",
     "name": "{{trackerTitle}}",
     "children": [
-      {"type": "file", "name": "习惯打卡计划.md", "description": "计划正文"},
-      {"type": "file", "name": "打卡日历.xlsx", "description": "打卡表格"},
-      {"type": "file", "name": "进度图表/", "description": "可视化图表"},
-      {"type": "file", "name": "每周回顾/", "description": "回顾记录"}
+      {
+        "type": "file",
+        "name": "习惯打卡计划.md",
+        "description": "计划正文"
+      },
+      {
+        "type": "file",
+        "name": "打卡日历.xlsx",
+        "description": "打卡表格"
+      },
+      {
+        "type": "file",
+        "name": "进度图表/",
+        "description": "可视化图表"
+      },
+      {
+        "type": "file",
+        "name": "每周回顾/",
+        "description": "回顾记录"
+      }
     ]
   },
   "is_builtin": true,
@@ -43,5 +129,14 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
 }

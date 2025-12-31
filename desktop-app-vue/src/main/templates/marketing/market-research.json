@@ -6,23 +6,70 @@
   "icon": "📊",
   "category": "marketing",
   "subcategory": "市场调研",
-  "tags": ["市场调研", "行业分析", "竞品分析", "用户研究"],
+  "tags": [
+    "市场调研",
+    "行业分析",
+    "竞品分析",
+    "用户研究"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我生成市场调研报告，要求:\n\n# {{researchTopic}} 市场调研报告\n\n## 1. 调研背景\n\n**调研目的**: {{researchPurpose}}\n**调研范围**: {{researchScope}}\n**调研时间**: {{researchPeriod}}\n**调研方法**: {{researchMethod}}\n\n## 2. 行业分析\n\n### 2.1 市场规模\n{{marketSize}}\n\n### 2.2 增长趋势\n{{growthTrend}}\n\n### 2.3 市场机会\n{{marketOpportunity}}\n\n### 2.4 市场挑战\n{{marketChallenge}}\n\n## 3. 竞品分析\n\n### 竞品A: {{competitor1}}\n- 市场份额: {{competitor1Share}}\n- 优势: {{competitor1Strength}}\n- 劣势: {{competitor1Weakness}}\n\n### 竞品B: {{competitor2}}\n- 市场份额: {{competitor2Share}}\n- 优势: {{competitor2Strength}}\n- 劣势: {{competitor2Weakness}}\n\n## 4. 用户调研\n\n### 4.1 用户画像\n{{userProfile}}\n\n### 4.2 用户需求\n{{userNeeds}}\n\n### 4.3 痛点分析\n{{painPoints}}\n\n### 4.4 购买决策\n{{purchaseDecision}}\n\n## 5. SWOT分析\n\n**优势(Strengths)**:\n{{strengths}}\n\n**劣势(Weaknesses)**:\n{{weaknesses}}\n\n**机会(Opportunities)**:\n{{opportunities}}\n\n**威胁(Threats)**:\n{{threats}}\n\n## 6. 结论与建议\n\n### 6.1 核心发现\n{{keyFindings}}\n\n### 6.2 战略建议\n{{strategicRecommendations}}\n\n### 6.3 行动计划\n{{actionPlan}}\n\n---\n\n**调研负责人**: {{#if researcher}}{{researcher}}{{else}}调研团队{{/if}}\n**日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}",
   "variables_schema": [
-    {"name": "researchTopic", "type": "text", "label": "调研主题", "default": "XX行业", "required": true},
-    {"name": "researchPurpose", "type": "textarea", "label": "调研目的", "default": "了解市场现状，发现商业机会", "required": true},
-    {"name": "marketSize", "type": "textarea", "label": "市场规模", "default": "2024年市场规模达XXX亿元", "required": true},
-    {"name": "competitor1", "type": "text", "label": "竞品1", "default": "竞品A", "required": true},
-    {"name": "userProfile", "type": "textarea", "label": "用户画像", "default": "25-35岁，一二线城市，中高收入", "required": true}
+    {
+      "name": "researchTopic",
+      "type": "text",
+      "label": "调研主题",
+      "default": "XX行业",
+      "required": true
+    },
+    {
+      "name": "researchPurpose",
+      "type": "textarea",
+      "label": "调研目的",
+      "default": "了解市场现状，发现商业机会",
+      "required": true
+    },
+    {
+      "name": "marketSize",
+      "type": "textarea",
+      "label": "市场规模",
+      "default": "2024年市场规模达XXX亿元",
+      "required": true
+    },
+    {
+      "name": "competitor1",
+      "type": "text",
+      "label": "竞品1",
+      "default": "竞品A",
+      "required": true
+    },
+    {
+      "name": "userProfile",
+      "type": "textarea",
+      "label": "用户画像",
+      "default": "25-35岁，一二线城市，中高收入",
+      "required": true
+    }
   ],
   "file_structure": {
     "type": "folder",
     "name": "{{researchTopic}}_调研报告",
     "children": [
-      {"type": "file", "name": "调研报告.md", "description": "调研报告"},
-      {"type": "file", "name": "数据分析.xlsx", "description": "数据汇总"},
-      {"type": "file", "name": "问卷.pdf", "description": "调研问卷"}
+      {
+        "type": "file",
+        "name": "调研报告.md",
+        "description": "调研报告"
+      },
+      {
+        "type": "file",
+        "name": "数据分析.xlsx",
+        "description": "数据汇总"
+      },
+      {
+        "type": "file",
+        "name": "问卷.pdf",
+        "description": "调研问卷"
+      }
     ]
   },
   "is_builtin": true,
@@ -30,5 +77,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_seo_marketing"
+  ],
+  "required_tools": [
+    "tool_seo_optimizer",
+    "tool_file_writer",
+    "tool_template_renderer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "default"
 }

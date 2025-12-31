@@ -6,11 +6,22 @@
   "icon": "📱",
   "category": "marketing",
   "subcategory": "新媒体运营",
-  "tags": ["新媒体", "社交媒体", "运营方案", "增粉策略"],
+  "tags": [
+    "新媒体",
+    "社交媒体",
+    "运营方案",
+    "增粉策略"
+  ],
   "project_type": "document",
   "prompt_template": "新媒体运营方案内容",
   "variables_schema": [
-    {"name": "accountName", "type": "text", "label": "账号名称", "default": "示例账号", "required": true}
+    {
+      "name": "accountName",
+      "type": "text",
+      "label": "账号名称",
+      "default": "示例账号",
+      "required": true
+    }
   ],
   "file_structure": {
     "type": "folder",
@@ -22,5 +33,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_seo_marketing"
+  ],
+  "required_tools": [
+    "tool_seo_optimizer",
+    "tool_file_writer",
+    "tool_template_renderer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "default"
 }

@@ -6,26 +6,91 @@
   "icon": "🎯",
   "category": "marketing",
   "subcategory": "品牌策划",
-  "tags": ["品牌策划", "品牌定位", "品牌传播", "VI设计"],
+  "tags": [
+    "品牌策划",
+    "品牌定位",
+    "品牌传播",
+    "VI设计"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我生成品牌策划方案，要求:\n\n# {{brandName}} 品牌策划方案\n\n## 1. 项目背景\n\n**品牌名称**: {{brandName}}\n**所属行业**: {{industry}}\n**目标市场**: {{targetMarket}}\n**策划周期**: {{planningPeriod}}\n**预算**: {{budget}}\n\n## 2. 品牌定位\n\n**品牌愿景**: {{brandVision}}\n**品牌使命**: {{brandMission}}\n**核心价值**: {{coreValues}}\n**目标受众**: {{targetAudience}}\n**品牌个性**: {{brandPersonality}}\n\n## 3. 品牌识别系统\n\n### 3.1 品牌命名\n- 中文名: {{chineseName}}\n- 英文名: {{englishName}}\n- Slogan: {{slogan}}\n\n### 3.2 视觉识别\n- 品牌标志: {{logoDescription}}\n- 标准色: {{brandColors}}\n- 辅助色: {{auxiliaryColors}}\n- 标准字体: {{brandFonts}}\n\n## 4. 品牌传播策略\n\n### 4.1 传播目标\n{{communicationGoals}}\n\n### 4.2 传播渠道\n- 线上渠道: {{onlineChannels}}\n- 线下渠道: {{offlineChannels}}\n- 社交媒体: {{socialMedia}}\n\n### 4.3 内容策略\n{{contentStrategy}}\n\n## 5. 执行计划\n\n| 阶段 | 时间 | 目标 | 预算 |\n|------|------|------|------|\n| 第一阶段 | {{phase1Time}} | {{phase1Goal}} | {{phase1Budget}} |\n| 第二阶段 | {{phase2Time}} | {{phase2Goal}} | {{phase2Budget}} |\n| 第三阶段 | {{phase3Time}} | {{phase3Goal}} | {{phase3Budget}} |\n\n## 6. 效果评估\n\n**评估指标**:\n- 品牌知名度: {{awarenessMetric}}\n- 品牌美誉度: {{reputationMetric}}\n- 市场份额: {{marketShareMetric}}\n- ROI: {{roiMetric}}\n\n---\n\n**方案制定**: {{#if strategist}}{{strategist}}{{else}}品牌策划团队{{/if}}\n**日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}",
   "variables_schema": [
-    {"name": "brandName", "type": "text", "label": "品牌名称", "default": "示例品牌", "required": true},
-    {"name": "industry", "type": "text", "label": "所属行业", "default": "消费品", "required": true},
-    {"name": "targetMarket", "type": "text", "label": "目标市场", "default": "一二线城市年轻消费者", "required": true},
-    {"name": "brandVision", "type": "textarea", "label": "品牌愿景", "default": "成为行业领先品牌", "required": true},
-    {"name": "brandMission", "type": "textarea", "label": "品牌使命", "default": "为用户提供优质产品和服务", "required": true},
-    {"name": "targetAudience", "type": "text", "label": "目标受众", "default": "25-35岁都市白领", "required": true},
-    {"name": "slogan", "type": "text", "label": "品牌口号", "default": "品质生活，从这里开始", "required": true},
-    {"name": "budget", "type": "text", "label": "预算", "default": "100万元", "required": false}
+    {
+      "name": "brandName",
+      "type": "text",
+      "label": "品牌名称",
+      "default": "示例品牌",
+      "required": true
+    },
+    {
+      "name": "industry",
+      "type": "text",
+      "label": "所属行业",
+      "default": "消费品",
+      "required": true
+    },
+    {
+      "name": "targetMarket",
+      "type": "text",
+      "label": "目标市场",
+      "default": "一二线城市年轻消费者",
+      "required": true
+    },
+    {
+      "name": "brandVision",
+      "type": "textarea",
+      "label": "品牌愿景",
+      "default": "成为行业领先品牌",
+      "required": true
+    },
+    {
+      "name": "brandMission",
+      "type": "textarea",
+      "label": "品牌使命",
+      "default": "为用户提供优质产品和服务",
+      "required": true
+    },
+    {
+      "name": "targetAudience",
+      "type": "text",
+      "label": "目标受众",
+      "default": "25-35岁都市白领",
+      "required": true
+    },
+    {
+      "name": "slogan",
+      "type": "text",
+      "label": "品牌口号",
+      "default": "品质生活，从这里开始",
+      "required": true
+    },
+    {
+      "name": "budget",
+      "type": "text",
+      "label": "预算",
+      "default": "100万元",
+      "required": false
+    }
   ],
   "file_structure": {
     "type": "folder",
     "name": "{{brandName}}_品牌策划",
     "children": [
-      {"type": "file", "name": "品牌策划方案.md", "description": "策划方案"},
-      {"type": "file", "name": "VI设计手册.pdf", "description": "视觉识别"},
-      {"type": "file", "name": "传播计划.xlsx", "description": "传播排期"}
+      {
+        "type": "file",
+        "name": "品牌策划方案.md",
+        "description": "策划方案"
+      },
+      {
+        "type": "file",
+        "name": "VI设计手册.pdf",
+        "description": "视觉识别"
+      },
+      {
+        "type": "file",
+        "name": "传播计划.xlsx",
+        "description": "传播排期"
+      }
     ]
   },
   "is_builtin": true,
@@ -33,5 +98,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_seo_marketing"
+  ],
+  "required_tools": [
+    "tool_seo_optimizer",
+    "tool_file_writer",
+    "tool_template_renderer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "default"
 }

@@ -6,7 +6,12 @@
   "icon": "📹",
   "category": "ecommerce",
   "subcategory": "直播运营",
-  "tags": ["直播带货", "直播脚本", "主播话术", "电商直播"],
+  "tags": [
+    "直播带货",
+    "直播脚本",
+    "主播话术",
+    "电商直播"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我生成直播带货脚本，要求:\n\n# {{liveTitle}} 直播带货脚本\n\n## 1. 直播基本信息\n\n**直播主题**: {{liveTitle}}\n**直播平台**: {{platform}}\n**直播时间**: {{liveDate}} {{liveTime}}\n**直播时长**: {{duration}}小时\n**主播**: {{anchorName}}\n**助播**: {{assistantName}}\n**预期目标**: GMV {{targetGMV}}万元\n\n---\n\n## 2. 直播前准备\n\n### 2.1 设备检查\n\n✅ 摄像头、补光灯\n✅ 麦克风、声卡\n✅ 网络稳定性测试\n✅ 样品准备\n✅ 背景布置\n\n### 2.2 产品清单\n\n| 时段 | 产品 | 原价 | 直播价 | 库存 | 链接 |\n|------|------|------|--------|------|------|\n| {{slot1Time}} | {{product1}} | ¥{{price1}} | ¥{{livePrice1}} | {{stock1}}件 | 🔗 |\n| {{slot2Time}} | {{product2}} | ¥{{price2}} | ¥{{livePrice2}} | {{stock2}}件 | 🔗 |\n| {{slot3Time}} | {{product3}} | ¥{{price3}} | ¥{{livePrice3}} | {{stock3}}件 | 🔗 |\n\n---\n\n## 3. 直播脚本\n\n### 【开场】(0-10分钟)\n\n**主播开场**:\n```\n大家好！我是{{anchorName}}！\n欢迎来到{{storeName}}直播间！🎉\n\n今天给大家带来{{productCount}}款超值好物！\n全场{{discount}}折起，\n还有{{gift}}等你拿！\n\n新来的宝宝们点一下关注哦💕\n今天会有超级大福利！\n千万不要错过！\n\n好，废话不多说，\n先给大家抽个奖热热身！\n```\n\n**互动抽奖**:\n```\n【第1波抽奖】\n奖品：{{prize1}}\n参与方式：\n1️⃣ 点击关注\n2️⃣ 评论区打\"1\"\n3️⃣ 分享直播间\n\n倒计时3...2...1...开奖！\n恭喜{{winner1}}!\n\n好，接下来\n马上给大家上今天的第一款爆品！\n```\n\n---\n\n### 【产品1】(10-30分钟)\n\n**产品介绍**:\n```\n来来来，宝宝们看这里！👀\n\n今天第一款是{{product1}}！\n这可是我们家的镇店之宝！\n\n先看价格：\n日常价：¥{{normalPrice1}}\n今天直播价：¥{{livePrice1}}！\n直接省了¥{{saveAmount1}}！\n\n这个价格真的是史无前例！\n老粉都知道我们从不虚标价格！\n\n再看产品：\n✨ {{feature1}}\n✨ {{feature2}}\n✨ {{feature3}}\n\n我手上这件就是实物，\n大家看看这个{{showDetail}}，\n做工真的很精细！\n\n材质是{{material}}，\n{{materialBenefit}}。\n\n这款已经卖出{{soldCount}}件了！\n好评率{{positiveRate}}%！\n\n现在库存只有{{remainingStock}}件！\n卖完就没有了！\n\n要的宝宝赶紧点黄色购物袋下单！\n3...2...1...上链接！\n```\n\n**促单话术**:\n```\n宝宝们动作要快哦！\n现在已经卖出{{currentSold}}件了！\n\n再给大家一个福利：\n前{{topCount}}名下单，\n送{{extraGift}}！\n\n看到有宝宝问尺码，\n我们有S/M/L/XL四个码，\n详情页有详细的尺码表！\n\n不确定的宝宝，\n可以拍大一码，\n反正7天无理由退换！\n\n还剩{{finalStock}}件！\n要抢的赶紧！\n5...4...3...2...1...下架！\n\n好，没抢到的宝宝别急，\n等下返场还有机会！\n```\n\n---\n\n### 【互动环节】(30-35分钟)\n\n**话题互动**:\n```\n好，宝宝们，\n先休息一下，喝口水~\n\n看到很多宝宝刚进来，\n新来的宝宝点个关注哦！\n马上有抽奖！\n\n我看看评论区：\n\n@{{user1}}问{{question1}}？\n这个问题问得好！\n{{answer1}}\n\n@{{user2}}说{{comment2}}\n哈哈哈，宝宝说得对！\n\n好，现在给大家抽第二波奖！\n```\n\n**抽奖环节**:\n```\n【第2波抽奖】\n奖品：{{prize2}}\n数量：{{prizeQty}}份\n\n老规矩：\n1️⃣ 关注\n2️⃣ 打\"2\"\n3️⃣ 分享\n\n开始！\n\n...倒计时...3...2...1...\n\n恭喜：\n{{winner2_1}}\n{{winner2_2}}\n{{winner2_3}}\n\n没中的宝宝别灰心，\n等下还有！\n```\n\n---\n\n### 【产品2】(35-55分钟)\n\n**产品展示**:\n```\n好，接下来\n给大家上今天的第二款爆品！\n\n这款{{product2}}，\n是我们家的回购冠军！\n复购率高达{{repurchaseRate}}%！\n\n为什么这么多人回购？\n因为{{reason1}}！\n因为{{reason2}}！\n\n你们看这个{{demonstration}}，\n（现场演示）\n是不是很{{demoResult}}？\n\n价格也很美丽：\n原价¥{{originalPrice2}}，\n今天直播价¥{{livePrice2}}！\n\n而且：\n买1件送{{gift2_1}}\n买2件送{{gift2_2}}\n买3件送{{gift2_3}}\n\n这个组合真的超值！\n建议宝宝们多囤几件！\n\n3...2...1...上链接！\n```\n\n---\n\n### 【整点秒杀】(55-60分钟)\n\n**秒杀预告**:\n```\n宝宝们注意！\n马上{{clockTime}}整点秒杀！\n\n今天的秒杀款是{{seckillProduct}}！\n日常价¥{{seckillNormalPrice}}，\n秒杀价只要¥{{seckillPrice}}！\n\n只有{{seckillQty}}件！\n抢到就是赚到！\n\n所有宝宝准备好，\n倒计时10秒！\n10...9...8...7...6...\n5...4...3...2...1...\n上链接！抢！\n\n秒光了！\n恭喜抢到的宝宝！\n\n没抢到的别急，\n我们{{nextSeckillTime}}还有一场！\n```\n\n---\n\n### 【返场环节】(90-110分钟)\n\n**返场话术**:\n```\n好，宝宝们！\n刚才没抢到的，\n现在返场了！\n\n{{returnProduct1}}返场！\n还是刚才的价格¥{{returnPrice1}}！\n数量不多，只有{{returnStock1}}件！\n\n要的抓紧！\n这是今天最后一次机会了！\n\n3...2...1...上链接！\n```\n\n---\n\n### 【收尾】(110-120分钟)\n\n**总结回顾**:\n```\n好的宝宝们，\n今天的直播马上要结束了~\n\n今天一共给大家带来了{{totalProducts}}款产品，\n感谢大家的支持！\n\n今天没买到的宝宝，\n明天{{nextLiveTime}}我们继续！\n有更多好物等你！\n\n买到的宝宝，\n收到货记得来晒图好评哦！\n好评截图私信我，\n送小礼物！💕\n\n最后再抽一波奖！\n```\n\n**结束抽奖**:\n```\n【终极大奖】\n奖品：{{grandPrize}}\n数量：{{grandPrizeQty}}份\n\n参与方式：\n关注+点赞+分享\n\n3...2...1...开奖！\n\n恭喜{{grandWinner}}！\n\n好，今天直播到这里，\n谢谢宝宝们！\n\n我们明天{{nextLiveTime}}不见不散！\n拜拜！👋\n```\n\n---\n\n## 4. 注意事项\n\n### 4.1 话术技巧\n\n✅ 语速适中，咬字清晰\n✅ 情绪饱满，充满激情\n✅ 适时重复价格和卖点\n✅ 制造紧迫感和稀缺性\n✅ 及时回应评论区问题\n\n### 4.2 禁忌事项\n\n❌ 长时间冷场\n❌ 贬低竞品\n❌ 使用极限词\n❌ 虚假宣传\n❌ 忽视粉丝互动\n\n### 4.3 应急预案\n\n**设备故障**:\n```\n宝宝们，设备出了点小问题，\n稍等1分钟马上回来！\n大家先看看商品详情！\n```\n\n**库存不足**:\n```\n不好意思宝宝们！\n这款卖太快了，库存不够了！\n我们紧急补货，\n{{replenishTime}}后继续！\n```\n\n**网络卡顿**:\n```\n抱歉宝宝们，网络有点卡，\n助播帮我看一下，\n大家能听到我说话吗？\n```\n\n---\n\n## 5. 数据目标\n\n| 指标 | 目标值 |\n|------|--------|\n| **观看人数** | {{targetViewers}}人 |\n| **在线峰值** | {{peakOnline}}人 |\n| **点赞数** | {{targetLikes}} |\n| **成交订单** | {{targetOrders}}单 |\n| **GMV** | ¥{{targetGMV}}万 |\n| **转化率** | {{targetConversion}}% |\n\n---\n\n**脚本版本**: v{{scriptVersion}}\n**编写人**: {{#if scriptWriter}}{{scriptWriter}}{{else}}直播团队{{/if}}\n**审核**: {{#if reviewer}}{{reviewer}}{{else}}运营主管{{/if}}\n**日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}",
   "variables_schema": [
@@ -25,10 +30,22 @@
       "default": "淘宝直播",
       "required": true,
       "options": [
-        {"value": "淘宝直播", "label": "淘宝直播"},
-        {"value": "抖音直播", "label": "抖音直播"},
-        {"value": "快手直播", "label": "快手直播"},
-        {"value": "视频号直播", "label": "视频号直播"}
+        {
+          "value": "淘宝直播",
+          "label": "淘宝直播"
+        },
+        {
+          "value": "抖音直播",
+          "label": "抖音直播"
+        },
+        {
+          "value": "快手直播",
+          "label": "快手直播"
+        },
+        {
+          "value": "视频号直播",
+          "label": "视频号直播"
+        }
       ],
       "description": "直播的平台"
     },
@@ -117,10 +134,26 @@
     "type": "folder",
     "name": "{{liveTitle}}_直播资料",
     "children": [
-      {"type": "file", "name": "直播脚本.md", "description": "直播脚本"},
-      {"type": "file", "name": "产品清单.xlsx", "description": "产品排期表"},
-      {"type": "file", "name": "数据目标.xlsx", "description": "数据监控表"},
-      {"type": "file", "name": "应急预案.md", "description": "应急处理方案"}
+      {
+        "type": "file",
+        "name": "直播脚本.md",
+        "description": "直播脚本"
+      },
+      {
+        "type": "file",
+        "name": "产品清单.xlsx",
+        "description": "产品排期表"
+      },
+      {
+        "type": "file",
+        "name": "数据目标.xlsx",
+        "description": "数据监控表"
+      },
+      {
+        "type": "file",
+        "name": "应急预案.md",
+        "description": "应急处理方案"
+      }
     ]
   },
   "is_builtin": true,
@@ -130,5 +163,16 @@
   "rating": 0,
   "rating_count": 0,
   "created_at": "2024-01-15T10:00:00Z",
-  "updated_at": "2024-01-15T10:00:00Z"
+  "updated_at": "2024-01-15T10:00:00Z",
+  "required_skills": [
+    "skill_content_creation",
+    "skill_seo_marketing"
+  ],
+  "required_tools": [
+    "tool_file_writer",
+    "tool_excel_generator",
+    "tool_template_renderer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "default"
 }
