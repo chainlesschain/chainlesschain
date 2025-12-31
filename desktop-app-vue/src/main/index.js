@@ -280,11 +280,19 @@ class ChainlessChainApp {
     // 初始化数据库
     try {
       console.log('初始化数据库...');
+
+      // 检查加密配置（只有用户启用加密后才使用加密数据库）
+      const EncryptionConfigManager = require('./database/config-manager');
+      const encryptionConfig = new EncryptionConfigManager(app);
+      const encryptionEnabled = encryptionConfig.isEncryptionEnabled();
+
+      console.log(`数据库加密状态: ${encryptionEnabled ? '已启用' : '未启用'}`);
+
       // 使用默认密码进行数据库加密（与认证密码一致）
       const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || '123456';
       this.database = new DatabaseManager(null, {
         password: DEFAULT_PASSWORD,
-        encryptionEnabled: true
+        encryptionEnabled: encryptionEnabled  // 从配置读取，默认false
       });
       await this.database.initialize();
 
