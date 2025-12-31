@@ -1,5 +1,23 @@
 <template>
   <div class="organization-members-page">
+    <!-- 组织导航 -->
+    <div class="org-nav">
+      <a-space size="large">
+        <router-link :to="`/org/${orgId}/members`" class="nav-link active">
+          <TeamOutlined /> 成员管理
+        </router-link>
+        <router-link :to="`/org/${orgId}/roles`" class="nav-link">
+          <SafetyCertificateOutlined /> 角色管理
+        </router-link>
+        <router-link :to="`/org/${orgId}/activities`" class="nav-link">
+          <HistoryOutlined /> 活动日志
+        </router-link>
+        <router-link :to="`/org/${orgId}/settings`" class="nav-link">
+          <SettingOutlined /> 组织设置
+        </router-link>
+      </a-space>
+    </div>
+
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -345,6 +363,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import {
   TeamOutlined,
@@ -358,8 +377,14 @@ import {
   CheckCircleOutlined,
   CrownOutlined,
   SafetyOutlined,
+  SafetyCertificateOutlined,
+  HistoryOutlined,
+  SettingOutlined,
 } from '@ant-design/icons-vue';
 import { useIdentityStore } from '@/stores/identity';
+
+const route = useRoute();
+const orgId = computed(() => route.params.orgId);
 
 const identityStore = useIdentityStore();
 
@@ -670,6 +695,42 @@ onMounted(async () => {
   padding: 24px;
   background: #f0f2f5;
   min-height: 100vh;
+
+  .org-nav {
+    background: white;
+    padding: 16px 24px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+    .nav-link {
+      color: #595959;
+      font-size: 14px;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      &:hover {
+        color: #1890ff;
+        background: #e6f7ff;
+      }
+
+      &.active,
+      &.router-link-active {
+        color: #1890ff;
+        background: #e6f7ff;
+        font-weight: 500;
+      }
+
+      .anticon {
+        font-size: 16px;
+      }
+    }
+  }
 
   .page-header {
     display: flex;
