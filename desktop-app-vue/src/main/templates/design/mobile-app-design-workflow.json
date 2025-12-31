@@ -1,0 +1,113 @@
+{
+  "id": "tpl_design_mobile_006",
+  "name": "mobile_app_design_workflow",
+  "display_name": "移动应用设计流程",
+  "description": "从用户研究到交付的完整移动应用设计流程，包含原型、视觉和交互设计",
+  "icon": "📱",
+  "category": "design",
+  "subcategory": "mobile",
+  "tags": [
+    "移动设计",
+    "App设计",
+    "原型设计",
+    "交互设计"
+  ],
+  "project_type": "document",
+  "prompt_template": "移动应用设计完整流程\n\n**项目信息：**\n- 应用名称：{{appName}}\n- 应用类型：{{appType}}\n- 目标平台：{{targetPlatform}}\n- 设计周期：{{designDuration}}周\n\n# 移动应用设计全流程指南\n\n## 项目概述\n\n**应用名称：**{{appName}}\n**应用类型：**{{appType}}\n**目标平台：**{{targetPlatform}}\n**目标用户：**{{targetUsers}}\n**核心功能：**{{coreFunctions}}\n**设计团队：**{{designTeam}}人\n**设计周期：**{{designDuration}}周\n\n## 第一阶段：用户研究与需求分析（Week 1-2）\n\n### 用户研究\n\n**目标用户画像：**\n\n**用户A（主要用户）：**\n- 姓名：{{personaName1}}\n- 年龄：{{personaAge1}}岁\n- 职业：{{personaJob1}}\n- 目标：{{personaGoal1}}\n- 痛点：{{personaPain1}}\n- 使用场景：{{personaScenario1}}\n\n**用户B（次要用户）：**\n- 姓名：{{personaName2}}\n- 年龄：{{personaAge2}}岁\n- 职业：{{personaJob2}}\n\n**研究方法：**\n\n**1. 用户访谈：**\n- 人数：{{interviewCount}}人\n- 时长：30-60分钟/人\n- 问题：\n  - 你通常如何{{task}}？\n  - 在这个过程中遇到什么困难？\n  - 你期望的理想体验是什么？\n  - 你使用过哪些竞品？优缺点是什么？\n\n**2. 问卷调查：**\n- 样本量：{{surveyCount}}份\n- 工具：问卷星/Google Forms\n- 内容：\n  - 基本信息（年龄、职业）\n  - 使用习惯\n  - 功能需求排序\n  - 付费意愿\n\n**3. 竞品分析：**\n\n| 竞品 | 优点 | 缺点 | 评分 |\n|------|------|------|------|\n| {{competitor1}} | {{comp1Pros}} | {{comp1Cons}} | {{comp1Rating}}/5 |\n| {{competitor2}} | {{comp2Pros}} | {{comp2Cons}} | {{comp2Rating}}/5 |\n| {{competitor3}} | {{comp3Pros}} | {{comp3Cons}} | {{comp3Rating}}/5 |\n\n**我们的机会点：**\n- {{opportunitypoint1}}\n- {{opportunity2}}\n\n### 需求优先级\n\n**MoSCoW法则：**\n\n**Must Have（必须有）：**\n- {{mustHave1}}\n- {{mustHave2}}\n- MVP必备功能\n\n**Should Have（应该有）：**\n- {{shouldHave1}}\n- v1.1版本\n\n**Could Have（可以有）：**\n- {{couldHave1}}\n- v1.2或更晚\n\n**Won't Have（暂不考虑）：**\n- {{wontHave1}}\n\n## 第二阶段：信息架构与用户流程（Week 2-3）\n\n### 信息架构（IA - Information Architecture）\n\n**应用结构图：**\n\n```\n启动页\n├── 登录/注册\n│   ├── 手机号登录\n│   ├── 第三方登录（微信/Apple ID）\n│   └── 注册流程\n├── 首页（Tab 1）\n│   ├── Banner轮播\n│   ├── 功能入口\n│   └── 推荐内容\n├── {{tab2Name}}（Tab 2）\n│   ├── {{tab2Feature1}}\n│   └── {{tab2Feature2}}\n├── {{tab3Name}}（Tab 3）\n│   ├── {{tab3Feature1}}\n│   └── {{tab3Feature2}}\n└── 我的（Tab 4）\n    ├── 个人信息\n    ├── 设置\n    └── 帮助与反馈\n```\n\n**Tab Bar设计：**\n- Tab数量：{{tabCount}}个（推荐3-5个）\n- 优先级：最常用功能在左侧\n- 图标+文字（清晰）\n\n### 用户流程图（User Flow）\n\n**示例：注册流程**\n\n```\n开始\n  ↓\n输入手机号\n  ↓\n获取验证码（60秒倒计时）\n  ↓\n输入验证码\n  ↓\n设置密码（8-20位）\n  ↓\n完善信息（昵称、头像）\n  ↓\n进入首页\n```\n\n**关键流程：**\n1. 注册/登录流程\n2. 核心功能使用流程（如：发布、支付、分享）\n3. 退出/注销流程\n\n**优化原则：**\n- 减少步骤（3步内完成）\n- 提供进度指示\n- 允许跳过非必填项\n- 保存草稿（避免重复输入）\n\n## 第三阶段：低保真原型（Week 3-4）\n\n### 线框图（Wireframe）\n\n**工具：**{{wireframeTool}}\n\n**推荐工具：**\n- Figma（协作强）\n- Sketch（Mac专用）\n- Axure（交互复杂）\n- Balsamiq（快速草图）\n- 纸笔（最快）\n\n**设计要点：**\n- 黑白灰（不考虑颜色）\n- 关注布局和层级\n- 标注交互说明\n- 快速迭代\n\n**关键页面：**\n1. 启动页/引导页\n2. 登录/注册\n3. 首页\n4. 列表页\n5. 详情页\n6. 个人中心\n7. 设置页\n\n**示例：首页线框图**\n\n```\n┌─────────────────────┐\n│  [Logo]    [搜索] 🔔│  导航栏\n├─────────────────────┤\n│                     │\n│   [Banner轮播图]    │  主视觉\n│                     │\n├─────────────────────┤\n│ [功能1][功能2]      │  快捷入口\n│ [功能3][功能4]      │\n├─────────────────────┤\n│ 推荐内容            │  内容列表\n│ ┌─────┐             │\n│ │图片 │ 标题        │\n│ └─────┘ 简介        │\n│ ┌─────┐             │\n│ │图片 │ 标题        │\n│ └─────┘ 简介        │\n└─────────────────────┘\n│ 首页 | 发现 | 我的 │  Tab Bar\n└─────────────────────┘\n```\n\n### 可点击原型（Clickable Prototype）\n\n**Figma原型功能：**\n1. 连接页面（Connection）\n2. 设置交互（Tap/Swipe）\n3. 转场动画（Instant/Dissolve/Slide）\n4. 添加Overlay（弹窗、底部抽屉）\n\n**原型演示：**\n- 生成分享链接\n- 用户测试（5-8人）\n- 收集反馈\n- 迭代优化\n\n## 第四阶段：高保真视觉设计（Week 4-6）\n\n### 视觉风格探索\n\n**Mood Board（情绪板）：**\n\n收集灵感图片：\n- Dribbble\n- Behance\n- Pinterest\n- Mobbin（App设计参考）\n\n**风格方向：**{{designStyle}}\n\n**常见风格：**\n- 扁平化（Flat Design）\n- 新拟态（Neumorphism）\n- 玻璃态（Glassmorphism）\n- 渐变设计\n- 极简主义\n\n### UI设计规范\n\n**屏幕尺寸（iOS）：**\n\n```\niPhone 14 Pro Max: 430 x 932 pt（设计基准）\niPhone 14 Pro: 393 x 852 pt\niPhone SE: 375 x 667 pt\n\nSafe Area:\n- 顶部：44pt（状态栏）+ 导航栏\n- 底部：34pt（iPhone X+）或0pt（老机型）\n```\n\n**屏幕尺寸（Android）：**\n\n```\n设计基准：360 x 800 dp\n常见分辨率：\n- 1080 x 2400 px（主流）\n- 1440 x 3200 px（高端）\n```\n\n**设计倍率：**\n- iOS：@1x、@2x、@3x\n- Android：mdpi、hdpi、xhdpi、xxhdpi、xxxhdpi\n- **推荐：**设计@2x或@3x，导出多种规格\n\n**栅格系统（Grid System）：**\n\n```\n列数：6列（移动端）\nGutter（间距）：16pt\nMargin（边距）：16pt\n\n示例：\n|<-16pt->|  列  |<-16pt->|  列  |<-16pt->|\n```\n\n**组件设计：**\n\n**1. 导航栏（Navigation Bar）：**\n\n```\niOS样式：\n高度：44pt（小）或 56pt（大标题）\n返回按钮：左侧，< 返回\n标题：居中\n操作按钮：右侧\n\nAndroid样式（Material Design）：\n高度：56dp\n返回按钮：左侧，← 箭头\n标题：左对齐\n操作按钮：右侧（图标）\n```\n\n**2. 列表（List）：**\n\n```\n单行高度：44-60pt\n头像：40pt圆形\n标题：16pt，font-weight: 500\n副标题：14pt，color: #666\n右侧箭头：16pt，color: #999\n分隔线：0.5pt，color: #E5E5E5\n```\n\n**3. 卡片（Card）：**\n\n```\n圆角：8-12pt\n阴影：0 2px 8px rgba(0,0,0,0.1)\n内边距：12-16pt\n间距：16pt（卡片之间）\n```\n\n**4. 按钮（Button）：**\n\n```\n主按钮：\n高度：44pt（可点击区域）\n圆角：22pt（圆形）或 8pt（圆角矩形）\n背景：品牌色\n文字：白色，14-16pt，居中\n\n次要按钮：\n背景：透明\n边框：1pt，品牌色\n文字：品牌色\n```\n\n**5. 输入框（Input）：**\n\n```\n高度：44pt\n圆角：8pt\n边框：1pt，#D9D9D9\n聚焦态：边框变为品牌色\n内边距：左右12pt\n占位符：#999\n```\n\n### 适配Dark Mode\n\n**颜色调整：**\n\n```css\n/* Light Mode */\n背景：#FFFFFF\n文字：#000000\n分隔线：#E5E5E5\n\n/* Dark Mode */\n背景：#000000 或 #1C1C1E\n文字：#FFFFFF\n分隔线：#38383A\n```\n\n**设计要点：**\n- 避免纯黑（使用#1C1C1E）\n- 降低白色亮度（#FFFFFF → #F2F2F7）\n- 图片添加蒙层（避免过亮）\n- 使用Figma变量（Variables）自动切换\n\n### 动效设计（Motion Design）\n\n**原则：**\n- 有意义（传达信息）\n- 流畅（60fps）\n- 快速（<300ms）\n\n**常见动效：**\n\n**1. 页面转场：**\n- Push（推入）：iOS默认\n- Slide Up（向上滑出）：弹窗\n- Fade（淡入淡出）\n- Scale（缩放）\n\n**2. 微交互：**\n- 按钮按下：缩小至95%\n- 列表项删除：向左滑出\n- 下拉刷新：Lottie动画\n- 点赞：心形放大+颜色变化\n\n**3. 加载状态：**\n- Spinner旋转\n- Skeleton屏渐变\n- Progress Bar进度\n\n**工具：**\n- Principle（原型动效）\n- Lottie（After Effects导出JSON）\n- Figma Smart Animate\n\n## 第五阶段：交互原型（Week 6-7）\n\n### 交互说明文档\n\n**页面级交互：**\n\n**示例：商品详情页**\n\n```\n1. 页面加载：\n   - 显示Skeleton屏（1-2秒）\n   - 加载完成后淡入真实内容\n\n2. 图片查看：\n   - 点击主图→进入全屏查看\n   - 左右滑动切换图片\n   - 双击/捏合缩放\n   - 点击右上角✕关闭\n\n3. 加入购物车：\n   - 点击「加入购物车」按钮\n   - 弹出规格选择弹窗（从底部滑出）\n   - 选择颜色/尺寸/数量\n   - 点击「确定」→显示Toast\"已加入购物车\"\n   - 购物车图标数字+1（动画）\n\n4. 下拉刷新：\n   - 下拉>60pt→显示加载动画\n   - 松手→刷新内容\n   - 刷新完成→动画消失\n```\n\n### 手势设计\n\n**常用手势：**\n\n| 手势 | 操作 | 示例 |\n|------|------|------|\n| Tap（点击） | 选择/确认 | 按钮点击 |\n| Long Press（长按） | 显示菜单/预览 | 长按消息→复制/转发 |\n| Swipe（滑动） | 翻页/删除 | 左滑删除/右滑返回 |\n| Pan（拖动） | 移动元素 | 拖动排序 |\n| Pinch（捏合） | 缩放 | 地图/图片缩放 |\n| Pull to Refresh（下拉） | 刷新 | 列表顶部下拉 |\n\n**手势冲突避免：**\n- 左滑返回 vs 左滑删除：根据上下文判断\n- 页面滚动 vs 图片查看：设置滑动阈值\n\n## 第六阶段：开发对接（Week 7-8）\n\n### 设计标注（Design Handoff）\n\n**工具：**\n- Figma Dev Mode（推荐）\n- Zeplin\n- 蓝湖\n- Sketch Measure插件\n\n**标注内容：**\n1. 尺寸（宽高、边距、圆角）\n2. 颜色（Hex/RGB）\n3. 字体（字号、字重、行高）\n4. 图标/图片资源\n5. 交互说明\n\n**Figma自动标注：**\n- Inspect（检查模式）\n- Code（生成CSS/iOS/Android代码）\n- Export（导出切图）\n\n### 切图输出\n\n**命名规范：**\n\n```\nic_功能_状态@倍率.png\n\n示例：\nic_home_normal@2x.png    （首页图标-默认态-2倍图）\nic_home_selected@2x.png  （首页图标-选中态-2倍图）\nimg_banner_1@3x.png      （Banner图-第1张-3倍图）\n```\n\n**导出规格：**\n\n**iOS：**\n- @1x、@2x、@3x\n- 格式：PNG（透明）或 JPG（照片）\n- 存放路径：Assets.xcassets\n\n**Android：**\n- mdpi、hdpi、xhdpi、xxhdpi、xxxhdpi\n- 或使用SVG（矢量图标）\n- 存放路径：res/drawable-*\n\n**Web：**\n- 1x、2x\n- 使用SVG（图标）+ WebP/AVIF（图片）\n\n### 开发协作\n\n**周例会：**\n- 时间：每周一次\n- 参与：设计师、前端、后端、产品\n- 内容：\n  - 设计稿走查\n  - 技术可行性讨论\n  - 优先级排序\n  - 问题答疑\n\n**沟通渠道：**\n- 即时沟通：Slack/钉钉/微信\n- 文档：Notion/Confluence/语雀\n- 设计稿：Figma（评论功能）\n- Bug追踪：Jira/Teambition\n\n**还原度检查：**\n- 设计师参与开发自测\n- 使用Figma Mirror（实机预览）\n- 关注细节（间距、颜色、字号）\n- 必要时提供像素级对比图\n\n## 第七阶段：测试与迭代（Week 8+）\n\n### 可用性测试（Usability Testing）\n\n**测试人数：**5-8人（发现80%问题）\n\n**测试任务：**\n\n```\n任务1：注册一个新账号\n任务2：浏览首页并找到{{feature}}\n任务3：完成一次{{coreAction}}（如：下单、发布）\n任务4：修改个人信息\n任务5：退出登录\n```\n\n**观察指标：**\n- 任务完成率\n- 完成时间\n- 错误次数\n- 用户满意度（1-5分）\n\n**发现问题示例：**\n- 「返回」按钮不明显→增大尺寸/改变颜色\n- 找不到「设置」入口→调整信息架构\n- 表单填写繁琐→简化字段/智能填充\n\n### A/B测试\n\n**测试内容：**\n- 按钮颜色（红色 vs 绿色）\n- 文案（\"立即购买\" vs \"马上抢购\"）\n- 布局（列表 vs 卡片）\n\n**数据指标：**\n- 点击率（CTR）\n- 转化率\n- 留存率\n\n**工具：**\n- Google Optimize\n- Firebase A/B Testing\n- Optimizely\n\n### 设计迭代\n\n**迭代周期：**\n- 小改动：1-2周\n- 功能优化：1个月\n- 大版本：3-6个月\n\n**优先级：**\n1. 阻塞性Bug（立即修复）\n2. 影响核心功能（1周内）\n3. 体验优化（排期迭代）\n4. Nice to Have（待定）\n\n## 设计交付清单\n\n### 必交付物\n\n- [ ] 完整设计稿（Figma/Sketch源文件）\n- [ ] 设计规范文档（Design System）\n- [ ] 切图资源包（PNG/SVG）\n- [ ] 交互说明文档\n- [ ] 设计变更日志（Changelog）\n\n### 可选交付物\n\n- [ ] 原型演示视频\n- [ ] Lottie动画文件\n- [ ] 引导页设计（Onboarding）\n- [ ] 空状态/错误页设计\n- [ ] 启动图/应用图标（多尺寸）\n\n## 工具推荐\n\n**设计工具：**\n- Figma（首选，云协作）\n- Sketch（Mac专用）\n- Adobe XD\n\n**原型工具：**\n- Figma（内置）\n- Principle（高级动效）\n- ProtoPie（复杂交互）\n\n**动效工具：**\n- Lottie（After Effects）\n- Principle\n- Figma Smart Animate\n\n**协作工具：**\n- Figma（评论/版本管理）\n- Zeplin/蓝湖（标注）\n- Notion（文档）\n- Miro（白板）\n\n**参考资源：**\n- Dribbble / Behance（灵感）\n- Mobbin（App设计库）\n- iOS Human Interface Guidelines（iOS规范）\n- Material Design（Android规范）",
+  "variables_schema": [
+    {
+      "name": "appName",
+      "label": "应用名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "appType",
+      "label": "应用类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "社交类",
+          "label": "社交类"
+        },
+        {
+          "value": "电商类",
+          "label": "电商类"
+        },
+        {
+          "value": "工具类",
+          "label": "工具类"
+        },
+        {
+          "value": "内容类",
+          "label": "内容类（新闻/视频）"
+        },
+        {
+          "value": "生活服务",
+          "label": "生活服务"
+        },
+        {
+          "value": "游戏",
+          "label": "游戏"
+        }
+      ]
+    },
+    {
+      "name": "targetPlatform",
+      "label": "目标平台",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "iOS",
+          "label": "iOS"
+        },
+        {
+          "value": "Android",
+          "label": "Android"
+        },
+        {
+          "value": "双平台",
+          "label": "iOS + Android"
+        }
+      ]
+    },
+    {
+      "name": "designDuration",
+      "label": "设计周期（周）",
+      "type": "number",
+      "required": false,
+      "default": 8
+    }
+  ],
+  "file_structure": {
+    "root": "App设计-{{appName}}",
+    "files": [
+      {
+        "path": "设计流程文档.md",
+        "type": "markdown"
+      },
+      {
+        "path": "用户研究/",
+        "type": "folder"
+      },
+      {
+        "path": "原型设计/",
+        "type": "folder"
+      },
+      {
+        "path": "视觉设计稿/",
+        "type": "folder"
+      },
+      {
+        "path": "切图资源/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

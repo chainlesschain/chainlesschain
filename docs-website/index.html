@@ -15,17 +15,43 @@
 
     <meta name="author" content="厦门无链之链科技有限公司">
 
-    <!-- Open Graph优化 -->
+    <!-- Canonical URL - 避免重复内容问题 -->
+    <link rel="canonical" href="https://www.chainlesschain.com/">
+
+    <!-- Open Graph优化 - 社交媒体分享 -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.chainlesschain.com/">
     <meta property="og:title" content="ChainlessChain - 让数据主权回归个人，AI效率触手可及">
     <meta property="og:description" content="硬件级加密+本地AI部署，打造安全可信的个人AI生态系统。4项发明专利，10,000+专业人士选择">
     <meta property="og:image" content="https://www.chainlesschain.com/images/og-image.svg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="ChainlessChain - 个人AI知识库系统">
     <meta property="og:site_name" content="ChainlessChain">
+    <meta property="og:locale" content="zh_CN">
+
+    <!-- Twitter Card优化 - Twitter分享 -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ChainlessChain - 让数据主权回归个人，AI效率触手可及">
+    <meta name="twitter:description" content="硬件级加密+本地AI部署，打造安全可信的个人AI生态系统。4项发明专利，10,000+专业人士选择">
+    <meta name="twitter:image" content="https://www.chainlesschain.com/images/og-image.svg">
+    <meta name="twitter:site" content="@ChainlessChain">
+    <meta name="twitter:creator" content="@ChainlessChain">
+
+    <!-- 移动端优化 -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ChainlessChain">
 
     <!-- 联系信息 -->
     <meta name="contact" content="400-1068-687">
     <meta name="email" content="zhanglongfa@chainlesschain.com">
+
+    <!-- 地理位置信息 - 本地SEO -->
+    <meta name="geo.region" content="CN-FJ">
+    <meta name="geo.placename" content="厦门">
+    <meta name="geo.position" content="24.479834;118.089425">
 
     <!-- 性能优化：DNS预解析 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -75,6 +101,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- 结构化数据（Schema.org）- SEO增强 -->
+    <!-- 1. SoftwareApplication - 软件产品信息 -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -109,7 +136,128 @@
                 "addressLocality": "厦门市",
                 "streetAddress": "自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H"
             }
+        },
+        "downloadUrl": "https://www.chainlesschain.com/download.html",
+        "screenshot": "https://www.chainlesschain.com/images/screenshots/main-interface.png",
+        "softwareVersion": "0.16.0",
+        "releaseNotes": "https://www.chainlesschain.com/changelog.html",
+        "featureList": [
+            "个人AI知识库管理",
+            "硬件级加密存储（U盾/SIMKey）",
+            "本地AI部署（Ollama）",
+            "去中心化社交",
+            "P2P加密通讯",
+            "AI辅助交易",
+            "多端同步"
+        ]
+    }
+    </script>
+
+    <!-- 2. Organization - 组织信息 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "厦门无链之链科技有限公司",
+        "alternateName": "ChainlessChain",
+        "url": "https://www.chainlesschain.com",
+        "logo": "https://www.chainlesschain.com/logo.png",
+        "description": "专注于个人数据主权和AI技术的创新科技公司，提供基于硬件加密的个人AI知识库解决方案",
+        "foundingDate": "2020",
+        "telephone": "+86-400-1068-687",
+        "email": "zhanglongfa@chainlesschain.com",
+        "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "CN",
+            "addressRegion": "福建省",
+            "addressLocality": "厦门市",
+            "postalCode": "361000",
+            "streetAddress": "自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H"
+        },
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+86-400-1068-687",
+            "contactType": "customer service",
+            "areaServed": "CN",
+            "availableLanguage": ["zh-CN", "en"]
+        },
+        "sameAs": [
+            "https://github.com/chainlesschain",
+            "https://twitter.com/ChainlessChain"
+        ]
+    }
+    </script>
+
+    <!-- 3. WebSite - 网站搜索功能 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "ChainlessChain官网",
+        "url": "https://www.chainlesschain.com",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://www.chainlesschain.com/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
         }
+    }
+    </script>
+
+    <!-- 4. FAQPage - 常见问题 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "ChainlessChain是什么？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "ChainlessChain（无链之链）是一款基于U盾和SIMKey硬件加密技术的个人AI知识库系统。它集成了个人知识库管理、去中心化社交、AI辅助交易三大核心功能，支持本地AI部署（Ollama），确保数据完全由用户掌控，永不上云。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "ChainlessChain为什么是免费的？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "ChainlessChain采用去中心化P2P架构，无需中心化服务器，因此没有服务器运维成本。用户数据存储在本地，AI计算也在本地完成，这使得我们能够提供完全免费的服务。我们的盈利模式是通过提供企业级技术支持和定制化服务。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "ChainlessChain的数据安全吗？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "ChainlessChain采用硬件级加密（U盾/SIMKey）保护用户数据，所有敏感信息都使用AES-256加密存储在本地。我们支持P2P加密通讯（Signal Protocol），确保端到端加密。数据永不上云，完全由用户掌控，即使开发者也无法访问您的数据。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "ChainlessChain支持哪些平台？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "ChainlessChain支持全平台部署：Windows、macOS、Linux（桌面版）、Android、iOS（移动版）。我们还提供浏览器扩展插件，方便快速保存网页内容到知识库。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "如何开始使用ChainlessChain？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "非常简单！您只需：1）下载安装ChainlessChain桌面应用；2）创建账户（支持U盾/SIMKey硬件加密）；3）（可选）配置本地AI（Ollama）或使用云端AI；4）开始导入您的知识库内容。整个过程不超过5分钟。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "ChainlessChain与Notion、Obsidian有什么区别？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "与Notion相比，ChainlessChain提供硬件级加密和本地存储，数据不上云。与Obsidian相比，ChainlessChain内置AI问答功能（RAG检索增强）、去中心化社交、P2P加密通讯等功能。我们还支持企业级去中心化组织协作，无需中心化服务器。"
+                }
+            }
+        ]
     }
     </script>
 </head>
@@ -197,7 +345,7 @@
                             </a>
                             <a href="https://github.com/chainlesschain" target="_blank" rel="noopener" class="dropdown-item">
                                 <span class="icon">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                                         <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
                                     </svg>
                                 </span>
@@ -1235,7 +1383,7 @@
                     <div class="repo-links">
                         <a href="https://github.com/chainlesschain" target="_blank" rel="noopener" class="repo-link github">
                             <span class="icon">
-                                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                                     <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
                                 </svg>
                             </span>
