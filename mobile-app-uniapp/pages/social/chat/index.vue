@@ -6,9 +6,24 @@
     </view>
 
     <!-- 会话列表 -->
-    <scroll-view class="conversations-list" scroll-y>
+    <scroll-view
+      class="conversations-list"
+      scroll-y
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
+    >
       <view v-if="loading" class="loading">
-        <text>加载中...</text>
+        <text class="loading-icon">⏳</text>
+        <text class="loading-text">加载中...</text>
+      </view>
+
+      <view v-else-if="loadError" class="error-state">
+        <text class="error-icon">⚠️</text>
+        <text class="error-text">{{ loadError }}</text>
+        <button class="retry-btn" @click="loadConversations">
+          重试
+        </button>
       </view>
 
       <view v-else-if="conversations.length === 0" class="empty">
@@ -78,7 +93,10 @@ export default {
     return {
       conversations: [],
       loading: false,
-      selectedConversation: null
+      refreshing: false,
+      loadError: null,
+      selectedConversation: null,
+      deleting: false
     }
   },
 
@@ -102,17 +120,60 @@ export default {
   methods: {
     async loadConversations() {
       this.loading = true
+      this.loadError = null
+
       try {
         await messagingService.init()
         this.conversations = await messagingService.getConversations()
       } catch (error) {
         console.error('加载会话列表失败:', error)
+        this.loadError = error.message || '加载失败'
+
+        let errorMsg = '加载失败，请稍后重试'
+        if (error.message) {
+          if (error.message.includes('网络') || error.message.includes('timeout')) {
+            errorMsg = '网络连接失败，请检查网络'
+          } else if (error.message.includes('database') || error.message.includes('数据库')) {
+            errorMsg = '数据库错误，请重启应用'
+          } else {
+            errorMsg = error.message
+          }
+        }
+
         uni.showToast({
-          title: '加载失败',
-          icon: 'none'
+          title: errorMsg,
+          icon: 'none',
+          duration: 2500
         })
       } finally {
         this.loading = false
+      }
+    },
+
+    /**
+     * 下拉刷新
+     */
+    async onRefresh() {
+      this.refreshing = true
+
+      try {
+        await messagingService.init()
+        this.conversations = await messagingService.getConversations()
+
+        uni.showToast({
+          title: '✓ 刷新成功',
+          icon: 'none',
+          duration: 1000
+        })
+      } catch (error) {
+        console.error('刷新失败:', error)
+        uni.showToast({
+          title: '刷新失败',
+          icon: 'none',
+          duration: 1500
+        })
+      } finally {
+        this.refreshing = false
       }
     },
 
@@ -150,44 +211,81 @@ export default {
         await messagingService.markAsRead(this.selectedConversation.id)
         this.closeActionMenu()
         await this.loadConversations()
+
+        uni.showToast({
+          title: '✓ 已标记为已读',
+          icon: 'none',
+          duration: 1000
+        })
       } catch (error) {
         console.error('标记已读失败:', error)
+
+        let errorMsg = '操作失败，请稍后重试'
+        if (error.message) {
+          errorMsg = error.message
+        }
+
         uni.showToast({
-          title: '操作失败',
-          icon: 'none'
+          title: errorMsg,
+          icon: 'none',
+          duration: 2000
         })
       }
     },
 
     async deleteConversation() {
-      if (!this.selectedConversation) return
+      if (!this.selectedConversation || this.deleting) return
 
-      uni.showModal({
-        title: '删除会话',
-        content: '确定要删除这个会话吗？',
-        confirmText: '删除',
-        confirmColor: '#ff4d4f',
-        success: async (res) => {
-          if (res.confirm) {
-            try {
-              await messagingService.deleteConversation(this.selectedConversation.id)
-              this.closeActionMenu()
-              await this.loadConversations()
+      const confirm = await new Promise((resolve) => {
+        uni.showModal({
+          title: '删除会话',
+          content: '确定要删除这个会话吗？删除后消息记录将无法恢复。',
+          confirmText: '删除',
+          confirmColor: '#ff4d4f',
+          success: (res) => {
+            resolve(res.confirm)
+          }
+        })
+      })
 
-              uni.showToast({
-                title: '已删除',
-                icon: 'success'
-              })
-            } catch (error) {
-              console.error('删除会话失败:', error)
-              uni.showToast({
-                title: '删除失败',
-                icon: 'none'
-              })
-            }
+      if (!confirm) {
+        this.closeActionMenu()
+        return
+      }
+
+      this.deleting = true
+
+      try {
+        await messagingService.deleteConversation(this.selectedConversation.id)
+        this.closeActionMenu()
+        await this.loadConversations()
+
+        uni.showToast({
+          title: '✓ 已删除会话',
+          icon: 'success',
+          duration: 1500
+        })
+      } catch (error) {
+        console.error('删除会话失败:', error)
+
+        let errorMsg = '删除失败，请稍后重试'
+        if (error.message) {
+          if (error.message.includes('不存在')) {
+            errorMsg = '会话已被删除'
+            await this.loadConversations()
+          } else {
+            errorMsg = error.message
           }
         }
-      })
+
+        uni.showToast({
+          title: errorMsg,
+          icon: 'none',
+          duration: 2000
+        })
+      } finally {
+        this.deleting = false
+      }
     },
 
     goToFriends() {
@@ -307,26 +405,33 @@ export default {
 }
 
 .loading,
-.empty {
+.empty,
+.error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 120rpx 48rpx;
 
-  .empty-icon {
+  .loading-icon,
+  .empty-icon,
+  .error-icon {
     font-size: 96rpx;
     margin-bottom: 24rpx;
     opacity: 0.5;
   }
 
-  .empty-text {
+  .loading-text,
+  .empty-text,
+  .error-text {
     font-size: 28rpx;
     color: var(--text-secondary);
     margin-bottom: 32rpx;
+    text-align: center;
   }
 
-  .start-chat-btn {
+  .start-chat-btn,
+  .retry-btn {
     background: var(--bg-accent);
     color: var(--text-on-accent);
     border: none;
@@ -337,6 +442,26 @@ export default {
     &::after {
       border: none;
     }
+
+    &:active {
+      opacity: 0.8;
+    }
+  }
+
+  .retry-btn {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 2rpx solid var(--border-color);
+  }
+}
+
+.error-state {
+  .error-icon {
+    opacity: 0.7;
+  }
+
+  .error-text {
+    color: var(--color-error);
   }
 }
 

@@ -55,11 +55,26 @@
     </view>
 
     <!-- 内容区域 -->
-    <scroll-view class="content" scroll-y>
+    <scroll-view
+      class="content"
+      scroll-y
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
+    >
       <!-- 好友列表 -->
       <view v-if="activeTab === 'friends'">
         <view v-if="loading" class="loading">
-          <text>加载中...</text>
+          <text class="loading-icon">⏳</text>
+          <text class="loading-text">加载中...</text>
+        </view>
+
+        <view v-else-if="loadError" class="error-state">
+          <text class="error-icon">⚠️</text>
+          <text class="error-text">{{ loadError }}</text>
+          <button class="retry-btn" @click="retryLoad">
+            重试
+          </button>
         </view>
 
         <view v-else-if="filteredFriends.length === 0" class="empty">
@@ -95,7 +110,16 @@
       <!-- 好友请求 -->
       <view v-if="activeTab === 'requests'">
         <view v-if="loading" class="loading">
-          <text>加载中...</text>
+          <text class="loading-icon">⏳</text>
+          <text class="loading-text">加载中...</text>
+        </view>
+
+        <view v-else-if="loadError" class="error-state">
+          <text class="error-icon">⚠️</text>
+          <text class="error-text">{{ loadError }}</text>
+          <button class="retry-btn" @click="retryLoad">
+            重试
+          </button>
         </view>
 
         <view v-else-if="pendingRequests.length === 0" class="empty">
@@ -140,7 +164,16 @@
       <!-- 黑名单 -->
       <view v-if="activeTab === 'blocked'">
         <view v-if="loading" class="loading">
-          <text>加载中...</text>
+          <text class="loading-icon">⏳</text>
+          <text class="loading-text">加载中...</text>
+        </view>
+
+        <view v-else-if="loadError" class="error-state">
+          <text class="error-icon">⚠️</text>
+          <text class="error-text">{{ loadError }}</text>
+          <button class="retry-btn" @click="retryLoad">
+            重试
+          </button>
         </view>
 
         <view v-else-if="blockedUsers.length === 0" class="empty">
@@ -187,7 +220,9 @@ export default {
       blockedUsers: [],
       searchQuery: '',
       loading: false,
-      processingRequest: null
+      refreshing: false,
+      processingRequest: null,
+      loadError: null
     }
   },
 
@@ -217,6 +252,8 @@ export default {
   methods: {
     async loadData() {
       this.loading = true
+      this.loadError = null
+
       try {
         await friendService.init()
         await Promise.all([
@@ -226,13 +263,67 @@ export default {
         ])
       } catch (error) {
         console.error('加载数据失败:', error)
+        this.loadError = error.message || '加载失败'
+
+        // 根据错误类型提供友好提示
+        let errorMsg = '加载失败，请稍后重试'
+        if (error.message) {
+          if (error.message.includes('网络') || error.message.includes('timeout')) {
+            errorMsg = '网络连接失败，请检查网络'
+          } else if (error.message.includes('database') || error.message.includes('数据库')) {
+            errorMsg = '数据库错误，请重启应用'
+          } else {
+            errorMsg = error.message
+          }
+        }
+
         uni.showToast({
-          title: '加载失败',
-          icon: 'none'
+          title: errorMsg,
+          icon: 'none',
+          duration: 2500
         })
       } finally {
         this.loading = false
       }
+    },
+
+    /**
+     * 下拉刷新
+     */
+    async onRefresh() {
+      this.refreshing = true
+
+      try {
+        await friendService.init()
+        await Promise.all([
+          this.loadFriends(),
+          this.loadPendingRequests(),
+          this.loadBlockedUsers()
+        ])
+
+        // 成功提示
+        uni.showToast({
+          title: '✓ 刷新成功',
+          icon: 'none',
+          duration: 1000
+        })
+      } catch (error) {
+        console.error('刷新失败:', error)
+        uni.showToast({
+          title: '刷新失败',
+          icon: 'none',
+          duration: 1500
+        })
+      } finally {
+        this.refreshing = false
+      }
+    },
+
+    /**
+     * 重试加载
+     */
+    retryLoad() {
+      this.loadData()
     },
 
     async loadFriends() {
@@ -264,23 +355,45 @@ export default {
     },
 
     async acceptRequest(request) {
+      // 防止重复点击
+      if (this.processingRequest === request.id) {
+        return
+      }
+
       this.processingRequest = request.id
 
       try {
         await friendService.acceptFriendRequest(request.id)
 
         uni.showToast({
-          title: '已接受好友请求',
-          icon: 'success'
+          title: '✓ 已接受好友请求',
+          icon: 'success',
+          duration: 1500
         })
 
         // 刷新数据
         await this.loadData()
       } catch (error) {
         console.error('接受好友请求失败:', error)
+
+        let errorMsg = '操作失败，请稍后重试'
+        if (error.message) {
+          if (error.message.includes('已接受') || error.message.includes('已是好友')) {
+            errorMsg = '该用户已是您的好友'
+            // 也刷新数据以同步状态
+            await this.loadData()
+          } else if (error.message.includes('不存在')) {
+            errorMsg = '请求已过期'
+            await this.loadPendingRequests()
+          } else {
+            errorMsg = error.message
+          }
+        }
+
         uni.showToast({
-          title: error.message || '操作失败',
-          icon: 'none'
+          title: errorMsg,
+          icon: 'none',
+          duration: 2000
         })
       } finally {
         this.processingRequest = null
@@ -288,23 +401,56 @@ export default {
     },
 
     async rejectRequest(request) {
+      // 防止重复点击
+      if (this.processingRequest === request.id) {
+        return
+      }
+
+      // 确认对话框
+      const confirm = await new Promise((resolve) => {
+        uni.showModal({
+          title: '确认拒绝',
+          content: '确定要拒绝该好友请求吗？',
+          success: (res) => {
+            resolve(res.confirm)
+          }
+        })
+      })
+
+      if (!confirm) {
+        return
+      }
+
       this.processingRequest = request.id
 
       try {
         await friendService.rejectFriendRequest(request.id)
 
         uni.showToast({
-          title: '已拒绝',
-          icon: 'success'
+          title: '✓ 已拒绝',
+          icon: 'success',
+          duration: 1500
         })
 
         // 刷新数据
         await this.loadPendingRequests()
       } catch (error) {
         console.error('拒绝好友请求失败:', error)
+
+        let errorMsg = '操作失败，请稍后重试'
+        if (error.message) {
+          if (error.message.includes('不存在')) {
+            errorMsg = '请求已过期'
+            await this.loadPendingRequests()
+          } else {
+            errorMsg = error.message
+          }
+        }
+
         uni.showToast({
-          title: error.message || '操作失败',
-          icon: 'none'
+          title: errorMsg,
+          icon: 'none',
+          duration: 2000
         })
       } finally {
         this.processingRequest = null
@@ -312,21 +458,51 @@ export default {
     },
 
     async unblockUser(blocked) {
+      // 确认对话框
+      const confirm = await new Promise((resolve) => {
+        uni.showModal({
+          title: '解除拉黑',
+          content: `确定要解除拉黑 ${this.formatDid(blocked.blockedDid)} 吗？`,
+          showCancel: true,
+          confirmText: '解除',
+          success: (res) => {
+            resolve(res.confirm)
+          }
+        })
+      })
+
+      if (!confirm) {
+        return
+      }
+
       try {
         await friendService.unblockUser(blocked.blockedDid)
 
         uni.showToast({
-          title: '已解除拉黑',
-          icon: 'success'
+          title: '✓ 已解除拉黑',
+          icon: 'success',
+          duration: 1500
         })
 
         // 刷新黑名单
         await this.loadBlockedUsers()
       } catch (error) {
         console.error('解除拉黑失败:', error)
+
+        let errorMsg = '操作失败，请稍后重试'
+        if (error.message) {
+          if (error.message.includes('不存在')) {
+            errorMsg = '该用户已不在黑名单中'
+            await this.loadBlockedUsers()
+          } else {
+            errorMsg = error.message
+          }
+        }
+
         uni.showToast({
-          title: error.message || '操作失败',
-          icon: 'none'
+          title: errorMsg,
+          icon: 'none',
+          duration: 2000
         })
       }
     },
@@ -528,26 +704,33 @@ export default {
 }
 
 .loading,
-.empty {
+.empty,
+.error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 120rpx 48rpx;
 
-  .empty-icon {
+  .loading-icon,
+  .empty-icon,
+  .error-icon {
     font-size: 96rpx;
     margin-bottom: 24rpx;
     opacity: 0.5;
   }
 
-  .empty-text {
+  .loading-text,
+  .empty-text,
+  .error-text {
     font-size: 28rpx;
     color: var(--text-secondary);
     margin-bottom: 32rpx;
+    text-align: center;
   }
 
-  .add-btn {
+  .add-btn,
+  .retry-btn {
     background: var(--bg-accent);
     color: var(--text-on-accent);
     border: none;
@@ -558,6 +741,26 @@ export default {
     &::after {
       border: none;
     }
+
+    &:active {
+      opacity: 0.8;
+    }
+  }
+
+  .retry-btn {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 2rpx solid var(--border-color);
+  }
+}
+
+.error-state {
+  .error-icon {
+    opacity: 0.7;
+  }
+
+  .error-text {
+    color: var(--color-error);
   }
 }
 
