@@ -43,22 +43,29 @@
         </button>
       </view>
 
-      <view class="friend-item" v-for="friend in displayList" :key="friend.friend_did">
-        <view class="avatar" @click="handleFriendAction(friend)">
+      <view class="friend-item" v-for="item in displayList" :key="item.id || item.friendDid">
+        <view class="avatar" @click="handleFriendAction(item)">
           <text>👤</text>
         </view>
-        <view class="info" @click="handleFriendAction(friend)">
-          <text class="nickname">{{ friend.nickname || friend.friend_did.substring(0, 12) + '...' }}</text>
-          <text class="did">DID: {{ friend.friend_did.substring(0, 20) }}...</text>
-          <text class="group" v-if="friend.group_name">📁 {{ friend.group_name }}</text>
+        <view class="info" @click="handleFriendAction(item)">
+          <template v-if="currentTab === 'pending'">
+            <text class="nickname">来自: {{ item.fromDid.substring(0, 20) }}...</text>
+            <text class="did">{{ item.message || '想添加你为好友' }}</text>
+            <text class="time">{{ formatTime(item.createdAt) }}</text>
+          </template>
+          <template v-else>
+            <text class="nickname">{{ item.nickname || item.friendDid.substring(0, 12) + '...' }}</text>
+            <text class="did">DID: {{ item.friendDid.substring(0, 20) }}...</text>
+            <text class="group" v-if="item.notes">📝 {{ item.notes }}</text>
+          </template>
         </view>
-        <view class="status">
-          <text class="status-badge" :class="'status-' + friend.status">
-            {{ getStatusText(friend.status) }}
+        <view class="status" v-if="currentTab === 'all'">
+          <text class="status-badge status-accepted">
+            已添加
           </text>
-          <text class="time">{{ formatTime(friend.created_at) }}</text>
+          <text class="time">{{ formatTime(item.createdAt) }}</text>
         </view>
-        <view class="more" @click="showFriendMenu(friend)" v-if="friend.status === 'accepted'">
+        <view class="more" @click="showFriendMenu(item)" v-if="currentTab === 'all'">
           <text>⋯</text>
         </view>
       </view>
@@ -115,7 +122,8 @@
 </template>
 
 <script>
-import { db } from '@/services/database'
+import friendsService from '@/services/friends'
+import didService from '@/services/did'
 
 export default {
   data() {
@@ -123,6 +131,7 @@ export default {
       searchQuery: '',
       currentTab: 'all',
       friends: [],
+      pendingRequests: [],
       loading: false,
       showModal: false,
       newFriend: {
@@ -130,77 +139,147 @@ export default {
         nickname: '',
         group: ''
       },
-      myDid: ''
+      myDid: '',
+      statistics: {
+        totalFriends: 0,
+        pendingReceivedCount: 0,
+        pendingSentCount: 0
+      }
     }
   },
   computed: {
     displayList() {
-      let list = this.friends
-
-      // 根据标签页筛选
+      // 根据标签页选择数据源
       if (this.currentTab === 'pending') {
-        list = list.filter(f => f.status === 'pending')
-      } else if (this.currentTab === 'all') {
-        list = list.filter(f => f.status === 'accepted')
-      }
+        let list = [...this.pendingRequests]
 
-      // 搜索筛选
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        list = list.filter(f =>
-          (f.nickname && f.nickname.toLowerCase().includes(query)) ||
-          f.friend_did.toLowerCase().includes(query) ||
-          (f.group_name && f.group_name.toLowerCase().includes(query))
-        )
-      }
+        // 搜索筛选
+        if (this.searchQuery) {
+          const query = this.searchQuery.toLowerCase()
+          list = list.filter(r =>
+            r.fromDid.toLowerCase().includes(query) ||
+            (r.message && r.message.toLowerCase().includes(query))
+          )
+        }
 
-      return list
+        return list
+      } else {
+        // 'all' - 显示已接受的好友
+        let list = [...this.friends]
+
+        // 搜索筛选
+        if (this.searchQuery) {
+          const query = this.searchQuery.toLowerCase()
+          list = list.filter(f =>
+            (f.nickname && f.nickname.toLowerCase().includes(query)) ||
+            f.friendDid.toLowerCase().includes(query) ||
+            (f.notes && f.notes.toLowerCase().includes(query))
+          )
+        }
+
+        return list
+      }
     },
     acceptedCount() {
-      return this.friends.filter(f => f.status === 'accepted').length
+      return this.statistics.totalFriends
     },
     pendingCount() {
-      return this.friends.filter(f => f.status === 'pending').length
+      return this.statistics.pendingReceivedCount
     }
   },
-  onLoad() {
-    this.initUserDid()
-    this.loadFriends()
+  async onLoad() {
+    await this.init()
   },
   onShow() {
     // 每次显示时刷新好友列表
-    this.loadFriends()
+    this.loadAll()
   },
   onPullDownRefresh() {
-    this.loadFriends().then(() => {
+    this.loadAll().then(() => {
       uni.stopPullDownRefresh()
     })
   },
   methods: {
     /**
-     * 初始化用户DID
+     * 初始化
      */
-    initUserDid() {
-      this.myDid = uni.getStorageSync('device_id') || 'did:chainless:user123'
+    async init() {
+      try {
+        // 初始化 friendsService
+        await friendsService.init()
+
+        // 获取当前用户DID
+        const identity = await didService.getCurrentIdentity()
+        if (identity) {
+          this.myDid = identity.did
+        }
+
+        // 加载数据
+        await this.loadAll()
+      } catch (error) {
+        console.error('初始化失败:', error)
+        uni.showToast({
+          title: '初始化失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * 加载所有数据
+     */
+    async loadAll() {
+      this.loading = true
+      try {
+        await Promise.all([
+          this.loadFriends(),
+          this.loadPendingRequests(),
+          this.loadStatistics()
+        ])
+      } catch (error) {
+        console.error('加载数据失败:', error)
+      } finally {
+        this.loading = false
+      }
     },
 
     /**
      * 加载好友列表
      */
     async loadFriends() {
-      this.loading = true
       try {
-        const friends = await db.getFriends('all')
-        this.friends = friends
-        console.log('加载好友列表:', friends.length)
+        this.friends = await friendsService.getFriends({
+          sort: 'createdAt'
+        })
+        console.log('加载好友列表:', this.friends.length)
       } catch (error) {
         console.error('加载好友列表失败:', error)
-        uni.showToast({
-          title: '加载失败',
-          icon: 'none'
-        })
-      } finally {
-        this.loading = false
+        this.friends = []
+      }
+    },
+
+    /**
+     * 加载待处理请求
+     */
+    async loadPendingRequests() {
+      try {
+        this.pendingRequests = await friendsService.getPendingRequests('received')
+        console.log('加载待处理请求:', this.pendingRequests.length)
+      } catch (error) {
+        console.error('加载待处理请求失败:', error)
+        this.pendingRequests = []
+      }
+    },
+
+    /**
+     * 加载统计信息
+     */
+    async loadStatistics() {
+      try {
+        this.statistics = await friendsService.getStatistics()
+        console.log('统计信息:', this.statistics)
+      } catch (error) {
+        console.error('加载统计信息失败:', error)
       }
     },
 
@@ -245,7 +324,7 @@ export default {
         return
       }
 
-      // 验证DID格式（简单验证）
+      // 验证DID格式
       if (!this.newFriend.did.startsWith('did:')) {
         uni.showToast({
           title: 'DID格式不正确',
@@ -264,11 +343,14 @@ export default {
       }
 
       try {
-        await db.addFriend(
-          this.myDid,
+        // 发送好友请求
+        const message = this.newFriend.nickname
+          ? `我是 ${this.newFriend.nickname}，想添加你为好友`
+          : '你好，我想添加你为好友'
+
+        await friendsService.sendFriendRequest(
           this.newFriend.did,
-          this.newFriend.nickname,
-          this.newFriend.group
+          message
         )
 
         uni.showToast({
@@ -279,10 +361,16 @@ export default {
         this.closeModal()
 
         // 刷新列表
-        await this.loadFriends()
+        await this.loadAll()
 
-        // 切换到待验证标签
-        this.switchTab('pending')
+        // 提示：由于没有P2P网络，对方无法实时收到请求
+        setTimeout(() => {
+          uni.showToast({
+            title: '注意：当前仅支持本地添加',
+            icon: 'none',
+            duration: 3000
+          })
+        }, 1500)
       } catch (error) {
         console.error('添加好友失败:', error)
         uni.showToast({
@@ -295,26 +383,26 @@ export default {
     /**
      * 好友操作（点击好友）
      */
-    handleFriendAction(friend) {
-      if (friend.status === 'pending') {
-        // 待验证好友，显示接受/拒绝对话框
+    handleFriendAction(item) {
+      if (this.currentTab === 'pending') {
+        // 这是一个待处理的好友请求
         uni.showModal({
           title: '好友请求',
-          content: `接受来自 ${friend.nickname || friend.friend_did.substring(0, 20)} 的好友请求？`,
+          content: `${item.message || '对方想添加你为好友'}`,
           cancelText: '拒绝',
           confirmText: '接受',
           success: (res) => {
             if (res.confirm) {
-              this.acceptFriend(friend)
+              this.acceptFriendRequest(item.id)
             } else if (res.cancel) {
-              this.rejectFriend(friend)
+              this.rejectFriendRequest(item.id)
             }
           }
         })
-      } else if (friend.status === 'accepted') {
-        // 已接受好友，跳转到聊天页面
+      } else {
+        // 这是已添加的好友，跳转到聊天页面
         uni.navigateTo({
-          url: `/pages/social/friend-chat/friend-chat?friendDid=${friend.friend_did}&nickname=${encodeURIComponent(friend.nickname || friend.friend_did)}`
+          url: `/pages/social/friend-chat/friend-chat?friendDid=${item.friendDid}&nickname=${encodeURIComponent(item.nickname || '')}`
         })
       }
     },
@@ -322,24 +410,24 @@ export default {
     /**
      * 接受好友请求
      */
-    async acceptFriend(friend) {
+    async acceptFriendRequest(requestId) {
       try {
-        await db.updateFriendStatus(this.myDid, friend.friend_did, 'accepted')
+        await friendsService.acceptFriendRequest(requestId)
 
         uni.showToast({
           title: '已添加好友',
           icon: 'success'
         })
 
-        // 刷新列表
-        await this.loadFriends()
+        // 刷新数据
+        await this.loadAll()
 
         // 切换到全部好友标签
         this.switchTab('all')
       } catch (error) {
-        console.error('接受好友失败:', error)
+        console.error('接受好友请求失败:', error)
         uni.showToast({
-          title: '操作失败',
+          title: error.message || '操作失败',
           icon: 'none'
         })
       }
@@ -348,21 +436,21 @@ export default {
     /**
      * 拒绝好友请求
      */
-    async rejectFriend(friend) {
+    async rejectFriendRequest(requestId) {
       try {
-        await db.deleteFriend(this.myDid, friend.friend_did)
+        await friendsService.rejectFriendRequest(requestId)
 
         uni.showToast({
           title: '已拒绝',
           icon: 'success'
         })
 
-        // 刷新列表
-        await this.loadFriends()
+        // 刷新数据
+        await this.loadAll()
       } catch (error) {
-        console.error('拒绝好友失败:', error)
+        console.error('拒绝好友请求失败:', error)
         uni.showToast({
-          title: '操作失败',
+          title: error.message || '操作失败',
           icon: 'none'
         })
       }
@@ -392,7 +480,7 @@ export default {
      */
     sendMessage(friend) {
       uni.navigateTo({
-        url: `/pages/social/friend-chat/friend-chat?friendDid=${friend.friend_did}&nickname=${encodeURIComponent(friend.nickname || friend.friend_did)}`
+        url: `/pages/social/friend-chat/friend-chat?friendDid=${friend.friendDid}&nickname=${encodeURIComponent(friend.nickname || '')}`
       })
     },
 
@@ -407,7 +495,7 @@ export default {
         success: async (res) => {
           if (res.confirm && res.content) {
             try {
-              await db.updateFriend(this.myDid, friend.friend_did, {
+              await friendsService.updateFriendInfo(friend.friendDid, {
                 nickname: res.content
               })
 
@@ -417,11 +505,11 @@ export default {
               })
 
               // 刷新列表
-              await this.loadFriends()
+              await this.loadAll()
             } catch (error) {
               console.error('修改备注失败:', error)
               uni.showToast({
-                title: '修改失败',
+                title: error.message || '修改失败',
                 icon: 'none'
               })
             }
@@ -436,8 +524,8 @@ export default {
     deleteFriendConfirm(friend) {
       uni.showModal({
         title: '删除好友',
-        content: `确定要删除好友 ${friend.nickname || friend.friend_did.substring(0, 20)} 吗？`,
-        confirmColor: 'var(--color-error)',
+        content: `确定要删除好友 ${friend.nickname || friend.friendDid.substring(0, 20)} 吗？`,
+        confirmColor: '#ff4d4f',
         success: async (res) => {
           if (res.confirm) {
             await this.deleteFriendAction(friend)
@@ -451,7 +539,7 @@ export default {
      */
     async deleteFriendAction(friend) {
       try {
-        await db.deleteFriend(this.myDid, friend.friend_did)
+        await friendsService.removeFriend(friend.friendDid)
 
         uni.showToast({
           title: '已删除',
@@ -459,11 +547,11 @@ export default {
         })
 
         // 刷新列表
-        await this.loadFriends()
+        await this.loadAll()
       } catch (error) {
         console.error('删除好友失败:', error)
         uni.showToast({
-          title: '删除失败',
+          title: error.message || '删除失败',
           icon: 'none'
         })
       }
