@@ -1,6 +1,21 @@
 <template>
   <div class="login-container">
     <a-card class="login-card">
+      <!-- 设置按钮 -->
+      <div class="settings-trigger">
+        <a-tooltip title="系统设置" placement="left">
+          <a-button
+            type="text"
+            shape="circle"
+            @click="showSettings = true"
+          >
+            <template #icon>
+              <SettingOutlined />
+            </template>
+          </a-button>
+        </a-tooltip>
+      </div>
+
       <a-space direction="vertical" :size="24" style="width: 100%">
         <!-- Logo和标题 -->
         <div class="login-header">
@@ -107,22 +122,32 @@
         </div>
       </a-space>
     </a-card>
+
+    <!-- 全局设置对话框 -->
+    <GlobalSettingsWizard
+      :visible="showSettings"
+      :canSkip="true"
+      @complete="handleSettingsComplete"
+      @cancel="showSettings = false"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
 import {
   LockOutlined,
   UsbOutlined,
   CheckCircleOutlined,
   InfoCircleOutlined,
   UserOutlined,
+  SettingOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { ukeyAPI, authAPI, systemAPI } from '../utils/ipc';
+import GlobalSettingsWizard from '../components/GlobalSettingsWizard.vue';
 
 const router = useRouter();
 const store = useAppStore();
@@ -132,6 +157,7 @@ const username = ref('');
 const password = ref('');
 const loading = ref(false);
 const ukeyStatus = ref({ detected: false, unlocked: false });
+const showSettings = ref(false);
 
 let checkInterval = null;
 
