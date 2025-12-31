@@ -68,7 +68,7 @@ class TemplateImporter {
 
       // 准备数据
       const id = template.id || uuidv4();
-      const now = new Date().toISOString();
+      const now = Date.now(); // Unix timestamp in milliseconds
 
       // 确保JSON字段为字符串
       const variablesSchema = typeof template.variables_schema === 'string'
@@ -127,14 +127,14 @@ class TemplateImporter {
         variablesSchema,
         fileStructure,
         defaultFiles,
-        template.is_builtin !== undefined ? template.is_builtin : 1,
+        template.is_builtin !== undefined ? (template.is_builtin ? 1 : 0) : 1,
         template.author || 'System',
         template.version || '1.0.0',
         template.usage_count || 0,
-        template.rating || 0,
+        template.rating || 0.0,
         template.rating_count || 0,
-        template.created_at || now,
-        template.updated_at || now,
+        template.created_at ? (typeof template.created_at === 'number' ? template.created_at : Date.parse(template.created_at)) : now,
+        template.updated_at ? (typeof template.updated_at === 'number' ? template.updated_at : Date.parse(template.updated_at)) : now,
         template.sync_status || 'synced',
         0, // deleted = 0
         requiredSkills,
