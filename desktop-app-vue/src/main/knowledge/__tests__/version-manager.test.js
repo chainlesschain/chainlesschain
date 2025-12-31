@@ -109,7 +109,7 @@ describe('KnowledgeVersionManager', () => {
 
       expect(result.success).toBe(true);
       expect(result.versionId).toBeDefined();
-      expect(result.version).toBe(2); // 第一个版本是1，这是第二个版本
+      expect(result.version).toBe(1); // 第一个版本快照
     });
 
     test('应该正确保存版本内容快照', async () => {
