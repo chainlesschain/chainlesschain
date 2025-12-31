@@ -133,6 +133,43 @@
         </view>
       </view>
 
+      <!-- 后端同步设置 -->
+      <view class="section">
+        <view class="section-header">
+          <text class="section-title">☁️ 后端同步</text>
+        </view>
+        <view class="sync-settings">
+          <view class="setting-item">
+            <view class="setting-left">
+              <text class="setting-label">自动同步到后端</text>
+              <text class="setting-desc">新增/修改知识时自动同步到向量数据库</text>
+            </view>
+            <switch :checked="autoSync" @change="toggleAutoSync" color="#3cc51f" />
+          </view>
+
+          <view class="setting-item">
+            <view class="setting-left">
+              <text class="setting-label">待同步数量</text>
+              <text class="setting-desc">还有 {{ pendingSyncCount }} 个知识待同步</text>
+            </view>
+            <button
+              class="sync-btn"
+              size="mini"
+              @click="manualSync"
+              :disabled="syncingPending || pendingSyncCount === 0"
+            >
+              {{ syncingPending ? '同步中...' : '立即同步' }}
+            </button>
+          </view>
+
+          <view class="setting-item" v-if="lastSyncResult">
+            <view class="sync-result">
+              <text class="result-text">上次同步：成功 {{ lastSyncResult.success }} 个，失败 {{ lastSyncResult.failed }} 个</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
       <!-- 空状态 -->
       <view class="empty" v-if="stats.total === 0">
         <text class="empty-icon">📊</text>
@@ -156,7 +193,12 @@ export default {
         byTag: [],
         recentActivity: [],
         creationTrend: []
-      }
+      },
+      // 同步设置
+      autoSync: true,
+      pendingSyncCount: 0,
+      syncingPending: false,
+      lastSyncResult: null
     }
   },
   computed: {
@@ -181,6 +223,8 @@ export default {
   },
   onLoad() {
     this.loadStatistics()
+    this.loadSyncSettings()
+    this.loadPendingSyncCount()
   },
   onPullDownRefresh() {
     this.loadStatistics()
@@ -257,6 +301,96 @@ export default {
       uni.navigateTo({
         url: `/pages/knowledge/detail/detail?id=${id}`
       })
+    },
+
+    /**
+     * 加载同步设置
+     */
+    loadSyncSettings() {
+      const saved = uni.getStorageSync('knowledge_auto_sync')
+      this.autoSync = saved !== false // 默认true
+    },
+
+    /**
+     * 加载待同步数量
+     */
+    async loadPendingSyncCount() {
+      try {
+        const items = await db.getKnowledgeItems({
+          sync_status: ['pending', 'failed'],
+          limit: 1000
+        })
+        this.pendingSyncCount = items ? items.length : 0
+      } catch (error) {
+        console.error('加载待同步数量失败:', error)
+        this.pendingSyncCount = 0
+      }
+    },
+
+    /**
+     * 切换自动同步
+     */
+    toggleAutoSync(e) {
+      this.autoSync = e.detail.value
+      uni.setStorageSync('knowledge_auto_sync', this.autoSync)
+
+      uni.showToast({
+        title: this.autoSync ? '已启用自动同步' : '已禁用自动同步',
+        icon: 'none',
+        duration: 1500
+      })
+    },
+
+    /**
+     * 手动同步
+     */
+    async manualSync() {
+      if (this.syncingPending || this.pendingSyncCount === 0) {
+        return
+      }
+
+      this.syncingPending = true
+
+      try {
+        uni.showLoading({
+          title: '同步中...',
+          mask: true
+        })
+
+        const result = await db.syncPendingKnowledgeToBackend()
+
+        this.lastSyncResult = result
+        this.pendingSyncCount = result.failed
+
+        uni.hideLoading()
+
+        if (result.success > 0) {
+          uni.showToast({
+            title: `同步完成！成功 ${result.success} 个`,
+            icon: 'success',
+            duration: 2000
+          })
+        } else if (result.failed > 0) {
+          uni.showToast({
+            title: `同步失败 ${result.failed} 个`,
+            icon: 'none',
+            duration: 2000
+          })
+        }
+
+        // 重新加载统计数据
+        await this.loadStatistics()
+      } catch (error) {
+        console.error('手动同步失败:', error)
+        uni.hideLoading()
+        uni.showToast({
+          title: '同步失败: ' + error.message,
+          icon: 'none',
+          duration: 2000
+        })
+      } finally {
+        this.syncingPending = false
+      }
     }
   }
 }
@@ -558,6 +692,72 @@ export default {
       font-size: 20px;
       color: var(--text-tertiary);
       flex-shrink: 0;
+    }
+  }
+}
+
+// 同步设置
+.sync-settings {
+  .setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24rpx 0;
+    border-bottom: 1rpx solid var(--border-color);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .setting-left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8rpx;
+
+      .setting-label {
+        font-size: 15px;
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+
+      .setting-desc {
+        font-size: 12px;
+        color: var(--text-tertiary);
+      }
+    }
+
+    .sync-btn {
+      padding: 8rpx 24rpx;
+      height: auto;
+      line-height: 1.5;
+      font-size: 13px;
+      border-radius: 20rpx;
+      background-color: var(--color-primary);
+      color: white;
+      border: none;
+
+      &::after {
+        border: none;
+      }
+
+      &[disabled] {
+        background-color: var(--bg-input);
+        color: var(--text-tertiary);
+      }
+    }
+
+    .sync-result {
+      width: 100%;
+      padding: 16rpx;
+      background-color: var(--bg-success-light);
+      border-radius: 12rpx;
+      border-left: 4rpx solid var(--color-success);
+
+      .result-text {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
     }
   }
 }

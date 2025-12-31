@@ -36,24 +36,15 @@
       </view>
 
       <view v-else class="message-list">
-        <view
+        <!-- 使用 MessageBubble 组件渲染消息 -->
+        <MessageBubble
           v-for="(msg, index) in messages"
           :key="msg.id"
           :id="'msg-' + index"
-          class="message-wrapper"
-          :class="{ 'is-user': msg.role === 'user' }"
-        >
-          <view class="message-bubble">
-            <view class="message-header">
-              <text class="message-role">{{ msg.role === 'user' ? '你' : 'AI' }}</text>
-              <text class="message-time">{{ formatTime(msg.createdAt) }}</text>
-            </view>
-            <text class="message-content">{{ msg.content }}</text>
-            <view class="message-footer" v-if="msg.tokens">
-              <text class="message-tokens">{{ msg.tokens }} tokens</text>
-            </view>
-          </view>
-        </view>
+          :message="msg"
+          :is-mine="msg.role === 'user'"
+          @longpress="showMessageMenu(msg)"
+        />
 
         <!-- AI正在输入指示器 -->
         <view v-if="aiTyping" class="message-wrapper" id="typing-indicator">
@@ -72,17 +63,13 @@
     <view class="input-area">
       <!-- 快捷操作 -->
       <view class="quick-actions" v-if="showQuickActions">
-        <view class="action-item" @click="useKnowledgeBase">
+        <view class="action-item" @click="toggleKnowledgeBase">
           <text class="action-icon">📚</text>
-          <text class="action-text">知识库</text>
+          <text class="action-text">{{ useKnowledge ? '关闭知识库' : '知识库' }}</text>
         </view>
         <view class="action-item" @click="showPrompts">
           <text class="action-icon">💡</text>
           <text class="action-text">提示词</text>
-        </view>
-        <view class="action-item" @click="showHistory">
-          <text class="action-icon">🕐</text>
-          <text class="action-text">历史</text>
         </view>
       </view>
 
@@ -95,6 +82,7 @@
             placeholder="输入消息..."
             :auto-height="true"
             :maxlength="2000"
+            :disabled="sending"
             @focus="showQuickActions = false"
             @blur="handleInputBlur"
           />
@@ -143,9 +131,12 @@
 
 <script>
 import aiConversationService from '@/services/ai-conversation'
-import knowledgeRAGService from '@/services/knowledge-rag'
+import MessageBubble from '../components/MessageBubble.vue'
 
 export default {
+  components: {
+    MessageBubble
+  },
   data() {
     return {
       conversationId: '',
@@ -227,16 +218,46 @@ export default {
       this.aiTyping = true
 
       try {
-        // 使用知识库增强查询
-        const result = this.useKnowledge
-          ? await this.sendWithKnowledge(message)
-          : await this.sendNormal(message)
-
-        // 重新加载消息
-        await this.loadMessages()
-
-        // 滚动到底部
+        // 添加用户消息到界面（临时）
+        const tempUserMsg = {
+          id: `temp_user_${Date.now()}`,
+          role: 'user',
+          content: message,
+          createdAt: new Date().toISOString()
+        }
+        this.messages.push(tempUserMsg)
         this.scrollToBottom()
+
+        // 添加AI消息占位符
+        const tempAIMsg = {
+          id: `temp_ai_${Date.now()}`,
+          role: 'assistant',
+          content: '',
+          createdAt: new Date().toISOString()
+        }
+        this.messages.push(tempAIMsg)
+        this.scrollToBottom()
+
+        // 选择发送方法（RAG增强 or 普通）
+        const sendMethod = this.useKnowledge
+          ? aiConversationService.sendMessageWithRAG
+          : aiConversationService.sendMessageStream
+
+        // 流式发送消息
+        await sendMethod.call(
+          aiConversationService,
+          this.conversationId,
+          message,
+          (chunk) => {
+            // 实时更新AI消息内容
+            tempAIMsg.content += chunk
+            this.$forceUpdate()  // 强制更新视图
+            this.scrollToBottom()
+          }
+        )
+
+        // 完成后重新加载消息（从数据库获取持久化数据）
+        await this.loadMessages()
 
         // 自动生成标题（如果是第一条消息）
         if (this.messages.length === 2 && this.conversation.title === '新对话') {
@@ -248,62 +269,14 @@ export default {
           title: '发送失败: ' + error.message,
           icon: 'none'
         })
+
+        // 移除临时消息
+        this.messages = this.messages.filter(
+          m => !m.id.startsWith('temp_')
+        )
       } finally {
         this.sending = false
         this.aiTyping = false
-      }
-    },
-
-    async sendNormal(message) {
-      return await aiConversationService.sendMessage(
-        this.conversationId,
-        message
-      )
-    },
-
-    async sendWithKnowledge(message) {
-      try {
-        // 使用RAG服务
-        const response = await knowledgeRAGService.chat(
-          message,
-          this.messages.slice(-5).map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          {
-            useKnowledgeBase: true,
-            temperature: this.conversation.temperature
-          }
-        )
-
-        // 保存用户消息
-        const userMessage = {
-          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          conversationId: this.conversationId,
-          role: 'user',
-          content: message,
-          createdAt: new Date().toISOString()
-        }
-
-        // 保存AI回复
-        const assistantMessage = {
-          id: `msg_${Date.now() + 1}_${Math.random().toString(36).substr(2, 9)}`,
-          conversationId: this.conversationId,
-          role: 'assistant',
-          content: response.answer,
-          model: response.model,
-          tokens: response.tokens,
-          createdAt: new Date().toISOString()
-        }
-
-        // 手动保存到数据库
-        // TODO: 需要在 ai-conversation 服务中添加直接保存消息的方法
-        this.messages.push(userMessage, assistantMessage)
-
-        return { userMessage, assistantMessage }
-      } catch (error) {
-        // 降级到普通发送
-        return await this.sendNormal(message)
       }
     },
 
@@ -384,6 +357,7 @@ export default {
     toggleKnowledgeBase() {
       this.useKnowledge = !this.useKnowledge
       this.showMenu = false
+      this.showQuickActions = false
 
       uni.showToast({
         title: this.useKnowledge ? '已启用知识库' : '已关闭知识库',
@@ -419,30 +393,44 @@ export default {
       })
     },
 
+    showMessageMenu(msg) {
+      uni.showActionSheet({
+        itemList: ['复制消息', '删除消息'],
+        success: (res) => {
+          if (res.tapIndex === 0) {
+            // 复制消息
+            uni.setClipboardData({
+              data: msg.content,
+              success: () => {
+                uni.showToast({ title: '已复制', icon: 'success' })
+              }
+            })
+          } else if (res.tapIndex === 1) {
+            // 删除消息
+            uni.showModal({
+              title: '删除消息',
+              content: '确定要删除这条消息吗？',
+              success: async (modalRes) => {
+                if (modalRes.confirm) {
+                  // TODO: 实现单条消息删除功能
+                  uni.showToast({
+                    title: '功能开发中',
+                    icon: 'none'
+                  })
+                }
+              }
+            })
+          }
+        }
+      })
+    },
+
     toggleQuickActions() {
       this.showQuickActions = !this.showQuickActions
     },
 
-    useKnowledgeBase() {
-      this.useKnowledge = !this.useKnowledge
-      this.showQuickActions = false
-      uni.showToast({
-        title: this.useKnowledge ? '已启用知识库' : '已关闭知识库',
-        icon: 'none'
-      })
-    },
-
     showPrompts() {
       // TODO: 显示提示词模板
-      this.showQuickActions = false
-      uni.showToast({
-        title: '功能开发中',
-        icon: 'none'
-      })
-    },
-
-    showHistory() {
-      // TODO: 显示历史消息
       this.showQuickActions = false
       uni.showToast({
         title: '功能开发中',
@@ -479,16 +467,6 @@ export default {
       if (model.includes('qwen')) return '通义千问'
       if (model.includes('doubao')) return '豆包'
       return model
-    },
-
-    formatTime(timestamp) {
-      if (!timestamp) return ''
-
-      const date = new Date(timestamp)
-      return date.toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
     }
   }
 }
@@ -608,91 +586,20 @@ export default {
 .message-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.message-wrapper {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.message-wrapper.is-user {
-  justify-content: flex-end;
-}
-
-.message-bubble {
-  max-width: 75%;
-  background: white;
-  border-radius: 16px;
-  padding: 12px 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.message-wrapper.is-user .message-bubble {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.message-role {
-  font-size: 12px;
-  font-weight: 600;
-  color: #666;
-}
-
-.message-wrapper.is-user .message-role {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.message-time {
-  font-size: 11px;
-  color: #999;
-}
-
-.message-wrapper.is-user .message-time {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.message-content {
-  font-size: 15px;
-  line-height: 1.6;
-  color: #333;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.message-wrapper.is-user .message-content {
-  color: white;
-}
-
-.message-footer {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.message-wrapper.is-user .message-footer {
-  border-top-color: rgba(255, 255, 255, 0.2);
-}
-
-.message-tokens {
-  font-size: 11px;
-  color: #999;
-}
-
-.message-wrapper.is-user .message-tokens {
-  color: rgba(255, 255, 255, 0.7);
 }
 
 /* AI正在输入 */
+.message-wrapper {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+
 .message-bubble.typing {
   padding: 16px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .typing-dots {

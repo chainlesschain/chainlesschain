@@ -7,10 +7,13 @@
           class="search-input"
           type="text"
           v-model="searchQuery"
-          placeholder="搜索知识库..."
+          :placeholder="searchMode === 'smart' ? '智能搜索...' : '搜索知识库...'"
           @input="handleSearch"
         />
         <text class="search-icon">🔍</text>
+        <view class="search-mode-btn" @click="toggleSearchMode" v-if="searchQuery">
+          <text class="mode-icon">{{ searchMode === 'smart' ? '🧠' : '📝' }}</text>
+        </view>
       </view>
       <view class="folder-btn" @click="goToFolders">
         <text class="folder-icon">📁</text>
@@ -72,8 +75,17 @@
       <view class="item" v-for="item in items" :key="item.id" @click="goToDetail(item.id)">
         <view class="item-header">
           <text class="item-title">{{ item.title }}</text>
-          <text class="favorite-icon" v-if="item.is_favorite" @click.stop="toggleItemFavorite(item)">⭐</text>
-          <text class="favorite-icon-empty" v-else @click.stop="toggleItemFavorite(item)">☆</text>
+          <view class="item-badges">
+            <!-- RAG相关性分数 -->
+            <text class="relevance-score" v-if="item.score && searchMode === 'smart'">
+              {{ (item.score * 100).toFixed(0) }}%
+            </text>
+            <!-- 检索来源标记 -->
+            <text class="source-badge" v-if="item.source === 'backend_vector'">🧠</text>
+            <text class="source-badge" v-if="item.source === 'local_keyword'">📝</text>
+            <text class="favorite-icon" v-if="item.is_favorite" @click.stop="toggleItemFavorite(item)">⭐</text>
+            <text class="favorite-icon-empty" v-else @click.stop="toggleItemFavorite(item)">☆</text>
+          </view>
         </view>
         <text class="item-content">{{ item.content }}</text>
         <view class="item-footer">
@@ -171,11 +183,13 @@
 
 <script>
 import { db } from '@/services/database'
+import knowledgeRAG from '@/services/knowledge-rag'
 
 export default {
   data() {
     return {
       searchQuery: '',
+      searchMode: 'simple', // 'simple' 或 'smart'
       items: [],
       tags: [],
       itemTags: {}, // 每个知识项的标签
@@ -185,7 +199,8 @@ export default {
       showFilterModal: false,
       sortBy: 'updated',
       filterType: null,
-      currentFolderId: null // 当前文件夹ID筛选
+      currentFolderId: null, // 当前文件夹ID筛选
+      ragServiceStatus: null // RAG服务状态
     }
   },
   computed: {
@@ -293,8 +308,110 @@ export default {
       // 防抖搜索
       clearTimeout(this.searchTimer)
       this.searchTimer = setTimeout(() => {
-        this.loadItems()
+        if (this.searchMode === 'smart' && this.searchQuery.trim()) {
+          this.performSmartSearch()
+        } else {
+          this.loadItems()
+        }
       }, 300)
+    },
+
+    /**
+     * 智能搜索（RAG向量检索）
+     */
+    async performSmartSearch() {
+      if (!this.searchQuery.trim()) {
+        this.loadItems()
+        return
+      }
+
+      this.loading = true
+      try {
+        // 使用RAG检索
+        const results = await knowledgeRAG.retrieve(this.searchQuery, {
+          limit: 20,
+          includeContent: true,
+          includeTags: true,
+          useBackend: true, // 优先使用后端
+          useReranker: true // 使用重排序
+        })
+
+        console.log('[智能搜索] 检索到结果:', results.length)
+
+        // 转换格式以匹配现有UI
+        this.items = results.map(r => ({
+          id: r.id,
+          title: r.title,
+          content: r.content || '',
+          type: r.type,
+          score: r.score, // 相关性分数
+          source: r.source, // 检索来源（backend_vector 或 local_keyword）
+          is_favorite: r.is_favorite || 0,
+          created_at: r.createdAt,
+          updated_at: r.updatedAt || r.createdAt
+        }))
+
+        // 加载标签
+        await this.loadItemTags()
+
+        // 显示搜索模式提示
+        if (results.length > 0 && results[0].source === 'backend_vector') {
+          uni.showToast({
+            title: `智能检索: ${results.length}个结果`,
+            icon: 'none',
+            duration: 1500
+          })
+        }
+      } catch (error) {
+        console.error('[智能搜索] 失败:', error)
+        uni.showToast({
+          title: '智能搜索失败，使用普通搜索',
+          icon: 'none'
+        })
+        // 降级到普通搜索
+        this.searchMode = 'simple'
+        this.loadItems()
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * 切换搜索模式
+     */
+    async toggleSearchMode() {
+      this.searchMode = this.searchMode === 'simple' ? 'smart' : 'simple'
+
+      // 如果切换到智能模式，检查后端可用性
+      if (this.searchMode === 'smart') {
+        const status = await knowledgeRAG.getServiceStatus()
+        this.ragServiceStatus = status
+
+        if (!status.backend.available) {
+          uni.showModal({
+            title: '智能搜索提示',
+            content: '后端AI服务不可用，将使用本地关键词检索。',
+            showCancel: false
+          })
+        } else {
+          uni.showToast({
+            title: '智能搜索模式',
+            icon: 'none',
+            duration: 1000
+          })
+        }
+      } else {
+        uni.showToast({
+          title: '普通搜索模式',
+          icon: 'none',
+          duration: 1000
+        })
+      }
+
+      // 如果有搜索内容，重新搜索
+      if (this.searchQuery.trim()) {
+        this.handleSearch()
+      }
     },
 
     /**
@@ -479,6 +596,23 @@ export default {
       transform: translateY(-50%);
       font-size: 16px;
     }
+
+    .search-mode-btn {
+      position: absolute;
+      right: 60rpx;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 8rpx 16rpx;
+      background-color: var(--bg-success-light);
+      border-radius: 20rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .mode-icon {
+        font-size: 14px;
+      }
+    }
   }
 
   .folder-btn {
@@ -633,20 +767,39 @@ export default {
       color: var(--text-primary);
     }
 
-    .favorite-icon,
-    .favorite-icon-empty {
-      font-size: 18px;
-      margin-left: 16rpx;
-      padding: 8rpx;
-    }
+    .item-badges {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
 
-    .favorite-icon {
-      color: var(--color-favorite);
-    }
+      .relevance-score {
+        font-size: 11px;
+        padding: 4rpx 12rpx;
+        background-color: var(--color-primary);
+        color: var(--text-inverse);
+        border-radius: 12rpx;
+        font-weight: 500;
+      }
 
-    .favorite-icon-empty {
-      color: var(--text-tertiary);
-      opacity: 0.5;
+      .source-badge {
+        font-size: 12px;
+        padding: 2rpx 6rpx;
+      }
+
+      .favorite-icon,
+      .favorite-icon-empty {
+        font-size: 18px;
+        padding: 8rpx;
+      }
+
+      .favorite-icon {
+        color: var(--color-favorite);
+      }
+
+      .favorite-icon-empty {
+        color: var(--text-tertiary);
+        opacity: 0.5;
+      }
     }
   }
 
