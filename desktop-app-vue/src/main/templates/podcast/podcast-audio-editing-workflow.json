@@ -1,0 +1,36 @@
+{
+  "id": "tpl_podcast_editing_005",
+  "name": "podcast_audio_editing_workflow",
+  "display_name": "播客音频剪辑流程",
+  "description": "专业的播客音频后期制作流程，从粗剪到精剪到发布",
+  "icon": "🎧",
+  "category": "podcast",
+  "subcategory": "production",
+  "tags": ["音频剪辑", "后期制作", "工作流程"],
+  "project_type": "document",
+  "prompt_template": "播客音频剪辑流程\n\n**项目信息：**\n- 节目名称：{{podcastName}}\n- 集数：{{episodeNumber}}\n- 原始时长：{{rawDuration}}分钟\n- 目标时长：{{targetDuration}}分钟\n\n# 音频剪辑：{{episodeNumber}}\n\n## 文件管理\n\n**项目文件夹结构：**\n```\n{{episodeNumber}}-{{episodeTitle}}/\n├── 01-原始录音/\n│   ├── 主播轨道.wav\n│   ├── 嘉宾轨道.wav (如有)\n│   └── 备份录音.wav\n├── 02-粗剪版本/\n├── 03-精剪版本/\n├── 04-混音版本/\n├── 05-最终导出/\n│   ├── {{episodeNumber}}-main.mp3\n│   └── {{episodeNumber}}-aac.m4a\n├── 素材/\n│   ├── 片头音乐.wav\n│   ├── 片尾音乐.wav\n│   └── 背景音乐/\n└── 项目文件/\n    └── {{episodeNumber}}.aup3 (Audacity)\n```\n\n**命名规范：**\n- 集数-标题-版本号\n- 例：S01E05-职场沟通-v3.mp3\n\n## 剪辑流程\n\n### 第1步：导入与整理 (5分钟)\n\n**导入音频：**\n- 打开{{editingSoftware}}\n- 导入所有轨道\n- 检查音频完整性\n- 同步多轨（如有）\n\n**项目设置：**\n- 采样率：48000 Hz\n- 位深：24 bit\n- 项目帧率：与原始文件一致\n\n**备份：**\n- 保存项目文件\n- 设置自动保存（每5分钟）\n\n### 第2步：粗剪 (30-60分钟)\n\n**目标：**删除明显问题，缩短至合理时长\n\n**删除内容：**\n- [ ] 开头闲聊（录制前）\n- [ ] 结尾闲聊（录制后）\n- [ ] 明显口误并重录的部分\n- [ ] 长时间沉默（>5秒）\n- [ ] 离题太远的内容\n- [ ] 不当言论/敏感内容\n\n**工具使用：**\n- 标记功能（M键）标注问题点\n- 快捷键：Cmd/Ctrl+K 分割\n- 删除：选中+Delete\n\n**注意事项：**\n- 保留自然停顿\n- 不要删得太碎\n- 保留笑声和叹息（真实感）\n\n**粗剪后时长：**{{roughCutDuration}}分钟\n\n**保存：**另存为"02-粗剪版本"\n\n### 第3步：精剪 (60-90分钟)\n\n**目标：**优化内容流程，提升听感\n\n**内容优化：**\n- 删除重复表述\n- 缩短啰嗦段落\n- 优化问答顺序（如需要）\n- 删除口头禅过多部分\n\n**常见口头禅处理：**\n- \"嗯\"、\"啊\"、\"那个\" - 适度删除\n- 保留部分以保持自然\n- 不要删得太干净（会显得不真实）\n\n**呼吸声处理：**\n- 过大的呼吸声：降低音量or删除\n- 正常呼吸：保留\n\n**时长控制：**\n- 目标：{{targetDuration}}分钟\n- 误差：±2分钟\n\n**保存：**另存为"03-精剪版本"\n\n### 第4步：音频修复 (30分钟)\n\n**降噪处理：**\n{{#eq editingSoftware \"Adobe Audition\"}}\n1. 选择噪音样本（3-5秒无人声段）\n2. Effect → Noise Reduction/Restoration → Noise Reduction\n3. 捕获噪音配置文件\n4. 应用到全轨道\n5. 降噪强度：60-70%\n{{/eq}}\n\n{{#eq editingSoftware \"Audacity\"}}\n1. 选择背景噪音样本\n2. Effect → Noise Reduction\n3. Get Noise Profile\n4. 选择全部音频\n5. Effect → Noise Reduction → OK\n{{/eq}}\n\n**去除咔嗒声：**\n- Effect → Click Removal\n- 检查并手动修复\n\n**去除齿音：**\n- EQ衰减6-8kHz\n- 或使用De-esser插件\n\n### 第5步：音量平衡 (20分钟)\n\n**标准化音量：**\n- 目标响度：-16 LUFS（播客标准）\n- 峰值：-3dB\n\n**多轨平衡：**\n- 主播轨道：0dB\n- 嘉宾轨道：根据实际调整\n- 确保音量一致\n\n**压缩器设置：**\n- Threshold：-20dB\n- Ratio：3:1\n- Attack：10ms\n- Release：100ms\n\n**限制器：**\n- 输出峰值：-1dB\n- 防止过载\n\n### 第6步：添加音乐与音效 (30分钟)\n\n**片头音乐 (0:00-0:30)：**\n- 导入片头音乐\n- 淡入3秒\n- 音量：-18dB（不遮盖人声）\n- 在主播开场时淡出\n\n**转场音效（可选）：**\n- Part之间添加音效分隔\n- 时长：2-3秒\n- 音量：-15dB\n\n**背景音乐（可选）：**\n- 在特定段落添加\n- 音量：-25dB（非常轻）\n- 不要贯穿全程\n\n**片尾音乐：**\n- 在最后30秒开始淡入\n- 主播说完后全音量\n- 淡出结束\n\n**版权音乐库：**\n- {{musicLibrary1}}\n- {{musicLibrary2}}\n- Epidemic Sound\n- Artlist\n\n### 第7步：最终混音 (20分钟)\n\n**EQ调整：**\n\n**人声EQ：**\n- 高通滤波器：80Hz（去低频噪音）\n- 提升：3kHz (+2dB，清晰度）\n- 衰减：6-8kHz（-2dB，齿音）\n\n**整体EQ：**\n- 让声音温暖饱满\n- 避免过度处理\n\n**立体声处理：**\n- 保持单声道或轻度立体\n- 播客不需要太宽的立体声\n\n**最终检查：**\n- [ ] 全程播放检查\n- [ ] 音量是否一致\n- [ ] 有无爆音\n- [ ] 转场是否平滑\n- [ ] 音乐是否合适\n\n### 第8步：导出 (10分钟)\n\n**主版本：MP3**\n- 格式：MP3\n- 比特率：192-320 kbps\n- 采样率：44.1 kHz\n- 声道：立体声\n- 元数据：\n  - 标题：{{episodeTitle}}\n  - 艺术家：{{podcastName}}\n  - 专辑：Season {{seasonNumber}}\n  - 曲目号：{{trackNumber}}\n  - 封面图：嵌入\n\n**备用版本：AAC**\n- 格式：M4A (AAC)\n- 比特率：128 kbps\n- 用于移动端/流媒体\n\n**文件大小预估：**\n- MP3 320kbps：~2.4MB/分钟\n- {{targetDuration}}分钟 ≈ {{estimatedFileSize}}MB\n\n**命名：**\n{{episodeNumber}}-{{shortTitle}}-{{publishDate}}.mp3\n\n## 质量检查清单\n\n**内容审核：**\n- [ ] 无敏感/违规内容\n- [ ] 事实准确\n- [ ] 无明显口误\n- [ ] 逻辑流畅\n\n**技术质量：**\n- [ ] 无背景噪音\n- [ ] 音量一致\n- [ ] 无爆音/失真\n- [ ] 音乐音效合适\n- [ ] 片头片尾完整\n\n**时长：**\n- [ ] 符合目标时长\n- [ ] 节奏把控合理\n\n**元数据：**\n- [ ] 标题正确\n- [ ] 封面图嵌入\n- [ ] ID3标签完整\n\n## 时间轴制作\n\n**作用：**方便听众跳转\n\n**格式：**\n```\n00:00 片头\n02:15 嘉宾介绍\n05:30 Part 1: {{part1Title}}\n18:45 Part 2: {{part2Title}}\n35:20 Part 3: {{part3Title}}\n48:10 快问快答\n52:00 结尾\n```\n\n**工具：**手动记录or使用Descript自动生成\n\n## 文字稿（可选）\n\n**AI转录：**\n- 使用{{transcriptionTool}}\n- 准确率：~95%\n- 需人工校对\n\n**校对重点：**\n- 专业术语\n- 人名地名\n- 数字\n\n**发布：**\n- 官网/公众号\n- 方便听众搜索\n- SEO优化\n\n## 备份策略\n\n**本地备份：**\n- 外置硬盘\n- 每周备份\n\n**云备份：**\n- Google Drive/百度网盘\n- 自动同步\n\n**保留期限：**\n- 原始录音：永久保留\n- 项目文件：1年\n- 中间版本：3个月\n\n## 效率提升技巧\n\n**快捷键：**\n- 播放/暂停：空格\n- 分割：Cmd+K\n- 删除：Delete\n- 撤销：Cmd+Z\n\n**模板：**\n- 保存项目模板\n- 预设EQ/压缩器\n- 片头片尾模板\n\n**批处理：**\n- 多集同时处理\n- 统一设置\n\n**外包：**\n- 如预算允许\n- 专业剪辑师\n- 成本：¥{{editingCost}}/小时\n\n## 常见问题解决\n\n**问题1：音量忽大忽小**\n→ 使用压缩器\n\n**问题2：背景噪音大**\n→ 降噪处理，降噪强度不要超过80%\n\n**问题3：齿音重**\n→ De-esser插件or手动EQ\n\n**问题4：音质闷**\n→ 提升3-5kHz\n\n**问题5：回声**\n→ 录音环境问题，后期很难完全消除\n\n## 发布前最终核对\n\n- [ ] 最终版本无误\n- [ ] 文件格式正确\n- [ ] 元数据完整\n- [ ] 文件大小合适\n- [ ] 时间轴准确\n- [ ] 备份完成",
+  "variables_schema": [
+    {"name": "podcastName", "label": "播客名称", "type": "string", "required": true},
+    {"name": "episodeNumber", "label": "集数编号", "type": "string", "required": false},
+    {"name": "rawDuration", "label": "原始时长（分钟）", "type": "number", "required": false},
+    {"name": "targetDuration", "label": "目标时长（分钟）", "type": "number", "required": false, "default": 45},
+    {"name": "editingSoftware", "label": "剪辑软件", "type": "select", "required": false, "options": [
+      {"value": "Adobe Audition", "label": "Adobe Audition"},
+      {"value": "Audacity", "label": "Audacity（免费）"},
+      {"value": "Logic Pro", "label": "Logic Pro"},
+      {"value": "Descript", "label": "Descript"},
+      {"value": "Reaper", "label": "Reaper"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "剪辑-{{episodeNumber}}",
+    "files": [
+      {"path": "剪辑流程.md", "type": "markdown"},
+      {"path": "质量检查清单.md", "type": "markdown"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

@@ -6,30 +6,87 @@
   "icon": "🎙️",
   "category": "podcast",
   "subcategory": "production",
-  "tags": ["播客", "音频", "节目制作"],
+  "tags": [
+    "播客",
+    "音频",
+    "节目制作"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我制定播客制作计划：\n\n**节目信息：**\n- 节目名称：{{podcastName}}\n- 本期主题：{{episodeTheme}}\n- 节目时长：{{duration}}分钟\n- 节目类型：{{podcastType}}\n\n# 播客制作计划\n\n## 节目信息\n\n**节目名称：**{{podcastName}}\n**期数：**第{{episodeNumber}}期\n**本期主题：**{{episodeTheme}}\n**发布日期：**{{releaseDate}}\n**时长：**{{duration}}分钟\n\n## 节目定位\n\n**类型：**{{podcastType}}\n**目标听众：**{{targetAudience}}\n**播出频率：**{{frequency}}\n\n## 选题策划\n\n### 为什么选这个主题\n{{topicReason}}\n\n### 听众兴趣点\n- {{interestPoint1}}\n- {{interestPoint2}}\n\n### 内容框架\n\n**Part 1：开场（0-{{introEnd}}分钟）**\n- 片头音乐\n- 主持人问候\n- 本期主题介绍\n- {{introContent}}\n\n**Part 2：主体内容（{{mainStart}}-{{mainEnd}}分钟）**\n- 话题1：{{topic1}}\n- 话题2：{{topic2}}\n- 话题3：{{topic3}}\n\n**Part 3：结尾（{{outroStart}}-{{duration}}分钟）**\n- 内容总结\n- 下期预告\n- 互动引导（评论/打分）\n- 片尾音乐\n\n## 嘉宾信息（如有）\n\n**嘉宾姓名：**{{guestName}}\n**嘉宾介绍：**{{guestBio}}\n**邀请理由：**{{inviteReason}}\n\n**提纲问题：**\n1. {{question1}}\n2. {{question2}}\n3. {{question3}}\n\n## 脚本大纲\n\n### 开场白\n{{openingScript}}\n\n### 主要讨论点\n\n**讨论点1：**{{discussion1}}\n- 背景介绍\n- 关键信息\n- 案例/故事\n\n**讨论点2：**{{discussion2}}\n\n### 结束语\n{{closingScript}}\n\n## 录制准备\n\n### 设备清单\n- [ ] 麦克风：{{microphone}}\n- [ ] 录音软件：{{recordingSoftware}}\n- [ ] 监听耳机\n- [ ] 防喷罩\n\n### 环境要求\n- 安静空间\n- 减少回声（挂毯帘/放置软垫）\n- 关闭噪音源\n\n### 录制时间\n- 日期：{{recordingDate}}\n- 时间段：{{recordingTime}}\n- 预计录制时长：{{recordingDuration}}分钟\n\n## 剪辑要点\n\n### 剪辑清单\n- [ ] 删除口误/咳嗽/长停顿\n- [ ] 添加片头片尾音乐\n- [ ] 添加转场音效\n- [ ] 降噪处理\n- [ ] 音量平衡\n- [ ] 添加章节标记\n\n### 音乐素材\n- 片头音乐：{{introMusic}}\n- 背景音乐：{{bgMusic}}\n- 片尾音乐：{{outroMusic}}\n\n## 节目文案\n\n### 节目标题\n{{episodeTitle}}\n\n### 节目简介（200字内）\n{{episodeDescription}}\n\n### 时间轴 (Show Notes)\n```\n00:00 片头\n{{timestamp1}} {{topic1}}\n{{timestamp2}} {{topic2}}\n{{timestamp3}} {{topic3}}\n{{outroTimestamp}} 片尾\n```\n\n### 相关链接\n- {{link1}}\n- {{link2}}\n\n## 发布渠道\n\n- [ ] 小宇宙\n- [ ] 喜马拉雅\n- [ ] 苹果播客\n- [ ] Spotify\n- [ ] {{otherPlatform}}\n\n## 推广计划\n\n**社交媒体：**\n- 微博：{{weiboPost}}\n- 微信公众号：{{wechatPost}}\n- 小红书：{{xiaohongshuPost}}\n\n**封面图：**{{coverImage}}\n\n## 互动运营\n\n**听众反馈收集：**\n- 评论区\n- 邮箱：{{email}}\n- 微信群\n\n**下期选题征集：**\n{{nextTopicCollection}}",
   "variables_schema": [
-    {"name": "podcastName", "label": "节目名称", "type": "string", "required": true},
-    {"name": "episodeTheme", "label": "本期主题", "type": "string", "required": true},
-    {"name": "duration", "label": "节目时长（分钟）", "type": "number", "required": false, "default": 30},
-    {"name": "podcastType", "label": "节目类型", "type": "select", "required": false, "options": [
-      {"value": "访谈", "label": "访谈对话"},
-      {"value": "独播", "label": "个人独播"},
-      {"value": "多人讨论", "label": "多人讨论"},
-      {"value": "叙事", "label": "故事叙事"}
-    ]}
+    {
+      "name": "podcastName",
+      "label": "节目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "episodeTheme",
+      "label": "本期主题",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "duration",
+      "label": "节目时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 30
+    },
+    {
+      "name": "podcastType",
+      "label": "节目类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "访谈",
+          "label": "访谈对话"
+        },
+        {
+          "value": "独播",
+          "label": "个人独播"
+        },
+        {
+          "value": "多人讨论",
+          "label": "多人讨论"
+        },
+        {
+          "value": "叙事",
+          "label": "故事叙事"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "播客-{{episodeTheme}}",
     "files": [
-      {"path": "制作计划.docx", "type": "document"},
-      {"path": "脚本大纲.md", "type": "markdown"},
-      {"path": "录音/", "type": "folder"}
+      {
+        "path": "制作计划.docx",
+        "type": "document"
+      },
+      {
+        "path": "脚本大纲.md",
+        "type": "markdown"
+      },
+      {
+        "path": "录音/",
+        "type": "folder"
+      }
     ]
   },
   "default_files": [],
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_audio_editing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_audio_editor",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "audio"
 }

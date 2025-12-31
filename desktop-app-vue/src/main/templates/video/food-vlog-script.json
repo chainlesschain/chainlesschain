@@ -7,22 +7,55 @@
   "cover_image": "/templates/covers/food-vlog.png",
   "category": "video",
   "subcategory": "vlog",
-  "tags": ["美食Vlog", "探店", "美食制作"],
+  "tags": [
+    "美食Vlog",
+    "探店",
+    "美食制作"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我创建美食Vlog脚本，要求：\n\n**视频信息：**\n- 主题：{{foodTheme}}\n- 类型：{{videoType}}\n- 时长：{{duration}}分钟\n\n{{#eq videoType \"探店\"}}\n**探店流程：**\n\n1. 开场（0-30秒）\n   - 店铺外景\n   - \"今天带大家来{{restaurantName}}\"\n\n2. 点单（30秒-2分钟）\n   - 菜单特写\n   - 推荐菜品介绍\n   - 点单过程\n\n3. 等待/环境（2-3分钟）\n   - 店内环境展示\n   - 装修特色\n   - 氛围感营造\n\n4. 上菜+品尝（3-{{subtract duration 2}}分钟）\n   - 菜品特写（多角度）\n   - 第一口反应（真实表情）\n   - 口感描述\n   - 推荐指数\n\n5. 总结（{{subtract duration 2}}-{{duration}}分钟）\n   - 人均消费\n   - 推荐指数\n   - 地址信息\n{{/eq}}\n\n{{#eq videoType \"制作\"}}\n**美食制作流程：**\n\n1. 开场（0-20秒）\n   - 成品预告\n   - \"今天教大家做{{dishName}}\"\n\n2. 食材准备（20秒-1分钟）\n   - 食材摆放（俯拍）\n   - 份量标注\n\n3. 制作步骤（1-{{subtract duration 2}}分钟）\n   - 步骤1：{{step1}}（特写+字幕）\n   - 步骤2：{{step2}}\n   - 步骤3：{{step3}}\n   - 关键技巧强调\n\n4. 成品展示（{{subtract duration 2}}-{{duration}}分钟）\n   - 成品多角度\n   - 品尝+点评\n   - 小贴士\n{{/eq}}\n\n**拍摄技巧：**\n\n必拍镜头：\n- 俯拍：食材/成品全貌\n- 45度：最美角度\n- 特写：细节/质感\n- 慢动作：倒入/切开/拉丝\n\n光线设置：\n- 自然光优先\n- 补光灯45度\n- 避免顶光（产生阴影）\n\n**剪辑要点：**\n\n- 节奏：快节奏（1-2秒/镜头）\n- 调色：饱和度+10-15（食欲增强）\n- BGM：轻快/治愈系\n- 字幕：食材/步骤标注\n\n---\n\n**输出格式：**\n- 脚本文档\n- 拍摄角度参考\n- 剪辑要点",
   "variables_schema": [
-    {"name": "foodTheme", "label": "美食主题", "type": "string", "required": true},
-    {"name": "videoType", "label": "视频类型", "type": "select", "required": true, "options": [
-      {"value": "探店", "label": "探店评测"},
-      {"value": "制作", "label": "美食制作"}
-    ]},
-    {"name": "duration", "label": "时长（分钟）", "type": "number", "required": false, "default": 5}
+    {
+      "name": "foodTheme",
+      "label": "美食主题",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "videoType",
+      "label": "视频类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "探店",
+          "label": "探店评测"
+        },
+        {
+          "value": "制作",
+          "label": "美食制作"
+        }
+      ]
+    },
+    {
+      "name": "duration",
+      "label": "时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 5
+    }
   ],
   "file_structure": {
     "root": "美食Vlog-{{foodTheme}}",
     "files": [
-      {"path": "脚本.docx", "type": "document"},
-      {"path": "拍摄参考.md", "type": "markdown"}
+      {
+        "path": "脚本.docx",
+        "type": "document"
+      },
+      {
+        "path": "拍摄参考.md",
+        "type": "markdown"
+      }
     ]
   },
   "default_files": [],
@@ -31,5 +64,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_video_production",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_video_cutter",
+    "tool_video_merger",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "video"
 }

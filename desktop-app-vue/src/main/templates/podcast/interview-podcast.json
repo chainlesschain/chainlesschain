@@ -5,15 +5,16 @@
   "description": "为访谈类播客节目生成完整脚本，包含开场白、提问大纲、互动环节和结尾",
   "icon": "🎙️",
   "cover_image": "/templates/covers/interview-podcast.png",
-
   "category": "podcast",
   "subcategory": "interview",
-  "tags": ["播客", "访谈", "脚本", "内容创作"],
-
+  "tags": [
+    "播客",
+    "访谈",
+    "脚本",
+    "内容创作"
+  ],
   "project_type": "document",
-
   "prompt_template": "请帮我生成一期{{podcastName}}播客的访谈脚本，要求：\n\n**节目信息：**\n- 播客名称：{{podcastName}}\n- 本期主题：{{episodeTheme}}\n- 嘉宾姓名：{{guestName}}\n- 嘉宾身份：{{guestTitle}}\n- 节目时长：{{duration}}分钟\n- 风格定位：{{style}}\n\n**脚本结构：**\n\n【第一部分：开场白（1-2分钟）】\n- 节目欢迎语和品牌slogan\n- 主题引入：{{episodeTheme}}\n- 嘉宾介绍：{{guestName}} - {{guestTitle}}\n- 本期看点预告（3个关键话题）\n\n{{#if includeBgm}}\n【音乐插入点1】开场音乐（渐弱）\n{{/if}}\n\n【第二部分：嘉宾介绍环节（3-5分钟）】\n- 请嘉宾自我介绍\n- 主持人补充嘉宾背景和成就\n- 暖场话题：如何进入这个领域\n\n【第三部分：核心访谈环节（{{coreInterviewMinutes}}分钟）】\n\n根据主题{{episodeTheme}}，设计以下访谈问题：\n\n**第1轮：背景故事（5-7个问题）**\n- 请描述您的职业历程？\n- 印象最深的一次经历是什么？\n- 遇到过哪些重大挑战？\n- （根据嘉宾身份自动生成深度问题）\n\n**第2轮：专业观点（5-7个问题）**\n- 对{{episodeTheme}}领域的独特见解？\n- 当前行业最大的趋势是什么？\n- 给新人的建议？\n- （根据主题生成行业问题）\n\n**第3轮：未来展望（3-5个问题）**\n- 未来3-5年的规划？\n- 最想实现的目标？\n- 对听众的寄语？\n\n{{#if includeRapidFire}}\n【第四部分：快问快答环节（3-5分钟）】\n设计10-15个轻松有趣的快问快答题目：\n- 最喜欢的书/电影/音乐？\n- 工作之外的爱好？\n- 如果重新选择会做什么职业？\n- （根据风格{{style}}生成趣味问题）\n{{/if}}\n\n【第五部分：听众互动环节（可选，3-5分钟）】\n{{#if includeQA}}\n- 回答听众提前提交的问题（3-5个）\n- 互动话题讨论\n{{else}}\n（跳过互动环节）\n{{/if}}\n\n【第六部分：结尾（2-3分钟）】\n- 总结本期精华观点（3条）\n- 嘉宾推荐资源（书籍/课程/网站）\n- 感谢嘉宾和听众\n- 预告下期内容\n- 节目结束语和订阅引导\n\n{{#if includeBgm}}\n【音乐插入点2】结尾音乐（渐强）\n{{/if}}\n\n**附录：**\n1. 主持人话术提示（语气、停顿、强调点）\n2. 备用问题（如果嘉宾话少，准备3-5个备用话题）\n3. 关键数据和引用来源（供主持人参考）\n4. 时间节点提示（每10分钟一个checkpoint）\n\n**风格要求：**\n- 语言风格：{{style}}\n- 问题设计：由浅入深，层层递进\n- 互动性：鼓励嘉宾展开讲述，避免封闭式问题\n- 时间把控：每个环节标注建议时长\n\n**输出格式：**\n- Word文档，使用标题层级清晰区分各部分\n- 主持人话术用常规字体\n- 嘉宾回答部分留空（标注\"【嘉宾回答】\"）\n- 注释和提示用斜体或不同颜色",
-
   "variables_schema": [
     {
       "name": "podcastName",
@@ -60,10 +61,22 @@
       "required": false,
       "default": "专业深度",
       "options": [
-        { "value": "专业深度", "label": "专业深度（严肃、学术）" },
-        { "value": "轻松对话", "label": "轻松对话（聊天、亲切）" },
-        { "value": "幽默风趣", "label": "幽默风趣（娱乐、搞笑）" },
-        { "value": "励志鸡汤", "label": "励志鸡汤（激励、正能量）" }
+        {
+          "value": "专业深度",
+          "label": "专业深度（严肃、学术）"
+        },
+        {
+          "value": "轻松对话",
+          "label": "轻松对话（聊天、亲切）"
+        },
+        {
+          "value": "幽默风趣",
+          "label": "幽默风趣（娱乐、搞笑）"
+        },
+        {
+          "value": "励志鸡汤",
+          "label": "励志鸡汤（激励、正能量）"
+        }
       ]
     },
     {
@@ -73,8 +86,14 @@
       "required": false,
       "default": "是",
       "options": [
-        { "value": "是", "label": "包含快问快答环节" },
-        { "value": "否", "label": "不包含" }
+        {
+          "value": "是",
+          "label": "包含快问快答环节"
+        },
+        {
+          "value": "否",
+          "label": "不包含"
+        }
       ]
     },
     {
@@ -84,8 +103,14 @@
       "required": false,
       "default": "否",
       "options": [
-        { "value": "是", "label": "包含听众提问环节" },
-        { "value": "否", "label": "不包含" }
+        {
+          "value": "是",
+          "label": "包含听众提问环节"
+        },
+        {
+          "value": "否",
+          "label": "不包含"
+        }
       ]
     },
     {
@@ -95,12 +120,17 @@
       "required": false,
       "default": "是",
       "options": [
-        { "value": "是", "label": "在脚本中标注BGM插入点" },
-        { "value": "否", "label": "不标注" }
+        {
+          "value": "是",
+          "label": "在脚本中标注BGM插入点"
+        },
+        {
+          "value": "否",
+          "label": "不标注"
+        }
       ]
     }
   ],
-
   "file_structure": {
     "root": "{{podcastName}}-{{episodeTheme}}-脚本",
     "files": [
@@ -115,13 +145,21 @@
       }
     ]
   },
-
   "default_files": [],
-
   "is_builtin": true,
   "author": "ChainlessChain Team",
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_audio_editing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_audio_editor",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "audio"
 }

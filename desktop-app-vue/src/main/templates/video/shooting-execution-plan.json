@@ -7,39 +7,131 @@
   "cover_image": "/templates/covers/shooting-plan.png",
   "category": "video",
   "subcategory": "production",
-  "tags": ["拍摄", "执行方案", "流程管理", "拍摄计划"],
+  "tags": [
+    "拍摄",
+    "执行方案",
+    "流程管理",
+    "拍摄计划"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我制定一个视频拍摄执行方案，要求：\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 项目类型：{{projectType}}\n- 拍摄日期：{{shootingDate}}\n- 拍摄天数：{{shootingDays}}天\n- 预算：{{budget}}元\n\n**一、项目概述**\n\n项目目标：\n{{projectObjective}}\n\n视频规格：\n- 成片时长：{{finalDuration}}分钟\n- 分辨率：{{resolution}}\n- 帧率：{{frameRate}} fps\n- 交付日期：{{deliveryDate}}\n\n目标受众：\n{{targetAudience}}\n\n---\n\n**二、拍摄准备（Pre-Production）**\n\n**2.1 剧本/脚本准备**\n- [ ] 剧本定稿\n- [ ] 分镜头脚本完成\n- [ ] 导演阐述\n- [ ] 拍摄清单（Shot List）\n\n**2.2 场地勘景**\n{{#if includeLocation}}\n主场景：\n- 地点：{{mainLocation}}\n- 地址：{{address}}\n- 勘景日期：{{scoutingDate}}\n- 拍摄许可：{{permit}}\n- 备选方案：{{backupLocation}}\n\n场景评估：\n- 光线条件：{{lightingCondition}}\n- 噪音水平：{{noiseLevel}}\n- 电源情况：{{powerAvailability}}\n- 停车/卸货：{{parkingInfo}}\n- 洗手间/休息区：{{facilitiesInfo}}\n{{/if}}\n\n**2.3 演员/嘉宾安排**\n{{#if hasTalent}}\n主要人员：\n1. {{talent1}} - {{role1}}\n   - 联系方式：{{contact1}}\n   - 到场时间：{{arrivalTime1}}\n   - 服装准备：{{wardrobe1}}\n\n2. {{talent2}} - {{role2}}\n   - 联系方式：{{contact2}}\n   - 到场时间：{{arrivalTime2}}\n\n群演需求：\n- 人数：{{extraCount}}人\n- 要求：{{extraRequirements}}\n{{/if}}\n\n**2.4 设备准备**\n\n摄影设备：\n- 主机：{{mainCamera}}\n- 副机：{{secondCamera}}（如有）\n- 镜头：{{lenses}}\n- 稳定器：{{stabilizer}}（云台/斯坦尼康/轨道）\n- 存储卡：{{storageCards}}\n- 备用电池：{{batteries}}\n\n灯光设备：\n- 主光：{{keyLight}}\n- 辅光：{{fillLight}}\n- 轮廓光：{{rimLight}}\n- 反光板：{{reflectors}}\n- 柔光箱/网格：{{modifiers}}\n\n音频设备：\n- 麦克风：{{microphones}}\n- 录音机：{{audioRecorder}}\n- 监听耳机：{{headphones}}\n- 备用电池/充电器\n\n其他设备：\n- 监视器：{{monitor}}\n- 对讲机：{{walkieTalkies}}\n- 三脚架：{{tripods}}\n- 延长线/电源：{{powerCables}}\n- 沙袋/夹具：{{grips}}\n\n**2.5 道具与服装**\n{{#if hasProps}}\n道具清单：\n- {{prop1}}\n- {{prop2}}\n- {{prop3}}\n\n服装清单：\n- {{wardrobe1}}\n- {{wardrobe2}}\n- 备用服装：{{backupWardrobe}}\n{{/if}}\n\n**2.6 化妆与造型**\n{{#if hasMakeup}}\n- 化妆师：{{makeupArtist}}\n- 化妆时间：{{makeupTime}}\n- 造型风格：{{makeupStyle}}\n- 化妆品准备：{{makeupSupplies}}\n{{/if}}\n\n---\n\n**三、团队组织架构**\n\n核心团队：\n\n**导演组：**\n- 导演：{{director}}\n- 副导演/场记：{{AD}}\n\n**摄影组：**\n- 摄影指导：{{DP}}\n- 摄影师：{{cameraPerson}}\n- 摄影助理：{{cameraAssistant}}\n- 灯光师：{{gaffer}}\n- 灯光助理：{{lightingAssistant}}\n\n**音频组：**\n- 录音师：{{soundRecordist}}\n\n**制片组：**\n- 制片人：{{producer}}\n- 制片助理：{{PA}}\n- 场务：{{setAssistant}}\n\n**美术组（如有）：**\n- 美术指导：{{artDirector}}\n- 道具师：{{propMaster}}\n\n团队联系表：\n| 姓名 | 职位 | 电话 | 邮箱 |\n|------|------|------|------|\n| {{name1}} | {{position1}} | {{phone1}} | {{email1}} |\n| {{name2}} | {{position2}} | {{phone2}} | {{email2}} |\n| ... | ... | ... | ... |\n\n---\n\n**四、拍摄日程表**\n\n{{#each shootingDays}}\n**Day {{dayNumber}} - {{date}}**\n\n集合时间：{{callTime}}\n拍摄地点：{{location}}\n\n时间表：\n\n| 时间 | 内容 | 场景 | 演员 | 备注 |\n|------|------|------|------|------|\n| 07:00-08:00 | 团队集合、设备搬入 | - | - | 早餐准备 |\n| 08:00-09:00 | 设备架设、灯光布置 | - | - | 化妆同步进行 |\n| 09:00-09:30 | 走位彩排 | 场景1 | 全体 | - |\n| 09:30-12:00 | 正式拍摄 | 场景1 | 演员A,B | 镜头1-5 |\n| 12:00-13:00 | 午餐休息 | - | - | 盒饭 |\n| 13:00-15:00 | 拍摄 | 场景2 | 演员C | 镜头6-10 |\n| 15:00-15:15 | 茶歇 | - | - | - |\n| 15:15-17:30 | 拍摄 | 场景3 | 全体 | 镜头11-15 |\n| 17:30-18:30 | 补拍、收尾 | - | - | 根据进度 |\n| 18:30-19:00 | 设备撤场、场地清理 | - | - | - |\n\n当日拍摄清单（Shot List）：\n- [ ] 镜头1：场景1，全景，演员A进入\n- [ ] 镜头2：场景1，中景，对话\n- [ ] 镜头3：场景1，特写，表情\n- [ ] ...\n\n注意事项：\n- 天气预报：{{weatherForecast}}\n- 备用计划：{{contingencyPlan}}\n{{/each}}\n\n---\n\n**五、拍摄流程**\n\n**5.1 现场管理流程**\n\n每日流程：\n1. **清晨准备**（集合时间前30分钟）\n   - 设备检查\n   - 电池充电状态确认\n   - 存储卡格式化\n\n2. **开拍准备**\n   - 场景布置\n   - 灯光架设与调试\n   - 摄影机位确定\n   - 音频测试\n   - 演员化妆/换装\n\n3. **拍摄流程**\n   - 导演讲解镜头\n   - 走位彩排\n   - 灯光最后调整\n   - 音频最后确认\n   - 录制\n   - 回放检查\n   - 确认OK/再来一条\n\n4. **每日收尾**\n   - 素材备份（双备份）\n   - 设备清点\n   - 场地清理\n   - 明日工作交底\n\n**5.2 拍摄标准流程**\n\n开机前检查：\n- [ ] 摄影机设置（分辨率、帧率、白平衡）\n- [ ] 对焦模式（手动/自动）\n- [ ] 曝光设置（光圈、快门、ISO）\n- [ ] 音频电平（-12dB to -6dB）\n- [ ] 监视器波形/直方图\n\n拍摄中：\n- [ ] 场记板（场次、镜次、条次）\n- [ ] 导演喊\"Action\"\n- [ ] 录制至少3秒handle（前后留白）\n- [ ] 导演喊\"Cut\"\n- [ ] 立即回放检查（焦点、曝光、表演）\n\n拍摄后：\n- [ ] 标记好片（在摄影机/录音机）\n- [ ] 记录拍摄日志\n- [ ] 备份素材\n\n---\n\n**六、应急预案**\n\n天气应急：\n{{#if outdoorShooting}}\n- 雨天备案：{{rainyDayPlan}}\n- 强光应对：{{brightSunPlan}}\n- 风大应对：{{windyPlan}}\n{{/if}}\n\n设备故障：\n- 摄影机故障：启用备机\n- 镜头问题：备用镜头\n- 灯光故障：备用灯具\n- 音频问题：备用录音设备\n\n人员问题：\n- 演员临时缺席：{{talentBackupPlan}}\n- 工作人员缺席：{{crewBackupPlan}}\n\n场地问题：\n- 场地临时无法使用：{{locationBackupPlan}}\n- 备用场地：{{backupLocation}}\n\n---\n\n**七、预算明细**\n\n总预算：{{budget}}元\n\n预算分配：\n\n| 项目 | 预算 | 实际 | 备注 |\n|------|------|------|------|\n| **前期费用** | | | |\n| 剧本/策划 | {{scriptBudget}} | | |\n| 勘景交通 | {{scoutingBudget}} | | |\n| **拍摄费用** | | | |\n| 演员/嘉宾 | {{talentBudget}} | | {{talentDetails}} |\n| 摄制组人员 | {{crewBudget}} | | 日薪x人数x天数 |\n| 设备租赁 | {{equipmentRental}} | | {{equipmentDetails}} |\n| 场地租赁 | {{locationRental}} | | {{locationDetails}} |\n| 道具/服装 | {{propsBudget}} | | |\n| 化妆/造型 | {{makeupBudget}} | | |\n| 交通/油费 | {{transportBudget}} | | |\n| 餐饮 | {{cateringBudget}} | | {{mealCount}}人x{{shootingDays}}天 |\n| **后期费用** | | | |\n| 剪辑 | {{editingBudget}} | | |\n| 调色 | {{colorGradingBudget}} | | |\n| 音效/配乐 | {{audioBudget}} | | |\n| **其他** | | | |\n| 应急备用金 | {{contingencyBudget}} | | 总预算10% |\n| **合计** | {{totalBudget}} | | |\n\n---\n\n**八、安全与保险**\n\n安全措施：\n- [ ] 现场安全负责人：{{safetyOfficer}}\n- [ ] 急救箱准备\n- [ ] 紧急联系人：{{emergencyContact}}\n- [ ] 最近医院：{{nearestHospital}}，地址：{{hospitalAddress}}\n- [ ] 特殊拍摄安全（高空/水下/特技）：{{specialSafetyMeasures}}\n\n保险：\n{{#if hasInsurance}}\n- 设备保险：{{equipmentInsurance}}\n- 公共责任险：{{liabilityInsurance}}\n- 人员意外险：{{personalInsurance}}\n{{/if}}\n\n---\n\n**九、素材管理**\n\n命名规则：\n```\n项目名_日期_场景_镜号_条次.格式\n例：{{projectName}}_20250130_S01_SH03_T02.mp4\n```\n\n备份策略：\n- 现场备份：每日拍摄结束后立即备份\n- 一级备份：移动硬盘A\n- 二级备份：移动硬盘B（异地存放）\n- 云备份：{{cloudBackup}}（可选）\n\n素材管理员：{{dataManager}}\n\n拍摄日志表格：\n| 日期 | 场景 | 镜号 | 条次 | 时长 | 状态 | 备注 |\n|------|------|------|------|------|------|------|\n| {{date}} | S01 | SH01 | T01 | 00:45 | OK | 第一条最佳 |\n| {{date}} | S01 | SH01 | T02 | 00:50 | NG | 穿帮 |\n| ... | ... | ... | ... | ... | ... | ... |\n\n---\n\n**十、沟通与协调**\n\n会议安排：\n- 开拍前一周：全体会议（剧本围读、技术讨论）\n- 开拍前一天：导演、摄影、美术会议\n- 每日拍摄前：晨会（15分钟）\n- 每日拍摄后：复盘会议（30分钟）\n\n信息同步：\n- 工作群：{{workGroup}}（微信/钉钉）\n- 文档共享：{{documentSharing}}（云盘/在线表格）\n- 日程同步：{{calendarSharing}}\n\n---\n\n**十一、后期交接**\n\n拍摄完成后交付：\n- [ ] 全部素材（分类整理）\n- [ ] 拍摄日志\n- [ ] 好片标记文档\n- [ ] 场记单\n- [ ] 现场照片（花絮）\n\n后期时间表：\n- 粗剪完成：拍摄结束后{{roughCutDays}}天\n- 精剪完成：粗剪后{{fineCutDays}}天\n- 调色完成：精剪后{{colorGradingDays}}天\n- 音频完成：精剪后{{audioPostDays}}天\n- 最终交付：{{deliveryDate}}\n\n---\n\n**十二、检查清单**\n\n拍摄前一天：\n- [ ] 所有设备已租赁/准备\n- [ ] 电池已充满\n- [ ] 存储卡已格式化（备用充足）\n- [ ] 场地已确认\n- [ ] 演员/嘉宾已确认\n- [ ] 团队成员已通知\n- [ ] 交通/停车已安排\n- [ ] 餐饮已预定\n- [ ] 天气已查看\n\n拍摄当天出门前：\n- [ ] 设备清单逐一核对\n- [ ] 剧本/分镜表\n- [ ] 拍摄清单\n- [ ] 联系电话表\n- [ ] 场地地址/地图\n- [ ] 应急现金\n\n收工前：\n- [ ] 所有镜头已拍摄\n- [ ] 素材已回放确认\n- [ ] 素材已备份\n- [ ] 设备已清点\n- [ ] 场地已清理\n- [ ] 明日拍摄已交底\n\n---\n\n**附录：**\n- 附录A：详细分镜头脚本\n- 附录B：场地地图/平面图\n- 附录C：演员/嘉宾合同\n- 附录D：设备租赁清单\n- 附录E：紧急联系人名单",
   "variables_schema": [
-    {"name": "projectName", "label": "项目名称", "type": "string", "required": true},
-    {"name": "projectType", "label": "项目类型", "type": "select", "required": false, "default": "商业视频", "options": [
-      {"value": "商业广告", "label": "商业广告"},
-      {"value": "企业宣传片", "label": "企业宣传片"},
-      {"value": "短视频", "label": "短视频"},
-      {"value": "微电影", "label": "微电影"},
-      {"value": "纪录片", "label": "纪录片"},
-      {"value": "访谈节目", "label": "访谈节目"},
-      {"value": "其他", "label": "其他"}
-    ]},
-    {"name": "shootingDays", "label": "拍摄天数", "type": "number", "required": false, "default": 2, "min": 1, "max": 30},
-    {"name": "budget", "label": "预算（元）", "type": "number", "required": false},
-    {"name": "includeLocation", "label": "包含场地勘景", "type": "select", "required": false, "default": "是", "options": [
-      {"value": "是", "label": "包含场地信息"},
-      {"value": "否", "label": "不包含"}
-    ]},
-    {"name": "hasTalent", "label": "包含演员安排", "type": "select", "required": false, "default": "是", "options": [
-      {"value": "是", "label": "有演员/嘉宾"},
-      {"value": "否", "label": "无"}
-    ]}
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "projectType",
+      "label": "项目类型",
+      "type": "select",
+      "required": false,
+      "default": "商业视频",
+      "options": [
+        {
+          "value": "商业广告",
+          "label": "商业广告"
+        },
+        {
+          "value": "企业宣传片",
+          "label": "企业宣传片"
+        },
+        {
+          "value": "短视频",
+          "label": "短视频"
+        },
+        {
+          "value": "微电影",
+          "label": "微电影"
+        },
+        {
+          "value": "纪录片",
+          "label": "纪录片"
+        },
+        {
+          "value": "访谈节目",
+          "label": "访谈节目"
+        },
+        {
+          "value": "其他",
+          "label": "其他"
+        }
+      ]
+    },
+    {
+      "name": "shootingDays",
+      "label": "拍摄天数",
+      "type": "number",
+      "required": false,
+      "default": 2,
+      "min": 1,
+      "max": 30
+    },
+    {
+      "name": "budget",
+      "label": "预算（元）",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "includeLocation",
+      "label": "包含场地勘景",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含场地信息"
+        },
+        {
+          "value": "否",
+          "label": "不包含"
+        }
+      ]
+    },
+    {
+      "name": "hasTalent",
+      "label": "包含演员安排",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "有演员/嘉宾"
+        },
+        {
+          "value": "否",
+          "label": "无"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "拍摄执行-{{projectName}}",
     "files": [
-      {"path": "执行方案.docx", "type": "document"},
-      {"path": "拍摄日程表.xlsx", "type": "spreadsheet"},
-      {"path": "预算明细.xlsx", "type": "spreadsheet"},
-      {"path": "设备清单.xlsx", "type": "spreadsheet"},
-      {"path": "联系人表.xlsx", "type": "spreadsheet"}
+      {
+        "path": "执行方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "拍摄日程表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "预算明细.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "设备清单.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "联系人表.xlsx",
+        "type": "spreadsheet"
+      }
     ]
   },
   "default_files": [],
@@ -48,5 +140,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_video_production",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_video_cutter",
+    "tool_video_merger",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "video"
 }

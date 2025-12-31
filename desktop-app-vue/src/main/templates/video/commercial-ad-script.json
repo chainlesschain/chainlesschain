@@ -7,20 +7,54 @@
   "cover_image": "/templates/covers/commercial-ad.png",
   "category": "video",
   "subcategory": "commercial",
-  "tags": ["广告片", "商业视频", "品牌传播", "产品展示"],
+  "tags": [
+    "广告片",
+    "商业视频",
+    "品牌传播",
+    "产品展示"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我创建商业广告片脚本，要求：\n\n**广告信息：**\n- 产品/品牌：{{productName}}\n- 时长：{{duration}}秒\n- 目标受众：{{targetAudience}}\n- 核心卖点：{{keySellingPoint}}\n\n**15秒广告结构：**\n0-3秒：问题/需求引入\n3-10秒：产品解决方案\n10-15秒：品牌Logo+Slogan\n\n**30秒广告结构：**\n0-5秒：Hook吸引\n5-20秒：产品展示+使用场景\n20-27秒：用户见证/效果对比\n27-30秒：CTA+品牌信息\n\n**60秒广告结构：**\n0-10秒：故事引入\n10-40秒：产品讲解+场景演示\n40-55秒：情感升华/品牌价值\n55-60秒：CTA引导\n\n**视觉风格：**\n- 产品特写（质感展示）\n- 使用场景（真实体验）\n- 人物情绪（情感共鸣）\n- 品牌元素（视觉统一）\n\n**文案要求：**\n- 简洁有力（每句不超过10字）\n- 突出利益点（不只讲功能）\n- 情感共鸣（打动人心）\n- 记忆点（Slogan朗朗上口）\n\n---\n\n**输出格式：**\n- 完整脚本\n- 分镜表\n- 拍摄要求",
   "variables_schema": [
-    {"name": "productName", "label": "产品/品牌名称", "type": "string", "required": true},
-    {"name": "duration", "label": "时长（秒）", "type": "number", "required": false, "default": 30, "min": 15, "max": 60},
-    {"name": "targetAudience", "label": "目标受众", "type": "string", "required": false},
-    {"name": "keySellingPoint", "label": "核心卖点", "type": "string", "required": true}
+    {
+      "name": "productName",
+      "label": "产品/品牌名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "duration",
+      "label": "时长（秒）",
+      "type": "number",
+      "required": false,
+      "default": 30,
+      "min": 15,
+      "max": 60
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标受众",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "keySellingPoint",
+      "label": "核心卖点",
+      "type": "string",
+      "required": true
+    }
   ],
   "file_structure": {
     "root": "广告片-{{productName}}",
     "files": [
-      {"path": "脚本.docx", "type": "document"},
-      {"path": "分镜表.xlsx", "type": "spreadsheet"}
+      {
+        "path": "脚本.docx",
+        "type": "document"
+      },
+      {
+        "path": "分镜表.xlsx",
+        "type": "spreadsheet"
+      }
     ]
   },
   "default_files": [],
@@ -29,5 +63,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_video_production",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_video_cutter",
+    "tool_video_merger",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "video"
 }
