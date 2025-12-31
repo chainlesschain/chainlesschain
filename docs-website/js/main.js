@@ -443,10 +443,211 @@
     });
 
     // ========================================
+    // ========================================
+    // 导航下拉菜单交互（桌面端）
+    // ========================================
+    const navDropdowns = document.querySelectorAll('.nav-dropdown');
+
+    // 桌面端：鼠标悬停显示下拉菜单
+    if (window.innerWidth > 768) {
+        navDropdowns.forEach(dropdown => {
+            const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+
+            if (dropdownMenu) {
+                // 鼠标进入下拉菜单区域时保持显示
+                dropdown.addEventListener('mouseenter', function() {
+                    dropdownMenu.style.opacity = '1';
+                    dropdownMenu.style.visibility = 'visible';
+                    dropdownMenu.style.transform = 'translateX(-50%) translateY(0)';
+                });
+
+                dropdown.addEventListener('mouseleave', function() {
+                    dropdownMenu.style.opacity = '0';
+                    dropdownMenu.style.visibility = 'hidden';
+                    dropdownMenu.style.transform = 'translateX(-50%) translateY(10px)';
+                });
+            }
+        });
+    }
+
+    // 移动端：点击切换下拉菜单
+    if (window.innerWidth <= 768) {
+        navDropdowns.forEach(dropdown => {
+            const navLink = dropdown.querySelector('.nav-link');
+            const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+
+            if (navLink && dropdownMenu) {
+                // 默认隐藏下拉菜单
+                dropdownMenu.style.display = 'none';
+
+                navLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    // 切换当前下拉菜单
+                    const isVisible = dropdownMenu.style.display === 'block';
+
+                    // 关闭所有其他下拉菜单
+                    navDropdowns.forEach(otherDropdown => {
+                        const otherMenu = otherDropdown.querySelector('.dropdown-menu');
+                        if (otherMenu) {
+                            otherMenu.style.display = 'none';
+                        }
+                    });
+
+                    // 切换当前菜单
+                    dropdownMenu.style.display = isVisible ? 'none' : 'block';
+                });
+            }
+        });
+    }
+
+    // 窗口大小改变时重新初始化下拉菜单
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            // 不重新加载页面,只重新调整菜单状态
+            const dropdownMenus = document.querySelectorAll('.dropdown-menu');
+            dropdownMenus.forEach(menu => {
+                menu.style.display = '';
+                menu.style.opacity = '';
+                menu.style.visibility = '';
+            });
+        }, 250);
+    });
+
+    // ========================================
+    // 版本对比卡片交互增强
+    // ========================================
+    const versionCards = document.querySelectorAll('.version-card');
+
+    versionCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            // 可以添加额外的交互效果
+            this.style.boxShadow = '0 16px 40px rgba(0, 0, 0, 0.2)';
+        });
+
+        card.addEventListener('mouseleave', function() {
+            const isHighlight = this.classList.contains('highlight');
+            if (isHighlight) {
+                this.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.15)';
+            } else {
+                this.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.12)';
+            }
+        });
+    });
+
+    // ========================================
+    // 统计数字动画效果
+    // ========================================
+    const statNumbers = document.querySelectorAll('.stat-number');
+
+    const animateNumber = (element) => {
+        const target = element.textContent.trim();
+        const hasPlus = target.includes('+');
+        const numericValue = parseInt(target.replace(/[^0-9]/g, ''));
+
+        if (isNaN(numericValue)) return;
+
+        const duration = 2000; // 2秒动画
+        const steps = 60;
+        const increment = numericValue / steps;
+        let current = 0;
+
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= numericValue) {
+                current = numericValue;
+                clearInterval(timer);
+            }
+
+            let displayValue = Math.floor(current).toLocaleString();
+            if (hasPlus) displayValue += '+';
+            if (target.includes('%')) displayValue += '%';
+
+            element.textContent = displayValue;
+        }, duration / steps);
+    };
+
+    // 使用Intersection Observer在数字进入视口时触发动画
+    const numberObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !entry.target.dataset.animated) {
+                entry.target.dataset.animated = 'true';
+                setTimeout(() => animateNumber(entry.target), 200);
+                numberObserver.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.5
+    });
+
+    statNumbers.forEach(num => numberObserver.observe(num));
+
+    // ========================================
+    // AI引擎卡片悬停效果增强
+    // ========================================
+    const engineItems = document.querySelectorAll('.engine-item');
+
+    engineItems.forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px) scale(1.05)';
+        });
+
+        item.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+
+    // ========================================
+    // 技术文档卡片点击跟踪
+    // ========================================
+    const docLinks = document.querySelectorAll('.doc-link-card, .repo-link');
+
+    docLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const title = this.querySelector('.doc-title')?.textContent ||
+                         this.textContent.trim();
+            console.log('文档链接点击:', title);
+            // 这里可以集成Google Analytics或其他统计工具
+            // gtag('event', 'doc_click', { 'doc_name': title });
+        });
+    });
+
+    // ========================================
+    // 平滑滚动到企业版板块
+    // ========================================
+    window.scrollToEnterprise = function() {
+        const enterpriseSection = document.querySelector('.enterprise-spotlight');
+        if (enterpriseSection) {
+            const offsetTop = enterpriseSection.offsetTop - 80;
+            window.scrollTo({
+                top: offsetTop,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    // ========================================
+    // 平滑滚动到技术透明度板块
+    // ========================================
+    window.scrollToTechDocs = function() {
+        const techSection = document.querySelector('.tech-transparency');
+        if (techSection) {
+            const offsetTop = techSection.offsetTop - 80;
+            window.scrollTo({
+                top: offsetTop,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    // ========================================
     // 控制台输出
     // ========================================
     console.log('%c ChainlessChain ', 'background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 4px; font-size: 16px; font-weight: bold;');
     console.log('%c 让数据主权回归个人，AI效率触手可及 ', 'color: #667eea; font-size: 14px;');
     console.log('%c GitHub: https://github.com/chainlesschain ', 'color: #666; font-size: 12px;');
+    console.log('%c 官网改版第三阶段完成 - CSS样式和JavaScript交互已优化 ', 'color: #52c41a; font-size: 12px; font-weight: bold;');
 
 })();

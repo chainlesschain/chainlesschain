@@ -68,9 +68,8 @@
         }
     </style>
 
-    <!-- 非关键CSS延迟加载 -->
-    <link rel="preload" href="css/style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="css/style.css"></noscript>
+    <!-- 直接加载CSS,避免样式闪烁 -->
+    <link rel="stylesheet" href="css/style.css">
 
     <!-- 字体优化 -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">

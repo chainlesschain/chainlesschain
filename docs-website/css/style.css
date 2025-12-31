@@ -1629,3 +1629,924 @@ section {
         flex-direction: column;
     }
 }
+
+/* ========================================
+   16. 导航下拉菜单样式
+   ======================================== */
+.nav-dropdown {
+    position: relative;
+}
+
+.nav-dropdown > .nav-link::after {
+    content: '▼';
+    margin-left: 6px;
+    font-size: 10px;
+    transition: transform 0.3s ease;
+}
+
+.nav-dropdown:hover > .nav-link::after {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    min-width: 280px;
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    padding: 12px 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+}
+
+.nav-dropdown:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.dropdown-menu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.dropdown-menu a:hover {
+    background: var(--bg-light);
+}
+
+.dropdown-menu a.featured {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border-left: 3px solid var(--primary-color);
+}
+
+.dropdown-menu a.featured:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+}
+
+.dropdown-item-content {
+    flex: 1;
+}
+
+.dropdown-item-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.dropdown-item-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.dropdown-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+/* GitHub图标特殊样式 */
+.github-icon {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+/* ========================================
+   17. 版本对比板块样式
+   ======================================== */
+.version-comparison {
+    background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 100px 0;
+}
+
+.version-comparison .section-header {
+    margin-bottom: 60px;
+}
+
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.version-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.version-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--secondary-color), var(--accent-color));
+}
+
+.version-card.highlight {
+    border: 2px solid var(--primary-color);
+    transform: scale(1.02);
+}
+
+.version-card.highlight .badge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.version-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.version-card.highlight:hover {
+    transform: scale(1.02) translateY(-8px);
+}
+
+.version-card h3 {
+    font-size: 28px;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.version-card .price {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.version-card .price .original-price {
+    font-size: 14px;
+    color: var(--text-light);
+    text-decoration: line-through;
+}
+
+.version-card .price-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.version-card .features {
+    list-style: none;
+    margin-bottom: 30px;
+}
+
+.version-card .features li {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.version-card .features li:last-child {
+    border-bottom: none;
+}
+
+.version-card .core-benefits {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.version-card .core-benefits h4 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.version-card .benefit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.version-card .benefit-item:last-child {
+    margin-bottom: 0;
+}
+
+.version-card .benefit-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.version-card .benefit-text {
+    flex: 1;
+}
+
+.version-card .benefit-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.version-card .benefit-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.version-card .target-audience {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.version-card .target-audience h4 {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.version-card .audience-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.version-card .audience-tag {
+    background: var(--bg-light);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.version-card .btn {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+    display: inline-block;
+}
+
+.version-card .btn-primary {
+    background: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+    color: white;
+    border: none;
+}
+
+.version-card .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.version-card .btn-outline {
+    background: white;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.version-card .btn-outline:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* ========================================
+   18. 企业版Spotlight板块样式
+   ======================================== */
+.enterprise-spotlight {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 120px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.enterprise-spotlight::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>');
+    opacity: 0.5;
+}
+
+.enterprise-spotlight .container {
+    position: relative;
+    z-index: 1;
+}
+
+.enterprise-spotlight .section-header {
+    margin-bottom: 60px;
+    text-align: center;
+}
+
+.enterprise-spotlight .section-header .label {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.enterprise-spotlight .section-title {
+    color: white;
+    font-size: 48px;
+    margin-bottom: 12px;
+    -webkit-background-clip: unset;
+    -webkit-text-fill-color: white;
+    background-clip: unset;
+}
+
+.enterprise-spotlight .section-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 20px;
+}
+
+.spotlight-benefits {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px;
+    margin-bottom: 60px;
+}
+
+.benefit-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: var(--transition);
+}
+
+.benefit-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px);
+}
+
+.benefit-card .icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.benefit-card h3 {
+    font-size: 24px;
+    margin-bottom: 16px;
+    color: white;
+}
+
+.benefit-card .content {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.8;
+}
+
+.benefit-card .comparison {
+    margin-top: 20px;
+}
+
+.benefit-card .comparison-item {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.benefit-card .comparison-item:last-child {
+    margin-bottom: 0;
+}
+
+.benefit-card .comparison-label {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.benefit-card .traditional-cost {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    border-radius: var(--radius-md);
+    margin-bottom: 16px;
+}
+
+.benefit-card .traditional-cost p {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.benefit-card .chainlesschain-cost {
+    background: rgba(82, 196, 26, 0.2);
+    padding: 16px;
+    border-radius: var(--radius-md);
+    border: 2px solid rgba(82, 196, 26, 0.5);
+}
+
+.benefit-card .chainlesschain-cost p {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.benefit-card .price-highlight {
+    font-size: 32px;
+    font-weight: 700;
+    color: #52c41a;
+}
+
+.ai-engines-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.engine-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    border-radius: var(--radius-md);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: var(--transition);
+}
+
+.engine-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.engine-item .engine-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.engine-item .engine-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.engine-more {
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.setup-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+    margin-top: 40px;
+}
+
+.step-item {
+    text-align: center;
+}
+
+.step-number {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 auto 16px;
+}
+
+.step-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.step-desc {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.spotlight-cta {
+    text-align: center;
+    margin-top: 60px;
+}
+
+.spotlight-cta .cta-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.spotlight-cta .btn {
+    padding: 16px 40px;
+    font-size: 18px;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: var(--transition);
+    display: inline-block;
+}
+
+.spotlight-cta .btn-white {
+    background: white;
+    color: var(--secondary-color);
+}
+
+.spotlight-cta .btn-white:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.3);
+}
+
+.spotlight-cta .btn-outline-white {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.spotlight-cta .btn-outline-white:hover {
+    background: white;
+    color: var(--secondary-color);
+}
+
+/* ========================================
+   19. 技术透明度板块样式
+   ======================================== */
+.tech-transparency {
+    background: #f8f9fa;
+    padding: 100px 0;
+}
+
+.tech-transparency .section-header {
+    margin-bottom: 60px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+    margin-bottom: 60px;
+}
+
+.stat-card {
+    background: white;
+    padding: 40px 30px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    text-align: center;
+    transition: var(--transition);
+    border-top: 4px solid var(--primary-color);
+}
+
+.stat-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-card .stat-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+}
+
+.stat-card .stat-number {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+}
+
+.stat-card .stat-label {
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.stat-card .stat-detail {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.opensource-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+    margin-bottom: 60px;
+}
+
+.opensource-card {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    border: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.opensource-card h3 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.opensource-card h3 .icon {
+    font-size: 28px;
+}
+
+.opensource-card .repo-info {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 20px 0;
+}
+
+.opensource-card .repo-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+}
+
+.opensource-card .repo-stat .icon {
+    color: #ffd700;
+}
+
+.opensource-card .repo-links {
+    display: flex;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.opensource-card .repo-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: white;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: var(--transition);
+}
+
+.opensource-card .repo-link:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.tech-docs-links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 60px;
+}
+
+.doc-link-card {
+    background: white;
+    padding: 30px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: var(--transition);
+    border: 2px solid transparent;
+}
+
+.doc-link-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.doc-link-card .doc-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+    color: var(--primary-color);
+}
+
+.doc-link-card .doc-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.doc-link-card .doc-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.tech-stack-preview {
+    background: white;
+    padding: 50px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+.tech-stack-preview h3 {
+    font-size: 28px;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.tech-categories-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+.tech-category-item {
+    padding: 24px;
+    background: var(--bg-light);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--primary-color);
+}
+
+.tech-category-item h4 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tech-category-item h4 .icon {
+    font-size: 20px;
+}
+
+.tech-category-item .tech-list {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+}
+
+/* ========================================
+   20. 响应式设计 - 新增板块
+   ======================================== */
+@media (max-width: 1024px) {
+    .comparison-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .version-card.highlight {
+        transform: scale(1);
+    }
+
+    .spotlight-benefits {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .ai-engines-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .setup-steps {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .tech-categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-dropdown {
+        position: static;
+    }
+
+    .dropdown-menu {
+        position: static;
+        transform: none;
+        box-shadow: none;
+        background: var(--bg-light);
+        margin-top: 8px;
+        border-radius: var(--radius-md);
+    }
+
+    .nav-dropdown:hover .dropdown-menu {
+        transform: none;
+    }
+
+    .comparison-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .version-card {
+        padding: 30px 20px;
+    }
+
+    .enterprise-spotlight {
+        padding: 80px 0;
+    }
+
+    .enterprise-spotlight .section-title {
+        font-size: 32px;
+    }
+
+    .ai-engines-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .setup-steps {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .spotlight-cta .cta-buttons {
+        flex-direction: column;
+    }
+
+    .spotlight-cta .btn {
+        width: 100%;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .opensource-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .tech-docs-links {
+        grid-template-columns: 1fr;
+    }
+
+    .tech-stack-preview {
+        padding: 30px 20px;
+    }
+
+    .tech-categories-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .version-card h3 {
+        font-size: 22px;
+    }
+
+    .benefit-card {
+        padding: 24px;
+    }
+
+    .benefit-card h3 {
+        font-size: 20px;
+    }
+
+    .ai-engines-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .spotlight-cta .btn {
+        padding: 14px 24px;
+        font-size: 16px;
+    }
+
+    .stat-card {
+        padding: 30px 20px;
+    }
+
+    .stat-card .stat-number {
+        font-size: 28px;
+    }
+}
