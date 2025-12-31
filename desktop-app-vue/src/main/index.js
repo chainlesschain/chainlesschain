@@ -1241,8 +1241,44 @@ class ChainlessChainApp {
       }
     }
 
+    // 注册全局快捷键
+    this.registerGlobalShortcuts();
+
     // 创建系统托盘
     this.createTray();
+  }
+
+  /**
+   * 注册全局快捷键
+   */
+  registerGlobalShortcuts() {
+    const { globalShortcut } = require('electron');
+
+    try {
+      // Ctrl+Shift+V: 触发语音输入
+      const registered = globalShortcut.register('CommandOrControl+Shift+V', () => {
+        console.log('[Main] 全局快捷键触发: Ctrl+Shift+V - 语音输入');
+
+        // 聚焦主窗口
+        if (this.mainWindow) {
+          if (this.mainWindow.isMinimized()) {
+            this.mainWindow.restore();
+          }
+          this.mainWindow.focus();
+
+          // 发送事件到渲染进程
+          this.mainWindow.webContents.send('shortcut:voice-input');
+        }
+      });
+
+      if (registered) {
+        console.log('[Main] 全局快捷键注册成功: Ctrl+Shift+V');
+      } else {
+        console.warn('[Main] 全局快捷键注册失败: Ctrl+Shift+V (可能已被占用)');
+      }
+    } catch (error) {
+      console.error('[Main] 注册全局快捷键失败:', error);
+    }
   }
 
   createTray() {
@@ -14133,7 +14169,207 @@ ${content}
       }
     });
 
-    console.log('[Main] 语音识别系统 IPC handlers 注册完成');
+    // ========== 实时语音输入 IPC Handlers ==========
+
+    // 开始实时录音
+    ipcMain.handle('speech:start-realtime-recording', async (_event, options = {}) => {
+      try {
+        const manager = await initializeSpeechManager();
+        await manager.startRealtimeRecording(options);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 开始实时录音失败:', error);
+        throw error;
+      }
+    });
+
+    // 添加音频数据
+    ipcMain.handle('speech:add-realtime-audio-data', async (_event, audioData) => {
+      try {
+        const manager = await initializeSpeechManager();
+        // 转换为Buffer（如果需要）
+        const buffer = Buffer.from(audioData);
+        manager.addRealtimeAudioData(buffer);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 添加音频数据失败:', error);
+        throw error;
+      }
+    });
+
+    // 暂停实时录音
+    ipcMain.handle('speech:pause-realtime-recording', async () => {
+      try {
+        const manager = await initializeSpeechManager();
+        manager.pauseRealtimeRecording();
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 暂停实时录音失败:', error);
+        throw error;
+      }
+    });
+
+    // 恢复实时录音
+    ipcMain.handle('speech:resume-realtime-recording', async () => {
+      try {
+        const manager = await initializeSpeechManager();
+        manager.resumeRealtimeRecording();
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 恢复实时录音失败:', error);
+        throw error;
+      }
+    });
+
+    // 停止实时录音
+    ipcMain.handle('speech:stop-realtime-recording', async () => {
+      try {
+        const manager = await initializeSpeechManager();
+        const result = await manager.stopRealtimeRecording();
+        return { success: true, result };
+      } catch (error) {
+        console.error('[Main] 停止实时录音失败:', error);
+        throw error;
+      }
+    });
+
+    // 取消实时录音
+    ipcMain.handle('speech:cancel-realtime-recording', async () => {
+      try {
+        const manager = await initializeSpeechManager();
+        manager.cancelRealtimeRecording();
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 取消实时录音失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取实时录音状态
+    ipcMain.handle('speech:get-realtime-status', async () => {
+      try {
+        const manager = await initializeSpeechManager();
+        const status = manager.getRealtimeStatus();
+        return { success: true, status };
+      } catch (error) {
+        console.error('[Main] 获取实时录音状态失败:', error);
+        throw error;
+      }
+    });
+
+    // 识别语音命令
+    ipcMain.handle('speech:recognize-command', async (_event, text, context = {}) => {
+      try {
+        const manager = await initializeSpeechManager();
+        const command = manager.recognizeCommand(text, context);
+        return { success: true, command };
+      } catch (error) {
+        console.error('[Main] 识别语音命令失败:', error);
+        throw error;
+      }
+    });
+
+    // 注册自定义命令
+    ipcMain.handle('speech:register-command', async (_event, command) => {
+      try {
+        const manager = await initializeSpeechManager();
+        manager.registerCommand(command);
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 注册自定义命令失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取所有命令
+    ipcMain.handle('speech:get-all-commands', async () => {
+      try {
+        const manager = await initializeSpeechManager();
+        const commands = manager.getAllCommands();
+        return { success: true, commands };
+      } catch (error) {
+        console.error('[Main] 获取所有命令失败:', error);
+        throw error;
+      }
+    });
+
+    // 获取缓存统计
+    ipcMain.handle('speech:get-cache-stats', async () => {
+      try {
+        const manager = await initializeSpeechManager();
+        const stats = await manager.getCacheStats();
+        return { success: true, stats };
+      } catch (error) {
+        console.error('[Main] 获取缓存统计失败:', error);
+        throw error;
+      }
+    });
+
+    // 清空缓存
+    ipcMain.handle('speech:clear-cache', async () => {
+      try {
+        const manager = await initializeSpeechManager();
+        await manager.clearCache();
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] 清空缓存失败:', error);
+        throw error;
+      }
+    });
+
+    // 设置实时语音输入事件监听
+    if (speechManager) {
+      // 转发实时语音输入事件到渲染进程
+      speechManager.on('realtime:started', (data) => {
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send('speech:realtime-started', data);
+        }
+      });
+
+      speechManager.on('realtime:stopped', (data) => {
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send('speech:realtime-stopped', data);
+        }
+      });
+
+      speechManager.on('realtime:paused', (data) => {
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send('speech:realtime-paused', data);
+        }
+      });
+
+      speechManager.on('realtime:resumed', (data) => {
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send('speech:realtime-resumed', data);
+        }
+      });
+
+      speechManager.on('realtime:cancelled', (data) => {
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send('speech:realtime-cancelled', data);
+        }
+      });
+
+      speechManager.on('realtime:volume', (data) => {
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send('speech:realtime-volume', data);
+        }
+      });
+
+      speechManager.on('realtime:partial', (data) => {
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send('speech:realtime-partial', data);
+        }
+      });
+
+      speechManager.on('realtime:command', (command) => {
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send('speech:realtime-command', command);
+        }
+      });
+    }
+
+    console.log('[Main] 语音识别系统 IPC handlers 注册完成（含实时语音输入）');
     console.log('[Main] 插件系统 IPC handlers 注册完成');
   }
 
