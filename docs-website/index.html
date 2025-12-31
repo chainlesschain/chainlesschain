@@ -128,7 +128,88 @@
                 </div>
                 <div class="nav-menu" id="navMenu">
                     <a href="#home" class="nav-link active">首页</a>
-                    <a href="#products" class="nav-link">产品</a>
+
+                    <!-- 产品下拉菜单 -->
+                    <div class="nav-dropdown">
+                        <a href="#products" class="nav-link">产品 ▾</a>
+                        <div class="dropdown-content">
+                            <a href="products/knowledge-base.html" class="dropdown-item">
+                                <span class="icon">📚</span>
+                                <div>
+                                    <strong>个人AI知识库</strong>
+                                    <p>本地加密存储，AI问答</p>
+                                </div>
+                            </a>
+                            <a href="products/enterprise.html" class="dropdown-item featured">
+                                <span class="icon">🏢</span>
+                                <div>
+                                    <strong>企业版</strong>
+                                    <p>去中心化组织协作</p>
+                                </div>
+                            </a>
+                            <a href="products/project-management.html" class="dropdown-item">
+                                <span class="icon">📊</span>
+                                <div>
+                                    <strong>AI项目管理</strong>
+                                    <p>对话即项目，AI即团队</p>
+                                </div>
+                            </a>
+                            <a href="products/social.html" class="dropdown-item">
+                                <span class="icon">💬</span>
+                                <div>
+                                    <strong>去中心化社交</strong>
+                                    <p>端到端加密通信</p>
+                                </div>
+                            </a>
+                            <a href="products/trading.html" class="dropdown-item">
+                                <span class="icon">🤝</span>
+                                <div>
+                                    <strong>AI辅助交易</strong>
+                                    <p>智能合约托管</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 技术下拉菜单 -->
+                    <div class="nav-dropdown">
+                        <a href="#features" class="nav-link">技术 ▾</a>
+                        <div class="dropdown-content">
+                            <a href="technology/technical-docs.html" class="dropdown-item">
+                                <span class="icon">📖</span>
+                                <div>
+                                    <strong>技术文档</strong>
+                                    <p>170,000+行开源代码</p>
+                                </div>
+                            </a>
+                            <a href="https://github.com/chainlesschain/chainlesschain/blob/main/系统设计_个人移动AI管理系统.md" target="_blank" rel="noopener" class="dropdown-item">
+                                <span class="icon">🏗️</span>
+                                <div>
+                                    <strong>系统设计</strong>
+                                    <p>完整架构文档</p>
+                                </div>
+                            </a>
+                            <a href="https://github.com/chainlesschain/chainlesschain/blob/main/README.md" target="_blank" rel="noopener" class="dropdown-item">
+                                <span class="icon">📚</span>
+                                <div>
+                                    <strong>README</strong>
+                                    <p>项目说明文档</p>
+                                </div>
+                            </a>
+                            <a href="https://github.com/chainlesschain" target="_blank" rel="noopener" class="dropdown-item">
+                                <span class="icon">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                                    </svg>
+                                </span>
+                                <div>
+                                    <strong>GitHub仓库</strong>
+                                    <p>查看源代码</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
                     <a href="#download" class="nav-link">下载</a>
                     <a href="https://docs.chainlesschain.com" class="nav-link" target="_blank" rel="noopener">文档</a>
                     <a href="https://forum.chainlesschain.com" class="nav-link" target="_blank" rel="noopener">论坛</a>
@@ -156,11 +237,17 @@
         </div>
         <div class="container">
             <div class="hero-content">
-                <!-- 主标题 -->
+                <!-- 主标题 - 更新为双版本定位 -->
                 <h1 class="hero-title animate-fade-in">
                     让数据主权回归个人<br>
                     <span class="highlight">AI效率触手可及</span>
                 </h1>
+
+                <!-- 版本标识 -->
+                <div class="version-tags animate-fade-in-delay">
+                    <span class="version-tag personal">个人版：本地加密 AI知识库</span>
+                    <span class="version-tag enterprise">企业版：去中心化组织协作</span>
+                </div>
 
                 <!-- 新增：信任标签 -->
                 <div class="trust-badges animate-fade-in-delay">
@@ -170,10 +257,10 @@
                     <span class="badge">✅ 等保三级认证</span>
                 </div>
 
-                <!-- 副标题 -->
+                <!-- 副标题 - 更新突出双版本 -->
                 <p class="hero-subtitle animate-fade-in-delay">
-                    基于U盾和SIMKey硬件加密技术，打造安全可信的个人AI生态系统<br>
-                    数据不上云，完全离线可用，医生、律师、研究员首选
+                    <strong>个人版</strong>：基于U盾/SIMKey硬件加密的AI知识库，数据不上云，完全离线可用<br>
+                    <strong>企业版</strong>：去中心化组织架构，零部署成本，彻底解决传统企业软件的安全与成本问题
                 </p>
 
                 <!-- 优化：双CTA按钮 + 电话 -->
@@ -205,22 +292,29 @@
                 <!-- 新增：社会证明 -->
                 <div class="social-proof animate-fade-in-delay-3">
                     <p>已有 <strong>10,000+</strong> 医生、律师、研究员选择ChainlessChain保护数据安全</p>
-                    <p style="font-size: 14px; color: rgba(255,255,255,0.8); margin-top: 8px;">165个Vue组件 • 140,000+行代码 • 149个API端点 • 92%整体完成度</p>
                 </div>
 
-                <!-- 原有统计数据 -->
+                <!-- 更新：关键统计数据 -->
                 <div class="hero-stats">
                     <div class="stat-item">
-                        <span class="stat-number">4+</span>
-                        <span class="stat-label">专利技术</span>
+                        <span class="stat-number">170,000+</span>
+                        <span class="stat-label">代码行数</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number">99.9%</span>
-                        <span class="stat-label">数据安全性</span>
+                        <span class="stat-number">145</span>
+                        <span class="stat-label">Vue组件</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number">全平台</span>
-                        <span class="stat-label">覆盖支持</span>
+                        <span class="stat-number">98%</span>
+                        <span class="stat-label">整体完成度</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">19</span>
+                        <span class="stat-label">AI引擎</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">115</span>
+                        <span class="stat-label">技能工具</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-number">0</span>
@@ -259,14 +353,136 @@
         </div>
     </section>
 
+    <!-- 新增：版本对比板块 -->
+    <section class="version-comparison">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">选择适合您的版本</h2>
+                <p class="section-subtitle">个人版和企业版，满足不同场景需求</p>
+            </div>
+            <div class="version-cards">
+                <!-- 个人版卡片 -->
+                <div class="version-card personal-edition">
+                    <div class="version-badge">个人版</div>
+                    <div class="version-icon">👤</div>
+                    <h3 class="version-title">ChainlessChain 个人版</h3>
+                    <p class="version-tagline">本地加密的个人AI知识库</p>
+
+                    <div class="version-price">
+                        <span class="price">¥0</span>
+                        <span class="price-desc">永久免费</span>
+                    </div>
+
+                    <div class="version-features">
+                        <h4>核心功能</h4>
+                        <ul>
+                            <li><span class="icon">✅</span> U盾/SIMKey硬件加密存储</li>
+                            <li><span class="icon">✅</span> 本地AI部署（Ollama）</li>
+                            <li><span class="icon">✅</span> RAG增强检索（ChromaDB/Qdrant）</li>
+                            <li><span class="icon">✅</span> 多格式导入（MD/PDF/Word/OCR）</li>
+                            <li><span class="icon">✅</span> 多设备加密同步（Git + E2E）</li>
+                            <li><span class="icon">✅</span> 19个AI专用引擎</li>
+                            <li><span class="icon">✅</span> 完全离线可用</li>
+                        </ul>
+                    </div>
+
+                    <div class="version-ideal-for">
+                        <h4>适用人群</h4>
+                        <div class="user-tags">
+                            <span>医生</span>
+                            <span>律师</span>
+                            <span>研究员</span>
+                            <span>学生</span>
+                            <span>自由职业</span>
+                        </div>
+                    </div>
+
+                    <div class="version-cta">
+                        <button class="btn-version-primary" onclick="scrollToDownload()">立即下载</button>
+                        <a href="products/knowledge-base.html" class="btn-version-outline">了解详情 →</a>
+                    </div>
+                </div>
+
+                <!-- 企业版卡片 -->
+                <div class="version-card enterprise-edition featured">
+                    <div class="featured-label">推荐创业团队</div>
+                    <div class="version-badge">企业版</div>
+                    <div class="version-icon">🏢</div>
+                    <h3 class="version-title">ChainlessChain 企业版</h3>
+                    <p class="version-tagline">去中心化组织协作平台</p>
+
+                    <div class="version-price">
+                        <span class="price">¥0</span>
+                        <span class="price-desc">零部署成本</span>
+                        <span class="price-save">省下数万至数十万/年</span>
+                    </div>
+
+                    <div class="version-features">
+                        <h4>核心功能（包含个人版所有功能）</h4>
+                        <ul>
+                            <li><span class="icon">✅</span> 去中心化组织架构（无需服务器）</li>
+                            <li><span class="icon">✅</span> 多身份切换（个人+N个组织）</li>
+                            <li><span class="icon">✅</span> RBAC权限管理（管理员/成员/访客）</li>
+                            <li><span class="icon">✅</span> P2P加密通信（libp2p + Signal）</li>
+                            <li><span class="icon">✅</span> 团队知识库共享</li>
+                            <li><span class="icon">✅</span> AI驱动的项目管理</li>
+                            <li><span class="icon">✅</span> 数据完全隔离（本地存储）</li>
+                        </ul>
+                    </div>
+
+                    <div class="version-highlights">
+                        <h4>三大核心卖点</h4>
+                        <div class="highlight-item">
+                            <span class="highlight-icon">💰</span>
+                            <div>
+                                <strong>零成本</strong>
+                                <p>数万至数十万/年 → ¥0元</p>
+                            </div>
+                        </div>
+                        <div class="highlight-item">
+                            <span class="highlight-icon">🔒</span>
+                            <div>
+                                <strong>彻底安全</strong>
+                                <p>告别服务器攻击、网络故障、供应商倒闭</p>
+                            </div>
+                        </div>
+                        <div class="highlight-item">
+                            <span class="highlight-icon">🚀</span>
+                            <div>
+                                <strong>AI加持</strong>
+                                <p>19个AI引擎，让团队效率倍增</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="version-ideal-for">
+                        <h4>适用人群</h4>
+                        <div class="user-tags">
+                            <span>创业团队</span>
+                            <span>中小企业</span>
+                            <span>远程团队</span>
+                            <span>DAO组织</span>
+                            <span>项目组</span>
+                        </div>
+                    </div>
+
+                    <div class="version-cta">
+                        <button class="btn-version-primary" onclick="scrollToDownload()">立即下载</button>
+                        <a href="products/enterprise.html" class="btn-version-outline">了解详情 →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Products Section - 优化版 -->
     <section id="products" class="products">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">核心产品</h2>
-                <p class="section-subtitle">三大产品矩阵，满足不同场景需求</p>
+                <h2 class="section-title">核心功能</h2>
+                <p class="section-subtitle">五大核心功能，覆盖个人与团队全场景</p>
             </div>
-            <div class="products-grid">
+            <div class="products-grid five-columns">
                 <!-- Product 1 - 优化版 -->
                 <div class="product-card">
                     <div class="product-icon">📚</div>
@@ -400,6 +616,94 @@
                         <button class="btn-product-outline" onclick="learnMore('trading')">了解详情</button>
                     </div>
                 </div>
+
+                <!-- Product 4 - AI项目管理（新增） -->
+                <div class="product-card featured">
+                    <div class="featured-badge">新功能</div>
+                    <div class="product-icon">📊</div>
+                    <h3 class="product-title">AI项目管理</h3>
+
+                    <div class="pain-points">
+                        <p class="pain-point">😰 项目管理工具太复杂？</p>
+                        <p class="pain-point">😰 需要AI帮助生成项目文件？</p>
+                    </div>
+
+                    <div class="solutions">
+                        <p class="solution">✅ 对话即可创建项目</p>
+                        <p class="solution">✅ AI自动生成代码和文档</p>
+                        <p class="solution">✅ 19个AI引擎随时待命</p>
+                    </div>
+
+                    <ul class="product-features">
+                        <li>对话式项目创建（聊天即创建）</li>
+                        <li>AI自动生成项目结构和文件</li>
+                        <li>19个AI专业引擎（代码/文档/Excel/PPT等）</li>
+                        <li>知识库深度集成（RAG增强）</li>
+                        <li>智能任务拆解和管理</li>
+                        <li>版本控制和Git同步</li>
+                    </ul>
+
+                    <div class="target-users">
+                        <span class="user-tag">开发者</span>
+                        <span class="user-tag">项目经理</span>
+                        <span class="user-tag">产品经理</span>
+                        <span class="user-tag">创业者</span>
+                    </div>
+
+                    <blockquote class="testimonial-mini">
+                        <p>"用对话创建项目太方便了，AI直接帮我生成了所有代码框架"</p>
+                        <cite>- 陈工，技术总监</cite>
+                    </blockquote>
+
+                    <div class="product-cta">
+                        <button class="btn-product-primary" onclick="scrollToDownload()">立即下载</button>
+                        <button class="btn-product-outline" onclick="window.location.href='products/project-management.html'">了解详情</button>
+                    </div>
+                </div>
+
+                <!-- Product 5 - 企业版（新增） -->
+                <div class="product-card enterprise">
+                    <div class="featured-badge">零成本</div>
+                    <div class="product-icon">🏢</div>
+                    <h3 class="product-title">企业版（去中心化组织）</h3>
+
+                    <div class="pain-points">
+                        <p class="pain-point">😰 传统企业软件成本高昂？</p>
+                        <p class="pain-point">😰 担心服务器被攻击或供应商倒闭？</p>
+                    </div>
+
+                    <div class="solutions">
+                        <p class="solution">✅ 零部署成本（省下数万至数十万/年）</p>
+                        <p class="solution">✅ 彻底解决安全问题（去中心化）</p>
+                        <p class="solution">✅ 19个AI引擎提升团队效率</p>
+                    </div>
+
+                    <ul class="product-features">
+                        <li>去中心化组织架构（无需服务器）</li>
+                        <li>多身份切换（个人+N个组织身份）</li>
+                        <li>RBAC权限管理（管理员/成员/访客）</li>
+                        <li>P2P加密通信（libp2p + Signal Protocol）</li>
+                        <li>团队知识库和项目协作</li>
+                        <li>完全数据隔离（本地加密存储）</li>
+                    </ul>
+
+                    <div class="target-users">
+                        <span class="user-tag">创业团队</span>
+                        <span class="user-tag">中小企业</span>
+                        <span class="user-tag">远程团队</span>
+                        <span class="user-tag">DAO组织</span>
+                    </div>
+
+                    <blockquote class="testimonial-mini">
+                        <p>"零成本部署，数据还完全自己掌控，创业团队的最佳选择"</p>
+                        <cite>- 李总，创业公司CEO</cite>
+                    </blockquote>
+
+                    <div class="product-cta">
+                        <button class="btn-product-primary" onclick="scrollToDownload()">立即下载</button>
+                        <button class="btn-product-outline" onclick="window.location.href='products/enterprise.html'">了解详情</button>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -472,6 +776,189 @@
                 <button class="btn-primary-large" onclick="scrollToDownload()">
                     立即下载ChainlessChain
                 </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：企业版Spotlight -->
+    <section class="enterprise-spotlight">
+        <div class="container">
+            <div class="spotlight-header">
+                <span class="spotlight-badge">🏢 企业版</span>
+                <h2 class="spotlight-title">创业团队的首选<br>零成本 • 更安全 • AI加持</h2>
+                <p class="spotlight-subtitle">告别传统企业软件的高昂成本和安全隐患</p>
+            </div>
+
+            <!-- 核心卖点网格 -->
+            <div class="spotlight-grid">
+                <!-- 卖点1: 零成本 -->
+                <div class="spotlight-item cost-saving">
+                    <div class="spotlight-content">
+                        <div class="spotlight-icon">💰</div>
+                        <h3>零部署成本</h3>
+                        <div class="cost-comparison">
+                            <div class="cost-old">
+                                <span class="label">传统企业软件</span>
+                                <span class="amount">数万至数十万/年</span>
+                                <ul class="cost-items">
+                                    <li>服务器租赁：¥50,000+/年</li>
+                                    <li>运维人员：¥100,000+/年</li>
+                                    <li>软件授权：¥30,000+/年</li>
+                                </ul>
+                            </div>
+                            <div class="arrow">→</div>
+                            <div class="cost-new">
+                                <span class="label">ChainlessChain企业版</span>
+                                <span class="amount highlight">¥0元</span>
+                                <ul class="cost-items">
+                                    <li>✅ 无需服务器</li>
+                                    <li>✅ 无需运维</li>
+                                    <li>✅ 永久免费</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卖点2: 彻底安全 -->
+                <div class="spotlight-item security">
+                    <div class="spotlight-content">
+                        <div class="spotlight-icon">🔒</div>
+                        <h3>彻底解决安全问题</h3>
+                        <p class="description">传统中心化企业软件的三大噩梦</p>
+                        <div class="problems-list">
+                            <div class="problem-item">
+                                <span class="problem-icon">❌</span>
+                                <div>
+                                    <strong>服务器被攻击</strong>
+                                    <p>中心化存储，一旦被黑全部数据泄露</p>
+                                </div>
+                            </div>
+                            <div class="problem-item">
+                                <span class="problem-icon">❌</span>
+                                <div>
+                                    <strong>网络故障中断</strong>
+                                    <p>服务器宕机，整个公司业务停摆</p>
+                                </div>
+                            </div>
+                            <div class="problem-item">
+                                <span class="problem-icon">❌</span>
+                                <div>
+                                    <strong>供应商倒闭</strong>
+                                    <p>服务商跑路，数据全部丢失</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="solution-box">
+                            <p><strong>ChainlessChain解决方案</strong></p>
+                            <ul>
+                                <li>✅ 去中心化架构，无单点故障</li>
+                                <li>✅ 数据本地加密存储，完全自主掌控</li>
+                                <li>✅ P2P通信，无需担心服务器问题</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卖点3: AI功能 -->
+                <div class="spotlight-item ai-power">
+                    <div class="spotlight-content">
+                        <div class="spotlight-icon">🚀</div>
+                        <h3>19个AI引擎，让团队事半功倍</h3>
+                        <p class="description">强大的AI功能，提升团队协作效率</p>
+                        <div class="ai-engines-grid">
+                            <div class="engine-item">
+                                <span class="icon">💻</span>
+                                <span>代码引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">📄</span>
+                                <span>文档引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">📊</span>
+                                <span>Excel引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">📽️</span>
+                                <span>PPT引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">📑</span>
+                                <span>PDF引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">🎨</span>
+                                <span>图像引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">🎬</span>
+                                <span>视频引擎</span>
+                            </div>
+                            <div class="engine-item">
+                                <span class="icon">🌐</span>
+                                <span>Web引擎</span>
+                            </div>
+                            <div class="engine-item more">
+                                <span>+11个引擎</span>
+                            </div>
+                        </div>
+                        <div class="ai-benefits">
+                            <p>✅ 对话即可创建项目和生成文件</p>
+                            <p>✅ AI自动生成代码、文档、报告</p>
+                            <p>✅ 知识库深度集成，智能问答</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卖点4: 快速上手 -->
+                <div class="spotlight-item quick-start">
+                    <div class="spotlight-content">
+                        <div class="spotlight-icon">⚡</div>
+                        <h3>5分钟创建组织，立即开始协作</h3>
+                        <div class="steps">
+                            <div class="step">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <strong>下载安装</strong>
+                                    <p>全平台支持，一键安装</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <strong>创建组织</strong>
+                                    <p>填写组织名称，生成DID身份</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <strong>邀请成员</strong>
+                                    <p>分享邀请码，成员P2P加入</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
+                                    <strong>开始协作</strong>
+                                    <p>共享知识库，AI辅助项目管理</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            <div class="spotlight-cta">
+                <button class="btn-spotlight-primary" onclick="scrollToDownload()">
+                    立即下载企业版
+                    <span class="sub">零成本启动您的组织</span>
+                </button>
+                <a href="products/enterprise.html" class="btn-spotlight-outline">
+                    了解更多企业版功能 →
+                </a>
             </div>
         </div>
     </section>
@@ -685,6 +1172,137 @@
                         </ul>
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新增：技术透明度板块 -->
+    <section class="tech-transparency">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">技术透明，值得信赖</h2>
+                <p class="section-subtitle">170,000+行开源代码，完全透明可审计</p>
+            </div>
+
+            <!-- 统计数据网格 -->
+            <div class="tech-stats-grid">
+                <div class="tech-stat-item">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-value">170,000+</div>
+                    <div class="stat-label">代码总行数</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">🧩</div>
+                    <div class="stat-value">145</div>
+                    <div class="stat-label">Vue组件</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value">98%</div>
+                    <div class="stat-label">整体完成度</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">🔌</div>
+                    <div class="stat-value">149</div>
+                    <div class="stat-label">API端点</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">🗄️</div>
+                    <div class="stat-value">35</div>
+                    <div class="stat-label">数据库表</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">🛠️</div>
+                    <div class="stat-value">115</div>
+                    <div class="stat-label">技能工具</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">🤖</div>
+                    <div class="stat-value">19</div>
+                    <div class="stat-label">AI引擎</div>
+                </div>
+                <div class="tech-stat-item">
+                    <div class="stat-icon">⛓️</div>
+                    <div class="stat-value">6</div>
+                    <div class="stat-label">智能合约</div>
+                </div>
+            </div>
+
+            <!-- 开源信息 -->
+            <div class="open-source-info">
+                <div class="opensource-card">
+                    <h3>🌟 完全开源</h3>
+                    <p>MIT开源协议，代码完全透明，欢迎审计和贡献</p>
+                    <div class="repo-links">
+                        <a href="https://github.com/chainlesschain" target="_blank" rel="noopener" class="repo-link github">
+                            <span class="icon">
+                                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                                </svg>
+                            </span>
+                            <span>GitHub仓库</span>
+                            <span class="star-count">⭐ 10k+</span>
+                        </a>
+                        <a href="https://gitee.com/chainlesschaincn/chainlesschain" target="_blank" rel="noopener" class="repo-link gitee">
+                            <span class="icon">📦</span>
+                            <span>Gitee镜像</span>
+                            <span class="badge">国内快</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="opensource-card">
+                    <h3>📖 技术文档</h3>
+                    <p>完整的系统设计文档、架构说明、API文档</p>
+                    <div class="doc-links">
+                        <a href="technology/technical-docs.html" class="doc-link">
+                            <span class="icon">📄</span>
+                            <span>查看技术文档</span>
+                        </a>
+                        <a href="https://github.com/chainlesschain/chainlesschain/blob/main/系统设计_个人移动AI管理系统.md" target="_blank" rel="noopener" class="doc-link">
+                            <span class="icon">🏗️</span>
+                            <span>系统设计文档</span>
+                        </a>
+                        <a href="https://github.com/chainlesschain/chainlesschain/blob/main/README.md" target="_blank" rel="noopener" class="doc-link">
+                            <span class="icon">📚</span>
+                            <span>README</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 技术栈预览 -->
+            <div class="tech-stack-preview">
+                <h3>🔧 技术栈亮点</h3>
+                <div class="tech-categories-grid">
+                    <div class="tech-cat">
+                        <h4>前端</h4>
+                        <span>Electron 39 • Vue 3 • TypeScript</span>
+                    </div>
+                    <div class="tech-cat">
+                        <h4>后端</h4>
+                        <span>Node.js • Spring Boot • FastAPI</span>
+                    </div>
+                    <div class="tech-cat">
+                        <h4>AI/ML</h4>
+                        <span>Ollama • Qdrant • RAG</span>
+                    </div>
+                    <div class="tech-cat">
+                        <h4>安全</h4>
+                        <span>U盾 • SIMKey • Signal Protocol</span>
+                    </div>
+                    <div class="tech-cat">
+                        <h4>区块链</h4>
+                        <span>Hardhat • Solidity • Ethers.js</span>
+                    </div>
+                    <div class="tech-cat">
+                        <h4>数据库</h4>
+                        <span>SQLCipher • PostgreSQL • Redis</span>
+                    </div>
+                </div>
+                <a href="technology/technical-docs.html" class="btn-view-all">
+                    查看完整技术栈 →
+                </a>
             </div>
         </div>
     </section>
@@ -1011,18 +1629,28 @@
                 <div class="footer-section">
                     <h4>产品</h4>
                     <ul class="footer-links">
-                        <li><a href="#products">AI知识库</a></li>
-                        <li><a href="#products">去中心化社交</a></li>
-                        <li><a href="#products">AI辅助交易</a></li>
+                        <li><a href="products/knowledge-base.html">AI知识库</a></li>
+                        <li><a href="products/enterprise.html">企业版</a></li>
+                        <li><a href="products/project-management.html">AI项目管理</a></li>
+                        <li><a href="products/social.html">去中心化社交</a></li>
+                        <li><a href="products/trading.html">AI辅助交易</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>技术</h4>
+                    <ul class="footer-links">
+                        <li><a href="technology/technical-docs.html">技术文档</a></li>
+                        <li><a href="https://github.com/chainlesschain/chainlesschain/blob/main/系统设计_个人移动AI管理系统.md" target="_blank" rel="noopener">系统设计</a></li>
+                        <li><a href="https://github.com/chainlesschain/chainlesschain/blob/main/README.md" target="_blank" rel="noopener">README</a></li>
+                        <li><a href="https://docs.chainlesschain.com" target="_blank" rel="noopener">API文档</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
                     <h4>资源</h4>
                     <ul class="footer-links">
-                        <li><a href="https://docs.chainlesschain.com" target="_blank" rel="noopener">开发文档</a></li>
-                        <li><a href="https://docs.chainlesschain.com" target="_blank" rel="noopener">API文档</a></li>
                         <li><a href="https://forum.chainlesschain.com" target="_blank" rel="noopener">社区论坛</a></li>
                         <li><a href="#download">软件下载</a></li>
+                        <li><a href="https://docs.chainlesschain.com" target="_blank" rel="noopener">开发文档</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
