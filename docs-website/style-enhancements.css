@@ -74,6 +74,7 @@ section {
     border: 2px solid var(--primary-color) !important;
     font-weight: 600 !important;
     background: white !important;
+    color: var(--primary-color) !important;
     transition: all 0.3s ease !important;
 }
 
@@ -392,4 +393,79 @@ a, button {
 .footer-content {
     gap: 32px !important;
     margin-bottom: 32px !important;
+}
+
+/* ==========================================
+   26. 版本对比卡片按钮优化
+   ========================================== */
+.version-cta {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.btn-version-primary {
+    flex: 1;
+    padding: 14px 28px !important;
+    background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+    letter-spacing: 0.5px;
+}
+
+.btn-version-primary:hover {
+    background: linear-gradient(135deg, #0050b3 0%, #003a8c 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(24, 144, 255, 0.45) !important;
+}
+
+.btn-version-outline {
+    flex: 1;
+    padding: 14px 28px !important;
+    background: white !important;
+    color: var(--primary-color) !important;
+    border: 2px solid var(--primary-color) !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.btn-version-outline:hover {
+    background: var(--primary-color) !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+}
+
+/* 箭头动画 */
+.btn-version-outline:hover::after {
+    content: ' →';
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .version-cta {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn-version-primary,
+    .btn-version-outline {
+        width: 100% !important;
+    }
 }
