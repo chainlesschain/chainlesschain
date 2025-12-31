@@ -6,6 +6,11 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 
+const normalizeProvider = (provider) => {
+  if (!provider) return provider;
+  return provider === 'claude' ? 'anthropic' : provider;
+};
+
 /**
  * 默认配置
  */
@@ -25,6 +30,14 @@ const DEFAULT_CONFIG = {
     baseURL: 'https://api.openai.com/v1',
     model: 'gpt-3.5-turbo',
     organization: '',
+  },
+
+  // Anthropic Claude配置
+  anthropic: {
+    apiKey: '',
+    baseURL: 'https://api.anthropic.com',
+    model: 'claude-3-opus-20240229',
+    version: '2023-06-01',
   },
 
   // DeepSeek配置
@@ -98,12 +111,14 @@ class LLMConfig {
           ...savedConfig,
           ollama: { ...DEFAULT_CONFIG.ollama, ...(savedConfig.ollama || {}) },
           openai: { ...DEFAULT_CONFIG.openai, ...(savedConfig.openai || {}) },
+          anthropic: { ...DEFAULT_CONFIG.anthropic, ...(savedConfig.anthropic || {}) },
           deepseek: { ...DEFAULT_CONFIG.deepseek, ...(savedConfig.deepseek || {}) },
           volcengine: { ...DEFAULT_CONFIG.volcengine, ...(savedConfig.volcengine || {}) },
           custom: { ...DEFAULT_CONFIG.custom, ...(savedConfig.custom || {}) },
           options: { ...DEFAULT_CONFIG.options, ...(savedConfig.options || {}) },
         };
 
+        this.config.provider = normalizeProvider(this.config.provider);
         this.loaded = true;
         console.log('[LLMConfig] 配置加载成功');
       } else {
@@ -167,6 +182,10 @@ class LLMConfig {
     const keys = key.split('.');
     let target = this.config;
 
+    if (keys.length === 1 && keys[0] === 'provider') {
+      value = normalizeProvider(value);
+    }
+
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
       if (!(k in target) || typeof target[k] !== 'object') {
@@ -196,22 +215,24 @@ class LLMConfig {
   // 便捷方法
 
   getProvider() {
-    return this.config.provider;
+    return normalizeProvider(this.config.provider);
   }
 
   setProvider(provider) {
-    this.config.provider = provider;
+    this.config.provider = normalizeProvider(provider);
     this.save();
   }
 
   getProviderConfig(provider = null) {
-    const p = provider || this.config.provider;
+    const p = normalizeProvider(provider || this.config.provider);
 
     switch (p) {
       case 'ollama':
         return this.config.ollama;
       case 'openai':
         return this.config.openai;
+      case 'anthropic':
+        return this.config.anthropic;
       case 'deepseek':
         return this.config.deepseek;
       case 'volcengine':
@@ -224,8 +245,9 @@ class LLMConfig {
   }
 
   setProviderConfig(provider, config) {
-    if (provider in this.config) {
-      this.config[provider] = { ...this.config[provider], ...config };
+    const normalizedProvider = normalizeProvider(provider);
+    if (normalizedProvider in this.config) {
+      this.config[normalizedProvider] = { ...this.config[normalizedProvider], ...config };
       this.save();
     }
   }
@@ -272,7 +294,7 @@ class LLMConfig {
   validate() {
     const errors = [];
 
-    switch (this.config.provider) {
+    switch (normalizeProvider(this.config.provider)) {
       case 'ollama':
         if (!this.config.ollama.url) {
           errors.push('Ollama URL未配置');
@@ -282,6 +304,12 @@ class LLMConfig {
       case 'openai':
         if (!this.config.openai.apiKey) {
           errors.push('OpenAI API Key未配置');
+        }
+        break;
+
+      case 'anthropic':
+        if (!this.config.anthropic.apiKey) {
+          errors.push('Anthropic API Key未配置');
         }
         break;
 
@@ -317,11 +345,11 @@ class LLMConfig {
     const providerConfig = this.getProviderConfig();
 
     const baseConfig = {
-      provider: this.config.provider,
+      provider: normalizeProvider(this.config.provider),
       timeout: this.config.options.timeout,
     };
 
-    switch (this.config.provider) {
+    switch (normalizeProvider(this.config.provider)) {
       case 'ollama':
         return {
           ...baseConfig,
@@ -336,6 +364,15 @@ class LLMConfig {
           baseURL: providerConfig.baseURL,
           model: providerConfig.model,
           organization: providerConfig.organization,
+        };
+
+      case 'anthropic':
+        return {
+          ...baseConfig,
+          apiKey: providerConfig.apiKey,
+          baseURL: providerConfig.baseURL || 'https://api.anthropic.com',
+          model: providerConfig.model,
+          anthropicVersion: providerConfig.version,
         };
 
       case 'deepseek':

@@ -612,7 +612,7 @@ class DatabaseManager {
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
         description TEXT,
-        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet')),
+        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design')),
         status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
         root_path TEXT,
         file_count INTEGER DEFAULT 0,
@@ -884,7 +884,7 @@ class DatabaseManager {
         category TEXT NOT NULL CHECK(category IN ('writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'research', 'marketing', 'education', 'lifestyle', 'travel', 'video', 'social-media', 'creative-writing', 'code-project', 'data-science', 'tech-docs', 'ecommerce', 'marketing-pro', 'legal', 'learning', 'health', 'productivity')),
         subcategory TEXT,
         tags TEXT,
-        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet')),
+        project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design')),
         prompt_template TEXT,
         variables_schema TEXT,
         file_structure TEXT,
@@ -1446,6 +1446,129 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_subtitles_video ON video_subtitles(video_file_id);
       CREATE INDEX IF NOT EXISTS idx_edit_history_original ON video_edit_history(original_video_id);
       CREATE INDEX IF NOT EXISTS idx_scenes_video ON video_scenes(video_file_id);
+
+      -- ============================
+      -- 设计工具模块表（UI/UX Design Tool System）
+      -- ============================
+
+      -- 设计画板表
+      CREATE TABLE IF NOT EXISTS design_artboards (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        name TEXT DEFAULT 'Untitled Artboard',
+        width INTEGER DEFAULT 1920,
+        height INTEGER DEFAULT 1080,
+        background_color TEXT DEFAULT '#FFFFFF',
+        position_x REAL DEFAULT 0,
+        position_y REAL DEFAULT 0,
+        order_index INTEGER DEFAULT 0,
+        is_template BOOLEAN DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      );
+
+      -- 设计元素表（核心）
+      CREATE TABLE IF NOT EXISTS design_objects (
+        id TEXT PRIMARY KEY,
+        artboard_id TEXT NOT NULL,
+        object_type TEXT NOT NULL CHECK(object_type IN ('rect', 'circle', 'path', 'text', 'image', 'group', 'component')),
+        name TEXT DEFAULT 'Layer',
+        fabric_json TEXT NOT NULL,
+        parent_id TEXT,
+        order_index INTEGER DEFAULT 0,
+        is_locked BOOLEAN DEFAULT 0,
+        is_visible BOOLEAN DEFAULT 1,
+        constraints TEXT,
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (artboard_id) REFERENCES design_artboards(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_id) REFERENCES design_objects(id) ON DELETE CASCADE
+      );
+
+      -- UI 组件库表
+      CREATE TABLE IF NOT EXISTS design_components (
+        id TEXT PRIMARY KEY,
+        project_id TEXT,
+        name TEXT NOT NULL,
+        category TEXT DEFAULT 'General',
+        description TEXT,
+        thumbnail_path TEXT,
+        fabric_template TEXT NOT NULL,
+        props_schema TEXT,
+        default_props TEXT,
+        tags TEXT,
+        usage_count INTEGER DEFAULT 0,
+        is_system BOOLEAN DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      );
+
+      -- 设计系统表（Design Tokens）
+      CREATE TABLE IF NOT EXISTS design_tokens (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        token_type TEXT NOT NULL CHECK(token_type IN ('color', 'typography', 'spacing', 'shadow', 'border-radius')),
+        token_name TEXT NOT NULL,
+        token_value TEXT NOT NULL,
+        description TEXT,
+        category TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        UNIQUE(project_id, token_type, token_name)
+      );
+
+      -- 设计评论表
+      CREATE TABLE IF NOT EXISTS design_comments (
+        id TEXT PRIMARY KEY,
+        artboard_id TEXT NOT NULL,
+        object_id TEXT,
+        user_id TEXT NOT NULL,
+        position_x REAL,
+        position_y REAL,
+        content TEXT NOT NULL,
+        status TEXT DEFAULT 'open' CHECK(status IN ('open', 'resolved', 'archived')),
+        thread_id TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (artboard_id) REFERENCES design_artboards(id) ON DELETE CASCADE,
+        FOREIGN KEY (object_id) REFERENCES design_objects(id) ON DELETE CASCADE,
+        FOREIGN KEY (thread_id) REFERENCES design_comments(id) ON DELETE CASCADE
+      );
+
+      -- 设计版本历史表
+      CREATE TABLE IF NOT EXISTS design_versions (
+        id TEXT PRIMARY KEY,
+        artboard_id TEXT NOT NULL,
+        version_number INTEGER NOT NULL,
+        snapshot_data TEXT NOT NULL,
+        change_summary TEXT,
+        author_id TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (artboard_id) REFERENCES design_artboards(id) ON DELETE CASCADE,
+        UNIQUE(artboard_id, version_number)
+      );
+
+      -- 设计模块索引
+      CREATE INDEX IF NOT EXISTS idx_artboards_project ON design_artboards(project_id);
+      CREATE INDEX IF NOT EXISTS idx_artboards_order ON design_artboards(project_id, order_index);
+      CREATE INDEX IF NOT EXISTS idx_objects_artboard ON design_objects(artboard_id);
+      CREATE INDEX IF NOT EXISTS idx_objects_artboard_order ON design_objects(artboard_id, order_index);
+      CREATE INDEX IF NOT EXISTS idx_objects_parent ON design_objects(parent_id);
+      CREATE INDEX IF NOT EXISTS idx_objects_type ON design_objects(object_type);
+      CREATE INDEX IF NOT EXISTS idx_components_project ON design_components(project_id);
+      CREATE INDEX IF NOT EXISTS idx_components_category ON design_components(category);
+      CREATE INDEX IF NOT EXISTS idx_components_system ON design_components(is_system);
+      CREATE INDEX IF NOT EXISTS idx_tokens_project_type ON design_tokens(project_id, token_type);
+      CREATE INDEX IF NOT EXISTS idx_comments_artboard ON design_comments(artboard_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_object ON design_comments(object_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_thread ON design_comments(thread_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_status ON design_comments(status);
+      CREATE INDEX IF NOT EXISTS idx_versions_artboard ON design_versions(artboard_id);
+      CREATE INDEX IF NOT EXISTS idx_versions_artboard_version ON design_versions(artboard_id, version_number);
     `);
 
       console.log('[Database] ✓ 所有表和索引创建成功');
@@ -1904,6 +2027,104 @@ class DatabaseManager {
         }
       }
 
+      // 迁移6: Phase 1 - 工作区与任务管理系统 (v0.17.0)
+      const workspaceTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='organization_workspaces'").get();
+
+      if (!workspaceTableExists) {
+        console.log('[Database] Phase 1 迁移 - 创建工作区与任务管理系统表...');
+        try {
+          const migrationPath = path.join(__dirname, 'database', 'migrations', '005_workspace_task_system.sql');
+          if (fs.existsSync(migrationPath)) {
+            const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+            this.db.exec(migrationSQL);
+            this.saveToFile();
+            console.log('[Database] 工作区与任务管理系统表创建完成');
+          } else {
+            console.warn('[Database] 工作区任务系统迁移文件不存在:', migrationPath);
+          }
+        } catch (workspaceError) {
+          console.error('[Database] 创建工作区任务系统表失败:', workspaceError);
+        }
+      }
+
+      // 迁移7: 为现有 project_tasks 表添加企业协作字段
+      const tasksInfo = this.db.prepare("PRAGMA table_info(project_tasks)").all();
+      const tasksColumnsToAdd = [
+        { name: 'org_id', type: 'TEXT', default: null },
+        { name: 'workspace_id', type: 'TEXT', default: null },
+        { name: 'assigned_to', type: 'TEXT', default: null },
+        { name: 'collaborators', type: 'TEXT', default: null },
+        { name: 'labels', type: 'TEXT', default: null },
+        { name: 'due_date', type: 'INTEGER', default: null },
+        { name: 'reminder_at', type: 'INTEGER', default: null },
+        { name: 'blocked_by', type: 'TEXT', default: null },
+        { name: 'estimate_hours', type: 'REAL', default: null },
+        { name: 'actual_hours', type: 'REAL', default: null }
+      ];
+
+      let tasksColumnsAdded = false;
+      for (const column of tasksColumnsToAdd) {
+        if (!tasksInfo.some(col => col.name === column.name)) {
+          console.log(`[Database] 添加 project_tasks.${column.name} 列`);
+          const defaultClause = column.default !== null ? ` DEFAULT ${column.default}` : '';
+          this.db.run(`ALTER TABLE project_tasks ADD COLUMN ${column.name} ${column.type}${defaultClause}`);
+          tasksColumnsAdded = true;
+        }
+      }
+
+      if (tasksColumnsAdded) {
+        this.saveToFile();
+        console.log('[Database] project_tasks 表字段扩展完成');
+      }
+
+      // 迁移8: Phase 2 - 文件共享与版本控制系统 (v0.18.0)
+      const fileVersionsTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='file_versions'").get();
+
+      if (!fileVersionsTableExists) {
+        console.log('[Database] Phase 2 迁移 - 创建文件共享与版本控制系统表...');
+        try {
+          const migrationPath = path.join(__dirname, 'database', 'migrations', '006_file_sharing_system.sql');
+          if (fs.existsSync(migrationPath)) {
+            const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+            this.db.exec(migrationSQL);
+            this.saveToFile();
+            console.log('[Database] 文件共享与版本控制系统表创建完成');
+          } else {
+            console.warn('[Database] 文件共享系统迁移文件不存在:', migrationPath);
+          }
+        } catch (fileError) {
+          console.error('[Database] 创建文件共享系统表失败:', fileError);
+        }
+      }
+
+      // 迁移9: 为现有 project_files 表添加共享和锁定字段
+      const filesInfo = this.db.prepare("PRAGMA table_info(project_files)").all();
+      const filesColumnsToAdd = [
+        { name: 'org_id', type: 'TEXT', default: null },
+        { name: 'workspace_id', type: 'TEXT', default: null },
+        { name: 'shared_with', type: 'TEXT', default: null },
+        { name: 'lock_status', type: 'TEXT', default: "'unlocked'" },
+        { name: 'locked_by', type: 'TEXT', default: null },
+        { name: 'locked_at', type: 'INTEGER', default: null },
+        { name: 'version_number', type: 'INTEGER', default: 1 },
+        { name: 'checksum', type: 'TEXT', default: null }
+      ];
+
+      let filesColumnsAdded = false;
+      for (const column of filesColumnsToAdd) {
+        if (!filesInfo.some(col => col.name === column.name)) {
+          console.log(`[Database] 添加 project_files.${column.name} 列`);
+          const defaultClause = column.default !== null ? ` DEFAULT ${column.default}` : '';
+          this.db.run(`ALTER TABLE project_files ADD COLUMN ${column.name} ${column.type}${defaultClause}`);
+          filesColumnsAdded = true;
+        }
+      }
+
+      if (filesColumnsAdded) {
+        this.saveToFile();
+        console.log('[Database] project_files 表字段扩展完成');
+      }
+
       console.log('[Database] 数据库迁移任务完成');
     } catch (error) {
       console.error('[Database] 运行数据库迁移失败:', error);
@@ -1960,7 +2181,7 @@ class DatabaseManager {
           user_id TEXT NOT NULL,
           name TEXT NOT NULL,
           description TEXT,
-          project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet')),
+          project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design')),
           status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
           root_path TEXT,
           file_count INTEGER DEFAULT 0,
@@ -2062,7 +2283,7 @@ class DatabaseManager {
           tags TEXT,
 
           -- 模板配置
-          project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet')),
+          project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design')),
           prompt_template TEXT,
           variables_schema TEXT,
           file_structure TEXT,

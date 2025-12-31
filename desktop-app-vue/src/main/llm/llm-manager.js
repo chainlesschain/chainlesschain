@@ -7,6 +7,7 @@
 const EventEmitter = require('events');
 const OllamaClient = require('./ollama-client');
 const { OpenAIClient, DeepSeekClient } = require('./openai-client');
+const { AnthropicClient } = require('./anthropic-client');
 
 /**
  * LLM 提供商类型
@@ -16,7 +17,17 @@ const LLMProviders = {
   OPENAI: 'openai',
   DEEPSEEK: 'deepseek',
   VOLCENGINE: 'volcengine',
+  ANTHROPIC: 'anthropic',
+  CLAUDE: 'claude',
   CUSTOM: 'custom',
+};
+
+const normalizeProvider = (provider) => {
+  if (!provider) return provider;
+  if (provider === LLMProviders.CLAUDE) {
+    return LLMProviders.ANTHROPIC;
+  }
+  return provider;
 };
 
 /**
@@ -27,7 +38,7 @@ class LLMManager extends EventEmitter {
     super();
 
     this.config = config;
-    this.provider = config.provider || LLMProviders.OLLAMA;
+    this.provider = normalizeProvider(config.provider) || LLMProviders.OLLAMA;
     this.client = null;
     this.isInitialized = false;
 
@@ -81,12 +92,24 @@ class LLMManager extends EventEmitter {
    * @param {string} provider - 提供商类型
    */
   async createClient(provider) {
-    switch (provider) {
+    const normalizedProvider = normalizeProvider(provider);
+
+    switch (normalizedProvider) {
       case LLMProviders.OLLAMA:
         return new OllamaClient({
           baseURL: this.config.ollamaURL || 'http://localhost:11434',
           model: this.config.model || 'llama2',
           timeout: this.config.timeout,
+        });
+
+      case LLMProviders.ANTHROPIC:
+        return new AnthropicClient({
+          apiKey: this.config.apiKey,
+          baseURL: this.config.baseURL || 'https://api.anthropic.com',
+          model: this.config.model || 'claude-3-opus-20240229',
+          timeout: this.config.timeout,
+          anthropicVersion: this.config.anthropicVersion,
+          maxTokens: this.config.maxTokens,
         });
 
       case LLMProviders.OPENAI:
@@ -135,7 +158,7 @@ class LLMManager extends EventEmitter {
     console.log('[LLMManager] 切换提供商:', provider);
 
     try {
-      this.provider = provider;
+      this.provider = normalizeProvider(provider);
       this.config = { ...this.config, ...config };
 
       await this.initialize();
