@@ -5,15 +5,16 @@
   "description": "为新员工制定系统化的培训计划，包含培训目标、内容、时间安排等",
   "icon": "👥",
   "cover_image": "/templates/covers/training-plan.png",
-
   "category": "writing",
   "subcategory": "office",
-  "tags": ["培训", "入职", "人力资源", "办公"],
-
+  "tags": [
+    "培训",
+    "入职",
+    "人力资源",
+    "办公"
+  ],
   "project_type": "document",
-
   "prompt_template": "请帮我生成一份{{department}}部门的{{position}}岗位新员工入职培训方案，要求：\n\n**培训对象：**\n- 部门：{{department}}\n- 岗位：{{position}}\n- 培训周期：{{trainingDays}}天\n- 培训形式：{{trainingType}}\n\n**培训目标：**\n{{#if objectives}}\n{{#each objectives}}\n- {{this}}\n{{/each}}\n{{else}}\n请生成3-5个培训目标（根据{{position}}岗位特点）\n{{/if}}\n\n**Word文档结构：**\n\n【第一部分：培训方案概述】\n1. 培训目的和意义\n2. 培训对象：{{department}}-{{position}}\n3. 培训周期：{{trainingDays}}天\n4. 培训形式：{{trainingType}}\n5. 培训组织架构（导师、协调人）\n\n【第二部分：培训计划表】\n表格格式：\n| 日期 | 时间段 | 培训内容 | 培训形式 | 负责人 | 地点 | 备注 |\n\n内容安排（{{trainingDays}}天）：\n- 第1天：公司文化与制度\n  * 公司发展历程和愿景使命\n  * 组织架构和部门介绍\n  * 规章制度和员工手册\n  * 考勤、薪酬、福利制度\n\n- 第2-3天：{{department}}部门培训\n  * 部门职责和工作流程\n  * 团队介绍和岗位对接\n  * 常用工具和系统培训\n  * 沟通协作机制\n\n- 第4-{{trainingDays}}天：{{position}}岗位技能培训\n  * 岗位职责详解\n  * 工作标准和规范\n  * 业务流程实操\n  * 案例分析和模拟演练\n\n{{#if (eq includeExam \"是\")}}\n- 最后1天：培训考核\n  * 理论知识测试\n  * 实操技能考核\n  * 总结答辩\n{{/if}}\n\n【第三部分：每日培训详细安排】\n每天包含：\n- 上午培训内容（9:00-12:00）\n- 下午培训内容（14:00-17:30）\n- 当日作业或实操任务\n- 学习资料清单\n\n【第四部分：培训考核标准】\n{{#if (eq includeExam \"是\")}}\n1. 考核方式：\n   - 理论考试（40%）：线上/线下闭卷考试\n   - 实操考核（40%）：实际业务场景模拟\n   - 学习态度（20%）：出勤、作业完成度、参与度\n\n2. 考核标准：\n   - 优秀（90分以上）：独立胜任岗位\n   - 良好（80-89分）：基本胜任，需少量指导\n   - 合格（60-79分）：需持续跟进培训\n   - 不合格（60分以下）：延长试用期或调整岗位\n\n3. 补考机制：\n   - 不合格者一周后参加补考\n   - 补考仍不合格需重新培训\n{{else}}\n（本培训方案不包含考核环节，仅关注学习过程）\n{{/if}}\n\n【第五部分：培训资料清单】\n1. 通用资料：\n   - 员工手册\n   - 公司介绍PPT\n   - 组织架构图\n\n2. 部门资料：\n   - {{department}}部门工作手册\n   - 业务流程图\n   - 常用工具操作指南\n\n3. 岗位资料：\n   - {{position}}岗位说明书\n   - 工作标准和规范文档\n   - 案例库和模板库\n\n【第六部分：培训跟踪机制】\n1. 导师反馈表（每日填写）\n2. 学员自评表（每周填写）\n3. 培训效果评估表（培训结束后）\n\n**格式要求：**\n- 使用Word标准格式\n- 表格清晰易读\n- 重点内容加粗或高亮\n- 附录：包含所有表格模板",
-
   "variables_schema": [
     {
       "name": "department",
@@ -45,10 +46,22 @@
       "required": false,
       "default": "混合式",
       "options": [
-        { "value": "线下集中", "label": "线下集中培训" },
-        { "value": "线上课程", "label": "线上课程学习" },
-        { "value": "混合式", "label": "线上线下混合" },
-        { "value": "导师带教", "label": "一对一导师带教" }
+        {
+          "value": "线下集中",
+          "label": "线下集中培训"
+        },
+        {
+          "value": "线上课程",
+          "label": "线上课程学习"
+        },
+        {
+          "value": "混合式",
+          "label": "线上线下混合"
+        },
+        {
+          "value": "导师带教",
+          "label": "一对一导师带教"
+        }
       ]
     },
     {
@@ -58,9 +71,18 @@
       "required": false,
       "default": "初级",
       "options": [
-        { "value": "初级", "label": "初级（应届生/转行）" },
-        { "value": "中级", "label": "中级（1-3年经验）" },
-        { "value": "高级", "label": "高级（3年以上经验）" }
+        {
+          "value": "初级",
+          "label": "初级（应届生/转行）"
+        },
+        {
+          "value": "中级",
+          "label": "中级（1-3年经验）"
+        },
+        {
+          "value": "高级",
+          "label": "高级（3年以上经验）"
+        }
       ]
     },
     {
@@ -70,9 +92,18 @@
       "required": false,
       "default": "中型企业",
       "options": [
-        { "value": "创业公司", "label": "创业公司（50人以下）" },
-        { "value": "中型企业", "label": "中型企业（50-500人）" },
-        { "value": "大型企业", "label": "大型企业（500人以上）" }
+        {
+          "value": "创业公司",
+          "label": "创业公司（50人以下）"
+        },
+        {
+          "value": "中型企业",
+          "label": "中型企业（50-500人）"
+        },
+        {
+          "value": "大型企业",
+          "label": "大型企业（500人以上）"
+        }
       ]
     },
     {
@@ -82,8 +113,14 @@
       "required": false,
       "default": "否",
       "options": [
-        { "value": "是", "label": "包含远程工作培训" },
-        { "value": "否", "label": "不包含" }
+        {
+          "value": "是",
+          "label": "包含远程工作培训"
+        },
+        {
+          "value": "否",
+          "label": "不包含"
+        }
       ]
     },
     {
@@ -93,8 +130,14 @@
       "required": false,
       "default": "是",
       "options": [
-        { "value": "是", "label": "包含考核环节" },
-        { "value": "否", "label": "仅培训无考核" }
+        {
+          "value": "是",
+          "label": "包含考核环节"
+        },
+        {
+          "value": "否",
+          "label": "仅培训无考核"
+        }
       ]
     },
     {
@@ -106,7 +149,6 @@
       "placeholder": "请输入培训目标，每行一个（可选）"
     }
   ],
-
   "file_structure": {
     "root": "{{department}}-{{position}}-入职培训方案",
     "files": [
@@ -132,13 +174,22 @@
       }
     ]
   },
-
   "default_files": [],
-
   "is_builtin": true,
   "author": "ChainlessChain Team",
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing",
+    "skill_template_application"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_template_renderer",
+    "tool_file_writer"
+  ],
+  "execution_engine": "word"
 }

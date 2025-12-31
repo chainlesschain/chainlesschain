@@ -5,15 +5,16 @@
   "description": "适用于企业内部工作汇报，支持安全、季度总结、项目进展等多种场景",
   "icon": "📝",
   "cover_image": "/templates/covers/office-report.png",
-
   "category": "writing",
   "subcategory": "office",
-  "tags": ["办公", "汇报", "总结", "企业"],
-
+  "tags": [
+    "办公",
+    "汇报",
+    "总结",
+    "企业"
+  ],
   "project_type": "document",
-
   "prompt_template": "请帮我生成一份{{duration}}分钟的{{topic}}工作汇报文档，要求：\n\n**基本信息：**\n- 汇报人：{{default author \"未指定\"}}\n- 汇报对象：{{default audience \"公司领导\"}}\n- 时间跨度：{{default timespan \"本季度\"}}\n\n**核心内容：**\n{{#if keyPoints}}\n{{#each keyPoints}}\n- {{this}}\n{{/each}}\n{{else}}\n请根据主题自动生成3-5个关键要点\n{{/if}}\n\n**风格要求：**\n- 语言风格：{{style}}\n- 字数控制：约{{wordCount}}字\n- 结构：开场白 + 主体内容（3-5个要点） + 总结和号召\n\n请生成Word文档格式，包含：\n1. 封面（包含标题、汇报人、日期）\n2. 目录\n3. 正文内容（使用标题1、2、3层级）\n4. 适当的排版样式和图表占位符",
-
   "variables_schema": [
     {
       "name": "topic",
@@ -69,9 +70,18 @@
       "required": false,
       "default": "formal",
       "options": [
-        { "value": "formal", "label": "正式" },
-        { "value": "friendly", "label": "亲切" },
-        { "value": "serious", "label": "严肃" }
+        {
+          "value": "formal",
+          "label": "正式"
+        },
+        {
+          "value": "friendly",
+          "label": "亲切"
+        },
+        {
+          "value": "serious",
+          "label": "严肃"
+        }
       ]
     },
     {
@@ -84,7 +94,6 @@
       "max": 10000
     }
   ],
-
   "file_structure": {
     "root": "{{topic}}-工作汇报",
     "files": [
@@ -99,13 +108,22 @@
       }
     ]
   },
-
   "default_files": [],
-
   "is_builtin": true,
   "author": "ChainlessChain Team",
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing",
+    "skill_template_application"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_template_renderer",
+    "tool_file_writer"
+  ],
+  "execution_engine": "word"
 }
