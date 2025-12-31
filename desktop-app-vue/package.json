@@ -30,6 +30,8 @@
     "package": "npm run build && electron-forge package",
     "make": "npm run build && electron-forge make",
     "make:win": "npm run build && electron-forge make --platform=win32",
+    "installer": "npm run package && build-installer.bat",
+    "installer:check": "where iscc || echo Inno Setup not installed. Please install from https://jrsoftware.org/isdl.php",
     "publish": "electron-forge publish"
   },
   "keywords": [
@@ -93,6 +95,7 @@
     "dompurify": "^3.3.1",
     "dotenv": "^16.4.1",
     "echarts": "^6.0.0",
+    "electron-updater": "^6.6.2",
     "ethers": "^6.16.0",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
@@ -194,14 +197,9 @@
       },
       "makers": [
         {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "chainlesschain"
-          }
-        },
-        {
           "name": "@electron-forge/maker-zip",
           "platforms": [
+            "win32",
             "darwin",
             "linux"
           ]
