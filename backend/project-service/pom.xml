@@ -66,6 +66,13 @@
             <version>${mybatis-plus.version}</version>
         </dependency>
 
+        <!-- MyBatis Plus JSQLParser (required for PaginationInnerInterceptor in 3.5.9+) -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>${mybatis-plus.version}</version>
+        </dependency>
+
         <!-- HikariCP is included by default in spring-boot-starter-jdbc -->
 
         <!-- Redis -->
