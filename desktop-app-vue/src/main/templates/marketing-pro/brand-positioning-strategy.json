@@ -1,0 +1,61 @@
+{
+  "id": "tpl_marketing_brand_008",
+  "name": "brand_positioning_strategy",
+  "display_name": "品牌定位策略",
+  "description": "品牌定位完整方案，包含市场分析、竞品研究和差异化策略",
+  "icon": "🎯",
+  "category": "marketing-pro",
+  "subcategory": "branding",
+  "tags": [
+    "品牌定位",
+    "市场策略",
+    "竞品分析",
+    "差异化"
+  ],
+  "project_type": "document",
+  "prompt_template": "品牌定位策略\n\n**品牌信息：**\n- 品牌名称：{{brandName}}\n- 所属行业：{{industry}}\n- 发展阶段：{{stage}}\n- 核心产品：{{coreProduct}}\n\n# 品牌定位完整方案\n\n## 1. 市场环境分析\n\n### 行业趋势\n- 市场规模：¥{{marketSize}}亿\n- 年增长率：{{growthRate}}%\n- 发展趋势：{{marketTrends}}\n\n### 目标市场\n- 细分市场：{{targetMarket}}\n- 市场容量：{{marketCapacity}}\n- 竞争强度：{{competitionLevel}}\n\n## 2. 目标受众画像\n\n### 用户特征\n- 年龄段：{{ageRange}}\n- 性别：{{gender}}\n- 收入水平：{{incomeLevel}}\n- 地域分布：{{geography}}\n\n### 心理特征\n- 价值观：{{values}}\n- 生活方式：{{lifestyle}}\n- 消费动机：{{purchaseMotivation}}\n- 痛点需求：{{painPoints}}\n\n### 消费行为\n- 决策因素：{{decisionFactors}}\n- 信息渠道：{{infoChannels}}\n- 购买频率：{{purchaseFrequency}}\n\n## 3. 竞品分析\n\n### 主要竞争对手\n\n**竞品A：{{competitor1}}**\n- 市场份额：{{comp1MarketShare}}%\n- 定位策略：{{comp1Positioning}}\n- 核心优势：{{comp1Strength}}\n- 主要劣势：{{comp1Weakness}}\n\n**竞品B：{{competitor2}}**\n- 市场份额：{{comp2MarketShare}}%\n- 定位策略：{{comp2Positioning}}\n- 核心优势：{{comp2Strength}}\n- 主要劣势：{{comp2Weakness}}\n\n### 竞争格局图\n\n维度对比：\n| 维度 | 我方 | 竞品A | 竞品B |\n|------|------|-------|-------|\n| 价格 | {{ourPrice}} | {{comp1Price}} | {{comp2Price}} |\n| 质量 | {{ourQuality}} | {{comp1Quality}} | {{comp2Quality}} |\n| 服务 | {{ourService}} | {{comp1Service}} | {{comp2Service}} |\n| 创新 | {{ourInnovation}} | {{comp1Innovation}} | {{comp2Innovation}} |\n\n## 4. 品牌定位策略\n\n### 定位声明\n\n\"对于**{{targetAudience}}**（目标受众），\n**{{brandName}}**是一个**{{category}}**（品类），\n能够**{{benefitStatement}}**（利益点），\n因为**{{reasonToBelieve}}**（支持点）。\"\n\n### 差异化策略\n\n{{#eq positioningStrategy \"quality\"}}\n**高品质定位**\n- 核心卖点：品质卓越\n- 价格策略：高端定价\n- 传播重点：工艺、材料、匠心\n{{/eq}}\n\n{{#eq positioningStrategy \"innovation\"}}\n**创新领先定位**\n- 核心卖点：技术领先\n- 价格策略：溢价定价\n- 传播重点：科技、研发、专利\n{{/eq}}\n\n{{#eq positioningStrategy \"value\"}}\n**性价比定位**\n- 核心卖点：高性价比\n- 价格策略：竞争性定价\n- 传播重点：实惠、实用、可靠\n{{/eq}}\n\n### 品牌价值主张\n\n1. **功能价值**：{{functionalValue}}\n2. **情感价值**：{{emotionalValue}}\n3. **社会价值**：{{socialValue}}\n\n## 5. 品牌个性\n\n### 品牌人格化\n- 品牌性格：{{brandPersonality}}\n- 沟通语调：{{communicationTone}}\n- 视觉风格：{{visualStyle}}\n\n### 品牌联想\n- 核心联想词：{{coreAssociations}}\n- 期望印象：{{desiredImage}}\n\n## 6. 传播策略\n\n### 核心信息\n- Slogan：{{slogan}}\n- 电梯演讲：{{elevatorPitch}}\n- 关键信息点：{{keyMessages}}\n\n### 传播渠道\n- 线上渠道：{{onlineChannels}}\n- 线下渠道：{{offlineChannels}}\n- 内容形式：{{contentFormats}}\n\n## 7. 实施路径\n\n### 短期（3-6个月）\n- [ ] 确定品牌定位\n- [ ] 设计视觉识别系统\n- [ ] 启动品牌传播\n- [ ] 优化产品包装\n\n### 中期（6-12个月）\n- [ ] 建立品牌认知度\n- [ ] 扩大市场覆盖\n- [ ] 强化品牌联想\n\n### 长期（1-3年）\n- [ ] 巩固市场地位\n- [ ] 提升品牌忠诚度\n- [ ] 延伸产品线\n\n## 8. 效果评估\n\n### 评估指标\n- 品牌知名度：{{brandAwareness}}%\n- 品牌认同度：{{brandAffinity}}%\n- 市场份额：{{marketShare}}%\n- NPS净推荐值：{{npsScore}}\n\n### 监测机制\n- 月度品牌监测\n- 季度竞品追踪\n- 年度品牌健康度评估",
+  "variables_schema": [
+    {
+      "name": "brandName",
+      "label": "品牌名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "industry",
+      "label": "所属行业",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "positioningStrategy",
+      "label": "定位策略",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "quality", "label": "高品质定位"},
+        {"value": "innovation", "label": "创新领先"},
+        {"value": "value", "label": "性价比"},
+        {"value": "service", "label": "服务至上"}
+      ]
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标受众",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "品牌定位-{{brandName}}",
+    "files": [
+      {"path": "定位策略.md", "type": "markdown"},
+      {"path": "竞品分析/", "type": "folder"},
+      {"path": "品牌手册.docx", "type": "document"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

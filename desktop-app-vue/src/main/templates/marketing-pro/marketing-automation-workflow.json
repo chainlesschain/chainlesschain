@@ -1,0 +1,66 @@
+{
+  "id": "tpl_marketing_auto_009",
+  "name": "marketing_automation_workflow",
+  "display_name": "营销自动化流程",
+  "description": "营销自动化工作流设计，包含触发条件、用户旅程和转化优化",
+  "icon": "⚙️",
+  "category": "marketing-pro",
+  "subcategory": "automation",
+  "tags": [
+    "营销自动化",
+    "用户旅程",
+    "转化优化",
+    "Marketing Automation"
+  ],
+  "project_type": "document",
+  "prompt_template": "营销自动化流程设计\n\n**流程信息：**\n- 流程名称：{{workflowName}}\n- 业务目标：{{businessGoal}}\n- 自动化平台：{{automationPlatform}}\n- 目标转化：{{targetConversion}}\n\n# 营销自动化完整方案\n\n## 1. 流程概述\n\n### 业务场景\n- 应用场景：{{useCase}}\n- 解决问题：{{problemSolved}}\n- 预期收益：{{expectedBenefit}}\n\n### 目标设定\n- 主要目标：{{primaryObjective}}\n- KPI指标：\n  - 触发次数：{{triggerTarget}}/月\n  - 完成率：{{completionRate}}%\n  - 转化率：{{conversionRate}}%\n  - ROI：{{roiTarget}}%\n\n## 2. 用户旅程设计\n\n### 触发条件\n\n{{#eq triggerType \"behavioral\"}}\n**行为触发**\n- 用户行为：{{userAction}}\n- 条件设置：{{triggerCondition}}\n- 触发延迟：{{triggerDelay}}\n\n示例流程：\n1. 用户访问定价页面 > 3次\n2. 未进行购买\n3. 等待24小时\n4. 触发优惠券邮件\n{{/eq}}\n\n{{#eq triggerType \"time\"}}\n**时间触发**\n- 时间节点：{{timePoint}}\n- 重复频率：{{frequency}}\n- 时区设置：{{timezone}}\n{{/eq}}\n\n{{#eq triggerType \"milestone\"}}\n**里程碑触发**\n- 里程碑事件：{{milestoneEvent}}\n- 达成条件：{{milestoneCondition}}\n{{/eq}}\n\n### 用户分群\n\n**细分维度：**\n- 新用户 vs 老用户\n- 活跃度分层\n- 兴趣标签\n- 价值分级\n\n**个性化路径：**\n```\n用户注册\n  ↓\n[判断：是否完成资料填写？]\n  ↓ 是                    ↓ 否\n发送欢迎邮件          发送引导邮件\n  ↓                        ↓\n等待3天                等待1天\n  ↓                        ↓\n[判断：是否有互动？]    [判断：是否完善资料？]\n```\n\n## 3. 工作流节点\n\n### 节点类型\n\n**1. 触发节点**\n- 类型：{{triggerNodeType}}\n- 条件：{{triggerNodeCondition}}\n\n**2. 等待节点**\n- 等待时长：{{waitDuration}}\n- 等待条件：{{waitCondition}}\n\n**3. 判断节点**\n- 判断条件：{{decisionCriteria}}\n- 分支A：{{branchA}}\n- 分支B：{{branchB}}\n\n**4. 行动节点**\n- 发送邮件\n- 推送通知\n- 更新标签\n- 调整积分\n- webhook调用\n\n**5. 目标节点**\n- 转化目标：{{conversionGoal}}\n- 成功标准：{{successCriteria}}\n\n## 4. 内容策略\n\n### 邮件序列\n\n**Day 0：欢迎邮件**\n- 标题：{{email1Subject}}\n- 内容：品牌介绍 + 价值主张\n- CTA：{{email1CTA}}\n\n**Day 3：教育邮件**\n- 标题：{{email2Subject}}\n- 内容：使用指南 + 案例分享\n- CTA：{{email2CTA}}\n\n**Day 7：转化邮件**\n- 标题：{{email3Subject}}\n- 内容：限时优惠 + 社会证明\n- CTA：{{email3CTA}}\n\n### 个性化元素\n- 动态称呼：{{firstName}}\n- 推荐产品：基于浏览历史\n- 优惠力度：根据用户价值\n\n## 5. 技术实施\n\n### 平台选择\n- 自动化平台：{{platform}}\n- CRM集成：{{crmIntegration}}\n- 数据同步：{{dataSyncMethod}}\n\n### 数据追踪\n```javascript\n// 事件追踪示例\ntrack('workflow_triggered', {\n  workflow_id: '{{workflowId}}',\n  user_id: '{{userId}}',\n  trigger_source: '{{triggerSource}}'\n});\n\ntrack('workflow_completed', {\n  workflow_id: '{{workflowId}}',\n  user_id: '{{userId}}',\n  conversion: {{converted}}\n});\n```\n\n### API集成\n- Webhook URL: {{webhookUrl}}\n- 认证方式：{{authMethod}}\n- 数据格式：JSON\n\n## 6. A/B测试\n\n### 测试变量\n- 测试项：{{testVariable}}\n- 对照组：{{controlGroup}}\n- 实验组：{{experimentGroup}}\n- 流量分配：50/50\n\n### 测试指标\n- 打开率\n- 点击率\n- 转化率\n- 收入影响\n\n## 7. 效果监测\n\n### 漏斗分析\n\n| 阶段 | 用户数 | 转化率 | 流失率 |\n|------|--------|--------|--------|\n| 触发 | {{stage1Users}} | 100% | 0% |\n| 打开邮件 | {{stage2Users}} | {{stage2Rate}}% | {{stage2Drop}}% |\n| 点击链接 | {{stage3Users}} | {{stage3Rate}}% | {{stage3Drop}}% |\n| 完成转化 | {{stage4Users}} | {{stage4Rate}}% | {{stage4Drop}}% |\n\n### 关键指标\n- 工作流完成率：{{completionRate}}%\n- 整体转化率：{{overallConversion}}%\n- 平均转化时长：{{avgConversionTime}}天\n- 单用户价值：¥{{userValue}}\n\n## 8. 优化迭代\n\n### 当前问题\n1. {{issue1}}\n2. {{issue2}}\n3. {{issue3}}\n\n### 优化方案\n- [ ] 优化触发条件，提高精准度\n- [ ] 调整等待时长，减少流失\n- [ ] 个性化内容，提升相关性\n- [ ] 简化流程，缩短转化路径\n- [ ] 增加触点，提高触达频次\n\n### 下期计划\n- 测试新的内容变体\n- 尝试不同的发送时间\n- 扩大自动化流程覆盖范围\n\n## 9. 最佳实践\n\n### Dos ✅\n- 设置明确的退出条件\n- 控制发送频率，避免打扰\n- 提供取消订阅选项\n- 定期审查和优化流程\n- 监控异常情况和错误\n\n### Don'ts ❌\n- 不要过度自动化\n- 避免一刀切的内容\n- 不要忽视数据隐私\n- 避免复杂的工作流\n- 不要设置后就不管",
+  "variables_schema": [
+    {
+      "name": "workflowName",
+      "label": "流程名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "businessGoal",
+      "label": "业务目标",
+      "type": "select",
+      "required": true,
+      "options": [
+        {"value": "用户激活", "label": "用户激活"},
+        {"value": "留存提升", "label": "留存提升"},
+        {"value": "转化促进", "label": "转化促进"},
+        {"value": "复购刺激", "label": "复购刺激"}
+      ]
+    },
+    {
+      "name": "triggerType",
+      "label": "触发类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "behavioral", "label": "行为触发"},
+        {"value": "time", "label": "时间触发"},
+        {"value": "milestone", "label": "里程碑触发"}
+      ]
+    },
+    {
+      "name": "automationPlatform",
+      "label": "自动化平台",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "营销自动化-{{workflowName}}",
+    "files": [
+      {"path": "流程设计.md", "type": "markdown"},
+      {"path": "流程图.png", "type": "image"},
+      {"path": "数据分析.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
