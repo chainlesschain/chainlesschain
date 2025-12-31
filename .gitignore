@@ -139,3 +139,9 @@ nul
 百度推广关键词方案.md
 backend/ai-service/test_repo/
 desktop-app-vue/test-results/
+
+# Packaging components (JRE, databases, etc.)
+packaging/jre-17/
+packaging/postgres/
+packaging/qdrant/
+packaging/redis/
