@@ -208,7 +208,7 @@ console.log('📜 步骤10: 查看恢复后的版本历史...');
 const finalHistory = versionManager.getVersionHistory(knowledgeId);
 console.log(`✅ 现在有 ${finalHistory.length} 个版本:`);
 finalHistory.forEach(v => {
-  const prefix = v.metadata ? JSON.parse(v.metadata).type || '' : '';
+  const prefix = v.metadata && typeof v.metadata === 'object' ? v.metadata.type || '' : '';
   const emoji = prefix === 'pre_restore_backup' ? '💾' :
                 prefix === 'restore' ? '⏮️' :
                 prefix === 'initial_create' ? '🆕' : '📝';
