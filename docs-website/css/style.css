@@ -819,9 +819,9 @@ section {
 
 .btn-download-quick {
     display: inline-flex;
-    flex-direction: column;
     align-items: center;
-    padding: 20px 48px;
+    gap: 12px;
+    padding: 18px 48px;
     background: white;
     color: var(--primary-color);
     border: none;
@@ -831,16 +831,17 @@ section {
     cursor: pointer;
     transition: var(--transition);
     margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .btn-download-quick:hover {
-    transform: scale(1.05);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .btn-download-quick .icon {
-    font-size: 32px;
-    margin-bottom: 8px;
+    font-size: 24px;
+    line-height: 1;
 }
 
 .download-info {
@@ -2250,6 +2251,53 @@ section {
     margin-bottom: 60px;
 }
 
+/* 统计数据网格 */
+.tech-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    margin-bottom: 60px;
+}
+
+.tech-stat-item {
+    background: white;
+    padding: 40px 30px;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    transition: all 0.3s ease;
+    border-top: 4px solid var(--primary-color);
+}
+
+.tech-stat-item:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.tech-stat-item .stat-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    display: block;
+    line-height: 1;
+}
+
+.tech-stat-item .stat-value {
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 12px;
+    display: block;
+    line-height: 1.2;
+}
+
+.tech-stat-item .stat-label {
+    font-size: 16px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: block;
+}
+
+/* 保留旧类名兼容 */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -2507,7 +2555,8 @@ section {
         grid-template-columns: repeat(2, 1fr);
     }
 
-    .stats-grid {
+    .stats-grid,
+    .tech-stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 
@@ -2567,7 +2616,8 @@ section {
         width: 100%;
     }
 
-    .stats-grid {
+    .stats-grid,
+    .tech-stats-grid {
         grid-template-columns: 1fr;
         gap: 20px;
     }
