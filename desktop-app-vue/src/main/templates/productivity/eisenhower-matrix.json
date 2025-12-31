@@ -1,0 +1,25 @@
+{
+  "id": "tpl_productivity_eisenhower_003",
+  "name": "eisenhower_matrix",
+  "display_name": "四象限法则",
+  "description": "使用艾森豪威尔矩阵划分任务优先级，高效时间管理",
+  "icon": "📋",
+  "category": "productivity",
+  "subcategory": "prioritization",
+  "tags": ["时间管理", "优先级", "四象限", "任务管理"],
+  "project_type": "document",
+  "prompt_template": "四象限任务管理\n\n**日期：**{{date}}\n\n# 艾森豪威尔矩阵\n\n## 第一象限：重要且紧急\n**立即处理**\n\n- [ ] {{urgent1}}\n- [ ] {{urgent2}}\n- [ ] {{urgent3}}\n\n## 第二象限：重要但不紧急\n**计划安排**\n\n- [ ] {{important1}}\n- [ ] {{important2}}\n- [ ] {{important3}}\n\n## 第三象限：紧急但不重要\n**委托他人**\n\n- [ ] {{delegate1}}\n- [ ] {{delegate2}}\n\n## 第四象限：不重要不紧急\n**减少/删除**\n\n- [ ] {{eliminate1}}\n- [ ] {{eliminate2}}\n\n---\n\n## 今日重点（Top 3）\n\n1. {{priority1}}\n2. {{priority2}}\n3. {{priority3}}\n\n## 时间分配建议\n\n- 第一象限：30%（危机处理）\n- 第二象限：50%（战略规划）← 最重要！\n- 第三象限：15%（适当委托）\n- 第四象限：5%（尽量减少）",
+  "variables_schema": [
+    {"name": "date", "label": "日期", "type": "string", "required": false}
+  ],
+  "file_structure": {
+    "root": "四象限任务",
+    "files": [
+      {"path": "每日任务.md", "type": "markdown"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

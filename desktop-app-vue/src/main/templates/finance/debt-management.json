@@ -1,0 +1,31 @@
+{
+  "id": "tpl_finance_debt_003",
+  "name": "debt_management_plan",
+  "display_name": "债务管理计划",
+  "description": "制定还债计划，使用雪球法或雪崩法有效减少债务",
+  "icon": "💳",
+  "category": "finance",
+  "subcategory": "debt",
+  "tags": ["债务", "还款", "理财", "财务管理"],
+  "project_type": "document",
+  "prompt_template": "债务管理计划\n\n**债务信息：**\n- 总债务：{{totalDebt}}元\n- 月收入：{{monthlyIncome}}元\n- 可用还款额：{{monthlyPayment}}元\n\n# 债务清单\n\n| 债务类型 | 余额 | 利率 | 最低还款 |\n|---------|------|------|----------|\n| 信用卡A | {{debt1}} | {{rate1}}% | {{min1}} |\n| 信用卡B | {{debt2}} | {{rate2}}% | {{min2}} |\n\n## 还款策略\n\n{{#eq strategy \"雪球法\"}}\n**雪球法（从小到大）**\n1. 优先还清最小债务\n2. 获得心理激励\n3. 逐步滚动还清\n{{/eq}}\n\n{{#eq strategy \"雪崩法\"}}\n**雪崩法（高利率优先）**\n1. 优先还高利率债务\n2. 节省利息支出\n3. 数学上最优\n{{/eq}}\n\n## 还款时间表\n\n预计{{monthsToDebtFree}}个月内还清全部债务",
+  "variables_schema": [
+    {"name": "totalDebt", "label": "总债务（元）", "type": "number", "required": true},
+    {"name": "monthlyIncome", "label": "月收入（元）", "type": "number", "required": false},
+    {"name": "monthlyPayment", "label": "可用还款额（元）", "type": "number", "required": true},
+    {"name": "strategy", "label": "还款策略", "type": "select", "required": false, "default": "雪球法", "options": [
+      {"value": "雪球法", "label": "雪球法（小额优先）"},
+      {"value": "雪崩法", "label": "雪崩法（高利率优先）"}
+    ]}
+  ],
+  "file_structure": {
+    "root": "债务管理",
+    "files": [
+      {"path": "还款计划.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
