@@ -727,3 +727,12 @@ a, button {
         font-size: 16px !important;
     }
 }
+
+/* ==========================================
+   31. Hero主按钮文字颜色修复
+   ========================================== */
+.btn-hero-primary,
+.btn-hero-primary .btn-icon,
+.btn-hero-primary .btn-sub {
+    color: white !important;
+}
