@@ -1,0 +1,133 @@
+{
+  "id": "tpl_gaming_monetization_003",
+  "name": "game_monetization_strategy",
+  "display_name": "游戏变现策略",
+  "description": "手游/PC游戏商业化方案，包含内购设计、广告策略和数据分析",
+  "icon": "💰",
+  "category": "gaming",
+  "subcategory": "business",
+  "tags": [
+    "游戏变现",
+    "IAP",
+    "广告",
+    "数据分析"
+  ],
+  "project_type": "document",
+  "prompt_template": "游戏变现策略\n\n**游戏信息：**\n- 游戏名称：{{gameName}}\n- 游戏类型：{{gameGenre}}\n- 目标平台：{{targetPlatform}}\n- 变现模式：{{monetizationModel}}\n\n# 游戏商业化完整方案\n\n## 游戏定位分析\n\n**游戏基本信息：**\n- 名称：{{gameName}}\n- 类型：{{gameGenre}}\n- 核心玩法：{{coreGameplay}}\n- 目标用户：{{targetAudience}}\n- 日活目标（DAU）：{{dauTarget}}\n- 付费率目标：{{payingUserRate}}%\n- ARPU目标：¥{{arpuTarget}}\n\n**游戏类型：**{{gameGenre}}\n\n{{#eq gameGenre \"RPG/MMORPG\"}}\n**RPG游戏变现特点：**\n- 高付费深度（重度玩家ARPU可达¥1000+）\n- 长生命周期（LTV高）\n- 主要变现：数值付费、抽卡、时装\n- 付费率：5-15%\n- 社交系统增强留存\n{{/eq}}\n\n{{#eq gameGenre \"三消/休闲益智\"}}\n**休闲游戏变现特点：**\n- 广告为主要收入（IAA模式）\n- 付费深度较低（单次$1-5）\n- 用户基数大但留存挑战\n- 付费率：1-5%\n- 快速迭代内容\n{{/eq}}\n\n{{#eq gameGenre \"SLG策略\"}}\n**SLG游戏变现特点：**\n- 超高付费深度（大R月消费可达¥10000+）\n- 强PVP竞争驱动付费\n- 主要变现：加速道具、资源包、VIP系统\n- 付费率：10-20%\n- 强社交（联盟/公会）\n{{/eq}}\n\n{{#eq gameGenre \"射击/MOBA\"}}\n**竞技类游戏变现特点：**\n- 皮肤/装饰为主（不影响平衡）\n- Battle Pass季票系统\n- 电竞赛事联动\n- 付费率：5-10%\n- 用户粘性极高\n{{/eq}}\n\n## 变现模式设计\n\n**主要模式：**{{monetizationModel}}\n\n{{#eq monetizationModel \"内购付费（IAP）\"}}\n### 内购付费（IAP - In-App Purchase）\n\n**定价策略：**\n\n**首充礼包（新手陷阱）：**\n- 价格：¥6 / $0.99\n- 价值：原价¥60的道具包\n- 目的：转化付费用户\n- 限时：24小时内\n- 转化率目标：10-20%\n\n**定价梯度：**\n```\n小额：¥6, ¥12, ¥30\n中额：¥68, ¥98, ¥198\n大额：¥328, ¥648\n超大额：¥998, ¥1998（大R专属）\n```\n\n**心理定价技巧：**\n- 尾数定价（¥98而非¥100）\n- 锚定价格（先展示高价，再推中价）\n- 限时折扣（营造紧迫感）\n- 额外赠送（充值¥100送¥20）\n\n**付费点设计：**\n\n**1. 虚拟货币（Soft/Hard Currency）：**\n- 软货币（金币）：游戏内可获取\n- 硬货币（钻石）：充值获取\n- 汇率：¥1 = {{currencyRate}}钻石\n\n**2. 抽卡/扭蛋系统：**\n- 单抽：{{singleDrawPrice}}钻石\n- 十连抽：{{tenDrawPrice}}钻石（9折优惠）\n- 保底机制：{{pityCount}}抽必出SSR\n- SSR概率：{{ssrRate}}%（符合各国法规）\n- 天井系统：{{ceilingCount}}抽必得UP角色\n\n**注意：**中国、日本需公示概率\n\n**3. 体力/能量系统：**\n- 自然恢复：每{{energyRegenTime}}分钟1点\n- 购买体力：{{energyBuyPrice}}钻石/100体力\n- 每日限购：{{energyBuyLimit}}次\n- VIP额外购买次数\n\n**4. 时装/皮肤：**\n- 稀有度分级：普通/稀有/史诗/传说\n- 定价：¥30-¥198\n- 限定皮肤（节日/联动）：稀缺性溢价\n- 不影响数值（公平性）\n\n**5. Battle Pass季票：**\n- 价格：¥68/赛季（3个月）\n- 免费奖励 vs 付费奖励\n- 进度解锁（每日任务推动）\n- 价值感：总价值¥500+\n- 参考：Fortnite, PUBG, Genshin Impact\n\n**6. 月卡/季卡：**\n- 月卡：¥30，每日登录领{{dailyGems}}钻石（30天）\n- 季卡：¥88，额外特权（VIP经验加速等）\n- 高性价比，鼓励长期付费\n- 续费率：50-70%\n\n**7. VIP系统（付费特权）：**\n```\nVIP 0：免费用户\nVIP 1：累计充值¥6 - 额外背包格\nVIP 3：累计充值¥68 - 扫荡功能\nVIP 5：累计充值¥198 - 自动战斗\nVIP 10：累计充值¥1998 - 专属客服\n```\n\n**福利与付费平衡：**\n- 每日签到：软货币+少量硬货币\n- 每周任务：免费抽卡券\n- 活动赠送：让免费玩家也有盼头\n- 付费优势：时间优势而非碾压性优势\n{{/eq}}\n\n{{#eq monetizationModel \"广告变现（IAA）\"}}\n### 广告变现（IAA - In-App Advertising）\n\n**广告类型：**\n\n**1. 激励视频广告（Rewarded Video）：**\n- 用户主动观看\n- 时长：15-30秒\n- 奖励：额外体力/金币/复活机会\n- eCPM（千次展示收入）：$10-$50\n- 日均观看次数/用户：3-5次\n- 最高收入来源（占70%）\n\n**触发场景：**\n- 关卡失败：观看广告复活\n- 奖励翻倍：观看广告获得2x奖励\n- 宝箱开启：观看广告加速\n- 每日任务：观看广告领取额外奖励\n\n**2. 插屏广告（Interstitial）：**\n- 全屏广告\n- 时机：关卡间/场景切换\n- eCPM：$5-$20\n- 频率：每{{interstitialFrequency}}分钟最多1次（避免骚扰）\n\n**3. Banner广告（横幅）：**\n- 屏幕底部/顶部\n- 持续展示\n- eCPM：$0.5-$3\n- 对体验影响最小但收入最低\n\n**4. 原生广告（Native Ads）：**\n- 融入游戏界面\n- 不破坏沉浸感\n- eCPM：$3-$10\n\n**广告平台选择：**\n- **海外：**\n  - AdMob（Google）\n  - Unity Ads\n  - AppLovin MAX（聚合平台）\n  - ironSource（聚合）\n- **国内：**\n  - 穿山甲（字节跳动）\n  - 优量汇（腾讯）\n  - 快手广告\n  - Sigmob（聚合）\n\n**广告瀑布流（Waterfall）：**\n设置多个广告源，按eCPM从高到低请求\n1. AdMob（$20）\n2. Unity Ads（$15）\n3. AppLovin（$10）\n4. Backup（$5）\n\n**广告与IAP混合：**\n- 提供\"去广告\"内购（¥12-30）\n- 会员用户无广告\n- 付费用户优先，广告用户补充\n{{/eq}}\n\n{{#eq monetizationModel \"混合模式\"}}\n### 混合模式（Hybrid IAP + IAA）\n\n**用户分层：**\n- **鲸鱼用户（Whales）：**2%用户，贡献50%收入\n  - 策略：高价值道具包、VIP特权\n- **付费用户（Payers）：**8%用户，贡献30%收入\n  - 策略：月卡、Battle Pass\n- **免费用户（Non-payers）：**90%用户，贡献20%收入\n  - 策略：观看广告获取资源\n\n**协同策略：**\n- 免费玩家通过广告获得付费货币（少量）\n- 付费玩家可选择\"跳过广告\"特权\n- 两种用户互不冲突，共存互补\n{{/eq}}\n\n## 数据分析与优化\n\n**核心指标（KPI）：**\n\n**用户获取（UA）：**\n- CPI（单用户获取成本）：¥{{cpiTarget}}\n- 渠道ROI：{{roiTarget}}%\n- 自然量 vs 买量比例\n\n**留存率（Retention）：**\n- 次日留存（D1）：{{d1Retention}}%\n- 7日留存（D7）：{{d7Retention}}%\n- 30日留存（D30）：{{d30Retention}}%\n\n**变现指标：**\n- 付费率（Conversion Rate）：{{payingRate}}%\n- ARPU（人均收入）：¥{{arpu}}\n- ARPPU（付费用户人均）：¥{{arppu}}\n- LTV（用户生命周期价值）：¥{{ltv}}\n- LTV/CPI比例：>3（健康）\n\n**广告指标（IAA）：**\n- 广告展示率（Impression Rate）：{{adImpressionRate}}%\n- 广告点击率（CTR）：{{adCTR}}%\n- eCPM：${{ecpm}}\n- ARPDAU（日活用户广告收入）：${{arpdau}}\n\n**行为指标：**\n- 游戏时长：{{avgSessionTime}}分钟/次\n- 日均游戏次数：{{sessionsPerDay}}次\n- 关卡通过率：{{levelPassRate}}%\n\n**数据追踪工具：**\n- Google Analytics for Firebase\n- AppsFlyer（归因分析）\n- Adjust\n- GameAnalytics\n- 自建BI系统\n\n**A/B测试：**\n- 测试不同定价\n- 测试UI展示位置\n- 测试奖励数值\n- 小范围测试（10%用户）→全量\n\n## 付费心理学\n\n**驱动付费的核心因素：**\n\n**1. 竞争心理（PVP）：**\n- 排行榜系统\n- 公会战/联盟战\n- 实时对战\n- \"我要比他强\"的心态\n\n**2. 收集欲（集卡/养成）：**\n- 角色收集\n- 图鉴系统\n- 稀有度展示\n- \"集齐所有角色\"的驱动\n\n**3. FOMO（错过恐惧）：**\n- 限时活动\n- 限定角色/皮肤\n- 倒计时\n- \"现在不买就没了\"\n\n**4. 社交认同：**\n- 炫耀系统（展示稀有装备）\n- 公会捐献（为团队贡献）\n- 送礼系统\n\n**5. 沉没成本：**\n- 已投入大量时间\n- 已付费用户更倾向继续付费\n- \"不能浪费之前的投入\"\n\n**6. 进度卡点（付费解锁）：**\n- 关卡难度设计\n- 资源瓶颈（需要付费加速）\n- 但要避免强制付费（Pay-to-Win引起反感）\n\n## 合规与道德\n\n**各国法规遵守：**\n\n**中国：**\n- 实名认证（防沉迷）\n- 未成年人充值限额：\n  - 8岁以下：禁止充值\n  - 8-16岁：单次¥50，月累计¥200\n  - 16-18岁：单次¥100，月累计¥400\n- 抽卡概率公示\n\n**欧盟（GDPR）：**\n- 用户数据保护\n- Cookie同意\n- 删除数据权利\n\n**美国（COPPA）：**\n- 13岁以下儿童保护\n\n**日本（JOGA）：**\n- \"kompu gacha\"禁止（复合抽卡）\n- 概率公示\n\n**道德设计原则：**\n- 避免掠夺性变现（Predatory Monetization）\n- 不针对儿童过度变现\n- 提供合理免费游玩体验\n- 付费应带来\"时间优势\"而非\"必须付费才能玩\"\n\n## 运营活动设计\n\n**日常活动：**\n- 每日签到\n- 每日任务\n- 限时副本\n\n**周期活动：**\n- 周末双倍掉落\n- 月度登录奖励\n- 赛季更新\n\n**节日活动：**\n- 春节/圣诞节限定\n- 周年庆（大放送）\n- 联动活动（IP联动）\n\n**充值活动：**\n- 首充双倍\n- 累计充值送奖励\n- 限时礼包（折扣）\n\n## 变现优化迭代\n\n**优化循环：**\n1. **数据收集**：追踪用户行为\n2. **分析瓶颈**：找出流失/不付费原因\n3. **假设提出**：\"如果降低首充价格，转化率会提升\"\n4. **A/B测试**：验证假设\n5. **全量推广**：应用成功方案\n6. **持续监控**：观察长期影响\n\n**常见优化点：**\n- 调整定价（价格敏感度测试）\n- 优化付费流程（减少步骤）\n- 增加付费理由（新内容）\n- 改进新手引导（提前展示付费价值）\n\n## 预期收入模型\n\n**月度收入预测：**\n\n**假设：**\n- DAU：{{dauTarget}}\n- 付费率：{{payingRate}}%\n- ARPPU：¥{{arppu}}\n- 广告ARPDAU：¥{{adArpdau}}\n\n**计算：**\n```\nIAP月收入 = DAU × 30天 × 付费率 × ARPPU\n         = {{dauTarget}} × 30 × {{payingRate}}% × ¥{{arppu}}\n         = ¥{{iapMonthlyRevenue}}\n\nIAA月收入 = DAU × 30天 × 广告ARPDAU\n         = {{dauTarget}} × 30 × ¥{{adArpdau}}\n         = ¥{{iaaMonthlyRevenue}}\n\n总月收入 = ¥{{totalMonthlyRevenue}}\n```\n\n**成本：**\n- 买量成本（UA）：¥{{uaCost}}\n- 服务器/运维：¥{{serverCost}}\n- 团队工资：¥{{salaryCost}}\n\n**净利润 = 收入 - 成本**",
+  "variables_schema": [
+    {
+      "name": "gameName",
+      "label": "游戏名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "gameGenre",
+      "label": "游戏类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "RPG/MMORPG",
+          "label": "RPG/MMORPG"
+        },
+        {
+          "value": "三消/休闲益智",
+          "label": "三消/休闲益智"
+        },
+        {
+          "value": "SLG策略",
+          "label": "SLG策略"
+        },
+        {
+          "value": "射击/MOBA",
+          "label": "射击/MOBA"
+        },
+        {
+          "value": "卡牌",
+          "label": "卡牌"
+        },
+        {
+          "value": "模拟经营",
+          "label": "模拟经营"
+        }
+      ]
+    },
+    {
+      "name": "monetizationModel",
+      "label": "变现模式",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "内购付费（IAP）",
+          "label": "内购付费（IAP）"
+        },
+        {
+          "value": "广告变现（IAA）",
+          "label": "广告变现（IAA）"
+        },
+        {
+          "value": "混合模式",
+          "label": "混合模式（IAP+IAA）"
+        },
+        {
+          "value": "买断制",
+          "label": "买断制"
+        }
+      ]
+    },
+    {
+      "name": "targetPlatform",
+      "label": "目标平台",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "移动端（iOS/Android）",
+          "label": "移动端（iOS/Android）"
+        },
+        {
+          "value": "PC",
+          "label": "PC（Steam）"
+        },
+        {
+          "value": "主机",
+          "label": "主机（PS/Xbox/Switch）"
+        },
+        {
+          "value": "全平台",
+          "label": "全平台"
+        }
+      ]
+    },
+    {
+      "name": "dauTarget",
+      "label": "日活目标（DAU）",
+      "type": "number",
+      "required": false,
+      "default": 10000
+    }
+  ],
+  "file_structure": {
+    "root": "变现策略-{{gameName}}",
+    "files": [
+      {
+        "path": "变现方案.md",
+        "type": "markdown"
+      },
+      {
+        "path": "数据分析.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "定价表/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
