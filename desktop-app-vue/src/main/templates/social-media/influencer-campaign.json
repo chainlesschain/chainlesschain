@@ -1,0 +1,41 @@
+{
+  "id": "tpl_social_influencer_008",
+  "name": "influencer_campaign",
+  "display_name": "KOL营销活动方案",
+  "description": "网红/达人营销活动策划，包含KOL筛选、合作方案和效果评估",
+  "icon": "🌟",
+  "category": "social-media",
+  "subcategory": "marketing",
+  "tags": ["KOL", "网红营销", "达人合作", "influencer"],
+  "project_type": "document",
+  "prompt_template": "KOL营销活动方案\n\n**活动名称：** {{campaignName}}\n**品牌：** {{brandName}}\n**产品：** {{productName}}\n**预算：** ¥{{budget}}\n\n# KOL营销完整方案\n\n## 1. 活动目标\n\n**核心目标：** {{primaryGoal}}\n\n**量化指标：**\n- 曝光量：{{exposureTarget}}\n- 互动量：{{engagementTarget}}\n- 转化目标：{{conversionTarget}}\n- ROI目标：{{roiTarget}}\n\n---\n\n## 2. 目标受众\n\n**人群画像：**\n- 年龄：{{targetAge}}\n- 性别：{{targetGender}}\n- 地域：{{targetLocation}}\n- 兴趣：{{targetInterests}}\n- 消费能力：{{targetSpending}}\n\n---\n\n## 3. KOL筛选标准\n\n### 3.1 分层策略\n\n| 层级 | 粉丝数 | 数量 | 预算分配 | 作用 |\n|------|--------|------|----------|------|\n| 头部 | 100万+ | {{topCount}} | {{topBudget}}% | 品牌曝光 |\n| 腰部 | 10-100万 | {{midCount}} | {{midBudget}}% | 深度种草 |\n| 尾部 | 1-10万 | {{tailCount}} | {{tailBudget}}% | 精准转化 |\n| 素人 | <1万 | {{microCount}} | {{microBudget}}% | 口碑扩散 |\n\n### 3.2 评估维度\n\n**数据维度：**\n- 粉丝数：{{followerRequirement}}\n- 互动率：>{{engagementRate}}%\n- 内容质量评分：>{{qualityScore}}/10\n- 粉丝真实度：>{{authenticityRate}}%\n\n**匹配度：**\n- 受众重合度：>{{audienceOverlap}}%\n- 内容调性匹配：{{contentFit}}\n- 历史合作案例：{{pastCampaigns}}\n\n---\n\n## 4. KOL清单\n\n### 头部KOL\n\n| 姓名/账号 | 平台 | 粉丝数 | 互动率 | 报价 | 备注 |\n|-----------|------|--------|--------|------|------|\n| {{kol1Name}} | {{kol1Platform}} | {{kol1Followers}} | {{kol1Engagement}}% | ¥{{kol1Price}} | {{kol1Note}} |\n\n### 腰部KOL\n\n| 姓名/账号 | 平台 | 粉丝数 | 互动率 | 报价 | 备注 |\n|-----------|------|--------|--------|------|------|\n| {{kol2Name}} | {{kol2Platform}} | {{kol2Followers}} | {{kol2Engagement}}% | ¥{{kol2Price}} | {{kol2Note}} |\n\n---\n\n## 5. 合作方式\n\n### 5.1 内容类型\n\n**主推形式：**\n1. {{contentType1}}（{{count1}}条）\n2. {{contentType2}}（{{count2}}条）\n3. {{contentType3}}（{{count3}}条）\n\n### 5.2 合作模式\n\n{{#eq cooperationMode \"fixed_fee\"}}\n**固定费用：** ¥{{fixedFee}}\n{{/eq}}\n\n{{#eq cooperationMode \"commission\"}}\n**佣金制：** 销售额{{commissionRate}}%\n{{/eq}}\n\n{{#eq cooperationMode \"hybrid\"}}\n**混合模式：** 基础费用¥{{baseFee}} + 佣金{{commissionRate}}%\n{{/eq}}\n\n### 5.3 交付物\n\n- {{deliverable1}}\n- {{deliverable2}}\n- {{deliverable3}}\n- 二次授权：{{reusageRights}}\n\n---\n\n## 6. 内容创意\n\n### 6.1 核心信息\n\n**产品卖点：**\n1. {{usp1}}\n2. {{usp2}}\n3. {{usp3}}\n\n**传播主题：** {{campaignTheme}}\n**核心文案：** {{keyCopy}}\n\n### 6.2 内容脚本\n\n**视频脚本示例：**\n{{videoScript}}\n\n**图文示例：**\n{{imageTextExample}}\n\n### 6.3 创意要求\n\n- 保持KOL个人风格\n- 自然植入产品\n- 突出使用场景\n- 引导行动（CTA）：{{ctaMessage}}\n\n---\n\n## 7. 执行时间表\n\n| 阶段 | 时间 | 任务 | 负责人 |\n|------|------|------|--------|\n| KOL筛选 | {{phase1Date}} | 确定合作名单 | {{phase1Owner}} |\n| 商务洽谈 | {{phase2Date}} | 签订合同 | {{phase2Owner}} |\n| 内容创作 | {{phase3Date}} | 制作审核 | {{phase3Owner}} |\n| 集中发布 | {{phase4Date}} | 按计划发布 | {{phase4Owner}} |\n| 数据监测 | {{phase5Date}} | 效果追踪 | {{phase5Owner}} |\n\n---\n\n## 8. 预算分配\n\n| 项目 | 金额 | 占比 |\n|------|------|------|\n| KOL合作费 | ¥{{kolFee}} | {{kolFeePercentage}}% |\n| 内容制作 | ¥{{productionCost}} | {{productionPercentage}}% |\n| 产品样品 | ¥{{sampleCost}} | {{samplePercentage}}% |\n| 广告投放 | ¥{{adSpend}} | {{adPercentage}}% |\n| 应急储备 | ¥{{contingency}} | {{contingencyPercentage}}% |\n| **总计** | **¥{{totalBudget}}** | **100%** |\n\n---\n\n## 9. 效果监测\n\n### 9.1 实时监测\n\n**监测指标：**\n- 发布进度：{{publishProgress}}\n- 曝光数据：{{exposureData}}\n- 互动数据：{{engagementData}}\n- 转化数据：{{conversionData}}\n\n### 9.2 数据看板\n\n| KOL | 曝光量 | 点赞 | 评论 | 转发 | 转化 | ROI |\n|-----|--------|------|------|------|------|-----|\n| {{kol1Name}} | {{exp1}} | {{like1}} | {{comment1}} | {{share1}} | {{conv1}} | {{roi1}} |\n\n---\n\n## 10. 风险管理\n\n**潜在风险：**\n1. {{risk1}} - 应对：{{mitigation1}}\n2. {{risk2}} - 应对：{{mitigation2}}\n3. {{risk3}} - 应对：{{mitigation3}}\n\n---\n\n## 11. 总结报告\n\n**活动成果：**\n{{campaignResults}}\n\n**优秀案例：**\n{{bestCases}}\n\n**改进建议：**\n{{improvements}}\n",
+  "variables_schema": [
+    {"name": "campaignName", "label": "活动名称", "type": "string", "required": true},
+    {"name": "brandName", "label": "品牌名称", "type": "string", "required": true},
+    {"name": "budget", "label": "预算（元）", "type": "number", "required": false},
+    {
+      "name": "cooperationMode",
+      "label": "合作模式",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "fixed_fee", "label": "固定费用"},
+        {"value": "commission", "label": "纯佣金"},
+        {"value": "hybrid", "label": "混合模式"}
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "KOL营销-{{campaignName}}",
+    "files": [
+      {"path": "方案文档.docx", "type": "document"},
+      {"path": "KOL清单.xlsx", "type": "spreadsheet"},
+      {"path": "合同模板/", "type": "folder"},
+      {"path": "数据报告/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
