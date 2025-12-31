@@ -409,6 +409,33 @@ class AppConfigManager {
       throw error;
     }
   }
+
+  /**
+   * 批量应用初始设置配置
+   * @param {Object} initialConfig - 来自 initial-setup-config.json 的配置
+   */
+  applyInitialSetup(initialConfig) {
+    console.log('[AppConfig] 应用初始设置配置:', initialConfig);
+
+    // 应用数据库路径
+    if (initialConfig.paths?.database) {
+      this.setDatabasePath(initialConfig.paths.database);
+    }
+
+    // 应用版本设置
+    if (initialConfig.edition) {
+      this.set('app.edition', initialConfig.edition);
+    }
+
+    // 应用项目根路径（保存到 app-config，而非数据库）
+    if (initialConfig.paths?.projectRoot) {
+      this.set('project.rootPath', initialConfig.paths.projectRoot);
+    }
+
+    // 保存配置
+    this.save();
+    console.log('[AppConfig] 初始设置配置应用成功');
+  }
 }
 
 // 单例

@@ -7,10 +7,13 @@
  */
 
 const DatabaseManager = require('./database');
-const path = require('./path');
+const path = require('path');
 const OfficeToolsHandler = require('./ai-engine/extended-tools-office');
 const DataScienceToolsHandler = require('./ai-engine/extended-tools-datascience');
 const ProjectToolsHandler = require('./ai-engine/extended-tools-project');
+
+// 设置数据库路径（用于独立运行）
+const dbPath = path.join(__dirname, '../../..', 'data/chainlesschain.db');
 
 class TemplateExecutionTester {
   constructor() {
@@ -27,7 +30,8 @@ class TemplateExecutionTester {
 
     // 初始化数据库
     console.log('\n1. 初始化数据库...');
-    this.db = new DatabaseManager();
+    console.log('   数据库路径:', dbPath);
+    this.db = new DatabaseManager(dbPath, { encryptionEnabled: false });
     await this.db.initialize();
     console.log('   ✓ 数据库连接成功');
   }

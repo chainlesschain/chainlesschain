@@ -9,12 +9,16 @@
 const DatabaseManager = require('./database');
 const path = require('path');
 
+// 设置数据库路径（用于独立运行）
+const dbPath = path.join(__dirname, '../../../data/chainlesschain.db');
+
 async function runMigration() {
   console.log('='.repeat(60));
   console.log('开始数据库迁移...');
   console.log('='.repeat(60));
+  console.log('数据库文件路径:', dbPath);
 
-  const db = new DatabaseManager();
+  const db = new DatabaseManager(dbPath, { encryptionEnabled: false });
 
   try {
     // 初始化数据库连接
