@@ -1,7 +1,7 @@
 // Load environment variables first
 require('dotenv').config();
 
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -554,21 +554,26 @@ class ChainlessChainApp {
     }
 
     // 初始化身份上下文管理器（企业版）
+    // 仅在用户已经创建DID后才初始化,保证个人版平滑过渡
     try {
-      console.log('初始化身份上下文管理器...');
-      const dataDir = path.join(app.getPath('userData'), 'data');
-      this.identityContextManager = getIdentityContextManager(dataDir);
-      await this.identityContextManager.initialize();
-
-      // 确保个人上下文存在
       if (this.didManager) {
         const currentDID = await this.didManager.getCurrentDID();
+
+        // 只有在用户已有DID时才初始化身份上下文管理器
         if (currentDID) {
+          console.log('初始化身份上下文管理器...');
+          const dataDir = path.join(app.getPath('userData'), 'data');
+          this.identityContextManager = getIdentityContextManager(dataDir);
+          await this.identityContextManager.initialize();
+
+          // 确保个人上下文存在
           await this.identityContextManager.createPersonalContext(currentDID, '个人');
+
+          console.log('身份上下文管理器初始化成功');
+        } else {
+          console.log('用户尚未创建DID,跳过身份上下文管理器初始化');
         }
       }
-
-      console.log('身份上下文管理器初始化成功');
     } catch (error) {
       console.error('身份上下文管理器初始化失败:', error);
       // 身份上下文管理器初始化失败不影响应用启动
@@ -1127,6 +1132,112 @@ class ChainlessChainApp {
       } catch (error) {
         console.error('文件操作IPC handlers注册失败:', error);
       }
+    }
+
+    // 创建系统托盘
+    this.createTray();
+  }
+
+  createTray() {
+    try {
+      // 创建托盘图标（使用应用图标）
+      const iconPath = process.platform === 'win32'
+        ? path.join(__dirname, '../../public/icon.ico')
+        : path.join(__dirname, '../../public/icon.png');
+
+      // 如果图标文件不存在，使用空图标
+      let trayIcon;
+      if (fs.existsSync(iconPath)) {
+        trayIcon = nativeImage.createFromPath(iconPath);
+      } else {
+        // 创建一个简单的16x16空图标
+        trayIcon = nativeImage.createEmpty();
+      }
+
+      this.tray = new Tray(trayIcon);
+      this.tray.setToolTip('ChainlessChain - 个人AI知识库');
+
+      // 创建托盘菜单
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: '显示主窗口',
+          click: () => {
+            if (this.mainWindow) {
+              if (this.mainWindow.isMinimized()) {
+                this.mainWindow.restore();
+              }
+              this.mainWindow.show();
+              this.mainWindow.focus();
+            }
+          }
+        },
+        {
+          type: 'separator'
+        },
+        {
+          label: '全局设置',
+          click: () => {
+            // 发送事件到渲染进程，打开全局设置对话框
+            if (this.mainWindow && this.mainWindow.webContents) {
+              this.mainWindow.webContents.send('show-global-settings');
+              // 同时显示主窗口
+              if (this.mainWindow.isMinimized()) {
+                this.mainWindow.restore();
+              }
+              this.mainWindow.show();
+              this.mainWindow.focus();
+            }
+          }
+        },
+        {
+          label: '系统设置',
+          click: () => {
+            if (this.mainWindow) {
+              if (this.mainWindow.isMinimized()) {
+                this.mainWindow.restore();
+              }
+              this.mainWindow.show();
+              this.mainWindow.focus();
+              // 发送事件到渲染进程，导航到设置页面
+              this.mainWindow.webContents.send('navigate-to-settings');
+            }
+          }
+        },
+        {
+          type: 'separator'
+        },
+        {
+          label: '重启应用',
+          click: () => {
+            app.relaunch();
+            app.exit(0);
+          }
+        },
+        {
+          label: '退出',
+          click: () => {
+            // 强制退出，不触发窗口关闭事件
+            app.exit(0);
+          }
+        }
+      ]);
+
+      this.tray.setContextMenu(contextMenu);
+
+      // 双击托盘图标显示主窗口
+      this.tray.on('double-click', () => {
+        if (this.mainWindow) {
+          if (this.mainWindow.isMinimized()) {
+            this.mainWindow.restore();
+          }
+          this.mainWindow.show();
+          this.mainWindow.focus();
+        }
+      });
+
+      console.log('系统托盘创建成功');
+    } catch (error) {
+      console.error('创建系统托盘失败:', error);
     }
   }
 

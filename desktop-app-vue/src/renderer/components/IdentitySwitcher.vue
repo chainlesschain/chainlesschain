@@ -1,5 +1,6 @@
 <template>
-  <div class="identity-switcher">
+  <!-- 只有在有有效的身份上下文时才显示 -->
+  <div class="identity-switcher" v-if="hasValidContext">
     <!-- 当前身份显示 -->
     <div class="current-identity" @click="showSwitcher = true">
       <a-avatar :src="currentIdentity.avatar" :size="32">
@@ -240,6 +241,11 @@ const organizationIdentities = computed(() => {
     avatar: ctx.avatar,
     role: 'member' // TODO: Get actual role from member data
   }));
+});
+
+// 检查是否有有效的身份上下文
+const hasValidContext = computed(() => {
+  return identityStore.activeContext !== null || identityStore.contexts.length > 0;
 });
 
 // ==================== Methods ====================

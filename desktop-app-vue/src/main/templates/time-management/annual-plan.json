@@ -4,28 +4,89 @@
   "display_name": "年度规划",
   "description": "年度目标与规划模板，包含年度回顾、目标设定、行动计划、月度分解等",
   "icon": "📆",
-  "category": "time-management",
+  "category": "productivity",
   "subcategory": "长期规划",
-  "tags": ["年度规划", "年度目标", "年度总结", "人生规划"],
+  "tags": [
+    "年度规划",
+    "年度目标",
+    "年度总结",
+    "人生规划"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我生成年度规划，要求:\n\n# {{year}}年度规划\n\n**制定日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**规划者**: {{planner}}\n**年度主题**: {{annualTheme}}\n\n---\n\n## 一、上一年回顾（{{lastYear}}）\n\n### 1.1 年度成就\n\n{{lastYearAchievements}}\n\n### 1.2 目标完成情况\n\n| 领域 | 目标 | 完成度 | 评分 |\n|------|------|--------|------|\n| 事业 | {{careerGoalLast}} | {{careerCompletionLast}}% | {{careerScoreLast}}/10 |\n| 财务 | {{financeGoalLast}} | {{financeCompletionLast}}% | {{financeScoreLast}}/10 |\n| 健康 | {{healthGoalLast}} | {{healthCompletionLast}}% | {{healthScoreLast}}/10 |\n| 学习 | {{learningGoalLast}} | {{learningCompletionLast}}% | {{learningScoreLast}}/10 |\n| 家庭 | {{familyGoalLast}} | {{familyCompletionLast}}% | {{familyScoreLast}}/10 |\n| 社交 | {{socialGoalLast}} | {{socialCompletionLast}}% | {{socialScoreLast}}/10 |\n\n### 1.3 关键数据\n\n{{lastYearMetrics}}\n\n### 1.4 经验教训\n\n**成功经验**:\n{{successExperiences}}\n\n**失败教训**:\n{{failureLessons}}\n\n### 1.5 未完成事项\n\n{{unfinishedBusiness}}\n\n---\n\n## 二、人生愿景\n\n### 2.1 长期愿景（5-10年）\n\n{{lifeVision}}\n\n### 2.2 人生使命\n\n{{lifeMission}}\n\n### 2.3 核心价值观\n\n{{coreValues}}\n\n---\n\n## 三、{{year}}年度目标\n\n### 3.1 年度主题\n\n{{annualThemeDescription}}\n\n### 3.2 平衡轮评估\n\n**当前状态（1-10分）**:\n```\n事业发展: ████████░░ {{careerCurrent}}/10\n财务状况: ██████░░░░ {{financeCurrent}}/10\n健康状态: ███████░░░ {{healthCurrent}}/10\n学习成长: █████░░░░░ {{learningCurrent}}/10\n家庭关系: ████████░░ {{familyCurrent}}/10\n社交人际: ██████░░░░ {{socialCurrent}}/10\n兴趣爱好: ████░░░░░░ {{hobbyCurrent}}/10\n心灵成长: █████░░░░░ {{spiritualCurrent}}/10\n```\n\n### 3.3 各领域年度目标\n\n#### 🏢 事业发展\n\n**年度目标**: {{careerGoal}}\n\n**关键结果**:\n- KR1: {{careerKR1}}\n- KR2: {{careerKR2}}\n- KR3: {{careerKR3}}\n\n**行动计划**:\n{{careerActions}}\n\n---\n\n#### 💰 财务目标\n\n**年度目标**: {{financeGoal}}\n\n**关键指标**:\n- 年收入目标: {{incomeTarget}}\n- 储蓄目标: {{savingsTarget}}\n- 投资回报: {{investmentTarget}}\n- 债务减少: {{debtReduction}}\n\n**理财计划**:\n{{financePlan}}\n\n---\n\n#### 💪 健康目标\n\n**年度目标**: {{healthGoal}}\n\n**具体指标**:\n- 体重: {{weightTarget}}kg\n- 体脂率: {{bodyFatTarget}}%\n- 运动频率: 每周{{exerciseFrequency}}次\n- 体检指标: {{healthMetrics}}\n\n**健康计划**:\n{{healthPlan}}\n\n---\n\n#### 📚 学习成长\n\n**年度目标**: {{learningGoal}}\n\n**学习清单**:\n- 阅读{{readingTarget}}本书\n- 完成{{courseTarget}}门课程\n- 掌握{{skillTarget}}项新技能\n- 获得{{certTarget}}个证书\n\n**学习计划**:\n{{learningPlan}}\n\n---\n\n#### ❤️ 家庭关系\n\n**年度目标**: {{familyGoal}}\n\n**具体行动**:\n{{familyActions}}\n\n---\n\n#### 🤝 社交人际\n\n**年度目标**: {{socialGoal}}\n\n**具体行动**:\n{{socialActions}}\n\n---\n\n#### 🎨 兴趣爱好\n\n**年度目标**: {{hobbyGoal}}\n\n**具体行动**:\n{{hobbyActions}}\n\n---\n\n#### 🧘 心灵成长\n\n**年度目标**: {{spiritualGoal}}\n\n**具体行动**:\n{{spiritualActions}}\n\n---\n\n## 四、季度分解\n\n### Q1（1-3月）- {{q1Theme}}\n\n**重点目标**:\n{{q1Goals}}\n\n**关键里程碑**:\n{{q1Milestones}}\n\n---\n\n### Q2（4-6月）- {{q2Theme}}\n\n**重点目标**:\n{{q2Goals}}\n\n**关键里程碑**:\n{{q2Milestones}}\n\n---\n\n### Q3（7-9月）- {{q3Theme}}\n\n**重点目标**:\n{{q3Goals}}\n\n**关键里程碑**:\n{{q3Milestones}}\n\n---\n\n### Q4（10-12月）- {{q4Theme}}\n\n**重点目标**:\n{{q4Goals}}\n\n**关键里程碑**:\n{{q4Milestones}}\n\n---\n\n## 五、月度计划概览\n\n| 月份 | 主题 | 关键任务 | 预期成果 |\n|------|------|---------|----------|\n| 1月 | {{jan}} | {{janTasks}} | {{janOutcome}} |\n| 2月 | {{feb}} | {{febTasks}} | {{febOutcome}} |\n| 3月 | {{mar}} | {{marTasks}} | {{marOutcome}} |\n| 4月 | {{apr}} | {{aprTasks}} | {{aprOutcome}} |\n| 5月 | {{may}} | {{mayTasks}} | {{mayOutcome}} |\n| 6月 | {{jun}} | {{junTasks}} | {{junOutcome}} |\n| 7月 | {{jul}} | {{julTasks}} | {{julOutcome}} |\n| 8月 | {{aug}} | {{augTasks}} | {{augOutcome}} |\n| 9月 | {{sep}} | {{sepTasks}} | {{sepOutcome}} |\n| 10月 | {{oct}} | {{octTasks}} | {{octOutcome}} |\n| 11月 | {{nov}} | {{novTasks}} | {{novOutcome}} |\n| 12月 | {{dec}} | {{decTasks}} | {{decOutcome}} |\n\n---\n\n## 六、习惯养成计划\n\n### 6.1 要建立的好习惯\n\n{{newHabits}}\n\n### 6.2 要戒除的坏习惯\n\n{{badHabitsToBreak}}\n\n### 6.3 习惯追踪\n\n{{habitTracking}}\n\n---\n\n## 七、资源与预算\n\n### 7.1 时间预算\n\n**年度可支配时间**: {{totalAvailableHours}}小时\n\n**时间分配**:\n- 工作: {{workHoursPercent}}%\n- 学习: {{learningHoursPercent}}%\n- 健身: {{fitnessHoursPercent}}%\n- 家庭: {{familyHoursPercent}}%\n- 社交: {{socialHoursPercent}}%\n- 兴趣: {{hobbyHoursPercent}}%\n- 休息: {{restHoursPercent}}%\n\n### 7.2 财务预算\n\n{{financialBudget}}\n\n### 7.3 工具与资源\n\n{{toolsAndResources}}\n\n---\n\n## 八、风险与挑战\n\n### 8.1 潜在障碍\n\n{{potentialObstacles}}\n\n### 8.2 应对策略\n\n{{contingencyPlans}}\n\n### 8.3 支持系统\n\n{{supportSystem}}\n\n---\n\n## 九、追踪与评估\n\n### 9.1 月度回顾机制\n\n{{monthlyReviewProcess}}\n\n### 9.2 季度复盘\n\n{{quarterlyReview}}\n\n### 9.3 年中调整\n\n{{midYearAdjustment}}\n\n---\n\n## 十、激励与承诺\n\n### 10.1 为什么这很重要\n\n{{whyItMatters}}\n\n### 10.2 达成后的愿景\n\n{{visionWhenAchieved}}\n\n### 10.3 自我承诺\n\n{{selfCommitment}}\n\n### 10.4 公开承诺\n\n{{publicCommitment}}\n\n---\n\n## 十一、重要日期\n\n### 11.1 个人重要日期\n\n{{personalDates}}\n\n### 11.2 目标检查点\n\n{{goalCheckpoints}}\n\n---\n\n## 十二、人生清单（Bucket List）\n\n### 12.1 {{year}}年想做的事\n\n{{bucketList}}\n\n### 12.2 想去的地方\n\n{{travelList}}\n\n### 12.3 想见的人\n\n{{peopleToMeet}}\n\n---\n\n## 附录\n\n### A. 目标模板\n\n{{goalTemplate}}\n\n### B. 月度回顾表\n\n{{monthlyReviewTemplate}}\n\n### C. 推荐书单\n\n{{readingList}}\n\n### D. 激励语录\n\n{{motivationalQuotes}}\n\n---\n\n**规划者**: {{#if planner}}{{planner}}{{else}}用户{{/if}}\n**规划日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**年度主题**: {{#if annualTheme}}{{annualTheme}}{{else}}未定义{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}\n**版本**: {{#if version}}{{version}}{{else}}v1.0{{/if}}",
   "variables_schema": [
-    {"name": "year", "type": "text", "label": "年份", "default": "2024", "required": true},
-    {"name": "planner", "type": "text", "label": "规划者", "default": "用户", "required": true},
-    {"name": "annualTheme", "type": "text", "label": "年度主题", "default": "成长与突破", "required": true},
-    {"name": "careerGoal", "type": "text", "label": "事业目标", "default": "晋升/转型", "required": true},
-    {"name": "financeGoal", "type": "text", "label": "财务目标", "default": "增加收入", "required": true},
-    {"name": "healthGoal", "type": "text", "label": "健康目标", "default": "保持健康", "required": true}
+    {
+      "name": "year",
+      "type": "text",
+      "label": "年份",
+      "default": "2024",
+      "required": true
+    },
+    {
+      "name": "planner",
+      "type": "text",
+      "label": "规划者",
+      "default": "用户",
+      "required": true
+    },
+    {
+      "name": "annualTheme",
+      "type": "text",
+      "label": "年度主题",
+      "default": "成长与突破",
+      "required": true
+    },
+    {
+      "name": "careerGoal",
+      "type": "text",
+      "label": "事业目标",
+      "default": "晋升/转型",
+      "required": true
+    },
+    {
+      "name": "financeGoal",
+      "type": "text",
+      "label": "财务目标",
+      "default": "增加收入",
+      "required": true
+    },
+    {
+      "name": "healthGoal",
+      "type": "text",
+      "label": "健康目标",
+      "default": "保持健康",
+      "required": true
+    }
   ],
   "file_structure": {
     "type": "folder",
     "name": "{{year}}年度规划",
     "children": [
-      {"type": "file", "name": "年度规划.md", "description": "规划正文"},
-      {"type": "file", "name": "季度计划/", "description": "季度目录"},
-      {"type": "file", "name": "月度回顾/", "description": "月度记录"},
-      {"type": "file", "name": "进度跟踪.xlsx", "description": "数据表格"},
-      {"type": "file", "name": "年终总结.md", "description": "年终回顾"}
+      {
+        "type": "file",
+        "name": "年度规划.md",
+        "description": "规划正文"
+      },
+      {
+        "type": "file",
+        "name": "季度计划/",
+        "description": "季度目录"
+      },
+      {
+        "type": "file",
+        "name": "月度回顾/",
+        "description": "月度记录"
+      },
+      {
+        "type": "file",
+        "name": "进度跟踪.xlsx",
+        "description": "数据表格"
+      },
+      {
+        "type": "file",
+        "name": "年终总结.md",
+        "description": "年终回顾"
+      }
     ]
   },
   "is_builtin": true,

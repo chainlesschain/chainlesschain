@@ -10,6 +10,53 @@
 
     <a-spin :spinning="loading">
       <a-tabs v-model:activeKey="activeTab" type="card">
+        <!-- 版本设置 -->
+        <a-tab-pane key="edition" tab="版本设置">
+          <template #tab>
+            <AppstoreOutlined />
+            版本设置
+          </template>
+          <a-card title="版本信息">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+              <a-form-item label="当前版本">
+                <a-radio-group v-model:value="config.app.edition" button-style="solid">
+                  <a-radio-button value="personal">个人版（本地存储）</a-radio-button>
+                  <a-radio-button value="enterprise">企业版（服务器连接）</a-radio-button>
+                </a-radio-group>
+              </a-form-item>
+
+              <!-- 企业版配置（仅在选择企业版时显示） -->
+              <template v-if="config.app && config.app.edition === 'enterprise'">
+                <a-divider>企业版配置</a-divider>
+                <a-form-item label="企业服务器地址">
+                  <a-input
+                    v-model:value="config.enterprise.serverUrl"
+                    placeholder="https://enterprise.example.com"
+                  />
+                </a-form-item>
+                <a-form-item label="租户ID">
+                  <a-input
+                    v-model:value="config.enterprise.tenantId"
+                    placeholder="your-tenant-id"
+                  />
+                </a-form-item>
+                <a-form-item label="API密钥">
+                  <a-input-password
+                    v-model:value="config.enterprise.apiKey"
+                    placeholder="输入企业版API密钥"
+                  />
+                </a-form-item>
+                <a-alert
+                  message="企业版功能"
+                  description="企业版支持数据云端存储、多人协作、企业级安全等高级功能。切换版本后需要重启应用。"
+                  type="info"
+                  show-icon
+                />
+              </template>
+            </a-form>
+          </a-card>
+        </a-tab-pane>
+
         <!-- 项目配置 -->
         <a-tab-pane key="project" tab="项目存储">
           <template #tab>
@@ -724,6 +771,7 @@ import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import {
   SettingOutlined,
+  AppstoreOutlined,
   FolderOutlined,
   FolderOpenOutlined,
   RobotOutlined,
@@ -769,6 +817,14 @@ const loadingBackups = ref(false);
 const backupList = ref([]);
 
 const config = ref({
+  app: {
+    edition: 'personal', // personal | enterprise
+  },
+  enterprise: {
+    serverUrl: '',
+    tenantId: '',
+    apiKey: '',
+  },
   project: {
     rootPath: '',
     maxSizeMB: 1000,

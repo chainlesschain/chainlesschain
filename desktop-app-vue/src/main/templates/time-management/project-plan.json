@@ -4,34 +4,111 @@
   "display_name": "项目计划",
   "description": "项目管理计划模板，包含项目范围、时间规划、资源分配、风险管理等",
   "icon": "📊",
-  "category": "time-management",
+  "category": "productivity",
   "subcategory": "项目管理",
-  "tags": ["项目管理", "项目计划", "甘特图", "里程碑"],
+  "tags": [
+    "项目管理",
+    "项目计划",
+    "甘特图",
+    "里程碑"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我生成项目计划，要求:\n\n# {{projectName}} - 项目计划书\n\n**项目编号**: {{projectCode}}\n**项目经理**: {{projectManager}}\n**制定日期**: {{#if createDate}}{{createDate}}{{else}}{{currentDate}}{{/if}}\n**项目周期**: {{projectDuration}}\n**项目状态**: {{projectStatus}}\n\n---\n\n## 一、项目概述\n\n### 1.1 项目背景\n\n{{projectBackground}}\n\n### 1.2 项目目标\n\n{{projectObjectives}}\n\n### 1.3 项目价值\n\n{{projectValue}}\n\n### 1.4 成功标准\n\n{{successCriteria}}\n\n---\n\n## 二、项目范围\n\n### 2.1 范围说明\n\n**包含范围**:\n{{inScope}}\n\n**不包含范围**:\n{{outOfScope}}\n\n### 2.2 交付成果\n\n| 交付物 | 描述 | 负责人 | 交付日期 | 状态 |\n|--------|------|--------|---------|------|\n| {{deliverable1}} | {{deliverable1Desc}} | {{deliverable1Owner}} | {{deliverable1Date}} | {{deliverable1Status}} |\n| {{deliverable2}} | {{deliverable2Desc}} | {{deliverable2Owner}} | {{deliverable2Date}} | {{deliverable2Status}} |\n| {{deliverable3}} | {{deliverable3Desc}} | {{deliverable3Owner}} | {{deliverable3Date}} | {{deliverable3Status}} |\n\n### 2.3 验收标准\n\n{{acceptanceCriteria}}\n\n---\n\n## 三、项目组织\n\n### 3.1 项目团队\n\n**项目经理**: {{projectManager}}\n**项目发起人**: {{projectSponsor}}\n\n**核心团队**:\n\n| 姓名 | 角色 | 职责 | 投入度 |\n|------|------|------|--------|\n| {{member1}} | {{role1}} | {{responsibility1}} | {{allocation1}}% |\n| {{member2}} | {{role2}} | {{responsibility2}} | {{allocation2}}% |\n| {{member3}} | {{role3}} | {{responsibility3}} | {{allocation3}}% |\n\n### 3.2 利益相关者\n\n{{stakeholders}}\n\n### 3.3 沟通计划\n\n{{communicationPlan}}\n\n---\n\n## 四、项目阶段与里程碑\n\n### 阶段1：{{phase1Name}}\n\n**时间**: {{phase1Duration}}\n**目标**: {{phase1Goal}}\n\n**关键任务**:\n- {{phase1Task1}}\n- {{phase1Task2}}\n- {{phase1Task3}}\n\n**里程碑**: {{phase1Milestone}} - {{phase1MilestoneDate}}\n\n---\n\n### 阶段2：{{phase2Name}}\n\n**时间**: {{phase2Duration}}\n**目标**: {{phase2Goal}}\n\n**关键任务**:\n- {{phase2Task1}}\n- {{phase2Task2}}\n- {{phase2Task3}}\n\n**里程碑**: {{phase2Milestone}} - {{phase2MilestoneDate}}\n\n---\n\n### 阶段3：{{phase3Name}}\n\n**时间**: {{phase3Duration}}\n**目标**: {{phase3Goal}}\n\n**关键任务**:\n- {{phase3Task1}}\n- {{phase3Task2}}\n- {{phase3Task3}}\n\n**里程碑**: {{phase3Milestone}} - {{phase3MilestoneDate}}\n\n---\n\n### 阶段4：{{phase4Name}}\n\n**时间**: {{phase4Duration}}\n**目标**: {{phase4Goal}}\n\n**里程碑**: {{phase4Milestone}} - {{phase4MilestoneDate}}\n\n---\n\n## 五、详细任务计划（WBS）\n\n### 5.1 任务分解结构\n\n```\n{{projectName}}\n├─ 1.0 {{phase1Name}}\n│  ├─ 1.1 {{task1_1}}\n│  ├─ 1.2 {{task1_2}}\n│  └─ 1.3 {{task1_3}}\n├─ 2.0 {{phase2Name}}\n│  ├─ 2.1 {{task2_1}}\n│  ├─ 2.2 {{task2_2}}\n│  └─ 2.3 {{task2_3}}\n└─ 3.0 {{phase3Name}}\n   ├─ 3.1 {{task3_1}}\n   ├─ 3.2 {{task3_2}}\n   └─ 3.3 {{task3_3}}\n```\n\n### 5.2 任务甘特图\n\n{{ganttChart}}\n\n### 5.3 关键路径\n\n{{criticalPath}}\n\n---\n\n## 六、资源计划\n\n### 6.1 人力资源\n\n**总工时**: {{totalManHours}}人天\n\n**资源分配**:\n{{resourceAllocation}}\n\n### 6.2 预算计划\n\n| 类别 | 预算 | 实际 | 差异 |\n|------|------|------|------|\n| 人力成本 | {{laborBudget}} | {{laborActual}} | {{laborVariance}} |\n| 设备采购 | {{equipmentBudget}} | {{equipmentActual}} | {{equipmentVariance}} |\n| 软件许可 | {{softwareBudget}} | {{softwareActual}} | {{softwareVariance}} |\n| 外包服务 | {{outsourcingBudget}} | {{outsourcingActual}} | {{outsourcingVariance}} |\n| 其他费用 | {{otherBudget}} | {{otherActual}} | {{otherVariance}} |\n| **总计** | **{{totalBudget}}** | **{{totalActual}}** | **{{totalVariance}}** |\n\n### 6.3 设备与工具\n\n{{toolsAndEquipment}}\n\n---\n\n## 七、风险管理\n\n### 7.1 风险识别\n\n| 风险 | 类别 | 概率 | 影响 | 风险等级 | 应对策略 | 负责人 |\n|------|------|------|------|---------|---------|--------|\n| {{risk1}} | {{risk1Category}} | {{risk1Probability}} | {{risk1Impact}} | {{risk1Level}} | {{risk1Mitigation}} | {{risk1Owner}} |\n| {{risk2}} | {{risk2Category}} | {{risk2Probability}} | {{risk2Impact}} | {{risk2Level}} | {{risk2Mitigation}} | {{risk2Owner}} |\n| {{risk3}} | {{risk3Category}} | {{risk3Probability}} | {{risk3Impact}} | {{risk3Level}} | {{risk3Mitigation}} | {{risk3Owner}} |\n\n### 7.2 应急预案\n\n{{contingencyPlan}}\n\n---\n\n## 八、质量管理\n\n### 8.1 质量标准\n\n{{qualityStandards}}\n\n### 8.2 质量保证活动\n\n{{qualityAssurance}}\n\n### 8.3 质量控制\n\n{{qualityControl}}\n\n---\n\n## 九、变更管理\n\n### 9.1 变更流程\n\n{{changeProcess}}\n\n### 9.2 变更记录\n\n| 日期 | 变更内容 | 原因 | 影响 | 批准人 | 状态 |\n|------|---------|------|------|--------|------|\n| {{change1Date}} | {{change1Content}} | {{change1Reason}} | {{change1Impact}} | {{change1Approver}} | {{change1Status}} |\n\n---\n\n## 十、进度跟踪\n\n### 10.1 当前进度\n\n**整体完成度**: {{overallProgress}}%\n\n**阶段进度**:\n- {{phase1Name}}: {{phase1Progress}}%\n- {{phase2Name}}: {{phase2Progress}}%\n- {{phase3Name}}: {{phase3Progress}}%\n- {{phase4Name}}: {{phase4Progress}}%\n\n### 10.2 周报更新\n\n{{weeklyUpdates}}\n\n### 10.3 关键问题\n\n{{keyIssues}}\n\n---\n\n## 十一、项目收尾\n\n### 11.1 验收计划\n\n{{acceptancePlan}}\n\n### 11.2 知识转移\n\n{{knowledgeTransfer}}\n\n### 11.3 经验总结\n\n{{lessonsLearned}}\n\n### 11.4 项目归档\n\n{{projectArchiving}}\n\n---\n\n## 附录\n\n### A. 项目章程\n\n{{projectCharter}}\n\n### B. 需求文档\n\n{{requirementsDocument}}\n\n### C. 会议纪要\n\n{{meetingMinutes}}\n\n---\n\n**项目经理**: {{#if projectManager}}{{projectManager}}{{else}}待定{{/if}}\n**审批人**: {{#if approver}}{{approver}}{{else}}待定{{/if}}\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}\n**版本号**: {{#if version}}{{version}}{{else}}v1.0{{/if}}",
   "variables_schema": [
-    {"name": "projectName", "type": "text", "label": "项目名称", "default": "示例项目", "required": true},
-    {"name": "projectCode", "type": "text", "label": "项目编号", "default": "PRJ-2024-001", "required": true},
-    {"name": "projectManager", "type": "text", "label": "项目经理", "default": "张三", "required": true},
-    {"name": "projectDuration", "type": "text", "label": "项目周期", "default": "3个月", "required": true},
-    {"name": "projectStatus", "type": "select", "label": "项目状态", "default": "规划中", "required": true, "options": [
-      {"value": "规划中", "label": "规划中"},
-      {"value": "执行中", "label": "执行中"},
-      {"value": "已暂停", "label": "已暂停"},
-      {"value": "已完成", "label": "已完成"},
-      {"value": "已取消", "label": "已取消"}
-    ]},
-    {"name": "totalBudget", "type": "text", "label": "总预算", "default": "100万元", "required": true}
+    {
+      "name": "projectName",
+      "type": "text",
+      "label": "项目名称",
+      "default": "示例项目",
+      "required": true
+    },
+    {
+      "name": "projectCode",
+      "type": "text",
+      "label": "项目编号",
+      "default": "PRJ-2024-001",
+      "required": true
+    },
+    {
+      "name": "projectManager",
+      "type": "text",
+      "label": "项目经理",
+      "default": "张三",
+      "required": true
+    },
+    {
+      "name": "projectDuration",
+      "type": "text",
+      "label": "项目周期",
+      "default": "3个月",
+      "required": true
+    },
+    {
+      "name": "projectStatus",
+      "type": "select",
+      "label": "项目状态",
+      "default": "规划中",
+      "required": true,
+      "options": [
+        {
+          "value": "规划中",
+          "label": "规划中"
+        },
+        {
+          "value": "执行中",
+          "label": "执行中"
+        },
+        {
+          "value": "已暂停",
+          "label": "已暂停"
+        },
+        {
+          "value": "已完成",
+          "label": "已完成"
+        },
+        {
+          "value": "已取消",
+          "label": "已取消"
+        }
+      ]
+    },
+    {
+      "name": "totalBudget",
+      "type": "text",
+      "label": "总预算",
+      "default": "100万元",
+      "required": true
+    }
   ],
   "file_structure": {
     "type": "folder",
     "name": "{{projectName}}_项目计划",
     "children": [
-      {"type": "file", "name": "项目计划书.md", "description": "计划文档"},
-      {"type": "file", "name": "甘特图.xlsx", "description": "进度表"},
-      {"type": "file", "name": "周报/", "description": "周报目录"},
-      {"type": "file", "name": "会议纪要/", "description": "会议记录"},
-      {"type": "file", "name": "交付物/", "description": "交付文件"}
+      {
+        "type": "file",
+        "name": "项目计划书.md",
+        "description": "计划文档"
+      },
+      {
+        "type": "file",
+        "name": "甘特图.xlsx",
+        "description": "进度表"
+      },
+      {
+        "type": "file",
+        "name": "周报/",
+        "description": "周报目录"
+      },
+      {
+        "type": "file",
+        "name": "会议纪要/",
+        "description": "会议记录"
+      },
+      {
+        "type": "file",
+        "name": "交付物/",
+        "description": "交付文件"
+      }
     ]
   },
   "is_builtin": true,

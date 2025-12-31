@@ -4,30 +4,87 @@
   "display_name": "摄影拍摄计划",
   "description": "专业摄影拍摄方案，包含前期策划、拍摄清单和后期处理",
   "icon": "📷",
-  "category": "photography",
+  "category": "design",
   "subcategory": "planning",
-  "tags": ["摄影", "拍摄", "策划", "人像", "风光"],
+  "tags": [
+    "摄影",
+    "拍摄",
+    "策划",
+    "人像",
+    "风光"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我制定摄影拍摄计划：\n\n**拍摄信息：**\n- 拍摄主题：{{shootingTheme}}\n- 拍摄类型：{{photographyType}}\n- 拍摄日期：{{shootingDate}}\n- 拍摄地点：{{location}}\n- 拍摄时长：{{duration}}小时\n\n# 摄影拍摄计划\n\n## 前期策划\n\n### 拍摄主题\n**主题：{{shootingTheme}}**\n- 风格定位：{{styleDirection}}\n- 情绪基调：{{moodTone}}\n- 参考案例：{{reference}}\n\n{{#eq photographyType \"人像摄影\"}}\n### 人像拍摄方案\n\n**模特信息：**\n- 姓名：{{modelName}}\n- 风格：{{modelStyle}}\n- 服装：{{outfit1}}, {{outfit2}}, {{outfit3}}\n\n**造型设计：**\n- 妆容：{{makeup}}\n- 发型：{{hairstyle}}\n- 配饰：{{accessories}}\n\n**拍摄角度：**\n- 正面：展现五官\n- 侧面：突出轮廓\n- 45度：最上镜角度\n- 仰拍/俯拍：特殊视角\n\n**姿势指导：**\n1. 站姿：{{standingPose}}\n2. 坐姿：{{sittingPose}}\n3. 躺姿：{{lyingPose}}\n{{/eq}}\n\n{{#eq photographyType \"风光摄影\"}}\n### 风光拍摄方案\n\n**地点勘景：**\n- 主拍摄点：{{mainSpot}}\n- 备用地点：{{backupSpot}}\n- 到达方式：{{transportation}}\n\n**天气选择：**\n- 理想天气：{{idealWeather}}\n- 备选方案：{{weatherBackup}}\n\n**拍摄时段：**\n- 黄金时刻：日出后1小时/日落前1小时\n- 蓝调时刻：日落后20-30分钟\n- 星空拍摄：{{starTime}}\n\n**构图要点：**\n- 前景：{{foreground}}\n- 中景：{{middleground}}\n- 背景：{{background}}\n- 三分法/引导线/框架构图\n{{/eq}}\n\n{{#eq photographyType \"产品摄影\"}}\n### 产品拍摄方案\n\n**产品信息：**\n- 产品名称：{{productName}}\n- 产品特点：{{productFeatures}}\n- 拍摄角度：正面/侧面/细节/场景\n\n**布光方案：**\n- 主光：{{keyLight}}\n- 辅助光：{{fillLight}}\n- 轮廓光：{{rimLight}}\n- 背景光：{{backgroundLight}}\n\n**拍摄背景：**\n- 纯色背景：白/黑/灰\n- 场景化：{{sceneSetting}}\n{{/eq}}\n\n## 器材清单\n\n### 相机设备\n- [ ] 相机机身：{{cameraBody}}\n- [ ] 镜头1：{{lens1}}\n- [ ] 镜头2：{{lens2}}\n- [ ] 备用电池 x {{batteryCount}}\n- [ ] 存储卡：{{storageCard}}\n\n### 灯光设备\n- [ ] 闪光灯 x {{flashCount}}\n- [ ] 柔光箱\n- [ ] 反光板（金/银/白）\n- [ ] LED补光灯\n\n### 辅助器材\n- [ ] 三脚架\n- [ ] 快门线/遥控器\n- [ ] 滤镜：{{filters}}\n- [ ] 清洁工具\n\n## 拍摄时间表\n\n**{{shootingDate}}**\n\n| 时间 | 内容 | 备注 |\n|------|------|------|\n| {{time1}} | {{activity1}} | {{note1}} |\n| {{time2}} | {{activity2}} | {{note2}} |\n| {{time3}} | {{activity3}} | {{note3}} |\n\n## 拍摄参数设置\n\n### 曝光设置\n- 光圈：{{aperture}}\n- 快门：{{shutterSpeed}}\n- ISO：{{iso}}\n- 曝光补偿：{{exposureComp}}\n\n### 对焦模式\n- 单次对焦(AF-S)：静态主体\n- 连续对焦(AF-C)：运动主体\n- 手动对焦(MF)：精确控制\n\n### 白平衡\n- 自动白平衡：一般场景\n- 自定义白平衡：{{customWB}}\n- RAW格式：后期可调\n\n## 拍摄清单\n\n### 必拍镜头\n- [ ] {{shot1}}\n- [ ] {{shot2}}\n- [ ] {{shot3}}\n- [ ] {{shot4}}\n- [ ] {{shot5}}\n\n### 创意镜头\n- [ ] {{creativeShot1}}\n- [ ] {{creativeShot2}}\n\n## 后期处理\n\n### 照片筛选\n- 初选：淘汰废片\n- 精选：{{selectCount}}张\n- 精修：{{retouchCount}}张\n\n### 调色方案\n**风格：{{colorGrading}}**\n\n- 色温：{{temperature}}\n- 色调：{{tint}}\n- 饱和度：{{saturation}}\n- 对比度：{{contrast}}\n\n### 修图步骤\n1. 裁剪构图\n2. 曝光调整\n3. 色彩校正\n4. 局部处理（磨皮/液化/锐化）\n5. 降噪处理\n6. 导出成品\n\n## 应急预案\n\n### 天气不佳\n- 室内备选方案：{{indoorPlan}}\n- 改期备选日：{{rescheduleDate}}\n\n### 设备故障\n- 备用相机/镜头\n- 附近器材租赁店联系方式\n\n## 交付标准\n\n**成片数量：**{{deliverableCount}}张\n**交付格式：**JPG ({{jpgQuality}}) + RAW\n**交付时间：**拍摄后{{deliveryDays}}天内\n**修改次数：**{{revisionRounds}}轮",
   "variables_schema": [
-    {"name": "shootingTheme", "label": "拍摄主题", "type": "string", "required": true},
-    {"name": "photographyType", "label": "拍摄类型", "type": "select", "required": true, "options": [
-      {"value": "人像摄影", "label": "人像摄影"},
-      {"value": "风光摄影", "label": "风光摄影"},
-      {"value": "产品摄影", "label": "产品摄影"},
-      {"value": "街拍", "label": "街拍"},
-      {"value": "活动摄影", "label": "活动摄影"}
-    ]},
-    {"name": "shootingDate", "label": "拍摄日期", "type": "string", "required": true},
-    {"name": "location", "label": "拍摄地点", "type": "string", "required": true},
-    {"name": "duration", "label": "拍摄时长（小时）", "type": "number", "required": false, "default": 4}
+    {
+      "name": "shootingTheme",
+      "label": "拍摄主题",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "photographyType",
+      "label": "拍摄类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "人像摄影",
+          "label": "人像摄影"
+        },
+        {
+          "value": "风光摄影",
+          "label": "风光摄影"
+        },
+        {
+          "value": "产品摄影",
+          "label": "产品摄影"
+        },
+        {
+          "value": "街拍",
+          "label": "街拍"
+        },
+        {
+          "value": "活动摄影",
+          "label": "活动摄影"
+        }
+      ]
+    },
+    {
+      "name": "shootingDate",
+      "label": "拍摄日期",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "location",
+      "label": "拍摄地点",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "duration",
+      "label": "拍摄时长（小时）",
+      "type": "number",
+      "required": false,
+      "default": 4
+    }
   ],
   "file_structure": {
     "root": "拍摄计划-{{shootingTheme}}",
     "files": [
-      {"path": "拍摄方案.docx", "type": "document"},
-      {"path": "拍摄清单.xlsx", "type": "spreadsheet"},
-      {"path": "器材清单.md", "type": "markdown"}
+      {
+        "path": "拍摄方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "拍摄清单.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "器材清单.md",
+        "type": "markdown"
+      }
     ]
   },
   "default_files": [],

@@ -4,33 +4,93 @@
   "display_name": "歌曲创作指南",
   "description": "完整的歌曲创作流程，包含歌词、旋律、编曲和制作",
   "icon": "🎵",
-  "category": "music",
+  "category": "creative-writing",
   "subcategory": "songwriting",
-  "tags": ["歌曲创作", "作词", "作曲", "编曲"],
+  "tags": [
+    "歌曲创作",
+    "作词",
+    "作曲",
+    "编曲"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我创作歌曲：\n\n**歌曲信息：**\n- 歌曲名称：{{songTitle}}\n- 音乐风格：{{musicGenre}}\n- 情感基调：{{emotionalTone}}\n- 目标听众：{{targetAudience}}\n\n# 歌曲创作指南\n\n## 歌词创作\n\n### 主题确定\n**主题：{{theme}}**\n\n### 歌词结构\n**前奏 (Intro)**\n{{intro}}\n\n**主歌A (Verse 1)**\n{{verse1}}\n\n**主歌B (Verse 2)**\n{{verse2}}\n\n**副歌 (Chorus)**\n{{chorus}}\n\n**桥段 (Bridge)**\n{{bridge}}\n\n**尾奏 (Outro)**\n{{outro}}\n\n## 旋律设计\n\n**调式：{{key}}**\n**节奏：{{tempo}} BPM**\n**拍号：{{timeSignature}}**\n\n## 编曲配置\n\n- 主旋律：{{mainMelody}}\n- 和声：{{harmony}}\n- 节奏：{{rhythm}}\n- 贝斯：{{bass}}\n\n## 制作流程\n\n1. Demo录制\n2. 正式录音\n3. 混音\n4. 母带处理",
   "variables_schema": [
-    {"name": "songTitle", "label": "歌曲名称", "type": "string", "required": true},
-    {"name": "musicGenre", "label": "音乐风格", "type": "select", "required": true, "options": [
-      {"value": "流行", "label": "流行"},
-      {"value": "摇滚", "label": "摇滚"},
-      {"value": "民谣", "label": "民谣"},
-      {"value": "嘻哈", "label": "嘻哈/说唱"},
-      {"value": "电子", "label": "电子音乐"}
-    ]},
-    {"name": "emotionalTone", "label": "情感基调", "type": "select", "required": false, "options": [
-      {"value": "快乐", "label": "快乐/欢快"},
-      {"value": "悲伤", "label": "悲伤/忧郁"},
-      {"value": "浪漫", "label": "浪漫/温柔"},
-      {"value": "激昂", "label": "激昂/励志"}
-    ]},
-    {"name": "targetAudience", "label": "目标听众", "type": "string", "required": false}
+    {
+      "name": "songTitle",
+      "label": "歌曲名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "musicGenre",
+      "label": "音乐风格",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "流行",
+          "label": "流行"
+        },
+        {
+          "value": "摇滚",
+          "label": "摇滚"
+        },
+        {
+          "value": "民谣",
+          "label": "民谣"
+        },
+        {
+          "value": "嘻哈",
+          "label": "嘻哈/说唱"
+        },
+        {
+          "value": "电子",
+          "label": "电子音乐"
+        }
+      ]
+    },
+    {
+      "name": "emotionalTone",
+      "label": "情感基调",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "快乐",
+          "label": "快乐/欢快"
+        },
+        {
+          "value": "悲伤",
+          "label": "悲伤/忧郁"
+        },
+        {
+          "value": "浪漫",
+          "label": "浪漫/温柔"
+        },
+        {
+          "value": "激昂",
+          "label": "激昂/励志"
+        }
+      ]
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标听众",
+      "type": "string",
+      "required": false
+    }
   ],
   "file_structure": {
     "root": "歌曲-{{songTitle}}",
     "files": [
-      {"path": "歌词.txt", "type": "document"},
-      {"path": "编曲笔记.md", "type": "markdown"}
+      {
+        "path": "歌词.txt",
+        "type": "document"
+      },
+      {
+        "path": "编曲笔记.md",
+        "type": "markdown"
+      }
     ]
   },
   "default_files": [],

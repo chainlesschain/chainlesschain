@@ -4,26 +4,66 @@
   "display_name": "照片后期处理流程",
   "description": "专业照片后期修图工作流，包含Lightroom/Photoshop处理步骤",
   "icon": "🖼️",
-  "category": "photography",
+  "category": "design",
   "subcategory": "post-production",
-  "tags": ["摄影后期", "修图", "调色", "Lightroom", "Photoshop"],
+  "tags": [
+    "摄影后期",
+    "修图",
+    "调色",
+    "Lightroom",
+    "Photoshop"
+  ],
   "project_type": "document",
   "prompt_template": "照片后期处理流程\n\n**项目信息：**\n- 拍摄主题：{{theme}}\n- 照片数量：{{photoCount}}张\n- 风格定位：{{style}}\n\n# 后期处理流程\n\n## 导入与筛选\n\n1. 导入Lightroom\n2. 快速浏览打星\n3. 精选{{selectCount}}张\n\n## 基础调整（Lightroom）\n\n### 曝光调整\n- 曝光：{{exposure}}\n- 高光：{{highlights}}\n- 阴影：{{shadows}}\n- 白色/黑色：{{whites}}/{{blacks}}\n\n### 色彩调整\n- 色温：{{temperature}}\n- 色调：{{tint}}\n- 自然饱和度：{{vibrance}}\n- 饱和度：{{saturation}}\n\n### HSL调整\n{{hslAdjustments}}\n\n## 细节处理（Photoshop）\n\n### 人像修图\n- 磨皮液化：{{skinRetouching}}\n- 五官调整：{{facialAdjustment}}\n\n### 风光修图\n- 天空替换：{{skyReplacement}}\n- 清晰度增强：{{clarity}}\n\n## 预设应用\n\n推荐预设：{{presets}}\n\n## 批量处理\n\n应用设置到相似照片",
   "variables_schema": [
-    {"name": "theme", "label": "拍摄主题", "type": "string", "required": false},
-    {"name": "photoCount", "label": "照片总数", "type": "number", "required": false},
-    {"name": "style", "label": "风格定位", "type": "select", "required": false, "options": [
-      {"value": "清新", "label": "清新明亮"},
-      {"value": "复古", "label": "复古胶片"},
-      {"value": "暗调", "label": "暗调情绪"},
-      {"value": "日系", "label": "日系小清新"}
-    ]}
+    {
+      "name": "theme",
+      "label": "拍摄主题",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "photoCount",
+      "label": "照片总数",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "style",
+      "label": "风格定位",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "清新",
+          "label": "清新明亮"
+        },
+        {
+          "value": "复古",
+          "label": "复古胶片"
+        },
+        {
+          "value": "暗调",
+          "label": "暗调情绪"
+        },
+        {
+          "value": "日系",
+          "label": "日系小清新"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "后期处理",
     "files": [
-      {"path": "处理流程.md", "type": "markdown"},
-      {"path": "预设/", "type": "folder"}
+      {
+        "path": "处理流程.md",
+        "type": "markdown"
+      },
+      {
+        "path": "预设/",
+        "type": "folder"
+      }
     ]
   },
   "default_files": [],

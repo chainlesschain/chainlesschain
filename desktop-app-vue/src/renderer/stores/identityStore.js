@@ -103,6 +103,10 @@ export const useIdentityStore = defineStore('identity', () => {
 
       if (result.success && result.context) {
         activeContext.value = result.context;
+      } else if (result.error && result.error.includes('未初始化')) {
+        // 身份上下文管理器未初始化(用户尚未创建DID),这是正常情况
+        console.log('身份上下文管理器未初始化,跳过身份上下文加载');
+        return { success: true, skipped: true };
       } else {
         // 如果没有激活的上下文,创建并激活个人上下文
         await ensurePersonalContext(userDID);
@@ -111,7 +115,8 @@ export const useIdentityStore = defineStore('identity', () => {
       return { success: true };
     } catch (error) {
       console.error('初始化身份上下文失败:', error);
-      return { success: false, error: error.message };
+      // 不阻止应用启动,只记录错误
+      return { success: true, error: error.message };
     } finally {
       loading.value = false;
     }
@@ -128,11 +133,15 @@ export const useIdentityStore = defineStore('identity', () => {
 
       if (result.success) {
         contexts.value = result.contexts || [];
+      } else if (result.error && result.error.includes('未初始化')) {
+        // 管理器未初始化,返回空列表
+        contexts.value = [];
       }
 
       return result;
     } catch (error) {
       console.error('加载上下文列表失败:', error);
+      contexts.value = [];
       return { success: false, error: error.message };
     }
   }
@@ -155,12 +164,16 @@ export const useIdentityStore = defineStore('identity', () => {
         if (!activeContext.value) {
           await switchContext('personal');
         }
+      } else if (result.error && result.error.includes('未初始化')) {
+        // 管理器未初始化,跳过
+        console.log('身份上下文管理器未初始化,跳过创建个人上下文');
+        return { success: true, skipped: true };
       }
 
       return result;
     } catch (error) {
       console.error('创建个人上下文失败:', error);
-      return { success: false, error: error.message };
+      return { success: true, error: error.message };
     }
   }
 

@@ -4,27 +4,74 @@
   "display_name": "投资组合计划",
   "description": "构建个人投资组合，包含资产配置、风险评估和收益目标",
   "icon": "📊",
-  "category": "finance",
+  "category": "productivity",
   "subcategory": "investment",
-  "tags": ["投资", "理财", "资产配置", "基金", "股票"],
+  "tags": [
+    "投资",
+    "理财",
+    "资产配置",
+    "基金",
+    "股票"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我制定投资组合计划：\n\n**投资信息：**\n- 可投资金额：{{investmentAmount}}元\n- 风险偏好：{{riskPreference}}\n- 投资期限：{{investmentPeriod}}\n- 预期收益：{{expectedReturn}}%\n\n# 投资组合计划\n\n## 风险评估\n\n**风险承受能力：{{riskPreference}}**\n\n{{#eq riskPreference \"保守型\"}}\n### 保守型投资者\n- 年龄：通常>50岁或临近退休\n- 特点：不能承受本金损失\n- 目标收益：3-5%\n- 配置建议：\n  - 货币基金/银行理财：60%\n  - 债券基金：30%\n  - 权益类资产：10%\n{{/eq}}\n\n{{#eq riskPreference \"稳健型\"}}\n### 稳健型投资者\n- 年龄：30-50岁\n- 特点：可承受小幅波动\n- 目标收益：5-8%\n- 配置建议：\n  - 固收类：50%\n  - 混合基金：30%\n  - 股票基金：20%\n{{/eq}}\n\n{{#eq riskPreference \"进取型\"}}\n### 进取型投资者\n- 年龄：通常<35岁\n- 特点：追求高收益，能承受较大波动\n- 目标收益：10-15%+\n- 配置建议：\n  - 股票/股票基金：60%\n  - 混合基金：25%\n  - 固收类：15%\n{{/eq}}\n\n## 资产配置\n\n**总投资：{{investmentAmount}}元**\n\n### 资产分布\n\n| 资产类别 | 金额 | 占比 | 预期收益 |\n|----------|------|------|----------|\n| 货币基金 | {{cashAmount}} | {{cashPercent}}% | 2-3% |\n| 债券基金 | {{bondAmount}} | {{bondPercent}}% | 4-6% |\n| 混合基金 | {{mixedAmount}} | {{mixedPercent}}% | 6-10% |\n| 股票基金 | {{stockAmount}} | {{stockPercent}}% | 10-15% |\n| 其他 | {{otherAmount}} | {{otherPercent}}% | - |\n\n## 具体标的推荐\n\n### 货币基金\n- {{moneyFund1}}\n- {{moneyFund2}}\n\n### 债券基金\n- {{bondFund1}}\n- {{bondFund2}}\n\n### 股票基金\n- {{stockFund1}}\n- {{stockFund2}}\n\n## 定投计划\n\n**每月定投：{{monthlyInvest}}元**\n- 定投日：每月{{investDay}}日\n- 定投基金：{{targetFunds}}\n- 止盈点：{{profitTarget}}%\n\n## 再平衡策略\n\n**触发条件：**\n- 单一资产偏离目标配置>10%\n- 或每季度/半年度定期再平衡\n\n## 风险控制\n\n1. 止损线：单只基金亏损>{{stopLoss}}%考虑止损\n2. 分散投资：不超过{{maxFunds}}只基金\n3. 不加杠杆：不借钱投资\n\n## 定期复盘\n\n**月度复盘：**\n- 收益情况\n- 资产配置变化\n\n**季度复盘：**\n- 是否需要再平衡\n- 策略调整",
   "variables_schema": [
-    {"name": "investmentAmount", "label": "可投资金额（元）", "type": "number", "required": true},
-    {"name": "riskPreference", "label": "风险偏好", "type": "select", "required": true, "options": [
-      {"value": "保守型", "label": "保守型（不能亏损）"},
-      {"value": "稳健型", "label": "稳健型（小幅波动可接受）"},
-      {"value": "进取型", "label": "进取型（追求高收益）"}
-    ]},
-    {"name": "investmentPeriod", "label": "投资期限", "type": "string", "required": false, "default": "3-5年"},
-    {"name": "expectedReturn", "label": "预期年化收益率（%）", "type": "number", "required": false, "default": 8}
+    {
+      "name": "investmentAmount",
+      "label": "可投资金额（元）",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "riskPreference",
+      "label": "风险偏好",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "保守型",
+          "label": "保守型（不能亏损）"
+        },
+        {
+          "value": "稳健型",
+          "label": "稳健型（小幅波动可接受）"
+        },
+        {
+          "value": "进取型",
+          "label": "进取型（追求高收益）"
+        }
+      ]
+    },
+    {
+      "name": "investmentPeriod",
+      "label": "投资期限",
+      "type": "string",
+      "required": false,
+      "default": "3-5年"
+    },
+    {
+      "name": "expectedReturn",
+      "label": "预期年化收益率（%）",
+      "type": "number",
+      "required": false,
+      "default": 8
+    }
   ],
   "file_structure": {
     "root": "投资组合",
     "files": [
-      {"path": "投资计划.docx", "type": "document"},
-      {"path": "持仓明细.xlsx", "type": "spreadsheet"},
-      {"path": "收益追踪.xlsx", "type": "spreadsheet"}
+      {
+        "path": "投资计划.docx",
+        "type": "document"
+      },
+      {
+        "path": "持仓明细.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "收益追踪.xlsx",
+        "type": "spreadsheet"
+      }
     ]
   },
   "default_files": [],
