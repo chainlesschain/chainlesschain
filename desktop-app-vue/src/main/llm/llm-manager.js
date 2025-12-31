@@ -163,7 +163,7 @@ class LLMManager extends EventEmitter {
 
       await this.initialize();
 
-      this.emit('provider-changed', provider);
+      this.emit('provider-changed', this.provider);
 
       return true;
     } catch (error) {
