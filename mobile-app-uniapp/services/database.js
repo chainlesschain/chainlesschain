@@ -619,6 +619,10 @@ class DatabaseService {
       this.h5Data.knowledge_items.push(newItem)
       this.saveH5Data()
       console.log('[Database] 添加知识条目:', newItem.id)
+
+      // 自动同步到后端（异步，不阻塞）
+      this._syncKnowledgeToBackend(newItem)
+
       return newItem
     }
 
@@ -641,6 +645,9 @@ class DatabaseService {
     ]
 
     await this.executeSql(sql, params)
+
+    // 自动同步到后端（异步，不阻塞）
+    this._syncKnowledgeToBackend(newItem)
 
     return newItem
   }
@@ -721,6 +728,10 @@ class DatabaseService {
           sync_status: 'pending'
         })
         this.saveH5Data()
+
+        // 自动同步到后端（异步，不阻塞）
+        const updatedItem = this.h5Data.knowledge_items[index]
+        this._syncKnowledgeToBackend(updatedItem)
       }
       return { id, ...updates, updated_at: now }
     }
@@ -758,6 +769,12 @@ class DatabaseService {
 
     await this.executeSql(sql, params)
 
+    // 获取更新后的完整数据并同步到后端
+    const updatedItem = await this.getKnowledgeItem(id)
+    if (updatedItem) {
+      this._syncKnowledgeToBackend(updatedItem)
+    }
+
     return { id, ...updates, updated_at: now }
   }
 
@@ -765,6 +782,9 @@ class DatabaseService {
    * 删除知识库项
    */
   async deleteKnowledgeItem(id) {
+    // 自动从后端删除（异步，不阻塞）
+    this._deleteKnowledgeFromBackend(id)
+
     if (this.isH5) {
       // H5模式：从内存数组删除
       this.ensureH5Data('knowledge_items')
@@ -808,6 +828,164 @@ class DatabaseService {
     const sql = 'UPDATE knowledge_items SET is_favorite = ?, updated_at = ? WHERE id = ?'
     await this.executeSql(sql, [is_favorite, this.now(), id])
     return { id, is_favorite }
+  }
+
+  // ==================== 知识库后端同步 ====================
+
+  /**
+   * 同步知识到后端向量数据库（私有方法，异步调用）
+   * @param {Object} knowledge - 知识条目
+   * @private
+   */
+  _syncKnowledgeToBackend(knowledge) {
+    // 检查是否启用自动同步
+    const autoSync = uni.getStorageSync('knowledge_auto_sync')
+    if (autoSync === false) {
+      console.log('[Database] 自动同步已禁用，跳过')
+      return
+    }
+
+    // 异步同步，不阻塞主流程
+    import('@/services/knowledge-rag').then(module => {
+      const knowledgeRAG = module.default
+
+      knowledgeRAG.syncKnowledgeToBackend(knowledge)
+        .then(success => {
+          if (success) {
+            console.log(`[Database] 知识 ${knowledge.id} 已同步到后端`)
+            // 可选：更新sync_status为synced
+            this._updateSyncStatus(knowledge.id, 'synced').catch(err => {
+              console.error('[Database] 更新同步状态失败:', err)
+            })
+          } else {
+            console.warn(`[Database] 知识 ${knowledge.id} 同步失败`)
+          }
+        })
+        .catch(error => {
+          console.error(`[Database] 知识 ${knowledge.id} 同步异常:`, error)
+        })
+    }).catch(error => {
+      console.error('[Database] 导入knowledge-rag模块失败:', error)
+    })
+  }
+
+  /**
+   * 从后端删除知识向量（私有方法，异步调用）
+   * @param {string} knowledgeId - 知识ID
+   * @private
+   */
+  _deleteKnowledgeFromBackend(knowledgeId) {
+    // 检查是否启用自动同步
+    const autoSync = uni.getStorageSync('knowledge_auto_sync')
+    if (autoSync === false) {
+      console.log('[Database] 自动同步已禁用，跳过删除')
+      return
+    }
+
+    // 异步删除，不阻塞主流程
+    import('@/services/knowledge-rag').then(module => {
+      const knowledgeRAG = module.default
+
+      knowledgeRAG.deleteKnowledgeFromBackend(knowledgeId)
+        .then(success => {
+          if (success) {
+            console.log(`[Database] 知识 ${knowledgeId} 已从后端删除`)
+          } else {
+            console.warn(`[Database] 知识 ${knowledgeId} 从后端删除失败`)
+          }
+        })
+        .catch(error => {
+          console.error(`[Database] 知识 ${knowledgeId} 从后端删除异常:`, error)
+        })
+    }).catch(error => {
+      console.error('[Database] 导入knowledge-rag模块失败:', error)
+    })
+  }
+
+  /**
+   * 更新知识的同步状态（私有方法）
+   * @param {string} id - 知识ID
+   * @param {string} status - 同步状态：'pending' | 'synced' | 'failed'
+   * @private
+   */
+  async _updateSyncStatus(id, status) {
+    if (this.isH5) {
+      this.ensureH5Data('knowledge_items')
+      const index = this.h5Data.knowledge_items.findIndex(item => item.id === id)
+      if (index !== -1) {
+        this.h5Data.knowledge_items[index].sync_status = status
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const sql = 'UPDATE knowledge_items SET sync_status = ? WHERE id = ?'
+    await this.executeSql(sql, [status, id])
+  }
+
+  /**
+   * 手动同步所有待同步的知识到后端
+   * @returns {Promise<Object>} 同步结果统计
+   */
+  async syncPendingKnowledgeToBackend() {
+    try {
+      // 获取所有待同步的知识
+      let pendingItems = []
+
+      if (this.isH5) {
+        this.ensureH5Data('knowledge_items')
+        pendingItems = this.h5Data.knowledge_items.filter(item =>
+          item.sync_status === 'pending' || item.sync_status === 'failed'
+        )
+      } else {
+        const sql = 'SELECT * FROM knowledge_items WHERE sync_status IN (?, ?)'
+        pendingItems = await this.executeSql(sql, ['pending', 'failed'])
+      }
+
+      if (pendingItems.length === 0) {
+        console.log('[Database] 没有待同步的知识')
+        return { total: 0, success: 0, failed: 0 }
+      }
+
+      console.log(`[Database] 开始同步 ${pendingItems.length} 个知识到后端`)
+
+      // 导入knowledge-rag服务
+      const knowledgeRAGModule = await import('@/services/knowledge-rag')
+      const knowledgeRAG = knowledgeRAGModule.default
+
+      let successCount = 0
+      let failedCount = 0
+
+      // 批量同步
+      for (const item of pendingItems) {
+        try {
+          const success = await knowledgeRAG.syncKnowledgeToBackend(item)
+          if (success) {
+            successCount++
+            await this._updateSyncStatus(item.id, 'synced')
+          } else {
+            failedCount++
+            await this._updateSyncStatus(item.id, 'failed')
+          }
+        } catch (error) {
+          console.error(`[Database] 同步知识 ${item.id} 失败:`, error)
+          failedCount++
+          await this._updateSyncStatus(item.id, 'failed')
+        }
+      }
+
+      const result = {
+        total: pendingItems.length,
+        success: successCount,
+        failed: failedCount
+      }
+
+      console.log('[Database] 同步完成:', result)
+      return result
+    } catch (error) {
+      console.error('[Database] 批量同步失败:', error)
+      throw error
+    }
   }
 
   // ==================== 标签管理 ====================

@@ -6,11 +6,13 @@
  * - 多轮对话上下文
  * - 对话历史存储
  * - 会话导出/导入
+ * - RAG知识库增强（可选）
  */
 
 import database from './database'
 import { llm } from './llm'
 import didService from './did'
+import knowledgeRAG from './knowledge-rag'
 
 class AIConversationService {
   constructor() {
@@ -121,26 +123,70 @@ class AIConversationService {
         content: m.content
       }))
 
-      // 调用LLM
+      // === RAG增强：检索相关知识 ===
       const {
         onChunk = null,
-        stream = false
+        stream = false,
+        useKnowledgeBase = true, // 是否使用知识库增强
+        ragOptions = {} // RAG检索选项
       } = options
 
+      let ragContext = null
+      let ragSources = []
+      let enhancedMessage = message
+
+      if (useKnowledgeBase) {
+        try {
+          // 检索相关知识
+          const relevantKnowledge = await knowledgeRAG.retrieve(message, {
+            limit: 3,
+            includeContent: true,
+            ...ragOptions
+          })
+
+          if (relevantKnowledge && relevantKnowledge.length > 0) {
+            console.log(`[AI对话] 检索到 ${relevantKnowledge.length} 个相关知识`)
+
+            // 构建RAG上下文
+            ragContext = '\n\n【知识库参考】\n'
+            for (const item of relevantKnowledge) {
+              ragContext += `\n## ${item.title}\n${item.content.substring(0, 300)}...\n`
+              ragContext += `(相关度: ${(item.score * 100).toFixed(1)}%, 来源: ${item.source})\n`
+
+              ragSources.push({
+                id: item.id,
+                title: item.title,
+                score: item.score,
+                source: item.source
+              })
+            }
+
+            // 将RAG上下文添加到消息中
+            enhancedMessage = `${message}${ragContext}\n\n请基于以上知识库内容回答用户的问题。如果知识库中没有相关信息，请根据你的知识回答。`
+          } else {
+            console.log('[AI对话] 未检索到相关知识，使用普通对话模式')
+          }
+        } catch (error) {
+          console.error('[AI对话] RAG检索失败，降级到普通对话:', error)
+          // RAG失败不影响对话，继续使用原始消息
+        }
+      }
+
+      // 调用LLM
       let aiResponse
       if (stream && onChunk) {
         // 流式响应（如果支持）
-        aiResponse = await llm.queryStream(message, context, onChunk, {
+        aiResponse = await llm.queryStream(enhancedMessage, context, onChunk, {
           temperature: conversation.temperature
         })
       } else {
         // 普通响应
-        aiResponse = await llm.query(message, context, {
+        aiResponse = await llm.query(enhancedMessage, context, {
           temperature: conversation.temperature
         })
       }
 
-      // 保存AI回复
+      // 保存AI回复（包含RAG来源信息）
       const assistantMessage = {
         id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         conversationId,
@@ -148,6 +194,8 @@ class AIConversationService {
         content: aiResponse.content,
         model: aiResponse.model,
         tokens: aiResponse.tokens,
+        ragSources: ragSources.length > 0 ? ragSources : undefined, // RAG来源
+        usedKnowledgeBase: ragSources.length > 0, // 是否使用了知识库
         createdAt: new Date().toISOString()
       }
       await database.saveAIMessage(assistantMessage)
@@ -404,6 +452,129 @@ class AIConversationService {
         totalMessages: 0,
         averageMessagesPerConversation: 0
       }
+    }
+  }
+}
+
+// 导出单例
+  /**
+   * 发送消息（流式版本）
+   * @param {string} conversationId - 对话ID
+   * @param {string} message - 用户消息
+   * @param {Function} onChunk - 流式回调函数
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>}
+   */
+  async sendMessageStream(conversationId, message, onChunk, options = {}) {
+    try {
+      const conversation = await database.getAIConversation(conversationId)
+      if (!conversation) {
+        throw new Error('对话不存在')
+      }
+
+      // 保存用户消息
+      const userMessage = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        conversationId,
+        role: 'user',
+        content: message,
+        createdAt: new Date().toISOString()
+      }
+      await database.saveAIMessage(userMessage)
+
+      // 获取历史上下文
+      const history = await this.getConversationHistory(conversationId, 10)
+      const messages = history.map(m => ({ role: m.role, content: m.content }))
+
+      // 准备AI消息占位符
+      const assistantMessage = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        conversationId,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toISOString()
+      }
+
+      // 动态引入 ai-backend（避免循环依赖）
+      const aiBackendModule = await import('./ai-backend')
+      const aiBackend = aiBackendModule.default
+
+      // 调用流式API
+      let fullContent = ''
+      await aiBackend.chatStream(messages, (data) => {
+        if (data.type === 'chunk') {
+          fullContent += data.content
+          assistantMessage.content = fullContent
+          onChunk(data.content)  // 回调给UI更新
+        } else if (data.type === 'complete') {
+          // 保存完整消息
+          assistantMessage.tokens = data.usage?.total_tokens || 0
+          assistantMessage.model = conversation.model
+          database.saveAIMessage(assistantMessage)
+          database.updateAIConversation(conversationId, {
+            messageCount: conversation.messageCount + 2,
+            lastMessageAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          })
+        }
+      }, {
+        temperature: conversation.temperature,
+        model: conversation.model
+      })
+
+      // 重新加载对话列表
+      await this.loadConversations()
+
+      return { userMessage, assistantMessage }
+    } catch (error) {
+      console.error('流式发送消息失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * RAG增强的消息发送
+   * @param {string} conversationId - 对话ID
+   * @param {string} message - 用户消息
+   * @param {Function} onChunk - 流式回调函数
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>}
+   */
+  async sendMessageWithRAG(conversationId, message, onChunk, options = {}) {
+    try {
+      // 动态引入 ai-backend
+      const aiBackendModule = await import('./ai-backend')
+      const aiBackend = aiBackendModule.default
+
+      // 1. 检索知识库
+      let ragResult
+      try {
+        ragResult = await aiBackend.ragQuery(message, { topK: 3, minScore: 0.3 })
+      } catch (ragError) {
+        console.warn('RAG查询失败，降级到普通发送:', ragError)
+        return this.sendMessageStream(conversationId, message, onChunk, options)
+      }
+
+      // 2. 构建增强提示词
+      let enhancedMessage = message
+      if (ragResult.results && ragResult.results.length > 0) {
+        const context = ragResult.results.map((item, index) =>
+          `[知识库片段${index + 1}]\n${item.text.substring(0, 200)}`
+        ).join('\n\n')
+
+        enhancedMessage = `参考以下知识库内容回答问题：\n\n${context}\n\n用户问题：${message}`
+
+        console.log('RAG增强成功，检索到', ragResult.results.length, '条相关知识')
+      } else {
+        console.log('RAG未检索到相关知识，使用普通发送')
+      }
+
+      // 3. 发送增强消息
+      return this.sendMessageStream(conversationId, enhancedMessage, onChunk, options)
+    } catch (error) {
+      console.error('RAG增强发送失败，降级到普通发送:', error)
+      // 降级到普通发送
+      return this.sendMessageStream(conversationId, message, onChunk, options)
     }
   }
 }

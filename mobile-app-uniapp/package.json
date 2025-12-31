@@ -18,6 +18,8 @@
     "@dcloudio/uni-mp-weixin": "3.0.0-4080420251103001",
     "bs58": "^5.0.0",
     "crypto-js": "^4.2.0",
+    "highlight.js": "^11.11.1",
+    "mp-html": "^2.5.2",
     "pinia": "^2.1.7",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",

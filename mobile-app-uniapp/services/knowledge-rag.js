@@ -7,16 +7,117 @@
  * - 为AI对话提供上下文
  * - 语义搜索和关键词匹配
  * - 知识图谱遍历
+ *
+ * 架构：
+ * - 优先使用后端AI服务的向量检索（Qdrant + BGE嵌入模型）
+ * - 降级到本地关键词检索（离线模式）
  */
 
 import database from './database'
 import { llm } from './llm'
 import { aiService } from './ai'
 
+// 后端AI服务配置
+const AI_SERVICE_BASE_URL = process.env.VUE_APP_AI_SERVICE_URL || 'http://localhost:8001'
+
 class KnowledgeRAGService {
   constructor() {
     this.indexCache = null // 知识索引缓存
     this.lastIndexUpdate = null
+    this.backendAvailable = false // 后端服务可用性
+    this.lastBackendCheck = null // 最后检查时间
+    this.checkInterval = 60000 // 检查间隔（1分钟）
+
+    // 启动时检查后端
+    this._checkBackendAvailability()
+  }
+
+  /**
+   * 检查后端AI服务是否可用
+   * @private
+   */
+  async _checkBackendAvailability() {
+    // 避免频繁检查
+    if (this.lastBackendCheck && Date.now() - this.lastBackendCheck < this.checkInterval) {
+      return this.backendAvailable
+    }
+
+    try {
+      const response = await uni.request({
+        url: `${AI_SERVICE_BASE_URL}/health`,
+        method: 'GET',
+        timeout: 3000
+      })
+
+      this.backendAvailable = response.statusCode === 200 && response.data?.engines?.rag === true
+      this.lastBackendCheck = Date.now()
+
+      console.log('[KnowledgeRAG] 后端服务状态:', this.backendAvailable ? '可用' : '不可用')
+      return this.backendAvailable
+    } catch (error) {
+      console.warn('[KnowledgeRAG] 后端服务不可用，使用本地检索:', error.message)
+      this.backendAvailable = false
+      this.lastBackendCheck = Date.now()
+      return false
+    }
+  }
+
+  /**
+   * 向后端同步知识条目（用于向量索引）
+   * @param {Object} knowledge - 知识条目
+   */
+  async syncKnowledgeToBackend(knowledge) {
+    try {
+      const available = await this._checkBackendAvailability()
+      if (!available) {
+        console.log('[KnowledgeRAG] 后端不可用，跳过同步')
+        return false
+      }
+
+      // 调用后端API添加到向量数据库
+      const response = await uni.request({
+        url: `${AI_SERVICE_BASE_URL}/api/rag/index/update-file`,
+        method: 'POST',
+        data: {
+          project_id: 'mobile_knowledge', // 移动端知识库统一project_id
+          file_path: knowledge.id,
+          content: `${knowledge.title}\n\n${knowledge.content}`
+        },
+        timeout: 10000
+      })
+
+      if (response.statusCode === 200) {
+        console.log('[KnowledgeRAG] 知识已同步到后端向量数据库:', knowledge.id)
+        return true
+      } else {
+        console.error('[KnowledgeRAG] 同步失败:', response.data)
+        return false
+      }
+    } catch (error) {
+      console.error('[KnowledgeRAG] 同步到后端失败:', error)
+      return false
+    }
+  }
+
+  /**
+   * 从后端删除知识向量
+   * @param {string} knowledgeId - 知识ID
+   */
+  async deleteKnowledgeFromBackend(knowledgeId) {
+    try {
+      const available = await this._checkBackendAvailability()
+      if (!available) {
+        return false
+      }
+
+      // 注意：当前后端API设计是删除整个project，这里我们暂时不调用
+      // TODO: 后端需要提供删除单个文档的API
+      console.log('[KnowledgeRAG] 跳过后端删除（需要单文档删除API）')
+      return false
+    } catch (error) {
+      console.error('[KnowledgeRAG] 从后端删除失败:', error)
+      return false
+    }
   }
 
   /**
@@ -31,7 +132,125 @@ class KnowledgeRAGService {
       minScore = 0.3, // 最低相关性分数 (0-1)
       includeContent = true,
       includeTags = true,
-      searchMode = 'hybrid' // 'keyword', 'semantic', 'hybrid'
+      searchMode = 'hybrid', // 'keyword', 'semantic', 'hybrid'
+      useBackend = true, // 是否尝试使用后端
+      useReranker = true // 是否使用重排序（仅后端）
+    } = options
+
+    try {
+      // 优先尝试后端向量检索
+      if (useBackend) {
+        const available = await this._checkBackendAvailability()
+        if (available) {
+          console.log('[KnowledgeRAG] 使用后端向量检索')
+          return await this._retrieveFromBackend(query, {
+            limit,
+            minScore,
+            includeContent,
+            includeTags,
+            useReranker
+          })
+        }
+      }
+
+      // 降级到本地关键词检索
+      console.log('[KnowledgeRAG] 使用本地关键词检索')
+      return await this._retrieveLocally(query, {
+        limit,
+        minScore,
+        includeContent,
+        includeTags,
+        searchMode
+      })
+    } catch (error) {
+      console.error('[KnowledgeRAG] 检索失败:', error)
+      return []
+    }
+  }
+
+  /**
+   * 从后端向量数据库检索（Qdrant + BGE嵌入）
+   * @private
+   */
+  async _retrieveFromBackend(query, options) {
+    const {
+      limit = 5,
+      minScore = 0.3,
+      includeContent = true,
+      includeTags = true,
+      useReranker = true
+    } = options
+
+    try {
+      // 调用后端增强RAG查询API
+      const response = await uni.request({
+        url: `${AI_SERVICE_BASE_URL}/api/rag/query/enhanced`,
+        method: 'POST',
+        data: {
+          project_id: 'mobile_knowledge',
+          query,
+          top_k: limit,
+          use_reranker: useReranker,
+          sources: ['project']
+        },
+        timeout: 10000
+      })
+
+      if (response.statusCode !== 200) {
+        throw new Error('后端检索失败: ' + response.statusCode)
+      }
+
+      const backendResults = response.data?.context || []
+
+      // 将后端结果格式转换为统一格式
+      const results = []
+      for (const item of backendResults) {
+        // 过滤低分结果
+        if (item.score < minScore) {
+          continue
+        }
+
+        // 从后端payload提取知识ID
+        const knowledgeId = item.file_path || item.id
+
+        // 从本地数据库获取完整知识信息
+        let knowledge = null
+        if (knowledgeId) {
+          knowledge = await database.getKnowledge(knowledgeId)
+        }
+
+        results.push({
+          id: knowledgeId,
+          title: item.metadata?.title || knowledge?.title || '未命名',
+          type: knowledge?.type || 'note',
+          score: item.score,
+          content: includeContent ? (item.text || knowledge?.content || '') : undefined,
+          tags: includeTags && knowledge?.tags ? knowledge.tags : undefined,
+          createdAt: knowledge?.createdAt,
+          source: 'backend_vector', // 标记来源
+          metadata: item.metadata
+        })
+      }
+
+      console.log(`[KnowledgeRAG] 后端检索返回 ${results.length} 个结果`)
+      return results
+    } catch (error) {
+      console.error('[KnowledgeRAG] 后端检索失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 本地关键词检索（降级方案）
+   * @private
+   */
+  async _retrieveLocally(query, options) {
+    const {
+      limit = 5,
+      minScore = 0.3,
+      includeContent = true,
+      includeTags = true,
+      searchMode = 'hybrid'
     } = options
 
     try {
@@ -78,7 +297,8 @@ class KnowledgeRAGService {
           title: item.title,
           type: item.type,
           score,
-          createdAt: item.createdAt
+          createdAt: item.createdAt,
+          source: 'local_keyword' // 标记来源
         }
 
         if (includeContent) {
@@ -92,9 +312,10 @@ class KnowledgeRAGService {
         return result
       })
 
+      console.log(`[KnowledgeRAG] 本地检索返回 ${results.length} 个结果`)
       return results
     } catch (error) {
-      console.error('知识检索失败:', error)
+      console.error('[KnowledgeRAG] 本地检索失败:', error)
       return []
     }
   }
@@ -531,7 +752,9 @@ ${context}
         totalItems: allKnowledge.length,
         indexedItems: this.indexCache ? Object.keys(this.indexCache.items).length : 0,
         lastIndexUpdate: this.lastIndexUpdate,
-        indexStatus: this.indexCache ? 'ready' : 'not_built'
+        indexStatus: this.indexCache ? 'ready' : 'not_built',
+        backendAvailable: this.backendAvailable,
+        backendUrl: AI_SERVICE_BASE_URL
       }
     } catch (error) {
       console.error('获取统计失败:', error)
@@ -539,9 +762,48 @@ ${context}
         totalItems: 0,
         indexedItems: 0,
         lastIndexUpdate: null,
-        indexStatus: 'error'
+        indexStatus: 'error',
+        backendAvailable: false,
+        backendUrl: AI_SERVICE_BASE_URL
       }
     }
+  }
+
+  /**
+   * 获取RAG服务状态
+   * @returns {Promise<Object>} 服务状态信息
+   */
+  async getServiceStatus() {
+    const available = await this._checkBackendAvailability()
+
+    return {
+      backend: {
+        available,
+        url: AI_SERVICE_BASE_URL,
+        lastCheck: this.lastBackendCheck,
+        checkInterval: this.checkInterval
+      },
+      local: {
+        indexCached: this.indexCache !== null,
+        lastIndexUpdate: this.lastIndexUpdate
+      },
+      mode: available ? 'backend_vector' : 'local_keyword',
+      capabilities: {
+        vectorSearch: available,
+        reranking: available,
+        hybridSearch: true,
+        keywordSearch: true
+      }
+    }
+  }
+
+  /**
+   * 强制刷新后端状态
+   * @returns {Promise<boolean>} 后端是否可用
+   */
+  async refreshBackendStatus() {
+    this.lastBackendCheck = null // 清除缓存
+    return await this._checkBackendAvailability()
   }
 }
 
