@@ -3146,6 +3146,111 @@ class ChainlessChainApp {
     });
 
     // ============================
+    // 企业版：身份上下文 IPC Handler
+    // ============================
+
+    // 获取所有身份上下文
+    ipcMain.handle('identity:get-all-contexts', async (_event, { userDID }) => {
+      try {
+        if (!this.identityContextManager) {
+          return { success: false, error: '身份上下文管理器未初始化', contexts: [] };
+        }
+
+        const contexts = this.identityContextManager.getAllContexts(userDID);
+        return { success: true, contexts };
+      } catch (error) {
+        console.error('[Main] 获取身份上下文列表失败:', error);
+        return { success: false, error: error.message, contexts: [] };
+      }
+    });
+
+    // 获取当前激活的上下文
+    ipcMain.handle('identity:get-active-context', async (_event, { userDID }) => {
+      try {
+        if (!this.identityContextManager) {
+          return { success: false, error: '身份上下文管理器未初始化' };
+        }
+
+        const context = this.identityContextManager.getActiveContext(userDID);
+        return { success: true, context };
+      } catch (error) {
+        console.error('[Main] 获取当前上下文失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 创建个人上下文
+    ipcMain.handle('identity:create-personal-context', async (_event, { userDID, displayName }) => {
+      try {
+        if (!this.identityContextManager) {
+          return { success: false, error: '身份上下文管理器未初始化' };
+        }
+
+        return await this.identityContextManager.createPersonalContext(userDID, displayName);
+      } catch (error) {
+        console.error('[Main] 创建个人上下文失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 创建组织上下文
+    ipcMain.handle('identity:create-organization-context', async (_event, { userDID, orgId, orgDID, displayName, avatar }) => {
+      try {
+        if (!this.identityContextManager) {
+          return { success: false, error: '身份上下文管理器未初始化' };
+        }
+
+        return await this.identityContextManager.createOrganizationContext(userDID, orgId, orgDID, displayName, avatar);
+      } catch (error) {
+        console.error('[Main] 创建组织上下文失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 切换身份上下文
+    ipcMain.handle('identity:switch-context', async (_event, { userDID, targetContextId }) => {
+      try {
+        if (!this.identityContextManager) {
+          return { success: false, error: '身份上下文管理器未初始化' };
+        }
+
+        return await this.identityContextManager.switchContext(userDID, targetContextId);
+      } catch (error) {
+        console.error('[Main] 切换身份上下文失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 删除组织上下文
+    ipcMain.handle('identity:delete-organization-context', async (_event, { userDID, orgId }) => {
+      try {
+        if (!this.identityContextManager) {
+          return { success: false, error: '身份上下文管理器未初始化' };
+        }
+
+        return await this.identityContextManager.deleteOrganizationContext(userDID, orgId);
+      } catch (error) {
+        console.error('[Main] 删除组织上下文失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 获取切换历史
+    ipcMain.handle('identity:get-switch-history', async (_event, { userDID, limit }) => {
+      try {
+        if (!this.identityContextManager) {
+          return { success: false, error: '身份上下文管理器未初始化', history: [] };
+        }
+
+        const history = this.identityContextManager.getSwitchHistory(userDID, limit);
+        return { success: true, history };
+      } catch (error) {
+        console.error('[Main] 获取切换历史失败:', error);
+        return { success: false, error: error.message, history: [] };
+      }
+    });
+
+    // ============================
     // 企业版：组织管理IPC Handler
     // ============================
 
