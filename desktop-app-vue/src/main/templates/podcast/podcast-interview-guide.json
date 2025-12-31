@@ -6,24 +6,66 @@
   "icon": "🎤",
   "category": "podcast",
   "subcategory": "interview",
-  "tags": ["访谈", "问题设计", "大纲"],
+  "tags": [
+    "访谈",
+    "问题设计",
+    "大纲"
+  ],
   "project_type": "document",
   "prompt_template": "播客访谈大纲\n\n**本期信息：**\n- 集数：{{episodeNumber}}\n- 标题：{{episodeTitle}}\n- 嘉宾：{{guestName}}\n- 录制时间：{{recordingDate}}\n\n# {{episodeTitle}}\n\n## 本期简介\n\n**一句话介绍：**{{oneLiner}}\n\n**本期看点：**\n- {{highlight1}}\n- {{highlight2}}\n- {{highlight3}}\n\n**目标时长：**{{targetDuration}}分钟\n\n## 嘉宾信息\n\n**姓名：**{{guestName}}\n**职位/身份：**{{guestTitle}}\n**背景：**{{guestBackground}}\n\n**个人成就：**\n- {{achievement1}}\n- {{achievement2}}\n- {{achievement3}}\n\n**社交媒体：**\n- 微博：{{guestWeibo}}\n- 公众号：{{guestWechat}}\n\n**为什么邀请TA：**{{whyThisGuest}}\n\n## 录制准备\n\n**前期沟通：**\n- ✅ 发送邀请\n- ✅ 确认话题方向\n- ✅ 分享大纲框架\n- ⬜ 测试设备\n- ⬜ 确认录制环境\n\n**背景调研：**\n- 阅读嘉宾著作/文章\n- 听过往访谈\n- 了解当前项目\n- 行业背景研究\n\n**提前提供给嘉宾：**\n- 节目简介\n- 大致话题方向\n- 预计时长\n- 录制须知\n\n## 访谈大纲\n\n### 开场（0:00-5:00）\n\n**片头音乐** (30秒)\n\n**主播开场白：**\n\"大家好，欢迎收听{{podcastName}}。我是主播{{hostName}}。今天我们邀请到了{{guestTitle}} {{guestName}}，和我们聊聊{{mainTopic}}。\"\n\n**嘉宾自我介绍：**\n\"{{guestName}}，欢迎你！能否先向听众朋友们介绍一下自己？\"\n- 预期2分钟\n- 引导重点：背景+当前在做的事\n\n### Part 1：破冰/早期经历 (5:00-15:00)\n\n**Q1: 起点故事**\n\"我很好奇，你是如何开始{{field}}这个领域的？有没有什么契机或转折点？\"\n\n**追问方向：**\n- 初心/动机\n- 早期挑战\n- 关键决定\n\n**Q2: 转折时刻**\n\"在你的职业/人生路径上，有没有一个关键时刻，让你意识到这就是你要走的路？\"\n\n**Q3: 早期困难**\n\"刚开始的时候遇到过哪些困难？是怎么克服的？\"\n\n**时间掌控：**这部分不超过10分钟\n\n### Part 2：核心话题深入 (15:00-40:00)\n\n**主题：{{coreTopic}}**\n\n**Q4: 核心观点**\n\"关于{{coreTopic}}，你有一个很独特的观点是{{uniquePerspective}}，能否详细谈谈？\"\n\n**追问：**\n- 这个观点是如何形成的？\n- 有什么数据/案例支持？\n- 和主流观点有什么不同？\n\n**Q5: 具体案例**\n\"能不能分享一个具体的案例/故事来说明这一点？\"\n\n**引导要点：**\n- 故事要具体\n- 有细节\n- 有冲突和转折\n\n**Q6: 方法论**\n\"对于我们的听众，如果他们想要{{actionGoal}}，你有什么建议或方法？\"\n\n**Q7: 常见误区**\n\"在这个领域，你看到大家最常犯的错误是什么？\"\n\n**Q8: 未来趋势**\n\"你怎么看{{field}}未来3-5年的发展趋势？\"\n\n### Part 3：个人视角 (40:00-50:00)\n\n**Q9: 日常习惯**\n\"能否分享一下你的日常工作/生活节奏？有什么特别的习惯吗？\"\n\n**Q10: 学习方法**\n\"你是如何保持学习和成长的？有什么推荐的学习资源吗？\"\n\n**Q11: 书籍/播客推荐**\n\"最近在读什么书？或者听什么播客？有没有特别推荐的？\"\n\n**Q12: 失败经历**\n\"能不能分享一次失败的经历？你从中学到了什么？\"\n\n### 快问快答环节 (50:00-53:00)\n\n准备10个轻松快速的问题：\n\n1. \"咖啡还是茶？\" → {{quickAnswer1}}\n2. \"早起还是夜猫子？\" → {{quickAnswer2}}\n3. \"最喜欢的城市？\" → {{quickAnswer3}}\n4. \"如果不做现在的工作，你会做什么？\" → {{quickAnswer4}}\n5. \"最近的一次'哇'时刻？\" → {{quickAnswer5}}\n6-10. ...\n\n**形式：**\n- 问题快速\n- 答案简短\n- 轻松有趣\n\n### 结尾 (53:00-55:00)\n\n**最后一问：**\n\"最后，你想对我们的听众说点什么？或者给他们一个行动建议？\"\n\n**嘉宾Outro：**\n告诉听众哪里可以找到你\n- 社交媒体\n- 项目/产品\n- 即将发布的内容\n\n**主播结束语：**\n\"感谢{{guestName}}今天的分享。听众朋友们，如果你喜欢今天的内容，记得订阅我们的播客，也欢迎在评论区留言告诉我们你的想法。下期节目我们将...（预告）。我们下期见！\"\n\n**片尾音乐**\n\n## 备用问题\n\n**如果时间充裕或话题冷场：**\n\n1. \"你最敬佩的人是谁？为什么？\"\n2. \"给5年前的自己一个建议，你会说什么？\"\n3. \"你认为{{field}}领域最被低估的是什么？\"\n4. \"最近有什么让你兴奋的新发现/新项目？\"\n5. \"你的座右铭或人生哲学是什么？\"\n\n## 注意事项\n\n**引导技巧：**\n- 开放式问题为主\n- 适时追问深挖\n- 引导讲故事而非说观点\n- 鼓励具体而非抽象\n\n**时间管理：**\n- 每部分严格控时\n- Part 2是重点，保证时长\n- 如超时，快问快答可压缩\n\n**氛围营造：**\n- 积极回应\n- 真诚好奇\n- 避免打断\n- 适当幽默\n\n**避坑指南：**\n- ❌ 不要问是非题\n- ❌ 不要问太私人的问题（除非很熟）\n- ❌ 不要问网上已有答案的问题\n- ❌ 不要连珠炮发问\n- ✅ 认真倾听，根据回答调整\n\n## 录制技术清单\n\n**录制前检查：**\n- [ ] 话筒测试\n- [ ] 录音软件打开\n- [ ] 备份录音设备就位\n- [ ] 手机静音\n- [ ] 关闭通知\n- [ ] 水杯准备\n\n**录制参数：**\n- 格式：WAV\n- 采样率：48kHz\n- 位深：24bit\n- 分轨录音\n\n**嘉宾设备（远程录制）：**\n- 耳机要求\n- 录音APP推荐\n- 网络要求\n\n## 后期要点\n\n**剪辑重点：**\n- 删除明显口误/重复\n- 保留自然停顿和笑声\n- 音量平衡\n- 添加背景音乐（低音量）\n\n**时间轴（Shownotes）：**\n00:00 开场\n02:30 嘉宾介绍\n05:00 Part 1: {{part1Title}}\n15:00 Part 2: {{part2Title}}\n40:00 Part 3: {{part3Title}}\n50:00 快问快答\n53:00 结尾\n\n**金句提取：**\n- 选择3-5个精彩观点\n- 制作文字卡片\n- 用于社交媒体推广\n\n## 发布素材\n\n**封面图：**\n- 嘉宾照片\n- 节目标题\n- 集数标识\n\n**节目描述：**\n```\n本期嘉宾：{{guestName}}\n{{guestTitle}}\n\n我们聊了：\n✓ {{topic1}}\n✓ {{topic2}}\n✓ {{topic3}}\n\n时间轴：\n[添加时间轴]\n\n嘉宾信息：\n[社交媒体链接]\n\n相关链接：\n[补充资源]\n```\n\n**推广文案：**\n\"{{teaser}} 本期{{podcastName}}，{{guestName}}和我们分享了... 现已上线，快去收听！\"\n\n## 嘉宾反馈\n\n**录制后：**\n- 感谢邮件\n- 分享录音文件（供确认）\n- 预告发布时间\n\n**发布后：**\n- 分享节目链接\n- 请嘉宾转发\n- 收集嘉宾反馈",
   "variables_schema": [
-    {"name": "episodeTitle", "label": "本期标题", "type": "string", "required": true},
-    {"name": "episodeNumber", "label": "集数", "type": "string", "required": false, "placeholder": "如：S01E05"},
-    {"name": "guestName", "label": "嘉宾姓名", "type": "string", "required": true},
-    {"name": "targetDuration", "label": "目标时长（分钟）", "type": "number", "required": false, "default": 55}
+    {
+      "name": "episodeTitle",
+      "label": "本期标题",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "episodeNumber",
+      "label": "集数",
+      "type": "string",
+      "required": false,
+      "placeholder": "如：S01E05"
+    },
+    {
+      "name": "guestName",
+      "label": "嘉宾姓名",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "targetDuration",
+      "label": "目标时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 55
+    }
   ],
   "file_structure": {
     "root": "访谈-{{guestName}}",
     "files": [
-      {"path": "访谈大纲.md", "type": "markdown"},
-      {"path": "嘉宾资料.docx", "type": "document"}
+      {
+        "path": "访谈大纲.md",
+        "type": "markdown"
+      },
+      {
+        "path": "嘉宾资料.docx",
+        "type": "document"
+      }
     ]
   },
   "default_files": [],
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_audio_editing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_audio_editor",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "audio"
 }

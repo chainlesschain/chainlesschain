@@ -41,5 +41,17 @@
   "default_files": [],
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_office_suite",
+    "skill_data_analysis"
+  ],
+  "required_tools": [
+    "tool_excel_generator",
+    "tool_excel_formula_builder",
+    "tool_excel_chart_creator",
+    "tool_template_renderer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "excel"
 }
