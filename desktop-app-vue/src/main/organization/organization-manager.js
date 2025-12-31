@@ -212,6 +212,79 @@ class OrganizationManager {
   }
 
   /**
+   * 更新组织信息
+   * @param {string} orgId - 组织ID
+   * @param {Object} updates - 更新的字段
+   * @returns {Promise<Object>} 更新结果
+   */
+  async updateOrganization(orgId, updates) {
+    try {
+      const org = await this.getOrganization(orgId);
+      if (!org) {
+        return { success: false, error: '组织不存在' };
+      }
+
+      // 构建更新SQL
+      const fields = [];
+      const values = [];
+
+      if (updates.name !== undefined) {
+        fields.push('name = ?');
+        values.push(updates.name);
+      }
+      if (updates.type !== undefined) {
+        fields.push('type = ?');
+        values.push(updates.type);
+      }
+      if (updates.description !== undefined) {
+        fields.push('description = ?');
+        values.push(updates.description);
+      }
+      if (updates.avatar !== undefined) {
+        fields.push('avatar = ?');
+        values.push(updates.avatar);
+      }
+      if (updates.visibility !== undefined) {
+        fields.push('visibility = ?');
+        values.push(updates.visibility);
+      }
+      if (updates.p2p_enabled !== undefined) {
+        fields.push('p2p_enabled = ?');
+        values.push(updates.p2p_enabled);
+      }
+      if (updates.sync_mode !== undefined) {
+        fields.push('sync_mode = ?');
+        values.push(updates.sync_mode);
+      }
+
+      if (fields.length === 0) {
+        return { success: false, error: '没有需要更新的字段' };
+      }
+
+      // 添加更新时间
+      fields.push('updated_at = ?');
+      values.push(Date.now());
+
+      // 添加orgId到values
+      values.push(orgId);
+
+      // 执行更新
+      const sql = `UPDATE organization_info SET ${fields.join(', ')} WHERE org_id = ?`;
+      this.db.prepare(sql).run(...values);
+
+      // 记录活动
+      await this.logActivity(orgId, updates.updatedBy || 'system', 'update_organization', 'organization', orgId, {
+        updates: Object.keys(updates)
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('更新组织失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * 获取用户所属的所有组织
    * @param {string} userDID - 用户DID
    * @returns {Promise<Array>} 组织列表
@@ -393,6 +466,171 @@ class OrganizationManager {
     );
 
     return invitation;
+  }
+
+  /**
+   * 获取组织的所有邀请（包括邀请码和DID邀请）
+   * @param {string} orgId - 组织ID
+   * @returns {Array} 邀请列表
+   */
+  getInvitations(orgId) {
+    try {
+      // 获取邀请码邀请
+      const codeInvitations = this.db.prepare(`
+        SELECT * FROM organization_invitations
+        WHERE org_id = ?
+        ORDER BY created_at DESC
+      `).all(orgId);
+
+      // 获取DID邀请
+      const didInvitations = this.db.prepare(`
+        SELECT * FROM organization_did_invitations
+        WHERE org_id = ?
+        ORDER BY created_at DESC
+      `).all(orgId);
+
+      // 合并两种邀请，添加类型标识
+      const allInvitations = [
+        ...codeInvitations.map(inv => ({
+          ...inv,
+          invitation_id: inv.id,
+          type: 'code',
+          code: inv.invite_code,
+          status: this.getInvitationStatus(inv)
+        })),
+        ...didInvitations.map(inv => ({
+          ...inv,
+          invitation_id: inv.id,
+          type: 'did',
+          code: `DID: ${this.shortenDID(inv.invited_did)}`,
+          status: inv.status
+        }))
+      ];
+
+      return allInvitations;
+    } catch (error) {
+      console.error('获取邀请列表失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取邀请状态
+   * @param {Object} invitation - 邀请对象
+   * @returns {string} 状态
+   */
+  getInvitationStatus(invitation) {
+    // 检查是否已撤销
+    if (invitation.is_revoked) {
+      return 'revoked';
+    }
+
+    // 检查是否过期
+    if (invitation.expire_at && Date.now() > invitation.expire_at) {
+      return 'expired';
+    }
+
+    // 检查是否用尽
+    if (invitation.used_count >= invitation.max_uses) {
+      return 'exhausted';
+    }
+
+    // 检查是否已使用过
+    if (invitation.used_count > 0) {
+      return 'accepted';
+    }
+
+    return 'pending';
+  }
+
+  /**
+   * 撤销邀请
+   * @param {string} orgId - 组织ID
+   * @param {string} invitationId - 邀请ID
+   * @returns {Promise<Object>} 结果
+   */
+  async revokeInvitation(orgId, invitationId) {
+    try {
+      // 先检查是否是邀请码邀请
+      const codeInv = this.db.prepare(
+        'SELECT * FROM organization_invitations WHERE id = ? AND org_id = ?'
+      ).get(invitationId, orgId);
+
+      if (codeInv) {
+        // 标记为已撤销
+        this.db.prepare(`
+          UPDATE organization_invitations
+          SET is_revoked = 1, updated_at = ?
+          WHERE id = ?
+        `).run(Date.now(), invitationId);
+
+        return { success: true };
+      }
+
+      // 检查是否是DID邀请
+      const didInv = this.db.prepare(
+        'SELECT * FROM organization_did_invitations WHERE id = ? AND org_id = ?'
+      ).get(invitationId, orgId);
+
+      if (didInv) {
+        // 更新状态为已撤销
+        this.db.prepare(`
+          UPDATE organization_did_invitations
+          SET status = 'revoked', updated_at = ?
+          WHERE id = ?
+        `).run(Date.now(), invitationId);
+
+        return { success: true };
+      }
+
+      return { success: false, error: '邀请不存在' };
+    } catch (error) {
+      console.error('撤销邀请失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 删除邀请
+   * @param {string} orgId - 组织ID
+   * @param {string} invitationId - 邀请ID
+   * @returns {Promise<Object>} 结果
+   */
+  async deleteInvitation(orgId, invitationId) {
+    try {
+      // 先尝试删除邀请码邀请
+      const codeResult = this.db.prepare(
+        'DELETE FROM organization_invitations WHERE id = ? AND org_id = ?'
+      ).run(invitationId, orgId);
+
+      if (codeResult.changes > 0) {
+        return { success: true };
+      }
+
+      // 尝试删除DID邀请
+      const didResult = this.db.prepare(
+        'DELETE FROM organization_did_invitations WHERE id = ? AND org_id = ?'
+      ).run(invitationId, orgId);
+
+      if (didResult.changes > 0) {
+        return { success: true };
+      }
+
+      return { success: false, error: '邀请不存在' };
+    } catch (error) {
+      console.error('删除邀请失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 缩短DID显示
+   * @param {string} did - 完整DID
+   * @returns {string} 缩短的DID
+   */
+  shortenDID(did) {
+    if (!did || did.length <= 30) return did;
+    return `${did.slice(0, 15)}...${did.slice(-10)}`;
   }
 
   /**
@@ -888,6 +1126,29 @@ class OrganizationManager {
     return this.db.prepare(
       `SELECT * FROM organization_activities WHERE org_id = ? ORDER BY timestamp DESC LIMIT ?`
     ).all(orgId, limit);
+  }
+
+  /**
+   * 获取成员活动历史
+   * @param {string} orgId - 组织ID
+   * @param {string} memberDID - 成员DID
+   * @param {number} limit - 限制数量
+   * @returns {Array} 活动列表
+   */
+  getMemberActivities(orgId, memberDID, limit = 10) {
+    try {
+      const activities = this.db.prepare(`
+        SELECT * FROM organization_activities
+        WHERE org_id = ? AND user_did = ?
+        ORDER BY activity_timestamp DESC
+        LIMIT ?
+      `).all(orgId, memberDID, limit);
+
+      return activities;
+    } catch (error) {
+      console.error('获取成员活动失败:', error);
+      return [];
+    }
   }
 
   /**

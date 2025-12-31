@@ -32,12 +32,15 @@ class InitialSetupConfig {
     try {
       if (fs.existsSync(this.configPath)) {
         const data = fs.readFileSync(this.configPath, 'utf8');
-        return { ...DEFAULT_CONFIG, ...JSON.parse(data) };
+        // 使用深拷贝确保DEFAULT_CONFIG不被修改
+        const defaultConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+        return { ...defaultConfig, ...JSON.parse(data) };
       }
     } catch (error) {
       console.error('加载初始设置配置失败:', error);
     }
-    return { ...DEFAULT_CONFIG };
+    // 使用深拷贝返回默认配置
+    return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   }
 
   save() {
@@ -132,7 +135,8 @@ class InitialSetupConfig {
   }
 
   reset() {
-    this.config = { ...DEFAULT_CONFIG };
+    // 使用JSON深拷贝确保嵌套对象也被重置
+    this.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
     this.save();
   }
 }
