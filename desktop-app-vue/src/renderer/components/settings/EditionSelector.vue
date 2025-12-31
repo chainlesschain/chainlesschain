@@ -114,17 +114,72 @@
             API密钥将被加密存储，请妥善保管
           </template>
         </a-form-item>
+
+        <!-- 测试连接按钮和状态 -->
+        <a-form-item>
+          <a-space direction="vertical" style="width: 100%">
+            <a-button
+              type="primary"
+              :loading="testing"
+              :disabled="!canTestConnection"
+              @click="testConnection"
+              block
+            >
+              <template #icon>
+                <ApiOutlined v-if="!testing" />
+                <LoadingOutlined v-else />
+              </template>
+              {{ testing ? '正在测试连接...' : '测试服务器连接' }}
+            </a-button>
+
+            <!-- 连接状态显示 -->
+            <a-alert
+              v-if="connectionStatus === 'success'"
+              type="success"
+              :message="connectionMessage"
+              show-icon
+            >
+              <template #icon>
+                <CheckCircleOutlined />
+              </template>
+            </a-alert>
+
+            <a-alert
+              v-if="connectionStatus === 'error'"
+              type="error"
+              :message="connectionMessage"
+              show-icon
+            >
+              <template #icon>
+                <CloseCircleOutlined />
+              </template>
+              <template #description>
+                请检查：
+                <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                  <li>服务器地址是否正确（包括协议和端口）</li>
+                  <li>租户ID是否正确</li>
+                  <li>API密钥是否有效</li>
+                  <li>网络连接是否正常</li>
+                </ul>
+              </template>
+            </a-alert>
+          </a-space>
+        </a-form-item>
       </a-form>
     </a-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
+import { message } from 'ant-design-vue';
 import {
   UserOutlined,
   TeamOutlined,
   CheckCircleOutlined,
+  CloseCircleOutlined,
+  ApiOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
@@ -142,12 +197,90 @@ const enterpriseConfig = reactive({
   apiKey: '',
 });
 
+const testing = ref(false);
+const connectionStatus = ref(null); // 'success' | 'error' | null
+const connectionMessage = ref('');
+const latency = ref(null);
+
 const selectEdition = (edition) => {
   emit('update:modelValue', edition);
 };
 
 const emitEnterpriseConfig = () => {
   emit('update:enterpriseConfig', { ...enterpriseConfig });
+};
+
+// 验证配置完整性
+const canTestConnection = computed(() => {
+  return (
+    enterpriseConfig.serverUrl &&
+    enterpriseConfig.tenantId &&
+    enterpriseConfig.apiKey
+  );
+});
+
+// 测试企业服务器连接
+const testConnection = async () => {
+  if (!canTestConnection.value) {
+    message.warning('请先填写完整的服务器配置信息');
+    return;
+  }
+
+  try {
+    testing.value = true;
+    connectionStatus.value = null;
+    connectionMessage.value = '正在连接...';
+
+    const startTime = Date.now();
+
+    // 尝试连接企业服务器的健康检查端点
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+
+    const response = await fetch(`${enterpriseConfig.serverUrl}/api/health`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${enterpriseConfig.apiKey}`,
+        'X-Tenant-ID': enterpriseConfig.tenantId,
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    const endTime = Date.now();
+    latency.value = endTime - startTime;
+
+    if (response.ok) {
+      const data = await response.json().catch(() => ({}));
+      connectionStatus.value = 'success';
+      connectionMessage.value = `连接成功 (延迟: ${latency.value}ms)`;
+      message.success('企业服务器连接成功！');
+    } else if (response.status === 401 || response.status === 403) {
+      connectionStatus.value = 'error';
+      connectionMessage.value = '认证失败：API密钥或租户ID无效';
+      message.error('认证失败，请检查API密钥和租户ID');
+    } else {
+      connectionStatus.value = 'error';
+      connectionMessage.value = `连接失败：服务器返回 ${response.status}`;
+      message.error(`连接失败 (HTTP ${response.status})`);
+    }
+  } catch (error) {
+    connectionStatus.value = 'error';
+
+    if (error.name === 'AbortError') {
+      connectionMessage.value = '连接超时：服务器无响应';
+      message.error('连接超时，请检查服务器地址是否正确');
+    } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      connectionMessage.value = '网络错误：无法连接到服务器';
+      message.error('无法连接到服务器，请检查网络和服务器地址');
+    } else {
+      connectionMessage.value = `连接失败：${error.message}`;
+      message.error('连接失败: ' + error.message);
+    }
+  } finally {
+    testing.value = false;
+  }
 };
 </script>
 
