@@ -72,17 +72,60 @@ module.exports = {
     ],
     // 忽略不需要打包的文件
     ignore: [
+      // 测试文件
       /^\/tests/,
+      /^\/test/,
+      /\.test\.js$/,
+      /\.test\.ts$/,
+      /\.spec\.js$/,
+      /\.spec\.ts$/,
+
+      // 文档和配置文件
       /^\/docs/,
+      /.*\.md$/i,
       /^\/\.vscode/,
       /^\/\.git/,
+      /^\/\.github/,
+      /^\/browser-extension/,
+
+      // 开发工具
+      /^\/scripts\/test/,
+      /^\/coverage/,
+      /^\/playwright-report/,
+      /\.coverage$/,
+
+      // Node modules 优化
       /node_modules\/.*\/test/,
+      /node_modules\/.*\/tests/,
       /node_modules\/.*\/\..*$/,
-      /\.map$/
+      /node_modules\/.*\/README\.md$/i,
+      /node_modules\/.*\/CHANGELOG\.md$/i,
+      /node_modules\/.*\/\.eslintrc/,
+      /node_modules\/.*\/\.prettierrc/,
+
+      // 源码映射
+      /\.map$/,
+      /\.map\.js$/,
+
+      // 临时文件
+      /^\/temp/,
+      /^\/tmp/,
+      /\.log$/,
+
+      // 其他
+      /^\/\.env\.local/,
+      /^\/\.env\.development/
     ]
   },
 
   makers: [
+    {
+      name: '@electron-forge/maker-zip',
+      platforms: ['win32', 'darwin', 'linux']
+    },
+    // Squirrel installer - temporarily disabled due to path issues
+    // Re-enable after investigating the nuspec generation error
+    /*
     {
       name: '@electron-forge/maker-squirrel',
       config: {
@@ -90,17 +133,13 @@ module.exports = {
         authors: 'ChainlessChain Team',
         description: 'ChainlessChain - 去中心化个人AI管理系统',
         setupIcon: path.join(__dirname, 'build', 'icon.ico'),
-        loadingGif: path.join(__dirname, 'build', 'install-spinner.gif'),
         // Squirrel.Windows 安装选项
         noMsi: true,
         // 设置安装目录
         setupExe: `ChainlessChain-Setup-${require('./package.json').version}.exe`
       }
     },
-    {
-      name: '@electron-forge/maker-zip',
-      platforms: ['darwin', 'linux']
-    },
+    */
     {
       name: '@electron-forge/maker-deb',
       config: {
