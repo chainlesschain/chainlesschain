@@ -48,6 +48,9 @@ const { registerCategoryIPCHandlers } = require('./category-ipc');
 // Backend API clients
 const { ProjectFileAPI, GitAPI, RAGAPI, CodeAPI } = require('./api/backend-client');
 
+// Knowledge version management
+const { KnowledgeVersionManager } = require('./knowledge/version-manager');
+
 // Plugin System (Phase 1)
 const { PluginManager, setPluginManager } = require('./plugins/plugin-manager');
 
@@ -319,6 +322,9 @@ class ChainlessChainApp {
 
       // 初始化知识图谱提取器
       this.graphExtractor = new GraphExtractor(this.database);
+
+      // 初始化版本管理器
+      this.versionManager = new KnowledgeVersionManager(this.database.db);
 
       console.log('数据库初始化成功');
     } catch (error) {
@@ -4047,6 +4053,14 @@ class ChainlessChainApp {
               VALUES (?, ?, ?)
             `).run(knowledgeId, tag.id, now);
           }
+        }
+
+        // 创建初始版本快照
+        if (this.versionManager) {
+          await this.versionManager.createVersionSnapshot(knowledgeId, createdBy, {
+            changeSummary: '创建知识',
+            metadata: { type: 'initial_create' }
+          });
         }
 
         // 记录活动
