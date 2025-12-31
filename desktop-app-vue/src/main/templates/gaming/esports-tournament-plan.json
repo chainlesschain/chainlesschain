@@ -1,0 +1,123 @@
+{
+  "id": "tpl_gaming_esports_004",
+  "name": "esports_tournament_plan",
+  "display_name": "电竞赛事策划",
+  "description": "电竞比赛完整组织方案，包含赛制、直播、赞助和奖金分配",
+  "icon": "🏆",
+  "category": "gaming",
+  "subcategory": "esports",
+  "tags": [
+    "电竞",
+    "赛事",
+    "直播",
+    "赛制"
+  ],
+  "project_type": "document",
+  "prompt_template": "电竞赛事策划方案\n\n**赛事信息：**\n- 赛事名称：{{tournamentName}}\n- 比赛游戏：{{gameTitle}}\n- 赛事规模：{{tournamentScale}}\n- 参赛队伍：{{teamCount}}支\n- 总奖金池：¥{{prizepoolTotal}}\n\n# 电竞赛事完整策划\n\n## 赛事概述\n\n**赛事定位：**\n- 名称：{{tournamentName}}\n- 游戏：{{gameTitle}}\n- 级别：{{tournamentTier}}\n- 规模：{{tournamentScale}}\n- 地点：{{venue}}\n- 日期：{{eventDate}}\n- 时长：{{eventDuration}}天\n\n**游戏项目：**{{gameTitle}}\n\n{{#eq gameTitle \"英雄联盟（LoL）\"}}\n**LoL赛事要点：**\n- 标准赛制：BO3（小组赛）/ BO5（淘汰赛）\n- 选手人数：5v5 + 替补\n- Ban/Pick阶段：各3个Ban + 5个Pick\n- 平均比赛时长：30-40分钟\n- 直播视角：OB视角 + 选手第一视角\n- 参考赛事：LPL, MSI, Worlds\n{{/eq}}\n\n{{#eq gameTitle \"DOTA 2\"}}\n**DOTA 2赛事要点：**\n- 标准赛制：BO3 / BO5\n- 选手人数：5v5\n- BP阶段复杂（多轮Ban/Pick）\n- 平均比赛时长：40-60分钟\n- 高额奖金（TI级别）\n- 参考赛事：The International\n{{/eq}}\n\n{{#eq gameTitle \"CS:GO / CS2\"}}\n**CS赛事要点：**\n- 标准赛制：BO3 / BO5\n- 选手人数：5v5\n- 地图：BO3需Ban/Pick 3张图\n- 回合制：先到16分\n- 平均比赛时长：60-90分钟\n- 参考赛事：IEM, BLAST, Major\n{{/eq}}\n\n{{#eq gameTitle \"王者荣耀\"}}\n**王者荣耀赛事要点：**\n- 标准赛制：BO5 / BO7\n- 选手人数：5v5\n- 移动电竞\n- 平均比赛时长：15-25分钟\n- 参考赛事：KPL\n{{/eq}}\n\n{{#eq gameTitle \"和平精英/PUBG\"}}\n**吃鸡类赛事要点：**\n- 赛制：积分制（多局累计）\n- 队伍数：16-20队同时对战\n- 单局时长：20-30分钟\n- 排名分+淘汰分\n- 参考赛事：PGC, PCL\n{{/eq}}\n\n## 赛制设计\n\n**赛事规模：**{{tournamentScale}}\n\n**参赛队伍：**{{teamCount}}支\n\n**赛制结构：**\n\n### 小型赛事（8-16队）\n\n**单败淘汰制：**\n- 8强→4强→半决赛→决赛\n- 快速（1-2天完成）\n- 残酷（一场定生死）\n\n**双败淘汰制（Double Elimination）：**\n- 胜者组 + 败者组\n- 败者有复活机会\n- 更公平，时长较长\n\n### 中型赛事（16-32队）\n\n**小组赛+淘汰赛：**\n\n**小组赛阶段：**\n- 分4组，每组4队\n- 组内单循环（每队打3场）\n- 前2名晋级（共8队）\n- 时长：2天\n\n**淘汰赛阶段：**\n- 8强单败淘汰或双败淘汰\n- BO3（8强、4强）\n- BO5（决赛）\n- 时长：2天\n\n### 大型赛事（32+队）\n\n**瑞士轮（Swiss System）：**\n- 常用于CS:GO Major\n- 3胜晋级，3败淘汰\n- 根据战绩匹配对手\n- 时长：3-4天\n\n**积分制（Battle Royale）：**\n- 吃鸡类游戏专用\n- 每日多局，累计积分\n- 最终排名决定奖金\n\n## 赛程安排\n\n**时间表示例（3天赛事）：**\n\n**Day 1：小组赛**\n```\n09:00 - 开幕式\n10:00 - A组第1轮\n12:00 - 午休\n13:00 - B组第1轮\n15:00 - A组第2轮\n17:00 - B组第2轮\n19:00 - 结束\n```\n\n**Day 2：淘汰赛前期**\n```\n10:00 - 8强赛 #1\n12:00 - 8强赛 #2\n14:00 - 8强赛 #3\n16:00 - 8强赛 #4\n18:00 - 半决赛 #1\n20:00 - 半决赛 #2\n```\n\n**Day 3：决赛日**\n```\n14:00 - 开场表演\n15:00 - 三四名决赛\n17:00 - 总决赛（BO5）\n21:00 - 颁奖典礼\n22:00 - 闭幕\n```\n\n## 奖金分配\n\n**总奖金池：**¥{{prizepoolTotal}}\n\n**分配方案：**\n\n**标准分配（16队）：**\n```\n冠军：  35% = ¥{{prize1st}}\n亚军：  20% = ¥{{prize2nd}}\n季军：  12% = ¥{{prize3rd}}\n第4名：  8% = ¥{{prize4th}}\n5-8名： 各5% = ¥{{prize5to8}}（每队）\n9-16名：各1.25% = ¥{{prize9to16}}（每队）\n```\n\n**众筹奖金（如有）：**\n- 游戏内道具销售\n- 观众捐赠\n- 分成比例：开发商{{devCut}}% / 赛事{{eventCut}}%\n\n## 报名与审核\n\n**报名要求：**\n- 战队名称\n- 5名正式队员 + {{subCount}}名替补\n- 队员ID、身份证（实名）\n- 联系方式\n- 赞助商信息（如有）\n\n**资格审核：**\n- 年龄限制：{{minAge}}岁+\n- 账号等级要求：{{accountLevelReq}}\n- 排位分数：{{rankRequirement}}\n- 无作弊/违规记录\n- 签署参赛协议\n\n**报名费：**¥{{registrationFee}}/队（可选）\n\n## 比赛规则\n\n**通用规则：**\n- 使用官方最新版本\n- 禁止使用外挂/脚本\n- 禁止消极比赛\n- 选手不得赌博\n- 尊重对手和裁判\n\n**设备规定：**\n- 官方提供比赛PC\n- 选手可自带键鼠、耳机\n- 设备检查（防作弊）\n\n**暂停规则：**\n- 技术问题可暂停\n- 每队每场{{pauseLimit}}次暂停机会\n- 最长暂停时间：{{pauseDuration}}分钟\n\n**重赛（Remake）条件：**\n- 服务器崩溃\n- 严重技术故障\n- 比赛开始前{{remakeTime}}分钟内\n\n**判罚：**\n- 警告（Warning）\n- 判负一局\n- 判负整场\n- 取消资格+禁赛\n\n## 场地与设备\n\n**场地选择：**{{venue}}\n\n**场地需求：**\n- 主舞台（比赛区）\n- 观众席（{{audienceCapacity}}人）\n- 选手休息室（2间）\n- 裁判/导播室\n- 媒体工作区\n- 赞助商展示区\n\n**硬件设备：**\n- 比赛电脑：{{pcCount}}台（高配）\n  - CPU：{{cpuModel}}\n  - GPU：{{gpuModel}}\n  - 显示器：{{monitorSpec}}（144Hz+）\n- 备用电脑：{{backupPcCount}}台\n- 服务器（局域网）\n- 网络：{{networkSpeed}} 专线\n\n**直播设备：**\n- 导播台\n- 摄像机 x{{cameraCount}}\n- 选手摄像头（特写）\n- 麦克风 x{{micCount}}\n- 灯光系统\n- LED大屏（{{screenSize}}）\n\n## 直播与制作\n\n**直播平台：**\n- 主平台：{{primaryPlatform}}\n- 次级平台：{{secondaryPlatforms}}\n- 海外：{{internationalPlatforms}}\n\n**直播内容：**\n- 游戏实况（OB视角）\n- 选手镜头（多画面）\n- 解说评论\n- 赛后采访\n- 数据分析面板\n\n**解说与主持：**\n- 主持人：{{host}}\n- 解说：{{commentator1}} + {{commentator2}}\n- 分析师：{{analyst}}\n- 英文流：{{englishCaster}}（国际赛事）\n\n**制作团队：**\n- 导播：{{director}}\n- 摄像师：{{cameramen}}人\n- OB（观察者）：{{observers}}人\n- 技术支持：{{techSupport}}人\n\n**直播时长：**每日{{broadcastHours}}小时\n\n**录播/集锦：**\n- 全程录制备份\n- 次日剪辑精彩集锦\n- 上传至YouTube/B站\n\n## 赞助与商业化\n\n**赞助商类型：**\n\n**冠名赞助：**¥{{titleSponsorFee}}\n- 权益：赛事冠名\"XX杯\"\n- LOGO最大展示\n- 开幕式致辞\n\n**战略合作伙伴：**¥{{partnerFee}}\n- 3-5家\n- LOGO展示\n- 广告时段\n\n**设备赞助商：**\n- 外设品牌（键鼠、耳机）\n- 硬件品牌（显卡、CPU）\n- 以设备代替现金\n\n**媒体合作：**\n- 直播平台独家/联播\n- 游戏媒体报道\n\n**赞助回报：**\n- 品牌曝光时长\n- 社交媒体推广\n- 选手代言\n- 现场展台\n\n**商品销售：**\n- 战队周边\n- 赛事纪念品\n- 游戏内道具（联动）\n\n## 宣传推广\n\n**前期预热（-4周）：**\n- 发布赛事海报\n- 开放报名通道\n- 宣传视频\n- KOL/主播宣传\n\n**中期造势（-2周）：**\n- 公布参赛队伍\n- 对阵表抽签直播\n- 战队宣传片\n- 预测/分析内容\n\n**赛事期间：**\n- 每日赛事集锦\n- 社交媒体实时互动\n- 话题营销（#冠军是谁#）\n- 选手采访\n\n**赛后总结：**\n- 冠军纪录片\n- 数据回顾\n- 粉丝投票（MVP）\n\n**社交媒体：**\n- 微博：{{weiboHandle}}\n- Twitter：{{twitterHandle}}\n- Discord/QQ群：粉丝社区\n\n## 裁判与仲裁\n\n**裁判团队：**\n- 主裁判：{{headReferee}}\n- 场上裁判：{{fieldReferees}}人\n- 技术裁判：{{techReferees}}人\n\n**裁判职责：**\n- 监督比赛公平\n- 判定违规行为\n- 处理申诉\n- 技术问题协调\n\n**申诉流程：**\n1. 口头申诉→场上裁判\n2. 书面申诉→主裁判（30分钟内）\n3. 仲裁委员会（终审）\n\n## 应急预案\n\n**常见问题处理：**\n\n**服务器/网络故障：**\n- 切换备用服务器\n- 最长等待时间：{{maxWaitTime}}分钟\n- 超时则改期\n\n**选手缺席：**\n- 允许使用替补\n- 超过{{lateThreshold}}分钟判负\n\n**作弊嫌疑：**\n- 立即暂停\n- 检查设备和录像\n- 严重则取消资格\n\n**观众骚乱：**\n- 安保介入\n- 必要时清场\n\n**突发疾病：**\n- 现场医疗团队\n- 救护车待命\n\n## 疫情防控（如需）\n\n**防疫措施：**\n- 查验健康码\n- 测温入场\n- 全程佩戴口罩\n- 座位间隔\n- 定时消毒\n\n**线上预案：**\n- 改为线上赛\n- 选手远程参赛\n- 统一服务器\n\n## 赛后事宜\n\n**颁奖典礼：**\n- 颁奖嘉宾：{{awardPresenter}}\n- 奖杯/奖牌\n- 奖金支票展示\n- 合影留念\n\n**奖金发放：**\n- 税前金额：¥{{prizepoolTotal}}\n- 扣税（{{taxRate}}%）\n- 到账时间：{{payoutDays}}个工作日\n\n**赛事报告：**\n- 参赛数据统计\n- 观看量/热度\n- 财务报表\n- 经验总结\n\n**内容留存：**\n- 录像归档\n- 图片素材整理\n- 为下届赛事积累经验\n\n## 预算规划\n\n**总预算：**¥{{totalBudget}}\n\n**支出明细：**\n\n| 项目 | 金额 | 占比 |\n|------|------|------|\n| 奖金池 | ¥{{prizepoolTotal}} | {{prizePercent}}% |\n| 场地租赁 | ¥{{venueCost}} | {{venuePercent}}% |\n| 设备租赁 | ¥{{equipmentCost}} | {{equipmentPercent}}% |\n| 人员工资 | ¥{{staffCost}} | {{staffPercent}}% |\n| 宣传推广 | ¥{{marketingCost}} | {{marketingPercent}}% |\n| 直播制作 | ¥{{productionCost}} | {{productionPercent}}% |\n| 其他开支 | ¥{{otherCost}} | {{otherPercent}}% |\n\n**收入来源：**\n- 赞助商：¥{{sponsorRevenue}}\n- 门票：¥{{ticketRevenue}}\n- 转播权：¥{{broadcastRevenue}}\n- 周边销售：¥{{merchandiseRevenue}}\n- 其他：¥{{otherRevenue}}\n\n**盈亏预测：**¥{{profitLoss}}",
+  "variables_schema": [
+    {
+      "name": "tournamentName",
+      "label": "赛事名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "gameTitle",
+      "label": "比赛游戏",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "英雄联盟（LoL）",
+          "label": "英雄联盟（LoL）"
+        },
+        {
+          "value": "DOTA 2",
+          "label": "DOTA 2"
+        },
+        {
+          "value": "CS:GO / CS2",
+          "label": "CS:GO / CS2"
+        },
+        {
+          "value": "王者荣耀",
+          "label": "王者荣耀"
+        },
+        {
+          "value": "和平精英/PUBG",
+          "label": "和平精英/PUBG"
+        },
+        {
+          "value": "valorant",
+          "label": "Valorant"
+        }
+      ]
+    },
+    {
+      "name": "tournamentScale",
+      "label": "赛事规模",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "小型",
+          "label": "小型（8-16队）"
+        },
+        {
+          "value": "中型",
+          "label": "中型（16-32队）"
+        },
+        {
+          "value": "大型",
+          "label": "大型（32+队）"
+        }
+      ]
+    },
+    {
+      "name": "teamCount",
+      "label": "参赛队伍数",
+      "type": "number",
+      "required": false,
+      "default": 16
+    },
+    {
+      "name": "prizepoolTotal",
+      "label": "总奖金池（元）",
+      "type": "number",
+      "required": false,
+      "default": 100000
+    },
+    {
+      "name": "eventDuration",
+      "label": "赛事天数",
+      "type": "number",
+      "required": false,
+      "default": 3
+    }
+  ],
+  "file_structure": {
+    "root": "电竞赛事-{{tournamentName}}",
+    "files": [
+      {
+        "path": "赛事方案.md",
+        "type": "markdown"
+      },
+      {
+        "path": "赛程表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "预算表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "参赛队伍/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

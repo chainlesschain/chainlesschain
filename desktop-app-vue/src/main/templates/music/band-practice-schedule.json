@@ -1,0 +1,127 @@
+{
+  "id": "tpl_music_band_004",
+  "name": "band_practice_schedule",
+  "display_name": "乐队排练计划",
+  "description": "乐队系统化排练计划，包含曲目安排、分工和演出准备",
+  "icon": "🎸",
+  "category": "music",
+  "subcategory": "practice",
+  "tags": [
+    "乐队",
+    "排练",
+    "演出准备",
+    "团队协作"
+  ],
+  "project_type": "document",
+  "prompt_template": "乐队排练计划\n\n**乐队信息：**\n- 乐队名称：{{bandName}}\n- 乐队风格：{{bandStyle}}\n- 成员人数：{{memberCount}}人\n- 排练目标：{{practiceGoal}}\n\n# 乐队排练系统计划\n\n## 乐队阵容\n\n**成员配置：**\n- 主唱：{{vocalist}}\n- 吉他手：{{guitarist}}\n- 贝斯手：{{bassist}}\n- 鼓手：{{drummer}}\n- 键盘手：{{keyboardist}}（可选）\n- 其他：{{otherMembers}}\n\n**乐队风格：**{{bandStyle}}\n\n{{#eq bandStyle \"摇滚乐队\"}}\n**摇滚乐队排练重点：**\n- 强调节奏组配合（鼓+贝斯）\n- 吉他riff的精准度\n- 动态对比（轻重变化）\n- 现场能量\n- 即兴solo部分\n{{/eq}}\n\n{{#eq bandStyle \"爵士乐队\"}}\n**爵士乐队排练重点：**\n- 和声进行统一\n- 即兴演奏轮流\n- 互相聆听与呼应\n- Swing节奏感\n- 标准曲目（Standards）演绎\n{{/eq}}\n\n{{#eq bandStyle \"流行乐队\"}}\n**流行乐队排练重点：**\n- 和声声部准确\n- 副歌齐奏统一\n- 编曲细节还原\n- 舞台走位\n- 与观众互动设计\n{{/eq}}\n\n{{#eq bandStyle \"金属乐队\"}}\n**金属乐队排练重点：**\n- 节奏精准度（复杂拍子）\n- 双吉他配合\n- 速度控制（高速riff）\n- 音色调试（失真度）\n- 爆发力与张力\n{{/eq}}\n\n## 排练时间表\n\n**常规排练：**\n- 频率：每周{{practiceFrequency}}次\n- 时长：每次{{practiceDuration}}小时\n- 时间：{{practiceTime}}\n- 地点：{{practiceLocation}}\n\n**排练周期：**{{practiceWeeks}}周\n\n**排练阶段划分：**\n\n**第1-2周：基础磨合**\n- 熟悉曲目编排\n- 确定各声部分工\n- 统一速度、调性\n- 解决技术难点\n\n**第3-4周：整体协作**\n- 合奏完整曲目\n- 调整动态平衡\n- 练习段落转换\n- 增加情感表达\n\n**第5-6周：精细打磨**\n- 抠细节（音色、力度）\n- 增加即兴元素\n- 舞台走位设计\n- 模拟演出环境\n\n**第7-8周：演出准备**\n- 完整彩排\n- 录制演出视频\n- 应急预案演练\n- 心理调整\n\n## 曲目列表\n\n**目标曲目数：**{{songCount}}首\n\n**曲目分类：**\n\n**开场曲：**{{openingSong}}\n- 要求：快节奏、抓耳、提升气氛\n- 排练重点：整齐度、爆发力\n\n**主打歌：**\n1. {{mainSong1}}\n2. {{mainSong2}}\n3. {{mainSong3}}\n- 要求：代表乐队风格、完成度高\n\n**慢歌/抒情：**{{balladSong}}\n- 要求：展现动态对比\n- 排练重点：情感表达、细腻度\n\n**压轴曲：**{{closingSong}}\n- 要求：高潮、难忘\n- 排练重点：爆发力、完整性\n\n**备选曲目：**\n- {{backupSong1}}\n- {{backupSong2}}\n- 用于加演（Encore）或替换\n\n## 单次排练流程\n\n**标准3小时排练流程：**\n\n**00:00-00:15 热身（15分钟）**\n- 调音（Tuning）\n- 音色调试\n- 简单节奏练习\n- 音阶练习（各自）\n\n**00:15-01:00 分部练习（45分钟）**\n- 节奏组（鼓+贝斯）单独练习\n- 和声组（吉他+键盘）单独练习\n- 主唱练习旋律和歌词\n- 解决各自难点\n\n**01:00-02:00 合奏练习（60分钟）**\n- 逐首歌曲完整演奏\n- 暂停讨论问题点\n- 重复练习难点段落\n- 录音记录（用于回听）\n\n**02:00-02:15 休息（15分钟）**\n- 喝水、放松\n- 讨论刚才的问题\n\n**02:15-02:50 整体彩排（35分钟）**\n- 按演出顺序完整演奏\n- 不中断（模拟真实演出）\n- 加入舞台动作\n\n**02:50-03:00 总结（10分钟）**\n- 回顾本次排练\n- 明确下次重点\n- 分配个人练习任务\n\n## 技术分工与配合\n\n### 节奏组配合（鼓+贝斯）\n\n**核心职责：**\n- 建立稳定节奏基础\n- 统一速度（BPM）\n- 明确重拍位置\n\n**练习要点：**\n- 鼓手：底鼓与贝斯根音同步\n- 贝斯：跟随鼓点，锁定Groove\n- 使用节拍器（初期）\n- 眼神交流（段落转换）\n\n**常见问题：**\n- 速度不稳→使用节拍器\n- 贝斯音量过小→调整EQ和音量\n- 不同步→单独合练\n\n### 吉他与键盘配合\n\n**分工原则：**\n- 避免音域重叠\n- 吉他：中频riff、solo\n- 键盘：和声铺底、音效\n\n**编曲注意：**\n- 空间感（不要过满）\n- 你退我进（交替出现）\n- 副歌齐奏（增加力度）\n\n### 主唱与伴奏配合\n\n**伴奏注意：**\n- 主歌：音量降低，突出人声\n- 副歌：音量提升，营造氛围\n- 间奏：乐器solo，主唱休息\n\n**主唱技巧：**\n- 咬字清晰\n- 情感表达\n- 与观众互动（眼神、肢体）\n- 呼吸点位练习\n\n## 音响与设备\n\n**排练室设备清单：**\n- PA音响系统\n- 调音台（Mixer）\n- 监听音箱（Monitor）\n- 麦克风 x{{micCount}}\n- DI盒（贝斯、键盘）\n- 乐器音箱（吉他、贝斯）\n- 鼓组\n- 键盘\n- 效果器\n- 连接线材\n\n**音色调试：**\n\n**吉他音色：**\n- 清音（Clean）：和弦、分解\n- 失真（Distortion）：主奏、solo\n- 过载（Overdrive）：节奏吉他\n- 效果：延迟（Delay）、混响（Reverb）\n\n**贝斯音色：**\n- EQ设置：低频饱满，中频清晰\n- 压缩器（Compressor）：统一音量\n- 避免过多效果（保持干净）\n\n**鼓组调音：**\n- 底鼓：低沉有力\n- 军鼓：清脆响亮\n- 嗵鼓：音高递减\n- 踩镲、crash调整松紧\n\n**人声效果：**\n- 混响（Reverb）：增加空间感\n- 延迟（Delay）：特定氛围\n- 均衡器（EQ）：提升清晰度\n- 压缩（Compressor）：稳定音量\n\n## 演出准备\n\n**舞台走位：**\n- 主唱：中央C位\n- 鼓手：后方中央（固定）\n- 吉他手：舞台左侧/右侧\n- 贝斯手：另一侧\n- 键盘手：侧后方\n\n**视觉设计：**\n- 统一服装风格（{{stageOutfit}}）\n- 灯光配合（摇滚：强烈；爵士：柔和）\n- 舞台道具（根据风格）\n\n**互动设计：**\n- 主唱话术准备\n- 鼓手solo段\n- 吉他手solo段\n- 观众合唱环节\n- 安可曲（Encore）\n\n**应急预案：**\n- 备用琴弦、鼓棒、电池\n- 备用线材\n- 备用麦克风\n- 设备故障处理流程\n- 成员临时缺席B计划\n\n## 录音与复盘\n\n**排练录音：**\n- 使用手机/录音设备记录\n- 每次排练录音存档\n- 对比前后进步\n\n**复盘要点：**\n1. 听回录音，标注问题\n2. 讨论改进方案\n3. 记录在排练日志\n4. 下次重点解决\n\n**排练日志模板：**\n```\n日期：{{date}}\n出席：{{attendance}}\n曲目：{{songsToday}}\n进度：{{progress}}\n问题：{{issues}}\n下次重点：{{nextFocus}}\n```\n\n## 个人练习任务\n\n**每位成员的个人功课：**\n\n**主唱：**\n- 每日30分钟发声练习\n- 熟记歌词（背诵）\n- 研究原唱处理方式\n- 气息控制练习\n\n**吉他手：**\n- 每日1小时技术练习\n- 熟练riff和solo\n- 练习音色调节\n- 学习即兴\n\n**贝斯手：**\n- 每日节奏练习\n- 加强手指力度\n- 熟悉和声走向\n- 练习指弹/拨片\n\n**鼓手：**\n- 每日鼓垫练习（如无真鼓）\n- 节奏变化练习\n- 体能训练（耐力）\n- 研究不同风格节奏型\n\n**键盘手：**\n- 和弦练习\n- 音色preset准备\n- 熟悉编曲细节\n- 视奏能力提升\n\n## 团队建设\n\n**沟通原则：**\n- 尊重每个人的意见\n- 建设性批评（不人身攻击）\n- 民主投票决定分歧\n- 定期团队会议\n\n**角色分工：**\n- 队长/发起人：{{bandLeader}}\n- 音乐总监：{{musicalDirector}}\n- 设备管理：{{equipmentManager}}\n- 行政/联络：{{coordinator}}\n\n**激励机制：**\n- 设定阶段性目标\n- 庆祝小成就\n- 定期团建活动\n- 分享成功经验\n\n## 演出后总结\n\n**演出评估：**\n- 观看演出录像\n- 成员自我评价\n- 观众反馈收集\n- 媒体评价（如有）\n\n**持续改进：**\n- 总结优点与不足\n- 制定下阶段计划\n- 引入新曲目\n- 尝试新风格元素",
+  "variables_schema": [
+    {
+      "name": "bandName",
+      "label": "乐队名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "bandStyle",
+      "label": "乐队风格",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "摇滚乐队",
+          "label": "摇滚乐队"
+        },
+        {
+          "value": "流行乐队",
+          "label": "流行乐队"
+        },
+        {
+          "value": "爵士乐队",
+          "label": "爵士乐队"
+        },
+        {
+          "value": "金属乐队",
+          "label": "金属乐队"
+        },
+        {
+          "value": "朋克乐队",
+          "label": "朋克乐队"
+        },
+        {
+          "value": "布鲁斯乐队",
+          "label": "布鲁斯乐队"
+        }
+      ]
+    },
+    {
+      "name": "practiceGoal",
+      "label": "排练目标",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "演出准备",
+          "label": "演出准备"
+        },
+        {
+          "value": "录音准备",
+          "label": "录音准备"
+        },
+        {
+          "value": "比赛准备",
+          "label": "比赛准备"
+        },
+        {
+          "value": "常规练习",
+          "label": "常规练习"
+        }
+      ]
+    },
+    {
+      "name": "practiceFrequency",
+      "label": "每周排练次数",
+      "type": "number",
+      "required": false,
+      "default": 2
+    },
+    {
+      "name": "practiceDuration",
+      "label": "每次排练时长（小时）",
+      "type": "number",
+      "required": false,
+      "default": 3
+    },
+    {
+      "name": "songCount",
+      "label": "目标曲目数",
+      "type": "number",
+      "required": false,
+      "default": 10
+    }
+  ],
+  "file_structure": {
+    "root": "乐队排练-{{bandName}}",
+    "files": [
+      {
+        "path": "排练计划.md",
+        "type": "markdown"
+      },
+      {
+        "path": "曲目清单.md",
+        "type": "markdown"
+      },
+      {
+        "path": "排练日志/",
+        "type": "folder"
+      },
+      {
+        "path": "录音存档/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

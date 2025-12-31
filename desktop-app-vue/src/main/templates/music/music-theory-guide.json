@@ -1,0 +1,99 @@
+{
+  "id": "tpl_music_theory_003",
+  "name": "music_theory_guide",
+  "display_name": "音乐理论学习指南",
+  "description": "系统化的音乐理论学习路径，从基础乐理到高级和声编曲",
+  "icon": "🎼",
+  "category": "music",
+  "subcategory": "education",
+  "tags": [
+    "音乐理论",
+    "乐理",
+    "和声",
+    "编曲"
+  ],
+  "project_type": "document",
+  "prompt_template": "音乐理论学习指南\n\n**学习信息：**\n- 学习目标：{{learningGoal}}\n- 当前水平：{{currentLevel}}\n- 学习时长：{{studyDuration}}周\n- 乐器基础：{{instrumentBackground}}\n\n# 音乐理论系统学习指南\n\n## 学习路径\n\n**当前水平：**{{currentLevel}}\n\n{{#eq currentLevel \"零基础\"}}\n**零基础学习路径（12周）：**\n\nWeek 1-2：五线谱与音符\nWeek 3-4：节奏与拍号\nWeek 5-6：音程与音阶\nWeek 7-8：和弦基础\nWeek 9-10：调性与调号\nWeek 11-12：基础和声进行\n{{/eq}}\n\n{{#eq currentLevel \"初级\"}}\n**初级学习路径（12周）：**\n\nWeek 1-3：大小调体系深化\nWeek 4-6：三和弦与七和弦\nWeek 7-9：和声进行与终止式\nWeek 10-12：基础曲式分析\n{{/eq}}\n\n{{#eq currentLevel \"中级\"}}\n**中级学习路径（12周）：**\n\nWeek 1-3：高级和声（离调、转调）\nWeek 4-6：爵士和声基础\nWeek 7-9：配器法基础\nWeek 10-12：流行音乐编曲\n{{/eq}}\n\n## 第一部分：基础乐理\n\n### 1. 五线谱与音符\n\n**五线谱基础：**\n- 五条线、四个间\n- 高音谱号（G谱号）：中央C在下加一线\n- 低音谱号（F谱号）：中央C在上加一线\n- 中音谱号（C谱号）：用于中提琴\n\n**音符时值：**\n```\n全音符  ♩  =  4拍\n二分音符 ♩  =  2拍\n四分音符 ♩  =  1拍\n八分音符 ♪  =  0.5拍\n十六分音符   =  0.25拍\n```\n\n**休止符：**\n- 全休止符：4拍\n- 二分休止符：2拍\n- 四分休止符：1拍\n- 以此类推...\n\n**附点音符：**\n- 附点 = 原时值的1.5倍\n- 附点四分音符 = 1.5拍\n- 附点二分音符 = 3拍\n\n**练习任务：**\n1. 每天识谱15分钟（五线谱App）\n2. 抄写简单旋律（《小星星》《欢乐颂》）\n3. 打拍子练习节奏\n\n### 2. 音程（Intervals）\n\n**音程定义：**\n两个音之间的距离\n\n**音程度数：**\n- 一度（同度）：同一个音\n- 二度：相邻两音（C-D）\n- 三度：隔一个音（C-E）\n- 四度：C-F\n- 五度：C-G\n- 六度：C-A\n- 七度：C-B\n- 八度：C-C'\n\n**音程性质：**\n- 大音程（Major）：大二度、大三度、大六度、大七度\n- 小音程（minor）：小二度、小三度、小六度、小七度\n- 纯音程（Perfect）：纯一度、纯四度、纯五度、纯八度\n- 增音程（Augmented）：增四度（C-F#）\n- 减音程（Diminished）：减五度（C-Gb）\n\n**半音全音：**\n- 半音：最小音程单位（钢琴相邻键）\n- 全音：2个半音\n- 大二度 = 全音（C-D）\n- 小二度 = 半音（E-F, B-C）\n\n**音程练习：**\n1. 在钢琴上弹奏各种音程\n2. 听力训练：盲听音程识别\n3. 唱音程（视唱练耳）\n\n### 3. 音阶（Scales）\n\n**大调音阶（Major Scale）：**\n\n**C大调音阶：**\n```\nC  D  E  F  G  A  B  C\n全 全 半 全 全 全 半\n```\n\n**音阶构成口诀：**\n\"全全半全全全半\"（大调音阶的音程关系）\n\n**其他常用大调：**\n- G大调（1个#）：G A B C D E F# G\n- D大调（2个#）：D E F# G A B C# D\n- F大调（1个♭）：F G A B♭ C D E F\n\n**小调音阶（Minor Scale）：**\n\n**自然小调：**\n```\nA  B  C  D  E  F  G  A\n全 半 全 全 半 全 全\n```\n\n**和声小调：**\n第7音升高半音（导音）\n```\nA  B  C  D  E  F  G# A\n```\n\n**旋律小调：**\n上行：6、7音升高\n下行：还原为自然小调\n\n**五声音阶（中国传统）：**\n```\nC  D  E  G  A  C\n宫 商 角 徵 羽\n```\n\n**练习：**\n1. 弹奏12个大调音阶\n2. 弹奏12个小调音阶（自然、和声、旋律）\n3. 唱音阶（Do Re Mi...）\n\n### 4. 调号与调性\n\n**升号调（# Sharps）：**\n- C大调：无升降号\n- G大调：1个# (F#)\n- D大调：2个# (F#, C#)\n- A大调：3个# (F#, C#, G#)\n- E大调：4个# (F#, C#, G#, D#)\n- B大调：5个# (F#, C#, G#, D#, A#)\n\n**降号调（♭ Flats）：**\n- F大调：1个♭ (B♭)\n- B♭大调：2个♭ (B♭, E♭)\n- E♭大调：3个♭ (B♭, E♭, A♭)\n- A♭大调：4个♭ (B♭, E♭, A♭, D♭)\n\n**关系大小调：**\n共用调号的大调和小调\n- C大调 ↔ A小调（无升降号）\n- G大调 ↔ E小调（1个#）\n- F大调 ↔ D小调（1个♭）\n\n**五度圈（Circle of Fifths）：**\n顺时针：增加升号（G-D-A-E-B-F#-C#）\n逆时针：增加降号（F-B♭-E♭-A♭-D♭-G♭-C♭）\n\n## 第二部分：和弦理论\n\n### 1. 三和弦（Triads）\n\n**大三和弦（Major）：**\n构成：根音 + 大三度 + 纯五度\n例：C = C + E + G\n音响：明亮、稳定\n\n**小三和弦（minor）：**\n构成：根音 + 小三度 + 纯五度\n例：Cm = C + E♭ + G\n音响：忧郁、柔和\n\n**增三和弦（Augmented）：**\n构成：根音 + 大三度 + 增五度\n例：Caug = C + E + G#\n音响：紧张、悬浮\n\n**减三和弦（Diminished）：**\n构成：根音 + 小三度 + 减五度\n例：Cdim = C + E♭ + G♭\n音响：不稳定、紧张\n\n### 2. 七和弦（Seventh Chords）\n\n**大七和弦（Major 7）：**\nCmaj7 = C + E + G + B\n用途：爵士、流行抒情\n\n**属七和弦（Dominant 7）：**\nC7 = C + E + G + B♭\n用途：布鲁斯、摇滚、解决到I级\n\n**小七和弦（minor 7）：**\nCm7 = C + E♭ + G + B♭\n用途：爵士、R&B\n\n**半减七和弦（minor 7♭5）：**\nCm7♭5 = C + E♭ + G♭ + B♭\n用途：爵士II-V-I进行\n\n**减七和弦（Diminished 7）：**\nCdim7 = C + E♭ + G♭ + B♭♭(A)\n用途：过渡和弦、增加张力\n\n### 3. 和弦转位\n\n**原位：**根音在低音\nC = C E G\n\n**第一转位：**三音在低音\nC/E = E G C\n\n**第二转位：**五音在低音\nC/G = G C E\n\n**第三转位（七和弦）：**七音在低音\nCmaj7/B = B C E G\n\n## 第三部分：和声进行\n\n### 1. 调内和弦（Diatonic Chords）\n\n**C大调和弦：**\n```\nI    ii   iii  IV   V    vi   vii°\nC    Dm   Em   F    G    Am   Bdim\n大   小   小   大   大   小   减\n```\n\n**功能分类：**\n- 主功能（Tonic）：I, vi（稳定）\n- 下属功能（Subdominant）：IV, ii（准备）\n- 属功能（Dominant）：V, vii°（紧张、回到主和弦）\n\n### 2. 经典和声进行\n\n**流行音乐四大进行：**\n\n**1. I-V-vi-IV（\"卡农进行\"）：**\nC - G - Am - F\n使用歌曲：《Let It Be》《Someone Like You》\n特点：最常用，百搭\n\n**2. I-vi-IV-V（\"50年代进行\"）：**\nC - Am - F - G\n使用歌曲：《Stand By Me》\n特点：怀旧、经典\n\n**3. vi-IV-I-V：**\nAm - F - C - G\n使用歌曲：《Apologize》\n特点：从小调开始，情绪化\n\n**4. I-IV-vi-V：**\nC - F - Am - G\n特点：温暖、舒适\n\n**爵士常用进行：**\n\n**II-V-I进行：**\nDm7 - G7 - Cmaj7\n爵士最核心进行\n\n**I-VI-II-V（\"Rhythm Changes\"）：**\nCmaj7 - A7 - Dm7 - G7\n\n### 3. 离调与转调\n\n**副属和弦（Secondary Dominant）：**\n临时解决到非主和弦的属和弦\n例：D7 → G（在C大调中，D7是V/V）\n\n**离调和弦：**\n借用其他调的和弦\n例：C大调中使用E7（借自A小调）\n\n**转调技巧：**\n- 共同和弦转调\n- 近关系调转调（五度圈相邻）\n- 离调转调（增加戏剧性）\n\n## 第四部分：节奏与律动\n\n### 拍号（Time Signature）\n\n**常用拍号：**\n- 4/4：四四拍（最常用）\n- 3/4：三四拍（华尔兹）\n- 6/8：六八拍（复合拍）\n- 5/4：五四拍（Take Five）\n- 7/8：七八拍（前卫、实验）\n\n**节奏型：**\n- 强拍、弱拍\n- 切分音（Syncopation）：强调弱拍\n- 重音移位（Accent Shift）\n\n## 第五部分：曲式分析\n\n**基础曲式：**\n\n**一段体（A）：**\n单一主题\n\n**二段体（AB）：**\n对比的两个段落\n\n**三段体（ABA）：**\n再现式（中间对比段）\n\n**回旋曲式（ABACA）：**\n主题反复出现\n\n**奏鸣曲式：**\n呈示部 - 展开部 - 再现部\n\n**流行歌曲结构：**\n```\n前奏（Intro）\n主歌（Verse 1）\n副歌（Chorus）\n主歌（Verse 2）\n副歌（Chorus）\n桥段（Bridge）\n副歌（Chorus）\n尾奏（Outro）\n```\n\n## 学习建议\n\n**每日练习计划：**\n- 识谱练习：15分钟\n- 音阶练习：20分钟（各调音阶）\n- 和弦练习：20分钟（弹奏+听辨）\n- 视唱练耳：15分钟\n- 理论学习：30分钟（阅读+做题）\n\n**推荐教材：**\n- 《基本乐理简明教程》李重光\n- 《和声学教程》斯波索宾\n- 《爵士乐理》Mark Levine\n- 《流行音乐编曲》\n\n**推荐App/网站：**\n- 视唱练耳：EarMaster, Perfect Ear\n- 识谱：Flashnote Derby\n- 和弦工具：Chordbot\n- 在线教程：musictheory.net\n\n**进阶路径：**\n1. 完成基础乐理（3个月）\n2. 和声学深化（6个月）\n3. 曲式分析（3个月）\n4. 配器法（6个月）\n5. 作曲实践（持续）\n\n## 实践应用\n\n**分析歌曲：**\n选择喜欢的歌曲\n1. 确定调性\n2. 标注和弦进行\n3. 分析曲式结构\n4. 研究旋律走向\n5. 学习编曲手法\n\n**创作练习：**\n1. 使用学过的和声进行写旋律\n2. 为旋律配和声\n3. 尝试不同风格\n4. 模仿喜欢的音乐家",
+  "variables_schema": [
+    {
+      "name": "learningGoal",
+      "label": "学习目标",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "作曲编曲",
+          "label": "作曲编曲"
+        },
+        {
+          "value": "爵士即兴",
+          "label": "爵士即兴"
+        },
+        {
+          "value": "流行音乐制作",
+          "label": "流行音乐制作"
+        },
+        {
+          "value": "古典音乐分析",
+          "label": "古典音乐分析"
+        },
+        {
+          "value": "提升演奏水平",
+          "label": "提升演奏水平"
+        }
+      ]
+    },
+    {
+      "name": "currentLevel",
+      "label": "当前水平",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "零基础",
+          "label": "零基础"
+        },
+        {
+          "value": "初级",
+          "label": "初级（认识五线谱）"
+        },
+        {
+          "value": "中级",
+          "label": "中级（掌握基础和声）"
+        },
+        {
+          "value": "高级",
+          "label": "高级（可独立编曲）"
+        }
+      ]
+    },
+    {
+      "name": "studyDuration",
+      "label": "学习周期（周）",
+      "type": "number",
+      "required": false,
+      "default": 12
+    }
+  ],
+  "file_structure": {
+    "root": "音乐理论学习",
+    "files": [
+      {
+        "path": "学习指南.md",
+        "type": "markdown"
+      },
+      {
+        "path": "练习题/",
+        "type": "folder"
+      },
+      {
+        "path": "参考曲目/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
