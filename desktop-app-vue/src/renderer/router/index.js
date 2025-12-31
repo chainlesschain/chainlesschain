@@ -306,6 +306,12 @@ const routes = [
         component: () => import('../pages/OrganizationActivityLogPage.vue'),
         meta: { title: '活动日志' },
       },
+      {
+        path: 'org/:orgId/knowledge',
+        name: 'OrganizationKnowledge',
+        component: () => import('../pages/OrganizationKnowledgePage.vue'),
+        meta: { title: '组织知识库' },
+      },
     ],
   },
 ];
