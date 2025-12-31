@@ -6,39 +6,128 @@
   "icon": "🟢",
   "category": "code-project",
   "subcategory": "backend",
-  "tags": ["Node.js", "API", "后端", "Express"],
+  "tags": [
+    "Node.js",
+    "API",
+    "后端",
+    "Express"
+  ],
   "project_type": "app",
   "prompt_template": "请帮我生成Node.js API服务项目，要求:\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- Web框架：{{framework}}\n- 数据库：{{database}}\n- 认证方式：{{authMethod}}\n- TypeScript：{{useTypeScript}}\n\n**项目结构：**\n\n```\n{{projectName}}/\n├── src/\n│   ├── app.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   ├── server.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │\n│   ├── config/            # 配置文件\n│   │   ├── index.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n{{#eq database \"MongoDB\"}}\n│   │   └── mongodb.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n{{/eq}}\n{{#eq database \"PostgreSQL\"}}\n│   │   └── postgres.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n{{/eq}}\n{{#eq database \"MySQL\"}}\n│   │   └── mysql.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n{{/eq}}\n│   │\n│   ├── routes/           # 路由定义\n│   │   ├── index.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   ├── auth.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   ├── users.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   └── api.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │\n│   ├── controllers/      # 控制器\n│   │   ├── authController.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   └── userController.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │\n│   ├── models/           # 数据模型\n{{#eq database \"MongoDB\"}}\n│   │   └── User.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}  # Mongoose模型\n{{/eq}}\n{{#eq database \"PostgreSQL\"}}\n│   │   └── User.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}  # Sequelize/Prisma模型\n{{/eq}}\n│   │\n│   ├── services/         # 业务逻辑\n│   │   ├── authService.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   └── userService.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │\n│   ├── middlewares/      # 中间件\n│   │   ├── auth.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   ├── errorHandler.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   ├── validator.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   └── logger.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │\n│   ├── utils/            # 工具函数\n│   │   ├── logger.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   └── response.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │\n{{#eq useTypeScript \"是\"}}\n│   ├── types/            # TypeScript类型\n│   │   └── index.ts\n{{/eq}}\n│   │\n│   └── tests/            # 测试文件\n│       ├── unit/\n│       └── integration/\n│\n├── package.json\n{{#eq useTypeScript \"是\"}}\n├── tsconfig.json\n{{/eq}}\n├── .env.example\n├── .gitignore\n├── .eslintrc.js\n├── .prettierrc\n├── nodemon.json\n└── README.md\n```\n\n**package.json：**\n\n```json\n{\n  \"name\": \"{{projectName}}\",\n  \"version\": \"1.0.0\",\n  \"description\": \"{{projectDescription}}\",\n  \"main\": \"{{#eq useTypeScript \"是\"}}dist/server.js{{else}}src/server.js{{/eq}}\",\n  \"scripts\": {\n{{#eq useTypeScript \"是\"}}\n    \"dev\": \"nodemon --exec ts-node src/server.ts\",\n    \"build\": \"tsc\",\n    \"start\": \"node dist/server.js\",\n{{else}}\n    \"dev\": \"nodemon src/server.js\",\n    \"start\": \"node src/server.js\",\n{{/eq}}\n    \"test\": \"jest\",\n    \"test:watch\": \"jest --watch\",\n    \"lint\": \"eslint src/**/*.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\",\n    \"format\": \"prettier --write \\\"src/**/*.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\\\"\"\n  },\n  \"dependencies\": {\n{{#eq framework \"Express\"}}\n    \"express\": \"^4.18.0\",\n    \"cors\": \"^2.8.5\",\n    \"helmet\": \"^7.1.0\",\n{{/eq}}\n{{#eq framework \"Koa\"}}\n    \"koa\": \"^2.14.0\",\n    \"koa-router\": \"^12.0.0\",\n    \"koa-bodyparser\": \"^4.4.0\",\n    \"@koa/cors\": \"^4.0.0\",\n{{/eq}}\n{{#eq framework \"Fastify\"}}\n    \"fastify\": \"^4.25.0\",\n    \"@fastify/cors\": \"^8.4.0\",\n    \"@fastify/helmet\": \"^11.1.0\",\n{{/eq}}\n    \"dotenv\": \"^16.3.0\",\n{{#eq database \"MongoDB\"}}\n    \"mongoose\": \"^8.0.0\",\n{{/eq}}\n{{#eq database \"PostgreSQL\"}}\n    \"pg\": \"^8.11.0\",\n    \"sequelize\": \"^6.35.0\",\n{{/eq}}\n{{#eq database \"MySQL\"}}\n    \"mysql2\": \"^3.6.0\",\n    \"sequelize\": \"^6.35.0\",\n{{/eq}}\n{{#eq authMethod \"JWT\"}}\n    \"jsonwebtoken\": \"^9.0.0\",\n    \"bcrypt\": \"^5.1.0\",\n{{/eq}}\n{{#eq authMethod \"OAuth2.0\"}}\n    \"passport\": \"^0.7.0\",\n    \"passport-oauth2\": \"^1.7.0\",\n{{/eq}}\n    \"express-validator\": \"^7.0.0\",\n    \"winston\": \"^3.11.0\"\n  },\n  \"devDependencies\": {\n{{#eq useTypeScript \"是\"}}\n    \"@types/node\": \"^20.10.0\",\n    \"@types/express\": \"^4.17.0\",\n    \"@types/cors\": \"^2.8.0\",\n    \"@types/bcrypt\": \"^5.0.0\",\n    \"@types/jsonwebtoken\": \"^9.0.0\",\n    \"typescript\": \"^5.3.0\",\n    \"ts-node\": \"^10.9.0\",\n{{/eq}}\n    \"nodemon\": \"^3.0.0\",\n    \"eslint\": \"^8.55.0\",\n    \"prettier\": \"^3.1.0\",\n    \"jest\": \"^29.7.0\",\n    \"supertest\": \"^6.3.0\"\n  }\n}\n```\n\n**app.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}（核心应用）：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\n{{#eq framework \"Express\"}}\nimport express from 'express'\nimport cors from 'cors'\nimport helmet from 'helmet'\nimport routes from './routes'\nimport { errorHandler } from './middlewares/errorHandler'\nimport { logger } from './middlewares/logger'\n\nconst app = express()\n\n// 中间件\napp.use(helmet())\napp.use(cors())\napp.use(express.json())\napp.use(express.urlencoded({ extended: true }))\napp.use(logger)\n\n// 路由\napp.use('/api', routes)\n\n// 健康检查\napp.get('/health', (req, res) => {\n  res.json({ status: 'ok', timestamp: new Date().toISOString() })\n})\n\n// 错误处理\napp.use(errorHandler)\n\nexport default app\n{{/eq}}\n{{#eq framework \"Koa\"}}\nimport Koa from 'koa'\nimport Router from 'koa-router'\nimport bodyParser from 'koa-bodyparser'\nimport cors from '@koa/cors'\nimport { errorHandler } from './middlewares/errorHandler'\n\nconst app = new Koa()\nconst router = new Router()\n\n// 中间件\napp.use(errorHandler)\napp.use(cors())\napp.use(bodyParser())\n\n// 健康检查\nrouter.get('/health', (ctx) => {\n  ctx.body = { status: 'ok', timestamp: new Date().toISOString() }\n})\n\napp.use(router.routes())\napp.use(router.allowedMethods())\n\nexport default app\n{{/eq}}\n```\n\n**routes/users.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}（示例路由）：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\n{{#eq framework \"Express\"}}\nimport { Router } from 'express'\nimport { body } from 'express-validator'\nimport * as userController from '../controllers/userController'\nimport { authMiddleware } from '../middlewares/auth'\n\nconst router = Router()\n\n// 公开路由\nrouter.post(\n  '/register',\n  [\n    body('email').isEmail(),\n    body('password').isLength({ min: 6 })\n  ],\n  userController.register\n)\n\nrouter.post('/login', userController.login)\n\n// 需要认证的路由\nrouter.get('/profile', authMiddleware, userController.getProfile)\nrouter.put('/profile', authMiddleware, userController.updateProfile)\n\nexport default router\n{{/eq}}\n```\n\n**controllers/userController.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\nimport { Request, Response, NextFunction } from 'express'\nimport * as userService from '../services/userService'\nimport { validationResult } from 'express-validator'\n\nexport const register = async (req: Request, res: Response, next: NextFunction) => {\n  try {\n    const errors = validationResult(req)\n    if (!errors.isEmpty()) {\n      return res.status(400).json({ errors: errors.array() })\n    }\n\n    const user = await userService.createUser(req.body)\n    res.status(201).json({ success: true, data: user })\n  } catch (error) {\n    next(error)\n  }\n}\n\nexport const getProfile = async (req: Request, res: Response, next: NextFunction) => {\n  try {\n    const user = await userService.getUserById(req.user.id)\n    res.json({ success: true, data: user })\n  } catch (error) {\n    next(error)\n  }\n}\n```\n\n**middlewares/auth.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}（JWT认证）：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\n{{#eq authMethod \"JWT\"}}\nimport jwt from 'jsonwebtoken'\nimport { Request, Response, NextFunction } from 'express'\n\nexport const authMiddleware = (req: Request, res: Response, next: NextFunction) => {\n  const token = req.headers.authorization?.split(' ')[1]\n  \n  if (!token) {\n    return res.status(401).json({ error: 'No token provided' })\n  }\n\n  try {\n    const decoded = jwt.verify(token, process.env.JWT_SECRET!)\n    req.user = decoded\n    next()\n  } catch (error) {\n    res.status(401).json({ error: 'Invalid token' })\n  }\n}\n{{/eq}}\n```\n\n**.env.example：**\n\n```\n# 应用配置\nNODE_ENV=development\nPORT=3000\n\n# 数据库\n{{#eq database \"MongoDB\"}}\nMONGODB_URI=mongodb://localhost:27017/{{projectName}}\n{{/eq}}\n{{#eq database \"PostgreSQL\"}}\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME={{projectName}}\nDB_USER=postgres\nDB_PASSWORD=password\n{{/eq}}\n{{#eq database \"MySQL\"}}\nDB_HOST=localhost\nDB_PORT=3306\nDB_NAME={{projectName}}\nDB_USER=root\nDB_PASSWORD=password\n{{/eq}}\n\n# JWT\n{{#eq authMethod \"JWT\"}}\nJWT_SECRET=your-secret-key-change-this\nJWT_EXPIRES_IN=7d\n{{/eq}}\n\n# 日志\nLOG_LEVEL=info\n```\n\n**README.md：**\n\n```markdown\n# {{projectName}}\n\n{{projectDescription}}\n\n## 技术栈\n\n- Node.js 18+\n{{#eq useTypeScript \"是\"}}\n- TypeScript 5\n{{/eq}}\n- {{framework}}\n- {{database}}\n{{#eq authMethod \"JWT\"}}\n- JWT认证\n{{/eq}}\n\n## API接口\n\n### 认证接口\n\n- `POST /api/auth/register` - 用户注册\n- `POST /api/auth/login` - 用户登录\n\n### 用户接口\n\n- `GET /api/users/profile` - 获取用户信息（需认证）\n- `PUT /api/users/profile` - 更新用户信息（需认证）\n\n## 快速开始\n\n### 安装依赖\n\n```bash\nnpm install\n```\n\n### 配置环境变量\n\n```bash\ncp .env.example .env\n# 编辑.env文件，填入实际配置\n```\n\n### 启动数据库\n\n{{#eq database \"MongoDB\"}}\n```bash\n# 使用Docker启动MongoDB\ndocker run -d -p 27017:27017 --name mongo mongo:latest\n```\n{{/eq}}\n{{#eq database \"PostgreSQL\"}}\n```bash\n# 使用Docker启动PostgreSQL\ndocker run -d -p 5432:5432 -e POSTGRES_PASSWORD=password --name postgres postgres:16\n```\n{{/eq}}\n\n### 运行\n\n```bash\n# 开发模式\nnpm run dev\n\n# 生产模式\n{{#eq useTypeScript \"是\"}}\nnpm run build\n{{/eq}}\nnpm start\n```\n\n### 测试\n\n```bash\nnpm test\n```\n\n## API文档\n\n启动服务后访问: http://localhost:3000/api-docs\n\n## 开发建议\n\n1. **接口设计**\n   - RESTful API设计规范\n   - 统一的响应格式\n   - 完善的错误处理\n\n2. **安全性**\n   - 使用Helmet防护\n   - 输入验证\n   - SQL注入防护\n   - XSS防护\n\n3. **性能优化**\n   - 数据库连接池\n   - Redis缓存\n   - 请求限流\n\n4. **日志记录**\n   - 使用Winston记录日志\n   - 区分不同级别日志\n   - 生产环境日志轮转\n\n## 部署\n\n### Docker部署\n\n```bash\ndocker build -t {{projectName}} .\ndocker run -p 3000:3000 {{projectName}}\n```\n\n### PM2部署\n\n```bash\npm2 start ecosystem.config.js\n```\n\n## 许可证\n\nMIT\n```\n\n**.gitignore：**\n\n```\nnode_modules/\n{{#eq useTypeScript \"是\"}}\ndist/\n{{/eq}}\n.env\n*.log\ncoverage/\n.DS_Store\n```\n\n**开发最佳实践：**\n\n1. **代码组织**\n   - MVC架构分层\n   - 单一职责原则\n   - 依赖注入\n\n2. **错误处理**\n   - 统一错误处理中间件\n   - 自定义错误类\n   - 详细的错误日志\n\n3. **数据验证**\n   - 使用express-validator\n   - 输入白名单验证\n   - DTO模式\n\n4. **API版本控制**\n   - URL版本：/api/v1/users\n   - 向后兼容\n\n5. **文档**\n   - 使用Swagger/OpenAPI\n   - 接口示例\n   - 错误码说明",
   "variables_schema": [
-    {"name": "projectName", "label": "项目名称", "type": "string", "required": true, "placeholder": "例如：my-api-service"},
-    {"name": "projectDescription", "label": "项目描述", "type": "string", "required": false, "default": "基于Node.js的RESTful API服务", "placeholder": "简短描述项目功能"},
-    {"name": "framework", "label": "Web框架", "type": "select", "required": true, "options": [
-      {"value": "Express", "label": "Express（最流行）"},
-      {"value": "Koa", "label": "Koa（现代化）"},
-      {"value": "Fastify", "label": "Fastify（高性能）"}
-    ]},
-    {"name": "database", "label": "数据库", "type": "select", "required": true, "options": [
-      {"value": "MongoDB", "label": "MongoDB"},
-      {"value": "PostgreSQL", "label": "PostgreSQL"},
-      {"value": "MySQL", "label": "MySQL"}
-    ]},
-    {"name": "authMethod", "label": "认证方式", "type": "select", "required": false, "default": "JWT", "options": [
-      {"value": "JWT", "label": "JWT"},
-      {"value": "OAuth2.0", "label": "OAuth 2.0"},
-      {"value": "Session", "label": "Session"}
-    ]},
-    {"name": "useTypeScript", "label": "使用TypeScript", "type": "select", "required": false, "default": "是", "options": [
-      {"value": "是", "label": "使用TypeScript"},
-      {"value": "否", "label": "使用JavaScript"}
-    ]}
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：my-api-service"
+    },
+    {
+      "name": "projectDescription",
+      "label": "项目描述",
+      "type": "string",
+      "required": false,
+      "default": "基于Node.js的RESTful API服务",
+      "placeholder": "简短描述项目功能"
+    },
+    {
+      "name": "framework",
+      "label": "Web框架",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "Express",
+          "label": "Express（最流行）"
+        },
+        {
+          "value": "Koa",
+          "label": "Koa（现代化）"
+        },
+        {
+          "value": "Fastify",
+          "label": "Fastify（高性能）"
+        }
+      ]
+    },
+    {
+      "name": "database",
+      "label": "数据库",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "MongoDB",
+          "label": "MongoDB"
+        },
+        {
+          "value": "PostgreSQL",
+          "label": "PostgreSQL"
+        },
+        {
+          "value": "MySQL",
+          "label": "MySQL"
+        }
+      ]
+    },
+    {
+      "name": "authMethod",
+      "label": "认证方式",
+      "type": "select",
+      "required": false,
+      "default": "JWT",
+      "options": [
+        {
+          "value": "JWT",
+          "label": "JWT"
+        },
+        {
+          "value": "OAuth2.0",
+          "label": "OAuth 2.0"
+        },
+        {
+          "value": "Session",
+          "label": "Session"
+        }
+      ]
+    },
+    {
+      "name": "useTypeScript",
+      "label": "使用TypeScript",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "使用TypeScript"
+        },
+        {
+          "value": "否",
+          "label": "使用JavaScript"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "{{projectName}}",
     "files": [
-      {"path": "README.md", "type": "markdown"},
-      {"path": "package.json", "type": "document"},
-      {"path": ".env.example", "type": "document"},
-      {"path": ".gitignore", "type": "document"}
+      {
+        "path": "README.md",
+        "type": "markdown"
+      },
+      {
+        "path": "package.json",
+        "type": "document"
+      },
+      {
+        "path": ".env.example",
+        "type": "document"
+      },
+      {
+        "path": ".gitignore",
+        "type": "document"
+      }
     ]
   },
   "default_files": [],
@@ -47,5 +136,17 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_code_development",
+    "skill_project_management"
+  ],
+  "required_tools": [
+    "tool_create_project_structure",
+    "tool_git_init",
+    "tool_file_writer",
+    "tool_npm_project_setup",
+    "tool_dockerfile_generator"
+  ],
+  "execution_engine": "code"
 }

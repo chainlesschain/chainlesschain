@@ -6,33 +6,98 @@
   "icon": "🎨",
   "category": "design",
   "subcategory": "ui",
-  "tags": ["UI设计", "设计规范", "组件库", "设计系统"],
+  "tags": [
+    "UI设计",
+    "设计规范",
+    "组件库",
+    "设计系统"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我制定UI设计规范：\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 产品类型：{{productType}}\n- 设计风格：{{designStyle}}\n- 目标平台：{{platform}}\n\n# UI设计规范\n\n## 色彩系统\n\n**主色调：**{{primaryColor}}\n**辅助色：**{{secondaryColor}}\n**强调色：**{{accentColor}}\n\n**灰阶：**\n- Gray-50: {{gray50}}\n- Gray-100: {{gray100}}\n- Gray-900: {{gray900}}\n\n## 字体规范\n\n**字体家族：**\n- 标题：{{titleFont}}\n- 正文：{{bodyFont}}\n- 代码：{{codeFont}}\n\n**字号体系：**\n- H1: {{h1Size}}px\n- H2: {{h2Size}}px\n- H3: {{h3Size}}px\n- Body: {{bodySize}}px\n- Small: {{smallSize}}px\n\n## 间距系统\n\n**基础单位：**{{baseUnit}}px\n\n- xs: {{spacingXS}}px\n- sm: {{spacingSM}}px\n- md: {{spacingMD}}px\n- lg: {{spacingLG}}px\n- xl: {{spacingXL}}px\n\n## 组件规范\n\n### 按钮\n- 主按钮：{{primaryButton}}\n- 次按钮：{{secondaryButton}}\n- 文字按钮：{{textButton}}\n\n### 表单\n- 输入框高度：{{inputHeight}}px\n- 圆角：{{borderRadius}}px\n\n## 图标规范\n\n**图标库：**{{iconLibrary}}\n**尺寸：**{{iconSizes}}",
   "variables_schema": [
-    {"name": "projectName", "label": "项目名称", "type": "string", "required": true},
-    {"name": "productType", "label": "产品类型", "type": "select", "required": false, "options": [
-      {"value": "Web", "label": "网页应用"},
-      {"value": "Mobile", "label": "移动应用"},
-      {"value": "Desktop", "label": "桌面应用"}
-    ]},
-    {"name": "designStyle", "label": "设计风格", "type": "select", "required": false, "options": [
-      {"value": "扁平化", "label": "扁平化"},
-      {"value": "拟物化", "label": "拟物化"},
-      {"value": "Material", "label": "Material Design"},
-      {"value": "简约", "label": "极简主义"}
-    ]},
-    {"name": "platform", "label": "目标平台", "type": "string", "required": false}
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "productType",
+      "label": "产品类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "Web",
+          "label": "网页应用"
+        },
+        {
+          "value": "Mobile",
+          "label": "移动应用"
+        },
+        {
+          "value": "Desktop",
+          "label": "桌面应用"
+        }
+      ]
+    },
+    {
+      "name": "designStyle",
+      "label": "设计风格",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "扁平化",
+          "label": "扁平化"
+        },
+        {
+          "value": "拟物化",
+          "label": "拟物化"
+        },
+        {
+          "value": "Material",
+          "label": "Material Design"
+        },
+        {
+          "value": "简约",
+          "label": "极简主义"
+        }
+      ]
+    },
+    {
+      "name": "platform",
+      "label": "目标平台",
+      "type": "string",
+      "required": false
+    }
   ],
   "file_structure": {
     "root": "UI规范-{{projectName}}",
     "files": [
-      {"path": "设计规范.pdf", "type": "document"},
-      {"path": "组件库.sketch", "type": "design"}
+      {
+        "path": "设计规范.pdf",
+        "type": "document"
+      },
+      {
+        "path": "组件库.sketch",
+        "type": "design"
+      }
     ]
   },
   "default_files": [],
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_image_processing",
+    "skill_ui_ux_design"
+  ],
+  "required_tools": [
+    "tool_image_editor",
+    "tool_color_palette_generator",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "design"
 }

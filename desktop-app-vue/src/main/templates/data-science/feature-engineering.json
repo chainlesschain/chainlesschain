@@ -6,7 +6,13 @@
   "icon": "🔧",
   "category": "data-science",
   "subcategory": "特征工程",
-  "tags": ["特征工程", "特征选择", "特征提取", "降维", "机器学习"],
+  "tags": [
+    "特征工程",
+    "特征选择",
+    "特征提取",
+    "降维",
+    "机器学习"
+  ],
   "project_type": "data",
   "prompt_template": "请帮我生成特征工程文档，要求:\n\n# {{projectName}} - 特征工程文档\n\n## 1. 项目概述\n\n**任务类型**: {{taskType}}\n**目标变量**: {{targetVariable}}\n**特征数量**: {{featureCount}}\n**工程目标**: {{engineeringGoal}}\n\n## 2. 特征类型分析\n\n```python\nimport pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nfrom sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder\nfrom sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif\nfrom sklearn.decomposition import PCA\n\n# 加载数据\ndf = pd.read_csv('{{dataPath}}')\n\n# 分析特征类型\nprint(\"数值特征:\", df.select_dtypes(include=[np.number]).columns.tolist())\nprint(\"类别特征:\", df.select_dtypes(include=['object', 'category']).columns.tolist())\nprint(\"日期特征:\", df.select_dtypes(include=['datetime']).columns.tolist())\n```\n\n## 3. 特征提取\n\n### 3.1 数值特征提取\n\n```python\nclass NumericFeatureExtractor:\n    \"\"\"数值特征提取器\"\"\"\n    \n    @staticmethod\n    def basic_stats(df, columns):\n        \"\"\"基础统计特征\"\"\"\n        features = pd.DataFrame()\n        \n        for col in columns:\n            features[f'{col}_mean'] = df[col].mean()\n            features[f'{col}_std'] = df[col].std()\n            features[f'{col}_min'] = df[col].min()\n            features[f'{col}_max'] = df[col].max()\n            features[f'{col}_median'] = df[col].median()\n            features[f'{col}_q25'] = df[col].quantile(0.25)\n            features[f'{col}_q75'] = df[col].quantile(0.75)\n            features[f'{col}_iqr'] = features[f'{col}_q75'] - features[f'{col}_q25']\n        \n        return features\n    \n    @staticmethod\n    def binning_features(df, column, bins=5, labels=None):\n        \"\"\"分箱特征\"\"\"\n        if labels is None:\n            labels = [f'{column}_bin_{i}' for i in range(bins)]\n        \n        df[f'{column}_binned'] = pd.cut(df[column], bins=bins, labels=labels)\n        return df\n    \n    @staticmethod\n    def polynomial_features(df, columns, degree=2):\n        \"\"\"多项式特征\"\"\"\n        from sklearn.preprocessing import PolynomialFeatures\n        \n        poly = PolynomialFeatures(degree=degree, include_bias=False)\n        poly_features = poly.fit_transform(df[columns])\n        \n        feature_names = poly.get_feature_names_out(columns)\n        poly_df = pd.DataFrame(poly_features, columns=feature_names, index=df.index)\n        \n        return pd.concat([df, poly_df], axis=1)\n    \n    @staticmethod\n    def ratio_features(df, numerator_cols, denominator_cols):\n        \"\"\"比率特征\"\"\"\n        for num_col in numerator_cols:\n            for den_col in denominator_cols:\n                if num_col != den_col:\n                    df[f'{num_col}_div_{den_col}'] = df[num_col] / (df[den_col] + 1e-10)\n        \n        return df\n    \n    @staticmethod\n    def difference_features(df, columns):\n        \"\"\"差值特征\"\"\"\n        for i, col1 in enumerate(columns):\n            for col2 in columns[i+1:]:\n                df[f'{col1}_minus_{col2}'] = df[col1] - df[col2]\n        \n        return df\n    \n    @staticmethod\n    def aggregate_features(df, group_col, agg_cols, agg_funcs=['mean', 'sum', 'max', 'min', 'std']):\n        \"\"\"分组聚合特征\"\"\"\n        agg_dict = {col: agg_funcs for col in agg_cols}\n        \n        grouped = df.groupby(group_col).agg(agg_dict)\n        grouped.columns = ['_'.join(col).strip() for col in grouped.columns.values]\n        grouped = grouped.reset_index()\n        \n        df = df.merge(grouped, on=group_col, how='left')\n        return df\n\n# 使用示例\nextractor = NumericFeatureExtractor()\n\n# 分箱\ndf = extractor.binning_features(df, 'age', bins=5)\n\n# 多项式特征\ndf = extractor.polynomial_features(df, ['feature1', 'feature2'], degree=2)\n\n# 比率特征\ndf = extractor.ratio_features(df, ['sales'], ['cost', 'quantity'])\n\n# 聚合特征\ndf = extractor.aggregate_features(df, 'user_id', ['amount', 'quantity'])\n```\n\n### 3.2 类别特征提取\n\n```python\nclass CategoricalFeatureExtractor:\n    \"\"\"类别特征提取器\"\"\"\n    \n    @staticmethod\n    def label_encoding(df, columns):\n        \"\"\"标签编码\"\"\"\n        le_dict = {}\n        \n        for col in columns:\n            le = LabelEncoder()\n            df[f'{col}_encoded'] = le.fit_transform(df[col].astype(str))\n            le_dict[col] = le\n        \n        return df, le_dict\n    \n    @staticmethod\n    def onehot_encoding(df, columns, drop_first=True):\n        \"\"\"独热编码\"\"\"\n        df = pd.get_dummies(df, columns=columns, drop_first=drop_first, prefix=columns)\n        return df\n    \n    @staticmethod\n    def frequency_encoding(df, columns):\n        \"\"\"频率编码\"\"\"\n        for col in columns:\n            freq = df[col].value_counts(normalize=True)\n            df[f'{col}_freq'] = df[col].map(freq)\n        \n        return df\n    \n    @staticmethod\n    def target_encoding(df, columns, target, smooth=0):\n        \"\"\"目标编码（适用于分类任务）\"\"\"\n        for col in columns:\n            # 计算每个类别的目标均值\n            target_mean = df.groupby(col)[target].mean()\n            \n            if smooth > 0:\n                # 平滑处理\n                global_mean = df[target].mean()\n                counts = df[col].value_counts()\n                \n                smoothed_mean = (target_mean * counts + global_mean * smooth) / (counts + smooth)\n                df[f'{col}_target_encoded'] = df[col].map(smoothed_mean)\n            else:\n                df[f'{col}_target_encoded'] = df[col].map(target_mean)\n        \n        return df\n    \n    @staticmethod\n    def count_encoding(df, columns):\n        \"\"\"计数编码\"\"\"\n        for col in columns:\n            counts = df[col].value_counts()\n            df[f'{col}_count'] = df[col].map(counts)\n        \n        return df\n    \n    @staticmethod\n    def combination_features(df, cat_columns):\n        \"\"\"组合特征\"\"\"\n        for i, col1 in enumerate(cat_columns):\n            for col2 in cat_columns[i+1:]:\n                df[f'{col1}_{col2}_combo'] = df[col1].astype(str) + '_' + df[col2].astype(str)\n        \n        return df\n\n# 使用示例\ncat_extractor = CategoricalFeatureExtractor()\n\n# 频率编码\ndf = cat_extractor.frequency_encoding(df, ['category', 'brand'])\n\n# 目标编码（假设目标变量是'target'）\ndf = cat_extractor.target_encoding(df, ['category'], 'target', smooth=10)\n\n# 组合特征\ndf = cat_extractor.combination_features(df, ['category', 'subcategory'])\n\n# 独热编码（对低基数特征）\nlow_cardinality_cols = [col for col in df.select_dtypes(include=['object']).columns \n                        if df[col].nunique() < 10]\ndf = cat_extractor.onehot_encoding(df, low_cardinality_cols)\n```\n\n### 3.3 时间特征提取\n\n```python\nclass TimeFeatureExtractor:\n    \"\"\"时间特征提取器\"\"\"\n    \n    @staticmethod\n    def extract_datetime_features(df, datetime_col):\n        \"\"\"提取日期时间特征\"\"\"\n        df[datetime_col] = pd.to_datetime(df[datetime_col])\n        \n        # 基础时间特征\n        df[f'{datetime_col}_year'] = df[datetime_col].dt.year\n        df[f'{datetime_col}_month'] = df[datetime_col].dt.month\n        df[f'{datetime_col}_day'] = df[datetime_col].dt.day\n        df[f'{datetime_col}_dayofweek'] = df[datetime_col].dt.dayofweek\n        df[f'{datetime_col}_hour'] = df[datetime_col].dt.hour\n        df[f'{datetime_col}_minute'] = df[datetime_col].dt.minute\n        \n        # 是否周末\n        df[f'{datetime_col}_is_weekend'] = (df[f'{datetime_col}_dayofweek'] >= 5).astype(int)\n        \n        # 季度\n        df[f'{datetime_col}_quarter'] = df[datetime_col].dt.quarter\n        \n        # 是否月初/月末\n        df[f'{datetime_col}_is_month_start'] = df[datetime_col].dt.is_month_start.astype(int)\n        df[f'{datetime_col}_is_month_end'] = df[datetime_col].dt.is_month_end.astype(int)\n        \n        # 一年中的第几天\n        df[f'{datetime_col}_dayofyear'] = df[datetime_col].dt.dayofyear\n        \n        # 一年中的第几周\n        df[f'{datetime_col}_weekofyear'] = df[datetime_col].dt.isocalendar().week\n        \n        return df\n    \n    @staticmethod\n    def time_since_features(df, datetime_col, reference_date=None):\n        \"\"\"距离参考日期的时间差\"\"\"\n        if reference_date is None:\n            reference_date = pd.Timestamp.now()\n        \n        df[datetime_col] = pd.to_datetime(df[datetime_col])\n        time_diff = reference_date - df[datetime_col]\n        \n        df[f'{datetime_col}_days_since'] = time_diff.dt.days\n        df[f'{datetime_col}_weeks_since'] = time_diff.dt.days // 7\n        df[f'{datetime_col}_months_since'] = time_diff.dt.days // 30\n        \n        return df\n    \n    @staticmethod\n    def cyclic_encoding(df, column, max_val):\n        \"\"\"循环特征编码（适用于小时、月份等）\"\"\"\n        df[f'{column}_sin'] = np.sin(2 * np.pi * df[column] / max_val)\n        df[f'{column}_cos'] = np.cos(2 * np.pi * df[column] / max_val)\n        return df\n\n# 使用示例\ntime_extractor = TimeFeatureExtractor()\n\n# 提取日期时间特征\ndf = time_extractor.extract_datetime_features(df, 'order_date')\n\n# 距今天数\ndf = time_extractor.time_since_features(df, 'order_date')\n\n# 循环编码（月份）\ndf = time_extractor.cyclic_encoding(df, 'order_date_month', 12)\n```\n\n### 3.4 文本特征提取\n\n```python\nclass TextFeatureExtractor:\n    \"\"\"文本特征提取器\"\"\"\n    \n    @staticmethod\n    def basic_text_features(df, text_col):\n        \"\"\"基础文本特征\"\"\"\n        df[f'{text_col}_length'] = df[text_col].astype(str).str.len()\n        df[f'{text_col}_word_count'] = df[text_col].astype(str).str.split().str.len()\n        df[f'{text_col}_unique_words'] = df[text_col].astype(str).apply(\n            lambda x: len(set(x.split()))\n        )\n        df[f'{text_col}_avg_word_length'] = df[text_col].astype(str).apply(\n            lambda x: np.mean([len(word) for word in x.split()]) if x.split() else 0\n        )\n        \n        return df\n    \n    @staticmethod\n    def tfidf_features(df, text_col, max_features=100):\n        \"\"\"TF-IDF特征\"\"\"\n        from sklearn.feature_extraction.text import TfidfVectorizer\n        \n        vectorizer = TfidfVectorizer(max_features=max_features, stop_words='english')\n        tfidf_matrix = vectorizer.fit_transform(df[text_col].astype(str))\n        \n        tfidf_df = pd.DataFrame(\n            tfidf_matrix.toarray(),\n            columns=[f'{text_col}_tfidf_{i}' for i in range(tfidf_matrix.shape[1])],\n            index=df.index\n        )\n        \n        return pd.concat([df, tfidf_df], axis=1)\n    \n    @staticmethod\n    def sentiment_features(df, text_col):\n        \"\"\"情感特征（需要安装textblob）\"\"\"\n        try:\n            from textblob import TextBlob\n            \n            df[f'{text_col}_sentiment'] = df[text_col].astype(str).apply(\n                lambda x: TextBlob(x).sentiment.polarity\n            )\n            df[f'{text_col}_subjectivity'] = df[text_col].astype(str).apply(\n                lambda x: TextBlob(x).sentiment.subjectivity\n            )\n        except ImportError:\n            print(\"需要安装textblob: pip install textblob\")\n        \n        return df\n\n# 使用示例\ntext_extractor = TextFeatureExtractor()\ndf = text_extractor.basic_text_features(df, 'description')\ndf = text_extractor.tfidf_features(df, 'description', max_features=50)\n```\n\n## 4. 特征转换\n\n```python\nclass FeatureTransformer:\n    \"\"\"特征转换器\"\"\"\n    \n    @staticmethod\n    def log_transform(df, columns):\n        \"\"\"对数转换（处理右偏数据）\"\"\"\n        for col in columns:\n            df[f'{col}_log'] = np.log1p(df[col])  # log(1+x) 避免log(0)\n        return df\n    \n    @staticmethod\n    def sqrt_transform(df, columns):\n        \"\"\"平方根转换\"\"\"\n        for col in columns:\n            df[f'{col}_sqrt'] = np.sqrt(df[col])\n        return df\n    \n    @staticmethod\n    def boxcox_transform(df, columns):\n        \"\"\"Box-Cox转换\"\"\"\n        from scipy import stats\n        \n        for col in columns:\n            # 确保数据为正\n            if (df[col] > 0).all():\n                df[f'{col}_boxcox'], _ = stats.boxcox(df[col])\n            else:\n                print(f\"警告: {col} 包含非正值，跳过Box-Cox转换\")\n        \n        return df\n    \n    @staticmethod\n    def standardization(df, columns):\n        \"\"\"标准化（Z-score）\"\"\"\n        scaler = StandardScaler()\n        df[columns] = scaler.fit_transform(df[columns])\n        return df, scaler\n    \n    @staticmethod\n    def normalization(df, columns, feature_range=(0, 1)):\n        \"\"\"归一化（Min-Max）\"\"\"\n        scaler = MinMaxScaler(feature_range=feature_range)\n        df[columns] = scaler.fit_transform(df[columns])\n        return df, scaler\n    \n    @staticmethod\n    def robust_scaling(df, columns):\n        \"\"\"鲁棒缩放（对异常值不敏感）\"\"\"\n        from sklearn.preprocessing import RobustScaler\n        \n        scaler = RobustScaler()\n        df[columns] = scaler.fit_transform(df[columns])\n        return df, scaler\n\n# 使用示例\ntransformer = FeatureTransformer()\n\n# 对右偏特征进行对数转换\nskewed_features = ['price', 'sales_volume']\ndf = transformer.log_transform(df, skewed_features)\n\n# 标准化数值特征\nnumeric_features = df.select_dtypes(include=[np.number]).columns.tolist()\ndf, scaler = transformer.standardization(df, numeric_features)\n```\n\n## 5. 特征选择\n\n```python\nclass FeatureSelector:\n    \"\"\"特征选择器\"\"\"\n    \n    @staticmethod\n    def remove_low_variance(df, threshold=0.01):\n        \"\"\"移除低方差特征\"\"\"\n        from sklearn.feature_selection import VarianceThreshold\n        \n        selector = VarianceThreshold(threshold=threshold)\n        selector.fit(df)\n        \n        selected_features = df.columns[selector.get_support()].tolist()\n        return df[selected_features], selected_features\n    \n    @staticmethod\n    def remove_correlated(df, threshold=0.95):\n        \"\"\"移除高相关特征\"\"\"\n        corr_matrix = df.corr().abs()\n        \n        # 找出高相关的特征对\n        upper_tri = corr_matrix.where(\n            np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)\n        )\n        \n        to_drop = [column for column in upper_tri.columns \n                   if any(upper_tri[column] > threshold)]\n        \n        return df.drop(columns=to_drop), to_drop\n    \n    @staticmethod\n    def univariate_selection(X, y, k=10, task='classification'):\n        \"\"\"单变量特征选择\"\"\"\n        if task == 'classification':\n            selector = SelectKBest(f_classif, k=k)\n        else:\n            from sklearn.feature_selection import f_regression\n            selector = SelectKBest(f_regression, k=k)\n        \n        X_selected = selector.fit_transform(X, y)\n        selected_features = X.columns[selector.get_support()].tolist()\n        \n        # 特征得分\n        scores = pd.DataFrame({\n            'feature': X.columns,\n            'score': selector.scores_\n        }).sort_values('score', ascending=False)\n        \n        return X_selected, selected_features, scores\n    \n    @staticmethod\n    def mutual_info_selection(X, y, k=10, task='classification'):\n        \"\"\"互信息特征选择\"\"\"\n        from sklearn.feature_selection import mutual_info_classif, mutual_info_regression\n        \n        if task == 'classification':\n            mi_scores = mutual_info_classif(X, y)\n        else:\n            mi_scores = mutual_info_regression(X, y)\n        \n        mi_df = pd.DataFrame({\n            'feature': X.columns,\n            'mi_score': mi_scores\n        }).sort_values('mi_score', ascending=False)\n        \n        top_features = mi_df.head(k)['feature'].tolist()\n        \n        return X[top_features], top_features, mi_df\n    \n    @staticmethod\n    def recursive_feature_elimination(X, y, n_features=10, estimator=None):\n        \"\"\"递归特征消除\"\"\"\n        from sklearn.feature_selection import RFE\n        from sklearn.ensemble import RandomForestClassifier\n        \n        if estimator is None:\n            estimator = RandomForestClassifier(n_estimators=100, random_state=42)\n        \n        selector = RFE(estimator, n_features_to_select=n_features, step=1)\n        selector.fit(X, y)\n        \n        selected_features = X.columns[selector.get_support()].tolist()\n        \n        ranking = pd.DataFrame({\n            'feature': X.columns,\n            'ranking': selector.ranking_\n        }).sort_values('ranking')\n        \n        return X[selected_features], selected_features, ranking\n    \n    @staticmethod\n    def tree_based_selection(X, y, threshold='median', estimator=None):\n        \"\"\"基于树模型的特征选择\"\"\"\n        from sklearn.ensemble import RandomForestClassifier\n        from sklearn.feature_selection import SelectFromModel\n        \n        if estimator is None:\n            estimator = RandomForestClassifier(n_estimators=100, random_state=42)\n        \n        estimator.fit(X, y)\n        \n        # 特征重要性\n        importance_df = pd.DataFrame({\n            'feature': X.columns,\n            'importance': estimator.feature_importances_\n        }).sort_values('importance', ascending=False)\n        \n        # 选择特征\n        selector = SelectFromModel(estimator, threshold=threshold, prefit=True)\n        X_selected = selector.transform(X)\n        selected_features = X.columns[selector.get_support()].tolist()\n        \n        return X_selected, selected_features, importance_df\n\n# 使用示例\nselector = FeatureSelector()\n\n# 移除低方差特征\ndf_selected, low_var_features = selector.remove_low_variance(df)\n\n# 移除高相关特征\ndf_selected, corr_features = selector.remove_correlated(df_selected, threshold=0.9)\n\n# 基于树模型的特征选择\nX = df_selected.drop('target', axis=1)\ny = df_selected['target']\nX_selected, selected_features, importance = selector.tree_based_selection(X, y)\n\nprint(f\"\\n特征选择后: {len(selected_features)} 个特征\")\nprint(\"\\n特征重要性Top 10:\")\nprint(importance.head(10))\n```\n\n## 6. 降维\n\n```python\n# PCA降维\npca = PCA(n_components=0.95)  # 保留95%的方差\nX_pca = pca.fit_transform(X_selected)\n\nprint(f\"PCA后维度: {X_pca.shape[1]}\")\nprint(f\"解释方差比: {pca.explained_variance_ratio_.sum():.2%}\")\n\n# 可视化前两个主成分\nplt.figure(figsize=(10, 6))\nplt.scatter(X_pca[:, 0], X_pca[:, 1], c=y, cmap='viridis', alpha=0.6)\nplt.xlabel('PC1')\nplt.ylabel('PC2')\nplt.title('PCA - 前两个主成分')\nplt.colorbar(label='Target')\nplt.show()\n```\n\n## 7. 特征工程流水线\n\n```python\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.compose import ColumnTransformer\n\n# 定义数值特征和类别特征\nnumeric_features = ['age', 'income', 'credit_score']\ncategorical_features = ['gender', 'occupation', 'city']\n\n# 数值特征流水线\nnumeric_transformer = Pipeline(steps=[\n    ('scaler', StandardScaler())\n])\n\n# 类别特征流水线\nfrom sklearn.preprocessing import OneHotEncoder\ncategorical_transformer = Pipeline(steps=[\n    ('onehot', OneHotEncoder(handle_unknown='ignore'))\n])\n\n# 组合流水线\npreprocessor = ColumnTransformer(\n    transformers=[\n        ('num', numeric_transformer, numeric_features),\n        ('cat', categorical_transformer, categorical_features)\n    ])\n\n# 完整流水线（包含模型）\nfrom sklearn.ensemble import RandomForestClassifier\n\nfull_pipeline = Pipeline(steps=[\n    ('preprocessor', preprocessor),\n    ('classifier', RandomForestClassifier(random_state=42))\n])\n\n# 训练\nfull_pipeline.fit(X_train, y_train)\n\n# 预测\ny_pred = full_pipeline.predict(X_test)\n```\n\n## 8. 特征重要性分析\n\n```python\n# 使用SHAP进行特征重要性分析\nimport shap\n\nmodel = RandomForestClassifier(n_estimators=100, random_state=42)\nmodel.fit(X_train, y_train)\n\n# SHAP值\nexplainer = shap.TreeExplainer(model)\nshap_values = explainer.shap_values(X_test)\n\n# 可视化\nshap.summary_plot(shap_values[1], X_test, plot_type=\"bar\")\nshap.summary_plot(shap_values[1], X_test)\n```\n\n## 9. 最佳实践\n\n1. **理解业务**: 特征工程应基于业务理解，而不是盲目生成特征\n2. **避免数据泄露**: 不要使用未来信息或目标变量衍生特征\n3. **交叉验证**: 在交叉验证中进行特征选择，避免过拟合\n4. **特征存储**: 保存特征工程的转换器（scaler、encoder等）\n5. **特征版本化**: 记录特征工程的版本和变更\n6. **增量特征工程**: 逐步添加特征，评估每个特征的贡献\n7. **特征监控**: 在生产环境监控特征分布的变化\n\n## 10. 常见问题\n\n**Q: 应该生成多少特征？**\nA: 遵循\"越少越好\"原则。过多特征会导致过拟合和计算成本增加。使用特征选择方法筛选最重要的特征。\n\n**Q: 如何处理高基数类别特征？**\nA: 使用目标编码、频率编码或哈希编码，避免使用独热编码（会产生大量稀疏特征）。\n\n**Q: 时间序列数据如何进行特征工程？**\nA: 提取滞后特征、滚动窗口统计、时间趋势特征。注意避免未来数据泄露。\n\n**Q: 如何评估特征质量？**\nA: 使用特征重要性、互信息、SHAP值等方法。最终以模型性能（交叉验证）为准。\n\n---\n\n**文档版本**: 1.0\n**最后更新**: {{#if updateDate}}{{updateDate}}{{else}}{{currentDate}}{{/if}}\n**负责人**: {{#if owner}}{{owner}}{{else}}数据科学团队{{/if}}",
   "variables_schema": [
@@ -25,10 +31,22 @@
       "default": "分类",
       "required": true,
       "options": [
-        {"value": "分类", "label": "分类"},
-        {"value": "回归", "label": "回归"},
-        {"value": "聚类", "label": "聚类"},
-        {"value": "时间序列预测", "label": "时间序列预测"}
+        {
+          "value": "分类",
+          "label": "分类"
+        },
+        {
+          "value": "回归",
+          "label": "回归"
+        },
+        {
+          "value": "聚类",
+          "label": "聚类"
+        },
+        {
+          "value": "时间序列预测",
+          "label": "时间序列预测"
+        }
       ],
       "description": "机器学习任务类型"
     },
@@ -89,33 +107,69 @@
         "type": "folder",
         "name": "data",
         "children": [
-          {"type": "file", "name": "raw_data.csv", "description": "原始数据"},
-          {"type": "file", "name": "processed_data.csv", "description": "预处理后数据"},
-          {"type": "file", "name": "engineered_features.csv", "description": "工程特征数据"}
+          {
+            "type": "file",
+            "name": "raw_data.csv",
+            "description": "原始数据"
+          },
+          {
+            "type": "file",
+            "name": "processed_data.csv",
+            "description": "预处理后数据"
+          },
+          {
+            "type": "file",
+            "name": "engineered_features.csv",
+            "description": "工程特征数据"
+          }
         ]
       },
       {
         "type": "folder",
         "name": "scripts",
         "children": [
-          {"type": "file", "name": "feature_extraction.py", "description": "特征提取脚本"},
-          {"type": "file", "name": "feature_selection.py", "description": "特征选择脚本"},
-          {"type": "file", "name": "feature_pipeline.py", "description": "特征流水线"}
+          {
+            "type": "file",
+            "name": "feature_extraction.py",
+            "description": "特征提取脚本"
+          },
+          {
+            "type": "file",
+            "name": "feature_selection.py",
+            "description": "特征选择脚本"
+          },
+          {
+            "type": "file",
+            "name": "feature_pipeline.py",
+            "description": "特征流水线"
+          }
         ]
       },
       {
         "type": "folder",
         "name": "models",
         "children": [
-          {"type": "file", "name": "scaler.pkl", "description": "特征缩放器"},
-          {"type": "file", "name": "encoder.pkl", "description": "特征编码器"}
+          {
+            "type": "file",
+            "name": "scaler.pkl",
+            "description": "特征缩放器"
+          },
+          {
+            "type": "file",
+            "name": "encoder.pkl",
+            "description": "特征编码器"
+          }
         ]
       },
       {
         "type": "folder",
         "name": "reports",
         "children": [
-          {"type": "file", "name": "feature_importance.html", "description": "特征重要性报告"}
+          {
+            "type": "file",
+            "name": "feature_importance.html",
+            "description": "特征重要性报告"
+          }
         ]
       }
     ]
@@ -127,5 +181,16 @@
   "rating": 0,
   "rating_count": 0,
   "created_at": "2024-01-15T10:00:00Z",
-  "updated_at": "2024-01-15T10:00:00Z"
+  "updated_at": "2024-01-15T10:00:00Z",
+  "required_skills": [
+    "skill_data_science",
+    "skill_data_analysis",
+    "skill_code_development"
+  ],
+  "required_tools": [
+    "tool_data_preprocessor",
+    "tool_chart_generator",
+    "tool_python_project_setup"
+  ],
+  "execution_engine": "ml"
 }

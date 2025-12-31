@@ -6,38 +6,125 @@
   "icon": "🔌",
   "category": "code-project",
   "subcategory": "browser",
-  "tags": ["Chrome", "浏览器扩展", "插件", "TypeScript"],
+  "tags": [
+    "Chrome",
+    "浏览器扩展",
+    "插件",
+    "TypeScript"
+  ],
   "project_type": "app",
   "prompt_template": "请帮我生成Chrome扩展项目，要求:\n\n**项目信息：**\n- 扩展名称：{{extensionName}}\n- 扩展类型：{{extensionType}}\n- 使用TypeScript：{{useTypeScript}}\n- UI框架：{{uiFramework}}\n- Manifest版本：{{manifestVersion}}\n\n**项目结构：**\n\n```\n{{extensionName}}/\n├── src/\n│   ├── popup/             # 弹出页面\n│   │   ├── popup.html\n│   │   ├── popup.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   └── popup.css\n│   │\n│   ├── content/           # 内容脚本\n│   │   ├── content.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   └── content.css\n│   │\n│   ├── background/        # 后台脚本\n│   │   └── background.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │\n│   ├── options/           # 选项页面\n│   │   ├── options.html\n│   │   ├── options.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   └── options.css\n│   │\n│   ├── utils/             # 工具函数\n│   │   ├── storage.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │   └── message.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}\n│   │\n{{#eq useTypeScript \"是\"}}\n│   ├── types/             # TypeScript类型\n│   │   └── index.ts\n{{/eq}}\n│   │\n│   └── assets/            # 静态资源\n│       ├── icons/\n│       │   ├── icon16.png\n│       │   ├── icon48.png\n│       │   └── icon128.png\n│       └── styles/\n│\n├── public/\n│   └── manifest.json\n│\n├── dist/                  # 构建输出\n│\n├── package.json\n├── webpack.config.js\n{{#eq useTypeScript \"是\"}}\n├── tsconfig.json\n{{/eq}}\n├── .gitignore\n└── README.md\n```\n\n**manifest.json（扩展配置）：**\n\n```json\n{\n  \"manifest_version\": {{#eq manifestVersion \"MV3\"}}3{{else}}2{{/eq}},\n  \"name\": \"{{extensionName}}\",\n  \"version\": \"1.0.0\",\n  \"description\": \"{{extensionDescription}}\",\n  \n  \"icons\": {\n    \"16\": \"assets/icons/icon16.png\",\n    \"48\": \"assets/icons/icon48.png\",\n    \"128\": \"assets/icons/icon128.png\"\n  },\n  \n{{#eq manifestVersion \"MV3\"}}\n  \"action\": {\n    \"default_popup\": \"popup/popup.html\",\n    \"default_icon\": {\n      \"16\": \"assets/icons/icon16.png\",\n      \"48\": \"assets/icons/icon48.png\",\n      \"128\": \"assets/icons/icon128.png\"\n    }\n  },\n  \n  \"background\": {\n    \"service_worker\": \"background/background.js\"\n  },\n{{else}}\n  \"browser_action\": {\n    \"default_popup\": \"popup/popup.html\",\n    \"default_icon\": {\n      \"16\": \"assets/icons/icon16.png\",\n      \"48\": \"assets/icons/icon48.png\",\n      \"128\": \"assets/icons/icon128.png\"\n    }\n  },\n  \n  \"background\": {\n    \"scripts\": [\"background/background.js\"],\n    \"persistent\": false\n  },\n{{/eq}}\n  \n  \"content_scripts\": [\n    {\n      \"matches\": [\"<all_urls>\"],\n      \"js\": [\"content/content.js\"],\n      \"css\": [\"content/content.css\"],\n      \"run_at\": \"document_idle\"\n    }\n  ],\n  \n  \"options_page\": \"options/options.html\",\n  \n  \"permissions\": [\n{{#eq extensionType \"网页工具\"}}\n    \"activeTab\",\n    \"storage\"\n{{/eq}}\n{{#eq extensionType \"数据抓取\"}}\n    \"activeTab\",\n    \"storage\",\n    \"downloads\"\n{{/eq}}\n{{#eq extensionType \"隐私安全\"}}\n    \"activeTab\",\n    \"storage\",\n    \"webRequest\",\n    \"webRequestBlocking\"\n{{/eq}}\n  ],\n  \n{{#eq manifestVersion \"MV3\"}}\n  \"host_permissions\": [\n    \"<all_urls>\"\n  ],\n{{/eq}}\n  \n  \"web_accessible_resources\": [\n{{#eq manifestVersion \"MV3\"}}\n    {\n      \"resources\": [\"assets/*\"],\n      \"matches\": [\"<all_urls>\"]\n    }\n{{else}}\n    \"assets/*\"\n{{/eq}}\n  ]\n}\n```\n\n**package.json：**\n\n```json\n{\n  \"name\": \"{{extensionName}}\",\n  \"version\": \"1.0.0\",\n  \"description\": \"{{extensionDescription}}\",\n  \"scripts\": {\n    \"dev\": \"webpack --mode development --watch\",\n    \"build\": \"webpack --mode production\",\n    \"package\": \"npm run build && node scripts/package.js\"\n  },\n  \"devDependencies\": {\n    \"webpack\": \"^5.89.0\",\n    \"webpack-cli\": \"^5.1.0\",\n    \"copy-webpack-plugin\": \"^11.0.0\",\n{{#eq useTypeScript \"是\"}}\n    \"typescript\": \"^5.3.0\",\n    \"ts-loader\": \"^9.5.0\",\n    \"@types/chrome\": \"^0.0.253\",\n{{/eq}}\n{{#if uiFramework}}\n{{#eq uiFramework \"React\"}}\n    \"react\": \"^18.2.0\",\n    \"react-dom\": \"^18.2.0\",\n    \"@types/react\": \"^18.2.0\",\n    \"@types/react-dom\": \"^18.2.0\",\n{{/eq}}\n{{#eq uiFramework \"Vue\"}}\n    \"vue\": \"^3.4.0\",\n    \"vue-loader\": \"^17.4.0\",\n{{/eq}}\n{{/if}}\n    \"css-loader\": \"^6.8.0\",\n    \"style-loader\": \"^3.3.0\"\n  }\n}\n```\n\n**webpack.config.js：**\n\n```javascript\nconst path = require('path')\nconst CopyPlugin = require('copy-webpack-plugin')\n\nmodule.exports = {\n  entry: {\n    popup: './src/popup/popup.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}',\n    content: './src/content/content.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}',\n    background: './src/background/background.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}',\n    options: './src/options/options.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}'\n  },\n  output: {\n    path: path.resolve(__dirname, 'dist'),\n    filename: '[name]/[name].js'\n  },\n  module: {\n    rules: [\n{{#eq useTypeScript \"是\"}}\n      {\n        test: /\\.ts$/,\n        use: 'ts-loader',\n        exclude: /node_modules/\n      },\n{{/eq}}\n      {\n        test: /\\.css$/,\n        use: ['style-loader', 'css-loader']\n      }\n    ]\n  },\n  resolve: {\n    extensions: [{{#eq useTypeScript \"是\"}}'.ts', {{/eq}}'.js']\n  },\n  plugins: [\n    new CopyPlugin({\n      patterns: [\n        { from: 'public/manifest.json', to: 'manifest.json' },\n        { from: 'src/popup/popup.html', to: 'popup/popup.html' },\n        { from: 'src/options/options.html', to: 'options/options.html' },\n        { from: 'src/assets', to: 'assets' }\n      ]\n    })\n  ]\n}\n```\n\n**src/popup/popup.html：**\n\n```html\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>{{extensionName}}</title>\n  <link rel=\"stylesheet\" href=\"popup.css\">\n</head>\n<body>\n  <div class=\"container\">\n    <h1>{{extensionName}}</h1>\n    \n{{#eq extensionType \"网页工具\"}}\n    <div class=\"tools\">\n      <button id=\"extractBtn\">提取内容</button>\n      <button id=\"formatBtn\">格式化</button>\n      <button id=\"exportBtn\">导出</button>\n    </div>\n    \n    <div id=\"result\" class=\"result\"></div>\n{{/eq}}\n{{#eq extensionType \"数据抓取\"}}\n    <div class=\"controls\">\n      <button id=\"startBtn\">开始抓取</button>\n      <button id=\"stopBtn\" disabled>停止</button>\n      <button id=\"downloadBtn\" disabled>下载数据</button>\n    </div>\n    \n    <div class=\"progress\">\n      <div id=\"progressBar\" class=\"progress-bar\"></div>\n      <span id=\"progressText\">0/0</span>\n    </div>\n{{/eq}}\n    \n    <div class=\"footer\">\n      <a href=\"#\" id=\"settingsLink\">设置</a>\n    </div>\n  </div>\n  \n  <script src=\"popup.js\"></script>\n</body>\n</html>\n```\n\n**src/popup/popup.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\n{{#eq useTypeScript \"是\"}}// popup.ts\nimport { sendMessageToContent, getStorage, setStorage } from '../utils/message'\n{{/eq}}\n\ndocument.addEventListener('DOMContentLoaded', () => {\n{{#eq extensionType \"网页工具\"}}\n  const extractBtn = document.getElementById('extractBtn'){{#eq useTypeScript \"是\"}}!{{/eq}}\n  const resultDiv = document.getElementById('result'){{#eq useTypeScript \"是\"}}!{{/eq}}\n  \n  extractBtn.addEventListener('click', async () => {\n    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })\n    \n    chrome.tabs.sendMessage(tab.id{{#eq useTypeScript \"是\"}}!{{/eq}}, { action: 'extract' }, (response) => {\n      if (response && response.data) {\n        resultDiv.textContent = JSON.stringify(response.data, null, 2)\n      }\n    })\n  })\n{{/eq}}\n{{#eq extensionType \"数据抓取\"}}\n  const startBtn = document.getElementById('startBtn'){{#eq useTypeScript \"是\"}}!{{/eq}}\n  const stopBtn = document.getElementById('stopBtn'){{#eq useTypeScript \"是\"}}!{{/eq}}\n  const progressBar = document.getElementById('progressBar'){{#eq useTypeScript \"是\"}}!{{/eq}}\n  const progressText = document.getElementById('progressText'){{#eq useTypeScript \"是\"}}!{{/eq}}\n  \n  let isRunning = false\n  \n  startBtn.addEventListener('click', () => {\n    isRunning = true\n    startBtn.disabled = true\n    stopBtn.disabled = false\n    \n    chrome.runtime.sendMessage({ action: 'startScraping' })\n  })\n  \n  stopBtn.addEventListener('click', () => {\n    isRunning = false\n    stopBtn.disabled = true\n    startBtn.disabled = false\n    \n    chrome.runtime.sendMessage({ action: 'stopScraping' })\n  })\n{{/eq}}\n  \n  // 设置链接\n  document.getElementById('settingsLink'){{#eq useTypeScript \"是\"}}!{{/eq}}.addEventListener('click', (e) => {\n    e.preventDefault()\n    chrome.runtime.openOptionsPage()\n  })\n})\n```\n\n**src/content/content.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}（内容脚本）：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\n// 监听来自popup的消息\nchrome.runtime.onMessage.addListener((request, sender, sendResponse) => {\n{{#eq extensionType \"网页工具\"}}\n  if (request.action === 'extract') {\n    const data = extractPageData()\n    sendResponse({ data })\n  }\n{{/eq}}\n{{#eq extensionType \"数据抓取\"}}\n  if (request.action === 'scrape') {\n    const items = scrapeData()\n    sendResponse({ items })\n  }\n{{/eq}}\n  return true  // 保持消息通道开放\n})\n\n{{#eq extensionType \"网页工具\"}}\nfunction extractPageData(){{#eq useTypeScript \"是\"}}: any{{/eq}} {\n  return {\n    title: document.title,\n    url: window.location.href,\n    meta: {\n      description: document.querySelector('meta[name=\"description\"]')?.getAttribute('content'),\n      keywords: document.querySelector('meta[name=\"keywords\"]')?.getAttribute('content')\n    },\n    headings: Array.from(document.querySelectorAll('h1, h2, h3')).map(h => ({\n      tag: h.tagName,\n      text: h.textContent\n    })),\n    links: Array.from(document.querySelectorAll('a')).map(a => ({\n      text: a.textContent,\n      href: a.href\n    }))\n  }\n}\n{{/eq}}\n\n{{#eq extensionType \"数据抓取\"}}\nfunction scrapeData(){{#eq useTypeScript \"是\"}}: any[]{{/eq}} {\n  // 根据具体需求抓取数据\n  const items{{#eq useTypeScript \"是\"}}: any[]{{/eq}} = []\n  \n  document.querySelectorAll('.item-selector').forEach(item => {\n    items.push({\n      title: item.querySelector('.title')?.textContent,\n      price: item.querySelector('.price')?.textContent,\n      image: item.querySelector('img')?.src\n    })\n  })\n  \n  return items\n}\n{{/eq}}\n\n// 页面加载完成\nconsole.log('{{extensionName}} content script loaded')\n```\n\n**src/background/background.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}（后台脚本）：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\n{{#eq manifestVersion \"MV3\"}}\n// Manifest V3 使用 Service Worker\nchrome.runtime.onInstalled.addListener(() => {\n  console.log('{{extensionName}} installed')\n  \n  // 初始化存储\n  chrome.storage.sync.set({\n    settings: {\n      enabled: true,\n      autoRun: false\n    }\n  })\n})\n{{else}}\n// Manifest V2 使用后台页面\nchrome.runtime.onInstalled.addListener(() => {\n  console.log('{{extensionName}} installed')\n})\n{{/eq}}\n\n// 监听来自popup/content的消息\nchrome.runtime.onMessage.addListener((request, sender, sendResponse) => {\n{{#eq extensionType \"数据抓取\"}}\n  if (request.action === 'startScraping') {\n    startScrapingProcess()\n    sendResponse({ status: 'started' })\n  }\n  \n  if (request.action === 'stopScraping') {\n    stopScrapingProcess()\n    sendResponse({ status: 'stopped' })\n  }\n{{/eq}}\n  return true\n})\n\n{{#eq extensionType \"数据抓取\"}}\nlet scrapingInterval{{#eq useTypeScript \"是\"}}: number | null{{/eq}} = null\n\nfunction startScrapingProcess() {\n  scrapingInterval = setInterval(() => {\n    // 抓取逻辑\n    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {\n      if (tabs[0]?.id) {\n        chrome.tabs.sendMessage(tabs[0].id, { action: 'scrape' })\n      }\n    })\n  }, 5000)\n}\n\nfunction stopScrapingProcess() {\n  if (scrapingInterval) {\n    clearInterval(scrapingInterval)\n    scrapingInterval = null\n  }\n}\n{{/eq}}\n```\n\n**src/utils/storage.{{#eq useTypeScript \"是\"}}ts{{else}}js{{/eq}}：**\n\n```{{#eq useTypeScript \"是\"}}typescript{{else}}javascript{{/eq}}\nexport async function getStorage{{#eq useTypeScript \"是\"}}<T = any>{{/eq}}(key{{#eq useTypeScript \"是\"}}: string{{/eq}}){{#eq useTypeScript \"是\"}}: Promise<T | null>{{/eq}} {\n  return new Promise((resolve) => {\n    chrome.storage.sync.get([key], (result) => {\n      resolve(result[key] || null)\n    })\n  })\n}\n\nexport async function setStorage(key{{#eq useTypeScript \"是\"}}: string{{/eq}}, value{{#eq useTypeScript \"是\"}}: any{{/eq}}){{#eq useTypeScript \"是\"}}: Promise<void>{{/eq}} {\n  return new Promise((resolve) => {\n    chrome.storage.sync.set({ [key]: value }, () => {\n      resolve()\n    })\n  })\n}\n```\n\n{{#eq useTypeScript \"是\"}}\n**tsconfig.json：**\n\n```json\n{\n  \"compilerOptions\": {\n    \"target\": \"ES2020\",\n    \"module\": \"ESNext\",\n    \"lib\": [\"ES2020\", \"DOM\"],\n    \"strict\": true,\n    \"esModuleInterop\": true,\n    \"skipLibCheck\": true,\n    \"moduleResolution\": \"node\",\n    \"resolveJsonModule\": true,\n    \"types\": [\"chrome\"]\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n```\n{{/eq}}\n\n**README.md：**\n\n```markdown\n# {{extensionName}}\n\n{{extensionDescription}}\n\n## 功能特性\n\n{{#eq extensionType \"网页工具\"}}\n- 页面内容提取\n- 数据格式化\n- 一键导出\n{{/eq}}\n{{#eq extensionType \"数据抓取\"}}\n- 自动数据抓取\n- 进度显示\n- 数据导出\n{{/eq}}\n{{#eq extensionType \"隐私安全\"}}\n- 隐私保护\n- 广告拦截\n- 安全提示\n{{/eq}}\n\n## 技术栈\n\n- Chrome Extension {{#eq manifestVersion \"MV3\"}}Manifest V3{{else}}Manifest V2{{/eq}}\n{{#eq useTypeScript \"是\"}}\n- TypeScript\n{{/eq}}\n- Webpack\n{{#if uiFramework}}\n- {{uiFramework}}\n{{/if}}\n\n## 开发\n\n### 安装依赖\n\n```bash\nnpm install\n```\n\n### 开发模式\n\n```bash\nnpm run dev\n```\n\n### 构建\n\n```bash\nnpm run build\n```\n\n### 加载到Chrome\n\n1. 打开Chrome浏览器\n2. 访问 `chrome://extensions/`\n3. 开启\"开发者模式\"\n4. 点击\"加载已解压的扩展程序\"\n5. 选择 `dist` 目录\n\n## 项目结构\n\n- `src/popup/` - 弹出页面\n- `src/content/` - 内容脚本（注入网页）\n- `src/background/` - 后台脚本\n- `src/options/` - 选项页面\n- `src/utils/` - 工具函数\n\n## 打包发布\n\n```bash\nnpm run package\n```\n\n生成的ZIP文件可直接上传到Chrome Web Store\n\n## 开发建议\n\n1. **权限申请**\n   - 只申请必要的权限\n   - 在manifest.json中明确说明\n\n2. **性能优化**\n   - 减少不必要的DOM操作\n   - 使用事件委托\n   - 合理使用缓存\n\n3. **安全性**\n   - 避免使用eval()\n   - 内容安全策略(CSP)\n   - 数据验证\n\n4. **用户体验**\n   - 清晰的UI设计\n   - 错误提示友好\n   - 支持快捷键\n\n## 许可证\n\nMIT\n```\n\n**.gitignore：**\n\n```\nnode_modules/\ndist/\n*.zip\n.DS_Store\n```\n\n**开发最佳实践：**\n\n1. **Manifest版本选择**\n   - 新项目推荐使用MV3\n   - MV3更安全但限制更多\n   - MV2将在2024年停止支持\n\n2. **消息传递**\n   - Popup ↔ Background\n   - Content ↔ Background\n   - 使用chrome.runtime.sendMessage\n\n3. **存储策略**\n   - chrome.storage.sync（跨设备同步）\n   - chrome.storage.local（本地存储）\n   - 注意配额限制\n\n4. **调试技巧**\n   - Popup: 右键检查\n   - Content Script: F12开发者工具\n   - Background: chrome://extensions/\n\n5. **发布准备**\n   - 准备128x128图标\n   - 编写详细说明\n   - 添加屏幕截图\n   - 隐私政策（如需要）",
   "variables_schema": [
-    {"name": "extensionName", "label": "扩展名称", "type": "string", "required": true, "placeholder": "例如：我的Chrome扩展"},
-    {"name": "extensionDescription", "label": "扩展描述", "type": "string", "required": false, "default": "一个实用的Chrome浏览器扩展", "placeholder": "简短描述功能"},
-    {"name": "extensionType", "label": "扩展类型", "type": "select", "required": true, "options": [
-      {"value": "网页工具", "label": "网页工具（内容提取/处理）"},
-      {"value": "数据抓取", "label": "数据抓取（爬虫）"},
-      {"value": "隐私安全", "label": "隐私安全（广告拦截）"}
-    ]},
-    {"name": "useTypeScript", "label": "使用TypeScript", "type": "select", "required": false, "default": "是", "options": [
-      {"value": "是", "label": "使用TypeScript"},
-      {"value": "否", "label": "使用JavaScript"}
-    ]},
-    {"name": "manifestVersion", "label": "Manifest版本", "type": "select", "required": false, "default": "MV3", "options": [
-      {"value": "MV3", "label": "Manifest V3（推荐）"},
-      {"value": "MV2", "label": "Manifest V2"}
-    ]},
-    {"name": "uiFramework", "label": "UI框架（可选）", "type": "select", "required": false, "default": "无", "options": [
-      {"value": "React", "label": "React"},
-      {"value": "Vue", "label": "Vue"},
-      {"value": "无", "label": "原生JavaScript"}
-    ]}
+    {
+      "name": "extensionName",
+      "label": "扩展名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：我的Chrome扩展"
+    },
+    {
+      "name": "extensionDescription",
+      "label": "扩展描述",
+      "type": "string",
+      "required": false,
+      "default": "一个实用的Chrome浏览器扩展",
+      "placeholder": "简短描述功能"
+    },
+    {
+      "name": "extensionType",
+      "label": "扩展类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "网页工具",
+          "label": "网页工具（内容提取/处理）"
+        },
+        {
+          "value": "数据抓取",
+          "label": "数据抓取（爬虫）"
+        },
+        {
+          "value": "隐私安全",
+          "label": "隐私安全（广告拦截）"
+        }
+      ]
+    },
+    {
+      "name": "useTypeScript",
+      "label": "使用TypeScript",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "使用TypeScript"
+        },
+        {
+          "value": "否",
+          "label": "使用JavaScript"
+        }
+      ]
+    },
+    {
+      "name": "manifestVersion",
+      "label": "Manifest版本",
+      "type": "select",
+      "required": false,
+      "default": "MV3",
+      "options": [
+        {
+          "value": "MV3",
+          "label": "Manifest V3（推荐）"
+        },
+        {
+          "value": "MV2",
+          "label": "Manifest V2"
+        }
+      ]
+    },
+    {
+      "name": "uiFramework",
+      "label": "UI框架（可选）",
+      "type": "select",
+      "required": false,
+      "default": "无",
+      "options": [
+        {
+          "value": "React",
+          "label": "React"
+        },
+        {
+          "value": "Vue",
+          "label": "Vue"
+        },
+        {
+          "value": "无",
+          "label": "原生JavaScript"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "{{extensionName}}",
     "files": [
-      {"path": "README.md", "type": "markdown"},
-      {"path": "package.json", "type": "document"},
-      {"path": "webpack.config.js", "type": "document"},
-      {"path": ".gitignore", "type": "document"}
+      {
+        "path": "README.md",
+        "type": "markdown"
+      },
+      {
+        "path": "package.json",
+        "type": "document"
+      },
+      {
+        "path": "webpack.config.js",
+        "type": "document"
+      },
+      {
+        "path": ".gitignore",
+        "type": "document"
+      }
     ]
   },
   "default_files": [],
@@ -46,5 +133,15 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_code_development",
+    "skill_project_management"
+  ],
+  "required_tools": [
+    "tool_create_project_structure",
+    "tool_git_init",
+    "tool_file_writer"
+  ],
+  "execution_engine": "code"
 }

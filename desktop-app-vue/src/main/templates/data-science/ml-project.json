@@ -6,41 +6,150 @@
   "icon": "🤖",
   "category": "data-science",
   "subcategory": "machine-learning",
-  "tags": ["机器学习", "AI", "模型训练", "深度学习"],
+  "tags": [
+    "机器学习",
+    "AI",
+    "模型训练",
+    "深度学习"
+  ],
   "project_type": "app",
   "prompt_template": "请帮我生成机器学习项目框架，要求:\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 问题类型：{{problemType}}\n- 算法选择：{{algorithm}}\n- 框架：{{mlFramework}}\n\n**项目结构：**\n\n```\n{{projectName}}/\n├── data/\n│   ├── raw/              # 原始数据\n│   ├── processed/        # 处理后数据\n│   └── external/         # 外部数据\n│\n├── notebooks/            # Jupyter notebooks\n│   ├── 01_EDA.ipynb\n│   ├── 02_Feature_Engineering.ipynb\n│   ├── 03_Model_Training.ipynb\n│   └── 04_Model_Evaluation.ipynb\n│\n├── src/\n│   ├── __init__.py\n│   │\n│   ├── data/\n│   │   ├── __init__.py\n│   │   ├── load_data.py\n│   │   ├── preprocess.py\n│   │   └── feature_engineering.py\n│   │\n│   ├── models/\n│   │   ├── __init__.py\n│   │   ├── train.py\n│   │   ├── predict.py\n│   │   └── evaluate.py\n│   │\n│   ├── utils/\n│   │   ├── __init__.py\n│   │   ├── config.py\n│   │   └── logger.py\n│   │\n│   └── visualization/\n│       ├── __init__.py\n│       └── plots.py\n│\n├── models/               # 保存的模型\n│   ├── model_v1.pkl\n│   └── best_model.pkl\n│\n├── tests/               # 单元测试\n│   ├── test_data.py\n│   └── test_model.py\n│\n├── config/\n│   ├── config.yaml\n│   └── hyperparameters.yaml\n│\n├── requirements.txt\n├── setup.py\n├── README.md\n└── .gitignore\n```\n\n**requirements.txt：**\n\n```\n# 核心库\nnumpy==1.26.2\npandas==2.1.3\nscikit-learn==1.3.2\n\n{{#eq mlFramework \"TensorFlow/Keras\"}}\n# 深度学习\ntensorflow==2.15.0\nkeras==2.15.0\n{{/eq}}\n{{#eq mlFramework \"PyTorch\"}}\n# 深度学习\ntorch==2.1.0\ntorchvision==0.16.0\n{{/eq}}\n{{#eq mlFramework \"XGBoost\"}}\n# 梯度提升\nxgboost==2.0.2\nlightgbm==4.1.0\n{{/eq}}\n\n# 数据可视化\nmatplotlib==3.8.2\nseaborn==0.13.0\nplotly==5.18.0\n\n# 模型解释\nshap==0.43.0\neli5==0.13.0\n\n# 实验追踪\nmlflow==2.9.0\nwandb==0.16.1\n\n# 工具\njupyter==1.0.0\ntqdm==4.66.1\npyyaml==6.0.1\njoblib==1.3.2\n\n# 测试\npytest==7.4.3\npytest-cov==4.1.0\n```\n\n**README.md：**\n\n```markdown\n# {{projectName}}\n\n{{projectDescription}}\n\n## 问题定义\n\n**问题类型**：{{problemType}}\n\n{{#eq problemType \"分类\"}}\n**目标**：将数据分为{{numClasses}}个类别\n**评估指标**：Accuracy, Precision, Recall, F1-Score, AUC-ROC\n{{/eq}}\n{{#eq problemType \"回归\"}}\n**目标**：预测连续值\n**评估指标**：MAE, MSE, RMSE, R²\n{{/eq}}\n{{#eq problemType \"聚类\"}}\n**目标**：发现数据中的自然分组\n**评估指标**：Silhouette Score, Davies-Bouldin Index\n{{/eq}}\n\n## 数据集\n\n- **数据来源**：{{dataSource}}\n- **样本数量**：{{sampleSize}}\n- **特征数量**：{{featureCount}}\n- **目标变量**：{{targetVariable}}\n\n## 快速开始\n\n### 安装依赖\n\n```bash\npip install -r requirements.txt\n```\n\n### 数据准备\n\n```bash\n# 将原始数据放入 data/raw/\npython src/data/preprocess.py\n```\n\n### 模型训练\n\n```bash\npython src/models/train.py --config config/config.yaml\n```\n\n### 模型评估\n\n```bash\npython src/models/evaluate.py --model models/best_model.pkl\n```\n\n### 预测\n\n```bash\npython src/models/predict.py --input data/test.csv --output predictions.csv\n```\n\n## 项目流程\n\n### 1. 数据探索（EDA）\n\n运行 `notebooks/01_EDA.ipynb`\n\n- 数据概览\n- 缺失值分析\n- 特征分布\n- 相关性分析\n\n### 2. 特征工程\n\n运行 `notebooks/02_Feature_Engineering.ipynb`\n\n- 特征清洗\n- 特征转换\n- 特征选择\n- 特征创建\n\n### 3. 模型训练\n\n运行 `notebooks/03_Model_Training.ipynb`\n\n- 数据划分\n- 模型选择\n- 超参数调优\n- 交叉验证\n\n### 4. 模型评估\n\n运行 `notebooks/04_Model_Evaluation.ipynb`\n\n- 性能指标\n- 混淆矩阵\n- 特征重要性\n- 模型解释\n\n## 模型性能\n\n| 模型 | {{metric1}} | {{metric2}} | {{metric3}} |\n|------|-------------|-------------|-------------|\n| {{model1}} | {{score1_1}} | {{score1_2}} | {{score1_3}} |\n| {{model2}} | {{score2_1}} | {{score2_2}} | {{score2_3}} |\n| **最优模型** | **{{bestScore1}}** | **{{bestScore2}}** | **{{bestScore3}}** |\n\n## 部署\n\n### 使用Flask API\n\n```bash\npython app.py\n```\n\n访问 http://localhost:5000/predict\n\n### 使用Docker\n\n```bash\ndocker build -t {{projectName}} .\ndocker run -p 5000:5000 {{projectName}}\n```\n\n## 许可证\n\nMIT\n```\n\n**src/data/preprocess.py：**\n\n```python\nimport pandas as pd\nimport numpy as np\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler, LabelEncoder\nimport yaml\n\nclass DataPreprocessor:\n    def __init__(self, config_path='config/config.yaml'):\n        with open(config_path, 'r') as f:\n            self.config = yaml.safe_load(f)\n        \n        self.scaler = StandardScaler()\n        self.label_encoder = LabelEncoder()\n    \n    def load_data(self, file_path):\n        \"\"\"加载数据\"\"\"\n        return pd.read_csv(file_path)\n    \n    def handle_missing_values(self, df):\n        \"\"\"处理缺失值\"\"\"\n        # 数值型：填充中位数\n        numeric_cols = df.select_dtypes(include=[np.number]).columns\n        df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())\n        \n        # 类别型：填充众数\n        categorical_cols = df.select_dtypes(include=['object']).columns\n        df[categorical_cols] = df[categorical_cols].fillna(df[categorical_cols].mode().iloc[0])\n        \n        return df\n    \n    def encode_categorical(self, df, categorical_cols):\n        \"\"\"编码类别特征\"\"\"\n        for col in categorical_cols:\n            df[col] = self.label_encoder.fit_transform(df[col])\n        return df\n    \n    def scale_features(self, X_train, X_test):\n        \"\"\"标准化特征\"\"\"\n        X_train_scaled = self.scaler.fit_transform(X_train)\n        X_test_scaled = self.scaler.transform(X_test)\n        return X_train_scaled, X_test_scaled\n    \n    def preprocess(self, input_path, output_path):\n        \"\"\"完整预处理流程\"\"\"\n        # 加载数据\n        df = self.load_data(input_path)\n        \n        # 处理缺失值\n        df = self.handle_missing_values(df)\n        \n        # 分离特征和标签\n        X = df.drop(self.config['target_column'], axis=1)\n        y = df[self.config['target_column']]\n        \n        # 划分训练集和测试集\n        X_train, X_test, y_train, y_test = train_test_split(\n            X, y, \n            test_size=self.config['test_size'],\n            random_state=self.config['random_state']\n        )\n        \n        # 保存处理后的数据\n        X_train.to_csv(f'{output_path}/X_train.csv', index=False)\n        X_test.to_csv(f'{output_path}/X_test.csv', index=False)\n        y_train.to_csv(f'{output_path}/y_train.csv', index=False)\n        y_test.to_csv(f'{output_path}/y_test.csv', index=False)\n        \n        print(f'数据预处理完成！')\n        print(f'训练集大小: {X_train.shape}')\n        print(f'测试集大小: {X_test.shape}')\n\nif __name__ == '__main__':\n    preprocessor = DataPreprocessor()\n    preprocessor.preprocess('data/raw/data.csv', 'data/processed')\n```\n\n**src/models/train.py：**\n\n```python\nimport pandas as pd\nimport numpy as np\nimport yaml\nimport joblib\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.model_selection import GridSearchCV, cross_val_score\nimport mlflow\nimport mlflow.sklearn\n\nclass ModelTrainer:\n    def __init__(self, config_path='config/config.yaml'):\n        with open(config_path, 'r') as f:\n            self.config = yaml.safe_load(f)\n        \n        self.model = None\n    \n    def load_data(self):\n        \"\"\"加载训练数据\"\"\"\n        X_train = pd.read_csv('data/processed/X_train.csv')\n        y_train = pd.read_csv('data/processed/y_train.csv').values.ravel()\n        return X_train, y_train\n    \n    def train_model(self, X_train, y_train):\n        \"\"\"训练模型\"\"\"\n{{#eq problemType \"分类\"}}\n{{#eq algorithm \"随机森林\"}}\n        self.model = RandomForestClassifier(\n            n_estimators=self.config['n_estimators'],\n            max_depth=self.config['max_depth'],\n            random_state=self.config['random_state'],\n            n_jobs=-1\n        )\n{{/eq}}\n{{#eq algorithm \"XGBoost\"}}\n        from xgboost import XGBClassifier\n        self.model = XGBClassifier(\n            n_estimators=self.config['n_estimators'],\n            max_depth=self.config['max_depth'],\n            learning_rate=self.config['learning_rate'],\n            random_state=self.config['random_state']\n        )\n{{/eq}}\n{{/eq}}\n{{#eq problemType \"回归\"}}\n        from sklearn.ensemble import RandomForestRegressor\n        self.model = RandomForestRegressor(\n            n_estimators=self.config['n_estimators'],\n            max_depth=self.config['max_depth'],\n            random_state=self.config['random_state']\n        )\n{{/eq}}\n        \n        # 训练\n        self.model.fit(X_train, y_train)\n        \n        # 交叉验证\n        cv_scores = cross_val_score(\n            self.model, X_train, y_train, \n            cv=5, scoring='{{scoring}}'\n        )\n        \n        print(f'交叉验证得分: {cv_scores.mean():.4f} (+/- {cv_scores.std():.4f})')\n        \n        return self.model\n    \n    def hyperparameter_tuning(self, X_train, y_train):\n        \"\"\"超参数调优\"\"\"\n        param_grid = self.config['param_grid']\n        \n        grid_search = GridSearchCV(\n            self.model,\n            param_grid,\n            cv=5,\n            scoring='{{scoring}}',\n            n_jobs=-1,\n            verbose=2\n        )\n        \n        grid_search.fit(X_train, y_train)\n        \n        print(f'最佳参数: {grid_search.best_params_}')\n        print(f'最佳得分: {grid_search.best_score_:.4f}')\n        \n        self.model = grid_search.best_estimator_\n        return self.model\n    \n    def save_model(self, model_path='models/best_model.pkl'):\n        \"\"\"保存模型\"\"\"\n        joblib.dump(self.model, model_path)\n        print(f'模型已保存到: {model_path}')\n    \n    def log_to_mlflow(self, X_train, y_train):\n        \"\"\"记录到MLflow\"\"\"\n        with mlflow.start_run():\n            # 记录参数\n            mlflow.log_params(self.config)\n            \n            # 训练并记录指标\n            cv_scores = cross_val_score(self.model, X_train, y_train, cv=5)\n            mlflow.log_metric('cv_mean_score', cv_scores.mean())\n            mlflow.log_metric('cv_std_score', cv_scores.std())\n            \n            # 记录模型\n            mlflow.sklearn.log_model(self.model, 'model')\n\nif __name__ == '__main__':\n    trainer = ModelTrainer()\n    X_train, y_train = trainer.load_data()\n    \n    # 训练模型\n    model = trainer.train_model(X_train, y_train)\n    \n    # 超参数调优（可选）\n    # model = trainer.hyperparameter_tuning(X_train, y_train)\n    \n    # 保存模型\n    trainer.save_model()\n    \n    # MLflow追踪（可选）\n    # trainer.log_to_mlflow(X_train, y_train)\n```\n\n**src/models/evaluate.py：**\n\n```python\nimport pandas as pd\nimport numpy as np\nimport joblib\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nfrom sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve\nimport shap\n\nclass ModelEvaluator:\n    def __init__(self, model_path='models/best_model.pkl'):\n        self.model = joblib.load(model_path)\n    \n    def load_test_data(self):\n        \"\"\"加载测试数据\"\"\"\n        X_test = pd.read_csv('data/processed/X_test.csv')\n        y_test = pd.read_csv('data/processed/y_test.csv').values.ravel()\n        return X_test, y_test\n    \n{{#eq problemType \"分类\"}}\n    def evaluate_classification(self, X_test, y_test):\n        \"\"\"评估分类模型\"\"\"\n        # 预测\n        y_pred = self.model.predict(X_test)\n        y_proba = self.model.predict_proba(X_test)\n        \n        # 分类报告\n        print('分类报告:')\n        print(classification_report(y_test, y_pred))\n        \n        # 混淆矩阵\n        cm = confusion_matrix(y_test, y_pred)\n        plt.figure(figsize=(8, 6))\n        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')\n        plt.title('混淆矩阵')\n        plt.ylabel('真实值')\n        plt.xlabel('预测值')\n        plt.savefig('outputs/confusion_matrix.png')\n        \n        # ROC曲线\n        if len(np.unique(y_test)) == 2:  # 二分类\n            fpr, tpr, _ = roc_curve(y_test, y_proba[:, 1])\n            auc = roc_auc_score(y_test, y_proba[:, 1])\n            \n            plt.figure(figsize=(8, 6))\n            plt.plot(fpr, tpr, label=f'AUC = {auc:.4f}')\n            plt.plot([0, 1], [0, 1], 'k--')\n            plt.xlabel('False Positive Rate')\n            plt.ylabel('True Positive Rate')\n            plt.title('ROC Curve')\n            plt.legend()\n            plt.savefig('outputs/roc_curve.png')\n{{/eq}}\n\n{{#eq problemType \"回归\"}}\n    def evaluate_regression(self, X_test, y_test):\n        \"\"\"评估回归模型\"\"\"\n        from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score\n        \n        y_pred = self.model.predict(X_test)\n        \n        mae = mean_absolute_error(y_test, y_pred)\n        mse = mean_squared_error(y_test, y_pred)\n        rmse = np.sqrt(mse)\n        r2 = r2_score(y_test, y_pred)\n        \n        print(f'MAE: {mae:.4f}')\n        print(f'MSE: {mse:.4f}')\n        print(f'RMSE: {rmse:.4f}')\n        print(f'R²: {r2:.4f}')\n        \n        # 预测值vs真实值\n        plt.figure(figsize=(8, 6))\n        plt.scatter(y_test, y_pred, alpha=0.5)\n        plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')\n        plt.xlabel('真实值')\n        plt.ylabel('预测值')\n        plt.title('预测值 vs 真实值')\n        plt.savefig('outputs/predictions.png')\n{{/eq}}\n    \n    def feature_importance(self, X_test, feature_names):\n        \"\"\"特征重要性分析\"\"\"\n        if hasattr(self.model, 'feature_importances_'):\n            importances = self.model.feature_importances_\n            indices = np.argsort(importances)[::-1][:20]  # Top 20\n            \n            plt.figure(figsize=(10, 6))\n            plt.bar(range(len(indices)), importances[indices])\n            plt.xticks(range(len(indices)), [feature_names[i] for i in indices], rotation=45, ha='right')\n            plt.title('Top 20 特征重要性')\n            plt.tight_layout()\n            plt.savefig('outputs/feature_importance.png')\n    \n    def shap_analysis(self, X_test):\n        \"\"\"SHAP值分析\"\"\"\n        explainer = shap.TreeExplainer(self.model)\n        shap_values = explainer.shap_values(X_test)\n        \n        # Summary plot\n        shap.summary_plot(shap_values, X_test, show=False)\n        plt.savefig('outputs/shap_summary.png', bbox_inches='tight')\n\nif __name__ == '__main__':\n    evaluator = ModelEvaluator()\n    X_test, y_test = evaluator.load_test_data()\n    \n{{#eq problemType \"分类\"}}\n    evaluator.evaluate_classification(X_test, y_test)\n{{/eq}}\n{{#eq problemType \"回归\"}}\n    evaluator.evaluate_regression(X_test, y_test)\n{{/eq}}\n    \n    evaluator.feature_importance(X_test, X_test.columns)\n    # evaluator.shap_analysis(X_test.sample(100))  # SHAP分析\n```\n\n**config/config.yaml：**\n\n```yaml\n# 数据配置\ntarget_column: '{{targetVariable}}'\ntest_size: 0.2\nrandom_state: 42\n\n# 模型参数\nn_estimators: 100\nmax_depth: 10\nlearning_rate: 0.1\n\n# 超参数搜索空间\nparam_grid:\n  n_estimators: [50, 100, 200]\n  max_depth: [5, 10, 15, 20]\n  min_samples_split: [2, 5, 10]\n```\n\n**.gitignore：**\n\n```\n# 数据\ndata/raw/*.csv\ndata/processed/*.csv\n\n# 模型\nmodels/*.pkl\nmodels/*.h5\n\n# Python\n__pycache__/\n*.py[cod]\n*$py.class\n.Python\nvenv/\nENV/\n\n# Jupyter\n.ipynb_checkpoints/\n\n# MLflow\nmlruns/\n\n# 输出\noutputs/\n*.png\n*.jpg\n\n# 日志\n*.log\n```\n\n**最佳实践建议：**\n\n1. **数据版本控制**\n   - 使用DVC管理数据版本\n   - 记录数据来源和处理过程\n\n2. **实验追踪**\n   - 使用MLflow或W&B追踪实验\n   - 记录所有超参数和指标\n\n3. **代码质量**\n   - 编写单元测试\n   - 使用类型提示\n   - 遵循PEP 8规范\n\n4. **模型可解释性**\n   - 使用SHAP分析\n   - 生成特征重要性报告\n   - 可视化模型决策\n\n5. **模型部署**\n   - 容器化（Docker）\n   - API化（Flask/FastAPI）\n   - 监控模型性能漂移",
   "variables_schema": [
-    {"name": "projectName", "label": "项目名称", "type": "string", "required": true, "placeholder": "例如：customer-churn-prediction"},
-    {"name": "projectDescription", "label": "项目描述", "type": "string", "required": false, "default": "机器学习项目", "placeholder": "简短描述项目目标"},
-    {"name": "problemType", "label": "问题类型", "type": "select", "required": true, "options": [
-      {"value": "分类", "label": "分类（Classification）"},
-      {"value": "回归", "label": "回归（Regression）"},
-      {"value": "聚类", "label": "聚类（Clustering）"}
-    ]},
-    {"name": "algorithm", "label": "算法选择", "type": "select", "required": false, "default": "随机森林", "options": [
-      {"value": "随机森林", "label": "随机森林"},
-      {"value": "XGBoost", "label": "XGBoost"},
-      {"value": "神经网络", "label": "神经网络"},
-      {"value": "SVM", "label": "支持向量机"}
-    ]},
-    {"name": "mlFramework", "label": "ML框架", "type": "select", "required": false, "default": "Scikit-learn", "options": [
-      {"value": "Scikit-learn", "label": "Scikit-learn"},
-      {"value": "TensorFlow/Keras", "label": "TensorFlow/Keras"},
-      {"value": "PyTorch", "label": "PyTorch"},
-      {"value": "XGBoost", "label": "XGBoost/LightGBM"}
-    ]},
-    {"name": "dataSource", "label": "数据来源", "type": "string", "required": false, "default": "CSV文件", "placeholder": "例如：Kaggle、业务数据库"},
-    {"name": "targetVariable", "label": "目标变量", "type": "string", "required": false, "default": "target", "placeholder": "例如：churn, price"},
-    {"name": "sampleSize", "label": "样本数量", "type": "string", "required": false, "placeholder": "例如：10000"},
-    {"name": "featureCount", "label": "特征数量", "type": "string", "required": false, "placeholder": "例如：50"}
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：customer-churn-prediction"
+    },
+    {
+      "name": "projectDescription",
+      "label": "项目描述",
+      "type": "string",
+      "required": false,
+      "default": "机器学习项目",
+      "placeholder": "简短描述项目目标"
+    },
+    {
+      "name": "problemType",
+      "label": "问题类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "分类",
+          "label": "分类（Classification）"
+        },
+        {
+          "value": "回归",
+          "label": "回归（Regression）"
+        },
+        {
+          "value": "聚类",
+          "label": "聚类（Clustering）"
+        }
+      ]
+    },
+    {
+      "name": "algorithm",
+      "label": "算法选择",
+      "type": "select",
+      "required": false,
+      "default": "随机森林",
+      "options": [
+        {
+          "value": "随机森林",
+          "label": "随机森林"
+        },
+        {
+          "value": "XGBoost",
+          "label": "XGBoost"
+        },
+        {
+          "value": "神经网络",
+          "label": "神经网络"
+        },
+        {
+          "value": "SVM",
+          "label": "支持向量机"
+        }
+      ]
+    },
+    {
+      "name": "mlFramework",
+      "label": "ML框架",
+      "type": "select",
+      "required": false,
+      "default": "Scikit-learn",
+      "options": [
+        {
+          "value": "Scikit-learn",
+          "label": "Scikit-learn"
+        },
+        {
+          "value": "TensorFlow/Keras",
+          "label": "TensorFlow/Keras"
+        },
+        {
+          "value": "PyTorch",
+          "label": "PyTorch"
+        },
+        {
+          "value": "XGBoost",
+          "label": "XGBoost/LightGBM"
+        }
+      ]
+    },
+    {
+      "name": "dataSource",
+      "label": "数据来源",
+      "type": "string",
+      "required": false,
+      "default": "CSV文件",
+      "placeholder": "例如：Kaggle、业务数据库"
+    },
+    {
+      "name": "targetVariable",
+      "label": "目标变量",
+      "type": "string",
+      "required": false,
+      "default": "target",
+      "placeholder": "例如：churn, price"
+    },
+    {
+      "name": "sampleSize",
+      "label": "样本数量",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：10000"
+    },
+    {
+      "name": "featureCount",
+      "label": "特征数量",
+      "type": "string",
+      "required": false,
+      "placeholder": "例如：50"
+    }
   ],
   "file_structure": {
     "root": "{{projectName}}",
     "files": [
-      {"path": "README.md", "type": "markdown"},
-      {"path": "requirements.txt", "type": "document"},
-      {"path": "config/config.yaml", "type": "document"},
-      {"path": ".gitignore", "type": "document"}
+      {
+        "path": "README.md",
+        "type": "markdown"
+      },
+      {
+        "path": "requirements.txt",
+        "type": "document"
+      },
+      {
+        "path": "config/config.yaml",
+        "type": "document"
+      },
+      {
+        "path": ".gitignore",
+        "type": "document"
+      }
     ]
   },
   "default_files": [],
@@ -49,5 +158,19 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_data_science",
+    "skill_data_analysis",
+    "skill_code_development"
+  ],
+  "required_tools": [
+    "tool_data_preprocessor",
+    "tool_chart_generator",
+    "tool_python_project_setup",
+    "tool_ml_model_trainer",
+    "tool_model_evaluator",
+    "tool_feature_engineer"
+  ],
+  "execution_engine": "ml"
 }

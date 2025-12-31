@@ -6,27 +6,83 @@
   "icon": "📓",
   "category": "data-science",
   "subcategory": "notebook",
-  "tags": ["Jupyter", "Notebook", "数据分析", "Python"],
+  "tags": [
+    "Jupyter",
+    "Notebook",
+    "数据分析",
+    "Python"
+  ],
   "project_type": "app",
   "prompt_template": "请帮我生成Jupyter Notebook项目框架，要求:\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 分析类型：{{analysisType}}\n- 数据源：{{dataSource}}\n\n**项目结构：**\n\n```\n{{projectName}}/\n├── notebooks/\n│   ├── 00_README.md\n│   ├── 01_Data_Loading.ipynb\n│   ├── 02_EDA.ipynb\n│   ├── 03_Data_Cleaning.ipynb\n│   ├── 04_Feature_Engineering.ipynb\n│   ├── 05_Modeling.ipynb\n│   ├── 06_Results_Visualization.ipynb\n│   └── 07_Report.ipynb\n│\n├── data/\n│   ├── raw/              # 原始数据（不修改）\n│   ├── interim/          # 中间处理数据\n│   ├── processed/        # 最终数据\n│   └── external/         # 外部参考数据\n│\n├── src/\n│   ├── __init__.py\n│   ├── data/\n│   │   ├── __init__.py\n│   │   └── data_utils.py\n│   ├── features/\n│   │   ├── __init__.py\n│   │   └── feature_engineering.py\n│   └── visualization/\n│       ├── __init__.py\n│       └── plot_utils.py\n│\n├── outputs/\n│   ├── figures/          # 生成的图表\n│   ├── models/           # 保存的模型\n│   └── reports/          # 输出报告\n│\n├── requirements.txt\n├── environment.yml       # Conda环境\n├── .gitignore\n└── README.md\n```\n\n**requirements.txt：**\n\n```\n# Jupyter\njupyter==1.0.0\njupyterlab==4.0.9\nipywidgets==8.1.1\n\n# 数据处理\npandas==2.1.3\nnumpy==1.26.2\nscipy==1.11.4\n\n# 可视化\nmatplotlib==3.8.2\nseaborn==0.13.0\nplotly==5.18.0\n\n{{#eq analysisType \"机器学习\"}}\n# 机器学习\nscikit-learn==1.3.2\nxgboost==2.0.2\n{{/eq}}\n\n{{#eq analysisType \"深度学习\"}}\n# 深度学习\ntensorflow==2.15.0\ntorch==2.1.0\n{{/eq}}\n\n# 数据库\nsqlalchemy==2.0.23\n\n# 工具\ntqdm==4.66.1\njoblib==1.3.2\n```\n\n**notebooks/01_Data_Loading.ipynb示例：**\n\n```markdown\n# 数据加载\n\n**目标**：加载和初步检查数据\n\n**作者**：{{analyst}}\n**日期**：{{date}}\n\n## 1. 导入库\n```python\nimport pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nimport warnings\nwarnings.filterwarnings('ignore')\n\n# 设置显示选项\npd.set_option('display.max_columns', None)\npd.set_option('display.max_rows', 100)\n\n# 设置可视化样式\nsns.set_style('whitegrid')\nplt.rcParams['figure.figsize'] = (12, 6)\nplt.rcParams['font.sans-serif'] = ['SimHei']  # 中文显示\nplt.rcParams['axes.unicode_minus'] = False\n\nprint('✅ 库导入成功')\n```\n\n## 2. 加载数据\n```python\n# 读取数据\ndf = pd.read_csv('../data/raw/{{dataFile}}')\n\nprint(f'数据形状: {df.shape}')\nprint(f'行数: {df.shape[0]:,}')\nprint(f'列数: {df.shape[1]}')\n```\n\n## 3. 数据概览\n```python\n# 前几行\ndf.head()\n```\n\n```python\n# 数据信息\ndf.info()\n```\n\n```python\n# 描述性统计\ndf.describe()\n```\n\n```python\n# 数据类型分布\nprint('数值型列:', df.select_dtypes(include=[np.number]).columns.tolist())\nprint('类别型列:', df.select_dtypes(include=['object']).columns.tolist())\nprint('日期型列:', df.select_dtypes(include=['datetime']).columns.tolist())\n```\n\n## 4. 初步检查\n```python\n# 缺失值检查\nmissing = df.isnull().sum()\nmissing_pct = 100 * missing / len(df)\n\nmissing_df = pd.DataFrame({\n    '缺失数量': missing,\n    '缺失比例(%)': missing_pct\n})\n\nmissing_df = missing_df[missing_df['缺失数量'] > 0].sort_values('缺失数量', ascending=False)\n\nif len(missing_df) > 0:\n    print('⚠️  存在缺失值：')\n    display(missing_df)\nelse:\n    print('✅ 无缺失值')\n```\n\n```python\n# 重复值检查\nduplicates = df.duplicated().sum()\nprint(f'重复行数: {duplicates} ({100*duplicates/len(df):.2f}%)')\n```\n\n## 5. 保存到中间数据\n```python\ndf.to_csv('../data/interim/data_loaded.csv', index=False)\nprint('✅ 数据已保存到 data/interim/data_loaded.csv')\n```\n\n## 6. 小结\n\n- 数据行数：{df.shape[0]:,}\n- 数据列数：{df.shape[1]}\n- 缺失值情况：[总结]\n- 重复值情况：[总结]\n- **下一步**：进行探索性数据分析（EDA）\n```\n\n**notebooks/02_EDA.ipynb示例大纲：**\n\n```markdown\n# 探索性数据分析(EDA)\n\n## 1. 单变量分析\n- 数值变量分布\n- 类别变量频数\n- 异常值检测\n\n## 2. 双变量分析\n- 相关性分析\n- 散点图矩阵\n- 分组统计\n\n## 3. 多变量分析\n- PCA降维\n- 聚类分析\n\n## 4. 关键发现\n- 洞察1\n- 洞察2\n- 洞察3\n```\n\n**src/data/data_utils.py（工具函数）：**\n\n```python\nimport pandas as pd\nimport numpy as np\n\ndef load_data(file_path, **kwargs):\n    \"\"\"\n    加载数据\n    \n    Parameters:\n    -----------\n    file_path : str\n        数据文件路径\n    **kwargs : dict\n        pd.read_csv的其他参数\n    \n    Returns:\n    --------\n    df : DataFrame\n    \"\"\"\n    try:\n        df = pd.read_csv(file_path, **kwargs)\n        print(f'✅ 成功加载数据: {df.shape}')\n        return df\n    except Exception as e:\n        print(f'❌ 加载失败: {e}')\n        return None\n\ndef check_missing(df):\n    \"\"\"\n    检查缺失值\n    \"\"\"\n    missing = df.isnull().sum()\n    missing_pct = 100 * missing / len(df)\n    \n    missing_df = pd.DataFrame({\n        '缺失数量': missing,\n        '缺失比例(%)': missing_pct\n    })\n    \n    return missing_df[missing_df['缺失数量'] > 0].sort_values('缺失数量', ascending=False)\n\ndef check_duplicates(df):\n    \"\"\"\n    检查重复值\n    \"\"\"\n    duplicates = df.duplicated().sum()\n    return {\n        'count': duplicates,\n        'percentage': 100 * duplicates / len(df)\n    }\n\ndef detect_outliers(df, column, method='iqr'):\n    \"\"\"\n    检测异常值\n    \n    Parameters:\n    -----------\n    df : DataFrame\n    column : str\n        列名\n    method : str\n        'iqr' 或 'zscore'\n    \n    Returns:\n    --------\n    outliers : Series\n        异常值的布尔索引\n    \"\"\"\n    if method == 'iqr':\n        Q1 = df[column].quantile(0.25)\n        Q3 = df[column].quantile(0.75)\n        IQR = Q3 - Q1\n        \n        lower_bound = Q1 - 1.5 * IQR\n        upper_bound = Q3 + 1.5 * IQR\n        \n        outliers = (df[column] < lower_bound) | (df[column] > upper_bound)\n        \n    elif method == 'zscore':\n        from scipy import stats\n        z_scores = np.abs(stats.zscore(df[column].dropna()))\n        outliers = z_scores > 3\n    \n    return outliers\n```\n\n**src/visualization/plot_utils.py：**\n\n```python\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nimport pandas as pd\n\ndef plot_distribution(df, column, figsize=(10, 6)):\n    \"\"\"\n    绘制分布图\n    \"\"\"\n    fig, axes = plt.subplots(1, 2, figsize=figsize)\n    \n    # 直方图\n    axes[0].hist(df[column].dropna(), bins=30, edgecolor='black')\n    axes[0].set_title(f'{column} 分布')\n    axes[0].set_xlabel(column)\n    axes[0].set_ylabel('频数')\n    \n    # 箱线图\n    axes[1].boxplot(df[column].dropna())\n    axes[1].set_title(f'{column} 箱线图')\n    axes[1].set_ylabel(column)\n    \n    plt.tight_layout()\n    return fig\n\ndef plot_correlation_matrix(df, figsize=(12, 10)):\n    \"\"\"\n    绘制相关性矩阵\n    \"\"\"\n    numeric_df = df.select_dtypes(include=[np.number])\n    corr = numeric_df.corr()\n    \n    plt.figure(figsize=figsize)\n    sns.heatmap(corr, annot=True, fmt='.2f', cmap='coolwarm', \n                center=0, square=True, linewidths=1)\n    plt.title('相关性矩阵')\n    plt.tight_layout()\n    return plt.gcf()\n\ndef plot_categorical(df, column, top_n=10, figsize=(10, 6)):\n    \"\"\"\n    绘制类别变量条形图\n    \"\"\"\n    value_counts = df[column].value_counts().head(top_n)\n    \n    plt.figure(figsize=figsize)\n    value_counts.plot(kind='barh')\n    plt.title(f'{column} Top {top_n}')\n    plt.xlabel('数量')\n    plt.tight_layout()\n    return plt.gcf()\n```\n\n**Jupyter Notebook最佳实践：**\n\n### 1. 代码组织\n\n**单元格结构**：\n```markdown\n## 大标题\n描述这部分的目标\n\n### 子标题\n具体分析步骤\n```\n\n**代码+注释**：\n```python\n# 1. 加载数据\ndf = pd.read_csv('data.csv')\n\n# 2. 检查数据\nprint(df.shape)  # (1000, 10)\n\n# 3. 可视化\ndf.hist(figsize=(12, 8))\n```\n\n### 2. Markdown使用\n\n**标题层级**：\n```markdown\n# H1 - Notebook标题\n## H2 - 主要章节\n### H3 - 子章节\n#### H4 - 详细内容\n```\n\n**格式化**：\n```markdown\n**粗体**\n*斜体*\n`代码`\n- 列表项\n1. 编号列表\n```\n\n**数学公式**：\n```markdown\n行内公式：$y = wx + b$\n\n独立公式：\n$$\nf(x) = \\frac{1}{1 + e^{-x}}\n$$\n```\n\n### 3. 代码风格\n\n**导入规范**：\n```python\n# 标准库\nimport os\nimport sys\n\n# 第三方库\nimport pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n# 自定义模块\nfrom src.data import data_utils\n```\n\n**魔法命令**：\n```python\n# 自动重载模块\n%load_ext autoreload\n%autoreload 2\n\n# 内联显示图表\n%matplotlib inline\n\n# 计时\n%time operation()\n%timeit operation()\n\n# 调试\n%debug\n```\n\n### 4. 输出管理\n\n**控制输出**：\n```python\n# 抑制输出\n_ = df.hist()\n\n# 限制行数\npd.set_option('display.max_rows', 20)\n\n# 显示全部列\npd.set_option('display.max_columns', None)\n```\n\n**保存输出**：\n```python\n# 保存图表\nplt.savefig('outputs/figures/plot.png', dpi=300, bbox_inches='tight')\n\n# 保存数据\ndf.to_csv('outputs/processed_data.csv', index=False)\n```\n\n### 5. 版本控制\n\n**.gitignore：**\n```\n# Jupyter\n.ipynb_checkpoints/\n*.ipynb_checkpoints\n\n# 数据\ndata/raw/*.csv\ndata/interim/*.csv\ndata/processed/*.csv\n\n# 输出\noutputs/figures/*.png\noutputs/models/*.pkl\n\n# Python\n__pycache__/\n*.pyc\n```\n\n**清除输出后提交**：\n```bash\n# 安装nbstripout\npip install nbstripout\n\n# 配置自动清除\nnbstripout --install\n```\n\n### 6. 协作技巧\n\n**命名规范**：\n- 使用编号：01_、02_、03_\n- 描述性名称：EDA、Modeling\n- 避免空格：用下划线_\n\n**文档化**：\n- 每个notebook开头说明目标\n- 记录关键发现\n- 标注待办事项（TODO）\n\n**模块化**：\n- 通用函数放src/\n- Notebook只保留分析逻辑\n- 避免重复代码\n\n**导出报告**：\n```bash\n# 转换为HTML\njupyter nbconvert --to html notebook.ipynb\n\n# 转换为PDF\njupyter nbconvert --to pdf notebook.ipynb\n\n# 转换为Python脚本\njupyter nbconvert --to script notebook.ipynb\n```",
   "variables_schema": [
-    {"name": "projectName", "label": "项目名称", "type": "string", "required": true, "placeholder": "例如：sales-analysis"},
-    {"name": "analysisType", "label": "分析类型", "type": "select", "required": false, "default": "数据分析", "options": [
-      {"value": "数据分析", "label": "数据分析"},
-      {"value": "机器学习", "label": "机器学习"},
-      {"value": "深度学习", "label": "深度学习"},
-      {"value": "统计分析", "label": "统计分析"}
-    ]},
-    {"name": "dataSource", "label": "数据来源", "type": "string", "required": false, "default": "CSV文件", "placeholder": "例如：CSV、数据库、API"},
-    {"name": "analyst", "label": "分析师姓名", "type": "string", "required": false, "default": "数据分析师", "placeholder": "您的姓名"}
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：sales-analysis"
+    },
+    {
+      "name": "analysisType",
+      "label": "分析类型",
+      "type": "select",
+      "required": false,
+      "default": "数据分析",
+      "options": [
+        {
+          "value": "数据分析",
+          "label": "数据分析"
+        },
+        {
+          "value": "机器学习",
+          "label": "机器学习"
+        },
+        {
+          "value": "深度学习",
+          "label": "深度学习"
+        },
+        {
+          "value": "统计分析",
+          "label": "统计分析"
+        }
+      ]
+    },
+    {
+      "name": "dataSource",
+      "label": "数据来源",
+      "type": "string",
+      "required": false,
+      "default": "CSV文件",
+      "placeholder": "例如：CSV、数据库、API"
+    },
+    {
+      "name": "analyst",
+      "label": "分析师姓名",
+      "type": "string",
+      "required": false,
+      "default": "数据分析师",
+      "placeholder": "您的姓名"
+    }
   ],
   "file_structure": {
     "root": "{{projectName}}",
     "files": [
-      {"path": "README.md", "type": "markdown"},
-      {"path": "requirements.txt", "type": "document"},
-      {"path": "environment.yml", "type": "document"},
-      {"path": ".gitignore", "type": "document"}
+      {
+        "path": "README.md",
+        "type": "markdown"
+      },
+      {
+        "path": "requirements.txt",
+        "type": "document"
+      },
+      {
+        "path": "environment.yml",
+        "type": "document"
+      },
+      {
+        "path": ".gitignore",
+        "type": "document"
+      }
     ]
   },
   "default_files": [],
@@ -35,5 +91,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_data_science",
+    "skill_data_analysis",
+    "skill_code_development"
+  ],
+  "required_tools": [
+    "tool_data_preprocessor",
+    "tool_chart_generator",
+    "tool_python_project_setup"
+  ],
+  "execution_engine": "ml"
 }
