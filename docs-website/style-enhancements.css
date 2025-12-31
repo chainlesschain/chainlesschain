@@ -469,3 +469,261 @@ a, button {
         width: 100% !important;
     }
 }
+
+/* ==========================================
+   27. 企业版Spotlight步骤和按钮优化
+   ========================================== */
+.step-number {
+    width: 60px !important;
+    height: 60px !important;
+    background: rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    color: white !important;
+    margin: 0 auto 16px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.step:hover .step-number {
+    background: rgba(255, 255, 255, 0.35) !important;
+    transform: scale(1.1) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+.step-content strong {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: white !important;
+    display: block !important;
+    margin-bottom: 6px !important;
+}
+
+.step-content p {
+    font-size: 14px !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    line-height: 1.6 !important;
+}
+
+/* Spotlight按钮优化 */
+.btn-spotlight-primary {
+    padding: 18px 40px !important;
+    background: white !important;
+    color: var(--secondary-color) !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3) !important;
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.btn-spotlight-primary:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 8px 28px rgba(255, 255, 255, 0.4) !important;
+    background: #ffffff !important;
+}
+
+.btn-spotlight-primary .sub {
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    opacity: 0.8 !important;
+}
+
+.btn-spotlight-outline {
+    padding: 18px 40px !important;
+    background: transparent !important;
+    color: white !important;
+    border: 2px solid white !important;
+    border-radius: 10px !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.btn-spotlight-outline:hover {
+    background: white !important;
+    color: var(--secondary-color) !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* ==========================================
+   28. 技术文档区域美化
+   ========================================== */
+.doc-link-card {
+    background: white !important;
+    padding: 32px 28px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    color: var(--text-primary) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: 2px solid transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+.doc-link-card:hover {
+    border-color: var(--primary-color) !important;
+    transform: translateY(-6px) !important;
+    box-shadow: 0 8px 24px rgba(24, 144, 255, 0.15) !important;
+}
+
+.doc-link-card .doc-icon {
+    font-size: 48px !important;
+    margin-bottom: 16px !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) !important;
+    transition: transform 0.3s ease !important;
+}
+
+.doc-link-card:hover .doc-icon {
+    transform: scale(1.15) !important;
+}
+
+.doc-link-card .doc-title {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    margin-bottom: 10px !important;
+    color: var(--text-primary) !important;
+}
+
+.doc-link-card .doc-desc {
+    font-size: 14px !important;
+    color: var(--text-secondary) !important;
+    line-height: 1.6 !important;
+}
+
+/* 技术文档图标特殊样式 */
+.doc-link-card:nth-child(1) .doc-icon {
+    color: #1890ff;
+}
+
+.doc-link-card:nth-child(2) .doc-icon {
+    color: #52c41a;
+}
+
+.doc-link-card:nth-child(3) .doc-icon {
+    color: #fa8c16;
+}
+
+/* ==========================================
+   29. 开源仓库卡片优化
+   ========================================== */
+.opensource-card {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08)) !important;
+    padding: 40px 36px !important;
+    border-radius: 12px !important;
+    border: 2px solid rgba(102, 126, 234, 0.25) !important;
+    transition: all 0.3s ease !important;
+}
+
+.opensource-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2) !important;
+    border-color: rgba(102, 126, 234, 0.4) !important;
+}
+
+.opensource-card h3 {
+    font-size: 24px !important;
+    margin-bottom: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    color: var(--text-primary) !important;
+}
+
+.opensource-card h3 .icon {
+    font-size: 32px !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) !important;
+}
+
+.repo-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 12px 24px !important;
+    background: white !important;
+    border-radius: 8px !important;
+    text-decoration: none !important;
+    color: var(--text-primary) !important;
+    transition: all 0.3s ease !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.repo-link:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+    background: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* ==========================================
+   30. 步骤容器整体优化
+   ========================================== */
+.setup-steps,
+.steps {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 30px !important;
+    margin-top: 40px !important;
+}
+
+.step-item,
+.step {
+    text-align: center !important;
+    transition: all 0.3s ease !important;
+}
+
+.step-item:hover,
+.step:hover {
+    transform: translateY(-4px) !important;
+}
+
+.step-title {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    margin-bottom: 8px !important;
+    color: white !important;
+}
+
+.step-desc {
+    font-size: 14px !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    line-height: 1.6 !important;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .setup-steps,
+    .steps {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+    
+    .btn-spotlight-primary,
+    .btn-spotlight-outline {
+        width: 100% !important;
+        padding: 16px 32px !important;
+        font-size: 16px !important;
+    }
+}

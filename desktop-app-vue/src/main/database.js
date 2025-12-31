@@ -569,6 +569,27 @@ class DatabaseManager {
         FOREIGN KEY (knowledge_item_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
       );
 
+      -- 知识库版本历史表
+      CREATE TABLE IF NOT EXISTS knowledge_version_history (
+        id TEXT PRIMARY KEY,
+        knowledge_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT,
+        content_snapshot TEXT,
+        created_by TEXT,
+        updated_by TEXT,
+        git_commit_hash TEXT,
+        cid TEXT,
+        parent_version_id TEXT,
+        change_summary TEXT,
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_version_id) REFERENCES knowledge_version_history(id) ON DELETE SET NULL,
+        UNIQUE(knowledge_id, version)
+      );
+
       -- 项目分类表
       CREATE TABLE IF NOT EXISTS project_categories (
         id TEXT PRIMARY KEY,
@@ -1301,6 +1322,8 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_knowledge_org_id ON knowledge_items(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_activities_org_timestamp ON organization_activities(org_id, timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_activities_actor ON organization_activities(actor_did);
+      CREATE INDEX IF NOT EXISTS idx_version_history_knowledge ON knowledge_version_history(knowledge_id, version DESC);
+      CREATE INDEX IF NOT EXISTS idx_version_history_created ON knowledge_version_history(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_sync_state_status ON p2p_sync_state(org_id, sync_status);
       CREATE INDEX IF NOT EXISTS idx_sync_state_version ON p2p_sync_state(org_id, resource_type, remote_version);
       CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(org_id, status, created_at);
