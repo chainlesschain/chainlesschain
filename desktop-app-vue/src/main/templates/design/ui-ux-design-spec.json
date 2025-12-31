@@ -1,0 +1,109 @@
+{
+  "id": "tpl_design_uiux_004",
+  "name": "ui_ux_design_spec",
+  "display_name": "UI/UX设计规范",
+  "description": "完整的UI/UX设计系统规范，包含组件库、交互规则和设计原则",
+  "icon": "🎨",
+  "category": "design",
+  "subcategory": "ui-ux",
+  "tags": [
+    "UI设计",
+    "UX设计",
+    "设计规范",
+    "组件库"
+  ],
+  "project_type": "document",
+  "prompt_template": "UI/UX设计规范文档\n\n**项目信息：**\n- 产品名称：{{productName}}\n- 产品类型：{{productType}}\n- 设计风格：{{designStyle}}\n- 目标平台：{{targetPlatform}}\n\n# UI/UX设计系统完整规范\n\n## 设计原则\n\n**产品定位：**{{productName}}\n**核心用户：**{{targetUsers}}\n**设计理念：**{{designPhilosophy}}\n\n### 核心设计原则\n\n**1. 一致性（Consistency）**\n- 视觉一致：颜色、字体、图标风格统一\n- 交互一致：相同操作在不同页面表现一致\n- 术语一致：按钮文案、提示语统一\n\n**2. 反馈（Feedback）**\n- 操作反馈：点击、滑动有视觉/触觉响应\n- 状态反馈：加载、成功、失败明确展示\n- 及时性：反馈在300ms内出现\n\n**3. 容错性（Error Prevention）**\n- 二次确认：删除等危险操作需确认\n- 输入校验：实时提示错误\n- 可撤销：提供撤销/后退选项\n\n**4. 效率（Efficiency）**\n- 减少步骤：3次点击原则\n- 智能默认：预填常用选项\n- 快捷操作：高频功能快速访问\n\n**5. 可访问性（Accessibility）**\n- 色盲友好：不只依赖颜色传达信息\n- 字体大小：最小12px（移动端14px）\n- 对比度：符合WCAG 2.1标准（4.5:1）\n- 屏幕阅读器支持\n\n## 视觉设计规范\n\n### 颜色系统（Color System）\n\n**主色（Primary Color）：**\n\n```css\n/* 主色调 */\n--primary-500: {{primaryColor}}; /* 主色 */\n--primary-400: {{primaryLight}}; /* 浅色（悬停态）*/\n--primary-600: {{primaryDark}}; /* 深色（按下态）*/\n\n/* 主色梯度（9级） */\n--primary-50: #...\n--primary-100: #...\n--primary-200: #...\n--primary-300: #...\n--primary-400: #...\n--primary-500: {{primaryColor}} /* 基准色 */\n--primary-600: #...\n--primary-700: #...\n--primary-800: #...\n--primary-900: #...\n```\n\n**使用场景：**\n- 主要按钮\n- 选中状态\n- 链接\n- 品牌标识\n\n**辅助色（Secondary Color）：**\n\n```css\n--secondary-500: {{secondaryColor}};\n```\n\n**使用场景：**\n- 次要按钮\n- 辅助功能\n- 信息强调\n\n**功能色（Functional Colors）：**\n\n```css\n/* 成功 */\n--success: #52C41A;\n--success-bg: #F6FFED;\n--success-border: #B7EB8F;\n\n/* 警告 */\n--warning: #FAAD14;\n--warning-bg: #FFFBE6;\n--warning-border: #FFE58F;\n\n/* 错误 */\n--error: #FF4D4F;\n--error-bg: #FFF1F0;\n--error-border: #FFCCC7;\n\n/* 信息 */\n--info: #1890FF;\n--info-bg: #E6F7FF;\n--info-border: #91D5FF;\n```\n\n**中性色（Neutral Colors）：**\n\n```css\n/* 文本颜色 */\n--text-primary: rgba(0, 0, 0, 0.85); /* 标题、主要文本 */\n--text-secondary: rgba(0, 0, 0, 0.65); /* 次要文本 */\n--text-tertiary: rgba(0, 0, 0, 0.45); /* 辅助文本、占位符 */\n--text-disabled: rgba(0, 0, 0, 0.25); /* 禁用文本 */\n\n/* 背景颜色 */\n--bg-primary: #FFFFFF;\n--bg-secondary: #FAFAFA;\n--bg-tertiary: #F5F5F5;\n\n/* 边框颜色 */\n--border-primary: #D9D9D9;\n--border-secondary: #E8E8E8;\n--border-light: #F0F0F0;\n```\n\n**渐变（Gradients）：**\n\n```css\n--gradient-primary: linear-gradient(135deg, {{primaryColor}} 0%, {{primaryDark}} 100%);\n--gradient-secondary: linear-gradient(135deg, {{secondaryColor}} 0%, {{secondaryDark}} 100%);\n```\n\n**色彩对比检查：**\n- 白色文字在主色上：对比度 ≥ 4.5:1\n- 黑色文字在背景色上：对比度 ≥ 4.5:1\n- 使用工具：WebAIM Contrast Checker\n\n### 字体系统（Typography）\n\n**字体族（Font Family）：**\n\n```css\n--font-family-base: {{baseFontFamily}}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n--font-family-code: 'Fira Code', 'Consolas', 'Monaco', monospace;\n```\n\n**推荐字体：**\n- 中文：思源黑体、PingFang SC、Microsoft YaHei\n- 英文：Inter、Roboto、San Francisco\n- 等宽：Fira Code、JetBrains Mono\n\n**字号体系（Type Scale）：**\n\n```css\n--font-size-xs: 12px;   /* 辅助文字 */\n--font-size-sm: 14px;   /* 正文（小） */\n--font-size-base: 16px; /* 正文（默认） */\n--font-size-lg: 18px;   /* 正文（大） */\n--font-size-xl: 20px;   /* 小标题 */\n--font-size-2xl: 24px;  /* 标题 H3 */\n--font-size-3xl: 30px;  /* 标题 H2 */\n--font-size-4xl: 38px;  /* 标题 H1 */\n--font-size-5xl: 48px;  /* 超大标题 */\n```\n\n**字重（Font Weight）：**\n\n```css\n--font-weight-light: 300;\n--font-weight-normal: 400;\n--font-weight-medium: 500;\n--font-weight-semibold: 600;\n--font-weight-bold: 700;\n```\n\n**行高（Line Height）：**\n\n```css\n--line-height-tight: 1.2;  /* 标题 */\n--line-height-normal: 1.5; /* 正文 */\n--line-height-relaxed: 1.75; /* 长文本 */\n```\n\n**文本样式示例：**\n\n```css\n/* H1 - 页面标题 */\n.h1 {\n  font-size: 38px;\n  font-weight: 700;\n  line-height: 1.2;\n  color: var(--text-primary);\n}\n\n/* Body - 正文 */\n.body {\n  font-size: 16px;\n  font-weight: 400;\n  line-height: 1.5;\n  color: var(--text-primary);\n}\n\n/* Caption - 辅助文字 */\n.caption {\n  font-size: 12px;\n  font-weight: 400;\n  line-height: 1.5;\n  color: var(--text-secondary);\n}\n```\n\n### 间距系统（Spacing）\n\n**8px基准网格：**\n\n```css\n--spacing-0: 0px;\n--spacing-1: 4px;   /* 0.5x */\n--spacing-2: 8px;   /* 1x - 基准 */\n--spacing-3: 12px;  /* 1.5x */\n--spacing-4: 16px;  /* 2x */\n--spacing-5: 20px;  /* 2.5x */\n--spacing-6: 24px;  /* 3x */\n--spacing-8: 32px;  /* 4x */\n--spacing-10: 40px; /* 5x */\n--spacing-12: 48px; /* 6x */\n--spacing-16: 64px; /* 8x */\n--spacing-20: 80px; /* 10x */\n```\n\n**使用规则：**\n- 组件内部间距：4px、8px、12px\n- 组件之间间距：16px、24px\n- 区块之间间距：32px、48px\n- 页面边距：16px（移动）、24px（平板）、32px（桌面）\n\n### 圆角（Border Radius）\n\n```css\n--radius-none: 0px;\n--radius-sm: 2px;    /* 小元素（Tag） */\n--radius-base: 4px;  /* 标准（Button、Input） */\n--radius-md: 6px;    /* 卡片 */\n--radius-lg: 8px;    /* 大卡片 */\n--radius-xl: 12px;   /* 弹窗 */\n--radius-2xl: 16px;  /* 大型容器 */\n--radius-full: 9999px; /* 圆形（Avatar） */\n```\n\n### 阴影（Shadow）\n\n```css\n--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);\n--shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1), \n               0 1px 2px 0 rgba(0, 0, 0, 0.06);\n--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), \n             0 2px 4px -1px rgba(0, 0, 0, 0.06);\n--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), \n             0 4px 6px -2px rgba(0, 0, 0, 0.05);\n--shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), \n             0 10px 10px -5px rgba(0, 0, 0, 0.04);\n```\n\n**使用场景：**\n- sm：悬浮提示\n- base：卡片\n- md：下拉菜单\n- lg：模态框\n- xl：大型弹窗\n\n### 图标系统（Iconography）\n\n**图标库：**{{iconLibrary}}\n\n**推荐图标库：**\n- Material Icons（Google）\n- Font Awesome\n- Ant Design Icons\n- Feather Icons（极简风格）\n- Heroicons（Tailwind官方）\n\n**图标尺寸：**\n\n```css\n--icon-xs: 12px;\n--icon-sm: 16px;\n--icon-base: 20px;\n--icon-md: 24px;\n--icon-lg: 32px;\n--icon-xl: 48px;\n```\n\n**使用规则：**\n- 与文字对齐：图标中心线与文字中心线对齐\n- 图标颜色：继承文字颜色或使用主色\n- 可点击图标：44x44px最小点击区域（移动端）\n- 一致性：全局使用同一套图标库\n\n## 组件库（Component Library）\n\n### 按钮（Button）\n\n**主要按钮（Primary Button）：**\n\n```css\n/* 默认态 */\nbackground: var(--primary-500);\ncolor: #FFFFFF;\npadding: 8px 16px;\nborder-radius: var(--radius-base);\nfont-size: 14px;\nfont-weight: 500;\n\n/* 悬停态（Hover） */\nbackground: var(--primary-400);\n\n/* 按下态（Active） */\nbackground: var(--primary-600);\n\n/* 禁用态（Disabled） */\nbackground: #F5F5F5;\ncolor: rgba(0, 0, 0, 0.25);\ncursor: not-allowed;\n```\n\n**次要按钮（Secondary Button）：**\n\n```css\nbackground: transparent;\ncolor: var(--primary-500);\nborder: 1px solid var(--primary-500);\n```\n\n**文字按钮（Text Button）：**\n\n```css\nbackground: transparent;\ncolor: var(--primary-500);\nborder: none;\n```\n\n**按钮尺寸：**\n\n```css\n/* Large */\nheight: 40px;\npadding: 0 20px;\nfont-size: 16px;\n\n/* Default */\nheight: 32px;\npadding: 0 16px;\nfont-size: 14px;\n\n/* Small */\nheight: 24px;\npadding: 0 12px;\nfont-size: 12px;\n```\n\n**图标按钮：**\n- 图标在左：margin-right: 8px\n- 图标在右：margin-left: 8px\n- 纯图标：正方形，padding: 8px\n\n### 输入框（Input）\n\n```css\n/* 默认态 */\nheight: 32px;\npadding: 4px 12px;\nborder: 1px solid var(--border-primary);\nborder-radius: var(--radius-base);\nfont-size: 14px;\ncolor: var(--text-primary);\n\n/* 聚焦态（Focus） */\nborder-color: var(--primary-500);\nbox-shadow: 0 0 0 2px rgba(primary-rgb, 0.2);\n\n/* 错误态（Error） */\nborder-color: var(--error);\n\n/* 禁用态（Disabled） */\nbackground: #F5F5F5;\ncolor: rgba(0, 0, 0, 0.25);\ncursor: not-allowed;\n```\n\n**占位符（Placeholder）：**\n\n```css\n::placeholder {\n  color: var(--text-tertiary);\n}\n```\n\n**前缀/后缀图标：**\n- 前缀：padding-left: 36px（为图标留空间）\n- 后缀：padding-right: 36px\n\n### 卡片（Card）\n\n```css\nbackground: #FFFFFF;\nborder-radius: var(--radius-md);\nbox-shadow: var(--shadow-base);\npadding: 16px;\n\n/* 悬停态 */\nbox-shadow: var(--shadow-md);\ntransform: translateY(-2px);\ntransition: all 0.3s ease;\n```\n\n**卡片结构：**\n\n```html\n<div class=\"card\">\n  <div class=\"card-header\">\n    <h3>标题</h3>\n  </div>\n  <div class=\"card-body\">\n    内容\n  </div>\n  <div class=\"card-footer\">\n    操作按钮\n  </div>\n</div>\n```\n\n### 模态框（Modal）\n\n```css\n/* 遮罩层 */\n.modal-overlay {\n  background: rgba(0, 0, 0, 0.45);\n  backdrop-filter: blur(4px); /* 毛玻璃效果 */\n}\n\n/* 模态框容器 */\n.modal {\n  background: #FFFFFF;\n  border-radius: var(--radius-xl);\n  box-shadow: var(--shadow-xl);\n  max-width: 520px;\n  padding: 24px;\n}\n\n/* 标题 */\n.modal-title {\n  font-size: 20px;\n  font-weight: 600;\n  margin-bottom: 16px;\n}\n\n/* 关闭按钮 */\n.modal-close {\n  position: absolute;\n  top: 16px;\n  right: 16px;\n  width: 32px;\n  height: 32px;\n}\n```\n\n**动画：**\n\n```css\n/* 淡入 */\n@keyframes fadeIn {\n  from { opacity: 0; }\n  to { opacity: 1; }\n}\n\n/* 缩放进入 */\n@keyframes scaleIn {\n  from { \n    opacity: 0; \n    transform: scale(0.9); \n  }\n  to { \n    opacity: 1; \n    transform: scale(1); \n  }\n}\n\n.modal {\n  animation: scaleIn 0.3s ease;\n}\n```\n\n### 通知/提示（Notification/Toast）\n\n```css\n.notification {\n  background: #FFFFFF;\n  border-radius: var(--radius-lg);\n  box-shadow: var(--shadow-lg);\n  padding: 16px;\n  min-width: 300px;\n  max-width: 400px;\n}\n\n/* 成功提示 */\n.notification-success {\n  border-left: 4px solid var(--success);\n}\n\n/* 错误提示 */\n.notification-error {\n  border-left: 4px solid var(--error);\n}\n```\n\n**位置：**\n- 右上角（默认）\n- 顶部居中\n- 底部居中\n\n**自动关闭：**\n- 默认：3秒\n- 重要信息：5秒\n- 错误信息：不自动关闭（需手动）\n\n### 加载状态（Loading）\n\n**Spinner（旋转加载）：**\n\n```css\n.spinner {\n  border: 3px solid rgba(0, 0, 0, 0.1);\n  border-top-color: var(--primary-500);\n  border-radius: 50%;\n  width: 32px;\n  height: 32px;\n  animation: spin 0.8s linear infinite;\n}\n\n@keyframes spin {\n  to { transform: rotate(360deg); }\n}\n```\n\n**Skeleton（骨架屏）：**\n\n```css\n.skeleton {\n  background: linear-gradient(\n    90deg,\n    #F0F0F0 25%,\n    #E0E0E0 50%,\n    #F0F0F0 75%\n  );\n  background-size: 200% 100%;\n  animation: loading 1.5s ease-in-out infinite;\n}\n\n@keyframes loading {\n  0% { background-position: 200% 0; }\n  100% { background-position: -200% 0; }\n}\n```\n\n**使用场景：**\n- 按钮加载：Spinner（小）\n- 页面加载：Spinner（大）+ 文字提示\n- 列表加载：Skeleton屏\n\n## 交互规范（Interaction Guidelines）\n\n### 动画与过渡\n\n**动画时长：**\n\n```css\n--duration-fast: 150ms;   /* 小元素（按钮、图标） */\n--duration-base: 300ms;   /* 标准（卡片、下拉） */\n--duration-slow: 500ms;   /* 大元素（模态框、抽屉） */\n```\n\n**缓动函数（Easing）：**\n\n```css\n--ease-in: cubic-bezier(0.4, 0, 1, 1);       /* 加速 */\n--ease-out: cubic-bezier(0, 0, 0.2, 1);     /* 减速 */\n--ease-in-out: cubic-bezier(0.4, 0, 0.2, 1); /* 标准 */\n--ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55); /* 弹跳 */\n```\n\n**常用过渡：**\n\n```css\n/* 颜色变化 */\ntransition: background-color var(--duration-fast) var(--ease-out);\n\n/* 尺寸变化 */\ntransition: transform var(--duration-base) var(--ease-out);\n\n/* 多属性 */\ntransition: all var(--duration-base) var(--ease-in-out);\n```\n\n**微交互示例：**\n\n```css\n/* 按钮点击波纹效果 */\n@keyframes ripple {\n  to {\n    transform: scale(4);\n    opacity: 0;\n  }\n}\n\n/* 卡片悬浮提升 */\n.card:hover {\n  transform: translateY(-4px);\n  box-shadow: var(--shadow-lg);\n}\n```\n\n### 响应式设计\n\n**断点（Breakpoints）：**\n\n```css\n/* 移动端 */\n@media (max-width: 640px) { }\n\n/* 平板 */\n@media (min-width: 641px) and (max-width: 1024px) { }\n\n/* 桌面 */\n@media (min-width: 1025px) { }\n\n/* 大屏 */\n@media (min-width: 1440px) { }\n```\n\n**移动优先原则：**\n\n```css\n/* 基础样式（移动端） */\n.button {\n  font-size: 14px;\n  padding: 8px 16px;\n}\n\n/* 桌面端增强 */\n@media (min-width: 1025px) {\n  .button {\n    font-size: 16px;\n    padding: 12px 24px;\n  }\n}\n```\n\n### 触摸优化（移动端）\n\n**最小点击区域：**\n- iOS：44x44px\n- Android：48x48px\n- 建议：统一使用48x48px\n\n**触摸反馈：**\n\n```css\n/* 点击高亮（移动端） */\n-webkit-tap-highlight-color: rgba(primary-rgb, 0.3);\n\n/* 禁用长按菜单 */\n-webkit-touch-callout: none;\n```\n\n**手势支持：**\n- 滑动删除\n- 下拉刷新\n- 捏合缩放（图片）\n\n## 可访问性（Accessibility）\n\n### ARIA属性\n\n```html\n<!-- 按钮 -->\n<button aria-label=\"关闭\" aria-pressed=\"false\">\n  <svg aria-hidden=\"true\">...</svg>\n</button>\n\n<!-- 输入框 -->\n<input \n  type=\"text\" \n  aria-label=\"用户名\" \n  aria-required=\"true\"\n  aria-invalid=\"false\"\n  aria-describedby=\"error-msg\"\n>\n<span id=\"error-msg\" role=\"alert\">用户名不能为空</span>\n\n<!-- 模态框 -->\n<div role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"modal-title\">\n  <h2 id=\"modal-title\">标题</h2>\n</div>\n```\n\n### 键盘导航\n\n**Tab顺序：**\n- 确保逻辑顺序（从左到右、从上到下）\n- 使用tabindex（0：正常顺序，-1：不可tab，>0：自定义顺序）\n\n**快捷键：**\n- Enter：确认\n- Esc：关闭模态框/取消\n- Space：选中复选框/单选框\n- Arrow keys：导航列表/菜单\n\n### 颜色对比\n\n**WCAG 2.1标准：**\n- AA级：正常文字4.5:1，大文字3:1\n- AAA级：正常文字7:1，大文字4.5:1\n\n**工具：**\n- WebAIM Contrast Checker\n- Chrome DevTools（Lighthouse）\n\n## 设计交付\n\n### Figma/Sketch文件结构\n\n```\n📁 Design System\n  📁 01-Foundation\n    📄 Colors\n    📄 Typography\n    📄 Spacing\n    📄 Icons\n  📁 02-Components\n    📄 Buttons\n    📄 Inputs\n    📄 Cards\n    📄 Modals\n  📁 03-Patterns\n    📄 Navigation\n    📄 Forms\n    📄 Data Display\n  📁 04-Pages\n    📄 Login\n    📄 Dashboard\n    📄 Settings\n```\n\n### 开发交付物\n\n**必备文件：**\n- [ ] Design Tokens（JSON/CSS变量）\n- [ ] 切图资源（SVG图标、PNG图片）\n- [ ] 字体文件\n- [ ] 组件代码（React/Vue）\n- [ ] Storybook文档\n- [ ] README.md\n\n**命名规范：**\n\n```\n/* 组件命名：BEM规范 */\n.button { }           /* Block */\n.button__icon { }     /* Element */\n.button--primary { }  /* Modifier */\n\n/* 文件命名：kebab-case */\nprimary-button.tsx\nuser-card.vue\n```\n\n## 维护与迭代\n\n**版本管理：**\n- v1.0.0：初版发布\n- v1.1.0：新增组件/功能\n- v1.0.1：Bug修复\n\n**更新日志（CHANGELOG）：**\n\n```markdown\n## v1.1.0 (2025-12-31)\n\n### 新增\n- 新增Dark Mode支持\n- 新增Tooltip组件\n\n### 改进\n- 优化Button组件动画\n- 提升色彩对比度（符合WCAG AAA）\n\n### 修复\n- 修复Modal在移动端显示问题\n```\n\n**定期审查：**\n- 每季度：检查组件使用情况\n- 每半年：更新设计趋势\n- 每年：大版本更新",
+  "variables_schema": [
+    {
+      "name": "productName",
+      "label": "产品名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "productType",
+      "label": "产品类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "Web应用",
+          "label": "Web应用"
+        },
+        {
+          "value": "移动应用",
+          "label": "移动应用（iOS/Android）"
+        },
+        {
+          "value": "桌面应用",
+          "label": "桌面应用"
+        },
+        {
+          "value": "跨平台",
+          "label": "跨平台应用"
+        }
+      ]
+    },
+    {
+      "name": "designStyle",
+      "label": "设计风格",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "现代简约",
+          "label": "现代简约"
+        },
+        {
+          "value": "扁平化",
+          "label": "扁平化"
+        },
+        {
+          "value": "新拟态",
+          "label": "新拟态（Neumorphism）"
+        },
+        {
+          "value": "玻璃态",
+          "label": "玻璃态（Glassmorphism）"
+        },
+        {
+          "value": "Material Design",
+          "label": "Material Design"
+        }
+      ]
+    },
+    {
+      "name": "primaryColor",
+      "label": "主色调（Hex）",
+      "type": "string",
+      "required": false,
+      "default": "#1890FF"
+    }
+  ],
+  "file_structure": {
+    "root": "设计规范-{{productName}}",
+    "files": [
+      {
+        "path": "设计规范.md",
+        "type": "markdown"
+      },
+      {
+        "path": "Design-Tokens.json",
+        "type": "json"
+      },
+      {
+        "path": "组件库/",
+        "type": "folder"
+      },
+      {
+        "path": "切图资源/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

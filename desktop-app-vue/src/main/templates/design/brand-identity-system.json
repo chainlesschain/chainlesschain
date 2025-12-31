@@ -1,0 +1,95 @@
+{
+  "id": "tpl_design_vi_005",
+  "name": "brand_identity_system",
+  "display_name": "品牌视觉识别系统（VI）",
+  "description": "完整的品牌VI设计方案，包含Logo、色彩、字体和应用规范",
+  "icon": "🎯",
+  "category": "design",
+  "subcategory": "branding",
+  "tags": [
+    "品牌设计",
+    "VI设计",
+    "Logo",
+    "视觉识别"
+  ],
+  "project_type": "document",
+  "prompt_template": "品牌视觉识别系统（VI）\n\n**品牌信息：**\n- 品牌名称：{{brandName}}\n- 行业类别：{{industry}}\n- 品牌定位：{{brandPositioning}}\n- 目标受众：{{targetAudience}}\n\n# 品牌视觉识别系统完整方案\n\n## 品牌战略\n\n**品牌名称：**{{brandName}}\n\n**品牌使命：**{{brandMission}}\n\n**品牌愿景：**{{brandVision}}\n\n**品牌价值观：**\n- {{value1}}\n- {{value2}}\n- {{value3}}\n\n**品牌定位：**{{brandPositioning}}\n\n**目标受众：**{{targetAudience}}\n- 年龄：{{ageRange}}\n- 职业：{{occupation}}\n- 消费能力：{{purchasingPower}}\n- 生活方式：{{lifestyle}}\n\n**品牌个性：**{{brandPersonality}}\n- 如果品牌是一个人，TA是：{{personaDescription}}\n\n## Logo设计\n\n### Logo设计理念\n\n**设计概念：**{{logocon}}{{logoConcept}}\n\n**设计元素：**\n- 图形元素：{{graphicElement}}\n- 象征意义：{{symbolism}}\n- 创意来源：{{inspiration}}\n\n### Logo变体\n\n**主Logo（Primary Logo）：**\n\n```\n[图形标志] + [品牌名称]\n横向排列/纵向排列\n```\n\n**使用场景：**\n- 官网首页\n- 品牌宣传物料\n- 产品包装\n\n**次要Logo（Secondary Logo）：**\n\n```\n简化版本（图形标志 或 品牌名称单独）\n```\n\n**使用场景：**\n- 社交媒体头像\n- 应用图标\n- 水印\n\n**Logo颜色版本：**\n1. **全彩版：**标准配色\n2. **单色版：**\n   - 黑色（深色背景用白色）\n   - 灰度\n3. **反白版：**深色背景使用\n\n### Logo规范\n\n**安全空间（Safe Zone）：**\n\n```\nLogo周围留白 = Logo高度的 X倍\nX = {{safeZoneMultiplier}}（推荐0.5-1）\n\n[    留白区域    ]\n[  [  LOGO  ]   ]\n[    留白区域    ]\n```\n\n**最小尺寸：**\n- 印刷品：不小于{{minPrintSize}}mm\n- 屏幕显示：不小于{{minScreenSize}}px\n- 确保清晰可辨\n\n**禁止使用：**\n\n❌ 不得擅自改变Logo颜色\n❌ 不得改变Logo比例（拉伸/压缩）\n❌ 不得旋转Logo\n❌ 不得添加阴影/描边/特效\n❌ 不得在低对比度背景使用\n❌ 不得将Logo放在复杂图案上\n\n### Logo颜色规范\n\n**标准色值：**\n\n```\n主色（Primary）：\nPANTONE: {{pantoneColor}}\nCMYK: C{{cyan}} M{{magenta}} Y{{yellow}} K{{black}}\nRGB: R{{red}} G{{green}} B{{blue}}\nHEX: {{hexColor}}\n\n辅助色（Secondary）：\nPANTONE: {{pantoneSec}}\nCMYK: C{{cyanSec}} M{{magentaSec}} Y{{yellowSec}} K{{blackSec}}\nRGB: R{{redSec}} G{{greenSec}} B{{blueSec}}\nHEX: {{hexSec}}\n```\n\n**注意事项：**\n- 印刷使用CMYK\n- 屏幕使用RGB/HEX\n- 特殊印刷使用PANTONE专色\n\n## 品牌色彩系统\n\n### 主色（Primary Colors）\n\n**品牌主色：**{{brandPrimaryColor}}\n\n**色彩心理学：**\n- 红色：激情、活力、紧迫感（适合：餐饮、娱乐、电商）\n- 蓝色：信任、专业、稳重（适合：科技、金融、医疗）\n- 绿色：健康、环保、成长（适合：环保、健康、教育）\n- 橙色：友好、创新、活力（适合：儿童、创意、科技）\n- 紫色：高端、神秘、创意（适合：美容、奢侈品、艺术）\n- 黄色：乐观、温暖、注意（适合：快餐、儿童、警示）\n\n**品牌主色：**{{brandPrimaryColor}}\n\n**颜色梯度（10级）：**\n\n```\n50:  {{color50}}  - 最浅\n100: {{color100}}\n200: {{color200}}\n300: {{color300}}\n400: {{color400}}\n500: {{color500}} - 标准色\n600: {{color600}}\n700: {{color700}}\n800: {{color800}}\n900: {{color900}} - 最深\n```\n\n### 辅助色（Secondary Colors）\n\n**辅助色1：**{{secondaryColor1}}\n**辅助色2：**{{secondaryColor2}}\n\n**使用场景：**\n- 强调/点缀\n- 图表/数据可视化\n- 辅助信息展示\n\n### 中性色（Neutral Colors）\n\n```\n黑色: #000000 / CMYK 0,0,0,100\n深灰: #333333\n中灰: #666666\n浅灰: #999999\n极浅灰: #F5F5F5\n白色: #FFFFFF / CMYK 0,0,0,0\n```\n\n### 配色方案\n\n**方案一：单色配色（Monochromatic）**\n- 主色的不同明度/饱和度\n- 简洁、统一\n\n**方案二：类比配色（Analogous）**\n- 色轮上相邻的颜色\n- 和谐、协调\n\n**方案三：互补配色（Complementary）**\n- 色轮上对立的颜色\n- 对比强烈、醒目\n\n**方案四：三角配色（Triadic）**\n- 色轮上等距的三个颜色\n- 平衡、丰富\n\n**推荐配比（60-30-10法则）：**\n- 60%：主色（大面积背景）\n- 30%：辅助色（次要元素）\n- 10%：强调色（行动按钮、重点）\n\n## 字体系统\n\n### 品牌字体（Brand Fonts）\n\n**中文标准字：**{{chineseFont}}\n\n**推荐字体：**\n- 思源黑体（开源，商用免费）\n- 阿里巴巴普惠体（免费）\n- 站酷系列字体（部分免费）\n- 方正系列（商用需授权）\n\n**英文标准字：**{{englishFont}}\n\n**推荐字体：**\n- Helvetica Neue\n- Futura\n- Montserrat（Google Fonts免费）\n- Raleway（Google Fonts免费）\n\n**数字字体：**{{numberFont}}\n- DIN（经典数字字体）\n- Roboto Mono（等宽）\n\n### 字体使用规范\n\n**标题字体：**\n- 字体：{{headlineFont}}\n- 字重：{{headlineWeight}}（Bold/ExtraBold）\n- 使用场景：海报、广告标题、网站大标题\n\n**正文字体：**\n- 字体：{{bodyFont}}\n- 字重：Regular/Medium\n- 使用场景：正文、说明文字\n\n**字号体系：**\n\n```\nH1: {{h1Size}}pt / {{h1SizePx}}px\nH2: {{h2Size}}pt / {{h2SizePx}}px\nH3: {{h3Size}}pt / {{h3SizePx}}px\nBody: {{bodySize}}pt / {{bodySizePx}}px\nCaption: {{captionSize}}pt / {{captionSizePx}}px\n```\n\n**行距/字距：**\n- 行距（Line Height）：字号的1.4-1.6倍\n- 字间距（Letter Spacing）：标题-2%，正文0%\n\n**备用字体（Fallback）：**\n\n```css\nfont-family: '{{brandFont}}', 'PingFang SC', 'Microsoft YaHei', sans-serif;\n```\n\n## 图形元素\n\n### 辅助图形（Graphic Elements）\n\n**设计元素：**{{graphicElements}}\n\n**示例：**\n- 几何图形（圆形、三角形、线条）\n- 品牌纹理/底纹\n- 抽象图案\n- 装饰性元素\n\n**使用原则：**\n- 与Logo设计呼应\n- 可识别性\n- 适度使用（避免喧宾夺主）\n\n### 摄影风格\n\n**摄影调性：**{{photographyStyle}}\n\n**色调：**\n- 暖色调/冷色调/中性\n- 饱和度：{{saturationLevel}}\n- 对比度：{{contrastLevel}}\n\n**构图：**\n- 三分法\n- 中心对称\n- 留白\n\n**后期滤镜：**\n统一使用{{filterName}}滤镜（参数：{{filterParams}}）\n\n### 插画风格\n\n**插画类型：**{{illustrationStyle}}\n\n**常见风格：**\n- 扁平插画（Flat Illustration）\n- 2.5D插画（Isometric）\n- 手绘风格\n- 线条插画\n- 渐变插画\n\n**配色：**\n使用品牌色系\n\n## VI应用系统\n\n### 基础应用\n\n**名片（Business Card）：**\n\n```\n尺寸：90mm x 54mm（标准）\n材质：{{cardMaterial}}（300g铜版纸/特种纸）\n工艺：{{cardProcess}}（烫金/UV/压纹）\n\n正面：\n- Logo（左上/居中）\n- 姓名、职位\n- 联系方式\n\n背面：\n- 辅助图形/Slogan\n- 或留白（极简风格）\n```\n\n**信纸/信封：**\n\n```\n信纸：A4（210mm x 297mm）\n- 页眉：Logo + 品牌名\n- 页脚：联系方式、网址\n\n信封：\n- DL（220mm x 110mm）\n- 正面：Logo\n- 背面：地址、联系方式\n```\n\n**工作证/胸卡：**\n\n```\n尺寸：86mm x 54mm（标准卡片尺寸）\n正面：\n- Logo\n- 员工照片\n- 姓名、部门、工号\n\n背面：\n- 公司信息\n- 紧急联系电话\n```\n\n### 办公用品\n\n**文件夹：**\n- 封面：Logo + 辅助图形\n- 内页：品牌色装饰\n\n**笔记本：**\n- 封面：品牌色 + Logo\n- 内页：带Logo水印（淡色）\n\n**便签纸：**\n- 顶部/底部：Logo + 品牌色条\n\n**签字笔/U盘/鼠标垫：**\n- Logo印刷/激光雕刻\n\n### 线上应用\n\n**网站：**\n- 顶部导航：Logo（链接首页）\n- 配色：品牌色系\n- 字体：品牌标准字体\n- Footer：Logo + 版权信息\n\n**社交媒体：**\n\n```\n头像：Logo（正方形版本）\n封面图：\n- Facebook: 820 x 312 px\n- Twitter: 1500 x 500 px\n- LinkedIn: 1584 x 396 px\n- 微信公众号: 900 x 383 px\n\n帖子模板：\n- 品牌色背景\n- Logo水印\n- 统一字体/排版\n```\n\n**邮件签名：**\n\n```html\n<div style=\"font-family: {{brandFont}}; color: #333;\">\n  <img src=\"logo.png\" width=\"120\" />\n  <p><strong>{{name}}</strong> | {{title}}</p>\n  <p>{{company}}</p>\n  <p>📧 {{email}} | 📱 {{phone}}</p>\n  <p>🌐 {{website}}</p>\n</div>\n```\n\n**应用图标（App Icon）：**\n\n```\n尺寸（iOS）：\n- 1024 x 1024 px（App Store）\n- 180 x 180 px（iPhone）\n- 167 x 167 px（iPad Pro）\n\n尺寸（Android）：\n- 512 x 512 px（Play Store）\n- xxxhdpi: 192 x 192 px\n- xxhdpi: 144 x 144 px\n- xhdpi: 96 x 96 px\n\n设计要求：\n- 图形简洁易识别\n- 避免细节过多\n- 考虑圆角/方角适配\n```\n\n### 线下应用\n\n**门店招牌：**\n\n```\n材质：{{signMaterial}}（亚克力/不锈钢/LED）\n工艺：{{signProcess}}（发光字/平面字）\n\n设计：\n- Logo + 品牌名\n- 夜间照明效果\n- 符合城市管理规定\n```\n\n**户外广告：**\n\n```\n- 地铁广告：{{metroAdSize}}\n- 公交站牌：{{busStopAdSize}}\n- 大型户外：根据实际尺寸等比缩放\n\n设计要点：\n- 3秒法则（3秒内传达核心信息）\n- 字号足够大（远距离可读）\n- 对比度高\n```\n\n**包装：**\n\n```\n产品包装：\n- 主视觉：Logo + 产品名\n- 侧面：品牌色\n- 底部：条形码、生产信息\n\n手提袋/快递箱：\n- Logo居中/重复排列\n- 品牌色\n- 环保材质优先\n```\n\n**展会物料：**\n\n```\n展位背景板：\n- 尺寸：根据展位（如3m x 2.5m）\n- 内容：Logo + Slogan + 核心卖点\n\nRoll-up易拉宝：\n- 尺寸：80cm x 200cm（标准）\n- 内容：产品介绍/服务流程\n\n宣传单页：\n- A4/A5\n- 正面：主视觉\n- 背面：详细信息\n```\n\n**工服/T恤：**\n\n```\n胸前：Logo（刺绣/印花）\n背后：Slogan/大Logo（可选）\n袖口：小Logo（可选）\n\n颜色：品牌色 或 黑/白/灰（百搭）\n```\n\n## 品牌声音（Brand Voice）\n\n**沟通风格：**{{communicationStyle}}\n\n**常见风格：**\n- 专业严谨（金融、法律）\n- 友好亲切（零售、服务业）\n- 年轻活力（时尚、科技）\n- 温暖关怀（医疗、教育）\n\n**语言特点：**\n- 人称：第一人称\"我们\" / 第二人称\"您\" / 第三人称\n- 语气：{{toneOfVoice}}（正式/轻松/幽默）\n- 句式：{{sentenceStyle}}（短句/长句/疑问句）\n\n**禁用词：**\n❌ {{forbiddenWords}}\n\n**推荐用词：**\n✅ {{recommendedWords}}\n\n**Slogan/口号：**{{brandSlogan}}\n\n## VI手册（Brand Guidelines）\n\n**手册结构：**\n\n```\n第一章：品牌概述\n- 品牌故事\n- 品牌理念\n- 品牌定位\n\n第二章：Logo使用规范\n- Logo变体\n- 颜色版本\n- 安全空间\n- 禁止使用\n\n第三章：色彩系统\n- 主色/辅助色\n- 色彩搭配\n- 色值标准\n\n第四章：字体系统\n- 标准字体\n- 字号体系\n- 使用规范\n\n第五章：图形元素\n- 辅助图形\n- 摄影风格\n- 插画风格\n\n第六章：应用示例\n- 基础应用\n- 线上应用\n- 线下应用\n\n附录：\n- 联系方式（品牌管理部门）\n- 文件下载（Logo源文件、字体包）\n```\n\n**交付格式：**\n- PDF（不可编辑，供查阅）\n- 在线版本（网页，实时更新）\n- 源文件包（AI/PSD/Sketch）\n\n## 品牌保护\n\n**商标注册：**\n- [ ] Logo商标注册（多类别）\n- [ ] 品牌名称注册\n- [ ] 域名注册（.com/.cn/.net）\n- [ ] 社交媒体账号注册（占坑）\n\n**使用授权：**\n- 内部使用：自由使用（遵守规范）\n- 合作伙伴：签署授权协议\n- 第三方：需书面许可\n\n**监控侵权：**\n- 定期搜索（Google/百度）\n- 商标监测服务\n- 发现侵权及时维权\n\n## 品牌升级\n\n**何时考虑品牌升级：**\n- 公司战略调整\n- 目标受众变化\n- 设计过时（5-10年）\n- 负面品牌形象\n\n**升级策略：**\n\n**渐进式升级：**\n- 保留核心元素\n- 微调颜色/字体\n- 现代化设计语言\n- 用户接受度高\n\n**革命性重塑：**\n- 全新Logo\n- 全新配色\n- 高风险高回报\n- 需大量市场教育\n\n**案例：**\n- Google：多次微调Logo，保持识别度\n- Apple：从彩虹Logo到单色，极简化\n- Airbnb：2014年全新Logo，引发争议但成功\n\n## 实施与推广\n\n**内部培训：**\n- 全员VI培训\n- 设计团队深度学习\n- 提供VI手册（人手一份）\n\n**分阶段推广：**\n\n**第一阶段（0-3个月）：**\n- 更新官网、社交媒体\n- 内部物料（名片、PPT）\n- 员工工服\n\n**第二阶段（3-6个月）：**\n- 产品包装\n- 门店装修\n- 广告物料\n\n**第三阶段（6-12个月）：**\n- 全面覆盖\n- 清理旧品牌元素\n- 品牌传播活动\n\n**预算分配：**\n\n| 项目 | 预算占比 |\n|------|----------|\n| Logo/VI设计 | 30% |\n| 印刷制作 | 25% |\n| 线上应用 | 20% |\n| 线下装修 | 15% |\n| 推广传播 | 10% |\n\n**效果评估：**\n- 品牌认知度调查\n- 品牌好感度提升\n- 市场份额变化\n- 用户反馈收集",
+  "variables_schema": [
+    {
+      "name": "brandName",
+      "label": "品牌名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "industry",
+      "label": "行业类别",
+      "type": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "科技/互联网",
+          "label": "科技/互联网"
+        },
+        {
+          "value": "餐饮/食品",
+          "label": "餐饮/食品"
+        },
+        {
+          "value": "时尚/美妆",
+          "label": "时尚/美妆"
+        },
+        {
+          "value": "教育/培训",
+          "label": "教育/培训"
+        },
+        {
+          "value": "金融/保险",
+          "label": "金融/保险"
+        },
+        {
+          "value": "医疗/健康",
+          "label": "医疗/健康"
+        }
+      ]
+    },
+    {
+      "name": "brandPositioning",
+      "label": "品牌定位",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "brandPrimaryColor",
+      "label": "品牌主色调",
+      "type": "string",
+      "required": false,
+      "default": "#1890FF"
+    }
+  ],
+  "file_structure": {
+    "root": "品牌VI-{{brandName}}",
+    "files": [
+      {
+        "path": "VI手册.pdf",
+        "type": "document"
+      },
+      {
+        "path": "Logo源文件/",
+        "type": "folder"
+      },
+      {
+        "path": "应用示例/",
+        "type": "folder"
+      },
+      {
+        "path": "物料模板/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
