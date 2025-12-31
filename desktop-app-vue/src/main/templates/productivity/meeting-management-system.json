@@ -1,0 +1,64 @@
+{
+  "id": "tpl_prod_meeting_009",
+  "name": "meeting_management_system",
+  "display_name": "会议管理系统",
+  "description": "高效会议管理体系，包含会前准备、会中控制和会后跟进",
+  "icon": "👥",
+  "category": "productivity",
+  "subcategory": "collaboration",
+  "tags": [
+    "会议管理",
+    "团队协作",
+    "效率提升",
+    "Meeting Management"
+  ],
+  "project_type": "document",
+  "prompt_template": "会议管理系统\n\n**会议信息：**\n- 会议主题：{{meetingTopic}}\n- 会议类型：{{meetingType}}\n- 参会人数：{{attendeeCount}}人\n- 会议时长：{{duration}}分钟\n\n# 高效会议管理完整指南\n\n## 1. 会议决策矩阵\n\n### 是否需要开会？\n\n**需要开会的情况：** ✅\n- 需要集体决策\n- 头脑风暴创意\n- 解决复杂问题\n- 团队建设\n- 重大信息宣布\n\n**不需要开会的情况：** ❌\n- 信息单向传达（用邮件）\n- 简单问题咨询（用IM）\n- 文档审阅（用协作工具）\n- 状态更新（用日报）\n\n### 会议替代方案\n- 邮件：信息通知\n- 文档：详细说明\n- 即时通讯：快速沟通\n- 异步协作：共享文档\n\n## 2. 会议类型\n\n{{#eq meetingType \"standup\"}}\n### 站会（Daily Standup）\n- 时长：15分钟\n- 频率：每日\n- 参与者：项目团队\n- 格式：\n  - 昨天完成了什么\n  - 今天计划做什么\n  - 遇到什么障碍\n{{/eq}}\n\n{{#eq meetingType \"brainstorm\"}}\n### 头脑风暴会议\n- 时长：{{duration}}分钟\n- 目标：产生创意想法\n- 原则：\n  - 数量优先于质量\n  - 禁止批评\n  - 鼓励疯狂想法\n  - 组合改进想法\n{{/eq}}\n\n{{#eq meetingType \"decision\"}}\n### 决策会议\n- 时长：{{duration}}分钟\n- 目标：做出关键决策\n- 流程：\n  1. 明确决策问题\n  2. 收集信息\n  3. 讨论方案\n  4. 评估选项\n  5. 做出决策\n  6. 明确行动\n{{/eq}}\n\n{{#eq meetingType \"retrospective\"}}\n### 复盘会议\n- 时长：{{duration}}分钟\n- 框架：\n  - 做得好的：{{wentWell}}\n  - 需改进的：{{toImprove}}\n  - 行动计划：{{actionItems}}\n{{/eq}}\n\n{{#eq meetingType \"oneonone\"}}\n### 1对1会议\n- 时长：30分钟\n- 频率：双周\n- 议程：\n  - 员工近况（10分钟）\n  - 工作进展（10分钟）\n  - 职业发展（10分钟）\n{{/eq}}\n\n## 3. 会前准备\n\n### 会议计划清单\n\n- [ ] 明确会议目标：{{meetingObjective}}\n- [ ] 确认必要性：此事必须开会吗？\n- [ ] 邀请合适的人：{{attendees}}\n- [ ] 设定时长：{{duration}}分钟\n- [ ] 选择时间：{{meetingTime}}\n- [ ] 预定会议室/线上链接：{{location}}\n- [ ] 准备议程：见下方\n- [ ] 发送会议邀请：提前{{noticeTime}}通知\n- [ ] 分享预读材料：{{preMaterials}}\n\n### 会议议程模板\n\n```markdown\n会议：{{meetingTopic}}\n时间：{{meetingDate}} {{meetingTime}}\n时长：{{duration}}分钟\n地点：{{location}}\n主持人：{{facilitator}}\n记录人：{{notetaker}}\n\n## 目标\n{{meetingObjective}}\n\n## 议程\n\n1. 开场（5分钟）\n   - 介绍议程\n   - 明确目标\n\n2. {{topic1}}（{{topic1Duration}}分钟）\n   - 讨论点：{{topic1Points}}\n   - 负责人：{{topic1Owner}}\n   - 预期产出：{{topic1Output}}\n\n3. {{topic2}}（{{topic2Duration}}分钟）\n   - 讨论点：{{topic2Points}}\n   - 负责人：{{topic2Owner}}\n   - 预期产出：{{topic2Output}}\n\n4. 行动事项确认（5分钟）\n   - 明确责任人\n   - 设定截止日期\n\n5. 总结与结束（5分钟）\n\n## 预读材料\n{{preMaterials}}\n\n## 参会人员\n- 必须参加：{{requiredAttendees}}\n- 可选参加：{{optionalAttendees}}\n```\n\n### 材料准备\n- 背景资料：{{backgroundDoc}}\n- 数据分析：{{dataAnalysis}}\n- 提案文档：{{proposalDoc}}\n- 参考案例：{{references}}\n\n## 4. 会中控制\n\n### 主持人职责\n\n**开场（5分钟）**\n- 欢迎参会者\n- 回顾议程\n- 明确会议目标和规则\n- 指定记录人\n\n**过程控制**\n- 按议程推进\n- 控制时间\n- 鼓励参与\n- 管理冲突\n- 拉回跑题\n\n**结束（5分钟）**\n- 总结讨论\n- 确认决策\n- 明确行动事项\n- 感谢参与\n\n### 会议规则\n\n1. **准时开始，准时结束**\n   - 不等迟到者\n   - 严格控时\n\n2. **一次一个发言者**\n   - 禁止打断\n   - 举手/示意发言\n\n3. **专注当下**\n   - 关闭手机/电脑\n   - 不处理其他工作\n\n4. **尊重所有观点**\n   - 对事不对人\n   - 建设性反馈\n\n5. **记录所有决策和行动**\n\n### 时间管理技巧\n\n**时间盒（Timeboxing）**\n```\n09:00-09:05  开场\n09:05-09:20  议题1讨论\n09:20-09:35  议题2讨论\n09:35-09:50  议题3讨论\n09:50-09:55  行动事项\n09:55-10:00  总结\n```\n\n**时间提醒**\n- 剩余10分钟：提醒\n- 剩余5分钟：警告\n- 时间到：停止讨论\n\n### 促进参与\n\n**对沉默者**\n- \"{{name}}，你对此有什么看法？\"\n- 轮流发言\n\n**对话痨**\n- \"谢谢{{name}}，我们来听听其他人的想法\"\n- 限制发言时长\n\n**对跑题者**\n- \"这个话题很重要，我们会后单独讨论\"\n- 使用\"停车场\"记录\n\n## 5. 会议记录\n\n### 记录模板\n\n```markdown\n# 会议纪要：{{meetingTopic}}\n\n**会议信息**\n- 时间：{{meetingDate}}\n- 参会人：{{attendees}}\n- 缺席：{{absentees}}\n- 记录人：{{notetaker}}\n\n## 讨论要点\n\n### {{topic1}}\n- 关键讨论：\n  - {{discussion1}}\n  - {{discussion2}}\n- 结论：{{conclusion1}}\n\n### {{topic2}}\n- 关键讨论：\n  - {{discussion3}}\n  - {{discussion4}}\n- 结论：{{conclusion2}}\n\n## 决策事项\n\n1. **{{decision1}}**\n   - 决策依据：{{rationale1}}\n   - 批准者：{{approver1}}\n\n2. **{{decision2}}**\n   - 决策依据：{{rationale2}}\n   - 批准者：{{approver2}}\n\n## 行动事项\n\n| 序号 | 任务 | 负责人 | 截止日期 | 状态 |\n|------|------|--------|----------|------|\n| 1 | {{action1}} | {{owner1}} | {{deadline1}} | 待办 |\n| 2 | {{action2}} | {{owner2}} | {{deadline2}} | 待办 |\n| 3 | {{action3}} | {{owner3}} | {{deadline3}} | 待办 |\n\n## 下次会议\n- 时间：{{nextMeetingDate}}\n- 议题：{{nextMeetingTopic}}\n```\n\n### 记录技巧\n- 记录决策，不是全部对话\n- 使用行动导向语言\n- 明确责任人和时间\n- 会后24小时内分享\n\n## 6. 会后跟进\n\n### 会后立即（15分钟内）\n- [ ] 整理会议记录\n- [ ] 发送给参会者\n- [ ] 抄送相关方\n\n### 会后24小时内\n- [ ] 创建行动事项追踪\n- [ ] 分配任务到项目管理工具\n- [ ] 确认所有人收到纪要\n\n### 持续跟进\n- [ ] 每周检查行动事项进度\n- [ ] 提醒临近截止日期的任务\n- [ ] 在下次会议回顾上次行动\n\n### 行动事项追踪\n\n**追踪表**\n```\n任务：{{actionItem}}\n负责人：{{owner}}\n截止日期：{{deadline}}\n状态：🔴未开始 / 🟡进行中 / 🟢已完成\n\n进度更新：\n- [{{date1}}] {{update1}}\n- [{{date2}}] {{update2}}\n```\n\n## 7. 会议效果评估\n\n### 会后调查（可选）\n\n**会议效果评分（1-5分）**\n- 议程清晰度：____分\n- 时间控制：____分\n- 参与程度：____分\n- 决策质量：____分\n- 总体满意度：____分\n\n**改进建议：**\n{{improvementSuggestions}}\n\n### 会议成本计算\n\n```\n参会人员工时成本：\n{{attendeeCount}}人 × {{duration}}分钟 × ¥{{hourlyRate}}/60 = ¥{{meetingCost}}\n\n产出价值：{{outputValue}}\nROI：{{roi}}%\n```\n\n## 8. 会议优化\n\n### 减少会议\n- 定期审查周期性会议的必要性\n- 取消低价值会议\n- 合并相似主题会议\n\n### 提升质量\n- 强制要求议程\n- 限制参会人数（< 8人）\n- 缩短默认时长（30→25分钟）\n- 设置\"无会议日\"\n\n### 创新形式\n- 站立会议（防止拖延）\n- 散步会议（1对1）\n- 静默开始（先读材料）\n- 异步视频更新\n\n## 9. 远程会议特别注意\n\n### 技术准备\n- [ ] 测试音视频设备\n- [ ] 稳定网络连接\n- [ ] 备用设备\n- [ ] 共享屏幕权限\n\n### 互动技巧\n- 开启视频\n- 静音管理\n- 使用聊天功能\n- 定期互动确认\n- 录制会议（征得同意）\n\n### 工具推荐\n- 视频会议：{{videoTool}}\n- 协作白板：{{whiteboardTool}}\n- 投票决策：{{pollTool}}\n\n## 10. 特殊场景\n\n### 冲突解决会议\n1. 分别倾听各方\n2. 找到共同点\n3. 聚焦问题，不攻击人\n4. 寻求双赢方案\n\n### 危机应对会议\n1. 快速评估情况\n2. 明确角色分工\n3. 制定应对计划\n4. 设定检查点\n\n### 跨部门协调会议\n1. 提前对齐目标\n2. 明确各方利益\n3. 寻找协作机会\n4. 建立沟通机制",
+  "variables_schema": [
+    {
+      "name": "meetingTopic",
+      "label": "会议主题",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "meetingType",
+      "label": "会议类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "standup", "label": "站会"},
+        {"value": "brainstorm", "label": "头脑风暴"},
+        {"value": "decision", "label": "决策会议"},
+        {"value": "retrospective", "label": "复盘会议"},
+        {"value": "oneonone", "label": "1对1"},
+        {"value": "status", "label": "状态同步"}
+      ]
+    },
+    {
+      "name": "duration",
+      "label": "会议时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 60
+    },
+    {
+      "name": "attendeeCount",
+      "label": "参会人数",
+      "type": "number",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "会议管理-{{meetingTopic}}",
+    "files": [
+      {"path": "会议议程.md", "type": "markdown"},
+      {"path": "会议纪要.md", "type": "markdown"},
+      {"path": "行动事项追踪.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

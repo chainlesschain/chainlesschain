@@ -1,0 +1,61 @@
+{
+  "id": "tpl_writing_proposal_006",
+  "name": "proposal_writing",
+  "display_name": "项目提案书",
+  "description": "商业项目提案撰写指南，包含需求分析、解决方案和预算规划",
+  "icon": "📝",
+  "category": "writing",
+  "subcategory": "business",
+  "tags": [
+    "项目提案",
+    "商业计划",
+    "解决方案",
+    "预算规划"
+  ],
+  "project_type": "document",
+  "prompt_template": "项目提案书\n\n**提案信息：**\n- 项目名称：{{projectName}}\n- 提案对象：{{targetAudience}}\n- 项目类型：{{projectType}}\n- 预算范围：¥{{budgetRange}}\n\n# 项目提案完整文档\n\n## 执行摘要\n\n**项目概述**\n{{projectName}}旨在{{projectObjective}}，通过{{solution}}实现{{expectedOutcome}}。\n\n**核心价值主张**\n- 解决的问题：{{problemStatement}}\n- 提供的解决方案：{{solutionSummary}}\n- 预期收益：{{benefitSummary}}\n\n**关键指标**\n- 项目周期：{{duration}}\n- 预算总额：¥{{totalBudget}}\n- 预期ROI：{{expectedROI}}%\n- 开始日期：{{startDate}}\n\n---\n\n## 1. 项目背景\n\n### 1.1 市场环境分析\n\n**行业现状**\n- 市场规模：¥{{marketSize}}亿\n- 年增长率：{{growthRate}}%\n- 主要趋势：{{marketTrends}}\n\n**目标市场**\n- 细分市场：{{targetMarket}}\n- 目标客户：{{targetCustomer}}\n- 市场痛点：{{marketPainPoints}}\n\n### 1.2 问题陈述\n\n**当前挑战**\n{{problemDescription}}\n\n具体表现为：\n1. {{problem1}}\n2. {{problem2}}\n3. {{problem3}}\n\n**影响分析**\n- 对业务的影响：{{businessImpact}}\n- 对客户的影响：{{customerImpact}}\n- 对成本的影响：{{costImpact}}\n\n### 1.3 需求分析\n\n**业务需求**\n- {{businessRequirement1}}\n- {{businessRequirement2}}\n- {{businessRequirement3}}\n\n**用户需求**\n- {{userRequirement1}}\n- {{userRequirement2}}\n- {{userRequirement3}}\n\n**技术需求**\n- {{technicalRequirement1}}\n- {{technicalRequirement2}}\n\n## 2. 解决方案\n\n### 2.1 方案概述\n\n{{solutionOverview}}\n\n**核心理念**\n{{corePhilosophy}}\n\n**独特优势**\n1. {{advantage1}}\n2. {{advantage2}}\n3. {{advantage3}}\n\n### 2.2 实施方案\n\n{{#eq projectType \"technology\"}}\n**技术方案**\n\n**系统架构**\n- 前端技术：{{frontendTech}}\n- 后端技术：{{backendTech}}\n- 数据库：{{database}}\n- 基础设施：{{infrastructure}}\n\n**功能模块**\n1. {{module1}}：{{module1Description}}\n2. {{module2}}：{{module2Description}}\n3. {{module3}}：{{module3Description}}\n{{/eq}}\n\n{{#eq projectType \"marketing\"}}\n**营销方案**\n\n**策略框架**\n- 定位策略：{{positioningStrategy}}\n- 传播策略：{{communicationStrategy}}\n- 渠道策略：{{channelStrategy}}\n\n**执行计划**\n1. 第一阶段：{{phase1Marketing}}\n2. 第二阶段：{{phase2Marketing}}\n3. 第三阶段：{{phase3Marketing}}\n{{/eq}}\n\n{{#eq projectType \"consulting\"}}\n**咨询方案**\n\n**咨询方法论**\n{{consultingMethodology}}\n\n**工作流程**\n1. 现状诊断：{{diagnosticPhase}}\n2. 方案设计：{{designPhase}}\n3. 实施辅导：{{implementationPhase}}\n4. 效果评估：{{evaluationPhase}}\n{{/eq}}\n\n### 2.3 关键功能/特性\n\n| 功能 | 描述 | 优先级 | 预期价值 |\n|------|------|--------|----------|\n| {{feature1}} | {{feature1Desc}} | {{feature1Priority}} | {{feature1Value}} |\n| {{feature2}} | {{feature2Desc}} | {{feature2Priority}} | {{feature2Value}} |\n| {{feature3}} | {{feature3Desc}} | {{feature3Priority}} | {{feature3Value}} |\n\n## 3. 项目计划\n\n### 3.1 时间规划\n\n**项目里程碑**\n\n```gantt\n阶段1：需求确认    2周   {{phase1Start}} - {{phase1End}}\n阶段2：方案设计    3周   {{phase2Start}} - {{phase2End}}\n阶段3：开发实施    8周   {{phase3Start}} - {{phase3End}}\n阶段4：测试验收    2周   {{phase4Start}} - {{phase4End}}\n阶段5：上线部署    1周   {{phase5Start}} - {{phase5End}}\n```\n\n**详细计划**\n\n**阶段1：需求确认（{{phase1Duration}}周）**\n- 周1：干系人访谈，需求收集\n- 周2：需求文档编写，需求评审\n- 交付物：《需求规格说明书》\n\n**阶段2：方案设计（{{phase2Duration}}周）**\n- 周3-4：方案设计，原型制作\n- 周5：设计评审，方案优化\n- 交付物：《解决方案设计书》、原型\n\n**阶段3：开发实施（{{phase3Duration}}周）**\n- 周6-10：核心功能开发\n- 周11-13：集成测试\n- 交付物：可工作的系统\n\n**阶段4：测试验收（{{phase4Duration}}周）**\n- 周14：UAT测试\n- 周15：问题修复，验收\n- 交付物：《测试报告》、《验收报告》\n\n**阶段5：上线部署（{{phase5Duration}}周）**\n- 周16：生产环境部署，上线\n- 交付物：上线系统、培训文档\n\n### 3.2 团队配置\n\n**项目组织架构**\n\n- 项目经理：{{projectManager}}\n  - 职责：整体协调、进度管理\n  \n- 技术负责人：{{techLead}}\n  - 职责：技术方案、架构设计\n  \n- 团队成员：\n  - {{role1}}（{{count1}}人）：{{role1Responsibility}}\n  - {{role2}}（{{count2}}人）：{{role2Responsibility}}\n  - {{role3}}（{{count3}}人）：{{role3Responsibility}}\n\n**人力投入**\n- 总人天：{{totalManDays}}人天\n- 峰值人力：{{peakHeadcount}}人\n\n## 4. 预算规划\n\n### 4.1 成本估算\n\n**人力成本**\n| 角色 | 人数 | 单价（元/天） | 天数 | 小计（元） |\n|------|------|---------------|------|------------|\n| {{role1}} | {{count1}} | {{rate1}} | {{days1}} | {{cost1}} |\n| {{role2}} | {{count2}} | {{rate2}} | {{days2}} | {{cost2}} |\n| {{role3}} | {{count3}} | {{rate3}} | {{days3}} | {{cost3}} |\n| **人力成本合计** | | | | **{{laborCost}}** |\n\n**设备/软件成本**\n- 服务器/云服务：¥{{serverCost}}\n- 软件许可：¥{{licenseCost}}\n- 硬件设备：¥{{hardwareCost}}\n- 小计：¥{{equipmentCost}}\n\n**运营成本**\n- 营销推广：¥{{marketingCost}}\n- 培训成本：¥{{trainingCost}}\n- 其他费用：¥{{otherCost}}\n- 小计：¥{{operatingCost}}\n\n**应急储备**\n- 风险储备金（10%）：¥{{contingency}}\n\n**总预算**\n```\n总预算 = 人力成本 + 设备成本 + 运营成本 + 应急储备\n       = ¥{{laborCost}} + ¥{{equipmentCost}} + ¥{{operatingCost}} + ¥{{contingency}}\n       = ¥{{totalBudget}}\n```\n\n### 4.2 投资回报分析\n\n**预期收益**\n- 第一年收益：¥{{year1Revenue}}\n- 第二年收益：¥{{year2Revenue}}\n- 第三年收益：¥{{year3Revenue}}\n- 三年总收益：¥{{totalRevenue}}\n\n**ROI计算**\n```\nROI = (总收益 - 总投资) / 总投资 × 100%\n    = (¥{{totalRevenue}} - ¥{{totalBudget}}) / ¥{{totalBudget}} × 100%\n    = {{roi}}%\n```\n\n**回本周期**\n- 预计{{paybackPeriod}}个月收回投资\n\n## 5. 风险管理\n\n### 5.1 风险识别\n\n| 风险类型 | 风险描述 | 影响 | 概率 | 等级 |\n|----------|----------|------|------|------|\n| 技术风险 | {{techRisk}} | {{techImpact}} | {{techProb}} | {{techLevel}} |\n| 进度风险 | {{scheduleRisk}} | {{scheduleImpact}} | {{scheduleProb}} | {{scheduleLevel}} |\n| 资源风险 | {{resourceRisk}} | {{resourceImpact}} | {{resourceProb}} | {{resourceLevel}} |\n| 市场风险 | {{marketRisk}} | {{marketImpact}} | {{marketProb}} | {{marketLevel}} |\n\n### 5.2 应对措施\n\n**技术风险**\n- 预防措施：{{techPrevention}}\n- 应对计划：{{techMitigation}}\n\n**进度风险**\n- 预防措施：{{schedulePrevention}}\n- 应对计划：{{scheduleMitigation}}\n\n**资源风险**\n- 预防措施：{{resourcePrevention}}\n- 应对计划：{{resourceMitigation}}\n\n## 6. 成功标准\n\n### 6.1 关键绩效指标（KPI）\n\n**业务指标**\n- {{kpi1}}：目标{{kpi1Target}}，当前{{kpi1Current}}\n- {{kpi2}}：目标{{kpi2Target}}，当前{{kpi2Current}}\n- {{kpi3}}：目标{{kpi3Target}}，当前{{kpi3Current}}\n\n**技术指标**\n- 系统稳定性：{{stabilityTarget}}\n- 响应时间：{{performanceTarget}}\n- 并发用户：{{concurrencyTarget}}\n\n**用户指标**\n- 用户满意度：{{satisfactionTarget}}\n- 用户留存率：{{retentionTarget}}\n- NPS：{{npsTarget}}\n\n### 6.2 验收标准\n\n- [ ] 功能完整性：所有核心功能正常运行\n- [ ] 性能达标：满足性能要求\n- [ ] 用户接受度：UAT通过率>95%\n- [ ] 文档完善：交付完整文档\n- [ ] 培训完成：用户培训覆盖率100%\n\n## 7. 后续支持\n\n### 7.1 维护服务\n\n**维护范围**\n- 系统监控与故障处理\n- 功能优化与性能调优\n- 用户支持与培训\n\n**服务级别协议（SLA）**\n- 响应时间：{{responseTime}}\n- 解决时间：{{resolutionTime}}\n- 可用性：{{availability}}\n\n### 7.2 升级计划\n\n**近期优化（3个月内）**\n- {{nearTermUpgrade1}}\n- {{nearTermUpgrade2}}\n\n**中期规划（6-12个月）**\n- {{midTermUpgrade1}}\n- {{midTermUpgrade2}}\n\n## 8. 结论与建议\n\n**项目价值**\n{{projectValue}}\n\n**实施建议**\n1. {{recommendation1}}\n2. {{recommendation2}}\n3. {{recommendation3}}\n\n**下一步行动**\n- [ ] 提案评审会议\n- [ ] 预算审批\n- [ ] 启动项目\n- [ ] 组建团队\n\n---\n\n## 附录\n\n### A. 参考资料\n- {{reference1}}\n- {{reference2}}\n\n### B. 相关文档\n- 需求规格说明书\n- 技术方案设计书\n- 项目计划书\n\n### C. 联系方式\n- 项目负责人：{{projectOwner}}\n- 联系电话：{{contactPhone}}\n- 邮箱：{{contactEmail}}",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "targetAudience",
+      "label": "提案对象",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "projectType",
+      "label": "项目类型",
+      "type": "select",
+      "required": false,
+      "options": [
+        {"value": "technology", "label": "技术项目"},
+        {"value": "marketing", "label": "营销项目"},
+        {"value": "consulting", "label": "咨询项目"},
+        {"value": "product", "label": "产品项目"}
+      ]
+    },
+    {
+      "name": "totalBudget",
+      "label": "预算总额（元）",
+      "type": "number",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "root": "项目提案-{{projectName}}",
+    "files": [
+      {"path": "提案书.docx", "type": "document"},
+      {"path": "预算表.xlsx", "type": "spreadsheet"},
+      {"path": "附件/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
