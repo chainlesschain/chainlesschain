@@ -2421,9 +2421,40 @@ section {
 .tech-categories-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 30px;
+    gap: 24px;
+    margin-top: 30px;
 }
 
+.tech-cat {
+    padding: 24px;
+    background: white;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-left: 4px solid var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+.tech-cat:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-left-color: var(--gradient-start);
+}
+
+.tech-cat h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.tech-cat span {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    display: block;
+}
+
+/* 保留旧类名兼容 */
 .tech-category-item {
     padding: 24px;
     background: var(--bg-light);
