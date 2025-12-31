@@ -1,0 +1,29 @@
+{
+  "id": "tpl_design_logo_003",
+  "name": "logo_design_brief",
+  "display_name": "Logo设计需求单",
+  "description": "Logo设计Brief，包含品牌定位、设计方向和参考案例",
+  "icon": "📐",
+  "category": "design",
+  "subcategory": "branding",
+  "tags": ["Logo设计", "品牌设计", "VI设计"],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写Logo设计需求：\n\n**品牌信息：**\n- 品牌名称：{{brandName}}\n- 行业：{{industry}}\n- 品牌理念：{{brandVision}}\n- 目标受众：{{targetAudience}}\n\n# Logo设计需求单\n\n## 品牌背景\n\n**品牌名称：**{{brandName}}\n**行业：**{{industry}}\n**品牌故事：**{{brandStory}}\n**核心价值：**{{coreValue}}\n\n## 设计方向\n\n**风格偏好：**{{designDirection}}\n- 现代/传统\n- 简约/复杂\n- 严肃/活泼\n\n**色彩倾向：**{{colorPreference}}\n\n**必须包含元素：**\n- {{mustHaveElement1}}\n- {{mustHaveElement2}}\n\n**避免元素：**\n- {{avoidElement1}}\n\n## 应用场景\n\n- 名片\n- 网站\n- 产品包装\n- {{otherScenarios}}\n\n## 参考案例\n\n**喜欢的Logo：**\n1. {{referenceCase1}}\n2. {{referenceCase2}}\n\n## 交付要求\n\n**格式：**AI/SVG/PNG/JPG\n**方案数量：**{{designOptions}}个\n**交付时间：**{{deadline}}",
+  "variables_schema": [
+    {"name": "brandName", "label": "品牌名称", "type": "string", "required": true},
+    {"name": "industry", "label": "所属行业", "type": "string", "required": false},
+    {"name": "brandVision", "label": "品牌理念", "type": "string", "required": false},
+    {"name": "targetAudience", "label": "目标受众", "type": "string", "required": false}
+  ],
+  "file_structure": {
+    "root": "Logo设计-{{brandName}}",
+    "files": [
+      {"path": "设计需求.docx", "type": "document"},
+      {"path": "参考图片/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

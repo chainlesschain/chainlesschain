@@ -1,0 +1,30 @@
+{
+  "id": "tpl_career_development_001",
+  "name": "career_development_plan",
+  "display_name": "职业发展规划",
+  "description": "制定个人职业发展路径，包含目标设定、技能提升和行动计划",
+  "icon": "🎯",
+  "category": "career",
+  "subcategory": "planning",
+  "tags": ["职业规划", "职业发展", "技能提升", "晋升"],
+  "project_type": "document",
+  "prompt_template": "请帮我制定职业发展规划：\n\n**个人信息：**\n- 当前职位：{{currentPosition}}\n- 工作年限：{{yearsOfExperience}}年\n- 行业：{{industry}}\n- 理想职位：{{targetPosition}}\n\n# 职业发展规划\n\n## 现状分析\n\n### 当前状况\n- 职位：{{currentPosition}}\n- 公司：{{company}}\n- 工作年限：{{yearsOfExperience}}年\n- 月薪：{{currentSalary}}元\n\n### SWOT分析\n\n**优势 (Strengths)**\n- {{strength1}}\n- {{strength2}}\n- {{strength3}}\n\n**劣势 (Weaknesses)**\n- {{weakness1}}\n- {{weakness2}}\n\n**机会 (Opportunities)**\n- {{opportunity1}}\n- {{opportunity2}}\n\n**威胁 (Threats)**\n- {{threat1}}\n- {{threat2}}\n\n## 职业目标\n\n### 短期目标（1年内）\n**目标职位：**{{shortTermGoal}}\n**目标薪资：**{{shortTermSalary}}元\n**关键里程碑：**\n- {{milestone1}}\n- {{milestone2}}\n\n### 中期目标（3年内）\n**目标职位：**{{midTermGoal}}\n**目标薪资：**{{midTermSalary}}元\n\n### 长期目标（5年+）\n**目标职位：**{{longTermGoal}}\n**职业愿景：**{{careerVision}}\n\n## 技能提升计划\n\n### 硬技能\n**需要掌握：**\n1. {{technicalSkill1}} - 学习方式：{{learnMethod1}}\n2. {{technicalSkill2}} - 学习方式：{{learnMethod2}}\n3. {{technicalSkill3}} - 学习方式：{{learnMethod3}}\n\n### 软技能\n**需要提升：**\n- {{softSkill1}}\n- {{softSkill2}}\n- {{softSkill3}}\n\n### 学习资源\n- 在线课程：{{onlineCourse}}\n- 书籍：{{books}}\n- 导师：{{mentor}}\n- 社群：{{community}}\n\n## 行动计划\n\n### Q1行动\n- [ ] {{q1Action1}}\n- [ ] {{q1Action2}}\n- [ ] {{q1Action3}}\n\n### Q2行动\n- [ ] {{q2Action1}}\n- [ ] {{q2Action2}}\n\n### Q3行动\n- [ ] {{q3Action1}}\n- [ ] {{q3Action2}}\n\n### Q4行动\n- [ ] {{q4Action1}}\n- [ ] {{q4Action2}}\n\n## 晋升策略\n\n### 提高可见度\n1. {{visibility1}}\n2. {{visibility2}}\n\n### 积累成果\n- {{achievement1}}\n- {{achievement2}}\n\n### 建立人脉\n- 内部：{{internalNetwork}}\n- 外部：{{externalNetwork}}\n\n## 备选方案\n\n### Plan B: {{planB}}\n### Plan C: {{planC}}\n\n## 定期复盘\n\n**月度复盘：**\n- 完成了什么？\n- 遇到什么困难？\n- 下月计划是什么？\n\n**季度复盘：**\n- 目标达成情况\n- 技能提升进度\n- 是否需要调整方向",
+  "variables_schema": [
+    {"name": "currentPosition", "label": "当前职位", "type": "string", "required": true},
+    {"name": "yearsOfExperience", "label": "工作年限", "type": "number", "required": false},
+    {"name": "industry", "label": "所在行业", "type": "string", "required": false},
+    {"name": "targetPosition", "label": "理想职位", "type": "string", "required": true}
+  ],
+  "file_structure": {
+    "root": "职业规划",
+    "files": [
+      {"path": "发展规划.docx", "type": "document"},
+      {"path": "技能提升计划.xlsx", "type": "spreadsheet"},
+      {"path": "行动清单.md", "type": "markdown"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

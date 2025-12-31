@@ -1,0 +1,35 @@
+{
+  "id": "tpl_marketing_pro_growth_002",
+  "name": "growth_hacking_plan",
+  "display_name": "增长黑客方案",
+  "description": "数据驱动的用户增长策略，包含AARRR模型、增长实验和病毒式传播设计",
+  "icon": "📈",
+  "category": "marketing-pro",
+  "subcategory": "growth",
+  "tags": ["增长黑客", "用户增长", "AARRR", "数据驱动"],
+  "project_type": "document",
+  "prompt_template": "请帮我制定增长黑客方案：\n\n**产品信息：**\n- 产品名称：{{productName}}\n- 产品类型：{{productType}}\n- 当前用户数：{{currentUsers}}\n- 增长目标：{{growthTarget}}\n- 时间周期：{{timeline}}\n\n# 增长黑客方案\n\n## AARRR增长模型\n\n### Acquisition (获客)\n**目标：** 吸引新用户\n- 渠道：{{acquisitionChannels}}\n- 成本：CAC ≤ {{targetCAC}}元\n- 转化率目标：{{acquisitionRate}}%\n\n### Activation (激活)\n**目标：** 首次体验\n- Aha时刻：{{ahaM oment}}\n- 激活率目标：{{activationRate}}%\n\n### Retention (留存)\n**目标：** 用户留存\n- Day 1留存：{{day1Retention}}%\n- Day 7留存：{{day7Retention}}%\n- Day 30留存：{{day30Retention}}%\n\n### Revenue (变现)\n**目标：** 收入转化\n- ARPU：{{arpu}}元\n- 付费转化率：{{paymentRate}}%\n\n### Referral (推荐)\n**目标：** 病毒传播\n- K因子：{{kFactor}}\n- 推荐率：{{referralRate}}%\n\n## 增长实验\n\n### A/B测试计划\n1. {{experiment1}}\n2. {{experiment2}}\n3. {{experiment3}}\n\n### 增长杠杆点\n- {{leveragePoint1}}\n- {{leveragePoint2}}\n\n## 执行路线图\n\n**Week 1-2:** {{phase1}}\n**Week 3-4:** {{phase2}}\n**Week 5-8:** {{phase3}}",
+  "variables_schema": [
+    {"name": "productName", "label": "产品名称", "type": "string", "required": true},
+    {"name": "productType", "label": "产品类型", "type": "select", "required": true, "options": [
+      {"value": "APP", "label": "移动应用"},
+      {"value": "SaaS", "label": "SaaS产品"},
+      {"value": "电商", "label": "电商平台"},
+      {"value": "社交", "label": "社交产品"}
+    ]},
+    {"name": "currentUsers", "label": "当前用户数", "type": "number", "required": false},
+    {"name": "growthTarget", "label": "增长目标", "type": "string", "required": true, "placeholder": "例如：3个月增长10万用户"},
+    {"name": "timeline", "label": "时间周期", "type": "string", "required": false, "default": "3个月"}
+  ],
+  "file_structure": {
+    "root": "增长方案-{{productName}}",
+    "files": [
+      {"path": "增长方案.docx", "type": "document"},
+      {"path": "数据看板.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

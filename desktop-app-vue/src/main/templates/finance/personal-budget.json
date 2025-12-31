@@ -1,0 +1,29 @@
+{
+  "id": "tpl_finance_budget_001",
+  "name": "personal_budget_plan",
+  "display_name": "个人预算规划",
+  "description": "制定个人或家庭月度/年度预算计划，实现财务目标",
+  "icon": "💰",
+  "category": "finance",
+  "subcategory": "budgeting",
+  "tags": ["预算", "理财", "财务规划", "记账"],
+  "project_type": "document",
+  "prompt_template": "请帮我制定个人预算计划：\n\n**基本信息：**\n- 月收入：{{monthlyIncome}}元\n- 家庭人数：{{familySize}}人\n- 所在城市：{{city}}\n- 财务目标：{{financialGoal}}\n\n# 个人预算计划\n\n## 收入明细\n\n**月度收入：**\n- 工资收入：{{salaryIncome}}元\n- 副业收入：{{sideIncome}}元\n- 投资收入：{{investmentIncome}}元\n- **总收入：**{{monthlyIncome}}元\n\n## 支出预算（50/30/20法则）\n\n### 必需支出 (50%)\n**预算：{{necessaryBudget}}元**\n\n- 房租/房贷：{{housing}}元\n- 水电煤气：{{utilities}}元\n- 交通费：{{transportation}}元\n- 餐饮费：{{food}}元\n- 保险费：{{insurance}}元\n\n### 弹性支出 (30%)\n**预算：{{flexibleBudget}}元**\n\n- 娱乐休闲：{{entertainment}}元\n- 购物消费：{{shopping}}元\n- 社交聚会：{{social}}元\n- 学习进修：{{education}}元\n\n### 储蓄投资 (20%)\n**预算：{{savingsBudget}}元**\n\n- 紧急备用金：{{emergency}}元\n- 长期储蓄：{{savings}}元\n- 投资理财：{{investment}}元\n\n## 财务目标\n\n**短期目标（1年内）：**\n- {{shortTermGoal1}}\n- {{shortTermGoal2}}\n\n**长期目标（3-5年）：**\n- {{longTermGoal1}}\n- {{longTermGoal2}}\n\n## 省钱策略\n\n1. {{savingTip1}}\n2. {{savingTip2}}\n3. {{savingTip3}}\n\n## 每月复盘\n\n- 实际收入：\n- 实际支出：\n- 结余：\n- 预算执行率：",
+  "variables_schema": [
+    {"name": "monthlyIncome", "label": "月收入（元）", "type": "number", "required": true},
+    {"name": "familySize", "label": "家庭人数", "type": "number", "required": false, "default": 1},
+    {"name": "city", "label": "所在城市", "type": "string", "required": false},
+    {"name": "financialGoal", "label": "财务目标", "type": "string", "required": false, "placeholder": "例如：1年内存10万、买房首付"}
+  ],
+  "file_structure": {
+    "root": "个人预算",
+    "files": [
+      {"path": "预算计划.xlsx", "type": "spreadsheet"},
+      {"path": "记账明细.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}

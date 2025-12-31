@@ -537,6 +537,24 @@ class ChainlessChainApp {
       // 组织管理器初始化失败不影响应用启动
     }
 
+    // 初始化协作管理器（企业版集成）
+    try {
+      console.log('初始化协作管理器...');
+      const { getCollaborationManager } = require('./collaboration/collaboration-manager');
+      this.collaborationManager = getCollaborationManager();
+
+      // 设置组织管理器引用,启用企业版权限检查
+      if (this.organizationManager) {
+        this.collaborationManager.setOrganizationManager(this.organizationManager);
+        console.log('✓ 协作管理器已集成组织权限系统');
+      }
+
+      console.log('协作管理器初始化成功');
+    } catch (error) {
+      console.error('协作管理器初始化失败:', error);
+      // 协作管理器初始化失败不影响应用启动
+    }
+
     // 初始化P2P同步引擎
     try {
       console.log('初始化P2P同步引擎...');
@@ -3212,16 +3230,81 @@ class ChainlessChainApp {
     });
 
     // 获取组织活动日志
-    ipcMain.handle('org:get-activities', async (_event, orgId, limit) => {
+    ipcMain.handle('org:get-activities', async (_event, options) => {
       try {
         if (!this.organizationManager) {
-          return [];
+          return { success: false, activities: [] };
         }
 
-        return await this.organizationManager.getOrganizationActivities(orgId, limit);
+        const { orgId, limit = 500 } = options;
+        const activities = await this.organizationManager.getOrganizationActivities(orgId, limit);
+        return { success: true, activities };
       } catch (error) {
         console.error('[Main] 获取活动日志失败:', error);
-        return [];
+        return { success: false, error: error.message, activities: [] };
+      }
+    });
+
+    // 导出组织活动日志
+    ipcMain.handle('org:export-activities', async (_event, options) => {
+      try {
+        const { orgId, activities } = options;
+        const { dialog, app } = require('electron');
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        // 弹出保存对话框
+        const result = await dialog.showSaveDialog({
+          title: '导出活动日志',
+          defaultPath: path.join(
+            app.getPath('documents'),
+            `organization_${orgId}_activities_${Date.now()}.json`
+          ),
+          filters: [
+            { name: 'JSON Files', extensions: ['json'] },
+            { name: 'CSV Files', extensions: ['csv'] },
+            { name: 'All Files', extensions: ['*'] }
+          ]
+        });
+
+        if (result.canceled || !result.filePath) {
+          return { success: false, error: '用户取消' };
+        }
+
+        const filePath = result.filePath;
+        const ext = path.extname(filePath).toLowerCase();
+
+        if (ext === '.json') {
+          // 导出为JSON
+          await fs.writeFile(
+            filePath,
+            JSON.stringify(activities, null, 2),
+            'utf-8'
+          );
+        } else if (ext === '.csv') {
+          // 导出为CSV
+          const headers = ['操作者DID', '操作类型', '资源类型', '资源ID', '时间', '元数据'];
+          const rows = activities.map(a => [
+            a.actor_did,
+            a.action,
+            a.resource_type,
+            a.resource_id,
+            new Date(a.timestamp).toISOString(),
+            a.metadata
+          ]);
+
+          const csv = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+          ].join('\n');
+
+          await fs.writeFile(filePath, csv, 'utf-8');
+        }
+
+        return { success: true, filePath };
+      } catch (error) {
+        console.error('[Main] 导出活动日志失败:', error);
+        return { success: false, error: error.message };
       }
     });
 

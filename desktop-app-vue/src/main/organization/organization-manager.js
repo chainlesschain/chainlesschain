@@ -939,12 +939,21 @@ class OrganizationManager {
     }
 
     try {
-      // 订阅组织topic
       const topic = `org_${orgId}_sync`;
       console.log('[OrganizationManager] 初始化组织P2P网络:', topic);
 
-      // TODO: 实现P2P topic订阅和组织网络初始化
-      // await this.p2pManager.subscribeToTopic(topic);
+      // 注册P2P消息处理器
+      this.p2pManager.on('message:received', async (data) => {
+        if (data.topic === topic) {
+          await this.handleOrgSyncMessage(orgId, data.message);
+        }
+      });
+
+      // 订阅组织topic (使用P2P广播协议)
+      if (this.p2pManager.node && this.p2pManager.node.services?.pubsub) {
+        await this.p2pManager.node.services.pubsub.subscribe(topic);
+        console.log('[OrganizationManager] ✓ 已订阅组织topic:', topic);
+      }
     } catch (error) {
       console.error('[OrganizationManager] P2P网络初始化失败:', error);
     }
@@ -965,10 +974,373 @@ class OrganizationManager {
       const topic = `org_${orgId}_sync`;
       console.log('[OrganizationManager] 连接到组织P2P网络:', topic);
 
-      // TODO: 实现P2P网络连接
-      // await this.p2pManager.subscribeToTopic(topic);
+      // 初始化网络订阅
+      await this.initializeOrgP2PNetwork(orgId);
+
+      // 广播加入消息
+      await this.broadcastOrgMessage(orgId, {
+        type: 'member_joined',
+        orgId: orgId,
+        memberDID: await this.didManager.getCurrentDID(),
+        timestamp: Date.now()
+      });
+
+      // 请求增量同步
+      await this.requestIncrementalSync(orgId);
     } catch (error) {
       console.error('[OrganizationManager] 连接P2P网络失败:', error);
+    }
+  }
+
+  /**
+   * 处理组织同步消息
+   * @param {string} orgId - 组织ID
+   * @param {Object} message - 消息内容
+   * @returns {Promise<void>}
+   */
+  async handleOrgSyncMessage(orgId, message) {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log('[OrganizationManager] 收到同步消息:', data.type);
+
+      switch (data.type) {
+        case 'sync_request':
+          // 收到同步请求,发送增量数据
+          await this.sendIncrementalData(orgId, data.requester, data.localVersion);
+          break;
+
+        case 'sync_data':
+          // 收到同步数据,应用到本地
+          await this.applyIncrementalData(orgId, data);
+          break;
+
+        case 'member_joined':
+          // 成员加入通知
+          console.log('[OrganizationManager] 成员加入:', data.memberDID);
+          break;
+
+        case 'member_updated':
+          // 成员信息更新
+          await this.syncMemberUpdate(orgId, data);
+          break;
+
+        case 'knowledge_created':
+        case 'knowledge_updated':
+        case 'knowledge_deleted':
+          // 知识库变更
+          await this.syncKnowledgeChange(orgId, data);
+          break;
+
+        default:
+          console.warn('[OrganizationManager] 未知的同步消息类型:', data.type);
+      }
+    } catch (error) {
+      console.error('[OrganizationManager] 处理同步消息失败:', error);
+    }
+  }
+
+  /**
+   * 广播组织消息
+   * @param {string} orgId - 组织ID
+   * @param {Object} data - 消息数据
+   * @returns {Promise<void>}
+   */
+  async broadcastOrgMessage(orgId, data) {
+    if (!this.p2pManager || !this.p2pManager.node?.services?.pubsub) {
+      console.warn('[OrganizationManager] P2P网络未就绪，无法广播消息');
+      return;
+    }
+
+    try {
+      const topic = `org_${orgId}_sync`;
+      const message = Buffer.from(JSON.stringify(data));
+
+      await this.p2pManager.node.services.pubsub.publish(topic, message);
+      console.log('[OrganizationManager] ✓ 已广播消息:', data.type);
+    } catch (error) {
+      console.error('[OrganizationManager] 广播消息失败:', error);
+    }
+  }
+
+  /**
+   * 请求增量同步
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<void>}
+   */
+  async requestIncrementalSync(orgId) {
+    try {
+      // 获取本地最新版本号
+      const localVersion = await this.getLocalVersion(orgId);
+
+      // 广播同步请求
+      await this.broadcastOrgMessage(orgId, {
+        type: 'sync_request',
+        orgId: orgId,
+        requester: await this.didManager.getCurrentDID(),
+        localVersion: localVersion,
+        timestamp: Date.now()
+      });
+
+      console.log('[OrganizationManager] ✓ 已请求增量同步，本地版本:', localVersion);
+    } catch (error) {
+      console.error('[OrganizationManager] 请求同步失败:', error);
+    }
+  }
+
+  /**
+   * 获取本地数据版本号
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<number>} 版本号
+   */
+  async getLocalVersion(orgId) {
+    try {
+      const result = this.db.prepare(
+        `SELECT MAX(timestamp) as max_timestamp FROM organization_activities WHERE org_id = ?`
+      ).get(orgId);
+
+      return result?.max_timestamp || 0;
+    } catch (error) {
+      console.error('[OrganizationManager] 获取本地版本失败:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * 发送增量数据
+   * @param {string} orgId - 组织ID
+   * @param {string} targetDID - 目标用户DID
+   * @param {number} sinceVersion - 起始版本号
+   * @returns {Promise<void>}
+   */
+  async sendIncrementalData(orgId, targetDID, sinceVersion) {
+    try {
+      // 查询大于sinceVersion的所有变更
+      const changes = this.db.prepare(
+        `SELECT * FROM organization_activities
+         WHERE org_id = ? AND timestamp > ?
+         ORDER BY timestamp ASC
+         LIMIT 100`
+      ).all(orgId, sinceVersion);
+
+      if (changes.length === 0) {
+        console.log('[OrganizationManager] 没有新数据需要同步');
+        return;
+      }
+
+      // 获取相关的完整数据
+      const syncData = {
+        type: 'sync_data',
+        orgId: orgId,
+        sender: await this.didManager.getCurrentDID(),
+        sinceVersion: sinceVersion,
+        toVersion: await this.getLocalVersion(orgId),
+        changes: changes.map(change => ({
+          ...change,
+          metadata: JSON.parse(change.metadata || '{}')
+        })),
+        timestamp: Date.now()
+      };
+
+      // 直接发送给请求者
+      await this.p2pManager.sendEncryptedMessage(targetDID, JSON.stringify(syncData));
+      console.log('[OrganizationManager] ✓ 已发送增量数据，共', changes.length, '条变更');
+    } catch (error) {
+      console.error('[OrganizationManager] 发送增量数据失败:', error);
+    }
+  }
+
+  /**
+   * 应用增量数据
+   * @param {string} orgId - 组织ID
+   * @param {Object} syncData - 同步数据
+   * @returns {Promise<void>}
+   */
+  async applyIncrementalData(orgId, syncData) {
+    const { changes } = syncData;
+
+    console.log('[OrganizationManager] 应用增量数据，共', changes.length, '条变更');
+
+    for (const change of changes) {
+      try {
+        // 检查是否有冲突
+        const hasConflict = await this.checkConflict(orgId, change);
+
+        if (hasConflict) {
+          await this.resolveConflict(orgId, change);
+          continue;
+        }
+
+        // 应用变更
+        await this.applyChange(orgId, change);
+      } catch (error) {
+        console.error('[OrganizationManager] 应用变更失败:', change, error);
+      }
+    }
+
+    console.log('[OrganizationManager] ✓ 增量数据应用完成');
+  }
+
+  /**
+   * 检查是否有冲突
+   * @param {string} orgId - 组织ID
+   * @param {Object} change - 变更记录
+   * @returns {Promise<boolean>} 是否冲突
+   */
+  async checkConflict(orgId, change) {
+    try {
+      const { resource_type, resource_id, timestamp } = change;
+
+      // 查询本地是否有更新的版本
+      const localActivity = this.db.prepare(
+        `SELECT timestamp FROM organization_activities
+         WHERE org_id = ? AND resource_type = ? AND resource_id = ?
+         ORDER BY timestamp DESC LIMIT 1`
+      ).get(orgId, resource_type, resource_id);
+
+      if (localActivity && localActivity.timestamp > timestamp) {
+        console.warn('[OrganizationManager] 检测到冲突:', resource_type, resource_id);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('[OrganizationManager] 冲突检查失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 解决冲突 - 使用Last-Write-Wins策略
+   * @param {string} orgId - 组织ID
+   * @param {Object} change - 变更记录
+   * @returns {Promise<void>}
+   */
+  async resolveConflict(orgId, change) {
+    console.log('[OrganizationManager] 解决冲突:', change.action);
+
+    // 策略1: Last-Write-Wins (保留时间戳更新的版本)
+    const localActivity = this.db.prepare(
+      `SELECT timestamp FROM organization_activities
+       WHERE org_id = ? AND resource_type = ? AND resource_id = ?
+       ORDER BY timestamp DESC LIMIT 1`
+    ).get(orgId, change.resource_type, change.resource_id);
+
+    if (!localActivity || change.timestamp > localActivity.timestamp) {
+      // 远程更新,覆盖本地
+      await this.applyChange(orgId, change);
+      console.log('[OrganizationManager] ✓ 冲突已解决: 应用远程版本');
+    } else {
+      // 本地更新,保留本地
+      console.log('[OrganizationManager] ✓ 冲突已解决: 保留本地版本');
+    }
+  }
+
+  /**
+   * 应用变更
+   * @param {string} orgId - 组织ID
+   * @param {Object} change - 变更记录
+   * @returns {Promise<void>}
+   */
+  async applyChange(orgId, change) {
+    const { action, resource_type, resource_id, metadata } = change;
+
+    console.log('[OrganizationManager] 应用变更:', action, resource_type, resource_id);
+
+    switch (action) {
+      case 'update_member_role':
+        await this.db.run(
+          `UPDATE organization_members SET role = ? WHERE org_id = ? AND member_did = ?`,
+          [metadata.new_role, orgId, resource_id]
+        );
+        break;
+
+      case 'remove_member':
+        await this.db.run(
+          `UPDATE organization_members SET status = 'removed' WHERE org_id = ? AND member_did = ?`,
+          [orgId, resource_id]
+        );
+        break;
+
+      case 'add_member':
+        // 检查成员是否已存在
+        const existingMember = this.db.prepare(
+          `SELECT id FROM organization_members WHERE org_id = ? AND member_did = ?`
+        ).get(orgId, metadata.member_did);
+
+        if (!existingMember) {
+          await this.db.run(
+            `INSERT INTO organization_members (id, org_id, member_did, display_name, role, joined_at, status)
+             VALUES (?, ?, ?, ?, ?, ?, 'active')`,
+            [resource_id, orgId, metadata.member_did, metadata.display_name, metadata.role, metadata.joined_at]
+          );
+        }
+        break;
+
+      default:
+        console.warn('[OrganizationManager] 未知的变更操作:', action);
+    }
+
+    // 记录到本地活动日志 (如果不存在)
+    const existingActivity = this.db.prepare(
+      `SELECT id FROM organization_activities WHERE id = ?`
+    ).get(change.id);
+
+    if (!existingActivity) {
+      await this.db.run(
+        `INSERT INTO organization_activities (id, org_id, actor_did, action, resource_type, resource_id, metadata, timestamp)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          change.id,
+          orgId,
+          change.actor_did,
+          action,
+          resource_type,
+          resource_id,
+          JSON.stringify(metadata),
+          change.timestamp
+        ]
+      );
+    }
+  }
+
+  /**
+   * 同步成员更新
+   * @param {string} orgId - 组织ID
+   * @param {Object} data - 成员数据
+   * @returns {Promise<void>}
+   */
+  async syncMemberUpdate(orgId, data) {
+    try {
+      const { memberDID, updates } = data;
+
+      await this.db.run(
+        `UPDATE organization_members SET display_name = ?, avatar = ?
+         WHERE org_id = ? AND member_did = ?`,
+        [updates.display_name, updates.avatar, orgId, memberDID]
+      );
+
+      console.log('[OrganizationManager] ✓ 成员信息已同步:', memberDID);
+    } catch (error) {
+      console.error('[OrganizationManager] 同步成员更新失败:', error);
+    }
+  }
+
+  /**
+   * 同步知识库变更
+   * @param {string} orgId - 组织ID
+   * @param {Object} data - 知识库变更数据
+   * @returns {Promise<void>}
+   */
+  async syncKnowledgeChange(orgId, data) {
+    try {
+      // 这里需要与知识库管理器集成
+      // 暂时记录日志
+      console.log('[OrganizationManager] 知识库变更:', data.type, data.knowledgeId);
+
+      // TODO: 集成知识库管理器,应用知识库变更
+      // await knowledgeManager.applyRemoteChange(data);
+    } catch (error) {
+      console.error('[OrganizationManager] 同步知识库变更失败:', error);
     }
   }
 
@@ -981,11 +1353,13 @@ class OrganizationManager {
     console.log('[OrganizationManager] 同步组织数据:', orgId);
 
     try {
-      // TODO: 实现组织数据同步逻辑
-      // 1. 获取组织元数据
-      // 2. 同步成员列表
-      // 3. 同步知识库
-      // 4. 同步项目
+      // 1. 连接到组织P2P网络
+      await this.connectToOrgP2PNetwork(orgId);
+
+      // 2. 请求增量同步
+      await this.requestIncrementalSync(orgId);
+
+      console.log('[OrganizationManager] ✓ 组织数据同步已启动');
     } catch (error) {
       console.error('[OrganizationManager] 数据同步失败:', error);
     }

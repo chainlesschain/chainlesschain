@@ -1,0 +1,29 @@
+{
+  "id": "tpl_web_saas_landing_002",
+  "name": "saas_landing_page_template",
+  "display_name": "SaaS落地页文案",
+  "description": "SaaS产品落地页文案框架，包含价值主张、功能介绍和CTA设计",
+  "icon": "🚀",
+  "category": "web",
+  "subcategory": "landing",
+  "tags": ["落地页", "SaaS", "文案", "转化"],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写SaaS落地页文案：\n\n**产品信息：**\n- 产品名称：{{productName}}\n- 目标用户：{{targetUser}}\n- 核心价值：{{coreValue}}\n- 主要竞品：{{competitors}}\n\n# SaaS落地页文案\n\n## Hero Section（首屏）\n\n### 主标题（价值主张）\n**{{valueProposition}}**\n\n### 副标题（具体说明）\n{{subHeadline}}\n\n### CTA按钮\n[{{ctaButton}}] 例如：免费试用14天 / 立即注册\n\n### 社会证明\n- ✅ 已有{{userCount}}+用户信任选择\n- ⭐ 4.9/5 用户评分\n- 🏆 {{award}}\n\n### Hero Image/视频\n产品界面截图或演示视频\n\n---\n\n## 痛点Section（为什么需要）\n\n### 标题\n**还在为{{painPoint}}而烦恼？**\n\n### 痛点列表\n❌ {{pain1}}\n❌ {{pain2}}\n❌ {{pain3}}\n\n---\n\n## 解决方案Section\n\n### 标题\n**{{productName}} 让一切变得简单**\n\n✅ {{solution1}}\n✅ {{solution2}}\n✅ {{solution3}}\n\n---\n\n## 核心功能Section\n\n### 功能1：{{feature1Title}}\n**说明：**{{feature1Description}}\n**图示：**功能截图\n\n### 功能2：{{feature2Title}}\n**说明：**{{feature2Description}}\n\n### 功能3：{{feature3Title}}\n**说明：{{feature3Description}}\n\n---\n\n## 使用场景Section\n\n### 场景1：{{useCase1}}\n\"{{testimonial1}}\" —— {{customer1}}\n\n### 场景2：{{useCase2}}\n\"{{testimonial2}}\" —— {{customer2}}\n\n---\n\n## 定价Section\n\n### 免费版\n**价格：**¥0/月\n**适合：**{{freePlanFor}}\n**功能：**\n- {{freeFeature1}}\n- {{freeFeature2}}\n\n### 专业版\n**价格：**¥{{proPlanPrice}}/月\n**适合：**{{proPlanFor}}\n**功能：**\n- 免费版全部功能\n- {{proFeature1}}\n- {{proFeature2}}\n\n### 企业版\n**价格：**联系销售\n**适合：**{{enterpriseFor}}\n\n[开始免费试用]\n\n---\n\n## 客户案例Section\n\n### 客户Logo墙\n{{clientLogos}}\n\n### 成功案例\n**{{caseCompany}}** 使用{{productName}}后：\n- {{result1}}\n- {{result2}}\n\n---\n\n## FAQ Section\n\n**Q1: {{faq1Question}}**\nA: {{faq1Answer}}\n\n**Q2: {{faq2Question}}**\nA: {{faq2Answer}}\n\n**Q3: {{faq3Question}}**\nA: {{faq3Answer}}\n\n---\n\n## 最终CTA Section\n\n### 标题\n**准备好开始了吗？**\n\n### 副标题\n加入{{userCount}}+用户，{{benefit}}\n\n### CTA按钮组\n[免费试用14天] [观看演示]\n\n### 信任标识\n✓ 无需信用卡\n✓ 随时取消\n✓ 30天退款保证\n\n---\n\n## Footer\n\n- 产品功能\n- 定价\n- 客户案例\n- 帮助中心\n- 关于我们\n- 联系方式\n\n---\n\n## SEO优化\n\n**Meta Title:** {{metaTitle}}\n**Meta Description:** {{metaDescription}}\n**Keywords:** {{keywords}}",
+  "variables_schema": [
+    {"name": "productName", "label": "产品名称", "type": "string", "required": true},
+    {"name": "targetUser", "label": "目标用户", "type": "string", "required": false},
+    {"name": "coreValue", "label": "核心价值", "type": "string", "required": true},
+    {"name": "competitors", "label": "主要竞品", "type": "string", "required": false}
+  ],
+  "file_structure": {
+    "root": "落地页-{{productName}}",
+    "files": [
+      {"path": "文案.docx", "type": "document"},
+      {"path": "结构图.png", "type": "image"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0"
+}
