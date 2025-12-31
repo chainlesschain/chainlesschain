@@ -324,11 +324,12 @@ export default {
         return
       }
 
-      // 验证DID格式
-      if (!this.newFriend.did.startsWith('did:')) {
+      // 验证DID格式（必须是 did:chainlesschain: 开头）
+      if (!this.newFriend.did.startsWith('did:chainlesschain:')) {
         uni.showToast({
-          title: 'DID格式不正确',
-          icon: 'none'
+          title: 'DID格式不正确，必须是 did:chainlesschain: 开头',
+          icon: 'none',
+          duration: 3000
         })
         return
       }
