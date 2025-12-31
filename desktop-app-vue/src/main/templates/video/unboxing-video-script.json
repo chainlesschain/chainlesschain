@@ -7,33 +7,107 @@
   "cover_image": "/templates/covers/unboxing.png",
   "category": "video",
   "subcategory": "review",
-  "tags": ["开箱", "测评", "产品", "第一印象"],
+  "tags": [
+    "开箱",
+    "测评",
+    "产品",
+    "第一印象"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我创作一个开箱视频脚本，要求：\n\n**产品信息：**\n- 产品名称：{{productName}}\n- 产品类型：{{productCategory}}\n- 品牌：{{brand}}\n- 价格：{{price}}元\n- 视频时长：{{duration}}分钟\n\n**视频结构：**\n\n开场（0-{{divide duration 12}}分钟）\n- 片头动画/问候\n- \"大家好，今天给大家带来{{productName}}的开箱视频！\"\n- 快速展示产品外观（吸引眼球）\n- 简单介绍产品背景\n\n---\n\n**第一部分：包装展示**（{{divide duration 12}}-{{divide duration 6}}分钟）\n\n外包装第一印象：\n{{#eq productCategory \"数码产品\"}}\n- 包装盒材质：{{boxMaterial}}\n- 包装设计：简约/奢华/环保\n- 尺寸与重量：实际感受\n- 封条/防伪标识\n\n镜头要点：\n- 360度旋转展示包装\n- 特写：品牌Logo、产品图、重要信息\n- 对比：与手掌/常见物品对比大小\n{{/eq}}\n\n{{#eq productCategory \"美妆护肤\"}}\n- 外包装颜值：设计美学\n- 品牌调性体现\n- 限定款/联名款特殊包装\n- 赠品/小样展示\n{{/eq}}\n\n{{#eq productCategory \"服饰鞋包\"}}\n- 品牌包装盒/袋\n- 防尘袋/保护套\n- 品牌标识与吊牌\n- 附赠配件（鞋带/替换扣等）\n{{/eq}}\n\n拆封过程：\n- \"让我们一起打开看看吧！\"\n- 慢动作拆封（仪式感）\n- 拆封声音（ASMR效果）\n- 揭开的期待感营造\n\n---\n\n**第二部分：开箱时刻**（{{divide duration 6}}-{{divide duration 3}}分钟）\n\n打开包装：\n- 第一眼看到产品的反应\n  - \"哇！\"/\"好精致！\"/\"比想象中大/小\"\n- 内部包装布局\n  - 产品如何被保护\n  - 是否有分层设计\n  - 环保材料使用\n\n全部内容物展示：\n```\n【清单罗列】\n□ 产品主体 x 1\n□ {{accessory1}} x {{qty1}}\n□ {{accessory2}} x {{qty2}}\n□ 说明书/保修卡\n□ {{otherItems}}\n```\n\n镜头语言：\n- 从上往下俯拍（全景）\n- 逐个拿起展示（近景）\n- 整齐排列（强迫症友好）\n\n配件介绍：\n{{#if hasAccessories}}\n- 配件1：{{accessory1Detail}}\n- 配件2：{{accessory2Detail}}\n- 额外惊喜（如有）\n- 缺失内容（如有）\n{{/if}}\n\n---\n\n**第三部分：产品外观细节**（{{divide duration 3}}-{{multiply duration 0.6}}分钟）\n\n{{#eq productCategory \"数码产品\"}}\n【数码产品外观】\n\n整体外观：\n- 设计语言：{{designStyle}}（极简/商务/电竞/时尚）\n- 颜色：{{color}}，实际观感\n- 材质：{{material}}（金属/塑料/玻璃/皮革）\n- 做工：接缝、按键、细节处理\n\n尺寸与重量：\n- 实测数据：{{actualSize}}，{{actualWeight}}\n- 手持感受：便携性、握持感\n- 对比参照物（手机/硬币/信用卡）\n\n细节特写：\n- 正面：屏幕/镜头/传感器\n- 背面：Logo/摄像头/材质纹理\n- 侧面：按键/接口/卡槽\n- 底部/顶部：扬声器/麦克风/散热口\n\n工艺亮点：\n- CNC工艺\n- 阳极氧化\n- 特殊涂层\n- 纹理处理\n{{/eq}}\n\n{{#eq productCategory \"美妆护肤\"}}\n【美妆护肤外观】\n\n包装设计：\n- 瓶身材质：玻璃/塑料/金属\n- 外观颜值：简约/奢华/少女\n- 品牌元素：Logo/图案/字体\n\n质地与色号：\n- 实物颜色展示\n- 质地测试（涂抹/试色）\n- 气味描述\n\n容量与规格：\n- 净含量：{{netContent}}\n- 保质期：{{shelfLife}}\n- 产地：{{madeIn}}\n{{/eq}}\n\n{{#eq productCategory \"服饰鞋包\"}}\n【服饰鞋包外观】\n\n整体设计：\n- 款式风格：{{fashionStyle}}\n- 颜色：{{color}}，上身/上脚效果\n- 版型：宽松/修身/oversize\n\n材质细节：\n- 面料材质：{{fabric}}\n- 手感描述：柔软/硬挺/顺滑\n- 里料：{{lining}}\n\n做工检查：\n- 走线：细密度、是否跳线\n- 拉链/纽扣：品牌、顺滑度\n- 五金件：质感、重量\n- 特殊工艺：刺绣/印花/镶嵌\n{{/eq}}\n\n拍摄技巧：\n- 微距镜头（细节特写）\n- 旋转展示台（360度）\n- 光线充足（还原真实颜色）\n- 多角度拍摄\n\n---\n\n**第四部分：功能/特性介绍**（{{multiply duration 0.6}}-{{multiply duration 0.8}}分钟）\n\n核心功能演示：\n{{#if hasFunctions}}\n功能1：{{function1}}\n- 实际操作演示\n- 效果展示\n- 个人体验\n\n功能2：{{function2}}\n- 操作步骤\n- 实际效果\n\n功能3：{{function3}}\n- 特色亮点\n- 使用场景\n{{/if}}\n\n与官方宣传对比：\n- 官方说：{{officialClaim}}\n- 实际上：{{actualExperience}}\n- 符合度：{{matchPercentage}}%\n\n特色亮点：\n✨ {{highlight1}}\n✨ {{highlight2}}\n✨ {{highlight3}}\n\n---\n\n**第五部分：第一印象评价**（{{multiply duration 0.8}}-{{subtract duration 1}}分钟）\n\n优点（第一印象）：\n{{#if initialPros}}\n👍 {{initialPro1}}\n👍 {{initialPro2}}\n👍 {{initialPro3}}\n{{/if}}\n\n缺点（第一印象）：\n{{#if initialCons}}\n👎 {{initialCon1}}\n👎 {{initialCon2}}\n{{/if}}\n\n惊喜之处：\n😊 {{surprise}}\n\n失望之处（如有）：\n😞 {{disappointment}}\n\n值不值得买（初步判断）：\n{{#eq worthBuying \"值得\"}}\n✅ **值得购买**\n- 理由：{{buyingReason}}\n- 推荐人群：{{targetAudience}}\n{{/eq}}\n\n{{#eq worthBuying \"观望\"}}\n⏸️ **建议观望**\n- 理由：{{waitReason}}\n- 等待：降价/新版本/更多评测\n{{/eq}}\n\n{{#eq worthBuying \"不值\"}}\n❌ **不推荐购买**\n- 理由：{{notBuyingReason}}\n- 替代品推荐：{{alternative}}\n{{/eq}}\n\n---\n\n**片尾**（{{subtract duration 1}}-{{duration}}分钟）\n\n后续预告：\n- \"这只是开箱第一印象\"\n- \"详细测评请关注下期视频\"\n- \"使用{{testDuration}}天后会出深度评测\"\n\n互动引导：\n- \"你们对这款产品有什么想了解的？评论区告诉我\"\n- \"是否想看{{specificFeature}}的测试？\"\n- \"点赞过{{likeTarget}}，下期就出详细评测！\"\n\nCTA行动号召：\n- 点赞 👍\n- 投币/打赏\n- 收藏 ⭐\n- 关注/订阅 🔔\n\n购买链接/优惠信息：\n{{#if includeLinks}}\n- 购买渠道：{{purchaseLink}}\n- 优惠码：{{promoCode}}（如有）\n- 价格提醒：当前价{{currentPrice}}元\n{{/if}}\n\n片尾字幕：\n- 感谢观看\n- 下期见\n- 社交媒体账号\n\n---\n\n**拍摄清单：**\n\n必拍镜头（70%）：\n- [ ] 包装外观（多角度）\n- [ ] 拆封过程（慢动作）\n- [ ] 内容物全景（俯拍）\n- [ ] 产品主体（360度）\n- [ ] 细节特写（微距）\n- [ ] 功能演示（实拍）\n- [ ] 上手/试用（真实感受）\n\nB-Roll素材（20%）：\n- [ ] 环境镜头\n- [ ] 转场素材\n- [ ] 产品与场景结合\n- [ ] 氛围镜头（慢动作/光影）\n\n创意镜头（10%）：\n- [ ] 延时摄影（拆封过程）\n- [ ] 航拍（大场景，如适用）\n- [ ] 特殊角度（如：GoPro嘴含拍摄）\n\n---\n\n**拍摄设备与设置：**\n\n主机位：\n- 相机/手机：{{camera}}\n- 分辨率：4K 30fps 或 1080p 60fps\n- 镜头：24-70mm 或手机广角\n- 三脚架固定\n\n辅助机位（可选）：\n- 顶部俯拍（桌面全景）\n- 侧面特写\n\n灯光：\n- 柔光箱 x 2（主光+辅光）\n- 补光灯（消除阴影）\n- 自然光辅助（白天窗边）\n\n麦克风：\n- 领夹麦（人声清晰）\n- 或指向麦克风\n\n---\n\n**剪辑要点：**\n\n节奏控制：\n- 开场：快节奏（吸引注意）\n- 细节：慢节奏（清晰展示）\n- 结尾：中等节奏（总结）\n\n音效添加：\n- 拆封声（ASMR）\n- 产品拿起/放下声\n- Swoosh转场音效\n- Pop文字出现音效\n\n背景音乐：\n- 轻快、不抢戏\n- 音量：人声为主，音乐衬底\n\n字幕：\n- 关键信息字幕（价格、型号、重点）\n- 产品规格参数\n- 优缺点列表\n\n---\n\n**SEO优化：**\n\n标题公式：\n- \"{{productName}}开箱！{{核心卖点}}/{{价格}}\"\n- \"值得买吗？{{productName}}首发开箱评测\"\n- \"{{price}}元的{{productName}}开箱，{{惊喜/失望}}\"\n\n标签：\n- 产品名（中英文）\n- 品牌名\n- 产品类别\n- \"开箱\" \"unboxing\" \"测评\"\n- 型号\n\n封面设计：\n- 产品清晰展示\n- 大字：\"开箱\" \"UNBOXING\"\n- 价格/亮点文字\n- 高对比度\n- 表情包/惊叹表情（可选）\n\n简介模板：\n```\n今天给大家带来{{productName}}的开箱视频！\n\n⏰ 时间轴：\n00:00 开场\n00:{{timeStamp1}} 包装展示\n00:{{timeStamp2}} 开箱时刻\n{{duration-2}}:00 总结\n\n💰 价格：{{price}}元\n🛒 购买链接：{{link}}（如有）\n💬 有问题欢迎评论区留言！\n```\n\n---\n\n**注意事项：**\n\n真实性：\n- 展示真实产品（避免P图过度）\n- 真实感受（不夸大优点，不隐瞒缺点）\n- 说明产品来源（自购/送测/广告）\n\n合规性：\n{{#if isSponsored}}\n- 明确标注【广告】/【商业推广】\n- 遵守平台广告规范\n- 不做虚假宣传\n{{/if}}\n\n版权：\n- 背景音乐使用免费音乐库\n- 避免使用品牌音乐（除非授权）\n\n---\n\n**交付成果：**\n- 开箱视频成品\n- 脚本文档\n- 产品参数表\n- 拍摄素材（可选）",
   "variables_schema": [
-    {"name": "productName", "label": "产品名称", "type": "string", "required": true},
-    {"name": "productCategory", "label": "产品类型", "type": "select", "required": true, "options": [
-      {"value": "数码产品", "label": "数码产品"},
-      {"value": "美妆护肤", "label": "美妆护肤"},
-      {"value": "服饰鞋包", "label": "服饰鞋包"},
-      {"value": "家居用品", "label": "家居用品"},
-      {"value": "食品饮料", "label": "食品饮料"},
-      {"value": "其他", "label": "其他"}
-    ]},
-    {"name": "brand", "label": "品牌", "type": "string", "required": false},
-    {"name": "price", "label": "价格（元）", "type": "number", "required": false},
-    {"name": "duration", "label": "视频时长（分钟）", "type": "number", "required": false, "default": 10, "min": 3, "max": 30},
-    {"name": "isSponsored", "label": "是否为商业推广", "type": "select", "required": false, "default": "否", "options": [
-      {"value": "是", "label": "是（需标注广告）"},
-      {"value": "否", "label": "否（自购/送测）"}
-    ]}
+    {
+      "name": "productName",
+      "label": "产品名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "productCategory",
+      "label": "产品类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "数码产品",
+          "label": "数码产品"
+        },
+        {
+          "value": "美妆护肤",
+          "label": "美妆护肤"
+        },
+        {
+          "value": "服饰鞋包",
+          "label": "服饰鞋包"
+        },
+        {
+          "value": "家居用品",
+          "label": "家居用品"
+        },
+        {
+          "value": "食品饮料",
+          "label": "食品饮料"
+        },
+        {
+          "value": "其他",
+          "label": "其他"
+        }
+      ]
+    },
+    {
+      "name": "brand",
+      "label": "品牌",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "price",
+      "label": "价格（元）",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "duration",
+      "label": "视频时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 10,
+      "min": 3,
+      "max": 30
+    },
+    {
+      "name": "isSponsored",
+      "label": "是否为商业推广",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "是（需标注广告）"
+        },
+        {
+          "value": "否",
+          "label": "否（自购/送测）"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "开箱-{{productName}}",
     "files": [
-      {"path": "开箱脚本.docx", "type": "document"},
-      {"path": "拍摄清单.docx", "type": "document"},
-      {"path": "产品参数.xlsx", "type": "spreadsheet"}
+      {
+        "path": "开箱脚本.docx",
+        "type": "document"
+      },
+      {
+        "path": "拍摄清单.docx",
+        "type": "document"
+      },
+      {
+        "path": "产品参数.xlsx",
+        "type": "spreadsheet"
+      }
     ]
   },
   "default_files": [],
@@ -42,5 +116,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_video_production",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_video_cutter",
+    "tool_video_merger",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "video"
 }

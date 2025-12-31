@@ -7,32 +7,104 @@
   "cover_image": "/templates/covers/bilibili.png",
   "category": "video",
   "subcategory": "long-form",
-  "tags": ["B站", "长视频", "分P策划", "弹幕文化", "二次元"],
+  "tags": [
+    "B站",
+    "长视频",
+    "分P策划",
+    "弹幕文化",
+    "二次元"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我策划一期B站长视频，要求：\n\n**视频信息：**\n- 视频标题：{{videoTitle}}\n- 视频时长：{{duration}}分钟\n- 内容分区：{{bilibiliZone}}\n- 是否分P：{{isMultiPart}}\n- 目标观众：{{targetAudience}}\n\n**B站平台特性优化**\n\n{{#if isMultiPart}}\n**分P策划（共{{partCount}}P）：**\n\nP1: {{part1Title}} ({{part1Duration}}分钟)\n- 内容概要：[简介]\n- 核心看点：[亮点]\n\nP2: {{part2Title}} ({{part2Duration}}分钟)\n- ...\n\n分P策略：\n- 每P独立完整（可单独观看）\n- P1最精彩（吸引连看）\n- 总时长控制（避免过长）\n{{/if}}\n\n**视频结构：**\n\n开场（0-2分钟）：\n- 标准开场白：\"大家好，我是{{upName}}\"\n- 内容预告：\"今天给大家带来{{videoTheme}}\"\n- 福利提示：\"三连有抽奖/福利\"\n\n主体内容（2-{{subtract duration 5}}分钟）：\n- 【根据{{bilibiliZone}}定制内容结构】\n- 知识区：系统讲解+案例分析\n- 娱乐区：笑点密集+节奏把控\n- 生活区：真实分享+情感共鸣\n- 游戏区：精彩集锦+技巧讲解\n\n结尾（{{subtract duration 3}}-{{duration}}分钟）：\n- 内容总结\n- 三连提醒：\"觉得有帮助的一键三连~\"\n- 关注引导：\"关注UP主不迷路\"\n- 下期预告\n\n**弹幕互动设计：**\n\n预设弹幕梗：\n- {{minute 2}}分处：[埋梗点，引导弹幕]\n- {{minute 5}}分处：[互动点，提问或选择]\n- {{minute 10}}分处：[高能提示]\n\n弹幕保护：\n- 重要信息时：\"弹幕护体\"\n- 关键镜头时：\"前方高能\"\n\n**封面和标题优化：**\n\n标题公式（80字内）：\n{{generateBilibiliTitle videoTheme bilibiliZone}}\n\n封面三要素：\n- 人物/主体（清晰大）\n- 标题文字（3-5个字）\n- 吸睛元素（表情/特效）\n\n**投稿设置：**\n\n- 分区：{{bilibiliZone}}\n- 标签：{{generateTags bilibiliZone}} (最多10个)\n- 简介：\n  ```\n  {{videoDescription}}\n  \n  时间轴：\n  0:00 开场\n  2:00 主题1\n  5:00 主题2\n  ...\n  \n  BGM:\n  - 开场：{{bgm1}}\n  - 主体：{{bgm2}}\n  \n  【合作/赞助信息】\n  【社交媒体链接】\n  ```\n\n- 发布时间：\n  - 工作日：18:00-20:00\n  - 周末：14:00-16:00, 20:00-22:00\n\n**数据优化：**\n\n前48小时关键指标：\n- 播放量（算法推荐门槛）\n- 三连率（点赞+投币+收藏）\n- 完播率（时长把控）\n- 弹幕数（互动热度）\n\n提升策略：\n- 发布后转发到动态\n- 分享到粉丝群\n- 回复早期评论\n- 制作切片短视频引流\n\n---\n\n**输出格式：**\n- 完整脚本（带时间轴）\n- 分P策划表\n- 弹幕互动设计\n- 投稿信息模板\n- 数据优化建议",
   "variables_schema": [
-    {"name": "videoTitle", "label": "视频标题", "type": "string", "required": true, "placeholder": "例如：手把手教你XXX"},
-    {"name": "duration", "label": "总时长（分钟）", "type": "number", "required": false, "default": 20, "min": 5, "max": 60},
-    {"name": "bilibiliZone", "label": "B站分区", "type": "select", "required": true, "options": [
-      {"value": "知识", "label": "知识区"},
-      {"value": "生活", "label": "生活区"},
-      {"value": "游戏", "label": "游戏区"},
-      {"value": "娱乐", "label": "娱乐区"},
-      {"value": "科技", "label": "科技区"},
-      {"value": "美食", "label": "美食区"}
-    ]},
-    {"name": "isMultiPart", "label": "是否分P", "type": "select", "required": false, "default": "否", "options": [
-      {"value": "是", "label": "分P发布"},
-      {"value": "否", "label": "单P发布"}
-    ]},
-    {"name": "targetAudience", "label": "目标观众", "type": "string", "required": false, "default": "18-30岁年轻人"}
+    {
+      "name": "videoTitle",
+      "label": "视频标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：手把手教你XXX"
+    },
+    {
+      "name": "duration",
+      "label": "总时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 20,
+      "min": 5,
+      "max": 60
+    },
+    {
+      "name": "bilibiliZone",
+      "label": "B站分区",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "知识",
+          "label": "知识区"
+        },
+        {
+          "value": "生活",
+          "label": "生活区"
+        },
+        {
+          "value": "游戏",
+          "label": "游戏区"
+        },
+        {
+          "value": "娱乐",
+          "label": "娱乐区"
+        },
+        {
+          "value": "科技",
+          "label": "科技区"
+        },
+        {
+          "value": "美食",
+          "label": "美食区"
+        }
+      ]
+    },
+    {
+      "name": "isMultiPart",
+      "label": "是否分P",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "分P发布"
+        },
+        {
+          "value": "否",
+          "label": "单P发布"
+        }
+      ]
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标观众",
+      "type": "string",
+      "required": false,
+      "default": "18-30岁年轻人"
+    }
   ],
   "file_structure": {
     "root": "B站-{{videoTitle}}",
     "files": [
-      {"path": "脚本.docx", "type": "document"},
-      {"path": "分P策划.xlsx", "type": "spreadsheet"},
-      {"path": "投稿信息.txt", "type": "text"}
+      {
+        "path": "脚本.docx",
+        "type": "document"
+      },
+      {
+        "path": "分P策划.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "投稿信息.txt",
+        "type": "text"
+      }
     ]
   },
   "default_files": [],
@@ -41,5 +113,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_video_production",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_video_cutter",
+    "tool_video_merger",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "video"
 }

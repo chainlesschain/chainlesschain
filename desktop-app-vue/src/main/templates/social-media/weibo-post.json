@@ -7,38 +7,121 @@
   "cover_image": "/templates/covers/weibo.png",
   "category": "social-media",
   "subcategory": "weibo",
-  "tags": ["微博", "营销", "热点", "文案"],
+  "tags": [
+    "微博",
+    "营销",
+    "热点",
+    "文案"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我生成微博营销文案，要求：\n\n**微博信息：**\n- 主题：{{weiboTheme}}\n- 文案风格：{{weiboStyle}}\n- 是否配图：{{withImages}}\n- 互动目标：{{interactionGoal}}\n\n**精炼文案（140字以内，3个版本）：**\n\n**版本1：悬念式**\n{{weiboTheme}}的秘密，99%的人不知道！[震惊]\n[核心卖点/观点]\n[行动引导]\n#{{mainTopic}}# #{{subTopic}}#\n\n**版本2：利益式**\n✅ {{benefit1}}\n✅ {{benefit2}}  \n✅ {{benefit3}}\n关于{{weiboTheme}}，你必须知道这些！💡\n转发+关注，送{{freebie}}！\n#{{mainTopic}}# \n\n**版本3：故事式**\n{{shortStory}}（50字小故事）\n这就是{{weiboTheme}}的力量！[心]\n你有类似经历吗？评论区聊聊～\n#{{mainTopic}}# #{{subTopic}}#\n\n**热门话题借势：**\n\n{{#if useHotTopic}}\n1. 找准切入点：{{weiboTheme}} + {{hotTopic}}\n2. 话题组合：#{{hotTopic}}# + #{{weiboTheme}}#\n3. 蹭热度文案：\n   \"{{hotTopic}}刷屏了！但你知道这和{{weiboTheme}}有什么关系吗？[思考]\"\n{{/if}}\n\n**九宫格配图策划：**\n\n{{#eq withImages \"九宫格\"}}\n图1（封面）：主题大字 + 吸睛背景\n图2-3：产品/场景展示\n图4-5：数据/对比图\n图6-7：用户评价/案例\n图8：行动引导（扫码/链接）\n图9：品牌Logo/Slogan\n{{/eq}}\n\n{{#eq withImages \"单图\"}}\n设计要求：\n- 尺寸：1080x1080px（正方形）或1200x900px（横图）\n- 包含：核心信息 + 视觉冲击\n- 文字：少而精，大字号\n{{/eq}}\n\n**互动设计：**\n\n{{#eq interactionGoal \"转发抽奖\"}}\n🎁 转发+关注+评论，抽{{prizeCount}}位送{{prize}}！\n开奖时间：{{drawTime}}\n{{/eq}}\n\n{{#eq interactionGoal \"评论互动\"}}\n💬 在评论区分享你对{{weiboTheme}}的看法，点赞最高的前3名送{{prize}}！\n{{/eq}}\n\n{{#eq interactionGoal \"引流私域\"}}\n🔗 想了解更多{{weiboTheme}}干货？\n关注我 → 私信回复\"{{keyword}}\" → 免费领取{{freebie}}\n{{/eq}}\n\n**发布时间建议：**\n- 工作日：12:00-13:00（午休）、18:00-20:00（下班高峰）、21:00-22:00（睡前）\n- 周末：10:00-11:00、15:00-16:00、20:00-21:00\n\n**话题标签策略：**\n- 主话题：#{{weiboTheme}}#（必带）\n- 热门话题：#{{hotTopic}}#（蹭热度）\n- 行业话题：#{{industryTopic}}#（垂直领域）\n- 最多3个话题，避免被判定为营销号\n\n**Emoji使用指南：**\n- 每条微博2-4个emoji\n- 推荐：[心][赞][加油][玫瑰][礼物][冲刺][火][星星]\n- 避免过度使用，影响阅读\n\n**输出格式：**\n- 3个版本文案（可A/B测试）\n- 配图需求说明\n- 话题标签组合\n- 最佳发布时间",
   "variables_schema": [
-    {"name": "weiboTheme", "label": "微博主题", "type": "string", "required": true, "placeholder": "例如：新品发布、活动推广、观点分享"},
-    {"name": "weiboStyle", "label": "文案风格", "type": "select", "required": false, "default": "专业干练", "options": [
-      {"value": "专业干练", "label": "专业干练"},
-      {"value": "亲切温暖", "label": "亲切温暖"},
-      {"value": "幽默风趣", "label": "幽默风趣"},
-      {"value": "高冷范儿", "label": "高冷范儿"}
-    ]},
-    {"name": "withImages", "label": "配图方式", "type": "select", "required": false, "default": "九宫格", "options": [
-      {"value": "九宫格", "label": "九宫格（9张图）"},
-      {"value": "单图", "label": "单图"},
-      {"value": "无图", "label": "纯文字"}
-    ]},
-    {"name": "interactionGoal", "label": "互动目标", "type": "select", "required": true, "options": [
-      {"value": "转发抽奖", "label": "转发抽奖"},
-      {"value": "评论互动", "label": "评论互动"},
-      {"value": "引流私域", "label": "引流私域"},
-      {"value": "品牌曝光", "label": "品牌曝光"}
-    ]},
-    {"name": "useHotTopic", "label": "借势热门话题", "type": "select", "required": false, "default": "否", "options": [
-      {"value": "是", "label": "蹭热点"},
-      {"value": "否", "label": "不蹭"}
-    ]}
+    {
+      "name": "weiboTheme",
+      "label": "微博主题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：新品发布、活动推广、观点分享"
+    },
+    {
+      "name": "weiboStyle",
+      "label": "文案风格",
+      "type": "select",
+      "required": false,
+      "default": "专业干练",
+      "options": [
+        {
+          "value": "专业干练",
+          "label": "专业干练"
+        },
+        {
+          "value": "亲切温暖",
+          "label": "亲切温暖"
+        },
+        {
+          "value": "幽默风趣",
+          "label": "幽默风趣"
+        },
+        {
+          "value": "高冷范儿",
+          "label": "高冷范儿"
+        }
+      ]
+    },
+    {
+      "name": "withImages",
+      "label": "配图方式",
+      "type": "select",
+      "required": false,
+      "default": "九宫格",
+      "options": [
+        {
+          "value": "九宫格",
+          "label": "九宫格（9张图）"
+        },
+        {
+          "value": "单图",
+          "label": "单图"
+        },
+        {
+          "value": "无图",
+          "label": "纯文字"
+        }
+      ]
+    },
+    {
+      "name": "interactionGoal",
+      "label": "互动目标",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "转发抽奖",
+          "label": "转发抽奖"
+        },
+        {
+          "value": "评论互动",
+          "label": "评论互动"
+        },
+        {
+          "value": "引流私域",
+          "label": "引流私域"
+        },
+        {
+          "value": "品牌曝光",
+          "label": "品牌曝光"
+        }
+      ]
+    },
+    {
+      "name": "useHotTopic",
+      "label": "借势热门话题",
+      "type": "select",
+      "required": false,
+      "default": "否",
+      "options": [
+        {
+          "value": "是",
+          "label": "蹭热点"
+        },
+        {
+          "value": "否",
+          "label": "不蹭"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "微博-{{weiboTheme}}",
     "files": [
-      {"path": "微博文案（3版本）.md", "type": "markdown"},
-      {"path": "配图需求.md", "type": "markdown"}
+      {
+        "path": "微博文案（3版本）.md",
+        "type": "markdown"
+      },
+      {
+        "path": "配图需求.md",
+        "type": "markdown"
+      }
     ]
   },
   "default_files": [],
@@ -47,5 +130,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_seo_marketing"
+  ],
+  "required_tools": [
+    "tool_seo_optimizer",
+    "tool_keyword_extractor",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "default"
 }

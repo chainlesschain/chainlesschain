@@ -7,34 +7,111 @@
   "cover_image": "/templates/covers/game-review.png",
   "category": "video",
   "subcategory": "review",
-  "tags": ["游戏", "评测", "测评", "游戏测评"],
+  "tags": [
+    "游戏",
+    "评测",
+    "测评",
+    "游戏测评"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我创作一个游戏评测视频脚本，要求：\n\n**游戏信息：**\n- 游戏名称：《{{gameName}}》\n- 游戏类型：{{gameGenre}}\n- 平台：{{platform}}\n- 发行日期：{{releaseDate}}\n- 视频时长：{{duration}}分钟\n\n**视频结构：**\n\n开场（0-{{divide duration 10}}分钟）\n- 片头动画\n- 主持人开场白\n- 游戏基本信息介绍\n- 简短评价预告（\"这款游戏值得买吗？看完这个视频你就知道了！\"）\n\n---\n\n**第一部分：游戏概览**（{{divide duration 10}}-{{divide duration 4}}分钟）\n\n游戏背景：\n- 开发商：{{developer}}\n- 发行商：{{publisher}}\n- 制作背景故事\n- IP来源（如有）\n\n核心卖点：\n- 官方宣传的3大特色\n- 玩家期待的内容\n- 与前作/同类游戏对比\n\n第一印象：\n- 初次游玩感受\n- 新手引导体验\n- 上手难度\n\n**画面展示：**\n- 游戏宣传片段\n- 主菜单界面\n- 开场CG/动画\n\n---\n\n**第二部分：玩法深度分析**（{{divide duration 4}}-{{multiply duration 0.6}}分钟）\n\n{{#eq gameGenre \"RPG\"}}\n【RPG游戏评测】\n\n剧情系统（30%权重）：\n- 故事主线：{{storyRating}}/10\n  - 剧情深度\n  - 角色塑造\n  - 世界观设定\n  - 支线任务质量\n- 演出效果：CG质量、配音\n\n战斗系统（25%）：\n- 战斗机制：{{combatRating}}/10\n  - 打击感\n  - 策略深度\n  - 技能系统\n  - 难度平衡\n\n角色成长（20%）：\n- 升级系统\n- 装备系统\n- 天赋/技能树\n- 自定义程度\n\n探索与收集（15%）：\n- 地图设计\n- 隐藏要素\n- 收集乐趣\n\n社交系统（10%）：\n- 多人模式（如有）\n- 好感度系统\n{{/eq}}\n\n{{#eq gameGenre \"射击\"}}\n【射击游戏评测】\n\n射击手感（35%权重）：\n- 枪械手感：{{gunplayRating}}/10\n  - 后座力\n  - 准星设计\n  - 打击反馈\n  - 音效配合\n\n地图设计（25%）：\n- 地图数量与质量\n- 竞技平衡性\n- 战术深度\n\n武器系统（20%）：\n- 武器种类\n- 平衡性\n- 配件系统\n- 皮肤系统\n\n游戏模式（20%）：\n- 单人战役\n- 多人对战\n- 合作模式\n- 特殊玩法\n{{/eq}}\n\n{{#eq gameGenre \"策略\"}}\n【策略游戏评测】\n\n策略深度（40%）：\n- 战术选择多样性\n- AI智能程度\n- 平衡性\n\n游戏节奏（20%）：\n- 游戏时长\n- 节奏把控\n\n学习曲线（20%）：\n- 教程质量\n- 上手难度\n- 精通难度\n\n可玩性（20%）：\n- 重复游玩价值\n- 随机性元素\n{{/eq}}\n\n**录屏展示：**\n- 核心玩法演示（3-5分钟实机）\n- 精彩时刻剪辑\n- 不同玩法模式展示\n\n---\n\n**第三部分：视听表现**（{{multiply duration 0.6}}-{{multiply duration 0.75}}分钟）\n\n画面表现：\n- 画质：{{graphicsRating}}/10\n  - 建模精度\n  - 贴图质量\n  - 光影效果\n  - 特效表现\n- 美术风格：{{artStyle}}（写实/卡通/像素/赛博朋克等）\n- 优化程度：帧率稳定性、加载时间\n\n音频表现：\n- 音乐：{{musicRating}}/10\n  - BGM质量\n  - 配合度\n- 音效：{{soundRating}}/10\n  - 环境音\n  - 动作音效\n- 配音：语言选项、配音质量\n\n**对比展示：**\n- 不同画质设置对比\n- PC vs 主机画面对比（如适用）\n\n---\n\n**第四部分：游戏性与内容量**（{{multiply duration 0.75}}-{{multiply duration 0.85}}分钟）\n\n内容丰富度：\n- 主线流程：{{mainStoryHours}}小时\n- 支线内容：{{sideContentHours}}小时\n- 全收集时长：{{completionistHours}}小时\n- DLC/季票内容（如有）\n\n耐玩度分析：\n- 重复游玩价值\n- 多周目要素\n- 在线模式寿命\n- 社区活跃度\n\n更新与支持：\n- 开发商更新频率\n- Bug修复速度\n- 社区反馈响应\n\n---\n\n**第五部分：优缺点总结**（{{multiply duration 0.85}}-{{subtract duration 2}}分钟）\n\n优点（3-5条）：\n{{#if hasPros}}\n✅ {{pro1}}\n✅ {{pro2}}\n✅ {{pro3}}\n{{/if}}\n\n缺点（3-5条）：\n{{#if hasCons}}\n❌ {{con1}}\n❌ {{con2}}\n❌ {{con3}}\n{{/if}}\n\nBug与技术问题：\n- 严重Bug列表\n- 优化问题\n- 已知问题及修复计划\n\n---\n\n**第六部分：评分与购买建议**（{{subtract duration 2}}-{{duration}}分钟）\n\n分项评分：\n```\n玩法机制：{{gameplayScore}}/10\n画面表现：{{graphicsScore}}/10\n音效音乐：{{audioScore}}/10\n剧情内容：{{storyScore}}/10\n性价比：  {{valueScore}}/10\n----------------------------\n综合评分：{{finalScore}}/10\n```\n\n评级解释：\n- 9-10分：必玩神作\n- 7-8分：强烈推荐\n- 5-6分：有亮点但有缺陷\n- 3-4分：问题较多\n- 1-2分：不推荐\n\n购买建议：\n{{#if recommendBuy}}\n✅ **推荐购买人群：**\n- {{targetAudience1}}\n- {{targetAudience2}}\n- {{targetAudience3}}\n\n⏳ **建议打折再买：**\n- 如果你对{{genre}}不太感兴趣\n- 如果你预算有限\n\n❌ **不推荐购买：**\n- 如果你讨厌{{specificGameplay}}\n{{/if}}\n\n价格分析：\n- 首发价：{{launchPrice}}元\n- 当前价：{{currentPrice}}元\n- 史低价：{{historicalLow}}元（如已知）\n- 性价比评价：{{priceValue}}\n\n---\n\n**片尾**（{{subtract duration 1}}-{{duration}}分钟）\n- 总结陈述\n- 个人推荐度\n- 互动引导（\"你们觉得这游戏怎么样？评论区聊聊\"）\n- 点赞、订阅、关注提醒\n- 下期预告\n- 片尾彩蛋（可选）\n\n---\n\n**录屏素材清单：**\n\n必录内容（60%）：\n- [ ] 游戏开场CG\n- [ ] 核心玩法演示（各模式）\n- [ ] 战斗/操作精彩集锦\n- [ ] 画面细节展示（不同场景）\n- [ ] UI界面介绍\n- [ ] Boss战/关键剧情（避免剧透）\n\nB-Roll素材（30%）：\n- [ ] 菜单界面\n- [ ] 设置选项\n- [ ] 过场动画\n- [ ] 环境细节\n- [ ] 彩蛋/隐藏内容\n\n对比素材（10%）：\n- [ ] 画质对比\n- [ ] 帧率测试\n- [ ] 加载时间\n\n---\n\n**拍摄/录制要点：**\n\n游戏录屏：\n- 软件：OBS Studio / NVIDIA ShadowPlay / Xbox Game Bar\n- 分辨率：1080p或4K\n- 帧率：60fps（流畅）\n- 比特率：15-30 Mbps\n- 录制时关闭不必要HUD（可选）\n\n主持人出镜（可选）：\n- 绿幕抠像\n- 画中画形式\n- 适当时机出现（开场、总结、重要观点）\n\n---\n\n**剪辑节奏：**\n\n快节奏段落（射击/动作展示）：\n- 1-2秒/镜头\n- 配合节奏感强的BGM\n- 快速切换\n\n慢节奏段落（画面欣赏/剧情）：\n- 3-5秒/镜头\n- 舒缓音乐\n- 让观众看清细节\n\n讲解段落：\n- 画面与讲解内容匹配\n- 适当字幕强调关键点\n\n---\n\n**字幕与特效：**\n\n字幕类型：\n- 主持人旁白（全程）\n- 重点信息（放大/变色）\n- 评分数字动画\n- 优缺点列表\n\n特效元素：\n- 评分图表动画\n- 对比分屏\n- 放大镜效果（细节展示）\n- 进度条（内容量可视化）\n\n---\n\n**SEO优化：**\n\n标题公式：\n- \"《{{gameName}}》深度评测：{{核心观点}}【{{platform}}】\"\n- \"值得买吗？《{{gameName}}》全方位测评\"\n\n标签建议：\n- 游戏名（中英文）\n- 游戏类型\n- 平台名称\n- 开发商/发行商\n- \"游戏评测\" \"游戏测评\" \"Game Review\"\n\n封面设计：\n- 游戏关键视觉/封面\n- 评分数字（大字）\n- \"值得买？\" \"神作/雷作\"\n- 主持人形象（如有）\n\n---\n\n**注意事项：**\n\n版权与合规：\n- 遵守游戏厂商内容政策\n- 注明游戏版本和测试平台\n- 剧透警告（如涉及）\n- 使用官方素材（预告片/图片）需标注\n\n客观性：\n- 避免极端评价\n- 说明个人偏好对评分的影响\n- 承认主观性（\"这是我的个人看法\"）\n- 对比其他媒体/玩家评分\n\n---\n\n**交付成果：**\n- 完整评测视频\n- 评测脚本文档\n- 评分详细说明\n- 录屏素材包（可选）",
   "variables_schema": [
-    {"name": "gameName", "label": "游戏名称", "type": "string", "required": true},
-    {"name": "gameGenre", "label": "游戏类型", "type": "select", "required": true, "options": [
-      {"value": "RPG", "label": "角色扮演（RPG）"},
-      {"value": "射击", "label": "射击游戏（FPS/TPS）"},
-      {"value": "策略", "label": "策略游戏"},
-      {"value": "动作", "label": "动作游戏"},
-      {"value": "冒险", "label": "冒险游戏"},
-      {"value": "模拟", "label": "模拟游戏"},
-      {"value": "竞速", "label": "竞速游戏"},
-      {"value": "其他", "label": "其他"}
-    ]},
-    {"name": "platform", "label": "游戏平台", "type": "string", "required": false, "default": "PC", "placeholder": "如：PC/PS5/Xbox/Switch"},
-    {"name": "duration", "label": "视频时长（分钟）", "type": "number", "required": false, "default": 15, "min": 5, "max": 60},
-    {"name": "includeScoring", "label": "包含详细评分", "type": "select", "required": false, "default": "是", "options": [
-      {"value": "是", "label": "包含分项评分"},
-      {"value": "否", "label": "仅总体评价"}
-    ]}
+    {
+      "name": "gameName",
+      "label": "游戏名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "gameGenre",
+      "label": "游戏类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "RPG",
+          "label": "角色扮演（RPG）"
+        },
+        {
+          "value": "射击",
+          "label": "射击游戏（FPS/TPS）"
+        },
+        {
+          "value": "策略",
+          "label": "策略游戏"
+        },
+        {
+          "value": "动作",
+          "label": "动作游戏"
+        },
+        {
+          "value": "冒险",
+          "label": "冒险游戏"
+        },
+        {
+          "value": "模拟",
+          "label": "模拟游戏"
+        },
+        {
+          "value": "竞速",
+          "label": "竞速游戏"
+        },
+        {
+          "value": "其他",
+          "label": "其他"
+        }
+      ]
+    },
+    {
+      "name": "platform",
+      "label": "游戏平台",
+      "type": "string",
+      "required": false,
+      "default": "PC",
+      "placeholder": "如：PC/PS5/Xbox/Switch"
+    },
+    {
+      "name": "duration",
+      "label": "视频时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 15,
+      "min": 5,
+      "max": 60
+    },
+    {
+      "name": "includeScoring",
+      "label": "包含详细评分",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "包含分项评分"
+        },
+        {
+          "value": "否",
+          "label": "仅总体评价"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "游戏评测-《{{gameName}}》",
     "files": [
-      {"path": "评测脚本.docx", "type": "document"},
-      {"path": "评分表.xlsx", "type": "spreadsheet"},
-      {"path": "录屏清单.docx", "type": "document"}
+      {
+        "path": "评测脚本.docx",
+        "type": "document"
+      },
+      {
+        "path": "评分表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "录屏清单.docx",
+        "type": "document"
+      }
     ]
   },
   "default_files": [],
@@ -43,5 +120,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_video_production",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_video_cutter",
+    "tool_video_merger",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "video"
 }

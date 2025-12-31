@@ -7,19 +7,46 @@
   "cover_image": "/templates/covers/storyboard.png",
   "category": "video",
   "subcategory": "shooting",
-  "tags": ["分镜", "拍摄计划", "脚本"],
+  "tags": [
+    "分镜",
+    "拍摄计划",
+    "脚本"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我创建详细的分镜头脚本表，要求：\n\n**项目信息：**\n- 项目名称：{{projectName}}\n- 总时长：{{duration}}分钟\n- 场景数量：{{sceneCount}}个\n\n**分镜表结构：**\n\n| 镜号 | 场景 | 景别 | 运镜 | 画面内容 | 台词/旁白 | 字幕 | 音效/音乐 | 时长 | 备注 |\n|------|------|------|------|----------|-----------|------|-----------|------|------|\n| 001  | 开场 | 全景 | 固定 | 城市天际线 | \"这是一个关于...的故事\" | 片名 | 开场BGM | 5s | 日出时拍摄 |\n| 002  | 开场 | 特写 | 推镜 | 主角正脸 | （无） | 角色名 | BGM继续 | 3s | 50mm镜头 |\n| 003  | ... | ... | ... | ... | ... | ... | ... | ... | ... |\n\n**景别说明：**\n- 远景（ELS）：展示环境\n- 全景（LS）：人物全身\n- 中景（MS）：膝盖以上\n- 近景（MCU）：胸部以上\n- 特写（CU）：头部\n- 大特写（ECU）：面部细节\n\n**运镜方式：**\n- 固定镜头：稳定拍摄\n- 推镜（Push In）：靠近主体\n- 拉镜（Pull Out）：远离主体\n- 摇镜（Pan）：水平转动\n- 移镜（Tracking）：跟随移动\n- 航拍（Aerial）：俯瞰视角\n\n**灯光和道具：**\n\n每个场景标注：\n- 灯光设置：{{lightingSetup}}\n- 所需道具：{{requiredProps}}\n- 演员/模特：{{cast}}\n\n**拍摄时间表：**\n\n第1天：场景1-5（{{location1}}）\n第2天：场景6-10（{{location2}}）\n...\n\n---\n\n**输出格式：**\n- 分镜表Excel\n- 场景清单\n- 拍摄日程",
   "variables_schema": [
-    {"name": "projectName", "label": "项目名称", "type": "string", "required": true},
-    {"name": "duration", "label": "总时长（分钟）", "type": "number", "required": false, "default": 5},
-    {"name": "sceneCount", "label": "场景数量", "type": "number", "required": false, "default": 10}
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "duration",
+      "label": "总时长（分钟）",
+      "type": "number",
+      "required": false,
+      "default": 5
+    },
+    {
+      "name": "sceneCount",
+      "label": "场景数量",
+      "type": "number",
+      "required": false,
+      "default": 10
+    }
   ],
   "file_structure": {
     "root": "分镜-{{projectName}}",
     "files": [
-      {"path": "分镜表.xlsx", "type": "spreadsheet"},
-      {"path": "场景清单.docx", "type": "document"}
+      {
+        "path": "分镜表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "场景清单.docx",
+        "type": "document"
+      }
     ]
   },
   "default_files": [],
@@ -28,5 +55,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_video_production",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_video_cutter",
+    "tool_video_merger",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "video"
 }

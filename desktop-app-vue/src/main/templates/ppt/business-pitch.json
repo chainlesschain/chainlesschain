@@ -7,35 +7,116 @@
   "cover_image": "/templates/covers/pitch-deck.png",
   "category": "ppt",
   "subcategory": "business",
-  "tags": ["PPT", "路演", "融资", "BP"],
+  "tags": [
+    "PPT",
+    "路演",
+    "融资",
+    "BP"
+  ],
   "project_type": "presentation",
   "prompt_template": "请帮我生成《{{projectName}}》商业路演PPT,要求:\n\n**项目信息:**\n- 项目名称: {{projectName}}\n- 所属行业: {{industry}}\n- 融资轮次: {{fundingStage}}\n- 融资金额: {{fundingAmount}}\n- 演讲时长: {{duration}}分钟\n\n生成包含以下幻灯片的PPT:\n\n## Slide 1: 封面\n- 项目名称: {{projectName}}\n- 一句话定位: [核心价值主张]\n- 创始人信息\n- 联系方式\n\n## Slide 2: 问题 (Problem)\n- 痛点1: [用户痛点]\n- 痛点2: [市场gap]\n- 痛点3: [现有方案不足]\n- 数据支撑: [市场调研]\n\n## Slide 3: 解决方案 (Solution)\n- 我们的产品: [产品介绍]\n- 核心功能: [3-5个亮点]\n- 差异化优势: [vs竞品]\n- 产品Demo/截图\n\n## Slide 4: 市场规模 (Market Size)\n- TAM (总市场): [金额]\n- SAM (可服务市场): [金额]\n- SOM (可获得市场): [金额]\n- 市场增长趋势图\n\n## Slide 5: 商业模式 (Business Model)\n- 盈利模式: [如何赚钱]\n- 定价策略: [价格体系]\n- 客户获取: [获客渠道]\n- LTV/CAC: [数据]\n\n## Slide 6: 竞争分析 (Competition)\n- 竞争格局: [主要竞品]\n- 我们的优势: [差异化]\n- 竞争壁垒: [护城河]\n\n## Slide 7: 核心数据 (Traction)\n- 用户数: [增长曲线]\n- 收入: [增长曲线]\n- 关键指标: [KPI]\n- 里程碑: [重要节点]\n\n## Slide 8: 团队 (Team)\n- 创始人: [背景+照片]\n- 核心团队: [关键成员]\n- 顾问: [行业专家]\n\n## Slide 9: 财务预测 (Financial Projection)\n- 3年收入预测: [图表]\n- 成本结构: [占比]\n- 盈亏平衡点: [时间]\n\n## Slide 10: 融资计划 (Funding)\n- 本轮融资: {{fundingAmount}}\n- 资金用途: [分配饼图]\n- 未来规划: [里程碑]\n- 退出策略: [IPO/并购]\n\n## Slide 11: 联系方式\n- 创始人姓名\n- 邮箱/电话\n- 公司地址\n- 网站/Demo链接\n\n**设计要求:**\n- 专业商务风格\n- 数据可视化\n- 简洁清晰\n- 配色: {{colorScheme}}\n- 每页关键信息突出",
   "variables_schema": [
-    {"name": "projectName", "label": "项目名称", "type": "string", "required": true},
-    {"name": "industry", "label": "所属行业", "type": "string", "required": false},
-    {"name": "fundingStage", "label": "融资轮次", "type": "select", "required": false, "default": "天使轮", "options": [
-      {"value": "种子轮", "label": "种子轮"},
-      {"value": "天使轮", "label": "天使轮"},
-      {"value": "Pre-A", "label": "Pre-A轮"},
-      {"value": "A轮", "label": "A轮"},
-      {"value": "B轮及以后", "label": "B轮及以后"}
-    ]},
-    {"name": "fundingAmount", "label": "融资金额", "type": "string", "required": false, "default": "500万人民币"},
-    {"name": "duration", "label": "演讲时长(分钟)", "type": "number", "required": false, "default": 10},
-    {"name": "colorScheme", "label": "配色方案", "type": "select", "required": false, "default": "科技蓝", "options": [
-      {"value": "科技蓝", "label": "科技蓝"},
-      {"value": "商务灰", "label": "商务灰"},
-      {"value": "活力橙", "label": "活力橙"}
-    ]}
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "industry",
+      "label": "所属行业",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "fundingStage",
+      "label": "融资轮次",
+      "type": "select",
+      "required": false,
+      "default": "天使轮",
+      "options": [
+        {
+          "value": "种子轮",
+          "label": "种子轮"
+        },
+        {
+          "value": "天使轮",
+          "label": "天使轮"
+        },
+        {
+          "value": "Pre-A",
+          "label": "Pre-A轮"
+        },
+        {
+          "value": "A轮",
+          "label": "A轮"
+        },
+        {
+          "value": "B轮及以后",
+          "label": "B轮及以后"
+        }
+      ]
+    },
+    {
+      "name": "fundingAmount",
+      "label": "融资金额",
+      "type": "string",
+      "required": false,
+      "default": "500万人民币"
+    },
+    {
+      "name": "duration",
+      "label": "演讲时长(分钟)",
+      "type": "number",
+      "required": false,
+      "default": 10
+    },
+    {
+      "name": "colorScheme",
+      "label": "配色方案",
+      "type": "select",
+      "required": false,
+      "default": "科技蓝",
+      "options": [
+        {
+          "value": "科技蓝",
+          "label": "科技蓝"
+        },
+        {
+          "value": "商务灰",
+          "label": "商务灰"
+        },
+        {
+          "value": "活力橙",
+          "label": "活力橙"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "{{projectName}}-路演PPT",
     "files": [
-      {"path": "{{projectName}}-路演PPT.pptx", "type": "presentation"},
-      {"path": "演讲稿.docx", "type": "document"}
+      {
+        "path": "{{projectName}}-路演PPT.pptx",
+        "type": "presentation"
+      },
+      {
+        "path": "演讲稿.docx",
+        "type": "document"
+      }
     ]
   },
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "required_skills": [
+    "skill_office_suite",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_ppt_generator",
+    "tool_ppt_slide_creator",
+    "tool_template_renderer"
+  ],
+  "execution_engine": "ppt"
 }

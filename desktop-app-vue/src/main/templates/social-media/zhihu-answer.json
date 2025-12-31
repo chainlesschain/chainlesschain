@@ -7,38 +7,132 @@
   "cover_image": "/templates/covers/zhihu.png",
   "category": "social-media",
   "subcategory": "zhihu",
-  "tags": ["知乎", "问答", "专栏", "干货"],
+  "tags": [
+    "知乎",
+    "问答",
+    "专栏",
+    "干货"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我生成知乎优质回答，要求：\n\n**问答信息：**\n- 问题：{{question}}\n- 回答角度：{{answerAngle}}\n- 专业程度：{{professionalLevel}}\n- 目标字数：{{wordCount}}字\n\n**黄金开头（前50字决定80%阅读率）：**\n\n{{#eq openingStyle \"观点先行\"}}\n直接给出核心观点：\n\"{{question}}的答案是：{{coreAnswer}}。\n接下来我将从{{aspectCount}}个方面详细说明。\"\n{{/eq}}\n\n{{#eq openingStyle \"数据震撼\"}}\n用数据/事实吸引：\n\"根据{{dataSource}}的数据，{{shockingFact}}。\n这个数字背后，揭示了{{deepInsight}}。\"\n{{/eq}}\n\n{{#eq openingStyle \"故事引入\"}}\n用故事引发共鸣：\n\"{{yearAgo}}年前，{{character}}遇到了{{problem}}。\n这个故事，完美回答了{{question}}。\"\n{{/eq}}\n\n{{#eq openingStyle \"反常识\"}}\n颠覆认知：\n\"大部分人对{{question}}的理解都错了。\n真相是：{{counterIntuitiveFact}}\"\n{{/eq}}\n\n**主体论证结构：**\n\n【第一部分：问题分析】\n1. 问题本质：{{question}}的核心是什么？\n2. 常见误区：大部分人为什么会理解错？\n3. 正确认知：应该如何理解这个问题？\n\n【第二部分：深度解答（{{aspectCount}}个方面）】\n\n**方面1：{{aspect1Title}}**\n- 核心观点\n- 理论支撑（引用权威/研究）\n- 案例说明（真实案例或虚构场景）\n- 数据佐证（如有）\n\n**方面2：{{aspect2Title}}**\n...\n\n**方面3：{{aspect3Title}}**\n...\n\n【第三部分：实操建议】\n基于以上分析，给出可执行的建议：\n1. 建议1：[具体步骤]\n2. 建议2：[具体步骤]\n3. 建议3：[具体步骤]\n\n【第四部分：总结升华】\n- 总结核心观点（3句话）\n- 延伸思考：这个问题背后的更深层次思考\n- 金句收尾：一句有力量的话\n\n**论证技巧：**\n\n{{#if includeData}}\n1. **数据引用**\n   - 权威来源：{{dataSource1}}、{{dataSource2}}\n   - 引用格式：\"根据XX机构2024年的报告...\"\n   - 数据可视化：用表格或图表展示关键数据\n{{/if}}\n\n{{#if includeCases}}\n2. **案例支撑**\n   - 正面案例：成功案例证明观点\n   - 反面案例：失败案例警示\n   - 对比案例：A vs B的差异\n{{/if}}\n\n{{#if includeLogic}}\n3. **逻辑推理**\n   - 因果关系：因为X，所以Y\n   - 递进关系：不仅X，而且Y，更重要的是Z\n   - 对比关系：X的优势在于，而Y的问题是\n{{/if}}\n\n**获赞技巧：**\n\n1. **结构清晰**\n   - 使用**加粗**突出重点\n   - 使用序号（1/2/3）和小标题\n   - 每段不超过5行\n\n2. **信息量大**\n   - 干货密度高\n   - 避免空话套话\n   - 每200字一个信息点\n\n3. **互动引导**\n   - 结尾：\"如果觉得有帮助，点个赞吧～\"\n   - 提问：\"你有什么不同看法？欢迎评论交流\"\n\n4. **专业可信**\n   - 引用权威来源\n   - 展示专业背景（如适用）\n   - 语气客观，避免绝对化\n\n**排版建议：**\n\n- 使用知乎内置格式：\n  - 一级标题：## 标题\n  - 二级标题：### 标题  \n  - 加粗：**重点内容**\n  - 引用：> 引用内容\n  - 代码：`代码片段`\n  - 分隔线：---\n\n- 配图要求：\n  - 每500字配1张图\n  - 图片清晰，带水印（防盗）\n  - 数据图表用专业工具制作\n\n**SEO优化：**\n\n- 关键词：{{question}}相关词（出现3-5次）\n- 标签：添加相关话题标签\n- 外链：适度添加相关优质回答链接\n\n**输出格式：**\n- Markdown格式（知乎支持）\n- 包含配图位置标注\n- 数据来源列表",
   "variables_schema": [
-    {"name": "question", "label": "知乎问题", "type": "string", "required": true, "placeholder": "例如：如何提高工作效率？"},
-    {"name": "answerAngle", "label": "回答角度", "type": "string", "required": false, "default": "实用方法", "placeholder": "例如：实用方法、理论分析、个人经历"},
-    {"name": "professionalLevel", "label": "专业程度", "type": "select", "required": false, "default": "中等", "options": [
-      {"value": "通俗易懂", "label": "通俗易懂（小白友好）"},
-      {"value": "中等", "label": "中等（需要一定基础）"},
-      {"value": "专业深度", "label": "专业深度（行业内交流）"}
-    ]},
-    {"name": "wordCount", "label": "目标字数", "type": "number", "required": false, "default": 1500, "min": 500, "max": 5000},
-    {"name": "openingStyle", "label": "开头风格", "type": "select", "required": false, "default": "观点先行", "options": [
-      {"value": "观点先行", "label": "观点先行"},
-      {"value": "数据震撼", "label": "数据震撼"},
-      {"value": "故事引入", "label": "故事引入"},
-      {"value": "反常识", "label": "反常识"}
-    ]},
-    {"name": "includeData", "label": "包含数据引用", "type": "select", "required": false, "default": "是", "options": [
-      {"value": "是", "label": "使用数据佐证"},
-      {"value": "否", "label": "不需要"}
-    ]},
-    {"name": "includeCases", "label": "包含案例", "type": "select", "required": false, "default": "是", "options": [
-      {"value": "是", "label": "使用案例说明"},
-      {"value": "否", "label": "不需要"}
-    ]}
+    {
+      "name": "question",
+      "label": "知乎问题",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：如何提高工作效率？"
+    },
+    {
+      "name": "answerAngle",
+      "label": "回答角度",
+      "type": "string",
+      "required": false,
+      "default": "实用方法",
+      "placeholder": "例如：实用方法、理论分析、个人经历"
+    },
+    {
+      "name": "professionalLevel",
+      "label": "专业程度",
+      "type": "select",
+      "required": false,
+      "default": "中等",
+      "options": [
+        {
+          "value": "通俗易懂",
+          "label": "通俗易懂（小白友好）"
+        },
+        {
+          "value": "中等",
+          "label": "中等（需要一定基础）"
+        },
+        {
+          "value": "专业深度",
+          "label": "专业深度（行业内交流）"
+        }
+      ]
+    },
+    {
+      "name": "wordCount",
+      "label": "目标字数",
+      "type": "number",
+      "required": false,
+      "default": 1500,
+      "min": 500,
+      "max": 5000
+    },
+    {
+      "name": "openingStyle",
+      "label": "开头风格",
+      "type": "select",
+      "required": false,
+      "default": "观点先行",
+      "options": [
+        {
+          "value": "观点先行",
+          "label": "观点先行"
+        },
+        {
+          "value": "数据震撼",
+          "label": "数据震撼"
+        },
+        {
+          "value": "故事引入",
+          "label": "故事引入"
+        },
+        {
+          "value": "反常识",
+          "label": "反常识"
+        }
+      ]
+    },
+    {
+      "name": "includeData",
+      "label": "包含数据引用",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "使用数据佐证"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    },
+    {
+      "name": "includeCases",
+      "label": "包含案例",
+      "type": "select",
+      "required": false,
+      "default": "是",
+      "options": [
+        {
+          "value": "是",
+          "label": "使用案例说明"
+        },
+        {
+          "value": "否",
+          "label": "不需要"
+        }
+      ]
+    }
   ],
   "file_structure": {
     "root": "知乎-{{question}}",
     "files": [
-      {"path": "回答正文.md", "type": "markdown"},
-      {"path": "数据来源.md", "type": "markdown", "content": "# 数据和引用来源\n\n1. \n2. \n3. "}
+      {
+        "path": "回答正文.md",
+        "type": "markdown"
+      },
+      {
+        "path": "数据来源.md",
+        "type": "markdown",
+        "content": "# 数据和引用来源\n\n1. \n2. \n3. "
+      }
     ]
   },
   "default_files": [],
@@ -47,5 +141,16 @@
   "version": "1.0.0",
   "usage_count": 0,
   "rating": 0,
-  "rating_count": 0
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_seo_marketing"
+  ],
+  "required_tools": [
+    "tool_seo_optimizer",
+    "tool_keyword_extractor",
+    "tool_file_writer",
+    "tool_word_generator"
+  ],
+  "execution_engine": "default"
 }
