@@ -54,6 +54,9 @@ const { KnowledgeVersionManager } = require('./knowledge/version-manager');
 // Plugin System (Phase 1)
 const { PluginManager, setPluginManager } = require('./plugins/plugin-manager');
 
+// Backend Service Manager (for production packaging)
+const { getBackendServiceManager } = require('./backend-service-manager');
+
 // Skill and Tool Management System
 const ToolManager = require('./skill-tool-system/tool-manager');
 const SkillManager = require('./skill-tool-system/skill-manager');
@@ -259,10 +262,29 @@ class ChainlessChainApp {
     app.on('window-all-closed', () => this.onWindowAllClosed());
     app.on('activate', () => this.onActivate());
 
+    // 应用退出时停止后端服务
+    app.on('will-quit', async (event) => {
+      event.preventDefault();
+      console.log('[Main] Application is quitting, stopping backend services...');
+      const backendManager = getBackendServiceManager();
+      await backendManager.stopServices();
+      app.exit(0);
+    });
+
   }
 
   async onReady() {
     console.log('ChainlessChain Vue 启动中...');
+
+    // 启动后端服务（仅在生产环境）
+    try {
+      const backendManager = getBackendServiceManager();
+      await backendManager.startServices();
+    } catch (error) {
+      console.error('[Main] Failed to start backend services:', error);
+      // 继续启动应用，即使后端服务启动失败
+    }
+
     // IPC handlers
     try {
       this.setupIPC();
@@ -14428,6 +14450,30 @@ ${content}
         return { success: false, error: error.message };
       }
     });
+
+    // 后端服务管理 IPC handlers
+    registerFallback('backend-service:get-status', async () => {
+      try {
+        const backendManager = getBackendServiceManager();
+        return await backendManager.getServicesStatus();
+      } catch (error) {
+        console.error('[Main] Failed to get backend service status:', error);
+        return { error: error.message };
+      }
+    });
+
+    registerFallback('backend-service:restart', async () => {
+      try {
+        const backendManager = getBackendServiceManager();
+        await backendManager.restartServices();
+        return { success: true };
+      } catch (error) {
+        console.error('[Main] Failed to restart backend services:', error);
+        return { error: error.message };
+      }
+    });
+
+    console.log('[Main] Backend service IPC handlers registered');
   }
 
   /**
