@@ -306,27 +306,27 @@ goto END
 
 :STOP_SERVICES
 echo 正在停止后端服务...
-taskkill /F /IM project-service.exe /T >nul 2>&1
-taskkill /F /IM ai-service.exe /T >nul 2>&1
+taskkill /F /IM project-service.exe /T 1>nul 2>&1
+taskkill /F /IM ai-service.exe /T 1>nul 2>&1
 echo 后端服务已停止
 pause
 goto END
 
 :RESTART_SERVICES
 call :STOP_SERVICES
-timeout /t 2 /nobreak >nul
+timeout /t 2 /nobreak 1>nul 2>&1
 call :START_SERVICES
 goto END
 
 :STATUS_SERVICES
 echo 后端服务状态：
-tasklist /FI "IMAGENAME eq project-service.exe" 2>nul | find /I "project-service.exe" >nul
+tasklist /FI "IMAGENAME eq project-service.exe" 2>nul 1>nul | find /I "project-service.exe" 1>nul 2>&1
 if %ERRORLEVEL% EQU 0 (
     echo   ✓ Project Service 运行中
 ) else (
     echo   ✗ Project Service 未运行
 )
-tasklist /FI "IMAGENAME eq ai-service.exe" 2>nul | find /I "ai-service.exe" >nul
+tasklist /FI "IMAGENAME eq ai-service.exe" 2>nul 1>nul | find /I "ai-service.exe" 1>nul 2>&1
 if %ERRORLEVEL% EQU 0 (
     echo   ✓ AI Service 运行中
 ) else (

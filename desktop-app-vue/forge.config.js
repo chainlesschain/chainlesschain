@@ -112,6 +112,12 @@ module.exports = {
       /^\/tmp/,
       /\.log$/,
 
+      // Windows特殊文件（防止NUL设备文件被打包）
+      /\/NUL$/i,
+      /\/nul$/i,
+      /^NUL$/i,
+      /^nul$/i,
+
       // 其他
       /^\/\.env\.local/,
       /^\/\.env\.development/

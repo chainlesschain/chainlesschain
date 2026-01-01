@@ -180,8 +180,8 @@ if "%INCLUDE_BACKEND%"=="1" (
     REM 检查编译后的后端服务
     if exist "..\backend\standalone\project-service.exe" (
         echo   复制 Project Service...
-        copy "..\backend\standalone\project-service.exe" "%BACKEND_DIR%\" >nul
-        copy "..\backend\standalone\application.yml" "%BACKEND_DIR%\" >nul
+        copy "..\backend\standalone\project-service.exe" "%BACKEND_DIR%\" 1>nul 2>&1
+        copy "..\backend\standalone\application.yml" "%BACKEND_DIR%\" 1>nul 2>&1
     ) else (
         echo [WARNING] Project Service 可执行文件不存在
         echo 请先构建后端服务: cd ..\backend && build-standalone.bat
@@ -189,8 +189,8 @@ if "%INCLUDE_BACKEND%"=="1" (
 
     if exist "..\backend\standalone\ai-service.exe" (
         echo   复制 AI Service...
-        copy "..\backend\standalone\ai-service.exe" "%BACKEND_DIR%\" >nul
-        copy "..\backend\standalone\config.yml" "%BACKEND_DIR%\" >nul
+        copy "..\backend\standalone\ai-service.exe" "%BACKEND_DIR%\" 1>nul 2>&1
+        copy "..\backend\standalone\config.yml" "%BACKEND_DIR%\" 1>nul 2>&1
     ) else (
         echo [WARNING] AI Service 可执行文件不存在
         echo 请先构建后端服务: cd ..\backend && build-standalone.bat
