@@ -1,0 +1,153 @@
+# Electron Builder 配置文件
+# 用于构建安装包和配置自动更新
+
+appId: com.chainlesschain.desktop
+productName: ChainlessChain
+copyright: Copyright © 2024 ChainlessChain Team
+
+# 目录配置
+directories:
+  output: out/build
+  buildResources: build
+
+# 文件包含/排除
+files:
+  - dist/**/*
+  - package.json
+  - node_modules/**/*
+  - "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!node_modules/*.d.ts"
+  - "!node_modules/.bin"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+  - "!.editorconfig"
+  - "!**/._*"
+  - "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+  - "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}"
+  - "!**/{appveyor.yml,.travis.yml,circle.yml}"
+  - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+
+# Windows 配置
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  icon: build/icon.ico
+  artifactName: ${productName}-Setup-${version}.${ext}
+  publisherName: ChainlessChain Team
+  verifyUpdateCodeSignature: false
+
+# NSIS 安装程序配置
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: ChainlessChain
+  include: installer.nsh
+  perMachine: true
+  runAfterFinish: false
+  # 差分更新配置
+  differentialPackage: true
+
+# macOS 配置
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: build/icon.icns
+  category: public.app-category.productivity
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+
+# DMG 配置
+dmg:
+  title: ${productName} ${version}
+  icon: build/icon.icns
+  background: build/dmg-background.png
+  contents:
+    - x: 410
+      y: 150
+      type: link
+      path: /Applications
+    - x: 130
+      y: 150
+      type: file
+
+# Linux 配置
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+    - target: rpm
+      arch:
+        - x64
+  icon: build/icons
+  category: Office
+  synopsis: Personal AI Knowledge Management System
+  description: ChainlessChain is a decentralized personal AI management system with hardware-level security.
+
+# 发布配置
+publish:
+  # 方式1: GitHub Releases（推荐）
+  - provider: github
+    owner: chainlesschain
+    repo: chainlesschain
+    private: false
+    releaseType: release
+
+  # 方式2: 通用 HTTP 服务器
+  # - provider: generic
+  #   url: https://your-update-server.com/releases
+  #   channel: latest
+
+  # 方式3: S3
+  # - provider: s3
+  #   bucket: your-bucket-name
+  #   region: us-east-1
+  #   path: /releases
+
+# 自动更新配置
+afterSign: scripts/notarize.js  # macOS 公证脚本（可选）
+
+# 压缩配置
+compression: normal  # 或 maximum（但会更慢）
+
+# 额外资源
+extraResources:
+  - from: ../docker-compose.yml
+    to: backend-services/docker-compose.yml
+  - from: ../.env.example
+    to: backend-services/.env.example
+  - from: install-docker-desktop.bat
+    to: .
+
+# 元数据
+appx:
+  backgroundColor: "#464646"
+  showNameOnTiles: true
+  publisher: CN=ChainlessChain Team
+  publisherDisplayName: ChainlessChain Team
+  identityName: ChainlessChain.ChainlessChainDesktop
+
+# 协议处理
+protocols:
+  name: ChainlessChain
+  schemes:
+    - chainlesschain
