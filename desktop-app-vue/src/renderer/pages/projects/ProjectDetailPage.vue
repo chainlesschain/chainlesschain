@@ -458,6 +458,7 @@ import ProjectFileList from '@/components/projects/ProjectFileList.vue';
 import ProjectSidebar from '@/components/ProjectSidebar.vue';
 import EditorPanelHeader from '@/components/projects/EditorPanelHeader.vue';
 import ResizeHandle from '@/components/projects/ResizeHandle.vue';
+import { sanitizePath, validateFileSize, throttle, debounce } from '@/utils/file-utils';
 
 const route = useRoute();
 const router = useRouter();
@@ -670,21 +671,21 @@ const toggleEditorPanel = () => {
   showEditorPanel.value = !showEditorPanel.value;
 };
 
-// 处理文件树面板调整大小
-const handleFileExplorerResize = (delta) => {
+// 处理文件树面板调整大小（添加节流优化）
+const handleFileExplorerResize = throttle((delta) => {
   const newWidth = fileExplorerWidth.value + delta;
   if (newWidth >= minPanelWidth && newWidth <= maxFileExplorerWidth) {
     fileExplorerWidth.value = newWidth;
   }
-};
+}, 16); // 60fps
 
-// 处理编辑器面板调整大小
-const handleEditorPanelResize = (delta) => {
+// 处理编辑器面板调整大小（添加节流优化）
+const handleEditorPanelResize = throttle((delta) => {
   const newWidth = editorPanelWidth.value - delta; // 注意：向左拖拽时delta为正，需要减小宽度
   if (newWidth >= minPanelWidth && newWidth <= maxEditorPanelWidth) {
     editorPanelWidth.value = newWidth;
   }
-};
+}, 16); // 60fps
 
 // 刷新 Git 状态
 const refreshGitStatus = async () => {
@@ -718,25 +719,44 @@ const loadFileContent = async (file) => {
         throw new Error('项目信息不完整，缺少 root_path');
       }
 
-      // 构建完整的文件路径：{root_path}/{file_path}
-      let fullPath = file.file_path;
+      // 【修复1: 使用sanitizePath进行路径安全验证】
+      let fullPath;
+      const isAbsolutePath = /^([a-zA-Z]:[\\/]|\/|\\\\)/.test(file.file_path);
 
-      // 判断是否已经是绝对路径
-      const isAbsolutePath = /^([a-zA-Z]:[\\/]|\/|\\\\)/.test(fullPath);
-
-      if (!isAbsolutePath) {
-        // 如果是相对路径，拼接项目根路径
-        const rootPath = currentProject.value.root_path;
-        // 处理路径分隔符，统一使用系统分隔符
-        const separator = rootPath.includes('\\') ? '\\' : '/';
-        // 清理 file_path 开头的斜杠
-        const cleanFilePath = file.file_path.replace(/^[\/\\]+/, '');
-        fullPath = `${rootPath}${separator}${cleanFilePath}`;
+      if (isAbsolutePath) {
+        // 如果已经是绝对路径，直接使用
+        fullPath = file.file_path;
+      } else {
+        // 如果是相对路径，使用安全的路径拼接函数
+        try {
+          fullPath = sanitizePath(currentProject.value.root_path, file.file_path);
+        } catch (pathError) {
+          throw new Error(`路径验证失败: ${pathError.message}`);
+        }
       }
 
       console.log('[ProjectDetail] 项目根路径:', currentProject.value.root_path);
       console.log('[ProjectDetail] 文件相对路径:', file.file_path);
-      console.log('[ProjectDetail] 完整路径:', fullPath);
+      console.log('[ProjectDetail] 完整路径（已验证）:', fullPath);
+
+      // 【修复2: 添加文件大小检查】
+      try {
+        const fileStats = await window.electronAPI.file.stat(fullPath);
+        if (fileStats && fileStats.success && fileStats.stats) {
+          const extension = file.file_name?.split('.').pop();
+          const sizeValidation = validateFileSize(fileStats.stats.size, extension);
+
+          if (!sizeValidation.isValid) {
+            message.warning(sizeValidation.message);
+            fileContent.value = `文件过大，无法在编辑器中打开。\n\n${sizeValidation.message}\n\n建议使用外部编辑器打开此文件。`;
+            return;
+          }
+        }
+      } catch (statsError) {
+        console.warn('[ProjectDetail] 无法获取文件大小，跳过大小检查:', statsError);
+        // 继续加载，不因为无法获取文件大小而失败
+      }
+
       const result = await window.electronAPI.file.readContent(fullPath);
 
       // 正确处理 IPC 返回的对象 { success: true, content: '...' }
@@ -1352,7 +1372,7 @@ onMounted(async () => {
       refreshGitStatus().catch(err => {
         console.error('[ProjectDetail] Git status interval error:', err);
       });
-    }, 10000);
+    }, 30000); // 优化：从10秒增加到30秒，减少资源消耗
 
     // 启动项目统计收集
     if (resolvedProjectPath.value) {
