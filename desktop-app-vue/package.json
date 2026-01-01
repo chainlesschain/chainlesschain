@@ -4,6 +4,7 @@
   "description": "ChainlessChain桌面应用 - 基于Electron和Vue3的个人AI知识库",
   "main": "dist/main/index.js",
   "scripts": {
+    "postinstall": "node scripts/link-hoisted-modules.js",
     "dev": "npm run build:main && concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
     "dev:electron": "wait-on http://localhost:5173 && npm run build:main && cross-env NODE_ENV=development electron .",
     "dev:renderer": "vite",
@@ -113,6 +114,7 @@
     "jsqr": "^1.4.0",
     "koffi": "^2.8.10",
     "libp2p": "^3.1.2",
+    "lodash": "^4.17.21",
     "lodash-es": "^4.17.22",
     "lodash.debounce": "^4.0.8",
     "lru-cache": "^6.0.0",
