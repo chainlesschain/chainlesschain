@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>创建测试DID</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #1890ff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background: #40a9ff;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .status.info {
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      color: #0050b3;
+    }
+    .status.success {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #389e0d;
+    }
+    .status.error {
+      background: #fff2e8;
+      border: 1px solid #ffbb96;
+      color: #d4380d;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📱 ChainlessChain 测试DID创建工具</h1>
+
+    <button id="createBtn">创建测试DID</button>
+    <button id="checkBtn">检查当前DID</button>
+    <button id="clearBtn" style="background: #ff4d4f;">清除所有数据</button>
+    <button id="gotoAppBtn" style="background: #52c41a;">打开应用</button>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const statusDiv = document.getElementById('status');
+
+    function showStatus(message, type = 'info') {
+      statusDiv.className = 'status ' + type;
+      statusDiv.innerHTML = message;
+    }
+
+    // 创建测试DID
+    document.getElementById('createBtn').addEventListener('click', () => {
+      try {
+        // 读取现有数据
+        const h5Data = JSON.parse(localStorage.getItem('chainlesschain_h5_data') || '{}');
+
+        // 初始化identities数组
+        if (!h5Data.identities) {
+          h5Data.identities = [];
+        }
+
+        // 创建测试DID
+        const testDID = {
+          did: 'did:chainlesschain:testuser',
+          nickname: '测试用户',
+          bio: '这是一个测试账号',
+          avatar_path: '',
+          public_key_sign: 'test_public_key_' + Date.now(),
+          public_key_encrypt: 'test_encrypt_key_' + Date.now(),
+          private_key_encrypted: 'test_encrypted_private_' + Date.now(),
+          did_document: JSON.stringify({
+            '@context': 'https://www.w3.org/ns/did/v1',
+            id: 'did:chainlesschain:testuser',
+            publicKey: [{
+              id: 'did:chainlesschain:testuser#sign-key-1',
+              type: 'Ed25519VerificationKey2018',
+              controller: 'did:chainlesschain:testuser',
+              publicKeyBase58: 'test_public_key_' + Date.now()
+            }],
+            authentication: ['did:chainlesschain:testuser#sign-key-1'],
+            assertionMethod: ['did:chainlesschain:testuser#sign-key-1']
+          }),
+          is_default: 1,
+          is_active: 1,
+          created_at: Date.now(),
+          updated_at: Date.now()
+        };
+
+        // 清除旧的测试DID（如果存在）
+        h5Data.identities = h5Data.identities.filter(i => i.did !== 'did:chainlesschain:testuser');
+
+        // 添加新的测试DID
+        h5Data.identities.push(testDID);
+
+        // 保存到localStorage
+        localStorage.setItem('chainlesschain_h5_data', JSON.stringify(h5Data));
+
+        showStatus(`
+          <strong>✅ 测试DID创建成功！</strong><br><br>
+          DID: ${testDID.did}<br>
+          昵称: ${testDID.nickname}<br>
+          创建时间: ${new Date(testDID.created_at).toLocaleString()}<br><br>
+          <strong>现在请点击"打开应用"按钮测试项目管理功能</strong>
+        `, 'success');
+
+      } catch (error) {
+        showStatus(`
+          <strong>❌ 创建失败</strong><br><br>
+          错误信息: ${error.message}<br><br>
+          <pre>${error.stack}</pre>
+        `, 'error');
+      }
+    });
+
+    // 检查当前DID
+    document.getElementById('checkBtn').addEventListener('click', () => {
+      try {
+        const h5Data = JSON.parse(localStorage.getItem('chainlesschain_h5_data') || '{}');
+        const identities = h5Data.identities || [];
+        const defaultIdentity = identities.find(i => i.is_default === 1 && i.is_active === 1);
+
+        if (identities.length === 0) {
+          showStatus(`
+            <strong>⚠️ 未找到DID身份</strong><br><br>
+            请点击"创建测试DID"按钮
+          `, 'info');
+        } else {
+          showStatus(`
+            <strong>📋 当前DID列表</strong><br><br>
+            总数: ${identities.length}<br>
+            默认身份: ${defaultIdentity ? defaultIdentity.nickname + ' (' + defaultIdentity.did + ')' : '无'}<br><br>
+            <strong>详细信息：</strong><br>
+            <pre>${JSON.stringify(identities, null, 2)}</pre>
+          `, 'success');
+        }
+      } catch (error) {
+        showStatus(`
+          <strong>❌ 检查失败</strong><br><br>
+          错误信息: ${error.message}
+        `, 'error');
+      }
+    });
+
+    // 清除所有数据
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      if (confirm('确定要清除所有数据吗？此操作不可恢复！')) {
+        localStorage.removeItem('chainlesschain_h5_data');
+        showStatus(`
+          <strong>🗑️ 所有数据已清除</strong><br><br>
+          您可以重新创建测试DID
+        `, 'info');
+      }
+    });
+
+    // 打开应用
+    document.getElementById('gotoAppBtn').addEventListener('click', () => {
+      window.location.href = 'http://localhost:8080/';
+    });
+
+    // 页面加载时检查
+    window.addEventListener('load', () => {
+      const h5Data = JSON.parse(localStorage.getItem('chainlesschain_h5_data') || '{}');
+      const identities = h5Data.identities || [];
+
+      if (identities.length === 0) {
+        showStatus(`
+          <strong>👋 欢迎使用测试工具</strong><br><br>
+          当前没有DID身份，请点击"创建测试DID"按钮开始
+        `, 'info');
+      } else {
+        const defaultIdentity = identities.find(i => i.is_default === 1 && i.is_active === 1);
+        showStatus(`
+          <strong>✅ 已有DID身份</strong><br><br>
+          当前默认身份: ${defaultIdentity ? defaultIdentity.nickname : '未设置'}<br>
+          总共 ${identities.length} 个身份<br><br>
+          点击"检查当前DID"查看详情
+        `, 'success');
+      }
+    });
+  </script>
+</body>
+</html>

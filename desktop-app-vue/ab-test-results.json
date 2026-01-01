@@ -1,0 +1,306 @@
+{
+  "timestamp": "2026-01-01T18:15:02.171Z",
+  "config": {
+    "rounds": 2,
+    "tasksPerRound": 3
+  },
+  "phases": {
+    "p0": {
+      "name": "P0优化 (基础)",
+      "scenarios": {
+        "simple_query": [
+          {
+            "scenario": "simple_query",
+            "phase": "p0",
+            "success": true,
+            "duration": 190.65679999999998,
+            "memoryDelta": -0.9754409790039062,
+            "llmCalls": 1,
+            "toolCalls": 0,
+            "effectiveComplexity": 0.15,
+            "estimatedCost": 0.001,
+            "latency": 175
+          },
+          {
+            "scenario": "simple_query",
+            "phase": "p0",
+            "success": true,
+            "duration": 181.73080000000027,
+            "memoryDelta": 0.00293731689453125,
+            "llmCalls": 1,
+            "toolCalls": 0,
+            "effectiveComplexity": 0.15,
+            "estimatedCost": 0.001,
+            "latency": 175
+          }
+        ],
+        "file_operation": [
+          {
+            "scenario": "file_operation",
+            "phase": "p0",
+            "success": true,
+            "duration": 229.9148,
+            "memoryDelta": 0.003082275390625,
+            "llmCalls": 1,
+            "toolCalls": 1,
+            "effectiveComplexity": 0.25,
+            "estimatedCost": 0.001,
+            "latency": 225
+          },
+          {
+            "scenario": "file_operation",
+            "phase": "p0",
+            "success": true,
+            "duration": 241.35040000000026,
+            "memoryDelta": 0.0031280517578125,
+            "llmCalls": 1,
+            "toolCalls": 1,
+            "effectiveComplexity": 0.25,
+            "estimatedCost": 0.001,
+            "latency": 225
+          }
+        ],
+        "multi_step": [
+          {
+            "scenario": "multi_step",
+            "phase": "p0",
+            "success": true,
+            "duration": 607.8995,
+            "memoryDelta": 0.00315093994140625,
+            "llmCalls": 2,
+            "toolCalls": 3,
+            "effectiveComplexity": 0.4,
+            "estimatedCost": 0.02,
+            "latency": 600
+          },
+          {
+            "scenario": "multi_step",
+            "phase": "p0",
+            "success": true,
+            "duration": 614.4532999999997,
+            "memoryDelta": 0.0029754638671875,
+            "llmCalls": 2,
+            "toolCalls": 3,
+            "effectiveComplexity": 0.4,
+            "estimatedCost": 0.02,
+            "latency": 600
+          }
+        ]
+      },
+      "totals": {
+        "duration": 2066.0056000000004,
+        "llmCalls": 8,
+        "toolCalls": 8,
+        "cost": 0.044,
+        "latency": 2000,
+        "memory": -0.9601669311523438,
+        "success": 6,
+        "failure": 0,
+        "avgDuration": 344.33426666666674,
+        "avgLLMCalls": 1.3333333333333333,
+        "avgToolCalls": 1.3333333333333333,
+        "avgCost": 0.007333333333333333,
+        "avgLatency": 333.3333333333333,
+        "avgMemory": -0.16002782185872397
+      }
+    },
+    "p1": {
+      "name": "P1优化 (智能增强)",
+      "scenarios": {
+        "simple_query": [
+          {
+            "scenario": "simple_query",
+            "phase": "p1",
+            "success": true,
+            "duration": 188.8071,
+            "memoryDelta": 0.00299835205078125,
+            "llmCalls": 1,
+            "toolCalls": 0,
+            "effectiveComplexity": 0.15,
+            "estimatedCost": 0.001,
+            "latency": 175
+          },
+          {
+            "scenario": "simple_query",
+            "phase": "p1",
+            "success": true,
+            "duration": 183.9656,
+            "memoryDelta": 0.0030670166015625,
+            "llmCalls": 1,
+            "toolCalls": 0,
+            "effectiveComplexity": 0.15,
+            "estimatedCost": 0.001,
+            "latency": 175
+          }
+        ],
+        "file_operation": [
+          {
+            "scenario": "file_operation",
+            "phase": "p1",
+            "success": true,
+            "duration": 230.99789999999985,
+            "memoryDelta": 0.003387451171875,
+            "llmCalls": 1,
+            "toolCalls": 1,
+            "effectiveComplexity": 0.25,
+            "estimatedCost": 0.001,
+            "latency": 225
+          },
+          {
+            "scenario": "file_operation",
+            "phase": "p1",
+            "success": true,
+            "duration": 255.89480000000003,
+            "memoryDelta": 0.002899169921875,
+            "llmCalls": 1,
+            "toolCalls": 1,
+            "effectiveComplexity": 0.25,
+            "estimatedCost": 0.001,
+            "latency": 225
+          }
+        ],
+        "multi_step": [
+          {
+            "scenario": "multi_step",
+            "phase": "p1",
+            "success": true,
+            "duration": 316.03430000000003,
+            "memoryDelta": 0.0029296875,
+            "llmCalls": 1,
+            "toolCalls": 3,
+            "effectiveComplexity": 0.4,
+            "estimatedCost": 0.01,
+            "latency": 300
+          },
+          {
+            "scenario": "multi_step",
+            "phase": "p1",
+            "success": true,
+            "duration": 317.3373999999999,
+            "memoryDelta": 0.00299072265625,
+            "llmCalls": 1,
+            "toolCalls": 3,
+            "effectiveComplexity": 0.4,
+            "estimatedCost": 0.01,
+            "latency": 300
+          }
+        ]
+      },
+      "totals": {
+        "duration": 1493.0370999999998,
+        "llmCalls": 6,
+        "toolCalls": 8,
+        "cost": 0.024,
+        "latency": 1400,
+        "memory": 0.01827239990234375,
+        "success": 6,
+        "failure": 0,
+        "avgDuration": 248.83951666666664,
+        "avgLLMCalls": 1,
+        "avgToolCalls": 1.3333333333333333,
+        "avgCost": 0.004,
+        "avgLatency": 233.33333333333334,
+        "avgMemory": 0.0030453999837239585
+      }
+    },
+    "p2": {
+      "name": "P2优化 (完整)",
+      "scenarios": {
+        "simple_query": [
+          {
+            "scenario": "simple_query",
+            "phase": "p2",
+            "success": true,
+            "duration": 18.538999999999987,
+            "memoryDelta": 0.00302886962890625,
+            "llmCalls": 1,
+            "toolCalls": 0,
+            "effectiveComplexity": 0.045599999999999995,
+            "estimatedCost": 0.001,
+            "latency": 8.596
+          },
+          {
+            "scenario": "simple_query",
+            "phase": "p2",
+            "success": true,
+            "duration": 21.343799999999646,
+            "memoryDelta": 0.0029296875,
+            "llmCalls": 1,
+            "toolCalls": 0,
+            "effectiveComplexity": 0.045599999999999995,
+            "estimatedCost": 0.001,
+            "latency": 8.596
+          }
+        ],
+        "file_operation": [
+          {
+            "scenario": "file_operation",
+            "phase": "p2",
+            "success": true,
+            "duration": 18.688900000000103,
+            "memoryDelta": 0.00321197509765625,
+            "llmCalls": 1,
+            "toolCalls": 1,
+            "effectiveComplexity": 0.076,
+            "estimatedCost": 0.001,
+            "latency": 9.66
+          },
+          {
+            "scenario": "file_operation",
+            "phase": "p2",
+            "success": true,
+            "duration": 34.20820000000003,
+            "memoryDelta": 0.003021240234375,
+            "llmCalls": 1,
+            "toolCalls": 1,
+            "effectiveComplexity": 0.076,
+            "estimatedCost": 0.001,
+            "latency": 9.66
+          }
+        ],
+        "multi_step": [
+          {
+            "scenario": "multi_step",
+            "phase": "p2",
+            "success": true,
+            "duration": 34.809099999999944,
+            "memoryDelta": 0.00299072265625,
+            "llmCalls": 1,
+            "toolCalls": 3,
+            "effectiveComplexity": 0.4,
+            "estimatedCost": 0.01,
+            "latency": 21.000000000000004
+          },
+          {
+            "scenario": "multi_step",
+            "phase": "p2",
+            "success": true,
+            "duration": 28.731800000000476,
+            "memoryDelta": 0.00286865234375,
+            "llmCalls": 1,
+            "toolCalls": 3,
+            "effectiveComplexity": 0.4,
+            "estimatedCost": 0.01,
+            "latency": 21.000000000000004
+          }
+        ]
+      },
+      "totals": {
+        "duration": 156.3208000000002,
+        "llmCalls": 6,
+        "toolCalls": 8,
+        "cost": 0.024,
+        "latency": 78.512,
+        "memory": 0.0180511474609375,
+        "success": 6,
+        "failure": 0,
+        "avgDuration": 26.053466666666697,
+        "avgLLMCalls": 1,
+        "avgToolCalls": 1.3333333333333333,
+        "avgCost": 0.004,
+        "avgLatency": 13.085333333333333,
+        "avgMemory": 0.0030085245768229165
+      }
+    }
+  }
+}

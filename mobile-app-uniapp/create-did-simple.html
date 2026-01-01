@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Create Test DID</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; }
+    button { padding: 15px 30px; font-size: 16px; margin: 10px; cursor: pointer; }
+    .success { background: #52c41a; color: white; border: none; }
+    .primary { background: #1890ff; color: white; border: none; }
+    .danger { background: #ff4d4f; color: white; border: none; }
+    #output { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Create Test DID</h1>
+
+  <button class="success" onclick="createDID()">Create Test DID</button>
+  <button class="primary" onclick="checkDID()">Check DID</button>
+  <button class="danger" onclick="clearData()">Clear All Data</button>
+  <button class="primary" onclick="openApp()">Open App</button>
+
+  <div id="output"></div>
+
+  <script>
+    function log(msg) {
+      document.getElementById('output').innerHTML = '<pre>' + msg + '</pre>';
+    }
+
+    function createDID() {
+      try {
+        var data = localStorage.getItem('chainlesschain_h5_data');
+        var h5Data = data ? JSON.parse(data) : {};
+
+        if (!h5Data.identities) {
+          h5Data.identities = [];
+        }
+
+        h5Data.identities = h5Data.identities.filter(function(i) {
+          return i.did !== 'did:chainlesschain:testuser';
+        });
+
+        var now = Date.now();
+        var testDID = {
+          did: 'did:chainlesschain:testuser',
+          nickname: 'Test User',
+          bio: 'Test Account',
+          avatar_path: '',
+          public_key_sign: 'test_pk_' + now,
+          public_key_encrypt: 'test_ek_' + now,
+          private_key_encrypted: 'test_priv_' + now,
+          did_document: JSON.stringify({
+            id: 'did:chainlesschain:testuser',
+            publicKey: [{
+              id: 'did:chainlesschain:testuser#key1',
+              type: 'Ed25519VerificationKey2018',
+              publicKeyBase58: 'test_pk_' + now
+            }]
+          }),
+          is_default: 1,
+          is_active: 1,
+          created_at: now,
+          updated_at: now
+        };
+
+        h5Data.identities.push(testDID);
+        localStorage.setItem('chainlesschain_h5_data', JSON.stringify(h5Data));
+
+        log('SUCCESS!\n\nDID: ' + testDID.did + '\nNickname: ' + testDID.nickname + '\n\nClick "Open App" to test project features');
+      } catch (e) {
+        log('ERROR: ' + e.message);
+      }
+    }
+
+    function checkDID() {
+      try {
+        var data = localStorage.getItem('chainlesschain_h5_data');
+        var h5Data = data ? JSON.parse(data) : {};
+        var identities = h5Data.identities || [];
+
+        if (identities.length === 0) {
+          log('No DID found. Click "Create Test DID"');
+        } else {
+          var output = 'Found ' + identities.length + ' identity(ies)\n\n';
+          identities.forEach(function(id) {
+            output += 'DID: ' + id.did + '\n';
+            output += 'Nickname: ' + id.nickname + '\n';
+            output += 'Default: ' + (id.is_default === 1 ? 'Yes' : 'No') + '\n';
+            output += 'Active: ' + (id.is_active === 1 ? 'Yes' : 'No') + '\n\n';
+          });
+          log(output);
+        }
+      } catch (e) {
+        log('ERROR: ' + e.message);
+      }
+    }
+
+    function clearData() {
+      if (confirm('Clear all data?')) {
+        localStorage.removeItem('chainlesschain_h5_data');
+        log('All data cleared');
+      }
+    }
+
+    function openApp() {
+      window.location.href = 'http://localhost:8080/';
+    }
+
+    window.onload = function() {
+      checkDID();
+    };
+  </script>
+</body>
+</html>
