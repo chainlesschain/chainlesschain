@@ -1,0 +1,281 @@
+# Docker Compose - 生产环境配置
+# 适用于云端部署，使用云LLM API，包含安全加固和性能优化
+
+version: '3.8'
+
+services:
+  # ==================== 向量数据库 ====================
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: chainlesschain_qdrant
+    ports:
+      - "127.0.0.1:6333:6333"  # 仅本地访问
+      - "127.0.0.1:6334:6334"
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__SERVICE__HTTP_PORT=6333
+    restart: unless-stopped
+    networks:
+      - chainlesschain_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+  # ==================== PostgreSQL数据库 ====================
+  postgres:
+    image: postgres:16-alpine
+    container_name: chainlesschain_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-chainlesschain}
+      POSTGRES_USER: ${DB_USER:-chainlesschain}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?请在.env中设置强密码}
+      # 性能调优
+      POSTGRES_SHARED_BUFFERS: 2GB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 6GB
+      POSTGRES_WORK_MEM: 64MB
+      POSTGRES_MAINTENANCE_WORK_MEM: 512MB
+    # 不暴露端口到外网，仅内部访问
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/project-service/src/main/resources/db/migration:/docker-entrypoint-initdb.d:ro
+      - ./logs/postgres:/var/log/postgresql
+    command: >
+      postgres
+      -c shared_buffers=2GB
+      -c effective_cache_size=6GB
+      -c maintenance_work_mem=512MB
+      -c work_mem=64MB
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c max_connections=200
+      -c log_min_duration_statement=1000
+      -c log_destination='stderr'
+      -c logging_collector=on
+      -c log_directory='/var/log/postgresql'
+    restart: unless-stopped
+    networks:
+      - chainlesschain_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-chainlesschain} -d ${DB_NAME:-chainlesschain}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+  # ==================== Redis缓存 ====================
+  redis:
+    image: redis:7-alpine
+    container_name: chainlesschain_redis
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?请在.env中设置Redis密码}
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    # 不暴露端口到外网
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+      - ./logs/redis:/var/log/redis
+    restart: unless-stopped
+    networks:
+      - chainlesschain_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 2.5G
+        reservations:
+          memory: 2G
+
+  # ==================== AI服务（FastAPI） ====================
+  ai-service:
+    build:
+      context: ./backend/ai-service
+      dockerfile: Dockerfile
+    image: chainlesschain/ai-service:latest
+    container_name: chainlesschain_ai_service
+    ports:
+      - "127.0.0.1:8001:8000"  # 仅本地访问，通过Nginx代理
+    environment:
+      # 运行环境
+      - ENVIRONMENT=production
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # 使用云端LLM服务
+      - LLM_PROVIDER=${LLM_PROVIDER:-dashscope}
+      - LLM_MODEL=${LLM_MODEL:-qwen-turbo}
+
+      # LLM API Keys（从.env读取）
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ZHIPU_API_KEY=${ZHIPU_API_KEY:-}
+      - VOLCENGINE_API_KEY=${VOLCENGINE_API_KEY:-}
+      - QIANFAN_API_KEY=${QIANFAN_API_KEY:-}
+      - HUNYUAN_API_KEY=${HUNYUAN_API_KEY:-}
+      - SPARK_API_KEY=${SPARK_API_KEY:-}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+
+      # 向量数据库
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+
+      # Embedding配置
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-base-zh-v1.5}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-local}
+      - EMBEDDING_BATCH_SIZE=32
+
+      # Redis配置
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+      # 性能配置
+      - WORKERS=4
+      - MAX_CONCURRENT_REQUESTS=10
+      - REQUEST_TIMEOUT=300
+
+      # HuggingFace镜像
+      - HF_ENDPOINT=https://hf-mirror.com
+      - TRANSFORMERS_OFFLINE=0
+    volumes:
+      - ./data/projects:/data/projects:ro
+      - ./data/models:/models
+      - ./logs/ai-service:/app/logs
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - chainlesschain_network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+  # ==================== 项目服务（Spring Boot） ====================
+  project-service:
+    build:
+      context: ./backend/project-service
+      dockerfile: Dockerfile
+    image: chainlesschain/project-service:latest
+    container_name: chainlesschain_project_service
+    ports:
+      - "127.0.0.1:9090:9090"  # 仅本地访问，通过Nginx代理
+    environment:
+      # Spring Boot环境
+      - SPRING_PROFILES_ACTIVE=production
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # 数据库配置
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${DB_NAME:-chainlesschain}
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-chainlesschain}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-chainlesschain}
+      - DB_USER=${DB_USER:-chainlesschain}
+      - DB_PASSWORD=${DB_PASSWORD}
+
+      # Redis配置
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+      # AI服务配置
+      - AI_SERVICE_URL=http://ai-service:8000
+
+      # 文件存储
+      - PROJECTS_ROOT_PATH=/data/projects
+
+      # Git配置
+      - GIT_USER_NAME=${GIT_USER_NAME:-ChainlessChain}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-bot@chainlesschain.com}
+
+      # JWT配置
+      - JWT_SECRET=${JWT_SECRET:?请在.env中设置JWT密钥}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400}
+
+      # JVM参数
+      - JAVA_OPTS=-Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs
+    volumes:
+      - ./data/projects:/data/projects
+      - ./logs/project-service:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - chainlesschain_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 4G
+
+networks:
+  chainlesschain_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

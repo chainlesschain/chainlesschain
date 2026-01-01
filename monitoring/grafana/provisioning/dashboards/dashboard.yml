@@ -1,0 +1,16 @@
+# Grafana 仪表盘配置
+# 用途: 自动加载仪表盘
+
+apiVersion: 1
+
+providers:
+  - name: 'ChainlessChain Dashboards'
+    orgId: 1
+    folder: 'ChainlessChain'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
+      foldersFromFilesStructure: true
