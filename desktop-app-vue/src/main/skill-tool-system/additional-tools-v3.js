@@ -244,6 +244,102 @@ const additionalToolsV3 = [
     "config": "{\"framework\":\"COSO\"}",
     "enabled": 1,
     "is_builtin": 1
+  },
+  {
+    "id": "tool_code_generator",
+    "name": "code_generator",
+    "display_name": "代码生成器 / Code Generator",
+    "description": "生成各类编程语言代码，支持函数、类、模块等多种代码结构",
+    "category": "code",
+    "icon": "code",
+    "tags": "[\"代码生成\",\"编程\",\"自动化\"]",
+    "config": "{\"languages\":[\"javascript\",\"python\",\"java\",\"solidity\"],\"outputFormat\":\"formatted\"}",
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "tool_financial_calculator",
+    "name": "financial_calculator",
+    "display_name": "财务计算器 / Financial Calculator",
+    "description": "计算各类财务指标，包括NPV、IRR、ROI、现值、终值等",
+    "category": "finance",
+    "icon": "calculator",
+    "tags": "[\"财务计算\",\"投资分析\",\"财务指标\"]",
+    "config": "{\"precision\":2,\"currency\":\"CNY\",\"discountRate\":\"market\"}",
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "tool_simulation_runner",
+    "name": "simulation_runner",
+    "display_name": "模拟运行器 / Simulation Runner",
+    "description": "运行各类业务模拟场景，支持蒙特卡洛模拟、敏感性分析等",
+    "category": "analysis",
+    "icon": "activity",
+    "tags": "[\"模拟\",\"场景分析\",\"预测\"]",
+    "config": "{\"iterations\":10000,\"randomSeed\":\"auto\",\"distributionType\":\"normal\"}",
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "tool_crm_integrator",
+    "name": "crm_integrator",
+    "display_name": "CRM集成器 / CRM Integrator",
+    "description": "集成主流CRM系统（Salesforce、HubSpot、Zoho等），同步客户数据",
+    "category": "crm",
+    "icon": "link-2",
+    "tags": "[\"CRM\",\"集成\",\"数据同步\"]",
+    "config": "{\"supportedCRMs\":[\"salesforce\",\"hubspot\",\"zoho\"],\"syncInterval\":\"15min\"}",
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "tool_competency_framework",
+    "name": "competency_framework",
+    "display_name": "能力框架工具 / Competency Framework Tool",
+    "description": "构建和管理企业能力素质模型，定义岗位能力要求",
+    "category": "hr",
+    "icon": "award",
+    "tags": "[\"能力素质\",\"HR\",\"人才发展\"]",
+    "config": "{\"frameworkType\":\"behavioral\",\"levelCount\":5}",
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "tool_budget_calculator",
+    "name": "budget_calculator",
+    "display_name": "预算计算器 / Budget Calculator",
+    "description": "计算和管理项目预算，支持成本分解、预算跟踪、差异分析",
+    "category": "finance",
+    "icon": "dollar-sign",
+    "tags": "[\"预算管理\",\"成本控制\",\"财务\"]",
+    "config": "{\"currency\":\"CNY\",\"allowOverbudget\":false,\"trackingMode\":\"realtime\"}",
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "tool_vendor_manager",
+    "name": "vendor_manager",
+    "display_name": "供应商管理器 / Vendor Manager",
+    "description": "管理供应商信息、合同、绩效评估、付款跟踪",
+    "category": "procurement",
+    "icon": "truck",
+    "tags": "[\"供应商管理\",\"采购\",\"合同管理\"]",
+    "config": "{\"ratingSystem\":\"5-star\",\"autoReminder\":true}",
+    "enabled": 1,
+    "is_builtin": 1
+  },
+  {
+    "id": "tool_evidence_documenter",
+    "name": "evidence_documenter",
+    "display_name": "证据记录器 / Evidence Documenter",
+    "description": "记录和管理审计证据，支持文档归档、标记、溯源",
+    "category": "audit",
+    "icon": "folder",
+    "tags": "[\"审计证据\",\"文档管理\",\"合规\"]",
+    "config": "{\"autoNumbering\":true,\"encryption\":true,\"retentionPeriod\":\"7years\"}",
+    "enabled": 1,
+    "is_builtin": 1
   }
 ];
 
