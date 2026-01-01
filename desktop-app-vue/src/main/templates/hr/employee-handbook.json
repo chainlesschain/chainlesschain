@@ -1,0 +1,68 @@
+{
+  "id": "tpl_hr_handbook_001",
+  "name": "employee_handbook",
+  "display_name": "员工手册",
+  "description": "企业员工手册模板，包含公司政策、行为准则、福利制度、工作规范等完整内容",
+  "icon": "📘",
+  "category": "hr",
+  "subcategory": "policy",
+  "tags": ["员工手册", "HR", "企业制度", "公司政策", "员工管理"],
+  "project_type": "document",
+  "prompt_template": "# {{companyName}} 员工手册\n## Employee Handbook\n\n**版本**：{{handbookVersion}}\n**生效日期**：{{effectiveDate}}\n**最后更新**：{{lastUpdated}}\n**适用范围**：{{applicableScope}}\n\n---\n\n## 欢迎致辞\n\n欢迎加入{{companyName}}！\n\n{{welcomeMessage}}\n\n本手册旨在帮助您了解公司的文化、政策和期望，确保我们共同创造一个积极、高效、包容的工作环境。\n\n**CEO签名**：_____________________\n\n---\n\n## 目录\n\n1. 公司概况\n2. 企业文化与价值观\n3. 雇佣政策\n4. 工作时间与考勤\n5. 薪酬与福利\n6. 绩效管理\n7. 职业发展\n8. 行为准则与职业道德\n9. 工作场所政策\n10. 健康与安全\n11. 保密与知识产权\n12. 离职与终止\n13. 申诉与纠纷解决\n14. 附录\n\n---\n\n## 第一章：公司概况\n\n### 1.1 公司简介\n\n**公司名称**：{{companyName}}\n**成立时间**：{{foundedDate}}\n**总部地址**：{{headquarters}}\n**业务范围**：{{businessScope}}\n\n### 1.2 公司历史\n\n{{companyHistory}}\n\n### 1.3 组织架构\n\n{{organizationalStructure}}\n\n### 1.4 公司愿景与使命\n\n**愿景**：{{companyVision}}\n\n**使命**：{{companyMission}}\n\n### 1.5 战略目标\n\n{{strategicGoals}}\n\n---\n\n## 第二章：企业文化与价值观\n\n### 2.1 核心价值观\n\n1. **{{value1}}**：{{value1Description}}\n2. **{{value2}}**：{{value2Description}}\n3. **{{value3}}**：{{value3Description}}\n4. **{{value4}}**：{{value4Description}}\n5. **{{value5}}**：{{value5Description}}\n\n### 2.2 行为标准\n\n{{behaviorStandards}}\n\n### 2.3 企业文化实践\n\n{{culturePractices}}\n\n---\n\n## 第三章：雇佣政策\n\n### 3.1 平等雇佣机会\n\n{{equalEmploymentPolicy}}\n\n我们承诺提供平等的就业机会，不因种族、性别、年龄、宗教、国籍、残疾或其他受保护特征而歧视。\n\n### 3.2 招聘流程\n\n{{recruitmentProcess}}\n\n### 3.3 试用期\n\n**试用期时长**：{{probationPeriod}}\n\n**试用期政策**：{{probationPolicy}}\n\n**转正流程**：{{confirmationProcess}}\n\n### 3.4 雇佣类型\n\n- **全职员工**：{{fullTimeDefinition}}\n- **兼职员工**：{{partTimeDefinition}}\n- **合同工**：{{contractorDefinition}}\n- **实习生**：{{internDefinition}}\n\n### 3.5 背景调查\n\n{{backgroundCheckPolicy}}\n\n---\n\n## 第四章：工作时间与考勤\n\n### 4.1 标准工作时间\n\n**工作时间**：{{workingHours}}\n**休息时间**：{{breakTime}}\n**每周工作日**：{{workDays}}\n\n### 4.2 弹性工作制\n\n{{flexibleWorkPolicy}}\n\n### 4.3 远程办公\n\n{{remoteWorkPolicy}}\n\n### 4.4 考勤管理\n\n**打卡要求**：{{attendanceRequirements}}\n**迟到早退**：{{lateArrivalPolicy}}\n**旷工处理**：{{absencePolicy}}\n\n### 4.5 加班政策\n\n{{overtimePolicy}}\n\n**加班补偿**：{{overtimeCompensation}}\n\n---\n\n## 第五章：薪酬与福利\n\n### 5.1 薪酬结构\n\n**基本工资**：{{baseSalaryStructure}}\n**绩效奖金**：{{performanceBonusStructure}}\n**年终奖**：{{annualBonusStructure}}\n\n### 5.2 薪资发放\n\n**发薪日**：{{payrollDate}}\n**发薪频率**：{{payrollFrequency}}\n**工资单**：{{payslipAccess}}\n\n### 5.3 福利计划\n\n#### 法定福利\n- **五险一金**：{{socialInsurance}}\n\n#### 补充福利\n1. **商业保险**：{{commercialInsurance}}\n2. **健康体检**：{{healthCheckup}}\n3. **餐饮补贴**：{{mealAllowance}}\n4. **交通补贴**：{{transportAllowance}}\n5. **通讯补贴**：{{communicationAllowance}}\n6. **节日福利**：{{holidayBenefits}}\n7. **员工活动**：{{employeeActivities}}\n\n### 5.4 假期政策\n\n#### 法定假期\n- **年假**：{{annualLeave}}\n- **病假**：{{sickLeave}}\n- **婚假**：{{marriageLeave}}\n- **产假/陪产假**：{{parentalLeave}}\n- **丧假**：{{bereavementLeave}}\n- **法定节假日**：{{publicHolidays}}\n\n#### 其他假期\n- **事假**：{{personalLeave}}\n- **调休**：{{compensatoryLeave}}\n\n### 5.5 请假流程\n\n{{leaveApplicationProcess}}\n\n---\n\n## 第六章：绩效管理\n\n### 6.1 绩效考核周期\n\n{{performanceCycle}}\n\n### 6.2 考核指标\n\n**KPI设定**：{{kpiSetting}}\n\n**评估维度**：\n1. 工作成果（{{outcomeWeight}}%）\n2. 能力素质（{{competencyWeight}}%）\n3. 行为价值观（{{behaviorWeight}}%）\n\n### 6.3 考核流程\n\n{{performanceProcess}}\n\n### 6.4 绩效面谈\n\n{{performanceReviewMeeting}}\n\n### 6.5 绩效改进计划\n\n{{performanceImprovementPlan}}\n\n---\n\n## 第七章：职业发展\n\n### 7.1 职业发展路径\n\n{{careerPath}}\n\n### 7.2 晋升政策\n\n{{promotionPolicy}}\n\n### 7.3 培训与发展\n\n**新员工培训**：{{onboardingTraining}}\n**在职培训**：{{ongoingTraining}}\n**外部培训**：{{externalTraining}}\n**培训预算**：{{trainingBudget}}\n\n### 7.4 导师计划\n\n{{mentorshipProgram}}\n\n### 7.5 轮岗与调动\n\n{{jobRotationPolicy}}\n\n---\n\n## 第八章：行为准则与职业道德\n\n### 8.1 职业操守\n\n{{professionalConduct}}\n\n### 8.2 利益冲突\n\n{{conflictOfInterest}}\n\n### 8.3 反腐败与贿赂\n\n{{antiCorruptionPolicy}}\n\n### 8.4 举报机制\n\n{{whistleblowerPolicy}}\n\n**举报渠道**：{{reportingChannels}}\n**举报保护**：{{whistleblowerProtection}}\n\n### 8.5 商业礼仪\n\n{{businessEtiquette}}\n\n---\n\n## 第九章：工作场所政策\n\n### 9.1 反骚扰政策\n\n{{antiHarassmentPolicy}}\n\n**零容忍**：本公司对任何形式的骚扰（包括性骚扰、欺凌、歧视）采取零容忍态度。\n\n### 9.2 反歧视政策\n\n{{antiDiscriminationPolicy}}\n\n### 9.3 着装规范\n\n{{dressCode}}\n\n### 9.4 工作环境\n\n**办公设施**：{{officeGuidelines}}\n**清洁卫生**：{{cleanlinessPolicy}}\n**禁烟政策**：{{smokingPolicy}}\n\n### 9.5 访客管理\n\n{{visitorPolicy}}\n\n### 9.6 毒品与酒精\n\n{{drugAlcoholPolicy}}\n\n---\n\n## 第十章：健康与安全\n\n### 10.1 工作场所安全\n\n{{workplaceSafety}}\n\n### 10.2 应急程序\n\n**火灾疏散**：{{fireEvacuation}}\n**急救措施**：{{firstAid}}\n**紧急联系人**：{{emergencyContacts}}\n\n### 10.3 职业健康\n\n{{occupationalHealth}}\n\n### 10.4 事故报告\n\n{{accidentReporting}}\n\n---\n\n## 第十一章：保密与知识产权\n\n### 11.1 保密义务\n\n{{confidentialityObligation}}\n\n**保密信息包括**：\n- 商业秘密\n- 客户信息\n- 财务数据\n- 技术资料\n- 未公开的战略计划\n\n### 11.2 知识产权\n\n{{intellectualPropertyPolicy}}\n\n**职务发明**：{{workInventionPolicy}}\n\n### 11.3 数据保护\n\n{{dataProtectionPolicy}}\n\n### 11.4 IT使用政策\n\n**电子邮件**：{{emailPolicy}}\n**互联网使用**：{{internetPolicy}}\n**社交媒体**：{{socialMediaPolicy}}\n**设备使用**：{{devicePolicy}}\n\n### 11.5 离职后保密\n\n{{postEmploymentConfidentiality}}\n\n---\n\n## 第十二章：离职与终止\n\n### 12.1 自愿离职\n\n**辞职通知期**：{{resignationNotice}}\n**辞职流程**：{{resignationProcess}}\n\n### 12.2 非自愿离职\n\n**解雇政策**：{{terminationPolicy}}\n**遣散费**：{{severancePolicy}}\n\n### 12.3 离职面谈\n\n{{exitInterview}}\n\n### 12.4 离职交接\n\n{{handoverProcess}}\n\n### 12.5 财产归还\n\n{{propertyReturn}}\n\n---\n\n## 第十三章：申诉与纠纷解决\n\n### 13.1 申诉渠道\n\n{{grievanceProcedure}}\n\n### 13.2 调查流程\n\n{{investigationProcess}}\n\n### 13.3 纠纷调解\n\n{{disputeResolution}}\n\n### 13.4 法律程序\n\n{{legalProcess}}\n\n---\n\n## 第十四章：附录\n\n### 附录A：组织架构图\n\n{{orgChart}}\n\n### 附录B：关键联系人\n\n{{keyContacts}}\n\n### 附录C：表格清单\n\n- 请假申请表\n- 报销申请表\n- 加班申请表\n- 绩效考核表\n- 离职申请表\n\n### 附录D：政策更新记录\n\n| 版本 | 更新日期 | 更新内容 | 审批人 |\n|------|---------|---------|-------|\n| {{version1}} | {{date1}} | {{changes1}} | {{approver1}} |\n| {{version2}} | {{date2}} | {{changes2}} | {{approver2}} |\n\n### 附录E：员工确认书\n\n我，_____________________（员工姓名），已阅读并理解本《员工手册》的全部内容，同意遵守其中的所有政策和规定。\n\n**员工签字**：_____________________\n**日期**：_____________________\n\n---\n\n**本手册由{{companyName}}人力资源部编制**\n\n**联系方式**：{{hrContact}}\n**更新日期**：{{lastUpdated}}\n\n*本手册内容如有变更，以公司最新公告为准。*",
+  "variables_schema": [
+    {
+      "name": "companyName",
+      "label": "公司名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "handbookVersion",
+      "label": "手册版本",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：v2.0"
+    },
+    {
+      "name": "effectiveDate",
+      "label": "生效日期",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：2026年1月1日"
+    },
+    {
+      "name": "companyVision",
+      "label": "公司愿景",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "value1",
+      "label": "核心价值观1",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：客户第一"
+    },
+    {
+      "name": "workingHours",
+      "label": "标准工作时间",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：9:00-18:00"
+    }
+  ],
+  "file_structure": {
+    "root": "员工手册-{{companyName}}",
+    "files": [
+      {"path": "员工手册.docx", "type": "document"},
+      {"path": "员工确认书.docx", "type": "document"},
+      {"path": "附录-表格/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_content_creation", "skill_organizational_development", "skill_legal_writing"],
+  "required_tools": ["tool_word_generator", "tool_org_chart_generator", "tool_policy_template_library"],
+  "execution_engine": "document"
+}
