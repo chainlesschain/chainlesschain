@@ -98,7 +98,12 @@ class DatabaseService {
           user_assets: [],
           transactions: [],
           ai_conversations: [],
-          ai_messages: []
+          ai_messages: [],
+          projects: [],
+          project_files: [],
+          project_tasks: [],
+          project_collaborators: [],
+          project_templates: []
         }
         this.saveH5Data()
         console.log('[Database] 初始化空数据结构')
@@ -185,7 +190,12 @@ class DatabaseService {
         user_assets: [],
         transactions: [],
         ai_conversations: [],
-        ai_messages: []
+        ai_messages: [],
+        projects: [],
+        project_files: [],
+        project_tasks: [],
+        project_collaborators: [],
+        project_templates: []
       }
       // 保存到localStorage
       this.saveH5Data()
@@ -418,6 +428,73 @@ class DatabaseService {
         tokens INTEGER,
         created_at TEXT NOT NULL,
         FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE
+      )`,
+
+      // 项目表
+      `CREATE TABLE IF NOT EXISTS projects (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        type TEXT DEFAULT 'general' CHECK(type IN ('general', 'code', 'research', 'writing', 'learning', 'other')),
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'archived', 'deleted')),
+        owner_did TEXT NOT NULL,
+        cover_image TEXT,
+        settings TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )`,
+
+      // 项目文件表
+      `CREATE TABLE IF NOT EXISTS project_files (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        file_type TEXT,
+        file_path TEXT,
+        content TEXT,
+        file_size INTEGER DEFAULT 0,
+        vector_indexed INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )`,
+
+      // 项目任务表
+      `CREATE TABLE IF NOT EXISTS project_tasks (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        status TEXT DEFAULT 'todo' CHECK(status IN ('todo', 'in_progress', 'done')),
+        priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high')),
+        assignee_did TEXT,
+        due_date INTEGER,
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )`,
+
+      // 项目协作者表
+      `CREATE TABLE IF NOT EXISTS project_collaborators (
+        project_id TEXT NOT NULL,
+        collaborator_did TEXT NOT NULL,
+        role TEXT DEFAULT 'viewer' CHECK(role IN ('owner', 'editor', 'viewer')),
+        invited_at INTEGER NOT NULL,
+        accepted_at INTEGER,
+        PRIMARY KEY (project_id, collaborator_did),
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )`,
+
+      // 项目模板表
+      `CREATE TABLE IF NOT EXISTS project_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        category TEXT,
+        config TEXT,
+        preview_image TEXT,
+        is_builtin INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL
       )`
     ]
 
@@ -4051,6 +4128,560 @@ class DatabaseService {
 
     const sql = 'DELETE FROM ai_messages WHERE conversation_id = ?'
     await this.executeSql(sql, [conversationId])
+  }
+
+  // ==================== 项目管理相关方法 ====================
+
+  /**
+   * 创建项目
+   * @param {Object} projectData 项目数据
+   * @returns {Promise<Object>}
+   */
+  async createProject(projectData) {
+    const id = projectData.id || this.generateId()
+    const now = this.now()
+
+    const project = {
+      id,
+      name: projectData.name,
+      description: projectData.description || '',
+      type: projectData.type || 'general',
+      status: projectData.status || 'active',
+      owner_did: projectData.owner_did,
+      cover_image: projectData.cover_image || '',
+      settings: projectData.settings || '{}',
+      created_at: now,
+      updated_at: now
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('projects')
+      this.h5Data.projects.push(project)
+      this.saveH5Data()
+      console.log('[Database] 创建项目:', project.id)
+      return project
+    }
+
+    const sql = `INSERT INTO projects
+      (id, name, description, type, status, owner_did, cover_image, settings, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+    await this.executeSql(sql, [
+      project.id,
+      project.name,
+      project.description,
+      project.type,
+      project.status,
+      project.owner_did,
+      project.cover_image,
+      project.settings,
+      project.created_at,
+      project.updated_at
+    ])
+
+    return project
+  }
+
+  /**
+   * 获取项目列表
+   * @param {Object} options 查询选项
+   * @returns {Promise<Array>}
+   */
+  async getProjects(options = {}) {
+    const {
+      owner_did = null,
+      status = 'active',
+      type = null,
+      sortBy = 'updated_at',
+      sortOrder = 'DESC',
+      limit = 50,
+      offset = 0
+    } = options
+
+    if (this.isH5) {
+      this.ensureH5Data('projects')
+      let results = this.h5Data.projects.filter(p => {
+        if (owner_did && p.owner_did !== owner_did) return false
+        if (status && p.status !== status) return false
+        if (type && p.type !== type) return false
+        return true
+      })
+
+      // 排序
+      results.sort((a, b) => {
+        const aVal = a[sortBy]
+        const bVal = b[sortBy]
+        return sortOrder === 'DESC' ? bVal - aVal : aVal - bVal
+      })
+
+      // 分页
+      return results.slice(offset, offset + limit)
+    }
+
+    let sql = 'SELECT * FROM projects WHERE 1=1'
+    const params = []
+
+    if (owner_did) {
+      sql += ' AND owner_did = ?'
+      params.push(owner_did)
+    }
+
+    if (status) {
+      sql += ' AND status = ?'
+      params.push(status)
+    }
+
+    if (type) {
+      sql += ' AND type = ?'
+      params.push(type)
+    }
+
+    sql += ` ORDER BY ${sortBy} ${sortOrder} LIMIT ? OFFSET ?`
+    params.push(limit, offset)
+
+    return this.selectSql(sql, params)
+  }
+
+  /**
+   * 获取单个项目
+   * @param {string} id 项目ID
+   * @returns {Promise<Object|null>}
+   */
+  async getProjectById(id) {
+    if (this.isH5) {
+      this.ensureH5Data('projects')
+      return this.h5Data.projects.find(p => p.id === id) || null
+    }
+
+    const sql = 'SELECT * FROM projects WHERE id = ?'
+    const results = await this.selectSql(sql, [id])
+    return results[0] || null
+  }
+
+  /**
+   * 更新项目
+   * @param {string} id 项目ID
+   * @param {Object} updates 更新数据
+   * @returns {Promise<void>}
+   */
+  async updateProject(id, updates) {
+    updates.updated_at = this.now()
+
+    if (this.isH5) {
+      this.ensureH5Data('projects')
+      const index = this.h5Data.projects.findIndex(p => p.id === id)
+      if (index !== -1) {
+        this.h5Data.projects[index] = {
+          ...this.h5Data.projects[index],
+          ...updates
+        }
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ')
+    const values = Object.values(updates)
+    const sql = `UPDATE projects SET ${fields} WHERE id = ?`
+    await this.executeSql(sql, [...values, id])
+  }
+
+  /**
+   * 删除项目
+   * @param {string} id 项目ID
+   * @returns {Promise<void>}
+   */
+  async deleteProject(id) {
+    if (this.isH5) {
+      this.ensureH5Data('projects')
+      this.h5Data.projects = this.h5Data.projects.filter(p => p.id !== id)
+      // 同时删除关联的文件和任务
+      this.h5Data.project_files = this.h5Data.project_files.filter(f => f.project_id !== id)
+      this.h5Data.project_tasks = this.h5Data.project_tasks.filter(t => t.project_id !== id)
+      this.h5Data.project_collaborators = this.h5Data.project_collaborators.filter(c => c.project_id !== id)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = 'DELETE FROM projects WHERE id = ?'
+    await this.executeSql(sql, [id])
+  }
+
+  /**
+   * 添加项目文件
+   * @param {Object} fileData 文件数据
+   * @returns {Promise<Object>}
+   */
+  async addProjectFile(fileData) {
+    const id = fileData.id || this.generateId()
+    const now = this.now()
+
+    const file = {
+      id,
+      project_id: fileData.project_id,
+      file_name: fileData.file_name,
+      file_type: fileData.file_type || '',
+      file_path: fileData.file_path || '',
+      content: fileData.content || '',
+      file_size: fileData.file_size || 0,
+      vector_indexed: fileData.vector_indexed || 0,
+      created_at: now,
+      updated_at: now
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('project_files')
+      this.h5Data.project_files.push(file)
+      this.saveH5Data()
+      console.log('[Database] 添加项目文件:', file.id)
+      return file
+    }
+
+    const sql = `INSERT INTO project_files
+      (id, project_id, file_name, file_type, file_path, content, file_size, vector_indexed, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+    await this.executeSql(sql, [
+      file.id,
+      file.project_id,
+      file.file_name,
+      file.file_type,
+      file.file_path,
+      file.content,
+      file.file_size,
+      file.vector_indexed,
+      file.created_at,
+      file.updated_at
+    ])
+
+    return file
+  }
+
+  /**
+   * 获取项目文件列表
+   * @param {string} projectId 项目ID
+   * @returns {Promise<Array>}
+   */
+  async getProjectFiles(projectId) {
+    if (this.isH5) {
+      this.ensureH5Data('project_files')
+      return this.h5Data.project_files.filter(f => f.project_id === projectId)
+    }
+
+    const sql = 'SELECT * FROM project_files WHERE project_id = ? ORDER BY created_at DESC'
+    return this.selectSql(sql, [projectId])
+  }
+
+  /**
+   * 获取单个项目文件
+   * @param {string} fileId 文件ID
+   * @returns {Promise<Object|null>}
+   */
+  async getProjectFile(fileId) {
+    if (this.isH5) {
+      this.ensureH5Data('project_files')
+      return this.h5Data.project_files.find(f => f.id === fileId) || null
+    }
+
+    const sql = 'SELECT * FROM project_files WHERE id = ?'
+    const results = await this.selectSql(sql, [fileId])
+    return results[0] || null
+  }
+
+  /**
+   * 更新项目文件
+   * @param {string} fileId 文件ID
+   * @param {Object} updates 更新数据
+   * @returns {Promise<void>}
+   */
+  async updateProjectFile(fileId, updates) {
+    updates.updated_at = this.now()
+
+    if (this.isH5) {
+      this.ensureH5Data('project_files')
+      const index = this.h5Data.project_files.findIndex(f => f.id === fileId)
+      if (index !== -1) {
+        this.h5Data.project_files[index] = {
+          ...this.h5Data.project_files[index],
+          ...updates
+        }
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ')
+    const values = Object.values(updates)
+    const sql = `UPDATE project_files SET ${fields} WHERE id = ?`
+    await this.executeSql(sql, [...values, fileId])
+  }
+
+  /**
+   * 删除项目文件
+   * @param {string} fileId 文件ID
+   * @returns {Promise<void>}
+   */
+  async deleteProjectFile(fileId) {
+    if (this.isH5) {
+      this.ensureH5Data('project_files')
+      this.h5Data.project_files = this.h5Data.project_files.filter(f => f.id !== fileId)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = 'DELETE FROM project_files WHERE id = ?'
+    await this.executeSql(sql, [fileId])
+  }
+
+  /**
+   * 创建项目任务
+   * @param {Object} taskData 任务数据
+   * @returns {Promise<Object>}
+   */
+  async createProjectTask(taskData) {
+    const id = taskData.id || this.generateId()
+    const now = this.now()
+
+    const task = {
+      id,
+      project_id: taskData.project_id,
+      title: taskData.title,
+      description: taskData.description || '',
+      status: taskData.status || 'todo',
+      priority: taskData.priority || 'medium',
+      assignee_did: taskData.assignee_did || null,
+      due_date: taskData.due_date || null,
+      created_at: now,
+      completed_at: taskData.completed_at || null
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('project_tasks')
+      this.h5Data.project_tasks.push(task)
+      this.saveH5Data()
+      console.log('[Database] 创建项目任务:', task.id)
+      return task
+    }
+
+    const sql = `INSERT INTO project_tasks
+      (id, project_id, title, description, status, priority, assignee_did, due_date, created_at, completed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+    await this.executeSql(sql, [
+      task.id,
+      task.project_id,
+      task.title,
+      task.description,
+      task.status,
+      task.priority,
+      task.assignee_did,
+      task.due_date,
+      task.created_at,
+      task.completed_at
+    ])
+
+    return task
+  }
+
+  /**
+   * 获取项目任务列表
+   * @param {string} projectId 项目ID
+   * @param {Object} options 查询选项
+   * @returns {Promise<Array>}
+   */
+  async getProjectTasks(projectId, options = {}) {
+    const { status = null } = options
+
+    if (this.isH5) {
+      this.ensureH5Data('project_tasks')
+      let results = this.h5Data.project_tasks.filter(t => {
+        if (t.project_id !== projectId) return false
+        if (status && t.status !== status) return false
+        return true
+      })
+      return results.sort((a, b) => a.created_at - b.created_at)
+    }
+
+    let sql = 'SELECT * FROM project_tasks WHERE project_id = ?'
+    const params = [projectId]
+
+    if (status) {
+      sql += ' AND status = ?'
+      params.push(status)
+    }
+
+    sql += ' ORDER BY created_at ASC'
+    return this.selectSql(sql, params)
+  }
+
+  /**
+   * 更新项目任务
+   * @param {string} taskId 任务ID
+   * @param {Object} updates 更新数据
+   * @returns {Promise<void>}
+   */
+  async updateProjectTask(taskId, updates) {
+    if (this.isH5) {
+      this.ensureH5Data('project_tasks')
+      const index = this.h5Data.project_tasks.findIndex(t => t.id === taskId)
+      if (index !== -1) {
+        this.h5Data.project_tasks[index] = {
+          ...this.h5Data.project_tasks[index],
+          ...updates
+        }
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ')
+    const values = Object.values(updates)
+    const sql = `UPDATE project_tasks SET ${fields} WHERE id = ?`
+    await this.executeSql(sql, [...values, taskId])
+  }
+
+  /**
+   * 删除项目任务
+   * @param {string} taskId 任务ID
+   * @returns {Promise<void>}
+   */
+  async deleteProjectTask(taskId) {
+    if (this.isH5) {
+      this.ensureH5Data('project_tasks')
+      this.h5Data.project_tasks = this.h5Data.project_tasks.filter(t => t.id !== taskId)
+      this.saveH5Data()
+      return
+    }
+
+    const sql = 'DELETE FROM project_tasks WHERE id = ?'
+    await this.executeSql(sql, [taskId])
+  }
+
+  /**
+   * 创建项目协作
+   * @param {Object} collabData 协作数据
+   * @returns {Promise<Object>}
+   */
+  async createCollaboration(collabData) {
+    const now = this.now()
+
+    const collab = {
+      project_id: collabData.project_id,
+      collaborator_did: collabData.collaborator_did,
+      role: collabData.role || 'viewer',
+      invited_at: now,
+      accepted_at: collabData.accepted_at || null
+    }
+
+    if (this.isH5) {
+      this.ensureH5Data('project_collaborators')
+      this.h5Data.project_collaborators.push(collab)
+      this.saveH5Data()
+      console.log('[Database] 创建项目协作:', collab.project_id, collab.collaborator_did)
+      return collab
+    }
+
+    const sql = `INSERT INTO project_collaborators
+      (project_id, collaborator_did, role, invited_at, accepted_at)
+      VALUES (?, ?, ?, ?, ?)`
+
+    await this.executeSql(sql, [
+      collab.project_id,
+      collab.collaborator_did,
+      collab.role,
+      collab.invited_at,
+      collab.accepted_at
+    ])
+
+    return collab
+  }
+
+  /**
+   * 获取项目协作者列表
+   * @param {string} projectId 项目ID
+   * @returns {Promise<Array>}
+   */
+  async getProjectCollaborators(projectId) {
+    if (this.isH5) {
+      this.ensureH5Data('project_collaborators')
+      return this.h5Data.project_collaborators.filter(c => c.project_id === projectId)
+    }
+
+    const sql = 'SELECT * FROM project_collaborators WHERE project_id = ?'
+    return this.selectSql(sql, [projectId])
+  }
+
+  /**
+   * 获取用户协作的项目列表
+   * @param {string} userDid 用户DID
+   * @returns {Promise<Array>}
+   */
+  async getCollaboratingProjects(userDid) {
+    if (this.isH5) {
+      this.ensureH5Data('project_collaborators')
+      this.ensureH5Data('projects')
+
+      const projectIds = this.h5Data.project_collaborators
+        .filter(c => c.collaborator_did === userDid && c.accepted_at !== null)
+        .map(c => c.project_id)
+
+      return this.h5Data.projects.filter(p => projectIds.includes(p.id))
+    }
+
+    const sql = `SELECT p.* FROM projects p
+      INNER JOIN project_collaborators pc ON p.id = pc.project_id
+      WHERE pc.collaborator_did = ? AND pc.accepted_at IS NOT NULL
+      ORDER BY p.updated_at DESC`
+
+    return this.selectSql(sql, [userDid])
+  }
+
+  /**
+   * 更新协作信息
+   * @param {string} projectId 项目ID
+   * @param {string} userDid 用户DID
+   * @param {Object} updates 更新数据
+   * @returns {Promise<void>}
+   */
+  async updateCollaboration(projectId, userDid, updates) {
+    if (this.isH5) {
+      this.ensureH5Data('project_collaborators')
+      const index = this.h5Data.project_collaborators.findIndex(
+        c => c.project_id === projectId && c.collaborator_did === userDid
+      )
+      if (index !== -1) {
+        this.h5Data.project_collaborators[index] = {
+          ...this.h5Data.project_collaborators[index],
+          ...updates
+        }
+        this.saveH5Data()
+      }
+      return
+    }
+
+    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ')
+    const values = Object.values(updates)
+    const sql = `UPDATE project_collaborators SET ${fields} WHERE project_id = ? AND collaborator_did = ?`
+    await this.executeSql(sql, [...values, projectId, userDid])
+  }
+
+  /**
+   * 获取协作信息
+   * @param {string} projectId 项目ID
+   * @param {string} userDid 用户DID
+   * @returns {Promise<Object|null>}
+   */
+  async getCollaboration(projectId, userDid) {
+    if (this.isH5) {
+      this.ensureH5Data('project_collaborators')
+      return this.h5Data.project_collaborators.find(
+        c => c.project_id === projectId && c.collaborator_did === userDid
+      ) || null
+    }
+
+    const sql = 'SELECT * FROM project_collaborators WHERE project_id = ? AND collaborator_did = ?'
+    const results = await this.selectSql(sql, [projectId, userDid])
+    return results[0] || null
   }
 }
 

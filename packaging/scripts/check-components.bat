@@ -86,20 +86,28 @@ REM ============================================
 REM 5. 检查 Java 后端
 REM ============================================
 echo %YELLOW%[5/5] Java Backend Service (JAR)%RESET%
+set "JAR_PATH="
 if exist "%BACKEND_DIR%\project-service\target\project-service.jar" (
-    echo   Status: %GREEN%✓ Ready%RESET%
-    echo   Path: %BACKEND_DIR%\project-service\target\project-service.jar
+    set "JAR_PATH=%BACKEND_DIR%\project-service\target\project-service.jar"
+) else (
+    for %%F in ("%BACKEND_DIR%\project-service\target\project-service-*.jar") do (
+        if exist "%%~fF" set "JAR_PATH=%%~fF"
+    )
+)
+if defined JAR_PATH (
+    echo   Status: %GREEN%???Ready%RESET%
+    echo   Path: !JAR_PATH!
 
-    REM 显示 JAR 文件大小
-    for %%F in ("%BACKEND_DIR%\project-service\target\project-service.jar") do (
+    REM Show JAR file size
+    for %%F in ("!JAR_PATH!") do (
         set size=%%~zF
         set /a sizeMB=!size! / 1048576
         echo   Size: !sizeMB! MB
     )
 ) else (
-    echo   Status: %RED%✗ Missing%RESET%
+    echo   Status: %RED%???Missing%RESET%
     echo.
-    REM 检查 Maven 是否可用
+    REM Check whether Maven is available
     where mvn >nul 2>&1
     if %ERRORLEVEL% EQU 0 (
         echo   %YELLOW%Maven is available. You can build it:%RESET%
