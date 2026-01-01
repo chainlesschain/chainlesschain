@@ -501,7 +501,7 @@ const gitStatus = ref({}); // Git 状态
 let gitStatusInterval = null; // Git 状态轮询定时器
 const showFileManageModal = ref(false); // 文件管理Modal
 const showShareModal = ref(false); // 分享Modal
-const useVirtualFileTree = ref(false); // 使用虚拟滚动文件树（性能优化）- 暂时禁用，组件开发中
+const useVirtualFileTree = ref(true); // 使用虚拟滚动文件树（性能优化）- 已启用
 
 // 计算属性
 const projectId = computed(() => route.params.id);
@@ -957,6 +957,19 @@ const loadFilesWithSync = async (targetProjectId, forceRerender = false) => {
   console.log('[ProjectDetail] loadFilesWithSync 完成');
 };
 
+// 根据文件数量自动选择文件树模式
+const updateFileTreeMode = () => {
+  const fileCount = projectFiles.value?.length || 0;
+  // 超过500个文件时使用虚拟滚动
+  const shouldUseVirtual = fileCount > 500;
+
+  if (shouldUseVirtual !== useVirtualFileTree.value) {
+    useVirtualFileTree.value = shouldUseVirtual;
+    console.log(`[ProjectDetail] 文件数量: ${fileCount}，切换到 ${shouldUseVirtual ? '虚拟' : '标准'}模式`);
+  }
+};
+
+
 // 刷新文件列表
 const handleRefreshFiles = async () => {
   refreshing.value = true;
@@ -1358,6 +1371,7 @@ onMounted(async () => {
 
     // 加载项目文件（使用统一的加载函数）
     await loadFilesWithSync(projectId.value);
+  updateFileTreeMode(); // 根据文件数量选择最佳模式
     console.log('[ProjectDetail] 初始文件树已加载');
 
     // 解析项目路径
@@ -1552,8 +1566,56 @@ watch(() => route.params.id, async (newId, oldId) => {
   }
 });
 
+
+// 清理编辑器实例（避免内存泄漏）
+const cleanupEditorInstances = () => {
+  try {
+    console.log('[ProjectDetail] 清理编辑器实例...');
+
+    // 清理各类编辑器实例
+    if (excelEditorRef.value?.destroy) {
+      console.log('[ProjectDetail] 清理Excel编辑器');
+      excelEditorRef.value.destroy();
+    }
+    if (wordEditorRef.value?.destroy) {
+      console.log('[ProjectDetail] 清理Word编辑器');
+      wordEditorRef.value.destroy();
+    }
+    if (codeEditorRef.value?.dispose) {
+      // Monaco Editor使用dispose方法
+      console.log('[ProjectDetail] 清理代码编辑器');
+      codeEditorRef.value.dispose();
+    }
+    if (markdownEditorRef.value?.destroy) {
+      console.log('[ProjectDetail] 清理Markdown编辑器');
+      markdownEditorRef.value.destroy();
+    }
+    if (webEditorRef.value?.destroy) {
+      console.log('[ProjectDetail] 清理Web编辑器');
+      webEditorRef.value.destroy();
+    }
+    if (pptEditorRef.value?.destroy) {
+      console.log('[ProjectDetail] 清理PPT编辑器');
+      pptEditorRef.value.destroy();
+    }
+    if (editorRef.value?.destroy) {
+      console.log('[ProjectDetail] 清理简单编辑器');
+      editorRef.value.destroy();
+    }
+
+    console.log('[ProjectDetail] ✓ 编辑器实例清理完成');
+  } catch (error) {
+    console.warn('[ProjectDetail] 清理编辑器实例时出错:', error);
+  }
+};
+
 // 监听当前文件变化，加载文件内容
-watch(() => currentFile.value, async (newFile) => {
+watch(() => currentFile.value, async (newFile, oldFile) => {
+  // 切换文件前清理旧编辑器实例
+  if (oldFile && oldFile !== newFile) {
+    cleanupEditorInstances();
+  }
+
   if (newFile) {
     await loadFileContent(newFile);
   } else {
