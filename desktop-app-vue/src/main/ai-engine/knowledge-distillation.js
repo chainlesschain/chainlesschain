@@ -41,6 +41,7 @@ class KnowledgeDistillation {
       enableFallback: true,             // 启用回退
       enableLearning: true,             // 启用学习
       maxRetries: 1,                    // 最大重试次数
+      complexityThreshold: 0.35,        // 复杂度阈值（超过此值使用大模型）
       ...config
     };
 
@@ -91,10 +92,12 @@ class KnowledgeDistillation {
     const features = this._extractComplexityFeatures(task);
     const score = this._calculateComplexityScore(features);
 
+    // 使用配置的阈值判断复杂度级别
+    const threshold = this.config.complexityThreshold || 0.35;
     let level;
-    if (score < 0.3) {
+    if (score < threshold) {
       level = ComplexityLevel.SIMPLE;
-    } else if (score < 0.6) {
+    } else if (score < threshold + 0.25) {
       level = ComplexityLevel.MEDIUM;
     } else {
       level = ComplexityLevel.COMPLEX;
@@ -234,6 +237,8 @@ class KnowledgeDistillation {
     let modelType;
     let reason;
 
+    // 路由策略：只有 SIMPLE 使用小模型，MEDIUM 和 COMPLEX 使用大模型
+    // 通过调整阈值（从 0.3 降到 0.35），更多任务会被判定为 SIMPLE
     if (complexity.level === ComplexityLevel.SIMPLE) {
       modelType = ModelType.SMALL;
       reason = 'simple_task';
