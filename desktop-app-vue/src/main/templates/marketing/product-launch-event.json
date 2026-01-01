@@ -1,0 +1,65 @@
+{
+  "id": "tpl_marketing_launch_event_001",
+  "name": "product_launch_event",
+  "display_name": "产品发布会策划方案",
+  "description": "新产品/新品牌发布会完整策划方案，包含活动流程、嘉宾邀请、媒体传播等",
+  "icon": "🎬",
+  "category": "marketing",
+  "subcategory": "event",
+  "tags": ["产品发布", "活动策划", "公关传播", "新品上市"],
+  "project_type": "presentation",
+  "prompt_template": "# {{productName}} 产品发布会策划方案\n\n**产品名称**：{{productName}}\n**发布时间**：{{launchDate}}\n**发布地点**：{{venue}}\n**活动主题**：{{eventTheme}}\n**预算**：{{budget}}\n**目标受众**：{{targetAudience}}\n\n---\n\n## 一、发布会概述\n\n### 1.1 产品简介\n\n{{productDescription}}\n\n**核心卖点**：\n1. {{usp1}}\n2. {{usp2}}\n3. {{usp3}}\n\n### 1.2 发布会目标\n\n**传播目标**：\n- 媒体曝光量：{{mediaExposureTarget}}\n- 社交媒体声量：{{socialMediaVolumeTarget}}\n- 新闻稿转发：{{prCoverageTarget}}家媒体\n\n**业务目标**：\n- 预售订单：{{presalesTarget}}单\n- 意向客户：{{leadTarget}}个\n- 品牌认知度提升：{{awarenessLiftTarget}}%\n\n### 1.3 活动亮点\n\n{{eventHighlights}}\n\n## 二、活动策略\n\n### 2.1 核心创意\n\n**Big Idea**：{{bigIdea}}\n\n**视觉主题**：{{visualTheme}}\n\n**Tagline/口号**：{{tagline}}\n\n### 2.2 目标受众\n\n#### 一级受众\n{{primaryAudience}}\n\n#### 二级受众\n{{secondaryAudience}}\n\n### 2.3 差异化策略\n\n{{differentiationStrategy}}\n\n## 三、嘉宾与受邀名单\n\n### 3.1 演讲嘉宾\n\n| 嘉宾 | 职位 | 演讲主题 | 时长 | 确认状态 |\n|------|------|---------|------|----------|\n| {{speaker1}} | {{speaker1Title}} | {{speaker1Topic}} | {{speaker1Duration}}分钟 | {{speaker1Status}} |\n| {{speaker2}} | {{speaker2Title}} | {{speaker2Topic}} | {{speaker2Duration}}分钟 | {{speaker2Status}} |\n| {{speaker3}} | {{speaker3Title}} | {{speaker3Topic}} | {{speaker3Duration}}分钟 | {{speaker3Status}} |\n\n### 3.2 VIP嘉宾\n\n{{vipGuests}}\n\n### 3.3 媒体邀请\n\n#### 头部媒体（Tier 1）\n{{tier1Media}}\n\n#### 垂直媒体（Tier 2）\n{{tier2Media}}\n\n#### 自媒体/KOL（Tier 3）\n{{tier3Influencers}}\n\n**总邀请人数**：{{totalInvitations}}人\n**预计到场**：{{expectedAttendance}}人\n\n## 四、活动流程\n\n### 4.1 主会场流程\n\n| 时间 | 环节 | 内容 | 负责人 | 备注 |\n|------|------|------|--------|------|\n| {{time1}} | {{session1}} | {{content1}} | {{owner1}} | {{note1}} |\n| {{time2}} | {{session2}} | {{content2}} | {{owner2}} | {{note2}} |\n| {{time3}} | {{session3}} | {{content3}} | {{owner3}} | {{note3}} |\n| {{time4}} | {{session4}} | {{content4}} | {{owner4}} | {{note4}} |\n| {{time5}} | {{session5}} | {{content5}} | {{owner5}} | {{note5}} |\n| {{time6}} | {{session6}} | {{content6}} | {{owner6}} | {{note6}} |\n\n**总时长**：{{totalDuration}}\n\n### 4.2 详细脚本\n\n#### 开场（{{openingDuration}}分钟）\n\n**场景**：{{openingScene}}\n\n**内容**：\n{{openingScript}}\n\n**视觉/音效**：{{openingAV}}\n\n#### 主题演讲（{{keynote Duration}}分钟）\n\n**演讲人**：{{keynoteSpeaker}}\n\n**演讲大纲**：\n1. {{keynotePoint1}}\n2. {{keynotePoint2}}\n3. {{keynotePoint3}}\n\n**PPT要点**：{{keynotePPT}}\n\n#### 产品演示（{{demoDuration}}分钟）\n\n{{productDemo}}\n\n#### 互动环节（{{interactionDuration}}分钟）\n\n{{interactionSession}}\n\n#### 媒体问答（{{qaDuration}}分钟）\n\n**预设问题**：\n1. {{q1}}\n2. {{q2}}\n3. {{q3}}\n\n**回答要点**：\n{{qaPreparation}}\n\n#### 结束（{{closingDuration}}分钟）\n\n{{closingScript}}\n\n### 4.3 分会场/体验区\n\n{{breakoutSessions}}\n\n## 五、场地与布置\n\n### 5.1 场地需求\n\n**主会场**：\n- 面积：{{venueSize}}平方米\n- 容纳人数：{{venueCapacity}}人\n- 座位布局：{{seatingLayout}}\n\n**配套区域**：\n- 签到区：{{registrationArea}}\n- VIP休息室：{{vipLounge}}\n- 媒体采访间：{{interviewRoom}}\n- 产品展示区：{{exhibitionArea}}\n\n### 5.2 舞美设计\n\n**主舞台**：\n{{stageDesign}}\n\n**LED屏幕**：{{ledScreens}}\n\n**灯光音响**：{{lightingSound}}\n\n**装饰布置**：{{decoration}}\n\n### 5.3 技术设备\n\n{{technicalEquipment}}\n\n## 六、物料与礼品\n\n### 6.1 现场物料清单\n\n| 物料名称 | 数量 | 规格 | 用途 | 供应商 | 预算 |\n|---------|------|------|------|--------|------|\n| {{material1}} | {{material1Qty}} | {{material1Spec}} | {{material1Use}} | {{material1Supplier}} | {{material1Cost}} |\n| {{material2}} | {{material2Qty}} | {{material2Spec}} | {{material2Use}} | {{material2Supplier}} | {{material2Cost}} |\n| {{material3}} | {{material3Qty}} | {{material3Spec}} | {{material3Use}} | {{material3Supplier}} | {{material3Cost}} |\n\n### 6.2 媒体礼包\n\n{{mediaKit}}\n\n### 6.3 嘉宾礼品\n\n{{guestGifts}}\n\n## 七、传播策略\n\n### 7.1 预热传播（发布前2周）\n\n**倒计时14天**：{{day14Teaser}}\n**倒计时7天**：{{day7Teaser}}\n**倒计时3天**：{{day3Teaser}}\n**倒计时1天**：{{day1Teaser}}\n\n### 7.2 现场传播\n\n**直播平台**：{{liveStreamingPlatforms}}\n\n**社交媒体实时更新**：\n{{socialMediaLive}}\n\n**媒体新闻稿**：\n{{pressRelease}}\n\n### 7.3 后续传播（发布后1周）\n\n**Day+1**：{{day1PostLaunch}}\n**Day+3**：{{day3PostLaunch}}\n**Day+7**：{{day7PostLaunch}}\n\n### 7.4 KOL合作\n\n{{kolCollaboration}}\n\n## 八、媒体服务\n\n### 8.1 媒体邀约\n\n{{mediaInvitation}}\n\n### 8.2 媒体接待\n\n**签到流程**：{{mediaCheckIn}}\n\n**资料包**：\n- 新闻稿\n- 高清产品图\n- 背景资料\n- 采访提纲\n\n### 8.3 专访安排\n\n{{mediaInterviews}}\n\n## 九、预算分配\n\n| 费用类别 | 明细 | 预算(万元) | 占比 |\n|---------|------|-----------|------|\n| **场地费用** | | {{venueCost}} | {{venuePercentage}}% |\n| **舞美制作** | 舞台、LED、灯光音响 | {{productionCost}} | {{productionPercentage}}% |\n| **物料制作** | 展台、背板、物料 | {{materialCost}} | {{materialPercentage}}% |\n| **媒体传播** | 广告投放、KOL | {{mediaCost}} | {{mediaPercentage}}% |\n| **嘉宾费用** | 差旅、礼品 | {{guestCost}} | {{guestPercentage}}% |\n| **餐饮茶歇** | | {{cateringCost}} | {{cateringPercentage}}% |\n| **人员服务** | 主持、摄影、执行 | {{staffCost}} | {{staffPercentage}}% |\n| **应急备用** | 10% | {{contingencyCost}} | {{contingencyPercentage}}% |\n| **总计** | - | **{{totalBudget}}** | **100%** |\n\n## 十、执行团队\n\n### 10.1 组织架构\n\n{{teamStructure}}\n\n### 10.2 分工明细\n\n| 角色 | 负责人 | 职责 |\n|------|--------|------|\n| 总负责人 | {{projectLead}} | {{projectLeadResponsibilities}} |\n| 内容策划 | {{contentLead}} | {{contentResponsibilities}} |\n| 媒体公关 | {{prLead}} | {{prResponsibilities}} |\n| 现场执行 | {{eventLead}} | {{eventResponsibilities}} |\n| 技术保障 | {{techLead}} | {{techResponsibilities}} |\n\n## 十一、时间节点\n\n| 日期 | 任务 | 负责人 | 状态 |\n|------|------|--------|------|\n| {{task1Date}} | {{task1}} | {{task1Owner}} | {{task1Status}} |\n| {{task2Date}} | {{task2}} | {{task2Owner}} | {{task2Status}} |\n| {{task3Date}} | {{task3}} | {{task3Owner}} | {{task3Status}} |\n| {{launchDate}} | **发布会当天** | 全员 | - |\n\n## 十二、风险管理\n\n### 12.1 风险识别\n\n| 风险 | 概率 | 影响 | 应对措施 |\n|------|------|------|----------|\n| {{risk1}} | {{risk1Prob}} | {{risk1Impact}} | {{risk1Response}} |\n| {{risk2}} | {{risk2Prob}} | {{risk2Impact}} | {{risk2Response}} |\n| {{risk3}} | {{risk3Prob}} | {{risk3Impact}} | {{risk3Response}} |\n\n### 12.2 应急预案\n\n{{contingencyPlans}}\n\n## 十三、效果评估\n\n### 13.1 评估指标\n\n{{evaluationMetrics}}\n\n### 13.2 数据收集\n\n{{dataCollection}}\n\n---\n\n## 附录\n\n### 附录A：嘉宾确认函模板\n\n{{guestConfirmationTemplate}}\n\n### 附录B：媒体资料包\n\n{{mediaKitContents}}\n\n### 附录C：现场执行手册\n\n{{executionManual}}",
+  "variables_schema": [
+    {
+      "name": "productName",
+      "label": "产品名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "launchDate",
+      "label": "发布会日期",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "venue",
+      "label": "发布地点",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "budget",
+      "label": "总预算（万元）",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "eventScale",
+      "label": "活动规模",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "小型", "label": "小型（50-100人）" },
+        { "value": "中型", "label": "中型（100-300人）" },
+        { "value": "大型", "label": "大型（300-1000人）" },
+        { "value": "超大型", "label": "超大型（1000人以上）" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "产品发布会-{{productName}}",
+    "files": [
+      {"path": "发布会策划方案.pptx", "type": "presentation"},
+      {"path": "活动流程脚本.docx", "type": "document"},
+      {"path": "执行排期表.xlsx", "type": "spreadsheet"},
+      {"path": "媒体资料包/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_event_planning", "skill_public_relations", "skill_project_management"],
+  "required_tools": ["tool_ppt_generator", "tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "presentation"
+}
