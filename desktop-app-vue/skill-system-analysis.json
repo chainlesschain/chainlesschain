@@ -1,15 +1,15 @@
 {
-  "timestamp": "2026-01-01T18:04:56.953Z",
+  "timestamp": "2026-01-01T18:14:30.516Z",
   "summary": {
-    "totalSkills": 35,
+    "totalSkills": 46,
     "totalTools": 300,
-    "totalToolReferences": 482,
-    "validToolReferences": 482,
+    "totalToolReferences": 538,
+    "validToolReferences": 538,
     "invalidToolReferences": 0,
-    "avgToolsPerSkill": "13.8",
-    "toolCoverageRate": "81.3%",
+    "avgToolsPerSkill": "11.7",
+    "toolCoverageRate": "100.0%",
     "missingToolsCount": 0,
-    "unusedToolsCount": 56,
+    "unusedToolsCount": 0,
     "configIssuesCount": 0
   },
   "categoryDistribution": {
@@ -31,241 +31,25 @@
     "backend": 1,
     "design": 1,
     "quality": 1,
-    "devops": 1,
-    "blockchain": 2,
+    "devops": 2,
+    "blockchain": 3,
     "legal": 1,
     "finance": 2,
     "business": 1,
     "management": 1,
-    "hr": 1
+    "hr": 1,
+    "science": 1,
+    "security": 1,
+    "config": 1,
+    "storage": 1,
+    "communication": 1,
+    "location": 1,
+    "energy": 1,
+    "productivity": 1,
+    "utility": 1
   },
   "missingTools": [],
-  "unusedTools": [
-    {
-      "name": "crypto_handler",
-      "category": "security"
-    },
-    {
-      "name": "base64_handler",
-      "category": "encoding"
-    },
-    {
-      "name": "env_manager",
-      "category": "config"
-    },
-    {
-      "name": "hash_verifier",
-      "category": "security"
-    },
-    {
-      "name": "jwt_parser",
-      "category": "security"
-    },
-    {
-      "name": "toml_parser",
-      "category": "config"
-    },
-    {
-      "name": "ini_parser",
-      "category": "config"
-    },
-    {
-      "name": "email_parser",
-      "category": "email"
-    },
-    {
-      "name": "s3_client",
-      "category": "storage"
-    },
-    {
-      "name": "oss_client",
-      "category": "storage"
-    },
-    {
-      "name": "log_parser",
-      "category": "devops"
-    },
-    {
-      "name": "performance_profiler",
-      "category": "devops"
-    },
-    {
-      "name": "memory_monitor",
-      "category": "devops"
-    },
-    {
-      "name": "blockchain_client",
-      "category": "blockchain"
-    },
-    {
-      "name": "smart_contract_caller",
-      "category": "blockchain"
-    },
-    {
-      "name": "wallet_manager",
-      "category": "blockchain"
-    },
-    {
-      "name": "email_sender",
-      "category": "communication"
-    },
-    {
-      "name": "email_reader",
-      "category": "communication"
-    },
-    {
-      "name": "email_attachment_handler",
-      "category": "communication"
-    },
-    {
-      "name": "chart_renderer",
-      "category": "visualization"
-    },
-    {
-      "name": "cache_manager",
-      "category": "storage"
-    },
-    {
-      "name": "message_queue_client",
-      "category": "messaging"
-    },
-    {
-      "name": "docker_manager",
-      "category": "devops"
-    },
-    {
-      "name": "encrypt_decrypt",
-      "category": "security"
-    },
-    {
-      "name": "digital_signer",
-      "category": "security"
-    },
-    {
-      "name": "key_generator",
-      "category": "security"
-    },
-    {
-      "name": "geocoder",
-      "category": "location"
-    },
-    {
-      "name": "distance_calculator",
-      "category": "location"
-    },
-    {
-      "name": "coordinate_converter",
-      "category": "location"
-    },
-    {
-      "name": "vulnerability_scanner",
-      "category": "security"
-    },
-    {
-      "name": "security_auditor",
-      "category": "security"
-    },
-    {
-      "name": "quantum_key_distributor",
-      "category": "security"
-    },
-    {
-      "name": "ligo_data_analyzer",
-      "category": "science"
-    },
-    {
-      "name": "waveform_matcher",
-      "category": "science"
-    },
-    {
-      "name": "particle_simulator",
-      "category": "science"
-    },
-    {
-      "name": "event_generator",
-      "category": "science"
-    },
-    {
-      "name": "wimp_detector",
-      "category": "science"
-    },
-    {
-      "name": "axion_searcher",
-      "category": "science"
-    },
-    {
-      "name": "tokamak_simulator",
-      "category": "energy"
-    },
-    {
-      "name": "plasma_controller",
-      "category": "energy"
-    },
-    {
-      "name": "topological_state_calculator",
-      "category": "science"
-    },
-    {
-      "name": "majorana_detector",
-      "category": "science"
-    },
-    {
-      "name": "ice_core_analyzer",
-      "category": "science"
-    },
-    {
-      "name": "climate_reconstructor",
-      "category": "science"
-    },
-    {
-      "name": "magma_simulator",
-      "category": "science"
-    },
-    {
-      "name": "volcanic_monitor",
-      "category": "science"
-    },
-    {
-      "name": "radiocarbon_dater",
-      "category": "science"
-    },
-    {
-      "name": "artifact_reconstructor",
-      "category": "science"
-    },
-    {
-      "name": "flexible_sensor_designer",
-      "category": "hardware"
-    },
-    {
-      "name": "biochip_analyzer",
-      "category": "science"
-    },
-    {
-      "name": "calendar_manager",
-      "category": "productivity"
-    },
-    {
-      "name": "reminder_scheduler",
-      "category": "productivity"
-    },
-    {
-      "name": "password_generator_advanced",
-      "category": "security"
-    },
-    {
-      "name": "password_vault",
-      "category": "security"
-    },
-    {
-      "name": "tokenomics_simulator",
-      "category": "blockchain"
-    },
-    {
-      "name": "real_estate_calculator",
-      "category": "finance"
-    }
-  ],
+  "unusedTools": [],
   "configIssues": [],
   "topReferencedTools": [
     {
