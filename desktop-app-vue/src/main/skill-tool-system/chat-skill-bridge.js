@@ -327,10 +327,23 @@ class ChatSkillBridge extends EventEmitter {
       return null;
     }
 
+    // 验证必需参数
+    if (!operation.path) {
+      console.error('[ChatSkillBridge] 操作缺少path参数:', operation);
+      return null;
+    }
+
+    // 对于写入操作，验证content参数
+    if ((opType === 'CREATE' || opType === 'WRITE' || opType === 'UPDATE' || opType === 'EDIT') &&
+        operation.content === undefined) {
+      console.error('[ChatSkillBridge] 写入操作缺少content参数:', operation);
+      return null;
+    }
+
     return {
       toolName,
       parameters: {
-        path: operation.path,
+        filePath: operation.path,
         content: operation.content,
         language: operation.language,
         reason: operation.reason,
@@ -438,7 +451,7 @@ class ChatSkillBridge extends EventEmitter {
       const status = result.success ? '✓ 成功' : '✗ 失败';
 
       resultText += `${index + 1}. **${call.toolName}** - ${status}\n`;
-      resultText += `   - 路径: \`${call.parameters.path}\`\n`;
+      resultText += `   - 路径: \`${call.parameters.filePath || call.parameters.path || '未知'}\`\n`;
 
       if (result.success) {
         if (call.toolName === 'file_reader' && result.result) {
