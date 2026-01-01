@@ -10,15 +10,35 @@
         <a-dropdown>
           <template #overlay>
             <a-menu @click="handleExport">
-              <a-menu-item key="csv">
-                <FileTextOutlined /> 导出为 CSV
-              </a-menu-item>
-              <a-menu-item key="excel">
-                <FileExcelOutlined /> 导出为 Excel
-              </a-menu-item>
-              <a-menu-item key="pdf">
-                <FilePdfOutlined /> 导出为 PDF
-              </a-menu-item>
+              <a-menu-item-group title="数据导出">
+                <a-menu-item key="csv">
+                  <FileTextOutlined /> 导出为 CSV
+                </a-menu-item>
+                <a-menu-item key="excel">
+                  <FileExcelOutlined /> 导出为 Excel
+                </a-menu-item>
+                <a-menu-item key="pdf">
+                  <FilePdfOutlined /> 导出为 PDF
+                </a-menu-item>
+              </a-menu-item-group>
+              <a-menu-divider />
+              <a-menu-item-group title="图表导出">
+                <a-menu-item key="charts-all">
+                  <PictureOutlined /> 导出所有图表
+                </a-menu-item>
+                <a-menu-item key="chart-usage">
+                  <BarChartOutlined /> 使用排行图表
+                </a-menu-item>
+                <a-menu-item key="chart-success">
+                  <BarChartOutlined /> 成功率图表
+                </a-menu-item>
+                <a-menu-item key="chart-performance">
+                  <PieChartOutlined /> 性能分布图表
+                </a-menu-item>
+                <a-menu-item key="chart-trend">
+                  <LineChartOutlined /> 趋势图表
+                </a-menu-item>
+              </a-menu-item-group>
             </a-menu>
           </template>
           <a-button>
@@ -46,13 +66,22 @@
         <a-col :xs="24" :sm="12" :md="8">
           <div class="filter-item">
             <label>时间范围</label>
-            <a-range-picker
-              v-model:value="dateRange"
-              style="width: 100%"
-              :placeholder="['开始日期', '结束日期']"
-              format="YYYY-MM-DD"
-              @change="handleFilterChange"
-            />
+            <a-space direction="vertical" style="width: 100%" :size="4">
+              <a-range-picker
+                v-model:value="dateRange"
+                style="width: 100%"
+                :placeholder="['开始日期', '结束日期']"
+                format="YYYY-MM-DD"
+                @change="handleFilterChange"
+              />
+              <a-space :size="4">
+                <a-button size="small" @click="setQuickDateRange('today')">今天</a-button>
+                <a-button size="small" @click="setQuickDateRange('week')">本周</a-button>
+                <a-button size="small" @click="setQuickDateRange('month')">本月</a-button>
+                <a-button size="small" @click="setQuickDateRange('last7days')">最近7天</a-button>
+                <a-button size="small" @click="setQuickDateRange('last30days')">最近30天</a-button>
+              </a-space>
+            </a-space>
           </div>
         </a-col>
         <a-col :xs="24" :sm="12" :md="8">
@@ -88,6 +117,39 @@
               <template #icon><ClearOutlined /></template>
               重置筛选
             </a-button>
+            <a-dropdown>
+              <template #overlay>
+                <a-menu @click="handleSavedFilters">
+                  <a-menu-item key="save">
+                    <SaveOutlined /> 保存当前筛选
+                  </a-menu-item>
+                  <a-menu-divider />
+                  <a-menu-item-group v-if="savedFiltersList.length > 0" title="已保存的筛选">
+                    <a-menu-item v-for="(filter, index) in savedFiltersList" :key="`load-${index}`">
+                      <CheckOutlined v-if="filter.name" />
+                      {{ filter.name || `筛选 ${index + 1}` }}
+                      <a-button
+                        size="small"
+                        type="text"
+                        danger
+                        @click.stop="deleteSavedFilter(index)"
+                        style="margin-left: 8px"
+                      >
+                        <DeleteOutlined />
+                      </a-button>
+                    </a-menu-item>
+                  </a-menu-item-group>
+                  <a-menu-item v-else disabled>
+                    暂无保存的筛选条件
+                  </a-menu-item>
+                </a-menu>
+              </template>
+              <a-button size="small">
+                <template #icon><SaveOutlined /></template>
+                筛选管理
+                <DownOutlined />
+              </a-button>
+            </a-dropdown>
             <a-tag v-if="hasActiveFilters" color="blue">
               已应用 {{ activeFilterCount }} 个筛选条件
             </a-tag>
@@ -270,7 +332,8 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import * as echarts from 'echarts';
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
+import dayjs from 'dayjs';
 import {
   ToolOutlined,
   CheckCircleOutlined,
@@ -284,6 +347,13 @@ import {
   FileTextOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
+  PictureOutlined,
+  BarChartOutlined,
+  PieChartOutlined,
+  LineChartOutlined,
+  SaveOutlined,
+  CheckOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons-vue';
 
 // 加载状态
@@ -331,6 +401,31 @@ const activeFilterCount = computed(() => {
   if (searchKeyword.value && searchKeyword.value.trim().length > 0) count++;
   return count;
 });
+
+// 保存的筛选条件列表
+const savedFiltersList = ref([]);
+const SAVED_FILTERS_KEY = 'additional-tools-stats-saved-filters';
+
+// 从localStorage加载保存的筛选条件
+const loadSavedFilters = () => {
+  try {
+    const saved = localStorage.getItem(SAVED_FILTERS_KEY);
+    if (saved) {
+      savedFiltersList.value = JSON.parse(saved);
+    }
+  } catch (error) {
+    console.error('[SavedFilters] 加载失败:', error);
+  }
+};
+
+// 保存筛选条件到localStorage
+const saveSavedFilters = () => {
+  try {
+    localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(savedFiltersList.value));
+  } catch (error) {
+    console.error('[SavedFilters] 保存失败:', error);
+  }
+};
 
 // 统计数据
 const overview = ref({
@@ -693,8 +788,237 @@ const exportToPDF = () => {
   }
 };
 
+// ===================================
+// 图表导出为图片功能
+// ===================================
+
 /**
- * 导出处理器
+ * 导出单个图表为PNG图片
+ */
+const exportChartAsImage = (chart, chartName) => {
+  try {
+    if (!chart) {
+      message.warning(`${chartName}图表未初始化`);
+      return;
+    }
+
+    // 获取图表的DataURL
+    const dataURL = chart.getDataURL({
+      type: 'png',
+      pixelRatio: 2,
+      backgroundColor: '#fff'
+    });
+
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.href = dataURL;
+    link.download = `${chartName}-${Date.now()}.png`;
+    link.click();
+
+    message.success(`${chartName}图表导出成功`);
+  } catch (error) {
+    console.error(`[Export] ${chartName}图表导出失败:`, error);
+    message.error(`${chartName}图表导出失败: ` + error.message);
+  }
+};
+
+/**
+ * 导出所有图表为图片
+ */
+const exportAllCharts = async () => {
+  try {
+    message.loading({ content: '正在导出所有图表...', key: 'exportAllCharts' });
+
+    const charts = [
+      { chart: usageChart, name: '使用排行图表' },
+      { chart: successRateChart, name: '成功率图表' },
+      { chart: performanceChart, name: '性能分布图表' },
+      { chart: trendChart, name: '趋势图表' }
+    ];
+
+    let successCount = 0;
+    for (const { chart, name } of charts) {
+      if (chart) {
+        exportChartAsImage(chart, name);
+        successCount++;
+        await new Promise(resolve => setTimeout(resolve, 100)); // 延迟避免下载冲突
+      }
+    }
+
+    message.success({ content: `成功导出 ${successCount} 个图表`, key: 'exportAllCharts' });
+  } catch (error) {
+    console.error('[Export] 导出所有图表失败:', error);
+    message.error({ content: '导出所有图表失败: ' + error.message, key: 'exportAllCharts' });
+  }
+};
+
+// ===================================
+// 快捷时间范围功能
+// ===================================
+
+/**
+ * 设置快捷时间范围
+ */
+const setQuickDateRange = (range) => {
+  const today = dayjs();
+  let start, end;
+
+  switch (range) {
+    case 'today':
+      start = today.startOf('day');
+      end = today.endOf('day');
+      break;
+    case 'week':
+      start = today.startOf('week');
+      end = today.endOf('week');
+      break;
+    case 'month':
+      start = today.startOf('month');
+      end = today.endOf('month');
+      break;
+    case 'last7days':
+      start = today.subtract(6, 'day').startOf('day');
+      end = today.endOf('day');
+      break;
+    case 'last30days':
+      start = today.subtract(29, 'day').startOf('day');
+      end = today.endOf('day');
+      break;
+    default:
+      message.warning('未知的时间范围类型');
+      return;
+  }
+
+  dateRange.value = [start, end];
+  handleFilterChange();
+
+  const rangeNames = {
+    'today': '今天',
+    'week': '本周',
+    'month': '本月',
+    'last7days': '最近7天',
+    'last30days': '最近30天'
+  };
+  message.success(`已设置时间范围: ${rangeNames[range]}`);
+};
+
+// ===================================
+// 筛选条件保存功能
+// ===================================
+
+/**
+ * 保存当前筛选条件
+ */
+const saveCurrentFilter = () => {
+  if (!hasActiveFilters.value) {
+    message.warning('当前没有筛选条件');
+    return;
+  }
+
+  Modal.confirm({
+    title: '保存筛选条件',
+    content: '请输入筛选名称:',
+    okText: '保存',
+    cancelText: '取消',
+    onOk: () => {
+      return new Promise((resolve) => {
+        // 使用简单的prompt作为输入
+        const name = prompt('请输入筛选名称:');
+        if (name) {
+          const filter = {
+            name: name.trim(),
+            dateRange: dateRange.value ? [
+              dateRange.value[0].format('YYYY-MM-DD'),
+              dateRange.value[1].format('YYYY-MM-DD')
+            ] : null,
+            categories: [...selectedCategories.value],
+            searchKeyword: searchKeyword.value,
+            savedAt: Date.now()
+          };
+
+          savedFiltersList.value.push(filter);
+          saveSavedFilters();
+          message.success(`筛选条件 "${name}" 已保存`);
+        }
+        resolve();
+      });
+    }
+  });
+};
+
+/**
+ * 加载保存的筛选条件
+ */
+const loadSavedFilter = (index) => {
+  try {
+    const filter = savedFiltersList.value[index];
+    if (!filter) {
+      message.warning('筛选条件不存在');
+      return;
+    }
+
+    // 加载时间范围
+    if (filter.dateRange && filter.dateRange.length === 2) {
+      dateRange.value = [dayjs(filter.dateRange[0]), dayjs(filter.dateRange[1])];
+    } else {
+      dateRange.value = null;
+    }
+
+    // 加载分类
+    selectedCategories.value = filter.categories || [];
+
+    // 加载搜索关键词
+    searchKeyword.value = filter.searchKeyword || '';
+
+    // 刷新数据
+    loadDashboardData();
+    message.success(`已加载筛选条件: ${filter.name}`);
+  } catch (error) {
+    console.error('[SavedFilters] 加载筛选条件失败:', error);
+    message.error('加载筛选条件失败: ' + error.message);
+  }
+};
+
+/**
+ * 删除保存的筛选条件
+ */
+const deleteSavedFilter = (index) => {
+  try {
+    const filter = savedFiltersList.value[index];
+    if (!filter) return;
+
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除筛选条件 "${filter.name}" 吗？`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => {
+        savedFiltersList.value.splice(index, 1);
+        saveSavedFilters();
+        message.success('筛选条件已删除');
+      }
+    });
+  } catch (error) {
+    console.error('[SavedFilters] 删除筛选条件失败:', error);
+    message.error('删除筛选条件失败: ' + error.message);
+  }
+};
+
+/**
+ * 筛选管理菜单处理
+ */
+const handleSavedFilters = ({ key }) => {
+  if (key === 'save') {
+    saveCurrentFilter();
+  } else if (key.startsWith('load-')) {
+    const index = parseInt(key.replace('load-', ''));
+    loadSavedFilter(index);
+  }
+};
+
+/**
+ * 导出处理器（支持图表导出）
  */
 const handleExport = ({ key }) => {
   switch (key) {
@@ -706,6 +1030,21 @@ const handleExport = ({ key }) => {
       break;
     case 'pdf':
       exportToPDF();
+      break;
+    case 'charts-all':
+      exportAllCharts();
+      break;
+    case 'chart-usage':
+      exportChartAsImage(usageChart, '使用排行');
+      break;
+    case 'chart-success':
+      exportChartAsImage(successRateChart, '成功率');
+      break;
+    case 'chart-performance':
+      exportChartAsImage(performanceChart, '性能分布');
+      break;
+    case 'chart-trend':
+      exportChartAsImage(trendChart, '趋势');
       break;
     default:
       message.warning('未知的导出格式');
@@ -1012,7 +1351,13 @@ const handleResize = () => {
 
 // 生命周期
 onMounted(async () => {
+  // 加载保存的筛选条件
+  loadSavedFilters();
+
+  // 加载仪表板数据
   await loadDashboardData();
+
+  // 监听窗口大小变化
   window.addEventListener('resize', handleResize);
 });
 
