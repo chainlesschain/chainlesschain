@@ -1029,8 +1029,70 @@ const handleExport = (exportType) => {
   // 比如调用FileExportMenu中已有的导出功能
 };
 
+// 检查 Git 是否已初始化
+const checkGitInitialized = async () => {
+  if (!currentProject.value?.root_path) {
+    return false;
+  }
+
+  try {
+    // 检查项目目录中是否存在 .git 文件夹
+    const exists = await window.electronAPI.file.exists(
+      currentProject.value.root_path + '/.git'
+    );
+    return exists;
+  } catch (error) {
+    console.error('检查 Git 初始化状态失败:', error);
+    return false;
+  }
+};
+
+// 初始化 Git 仓库
+const initializeGitRepo = async () => {
+  try {
+    await projectStore.initGit(projectId.value);
+    message.success('Git 仓库初始化成功');
+    return true;
+  } catch (error) {
+    console.error('Git 初始化失败:', error);
+    message.error('Git 初始化失败：' + error.message);
+    return false;
+  }
+};
+
 // Git操作
 const handleGitAction = async ({ key }) => {
+  // 对于需要 Git 仓库的操作，先检查是否已初始化
+  const needsGitInit = ['commit', 'push', 'pull', 'history', 'status'];
+
+  if (needsGitInit.includes(key)) {
+    const isInitialized = await checkGitInitialized();
+
+    if (!isInitialized) {
+      // 显示确认对话框
+      Modal.confirm({
+        title: 'Git 仓库未初始化',
+        content: '当前项目还未初始化 Git 仓库，是否立即初始化？',
+        okText: '立即初始化',
+        cancelText: '取消',
+        onOk: async () => {
+          const success = await initializeGitRepo();
+          if (success) {
+            // 初始化成功后，继续执行原操作
+            await executeGitAction(key);
+          }
+        },
+      });
+      return;
+    }
+  }
+
+  // 执行 Git 操作
+  await executeGitAction(key);
+};
+
+// 执行具体的 Git 操作
+const executeGitAction = async (key) => {
   switch (key) {
     case 'status':
       await showGitStatus();
