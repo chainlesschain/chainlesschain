@@ -1,0 +1,62 @@
+{
+  "id": "tpl_social_media_calendar_001",
+  "name": "social_media_content_calendar",
+  "display_name": "社交媒体内容日历",
+  "description": "创建30天社交媒体内容发布计划，涵盖多平台内容策略",
+  "icon": "📅",
+  "cover_image": "/templates/covers/content-calendar.png",
+  "category": "social-media",
+  "subcategory": "planning",
+  "tags": ["社交媒体", "内容营销", "日历", "策划"],
+  "project_type": "spreadsheet",
+  "prompt_template": "请帮我制定{{period}}的社交媒体内容日历：\n\n**品牌信息：**\n- 品牌名称：{{brandName}}\n- 目标平台：{{platforms}}\n- 内容主题：{{contentTheme}}\n- 发布频率：{{frequency}}\n- 目标受众：{{targetAudience}}\n\n生成包含以下栏位的Excel内容日历：\n\n| 日期 | 星期 | 平台 | 内容类型 | 主题 | 文案 | 配图需求 | 标签 | 发布时间 | 负责人 | 状态 |\n\n每日内容建议包含：\n- 教育性内容（40%）\n- 娱乐性内容（30%）\n- 促销内容（20%）\n- 互动内容（10%）\n\n平台分布：\n{{#if includeWeibo}}- 微博：每天{{weiboFrequency}}条{{/if}}\n{{#if includeWechat}}- 微信公众号：每周{{wechatFrequency}}篇{{/if}}\n{{#if includeDouyin}}- 抖音：每周{{douyinFrequency}}个视频{{/if}}\n{{#if includeXiaohongshu}}- 小红书：每周{{xiaohongshuFrequency}}篇笔记{{/if}}",
+  "variables_schema": [
+    {
+      "name": "brandName",
+      "label": "品牌名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "period",
+      "label": "计划周期",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "30天", "label": "30天内容日历" },
+        { "value": "90天", "label": "90天内容日历" }
+      ]
+    },
+    {
+      "name": "frequency",
+      "label": "整体发布频率",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "每天1-2条", "label": "每天1-2条" },
+        { "value": "每天3-5条", "label": "每天3-5条" },
+        { "value": "每周5-10条", "label": "每周5-10条" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{brandName}}-社交媒体日历",
+    "files": [
+      {
+        "path": "内容日历-{{period}}.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "内容库/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_social_media_management", "skill_content_creation"],
+  "required_tools": ["tool_excel_generator", "tool_file_writer"],
+  "execution_engine": "data"
+}
