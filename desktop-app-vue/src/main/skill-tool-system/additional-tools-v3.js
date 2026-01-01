@@ -1,13 +1,14 @@
 /**
  * 额外工具定义 V3 - 专业领域工具
  * 支持区块链、房地产、客户成功、变革管理、审计等专业场景
+ * 注意：name字段必须是英文标识符，display_name是显示名称
  */
 
 const additionalToolsV3 = [
   {
     "id": "tool_contract_analyzer",
-    "name": "智能合约分析器",
-    "display_name": "Smart Contract Analyzer",
+    "name": "contract_analyzer",
+    "display_name": "智能合约分析器 / Smart Contract Analyzer",
     "description": "分析智能合约代码，检测安全漏洞、gas优化建议和最佳实践",
     "category": "blockchain",
     "icon": "shield",
@@ -18,8 +19,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_blockchain_query",
-    "name": "区块链查询工具",
-    "display_name": "Blockchain Query Tool",
+    "name": "blockchain_query",
+    "display_name": "区块链查询工具 / Blockchain Query Tool",
     "description": "查询区块链数据，包括交易、区块、地址余额等信息",
     "category": "blockchain",
     "icon": "database",
@@ -30,8 +31,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_tokenomics_simulator",
-    "name": "代币经济模拟器",
-    "display_name": "Tokenomics Simulator",
+    "name": "tokenomics_simulator",
+    "display_name": "代币经济模拟器 / Tokenomics Simulator",
     "description": "模拟代币经济模型的长期表现，包括供需、价格、流通等",
     "category": "blockchain",
     "icon": "line-chart",
@@ -42,8 +43,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_legal_template_generator",
-    "name": "法律文书生成器",
-    "display_name": "Legal Template Generator",
+    "name": "legal_template_generator",
+    "display_name": "法律文书生成器 / Legal Template Generator",
     "description": "生成各类法律文书模板，包括合同、协议、申请书等",
     "category": "legal",
     "icon": "file-text",
@@ -54,8 +55,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_patent_claim_analyzer",
-    "name": "专利权利要求分析器",
-    "display_name": "Patent Claim Analyzer",
+    "name": "claim_analyzer",
+    "display_name": "专利权利要求分析器 / Patent Claim Analyzer",
     "description": "分析专利权利要求的保护范围、新颖性和创造性",
     "category": "legal",
     "icon": "search",
@@ -66,8 +67,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_market_data_analyzer",
-    "name": "市场数据分析器",
-    "display_name": "Market Data Analyzer",
+    "name": "market_data_analyzer",
+    "display_name": "市场数据分析器 / Market Data Analyzer",
     "description": "分析市场数据，包括价格趋势、供需关系、竞争格局等",
     "category": "analysis",
     "icon": "bar-chart",
@@ -78,8 +79,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_real_estate_calculator",
-    "name": "房地产财务计算器",
-    "display_name": "Real Estate Financial Calculator",
+    "name": "real_estate_calculator",
+    "display_name": "房地产财务计算器 / Real Estate Financial Calculator",
     "description": "计算房地产项目的IRR、NPV、现金流等财务指标",
     "category": "finance",
     "icon": "calculator",
@@ -90,8 +91,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_customer_health_scorer",
-    "name": "客户健康度评分器",
-    "display_name": "Customer Health Score Calculator",
+    "name": "health_score_calculator",
+    "display_name": "客户健康度评分器 / Customer Health Score Calculator",
     "description": "计算客户健康度评分，预测续约风险和扩展机会",
     "category": "crm",
     "icon": "heart",
@@ -102,8 +103,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_churn_predictor",
-    "name": "客户流失预测器",
-    "display_name": "Churn Predictor",
+    "name": "churn_predictor",
+    "display_name": "客户流失预测器 / Churn Predictor",
     "description": "基于客户行为数据预测流失风险，提供挽留建议",
     "category": "crm",
     "icon": "alert-triangle",
@@ -114,8 +115,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_stakeholder_mapper",
-    "name": "利益相关者映射工具",
-    "display_name": "Stakeholder Mapping Tool",
+    "name": "stakeholder_analyzer",
+    "display_name": "利益相关者映射工具 / Stakeholder Mapping Tool",
     "description": "分析和映射项目利益相关者，生成权力-利益矩阵",
     "category": "project",
     "icon": "users",
@@ -126,8 +127,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_change_readiness_assessor",
-    "name": "变革准备度评估器",
-    "display_name": "Change Readiness Assessor",
+    "name": "readiness_assessor",
+    "display_name": "变革准备度评估器 / Change Readiness Assessor",
     "description": "评估组织的变革准备度，使用ADKAR或其他框架",
     "category": "management",
     "icon": "clipboard-check",
@@ -138,8 +139,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_communication_planner",
-    "name": "沟通计划工具",
-    "display_name": "Communication Planner",
+    "name": "communication_planner",
+    "display_name": "沟通计划工具 / Communication Planner",
     "description": "规划项目沟通策略，生成沟通矩阵和时间表",
     "category": "project",
     "icon": "message-square",
@@ -150,8 +151,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_org_chart_generator",
-    "name": "组织架构图生成器",
-    "display_name": "Organization Chart Generator",
+    "name": "org_chart_generator",
+    "display_name": "组织架构图生成器 / Organization Chart Generator",
     "description": "生成组织架构图，支持多种格式和样式",
     "category": "hr",
     "icon": "sitemap",
@@ -162,8 +163,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_culture_analyzer",
-    "name": "企业文化分析器",
-    "display_name": "Culture Analyzer",
+    "name": "culture_analyzer",
+    "display_name": "企业文化分析器 / Culture Analyzer",
     "description": "分析企业文化现状，识别文化差距和改进机会",
     "category": "hr",
     "icon": "compass",
@@ -174,8 +175,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_event_timeline_creator",
-    "name": "活动时间线生成器",
-    "display_name": "Event Timeline Generator",
+    "name": "event_timeline_generator",
+    "display_name": "活动时间线生成器 / Event Timeline Generator",
     "description": "创建活动执行时间线，包括里程碑和关键任务",
     "category": "event",
     "icon": "clock",
@@ -186,8 +187,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_press_release_generator",
-    "name": "新闻稿生成器",
-    "display_name": "Press Release Generator",
+    "name": "press_release_generator",
+    "display_name": "新闻稿生成器 / Press Release Generator",
     "description": "生成专业新闻稿，符合媒体发布标准",
     "category": "marketing",
     "icon": "file-text",
@@ -198,8 +199,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_media_list_manager",
-    "name": "媒体列表管理器",
-    "display_name": "Media List Manager",
+    "name": "media_list_manager",
+    "display_name": "媒体列表管理器 / Media List Manager",
     "description": "管理媒体联系人列表，分类和追踪媒体关系",
     "category": "marketing",
     "icon": "list",
@@ -210,8 +211,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_sentiment_analyzer",
-    "name": "舆情分析器",
-    "display_name": "Sentiment Analyzer",
+    "name": "sentiment_analyzer",
+    "display_name": "舆情分析器 / Sentiment Analyzer",
     "description": "分析社交媒体和新闻的情感倾向，监测品牌声誉",
     "category": "marketing",
     "icon": "trending-up",
@@ -222,8 +223,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_audit_risk_assessor",
-    "name": "审计风险评估器",
-    "display_name": "Audit Risk Assessor",
+    "name": "risk_assessor",
+    "display_name": "审计风险评估器 / Audit Risk Assessor",
     "description": "评估审计风险，确定审计重点和资源分配",
     "category": "audit",
     "icon": "alert-circle",
@@ -234,8 +235,8 @@ const additionalToolsV3 = [
   },
   {
     "id": "tool_control_effectiveness_evaluator",
-    "name": "内部控制评价器",
-    "display_name": "Control Effectiveness Evaluator",
+    "name": "control_evaluator",
+    "display_name": "内部控制评价器 / Control Effectiveness Evaluator",
     "description": "评价内部控制的设计和执行有效性",
     "category": "audit",
     "icon": "shield-check",
