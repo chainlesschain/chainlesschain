@@ -36,9 +36,13 @@ const KnowledgePaymentManager = require('./trade/knowledge-payment');
 const CreditScoreManager = require('./trade/credit-score');
 const ReviewManager = require('./trade/review-manager');
 
-// AI Engine modules
-const { AIEngineManager, getAIEngineManager } = require('./ai-engine/ai-engine-manager');
+// AI Engine modules (优化版 v0.16.1)
+const { AIEngineManagerOptimized, getAIEngineManagerOptimized } = require('./ai-engine/ai-engine-manager-optimized');
 const AIEngineIPC = require('./ai-engine/ai-engine-ipc');
+
+// 创建快捷别名以保持API兼容性
+const AIEngineManager = AIEngineManagerOptimized;
+const getAIEngineManager = getAIEngineManagerOptimized;
 const WebEngine = require('./engines/web-engine');
 const DocumentEngine = require('./engines/document-engine');
 const DataEngine = require('./engines/data-engine');

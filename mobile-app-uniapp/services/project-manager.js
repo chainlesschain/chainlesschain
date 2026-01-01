@@ -18,11 +18,13 @@ class ProjectManager {
    */
   async createProject(projectData) {
     try {
-      const currentDid = await didService.getCurrentDID()
+      const identity = await didService.getCurrentIdentity()
 
-      if (!currentDid) {
+      if (!identity || !identity.did) {
         throw new Error('请先创建DID身份')
       }
+
+      const currentDid = identity.did
 
       const project = {
         name: projectData.name,
@@ -51,12 +53,14 @@ class ProjectManager {
    */
   async getProjects(filters = {}) {
     try {
-      const currentDid = await didService.getCurrentDID()
+      const identity = await didService.getCurrentIdentity()
 
-      if (!currentDid) {
+      if (!identity || !identity.did) {
         console.warn('[ProjectManager] 未登录，返回空列表')
         return []
       }
+
+      const currentDid = identity.did
 
       const options = {
         owner_did: currentDid,
@@ -406,7 +410,8 @@ class ProjectManager {
   async inviteCollaborator(projectId, collaboratorDid, role = 'viewer') {
     try {
       // 验证权限（只有所有者和编辑者可以邀请）
-      const currentDid = await didService.getCurrentDID()
+      const identity = await didService.getCurrentIdentity()
+      const currentDid = identity ? identity.did : null
       const project = await database.getProjectById(projectId)
 
       if (project.owner_did !== currentDid) {
@@ -443,7 +448,12 @@ class ProjectManager {
    */
   async acceptInvitation(projectId) {
     try {
-      const currentDid = await didService.getCurrentDID()
+      const identity = await didService.getCurrentIdentity()
+      const currentDid = identity ? identity.did : null
+
+      if (!currentDid) {
+        throw new Error('未登录')
+      }
 
       await database.updateCollaboration(projectId, currentDid, {
         accepted_at: Date.now()
@@ -462,7 +472,13 @@ class ProjectManager {
    */
   async getCollaboratingProjects() {
     try {
-      const currentDid = await didService.getCurrentDID()
+      const identity = await didService.getCurrentIdentity()
+      const currentDid = identity ? identity.did : null
+
+      if (!currentDid) {
+        return []
+      }
+
       return await database.getCollaboratingProjects(currentDid)
     } catch (error) {
       console.error('[ProjectManager] 获取协作项目失败:', error)
@@ -494,7 +510,9 @@ class ProjectManager {
    */
   async checkProjectPermission(projectId, requiredRole = 'viewer') {
     try {
-      const currentDid = await didService.getCurrentDID()
+      const identity = await didService.getCurrentIdentity()
+      const currentDid = identity ? identity.did : null
+
       if (!currentDid) {
         throw new Error('未登录')
       }

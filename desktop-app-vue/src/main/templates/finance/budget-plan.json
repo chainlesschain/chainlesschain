@@ -1,0 +1,53 @@
+{
+  "id": "tpl_finance_budget_001",
+  "name": "budget_plan",
+  "display_name": "年度预算计划",
+  "description": "企业或部门年度预算编制模板，包含收入预测、成本规划和财务分析",
+  "icon": "💰",
+  "category": "finance",
+  "subcategory": "planning",
+  "tags": ["预算", "财务规划", "成本控制", "财务管理"],
+  "project_type": "spreadsheet",
+  "prompt_template": "# {{year}}年度预算计划\n\n**编制单位**：{{department}}\n**编制人**：{{preparedBy}}\n**审核人**：{{reviewedBy}}\n**批准人**：{{approvedBy}}\n**编制日期**：{{preparedDate}}\n\n---\n\n## 目录\n\n1. 预算说明\n2. 收入预算\n3. 成本费用预算\n4. 资本支出预算\n5. 现金流预算\n6. 财务指标分析\n7. 预算执行监控\n\n---\n\n## 一、预算说明\n\n### 1.1 预算目标\n\n{{budgetObjectives}}\n\n### 1.2 预算假设\n\n#### 宏观经济假设\n- GDP增长率：{{gdpGrowth}}%\n- 通货膨胀率：{{inflationRate}}%\n- 行业增长率：{{industryGrowth}}%\n- 汇率假设：{{exchangeRate}}\n\n#### 业务假设\n- 市场份额：{{marketShare}}%\n- 客户增长率：{{customerGrowth}}%\n- 产品价格调整：{{priceAdjustment}}%\n- {{otherAssumptions}}\n\n### 1.3 预算编制方法\n\n{{budgetingMethod}}\n\n### 1.4 预算周期\n\n**预算期间**：{{year}}年1月1日 - {{year}}年12月31日\n\n**滚动预测**：{{rollingForecast}}\n\n## 二、收入预算\n\n### 2.1 收入总览\n\n| 收入类别 | {{year-1}}年实际 | {{year}}年预算 | 增长率 | 说明 |\n|---------|----------------|--------------|--------|------|\n| 产品收入 | {{productRevenuePY}} | {{productRevenueBudget}} | {{productGrowth}}% | {{productNote}} |\n| 服务收入 | {{serviceRevenuePY}} | {{serviceRevenueBudget}} | {{serviceGrowth}}% | {{serviceNote}} |\n| 其他收入 | {{otherRevenuePY}} | {{otherRevenueBudget}} | {{otherGrowth}}% | {{otherNote}} |\n| **总收入** | **{{totalRevenuePY}}** | **{{totalRevenueBudget}}** | **{{totalGrowth}}%** | - |\n\n### 2.2 分产品线收入预算\n\n#### 产品线A：{{productLineA}}\n- {{year}}年目标：{{productARevenue}}\n- 销量预测：{{productAVolume}}单位\n- 平均单价：{{productAPrice}}\n- 增长驱动因素：{{productADrivers}}\n\n#### 产品线B：{{productLineB}}\n{{productBDetails}}\n\n#### 产品线C：{{productLineC}}\n{{productCDetails}}\n\n### 2.3 分季度收入预算\n\n| 季度 | 预算收入 | 占比 | 同比增长 |\n|------|---------|------|----------|\n| Q1 | {{q1Revenue}} | {{q1Percentage}}% | {{q1Growth}}% |\n| Q2 | {{q2Revenue}} | {{q2Percentage}}% | {{q2Growth}}% |\n| Q3 | {{q3Revenue}} | {{q3Percentage}}% | {{q3Growth}}% |\n| Q4 | {{q4Revenue}} | {{q4Percentage}}% | {{q4Growth}}% |\n| **全年** | **{{totalRevenueBudget}}** | **100%** | **{{totalGrowth}}%** |\n\n### 2.4 分区域收入预算\n\n{{regionalRevenueBudget}}\n\n### 2.5 收入实现路径\n\n{{revenueRealizationPath}}\n\n## 三、成本费用预算\n\n### 3.1 成本费用总览\n\n| 费用类别 | {{year-1}}年实际 | {{year}}年预算 | 变动率 | 占收入比 |\n|---------|----------------|--------------|--------|----------|\n| **营业成本** | {{cogsPY}} | {{cogsBudget}} | {{cogsChange}}% | {{cogsRatio}}% |\n| - 直接材料 | {{materialsPY}} | {{materialsBudget}} | {{materialsChange}}% | {{materialsRatio}}% |\n| - 直接人工 | {{laborPY}} | {{laborBudget}} | {{laborChange}}% | {{laborRatio}}% |\n| - 制造费用 | {{overheadPY}} | {{overheadBudget}} | {{overheadChange}}% | {{overheadRatio}}% |\n| **销售费用** | {{sellingPY}} | {{sellingBudget}} | {{sellingChange}}% | {{sellingRatio}}% |\n| **管理费用** | {{adminPY}} | {{adminBudget}} | {{adminChange}}% | {{adminRatio}}% |\n| **研发费用** | {{rdPY}} | {{rdBudget}} | {{rdChange}}% | {{rdRatio}}% |\n| **财务费用** | {{financePY}} | {{financeBudget}} | {{financeChange}}% | {{financeRatio}}% |\n| **总成本费用** | **{{totalCostPY}}** | **{{totalCostBudget}}** | **{{totalCostChange}}%** | **{{totalCostRatio}}%** |\n\n### 3.2 人力成本预算\n\n#### 人员编制计划\n\n| 部门 | {{year-1}}年 | {{year}}年 | 新增 | 平均薪资 | 总成本 |\n|------|------------|----------|------|---------|--------|\n| 研发部 | {{rdHeadcountPY}} | {{rdHeadcount}} | {{rdNewHires}} | {{rdAvgSalary}} | {{rdTotalCost}} |\n| 销售部 | {{salesHeadcountPY}} | {{salesHeadcount}} | {{salesNewHires}} | {{salesAvgSalary}} | {{salesTotalCost}} |\n| 运营部 | {{opsHeadcountPY}} | {{opsHeadcount}} | {{opsNewHires}} | {{opsAvgSalary}} | {{opsTotalCost}} |\n| 管理部 | {{adminHeadcountPY}} | {{adminHeadcount}} | {{adminNewHires}} | {{adminAvgSalary}} | {{adminTotalCost}} |\n| **合计** | **{{totalHeadcountPY}}** | **{{totalHeadcount}}** | **{{totalNewHires}}** | - | **{{totalLaborCost}}** |\n\n#### 人力成本明细\n\n- 工资薪金：{{salariesBudget}}\n- 社保公积金：{{benefitsBudget}}\n- 年终奖金：{{bonusBudget}}\n- 培训费用：{{trainingBudget}}\n- 招聘费用：{{recruitmentBudget}}\n- 其他人力成本：{{otherLaborCost}}\n\n### 3.3 营销费用预算\n\n{{marketingBudget}}\n\n### 3.4 研发费用预算\n\n{{rdExpenseBudget}}\n\n### 3.5 运营费用预算\n\n{{operatingExpenseBudget}}\n\n### 3.6 成本优化计划\n\n{{costOptimizationPlan}}\n\n## 四、资本支出预算\n\n### 4.1 资本支出总览\n\n**总资本支出**：{{totalCapex}}\n\n### 4.2 资本支出明细\n\n| 项目 | 预算金额 | 预期收益 | ROI | 优先级 | 实施时间 |\n|------|---------|---------|-----|--------|----------|\n| {{capex1}} | {{capex1Amount}} | {{capex1Benefit}} | {{capex1ROI}}% | {{capex1Priority}} | {{capex1Timing}} |\n| {{capex2}} | {{capex2Amount}} | {{capex2Benefit}} | {{capex2ROI}}% | {{capex2Priority}} | {{capex2Timing}} |\n| {{capex3}} | {{capex3Amount}} | {{capex3Benefit}} | {{capex3ROI}}% | {{capex3Priority}} | {{capex3Timing}} |\n| **合计** | **{{totalCapex}}** | - | - | - | - |\n\n### 4.3 投资回报分析\n\n{{capexROIAnalysis}}\n\n## 五、现金流预算\n\n### 5.1 现金流预测\n\n| 项目 | Q1 | Q2 | Q3 | Q4 | 全年 |\n|------|----|----|----|----|------|\n| **经营活动现金流** | | | | | |\n| 销售收现 | {{q1CashReceipts}} | {{q2CashReceipts}} | {{q3CashReceipts}} | {{q4CashReceipts}} | {{totalCashReceipts}} |\n| 付现成本 | {{q1CashPayments}} | {{q2CashPayments}} | {{q3CashPayments}} | {{q4CashPayments}} | {{totalCashPayments}} |\n| 经营活动净现金流 | {{q1OperatingCF}} | {{q2OperatingCF}} | {{q3OperatingCF}} | {{q4OperatingCF}} | {{totalOperatingCF}} |\n| **投资活动现金流** | {{q1InvestingCF}} | {{q2InvestingCF}} | {{q3InvestingCF}} | {{q4InvestingCF}} | {{totalInvestingCF}} |\n| **筹资活动现金流** | {{q1FinancingCF}} | {{q2FinancingCF}} | {{q3FinancingCF}} | {{q4FinancingCF}} | {{totalFinancingCF}} |\n| **现金净增加额** | {{q1NetCash}} | {{q2NetCash}} | {{q3NetCash}} | {{q4NetCash}} | {{totalNetCash}} |\n| **期末现金余额** | {{q1EndingCash}} | {{q2EndingCash}} | {{q3EndingCash}} | {{q4EndingCash}} | {{yearEndCash}} |\n\n### 5.2 资金缺口分析\n\n{{fundingGapAnalysis}}\n\n## 六、财务指标分析\n\n### 6.1 盈利能力指标\n\n| 指标 | {{year-1}}年 | {{year}}年预算 | 目标 |\n|------|------------|--------------|------|\n| 毛利率 | {{grossMarginPY}}% | {{grossMarginBudget}}% | {{grossMarginTarget}}% |\n| 营业利润率 | {{operatingMarginPY}}% | {{operatingMarginBudget}}% | {{operatingMarginTarget}}% |\n| 净利润率 | {{netMarginPY}}% | {{netMarginBudget}}% | {{netMarginTarget}}% |\n| ROE | {{roePY}}% | {{roeBudget}}% | {{roeTarget}}% |\n| ROA | {{roaPY}}% | {{roaBudget}}% | {{roaTarget}}% |\n\n### 6.2 运营效率指标\n\n{{operatingEfficiencyMetrics}}\n\n### 6.3 财务健康指标\n\n{{financialHealthMetrics}}\n\n## 七、预算执行监控\n\n### 7.1 预算控制机制\n\n{{budgetControlMechanism}}\n\n### 7.2 差异分析流程\n\n{{varianceAnalysisProcess}}\n\n### 7.3 预算调整机制\n\n{{budgetAdjustmentMechanism}}\n\n### 7.4 月度监控报告\n\n{{monthlyMonitoringReport}}\n\n## 八、风险与机会\n\n### 8.1 预算风险\n\n{{budgetRisks}}\n\n### 8.2 敏感性分析\n\n{{sensitivityAnalysis}}\n\n### 8.3 情景分析\n\n#### 乐观情景\n{{optimisticScenario}}\n\n#### 基准情景\n{{baseScenario}}\n\n#### 悲观情景\n{{pessimisticScenario}}\n\n---\n\n## 附录\n\n### 附录A：详细预算表格\n\n{{detailedBudgetTables}}\n\n### 附录B：历史数据对比\n\n{{historicalComparison}}\n\n### 附录C：预算编制说明\n\n{{budgetNotes}}",
+  "variables_schema": [
+    {
+      "name": "year",
+      "label": "预算年度",
+      "type": "number",
+      "required": true,
+      "default": 2026
+    },
+    {
+      "name": "department",
+      "label": "编制单位/部门",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "totalRevenueBudget",
+      "label": "总收入预算（万元）",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "totalCostBudget",
+      "label": "总成本预算（万元）",
+      "type": "number",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "{{year}}年度预算-{{department}}",
+    "files": [
+      {"path": "预算说明文档.docx", "type": "document"},
+      {"path": "预算明细表.xlsx", "type": "spreadsheet"},
+      {"path": "财务分析图表.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_financial_analysis", "skill_budgeting", "skill_data_analysis"],
+  "required_tools": ["tool_excel_generator", "tool_financial_calculator", "tool_chart_generator"],
+  "execution_engine": "spreadsheet"
+}

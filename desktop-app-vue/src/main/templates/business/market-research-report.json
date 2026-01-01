@@ -1,0 +1,55 @@
+{
+  "id": "tpl_business_market_004",
+  "name": "market_research_report",
+  "display_name": "市场调研报告",
+  "description": "专业市场调研分析报告，包含行业分析、竞品研究、用户画像和市场机会",
+  "icon": "🔍",
+  "category": "business",
+  "subcategory": "research",
+  "tags": ["市场调研", "行业分析", "竞品分析", "用户研究"],
+  "project_type": "document",
+  "prompt_template": "# {{projectName}} 市场调研报告\n\n**调研时间**：{{researchPeriod}}\n**调研对象**：{{researchTarget}}\n**调研方式**：{{researchMethod}}\n\n## 执行摘要\n\n### 核心发现\n1. {{keyFinding1}}\n2. {{keyFinding2}}\n3. {{keyFinding3}}\n\n### 市场机会\n{{marketOpportunity}}\n\n---\n\n## 一、行业概况\n\n### 1.1 行业定义\n{{industryDefinition}}\n\n### 1.2 市场规模\n- 全球市场规模：{{globalMarketSize}}\n- 中国市场规模：{{chinaMarketSize}}\n- 年复合增长率（CAGR）：{{cagr}}%\n\n### 1.3 产业链分析\n{{industryChain}}\n\n### 1.4 发展趋势\n1. {{trend1}}\n2. {{trend2}}\n3. {{trend3}}\n\n## 二、竞争格局\n\n### 2.1 市场集中度\n{{marketConcentration}}\n\n### 2.2 主要玩家（Top 5）\n\n#### 第一名：{{competitor1Name}}\n- 市场份额：{{comp1Share}}%\n- 核心优势：{{comp1Advantage}}\n- 弱点：{{comp1Weakness}}\n\n#### 第二名：{{competitor2Name}}\n- 市场份额：{{comp2Share}}%\n- 核心优势：{{comp2Advantage}}\n\n#### 第三名：{{competitor3Name}}\n- 市场份额：{{comp3Share}}%\n\n### 2.3 竞争要素分析\n- 价格竞争：{{priceCompetition}}\n- 产品差异化：{{productDifferentiation}}\n- 渠道能力：{{channelCapability}}\n- 品牌影响力：{{brandInfluence}}\n\n## 三、目标用户研究\n\n### 3.1 用户画像\n\n**主要用户群体1**：{{userGroup1}}\n- 年龄：{{age1}}\n- 收入：{{income1}}\n- 需求痛点：{{painPoint1}}\n\n**主要用户群体2**：{{userGroup2}}\n- 年龄：{{age2}}\n- 收入：{{income2}}\n- 需求痛点：{{painPoint2}}\n\n### 3.2 购买决策因素\n1. {{decisionFactor1}} - 权重{{weight1}}%\n2. {{decisionFactor2}} - 权重{{weight2}}%\n3. {{decisionFactor3}} - 权重{{weight3}}%\n\n### 3.3 用户行为特征\n{{userBehavior}}\n\n## 四、SWOT分析\n\n### 优势（Strengths）\n1. {{strength1}}\n2. {{strength2}}\n\n### 劣势（Weaknesses）\n1. {{weakness1}}\n2. {{weakness2}}\n\n### 机会（Opportunities）\n1. {{opportunity1}}\n2. {{opportunity2}}\n\n### 威胁（Threats）\n1. {{threat1}}\n2. {{threat2}}\n\n## 五、市场准入分析\n\n### 5.1 政策环境\n{{policyEnvironment}}\n\n### 5.2 准入壁垒\n{{entryBarriers}}\n\n### 5.3 所需资源\n{{requiredResources}}\n\n## 六、市场预测\n\n### 6.1 未来3年市场规模预测\n\n| 年份 | 市场规模 | 增长率 |\n|------|----------|--------|\n| {{year1}} | {{marketSize1}} | {{growth1}}% |\n| {{year2}} | {{marketSize2}} | {{growth2}}% |\n| {{year3}} | {{marketSize3}} | {{growth3}}% |\n\n### 6.2 细分市场机会\n{{segmentOpportunity}}\n\n## 七、策略建议\n\n### 7.1 市场定位\n{{positioning}}\n\n### 7.2 差异化策略\n{{differentiation}}\n\n### 7.3 进入路径\n{{entryPath}}\n\n---\n\n**附录：调研方法论**\n- 样本量：{{sampleSize}}\n- 置信度：{{confidence}}%\n- 误差范围：±{{margin}}%",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "researchTarget",
+      "label": "调研对象",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：在线教育市场、AI芯片行业"
+    },
+    {
+      "name": "researchMethod",
+      "label": "调研方式",
+      "type": "select",
+      "required": false,
+      "default": "问卷调查+深度访谈",
+      "options": [
+        { "value": "问卷调查", "label": "问卷调查" },
+        { "value": "深度访谈", "label": "深度访谈" },
+        { "value": "问卷调查+深度访谈", "label": "问卷+访谈" },
+        { "value": "桌面研究", "label": "桌面研究" },
+        { "value": "专家咨询", "label": "专家咨询" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "市场调研-{{projectName}}",
+    "files": [
+      {"path": "调研报告.docx", "type": "document"},
+      {"path": "数据分析.xlsx", "type": "spreadsheet"},
+      {"path": "图表/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_data_analysis", "skill_content_creation"],
+  "required_tools": ["tool_word_generator", "tool_data_analyzer", "tool_chart_generator"],
+  "execution_engine": "document"
+}

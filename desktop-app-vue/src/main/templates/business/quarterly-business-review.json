@@ -1,0 +1,45 @@
+{
+  "id": "tpl_business_qbr_008",
+  "name": "quarterly_business_review",
+  "display_name": "季度业务回顾(QBR)",
+  "description": "季度业务复盘报告，包含目标达成、问题分析和下季度规划",
+  "icon": "📅",
+  "category": "business",
+  "subcategory": "reporting",
+  "tags": ["QBR", "业务复盘", "季度总结"],
+  "project_type": "presentation",
+  "prompt_template": "# {{quarter}} 季度业务回顾（QBR）\n\n**部门/团队**：{{department}}\n**汇报人**：{{presenter}}\n**汇报日期**：{{presentDate}}\n\n## 目录\n1. 季度目标回顾\n2. 关键成果\n3. 问题与挑战\n4. 经验教训\n5. 下季度计划\n\n---\n\n## 一、季度目标回顾\n\n### 1.1 本季度OKR\n\n**Objective 1**：{{obj1}}\n- KR1.1：{{kr1_1}} - 完成度{{kr1_1_completion}}%\n- KR1.2：{{kr1_2}} - 完成度{{kr1_2_completion}}%\n\n**Objective 2**：{{obj2}}\n- KR2.1：{{kr2_1}} - 完成度{{kr2_1_completion}}%\n- KR2.2：{{kr2_2}} - 完成度{{kr2_2_completion}}%\n\n### 1.2 核心指标完成情况\n\n| 指标 | 目标 | 实际 | 完成率 | 同比 |\n|------|------|------|--------|------|\n| {{metric1}} | {{target1}} | {{actual1}} | {{completion1}}% | {{yoy1}}% |\n| {{metric2}} | {{target2}} | {{actual2}} | {{completion2}}% | {{yoy2}}% |\n| {{metric3}} | {{target3}} | {{actual3}} | {{completion3}}% | {{yoy3}}% |\n\n**整体评级**：{{overallRating}}\n\n## 二、关键成果\n\n### 2.1 重大突破\n1. {{achievement1}}\n2. {{achievement2}}\n3. {{achievement3}}\n\n### 2.2 数据亮点\n{{dataHighlights}}\n\n### 2.3 客户成功案例\n{{customerSuccessStories}}\n\n## 三、问题与挑战\n\n### 3.1 未完成目标分析\n\n**未完成目标**：{{missedGoals}}\n**原因分析**：\n1. {{reason1}}\n2. {{reason2}}\n3. {{reason3}}\n\n### 3.2 主要挑战\n1. {{challenge1}}\n2. {{challenge2}}\n\n### 3.3 资源瓶颈\n{{resourceBottlenecks}}\n\n## 四、经验教训\n\n### 4.1 成功经验\n{{successLessons}}\n\n### 4.2 失败教训\n{{failureLessons}}\n\n### 4.3 流程改进\n{{processImprovements}}\n\n## 五、竞争动态\n\n### 5.1 市场变化\n{{marketChanges}}\n\n### 5.2 竞品动作\n{{competitorMoves}}\n\n## 六、下季度计划（{{nextQuarter}}）\n\n### 6.1 战略重点\n1. {{nextPriority1}}\n2. {{nextPriority2}}\n3. {{nextPriority3}}\n\n### 6.2 关键指标目标\n\n| 指标 | 本季实际 | 下季目标 | 增长 |\n|------|----------|----------|------|\n| {{metric1}} | {{thisActual1}} | {{nextTarget1}} | {{growth1}}% |\n| {{metric2}} | {{thisActual2}} | {{nextTarget2}} | {{growth2}}% |\n| {{metric3}} | {{thisActual3}} | {{nextTarget3}} | {{growth3}}% |\n\n### 6.3 重点项目\n{{keyProjects}}\n\n### 6.4 所需资源\n{{resourceNeeds}}\n\n## 七、风险与机遇\n\n### 7.1 潜在风险\n{{risks}}\n\n### 7.2 市场机会\n{{opportunities}}\n\n---\n\n**附录**：详细数据表",
+  "variables_schema": [
+    {
+      "name": "quarter",
+      "label": "季度",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "2026年Q1", "label": "2026年第一季度" },
+        { "value": "2026年Q2", "label": "2026年第二季度" },
+        { "value": "2026年Q3", "label": "2026年第三季度" },
+        { "value": "2026年Q4", "label": "2026年第四季度" }
+      ]
+    },
+    {
+      "name": "department",
+      "label": "部门/团队",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "QBR-{{quarter}}",
+    "files": [
+      {"path": "QBR汇报.pptx", "type": "presentation"},
+      {"path": "数据详表.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_data_visualization", "skill_content_creation"],
+  "required_tools": ["tool_ppt_generator", "tool_chart_generator"],
+  "execution_engine": "presentation"
+}

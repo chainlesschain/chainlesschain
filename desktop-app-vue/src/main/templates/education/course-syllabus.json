@@ -1,0 +1,71 @@
+{
+  "id": "tpl_education_syllabus_001",
+  "name": "course_syllabus",
+  "display_name": "课程大纲",
+  "description": "专业课程教学大纲模板，包含课程目标、教学内容、评估方式等完整结构",
+  "icon": "📚",
+  "category": "education",
+  "subcategory": "teaching",
+  "tags": ["课程大纲", "教学计划", "教育", "教案"],
+  "project_type": "document",
+  "prompt_template": "# {{courseName}} 课程大纲\n## Course Syllabus\n\n**课程代码**：{{courseCode}}\n**学分**：{{credits}}\n**学时**：{{totalHours}}学时（理论{{theoryHours}}学时 + 实践{{practiceHours}}学时）\n**开课学期**：{{semester}}\n**授课教师**：{{instructor}}\n**联系方式**：{{instructorContact}}\n**办公时间**：{{officeHours}}\n\n---\n\n## 一、课程基本信息\n\n### 1.1 课程性质\n\n- **课程类型**：{{courseType}}\n- **适用专业**：{{targetMajor}}\n- **先修课程**：{{prerequisites}}\n- **后续课程**：{{subsequentCourses}}\n\n### 1.2 课程简介\n\n{{courseDescription}}\n\n### 1.3 课程定位\n\n{{coursePositioning}}\n\n## 二、课程目标\n\n### 2.1 总体目标\n\n{{overallObjectives}}\n\n### 2.2 具体目标（布鲁姆分类法）\n\n#### 知识目标（Knowledge）\n完成本课程后，学生应能够：\n1. {{knowledgeObj1}}\n2. {{knowledgeObj2}}\n3. {{knowledgeObj3}}\n\n#### 能力目标（Skills）\n1. {{skillObj1}}\n2. {{skillObj2}}\n3. {{skillObj3}}\n\n#### 素养目标（Attitudes）\n1. {{attitudeObj1}}\n2. {{attitudeObj2}}\n\n### 2.3 对毕业要求的支撑\n\n{{graduationRequirementAlignment}}\n\n## 三、教学内容与学时分配\n\n### 3.1 课程结构\n\n{{courseStructure}}\n\n### 3.2 详细教学计划\n\n#### 第1周：{{week1Topic}}\n- **教学目标**：{{week1Objectives}}\n- **主要内容**：\n  - {{week1Content1}}\n  - {{week1Content2}}\n- **重点难点**：{{week1KeyPoints}}\n- **教学方法**：{{week1Methods}}\n- **课后作业**：{{week1Assignment}}\n- **学时分配**：{{week1Hours}}学时\n\n#### 第2周：{{week2Topic}}\n{{week2Details}}\n\n#### 第3周：{{week3Topic}}\n{{week3Details}}\n\n#### 第4周：{{week4Topic}}\n{{week4Details}}\n\n#### 第5-8周：{{midTermTopics}}\n{{midTermDetails}}\n\n#### 第9周：期中考试/项目中期检查\n{{midtermExam}}\n\n#### 第10-15周：{{lateTopics}}\n{{lateTermDetails}}\n\n#### 第16周：课程总结与复习\n{{reviewWeek}}\n\n#### 第17周：期末考核\n{{finalExam}}\n\n### 3.3 学时分配表\n\n| 章节 | 教学内容 | 理论学时 | 实践学时 | 合计 |\n|------|---------|---------|---------|------|\n| 第一章 | {{chapter1}} | {{ch1Theory}} | {{ch1Practice}} | {{ch1Total}} |\n| 第二章 | {{chapter2}} | {{ch2Theory}} | {{ch2Practice}} | {{ch2Total}} |\n| ... | ... | ... | ... | ... |\n| **合计** | - | **{{theoryHours}}** | **{{practiceHours}}** | **{{totalHours}}** |\n\n## 四、教学方法与手段\n\n### 4.1 教学方法\n\n{{teachingMethods}}\n\n**主要采用**：\n- 讲授法：{{lecturePercentage}}%\n- 案例教学：{{caseStudyPercentage}}%\n- 小组讨论：{{discussionPercentage}}%\n- 项目式学习：{{projectBasedPercentage}}%\n- 翻转课堂：{{flippedClassroomPercentage}}%\n\n### 4.2 教学手段\n\n{{teachingTools}}\n\n### 4.3 课堂组织形式\n\n{{classroomOrganization}}\n\n## 五、考核方式与评分标准\n\n### 5.1 考核构成\n\n**总成绩构成**：\n- 平时成绩：{{attendanceWeight}}%\n  - 出勤：{{attendancePoints}}分\n  - 课堂参与：{{participationPoints}}分\n  - 小测验：{{quizPoints}}分\n- 作业/实验：{{assignmentWeight}}%\n- 期中考核：{{midtermWeight}}%\n- 期末考核：{{finalWeight}}%\n\n### 5.2 评分标准\n\n#### 作业评分标准\n{{assignmentGradingCriteria}}\n\n#### 项目评分标准\n{{projectGradingCriteria}}\n\n#### 期末考试评分标准\n{{finalExamCriteria}}\n\n### 5.3 成绩等级\n\n- 优秀（90-100）：{{excellentCriteria}}\n- 良好（80-89）：{{goodCriteria}}\n- 中等（70-79）：{{fairCriteria}}\n- 及格（60-69）：{{passCriteria}}\n- 不及格（<60）：{{failCriteria}}\n\n## 六、教材与参考资料\n\n### 6.1 指定教材\n\n**主教材**：\n{{mainTextbook}}\n\n**辅助教材**：\n{{supplementaryTextbook}}\n\n### 6.2 参考书目\n\n1. {{reference1}}\n2. {{reference2}}\n3. {{reference3}}\n4. {{reference4}}\n5. {{reference5}}\n\n### 6.3 在线资源\n\n- 课程网站：{{courseWebsite}}\n- 视频资源：{{videoResources}}\n- 在线工具：{{onlineTools}}\n- 学习平台：{{learningPlatform}}\n\n### 6.4 推荐阅读\n\n{{recommendedReading}}\n\n## 七、课程政策\n\n### 7.1 出勤政策\n\n{{attendancePolicy}}\n\n### 7.2 作业提交\n\n- 提交方式：{{submissionMethod}}\n- 迟交政策：{{latePenalty}}\n- 学术诚信：{{academicIntegrity}}\n\n### 7.3 补考与缓考\n\n{{makeupExamPolicy}}\n\n### 7.4 特殊情况处理\n\n{{specialCircumstances}}\n\n## 八、学习建议\n\n### 8.1 学习方法\n\n{{studyTips}}\n\n### 8.2 时间分配建议\n\n- 课前预习：{{prepTime}}小时/周\n- 课堂学习：{{classTime}}小时/周\n- 课后复习：{{reviewTime}}小时/周\n- 作业/项目：{{homeworkTime}}小时/周\n\n### 8.3 常见问题\n\n{{faq}}\n\n## 九、课程改进\n\n### 9.1 反馈机制\n\n{{feedbackMechanism}}\n\n### 9.2 持续改进计划\n\n{{improvementPlan}}\n\n---\n\n## 附录\n\n### 附录A：课程日历详细版\n\n{{detailedCalendar}}\n\n### 附录B：实验/项目指南\n\n{{labGuide}}\n\n### 附录C：课程资源清单\n\n{{resourceList}}\n\n---\n\n**本大纲最后修订日期**：{{lastUpdated}}\n\n**教师签名**：_____________________\n\n**系主任审核**：_____________________",
+  "variables_schema": [
+    {
+      "name": "courseName",
+      "label": "课程名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "courseCode",
+      "label": "课程代码",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "credits",
+      "label": "学分",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "totalHours",
+      "label": "总学时",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "instructor",
+      "label": "授课教师",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "courseType",
+      "label": "课程类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "专业必修课", "label": "专业必修课" },
+        { "value": "专业选修课", "label": "专业选修课" },
+        { "value": "通识必修课", "label": "通识必修课" },
+        { "value": "通识选修课", "label": "通识选修课" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "课程大纲-{{courseName}}",
+    "files": [
+      {"path": "{{courseName}}-课程大纲.docx", "type": "document"},
+      {"path": "教学计划表.xlsx", "type": "spreadsheet"},
+      {"path": "课件/", "type": "folder"},
+      {"path": "作业模板/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_instructional_design", "skill_content_creation"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

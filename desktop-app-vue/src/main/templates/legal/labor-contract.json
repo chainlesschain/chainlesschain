@@ -1,0 +1,62 @@
+{
+  "id": "tpl_legal_labor_001",
+  "name": "labor_contract",
+  "display_name": "劳动合同模板",
+  "description": "标准劳动合同文本，符合劳动法规定，包含工作内容、薪酬福利、工作时间等条款",
+  "icon": "📝",
+  "category": "legal",
+  "subcategory": "employment",
+  "tags": ["劳动合同", "法律文书", "人力资源", "合同"],
+  "project_type": "document",
+  "prompt_template": "# 劳动合同\n\n**甲方（用人单位）**：{{employerName}}\n**法定代表人**：{{legalRepresentative}}\n**地址**：{{employerAddress}}\n**联系电话**：{{employerPhone}}\n\n**乙方（劳动者）**：{{employeeName}}\n**身份证号**：{{employeeIdCard}}\n**地址**：{{employeeAddress}}\n**联系电话**：{{employeePhone}}\n\n---\n\n根据《中华人民共和国劳动法》、《中华人民共和国劳动合同法》及相关法律法规，甲乙双方本着平等自愿、协商一致的原则，签订本合同，共同遵守。\n\n## 第一条 合同期限\n\n**合同类型**：{{contractType}}\n\n**合同期限**：\n- 起始日期：{{startDate}}\n- 终止日期：{{endDate}}\n- 试用期：{{probationPeriod}}个月\n\n{{contractDurationDetails}}\n\n## 第二条 工作内容和工作地点\n\n### 2.1 工作岗位\n乙方同意根据甲方工作需要，在**{{jobPosition}}**岗位工作。\n\n### 2.2 工作内容\n{{jobDescription}}\n\n### 2.3 工作地点\n{{workLocation}}\n\n### 2.4 岗位调整\n{{jobAdjustmentClause}}\n\n## 第三条 工作时间和休息休假\n\n### 3.1 工作时间\n- 工作制度：{{workingHoursSystem}}\n- 每日工作时间：{{dailyWorkingHours}}小时\n- 每周工作时间：{{weeklyWorkingHours}}小时\n\n### 3.2 休息日\n{{restDays}}\n\n### 3.3 法定节假日\n按照国家规定执行。\n\n### 3.4 年假\n{{annualLeavePolicy}}\n\n### 3.5 加班\n{{overtimePolicy}}\n\n## 第四条 劳动报酬\n\n### 4.1 工资构成\n乙方工资由以下部分组成：\n- 基本工资：{{basicSalary}}元/月\n- 岗位工资：{{positionSalary}}元/月\n- 绩效工资：{{performanceSalary}}元/月\n- 其他：{{otherSalary}}\n\n**税前月工资总额**：{{totalMonthlySalary}}元\n\n### 4.2 工资发放\n- 发放时间：每月{{salaryPaymentDate}}日\n- 发放方式：{{paymentMethod}}\n\n### 4.3 试用期工资\n试用期工资为正式工资的{{probationSalaryRatio}}%，即{{probationSalary}}元/月。\n\n### 4.4 工资调整\n{{salaryAdjustmentPolicy}}\n\n## 第五条 社会保险和福利待遇\n\n### 5.1 社会保险\n甲方依法为乙方缴纳以下社会保险：\n- 养老保险\n- 医疗保险\n- 失业保险\n- 工伤保险\n- 生育保险\n- 住房公积金\n\n### 5.2 福利待遇\n{{benefitsPackage}}\n\n## 第六条 劳动保护、劳动条件和职业危害防护\n\n### 6.1 劳动保护\n{{laborProtection}}\n\n### 6.2 职业危害\n{{occupationalHazards}}\n\n## 第七条 劳动纪律\n\n乙方应遵守以下规定：\n1. 遵守国家法律法规和甲方依法制定的规章制度\n2. 遵守劳动纪律，服从管理\n3. 保守甲方商业秘密\n4. {{additionalDiscipline}}\n\n## 第八条 保密义务\n\n### 8.1 保密范围\n{{confidentialityScope}}\n\n### 8.2 保密期限\n{{confidentialityPeriod}}\n\n### 8.3 违约责任\n{{confidentialityBreach}}\n\n## 第九条 竞业限制\n\n{{nonCompeteClause}}\n\n## 第十条 合同的变更、解除和终止\n\n### 10.1 合同变更\n{{contractModification}}\n\n### 10.2 合同解除\n符合以下情形之一的，任何一方可以解除合同：\n{{terminationConditions}}\n\n### 10.3 经济补偿\n{{severancePayment}}\n\n## 第十一条 违约责任\n\n{{liabilityForBreach}}\n\n## 第十二条 争议解决\n\n双方因履行本合同发生争议，应协商解决；协商不成的，可以向劳动争议仲裁委员会申请仲裁。\n\n**仲裁机构**：{{arbitrationInstitution}}\n\n## 第十三条 其他约定\n\n{{otherProvisions}}\n\n## 第十四条 合同生效\n\n本合同一式两份，甲乙双方各执一份，具有同等法律效力，自双方签字盖章之日起生效。\n\n---\n\n**甲方（盖章）**：_____________________\n\n**法定代表人签字**：_____________________\n\n**日期**：{{signDate}}\n\n---\n\n**乙方（签字）**：_____________________\n\n**日期**：{{signDate}}",
+  "variables_schema": [
+    {
+      "name": "employerName",
+      "label": "用人单位名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "employeeName",
+      "label": "劳动者姓名",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "jobPosition",
+      "label": "工作岗位",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "contractType",
+      "label": "合同类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "固定期限", "label": "固定期限劳动合同" },
+        { "value": "无固定期限", "label": "无固定期限劳动合同" },
+        { "value": "以完成一定工作任务为期限", "label": "以完成一定工作任务为期限" }
+      ]
+    },
+    {
+      "name": "totalMonthlySalary",
+      "label": "税前月工资总额（元）",
+      "type": "number",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "劳动合同-{{employeeName}}",
+    "files": [
+      {"path": "劳动合同-{{employeeName}}.docx", "type": "document"},
+      {"path": "附件/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_legal_writing", "skill_hr_management"],
+  "required_tools": ["tool_word_generator"],
+  "execution_engine": "document"
+}

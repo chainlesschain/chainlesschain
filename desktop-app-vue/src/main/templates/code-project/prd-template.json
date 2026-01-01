@@ -1,0 +1,52 @@
+{
+  "id": "tpl_codeproject_prd_002",
+  "name": "product_requirements_document",
+  "display_name": "产品需求文档(PRD)",
+  "description": "专业PRD模板，包含需求背景、功能描述、交互原型和验收标准",
+  "icon": "📋",
+  "category": "code-project",
+  "subcategory": "documentation",
+  "tags": ["PRD", "产品需求", "产品文档", "需求管理"],
+  "project_type": "document",
+  "prompt_template": "# {{productName}} 产品需求文档（PRD）\n\n**文档版本**：{{version}}\n**创建日期**：{{createDate}}\n**产品经理**：{{pmName}}\n**优先级**：{{priority}}\n**预计上线**：{{releaseDate}}\n\n## 修订历史\n\n| 版本 | 日期 | 修改人 | 修改内容 |\n|------|------|--------|----------|\n| {{version}} | {{updateDate}} | {{updater}} | {{changeLog}} |\n\n---\n\n## 一、需求概述\n\n### 1.1 背景与目标\n\n**业务背景**：\n{{businessBackground}}\n\n**产品目标**：\n{{productGoal}}\n\n**成功指标**：\n- {{successMetric1}}\n- {{successMetric2}}\n- {{successMetric3}}\n\n### 1.2 目标用户\n\n**主要用户**：{{primaryUsers}}\n**次要用户**：{{secondaryUsers}}\n\n**用户画像**：\n{{userPersona}}\n\n### 1.3 使用场景\n\n**场景1**：{{scenario1}}\n**场景2**：{{scenario2}}\n**场景3**：{{scenario3}}\n\n## 二、需求范围\n\n### 2.1 本期范围（In Scope）\n- {{inScope1}}\n- {{inScope2}}\n- {{inScope3}}\n\n### 2.2 不包含范围（Out of Scope）\n- {{outOfScope1}}\n- {{outOfScope2}}\n\n### 2.3 未来规划（Future）\n{{futureScope}}\n\n## 三、功能需求\n\n### 3.1 功能架构图\n{{functionalArchitecture}}\n\n### 3.2 详细功能清单\n\n#### 功能模块1：{{module1Name}}\n\n**优先级**：{{module1Priority}}\n\n**功能点1.1**：{{feature1_1}}\n- **需求描述**：{{feature1_1_desc}}\n- **业务规则**：{{feature1_1_rules}}\n- **验收标准**：{{feature1_1_acceptance}}\n\n**功能点1.2**：{{feature1_2}}\n- **需求描述**：{{feature1_2_desc}}\n- **业务规则**：{{feature1_2_rules}}\n\n#### 功能模块2：{{module2Name}}\n\n**优先级**：{{module2Priority}}\n\n**功能点2.1**：{{feature2_1}}\n{{feature2_1_details}}\n\n### 3.3 功能流程图\n\n{{flowChartDescription}}\n\n## 四、交互设计\n\n### 4.1 信息架构\n{{informationArchitecture}}\n\n### 4.2 页面结构\n\n#### 页面1：{{page1Name}}\n- 入口：{{page1Entry}}\n- 主要元素：{{page1Elements}}\n- 交互说明：{{page1Interaction}}\n\n#### 页面2：{{page2Name}}\n{{page2Details}}\n\n### 4.3 原型/线框图链接\n{{prototypeLink}}\n\n## 五、非功能需求\n\n### 5.1 性能要求\n- 页面加载时间：{{loadTime}}秒内\n- 接口响应时间：{{apiResponse}}ms内\n- 并发支持：{{concurrency}}用户\n\n### 5.2 兼容性\n- 浏览器：{{browserSupport}}\n- 设备：{{deviceSupport}}\n- 分辨率：{{resolutionSupport}}\n\n### 5.3 安全要求\n{{securityRequirements}}\n\n### 5.4 数据要求\n{{dataRequirements}}\n\n## 六、技术方案（仅概要）\n\n### 6.1 技术架构\n{{techArchitecture}}\n\n### 6.2 数据库设计\n{{dbDesign}}\n\n### 6.3 接口设计\n\n| 接口名称 | 请求方式 | 参数 | 返回值 |\n|----------|----------|------|--------|\n| {{api1Name}} | {{api1Method}} | {{api1Params}} | {{api1Response}} |\n| {{api2Name}} | {{api2Method}} | {{api2Params}} | {{api2Response}} |\n\n## 七、数据埋点\n\n| 事件名称 | 触发时机 | 参数 | 用途 |\n|----------|----------|------|------|\n| {{event1}} | {{trigger1}} | {{params1}} | {{purpose1}} |\n| {{event2}} | {{trigger2}} | {{params2}} | {{purpose2}} |\n\n## 八、项目排期\n\n| 阶段 | 负责人 | 开始时间 | 结束时间 | 交付物 |\n|------|--------|----------|----------|--------|\n| 设计评审 | {{designOwner}} | {{designStart}} | {{designEnd}} | 设计稿 |\n| 开发 | {{devOwner}} | {{devStart}} | {{devEnd}} | 功能代码 |\n| 测试 | {{qaOwner}} | {{qaStart}} | {{qaEnd}} | 测试报告 |\n| 上线 | {{releaseOwner}} | {{releaseStart}} | {{releaseEnd}} | 生产环境 |\n\n## 九、测试验收\n\n### 9.1 测试用例（核心场景）\n\n**测试用例1**：\n- 前置条件：{{testPreCondition1}}\n- 测试步骤：{{testSteps1}}\n- 预期结果：{{expectedResult1}}\n\n**测试用例2**：\n{{testCase2}}\n\n### 9.2 验收标准\n- [ ] {{acceptance1}}\n- [ ] {{acceptance2}}\n- [ ] {{acceptance3}}\n\n## 十、风险与依赖\n\n### 10.1 潜在风险\n1. {{risk1}}\n2. {{risk2}}\n\n### 10.2 外部依赖\n{{externalDependencies}}\n\n## 十一、FAQ\n\n**Q1**：{{faq1Question}}\n**A1**：{{faq1Answer}}\n\n**Q2**：{{faq2Question}}\n**A2**：{{faq2Answer}}\n\n---\n\n**附录**：\n- 原型设计稿\n- 竞品分析\n- 用户调研数据",
+  "variables_schema": [
+    {
+      "name": "productName",
+      "label": "产品/功能名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "priority",
+      "label": "优先级",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "P0-紧急", "label": "P0（紧急，必须本周完成）" },
+        { "value": "P1-高", "label": "P1（高，本月完成）" },
+        { "value": "P2-中", "label": "P2（中，本季度完成）" },
+        { "value": "P3-低", "label": "P3（低，有空再做）" }
+      ]
+    },
+    {
+      "name": "pmName",
+      "label": "产品经理",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "PRD-{{productName}}",
+    "files": [
+      {"path": "PRD-{{productName}}-v{{version}}.docx", "type": "document"},
+      {"path": "原型设计/", "type": "folder"},
+      {"path": "测试用例.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_product_management", "skill_content_creation"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

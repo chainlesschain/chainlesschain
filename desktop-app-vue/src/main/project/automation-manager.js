@@ -325,10 +325,20 @@ class AutomationManager extends EventEmitter {
 
     console.log(`[AutomationManager] 执行任务: ${taskDescription}`);
 
-    // 调用AI引擎处理任务 (使用单例)
-    const { getAIEngineManager } = require('../ai-engine/ai-engine-manager');
-    const aiEngine = getAIEngineManager();
-    await aiEngine.initialize();
+    // 调用AI引擎处理任务 (使用单例 - 优化版)
+    const { getAIEngineManagerOptimized } = require('../ai-engine/ai-engine-manager-optimized');
+    const aiEngine = getAIEngineManagerOptimized();
+
+    // 初始化优化版AI引擎（启用所有优化功能）
+    await aiEngine.initialize({
+      enableSlotFilling: true,
+      enableToolSandbox: true,
+      enablePerformanceMonitor: true,
+      sandboxConfig: {
+        timeout: 30000,
+        retries: 2
+      }
+    });
 
     const result = await aiEngine.processUserInput(taskDescription, { projectId });
 

@@ -1,0 +1,61 @@
+{
+  "id": "tpl_marketing_campaign_001",
+  "name": "campaign_plan",
+  "display_name": "营销活动策划方案",
+  "description": "完整的营销活动策划文档，包含活动策略、执行计划、预算分配和效果评估",
+  "icon": "📢",
+  "category": "marketing",
+  "subcategory": "campaign",
+  "tags": ["营销策划", "活动方案", "市场推广", "品牌营销"],
+  "project_type": "document",
+  "prompt_template": "# {{campaignName}} 营销活动策划方案\n\n**活动主题**：{{campaignTheme}}\n**活动时间**：{{campaignDuration}}\n**目标受众**：{{targetAudience}}\n**负责人**：{{campaignManager}}\n**预算**：{{totalBudget}}\n\n---\n\n## 目录\n\n1. 活动背景\n2. 活动目标\n3. 目标受众分析\n4. 活动策略\n5. 创意方案\n6. 执行计划\n7. 预算分配\n8. 风险管理\n9. 效果评估\n\n---\n\n## 一、活动背景\n\n### 1.1 市场环境\n\n{{marketContext}}\n\n### 1.2 竞争态势\n\n{{competitiveLandscape}}\n\n### 1.3 品牌现状\n\n{{brandStatus}}\n\n### 1.4 活动契机\n\n**为什么是现在？**\n{{timingRationale}}\n\n## 二、活动目标\n\n### 2.1 业务目标\n\n- 销售目标：{{salesTarget}}\n- 新增用户：{{newUsersTarget}}\n- 转化率提升：{{conversionTarget}}%\n- GMV目标：{{gmvTarget}}\n\n### 2.2 品牌目标\n\n- 品牌曝光：{{exposureTarget}}\n- 媒体声量：{{mediaVoiceTarget}}\n- 品牌认知度提升：{{awarenessTarget}}%\n- 品牌好感度提升：{{favorabilityTarget}}%\n\n### 2.3 用户目标\n\n- 活跃用户数：{{activeUsersTarget}}\n- 用户留存率：{{retentionTarget}}%\n- 用户参与度：{{engagementTarget}}\n\n### 2.4 SMART目标拆解\n\n{{smartGoals}}\n\n## 三、目标受众分析\n\n### 3.1 核心用户画像\n\n#### 人群1：{{persona1Name}}\n- **人口统计**：{{persona1Demographics}}\n- **行为特征**：{{persona1Behavior}}\n- **痛点需求**：{{persona1PainPoints}}\n- **媒体偏好**：{{persona1Media}}\n- **占比**：{{persona1Percentage}}%\n\n#### 人群2：{{persona2Name}}\n{{persona2Details}}\n\n### 3.2 用户旅程地图\n\n{{customerJourneyMap}}\n\n### 3.3 触达策略\n\n{{reachStrategy}}\n\n## 四、活动策略\n\n### 4.1 核心策略\n\n**Big Idea**：{{bigIdea}}\n\n**策略支点**：{{strategyPivot}}\n\n### 4.2 传播策略\n\n{{communicationStrategy}}\n\n### 4.3 渠道策略\n\n- 线上渠道：{{onlineChannels}}\n- 线下渠道：{{offlineChannels}}\n- 社交媒体：{{socialMediaChannels}}\n- KOL/KOC：{{influencerStrategy}}\n\n### 4.4 内容策略\n\n{{contentStrategy}}\n\n## 五、创意方案\n\n### 5.1 活动主视觉\n\n{{visualIdentity}}\n\n### 5.2 创意概念\n\n{{creativeoncept}}\n\n### 5.3 核心传播物料\n\n#### 物料1：{{material1Type}}\n- 用途：{{material1Purpose}}\n- 创意说明：{{material1Creative}}\n- 规格：{{material1Specs}}\n\n#### 物料2：{{material2Type}}\n{{material2Details}}\n\n### 5.4 互动玩法\n\n{{interactiveMechanics}}\n\n### 5.5 激励机制\n\n{{incentiveStructure}}\n\n## 六、执行计划\n\n### 6.1 活动流程图\n\n{{campaignFlow}}\n\n### 6.2 分阶段计划\n\n#### 预热期（{{warmupPeriod}}）\n\n**目标**：{{warmupGoal}}\n\n**关键动作**：\n1. {{warmupAction1}}\n2. {{warmupAction2}}\n3. {{warmupAction3}}\n\n**物料准备**：{{warmupMaterials}}\n\n#### 爆发期（{{peakPeriod}}）\n\n**目标**：{{peakGoal}}\n\n**关键动作**：\n{{peakActions}}\n\n**资源投放**：{{peakResourceAllocation}}\n\n#### 收尾期（{{wrapupPeriod}}）\n\n**目标**：{{wrapupGoal}}\n\n**关键动作**：\n{{wrapupActions}}\n\n### 6.3 详细排期表\n\n| 日期 | 阶段 | 任务 | 负责人 | 交付物 | 状态 |\n|------|------|------|--------|--------|------|\n| {{date1}} | {{phase1}} | {{task1}} | {{owner1}} | {{deliverable1}} | ⏳ |\n| {{date2}} | {{phase2}} | {{task2}} | {{owner2}} | {{deliverable2}} | ⏳ |\n| ... | ... | ... | ... | ... | ... |\n\n### 6.4 渠道投放计划\n\n#### 社交媒体投放\n\n| 平台 | 内容形式 | 发布频次 | KPI | 预算 |\n|------|---------|---------|-----|------|\n| 微信 | {{wechatContent}} | {{wechatFreq}} | {{wechatKPI}} | {{wechatBudget}} |\n| 微博 | {{weiboContent}} | {{weiboFreq}} | {{weiboKPI}} | {{weiboBudget}} |\n| 抖音 | {{douyinContent}} | {{douyinFreq}} | {{douyinKPI}} | {{douyinBudget}} |\n| 小红书 | {{xiaohongshuContent}} | {{xiaohongshuFreq}} | {{xiaohongshuKPI}} | {{xiaohongshuBudget}} |\n\n#### KOL投放计划\n\n{{kolPlan}}\n\n#### 广告投放计划\n\n{{adPlan}}\n\n### 6.5 团队分工\n\n{{teamRolesAndResponsibilities}}\n\n## 七、预算分配\n\n### 7.1 预算总览\n\n**总预算**：{{totalBudget}}\n\n### 7.2 详细预算表\n\n| 费用类别 | 明细 | 金额 | 占比 |\n|---------|------|------|------|\n| **内容制作** | | {{contentProductionBudget}} | {{contentPercentage}}% |\n| - 视频制作 | {{videoProduction}} | {{videoBudget}} | |\n| - 平面设计 | {{graphicDesign}} | {{graphicBudget}} | |\n| - 文案创作 | {{copywriting}} | {{copyBudget}} | |\n| **媒体投放** | | {{mediaBudget}} | {{mediaPercentage}}% |\n| - 社交广告 | {{socialAds}} | {{socialAdsBudget}} | |\n| - 信息流 | {{feedAds}} | {{feedBudget}} | |\n| - KOL合作 | {{kolBudget}} | {{kolAmount}} | |\n| **奖品激励** | | {{prizeBudget}} | {{prizePercentage}}% |\n| **技术开发** | H5/小程序 | {{techBudget}} | {{techPercentage}}% |\n| **线下活动** | 场地/物料 | {{offlineBudget}} | {{offlinePercentage}}% |\n| **应急预算** | 10% | {{contingencyBudget}} | {{contingencyPercentage}}% |\n| **总计** | - | **{{totalBudget}}** | **100%** |\n\n### 7.3 ROI预估\n\n{{roiProjection}}\n\n## 八、风险管理\n\n### 8.1 风险识别\n\n| 风险类型 | 风险描述 | 概率 | 影响 | 应对措施 |\n|---------|---------|------|------|----------|\n| 内容风险 | {{contentRisk}} | {{contentRiskProb}} | {{contentRiskImpact}} | {{contentRiskMitigation}} |\n| 技术风险 | {{techRisk}} | {{techRiskProb}} | {{techRiskImpact}} | {{techRiskMitigation}} |\n| 舆情风险 | {{prRisk}} | {{prRiskProb}} | {{prRiskImpact}} | {{prRiskMitigation}} |\n| 竞品风险 | {{competitorRisk}} | {{competitorRiskProb}} | {{competitorRiskImpact}} | {{competitorRiskMitigation}} |\n\n### 8.2 应急预案\n\n{{contingencyPlans}}\n\n### 8.3 负面舆情应对\n\n{{crisisCommunicationPlan}}\n\n## 九、效果评估\n\n### 9.1 评估指标体系\n\n#### 曝光指标\n- 总曝光量：{{exposureMetric}}\n- 到达人数：{{reachMetric}}\n- 频次：{{frequencyMetric}}\n\n#### 互动指标\n- 点击率（CTR）：{{ctrTarget}}%\n- 互动率：{{engagementRateTarget}}%\n- 分享率：{{shareRateTarget}}%\n- UGC数量：{{ugcTarget}}\n\n#### 转化指标\n- 活动参与人数：{{participantsTarget}}\n- 注册转化率：{{registrationConversionTarget}}%\n- 购买转化率：{{purchaseConversionTarget}}%\n- 客单价：{{aovTarget}}\n\n#### 品牌指标\n- 品牌搜索量变化：{{brandSearchLift}}%\n- 品牌提及量：{{brandMentions}}\n- 情感倾向：{{sentimentScore}}\n\n### 9.2 数据采集方法\n\n{{dataCollectionMethods}}\n\n### 9.3 监测工具\n\n{{monitoringTools}}\n\n### 9.4 复盘机制\n\n{{postCampaignReview}}\n\n---\n\n## 附录\n\n### 附录A：竞品活动分析\n\n{{competitorCampaignAnalysis}}\n\n### 附录B：历史活动数据\n\n{{historicalData}}\n\n### 附录C：物料清单\n\n{{materialInventory}}\n\n### 附录D：合作方联系表\n\n{{partnerContacts}}",
+  "variables_schema": [
+    {
+      "name": "campaignName",
+      "label": "活动名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "campaignTheme",
+      "label": "活动主题/Slogan",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "campaignDuration",
+      "label": "活动时间",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：2026年3月1日-3月31日"
+    },
+    {
+      "name": "totalBudget",
+      "label": "总预算（万元）",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "targetAudience",
+      "label": "目标受众",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：18-35岁一线城市女性白领"
+    }
+  ],
+  "file_structure": {
+    "root": "营销活动-{{campaignName}}",
+    "files": [
+      {"path": "活动策划方案.pptx", "type": "presentation"},
+      {"path": "执行排期表.xlsx", "type": "spreadsheet"},
+      {"path": "预算明细.xlsx", "type": "spreadsheet"},
+      {"path": "创意素材/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_marketing_strategy", "skill_content_creation", "skill_data_analysis"],
+  "required_tools": ["tool_ppt_generator", "tool_excel_generator", "tool_chart_generator"],
+  "execution_engine": "presentation"
+}

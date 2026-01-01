@@ -1,0 +1,33 @@
+{
+  "id": "tpl_career_recruit_002",
+  "name": "recruitment_sop",
+  "display_name": "招聘流程SOP",
+  "description": "标准化招聘流程文档，包含需求发布、简历筛选、面试流程和Offer管理",
+  "icon": "👥",
+  "category": "career",
+  "subcategory": "hr",
+  "tags": ["招聘", "HR", "SOP", "流程"],
+  "project_type": "document",
+  "prompt_template": "# {{companyName}} 招聘流程SOP\n\n## 一、招聘需求管理\n\n### 1.1 需求提出\n- 部门提交《招聘需求申请表》\n- 说明岗位JD、人数、紧急程度\n\n### 1.2 需求审批\n{{approvalProcess}}\n\n## 二、简历筛选\n\n### 2.1 简历来源\n- 内部推荐：{{internalReferral}}\n- 招聘网站：{{jobBoards}}\n- 猎头：{{headhunter}}\n\n### 2.2 筛选标准\n{{screeningCriteria}}\n\n## 三、面试流程\n\n### 3.1 初试（HR）\n- 时长：{{hrInterviewDuration}}分钟\n- 内容：{{hrInterviewContent}}\n\n### 3.2 复试（部门）\n- 时长：{{deptInterviewDuration}}分钟\n- 评估：{{deptInterviewCriteria}}\n\n### 3.3 终试（高管）\n{{executiveInterview}}\n\n## 四、Offer管理\n\n### 4.1 薪酬定级\n{{compensationGuideline}}\n\n### 4.2 Offer发放\n{{offerProcess}}\n\n## 五、入职管理\n{{onboarding}}",
+  "variables_schema": [
+    {
+      "name": "companyName",
+      "label": "公司名称",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "招聘SOP",
+    "files": [
+      {"path": "招聘流程SOP.docx", "type": "document"},
+      {"path": "表单模板/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_hr_management"],
+  "required_tools": ["tool_word_generator"],
+  "execution_engine": "document"
+}
