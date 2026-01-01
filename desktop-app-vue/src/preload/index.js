@@ -638,9 +638,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     syncOne: (projectId) => ipcRenderer.invoke('project:sync-one', projectId),
 
     // Git 操作
+    gitInit: (repoPath, remoteUrl) => ipcRenderer.invoke('project:git-init', repoPath, remoteUrl),
     gitStatus: (repoPath) => ipcRenderer.invoke('project:git-status', repoPath),
-    gitPush: (projectId, repoPath) => ipcRenderer.invoke('project:git-push', projectId, repoPath),
-    gitPull: (projectId, repoPath) => ipcRenderer.invoke('project:git-pull', projectId, repoPath),
+    gitCommit: (projectId, repoPath, message, autoGenerate) => ipcRenderer.invoke('project:git-commit', projectId, repoPath, message, autoGenerate),
+    gitPush: (repoPath, remote, branch) => ipcRenderer.invoke('project:git-push', repoPath, remote, branch),
+    gitPull: (projectId, repoPath, remote, branch) => ipcRenderer.invoke('project:git-pull', projectId, repoPath, remote, branch),
+    gitLog: (repoPath, page, pageSize) => ipcRenderer.invoke('project:git-log', repoPath, page, pageSize),
+    gitShowCommit: (repoPath, sha) => ipcRenderer.invoke('project:git-show-commit', repoPath, sha),
+    gitDiff: (repoPath, commit1, commit2) => ipcRenderer.invoke('project:git-diff', repoPath, commit1, commit2),
+    gitBranches: (repoPath) => ipcRenderer.invoke('project:git-branches', repoPath),
+    gitCreateBranch: (repoPath, branchName, fromBranch) => ipcRenderer.invoke('project:git-create-branch', repoPath, branchName, fromBranch),
+    gitCheckout: (repoPath, branchName) => ipcRenderer.invoke('project:git-checkout', repoPath, branchName),
+    gitMerge: (repoPath, sourceBranch, targetBranch) => ipcRenderer.invoke('project:git-merge', repoPath, sourceBranch, targetBranch),
+    gitResolveConflicts: (repoPath, filePath, strategy) => ipcRenderer.invoke('project:git-resolve-conflicts', repoPath, filePath, strategy),
+    gitGenerateCommitMessage: (repoPath) => ipcRenderer.invoke('project:git-generate-commit-message', repoPath),
 
     // AI任务智能拆解系统
     decomposeTask: (userRequest, projectContext) => ipcRenderer.invoke('project:decompose-task', userRequest, removeUndefined(projectContext)),

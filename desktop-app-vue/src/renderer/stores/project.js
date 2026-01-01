@@ -765,15 +765,16 @@ export const useProjectStore = defineStore('project', {
     /**
      * 初始化Git仓库
      * @param {string} projectId - 项目ID
+     * @param {string} remoteUrl - 远程仓库URL（可选）
      */
-    async initGit(projectId) {
+    async initGit(projectId, remoteUrl = null) {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
           throw new Error('项目路径不存在');
         }
 
-        await window.electronAPI.project.gitInit(project.root_path);
+        await window.electronAPI.project.gitInit(project.root_path, remoteUrl);
       } catch (error) {
         console.error('初始化Git失败:', error);
         throw error;
@@ -784,15 +785,16 @@ export const useProjectStore = defineStore('project', {
      * Git提交
      * @param {string} projectId - 项目ID
      * @param {string} message - 提交消息
+     * @param {boolean} autoGenerate - 是否自动生成提交消息
      */
-    async gitCommit(projectId, message) {
+    async gitCommit(projectId, message, autoGenerate = false) {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
           throw new Error('项目路径不存在');
         }
 
-        await window.electronAPI.project.gitCommit(project.root_path, message);
+        await window.electronAPI.project.gitCommit(projectId, project.root_path, message, autoGenerate);
       } catch (error) {
         console.error('Git提交失败:', error);
         throw error;
@@ -802,15 +804,17 @@ export const useProjectStore = defineStore('project', {
     /**
      * Git推送
      * @param {string} projectId - 项目ID
+     * @param {string} remote - 远程仓库名（默认origin）
+     * @param {string} branch - 分支名（默认当前分支）
      */
-    async gitPush(projectId) {
+    async gitPush(projectId, remote = 'origin', branch = null) {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
           throw new Error('项目路径不存在');
         }
 
-        await window.electronAPI.project.gitPush(project.root_path);
+        await window.electronAPI.project.gitPush(project.root_path, remote, branch);
       } catch (error) {
         console.error('Git推送失败:', error);
         throw error;
@@ -820,15 +824,17 @@ export const useProjectStore = defineStore('project', {
     /**
      * Git拉取
      * @param {string} projectId - 项目ID
+     * @param {string} remote - 远程仓库名（默认origin）
+     * @param {string} branch - 分支名（默认当前分支）
      */
-    async gitPull(projectId) {
+    async gitPull(projectId, remote = 'origin', branch = null) {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
           throw new Error('项目路径不存在');
         }
 
-        await window.electronAPI.project.gitPull(project.root_path);
+        await window.electronAPI.project.gitPull(projectId, project.root_path, remote, branch);
 
         // 重新加载文件
         await this.loadProjectFiles(projectId);

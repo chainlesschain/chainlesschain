@@ -14046,13 +14046,43 @@ ${content}
     });
 
     // Git高级操作
-    ipcMain.handle('project:git-log', async (_event, repoPath, limit = 20) => {
+    ipcMain.handle('project:git-log', async (_event, repoPath, page = 1, pageSize = 20) => {
       try {
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(repoPath);
-        return await GitAPI.log(resolvedPath, limit);
+        // Calculate limit based on page and pageSize
+        const limit = page * pageSize;
+        const result = await GitAPI.log(resolvedPath, limit);
+
+        // Return paginated results
+        if (result && result.commits) {
+          const startIndex = (page - 1) * pageSize;
+          const endIndex = startIndex + pageSize;
+          const paginatedCommits = result.commits.slice(startIndex, endIndex);
+
+          return {
+            ...result,
+            commits: paginatedCommits,
+            hasMore: result.commits.length >= limit
+          };
+        }
+
+        return result;
       } catch (error) {
         console.error('[Main] 获取提交历史失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('project:git-show-commit', async (_event, repoPath, sha) => {
+      try {
+        const projectConfig = getProjectConfig();
+        const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        // Get the diff for a specific commit (commit vs its parent)
+        const result = await GitAPI.diff(resolvedPath, sha + '^', sha);
+        return result;
+      } catch (error) {
+        console.error('[Main] 获取提交详情失败:', error);
         return { success: false, error: error.message };
       }
     });
