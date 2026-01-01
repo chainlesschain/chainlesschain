@@ -14080,11 +14080,54 @@ ${content}
       try {
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(repoPath);
-        // Calculate limit based on page and pageSize
         const limit = page * pageSize;
+
+        // 尝试调用后端API
         const result = await GitAPI.log(resolvedPath, limit);
 
-        // Return paginated results
+        // 如果后端不可用，降级到本地Git
+        if (!result.success || result.status === 0) {
+          console.warn('[Main] 后端服务不可用，使用本地Git获取提交历史');
+          const git = require('isomorphic-git');
+          const fs = require('fs');
+
+          // 使用本地 Git 获取提交历史
+          const commits = await git.log({
+            fs,
+            dir: resolvedPath,
+            depth: limit,
+          });
+
+          // 转换为统一格式
+          const formattedCommits = commits.map(commit => ({
+            sha: commit.oid,
+            oid: commit.oid,
+            message: commit.commit.message,
+            author: {
+              name: commit.commit.author.name,
+              email: commit.commit.author.email,
+              timestamp: commit.commit.author.timestamp,
+            },
+            committer: {
+              name: commit.commit.committer.name,
+              email: commit.commit.committer.email,
+              timestamp: commit.commit.committer.timestamp,
+            },
+          }));
+
+          // 分页处理
+          const startIndex = (page - 1) * pageSize;
+          const endIndex = startIndex + pageSize;
+          const paginatedCommits = formattedCommits.slice(startIndex, endIndex);
+
+          return {
+            success: true,
+            commits: paginatedCommits,
+            hasMore: formattedCommits.length >= limit,
+          };
+        }
+
+        // 后端可用，返回分页结果
         if (result && result.commits) {
           const startIndex = (page - 1) * pageSize;
           const endIndex = startIndex + pageSize;

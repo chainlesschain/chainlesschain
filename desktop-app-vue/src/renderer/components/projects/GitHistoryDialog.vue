@@ -322,21 +322,36 @@ const loadCommits = async (append = false) => {
   }
 
   try {
+    console.log('[GitHistory] 加载提交历史，repoPath:', props.repoPath, 'page:', currentPage.value);
     const result = await window.electronAPI.project.gitLog(
       props.repoPath,
       currentPage.value,
       pageSize.value
     );
 
+    console.log('[GitHistory] Git log 结果:', result);
+
+    // 检查结果是否成功
+    if (result && result.success === false) {
+      throw new Error(result.error || '获取提交历史失败');
+    }
+
+    const newCommits = result.commits || [];
+    console.log('[GitHistory] 获取到的提交数:', newCommits.length);
+
     if (append) {
-      commits.value = [...commits.value, ...(result.commits || [])];
+      commits.value = [...commits.value, ...newCommits];
     } else {
-      commits.value = result.commits || [];
+      commits.value = newCommits;
     }
 
     hasMore.value = result.hasMore || false;
+
+    if (newCommits.length === 0) {
+      console.warn('[GitHistory] 没有找到提交历史');
+    }
   } catch (error) {
-    console.error('Load git history failed:', error);
+    console.error('[GitHistory] 加载提交历史失败:', error);
     message.error('加载提交历史失败：' + error.message);
   } finally {
     loading.value = false;
