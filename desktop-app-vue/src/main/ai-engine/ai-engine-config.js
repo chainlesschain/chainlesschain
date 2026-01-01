@@ -2,7 +2,7 @@
  * AI引擎优化配置
  * 集中管理槽位填充、工具沙箱、性能监控等优化模块的配置
  *
- * 版本: v0.17.0 (P1优化)
+ * 版本: v0.18.0 (P2优化)
  * 更新: 2026-01-01
  */
 
@@ -35,6 +35,16 @@ const DEFAULT_CONFIG = {
 
   // 是否启用自我修正循环
   enableSelfCorrection: true,
+
+  // P2优化模块（新增 v0.18.0）
+  // 是否启用意图融合（合并相似意图，减少LLM调用）
+  enableIntentFusion: true,
+
+  // 是否启用知识蒸馏（小模型处理简单任务）
+  enableKnowledgeDistillation: true,
+
+  // 是否启用流式响应（实时进度反馈）
+  enableStreamingResponse: true,
 
   // 工具沙箱配置
   sandboxConfig: {
@@ -171,6 +181,115 @@ const DEFAULT_CONFIG = {
       'split_task',
       'skip_step'
     ]
+  },
+
+  // P2优化模块配置（新增 v0.18.0）
+  // 意图融合配置
+  intentFusionConfig: {
+    // 是否启用规则融合（基于规则合并意图）
+    enableRuleFusion: true,
+
+    // 是否启用LLM融合（智能判断复杂场景）
+    enableLLMFusion: true,
+
+    // LLM融合置信度阈值
+    llmFusionConfidenceThreshold: 0.8,
+
+    // 融合策略
+    strategies: [
+      'same_file_operations',      // 同文件操作合并
+      'sequence_operations',        // 顺序操作合并
+      'batch_operations',           // 批量操作合并
+      'dependency_operations'       // 依赖操作合并
+    ],
+
+    // 最大融合窗口（一次最多融合几个意图）
+    maxFusionWindow: 5
+  },
+
+  // 知识蒸馏配置
+  knowledgeDistillationConfig: {
+    // 小模型配置
+    studentModel: {
+      model: 'qwen2:1.5b',
+      temperature: 0.5,
+      maxTokens: 1024
+    },
+
+    // 大模型配置
+    teacherModel: {
+      model: 'qwen2:7b',
+      temperature: 0.7,
+      maxTokens: 2048
+    },
+
+    // 路由配置
+    routing: {
+      // 复杂度阈值（0-1，超过此值使用大模型）
+      // 调整说明：从 0.5 降低到 0.35，让更多中等复杂度任务使用小模型
+      // 这样可以提高小模型使用率，节省成本，同时保证质量
+      // 复杂度分布：简单(0.15-0.25) → small, 中等(0.25-0.35) → small, 复杂(0.35+) → large
+      complexityThreshold: 0.35,
+
+      // 小模型准确率阈值（低于此值使用大模型）
+      studentAccuracyThreshold: 0.85,
+
+      // 置信度阈值（低于此值回退到大模型）
+      confidenceThreshold: 0.7
+    },
+
+    // 训练配置
+    training: {
+      // 最少训练样本数
+      minSamples: 1000,
+
+      // 训练样本最低置信度
+      minConfidence: 0.9,
+
+      // 重训练间隔（毫秒）7天
+      retrainInterval: 7 * 24 * 60 * 60 * 1000,
+
+      // 最多训练样本数
+      maxTrainingSamples: 10000
+    },
+
+    // 质量检查配置
+    validation: {
+      // 是否启用质量检查
+      enableQualityCheck: true,
+
+      // 是否在低置信度时回退
+      fallbackOnLowConfidence: true,
+
+      // 回退阈值
+      fallbackThreshold: 0.7
+    }
+  },
+
+  // 流式响应配置
+  streamingResponseConfig: {
+    // 是否启用进度反馈
+    enableProgress: true,
+
+    // 是否启用取消功能
+    enableCancel: true,
+
+    // 最小更新间隔（毫秒，避免更新过于频繁）
+    minUpdateInterval: 100,
+
+    // 是否启用部分结果流式返回
+    enablePartialResults: true,
+
+    // 进度事件类型
+    eventTypes: [
+      'start',          // 任务开始
+      'step_start',     // 步骤开始
+      'step_partial',   // 步骤部分结果
+      'step_complete',  // 步骤完成
+      'step_error',     // 步骤错误
+      'complete',       // 任务完成
+      'cancel'          // 任务取消
+    ]
   }
 };
 
@@ -220,7 +339,7 @@ const DEVELOPMENT_CONFIG = {
  */
 const TEST_CONFIG = {
   ...DEFAULT_CONFIG,
-  enablePerformanceMonitor: false,  // 测试时不记录性能
+  enablePerformanceMonitor: true,  // 测试时不记录性能
   sandboxConfig: {
     ...DEFAULT_CONFIG.sandboxConfig,
     timeout: 5000,
@@ -293,6 +412,39 @@ function mergeConfig(userConfig = {}) {
     selfCorrectionConfig: {
       ...baseConfig.selfCorrectionConfig,
       ...(userConfig.selfCorrectionConfig || {})
+    },
+    // P2优化模块配置
+    intentFusionConfig: {
+      ...baseConfig.intentFusionConfig,
+      ...(userConfig.intentFusionConfig || {})
+    },
+    knowledgeDistillationConfig: {
+      ...baseConfig.knowledgeDistillationConfig,
+      ...(userConfig.knowledgeDistillationConfig || {}),
+      studentModel: {
+        ...baseConfig.knowledgeDistillationConfig.studentModel,
+        ...(userConfig.knowledgeDistillationConfig?.studentModel || {})
+      },
+      teacherModel: {
+        ...baseConfig.knowledgeDistillationConfig.teacherModel,
+        ...(userConfig.knowledgeDistillationConfig?.teacherModel || {})
+      },
+      routing: {
+        ...baseConfig.knowledgeDistillationConfig.routing,
+        ...(userConfig.knowledgeDistillationConfig?.routing || {})
+      },
+      training: {
+        ...baseConfig.knowledgeDistillationConfig.training,
+        ...(userConfig.knowledgeDistillationConfig?.training || {})
+      },
+      validation: {
+        ...baseConfig.knowledgeDistillationConfig.validation,
+        ...(userConfig.knowledgeDistillationConfig?.validation || {})
+      }
+    },
+    streamingResponseConfig: {
+      ...baseConfig.streamingResponseConfig,
+      ...(userConfig.streamingResponseConfig || {})
     }
   };
 }
