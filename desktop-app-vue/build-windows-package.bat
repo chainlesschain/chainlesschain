@@ -154,7 +154,7 @@ if not exist "%BACKEND_DIR%" mkdir "%BACKEND_DIR%"
 
 REM 复制 Docker Compose 配置文件
 echo   复制 Docker Compose 配置...
-copy "..\docker-compose.yml" "%BACKEND_DIR%\docker-compose.yml" >nul
+copy "..\docker-compose.yml" "%BACKEND_DIR%\docker-compose.yml" 1>nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] 无法复制 docker-compose.yml
     echo 请确保文件存在: ..\docker-compose.yml
@@ -164,7 +164,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 REM 复制 .env 示例文件
 if exist "..\.env.example" (
-    copy "..\.env.example" "%BACKEND_DIR%\.env.example" >nul
+    copy "..\.env.example" "%BACKEND_DIR%\.env.example" 1>nul 2>&1
     echo   复制 .env.example 配置...
 )
 
@@ -348,7 +348,7 @@ if "%OFFLINE_MODE%"=="1" (
         REM 复制导出的镜像到打包目录
         if exist "docker-images-offline" (
             echo 复制 Docker 镜像到打包目录...
-            xcopy /E /I /Y "docker-images-offline\*" "%BACKEND_DIR%\docker-images\" >nul
+            xcopy /E /I /Y "docker-images-offline\*" "%BACKEND_DIR%\docker-images\" 1>nul 2>&1
             echo   ✓ Docker 镜像已复制
         ) else (
             echo [WARNING] Docker 镜像导出失败，将生成在线安装包
