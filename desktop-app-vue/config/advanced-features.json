@@ -1,0 +1,127 @@
+{
+  "adaptiveThreshold": {
+    "enabled": true,
+    "autoAdjust": true,
+    "interval": 60,
+    "targets": {
+      "smallModelRate": {
+        "min": 40,
+        "max": 60,
+        "ideal": 45
+      },
+      "successRate": {
+        "min": 85,
+        "ideal": 95
+      },
+      "costSavings": {
+        "min": 50,
+        "ideal": 70
+      }
+    },
+    "adjustment": {
+      "minSampleSize": 50,
+      "windowSize": 100,
+      "learningRate": 0.05,
+      "maxAdjustment": 0.1,
+      "minAdjustment": 0.01,
+      "cooldownPeriod": 3600000,
+      "convergenceThreshold": 0.005
+    }
+  },
+  "onlineLearning": {
+    "enabled": true,
+    "autoTrain": true,
+    "trainSchedule": "0 2 * * 0",
+    "trainDays": 30,
+    "models": {
+      "complexityEstimator": {
+        "learningRate": 0.01,
+        "minSampleSize": 500
+      },
+      "intentRecognizer": {
+        "confidenceThreshold": 0.7,
+        "minPatternFrequency": 10
+      },
+      "toolSelector": {
+        "learningRate": 0.1,
+        "preferenceWeights": {
+          "successRate": 0.7,
+          "usageFrequency": 0.2,
+          "speed": 0.1
+        }
+      },
+      "userPreference": {
+        "learningRate": 0.05
+      }
+    }
+  },
+  "advancedOptimizer": {
+    "enabled": true,
+    "autoOptimize": true,
+    "optimizeSchedule": "0 4 * * 0",
+    "features": {
+      "predictiveCache": true,
+      "parallelOptimization": true,
+      "smartRetry": true,
+      "bottleneckDetection": true
+    },
+    "config": {
+      "predictiveCache": {
+        "lookAheadWindow": 5,
+        "confidenceThreshold": 0.6,
+        "maxPredictions": 10,
+        "cacheExpiry": 1800000,
+        "minPatternFrequency": 10
+      },
+      "parallelOptimization": {
+        "maxParallelTasks": 4,
+        "minTaskDuration": 100,
+        "dependencyAnalysis": true,
+        "cpuThreshold": 0.8
+      },
+      "smartRetry": {
+        "maxRetries": 3,
+        "backoffStrategy": "exponential",
+        "initialDelay": 1000,
+        "maxDelay": 10000,
+        "jitterRange": 500
+      },
+      "bottleneckDetection": {
+        "thresholds": {
+          "slowTaskMs": 2000,
+          "highFailureRate": 0.2,
+          "lowCacheHitRate": 0.5
+        }
+      }
+    }
+  },
+  "healthCheck": {
+    "enabled": true,
+    "interval": 300000
+  },
+  "logging": {
+    "level": "info",
+    "maxFileSize": "10M",
+    "maxFiles": 5,
+    "console": true,
+    "file": true
+  },
+  "notifications": {
+    "enabled": false,
+    "channels": {
+      "email": {
+        "enabled": false,
+        "recipients": ["admin@example.com"]
+      },
+      "webhook": {
+        "enabled": false,
+        "url": "https://your-webhook-url.com/alerts"
+      }
+    },
+    "alerts": {
+      "criticalScore": 70,
+      "lowAccuracy": 0.8,
+      "highFailureRate": 0.3
+    }
+  }
+}
