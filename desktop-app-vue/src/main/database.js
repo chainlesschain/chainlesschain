@@ -1,4 +1,11 @@
-const initSqlJs = require('sql.js');
+// sql.js is optional (may not be available in packaged builds)
+let initSqlJs = null;
+try {
+  initSqlJs = require('sql.js');
+} catch (err) {
+  console.log('[Database] sql.js not available (will use better-sqlite3)');
+}
+
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');

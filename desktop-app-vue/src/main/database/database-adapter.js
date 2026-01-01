@@ -234,7 +234,12 @@ class DatabaseAdapter {
    * 创建 sql.js 数据库
    */
   async createSqlJsDatabase() {
-    const initSqlJs = require('sql.js');
+    let initSqlJs;
+    try {
+      initSqlJs = require('sql.js');
+    } catch (err) {
+      throw new Error('sql.js is not available. Please use better-sqlite3 instead.');
+    }
 
     // 初始化 sql.js
     const SQL = await initSqlJs({
