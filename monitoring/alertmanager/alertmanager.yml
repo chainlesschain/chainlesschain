@@ -1,0 +1,169 @@
+# AlertManager 配置文件
+# 用途: 定义告警路由和通知方式
+
+global:
+  # SMTP邮件配置
+  smtp_smarthost: 'smtp.example.com:587'
+  smtp_from: 'alertmanager@chainlesschain.com'
+  smtp_auth_username: 'alertmanager@chainlesschain.com'
+  smtp_auth_password: 'your-smtp-password'
+  smtp_require_tls: true
+
+  # 默认通知模板
+  resolve_timeout: 5m
+
+# 告警路由配置
+route:
+  # 默认分组
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s  # 等待10秒收集同组告警
+  group_interval: 10s  # 同组告警间隔10秒
+  repeat_interval: 12h  # 重复告警间隔12小时
+
+  # 默认接收者
+  receiver: 'default-receiver'
+
+  # 子路由
+  routes:
+    # 严重告警 - 立即通知多个渠道
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      repeat_interval: 4h
+      routes:
+        # 服务宕机 - 紧急通知
+        - match_re:
+            alertname: '.*ServiceDown|.*Down'
+          receiver: 'emergency-alerts'
+          group_wait: 0s
+          repeat_interval: 1h
+
+    # 警告级别 - 邮件通知
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      repeat_interval: 12h
+
+    # 数据库告警
+    - match:
+        service: database
+      receiver: 'database-team'
+
+    # 安全告警
+    - match_re:
+        alertname: '.*Authentication.*|.*Suspicious.*'
+      receiver: 'security-team'
+      group_wait: 0s
+      repeat_interval: 6h
+
+# 告警抑制规则（防止告警风暴）
+inhibit_rules:
+  # 如果服务宕机，抑制其他所有相关告警
+  - source_match:
+      severity: 'critical'
+      alertname: '.*ServiceDown'
+    target_match:
+      severity: 'warning'
+    equal: ['service', 'instance']
+
+  # 如果磁盘即将满，抑制磁盘使用率告警
+  - source_match:
+      alertname: 'DiskAlmostFull'
+    target_match:
+      alertname: 'HighDiskUsage'
+    equal: ['instance', 'mountpoint']
+
+# 接收者配置
+receivers:
+  # ==================== 默认接收者 ====================
+  - name: 'default-receiver'
+    email_configs:
+      - to: 'ops-team@chainlesschain.com'
+        headers:
+          Subject: '[ChainlessChain] {{ .GroupLabels.alertname }}'
+        html: |
+          {{ range .Alerts }}
+          <h3>{{ .Labels.alertname }}</h3>
+          <p><strong>严重程度:</strong> {{ .Labels.severity }}</p>
+          <p><strong>描述:</strong> {{ .Annotations.description }}</p>
+          <p><strong>实例:</strong> {{ .Labels.instance }}</p>
+          <p><strong>时间:</strong> {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+          {{ end }}
+
+  # ==================== 严重告警 ====================
+  - name: 'critical-alerts'
+    # 邮件通知
+    email_configs:
+      - to: 'ops-team@chainlesschain.com,cto@chainlesschain.com'
+        headers:
+          Subject: '🚨 [CRITICAL] {{ .GroupLabels.alertname }}'
+        send_resolved: true
+
+    # 钉钉通知
+    webhook_configs:
+      - url: 'http://dingtalk-webhook:8060/dingtalk/webhook1/send'
+        send_resolved: true
+
+    # 企业微信通知
+    # wechat_configs:
+    #   - corp_id: 'your-corp-id'
+    #     to_user: '@all'
+    #     agent_id: 'your-agent-id'
+    #     api_secret: 'your-api-secret'
+
+  # ==================== 紧急告警（服务宕机）====================
+  - name: 'emergency-alerts'
+    # 邮件通知
+    email_configs:
+      - to: 'ops-team@chainlesschain.com,cto@chainlesschain.com'
+        headers:
+          Subject: '🔥 [EMERGENCY] 服务宕机: {{ .GroupLabels.service }}'
+        send_resolved: true
+
+    # 钉钉通知（高优先级）
+    webhook_configs:
+      - url: 'http://dingtalk-webhook:8060/dingtalk/webhook1/send'
+        send_resolved: true
+
+    # Slack通知（可选）
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    #     channel: '#alerts-critical'
+    #     title: '🔥 服务宕机'
+    #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+    # PagerDuty通知（可选，适合24/7值班）
+    # pagerduty_configs:
+    #   - service_key: 'your-pagerduty-service-key'
+
+  # ==================== 警告告警 ====================
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'ops-team@chainlesschain.com'
+        headers:
+          Subject: '⚠️ [WARNING] {{ .GroupLabels.alertname }}'
+        send_resolved: true
+
+  # ==================== 数据库团队 ====================
+  - name: 'database-team'
+    email_configs:
+      - to: 'dba-team@chainlesschain.com'
+        headers:
+          Subject: '[数据库告警] {{ .GroupLabels.alertname }}'
+        send_resolved: true
+
+  # ==================== 安全团队 ====================
+  - name: 'security-team'
+    email_configs:
+      - to: 'security-team@chainlesschain.com'
+        headers:
+          Subject: '🛡️ [安全告警] {{ .GroupLabels.alertname }}'
+        send_resolved: true
+
+    webhook_configs:
+      - url: 'http://dingtalk-webhook:8060/dingtalk/webhook2/send'
+
+# 告警模板
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

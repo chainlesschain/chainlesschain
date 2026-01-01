@@ -1,0 +1,16 @@
+# 钉钉Webhook配置
+# 用途: 将告警发送到钉钉群
+
+templates:
+  - /etc/prometheus-webhook-dingtalk/templates/default.tmpl
+
+targets:
+  # 运维告警群
+  webhook1:
+    url: https://oapi.dingtalk.com/robot/send?access_token=YOUR_DINGTALK_ACCESS_TOKEN
+    # 安全设置 - 关键词或加签
+    # secret: YOUR_DINGTALK_SECRET
+
+  # 开发告警群
+  webhook2:
+    url: https://oapi.dingtalk.com/robot/send?access_token=YOUR_DINGTALK_ACCESS_TOKEN_2

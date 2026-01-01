@@ -1,0 +1,269 @@
+# Docker Compose - 完整部署配置
+# 用途: 后端服务 + 监控系统 完整部署
+# 使用: docker-compose -f docker-compose.full.yml up -d
+
+version: '3.8'
+
+services:
+  # ==================== 数据库层 ====================
+  postgres:
+    image: postgres:16-alpine
+    container_name: chainlesschain_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-chainlesschain}
+      POSTGRES_USER: ${DB_USER:-chainlesschain}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?请在.env中设置数据库密码}
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/project-service/src/main/resources/db/migration:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    networks:
+      - backend_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-chainlesschain}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: chainlesschain_redis
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?请在.env中设置Redis密码}
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - backend_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: chainlesschain_qdrant
+    expose:
+      - "6333"
+      - "6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+    networks:
+      - backend_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==================== 应用层 ====================
+  ai-service:
+    build:
+      context: ./backend/ai-service
+      dockerfile: Dockerfile
+    image: chainlesschain/ai-service:latest
+    container_name: chainlesschain_ai_service
+    ports:
+      - "127.0.0.1:8001:8000"
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER}
+      - LLM_MODEL=${LLM_MODEL}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ZHIPU_API_KEY=${ZHIPU_API_KEY:-}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-base-zh-v1.5}
+      - HF_ENDPOINT=https://hf-mirror.com
+    volumes:
+      - ./data/projects:/data/projects
+      - ./data/models:/models
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend_network
+      - monitoring_network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  project-service:
+    build:
+      context: ./backend/project-service
+      dockerfile: Dockerfile
+    image: chainlesschain/project-service:latest
+    container_name: chainlesschain_project_service
+    ports:
+      - "127.0.0.1:9090:9090"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${DB_NAME:-chainlesschain}
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-chainlesschain}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - AI_SERVICE_URL=http://ai-service:8000
+      - JWT_SECRET=${JWT_SECRET:?请在.env中设置JWT密钥}
+      - PROJECTS_ROOT_PATH=/data/projects
+    volumes:
+      - ./data/projects:/data/projects
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend_network
+      - monitoring_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ==================== 监控层 ====================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: chainlesschain_prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: chainlesschain_grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards/json:ro
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+    depends_on:
+      - prometheus
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: chainlesschain_alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: chainlesschain_node_exporter
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+    ports:
+      - "127.0.0.1:9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: chainlesschain_cadvisor
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+    privileged: true
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: chainlesschain_postgres_exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${DB_USER:-chainlesschain}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-chainlesschain}?sslmode=disable
+    ports:
+      - "127.0.0.1:9187:9187"
+    restart: unless-stopped
+    networks:
+      - backend_network
+      - monitoring_network
+    depends_on:
+      - postgres
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: chainlesschain_redis_exporter
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:9121:9121"
+    restart: unless-stopped
+    networks:
+      - backend_network
+      - monitoring_network
+    depends_on:
+      - redis
+
+networks:
+  backend_network:
+    driver: bridge
+  monitoring_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:

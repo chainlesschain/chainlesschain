@@ -1,0 +1,255 @@
+# Prometheus 告警规则
+# 用途: 定义监控告警条件
+
+groups:
+  # ==================== 服务可用性告警 ====================
+  - name: service_availability
+    interval: 30s
+    rules:
+      # AI服务宕机
+      - alert: AIServiceDown
+        expr: up{job="ai-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ai-service
+        annotations:
+          summary: "AI服务不可用"
+          description: "AI服务已宕机超过1分钟，instance: {{ $labels.instance }}"
+
+      # Project服务宕机
+      - alert: ProjectServiceDown
+        expr: up{job="project-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: project-service
+        annotations:
+          summary: "Project服务不可用"
+          description: "Project服务已宕机超过1分钟，instance: {{ $labels.instance }}"
+
+      # PostgreSQL宕机
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL数据库不可用"
+          description: "PostgreSQL已宕机超过1分钟"
+
+      # Redis宕机
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis缓存不可用"
+          description: "Redis已宕机超过1分钟"
+
+  # ==================== 系统资源告警 ====================
+  - name: system_resources
+    interval: 30s
+    rules:
+      # CPU使用率过高
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU使用率过高"
+          description: "实例 {{ $labels.instance }} CPU使用率超过80%，当前值: {{ $value | humanize }}%"
+
+      # 内存使用率过高
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高"
+          description: "实例 {{ $labels.instance }} 内存使用率超过85%，当前值: {{ $value | humanize }}%"
+
+      # 磁盘使用率过高
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "磁盘使用率过高"
+          description: "实例 {{ $labels.instance }} 磁盘 {{ $labels.mountpoint }} 使用率超过85%，当前值: {{ $value | humanize }}%"
+
+      # 磁盘即将满
+      - alert: DiskAlmostFull
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} / node_filesystem_size_bytes)) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "磁盘即将满"
+          description: "实例 {{ $labels.instance }} 磁盘 {{ $labels.mountpoint }} 使用率超过95%，当前值: {{ $value | humanize }}%"
+
+  # ==================== 容器资源告警 ====================
+  - name: container_resources
+    interval: 30s
+    rules:
+      # 容器内存使用过高
+      - alert: ContainerHighMemory
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "容器内存使用过高"
+          description: "容器 {{ $labels.name }} 内存使用率超过90%，当前值: {{ $value | humanize }}%"
+
+      # 容器CPU使用过高
+      - alert: ContainerHighCPU
+        expr: (rate(container_cpu_usage_seconds_total[5m]) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "容器CPU使用过高"
+          description: "容器 {{ $labels.name }} CPU使用率超过80%，当前值: {{ $value | humanize }}%"
+
+      # 容器重启频繁
+      - alert: ContainerRestarting
+        expr: rate(container_last_seen[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "容器频繁重启"
+          description: "容器 {{ $labels.name }} 在过去5分钟内重启过"
+
+  # ==================== 数据库告警 ====================
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # PostgreSQL连接数过多
+      - alert: PostgreSQLTooManyConnections
+        expr: sum(pg_stat_activity_count) > 150
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL连接数过多"
+          description: "PostgreSQL当前连接数: {{ $value }}，接近上限"
+
+      # PostgreSQL慢查询增加
+      - alert: PostgreSQLSlowQueries
+        expr: rate(pg_stat_activity_max_tx_duration[5m]) > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL慢查询增加"
+          description: "检测到慢查询增加，平均执行时间: {{ $value | humanize }}秒"
+
+      # Redis内存使用过高
+      - alert: RedisHighMemory
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis内存使用过高"
+          description: "Redis内存使用率超过90%，当前值: {{ $value | humanize }}%"
+
+      # Redis连接数过多
+      - alert: RedisTooManyConnections
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis连接数过多"
+          description: "Redis当前连接数: {{ $value }}"
+
+  # ==================== 应用性能告警 ====================
+  - name: application_performance
+    interval: 30s
+    rules:
+      # HTTP响应时间过长
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP响应时间过长"
+          description: "95%分位响应时间超过2秒，当前值: {{ $value | humanize }}秒"
+
+      # HTTP错误率过高
+      - alert: HighErrorRate
+        expr: (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP错误率过高"
+          description: "5xx错误率超过5%，当前值: {{ $value | humanize }}%"
+
+      # 请求量突然下降
+      - alert: RequestRateDropped
+        expr: rate(http_requests_total[5m]) < 0.1 * rate(http_requests_total[1h] offset 1h)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "请求量突然下降"
+          description: "请求量比1小时前下降了90%以上"
+
+  # ==================== LLM相关告警 ====================
+  - name: llm_alerts
+    interval: 60s
+    rules:
+      # LLM调用失败率过高
+      - alert: LLMHighFailureRate
+        expr: (sum(rate(llm_requests_failed_total[5m])) / sum(rate(llm_requests_total[5m]))) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LLM调用失败率过高"
+          description: "LLM调用失败率超过10%，当前值: {{ $value | humanize }}%"
+
+      # LLM响应时间过长
+      - alert: LLMSlowResponse
+        expr: histogram_quantile(0.95, rate(llm_request_duration_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LLM响应时间过长"
+          description: "95%分位LLM响应时间超过30秒，当前值: {{ $value | humanize }}秒"
+
+  # ==================== 安全告警 ====================
+  - name: security_alerts
+    interval: 30s
+    rules:
+      # 大量认证失败
+      - alert: HighAuthenticationFailures
+        expr: rate(authentication_failures_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "认证失败次数过多"
+          description: "检测到大量认证失败，可能存在攻击行为，速率: {{ $value | humanize }}/秒"
+
+      # 异常IP访问
+      - alert: SuspiciousIPActivity
+        expr: count(rate(http_requests_total[5m]) > 100) by (client_ip) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "检测到异常IP活动"
+          description: "IP {{ $labels.client_ip }} 请求频率异常"
