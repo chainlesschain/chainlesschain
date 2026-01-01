@@ -490,15 +490,32 @@ class FileIPC {
     // 读取文件内容
     ipcMain.handle('file:readContent', async (event, filePath) => {
       try {
-        console.log('[File IPC] 读取文件:', filePath);
+        console.log('[File IPC] ========== 读取文件 ==========');
+        console.log('[File IPC] 接收到的路径:', filePath);
+        console.log('[File IPC] 路径类型:', typeof filePath);
+        console.log('[File IPC] 是否为绝对路径:', path.isAbsolute(filePath));
+
+        // 检查文件是否存在
+        try {
+          await fs.access(filePath);
+          console.log('[File IPC] ✓ 文件存在');
+        } catch (err) {
+          console.error('[File IPC] ✗ 文件不存在:', err.message);
+          throw new Error(`文件不存在: ${filePath}`);
+        }
+
         const content = await fs.readFile(filePath, 'utf-8');
+        console.log('[File IPC] ✓ 读取成功，内容长度:', content.length);
+        console.log('[File IPC] 内容预览:', content.substring(0, 100));
 
         return {
           success: true,
           content,
         };
       } catch (error) {
-        console.error('[File IPC] 读取文件失败:', error);
+        console.error('[File IPC] ========== 读取文件失败 ==========');
+        console.error('[File IPC] 错误:', error.message);
+        console.error('[File IPC] 堆栈:', error.stack);
         return {
           success: false,
           error: error.message,

@@ -446,12 +446,25 @@ const handleSendMessage = async () => {
 
     // 如果有文件操作成功执行，通知用户并刷新文件树
     if (response.hasFileOperations && response.fileOperations.length > 0) {
-      const successCount = response.fileOperations.filter(op => op.status === 'success').length;
-      const errorCount = response.fileOperations.filter(op => op.status === 'error').length;
+      // 兼容两种数据格式：ChatSkillBridge (success: boolean) 和原有格式 (status: 'success')
+      const successCount = response.fileOperations.filter(op =>
+        op.success === true || op.status === 'success'
+      ).length;
+      const errorCount = response.fileOperations.filter(op =>
+        op.success === false || op.status === 'error'
+      ).length;
+
+      console.log('[ChatPanel] 文件操作统计:', {
+        total: response.fileOperations.length,
+        successCount,
+        errorCount,
+        operations: response.fileOperations
+      });
 
       if (successCount > 0) {
         antMessage.success(`成功执行 ${successCount} 个文件操作`);
         // 触发文件树刷新事件（如果父组件有监听）
+        console.log('[ChatPanel] 触发 files-changed 事件');
         emit('files-changed');
       }
 

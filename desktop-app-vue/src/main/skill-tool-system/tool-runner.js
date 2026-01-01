@@ -47,6 +47,9 @@ class ToolRunner {
 
     try {
       console.log(`[ToolRunner] 执行工具: ${toolName}`);
+      console.log(`[ToolRunner] 参数:`, params);
+      console.log(`[ToolRunner] 选项:`, options);
+      console.log(`[ToolRunner] 项目路径:`, options.projectPath);
 
       // 1. 获取工具信息
       const tool = await this.toolManager.getToolByName(toolName);
@@ -145,11 +148,18 @@ class ToolRunner {
    * 文件读取器
    */
   createFileReader() {
-    return async (params) => {
+    return async (params, options = {}) => {
       const { filePath } = params;
 
+      // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
+      let resolvedPath = filePath;
+      if (options.projectPath && !path.isAbsolute(filePath)) {
+        resolvedPath = path.join(options.projectPath, filePath);
+        console.log(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+      }
+
       // 安全检查：防止路径遍历
-      const safePath = path.normalize(filePath);
+      const safePath = path.normalize(resolvedPath);
       if (safePath.includes('..')) {
         throw new Error('非法路径');
       }
@@ -169,11 +179,18 @@ class ToolRunner {
    * 文件写入器
    */
   createFileWriter() {
-    return async (params) => {
+    return async (params, options = {}) => {
       const { filePath, content, mode = 'overwrite' } = params;
 
+      // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
+      let resolvedPath = filePath;
+      if (options.projectPath && !path.isAbsolute(filePath)) {
+        resolvedPath = path.join(options.projectPath, filePath);
+        console.log(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+      }
+
       // 安全检查
-      const safePath = path.normalize(filePath);
+      const safePath = path.normalize(resolvedPath);
       if (safePath.includes('..')) {
         throw new Error('非法路径');
       }
@@ -189,6 +206,8 @@ class ToolRunner {
         await fs.writeFile(safePath, content, 'utf8');
       }
 
+      console.log(`[ToolRunner] 文件已写入: ${safePath}, 大小: ${content.length} 字节`);
+
       return {
         success: true,
         filePath: safePath,
@@ -202,10 +221,17 @@ class ToolRunner {
    * 文件编辑器
    */
   createFileEditor() {
-    return async (params) => {
+    return async (params, options = {}) => {
       const { filePath, search, replace, mode = 'first' } = params;
 
-      const safePath = path.normalize(filePath);
+      // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
+      let resolvedPath = filePath;
+      if (options.projectPath && !path.isAbsolute(filePath)) {
+        resolvedPath = path.join(options.projectPath, filePath);
+        console.log(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+      }
+
+      const safePath = path.normalize(resolvedPath);
       const content = await fs.readFile(safePath, 'utf8');
 
       let newContent;
