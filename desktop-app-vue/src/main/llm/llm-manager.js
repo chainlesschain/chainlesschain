@@ -124,6 +124,7 @@ class LLMManager extends EventEmitter {
       case LLMProviders.DEEPSEEK:
         return new DeepSeekClient({
           apiKey: this.config.apiKey,
+          baseURL: this.config.baseURL,
           model: this.config.model || 'deepseek-chat',
           timeout: this.config.timeout,
         });

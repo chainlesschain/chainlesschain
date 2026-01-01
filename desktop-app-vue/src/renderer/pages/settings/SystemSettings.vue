@@ -123,6 +123,7 @@
                 <a-select v-model:value="config.llm.provider" style="width: 100%;">
                   <a-select-option value="ollama">Ollama（本地）</a-select-option>
                   <a-select-option value="openai">OpenAI</a-select-option>
+                  <a-select-option value="anthropic">Claude (Anthropic)</a-select-option>
                   <a-select-option value="volcengine">火山引擎（豆包）</a-select-option>
                   <a-select-option value="dashscope">阿里通义千问</a-select-option>
                   <a-select-option value="zhipu">智谱 AI</a-select-option>
@@ -190,6 +191,20 @@
                 </a-form-item>
               </template>
 
+              <!-- Claude (Anthropic) 配置 -->
+              <a-divider v-if="config.llm.provider === 'anthropic'">Claude (Anthropic) 配置</a-divider>
+              <template v-if="config.llm.provider === 'anthropic'">
+                <a-form-item label="API Key">
+                  <a-input-password v-model:value="config.llm.anthropicApiKey" placeholder="sk-ant-..." />
+                </a-form-item>
+                <a-form-item label="API 地址">
+                  <a-input v-model:value="config.llm.anthropicBaseUrl" placeholder="https://api.anthropic.com" />
+                </a-form-item>
+                <a-form-item label="模型">
+                  <a-input v-model:value="config.llm.anthropicModel" placeholder="claude-3-5-sonnet-20241022" />
+                </a-form-item>
+              </template>
+
               <!-- 火山引擎配置 -->
               <a-divider v-if="config.llm.provider === 'volcengine'">火山引擎（豆包）配置</a-divider>
               <template v-if="config.llm.provider === 'volcengine'">
@@ -237,6 +252,19 @@
                   <a-input v-model:value="config.llm.deepseekModel" placeholder="deepseek-chat" />
                 </a-form-item>
               </template>
+
+              <!-- 测试连接按钮 -->
+              <a-divider />
+              <a-form-item :wrapper-col="{ span: 18, offset: 6 }">
+                <a-space>
+                  <a-button type="primary" @click="testLLMConnection" :loading="testingConnection">
+                    测试连接
+                  </a-button>
+                  <a-tag v-if="llmTestResult" :color="llmTestResult.success ? 'success' : 'error'">
+                    {{ llmTestResult.message }}
+                  </a-tag>
+                </a-space>
+              </a-form-item>
             </a-form>
           </a-card>
         </a-tab-pane>
@@ -792,10 +820,15 @@ const loading = ref(false);
 const saving = ref(false);
 const activeTab = ref('project');
 
+// LLM 测试连接相关
+const testingConnection = ref(false);
+const llmTestResult = ref(null);
+
 // LLM 提供商选项
 const llmProviderOptions = [
   { label: 'Ollama（本地）', value: 'ollama' },
   { label: 'OpenAI', value: 'openai' },
+  { label: 'Claude (Anthropic)', value: 'anthropic' },
   { label: '火山引擎（豆包）', value: 'volcengine' },
   { label: '阿里通义千问', value: 'dashscope' },
   { label: '智谱 AI', value: 'zhipu' },
@@ -843,6 +876,9 @@ const config = ref({
     openaiApiKey: '',
     openaiBaseUrl: '',
     openaiModel: '',
+    anthropicApiKey: '',
+    anthropicBaseUrl: '',
+    anthropicModel: '',
     volcengineApiKey: '',
     volcengineModel: '',
     dashscopeApiKey: '',
@@ -1049,6 +1085,44 @@ const handleRunDiagnostics = async () => {
     message.error('诊断失败：' + error.message);
   } finally {
     runningDiagnostics.value = false;
+  }
+};
+
+// 测试 LLM 连接
+const testLLMConnection = async () => {
+  testingConnection.value = true;
+  llmTestResult.value = null;
+
+  try {
+    // 先保存当前配置
+    const cleanConfig = JSON.parse(JSON.stringify(config.value));
+    await window.electronAPI.config.update(cleanConfig);
+
+    // 调用测试接口
+    const result = await window.electronAPI.llm.checkStatus();
+
+    if (result.available) {
+      llmTestResult.value = {
+        success: true,
+        message: '连接成功！服务正常运行',
+      };
+      message.success('LLM 服务连接成功');
+    } else {
+      llmTestResult.value = {
+        success: false,
+        message: '连接失败: ' + (result.error || '未知错误'),
+      };
+      message.error('LLM 服务连接失败');
+    }
+  } catch (error) {
+    console.error('测试LLM连接失败:', error);
+    llmTestResult.value = {
+      success: false,
+      message: '测试失败: ' + error.message,
+    };
+    message.error('测试失败：' + error.message);
+  } finally {
+    testingConnection.value = false;
   }
 };
 

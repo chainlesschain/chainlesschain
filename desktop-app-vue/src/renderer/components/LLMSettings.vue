@@ -37,27 +37,12 @@
           </a-form-item>
 
           <a-form-item label="模型">
-            <a-select
+            <a-input
               v-model:value="form.ollama.model"
-              placeholder="选择或输入模型名称"
-              :loading="modelsLoading"
-              show-search
-              allow-clear
-              @dropdown-visible-change="handleModelsDropdown"
-            >
-              <a-select-option
-                v-for="model in availableModels"
-                :key="model.name"
-                :value="model.name"
-              >
-                {{ model.name }}
-                <span v-if="model.size" class="model-size">
-                  ({{ formatSize(model.size) }})
-                </span>
-              </a-select-option>
-            </a-select>
+              placeholder="输入模型名称，如 llama3.2, qwen2.5, mistral"
+            />
             <div class="form-hint">
-              选择已安装的模型，如 llama2, llama3, mistral 等
+              常用模型: llama3.2, llama3.1, qwen2.5, qwen2, mistral, codellama, gemma2
             </div>
           </a-form-item>
         </template>
@@ -87,16 +72,13 @@
           </a-form-item>
 
           <a-form-item label="模型">
-            <a-select
+            <a-input
               v-model:value="form.openai.model"
-              placeholder="选择模型"
-            >
-              <a-select-option value="gpt-4">GPT-4</a-select-option>
-              <a-select-option value="gpt-4-turbo">GPT-4 Turbo</a-select-option>
-              <a-select-option value="gpt-3.5-turbo">GPT-3.5 Turbo</a-select-option>
-              <a-select-option value="gpt-4o">GPT-4o</a-select-option>
-              <a-select-option value="gpt-4o-mini">GPT-4o Mini</a-select-option>
-            </a-select>
+              placeholder="输入模型名称，如 gpt-4o, gpt-4-turbo, gpt-3.5-turbo"
+            />
+            <div class="form-hint">
+              常用模型: gpt-4o, gpt-4-turbo, gpt-4, gpt-3.5-turbo, gpt-4o-mini
+            </div>
           </a-form-item>
 
           <a-form-item label="Organization ID">
@@ -135,20 +117,29 @@
           </a-form-item>
 
           <a-form-item label="模型">
-            <a-select
+            <a-input
               v-model:value="form.anthropic.model"
-              placeholder="选择模型"
-            >
-              <a-select-option value="claude-3-opus-20240229">Claude 3 Opus</a-select-option>
-              <a-select-option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</a-select-option>
-              <a-select-option value="claude-3-haiku-20240307">Claude 3 Haiku</a-select-option>
-            </a-select>
+              placeholder="输入模型名称，如 claude-3-5-sonnet-20241022"
+            />
+            <div class="form-hint">
+              常用模型: claude-3-5-sonnet-20241022, claude-3-opus-20240229, claude-3-haiku-20240307
+            </div>
           </a-form-item>
         </template>
 
         <!-- DeepSeek 配置 -->
         <template v-if="form.provider === 'deepseek'">
           <a-divider orientation="left">DeepSeek 配置</a-divider>
+
+          <a-form-item label="API 地址">
+            <a-input
+              v-model:value="form.deepseek.baseURL"
+              placeholder="https://api.deepseek.com/v1"
+            />
+            <div class="form-hint">
+              DeepSeek API 地址（可选，默认使用官方地址）
+            </div>
+          </a-form-item>
 
           <a-form-item label="API Key" required>
             <a-input-password
@@ -161,19 +152,29 @@
           </a-form-item>
 
           <a-form-item label="模型">
-            <a-select
+            <a-input
               v-model:value="form.deepseek.model"
-              placeholder="选择模型"
-            >
-              <a-select-option value="deepseek-chat">DeepSeek Chat</a-select-option>
-              <a-select-option value="deepseek-coder">DeepSeek Coder</a-select-option>
-            </a-select>
+              placeholder="输入模型名称，如 deepseek-chat, deepseek-coder"
+            />
+            <div class="form-hint">
+              常用模型: deepseek-chat, deepseek-coder
+            </div>
           </a-form-item>
         </template>
 
         <!-- 豆包（火山引擎）配置 -->
         <template v-if="form.provider === 'volcengine'">
           <a-divider orientation="left">豆包（火山引擎）配置</a-divider>
+
+          <a-form-item label="API 地址">
+            <a-input
+              v-model:value="form.volcengine.baseURL"
+              placeholder="https://ark.cn-beijing.volces.com/api/v3"
+            />
+            <div class="form-hint">
+              火山引擎 API 地址（可选，默认使用官方地址）
+            </div>
+          </a-form-item>
 
           <a-form-item label="API Key" required>
             <a-input-password
@@ -186,16 +187,12 @@
           </a-form-item>
 
           <a-form-item label="模型">
-            <a-select
+            <a-input
               v-model:value="form.volcengine.model"
-              placeholder="选择模型"
-            >
-              <a-select-option value="doubao-lite-4k">豆包 Lite (免费)</a-select-option>
-              <a-select-option value="doubao-pro-4k">豆包 Pro</a-select-option>
-              <a-select-option value="doubao-seed-1-6-lite-251015">豆包 Seed Lite</a-select-option>
-            </a-select>
+              placeholder="输入模型名称，如 doubao-lite-4k"
+            />
             <div class="form-hint">
-              推荐使用 Lite 版本，免费且速度快
+              常用模型: doubao-lite-4k (免费), doubao-pro-4k, doubao-seed-1-6-lite-251015
             </div>
           </a-form-item>
         </template>
@@ -414,11 +411,13 @@ const form = reactive({
 
   deepseek: {
     apiKey: '',
+    baseURL: 'https://api.deepseek.com/v1',
     model: 'deepseek-chat',
   },
 
   volcengine: {
     apiKey: '',
+    baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
     model: 'doubao-seed-1-6-lite-251015',
   },
 
@@ -530,10 +529,12 @@ const handleReset = () => {
   };
   form.deepseek = {
     apiKey: '',
+    baseURL: 'https://api.deepseek.com/v1',
     model: 'deepseek-chat',
   };
   form.volcengine = {
     apiKey: '',
+    baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
     model: 'doubao-seed-1-6-lite-251015',
   };
   form.custom = {

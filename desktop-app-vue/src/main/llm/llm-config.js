@@ -43,12 +43,14 @@ const DEFAULT_CONFIG = {
   // DeepSeek配置
   deepseek: {
     apiKey: '',
+    baseURL: 'https://api.deepseek.com/v1',
     model: 'deepseek-chat',
   },
 
   // 豆包（火山引擎）配置
   volcengine: {
     apiKey: '',
+    baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
     model: 'doubao-seed-1-6-lite-251015',
   },
 
@@ -379,6 +381,7 @@ class LLMConfig {
         return {
           ...baseConfig,
           apiKey: providerConfig.apiKey,
+          baseURL: providerConfig.baseURL || 'https://api.deepseek.com/v1',
           model: providerConfig.model,
         };
 
