@@ -1,0 +1,508 @@
+{
+  "timestamp": "2026-01-01T18:11:01.793Z",
+  "currentCoverage": {
+    "totalTools": 300,
+    "usedTools": 244,
+    "unusedTools": 56,
+    "coverageRate": "81.3%"
+  },
+  "unusedToolsByCategory": {
+    "science": [
+      {
+        "name": "ligo_data_analyzer",
+        "display_name": "LIGO数据分析器",
+        "description": "引力波探测器数据分析和信号处理"
+      },
+      {
+        "name": "waveform_matcher",
+        "display_name": "引力波波形匹配器",
+        "description": "模板匹配和参数估计"
+      },
+      {
+        "name": "particle_simulator",
+        "display_name": "粒子碰撞模拟器",
+        "description": "高能粒子碰撞模拟"
+      },
+      {
+        "name": "event_generator",
+        "display_name": "粒子事例生成器",
+        "description": "Monte Carlo事例生成"
+      },
+      {
+        "name": "wimp_detector",
+        "display_name": "WIMP探测器",
+        "description": "弱相互作用大质量粒子直接探测"
+      },
+      {
+        "name": "axion_searcher",
+        "display_name": "轴子搜寻器",
+        "description": "轴子暗物质搜寻"
+      },
+      {
+        "name": "topological_state_calculator",
+        "display_name": "拓扑态计算器",
+        "description": "拓扑不变量和能带结构计算"
+      },
+      {
+        "name": "majorana_detector",
+        "display_name": "马约拉纳费米子探测器",
+        "description": "马约拉纳零能模探测"
+      },
+      {
+        "name": "ice_core_analyzer",
+        "display_name": "冰芯分析器",
+        "description": "冰芯物理化学分析"
+      },
+      {
+        "name": "climate_reconstructor",
+        "display_name": "气候重建器",
+        "description": "古气候重建和模拟"
+      },
+      {
+        "name": "magma_simulator",
+        "display_name": "岩浆模拟器",
+        "description": "岩浆动力学模拟"
+      },
+      {
+        "name": "volcanic_monitor",
+        "display_name": "火山监测器",
+        "description": "火山活动监测和预警"
+      },
+      {
+        "name": "radiocarbon_dater",
+        "display_name": "放射性碳测年器",
+        "description": "碳14年代测定"
+      },
+      {
+        "name": "artifact_reconstructor",
+        "display_name": "文物3D重建器",
+        "description": "文物三维重建和虚拟修复"
+      },
+      {
+        "name": "biochip_analyzer",
+        "display_name": "生物芯片分析器",
+        "description": "生物芯片数据分析"
+      }
+    ],
+    "security": [
+      {
+        "name": "crypto_handler",
+        "display_name": "加密解密工具",
+        "description": "提供AES、RSA、MD5、SHA等加密解密功能"
+      },
+      {
+        "name": "hash_verifier",
+        "display_name": "Hash校验器",
+        "description": "计算和验证文件/文本的Hash值"
+      },
+      {
+        "name": "jwt_parser",
+        "display_name": "JWT解析器",
+        "description": "解析和验证JWT令牌"
+      },
+      {
+        "name": "encrypt_decrypt",
+        "display_name": "加密解密器",
+        "description": "对称/非对称加密、AES、RSA"
+      },
+      {
+        "name": "digital_signer",
+        "display_name": "数字签名器",
+        "description": "数字签名和验证"
+      },
+      {
+        "name": "key_generator",
+        "display_name": "密钥生成器",
+        "description": "生成加密密钥、密钥对"
+      },
+      {
+        "name": "vulnerability_scanner",
+        "display_name": "漏洞扫描器",
+        "description": "扫描系统/网络/应用漏洞,生成安全报告"
+      },
+      {
+        "name": "security_auditor",
+        "display_name": "安全审计器",
+        "description": "代码/配置安全审计,检测安全问题"
+      },
+      {
+        "name": "quantum_key_distributor",
+        "display_name": "量子密钥分发器",
+        "description": "BB84/E91协议量子密钥分发"
+      },
+      {
+        "name": "password_generator_advanced",
+        "display_name": "高级密码生成器",
+        "description": "生成强密码并评估强度"
+      },
+      {
+        "name": "password_vault",
+        "display_name": "密码保险库",
+        "description": "加密存储和管理密码"
+      }
+    ],
+    "devops": [
+      {
+        "name": "log_parser",
+        "display_name": "日志解析器",
+        "description": "解析 Nginx、Apache、JSON 等格式的日志"
+      },
+      {
+        "name": "performance_profiler",
+        "display_name": "性能分析器",
+        "description": "分析代码执行性能，收集性能指标"
+      },
+      {
+        "name": "memory_monitor",
+        "display_name": "内存监控器",
+        "description": "监控内存使用情况，检测内存泄漏"
+      },
+      {
+        "name": "docker_manager",
+        "display_name": "Docker管理器",
+        "description": "管理Docker容器、镜像、网络"
+      }
+    ],
+    "blockchain": [
+      {
+        "name": "blockchain_client",
+        "display_name": "区块链客户端",
+        "description": "连接区块链网络，查询区块、交易信息"
+      },
+      {
+        "name": "smart_contract_caller",
+        "display_name": "智能合约调用器",
+        "description": "调用智能合约函数、发送交易"
+      },
+      {
+        "name": "wallet_manager",
+        "display_name": "钱包管理器",
+        "description": "创建钱包、导入私钥、签名交易"
+      },
+      {
+        "name": "tokenomics_simulator",
+        "display_name": "代币经济模拟器 / Tokenomics Simulator",
+        "description": "模拟代币经济模型的长期表现，包括供需、价格、流通等"
+      }
+    ],
+    "config": [
+      {
+        "name": "env_manager",
+        "display_name": "环境变量管理器",
+        "description": "读取、解析和管理.env文件"
+      },
+      {
+        "name": "toml_parser",
+        "display_name": "TOML解析器",
+        "description": "解析和生成TOML配置文件"
+      },
+      {
+        "name": "ini_parser",
+        "display_name": "INI解析器",
+        "description": "解析和生成INI配置文件"
+      }
+    ],
+    "storage": [
+      {
+        "name": "s3_client",
+        "display_name": "S3客户端",
+        "description": "与 AWS S3 或兼容服务交互（上传、下载、列表）"
+      },
+      {
+        "name": "oss_client",
+        "display_name": "阿里云OSS客户端",
+        "description": "与阿里云 OSS 交互（上传、下载、管理）"
+      },
+      {
+        "name": "cache_manager",
+        "display_name": "缓存管理器",
+        "description": "内存缓存、Redis缓存操作"
+      }
+    ],
+    "communication": [
+      {
+        "name": "email_sender",
+        "display_name": "邮件发送器",
+        "description": "通过SMTP发送邮件（支持HTML、附件）"
+      },
+      {
+        "name": "email_reader",
+        "display_name": "邮件读取器",
+        "description": "通过IMAP读取邮件"
+      },
+      {
+        "name": "email_attachment_handler",
+        "display_name": "邮件附件处理器",
+        "description": "提取、保存、发送邮件附件"
+      }
+    ],
+    "location": [
+      {
+        "name": "geocoder",
+        "display_name": "地理编码器",
+        "description": "地址和坐标互相转换"
+      },
+      {
+        "name": "distance_calculator",
+        "display_name": "距离计算器",
+        "description": "计算两点间距离（支持多种算法）"
+      },
+      {
+        "name": "coordinate_converter",
+        "display_name": "坐标转换器",
+        "description": "不同坐标系统间转换（WGS84、GCJ02、BD09）"
+      }
+    ],
+    "energy": [
+      {
+        "name": "tokamak_simulator",
+        "display_name": "托卡马克模拟器",
+        "description": "托卡马克等离子体模拟"
+      },
+      {
+        "name": "plasma_controller",
+        "display_name": "等离子体控制器",
+        "description": "等离子体位形和稳定性控制"
+      }
+    ],
+    "productivity": [
+      {
+        "name": "calendar_manager",
+        "display_name": "日历管理器",
+        "description": "创建和管理日历事件"
+      },
+      {
+        "name": "reminder_scheduler",
+        "display_name": "提醒调度器",
+        "description": "设置和管理提醒事项"
+      }
+    ],
+    "encoding": [
+      {
+        "name": "base64_handler",
+        "display_name": "Base64编解码",
+        "description": "Base64编码和解码"
+      }
+    ],
+    "email": [
+      {
+        "name": "email_parser",
+        "display_name": "邮件解析器",
+        "description": "解析电子邮件地址和内容"
+      }
+    ],
+    "visualization": [
+      {
+        "name": "chart_renderer",
+        "display_name": "图表渲染器",
+        "description": "渲染各类图表为图片（PNG、SVG）"
+      }
+    ],
+    "messaging": [
+      {
+        "name": "message_queue_client",
+        "display_name": "消息队列客户端",
+        "description": "发布订阅消息、队列操作"
+      }
+    ],
+    "hardware": [
+      {
+        "name": "flexible_sensor_designer",
+        "display_name": "柔性传感器设计器",
+        "description": "柔性可穿戴传感器设计"
+      }
+    ],
+    "finance": [
+      {
+        "name": "real_estate_calculator",
+        "display_name": "房地产财务计算器 / Real Estate Financial Calculator",
+        "description": "计算房地产项目的IRR、NPV、现金流等财务指标"
+      }
+    ]
+  },
+  "skillSuggestions": [
+    {
+      "id": "skill_science_tools",
+      "name": "science",
+      "display_name": "science",
+      "category": "science",
+      "icon": "tool",
+      "tools": [
+        "ligo_data_analyzer",
+        "waveform_matcher",
+        "particle_simulator",
+        "event_generator",
+        "wimp_detector",
+        "axion_searcher",
+        "topological_state_calculator",
+        "majorana_detector",
+        "ice_core_analyzer",
+        "climate_reconstructor",
+        "magma_simulator",
+        "volcanic_monitor",
+        "radiocarbon_dater",
+        "artifact_reconstructor",
+        "biochip_analyzer"
+      ],
+      "toolCount": 15,
+      "description": "提供science相关的15个专业工具"
+    },
+    {
+      "id": "skill_security_tools",
+      "name": "安全与加密",
+      "display_name": "安全与加密",
+      "category": "security",
+      "icon": "lock",
+      "tools": [
+        "crypto_handler",
+        "hash_verifier",
+        "jwt_parser",
+        "encrypt_decrypt",
+        "digital_signer",
+        "key_generator",
+        "vulnerability_scanner",
+        "security_auditor",
+        "quantum_key_distributor",
+        "password_generator_advanced",
+        "password_vault"
+      ],
+      "toolCount": 11,
+      "description": "提供安全与加密相关的11个专业工具"
+    },
+    {
+      "id": "skill_devops_tools",
+      "name": "DevOps工具链",
+      "display_name": "DevOps工具链",
+      "category": "devops",
+      "icon": "build",
+      "tools": [
+        "log_parser",
+        "performance_profiler",
+        "memory_monitor",
+        "docker_manager"
+      ],
+      "toolCount": 4,
+      "description": "提供DevOps工具链相关的4个专业工具"
+    },
+    {
+      "id": "skill_blockchain_tools",
+      "name": "blockchain",
+      "display_name": "blockchain",
+      "category": "blockchain",
+      "icon": "tool",
+      "tools": [
+        "blockchain_client",
+        "smart_contract_caller",
+        "wallet_manager",
+        "tokenomics_simulator"
+      ],
+      "toolCount": 4,
+      "description": "提供blockchain相关的4个专业工具"
+    },
+    {
+      "id": "skill_config_tools",
+      "name": "配置文件处理",
+      "display_name": "配置文件处理",
+      "category": "config",
+      "icon": "setting",
+      "tools": [
+        "env_manager",
+        "toml_parser",
+        "ini_parser"
+      ],
+      "toolCount": 3,
+      "description": "提供配置文件处理相关的3个专业工具"
+    },
+    {
+      "id": "skill_storage_tools",
+      "name": "云存储管理",
+      "display_name": "云存储管理",
+      "category": "storage",
+      "icon": "cloud",
+      "tools": [
+        "s3_client",
+        "oss_client",
+        "cache_manager"
+      ],
+      "toolCount": 3,
+      "description": "提供云存储管理相关的3个专业工具"
+    },
+    {
+      "id": "skill_communication_tools",
+      "name": "communication",
+      "display_name": "communication",
+      "category": "communication",
+      "icon": "tool",
+      "tools": [
+        "email_sender",
+        "email_reader",
+        "email_attachment_handler"
+      ],
+      "toolCount": 3,
+      "description": "提供communication相关的3个专业工具"
+    },
+    {
+      "id": "skill_location_tools",
+      "name": "地理位置服务",
+      "display_name": "地理位置服务",
+      "category": "location",
+      "icon": "environment",
+      "tools": [
+        "geocoder",
+        "distance_calculator",
+        "coordinate_converter"
+      ],
+      "toolCount": 3,
+      "description": "提供地理位置服务相关的3个专业工具"
+    },
+    {
+      "id": "skill_energy_tools",
+      "name": "能源管理",
+      "display_name": "能源管理",
+      "category": "energy",
+      "icon": "thunderbolt",
+      "tools": [
+        "tokamak_simulator",
+        "plasma_controller"
+      ],
+      "toolCount": 2,
+      "description": "提供能源管理相关的2个专业工具"
+    },
+    {
+      "id": "skill_productivity_tools",
+      "name": "生产力工具",
+      "display_name": "生产力工具",
+      "category": "productivity",
+      "icon": "rocket",
+      "tools": [
+        "calendar_manager",
+        "reminder_scheduler"
+      ],
+      "toolCount": 2,
+      "description": "提供生产力工具相关的2个专业工具"
+    },
+    {
+      "id": "skill_misc_utilities",
+      "name": "其他实用工具",
+      "display_name": "Miscellaneous Utilities",
+      "category": "utility",
+      "icon": "tool",
+      "tools": [
+        "base64_handler",
+        "email_parser",
+        "chart_renderer",
+        "message_queue_client",
+        "flexible_sensor_designer",
+        "real_estate_calculator"
+      ],
+      "toolCount": 6,
+      "description": "提供6个专业领域的实用工具"
+    }
+  ],
+  "expectedCoverage": {
+    "newSkills": 11,
+    "newToolsCovered": 56,
+    "expectedCoverageRate": "100.0%",
+    "improvement": "+18.7%"
+  }
+}
