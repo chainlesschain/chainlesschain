@@ -1,0 +1,61 @@
+{
+  "id": "tpl_business_real_estate_001",
+  "name": "real_estate_investment_analysis",
+  "display_name": "房地产投资分析报告",
+  "description": "房地产项目投资可行性分析，包含市场调研、财务测算、风险评估等",
+  "icon": "🏢",
+  "category": "business",
+  "subcategory": "real-estate",
+  "tags": ["房地产", "投资分析", "可行性研究", "财务测算"],
+  "project_type": "document",
+  "prompt_template": "# {{projectName}} 房地产投资分析报告\n\n**项目名称**：{{projectName}}\n**项目地址**：{{projectLocation}}\n**项目类型**：{{projectType}}\n**投资主体**：{{investor}}\n**分析日期**：{{analysisDate}}\n\n---\n\n## 执行摘要\n\n### 核心结论\n\n{{executiveSummary}}\n\n### 关键指标\n\n- 总投资额：{{totalInvestment}}万元\n- 预期IRR：{{expectedIRR}}%\n- 投资回收期：{{paybackPeriod}}年\n- NPV（净现值）：{{npv}}万元\n- **投资建议**：{{investmentRecommendation}}\n\n---\n\n## 一、项目概况\n\n### 1.1 项目基本信息\n\n**项目名称**：{{projectName}}\n**项目位置**：{{projectLocation}}\n**占地面积**：{{landArea}}平方米\n**建筑面积**：{{buildingArea}}平方米\n**容积率**：{{far}}\n**绿化率**：{{greenRate}}%\n\n**项目定位**：{{projectPositioning}}\n\n### 1.2 开发主体\n\n**开发商**：{{developer}}\n**资质等级**：{{qualification}}\n**过往项目**：{{pastProjects}}\n\n### 1.3 项目进度\n\n**当前阶段**：{{currentStage}}\n**预计开工**：{{constructionStart}}\n**预计竣工**：{{completionDate}}\n**预计交付**：{{deliveryDate}}\n\n## 二、宏观与区域市场分析\n\n### 2.1 宏观经济环境\n\n#### 政策环境\n{{policyEnvironment}}\n\n#### 经济指标\n- GDP增速：{{gdpGrowth}}%\n- 人均可支配收入：{{disposableIncome}}元\n- 城镇化率：{{urbanizationRate}}%\n\n### 2.2 区域市场分析\n\n#### 区位条件\n{{locationAnalysis}}\n\n#### 交通配套\n{{transportationAccess}}\n\n#### 周边配套\n- 教育资源：{{education}}\n- 商业配套：{{commercial}}\n- 医疗设施：{{medical}}\n- 公园绿地：{{parks}}\n\n### 2.3 市场供需分析\n\n#### 供给分析\n- 区域库存：{{inventory}}套\n- 新增供应：{{newSupply}}套/年\n- 去化周期：{{absorptionPeriod}}个月\n\n#### 需求分析\n{{demandAnalysis}}\n\n### 2.4 价格走势\n\n{{priceTrend}}\n\n**当前均价**：{{currentPrice}}元/平\n**同比涨幅**：{{yoyGrowth}}%\n\n## 三、竞品分析\n\n### 3.1 竞品项目对比\n\n| 项目 | 位置 | 均价(元/㎡) | 户型 | 优劣势 |\n|------|------|------------|------|--------|\n| {{comp1Name}} | {{comp1Location}} | {{comp1Price}} | {{comp1Layout}} | {{comp1Analysis}} |\n| {{comp2Name}} | {{comp2Location}} | {{comp2Price}} | {{comp2Layout}} | {{comp2Analysis}} |\n| {{comp3Name}} | {{comp3Location}} | {{comp3Price}} | {{comp3Layout}} | {{comp3Analysis}} |\n| **本项目** | {{projectLocation}} | {{projectPrice}} | {{projectLayout}} | {{projectAnalysis}} |\n\n### 3.2 竞争优势\n\n{{competitiveAdvantages}}\n\n### 3.3 差异化策略\n\n{{differentiationStrategy}}\n\n## 四、产品规划\n\n### 4.1 业态组合\n\n{{productMix}}\n\n### 4.2 户型设计\n\n| 户型 | 面积(㎡) | 数量 | 占比 | 定价策略 |\n|------|---------|------|------|----------|\n| {{unit1Type}} | {{unit1Area}} | {{unit1Count}} | {{unit1Ratio}}% | {{unit1Pricing}} |\n| {{unit2Type}} | {{unit2Area}} | {{unit2Count}} | {{unit2Ratio}}% | {{unit2Pricing}} |\n| {{unit3Type}} | {{unit3Area}} | {{unit3Count}} | {{unit3Ratio}}% | {{unit3Pricing}} |\n\n### 4.3 装修标准\n\n{{finishingStandard}}\n\n## 五、财务测算\n\n### 5.1 投资成本\n\n#### 土地成本\n- 土地款：{{landCost}}万元\n- 契税及其他：{{landTax}}万元\n- **小计**：{{totalLandCost}}万元\n\n#### 建设成本\n- 建安成本：{{constructionCost}}万元\n- 配套设施：{{infrastructure}}万元\n- 景观绿化：{{landscaping}}万元\n- **小计**：{{totalConstructionCost}}万元\n\n#### 其他费用\n- 设计费：{{designFee}}万元\n- 营销费用：{{marketingCost}}万元\n- 管理费用：{{adminCost}}万元\n- 财务费用：{{financeCost}}万元\n- 税费：{{taxCost}}万元\n- **小计**：{{totalOtherCost}}万元\n\n**总投资**：{{totalInvestment}}万元\n\n### 5.2 销售收入预测\n\n#### 销售计划\n\n| 期数 | 推盘时间 | 面积(㎡) | 均价(元/㎡) | 销售额(万元) |\n|------|---------|---------|------------|-------------|\n| 一期 | {{phase1Time}} | {{phase1Area}} | {{phase1Price}} | {{phase1Revenue}} |\n| 二期 | {{phase2Time}} | {{phase2Area}} | {{phase2Price}} | {{phase2Revenue}} |\n| 三期 | {{phase3Time}} | {{phase3Area}} | {{phase3Price}} | {{phase3Revenue}} |\n| **合计** | - | **{{totalSaleableArea}}** | **{{avgPrice}}** | **{{totalRevenue}}** |\n\n#### 去化率假设\n\n{{absorptionAssumptions}}\n\n### 5.3 现金流测算\n\n{{cashFlowProjection}}\n\n### 5.4 盈利能力分析\n\n**净利润**：{{netProfit}}万元\n**净利润率**：{{netMargin}}%\n**IRR（内部收益率）**：{{irr}}%\n**NPV（净现值）**：{{npv}}万元\n**投资回收期**：{{paybackPeriod}}年\n**ROI（投资回报率）**：{{roi}}%\n\n### 5.5 敏感性分析\n\n{{sensitivityAnalysis}}\n\n## 六、融资方案\n\n### 6.1 资金需求\n\n**总资金需求**：{{totalFunding}}万元\n\n### 6.2 融资结构\n\n| 融资渠道 | 金额(万元) | 占比 | 成本 | 期限 |\n|---------|-----------|------|------|------|\n| 自有资金 | {{equityFunding}} | {{equityRatio}}% | - | - |\n| 银行贷款 | {{bankLoan}} | {{loanRatio}}% | {{loanRate}}% | {{loanTerm}}年 |\n| 信托融资 | {{trustFunding}} | {{trustRatio}}% | {{trustRate}}% | {{trustTerm}}年 |\n| 其他 | {{otherFunding}} | {{otherRatio}}% | {{otherRate}}% | {{otherTerm}}年 |\n\n### 6.3 还款计划\n\n{{repaymentPlan}}\n\n## 七、风险分析\n\n### 7.1 风险识别\n\n| 风险类型 | 风险描述 | 概率 | 影响 | 风险等级 |\n|---------|---------|------|------|----------|\n| 政策风险 | {{policyRisk}} | {{policyRiskProb}} | {{policyRiskImpact}} | {{policyRiskLevel}} |\n| 市场风险 | {{marketRisk}} | {{marketRiskProb}} | {{marketRiskImpact}} | {{marketRiskLevel}} |\n| 财务风险 | {{financeRisk}} | {{financeRiskProb}} | {{financeRiskImpact}} | {{financeRiskLevel}} |\n| 运营风险 | {{operationRisk}} | {{operationRiskProb}} | {{operationRiskImpact}} | {{operationRiskLevel}} |\n\n### 7.2 风险应对措施\n\n{{riskMitigation}}\n\n## 八、结论与建议\n\n### 8.1 综合评价\n\n{{overallAssessment}}\n\n### 8.2 投资建议\n\n{{investmentAdvice}}\n\n### 8.3 关键成功因素\n\n1. {{csf1}}\n2. {{csf2}}\n3. {{csf3}}\n\n---\n\n## 附录\n\n### 附录A：详细财务模型\n\n{{financialModel}}\n\n### 附录B：市场数据来源\n\n{{dataSources}}\n\n### 附录C：法律文件清单\n\n{{legalDocuments}}",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "projectLocation",
+      "label": "项目地址",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "projectType",
+      "label": "项目类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "住宅", "label": "住宅项目" },
+        { "value": "商业", "label": "商业地产" },
+        { "value": "写字楼", "label": "写字楼/办公" },
+        { "value": "综合体", "label": "城市综合体" },
+        { "value": "产业园", "label": "产业园区" },
+        { "value": "商住混合", "label": "商住混合" }
+      ]
+    },
+    {
+      "name": "totalInvestment",
+      "label": "总投资额（万元）",
+      "type": "number",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "房地产投资分析-{{projectName}}",
+    "files": [
+      {"path": "投资分析报告.docx", "type": "document"},
+      {"path": "财务测算模型.xlsx", "type": "spreadsheet"},
+      {"path": "市场调研数据.xlsx", "type": "spreadsheet"},
+      {"path": "项目图片/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_real_estate_analysis", "skill_financial_modeling", "skill_market_research"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator", "tool_financial_calculator"],
+  "execution_engine": "document"
+}

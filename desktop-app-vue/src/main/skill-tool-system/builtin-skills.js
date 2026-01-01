@@ -8,6 +8,7 @@
 
 // 导入额外的技能定义
 const additionalSkills = require('./additional-skills');
+const additionalSkillsV3 = require('./additional-skills-v3');
 
 const builtinSkills = [
   {
@@ -2487,5 +2488,6 @@ const builtinSkills = [
 // 合并所有技能（内置技能 + 额外技能）
 module.exports = [
   ...builtinSkills,
-  ...additionalSkills
+  ...additionalSkills,
+  ...additionalSkillsV3
 ];

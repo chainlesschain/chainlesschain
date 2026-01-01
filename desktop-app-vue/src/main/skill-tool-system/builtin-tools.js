@@ -11,6 +11,7 @@
 const additionalOfficeTools = require('./additional-office-tools');
 const additionalDataScienceTools = require('./additional-datascience-tools');
 const additionalProjectTools = require('./additional-project-tools');
+const additionalToolsV3 = require('./additional-tools-v3');
 
 const builtinTools = [
   // 1. 文件读取工具
@@ -14413,5 +14414,6 @@ module.exports = [
   ...builtinTools,
   ...additionalOfficeTools,
   ...additionalDataScienceTools,
-  ...additionalProjectTools
+  ...additionalProjectTools,
+  ...additionalToolsV3
 ];
