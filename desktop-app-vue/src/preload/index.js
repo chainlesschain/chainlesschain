@@ -1057,6 +1057,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // 工具文档
     getDoc: (toolId) => ipcRenderer.invoke('tool:get-doc', toolId),
+
+    // Additional Tools V3 统计仪表板
+    getAdditionalV3Dashboard: () => ipcRenderer.invoke('tool:get-additional-v3-dashboard'),
+    getAdditionalV3Overview: () => ipcRenderer.invoke('tool:get-additional-v3-overview'),
+    getAdditionalV3Rankings: (limit) => ipcRenderer.invoke('tool:get-additional-v3-rankings', limit),
+    getAdditionalV3CategoryStats: () => ipcRenderer.invoke('tool:get-additional-v3-category-stats'),
+    getAdditionalV3Recent: (limit) => ipcRenderer.invoke('tool:get-additional-v3-recent', limit),
+    getAdditionalV3DailyStats: (days) => ipcRenderer.invoke('tool:get-additional-v3-daily-stats', days),
+    getAdditionalV3Performance: () => ipcRenderer.invoke('tool:get-additional-v3-performance'),
   },
 
   // 技能工具系统通用
