@@ -101,10 +101,17 @@ const tools = [
     },
     examples: [
       {
-        description: '创建新文件',
+        description: '文件写入基础用法',
         params: {
-          filePath: './output.txt',
-          content: 'Hello World'
+          filePath: './data/sample.dat',
+          content: '示例文本'
+        }
+      },
+      {
+        description: '文件写入高级用法',
+        params: {
+          filePath: './advanced_data/sample.dat',
+          content: '更复杂的示例文本内容，用于测试高级功能'
         }
       }
     ],
@@ -155,10 +162,19 @@ const tools = [
     },
     examples: [
       {
-        description: '生成简单网页',
+        description: 'HTML生成器基础用法',
         params: {
-          title: '我的博客',
-          content: '欢迎来到我的博客'
+          title: '我的网页',
+          content: '示例文本',
+          primaryColor: '#667eea'
+        }
+      },
+      {
+        description: 'HTML生成器高级用法',
+        params: {
+          title: '我的网页',
+          content: '更复杂的示例文本内容，用于测试高级功能',
+          primaryColor: '#667eea'
         }
       }
     ],
@@ -205,10 +221,17 @@ const tools = [
     },
     examples: [
       {
-        description: '生成样式文件',
+        description: 'CSS生成器基础用法',
         params: {
-          primaryColor: '#3498db',
-          fontSize: '14px'
+          primaryColor: '#667eea',
+          fontSize: '16px'
+        }
+      },
+      {
+        description: 'CSS生成器高级用法',
+        params: {
+          primaryColor: '#667eea',
+          fontSize: '16px'
         }
       }
     ],
@@ -252,9 +275,15 @@ const tools = [
     },
     examples: [
       {
-        description: '生成基本JS文件',
+        description: 'JS生成器基础用法',
         params: {
-          features: ['dom-ready', 'event-listeners']
+          features: ['item1', 'item2']
+        }
+      },
+      {
+        description: 'JS生成器高级用法',
+        params: {
+          features: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -532,16 +561,17 @@ const tools = [
     },
     examples: [
       {
-        description: '替换文本',
+        description: '文件编辑基础用法',
         params: {
-          filePath: './config.js',
-          operations: [
-            {
-              type: 'replace',
-              search: 'oldValue',
-              replacement: 'newValue'
-            }
-          ]
+          filePath: './data/sample.dat',
+          operations: ['item1', 'item2']
+        }
+      },
+      {
+        description: '文件编辑高级用法',
+        params: {
+          filePath: './advanced_data/sample.dat',
+          operations: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -592,10 +622,19 @@ const tools = [
     },
     examples: [
       {
-        description: '格式化为Markdown',
+        description: '格式化输出基础用法',
         params: {
-          content: '这是一段文本',
-          format: 'markdown'
+          content: '示例文本',
+          format: 'json',
+          options: 'value'
+        }
+      },
+      {
+        description: '格式化输出高级用法',
+        params: {
+          content: '更复杂的示例文本内容，用于测试高级功能',
+          format: 'markdown',
+          options: 'advanced_value'
         }
       }
     ],
@@ -953,10 +992,23 @@ services:
     },
     examples: [
       {
-        description: '格式化当前时间',
+        description: '日期时间处理器基础用法',
         params: {
           action: 'format',
-          format: 'YYYY年MM月DD日'
+          date: 'value',
+          format: 'YYYY-MM-DD HH:mm:ss',
+          amount: 10,
+          unit: 'year'
+        }
+      },
+      {
+        description: '日期时间处理器高级用法',
+        params: {
+          action: 'parse',
+          date: 'advanced_value',
+          format: 'YYYY-MM-DD HH:mm:ss',
+          amount: 50,
+          unit: 'month'
         }
       }
     ],
@@ -1007,10 +1059,19 @@ services:
     },
     examples: [
       {
-        description: '解析URL',
+        description: '基本网络URL处理器',
         params: {
-          url: 'https://example.com/path?key=value',
-          action: 'parse'
+          url: 'https://api.example.com/endpoint',
+          action: 'parse',
+          params: 'value'
+        }
+      },
+      {
+        description: '高级网络URL处理器',
+        params: {
+          url: 'https://api.example.com/advanced_endpoint',
+          action: 'build',
+          params: 'advanced_value'
         }
       }
     ],
@@ -1191,10 +1252,23 @@ services:
     },
     examples: [
       {
-        description: 'GET请求',
+        description: '基本网络HTTP客户端',
         params: {
-          url: 'https://api.example.com/data',
-          method: 'GET'
+          url: 'https://api.example.com/endpoint',
+          method: 'GET',
+          headers: 'value',
+          body: 'value',
+          timeout: 10
+        }
+      },
+      {
+        description: '高级网络HTTP客户端',
+        params: {
+          url: 'https://api.example.com/advanced_endpoint',
+          method: 'POST',
+          headers: 'advanced_value',
+          body: 'advanced_value',
+          timeout: 50
         }
       }
     ],
@@ -1337,12 +1411,19 @@ services:
     },
     examples: [
       {
-        description: 'Markdown转HTML',
+        description: 'Markdown转换器基础用法',
         params: {
-          markdown: `# 标题
-
-这是一段**粗体**文本。`,
-          targetFormat: 'html'
+          markdown: 'value',
+          targetFormat: 'html',
+          options: 'value'
+        }
+      },
+      {
+        description: 'Markdown转换器高级用法',
+        params: {
+          markdown: 'advanced_value',
+          targetFormat: 'plain',
+          options: 'advanced_value'
         }
       }
     ],
@@ -1504,11 +1585,21 @@ services:
     },
     examples: [
       {
-        description: '压缩文件夹',
+        description: 'ZIP压缩工具基础用法',
         params: {
           action: 'compress',
-          source: './my-folder',
-          target: './archive.zip'
+          source: 'value',
+          target: 'value',
+          password: 'value'
+        }
+      },
+      {
+        description: 'ZIP压缩工具高级用法',
+        params: {
+          action: 'extract',
+          source: 'advanced_value',
+          target: 'advanced_value',
+          password: 'advanced_value'
         }
       }
     ],
@@ -1718,9 +1809,16 @@ services:
     },
     examples: [
       {
-        description: '提取图片信息',
+        description: '图片元数据提取器基础用法',
         params: {
-          imagePath: './photo.jpg',
+          imagePath: './data/sample.dat',
+          extractEXIF: false
+        }
+      },
+      {
+        description: '图片元数据提取器高级用法',
+        params: {
+          imagePath: './advanced_data/sample.dat',
           extractEXIF: true
         }
       }
@@ -1839,10 +1937,18 @@ services:
     },
     examples: [
       {
-        description: '转换颜色格式',
+        description: '颜色转换器基础用法',
         params: {
-          color: '#FF5733',
+          color: 'value',
           from: 'hex',
+          to: 'hex'
+        }
+      },
+      {
+        description: '颜色转换器高级用法',
+        params: {
+          color: 'advanced_value',
+          from: 'rgb',
           to: 'rgb'
         }
       }
@@ -1916,10 +2022,19 @@ services:
     },
     examples: [
       {
-        description: '生成UUID',
+        description: '随机数据生成器基础用法',
         params: {
-          type: 'uuid',
-          count: 5
+          type: 'number',
+          count: 10,
+          options: 'value'
+        }
+      },
+      {
+        description: '随机数据生成器高级用法',
+        params: {
+          type: 'string',
+          count: 50,
+          options: 'advanced_value'
         }
       }
     ],
@@ -2116,10 +2231,21 @@ services:
     },
     examples: [
       {
-        description: '生成网站QR码',
+        description: 'QR码生成器基础用法',
         params: {
-          data: 'https://example.com',
-          size: 256
+          data: 'value',
+          size: 10,
+          format: 'png',
+          errorLevel: 'L'
+        }
+      },
+      {
+        description: 'QR码生成器高级用法',
+        params: {
+          data: 'advanced_value',
+          size: 50,
+          format: 'svg',
+          errorLevel: 'M'
         }
       }
     ],
@@ -2254,10 +2380,21 @@ services:
     },
     examples: [
       {
-        description: '计算文件SHA256',
+        description: 'Hash校验器基础用法',
         params: {
-          filePath: './file.zip',
-          algorithm: 'sha256'
+          filePath: './data/sample.dat',
+          text: '示例文本',
+          algorithm: 'md5',
+          expectedHash: 'value'
+        }
+      },
+      {
+        description: 'Hash校验器高级用法',
+        params: {
+          filePath: './advanced_data/sample.dat',
+          text: '更复杂的示例文本内容，用于测试高级功能',
+          algorithm: 'sha1',
+          expectedHash: 'advanced_value'
         }
       }
     ],
@@ -2312,10 +2449,19 @@ services:
     },
     examples: [
       {
-        description: '验证IP地址',
+        description: '基本网络IP地址工具',
         params: {
           action: 'validate',
-          ip: '192.168.1.1'
+          ip: 'value',
+          cidr: 'value'
+        }
+      },
+      {
+        description: '高级网络IP地址工具',
+        params: {
+          action: 'parse',
+          ip: 'advanced_value',
+          cidr: 'advanced_value'
         }
       }
     ],
@@ -2360,9 +2506,15 @@ services:
     },
     examples: [
       {
-        description: '解析浏览器UA',
+        description: '基本网络User-Agent解析器',
         params: {
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)...'
+          userAgent: 'value'
+        }
+      },
+      {
+        description: '高级网络User-Agent解析器',
+        params: {
+          userAgent: 'advanced_value'
         }
       }
     ],
@@ -2417,10 +2569,19 @@ services:
     },
     examples: [
       {
-        description: '解析Cron表达式',
+        description: 'Cron表达式解析器基础用法',
         params: {
           action: 'parse',
-          expression: '0 0 * * *'
+          expression: 'value',
+          description: 'value'
+        }
+      },
+      {
+        description: 'Cron表达式解析器高级用法',
+        params: {
+          action: 'generate',
+          expression: 'advanced_value',
+          description: 'advanced_value'
         }
       }
     ],
@@ -2489,10 +2650,19 @@ services:
     },
     examples: [
       {
-        description: '格式化JavaScript代码',
+        description: '处理简单代码',
         params: {
-          code: 'function test(){return 42}',
-          language: 'javascript'
+          code: 'value',
+          language: 'javascript',
+          options: 'value'
+        }
+      },
+      {
+        description: '处理复杂项目',
+        params: {
+          code: 'advanced_value',
+          language: 'json',
+          options: 'advanced_value'
         }
       }
     ],
@@ -2604,11 +2774,21 @@ services:
     },
     examples: [
       {
-        description: '比较版本号',
+        description: '版本号比较器基础用法',
         params: {
           action: 'compare',
-          version1: '1.2.3',
-          version2: '1.2.4'
+          version1: 'value',
+          version2: 'value',
+          bumpType: 'major'
+        }
+      },
+      {
+        description: '版本号比较器高级用法',
+        params: {
+          action: 'validate',
+          version1: 'advanced_value',
+          version2: 'advanced_value',
+          bumpType: 'minor'
         }
       }
     ],
@@ -2666,10 +2846,19 @@ services:
     },
     examples: [
       {
-        description: '解析JWT令牌',
+        description: 'JWT解析器基础用法',
         params: {
-          token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-          action: 'decode'
+          token: 'value',
+          action: 'decode',
+          secret: 'value'
+        }
+      },
+      {
+        description: 'JWT解析器高级用法',
+        params: {
+          token: 'advanced_value',
+          action: 'verify',
+          secret: 'advanced_value'
         }
       }
     ],
@@ -2791,10 +2980,19 @@ services:
     },
     examples: [
       {
-        description: '提取HTML文本',
+        description: 'HTML解析器基础用法',
         params: {
-          html: '<div><p>Hello</p></div>',
-          action: 'text'
+          html: 'value',
+          selector: 'value',
+          action: 'parse'
+        }
+      },
+      {
+        description: 'HTML解析器高级用法',
+        params: {
+          html: 'advanced_value',
+          selector: 'advanced_value',
+          action: 'query'
         }
       }
     ],
@@ -2955,10 +3153,17 @@ key=value`
     },
     examples: [
       {
-        description: '查询A记录',
+        description: '基本网络DNS查询器',
         params: {
-          domain: 'example.com',
+          domain: 'value',
           recordType: 'A'
+        }
+      },
+      {
+        description: '高级网络DNS查询器',
+        params: {
+          domain: 'advanced_value',
+          recordType: 'AAAA'
         }
       }
     ],
@@ -3012,10 +3217,19 @@ key=value`
     },
     examples: [
       {
-        description: '检测端口80',
+        description: '基本网络端口检测器',
         params: {
-          host: 'example.com',
-          port: 80
+          host: 'value',
+          port: 10,
+          timeout: 10
+        }
+      },
+      {
+        description: '高级网络端口检测器',
+        params: {
+          host: 'advanced_value',
+          port: 50,
+          timeout: 50
         }
       }
     ],
@@ -3294,9 +3508,15 @@ key=value`
     },
     examples: [
       {
-        description: '读取视频元数据',
+        description: '视频元数据读取器基础用法',
         params: {
-          filePath: '/path/to/video.mp4'
+          filePath: './data/sample.dat'
+        }
+      },
+      {
+        description: '视频元数据读取器高级用法',
+        params: {
+          filePath: './advanced_data/sample.dat'
         }
       }
     ],
@@ -3348,9 +3568,15 @@ key=value`
     },
     examples: [
       {
-        description: '计算音频时长',
+        description: '音频时长计算器基础用法',
         params: {
-          filePath: '/path/to/audio.mp3'
+          filePath: './data/sample.dat'
+        }
+      },
+      {
+        description: '音频时长计算器高级用法',
+        params: {
+          filePath: './advanced_data/sample.dat'
         }
       }
     ],
@@ -3414,12 +3640,17 @@ key=value`
     },
     examples: [
       {
-        description: '解析 SRT 字幕',
+        description: '字幕解析器基础用法',
         params: {
-          content: `1
-00:00:00,000 --> 00:00:05,000
-Hello World`,
+          content: '示例文本',
           format: 'srt'
+        }
+      },
+      {
+        description: '字幕解析器高级用法',
+        params: {
+          content: '更复杂的示例文本内容，用于测试高级功能',
+          format: 'vtt'
         }
       }
     ],
@@ -3473,11 +3704,20 @@ Hello World`,
     },
     examples: [
       {
-        description: '图像分类预测',
+        description: '单次模型预测器',
         params: {
-          modelPath: '/models/resnet50.onnx',
-          input: [],
+          modelPath: './models/trained_model.pkl',
+          input: 'value',
           framework: 'onnx'
+        }
+      },
+      {
+        description: '持续模型预测器',
+        params: {
+          modelPath: './advanced_models/trained_model.pkl',
+          input: 'advanced_value',
+          framework: 'tensorflow',
+          continuous: true
         }
       }
     ],
@@ -4278,10 +4518,21 @@ Hello World`,
     },
     examples: [
       {
-        description: '中译英',
+        description: '翻译器基础用法',
         params: {
-          text: '你好，世界',
-          to: 'en'
+          text: '示例文本',
+          from: 'auto',
+          to: 'value',
+          service: 'google'
+        }
+      },
+      {
+        description: '翻译器高级用法',
+        params: {
+          text: '更复杂的示例文本内容，用于测试高级功能',
+          from: 'auto',
+          to: 'advanced_value',
+          service: 'baidu'
         }
       }
     ],
@@ -4498,14 +4749,21 @@ Hello World`,
     },
     examples: [
       {
-        description: '发射数据更新事件',
+        description: '事件发射器基础用法',
         params: {
           action: 'emit',
-          event: 'data:updated',
-          data: {
-            id: 123,
-            status: 'completed'
-          }
+          event: 'value',
+          data: 'value',
+          handler: 'value'
+        }
+      },
+      {
+        description: '事件发射器高级用法',
+        params: {
+          action: 'on',
+          event: 'advanced_value',
+          data: 'advanced_value',
+          handler: 'advanced_value'
         }
       }
     ],
@@ -4565,23 +4823,17 @@ Hello World`,
     },
     examples: [
       {
-        description: '数据清洗管道',
+        description: '数据管道构建器基础用法',
         params: {
-          pipeline: [
-            {
-              name: 'filter',
-              transform: 'removeNull'
-            },
-            {
-              name: 'map',
-              transform: 'uppercase'
-            }
-          ],
-          input: [
-            'hello',
-            null,
-            'world'
-          ]
+          pipeline: ['item1', 'item2'],
+          input: 'value'
+        }
+      },
+      {
+        description: '数据管道构建器高级用法',
+        params: {
+          pipeline: ['item1', 'item2', 'item3', 'item4'],
+          input: 'advanced_value'
         }
       }
     ],
@@ -5079,11 +5331,21 @@ Hello World`,
     },
     examples: [
       {
-        description: '从HTML生成PDF',
+        description: '处理单个文档',
         params: {
-          content: '<h1>Hello PDF</h1>',
-          contentType: 'html',
-          outputPath: '/path/to/output.pdf'
+          content: '示例文本',
+          contentType: '示例文本',
+          outputPath: './output/result.json',
+          options: 'value'
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          content: '更复杂的示例文本内容，用于测试高级功能',
+          contentType: '更复杂的示例文本内容，用于测试高级功能',
+          outputPath: './advanced_output/result.json',
+          options: 'advanced_value'
         }
       }
     ],
@@ -5140,9 +5402,19 @@ Hello World`,
     },
     examples: [
       {
-        description: '提取PDF全文',
+        description: '处理单个文档',
         params: {
-          pdfPath: '/path/to/document.pdf'
+          pdfPath: './data/sample.dat',
+          pages: ['item1', 'item2'],
+          preserveLayout: false
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          pdfPath: './advanced_data/sample.dat',
+          pages: ['item1', 'item2', 'item3', 'item4'],
+          preserveLayout: true
         }
       }
     ],
@@ -5203,11 +5475,21 @@ Hello World`,
     },
     examples: [
       {
-        description: '合并多个PDF',
+        description: '处理单个文档',
         params: {
           action: 'merge',
-          inputFiles: ['/path/to/1.pdf', '/path/to/2.pdf'],
-          outputPath: '/path/to/merged.pdf'
+          inputFiles: './input/data.json',
+          outputPath: './output/result.json',
+          pageRanges: ['item1', 'item2']
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          action: 'split',
+          inputFiles: './advanced_input/data.json',
+          outputPath: './advanced_output/result.json',
+          pageRanges: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -5593,10 +5875,19 @@ Hello World`,
     },
     examples: [
       {
-        description: '提取所有图片链接',
+        description: '基本网络HTML内容提取器',
         params: {
-          html: '<html>...</html>',
-          extractType: 'images'
+          html: 'value',
+          extractType: 'text',
+          selector: 'value'
+        }
+      },
+      {
+        description: '高级网络HTML内容提取器',
+        params: {
+          html: 'advanced_value',
+          extractType: 'links',
+          selector: 'advanced_value'
         }
       }
     ],
@@ -6439,11 +6730,21 @@ Hello World`,
     },
     examples: [
       {
-        description: '监视配置文件变化',
+        description: '文件监视器基础用法',
         params: {
           action: 'watch',
-          path: '/config/app.json',
-          events: ['change']
+          path: './data/sample.dat',
+          events: ['item1', 'item2'],
+          callback: 'value'
+        }
+      },
+      {
+        description: '文件监视器高级用法',
+        params: {
+          action: 'unwatch',
+          path: './advanced_data/sample.dat',
+          events: ['item1', 'item2', 'item3', 'item4'],
+          callback: 'advanced_value'
         }
       }
     ],
@@ -6499,11 +6800,21 @@ Hello World`,
     },
     examples: [
       {
-        description: '监控日志目录',
+        description: '目录监控器基础用法',
         params: {
-          directory: '/var/log',
+          directory: 'value',
           recursive: false,
-          filter: '*.log'
+          filter: 'value',
+          debounce: 10
+        }
+      },
+      {
+        description: '目录监控器高级用法',
+        params: {
+          directory: 'advanced_value',
+          recursive: true,
+          filter: 'advanced_value',
+          debounce: 50
         }
       }
     ],
@@ -6569,14 +6880,23 @@ Hello World`,
     },
     examples: [
       {
-        description: '每天凌晨0点执行备份',
+        description: 'Cron调度器基础用法',
         params: {
           action: 'schedule',
-          cronExpression: '0 0 * * *',
-          task: {
-            type: 'backup',
-            target: 'database'
-          }
+          cronExpression: 'value',
+          taskId: 'value',
+          task: 'value',
+          timezone: 'UTC'
+        }
+      },
+      {
+        description: 'Cron调度器高级用法',
+        params: {
+          action: 'cancel',
+          cronExpression: 'advanced_value',
+          taskId: 'advanced_value',
+          task: 'advanced_value',
+          timezone: 'UTC'
         }
       }
     ],
@@ -6635,14 +6955,23 @@ Hello World`,
     },
     examples: [
       {
-        description: '5秒后发送通知',
+        description: '任务定时器基础用法',
         params: {
           action: 'setTimeout',
-          delay: 5000,
-          task: {
-            type: 'notification',
-            message: 'Time is up!'
-          }
+          delay: 10,
+          interval: 10,
+          timerId: 'value',
+          task: 'value'
+        }
+      },
+      {
+        description: '任务定时器高级用法',
+        params: {
+          action: 'setInterval',
+          delay: 50,
+          interval: 50,
+          timerId: 'advanced_value',
+          task: 'advanced_value'
         }
       }
     ],
@@ -6908,10 +7237,21 @@ Hello World`,
     },
     examples: [
       {
-        description: '连接WebSocket服务器',
+        description: '基本网络WebSocket客户端',
         params: {
           action: 'connect',
-          url: 'ws://localhost:8080'
+          url: 'https://api.example.com/endpoint',
+          message: 'value',
+          connectionId: 'value'
+        }
+      },
+      {
+        description: '高级网络WebSocket客户端',
+        params: {
+          action: 'disconnect',
+          url: 'https://api.example.com/advanced_endpoint',
+          message: 'advanced_value',
+          connectionId: 'advanced_value'
         }
       }
     ],
@@ -6980,11 +7320,21 @@ Hello World`,
     },
     examples: [
       {
-        description: '生成EAN13条形码',
+        description: '条形码生成器基础用法',
         params: {
-          data: '1234567890128',
+          data: 'value',
+          format: 'CODE128',
+          outputPath: './output/result.json',
+          options: 'value'
+        }
+      },
+      {
+        description: '条形码生成器高级用法',
+        params: {
+          data: 'advanced_value',
           format: 'EAN13',
-          outputPath: '/barcodes/product.png'
+          outputPath: './advanced_output/result.json',
+          options: 'advanced_value'
         }
       }
     ],
@@ -7046,10 +7396,17 @@ Hello World`,
     },
     examples: [
       {
-        description: '识别图片中的二维码',
+        description: '码识别器基础用法',
         params: {
-          imagePath: '/images/qr.png',
+          imagePath: './data/sample.dat',
           type: 'qrcode'
+        }
+      },
+      {
+        description: '码识别器高级用法',
+        params: {
+          imagePath: './advanced_data/sample.dat',
+          type: 'barcode'
         }
       }
     ],
@@ -7470,11 +7827,23 @@ Hello World`,
     },
     examples: [
       {
-        description: '截取视频第10秒画面',
+        description: '视频截图器基础用法',
         params: {
-          videoPath: '/videos/movie.mp4',
-          outputPath: '/screenshots/frame.jpg',
-          timestamp: '00:00:10'
+          videoPath: './data/sample.dat',
+          outputPath: './output/result.json',
+          timestamp: 'value',
+          count: 10,
+          interval: 10
+        }
+      },
+      {
+        description: '视频截图器高级用法',
+        params: {
+          videoPath: './advanced_data/sample.dat',
+          outputPath: './advanced_output/result.json',
+          timestamp: 'advanced_value',
+          count: 50,
+          interval: 50
         }
       }
     ],
@@ -7553,11 +7922,20 @@ Hello World`,
     },
     examples: [
       {
-        description: '检查JavaScript代码',
+        description: '处理简单代码',
         params: {
-          code: `var x = 1;
-console.log(x)`,
+          code: 'value',
           language: 'javascript',
+          rules: 'value',
+          fix: false
+        }
+      },
+      {
+        description: '处理复杂项目',
+        params: {
+          code: 'advanced_value',
+          language: 'typescript',
+          rules: 'advanced_value',
           fix: true
         }
       }
@@ -7610,10 +7988,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '解析JavaScript代码',
+        description: '处理简单代码',
         params: {
-          code: 'function add(a, b) { return a + b; }',
-          language: 'javascript'
+          code: 'value',
+          language: 'javascript',
+          includeComments: false
+        }
+      },
+      {
+        description: '处理复杂项目',
+        params: {
+          code: 'advanced_value',
+          language: 'typescript',
+          includeComments: true
         }
       }
     ],
@@ -7685,11 +8072,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '计算函数复杂度',
+        description: '处理简单代码',
         params: {
-          code: 'function complex(x) { if (x > 0) { for (let i = 0; i < x; i++) { if (i % 2 === 0) { console.log(i); } } } }',
+          code: 'value',
           language: 'javascript',
-          metrics: ['cyclomatic', 'cognitive']
+          metrics: ['item1', 'item2']
+        }
+      },
+      {
+        description: '处理复杂项目',
+        params: {
+          code: 'advanced_value',
+          language: 'typescript',
+          metrics: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -7861,15 +8256,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '模型格式转换器基础用法',
         params: {
-          inputPath: './input/sample.txt',
+          inputPath: './input/data.json',
           inputFormat: 'obj',
           outputFormat: 'obj',
-          options: {
-            key: 'value',
-            enabled: true
-          }
+          options: 'value'
+        }
+      },
+      {
+        description: '模型格式转换器高级用法',
+        params: {
+          inputPath: './advanced_input/data.json',
+          inputFormat: 'stl',
+          outputFormat: 'stl',
+          options: 'advanced_value'
         }
       }
     ],
@@ -8246,16 +8647,23 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '网络请求示例',
+        description: '基本网络设备管理器',
         params: {
           action: 'register',
-          deviceId: 'example_value',
+          deviceId: 'value',
           deviceType: 'sensor',
-          config: {
-            key: 'value',
-            enabled: true
-          },
-          command: 'example_value'
+          config: 'value',
+          command: 'value'
+        }
+      },
+      {
+        description: '高级网络设备管理器',
+        params: {
+          action: 'configure',
+          deviceId: 'advanced_value',
+          deviceType: 'actuator',
+          config: 'advanced_value',
+          command: 'advanced_value'
         }
       }
     ],
@@ -8318,13 +8726,23 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '网络请求示例',
+        description: '基本网络MQTT客户端',
         params: {
           action: 'connect',
-          broker: 'example_value',
-          topic: 'example_value',
-          message: '这是一段示例文本用于测试',
+          broker: 'value',
+          topic: 'value',
+          message: 'value',
           qos: 10
+        }
+      },
+      {
+        description: '高级网络MQTT客户端',
+        params: {
+          action: 'publish',
+          broker: 'advanced_value',
+          topic: 'advanced_value',
+          message: 'advanced_value',
+          qos: 50
         }
       }
     ],
@@ -8619,11 +9037,20 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用实体识别器进行AI处理',
+        description: '基础实体识别器',
         params: {
-          text: '这是一段示例文本用于测试',
+          text: '示例文本',
           entityTypes: ['item1', 'item2'],
           language: 'zh'
+        }
+      },
+      {
+        description: '批量实体识别器',
+        params: {
+          text: '更复杂的示例文本内容，用于测试高级功能',
+          entityTypes: ['item1', 'item2', 'item3', 'item4'],
+          language: 'en',
+          batch: true
         }
       }
     ],
@@ -8691,11 +9118,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '资源监控器使用示例',
+        description: '资源监控器基础用法',
         params: {
           metrics: ['item1', 'item2'],
           interval: 10,
           duration: 10
+        }
+      },
+      {
+        description: '资源监控器高级用法',
+        params: {
+          metrics: ['item1', 'item2', 'item3', 'item4'],
+          interval: 50,
+          duration: 50
         }
       }
     ],
@@ -9673,12 +10108,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用序列比对器进行AI处理',
+        description: '使用序列比对器',
         params: {
           sequences: ['item1', 'item2'],
           algorithm: 'needleman-wunsch',
           sequenceType: 'dna',
-          parameters: 'example_value'
+          parameters: 'value'
+        }
+      },
+      {
+        description: '高级序列比对器',
+        params: {
+          sequences: ['item1', 'item2', 'item3', 'item4'],
+          algorithm: 'smith-waterman',
+          sequenceType: 'rna',
+          parameters: 'advanced_value'
         }
       }
     ],
@@ -9741,11 +10185,20 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用蛋白质结构预测器进行AI处理',
+        description: '单次蛋白质结构预测器',
         params: {
-          sequence: 'example_value',
+          sequence: 'value',
           predictionType: 'secondary',
           method: 'alphafold'
+        }
+      },
+      {
+        description: '持续蛋白质结构预测器',
+        params: {
+          sequence: 'advanced_value',
+          predictionType: 'tertiary',
+          method: 'rosetta',
+          continuous: true
         }
       }
     ],
@@ -10026,13 +10479,23 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用习题生成器进行AI处理',
+        description: '使用习题生成器',
         params: {
           subject: 'math',
-          topic: 'example_value',
+          topic: 'value',
           difficulty: 'easy',
           count: 10,
           type: 'choice'
+        }
+      },
+      {
+        description: '高级习题生成器',
+        params: {
+          subject: 'physics',
+          topic: 'advanced_value',
+          difficulty: 'medium',
+          count: 50,
+          type: 'blank'
         }
       }
     ],
@@ -10129,12 +10592,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用自动批改器进行AI处理',
+        description: '使用自动批改器',
         params: {
           submissions: ['item1', 'item2'],
           answer_key: ['item1', 'item2'],
-          grading_rubric: 'example_value',
+          grading_rubric: 'value',
           feedback_level: 'minimal'
+        }
+      },
+      {
+        description: '高级自动批改器',
+        params: {
+          submissions: ['item1', 'item2', 'item3', 'item4'],
+          answer_key: ['item1', 'item2', 'item3', 'item4'],
+          grading_rubric: 'advanced_value',
+          feedback_level: 'standard'
         }
       }
     ],
@@ -10214,12 +10686,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用医学影像分析器进行AI处理',
+        description: '使用医学影像分析器',
         params: {
-          imagePath: './images/sample.png',
+          imagePath: './data/sample.dat',
           imageType: 'ct',
           analysisType: 'lesion_detection',
           bodyPart: 'brain'
+        }
+      },
+      {
+        description: '高级医学影像分析器',
+        params: {
+          imagePath: './advanced_data/sample.dat',
+          imageType: 'mri',
+          analysisType: 'segmentation',
+          bodyPart: 'chest'
         }
       }
     ],
@@ -10314,11 +10795,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用健康监测器进行AI处理',
+        description: '使用健康监测器',
         params: {
-          metrics: 'example_value',
+          metrics: 'value',
           history: ['item1', 'item2'],
           user_profile: './data/sample.dat'
+        }
+      },
+      {
+        description: '高级健康监测器',
+        params: {
+          metrics: 'advanced_value',
+          history: ['item1', 'item2', 'item3', 'item4'],
+          user_profile: './advanced_data/sample.dat'
         }
       }
     ],
@@ -10406,13 +10895,23 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用法律文书生成器进行AI处理',
+        description: '使用法律文书生成器',
         params: {
           documentType: 'contract',
-          template: 'example_value',
+          template: 'value',
           parties: ['item1', 'item2'],
           clauses: ['item1', 'item2'],
           jurisdiction: 'cn'
+        }
+      },
+      {
+        description: '高级法律文书生成器',
+        params: {
+          documentType: 'complaint',
+          template: 'advanced_value',
+          parties: ['item1', 'item2', 'item3', 'item4'],
+          clauses: ['item1', 'item2', 'item3', 'item4'],
+          jurisdiction: 'us'
         }
       }
     ],
@@ -11205,11 +11704,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用量子电路构建器进行AI处理',
+        description: '使用量子电路构建器',
         params: {
           num_qubits: 10,
           gates: ['item1', 'item2'],
           measurements: ['item1', 'item2']
+        }
+      },
+      {
+        description: '高级量子电路构建器',
+        params: {
+          num_qubits: 50,
+          gates: ['item1', 'item2', 'item3', 'item4'],
+          measurements: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -11278,12 +11785,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用量子模拟器进行AI处理',
+        description: '简单量子模拟器',
         params: {
-          circuit: 'example_value',
+          circuit: 'value',
           shots: 10,
           backend: 'statevector',
-          noise_model: 'example_value'
+          noise_model: 'base_model'
+        }
+      },
+      {
+        description: '复杂量子模拟器',
+        params: {
+          circuit: 'advanced_value',
+          shots: 50,
+          backend: 'qasm',
+          noise_model: 'advanced_model_v2'
         }
       }
     ],
@@ -11622,13 +12138,24 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用目标检测器进行AI处理',
+        description: '基础目标检测器',
         params: {
-          imagePath: './images/sample.png',
-          model: 'yolo',
+          imagePath: './data/sample.dat',
+          model: 'base_model',
           classes: ['item1', 'item2'],
-          confidence_threshold: 10,
-          nms_threshold: 10
+          confidence_threshold: 0.5,
+          nms_threshold: 0.5
+        }
+      },
+      {
+        description: '批量目标检测器',
+        params: {
+          imagePath: './advanced_data/sample.dat',
+          model: 'advanced_model_v2',
+          classes: ['item1', 'item2', 'item3', 'item4'],
+          confidence_threshold: 0.8,
+          nms_threshold: 0.8,
+          batch: true
         }
       }
     ],
@@ -11701,12 +12228,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用图像分割器进行AI处理',
+        description: '使用图像分割器',
         params: {
-          imagePath: './images/sample.png',
+          imagePath: './data/sample.dat',
           segmentationType: 'semantic',
-          model: 'unet',
+          model: 'base_model',
           classes: ['item1', 'item2']
+        }
+      },
+      {
+        description: '高级图像分割器',
+        params: {
+          imagePath: './advanced_data/sample.dat',
+          segmentationType: 'instance',
+          model: 'advanced_model_v2',
+          classes: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -11780,12 +12316,22 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '测试用例生成器使用示例',
+        description: '处理简单代码',
         params: {
           sourcePath: './data/sample.dat',
           testType: 'unit',
           framework: 'jest',
           coverage_target: 10,
+          mocking: false
+        }
+      },
+      {
+        description: '处理复杂项目',
+        params: {
+          sourcePath: './advanced_data/sample.dat',
+          testType: 'integration',
+          framework: 'mocha',
+          coverage_target: 50,
           mocking: true
         }
       }
@@ -11885,15 +12431,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '测试执行器使用示例',
+        description: '处理简单代码',
         params: {
           testPath: './data/sample.dat',
-          framework: 'example_value',
-          options: {
-            key: 'value',
-            enabled: true
-          },
-          filters: 'example_value'
+          framework: 'value',
+          options: 'value',
+          filters: 'value'
+        }
+      },
+      {
+        description: '处理复杂项目',
+        params: {
+          testPath: './advanced_data/sample.dat',
+          framework: 'advanced_value',
+          options: 'advanced_value',
+          filters: 'advanced_value'
         }
       }
     ],
@@ -11993,12 +12545,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '处理数据使用内容发布器',
+        description: '内容发布器基础用法',
         params: {
           action: 'create',
-          content: '这是一段示例文本用于测试',
-          workflow: 'example_value',
-          schedule: 'example_value'
+          content: '示例文本',
+          workflow: 'value',
+          schedule: 'value'
+        }
+      },
+      {
+        description: '内容发布器高级用法',
+        params: {
+          action: 'update',
+          content: '更复杂的示例文本内容，用于测试高级功能',
+          workflow: 'advanced_value',
+          schedule: 'advanced_value'
         }
       }
     ],
@@ -12092,12 +12653,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '处理数据使用媒体管理器',
+        description: '媒体管理器基础用法',
         params: {
           action: 'upload',
           file: './data/sample.dat',
-          transcode_options: 'function example() { return true; }',
-          cdn: 'example_value'
+          transcode_options: 'value',
+          cdn: 'value'
+        }
+      },
+      {
+        description: '媒体管理器高级用法',
+        params: {
+          action: 'transcode',
+          file: './advanced_data/sample.dat',
+          transcode_options: 'advanced_value',
+          cdn: 'advanced_value'
         }
       }
     ],
@@ -12706,16 +13276,24 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用污染预测器进行AI处理',
+        description: '单次污染预测器',
         params: {
-          location: 'example_value',
+          location: 'value',
           pollutionType: 'air',
           pollutants: ['item1', 'item2'],
           forecast_hours: 10,
-          historical_data: {
-            key: 'value',
-            enabled: true
-          }
+          historical_data: ['item1', 'item2']
+        }
+      },
+      {
+        description: '持续污染预测器',
+        params: {
+          location: 'advanced_value',
+          pollutionType: 'water',
+          pollutants: ['item1', 'item2', 'item3', 'item4'],
+          forecast_hours: 50,
+          historical_data: ['item1', 'item2', 'item3', 'item4'],
+          continuous: true
         }
       }
     ],
@@ -13000,15 +13578,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用边缘推理引擎进行AI处理',
+        description: '使用边缘推理引擎',
         params: {
-          model: 'example_value',
-          input_data: {
-            key: 'value',
-            enabled: true
-          },
+          model: 'base_model',
+          input_data: 'value',
           format: 'onnx',
           device: 'cpu'
+        }
+      },
+      {
+        description: '高级边缘推理引擎',
+        params: {
+          model: 'advanced_model_v2',
+          input_data: 'advanced_value',
+          format: 'tflite',
+          device: 'gpu'
         }
       }
     ],
@@ -13080,12 +13664,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用数字孪生模型构建器进行AI处理',
+        description: '使用数字孪生模型构建器',
         params: {
-          entity: 'example_value',
+          entity: 'value',
           sensors: ['item1', 'item2'],
-          parameters: 'example_value',
-          physics_model: 'kinematic'
+          parameters: 'value',
+          physics_model: 'base_model'
+        }
+      },
+      {
+        description: '高级数字孪生模型构建器',
+        params: {
+          entity: 'advanced_value',
+          sensors: ['item1', 'item2', 'item3', 'item4'],
+          parameters: 'advanced_value',
+          physics_model: 'advanced_model_v2'
         }
       }
     ],
@@ -13149,12 +13742,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用数字孪生仿真器进行AI处理',
+        description: '简单数字孪生仿真器',
         params: {
-          twin_id: 'example_value',
+          twin_id: 'value',
           simulation_type: 'real_time',
-          scenario: 'example_value',
+          scenario: 'value',
           time_horizon: 10
+        }
+      },
+      {
+        description: '复杂数字孪生仿真器',
+        params: {
+          twin_id: 'advanced_value',
+          simulation_type: 'predictive',
+          scenario: 'advanced_value',
+          time_horizon: 50
         }
       }
     ],
@@ -13294,12 +13896,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '处理数据使用生产调度器',
+        description: '生产调度器基础用法',
         params: {
           orders: ['item1', 'item2'],
-          resources: 'example_value',
-          constraints: 'example_value',
+          resources: 'value',
+          constraints: 'value',
           optimization_goal: 'minimize_time'
+        }
+      },
+      {
+        description: '生产调度器高级用法',
+        params: {
+          orders: ['item1', 'item2', 'item3', 'item4'],
+          resources: 'advanced_value',
+          constraints: 'advanced_value',
+          optimization_goal: 'minimize_cost'
         }
       }
     ],
@@ -13519,15 +14130,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用作物监测器进行AI处理',
+        description: '使用作物监测器',
         params: {
-          field: 'example_value',
+          field: 'value',
           monitoring_type: 'growth',
           images: ['item1', 'item2'],
-          sensor_data: {
-            key: 'value',
-            enabled: true
-          }
+          sensor_data: 'value'
+        }
+      },
+      {
+        description: '高级作物监测器',
+        params: {
+          field: 'advanced_value',
+          monitoring_type: 'disease',
+          images: ['item1', 'item2', 'item3', 'item4'],
+          sensor_data: 'advanced_value'
         }
       }
     ],
@@ -14036,15 +14653,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用海洋监测器进行AI处理',
+        description: '使用海洋监测器',
         params: {
-          area: 'example_value',
+          area: 'value',
           monitoring_type: 'temperature',
-          data_sources: {
-            key: 'value',
-            enabled: true
-          },
-          time_range: 'example_value'
+          data_sources: ['item1', 'item2'],
+          time_range: 'value'
+        }
+      },
+      {
+        description: '高级海洋监测器',
+        params: {
+          area: 'advanced_value',
+          monitoring_type: 'salinity',
+          data_sources: ['item1', 'item2', 'item3', 'item4'],
+          time_range: 'advanced_value'
         }
       }
     ],
@@ -14282,17 +14905,26 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用新能源预测器进行AI处理',
+        description: '单次新能源预测器',
         params: {
           energy_type: 'solar',
-          location: 'example_value',
+          location: 'value',
           capacity: 10,
           forecast_horizon: 10,
-          historical_data: {
-            key: 'value',
-            enabled: true
-          },
-          weather_forecast: 'example_value'
+          historical_data: ['item1', 'item2'],
+          weather_forecast: 'value'
+        }
+      },
+      {
+        description: '持续新能源预测器',
+        params: {
+          energy_type: 'wind',
+          location: 'advanced_value',
+          capacity: 50,
+          forecast_horizon: 50,
+          historical_data: ['item1', 'item2', 'item3', 'item4'],
+          weather_forecast: 'advanced_value',
+          continuous: true
         }
       }
     ],
@@ -14431,11 +15063,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用量子隐形传态器进行AI处理',
+        description: '使用量子隐形传态器',
         params: {
-          quantum_state: 'example_value',
+          quantum_state: 'value',
           entanglement_quality: 10,
-          classical_channel: 'example_value'
+          classical_channel: 'value'
+        }
+      },
+      {
+        description: '高级量子隐形传态器',
+        params: {
+          quantum_state: 'advanced_value',
+          entanglement_quality: 50,
+          classical_channel: 'advanced_value'
         }
       }
     ],
@@ -14583,15 +15223,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用脑机接口解码器进行AI处理',
+        description: '使用脑机接口解码器',
         params: {
-          features: 'example_value',
+          features: 'value',
           task_type: 'motor_imagery',
-          model: 'lda',
-          calibration_data: {
-            key: 'value',
-            enabled: true
-          }
+          model: 'base_model',
+          calibration_data: ['item1', 'item2']
+        }
+      },
+      {
+        description: '高级脑机接口解码器',
+        params: {
+          features: 'advanced_value',
+          task_type: 'p300',
+          model: 'advanced_model_v2',
+          calibration_data: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -14740,13 +15386,23 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用蛋白质设计器进行AI处理',
+        description: '使用蛋白质设计器',
         params: {
           design_goal: 'enzyme',
-          sequence: 'example_value',
-          structure_constraints: 'example_value',
-          function_requirements: 'example_value',
+          sequence: 'value',
+          structure_constraints: 'value',
+          function_requirements: 'value',
           optimization_cycles: 10
+        }
+      },
+      {
+        description: '高级蛋白质设计器',
+        params: {
+          design_goal: 'antibody',
+          sequence: 'advanced_value',
+          structure_constraints: 'advanced_value',
+          function_requirements: 'advanced_value',
+          optimization_cycles: 50
         }
       }
     ],
@@ -14819,12 +15475,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用纳米模拟器进行AI处理',
+        description: '简单纳米模拟器',
         params: {
-          system: 'example_value',
+          system: 'value',
           method: 'MD',
           simulation_time: 10,
           force_field: 'LAMMPS'
+        }
+      },
+      {
+        description: '复杂纳米模拟器',
+        params: {
+          system: 'advanced_value',
+          method: 'MC',
+          simulation_time: 50,
+          force_field: 'AMBER'
         }
       }
     ],
@@ -15521,16 +16186,23 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用天气建模器进行AI处理',
+        description: '简单天气建模器',
         params: {
-          model: 'WRF',
-          domain: 'example_value',
-          initial_conditions: 'example_value',
+          model: 'base_model',
+          domain: 'value',
+          initial_conditions: 'value',
           forecast_hours: 10,
-          physics_options: {
-            key: 'value',
-            enabled: true
-          }
+          physics_options: 'value'
+        }
+      },
+      {
+        description: '复杂天气建模器',
+        params: {
+          model: 'advanced_model_v2',
+          domain: 'advanced_value',
+          initial_conditions: 'advanced_value',
+          forecast_hours: 50,
+          physics_options: 'advanced_value'
         }
       }
     ],
@@ -15614,12 +16286,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用材料设计器进行AI处理',
+        description: '使用材料设计器',
         params: {
           material_class: 'metal',
-          target_properties: 'example_value',
-          constraints: 'example_value',
+          target_properties: 'value',
+          constraints: 'value',
           design_method: 'ML'
+        }
+      },
+      {
+        description: '高级材料设计器',
+        params: {
+          material_class: 'ceramic',
+          target_properties: 'advanced_value',
+          constraints: 'advanced_value',
+          design_method: 'DFT'
         }
       }
     ],
@@ -15685,11 +16366,20 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用性能预测器进行AI处理',
+        description: '单次性能预测器',
         params: {
-          material: 'example_value',
+          material: 'value',
           properties: ['item1', 'item2'],
           method: 'ML'
+        }
+      },
+      {
+        description: '持续性能预测器',
+        params: {
+          material: 'advanced_value',
+          properties: ['item1', 'item2', 'item3', 'item4'],
+          method: 'DFT',
+          continuous: true
         }
       }
     ],
@@ -15763,15 +16453,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用脉冲神经网络构建器进行AI处理',
+        description: '使用脉冲神经网络构建器',
         params: {
-          architecture: 'example_value',
+          architecture: 'value',
           learning_rule: 'STDP',
           encoding: 'rate',
-          training_data: {
-            key: 'value',
-            enabled: true
-          }
+          training_data: ['item1', 'item2']
+        }
+      },
+      {
+        description: '高级脉冲神经网络构建器',
+        params: {
+          architecture: 'advanced_value',
+          learning_rule: 'R-STDP',
+          encoding: 'temporal',
+          training_data: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -16805,14 +17501,25 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '网络请求示例',
+        description: '基本网络光子路由器',
         params: {
           architecture: 'wavelength_routing',
           wavelength_channels: 10,
           switching_technology: 'MEMS',
           modulation_format: 'OOK',
           routing_table: ['item1', 'item2'],
-          qos_requirements: 'example_value'
+          qos_requirements: 'value'
+        }
+      },
+      {
+        description: '高级网络光子路由器',
+        params: {
+          architecture: 'optical_burst',
+          wavelength_channels: 50,
+          switching_technology: 'SOA',
+          modulation_format: 'DPSK',
+          routing_table: ['item1', 'item2', 'item3', 'item4'],
+          qos_requirements: 'advanced_value'
         }
       }
     ],
@@ -16907,17 +17614,25 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用光学神经网络设计器进行AI处理',
+        description: '使用光学神经网络设计器',
         params: {
           architecture: 'diffractive',
           layers: ['item1', 'item2'],
-          optical_components: 'example_value',
+          optical_components: 'value',
           training_method: 'in_situ',
           task: 'classification',
-          dataset: {
-            key: 'value',
-            enabled: true
-          }
+          dataset: 'value'
+        }
+      },
+      {
+        description: '高级光学神经网络设计器',
+        params: {
+          architecture: 'interferometric',
+          layers: ['item1', 'item2', 'item3', 'item4'],
+          optical_components: 'advanced_value',
+          training_method: 'digital_twin',
+          task: 'regression',
+          dataset: 'advanced_value'
         }
       }
     ],
@@ -18710,16 +19425,23 @@ console.log(x)`,
     },
     examples: [
       {
-        description: 'PDF转换器使用示例',
+        description: '处理单个文档',
         params: {
-          input_path: './input/sample.txt',
-          output_path: './output/result.txt',
+          input_path: './input/data.json',
+          output_path: './output/result.json',
           conversion_type: 'to_pdf',
           target_format: 'pdf',
-          options: {
-            key: 'value',
-            enabled: true
-          }
+          options: 'value'
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          input_path: './advanced_input/data.json',
+          output_path: './advanced_output/result.json',
+          conversion_type: 'from_pdf',
+          target_format: 'docx',
+          options: 'advanced_value'
         }
       }
     ],
@@ -18802,12 +19524,22 @@ console.log(x)`,
     },
     examples: [
       {
-        description: 'Office文档转换器使用示例',
+        description: '处理单个文档',
         params: {
-          input_path: './input/sample.txt',
-          output_path: './output/result.txt',
+          input_path: './input/data.json',
+          output_path: './output/result.json',
           source_format: 'doc',
           target_format: 'doc',
+          preserve_formatting: false
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          input_path: './advanced_input/data.json',
+          output_path: './advanced_output/result.json',
+          source_format: 'docx',
+          target_format: 'docx',
           preserve_formatting: true
         }
       }
@@ -18890,14 +19622,25 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '高级二维码生成器使用示例',
+        description: '高级二维码生成器基础用法',
         params: {
-          content: '这是一段示例文本用于测试',
-          output_path: './output/result.txt',
-          size: 100,
+          content: '示例文本',
+          output_path: './output/result.json',
+          size: 10,
           error_correction: 'L',
-          style: 'example_value',
+          style: 'value',
           format: 'png'
+        }
+      },
+      {
+        description: '高级二维码生成器高级用法',
+        params: {
+          content: '更复杂的示例文本内容，用于测试高级功能',
+          output_path: './advanced_output/result.json',
+          size: 50,
+          error_correction: 'M',
+          style: 'advanced_value',
+          format: 'jpg'
         }
       }
     ],
@@ -18962,10 +19705,18 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '二维码扫描器使用示例',
+        description: '二维码扫描器基础用法',
         params: {
-          image_path: './images/sample.png',
+          image_path: './data/sample.dat',
           scan_type: 'qrcode',
+          multiple: false
+        }
+      },
+      {
+        description: '二维码扫描器高级用法',
+        params: {
+          image_path: './advanced_data/sample.dat',
+          scan_type: 'barcode',
           multiple: true
         }
       }
@@ -19369,10 +20120,17 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '笔记编辑器使用示例',
+        description: '处理单个文档',
         params: {
           action: 'create',
-          note: 'example_value'
+          note: 'value'
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          action: 'read',
+          note: 'advanced_value'
         }
       }
     ],
@@ -19447,11 +20205,20 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '笔记搜索器使用示例',
+        description: '处理单个文档',
         params: {
-          query: 'example_value',
-          filters: 'example_value',
+          query: '搜索关键词',
+          filters: 'value',
           sort_by: 'created_at',
+          limit: 10
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          query: '复杂查询：条件A AND 条件B',
+          filters: 'advanced_value',
+          sort_by: 'updated_at',
           limit: 100
         }
       }
@@ -19692,11 +20459,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '网络请求示例',
+        description: '基本网络网速测试器',
         params: {
           test_type: 'download',
-          server: 'example_value',
+          server: 'value',
           duration: 10
+        }
+      },
+      {
+        description: '高级网络网速测试器',
+        params: {
+          test_type: 'upload',
+          server: 'advanced_value',
+          duration: 50
         }
       }
     ],
@@ -19778,14 +20553,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '网络请求示例',
+        description: '基本网络网络诊断工具',
         params: {
           operation: 'ping',
-          target: 'example_value',
-          options: {
-            key: 'value',
-            enabled: true
-          }
+          target: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '高级网络网络诊断工具',
+        params: {
+          operation: 'port_scan',
+          target: 'advanced_value',
+          options: 'advanced_value'
         }
       }
     ],
@@ -21675,11 +22455,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '生成Node.js项目.gitignore',
+        description: '.gitignore生成器基础用法',
         params: {
-          projectPath: './my-node-app',
-          templates: ['Node', 'VisualStudioCode', 'macOS'],
-          customPatterns: ['.env.local', 'uploads/']
+          projectPath: './data/sample.dat',
+          templates: ['item1', 'item2'],
+          customPatterns: ['item1', 'item2']
+        }
+      },
+      {
+        description: '.gitignore生成器高级用法',
+        params: {
+          projectPath: './advanced_data/sample.dat',
+          templates: ['item1', 'item2', 'item3', 'item4'],
+          customPatterns: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -21735,12 +22523,21 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '生成React项目ESLint配置',
+        description: 'ESLint配置生成器基础用法',
         params: {
-          projectPath: './my-react-app',
+          projectPath: './data/sample.dat',
           framework: 'react',
           style: 'airbnb',
           configFormat: 'js'
+        }
+      },
+      {
+        description: 'ESLint配置生成器高级用法',
+        params: {
+          projectPath: './advanced_data/sample.dat',
+          framework: 'vue',
+          style: 'standard',
+          configFormat: 'json'
         }
       }
     ],
@@ -21873,11 +22670,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '查询以太坊地址余额',
+        description: '区块链查询工具 基础用法',
         params: {
           chain: 'ethereum',
-          queryType: 'balance',
-          identifier: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'
+          queryType: '搜索关键词',
+          identifier: 'value'
+        }
+      },
+      {
+        description: '区块链查询工具 高级用法',
+        params: {
+          chain: 'bsc',
+          queryType: '复杂查询：条件A AND 条件B',
+          identifier: 'advanced_value'
         }
       }
     ],
@@ -21939,18 +22744,19 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '模拟代币经济模型',
+        description: '代币经济模拟器 基础用法',
         params: {
-          tokenConfig: {
-            totalSupply: 1000000000,
-            initialPrice: 0.1,
-            distributions: {
-              team: 0.2,
-              investors: 0.3,
-              public: 0.5
-            }
-          },
-          simulationPeriod: '5years'
+          tokenConfig: 'value',
+          simulationPeriod: '5years',
+          iterations: 10
+        }
+      },
+      {
+        description: '代币经济模拟器 高级用法',
+        params: {
+          tokenConfig: 'advanced_value',
+          simulationPeriod: '5years',
+          iterations: 50
         }
       }
     ],
@@ -22409,8 +23215,18 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用利益相关者映射工具 / Stakeholder Mapping Tool',
-        params: {}
+        description: '利益相关者映射工具 基础用法',
+        params: {
+          projectData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '利益相关者映射工具 高级用法',
+        params: {
+          projectData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read', 'data:write'],
@@ -22503,8 +23319,18 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用沟通计划工具 / Communication Planner',
-        params: {}
+        description: '沟通计划工具 基础用法',
+        params: {
+          projectData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '沟通计划工具 高级用法',
+        params: {
+          projectData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read', 'data:write'],
@@ -22940,8 +23766,18 @@ console.log(x)`,
     },
     examples: [
       {
-        description: '使用代码生成器 / Code Generator',
-        params: {}
+        description: '处理简单代码',
+        params: {
+          codeSpec: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '处理复杂项目',
+        params: {
+          codeSpec: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['code:generate'],

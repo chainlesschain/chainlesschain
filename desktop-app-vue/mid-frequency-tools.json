@@ -1,0 +1,4732 @@
+{
+  "generatedAt": "2026-01-01T17:31:33.536Z",
+  "totalTools": 300,
+  "selectedCount": 100,
+  "rankRange": "51-150",
+  "tools": [
+    {
+      "rank": 51,
+      "id": "tool_entity_recognizer",
+      "name": "entity_recognizer",
+      "display_name": "实体识别器",
+      "category": "ai",
+      "description": "识别文本中的命名实体(人名、地名、组织等)",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "待分析文本"
+          },
+          "entityTypes": {
+            "type": "array",
+            "description": "要识别的实体类型",
+            "items": {
+              "type": "string",
+              "enum": [
+                "person",
+                "location",
+                "organization",
+                "date",
+                "money",
+                "email"
+              ]
+            }
+          },
+          "language": {
+            "type": "string",
+            "description": "文本语言",
+            "enum": [
+              "zh",
+              "en"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "rank": 52,
+      "id": "tool_sequence_aligner",
+      "name": "sequence_aligner",
+      "display_name": "序列比对器",
+      "category": "ai",
+      "description": "DNA/RNA/蛋白质序列比对分析",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "sequences": {
+            "type": "array",
+            "description": "待比对序列列表",
+            "items": {
+              "type": "string"
+            }
+          },
+          "algorithm": {
+            "type": "string",
+            "description": "比对算法",
+            "enum": [
+              "needleman-wunsch",
+              "smith-waterman",
+              "blast",
+              "clustalw"
+            ]
+          },
+          "sequenceType": {
+            "type": "string",
+            "description": "序列类型",
+            "enum": [
+              "dna",
+              "rna",
+              "protein"
+            ]
+          },
+          "parameters": {
+            "type": "object",
+            "description": "比对参数",
+            "properties": {
+              "match_score": {
+                "type": "number"
+              },
+              "mismatch_penalty": {
+                "type": "number"
+              },
+              "gap_penalty": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "sequences",
+          "algorithm"
+        ]
+      }
+    },
+    {
+      "rank": 53,
+      "id": "tool_protein_predictor",
+      "name": "protein_predictor",
+      "display_name": "蛋白质结构预测器",
+      "category": "ai",
+      "description": "预测蛋白质二级/三级结构",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "string",
+            "description": "氨基酸序列"
+          },
+          "predictionType": {
+            "type": "string",
+            "description": "预测类型",
+            "enum": [
+              "secondary",
+              "tertiary",
+              "disorder",
+              "binding_site"
+            ]
+          },
+          "method": {
+            "type": "string",
+            "description": "预测方法",
+            "enum": [
+              "alphafold",
+              "rosetta",
+              "modeller",
+              "chou-fasman"
+            ]
+          }
+        },
+        "required": [
+          "sequence",
+          "predictionType"
+        ]
+      }
+    },
+    {
+      "rank": 54,
+      "id": "tool_exercise_generator",
+      "name": "exercise_generator",
+      "display_name": "习题生成器",
+      "category": "ai",
+      "description": "自动生成各学科习题,支持难度分级",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "学科",
+            "enum": [
+              "math",
+              "physics",
+              "chemistry",
+              "english",
+              "programming"
+            ]
+          },
+          "topic": {
+            "type": "string",
+            "description": "知识点"
+          },
+          "difficulty": {
+            "type": "string",
+            "description": "难度等级",
+            "enum": [
+              "easy",
+              "medium",
+              "hard",
+              "expert"
+            ]
+          },
+          "count": {
+            "type": "number",
+            "description": "生成数量"
+          },
+          "type": {
+            "type": "string",
+            "description": "题型",
+            "enum": [
+              "choice",
+              "blank",
+              "essay",
+              "calculation",
+              "coding"
+            ]
+          }
+        },
+        "required": [
+          "subject",
+          "topic",
+          "difficulty"
+        ]
+      }
+    },
+    {
+      "rank": 55,
+      "id": "tool_auto_grader",
+      "name": "auto_grader",
+      "display_name": "自动批改器",
+      "category": "ai",
+      "description": "自动批改作业/试卷,生成评分报告",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "submissions": {
+            "type": "array",
+            "description": "学生提交列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "student_id": {
+                  "type": "string"
+                },
+                "answers": {
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "answer_key": {
+            "type": "array",
+            "description": "标准答案"
+          },
+          "grading_rubric": {
+            "type": "object",
+            "description": "评分标准",
+            "properties": {
+              "total_points": {
+                "type": "number"
+              },
+              "partial_credit": {
+                "type": "boolean"
+              }
+            }
+          },
+          "feedback_level": {
+            "type": "string",
+            "description": "反馈详细程度",
+            "enum": [
+              "minimal",
+              "standard",
+              "detailed"
+            ]
+          }
+        },
+        "required": [
+          "submissions",
+          "answer_key"
+        ]
+      }
+    },
+    {
+      "rank": 56,
+      "id": "tool_quantum_circuit_builder",
+      "name": "quantum_circuit_builder",
+      "display_name": "量子电路构建器",
+      "category": "ai",
+      "description": "构建和编辑量子电路",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "num_qubits": {
+            "type": "number",
+            "description": "量子比特数量"
+          },
+          "gates": {
+            "type": "array",
+            "description": "量子门列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "number"
+                },
+                "control": {
+                  "type": "number"
+                },
+                "angle": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "measurements": {
+            "type": "array",
+            "description": "测量配置"
+          }
+        },
+        "required": [
+          "num_qubits"
+        ]
+      }
+    },
+    {
+      "rank": 57,
+      "id": "tool_quantum_simulator",
+      "name": "quantum_simulator",
+      "display_name": "量子模拟器",
+      "category": "ai",
+      "description": "模拟量子电路执行",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "circuit": {
+            "type": "object",
+            "description": "量子电路"
+          },
+          "shots": {
+            "type": "number",
+            "description": "测量次数"
+          },
+          "backend": {
+            "type": "string",
+            "description": "模拟后端",
+            "enum": [
+              "statevector",
+              "qasm",
+              "unitary"
+            ]
+          },
+          "noise_model": {
+            "type": "object",
+            "description": "噪声模型"
+          }
+        },
+        "required": [
+          "circuit"
+        ]
+      }
+    },
+    {
+      "rank": 58,
+      "id": "tool_object_detector",
+      "name": "object_detector",
+      "display_name": "目标检测器",
+      "category": "ai",
+      "description": "检测图像中的物体",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "imagePath": {
+            "type": "string",
+            "description": "图像文件路径"
+          },
+          "model": {
+            "type": "string",
+            "description": "检测模型",
+            "enum": [
+              "yolo",
+              "faster_rcnn",
+              "ssd",
+              "retinanet"
+            ]
+          },
+          "classes": {
+            "type": "array",
+            "description": "要检测的类别",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence_threshold": {
+            "type": "number",
+            "description": "置信度阈值"
+          },
+          "nms_threshold": {
+            "type": "number",
+            "description": "非极大值抑制阈值"
+          }
+        },
+        "required": [
+          "imagePath"
+        ]
+      }
+    },
+    {
+      "rank": 59,
+      "id": "tool_image_segmenter",
+      "name": "image_segmenter",
+      "display_name": "图像分割器",
+      "category": "ai",
+      "description": "对图像进行语义/实例分割",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "imagePath": {
+            "type": "string",
+            "description": "图像文件路径"
+          },
+          "segmentationType": {
+            "type": "string",
+            "description": "分割类型",
+            "enum": [
+              "semantic",
+              "instance",
+              "panoptic"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "description": "分割模型",
+            "enum": [
+              "unet",
+              "mask_rcnn",
+              "deeplab"
+            ]
+          },
+          "classes": {
+            "type": "array",
+            "description": "分割类别"
+          }
+        },
+        "required": [
+          "imagePath",
+          "segmentationType"
+        ]
+      }
+    },
+    {
+      "rank": 60,
+      "id": "tool_pollution_predictor",
+      "name": "pollution_predictor",
+      "display_name": "污染预测器",
+      "category": "ai",
+      "description": "预测空气/水污染水平",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "object",
+            "description": "位置"
+          },
+          "pollutionType": {
+            "type": "string",
+            "description": "污染类型",
+            "enum": [
+              "air",
+              "water",
+              "soil",
+              "noise"
+            ]
+          },
+          "pollutants": {
+            "type": "array",
+            "description": "污染物列表",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pm25",
+                "pm10",
+                "co2",
+                "no2",
+                "so2",
+                "o3"
+              ]
+            }
+          },
+          "forecast_hours": {
+            "type": "number",
+            "description": "预测小时数"
+          },
+          "historical_data": {
+            "type": "array",
+            "description": "历史监测数据"
+          }
+        },
+        "required": [
+          "location",
+          "pollutionType"
+        ]
+      }
+    },
+    {
+      "rank": 61,
+      "id": "tool_twin_simulator",
+      "name": "twin_simulator",
+      "display_name": "数字孪生仿真器",
+      "category": "ai",
+      "description": "运行数字孪生仿真和预测分析",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "twin_id": {
+            "type": "string",
+            "description": "孪生体ID"
+          },
+          "simulation_type": {
+            "type": "string",
+            "description": "仿真类型",
+            "enum": [
+              "real_time",
+              "predictive",
+              "what_if",
+              "optimization"
+            ]
+          },
+          "scenario": {
+            "type": "object",
+            "description": "仿真场景配置"
+          },
+          "time_horizon": {
+            "type": "number",
+            "description": "仿真时长(秒)"
+          }
+        },
+        "required": [
+          "twin_id",
+          "simulation_type"
+        ]
+      }
+    },
+    {
+      "rank": 62,
+      "id": "tool_crop_monitor",
+      "name": "crop_monitor",
+      "display_name": "作物监测器",
+      "category": "ai",
+      "description": "作物生长监测、病虫害识别、产量预测",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "object",
+            "description": "农田信息",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "location": {
+                "type": "object"
+              },
+              "crop_type": {
+                "type": "string"
+              }
+            }
+          },
+          "monitoring_type": {
+            "type": "string",
+            "description": "监测类型",
+            "enum": [
+              "growth",
+              "disease",
+              "pest",
+              "yield",
+              "nutrition"
+            ]
+          },
+          "images": {
+            "type": "array",
+            "description": "监测图像"
+          },
+          "sensor_data": {
+            "type": "object",
+            "description": "传感器数据"
+          }
+        },
+        "required": [
+          "field",
+          "monitoring_type"
+        ]
+      }
+    },
+    {
+      "rank": 63,
+      "id": "tool_ocean_monitor",
+      "name": "ocean_monitor",
+      "display_name": "海洋监测器",
+      "category": "ai",
+      "description": "海洋环境监测和海洋生态分析",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "area": {
+            "type": "object",
+            "description": "监测区域",
+            "properties": {
+              "coordinates": {
+                "type": "array"
+              },
+              "depth_range": {
+                "type": "object"
+              }
+            }
+          },
+          "monitoring_type": {
+            "type": "string",
+            "description": "监测类型",
+            "enum": [
+              "temperature",
+              "salinity",
+              "current",
+              "wave",
+              "biology",
+              "pollution"
+            ]
+          },
+          "data_sources": {
+            "type": "array",
+            "description": "数据源",
+            "items": {
+              "type": "string",
+              "enum": [
+                "buoy",
+                "satellite",
+                "ship",
+                "underwater_vehicle"
+              ]
+            }
+          },
+          "time_range": {
+            "type": "object",
+            "description": "时间范围"
+          }
+        },
+        "required": [
+          "area",
+          "monitoring_type"
+        ]
+      }
+    },
+    {
+      "rank": 64,
+      "id": "tool_renewable_forecaster",
+      "name": "renewable_forecaster",
+      "display_name": "新能源预测器",
+      "category": "ai",
+      "description": "太阳能、风能等可再生能源发电预测",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "energy_type": {
+            "type": "string",
+            "description": "能源类型",
+            "enum": [
+              "solar",
+              "wind",
+              "hydro",
+              "geothermal"
+            ]
+          },
+          "location": {
+            "type": "object",
+            "description": "位置信息"
+          },
+          "capacity": {
+            "type": "number",
+            "description": "装机容量(MW)"
+          },
+          "forecast_horizon": {
+            "type": "number",
+            "description": "预测时长(小时)"
+          },
+          "historical_data": {
+            "type": "array",
+            "description": "历史数据"
+          },
+          "weather_forecast": {
+            "type": "object",
+            "description": "天气预报"
+          }
+        },
+        "required": [
+          "energy_type",
+          "location",
+          "capacity"
+        ]
+      }
+    },
+    {
+      "rank": 65,
+      "id": "tool_quantum_teleporter",
+      "name": "quantum_teleporter",
+      "display_name": "量子隐形传态器",
+      "category": "ai",
+      "description": "量子态传输和量子纠缠操作",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "quantum_state": {
+            "type": "object",
+            "description": "待传输的量子态",
+            "properties": {
+              "alpha": {
+                "type": "number"
+              },
+              "beta": {
+                "type": "number"
+              }
+            }
+          },
+          "entanglement_quality": {
+            "type": "number",
+            "description": "纠缠质量(0-1)"
+          },
+          "classical_channel": {
+            "type": "object",
+            "description": "经典信道参数"
+          }
+        },
+        "required": [
+          "quantum_state"
+        ]
+      }
+    },
+    {
+      "rank": 66,
+      "id": "tool_bci_decoder",
+      "name": "bci_decoder",
+      "display_name": "脑机接口解码器",
+      "category": "ai",
+      "description": "解码脑电信号识别用户意图",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "features": {
+            "type": "object",
+            "description": "EEG特征"
+          },
+          "task_type": {
+            "type": "string",
+            "description": "任务类型",
+            "enum": [
+              "motor_imagery",
+              "p300",
+              "ssvep",
+              "error_potential"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "description": "解码模型",
+            "enum": [
+              "lda",
+              "svm",
+              "cnn",
+              "rnn"
+            ]
+          },
+          "calibration_data": {
+            "type": "array",
+            "description": "校准数据"
+          }
+        },
+        "required": [
+          "features",
+          "task_type"
+        ]
+      }
+    },
+    {
+      "rank": 67,
+      "id": "tool_nano_simulator",
+      "name": "nano_simulator",
+      "display_name": "纳米模拟器",
+      "category": "ai",
+      "description": "分子动力学和纳米材料模拟",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "system": {
+            "type": "object",
+            "description": "模拟体系",
+            "properties": {
+              "atoms": {
+                "type": "array"
+              },
+              "lattice": {
+                "type": "object"
+              },
+              "temperature": {
+                "type": "number"
+              }
+            }
+          },
+          "method": {
+            "type": "string",
+            "description": "模拟方法",
+            "enum": [
+              "MD",
+              "MC",
+              "DFT",
+              "tight_binding"
+            ]
+          },
+          "simulation_time": {
+            "type": "number",
+            "description": "模拟时长(ps)"
+          },
+          "force_field": {
+            "type": "string",
+            "description": "力场",
+            "enum": [
+              "LAMMPS",
+              "AMBER",
+              "CHARMM",
+              "ReaxFF"
+            ]
+          }
+        },
+        "required": [
+          "system",
+          "method"
+        ]
+      }
+    },
+    {
+      "rank": 68,
+      "id": "tool_weather_modeler",
+      "name": "weather_modeler",
+      "display_name": "天气建模器",
+      "category": "ai",
+      "description": "数值天气预报和气候模拟",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "模式",
+            "enum": [
+              "WRF",
+              "GFS",
+              "ECMWF",
+              "regional"
+            ]
+          },
+          "domain": {
+            "type": "object",
+            "description": "模拟区域",
+            "properties": {
+              "bounds": {
+                "type": "array"
+              },
+              "resolution": {
+                "type": "number"
+              }
+            }
+          },
+          "initial_conditions": {
+            "type": "object",
+            "description": "初始场"
+          },
+          "forecast_hours": {
+            "type": "number",
+            "description": "预报时效"
+          },
+          "physics_options": {
+            "type": "object",
+            "description": "物理方案"
+          }
+        },
+        "required": [
+          "model",
+          "domain",
+          "forecast_hours"
+        ]
+      }
+    },
+    {
+      "rank": 69,
+      "id": "tool_material_designer",
+      "name": "material_designer",
+      "display_name": "材料设计器",
+      "category": "ai",
+      "description": "AI驱动的材料设计和优化",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "material_class": {
+            "type": "string",
+            "description": "材料类别",
+            "enum": [
+              "metal",
+              "ceramic",
+              "polymer",
+              "composite",
+              "semiconductor"
+            ]
+          },
+          "target_properties": {
+            "type": "object",
+            "description": "目标性能",
+            "properties": {
+              "strength": {
+                "type": "number"
+              },
+              "conductivity": {
+                "type": "number"
+              },
+              "density": {
+                "type": "number"
+              }
+            }
+          },
+          "constraints": {
+            "type": "object",
+            "description": "约束条件",
+            "properties": {
+              "elements": {
+                "type": "array"
+              },
+              "cost": {
+                "type": "number"
+              },
+              "toxicity": {
+                "type": "string"
+              }
+            }
+          },
+          "design_method": {
+            "type": "string",
+            "description": "设计方法",
+            "enum": [
+              "ML",
+              "DFT",
+              "empirical",
+              "hybrid"
+            ]
+          }
+        },
+        "required": [
+          "material_class",
+          "target_properties"
+        ]
+      }
+    },
+    {
+      "rank": 70,
+      "id": "tool_property_predictor",
+      "name": "property_predictor",
+      "display_name": "性能预测器",
+      "category": "ai",
+      "description": "材料性能预测和筛选",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "material": {
+            "type": "object",
+            "description": "材料信息",
+            "properties": {
+              "composition": {
+                "type": "string"
+              },
+              "structure": {
+                "type": "object"
+              }
+            }
+          },
+          "properties": {
+            "type": "array",
+            "description": "待预测性能",
+            "items": {
+              "type": "string",
+              "enum": [
+                "band_gap",
+                "formation_energy",
+                "elastic_modulus",
+                "thermal_conductivity"
+              ]
+            }
+          },
+          "method": {
+            "type": "string",
+            "description": "预测方法",
+            "enum": [
+              "ML",
+              "DFT",
+              "MD",
+              "empirical"
+            ]
+          }
+        },
+        "required": [
+          "material",
+          "properties"
+        ]
+      }
+    },
+    {
+      "rank": 71,
+      "id": "tool_snn_builder",
+      "name": "snn_builder",
+      "display_name": "脉冲神经网络构建器",
+      "category": "ai",
+      "description": "构建和训练脉冲神经网络",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "architecture": {
+            "type": "object",
+            "description": "网络架构",
+            "properties": {
+              "layers": {
+                "type": "array"
+              },
+              "neuron_model": {
+                "type": "string",
+                "enum": [
+                  "LIF",
+                  "Izhikevich",
+                  "AdEx"
+                ]
+              },
+              "topology": {
+                "type": "string"
+              }
+            }
+          },
+          "learning_rule": {
+            "type": "string",
+            "description": "学习规则",
+            "enum": [
+              "STDP",
+              "R-STDP",
+              "backprop",
+              "surrogate_gradient"
+            ]
+          },
+          "encoding": {
+            "type": "string",
+            "description": "编码方式",
+            "enum": [
+              "rate",
+              "temporal",
+              "population",
+              "burst"
+            ]
+          },
+          "training_data": {
+            "type": "array",
+            "description": "训练数据"
+          }
+        },
+        "required": [
+          "architecture"
+        ]
+      }
+    },
+    {
+      "rank": 72,
+      "id": "tool_optical_nn_designer",
+      "name": "optical_nn_designer",
+      "display_name": "光学神经网络设计器",
+      "category": "ai",
+      "description": "光学神经网络架构设计",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 410,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "architecture": {
+            "type": "string",
+            "description": "架构类型",
+            "enum": [
+              "diffractive",
+              "interferometric",
+              "reservoir",
+              "hybrid"
+            ]
+          },
+          "layers": {
+            "type": "array",
+            "description": "网络层",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "phase_mask",
+                    "mzi_mesh",
+                    "free_space"
+                  ]
+                },
+                "size": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "optical_components": {
+            "type": "object",
+            "description": "光学元件",
+            "properties": {
+              "wavelength_nm": {
+                "type": "number"
+              },
+              "nonlinearity": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "saturable_absorber",
+                  "kerr"
+                ]
+              }
+            }
+          },
+          "training_method": {
+            "type": "string",
+            "description": "训练方法",
+            "enum": [
+              "in_situ",
+              "digital_twin",
+              "hybrid"
+            ]
+          },
+          "task": {
+            "type": "string",
+            "description": "任务类型",
+            "enum": [
+              "classification",
+              "regression",
+              "generation"
+            ]
+          },
+          "dataset": {
+            "type": "object",
+            "description": "数据集"
+          }
+        },
+        "required": [
+          "architecture",
+          "layers"
+        ]
+      }
+    },
+    {
+      "rank": 73,
+      "id": "tool_format_output",
+      "name": "format_output",
+      "display_name": "格式化输出",
+      "category": "format",
+      "description": "格式化输出内容为指定格式",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 385,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "要格式化的内容"
+          },
+          "format": {
+            "type": "string",
+            "description": "输出格式",
+            "enum": [
+              "json",
+              "markdown",
+              "html",
+              "plain"
+            ]
+          },
+          "options": {
+            "type": "object",
+            "description": "格式化选项"
+          }
+        },
+        "required": [
+          "content",
+          "format"
+        ]
+      }
+    },
+    {
+      "rank": 74,
+      "id": "tool_url_parser",
+      "name": "url_parser",
+      "display_name": "URL处理器",
+      "category": "network",
+      "description": "解析、构建和验证URL",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 385,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL字符串"
+          },
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "parse",
+              "build",
+              "validate",
+              "encode",
+              "decode"
+            ]
+          },
+          "params": {
+            "type": "object",
+            "description": "查询参数（用于build）"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 75,
+      "id": "tool_markdown_converter",
+      "name": "markdown_converter",
+      "display_name": "Markdown转换器",
+      "category": "format",
+      "description": "将Markdown转换为HTML或其他格式",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 385,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string",
+            "description": "Markdown内容"
+          },
+          "targetFormat": {
+            "type": "string",
+            "description": "目标格式",
+            "enum": [
+              "html",
+              "plain",
+              "pdf"
+            ],
+            "default": "html"
+          },
+          "options": {
+            "type": "object",
+            "description": "转换选项",
+            "properties": {
+              "sanitize": {
+                "type": "boolean",
+                "default": true
+              },
+              "breaks": {
+                "type": "boolean",
+                "default": true
+              },
+              "tables": {
+                "type": "boolean",
+                "default": true
+              }
+            }
+          }
+        },
+        "required": [
+          "markdown"
+        ]
+      }
+    },
+    {
+      "rank": 76,
+      "id": "tool_color_converter",
+      "name": "color_converter",
+      "display_name": "颜色转换器",
+      "category": "utility",
+      "description": "转换颜色格式（HEX, RGB, HSL等）",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 385,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": "string",
+            "description": "颜色值"
+          },
+          "from": {
+            "type": "string",
+            "description": "源格式",
+            "enum": [
+              "hex",
+              "rgb",
+              "hsl",
+              "hsv"
+            ]
+          },
+          "to": {
+            "type": "string",
+            "description": "目标格式",
+            "enum": [
+              "hex",
+              "rgb",
+              "hsl",
+              "hsv",
+              "all"
+            ]
+          }
+        },
+        "required": [
+          "color",
+          "from",
+          "to"
+        ]
+      }
+    },
+    {
+      "rank": 77,
+      "id": "tool_useragent_parser",
+      "name": "useragent_parser",
+      "display_name": "User-Agent解析器",
+      "category": "network",
+      "description": "解析User-Agent字符串",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 385,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "userAgent": {
+            "type": "string",
+            "description": "User-Agent字符串"
+          }
+        },
+        "required": [
+          "userAgent"
+        ]
+      }
+    },
+    {
+      "rank": 78,
+      "id": "tool_cron_parser",
+      "name": "cron_parser",
+      "display_name": "Cron表达式解析器",
+      "category": "utility",
+      "description": "解析和生成Cron表达式",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 385,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "parse",
+              "generate",
+              "next"
+            ],
+            "default": "parse"
+          },
+          "expression": {
+            "type": "string",
+            "description": "Cron表达式"
+          },
+          "description": {
+            "type": "string",
+            "description": "时间描述（用于生成）"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 79,
+      "id": "tool_file_writer",
+      "name": "file_writer",
+      "display_name": "文件写入",
+      "category": "file",
+      "description": "将内容写入到指定路径的文件",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 360,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "description": "文件路径"
+          },
+          "content": {
+            "type": "string",
+            "description": "要写入的内容"
+          }
+        },
+        "required": [
+          "filePath",
+          "content"
+        ]
+      }
+    },
+    {
+      "rank": 80,
+      "id": "tool_datetime_handler",
+      "name": "datetime_handler",
+      "display_name": "日期时间处理器",
+      "category": "utility",
+      "description": "格式化、解析和计算日期时间",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 360,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "format",
+              "parse",
+              "add",
+              "subtract",
+              "diff"
+            ]
+          },
+          "date": {
+            "type": "string",
+            "description": "日期字符串或时间戳"
+          },
+          "format": {
+            "type": "string",
+            "description": "日期格式",
+            "default": "YYYY-MM-DD HH:mm:ss"
+          },
+          "amount": {
+            "type": "number",
+            "description": "添加/减少的数量"
+          },
+          "unit": {
+            "type": "string",
+            "description": "时间单位",
+            "enum": [
+              "year",
+              "month",
+              "day",
+              "hour",
+              "minute",
+              "second"
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 81,
+      "id": "tool_random_generator",
+      "name": "random_generator",
+      "display_name": "随机数据生成器",
+      "category": "utility",
+      "description": "生成随机数、字符串、UUID等",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 360,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "数据类型",
+            "enum": [
+              "number",
+              "string",
+              "uuid",
+              "boolean",
+              "date",
+              "color"
+            ]
+          },
+          "count": {
+            "type": "number",
+            "description": "生成数量",
+            "default": 1
+          },
+          "options": {
+            "type": "object",
+            "description": "生成选项",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "length": {
+                "type": "number"
+              },
+              "charset": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    {
+      "rank": 82,
+      "id": "tool_ip_utility",
+      "name": "ip_utility",
+      "display_name": "IP地址工具",
+      "category": "network",
+      "description": "IP地址验证、解析和查询",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 360,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "validate",
+              "parse",
+              "lookup",
+              "cidr"
+            ],
+            "default": "validate"
+          },
+          "ip": {
+            "type": "string",
+            "description": "IP地址"
+          },
+          "cidr": {
+            "type": "string",
+            "description": "CIDR表示法"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 83,
+      "id": "tool_version_comparator",
+      "name": "version_comparator",
+      "display_name": "版本号比较器",
+      "category": "utility",
+      "description": "Semver版本号比较和验证",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 360,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "compare",
+              "validate",
+              "bump",
+              "parse"
+            ],
+            "default": "compare"
+          },
+          "version1": {
+            "type": "string",
+            "description": "第一个版本号"
+          },
+          "version2": {
+            "type": "string",
+            "description": "第二个版本号"
+          },
+          "bumpType": {
+            "type": "string",
+            "description": "升级类型",
+            "enum": [
+              "major",
+              "minor",
+              "patch"
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 84,
+      "id": "tool_dns_lookup",
+      "name": "dns_lookup",
+      "display_name": "DNS查询器",
+      "category": "network",
+      "description": "查询DNS记录",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 360,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "域名"
+          },
+          "recordType": {
+            "type": "string",
+            "description": "记录类型",
+            "enum": [
+              "A",
+              "AAAA",
+              "MX",
+              "TXT",
+              "NS",
+              "CNAME"
+            ],
+            "default": "A"
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      }
+    },
+    {
+      "rank": 85,
+      "id": "tool_html_extractor",
+      "name": "html_extractor",
+      "display_name": "HTML内容提取器",
+      "category": "network",
+      "description": "从HTML中提取特定内容、表格、图片等",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 360,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string",
+            "description": "HTML内容"
+          },
+          "extractType": {
+            "type": "string",
+            "description": "提取类型",
+            "enum": [
+              "text",
+              "links",
+              "images",
+              "tables",
+              "metadata"
+            ]
+          },
+          "selector": {
+            "type": "string",
+            "description": "CSS选择器"
+          }
+        },
+        "required": [
+          "html",
+          "extractType"
+        ]
+      }
+    },
+    {
+      "rank": 86,
+      "id": "tool_qrcode_generator_advanced",
+      "name": "qrcode_generator_advanced",
+      "display_name": "高级二维码生成器",
+      "category": "utility",
+      "description": "生成自定义样式的二维码",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 360,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "二维码内容"
+          },
+          "output_path": {
+            "type": "string",
+            "description": "输出图片路径"
+          },
+          "size": {
+            "type": "number",
+            "description": "尺寸(像素)",
+            "default": 256
+          },
+          "error_correction": {
+            "type": "string",
+            "description": "容错级别",
+            "enum": [
+              "L",
+              "M",
+              "Q",
+              "H"
+            ]
+          },
+          "style": {
+            "type": "object",
+            "description": "样式配置",
+            "properties": {
+              "foreground_color": {
+                "type": "string"
+              },
+              "background_color": {
+                "type": "string"
+              },
+              "logo_path": {
+                "type": "string"
+              },
+              "logo_size_ratio": {
+                "type": "number"
+              }
+            }
+          },
+          "format": {
+            "type": "string",
+            "description": "输出格式",
+            "enum": [
+              "png",
+              "jpg",
+              "svg"
+            ]
+          }
+        },
+        "required": [
+          "content",
+          "output_path"
+        ]
+      }
+    },
+    {
+      "rank": 87,
+      "id": "tool_qrcode_scanner",
+      "name": "qrcode_scanner",
+      "display_name": "二维码扫描器",
+      "category": "utility",
+      "description": "识别图片中的二维码/条形码",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 360,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "image_path": {
+            "type": "string",
+            "description": "图片路径或URL"
+          },
+          "scan_type": {
+            "type": "string",
+            "description": "扫描类型",
+            "enum": [
+              "qrcode",
+              "barcode",
+              "auto"
+            ]
+          },
+          "multiple": {
+            "type": "boolean",
+            "description": "识别多个码"
+          }
+        },
+        "required": [
+          "image_path"
+        ]
+      }
+    },
+    {
+      "rank": 88,
+      "id": "tool_network_speed_tester",
+      "name": "network_speed_tester",
+      "display_name": "网速测试器",
+      "category": "network",
+      "description": "测试网络上传和下载速度",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 360,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "test_type": {
+            "type": "string",
+            "description": "测试类型",
+            "enum": [
+              "download",
+              "upload",
+              "both",
+              "ping_only"
+            ]
+          },
+          "server": {
+            "type": "string",
+            "description": "测速服务器(可选)"
+          },
+          "duration": {
+            "type": "number",
+            "description": "测试时长(秒)"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "rank": 89,
+      "id": "tool_code_formatter",
+      "name": "code_formatter",
+      "display_name": "代码美化器",
+      "category": "code",
+      "description": "格式化各种编程语言的代码",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 335,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "要格式化的代码"
+          },
+          "language": {
+            "type": "string",
+            "description": "编程语言",
+            "enum": [
+              "javascript",
+              "json",
+              "html",
+              "css",
+              "sql",
+              "python"
+            ],
+            "default": "javascript"
+          },
+          "options": {
+            "type": "object",
+            "description": "格式化选项",
+            "properties": {
+              "indent": {
+                "type": "number",
+                "default": 2
+              },
+              "semicolons": {
+                "type": "boolean",
+                "default": true
+              }
+            }
+          }
+        },
+        "required": [
+          "code",
+          "language"
+        ]
+      }
+    },
+    {
+      "rank": 90,
+      "id": "tool_pdf_text_extractor",
+      "name": "pdf_text_extractor",
+      "display_name": "PDF文本提取器",
+      "category": "document",
+      "description": "从PDF文件中提取文本内容",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 335,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "pdfPath": {
+            "type": "string",
+            "description": "PDF文件路径"
+          },
+          "pages": {
+            "type": "array",
+            "description": "要提取的页码（不指定则全部）",
+            "items": {
+              "type": "number"
+            }
+          },
+          "preserveLayout": {
+            "type": "boolean",
+            "description": "保持布局",
+            "default": false
+          }
+        },
+        "required": [
+          "pdfPath"
+        ]
+      }
+    },
+    {
+      "rank": 91,
+      "id": "tool_ast_parser",
+      "name": "ast_parser",
+      "display_name": "AST解析器",
+      "category": "code",
+      "description": "解析代码为抽象语法树",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 335,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "代码内容"
+          },
+          "language": {
+            "type": "string",
+            "description": "编程语言",
+            "enum": [
+              "javascript",
+              "typescript",
+              "python",
+              "java"
+            ]
+          },
+          "includeComments": {
+            "type": "boolean",
+            "description": "是否包含注释",
+            "default": false
+          }
+        },
+        "required": [
+          "code",
+          "language"
+        ]
+      }
+    },
+    {
+      "rank": 92,
+      "id": "tool_pdf_converter",
+      "name": "pdf_converter",
+      "display_name": "PDF转换器",
+      "category": "document",
+      "description": "PDF与其他格式互转",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 335,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "input_path": {
+            "type": "string",
+            "description": "输入文件路径"
+          },
+          "output_path": {
+            "type": "string",
+            "description": "输出文件路径"
+          },
+          "conversion_type": {
+            "type": "string",
+            "description": "转换类型",
+            "enum": [
+              "to_pdf",
+              "from_pdf"
+            ]
+          },
+          "target_format": {
+            "type": "string",
+            "description": "目标格式",
+            "enum": [
+              "pdf",
+              "docx",
+              "xlsx",
+              "pptx",
+              "txt",
+              "html",
+              "jpg",
+              "png"
+            ]
+          },
+          "options": {
+            "type": "object",
+            "description": "转换选项",
+            "properties": {
+              "preserve_layout": {
+                "type": "boolean"
+              },
+              "ocr_enabled": {
+                "type": "boolean"
+              },
+              "image_quality": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "input_path",
+          "output_path",
+          "target_format"
+        ]
+      }
+    },
+    {
+      "rank": 93,
+      "id": "tool_office_converter",
+      "name": "office_converter",
+      "display_name": "Office文档转换器",
+      "category": "document",
+      "description": "Word/Excel/PPT格式互转",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 335,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "input_path": {
+            "type": "string",
+            "description": "输入文件路径"
+          },
+          "output_path": {
+            "type": "string",
+            "description": "输出文件路径"
+          },
+          "source_format": {
+            "type": "string",
+            "description": "源格式",
+            "enum": [
+              "doc",
+              "docx",
+              "xls",
+              "xlsx",
+              "ppt",
+              "pptx",
+              "odt",
+              "ods",
+              "odp"
+            ]
+          },
+          "target_format": {
+            "type": "string",
+            "description": "目标格式",
+            "enum": [
+              "doc",
+              "docx",
+              "xls",
+              "xlsx",
+              "ppt",
+              "pptx",
+              "pdf",
+              "html",
+              "txt"
+            ]
+          },
+          "preserve_formatting": {
+            "type": "boolean",
+            "description": "保留格式"
+          }
+        },
+        "required": [
+          "input_path",
+          "output_path",
+          "target_format"
+        ]
+      }
+    },
+    {
+      "rank": 94,
+      "id": "tool_note_searcher",
+      "name": "note_searcher",
+      "display_name": "笔记搜索器",
+      "category": "document",
+      "description": "搜索和筛选笔记",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 335,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "搜索关键词"
+          },
+          "filters": {
+            "type": "object",
+            "description": "筛选条件",
+            "properties": {
+              "tags": {
+                "type": "array"
+              },
+              "folder": {
+                "type": "string"
+              },
+              "date_from": {
+                "type": "string"
+              },
+              "date_to": {
+                "type": "string"
+              },
+              "format": {
+                "type": "string"
+              }
+            }
+          },
+          "sort_by": {
+            "type": "string",
+            "description": "排序方式",
+            "enum": [
+              "created_at",
+              "updated_at",
+              "title",
+              "relevance"
+            ]
+          },
+          "limit": {
+            "type": "number",
+            "description": "返回数量限制"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "rank": 95,
+      "id": "tool_file_editor",
+      "name": "file_editor",
+      "display_name": "文件编辑",
+      "category": "file",
+      "description": "编辑现有文件内容",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 325,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "description": "文件路径"
+          },
+          "operations": {
+            "type": "array",
+            "description": "编辑操作列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "replace",
+                    "insert",
+                    "delete"
+                  ]
+                },
+                "search": {
+                  "type": "string"
+                },
+                "replacement": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "filePath",
+          "operations"
+        ]
+      }
+    },
+    {
+      "rank": 96,
+      "id": "tool_file_watcher",
+      "name": "file_watcher",
+      "display_name": "文件监视器",
+      "category": "file",
+      "description": "监视文件变化（修改、创建、删除）",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 325,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "watch",
+              "unwatch"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "description": "监视路径"
+          },
+          "events": {
+            "type": "array",
+            "description": "监听事件",
+            "items": {
+              "type": "string",
+              "enum": [
+                "change",
+                "add",
+                "unlink",
+                "addDir",
+                "unlinkDir"
+              ]
+            }
+          },
+          "callback": {
+            "type": "string",
+            "description": "回调函数ID"
+          }
+        },
+        "required": [
+          "action",
+          "path"
+        ]
+      }
+    },
+    {
+      "rank": 97,
+      "id": "tool_zip_handler",
+      "name": "zip_handler",
+      "display_name": "ZIP压缩工具",
+      "category": "file",
+      "description": "压缩和解压ZIP文件",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 310,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "compress",
+              "extract",
+              "list"
+            ],
+            "default": "compress"
+          },
+          "source": {
+            "type": "string",
+            "description": "源文件或目录路径"
+          },
+          "target": {
+            "type": "string",
+            "description": "目标ZIP文件路径"
+          },
+          "password": {
+            "type": "string",
+            "description": "压缩密码（可选）"
+          }
+        },
+        "required": [
+          "action",
+          "source"
+        ]
+      }
+    },
+    {
+      "rank": 98,
+      "id": "tool_qrcode_generator",
+      "name": "qrcode_generator",
+      "display_name": "QR码生成器",
+      "category": "image",
+      "description": "生成QR二维码图片",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 310,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "description": "要编码的数据（URL、文本等）"
+          },
+          "size": {
+            "type": "number",
+            "description": "二维码尺寸（像素）",
+            "default": 256
+          },
+          "format": {
+            "type": "string",
+            "description": "输出格式",
+            "enum": [
+              "png",
+              "svg",
+              "dataurl"
+            ],
+            "default": "png"
+          },
+          "errorLevel": {
+            "type": "string",
+            "description": "错误纠正级别",
+            "enum": [
+              "L",
+              "M",
+              "Q",
+              "H"
+            ],
+            "default": "M"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "rank": 99,
+      "id": "tool_directory_monitor",
+      "name": "directory_monitor",
+      "display_name": "目录监控器",
+      "category": "file",
+      "description": "监控目录内文件变化",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 310,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "description": "目录路径"
+          },
+          "recursive": {
+            "type": "boolean",
+            "description": "是否递归监控子目录",
+            "default": true
+          },
+          "filter": {
+            "type": "string",
+            "description": "文件过滤规则（glob）"
+          },
+          "debounce": {
+            "type": "number",
+            "description": "防抖延迟（毫秒）",
+            "default": 500
+          }
+        },
+        "required": [
+          "directory"
+        ]
+      }
+    },
+    {
+      "rank": 100,
+      "id": "tool_barcode_generator",
+      "name": "barcode_generator",
+      "display_name": "条形码生成器",
+      "category": "image",
+      "description": "生成各类条形码（Code128、EAN、UPC等）",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 310,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "description": "条形码数据"
+          },
+          "format": {
+            "type": "string",
+            "description": "条形码格式",
+            "enum": [
+              "CODE128",
+              "EAN13",
+              "EAN8",
+              "UPC",
+              "CODE39"
+            ]
+          },
+          "outputPath": {
+            "type": "string",
+            "description": "输出文件路径"
+          },
+          "options": {
+            "type": "object",
+            "description": "生成选项",
+            "properties": {
+              "width": {
+                "type": "number",
+                "default": 2
+              },
+              "height": {
+                "type": "number",
+                "default": 100
+              },
+              "displayValue": {
+                "type": "boolean",
+                "default": true
+              }
+            }
+          }
+        },
+        "required": [
+          "data",
+          "format",
+          "outputPath"
+        ]
+      }
+    },
+    {
+      "rank": 101,
+      "id": "tool_code_recognizer",
+      "name": "code_recognizer",
+      "display_name": "码识别器",
+      "category": "image",
+      "description": "识别图片中的二维码和条形码",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 310,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "imagePath": {
+            "type": "string",
+            "description": "图片路径"
+          },
+          "type": {
+            "type": "string",
+            "description": "识别类型",
+            "enum": [
+              "qrcode",
+              "barcode",
+              "auto"
+            ],
+            "default": "auto"
+          }
+        },
+        "required": [
+          "imagePath"
+        ]
+      }
+    },
+    {
+      "rank": 102,
+      "id": "tool_code_linter",
+      "name": "code_linter",
+      "display_name": "代码检查器",
+      "category": "code",
+      "description": "代码质量和风格检查",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 310,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "代码内容"
+          },
+          "language": {
+            "type": "string",
+            "description": "编程语言",
+            "enum": [
+              "javascript",
+              "typescript",
+              "python",
+              "java",
+              "go"
+            ]
+          },
+          "rules": {
+            "type": "object",
+            "description": "检查规则配置"
+          },
+          "fix": {
+            "type": "boolean",
+            "description": "是否自动修复",
+            "default": false
+          }
+        },
+        "required": [
+          "code",
+          "language"
+        ]
+      }
+    },
+    {
+      "rank": 103,
+      "id": "tool_complexity_calculator",
+      "name": "complexity_calculator",
+      "display_name": "复杂度计算器",
+      "category": "code",
+      "description": "计算代码圈复杂度、认知复杂度",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 310,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "代码内容"
+          },
+          "language": {
+            "type": "string",
+            "description": "编程语言",
+            "enum": [
+              "javascript",
+              "typescript",
+              "python",
+              "java"
+            ]
+          },
+          "metrics": {
+            "type": "array",
+            "description": "要计算的指标",
+            "items": {
+              "type": "string",
+              "enum": [
+                "cyclomatic",
+                "cognitive",
+                "halstead",
+                "loc"
+              ]
+            }
+          }
+        },
+        "required": [
+          "code",
+          "language"
+        ]
+      }
+    },
+    {
+      "rank": 104,
+      "id": "tool_test_generator",
+      "name": "test_generator",
+      "display_name": "测试用例生成器",
+      "category": "code",
+      "description": "自动生成单元测试/集成测试代码",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 310,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "sourcePath": {
+            "type": "string",
+            "description": "源代码路径"
+          },
+          "testType": {
+            "type": "string",
+            "description": "测试类型",
+            "enum": [
+              "unit",
+              "integration",
+              "e2e",
+              "snapshot"
+            ]
+          },
+          "framework": {
+            "type": "string",
+            "description": "测试框架",
+            "enum": [
+              "jest",
+              "mocha",
+              "jasmine",
+              "pytest",
+              "junit"
+            ]
+          },
+          "coverage_target": {
+            "type": "number",
+            "description": "目标覆盖率"
+          },
+          "mocking": {
+            "type": "boolean",
+            "description": "是否生成mock"
+          }
+        },
+        "required": [
+          "sourcePath",
+          "testType"
+        ]
+      }
+    },
+    {
+      "rank": 105,
+      "id": "tool_test_runner",
+      "name": "test_runner",
+      "display_name": "测试执行器",
+      "category": "code",
+      "description": "执行测试套件并生成报告",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 310,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "testPath": {
+            "type": "string",
+            "description": "测试路径"
+          },
+          "framework": {
+            "type": "string",
+            "description": "测试框架"
+          },
+          "options": {
+            "type": "object",
+            "description": "运行选项",
+            "properties": {
+              "parallel": {
+                "type": "boolean"
+              },
+              "coverage": {
+                "type": "boolean"
+              },
+              "watch": {
+                "type": "boolean"
+              },
+              "timeout": {
+                "type": "number"
+              }
+            }
+          },
+          "filters": {
+            "type": "object",
+            "description": "过滤条件",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array"
+              }
+            }
+          }
+        },
+        "required": [
+          "testPath"
+        ]
+      }
+    },
+    {
+      "rank": 106,
+      "id": "tool_note_editor",
+      "name": "note_editor",
+      "display_name": "笔记编辑器",
+      "category": "document",
+      "description": "Markdown笔记编辑和管理",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 310,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作",
+            "enum": [
+              "create",
+              "read",
+              "update",
+              "delete"
+            ]
+          },
+          "note": {
+            "type": "object",
+            "description": "笔记信息",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array"
+              },
+              "folder": {
+                "type": "string"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "markdown",
+                  "rich_text",
+                  "plain"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 107,
+      "id": "tool_html_parser",
+      "name": "html_parser",
+      "display_name": "HTML解析器",
+      "category": "web",
+      "description": "解析HTML并提取内容",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 285,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string",
+            "description": "HTML字符串"
+          },
+          "selector": {
+            "type": "string",
+            "description": "CSS选择器"
+          },
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "parse",
+              "query",
+              "extract",
+              "text"
+            ],
+            "default": "parse"
+          }
+        },
+        "required": [
+          "html",
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 108,
+      "id": "tool_translator",
+      "name": "translator",
+      "display_name": "翻译器",
+      "category": "text",
+      "description": "多语言文本翻译（支持主流语言）",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 280,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "要翻译的文本"
+          },
+          "from": {
+            "type": "string",
+            "description": "源语言",
+            "default": "auto"
+          },
+          "to": {
+            "type": "string",
+            "description": "目标语言"
+          },
+          "service": {
+            "type": "string",
+            "description": "翻译服务",
+            "enum": [
+              "google",
+              "baidu",
+              "youdao",
+              "deepl"
+            ],
+            "default": "google"
+          }
+        },
+        "required": [
+          "text",
+          "to"
+        ]
+      }
+    },
+    {
+      "rank": 109,
+      "id": "tool_content_publisher",
+      "name": "content_publisher",
+      "display_name": "内容发布器",
+      "category": "data",
+      "description": "内容发布与版本管理",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 280,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "create",
+              "update",
+              "publish",
+              "unpublish",
+              "delete"
+            ]
+          },
+          "content": {
+            "type": "object",
+            "description": "内容数据",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "author": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array"
+              },
+              "metadata": {
+                "type": "object"
+              }
+            }
+          },
+          "workflow": {
+            "type": "object",
+            "description": "工作流配置",
+            "properties": {
+              "approval_required": {
+                "type": "boolean"
+              },
+              "reviewers": {
+                "type": "array"
+              }
+            }
+          },
+          "schedule": {
+            "type": "object",
+            "description": "发布计划",
+            "properties": {
+              "publish_at": {
+                "type": "string"
+              },
+              "expire_at": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "action",
+          "content"
+        ]
+      }
+    },
+    {
+      "rank": 110,
+      "id": "tool_media_manager",
+      "name": "media_manager",
+      "display_name": "媒体管理器",
+      "category": "data",
+      "description": "媒体文件上传、转码、CDN分发",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 280,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "upload",
+              "transcode",
+              "delete",
+              "get_url"
+            ]
+          },
+          "file": {
+            "type": "object",
+            "description": "文件信息",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "size": {
+                "type": "number"
+              }
+            }
+          },
+          "transcode_options": {
+            "type": "object",
+            "description": "转码选项",
+            "properties": {
+              "format": {
+                "type": "string"
+              },
+              "quality": {
+                "type": "string"
+              },
+              "resolution": {
+                "type": "string"
+              }
+            }
+          },
+          "cdn": {
+            "type": "object",
+            "description": "CDN配置",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "cache_ttl": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 111,
+      "id": "tool_production_scheduler",
+      "name": "production_scheduler",
+      "display_name": "生产调度器",
+      "category": "data",
+      "description": "生产计划优化和资源调度",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 280,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "orders": {
+            "type": "array",
+            "description": "生产订单列表"
+          },
+          "resources": {
+            "type": "object",
+            "description": "可用资源(设备、人员、材料)"
+          },
+          "constraints": {
+            "type": "object",
+            "description": "约束条件"
+          },
+          "optimization_goal": {
+            "type": "string",
+            "description": "优化目标",
+            "enum": [
+              "minimize_time",
+              "minimize_cost",
+              "maximize_throughput",
+              "balance_load"
+            ]
+          }
+        },
+        "required": [
+          "orders",
+          "resources"
+        ]
+      }
+    },
+    {
+      "rank": 112,
+      "id": "tool_model_predictor",
+      "name": "model_predictor",
+      "display_name": "模型预测器",
+      "category": "ai",
+      "description": "加载机器学习模型并执行推理预测",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 265,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "modelPath": {
+            "type": "string",
+            "description": "模型文件路径"
+          },
+          "input": {
+            "type": "any",
+            "description": "输入数据"
+          },
+          "framework": {
+            "type": "string",
+            "description": "框架类型",
+            "enum": [
+              "onnx",
+              "tensorflow",
+              "pytorch"
+            ]
+          }
+        },
+        "required": [
+          "modelPath",
+          "input"
+        ]
+      }
+    },
+    {
+      "rank": 113,
+      "id": "tool_medical_image_analyzer",
+      "name": "medical_image_analyzer",
+      "display_name": "医学影像分析器",
+      "category": "ai",
+      "description": "CT/MRI/X光影像分析,病灶检测",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 265,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "imagePath": {
+            "type": "string",
+            "description": "影像文件路径"
+          },
+          "imageType": {
+            "type": "string",
+            "description": "影像类型",
+            "enum": [
+              "ct",
+              "mri",
+              "xray",
+              "ultrasound",
+              "pet"
+            ]
+          },
+          "analysisType": {
+            "type": "string",
+            "description": "分析类型",
+            "enum": [
+              "lesion_detection",
+              "segmentation",
+              "classification",
+              "measurement"
+            ]
+          },
+          "bodyPart": {
+            "type": "string",
+            "description": "身体部位",
+            "enum": [
+              "brain",
+              "chest",
+              "abdomen",
+              "bone",
+              "heart"
+            ]
+          }
+        },
+        "required": [
+          "imagePath",
+          "imageType",
+          "analysisType"
+        ]
+      }
+    },
+    {
+      "rank": 114,
+      "id": "tool_html_generator",
+      "name": "html_generator",
+      "display_name": "HTML生成器",
+      "category": "web",
+      "description": "生成标准HTML页面结构",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 260,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "页面标题",
+            "default": "我的网页"
+          },
+          "content": {
+            "type": "string",
+            "description": "页面内容"
+          },
+          "primaryColor": {
+            "type": "string",
+            "description": "主题颜色",
+            "default": "#667eea"
+          }
+        }
+      }
+    },
+    {
+      "rank": 115,
+      "id": "tool_css_generator",
+      "name": "css_generator",
+      "display_name": "CSS生成器",
+      "category": "web",
+      "description": "生成CSS样式文件",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 260,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "primaryColor": {
+            "type": "string",
+            "description": "主题颜色",
+            "default": "#667eea"
+          },
+          "fontSize": {
+            "type": "string",
+            "description": "基础字体大小",
+            "default": "16px"
+          }
+        }
+      }
+    },
+    {
+      "rank": 116,
+      "id": "tool_js_generator",
+      "name": "js_generator",
+      "display_name": "JS生成器",
+      "category": "web",
+      "description": "生成JavaScript文件",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 260,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "需要的功能列表"
+          }
+        }
+      }
+    },
+    {
+      "rank": 117,
+      "id": "tool_task_timer",
+      "name": "task_timer",
+      "display_name": "任务定时器",
+      "category": "automation",
+      "description": "延时执行任务、间隔执行",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 260,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "setTimeout",
+              "setInterval",
+              "clear"
+            ]
+          },
+          "delay": {
+            "type": "number",
+            "description": "延迟时间（毫秒）"
+          },
+          "interval": {
+            "type": "number",
+            "description": "间隔时间（毫秒）"
+          },
+          "timerId": {
+            "type": "string",
+            "description": "定时器ID"
+          },
+          "task": {
+            "type": "object",
+            "description": "要执行的任务"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 118,
+      "id": "tool_resource_monitor",
+      "name": "resource_monitor",
+      "display_name": "资源监控器",
+      "category": "system",
+      "description": "监控CPU、内存、磁盘、网络等系统资源",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 260,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "metrics": {
+            "type": "array",
+            "description": "监控指标",
+            "items": {
+              "type": "string",
+              "enum": [
+                "cpu",
+                "memory",
+                "disk",
+                "network",
+                "process"
+              ]
+            }
+          },
+          "interval": {
+            "type": "number",
+            "description": "采样间隔(毫秒)"
+          },
+          "duration": {
+            "type": "number",
+            "description": "监控时长(秒)"
+          }
+        },
+        "required": [
+          "metrics"
+        ]
+      }
+    },
+    {
+      "rank": 119,
+      "id": "tool_http_client",
+      "name": "http_client",
+      "display_name": "HTTP客户端",
+      "category": "network",
+      "description": "发送HTTP/HTTPS请求",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 259,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "请求URL"
+          },
+          "method": {
+            "type": "string",
+            "description": "HTTP方法",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE",
+              "PATCH"
+            ],
+            "default": "GET"
+          },
+          "headers": {
+            "type": "object",
+            "description": "请求头"
+          },
+          "body": {
+            "type": "any",
+            "description": "请求体"
+          },
+          "timeout": {
+            "type": "number",
+            "description": "超时时间（毫秒）",
+            "default": 10000
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    },
+    {
+      "rank": 120,
+      "id": "tool_health_monitor",
+      "name": "health_monitor",
+      "display_name": "健康监测器",
+      "category": "ai",
+      "description": "健康数据分析,异常检测,健康建议",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 250,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "metrics": {
+            "type": "object",
+            "description": "健康指标",
+            "properties": {
+              "heart_rate": {
+                "type": "number"
+              },
+              "blood_pressure": {
+                "type": "object"
+              },
+              "temperature": {
+                "type": "number"
+              },
+              "sleep_hours": {
+                "type": "number"
+              },
+              "steps": {
+                "type": "number"
+              }
+            }
+          },
+          "history": {
+            "type": "array",
+            "description": "历史数据"
+          },
+          "user_profile": {
+            "type": "object",
+            "description": "用户信息",
+            "properties": {
+              "age": {
+                "type": "number"
+              },
+              "gender": {
+                "type": "string"
+              },
+              "conditions": {
+                "type": "array"
+              }
+            }
+          }
+        },
+        "required": [
+          "metrics"
+        ]
+      }
+    },
+    {
+      "rank": 121,
+      "id": "tool_legal_document_generator",
+      "name": "legal_document_generator",
+      "display_name": "法律文书生成器",
+      "category": "ai",
+      "description": "生成合同/起诉状/答辩状等法律文书",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 250,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "documentType": {
+            "type": "string",
+            "description": "文书类型",
+            "enum": [
+              "contract",
+              "complaint",
+              "answer",
+              "motion",
+              "agreement"
+            ]
+          },
+          "template": {
+            "type": "string",
+            "description": "模板名称"
+          },
+          "parties": {
+            "type": "array",
+            "description": "当事人信息",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "address": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "clauses": {
+            "type": "array",
+            "description": "条款内容"
+          },
+          "jurisdiction": {
+            "type": "string",
+            "description": "法域",
+            "enum": [
+              "cn",
+              "us",
+              "uk",
+              "eu"
+            ]
+          }
+        },
+        "required": [
+          "documentType",
+          "parties"
+        ]
+      }
+    },
+    {
+      "rank": 122,
+      "id": "tool_edge_inferencer",
+      "name": "edge_inferencer",
+      "display_name": "边缘推理引擎",
+      "category": "ai",
+      "description": "在边缘设备上执行AI模型推理",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 250,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "模型路径或ID"
+          },
+          "input_data": {
+            "type": "object",
+            "description": "输入数据"
+          },
+          "format": {
+            "type": "string",
+            "description": "模型格式",
+            "enum": [
+              "onnx",
+              "tflite",
+              "pytorch",
+              "tensorrt"
+            ]
+          },
+          "device": {
+            "type": "string",
+            "description": "推理设备",
+            "enum": [
+              "cpu",
+              "gpu",
+              "npu",
+              "tpu"
+            ],
+            "default": "cpu"
+          }
+        },
+        "required": [
+          "model",
+          "input_data"
+        ]
+      }
+    },
+    {
+      "rank": 123,
+      "id": "tool_twin_model_builder",
+      "name": "twin_model_builder",
+      "display_name": "数字孪生模型构建器",
+      "category": "ai",
+      "description": "构建物理实体的数字孪生模型",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 250,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "entity": {
+            "type": "object",
+            "description": "物理实体信息",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "sensors": {
+            "type": "array",
+            "description": "传感器配置"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "模型参数"
+          },
+          "physics_model": {
+            "type": "string",
+            "description": "物理模型类型",
+            "enum": [
+              "kinematic",
+              "dynamic",
+              "thermal",
+              "fluid"
+            ]
+          }
+        },
+        "required": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "rank": 124,
+      "id": "tool_protein_designer",
+      "name": "protein_designer",
+      "display_name": "蛋白质设计器",
+      "category": "ai",
+      "description": "De novo蛋白质设计和结构优化",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 250,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "design_goal": {
+            "type": "string",
+            "description": "设计目标",
+            "enum": [
+              "enzyme",
+              "antibody",
+              "scaffold",
+              "binder"
+            ]
+          },
+          "sequence": {
+            "type": "string",
+            "description": "初始序列(可选)"
+          },
+          "structure_constraints": {
+            "type": "object",
+            "description": "结构约束"
+          },
+          "function_requirements": {
+            "type": "object",
+            "description": "功能要求",
+            "properties": {
+              "binding_target": {
+                "type": "string"
+              },
+              "catalytic_residues": {
+                "type": "array"
+              }
+            }
+          },
+          "optimization_cycles": {
+            "type": "number",
+            "description": "优化轮数",
+            "default": 10
+          }
+        },
+        "required": [
+          "design_goal"
+        ]
+      }
+    },
+    {
+      "rank": 125,
+      "id": "tool_blockchain_query",
+      "name": "blockchain_query",
+      "display_name": "区块链查询工具 / Blockchain Query Tool",
+      "category": "blockchain",
+      "description": "查询区块链数据，包括交易、区块、地址余额等信息",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 240,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "chain": {
+            "type": "string",
+            "description": "区块链网络",
+            "enum": [
+              "ethereum",
+              "bsc",
+              "polygon"
+            ],
+            "default": "ethereum"
+          },
+          "queryType": {
+            "type": "string",
+            "description": "查询类型",
+            "enum": [
+              "transaction",
+              "block",
+              "address",
+              "balance"
+            ]
+          },
+          "identifier": {
+            "type": "string",
+            "description": "查询标识符（交易哈希/区块号/地址）"
+          }
+        },
+        "required": [
+          "queryType",
+          "identifier"
+        ]
+      }
+    },
+    {
+      "rank": 126,
+      "id": "tool_stakeholder_mapper",
+      "name": "stakeholder_analyzer",
+      "display_name": "利益相关者映射工具 / Stakeholder Mapping Tool",
+      "category": "project",
+      "description": "分析和映射项目利益相关者，生成权力-利益矩阵",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 235,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "projectData": {
+            "type": "object",
+            "description": "项目数据"
+          },
+          "options": {
+            "type": "object",
+            "description": "配置选项"
+          }
+        },
+        "required": [
+          "projectData"
+        ]
+      }
+    },
+    {
+      "rank": 127,
+      "id": "tool_port_checker",
+      "name": "port_checker",
+      "display_name": "端口检测器",
+      "category": "network",
+      "description": "检测端口是否开放",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 220,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "主机地址"
+          },
+          "port": {
+            "type": "number",
+            "description": "端口号"
+          },
+          "timeout": {
+            "type": "number",
+            "description": "超时时间（毫秒）",
+            "default": 3000
+          }
+        },
+        "required": [
+          "host",
+          "port"
+        ]
+      }
+    },
+    {
+      "rank": 128,
+      "id": "tool_websocket_client",
+      "name": "websocket_client",
+      "display_name": "WebSocket客户端",
+      "category": "network",
+      "description": "连接WebSocket服务器",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 220,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "connect",
+              "disconnect",
+              "send",
+              "subscribe"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "WebSocket URL"
+          },
+          "message": {
+            "type": "any",
+            "description": "消息内容"
+          },
+          "connectionId": {
+            "type": "string",
+            "description": "连接ID"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 129,
+      "id": "tool_device_manager",
+      "name": "device_manager",
+      "display_name": "设备管理器",
+      "category": "network",
+      "description": "IoT设备注册、配置、状态管理",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 220,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "register",
+              "configure",
+              "getStatus",
+              "control"
+            ]
+          },
+          "deviceId": {
+            "type": "string",
+            "description": "设备ID"
+          },
+          "deviceType": {
+            "type": "string",
+            "description": "设备类型",
+            "enum": [
+              "sensor",
+              "actuator",
+              "gateway",
+              "controller"
+            ]
+          },
+          "config": {
+            "type": "object",
+            "description": "设备配置参数"
+          },
+          "command": {
+            "type": "object",
+            "description": "控制命令"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 130,
+      "id": "tool_mqtt_client",
+      "name": "mqtt_client",
+      "display_name": "MQTT客户端",
+      "category": "network",
+      "description": "MQTT消息发布订阅",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 220,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "connect",
+              "publish",
+              "subscribe",
+              "unsubscribe"
+            ]
+          },
+          "broker": {
+            "type": "string",
+            "description": "MQTT代理地址"
+          },
+          "topic": {
+            "type": "string",
+            "description": "主题"
+          },
+          "message": {
+            "type": "string",
+            "description": "消息内容"
+          },
+          "qos": {
+            "type": "number",
+            "description": "服务质量等级",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 131,
+      "id": "tool_photonic_router",
+      "name": "photonic_router",
+      "display_name": "光子路由器",
+      "category": "network",
+      "description": "全光网络路由和交换",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 220,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "architecture": {
+            "type": "string",
+            "description": "架构",
+            "enum": [
+              "wavelength_routing",
+              "optical_burst",
+              "optical_packet"
+            ]
+          },
+          "wavelength_channels": {
+            "type": "number",
+            "description": "波长信道数"
+          },
+          "switching_technology": {
+            "type": "string",
+            "description": "交换技术",
+            "enum": [
+              "MEMS",
+              "SOA",
+              "electro_optic",
+              "thermo_optic"
+            ]
+          },
+          "modulation_format": {
+            "type": "string",
+            "description": "调制格式",
+            "enum": [
+              "OOK",
+              "DPSK",
+              "QPSK",
+              "QAM16",
+              "QAM64"
+            ]
+          },
+          "routing_table": {
+            "type": "array",
+            "description": "路由表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "destination": {
+                  "type": "string"
+                },
+                "wavelength": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "qos_requirements": {
+            "type": "object",
+            "description": "QoS要求",
+            "properties": {
+              "latency_ms": {
+                "type": "number"
+              },
+              "bandwidth_gbps": {
+                "type": "number"
+              },
+              "ber_threshold": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "architecture",
+          "wavelength_channels"
+        ]
+      }
+    },
+    {
+      "rank": 132,
+      "id": "tool_network_diagnostic_tool",
+      "name": "network_diagnostic_tool",
+      "display_name": "网络诊断工具",
+      "category": "network",
+      "description": "Ping、端口扫描、DNS查询、路由追踪",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 220,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "description": "诊断操作",
+            "enum": [
+              "ping",
+              "port_scan",
+              "dns_lookup",
+              "traceroute",
+              "whois"
+            ]
+          },
+          "target": {
+            "type": "string",
+            "description": "目标主机或域名"
+          },
+          "options": {
+            "type": "object",
+            "description": "操作选项",
+            "properties": {
+              "count": {
+                "type": "number",
+                "description": "Ping次数"
+              },
+              "timeout": {
+                "type": "number",
+                "description": "超时(ms)"
+              },
+              "ports": {
+                "type": "array",
+                "description": "端口列表"
+              },
+              "port_range": {
+                "type": "object",
+                "properties": {
+                  "start": {
+                    "type": "number"
+                  },
+                  "end": {
+                    "type": "number"
+                  }
+                }
+              },
+              "dns_server": {
+                "type": "string"
+              },
+              "max_hops": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "operation",
+          "target"
+        ]
+      }
+    },
+    {
+      "rank": 133,
+      "id": "tool_video_metadata_reader",
+      "name": "video_metadata_reader",
+      "display_name": "视频元数据读取器",
+      "category": "media",
+      "description": "读取视频文件的元信息（分辨率、时长、编码、帧率等）",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 210,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "description": "视频文件路径"
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      }
+    },
+    {
+      "rank": 134,
+      "id": "tool_gitignore_generator",
+      "name": "gitignore_generator",
+      "display_name": ".gitignore生成器",
+      "category": "project",
+      "description": "生成适合不同项目类型的.gitignore文件",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 210,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "projectPath": {
+            "type": "string",
+            "description": "项目路径"
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Node",
+                "Python",
+                "Java",
+                "Go",
+                "VisualStudioCode",
+                "JetBrains",
+                "macOS",
+                "Windows",
+                "Linux"
+              ]
+            },
+            "description": "模板列表"
+          },
+          "customPatterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "自定义忽略模式"
+          }
+        },
+        "required": [
+          "projectPath",
+          "templates"
+        ]
+      }
+    },
+    {
+      "rank": 135,
+      "id": "tool_eslint_config_generator",
+      "name": "eslint_config_generator",
+      "display_name": "ESLint配置生成器",
+      "category": "project",
+      "description": "生成ESLint配置文件",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 210,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "projectPath": {
+            "type": "string",
+            "description": "项目路径"
+          },
+          "framework": {
+            "type": "string",
+            "enum": [
+              "react",
+              "vue",
+              "angular",
+              "node",
+              "typescript"
+            ],
+            "description": "框架类型"
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "airbnb",
+              "standard",
+              "google",
+              "custom"
+            ],
+            "default": "airbnb",
+            "description": "代码风格"
+          },
+          "configFormat": {
+            "type": "string",
+            "enum": [
+              "js",
+              "json",
+              "yaml"
+            ],
+            "default": "js",
+            "description": "配置文件格式"
+          }
+        },
+        "required": [
+          "projectPath",
+          "framework"
+        ]
+      }
+    },
+    {
+      "rank": 136,
+      "id": "tool_tokenomics_simulator",
+      "name": "tokenomics_simulator",
+      "display_name": "代币经济模拟器 / Tokenomics Simulator",
+      "category": "blockchain",
+      "description": "模拟代币经济模型的长期表现，包括供需、价格、流通等",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 210,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "tokenConfig": {
+            "type": "object",
+            "description": "代币配置（总量、分配等）"
+          },
+          "simulationPeriod": {
+            "type": "string",
+            "description": "模拟周期",
+            "default": "5years"
+          },
+          "iterations": {
+            "type": "number",
+            "description": "模拟迭代次数",
+            "default": 1000
+          }
+        },
+        "required": [
+          "tokenConfig"
+        ]
+      }
+    },
+    {
+      "rank": 137,
+      "id": "tool_communication_planner",
+      "name": "communication_planner",
+      "display_name": "沟通计划工具 / Communication Planner",
+      "category": "project",
+      "description": "规划项目沟通策略，生成沟通矩阵和时间表",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 210,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "projectData": {
+            "type": "object",
+            "description": "项目数据"
+          },
+          "options": {
+            "type": "object",
+            "description": "配置选项"
+          }
+        },
+        "required": [
+          "projectData"
+        ]
+      }
+    },
+    {
+      "rank": 138,
+      "id": "tool_pdf_generator",
+      "name": "pdf_generator",
+      "display_name": "PDF生成器",
+      "category": "document",
+      "description": "从HTML、Markdown或模板生成PDF文件",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 190,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "内容（HTML或Markdown）"
+          },
+          "contentType": {
+            "type": "string",
+            "description": "内容类型",
+            "enum": [
+              "html",
+              "markdown",
+              "template"
+            ]
+          },
+          "outputPath": {
+            "type": "string",
+            "description": "输出文件路径"
+          },
+          "options": {
+            "type": "object",
+            "description": "PDF选项",
+            "properties": {
+              "format": {
+                "type": "string",
+                "default": "A4"
+              },
+              "margin": {
+                "type": "object"
+              },
+              "landscape": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "content",
+          "outputPath"
+        ]
+      }
+    },
+    {
+      "rank": 139,
+      "id": "tool_pdf_merger",
+      "name": "pdf_merger",
+      "display_name": "PDF合并器",
+      "category": "document",
+      "description": "合并多个PDF文件、拆分PDF",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 190,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "merge",
+              "split"
+            ]
+          },
+          "inputFiles": {
+            "type": "array",
+            "description": "输入PDF文件列表",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputPath": {
+            "type": "string",
+            "description": "输出文件路径"
+          },
+          "pageRanges": {
+            "type": "array",
+            "description": "页码范围（拆分时使用）"
+          }
+        },
+        "required": [
+          "action",
+          "outputPath"
+        ]
+      }
+    },
+    {
+      "rank": 140,
+      "id": "tool_code_generator",
+      "name": "code_generator",
+      "display_name": "代码生成器 / Code Generator",
+      "category": "code",
+      "description": "生成各类编程语言代码，支持函数、类、模块等多种代码结构",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 190,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "codeSpec": {
+            "type": "object",
+            "description": "代码规格"
+          },
+          "options": {
+            "type": "object",
+            "description": "配置选项"
+          }
+        },
+        "required": [
+          "codeSpec"
+        ]
+      }
+    },
+    {
+      "rank": 141,
+      "id": "tool_image_metadata",
+      "name": "image_metadata",
+      "display_name": "图片元数据提取器",
+      "category": "media",
+      "description": "提取图片的EXIF、尺寸等元数据",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 185,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "imagePath": {
+            "type": "string",
+            "description": "图片文件路径"
+          },
+          "extractEXIF": {
+            "type": "boolean",
+            "description": "是否提取EXIF数据",
+            "default": true
+          }
+        },
+        "required": [
+          "imagePath"
+        ]
+      }
+    },
+    {
+      "rank": 142,
+      "id": "tool_jwt_parser",
+      "name": "jwt_parser",
+      "display_name": "JWT解析器",
+      "category": "security",
+      "description": "解析和验证JWT令牌",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 185,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "JWT令牌"
+          },
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "decode",
+              "verify"
+            ],
+            "default": "decode"
+          },
+          "secret": {
+            "type": "string",
+            "description": "密钥（用于验证）"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      }
+    },
+    {
+      "rank": 143,
+      "id": "tool_subtitle_parser",
+      "name": "subtitle_parser",
+      "display_name": "字幕解析器",
+      "category": "media",
+      "description": "解析 SRT、VTT、ASS 等字幕格式",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 185,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "字幕文件内容或路径"
+          },
+          "format": {
+            "type": "string",
+            "description": "字幕格式",
+            "enum": [
+              "srt",
+              "vtt",
+              "ass",
+              "auto"
+            ]
+          }
+        },
+        "required": [
+          "content"
+        ]
+      }
+    },
+    {
+      "rank": 144,
+      "id": "tool_model_converter",
+      "name": "model_converter",
+      "display_name": "模型格式转换器",
+      "category": "media",
+      "description": "转换3D模型文件格式(OBJ/STL/GLTF/FBX)",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 185,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "inputPath": {
+            "type": "string",
+            "description": "输入模型文件路径"
+          },
+          "inputFormat": {
+            "type": "string",
+            "description": "输入格式",
+            "enum": [
+              "obj",
+              "stl",
+              "gltf",
+              "fbx",
+              "dae",
+              "3ds"
+            ]
+          },
+          "outputFormat": {
+            "type": "string",
+            "description": "输出格式",
+            "enum": [
+              "obj",
+              "stl",
+              "gltf",
+              "fbx"
+            ]
+          },
+          "options": {
+            "type": "object",
+            "description": "转换选项",
+            "properties": {
+              "optimize": {
+                "type": "boolean"
+              },
+              "scale": {
+                "type": "number"
+              },
+              "centerModel": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "inputPath",
+          "inputFormat",
+          "outputFormat"
+        ]
+      }
+    },
+    {
+      "rank": 145,
+      "id": "tool_hash_verifier",
+      "name": "hash_verifier",
+      "display_name": "Hash校验器",
+      "category": "security",
+      "description": "计算和验证文件/文本的Hash值",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 160,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "description": "文件路径"
+          },
+          "text": {
+            "type": "string",
+            "description": "文本内容"
+          },
+          "algorithm": {
+            "type": "string",
+            "description": "Hash算法",
+            "enum": [
+              "md5",
+              "sha1",
+              "sha256",
+              "sha512"
+            ],
+            "default": "sha256"
+          },
+          "expectedHash": {
+            "type": "string",
+            "description": "期望的Hash值（用于验证）"
+          }
+        }
+      }
+    },
+    {
+      "rank": 146,
+      "id": "tool_audio_duration_calculator",
+      "name": "audio_duration_calculator",
+      "display_name": "音频时长计算器",
+      "category": "media",
+      "description": "计算音频文件的时长和其他音频属性",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 160,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "description": "音频文件路径"
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      }
+    },
+    {
+      "rank": 147,
+      "id": "tool_event_emitter",
+      "name": "event_emitter",
+      "display_name": "事件发射器",
+      "category": "automation",
+      "description": "发布订阅模式的事件系统",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 160,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "emit",
+              "on",
+              "off",
+              "once"
+            ]
+          },
+          "event": {
+            "type": "string",
+            "description": "事件名称"
+          },
+          "data": {
+            "type": "any",
+            "description": "事件数据"
+          },
+          "handler": {
+            "type": "string",
+            "description": "处理函数ID"
+          }
+        },
+        "required": [
+          "action",
+          "event"
+        ]
+      }
+    },
+    {
+      "rank": 148,
+      "id": "tool_pipeline_builder",
+      "name": "pipeline_builder",
+      "display_name": "数据管道构建器",
+      "category": "automation",
+      "description": "构建和执行数据处理管道",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 160,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "pipeline": {
+            "type": "array",
+            "description": "管道步骤",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "input": {
+            "type": "any",
+            "description": "输入数据"
+          }
+        },
+        "required": [
+          "pipeline",
+          "input"
+        ]
+      }
+    },
+    {
+      "rank": 149,
+      "id": "tool_cron_scheduler",
+      "name": "cron_scheduler",
+      "display_name": "Cron调度器",
+      "category": "automation",
+      "description": "使用Cron表达式调度任务",
+      "risk_level": 2,
+      "current_examples_count": 1,
+      "frequency_score": 160,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "操作类型",
+            "enum": [
+              "schedule",
+              "cancel",
+              "list"
+            ]
+          },
+          "cronExpression": {
+            "type": "string",
+            "description": "Cron表达式（如：0 0 * * *）"
+          },
+          "taskId": {
+            "type": "string",
+            "description": "任务ID"
+          },
+          "task": {
+            "type": "object",
+            "description": "任务定义"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "时区",
+            "default": "UTC"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "rank": 150,
+      "id": "tool_video_screenshot",
+      "name": "video_screenshot",
+      "display_name": "视频截图器",
+      "category": "media",
+      "description": "从视频中截取帧作为图片",
+      "risk_level": 1,
+      "current_examples_count": 1,
+      "frequency_score": 160,
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "videoPath": {
+            "type": "string",
+            "description": "视频文件路径"
+          },
+          "outputPath": {
+            "type": "string",
+            "description": "输出图片路径"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "时间点（HH:MM:SS）"
+          },
+          "count": {
+            "type": "number",
+            "description": "截图数量",
+            "default": 1
+          },
+          "interval": {
+            "type": "number",
+            "description": "间隔（秒）"
+          }
+        },
+        "required": [
+          "videoPath",
+          "outputPath"
+        ]
+      }
+    }
+  ]
+}

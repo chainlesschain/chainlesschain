@@ -1,0 +1,2189 @@
+{
+  "tool_entity_recognizer": [
+    {
+      "description": "基础实体识别器",
+      "params": {
+        "text": "示例文本",
+        "entityTypes": [
+          "item1",
+          "item2"
+        ],
+        "language": "zh"
+      }
+    },
+    {
+      "description": "批量实体识别器",
+      "params": {
+        "text": "更复杂的示例文本内容，用于测试高级功能",
+        "entityTypes": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "language": "en",
+        "batch": true
+      }
+    }
+  ],
+  "tool_sequence_aligner": [
+    {
+      "description": "使用序列比对器",
+      "params": {
+        "sequences": [
+          "item1",
+          "item2"
+        ],
+        "algorithm": "needleman-wunsch",
+        "sequenceType": "dna",
+        "parameters": "value"
+      }
+    },
+    {
+      "description": "高级序列比对器",
+      "params": {
+        "sequences": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "algorithm": "smith-waterman",
+        "sequenceType": "rna",
+        "parameters": "advanced_value"
+      }
+    }
+  ],
+  "tool_protein_predictor": [
+    {
+      "description": "单次蛋白质结构预测器",
+      "params": {
+        "sequence": "value",
+        "predictionType": "secondary",
+        "method": "alphafold"
+      }
+    },
+    {
+      "description": "持续蛋白质结构预测器",
+      "params": {
+        "sequence": "advanced_value",
+        "predictionType": "tertiary",
+        "method": "rosetta",
+        "continuous": true
+      }
+    }
+  ],
+  "tool_exercise_generator": [
+    {
+      "description": "使用习题生成器",
+      "params": {
+        "subject": "math",
+        "topic": "value",
+        "difficulty": "easy",
+        "count": 10,
+        "type": "choice"
+      }
+    },
+    {
+      "description": "高级习题生成器",
+      "params": {
+        "subject": "physics",
+        "topic": "advanced_value",
+        "difficulty": "medium",
+        "count": 50,
+        "type": "blank"
+      }
+    }
+  ],
+  "tool_auto_grader": [
+    {
+      "description": "使用自动批改器",
+      "params": {
+        "submissions": [
+          "item1",
+          "item2"
+        ],
+        "answer_key": [
+          "item1",
+          "item2"
+        ],
+        "grading_rubric": "value",
+        "feedback_level": "minimal"
+      }
+    },
+    {
+      "description": "高级自动批改器",
+      "params": {
+        "submissions": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "answer_key": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "grading_rubric": "advanced_value",
+        "feedback_level": "standard"
+      }
+    }
+  ],
+  "tool_quantum_circuit_builder": [
+    {
+      "description": "使用量子电路构建器",
+      "params": {
+        "num_qubits": 10,
+        "gates": [
+          "item1",
+          "item2"
+        ],
+        "measurements": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "高级量子电路构建器",
+      "params": {
+        "num_qubits": 50,
+        "gates": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "measurements": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_quantum_simulator": [
+    {
+      "description": "简单量子模拟器",
+      "params": {
+        "circuit": "value",
+        "shots": 10,
+        "backend": "statevector",
+        "noise_model": "base_model"
+      }
+    },
+    {
+      "description": "复杂量子模拟器",
+      "params": {
+        "circuit": "advanced_value",
+        "shots": 50,
+        "backend": "qasm",
+        "noise_model": "advanced_model_v2"
+      }
+    }
+  ],
+  "tool_object_detector": [
+    {
+      "description": "基础目标检测器",
+      "params": {
+        "imagePath": "./data/sample.dat",
+        "model": "base_model",
+        "classes": [
+          "item1",
+          "item2"
+        ],
+        "confidence_threshold": 0.5,
+        "nms_threshold": 0.5
+      }
+    },
+    {
+      "description": "批量目标检测器",
+      "params": {
+        "imagePath": "./advanced_data/sample.dat",
+        "model": "advanced_model_v2",
+        "classes": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "confidence_threshold": 0.8,
+        "nms_threshold": 0.8,
+        "batch": true
+      }
+    }
+  ],
+  "tool_image_segmenter": [
+    {
+      "description": "使用图像分割器",
+      "params": {
+        "imagePath": "./data/sample.dat",
+        "segmentationType": "semantic",
+        "model": "base_model",
+        "classes": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "高级图像分割器",
+      "params": {
+        "imagePath": "./advanced_data/sample.dat",
+        "segmentationType": "instance",
+        "model": "advanced_model_v2",
+        "classes": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_pollution_predictor": [
+    {
+      "description": "单次污染预测器",
+      "params": {
+        "location": "value",
+        "pollutionType": "air",
+        "pollutants": [
+          "item1",
+          "item2"
+        ],
+        "forecast_hours": 10,
+        "historical_data": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "持续污染预测器",
+      "params": {
+        "location": "advanced_value",
+        "pollutionType": "water",
+        "pollutants": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "forecast_hours": 50,
+        "historical_data": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "continuous": true
+      }
+    }
+  ],
+  "tool_twin_simulator": [
+    {
+      "description": "简单数字孪生仿真器",
+      "params": {
+        "twin_id": "value",
+        "simulation_type": "real_time",
+        "scenario": "value",
+        "time_horizon": 10
+      }
+    },
+    {
+      "description": "复杂数字孪生仿真器",
+      "params": {
+        "twin_id": "advanced_value",
+        "simulation_type": "predictive",
+        "scenario": "advanced_value",
+        "time_horizon": 50
+      }
+    }
+  ],
+  "tool_crop_monitor": [
+    {
+      "description": "使用作物监测器",
+      "params": {
+        "field": "value",
+        "monitoring_type": "growth",
+        "images": [
+          "item1",
+          "item2"
+        ],
+        "sensor_data": "value"
+      }
+    },
+    {
+      "description": "高级作物监测器",
+      "params": {
+        "field": "advanced_value",
+        "monitoring_type": "disease",
+        "images": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "sensor_data": "advanced_value"
+      }
+    }
+  ],
+  "tool_ocean_monitor": [
+    {
+      "description": "使用海洋监测器",
+      "params": {
+        "area": "value",
+        "monitoring_type": "temperature",
+        "data_sources": [
+          "item1",
+          "item2"
+        ],
+        "time_range": "value"
+      }
+    },
+    {
+      "description": "高级海洋监测器",
+      "params": {
+        "area": "advanced_value",
+        "monitoring_type": "salinity",
+        "data_sources": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "time_range": "advanced_value"
+      }
+    }
+  ],
+  "tool_renewable_forecaster": [
+    {
+      "description": "单次新能源预测器",
+      "params": {
+        "energy_type": "solar",
+        "location": "value",
+        "capacity": 10,
+        "forecast_horizon": 10,
+        "historical_data": [
+          "item1",
+          "item2"
+        ],
+        "weather_forecast": "value"
+      }
+    },
+    {
+      "description": "持续新能源预测器",
+      "params": {
+        "energy_type": "wind",
+        "location": "advanced_value",
+        "capacity": 50,
+        "forecast_horizon": 50,
+        "historical_data": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "weather_forecast": "advanced_value",
+        "continuous": true
+      }
+    }
+  ],
+  "tool_quantum_teleporter": [
+    {
+      "description": "使用量子隐形传态器",
+      "params": {
+        "quantum_state": "value",
+        "entanglement_quality": 10,
+        "classical_channel": "value"
+      }
+    },
+    {
+      "description": "高级量子隐形传态器",
+      "params": {
+        "quantum_state": "advanced_value",
+        "entanglement_quality": 50,
+        "classical_channel": "advanced_value"
+      }
+    }
+  ],
+  "tool_bci_decoder": [
+    {
+      "description": "使用脑机接口解码器",
+      "params": {
+        "features": "value",
+        "task_type": "motor_imagery",
+        "model": "base_model",
+        "calibration_data": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "高级脑机接口解码器",
+      "params": {
+        "features": "advanced_value",
+        "task_type": "p300",
+        "model": "advanced_model_v2",
+        "calibration_data": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_nano_simulator": [
+    {
+      "description": "简单纳米模拟器",
+      "params": {
+        "system": "value",
+        "method": "MD",
+        "simulation_time": 10,
+        "force_field": "LAMMPS"
+      }
+    },
+    {
+      "description": "复杂纳米模拟器",
+      "params": {
+        "system": "advanced_value",
+        "method": "MC",
+        "simulation_time": 50,
+        "force_field": "AMBER"
+      }
+    }
+  ],
+  "tool_weather_modeler": [
+    {
+      "description": "简单天气建模器",
+      "params": {
+        "model": "base_model",
+        "domain": "value",
+        "initial_conditions": "value",
+        "forecast_hours": 10,
+        "physics_options": "value"
+      }
+    },
+    {
+      "description": "复杂天气建模器",
+      "params": {
+        "model": "advanced_model_v2",
+        "domain": "advanced_value",
+        "initial_conditions": "advanced_value",
+        "forecast_hours": 50,
+        "physics_options": "advanced_value"
+      }
+    }
+  ],
+  "tool_material_designer": [
+    {
+      "description": "使用材料设计器",
+      "params": {
+        "material_class": "metal",
+        "target_properties": "value",
+        "constraints": "value",
+        "design_method": "ML"
+      }
+    },
+    {
+      "description": "高级材料设计器",
+      "params": {
+        "material_class": "ceramic",
+        "target_properties": "advanced_value",
+        "constraints": "advanced_value",
+        "design_method": "DFT"
+      }
+    }
+  ],
+  "tool_property_predictor": [
+    {
+      "description": "单次性能预测器",
+      "params": {
+        "material": "value",
+        "properties": [
+          "item1",
+          "item2"
+        ],
+        "method": "ML"
+      }
+    },
+    {
+      "description": "持续性能预测器",
+      "params": {
+        "material": "advanced_value",
+        "properties": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "method": "DFT",
+        "continuous": true
+      }
+    }
+  ],
+  "tool_snn_builder": [
+    {
+      "description": "使用脉冲神经网络构建器",
+      "params": {
+        "architecture": "value",
+        "learning_rule": "STDP",
+        "encoding": "rate",
+        "training_data": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "高级脉冲神经网络构建器",
+      "params": {
+        "architecture": "advanced_value",
+        "learning_rule": "R-STDP",
+        "encoding": "temporal",
+        "training_data": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_optical_nn_designer": [
+    {
+      "description": "使用光学神经网络设计器",
+      "params": {
+        "architecture": "diffractive",
+        "layers": [
+          "item1",
+          "item2"
+        ],
+        "optical_components": "value",
+        "training_method": "in_situ",
+        "task": "classification",
+        "dataset": "value"
+      }
+    },
+    {
+      "description": "高级光学神经网络设计器",
+      "params": {
+        "architecture": "interferometric",
+        "layers": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "optical_components": "advanced_value",
+        "training_method": "digital_twin",
+        "task": "regression",
+        "dataset": "advanced_value"
+      }
+    }
+  ],
+  "tool_format_output": [
+    {
+      "description": "格式化输出基础用法",
+      "params": {
+        "content": "示例文本",
+        "format": "json",
+        "options": "value"
+      }
+    },
+    {
+      "description": "格式化输出高级用法",
+      "params": {
+        "content": "更复杂的示例文本内容，用于测试高级功能",
+        "format": "markdown",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_url_parser": [
+    {
+      "description": "基本网络URL处理器",
+      "params": {
+        "url": "https://api.example.com/endpoint",
+        "action": "parse",
+        "params": "value"
+      }
+    },
+    {
+      "description": "高级网络URL处理器",
+      "params": {
+        "url": "https://api.example.com/advanced_endpoint",
+        "action": "build",
+        "params": "advanced_value"
+      }
+    }
+  ],
+  "tool_markdown_converter": [
+    {
+      "description": "Markdown转换器基础用法",
+      "params": {
+        "markdown": "value",
+        "targetFormat": "html",
+        "options": "value"
+      }
+    },
+    {
+      "description": "Markdown转换器高级用法",
+      "params": {
+        "markdown": "advanced_value",
+        "targetFormat": "plain",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_color_converter": [
+    {
+      "description": "颜色转换器基础用法",
+      "params": {
+        "color": "value",
+        "from": "hex",
+        "to": "hex"
+      }
+    },
+    {
+      "description": "颜色转换器高级用法",
+      "params": {
+        "color": "advanced_value",
+        "from": "rgb",
+        "to": "rgb"
+      }
+    }
+  ],
+  "tool_useragent_parser": [
+    {
+      "description": "基本网络User-Agent解析器",
+      "params": {
+        "userAgent": "value"
+      }
+    },
+    {
+      "description": "高级网络User-Agent解析器",
+      "params": {
+        "userAgent": "advanced_value"
+      }
+    }
+  ],
+  "tool_cron_parser": [
+    {
+      "description": "Cron表达式解析器基础用法",
+      "params": {
+        "action": "parse",
+        "expression": "value",
+        "description": "value"
+      }
+    },
+    {
+      "description": "Cron表达式解析器高级用法",
+      "params": {
+        "action": "generate",
+        "expression": "advanced_value",
+        "description": "advanced_value"
+      }
+    }
+  ],
+  "tool_file_writer": [
+    {
+      "description": "文件写入基础用法",
+      "params": {
+        "filePath": "./data/sample.dat",
+        "content": "示例文本"
+      }
+    },
+    {
+      "description": "文件写入高级用法",
+      "params": {
+        "filePath": "./advanced_data/sample.dat",
+        "content": "更复杂的示例文本内容，用于测试高级功能"
+      }
+    }
+  ],
+  "tool_datetime_handler": [
+    {
+      "description": "日期时间处理器基础用法",
+      "params": {
+        "action": "format",
+        "date": "value",
+        "format": "YYYY-MM-DD HH:mm:ss",
+        "amount": 10,
+        "unit": "year"
+      }
+    },
+    {
+      "description": "日期时间处理器高级用法",
+      "params": {
+        "action": "parse",
+        "date": "advanced_value",
+        "format": "YYYY-MM-DD HH:mm:ss",
+        "amount": 50,
+        "unit": "month"
+      }
+    }
+  ],
+  "tool_random_generator": [
+    {
+      "description": "随机数据生成器基础用法",
+      "params": {
+        "type": "number",
+        "count": 10,
+        "options": "value"
+      }
+    },
+    {
+      "description": "随机数据生成器高级用法",
+      "params": {
+        "type": "string",
+        "count": 50,
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_ip_utility": [
+    {
+      "description": "基本网络IP地址工具",
+      "params": {
+        "action": "validate",
+        "ip": "value",
+        "cidr": "value"
+      }
+    },
+    {
+      "description": "高级网络IP地址工具",
+      "params": {
+        "action": "parse",
+        "ip": "advanced_value",
+        "cidr": "advanced_value"
+      }
+    }
+  ],
+  "tool_version_comparator": [
+    {
+      "description": "版本号比较器基础用法",
+      "params": {
+        "action": "compare",
+        "version1": "value",
+        "version2": "value",
+        "bumpType": "major"
+      }
+    },
+    {
+      "description": "版本号比较器高级用法",
+      "params": {
+        "action": "validate",
+        "version1": "advanced_value",
+        "version2": "advanced_value",
+        "bumpType": "minor"
+      }
+    }
+  ],
+  "tool_dns_lookup": [
+    {
+      "description": "基本网络DNS查询器",
+      "params": {
+        "domain": "value",
+        "recordType": "A"
+      }
+    },
+    {
+      "description": "高级网络DNS查询器",
+      "params": {
+        "domain": "advanced_value",
+        "recordType": "AAAA"
+      }
+    }
+  ],
+  "tool_html_extractor": [
+    {
+      "description": "基本网络HTML内容提取器",
+      "params": {
+        "html": "value",
+        "extractType": "text",
+        "selector": "value"
+      }
+    },
+    {
+      "description": "高级网络HTML内容提取器",
+      "params": {
+        "html": "advanced_value",
+        "extractType": "links",
+        "selector": "advanced_value"
+      }
+    }
+  ],
+  "tool_qrcode_generator_advanced": [
+    {
+      "description": "高级二维码生成器基础用法",
+      "params": {
+        "content": "示例文本",
+        "output_path": "./output/result.json",
+        "size": 10,
+        "error_correction": "L",
+        "style": "value",
+        "format": "png"
+      }
+    },
+    {
+      "description": "高级二维码生成器高级用法",
+      "params": {
+        "content": "更复杂的示例文本内容，用于测试高级功能",
+        "output_path": "./advanced_output/result.json",
+        "size": 50,
+        "error_correction": "M",
+        "style": "advanced_value",
+        "format": "jpg"
+      }
+    }
+  ],
+  "tool_qrcode_scanner": [
+    {
+      "description": "二维码扫描器基础用法",
+      "params": {
+        "image_path": "./data/sample.dat",
+        "scan_type": "qrcode",
+        "multiple": false
+      }
+    },
+    {
+      "description": "二维码扫描器高级用法",
+      "params": {
+        "image_path": "./advanced_data/sample.dat",
+        "scan_type": "barcode",
+        "multiple": true
+      }
+    }
+  ],
+  "tool_network_speed_tester": [
+    {
+      "description": "基本网络网速测试器",
+      "params": {
+        "test_type": "download",
+        "server": "value",
+        "duration": 10
+      }
+    },
+    {
+      "description": "高级网络网速测试器",
+      "params": {
+        "test_type": "upload",
+        "server": "advanced_value",
+        "duration": 50
+      }
+    }
+  ],
+  "tool_code_formatter": [
+    {
+      "description": "处理简单代码",
+      "params": {
+        "code": "value",
+        "language": "javascript",
+        "options": "value"
+      }
+    },
+    {
+      "description": "处理复杂项目",
+      "params": {
+        "code": "advanced_value",
+        "language": "json",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_pdf_text_extractor": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "pdfPath": "./data/sample.dat",
+        "pages": [
+          "item1",
+          "item2"
+        ],
+        "preserveLayout": false
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "pdfPath": "./advanced_data/sample.dat",
+        "pages": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "preserveLayout": true
+      }
+    }
+  ],
+  "tool_ast_parser": [
+    {
+      "description": "处理简单代码",
+      "params": {
+        "code": "value",
+        "language": "javascript",
+        "includeComments": false
+      }
+    },
+    {
+      "description": "处理复杂项目",
+      "params": {
+        "code": "advanced_value",
+        "language": "typescript",
+        "includeComments": true
+      }
+    }
+  ],
+  "tool_pdf_converter": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "input_path": "./input/data.json",
+        "output_path": "./output/result.json",
+        "conversion_type": "to_pdf",
+        "target_format": "pdf",
+        "options": "value"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "input_path": "./advanced_input/data.json",
+        "output_path": "./advanced_output/result.json",
+        "conversion_type": "from_pdf",
+        "target_format": "docx",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_office_converter": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "input_path": "./input/data.json",
+        "output_path": "./output/result.json",
+        "source_format": "doc",
+        "target_format": "doc",
+        "preserve_formatting": false
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "input_path": "./advanced_input/data.json",
+        "output_path": "./advanced_output/result.json",
+        "source_format": "docx",
+        "target_format": "docx",
+        "preserve_formatting": true
+      }
+    }
+  ],
+  "tool_note_searcher": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "query": "搜索关键词",
+        "filters": "value",
+        "sort_by": "created_at",
+        "limit": 10
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "query": "复杂查询：条件A AND 条件B",
+        "filters": "advanced_value",
+        "sort_by": "updated_at",
+        "limit": 100
+      }
+    }
+  ],
+  "tool_file_editor": [
+    {
+      "description": "文件编辑基础用法",
+      "params": {
+        "filePath": "./data/sample.dat",
+        "operations": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "文件编辑高级用法",
+      "params": {
+        "filePath": "./advanced_data/sample.dat",
+        "operations": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_file_watcher": [
+    {
+      "description": "文件监视器基础用法",
+      "params": {
+        "action": "watch",
+        "path": "./data/sample.dat",
+        "events": [
+          "item1",
+          "item2"
+        ],
+        "callback": "value"
+      }
+    },
+    {
+      "description": "文件监视器高级用法",
+      "params": {
+        "action": "unwatch",
+        "path": "./advanced_data/sample.dat",
+        "events": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "callback": "advanced_value"
+      }
+    }
+  ],
+  "tool_zip_handler": [
+    {
+      "description": "ZIP压缩工具基础用法",
+      "params": {
+        "action": "compress",
+        "source": "value",
+        "target": "value",
+        "password": "value"
+      }
+    },
+    {
+      "description": "ZIP压缩工具高级用法",
+      "params": {
+        "action": "extract",
+        "source": "advanced_value",
+        "target": "advanced_value",
+        "password": "advanced_value"
+      }
+    }
+  ],
+  "tool_qrcode_generator": [
+    {
+      "description": "QR码生成器基础用法",
+      "params": {
+        "data": "value",
+        "size": 10,
+        "format": "png",
+        "errorLevel": "L"
+      }
+    },
+    {
+      "description": "QR码生成器高级用法",
+      "params": {
+        "data": "advanced_value",
+        "size": 50,
+        "format": "svg",
+        "errorLevel": "M"
+      }
+    }
+  ],
+  "tool_directory_monitor": [
+    {
+      "description": "目录监控器基础用法",
+      "params": {
+        "directory": "value",
+        "recursive": false,
+        "filter": "value",
+        "debounce": 10
+      }
+    },
+    {
+      "description": "目录监控器高级用法",
+      "params": {
+        "directory": "advanced_value",
+        "recursive": true,
+        "filter": "advanced_value",
+        "debounce": 50
+      }
+    }
+  ],
+  "tool_barcode_generator": [
+    {
+      "description": "条形码生成器基础用法",
+      "params": {
+        "data": "value",
+        "format": "CODE128",
+        "outputPath": "./output/result.json",
+        "options": "value"
+      }
+    },
+    {
+      "description": "条形码生成器高级用法",
+      "params": {
+        "data": "advanced_value",
+        "format": "EAN13",
+        "outputPath": "./advanced_output/result.json",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_code_recognizer": [
+    {
+      "description": "码识别器基础用法",
+      "params": {
+        "imagePath": "./data/sample.dat",
+        "type": "qrcode"
+      }
+    },
+    {
+      "description": "码识别器高级用法",
+      "params": {
+        "imagePath": "./advanced_data/sample.dat",
+        "type": "barcode"
+      }
+    }
+  ],
+  "tool_code_linter": [
+    {
+      "description": "处理简单代码",
+      "params": {
+        "code": "value",
+        "language": "javascript",
+        "rules": "value",
+        "fix": false
+      }
+    },
+    {
+      "description": "处理复杂项目",
+      "params": {
+        "code": "advanced_value",
+        "language": "typescript",
+        "rules": "advanced_value",
+        "fix": true
+      }
+    }
+  ],
+  "tool_complexity_calculator": [
+    {
+      "description": "处理简单代码",
+      "params": {
+        "code": "value",
+        "language": "javascript",
+        "metrics": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "处理复杂项目",
+      "params": {
+        "code": "advanced_value",
+        "language": "typescript",
+        "metrics": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_test_generator": [
+    {
+      "description": "处理简单代码",
+      "params": {
+        "sourcePath": "./data/sample.dat",
+        "testType": "unit",
+        "framework": "jest",
+        "coverage_target": 10,
+        "mocking": false
+      }
+    },
+    {
+      "description": "处理复杂项目",
+      "params": {
+        "sourcePath": "./advanced_data/sample.dat",
+        "testType": "integration",
+        "framework": "mocha",
+        "coverage_target": 50,
+        "mocking": true
+      }
+    }
+  ],
+  "tool_test_runner": [
+    {
+      "description": "处理简单代码",
+      "params": {
+        "testPath": "./data/sample.dat",
+        "framework": "value",
+        "options": "value",
+        "filters": "value"
+      }
+    },
+    {
+      "description": "处理复杂项目",
+      "params": {
+        "testPath": "./advanced_data/sample.dat",
+        "framework": "advanced_value",
+        "options": "advanced_value",
+        "filters": "advanced_value"
+      }
+    }
+  ],
+  "tool_note_editor": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "action": "create",
+        "note": "value"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "action": "read",
+        "note": "advanced_value"
+      }
+    }
+  ],
+  "tool_html_parser": [
+    {
+      "description": "HTML解析器基础用法",
+      "params": {
+        "html": "value",
+        "selector": "value",
+        "action": "parse"
+      }
+    },
+    {
+      "description": "HTML解析器高级用法",
+      "params": {
+        "html": "advanced_value",
+        "selector": "advanced_value",
+        "action": "query"
+      }
+    }
+  ],
+  "tool_translator": [
+    {
+      "description": "翻译器基础用法",
+      "params": {
+        "text": "示例文本",
+        "from": "auto",
+        "to": "value",
+        "service": "google"
+      }
+    },
+    {
+      "description": "翻译器高级用法",
+      "params": {
+        "text": "更复杂的示例文本内容，用于测试高级功能",
+        "from": "auto",
+        "to": "advanced_value",
+        "service": "baidu"
+      }
+    }
+  ],
+  "tool_content_publisher": [
+    {
+      "description": "内容发布器基础用法",
+      "params": {
+        "action": "create",
+        "content": "示例文本",
+        "workflow": "value",
+        "schedule": "value"
+      }
+    },
+    {
+      "description": "内容发布器高级用法",
+      "params": {
+        "action": "update",
+        "content": "更复杂的示例文本内容，用于测试高级功能",
+        "workflow": "advanced_value",
+        "schedule": "advanced_value"
+      }
+    }
+  ],
+  "tool_media_manager": [
+    {
+      "description": "媒体管理器基础用法",
+      "params": {
+        "action": "upload",
+        "file": "./data/sample.dat",
+        "transcode_options": "value",
+        "cdn": "value"
+      }
+    },
+    {
+      "description": "媒体管理器高级用法",
+      "params": {
+        "action": "transcode",
+        "file": "./advanced_data/sample.dat",
+        "transcode_options": "advanced_value",
+        "cdn": "advanced_value"
+      }
+    }
+  ],
+  "tool_production_scheduler": [
+    {
+      "description": "生产调度器基础用法",
+      "params": {
+        "orders": [
+          "item1",
+          "item2"
+        ],
+        "resources": "value",
+        "constraints": "value",
+        "optimization_goal": "minimize_time"
+      }
+    },
+    {
+      "description": "生产调度器高级用法",
+      "params": {
+        "orders": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "resources": "advanced_value",
+        "constraints": "advanced_value",
+        "optimization_goal": "minimize_cost"
+      }
+    }
+  ],
+  "tool_model_predictor": [
+    {
+      "description": "单次模型预测器",
+      "params": {
+        "modelPath": "./models/trained_model.pkl",
+        "input": "value",
+        "framework": "onnx"
+      }
+    },
+    {
+      "description": "持续模型预测器",
+      "params": {
+        "modelPath": "./advanced_models/trained_model.pkl",
+        "input": "advanced_value",
+        "framework": "tensorflow",
+        "continuous": true
+      }
+    }
+  ],
+  "tool_medical_image_analyzer": [
+    {
+      "description": "使用医学影像分析器",
+      "params": {
+        "imagePath": "./data/sample.dat",
+        "imageType": "ct",
+        "analysisType": "lesion_detection",
+        "bodyPart": "brain"
+      }
+    },
+    {
+      "description": "高级医学影像分析器",
+      "params": {
+        "imagePath": "./advanced_data/sample.dat",
+        "imageType": "mri",
+        "analysisType": "segmentation",
+        "bodyPart": "chest"
+      }
+    }
+  ],
+  "tool_html_generator": [
+    {
+      "description": "HTML生成器基础用法",
+      "params": {
+        "title": "我的网页",
+        "content": "示例文本",
+        "primaryColor": "#667eea"
+      }
+    },
+    {
+      "description": "HTML生成器高级用法",
+      "params": {
+        "title": "我的网页",
+        "content": "更复杂的示例文本内容，用于测试高级功能",
+        "primaryColor": "#667eea"
+      }
+    }
+  ],
+  "tool_css_generator": [
+    {
+      "description": "CSS生成器基础用法",
+      "params": {
+        "primaryColor": "#667eea",
+        "fontSize": "16px"
+      }
+    },
+    {
+      "description": "CSS生成器高级用法",
+      "params": {
+        "primaryColor": "#667eea",
+        "fontSize": "16px"
+      }
+    }
+  ],
+  "tool_js_generator": [
+    {
+      "description": "JS生成器基础用法",
+      "params": {
+        "features": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "JS生成器高级用法",
+      "params": {
+        "features": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_task_timer": [
+    {
+      "description": "任务定时器基础用法",
+      "params": {
+        "action": "setTimeout",
+        "delay": 10,
+        "interval": 10,
+        "timerId": "value",
+        "task": "value"
+      }
+    },
+    {
+      "description": "任务定时器高级用法",
+      "params": {
+        "action": "setInterval",
+        "delay": 50,
+        "interval": 50,
+        "timerId": "advanced_value",
+        "task": "advanced_value"
+      }
+    }
+  ],
+  "tool_resource_monitor": [
+    {
+      "description": "资源监控器基础用法",
+      "params": {
+        "metrics": [
+          "item1",
+          "item2"
+        ],
+        "interval": 10,
+        "duration": 10
+      }
+    },
+    {
+      "description": "资源监控器高级用法",
+      "params": {
+        "metrics": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "interval": 50,
+        "duration": 50
+      }
+    }
+  ],
+  "tool_http_client": [
+    {
+      "description": "基本网络HTTP客户端",
+      "params": {
+        "url": "https://api.example.com/endpoint",
+        "method": "GET",
+        "headers": "value",
+        "body": "value",
+        "timeout": 10
+      }
+    },
+    {
+      "description": "高级网络HTTP客户端",
+      "params": {
+        "url": "https://api.example.com/advanced_endpoint",
+        "method": "POST",
+        "headers": "advanced_value",
+        "body": "advanced_value",
+        "timeout": 50
+      }
+    }
+  ],
+  "tool_health_monitor": [
+    {
+      "description": "使用健康监测器",
+      "params": {
+        "metrics": "value",
+        "history": [
+          "item1",
+          "item2"
+        ],
+        "user_profile": "./data/sample.dat"
+      }
+    },
+    {
+      "description": "高级健康监测器",
+      "params": {
+        "metrics": "advanced_value",
+        "history": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "user_profile": "./advanced_data/sample.dat"
+      }
+    }
+  ],
+  "tool_legal_document_generator": [
+    {
+      "description": "使用法律文书生成器",
+      "params": {
+        "documentType": "contract",
+        "template": "value",
+        "parties": [
+          "item1",
+          "item2"
+        ],
+        "clauses": [
+          "item1",
+          "item2"
+        ],
+        "jurisdiction": "cn"
+      }
+    },
+    {
+      "description": "高级法律文书生成器",
+      "params": {
+        "documentType": "complaint",
+        "template": "advanced_value",
+        "parties": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "clauses": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "jurisdiction": "us"
+      }
+    }
+  ],
+  "tool_edge_inferencer": [
+    {
+      "description": "使用边缘推理引擎",
+      "params": {
+        "model": "base_model",
+        "input_data": "value",
+        "format": "onnx",
+        "device": "cpu"
+      }
+    },
+    {
+      "description": "高级边缘推理引擎",
+      "params": {
+        "model": "advanced_model_v2",
+        "input_data": "advanced_value",
+        "format": "tflite",
+        "device": "gpu"
+      }
+    }
+  ],
+  "tool_twin_model_builder": [
+    {
+      "description": "使用数字孪生模型构建器",
+      "params": {
+        "entity": "value",
+        "sensors": [
+          "item1",
+          "item2"
+        ],
+        "parameters": "value",
+        "physics_model": "base_model"
+      }
+    },
+    {
+      "description": "高级数字孪生模型构建器",
+      "params": {
+        "entity": "advanced_value",
+        "sensors": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "parameters": "advanced_value",
+        "physics_model": "advanced_model_v2"
+      }
+    }
+  ],
+  "tool_protein_designer": [
+    {
+      "description": "使用蛋白质设计器",
+      "params": {
+        "design_goal": "enzyme",
+        "sequence": "value",
+        "structure_constraints": "value",
+        "function_requirements": "value",
+        "optimization_cycles": 10
+      }
+    },
+    {
+      "description": "高级蛋白质设计器",
+      "params": {
+        "design_goal": "antibody",
+        "sequence": "advanced_value",
+        "structure_constraints": "advanced_value",
+        "function_requirements": "advanced_value",
+        "optimization_cycles": 50
+      }
+    }
+  ],
+  "tool_blockchain_query": [
+    {
+      "description": "区块链查询工具 基础用法",
+      "params": {
+        "chain": "ethereum",
+        "queryType": "搜索关键词",
+        "identifier": "value"
+      }
+    },
+    {
+      "description": "区块链查询工具 高级用法",
+      "params": {
+        "chain": "bsc",
+        "queryType": "复杂查询：条件A AND 条件B",
+        "identifier": "advanced_value"
+      }
+    }
+  ],
+  "tool_stakeholder_mapper": [
+    {
+      "description": "利益相关者映射工具 基础用法",
+      "params": {
+        "projectData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "利益相关者映射工具 高级用法",
+      "params": {
+        "projectData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_port_checker": [
+    {
+      "description": "基本网络端口检测器",
+      "params": {
+        "host": "value",
+        "port": 10,
+        "timeout": 10
+      }
+    },
+    {
+      "description": "高级网络端口检测器",
+      "params": {
+        "host": "advanced_value",
+        "port": 50,
+        "timeout": 50
+      }
+    }
+  ],
+  "tool_websocket_client": [
+    {
+      "description": "基本网络WebSocket客户端",
+      "params": {
+        "action": "connect",
+        "url": "https://api.example.com/endpoint",
+        "message": "value",
+        "connectionId": "value"
+      }
+    },
+    {
+      "description": "高级网络WebSocket客户端",
+      "params": {
+        "action": "disconnect",
+        "url": "https://api.example.com/advanced_endpoint",
+        "message": "advanced_value",
+        "connectionId": "advanced_value"
+      }
+    }
+  ],
+  "tool_device_manager": [
+    {
+      "description": "基本网络设备管理器",
+      "params": {
+        "action": "register",
+        "deviceId": "value",
+        "deviceType": "sensor",
+        "config": "value",
+        "command": "value"
+      }
+    },
+    {
+      "description": "高级网络设备管理器",
+      "params": {
+        "action": "configure",
+        "deviceId": "advanced_value",
+        "deviceType": "actuator",
+        "config": "advanced_value",
+        "command": "advanced_value"
+      }
+    }
+  ],
+  "tool_mqtt_client": [
+    {
+      "description": "基本网络MQTT客户端",
+      "params": {
+        "action": "connect",
+        "broker": "value",
+        "topic": "value",
+        "message": "value",
+        "qos": 10
+      }
+    },
+    {
+      "description": "高级网络MQTT客户端",
+      "params": {
+        "action": "publish",
+        "broker": "advanced_value",
+        "topic": "advanced_value",
+        "message": "advanced_value",
+        "qos": 50
+      }
+    }
+  ],
+  "tool_photonic_router": [
+    {
+      "description": "基本网络光子路由器",
+      "params": {
+        "architecture": "wavelength_routing",
+        "wavelength_channels": 10,
+        "switching_technology": "MEMS",
+        "modulation_format": "OOK",
+        "routing_table": [
+          "item1",
+          "item2"
+        ],
+        "qos_requirements": "value"
+      }
+    },
+    {
+      "description": "高级网络光子路由器",
+      "params": {
+        "architecture": "optical_burst",
+        "wavelength_channels": 50,
+        "switching_technology": "SOA",
+        "modulation_format": "DPSK",
+        "routing_table": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "qos_requirements": "advanced_value"
+      }
+    }
+  ],
+  "tool_network_diagnostic_tool": [
+    {
+      "description": "基本网络网络诊断工具",
+      "params": {
+        "operation": "ping",
+        "target": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "高级网络网络诊断工具",
+      "params": {
+        "operation": "port_scan",
+        "target": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_video_metadata_reader": [
+    {
+      "description": "视频元数据读取器基础用法",
+      "params": {
+        "filePath": "./data/sample.dat"
+      }
+    },
+    {
+      "description": "视频元数据读取器高级用法",
+      "params": {
+        "filePath": "./advanced_data/sample.dat"
+      }
+    }
+  ],
+  "tool_gitignore_generator": [
+    {
+      "description": ".gitignore生成器基础用法",
+      "params": {
+        "projectPath": "./data/sample.dat",
+        "templates": [
+          "item1",
+          "item2"
+        ],
+        "customPatterns": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": ".gitignore生成器高级用法",
+      "params": {
+        "projectPath": "./advanced_data/sample.dat",
+        "templates": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "customPatterns": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_eslint_config_generator": [
+    {
+      "description": "ESLint配置生成器基础用法",
+      "params": {
+        "projectPath": "./data/sample.dat",
+        "framework": "react",
+        "style": "airbnb",
+        "configFormat": "js"
+      }
+    },
+    {
+      "description": "ESLint配置生成器高级用法",
+      "params": {
+        "projectPath": "./advanced_data/sample.dat",
+        "framework": "vue",
+        "style": "standard",
+        "configFormat": "json"
+      }
+    }
+  ],
+  "tool_tokenomics_simulator": [
+    {
+      "description": "代币经济模拟器 基础用法",
+      "params": {
+        "tokenConfig": "value",
+        "simulationPeriod": "5years",
+        "iterations": 10
+      }
+    },
+    {
+      "description": "代币经济模拟器 高级用法",
+      "params": {
+        "tokenConfig": "advanced_value",
+        "simulationPeriod": "5years",
+        "iterations": 50
+      }
+    }
+  ],
+  "tool_communication_planner": [
+    {
+      "description": "沟通计划工具 基础用法",
+      "params": {
+        "projectData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "沟通计划工具 高级用法",
+      "params": {
+        "projectData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_pdf_generator": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "content": "示例文本",
+        "contentType": "示例文本",
+        "outputPath": "./output/result.json",
+        "options": "value"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "content": "更复杂的示例文本内容，用于测试高级功能",
+        "contentType": "更复杂的示例文本内容，用于测试高级功能",
+        "outputPath": "./advanced_output/result.json",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_pdf_merger": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "action": "merge",
+        "inputFiles": "./input/data.json",
+        "outputPath": "./output/result.json",
+        "pageRanges": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "action": "split",
+        "inputFiles": "./advanced_input/data.json",
+        "outputPath": "./advanced_output/result.json",
+        "pageRanges": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_code_generator": [
+    {
+      "description": "处理简单代码",
+      "params": {
+        "codeSpec": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "处理复杂项目",
+      "params": {
+        "codeSpec": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_image_metadata": [
+    {
+      "description": "图片元数据提取器基础用法",
+      "params": {
+        "imagePath": "./data/sample.dat",
+        "extractEXIF": false
+      }
+    },
+    {
+      "description": "图片元数据提取器高级用法",
+      "params": {
+        "imagePath": "./advanced_data/sample.dat",
+        "extractEXIF": true
+      }
+    }
+  ],
+  "tool_jwt_parser": [
+    {
+      "description": "JWT解析器基础用法",
+      "params": {
+        "token": "value",
+        "action": "decode",
+        "secret": "value"
+      }
+    },
+    {
+      "description": "JWT解析器高级用法",
+      "params": {
+        "token": "advanced_value",
+        "action": "verify",
+        "secret": "advanced_value"
+      }
+    }
+  ],
+  "tool_subtitle_parser": [
+    {
+      "description": "字幕解析器基础用法",
+      "params": {
+        "content": "示例文本",
+        "format": "srt"
+      }
+    },
+    {
+      "description": "字幕解析器高级用法",
+      "params": {
+        "content": "更复杂的示例文本内容，用于测试高级功能",
+        "format": "vtt"
+      }
+    }
+  ],
+  "tool_model_converter": [
+    {
+      "description": "模型格式转换器基础用法",
+      "params": {
+        "inputPath": "./input/data.json",
+        "inputFormat": "obj",
+        "outputFormat": "obj",
+        "options": "value"
+      }
+    },
+    {
+      "description": "模型格式转换器高级用法",
+      "params": {
+        "inputPath": "./advanced_input/data.json",
+        "inputFormat": "stl",
+        "outputFormat": "stl",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_hash_verifier": [
+    {
+      "description": "Hash校验器基础用法",
+      "params": {
+        "filePath": "./data/sample.dat",
+        "text": "示例文本",
+        "algorithm": "md5",
+        "expectedHash": "value"
+      }
+    },
+    {
+      "description": "Hash校验器高级用法",
+      "params": {
+        "filePath": "./advanced_data/sample.dat",
+        "text": "更复杂的示例文本内容，用于测试高级功能",
+        "algorithm": "sha1",
+        "expectedHash": "advanced_value"
+      }
+    }
+  ],
+  "tool_audio_duration_calculator": [
+    {
+      "description": "音频时长计算器基础用法",
+      "params": {
+        "filePath": "./data/sample.dat"
+      }
+    },
+    {
+      "description": "音频时长计算器高级用法",
+      "params": {
+        "filePath": "./advanced_data/sample.dat"
+      }
+    }
+  ],
+  "tool_event_emitter": [
+    {
+      "description": "事件发射器基础用法",
+      "params": {
+        "action": "emit",
+        "event": "value",
+        "data": "value",
+        "handler": "value"
+      }
+    },
+    {
+      "description": "事件发射器高级用法",
+      "params": {
+        "action": "on",
+        "event": "advanced_value",
+        "data": "advanced_value",
+        "handler": "advanced_value"
+      }
+    }
+  ],
+  "tool_pipeline_builder": [
+    {
+      "description": "数据管道构建器基础用法",
+      "params": {
+        "pipeline": [
+          "item1",
+          "item2"
+        ],
+        "input": "value"
+      }
+    },
+    {
+      "description": "数据管道构建器高级用法",
+      "params": {
+        "pipeline": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "input": "advanced_value"
+      }
+    }
+  ],
+  "tool_cron_scheduler": [
+    {
+      "description": "Cron调度器基础用法",
+      "params": {
+        "action": "schedule",
+        "cronExpression": "value",
+        "taskId": "value",
+        "task": "value",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "description": "Cron调度器高级用法",
+      "params": {
+        "action": "cancel",
+        "cronExpression": "advanced_value",
+        "taskId": "advanced_value",
+        "task": "advanced_value",
+        "timezone": "UTC"
+      }
+    }
+  ],
+  "tool_video_screenshot": [
+    {
+      "description": "视频截图器基础用法",
+      "params": {
+        "videoPath": "./data/sample.dat",
+        "outputPath": "./output/result.json",
+        "timestamp": "value",
+        "count": 10,
+        "interval": 10
+      }
+    },
+    {
+      "description": "视频截图器高级用法",
+      "params": {
+        "videoPath": "./advanced_data/sample.dat",
+        "outputPath": "./advanced_output/result.json",
+        "timestamp": "advanced_value",
+        "count": 50,
+        "interval": 50
+      }
+    }
+  ]
+}
