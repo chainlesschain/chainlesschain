@@ -1,0 +1,101 @@
+{
+  "id": "tpl_legal_contract_001",
+  "name": "legal_contract_template",
+  "display_name": "法律合同生成器",
+  "description": "生成各类标准法律合同文本，包含劳动合同、租赁合同、服务协议等",
+  "icon": "⚖️",
+  "cover_image": "/templates/covers/legal-contract.png",
+  "category": "legal",
+  "subcategory": "contracts",
+  "tags": [
+    "合同",
+    "法律",
+    "协议",
+    "文书"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成一份{{contractType}}合同，要求：\n\n**合同基本信息：**\n- 合同类型：{{contractType}}\n- 甲方（出租方/雇主/服务方）：{{partyA}}\n- 乙方（承租方/雇员/客户方）：{{partyB}}\n- 签订日期：{{signDate}}\n- 生效日期：{{effectiveDate}}\n- 合同期限：{{duration}}\n\n**{{contractType}}**\n\n**合同编号：**{{contractNumber}}\n\n**甲方（以下简称甲方）：**\n- 名称：{{partyAName}}\n- 地址：{{partyAAddress}}\n- 法定代表人：{{partyARepresentative}}\n- 联系电话：{{partyAPhone}}\n- 统一社会信用代码：{{partyACode}}\n\n**乙方（以下简称乙方）：**\n- 名称/姓名：{{partyBName}}\n- 地址/身份证号：{{partyBAddress}}\n{{#if isCompany}}\n- 法定代表人：{{partyBRepresentative}}\n- 统一社会信用代码：{{partyBCode}}\n{{/if}}\n- 联系电话：{{partyBPhone}}\n\n根据《中华人民共和国合同法》及相关法律法规的规定，甲乙双方在平等自愿、协商一致的基础上，就{{contractSubject}}事宜达成如下协议：\n\n## 第一条 合同标的\n\n{{contractSubjectDetails}}\n\n## 第二条 合同金额与支付方式\n\n**2.1 合同总金额**\n人民币（大写）：{{amountChinese}}\n小写：¥{{amount}}\n\n**2.2 支付方式**\n{{paymentMethod}}\n\n**2.3 支付时间**\n{{paymentSchedule}}\n\n**2.4 开票方式**\n{{invoiceMethod}}\n\n## 第三条 双方权利与义务\n\n**3.1 甲方权利与义务**\n（1）{{partyARights1}}\n（2）{{partyARights2}}\n（3）{{partyARights3}}\n\n**3.2 乙方权利与义务**\n（1）{{partyBRights1}}\n（2）{{partyBRights2}}\n（3）{{partyBRights3}}\n\n## 第四条 合同期限\n\n**4.1 合同有效期**\n自{{effectiveDate}}起至{{endDate}}止，共计{{duration}}。\n\n**4.2 续约条款**\n{{renewalClause}}\n\n## 第五条 违约责任\n\n**5.1 甲方违约**\n如甲方违反本合同约定，{{partyABreachPenalty}}\n\n**5.2 乙方违约**\n如乙方违反本合同约定，{{partyBBreachPenalty}}\n\n**5.3 违约金**\n违约方应向守约方支付合同总金额{{penaltyRate}}%的违约金。\n\n## 第六条 争议解决\n\n**6.1 协商解决**\n合同履行过程中发生争议，双方应友好协商解决。\n\n**6.2 仲裁/诉讼**\n{{disputeResolution}}\n\n## 第七条 保密条款\n\n{{confidentialityClause}}\n\n## 第八条 不可抗力\n\n因不可抗力导致合同无法履行的，{{forceMajeureClause}}\n\n## 第九条 合同变更与解除\n\n**9.1 合同变更**\n{{modificationClause}}\n\n**9.2 合同解除**\n{{terminationClause}}\n\n## 第十条 其他约定\n\n{{otherTerms}}\n\n## 第十一条 附则\n\n**11.1 合同生效**\n本合同自双方签字盖章之日起生效。\n\n**11.2 合同份数**\n本合同一式{{copies}}份，甲方执{{partyACopies}}份，乙方执{{partyBCopies}}份，具有同等法律效力。\n\n**11.3 未尽事宜**\n本合同未尽事宜，由双方协商签订补充协议，补充协议与本合同具有同等法律效力。\n\n---\n\n**甲方（签章）：**_________________\n**法定代表人/授权代表：**_________________\n**签订日期：**{{signDate}}\n\n**乙方（签章）：**_________________\n{{#if isCompany}}\n**法定代表人/授权代表：**_________________\n{{/if}}\n**签订日期：**{{signDate}}\n\n---\n\n**附件清单：**\n{{#if hasAttachments}}\n1. {{attachment1}}\n2. {{attachment2}}\n3. {{attachment3}}\n{{else}}\n无\n{{/if}}",
+  "variables_schema": [
+    {
+      "name": "contractType",
+      "label": "合同类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "房屋租赁合同", "label": "房屋租赁合同" },
+        { "value": "劳动合同", "label": "劳动合同" },
+        { "value": "服务合同", "label": "服务合同" },
+        { "value": "采购合同", "label": "采购合同" },
+        { "value": "销售合同", "label": "销售合同" },
+        { "value": "技术开发合同", "label": "技术开发合同" },
+        { "value": "保密协议", "label": "保密协议(NDA)" },
+        { "value": "合作协议", "label": "合作协议" }
+      ]
+    },
+    {
+      "name": "partyAName",
+      "label": "甲方名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "公司全称或个人姓名"
+    },
+    {
+      "name": "partyBName",
+      "label": "乙方名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "公司全称或个人姓名"
+    },
+    {
+      "name": "amount",
+      "label": "合同金额",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：50000.00"
+    },
+    {
+      "name": "duration",
+      "label": "合同期限",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：12个月、3年"
+    },
+    {
+      "name": "signDate",
+      "label": "签订日期",
+      "type": "string",
+      "required": false,
+      "default": "{{currentDate}}",
+      "placeholder": "YYYY-MM-DD"
+    }
+  ],
+  "file_structure": {
+    "root": "{{contractType}}-{{partyAName}}-{{partyBName}}",
+    "files": [
+      {
+        "path": "{{contractType}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "附件/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

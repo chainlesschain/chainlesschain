@@ -1,0 +1,53 @@
+{
+  "id": "tpl_finance_budget_001",
+  "name": "personal_budget",
+  "display_name": "个人预算规划",
+  "description": "制定月度/年度个人财务预算，包含收支分析和储蓄目标",
+  "icon": "💰",
+  "category": "productivity",
+  "subcategory": "finance",
+  "tags": ["预算", "理财", "财务规划", "储蓄"],
+  "project_type": "spreadsheet",
+  "prompt_template": "# {{period}} 个人预算计划\n\n## 收入明细\n- 工资收入：¥{{salary}}\n- 其他收入：¥{{otherIncome}}\n- **总收入：**¥{{totalIncome}}\n\n## 支出预算\n\n### 必要支出（50%）\n- 房租/房贷：¥{{rent}}\n- 水电煤：¥{{utilities}}\n- 交通：¥{{transportation}}\n- 餐饮：¥{{food}}\n- 保险：¥{{insurance}}\n\n### 储蓄投资（30%）\n- 紧急基金：¥{{emergency}}\n- 投资理财：¥{{investment}}\n- 养老储蓄：¥{{retirement}}\n\n### 生活品质（20%）\n- 娱乐休闲：¥{{entertainment}}\n- 学习提升：¥{{learning}}\n- 购物消费：¥{{shopping}}\n\n## 财务目标\n- 储蓄率目标：{{savingsRate}}%\n- 月度结余：¥{{monthlySavings}}\n- 年度目标：{{annualGoal}}",
+  "variables_schema": [
+    {
+      "name": "period",
+      "label": "预算周期",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "2026年1月", "label": "月度预算" },
+        { "value": "2026年度", "label": "年度预算" }
+      ]
+    },
+    {
+      "name": "salary",
+      "label": "月收入",
+      "type": "number",
+      "required": true,
+      "placeholder": "税后月收入"
+    },
+    {
+      "name": "savingsRate",
+      "label": "储蓄率目标(%)",
+      "type": "number",
+      "required": false,
+      "default": 30,
+      "min": 10,
+      "max": 70
+    }
+  ],
+  "file_structure": {
+    "root": "预算计划-{{period}}",
+    "files": [
+      {"path": "预算表.xlsx", "type": "spreadsheet"},
+      {"path": "财务分析.docx", "type": "document"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_financial_planning", "skill_data_analysis"],
+  "required_tools": ["tool_excel_generator", "tool_budget_calculator"],
+  "execution_engine": "data"
+}

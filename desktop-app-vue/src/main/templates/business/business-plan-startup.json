@@ -1,0 +1,124 @@
+{
+  "id": "tpl_business_startup_plan_001",
+  "name": "startup_business_plan",
+  "display_name": "创业商业计划书",
+  "description": "完整的创业商业计划书，包含市场分析、商业模式、财务预测等核心模块",
+  "icon": "🚀",
+  "cover_image": "/templates/covers/business-plan.png",
+  "category": "career",
+  "subcategory": "startup",
+  "tags": [
+    "商业计划",
+    "创业",
+    "投资",
+    "融资"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成一份专业的创业商业计划书，要求：\n\n**项目基本信息：**\n- 项目名称：{{projectName}}\n- 创始团队：{{founderTeam}}\n- 所属行业：{{industry}}\n- 融资阶段：{{fundingStage}}\n- 融资金额：{{fundingAmount}}\n- 商业模式：{{businessModel}}\n\n**商业计划书结构：**\n\n# 一、执行摘要\n\n## 1.1 项目概述\n- 项目名称：{{projectName}}\n- 核心价值主张：{{valueProposition}}\n- 目标市场：{{targetMarket}}\n- 竞争优势：{{competitiveAdvantage}}\n\n## 1.2 关键财务指标（3年预测）\n- 第一年营收目标：{{year1Revenue}}\n- 第二年营收目标：{{year2Revenue}}\n- 第三年营收目标：{{year3Revenue}}\n- 预期毛利率：{{grossMargin}}%\n- 盈亏平衡时间：{{breakEvenMonth}}个月\n\n## 1.3 融资需求\n- 本轮融资金额：{{fundingAmount}}\n- 资金用途分配：\n  - 产品研发：{{rdAllocation}}%\n  - 市场营销：{{marketingAllocation}}%\n  - 团队建设：{{teamAllocation}}%\n  - 运营成本：{{operatingAllocation}}%\n\n# 二、市场分析\n\n## 2.1 行业背景\n- 行业规模：{{industrySize}}\n- 年增长率：{{industryGrowth}}%\n- 发展趋势：{{industryTrends}}\n- 政策环境：{{policyEnvironment}}\n\n## 2.2 目标客户\n- 客户画像：{{customerProfile}}\n- 市场规模：{{tam}} (TAM)\n- 可获得市场：{{sam}} (SAM)\n- 可服务市场：{{som}} (SOM)\n- 客户痛点：\n  1. {{painPoint1}}\n  2. {{painPoint2}}\n  3. {{painPoint3}}\n\n## 2.3 竞争分析\n- 主要竞争对手：{{competitors}}\n- 竞争格局：{{competitiveLandscape}}\n- 差异化优势：{{differentiation}}\n- 进入壁垒：{{barriers}}\n\n# 三、产品与服务\n\n## 3.1 产品/服务描述\n{{productDescription}}\n\n## 3.2 核心功能\n1. {{feature1}}\n2. {{feature2}}\n3. {{feature3}}\n4. {{feature4}}\n\n## 3.3 技术架构\n{{techStack}}\n\n## 3.4 产品路线图\n- MVP版本（0-3个月）：{{mvpFeatures}}\n- V1.0版本（3-6个月）：{{v1Features}}\n- V2.0版本（6-12个月）：{{v2Features}}\n\n## 3.5 知识产权\n- 专利申请：{{patents}}\n- 软件著作权：{{copyrights}}\n- 商标注册：{{trademarks}}\n\n# 四、商业模式\n\n## 4.1 收入模式\n- 主要收入来源：{{revenueSource}}\n- 定价策略：{{pricingStrategy}}\n- 客户生命周期价值（LTV）：{{ltv}}\n- 客户获取成本（CAC）：{{cac}}\n- LTV/CAC比率：{{ltvCacRatio}}\n\n## 4.2 成本结构\n- 固定成本：{{fixedCosts}}\n- 变动成本：{{variableCosts}}\n- 主要成本项：{{costBreakdown}}\n\n## 4.3 盈利模式\n{{profitabilityModel}}\n\n# 五、营销策略\n\n## 5.1 市场定位\n{{positioning}}\n\n## 5.2 营销渠道\n1. 线上渠道：{{onlineChannels}}\n2. 线下渠道：{{offlineChannels}}\n3. 合作伙伴：{{partnerChannels}}\n\n## 5.3 获客策略\n- 内容营销：{{contentMarketing}}\n- 社交媒体：{{socialMedia}}\n- 付费广告：{{paidAds}}\n- 口碑传播：{{referralProgram}}\n\n## 5.4 年度营销预算\n- 总预算：{{marketingBudget}}\n- 预期ROI：{{marketingROI}}\n\n# 六、运营计划\n\n## 6.1 组织架构\n{{orgStructure}}\n\n## 6.2 核心团队\n- CEO：{{ceo}}\n- CTO：{{cto}}\n- COO：{{coo}}\n- CMO：{{cmo}}\n- CFO：{{cfo}}\n\n## 6.3 人员规划（12个月）\n- 当前团队：{{currentTeamSize}}人\n- 12个月后：{{futureTeamSize}}人\n- 关键招聘岗位：{{keyHires}}\n\n## 6.4 运营里程碑\n- Q1：{{q1Milestone}}\n- Q2：{{q2Milestone}}\n- Q3：{{q3Milestone}}\n- Q4：{{q4Milestone}}\n\n# 七、财务计划\n\n## 7.1 资金需求\n- 启动资金：{{seedFunding}}\n- 本轮融资：{{currentRoundFunding}}\n- 后续融资计划：{{futureRounds}}\n\n## 7.2 收入预测（3年）\n\n| 年份 | 用户数 | 客单价 | 营收 | 成本 | 净利润 |\n|------|--------|--------|------|------|--------|\n| Y1 | {{y1Users}} | {{y1AvgPrice}} | {{y1Revenue}} | {{y1Cost}} | {{y1Profit}} |\n| Y2 | {{y2Users}} | {{y2AvgPrice}} | {{y2Revenue}} | {{y2Cost}} | {{y2Profit}} |\n| Y3 | {{y3Users}} | {{y3AvgPrice}} | {{y3Revenue}} | {{y3Cost}} | {{y3Profit}} |\n\n## 7.3 资金使用计划\n{{fundAllocation}}\n\n## 7.4 退出策略\n- IPO计划：{{ipoplan}}\n- 并购可能：{{acquisitionPotential}}\n- 预期退出时间：{{exitTimeline}}\n\n# 八、风险分析\n\n## 8.1 市场风险\n{{marketRisks}}\n\n## 8.2 技术风险\n{{techRisks}}\n\n## 8.3 运营风险\n{{operationalRisks}}\n\n## 8.4 财务风险\n{{financialRisks}}\n\n## 8.5 风险应对措施\n{{riskMitigation}}\n\n# 九、附录\n\n- 团队简历\n- 市场调研数据\n- 产品原型/Demo\n- 财务详细报表\n- 法律文件\n- 推荐信/背书",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：智能健康管理平台"
+    },
+    {
+      "name": "founderTeam",
+      "label": "创始团队",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：张三（CEO，10年互联网经验）+ 李四（CTO，前BAT技术专家）"
+    },
+    {
+      "name": "industry",
+      "label": "所属行业",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "互联网", "label": "互联网/软件" },
+        { "value": "医疗健康", "label": "医疗健康" },
+        { "value": "教育培训", "label": "教育培训" },
+        { "value": "金融科技", "label": "金融科技" },
+        { "value": "企业服务", "label": "企业服务/SaaS" },
+        { "value": "电商零售", "label": "电商零售" },
+        { "value": "AI", "label": "人工智能" },
+        { "value": "其他", "label": "其他" }
+      ]
+    },
+    {
+      "name": "fundingStage",
+      "label": "融资阶段",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "天使轮", "label": "天使轮" },
+        { "value": "Pre-A轮", "label": "Pre-A轮" },
+        { "value": "A轮", "label": "A轮" },
+        { "value": "B轮", "label": "B轮" },
+        { "value": "C轮及以后", "label": "C轮及以后" }
+      ]
+    },
+    {
+      "name": "fundingAmount",
+      "label": "融资金额",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：500万人民币"
+    },
+    {
+      "name": "businessModel",
+      "label": "商业模式",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "SaaS订阅", "label": "SaaS订阅" },
+        { "value": "交易佣金", "label": "交易佣金" },
+        { "value": "广告收入", "label": "广告收入" },
+        { "value": "增值服务", "label": "增值服务" },
+        { "value": "硬件销售", "label": "硬件销售" },
+        { "value": "混合模式", "label": "混合模式" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{projectName}}-商业计划书",
+    "files": [
+      {
+        "path": "商业计划书-{{projectName}}.docx",
+        "type": "document"
+      },
+      {
+        "path": "财务预测表.xlsx",
+        "type": "spreadsheet"
+      },
+      {
+        "path": "路演PPT.pptx",
+        "type": "presentation"
+      },
+      {
+        "path": "附录/",
+        "type": "folder"
+      }
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_content_creation",
+    "skill_document_processing",
+    "skill_data_analysis"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_excel_generator",
+    "tool_ppt_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

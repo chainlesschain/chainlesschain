@@ -1,0 +1,64 @@
+{
+  "id": "tpl_code_readme_001",
+  "name": "github_readme",
+  "display_name": "GitHub README生成器",
+  "description": "生成专业的开源项目README文档，包含徽章、安装说明、使用示例",
+  "icon": "📝",
+  "category": "code-project",
+  "subcategory": "documentation",
+  "tags": ["GitHub", "README", "开源", "文档"],
+  "project_type": "document",
+  "prompt_template": "# {{projectName}}\n\n[![License](https://img.shields.io/badge/license-{{license}}-blue.svg)](LICENSE)\n[![Version](https://img.shields.io/badge/version-{{version}}-green.svg)](#)\n\n{{projectDescription}}\n\n## ✨ Features\n\n- {{feature1}}\n- {{feature2}}\n- {{feature3}}\n\n## 🚀 Quick Start\n\n### Installation\n\n```bash\n{{installCommand}}\n```\n\n### Usage\n\n```{{language}}\n{{usageExample}}\n```\n\n## 📖 Documentation\n\n{{documentationLink}}\n\n## 🤝 Contributing\n\nContributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md).\n\n## 📄 License\n\n{{license}} - see [LICENSE](LICENSE) for details.\n\n## 👥 Authors\n\n- {{authorName}} - [@{{authorGithub}}](https://github.com/{{authorGithub}})\n\n## 🙏 Acknowledgments\n\n{{acknowledgments}}",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "projectDescription",
+      "label": "项目描述",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "language",
+      "label": "编程语言",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "javascript", "label": "JavaScript" },
+        { "value": "python", "label": "Python" },
+        { "value": "java", "label": "Java" },
+        { "value": "go", "label": "Go" },
+        { "value": "rust", "label": "Rust" }
+      ]
+    },
+    {
+      "name": "license",
+      "label": "开源协议",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "MIT", "label": "MIT" },
+        { "value": "Apache-2.0", "label": "Apache 2.0" },
+        { "value": "GPL-3.0", "label": "GPL 3.0" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{projectName}}",
+    "files": [
+      {"path": "README.md", "type": "markdown"},
+      {"path": "CONTRIBUTING.md", "type": "markdown"},
+      {"path": "LICENSE", "type": "text"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_technical_writing", "skill_code_development"],
+  "required_tools": ["tool_file_writer", "tool_markdown_converter"],
+  "execution_engine": "document"
+}

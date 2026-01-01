@@ -1,0 +1,45 @@
+{
+  "id": "tpl_learning_studyplan_001",
+  "name": "study_plan",
+  "display_name": "学习计划制定器",
+  "description": "制定个性化学习计划，包含学习目标、进度安排和复习策略",
+  "icon": "📖",
+  "category": "learning",
+  "subcategory": "planning",
+  "tags": ["学习计划", "教育", "自学", "考试"],
+  "project_type": "document",
+  "prompt_template": "# {{learningGoal}} 学习计划\n\n## 学习目标\n{{objective}}\n\n## 学习周期\n{{duration}}\n\n## 每日计划\n\n**周一至周五：**\n- 早上：{{morningPlan}}\n- 下午：{{afternoonPlan}}\n- 晚上：{{eveningPlan}}\n\n**周末：**\n{{weekendPlan}}\n\n## 阶段里程碑\n\n**第1-4周：**{{phase1}}\n**第5-8周：**{{phase2}}\n**第9-12周：**{{phase3}}\n\n## 复习策略\n{{reviewStrategy}}",
+  "variables_schema": [
+    {
+      "name": "learningGoal",
+      "label": "学习目标",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：通过PMP考试、掌握Python编程"
+    },
+    {
+      "name": "duration",
+      "label": "学习周期",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "1个月", "label": "1个月" },
+        { "value": "3个月", "label": "3个月" },
+        { "value": "6个月", "label": "6个月" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "学习计划-{{learningGoal}}",
+    "files": [
+      {"path": "学习计划.docx", "type": "document"},
+      {"path": "进度追踪.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_content_creation", "skill_education_planning"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

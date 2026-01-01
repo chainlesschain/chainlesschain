@@ -1,0 +1,36 @@
+{
+  "id": "tpl_techdocs_api_001",
+  "name": "api_documentation",
+  "display_name": "API文档生成器",
+  "description": "生成专业RESTful API文档，包含接口说明、参数定义、示例代码",
+  "icon": "📡",
+  "category": "tech-docs",
+  "subcategory": "api",
+  "tags": ["API", "文档", "开发", "接口"],
+  "project_type": "document",
+  "prompt_template": "# {{apiName}} API Documentation\n\n## Base URL\n```\n{{baseUrl}}\n```\n\n## Authentication\n{{authMethod}}\n\n## Endpoints\n\n### {{endpoint1}}\n**Method:** {{method1}}\n**Description:** {{description1}}\n\n**Request Parameters:**\n{{parameters1}}\n\n**Response:**\n```json\n{{response1}}\n```",
+  "variables_schema": [
+    {
+      "name": "apiName",
+      "label": "API名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "baseUrl",
+      "label": "基础URL",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "{{apiName}}-API-Docs",
+    "files": [{"path": "API文档.md", "type": "markdown"}]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_technical_writing"],
+  "required_tools": ["tool_file_writer"],
+  "execution_engine": "document"
+}

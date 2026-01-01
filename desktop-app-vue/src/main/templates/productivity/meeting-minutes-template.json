@@ -1,0 +1,46 @@
+{
+  "id": "tpl_productivity_meeting_001",
+  "name": "meeting_minutes",
+  "display_name": "会议纪要模板",
+  "description": "记录会议内容、决议和行动项的标准化模板",
+  "icon": "📋",
+  "category": "productivity",
+  "subcategory": "meetings",
+  "tags": ["会议", "纪要", "总结", "行动项"],
+  "project_type": "document",
+  "prompt_template": "# {{meetingTitle}} 会议纪要\n\n## 会议基本信息\n- 会议主题：{{meetingTitle}}\n- 会议时间：{{meetingDate}} {{meetingTime}}\n- 会议地点：{{location}}\n- 会议主持：{{host}}\n- 记录人：{{recorder}}\n- 参会人员：{{attendees}}\n- 缺席人员：{{absent}}\n\n## 会议议程\n\n### 议题1：{{topic1}}\n**讨论内容：**\n{{topic1Discussion}}\n\n**决议：**\n{{topic1Decision}}\n\n### 议题2：{{topic2}}\n{{topic2Details}}\n\n## 行动项（Action Items）\n\n| 序号 | 行动事项 | 负责人 | 截止日期 | 状态 |\n|------|----------|--------|----------|------|\n| 1 | {{action1}} | {{owner1}} | {{deadline1}} | 待办 |\n| 2 | {{action2}} | {{owner2}} | {{deadline2}} | 待办 |\n\n## 下次会议安排\n- 时间：{{nextMeetingDate}}\n- 议题：{{nextMeetingTopics}}\n\n---\n\n**纪要发送：**\n- 抄送人员：{{cc}}\n- 发送时间：{{sendTime}}",
+  "variables_schema": [
+    {
+      "name": "meetingTitle",
+      "label": "会议主题",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "meetingDate",
+      "label": "会议日期",
+      "type": "string",
+      "required": true,
+      "placeholder": "YYYY-MM-DD"
+    },
+    {
+      "name": "host",
+      "label": "会议主持",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "会议纪要-{{meetingDate}}",
+    "files": [
+      {"path": "会议纪要-{{meetingTitle}}.docx", "type": "document"},
+      {"path": "行动项追踪.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_content_creation", "skill_project_management"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}
