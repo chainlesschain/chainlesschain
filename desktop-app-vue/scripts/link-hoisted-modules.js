@@ -14,7 +14,15 @@ const HOISTED_MODULES = [
   'lodash',
   'express',
   'dotenv',
-  'sql.js'
+  'sql.js',
+  'koffi',                    // U-Key FFI bindings
+  'better-sqlite3',           // Alternative database (no encryption)
+  'better-sqlite3-multiple-ciphers', // SQLCipher support
+  'ws',                       // WebSocket for P2P
+  'form-data',                // HTTP form data
+  'chokidar',                 // File watching
+  'marked',                   // Markdown parsing
+  'node-forge'                // Cryptography
 ];
 
 const rootDir = path.join(__dirname, '..', '..');
@@ -60,29 +68,14 @@ HOISTED_MODULES.forEach(moduleName => {
     }
   }
 
-  // 创建符号链接 (Windows上可能需要管理员权限，使用junction作为替代)
+  // 直接复制模块 (符号链接在Electron打包时可能无法正确处理)
   try {
-    if (process.platform === 'win32') {
-      // Windows: 使用junction (不需要管理员权限)
-      fs.symlinkSync(rootModulePath, localModulePath, 'junction');
-    } else {
-      // Unix: 使用符号链接
-      fs.symlinkSync(rootModulePath, localModulePath);
-    }
-    console.log(`  ✓  已链接: ${moduleName}`);
+    console.log(`  🔄 复制 ${moduleName}...`);
+    copyDir(rootModulePath, localModulePath);
+    console.log(`  ✓  已复制: ${moduleName}`);
     linkedCount++;
   } catch (err) {
-    console.error(`  ❌ 无法链接 ${moduleName}:`, err.message);
-
-    // 如果符号链接失败，尝试复制
-    try {
-      console.log(`  🔄 尝试复制 ${moduleName}...`);
-      copyDir(rootModulePath, localModulePath);
-      console.log(`  ✓  已复制: ${moduleName}`);
-      linkedCount++;
-    } catch (copyErr) {
-      console.error(`  ❌ 复制也失败了:`, copyErr.message);
-    }
+    console.error(`  ❌ 复制失败 ${moduleName}:`, err.message);
   }
 });
 
