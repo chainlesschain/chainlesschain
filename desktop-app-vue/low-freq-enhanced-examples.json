@@ -1,0 +1,3318 @@
+{
+  "tool_model_generator": [
+    {
+      "description": "使用3D模型生成器",
+      "params": {
+        "type": "cube",
+        "dimensions": "value",
+        "material": "value",
+        "outputFormat": "obj"
+      }
+    },
+    {
+      "description": "高级3D模型生成器",
+      "params": {
+        "type": "sphere",
+        "dimensions": "advanced_value",
+        "material": "advanced_value",
+        "outputFormat": "stl"
+      }
+    }
+  ],
+  "tool_audio_fingerprint": [
+    {
+      "description": "单个音频指纹生成器",
+      "params": {
+        "audioPath": "./data/sample.dat",
+        "algorithm": "chromaprint",
+        "duration": 10
+      }
+    },
+    {
+      "description": "批量音频指纹生成器",
+      "params": {
+        "audioPath": "./advanced_data/sample.dat",
+        "algorithm": "echoprint",
+        "duration": 50,
+        "batch": true
+      }
+    }
+  ],
+  "tool_physics_engine": [
+    {
+      "description": "使用物理引擎",
+      "params": {
+        "action": "create",
+        "objectId": "value",
+        "properties": "value",
+        "force": [
+          "item1",
+          "item2"
+        ],
+        "deltaTime": 10
+      }
+    },
+    {
+      "description": "高级物理引擎",
+      "params": {
+        "action": "step",
+        "objectId": "advanced_value",
+        "properties": "advanced_value",
+        "force": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "deltaTime": 50
+      }
+    }
+  ],
+  "tool_collision_detector": [
+    {
+      "description": "单个碰撞检测器",
+      "params": {
+        "objects": [
+          "item1",
+          "item2"
+        ],
+        "algorithm": "aabb",
+        "continuous": false
+      }
+    },
+    {
+      "description": "批量碰撞检测器",
+      "params": {
+        "objects": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "algorithm": "sat",
+        "continuous": true,
+        "batch": true
+      }
+    }
+  ],
+  "tool_bim_modeler": [
+    {
+      "description": "使用BIM建模器",
+      "params": {
+        "action": "create",
+        "modelPath": "./models/trained_model.pkl",
+        "format": "ifc",
+        "elements": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "高级BIM建模器",
+      "params": {
+        "action": "import",
+        "modelPath": "./advanced_models/trained_model.pkl",
+        "format": "rvt",
+        "elements": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_cicd_pipeline": [
+    {
+      "description": "CI基础用法",
+      "params": {
+        "action": "create",
+        "pipeline": "value",
+        "repository": "value",
+        "branch": "value"
+      }
+    },
+    {
+      "description": "CI高级用法",
+      "params": {
+        "action": "trigger",
+        "pipeline": "advanced_value",
+        "repository": "advanced_value",
+        "branch": "advanced_value"
+      }
+    }
+  ],
+  "tool_ar_content_creator": [
+    {
+      "description": "基础AR内容创建器",
+      "params": {
+        "contentType": "示例文本",
+        "assets": [
+          "item1",
+          "item2"
+        ],
+        "interactions": [
+          "item1",
+          "item2"
+        ],
+        "tracking": "value"
+      }
+    },
+    {
+      "description": "专业AR内容创建器",
+      "params": {
+        "contentType": "更复杂的示例文本内容，用于测试高级功能",
+        "assets": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "interactions": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "tracking": "advanced_value"
+      }
+    }
+  ],
+  "tool_vr_scene_builder": [
+    {
+      "description": "基础VR场景构建器",
+      "params": {
+        "environment": "value",
+        "objects": [
+          "item1",
+          "item2"
+        ],
+        "navigation": "value"
+      }
+    },
+    {
+      "description": "专业VR场景构建器",
+      "params": {
+        "environment": "advanced_value",
+        "objects": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "navigation": "advanced_value"
+      }
+    }
+  ],
+  "tool_iot_device_manager": [
+    {
+      "description": "基础系统管理",
+      "params": {
+        "action": "register",
+        "device": "value",
+        "command": "value"
+      }
+    },
+    {
+      "description": "高级系统控制",
+      "params": {
+        "action": "configure",
+        "device": "advanced_value",
+        "command": "advanced_value"
+      }
+    }
+  ],
+  "tool_mqtt_broker": [
+    {
+      "description": "MQTT消息代理基础用法",
+      "params": {
+        "action": "publish",
+        "topic": "value",
+        "message": "value",
+        "qos": 10,
+        "retain": false
+      }
+    },
+    {
+      "description": "MQTT消息代理高级用法",
+      "params": {
+        "action": "subscribe",
+        "topic": "advanced_value",
+        "message": "advanced_value",
+        "qos": 50,
+        "retain": true
+      }
+    }
+  ],
+  "tool_scene_automator": [
+    {
+      "description": "场景自动化器基础用法",
+      "params": {
+        "action": "create",
+        "scene": "value",
+        "scene_id": "value"
+      }
+    },
+    {
+      "description": "场景自动化器高级用法",
+      "params": {
+        "action": "execute",
+        "scene": "advanced_value",
+        "scene_id": "advanced_value"
+      }
+    }
+  ],
+  "tool_device_linker": [
+    {
+      "description": "设备联动器基础用法",
+      "params": {
+        "linkage": "value",
+        "enabled": false
+      }
+    },
+    {
+      "description": "设备联动器高级用法",
+      "params": {
+        "linkage": "advanced_value",
+        "enabled": true
+      }
+    }
+  ],
+  "tool_irrigation_controller": [
+    {
+      "description": "基础系统管理",
+      "params": {
+        "action": "start",
+        "zone": "value",
+        "parameters": "value",
+        "soil_moisture": 10,
+        "weather_forecast": "value"
+      }
+    },
+    {
+      "description": "高级系统控制",
+      "params": {
+        "action": "stop",
+        "zone": "advanced_value",
+        "parameters": "advanced_value",
+        "soil_moisture": 50,
+        "weather_forecast": "advanced_value"
+      }
+    }
+  ],
+  "tool_nano_fabricator": [
+    {
+      "description": "纳米加工器基础用法",
+      "params": {
+        "process": "lithography",
+        "pattern": "value",
+        "materials": [
+          "item1",
+          "item2"
+        ],
+        "parameters": "value"
+      }
+    },
+    {
+      "description": "纳米加工器高级用法",
+      "params": {
+        "process": "etching",
+        "pattern": "advanced_value",
+        "materials": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "parameters": "advanced_value"
+      }
+    }
+  ],
+  "tool_radiation_monitor": [
+    {
+      "description": "实时监控",
+      "params": {
+        "detector_type": "GM",
+        "measurement_type": "dose_rate",
+        "location": "value",
+        "background": 10
+      }
+    },
+    {
+      "description": "持续追踪",
+      "params": {
+        "detector_type": "scintillator",
+        "measurement_type": "contamination",
+        "location": "advanced_value",
+        "background": 50
+      }
+    }
+  ],
+  "tool_lunar_miner": [
+    {
+      "description": "月球采矿器基础用法",
+      "params": {
+        "site": "value",
+        "target_resource": "water_ice",
+        "equipment": [
+          "item1",
+          "item2"
+        ],
+        "extraction_method": "excavation"
+      }
+    },
+    {
+      "description": "月球采矿器高级用法",
+      "params": {
+        "site": "advanced_value",
+        "target_resource": "helium3",
+        "equipment": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "extraction_method": "heating"
+      }
+    }
+  ],
+  "tool_neuromorphic_accelerator": [
+    {
+      "description": "神经形态加速器基础用法",
+      "params": {
+        "hardware": "Loihi",
+        "model": "base_model",
+        "optimization": "value",
+        "input_data": "value"
+      }
+    },
+    {
+      "description": "神经形态加速器高级用法",
+      "params": {
+        "hardware": "TrueNorth",
+        "model": "advanced_model_v2",
+        "optimization": "advanced_value",
+        "input_data": "advanced_value"
+      }
+    }
+  ],
+  "tool_image_editor": [
+    {
+      "description": "基础图片编辑器",
+      "params": {
+        "input_path": "./input/data.json",
+        "output_path": "./output/result.json",
+        "operations": [
+          "item1",
+          "item2"
+        ],
+        "format": "jpg",
+        "quality": 10
+      }
+    },
+    {
+      "description": "专业图片编辑器",
+      "params": {
+        "input_path": "./advanced_input/data.json",
+        "output_path": "./advanced_output/result.json",
+        "operations": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "format": "png",
+        "quality": 50
+      }
+    }
+  ],
+  "tool_image_filter": [
+    {
+      "description": "使用图片滤镜器",
+      "params": {
+        "input_path": "./input/data.json",
+        "output_path": "./output/result.json",
+        "filter": "grayscale",
+        "brightness": 10,
+        "contrast": 10,
+        "watermark": "value"
+      }
+    },
+    {
+      "description": "高级图片滤镜器",
+      "params": {
+        "input_path": "./advanced_input/data.json",
+        "output_path": "./advanced_output/result.json",
+        "filter": "sepia",
+        "brightness": 50,
+        "contrast": 50,
+        "watermark": "advanced_value"
+      }
+    }
+  ],
+  "tool_video_cutter": [
+    {
+      "description": "使用视频剪辑器",
+      "params": {
+        "input_path": "./input/data.json",
+        "output_path": "./output/result.json",
+        "start_time": "value",
+        "end_time": "value",
+        "extract_audio": false,
+        "audio_format": "mp3"
+      }
+    },
+    {
+      "description": "高级视频剪辑器",
+      "params": {
+        "input_path": "./advanced_input/data.json",
+        "output_path": "./advanced_output/result.json",
+        "start_time": "advanced_value",
+        "end_time": "advanced_value",
+        "extract_audio": true,
+        "audio_format": "wav"
+      }
+    }
+  ],
+  "tool_video_merger": [
+    {
+      "description": "使用视频合并器",
+      "params": {
+        "input_files": "./input/data.json",
+        "output_path": "./output/result.json",
+        "output_format": "mp4",
+        "codec": "h264",
+        "resolution": "original"
+      }
+    },
+    {
+      "description": "高级视频合并器",
+      "params": {
+        "input_files": "./advanced_input/data.json",
+        "output_path": "./advanced_output/result.json",
+        "output_format": "avi",
+        "codec": "h265",
+        "resolution": "1080p"
+      }
+    }
+  ],
+  "tool_password_generator_advanced": [
+    {
+      "description": "基础安全检查",
+      "params": {
+        "length": 10,
+        "include_uppercase": false,
+        "include_lowercase": false,
+        "include_numbers": false,
+        "include_symbols": false,
+        "exclude_ambiguous": false,
+        "custom_charset": "value",
+        "count": 10
+      }
+    },
+    {
+      "description": "深度安全扫描",
+      "params": {
+        "length": 50,
+        "include_uppercase": true,
+        "include_lowercase": true,
+        "include_numbers": true,
+        "include_symbols": true,
+        "exclude_ambiguous": true,
+        "custom_charset": "advanced_value",
+        "count": 50
+      }
+    }
+  ],
+  "tool_package_json_builder": [
+    {
+      "description": "package.json构建器基础用法",
+      "params": {
+        "projectPath": "./data/sample.dat",
+        "config": "value"
+      }
+    },
+    {
+      "description": "package.json构建器高级用法",
+      "params": {
+        "projectPath": "./advanced_data/sample.dat",
+        "config": "advanced_value"
+      }
+    }
+  ],
+  "tool_dockerfile_generator": [
+    {
+      "description": "Dockerfile生成器基础用法",
+      "params": {
+        "projectPath": "./data/sample.dat",
+        "baseImage": "node:18-alpine",
+        "appType": "nodejs",
+        "workdir": "/app",
+        "port": 10,
+        "entrypoint": "value",
+        "buildSteps": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "Dockerfile生成器高级用法",
+      "params": {
+        "projectPath": "./advanced_data/sample.dat",
+        "baseImage": "node:18-alpine",
+        "appType": "python",
+        "workdir": "/app",
+        "port": 50,
+        "entrypoint": "advanced_value",
+        "buildSteps": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_contract_analyzer": [
+    {
+      "description": "基础区块链操作",
+      "params": {
+        "contractCode": "value",
+        "analysisDepth": "basic",
+        "securityFocus": false
+      }
+    },
+    {
+      "description": "高级智能合约",
+      "params": {
+        "contractCode": "advanced_value",
+        "analysisDepth": "comprehensive",
+        "securityFocus": true
+      }
+    }
+  ],
+  "tool_create_project_structure": [
+    {
+      "description": "项目结构创建基础用法",
+      "params": {
+        "projectName": "value",
+        "projectType": "web",
+        "outputPath": "./output/result.json"
+      }
+    },
+    {
+      "description": "项目结构创建高级用法",
+      "params": {
+        "projectName": "advanced_value",
+        "projectType": "blog",
+        "outputPath": "./advanced_output/result.json"
+      }
+    }
+  ],
+  "tool_sql_builder": [
+    {
+      "description": "SQL查询构建器基础用法",
+      "params": {
+        "action": "select",
+        "table": "value",
+        "fields": [
+          "item1",
+          "item2"
+        ],
+        "where": "value",
+        "values": "value",
+        "orderBy": "value",
+        "limit": 10
+      }
+    },
+    {
+      "description": "SQL查询构建器高级用法",
+      "params": {
+        "action": "insert",
+        "table": "advanced_value",
+        "fields": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "where": "advanced_value",
+        "values": "advanced_value",
+        "orderBy": "advanced_value",
+        "limit": 100
+      }
+    }
+  ],
+  "tool_blockchain_client": [
+    {
+      "description": "基础区块链操作",
+      "params": {
+        "network": "ethereum",
+        "action": "getBlock",
+        "params": "value"
+      }
+    },
+    {
+      "description": "高级智能合约",
+      "params": {
+        "network": "bsc",
+        "action": "getTransaction",
+        "params": "advanced_value"
+      }
+    }
+  ],
+  "tool_schema_differ": [
+    {
+      "description": "Schema差异检测器基础用法",
+      "params": {
+        "source": "value",
+        "target": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "Schema差异检测器高级用法",
+      "params": {
+        "source": "advanced_value",
+        "target": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_requirements_generator": [
+    {
+      "description": "requirements.txt生成器基础用法",
+      "params": {
+        "projectPath": "./data/sample.dat",
+        "packages": [
+          "item1",
+          "item2"
+        ],
+        "autoDetect": false,
+        "outputPath": "./output/result.json"
+      }
+    },
+    {
+      "description": "requirements.txt生成器高级用法",
+      "params": {
+        "projectPath": "./advanced_data/sample.dat",
+        "packages": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "autoDetect": true,
+        "outputPath": "./advanced_output/result.json"
+      }
+    }
+  ],
+  "tool_setup_py_generator": [
+    {
+      "description": "setup.py生成器基础用法",
+      "params": {
+        "projectPath": "./data/sample.dat",
+        "config": "value"
+      }
+    },
+    {
+      "description": "setup.py生成器高级用法",
+      "params": {
+        "projectPath": "./advanced_data/sample.dat",
+        "config": "advanced_value"
+      }
+    }
+  ],
+  "tool_docker_compose_generator": [
+    {
+      "description": "docker-compose.yml生成器基础用法",
+      "params": {
+        "projectPath": "./data/sample.dat",
+        "services": [
+          "item1",
+          "item2"
+        ],
+        "networks": "value",
+        "volumes": "value"
+      }
+    },
+    {
+      "description": "docker-compose.yml生成器高级用法",
+      "params": {
+        "projectPath": "./advanced_data/sample.dat",
+        "services": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "networks": "advanced_value",
+        "volumes": "advanced_value"
+      }
+    }
+  ],
+  "tool_text_to_speech": [
+    {
+      "description": "使用文本转语音",
+      "params": {
+        "text": "示例文本",
+        "language": "zh-CN",
+        "voice": "male",
+        "outputPath": "./output/result.json",
+        "speed": 10
+      }
+    },
+    {
+      "description": "高级文本转语音",
+      "params": {
+        "text": "更复杂的示例文本内容，用于测试高级功能",
+        "language": "zh-CN",
+        "voice": "female",
+        "outputPath": "./advanced_output/result.json",
+        "speed": 50
+      }
+    }
+  ],
+  "tool_audio_converter": [
+    {
+      "description": "使用音频格式转换器",
+      "params": {
+        "inputPath": "./input/data.json",
+        "outputPath": "./output/result.json",
+        "format": "mp3",
+        "bitrate": "192k"
+      }
+    },
+    {
+      "description": "高级音频格式转换器",
+      "params": {
+        "inputPath": "./advanced_input/data.json",
+        "outputPath": "./advanced_output/result.json",
+        "format": "wav",
+        "bitrate": "192k"
+      }
+    }
+  ],
+  "tool_structure_analyzer": [
+    {
+      "description": "使用结构分析器",
+      "params": {
+        "structure": "value",
+        "analysisType": "static",
+        "loads": [
+          "item1",
+          "item2"
+        ],
+        "standard": "gb"
+      }
+    },
+    {
+      "description": "高级结构分析器",
+      "params": {
+        "structure": "advanced_value",
+        "analysisType": "dynamic",
+        "loads": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "standard": "eurocode"
+      }
+    }
+  ],
+  "tool_api_requester": [
+    {
+      "description": "API请求器基础用法",
+      "params": {
+        "url": "https://api.example.com/endpoint",
+        "method": "GET",
+        "headers": "value",
+        "body": "value",
+        "timeout": 10
+      }
+    },
+    {
+      "description": "API请求器高级用法",
+      "params": {
+        "url": "https://api.example.com/advanced_endpoint",
+        "method": "POST",
+        "headers": "advanced_value",
+        "body": "advanced_value",
+        "timeout": 50
+      }
+    }
+  ],
+  "tool_crypto_handler": [
+    {
+      "description": "基础安全检查",
+      "params": {
+        "action": "encrypt",
+        "algorithm": "aes-256-cbc",
+        "data": "value",
+        "key": "value",
+        "iv": "value"
+      }
+    },
+    {
+      "description": "深度安全扫描",
+      "params": {
+        "action": "decrypt",
+        "algorithm": "md5",
+        "data": "advanced_value",
+        "key": "advanced_value",
+        "iv": "advanced_value"
+      }
+    }
+  ],
+  "tool_speech_recognizer": [
+    {
+      "description": "使用语音识别器",
+      "params": {
+        "audioPath": "./data/sample.dat",
+        "language": "zh-CN",
+        "model": "base_model"
+      }
+    },
+    {
+      "description": "高级语音识别器",
+      "params": {
+        "audioPath": "./advanced_data/sample.dat",
+        "language": "zh-CN",
+        "model": "advanced_model_v2"
+      }
+    }
+  ],
+  "tool_encrypt_decrypt": [
+    {
+      "description": "基础安全检查",
+      "params": {
+        "action": "encrypt",
+        "data": "value",
+        "algorithm": "aes-256-gcm",
+        "key": "value",
+        "iv": "value"
+      }
+    },
+    {
+      "description": "深度安全扫描",
+      "params": {
+        "action": "decrypt",
+        "data": "advanced_value",
+        "algorithm": "aes-128-cbc",
+        "key": "advanced_value",
+        "iv": "advanced_value"
+      }
+    }
+  ],
+  "tool_key_generator": [
+    {
+      "description": "基础安全检查",
+      "params": {
+        "type": "symmetric",
+        "keySize": 10,
+        "format": "pem"
+      }
+    },
+    {
+      "description": "深度安全扫描",
+      "params": {
+        "type": "rsa",
+        "keySize": 50,
+        "format": "der"
+      }
+    }
+  ],
+  "tool_video_editor": [
+    {
+      "description": "基础视频编辑器",
+      "params": {
+        "action": "cut",
+        "inputPath": "./input/data.json",
+        "outputPath": "./output/result.json",
+        "startTime": "value",
+        "endTime": "value",
+        "watermark": "value"
+      }
+    },
+    {
+      "description": "专业视频编辑器",
+      "params": {
+        "action": "merge",
+        "inputPath": "./advanced_input/data.json",
+        "outputPath": "./advanced_output/result.json",
+        "startTime": "advanced_value",
+        "endTime": "advanced_value",
+        "watermark": "advanced_value"
+      }
+    }
+  ],
+  "tool_video_transcoder": [
+    {
+      "description": "使用视频转码器",
+      "params": {
+        "inputPath": "./input/data.json",
+        "outputPath": "./output/result.json",
+        "codec": "h264",
+        "resolution": "480p",
+        "bitrate": "value"
+      }
+    },
+    {
+      "description": "高级视频转码器",
+      "params": {
+        "inputPath": "./advanced_input/data.json",
+        "outputPath": "./advanced_output/result.json",
+        "codec": "h265",
+        "resolution": "720p",
+        "bitrate": "advanced_value"
+      }
+    }
+  ],
+  "tool_security_auditor": [
+    {
+      "description": "基础安全检查",
+      "params": {
+        "auditType": "code",
+        "target": "value",
+        "rules": [
+          "item1",
+          "item2"
+        ],
+        "standard": "owasp"
+      }
+    },
+    {
+      "description": "深度安全扫描",
+      "params": {
+        "auditType": "config",
+        "target": "advanced_value",
+        "rules": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "standard": "cis"
+      }
+    }
+  ],
+  "tool_voice_cloner": [
+    {
+      "description": "使用语音克隆器",
+      "params": {
+        "action": "train",
+        "reference_audio": "value",
+        "text": "示例文本",
+        "model_id": "base_model",
+        "training_duration": 10
+      }
+    },
+    {
+      "description": "高级语音克隆器",
+      "params": {
+        "action": "synthesize",
+        "reference_audio": "advanced_value",
+        "text": "更复杂的示例文本内容，用于测试高级功能",
+        "model_id": "advanced_model_v2",
+        "training_duration": 50
+      }
+    }
+  ],
+  "tool_quantum_key_distributor": [
+    {
+      "description": "基础安全检查",
+      "params": {
+        "protocol": "BB84",
+        "key_length": 10,
+        "channel": "value",
+        "error_correction": false
+      }
+    },
+    {
+      "description": "深度安全扫描",
+      "params": {
+        "protocol": "E91",
+        "key_length": 50,
+        "channel": "advanced_value",
+        "error_correction": true
+      }
+    }
+  ],
+  "tool_screenshot_tool": [
+    {
+      "description": "使用截图工具",
+      "params": {
+        "output_path": "./output/result.json",
+        "capture_type": "fullscreen",
+        "region": "value",
+        "include_cursor": false,
+        "format": "png"
+      }
+    },
+    {
+      "description": "高级截图工具",
+      "params": {
+        "output_path": "./advanced_output/result.json",
+        "capture_type": "window",
+        "region": "advanced_value",
+        "include_cursor": true,
+        "format": "jpg"
+      }
+    }
+  ],
+  "tool_screen_recorder": [
+    {
+      "description": "使用屏幕录制器",
+      "params": {
+        "output_path": "./output/result.json",
+        "output_format": "mp4",
+        "capture_type": "fullscreen",
+        "region": "value",
+        "fps": 10,
+        "record_audio": false,
+        "duration": 10
+      }
+    },
+    {
+      "description": "高级屏幕录制器",
+      "params": {
+        "output_path": "./advanced_output/result.json",
+        "output_format": "avi",
+        "capture_type": "window",
+        "region": "advanced_value",
+        "fps": 50,
+        "record_audio": true,
+        "duration": 50
+      }
+    }
+  ],
+  "tool_password_vault": [
+    {
+      "description": "基础安全检查",
+      "params": {
+        "action": "add",
+        "entry": "value",
+        "master_password": "value",
+        "search_query": "搜索关键词"
+      }
+    },
+    {
+      "description": "深度安全扫描",
+      "params": {
+        "action": "get",
+        "entry": "advanced_value",
+        "master_password": "advanced_value",
+        "search_query": "复杂查询：条件A AND 条件B"
+      }
+    }
+  ],
+  "tool_model_trainer": [
+    {
+      "description": "机器学习模型训练器基础用法",
+      "params": {
+        "dataPath": "./data/sample.dat",
+        "targetColumn": "value",
+        "modelType": "base_model",
+        "taskType": "classification",
+        "trainingData": [
+          "item1",
+          "item2"
+        ],
+        "labels": [
+          "item1",
+          "item2"
+        ],
+        "hyperparameters": "value",
+        "validationSplit": 10,
+        "cv_folds": 10,
+        "autoTune": false,
+        "modelOutputPath": "./output/result.json"
+      }
+    },
+    {
+      "description": "机器学习模型训练器高级用法",
+      "params": {
+        "dataPath": "./advanced_data/sample.dat",
+        "targetColumn": "advanced_value",
+        "modelType": "advanced_model_v2",
+        "taskType": "regression",
+        "trainingData": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "labels": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "hyperparameters": "advanced_value",
+        "validationSplit": 50,
+        "cv_folds": 50,
+        "autoTune": true,
+        "modelOutputPath": "./advanced_output/result.json"
+      }
+    }
+  ],
+  "tool_public_safety_monitor": [
+    {
+      "description": "公共安全监控器基础用法",
+      "params": {
+        "area": "value",
+        "monitoring_types": [
+          "item1",
+          "item2"
+        ],
+        "alert_rules": [
+          "item1",
+          "item2"
+        ],
+        "video_streams": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "公共安全监控器高级用法",
+      "params": {
+        "area": "advanced_value",
+        "monitoring_types": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "alert_rules": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "video_streams": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_gene_editor": [
+    {
+      "description": "基因编辑器基础用法",
+      "params": {
+        "target_gene": "value",
+        "edit_type": "knockout",
+        "editor": "Cas9",
+        "pam_sequence": "value",
+        "grna_design": "value"
+      }
+    },
+    {
+      "description": "基因编辑器高级用法",
+      "params": {
+        "target_gene": "advanced_value",
+        "edit_type": "knockin",
+        "editor": "Cas12",
+        "pam_sequence": "advanced_value",
+        "grna_design": "advanced_value"
+      }
+    }
+  ],
+  "tool_reactor_simulator": [
+    {
+      "description": "反应堆模拟器基础用法",
+      "params": {
+        "reactor_type": "PWR",
+        "power_level": 10,
+        "fuel_composition": "value",
+        "control_rods": "value",
+        "simulation_type": "steady_state"
+      }
+    },
+    {
+      "description": "反应堆模拟器高级用法",
+      "params": {
+        "reactor_type": "BWR",
+        "power_level": 50,
+        "fuel_composition": "advanced_value",
+        "control_rods": "advanced_value",
+        "simulation_type": "transient"
+      }
+    }
+  ],
+  "tool_contract_caller": [
+    {
+      "description": "智能合约调用器基础用法",
+      "params": {
+        "contractAddress": "value",
+        "abi": [
+          "item1",
+          "item2"
+        ],
+        "method": "value",
+        "params": [
+          "item1",
+          "item2"
+        ],
+        "network": "mainnet"
+      }
+    },
+    {
+      "description": "智能合约调用器高级用法",
+      "params": {
+        "contractAddress": "advanced_value",
+        "abi": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "method": "advanced_value",
+        "params": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "network": "testnet"
+      }
+    }
+  ],
+  "tool_web_crawler": [
+    {
+      "description": "网页爬虫基础用法",
+      "params": {
+        "url": "https://api.example.com/endpoint",
+        "selectors": "value",
+        "followLinks": false,
+        "maxDepth": 10,
+        "headers": "value"
+      }
+    },
+    {
+      "description": "网页爬虫高级用法",
+      "params": {
+        "url": "https://api.example.com/advanced_endpoint",
+        "selectors": "advanced_value",
+        "followLinks": true,
+        "maxDepth": 50,
+        "headers": "advanced_value"
+      }
+    }
+  ],
+  "tool_websocket_server": [
+    {
+      "description": "WebSocket服务器基础用法",
+      "params": {
+        "action": "start",
+        "port": 10,
+        "message": "value",
+        "clientId": "value"
+      }
+    },
+    {
+      "description": "WebSocket服务器高级用法",
+      "params": {
+        "action": "stop",
+        "port": 50,
+        "message": "advanced_value",
+        "clientId": "advanced_value"
+      }
+    }
+  ],
+  "tool_market_data_analyzer": [
+    {
+      "description": "市场数据分析器 基础用法",
+      "params": {
+        "market": "value",
+        "dataSources": [
+          "item1",
+          "item2"
+        ],
+        "metrics": [
+          "item1",
+          "item2"
+        ]
+      }
+    },
+    {
+      "description": "市场数据分析器 高级用法",
+      "params": {
+        "market": "advanced_value",
+        "dataSources": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "metrics": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ]
+      }
+    }
+  ],
+  "tool_generic_handler": [
+    {
+      "description": "通用处理器基础用法",
+      "params": {
+        "action": "value",
+        "params": "value"
+      }
+    },
+    {
+      "description": "通用处理器高级用法",
+      "params": {
+        "action": "advanced_value",
+        "params": "advanced_value"
+      }
+    }
+  ],
+  "tool_workflow_executor": [
+    {
+      "description": "工作流执行器基础用法",
+      "params": {
+        "workflow": "value",
+        "context": "示例文本"
+      }
+    },
+    {
+      "description": "工作流执行器高级用法",
+      "params": {
+        "workflow": "advanced_value",
+        "context": "更复杂的示例文本内容，用于测试高级功能"
+      }
+    }
+  ],
+  "tool_container_orchestrator": [
+    {
+      "description": "容器编排器基础用法",
+      "params": {
+        "action": "deploy",
+        "service": "value",
+        "namespace": "value",
+        "cluster": "value"
+      }
+    },
+    {
+      "description": "容器编排器高级用法",
+      "params": {
+        "action": "scale",
+        "service": "advanced_value",
+        "namespace": "advanced_value",
+        "cluster": "advanced_value"
+      }
+    }
+  ],
+  "tool_edge_node_manager": [
+    {
+      "description": "基础系统管理",
+      "params": {
+        "action": "deploy",
+        "node": "value",
+        "workload": "value"
+      }
+    },
+    {
+      "description": "高级系统控制",
+      "params": {
+        "action": "monitor",
+        "node": "advanced_value",
+        "workload": "advanced_value"
+      }
+    }
+  ],
+  "tool_plc_controller": [
+    {
+      "description": "基础系统管理",
+      "params": {
+        "action": "read",
+        "plc": "value",
+        "address": "value",
+        "value": "value"
+      }
+    },
+    {
+      "description": "高级系统控制",
+      "params": {
+        "action": "write",
+        "plc": "advanced_value",
+        "address": "advanced_value",
+        "value": "advanced_value"
+      }
+    }
+  ],
+  "tool_traffic_controller": [
+    {
+      "description": "基础系统管理",
+      "params": {
+        "intersection": "value",
+        "mode": "fixed",
+        "traffic_data": "value",
+        "optimization_goal": "minimize_delay"
+      }
+    },
+    {
+      "description": "高级系统控制",
+      "params": {
+        "intersection": "advanced_value",
+        "mode": "adaptive",
+        "traffic_data": "advanced_value",
+        "optimization_goal": "maximize_throughput"
+      }
+    }
+  ],
+  "tool_power_dispatcher": [
+    {
+      "description": "电力调度器基础用法",
+      "params": {
+        "grid": "value",
+        "generators": [
+          "item1",
+          "item2"
+        ],
+        "load_forecast": "value",
+        "optimization": "minimize_cost",
+        "constraints": "value"
+      }
+    },
+    {
+      "description": "电力调度器高级用法",
+      "params": {
+        "grid": "advanced_value",
+        "generators": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "load_forecast": "advanced_value",
+        "optimization": "maximize_reliability",
+        "constraints": "advanced_value"
+      }
+    }
+  ],
+  "tool_cloud_seeder": [
+    {
+      "description": "云播种器基础用法",
+      "params": {
+        "operation_type": "precipitation_enhancement",
+        "seeding_agent": "silver_iodide",
+        "target_area": "value",
+        "weather_conditions": "value",
+        "aircraft": "value"
+      }
+    },
+    {
+      "description": "云播种器高级用法",
+      "params": {
+        "operation_type": "hail_suppression",
+        "seeding_agent": "dry_ice",
+        "target_area": "advanced_value",
+        "weather_conditions": "advanced_value",
+        "aircraft": "advanced_value"
+      }
+    }
+  ],
+  "tool_ligo_data_analyzer": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "detector": "LIGO-Hanford",
+        "data_segment": "value",
+        "preprocessing": "value",
+        "analysis_method": "matched_filter"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "detector": "LIGO-Livingston",
+        "data_segment": "advanced_value",
+        "preprocessing": "advanced_value",
+        "analysis_method": "burst"
+      }
+    }
+  ],
+  "tool_npm_project_setup": [
+    {
+      "description": "NPM项目初始化基础用法",
+      "params": {
+        "projectName": "value",
+        "projectPath": "./data/sample.dat",
+        "template": "basic",
+        "packageManager": "npm",
+        "initGit": false,
+        "installDeps": false
+      }
+    },
+    {
+      "description": "NPM项目初始化高级用法",
+      "params": {
+        "projectName": "advanced_value",
+        "projectPath": "./advanced_data/sample.dat",
+        "template": "express",
+        "packageManager": "yarn",
+        "initGit": true,
+        "installDeps": true
+      }
+    }
+  ],
+  "tool_python_project_setup": [
+    {
+      "description": "Python项目初始化基础用法",
+      "params": {
+        "projectName": "value",
+        "projectPath": "./data/sample.dat",
+        "projectType": "package",
+        "pythonVersion": "3.9",
+        "useVirtualEnv": false,
+        "initGit": false
+      }
+    },
+    {
+      "description": "Python项目初始化高级用法",
+      "params": {
+        "projectName": "advanced_value",
+        "projectPath": "./advanced_data/sample.dat",
+        "projectType": "script",
+        "pythonVersion": "3.9",
+        "useVirtualEnv": true,
+        "initGit": true
+      }
+    }
+  ],
+  "tool_oauth_helper": [
+    {
+      "description": "OAuth助手基础用法",
+      "params": {
+        "action": "authorize",
+        "clientId": "value",
+        "clientSecret": "value",
+        "authorizationUrl": "https://api.example.com/endpoint",
+        "tokenUrl": "https://api.example.com/endpoint",
+        "refreshToken": "value"
+      }
+    },
+    {
+      "description": "OAuth助手高级用法",
+      "params": {
+        "action": "token",
+        "clientId": "advanced_value",
+        "clientSecret": "advanced_value",
+        "authorizationUrl": "https://api.example.com/advanced_endpoint",
+        "tokenUrl": "https://api.example.com/advanced_endpoint",
+        "refreshToken": "advanced_value"
+      }
+    }
+  ],
+  "tool_log_parser": [
+    {
+      "description": "日志解析器基础用法",
+      "params": {
+        "logContent": "示例文本",
+        "format": "nginx",
+        "filter": "value"
+      }
+    },
+    {
+      "description": "日志解析器高级用法",
+      "params": {
+        "logContent": "更复杂的示例文本内容，用于测试高级功能",
+        "format": "apache",
+        "filter": "advanced_value"
+      }
+    }
+  ],
+  "tool_digital_signer": [
+    {
+      "description": "基础安全检查",
+      "params": {
+        "action": "sign",
+        "data": "value",
+        "privateKey": "value",
+        "publicKey": "value",
+        "signature": "value",
+        "algorithm": "RSA-SHA256"
+      }
+    },
+    {
+      "description": "深度安全扫描",
+      "params": {
+        "action": "verify",
+        "data": "advanced_value",
+        "privateKey": "advanced_value",
+        "publicKey": "advanced_value",
+        "signature": "advanced_value",
+        "algorithm": "ECDSA"
+      }
+    }
+  ],
+  "tool_vulnerability_scanner": [
+    {
+      "description": "基础安全检查",
+      "params": {
+        "target": "value",
+        "scanType": "port",
+        "depth": "quick",
+        "options": "value"
+      }
+    },
+    {
+      "description": "深度安全扫描",
+      "params": {
+        "target": "advanced_value",
+        "scanType": "web",
+        "depth": "medium",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_data_preprocessor": [
+    {
+      "description": "数据预处理器基础用法",
+      "params": {
+        "dataPath": "./data/sample.dat",
+        "operations": [
+          "item1",
+          "item2"
+        ],
+        "options": "value",
+        "outputPath": "./output/result.json"
+      }
+    },
+    {
+      "description": "数据预处理器高级用法",
+      "params": {
+        "dataPath": "./advanced_data/sample.dat",
+        "operations": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "options": "advanced_value",
+        "outputPath": "./advanced_output/result.json"
+      }
+    }
+  ],
+  "tool_patent_claim_analyzer": [
+    {
+      "description": "专利权利要求分析器 基础用法",
+      "params": {
+        "claimText": "示例文本",
+        "analysisType": "basic"
+      }
+    },
+    {
+      "description": "专利权利要求分析器 高级用法",
+      "params": {
+        "claimText": "更复杂的示例文本内容，用于测试高级功能",
+        "analysisType": "comprehensive"
+      }
+    }
+  ],
+  "tool_change_readiness_assessor": [
+    {
+      "description": "变革准备度评估器 基础用法",
+      "params": {
+        "options": "value"
+      }
+    },
+    {
+      "description": "变革准备度评估器 高级用法",
+      "params": {
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_culture_analyzer": [
+    {
+      "description": "企业文化分析器 基础用法",
+      "params": {
+        "organizationData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "企业文化分析器 高级用法",
+      "params": {
+        "organizationData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_sentiment_analyzer": [
+    {
+      "description": "舆情分析器 基础用法",
+      "params": {
+        "content": "示例文本",
+        "options": "value"
+      }
+    },
+    {
+      "description": "舆情分析器 高级用法",
+      "params": {
+        "content": "更复杂的示例文本内容，用于测试高级功能",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_toml_parser": [
+    {
+      "description": "TOML解析器基础用法",
+      "params": {
+        "action": "parse",
+        "toml": "value",
+        "data": "value"
+      }
+    },
+    {
+      "description": "TOML解析器高级用法",
+      "params": {
+        "action": "stringify",
+        "toml": "advanced_value",
+        "data": "advanced_value"
+      }
+    }
+  ],
+  "tool_ini_parser": [
+    {
+      "description": "INI解析器基础用法",
+      "params": {
+        "action": "parse",
+        "ini": "value",
+        "data": "value"
+      }
+    },
+    {
+      "description": "INI解析器高级用法",
+      "params": {
+        "action": "stringify",
+        "ini": "advanced_value",
+        "data": "advanced_value"
+      }
+    }
+  ],
+  "tool_email_parser": [
+    {
+      "description": "邮件解析器基础用法",
+      "params": {
+        "action": "validate",
+        "email": "value",
+        "content": "示例文本"
+      }
+    },
+    {
+      "description": "邮件解析器高级用法",
+      "params": {
+        "action": "parse",
+        "email": "advanced_value",
+        "content": "更复杂的示例文本内容，用于测试高级功能"
+      }
+    }
+  ],
+  "tool_gitdiff_parser": [
+    {
+      "description": "Git Diff解析器基础用法",
+      "params": {
+        "diff": "value"
+      }
+    },
+    {
+      "description": "Git Diff解析器高级用法",
+      "params": {
+        "diff": "advanced_value"
+      }
+    }
+  ],
+  "tool_coordinate_converter": [
+    {
+      "description": "坐标转换器基础用法",
+      "params": {
+        "latitude": 10,
+        "longitude": 10,
+        "from": "WGS84",
+        "to": "WGS84"
+      }
+    },
+    {
+      "description": "坐标转换器高级用法",
+      "params": {
+        "latitude": 50,
+        "longitude": 50,
+        "from": "GCJ02",
+        "to": "GCJ02"
+      }
+    }
+  ],
+  "tool_axion_searcher": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "search_method": "cavity_haloscope",
+        "mass_range": "value",
+        "cavity_params": "value",
+        "magnetic_field": 10,
+        "integration_time": 10,
+        "coupling_constant": 10
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "search_method": "helioscope",
+        "mass_range": "advanced_value",
+        "cavity_params": "advanced_value",
+        "magnetic_field": 50,
+        "integration_time": 50,
+        "coupling_constant": 50
+      }
+    }
+  ],
+  "tool_ice_core_analyzer": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "core_info": "value",
+        "analysis_types": [
+          "item1",
+          "item2"
+        ],
+        "isotope_ratios": "value",
+        "gas_measurements": "value",
+        "resolution": 10,
+        "dating_method": "layer_counting"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "core_info": "advanced_value",
+        "analysis_types": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "isotope_ratios": "advanced_value",
+        "gas_measurements": "advanced_value",
+        "resolution": 50,
+        "dating_method": "volcanic_markers"
+      }
+    }
+  ],
+  "tool_biochip_analyzer": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "chip_type": "microarray",
+        "assay_type": "gene_expression",
+        "raw_data": "value",
+        "normalization": "quantile",
+        "background_correction": false,
+        "statistical_analysis": "value",
+        "quality_control": "value"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "chip_type": "microfluidic",
+        "assay_type": "protein",
+        "raw_data": "advanced_value",
+        "normalization": "loess",
+        "background_correction": true,
+        "statistical_analysis": "advanced_value",
+        "quality_control": "advanced_value"
+      }
+    }
+  ],
+  "tool_smart_contract_caller": [
+    {
+      "description": "基础区块链操作",
+      "params": {
+        "contractAddress": "value",
+        "abi": [
+          "item1",
+          "item2"
+        ],
+        "method": "value",
+        "args": [
+          "item1",
+          "item2"
+        ],
+        "from": "value"
+      }
+    },
+    {
+      "description": "高级智能合约",
+      "params": {
+        "contractAddress": "advanced_value",
+        "abi": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "method": "advanced_value",
+        "args": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "from": "advanced_value"
+      }
+    }
+  ],
+  "tool_migration_runner": [
+    {
+      "description": "迁移执行器基础用法",
+      "params": {
+        "action": "up",
+        "steps": 10,
+        "dryRun": false,
+        "dbConfig": "value"
+      }
+    },
+    {
+      "description": "迁移执行器高级用法",
+      "params": {
+        "action": "down",
+        "steps": 50,
+        "dryRun": true,
+        "dbConfig": "advanced_value"
+      }
+    }
+  ],
+  "tool_performance_profiler": [
+    {
+      "description": "性能分析器基础用法",
+      "params": {
+        "action": "start",
+        "target": "value"
+      }
+    },
+    {
+      "description": "性能分析器高级用法",
+      "params": {
+        "action": "stop",
+        "target": "advanced_value"
+      }
+    }
+  ],
+  "tool_statistical_analyzer": [
+    {
+      "description": "统计分析工具基础用法",
+      "params": {
+        "dataPath": "./data/sample.dat",
+        "analyses": [
+          "item1",
+          "item2"
+        ],
+        "columns": [
+          "item1",
+          "item2"
+        ],
+        "options": "value",
+        "reportOutputPath": "./output/result.json"
+      }
+    },
+    {
+      "description": "统计分析工具高级用法",
+      "params": {
+        "dataPath": "./advanced_data/sample.dat",
+        "analyses": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "columns": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "options": "advanced_value",
+        "reportOutputPath": "./advanced_output/result.json"
+      }
+    }
+  ],
+  "tool_email_reader": [
+    {
+      "description": "邮件读取器基础用法",
+      "params": {
+        "imapConfig": "value",
+        "mailbox": "INBOX",
+        "limit": 10,
+        "filter": "value"
+      }
+    },
+    {
+      "description": "邮件读取器高级用法",
+      "params": {
+        "imapConfig": "advanced_value",
+        "mailbox": "INBOX",
+        "limit": 100,
+        "filter": "advanced_value"
+      }
+    }
+  ],
+  "tool_wallet_manager": [
+    {
+      "description": "基础区块链操作",
+      "params": {
+        "action": "create",
+        "privateKey": "value",
+        "mnemonic": "value",
+        "transaction": "value"
+      }
+    },
+    {
+      "description": "高级智能合约",
+      "params": {
+        "action": "import",
+        "privateKey": "advanced_value",
+        "mnemonic": "advanced_value",
+        "transaction": "advanced_value"
+      }
+    }
+  ],
+  "tool_git_init": [
+    {
+      "description": "Git初始化基础用法",
+      "params": {
+        "repoPath": "./data/sample.dat",
+        "initialBranch": "main"
+      }
+    },
+    {
+      "description": "Git初始化高级用法",
+      "params": {
+        "repoPath": "./advanced_data/sample.dat",
+        "initialBranch": "main"
+      }
+    }
+  ],
+  "tool_git_commit": [
+    {
+      "description": "Git提交基础用法",
+      "params": {
+        "repoPath": "./data/sample.dat",
+        "message": "value"
+      }
+    },
+    {
+      "description": "Git提交高级用法",
+      "params": {
+        "repoPath": "./advanced_data/sample.dat",
+        "message": "advanced_value"
+      }
+    }
+  ],
+  "tool_base64_handler": [
+    {
+      "description": "Base64编解码基础用法",
+      "params": {
+        "action": "encode",
+        "data": "value",
+        "encoding": "utf8"
+      }
+    },
+    {
+      "description": "Base64编解码高级用法",
+      "params": {
+        "action": "decode",
+        "data": "advanced_value",
+        "encoding": "ascii"
+      }
+    }
+  ],
+  "tool_env_manager": [
+    {
+      "description": "环境变量管理器基础用法",
+      "params": {
+        "action": "read",
+        "envPath": "./data/sample.dat",
+        "key": "value",
+        "value": "value"
+      }
+    },
+    {
+      "description": "环境变量管理器高级用法",
+      "params": {
+        "action": "parse",
+        "envPath": "./advanced_data/sample.dat",
+        "key": "advanced_value",
+        "value": "advanced_value"
+      }
+    }
+  ],
+  "tool_template_renderer": [
+    {
+      "description": "模板渲染器基础用法",
+      "params": {
+        "template": "value",
+        "variables": "value",
+        "syntax": "mustache"
+      }
+    },
+    {
+      "description": "模板渲染器高级用法",
+      "params": {
+        "template": "advanced_value",
+        "variables": "advanced_value",
+        "syntax": "handlebars"
+      }
+    }
+  ],
+  "tool_s3_client": [
+    {
+      "description": "S3客户端基础用法",
+      "params": {
+        "action": "upload",
+        "bucket": "value",
+        "key": "value",
+        "localPath": "./data/sample.dat",
+        "credentials": "value"
+      }
+    },
+    {
+      "description": "S3客户端高级用法",
+      "params": {
+        "action": "download",
+        "bucket": "advanced_value",
+        "key": "advanced_value",
+        "localPath": "./advanced_data/sample.dat",
+        "credentials": "advanced_value"
+      }
+    }
+  ],
+  "tool_oss_client": [
+    {
+      "description": "阿里云OSS客户端基础用法",
+      "params": {
+        "action": "upload",
+        "bucket": "value",
+        "objectKey": "value",
+        "localPath": "./data/sample.dat",
+        "credentials": "value"
+      }
+    },
+    {
+      "description": "阿里云OSS客户端高级用法",
+      "params": {
+        "action": "download",
+        "bucket": "advanced_value",
+        "objectKey": "advanced_value",
+        "localPath": "./advanced_data/sample.dat",
+        "credentials": "advanced_value"
+      }
+    }
+  ],
+  "tool_memory_monitor": [
+    {
+      "description": "内存监控器基础用法",
+      "params": {
+        "action": "snapshot",
+        "previousSnapshot": "value"
+      }
+    },
+    {
+      "description": "内存监控器高级用法",
+      "params": {
+        "action": "compare",
+        "previousSnapshot": "advanced_value"
+      }
+    }
+  ],
+  "tool_email_sender": [
+    {
+      "description": "邮件发送器基础用法",
+      "params": {
+        "from": "value",
+        "to": [
+          "item1",
+          "item2"
+        ],
+        "subject": "value",
+        "text": "示例文本",
+        "html": "value",
+        "attachments": [
+          "item1",
+          "item2"
+        ],
+        "smtpConfig": "value"
+      }
+    },
+    {
+      "description": "邮件发送器高级用法",
+      "params": {
+        "from": "advanced_value",
+        "to": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "subject": "advanced_value",
+        "text": "更复杂的示例文本内容，用于测试高级功能",
+        "html": "advanced_value",
+        "attachments": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "smtpConfig": "advanced_value"
+      }
+    }
+  ],
+  "tool_email_attachment_handler": [
+    {
+      "description": "邮件附件处理器基础用法",
+      "params": {
+        "action": "extract",
+        "emailId": "value",
+        "attachmentIndex": 10,
+        "savePath": "./data/sample.dat",
+        "filePath": "./data/sample.dat"
+      }
+    },
+    {
+      "description": "邮件附件处理器高级用法",
+      "params": {
+        "action": "save",
+        "emailId": "advanced_value",
+        "attachmentIndex": 50,
+        "savePath": "./advanced_data/sample.dat",
+        "filePath": "./advanced_data/sample.dat"
+      }
+    }
+  ],
+  "tool_chart_renderer": [
+    {
+      "description": "图表渲染器基础用法",
+      "params": {
+        "chartConfig": "value",
+        "outputPath": "./output/result.json",
+        "format": "png",
+        "width": 10,
+        "height": 10
+      }
+    },
+    {
+      "description": "图表渲染器高级用法",
+      "params": {
+        "chartConfig": "advanced_value",
+        "outputPath": "./advanced_output/result.json",
+        "format": "svg",
+        "width": 50,
+        "height": 50
+      }
+    }
+  ],
+  "tool_cache_manager": [
+    {
+      "description": "缓存管理器基础用法",
+      "params": {
+        "action": "get",
+        "key": "value",
+        "value": "value",
+        "ttl": 10,
+        "type": "memory"
+      }
+    },
+    {
+      "description": "缓存管理器高级用法",
+      "params": {
+        "action": "set",
+        "key": "advanced_value",
+        "value": "advanced_value",
+        "ttl": 50,
+        "type": "redis"
+      }
+    }
+  ],
+  "tool_message_queue_client": [
+    {
+      "description": "消息队列客户端基础用法",
+      "params": {
+        "action": "publish",
+        "queue": "value",
+        "message": "value",
+        "exchange": "value",
+        "routingKey": "value"
+      }
+    },
+    {
+      "description": "消息队列客户端高级用法",
+      "params": {
+        "action": "subscribe",
+        "queue": "advanced_value",
+        "message": "advanced_value",
+        "exchange": "advanced_value",
+        "routingKey": "advanced_value"
+      }
+    }
+  ],
+  "tool_docker_manager": [
+    {
+      "description": "Docker管理器基础用法",
+      "params": {
+        "action": "list",
+        "resource": "container",
+        "id": "value",
+        "config": "value",
+        "command": "value"
+      }
+    },
+    {
+      "description": "Docker管理器高级用法",
+      "params": {
+        "action": "start",
+        "resource": "image",
+        "id": "advanced_value",
+        "config": "advanced_value",
+        "command": "advanced_value"
+      }
+    }
+  ],
+  "tool_geocoder": [
+    {
+      "description": "地理编码器基础用法",
+      "params": {
+        "action": "geocode",
+        "address": "value",
+        "latitude": 10,
+        "longitude": 10,
+        "provider": "google"
+      }
+    },
+    {
+      "description": "地理编码器高级用法",
+      "params": {
+        "action": "reverse",
+        "address": "advanced_value",
+        "latitude": 50,
+        "longitude": 50,
+        "provider": "baidu"
+      }
+    }
+  ],
+  "tool_distance_calculator": [
+    {
+      "description": "距离计算器基础用法",
+      "params": {
+        "point1": "value",
+        "point2": "value",
+        "algorithm": "haversine",
+        "unit": "km"
+      }
+    },
+    {
+      "description": "距离计算器高级用法",
+      "params": {
+        "point1": "advanced_value",
+        "point2": "advanced_value",
+        "algorithm": "vincenty",
+        "unit": "mi"
+      }
+    }
+  ],
+  "tool_waveform_matcher": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "strain_data": [
+          "item1",
+          "item2"
+        ],
+        "template_bank": "value",
+        "search_params": "value",
+        "parameter_estimation": false
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "strain_data": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "template_bank": "advanced_value",
+        "search_params": "advanced_value",
+        "parameter_estimation": true
+      }
+    }
+  ],
+  "tool_particle_simulator": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "collider": "LHC",
+        "collision_energy": 10,
+        "beam_particles": "value",
+        "process": "Higgs_production",
+        "num_events": 10,
+        "detector_simulation": false
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "collider": "Tevatron",
+        "collision_energy": 50,
+        "beam_particles": "advanced_value",
+        "process": "top_pair",
+        "num_events": 50,
+        "detector_simulation": true
+      }
+    }
+  ],
+  "tool_event_generator": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "generator": "Pythia",
+        "process": "value",
+        "pdf_set": "NNPDF",
+        "hadronization": "value",
+        "cuts": "value",
+        "num_events": 10
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "generator": "Herwig",
+        "process": "advanced_value",
+        "pdf_set": "CT18",
+        "hadronization": "advanced_value",
+        "cuts": "advanced_value",
+        "num_events": 50
+      }
+    }
+  ],
+  "tool_wimp_detector": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "detector_type": "xenon_TPC",
+        "target_material": "Xe",
+        "exposure": "value",
+        "energy_threshold": 0.5,
+        "background_model": "base_model",
+        "wimp_params": "value"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "detector_type": "germanium",
+        "target_material": "Ge",
+        "exposure": "advanced_value",
+        "energy_threshold": 0.8,
+        "background_model": "advanced_model_v2",
+        "wimp_params": "advanced_value"
+      }
+    }
+  ],
+  "tool_tokamak_simulator": [
+    {
+      "description": "托卡马克模拟器基础用法",
+      "params": {
+        "device": "ITER",
+        "plasma_params": "value",
+        "operating_scenario": "L-mode",
+        "heating_systems": "value",
+        "simulation_type": "equilibrium",
+        "duration": 10
+      }
+    },
+    {
+      "description": "托卡马克模拟器高级用法",
+      "params": {
+        "device": "EAST",
+        "plasma_params": "advanced_value",
+        "operating_scenario": "H-mode",
+        "heating_systems": "advanced_value",
+        "simulation_type": "transport",
+        "duration": 50
+      }
+    }
+  ],
+  "tool_plasma_controller": [
+    {
+      "description": "等离子体控制器基础用法",
+      "params": {
+        "control_objectives": "value",
+        "actuators": "value",
+        "controller_type": "PID",
+        "feedback_sensors": [
+          "item1",
+          "item2"
+        ],
+        "constraints": "value"
+      }
+    },
+    {
+      "description": "等离子体控制器高级用法",
+      "params": {
+        "control_objectives": "advanced_value",
+        "actuators": "advanced_value",
+        "controller_type": "model_predictive",
+        "feedback_sensors": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "constraints": "advanced_value"
+      }
+    }
+  ],
+  "tool_topological_state_calculator": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "material": "value",
+        "hamiltonian": "value",
+        "topological_invariant": "chern_number",
+        "k_points": "value",
+        "calculation_method": "wannier"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "material": "advanced_value",
+        "hamiltonian": "advanced_value",
+        "topological_invariant": "z2_invariant",
+        "k_points": "advanced_value",
+        "calculation_method": "berry_curvature"
+      }
+    }
+  ],
+  "tool_majorana_detector": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "system_type": "nanowire",
+        "experimental_setup": "value",
+        "measurement_type": "tunneling_spectroscopy",
+        "bias_voltage_range": "value",
+        "signature_criteria": "value"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "system_type": "vortex",
+        "experimental_setup": "advanced_value",
+        "measurement_type": "conductance",
+        "bias_voltage_range": "advanced_value",
+        "signature_criteria": "advanced_value"
+      }
+    }
+  ],
+  "tool_climate_reconstructor": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "proxy_data": "value",
+        "reconstruction_method": "transfer_function",
+        "target_variable": "temperature",
+        "time_period": "value",
+        "spatial_resolution": "global",
+        "climate_model": "base_model"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "proxy_data": "advanced_value",
+        "reconstruction_method": "analog",
+        "target_variable": "precipitation",
+        "time_period": "advanced_value",
+        "spatial_resolution": "hemispheric",
+        "climate_model": "advanced_model_v2"
+      }
+    }
+  ],
+  "tool_magma_simulator": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "volcano_type": "shield",
+        "magma_properties": "value",
+        "chamber_geometry": "value",
+        "conduit_model": "base_model",
+        "simulation_type": "eruption",
+        "boundary_conditions": "value"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "volcano_type": "stratovolcano",
+        "magma_properties": "advanced_value",
+        "chamber_geometry": "advanced_value",
+        "conduit_model": "advanced_model_v2",
+        "simulation_type": "degassing",
+        "boundary_conditions": "advanced_value"
+      }
+    }
+  ],
+  "tool_volcanic_monitor": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "volcano_name": "value",
+        "monitoring_systems": "value",
+        "alert_criteria": "value",
+        "data_window": "value"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "volcano_name": "advanced_value",
+        "monitoring_systems": "advanced_value",
+        "alert_criteria": "advanced_value",
+        "data_window": "advanced_value"
+      }
+    }
+  ],
+  "tool_radiocarbon_dater": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "sample_info": "value",
+        "measurement_method": "AMS",
+        "c14_measurement": "value",
+        "calibration_curve": "IntCal20",
+        "reservoir_effect": "value"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "sample_info": "advanced_value",
+        "measurement_method": "LSC",
+        "c14_measurement": "advanced_value",
+        "calibration_curve": "SHCal20",
+        "reservoir_effect": "advanced_value"
+      }
+    }
+  ],
+  "tool_artifact_reconstructor": [
+    {
+      "description": "科学计算示例",
+      "params": {
+        "artifact_type": "pottery",
+        "scanning_method": "photogrammetry",
+        "input_data": "value",
+        "reconstruction_settings": "value",
+        "virtual_restoration": "value",
+        "export_format": "OBJ"
+      }
+    },
+    {
+      "description": "高级科学分析",
+      "params": {
+        "artifact_type": "statue",
+        "scanning_method": "laser_scan",
+        "input_data": "advanced_value",
+        "reconstruction_settings": "advanced_value",
+        "virtual_restoration": "advanced_value",
+        "export_format": "STL"
+      }
+    }
+  ],
+  "tool_flexible_sensor_designer": [
+    {
+      "description": "柔性传感器设计器基础用法",
+      "params": {
+        "sensor_type": "strain",
+        "substrate": "value",
+        "active_material": "value",
+        "design_parameters": "value",
+        "application": "health_monitoring",
+        "performance_requirements": "value"
+      }
+    },
+    {
+      "description": "柔性传感器设计器高级用法",
+      "params": {
+        "sensor_type": "pressure",
+        "substrate": "advanced_value",
+        "active_material": "advanced_value",
+        "design_parameters": "advanced_value",
+        "application": "motion_capture",
+        "performance_requirements": "advanced_value"
+      }
+    }
+  ],
+  "tool_calendar_manager": [
+    {
+      "description": "日历管理器基础用法",
+      "params": {
+        "action": "create",
+        "event": "value",
+        "date_range": "value"
+      }
+    },
+    {
+      "description": "日历管理器高级用法",
+      "params": {
+        "action": "update",
+        "event": "advanced_value",
+        "date_range": "advanced_value"
+      }
+    }
+  ],
+  "tool_reminder_scheduler": [
+    {
+      "description": "提醒调度器基础用法",
+      "params": {
+        "action": "create",
+        "reminder": "value"
+      }
+    },
+    {
+      "description": "提醒调度器高级用法",
+      "params": {
+        "action": "update",
+        "reminder": "advanced_value"
+      }
+    }
+  ],
+  "tool_feature_engineer": [
+    {
+      "description": "特征工程工具基础用法",
+      "params": {
+        "dataPath": "./data/sample.dat",
+        "operations": [
+          "item1",
+          "item2"
+        ],
+        "config": "value",
+        "outputPath": "./output/result.json"
+      }
+    },
+    {
+      "description": "特征工程工具高级用法",
+      "params": {
+        "dataPath": "./advanced_data/sample.dat",
+        "operations": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "config": "advanced_value",
+        "outputPath": "./advanced_output/result.json"
+      }
+    }
+  ],
+  "tool_model_evaluator": [
+    {
+      "description": "模型评估器基础用法",
+      "params": {
+        "modelPath": "./models/trained_model.pkl",
+        "testDataPath": "./data/sample.dat",
+        "taskType": "classification",
+        "generatePlots": false,
+        "reportOutputPath": "./output/result.json"
+      }
+    },
+    {
+      "description": "模型评估器高级用法",
+      "params": {
+        "modelPath": "./advanced_models/trained_model.pkl",
+        "testDataPath": "./advanced_data/sample.dat",
+        "taskType": "regression",
+        "generatePlots": true,
+        "reportOutputPath": "./advanced_output/result.json"
+      }
+    }
+  ],
+  "tool_eda_generator": [
+    {
+      "description": "EDA报告生成器基础用法",
+      "params": {
+        "dataPath": "./data/sample.dat",
+        "targetColumn": "value",
+        "reportType": "quick",
+        "outputFormat": "html",
+        "outputPath": "./output/result.json"
+      }
+    },
+    {
+      "description": "EDA报告生成器高级用法",
+      "params": {
+        "dataPath": "./advanced_data/sample.dat",
+        "targetColumn": "advanced_value",
+        "reportType": "detailed",
+        "outputFormat": "pdf",
+        "outputPath": "./advanced_output/result.json"
+      }
+    }
+  ],
+  "tool_word_generator": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "title": "value",
+        "content": "示例文本",
+        "outputPath": "./output/result.json",
+        "template": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "title": "advanced_value",
+        "content": "更复杂的示例文本内容，用于测试高级功能",
+        "outputPath": "./advanced_output/result.json",
+        "template": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_word_table_creator": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "documentPath": "./data/sample.dat",
+        "tableData": "value",
+        "style": "simple"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "documentPath": "./advanced_data/sample.dat",
+        "tableData": "advanced_value",
+        "style": "grid"
+      }
+    }
+  ],
+  "tool_excel_generator": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "sheets": [
+          "item1",
+          "item2"
+        ],
+        "outputPath": "./output/result.json",
+        "options": "value"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "sheets": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "outputPath": "./advanced_output/result.json",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_excel_formula_builder": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "formulaType": "SUM",
+        "range": "value",
+        "condition": "value",
+        "customFormula": "value"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "formulaType": "AVERAGE",
+        "range": "advanced_value",
+        "condition": "advanced_value",
+        "customFormula": "advanced_value"
+      }
+    }
+  ],
+  "tool_excel_chart_creator": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "workbookPath": "./data/sample.dat",
+        "sheetName": "value",
+        "chartType": "line",
+        "dataRange": "value",
+        "title": "value",
+        "position": "value"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "workbookPath": "./advanced_data/sample.dat",
+        "sheetName": "advanced_value",
+        "chartType": "bar",
+        "dataRange": "advanced_value",
+        "title": "advanced_value",
+        "position": "advanced_value"
+      }
+    }
+  ],
+  "tool_ppt_generator": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "slides": [
+          "item1",
+          "item2"
+        ],
+        "theme": "default",
+        "outputPath": "./output/result.json",
+        "options": "value"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "slides": [
+          "item1",
+          "item2",
+          "item3",
+          "item4"
+        ],
+        "theme": "modern",
+        "outputPath": "./advanced_output/result.json",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_ppt_slide_creator": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "presentationPath": "./data/sample.dat",
+        "slide": "value"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "presentationPath": "./advanced_data/sample.dat",
+        "slide": "advanced_value"
+      }
+    }
+  ],
+  "tool_ppt_theme_applicator": [
+    {
+      "description": "处理单个文档",
+      "params": {
+        "presentationPath": "./data/sample.dat",
+        "theme": "value"
+      }
+    },
+    {
+      "description": "批量处理文档",
+      "params": {
+        "presentationPath": "./advanced_data/sample.dat",
+        "theme": "advanced_value"
+      }
+    }
+  ],
+  "tool_legal_template_generator": [
+    {
+      "description": "法律文书生成器 基础用法",
+      "params": {
+        "templateType": "contract",
+        "jurisdiction": "CN",
+        "variables": "value"
+      }
+    },
+    {
+      "description": "法律文书生成器 高级用法",
+      "params": {
+        "templateType": "agreement",
+        "jurisdiction": "CN",
+        "variables": "advanced_value"
+      }
+    }
+  ],
+  "tool_real_estate_calculator": [
+    {
+      "description": "房地产财务计算器 基础用法",
+      "params": {
+        "projectData": "value",
+        "discountRate": 10,
+        "currency": "CNY"
+      }
+    },
+    {
+      "description": "房地产财务计算器 高级用法",
+      "params": {
+        "projectData": "advanced_value",
+        "discountRate": 50,
+        "currency": "CNY"
+      }
+    }
+  ],
+  "tool_customer_health_scorer": [
+    {
+      "description": "客户健康度评分器 基础用法",
+      "params": {
+        "customerData": "value",
+        "scoringModel": "base_model"
+      }
+    },
+    {
+      "description": "客户健康度评分器 高级用法",
+      "params": {
+        "customerData": "advanced_value",
+        "scoringModel": "advanced_model_v2"
+      }
+    }
+  ],
+  "tool_churn_predictor": [
+    {
+      "description": "客户流失预测器 基础用法",
+      "params": {
+        "customerData": "value",
+        "modelType": "base_model",
+        "predictionWindow": "90days"
+      }
+    },
+    {
+      "description": "客户流失预测器 高级用法",
+      "params": {
+        "customerData": "advanced_value",
+        "modelType": "advanced_model_v2",
+        "predictionWindow": "90days"
+      }
+    }
+  ],
+  "tool_org_chart_generator": [
+    {
+      "description": "组织架构图生成器 基础用法",
+      "params": {
+        "organizationData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "组织架构图生成器 高级用法",
+      "params": {
+        "organizationData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_event_timeline_creator": [
+    {
+      "description": "活动时间线生成器 基础用法",
+      "params": {
+        "options": "value"
+      }
+    },
+    {
+      "description": "活动时间线生成器 高级用法",
+      "params": {
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_press_release_generator": [
+    {
+      "description": "新闻稿生成器 基础用法",
+      "params": {
+        "content": "示例文本",
+        "options": "value"
+      }
+    },
+    {
+      "description": "新闻稿生成器 高级用法",
+      "params": {
+        "content": "更复杂的示例文本内容，用于测试高级功能",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_media_list_manager": [
+    {
+      "description": "媒体列表管理器 基础用法",
+      "params": {
+        "content": "示例文本",
+        "options": "value"
+      }
+    },
+    {
+      "description": "媒体列表管理器 高级用法",
+      "params": {
+        "content": "更复杂的示例文本内容，用于测试高级功能",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_audit_risk_assessor": [
+    {
+      "description": "审计风险评估器 基础用法",
+      "params": {
+        "auditData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "审计风险评估器 高级用法",
+      "params": {
+        "auditData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_control_effectiveness_evaluator": [
+    {
+      "description": "内部控制评价器 基础用法",
+      "params": {
+        "auditData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "内部控制评价器 高级用法",
+      "params": {
+        "auditData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_financial_calculator": [
+    {
+      "description": "财务计算器 基础用法",
+      "params": {
+        "financialData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "财务计算器 高级用法",
+      "params": {
+        "financialData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_simulation_runner": [
+    {
+      "description": "模拟运行器 基础用法",
+      "params": {
+        "options": "value"
+      }
+    },
+    {
+      "description": "模拟运行器 高级用法",
+      "params": {
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_crm_integrator": [
+    {
+      "description": "CRM集成器 基础用法",
+      "params": {
+        "crmData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "CRM集成器 高级用法",
+      "params": {
+        "crmData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_competency_framework": [
+    {
+      "description": "能力框架工具 基础用法",
+      "params": {
+        "organizationData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "能力框架工具 高级用法",
+      "params": {
+        "organizationData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_budget_calculator": [
+    {
+      "description": "预算计算器 基础用法",
+      "params": {
+        "financialData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "预算计算器 高级用法",
+      "params": {
+        "financialData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_vendor_manager": [
+    {
+      "description": "供应商管理器 基础用法",
+      "params": {
+        "options": "value"
+      }
+    },
+    {
+      "description": "供应商管理器 高级用法",
+      "params": {
+        "options": "advanced_value"
+      }
+    }
+  ],
+  "tool_evidence_documenter": [
+    {
+      "description": "证据记录器 基础用法",
+      "params": {
+        "auditData": "value",
+        "options": "value"
+      }
+    },
+    {
+      "description": "证据记录器 高级用法",
+      "params": {
+        "auditData": "advanced_value",
+        "options": "advanced_value"
+      }
+    }
+  ]
+}

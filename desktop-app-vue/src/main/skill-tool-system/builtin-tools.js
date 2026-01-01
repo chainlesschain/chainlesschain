@@ -334,11 +334,19 @@ const tools = [
     },
     examples: [
       {
-        description: '创建博客项目',
+        description: '项目结构创建基础用法',
         params: {
-          projectName: 'my-blog',
+          projectName: 'value',
+          projectType: 'web',
+          outputPath: './output/result.json'
+        }
+      },
+      {
+        description: '项目结构创建高级用法',
+        params: {
+          projectName: 'advanced_value',
           projectType: 'blog',
-          outputPath: './projects'
+          outputPath: './advanced_output/result.json'
         }
       }
     ],
@@ -385,9 +393,17 @@ const tools = [
     },
     examples: [
       {
-        description: '初始化仓库',
+        description: 'Git初始化基础用法',
         params: {
-          repoPath: './my-project'
+          repoPath: './data/sample.dat',
+          initialBranch: 'main'
+        }
+      },
+      {
+        description: 'Git初始化高级用法',
+        params: {
+          repoPath: './advanced_data/sample.dat',
+          initialBranch: 'main'
         }
       }
     ],
@@ -433,10 +449,17 @@ const tools = [
     },
     examples: [
       {
-        description: '提交更改',
+        description: 'Git提交基础用法',
         params: {
-          repoPath: './my-project',
-          message: 'Initial commit'
+          repoPath: './data/sample.dat',
+          message: 'value'
+        }
+      },
+      {
+        description: 'Git提交高级用法',
+        params: {
+          repoPath: './advanced_data/sample.dat',
+          message: 'advanced_value'
         }
       }
     ],
@@ -677,10 +700,17 @@ const tools = [
     },
     examples: [
       {
-        description: '执行通用操作',
+        description: '通用处理器基础用法',
         params: {
-          action: 'process',
-          params: {}
+          action: 'value',
+          params: 'value'
+        }
+      },
+      {
+        description: '通用处理器高级用法',
+        params: {
+          action: 'advanced_value',
+          params: 'advanced_value'
         }
       }
     ],
@@ -1131,11 +1161,23 @@ services:
     },
     examples: [
       {
-        description: 'SHA256哈希',
+        description: '基础安全检查',
         params: {
-          action: 'hash',
-          algorithm: 'sha256',
-          data: 'Hello World'
+          action: 'encrypt',
+          algorithm: 'aes-256-cbc',
+          data: 'value',
+          key: 'value',
+          iv: 'value'
+        }
+      },
+      {
+        description: '深度安全扫描',
+        params: {
+          action: 'decrypt',
+          algorithm: 'md5',
+          data: 'advanced_value',
+          key: 'advanced_value',
+          iv: 'advanced_value'
         }
       }
     ],
@@ -1185,10 +1227,19 @@ services:
     },
     examples: [
       {
-        description: 'Base64编码',
+        description: 'Base64编解码基础用法',
         params: {
           action: 'encode',
-          data: 'Hello World'
+          data: 'value',
+          encoding: 'utf8'
+        }
+      },
+      {
+        description: 'Base64编解码高级用法',
+        params: {
+          action: 'decode',
+          data: 'advanced_value',
+          encoding: 'ascii'
         }
       }
     ],
@@ -1745,15 +1796,27 @@ services:
     },
     examples: [
       {
-        description: '构建SELECT查询',
+        description: 'SQL查询构建器基础用法',
         params: {
           action: 'select',
-          table: 'users',
-          fields: ['id', 'name', 'email'],
-          where: {
-            status: 'active'
-          },
+          table: 'value',
+          fields: ['item1', 'item2'],
+          where: 'value',
+          values: 'value',
+          orderBy: 'value',
           limit: 10
+        }
+      },
+      {
+        description: 'SQL查询构建器高级用法',
+        params: {
+          action: 'insert',
+          table: 'advanced_value',
+          fields: ['item1', 'item2', 'item3', 'item4'],
+          where: 'advanced_value',
+          values: 'advanced_value',
+          orderBy: 'advanced_value',
+          limit: 100
         }
       }
     ],
@@ -1876,10 +1939,21 @@ services:
     },
     examples: [
       {
-        description: '读取环境变量',
+        description: '环境变量管理器基础用法',
         params: {
           action: 'read',
-          envPath: '.env'
+          envPath: './data/sample.dat',
+          key: 'value',
+          value: 'value'
+        }
+      },
+      {
+        description: '环境变量管理器高级用法',
+        params: {
+          action: 'parse',
+          envPath: './advanced_data/sample.dat',
+          key: 'advanced_value',
+          value: 'advanced_value'
         }
       }
     ],
@@ -2165,14 +2239,19 @@ services:
     },
     examples: [
       {
-        description: '渲染问候模板',
+        description: '模板渲染器基础用法',
         params: {
-          template: 'Hello {{name}}, welcome to {{app}}!',
-          variables: {
-            name: 'John',
-            app: 'ChainlessChain'
-          },
+          template: 'value',
+          variables: 'value',
           syntax: 'mustache'
+        }
+      },
+      {
+        description: '模板渲染器高级用法',
+        params: {
+          template: 'advanced_value',
+          variables: 'advanced_value',
+          syntax: 'handlebars'
         }
       }
     ],
@@ -3041,11 +3120,19 @@ services:
     },
     examples: [
       {
-        description: '解析TOML配置',
+        description: 'TOML解析器基础用法',
         params: {
           action: 'parse',
-          toml: `[server]
-port = 8080`
+          toml: 'value',
+          data: 'value'
+        }
+      },
+      {
+        description: 'TOML解析器高级用法',
+        params: {
+          action: 'stringify',
+          toml: 'advanced_value',
+          data: 'advanced_value'
         }
       }
     ],
@@ -3094,11 +3181,19 @@ port = 8080`
     },
     examples: [
       {
-        description: '解析INI文件',
+        description: 'INI解析器基础用法',
         params: {
           action: 'parse',
-          ini: `[section]
-key=value`
+          ini: 'value',
+          data: 'value'
+        }
+      },
+      {
+        description: 'INI解析器高级用法',
+        params: {
+          action: 'stringify',
+          ini: 'advanced_value',
+          data: 'advanced_value'
         }
       }
     ],
@@ -3281,10 +3376,19 @@ key=value`
     },
     examples: [
       {
-        description: '验证邮箱地址',
+        description: '邮件解析器基础用法',
         params: {
           action: 'validate',
-          email: 'user@example.com'
+          email: 'value',
+          content: '示例文本'
+        }
+      },
+      {
+        description: '邮件解析器高级用法',
+        params: {
+          action: 'parse',
+          email: 'advanced_value',
+          content: '更复杂的示例文本内容，用于测试高级功能'
         }
       }
     ],
@@ -3390,9 +3494,15 @@ key=value`
     },
     examples: [
       {
-        description: '解析Git diff',
+        description: 'Git Diff解析器基础用法',
         params: {
-          diff: 'diff --git a/file.js b/file.js...'
+          diff: 'value'
+        }
+      },
+      {
+        description: 'Git Diff解析器高级用法',
+        params: {
+          diff: 'advanced_value'
         }
       }
     ],
@@ -4033,13 +4143,23 @@ key=value`
     },
     examples: [
       {
-        description: '获取用户信息',
+        description: 'API请求器基础用法',
         params: {
-          url: 'https://api.example.com/users/123',
+          url: 'https://api.example.com/endpoint',
           method: 'GET',
-          headers: {
-            Authorization: 'Bearer token123'
-          }
+          headers: 'value',
+          body: 'value',
+          timeout: 10
+        }
+      },
+      {
+        description: 'API请求器高级用法',
+        params: {
+          url: 'https://api.example.com/advanced_endpoint',
+          method: 'POST',
+          headers: 'advanced_value',
+          body: 'advanced_value',
+          timeout: 50
         }
       }
     ],
@@ -4108,12 +4228,25 @@ key=value`
     },
     examples: [
       {
-        description: '获取访问令牌',
+        description: 'OAuth助手基础用法',
+        params: {
+          action: 'authorize',
+          clientId: 'value',
+          clientSecret: 'value',
+          authorizationUrl: 'https://api.example.com/endpoint',
+          tokenUrl: 'https://api.example.com/endpoint',
+          refreshToken: 'value'
+        }
+      },
+      {
+        description: 'OAuth助手高级用法',
         params: {
           action: 'token',
-          clientId: 'your-client-id',
-          clientSecret: 'your-secret',
-          tokenUrl: 'https://oauth.example.com/token'
+          clientId: 'advanced_value',
+          clientSecret: 'advanced_value',
+          authorizationUrl: 'https://api.example.com/advanced_endpoint',
+          tokenUrl: 'https://api.example.com/advanced_endpoint',
+          refreshToken: 'advanced_value'
         }
       }
     ],
@@ -4183,12 +4316,23 @@ key=value`
     },
     examples: [
       {
-        description: '上传文件到 S3',
+        description: 'S3客户端基础用法',
         params: {
           action: 'upload',
-          bucket: 'my-bucket',
-          key: 'files/document.pdf',
-          localPath: '/path/to/document.pdf'
+          bucket: 'value',
+          key: 'value',
+          localPath: './data/sample.dat',
+          credentials: 'value'
+        }
+      },
+      {
+        description: 'S3客户端高级用法',
+        params: {
+          action: 'download',
+          bucket: 'advanced_value',
+          key: 'advanced_value',
+          localPath: './advanced_data/sample.dat',
+          credentials: 'advanced_value'
         }
       }
     ],
@@ -4258,12 +4402,23 @@ key=value`
     },
     examples: [
       {
-        description: '上传文件到阿里云 OSS',
+        description: '阿里云OSS客户端基础用法',
         params: {
           action: 'upload',
-          bucket: 'my-oss-bucket',
-          objectKey: 'images/photo.jpg',
-          localPath: '/path/to/photo.jpg'
+          bucket: 'value',
+          objectKey: 'value',
+          localPath: './data/sample.dat',
+          credentials: 'value'
+        }
+      },
+      {
+        description: '阿里云OSS客户端高级用法',
+        params: {
+          action: 'download',
+          bucket: 'advanced_value',
+          objectKey: 'advanced_value',
+          localPath: './advanced_data/sample.dat',
+          credentials: 'advanced_value'
         }
       }
     ],
@@ -4331,10 +4486,19 @@ key=value`
     },
     examples: [
       {
-        description: '解析 Nginx 访问日志',
+        description: '日志解析器基础用法',
         params: {
-          logContent: `127.0.0.1 - - [01/Jan/2024:12:00:00 +0000] "GET / HTTP/1.1" 200`,
-          format: 'nginx'
+          logContent: '示例文本',
+          format: 'nginx',
+          filter: 'value'
+        }
+      },
+      {
+        description: '日志解析器高级用法',
+        params: {
+          logContent: '更复杂的示例文本内容，用于测试高级功能',
+          format: 'apache',
+          filter: 'advanced_value'
         }
       }
     ],
@@ -4392,10 +4556,17 @@ key=value`
     },
     examples: [
       {
-        description: '启动性能分析',
+        description: '性能分析器基础用法',
         params: {
           action: 'start',
-          target: 'main-process'
+          target: 'value'
+        }
+      },
+      {
+        description: '性能分析器高级用法',
+        params: {
+          action: 'stop',
+          target: 'advanced_value'
         }
       }
     ],
@@ -4456,9 +4627,17 @@ key=value`
     },
     examples: [
       {
-        description: '获取内存快照',
+        description: '内存监控器基础用法',
         params: {
-          action: 'snapshot'
+          action: 'snapshot',
+          previousSnapshot: 'value'
+        }
+      },
+      {
+        description: '内存监控器高级用法',
+        params: {
+          action: 'compare',
+          previousSnapshot: 'advanced_value'
         }
       }
     ],
@@ -4675,26 +4854,17 @@ key=value`
     },
     examples: [
       {
-        description: '执行数据处理工作流',
+        description: '工作流执行器基础用法',
         params: {
-          workflow: {
-            steps: [
-              {
-                id: 'read',
-                tool: 'file_reader',
-                params: {
-                  filePath: 'data.csv'
-                }
-              },
-              {
-                id: 'parse',
-                tool: 'csv_handler',
-                params: {
-                  action: 'parse'
-                }
-              }
-            ]
-          }
+          workflow: 'value',
+          context: '示例文本'
+        }
+      },
+      {
+        description: '工作流执行器高级用法',
+        params: {
+          workflow: 'advanced_value',
+          context: '更复杂的示例文本内容，用于测试高级功能'
         }
       }
     ],
@@ -4885,13 +5055,19 @@ key=value`
     },
     examples: [
       {
-        description: '查询以太坊余额',
+        description: '基础区块链操作',
         params: {
           network: 'ethereum',
-          action: 'getBalance',
-          params: {
-            address: '0x...'
-          }
+          action: 'getBlock',
+          params: 'value'
+        }
+      },
+      {
+        description: '高级智能合约',
+        params: {
+          network: 'bsc',
+          action: 'getTransaction',
+          params: 'advanced_value'
         }
       }
     ],
@@ -4952,12 +5128,23 @@ key=value`
     },
     examples: [
       {
-        description: '调用ERC20合约查询余额',
+        description: '基础区块链操作',
         params: {
-          contractAddress: '0x...',
-          abi: [],
-          method: 'balanceOf',
-          args: ['0x...']
+          contractAddress: 'value',
+          abi: ['item1', 'item2'],
+          method: 'value',
+          args: ['item1', 'item2'],
+          from: 'value'
+        }
+      },
+      {
+        description: '高级智能合约',
+        params: {
+          contractAddress: 'advanced_value',
+          abi: ['item1', 'item2', 'item3', 'item4'],
+          method: 'advanced_value',
+          args: ['item1', 'item2', 'item3', 'item4'],
+          from: 'advanced_value'
         }
       }
     ],
@@ -5021,9 +5208,21 @@ key=value`
     },
     examples: [
       {
-        description: '创建新钱包',
+        description: '基础区块链操作',
         params: {
-          action: 'create'
+          action: 'create',
+          privateKey: 'value',
+          mnemonic: 'value',
+          transaction: 'value'
+        }
+      },
+      {
+        description: '高级智能合约',
+        params: {
+          action: 'import',
+          privateKey: 'advanced_value',
+          mnemonic: 'advanced_value',
+          transaction: 'advanced_value'
         }
       }
     ],
@@ -5092,12 +5291,27 @@ key=value`
     },
     examples: [
       {
-        description: '发送文本邮件',
+        description: '邮件发送器基础用法',
         params: {
-          from: 'sender@example.com',
-          to: ['recipient@example.com'],
-          subject: 'Test Email',
-          text: 'Hello World'
+          from: 'value',
+          to: ['item1', 'item2'],
+          subject: 'value',
+          text: '示例文本',
+          html: 'value',
+          attachments: ['item1', 'item2'],
+          smtpConfig: 'value'
+        }
+      },
+      {
+        description: '邮件发送器高级用法',
+        params: {
+          from: 'advanced_value',
+          to: ['item1', 'item2', 'item3', 'item4'],
+          subject: 'advanced_value',
+          text: '更复杂的示例文本内容，用于测试高级功能',
+          html: 'advanced_value',
+          attachments: ['item1', 'item2', 'item3', 'item4'],
+          smtpConfig: 'advanced_value'
         }
       }
     ],
@@ -5187,16 +5401,21 @@ key=value`
     },
     examples: [
       {
-        description: '读取收件箱邮件',
+        description: '邮件读取器基础用法',
         params: {
-          imapConfig: {
-            host: 'imap.example.com',
-            port: 993,
-            user: 'user@example.com',
-            password: 'password',
-            tls: true
-          },
-          limit: 10
+          imapConfig: 'value',
+          mailbox: 'INBOX',
+          limit: 10,
+          filter: 'value'
+        }
+      },
+      {
+        description: '邮件读取器高级用法',
+        params: {
+          imapConfig: 'advanced_value',
+          mailbox: 'INBOX',
+          limit: 100,
+          filter: 'advanced_value'
         }
       }
     ],
@@ -5258,10 +5477,23 @@ key=value`
     },
     examples: [
       {
-        description: '提取邮件附件',
+        description: '邮件附件处理器基础用法',
         params: {
           action: 'extract',
-          emailId: '12345'
+          emailId: 'value',
+          attachmentIndex: 10,
+          savePath: './data/sample.dat',
+          filePath: './data/sample.dat'
+        }
+      },
+      {
+        description: '邮件附件处理器高级用法',
+        params: {
+          action: 'save',
+          emailId: 'advanced_value',
+          attachmentIndex: 50,
+          savePath: './advanced_data/sample.dat',
+          filePath: './advanced_data/sample.dat'
         }
       }
     ],
@@ -5544,10 +5776,19 @@ key=value`
     },
     examples: [
       {
-        description: '识别中文语音',
+        description: '使用语音识别器',
         params: {
-          audioPath: '/path/to/audio.wav',
-          language: 'zh-CN'
+          audioPath: './data/sample.dat',
+          language: 'zh-CN',
+          model: 'base_model'
+        }
+      },
+      {
+        description: '高级语音识别器',
+        params: {
+          audioPath: './advanced_data/sample.dat',
+          language: 'zh-CN',
+          model: 'advanced_model_v2'
         }
       }
     ],
@@ -5611,12 +5852,23 @@ key=value`
     },
     examples: [
       {
-        description: '中文文本转语音',
+        description: '使用文本转语音',
         params: {
-          text: '你好，世界',
+          text: '示例文本',
+          language: 'zh-CN',
+          voice: 'male',
+          outputPath: './output/result.json',
+          speed: 10
+        }
+      },
+      {
+        description: '高级文本转语音',
+        params: {
+          text: '更复杂的示例文本内容，用于测试高级功能',
           language: 'zh-CN',
           voice: 'female',
-          outputPath: '/path/to/output.mp3'
+          outputPath: './advanced_output/result.json',
+          speed: 50
         }
       }
     ],
@@ -5675,11 +5927,20 @@ key=value`
     },
     examples: [
       {
-        description: 'WAV转MP3',
+        description: '使用音频格式转换器',
         params: {
-          inputPath: '/path/to/audio.wav',
-          outputPath: '/path/to/audio.mp3',
+          inputPath: './input/data.json',
+          outputPath: './output/result.json',
           format: 'mp3',
+          bitrate: '192k'
+        }
+      },
+      {
+        description: '高级音频格式转换器',
+        params: {
+          inputPath: './advanced_input/data.json',
+          outputPath: './advanced_output/result.json',
+          format: 'wav',
           bitrate: '192k'
         }
       }
@@ -5742,20 +6003,23 @@ key=value`
     },
     examples: [
       {
-        description: '渲染折线图',
+        description: '图表渲染器基础用法',
         params: {
-          chartConfig: {
-            type: 'line',
-            data: {
-              labels: ['Jan', 'Feb'],
-              datasets: [
-                {
-                  data: [10, 20]
-                }
-              ]
-            }
-          },
-          outputPath: '/path/to/chart.png'
+          chartConfig: 'value',
+          outputPath: './output/result.json',
+          format: 'png',
+          width: 10,
+          height: 10
+        }
+      },
+      {
+        description: '图表渲染器高级用法',
+        params: {
+          chartConfig: 'advanced_value',
+          outputPath: './advanced_output/result.json',
+          format: 'svg',
+          width: 50,
+          height: 50
         }
       }
     ],
@@ -5818,13 +6082,23 @@ key=value`
     },
     examples: [
       {
-        description: '爬取网页标题和内容',
+        description: '网页爬虫基础用法',
         params: {
-          url: 'https://example.com',
-          selectors: {
-            title: 'h1',
-            content: '.content'
-          }
+          url: 'https://api.example.com/endpoint',
+          selectors: 'value',
+          followLinks: false,
+          maxDepth: 10,
+          headers: 'value'
+        }
+      },
+      {
+        description: '网页爬虫高级用法',
+        params: {
+          url: 'https://api.example.com/advanced_endpoint',
+          selectors: 'advanced_value',
+          followLinks: true,
+          maxDepth: 50,
+          headers: 'advanced_value'
         }
       }
     ],
@@ -6164,14 +6438,23 @@ key=value`
     },
     examples: [
       {
-        description: '设置缓存',
+        description: '缓存管理器基础用法',
+        params: {
+          action: 'get',
+          key: 'value',
+          value: 'value',
+          ttl: 10,
+          type: 'memory'
+        }
+      },
+      {
+        description: '缓存管理器高级用法',
         params: {
           action: 'set',
-          key: 'user:123',
-          value: {
-            name: 'John'
-          },
-          ttl: 3600
+          key: 'advanced_value',
+          value: 'advanced_value',
+          ttl: 50,
+          type: 'redis'
         }
       }
     ],
@@ -6233,14 +6516,23 @@ key=value`
     },
     examples: [
       {
-        description: '发布消息',
+        description: '消息队列客户端基础用法',
         params: {
           action: 'publish',
-          queue: 'tasks',
-          message: {
-            task: 'process',
-            data: {}
-          }
+          queue: 'value',
+          message: 'value',
+          exchange: 'value',
+          routingKey: 'value'
+        }
+      },
+      {
+        description: '消息队列客户端高级用法',
+        params: {
+          action: 'subscribe',
+          queue: 'advanced_value',
+          message: 'advanced_value',
+          exchange: 'advanced_value',
+          routingKey: 'advanced_value'
         }
       }
     ],
@@ -6311,10 +6603,23 @@ key=value`
     },
     examples: [
       {
-        description: '列出所有容器',
+        description: 'Docker管理器基础用法',
         params: {
           action: 'list',
-          resource: 'container'
+          resource: 'container',
+          id: 'value',
+          config: 'value',
+          command: 'value'
+        }
+      },
+      {
+        description: 'Docker管理器高级用法',
+        params: {
+          action: 'start',
+          resource: 'image',
+          id: 'advanced_value',
+          config: 'advanced_value',
+          command: 'advanced_value'
         }
       }
     ],
@@ -6374,12 +6679,23 @@ key=value`
     },
     examples: [
       {
-        description: 'AES加密文本',
+        description: '基础安全检查',
         params: {
           action: 'encrypt',
-          data: 'sensitive data',
+          data: 'value',
           algorithm: 'aes-256-gcm',
-          key: '32byteskey...'
+          key: 'value',
+          iv: 'value'
+        }
+      },
+      {
+        description: '深度安全扫描',
+        params: {
+          action: 'decrypt',
+          data: 'advanced_value',
+          algorithm: 'aes-128-cbc',
+          key: 'advanced_value',
+          iv: 'advanced_value'
         }
       }
     ],
@@ -6447,11 +6763,25 @@ key=value`
     },
     examples: [
       {
-        description: '签名数据',
+        description: '基础安全检查',
         params: {
           action: 'sign',
-          data: 'message to sign',
-          privateKey: '-----BEGIN PRIVATE KEY-----...'
+          data: 'value',
+          privateKey: 'value',
+          publicKey: 'value',
+          signature: 'value',
+          algorithm: 'RSA-SHA256'
+        }
+      },
+      {
+        description: '深度安全扫描',
+        params: {
+          action: 'verify',
+          data: 'advanced_value',
+          privateKey: 'advanced_value',
+          publicKey: 'advanced_value',
+          signature: 'advanced_value',
+          algorithm: 'ECDSA'
         }
       }
     ],
@@ -6518,11 +6848,19 @@ key=value`
     },
     examples: [
       {
-        description: '生成RSA密钥对',
+        description: '基础安全检查',
+        params: {
+          type: 'symmetric',
+          keySize: 10,
+          format: 'pem'
+        }
+      },
+      {
+        description: '深度安全扫描',
         params: {
           type: 'rsa',
-          keySize: 2048,
-          format: 'pem'
+          keySize: 50,
+          format: 'der'
         }
       }
     ],
@@ -7031,10 +7369,21 @@ key=value`
     },
     examples: [
       {
-        description: '执行所有待处理迁移',
+        description: '迁移执行器基础用法',
         params: {
-          action: 'latest',
-          dryRun: false
+          action: 'up',
+          steps: 10,
+          dryRun: false,
+          dbConfig: 'value'
+        }
+      },
+      {
+        description: '迁移执行器高级用法',
+        params: {
+          action: 'down',
+          steps: 50,
+          dryRun: true,
+          dbConfig: 'advanced_value'
         }
       }
     ],
@@ -7114,10 +7463,19 @@ key=value`
     },
     examples: [
       {
-        description: '比较开发和生产环境Schema',
+        description: 'Schema差异检测器基础用法',
         params: {
-          source: {},
-          target: {}
+          source: 'value',
+          target: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: 'Schema差异检测器高级用法',
+        params: {
+          source: 'advanced_value',
+          target: 'advanced_value',
+          options: 'advanced_value'
         }
       }
     ],
@@ -7176,10 +7534,21 @@ key=value`
     },
     examples: [
       {
-        description: '启动WebSocket服务器',
+        description: 'WebSocket服务器基础用法',
         params: {
           action: 'start',
-          port: 8080
+          port: 10,
+          message: 'value',
+          clientId: 'value'
+        }
+      },
+      {
+        description: 'WebSocket服务器高级用法',
+        params: {
+          action: 'stop',
+          port: 50,
+          message: 'advanced_value',
+          clientId: 'advanced_value'
         }
       }
     ],
@@ -7473,10 +7842,22 @@ key=value`
     },
     examples: [
       {
-        description: '地址转坐标',
+        description: '地理编码器基础用法',
         params: {
           action: 'geocode',
-          address: '北京市朝阳区',
+          address: 'value',
+          latitude: 10,
+          longitude: 10,
+          provider: 'google'
+        }
+      },
+      {
+        description: '地理编码器高级用法',
+        params: {
+          action: 'reverse',
+          address: 'advanced_value',
+          latitude: 50,
+          longitude: 50,
           provider: 'baidu'
         }
       }
@@ -7554,17 +7935,21 @@ key=value`
     },
     examples: [
       {
-        description: '计算北京到上海距离',
+        description: '距离计算器基础用法',
         params: {
-          point1: {
-            latitude: 39.9042,
-            longitude: 116.4074
-          },
-          point2: {
-            latitude: 31.2304,
-            longitude: 121.4737
-          },
+          point1: 'value',
+          point2: 'value',
+          algorithm: 'haversine',
           unit: 'km'
+        }
+      },
+      {
+        description: '距离计算器高级用法',
+        params: {
+          point1: 'advanced_value',
+          point2: 'advanced_value',
+          algorithm: 'vincenty',
+          unit: 'mi'
         }
       }
     ],
@@ -7623,11 +8008,20 @@ key=value`
     },
     examples: [
       {
-        description: 'WGS84转GCJ02（GPS转高德）',
+        description: '坐标转换器基础用法',
         params: {
-          latitude: 39.9042,
-          longitude: 116.4074,
+          latitude: 10,
+          longitude: 10,
           from: 'WGS84',
+          to: 'WGS84'
+        }
+      },
+      {
+        description: '坐标转换器高级用法',
+        params: {
+          latitude: 50,
+          longitude: 50,
+          from: 'GCJ02',
           to: 'GCJ02'
         }
       }
@@ -7694,13 +8088,25 @@ key=value`
     },
     examples: [
       {
-        description: '剪辑视频片段',
+        description: '基础视频编辑器',
         params: {
           action: 'cut',
-          inputPath: '/videos/source.mp4',
-          outputPath: '/videos/output.mp4',
-          startTime: '00:01:00',
-          endTime: '00:02:30'
+          inputPath: './input/data.json',
+          outputPath: './output/result.json',
+          startTime: 'value',
+          endTime: 'value',
+          watermark: 'value'
+        }
+      },
+      {
+        description: '专业视频编辑器',
+        params: {
+          action: 'merge',
+          inputPath: './advanced_input/data.json',
+          outputPath: './advanced_output/result.json',
+          startTime: 'advanced_value',
+          endTime: 'advanced_value',
+          watermark: 'advanced_value'
         }
       }
     ],
@@ -7763,12 +8169,23 @@ key=value`
     },
     examples: [
       {
-        description: '转码为H265 1080p',
+        description: '使用视频转码器',
         params: {
-          inputPath: '/videos/source.mp4',
-          outputPath: '/videos/compressed.mp4',
+          inputPath: './input/data.json',
+          outputPath: './output/result.json',
+          codec: 'h264',
+          resolution: '480p',
+          bitrate: 'value'
+        }
+      },
+      {
+        description: '高级视频转码器',
+        params: {
+          inputPath: './advanced_input/data.json',
+          outputPath: './advanced_output/result.json',
           codec: 'h265',
-          resolution: '1080p'
+          resolution: '720p',
+          bitrate: 'advanced_value'
         }
       }
     ],
@@ -8174,12 +8591,21 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '使用3D模型生成器',
         params: {
           type: 'cube',
-          dimensions: 'example_value',
-          material: 'example_value',
+          dimensions: 'value',
+          material: 'value',
           outputFormat: 'obj'
+        }
+      },
+      {
+        description: '高级3D模型生成器',
+        params: {
+          type: 'sphere',
+          dimensions: 'advanced_value',
+          material: 'advanced_value',
+          outputFormat: 'stl'
         }
       }
     ],
@@ -8324,11 +8750,20 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '单个音频指纹生成器',
         params: {
-          audioPath: './audio/sample.mp3',
+          audioPath: './data/sample.dat',
           algorithm: 'chromaprint',
           duration: 10
+        }
+      },
+      {
+        description: '批量音频指纹生成器',
+        params: {
+          audioPath: './advanced_data/sample.dat',
+          algorithm: 'echoprint',
+          duration: 50,
+          batch: true
         }
       }
     ],
@@ -8393,13 +8828,23 @@ key=value`
     },
     examples: [
       {
-        description: '网络请求示例',
+        description: '智能合约调用器基础用法',
         params: {
-          contractAddress: 'example_value',
+          contractAddress: 'value',
           abi: ['item1', 'item2'],
-          method: 'example_value',
+          method: 'value',
           params: ['item1', 'item2'],
           network: 'mainnet'
+        }
+      },
+      {
+        description: '智能合约调用器高级用法',
+        params: {
+          contractAddress: 'advanced_value',
+          abi: ['item1', 'item2', 'item3', 'item4'],
+          method: 'advanced_value',
+          params: ['item1', 'item2', 'item3', 'item4'],
+          network: 'testnet'
         }
       }
     ],
@@ -8870,20 +9315,35 @@ key=value`
     },
     examples: [
       {
-        description: '训练随机森林分类器',
+        description: '机器学习模型训练器基础用法',
         params: {
-          dataPath: './data/train.csv',
-          targetColumn: 'churn',
-          modelType: 'random_forest',
+          dataPath: './data/sample.dat',
+          targetColumn: 'value',
+          modelType: 'base_model',
           taskType: 'classification',
-          hyperparameters: {
-            n_estimators: 100,
-            max_depth: 10,
-            test_size: 0.2
-          },
-          cv_folds: 5,
+          trainingData: ['item1', 'item2'],
+          labels: ['item1', 'item2'],
+          hyperparameters: 'value',
+          validationSplit: 10,
+          cv_folds: 10,
+          autoTune: false,
+          modelOutputPath: './output/result.json'
+        }
+      },
+      {
+        description: '机器学习模型训练器高级用法',
+        params: {
+          dataPath: './advanced_data/sample.dat',
+          targetColumn: 'advanced_value',
+          modelType: 'advanced_model_v2',
+          taskType: 'regression',
+          trainingData: ['item1', 'item2', 'item3', 'item4'],
+          labels: ['item1', 'item2', 'item3', 'item4'],
+          hyperparameters: 'advanced_value',
+          validationSplit: 50,
+          cv_folds: 50,
           autoTune: true,
-          modelOutputPath: './models/rf_model.pkl'
+          modelOutputPath: './advanced_output/result.json'
         }
       }
     ],
@@ -9558,15 +10018,21 @@ key=value`
     },
     examples: [
       {
-        description: '漏洞扫描器使用示例',
+        description: '基础安全检查',
         params: {
-          target: 'example_value',
+          target: 'value',
           scanType: 'port',
           depth: 'quick',
-          options: {
-            key: 'value',
-            enabled: true
-          }
+          options: 'value'
+        }
+      },
+      {
+        description: '深度安全扫描',
+        params: {
+          target: 'advanced_value',
+          scanType: 'web',
+          depth: 'medium',
+          options: 'advanced_value'
         }
       }
     ],
@@ -9645,12 +10111,21 @@ key=value`
     },
     examples: [
       {
-        description: '安全审计器使用示例',
+        description: '基础安全检查',
         params: {
           auditType: 'code',
-          target: 'example_value',
+          target: 'value',
           rules: ['item1', 'item2'],
           standard: 'owasp'
+        }
+      },
+      {
+        description: '深度安全扫描',
+        params: {
+          auditType: 'config',
+          target: 'advanced_value',
+          rules: ['item1', 'item2', 'item3', 'item4'],
+          standard: 'cis'
         }
       }
     ],
@@ -9740,13 +10215,23 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '使用物理引擎',
         params: {
           action: 'create',
-          objectId: 'example_value',
-          properties: 'example_value',
+          objectId: 'value',
+          properties: 'value',
           force: ['item1', 'item2'],
           deltaTime: 10
+        }
+      },
+      {
+        description: '高级物理引擎',
+        params: {
+          action: 'step',
+          objectId: 'advanced_value',
+          properties: 'advanced_value',
+          force: ['item1', 'item2', 'item3', 'item4'],
+          deltaTime: 50
         }
       }
     ],
@@ -9831,11 +10316,20 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '单个碰撞检测器',
         params: {
           objects: ['item1', 'item2'],
           algorithm: 'aabb',
-          continuous: true
+          continuous: false
+        }
+      },
+      {
+        description: '批量碰撞检测器',
+        params: {
+          objects: ['item1', 'item2', 'item3', 'item4'],
+          algorithm: 'sat',
+          continuous: true,
+          batch: true
         }
       }
     ],
@@ -11108,12 +11602,21 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '使用BIM建模器',
         params: {
           action: 'create',
-          modelPath: './data/sample.dat',
+          modelPath: './models/trained_model.pkl',
           format: 'ifc',
           elements: ['item1', 'item2']
+        }
+      },
+      {
+        description: '高级BIM建模器',
+        params: {
+          action: 'import',
+          modelPath: './advanced_models/trained_model.pkl',
+          format: 'rvt',
+          elements: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -11214,12 +11717,21 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '使用结构分析器',
         params: {
-          structure: 'example_value',
+          structure: 'value',
           analysisType: 'static',
           loads: ['item1', 'item2'],
           standard: 'gb'
+        }
+      },
+      {
+        description: '高级结构分析器',
+        params: {
+          structure: 'advanced_value',
+          analysisType: 'dynamic',
+          loads: ['item1', 'item2', 'item3', 'item4'],
+          standard: 'eurocode'
         }
       }
     ],
@@ -11533,12 +12045,21 @@ key=value`
     },
     examples: [
       {
-        description: '容器编排器使用示例',
+        description: '容器编排器基础用法',
         params: {
           action: 'deploy',
-          service: 'example_value',
-          namespace: 'example_value',
-          cluster: 'example_value'
+          service: 'value',
+          namespace: 'value',
+          cluster: 'value'
+        }
+      },
+      {
+        description: '容器编排器高级用法',
+        params: {
+          action: 'scale',
+          service: 'advanced_value',
+          namespace: 'advanced_value',
+          cluster: 'advanced_value'
         }
       }
     ],
@@ -11618,12 +12139,21 @@ key=value`
     },
     examples: [
       {
-        description: 'CI/CD流水线使用示例',
+        description: 'CI基础用法',
         params: {
           action: 'create',
-          pipeline: 'example_value',
-          repository: 'example_value',
-          branch: 'example_value'
+          pipeline: 'value',
+          repository: 'value',
+          branch: 'value'
+        }
+      },
+      {
+        description: 'CI高级用法',
+        params: {
+          action: 'trigger',
+          pipeline: 'advanced_value',
+          repository: 'advanced_value',
+          branch: 'advanced_value'
         }
       }
     ],
@@ -11882,12 +12412,21 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '基础AR内容创建器',
         params: {
-          contentType: '这是一段示例文本用于测试',
+          contentType: '示例文本',
           assets: ['item1', 'item2'],
           interactions: ['item1', 'item2'],
-          tracking: 'example_value'
+          tracking: 'value'
+        }
+      },
+      {
+        description: '专业AR内容创建器',
+        params: {
+          contentType: '更复杂的示例文本内容，用于测试高级功能',
+          assets: ['item1', 'item2', 'item3', 'item4'],
+          interactions: ['item1', 'item2', 'item3', 'item4'],
+          tracking: 'advanced_value'
         }
       }
     ],
@@ -11984,11 +12523,19 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '基础VR场景构建器',
         params: {
-          environment: 'example_value',
+          environment: 'value',
           objects: ['item1', 'item2'],
-          navigation: 'example_value'
+          navigation: 'value'
+        }
+      },
+      {
+        description: '专业VR场景构建器',
+        params: {
+          environment: 'advanced_value',
+          objects: ['item1', 'item2', 'item3', 'item4'],
+          navigation: 'advanced_value'
         }
       }
     ],
@@ -12053,13 +12600,23 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '使用语音克隆器',
         params: {
           action: 'train',
-          reference_audio: 'example_value',
-          text: '这是一段示例文本用于测试',
-          model_id: 'example_value',
+          reference_audio: 'value',
+          text: '示例文本',
+          model_id: 'base_model',
           training_duration: 10
+        }
+      },
+      {
+        description: '高级语音克隆器',
+        params: {
+          action: 'synthesize',
+          reference_audio: 'advanced_value',
+          text: '更复杂的示例文本内容，用于测试高级功能',
+          model_id: 'advanced_model_v2',
+          training_duration: 50
         }
       }
     ],
@@ -13365,11 +13922,19 @@ key=value`
     },
     examples: [
       {
-        description: 'IoT设备管理器使用示例',
+        description: '基础系统管理',
         params: {
           action: 'register',
-          device: 'example_value',
-          command: 'example_value'
+          device: 'value',
+          command: 'value'
+        }
+      },
+      {
+        description: '高级系统控制',
+        params: {
+          action: 'configure',
+          device: 'advanced_value',
+          command: 'advanced_value'
         }
       }
     ],
@@ -13437,13 +14002,23 @@ key=value`
     },
     examples: [
       {
-        description: 'MQTT消息代理使用示例',
+        description: 'MQTT消息代理基础用法',
         params: {
           action: 'publish',
-          topic: 'example_value',
-          message: '这是一段示例文本用于测试',
-          qos: 0,
+          topic: 'value',
+          message: 'value',
+          qos: 10,
           retain: false
+        }
+      },
+      {
+        description: 'MQTT消息代理高级用法',
+        params: {
+          action: 'subscribe',
+          topic: 'advanced_value',
+          message: 'advanced_value',
+          qos: 50,
+          retain: true
         }
       }
     ],
@@ -13511,11 +14086,19 @@ key=value`
     },
     examples: [
       {
-        description: '边缘节点管理器使用示例',
+        description: '基础系统管理',
         params: {
           action: 'deploy',
-          node: 'example_value',
-          workload: 'example_value'
+          node: 'value',
+          workload: 'value'
+        }
+      },
+      {
+        description: '高级系统控制',
+        params: {
+          action: 'monitor',
+          node: 'advanced_value',
+          workload: 'advanced_value'
         }
       }
     ],
@@ -13830,12 +14413,21 @@ key=value`
     },
     examples: [
       {
-        description: 'PLC控制器使用示例',
+        description: '基础系统管理',
         params: {
           action: 'read',
-          plc: 'example_value',
-          address: 'example_value',
-          value: 'example_value'
+          plc: 'value',
+          address: 'value',
+          value: 'value'
+        }
+      },
+      {
+        description: '高级系统控制',
+        params: {
+          action: 'write',
+          plc: 'advanced_value',
+          address: 'advanced_value',
+          value: 'advanced_value'
         }
       }
     ],
@@ -13981,11 +14573,19 @@ key=value`
     },
     examples: [
       {
-        description: '场景自动化器使用示例',
+        description: '场景自动化器基础用法',
         params: {
           action: 'create',
-          scene: 'example_value',
-          scene_id: 'example_value'
+          scene: 'value',
+          scene_id: 'value'
+        }
+      },
+      {
+        description: '场景自动化器高级用法',
+        params: {
+          action: 'execute',
+          scene: 'advanced_value',
+          scene_id: 'advanced_value'
         }
       }
     ],
@@ -14052,9 +14652,16 @@ key=value`
     },
     examples: [
       {
-        description: '设备联动器使用示例',
+        description: '设备联动器基础用法',
         params: {
-          linkage: 'example_value',
+          linkage: 'value',
+          enabled: false
+        }
+      },
+      {
+        description: '设备联动器高级用法',
+        params: {
+          linkage: 'advanced_value',
           enabled: true
         }
       }
@@ -14220,13 +14827,23 @@ key=value`
     },
     examples: [
       {
-        description: '灌溉控制器使用示例',
+        description: '基础系统管理',
         params: {
           action: 'start',
-          zone: 'example_value',
-          parameters: 'example_value',
+          zone: 'value',
+          parameters: 'value',
           soil_moisture: 10,
-          weather_forecast: 'example_value'
+          weather_forecast: 'value'
+        }
+      },
+      {
+        description: '高级系统控制',
+        params: {
+          action: 'stop',
+          zone: 'advanced_value',
+          parameters: 'advanced_value',
+          soil_moisture: 50,
+          weather_forecast: 'advanced_value'
         }
       }
     ],
@@ -14285,15 +14902,21 @@ key=value`
     },
     examples: [
       {
-        description: '交通控制器使用示例',
+        description: '基础系统管理',
         params: {
-          intersection: 'example_value',
+          intersection: 'value',
           mode: 'fixed',
-          traffic_data: {
-            key: 'value',
-            enabled: true
-          },
+          traffic_data: 'value',
           optimization_goal: 'minimize_delay'
+        }
+      },
+      {
+        description: '高级系统控制',
+        params: {
+          intersection: 'advanced_value',
+          mode: 'adaptive',
+          traffic_data: 'advanced_value',
+          optimization_goal: 'maximize_throughput'
         }
       }
     ],
@@ -14357,12 +14980,21 @@ key=value`
     },
     examples: [
       {
-        description: '使用公共安全监控器进行AI处理',
+        description: '公共安全监控器基础用法',
         params: {
-          area: 'example_value',
+          area: 'value',
           monitoring_types: ['item1', 'item2'],
           alert_rules: ['item1', 'item2'],
           video_streams: ['item1', 'item2']
+        }
+      },
+      {
+        description: '公共安全监控器高级用法',
+        params: {
+          area: 'advanced_value',
+          monitoring_types: ['item1', 'item2', 'item3', 'item4'],
+          alert_rules: ['item1', 'item2', 'item3', 'item4'],
+          video_streams: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -14830,13 +15462,23 @@ key=value`
     },
     examples: [
       {
-        description: '电力调度器使用示例',
+        description: '电力调度器基础用法',
         params: {
-          grid: 'example_value',
+          grid: 'value',
           generators: ['item1', 'item2'],
-          load_forecast: 'example_value',
+          load_forecast: 'value',
           optimization: 'minimize_cost',
-          constraints: 'example_value'
+          constraints: 'value'
+        }
+      },
+      {
+        description: '电力调度器高级用法',
+        params: {
+          grid: 'advanced_value',
+          generators: ['item1', 'item2', 'item3', 'item4'],
+          load_forecast: 'advanced_value',
+          optimization: 'maximize_reliability',
+          constraints: 'advanced_value'
         }
       }
     ],
@@ -14997,11 +15639,20 @@ key=value`
     },
     examples: [
       {
-        description: '量子密钥分发器使用示例',
+        description: '基础安全检查',
         params: {
           protocol: 'BB84',
           key_length: 10,
-          channel: 'example_value',
+          channel: 'value',
+          error_correction: false
+        }
+      },
+      {
+        description: '深度安全扫描',
+        params: {
+          protocol: 'E91',
+          key_length: 50,
+          channel: 'advanced_value',
           error_correction: true
         }
       }
@@ -15303,13 +15954,23 @@ key=value`
     },
     examples: [
       {
-        description: '使用基因编辑器进行AI处理',
+        description: '基因编辑器基础用法',
         params: {
-          target_gene: 'example_value',
+          target_gene: 'value',
           edit_type: 'knockout',
           editor: 'Cas9',
-          pam_sequence: 'example_value',
-          grna_design: 'example_value'
+          pam_sequence: 'value',
+          grna_design: 'value'
+        }
+      },
+      {
+        description: '基因编辑器高级用法',
+        params: {
+          target_gene: 'advanced_value',
+          edit_type: 'knockin',
+          editor: 'Cas12',
+          pam_sequence: 'advanced_value',
+          grna_design: 'advanced_value'
         }
       }
     ],
@@ -15561,12 +16222,21 @@ key=value`
     },
     examples: [
       {
-        description: '纳米加工器使用示例',
+        description: '纳米加工器基础用法',
         params: {
           process: 'lithography',
-          pattern: 'example_value',
+          pattern: 'value',
           materials: ['item1', 'item2'],
-          parameters: 'example_value'
+          parameters: 'value'
+        }
+      },
+      {
+        description: '纳米加工器高级用法',
+        params: {
+          process: 'etching',
+          pattern: 'advanced_value',
+          materials: ['item1', 'item2', 'item3', 'item4'],
+          parameters: 'advanced_value'
         }
       }
     ],
@@ -15635,13 +16305,23 @@ key=value`
     },
     examples: [
       {
-        description: '使用反应堆模拟器进行AI处理',
+        description: '反应堆模拟器基础用法',
         params: {
           reactor_type: 'PWR',
           power_level: 10,
-          fuel_composition: 'example_value',
-          control_rods: 'example_value',
+          fuel_composition: 'value',
+          control_rods: 'value',
           simulation_type: 'steady_state'
+        }
+      },
+      {
+        description: '反应堆模拟器高级用法',
+        params: {
+          reactor_type: 'BWR',
+          power_level: 50,
+          fuel_composition: 'advanced_value',
+          control_rods: 'advanced_value',
+          simulation_type: 'transient'
         }
       }
     ],
@@ -15703,12 +16383,21 @@ key=value`
     },
     examples: [
       {
-        description: '辐射监测器使用示例',
+        description: '实时监控',
         params: {
           detector_type: 'GM',
           measurement_type: 'dose_rate',
-          location: 'example_value',
+          location: 'value',
           background: 10
+        }
+      },
+      {
+        description: '持续追踪',
+        params: {
+          detector_type: 'scintillator',
+          measurement_type: 'contamination',
+          location: 'advanced_value',
+          background: 50
         }
       }
     ],
@@ -16025,12 +16714,21 @@ key=value`
     },
     examples: [
       {
-        description: '月球采矿器使用示例',
+        description: '月球采矿器基础用法',
         params: {
-          site: 'example_value',
+          site: 'value',
           target_resource: 'water_ice',
           equipment: ['item1', 'item2'],
           extraction_method: 'excavation'
+        }
+      },
+      {
+        description: '月球采矿器高级用法',
+        params: {
+          site: 'advanced_value',
+          target_resource: 'helium3',
+          equipment: ['item1', 'item2', 'item3', 'item4'],
+          extraction_method: 'heating'
         }
       }
     ],
@@ -16107,13 +16805,23 @@ key=value`
     },
     examples: [
       {
-        description: '云播种器使用示例',
+        description: '云播种器基础用法',
         params: {
           operation_type: 'precipitation_enhancement',
           seeding_agent: 'silver_iodide',
-          target_area: 'example_value',
-          weather_conditions: 'example_value',
-          aircraft: 'example_value'
+          target_area: 'value',
+          weather_conditions: 'value',
+          aircraft: 'value'
+        }
+      },
+      {
+        description: '云播种器高级用法',
+        params: {
+          operation_type: 'hail_suppression',
+          seeding_agent: 'dry_ice',
+          target_area: 'advanced_value',
+          weather_conditions: 'advanced_value',
+          aircraft: 'advanced_value'
         }
       }
     ],
@@ -16537,15 +17245,21 @@ key=value`
     },
     examples: [
       {
-        description: '神经形态加速器使用示例',
+        description: '神经形态加速器基础用法',
         params: {
           hardware: 'Loihi',
-          model: 'example_value',
-          optimization: 'example_value',
-          input_data: {
-            key: 'value',
-            enabled: true
-          }
+          model: 'base_model',
+          optimization: 'value',
+          input_data: 'value'
+        }
+      },
+      {
+        description: '神经形态加速器高级用法',
+        params: {
+          hardware: 'TrueNorth',
+          model: 'advanced_model_v2',
+          optimization: 'advanced_value',
+          input_data: 'advanced_value'
         }
       }
     ],
@@ -16647,15 +17361,21 @@ key=value`
     },
     examples: [
       {
-        description: 'LIGO数据分析器使用示例',
+        description: '科学计算示例',
         params: {
           detector: 'LIGO-Hanford',
-          data_segment: {
-            key: 'value',
-            enabled: true
-          },
-          preprocessing: 'example_value',
+          data_segment: 'value',
+          preprocessing: 'value',
           analysis_method: 'matched_filter'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          detector: 'LIGO-Livingston',
+          data_segment: 'advanced_value',
+          preprocessing: 'advanced_value',
+          analysis_method: 'burst'
         }
       }
     ],
@@ -16763,14 +17483,20 @@ key=value`
     },
     examples: [
       {
-        description: '引力波波形匹配器使用示例',
+        description: '科学计算示例',
         params: {
-          strain_data: {
-            key: 'value',
-            enabled: true
-          },
-          template_bank: 'example_value',
-          search_params: 'example_value',
+          strain_data: ['item1', 'item2'],
+          template_bank: 'value',
+          search_params: 'value',
+          parameter_estimation: false
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          strain_data: ['item1', 'item2', 'item3', 'item4'],
+          template_bank: 'advanced_value',
+          search_params: 'advanced_value',
           parameter_estimation: true
         }
       }
@@ -16853,13 +17579,24 @@ key=value`
     },
     examples: [
       {
-        description: '粒子碰撞模拟器使用示例',
+        description: '科学计算示例',
         params: {
           collider: 'LHC',
           collision_energy: 10,
-          beam_particles: 'example_value',
+          beam_particles: 'value',
           process: 'Higgs_production',
           num_events: 10,
+          detector_simulation: false
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          collider: 'Tevatron',
+          collision_energy: 50,
+          beam_particles: 'advanced_value',
+          process: 'top_pair',
+          num_events: 50,
           detector_simulation: true
         }
       }
@@ -16961,14 +17698,25 @@ key=value`
     },
     examples: [
       {
-        description: '粒子事例生成器使用示例',
+        description: '科学计算示例',
         params: {
           generator: 'Pythia',
-          process: 'example_value',
+          process: 'value',
           pdf_set: 'NNPDF',
-          hadronization: 'example_value',
-          cuts: 'example_value',
+          hadronization: 'value',
+          cuts: 'value',
           num_events: 10
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          generator: 'Herwig',
+          process: 'advanced_value',
+          pdf_set: 'CT18',
+          hadronization: 'advanced_value',
+          cuts: 'advanced_value',
+          num_events: 50
         }
       }
     ],
@@ -17067,14 +17815,25 @@ key=value`
     },
     examples: [
       {
-        description: 'WIMP探测器使用示例',
+        description: '科学计算示例',
         params: {
           detector_type: 'xenon_TPC',
           target_material: 'Xe',
-          exposure: 'example_value',
-          energy_threshold: 10,
-          background_model: 'example_value',
-          wimp_params: 'example_value'
+          exposure: 'value',
+          energy_threshold: 0.5,
+          background_model: 'base_model',
+          wimp_params: 'value'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          detector_type: 'germanium',
+          target_material: 'Ge',
+          exposure: 'advanced_value',
+          energy_threshold: 0.8,
+          background_model: 'advanced_model_v2',
+          wimp_params: 'advanced_value'
         }
       }
     ],
@@ -17163,14 +17922,25 @@ key=value`
     },
     examples: [
       {
-        description: '轴子搜寻器使用示例',
+        description: '科学计算示例',
         params: {
           search_method: 'cavity_haloscope',
-          mass_range: 'example_value',
-          cavity_params: 'example_value',
+          mass_range: 'value',
+          cavity_params: 'value',
           magnetic_field: 10,
           integration_time: 10,
           coupling_constant: 10
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          search_method: 'helioscope',
+          mass_range: 'advanced_value',
+          cavity_params: 'advanced_value',
+          magnetic_field: 50,
+          integration_time: 50,
+          coupling_constant: 50
         }
       }
     ],
@@ -17287,14 +18057,25 @@ key=value`
     },
     examples: [
       {
-        description: '托卡马克模拟器使用示例',
+        description: '托卡马克模拟器基础用法',
         params: {
           device: 'ITER',
-          plasma_params: 'example_value',
+          plasma_params: 'value',
           operating_scenario: 'L-mode',
-          heating_systems: 'example_value',
+          heating_systems: 'value',
           simulation_type: 'equilibrium',
           duration: 10
+        }
+      },
+      {
+        description: '托卡马克模拟器高级用法',
+        params: {
+          device: 'EAST',
+          plasma_params: 'advanced_value',
+          operating_scenario: 'H-mode',
+          heating_systems: 'advanced_value',
+          simulation_type: 'transport',
+          duration: 50
         }
       }
     ],
@@ -17396,13 +18177,23 @@ key=value`
     },
     examples: [
       {
-        description: '等离子体控制器使用示例',
+        description: '等离子体控制器基础用法',
         params: {
-          control_objectives: 'example_value',
-          actuators: 'example_value',
+          control_objectives: 'value',
+          actuators: 'value',
           controller_type: 'PID',
           feedback_sensors: ['item1', 'item2'],
-          constraints: 'example_value'
+          constraints: 'value'
+        }
+      },
+      {
+        description: '等离子体控制器高级用法',
+        params: {
+          control_objectives: 'advanced_value',
+          actuators: 'advanced_value',
+          controller_type: 'model_predictive',
+          feedback_sensors: ['item1', 'item2', 'item3', 'item4'],
+          constraints: 'advanced_value'
         }
       }
     ],
@@ -17730,13 +18521,23 @@ key=value`
     },
     examples: [
       {
-        description: '拓扑态计算器使用示例',
+        description: '科学计算示例',
         params: {
-          material: 'example_value',
-          hamiltonian: 'example_value',
+          material: 'value',
+          hamiltonian: 'value',
           topological_invariant: 'chern_number',
-          k_points: 'example_value',
+          k_points: 'value',
           calculation_method: 'wannier'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          material: 'advanced_value',
+          hamiltonian: 'advanced_value',
+          topological_invariant: 'z2_invariant',
+          k_points: 'advanced_value',
+          calculation_method: 'berry_curvature'
         }
       }
     ],
@@ -17839,13 +18640,23 @@ key=value`
     },
     examples: [
       {
-        description: '马约拉纳费米子探测器使用示例',
+        description: '科学计算示例',
         params: {
           system_type: 'nanowire',
-          experimental_setup: 'example_value',
+          experimental_setup: 'value',
           measurement_type: 'tunneling_spectroscopy',
-          bias_voltage_range: 'example_value',
-          signature_criteria: 'example_value'
+          bias_voltage_range: 'value',
+          signature_criteria: 'value'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          system_type: 'vortex',
+          experimental_setup: 'advanced_value',
+          measurement_type: 'conductance',
+          bias_voltage_range: 'advanced_value',
+          signature_criteria: 'advanced_value'
         }
       }
     ],
@@ -17956,14 +18767,25 @@ key=value`
     },
     examples: [
       {
-        description: '冰芯分析器使用示例',
+        description: '科学计算示例',
         params: {
-          core_info: 'example_value',
+          core_info: 'value',
           analysis_types: ['item1', 'item2'],
-          isotope_ratios: 'example_value',
-          gas_measurements: 'example_value',
+          isotope_ratios: 'value',
+          gas_measurements: 'value',
           resolution: 10,
           dating_method: 'layer_counting'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          core_info: 'advanced_value',
+          analysis_types: ['item1', 'item2', 'item3', 'item4'],
+          isotope_ratios: 'advanced_value',
+          gas_measurements: 'advanced_value',
+          resolution: 50,
+          dating_method: 'volcanic_markers'
         }
       }
     ],
@@ -18061,17 +18883,25 @@ key=value`
     },
     examples: [
       {
-        description: '气候重建器使用示例',
+        description: '科学计算示例',
         params: {
-          proxy_data: {
-            key: 'value',
-            enabled: true
-          },
+          proxy_data: 'value',
           reconstruction_method: 'transfer_function',
           target_variable: 'temperature',
-          time_period: 'example_value',
+          time_period: 'value',
           spatial_resolution: 'global',
-          climate_model: 'CESM'
+          climate_model: 'base_model'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          proxy_data: 'advanced_value',
+          reconstruction_method: 'analog',
+          target_variable: 'precipitation',
+          time_period: 'advanced_value',
+          spatial_resolution: 'hemispheric',
+          climate_model: 'advanced_model_v2'
         }
       }
     ],
@@ -18198,14 +19028,25 @@ key=value`
     },
     examples: [
       {
-        description: '岩浆模拟器使用示例',
+        description: '科学计算示例',
         params: {
           volcano_type: 'shield',
-          magma_properties: 'example_value',
-          chamber_geometry: 'example_value',
-          conduit_model: 'example_value',
+          magma_properties: 'value',
+          chamber_geometry: 'value',
+          conduit_model: 'base_model',
           simulation_type: 'eruption',
-          boundary_conditions: 'example_value'
+          boundary_conditions: 'value'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          volcano_type: 'stratovolcano',
+          magma_properties: 'advanced_value',
+          chamber_geometry: 'advanced_value',
+          conduit_model: 'advanced_model_v2',
+          simulation_type: 'degassing',
+          boundary_conditions: 'advanced_value'
         }
       }
     ],
@@ -18338,15 +19179,21 @@ key=value`
     },
     examples: [
       {
-        description: '火山监测器使用示例',
+        description: '科学计算示例',
         params: {
-          volcano_name: 'example_value',
-          monitoring_systems: 'example_value',
-          alert_criteria: 'example_value',
-          data_window: {
-            key: 'value',
-            enabled: true
-          }
+          volcano_name: 'value',
+          monitoring_systems: 'value',
+          alert_criteria: 'value',
+          data_window: 'value'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          volcano_name: 'advanced_value',
+          monitoring_systems: 'advanced_value',
+          alert_criteria: 'advanced_value',
+          data_window: 'advanced_value'
         }
       }
     ],
@@ -18456,13 +19303,23 @@ key=value`
     },
     examples: [
       {
-        description: '放射性碳测年器使用示例',
+        description: '科学计算示例',
         params: {
-          sample_info: 'example_value',
+          sample_info: 'value',
           measurement_method: 'AMS',
-          c14_measurement: 'example_value',
+          c14_measurement: 'value',
           calibration_curve: 'IntCal20',
-          reservoir_effect: 'example_value'
+          reservoir_effect: 'value'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          sample_info: 'advanced_value',
+          measurement_method: 'LSC',
+          c14_measurement: 'advanced_value',
+          calibration_curve: 'SHCal20',
+          reservoir_effect: 'advanced_value'
         }
       }
     ],
@@ -18573,17 +19430,25 @@ key=value`
     },
     examples: [
       {
-        description: '文物3D重建器使用示例',
+        description: '科学计算示例',
         params: {
           artifact_type: 'pottery',
           scanning_method: 'photogrammetry',
-          input_data: {
-            key: 'value',
-            enabled: true
-          },
-          reconstruction_settings: 'example_value',
-          virtual_restoration: 'example_value',
+          input_data: 'value',
+          reconstruction_settings: 'value',
+          virtual_restoration: 'value',
           export_format: 'OBJ'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          artifact_type: 'statue',
+          scanning_method: 'laser_scan',
+          input_data: 'advanced_value',
+          reconstruction_settings: 'advanced_value',
+          virtual_restoration: 'advanced_value',
+          export_format: 'STL'
         }
       }
     ],
@@ -18702,14 +19567,25 @@ key=value`
     },
     examples: [
       {
-        description: '柔性传感器设计器使用示例',
+        description: '柔性传感器设计器基础用法',
         params: {
           sensor_type: 'strain',
-          substrate: 'example_value',
-          active_material: 'example_value',
-          design_parameters: 'example_value',
+          substrate: 'value',
+          active_material: 'value',
+          design_parameters: 'value',
           application: 'health_monitoring',
-          performance_requirements: 'example_value'
+          performance_requirements: 'value'
+        }
+      },
+      {
+        description: '柔性传感器设计器高级用法',
+        params: {
+          sensor_type: 'pressure',
+          substrate: 'advanced_value',
+          active_material: 'advanced_value',
+          design_parameters: 'advanced_value',
+          application: 'motion_capture',
+          performance_requirements: 'advanced_value'
         }
       }
     ],
@@ -18821,18 +19697,27 @@ key=value`
     },
     examples: [
       {
-        description: '生物芯片分析器使用示例',
+        description: '科学计算示例',
         params: {
           chip_type: 'microarray',
           assay_type: 'gene_expression',
-          raw_data: {
-            key: 'value',
-            enabled: true
-          },
+          raw_data: 'value',
           normalization: 'quantile',
+          background_correction: false,
+          statistical_analysis: 'value',
+          quality_control: 'value'
+        }
+      },
+      {
+        description: '高级科学分析',
+        params: {
+          chip_type: 'microfluidic',
+          assay_type: 'protein',
+          raw_data: 'advanced_value',
+          normalization: 'loess',
           background_correction: true,
-          statistical_analysis: 'example_value',
-          quality_control: 'example_value'
+          statistical_analysis: 'advanced_value',
+          quality_control: 'advanced_value'
         }
       }
     ],
@@ -19088,13 +19973,23 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '基础图片编辑器',
         params: {
-          input_path: './input/sample.txt',
-          output_path: './output/result.txt',
+          input_path: './input/data.json',
+          output_path: './output/result.json',
           operations: ['item1', 'item2'],
           format: 'jpg',
           quality: 10
+        }
+      },
+      {
+        description: '专业图片编辑器',
+        params: {
+          input_path: './advanced_input/data.json',
+          output_path: './advanced_output/result.json',
+          operations: ['item1', 'item2', 'item3', 'item4'],
+          format: 'png',
+          quality: 50
         }
       }
     ],
@@ -19180,14 +20075,25 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '使用图片滤镜器',
         params: {
-          input_path: './input/sample.txt',
-          output_path: './output/result.txt',
+          input_path: './input/data.json',
+          output_path: './output/result.json',
           filter: 'grayscale',
           brightness: 10,
           contrast: 10,
-          watermark: 'example_value'
+          watermark: 'value'
+        }
+      },
+      {
+        description: '高级图片滤镜器',
+        params: {
+          input_path: './advanced_input/data.json',
+          output_path: './advanced_output/result.json',
+          filter: 'sepia',
+          brightness: 50,
+          contrast: 50,
+          watermark: 'advanced_value'
         }
       }
     ],
@@ -19256,14 +20162,25 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '使用视频剪辑器',
         params: {
-          input_path: './input/sample.txt',
-          output_path: './output/result.txt',
-          start_time: 'example_value',
-          end_time: 'example_value',
-          extract_audio: true,
+          input_path: './input/data.json',
+          output_path: './output/result.json',
+          start_time: 'value',
+          end_time: 'value',
+          extract_audio: false,
           audio_format: 'mp3'
+        }
+      },
+      {
+        description: '高级视频剪辑器',
+        params: {
+          input_path: './advanced_input/data.json',
+          output_path: './advanced_output/result.json',
+          start_time: 'advanced_value',
+          end_time: 'advanced_value',
+          extract_audio: true,
+          audio_format: 'wav'
         }
       }
     ],
@@ -19333,13 +20250,23 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '使用视频合并器',
         params: {
-          input_files: './input/sample.txt',
-          output_path: './output/result.txt',
+          input_files: './input/data.json',
+          output_path: './output/result.json',
           output_format: 'mp4',
-          codec: 'function example() { return true; }',
+          codec: 'h264',
           resolution: 'original'
+        }
+      },
+      {
+        description: '高级视频合并器',
+        params: {
+          input_files: './advanced_input/data.json',
+          output_path: './advanced_output/result.json',
+          output_format: 'avi',
+          codec: 'h265',
+          resolution: '1080p'
         }
       }
     ],
@@ -19797,13 +20724,23 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '使用截图工具',
         params: {
-          output_path: './output/result.txt',
+          output_path: './output/result.json',
           capture_type: 'fullscreen',
-          region: 'example_value',
-          include_cursor: true,
+          region: 'value',
+          include_cursor: false,
           format: 'png'
+        }
+      },
+      {
+        description: '高级截图工具',
+        params: {
+          output_path: './advanced_output/result.json',
+          capture_type: 'window',
+          region: 'advanced_value',
+          include_cursor: true,
+          format: 'jpg'
         }
       }
     ],
@@ -19877,15 +20814,27 @@ key=value`
     },
     examples: [
       {
-        description: '处理媒体文件',
+        description: '使用屏幕录制器',
         params: {
-          output_path: './output/result.txt',
+          output_path: './output/result.json',
           output_format: 'mp4',
           capture_type: 'fullscreen',
-          region: 'example_value',
+          region: 'value',
           fps: 10,
-          record_audio: true,
+          record_audio: false,
           duration: 10
+        }
+      },
+      {
+        description: '高级屏幕录制器',
+        params: {
+          output_path: './advanced_output/result.json',
+          output_format: 'avi',
+          capture_type: 'window',
+          region: 'advanced_value',
+          fps: 50,
+          record_audio: true,
+          duration: 50
         }
       }
     ],
@@ -19973,11 +20922,19 @@ key=value`
     },
     examples: [
       {
-        description: '日历管理器使用示例',
+        description: '日历管理器基础用法',
         params: {
           action: 'create',
-          event: 'example_value',
-          date_range: 'example_value'
+          event: 'value',
+          date_range: 'value'
+        }
+      },
+      {
+        description: '日历管理器高级用法',
+        params: {
+          action: 'update',
+          event: 'advanced_value',
+          date_range: 'advanced_value'
         }
       }
     ],
@@ -20049,10 +21006,17 @@ key=value`
     },
     examples: [
       {
-        description: '提醒调度器使用示例',
+        description: '提醒调度器基础用法',
         params: {
           action: 'create',
-          reminder: 'example_value'
+          reminder: 'value'
+        }
+      },
+      {
+        description: '提醒调度器高级用法',
+        params: {
+          action: 'update',
+          reminder: 'advanced_value'
         }
       }
     ],
@@ -20297,16 +21261,29 @@ key=value`
     },
     examples: [
       {
-        description: '高级密码生成器使用示例',
+        description: '基础安全检查',
         params: {
-          length: 16,
+          length: 10,
+          include_uppercase: false,
+          include_lowercase: false,
+          include_numbers: false,
+          include_symbols: false,
+          exclude_ambiguous: false,
+          custom_charset: 'value',
+          count: 10
+        }
+      },
+      {
+        description: '深度安全扫描',
+        params: {
+          length: 50,
           include_uppercase: true,
           include_lowercase: true,
           include_numbers: true,
           include_symbols: true,
           exclude_ambiguous: true,
-          custom_charset: 'example_value',
-          count: 1
+          custom_charset: 'advanced_value',
+          count: 50
         }
       }
     ],
@@ -20387,12 +21364,21 @@ key=value`
     },
     examples: [
       {
-        description: '密码保险库使用示例',
+        description: '基础安全检查',
         params: {
           action: 'add',
-          entry: 'example_value',
-          master_password: 'example_value',
-          search_query: 'example_value'
+          entry: 'value',
+          master_password: 'value',
+          search_query: '搜索关键词'
+        }
+      },
+      {
+        description: '深度安全扫描',
+        params: {
+          action: 'get',
+          entry: 'advanced_value',
+          master_password: 'advanced_value',
+          search_query: '复杂查询：条件A AND 条件B'
         }
       }
     ],
@@ -20672,15 +21658,21 @@ key=value`
     },
     examples: [
       {
-        description: '清洗并标准化数据',
+        description: '数据预处理器基础用法',
         params: {
-          dataPath: './data/raw/customer_data.csv',
-          operations: ['remove_duplicates', 'handle_missing', 'standardize'],
-          options: {
-            missingStrategy: 'median',
-            scalingMethod: 'standard'
-          },
-          outputPath: './data/processed/customer_data_clean.csv'
+          dataPath: './data/sample.dat',
+          operations: ['item1', 'item2'],
+          options: 'value',
+          outputPath: './output/result.json'
+        }
+      },
+      {
+        description: '数据预处理器高级用法',
+        params: {
+          dataPath: './advanced_data/sample.dat',
+          operations: ['item1', 'item2', 'item3', 'item4'],
+          options: 'advanced_value',
+          outputPath: './advanced_output/result.json'
         }
       }
     ],
@@ -20771,16 +21763,21 @@ key=value`
     },
     examples: [
       {
-        description: '创建多项式特征并进行特征选择',
+        description: '特征工程工具基础用法',
         params: {
-          dataPath: './data/processed/features.csv',
-          operations: ['polynomial_features', 'feature_selection'],
-          config: {
-            polynomialDegree: 2,
-            selectionMethod: 'mutual_info',
-            topK: 20
-          },
-          outputPath: './data/processed/features_engineered.csv'
+          dataPath: './data/sample.dat',
+          operations: ['item1', 'item2'],
+          config: 'value',
+          outputPath: './output/result.json'
+        }
+      },
+      {
+        description: '特征工程工具高级用法',
+        params: {
+          dataPath: './advanced_data/sample.dat',
+          operations: ['item1', 'item2', 'item3', 'item4'],
+          config: 'advanced_value',
+          outputPath: './advanced_output/result.json'
         }
       }
     ],
@@ -20854,13 +21851,23 @@ key=value`
     },
     examples: [
       {
-        description: '评估分类模型',
+        description: '模型评估器基础用法',
         params: {
-          modelPath: './models/rf_model.pkl',
-          testDataPath: './data/test.csv',
+          modelPath: './models/trained_model.pkl',
+          testDataPath: './data/sample.dat',
           taskType: 'classification',
+          generatePlots: false,
+          reportOutputPath: './output/result.json'
+        }
+      },
+      {
+        description: '模型评估器高级用法',
+        params: {
+          modelPath: './advanced_models/trained_model.pkl',
+          testDataPath: './advanced_data/sample.dat',
+          taskType: 'regression',
           generatePlots: true,
-          reportOutputPath: './reports/model_evaluation.html'
+          reportOutputPath: './advanced_output/result.json'
         }
       }
     ],
@@ -20942,11 +21949,23 @@ key=value`
     },
     examples: [
       {
-        description: '执行描述性统计和相关性分析',
+        description: '统计分析工具基础用法',
         params: {
-          dataPath: './data/sales_data.csv',
-          analyses: ['descriptive', 'correlation'],
-          reportOutputPath: './reports/statistical_analysis.html'
+          dataPath: './data/sample.dat',
+          analyses: ['item1', 'item2'],
+          columns: ['item1', 'item2'],
+          options: 'value',
+          reportOutputPath: './output/result.json'
+        }
+      },
+      {
+        description: '统计分析工具高级用法',
+        params: {
+          dataPath: './advanced_data/sample.dat',
+          analyses: ['item1', 'item2', 'item3', 'item4'],
+          columns: ['item1', 'item2', 'item3', 'item4'],
+          options: 'advanced_value',
+          reportOutputPath: './advanced_output/result.json'
         }
       }
     ],
@@ -21012,13 +22031,23 @@ key=value`
     },
     examples: [
       {
-        description: '生成详细EDA报告',
+        description: 'EDA报告生成器基础用法',
         params: {
-          dataPath: './data/customer_data.csv',
-          targetColumn: 'churn',
-          reportType: 'detailed',
+          dataPath: './data/sample.dat',
+          targetColumn: 'value',
+          reportType: 'quick',
           outputFormat: 'html',
-          outputPath: './reports/eda_report.html'
+          outputPath: './output/result.json'
+        }
+      },
+      {
+        description: 'EDA报告生成器高级用法',
+        params: {
+          dataPath: './advanced_data/sample.dat',
+          targetColumn: 'advanced_value',
+          reportType: 'detailed',
+          outputFormat: 'pdf',
+          outputPath: './advanced_output/result.json'
         }
       }
     ],
@@ -21119,13 +22148,23 @@ key=value`
     },
     examples: [
       {
-        description: '生成商业计划书',
+        description: '处理单个文档',
         params: {
-          title: '2025年商业计划书',
-          content: `# 执行摘要
-
-项目描述...`,
-          outputPath: './business-plan.docx'
+          title: 'value',
+          content: '示例文本',
+          outputPath: './output/result.json',
+          template: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          title: 'advanced_value',
+          content: '更复杂的示例文本内容，用于测试高级功能',
+          outputPath: './advanced_output/result.json',
+          template: 'advanced_value',
+          options: 'advanced_value'
         }
       }
     ],
@@ -21192,17 +22231,19 @@ key=value`
     },
     examples: [
       {
-        description: '创建预算表',
+        description: '处理单个文档',
         params: {
-          documentPath: './report.docx',
-          tableData: {
-            headers: ['项目', '预算', '实际', '差异'],
-            rows: [
-              ['人力成本', '100万', '95万', '-5万'],
-              ['营销费用', '50万', '60万', '+10万']
-            ]
-          },
-          style: 'modern'
+          documentPath: './data/sample.dat',
+          tableData: 'value',
+          style: 'simple'
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          documentPath: './advanced_data/sample.dat',
+          tableData: 'advanced_value',
+          style: 'grid'
         }
       }
     ],
@@ -21310,19 +22351,19 @@ key=value`
     },
     examples: [
       {
-        description: '生成财务报表',
+        description: '处理单个文档',
         params: {
-          sheets: [
-            {
-              name: '收入明细',
-              headers: ['月份', '产品销售', '服务收入', '合计'],
-              data: [
-                ['1月', 100000, 50000, '=B2+C2'],
-                ['2月', 120000, 55000, '=B3+C3']
-              ]
-            }
-          ],
-          outputPath: './financial-report.xlsx'
+          sheets: ['item1', 'item2'],
+          outputPath: './output/result.json',
+          options: 'value'
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          sheets: ['item1', 'item2', 'item3', 'item4'],
+          outputPath: './advanced_output/result.json',
+          options: 'advanced_value'
         }
       }
     ],
@@ -21386,18 +22427,21 @@ key=value`
     },
     examples: [
       {
-        description: '生成求和公式',
+        description: '处理单个文档',
         params: {
           formulaType: 'SUM',
-          range: 'B2:B100'
+          range: 'value',
+          condition: 'value',
+          customFormula: 'value'
         }
       },
       {
-        description: '生成条件计数公式',
+        description: '批量处理文档',
         params: {
-          formulaType: 'COUNTIF',
-          range: 'A2:A100',
-          condition: '>100'
+          formulaType: 'AVERAGE',
+          range: 'advanced_value',
+          condition: 'advanced_value',
+          customFormula: 'advanced_value'
         }
       }
     ],
@@ -21473,13 +22517,25 @@ key=value`
     },
     examples: [
       {
-        description: '创建柱状图',
+        description: '处理单个文档',
         params: {
-          workbookPath: './sales-data.xlsx',
-          sheetName: '月度销售',
-          chartType: 'column',
-          dataRange: 'A1:B12',
-          title: '2025年月度销售趋势'
+          workbookPath: './data/sample.dat',
+          sheetName: 'value',
+          chartType: 'line',
+          dataRange: 'value',
+          title: 'value',
+          position: 'value'
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          workbookPath: './advanced_data/sample.dat',
+          sheetName: 'advanced_value',
+          chartType: 'bar',
+          dataRange: 'advanced_value',
+          title: 'advanced_value',
+          position: 'advanced_value'
         }
       }
     ],
@@ -21578,24 +22634,21 @@ key=value`
     },
     examples: [
       {
-        description: '生成产品发布会PPT',
+        description: '处理单个文档',
         params: {
-          slides: [
-            {
-              title: '产品发布会',
-              content: '全新AI助手发布',
-              layout: 'title'
-            },
-            {
-              title: '核心功能',
-              content: `1. 智能对话
-2. 文档生成
-3. 数据分析`,
-              layout: 'titleAndContent'
-            }
-          ],
+          slides: ['item1', 'item2'],
+          theme: 'default',
+          outputPath: './output/result.json',
+          options: 'value'
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          slides: ['item1', 'item2', 'item3', 'item4'],
           theme: 'modern',
-          outputPath: './product-launch.pptx'
+          outputPath: './advanced_output/result.json',
+          options: 'advanced_value'
         }
       }
     ],
@@ -21657,14 +22710,17 @@ key=value`
     },
     examples: [
       {
-        description: '添加总结幻灯片',
+        description: '处理单个文档',
         params: {
-          presentationPath: './presentation.pptx',
-          slide: {
-            title: '总结',
-            content: '感谢聆听！',
-            layout: 'titleOnly'
-          }
+          presentationPath: './data/sample.dat',
+          slide: 'value'
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          presentationPath: './advanced_data/sample.dat',
+          slide: 'advanced_value'
         }
       }
     ],
@@ -21726,15 +22782,17 @@ key=value`
     },
     examples: [
       {
-        description: '应用企业主题',
+        description: '处理单个文档',
         params: {
-          presentationPath: './company-intro.pptx',
-          theme: {
-            primaryColor: '#0066CC',
-            secondaryColor: '#FF6600',
-            fontFamily: '微软雅黑',
-            backgroundStyle: 'gradient'
-          }
+          presentationPath: './data/sample.dat',
+          theme: 'value'
+        }
+      },
+      {
+        description: '批量处理文档',
+        params: {
+          presentationPath: './advanced_data/sample.dat',
+          theme: 'advanced_value'
         }
       }
     ],
@@ -21812,13 +22870,25 @@ key=value`
     },
     examples: [
       {
-        description: '初始化Express项目',
+        description: 'NPM项目初始化基础用法',
         params: {
-          projectName: 'my-api-server',
-          projectPath: './projects/my-api-server',
-          template: 'express',
+          projectName: 'value',
+          projectPath: './data/sample.dat',
+          template: 'basic',
           packageManager: 'npm',
-          initGit: true
+          initGit: false,
+          installDeps: false
+        }
+      },
+      {
+        description: 'NPM项目初始化高级用法',
+        params: {
+          projectName: 'advanced_value',
+          projectPath: './advanced_data/sample.dat',
+          template: 'express',
+          packageManager: 'yarn',
+          initGit: true,
+          installDeps: true
         }
       }
     ],
@@ -21899,26 +22969,17 @@ key=value`
     },
     examples: [
       {
-        description: '创建基本package.json',
+        description: 'package.json构建器基础用法',
         params: {
-          projectPath: './my-project',
-          config: {
-            name: 'my-awesome-app',
-            version: '1.0.0',
-            description: 'An awesome Node.js application',
-            scripts: {
-              start: 'node index.js',
-              dev: 'nodemon index.js',
-              test: 'jest'
-            },
-            dependencies: {
-              express: '^4.18.0'
-            },
-            devDependencies: {
-              nodemon: '^3.0.0',
-              jest: '^29.0.0'
-            }
-          }
+          projectPath: './data/sample.dat',
+          config: 'value'
+        }
+      },
+      {
+        description: 'package.json构建器高级用法',
+        params: {
+          projectPath: './advanced_data/sample.dat',
+          config: 'advanced_value'
         }
       }
     ],
@@ -21999,22 +23060,25 @@ key=value`
     },
     examples: [
       {
-        description: '初始化Flask Web项目',
+        description: 'Python项目初始化基础用法',
         params: {
-          projectName: 'my-flask-app',
-          projectPath: './projects/my-flask-app',
-          projectType: 'flask',
-          pythonVersion: '3.10',
-          useVirtualEnv: true
+          projectName: 'value',
+          projectPath: './data/sample.dat',
+          projectType: 'package',
+          pythonVersion: '3.9',
+          useVirtualEnv: false,
+          initGit: false
         }
       },
       {
-        description: '初始化机器学习项目',
+        description: 'Python项目初始化高级用法',
         params: {
-          projectName: 'ml-project',
-          projectPath: './projects/ml-project',
-          projectType: 'ml',
-          pythonVersion: '3.9'
+          projectName: 'advanced_value',
+          projectPath: './advanced_data/sample.dat',
+          projectType: 'script',
+          pythonVersion: '3.9',
+          useVirtualEnv: true,
+          initGit: true
         }
       }
     ],
@@ -22087,27 +23151,21 @@ key=value`
     },
     examples: [
       {
-        description: '生成机器学习项目依赖',
+        description: 'requirements.txt生成器基础用法',
         params: {
-          projectPath: './ml-project',
-          packages: [
-            {
-              name: 'numpy',
-              version: '1.26.2'
-            },
-            {
-              name: 'pandas',
-              version: '2.1.3'
-            },
-            {
-              name: 'scikit-learn',
-              version: '1.3.2'
-            },
-            {
-              name: 'tensorflow',
-              version: '2.15.0'
-            }
-          ]
+          projectPath: './data/sample.dat',
+          packages: ['item1', 'item2'],
+          autoDetect: false,
+          outputPath: './output/result.json'
+        }
+      },
+      {
+        description: 'requirements.txt生成器高级用法',
+        params: {
+          projectPath: './advanced_data/sample.dat',
+          packages: ['item1', 'item2', 'item3', 'item4'],
+          autoDetect: true,
+          outputPath: './advanced_output/result.json'
         }
       }
     ],
@@ -22195,17 +23253,17 @@ key=value`
     },
     examples: [
       {
-        description: '生成Python包配置',
+        description: 'setup.py生成器基础用法',
         params: {
-          projectPath: './my-package',
-          config: {
-            name: 'my-awesome-package',
-            version: '0.1.0',
-            author: 'Your Name',
-            author_email: 'your.email@example.com',
-            description: 'A short description',
-            install_requires: ['requests>=2.28.0', 'numpy>=1.24.0']
-          }
+          projectPath: './data/sample.dat',
+          config: 'value'
+        }
+      },
+      {
+        description: 'setup.py生成器高级用法',
+        params: {
+          projectPath: './advanced_data/sample.dat',
+          config: 'advanced_value'
         }
       }
     ],
@@ -22274,13 +23332,27 @@ key=value`
     },
     examples: [
       {
-        description: '生成Node.js应用Dockerfile',
+        description: 'Dockerfile生成器基础用法',
         params: {
-          projectPath: './my-app',
+          projectPath: './data/sample.dat',
           baseImage: 'node:18-alpine',
           appType: 'nodejs',
-          port: 3000,
-          entrypoint: 'node index.js'
+          workdir: '/app',
+          port: 10,
+          entrypoint: 'value',
+          buildSteps: ['item1', 'item2']
+        }
+      },
+      {
+        description: 'Dockerfile生成器高级用法',
+        params: {
+          projectPath: './advanced_data/sample.dat',
+          baseImage: 'node:18-alpine',
+          appType: 'python',
+          workdir: '/app',
+          port: 50,
+          entrypoint: 'advanced_value',
+          buildSteps: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -22367,28 +23439,21 @@ key=value`
     },
     examples: [
       {
-        description: '生成Web应用Docker Compose配置',
+        description: 'docker-compose.yml生成器基础用法',
         params: {
-          projectPath: './my-web-app',
-          services: [
-            {
-              name: 'web',
-              build: '.',
-              ports: ['3000:3000'],
-              environment: {
-                NODE_ENV: 'production'
-              }
-            },
-            {
-              name: 'db',
-              image: 'postgres:15',
-              environment: {
-                POSTGRES_PASSWORD: 'password',
-                POSTGRES_DB: 'myapp'
-              },
-              volumes: ['db-data:/var/lib/postgresql/data']
-            }
-          ]
+          projectPath: './data/sample.dat',
+          services: ['item1', 'item2'],
+          networks: 'value',
+          volumes: 'value'
+        }
+      },
+      {
+        description: 'docker-compose.yml生成器高级用法',
+        params: {
+          projectPath: './advanced_data/sample.dat',
+          services: ['item1', 'item2', 'item3', 'item4'],
+          networks: 'advanced_value',
+          volumes: 'advanced_value'
         }
       }
     ],
@@ -22610,9 +23675,17 @@ key=value`
     },
     examples: [
       {
-        description: '分析Solidity智能合约',
+        description: '基础区块链操作',
         params: {
-          contractCode: 'pragma solidity ^0.8.0; contract MyToken { ... }',
+          contractCode: 'value',
+          analysisDepth: 'basic',
+          securityFocus: false
+        }
+      },
+      {
+        description: '高级智能合约',
+        params: {
+          contractCode: 'advanced_value',
           analysisDepth: 'comprehensive',
           securityFocus: true
         }
@@ -22811,15 +23884,19 @@ key=value`
     },
     examples: [
       {
-        description: '生成劳动合同',
+        description: '法律文书生成器 基础用法',
         params: {
           templateType: 'contract',
           jurisdiction: 'CN',
-          variables: {
-            employeeName: '张三',
-            position: '软件工程师',
-            startDate: '2024-01-01'
-          }
+          variables: 'value'
+        }
+      },
+      {
+        description: '法律文书生成器 高级用法',
+        params: {
+          templateType: 'agreement',
+          jurisdiction: 'CN',
+          variables: 'advanced_value'
         }
       }
     ],
@@ -22877,9 +23954,16 @@ key=value`
     },
     examples: [
       {
-        description: '分析专利权利要求',
+        description: '专利权利要求分析器 基础用法',
         params: {
-          claimText: '一种智能手机的触摸屏组件，其特征在于...',
+          claimText: '示例文本',
+          analysisType: 'basic'
+        }
+      },
+      {
+        description: '专利权利要求分析器 高级用法',
+        params: {
+          claimText: '更复杂的示例文本内容，用于测试高级功能',
           analysisType: 'comprehensive'
         }
       }
@@ -22942,10 +24026,19 @@ key=value`
     },
     examples: [
       {
-        description: '分析股票市场',
+        description: '市场数据分析器 基础用法',
         params: {
-          market: 'AAPL',
-          metrics: ['price', 'volume', 'trend']
+          market: 'value',
+          dataSources: ['item1', 'item2'],
+          metrics: ['item1', 'item2']
+        }
+      },
+      {
+        description: '市场数据分析器 高级用法',
+        params: {
+          market: 'advanced_value',
+          dataSources: ['item1', 'item2', 'item3', 'item4'],
+          metrics: ['item1', 'item2', 'item3', 'item4']
         }
       }
     ],
@@ -23011,14 +24104,19 @@ key=value`
     },
     examples: [
       {
-        description: '计算房地产项目IRR和NPV',
+        description: '房地产财务计算器 基础用法',
         params: {
-          projectData: {
-            investment: 10000000,
-            revenues: [2000000, 3000000, 4000000, 5000000],
-            costs: [500000, 600000, 700000, 800000]
-          },
-          discountRate: 0.08
+          projectData: 'value',
+          discountRate: 10,
+          currency: 'CNY'
+        }
+      },
+      {
+        description: '房地产财务计算器 高级用法',
+        params: {
+          projectData: 'advanced_value',
+          discountRate: 50,
+          currency: 'CNY'
         }
       }
     ],
@@ -23080,15 +24178,17 @@ key=value`
     },
     examples: [
       {
-        description: '计算客户健康度评分',
+        description: '客户健康度评分器 基础用法',
         params: {
-          customerData: {
-            usage: 85,
-            engagement: 90,
-            support_tickets: 2,
-            nps_score: 8
-          },
-          scoringModel: 'weighted'
+          customerData: 'value',
+          scoringModel: 'base_model'
+        }
+      },
+      {
+        description: '客户健康度评分器 高级用法',
+        params: {
+          customerData: 'advanced_value',
+          scoringModel: 'advanced_model_v2'
         }
       }
     ],
@@ -23158,15 +24258,19 @@ key=value`
     },
     examples: [
       {
-        description: '预测客户流失风险',
+        description: '客户流失预测器 基础用法',
         params: {
-          customerData: {
-            last_login_days: 30,
-            usage_decline: 0.5,
-            support_tickets: 5,
-            payment_delays: 2
-          },
-          modelType: 'ml'
+          customerData: 'value',
+          modelType: 'base_model',
+          predictionWindow: '90days'
+        }
+      },
+      {
+        description: '客户流失预测器 高级用法',
+        params: {
+          customerData: 'advanced_value',
+          modelType: 'advanced_model_v2',
+          predictionWindow: '90days'
         }
       }
     ],
@@ -23270,8 +24374,16 @@ key=value`
     },
     examples: [
       {
-        description: '使用变革准备度评估器 / Change Readiness Assessor',
-        params: {}
+        description: '变革准备度评估器 基础用法',
+        params: {
+          options: 'value'
+        }
+      },
+      {
+        description: '变革准备度评估器 高级用法',
+        params: {
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: [],
@@ -23378,8 +24490,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用组织架构图生成器 / Organization Chart Generator',
-        params: {}
+        description: '组织架构图生成器 基础用法',
+        params: {
+          organizationData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '组织架构图生成器 高级用法',
+        params: {
+          organizationData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read'],
@@ -23427,8 +24549,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用企业文化分析器 / Culture Analyzer',
-        params: {}
+        description: '企业文化分析器 基础用法',
+        params: {
+          organizationData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '企业文化分析器 高级用法',
+        params: {
+          organizationData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read'],
@@ -23472,8 +24604,16 @@ key=value`
     },
     examples: [
       {
-        description: '使用活动时间线生成器 / Event Timeline Generator',
-        params: {}
+        description: '活动时间线生成器 基础用法',
+        params: {
+          options: 'value'
+        }
+      },
+      {
+        description: '活动时间线生成器 高级用法',
+        params: {
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: [],
@@ -23521,8 +24661,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用新闻稿生成器 / Press Release Generator',
-        params: {}
+        description: '新闻稿生成器 基础用法',
+        params: {
+          content: '示例文本',
+          options: 'value'
+        }
+      },
+      {
+        description: '新闻稿生成器 高级用法',
+        params: {
+          content: '更复杂的示例文本内容，用于测试高级功能',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['text:generate'],
@@ -23570,8 +24720,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用媒体列表管理器 / Media List Manager',
-        params: {}
+        description: '媒体列表管理器 基础用法',
+        params: {
+          content: '示例文本',
+          options: 'value'
+        }
+      },
+      {
+        description: '媒体列表管理器 高级用法',
+        params: {
+          content: '更复杂的示例文本内容，用于测试高级功能',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['text:generate'],
@@ -23619,8 +24779,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用舆情分析器 / Sentiment Analyzer',
-        params: {}
+        description: '舆情分析器 基础用法',
+        params: {
+          content: '示例文本',
+          options: 'value'
+        }
+      },
+      {
+        description: '舆情分析器 高级用法',
+        params: {
+          content: '更复杂的示例文本内容，用于测试高级功能',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['text:generate'],
@@ -23668,8 +24838,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用审计风险评估器 / Audit Risk Assessor',
-        params: {}
+        description: '审计风险评估器 基础用法',
+        params: {
+          auditData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '审计风险评估器 高级用法',
+        params: {
+          auditData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read', 'data:analyze'],
@@ -23717,8 +24897,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用内部控制评价器 / Control Effectiveness Evaluator',
-        params: {}
+        description: '内部控制评价器 基础用法',
+        params: {
+          auditData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '内部控制评价器 高级用法',
+        params: {
+          auditData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read', 'data:analyze'],
@@ -23825,8 +25015,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用财务计算器 / Financial Calculator',
-        params: {}
+        description: '财务计算器 基础用法',
+        params: {
+          financialData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '财务计算器 高级用法',
+        params: {
+          financialData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read', 'compute:intensive'],
@@ -23870,8 +25070,16 @@ key=value`
     },
     examples: [
       {
-        description: '使用模拟运行器 / Simulation Runner',
-        params: {}
+        description: '模拟运行器 基础用法',
+        params: {
+          options: 'value'
+        }
+      },
+      {
+        description: '模拟运行器 高级用法',
+        params: {
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: [],
@@ -23919,8 +25127,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用CRM集成器 / CRM Integrator',
-        params: {}
+        description: 'CRM集成器 基础用法',
+        params: {
+          crmData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: 'CRM集成器 高级用法',
+        params: {
+          crmData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read', 'network:request'],
@@ -23968,8 +25186,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用能力框架工具 / Competency Framework Tool',
-        params: {}
+        description: '能力框架工具 基础用法',
+        params: {
+          organizationData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '能力框架工具 高级用法',
+        params: {
+          organizationData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read'],
@@ -24017,8 +25245,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用预算计算器 / Budget Calculator',
-        params: {}
+        description: '预算计算器 基础用法',
+        params: {
+          financialData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '预算计算器 高级用法',
+        params: {
+          financialData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read', 'compute:intensive'],
@@ -24062,8 +25300,16 @@ key=value`
     },
     examples: [
       {
-        description: '使用供应商管理器 / Vendor Manager',
-        params: {}
+        description: '供应商管理器 基础用法',
+        params: {
+          options: 'value'
+        }
+      },
+      {
+        description: '供应商管理器 高级用法',
+        params: {
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: [],
@@ -24111,8 +25357,18 @@ key=value`
     },
     examples: [
       {
-        description: '使用证据记录器 / Evidence Documenter',
-        params: {}
+        description: '证据记录器 基础用法',
+        params: {
+          auditData: 'value',
+          options: 'value'
+        }
+      },
+      {
+        description: '证据记录器 高级用法',
+        params: {
+          auditData: 'advanced_value',
+          options: 'advanced_value'
+        }
       }
     ],
     required_permissions: ['data:read', 'data:analyze'],
