@@ -1,0 +1,497 @@
+{
+  "version": "0.18.0",
+  "description": "P2意图融合测试场景 - 包含可合并和不可合并的多意图输入",
+  "created_at": "2026-01-01",
+  "total_scenarios": 30,
+  "scenarios": [
+    {
+      "id": "fusion_001",
+      "name": "同文件创建并写入",
+      "user_input": "创建README.md文件并写入项目介绍",
+      "expected_fusion": true,
+      "fusion_strategy": "same_file_operations",
+      "original_intents": [
+        {"type": "CREATE_FILE", "params": {"filePath": "README.md"}},
+        {"type": "WRITE_FILE", "params": {"filePath": "README.md", "content": "项目介绍"}}
+      ],
+      "fused_intent": {
+        "type": "CREATE_AND_WRITE_FILE",
+        "params": {"filePath": "README.md", "content": "项目介绍"}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_002",
+      "name": "Git顺序操作",
+      "user_input": "提交代码并推送到远程仓库",
+      "expected_fusion": true,
+      "fusion_strategy": "sequence_operations",
+      "original_intents": [
+        {"type": "GIT_ADD", "params": {"files": ["."]}},
+        {"type": "GIT_COMMIT", "params": {"message": "Update code"}},
+        {"type": "GIT_PUSH", "params": {}}
+      ],
+      "fused_intent": {
+        "type": "GIT_COMMIT_AND_PUSH",
+        "params": {"files": ["."], "message": "Update code"}
+      },
+      "expected_llm_calls_saved": 2
+    },
+    {
+      "id": "fusion_003",
+      "name": "批量文件创建",
+      "user_input": "创建index.js、app.js和config.js三个文件",
+      "expected_fusion": true,
+      "fusion_strategy": "batch_operations",
+      "original_intents": [
+        {"type": "CREATE_FILE", "params": {"filePath": "index.js"}},
+        {"type": "CREATE_FILE", "params": {"filePath": "app.js"}},
+        {"type": "CREATE_FILE", "params": {"filePath": "config.js"}}
+      ],
+      "fused_intent": {
+        "type": "BATCH_CREATE_FILES",
+        "params": {"files": ["index.js", "app.js", "config.js"]}
+      },
+      "expected_llm_calls_saved": 2
+    },
+    {
+      "id": "fusion_004",
+      "name": "不可融合 - 不同文件操作",
+      "user_input": "创建README.md并删除old.txt",
+      "expected_fusion": false,
+      "fusion_strategy": null,
+      "original_intents": [
+        {"type": "CREATE_FILE", "params": {"filePath": "README.md"}},
+        {"type": "DELETE_FILE", "params": {"filePath": "old.txt"}}
+      ],
+      "fused_intent": null,
+      "expected_llm_calls_saved": 0
+    },
+    {
+      "id": "fusion_005",
+      "name": "依赖操作合并",
+      "user_input": "安装依赖并启动开发服务器",
+      "expected_fusion": true,
+      "fusion_strategy": "dependency_operations",
+      "original_intents": [
+        {"type": "NPM_INSTALL", "params": {}},
+        {"type": "NPM_RUN", "params": {"script": "dev"}}
+      ],
+      "fused_intent": {
+        "type": "NPM_INSTALL_AND_RUN",
+        "params": {"script": "dev"}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_006",
+      "name": "文件读取和分析",
+      "user_input": "读取package.json并分析依赖项",
+      "expected_fusion": true,
+      "fusion_strategy": "dependency_operations",
+      "original_intents": [
+        {"type": "READ_FILE", "params": {"filePath": "package.json"}},
+        {"type": "ANALYZE_DEPENDENCIES", "params": {"source": "package.json"}}
+      ],
+      "fused_intent": {
+        "type": "READ_AND_ANALYZE_FILE",
+        "params": {"filePath": "package.json", "analysisType": "dependencies"}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_007",
+      "name": "不可融合 - 独立任务",
+      "user_input": "发送邮件和生成报告",
+      "expected_fusion": false,
+      "fusion_strategy": null,
+      "original_intents": [
+        {"type": "SEND_EMAIL", "params": {"to": "user@example.com"}},
+        {"type": "GENERATE_REPORT", "params": {"type": "monthly"}}
+      ],
+      "fused_intent": null,
+      "expected_llm_calls_saved": 0
+    },
+    {
+      "id": "fusion_008",
+      "name": "代码生成和格式化",
+      "user_input": "生成React组件并格式化代码",
+      "expected_fusion": true,
+      "fusion_strategy": "dependency_operations",
+      "original_intents": [
+        {"type": "GENERATE_CODE", "params": {"type": "react_component", "name": "Button"}},
+        {"type": "FORMAT_CODE", "params": {"filePath": "Button.jsx"}}
+      ],
+      "fused_intent": {
+        "type": "GENERATE_AND_FORMAT_CODE",
+        "params": {"type": "react_component", "name": "Button"}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_009",
+      "name": "数据库备份和优化",
+      "user_input": "备份数据库并执行优化",
+      "expected_fusion": true,
+      "fusion_strategy": "sequence_operations",
+      "original_intents": [
+        {"type": "DB_BACKUP", "params": {"database": "main"}},
+        {"type": "DB_OPTIMIZE", "params": {"database": "main"}}
+      ],
+      "fused_intent": {
+        "type": "DB_BACKUP_AND_OPTIMIZE",
+        "params": {"database": "main"}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_010",
+      "name": "批量图片处理",
+      "user_input": "压缩所有PNG图片",
+      "expected_fusion": true,
+      "fusion_strategy": "batch_operations",
+      "original_intents": [
+        {"type": "COMPRESS_IMAGE", "params": {"filePath": "img1.png"}},
+        {"type": "COMPRESS_IMAGE", "params": {"filePath": "img2.png"}},
+        {"type": "COMPRESS_IMAGE", "params": {"filePath": "img3.png"}}
+      ],
+      "fused_intent": {
+        "type": "BATCH_COMPRESS_IMAGES",
+        "params": {"pattern": "*.png"}
+      },
+      "expected_llm_calls_saved": 2
+    },
+    {
+      "id": "fusion_011",
+      "name": "复杂场景 - 需要LLM判断",
+      "user_input": "创建用户认证系统",
+      "expected_fusion": true,
+      "fusion_strategy": "llm",
+      "original_intents": [
+        {"type": "CREATE_FILE", "params": {"filePath": "auth.js"}},
+        {"type": "CREATE_FILE", "params": {"filePath": "user.model.js"}},
+        {"type": "CREATE_FILE", "params": {"filePath": "auth.routes.js"}},
+        {"type": "GENERATE_CODE", "params": {"type": "authentication"}},
+        {"type": "NPM_INSTALL", "params": {"packages": ["bcrypt", "jsonwebtoken"]}}
+      ],
+      "fused_intent": {
+        "type": "CREATE_AUTH_SYSTEM",
+        "params": {"includeJWT": true, "includePasswordHash": true}
+      },
+      "expected_llm_calls_saved": 3
+    },
+    {
+      "id": "fusion_012",
+      "name": "测试和构建",
+      "user_input": "运行测试并构建项目",
+      "expected_fusion": true,
+      "fusion_strategy": "sequence_operations",
+      "original_intents": [
+        {"type": "NPM_TEST", "params": {}},
+        {"type": "NPM_BUILD", "params": {}}
+      ],
+      "fused_intent": {
+        "type": "NPM_TEST_AND_BUILD",
+        "params": {}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_013",
+      "name": "不可融合 - 时间依赖",
+      "user_input": "启动服务器，等待5秒，然后发送请求",
+      "expected_fusion": false,
+      "fusion_strategy": null,
+      "original_intents": [
+        {"type": "START_SERVER", "params": {"port": 3000}},
+        {"type": "WAIT", "params": {"duration": 5000}},
+        {"type": "HTTP_REQUEST", "params": {"url": "http://localhost:3000"}}
+      ],
+      "fused_intent": null,
+      "expected_llm_calls_saved": 0
+    },
+    {
+      "id": "fusion_014",
+      "name": "文档生成和部署",
+      "user_input": "生成API文档并部署到GitHub Pages",
+      "expected_fusion": true,
+      "fusion_strategy": "sequence_operations",
+      "original_intents": [
+        {"type": "GENERATE_DOCS", "params": {"type": "api"}},
+        {"type": "GIT_ADD", "params": {"files": ["docs/"]}},
+        {"type": "GIT_COMMIT", "params": {"message": "Update docs"}},
+        {"type": "GIT_PUSH", "params": {"branch": "gh-pages"}}
+      ],
+      "fused_intent": {
+        "type": "GENERATE_AND_DEPLOY_DOCS",
+        "params": {"type": "api", "target": "gh-pages"}
+      },
+      "expected_llm_calls_saved": 3
+    },
+    {
+      "id": "fusion_015",
+      "name": "环境配置",
+      "user_input": "创建.env文件并配置数据库连接",
+      "expected_fusion": true,
+      "fusion_strategy": "same_file_operations",
+      "original_intents": [
+        {"type": "CREATE_FILE", "params": {"filePath": ".env"}},
+        {"type": "WRITE_FILE", "params": {"filePath": ".env", "content": "DB_HOST=localhost"}}
+      ],
+      "fused_intent": {
+        "type": "CREATE_AND_WRITE_FILE",
+        "params": {"filePath": ".env", "content": "DB_HOST=localhost"}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_016",
+      "name": "批量文件删除",
+      "user_input": "删除所有临时文件",
+      "expected_fusion": true,
+      "fusion_strategy": "batch_operations",
+      "original_intents": [
+        {"type": "DELETE_FILE", "params": {"filePath": "temp1.tmp"}},
+        {"type": "DELETE_FILE", "params": {"filePath": "temp2.tmp"}},
+        {"type": "DELETE_FILE", "params": {"filePath": "temp3.tmp"}}
+      ],
+      "fused_intent": {
+        "type": "BATCH_DELETE_FILES",
+        "params": {"pattern": "*.tmp"}
+      },
+      "expected_llm_calls_saved": 2
+    },
+    {
+      "id": "fusion_017",
+      "name": "不可融合 - 条件依赖",
+      "user_input": "如果测试通过则部署，否则发送通知",
+      "expected_fusion": false,
+      "fusion_strategy": null,
+      "original_intents": [
+        {"type": "NPM_TEST", "params": {}},
+        {"type": "CONDITIONAL", "params": {"if": "test_passed"}},
+        {"type": "DEPLOY", "params": {}},
+        {"type": "SEND_NOTIFICATION", "params": {"message": "Test failed"}}
+      ],
+      "fused_intent": null,
+      "expected_llm_calls_saved": 0
+    },
+    {
+      "id": "fusion_018",
+      "name": "日志清理和归档",
+      "user_input": "清理旧日志并归档",
+      "expected_fusion": true,
+      "fusion_strategy": "sequence_operations",
+      "original_intents": [
+        {"type": "DELETE_OLD_LOGS", "params": {"olderThan": "30d"}},
+        {"type": "ARCHIVE_LOGS", "params": {"destination": "archive/"}}
+      ],
+      "fused_intent": {
+        "type": "CLEANUP_AND_ARCHIVE_LOGS",
+        "params": {"olderThan": "30d", "destination": "archive/"}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_019",
+      "name": "代码检查和修复",
+      "user_input": "运行ESLint并自动修复问题",
+      "expected_fusion": true,
+      "fusion_strategy": "dependency_operations",
+      "original_intents": [
+        {"type": "RUN_LINT", "params": {}},
+        {"type": "FIX_LINT_ISSUES", "params": {"autoFix": true}}
+      ],
+      "fused_intent": {
+        "type": "LINT_AND_FIX",
+        "params": {"autoFix": true}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_020",
+      "name": "数据导入和验证",
+      "user_input": "导入CSV数据并验证格式",
+      "expected_fusion": true,
+      "fusion_strategy": "dependency_operations",
+      "original_intents": [
+        {"type": "IMPORT_CSV", "params": {"filePath": "data.csv"}},
+        {"type": "VALIDATE_DATA", "params": {"schema": "user_schema"}}
+      ],
+      "fused_intent": {
+        "type": "IMPORT_AND_VALIDATE_CSV",
+        "params": {"filePath": "data.csv", "schema": "user_schema"}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_021",
+      "name": "Docker容器管理",
+      "user_input": "停止旧容器并启动新容器",
+      "expected_fusion": true,
+      "fusion_strategy": "sequence_operations",
+      "original_intents": [
+        {"type": "DOCKER_STOP", "params": {"container": "old_app"}},
+        {"type": "DOCKER_START", "params": {"container": "new_app"}}
+      ],
+      "fused_intent": {
+        "type": "DOCKER_RESTART",
+        "params": {"old": "old_app", "new": "new_app"}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_022",
+      "name": "不可融合 - 需要人工确认",
+      "user_input": "删除生产数据库（需要确认）",
+      "expected_fusion": false,
+      "fusion_strategy": null,
+      "original_intents": [
+        {"type": "ASK_CONFIRMATION", "params": {"message": "确认删除？"}},
+        {"type": "DELETE_DATABASE", "params": {"database": "production"}}
+      ],
+      "fused_intent": null,
+      "expected_llm_calls_saved": 0
+    },
+    {
+      "id": "fusion_023",
+      "name": "缓存清理和重建",
+      "user_input": "清除缓存并重新生成",
+      "expected_fusion": true,
+      "fusion_strategy": "sequence_operations",
+      "original_intents": [
+        {"type": "CLEAR_CACHE", "params": {}},
+        {"type": "REBUILD_CACHE", "params": {}}
+      ],
+      "fused_intent": {
+        "type": "REFRESH_CACHE",
+        "params": {}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_024",
+      "name": "批量文件重命名",
+      "user_input": "将所有JPG文件重命名为小写",
+      "expected_fusion": true,
+      "fusion_strategy": "batch_operations",
+      "original_intents": [
+        {"type": "RENAME_FILE", "params": {"from": "IMG1.JPG", "to": "img1.jpg"}},
+        {"type": "RENAME_FILE", "params": {"from": "IMG2.JPG", "to": "img2.jpg"}},
+        {"type": "RENAME_FILE", "params": {"from": "IMG3.JPG", "to": "img3.jpg"}}
+      ],
+      "fused_intent": {
+        "type": "BATCH_RENAME_FILES",
+        "params": {"pattern": "*.JPG", "transform": "lowercase"}
+      },
+      "expected_llm_calls_saved": 2
+    },
+    {
+      "id": "fusion_025",
+      "name": "安全扫描和报告",
+      "user_input": "扫描安全漏洞并生成报告",
+      "expected_fusion": true,
+      "fusion_strategy": "dependency_operations",
+      "original_intents": [
+        {"type": "SECURITY_SCAN", "params": {}},
+        {"type": "GENERATE_REPORT", "params": {"type": "security"}}
+      ],
+      "fused_intent": {
+        "type": "SCAN_AND_REPORT_SECURITY",
+        "params": {}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_026",
+      "name": "复杂LLM融合 - Web应用创建",
+      "user_input": "创建完整的博客Web应用",
+      "expected_fusion": true,
+      "fusion_strategy": "llm",
+      "original_intents": [
+        {"type": "CREATE_PROJECT", "params": {"template": "express"}},
+        {"type": "CREATE_FILE", "params": {"filePath": "models/Post.js"}},
+        {"type": "CREATE_FILE", "params": {"filePath": "routes/posts.js"}},
+        {"type": "CREATE_FILE", "params": {"filePath": "views/index.ejs"}},
+        {"type": "NPM_INSTALL", "params": {"packages": ["express", "mongoose", "ejs"]}},
+        {"type": "GENERATE_CODE", "params": {"type": "crud_routes"}},
+        {"type": "WRITE_CONFIG", "params": {"database": "mongodb"}}
+      ],
+      "fused_intent": {
+        "type": "CREATE_BLOG_APP",
+        "params": {"framework": "express", "database": "mongodb", "viewEngine": "ejs"}
+      },
+      "expected_llm_calls_saved": 5
+    },
+    {
+      "id": "fusion_027",
+      "name": "CI/CD流水线",
+      "user_input": "运行测试、构建并部署到生产环境",
+      "expected_fusion": true,
+      "fusion_strategy": "sequence_operations",
+      "original_intents": [
+        {"type": "NPM_TEST", "params": {}},
+        {"type": "NPM_BUILD", "params": {}},
+        {"type": "DEPLOY", "params": {"env": "production"}}
+      ],
+      "fused_intent": {
+        "type": "CI_CD_PIPELINE",
+        "params": {"env": "production"}
+      },
+      "expected_llm_calls_saved": 2
+    },
+    {
+      "id": "fusion_028",
+      "name": "数据库迁移",
+      "user_input": "运行数据库迁移并验证",
+      "expected_fusion": true,
+      "fusion_strategy": "dependency_operations",
+      "original_intents": [
+        {"type": "RUN_MIGRATION", "params": {"version": "latest"}},
+        {"type": "VERIFY_MIGRATION", "params": {}}
+      ],
+      "fused_intent": {
+        "type": "MIGRATE_AND_VERIFY_DATABASE",
+        "params": {"version": "latest"}
+      },
+      "expected_llm_calls_saved": 1
+    },
+    {
+      "id": "fusion_029",
+      "name": "不可融合 - 并行任务",
+      "user_input": "同时运行前端和后端开发服务器",
+      "expected_fusion": false,
+      "fusion_strategy": null,
+      "original_intents": [
+        {"type": "NPM_RUN", "params": {"script": "dev:frontend"}},
+        {"type": "NPM_RUN", "params": {"script": "dev:backend"}}
+      ],
+      "fused_intent": null,
+      "expected_llm_calls_saved": 0,
+      "note": "并行任务不应融合"
+    },
+    {
+      "id": "fusion_030",
+      "name": "API测试和文档更新",
+      "user_input": "测试API端点并更新文档",
+      "expected_fusion": true,
+      "fusion_strategy": "dependency_operations",
+      "original_intents": [
+        {"type": "TEST_API", "params": {}},
+        {"type": "UPDATE_API_DOCS", "params": {}}
+      ],
+      "fused_intent": {
+        "type": "TEST_AND_DOCUMENT_API",
+        "params": {}
+      },
+      "expected_llm_calls_saved": 1
+    }
+  ],
+  "statistics": {
+    "fusable_scenarios": 24,
+    "non_fusable_scenarios": 6,
+    "rule_fusion": 20,
+    "llm_fusion": 4,
+    "average_llm_calls_saved": 1.4
+  }
+}
