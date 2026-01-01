@@ -13,6 +13,7 @@ dist/
 build/
 out/
 unpackage/
+backend/standalone/
 *.app
 *.exe
 *.dmg
