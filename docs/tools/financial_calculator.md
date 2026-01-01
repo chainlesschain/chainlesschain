@@ -1,0 +1,50 @@
+---
+id: tool_financial_calculator
+name: financial_calculator
+category: finance
+type: function
+risk_level: 1
+---
+
+# 财务计算器 / Financial Calculator
+
+## 📝 概述
+
+计算各类财务指标，包括NPV、IRR、ROI、现值、终值等
+
+**分类**: finance
+**类型**: function
+**风险等级**: 🟢 低风险
+**状态**: ✅ 已启用
+
+## 📥 参数说明
+
+该工具无参数。
+
+## 📤 返回值说明
+
+返回值根据具体执行情况而定。
+
+## 📖 使用示例
+
+```javascript
+// 通过 FunctionCaller 调用
+const result = await functionCaller.call('financial_calculator', {});
+
+console.log('执行结果:', result);
+```
+
+```javascript
+// 通过 IPC 测试工具
+const result = await window.electronAPI.invoke('tool:test', toolId, {});
+```
+
+## ⚠️ 注意事项
+
+- 请按照参数说明正确传递参数
+- 注意处理可能的错误和异常情况
+
+---
+
+**文档生成时间**: 2026/1/1 22:08:04
+**工具类型**: 内置
