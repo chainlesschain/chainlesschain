@@ -14098,21 +14098,26 @@ ${content}
             depth: limit,
           });
 
-          // 转换为统一格式
+          // 转换为统一格式（保持与组件期望的数据结构一致）
           const formattedCommits = commits.map(commit => ({
             sha: commit.oid,
             oid: commit.oid,
             message: commit.commit.message,
-            author: {
-              name: commit.commit.author.name,
-              email: commit.commit.author.email,
-              timestamp: commit.commit.author.timestamp,
-            },
-            committer: {
-              name: commit.commit.committer.name,
-              email: commit.commit.committer.email,
-              timestamp: commit.commit.committer.timestamp,
-            },
+            timestamp: commit.commit.author.timestamp,  // 顶层时间戳，便于访问
+            author: commit.commit.author.name,          // 顶层作者名，便于显示
+            commit: {                                   // 保留嵌套结构作为后备
+              message: commit.commit.message,
+              author: {
+                name: commit.commit.author.name,
+                email: commit.commit.author.email,
+                timestamp: commit.commit.author.timestamp,
+              },
+              committer: {
+                name: commit.commit.committer.name,
+                email: commit.commit.committer.email,
+                timestamp: commit.commit.committer.timestamp,
+              }
+            }
           }));
 
           // 分页处理
