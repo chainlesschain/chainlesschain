@@ -90,15 +90,19 @@ echo ""
 # 5. Check Java Backend
 # ============================================
 echo -e "${YELLOW}[5/5] Java Backend Service (JAR)${RESET}"
-if [ -f "$BACKEND_DIR/project-service/target/project-service.jar" ]; then
-    echo -e "  Status: ${GREEN}✓ Ready${RESET}"
-    echo "  Path: $BACKEND_DIR/project-service/target/project-service.jar"
+JAR_PATH="$BACKEND_DIR/project-service/target/project-service.jar"
+if [ ! -f "$JAR_PATH" ]; then
+    JAR_PATH=$(ls -t "$BACKEND_DIR"/project-service/target/project-service-*.jar 2>/dev/null | head -n 1)
+fi
+if [ -n "$JAR_PATH" ] && [ -f "$JAR_PATH" ]; then
+    echo -e "  Status: ${GREEN}? Ready${RESET}"
+    echo "  Path: $JAR_PATH"
 
     # Show JAR file size
-    SIZE=$(du -h "$BACKEND_DIR/project-service/target/project-service.jar" | cut -f1)
+    SIZE=$(du -h "$JAR_PATH" | cut -f1)
     echo "  Size: $SIZE"
 else
-    echo -e "  Status: ${RED}✗ Missing${RESET}"
+    echo -e "  Status: ${RED}? Missing${RESET}"
     echo ""
     # Check if Maven is available
     if command -v mvn &> /dev/null; then
@@ -113,7 +117,6 @@ else
     ALL_READY=0
 fi
 echo ""
-
 # ============================================
 # Extra check: Development Tools
 # ============================================
