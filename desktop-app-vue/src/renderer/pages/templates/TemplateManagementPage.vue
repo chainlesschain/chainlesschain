@@ -60,6 +60,9 @@
           <a-select-option value="legal">法律</a-select-option>
           <a-select-option value="time-management">时间管理</a-select-option>
           <a-select-option value="tech-docs">技术文档</a-select-option>
+          <a-select-option value="productivity">效率</a-select-option>
+          <a-select-option value="career">职业</a-select-option>
+          <a-select-option value="marketing-pro">营销推广</a-select-option>
         </a-select>
 
         <span>项目类型：</span>
@@ -441,11 +444,14 @@ function getCategoryLabel(category) {
     'creative-writing': '创意写作',
     'data-science': '数据科学',
     ecommerce: '电商',
+    'marketing-pro': '营销推广',
     health: '健康',
     learning: '学习',
     legal: '法律',
     'time-management': '时间管理',
-    'tech-docs': '技术文档'
+    'tech-docs': '技术文档',
+    productivity: '效率',
+    career: '职业'
   }
   return categoryMap[category] || category
 }
