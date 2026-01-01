@@ -342,23 +342,26 @@ const setContent = (newContent) => {
         return;
       }
 
-      // 获取当前编辑器状态快照
-      const currentState = editorView.value.state;
-
-      // 创建基于当前状态的事务
-      const transaction = currentState.update({
+      // 使用最新的state创建事务（避免状态不一致）
+      // 不要预先获取state，而是在创建事务时使用最新的
+      editorView.value.dispatch({
         changes: {
           from: 0,
-          to: currentState.doc.length,
+          to: editorView.value.state.doc.length,
           insert: contentStr,
         },
       });
 
-      editorView.value.dispatch(transaction);
       hasUnsavedChanges.value = false;
       console.log('[SimpleEditor] setContent 成功，内容长度:', contentStr.length);
     } catch (error) {
       console.error('[SimpleEditor] setContent 失败:', error);
+      console.error('[SimpleEditor] 错误详情:', {
+        message: error.message,
+        stack: error.stack,
+        editorExists: !!editorView.value,
+        contentType: typeof newContent,
+      });
       // 静默失败，避免中断用户操作
     } finally {
       // 释放锁

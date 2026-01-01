@@ -59,11 +59,18 @@ class FunctionCaller {
           throw new Error('未指定文件路径');
         }
 
+        // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
+        let resolvedPath = filePath;
+        if (context.projectPath && !path.isAbsolute(filePath)) {
+          resolvedPath = path.join(context.projectPath, filePath);
+          console.log(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+        }
+
         try {
-          const content = await fs.readFile(filePath, 'utf-8');
+          const content = await fs.readFile(resolvedPath, 'utf-8');
           return {
             success: true,
-            filePath,
+            filePath: resolvedPath,
             content,
           };
         } catch (error) {
@@ -94,17 +101,26 @@ class FunctionCaller {
           throw new Error('未指定文件内容');
         }
 
+        // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
+        let resolvedPath = filePath;
+        if (context.projectPath && !path.isAbsolute(filePath)) {
+          resolvedPath = path.join(context.projectPath, filePath);
+          console.log(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+        }
+
         try {
           // 确保目录存在
-          const dir = path.dirname(filePath);
+          const dir = path.dirname(resolvedPath);
           await fs.mkdir(dir, { recursive: true });
 
           // 写入文件
-          await fs.writeFile(filePath, content, 'utf-8');
+          await fs.writeFile(resolvedPath, content, 'utf-8');
+
+          console.log(`[FunctionCaller] 文件已写入: ${resolvedPath}, 大小: ${content.length} 字节`);
 
           return {
             success: true,
-            filePath,
+            filePath: resolvedPath,
             size: content.length,
           };
         } catch (error) {
@@ -286,9 +302,16 @@ function initializeInteractions() {
           throw new Error('未指定文件路径');
         }
 
+        // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
+        let resolvedPath = filePath;
+        if (context.projectPath && !path.isAbsolute(filePath)) {
+          resolvedPath = path.join(context.projectPath, filePath);
+          console.log(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+        }
+
         try {
           // 读取文件内容
-          let content = await fs.readFile(filePath, 'utf-8');
+          let content = await fs.readFile(resolvedPath, 'utf-8');
 
           // 应用修改（简单的字符串替换）
           for (const mod of modifications) {
@@ -310,11 +333,11 @@ function initializeInteractions() {
           }
 
           // 写回文件
-          await fs.writeFile(filePath, content, 'utf-8');
+          await fs.writeFile(resolvedPath, content, 'utf-8');
 
           return {
             success: true,
-            filePath,
+            filePath: resolvedPath,
             modificationsApplied: modifications.length,
           };
         } catch (error) {

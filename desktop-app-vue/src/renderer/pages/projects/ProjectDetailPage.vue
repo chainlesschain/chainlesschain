@@ -205,6 +205,7 @@
           :ai-creation-data="aiCreationData"
           @close="showChatPanel = false"
           @creation-complete="handleAICreationComplete"
+          @files-changed="handleRefreshFiles"
         />
       </div>
 
