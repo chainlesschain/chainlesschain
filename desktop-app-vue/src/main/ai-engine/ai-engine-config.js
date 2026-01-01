@@ -56,6 +56,10 @@ const DEFAULT_CONFIG = {
   // 是否启用历史记忆优化
   enableHistoryMemory: true,
 
+  // 智能层模块（v0.24.0 Phase 1-4）
+  // 是否启用智能层（数据收集、用户画像、ML推荐、混合推荐）
+  enableIntelligenceLayer: true,
+
   // 工具沙箱配置
   sandboxConfig: {
     timeout: 30000,           // 工具执行超时时间（毫秒）
