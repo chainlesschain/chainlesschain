@@ -7,7 +7,15 @@
 
 const fs = require('fs');
 const path = require('path');
-const initSqlJs = require('sql.js');
+
+// sql.js is optional for migration tool
+let initSqlJs = null;
+try {
+  initSqlJs = require('sql.js');
+} catch (err) {
+  console.log('[Migration] sql.js not available');
+}
+
 const { createEncryptedDatabase, createUnencryptedDatabase } = require('./sqlcipher-wrapper');
 
 /**
