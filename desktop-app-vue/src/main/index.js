@@ -13805,6 +13805,17 @@ ${content}
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        const fs = require('fs');
+        const path = require('path');
+
+        // 0. 检查并初始化 Git 仓库（如果需要）
+        const gitDir = path.join(resolvedPath, '.git');
+        if (!fs.existsSync(gitDir)) {
+          console.log('[Main] Git 仓库未初始化，正在初始化...');
+          const git = require('isomorphic-git');
+          await git.init({ fs, dir: resolvedPath, defaultBranch: 'main' });
+          console.log('[Main] Git 仓库初始化完成');
+        }
 
         // 1. 提交前：刷新所有数据库更改到文件系统
         console.log('[Main] Git 提交前，刷新数据库更改到文件系统...');
@@ -13828,14 +13839,25 @@ ${content}
         if (!result.success || result.status === 0) {
           console.warn('[Main] 后端服务不可用，使用本地Git');
           const git = require('isomorphic-git');
-          const fs = require('fs');
           const status = await git.statusMatrix({ fs, dir: resolvedPath });
+
+          // 添加所有变更的文件
+          let hasChanges = false;
           for (const row of status) {
             const [filepath, , worktreeStatus] = row;
             if (worktreeStatus !== 1) {
               await git.add({ fs, dir: resolvedPath, filepath });
+              hasChanges = true;
             }
           }
+
+          // 如果没有变更，返回成功但提示无变更
+          if (!hasChanges) {
+            console.log('[Main] 没有需要提交的变更');
+            return { success: true, message: 'No changes to commit' };
+          }
+
+          // 执行提交
           const sha = await git.commit({ fs, dir: resolvedPath, message, author });
           console.log('[Main] Git 提交成功:', sha);
           return { success: true, sha };
@@ -13889,6 +13911,14 @@ ${content}
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(repoPath);
+        const fs = require('fs');
+        const path = require('path');
+
+        // 0. 检查 Git 仓库是否存在
+        const gitDir = path.join(resolvedPath, '.git');
+        if (!fs.existsSync(gitDir)) {
+          throw new Error('Git 仓库未初始化，请先初始化仓库后再执行 pull 操作');
+        }
 
         // 1. 调用后端API
         console.log('[Main] 执行 Git pull...');
