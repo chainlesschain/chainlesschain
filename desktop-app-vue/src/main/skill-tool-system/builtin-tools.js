@@ -4339,7 +4339,9 @@ Hello World`,
       {
         description: '格式化Markdown文档',
         params: {
-          text: '# 标题\n\n这是内容',
+          text: `# 标题
+
+这是内容`,
           format: 'markdown',
           options: {
             prettify: true
@@ -7786,7 +7788,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -7871,7 +7873,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -7929,7 +7931,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read'],
+    required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -8000,7 +8002,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.request'],
+    required_permissions: ['network:request'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -8102,7 +8104,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -8185,7 +8187,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -8257,7 +8259,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.request'],
+    required_permissions: ['network:request'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -8326,7 +8328,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.request'],
+    required_permissions: ['network:request'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -8467,7 +8469,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write', 'compute.intensive'],
+    required_permissions: ['file:read', 'file:write', 'compute:intensive'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -8697,7 +8699,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.info'],
+    required_permissions: ['system:info'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -8769,7 +8771,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read'],
+    required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -8838,7 +8840,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read'],
+    required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -8931,7 +8933,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -9038,7 +9040,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read'],
+    required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -9133,7 +9135,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.scan'],
+    required_permissions: ['network:scan'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -9217,7 +9219,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read'],
+    required_permissions: ['file:read'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -10221,7 +10223,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read'],
+    required_permissions: ['file:read'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -10414,7 +10416,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -10530,7 +10532,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.request'],
+    required_permissions: ['network:request'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -10616,7 +10618,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -11041,7 +11043,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -11126,7 +11128,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['cicd.execute'],
+    required_permissions: ['cicd:execute'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -11373,7 +11375,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -11474,7 +11476,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -11545,7 +11547,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -11630,7 +11632,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read'],
+    required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -11708,7 +11710,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -11788,7 +11790,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -11895,7 +11897,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read'],
+    required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -12000,7 +12002,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['content.write'],
+    required_permissions: ['content:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -12099,7 +12101,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -12199,7 +12201,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.request'],
+    required_permissions: ['network:request'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -12289,7 +12291,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.request'],
+    required_permissions: ['network:request'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -12621,7 +12623,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.request'],
+    required_permissions: ['network:request'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -12717,7 +12719,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.request'],
+    required_permissions: ['network:request'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -12793,7 +12795,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -12867,7 +12869,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.mqtt'],
+    required_permissions: ['network:mqtt'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -12939,7 +12941,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -13010,7 +13012,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -13087,7 +13089,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -13156,7 +13158,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -13235,7 +13237,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -13301,7 +13303,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['data.write'],
+    required_permissions: ['data:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -13376,7 +13378,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.control'],
+    required_permissions: ['system:control'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -13446,7 +13448,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.control'],
+    required_permissions: ['system:control'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -13529,7 +13531,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -13611,7 +13613,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.control'],
+    required_permissions: ['system:control'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -13678,7 +13680,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -13747,7 +13749,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -13852,7 +13854,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['data.read'],
+    required_permissions: ['data:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -13958,7 +13960,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['data.read'],
+    required_permissions: ['data:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -14046,7 +14048,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.request'],
+    required_permissions: ['network:request'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -14144,7 +14146,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['data.read'],
+    required_permissions: ['data:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -14215,7 +14217,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -14294,7 +14296,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -14372,7 +14374,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['security.encryption'],
+    required_permissions: ['security:encryption'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -14437,7 +14439,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -14523,7 +14525,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -14593,7 +14595,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -14665,7 +14667,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -14748,7 +14750,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -14826,7 +14828,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -14903,7 +14905,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -14978,7 +14980,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -15045,7 +15047,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -15131,7 +15133,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['data.read'],
+    required_permissions: ['data:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -15214,7 +15216,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['data.read'],
+    required_permissions: ['data:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -15292,7 +15294,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -15367,7 +15369,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -15450,7 +15452,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1
@@ -15532,7 +15534,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -15621,7 +15623,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -15691,7 +15693,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -15773,7 +15775,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -15851,7 +15853,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.admin'],
+    required_permissions: ['system:admin'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -15961,7 +15963,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.physics'],
+    required_permissions: ['science:physics'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -16077,7 +16079,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.physics'],
+    required_permissions: ['science:physics'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -16166,7 +16168,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.physics'],
+    required_permissions: ['science:physics'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -16274,7 +16276,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.physics'],
+    required_permissions: ['science:physics'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -16380,7 +16382,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.physics'],
+    required_permissions: ['science:physics'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -16476,7 +16478,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.physics'],
+    required_permissions: ['science:physics'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -16600,7 +16602,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['energy.nuclear'],
+    required_permissions: ['energy:nuclear'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -16708,7 +16710,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['energy.nuclear'],
+    required_permissions: ['energy:nuclear'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -16814,7 +16816,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.admin'],
+    required_permissions: ['network:admin'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -16919,7 +16921,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['ai.inference'],
+    required_permissions: ['ai:inference'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17023,7 +17025,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.physics'],
+    required_permissions: ['science:physics'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17132,7 +17134,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.physics'],
+    required_permissions: ['science:physics'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17250,7 +17252,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.environment'],
+    required_permissions: ['science:environment'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17358,7 +17360,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.environment'],
+    required_permissions: ['science:environment'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17492,7 +17494,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.geology'],
+    required_permissions: ['science:geology'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17633,7 +17635,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.geology'],
+    required_permissions: ['science:geology'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17749,7 +17751,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.archaeology'],
+    required_permissions: ['science:archaeology'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17870,7 +17872,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.archaeology'],
+    required_permissions: ['science:archaeology'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17996,7 +17998,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['hardware.design'],
+    required_permissions: ['hardware:design'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18119,7 +18121,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['science.biology'],
+    required_permissions: ['science:biology'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18215,7 +18217,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18295,7 +18297,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18381,7 +18383,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18474,7 +18476,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18550,7 +18552,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18626,7 +18628,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18721,7 +18723,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18810,7 +18812,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18899,7 +18901,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -18968,7 +18970,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read'],
+    required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -19054,7 +19056,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.screen'],
+    required_permissions: ['system:screen'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -19136,7 +19138,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['system.screen', 'system.audio'],
+    required_permissions: ['system:screen', 'system:audio'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -19228,7 +19230,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['calendar.write'],
+    required_permissions: ['calendar:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -19303,7 +19305,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['notification.write'],
+    required_permissions: ['notification:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -19374,7 +19376,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -19454,7 +19456,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read'],
+    required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -19627,7 +19629,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['security.password'],
+    required_permissions: ['security:password'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -19698,7 +19700,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.test'],
+    required_permissions: ['network:test'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -19787,7 +19789,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['network.diagnostic'],
+    required_permissions: ['network:diagnostic'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -19902,7 +19904,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20002,7 +20004,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20082,7 +20084,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20168,7 +20170,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20240,7 +20242,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20347,7 +20349,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20424,7 +20426,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20544,7 +20546,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20701,7 +20703,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20817,7 +20819,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.write'],
+    required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20886,7 +20888,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
@@ -20956,7 +20958,7 @@ console.log(x)`,
         }
       }
     ],
-    required_permissions: ['file.read', 'file.write'],
+    required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1

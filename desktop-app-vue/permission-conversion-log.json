@@ -1,0 +1,758 @@
+{
+  "summary": {
+    "convertedTools": 126,
+    "convertedPermissions": 150
+  },
+  "conversions": [
+    {
+      "toolId": "tool_model_generator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_model_converter",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_model_converter",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_audio_fingerprint",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_contract_caller",
+      "oldPermission": "network.request",
+      "newPermission": "network:request"
+    },
+    {
+      "toolId": "tool_chart_generator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_graph_plotter",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_device_manager",
+      "oldPermission": "network.request",
+      "newPermission": "network:request"
+    },
+    {
+      "toolId": "tool_mqtt_client",
+      "oldPermission": "network.request",
+      "newPermission": "network:request"
+    },
+    {
+      "toolId": "tool_model_trainer",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_model_trainer",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_model_trainer",
+      "oldPermission": "compute.intensive",
+      "newPermission": "compute:intensive"
+    },
+    {
+      "toolId": "tool_resource_monitor",
+      "oldPermission": "system.info",
+      "newPermission": "system:info"
+    },
+    {
+      "toolId": "tool_protobuf_encoder",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_protobuf_decoder",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_search_indexer",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_search_query",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_vulnerability_scanner",
+      "oldPermission": "network.scan",
+      "newPermission": "network:scan"
+    },
+    {
+      "toolId": "tool_security_auditor",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_medical_image_analyzer",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_legal_document_generator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_case_searcher",
+      "oldPermission": "network.request",
+      "newPermission": "network:request"
+    },
+    {
+      "toolId": "tool_bim_modeler",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_bim_modeler",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_container_orchestrator",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_cicd_pipeline",
+      "oldPermission": "cicd.execute",
+      "newPermission": "cicd:execute"
+    },
+    {
+      "toolId": "tool_ar_content_creator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_vr_scene_builder",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_voice_cloner",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_voice_cloner",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_object_detector",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_image_segmenter",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_image_segmenter",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_test_generator",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_test_generator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_test_runner",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_content_publisher",
+      "oldPermission": "content.write",
+      "newPermission": "content:write"
+    },
+    {
+      "toolId": "tool_media_manager",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_sentiment_monitor",
+      "oldPermission": "network.request",
+      "newPermission": "network:request"
+    },
+    {
+      "toolId": "tool_influencer_analyzer",
+      "oldPermission": "network.request",
+      "newPermission": "network:request"
+    },
+    {
+      "toolId": "tool_weather_analyzer",
+      "oldPermission": "network.request",
+      "newPermission": "network:request"
+    },
+    {
+      "toolId": "tool_pollution_predictor",
+      "oldPermission": "network.request",
+      "newPermission": "network:request"
+    },
+    {
+      "toolId": "tool_iot_device_manager",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_mqtt_broker",
+      "oldPermission": "network.mqtt",
+      "newPermission": "network:mqtt"
+    },
+    {
+      "toolId": "tool_edge_node_manager",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_edge_inferencer",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_twin_model_builder",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_twin_simulator",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_plc_controller",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_production_scheduler",
+      "oldPermission": "data.write",
+      "newPermission": "data:write"
+    },
+    {
+      "toolId": "tool_scene_automator",
+      "oldPermission": "system.control",
+      "newPermission": "system:control"
+    },
+    {
+      "toolId": "tool_device_linker",
+      "oldPermission": "system.control",
+      "newPermission": "system:control"
+    },
+    {
+      "toolId": "tool_crop_monitor",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_irrigation_controller",
+      "oldPermission": "system.control",
+      "newPermission": "system:control"
+    },
+    {
+      "toolId": "tool_traffic_controller",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_public_safety_monitor",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_orbit_calculator",
+      "oldPermission": "data.read",
+      "newPermission": "data:read"
+    },
+    {
+      "toolId": "tool_flight_planner",
+      "oldPermission": "data.read",
+      "newPermission": "data:read"
+    },
+    {
+      "toolId": "tool_ocean_monitor",
+      "oldPermission": "network.request",
+      "newPermission": "network:request"
+    },
+    {
+      "toolId": "tool_navigation_planner",
+      "oldPermission": "data.read",
+      "newPermission": "data:read"
+    },
+    {
+      "toolId": "tool_power_dispatcher",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_renewable_forecaster",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_quantum_key_distributor",
+      "oldPermission": "security.encryption",
+      "newPermission": "security:encryption"
+    },
+    {
+      "toolId": "tool_quantum_teleporter",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_eeg_processor",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_bci_decoder",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_gene_editor",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_protein_designer",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_nano_simulator",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_nano_fabricator",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_reactor_simulator",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_radiation_monitor",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_underwater_navigator",
+      "oldPermission": "data.read",
+      "newPermission": "data:read"
+    },
+    {
+      "toolId": "tool_deep_sea_mapper",
+      "oldPermission": "data.read",
+      "newPermission": "data:read"
+    },
+    {
+      "toolId": "tool_asteroid_analyzer",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_lunar_miner",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_cloud_seeder",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_weather_modeler",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_material_designer",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_property_predictor",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_snn_builder",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_neuromorphic_accelerator",
+      "oldPermission": "system.admin",
+      "newPermission": "system:admin"
+    },
+    {
+      "toolId": "tool_ligo_data_analyzer",
+      "oldPermission": "science.physics",
+      "newPermission": "science:physics"
+    },
+    {
+      "toolId": "tool_waveform_matcher",
+      "oldPermission": "science.physics",
+      "newPermission": "science:physics"
+    },
+    {
+      "toolId": "tool_particle_simulator",
+      "oldPermission": "science.physics",
+      "newPermission": "science:physics"
+    },
+    {
+      "toolId": "tool_event_generator",
+      "oldPermission": "science.physics",
+      "newPermission": "science:physics"
+    },
+    {
+      "toolId": "tool_wimp_detector",
+      "oldPermission": "science.physics",
+      "newPermission": "science:physics"
+    },
+    {
+      "toolId": "tool_axion_searcher",
+      "oldPermission": "science.physics",
+      "newPermission": "science:physics"
+    },
+    {
+      "toolId": "tool_tokamak_simulator",
+      "oldPermission": "energy.nuclear",
+      "newPermission": "energy:nuclear"
+    },
+    {
+      "toolId": "tool_plasma_controller",
+      "oldPermission": "energy.nuclear",
+      "newPermission": "energy:nuclear"
+    },
+    {
+      "toolId": "tool_photonic_router",
+      "oldPermission": "network.admin",
+      "newPermission": "network:admin"
+    },
+    {
+      "toolId": "tool_optical_nn_designer",
+      "oldPermission": "ai.inference",
+      "newPermission": "ai:inference"
+    },
+    {
+      "toolId": "tool_topological_state_calculator",
+      "oldPermission": "science.physics",
+      "newPermission": "science:physics"
+    },
+    {
+      "toolId": "tool_majorana_detector",
+      "oldPermission": "science.physics",
+      "newPermission": "science:physics"
+    },
+    {
+      "toolId": "tool_ice_core_analyzer",
+      "oldPermission": "science.environment",
+      "newPermission": "science:environment"
+    },
+    {
+      "toolId": "tool_climate_reconstructor",
+      "oldPermission": "science.environment",
+      "newPermission": "science:environment"
+    },
+    {
+      "toolId": "tool_magma_simulator",
+      "oldPermission": "science.geology",
+      "newPermission": "science:geology"
+    },
+    {
+      "toolId": "tool_volcanic_monitor",
+      "oldPermission": "science.geology",
+      "newPermission": "science:geology"
+    },
+    {
+      "toolId": "tool_radiocarbon_dater",
+      "oldPermission": "science.archaeology",
+      "newPermission": "science:archaeology"
+    },
+    {
+      "toolId": "tool_artifact_reconstructor",
+      "oldPermission": "science.archaeology",
+      "newPermission": "science:archaeology"
+    },
+    {
+      "toolId": "tool_flexible_sensor_designer",
+      "oldPermission": "hardware.design",
+      "newPermission": "hardware:design"
+    },
+    {
+      "toolId": "tool_biochip_analyzer",
+      "oldPermission": "science.biology",
+      "newPermission": "science:biology"
+    },
+    {
+      "toolId": "tool_file_compressor",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_file_decompressor",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_file_decompressor",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_image_editor",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_image_editor",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_image_filter",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_image_filter",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_video_cutter",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_video_cutter",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_video_merger",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_video_merger",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_pdf_converter",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_pdf_converter",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_office_converter",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_office_converter",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_qrcode_generator_advanced",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_qrcode_scanner",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_screenshot_tool",
+      "oldPermission": "system.screen",
+      "newPermission": "system:screen"
+    },
+    {
+      "toolId": "tool_screen_recorder",
+      "oldPermission": "system.screen",
+      "newPermission": "system:screen"
+    },
+    {
+      "toolId": "tool_screen_recorder",
+      "oldPermission": "system.audio",
+      "newPermission": "system:audio"
+    },
+    {
+      "toolId": "tool_calendar_manager",
+      "oldPermission": "calendar.write",
+      "newPermission": "calendar:write"
+    },
+    {
+      "toolId": "tool_reminder_scheduler",
+      "oldPermission": "notification.write",
+      "newPermission": "notification:write"
+    },
+    {
+      "toolId": "tool_note_editor",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_note_searcher",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_password_vault",
+      "oldPermission": "security.password",
+      "newPermission": "security:password"
+    },
+    {
+      "toolId": "tool_network_speed_tester",
+      "oldPermission": "network.test",
+      "newPermission": "network:test"
+    },
+    {
+      "toolId": "tool_network_diagnostic_tool",
+      "oldPermission": "network.diagnostic",
+      "newPermission": "network:diagnostic"
+    },
+    {
+      "toolId": "tool_data_preprocessor",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_data_preprocessor",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_feature_engineer",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_feature_engineer",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_model_evaluator",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_model_evaluator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_statistical_analyzer",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_statistical_analyzer",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_eda_generator",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_eda_generator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_word_generator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_word_table_creator",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_word_table_creator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_excel_generator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_excel_chart_creator",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_excel_chart_creator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_ppt_generator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_ppt_slide_creator",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_ppt_slide_creator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    },
+    {
+      "toolId": "tool_ppt_theme_applicator",
+      "oldPermission": "file.read",
+      "newPermission": "file:read"
+    },
+    {
+      "toolId": "tool_ppt_theme_applicator",
+      "oldPermission": "file.write",
+      "newPermission": "file:write"
+    }
+  ]
+}
