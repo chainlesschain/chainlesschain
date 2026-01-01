@@ -34,6 +34,29 @@ class BetterSQLiteAdapter {
       console.log('[BetterSQLiteAdapter] 数据自动保存到文件');
     };
 
+    // 包装 prepare 方法，为 statement 添加兼容性标记
+    const originalPrepare = this.db.prepare.bind(this.db);
+    this.db.prepare = (sql) => {
+      const stmt = originalPrepare(sql);
+
+      // 添加兼容性标记
+      if (!stmt.__betterSqliteCompat) {
+        stmt.__betterSqliteCompat = true;
+
+        // better-sqlite3 没有 free() 方法，添加空实现
+        if (!stmt.free) {
+          stmt.free = () => {
+            // better-sqlite3 的 statement 会自动释放，无需手动操作
+          };
+        }
+      }
+
+      return stmt;
+    };
+
+    // 添加数据库级别的兼容性标记
+    this.db.__betterSqliteCompat = true;
+
     return this.db;
   }
 
