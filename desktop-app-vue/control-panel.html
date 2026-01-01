@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChainlessChain 高级特性控制面板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .tab:hover {
+            background: #e8e8e8;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .metric {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric.success {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+
+        .metric.warning {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+
+        .metric.danger {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+
+        .metric-label {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .metric-unit {
+            font-size: 18px;
+            color: #666;
+            margin-left: 5px;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .slider-container {
+            padding: 10px 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+        }
+
+        .log-entry.info {
+            color: #4ec9b0;
+        }
+
+        .log-entry.warn {
+            color: #ce9178;
+        }
+
+        .log-entry.error {
+            color: #f48771;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-badge.running {
+            background: #84fab0;
+            color: #1a5f3a;
+        }
+
+        .status-badge.stopped {
+            background: #ff9a9e;
+            color: #7a1f23;
+        }
+
+        .status-badge.warning {
+            background: #ffecd2;
+            color: #7a4e1f;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .alert-success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #388e3c;
+        }
+
+        .alert-warning {
+            background: #fff3e0;
+            color: #f57c00;
+            border-left: 4px solid #f57c00;
+        }
+
+        .alert-danger {
+            background: #ffebee;
+            color: #d32f2f;
+            border-left: 4px solid #d32f2f;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .history-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .history-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 ChainlessChain 高级特性控制面板</h1>
+            <p class="subtitle">实时监控和控制自适应阈值、在线学习和高级优化器</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('overview')">📊 总览</button>
+            <button class="tab" onclick="switchTab('threshold')">⚙️ 自适应阈值</button>
+            <button class="tab" onclick="switchTab('learning')">🧠 在线学习</button>
+            <button class="tab" onclick="switchTab('optimizer')">⚡ 高级优化器</button>
+            <button class="tab" onclick="switchTab('logs')">📝 日志</button>
+            <button class="tab" onclick="switchTab('settings')">🔧 设置</button>
+        </div>
+
+        <!-- 总览标签页 -->
+        <div id="overview" class="tab-content active">
+            <div class="card">
+                <div class="card-title">系统状态</div>
+                <div class="metric-grid">
+                    <div class="metric success">
+                        <div class="metric-label">服务状态</div>
+                        <div class="metric-value" id="service-status">运行中</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">运行时长</div>
+                        <div class="metric-value" id="uptime">0<span class="metric-unit">小时</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">综合评分</div>
+                        <div class="metric-value" id="overall-score">--<span class="metric-unit">/100</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">今日任务</div>
+                        <div class="metric-value" id="today-tasks">0<span class="metric-unit">个</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">核心指标</div>
+                <div class="metric-grid">
+                    <div class="metric" id="small-model-metric">
+                        <div class="metric-label">小模型使用率</div>
+                        <div class="metric-value" id="small-model-rate">--<span class="metric-unit">%</span></div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="small-model-progress" style="width: 0%">0%</div>
+                        </div>
+                    </div>
+                    <div class="metric" id="success-rate-metric">
+                        <div class="metric-label">成功率</div>
+                        <div class="metric-value" id="success-rate">--<span class="metric-unit">%</span></div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="success-progress" style="width: 0%">0%</div>
+                        </div>
+                    </div>
+                    <div class="metric" id="cost-savings-metric">
+                        <div class="metric-label">成本节约</div>
+                        <div class="metric-value" id="cost-savings">--<span class="metric-unit">%</span></div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="cost-progress" style="width: 0%">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">快速操作</div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="refreshData()">
+                        <span>🔄</span> 刷新数据
+                    </button>
+                    <button class="btn btn-success" onclick="runFullOptimization()">
+                        <span>⚡</span> 全面优化
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportReport()">
+                        <span>📊</span> 导出报告
+                    </button>
+                    <button class="btn btn-warning" onclick="openSettings()">
+                        <span>🔧</span> 配置设置
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">最近活动</div>
+                <table class="history-table" id="recent-activity">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>类型</th>
+                            <th>操作</th>
+                            <th>结果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #999;">暂无数据</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 自适应阈值标签页 -->
+        <div id="threshold" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    当前阈值
+                    <span class="status-badge running" id="threshold-status">运行中</span>
+                </div>
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="metric-label">复杂度阈值</div>
+                        <div class="metric-value" id="current-threshold">0.52</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">上次调整时间</div>
+                        <div class="metric-value" style="font-size: 16px;" id="last-adjustment">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">调整次数(24h)</div>
+                        <div class="metric-value" id="adjustment-count">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">性能监控</div>
+                <div class="form-group">
+                    <label class="form-label">监控周期</label>
+                    <select class="form-input" id="monitor-period" onchange="loadThresholdData()">
+                        <option value="1">最近1天</option>
+                        <option value="7" selected>最近7天</option>
+                        <option value="30">最近30天</option>
+                    </select>
+                </div>
+                <div id="threshold-metrics-container"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">手动操作</div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="monitorThreshold()">
+                        <span>📊</span> 性能监控
+                    </button>
+                    <button class="btn btn-secondary" onclick="simulateThresholdAdjustment()">
+                        <span>🔮</span> 模拟调整
+                    </button>
+                    <button class="btn btn-warning" onclick="executeThresholdAdjustment()">
+                        <span>⚙️</span> 执行调整
+                    </button>
+                    <button class="btn btn-success" onclick="toggleAutoAdjust()">
+                        <span id="auto-adjust-icon">▶️</span> <span id="auto-adjust-text">启用自动调整</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">阈值调整历史</div>
+                <table class="history-table" id="threshold-history">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>旧阈值</th>
+                            <th>新阈值</th>
+                            <th>调整幅度</th>
+                            <th>原因</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #999;">暂无数据</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 在线学习标签页 -->
+        <div id="learning" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    学习状态
+                    <span class="status-badge running" id="learning-status">运行中</span>
+                </div>
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="metric-label">复杂度预测准确率</div>
+                        <div class="metric-value" id="complexity-accuracy">--<span class="metric-unit">%</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">意图识别准确率</div>
+                        <div class="metric-value" id="intent-accuracy">--<span class="metric-unit">%</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">工具推荐采纳率</div>
+                        <div class="metric-value" id="tool-adoption">--<span class="metric-unit">%</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">训练样本数</div>
+                        <div class="metric-value" id="training-samples">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">模型详情</div>
+                <div class="settings-grid">
+                    <div>
+                        <h4 style="margin-bottom: 10px;">复杂度估计器</h4>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 10px;">权重配置:</p>
+                        <ul style="color: #666; font-size: 14px; line-height: 1.8;">
+                            <li>意图复杂度: <strong id="weight-intent">0.30</strong></li>
+                            <li>上下文复杂度: <strong id="weight-context">0.25</strong></li>
+                            <li>历史复杂度: <strong id="weight-history">0.20</strong></li>
+                            <li>工具复杂度: <strong id="weight-tools">0.25</strong></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 10px;">意图识别器</h4>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 10px;">统计信息:</p>
+                        <ul style="color: #666; font-size: 14px; line-height: 1.8;">
+                            <li>已学习模式: <strong id="learned-patterns">0</strong> 个</li>
+                            <li>关键词覆盖: <strong id="keyword-coverage">0</strong> 个</li>
+                            <li>平均置信度: <strong id="avg-confidence">0.00</strong></li>
+                            <li>新增模式(24h): <strong id="new-patterns">0</strong> 个</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">训练操作</div>
+                <div class="form-group">
+                    <label class="form-label">训练数据范围</label>
+                    <select class="form-input" id="train-days">
+                        <option value="7">最近7天</option>
+                        <option value="30" selected>最近30天</option>
+                        <option value="60">最近60天</option>
+                        <option value="90">最近90天</option>
+                    </select>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="trainModels()">
+                        <span>🎯</span> 训练模型
+                    </button>
+                    <button class="btn btn-secondary" onclick="evaluateModels()">
+                        <span>📈</span> 评估性能
+                    </button>
+                    <button class="btn btn-success" onclick="showLearningStats()">
+                        <span>📊</span> 学习统计
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 高级优化器标签页 -->
+        <div id="optimizer" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    优化器状态
+                    <span class="status-badge running" id="optimizer-status">运行中</span>
+                </div>
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="metric-label">预测缓存命中率</div>
+                        <div class="metric-value" id="cache-hit-rate">--<span class="metric-unit">%</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">并行化任务数</div>
+                        <div class="metric-value" id="parallel-tasks">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">平均时间节约</div>
+                        <div class="metric-value" id="time-savings">--<span class="metric-unit">%</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">检测到的瓶颈</div>
+                        <div class="metric-value" id="bottleneck-count">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">优化功能</div>
+                <div class="settings-grid">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="feature-predictive" checked>
+                            预测性缓存
+                        </label>
+                        <p style="color: #666; font-size: 13px; margin-top: 5px;">基于用户行为预加载数据</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="feature-parallel" checked>
+                            并行任务优化
+                        </label>
+                        <p style="color: #666; font-size: 13px; margin-top: 5px;">自动并行化独立任务</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="feature-retry" checked>
+                            智能重试机制
+                        </label>
+                        <p style="color: #666; font-size: 13px; margin-top: 5px;">自适应重试策略</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="feature-bottleneck" checked>
+                            瓶颈检测
+                        </label>
+                        <p style="color: #666; font-size: 13px; margin-top: 5px;">自动识别性能瓶颈</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">优化操作</div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="runPredictiveCache()">
+                        <span>🔮</span> 预测性缓存
+                    </button>
+                    <button class="btn btn-primary" onclick="runParallelOptimization()">
+                        <span>⚡</span> 并行优化
+                    </button>
+                    <button class="btn btn-primary" onclick="runSmartRetry()">
+                        <span>🔄</span> 智能重试
+                    </button>
+                    <button class="btn btn-primary" onclick="runBottleneckDetection()">
+                        <span>🔍</span> 瓶颈检测
+                    </button>
+                    <button class="btn btn-success" onclick="runFullOptimizationDetail()">
+                        <span>🚀</span> 全面优化
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">瓶颈列表</div>
+                <div id="bottleneck-list"></div>
+            </div>
+        </div>
+
+        <!-- 日志标签页 -->
+        <div id="logs" class="tab-content">
+            <div class="card">
+                <div class="card-title">实时日志</div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="refreshLogs()">
+                        <span>🔄</span> 刷新
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearLogs()">
+                        <span>🗑️</span> 清空显示
+                    </button>
+                    <button class="btn btn-success" onclick="exportLogs()">
+                        <span>💾</span> 导出日志
+                    </button>
+                    <select class="form-input" style="width: 150px;" id="log-filter" onchange="filterLogs()">
+                        <option value="all">全部</option>
+                        <option value="info">INFO</option>
+                        <option value="warn">WARN</option>
+                        <option value="error">ERROR</option>
+                    </select>
+                </div>
+                <div class="log-container" id="log-output">
+                    <div class="log-entry info">[2026-01-02 14:30:00] [INFO] 系统启动...</div>
+                    <div class="log-entry info">[2026-01-02 14:30:05] [INFO] 所有服务已就绪</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设置标签页 -->
+        <div id="settings" class="tab-content">
+            <div class="card">
+                <div class="card-title">全局配置</div>
+                <div class="alert alert-info">
+                    <span>ℹ️</span>
+                    <span>修改配置后需要重启服务才能生效</span>
+                </div>
+
+                <h3 style="margin: 20px 0 15px 0;">自适应阈值配置</h3>
+                <div class="settings-grid">
+                    <div class="form-group">
+                        <label class="form-label">检查间隔 (分钟)</label>
+                        <input type="number" class="form-input" id="config-threshold-interval" value="60" min="10" max="1440">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最小样本量</label>
+                        <input type="number" class="form-input" id="config-threshold-samples" value="50" min="10" max="500">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">学习率</label>
+                        <input type="number" class="form-input" id="config-threshold-lr" value="0.05" min="0.01" max="0.5" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">冷却期 (小时)</label>
+                        <input type="number" class="form-input" id="config-threshold-cooldown" value="1" min="0.5" max="24" step="0.5">
+                    </div>
+                </div>
+
+                <h3 style="margin: 30px 0 15px 0;">在线学习配置</h3>
+                <div class="settings-grid">
+                    <div class="form-group">
+                        <label class="form-label">训练数据天数</label>
+                        <input type="number" class="form-input" id="config-learning-days" value="30" min="7" max="365">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">置信度阈值</label>
+                        <input type="number" class="form-input" id="config-learning-confidence" value="0.7" min="0.1" max="1.0" step="0.1">
+                    </div>
+                </div>
+
+                <h3 style="margin: 30px 0 15px 0;">高级优化器配置</h3>
+                <div class="settings-grid">
+                    <div class="form-group">
+                        <label class="form-label">最大并行任务数</label>
+                        <input type="number" class="form-input" id="config-optimizer-parallel" value="4" min="1" max="16">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">缓存过期时间 (分钟)</label>
+                        <input type="number" class="form-input" id="config-optimizer-cache" value="30" min="5" max="120">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大重试次数</label>
+                        <input type="number" class="form-input" id="config-optimizer-retry" value="3" min="1" max="10">
+                    </div>
+                </div>
+
+                <div class="button-group" style="margin-top: 30px;">
+                    <button class="btn btn-primary" onclick="saveSettings()">
+                        <span>💾</span> 保存配置
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetSettings()">
+                        <span>↩️</span> 重置默认
+                    </button>
+                    <button class="btn btn-warning" onclick="restartServices()">
+                        <span>🔄</span> 重启服务
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">数据管理</div>
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="backupDatabase()">
+                        <span>💾</span> 备份数据库
+                    </button>
+                    <button class="btn btn-warning" onclick="cleanOldData()">
+                        <span>🗑️</span> 清理旧数据
+                    </button>
+                    <button class="btn btn-danger" onclick="resetAllData()">
+                        <span>⚠️</span> 重置所有数据
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态
+        let currentTab = 'overview';
+        let autoRefreshInterval = null;
+        let isAutoAdjustEnabled = false;
+
+        // 标签页切换
+        function switchTab(tabName) {
+            // 隐藏所有标签页
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 显示选中的标签页
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            currentTab = tabName;
+
+            // 加载对应数据
+            loadTabData(tabName);
+        }
+
+        // 加载标签页数据
+        function loadTabData(tabName) {
+            switch(tabName) {
+                case 'overview':
+                    loadOverviewData();
+                    break;
+                case 'threshold':
+                    loadThresholdData();
+                    break;
+                case 'learning':
+                    loadLearningData();
+                    break;
+                case 'optimizer':
+                    loadOptimizerData();
+                    break;
+                case 'logs':
+                    loadLogs();
+                    break;
+            }
+        }
+
+        // 加载总览数据
+        function loadOverviewData() {
+            // 模拟数据（实际应从API获取）
+            updateMetric('small-model-rate', 42.3, 40, 60);
+            updateMetric('success-rate', 98.1, 85, 100);
+            updateMetric('cost-savings', 68.5, 50, 100);
+            document.getElementById('overall-score').textContent = '87';
+            document.getElementById('today-tasks').textContent = '234';
+        }
+
+        // 更新指标显示
+        function updateMetric(id, value, min, max) {
+            const element = document.getElementById(id);
+            const progressElement = document.getElementById(id.replace('-rate', '-progress').replace('-savings', '-progress'));
+            const metricElement = document.getElementById(id + '-metric');
+
+            if (element) {
+                element.textContent = value.toFixed(1);
+            }
+
+            if (progressElement) {
+                const percentage = Math.min(100, Math.max(0, ((value - 0) / max) * 100));
+                progressElement.style.width = percentage + '%';
+                progressElement.textContent = value.toFixed(1) + '%';
+            }
+
+            // 根据值设置颜色
+            if (metricElement) {
+                metricElement.classList.remove('success', 'warning', 'danger');
+                if (value >= min && value <= max) {
+                    metricElement.classList.add('success');
+                } else if (Math.abs(value - ((min + max) / 2)) < (max - min) * 0.3) {
+                    metricElement.classList.add('warning');
+                } else {
+                    metricElement.classList.add('danger');
+                }
+            }
+        }
+
+        // 刷新数据
+        function refreshData() {
+            showNotification('正在刷新数据...', 'info');
+            loadTabData(currentTab);
+            setTimeout(() => {
+                showNotification('数据刷新成功', 'success');
+            }, 1000);
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            // 简单的通知实现
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            // 实际应使用Toast或其他通知组件
+        }
+
+        // 自适应阈值操作
+        function monitorThreshold() {
+            showNotification('正在执行性能监控...', 'info');
+            // 调用后端API
+            setTimeout(() => {
+                showNotification('性能监控完成', 'success');
+            }, 2000);
+        }
+
+        function simulateThresholdAdjustment() {
+            showNotification('正在模拟阈值调整...', 'info');
+            setTimeout(() => {
+                showNotification('模拟完成：建议调整 +0.02 (0.52 → 0.54)', 'success');
+            }, 1500);
+        }
+
+        function executeThresholdAdjustment() {
+            if (confirm('确定要执行阈值调整吗？')) {
+                showNotification('正在执行阈值调整...', 'warning');
+                setTimeout(() => {
+                    showNotification('阈值调整成功', 'success');
+                    loadThresholdData();
+                }, 2000);
+            }
+        }
+
+        function toggleAutoAdjust() {
+            isAutoAdjustEnabled = !isAutoAdjustEnabled;
+            const icon = document.getElementById('auto-adjust-icon');
+            const text = document.getElementById('auto-adjust-text');
+
+            if (isAutoAdjustEnabled) {
+                icon.textContent = '⏸️';
+                text.textContent = '停止自动调整';
+                showNotification('自动调整已启用', 'success');
+            } else {
+                icon.textContent = '▶️';
+                text.textContent = '启用自动调整';
+                showNotification('自动调整已停止', 'info');
+            }
+        }
+
+        // 在线学习操作
+        function trainModels() {
+            const days = document.getElementById('train-days').value;
+            showNotification(`正在训练模型（使用${days}天数据）...`, 'info');
+            setTimeout(() => {
+                showNotification('模型训练完成', 'success');
+                loadLearningData();
+            }, 3000);
+        }
+
+        function evaluateModels() {
+            showNotification('正在评估模型性能...', 'info');
+            setTimeout(() => {
+                showNotification('模型评估完成', 'success');
+            }, 2000);
+        }
+
+        function showLearningStats() {
+            showNotification('正在加载学习统计...', 'info');
+            setTimeout(() => {
+                showNotification('统计数据已更新', 'success');
+                loadLearningData();
+            }, 1000);
+        }
+
+        // 高级优化器操作
+        function runPredictiveCache() {
+            showNotification('正在执行预测性缓存分析...', 'info');
+            setTimeout(() => {
+                showNotification('预测性缓存分析完成', 'success');
+            }, 2000);
+        }
+
+        function runParallelOptimization() {
+            showNotification('正在执行并行任务优化...', 'info');
+            setTimeout(() => {
+                showNotification('并行优化分析完成', 'success');
+            }, 2000);
+        }
+
+        function runSmartRetry() {
+            showNotification('正在执行智能重试分析...', 'info');
+            setTimeout(() => {
+                showNotification('智能重试分析完成', 'success');
+            }, 2000);
+        }
+
+        function runBottleneckDetection() {
+            showNotification('正在执行瓶颈检测...', 'info');
+            setTimeout(() => {
+                showNotification('检测到 3 个性能瓶颈', 'warning');
+                loadOptimizerData();
+            }, 2000);
+        }
+
+        function runFullOptimization() {
+            if (confirm('确定要执行全面优化吗？这可能需要几分钟时间。')) {
+                showNotification('正在执行全面优化...', 'info');
+                setTimeout(() => {
+                    showNotification('全面优化完成', 'success');
+                }, 5000);
+            }
+        }
+
+        function runFullOptimizationDetail() {
+            runFullOptimization();
+        }
+
+        // 日志操作
+        function refreshLogs() {
+            showNotification('正在刷新日志...', 'info');
+            loadLogs();
+        }
+
+        function clearLogs() {
+            document.getElementById('log-output').innerHTML = '';
+            showNotification('日志显示已清空', 'info');
+        }
+
+        function exportLogs() {
+            showNotification('正在导出日志...', 'info');
+            setTimeout(() => {
+                showNotification('日志已导出', 'success');
+            }, 1000);
+        }
+
+        function filterLogs() {
+            const filter = document.getElementById('log-filter').value;
+            showNotification(`筛选级别: ${filter.toUpperCase()}`, 'info');
+        }
+
+        // 设置操作
+        function saveSettings() {
+            showNotification('正在保存配置...', 'info');
+            setTimeout(() => {
+                showNotification('配置保存成功', 'success');
+            }, 1000);
+        }
+
+        function resetSettings() {
+            if (confirm('确定要重置为默认配置吗？')) {
+                showNotification('配置已重置', 'info');
+                // 重新加载默认值
+            }
+        }
+
+        function restartServices() {
+            if (confirm('确定要重启服务吗？')) {
+                showNotification('正在重启服务...', 'warning');
+                setTimeout(() => {
+                    showNotification('服务重启成功', 'success');
+                }, 3000);
+            }
+        }
+
+        function backupDatabase() {
+            showNotification('正在备份数据库...', 'info');
+            setTimeout(() => {
+                showNotification('数据库备份成功', 'success');
+            }, 2000);
+        }
+
+        function cleanOldData() {
+            if (confirm('确定要清理90天前的旧数据吗？')) {
+                showNotification('正在清理旧数据...', 'info');
+                setTimeout(() => {
+                    showNotification('旧数据清理完成', 'success');
+                }, 2000);
+            }
+        }
+
+        function resetAllData() {
+            if (confirm('警告：这将删除所有历史数据！确定要继续吗？')) {
+                if (confirm('请再次确认：真的要重置所有数据吗？')) {
+                    showNotification('正在重置所有数据...', 'danger');
+                    setTimeout(() => {
+                        showNotification('所有数据已重置', 'success');
+                    }, 2000);
+                }
+            }
+        }
+
+        function exportReport() {
+            showNotification('正在生成报告...', 'info');
+            setTimeout(() => {
+                showNotification('报告已生成并导出', 'success');
+            }, 2000);
+        }
+
+        function openSettings() {
+            switchTab('settings');
+        }
+
+        // 加载其他标签页数据的模拟函数
+        function loadThresholdData() {
+            document.getElementById('current-threshold').textContent = '0.52';
+            document.getElementById('last-adjustment').textContent = '2小时前';
+            document.getElementById('adjustment-count').textContent = '3';
+        }
+
+        function loadLearningData() {
+            document.getElementById('complexity-accuracy').textContent = '87.3';
+            document.getElementById('intent-accuracy').textContent = '82.5';
+            document.getElementById('tool-adoption').textContent = '76.8';
+            document.getElementById('training-samples').textContent = '1,234';
+
+            document.getElementById('weight-intent').textContent = '0.32';
+            document.getElementById('weight-context').textContent = '0.24';
+            document.getElementById('weight-history').textContent = '0.19';
+            document.getElementById('weight-tools').textContent = '0.25';
+
+            document.getElementById('learned-patterns').textContent = '345';
+            document.getElementById('keyword-coverage').textContent = '567';
+            document.getElementById('avg-confidence').textContent = '0.78';
+            document.getElementById('new-patterns').textContent = '5';
+        }
+
+        function loadOptimizerData() {
+            document.getElementById('cache-hit-rate').textContent = '74.2';
+            document.getElementById('parallel-tasks').textContent = '12';
+            document.getElementById('time-savings').textContent = '38.5';
+            document.getElementById('bottleneck-count').textContent = '3';
+
+            // 显示瓶颈列表
+            const bottleneckList = document.getElementById('bottleneck-list');
+            bottleneckList.innerHTML = `
+                <div class="alert alert-warning">
+                    <strong>慢任务瓶颈:</strong> RAG向量搜索 (平均 4.5s)
+                </div>
+                <div class="alert alert-warning">
+                    <strong>高失败率瓶颈:</strong> Git远程同步 (失败率 28.5%)
+                </div>
+                <div class="alert alert-info">
+                    <strong>缓存未命中:</strong> LLM响应缓存 (命中率 42.3%)
+                </div>
+            `;
+        }
+
+        function loadLogs() {
+            // 模拟加载日志
+            const logOutput = document.getElementById('log-output');
+            const now = new Date();
+            const timestamp = now.toISOString().replace('T', ' ').slice(0, 19);
+
+            logOutput.innerHTML += `
+                <div class="log-entry info">[${timestamp}] [INFO] 日志已刷新</div>
+            `;
+
+            // 自动滚动到底部
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadOverviewData();
+
+            // 启动自动刷新
+            autoRefreshInterval = setInterval(() => {
+                if (currentTab === 'overview') {
+                    loadOverviewData();
+                }
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
