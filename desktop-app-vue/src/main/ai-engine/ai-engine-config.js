@@ -2,7 +2,7 @@
  * AI引擎优化配置
  * 集中管理槽位填充、工具沙箱、性能监控等优化模块的配置
  *
- * 版本: v0.16.1
+ * 版本: v0.17.0 (P1优化)
  * 更新: 2026-01-01
  */
 
@@ -10,6 +10,7 @@
  * 默认配置
  */
 const DEFAULT_CONFIG = {
+  // P0优化模块（已实现）
   // 是否启用槽位填充（自动补全缺失参数）
   enableSlotFilling: true,
 
@@ -18,6 +19,22 @@ const DEFAULT_CONFIG = {
 
   // 是否启用性能监控（P50/P90/P95统计、瓶颈识别）
   enablePerformanceMonitor: true,
+
+  // P1优化模块（新增）
+  // 是否启用多意图识别
+  enableMultiIntent: true,
+
+  // 是否启用动态Few-shot学习
+  enableDynamicFewShot: true,
+
+  // 是否启用分层任务规划
+  enableHierarchicalPlanning: true,
+
+  // 是否启用检查点校验
+  enableCheckpointValidation: true,
+
+  // 是否启用自我修正循环
+  enableSelfCorrection: true,
 
   // 工具沙箱配置
   sandboxConfig: {
@@ -78,6 +95,82 @@ const DEFAULT_CONFIG = {
 
     // 最大询问次数（防止无限循环）
     maxAskCount: 5
+  },
+
+  // P1优化模块配置
+  // 多意图识别配置
+  multiIntentConfig: {
+    // 意图分隔符检测敏感度
+    sensitivity: 'medium',  // 'low' | 'medium' | 'high'
+
+    // 是否启用LLM增强拆分
+    enableLLMSplit: true,
+
+    // 最大意图数量
+    maxIntents: 5
+  },
+
+  // 动态Few-shot配置
+  fewShotConfig: {
+    // 默认示例数量
+    defaultExampleCount: 3,
+
+    // 最小置信度阈值（只使用高质量示例）
+    minConfidence: 0.85,
+
+    // 缓存过期时间（毫秒）
+    cacheExpiry: 3600000,  // 1小时
+
+    // 是否启用自适应示例数量
+    adaptiveExampleCount: true
+  },
+
+  // 分层任务规划配置
+  hierarchicalPlanningConfig: {
+    // 默认粒度
+    defaultGranularity: 'auto',  // 'coarse' | 'medium' | 'fine' | 'auto'
+
+    // 是否启用复杂度评估
+    enableComplexityAssessment: true,
+
+    // 是否启用时长估算
+    enableDurationEstimation: true
+  },
+
+  // 检查点校验配置
+  checkpointValidationConfig: {
+    // 是否启用LLM质量检查
+    enableLLMQualityCheck: true,
+
+    // 质量检查触发条件
+    qualityCheckTriggers: ['CREATE_FILE', 'GENERATE_CONTENT', 'ANALYZE_DATA'],
+
+    // 完整性阈值（%）
+    completenessThreshold: 80,
+
+    // 是否在校验失败时自动重试
+    autoRetryOnFailure: true
+  },
+
+  // 自我修正配置
+  selfCorrectionConfig: {
+    // 最大修正尝试次数
+    maxRetries: 3,
+
+    // 是否启用失败模式学习
+    enablePatternLearning: true,
+
+    // 修正策略
+    strategies: [
+      'add_dependency',
+      'regenerate_params',
+      'increase_timeout',
+      'simplify_task',
+      'add_validation',
+      'change_tool',
+      'split_task',
+      'skip_step'
+    ]
   }
 };
 
@@ -179,6 +272,27 @@ function mergeConfig(userConfig = {}) {
     slotFillingConfig: {
       ...baseConfig.slotFillingConfig,
       ...(userConfig.slotFillingConfig || {})
+    },
+    // P1优化模块配置
+    multiIntentConfig: {
+      ...baseConfig.multiIntentConfig,
+      ...(userConfig.multiIntentConfig || {})
+    },
+    fewShotConfig: {
+      ...baseConfig.fewShotConfig,
+      ...(userConfig.fewShotConfig || {})
+    },
+    hierarchicalPlanningConfig: {
+      ...baseConfig.hierarchicalPlanningConfig,
+      ...(userConfig.hierarchicalPlanningConfig || {})
+    },
+    checkpointValidationConfig: {
+      ...baseConfig.checkpointValidationConfig,
+      ...(userConfig.checkpointValidationConfig || {})
+    },
+    selfCorrectionConfig: {
+      ...baseConfig.selfCorrectionConfig,
+      ...(userConfig.selfCorrectionConfig || {})
     }
   };
 }
