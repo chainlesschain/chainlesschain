@@ -454,9 +454,7 @@ class AIConversationService {
       }
     }
   }
-}
 
-// 导出单例
   /**
    * 发送消息（流式版本）
    * @param {string} conversationId - 对话ID
