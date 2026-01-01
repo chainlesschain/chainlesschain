@@ -1,7 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
-require('dotenv').config();
+
+// Load dotenv if available (optional in production)
+try {
+  require('dotenv').config();
+} catch (err) {
+  // dotenv is optional in production builds
+}
 
 /**
  * 应用配置管理器

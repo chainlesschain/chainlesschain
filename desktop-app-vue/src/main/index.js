@@ -1,5 +1,10 @@
-// Load environment variables first
-require('dotenv').config();
+// Load environment variables first (optional in production)
+try {
+  require('dotenv').config();
+} catch (err) {
+  // dotenv is optional in production builds
+  console.log('dotenv not available (production mode)');
+}
 
 const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
