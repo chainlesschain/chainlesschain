@@ -490,14 +490,18 @@ function registerSkillToolIPC(ipcMain, skillManager, toolManager) {
   // ===================================
 
   /**
-   * 获取Additional Tools V3统计仪表板数据
+   * 获取Additional Tools V3统计仪表板数据（支持筛选）
+   * @param {Object} filters - 筛选条件
+   * @param {Array} filters.dateRange - 时间范围 [startDate, endDate]
+   * @param {Array} filters.categories - 分类筛选
+   * @param {String} filters.searchKeyword - 搜索关键词
    */
-  ipcMain.handle('tool:get-additional-v3-dashboard', async (event) => {
+  ipcMain.handle('tool:get-additional-v3-dashboard', async (event, filters = {}) => {
     try {
       const ToolStatsDashboard = require('./tool-stats-dashboard');
       const dashboard = new ToolStatsDashboard(toolManager.db);
 
-      const data = await dashboard.getDashboardData();
+      const data = await dashboard.getDashboardDataWithFilters(filters);
       return { success: true, data };
     } catch (error) {
       console.error('[IPC] tool:get-additional-v3-dashboard 失败:', error);

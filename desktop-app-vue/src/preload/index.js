@@ -1059,7 +1059,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getDoc: (toolId) => ipcRenderer.invoke('tool:get-doc', toolId),
 
     // Additional Tools V3 统计仪表板
-    getAdditionalV3Dashboard: () => ipcRenderer.invoke('tool:get-additional-v3-dashboard'),
+    getAdditionalV3Dashboard: (filters) => ipcRenderer.invoke('tool:get-additional-v3-dashboard', filters),
     getAdditionalV3Overview: () => ipcRenderer.invoke('tool:get-additional-v3-overview'),
     getAdditionalV3Rankings: (limit) => ipcRenderer.invoke('tool:get-additional-v3-rankings', limit),
     getAdditionalV3CategoryStats: () => ipcRenderer.invoke('tool:get-additional-v3-category-stats'),
