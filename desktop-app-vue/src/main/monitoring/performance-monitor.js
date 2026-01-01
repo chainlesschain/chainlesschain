@@ -210,13 +210,24 @@ class PerformanceMonitor {
         LIMIT ?
       `, [threshold, limit]);
 
-      return slowQueries.map(q => ({
-        phase: q.phase,
-        duration: Math.round(q.duration),
-        metadata: JSON.parse(q.metadata || '{}'),
-        timestamp: new Date(q.created_at).toISOString(),
-        sessionId: q.session_id
-      }));
+      return slowQueries.map(q => {
+        // Validate timestamp
+        let timestamp;
+        try {
+          const date = new Date(q.created_at);
+          timestamp = isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+        } catch (e) {
+          timestamp = new Date().toISOString();
+        }
+
+        return {
+          phase: q.phase,
+          duration: Math.round(q.duration),
+          metadata: JSON.parse(q.metadata || '{}'),
+          timestamp,
+          sessionId: q.session_id
+        };
+      });
     } catch (error) {
       console.error('[PerformanceMonitor] 查找瓶颈失败:', error);
       return [];

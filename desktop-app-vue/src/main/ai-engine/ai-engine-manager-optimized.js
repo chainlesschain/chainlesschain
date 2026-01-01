@@ -15,6 +15,7 @@ const TaskPlannerEnhanced = require('./task-planner-enhanced');
 const FunctionCaller = require('./function-caller');
 const ToolSandbox = require('./tool-sandbox');
 const PerformanceMonitor = require('../monitoring/performance-monitor');
+const { getAIEngineConfig, mergeConfig } = require('./ai-engine-config');
 
 class AIEngineManagerOptimized {
   constructor() {
@@ -44,18 +45,8 @@ class AIEngineManagerOptimized {
     // 用户ID（可配置）
     this.userId = 'default_user';
 
-    // 配置选项
-    this.config = {
-      enableSlotFilling: true,        // 启用槽位填充
-      enableToolSandbox: true,         // 启用工具沙箱
-      enablePerformanceMonitor: true,  // 启用性能监控
-      sandboxConfig: {
-        timeout: 30000,                // 30秒超时
-        retries: 2,                    // 重试2次
-        enableValidation: true,
-        enableSnapshot: true
-      }
-    };
+    // 配置选项（从配置文件加载默认值）
+    this.config = getAIEngineConfig();
   }
 
   /**
@@ -66,8 +57,13 @@ class AIEngineManagerOptimized {
     try {
       console.log('[AIEngineManager-Optimized] 开始初始化...');
 
-      // 合并配置
-      Object.assign(this.config, options);
+      // 合并用户配置
+      this.config = mergeConfig(options);
+      console.log('[AIEngineManager-Optimized] 配置已加载:', {
+        slotFilling: this.config.enableSlotFilling,
+        toolSandbox: this.config.enableToolSandbox,
+        performanceMonitor: this.config.enablePerformanceMonitor
+      });
 
       // 获取依赖项
       if (!this.llmManager) {
@@ -493,6 +489,49 @@ class AIEngineManagerOptimized {
     }
     return this.taskPlannerEnhanced;
   }
+
+  /**
+   * 注册自定义工具
+   * @param {string} name - 工具名称
+   * @param {Function} implementation - 工具实现函数
+   * @param {Object} schema - 工具参数schema
+   */
+  registerTool(name, implementation, schema = {}) {
+    this.functionCaller.registerTool(name, implementation, schema);
+  }
+
+  /**
+   * 注销工具
+   * @param {string} name - 工具名称
+   */
+  unregisterTool(name) {
+    this.functionCaller.unregisterTool(name);
+  }
+
+  /**
+   * 获取所有可用工具
+   * @returns {Array} 工具列表
+   */
+  getAvailableTools() {
+    return this.functionCaller.getAvailableTools();
+  }
 }
 
-module.exports = AIEngineManagerOptimized;
+// 单例模式
+let aiEngineManagerOptimizedInstance = null;
+
+/**
+ * 获取AI引擎管理器优化版单例
+ * @returns {AIEngineManagerOptimized}
+ */
+function getAIEngineManagerOptimized() {
+  if (!aiEngineManagerOptimizedInstance) {
+    aiEngineManagerOptimizedInstance = new AIEngineManagerOptimized();
+  }
+  return aiEngineManagerOptimizedInstance;
+}
+
+module.exports = {
+  AIEngineManagerOptimized,
+  getAIEngineManagerOptimized
+};

@@ -1,0 +1,46 @@
+{
+  "id": "tpl_business_ma_007",
+  "name": "ma_due_diligence",
+  "display_name": "并购尽职调查报告",
+  "description": "企业并购尽职调查清单和报告模板，涵盖财务、法务、业务、技术等维度",
+  "icon": "🔎",
+  "category": "business",
+  "subcategory": "ma",
+  "tags": ["并购", "尽职调查", "DD", "投资"],
+  "project_type": "document",
+  "prompt_template": "# {{targetCompany}} 尽职调查报告\n\n**目标公司**：{{targetCompany}}\n**调查时间**：{{ddPeriod}}\n**调查团队**：{{ddTeam}}\n**交易类型**：{{dealType}}\n\n## 执行摘要\n\n### 核心发现\n{{executiveSummary}}\n\n### 红旗问题（Red Flags）\n{{redFlags}}\n\n### 整体评级\n- 财务DD：{{financialRating}}\n- 法务DD：{{legalRating}}\n- 业务DD：{{businessRating}}\n- 技术DD：{{techRating}}\n- **综合评级**：{{overallRating}}\n\n---\n\n## 一、公司概况\n\n### 1.1 基本信息\n- 公司全称：{{companyFullName}}\n- 成立时间：{{foundedDate}}\n- 注册资本：{{registeredCapital}}\n- 实际控制人：{{actualController}}\n- 员工人数：{{employeeCount}}\n\n### 1.2 股权结构\n{{ownershipStructure}}\n\n### 1.3 业务概况\n{{businessOverview}}\n\n## 二、财务尽调\n\n### 2.1 财务报表分析（近3年）\n\n#### 损益表\n| 项目 | {{year1}} | {{year2}} | {{year3}} | 趋势 |\n|------|-----------|-----------|-----------|------|\n| 营业收入 | {{rev1}} | {{rev2}} | {{rev3}} | {{revTrend}} |\n| 营业成本 | {{cost1}} | {{cost2}} | {{cost3}} | {{costTrend}} |\n| 毛利润 | {{gp1}} | {{gp2}} | {{gp3}} | {{gpTrend}} |\n| 净利润 | {{np1}} | {{np2}} | {{np3}} | {{npTrend}} |\n\n#### 资产负债表\n- 总资产：{{totalAssets}}\n- 总负债：{{totalLiabilities}}\n- 净资产：{{netAssets}}\n- 资产负债率：{{debtRatio}}%\n\n### 2.2 财务质量评估\n- 收入真实性：{{revenueAuthenticity}}\n- 成本完整性：{{costCompleteness}}\n- 应收账款质量：{{arQuality}}\n- 存货周转：{{inventoryTurnover}}\n\n### 2.3 财务风险点\n{{financialRisks}}\n\n## 三、法律尽调\n\n### 3.1 公司资质\n- 营业执照：{{businessLicense}}\n- 行业许可：{{industryLicenses}}\n- 资质证书：{{qualifications}}\n\n### 3.2 重大合同\n{{majorContracts}}\n\n### 3.3 诉讼与仲裁\n- 未决诉讼：{{pendingLitigation}}\n- 历史纠纷：{{historicalDisputes}}\n\n### 3.4 知识产权\n- 专利：{{patents}}项\n- 商标：{{trademarks}}个\n- 著作权：{{copyrights}}项\n- IP风险：{{ipRisks}}\n\n### 3.5 合规性\n{{complianceStatus}}\n\n## 四、业务尽调\n\n### 4.1 产品/服务\n{{productAnalysis}}\n\n### 4.2 客户分析\n- 客户集中度：{{customerConcentration}}\n- Top 5客户占比：{{top5CustomerRatio}}%\n- 客户流失率：{{churnRate}}%\n\n### 4.3 供应商分析\n{{supplierAnalysis}}\n\n### 4.4 市场地位\n{{marketPosition}}\n\n### 4.5 业务风险\n{{businessRisks}}\n\n## 五、技术尽调\n\n### 5.1 技术架构\n{{techStack}}\n\n### 5.2 技术团队\n- 研发人员：{{rdHeadcount}}人\n- 核心技术人员：{{coreTechTeam}}\n\n### 5.3 技术资产\n{{techAssets}}\n\n### 5.4 技术债务\n{{technicalDebt}}\n\n## 六、人力资源尽调\n\n### 6.1 组织架构\n{{orgChart}}\n\n### 6.2 核心团队\n{{keyPersonnel}}\n\n### 6.3 劳动合规\n{{laborCompliance}}\n\n### 6.4 员工流失率\n{{attritionRate}}\n\n## 七、估值分析\n\n### 7.1 估值方法\n- 市盈率法：{{peValuation}}\n- 现金流折现法：{{dcfValuation}}\n- 可比交易法：{{comparableValuation}}\n\n### 7.2 建议估值\n{{recommendedValuation}}\n\n## 八、交易结构建议\n\n### 8.1 收购方式\n{{acquisitionMethod}}\n\n### 8.2 支付方式\n{{paymentTerms}}\n\n### 8.3 对赌条款\n{{earnout}}\n\n## 九、整合计划\n\n### 9.1 整合策略\n{{integrationStrategy}}\n\n### 9.2 风险缓释\n{{riskMitigation}}\n\n## 十、结论与建议\n\n### 10.1 总体评价\n{{overallAssessment}}\n\n### 10.2 是否建议继续\n{{recommendation}}\n\n### 10.3 附加条件\n{{conditions}}",
+  "variables_schema": [
+    {
+      "name": "targetCompany",
+      "label": "目标公司名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "dealType",
+      "label": "交易类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "全资收购", "label": "全资收购（100%股权）" },
+        { "value": "控股收购", "label": "控股收购（51%+）" },
+        { "value": "参股投资", "label": "参股投资" },
+        { "value": "资产收购", "label": "资产收购" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "尽调报告-{{targetCompany}}",
+    "files": [
+      {"path": "尽调报告.docx", "type": "document"},
+      {"path": "财务数据.xlsx", "type": "spreadsheet"},
+      {"path": "证据材料/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_financial_analysis", "skill_legal_research"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

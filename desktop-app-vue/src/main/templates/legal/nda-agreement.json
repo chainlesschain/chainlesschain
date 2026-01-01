@@ -1,0 +1,68 @@
+{
+  "id": "tpl_legal_nda_002",
+  "name": "nda_agreement",
+  "display_name": "保密协议(NDA)",
+  "description": "双向/单向保密协议模板，适用于商业合作、技术交流、投资尽调等场景",
+  "icon": "🤐",
+  "category": "legal",
+  "subcategory": "agreement",
+  "tags": ["保密协议", "NDA", "法律文书", "商业合作"],
+  "project_type": "document",
+  "prompt_template": "# 保密协议\n## Non-Disclosure Agreement (NDA)\n\n**协议编号**：{{agreementNumber}}\n\n**甲方（披露方）**：{{partyAName}}\n**法定代表人**：{{partyALegal}}\n**地址**：{{partyAAddress}}\n**联系方式**：{{partyAContact}}\n\n**乙方（接收方）**：{{partyBName}}\n**法定代表人**：{{partyBLegal}}\n**地址**：{{partyBAddress}}\n**联系方式**：{{partyBContact}}\n\n---\n\n鉴于：\n\n1. 甲乙双方拟就**{{cooperationPurpose}}**进行合作洽谈；\n2. 在合作洽谈过程中，甲方可能向乙方披露某些保密信息；\n3. 双方同意对该等保密信息进行保密。\n\n现甲乙双方经友好协商，达成如下协议：\n\n## 第一条 定义\n\n### 1.1 保密信息\n\n本协议所称「保密信息」是指{{ndaType}}在合作过程中披露的、标注为"保密"或根据其性质应被视为保密的所有信息，包括但不限于：\n\n{{confidentialInfoTypes}}\n\n**示例**：\n- 技术资料：{{technicalInfo}}\n- 商业资料：{{businessInfo}}\n- 财务资料：{{financialInfo}}\n- 客户资料：{{customerInfo}}\n\n### 1.2 例外情形\n\n以下信息不属于保密信息：\n1. 披露时已为公众所知的信息\n2. 接收方通过合法途径从第三方获得的信息\n3. 接收方在披露前已拥有的信息\n4. {{otherExceptions}}\n\n## 第二条 保密义务\n\n### 2.1 保密承诺\n\n乙方承诺：\n1. 对甲方的保密信息予以保密，不向任何第三方披露\n2. 仅将保密信息用于**{{authorizedPurpose}}**\n3. 采取不低于保护自身保密信息的标准保护甲方保密信息\n4. 仅向需要知悉的员工披露，并确保该等员工遵守保密义务\n\n### 2.2 保密措施\n\n{{securityMeasures}}\n\n### 2.3 法律要求的披露\n\n如乙方因法律、法规或政府机关要求必须披露保密信息的，应：\n1. 立即通知甲方\n2. 仅披露法律要求的最小范围信息\n3. 协助甲方寻求保护令或其他救济措施\n\n## 第三条 保密期限\n\n**保密期限**：{{confidentialityDuration}}\n\n{{durationDetails}}\n\n## 第四条 信息返还与销毁\n\n合作终止或甲方要求时，乙方应：\n1. 立即停止使用保密信息\n2. 返还或销毁所有包含保密信息的文件、资料\n3. 删除电子设备中的所有保密信息\n4. 向甲方提供书面确认函\n\n{{returnAndDestructionDetails}}\n\n## 第五条 知识产权\n\n### 5.1 权利归属\n\n保密信息的所有知识产权归{{ipOwner}}所有。\n\n### 5.2 使用限制\n\n{{ipUsageRestrictions}}\n\n## 第六条 违约责任\n\n### 6.1 违约行为\n\n乙方有下列行为之一的，构成违约：\n1. 未经授权披露保密信息\n2. 将保密信息用于本协议约定以外的目的\n3. 未采取合理保密措施导致信息泄露\n4. {{otherBreaches}}\n\n### 6.2 违约赔偿\n\n乙方违约的，应：\n1. 立即停止违约行为\n2. 向甲方赔偿所有直接和间接损失\n3. 支付违约金：{{penaltyAmount}}\n4. {{additionalRemedies}}\n\n### 6.3 损害赔偿\n\n{{damagesClause}}\n\n## 第七条 救济措施\n\n### 7.1 禁令救济\n\n双方同意，保密信息泄露可能造成难以弥补的损害，甲方有权寻求禁令救济。\n\n### 7.2 累积救济\n\n本协议项下的救济措施是累积的，不排斥其他法律救济。\n\n## 第八条 双向保密条款（如适用）\n\n{{mutualNDAClause}}\n\n## 第九条 不竞争条款（可选）\n\n{{nonCompeteClause}}\n\n## 第十条 不招揽条款（可选）\n\n{{nonSolicitationClause}}\n\n## 第十一条 争议解决\n\n### 11.1 协商与调解\n\n双方因本协议发生争议，应首先通过友好协商解决。\n\n### 11.2 仲裁\n\n协商不成的，提交**{{arbitrationInstitution}}**仲裁。\n\n仲裁裁决是终局的，对双方均有约束力。\n\n### 11.3 适用法律\n\n本协议适用{{applicableLaw}}法律。\n\n## 第十二条 一般条款\n\n### 12.1 完整协议\n\n本协议构成双方就保密事项的完整协议，取代此前的所有口头或书面协议。\n\n### 12.2 修改\n\n本协议的任何修改须经双方书面同意。\n\n### 12.3 可分割性\n\n如本协议任何条款被认定无效，不影响其他条款的效力。\n\n### 12.4 转让\n\n未经对方书面同意，任何一方不得转让本协议项下的权利义务。\n\n### 12.5 通知\n\n{{noticeProvisions}}\n\n## 第十三条 生效与终止\n\n### 13.1 生效\n\n本协议自双方签字盖章之日起生效。\n\n### 13.2 终止\n\n{{terminationConditions}}\n\n### 13.3 存续条款\n\n本协议终止后，保密义务、违约责任、争议解决等条款继续有效。\n\n---\n\n**甲方（盖章）**：_____________________\n\n**授权代表签字**：_____________________\n\n**日期**：{{signDate}}\n\n---\n\n**乙方（盖章）**：_____________________\n\n**授权代表签字**：_____________________\n\n**日期**：{{signDate}}\n\n---\n\n**附件**：\n- 附件A：保密信息清单\n- 附件B：授权接收人员名单",
+  "variables_schema": [
+    {
+      "name": "partyAName",
+      "label": "甲方（披露方）名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "partyBName",
+      "label": "乙方（接收方）名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "ndaType",
+      "label": "协议类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "甲方", "label": "单向保密（仅甲方披露）" },
+        { "value": "甲方或乙方", "label": "双向保密（双方互相披露）" }
+      ]
+    },
+    {
+      "name": "cooperationPurpose",
+      "label": "合作目的",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：技术合作洽谈、投资尽职调查、业务合作评估"
+    },
+    {
+      "name": "confidentialityDuration",
+      "label": "保密期限",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "自签署之日起3年", "label": "3年" },
+        { "value": "自签署之日起5年", "label": "5年" },
+        { "value": "自签署之日起10年", "label": "10年" },
+        { "value": "永久", "label": "永久保密" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "保密协议-{{partyBName}}",
+    "files": [
+      {"path": "保密协议.docx", "type": "document"},
+      {"path": "附件-保密信息清单.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_legal_writing", "skill_contract_management"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

@@ -1,0 +1,54 @@
+{
+  "id": "tpl_business_equity_006",
+  "name": "equity_incentive_plan",
+  "display_name": "股权激励方案",
+  "description": "员工股权激励计划，包含期权池设置、授予机制、行权条件和退出机制",
+  "icon": "💎",
+  "category": "business",
+  "subcategory": "hr",
+  "tags": ["股权激励", "期权", "员工激励", "人力资源"],
+  "project_type": "document",
+  "prompt_template": "# {{companyName}} 股权激励计划\n\n## 一、方案概要\n\n### 1.1 激励目的\n{{purpose}}\n\n### 1.2 适用对象\n- 核心管理层：{{managementScope}}\n- 核心技术人员：{{techScope}}\n- 业务骨干：{{businessScope}}\n\n### 1.3 期权池规模\n- 总股本：{{totalShares}}股\n- 期权池比例：{{optionPoolPercent}}%\n- 期权池总量：{{optionPoolShares}}股\n- 本次授予：{{currentGrant}}股（占期权池{{grantPercent}}%）\n- 预留份额：{{reserved}}股\n\n## 二、授予机制\n\n### 2.1 授予原则\n{{grantPrinciple}}\n\n### 2.2 授予额度\n\n| 职级 | 期权数量 | 占总股本 | 参考人数 |\n|------|----------|----------|----------|\n| 合伙人 | {{partnerOptions}} | {{partnerPercent}}% | {{partnerCount}} |\n| VP级 | {{vpOptions}} | {{vpPercent}}% | {{vpCount}} |\n| 总监级 | {{directorOptions}} | {{directorPercent}}% | {{directorCount}} |\n| 经理级 | {{managerOptions}} | {{managerPercent}}% | {{managerCount}} |\n| 专员级 | {{specialistOptions}} | {{specialistPercent}}% | {{specialistCount}} |\n\n### 2.3 行权价格\n- 定价基准：{{pricingBasis}}\n- 行权价格：{{strikePrice}}元/股\n- 公允价值：{{fairValue}}元/股\n- 折扣率：{{discount}}%\n\n## 三、成熟（Vesting）机制\n\n### 3.1 成熟周期\n- 总周期：{{vestingPeriod}}年\n- Cliff期：{{cliffPeriod}}个月（首次成熟前等待期）\n- 成熟节奏：{{vestingSchedule}}\n\n### 3.2 标准成熟计划\n\n| 时间节点 | 累计成熟比例 | 本期成熟 |\n|----------|--------------|----------|\n| 满12个月 | {{year1Vested}}% | {{year1New}}% |\n| 满24个月 | {{year2Vested}}% | {{year2New}}% |\n| 满36个月 | {{year3Vested}}% | {{year3New}}% |\n| 满48个月 | {{year4Vested}}% | {{year4New}}% |\n\n### 3.3 加速成熟条款\n- IPO加速：{{ipoAcceleration}}\n- 并购加速：{{maAcceleration}}\n- 个人业绩加速：{{performanceAcceleration}}\n\n## 四、行权与退出\n\n### 4.1 行权窗口期\n{{exerciseWindow}}\n\n### 4.2 离职处理\n\n**主动离职：**\n{{voluntaryTermination}}\n\n**被动离职：**\n{{involuntaryTermination}}\n\n**退休：**\n{{retirement}}\n\n### 4.3 回购机制\n{{repurchaseClause}}\n\n## 五、税务与合规\n\n### 5.1 税务处理\n- 授予环节：{{grantTax}}\n- 行权环节：{{exerciseTax}}\n- 转让环节：{{transferTax}}\n\n### 5.2 法律依据\n{{legalBasis}}\n\n## 六、管理与调整\n\n### 6.1 管理机构\n- 决策机构：{{governanceBody}}\n- 执行部门：{{adminDepartment}}\n\n### 6.2 调整机制\n{{adjustmentMechanism}}\n\n## 七、案例说明\n\n### 案例1：核心员工A\n- 职位：{{exampleTitle1}}\n- 入职时间：{{exampleJoinDate1}}\n- 授予期权：{{exampleGrant1}}股\n- 行权价格：{{examplePrice1}}元/股\n- 4年后价值：{{exampleValue1}}元\n\n### 案例2：骨干员工B\n{{exampleCase2}}\n\n## 八、FAQ\n\n**Q1：什么是期权？**\nA：{{faq1}}\n\n**Q2：离职后期权怎么办？**\nA：{{faq2}}\n\n**Q3：期权什么时候能兑现？**\nA：{{faq3}}",
+  "variables_schema": [
+    {
+      "name": "companyName",
+      "label": "公司名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "optionPoolPercent",
+      "label": "期权池比例(%)",
+      "type": "number",
+      "required": true,
+      "min": 5,
+      "max": 20,
+      "default": 15
+    },
+    {
+      "name": "vestingPeriod",
+      "label": "成熟周期(年)",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "3", "label": "3年" },
+        { "value": "4", "label": "4年（推荐）" },
+        { "value": "5", "label": "5年" }
+      ]
+    }
+  ],
+  "file_structure": {
+    "root": "{{companyName}}-股权激励方案",
+    "files": [
+      {"path": "股权激励方案.docx", "type": "document"},
+      {"path": "授予明细表.xlsx", "type": "spreadsheet"},
+      {"path": "协议模板.docx", "type": "document"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_hr_management", "skill_financial_analysis"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}

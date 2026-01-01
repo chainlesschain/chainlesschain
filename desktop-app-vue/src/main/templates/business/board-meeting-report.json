@@ -1,0 +1,55 @@
+{
+  "id": "tpl_business_board_003",
+  "name": "board_meeting_report",
+  "display_name": "董事会报告",
+  "description": "季度或年度董事会汇报材料，包含经营数据、战略进展和重大决策事项",
+  "icon": "📊",
+  "category": "business",
+  "subcategory": "governance",
+  "tags": ["董事会", "公司治理", "汇报", "决策"],
+  "project_type": "presentation",
+  "prompt_template": "# {{companyName}} 董事会报告\n\n**报告期间**：{{reportPeriod}}\n**报告日期**：{{reportDate}}\n**董事会届次**：第{{boardSession}}届第{{meetingNumber}}次会议\n\n## 目录\n\n1. 经营概况\n2. 财务数据\n3. 业务进展\n4. 重大事项\n5. 风险与挑战\n6. 下阶段计划\n7. 需董事会决策事项\n\n---\n\n## 一、经营概况\n\n### 1.1 核心指标完成情况\n\n| 指标 | 目标值 | 实际值 | 完成率 | 同比 |\n|------|--------|--------|--------|------|\n| 营业收入 | {{revenueTarget}} | {{revenueActual}} | {{revenueCompletion}}% | {{revenueYoY}}% |\n| 净利润 | {{profitTarget}} | {{profitActual}} | {{profitCompletion}}% | {{profitYoY}}% |\n| 用户数 | {{userTarget}} | {{userActual}} | {{userCompletion}}% | {{userYoY}}% |\n| 现金储备 | {{cashTarget}} | {{cashActual}} | - | - |\n\n### 1.2 经营亮点\n{{operationalHighlights}}\n\n## 二、财务数据详解\n\n### 2.1 损益表摘要（{{reportPeriod}}）\n\n| 项目 | 金额（万元） | 占比 | 同比变化 |\n|------|--------------|------|----------|\n| 营业收入 | {{revenue}} | 100% | {{revenueChange}}% |\n| 营业成本 | {{cost}} | {{costRatio}}% | {{costChange}}% |\n| 毛利润 | {{grossProfit}} | {{grossMargin}}% | {{gpChange}}% |\n| 销售费用 | {{salesExpense}} | {{salesRatio}}% | - |\n| 管理费用 | {{adminExpense}} | {{adminRatio}}% | - |\n| 研发费用 | {{rdExpense}} | {{rdRatio}}% | - |\n| 净利润 | {{netProfit}} | {{netMargin}}% | {{npChange}}% |\n\n### 2.2 现金流情况\n- 经营活动现金流：{{operatingCashFlow}}\n- 投资活动现金流：{{investingCashFlow}}\n- 筹资活动现金流：{{financingCashFlow}}\n- 期末现金余额：{{cashBalance}}\n\n### 2.3 资产负债情况\n- 总资产：{{totalAssets}}\n- 总负债：{{totalLiabilities}}\n- 净资产：{{netAssets}}\n- 资产负债率：{{debtRatio}}%\n\n## 三、业务进展\n\n### 3.1 核心产品/服务\n{{productProgress}}\n\n### 3.2 市场拓展\n{{marketExpansion}}\n\n### 3.3 客户发展\n{{customerDevelopment}}\n\n### 3.4 技术创新\n{{technologicalInnovation}}\n\n## 四、重大事项\n\n### 4.1 对外投资\n{{investments}}\n\n### 4.2 融资情况\n{{financing}}\n\n### 4.3 重大合作\n{{partnerships}}\n\n### 4.4 组织变动\n{{organizationalChanges}}\n\n## 五、风险与挑战\n\n### 5.1 主要风险\n1. {{risk1}}\n2. {{risk2}}\n3. {{risk3}}\n\n### 5.2 应对措施\n{{riskMitigation}}\n\n## 六、下阶段工作计划（{{nextPeriod}}）\n\n### 6.1 经营目标\n- 营收目标：{{nextRevenue}}\n- 用户目标：{{nextUsers}}\n- 市场份额：{{nextMarketShare}}\n\n### 6.2 重点工作\n1. {{keyTask1}}\n2. {{keyTask2}}\n3. {{keyTask3}}\n\n## 七、需董事会决策事项\n\n### 议案1：{{proposal1Title}}\n**内容**：{{proposal1Content}}\n**建议**：{{proposal1Recommendation}}\n\n### 议案2：{{proposal2Title}}\n**内容**：{{proposal2Content}}\n**建议**：{{proposal2Recommendation}}\n\n---\n\n**报告人**：{{reporter}}\n**职位**：{{reporterTitle}}",
+  "variables_schema": [
+    {
+      "name": "companyName",
+      "label": "公司名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "reportPeriod",
+      "label": "报告期间",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "2026年Q1", "label": "2026年第一季度" },
+        { "value": "2026年Q2", "label": "2026年第二季度" },
+        { "value": "2026年Q3", "label": "2026年第三季度" },
+        { "value": "2026年Q4", "label": "2026年第四季度" },
+        { "value": "2026年上半年", "label": "2026年上半年" },
+        { "value": "2026年度", "label": "2026年度" }
+      ]
+    },
+    {
+      "name": "reportDate",
+      "label": "报告日期",
+      "type": "string",
+      "required": true,
+      "default": "2026-01-01"
+    }
+  ],
+  "file_structure": {
+    "root": "董事会报告-{{reportPeriod}}",
+    "files": [
+      {"path": "董事会报告.pptx", "type": "presentation"},
+      {"path": "财务数据详表.xlsx", "type": "spreadsheet"},
+      {"path": "会议纪要.docx", "type": "document"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_financial_analysis", "skill_data_visualization", "skill_content_creation"],
+  "required_tools": ["tool_ppt_generator", "tool_excel_generator", "tool_chart_generator"],
+  "execution_engine": "presentation"
+}

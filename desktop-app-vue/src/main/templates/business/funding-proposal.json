@@ -1,0 +1,77 @@
+{
+  "id": "tpl_business_funding_002",
+  "name": "funding_proposal",
+  "display_name": "融资计划书",
+  "description": "专业融资计划书，适用于Pre-A/A/B轮融资，包含融资需求、资金用途和退出策略",
+  "icon": "💼",
+  "cover_image": "/templates/covers/funding-proposal.png",
+  "category": "business",
+  "subcategory": "financing",
+  "tags": ["融资", "投资", "资本", "估值"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成融资计划书：\n\n**融资信息：**\n- 公司名称：{{companyName}}\n- 融资轮次：{{fundingRound}}\n- 融资金额：{{fundingAmount}}\n- 出让股权：{{equityOffered}}%\n- 投前估值：{{preMoneyValuation}}\n\n# {{companyName}} 融资计划书\n\n## 一、融资概要\n\n### 1.1 融资需求\n- **融资轮次**：{{fundingRound}}\n- **融资金额**：{{fundingAmount}}\n- **出让股权**：{{equityOffered}}%\n- **投前估值**：{{preMoneyValuation}}\n- **投后估值**：{{postMoneyValuation}}\n- **本轮领投方**：{{leadInvestor}}\n\n### 1.2 资金用途（{{fundingAmount}}）\n\n| 用途 | 金额 | 占比 | 使用周期 |\n|------|------|------|----------|\n| 产品研发 | {{rdBudget}} | {{rdPercent}}% | {{rdPeriod}} |\n| 市场营销 | {{marketingBudget}} | {{marketingPercent}}% | {{marketingPeriod}} |\n| 团队扩张 | {{teamBudget}} | {{teamPercent}}% | {{teamPeriod}} |\n| 运营开支 | {{operatingBudget}} | {{operatingPercent}}% | {{operatingPeriod}} |\n| 储备资金 | {{reserveBudget}} | {{reservePercent}}% | {{reservePeriod}} |\n\n## 二、公司概况\n\n### 2.1 公司基本信息\n- 公司全称：{{companyFullName}}\n- 成立时间：{{foundedDate}}\n- 注册资本：{{registeredCapital}}\n- 所属行业：{{industry}}\n- 公司地址：{{address}}\n\n### 2.2 发展历程\n{{companyHistory}}\n\n### 2.3 核心团队\n{{teamIntro}}\n\n## 三、业务与产品\n\n### 3.1 核心业务\n{{businessDescription}}\n\n### 3.2 产品/服务\n{{productDescription}}\n\n### 3.3 商业模式\n{{businessModel}}\n\n### 3.4 核心竞争力\n1. {{advantage1}}\n2. {{advantage2}}\n3. {{advantage3}}\n\n## 四、市场分析\n\n### 4.1 市场规模\n- TAM（总体市场）：{{tam}}\n- SAM（可获得市场）：{{sam}}\n- SOM（可服务市场）：{{som}}\n\n### 4.2 目标客户\n{{targetCustomer}}\n\n### 4.3 竞争态势\n{{competitiveLandscape}}\n\n## 五、运营数据\n\n### 5.1 关键指标\n| 指标 | 当前值 | 同比增长 |\n|------|--------|----------|\n| 用户数 | {{currentUsers}} | {{userGrowth}}% |\n| 营收 | {{currentRevenue}} | {{revenueGrowth}}% |\n| GMV | {{gmv}} | {{gmvGrowth}}% |\n| 毛利率 | {{grossMargin}}% | - |\n\n### 5.2 历史业绩\n{{historicalPerformance}}\n\n## 六、财务规划\n\n### 6.1 未来3年财务预测\n\n| 年份 | 营收 | 成本 | 毛利 | 净利润 |\n|------|------|------|------|--------|\n| {{year1}} | {{y1Revenue}} | {{y1Cost}} | {{y1GrossProfit}} | {{y1NetProfit}} |\n| {{year2}} | {{y2Revenue}} | {{y2Cost}} | {{y2GrossProfit}} | {{y2NetProfit}} |\n| {{year3}} | {{y3Revenue}} | {{y3Cost}} | {{y3GrossProfit}} | {{y3NetProfit}} |\n\n### 6.2 盈亏平衡点\n预计{{breakEvenMonth}}个月后达到盈亏平衡\n\n## 七、融资历史\n\n| 轮次 | 时间 | 金额 | 投资方 | 估值 |\n|------|------|------|--------|------|\n| {{previousRound1}} | {{pr1Date}} | {{pr1Amount}} | {{pr1Investors}} | {{pr1Valuation}} |\n| {{previousRound2}} | {{pr2Date}} | {{pr2Amount}} | {{pr2Investors}} | {{pr2Valuation}} |\n\n**累计融资**：{{totalFunding}}\n\n## 八、估值依据\n\n### 8.1 估值方法\n{{valuationMethod}}\n\n### 8.2 对标公司\n{{comparableCompanies}}\n\n### 8.3 估值合理性分析\n{{valuationJustification}}\n\n## 九、退出策略\n\n### 9.1 退出路径\n- **首选方案**：{{exitOption1}}\n- **备选方案**：{{exitOption2}}\n\n### 9.2 预期退出时间\n{{expectedExitTime}}\n\n### 9.3 预期回报倍数\n{{expectedReturn}}X\n\n## 十、风险提示\n\n1. **市场风险**：{{marketRisk}}\n2. **竞争风险**：{{competitionRisk}}\n3. **运营风险**：{{operationalRisk}}\n4. **财务风险**：{{financialRisk}}\n\n## 十一、里程碑规划\n\n{{#if includeMilestones}}\n- **3个月内**：{{milestone3m}}\n- **6个月内**：{{milestone6m}}\n- **12个月内**：{{milestone12m}}\n{{/if}}\n\n---\n\n**联系方式**\n- 联系人：{{contactPerson}}\n- 职位：{{contactTitle}}\n- 电话：{{contactPhone}}\n- 邮箱：{{contactEmail}}",
+  "variables_schema": [
+    {
+      "name": "companyName",
+      "label": "公司名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "fundingRound",
+      "label": "融资轮次",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "天使轮", "label": "天使轮" },
+        { "value": "Pre-A轮", "label": "Pre-A轮" },
+        { "value": "A轮", "label": "A轮" },
+        { "value": "A+轮", "label": "A+轮" },
+        { "value": "B轮", "label": "B轮" },
+        { "value": "C轮", "label": "C轮" }
+      ]
+    },
+    {
+      "name": "fundingAmount",
+      "label": "融资金额",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：3000万人民币"
+    },
+    {
+      "name": "equityOffered",
+      "label": "出让股权比例",
+      "type": "number",
+      "required": true,
+      "min": 1,
+      "max": 49,
+      "placeholder": "例如：10"
+    },
+    {
+      "name": "preMoneyValuation",
+      "label": "投前估值",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：2.7亿人民币"
+    }
+  ],
+  "file_structure": {
+    "root": "{{companyName}}-融资计划书",
+    "files": [
+      {"path": "融资计划书.docx", "type": "document"},
+      {"path": "财务预测.xlsx", "type": "spreadsheet"},
+      {"path": "商业模式图.pptx", "type": "presentation"},
+      {"path": "附件/", "type": "folder"}
+    ]
+  },
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": ["skill_financial_analysis", "skill_content_creation", "skill_data_analysis"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator", "tool_financial_calculator"],
+  "execution_engine": "document"
+}

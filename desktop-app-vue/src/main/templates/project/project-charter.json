@@ -1,0 +1,64 @@
+{
+  "id": "tpl_project_charter_001",
+  "name": "project_charter",
+  "display_name": "项目启动文档(Project Charter)",
+  "description": "项目章程模板，定义项目目标、范围、干系人、资源和授权",
+  "icon": "🚀",
+  "category": "project",
+  "subcategory": "initiation",
+  "tags": ["项目启动", "项目章程", "项目管理", "PMI"],
+  "project_type": "document",
+  "prompt_template": "# {{projectName}} 项目启动文档\n## Project Charter\n\n**项目编号**：{{projectCode}}\n**项目经理**：{{projectManager}}\n**项目发起人**：{{projectSponsor}}\n**制定日期**：{{charterDate}}\n**批准日期**：{{approvalDate}}\n**项目优先级**：{{projectPriority}}\n\n---\n\n## 批准签字\n\n| 角色 | 姓名 | 签字 | 日期 |\n|------|------|------|------|\n| 项目发起人 | {{projectSponsor}} | ___________ | _________ |\n| 项目经理 | {{projectManager}} | ___________ | _________ |\n| 部门负责人 | {{departmentHead}} | ___________ | _________ |\n\n---\n\n## 一、项目概述\n\n### 1.1 项目背景\n\n**业务背景**：\n{{businessBackground}}\n\n**问题陈述**：\n{{problemStatement}}\n\n**机会描述**：\n{{opportunityDescription}}\n\n### 1.2 项目目的\n\n{{projectPurpose}}\n\n### 1.3 项目价值\n\n**业务价值**：\n- {{businessValue1}}\n- {{businessValue2}}\n- {{businessValue3}}\n\n**战略对齐**：\n{{strategicAlignment}}\n\n## 二、项目目标\n\n### 2.1 SMART目标\n\n**Specific（具体）**：{{specificGoal}}\n\n**Measurable（可衡量）**：{{measurableGoal}}\n\n**Achievable（可实现）**：{{achievableGoal}}\n\n**Relevant（相关性）**：{{relevantGoal}}\n\n**Time-bound（时限性）**：{{timeboundGoal}}\n\n### 2.2 成功标准\n\n项目成功的衡量标准：\n1. {{successCriteria1}}\n2. {{successCriteria2}}\n3. {{successCriteria3}}\n4. {{successCriteria4}}\n\n### 2.3 关键绩效指标（KPI）\n\n| KPI | 基线值 | 目标值 | 衡量方法 |\n|-----|--------|--------|----------|\n| {{kpi1}} | {{kpi1Baseline}} | {{kpi1Target}} | {{kpi1Measurement}} |\n| {{kpi2}} | {{kpi2Baseline}} | {{kpi2Target}} | {{kpi2Measurement}} |\n| {{kpi3}} | {{kpi3Baseline}} | {{kpi3Target}} | {{kpi3Measurement}} |\n\n## 三、项目范围\n\n### 3.1 项目范围说明\n\n{{scopeStatement}}\n\n### 3.2 项目可交付成果\n\n#### 主要可交付成果\n\n1. **{{deliverable1}}**\n   - 描述：{{deliverable1Desc}}\n   - 验收标准：{{deliverable1Acceptance}}\n   - 交付日期：{{deliverable1Date}}\n\n2. **{{deliverable2}}**\n   - 描述：{{deliverable2Desc}}\n   - 验收标准：{{deliverable2Acceptance}}\n   - 交付日期：{{deliverable2Date}}\n\n3. **{{deliverable3}}**\n   {{deliverable3Details}}\n\n#### 次要可交付成果\n{{minorDeliverables}}\n\n### 3.3 范围边界\n\n**包含（In Scope）**：\n- {{inScope1}}\n- {{inScope2}}\n- {{inScope3}}\n\n**不包含（Out of Scope）**：\n- {{outOfScope1}}\n- {{outOfScope2}}\n- {{outOfScope3}}\n\n### 3.4 约束条件\n\n- **时间约束**：{{timeConstraints}}\n- **预算约束**：{{budgetConstraints}}\n- **资源约束**：{{resourceConstraints}}\n- **技术约束**：{{technicalConstraints}}\n- **其他约束**：{{otherConstraints}}\n\n### 3.5 假设条件\n\n1. {{assumption1}}\n2. {{assumption2}}\n3. {{assumption3}}\n4. {{assumption4}}\n\n## 四、项目组织\n\n### 4.1 组织结构图\n\n{{orgChart}}\n\n### 4.2 项目团队\n\n#### 核心团队\n\n| 角色 | 姓名 | 部门 | 职责 | 投入度 |\n|------|------|------|------|--------|\n| 项目经理 | {{projectManager}} | {{pmDept}} | {{pmResponsibilities}} | {{pmAllocation}}% |\n| 技术负责人 | {{techLead}} | {{techDept}} | {{techResponsibilities}} | {{techAllocation}}% |\n| 业务分析师 | {{businessAnalyst}} | {{baDept}} | {{baResponsibilities}} | {{baAllocation}}% |\n| {{role4}} | {{member4}} | {{dept4}} | {{responsibilities4}} | {{allocation4}}% |\n\n#### 扩展团队\n{{extendedTeam}}\n\n### 4.3 外部资源\n\n{{externalResources}}\n\n## 五、干系人分析\n\n### 5.1 关键干系人\n\n| 干系人 | 角色/部门 | 利益关注点 | 影响力 | 参与度 | 沟通策略 |\n|--------|----------|-----------|--------|--------|----------|\n| {{stakeholder1}} | {{sh1Role}} | {{sh1Interest}} | {{sh1Power}} | {{sh1Engagement}} | {{sh1Strategy}} |\n| {{stakeholder2}} | {{sh2Role}} | {{sh2Interest}} | {{sh2Power}} | {{sh2Engagement}} | {{sh2Strategy}} |\n| {{stakeholder3}} | {{sh3Role}} | {{sh3Interest}} | {{sh3Power}} | {{sh3Engagement}} | {{sh3Strategy}} |\n\n### 5.2 权力-利益矩阵\n\n{{powerInterestGrid}}\n\n### 5.3 干系人管理策略\n\n{{stakeholderManagementStrategy}}\n\n## 六、项目进度计划\n\n### 6.1 里程碑计划\n\n| 里程碑 | 目标日期 | 关键可交付成果 | 验收人 |\n|--------|---------|---------------|--------|\n| 项目启动 | {{m1Date}} | 项目启动会议、项目计划 | {{m1Approver}} |\n| {{milestone2}} | {{m2Date}} | {{m2Deliverable}} | {{m2Approver}} |\n| {{milestone3}} | {{m3Date}} | {{m3Deliverable}} | {{m3Approver}} |\n| {{milestone4}} | {{m4Date}} | {{m4Deliverable}} | {{m4Approver}} |\n| 项目收尾 | {{closureDate}} | 项目验收报告 | {{closureApprover}} |\n\n### 6.2 高层级进度计划\n\n{{highLevelSchedule}}\n\n### 6.3 关键路径\n\n{{criticalPath}}\n\n## 七、预算与资源\n\n### 7.1 项目预算\n\n**总预算**：{{totalBudget}}\n\n#### 预算分解\n\n| 类别 | 金额 | 说明 |\n|------|------|------|\n| 人力成本 | {{laborCost}} | {{laborCostDesc}} |\n| 硬件采购 | {{hardwareCost}} | {{hardwareDesc}} |\n| 软件采购 | {{softwareCost}} | {{softwareDesc}} |\n| 外包服务 | {{outsourcingCost}} | {{outsourcingDesc}} |\n| 培训费用 | {{trainingCost}} | {{trainingDesc}} |\n| 差旅费用 | {{travelCost}} | {{travelDesc}} |\n| 应急储备 | {{contingencyReserve}} | {{contingencyDesc}} |\n| 管理储备 | {{managementReserve}} | {{managementDesc}} |\n| **合计** | **{{totalBudget}}** | - |\n\n### 7.2 资源需求\n\n{{resourceRequirements}}\n\n### 7.3 采购计划\n\n{{procurementPlan}}\n\n## 八、风险管理\n\n### 8.1 高层级风险\n\n| 风险 | 概率 | 影响 | 等级 | 应对策略 | 责任人 |\n|------|------|------|------|----------|--------|\n| {{risk1}} | {{risk1Prob}} | {{risk1Impact}} | {{risk1Level}} | {{risk1Response}} | {{risk1Owner}} |\n| {{risk2}} | {{risk2Prob}} | {{risk2Impact}} | {{risk2Level}} | {{risk2Response}} | {{risk2Owner}} |\n| {{risk3}} | {{risk3Prob}} | {{risk3Impact}} | {{risk3Level}} | {{risk3Response}} | {{risk3Owner}} |\n\n### 8.2 风险管理策略\n\n{{riskManagementStrategy}}\n\n## 九、沟通管理\n\n### 9.1 沟通需求\n\n{{communicationNeeds}}\n\n### 9.2 沟通计划\n\n| 沟通活动 | 频率 | 参与者 | 方式 | 负责人 |\n|---------|------|--------|------|--------|\n| 项目周会 | {{weeklyMeetingFreq}} | {{weeklyMeetingAttendees}} | {{weeklyMeetingMethod}} | {{weeklyMeetingOwner}} |\n| 状态报告 | {{statusReportFreq}} | {{statusReportRecipients}} | {{statusReportMethod}} | {{statusReportOwner}} |\n| 指导委员会会议 | {{steeringCommitteeFreq}} | {{steeringCommitteeMembers}} | {{steeringCommitteeMethod}} | {{steeringCommitteeOwner}} |\n| {{communication4}} | {{comm4Freq}} | {{comm4Participants}} | {{comm4Method}} | {{comm4Owner}} |\n\n## 十、质量管理\n\n### 10.1 质量标准\n\n{{qualityStandards}}\n\n### 10.2 质量保证活动\n\n{{qualityAssurance}}\n\n### 10.3 质量控制措施\n\n{{qualityControl}}\n\n## 十一、项目治理\n\n### 11.1 决策机制\n\n{{decisionMakingProcess}}\n\n### 11.2 变更控制流程\n\n{{changeControlProcess}}\n\n### 11.3 问题升级路径\n\n{{issueEscalationPath}}\n\n## 十二、项目授权\n\n### 12.1 项目经理权限\n\n项目经理{{projectManager}}被授权：\n- {{authority1}}\n- {{authority2}}\n- {{authority3}}\n- {{authority4}}\n\n### 12.2 决策边界\n\n{{decisionBoundaries}}\n\n### 12.3 审批要求\n\n{{approvalRequirements}}\n\n---\n\n## 附录\n\n### 附录A：术语表\n\n{{glossary}}\n\n### 附录B：参考文档\n\n1. {{reference1}}\n2. {{reference2}}\n3. {{reference3}}\n\n### 附录C：相关标准和流程\n\n{{standardsAndProcesses}}",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "projectManager",
+      "label": "项目经理",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "projectSponsor",
+      "label": "项目发起人",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "projectPriority",
+      "label": "项目优先级",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "关键", "label": "关键（Critical）" },
+        { "value": "高", "label": "高（High）" },
+        { "value": "中", "label": "中（Medium）" },
+        { "value": "低", "label": "低（Low）" }
+      ]
+    },
+    {
+      "name": "totalBudget",
+      "label": "总预算（万元）",
+      "type": "number",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "root": "项目启动-{{projectName}}",
+    "files": [
+      {"path": "项目章程-{{projectName}}.docx", "type": "document"},
+      {"path": "项目计划.xlsx", "type": "spreadsheet"},
+      {"path": "干系人分析.xlsx", "type": "spreadsheet"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_project_management", "skill_stakeholder_management"],
+  "required_tools": ["tool_word_generator", "tool_excel_generator"],
+  "execution_engine": "document"
+}
