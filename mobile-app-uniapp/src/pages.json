@@ -1,0 +1,261 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "ChainlessChain"
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/projects/list",
+      "style": {
+        "navigationBarTitleText": "我的项目",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/projects/detail",
+      "style": {
+        "navigationBarTitleText": "项目详情"
+      }
+    },
+    {
+      "path": "pages/projects/create",
+      "style": {
+        "navigationBarTitleText": "新建项目"
+      }
+    },
+    {
+      "path": "pages/projects/chat",
+      "style": {
+        "navigationBarTitleText": "项目AI助手"
+      }
+    },
+    {
+      "path": "pages/projects/templates",
+      "style": {
+        "navigationBarTitleText": "项目模板"
+      }
+    },
+    {
+      "path": "pages/projects/market",
+      "style": {
+        "navigationBarTitleText": "项目市场"
+      }
+    },
+    {
+      "path": "pages/knowledge/list/list",
+      "style": {
+        "navigationBarTitleText": "知识库",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/knowledge/detail/detail",
+      "style": {
+        "navigationBarTitleText": "知识详情"
+      }
+    },
+    {
+      "path": "pages/knowledge/edit/edit",
+      "style": {
+        "navigationBarTitleText": "编辑知识"
+      }
+    },
+    {
+      "path": "pages/chat/chat",
+      "style": {
+        "navigationBarTitleText": "AI 助手"
+      }
+    },
+    {
+      "path": "pages/social/friends/friends",
+      "style": {
+        "navigationBarTitleText": "好友"
+      }
+    },
+    {
+      "path": "pages/social/posts/posts",
+      "style": {
+        "navigationBarTitleText": "动态",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/social/messages/messages",
+      "style": {
+        "navigationBarTitleText": "消息"
+      }
+    },
+    {
+      "path": "pages/social/friend-chat/friend-chat",
+      "style": {
+        "navigationBarTitleText": "聊天",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/trade/market/market",
+      "style": {
+        "navigationBarTitleText": "交易市场"
+      }
+    },
+    {
+      "path": "pages/trade/orders/orders",
+      "style": {
+        "navigationBarTitleText": "我的订单"
+      }
+    },
+    {
+      "path": "pages/trade/assets/assets",
+      "style": {
+        "navigationBarTitleText": "我的资产"
+      }
+    },
+    {
+      "path": "pages/settings/settings",
+      "style": {
+        "navigationBarTitleText": "设置"
+      }
+    },
+    {
+      "path": "pages/identity/list",
+      "style": {
+        "navigationBarTitleText": "我的身份"
+      }
+    },
+    {
+      "path": "pages/identity/create",
+      "style": {
+        "navigationBarTitleText": "创建身份"
+      }
+    },
+    {
+      "path": "pages/auth/setup-pin",
+      "style": {
+        "navigationBarTitleText": "设置PIN码",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/auth/change-pin",
+      "style": {
+        "navigationBarTitleText": "修改PIN码",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/auth/verify-pin",
+      "style": {
+        "navigationBarTitleText": "验证身份",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/auth/biometric-setup",
+      "style": {
+        "navigationBarTitleText": "生物识别设置"
+      }
+    },
+    {
+      "path": "pages/backup/backup",
+      "style": {
+        "navigationBarTitleText": "数据备份",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/backup/cloud-sync",
+      "style": {
+        "navigationBarTitleText": "云同步设置"
+      }
+    },
+    {
+      "path": "pages/knowledge/statistics/statistics",
+      "style": {
+        "navigationBarTitleText": "知识统计"
+      }
+    },
+    {
+      "path": "pages/knowledge/folders/folders",
+      "style": {
+        "navigationBarTitleText": "文件夹管理"
+      }
+    },
+    {
+      "path": "pages/knowledge/import-export/import-export",
+      "style": {
+        "navigationBarTitleText": "导入/导出"
+      }
+    },
+    {
+      "path": "pages/mine/mine",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/ai/index",
+      "style": {
+        "navigationBarTitleText": "AI助手"
+      }
+    },
+    {
+      "path": "pages/messages/index",
+      "style": {
+        "navigationBarTitleText": "消息"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "ChainlessChain",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#667eea",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "static/images/home.png",
+        "selectedIconPath": "static/images/home-active.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/projects/list",
+        "iconPath": "static/images/project.png",
+        "selectedIconPath": "static/images/project-active.png",
+        "text": "项目"
+      },
+      {
+        "pagePath": "pages/messages/index",
+        "iconPath": "static/images/message.png",
+        "selectedIconPath": "static/images/message-active.png",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/knowledge/list/list",
+        "iconPath": "static/images/knowledge.png",
+        "selectedIconPath": "static/images/knowledge-active.png",
+        "text": "知识"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "iconPath": "static/images/mine.png",
+        "selectedIconPath": "static/images/mine-active.png",
+        "text": "我的"
+      }
+    ]
+  }
+}
