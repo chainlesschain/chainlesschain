@@ -40,6 +40,9 @@
             <a-select-option value="openai">
               <OpenAIOutlined /> OpenAI
             </a-select-option>
+            <a-select-option value="anthropic">
+              <ThunderboltOutlined /> Claude (Anthropic)
+            </a-select-option>
             <a-select-option value="deepseek">
               <ThunderboltOutlined /> DeepSeek
             </a-select-option>
@@ -69,6 +72,18 @@
             </a>
           </template>
         </a-form-item>
+
+        <!-- 测试连接按钮 -->
+        <a-form-item>
+          <a-space>
+            <a-button type="primary" @click="testConnection" :loading="testing">
+              测试连接
+            </a-button>
+            <a-tag v-if="testResult" :color="testResult.success ? 'success' : 'error'">
+              {{ testResult.message }}
+            </a-tag>
+          </a-space>
+        </a-form-item>
       </a-form>
     </div>
 
@@ -88,6 +103,7 @@
             <a-select-option value="ollama">Ollama (本地)</a-select-option>
             <a-select-option value="volcengine">火山引擎</a-select-option>
             <a-select-option value="openai">OpenAI</a-select-option>
+            <a-select-option value="anthropic">Claude (Anthropic)</a-select-option>
             <a-select-option value="deepseek">DeepSeek</a-select-option>
             <a-select-option value="zhipu">智谱AI</a-select-option>
             <a-select-option value="qianfan">百度千帆</a-select-option>
@@ -117,6 +133,18 @@
             @change="emitUpdate"
           />
         </a-form-item>
+
+        <!-- 测试连接按钮 -->
+        <a-form-item>
+          <a-space>
+            <a-button type="primary" @click="testConnection" :loading="testing">
+              测试连接
+            </a-button>
+            <a-tag v-if="testResult" :color="testResult.success ? 'success' : 'error'">
+              {{ testResult.message }}
+            </a-tag>
+          </a-space>
+        </a-form-item>
       </a-form>
     </div>
 
@@ -137,6 +165,7 @@
 
 <script setup>
 import { ref, computed, watch, reactive } from 'vue';
+import { message } from 'ant-design-vue';
 import {
   RobotOutlined,
   CloudOutlined,
@@ -169,6 +198,10 @@ const formData = reactive({
   baseUrl: props.modelValue.baseUrl || '',
   model: props.modelValue.model || '',
 });
+
+// 测试连接相关
+const testing = ref(false);
+const testResult = ref(null);
 
 const modeOptions = [
   {
@@ -212,10 +245,58 @@ const emitUpdate = () => {
   });
 };
 
+// 测试连接
+const testConnection = async () => {
+  testing.value = true;
+  testResult.value = null;
+
+  try {
+    // 构建测试配置
+    const testConfig = {
+      provider: formData.provider,
+      apiKey: formData.apiKey,
+      baseUrl: formData.baseUrl,
+      model: formData.model || getDefaultModel(),
+    };
+
+    // 如果没有window.electronAPI，提示错误
+    if (!window.electronAPI || !window.electronAPI.llm) {
+      throw new Error('LLM API 不可用');
+    }
+
+    // 调用测试接口
+    const result = await window.electronAPI.llm.checkStatus();
+
+    if (result.available) {
+      testResult.value = {
+        success: true,
+        message: '连接成功！',
+      };
+      message.success('LLM 服务连接成功');
+    } else {
+      testResult.value = {
+        success: false,
+        message: '连接失败: ' + (result.error || '未知错误'),
+      };
+      message.error('连接失败');
+    }
+  } catch (error) {
+    console.error('测试连接失败:', error);
+    testResult.value = {
+      success: false,
+      message: '测试失败: ' + error.message,
+    };
+    message.error('测试失败：' + error.message);
+  } finally {
+    testing.value = false;
+  }
+};
+
 const getApiKeyLink = () => {
   const links = {
     volcengine: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
     openai: 'https://platform.openai.com/api-keys',
+    anthropic: 'https://console.anthropic.com/settings/keys',
     deepseek: 'https://platform.deepseek.com/api_keys',
     zhipu: 'https://open.bigmodel.cn/usercenter/apikeys',
     qianfan: 'https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application',
@@ -228,6 +309,7 @@ const getDefaultModel = () => {
     ollama: 'llama2',
     volcengine: 'doubao-pro-4k',
     openai: 'gpt-3.5-turbo',
+    anthropic: 'claude-3-5-sonnet-20241022',
     deepseek: 'deepseek-chat',
     zhipu: 'glm-4',
     qianfan: 'ERNIE-Bot-turbo',
