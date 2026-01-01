@@ -22,7 +22,12 @@ const HOISTED_MODULES = [
   'form-data',                // HTTP form data
   'chokidar',                 // File watching
   'marked',                   // Markdown parsing
-  'node-forge'                // Cryptography
+  'node-forge',               // Cryptography
+  'fs-extra',                 // Extended file system utilities
+  'archiver',                 // Archive creation
+  'adm-zip',                  // ZIP file manipulation
+  'decompress',               // Archive extraction
+  'get-port'                  // Port availability checker
 ];
 
 const rootDir = path.join(__dirname, '..', '..');
