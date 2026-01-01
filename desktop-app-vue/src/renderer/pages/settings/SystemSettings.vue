@@ -1094,11 +1094,91 @@ const testLLMConnection = async () => {
   llmTestResult.value = null;
 
   try {
-    // 先保存当前配置
-    const cleanConfig = JSON.parse(JSON.stringify(config.value));
-    await window.electronAPI.config.update(cleanConfig);
+    // 验证必填字段
+    const provider = config.value.llm.provider;
+    if (provider === 'openai' && !config.value.llm.openaiApiKey) {
+      throw new Error('请先输入 OpenAI API Key');
+    }
+    if (provider === 'anthropic' && !config.value.llm.anthropicApiKey) {
+      throw new Error('请先输入 Claude API Key');
+    }
+    if (provider === 'volcengine' && !config.value.llm.volcengineApiKey) {
+      throw new Error('请先输入火山引擎 API Key');
+    }
+    if (provider === 'deepseek' && !config.value.llm.deepseekApiKey) {
+      throw new Error('请先输入 DeepSeek API Key');
+    }
+    if (provider === 'dashscope' && !config.value.llm.dashscopeApiKey) {
+      throw new Error('请先输入阿里通义千问 API Key');
+    }
+    if (provider === 'zhipu' && !config.value.llm.zhipuApiKey) {
+      throw new Error('请先输入智谱 AI API Key');
+    }
 
-    // 调用测试接口
+    // 构建LLM配置对象
+    const llmConfig = {
+      provider: provider,
+      options: {
+        temperature: 0.7,
+        timeout: 120000,
+      },
+    };
+
+    // 根据提供商添加特定配置
+    switch (provider) {
+      case 'ollama':
+        llmConfig.ollama = {
+          url: config.value.llm.ollamaHost || 'http://localhost:11434',
+          model: config.value.llm.ollamaModel || 'llama2',
+        };
+        break;
+      case 'openai':
+        llmConfig.openai = {
+          apiKey: config.value.llm.openaiApiKey,
+          baseURL: config.value.llm.openaiBaseUrl || 'https://api.openai.com/v1',
+          model: config.value.llm.openaiModel || 'gpt-3.5-turbo',
+        };
+        break;
+      case 'anthropic':
+        llmConfig.anthropic = {
+          apiKey: config.value.llm.anthropicApiKey,
+          baseURL: config.value.llm.anthropicBaseUrl || 'https://api.anthropic.com',
+          model: config.value.llm.anthropicModel || 'claude-3-5-sonnet-20241022',
+          version: '2023-06-01',
+        };
+        break;
+      case 'volcengine':
+        llmConfig.volcengine = {
+          apiKey: config.value.llm.volcengineApiKey,
+          baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
+          model: config.value.llm.volcengineModel || 'doubao-pro-4k',
+        };
+        break;
+      case 'deepseek':
+        llmConfig.deepseek = {
+          apiKey: config.value.llm.deepseekApiKey,
+          baseURL: 'https://api.deepseek.com/v1',
+          model: config.value.llm.deepseekModel || 'deepseek-chat',
+        };
+        break;
+      case 'dashscope':
+        llmConfig.dashscope = {
+          apiKey: config.value.llm.dashscopeApiKey,
+          model: config.value.llm.dashscopeModel || 'qwen-turbo',
+        };
+        break;
+      case 'zhipu':
+        llmConfig.zhipu = {
+          apiKey: config.value.llm.zhipuApiKey,
+          model: config.value.llm.zhipuModel || 'glm-4',
+        };
+        break;
+    }
+
+    // 先保存LLM配置
+    await window.electronAPI.llm.setConfig(llmConfig);
+
+    // 然后测试连接
     const result = await window.electronAPI.llm.checkStatus();
 
     if (result.available) {

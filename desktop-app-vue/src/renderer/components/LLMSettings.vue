@@ -486,6 +486,23 @@ const handleSave = async () => {
 const handleTest = async () => {
   testing.value = true;
   try {
+    // 验证必填字段
+    if (form.provider === 'openai' && !form.openai.apiKey) {
+      throw new Error('请先输入 OpenAI API Key');
+    }
+    if (form.provider === 'anthropic' && !form.anthropic.apiKey) {
+      throw new Error('请先输入 Claude API Key');
+    }
+    if (form.provider === 'volcengine' && !form.volcengine.apiKey) {
+      throw new Error('请先输入火山引擎 API Key');
+    }
+    if (form.provider === 'deepseek' && !form.deepseek.apiKey) {
+      throw new Error('请先输入 DeepSeek API Key');
+    }
+    if (form.provider === 'custom' && !form.custom.baseURL) {
+      throw new Error('请先输入自定义 API 地址');
+    }
+
     // 先保存配置（转换为普通对象）
     const plainConfig = JSON.parse(JSON.stringify(form));
     await window.electronAPI.llm.setConfig(plainConfig);
@@ -502,7 +519,7 @@ const handleTest = async () => {
     }
   } catch (error) {
     console.error('测试连接失败:', error);
-    message.error('测试连接失败: ' + error.message);
+    message.error('测试失败: ' + error.message);
   } finally {
     testing.value = false;
   }
