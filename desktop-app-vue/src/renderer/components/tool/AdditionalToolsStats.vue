@@ -7,6 +7,26 @@
         <span class="subtitle">专业领域工具使用情况分析</span>
       </div>
       <a-space>
+        <a-dropdown>
+          <template #overlay>
+            <a-menu @click="handleExport">
+              <a-menu-item key="csv">
+                <FileTextOutlined /> 导出为 CSV
+              </a-menu-item>
+              <a-menu-item key="excel">
+                <FileExcelOutlined /> 导出为 Excel
+              </a-menu-item>
+              <a-menu-item key="pdf">
+                <FilePdfOutlined /> 导出为 PDF
+              </a-menu-item>
+            </a-menu>
+          </template>
+          <a-button>
+            <template #icon><DownloadOutlined /></template>
+            导出数据
+            <DownOutlined />
+          </a-button>
+        </a-dropdown>
         <a-switch
           v-model:checked="autoRefresh"
           checked-children="自动刷新"
@@ -19,6 +39,62 @@
         </a-button>
       </a-space>
     </div>
+
+    <!-- 筛选控件区 -->
+    <a-card size="small" class="filter-card">
+      <a-row :gutter="[16, 16]">
+        <a-col :xs="24" :sm="12" :md="8">
+          <div class="filter-item">
+            <label>时间范围</label>
+            <a-range-picker
+              v-model:value="dateRange"
+              style="width: 100%"
+              :placeholder="['开始日期', '结束日期']"
+              format="YYYY-MM-DD"
+              @change="handleFilterChange"
+            />
+          </div>
+        </a-col>
+        <a-col :xs="24" :sm="12" :md="8">
+          <div class="filter-item">
+            <label>分类筛选</label>
+            <a-select
+              v-model:value="selectedCategories"
+              mode="multiple"
+              style="width: 100%"
+              placeholder="请选择分类"
+              :options="categoryOptions"
+              @change="handleFilterChange"
+            />
+          </div>
+        </a-col>
+        <a-col :xs="24" :sm="12" :md="8">
+          <div class="filter-item">
+            <label>搜索工具</label>
+            <a-input-search
+              v-model:value="searchKeyword"
+              placeholder="工具名称、描述..."
+              style="width: 100%"
+              @search="handleFilterChange"
+              @change="handleSearchChange"
+            />
+          </div>
+        </a-col>
+      </a-row>
+      <a-row style="margin-top: 12px">
+        <a-col :span="24">
+          <a-space>
+            <a-button @click="handleResetFilters" size="small">
+              <template #icon><ClearOutlined /></template>
+              重置筛选
+            </a-button>
+            <a-tag v-if="hasActiveFilters" color="blue">
+              已应用 {{ activeFilterCount }} 个筛选条件
+            </a-tag>
+          </a-space>
+        </a-col>
+      </a-row>
+    </a-card>
 
     <!-- 加载状态 -->
     <div v-if="loading && !overview.totalTools" class="loading-container">
@@ -192,7 +268,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import * as echarts from 'echarts';
 import { message } from 'ant-design-vue';
 import {
@@ -202,6 +278,12 @@ import {
   CheckSquareOutlined,
   ClockCircleOutlined,
   ReloadOutlined,
+  ClearOutlined,
+  DownloadOutlined,
+  DownOutlined,
+  FileTextOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined,
 } from '@ant-design/icons-vue';
 
 // 加载状态
@@ -210,6 +292,45 @@ const loading = ref(true);
 // 自动刷新
 const autoRefresh = ref(false);
 let refreshTimer = null;
+
+// 筛选状态
+const dateRange = ref(null);
+const selectedCategories = ref([]);
+const searchKeyword = ref('');
+let searchDebounceTimer = null;
+
+// 分类选项（从后端动态获取）
+const categoryOptions = ref([
+  { label: '区块链', value: 'blockchain' },
+  { label: '财务', value: 'finance' },
+  { label: 'CRM', value: 'crm' },
+  { label: '项目管理', value: 'project' },
+  { label: '代码生成', value: 'code' },
+  { label: '模拟仿真', value: 'simulation' },
+  { label: '分析', value: 'analysis' },
+  { label: '管理', value: 'management' },
+  { label: '通用', value: 'general' },
+  { label: '医疗', value: 'medical' },
+  { label: '教育', value: 'education' },
+  { label: '供应链', value: 'supply_chain' },
+  { label: '人力资源', value: 'hr' },
+]);
+
+// 计算是否有活动筛选
+const hasActiveFilters = computed(() => {
+  return (dateRange.value && dateRange.value.length === 2) ||
+         selectedCategories.value.length > 0 ||
+         (searchKeyword.value && searchKeyword.value.trim().length > 0);
+});
+
+// 计算活动筛选数量
+const activeFilterCount = computed(() => {
+  let count = 0;
+  if (dateRange.value && dateRange.value.length === 2) count++;
+  if (selectedCategories.value.length > 0) count++;
+  if (searchKeyword.value && searchKeyword.value.trim().length > 0) count++;
+  return count;
+});
 
 // 统计数据
 const overview = ref({
@@ -281,11 +402,37 @@ const categoryColumns = [
   },
 ];
 
-// 加载统计数据
+// 构建筛选参数
+const buildFilters = () => {
+  const filters = {};
+
+  // 时间范围
+  if (dateRange.value && dateRange.value.length === 2) {
+    filters.dateRange = [
+      dateRange.value[0].format('YYYY-MM-DD'),
+      dateRange.value[1].format('YYYY-MM-DD')
+    ];
+  }
+
+  // 分类筛选
+  if (selectedCategories.value && selectedCategories.value.length > 0) {
+    filters.categories = selectedCategories.value;
+  }
+
+  // 搜索关键词
+  if (searchKeyword.value && searchKeyword.value.trim()) {
+    filters.searchKeyword = searchKeyword.value.trim();
+  }
+
+  return filters;
+};
+
+// 加载统计数据（支持筛选）
 const loadDashboardData = async () => {
   loading.value = true;
   try {
-    const result = await window.electronAPI.tool.getAdditionalV3Dashboard();
+    const filters = buildFilters();
+    const result = await window.electronAPI.tool.getAdditionalV3Dashboard(filters);
 
     if (result.success) {
       const data = result.data;
@@ -310,6 +457,11 @@ const loadDashboardData = async () => {
 
       // 初始化图表
       await initCharts();
+
+      // 提示筛选已应用
+      if (hasActiveFilters.value) {
+        message.success(`已应用 ${activeFilterCount.value} 个筛选条件`);
+      }
     } else {
       message.error('加载统计数据失败: ' + result.error);
     }
@@ -318,6 +470,245 @@ const loadDashboardData = async () => {
     message.error('加载统计数据失败');
   } finally {
     loading.value = false;
+  }
+};
+
+// 筛选变更处理
+const handleFilterChange = () => {
+  loadDashboardData();
+};
+
+// 搜索框输入防抖处理
+const handleSearchChange = () => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
+  searchDebounceTimer = setTimeout(() => {
+    loadDashboardData();
+  }, 500); // 500ms防抖
+};
+
+// 重置筛选
+const handleResetFilters = () => {
+  dateRange.value = null;
+  selectedCategories.value = [];
+  searchKeyword.value = '';
+  loadDashboardData();
+  message.info('筛选条件已重置');
+};
+
+// ===================================
+// 数据导出功能
+// ===================================
+
+/**
+ * 导出为CSV格式
+ */
+const exportToCSV = () => {
+  try {
+    let csv = '';
+
+    // 添加概览数据
+    csv += '=== Additional Tools V3 统计报告 ===\n';
+    csv += `生成时间:,${new Date().toLocaleString()}\n`;
+    csv += `筛选条件:,${hasActiveFilters.value ? activeFilterCount.value + '个' : '无'}\n\n`;
+
+    // 概览数据
+    csv += '--- 概览统计 ---\n';
+    csv += '指标,数值\n';
+    csv += `总工具数,${overview.value.totalTools}\n`;
+    csv += `已启用,${overview.value.enabledTools}\n`;
+    csv += `总调用次数,${overview.value.totalInvocations}\n`;
+    csv += `成功率,${overview.value.successRate}\n`;
+    csv += `平均响应时间,${overview.value.avgExecutionTime}ms\n\n`;
+
+    // 使用排行
+    csv += '--- 使用次数排行 Top 10 ---\n';
+    csv += '排名,工具名称,调用次数,成功次数,平均响应时间\n';
+    rankings.value.mostUsed.slice(0, 10).forEach((tool, index) => {
+      csv += `${index + 1},${tool.display_name || tool.name},${tool.usage_count},${tool.success_count},${tool.avg_execution_time}ms\n`;
+    });
+    csv += '\n';
+
+    // 成功率排行
+    csv += '--- 成功率排行 Top 10 ---\n';
+    csv += '排名,工具名称,调用次数,成功率\n';
+    rankings.value.highestSuccessRate.slice(0, 10).forEach((tool, index) => {
+      csv += `${index + 1},${tool.display_name || tool.name},${tool.usage_count},${tool.success_rate}%\n`;
+    });
+    csv += '\n';
+
+    // 分类统计
+    csv += '--- 分类统计 ---\n';
+    csv += '分类,工具数,使用次数,成功率,平均响应时间\n';
+    categoryStats.value.forEach((cat) => {
+      csv += `${cat.category},${cat.toolCount},${cat.totalUsage},${cat.successRate}%,${cat.avgTime}ms\n`;
+    });
+    csv += '\n';
+
+    // 每日统计
+    csv += '--- 最近7天统计 ---\n';
+    csv += '日期,调用次数,成功次数,失败次数,成功率\n';
+    dailyStats.value.forEach((stat) => {
+      csv += `${stat.date},${stat.invokes},${stat.success},${stat.failure},${stat.successRate}%\n`;
+    });
+
+    // 创建下载
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `additional-tools-stats-${Date.now()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    message.success('CSV导出成功');
+  } catch (error) {
+    console.error('[Export] CSV导出失败:', error);
+    message.error('CSV导出失败: ' + error.message);
+  }
+};
+
+/**
+ * 导出为Excel格式（使用CSV兼容格式）
+ */
+const exportToExcel = () => {
+  try {
+    // 创建简单的HTML表格格式，Excel可以打开
+    let html = '<html><head><meta charset="utf-8"></head><body>';
+    html += '<h1>Additional Tools V3 统计报告</h1>';
+    html += `<p>生成时间: ${new Date().toLocaleString()}</p>`;
+    html += `<p>筛选条件: ${hasActiveFilters.value ? activeFilterCount.value + '个' : '无'}</p><br/>`;
+
+    // 概览数据
+    html += '<h2>概览统计</h2>';
+    html += '<table border="1" cellpadding="5" cellspacing="0">';
+    html += '<tr><th>指标</th><th>数值</th></tr>';
+    html += `<tr><td>总工具数</td><td>${overview.value.totalTools}</td></tr>`;
+    html += `<tr><td>已启用</td><td>${overview.value.enabledTools}</td></tr>`;
+    html += `<tr><td>总调用次数</td><td>${overview.value.totalInvocations}</td></tr>`;
+    html += `<tr><td>成功率</td><td>${overview.value.successRate}</td></tr>`;
+    html += `<tr><td>平均响应时间</td><td>${overview.value.avgExecutionTime}ms</td></tr>`;
+    html += '</table><br/>';
+
+    // 使用排行
+    html += '<h2>使用次数排行 Top 10</h2>';
+    html += '<table border="1" cellpadding="5" cellspacing="0">';
+    html += '<tr><th>排名</th><th>工具名称</th><th>调用次数</th><th>成功次数</th><th>平均响应时间</th></tr>';
+    rankings.value.mostUsed.slice(0, 10).forEach((tool, index) => {
+      html += `<tr><td>${index + 1}</td><td>${tool.display_name || tool.name}</td><td>${tool.usage_count}</td><td>${tool.success_count}</td><td>${tool.avg_execution_time}ms</td></tr>`;
+    });
+    html += '</table><br/>';
+
+    // 分类统计
+    html += '<h2>分类统计</h2>';
+    html += '<table border="1" cellpadding="5" cellspacing="0">';
+    html += '<tr><th>分类</th><th>工具数</th><th>使用次数</th><th>成功率</th><th>平均响应时间</th></tr>';
+    categoryStats.value.forEach((cat) => {
+      html += `<tr><td>${cat.category}</td><td>${cat.toolCount}</td><td>${cat.totalUsage}</td><td>${cat.successRate}%</td><td>${cat.avgTime}ms</td></tr>`;
+    });
+    html += '</table><br/>';
+
+    html += '</body></html>';
+
+    // 创建下载
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `additional-tools-stats-${Date.now()}.xls`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    message.success('Excel导出成功');
+  } catch (error) {
+    console.error('[Export] Excel导出失败:', error);
+    message.error('Excel导出失败: ' + error.message);
+  }
+};
+
+/**
+ * 导出为PDF格式（生成纯文本报告）
+ */
+const exportToPDF = () => {
+  try {
+    // 创建简单的文本报告
+    let text = '='.repeat(60) + '\n';
+    text += '  Additional Tools V3 统计报告\n';
+    text += '='.repeat(60) + '\n\n';
+    text += `生成时间: ${new Date().toLocaleString()}\n`;
+    text += `筛选条件: ${hasActiveFilters.value ? activeFilterCount.value + '个' : '无'}\n\n`;
+
+    // 概览数据
+    text += '-'.repeat(60) + '\n';
+    text += '概览统计\n';
+    text += '-'.repeat(60) + '\n';
+    text += `总工具数:       ${overview.value.totalTools}\n`;
+    text += `已启用:         ${overview.value.enabledTools}\n`;
+    text += `总调用次数:     ${overview.value.totalInvocations}\n`;
+    text += `成功率:         ${overview.value.successRate}\n`;
+    text += `平均响应时间:   ${overview.value.avgExecutionTime}ms\n\n`;
+
+    // 使用排行
+    text += '-'.repeat(60) + '\n';
+    text += '使用次数排行 Top 10\n';
+    text += '-'.repeat(60) + '\n';
+    rankings.value.mostUsed.slice(0, 10).forEach((tool, index) => {
+      text += `${(index + 1).toString().padStart(2)}. ${(tool.display_name || tool.name).padEnd(30)} ${tool.usage_count}次\n`;
+    });
+    text += '\n';
+
+    // 分类统计
+    text += '-'.repeat(60) + '\n';
+    text += '分类统计\n';
+    text += '-'.repeat(60) + '\n';
+    categoryStats.value.forEach((cat) => {
+      text += `${cat.category.padEnd(15)} 工具数:${cat.toolCount} 使用:${cat.totalUsage}次 成功率:${cat.successRate}%\n`;
+    });
+    text += '\n';
+
+    text += '='.repeat(60) + '\n';
+    text += '报告结束\n';
+    text += '='.repeat(60) + '\n';
+
+    // 创建下载
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `additional-tools-stats-${Date.now()}.txt`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    message.success('PDF文本报告导出成功');
+  } catch (error) {
+    console.error('[Export] PDF导出失败:', error);
+    message.error('PDF导出失败: ' + error.message);
+  }
+};
+
+/**
+ * 导出处理器
+ */
+const handleExport = ({ key }) => {
+  switch (key) {
+    case 'csv':
+      exportToCSV();
+      break;
+    case 'excel':
+      exportToExcel();
+      break;
+    case 'pdf':
+      exportToPDF();
+      break;
+    default:
+      message.warning('未知的导出格式');
   }
 };
 
@@ -634,6 +1025,12 @@ onBeforeUnmount(() => {
     refreshTimer = null;
   }
 
+  // 清理搜索防抖定时器
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = null;
+  }
+
   // 销毁图表
   usageChart?.dispose();
   successRateChart?.dispose();
@@ -674,6 +1071,26 @@ defineExpose({
         margin-top: 4px;
         font-size: 13px;
         color: #8c8c8c;
+      }
+    }
+  }
+
+  .filter-card {
+    margin-bottom: 16px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+
+    :deep(.ant-card-body) {
+      padding: 16px;
+    }
+
+    .filter-item {
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #595959;
       }
     }
   }
@@ -720,6 +1137,132 @@ defineExpose({
       :deep(.ant-card-head-title) {
         font-size: 15px;
         font-weight: 600;
+      }
+    }
+  }
+}
+
+// 深色主题支持
+:deep(.dark) .additional-tools-stats,
+.additional-tools-stats.dark-theme {
+  .toolbar {
+    background: #141414;
+    box-shadow: 0 1px 2px rgba(255, 255, 255, 0.05);
+
+    .title h3 {
+      color: #ffffff;
+    }
+
+    .title .subtitle {
+      color: #8c8c8c;
+    }
+  }
+
+  .filter-card {
+    background: #141414;
+    box-shadow: 0 1px 2px rgba(255, 255, 255, 0.05);
+
+    :deep(.ant-card-body) {
+      background: #141414;
+    }
+
+    .filter-item label {
+      color: #d9d9d9;
+    }
+  }
+
+  .loading-container {
+    background: #141414;
+  }
+
+  .stats-container {
+    .stat-card {
+      background: #1f1f1f;
+      box-shadow: 0 1px 2px rgba(255, 255, 255, 0.05);
+
+      :deep(.ant-statistic-title) {
+        color: #8c8c8c;
+      }
+
+      :deep(.ant-statistic-content) {
+        color: #ffffff;
+      }
+    }
+
+    .chart-card {
+      background: #1f1f1f;
+      box-shadow: 0 1px 2px rgba(255, 255, 255, 0.05);
+
+      :deep(.ant-card-head) {
+        background: #1f1f1f;
+        border-bottom-color: #303030;
+      }
+
+      :deep(.ant-card-head-title) {
+        color: #ffffff;
+      }
+
+      :deep(.ant-card-body) {
+        background: #1f1f1f;
+      }
+    }
+
+    :deep(.ant-table) {
+      background: #1f1f1f;
+      color: #ffffff;
+
+      .ant-table-thead > tr > th {
+        background: #262626;
+        color: #ffffff;
+        border-bottom-color: #303030;
+      }
+
+      .ant-table-tbody > tr > td {
+        border-bottom-color: #303030;
+        color: #d9d9d9;
+      }
+
+      .ant-table-tbody > tr:hover > td {
+        background: #262626;
+      }
+    }
+
+    :deep(.ant-list) {
+      .ant-list-item {
+        border-bottom-color: #303030;
+        color: #d9d9d9;
+
+        &:hover {
+          background: #262626;
+        }
+      }
+    }
+
+    :deep(.ant-pagination) {
+      .ant-pagination-item {
+        background: #1f1f1f;
+        border-color: #303030;
+
+        a {
+          color: #d9d9d9;
+        }
+
+        &:hover {
+          border-color: #177ddc;
+
+          a {
+            color: #177ddc;
+          }
+        }
+      }
+
+      .ant-pagination-item-active {
+        background: #177ddc;
+        border-color: #177ddc;
+
+        a {
+          color: #ffffff;
+        }
       }
     }
   }
