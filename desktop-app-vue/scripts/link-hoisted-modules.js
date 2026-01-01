@@ -1,90 +1,109 @@
 #!/usr/bin/env node
 /**
- * 链接被workspace提升到根目录的模块
+ * 复制被workspace提升到根目录的所有模块
  * 用于解决Electron打包时无法访问父目录node_modules的问题
+ *
+ * 策略：复制根目录node_modules中所有本地不存在的模块
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// 需要链接的模块列表（这些模块被提升到根目录）
-const HOISTED_MODULES = [
-  'uuid',
-  'axios',
-  'lodash',
-  'express',
-  'dotenv',
-  'sql.js',
-  'koffi',                    // U-Key FFI bindings
-  'better-sqlite3',           // Alternative database (no encryption)
-  'better-sqlite3-multiple-ciphers', // SQLCipher support
-  'ws',                       // WebSocket for P2P
-  'form-data',                // HTTP form data
-  'chokidar',                 // File watching
-  'marked',                   // Markdown parsing
-  'node-forge',               // Cryptography
-  'fs-extra',                 // Extended file system utilities
-  'archiver',                 // Archive creation
-  'adm-zip',                  // ZIP file manipulation
-  'decompress',               // Archive extraction
-  'get-port'                  // Port availability checker
-];
-
 const rootDir = path.join(__dirname, '..', '..');
 const localNodeModules = path.join(__dirname, '..', 'node_modules');
 const rootNodeModules = path.join(rootDir, 'node_modules');
 
-console.log('[Link Hoisted Modules] 开始链接提升的模块...');
+console.log('[Copy Hoisted Modules] 开始复制提升的模块...');
+console.log(`[Copy Hoisted Modules] 根目录: ${rootNodeModules}`);
+console.log(`[Copy Hoisted Modules] 本地目录: ${localNodeModules}`);
 
 // 确保本地node_modules存在
 if (!fs.existsSync(localNodeModules)) {
   fs.mkdirSync(localNodeModules, { recursive: true });
 }
 
-let linkedCount = 0;
-let skippedCount = 0;
+// 获取根目录所有模块
+let rootModules = [];
+try {
+  rootModules = fs.readdirSync(rootNodeModules);
+  console.log(`[Copy Hoisted Modules] 根目录共有 ${rootModules.length} 个模块`);
+} catch (err) {
+  console.error('[Copy Hoisted Modules] 无法读取根目录node_modules:', err.message);
+  process.exit(1);
+}
 
-HOISTED_MODULES.forEach(moduleName => {
+// 获取本地已存在的模块
+let localModules = [];
+try {
+  if (fs.existsSync(localNodeModules)) {
+    localModules = fs.readdirSync(localNodeModules);
+  }
+  console.log(`[Copy Hoisted Modules] 本地已有 ${localModules.length} 个模块`);
+} catch (err) {
+  console.error('[Copy Hoisted Modules] 无法读取本地node_modules:', err.message);
+}
+
+let copiedCount = 0;
+let skippedCount = 0;
+let errorCount = 0;
+
+// 遍历根目录的所有模块
+for (const moduleName of rootModules) {
+  // 跳过隐藏文件和.bin目录
+  if (moduleName.startsWith('.')) {
+    continue;
+  }
+
   const rootModulePath = path.join(rootNodeModules, moduleName);
   const localModulePath = path.join(localNodeModules, moduleName);
 
-  // 检查根目录是否有这个模块
-  if (!fs.existsSync(rootModulePath)) {
-    console.log(`  ⚠️  ${moduleName} 不在根目录，跳过`);
-    skippedCount++;
-    return;
+  // 检查是否是目录
+  try {
+    const stats = fs.statSync(rootModulePath);
+    if (!stats.isDirectory()) {
+      continue;
+    }
+  } catch (err) {
+    continue;
   }
 
-  // 如果本地已经存在（可能是符号链接或实际目录）
+  // 检查本地是否已经存在
   if (fs.existsSync(localModulePath)) {
     try {
       const stats = fs.lstatSync(localModulePath);
+
+      // 如果是符号链接，删除它并复制实际内容
       if (stats.isSymbolicLink()) {
-        console.log(`  ✓  ${moduleName} 已经是符号链接`);
-        linkedCount++;
-        return;
+        console.log(`  🔄 替换符号链接: ${moduleName}`);
+        fs.rmSync(localModulePath, { recursive: true, force: true });
+      } else {
+        // 已经是实际目录，跳过
+        skippedCount++;
+        continue;
       }
-      // 如果是实际目录，删除它
-      console.log(`  🔄 删除现有目录: ${moduleName}`);
-      fs.rmSync(localModulePath, { recursive: true, force: true });
     } catch (err) {
       console.error(`  ❌ 无法处理 ${moduleName}:`, err.message);
-      return;
+      errorCount++;
+      continue;
     }
   }
 
-  // 直接复制模块 (符号链接在Electron打包时可能无法正确处理)
+  // 复制模块
   try {
-    console.log(`  🔄 复制 ${moduleName}...`);
+    console.log(`  📦 复制 ${moduleName}...`);
     copyDir(rootModulePath, localModulePath);
-    console.log(`  ✓  已复制: ${moduleName}`);
-    linkedCount++;
+    copiedCount++;
   } catch (err) {
     console.error(`  ❌ 复制失败 ${moduleName}:`, err.message);
+    errorCount++;
   }
-});
+}
 
-console.log(`\n[Link Hoisted Modules] 完成! 链接/复制: ${linkedCount}, 跳过: ${skippedCount}`);
+console.log(`\n[Copy Hoisted Modules] 完成!`);
+console.log(`  - 已复制: ${copiedCount}`);
+console.log(`  - 已存在(跳过): ${skippedCount}`);
+console.log(`  - 错误: ${errorCount}`);
+console.log(`  - 总计扫描: ${rootModules.length}`);
 
 /**
  * 递归复制目录
