@@ -881,7 +881,7 @@ class DatabaseManager {
         description TEXT,
         icon TEXT,
         cover_image TEXT,
-        category TEXT NOT NULL CHECK(category IN ('writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'research', 'marketing', 'education', 'lifestyle', 'travel', 'video', 'social-media', 'creative-writing', 'code-project', 'data-science', 'tech-docs', 'ecommerce', 'marketing-pro', 'legal', 'learning', 'health', 'productivity')),
+        category TEXT NOT NULL CHECK(category IN ('writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'research', 'marketing', 'education', 'lifestyle', 'travel', 'video', 'social-media', 'creative-writing', 'code-project', 'data-science', 'tech-docs', 'ecommerce', 'marketing-pro', 'legal', 'learning', 'health', 'productivity', 'career')),
         subcategory TEXT,
         tags TEXT,
         project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design')),
@@ -1858,7 +1858,7 @@ class DatabaseManager {
       }
 
       // 检查是否需要重建project_templates表
-      const needsTemplatesRebuild = this.checkIfTableNeedsRebuild('project_templates', 'podcast');
+      const needsTemplatesRebuild = this.checkIfTableNeedsRebuild('project_templates', 'career');
       if (needsTemplatesRebuild) {
         console.log('[Database] 检测到project_templates表需要更新CHECK约束，开始重建...');
         this.rebuildProjectTemplatesTable();
@@ -2153,8 +2153,8 @@ class DatabaseManager {
         // 检查是否包含 'presentation' 和 'spreadsheet'
         return !sql.includes("'presentation'") || !sql.includes("'spreadsheet'");
       } else if (tableName === 'project_templates') {
-        // 检查category是否包含所有新类型
-        return !sql.includes("'podcast'") || !sql.includes("'education'");
+        // 检查category是否包含测试值
+        return !sql.includes(`'${testCategoryValue}'`);
       }
 
       return false;
@@ -2277,7 +2277,8 @@ class DatabaseManager {
             'legal',            -- 法律文档
             'learning',         -- 学习成长
             'health',           -- 健康生活
-            'productivity'      -- 时间管理
+            'productivity',     -- 时间管理
+            'career'            -- 职业发展
           )),
           subcategory TEXT,
           tags TEXT,
