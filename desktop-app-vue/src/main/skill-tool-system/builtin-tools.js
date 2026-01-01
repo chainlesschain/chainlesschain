@@ -141,7 +141,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -187,7 +187,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -227,7 +227,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -519,7 +519,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -617,7 +617,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -663,7 +663,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -722,7 +722,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -782,7 +782,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -832,7 +832,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -943,7 +943,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -1065,7 +1065,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -1121,7 +1121,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -1177,7 +1177,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -1360,7 +1360,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["database:read","database:write"],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1,
@@ -1519,7 +1519,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -1576,7 +1576,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -1687,7 +1687,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -1747,7 +1747,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["file:read","media:process"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -1805,7 +1805,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -1912,7 +1912,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -1953,7 +1953,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2005,7 +2005,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2060,7 +2060,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["code:analyze","code:execute"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2160,7 +2160,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2213,7 +2213,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["security:manage"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2268,7 +2268,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2319,7 +2319,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2369,7 +2369,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["config:read","config:write","file:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2419,7 +2419,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["config:read","config:write","file:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2568,7 +2568,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["email:send","network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2617,7 +2617,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2658,7 +2658,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["file:read","file:write","network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2699,7 +2699,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2848,7 +2848,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["file:read","media:process"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -2958,7 +2958,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -3012,7 +3012,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -3067,7 +3067,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -3381,7 +3381,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["code:execute","system:control"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -3597,7 +3597,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -3659,7 +3659,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["code:execute","system:control","task:manage"],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1,
@@ -3713,7 +3713,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["system:control","task:manage"],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1,
@@ -3768,7 +3768,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["code:execute","system:control","task:manage"],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1,
@@ -4648,7 +4648,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -4707,7 +4707,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -4759,7 +4759,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -4821,7 +4821,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["storage:read","storage:write"],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1,
@@ -5001,7 +5001,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["security:manage"],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1,
@@ -5066,7 +5066,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["security:manage"],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1,
@@ -5121,7 +5121,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["security:manage"],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1,
@@ -5182,7 +5182,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -5237,7 +5237,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -5411,7 +5411,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["system:control","task:manage"],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1,
@@ -5469,7 +5469,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["code:execute","system:control","task:manage"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -5941,7 +5941,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -5998,7 +5998,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","network:request"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -6250,7 +6250,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["code:analyze","code:execute"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -6300,7 +6300,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["code:analyze","code:execute"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -6363,7 +6363,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["code:analyze","code:execute"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -6425,6 +6425,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "type": "cube",
+        "dimensions": "example_value",
+        "material": "example_value",
+        "outputFormat": "obj"
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -6476,6 +6487,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "inputPath": "./input/sample.txt",
+        "inputFormat": "obj",
+        "outputFormat": "obj",
+        "options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -6517,6 +6542,16 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "audioPath": "./audio/sample.mp3",
+        "algorithm": "chromaprint",
+        "duration": 10
+      }
+    }
+  ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -6568,6 +6603,24 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "contractAddress": "example_value",
+        "abi": [
+          "item1",
+          "item2"
+        ],
+        "method": "example_value",
+        "params": [
+          "item1",
+          "item2"
+        ],
+        "network": "mainnet"
+      }
+    }
+  ],
     required_permissions: ['network.request'],
     risk_level: 3,
     is_builtin: 1,
@@ -6625,6 +6678,23 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用图表生成器",
+      "params": {
+        "chartType": "line",
+        "data": {
+          "key": "value",
+          "enabled": true
+        },
+        "options": {
+          "key": "value",
+          "enabled": true
+        },
+        "outputFormat": "png"
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -6675,6 +6745,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用图形绘制器",
+      "params": {
+        "type": "function",
+        "expression": "example_value",
+        "points": [
+          "item1",
+          "item2"
+        ],
+        "range": "example_value"
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -6726,6 +6810,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "action": "register",
+        "deviceId": "example_value",
+        "deviceType": "sensor",
+        "config": {
+          "key": "value",
+          "enabled": true
+        },
+        "command": "example_value"
+      }
+    }
+  ],
     required_permissions: ['network.request'],
     risk_level: 2,
     is_builtin: 1,
@@ -6776,6 +6875,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "action": "connect",
+        "broker": "example_value",
+        "topic": "example_value",
+        "message": "这是一段示例文本用于测试",
+        "qos": 10
+      }
+    }
+  ],
     required_permissions: ['network.request'],
     risk_level: 2,
     is_builtin: 1,
@@ -6942,7 +7053,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "使用文本分类器进行AI处理",
+      "params": {
+        "text": "这是一段示例文本用于测试",
+        "taskType": "topic",
+        "model": "example_value",
+        "categories": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+    required_permissions: ["ai:inference","data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -6997,7 +7122,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "使用实体识别器进行AI处理",
+      "params": {
+        "text": "这是一段示例文本用于测试",
+        "entityTypes": [
+          "item1",
+          "item2"
+        ],
+        "language": "zh"
+      }
+    }
+  ],
+    required_permissions: ["ai:inference","data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -7049,6 +7187,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "资源监控器使用示例",
+      "params": {
+        "metrics": [
+          "item1",
+          "item2"
+        ],
+        "interval": 10,
+        "duration": 10
+      }
+    }
+  ],
     required_permissions: ['system.info'],
     risk_level: 1,
     is_builtin: 1,
@@ -7095,6 +7246,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用Protobuf编码器",
+      "params": {
+        "schema": "example_value",
+        "messageName": "这是一段示例文本用于测试",
+        "data": {
+          "key": "value",
+          "enabled": true
+        },
+        "outputFormat": "binary"
+      }
+    }
+  ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -7139,6 +7304,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用Protobuf解码器",
+      "params": {
+        "schema": "example_value",
+        "messageName": "这是一段示例文本用于测试",
+        "data": {
+          "key": "value",
+          "enabled": true
+        },
+        "inputFormat": "binary"
+      }
+    }
+  ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -7194,6 +7373,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用搜索索引器",
+      "params": {
+        "action": "create",
+        "indexName": "example_value",
+        "documents": [
+          "item1",
+          "item2"
+        ],
+        "analyzer": "standard"
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -7252,6 +7445,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用搜索查询器",
+      "params": {
+        "indexName": "example_value",
+        "query": "example_value",
+        "options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -7317,6 +7523,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "漏洞扫描器使用示例",
+      "params": {
+        "target": "example_value",
+        "scanType": "port",
+        "depth": "quick",
+        "options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['network.scan'],
     risk_level: 3,
     is_builtin: 1,
@@ -7375,6 +7595,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "安全审计器使用示例",
+      "params": {
+        "auditType": "code",
+        "target": "example_value",
+        "rules": [
+          "item1",
+          "item2"
+        ],
+        "standard": "owasp"
+      }
+    }
+  ],
     required_permissions: ['file.read'],
     risk_level: 2,
     is_builtin: 1,
@@ -7439,7 +7673,22 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "action": "create",
+        "objectId": "example_value",
+        "properties": "example_value",
+        "force": [
+          "item1",
+          "item2"
+        ],
+        "deltaTime": 10
+      }
+    }
+  ],
+    required_permissions: ["file:read","media:process"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -7499,7 +7748,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "objects": [
+          "item1",
+          "item2"
+        ],
+        "algorithm": "aabb",
+        "continuous": true
+      }
+    }
+  ],
+    required_permissions: ["file:read","media:process"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -7549,7 +7811,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理数据使用空间分析器",
+      "params": {
+        "analysisType": "buffer",
+        "inputData": {
+          "key": "value",
+          "enabled": true
+        },
+        "parameters": "example_value"
+      }
+    }
+  ],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -7618,7 +7893,22 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理数据使用路径规划器",
+      "params": {
+        "start": "example_value",
+        "end": "example_value",
+        "waypoints": [
+          "item1",
+          "item2"
+        ],
+        "algorithm": "dijkstra",
+        "constraints": "example_value"
+      }
+    }
+  ],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -7675,7 +7965,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "使用序列比对器进行AI处理",
+      "params": {
+        "sequences": [
+          "item1",
+          "item2"
+        ],
+        "algorithm": "needleman-wunsch",
+        "sequenceType": "dna",
+        "parameters": "example_value"
+      }
+    }
+  ],
+    required_permissions: ["ai:inference","data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -7723,7 +8027,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "使用蛋白质结构预测器进行AI处理",
+      "params": {
+        "sequence": "example_value",
+        "predictionType": "secondary",
+        "method": "alphafold"
+      }
+    }
+  ],
+    required_permissions: ["ai:inference","data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -7779,7 +8093,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理数据使用财务建模器",
+      "params": {
+        "modelType": "dcf",
+        "inputs": "example_value",
+        "assumptions": "example_value"
+      }
+    }
+  ],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -7844,7 +8168,24 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理数据使用风险分析器",
+      "params": {
+        "portfolio": [
+          "item1",
+          "item2"
+        ],
+        "riskMetrics": [
+          "item1",
+          "item2"
+        ],
+        "confidence_level": 10,
+        "time_horizon": 10
+      }
+    }
+  ],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -7907,7 +8248,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "使用习题生成器进行AI处理",
+      "params": {
+        "subject": "math",
+        "topic": "example_value",
+        "difficulty": "easy",
+        "count": 10,
+        "type": "choice"
+      }
+    }
+  ],
+    required_permissions: ["ai:inference","data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -7975,7 +8328,24 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "使用自动批改器进行AI处理",
+      "params": {
+        "submissions": [
+          "item1",
+          "item2"
+        ],
+        "answer_key": [
+          "item1",
+          "item2"
+        ],
+        "grading_rubric": "example_value",
+        "feedback_level": "minimal"
+      }
+    }
+  ],
+    required_permissions: ["ai:inference","data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -8035,6 +8405,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用医学影像分析器进行AI处理",
+      "params": {
+        "imagePath": "./images/sample.png",
+        "imageType": "ct",
+        "analysisType": "lesion_detection",
+        "bodyPart": "brain"
+      }
+    }
+  ],
     required_permissions: ['file.read'],
     risk_level: 2,
     is_builtin: 1,
@@ -8095,7 +8476,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "使用健康监测器进行AI处理",
+      "params": {
+        "metrics": "example_value",
+        "history": [
+          "item1",
+          "item2"
+        ],
+        "user_profile": "./data/sample.dat"
+      }
+    }
+  ],
+    required_permissions: ["ai:inference","data:read"],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1,
@@ -8161,6 +8555,24 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用法律文书生成器进行AI处理",
+      "params": {
+        "documentType": "contract",
+        "template": "example_value",
+        "parties": [
+          "item1",
+          "item2"
+        ],
+        "clauses": [
+          "item1",
+          "item2"
+        ],
+        "jurisdiction": "cn"
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 2,
     is_builtin: 1,
@@ -8230,6 +8642,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用案例检索器进行AI处理",
+      "params": {
+        "query": "example_value",
+        "searchType": "case",
+        "jurisdiction": "example_value",
+        "dateRange": "example_value",
+        "filters": "example_value"
+      }
+    }
+  ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
@@ -8291,6 +8715,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "action": "create",
+        "modelPath": "./data/sample.dat",
+        "format": "ifc",
+        "elements": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -8359,7 +8797,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "structure": "example_value",
+        "analysisType": "static",
+        "loads": [
+          "item1",
+          "item2"
+        ],
+        "standard": "gb"
+      }
+    }
+  ],
+    required_permissions: ["file:read","media:process"],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1,
@@ -8429,7 +8881,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理数据使用推荐引擎",
+      "params": {
+        "userId": "example_value",
+        "algorithm": "collaborative",
+        "context": "这是一段示例文本用于测试",
+        "filters": "example_value",
+        "limit": 100
+      }
+    }
+  ],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -8496,7 +8960,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理数据使用库存管理器",
+      "params": {
+        "action": "forecast",
+        "inventory": [
+          "item1",
+          "item2"
+        ],
+        "parameters": "example_value",
+        "forecast_horizon": 10
+      }
+    }
+  ],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -8558,6 +9036,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "容器编排器使用示例",
+      "params": {
+        "action": "deploy",
+        "service": "example_value",
+        "namespace": "example_value",
+        "cluster": "example_value"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
@@ -8615,6 +9104,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "CI/CD流水线使用示例",
+      "params": {
+        "action": "create",
+        "pipeline": "example_value",
+        "repository": "example_value",
+        "branch": "example_value"
+      }
+    }
+  ],
     required_permissions: ['cicd.execute'],
     risk_level: 2,
     is_builtin: 1,
@@ -8672,7 +9172,23 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "使用量子电路构建器进行AI处理",
+      "params": {
+        "num_qubits": 10,
+        "gates": [
+          "item1",
+          "item2"
+        ],
+        "measurements": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+    required_permissions: ["ai:inference","data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -8724,7 +9240,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "使用量子模拟器进行AI处理",
+      "params": {
+        "circuit": "example_value",
+        "shots": 10,
+        "backend": "statevector",
+        "noise_model": "example_value"
+      }
+    }
+  ],
+    required_permissions: ["ai:inference","code:execute","data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -8785,6 +9312,23 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "contentType": "这是一段示例文本用于测试",
+        "assets": [
+          "item1",
+          "item2"
+        ],
+        "interactions": [
+          "item1",
+          "item2"
+        ],
+        "tracking": "example_value"
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -8849,6 +9393,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "environment": "example_value",
+        "objects": [
+          "item1",
+          "item2"
+        ],
+        "navigation": "example_value"
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -8899,6 +9456,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "action": "train",
+        "reference_audio": "example_value",
+        "text": "这是一段示例文本用于测试",
+        "model_id": "example_value",
+        "training_duration": 10
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 2,
     is_builtin: 1,
@@ -8960,6 +9529,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用目标检测器进行AI处理",
+      "params": {
+        "imagePath": "./images/sample.png",
+        "model": "yolo",
+        "classes": [
+          "item1",
+          "item2"
+        ],
+        "confidence_threshold": 10,
+        "nms_threshold": 10
+      }
+    }
+  ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -9016,6 +9600,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用图像分割器进行AI处理",
+      "params": {
+        "imagePath": "./images/sample.png",
+        "segmentationType": "semantic",
+        "model": "unet",
+        "classes": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -9076,6 +9674,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "测试用例生成器使用示例",
+      "params": {
+        "sourcePath": "./data/sample.dat",
+        "testType": "unit",
+        "framework": "jest",
+        "coverage_target": 10,
+        "mocking": true
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -9140,6 +9750,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "测试执行器使用示例",
+      "params": {
+        "testPath": "./data/sample.dat",
+        "framework": "example_value",
+        "options": {
+          "key": "value",
+          "enabled": true
+        },
+        "filters": "example_value"
+      }
+    }
+  ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -9204,6 +9828,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用内容发布器",
+      "params": {
+        "action": "create",
+        "content": "这是一段示例文本用于测试",
+        "workflow": "example_value",
+        "schedule": "example_value"
+      }
+    }
+  ],
     required_permissions: ['content.write'],
     risk_level: 2,
     is_builtin: 1,
@@ -9265,6 +9900,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用媒体管理器",
+      "params": {
+        "action": "upload",
+        "file": "./data/sample.dat",
+        "transcode_options": "function example() { return true; }",
+        "cdn": "example_value"
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 2,
     is_builtin: 1,
@@ -9327,6 +9973,23 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用舆情监控器",
+      "params": {
+        "keywords": [
+          "item1",
+          "item2"
+        ],
+        "platforms": [
+          "item1",
+          "item2"
+        ],
+        "timeRange": "example_value",
+        "language": "example_value"
+      }
+    }
+  ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
@@ -9384,6 +10047,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用影响力分析器",
+      "params": {
+        "user_id": "example_value",
+        "platform": "twitter",
+        "metrics": [
+          "item1",
+          "item2"
+        ],
+        "period": 10
+      }
+    }
+  ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
@@ -9456,7 +10133,25 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理数据使用物流优化器",
+      "params": {
+        "problem_type": "vehicle_routing",
+        "locations": [
+          "item1",
+          "item2"
+        ],
+        "vehicles": [
+          "item1",
+          "item2"
+        ],
+        "constraints": "example_value",
+        "optimization_goal": "minimize_cost"
+      }
+    }
+  ],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -9526,7 +10221,24 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "处理数据使用需求预测器",
+      "params": {
+        "historical_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "forecast_horizon": 10,
+        "model": "arima",
+        "external_factors": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -9591,6 +10303,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用气象分析器进行AI处理",
+      "params": {
+        "location": "example_value",
+        "analysisType": "current",
+        "timeRange": "example_value",
+        "parameters": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
@@ -9652,6 +10378,24 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用污染预测器进行AI处理",
+      "params": {
+        "location": "example_value",
+        "pollutionType": "air",
+        "pollutants": [
+          "item1",
+          "item2"
+        ],
+        "forecast_hours": 10,
+        "historical_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
@@ -9702,6 +10446,16 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "IoT设备管理器使用示例",
+      "params": {
+        "action": "register",
+        "device": "example_value",
+        "command": "example_value"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
@@ -9755,6 +10509,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "MQTT消息代理使用示例",
+      "params": {
+        "action": "publish",
+        "topic": "example_value",
+        "message": "这是一段示例文本用于测试",
+        "qos": 0,
+        "retain": false
+      }
+    }
+  ],
     required_permissions: ['network.mqtt'],
     risk_level: 2,
     is_builtin: 1,
@@ -9802,6 +10568,16 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "边缘节点管理器使用示例",
+      "params": {
+        "action": "deploy",
+        "node": "example_value",
+        "workload": "example_value"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
@@ -9850,6 +10626,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用边缘推理引擎进行AI处理",
+      "params": {
+        "model": "example_value",
+        "input_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "format": "onnx",
+        "device": "cpu"
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 2,
     is_builtin: 1,
@@ -9901,6 +10691,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用数字孪生模型构建器进行AI处理",
+      "params": {
+        "entity": "example_value",
+        "sensors": [
+          "item1",
+          "item2"
+        ],
+        "parameters": "example_value",
+        "physics_model": "kinematic"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
@@ -9948,6 +10752,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用数字孪生仿真器进行AI处理",
+      "params": {
+        "twin_id": "example_value",
+        "simulation_type": "real_time",
+        "scenario": "example_value",
+        "time_horizon": 10
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -9999,6 +10814,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "PLC控制器使用示例",
+      "params": {
+        "action": "read",
+        "plc": "example_value",
+        "address": "example_value",
+        "value": "example_value"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
@@ -10045,6 +10871,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用生产调度器",
+      "params": {
+        "orders": [
+          "item1",
+          "item2"
+        ],
+        "resources": "example_value",
+        "constraints": "example_value",
+        "optimization_goal": "minimize_time"
+      }
+    }
+  ],
     required_permissions: ['data.write'],
     risk_level: 2,
     is_builtin: 1,
@@ -10093,6 +10933,16 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "场景自动化器使用示例",
+      "params": {
+        "action": "create",
+        "scene": "example_value",
+        "scene_id": "example_value"
+      }
+    }
+  ],
     required_permissions: ['system.control'],
     risk_level: 2,
     is_builtin: 1,
@@ -10137,6 +10987,15 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "设备联动器使用示例",
+      "params": {
+        "linkage": "example_value",
+        "enabled": true
+      }
+    }
+  ],
     required_permissions: ['system.control'],
     risk_level: 2,
     is_builtin: 1,
@@ -10189,6 +11048,23 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用作物监测器进行AI处理",
+      "params": {
+        "field": "example_value",
+        "monitoring_type": "growth",
+        "images": [
+          "item1",
+          "item2"
+        ],
+        "sensor_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -10244,6 +11120,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "灌溉控制器使用示例",
+      "params": {
+        "action": "start",
+        "zone": "example_value",
+        "parameters": "example_value",
+        "soil_moisture": 10,
+        "weather_forecast": "example_value"
+      }
+    }
+  ],
     required_permissions: ['system.control'],
     risk_level: 2,
     is_builtin: 1,
@@ -10290,6 +11178,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "交通控制器使用示例",
+      "params": {
+        "intersection": "example_value",
+        "mode": "fixed",
+        "traffic_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "optimization_goal": "minimize_delay"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
@@ -10339,6 +11241,26 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用公共安全监控器进行AI处理",
+      "params": {
+        "area": "example_value",
+        "monitoring_types": [
+          "item1",
+          "item2"
+        ],
+        "alert_rules": [
+          "item1",
+          "item2"
+        ],
+        "video_streams": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
@@ -10397,6 +11319,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用轨道计算器",
+      "params": {
+        "calculation_type": "propagation",
+        "orbital_elements": "example_value",
+        "time_span": 10,
+        "perturbations": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
     required_permissions: ['data.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -10458,6 +11394,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用飞行规划器",
+      "params": {
+        "departure": "example_value",
+        "destination": "example_value",
+        "aircraft": "example_value",
+        "optimization": "shortest",
+        "weather_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['data.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -10512,6 +11463,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用海洋监测器进行AI处理",
+      "params": {
+        "area": "example_value",
+        "monitoring_type": "temperature",
+        "data_sources": {
+          "key": "value",
+          "enabled": true
+        },
+        "time_range": "example_value"
+      }
+    }
+  ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
@@ -10569,6 +11534,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用航海规划器",
+      "params": {
+        "departure": "example_value",
+        "destination": "example_value",
+        "vessel": "example_value",
+        "optimization": "shortest",
+        "constraints": "example_value"
+      }
+    }
+  ],
     required_permissions: ['data.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -10619,6 +11596,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "电力调度器使用示例",
+      "params": {
+        "grid": "example_value",
+        "generators": [
+          "item1",
+          "item2"
+        ],
+        "load_forecast": "example_value",
+        "optimization": "minimize_cost",
+        "constraints": "example_value"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
@@ -10673,6 +11665,22 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用新能源预测器进行AI处理",
+      "params": {
+        "energy_type": "solar",
+        "location": "example_value",
+        "capacity": 10,
+        "forecast_horizon": 10,
+        "historical_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "weather_forecast": "example_value"
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -10727,6 +11735,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "量子密钥分发器使用示例",
+      "params": {
+        "protocol": "BB84",
+        "key_length": 10,
+        "channel": "example_value",
+        "error_correction": true
+      }
+    }
+  ],
     required_permissions: ['security.encryption'],
     risk_level: 2,
     is_builtin: 1,
@@ -10771,6 +11790,16 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用量子隐形传态器进行AI处理",
+      "params": {
+        "quantum_state": "example_value",
+        "entanglement_quality": 10,
+        "classical_channel": "example_value"
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -10821,6 +11850,23 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用脑电信号处理器进行AI处理",
+      "params": {
+        "eeg_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "sampling_rate": 10,
+        "channels": [
+          "item1",
+          "item2"
+        ],
+        "processing": "example_value"
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -10868,6 +11914,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用脑机接口解码器进行AI处理",
+      "params": {
+        "features": "example_value",
+        "task_type": "motor_imagery",
+        "model": "lda",
+        "calibration_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -10919,6 +11979,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用基因编辑器进行AI处理",
+      "params": {
+        "target_gene": "example_value",
+        "edit_type": "knockout",
+        "editor": "Cas9",
+        "pam_sequence": "example_value",
+        "grna_design": "example_value"
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 3,
     is_builtin: 1,
@@ -10975,6 +12047,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用蛋白质设计器进行AI处理",
+      "params": {
+        "design_goal": "enzyme",
+        "sequence": "example_value",
+        "structure_constraints": "example_value",
+        "function_requirements": "example_value",
+        "optimization_cycles": 10
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 2,
     is_builtin: 1,
@@ -11027,6 +12111,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用纳米模拟器进行AI处理",
+      "params": {
+        "system": "example_value",
+        "method": "MD",
+        "simulation_time": 10,
+        "force_field": "LAMMPS"
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -11078,6 +12173,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "纳米加工器使用示例",
+      "params": {
+        "process": "lithography",
+        "pattern": "example_value",
+        "materials": [
+          "item1",
+          "item2"
+        ],
+        "parameters": "example_value"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
@@ -11130,6 +12239,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用反应堆模拟器进行AI处理",
+      "params": {
+        "reactor_type": "PWR",
+        "power_level": 10,
+        "fuel_composition": "example_value",
+        "control_rods": "example_value",
+        "simulation_type": "steady_state"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
@@ -11177,6 +12298,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "辐射监测器使用示例",
+      "params": {
+        "detector_type": "GM",
+        "measurement_type": "dose_rate",
+        "location": "example_value",
+        "background": 10
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
@@ -11228,6 +12360,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用水下导航器",
+      "params": {
+        "navigation_mode": "INS",
+        "sensor_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "initial_position": "example_value",
+        "current": "example_value"
+      }
+    }
+  ],
     required_permissions: ['data.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -11278,6 +12424,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理数据使用深海测绘器",
+      "params": {
+        "sonar_type": "multibeam",
+        "survey_area": "example_value",
+        "resolution": 10,
+        "raw_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['data.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -11325,6 +12485,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用小行星分析器进行AI处理",
+      "params": {
+        "asteroid_id": "example_value",
+        "analysis_type": "composition",
+        "spectral_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "orbital_elements": "example_value"
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -11376,6 +12550,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "月球采矿器使用示例",
+      "params": {
+        "site": "example_value",
+        "target_resource": "water_ice",
+        "equipment": [
+          "item1",
+          "item2"
+        ],
+        "extraction_method": "excavation"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
@@ -11432,6 +12620,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "云播种器使用示例",
+      "params": {
+        "operation_type": "precipitation_enhancement",
+        "seeding_agent": "silver_iodide",
+        "target_area": "example_value",
+        "weather_conditions": "example_value",
+        "aircraft": "example_value"
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
@@ -11486,6 +12686,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用天气建模器进行AI处理",
+      "params": {
+        "model": "WRF",
+        "domain": "example_value",
+        "initial_conditions": "example_value",
+        "forecast_hours": 10,
+        "physics_options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -11543,6 +12758,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用材料设计器进行AI处理",
+      "params": {
+        "material_class": "metal",
+        "target_properties": "example_value",
+        "constraints": "example_value",
+        "design_method": "ML"
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -11592,6 +12818,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用性能预测器进行AI处理",
+      "params": {
+        "material": "example_value",
+        "properties": [
+          "item1",
+          "item2"
+        ],
+        "method": "ML"
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -11644,6 +12883,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用脉冲神经网络构建器进行AI处理",
+      "params": {
+        "architecture": "example_value",
+        "learning_rule": "STDP",
+        "encoding": "rate",
+        "training_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -11694,6 +12947,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "神经形态加速器使用示例",
+      "params": {
+        "hardware": "Loihi",
+        "model": "example_value",
+        "optimization": "example_value",
+        "input_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
@@ -11760,6 +13027,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "LIGO数据分析器使用示例",
+      "params": {
+        "detector": "LIGO-Hanford",
+        "data_segment": {
+          "key": "value",
+          "enabled": true
+        },
+        "preprocessing": "example_value",
+        "analysis_method": "matched_filter"
+      }
+    }
+  ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
@@ -11832,6 +13113,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "引力波波形匹配器使用示例",
+      "params": {
+        "strain_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "template_bank": "example_value",
+        "search_params": "example_value",
+        "parameter_estimation": true
+      }
+    }
+  ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
@@ -11891,6 +13186,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "粒子碰撞模拟器使用示例",
+      "params": {
+        "collider": "LHC",
+        "collision_energy": 10,
+        "beam_particles": "example_value",
+        "process": "Higgs_production",
+        "num_events": 10,
+        "detector_simulation": true
+      }
+    }
+  ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
@@ -11964,6 +13272,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "粒子事例生成器使用示例",
+      "params": {
+        "generator": "Pythia",
+        "process": "example_value",
+        "pdf_set": "NNPDF",
+        "hadronization": "example_value",
+        "cuts": "example_value",
+        "num_events": 10
+      }
+    }
+  ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
@@ -12032,6 +13353,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "WIMP探测器使用示例",
+      "params": {
+        "detector_type": "xenon_TPC",
+        "target_material": "Xe",
+        "exposure": "example_value",
+        "energy_threshold": 10,
+        "background_model": "example_value",
+        "wimp_params": "example_value"
+      }
+    }
+  ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
@@ -12095,6 +13429,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "轴子搜寻器使用示例",
+      "params": {
+        "search_method": "cavity_haloscope",
+        "mass_range": "example_value",
+        "cavity_params": "example_value",
+        "magnetic_field": 10,
+        "integration_time": 10,
+        "coupling_constant": 10
+      }
+    }
+  ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
@@ -12165,6 +13512,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "托卡马克模拟器使用示例",
+      "params": {
+        "device": "ITER",
+        "plasma_params": "example_value",
+        "operating_scenario": "L-mode",
+        "heating_systems": "example_value",
+        "simulation_type": "equilibrium",
+        "duration": 10
+      }
+    }
+  ],
     required_permissions: ['energy.nuclear'],
     risk_level: 2,
     is_builtin: 1,
@@ -12231,6 +13591,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "等离子体控制器使用示例",
+      "params": {
+        "control_objectives": "example_value",
+        "actuators": "example_value",
+        "controller_type": "PID",
+        "feedback_sensors": [
+          "item1",
+          "item2"
+        ],
+        "constraints": "example_value"
+      }
+    }
+  ],
     required_permissions: ['energy.nuclear'],
     risk_level: 2,
     is_builtin: 1,
@@ -12301,6 +13676,22 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "architecture": "wavelength_routing",
+        "wavelength_channels": 10,
+        "switching_technology": "MEMS",
+        "modulation_format": "OOK",
+        "routing_table": [
+          "item1",
+          "item2"
+        ],
+        "qos_requirements": "example_value"
+      }
+    }
+  ],
     required_permissions: ['network.admin'],
     risk_level: 2,
     is_builtin: 1,
@@ -12369,6 +13760,25 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "使用光学神经网络设计器进行AI处理",
+      "params": {
+        "architecture": "diffractive",
+        "layers": [
+          "item1",
+          "item2"
+        ],
+        "optical_components": "example_value",
+        "training_method": "in_situ",
+        "task": "classification",
+        "dataset": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
@@ -12434,6 +13844,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "拓扑态计算器使用示例",
+      "params": {
+        "material": "example_value",
+        "hamiltonian": "example_value",
+        "topological_invariant": "chern_number",
+        "k_points": "example_value",
+        "calculation_method": "wannier"
+      }
+    }
+  ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
@@ -12501,6 +13923,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "马约拉纳费米子探测器使用示例",
+      "params": {
+        "system_type": "nanowire",
+        "experimental_setup": "example_value",
+        "measurement_type": "tunneling_spectroscopy",
+        "bias_voltage_range": "example_value",
+        "signature_criteria": "example_value"
+      }
+    }
+  ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
@@ -12575,6 +14009,22 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "冰芯分析器使用示例",
+      "params": {
+        "core_info": "example_value",
+        "analysis_types": [
+          "item1",
+          "item2"
+        ],
+        "isotope_ratios": "example_value",
+        "gas_measurements": "example_value",
+        "resolution": 10,
+        "dating_method": "layer_counting"
+      }
+    }
+  ],
     required_permissions: ['science.environment'],
     risk_level: 1,
     is_builtin: 1,
@@ -12643,6 +14093,22 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "气候重建器使用示例",
+      "params": {
+        "proxy_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "reconstruction_method": "transfer_function",
+        "target_variable": "temperature",
+        "time_period": "example_value",
+        "spatial_resolution": "global",
+        "climate_model": "CESM"
+      }
+    }
+  ],
     required_permissions: ['science.environment'],
     risk_level: 1,
     is_builtin: 1,
@@ -12725,6 +14191,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "岩浆模拟器使用示例",
+      "params": {
+        "volcano_type": "shield",
+        "magma_properties": "example_value",
+        "chamber_geometry": "example_value",
+        "conduit_model": "example_value",
+        "simulation_type": "eruption",
+        "boundary_conditions": "example_value"
+      }
+    }
+  ],
     required_permissions: ['science.geology'],
     risk_level: 1,
     is_builtin: 1,
@@ -12809,6 +14288,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "火山监测器使用示例",
+      "params": {
+        "volcano_name": "example_value",
+        "monitoring_systems": "example_value",
+        "alert_criteria": "example_value",
+        "data_window": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['science.geology'],
     risk_level: 1,
     is_builtin: 1,
@@ -12880,6 +14373,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "放射性碳测年器使用示例",
+      "params": {
+        "sample_info": "example_value",
+        "measurement_method": "AMS",
+        "c14_measurement": "example_value",
+        "calibration_curve": "IntCal20",
+        "reservoir_effect": "example_value"
+      }
+    }
+  ],
     required_permissions: ['science.archaeology'],
     risk_level: 1,
     is_builtin: 1,
@@ -12952,6 +14457,22 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "文物3D重建器使用示例",
+      "params": {
+        "artifact_type": "pottery",
+        "scanning_method": "photogrammetry",
+        "input_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "reconstruction_settings": "example_value",
+        "virtual_restoration": "example_value",
+        "export_format": "OBJ"
+      }
+    }
+  ],
     required_permissions: ['science.archaeology'],
     risk_level: 1,
     is_builtin: 1,
@@ -13027,6 +14548,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "柔性传感器设计器使用示例",
+      "params": {
+        "sensor_type": "strain",
+        "substrate": "example_value",
+        "active_material": "example_value",
+        "design_parameters": "example_value",
+        "application": "health_monitoring",
+        "performance_requirements": "example_value"
+      }
+    }
+  ],
     required_permissions: ['hardware.design'],
     risk_level: 1,
     is_builtin: 1,
@@ -13103,6 +14637,23 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "生物芯片分析器使用示例",
+      "params": {
+        "chip_type": "microarray",
+        "assay_type": "gene_expression",
+        "raw_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "normalization": "quantile",
+        "background_correction": true,
+        "statistical_analysis": "example_value",
+        "quality_control": "example_value"
+      }
+    }
+  ],
     required_permissions: ['science.biology'],
     risk_level: 1,
     is_builtin: 1,
@@ -13162,6 +14713,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "文件操作示例",
+      "params": {
+        "files": "./data/sample.dat",
+        "output_path": "./output/result.txt",
+        "format": "zip",
+        "compression_level": "store",
+        "password": "example_value",
+        "split_size": 100
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13212,6 +14776,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "文件操作示例",
+      "params": {
+        "archive_path": "./data/sample.dat",
+        "output_dir": "example_value",
+        "password": "example_value",
+        "overwrite": true,
+        "extract_files": "./data/sample.dat"
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13270,6 +14846,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "input_path": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "operations": [
+          "item1",
+          "item2"
+        ],
+        "format": "jpg",
+        "quality": 10
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13328,6 +14919,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "input_path": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "filter": "grayscale",
+        "brightness": 10,
+        "contrast": 10,
+        "watermark": "example_value"
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13382,6 +14986,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "input_path": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "start_time": "example_value",
+        "end_time": "example_value",
+        "extract_audio": true,
+        "audio_format": "mp3"
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13435,6 +15052,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "input_files": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "output_format": "mp4",
+        "codec": "function example() { return true; }",
+        "resolution": "original"
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13491,6 +15120,21 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "PDF转换器使用示例",
+      "params": {
+        "input_path": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "conversion_type": "to_pdf",
+        "target_format": "pdf",
+        "options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13541,6 +15185,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "Office文档转换器使用示例",
+      "params": {
+        "input_path": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "source_format": "doc",
+        "target_format": "doc",
+        "preserve_formatting": true
+      }
+    }
+  ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13602,6 +15258,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "高级二维码生成器使用示例",
+      "params": {
+        "content": "这是一段示例文本用于测试",
+        "output_path": "./output/result.txt",
+        "size": 100,
+        "error_correction": "L",
+        "style": "example_value",
+        "format": "png"
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13652,6 +15321,16 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "二维码扫描器使用示例",
+      "params": {
+        "image_path": "./images/sample.png",
+        "scan_type": "qrcode",
+        "multiple": true
+      }
+    }
+  ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -13709,6 +15388,18 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "output_path": "./output/result.txt",
+        "capture_type": "fullscreen",
+        "region": "example_value",
+        "include_cursor": true,
+        "format": "png"
+      }
+    }
+  ],
     required_permissions: ['system.screen'],
     risk_level: 2,
     is_builtin: 1,
@@ -13768,6 +15459,20 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "output_path": "./output/result.txt",
+        "output_format": "mp4",
+        "capture_type": "fullscreen",
+        "region": "example_value",
+        "fps": 10,
+        "record_audio": true,
+        "duration": 10
+      }
+    }
+  ],
     required_permissions: ['system.screen', 'system.audio'],
     risk_level: 2,
     is_builtin: 1,
@@ -13823,6 +15528,16 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "日历管理器使用示例",
+      "params": {
+        "action": "create",
+        "event": "example_value",
+        "date_range": "example_value"
+      }
+    }
+  ],
     required_permissions: ['calendar.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13868,6 +15583,15 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "提醒调度器使用示例",
+      "params": {
+        "action": "create",
+        "reminder": "example_value"
+      }
+    }
+  ],
     required_permissions: ['notification.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13912,6 +15636,15 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "笔记编辑器使用示例",
+      "params": {
+        "action": "create",
+        "note": "example_value"
+      }
+    }
+  ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
@@ -13964,6 +15697,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "笔记搜索器使用示例",
+      "params": {
+        "query": "example_value",
+        "filters": "example_value",
+        "sort_by": "created_at",
+        "limit": 100
+      }
+    }
+  ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
@@ -14027,7 +15771,22 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
-    required_permissions: [],
+  examples:   [
+    {
+      "description": "高级密码生成器使用示例",
+      "params": {
+        "length": 16,
+        "include_uppercase": true,
+        "include_lowercase": true,
+        "include_numbers": true,
+        "include_symbols": true,
+        "exclude_ambiguous": true,
+        "custom_charset": "example_value",
+        "count": 1
+      }
+    }
+  ],
+    required_permissions: ["security:manage"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -14081,6 +15840,17 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "密码保险库使用示例",
+      "params": {
+        "action": "add",
+        "entry": "example_value",
+        "master_password": "example_value",
+        "search_query": "example_value"
+      }
+    }
+  ],
     required_permissions: ['security.password'],
     risk_level: 2,
     is_builtin: 1,
@@ -14125,6 +15895,16 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "test_type": "download",
+        "server": "example_value",
+        "duration": 10
+      }
+    }
+  ],
     required_permissions: ['network.test'],
     risk_level: 1,
     is_builtin: 1,
@@ -14173,6 +15953,19 @@ const builtinTools = [
         error: { type: 'string' }
       }
     },
+  examples:   [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "operation": "ping",
+        "target": "example_value",
+        "options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
     required_permissions: ['network.diagnostic'],
     risk_level: 2,
     is_builtin: 1,
@@ -14889,7 +16682,7 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: [],
+    required_permissions: ["file:read","file:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -16603,7 +18396,7 @@ const builtinTools = [
         params:         {}
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -16809,7 +18602,7 @@ const builtinTools = [
         params:         {}
       }
     ],
-    required_permissions: [],
+    required_permissions: ["code:execute","data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17227,7 +19020,7 @@ const builtinTools = [
         params:         {}
       }
     ],
-    required_permissions: [],
+    required_permissions: ["code:execute","data:analyze","data:read"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
@@ -17433,7 +19226,7 @@ const builtinTools = [
         params:         {}
       }
     ],
-    required_permissions: [],
+    required_permissions: ["data:read","data:write"],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
