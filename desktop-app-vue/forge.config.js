@@ -5,6 +5,171 @@
 
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
+
+const APP_NAME = 'ChainlessChain';
+const ROOT_DIR = path.join(__dirname, '..');
+const PACKAGING_DIR = path.join(ROOT_DIR, 'packaging');
+const PROJECT_SERVICE_TARGET_DIR = path.join(
+  ROOT_DIR,
+  'backend',
+  'project-service',
+  'target'
+);
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const tryKillProcess = (imageName) => {
+  if (process.platform !== 'win32') {
+    return;
+  }
+  try {
+    execSync(`taskkill /F /IM ${imageName} /T`, { stdio: 'ignore' });
+  } catch (error) {
+    // Process may not be running; ignore.
+  }
+};
+
+const resolveProjectServiceJar = () => {
+  const directJar = path.join(PROJECT_SERVICE_TARGET_DIR, 'project-service.jar');
+  if (fs.existsSync(directJar)) {
+    return directJar;
+  }
+
+  if (!fs.existsSync(PROJECT_SERVICE_TARGET_DIR)) {
+    return null;
+  }
+
+  const candidates = fs
+    .readdirSync(PROJECT_SERVICE_TARGET_DIR)
+    .filter(name =>
+      /^project-service-.*\.jar$/.test(name) &&
+      !/sources|javadoc/.test(name)
+    )
+    .map(name => ({
+      name,
+      fullPath: path.join(PROJECT_SERVICE_TARGET_DIR, name)
+    }))
+    .filter(entry => fs.statSync(entry.fullPath).isFile());
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  candidates.sort((a, b) => {
+    return fs.statSync(b.fullPath).mtimeMs - fs.statSync(a.fullPath).mtimeMs;
+  });
+
+  return candidates[0].fullPath;
+};
+
+const collectExtraResources = () => {
+  const extraResources = [];
+  const missingResources = [];
+
+  const sqlWasmPath = path.join(
+    __dirname,
+    'node_modules',
+    'sql.js',
+    'dist',
+    'sql-wasm.wasm'
+  );
+  if (fs.existsSync(sqlWasmPath)) {
+    extraResources.push(sqlWasmPath);
+  } else {
+    missingResources.push('desktop-app-vue/node_modules/sql.js/dist/sql-wasm.wasm');
+  }
+
+  const scriptsDir = path.join(PACKAGING_DIR, 'scripts');
+  if (fs.existsSync(scriptsDir)) {
+    extraResources.push({
+      from: scriptsDir,
+      to: 'scripts',
+      filter: ['**/*.bat']
+    });
+  } else {
+    missingResources.push('packaging/scripts');
+  }
+
+  const projectServiceJar = resolveProjectServiceJar();
+  if (projectServiceJar) {
+    extraResources.push({
+      from: projectServiceJar,
+      to: 'backend/project-service.jar'
+    });
+  } else {
+    missingResources.push('backend/project-service/target/project-service-*.jar');
+  }
+
+  const dirMappings = [
+    {
+      from: path.join(PACKAGING_DIR, 'jre-17'),
+      to: 'backend/jre',
+      label: 'packaging/jre-17'
+    },
+    {
+      from: path.join(PACKAGING_DIR, 'postgres'),
+      to: 'backend/postgres',
+      label: 'packaging/postgres'
+    },
+    {
+      from: path.join(PACKAGING_DIR, 'redis'),
+      to: 'backend/redis',
+      label: 'packaging/redis'
+    },
+    {
+      from: path.join(PACKAGING_DIR, 'qdrant'),
+      to: 'backend/qdrant',
+      label: 'packaging/qdrant'
+    },
+    {
+      from: path.join(PACKAGING_DIR, 'config'),
+      to: 'config',
+      label: 'packaging/config'
+    },
+  ];
+
+  dirMappings.forEach(({ from, to, label }) => {
+    if (fs.existsSync(from)) {
+      extraResources.push({ from, to });
+    } else {
+      missingResources.push(label);
+    }
+  });
+
+  return { extraResources, missingResources, projectServiceJar };
+};
+
+const cleanPackagerOutput = async (platform, arch) => {
+  const outDir = path.join(__dirname, 'out', `${APP_NAME}-${platform}-${arch}`);
+  if (!fs.existsSync(outDir)) {
+    return;
+  }
+
+  tryKillProcess('chainlesschain.exe');
+  tryKillProcess('ChainlessChain.exe');
+
+  const maxAttempts = 5;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      fs.rmSync(outDir, { recursive: true, force: true });
+    } catch (error) {
+      if (attempt === maxAttempts) {
+        const reason = error && error.message ? ` (${error.message})` : '';
+        throw new Error(
+          `Failed to remove ${outDir}${reason}. Close any running ChainlessChain app or open Explorer windows and retry.`
+        );
+      }
+    }
+
+    if (!fs.existsSync(outDir)) {
+      return;
+    }
+    await sleep(600);
+  }
+};
+
+const { extraResources, missingResources, projectServiceJar } = collectExtraResources();
 
 module.exports = {
   packagerConfig: {
@@ -12,64 +177,8 @@ module.exports = {
     executableName: 'chainlesschain',
     icon: path.join(__dirname, 'build', 'icon'),
     asar: true,
-    extraResource: [
-      // SQLite WASM文件（原有配置）
-      path.join(__dirname, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm'),
+    extraResource: extraResources,
 
-      // 后端服务管理脚本
-      {
-        from: path.join(__dirname, '..', 'packaging', 'scripts'),
-        to: 'scripts',
-        filter: ['**/*.bat']
-      }
-
-      // 注意：以下资源需要在构建时手动准备
-      // - backend/project-service.jar (使用 mvn package 构建)
-      // - backend/jre (Java运行时)
-      // - backend/postgres (PostgreSQL便携版)
-      // - backend/redis (Redis for Windows)
-      // - backend/qdrant (Qdrant二进制文件)
-      // - config/*.conf, config/*.yaml (配置文件)
-
-      // 如果这些文件已准备好，取消注释以下代码：
-      /*
-      // Java后端服务
-      {
-        from: path.join(__dirname, '..', 'backend', 'project-service', 'target', 'project-service.jar'),
-        to: 'backend/project-service.jar'
-      },
-
-      // Java运行时 (JRE 17)
-      {
-        from: path.join(__dirname, '..', 'packaging', 'jre-17'),
-        to: 'backend/jre'
-      },
-
-      // PostgreSQL便携版
-      {
-        from: path.join(__dirname, '..', 'packaging', 'postgres'),
-        to: 'backend/postgres'
-      },
-
-      // Redis for Windows
-      {
-        from: path.join(__dirname, '..', 'packaging', 'redis'),
-        to: 'backend/redis'
-      },
-
-      // Qdrant向量数据库
-      {
-        from: path.join(__dirname, '..', 'packaging', 'qdrant'),
-        to: 'backend/qdrant'
-      },
-
-      // 配置文件
-      {
-        from: path.join(__dirname, '..', 'packaging', 'config'),
-        to: 'config'
-      }
-      */
-    ],
     // 忽略不需要打包的文件
     ignore: [
       // 测试文件
@@ -183,6 +292,20 @@ module.exports = {
   ],
 
   hooks: {
+    prePackage: async (config, platform, arch) => {
+      if (missingResources.length > 0) {
+        const missingList = missingResources.map(item => `- ${item}`).join('\n');
+        throw new Error(
+          `Missing packaging resources:\n${missingList}\n\nFollow packaging/BUILD_INSTRUCTIONS.md before packaging.`
+        );
+      }
+
+      if (projectServiceJar) {
+        console.log(`[Packaging] Using Project Service JAR: ${projectServiceJar}`);
+      }
+
+      await cleanPackagerOutput(platform, arch);
+    },
     // 打包前的钩子
     packageAfterCopy: async (config, buildPath, electronVersion, platform, arch) => {
       console.log('Running post-copy hook...');
