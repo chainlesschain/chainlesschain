@@ -19,17 +19,17 @@ const additionalSkills = [
     "config": "{\"defaultFormat\":\"modern\",\"autoSave\":true}",
     "doc_path": "docs/skills/office-suite.md",
     "tools": [
-      "tool_word_generator",
-      "tool_word_table_creator",
-      "tool_excel_generator",
-      "tool_excel_formula_builder",
-      "tool_excel_chart_creator",
-      "tool_ppt_generator",
-      "tool_ppt_slide_creator",
-      "tool_ppt_theme_applicator",
-      "tool_pdf_generator",
-      "tool_pdf_converter",
-      "tool_office_converter"
+      "word_generator",
+      "word_table_creator",
+      "excel_generator",
+      "excel_formula_builder",
+      "excel_chart_creator",
+      "ppt_generator",
+      "ppt_slide_creator",
+      "ppt_theme_applicator",
+      "pdf_generator",
+      "pdf_converter",
+      "office_converter"
     ],
     "enabled": 1,
     "is_builtin": 1
@@ -48,15 +48,14 @@ const additionalSkills = [
     "config": "{\"defaultFramework\":\"scikit-learn\",\"autoEDA\":true}",
     "doc_path": "docs/skills/data-science.md",
     "tools": [
-      "tool_data_preprocessor",
-      "tool_feature_engineer",
-      "tool_ml_model_trainer",
-      "tool_model_evaluator",
-      "tool_chart_generator",
-      "tool_statistical_analyzer",
-      "tool_eda_generator",
-      "tool_excel_reader",
-      "tool_csv_handler"
+      "data_preprocessor",
+      "feature_engineer",
+      "model_evaluator",
+      "chart_generator",
+      "statistical_analyzer",
+      "eda_generator",
+      "excel_reader",
+      "csv_handler"
     ],
     "enabled": 1,
     "is_builtin": 1
@@ -75,11 +74,8 @@ const additionalSkills = [
     "config": "{\"language\":\"zh-CN\",\"focusKeywords\":5}",
     "doc_path": "docs/skills/seo-marketing.md",
     "tools": [
-      "tool_seo_optimizer",
-      "tool_keyword_extractor",
-      "tool_readability_checker",
-      "tool_text_analyzer",
-      "tool_file_writer"
+      "text_analyzer",
+      "file_writer"
     ],
     "enabled": 1,
     "is_builtin": 1
@@ -98,11 +94,9 @@ const additionalSkills = [
     "config": "{\"defaultFormat\":\"mp4\",\"quality\":\"1080p\"}",
     "doc_path": "docs/skills/video-production.md",
     "tools": [
-      "tool_video_cutter",
-      "tool_video_merger",
-      "tool_video_editor",
-      "tool_subtitle_generator"
-    ],
+      "video_cutter",
+      "video_merger",
+      "video_editor"],
     "enabled": 1,
     "is_builtin": 1
   },
@@ -120,10 +114,7 @@ const additionalSkills = [
     "config": "{\"defaultFormat\":\"mp3\",\"bitrate\":\"320k\"}",
     "doc_path": "docs/skills/audio-editing.md",
     "tools": [
-      "tool_audio_cutter",
-      "tool_audio_merger",
-      "tool_audio_noise_reduction",
-      "tool_audio_converter"
+      "audio_converter"
     ],
     "enabled": 1,
     "is_builtin": 1
@@ -142,11 +133,7 @@ const additionalSkills = [
     "config": "{\"defaultDB\":\"postgresql\"}",
     "doc_path": "docs/skills/database-management.md",
     "tools": [
-      "tool_sql_builder",
-      "tool_sql_executor",
-      "tool_db_schema_generator",
-      "tool_db_migration_tool"
-    ],
+      "sql_builder"],
     "enabled": 1,
     "is_builtin": 1
   },
@@ -164,11 +151,7 @@ const additionalSkills = [
     "config": "{\"defaultVersion\":\"v1\",\"authType\":\"jwt\"}",
     "doc_path": "docs/skills/api-development.md",
     "tools": [
-      "tool_api_schema_generator",
-      "tool_openapi_doc_generator",
-      "tool_http_client",
-      "tool_api_tester"
-    ],
+      "http_client"],
     "enabled": 1,
     "is_builtin": 1
   },
@@ -186,11 +169,7 @@ const additionalSkills = [
     "config": "{\"designSystem\":\"modern\"}",
     "doc_path": "docs/skills/ui-ux-design.md",
     "tools": [
-      "tool_color_palette_generator",
-      "tool_typography_selector",
-      "tool_image_editor",
-      "tool_svg_generator"
-    ],
+      "image_editor"],
     "enabled": 1,
     "is_builtin": 1
   },
@@ -208,11 +187,8 @@ const additionalSkills = [
     "config": "{\"testFramework\":\"jest\"}",
     "doc_path": "docs/skills/testing-qa.md",
     "tools": [
-      "tool_test_generator",
-      "tool_test_runner",
-      "tool_code_coverage_analyzer",
-      "tool_code_quality_checker"
-    ],
+      "test_generator",
+      "test_runner"],
     "enabled": 1,
     "is_builtin": 1
   },
@@ -230,11 +206,8 @@ const additionalSkills = [
     "config": "{\"ciTool\":\"github-actions\"}",
     "doc_path": "docs/skills/devops-cicd.md",
     "tools": [
-      "tool_dockerfile_generator",
-      "tool_docker_compose_generator",
-      "tool_ci_config_generator",
-      "tool_deployment_script_generator"
-    ],
+      "dockerfile_generator",
+      "docker_compose_generator"],
     "enabled": 1,
     "is_builtin": 1
   }

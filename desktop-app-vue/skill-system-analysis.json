@@ -1,0 +1,352 @@
+{
+  "timestamp": "2026-01-01T18:04:56.953Z",
+  "summary": {
+    "totalSkills": 35,
+    "totalTools": 300,
+    "totalToolReferences": 482,
+    "validToolReferences": 482,
+    "invalidToolReferences": 0,
+    "avgToolsPerSkill": "13.8",
+    "toolCoverageRate": "81.3%",
+    "missingToolsCount": 0,
+    "unusedToolsCount": 56,
+    "configIssuesCount": 0
+  },
+  "categoryDistribution": {
+    "code": 2,
+    "web": 1,
+    "data": 2,
+    "content": 1,
+    "document": 1,
+    "media": 4,
+    "project": 1,
+    "ai": 2,
+    "template": 1,
+    "system": 1,
+    "network": 1,
+    "automation": 1,
+    "office": 1,
+    "marketing": 3,
+    "database": 1,
+    "backend": 1,
+    "design": 1,
+    "quality": 1,
+    "devops": 1,
+    "blockchain": 2,
+    "legal": 1,
+    "finance": 2,
+    "business": 1,
+    "management": 1,
+    "hr": 1
+  },
+  "missingTools": [],
+  "unusedTools": [
+    {
+      "name": "crypto_handler",
+      "category": "security"
+    },
+    {
+      "name": "base64_handler",
+      "category": "encoding"
+    },
+    {
+      "name": "env_manager",
+      "category": "config"
+    },
+    {
+      "name": "hash_verifier",
+      "category": "security"
+    },
+    {
+      "name": "jwt_parser",
+      "category": "security"
+    },
+    {
+      "name": "toml_parser",
+      "category": "config"
+    },
+    {
+      "name": "ini_parser",
+      "category": "config"
+    },
+    {
+      "name": "email_parser",
+      "category": "email"
+    },
+    {
+      "name": "s3_client",
+      "category": "storage"
+    },
+    {
+      "name": "oss_client",
+      "category": "storage"
+    },
+    {
+      "name": "log_parser",
+      "category": "devops"
+    },
+    {
+      "name": "performance_profiler",
+      "category": "devops"
+    },
+    {
+      "name": "memory_monitor",
+      "category": "devops"
+    },
+    {
+      "name": "blockchain_client",
+      "category": "blockchain"
+    },
+    {
+      "name": "smart_contract_caller",
+      "category": "blockchain"
+    },
+    {
+      "name": "wallet_manager",
+      "category": "blockchain"
+    },
+    {
+      "name": "email_sender",
+      "category": "communication"
+    },
+    {
+      "name": "email_reader",
+      "category": "communication"
+    },
+    {
+      "name": "email_attachment_handler",
+      "category": "communication"
+    },
+    {
+      "name": "chart_renderer",
+      "category": "visualization"
+    },
+    {
+      "name": "cache_manager",
+      "category": "storage"
+    },
+    {
+      "name": "message_queue_client",
+      "category": "messaging"
+    },
+    {
+      "name": "docker_manager",
+      "category": "devops"
+    },
+    {
+      "name": "encrypt_decrypt",
+      "category": "security"
+    },
+    {
+      "name": "digital_signer",
+      "category": "security"
+    },
+    {
+      "name": "key_generator",
+      "category": "security"
+    },
+    {
+      "name": "geocoder",
+      "category": "location"
+    },
+    {
+      "name": "distance_calculator",
+      "category": "location"
+    },
+    {
+      "name": "coordinate_converter",
+      "category": "location"
+    },
+    {
+      "name": "vulnerability_scanner",
+      "category": "security"
+    },
+    {
+      "name": "security_auditor",
+      "category": "security"
+    },
+    {
+      "name": "quantum_key_distributor",
+      "category": "security"
+    },
+    {
+      "name": "ligo_data_analyzer",
+      "category": "science"
+    },
+    {
+      "name": "waveform_matcher",
+      "category": "science"
+    },
+    {
+      "name": "particle_simulator",
+      "category": "science"
+    },
+    {
+      "name": "event_generator",
+      "category": "science"
+    },
+    {
+      "name": "wimp_detector",
+      "category": "science"
+    },
+    {
+      "name": "axion_searcher",
+      "category": "science"
+    },
+    {
+      "name": "tokamak_simulator",
+      "category": "energy"
+    },
+    {
+      "name": "plasma_controller",
+      "category": "energy"
+    },
+    {
+      "name": "topological_state_calculator",
+      "category": "science"
+    },
+    {
+      "name": "majorana_detector",
+      "category": "science"
+    },
+    {
+      "name": "ice_core_analyzer",
+      "category": "science"
+    },
+    {
+      "name": "climate_reconstructor",
+      "category": "science"
+    },
+    {
+      "name": "magma_simulator",
+      "category": "science"
+    },
+    {
+      "name": "volcanic_monitor",
+      "category": "science"
+    },
+    {
+      "name": "radiocarbon_dater",
+      "category": "science"
+    },
+    {
+      "name": "artifact_reconstructor",
+      "category": "science"
+    },
+    {
+      "name": "flexible_sensor_designer",
+      "category": "hardware"
+    },
+    {
+      "name": "biochip_analyzer",
+      "category": "science"
+    },
+    {
+      "name": "calendar_manager",
+      "category": "productivity"
+    },
+    {
+      "name": "reminder_scheduler",
+      "category": "productivity"
+    },
+    {
+      "name": "password_generator_advanced",
+      "category": "security"
+    },
+    {
+      "name": "password_vault",
+      "category": "security"
+    },
+    {
+      "name": "tokenomics_simulator",
+      "category": "blockchain"
+    },
+    {
+      "name": "real_estate_calculator",
+      "category": "finance"
+    }
+  ],
+  "configIssues": [],
+  "topReferencedTools": [
+    {
+      "tool": "file_writer",
+      "count": 10
+    },
+    {
+      "tool": "file_reader",
+      "count": 8
+    },
+    {
+      "tool": "zip_handler",
+      "count": 6
+    },
+    {
+      "tool": "file_searcher",
+      "count": 6
+    },
+    {
+      "tool": "file_watcher",
+      "count": 6
+    },
+    {
+      "tool": "directory_monitor",
+      "count": 6
+    },
+    {
+      "tool": "file_compressor",
+      "count": 6
+    },
+    {
+      "tool": "file_decompressor",
+      "count": 6
+    },
+    {
+      "tool": "datetime_handler",
+      "count": 5
+    },
+    {
+      "tool": "regex_tester",
+      "count": 5
+    },
+    {
+      "tool": "color_converter",
+      "count": 5
+    },
+    {
+      "tool": "random_generator",
+      "count": 5
+    },
+    {
+      "tool": "diff_comparator",
+      "count": 5
+    },
+    {
+      "tool": "cron_parser",
+      "count": 5
+    },
+    {
+      "tool": "encoding_detector",
+      "count": 5
+    },
+    {
+      "tool": "version_comparator",
+      "count": 5
+    },
+    {
+      "tool": "slug_generator",
+      "count": 5
+    },
+    {
+      "tool": "language_detector",
+      "count": 5
+    },
+    {
+      "tool": "translator",
+      "count": 5
+    },
+    {
+      "tool": "locale_formatter",
+      "count": 5
+    }
+  ]
+}
