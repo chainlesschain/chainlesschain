@@ -486,6 +486,122 @@ function registerSkillToolIPC(ipcMain, skillManager, toolManager) {
   });
 
   // ===================================
+  // Additional Tools V3 统计仪表板IPC
+  // ===================================
+
+  /**
+   * 获取Additional Tools V3统计仪表板数据
+   */
+  ipcMain.handle('tool:get-additional-v3-dashboard', async (event) => {
+    try {
+      const ToolStatsDashboard = require('./tool-stats-dashboard');
+      const dashboard = new ToolStatsDashboard(toolManager.db);
+
+      const data = await dashboard.getDashboardData();
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] tool:get-additional-v3-dashboard 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取Additional Tools V3概览数据
+   */
+  ipcMain.handle('tool:get-additional-v3-overview', async (event) => {
+    try {
+      const ToolStatsDashboard = require('./tool-stats-dashboard');
+      const dashboard = new ToolStatsDashboard(toolManager.db);
+
+      const overview = await dashboard.getOverview();
+      return { success: true, data: overview };
+    } catch (error) {
+      console.error('[IPC] tool:get-additional-v3-overview 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取Additional Tools V3工具排行榜
+   */
+  ipcMain.handle('tool:get-additional-v3-rankings', async (event, limit = 10) => {
+    try {
+      const ToolStatsDashboard = require('./tool-stats-dashboard');
+      const dashboard = new ToolStatsDashboard(toolManager.db);
+
+      const rankings = await dashboard.getToolRankings(limit);
+      return { success: true, data: rankings };
+    } catch (error) {
+      console.error('[IPC] tool:get-additional-v3-rankings 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取Additional Tools V3分类统计
+   */
+  ipcMain.handle('tool:get-additional-v3-category-stats', async (event) => {
+    try {
+      const ToolStatsDashboard = require('./tool-stats-dashboard');
+      const dashboard = new ToolStatsDashboard(toolManager.db);
+
+      const stats = await dashboard.getCategoryStats();
+      return { success: true, data: stats };
+    } catch (error) {
+      console.error('[IPC] tool:get-additional-v3-category-stats 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取Additional Tools V3最近使用
+   */
+  ipcMain.handle('tool:get-additional-v3-recent', async (event, limit = 20) => {
+    try {
+      const ToolStatsDashboard = require('./tool-stats-dashboard');
+      const dashboard = new ToolStatsDashboard(toolManager.db);
+
+      const recent = await dashboard.getRecentlyUsedTools(limit);
+      return { success: true, data: recent };
+    } catch (error) {
+      console.error('[IPC] tool:get-additional-v3-recent 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取Additional Tools V3每日统计
+   */
+  ipcMain.handle('tool:get-additional-v3-daily-stats', async (event, days = 7) => {
+    try {
+      const ToolStatsDashboard = require('./tool-stats-dashboard');
+      const dashboard = new ToolStatsDashboard(toolManager.db);
+
+      const stats = await dashboard.getDailyStats(days);
+      return { success: true, data: stats };
+    } catch (error) {
+      console.error('[IPC] tool:get-additional-v3-daily-stats 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取Additional Tools V3性能指标
+   */
+  ipcMain.handle('tool:get-additional-v3-performance', async (event) => {
+    try {
+      const ToolStatsDashboard = require('./tool-stats-dashboard');
+      const dashboard = new ToolStatsDashboard(toolManager.db);
+
+      const metrics = await dashboard.getPerformanceMetrics();
+      return { success: true, data: metrics };
+    } catch (error) {
+      console.error('[IPC] tool:get-additional-v3-performance 失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // ===================================
   // 智能推荐IPC (需要传入skillRecommender)
   // ===================================
 

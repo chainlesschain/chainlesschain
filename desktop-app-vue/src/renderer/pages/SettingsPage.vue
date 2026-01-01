@@ -148,6 +148,17 @@
           </a-card>
         </a-tab-pane>
 
+        <!-- Additional Tools V3 统计 -->
+        <a-tab-pane key="additional-tools-v3" tab="工具统计">
+          <template #tab>
+            <span>
+              <bar-chart-outlined />
+              工具统计
+            </span>
+          </template>
+          <AdditionalToolsStats />
+        </a-tab-pane>
+
         <!-- 关于 -->
         <a-tab-pane key="about" tab="关于">
           <template #tab>
@@ -214,12 +225,14 @@ import {
   InfoCircleOutlined,
   DatabaseOutlined,
   LockOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { supportedLocales, setLocale, getLocale } from '../locales';
 import LLMSettings from '../components/LLMSettings.vue';
 import GitSettings from '../components/GitSettings.vue';
 import RAGSettings from '../components/RAGSettings.vue';
+import AdditionalToolsStats from '../components/tool/AdditionalToolsStats.vue';
 
 const router = useRouter();
 const store = useAppStore();
