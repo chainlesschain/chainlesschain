@@ -53,17 +53,17 @@ class ToolCompositionSystem {
     });
   }
 
-  async composTools(goal, context = {}) {
+  async composeTools(goal, context = {}) {
     this.stats.totalCompositions++;
 
     const toolChain = await this._buildToolChain(goal, context);
     const optimized = this._optimizeToolChain(toolChain);
-    
+
     await this._recordComposition(goal, optimized, context);
-    
+
     this.stats.successfulCompositions++;
-    this.stats.avgToolsPerComposition = 
-      (this.stats.avgToolsPerComposition * (this.stats.successfulCompositions - 1) + 
+    this.stats.avgToolsPerComposition =
+      (this.stats.avgToolsPerComposition * (this.stats.successfulCompositions - 1) +
        optimized.length) / this.stats.successfulCompositions;
 
     return optimized;
@@ -127,8 +127,8 @@ class ToolCompositionSystem {
 
   _canParallelize(step, group) {
     // Simplified: check if no data dependencies
-    return group.every(s => 
-      \!this._hasDependency(step.tool, s.tool)
+    return group.every(s =>
+      !this._hasDependency(step.tool, s.tool)
     );
   }
 
@@ -159,21 +159,24 @@ class ToolCompositionSystem {
 
   async _executeTool(toolName, inputs) {
     const tool = this.toolRegistry.get(toolName);
-    if (\!tool || \!tool.execute) {
-      throw new Error(\);
+    if (!tool || !tool.execute) {
+      throw new Error(`Tool "${toolName}" not found or not executable`);
     }
 
     return await tool.execute(inputs);
   }
 
   async _recordComposition(goal, composition, context) {
-    if (\!this.db) return;
+    if (!this.db) return;
 
     try {
-      const insertStmt = this.db.prepare(\);
+      const insertStmt = this.db.prepare(`
+        INSERT INTO tool_composition_history (session_id, goal, composition, tool_count, created_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+      `);
 
       insertStmt.run(
-        context.sessionId || \,
+        context.sessionId || 'unknown',
         goal,
         JSON.stringify(composition),
         composition.length
