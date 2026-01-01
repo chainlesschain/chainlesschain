@@ -1,0 +1,68 @@
+{
+  "id": "tpl_hr_succession_001",
+  "name": "succession_planning",
+  "display_name": "继任者计划矩阵",
+  "description": "企业继任者规划模板，用于识别和培养关键岗位继任者，构建人才梯队",
+  "icon": "🎯",
+  "category": "hr",
+  "subcategory": "talent",
+  "tags": ["继任者计划", "人才梯队", "领导力发展", "HR", "战略人才管理"],
+  "project_type": "spreadsheet",
+  "prompt_template": "# {{companyName}} 继任者计划矩阵\n## Succession Planning Matrix\n\n**规划周期**：{{planningPeriod}}\n**制定日期**：{{planDate}}\n**负责人**：{{planOwner}}\n**审批人**：{{approver}}\n\n---\n\n## 执行摘要\n\n### 规划目标\n\n{{planningObjective}}\n\n### 关键岗位数量\n\n- **C级高管**：{{cLevelCount}}个岗位\n- **VP/总监**：{{vpCount}}个岗位\n- **关键经理**：{{managerCount}}个岗位\n- **关键专家**：{{specialistCount}}个岗位\n\n### 继任者准备度概览\n\n- **立即就绪（Ready Now）**：{{readyNowCount}}人\n- **1年内就绪（1-2 Years）**：{{ready1YearCount}}人\n- **2-3年就绪（2-3 Years）**：{{ready2YearCount}}人\n- **无继任者（No Successor）**：{{noSuccessorCount}}个岗位 ⚠️\n\n### 关键风险\n\n{{keyRisks}}\n\n---\n\n## 一、关键岗位识别\n\n### 1.1 关键岗位标准\n\n本公司关键岗位需满足以下至少两个条件：\n\n1. **战略影响**：{{strategicImpactCriteria}}\n2. **替代难度**：{{replacementDifficulty}}\n3. **专业稀缺性**：{{scarcityLevel}}\n4. **业务关键性**：{{businessCriticality}}\n\n### 1.2 关键岗位清单\n\n| 岗位编号 | 岗位名称 | 部门 | 现任者 | 空缺风险 | 关键程度 |\n|---------|---------|------|--------|----------|----------|\n| {{position1ID}} | {{position1}} | {{dept1}} | {{incumbent1}} | {{risk1}} | {{criticality1}} |\n| {{position2ID}} | {{position2}} | {{dept2}} | {{incumbent2}} | {{risk2}} | {{criticality2}} |\n| {{position3ID}} | {{position3}} | {{dept3}} | {{incumbent3}} | {{risk3}} | {{criticality3}} |\n| {{position4ID}} | {{position4}} | {{dept4}} | {{incumbent4}} | {{risk4}} | {{criticality4}} |\n| {{position5ID}} | {{position5}} | {{dept5}} | {{incumbent5}} | {{risk5}} | {{criticality5}} |\n\n**关键程度说明**：\n- 🔴 **极高**：离职将对业务造成重大影响\n- 🟡 **高**：离职将对业务造成显著影响\n- 🟢 **中**：离职影响可控\n\n---\n\n## 二、继任者矩阵\n\n### 2.1 九宫格人才盘点\n\n#### C级高管继任者\n\n**岗位**：{{cLevel1Position}}\n**现任者**：{{cLevel1Incumbent}}\n**离职风险**：{{cLevel1RiskLevel}}\n\n| 继任者 | 绩效评级 | 潜力评级 | 准备度 | 发展计划 | 保留策略 |\n|--------|----------|----------|--------|----------|----------|\n| {{successor1}} | {{performance1}} | {{potential1}} | {{readiness1}} | {{devPlan1}} | {{retention1}} |\n| {{successor2}} | {{performance2}} | {{potential2}} | {{readiness2}} | {{devPlan2}} | {{retention2}} |\n| {{successor3}} | {{performance3}} | {{potential3}} | {{readiness3}} | {{devPlan3}} | {{retention3}} |\n\n**绩效-潜力矩阵定位**：\n\n```\n      高潜力\n        |\n  潜力股 | 明星员工\n        |\n--------+--------\n        |\n  核心员工 | 绩效明星\n        |\n      低绩效 → 高绩效\n```\n\n- {{successor1}}：{{matrix1Position}}\n- {{successor2}}：{{matrix2Position}}\n- {{successor3}}：{{matrix3Position}}\n\n---\n\n### 2.2 继任者准备度评估\n\n#### 评估维度\n\n| 评估项 | 权重 | {{successor1}} | {{successor2}} | {{successor3}} |\n|--------|------|---------------|---------------|---------------|\n| **战略思维** | {{strategicThinkingWeight}}% | {{s1Strategic}} | {{s2Strategic}} | {{s3Strategic}} |\n| **领导力** | {{leadershipWeight}}% | {{s1Leadership}} | {{s2Leadership}} | {{s3Leadership}} |\n| **业务能力** | {{businessWeight}}% | {{s1Business}} | {{s2Business}} | {{s3Business}} |\n| **变革管理** | {{changeWeight}}% | {{s1Change}} | {{s2Change}} | {{s3Change}} |\n| **人际影响力** | {{influenceWeight}}% | {{s1Influence}} | {{s2Influence}} | {{s3Influence}} |\n| **行业经验** | {{experienceWeight}}% | {{s1Experience}} | {{s2Experience}} | {{s3Experience}} |\n| **综合得分** | 100% | {{s1Total}} | {{s2Total}} | {{s3Total}} |\n\n**准备度评级标准**：\n- **90-100分**：立即就绪（Ready Now）✅\n- **75-89分**：1年内就绪（Ready in 1 Year）🟡\n- **60-74分**：2-3年就绪（Ready in 2-3 Years）🟠\n- **<60分**：需更长培养期 🔴\n\n---\n\n### 2.3 能力差距分析\n\n#### {{successor1}} - 能力差距\n\n| 目标岗位要求 | 当前水平 | 差距 | 弥补措施 | 预计时间 |\n|-------------|---------|------|----------|----------|\n| {{requirement1}} | {{current1}} | {{gap1}} | {{action1}} | {{timeline1}} |\n| {{requirement2}} | {{current2}} | {{gap2}} | {{action2}} | {{timeline2}} |\n| {{requirement3}} | {{current3}} | {{gap3}} | {{action3}} | {{timeline3}} |\n\n---\n\n## 三、继任者发展计划\n\n### 3.1 个人发展计划（IDP）\n\n#### {{successor1}} - 发展路线图\n\n**当前岗位**：{{successor1CurrentRole}}\n**目标岗位**：{{successor1TargetRole}}\n**预计就绪时间**：{{successor1ReadyDate}}\n\n**发展阶段**：\n\n##### 第一阶段（{{phase1Duration}}）\n**目标**：{{phase1Goal}}\n\n**发展活动**：\n1. {{phase1Activity1}}\n2. {{phase1Activity2}}\n3. {{phase1Activity3}}\n\n**成功标准**：{{phase1SuccessCriteria}}\n\n##### 第二阶段（{{phase2Duration}}）\n**目标**：{{phase2Goal}}\n\n**发展活动**：\n1. {{phase2Activity1}}\n2. {{phase2Activity2}}\n3. {{phase2Activity3}}\n\n**成功标准**：{{phase2SuccessCriteria}}\n\n##### 第三阶段（{{phase3Duration}}）\n**目标**：{{phase3Goal}}\n\n**发展活动**：\n1. {{phase3Activity1}}\n2. {{phase3Activity2}}\n\n**成功标准**：{{phase3SuccessCriteria}}\n\n---\n\n### 3.2 70-20-10学习模型\n\n**70% - 实践学习（On-the-Job）**\n{{onTheJobLearning}}\n\n- 轮岗项目：{{rotationProjects}}\n- 拉伸任务：{{stretchAssignments}}\n- 跨部门项目：{{crossFunctionalProjects}}\n\n**20% - 向他人学习（Learning from Others）**\n{{learningFromOthers}}\n\n- 高管教练：{{executiveCoaching}}\n- 导师辅导：{{mentoring}}\n- 同侪学习：{{peerLearning}}\n\n**10% - 正式培训（Formal Training）**\n{{formalTraining}}\n\n- 领导力课程：{{leadershipPrograms}}\n- 外部培训：{{externalTraining}}\n- 行业会议：{{conferences}}\n\n---\n\n### 3.3 发展预算\n\n| 继任者 | 教练费用 | 培训费用 | 轮岗成本 | 总预算 |\n|--------|---------|---------|---------|--------|\n| {{successor1}} | {{coaching1}} | {{training1}} | {{rotation1}} | {{budget1}} |\n| {{successor2}} | {{coaching2}} | {{training2}} | {{rotation2}} | {{budget2}} |\n| {{successor3}} | {{coaching3}} | {{training3}} | {{rotation3}} | {{budget3}} |\n| **总计** | {{totalCoaching}} | {{totalTraining}} | {{totalRotation}} | {{totalBudget}} |\n\n---\n\n## 四、人才保留策略\n\n### 4.1 保留风险评估\n\n| 继任者 | 离职风险 | 风险因素 | 保留措施 | 优先级 |\n|--------|----------|----------|----------|--------|\n| {{successor1}} | {{retentionRisk1}} | {{riskFactors1}} | {{retentionActions1}} | {{priority1}} |\n| {{successor2}} | {{retentionRisk2}} | {{riskFactors2}} | {{retentionActions2}} | {{priority2}} |\n| {{successor3}} | {{retentionRisk3}} | {{riskFactors3}} | {{retentionActions3}} | {{priority3}} |\n\n### 4.2 综合激励方案\n\n**薪酬激励**：{{compensationIncentives}}\n\n**职业发展**：{{careerIncentives}}\n\n**认可与荣誉**：{{recognitionIncentives}}\n\n**工作环境**：{{workEnvironmentIncentives}}\n\n---\n\n## 五、应急继任计划\n\n### 5.1 突发情况应对\n\n**场景1：关键岗位突然空缺**\n\n{{emergencyScenario1}}\n\n**临时继任者**：{{emergencySuccessor1}}\n**启动条件**：{{triggerConditions1}}\n**应急措施**：{{emergencyActions1}}\n\n**场景2：首选继任者离职**\n\n{{emergencyScenario2}}\n\n**备选方案**：{{backupPlan}}\n\n### 5.2 外部招聘预案\n\n{{externalRecruitmentPlan}}\n\n---\n\n## 六、实施与监控\n\n### 6.1 实施时间表\n\n| 季度 | 活动 | 负责人 | 完成标准 |\n|------|------|--------|----------|\n| {{q1}} | {{q1Activity}} | {{q1Owner}} | {{q1Milestone}} |\n| {{q2}} | {{q2Activity}} | {{q2Owner}} | {{q2Milestone}} |\n| {{q3}} | {{q3Activity}} | {{q3Owner}} | {{q3Milestone}} |\n| {{q4}} | {{q4Activity}} | {{q4Owner}} | {{q4Milestone}} |\n\n### 6.2 进度追踪\n\n**月度检查**：{{monthlyReview}}\n\n**季度评估**：{{quarterlyAssessment}}\n\n**年度审查**：{{annualReview}}\n\n### 6.3 关键指标（KPIs）\n\n1. **继任者覆盖率**：{{successionCoverage}}（目标：100%）\n2. **立即就绪率**：{{readyNowRate}}（目标：{{readyNowTarget}}%）\n3. **内部晋升率**：{{internalPromotionRate}}（目标：{{promotionTarget}}%）\n4. **关键人才保留率**：{{keyTalentRetention}}（目标：{{retentionTarget}}%）\n5. **继任成功率**：{{successionSuccessRate}}（目标：{{successTarget}}%）\n\n---\n\n## 七、角色与职责\n\n### 7.1 CEO/总裁\n\n{{ceoResponsibilities}}\n\n### 7.2 CHRO/人力资源总监\n\n{{chroResponsibilities}}\n\n### 7.3 直线经理\n\n{{managerResponsibilities}}\n\n### 7.4 继任者本人\n\n{{successorResponsibilities}}\n\n---\n\n## 附录\n\n### 附录A：能力模型\n\n{{competencyModel}}\n\n### 附录B：评估工具\n\n{{assessmentTools}}\n\n### 附录C：发展资源库\n\n{{developmentResources}}\n\n### 附录D：继任者档案模板\n\n{{successorProfileTemplate}}\n\n---\n\n**计划制定人**：{{planPreparer}}\n**审批人**：{{planApprover}}\n**日期**：{{approvalDate}}\n\n*本计划为机密文件，仅限高层管理团队和相关HR人员查阅。*",
+  "variables_schema": [
+    {
+      "name": "companyName",
+      "label": "公司名称",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "planningPeriod",
+      "label": "规划周期",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：2026-2028"
+    },
+    {
+      "name": "cLevelCount",
+      "label": "C级高管岗位数",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "cLevel1Position",
+      "label": "首个关键岗位名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：首席技术官（CTO）"
+    },
+    {
+      "name": "successor1",
+      "label": "首选继任者1",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "readyNowTarget",
+      "label": "立即就绪率目标(%)",
+      "type": "number",
+      "required": true,
+      "placeholder": "例如：60"
+    }
+  ],
+  "file_structure": {
+    "root": "继任者计划-{{companyName}}",
+    "files": [
+      {"path": "继任者计划矩阵.xlsx", "type": "spreadsheet"},
+      {"path": "人才九宫格.xlsx", "type": "spreadsheet"},
+      {"path": "继任者发展计划.docx", "type": "document"},
+      {"path": "继任者档案/", "type": "folder"}
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "required_skills": ["skill_organizational_development", "skill_talent_management", "skill_leadership_development"],
+  "required_tools": ["tool_excel_generator", "tool_word_generator", "tool_talent_matrix_builder", "tool_nine_box_grid"],
+  "execution_engine": "spreadsheet"
+}
