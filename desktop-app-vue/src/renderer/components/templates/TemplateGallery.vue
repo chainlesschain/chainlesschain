@@ -146,7 +146,9 @@ function getCategoryName(category) {
     legal: '法律',
     learning: '学习',
     health: '健康',
-    'time-management': '时间管理'
+    'time-management': '时间管理',
+    productivity: '效率',
+    career: '职业'
   }
   return categoryNames[category] || category
 }

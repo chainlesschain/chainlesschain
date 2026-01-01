@@ -263,18 +263,26 @@ const categoryLabelMap = {
   legal: '法律',
   learning: '学习',
   health: '健康',
-  'time-management': '时间管理'
+  'time-management': '时间管理',
+  productivity: '效率',
+  career: '职业',
+  travel: '旅游'
 };
 
 const subcategoryLabelOverrides = {
   animation: '动画',
+  automation: '自动化',
   backend: '后端',
   bilibili: '哔哩哔哩',
+  branding: '品牌建设',
   browser: '浏览器插件',
+  collaboration: '协作',
   commercial: '商业广告',
   education: '教育类',
+  email: '邮件营销',
   frontend: '前端',
   graphic: '平面设计',
+  growth: '增长策略',
   livestream: '直播',
   'long-form': '长视频',
   lyrics: '歌词',
@@ -294,8 +302,10 @@ const subcategoryLabelOverrides = {
   'short-form': '短视频',
   shooting: '拍摄',
   story: '故事',
+  strategy: '策略',
   theater: '戏剧',
   tutorial: '教程',
+  viral: '病毒式传播',
   visualization: '数据可视化',
   vlog: '视频日志',
   wechat: '微信',
