@@ -49,6 +49,15 @@ const { TaskDecompositionEnhancement } = require('./task-decomposition-enhanceme
 const { ToolCompositionSystem } = require('./tool-composition-system');
 const { HistoryMemoryOptimization } = require('./history-memory-optimization');
 
+// 智能层模块 (Phase 1-4)
+const DataCollector = require('./data-collector');
+const { UserProfileManager } = require('./user-profile-manager');
+const FeatureExtractor = require('./feature-extractor');
+const MLToolMatcher = require('./ml-tool-matcher');
+const CollaborativeFilter = require('./collaborative-filter');
+const ContentRecommender = require('./content-recommender');
+const HybridRecommender = require('./hybrid-recommender');
+
 class AIEngineManagerP2 {
   constructor() {
     // P0模块
@@ -78,6 +87,15 @@ class AIEngineManagerP2 {
     this.taskDecomposition = null;
     this.toolComposition = null;
     this.historyMemory = null;
+
+    // 智能层模块（延迟初始化）
+    this.dataCollector = null;
+    this.userProfileManager = null;
+    this.featureExtractor = null;
+    this.mlToolMatcher = null;
+    this.collaborativeFilter = null;
+    this.contentRecommender = null;
+    this.hybridRecommender = null;
 
     // 依赖项（延迟注入）
     this.llmManager = null;
@@ -132,12 +150,16 @@ class AIEngineManagerP2 {
       // 初始化P2优化模块
       await this._initializeP2Modules();
 
+      // 初始化智能层模块
+      await this._initializeIntelligenceLayer();
+
       console.log('[AIEngineP2] AI引擎初始化成功');
       console.log(`[AIEngineP2] 会话ID: ${this.sessionId}`);
       console.log(`[AIEngineP2] P0优化: ${this._countEnabledModules(['slotFiller', 'toolSandbox', 'performanceMonitor'])}/3`);
       console.log(`[AIEngineP2] P1优化: ${this._countEnabledModules(['multiIntentRecognizer', 'fewShotLearner', 'hierarchicalPlanner', 'checkpointValidator', 'selfCorrectionLoop'])}/5`);
       console.log(`[AIEngineP2] P2核心: ${this._countEnabledModules(['intentFusion', 'knowledgeDistillation', 'streamingResponse'])}/3`);
       console.log(`[AIEngineP2] P2扩展: ${this._countEnabledModules(['taskDecomposition', 'toolComposition', 'historyMemory'])}/3`);
+      console.log(`[AIEngineP2] 智能层: ${this._countEnabledModules(['dataCollector', 'userProfileManager', 'hybridRecommender'])}/3`);
 
       return true;
     } catch (error) {
@@ -325,6 +347,101 @@ class AIEngineManagerP2 {
       console.log(`[AIEngineP2]   - 成功预测: ${this.config.historyMemoryConfig?.enablePrediction ? '启用' : '禁用'}`);
       console.log(`[AIEngineP2]   - 记忆窗口: ${this.config.historyMemoryConfig?.historyWindowSize || 1000}`);
     }
+  }
+
+  /**
+   * 初始化智能层模块 (Phase 1-4)
+   */
+  async _initializeIntelligenceLayer() {
+    if (!this.config.enableIntelligenceLayer) {
+      return;
+    }
+
+    console.log('[AIEngineP2] ===== 初始化智能层 =====');
+
+    // Phase 1: 数据收集器
+    if (this.database) {
+      this.dataCollector = new DataCollector({
+        enableCollection: true,
+        batchSize: 50,
+        flushInterval: 5000,
+        enableValidation: true
+      });
+      this.dataCollector.setDatabase(this.database);
+      console.log('[AIEngineP2] ✓ 数据收集器已启用');
+    }
+
+    // Phase 2: 用户画像管理器
+    if (this.database) {
+      this.userProfileManager = new UserProfileManager({
+        minDataPoints: 10,
+        enableTemporalAnalysis: true,
+        cacheSize: 1000
+      });
+      this.userProfileManager.setDatabase(this.database);
+      console.log('[AIEngineP2] ✓ 用户画像管理器已启用');
+    }
+
+    // Phase 3: 特征提取器和ML工具匹配器
+    if (this.database) {
+      this.featureExtractor = new FeatureExtractor();
+      this.featureExtractor.setDatabase(this.database);
+
+      this.mlToolMatcher = new MLToolMatcher({
+        topK: 5,
+        minConfidence: 0.1,
+        scoreWeights: {
+          textMatch: 0.25,
+          userPreference: 0.30,
+          historicalSuccess: 0.30,
+          recency: 0.15
+        }
+      });
+      this.mlToolMatcher.setDatabase(this.database);
+      console.log('[AIEngineP2] ✓ 特征提取器已启用');
+      console.log('[AIEngineP2] ✓ ML工具匹配器已启用');
+    }
+
+    // Phase 4: 推荐系统
+    if (this.database) {
+      this.collaborativeFilter = new CollaborativeFilter({
+        minSimilarity: 0.1,
+        topKUsers: 10,
+        enableCache: true
+      });
+      this.collaborativeFilter.setDatabase(this.database);
+
+      this.contentRecommender = new ContentRecommender({
+        minSimilarity: 0.2,
+        topKSimilar: 5,
+        enableToolChain: true
+      });
+      this.contentRecommender.setDatabase(this.database);
+
+      this.hybridRecommender = new HybridRecommender({
+        topK: 5,
+        minConfidence: 0.15,
+        weights: {
+          ml: 0.4,
+          collaborative: 0.35,
+          content: 0.25
+        },
+        enableDiversity: true
+      });
+      this.hybridRecommender.setDatabase(this.database);
+
+      // 初始化推荐系统
+      try {
+        await this.hybridRecommender.initialize();
+        console.log('[AIEngineP2] ✓ 协同过滤已启用');
+        console.log('[AIEngineP2] ✓ 内容推荐已启用');
+        console.log('[AIEngineP2] ✓ 混合推荐系统已启用');
+      } catch (error) {
+        console.warn('[AIEngineP2] ⚠ 推荐系统初始化失败:', error.message);
+      }
+    }
+
+    console.log('[AIEngineP2] 智能层初始化完成');
   }
 
   /**
