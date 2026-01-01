@@ -7,11 +7,11 @@
  */
 
 
-// 导入额外的工具定义
-const additionalOfficeTools = require('./additional-office-tools');
-const additionalDataScienceTools = require('./additional-datascience-tools');
-const additionalProjectTools = require('./additional-project-tools');
-const additionalToolsV3 = require('./additional-tools-v3');
+// 导入额外的工具定义（已全部整合到 builtinTools 数组中）
+// const additionalOfficeTools = require('./additional-office-tools'); // 已整合
+// const additionalDataScienceTools = require('./additional-datascience-tools'); // 已整合
+// const additionalProjectTools = require('./additional-project-tools'); // 已整合
+// const additionalToolsV3 = require('./additional-tools-v3'); // 已删除：28个不完整工具
 
 const builtinTools = [
   // 1. 文件读取工具
@@ -3064,58 +3064,6 @@ const builtinTools = [
           chartType: 'line',
           xField: 'month',
           yField: 'value'
-        }
-      }
-    ],
-    required_permissions: [],
-    risk_level: 1,
-    is_builtin: 1,
-    enabled: 1,
-  },
-
-  {
-    id: 'tool_template_renderer',
-    name: 'template_renderer',
-    display_name: '模板渲染器',
-    display_name: '模板渲染器',
-    description: '使用 Mustache/Handlebars 语法渲染模板',
-    category: 'document',
-    tool_type: 'function',
-    parameters_schema: {
-      type: 'object',
-      properties: {
-        template: {
-          type: 'string',
-          description: '模板字符串'
-        },
-        data: {
-          type: 'object',
-          description: '数据对象'
-        },
-        engine: {
-          type: 'string',
-          description: '模板引擎',
-          enum: ['mustache', 'handlebars', 'ejs'],
-          default: 'mustache'
-        }
-      },
-      required: ['template', 'data']
-    },
-    return_schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        rendered: { type: 'string' },
-        error: { type: 'string' }
-      }
-    },
-    examples: [
-      {
-        description: '渲染欢迎邮件模板',
-        params: {
-          template: 'Hello {{name}}, welcome to {{company}}!',
-          data: {name: 'John', company: 'Acme Inc'},
-          engine: 'mustache'
         }
       }
     ],
@@ -6534,54 +6482,6 @@ const builtinTools = [
     enabled: 1,
   },
 
-  // 音频分析工具 (115-116)
-  {
-    id: 'tool_speech_recognizer',
-    name: 'speech_recognizer',
-    display_name: '语音识别器',
-    description: '将音频转换为文本,支持多种语言',
-    category: 'media',
-    tool_type: 'function',
-    parameters_schema: {
-      type: 'object',
-      properties: {
-        audioPath: {
-          type: 'string',
-          description: '音频文件路径'
-        },
-        language: {
-          type: 'string',
-          description: '识别语言',
-          enum: ['zh-CN', 'en-US', 'ja-JP', 'ko-KR']
-        },
-        options: {
-          type: 'object',
-          description: '识别选项',
-          properties: {
-            punctuation: { type: 'boolean' },
-            timestamps: { type: 'boolean' },
-            speakerDiarization: { type: 'boolean' }
-          }
-        }
-      },
-      required: ['audioPath', 'language']
-    },
-    return_schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        text: { type: 'string' },
-        confidence: { type: 'number' },
-        segments: { type: 'array' },
-        error: { type: 'string' }
-      }
-    },
-    required_permissions: ['file.read'],
-    risk_level: 1,
-    is_builtin: 1,
-    enabled: 1,
-  },
-
   {
     id: 'tool_audio_fingerprint',
     name: 'audio_fingerprint',
@@ -6669,53 +6569,6 @@ const builtinTools = [
       }
     },
     required_permissions: ['network.request'],
-    risk_level: 3,
-    is_builtin: 1,
-    enabled: 1,
-  },
-
-  {
-    id: 'tool_wallet_manager',
-    name: 'wallet_manager',
-    display_name: '钱包管理器',
-    description: '管理加密货币钱包(创建、导入、余额查询)',
-    category: 'network',
-    tool_type: 'function',
-    parameters_schema: {
-      type: 'object',
-      properties: {
-        action: {
-          type: 'string',
-          description: '操作类型',
-          enum: ['create', 'import', 'getBalance', 'sign']
-        },
-        mnemonic: {
-          type: 'string',
-          description: '助记词(导入时使用)'
-        },
-        address: {
-          type: 'string',
-          description: '钱包地址'
-        },
-        network: {
-          type: 'string',
-          description: '区块链网络',
-          enum: ['ethereum', 'bitcoin', 'polygon']
-        }
-      },
-      required: ['action']
-    },
-    return_schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        address: { type: 'string' },
-        balance: { type: 'string' },
-        mnemonic: { type: 'string' },
-        error: { type: 'string' }
-      }
-    },
-    required_permissions: ['crypto.wallet'],
     risk_level: 3,
     is_builtin: 1,
     enabled: 1,
@@ -6933,36 +6786,80 @@ const builtinTools = [
   {
     id: 'tool_model_trainer',
     name: 'model_trainer',
-    display_name: '模型训练器',
-    description: '训练机器学习模型',
+    display_name: '机器学习模型训练器',
+    description: '训练分类、回归、聚类等机器学习模型，支持sklearn、XGBoost、LightGBM等主流框架',
     category: 'ai',
     tool_type: 'function',
     parameters_schema: {
       type: 'object',
       properties: {
+        dataPath: {
+          type: 'string',
+          description: '训练数据路径'
+        },
+        targetColumn: {
+          type: 'string',
+          description: '目标变量列名'
+        },
         modelType: {
           type: 'string',
           description: '模型类型',
-          enum: ['linear', 'decision_tree', 'random_forest', 'neural_network']
+          enum: [
+            'linear_regression',
+            'logistic_regression',
+            'decision_tree',
+            'random_forest',
+            'xgboost',
+            'lightgbm',
+            'svm',
+            'kmeans',
+            'neural_network'
+          ]
+        },
+        taskType: {
+          type: 'string',
+          enum: ['classification', 'regression', 'clustering'],
+          description: '任务类型'
         },
         trainingData: {
           type: 'array',
-          description: '训练数据'
+          description: '训练数据（与dataPath二选一）'
         },
         labels: {
           type: 'array',
-          description: '标签数据'
+          description: '标签数据（与targetColumn配合使用）'
         },
         hyperparameters: {
           type: 'object',
-          description: '超参数配置'
+          description: '超参数配置',
+          properties: {
+            n_estimators: { type: 'number' },
+            max_depth: { type: 'number' },
+            learning_rate: { type: 'number' },
+            test_size: { type: 'number', default: 0.2 },
+            random_state: { type: 'number', default: 42 }
+          }
         },
         validationSplit: {
           type: 'number',
           description: '验证集比例'
+        },
+        cv_folds: {
+          type: 'number',
+          default: 5,
+          description: '交叉验证折数'
+        },
+        autoTune: {
+          type: 'boolean',
+          default: false,
+          description: '是否自动调优超参数'
+        },
+        modelOutputPath: {
+          type: 'string',
+          description: '模型保存路径'
         }
       },
-      required: ['modelType', 'trainingData', 'labels']
+      required: ['modelType']
     },
     return_schema: {
       type: 'object',
@@ -6970,56 +6867,36 @@ const builtinTools = [
         success: { type: 'boolean' },
         modelPath: { type: 'string' },
         accuracy: { type: 'number' },
-        metrics: { type: 'object' },
-        error: { type: 'string' }
-      }
-    },
-    required_permissions: ['file.write'],
-    risk_level: 2,
-    is_builtin: 1,
-    enabled: 1,
-  },
-
-  {
-    id: 'tool_model_predictor',
-    name: 'model_predictor',
-    display_name: '模型预测器',
-    description: '使用训练好的模型进行预测',
-    category: 'ai',
-    tool_type: 'function',
-    parameters_schema: {
-      type: 'object',
-      properties: {
-        modelPath: {
-          type: 'string',
-          description: '模型文件路径'
-        },
-        inputData: {
-          type: 'array',
-          description: '输入数据'
-        },
-        options: {
+        metrics: {
           type: 'object',
-          description: '预测选项',
-          properties: {
-            batchSize: { type: 'number' },
-            threshold: { type: 'number' }
-          }
-        }
-      },
-      required: ['modelPath', 'inputData']
-    },
-    return_schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        predictions: { type: 'array' },
-        confidence: { type: 'array' },
+          description: '模型评估指标'
+        },
+        trainingTime: { type: 'number' },
+        bestParams: { type: 'object' },
         error: { type: 'string' }
       }
     },
-    required_permissions: ['file.read'],
-    risk_level: 1,
+    examples: [
+      {
+        description: '训练随机森林分类器',
+        params: {
+          dataPath: './data/train.csv',
+          targetColumn: 'churn',
+          modelType: 'random_forest',
+          taskType: 'classification',
+          hyperparameters: {
+            n_estimators: 100,
+            max_depth: 10,
+            test_size: 0.2
+          },
+          cv_folds: 5,
+          autoTune: true,
+          modelOutputPath: './models/rf_model.pkl'
+        }
+      }
+    ],
+    required_permissions: ['file.read', 'file.write', 'compute.intensive'],
+    risk_level: 3,
     is_builtin: 1,
     enabled: 1,
   },
@@ -7173,54 +7050,6 @@ const builtinTools = [
       }
     },
     required_permissions: ['system.info'],
-    risk_level: 1,
-    is_builtin: 1,
-    enabled: 1,
-  },
-
-  {
-    id: 'tool_performance_profiler',
-    name: 'performance_profiler',
-    display_name: '性能分析器',
-    description: '分析代码性能、识别性能瓶颈',
-    category: 'system',
-    tool_type: 'function',
-    parameters_schema: {
-      type: 'object',
-      properties: {
-        target: {
-          type: 'string',
-          description: '分析目标',
-          enum: ['function', 'module', 'application']
-        },
-        code: {
-          type: 'string',
-          description: '要分析的代码'
-        },
-        options: {
-          type: 'object',
-          description: '分析选项',
-          properties: {
-            iterations: { type: 'number' },
-            warmup: { type: 'number' },
-            detailed: { type: 'boolean' }
-          }
-        }
-      },
-      required: ['target']
-    },
-    return_schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        executionTime: { type: 'number' },
-        memoryUsage: { type: 'number' },
-        bottlenecks: { type: 'array' },
-        suggestions: { type: 'array' },
-        error: { type: 'string' }
-      }
-    },
-    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1,
@@ -9017,64 +8846,6 @@ const builtinTools = [
             assets: { type: 'array' }
           }
         },
-        error: { type: 'string' }
-      }
-    },
-    required_permissions: ['file.write'],
-    risk_level: 1,
-    is_builtin: 1,
-    enabled: 1,
-  },
-
-  // 语音合成工具 (163-164)
-  {
-    id: 'tool_text_to_speech',
-    name: 'text_to_speech',
-    display_name: '文字转语音',
-    description: '将文本转换为自然语音',
-    category: 'media',
-    tool_type: 'function',
-    parameters_schema: {
-      type: 'object',
-      properties: {
-        text: {
-          type: 'string',
-          description: '要转换的文本'
-        },
-        language: {
-          type: 'string',
-          description: '语言',
-          enum: ['zh-CN', 'en-US', 'ja-JP', 'ko-KR', 'fr-FR']
-        },
-        voice: {
-          type: 'string',
-          description: '音色',
-          enum: ['male', 'female', 'child']
-        },
-        options: {
-          type: 'object',
-          description: '语音选项',
-          properties: {
-            speed: { type: 'number' },
-            pitch: { type: 'number' },
-            volume: { type: 'number' },
-            emotion: { type: 'string' }
-          }
-        },
-        outputFormat: {
-          type: 'string',
-          description: '输出格式',
-          enum: ['mp3', 'wav', 'ogg']
-        }
-      },
-      required: ['text', 'language']
-    },
-    return_schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        audioPath: { type: 'string' },
-        duration: { type: 'number' },
         error: { type: 'string' }
       }
     },
@@ -14407,13 +14178,1631 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1,
   },
+
+  // ==================== 数据科学工具 (Data Science) ====================
+
+  /**
+   * 数据预处理器
+   * 数据清洗、缺失值处理、特征缩放
+   */
+  {
+    id: 'tool_data_preprocessor',
+    name: 'data_preprocessor',
+    display_name: '数据预处理器',
+    description: '数据清洗、缺失值处理、异常值检测、特征缩放和编码',
+    category: 'data-science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        dataPath: {
+          type: 'string',
+          description: '数据文件路径（CSV/Excel）'
+        },
+        operations: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: [
+              'remove_duplicates',
+              'handle_missing',
+              'detect_outliers',
+              'normalize',
+              'standardize',
+              'encode_categorical',
+              'one_hot_encode',
+              'label_encode'
+            ]
+          },
+          description: '预处理操作列表'
+        },
+        options: {
+          type: 'object',
+          properties: {
+            missingStrategy: {
+              type: 'string',
+              enum: ['drop', 'mean', 'median', 'mode', 'forward_fill', 'backward_fill'],
+              default: 'median'
+            },
+            outlierMethod: {
+              type: 'string',
+              enum: ['iqr', 'zscore', 'isolation_forest'],
+              default: 'iqr'
+            },
+            scalingMethod: {
+              type: 'string',
+              enum: ['standard', 'minmax', 'robust'],
+              default: 'standard'
+            }
+          }
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径'
+        }
+      },
+      required: ['dataPath', 'operations']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        outputPath: { type: 'string' },
+        rowsProcessed: { type: 'number' },
+        columnsProcessed: { type: 'number' },
+        summary: {
+          type: 'object',
+          properties: {
+            duplicatesRemoved: { type: 'number' },
+            missingValuesHandled: { type: 'number' },
+            outliersDetected: { type: 'number' }
+          }
+        }
+      }
+    },
+    examples: [
+      {
+        description: '清洗并标准化数据',
+        params: {
+          dataPath: './data/raw/customer_data.csv',
+          operations: ['remove_duplicates', 'handle_missing', 'standardize'],
+          options: {
+            missingStrategy: 'median',
+            scalingMethod: 'standard'
+          },
+          outputPath: './data/processed/customer_data_clean.csv'
+        }
+      }
+    ],
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * 特征工程工具
+   * 特征创建、选择和转换
+   */
+  {
+    id: 'tool_feature_engineer',
+    name: 'feature_engineer',
+    display_name: '特征工程工具',
+    description: '特征创建、选择、转换和降维',
+    category: 'data-science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        dataPath: {
+          type: 'string',
+          description: '数据文件路径'
+        },
+        operations: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: [
+              'polynomial_features',
+              'interaction_features',
+              'binning',
+              'pca',
+              'feature_selection',
+              'timestamp_features'
+            ]
+          }
+        },
+        config: {
+          type: 'object',
+          properties: {
+            polynomialDegree: { type: 'number', default: 2 },
+            pcaComponents: { type: 'number', default: 0.95 },
+            selectionMethod: {
+              type: 'string',
+              enum: ['chi2', 'mutual_info', 'f_classif', 'rfe'],
+              default: 'mutual_info'
+            },
+            topK: { type: 'number', description: '保留前K个特征' }
+          }
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径'
+        }
+      },
+      required: ['dataPath', 'operations']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        outputPath: { type: 'string' },
+        originalFeatures: { type: 'number' },
+        newFeatures: { type: 'number' },
+        featureNames: { type: 'array', items: { type: 'string' } }
+      }
+    },
+    examples: [
+      {
+        description: '创建多项式特征并进行特征选择',
+        params: {
+          dataPath: './data/processed/features.csv',
+          operations: ['polynomial_features', 'feature_selection'],
+          config: {
+            polynomialDegree: 2,
+            selectionMethod: 'mutual_info',
+            topK: 20
+          },
+          outputPath: './data/processed/features_engineered.csv'
+        }
+      }
+    ],
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * 模型评估器
+   * 评估机器学习模型性能
+   */
+  {
+    id: 'tool_model_evaluator',
+    name: 'model_evaluator',
+    display_name: '模型评估器',
+    description: '评估模型性能，生成评估报告和可视化',
+    category: 'data-science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        modelPath: {
+          type: 'string',
+          description: '模型文件路径'
+        },
+        testDataPath: {
+          type: 'string',
+          description: '测试数据路径'
+        },
+        taskType: {
+          type: 'string',
+          enum: ['classification', 'regression', 'clustering'],
+          description: '任务类型'
+        },
+        generatePlots: {
+          type: 'boolean',
+          default: true,
+          description: '是否生成可视化图表'
+        },
+        reportOutputPath: {
+          type: 'string',
+          description: '评估报告输出路径'
+        }
+      },
+      required: ['modelPath', 'testDataPath', 'taskType']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        metrics: {
+          type: 'object',
+          description: '评估指标（accuracy、f1_score、rmse等）'
+        },
+        confusionMatrix: { type: 'array' },
+        featureImportance: { type: 'array' },
+        plots: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '生成的图表路径列表'
+        },
+        reportPath: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '评估分类模型',
+        params: {
+          modelPath: './models/rf_model.pkl',
+          testDataPath: './data/test.csv',
+          taskType: 'classification',
+          generatePlots: true,
+          reportOutputPath: './reports/model_evaluation.html'
+        }
+      }
+    ],
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * 统计分析工具
+   * 描述性统计、相关性分析、假设检验
+   */
+  {
+    id: 'tool_statistical_analyzer',
+    name: 'statistical_analyzer',
+    display_name: '统计分析工具',
+    description: '执行描述性统计、相关性分析、假设检验等',
+    category: 'data-science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        dataPath: {
+          type: 'string',
+          description: '数据文件路径'
+        },
+        analyses: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: [
+              'descriptive',
+              'correlation',
+              't_test',
+              'chi_square',
+              'anova',
+              'normality_test',
+              'distribution_fit'
+            ]
+          },
+          description: '分析类型列表'
+        },
+        columns: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '要分析的列名（可选）'
+        },
+        options: {
+          type: 'object',
+          properties: {
+            confidence_level: { type: 'number', default: 0.95 },
+            method: { type: 'string' }
+          }
+        },
+        reportOutputPath: {
+          type: 'string',
+          description: '分析报告输出路径'
+        }
+      },
+      required: ['dataPath', 'analyses']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        results: {
+          type: 'object',
+          description: '分析结果'
+        },
+        reportPath: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '执行描述性统计和相关性分析',
+        params: {
+          dataPath: './data/sales_data.csv',
+          analyses: ['descriptive', 'correlation'],
+          reportOutputPath: './reports/statistical_analysis.html'
+        }
+      }
+    ],
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * 数据探索性分析（EDA）工具
+   * 自动生成探索性数据分析报告
+   */
+  {
+    id: 'tool_eda_generator',
+    name: 'eda_generator',
+    display_name: 'EDA报告生成器',
+    description: '自动生成探索性数据分析报告，包含数据概览、分布、相关性等',
+    category: 'data-science',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        dataPath: {
+          type: 'string',
+          description: '数据文件路径'
+        },
+        targetColumn: {
+          type: 'string',
+          description: '目标变量（可选）'
+        },
+        reportType: {
+          type: 'string',
+          enum: ['quick', 'detailed', 'comprehensive'],
+          default: 'detailed',
+          description: '报告详细程度'
+        },
+        outputFormat: {
+          type: 'string',
+          enum: ['html', 'pdf', 'notebook'],
+          default: 'html',
+          description: '输出格式'
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出路径'
+        }
+      },
+      required: ['dataPath', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        reportPath: { type: 'string' },
+        sections: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '报告章节列表'
+        }
+      }
+    },
+    examples: [
+      {
+        description: '生成详细EDA报告',
+        params: {
+          dataPath: './data/customer_data.csv',
+          targetColumn: 'churn',
+          reportType: 'detailed',
+          outputFormat: 'html',
+          outputPath: './reports/eda_report.html'
+        }
+      }
+    ],
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  // ==================== Office文档工具 ====================
+
+  /**
+   * Word文档生成器
+   * 生成标准格式的Word文档（.docx）
+   */
+  {
+    id: 'tool_word_generator',
+    name: 'word_generator',
+    display_name: 'Word文档生成器',
+    description: '生成Word文档（.docx格式），支持标题、段落、表格、图片',
+    category: 'office',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: '文档标题'
+        },
+        content: {
+          type: 'string',
+          description: '文档内容（支持Markdown格式）'
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        template: {
+          type: 'string',
+          description: '模板路径（可选）'
+        },
+        options: {
+          type: 'object',
+          description: '文档选项',
+          properties: {
+            fontSize: { type: 'number', default: 12 },
+            fontFamily: { type: 'string', default: '宋体' },
+            lineSpacing: { type: 'number', default: 1.5 },
+            pageSize: { type: 'string', enum: ['A4', 'A5', 'Letter'], default: 'A4' },
+            margin: {
+              type: 'object',
+              properties: {
+                top: { type: 'number', default: 2.54 },
+                bottom: { type: 'number', default: 2.54 },
+                left: { type: 'number', default: 3.18 },
+                right: { type: 'number', default: 3.18 }
+              }
+            }
+          }
+        }
+      },
+      required: ['title', 'content', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' },
+        fileSize: { type: 'number' },
+        pageCount: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '生成商业计划书',
+        params: {
+          title: '2025年商业计划书',
+          content: '# 执行摘要\n\n项目描述...',
+          outputPath: './business-plan.docx'
+        }
+      }
+    ],
+    required_permissions: ['file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * Word表格创建器
+   * 在Word文档中创建格式化表格
+   */
+  {
+    id: 'tool_word_table_creator',
+    name: 'word_table_creator',
+    display_name: 'Word表格创建器',
+    description: '在Word文档中创建和格式化表格',
+    category: 'office',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        documentPath: {
+          type: 'string',
+          description: 'Word文档路径'
+        },
+        tableData: {
+          type: 'object',
+          description: '表格数据',
+          properties: {
+            headers: { type: 'array', items: { type: 'string' } },
+            rows: { type: 'array', items: { type: 'array' } }
+          },
+          required: ['headers', 'rows']
+        },
+        style: {
+          type: 'string',
+          enum: ['simple', 'grid', 'striped', 'modern'],
+          default: 'grid',
+          description: '表格样式'
+        }
+      },
+      required: ['documentPath', 'tableData']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        tableCount: { type: 'number' },
+        rowCount: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '创建预算表',
+        params: {
+          documentPath: './report.docx',
+          tableData: {
+            headers: ['项目', '预算', '实际', '差异'],
+            rows: [
+              ['人力成本', '100万', '95万', '-5万'],
+              ['营销费用', '50万', '60万', '+10万']
+            ]
+          },
+          style: 'modern'
+        }
+      }
+    ],
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * Excel电子表格生成器
+   * 生成多工作表Excel文件
+   */
+  {
+    id: 'tool_excel_generator',
+    name: 'excel_generator',
+    display_name: 'Excel电子表格生成器',
+    description: '生成Excel文件（.xlsx格式），支持多工作表、公式、图表',
+    category: 'office',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        sheets: {
+          type: 'array',
+          description: '工作表数组',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: '工作表名称' },
+              data: {
+                type: 'array',
+                description: '二维数组数据',
+                items: { type: 'array' }
+              },
+              headers: {
+                type: 'array',
+                description: '表头（可选）',
+                items: { type: 'string' }
+              },
+              columnWidths: {
+                type: 'array',
+                description: '列宽数组',
+                items: { type: 'number' }
+              }
+            },
+            required: ['name', 'data']
+          }
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        options: {
+          type: 'object',
+          description: 'Excel选项',
+          properties: {
+            creator: { type: 'string', default: 'ChainlessChain' },
+            created: { type: 'string' },
+            autoFilter: { type: 'boolean', default: false },
+            freeze: {
+              type: 'object',
+              properties: {
+                row: { type: 'number' },
+                column: { type: 'number' }
+              }
+            }
+          }
+        }
+      },
+      required: ['sheets', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' },
+        sheetCount: { type: 'number' },
+        totalRows: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '生成财务报表',
+        params: {
+          sheets: [
+            {
+              name: '收入明细',
+              headers: ['月份', '产品销售', '服务收入', '合计'],
+              data: [
+                ['1月', 100000, 50000, '=B2+C2'],
+                ['2月', 120000, 55000, '=B3+C3']
+              ]
+            }
+          ],
+          outputPath: './financial-report.xlsx'
+        }
+      }
+    ],
+    required_permissions: ['file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * Excel公式构建器
+   * 辅助生成Excel公式
+   */
+  {
+    id: 'tool_excel_formula_builder',
+    name: 'excel_formula_builder',
+    display_name: 'Excel公式构建器',
+    description: '生成和验证Excel公式',
+    category: 'office',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        formulaType: {
+          type: 'string',
+          enum: ['SUM', 'AVERAGE', 'IF', 'VLOOKUP', 'COUNTIF', 'SUMIF', 'CONCATENATE', 'CUSTOM'],
+          description: '公式类型'
+        },
+        range: {
+          type: 'string',
+          description: '单元格范围（例如：A1:A10）'
+        },
+        condition: {
+          type: 'string',
+          description: '条件（用于IF、COUNTIF等）'
+        },
+        customFormula: {
+          type: 'string',
+          description: '自定义公式（当formulaType为CUSTOM时）'
+        }
+      },
+      required: ['formulaType']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        formula: { type: 'string' },
+        description: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '生成求和公式',
+        params: {
+          formulaType: 'SUM',
+          range: 'B2:B100'
+        }
+      },
+      {
+        description: '生成条件计数公式',
+        params: {
+          formulaType: 'COUNTIF',
+          range: 'A2:A100',
+          condition: '>100'
+        }
+      }
+    ],
+    required_permissions: [],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * Excel图表创建器
+   * 在Excel中创建各类图表
+   */
+  {
+    id: 'tool_excel_chart_creator',
+    name: 'excel_chart_creator',
+    display_name: 'Excel图表创建器',
+    description: '在Excel工作表中创建图表',
+    category: 'office',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        workbookPath: {
+          type: 'string',
+          description: 'Excel文件路径'
+        },
+        sheetName: {
+          type: 'string',
+          description: '工作表名称'
+        },
+        chartType: {
+          type: 'string',
+          enum: ['line', 'bar', 'column', 'pie', 'area', 'scatter', 'doughnut'],
+          description: '图表类型'
+        },
+        dataRange: {
+          type: 'string',
+          description: '数据范围（例如：A1:D10）'
+        },
+        title: {
+          type: 'string',
+          description: '图表标题'
+        },
+        position: {
+          type: 'object',
+          description: '图表位置',
+          properties: {
+            row: { type: 'number' },
+            column: { type: 'number' }
+          }
+        }
+      },
+      required: ['workbookPath', 'sheetName', 'chartType', 'dataRange']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        chartId: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '创建柱状图',
+        params: {
+          workbookPath: './sales-data.xlsx',
+          sheetName: '月度销售',
+          chartType: 'column',
+          dataRange: 'A1:B12',
+          title: '2025年月度销售趋势'
+        }
+      }
+    ],
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * PPT演示文稿生成器
+   * 生成PowerPoint演示文稿
+   */
+  {
+    id: 'tool_ppt_generator',
+    name: 'ppt_generator',
+    display_name: 'PPT演示文稿生成器',
+    description: '生成PowerPoint文件（.pptx格式）',
+    category: 'office',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        slides: {
+          type: 'array',
+          description: '幻灯片数组',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: '幻灯片标题' },
+              content: { type: 'string', description: '幻灯片内容' },
+              layout: {
+                type: 'string',
+                enum: ['title', 'titleAndContent', 'sectionHeader', 'twoContent', 'comparison', 'titleOnly', 'blank'],
+                description: '布局类型'
+              },
+              notes: { type: 'string', description: '演讲者备注' }
+            },
+            required: ['title', 'layout']
+          }
+        },
+        theme: {
+          type: 'string',
+          enum: ['default', 'modern', 'professional', 'creative', 'minimal'],
+          default: 'default',
+          description: '主题名称'
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径'
+        },
+        options: {
+          type: 'object',
+          properties: {
+            author: { type: 'string' },
+            company: { type: 'string' },
+            slideSize: {
+              type: 'string',
+              enum: ['standard', 'widescreen', 'custom'],
+              default: 'widescreen'
+            }
+          }
+        }
+      },
+      required: ['slides', 'outputPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' },
+        slideCount: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '生成产品发布会PPT',
+        params: {
+          slides: [
+            {
+              title: '产品发布会',
+              content: '全新AI助手发布',
+              layout: 'title'
+            },
+            {
+              title: '核心功能',
+              content: '1. 智能对话\n2. 文档生成\n3. 数据分析',
+              layout: 'titleAndContent'
+            }
+          ],
+          theme: 'modern',
+          outputPath: './product-launch.pptx'
+        }
+      }
+    ],
+    required_permissions: ['file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * PPT幻灯片创建器
+   * 向现有PPT添加幻灯片
+   */
+  {
+    id: 'tool_ppt_slide_creator',
+    name: 'ppt_slide_creator',
+    display_name: 'PPT幻灯片创建器',
+    description: '向现有PowerPoint文件添加幻灯片',
+    category: 'office',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        presentationPath: {
+          type: 'string',
+          description: 'PPT文件路径'
+        },
+        slide: {
+          type: 'object',
+          description: '幻灯片配置',
+          properties: {
+            title: { type: 'string' },
+            content: { type: 'string' },
+            layout: { type: 'string' },
+            position: { type: 'number', description: '插入位置（索引）' }
+          },
+          required: ['title', 'layout']
+        }
+      },
+      required: ['presentationPath', 'slide']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        slideIndex: { type: 'number' },
+        totalSlides: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '添加总结幻灯片',
+        params: {
+          presentationPath: './presentation.pptx',
+          slide: {
+            title: '总结',
+            content: '感谢聆听！',
+            layout: 'titleOnly'
+          }
+        }
+      }
+    ],
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  /**
+   * PPT主题应用器
+   * 应用或修改PPT主题
+   */
+  {
+    id: 'tool_ppt_theme_applicator',
+    name: 'ppt_theme_applicator',
+    display_name: 'PPT主题应用器',
+    description: '为PowerPoint应用或修改主题样式',
+    category: 'office',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        presentationPath: {
+          type: 'string',
+          description: 'PPT文件路径'
+        },
+        theme: {
+          type: 'object',
+          description: '主题配置',
+          properties: {
+            primaryColor: { type: 'string', description: '主色调（十六进制）' },
+            secondaryColor: { type: 'string', description: '辅助色' },
+            fontFamily: { type: 'string', description: '字体' },
+            backgroundStyle: {
+              type: 'string',
+              enum: ['solid', 'gradient', 'image'],
+              description: '背景样式'
+            }
+          }
+        }
+      },
+      required: ['presentationPath', 'theme']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        appliedSlides: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '应用企业主题',
+        params: {
+          presentationPath: './company-intro.pptx',
+          theme: {
+            primaryColor: '#0066CC',
+            secondaryColor: '#FF6600',
+            fontFamily: '微软雅黑',
+            backgroundStyle: 'gradient'
+          }
+        }
+      }
+    ],
+    required_permissions: ['file.read', 'file.write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  // ==================== 项目初始化工具 ====================
+  // 以下工具来自 additional-project-tools.js，已整合到此处
+
+  // NPM项目初始化工具
+  {
+    id: 'tool_npm_project_setup',
+    name: 'npm_project_setup',
+    display_name: 'NPM项目初始化',
+    description: '初始化Node.js/NPM项目，创建项目结构和配置文件',
+    category: 'project',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectName: {
+          type: 'string',
+          description: '项目名称'
+        },
+        projectPath: {
+          type: 'string',
+          description: '项目路径'
+        },
+        template: {
+          type: 'string',
+          enum: ['basic', 'express', 'koa', 'nest', 'cli', 'library'],
+          default: 'basic',
+          description: '项目模板'
+        },
+        packageManager: {
+          type: 'string',
+          enum: ['npm', 'yarn', 'pnpm'],
+          default: 'npm',
+          description: '包管理器'
+        },
+        initGit: {
+          type: 'boolean',
+          default: true,
+          description: '是否初始化Git仓库'
+        },
+        installDeps: {
+          type: 'boolean',
+          default: false,
+          description: '是否自动安装依赖'
+        }
+      },
+      required: ['projectName', 'projectPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        projectPath: { type: 'string' },
+        filesCreated: { type: 'array', items: { type: 'string' } }
+      }
+    },
+    examples: [
+      {
+        description: '初始化Express项目',
+        params: {
+          projectName: 'my-api-server',
+          projectPath: './projects/my-api-server',
+          template: 'express',
+          packageManager: 'npm',
+          initGit: true
+        }
+      }
+    ],
+    required_permissions: ['file:write', 'command:execute'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  // package.json构建器
+  {
+    id: 'tool_package_json_builder',
+    name: 'package_json_builder',
+    display_name: 'package.json构建器',
+    description: '生成或更新package.json文件',
+    category: 'project',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: '项目路径'
+        },
+        config: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            version: { type: 'string', default: '1.0.0' },
+            description: { type: 'string' },
+            main: { type: 'string', default: 'index.js' },
+            scripts: { type: 'object' },
+            dependencies: { type: 'object' },
+            devDependencies: { type: 'object' },
+            keywords: { type: 'array', items: { type: 'string' } },
+            author: { type: 'string' },
+            license: { type: 'string', default: 'MIT' }
+          },
+          required: ['name']
+        }
+      },
+      required: ['projectPath', 'config']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '创建基本package.json',
+        params: {
+          projectPath: './my-project',
+          config: {
+            name: 'my-awesome-app',
+            version: '1.0.0',
+            description: 'An awesome Node.js application',
+            scripts: {
+              start: 'node index.js',
+              dev: 'nodemon index.js',
+              test: 'jest'
+            },
+            dependencies: {
+              express: '^4.18.0'
+            },
+            devDependencies: {
+              nodemon: '^3.0.0',
+              jest: '^29.0.0'
+            }
+          }
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  // Python项目初始化工具
+  {
+    id: 'tool_python_project_setup',
+    name: 'python_project_setup',
+    display_name: 'Python项目初始化',
+    description: '初始化Python项目结构，支持多种项目类型',
+    category: 'project',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectName: {
+          type: 'string',
+          description: '项目名称'
+        },
+        projectPath: {
+          type: 'string',
+          description: '项目路径'
+        },
+        projectType: {
+          type: 'string',
+          enum: ['package', 'script', 'flask', 'django', 'fastapi', 'ml', 'data-science'],
+          default: 'package',
+          description: '项目类型'
+        },
+        pythonVersion: {
+          type: 'string',
+          default: '3.9',
+          description: 'Python版本'
+        },
+        useVirtualEnv: {
+          type: 'boolean',
+          default: true,
+          description: '是否创建虚拟环境'
+        },
+        initGit: {
+          type: 'boolean',
+          default: true,
+          description: '是否初始化Git仓库'
+        }
+      },
+      required: ['projectName', 'projectPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        projectPath: { type: 'string' },
+        filesCreated: { type: 'array', items: { type: 'string' } },
+        venvPath: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '初始化Flask Web项目',
+        params: {
+          projectName: 'my-flask-app',
+          projectPath: './projects/my-flask-app',
+          projectType: 'flask',
+          pythonVersion: '3.10',
+          useVirtualEnv: true
+        }
+      },
+      {
+        description: '初始化机器学习项目',
+        params: {
+          projectName: 'ml-project',
+          projectPath: './projects/ml-project',
+          projectType: 'ml',
+          pythonVersion: '3.9'
+        }
+      }
+    ],
+    required_permissions: ['file:write', 'command:execute'],
+    risk_level: 3,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  // requirements.txt生成器
+  {
+    id: 'tool_requirements_generator',
+    name: 'requirements_generator',
+    display_name: 'requirements.txt生成器',
+    description: '生成Python项目的requirements.txt文件',
+    category: 'project',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: '项目路径'
+        },
+        packages: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              version: { type: 'string' },
+              extras: { type: 'array', items: { type: 'string' } }
+            },
+            required: ['name']
+          },
+          description: '包列表'
+        },
+        autoDetect: {
+          type: 'boolean',
+          default: false,
+          description: '是否自动检测当前环境的包'
+        },
+        outputPath: {
+          type: 'string',
+          description: '输出文件路径（可选）'
+        }
+      },
+      required: ['projectPath']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' },
+        packageCount: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '生成机器学习项目依赖',
+        params: {
+          projectPath: './ml-project',
+          packages: [
+            { name: 'numpy', version: '1.26.2' },
+            { name: 'pandas', version: '2.1.3' },
+            { name: 'scikit-learn', version: '1.3.2' },
+            { name: 'tensorflow', version: '2.15.0' }
+          ]
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  // setup.py生成器
+  {
+    id: 'tool_setup_py_generator',
+    name: 'setup_py_generator',
+    display_name: 'setup.py生成器',
+    description: '生成Python包的setup.py配置文件',
+    category: 'project',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: '项目路径'
+        },
+        config: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            version: { type: 'string' },
+            author: { type: 'string' },
+            author_email: { type: 'string' },
+            description: { type: 'string' },
+            long_description: { type: 'string' },
+            url: { type: 'string' },
+            packages: { type: 'array', items: { type: 'string' } },
+            install_requires: { type: 'array', items: { type: 'string' } },
+            python_requires: { type: 'string', default: '>=3.7' },
+            classifiers: { type: 'array', items: { type: 'string' } }
+          },
+          required: ['name', 'version']
+        }
+      },
+      required: ['projectPath', 'config']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '生成Python包配置',
+        params: {
+          projectPath: './my-package',
+          config: {
+            name: 'my-awesome-package',
+            version: '0.1.0',
+            author: 'Your Name',
+            author_email: 'your.email@example.com',
+            description: 'A short description',
+            install_requires: ['requests>=2.28.0', 'numpy>=1.24.0']
+          }
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  // Dockerfile生成器
+  {
+    id: 'tool_dockerfile_generator',
+    name: 'dockerfile_generator',
+    display_name: 'Dockerfile生成器',
+    description: '生成Docker容器配置文件',
+    category: 'project',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: '项目路径'
+        },
+        baseImage: {
+          type: 'string',
+          description: '基础镜像',
+          default: 'node:18-alpine'
+        },
+        appType: {
+          type: 'string',
+          enum: ['nodejs', 'python', 'java', 'go', 'custom'],
+          description: '应用类型'
+        },
+        workdir: {
+          type: 'string',
+          default: '/app',
+          description: '工作目录'
+        },
+        port: {
+          type: 'number',
+          description: '暴露端口'
+        },
+        entrypoint: {
+          type: 'string',
+          description: '入口命令'
+        },
+        buildSteps: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '构建步骤'
+        }
+      },
+      required: ['projectPath', 'appType']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '生成Node.js应用Dockerfile',
+        params: {
+          projectPath: './my-app',
+          baseImage: 'node:18-alpine',
+          appType: 'nodejs',
+          port: 3000,
+          entrypoint: 'node index.js'
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  // docker-compose.yml生成器
+  {
+    id: 'tool_docker_compose_generator',
+    name: 'docker_compose_generator',
+    display_name: 'docker-compose.yml生成器',
+    description: '生成Docker Compose配置文件',
+    category: 'project',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: '项目路径'
+        },
+        services: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              image: { type: 'string' },
+              build: { type: 'string' },
+              ports: { type: 'array', items: { type: 'string' } },
+              volumes: { type: 'array', items: { type: 'string' } },
+              environment: { type: 'object' },
+              depends_on: { type: 'array', items: { type: 'string' } }
+            },
+            required: ['name']
+          },
+          description: '服务列表'
+        },
+        networks: {
+          type: 'object',
+          description: '网络配置'
+        },
+        volumes: {
+          type: 'object',
+          description: '卷配置'
+        }
+      },
+      required: ['projectPath', 'services']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '生成Web应用Docker Compose配置',
+        params: {
+          projectPath: './my-web-app',
+          services: [
+            {
+              name: 'web',
+              build: '.',
+              ports: ['3000:3000'],
+              environment: { NODE_ENV: 'production' }
+            },
+            {
+              name: 'db',
+              image: 'postgres:15',
+              environment: {
+                POSTGRES_PASSWORD: 'password',
+                POSTGRES_DB: 'myapp'
+              },
+              volumes: ['db-data:/var/lib/postgresql/data']
+            }
+          ]
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 2,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  // .gitignore生成器
+  {
+    id: 'tool_gitignore_generator',
+    name: 'gitignore_generator',
+    display_name: '.gitignore生成器',
+    description: '生成适合不同项目类型的.gitignore文件',
+    category: 'project',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: '项目路径'
+        },
+        templates: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['Node', 'Python', 'Java', 'Go', 'VisualStudioCode', 'JetBrains', 'macOS', 'Windows', 'Linux']
+          },
+          description: '模板列表'
+        },
+        customPatterns: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '自定义忽略模式'
+        }
+      },
+      required: ['projectPath', 'templates']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' },
+        patterns: { type: 'number' }
+      }
+    },
+    examples: [
+      {
+        description: '生成Node.js项目.gitignore',
+        params: {
+          projectPath: './my-node-app',
+          templates: ['Node', 'VisualStudioCode', 'macOS'],
+          customPatterns: ['.env.local', 'uploads/']
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1
+  },
+
+  // ESLint配置生成器
+  {
+    id: 'tool_eslint_config_generator',
+    name: 'eslint_config_generator',
+    display_name: 'ESLint配置生成器',
+    description: '生成ESLint配置文件',
+    category: 'project',
+    tool_type: 'function',
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: '项目路径'
+        },
+        framework: {
+          type: 'string',
+          enum: ['react', 'vue', 'angular', 'node', 'typescript'],
+          description: '框架类型'
+        },
+        style: {
+          type: 'string',
+          enum: ['airbnb', 'standard', 'google', 'custom'],
+          default: 'airbnb',
+          description: '代码风格'
+        },
+        configFormat: {
+          type: 'string',
+          enum: ['js', 'json', 'yaml'],
+          default: 'js',
+          description: '配置文件格式'
+        }
+      },
+      required: ['projectPath', 'framework']
+    },
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        filePath: { type: 'string' }
+      }
+    },
+    examples: [
+      {
+        description: '生成React项目ESLint配置',
+        params: {
+          projectPath: './my-react-app',
+          framework: 'react',
+          style: 'airbnb',
+          configFormat: 'js'
+        }
+      }
+    ],
+    required_permissions: ['file:write'],
+    risk_level: 1,
+    is_builtin: 1,
+    enabled: 1
+  }
 ];
 
-// 合并所有工具（内置工具 + 额外工具）
-module.exports = [
-  ...builtinTools,
-  ...additionalOfficeTools,
-  ...additionalDataScienceTools,
-  ...additionalProjectTools,
-  ...additionalToolsV3
-];
+// 导出所有工具（单一定义源）
+// 注：所有工具（Office、Data Science、Project）已整合到 builtinTools 数组中
+// 注：additionalToolsV3 的28个不完整工具已删除
+module.exports = builtinTools;
