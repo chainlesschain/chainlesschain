@@ -38,10 +38,13 @@ class ToolManager {
       // 2. 加载内置工具
       await this.loadBuiltInTools();
 
-      // 3. 加载插件提供的工具
+      // 3. 加载Additional Tools V3 (专业领域工具)
+      await this.loadAdditionalToolsV3();
+
+      // 4. 加载插件提供的工具
       await this.loadPluginTools();
 
-      // 4. 生成所有工具的文档
+      // 5. 生成所有工具的文档
       await this.generateAllDocs();
 
       this.isInitialized = true;
@@ -708,6 +711,112 @@ class ToolManager {
       console.log(`[ToolManager] 插件工具加载完成，共 ${pluginTools.length} 个`);
     } catch (error) {
       console.error('[ToolManager] 加载插件工具失败:', error);
+    }
+  }
+
+  /**
+   * 加载Additional Tools V3 (专业领域工具)
+   * 从数据库加载工具元数据，并将Handler注册到FunctionCaller
+   */
+  async loadAdditionalToolsV3() {
+    try {
+      console.log('[ToolManager] 加载Additional Tools V3...');
+
+      if (!this.functionCaller) {
+        console.warn('[ToolManager] FunctionCaller未设置，跳过V3工具加载');
+        return;
+      }
+
+      // 动态导入Handler
+      const AdditionalToolsV3Handler = require('./additional-tools-v3-handler');
+      const additionalToolsV3 = require('./additional-tools-v3');
+
+      // 初始化Handler实例
+      const path = require('path');
+      const workDir = path.join(process.cwd(), 'data', 'workspace');
+      const handler = new AdditionalToolsV3Handler({
+        workDir,
+        logger: console
+      });
+
+      console.log(`[ToolManager] Handler实例化成功 (workDir: ${workDir})`);
+
+      // 从数据库加载V3工具
+      const v3Tools = await this.db.all(
+        'SELECT * FROM tools WHERE handler_path LIKE ? AND enabled = 1',
+        ['%additional-tools-v3-handler%']
+      );
+
+      console.log(`[ToolManager] 从数据库加载了 ${v3Tools.length} 个V3工具`);
+
+      let registered = 0;
+      let skipped = 0;
+      let failed = 0;
+
+      // 注册每个工具的Handler到FunctionCaller
+      for (const tool of v3Tools) {
+        try {
+          const methodName = `tool_${tool.name}`;
+
+          // 检查Handler方法是否存在
+          if (typeof handler[methodName] !== 'function') {
+            console.warn(`[ToolManager] Handler方法不存在: ${methodName}`);
+            failed++;
+            continue;
+          }
+
+          // 检查是否已在FunctionCaller中注册
+          if (this.functionCaller.hasTool(tool.name)) {
+            console.log(`[ToolManager] V3工具已在FunctionCaller中，跳过: ${tool.name}`);
+            skipped++;
+
+            // 仍然加入缓存
+            this.tools.set(tool.id, {
+              ...tool,
+              handler: handler[methodName].bind(handler)
+            });
+            continue;
+          }
+
+          // 准备schema
+          const schema = {
+            name: tool.name,
+            description: tool.description || '',
+            parameters: tool.parameters_schema
+              ? (typeof tool.parameters_schema === 'string'
+                  ? JSON.parse(tool.parameters_schema)
+                  : tool.parameters_schema)
+              : {}
+          };
+
+          // 绑定handler实例的上下文
+          const boundHandler = handler[methodName].bind(handler);
+
+          // 注册到FunctionCaller
+          this.functionCaller.registerTool(tool.name, boundHandler, schema);
+
+          // 加入缓存
+          this.tools.set(tool.id, {
+            ...tool,
+            handler: boundHandler
+          });
+
+          registered++;
+          console.log(`[ToolManager] ✅ V3工具注册成功: ${tool.name} (${tool.id})`);
+
+        } catch (error) {
+          console.error(`[ToolManager] ❌ V3工具注册失败: ${tool.name}`, error.message);
+          failed++;
+        }
+      }
+
+      console.log(`[ToolManager] Additional Tools V3加载完成: 注册 ${registered} 个, 跳过 ${skipped} 个, 失败 ${failed} 个`);
+
+      return { registered, skipped, failed };
+
+    } catch (error) {
+      console.error('[ToolManager] 加载Additional Tools V3失败:', error);
+      // 不抛出错误，允许系统继续运行
     }
   }
 
