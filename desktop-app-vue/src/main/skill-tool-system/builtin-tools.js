@@ -1,20 +1,9 @@
 /**
  * 内置工具定义
- * 定义所有系统内置工具的元数据
- *
- * 这些工具的handler实际实现在 FunctionCaller 中
- * 这个文件只提供元数据信息,用于注册到ToolManager
+ * 自动生成，请勿手动编辑
  */
 
-
-// 导入额外的工具定义（已全部整合到 builtinTools 数组中）
-// const additionalOfficeTools = require('./additional-office-tools'); // 已整合（8个）
-// const additionalDataScienceTools = require('./additional-datascience-tools'); // 已整合（5个）
-// const additionalProjectTools = require('./additional-project-tools'); // 已整合（9个）
-// const additionalToolsV3 = require('./additional-tools-v3'); // 已整合（28个，已补全schema）
-
-const builtinTools = [
-  // 1. 文件读取工具
+const tools = [
   {
     id: 'tool_file_reader',
     name: 'file_reader',
@@ -35,24 +24,46 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' },
-        content: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        },
+        content: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '读取README文件',
-        params: { filePath: './README.md' }
+        description: '读取文本配置文件',
+        params: {
+          filePath: './config/app.json',
+          encoding: 'utf-8'
+        }
+      },
+      {
+        description: '读取日志文件最后1000行',
+        params: {
+          filePath: '/var/log/application.log',
+          encoding: 'utf-8',
+          lines: 1000
+        }
+      },
+      {
+        description: '读取二进制数据文件',
+        params: {
+          filePath: './data/binary.dat',
+          encoding: 'binary'
+        }
       }
     ],
     required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 2. 文件写入工具
   {
     id: 'tool_file_writer',
     name: 'file_writer',
@@ -77,9 +88,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' },
-        size: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        },
+        size: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -94,10 +111,8 @@ const builtinTools = [
     required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 3. HTML生成工具
   {
     id: 'tool_html_generator',
     name: 'html_generator',
@@ -127,9 +142,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        html: { type: 'string' },
-        fileName: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        html: {
+          type: 'string'
+        },
+        fileName: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -141,13 +162,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 4. CSS生成工具
   {
     id: 'tool_css_generator',
     name: 'css_generator',
@@ -173,9 +192,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        css: { type: 'string' },
-        fileName: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        css: {
+          type: 'string'
+        },
+        fileName: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -187,13 +212,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 5. JavaScript生成工具
   {
     id: 'tool_js_generator',
     name: 'js_generator',
@@ -206,7 +229,9 @@ const builtinTools = [
       properties: {
         features: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string'
+          },
           description: '需要的功能列表'
         }
       }
@@ -214,9 +239,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        js: { type: 'string' },
-        fileName: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        js: {
+          type: 'string'
+        },
+        fileName: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -227,13 +258,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 6. 项目结构创建工具
   {
     id: 'tool_create_project_structure',
     name: 'create_project_structure',
@@ -263,9 +292,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        projectPath: { type: 'string' },
-        createdFiles: { type: 'array' }
+        success: {
+          type: 'boolean'
+        },
+        projectPath: {
+          type: 'string'
+        },
+        createdFiles: {
+          type: 'array'
+        }
       }
     },
     examples: [
@@ -281,10 +316,8 @@ const builtinTools = [
     required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 7. Git初始化工具
   {
     id: 'tool_git_init',
     name: 'git_init',
@@ -310,9 +343,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        repoPath: { type: 'string' },
-        branch: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        repoPath: {
+          type: 'string'
+        },
+        branch: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -326,10 +365,8 @@ const builtinTools = [
     required_permissions: ['file:write', 'git:init'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 8. Git提交工具
   {
     id: 'tool_git_commit',
     name: 'git_commit',
@@ -354,9 +391,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        commitHash: { type: 'string' },
-        message: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        commitHash: {
+          type: 'string'
+        },
+        message: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -371,10 +414,8 @@ const builtinTools = [
     required_permissions: ['file:write', 'git:commit'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 9. 信息搜索工具
   {
     id: 'tool_info_searcher',
     name: 'info_searcher',
@@ -399,25 +440,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        results: { type: 'array' }
+        success: {
+          type: 'boolean'
+        },
+        results: {
+          type: 'array'
+        }
       }
     },
     examples: [
       {
-        description: '搜索信息',
+        description: '搜索相关文档',
         params: {
-          query: 'JavaScript异步编程'
+          query: '如何使用API',
+          index: 'knowledge_base',
+          options: {
+            top_k: 5,
+            similarity_threshold: 0.7
+          }
+        }
+      },
+      {
+        description: '语义搜索',
+        params: {
+          query: '智能合约安全问题',
+          index: 'blockchain_docs',
+          options: {
+            semantic: true,
+            top_k: 10
+          }
         }
       }
     ],
     required_permissions: ['database:read', 'ai:search'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 10. 文件编辑工具
   {
     id: 'tool_file_editor',
     name: 'file_editor',
@@ -438,10 +497,19 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string', enum: ['replace', 'insert', 'delete'] },
-              search: { type: 'string' },
-              replacement: { type: 'string' },
-              line: { type: 'number' }
+              type: {
+                type: 'string',
+                enum: ['replace', 'insert', 'delete']
+              },
+              search: {
+                type: 'string'
+              },
+              replacement: {
+                type: 'string'
+              },
+              line: {
+                type: 'number'
+              }
             }
           }
         }
@@ -451,9 +519,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' },
-        changes: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        },
+        changes: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -461,21 +535,21 @@ const builtinTools = [
         description: '替换文本',
         params: {
           filePath: './config.js',
-          operations: [{
-            type: 'replace',
-            search: 'oldValue',
-            replacement: 'newValue'
-          }]
+          operations: [
+            {
+              type: 'replace',
+              search: 'oldValue',
+              replacement: 'newValue'
+            }
+          ]
         }
       }
     ],
     required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 11. 格式化输出工具
   {
     id: 'tool_format_output',
     name: 'format_output',
@@ -505,9 +579,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        formatted: { type: 'string' },
-        format: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        formatted: {
+          type: 'string'
+        },
+        format: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -519,13 +599,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 12. 通用处理器
   {
     id: 'tool_generic_handler',
     name: 'generic_handler',
@@ -550,8 +628,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        }
       }
     },
     examples: [
@@ -566,12 +648,8 @@ const builtinTools = [
     required_permissions: ['system:execute'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // === 新增工具 (13-32) ===
-
-  // 13. JSON解析器
   {
     id: 'tool_json_parser',
     name: 'json_parser',
@@ -602,28 +680,45 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '格式化JSON',
+        description: '解析API响应JSON',
         params: {
-          json: '{"name":"test","value":123}',
-          action: 'format',
-          indent: 2
+          jsonString: `{"status":"success","data":{"id":123,"name":"张三"}}`,
+          strict: true
+        }
+      },
+      {
+        description: '解析配置文件JSON',
+        params: {
+          jsonString: `{"database":{"host":"localhost","port":5432}}`,
+          strict: false
+        }
+      },
+      {
+        description: '解析JSON数组',
+        params: {
+          jsonString: `[{"id":1,"name":"项目A"},{"id":2,"name":"项目B"}]`,
+          strict: true
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 14. YAML解析器
   {
     id: 'tool_yaml_parser',
     name: 'yaml_parser',
@@ -649,27 +744,51 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '解析YAML',
+        description: '解析Docker Compose配置',
         params: {
-          content: 'name: test\nvalue: 123',
-          action: 'parse'
+          yamlString: `version: "3"
+services:
+  web:
+    image: nginx
+    ports:
+      - "80:80"`,
+          options: {
+            strict: true
+          }
+        }
+      },
+      {
+        description: '解析应用配置YAML',
+        params: {
+          yamlString: `app:
+  name: MyApp
+  debug: true
+  database:
+    host: localhost`,
+          options: {
+            strict: false
+          }
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 15. 文本分析器
   {
     id: 'tool_text_analyzer',
     name: 'text_analyzer',
@@ -688,9 +807,18 @@ const builtinTools = [
           type: 'object',
           description: '分析选项',
           properties: {
-            wordFrequency: { type: 'boolean', default: true },
-            sentiment: { type: 'boolean', default: false },
-            keywords: { type: 'boolean', default: false }
+            wordFrequency: {
+              type: 'boolean',
+              default: true
+            },
+            sentiment: {
+              type: 'boolean',
+              default: false
+            },
+            keywords: {
+              type: 'boolean',
+              default: false
+            }
           }
         }
       },
@@ -699,36 +827,73 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         stats: {
           type: 'object',
           properties: {
-            charCount: { type: 'number' },
-            wordCount: { type: 'number' },
-            sentenceCount: { type: 'number' },
-            lineCount: { type: 'number' }
+            charCount: {
+              type: 'number'
+            },
+            wordCount: {
+              type: 'number'
+            },
+            sentenceCount: {
+              type: 'number'
+            },
+            lineCount: {
+              type: 'number'
+            }
           }
         },
-        wordFrequency: { type: 'object' },
-        keywords: { type: 'array' }
+        wordFrequency: {
+          type: 'object'
+        },
+        keywords: {
+          type: 'array'
+        }
       }
     },
     examples: [
       {
-        description: '分析文章',
+        description: '分析文章情感倾向',
         params: {
-          text: '这是一段测试文本。用于分析统计。',
-          options: { wordFrequency: true }
+          text: '这个产品非常好用，我很满意！',
+          options: {
+            sentiment: true,
+            keywords: true
+          }
+        }
+      },
+      {
+        description: '分析文本统计信息',
+        params: {
+          text: '人工智能技术正在改变世界...',
+          options: {
+            wordCount: true,
+            readability: true,
+            language: 'zh'
+          }
+        }
+      },
+      {
+        description: '提取关键词和实体',
+        params: {
+          text: '苹果公司在加州库比蒂诺发布了新产品',
+          options: {
+            keywords: true,
+            entities: true,
+            limit: 10
+          }
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 16. 日期时间处理器
   {
     id: 'tool_datetime_handler',
     name: 'datetime_handler',
@@ -760,7 +925,14 @@ const builtinTools = [
         unit: {
           type: 'string',
           description: '时间单位',
-          enum: ['year', 'month', 'day', 'hour', 'minute', 'second']
+          enum: [
+            'year',
+            'month',
+            'day',
+            'hour',
+            'minute',
+            'second'
+          ]
         }
       },
       required: ['action']
@@ -768,9 +940,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'string' },
-        timestamp: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'string'
+        },
+        timestamp: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -782,13 +960,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 17. URL处理器
   {
     id: 'tool_url_parser',
     name: 'url_parser',
@@ -818,9 +994,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        valid: { type: 'boolean' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        valid: {
+          type: 'boolean'
+        }
       }
     },
     examples: [
@@ -832,13 +1014,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 18. 加密解密工具
   {
     id: 'tool_crypto_handler',
     name: 'crypto_handler',
@@ -877,9 +1057,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'string' },
-        algorithm: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'string'
+        },
+        algorithm: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -895,10 +1081,8 @@ const builtinTools = [
     required_permissions: ['crypto:execute'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 19. Base64编解码
   {
     id: 'tool_base64_handler',
     name: 'base64_handler',
@@ -930,8 +1114,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -943,13 +1131,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 20. HTTP客户端
   {
     id: 'tool_http_client',
     name: 'http_client',
@@ -989,10 +1175,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        status: { type: 'number' },
-        headers: { type: 'object' },
-        data: { type: 'any' }
+        success: {
+          type: 'boolean'
+        },
+        status: {
+          type: 'number'
+        },
+        headers: {
+          type: 'object'
+        },
+        data: {
+          type: 'any'
+        }
       }
     },
     examples: [
@@ -1007,10 +1201,8 @@ const builtinTools = [
     required_permissions: ['network:http'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 21. 正则表达式测试器
   {
     id: 'tool_regex_tester',
     name: 'regex_tester',
@@ -1050,28 +1242,44 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        matches: { type: 'array' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        matches: {
+          type: 'array'
+        }
       }
     },
     examples: [
       {
-        description: '测试邮箱格式',
+        description: '使用正则表达式测试器处理短文本',
         params: {
-          pattern: '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$',
-          text: 'test@example.com',
-          action: 'test'
+          pattern: 'example_value',
+          text: '这是一段示例文本',
+          action: 'test',
+          replacement: 'example_value',
+          flags: 'g'
+        }
+      },
+      {
+        description: '使用正则表达式测试器处理长文本',
+        params: {
+          pattern: 'example_value',
+          text: '这是一段示例文本',
+          action: 'test',
+          replacement: 'example_value',
+          flags: 'g'
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 22. Markdown转换器
   {
     id: 'tool_markdown_converter',
     name: 'markdown_converter',
@@ -1096,9 +1304,18 @@ const builtinTools = [
           type: 'object',
           description: '转换选项',
           properties: {
-            sanitize: { type: 'boolean', default: true },
-            breaks: { type: 'boolean', default: true },
-            tables: { type: 'boolean', default: true }
+            sanitize: {
+              type: 'boolean',
+              default: true
+            },
+            breaks: {
+              type: 'boolean',
+              default: true
+            },
+            tables: {
+              type: 'boolean',
+              default: true
+            }
           }
         }
       },
@@ -1107,27 +1324,33 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'string' },
-        format: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'string'
+        },
+        format: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
         description: 'Markdown转HTML',
         params: {
-          markdown: '# 标题\n\n这是一段**粗体**文本。',
+          markdown: `# 标题
+
+这是一段**粗体**文本。`,
           targetFormat: 'html'
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 23. CSV处理器
   {
     id: 'tool_csv_handler',
     name: 'csv_handler',
@@ -1152,9 +1375,18 @@ const builtinTools = [
           type: 'object',
           description: 'CSV选项',
           properties: {
-            delimiter: { type: 'string', default: ',' },
-            header: { type: 'boolean', default: true },
-            quote: { type: 'string', default: '"' }
+            delimiter: {
+              type: 'string',
+              default: ','
+            },
+            header: {
+              type: 'boolean',
+              default: true
+            },
+            quote: {
+              type: 'string',
+              default: `"`
+            }
           }
         }
       },
@@ -1163,27 +1395,65 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        rowCount: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        rowCount: {
+          type: 'number'
+        }
       }
     },
     examples: [
       {
-        description: '解析CSV',
+        description: '解析CSV数据表',
         params: {
-          action: 'parse',
-          data: 'name,age\nJohn,30\nJane,25'
+          csvData: `name,age,city
+张三,25,北京
+李四,30,上海`,
+          options: {
+            header: true,
+            delimiter: ','
+          }
+        }
+      },
+      {
+        description: '生成CSV导出文件',
+        params: {
+          data: [
+            {
+              name: '张三',
+              age: 25
+            },
+            {
+              name: '李四',
+              age: 30
+            }
+          ],
+          options: {
+            header: true,
+            delimiter: ','
+          }
+        }
+      },
+      {
+        description: '处理大型CSV文件（流式）',
+        params: {
+          filePath: './data/large-dataset.csv',
+          options: {
+            streaming: true,
+            batchSize: 1000
+          }
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 24. ZIP压缩工具
   {
     id: 'tool_zip_handler',
     name: 'zip_handler',
@@ -1218,10 +1488,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        zipPath: { type: 'string' },
-        files: { type: 'array' },
-        size: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        zipPath: {
+          type: 'string'
+        },
+        files: {
+          type: 'array'
+        },
+        size: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -1237,10 +1515,8 @@ const builtinTools = [
     required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 25. Excel读取器
   {
     id: 'tool_excel_reader',
     name: 'excel_reader',
@@ -1274,28 +1550,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        data: { type: 'array' },
-        sheets: { type: 'array' },
-        rowCount: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        data: {
+          type: 'array'
+        },
+        sheets: {
+          type: 'array'
+        },
+        rowCount: {
+          type: 'number'
+        }
       }
     },
     examples: [
       {
-        description: '读取Excel文件',
+        description: '读取Excel财务报表',
+        params: {
+          filePath: './reports/财务报表.xlsx',
+          sheetName: 'Sheet1',
+          options: {
+            header: true
+          }
+        }
+      },
+      {
+        description: '读取Excel特定范围',
         params: {
           filePath: './data.xlsx',
-          sheetName: 'Sheet1'
+          sheetName: 'Data',
+          range: 'A1:E100',
+          options: {
+            header: true
+          }
         }
       }
     ],
     required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 26. SQL查询构建器
   {
     id: 'tool_sql_builder',
     name: 'sql_builder',
@@ -1319,7 +1615,9 @@ const builtinTools = [
         fields: {
           type: 'array',
           description: '字段列表',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
         where: {
           type: 'object',
@@ -1343,9 +1641,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        sql: { type: 'string' },
-        params: { type: 'array' }
+        success: {
+          type: 'boolean'
+        },
+        sql: {
+          type: 'string'
+        },
+        params: {
+          type: 'array'
+        }
       }
     },
     examples: [
@@ -1355,18 +1659,18 @@ const builtinTools = [
           action: 'select',
           table: 'users',
           fields: ['id', 'name', 'email'],
-          where: { status: 'active' },
+          where: {
+            status: 'active'
+          },
           limit: 10
         }
       }
     ],
-    required_permissions: ["database:read","database:write"],
+    required_permissions: [],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 27. 图片元数据提取器
   {
     id: 'tool_image_metadata',
     name: 'image_metadata',
@@ -1392,12 +1696,24 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        width: { type: 'number' },
-        height: { type: 'number' },
-        format: { type: 'string' },
-        size: { type: 'number' },
-        exif: { type: 'object' }
+        success: {
+          type: 'boolean'
+        },
+        width: {
+          type: 'number'
+        },
+        height: {
+          type: 'number'
+        },
+        format: {
+          type: 'string'
+        },
+        size: {
+          type: 'number'
+        },
+        exif: {
+          type: 'object'
+        }
       }
     },
     examples: [
@@ -1412,10 +1728,8 @@ const builtinTools = [
     required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 28. 环境变量管理器
   {
     id: 'tool_env_manager',
     name: 'env_manager',
@@ -1451,9 +1765,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        variables: { type: 'object' },
-        count: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        variables: {
+          type: 'object'
+        },
+        count: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -1468,10 +1788,8 @@ const builtinTools = [
     required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 29. 颜色转换器
   {
     id: 'tool_color_converter',
     name: 'color_converter',
@@ -1502,11 +1820,21 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        hex: { type: 'string' },
-        rgb: { type: 'object' },
-        hsl: { type: 'object' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        hex: {
+          type: 'string'
+        },
+        rgb: {
+          type: 'object'
+        },
+        hsl: {
+          type: 'object'
+        }
       }
     },
     examples: [
@@ -1519,13 +1847,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 30. 随机数据生成器
   {
     id: 'tool_random_generator',
     name: 'random_generator',
@@ -1539,7 +1865,14 @@ const builtinTools = [
         type: {
           type: 'string',
           description: '数据类型',
-          enum: ['number', 'string', 'uuid', 'boolean', 'date', 'color']
+          enum: [
+            'number',
+            'string',
+            'uuid',
+            'boolean',
+            'date',
+            'color'
+          ]
         },
         count: {
           type: 'number',
@@ -1550,10 +1883,18 @@ const builtinTools = [
           type: 'object',
           description: '生成选项',
           properties: {
-            min: { type: 'number' },
-            max: { type: 'number' },
-            length: { type: 'number' },
-            charset: { type: 'string' }
+            min: {
+              type: 'number'
+            },
+            max: {
+              type: 'number'
+            },
+            length: {
+              type: 'number'
+            },
+            charset: {
+              type: 'string'
+            }
           }
         }
       },
@@ -1562,9 +1903,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        count: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        count: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -1576,13 +1923,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 31. 文件搜索器
   {
     id: 'tool_file_searcher',
     name: 'file_searcher',
@@ -1621,28 +1966,50 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        files: { type: 'array' },
-        count: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        files: {
+          type: 'array'
+        },
+        count: {
+          type: 'number'
+        }
       }
     },
     examples: [
       {
-        description: '搜索JS文件',
+        description: '在项目中搜索JavaScript文件',
         params: {
-          path: './src',
+          directory: './src',
           pattern: '*.js',
           recursive: true
+        }
+      },
+      {
+        description: '搜索包含特定关键词的文件',
+        params: {
+          directory: './docs',
+          pattern: '*.md',
+          content: '使用教程',
+          recursive: true
+        }
+      },
+      {
+        description: '搜索最近修改的文件',
+        params: {
+          directory: './uploads',
+          pattern: '*.*',
+          modifiedAfter: '2025-01-01',
+          recursive: false
         }
       }
     ],
     required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 32. 模板渲染器
   {
     id: 'tool_template_renderer',
     name: 'template_renderer',
@@ -1673,8 +2040,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -1682,20 +2053,19 @@ const builtinTools = [
         description: '渲染问候模板',
         params: {
           template: 'Hello {{name}}, welcome to {{app}}!',
-          variables: { name: 'John', app: 'ChainlessChain' },
+          variables: {
+            name: 'John',
+            app: 'ChainlessChain'
+          },
           syntax: 'mustache'
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // === 第二批新增工具 (33-52) ===
-
-  // 33. QR码生成器
   {
     id: 'tool_qrcode_generator',
     name: 'qrcode_generator',
@@ -1733,9 +2103,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'string' },
-        format: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'string'
+        },
+        format: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -1747,13 +2123,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["file:read","media:process"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 34. Diff比较器
   {
     id: 'tool_diff_comparator',
     name: 'diff_comparator',
@@ -1789,29 +2163,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        diff: { type: 'string' },
-        changes: { type: 'number' },
-        additions: { type: 'number' },
-        deletions: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        diff: {
+          type: 'string'
+        },
+        changes: {
+          type: 'number'
+        },
+        additions: {
+          type: 'number'
+        },
+        deletions: {
+          type: 'number'
+        }
       }
     },
     examples: [
       {
-        description: '比较两段文本',
+        description: '使用Diff比较器处理短文本',
         params: {
-          text1: 'Hello World',
-          text2: 'Hello ChainlessChain'
+          text1: '这是一段示例文本',
+          text2: '这是一段示例文本',
+          format: 'unified',
+          ignoreWhitespace: false
+        }
+      },
+      {
+        description: '使用Diff比较器处理长文本',
+        params: {
+          text1: '这是一段示例文本',
+          text2: '这是一段示例文本',
+          format: 'unified',
+          ignoreWhitespace: false
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 35. Hash校验器
   {
     id: 'tool_hash_verifier',
     name: 'hash_verifier',
@@ -1845,10 +2238,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        hash: { type: 'string' },
-        algorithm: { type: 'string' },
-        verified: { type: 'boolean' }
+        success: {
+          type: 'boolean'
+        },
+        hash: {
+          type: 'string'
+        },
+        algorithm: {
+          type: 'string'
+        },
+        verified: {
+          type: 'boolean'
+        }
       }
     },
     examples: [
@@ -1863,10 +2264,8 @@ const builtinTools = [
     required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 36. IP地址工具
   {
     id: 'tool_ip_utility',
     name: 'ip_utility',
@@ -1897,10 +2296,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        isValid: { type: 'boolean' },
-        version: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        isValid: {
+          type: 'boolean'
+        },
+        version: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -1912,13 +2319,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 37. User-Agent解析器
   {
     id: 'tool_useragent_parser',
     name: 'useragent_parser',
@@ -1939,10 +2344,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        browser: { type: 'object' },
-        os: { type: 'object' },
-        device: { type: 'object' }
+        success: {
+          type: 'boolean'
+        },
+        browser: {
+          type: 'object'
+        },
+        os: {
+          type: 'object'
+        },
+        device: {
+          type: 'object'
+        }
       }
     },
     examples: [
@@ -1953,13 +2366,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 38. Cron表达式解析器
   {
     id: 'tool_cron_parser',
     name: 'cron_parser',
@@ -1990,10 +2401,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        description: { type: 'string' },
-        nextRun: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        description: {
+          type: 'string'
+        },
+        nextRun: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -2005,13 +2424,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 39. 代码美化器
   {
     id: 'tool_code_formatter',
     name: 'code_formatter',
@@ -2029,15 +2446,28 @@ const builtinTools = [
         language: {
           type: 'string',
           description: '编程语言',
-          enum: ['javascript', 'json', 'html', 'css', 'sql', 'python'],
+          enum: [
+            'javascript',
+            'json',
+            'html',
+            'css',
+            'sql',
+            'python'
+          ],
           default: 'javascript'
         },
         options: {
           type: 'object',
           description: '格式化选项',
           properties: {
-            indent: { type: 'number', default: 2 },
-            semicolons: { type: 'boolean', default: true }
+            indent: {
+              type: 'number',
+              default: 2
+            },
+            semicolons: {
+              type: 'boolean',
+              default: true
+            }
           }
         }
       },
@@ -2046,9 +2476,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        formatted: { type: 'string' },
-        language: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        formatted: {
+          type: 'string'
+        },
+        language: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -2060,13 +2496,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["code:analyze","code:execute"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 40. 文本编码检测器
   {
     id: 'tool_encoding_detector',
     name: 'encoding_detector',
@@ -2090,26 +2524,38 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        encoding: { type: 'string' },
-        confidence: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        encoding: {
+          type: 'string'
+        },
+        confidence: {
+          type: 'number'
+        }
       }
     },
     examples: [
       {
-        description: '检测文件编码',
+        description: '使用文本编码检测器处理短文本',
         params: {
-          filePath: './document.txt'
+          filePath: './data/sample.dat',
+          buffer: 'example_value'
+        }
+      },
+      {
+        description: '使用文本编码检测器处理长文本',
+        params: {
+          filePath: './data/sample.dat',
+          buffer: 'example_value'
         }
       }
     ],
     required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 41. 版本号比较器
   {
     id: 'tool_version_comparator',
     name: 'version_comparator',
@@ -2145,9 +2591,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        comparison: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        comparison: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -2160,13 +2612,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 42. JWT解析器
   {
     id: 'tool_jwt_parser',
     name: 'jwt_parser',
@@ -2197,11 +2647,21 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        header: { type: 'object' },
-        payload: { type: 'object' },
-        signature: { type: 'string' },
-        verified: { type: 'boolean' }
+        success: {
+          type: 'boolean'
+        },
+        header: {
+          type: 'object'
+        },
+        payload: {
+          type: 'object'
+        },
+        signature: {
+          type: 'string'
+        },
+        verified: {
+          type: 'boolean'
+        }
       }
     },
     examples: [
@@ -2213,13 +2673,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["security:manage"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 43. XML解析器
   {
     id: 'tool_xml_parser',
     name: 'xml_parser',
@@ -2254,27 +2712,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        valid: { type: 'boolean' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        valid: {
+          type: 'boolean'
+        }
       }
     },
     examples: [
       {
-        description: '解析XML',
+        description: '解析RSS订阅XML',
         params: {
-          action: 'parse',
-          xml: '<root><item>value</item></root>'
+          xmlString: '<rss><channel><title>新闻</title><item><title>标题</title></item></channel></rss>',
+          options: {
+            ignoreAttributes: false
+          }
+        }
+      },
+      {
+        description: '解析配置XML',
+        params: {
+          xmlString: `<config><database host="localhost" port="5432"/></config>`,
+          options: {
+            parseAttributeValue: true
+          }
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 44. HTML解析器
   {
     id: 'tool_html_parser',
     name: 'html_parser',
@@ -2305,9 +2778,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        elements: { type: 'array' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        elements: {
+          type: 'array'
+        }
       }
     },
     examples: [
@@ -2319,13 +2798,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 45. TOML解析器
   {
     id: 'tool_toml_parser',
     name: 'toml_parser',
@@ -2356,8 +2833,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        }
       }
     },
     examples: [
@@ -2365,17 +2846,16 @@ const builtinTools = [
         description: '解析TOML配置',
         params: {
           action: 'parse',
-          toml: '[server]\nport = 8080'
+          toml: `[server]
+port = 8080`
         }
       }
     ],
-    required_permissions: ["config:read","config:write","file:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 46. INI解析器
   {
     id: 'tool_ini_parser',
     name: 'ini_parser',
@@ -2406,8 +2886,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        }
       }
     },
     examples: [
@@ -2415,17 +2899,16 @@ const builtinTools = [
         description: '解析INI文件',
         params: {
           action: 'parse',
-          ini: '[section]\nkey=value'
+          ini: `[section]
+key=value`
         }
       }
     ],
-    required_permissions: ["config:read","config:write","file:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 47. DNS查询器
   {
     id: 'tool_dns_lookup',
     name: 'dns_lookup',
@@ -2443,7 +2926,14 @@ const builtinTools = [
         recordType: {
           type: 'string',
           description: '记录类型',
-          enum: ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME'],
+          enum: [
+            'A',
+            'AAAA',
+            'MX',
+            'TXT',
+            'NS',
+            'CNAME'
+          ],
           default: 'A'
         }
       },
@@ -2452,9 +2942,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        records: { type: 'array' },
-        type: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        records: {
+          type: 'array'
+        },
+        type: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -2469,10 +2965,8 @@ const builtinTools = [
     required_permissions: ['network:dns'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 48. 端口检测器
   {
     id: 'tool_port_checker',
     name: 'port_checker',
@@ -2502,10 +2996,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        isOpen: { type: 'boolean' },
-        host: { type: 'string' },
-        port: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        isOpen: {
+          type: 'boolean'
+        },
+        host: {
+          type: 'string'
+        },
+        port: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -2520,10 +3022,8 @@ const builtinTools = [
     required_permissions: ['network:connect'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 49. 邮件解析器
   {
     id: 'tool_email_parser',
     name: 'email_parser',
@@ -2554,9 +3054,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        isValid: { type: 'boolean' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        isValid: {
+          type: 'boolean'
+        }
       }
     },
     examples: [
@@ -2568,13 +3074,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["email:send","network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 50. Slug生成器
   {
     id: 'tool_slug_generator',
     name: 'slug_generator',
@@ -2605,25 +3109,37 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        slug: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        slug: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '生成文章slug',
+        description: '使用Slug生成器处理短文本',
         params: {
-          text: 'Hello World - 你好世界!'
+          text: '这是一段示例文本',
+          separator: '-',
+          lowercase: true
+        }
+      },
+      {
+        description: '使用Slug生成器处理长文本',
+        params: {
+          text: '这是一段示例文本',
+          separator: '-',
+          lowercase: true
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 51. Git Diff解析器
   {
     id: 'tool_gitdiff_parser',
     name: 'gitdiff_parser',
@@ -2644,10 +3160,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        files: { type: 'array' },
-        additions: { type: 'number' },
-        deletions: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        files: {
+          type: 'array'
+        },
+        additions: {
+          type: 'number'
+        },
+        deletions: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -2658,13 +3182,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["file:read","file:write","network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 52. 语言检测器
   {
     id: 'tool_language_detector',
     name: 'language_detector',
@@ -2685,28 +3207,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        language: { type: 'string' },
-        confidence: { type: 'number' },
-        alternatives: { type: 'array' }
+        success: {
+          type: 'boolean'
+        },
+        language: {
+          type: 'string'
+        },
+        confidence: {
+          type: 'number'
+        },
+        alternatives: {
+          type: 'array'
+        }
       }
     },
     examples: [
       {
-        description: '检测文本语言',
+        description: '使用语言检测器处理短文本',
         params: {
-          text: 'Hello World'
+          text: '这是一段示例文本'
+        }
+      },
+      {
+        description: '使用语言检测器处理长文本',
+        params: {
+          text: '这是一段示例文本'
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // ==================== 第三批扩展工具 (53-72) ====================
-
   {
     id: 'tool_video_metadata_reader',
     name: 'video_metadata_reader',
@@ -2727,19 +3260,36 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         metadata: {
           type: 'object',
           properties: {
-            duration: { type: 'number', description: '时长（秒）' },
-            width: { type: 'number' },
-            height: { type: 'number' },
-            codec: { type: 'string' },
-            fps: { type: 'number' },
-            bitrate: { type: 'number' }
+            duration: {
+              type: 'number',
+              description: '时长（秒）'
+            },
+            width: {
+              type: 'number'
+            },
+            height: {
+              type: 'number'
+            },
+            codec: {
+              type: 'string'
+            },
+            fps: {
+              type: 'number'
+            },
+            bitrate: {
+              type: 'number'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -2753,9 +3303,8 @@ const builtinTools = [
     required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_audio_duration_calculator',
     name: 'audio_duration_calculator',
@@ -2776,12 +3325,25 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        duration: { type: 'number', description: '时长（秒）' },
-        format: { type: 'string' },
-        sampleRate: { type: 'number' },
-        channels: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        duration: {
+          type: 'number',
+          description: '时长（秒）'
+        },
+        format: {
+          type: 'string'
+        },
+        sampleRate: {
+          type: 'number'
+        },
+        channels: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -2795,9 +3357,8 @@ const builtinTools = [
     required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_subtitle_parser',
     name: 'subtitle_parser',
@@ -2823,37 +3384,50 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         subtitles: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              index: { type: 'number' },
-              start: { type: 'string' },
-              end: { type: 'string' },
-              text: { type: 'string' }
+              index: {
+                type: 'number'
+              },
+              start: {
+                type: 'string'
+              },
+              end: {
+                type: 'string'
+              },
+              text: {
+                type: 'string'
+              }
             }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
         description: '解析 SRT 字幕',
         params: {
-          content: '1\n00:00:00,000 --> 00:00:05,000\nHello World',
+          content: `1
+00:00:00,000 --> 00:00:05,000
+Hello World`,
           format: 'srt'
         }
       }
     ],
-    required_permissions: ["file:read","media:process"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_model_predictor',
     name: 'model_predictor',
@@ -2883,10 +3457,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        prediction: { type: 'any' },
-        confidence: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        prediction: {
+          type: 'any'
+        },
+        confidence: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -2894,7 +3476,7 @@ const builtinTools = [
         description: '图像分类预测',
         params: {
           modelPath: '/models/resnet50.onnx',
-          input: [/* image tensor */],
+          input: [],
           framework: 'onnx'
         }
       }
@@ -2902,9 +3484,8 @@ const builtinTools = [
     required_permissions: ['file:read'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_data_aggregator',
     name: 'data_aggregator',
@@ -2929,7 +3510,9 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              field: { type: 'string' },
+              field: {
+                type: 'string'
+              },
               operation: {
                 type: 'string',
                 enum: ['sum', 'avg', 'min', 'max', 'count']
@@ -2943,27 +3526,68 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '计算销售数据统计',
+        description: '聚合销售数据',
         params: {
-          data: [{category: 'A', sales: 100}, {category: 'A', sales: 200}],
-          groupBy: 'category',
-          aggregations: [{field: 'sales', operation: 'sum'}]
+          data: [
+            {
+              product: 'A',
+              sales: 100,
+              region: '北京'
+            },
+            {
+              product: 'A',
+              sales: 150,
+              region: '上海'
+            },
+            {
+              product: 'B',
+              sales: 200,
+              region: '北京'
+            }
+          ],
+          groupBy: ['product'],
+          aggregations: {
+            sales: 'sum'
+          }
+        }
+      },
+      {
+        description: '多维度数据聚合',
+        params: {
+          data: [
+            {
+              date: '2025-01',
+              revenue: 10000,
+              cost: 6000
+            }
+          ],
+          groupBy: ['date'],
+          aggregations: {
+            revenue: 'sum',
+            cost: 'sum',
+            profit: 'calculated'
+          }
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_statistical_calculator',
     name: 'statistical_calculator',
@@ -2977,14 +3601,25 @@ const builtinTools = [
         data: {
           type: 'array',
           description: '数值数组',
-          items: { type: 'number' }
+          items: {
+            type: 'number'
+          }
         },
         metrics: {
           type: 'array',
           description: '要计算的指标',
           items: {
             type: 'string',
-            enum: ['mean', 'median', 'mode', 'variance', 'stddev', 'min', 'max', 'percentile']
+            enum: [
+              'mean',
+              'median',
+              'mode',
+              'variance',
+              'stddev',
+              'min',
+              'max',
+              'percentile'
+            ]
           }
         },
         percentile: {
@@ -2998,26 +3633,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        statistics: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        statistics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '计算数据集统计信息',
+        description: '使用统计计算器处理基础数据',
         params: {
-          data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-          metrics: ['mean', 'median', 'stddev']
+          data: ['item1', 'item2'],
+          metrics: ['item1', 'item2'],
+          percentile: 100
+        }
+      },
+      {
+        description: '使用统计计算器处理批量数据',
+        params: {
+          data: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          metrics: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          percentile: 100
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_chart_data_generator',
     name: 'chart_data_generator',
@@ -3051,28 +3700,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        chartData: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        chartData: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '生成折线图数据',
+        description: '使用图表数据生成器处理基础数据',
         params: {
-          data: [{month: 'Jan', value: 100}, {month: 'Feb', value: 150}],
+          data: ['item1', 'item2'],
           chartType: 'line',
-          xField: 'month',
-          yField: 'value'
+          xField: 'example_value',
+          yField: 'example_value'
+        }
+      },
+      {
+        description: '使用图表数据生成器处理批量数据',
+        params: {
+          data: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          chartType: 'line',
+          xField: 'example_value',
+          yField: 'example_value'
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_api_requester',
     name: 'api_requester',
@@ -3111,11 +3774,21 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        status: { type: 'number' },
-        data: { type: 'any' },
-        headers: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        status: {
+          type: 'number'
+        },
+        data: {
+          type: 'any'
+        },
+        headers: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3124,16 +3797,17 @@ const builtinTools = [
         params: {
           url: 'https://api.example.com/users/123',
           method: 'GET',
-          headers: {'Authorization': 'Bearer token123'}
+          headers: {
+            Authorization: 'Bearer token123'
+          }
         }
       }
     ],
     required_permissions: ['network:http'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_oauth_helper',
     name: 'oauth_helper',
@@ -3175,11 +3849,21 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        accessToken: { type: 'string' },
-        refreshToken: { type: 'string' },
-        expiresIn: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        accessToken: {
+          type: 'string'
+        },
+        refreshToken: {
+          type: 'string'
+        },
+        expiresIn: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3196,9 +3880,8 @@ const builtinTools = [
     required_permissions: ['network:http'],
     risk_level: 4,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_s3_client',
     name: 's3_client',
@@ -3230,9 +3913,15 @@ const builtinTools = [
           type: 'object',
           description: 'AWS 凭证',
           properties: {
-            accessKeyId: { type: 'string' },
-            secretAccessKey: { type: 'string' },
-            region: { type: 'string' }
+            accessKeyId: {
+              type: 'string'
+            },
+            secretAccessKey: {
+              type: 'string'
+            },
+            region: {
+              type: 'string'
+            }
           }
         }
       },
@@ -3241,9 +3930,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3260,9 +3955,8 @@ const builtinTools = [
     required_permissions: ['network:http', 'file:read'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_oss_client',
     name: 'oss_client',
@@ -3294,9 +3988,15 @@ const builtinTools = [
           type: 'object',
           description: 'OSS 凭证',
           properties: {
-            accessKeyId: { type: 'string' },
-            accessKeySecret: { type: 'string' },
-            region: { type: 'string' }
+            accessKeyId: {
+              type: 'string'
+            },
+            accessKeySecret: {
+              type: 'string'
+            },
+            region: {
+              type: 'string'
+            }
           }
         }
       },
@@ -3305,9 +4005,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3324,9 +4030,8 @@ const builtinTools = [
     required_permissions: ['network:http', 'file:read'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_log_parser',
     name: 'log_parser',
@@ -3356,37 +4061,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         entries: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              timestamp: { type: 'string' },
-              level: { type: 'string' },
-              message: { type: 'string' },
-              metadata: { type: 'object' }
+              timestamp: {
+                type: 'string'
+              },
+              level: {
+                type: 'string'
+              },
+              message: {
+                type: 'string'
+              },
+              metadata: {
+                type: 'object'
+              }
             }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
         description: '解析 Nginx 访问日志',
         params: {
-          logContent: '127.0.0.1 - - [01/Jan/2024:12:00:00 +0000] "GET / HTTP/1.1" 200',
+          logContent: `127.0.0.1 - - [01/Jan/2024:12:00:00 +0000] "GET / HTTP/1.1" 200`,
           format: 'nginx'
         }
       }
     ],
-    required_permissions: ["code:execute","system:control"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_performance_profiler',
     name: 'performance_profiler',
@@ -3412,16 +4128,26 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         metrics: {
           type: 'object',
           properties: {
-            cpuUsage: { type: 'number' },
-            memoryUsage: { type: 'number' },
-            executionTime: { type: 'number' }
+            cpuUsage: {
+              type: 'number'
+            },
+            memoryUsage: {
+              type: 'number'
+            },
+            executionTime: {
+              type: 'number'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3436,9 +4162,8 @@ const builtinTools = [
     required_permissions: ['system:monitor'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_memory_monitor',
     name: 'memory_monitor',
@@ -3464,17 +4189,29 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         snapshot: {
           type: 'object',
           properties: {
-            heapUsed: { type: 'number' },
-            heapTotal: { type: 'number' },
-            external: { type: 'number' },
-            rss: { type: 'number' }
+            heapUsed: {
+              type: 'number'
+            },
+            heapTotal: {
+              type: 'number'
+            },
+            external: {
+              type: 'number'
+            },
+            rss: {
+              type: 'number'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3488,9 +4225,8 @@ const builtinTools = [
     required_permissions: ['system:monitor'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_translator',
     name: 'translator',
@@ -3526,10 +4262,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        translated: { type: 'string' },
-        detectedLanguage: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        translated: {
+          type: 'string'
+        },
+        detectedLanguage: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3544,9 +4288,8 @@ const builtinTools = [
     required_permissions: ['network:http'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_locale_formatter',
     name: 'locale_formatter',
@@ -3581,28 +4324,45 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        formatted: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        formatted: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '格式化货币',
+        description: '格式化Markdown文档',
         params: {
-          value: 1234.56,
-          type: 'currency',
-          locale: 'zh-CN',
-          options: {currency: 'CNY'}
+          text: '# 标题\n\n这是内容',
+          format: 'markdown',
+          options: {
+            prettify: true
+          }
+        }
+      },
+      {
+        description: '格式化代码',
+        params: {
+          text: 'function test(){return true;}',
+          format: 'javascript',
+          options: {
+            indent: 2,
+            semicolons: true
+          }
         }
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_workflow_executor',
     name: 'workflow_executor',
@@ -3622,10 +4382,18 @@ const builtinTools = [
               items: {
                 type: 'object',
                 properties: {
-                  id: { type: 'string' },
-                  tool: { type: 'string' },
-                  params: { type: 'object' },
-                  condition: { type: 'string' }
+                  id: {
+                    type: 'string'
+                  },
+                  tool: {
+                    type: 'string'
+                  },
+                  params: {
+                    type: 'object'
+                  },
+                  condition: {
+                    type: 'string'
+                  }
                 }
               }
             }
@@ -3641,9 +4409,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        results: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        results: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3652,19 +4426,30 @@ const builtinTools = [
         params: {
           workflow: {
             steps: [
-              {id: 'read', tool: 'file_reader', params: {filePath: 'data.csv'}},
-              {id: 'parse', tool: 'csv_handler', params: {action: 'parse'}}
+              {
+                id: 'read',
+                tool: 'file_reader',
+                params: {
+                  filePath: 'data.csv'
+                }
+              },
+              {
+                id: 'parse',
+                tool: 'csv_handler',
+                params: {
+                  action: 'parse'
+                }
+              }
             ]
           }
         }
       }
     ],
-    required_permissions: ["code:execute","system:control","task:manage"],
+    required_permissions: [],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_event_emitter',
     name: 'event_emitter',
@@ -3698,9 +4483,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3709,16 +4500,18 @@ const builtinTools = [
         params: {
           action: 'emit',
           event: 'data:updated',
-          data: {id: 123, status: 'completed'}
+          data: {
+            id: 123,
+            status: 'completed'
+          }
         }
       }
     ],
-    required_permissions: ["system:control","task:manage"],
+    required_permissions: [],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_pipeline_builder',
     name: 'pipeline_builder',
@@ -3735,9 +4528,15 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              name: { type: 'string' },
-              transform: { type: 'string' },
-              params: { type: 'object' }
+              name: {
+                type: 'string'
+              },
+              transform: {
+                type: 'string'
+              },
+              params: {
+                type: 'object'
+              }
             }
           }
         },
@@ -3751,9 +4550,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        output: { type: 'any' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        output: {
+          type: 'any'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3761,21 +4566,28 @@ const builtinTools = [
         description: '数据清洗管道',
         params: {
           pipeline: [
-            {name: 'filter', transform: 'removeNull'},
-            {name: 'map', transform: 'uppercase'}
+            {
+              name: 'filter',
+              transform: 'removeNull'
+            },
+            {
+              name: 'map',
+              transform: 'uppercase'
+            }
           ],
-          input: ['hello', null, 'world']
+          input: [
+            'hello',
+            null,
+            'world'
+          ]
         }
       }
     ],
-    required_permissions: ["code:execute","system:control","task:manage"],
+    required_permissions: [],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // ==================== 第四批扩展工具 (73-92) ====================
-
   {
     id: 'tool_blockchain_client',
     name: 'blockchain_client',
@@ -3806,9 +4618,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3817,16 +4635,17 @@ const builtinTools = [
         params: {
           network: 'ethereum',
           action: 'getBalance',
-          params: { address: '0x...' }
+          params: {
+            address: '0x...'
+          }
         }
       }
     ],
     required_permissions: ['network:http'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_smart_contract_caller',
     name: 'smart_contract_caller',
@@ -3863,10 +4682,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        transactionHash: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        transactionHash: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3883,9 +4710,8 @@ const builtinTools = [
     required_permissions: ['network:http', 'wallet:access'],
     risk_level: 4,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_wallet_manager',
     name: 'wallet_manager',
@@ -3919,12 +4745,24 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        address: { type: 'string' },
-        privateKey: { type: 'string' },
-        mnemonic: { type: 'string' },
-        signature: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        address: {
+          type: 'string'
+        },
+        privateKey: {
+          type: 'string'
+        },
+        mnemonic: {
+          type: 'string'
+        },
+        signature: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -3938,9 +4776,8 @@ const builtinTools = [
     required_permissions: ['wallet:create'],
     risk_level: 5,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_email_sender',
     name: 'email_sender',
@@ -3958,7 +4795,9 @@ const builtinTools = [
         to: {
           type: 'array',
           description: '收件人列表',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
         subject: {
           type: 'string',
@@ -3986,9 +4825,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        messageId: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        messageId: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4005,9 +4850,8 @@ const builtinTools = [
     required_permissions: ['network:smtp'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_email_reader',
     name: 'email_reader',
@@ -4022,11 +4866,21 @@ const builtinTools = [
           type: 'object',
           description: 'IMAP配置',
           properties: {
-            host: { type: 'string' },
-            port: { type: 'number' },
-            user: { type: 'string' },
-            password: { type: 'string' },
-            tls: { type: 'boolean' }
+            host: {
+              type: 'string'
+            },
+            port: {
+              type: 'number'
+            },
+            user: {
+              type: 'string'
+            },
+            password: {
+              type: 'string'
+            },
+            tls: {
+              type: 'boolean'
+            }
           }
         },
         mailbox: {
@@ -4049,20 +4903,32 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         emails: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              from: { type: 'string' },
-              subject: { type: 'string' },
-              date: { type: 'string' },
-              body: { type: 'string' }
+              from: {
+                type: 'string'
+              },
+              subject: {
+                type: 'string'
+              },
+              date: {
+                type: 'string'
+              },
+              body: {
+                type: 'string'
+              }
             }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4083,9 +4949,8 @@ const builtinTools = [
     required_permissions: ['network:imap'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_email_attachment_handler',
     name: 'email_attachment_handler',
@@ -4123,10 +4988,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        attachments: { type: 'array' },
-        savedPath: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        attachments: {
+          type: 'array'
+        },
+        savedPath: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4141,9 +5014,8 @@ const builtinTools = [
     required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_pdf_generator',
     name: 'pdf_generator',
@@ -4171,9 +5043,16 @@ const builtinTools = [
           type: 'object',
           description: 'PDF选项',
           properties: {
-            format: { type: 'string', default: 'A4' },
-            margin: { type: 'object' },
-            landscape: { type: 'boolean' }
+            format: {
+              type: 'string',
+              default: 'A4'
+            },
+            margin: {
+              type: 'object'
+            },
+            landscape: {
+              type: 'boolean'
+            }
           }
         }
       },
@@ -4182,10 +5061,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' },
-        size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        },
+        size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4201,9 +5088,8 @@ const builtinTools = [
     required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_pdf_text_extractor',
     name: 'pdf_text_extractor',
@@ -4221,7 +5107,9 @@ const builtinTools = [
         pages: {
           type: 'array',
           description: '要提取的页码（不指定则全部）',
-          items: { type: 'number' }
+          items: {
+            type: 'number'
+          }
         },
         preserveLayout: {
           type: 'boolean',
@@ -4234,10 +5122,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        text: { type: 'string' },
-        pageCount: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        text: {
+          type: 'string'
+        },
+        pageCount: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4251,9 +5147,8 @@ const builtinTools = [
     required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_pdf_merger',
     name: 'pdf_merger',
@@ -4272,7 +5167,9 @@ const builtinTools = [
         inputFiles: {
           type: 'array',
           description: '输入PDF文件列表',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
         outputPath: {
           type: 'string',
@@ -4288,10 +5185,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        outputPath: { type: 'string' },
-        pageCount: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        outputPath: {
+          type: 'string'
+        },
+        pageCount: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4307,9 +5212,8 @@ const builtinTools = [
     required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_speech_recognizer',
     name: 'speech_recognizer',
@@ -4340,10 +5244,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        text: { type: 'string' },
-        confidence: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        text: {
+          type: 'string'
+        },
+        confidence: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4358,9 +5270,8 @@ const builtinTools = [
     required_permissions: ['file:read'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_text_to_speech',
     name: 'text_to_speech',
@@ -4392,7 +5303,7 @@ const builtinTools = [
         speed: {
           type: 'number',
           description: '语速（0.5-2.0）',
-          default: 1.0
+          default: 1
         }
       },
       required: ['text', 'outputPath']
@@ -4400,10 +5311,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        audioPath: { type: 'string' },
-        duration: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        audioPath: {
+          type: 'string'
+        },
+        duration: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4420,9 +5339,8 @@ const builtinTools = [
     required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_audio_converter',
     name: 'audio_converter',
@@ -4457,10 +5375,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        outputPath: { type: 'string' },
-        size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        outputPath: {
+          type: 'string'
+        },
+        size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4477,9 +5403,8 @@ const builtinTools = [
     required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_chart_renderer',
     name: 'chart_renderer',
@@ -4520,9 +5445,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        imagePath: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        imagePath: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4531,7 +5462,14 @@ const builtinTools = [
         params: {
           chartConfig: {
             type: 'line',
-            data: { labels: ['Jan', 'Feb'], datasets: [{ data: [10, 20] }] }
+            data: {
+              labels: ['Jan', 'Feb'],
+              datasets: [
+                {
+                  data: [10, 20]
+                }
+              ]
+            }
           },
           outputPath: '/path/to/chart.png'
         }
@@ -4540,9 +5478,8 @@ const builtinTools = [
     required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_web_crawler',
     name: 'web_crawler',
@@ -4581,10 +5518,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        data: { type: 'object' },
-        links: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        data: {
+          type: 'object'
+        },
+        links: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4602,9 +5547,8 @@ const builtinTools = [
     required_permissions: ['network:http'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_html_extractor',
     name: 'html_extractor',
@@ -4634,9 +5578,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        extracted: { type: 'any' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        extracted: {
+          type: 'any'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4648,12 +5598,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_data_validator',
     name: 'data_validator',
@@ -4674,12 +5623,24 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              field: { type: 'string' },
-              type: { type: 'string' },
-              required: { type: 'boolean' },
-              min: { type: 'number' },
-              max: { type: 'number' },
-              pattern: { type: 'string' }
+              field: {
+                type: 'string'
+              },
+              type: {
+                type: 'string'
+              },
+              required: {
+                type: 'boolean'
+              },
+              min: {
+                type: 'number'
+              },
+              max: {
+                type: 'number'
+              },
+              pattern: {
+                type: 'string'
+              }
             }
           }
         }
@@ -4689,30 +5650,77 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        valid: { type: 'boolean' },
-        errors: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        valid: {
+          type: 'boolean'
+        },
+        errors: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '验证用户数据',
+        description: '验证用户注册数据',
         params: {
-          data: { name: 'John', age: 25 },
-          rules: [
-            { field: 'name', type: 'string', required: true },
-            { field: 'age', type: 'number', min: 0, max: 120 }
-          ]
+          data: {
+            username: 'john',
+            email: 'john@example.com',
+            age: 25
+          },
+          schema: {
+            username: {
+              type: 'string',
+              minLength: 3,
+              maxLength: 20
+            },
+            email: {
+              type: 'string',
+              format: 'email'
+            },
+            age: {
+              type: 'number',
+              minimum: 18
+            }
+          }
+        }
+      },
+      {
+        description: '验证API请求参数',
+        params: {
+          data: {
+            page: 1,
+            limit: 20,
+            sortBy: 'createdAt'
+          },
+          schema: {
+            page: {
+              type: 'integer',
+              minimum: 1
+            },
+            limit: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 100
+            },
+            sortBy: {
+              type: 'string',
+              enum: ['createdAt', 'updatedAt', 'name']
+            }
+          }
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_schema_validator',
     name: 'schema_validator',
@@ -4737,34 +5745,77 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        valid: { type: 'boolean' },
-        errors: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        valid: {
+          type: 'boolean'
+        },
+        errors: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '验证用户对象',
+        description: '验证用户注册数据',
         params: {
-          data: { name: 'John', age: 25 },
+          data: {
+            username: 'john',
+            email: 'john@example.com',
+            age: 25
+          },
           schema: {
-            type: 'object',
-            properties: {
-              name: { type: 'string' },
-              age: { type: 'number' }
+            username: {
+              type: 'string',
+              minLength: 3,
+              maxLength: 20
             },
-            required: ['name', 'age']
+            email: {
+              type: 'string',
+              format: 'email'
+            },
+            age: {
+              type: 'number',
+              minimum: 18
+            }
+          }
+        }
+      },
+      {
+        description: '验证API请求参数',
+        params: {
+          data: {
+            page: 1,
+            limit: 20,
+            sortBy: 'createdAt'
+          },
+          schema: {
+            page: {
+              type: 'integer',
+              minimum: 1
+            },
+            limit: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 100
+            },
+            sortBy: {
+              type: 'string',
+              enum: ['createdAt', 'updatedAt', 'name']
+            }
           }
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_cache_manager',
     name: 'cache_manager',
@@ -4804,10 +5855,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        value: { type: 'any' },
-        exists: { type: 'boolean' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        value: {
+          type: 'any'
+        },
+        exists: {
+          type: 'boolean'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4816,17 +5875,18 @@ const builtinTools = [
         params: {
           action: 'set',
           key: 'user:123',
-          value: { name: 'John' },
+          value: {
+            name: 'John'
+          },
           ttl: 3600
         }
       }
     ],
-    required_permissions: ["storage:read","storage:write"],
+    required_permissions: [],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_message_queue_client',
     name: 'message_queue_client',
@@ -4864,10 +5924,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        messageId: { type: 'string' },
-        messages: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        messageId: {
+          type: 'string'
+        },
+        messages: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4876,16 +5944,18 @@ const builtinTools = [
         params: {
           action: 'publish',
           queue: 'tasks',
-          message: { task: 'process', data: {} }
+          message: {
+            task: 'process',
+            data: {}
+          }
         }
       }
     ],
     required_permissions: ['network:amqp'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_docker_manager',
     name: 'docker_manager',
@@ -4899,7 +5969,15 @@ const builtinTools = [
         action: {
           type: 'string',
           description: '操作类型',
-          enum: ['list', 'start', 'stop', 'remove', 'create', 'exec', 'logs']
+          enum: [
+            'list',
+            'start',
+            'stop',
+            'remove',
+            'create',
+            'exec',
+            'logs'
+          ]
         },
         resource: {
           type: 'string',
@@ -4924,10 +6002,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        output: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        output: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -4942,11 +6028,8 @@ const builtinTools = [
     required_permissions: ['docker:access'],
     risk_level: 4,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // ==================== 第五批扩展工具 (93-112) ====================
-
   {
     id: 'tool_encrypt_decrypt',
     name: 'encrypt_decrypt',
@@ -4985,9 +6068,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5001,12 +6090,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["security:manage"],
+    required_permissions: [],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_digital_signer',
     name: 'digital_signer',
@@ -5050,10 +6138,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        signature: { type: 'string' },
-        verified: { type: 'boolean' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        signature: {
+          type: 'string'
+        },
+        verified: {
+          type: 'boolean'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5066,12 +6162,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["security:manage"],
+    required_permissions: [],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_key_generator',
     name: 'key_generator',
@@ -5090,7 +6185,14 @@ const builtinTools = [
         keySize: {
           type: 'number',
           description: '密钥大小（位）',
-          enum: [128, 192, 256, 1024, 2048, 4096]
+          enum: [
+            128,
+            192,
+            256,
+            1024,
+            2048,
+            4096
+          ]
         },
         format: {
           type: 'string',
@@ -5104,11 +6206,21 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        privateKey: { type: 'string' },
-        publicKey: { type: 'string' },
-        key: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        privateKey: {
+          type: 'string'
+        },
+        publicKey: {
+          type: 'string'
+        },
+        key: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5121,12 +6233,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["security:manage"],
+    required_permissions: [],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_time_series_analyzer',
     name: 'time_series_analyzer',
@@ -5143,8 +6254,12 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              timestamp: { type: 'string' },
-              value: { type: 'number' }
+              timestamp: {
+                type: 'string'
+              },
+              value: {
+                type: 'number'
+              }
             }
           }
         },
@@ -5167,27 +6282,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        results: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        results: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '分析销售趋势',
+        description: '使用时间序列分析器处理基础数据',
         params: {
-          data: [{timestamp: '2024-01-01', value: 100}, {timestamp: '2024-01-02', value: 120}],
-          analysis: ['trend', 'forecast'],
-          forecastPeriods: 7
+          data: ['item1', 'item2'],
+          analysis: ['item1', 'item2'],
+          forecastPeriods: 100
+        }
+      },
+      {
+        description: '使用时间序列分析器处理批量数据',
+        params: {
+          data: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          analysis: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          forecastPeriods: 100
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_trend_detector',
     name: 'trend_detector',
@@ -5201,7 +6329,9 @@ const builtinTools = [
         data: {
           type: 'array',
           description: '数值数组',
-          items: { type: 'number' }
+          items: {
+            type: 'number'
+          }
         },
         window: {
           type: 'number',
@@ -5219,30 +6349,44 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         trend: {
           type: 'string',
           enum: ['upward', 'downward', 'stable', 'volatile']
         },
-        strength: { type: 'number' },
-        error: { type: 'string' }
+        strength: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
-        description: '检测股价趋势',
+        description: '使用趋势检测器处理基础数据',
         params: {
-          data: [100, 102, 105, 103, 108, 112, 115],
-          window: 3
+          data: ['item1', 'item2'],
+          window: 100,
+          sensitivity: 100
+        }
+      },
+      {
+        description: '使用趋势检测器处理批量数据',
+        params: {
+          data: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          window: 100,
+          sensitivity: 100
         }
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_file_watcher',
     name: 'file_watcher',
@@ -5280,9 +6424,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        watcherId: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        watcherId: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5298,9 +6448,8 @@ const builtinTools = [
     required_permissions: ['file:watch'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_directory_monitor',
     name: 'directory_monitor',
@@ -5335,9 +6484,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        monitorId: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        monitorId: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5353,9 +6508,8 @@ const builtinTools = [
     required_permissions: ['file:watch'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_cron_scheduler',
     name: 'cron_scheduler',
@@ -5394,11 +6548,21 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        taskId: { type: 'string' },
-        nextRun: { type: 'string' },
-        tasks: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        taskId: {
+          type: 'string'
+        },
+        nextRun: {
+          type: 'string'
+        },
+        tasks: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5407,16 +6571,18 @@ const builtinTools = [
         params: {
           action: 'schedule',
           cronExpression: '0 0 * * *',
-          task: { type: 'backup', target: 'database' }
+          task: {
+            type: 'backup',
+            target: 'database'
+          }
         }
       }
     ],
-    required_permissions: ["system:control","task:manage"],
+    required_permissions: [],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_task_timer',
     name: 'task_timer',
@@ -5454,9 +6620,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        timerId: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        timerId: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5465,16 +6637,18 @@ const builtinTools = [
         params: {
           action: 'setTimeout',
           delay: 5000,
-          task: { type: 'notification', message: 'Time is up!' }
+          task: {
+            type: 'notification',
+            message: 'Time is up!'
+          }
         }
       }
     ],
-    required_permissions: ["code:execute","system:control","task:manage"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_migration_runner',
     name: 'migration_runner',
@@ -5510,10 +6684,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        executed: { type: 'array' },
-        pending: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        executed: {
+          type: 'array'
+        },
+        pending: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5528,9 +6710,8 @@ const builtinTools = [
     required_permissions: ['database:write'],
     risk_level: 4,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_schema_differ',
     name: 'schema_differ',
@@ -5553,8 +6734,14 @@ const builtinTools = [
           type: 'object',
           description: '比较选项',
           properties: {
-            ignoreColumnOrder: { type: 'boolean', default: true },
-            ignoreConstraints: { type: 'boolean', default: false }
+            ignoreColumnOrder: {
+              type: 'boolean',
+              default: true
+            },
+            ignoreConstraints: {
+              type: 'boolean',
+              default: false
+            }
           }
         }
       },
@@ -5563,38 +6750,51 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         differences: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string' },
-              table: { type: 'string' },
-              column: { type: 'string' },
-              change: { type: 'string' }
+              type: {
+                type: 'string'
+              },
+              table: {
+                type: 'string'
+              },
+              column: {
+                type: 'string'
+              },
+              change: {
+                type: 'string'
+              }
             }
           }
         },
-        sqlStatements: { type: 'array' },
-        error: { type: 'string' }
+        sqlStatements: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
         description: '比较开发和生产环境Schema',
         params: {
-          source: { /* dev schema */ },
-          target: { /* prod schema */ }
+          source: {},
+          target: {}
         }
       }
     ],
     required_permissions: ['database:read'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_websocket_server',
     name: 'websocket_server',
@@ -5629,10 +6829,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        serverId: { type: 'string' },
-        clients: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        serverId: {
+          type: 'string'
+        },
+        clients: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5647,9 +6855,8 @@ const builtinTools = [
     required_permissions: ['network:listen'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_websocket_client',
     name: 'websocket_client',
@@ -5683,10 +6890,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        connectionId: { type: 'string' },
-        data: { type: 'any' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        connectionId: {
+          type: 'string'
+        },
+        data: {
+          type: 'any'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5701,9 +6916,8 @@ const builtinTools = [
     required_permissions: ['network:http'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_barcode_generator',
     name: 'barcode_generator',
@@ -5731,9 +6945,18 @@ const builtinTools = [
           type: 'object',
           description: '生成选项',
           properties: {
-            width: { type: 'number', default: 2 },
-            height: { type: 'number', default: 100 },
-            displayValue: { type: 'boolean', default: true }
+            width: {
+              type: 'number',
+              default: 2
+            },
+            height: {
+              type: 'number',
+              default: 100
+            },
+            displayValue: {
+              type: 'boolean',
+              default: true
+            }
           }
         }
       },
@@ -5742,9 +6965,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        imagePath: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        imagePath: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5760,9 +6989,8 @@ const builtinTools = [
     required_permissions: ['file:write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_code_recognizer',
     name: 'code_recognizer',
@@ -5789,19 +7017,29 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         codes: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string' },
-              data: { type: 'string' },
-              format: { type: 'string' }
+              type: {
+                type: 'string'
+              },
+              data: {
+                type: 'string'
+              },
+              format: {
+                type: 'string'
+              }
             }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5816,9 +7054,8 @@ const builtinTools = [
     required_permissions: ['file:read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_geocoder',
     name: 'geocoder',
@@ -5858,11 +7095,21 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        latitude: { type: 'number' },
-        longitude: { type: 'number' },
-        address: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        latitude: {
+          type: 'number'
+        },
+        longitude: {
+          type: 'number'
+        },
+        address: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5878,9 +7125,8 @@ const builtinTools = [
     required_permissions: ['network:http'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_distance_calculator',
     name: 'distance_calculator',
@@ -5895,16 +7141,24 @@ const builtinTools = [
           type: 'object',
           description: '起点坐标',
           properties: {
-            latitude: { type: 'number' },
-            longitude: { type: 'number' }
+            latitude: {
+              type: 'number'
+            },
+            longitude: {
+              type: 'number'
+            }
           }
         },
         point2: {
           type: 'object',
           description: '终点坐标',
           properties: {
-            latitude: { type: 'number' },
-            longitude: { type: 'number' }
+            latitude: {
+              type: 'number'
+            },
+            longitude: {
+              type: 'number'
+            }
           }
         },
         algorithm: {
@@ -5925,28 +7179,41 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        distance: { type: 'number' },
-        unit: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        distance: {
+          type: 'number'
+        },
+        unit: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
         description: '计算北京到上海距离',
         params: {
-          point1: {latitude: 39.9042, longitude: 116.4074},
-          point2: {latitude: 31.2304, longitude: 121.4737},
+          point1: {
+            latitude: 39.9042,
+            longitude: 116.4074
+          },
+          point2: {
+            latitude: 31.2304,
+            longitude: 121.4737
+          },
           unit: 'km'
         }
       }
     ],
-    required_permissions: ["data:read","network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_coordinate_converter',
     name: 'coordinate_converter',
@@ -5981,10 +7248,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        latitude: { type: 'number' },
-        longitude: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        latitude: {
+          type: 'number'
+        },
+        longitude: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -5998,12 +7273,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["data:read","network:request"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_video_editor',
     name: 'video_editor',
@@ -6045,10 +7319,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        outputPath: { type: 'string' },
-        duration: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        outputPath: {
+          type: 'string'
+        },
+        duration: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -6066,9 +7348,8 @@ const builtinTools = [
     required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_video_transcoder',
     name: 'video_transcoder',
@@ -6107,10 +7388,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        outputPath: { type: 'string' },
-        size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        outputPath: {
+          type: 'string'
+        },
+        size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -6127,9 +7416,8 @@ const builtinTools = [
     required_permissions: ['file:read', 'file:write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_video_screenshot',
     name: 'video_screenshot',
@@ -6167,9 +7455,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        screenshots: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        screenshots: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -6185,9 +7479,8 @@ const builtinTools = [
     required_permissions: ['file:read', 'file:write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_code_linter',
     name: 'code_linter',
@@ -6222,40 +7515,56 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         issues: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              line: { type: 'number' },
-              column: { type: 'number' },
-              severity: { type: 'string' },
-              message: { type: 'string' },
-              rule: { type: 'string' }
+              line: {
+                type: 'number'
+              },
+              column: {
+                type: 'number'
+              },
+              severity: {
+                type: 'string'
+              },
+              message: {
+                type: 'string'
+              },
+              rule: {
+                type: 'string'
+              }
             }
           }
         },
-        fixedCode: { type: 'string' },
-        error: { type: 'string' }
+        fixedCode: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
       {
         description: '检查JavaScript代码',
         params: {
-          code: 'var x = 1;\nconsole.log(x)',
+          code: `var x = 1;
+console.log(x)`,
           language: 'javascript',
           fix: true
         }
       }
     ],
-    required_permissions: ["code:analyze","code:execute"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_ast_parser',
     name: 'ast_parser',
@@ -6286,9 +7595,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        ast: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        ast: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -6300,12 +7615,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["code:analyze","code:execute"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_complexity_calculator',
     name: 'complexity_calculator',
@@ -6339,18 +7653,32 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         complexity: {
           type: 'object',
           properties: {
-            cyclomatic: { type: 'number' },
-            cognitive: { type: 'number' },
-            halstead: { type: 'object' },
-            loc: { type: 'number' }
+            cyclomatic: {
+              type: 'number'
+            },
+            cognitive: {
+              type: 'number'
+            },
+            halstead: {
+              type: 'object'
+            },
+            loc: {
+              type: 'number'
+            }
           }
         },
-        functions: { type: 'array' },
-        error: { type: 'string' }
+        functions: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -6363,15 +7691,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["code:analyze","code:execute"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // =============== 第六批工具扩展 (113-132) ===============
-
-  // 3D建模工具 (113-114)
   {
     id: 'tool_model_generator',
     name: 'model_generator',
@@ -6391,20 +7715,36 @@ const builtinTools = [
           type: 'object',
           description: '尺寸参数',
           properties: {
-            width: { type: 'number' },
-            height: { type: 'number' },
-            depth: { type: 'number' },
-            radius: { type: 'number' },
-            segments: { type: 'number' }
+            width: {
+              type: 'number'
+            },
+            height: {
+              type: 'number'
+            },
+            depth: {
+              type: 'number'
+            },
+            radius: {
+              type: 'number'
+            },
+            segments: {
+              type: 'number'
+            }
           }
         },
         material: {
           type: 'object',
           description: '材质属性',
           properties: {
-            color: { type: 'string' },
-            texture: { type: 'string' },
-            opacity: { type: 'number' }
+            color: {
+              type: 'string'
+            },
+            texture: {
+              type: 'string'
+            },
+            opacity: {
+              type: 'number'
+            }
           }
         },
         outputFormat: {
@@ -6418,30 +7758,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        modelPath: { type: 'string' },
-        vertices: { type: 'number' },
-        faces: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        modelPath: {
+          type: 'string'
+        },
+        vertices: {
+          type: 'number'
+        },
+        faces: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "type": "cube",
-        "dimensions": "example_value",
-        "material": "example_value",
-        "outputFormat": "obj"
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          type: 'cube',
+          dimensions: 'example_value',
+          material: 'example_value',
+          outputFormat: 'obj'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_model_converter',
     name: 'model_converter',
@@ -6459,7 +7808,14 @@ const builtinTools = [
         inputFormat: {
           type: 'string',
           description: '输入格式',
-          enum: ['obj', 'stl', 'gltf', 'fbx', 'dae', '3ds']
+          enum: [
+            'obj',
+            'stl',
+            'gltf',
+            'fbx',
+            'dae',
+            '3ds'
+          ]
         },
         outputFormat: {
           type: 'string',
@@ -6470,9 +7826,15 @@ const builtinTools = [
           type: 'object',
           description: '转换选项',
           properties: {
-            optimize: { type: 'boolean' },
-            scale: { type: 'number' },
-            centerModel: { type: 'boolean' }
+            optimize: {
+              type: 'boolean'
+            },
+            scale: {
+              type: 'number'
+            },
+            centerModel: {
+              type: 'boolean'
+            }
           }
         }
       },
@@ -6481,32 +7843,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        outputPath: { type: 'string' },
-        fileSize: { type: 'number' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "inputPath": "./input/sample.txt",
-        "inputFormat": "obj",
-        "outputFormat": "obj",
-        "options": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        outputPath: {
+          type: 'string'
+        },
+        fileSize: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          inputPath: './input/sample.txt',
+          inputFormat: 'obj',
+          outputFormat: 'obj',
+          options: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_audio_fingerprint',
     name: 'audio_fingerprint',
@@ -6536,29 +7905,35 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        fingerprint: { type: 'string' },
-        duration: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        fingerprint: {
+          type: 'string'
+        },
+        duration: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "audioPath": "./audio/sample.mp3",
-        "algorithm": "chromaprint",
-        "duration": 10
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          audioPath: './audio/sample.mp3',
+          algorithm: 'chromaprint',
+          duration: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 区块链工具 (117-118)
   {
     id: 'tool_contract_caller',
     name: 'contract_caller',
@@ -6596,38 +7971,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'any' },
-        transactionHash: { type: 'string' },
-        gasUsed: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'any'
+        },
+        transactionHash: {
+          type: 'string'
+        },
+        gasUsed: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "网络请求示例",
-      "params": {
-        "contractAddress": "example_value",
-        "abi": [
-          "item1",
-          "item2"
-        ],
-        "method": "example_value",
-        "params": [
-          "item1",
-          "item2"
-        ],
-        "network": "mainnet"
+    examples: [
+      {
+        description: '网络请求示例',
+        params: {
+          contractAddress: 'example_value',
+          abi: ['item1', 'item2'],
+          method: 'example_value',
+          params: ['item1', 'item2'],
+          network: 'mainnet'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.request'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 数据可视化工具 (119-120)
   {
     id: 'tool_chart_generator',
     name: 'chart_generator',
@@ -6641,24 +8018,43 @@ const builtinTools = [
         chartType: {
           type: 'string',
           description: '图表类型',
-          enum: ['line', 'bar', 'pie', 'scatter', 'area', 'radar']
+          enum: [
+            'line',
+            'bar',
+            'pie',
+            'scatter',
+            'area',
+            'radar'
+          ]
         },
         data: {
           type: 'object',
           description: '图表数据',
           properties: {
-            labels: { type: 'array' },
-            datasets: { type: 'array' }
+            labels: {
+              type: 'array'
+            },
+            datasets: {
+              type: 'array'
+            }
           }
         },
         options: {
           type: 'object',
           description: '图表选项',
           properties: {
-            title: { type: 'string' },
-            width: { type: 'number' },
-            height: { type: 'number' },
-            theme: { type: 'string' }
+            title: {
+              type: 'string'
+            },
+            width: {
+              type: 'number'
+            },
+            height: {
+              type: 'number'
+            },
+            theme: {
+              type: 'string'
+            }
           }
         },
         outputFormat: {
@@ -6672,35 +8068,45 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        chartPath: { type: 'string' },
-        chartData: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        chartPath: {
+          type: 'string'
+        },
+        chartData: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用图表生成器",
-      "params": {
-        "chartType": "line",
-        "data": {
-          "key": "value",
-          "enabled": true
-        },
-        "options": {
-          "key": "value",
-          "enabled": true
-        },
-        "outputFormat": "png"
+    examples: [
+      {
+        description: '使用图表生成器处理基础数据',
+        params: {
+          chartType: 'line',
+          data: 'example_value',
+          options: 'example_value',
+          outputFormat: 'png'
+        }
+      },
+      {
+        description: '使用图表生成器处理批量数据',
+        params: {
+          chartType: 'line',
+          data: 'example_value',
+          options: 'example_value',
+          outputFormat: 'png'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_graph_plotter',
     name: 'graph_plotter',
@@ -6718,7 +8124,7 @@ const builtinTools = [
         },
         expression: {
           type: 'string',
-          description: '数学表达式(如 "x^2 + 2*x + 1")'
+          description: `数学表达式(如 "x^2 + 2*x + 1")`
         },
         points: {
           type: 'array',
@@ -6728,10 +8134,18 @@ const builtinTools = [
           type: 'object',
           description: '坐标范围',
           properties: {
-            xMin: { type: 'number' },
-            xMax: { type: 'number' },
-            yMin: { type: 'number' },
-            yMax: { type: 'number' }
+            xMin: {
+              type: 'number'
+            },
+            xMax: {
+              type: 'number'
+            },
+            yMin: {
+              type: 'number'
+            },
+            yMax: {
+              type: 'number'
+            }
           }
         }
       },
@@ -6740,32 +8154,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        imagePath: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        imagePath: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用图形绘制器",
-      "params": {
-        "type": "function",
-        "expression": "example_value",
-        "points": [
-          "item1",
-          "item2"
-        ],
-        "range": "example_value"
+    examples: [
+      {
+        description: '使用图形绘制器处理基础数据',
+        params: {
+          type: 'function',
+          expression: 'example_value',
+          points: ['item1', 'item2'],
+          range: 'example_value'
+        }
+      },
+      {
+        description: '使用图形绘制器处理批量数据',
+        params: {
+          type: 'function',
+          expression: 'example_value',
+          points: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          range: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // IoT集成工具 (121-122)
   {
     id: 'tool_device_manager',
     name: 'device_manager',
@@ -6804,33 +8228,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        deviceId: { type: 'string' },
-        status: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        deviceId: {
+          type: 'string'
+        },
+        status: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "网络请求示例",
-      "params": {
-        "action": "register",
-        "deviceId": "example_value",
-        "deviceType": "sensor",
-        "config": {
-          "key": "value",
-          "enabled": true
-        },
-        "command": "example_value"
+    examples: [
+      {
+        description: '网络请求示例',
+        params: {
+          action: 'register',
+          deviceId: 'example_value',
+          deviceType: 'sensor',
+          config: {
+            key: 'value',
+            enabled: true
+          },
+          command: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.request'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_mqtt_client',
     name: 'mqtt_client',
@@ -6869,31 +8300,37 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        connected: { type: 'boolean' },
-        messages: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        connected: {
+          type: 'boolean'
+        },
+        messages: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "网络请求示例",
-      "params": {
-        "action": "connect",
-        "broker": "example_value",
-        "topic": "example_value",
-        "message": "这是一段示例文本用于测试",
-        "qos": 10
+    examples: [
+      {
+        description: '网络请求示例',
+        params: {
+          action: 'connect',
+          broker: 'example_value',
+          topic: 'example_value',
+          message: '这是一段示例文本用于测试',
+          qos: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.request'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 机器学习工具 (123-124)
   {
     id: 'tool_model_trainer',
     name: 'model_trainer',
@@ -6944,11 +8381,23 @@ const builtinTools = [
           type: 'object',
           description: '超参数配置',
           properties: {
-            n_estimators: { type: 'number' },
-            max_depth: { type: 'number' },
-            learning_rate: { type: 'number' },
-            test_size: { type: 'number', default: 0.2 },
-            random_state: { type: 'number', default: 42 }
+            n_estimators: {
+              type: 'number'
+            },
+            max_depth: {
+              type: 'number'
+            },
+            learning_rate: {
+              type: 'number'
+            },
+            test_size: {
+              type: 'number',
+              default: 0.2
+            },
+            random_state: {
+              type: 'number',
+              default: 42
+            }
           }
         },
         validationSplit: {
@@ -6975,16 +8424,28 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        modelPath: { type: 'string' },
-        accuracy: { type: 'number' },
+        success: {
+          type: 'boolean'
+        },
+        modelPath: {
+          type: 'string'
+        },
+        accuracy: {
+          type: 'number'
+        },
         metrics: {
           type: 'object',
           description: '模型评估指标'
         },
-        trainingTime: { type: 'number' },
-        bestParams: { type: 'object' },
-        error: { type: 'string' }
+        trainingTime: {
+          type: 'number'
+        },
+        bestParams: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -7009,10 +8470,8 @@ const builtinTools = [
     required_permissions: ['file.read', 'file.write', 'compute.intensive'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 自然语言处理工具 (125-126)
   {
     id: 'tool_text_classifier',
     name: 'text_classifier',
@@ -7046,33 +8505,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        category: { type: 'string' },
-        confidence: { type: 'number' },
-        scores: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        category: {
+          type: 'string'
+        },
+        confidence: {
+          type: 'number'
+        },
+        scores: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用文本分类器进行AI处理",
-      "params": {
-        "text": "这是一段示例文本用于测试",
-        "taskType": "topic",
-        "model": "example_value",
-        "categories": [
-          "item1",
-          "item2"
-        ]
+    examples: [
+      {
+        description: '使用文本分类器进行AI推理',
+        params: {
+          text: '这是一段示例文本',
+          taskType: 'topic',
+          model: 'example_value',
+          categories: ['item1', 'item2']
+        }
+      },
+      {
+        description: '使用文本分类器批量处理',
+        params: {
+          text: '这是一段示例文本',
+          taskType: 'topic',
+          model: 'example_value',
+          categories: ['item1', 'item2', 'item3', 'item4', 'item5']
+        }
       }
-    }
-  ],
-    required_permissions: ["ai:inference","data:read"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_entity_recognizer',
     name: 'entity_recognizer',
@@ -7092,7 +8566,14 @@ const builtinTools = [
           description: '要识别的实体类型',
           items: {
             type: 'string',
-            enum: ['person', 'location', 'organization', 'date', 'money', 'email']
+            enum: [
+              'person',
+              'location',
+              'organization',
+              'date',
+              'money',
+              'email'
+            ]
           }
         },
         language: {
@@ -7106,42 +8587,49 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         entities: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              text: { type: 'string' },
-              type: { type: 'string' },
-              startIndex: { type: 'number' },
-              endIndex: { type: 'number' }
+              text: {
+                type: 'string'
+              },
+              type: {
+                type: 'string'
+              },
+              startIndex: {
+                type: 'number'
+              },
+              endIndex: {
+                type: 'number'
+              }
             }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用实体识别器进行AI处理",
-      "params": {
-        "text": "这是一段示例文本用于测试",
-        "entityTypes": [
-          "item1",
-          "item2"
-        ],
-        "language": "zh"
+    examples: [
+      {
+        description: '使用实体识别器进行AI处理',
+        params: {
+          text: '这是一段示例文本用于测试',
+          entityTypes: ['item1', 'item2'],
+          language: 'zh'
+        }
       }
-    }
-  ],
-    required_permissions: ["ai:inference","data:read"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 性能监控工具 (127-128)
   {
     id: 'tool_resource_monitor',
     name: 'resource_monitor',
@@ -7174,39 +8662,46 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         data: {
           type: 'object',
           properties: {
-            cpu: { type: 'number' },
-            memory: { type: 'object' },
-            disk: { type: 'object' },
-            network: { type: 'object' }
+            cpu: {
+              type: 'number'
+            },
+            memory: {
+              type: 'object'
+            },
+            disk: {
+              type: 'object'
+            },
+            network: {
+              type: 'object'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "资源监控器使用示例",
-      "params": {
-        "metrics": [
-          "item1",
-          "item2"
-        ],
-        "interval": 10,
-        "duration": 10
+    examples: [
+      {
+        description: '资源监控器使用示例',
+        params: {
+          metrics: ['item1', 'item2'],
+          interval: 10,
+          duration: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.info'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 协议缓冲工具 (129-130)
   {
     id: 'tool_protobuf_encoder',
     name: 'protobuf_encoder',
@@ -7240,32 +8735,45 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        encoded: { type: 'string' },
-        size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        encoded: {
+          type: 'string'
+        },
+        size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用Protobuf编码器",
-      "params": {
-        "schema": "example_value",
-        "messageName": "这是一段示例文本用于测试",
-        "data": {
-          "key": "value",
-          "enabled": true
-        },
-        "outputFormat": "binary"
+    examples: [
+      {
+        description: '使用Protobuf编码器处理基础数据',
+        params: {
+          schema: 'example_value',
+          messageName: 'example_value',
+          data: 'example_value',
+          outputFormat: 'binary'
+        }
+      },
+      {
+        description: '使用Protobuf编码器处理批量数据',
+        params: {
+          schema: 'example_value',
+          messageName: 'example_value',
+          data: 'example_value',
+          outputFormat: 'binary'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_protobuf_decoder',
     name: 'protobuf_decoder',
@@ -7299,32 +8807,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        decoded: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        decoded: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用Protobuf解码器",
-      "params": {
-        "schema": "example_value",
-        "messageName": "这是一段示例文本用于测试",
-        "data": {
-          "key": "value",
-          "enabled": true
-        },
-        "inputFormat": "binary"
+    examples: [
+      {
+        description: '使用Protobuf解码器处理基础数据',
+        params: {
+          schema: 'example_value',
+          messageName: 'example_value',
+          data: 'example_value',
+          inputFormat: 'binary'
+        }
+      },
+      {
+        description: '使用Protobuf解码器处理批量数据',
+        params: {
+          schema: 'example_value',
+          messageName: 'example_value',
+          data: 'example_value',
+          inputFormat: 'binary'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 搜索引擎工具 (131-132)
   {
     id: 'tool_search_indexer',
     name: 'search_indexer',
@@ -7350,9 +8868,15 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              id: { type: 'string' },
-              content: { type: 'string' },
-              metadata: { type: 'object' }
+              id: {
+                type: 'string'
+              },
+              content: {
+                type: 'string'
+              },
+              metadata: {
+                type: 'object'
+              }
             }
           }
         },
@@ -7367,32 +8891,51 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        indexed: { type: 'number' },
-        totalDocuments: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        indexed: {
+          type: 'number'
+        },
+        totalDocuments: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用搜索索引器",
-      "params": {
-        "action": "create",
-        "indexName": "example_value",
-        "documents": [
-          "item1",
-          "item2"
-        ],
-        "analyzer": "standard"
+    examples: [
+      {
+        description: '全文搜索文档',
+        params: {
+          query: '人工智能应用',
+          index: 'documents',
+          options: {
+            fuzzy: true,
+            limit: 10
+          }
+        }
+      },
+      {
+        description: '高级搜索查询',
+        params: {
+          query: 'title:AI AND category:技术',
+          index: 'articles',
+          options: {
+            boost: {
+              title: 2
+            },
+            limit: 20
+          }
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_search_query',
     name: 'search_query',
@@ -7415,11 +8958,21 @@ const builtinTools = [
           type: 'object',
           description: '查询选项',
           properties: {
-            limit: { type: 'number' },
-            offset: { type: 'number' },
-            filters: { type: 'object' },
-            sortBy: { type: 'string' },
-            highlight: { type: 'boolean' }
+            limit: {
+              type: 'number'
+            },
+            offset: {
+              type: 'number'
+            },
+            filters: {
+              type: 'object'
+            },
+            sortBy: {
+              type: 'string'
+            },
+            highlight: {
+              type: 'boolean'
+            }
           }
         }
       },
@@ -7428,45 +8981,68 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         results: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              id: { type: 'string' },
-              content: { type: 'string' },
-              score: { type: 'number' },
-              highlights: { type: 'array' }
+              id: {
+                type: 'string'
+              },
+              content: {
+                type: 'string'
+              },
+              score: {
+                type: 'number'
+              },
+              highlights: {
+                type: 'array'
+              }
             }
           }
         },
-        total: { type: 'number' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "处理数据使用搜索查询器",
-      "params": {
-        "indexName": "example_value",
-        "query": "example_value",
-        "options": {
-          "key": "value",
-          "enabled": true
+        total: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '全文搜索文档',
+        params: {
+          query: '人工智能应用',
+          index: 'documents',
+          options: {
+            fuzzy: true,
+            limit: 10
+          }
+        }
+      },
+      {
+        description: '高级搜索查询',
+        params: {
+          query: 'title:AI AND category:技术',
+          index: 'articles',
+          options: {
+            boost: {
+              title: 2
+            },
+            limit: 20
+          }
+        }
+      }
+    ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // =============== 第七批工具扩展 (137-156) ===============
-
-  // 网络安全工具 (137-138)
   {
     id: 'tool_vulnerability_scanner',
     name: 'vulnerability_scanner',
@@ -7495,9 +9071,15 @@ const builtinTools = [
           type: 'object',
           description: '扫描选项',
           properties: {
-            timeout: { type: 'number' },
-            concurrent: { type: 'number' },
-            aggressive: { type: 'boolean' }
+            timeout: {
+              type: 'number'
+            },
+            concurrent: {
+              type: 'number'
+            },
+            aggressive: {
+              type: 'boolean'
+            }
           }
         }
       },
@@ -7506,43 +9088,56 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         vulnerabilities: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              severity: { type: 'string' },
-              type: { type: 'string' },
-              description: { type: 'string' },
-              cve: { type: 'string' }
+              severity: {
+                type: 'string'
+              },
+              type: {
+                type: 'string'
+              },
+              description: {
+                type: 'string'
+              },
+              cve: {
+                type: 'string'
+              }
             }
           }
         },
-        risk_score: { type: 'number' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "漏洞扫描器使用示例",
-      "params": {
-        "target": "example_value",
-        "scanType": "port",
-        "depth": "quick",
-        "options": {
-          "key": "value",
-          "enabled": true
+        risk_score: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '漏洞扫描器使用示例',
+        params: {
+          target: 'example_value',
+          scanType: 'port',
+          depth: 'quick',
+          options: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['network.scan'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_security_auditor',
     name: 'security_auditor',
@@ -7565,7 +9160,9 @@ const builtinTools = [
         rules: {
           type: 'array',
           description: '审计规则集',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
         standard: {
           type: 'string',
@@ -7578,44 +9175,53 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         issues: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              severity: { type: 'string' },
-              rule: { type: 'string' },
-              location: { type: 'string' },
-              recommendation: { type: 'string' }
+              severity: {
+                type: 'string'
+              },
+              rule: {
+                type: 'string'
+              },
+              location: {
+                type: 'string'
+              },
+              recommendation: {
+                type: 'string'
+              }
             }
           }
         },
-        compliance_score: { type: 'number' },
-        error: { type: 'string' }
+        compliance_score: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "安全审计器使用示例",
-      "params": {
-        "auditType": "code",
-        "target": "example_value",
-        "rules": [
-          "item1",
-          "item2"
-        ],
-        "standard": "owasp"
+    examples: [
+      {
+        description: '安全审计器使用示例',
+        params: {
+          auditType: 'code',
+          target: 'example_value',
+          rules: ['item1', 'item2'],
+          standard: 'owasp'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 游戏引擎工具 (139-140)
   {
     id: 'tool_physics_engine',
     name: 'physics_engine',
@@ -7639,11 +9245,21 @@ const builtinTools = [
           type: 'object',
           description: '物理属性',
           properties: {
-            mass: { type: 'number' },
-            friction: { type: 'number' },
-            restitution: { type: 'number' },
-            position: { type: 'array' },
-            velocity: { type: 'array' }
+            mass: {
+              type: 'number'
+            },
+            friction: {
+              type: 'number'
+            },
+            restitution: {
+              type: 'number'
+            },
+            position: {
+              type: 'array'
+            },
+            velocity: {
+              type: 'array'
+            }
           }
         },
         force: {
@@ -7660,40 +9276,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        objectId: { type: 'string' },
+        success: {
+          type: 'boolean'
+        },
+        objectId: {
+          type: 'string'
+        },
         state: {
           type: 'object',
           properties: {
-            position: { type: 'array' },
-            velocity: { type: 'array' },
-            rotation: { type: 'number' }
+            position: {
+              type: 'array'
+            },
+            velocity: {
+              type: 'array'
+            },
+            rotation: {
+              type: 'number'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "action": "create",
-        "objectId": "example_value",
-        "properties": "example_value",
-        "force": [
-          "item1",
-          "item2"
-        ],
-        "deltaTime": 10
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          action: 'create',
+          objectId: 'example_value',
+          properties: 'example_value',
+          force: ['item1', 'item2'],
+          deltaTime: 10
+        }
       }
-    }
-  ],
-    required_permissions: ["file:read","media:process"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_collision_detector',
     name: 'collision_detector',
@@ -7710,9 +9334,15 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              id: { type: 'string' },
-              shape: { type: 'string' },
-              bounds: { type: 'object' }
+              id: {
+                type: 'string'
+              },
+              shape: {
+                type: 'string'
+              },
+              bounds: {
+                type: 'object'
+              }
             }
           }
         },
@@ -7731,43 +9361,52 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         collisions: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              objectA: { type: 'string' },
-              objectB: { type: 'string' },
-              point: { type: 'array' },
-              normal: { type: 'array' },
-              depth: { type: 'number' }
+              objectA: {
+                type: 'string'
+              },
+              objectB: {
+                type: 'string'
+              },
+              point: {
+                type: 'array'
+              },
+              normal: {
+                type: 'array'
+              },
+              depth: {
+                type: 'number'
+              }
             }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "objects": [
-          "item1",
-          "item2"
-        ],
-        "algorithm": "aabb",
-        "continuous": true
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          objects: ['item1', 'item2'],
+          algorithm: 'aabb',
+          continuous: true
+        }
       }
-    }
-  ],
-    required_permissions: ["file:read","media:process"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // GIS工具 (141-142)
   {
     id: 'tool_spatial_analyzer',
     name: 'spatial_analyzer',
@@ -7791,9 +9430,15 @@ const builtinTools = [
           type: 'object',
           description: '分析参数',
           properties: {
-            distance: { type: 'number' },
-            unit: { type: 'string' },
-            method: { type: 'string' }
+            distance: {
+              type: 'number'
+            },
+            unit: {
+              type: 'string'
+            },
+            method: {
+              type: 'string'
+            }
           }
         }
       },
@@ -7802,34 +9447,44 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         result: {
           type: 'object',
           description: 'GeoJSON结果'
         },
-        statistics: { type: 'object' },
-        error: { type: 'string' }
+        statistics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用空间分析器",
-      "params": {
-        "analysisType": "buffer",
-        "inputData": {
-          "key": "value",
-          "enabled": true
-        },
-        "parameters": "example_value"
+    examples: [
+      {
+        description: '使用空间分析器处理基础数据',
+        params: {
+          analysisType: 'buffer',
+          inputData: 'example_value',
+          parameters: 'example_value'
+        }
+      },
+      {
+        description: '使用空间分析器处理批量数据',
+        params: {
+          analysisType: 'buffer',
+          inputData: 'example_value',
+          parameters: 'example_value'
+        }
       }
-    }
-  ],
-    required_permissions: ["data:read","data:write"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_route_planner',
     name: 'route_planner',
@@ -7844,16 +9499,24 @@ const builtinTools = [
           type: 'object',
           description: '起点坐标',
           properties: {
-            lat: { type: 'number' },
-            lon: { type: 'number' }
+            lat: {
+              type: 'number'
+            },
+            lon: {
+              type: 'number'
+            }
           }
         },
         end: {
           type: 'object',
           description: '终点坐标',
           properties: {
-            lat: { type: 'number' },
-            lon: { type: 'number' }
+            lat: {
+              type: 'number'
+            },
+            lon: {
+              type: 'number'
+            }
           }
         },
         waypoints: {
@@ -7869,9 +9532,15 @@ const builtinTools = [
           type: 'object',
           description: '约束条件',
           properties: {
-            avoid_tolls: { type: 'boolean' },
-            avoid_highways: { type: 'boolean' },
-            max_distance: { type: 'number' }
+            avoid_tolls: {
+              type: 'boolean'
+            },
+            avoid_highways: {
+              type: 'boolean'
+            },
+            max_distance: {
+              type: 'number'
+            }
           }
         }
       },
@@ -7880,41 +9549,58 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         route: {
           type: 'object',
           properties: {
-            path: { type: 'array' },
-            distance: { type: 'number' },
-            duration: { type: 'number' },
-            steps: { type: 'array' }
+            path: {
+              type: 'array'
+            },
+            distance: {
+              type: 'number'
+            },
+            duration: {
+              type: 'number'
+            },
+            steps: {
+              type: 'array'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用路径规划器",
-      "params": {
-        "start": "example_value",
-        "end": "example_value",
-        "waypoints": [
-          "item1",
-          "item2"
-        ],
-        "algorithm": "dijkstra",
-        "constraints": "example_value"
+    examples: [
+      {
+        description: '使用路径规划器处理基础数据',
+        params: {
+          start: 'example_value',
+          end: 'example_value',
+          waypoints: ['item1', 'item2'],
+          algorithm: 'dijkstra',
+          constraints: 'example_value'
+        }
+      },
+      {
+        description: '使用路径规划器处理批量数据',
+        params: {
+          start: 'example_value',
+          end: 'example_value',
+          waypoints: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          algorithm: 'dijkstra',
+          constraints: 'example_value'
+        }
       }
-    }
-  ],
-    required_permissions: ["data:read","data:write"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 生物信息学工具 (143-144)
   {
     id: 'tool_sequence_aligner',
     name: 'sequence_aligner',
@@ -7928,7 +9614,9 @@ const builtinTools = [
         sequences: {
           type: 'array',
           description: '待比对序列列表',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
         algorithm: {
           type: 'string',
@@ -7944,9 +9632,15 @@ const builtinTools = [
           type: 'object',
           description: '比对参数',
           properties: {
-            match_score: { type: 'number' },
-            mismatch_penalty: { type: 'number' },
-            gap_penalty: { type: 'number' }
+            match_score: {
+              type: 'number'
+            },
+            mismatch_penalty: {
+              type: 'number'
+            },
+            gap_penalty: {
+              type: 'number'
+            }
           }
         }
       },
@@ -7955,36 +9649,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         alignment: {
           type: 'array',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
-        score: { type: 'number' },
-        identity: { type: 'number' },
-        error: { type: 'string' }
+        score: {
+          type: 'number'
+        },
+        identity: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用序列比对器进行AI处理",
-      "params": {
-        "sequences": [
-          "item1",
-          "item2"
-        ],
-        "algorithm": "needleman-wunsch",
-        "sequenceType": "dna",
-        "parameters": "example_value"
+    examples: [
+      {
+        description: '使用序列比对器进行AI处理',
+        params: {
+          sequences: ['item1', 'item2'],
+          algorithm: 'needleman-wunsch',
+          sequenceType: 'dna',
+          parameters: 'example_value'
+        }
       }
-    }
-  ],
-    required_permissions: ["ai:inference","data:read"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_protein_predictor',
     name: 'protein_predictor',
@@ -8015,35 +9715,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         prediction: {
           type: 'object',
           properties: {
-            structure: { type: 'string' },
-            confidence: { type: 'number' },
-            coordinates: { type: 'array' }
+            structure: {
+              type: 'string'
+            },
+            confidence: {
+              type: 'number'
+            },
+            coordinates: {
+              type: 'array'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用蛋白质结构预测器进行AI处理",
-      "params": {
-        "sequence": "example_value",
-        "predictionType": "secondary",
-        "method": "alphafold"
+    examples: [
+      {
+        description: '使用蛋白质结构预测器进行AI处理',
+        params: {
+          sequence: 'example_value',
+          predictionType: 'secondary',
+          method: 'alphafold'
+        }
       }
-    }
-  ],
-    required_permissions: ["ai:inference","data:read"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 财务分析工具 (145-146)
   {
     id: 'tool_financial_modeler',
     name: 'financial_modeler',
@@ -8063,10 +9771,18 @@ const builtinTools = [
           type: 'object',
           description: '模型输入参数',
           properties: {
-            cash_flows: { type: 'array' },
-            discount_rate: { type: 'number' },
-            initial_investment: { type: 'number' },
-            risk_free_rate: { type: 'number' }
+            cash_flows: {
+              type: 'array'
+            },
+            discount_rate: {
+              type: 'number'
+            },
+            initial_investment: {
+              type: 'number'
+            },
+            risk_free_rate: {
+              type: 'number'
+            }
           }
         },
         assumptions: {
@@ -8079,36 +9795,57 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         result: {
           type: 'object',
           properties: {
-            value: { type: 'number' },
-            npv: { type: 'number' },
-            irr: { type: 'number' },
-            payback_period: { type: 'number' }
+            value: {
+              type: 'number'
+            },
+            npv: {
+              type: 'number'
+            },
+            irr: {
+              type: 'number'
+            },
+            payback_period: {
+              type: 'number'
+            }
           }
         },
-        sensitivity_analysis: { type: 'object' },
-        error: { type: 'string' }
+        sensitivity_analysis: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用财务建模器",
-      "params": {
-        "modelType": "dcf",
-        "inputs": "example_value",
-        "assumptions": "example_value"
+    examples: [
+      {
+        description: '使用财务建模器处理基础数据',
+        params: {
+          modelType: 'dcf',
+          inputs: 'example_value',
+          assumptions: 'example_value'
+        }
+      },
+      {
+        description: '使用财务建模器处理批量数据',
+        params: {
+          modelType: 'dcf',
+          inputs: 'example_value',
+          assumptions: 'example_value'
+        }
       }
-    }
-  ],
-    required_permissions: ["data:read","data:write"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_risk_analyzer',
     name: 'risk_analyzer',
@@ -8125,9 +9862,15 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              asset: { type: 'string' },
-              weight: { type: 'number' },
-              returns: { type: 'array' }
+              asset: {
+                type: 'string'
+              },
+              weight: {
+                type: 'number'
+              },
+              returns: {
+                type: 'array'
+              }
             }
           }
         },
@@ -8153,45 +9896,62 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         risk_metrics: {
           type: 'object',
           properties: {
-            var: { type: 'number' },
-            cvar: { type: 'number' },
-            sharpe_ratio: { type: 'number' },
-            beta: { type: 'number' },
-            volatility: { type: 'number' }
+            var: {
+              type: 'number'
+            },
+            cvar: {
+              type: 'number'
+            },
+            sharpe_ratio: {
+              type: 'number'
+            },
+            beta: {
+              type: 'number'
+            },
+            volatility: {
+              type: 'number'
+            }
           }
         },
-        recommendations: { type: 'array' },
-        error: { type: 'string' }
+        recommendations: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用风险分析器",
-      "params": {
-        "portfolio": [
-          "item1",
-          "item2"
-        ],
-        "riskMetrics": [
-          "item1",
-          "item2"
-        ],
-        "confidence_level": 10,
-        "time_horizon": 10
+    examples: [
+      {
+        description: '使用风险分析器处理基础数据',
+        params: {
+          portfolio: ['item1', 'item2'],
+          riskMetrics: ['item1', 'item2'],
+          confidence_level: 100,
+          time_horizon: 100
+        }
+      },
+      {
+        description: '使用风险分析器处理批量数据',
+        params: {
+          portfolio: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          riskMetrics: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          confidence_level: 100,
+          time_horizon: 100
+        }
       }
-    }
-  ],
-    required_permissions: ["data:read","data:write"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 教育辅助工具 (147-148)
   {
     id: 'tool_exercise_generator',
     name: 'exercise_generator',
@@ -8231,41 +9991,54 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         exercises: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              id: { type: 'string' },
-              question: { type: 'string' },
-              options: { type: 'array' },
-              answer: { type: 'string' },
-              explanation: { type: 'string' }
+              id: {
+                type: 'string'
+              },
+              question: {
+                type: 'string'
+              },
+              options: {
+                type: 'array'
+              },
+              answer: {
+                type: 'string'
+              },
+              explanation: {
+                type: 'string'
+              }
             }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用习题生成器进行AI处理",
-      "params": {
-        "subject": "math",
-        "topic": "example_value",
-        "difficulty": "easy",
-        "count": 10,
-        "type": "choice"
+    examples: [
+      {
+        description: '使用习题生成器进行AI处理',
+        params: {
+          subject: 'math',
+          topic: 'example_value',
+          difficulty: 'easy',
+          count: 10,
+          type: 'choice'
+        }
       }
-    }
-  ],
-    required_permissions: ["ai:inference","data:read"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_auto_grader',
     name: 'auto_grader',
@@ -8282,8 +10055,12 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              student_id: { type: 'string' },
-              answers: { type: 'array' }
+              student_id: {
+                type: 'string'
+              },
+              answers: {
+                type: 'array'
+              }
             }
           }
         },
@@ -8295,8 +10072,12 @@ const builtinTools = [
           type: 'object',
           description: '评分标准',
           properties: {
-            total_points: { type: 'number' },
-            partial_credit: { type: 'boolean' }
+            total_points: {
+              type: 'number'
+            },
+            partial_credit: {
+              type: 'boolean'
+            }
           }
         },
         feedback_level: {
@@ -8310,48 +10091,56 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         results: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              student_id: { type: 'string' },
-              score: { type: 'number' },
-              feedback: { type: 'array' },
-              strengths: { type: 'array' },
-              weaknesses: { type: 'array' }
+              student_id: {
+                type: 'string'
+              },
+              score: {
+                type: 'number'
+              },
+              feedback: {
+                type: 'array'
+              },
+              strengths: {
+                type: 'array'
+              },
+              weaknesses: {
+                type: 'array'
+              }
             }
           }
         },
-        statistics: { type: 'object' },
-        error: { type: 'string' }
+        statistics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用自动批改器进行AI处理",
-      "params": {
-        "submissions": [
-          "item1",
-          "item2"
-        ],
-        "answer_key": [
-          "item1",
-          "item2"
-        ],
-        "grading_rubric": "example_value",
-        "feedback_level": "minimal"
+    examples: [
+      {
+        description: '使用自动批改器进行AI处理',
+        params: {
+          submissions: ['item1', 'item2'],
+          answer_key: ['item1', 'item2'],
+          grading_rubric: 'example_value',
+          feedback_level: 'minimal'
+        }
       }
-    }
-  ],
-    required_permissions: ["ai:inference","data:read"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 医疗健康工具 (149-150)
   {
     id: 'tool_medical_image_analyzer',
     name: 'medical_image_analyzer',
@@ -8387,41 +10176,56 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         findings: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string' },
-              location: { type: 'object' },
-              confidence: { type: 'number' },
-              severity: { type: 'string' }
+              type: {
+                type: 'string'
+              },
+              location: {
+                type: 'object'
+              },
+              confidence: {
+                type: 'number'
+              },
+              severity: {
+                type: 'string'
+              }
             }
           }
         },
-        measurements: { type: 'object' },
-        visualization: { type: 'string' },
-        error: { type: 'string' }
+        measurements: {
+          type: 'object'
+        },
+        visualization: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用医学影像分析器进行AI处理",
-      "params": {
-        "imagePath": "./images/sample.png",
-        "imageType": "ct",
-        "analysisType": "lesion_detection",
-        "bodyPart": "brain"
+    examples: [
+      {
+        description: '使用医学影像分析器进行AI处理',
+        params: {
+          imagePath: './images/sample.png',
+          imageType: 'ct',
+          analysisType: 'lesion_detection',
+          bodyPart: 'brain'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_health_monitor',
     name: 'health_monitor',
@@ -8436,11 +10240,21 @@ const builtinTools = [
           type: 'object',
           description: '健康指标',
           properties: {
-            heart_rate: { type: 'number' },
-            blood_pressure: { type: 'object' },
-            temperature: { type: 'number' },
-            sleep_hours: { type: 'number' },
-            steps: { type: 'number' }
+            heart_rate: {
+              type: 'number'
+            },
+            blood_pressure: {
+              type: 'object'
+            },
+            temperature: {
+              type: 'number'
+            },
+            sleep_hours: {
+              type: 'number'
+            },
+            steps: {
+              type: 'number'
+            }
           }
         },
         history: {
@@ -8451,9 +10265,15 @@ const builtinTools = [
           type: 'object',
           description: '用户信息',
           properties: {
-            age: { type: 'number' },
-            gender: { type: 'string' },
-            conditions: { type: 'array' }
+            age: {
+              type: 'number'
+            },
+            gender: {
+              type: 'string'
+            },
+            conditions: {
+              type: 'array'
+            }
           }
         }
       },
@@ -8462,40 +10282,49 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         analysis: {
           type: 'object',
           properties: {
-            status: { type: 'string' },
-            anomalies: { type: 'array' },
-            trends: { type: 'object' }
+            status: {
+              type: 'string'
+            },
+            anomalies: {
+              type: 'array'
+            },
+            trends: {
+              type: 'object'
+            }
           }
         },
-        recommendations: { type: 'array' },
-        risk_assessment: { type: 'object' },
-        error: { type: 'string' }
+        recommendations: {
+          type: 'array'
+        },
+        risk_assessment: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用健康监测器进行AI处理",
-      "params": {
-        "metrics": "example_value",
-        "history": [
-          "item1",
-          "item2"
-        ],
-        "user_profile": "./data/sample.dat"
+    examples: [
+      {
+        description: '使用健康监测器进行AI处理',
+        params: {
+          metrics: 'example_value',
+          history: ['item1', 'item2'],
+          user_profile: './data/sample.dat'
+        }
       }
-    }
-  ],
-    required_permissions: ["ai:inference","data:read"],
+    ],
+    required_permissions: [],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 法律辅助工具 (151-152)
   {
     id: 'tool_legal_document_generator',
     name: 'legal_document_generator',
@@ -8521,9 +10350,15 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              name: { type: 'string' },
-              role: { type: 'string' },
-              address: { type: 'string' }
+              name: {
+                type: 'string'
+              },
+              role: {
+                type: 'string'
+              },
+              address: {
+                type: 'string'
+              }
             }
           }
         },
@@ -8542,43 +10377,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         document: {
           type: 'object',
           properties: {
-            content: { type: 'string' },
-            format: { type: 'string' },
-            metadata: { type: 'object' }
+            content: {
+              type: 'string'
+            },
+            format: {
+              type: 'string'
+            },
+            metadata: {
+              type: 'object'
+            }
           }
         },
-        warnings: { type: 'array' },
-        error: { type: 'string' }
+        warnings: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用法律文书生成器进行AI处理",
-      "params": {
-        "documentType": "contract",
-        "template": "example_value",
-        "parties": [
-          "item1",
-          "item2"
-        ],
-        "clauses": [
-          "item1",
-          "item2"
-        ],
-        "jurisdiction": "cn"
+    examples: [
+      {
+        description: '使用法律文书生成器进行AI处理',
+        params: {
+          documentType: 'contract',
+          template: 'example_value',
+          parties: ['item1', 'item2'],
+          clauses: ['item1', 'item2'],
+          jurisdiction: 'cn'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_case_searcher',
     name: 'case_searcher',
@@ -8606,16 +10446,24 @@ const builtinTools = [
           type: 'object',
           description: '日期范围',
           properties: {
-            start: { type: 'string' },
-            end: { type: 'string' }
+            start: {
+              type: 'string'
+            },
+            end: {
+              type: 'string'
+            }
           }
         },
         filters: {
           type: 'object',
           description: '过滤条件',
           properties: {
-            court: { type: 'string' },
-            category: { type: 'string' }
+            court: {
+              type: 'string'
+            },
+            category: {
+              type: 'string'
+            }
           }
         }
       },
@@ -8624,43 +10472,69 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         results: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              title: { type: 'string' },
-              citation: { type: 'string' },
-              summary: { type: 'string' },
-              relevance: { type: 'number' },
-              url: { type: 'string' }
+              title: {
+                type: 'string'
+              },
+              citation: {
+                type: 'string'
+              },
+              summary: {
+                type: 'string'
+              },
+              relevance: {
+                type: 'number'
+              },
+              url: {
+                type: 'string'
+              }
             }
           }
         },
-        total: { type: 'number' },
-        error: { type: 'string' }
+        total: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用案例检索器进行AI处理",
-      "params": {
-        "query": "example_value",
-        "searchType": "case",
-        "jurisdiction": "example_value",
-        "dateRange": "example_value",
-        "filters": "example_value"
+    examples: [
+      {
+        description: '搜索相关文档',
+        params: {
+          query: '如何使用API',
+          index: 'knowledge_base',
+          options: {
+            top_k: 5,
+            similarity_threshold: 0.7
+          }
+        }
+      },
+      {
+        description: '语义搜索',
+        params: {
+          query: '智能合约安全问题',
+          index: 'blockchain_docs',
+          options: {
+            semantic: true,
+            top_k: 10
+          }
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 建筑设计工具 (153-154)
   {
     id: 'tool_bim_modeler',
     name: 'bim_modeler',
@@ -8691,9 +10565,15 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string' },
-              properties: { type: 'object' },
-              geometry: { type: 'object' }
+              type: {
+                type: 'string'
+              },
+              properties: {
+                type: 'object'
+              },
+              geometry: {
+                type: 'object'
+              }
             }
           }
         }
@@ -8703,38 +10583,44 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         model: {
           type: 'object',
           properties: {
-            path: { type: 'string' },
-            elements_count: { type: 'number' },
-            metadata: { type: 'object' }
+            path: {
+              type: 'string'
+            },
+            elements_count: {
+              type: 'number'
+            },
+            metadata: {
+              type: 'object'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "action": "create",
-        "modelPath": "./data/sample.dat",
-        "format": "ifc",
-        "elements": [
-          "item1",
-          "item2"
-        ]
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          action: 'create',
+          modelPath: './data/sample.dat',
+          format: 'ifc',
+          elements: ['item1', 'item2']
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_structure_analyzer',
     name: 'structure_analyzer',
@@ -8749,9 +10635,15 @@ const builtinTools = [
           type: 'object',
           description: '结构模型',
           properties: {
-            type: { type: 'string' },
-            materials: { type: 'array' },
-            dimensions: { type: 'object' }
+            type: {
+              type: 'string'
+            },
+            materials: {
+              type: 'array'
+            },
+            dimensions: {
+              type: 'object'
+            }
           }
         },
         analysisType: {
@@ -8765,9 +10657,15 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string' },
-              magnitude: { type: 'number' },
-              location: { type: 'object' }
+              type: {
+                type: 'string'
+              },
+              magnitude: {
+                type: 'number'
+              },
+              location: {
+                type: 'object'
+              }
             }
           }
         },
@@ -8782,42 +10680,53 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         results: {
           type: 'object',
           properties: {
-            stress: { type: 'array' },
-            displacement: { type: 'array' },
-            safety_factor: { type: 'number' },
-            critical_points: { type: 'array' }
+            stress: {
+              type: 'array'
+            },
+            displacement: {
+              type: 'array'
+            },
+            safety_factor: {
+              type: 'number'
+            },
+            critical_points: {
+              type: 'array'
+            }
           }
         },
-        compliance: { type: 'boolean' },
-        recommendations: { type: 'array' },
-        error: { type: 'string' }
+        compliance: {
+          type: 'boolean'
+        },
+        recommendations: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "structure": "example_value",
-        "analysisType": "static",
-        "loads": [
-          "item1",
-          "item2"
-        ],
-        "standard": "gb"
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          structure: 'example_value',
+          analysisType: 'static',
+          loads: ['item1', 'item2'],
+          standard: 'gb'
+        }
       }
-    }
-  ],
-    required_permissions: ["file:read","media:process"],
+    ],
+    required_permissions: [],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 电子商务工具 (155-156)
   {
     id: 'tool_recommendation_engine',
     name: 'recommendation_engine',
@@ -8841,18 +10750,30 @@ const builtinTools = [
           type: 'object',
           description: '上下文信息',
           properties: {
-            location: { type: 'string' },
-            time: { type: 'string' },
-            device: { type: 'string' }
+            location: {
+              type: 'string'
+            },
+            time: {
+              type: 'string'
+            },
+            device: {
+              type: 'string'
+            }
           }
         },
         filters: {
           type: 'object',
           description: '过滤条件',
           properties: {
-            categories: { type: 'array' },
-            price_range: { type: 'object' },
-            in_stock: { type: 'boolean' }
+            categories: {
+              type: 'array'
+            },
+            price_range: {
+              type: 'object'
+            },
+            in_stock: {
+              type: 'boolean'
+            }
           }
         },
         limit: {
@@ -8865,40 +10786,61 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         recommendations: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              item_id: { type: 'string' },
-              score: { type: 'number' },
-              reason: { type: 'string' },
-              metadata: { type: 'object' }
+              item_id: {
+                type: 'string'
+              },
+              score: {
+                type: 'number'
+              },
+              reason: {
+                type: 'string'
+              },
+              metadata: {
+                type: 'object'
+              }
             }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用推荐引擎",
-      "params": {
-        "userId": "example_value",
-        "algorithm": "collaborative",
-        "context": "这是一段示例文本用于测试",
-        "filters": "example_value",
-        "limit": 100
+    examples: [
+      {
+        description: '使用推荐引擎处理基础数据',
+        params: {
+          userId: 'example_value',
+          algorithm: 'collaborative',
+          context: '这是一段示例文本',
+          filters: 'example_value',
+          limit: 10
+        }
+      },
+      {
+        description: '使用推荐引擎处理批量数据',
+        params: {
+          userId: 'example_value',
+          algorithm: 'collaborative',
+          context: '这是一段示例文本',
+          filters: 'example_value',
+          limit: 100
+        }
       }
-    }
-  ],
-    required_permissions: ["data:read","data:write"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_inventory_manager',
     name: 'inventory_manager',
@@ -8920,10 +10862,18 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              sku: { type: 'string' },
-              quantity: { type: 'number' },
-              cost: { type: 'number' },
-              sales_history: { type: 'array' }
+              sku: {
+                type: 'string'
+              },
+              quantity: {
+                type: 'number'
+              },
+              cost: {
+                type: 'number'
+              },
+              sales_history: {
+                type: 'array'
+              }
             }
           }
         },
@@ -8931,9 +10881,15 @@ const builtinTools = [
           type: 'object',
           description: '管理参数',
           properties: {
-            lead_time: { type: 'number' },
-            service_level: { type: 'number' },
-            holding_cost: { type: 'number' }
+            lead_time: {
+              type: 'number'
+            },
+            service_level: {
+              type: 'number'
+            },
+            holding_cost: {
+              type: 'number'
+            }
           }
         },
         forecast_horizon: {
@@ -8946,43 +10902,59 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         result: {
           type: 'object',
           properties: {
-            forecast: { type: 'array' },
-            reorder_points: { type: 'object' },
-            order_quantities: { type: 'object' },
-            stockout_risk: { type: 'number' }
+            forecast: {
+              type: 'array'
+            },
+            reorder_points: {
+              type: 'object'
+            },
+            order_quantities: {
+              type: 'object'
+            },
+            stockout_risk: {
+              type: 'number'
+            }
           }
         },
-        recommendations: { type: 'array' },
-        error: { type: 'string' }
+        recommendations: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用库存管理器",
-      "params": {
-        "action": "forecast",
-        "inventory": [
-          "item1",
-          "item2"
-        ],
-        "parameters": "example_value",
-        "forecast_horizon": 10
+    examples: [
+      {
+        description: '使用库存管理器处理基础数据',
+        params: {
+          action: 'forecast',
+          inventory: ['item1', 'item2'],
+          parameters: 'example_value',
+          forecast_horizon: 100
+        }
+      },
+      {
+        description: '使用库存管理器处理批量数据',
+        params: {
+          action: 'forecast',
+          inventory: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          parameters: 'example_value',
+          forecast_horizon: 100
+        }
       }
-    }
-  ],
-    required_permissions: ["data:read","data:write"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // =============== 第八批工具扩展 (157-176) ===============
-
-  // 云计算DevOps工具 (157-158)
   {
     id: 'tool_container_orchestrator',
     name: 'container_orchestrator',
@@ -9002,11 +10974,21 @@ const builtinTools = [
           type: 'object',
           description: '服务配置',
           properties: {
-            name: { type: 'string' },
-            image: { type: 'string' },
-            replicas: { type: 'number' },
-            ports: { type: 'array' },
-            env: { type: 'object' }
+            name: {
+              type: 'string'
+            },
+            image: {
+              type: 'string'
+            },
+            replicas: {
+              type: 'number'
+            },
+            ports: {
+              type: 'array'
+            },
+            env: {
+              type: 'object'
+            }
           }
         },
         namespace: {
@@ -9023,36 +11005,47 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         deployment: {
           type: 'object',
           properties: {
-            name: { type: 'string' },
-            status: { type: 'string' },
-            replicas: { type: 'number' },
-            ready: { type: 'number' }
+            name: {
+              type: 'string'
+            },
+            status: {
+              type: 'string'
+            },
+            replicas: {
+              type: 'number'
+            },
+            ready: {
+              type: 'number'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "容器编排器使用示例",
-      "params": {
-        "action": "deploy",
-        "service": "example_value",
-        "namespace": "example_value",
-        "cluster": "example_value"
+    examples: [
+      {
+        description: '容器编排器使用示例',
+        params: {
+          action: 'deploy',
+          service: 'example_value',
+          namespace: 'example_value',
+          cluster: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_cicd_pipeline',
     name: 'cicd_pipeline',
@@ -9072,9 +11065,15 @@ const builtinTools = [
           type: 'object',
           description: '流水线配置',
           properties: {
-            name: { type: 'string' },
-            stages: { type: 'array' },
-            triggers: { type: 'array' }
+            name: {
+              type: 'string'
+            },
+            stages: {
+              type: 'array'
+            },
+            triggers: {
+              type: 'array'
+            }
           }
         },
         repository: {
@@ -9091,37 +11090,47 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         pipeline_run: {
           type: 'object',
           properties: {
-            id: { type: 'string' },
-            status: { type: 'string' },
-            stages: { type: 'array' },
-            duration: { type: 'number' }
+            id: {
+              type: 'string'
+            },
+            status: {
+              type: 'string'
+            },
+            stages: {
+              type: 'array'
+            },
+            duration: {
+              type: 'number'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "CI/CD流水线使用示例",
-      "params": {
-        "action": "create",
-        "pipeline": "example_value",
-        "repository": "example_value",
-        "branch": "example_value"
+    examples: [
+      {
+        description: 'CI/CD流水线使用示例',
+        params: {
+          action: 'create',
+          pipeline: 'example_value',
+          repository: 'example_value',
+          branch: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['cicd.execute'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 量子计算工具 (159-160)
   {
     id: 'tool_quantum_circuit_builder',
     name: 'quantum_circuit_builder',
@@ -9142,10 +11151,18 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string' },
-              target: { type: 'number' },
-              control: { type: 'number' },
-              angle: { type: 'number' }
+              type: {
+                type: 'string'
+              },
+              target: {
+                type: 'number'
+              },
+              control: {
+                type: 'number'
+              },
+              angle: {
+                type: 'number'
+              }
             }
           }
         },
@@ -9159,41 +11176,46 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         circuit: {
           type: 'object',
           properties: {
-            qubits: { type: 'number' },
-            depth: { type: 'number' },
-            gates: { type: 'array' },
-            qasm: { type: 'string' }
+            qubits: {
+              type: 'number'
+            },
+            depth: {
+              type: 'number'
+            },
+            gates: {
+              type: 'array'
+            },
+            qasm: {
+              type: 'string'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用量子电路构建器进行AI处理",
-      "params": {
-        "num_qubits": 10,
-        "gates": [
-          "item1",
-          "item2"
-        ],
-        "measurements": [
-          "item1",
-          "item2"
-        ]
+    examples: [
+      {
+        description: '使用量子电路构建器进行AI处理',
+        params: {
+          num_qubits: 10,
+          gates: ['item1', 'item2'],
+          measurements: ['item1', 'item2']
+        }
       }
-    }
-  ],
-    required_permissions: ["ai:inference","data:read"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_quantum_simulator',
     name: 'quantum_simulator',
@@ -9227,37 +11249,47 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         results: {
           type: 'object',
           properties: {
-            counts: { type: 'object' },
-            statevector: { type: 'array' },
-            probabilities: { type: 'object' }
+            counts: {
+              type: 'object'
+            },
+            statevector: {
+              type: 'array'
+            },
+            probabilities: {
+              type: 'object'
+            }
           }
         },
-        execution_time: { type: 'number' },
-        error: { type: 'string' }
+        execution_time: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用量子模拟器进行AI处理",
-      "params": {
-        "circuit": "example_value",
-        "shots": 10,
-        "backend": "statevector",
-        "noise_model": "example_value"
+    examples: [
+      {
+        description: '使用量子模拟器进行AI处理',
+        params: {
+          circuit: 'example_value',
+          shots: 10,
+          backend: 'statevector',
+          noise_model: 'example_value'
+        }
       }
-    }
-  ],
-    required_permissions: ["ai:inference","code:execute","data:read"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // AR/VR工具 (161-162)
   {
     id: 'tool_ar_content_creator',
     name: 'ar_content_creator',
@@ -9279,10 +11311,18 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string' },
-              url: { type: 'string' },
-              position: { type: 'array' },
-              scale: { type: 'array' }
+              type: {
+                type: 'string'
+              },
+              url: {
+                type: 'string'
+              },
+              position: {
+                type: 'array'
+              },
+              scale: {
+                type: 'array'
+              }
             }
           }
         },
@@ -9300,41 +11340,44 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         scene: {
           type: 'object',
           properties: {
-            id: { type: 'string' },
-            url: { type: 'string' },
-            preview: { type: 'string' }
+            id: {
+              type: 'string'
+            },
+            url: {
+              type: 'string'
+            },
+            preview: {
+              type: 'string'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "contentType": "这是一段示例文本用于测试",
-        "assets": [
-          "item1",
-          "item2"
-        ],
-        "interactions": [
-          "item1",
-          "item2"
-        ],
-        "tracking": "example_value"
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          contentType: '这是一段示例文本用于测试',
+          assets: ['item1', 'item2'],
+          interactions: ['item1', 'item2'],
+          tracking: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_vr_scene_builder',
     name: 'vr_scene_builder',
@@ -9349,9 +11392,15 @@ const builtinTools = [
           type: 'object',
           description: '环境设置',
           properties: {
-            skybox: { type: 'string' },
-            lighting: { type: 'object' },
-            fog: { type: 'object' }
+            skybox: {
+              type: 'string'
+            },
+            lighting: {
+              type: 'object'
+            },
+            fog: {
+              type: 'object'
+            }
           }
         },
         objects: {
@@ -9360,10 +11409,18 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              model: { type: 'string' },
-              position: { type: 'array' },
-              rotation: { type: 'array' },
-              physics: { type: 'object' }
+              model: {
+                type: 'string'
+              },
+              position: {
+                type: 'array'
+              },
+              rotation: {
+                type: 'array'
+              },
+              physics: {
+                type: 'object'
+              }
             }
           }
         },
@@ -9371,8 +11428,12 @@ const builtinTools = [
           type: 'object',
           description: '导航配置',
           properties: {
-            type: { type: 'string' },
-            speed: { type: 'number' }
+            type: {
+              type: 'string'
+            },
+            speed: {
+              type: 'number'
+            }
           }
         }
       },
@@ -9381,37 +11442,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         scene: {
           type: 'object',
           properties: {
-            id: { type: 'string' },
-            url: { type: 'string' },
-            assets: { type: 'array' }
+            id: {
+              type: 'string'
+            },
+            url: {
+              type: 'string'
+            },
+            assets: {
+              type: 'array'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "environment": "example_value",
-        "objects": [
-          "item1",
-          "item2"
-        ],
-        "navigation": "example_value"
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          environment: 'example_value',
+          objects: ['item1', 'item2'],
+          navigation: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_voice_cloner',
     name: 'voice_cloner',
@@ -9449,32 +11516,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        model_id: { type: 'string' },
-        audioPath: { type: 'string' },
-        similarity_score: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        model_id: {
+          type: 'string'
+        },
+        audioPath: {
+          type: 'string'
+        },
+        similarity_score: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "action": "train",
-        "reference_audio": "example_value",
-        "text": "这是一段示例文本用于测试",
-        "model_id": "example_value",
-        "training_duration": 10
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          action: 'train',
+          reference_audio: 'example_value',
+          text: '这是一段示例文本用于测试',
+          model_id: 'example_value',
+          training_duration: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 计算机视觉工具 (165-166)
   {
     id: 'tool_object_detector',
     name: 'object_detector',
@@ -9497,7 +11572,9 @@ const builtinTools = [
         classes: {
           type: 'array',
           description: '要检测的类别',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
         confidence_threshold: {
           type: 'number',
@@ -9513,43 +11590,51 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         detections: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              class: { type: 'string' },
-              confidence: { type: 'number' },
-              bbox: { type: 'array' }
+              class: {
+                type: 'string'
+              },
+              confidence: {
+                type: 'number'
+              },
+              bbox: {
+                type: 'array'
+              }
             }
           }
         },
-        annotated_image: { type: 'string' },
-        error: { type: 'string' }
+        annotated_image: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用目标检测器进行AI处理",
-      "params": {
-        "imagePath": "./images/sample.png",
-        "model": "yolo",
-        "classes": [
-          "item1",
-          "item2"
-        ],
-        "confidence_threshold": 10,
-        "nms_threshold": 10
+    examples: [
+      {
+        description: '使用目标检测器进行AI处理',
+        params: {
+          imagePath: './images/sample.png',
+          model: 'yolo',
+          classes: ['item1', 'item2'],
+          confidence_threshold: 10,
+          nms_threshold: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_image_segmenter',
     name: 'image_segmenter',
@@ -9584,43 +11669,50 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         masks: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              class: { type: 'string' },
-              mask: { type: 'array' },
-              area: { type: 'number' }
+              class: {
+                type: 'string'
+              },
+              mask: {
+                type: 'array'
+              },
+              area: {
+                type: 'number'
+              }
             }
           }
         },
-        visualization: { type: 'string' },
-        error: { type: 'string' }
+        visualization: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用图像分割器进行AI处理",
-      "params": {
-        "imagePath": "./images/sample.png",
-        "segmentationType": "semantic",
-        "model": "unet",
-        "classes": [
-          "item1",
-          "item2"
-        ]
+    examples: [
+      {
+        description: '使用图像分割器进行AI处理',
+        params: {
+          imagePath: './images/sample.png',
+          segmentationType: 'semantic',
+          model: 'unet',
+          classes: ['item1', 'item2']
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 自动化测试工具 (167-168)
   {
     id: 'tool_test_generator',
     name: 'test_generator',
@@ -9659,39 +11751,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         testFiles: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              path: { type: 'string' },
-              tests_count: { type: 'number' }
+              path: {
+                type: 'string'
+              },
+              tests_count: {
+                type: 'number'
+              }
             }
           }
         },
-        estimated_coverage: { type: 'number' },
-        error: { type: 'string' }
+        estimated_coverage: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "测试用例生成器使用示例",
-      "params": {
-        "sourcePath": "./data/sample.dat",
-        "testType": "unit",
-        "framework": "jest",
-        "coverage_target": 10,
-        "mocking": true
+    examples: [
+      {
+        description: '测试用例生成器使用示例',
+        params: {
+          sourcePath: './data/sample.dat',
+          testType: 'unit',
+          framework: 'jest',
+          coverage_target: 10,
+          mocking: true
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_test_runner',
     name: 'test_runner',
@@ -9714,18 +11815,30 @@ const builtinTools = [
           type: 'object',
           description: '运行选项',
           properties: {
-            parallel: { type: 'boolean' },
-            coverage: { type: 'boolean' },
-            watch: { type: 'boolean' },
-            timeout: { type: 'number' }
+            parallel: {
+              type: 'boolean'
+            },
+            coverage: {
+              type: 'boolean'
+            },
+            watch: {
+              type: 'boolean'
+            },
+            timeout: {
+              type: 'number'
+            }
           }
         },
         filters: {
           type: 'object',
           description: '过滤条件',
           properties: {
-            pattern: { type: 'string' },
-            tags: { type: 'array' }
+            pattern: {
+              type: 'string'
+            },
+            tags: {
+              type: 'array'
+            }
           }
         }
       },
@@ -9734,43 +11847,59 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         results: {
           type: 'object',
           properties: {
-            total: { type: 'number' },
-            passed: { type: 'number' },
-            failed: { type: 'number' },
-            skipped: { type: 'number' },
-            duration: { type: 'number' }
+            total: {
+              type: 'number'
+            },
+            passed: {
+              type: 'number'
+            },
+            failed: {
+              type: 'number'
+            },
+            skipped: {
+              type: 'number'
+            },
+            duration: {
+              type: 'number'
+            }
           }
         },
-        coverage: { type: 'object' },
-        report_path: { type: 'string' },
-        error: { type: 'string' }
+        coverage: {
+          type: 'object'
+        },
+        report_path: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "测试执行器使用示例",
-      "params": {
-        "testPath": "./data/sample.dat",
-        "framework": "example_value",
-        "options": {
-          "key": "value",
-          "enabled": true
-        },
-        "filters": "example_value"
+    examples: [
+      {
+        description: '测试执行器使用示例',
+        params: {
+          testPath: './data/sample.dat',
+          framework: 'example_value',
+          options: {
+            key: 'value',
+            enabled: true
+          },
+          filters: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 内容管理工具 (169-170)
   {
     id: 'tool_content_publisher',
     name: 'content_publisher',
@@ -9790,28 +11919,48 @@ const builtinTools = [
           type: 'object',
           description: '内容数据',
           properties: {
-            id: { type: 'string' },
-            title: { type: 'string' },
-            body: { type: 'string' },
-            author: { type: 'string' },
-            tags: { type: 'array' },
-            metadata: { type: 'object' }
+            id: {
+              type: 'string'
+            },
+            title: {
+              type: 'string'
+            },
+            body: {
+              type: 'string'
+            },
+            author: {
+              type: 'string'
+            },
+            tags: {
+              type: 'array'
+            },
+            metadata: {
+              type: 'object'
+            }
           }
         },
         workflow: {
           type: 'object',
           description: '工作流配置',
           properties: {
-            approval_required: { type: 'boolean' },
-            reviewers: { type: 'array' }
+            approval_required: {
+              type: 'boolean'
+            },
+            reviewers: {
+              type: 'array'
+            }
           }
         },
         schedule: {
           type: 'object',
           description: '发布计划',
           properties: {
-            publish_at: { type: 'string' },
-            expire_at: { type: 'string' }
+            publish_at: {
+              type: 'string'
+            },
+            expire_at: {
+              type: 'string'
+            }
           }
         }
       },
@@ -9820,31 +11969,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        content_id: { type: 'string' },
-        status: { type: 'string' },
-        version: { type: 'number' },
-        url: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        content_id: {
+          type: 'string'
+        },
+        status: {
+          type: 'string'
+        },
+        version: {
+          type: 'number'
+        },
+        url: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用内容发布器",
-      "params": {
-        "action": "create",
-        "content": "这是一段示例文本用于测试",
-        "workflow": "example_value",
-        "schedule": "example_value"
+    examples: [
+      {
+        description: '处理数据使用内容发布器',
+        params: {
+          action: 'create',
+          content: '这是一段示例文本用于测试',
+          workflow: 'example_value',
+          schedule: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['content.write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_media_manager',
     name: 'media_manager',
@@ -9864,26 +12024,42 @@ const builtinTools = [
           type: 'object',
           description: '文件信息',
           properties: {
-            path: { type: 'string' },
-            type: { type: 'string' },
-            size: { type: 'number' }
+            path: {
+              type: 'string'
+            },
+            type: {
+              type: 'string'
+            },
+            size: {
+              type: 'number'
+            }
           }
         },
         transcode_options: {
           type: 'object',
           description: '转码选项',
           properties: {
-            format: { type: 'string' },
-            quality: { type: 'string' },
-            resolution: { type: 'string' }
+            format: {
+              type: 'string'
+            },
+            quality: {
+              type: 'string'
+            },
+            resolution: {
+              type: 'string'
+            }
           }
         },
         cdn: {
           type: 'object',
           description: 'CDN配置',
           properties: {
-            enabled: { type: 'boolean' },
-            cache_ttl: { type: 'number' }
+            enabled: {
+              type: 'boolean'
+            },
+            cache_ttl: {
+              type: 'number'
+            }
           }
         }
       },
@@ -9892,32 +12068,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        file_id: { type: 'string' },
-        url: { type: 'string' },
-        cdn_url: { type: 'string' },
-        metadata: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        file_id: {
+          type: 'string'
+        },
+        url: {
+          type: 'string'
+        },
+        cdn_url: {
+          type: 'string'
+        },
+        metadata: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用媒体管理器",
-      "params": {
-        "action": "upload",
-        "file": "./data/sample.dat",
-        "transcode_options": "function example() { return true; }",
-        "cdn": "example_value"
+    examples: [
+      {
+        description: '处理数据使用媒体管理器',
+        params: {
+          action: 'upload',
+          file: './data/sample.dat',
+          transcode_options: 'function example() { return true; }',
+          cdn: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 社交媒体分析工具 (171-172)
   {
     id: 'tool_sentiment_monitor',
     name: 'sentiment_monitor',
@@ -9931,7 +12117,9 @@ const builtinTools = [
         keywords: {
           type: 'array',
           description: '关键词列表',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
         platforms: {
           type: 'array',
@@ -9945,8 +12133,12 @@ const builtinTools = [
           type: 'object',
           description: '时间范围',
           properties: {
-            start: { type: 'string' },
-            end: { type: 'string' }
+            start: {
+              type: 'string'
+            },
+            end: {
+              type: 'string'
+            }
           }
         },
         language: {
@@ -9959,43 +12151,59 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         sentiment: {
           type: 'object',
           properties: {
-            positive: { type: 'number' },
-            neutral: { type: 'number' },
-            negative: { type: 'number' }
+            positive: {
+              type: 'number'
+            },
+            neutral: {
+              type: 'number'
+            },
+            negative: {
+              type: 'number'
+            }
           }
         },
-        trends: { type: 'array' },
-        top_posts: { type: 'array' },
-        error: { type: 'string' }
+        trends: {
+          type: 'array'
+        },
+        top_posts: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用舆情监控器",
-      "params": {
-        "keywords": [
-          "item1",
-          "item2"
-        ],
-        "platforms": [
-          "item1",
-          "item2"
-        ],
-        "timeRange": "example_value",
-        "language": "example_value"
+    examples: [
+      {
+        description: '使用舆情监控器处理基础数据',
+        params: {
+          keywords: ['item1', 'item2'],
+          platforms: ['item1', 'item2'],
+          timeRange: 'example_value',
+          language: 'example_value'
+        }
+      },
+      {
+        description: '使用舆情监控器处理批量数据',
+        params: {
+          keywords: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          platforms: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          timeRange: 'example_value',
+          language: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_influencer_analyzer',
     name: 'influencer_analyzer',
@@ -10033,41 +12241,59 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         profile: {
           type: 'object',
           properties: {
-            followers: { type: 'number' },
-            engagement_rate: { type: 'number' },
-            influence_score: { type: 'number' }
+            followers: {
+              type: 'number'
+            },
+            engagement_rate: {
+              type: 'number'
+            },
+            influence_score: {
+              type: 'number'
+            }
           }
         },
-        audience_demographics: { type: 'object' },
-        content_analysis: { type: 'object' },
-        error: { type: 'string' }
+        audience_demographics: {
+          type: 'object'
+        },
+        content_analysis: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用影响力分析器",
-      "params": {
-        "user_id": "example_value",
-        "platform": "twitter",
-        "metrics": [
-          "item1",
-          "item2"
-        ],
-        "period": 10
+    examples: [
+      {
+        description: '使用影响力分析器处理基础数据',
+        params: {
+          user_id: 'example_value',
+          platform: 'twitter',
+          metrics: ['item1', 'item2'],
+          period: 100
+        }
+      },
+      {
+        description: '使用影响力分析器处理批量数据',
+        params: {
+          user_id: 'example_value',
+          platform: 'twitter',
+          metrics: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          period: 100
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 供应链管理工具 (173-174)
   {
     id: 'tool_logistics_optimizer',
     name: 'logistics_optimizer',
@@ -10089,10 +12315,18 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              id: { type: 'string' },
-              lat: { type: 'number' },
-              lon: { type: 'number' },
-              demand: { type: 'number' }
+              id: {
+                type: 'string'
+              },
+              lat: {
+                type: 'number'
+              },
+              lon: {
+                type: 'number'
+              },
+              demand: {
+                type: 'number'
+              }
             }
           }
         },
@@ -10104,9 +12338,15 @@ const builtinTools = [
           type: 'object',
           description: '约束条件',
           properties: {
-            max_distance: { type: 'number' },
-            time_windows: { type: 'array' },
-            capacity: { type: 'number' }
+            max_distance: {
+              type: 'number'
+            },
+            time_windows: {
+              type: 'array'
+            },
+            capacity: {
+              type: 'number'
+            }
           }
         },
         optimization_goal: {
@@ -10120,43 +12360,58 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         solution: {
           type: 'object',
           properties: {
-            routes: { type: 'array' },
-            total_cost: { type: 'number' },
-            total_distance: { type: 'number' },
-            vehicles_used: { type: 'number' }
+            routes: {
+              type: 'array'
+            },
+            total_cost: {
+              type: 'number'
+            },
+            total_distance: {
+              type: 'number'
+            },
+            vehicles_used: {
+              type: 'number'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用物流优化器",
-      "params": {
-        "problem_type": "vehicle_routing",
-        "locations": [
-          "item1",
-          "item2"
-        ],
-        "vehicles": [
-          "item1",
-          "item2"
-        ],
-        "constraints": "example_value",
-        "optimization_goal": "minimize_cost"
+    examples: [
+      {
+        description: '使用物流优化器处理基础数据',
+        params: {
+          problem_type: 'vehicle_routing',
+          locations: ['item1', 'item2'],
+          vehicles: ['item1', 'item2'],
+          constraints: 'example_value',
+          optimization_goal: 'minimize_cost'
+        }
+      },
+      {
+        description: '使用物流优化器处理批量数据',
+        params: {
+          problem_type: 'vehicle_routing',
+          locations: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          vehicles: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          constraints: 'example_value',
+          optimization_goal: 'minimize_cost'
+        }
       }
-    }
-  ],
-    required_permissions: ["data:read","data:write"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_demand_forecaster',
     name: 'demand_forecaster',
@@ -10173,8 +12428,12 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              date: { type: 'string' },
-              value: { type: 'number' }
+              date: {
+                type: 'string'
+              },
+              value: {
+                type: 'number'
+              }
             }
           }
         },
@@ -10193,8 +12452,12 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              name: { type: 'string' },
-              values: { type: 'array' }
+              name: {
+                type: 'string'
+              },
+              values: {
+                type: 'array'
+              }
             }
           }
         }
@@ -10204,47 +12467,62 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         forecast: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              date: { type: 'string' },
-              predicted: { type: 'number' },
-              lower_bound: { type: 'number' },
-              upper_bound: { type: 'number' }
+              date: {
+                type: 'string'
+              },
+              predicted: {
+                type: 'number'
+              },
+              lower_bound: {
+                type: 'number'
+              },
+              upper_bound: {
+                type: 'number'
+              }
             }
           }
         },
-        accuracy_metrics: { type: 'object' },
-        error: { type: 'string' }
+        accuracy_metrics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用需求预测器",
-      "params": {
-        "historical_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "forecast_horizon": 10,
-        "model": "arima",
-        "external_factors": [
-          "item1",
-          "item2"
-        ]
+    examples: [
+      {
+        description: '使用需求预测器处理基础数据',
+        params: {
+          historical_data: ['item1', 'item2'],
+          forecast_horizon: 100,
+          model: 'arima',
+          external_factors: ['item1', 'item2']
+        }
+      },
+      {
+        description: '使用需求预测器处理批量数据',
+        params: {
+          historical_data: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          forecast_horizon: 100,
+          model: 'arima',
+          external_factors: ['item1', 'item2', 'item3', 'item4', 'item5']
+        }
       }
-    }
-  ],
-    required_permissions: ["data:read","data:write"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // 环境科学工具 (175-176)
   {
     id: 'tool_weather_analyzer',
     name: 'weather_analyzer',
@@ -10259,8 +12537,12 @@ const builtinTools = [
           type: 'object',
           description: '位置',
           properties: {
-            lat: { type: 'number' },
-            lon: { type: 'number' }
+            lat: {
+              type: 'number'
+            },
+            lon: {
+              type: 'number'
+            }
           }
         },
         analysisType: {
@@ -10272,8 +12554,12 @@ const builtinTools = [
           type: 'object',
           description: '时间范围',
           properties: {
-            start: { type: 'string' },
-            end: { type: 'string' }
+            start: {
+              type: 'string'
+            },
+            end: {
+              type: 'string'
+            }
           }
         },
         parameters: {
@@ -10290,39 +12576,56 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         weather_data: {
           type: 'object',
           properties: {
-            current: { type: 'object' },
-            forecast: { type: 'array' },
-            statistics: { type: 'object' }
+            current: {
+              type: 'object'
+            },
+            forecast: {
+              type: 'array'
+            },
+            statistics: {
+              type: 'object'
+            }
           }
         },
-        anomalies: { type: 'array' },
-        error: { type: 'string' }
+        anomalies: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用气象分析器进行AI处理",
-      "params": {
-        "location": "example_value",
-        "analysisType": "current",
-        "timeRange": "example_value",
-        "parameters": [
-          "item1",
-          "item2"
-        ]
+    examples: [
+      {
+        description: '使用气象分析器进行AI推理',
+        params: {
+          location: 'example_value',
+          analysisType: 'current',
+          timeRange: 'example_value',
+          parameters: ['item1', 'item2']
+        }
+      },
+      {
+        description: '使用气象分析器批量处理',
+        params: {
+          location: 'example_value',
+          analysisType: 'current',
+          timeRange: 'example_value',
+          parameters: ['item1', 'item2', 'item3', 'item4', 'item5']
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_pollution_predictor',
     name: 'pollution_predictor',
@@ -10347,7 +12650,14 @@ const builtinTools = [
           description: '污染物列表',
           items: {
             type: 'string',
-            enum: ['pm25', 'pm10', 'co2', 'no2', 'so2', 'o3']
+            enum: [
+              'pm25',
+              'pm10',
+              'co2',
+              'no2',
+              'so2',
+              'o3'
+            ]
           }
         },
         forecast_hours: {
@@ -10364,46 +12674,54 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         current: {
           type: 'object',
           properties: {
-            aqi: { type: 'number' },
-            level: { type: 'string' },
-            primary_pollutant: { type: 'string' }
+            aqi: {
+              type: 'number'
+            },
+            level: {
+              type: 'string'
+            },
+            primary_pollutant: {
+              type: 'string'
+            }
           }
         },
-        forecast: { type: 'array' },
-        health_impact: { type: 'object' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "使用污染预测器进行AI处理",
-      "params": {
-        "location": "example_value",
-        "pollutionType": "air",
-        "pollutants": [
-          "item1",
-          "item2"
-        ],
-        "forecast_hours": 10,
-        "historical_data": {
-          "key": "value",
-          "enabled": true
+        forecast: {
+          type: 'array'
+        },
+        health_impact: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '使用污染预测器进行AI处理',
+        params: {
+          location: 'example_value',
+          pollutionType: 'air',
+          pollutants: ['item1', 'item2'],
+          forecast_hours: 10,
+          historical_data: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // ==================== 第九批工具 (177-196) ====================
-
   {
     id: 'tool_iot_device_manager',
     name: 'iot_device_manager',
@@ -10423,10 +12741,19 @@ const builtinTools = [
           type: 'object',
           description: '设备信息',
           properties: {
-            id: { type: 'string' },
-            type: { type: 'string' },
-            name: { type: 'string' },
-            protocol: { type: 'string', enum: ['mqtt', 'coap', 'http'] }
+            id: {
+              type: 'string'
+            },
+            type: {
+              type: 'string'
+            },
+            name: {
+              type: 'string'
+            },
+            protocol: {
+              type: 'string',
+              enum: ['mqtt', 'coap', 'http']
+            }
           }
         },
         command: {
@@ -10439,29 +12766,38 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        device: { type: 'object' },
-        devices: { type: 'array' },
-        status: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        device: {
+          type: 'object'
+        },
+        devices: {
+          type: 'array'
+        },
+        status: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "IoT设备管理器使用示例",
-      "params": {
-        "action": "register",
-        "device": "example_value",
-        "command": "example_value"
+    examples: [
+      {
+        description: 'IoT设备管理器使用示例',
+        params: {
+          action: 'register',
+          device: 'example_value',
+          command: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_mqtt_broker',
     name: 'mqtt_broker',
@@ -10502,31 +12838,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        message_id: { type: 'string' },
-        subscriptions: { type: 'array' },
-        messages: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        message_id: {
+          type: 'string'
+        },
+        subscriptions: {
+          type: 'array'
+        },
+        messages: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "MQTT消息代理使用示例",
-      "params": {
-        "action": "publish",
-        "topic": "example_value",
-        "message": "这是一段示例文本用于测试",
-        "qos": 0,
-        "retain": false
+    examples: [
+      {
+        description: 'MQTT消息代理使用示例',
+        params: {
+          action: 'publish',
+          topic: 'example_value',
+          message: '这是一段示例文本用于测试',
+          qos: 0,
+          retain: false
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.mqtt'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_edge_node_manager',
     name: 'edge_node_manager',
@@ -10546,9 +12891,15 @@ const builtinTools = [
           type: 'object',
           description: '节点信息',
           properties: {
-            id: { type: 'string' },
-            location: { type: 'string' },
-            resources: { type: 'object' }
+            id: {
+              type: 'string'
+            },
+            location: {
+              type: 'string'
+            },
+            resources: {
+              type: 'object'
+            }
           }
         },
         workload: {
@@ -10561,29 +12912,38 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        node: { type: 'object' },
-        nodes: { type: 'array' },
-        metrics: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        node: {
+          type: 'object'
+        },
+        nodes: {
+          type: 'array'
+        },
+        metrics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "边缘节点管理器使用示例",
-      "params": {
-        "action": "deploy",
-        "node": "example_value",
-        "workload": "example_value"
+    examples: [
+      {
+        description: '边缘节点管理器使用示例',
+        params: {
+          action: 'deploy',
+          node: 'example_value',
+          workload: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_edge_inferencer',
     name: 'edge_inferencer',
@@ -10619,33 +12979,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        predictions: { type: 'array' },
-        latency_ms: { type: 'number' },
-        confidence: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        predictions: {
+          type: 'array'
+        },
+        latency_ms: {
+          type: 'number'
+        },
+        confidence: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用边缘推理引擎进行AI处理",
-      "params": {
-        "model": "example_value",
-        "input_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "format": "onnx",
-        "device": "cpu"
+    examples: [
+      {
+        description: '使用边缘推理引擎进行AI处理',
+        params: {
+          model: 'example_value',
+          input_data: {
+            key: 'value',
+            enabled: true
+          },
+          format: 'onnx',
+          device: 'cpu'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_twin_model_builder',
     name: 'twin_model_builder',
@@ -10660,9 +13029,15 @@ const builtinTools = [
           type: 'object',
           description: '物理实体信息',
           properties: {
-            id: { type: 'string' },
-            type: { type: 'string' },
-            name: { type: 'string' }
+            id: {
+              type: 'string'
+            },
+            type: {
+              type: 'string'
+            },
+            name: {
+              type: 'string'
+            }
           }
         },
         sensors: {
@@ -10684,33 +13059,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        twin_id: { type: 'string' },
-        model: { type: 'object' },
-        visualization_url: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        twin_id: {
+          type: 'string'
+        },
+        model: {
+          type: 'object'
+        },
+        visualization_url: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用数字孪生模型构建器进行AI处理",
-      "params": {
-        "entity": "example_value",
-        "sensors": [
-          "item1",
-          "item2"
-        ],
-        "parameters": "example_value",
-        "physics_model": "kinematic"
+    examples: [
+      {
+        description: '使用数字孪生模型构建器进行AI处理',
+        params: {
+          entity: 'example_value',
+          sensors: ['item1', 'item2'],
+          parameters: 'example_value',
+          physics_model: 'kinematic'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_twin_simulator',
     name: 'twin_simulator',
@@ -10744,31 +13125,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        results: { type: 'object' },
-        predictions: { type: 'array' },
-        anomalies: { type: 'array' },
-        metrics: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        results: {
+          type: 'object'
+        },
+        predictions: {
+          type: 'array'
+        },
+        anomalies: {
+          type: 'array'
+        },
+        metrics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用数字孪生仿真器进行AI处理",
-      "params": {
-        "twin_id": "example_value",
-        "simulation_type": "real_time",
-        "scenario": "example_value",
-        "time_horizon": 10
+    examples: [
+      {
+        description: '使用数字孪生仿真器进行AI处理',
+        params: {
+          twin_id: 'example_value',
+          simulation_type: 'real_time',
+          scenario: 'example_value',
+          time_horizon: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_plc_controller',
     name: 'plc_controller',
@@ -10788,9 +13180,17 @@ const builtinTools = [
           type: 'object',
           description: 'PLC设备信息',
           properties: {
-            ip: { type: 'string' },
-            type: { type: 'string', enum: ['siemens', 'allen_bradley', 'mitsubishi'] },
-            protocol: { type: 'string', enum: ['modbus', 's7', 'ethernet_ip'] }
+            ip: {
+              type: 'string'
+            },
+            type: {
+              type: 'string',
+              enum: ['siemens', 'allen_bradley', 'mitsubishi']
+            },
+            protocol: {
+              type: 'string',
+              enum: ['modbus', 's7', 'ethernet_ip']
+            }
           }
         },
         address: {
@@ -10807,30 +13207,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        data: { type: 'object' },
-        status: { type: 'string' },
-        diagnostics: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        data: {
+          type: 'object'
+        },
+        status: {
+          type: 'string'
+        },
+        diagnostics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "PLC控制器使用示例",
-      "params": {
-        "action": "read",
-        "plc": "example_value",
-        "address": "example_value",
-        "value": "example_value"
+    examples: [
+      {
+        description: 'PLC控制器使用示例',
+        params: {
+          action: 'read',
+          plc: 'example_value',
+          address: 'example_value',
+          value: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_production_scheduler',
     name: 'production_scheduler',
@@ -10864,33 +13273,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        schedule: { type: 'array' },
-        gantt_chart: { type: 'object' },
-        metrics: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        schedule: {
+          type: 'array'
+        },
+        gantt_chart: {
+          type: 'object'
+        },
+        metrics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用生产调度器",
-      "params": {
-        "orders": [
-          "item1",
-          "item2"
-        ],
-        "resources": "example_value",
-        "constraints": "example_value",
-        "optimization_goal": "minimize_time"
+    examples: [
+      {
+        description: '处理数据使用生产调度器',
+        params: {
+          orders: ['item1', 'item2'],
+          resources: 'example_value',
+          constraints: 'example_value',
+          optimization_goal: 'minimize_time'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['data.write'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_scene_automator',
     name: 'scene_automator',
@@ -10910,10 +13325,18 @@ const builtinTools = [
           type: 'object',
           description: '场景配置',
           properties: {
-            name: { type: 'string' },
-            triggers: { type: 'array' },
-            conditions: { type: 'array' },
-            actions: { type: 'array' }
+            name: {
+              type: 'string'
+            },
+            triggers: {
+              type: 'array'
+            },
+            conditions: {
+              type: 'array'
+            },
+            actions: {
+              type: 'array'
+            }
           }
         },
         scene_id: {
@@ -10926,29 +13349,38 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        scene_id: { type: 'string' },
-        scenes: { type: 'array' },
-        execution_result: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        scene_id: {
+          type: 'string'
+        },
+        scenes: {
+          type: 'array'
+        },
+        execution_result: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "场景自动化器使用示例",
-      "params": {
-        "action": "create",
-        "scene": "example_value",
-        "scene_id": "example_value"
+    examples: [
+      {
+        description: '场景自动化器使用示例',
+        params: {
+          action: 'create',
+          scene: 'example_value',
+          scene_id: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.control'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_device_linker',
     name: 'device_linker',
@@ -10963,11 +13395,21 @@ const builtinTools = [
           type: 'object',
           description: '联动规则',
           properties: {
-            name: { type: 'string' },
-            source_device: { type: 'string' },
-            source_event: { type: 'string' },
-            target_devices: { type: 'array' },
-            target_actions: { type: 'array' }
+            name: {
+              type: 'string'
+            },
+            source_device: {
+              type: 'string'
+            },
+            source_event: {
+              type: 'string'
+            },
+            target_devices: {
+              type: 'array'
+            },
+            target_actions: {
+              type: 'array'
+            }
           }
         },
         enabled: {
@@ -10981,27 +13423,34 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        linkage_id: { type: 'string' },
-        linkages: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        linkage_id: {
+          type: 'string'
+        },
+        linkages: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "设备联动器使用示例",
-      "params": {
-        "linkage": "example_value",
-        "enabled": true
+    examples: [
+      {
+        description: '设备联动器使用示例',
+        params: {
+          linkage: 'example_value',
+          enabled: true
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.control'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_crop_monitor',
     name: 'crop_monitor',
@@ -11016,9 +13465,15 @@ const builtinTools = [
           type: 'object',
           description: '农田信息',
           properties: {
-            id: { type: 'string' },
-            location: { type: 'object' },
-            crop_type: { type: 'string' }
+            id: {
+              type: 'string'
+            },
+            location: {
+              type: 'object'
+            },
+            crop_type: {
+              type: 'string'
+            }
           }
         },
         monitoring_type: {
@@ -11040,37 +13495,45 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        status: { type: 'string' },
-        detections: { type: 'array' },
-        recommendations: { type: 'array' },
-        yield_forecast: { type: 'object' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "使用作物监测器进行AI处理",
-      "params": {
-        "field": "example_value",
-        "monitoring_type": "growth",
-        "images": [
-          "item1",
-          "item2"
-        ],
-        "sensor_data": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        status: {
+          type: 'string'
+        },
+        detections: {
+          type: 'array'
+        },
+        recommendations: {
+          type: 'array'
+        },
+        yield_forecast: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '使用作物监测器进行AI处理',
+        params: {
+          field: 'example_value',
+          monitoring_type: 'growth',
+          images: ['item1', 'item2'],
+          sensor_data: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_irrigation_controller',
     name: 'irrigation_controller',
@@ -11094,9 +13557,15 @@ const builtinTools = [
           type: 'object',
           description: '灌溉参数',
           properties: {
-            duration: { type: 'number' },
-            flow_rate: { type: 'number' },
-            schedule: { type: 'array' }
+            duration: {
+              type: 'number'
+            },
+            flow_rate: {
+              type: 'number'
+            },
+            schedule: {
+              type: 'array'
+            }
           }
         },
         soil_moisture: {
@@ -11113,31 +13582,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        status: { type: 'string' },
-        schedule: { type: 'array' },
-        water_usage: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        status: {
+          type: 'string'
+        },
+        schedule: {
+          type: 'array'
+        },
+        water_usage: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "灌溉控制器使用示例",
-      "params": {
-        "action": "start",
-        "zone": "example_value",
-        "parameters": "example_value",
-        "soil_moisture": 10,
-        "weather_forecast": "example_value"
+    examples: [
+      {
+        description: '灌溉控制器使用示例',
+        params: {
+          action: 'start',
+          zone: 'example_value',
+          parameters: 'example_value',
+          soil_moisture: 10,
+          weather_forecast: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.control'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_traffic_controller',
     name: 'traffic_controller',
@@ -11172,32 +13650,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        signal_plan: { type: 'object' },
-        metrics: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        signal_plan: {
+          type: 'object'
+        },
+        metrics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "交通控制器使用示例",
-      "params": {
-        "intersection": "example_value",
-        "mode": "fixed",
-        "traffic_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "optimization_goal": "minimize_delay"
+    examples: [
+      {
+        description: '交通控制器使用示例',
+        params: {
+          intersection: 'example_value',
+          mode: 'fixed',
+          traffic_data: {
+            key: 'value',
+            enabled: true
+          },
+          optimization_goal: 'minimize_delay'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_public_safety_monitor',
     name: 'public_safety_monitor',
@@ -11234,39 +13719,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        events: { type: 'array' },
-        alerts: { type: 'array' },
-        threat_level: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        events: {
+          type: 'array'
+        },
+        alerts: {
+          type: 'array'
+        },
+        threat_level: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用公共安全监控器进行AI处理",
-      "params": {
-        "area": "example_value",
-        "monitoring_types": [
-          "item1",
-          "item2"
-        ],
-        "alert_rules": [
-          "item1",
-          "item2"
-        ],
-        "video_streams": [
-          "item1",
-          "item2"
-        ]
+    examples: [
+      {
+        description: '使用公共安全监控器进行AI处理',
+        params: {
+          area: 'example_value',
+          monitoring_types: ['item1', 'item2'],
+          alert_rules: ['item1', 'item2'],
+          video_streams: ['item1', 'item2']
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_orbit_calculator',
     name: 'orbit_calculator',
@@ -11286,12 +13771,30 @@ const builtinTools = [
           type: 'object',
           description: '轨道根数',
           properties: {
-            a: { type: 'number', description: '半长轴(km)' },
-            e: { type: 'number', description: '偏心率' },
-            i: { type: 'number', description: '轨道倾角(度)' },
-            omega: { type: 'number', description: '升交点赤经(度)' },
-            w: { type: 'number', description: '近地点幅角(度)' },
-            M: { type: 'number', description: '平近点角(度)' }
+            a: {
+              type: 'number',
+              description: '半长轴(km)'
+            },
+            e: {
+              type: 'number',
+              description: '偏心率'
+            },
+            i: {
+              type: 'number',
+              description: '轨道倾角(度)'
+            },
+            omega: {
+              type: 'number',
+              description: '升交点赤经(度)'
+            },
+            w: {
+              type: 'number',
+              description: '近地点幅角(度)'
+            },
+            M: {
+              type: 'number',
+              description: '平近点角(度)'
+            }
           }
         },
         time_span: {
@@ -11312,33 +13815,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        trajectory: { type: 'array' },
-        future_elements: { type: 'object' },
-        ground_track: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        trajectory: {
+          type: 'array'
+        },
+        future_elements: {
+          type: 'object'
+        },
+        ground_track: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用轨道计算器",
-      "params": {
-        "calculation_type": "propagation",
-        "orbital_elements": "example_value",
-        "time_span": 10,
-        "perturbations": [
-          "item1",
-          "item2"
-        ]
+    examples: [
+      {
+        description: '使用轨道计算器处理基础数据',
+        params: {
+          calculation_type: 'propagation',
+          orbital_elements: 'example_value',
+          time_span: 100,
+          perturbations: ['item1', 'item2']
+        }
+      },
+      {
+        description: '使用轨道计算器处理批量数据',
+        params: {
+          calculation_type: 'propagation',
+          orbital_elements: 'example_value',
+          time_span: 100,
+          perturbations: ['item1', 'item2', 'item3', 'item4', 'item5']
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['data.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_flight_planner',
     name: 'flight_planner',
@@ -11353,9 +13871,15 @@ const builtinTools = [
           type: 'object',
           description: '起飞点',
           properties: {
-            airport: { type: 'string' },
-            coordinates: { type: 'object' },
-            time: { type: 'string' }
+            airport: {
+              type: 'string'
+            },
+            coordinates: {
+              type: 'object'
+            },
+            time: {
+              type: 'string'
+            }
           }
         },
         destination: {
@@ -11366,9 +13890,15 @@ const builtinTools = [
           type: 'object',
           description: '飞机信息',
           properties: {
-            type: { type: 'string' },
-            cruise_speed: { type: 'number' },
-            range: { type: 'number' }
+            type: {
+              type: 'string'
+            },
+            cruise_speed: {
+              type: 'number'
+            },
+            range: {
+              type: 'number'
+            }
           }
         },
         optimization: {
@@ -11386,35 +13916,53 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        route: { type: 'array' },
-        waypoints: { type: 'array' },
-        flight_plan: { type: 'object' },
-        estimates: { type: 'object' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "处理数据使用飞行规划器",
-      "params": {
-        "departure": "example_value",
-        "destination": "example_value",
-        "aircraft": "example_value",
-        "optimization": "shortest",
-        "weather_data": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        route: {
+          type: 'array'
+        },
+        waypoints: {
+          type: 'array'
+        },
+        flight_plan: {
+          type: 'object'
+        },
+        estimates: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '使用飞行规划器处理基础数据',
+        params: {
+          departure: 'example_value',
+          destination: 'example_value',
+          aircraft: 'example_value',
+          optimization: 'shortest',
+          weather_data: 'example_value'
+        }
+      },
+      {
+        description: '使用飞行规划器处理批量数据',
+        params: {
+          departure: 'example_value',
+          destination: 'example_value',
+          aircraft: 'example_value',
+          optimization: 'shortest',
+          weather_data: 'example_value'
+        }
+      }
+    ],
     required_permissions: ['data.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_ocean_monitor',
     name: 'ocean_monitor',
@@ -11429,14 +13977,25 @@ const builtinTools = [
           type: 'object',
           description: '监测区域',
           properties: {
-            coordinates: { type: 'array' },
-            depth_range: { type: 'object' }
+            coordinates: {
+              type: 'array'
+            },
+            depth_range: {
+              type: 'object'
+            }
           }
         },
         monitoring_type: {
           type: 'string',
           description: '监测类型',
-          enum: ['temperature', 'salinity', 'current', 'wave', 'biology', 'pollution']
+          enum: [
+            'temperature',
+            'salinity',
+            'current',
+            'wave',
+            'biology',
+            'pollution'
+          ]
         },
         data_sources: {
           type: 'array',
@@ -11456,33 +14015,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        measurements: { type: 'array' },
-        analysis: { type: 'object' },
-        visualization: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        measurements: {
+          type: 'array'
+        },
+        analysis: {
+          type: 'object'
+        },
+        visualization: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用海洋监测器进行AI处理",
-      "params": {
-        "area": "example_value",
-        "monitoring_type": "temperature",
-        "data_sources": {
-          "key": "value",
-          "enabled": true
-        },
-        "time_range": "example_value"
+    examples: [
+      {
+        description: '使用海洋监测器进行AI处理',
+        params: {
+          area: 'example_value',
+          monitoring_type: 'temperature',
+          data_sources: {
+            key: 'value',
+            enabled: true
+          },
+          time_range: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.request'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_navigation_planner',
     name: 'navigation_planner',
@@ -11505,9 +14073,15 @@ const builtinTools = [
           type: 'object',
           description: '船舶信息',
           properties: {
-            type: { type: 'string' },
-            draft: { type: 'number' },
-            speed: { type: 'number' }
+            type: {
+              type: 'string'
+            },
+            draft: {
+              type: 'number'
+            },
+            speed: {
+              type: 'number'
+            }
           }
         },
         optimization: {
@@ -11525,33 +14099,56 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        route: { type: 'array' },
-        waypoints: { type: 'array' },
-        eta: { type: 'string' },
-        distance: { type: 'number' },
-        fuel_estimate: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        route: {
+          type: 'array'
+        },
+        waypoints: {
+          type: 'array'
+        },
+        eta: {
+          type: 'string'
+        },
+        distance: {
+          type: 'number'
+        },
+        fuel_estimate: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用航海规划器",
-      "params": {
-        "departure": "example_value",
-        "destination": "example_value",
-        "vessel": "example_value",
-        "optimization": "shortest",
-        "constraints": "example_value"
+    examples: [
+      {
+        description: '使用航海规划器处理基础数据',
+        params: {
+          departure: 'example_value',
+          destination: 'example_value',
+          vessel: 'example_value',
+          optimization: 'shortest',
+          constraints: 'example_value'
+        }
+      },
+      {
+        description: '使用航海规划器处理批量数据',
+        params: {
+          departure: 'example_value',
+          destination: 'example_value',
+          vessel: 'example_value',
+          optimization: 'shortest',
+          constraints: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['data.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_power_dispatcher',
     name: 'power_dispatcher',
@@ -11589,34 +14186,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        dispatch_plan: { type: 'array' },
-        total_cost: { type: 'number' },
-        emissions: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        dispatch_plan: {
+          type: 'array'
+        },
+        total_cost: {
+          type: 'number'
+        },
+        emissions: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "电力调度器使用示例",
-      "params": {
-        "grid": "example_value",
-        "generators": [
-          "item1",
-          "item2"
-        ],
-        "load_forecast": "example_value",
-        "optimization": "minimize_cost",
-        "constraints": "example_value"
+    examples: [
+      {
+        description: '电力调度器使用示例',
+        params: {
+          grid: 'example_value',
+          generators: ['item1', 'item2'],
+          load_forecast: 'example_value',
+          optimization: 'minimize_cost',
+          constraints: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_renewable_forecaster',
     name: 'renewable_forecaster',
@@ -11658,37 +14261,44 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        forecast: { type: 'array' },
-        confidence_intervals: { type: 'array' },
-        total_generation: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        forecast: {
+          type: 'array'
+        },
+        confidence_intervals: {
+          type: 'array'
+        },
+        total_generation: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用新能源预测器进行AI处理",
-      "params": {
-        "energy_type": "solar",
-        "location": "example_value",
-        "capacity": 10,
-        "forecast_horizon": 10,
-        "historical_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "weather_forecast": "example_value"
+    examples: [
+      {
+        description: '使用新能源预测器进行AI处理',
+        params: {
+          energy_type: 'solar',
+          location: 'example_value',
+          capacity: 10,
+          forecast_horizon: 10,
+          historical_data: {
+            key: 'value',
+            enabled: true
+          },
+          weather_forecast: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // ==================== 第十批工具 (197-216) ====================
-
   {
     id: 'tool_quantum_key_distributor',
     name: 'quantum_key_distributor',
@@ -11712,9 +14322,15 @@ const builtinTools = [
           type: 'object',
           description: '量子信道参数',
           properties: {
-            distance: { type: 'number' },
-            loss_db: { type: 'number' },
-            noise: { type: 'number' }
+            distance: {
+              type: 'number'
+            },
+            loss_db: {
+              type: 'number'
+            },
+            noise: {
+              type: 'number'
+            }
           }
         },
         error_correction: {
@@ -11728,30 +14344,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        key: { type: 'string' },
-        qber: { type: 'number' },
-        secure: { type: 'boolean' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        key: {
+          type: 'string'
+        },
+        qber: {
+          type: 'number'
+        },
+        secure: {
+          type: 'boolean'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "量子密钥分发器使用示例",
-      "params": {
-        "protocol": "BB84",
-        "key_length": 10,
-        "channel": "example_value",
-        "error_correction": true
+    examples: [
+      {
+        description: '量子密钥分发器使用示例',
+        params: {
+          protocol: 'BB84',
+          key_length: 10,
+          channel: 'example_value',
+          error_correction: true
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['security.encryption'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_quantum_teleporter',
     name: 'quantum_teleporter',
@@ -11766,8 +14391,12 @@ const builtinTools = [
           type: 'object',
           description: '待传输的量子态',
           properties: {
-            alpha: { type: 'number' },
-            beta: { type: 'number' }
+            alpha: {
+              type: 'number'
+            },
+            beta: {
+              type: 'number'
+            }
           }
         },
         entanglement_quality: {
@@ -11784,28 +14413,35 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        fidelity: { type: 'number' },
-        measurement_results: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        fidelity: {
+          type: 'number'
+        },
+        measurement_results: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用量子隐形传态器进行AI处理",
-      "params": {
-        "quantum_state": "example_value",
-        "entanglement_quality": 10,
-        "classical_channel": "example_value"
+    examples: [
+      {
+        description: '使用量子隐形传态器进行AI处理',
+        params: {
+          quantum_state: 'example_value',
+          entanglement_quality: 10,
+          classical_channel: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_eeg_processor',
     name: 'eeg_processor',
@@ -11832,9 +14468,16 @@ const builtinTools = [
           type: 'object',
           description: '处理参数',
           properties: {
-            filter: { type: 'string', enum: ['bandpass', 'notch', 'highpass'] },
-            artifact_removal: { type: 'boolean' },
-            feature_extraction: { type: 'array' }
+            filter: {
+              type: 'string',
+              enum: ['bandpass', 'notch', 'highpass']
+            },
+            artifact_removal: {
+              type: 'boolean'
+            },
+            feature_extraction: {
+              type: 'array'
+            }
           }
         }
       },
@@ -11843,36 +14486,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        processed_data: { type: 'array' },
-        features: { type: 'object' },
-        quality_metrics: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        processed_data: {
+          type: 'array'
+        },
+        features: {
+          type: 'object'
+        },
+        quality_metrics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用脑电信号处理器进行AI处理",
-      "params": {
-        "eeg_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "sampling_rate": 10,
-        "channels": [
-          "item1",
-          "item2"
-        ],
-        "processing": "example_value"
+    examples: [
+      {
+        description: '使用脑电信号处理器进行AI推理',
+        params: {
+          eeg_data: ['item1', 'item2'],
+          sampling_rate: 100,
+          channels: ['item1', 'item2'],
+          processing: 'example_value'
+        }
+      },
+      {
+        description: '使用脑电信号处理器批量处理',
+        params: {
+          eeg_data: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          sampling_rate: 100,
+          channels: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          processing: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_bci_decoder',
     name: 'bci_decoder',
@@ -11907,33 +14562,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        intent: { type: 'string' },
-        confidence: { type: 'number' },
-        probabilities: { type: 'object' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "使用脑机接口解码器进行AI处理",
-      "params": {
-        "features": "example_value",
-        "task_type": "motor_imagery",
-        "model": "lda",
-        "calibration_data": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        intent: {
+          type: 'string'
+        },
+        confidence: {
+          type: 'number'
+        },
+        probabilities: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '使用脑机接口解码器进行AI处理',
+        params: {
+          features: 'example_value',
+          task_type: 'motor_imagery',
+          model: 'lda',
+          calibration_data: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_gene_editor',
     name: 'gene_editor',
@@ -11972,31 +14636,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        grna_sequences: { type: 'array' },
-        off_targets: { type: 'array' },
-        efficiency_score: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        grna_sequences: {
+          type: 'array'
+        },
+        off_targets: {
+          type: 'array'
+        },
+        efficiency_score: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用基因编辑器进行AI处理",
-      "params": {
-        "target_gene": "example_value",
-        "edit_type": "knockout",
-        "editor": "Cas9",
-        "pam_sequence": "example_value",
-        "grna_design": "example_value"
+    examples: [
+      {
+        description: '使用基因编辑器进行AI处理',
+        params: {
+          target_gene: 'example_value',
+          edit_type: 'knockout',
+          editor: 'Cas9',
+          pam_sequence: 'example_value',
+          grna_design: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_protein_designer',
     name: 'protein_designer',
@@ -12024,8 +14697,12 @@ const builtinTools = [
           type: 'object',
           description: '功能要求',
           properties: {
-            binding_target: { type: 'string' },
-            catalytic_residues: { type: 'array' }
+            binding_target: {
+              type: 'string'
+            },
+            catalytic_residues: {
+              type: 'array'
+            }
           }
         },
         optimization_cycles: {
@@ -12039,32 +14716,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        sequence: { type: 'string' },
-        structure: { type: 'object' },
-        stability_score: { type: 'number' },
-        function_score: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        sequence: {
+          type: 'string'
+        },
+        structure: {
+          type: 'object'
+        },
+        stability_score: {
+          type: 'number'
+        },
+        function_score: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用蛋白质设计器进行AI处理",
-      "params": {
-        "design_goal": "enzyme",
-        "sequence": "example_value",
-        "structure_constraints": "example_value",
-        "function_requirements": "example_value",
-        "optimization_cycles": 10
+    examples: [
+      {
+        description: '使用蛋白质设计器进行AI处理',
+        params: {
+          design_goal: 'enzyme',
+          sequence: 'example_value',
+          structure_constraints: 'example_value',
+          function_requirements: 'example_value',
+          optimization_cycles: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_nano_simulator',
     name: 'nano_simulator',
@@ -12079,9 +14767,15 @@ const builtinTools = [
           type: 'object',
           description: '模拟体系',
           properties: {
-            atoms: { type: 'array' },
-            lattice: { type: 'object' },
-            temperature: { type: 'number' }
+            atoms: {
+              type: 'array'
+            },
+            lattice: {
+              type: 'object'
+            },
+            temperature: {
+              type: 'number'
+            }
           }
         },
         method: {
@@ -12104,30 +14798,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        trajectory: { type: 'array' },
-        energy: { type: 'number' },
-        properties: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        trajectory: {
+          type: 'array'
+        },
+        energy: {
+          type: 'number'
+        },
+        properties: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用纳米模拟器进行AI处理",
-      "params": {
-        "system": "example_value",
-        "method": "MD",
-        "simulation_time": 10,
-        "force_field": "LAMMPS"
+    examples: [
+      {
+        description: '使用纳米模拟器进行AI处理',
+        params: {
+          system: 'example_value',
+          method: 'MD',
+          simulation_time: 10,
+          force_field: 'LAMMPS'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_nano_fabricator',
     name: 'nano_fabricator',
@@ -12155,9 +14858,15 @@ const builtinTools = [
           type: 'object',
           description: '工艺参数',
           properties: {
-            resolution: { type: 'number' },
-            temperature: { type: 'number' },
-            pressure: { type: 'number' }
+            resolution: {
+              type: 'number'
+            },
+            temperature: {
+              type: 'number'
+            },
+            pressure: {
+              type: 'number'
+            }
           }
         }
       },
@@ -12166,33 +14875,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        fabrication_plan: { type: 'object' },
-        yield_estimate: { type: 'number' },
-        defects: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        fabrication_plan: {
+          type: 'object'
+        },
+        yield_estimate: {
+          type: 'number'
+        },
+        defects: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "纳米加工器使用示例",
-      "params": {
-        "process": "lithography",
-        "pattern": "example_value",
-        "materials": [
-          "item1",
-          "item2"
-        ],
-        "parameters": "example_value"
+    examples: [
+      {
+        description: '纳米加工器使用示例',
+        params: {
+          process: 'lithography',
+          pattern: 'example_value',
+          materials: ['item1', 'item2'],
+          parameters: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_reactor_simulator',
     name: 'reactor_simulator',
@@ -12231,32 +14946,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        keff: { type: 'number' },
-        power_distribution: { type: 'array' },
-        temperature_distribution: { type: 'array' },
-        safety_parameters: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        keff: {
+          type: 'number'
+        },
+        power_distribution: {
+          type: 'array'
+        },
+        temperature_distribution: {
+          type: 'array'
+        },
+        safety_parameters: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用反应堆模拟器进行AI处理",
-      "params": {
-        "reactor_type": "PWR",
-        "power_level": 10,
-        "fuel_composition": "example_value",
-        "control_rods": "example_value",
-        "simulation_type": "steady_state"
+    examples: [
+      {
+        description: '使用反应堆模拟器进行AI处理',
+        params: {
+          reactor_type: 'PWR',
+          power_level: 10,
+          fuel_composition: 'example_value',
+          control_rods: 'example_value',
+          simulation_type: 'steady_state'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_radiation_monitor',
     name: 'radiation_monitor',
@@ -12291,30 +15017,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        dose_rate: { type: 'number' },
-        nuclides: { type: 'array' },
-        alarm_level: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        dose_rate: {
+          type: 'number'
+        },
+        nuclides: {
+          type: 'array'
+        },
+        alarm_level: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "辐射监测器使用示例",
-      "params": {
-        "detector_type": "GM",
-        "measurement_type": "dose_rate",
-        "location": "example_value",
-        "background": 10
+    examples: [
+      {
+        description: '辐射监测器使用示例',
+        params: {
+          detector_type: 'GM',
+          measurement_type: 'dose_rate',
+          location: 'example_value',
+          background: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_underwater_navigator',
     name: 'underwater_navigator',
@@ -12334,9 +15069,15 @@ const builtinTools = [
           type: 'object',
           description: '传感器数据',
           properties: {
-            imu: { type: 'object' },
-            dvl: { type: 'object' },
-            depth: { type: 'number' }
+            imu: {
+              type: 'object'
+            },
+            dvl: {
+              type: 'object'
+            },
+            depth: {
+              type: 'number'
+            }
           }
         },
         initial_position: {
@@ -12353,33 +15094,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        position: { type: 'object' },
-        velocity: { type: 'object' },
-        accuracy: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        position: {
+          type: 'object'
+        },
+        velocity: {
+          type: 'object'
+        },
+        accuracy: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理数据使用水下导航器",
-      "params": {
-        "navigation_mode": "INS",
-        "sensor_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "initial_position": "example_value",
-        "current": "example_value"
+    examples: [
+      {
+        description: '使用水下导航器处理基础数据',
+        params: {
+          navigation_mode: 'INS',
+          sensor_data: 'example_value',
+          initial_position: 'example_value',
+          current: 'example_value'
+        }
+      },
+      {
+        description: '使用水下导航器处理批量数据',
+        params: {
+          navigation_mode: 'INS',
+          sensor_data: 'example_value',
+          initial_position: 'example_value',
+          current: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['data.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_deep_sea_mapper',
     name: 'deep_sea_mapper',
@@ -12399,8 +15155,12 @@ const builtinTools = [
           type: 'object',
           description: '测量区域',
           properties: {
-            bounds: { type: 'array' },
-            depth_range: { type: 'object' }
+            bounds: {
+              type: 'array'
+            },
+            depth_range: {
+              type: 'object'
+            }
           }
         },
         resolution: {
@@ -12417,33 +15177,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        bathymetry: { type: 'array' },
-        features: { type: 'array' },
-        coverage: { type: 'number' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "处理数据使用深海测绘器",
-      "params": {
-        "sonar_type": "multibeam",
-        "survey_area": "example_value",
-        "resolution": 10,
-        "raw_data": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        bathymetry: {
+          type: 'array'
+        },
+        features: {
+          type: 'array'
+        },
+        coverage: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '使用深海测绘器处理基础数据',
+        params: {
+          sonar_type: 'multibeam',
+          survey_area: 'example_value',
+          resolution: 100,
+          raw_data: ['item1', 'item2']
+        }
+      },
+      {
+        description: '使用深海测绘器处理批量数据',
+        params: {
+          sonar_type: 'multibeam',
+          survey_area: 'example_value',
+          resolution: 100,
+          raw_data: ['item1', 'item2', 'item3', 'item4', 'item5']
+        }
+      }
+    ],
     required_permissions: ['data.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_asteroid_analyzer',
     name: 'asteroid_analyzer',
@@ -12477,34 +15252,51 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        composition: { type: 'object' },
-        resources: { type: 'object' },
-        value_estimate: { type: 'number' },
-        accessibility: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        composition: {
+          type: 'object'
+        },
+        resources: {
+          type: 'object'
+        },
+        value_estimate: {
+          type: 'number'
+        },
+        accessibility: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用小行星分析器进行AI处理",
-      "params": {
-        "asteroid_id": "example_value",
-        "analysis_type": "composition",
-        "spectral_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "orbital_elements": "example_value"
+    examples: [
+      {
+        description: '使用小行星分析器进行AI推理',
+        params: {
+          asteroid_id: 'example_value',
+          analysis_type: 'composition',
+          spectral_data: ['item1', 'item2'],
+          orbital_elements: 'example_value'
+        }
+      },
+      {
+        description: '使用小行星分析器批量处理',
+        params: {
+          asteroid_id: 'example_value',
+          analysis_type: 'composition',
+          spectral_data: ['item1', 'item2', 'item3', 'item4', 'item5'],
+          orbital_elements: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_lunar_miner',
     name: 'lunar_miner',
@@ -12519,8 +15311,12 @@ const builtinTools = [
           type: 'object',
           description: '采矿位置',
           properties: {
-            coordinates: { type: 'object' },
-            terrain: { type: 'string' }
+            coordinates: {
+              type: 'object'
+            },
+            terrain: {
+              type: 'string'
+            }
           }
         },
         target_resource: {
@@ -12543,33 +15339,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        mining_plan: { type: 'object' },
-        yield_estimate: { type: 'number' },
-        energy_required: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        mining_plan: {
+          type: 'object'
+        },
+        yield_estimate: {
+          type: 'number'
+        },
+        energy_required: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "月球采矿器使用示例",
-      "params": {
-        "site": "example_value",
-        "target_resource": "water_ice",
-        "equipment": [
-          "item1",
-          "item2"
-        ],
-        "extraction_method": "excavation"
+    examples: [
+      {
+        description: '月球采矿器使用示例',
+        params: {
+          site: 'example_value',
+          target_resource: 'water_ice',
+          equipment: ['item1', 'item2'],
+          extraction_method: 'excavation'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_cloud_seeder',
     name: 'cloud_seeder',
@@ -12598,9 +15400,15 @@ const builtinTools = [
           type: 'object',
           description: '气象条件',
           properties: {
-            cloud_type: { type: 'string' },
-            temperature: { type: 'number' },
-            humidity: { type: 'number' }
+            cloud_type: {
+              type: 'string'
+            },
+            temperature: {
+              type: 'number'
+            },
+            humidity: {
+              type: 'number'
+            }
           }
         },
         aircraft: {
@@ -12613,31 +15421,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        flight_plan: { type: 'object' },
-        dosage: { type: 'number' },
-        effectiveness_estimate: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        flight_plan: {
+          type: 'object'
+        },
+        dosage: {
+          type: 'number'
+        },
+        effectiveness_estimate: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "云播种器使用示例",
-      "params": {
-        "operation_type": "precipitation_enhancement",
-        "seeding_agent": "silver_iodide",
-        "target_area": "example_value",
-        "weather_conditions": "example_value",
-        "aircraft": "example_value"
+    examples: [
+      {
+        description: '云播种器使用示例',
+        params: {
+          operation_type: 'precipitation_enhancement',
+          seeding_agent: 'silver_iodide',
+          target_area: 'example_value',
+          weather_conditions: 'example_value',
+          aircraft: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.admin'],
     risk_level: 3,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_weather_modeler',
     name: 'weather_modeler',
@@ -12657,8 +15474,12 @@ const builtinTools = [
           type: 'object',
           description: '模拟区域',
           properties: {
-            bounds: { type: 'array' },
-            resolution: { type: 'number' }
+            bounds: {
+              type: 'array'
+            },
+            resolution: {
+              type: 'number'
+            }
           }
         },
         initial_conditions: {
@@ -12679,34 +15500,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        forecast: { type: 'object' },
-        fields: { type: 'array' },
-        uncertainty: { type: 'object' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "使用天气建模器进行AI处理",
-      "params": {
-        "model": "WRF",
-        "domain": "example_value",
-        "initial_conditions": "example_value",
-        "forecast_hours": 10,
-        "physics_options": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        forecast: {
+          type: 'object'
+        },
+        fields: {
+          type: 'array'
+        },
+        uncertainty: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '使用天气建模器进行AI处理',
+        params: {
+          model: 'WRF',
+          domain: 'example_value',
+          initial_conditions: 'example_value',
+          forecast_hours: 10,
+          physics_options: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_material_designer',
     name: 'material_designer',
@@ -12726,18 +15556,30 @@ const builtinTools = [
           type: 'object',
           description: '目标性能',
           properties: {
-            strength: { type: 'number' },
-            conductivity: { type: 'number' },
-            density: { type: 'number' }
+            strength: {
+              type: 'number'
+            },
+            conductivity: {
+              type: 'number'
+            },
+            density: {
+              type: 'number'
+            }
           }
         },
         constraints: {
           type: 'object',
           description: '约束条件',
           properties: {
-            elements: { type: 'array' },
-            cost: { type: 'number' },
-            toxicity: { type: 'string' }
+            elements: {
+              type: 'array'
+            },
+            cost: {
+              type: 'number'
+            },
+            toxicity: {
+              type: 'string'
+            }
           }
         },
         design_method: {
@@ -12751,30 +15593,39 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        compositions: { type: 'array' },
-        predicted_properties: { type: 'object' },
-        synthesis_route: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        compositions: {
+          type: 'array'
+        },
+        predicted_properties: {
+          type: 'object'
+        },
+        synthesis_route: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用材料设计器进行AI处理",
-      "params": {
-        "material_class": "metal",
-        "target_properties": "example_value",
-        "constraints": "example_value",
-        "design_method": "ML"
+    examples: [
+      {
+        description: '使用材料设计器进行AI处理',
+        params: {
+          material_class: 'metal',
+          target_properties: 'example_value',
+          constraints: 'example_value',
+          design_method: 'ML'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_property_predictor',
     name: 'property_predictor',
@@ -12789,8 +15640,12 @@ const builtinTools = [
           type: 'object',
           description: '材料信息',
           properties: {
-            composition: { type: 'string' },
-            structure: { type: 'object' }
+            composition: {
+              type: 'string'
+            },
+            structure: {
+              type: 'object'
+            }
           }
         },
         properties: {
@@ -12812,31 +15667,35 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        predictions: { type: 'object' },
-        confidence: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        predictions: {
+          type: 'object'
+        },
+        confidence: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "使用性能预测器进行AI处理",
-      "params": {
-        "material": "example_value",
-        "properties": [
-          "item1",
-          "item2"
-        ],
-        "method": "ML"
+    examples: [
+      {
+        description: '使用性能预测器进行AI处理',
+        params: {
+          material: 'example_value',
+          properties: ['item1', 'item2'],
+          method: 'ML'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_snn_builder',
     name: 'snn_builder',
@@ -12851,9 +15710,16 @@ const builtinTools = [
           type: 'object',
           description: '网络架构',
           properties: {
-            layers: { type: 'array' },
-            neuron_model: { type: 'string', enum: ['LIF', 'Izhikevich', 'AdEx'] },
-            topology: { type: 'string' }
+            layers: {
+              type: 'array'
+            },
+            neuron_model: {
+              type: 'string',
+              enum: ['LIF', 'Izhikevich', 'AdEx']
+            },
+            topology: {
+              type: 'string'
+            }
           }
         },
         learning_rule: {
@@ -12876,33 +15742,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        model_id: { type: 'string' },
-        performance: { type: 'object' },
-        spike_statistics: { type: 'object' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "使用脉冲神经网络构建器进行AI处理",
-      "params": {
-        "architecture": "example_value",
-        "learning_rule": "STDP",
-        "encoding": "rate",
-        "training_data": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        model_id: {
+          type: 'string'
+        },
+        performance: {
+          type: 'object'
+        },
+        spike_statistics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '使用脉冲神经网络构建器进行AI处理',
+        params: {
+          architecture: 'example_value',
+          learning_rule: 'STDP',
+          encoding: 'rate',
+          training_data: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_neuromorphic_accelerator',
     name: 'neuromorphic_accelerator',
@@ -12926,8 +15801,13 @@ const builtinTools = [
           type: 'object',
           description: '优化选项',
           properties: {
-            power_mode: { type: 'string', enum: ['low', 'balanced', 'high'] },
-            latency_target: { type: 'number' }
+            power_mode: {
+              type: 'string',
+              enum: ['low', 'balanced', 'high']
+            },
+            latency_target: {
+              type: 'number'
+            }
           }
         },
         input_data: {
@@ -12940,35 +15820,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        output: { type: 'object' },
-        latency_ms: { type: 'number' },
-        power_consumption: { type: 'number' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "神经形态加速器使用示例",
-      "params": {
-        "hardware": "Loihi",
-        "model": "example_value",
-        "optimization": "example_value",
-        "input_data": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        output: {
+          type: 'object'
+        },
+        latency_ms: {
+          type: 'number'
+        },
+        power_consumption: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '神经形态加速器使用示例',
+        params: {
+          hardware: 'Loihi',
+          model: 'example_value',
+          optimization: 'example_value',
+          input_data: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['system.admin'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // ========== 第十一批工具 (217-236): 前沿物理与尖端科学工具 ==========
-
   {
     id: 'tool_ligo_data_analyzer',
     name: 'ligo_data_analyzer',
@@ -12988,8 +15875,14 @@ const builtinTools = [
           type: 'object',
           description: '数据段',
           properties: {
-            start_gps: { type: 'number', description: 'GPS开始时间' },
-            duration: { type: 'number', description: '持续时间(秒)' }
+            start_gps: {
+              type: 'number',
+              description: 'GPS开始时间'
+            },
+            duration: {
+              type: 'number',
+              description: '持续时间(秒)'
+            }
           },
           required: ['start_gps', 'duration']
         },
@@ -12997,15 +15890,27 @@ const builtinTools = [
           type: 'object',
           description: '预处理选项',
           properties: {
-            whitening: { type: 'boolean', description: '白化处理' },
+            whitening: {
+              type: 'boolean',
+              description: '白化处理'
+            },
             bandpass: {
               type: 'object',
               properties: {
-                low_freq: { type: 'number' },
-                high_freq: { type: 'number' }
+                low_freq: {
+                  type: 'number'
+                },
+                high_freq: {
+                  type: 'number'
+                }
               }
             },
-            notch_filters: { type: 'array', items: { type: 'number' } }
+            notch_filters: {
+              type: 'array',
+              items: {
+                type: 'number'
+              }
+            }
           }
         },
         analysis_method: {
@@ -13019,34 +15924,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        strain_data: { type: 'array', description: '应变数据' },
-        psd: { type: 'object', description: '功率谱密度' },
-        triggers: { type: 'array', description: '触发事件' },
-        quality_flags: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        strain_data: {
+          type: 'array',
+          description: '应变数据'
+        },
+        psd: {
+          type: 'object',
+          description: '功率谱密度'
+        },
+        triggers: {
+          type: 'array',
+          description: '触发事件'
+        },
+        quality_flags: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "LIGO数据分析器使用示例",
-      "params": {
-        "detector": "LIGO-Hanford",
-        "data_segment": {
-          "key": "value",
-          "enabled": true
-        },
-        "preprocessing": "example_value",
-        "analysis_method": "matched_filter"
+    examples: [
+      {
+        description: 'LIGO数据分析器使用示例',
+        params: {
+          detector: 'LIGO-Hanford',
+          data_segment: {
+            key: 'value',
+            enabled: true
+          },
+          preprocessing: 'example_value',
+          analysis_method: 'matched_filter'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_waveform_matcher',
     name: 'waveform_matcher',
@@ -13068,21 +15987,36 @@ const builtinTools = [
             mass_range: {
               type: 'object',
               properties: {
-                m1_min: { type: 'number' },
-                m1_max: { type: 'number' },
-                m2_min: { type: 'number' },
-                m2_max: { type: 'number' }
+                m1_min: {
+                  type: 'number'
+                },
+                m1_max: {
+                  type: 'number'
+                },
+                m2_min: {
+                  type: 'number'
+                },
+                m2_max: {
+                  type: 'number'
+                }
               }
             },
-            spin_range: { type: 'object' }
+            spin_range: {
+              type: 'object'
+            }
           }
         },
         search_params: {
           type: 'object',
           description: '搜索参数',
           properties: {
-            snr_threshold: { type: 'number', description: '信噪比阈值' },
-            chi_squared_threshold: { type: 'number' }
+            snr_threshold: {
+              type: 'number',
+              description: '信噪比阈值'
+            },
+            chi_squared_threshold: {
+              type: 'number'
+            }
           }
         },
         parameter_estimation: {
@@ -13095,44 +16029,59 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         matches: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              snr: { type: 'number' },
-              chirp_mass: { type: 'number' },
-              total_mass: { type: 'number' },
-              distance_mpc: { type: 'number' },
-              merger_time: { type: 'number' }
+              snr: {
+                type: 'number'
+              },
+              chirp_mass: {
+                type: 'number'
+              },
+              total_mass: {
+                type: 'number'
+              },
+              distance_mpc: {
+                type: 'number'
+              },
+              merger_time: {
+                type: 'number'
+              }
             }
           }
         },
-        best_match_params: { type: 'object' },
-        error: { type: 'string' }
+        best_match_params: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "引力波波形匹配器使用示例",
-      "params": {
-        "strain_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "template_bank": "example_value",
-        "search_params": "example_value",
-        "parameter_estimation": true
+    examples: [
+      {
+        description: '引力波波形匹配器使用示例',
+        params: {
+          strain_data: {
+            key: 'value',
+            enabled: true
+          },
+          template_bank: 'example_value',
+          search_params: 'example_value',
+          parameter_estimation: true
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_particle_simulator',
     name: 'particle_simulator',
@@ -13156,8 +16105,14 @@ const builtinTools = [
           type: 'object',
           description: '束流粒子',
           properties: {
-            particle1: { type: 'string', enum: ['proton', 'electron', 'positron', 'heavy_ion'] },
-            particle2: { type: 'string', enum: ['proton', 'electron', 'positron', 'heavy_ion'] }
+            particle1: {
+              type: 'string',
+              enum: ['proton', 'electron', 'positron', 'heavy_ion']
+            },
+            particle2: {
+              type: 'string',
+              enum: ['proton', 'electron', 'positron', 'heavy_ion']
+            }
           }
         },
         process: {
@@ -13179,32 +16134,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        events: { type: 'array', description: '事例列表' },
-        cross_section: { type: 'number', description: '截面(pb)' },
-        kinematics: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        events: {
+          type: 'array',
+          description: '事例列表'
+        },
+        cross_section: {
+          type: 'number',
+          description: '截面(pb)'
+        },
+        kinematics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "粒子碰撞模拟器使用示例",
-      "params": {
-        "collider": "LHC",
-        "collision_energy": 10,
-        "beam_particles": "example_value",
-        "process": "Higgs_production",
-        "num_events": 10,
-        "detector_simulation": true
+    examples: [
+      {
+        description: '粒子碰撞模拟器使用示例',
+        params: {
+          collider: 'LHC',
+          collision_energy: 10,
+          beam_particles: 'example_value',
+          process: 'Higgs_production',
+          num_events: 10,
+          detector_simulation: true
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_event_generator',
     name: 'event_generator',
@@ -13233,17 +16199,28 @@ const builtinTools = [
           type: 'object',
           description: '强子化模型',
           properties: {
-            model: { type: 'string', enum: ['string', 'cluster'] },
-            tune: { type: 'string' }
+            model: {
+              type: 'string',
+              enum: ['string', 'cluster']
+            },
+            tune: {
+              type: 'string'
+            }
           }
         },
         cuts: {
           type: 'object',
           description: '运动学切割',
           properties: {
-            pt_min: { type: 'number' },
-            eta_max: { type: 'number' },
-            invariant_mass_range: { type: 'array' }
+            pt_min: {
+              type: 'number'
+            },
+            eta_max: {
+              type: 'number'
+            },
+            invariant_mass_range: {
+              type: 'array'
+            }
           }
         },
         num_events: {
@@ -13256,41 +16233,52 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         events: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              event_id: { type: 'number' },
-              particles: { type: 'array' },
-              weight: { type: 'number' }
+              event_id: {
+                type: 'number'
+              },
+              particles: {
+                type: 'array'
+              },
+              weight: {
+                type: 'number'
+              }
             }
           }
         },
-        histograms: { type: 'object' },
-        error: { type: 'string' }
+        histograms: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "粒子事例生成器使用示例",
-      "params": {
-        "generator": "Pythia",
-        "process": "example_value",
-        "pdf_set": "NNPDF",
-        "hadronization": "example_value",
-        "cuts": "example_value",
-        "num_events": 10
+    examples: [
+      {
+        description: '粒子事例生成器使用示例',
+        params: {
+          generator: 'Pythia',
+          process: 'example_value',
+          pdf_set: 'NNPDF',
+          hadronization: 'example_value',
+          cuts: 'example_value',
+          num_events: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_wimp_detector',
     name: 'wimp_detector',
@@ -13315,8 +16303,12 @@ const builtinTools = [
           type: 'object',
           description: '曝光量',
           properties: {
-            mass_kg: { type: 'number' },
-            time_days: { type: 'number' }
+            mass_kg: {
+              type: 'number'
+            },
+            time_days: {
+              type: 'number'
+            }
           }
         },
         energy_threshold: {
@@ -13327,17 +16319,27 @@ const builtinTools = [
           type: 'object',
           description: '本底模型',
           properties: {
-            radon: { type: 'number' },
-            cosmogenic: { type: 'number' },
-            neutron: { type: 'number' }
+            radon: {
+              type: 'number'
+            },
+            cosmogenic: {
+              type: 'number'
+            },
+            neutron: {
+              type: 'number'
+            }
           }
         },
         wimp_params: {
           type: 'object',
           description: 'WIMP参数',
           properties: {
-            mass_gev: { type: 'number' },
-            cross_section: { type: 'number' }
+            mass_gev: {
+              type: 'number'
+            },
+            cross_section: {
+              type: 'number'
+            }
           }
         }
       },
@@ -13346,32 +16348,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        events: { type: 'array', description: '候选事例' },
-        exclusion_limit: { type: 'object', description: '排除限' },
-        significance: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        events: {
+          type: 'array',
+          description: '候选事例'
+        },
+        exclusion_limit: {
+          type: 'object',
+          description: '排除限'
+        },
+        significance: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "WIMP探测器使用示例",
-      "params": {
-        "detector_type": "xenon_TPC",
-        "target_material": "Xe",
-        "exposure": "example_value",
-        "energy_threshold": 10,
-        "background_model": "example_value",
-        "wimp_params": "example_value"
+    examples: [
+      {
+        description: 'WIMP探测器使用示例',
+        params: {
+          detector_type: 'xenon_TPC',
+          target_material: 'Xe',
+          exposure: 'example_value',
+          energy_threshold: 10,
+          background_model: 'example_value',
+          wimp_params: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_axion_searcher',
     name: 'axion_searcher',
@@ -13391,17 +16404,27 @@ const builtinTools = [
           type: 'object',
           description: '质量范围(μeV)',
           properties: {
-            min: { type: 'number' },
-            max: { type: 'number' }
+            min: {
+              type: 'number'
+            },
+            max: {
+              type: 'number'
+            }
           }
         },
         cavity_params: {
           type: 'object',
           description: '腔体参数',
           properties: {
-            frequency_ghz: { type: 'number' },
-            quality_factor: { type: 'number' },
-            volume_liters: { type: 'number' }
+            frequency_ghz: {
+              type: 'number'
+            },
+            quality_factor: {
+              type: 'number'
+            },
+            volume_liters: {
+              type: 'number'
+            }
           }
         },
         magnetic_field: {
@@ -13422,32 +16445,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        signal_power: { type: 'number', description: '信号功率(W)' },
-        sensitivity: { type: 'number' },
-        exclusion_plot: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        signal_power: {
+          type: 'number',
+          description: '信号功率(W)'
+        },
+        sensitivity: {
+          type: 'number'
+        },
+        exclusion_plot: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "轴子搜寻器使用示例",
-      "params": {
-        "search_method": "cavity_haloscope",
-        "mass_range": "example_value",
-        "cavity_params": "example_value",
-        "magnetic_field": 10,
-        "integration_time": 10,
-        "coupling_constant": 10
+    examples: [
+      {
+        description: '轴子搜寻器使用示例',
+        params: {
+          search_method: 'cavity_haloscope',
+          mass_range: 'example_value',
+          cavity_params: 'example_value',
+          magnetic_field: 10,
+          integration_time: 10,
+          coupling_constant: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_tokamak_simulator',
     name: 'tokamak_simulator',
@@ -13467,10 +16500,22 @@ const builtinTools = [
           type: 'object',
           description: '等离子体参数',
           properties: {
-            major_radius: { type: 'number', description: '大半径(m)' },
-            minor_radius: { type: 'number', description: '小半径(m)' },
-            toroidal_field: { type: 'number', description: '环向磁场(T)' },
-            plasma_current: { type: 'number', description: '等离子体电流(MA)' }
+            major_radius: {
+              type: 'number',
+              description: '大半径(m)'
+            },
+            minor_radius: {
+              type: 'number',
+              description: '小半径(m)'
+            },
+            toroidal_field: {
+              type: 'number',
+              description: '环向磁场(T)'
+            },
+            plasma_current: {
+              type: 'number',
+              description: '等离子体电流(MA)'
+            }
           }
         },
         operating_scenario: {
@@ -13482,9 +16527,18 @@ const builtinTools = [
           type: 'object',
           description: '加热系统',
           properties: {
-            nbi_power: { type: 'number', description: 'NBI功率(MW)' },
-            ec_power: { type: 'number', description: 'EC功率(MW)' },
-            ic_power: { type: 'number', description: 'IC功率(MW)' }
+            nbi_power: {
+              type: 'number',
+              description: 'NBI功率(MW)'
+            },
+            ec_power: {
+              type: 'number',
+              description: 'EC功率(MW)'
+            },
+            ic_power: {
+              type: 'number',
+              description: 'IC功率(MW)'
+            }
           }
         },
         simulation_type: {
@@ -13502,35 +16556,55 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        fusion_power: { type: 'number', description: '聚变功率(MW)' },
-        q_factor: { type: 'number', description: '能量增益因子Q' },
-        confinement_time: { type: 'number', description: '约束时间(s)' },
-        beta: { type: 'number', description: 'β值' },
-        profiles: { type: 'object', description: '剖面' },
-        stability: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        fusion_power: {
+          type: 'number',
+          description: '聚变功率(MW)'
+        },
+        q_factor: {
+          type: 'number',
+          description: '能量增益因子Q'
+        },
+        confinement_time: {
+          type: 'number',
+          description: '约束时间(s)'
+        },
+        beta: {
+          type: 'number',
+          description: 'β值'
+        },
+        profiles: {
+          type: 'object',
+          description: '剖面'
+        },
+        stability: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "托卡马克模拟器使用示例",
-      "params": {
-        "device": "ITER",
-        "plasma_params": "example_value",
-        "operating_scenario": "L-mode",
-        "heating_systems": "example_value",
-        "simulation_type": "equilibrium",
-        "duration": 10
+    examples: [
+      {
+        description: '托卡马克模拟器使用示例',
+        params: {
+          device: 'ITER',
+          plasma_params: 'example_value',
+          operating_scenario: 'L-mode',
+          heating_systems: 'example_value',
+          simulation_type: 'equilibrium',
+          duration: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['energy.nuclear'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_plasma_controller',
     name: 'plasma_controller',
@@ -13545,19 +16619,34 @@ const builtinTools = [
           type: 'object',
           description: '控制目标',
           properties: {
-            vertical_position: { type: 'number' },
-            elongation: { type: 'number' },
-            triangularity: { type: 'number' },
-            q95: { type: 'number' }
+            vertical_position: {
+              type: 'number'
+            },
+            elongation: {
+              type: 'number'
+            },
+            triangularity: {
+              type: 'number'
+            },
+            q95: {
+              type: 'number'
+            }
           }
         },
         actuators: {
           type: 'object',
           description: '执行器',
           properties: {
-            poloidal_field_coils: { type: 'array', description: 'PF线圈电流' },
-            neutral_beam: { type: 'number' },
-            gas_puffing: { type: 'number' }
+            poloidal_field_coils: {
+              type: 'array',
+              description: 'PF线圈电流'
+            },
+            neutral_beam: {
+              type: 'number'
+            },
+            gas_puffing: {
+              type: 'number'
+            }
           }
         },
         controller_type: {
@@ -13568,14 +16657,20 @@ const builtinTools = [
         feedback_sensors: {
           type: 'array',
           description: '反馈传感器',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
         constraints: {
           type: 'object',
           description: '约束条件',
           properties: {
-            max_coil_current: { type: 'number' },
-            max_power: { type: 'number' }
+            max_coil_current: {
+              type: 'number'
+            },
+            max_power: {
+              type: 'number'
+            }
           }
         }
       },
@@ -13584,34 +16679,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        control_signals: { type: 'object' },
-        plasma_state: { type: 'object' },
-        stability_margin: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        control_signals: {
+          type: 'object'
+        },
+        plasma_state: {
+          type: 'object'
+        },
+        stability_margin: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "等离子体控制器使用示例",
-      "params": {
-        "control_objectives": "example_value",
-        "actuators": "example_value",
-        "controller_type": "PID",
-        "feedback_sensors": [
-          "item1",
-          "item2"
-        ],
-        "constraints": "example_value"
+    examples: [
+      {
+        description: '等离子体控制器使用示例',
+        params: {
+          control_objectives: 'example_value',
+          actuators: 'example_value',
+          controller_type: 'PID',
+          feedback_sensors: ['item1', 'item2'],
+          constraints: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['energy.nuclear'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_photonic_router',
     name: 'photonic_router',
@@ -13647,9 +16748,15 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              source: { type: 'string' },
-              destination: { type: 'string' },
-              wavelength: { type: 'number' }
+              source: {
+                type: 'string'
+              },
+              destination: {
+                type: 'string'
+              },
+              wavelength: {
+                type: 'number'
+              }
             }
           }
         },
@@ -13657,9 +16764,15 @@ const builtinTools = [
           type: 'object',
           description: 'QoS要求',
           properties: {
-            latency_ms: { type: 'number' },
-            bandwidth_gbps: { type: 'number' },
-            ber_threshold: { type: 'number' }
+            latency_ms: {
+              type: 'number'
+            },
+            bandwidth_gbps: {
+              type: 'number'
+            },
+            ber_threshold: {
+              type: 'number'
+            }
           }
         }
       },
@@ -13668,36 +16781,44 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        routes: { type: 'array' },
-        wavelength_assignment: { type: 'object' },
-        throughput_gbps: { type: 'number' },
-        blocking_probability: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        routes: {
+          type: 'array'
+        },
+        wavelength_assignment: {
+          type: 'object'
+        },
+        throughput_gbps: {
+          type: 'number'
+        },
+        blocking_probability: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "网络请求示例",
-      "params": {
-        "architecture": "wavelength_routing",
-        "wavelength_channels": 10,
-        "switching_technology": "MEMS",
-        "modulation_format": "OOK",
-        "routing_table": [
-          "item1",
-          "item2"
-        ],
-        "qos_requirements": "example_value"
+    examples: [
+      {
+        description: '网络请求示例',
+        params: {
+          architecture: 'wavelength_routing',
+          wavelength_channels: 10,
+          switching_technology: 'MEMS',
+          modulation_format: 'OOK',
+          routing_table: ['item1', 'item2'],
+          qos_requirements: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.admin'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_optical_nn_designer',
     name: 'optical_nn_designer',
@@ -13719,8 +16840,13 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string', enum: ['phase_mask', 'mzi_mesh', 'free_space'] },
-              size: { type: 'number' }
+              type: {
+                type: 'string',
+                enum: ['phase_mask', 'mzi_mesh', 'free_space']
+              },
+              size: {
+                type: 'number'
+              }
             }
           }
         },
@@ -13728,8 +16854,13 @@ const builtinTools = [
           type: 'object',
           description: '光学元件',
           properties: {
-            wavelength_nm: { type: 'number' },
-            nonlinearity: { type: 'string', enum: ['none', 'saturable_absorber', 'kerr'] }
+            wavelength_nm: {
+              type: 'number'
+            },
+            nonlinearity: {
+              type: 'string',
+              enum: ['none', 'saturable_absorber', 'kerr']
+            }
           }
         },
         training_method: {
@@ -13752,39 +16883,47 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        model_id: { type: 'string' },
-        performance: { type: 'object' },
-        power_consumption_mw: { type: 'number' },
-        latency_ns: { type: 'number' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "使用光学神经网络设计器进行AI处理",
-      "params": {
-        "architecture": "diffractive",
-        "layers": [
-          "item1",
-          "item2"
-        ],
-        "optical_components": "example_value",
-        "training_method": "in_situ",
-        "task": "classification",
-        "dataset": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        model_id: {
+          type: 'string'
+        },
+        performance: {
+          type: 'object'
+        },
+        power_consumption_mw: {
+          type: 'number'
+        },
+        latency_ns: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '使用光学神经网络设计器进行AI处理',
+        params: {
+          architecture: 'diffractive',
+          layers: ['item1', 'item2'],
+          optical_components: 'example_value',
+          training_method: 'in_situ',
+          task: 'classification',
+          dataset: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['ai.inference'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_topological_state_calculator',
     name: 'topological_state_calculator',
@@ -13799,17 +16938,28 @@ const builtinTools = [
           type: 'object',
           description: '材料信息',
           properties: {
-            lattice: { type: 'string', description: '晶格类型' },
-            atoms: { type: 'array' },
-            symmetry: { type: 'string' }
+            lattice: {
+              type: 'string',
+              description: '晶格类型'
+            },
+            atoms: {
+              type: 'array'
+            },
+            symmetry: {
+              type: 'string'
+            }
           }
         },
         hamiltonian: {
           type: 'object',
           description: '哈密顿量',
           properties: {
-            tight_binding: { type: 'object' },
-            spin_orbit_coupling: { type: 'number' }
+            tight_binding: {
+              type: 'object'
+            },
+            spin_orbit_coupling: {
+              type: 'number'
+            }
           }
         },
         topological_invariant: {
@@ -13821,8 +16971,13 @@ const builtinTools = [
           type: 'object',
           description: 'k点网格',
           properties: {
-            grid: { type: 'array' },
-            path: { type: 'array', description: '高对称路径' }
+            grid: {
+              type: 'array'
+            },
+            path: {
+              type: 'array',
+              description: '高对称路径'
+            }
           }
         },
         calculation_method: {
@@ -13836,32 +16991,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        invariant_value: { type: 'number' },
-        band_structure: { type: 'object' },
-        edge_states: { type: 'array' },
-        topological_phase: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        invariant_value: {
+          type: 'number'
+        },
+        band_structure: {
+          type: 'object'
+        },
+        edge_states: {
+          type: 'array'
+        },
+        topological_phase: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "拓扑态计算器使用示例",
-      "params": {
-        "material": "example_value",
-        "hamiltonian": "example_value",
-        "topological_invariant": "chern_number",
-        "k_points": "example_value",
-        "calculation_method": "wannier"
+    examples: [
+      {
+        description: '拓扑态计算器使用示例',
+        params: {
+          material: 'example_value',
+          hamiltonian: 'example_value',
+          topological_invariant: 'chern_number',
+          k_points: 'example_value',
+          calculation_method: 'wannier'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_majorana_detector',
     name: 'majorana_detector',
@@ -13881,9 +17047,16 @@ const builtinTools = [
           type: 'object',
           description: '实验装置',
           properties: {
-            temperature_mk: { type: 'number', description: '温度(mK)' },
-            magnetic_field_t: { type: 'number' },
-            gate_voltages: { type: 'array' }
+            temperature_mk: {
+              type: 'number',
+              description: '温度(mK)'
+            },
+            magnetic_field_t: {
+              type: 'number'
+            },
+            gate_voltages: {
+              type: 'array'
+            }
           }
         },
         measurement_type: {
@@ -13895,18 +17068,30 @@ const builtinTools = [
           type: 'object',
           description: '偏压范围(mV)',
           properties: {
-            min: { type: 'number' },
-            max: { type: 'number' },
-            step: { type: 'number' }
+            min: {
+              type: 'number'
+            },
+            max: {
+              type: 'number'
+            },
+            step: {
+              type: 'number'
+            }
           }
         },
         signature_criteria: {
           type: 'object',
           description: '特征判据',
           properties: {
-            zero_bias_peak: { type: 'boolean' },
-            quantized_conductance: { type: 'boolean' },
-            non_abelian_statistics: { type: 'boolean' }
+            zero_bias_peak: {
+              type: 'boolean'
+            },
+            quantized_conductance: {
+              type: 'boolean'
+            },
+            non_abelian_statistics: {
+              type: 'boolean'
+            }
           }
         }
       },
@@ -13915,32 +17100,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        differential_conductance: { type: 'array' },
-        zero_bias_peak_height: { type: 'number' },
-        majorana_probability: { type: 'number' },
-        topological_gap: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        differential_conductance: {
+          type: 'array'
+        },
+        zero_bias_peak_height: {
+          type: 'number'
+        },
+        majorana_probability: {
+          type: 'number'
+        },
+        topological_gap: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "马约拉纳费米子探测器使用示例",
-      "params": {
-        "system_type": "nanowire",
-        "experimental_setup": "example_value",
-        "measurement_type": "tunneling_spectroscopy",
-        "bias_voltage_range": "example_value",
-        "signature_criteria": "example_value"
+    examples: [
+      {
+        description: '马约拉纳费米子探测器使用示例',
+        params: {
+          system_type: 'nanowire',
+          experimental_setup: 'example_value',
+          measurement_type: 'tunneling_spectroscopy',
+          bias_voltage_range: 'example_value',
+          signature_criteria: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.physics'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_ice_core_analyzer',
     name: 'ice_core_analyzer',
@@ -13955,9 +17151,17 @@ const builtinTools = [
           type: 'object',
           description: '冰芯信息',
           properties: {
-            location: { type: 'string', enum: ['Antarctica', 'Greenland', 'Tibet', 'Alps'] },
-            depth_m: { type: 'number' },
-            age_ka: { type: 'number', description: '年龄(千年)' }
+            location: {
+              type: 'string',
+              enum: ['Antarctica', 'Greenland', 'Tibet', 'Alps']
+            },
+            depth_m: {
+              type: 'number'
+            },
+            age_ka: {
+              type: 'number',
+              description: '年龄(千年)'
+            }
           }
         },
         analysis_types: {
@@ -13972,18 +17176,30 @@ const builtinTools = [
           type: 'object',
           description: '同位素比值',
           properties: {
-            delta_O18: { type: 'boolean' },
-            delta_D: { type: 'boolean' },
-            deuterium_excess: { type: 'boolean' }
+            delta_O18: {
+              type: 'boolean'
+            },
+            delta_D: {
+              type: 'boolean'
+            },
+            deuterium_excess: {
+              type: 'boolean'
+            }
           }
         },
         gas_measurements: {
           type: 'object',
           description: '气体测量',
           properties: {
-            CO2: { type: 'boolean' },
-            CH4: { type: 'boolean' },
-            N2O: { type: 'boolean' }
+            CO2: {
+              type: 'boolean'
+            },
+            CH4: {
+              type: 'boolean'
+            },
+            N2O: {
+              type: 'boolean'
+            }
           }
         },
         resolution: {
@@ -14001,36 +17217,44 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        isotope_profile: { type: 'array' },
-        gas_concentrations: { type: 'object' },
-        temperature_reconstruction: { type: 'array' },
-        age_depth_model: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        isotope_profile: {
+          type: 'array'
+        },
+        gas_concentrations: {
+          type: 'object'
+        },
+        temperature_reconstruction: {
+          type: 'array'
+        },
+        age_depth_model: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "冰芯分析器使用示例",
-      "params": {
-        "core_info": "example_value",
-        "analysis_types": [
-          "item1",
-          "item2"
-        ],
-        "isotope_ratios": "example_value",
-        "gas_measurements": "example_value",
-        "resolution": 10,
-        "dating_method": "layer_counting"
+    examples: [
+      {
+        description: '冰芯分析器使用示例',
+        params: {
+          core_info: 'example_value',
+          analysis_types: ['item1', 'item2'],
+          isotope_ratios: 'example_value',
+          gas_measurements: 'example_value',
+          resolution: 10,
+          dating_method: 'layer_counting'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.environment'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_climate_reconstructor',
     name: 'climate_reconstructor',
@@ -14045,10 +17269,18 @@ const builtinTools = [
           type: 'object',
           description: '代用指标数据',
           properties: {
-            ice_cores: { type: 'array' },
-            tree_rings: { type: 'array' },
-            sediments: { type: 'array' },
-            corals: { type: 'array' }
+            ice_cores: {
+              type: 'array'
+            },
+            tree_rings: {
+              type: 'array'
+            },
+            sediments: {
+              type: 'array'
+            },
+            corals: {
+              type: 'array'
+            }
           }
         },
         reconstruction_method: {
@@ -14065,8 +17297,12 @@ const builtinTools = [
           type: 'object',
           description: '时间段',
           properties: {
-            start_ka: { type: 'number' },
-            end_ka: { type: 'number' }
+            start_ka: {
+              type: 'number'
+            },
+            end_ka: {
+              type: 'number'
+            }
           }
         },
         spatial_resolution: {
@@ -14085,36 +17321,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        reconstruction: { type: 'array', description: '重建序列' },
-        uncertainty: { type: 'object' },
-        forcing_factors: { type: 'object' },
-        climate_sensitivity: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        reconstruction: {
+          type: 'array',
+          description: '重建序列'
+        },
+        uncertainty: {
+          type: 'object'
+        },
+        forcing_factors: {
+          type: 'object'
+        },
+        climate_sensitivity: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "气候重建器使用示例",
-      "params": {
-        "proxy_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "reconstruction_method": "transfer_function",
-        "target_variable": "temperature",
-        "time_period": "example_value",
-        "spatial_resolution": "global",
-        "climate_model": "CESM"
+    examples: [
+      {
+        description: '气候重建器使用示例',
+        params: {
+          proxy_data: {
+            key: 'value',
+            enabled: true
+          },
+          reconstruction_method: 'transfer_function',
+          target_variable: 'temperature',
+          time_period: 'example_value',
+          spatial_resolution: 'global',
+          climate_model: 'CESM'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.environment'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_magma_simulator',
     name: 'magma_simulator',
@@ -14134,15 +17382,28 @@ const builtinTools = [
           type: 'object',
           description: '岩浆性质',
           properties: {
-            composition: { type: 'string', enum: ['basaltic', 'andesitic', 'rhyolitic'] },
-            temperature_c: { type: 'number' },
-            viscosity: { type: 'number' },
+            composition: {
+              type: 'string',
+              enum: ['basaltic', 'andesitic', 'rhyolitic']
+            },
+            temperature_c: {
+              type: 'number'
+            },
+            viscosity: {
+              type: 'number'
+            },
             volatile_content: {
               type: 'object',
               properties: {
-                H2O_wt: { type: 'number' },
-                CO2_ppm: { type: 'number' },
-                SO2_ppm: { type: 'number' }
+                H2O_wt: {
+                  type: 'number'
+                },
+                CO2_ppm: {
+                  type: 'number'
+                },
+                SO2_ppm: {
+                  type: 'number'
+                }
               }
             }
           }
@@ -14151,17 +17412,28 @@ const builtinTools = [
           type: 'object',
           description: '岩浆房几何',
           properties: {
-            depth_km: { type: 'number' },
-            volume_km3: { type: 'number' },
-            shape: { type: 'string', enum: ['spherical', 'ellipsoidal', 'sill'] }
+            depth_km: {
+              type: 'number'
+            },
+            volume_km3: {
+              type: 'number'
+            },
+            shape: {
+              type: 'string',
+              enum: ['spherical', 'ellipsoidal', 'sill']
+            }
           }
         },
         conduit_model: {
           type: 'object',
           description: '管道模型',
           properties: {
-            diameter_m: { type: 'number' },
-            length_m: { type: 'number' }
+            diameter_m: {
+              type: 'number'
+            },
+            length_m: {
+              type: 'number'
+            }
           }
         },
         simulation_type: {
@@ -14173,8 +17445,12 @@ const builtinTools = [
           type: 'object',
           description: '边界条件',
           properties: {
-            pressure_mpa: { type: 'number' },
-            mass_flux: { type: 'number' }
+            pressure_mpa: {
+              type: 'number'
+            },
+            mass_flux: {
+              type: 'number'
+            }
           }
         }
       },
@@ -14183,33 +17459,44 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        eruption_dynamics: { type: 'object' },
-        mass_eruption_rate: { type: 'number' },
-        plume_height_km: { type: 'number' },
-        gas_emissions: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        eruption_dynamics: {
+          type: 'object'
+        },
+        mass_eruption_rate: {
+          type: 'number'
+        },
+        plume_height_km: {
+          type: 'number'
+        },
+        gas_emissions: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "岩浆模拟器使用示例",
-      "params": {
-        "volcano_type": "shield",
-        "magma_properties": "example_value",
-        "chamber_geometry": "example_value",
-        "conduit_model": "example_value",
-        "simulation_type": "eruption",
-        "boundary_conditions": "example_value"
+    examples: [
+      {
+        description: '岩浆模拟器使用示例',
+        params: {
+          volcano_type: 'shield',
+          magma_properties: 'example_value',
+          chamber_geometry: 'example_value',
+          conduit_model: 'example_value',
+          simulation_type: 'eruption',
+          boundary_conditions: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.geology'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_volcanic_monitor',
     name: 'volcanic_monitor',
@@ -14231,22 +17518,39 @@ const builtinTools = [
             seismic: {
               type: 'object',
               properties: {
-                stations: { type: 'number' },
-                event_threshold: { type: 'number' }
+                stations: {
+                  type: 'number'
+                },
+                event_threshold: {
+                  type: 'number'
+                }
               }
             },
             deformation: {
               type: 'object',
               properties: {
-                method: { type: 'string', enum: ['GPS', 'InSAR', 'tiltmeter'] },
-                baseline_mm: { type: 'number' }
+                method: {
+                  type: 'string',
+                  enum: ['GPS', 'InSAR', 'tiltmeter']
+                },
+                baseline_mm: {
+                  type: 'number'
+                }
               }
             },
             gas: {
               type: 'object',
               properties: {
-                species: { type: 'array', items: { type: 'string', enum: ['SO2', 'CO2', 'H2S'] } },
-                doas_stations: { type: 'number' }
+                species: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    enum: ['SO2', 'CO2', 'H2S']
+                  }
+                },
+                doas_stations: {
+                  type: 'number'
+                }
               }
             },
             thermal: {
@@ -14259,17 +17563,27 @@ const builtinTools = [
           type: 'object',
           description: '预警判据',
           properties: {
-            earthquake_rate: { type: 'number' },
-            uplift_threshold_cm: { type: 'number' },
-            so2_flux_threshold: { type: 'number' }
+            earthquake_rate: {
+              type: 'number'
+            },
+            uplift_threshold_cm: {
+              type: 'number'
+            },
+            so2_flux_threshold: {
+              type: 'number'
+            }
           }
         },
         data_window: {
           type: 'object',
           description: '数据窗口',
           properties: {
-            start_time: { type: 'string' },
-            end_time: { type: 'string' }
+            start_time: {
+              type: 'string'
+            },
+            end_time: {
+              type: 'string'
+            }
           }
         }
       },
@@ -14278,36 +17592,52 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        alert_level: { type: 'string', enum: ['green', 'yellow', 'orange', 'red'] },
-        seismic_activity: { type: 'object' },
-        deformation_rate: { type: 'number' },
-        gas_flux: { type: 'object' },
-        eruption_probability: { type: 'number' },
-        recommendations: { type: 'array' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "火山监测器使用示例",
-      "params": {
-        "volcano_name": "example_value",
-        "monitoring_systems": "example_value",
-        "alert_criteria": "example_value",
-        "data_window": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        alert_level: {
+          type: 'string',
+          enum: ['green', 'yellow', 'orange', 'red']
+        },
+        seismic_activity: {
+          type: 'object'
+        },
+        deformation_rate: {
+          type: 'number'
+        },
+        gas_flux: {
+          type: 'object'
+        },
+        eruption_probability: {
+          type: 'number'
+        },
+        recommendations: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '火山监测器使用示例',
+        params: {
+          volcano_name: 'example_value',
+          monitoring_systems: 'example_value',
+          alert_criteria: 'example_value',
+          data_window: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['science.geology'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_radiocarbon_dater',
     name: 'radiocarbon_dater',
@@ -14322,9 +17652,17 @@ const builtinTools = [
           type: 'object',
           description: '样品信息',
           properties: {
-            material_type: { type: 'string', enum: ['wood', 'charcoal', 'bone', 'shell', 'sediment'] },
-            mass_mg: { type: 'number' },
-            pretreatment: { type: 'string', enum: ['acid_alkali_acid', 'ultrafiltration', 'none'] }
+            material_type: {
+              type: 'string',
+              enum: ['wood', 'charcoal', 'bone', 'shell', 'sediment']
+            },
+            mass_mg: {
+              type: 'number'
+            },
+            pretreatment: {
+              type: 'string',
+              enum: ['acid_alkali_acid', 'ultrafiltration', 'none']
+            }
           }
         },
         measurement_method: {
@@ -14336,9 +17674,16 @@ const builtinTools = [
           type: 'object',
           description: 'C14测量结果',
           properties: {
-            fraction_modern: { type: 'number' },
-            uncertainty: { type: 'number' },
-            delta_c13: { type: 'number', description: 'δ13C同位素分馏校正' }
+            fraction_modern: {
+              type: 'number'
+            },
+            uncertainty: {
+              type: 'number'
+            },
+            delta_c13: {
+              type: 'number',
+              description: 'δ13C同位素分馏校正'
+            }
           }
         },
         calibration_curve: {
@@ -14350,8 +17695,12 @@ const builtinTools = [
           type: 'object',
           description: '库效应',
           properties: {
-            delta_r: { type: 'number' },
-            uncertainty: { type: 'number' }
+            delta_r: {
+              type: 'number'
+            },
+            uncertainty: {
+              type: 'number'
+            }
           }
         }
       },
@@ -14360,37 +17709,51 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        radiocarbon_age_bp: { type: 'number', description: 'C14年龄(BP)' },
+        success: {
+          type: 'boolean'
+        },
+        radiocarbon_age_bp: {
+          type: 'number',
+          description: 'C14年龄(BP)'
+        },
         calibrated_age: {
           type: 'object',
           properties: {
-            median_cal_bp: { type: 'number' },
-            range_68_2: { type: 'array', description: '68.2%置信区间' },
-            range_95_4: { type: 'array', description: '95.4%置信区间' }
+            median_cal_bp: {
+              type: 'number'
+            },
+            range_68_2: {
+              type: 'array',
+              description: '68.2%置信区间'
+            },
+            range_95_4: {
+              type: 'array',
+              description: '95.4%置信区间'
+            }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "放射性碳测年器使用示例",
-      "params": {
-        "sample_info": "example_value",
-        "measurement_method": "AMS",
-        "c14_measurement": "example_value",
-        "calibration_curve": "IntCal20",
-        "reservoir_effect": "example_value"
+    examples: [
+      {
+        description: '放射性碳测年器使用示例',
+        params: {
+          sample_info: 'example_value',
+          measurement_method: 'AMS',
+          c14_measurement: 'example_value',
+          calibration_curve: 'IntCal20',
+          reservoir_effect: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.archaeology'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_artifact_reconstructor',
     name: 'artifact_reconstructor',
@@ -14415,26 +17778,45 @@ const builtinTools = [
           type: 'object',
           description: '输入数据',
           properties: {
-            images: { type: 'array', description: '图像列表' },
-            point_cloud: { type: 'object', description: '点云数据' }
+            images: {
+              type: 'array',
+              description: '图像列表'
+            },
+            point_cloud: {
+              type: 'object',
+              description: '点云数据'
+            }
           }
         },
         reconstruction_settings: {
           type: 'object',
           description: '重建设置',
           properties: {
-            resolution_mm: { type: 'number' },
-            texture_quality: { type: 'string', enum: ['low', 'medium', 'high', 'ultra'] },
-            mesh_optimization: { type: 'boolean' }
+            resolution_mm: {
+              type: 'number'
+            },
+            texture_quality: {
+              type: 'string',
+              enum: ['low', 'medium', 'high', 'ultra']
+            },
+            mesh_optimization: {
+              type: 'boolean'
+            }
           }
         },
         virtual_restoration: {
           type: 'object',
           description: '虚拟修复',
           properties: {
-            fill_gaps: { type: 'boolean' },
-            symmetry_completion: { type: 'boolean' },
-            reference_models: { type: 'array' }
+            fill_gaps: {
+              type: 'boolean'
+            },
+            symmetry_completion: {
+              type: 'boolean'
+            },
+            reference_models: {
+              type: 'array'
+            }
           }
         },
         export_format: {
@@ -14448,37 +17830,51 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        model_id: { type: 'string' },
-        mesh_vertices: { type: 'number' },
-        texture_resolution: { type: 'string' },
-        completeness: { type: 'number', description: '完整度百分比' },
-        download_url: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        model_id: {
+          type: 'string'
+        },
+        mesh_vertices: {
+          type: 'number'
+        },
+        texture_resolution: {
+          type: 'string'
+        },
+        completeness: {
+          type: 'number',
+          description: '完整度百分比'
+        },
+        download_url: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "文物3D重建器使用示例",
-      "params": {
-        "artifact_type": "pottery",
-        "scanning_method": "photogrammetry",
-        "input_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "reconstruction_settings": "example_value",
-        "virtual_restoration": "example_value",
-        "export_format": "OBJ"
+    examples: [
+      {
+        description: '文物3D重建器使用示例',
+        params: {
+          artifact_type: 'pottery',
+          scanning_method: 'photogrammetry',
+          input_data: {
+            key: 'value',
+            enabled: true
+          },
+          reconstruction_settings: 'example_value',
+          virtual_restoration: 'example_value',
+          export_format: 'OBJ'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.archaeology'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_flexible_sensor_designer',
     name: 'flexible_sensor_designer',
@@ -14498,26 +17894,47 @@ const builtinTools = [
           type: 'object',
           description: '柔性基底',
           properties: {
-            material: { type: 'string', enum: ['PET', 'PI', 'PDMS', 'paper', 'textile'] },
-            thickness_um: { type: 'number' },
-            flexibility: { type: 'string', enum: ['flexible', 'stretchable', 'ultra_conformable'] }
+            material: {
+              type: 'string',
+              enum: ['PET', 'PI', 'PDMS', 'paper', 'textile']
+            },
+            thickness_um: {
+              type: 'number'
+            },
+            flexibility: {
+              type: 'string',
+              enum: ['flexible', 'stretchable', 'ultra_conformable']
+            }
           }
         },
         active_material: {
           type: 'object',
           description: '活性材料',
           properties: {
-            type: { type: 'string', enum: ['graphene', 'CNT', 'AgNW', 'conducting_polymer', 'MXene'] },
-            deposition_method: { type: 'string', enum: ['inkjet', 'screen_print', 'spray', 'transfer'] }
+            type: {
+              type: 'string',
+              enum: ['graphene', 'CNT', 'AgNW', 'conducting_polymer', 'MXene']
+            },
+            deposition_method: {
+              type: 'string',
+              enum: ['inkjet', 'screen_print', 'spray', 'transfer']
+            }
           }
         },
         design_parameters: {
           type: 'object',
           description: '设计参数',
           properties: {
-            sensing_area_mm2: { type: 'number' },
-            electrode_pattern: { type: 'string', enum: ['interdigitated', 'serpentine', 'mesh'] },
-            target_sensitivity: { type: 'number' }
+            sensing_area_mm2: {
+              type: 'number'
+            },
+            electrode_pattern: {
+              type: 'string',
+              enum: ['interdigitated', 'serpentine', 'mesh']
+            },
+            target_sensitivity: {
+              type: 'number'
+            }
           }
         },
         application: {
@@ -14529,9 +17946,15 @@ const builtinTools = [
           type: 'object',
           description: '性能要求',
           properties: {
-            response_time_ms: { type: 'number' },
-            power_budget_uw: { type: 'number' },
-            wireless_capability: { type: 'boolean' }
+            response_time_ms: {
+              type: 'number'
+            },
+            power_budget_uw: {
+              type: 'number'
+            },
+            wireless_capability: {
+              type: 'boolean'
+            }
           }
         }
       },
@@ -14540,33 +17963,44 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        design_id: { type: 'string' },
-        predicted_performance: { type: 'object' },
-        fabrication_steps: { type: 'array' },
-        estimated_cost: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        design_id: {
+          type: 'string'
+        },
+        predicted_performance: {
+          type: 'object'
+        },
+        fabrication_steps: {
+          type: 'array'
+        },
+        estimated_cost: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "柔性传感器设计器使用示例",
-      "params": {
-        "sensor_type": "strain",
-        "substrate": "example_value",
-        "active_material": "example_value",
-        "design_parameters": "example_value",
-        "application": "health_monitoring",
-        "performance_requirements": "example_value"
+    examples: [
+      {
+        description: '柔性传感器设计器使用示例',
+        params: {
+          sensor_type: 'strain',
+          substrate: 'example_value',
+          active_material: 'example_value',
+          design_parameters: 'example_value',
+          application: 'health_monitoring',
+          performance_requirements: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['hardware.design'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_biochip_analyzer',
     name: 'biochip_analyzer',
@@ -14591,9 +18025,15 @@ const builtinTools = [
           type: 'object',
           description: '原始数据',
           properties: {
-            signal_intensities: { type: 'array' },
-            channels: { type: 'number' },
-            control_spots: { type: 'array' }
+            signal_intensities: {
+              type: 'array'
+            },
+            channels: {
+              type: 'number'
+            },
+            control_spots: {
+              type: 'array'
+            }
           }
         },
         normalization: {
@@ -14609,17 +18049,28 @@ const builtinTools = [
           type: 'object',
           description: '统计分析',
           properties: {
-            differential_expression: { type: 'boolean' },
-            clustering: { type: 'string', enum: ['hierarchical', 'kmeans', 'dbscan'] },
-            pathway_analysis: { type: 'boolean' }
+            differential_expression: {
+              type: 'boolean'
+            },
+            clustering: {
+              type: 'string',
+              enum: ['hierarchical', 'kmeans', 'dbscan']
+            },
+            pathway_analysis: {
+              type: 'boolean'
+            }
           }
         },
         quality_control: {
           type: 'object',
           description: '质控参数',
           properties: {
-            snr_threshold: { type: 'number' },
-            cv_threshold: { type: 'number' }
+            snr_threshold: {
+              type: 'number'
+            },
+            cv_threshold: {
+              type: 'number'
+            }
           }
         }
       },
@@ -14628,40 +18079,51 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        processed_data: { type: 'object' },
-        differentially_expressed: { type: 'array' },
-        clusters: { type: 'object' },
-        pathways: { type: 'array' },
-        quality_metrics: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        processed_data: {
+          type: 'object'
+        },
+        differentially_expressed: {
+          type: 'array'
+        },
+        clusters: {
+          type: 'object'
+        },
+        pathways: {
+          type: 'array'
+        },
+        quality_metrics: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "生物芯片分析器使用示例",
-      "params": {
-        "chip_type": "microarray",
-        "assay_type": "gene_expression",
-        "raw_data": {
-          "key": "value",
-          "enabled": true
-        },
-        "normalization": "quantile",
-        "background_correction": true,
-        "statistical_analysis": "example_value",
-        "quality_control": "example_value"
+    examples: [
+      {
+        description: '生物芯片分析器使用示例',
+        params: {
+          chip_type: 'microarray',
+          assay_type: 'gene_expression',
+          raw_data: {
+            key: 'value',
+            enabled: true
+          },
+          normalization: 'quantile',
+          background_correction: true,
+          statistical_analysis: 'example_value',
+          quality_control: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['science.biology'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // ========== 第十二批工具 (237-256): 日常实用工具 ==========
-
   {
     id: 'tool_file_compressor',
     name: 'file_compressor',
@@ -14675,7 +18137,9 @@ const builtinTools = [
         files: {
           type: 'array',
           description: '待压缩文件列表',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
         output_path: {
           type: 'string',
@@ -14689,7 +18153,14 @@ const builtinTools = [
         compression_level: {
           type: 'string',
           description: '压缩级别',
-          enum: ['store', 'fastest', 'fast', 'normal', 'maximum', 'ultra']
+          enum: [
+            'store',
+            'fastest',
+            'fast',
+            'normal',
+            'maximum',
+            'ultra'
+          ]
         },
         password: {
           type: 'string',
@@ -14705,33 +18176,50 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        archive_path: { type: 'string' },
-        compressed_size: { type: 'number' },
-        original_size: { type: 'number' },
-        compression_ratio: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        archive_path: {
+          type: 'string'
+        },
+        compressed_size: {
+          type: 'number'
+        },
+        original_size: {
+          type: 'number'
+        },
+        compression_ratio: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "文件操作示例",
-      "params": {
-        "files": "./data/sample.dat",
-        "output_path": "./output/result.txt",
-        "format": "zip",
-        "compression_level": "store",
-        "password": "example_value",
-        "split_size": 100
+    examples: [
+      {
+        description: '压缩单个文件',
+        params: {
+          inputPath: './document.pdf',
+          outputPath: './document.pdf.gz',
+          format: 'gzip'
+        }
+      },
+      {
+        description: '压缩整个目录',
+        params: {
+          inputPath: './project',
+          outputPath: './project-backup.zip',
+          format: 'zip',
+          level: 9
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_file_decompressor',
     name: 'file_decompressor',
@@ -14761,7 +18249,9 @@ const builtinTools = [
         extract_files: {
           type: 'array',
           description: '指定解压文件(可选)',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         }
       },
       required: ['archive_path', 'output_dir']
@@ -14769,31 +18259,47 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        extracted_files: { type: 'array' },
-        total_files: { type: 'number' },
-        total_size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        extracted_files: {
+          type: 'array'
+        },
+        total_files: {
+          type: 'number'
+        },
+        total_size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "文件操作示例",
-      "params": {
-        "archive_path": "./data/sample.dat",
-        "output_dir": "example_value",
-        "password": "example_value",
-        "overwrite": true,
-        "extract_files": "./data/sample.dat"
+    examples: [
+      {
+        description: '压缩单个文件',
+        params: {
+          inputPath: './document.pdf',
+          outputPath: './document.pdf.gz',
+          format: 'gzip'
+        }
+      },
+      {
+        description: '压缩整个目录',
+        params: {
+          inputPath: './project',
+          outputPath: './project-backup.zip',
+          format: 'zip',
+          level: 9
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_image_editor',
     name: 'image_editor',
@@ -14818,8 +18324,13 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string', enum: ['crop', 'resize', 'rotate', 'flip'] },
-              params: { type: 'object' }
+              type: {
+                type: 'string',
+                enum: ['crop', 'resize', 'rotate', 'flip']
+              },
+              params: {
+                type: 'object'
+              }
             }
           }
         },
@@ -14838,35 +18349,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        output_path: { type: 'string' },
-        width: { type: 'number' },
-        height: { type: 'number' },
-        size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        output_path: {
+          type: 'string'
+        },
+        width: {
+          type: 'number'
+        },
+        height: {
+          type: 'number'
+        },
+        size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "input_path": "./input/sample.txt",
-        "output_path": "./output/result.txt",
-        "operations": [
-          "item1",
-          "item2"
-        ],
-        "format": "jpg",
-        "quality": 10
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          input_path: './input/sample.txt',
+          output_path: './output/result.txt',
+          operations: ['item1', 'item2'],
+          format: 'jpg',
+          quality: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_image_filter',
     name: 'image_filter',
@@ -14888,7 +18407,15 @@ const builtinTools = [
         filter: {
           type: 'string',
           description: '滤镜类型',
-          enum: ['grayscale', 'sepia', 'blur', 'sharpen', 'vintage', 'warm', 'cool']
+          enum: [
+            'grayscale',
+            'sepia',
+            'blur',
+            'sharpen',
+            'vintage',
+            'warm',
+            'cool'
+          ]
         },
         brightness: {
           type: 'number',
@@ -14902,9 +18429,16 @@ const builtinTools = [
           type: 'object',
           description: '水印配置',
           properties: {
-            text: { type: 'string' },
-            position: { type: 'string', enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'] },
-            opacity: { type: 'number' }
+            text: {
+              type: 'string'
+            },
+            position: {
+              type: 'string',
+              enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center']
+            },
+            opacity: {
+              type: 'number'
+            }
           }
         }
       },
@@ -14913,31 +18447,38 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        output_path: { type: 'string' },
-        filter_applied: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        output_path: {
+          type: 'string'
+        },
+        filter_applied: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "input_path": "./input/sample.txt",
-        "output_path": "./output/result.txt",
-        "filter": "grayscale",
-        "brightness": 10,
-        "contrast": 10,
-        "watermark": "example_value"
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          input_path: './input/sample.txt',
+          output_path: './output/result.txt',
+          filter: 'grayscale',
+          brightness: 10,
+          contrast: 10,
+          watermark: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_video_cutter',
     name: 'video_cutter',
@@ -14979,32 +18520,41 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        output_path: { type: 'string' },
-        duration: { type: 'number' },
-        size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        output_path: {
+          type: 'string'
+        },
+        duration: {
+          type: 'number'
+        },
+        size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "input_path": "./input/sample.txt",
-        "output_path": "./output/result.txt",
-        "start_time": "example_value",
-        "end_time": "example_value",
-        "extract_audio": true,
-        "audio_format": "mp3"
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          input_path: './input/sample.txt',
+          output_path: './output/result.txt',
+          start_time: 'example_value',
+          end_time: 'example_value',
+          extract_audio: true,
+          audio_format: 'mp3'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_video_merger',
     name: 'video_merger',
@@ -15018,7 +18568,9 @@ const builtinTools = [
         input_files: {
           type: 'array',
           description: '输入视频列表',
-          items: { type: 'string' }
+          items: {
+            type: 'string'
+          }
         },
         output_path: {
           type: 'string',
@@ -15045,31 +18597,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        output_path: { type: 'string' },
-        total_duration: { type: 'number' },
-        file_size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        output_path: {
+          type: 'string'
+        },
+        total_duration: {
+          type: 'number'
+        },
+        file_size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "input_files": "./input/sample.txt",
-        "output_path": "./output/result.txt",
-        "output_format": "mp4",
-        "codec": "function example() { return true; }",
-        "resolution": "original"
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          input_files: './input/sample.txt',
+          output_path: './output/result.txt',
+          output_format: 'mp4',
+          codec: 'function example() { return true; }',
+          resolution: 'original'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_pdf_converter',
     name: 'pdf_converter',
@@ -15096,15 +18657,30 @@ const builtinTools = [
         target_format: {
           type: 'string',
           description: '目标格式',
-          enum: ['pdf', 'docx', 'xlsx', 'pptx', 'txt', 'html', 'jpg', 'png']
+          enum: [
+            'pdf',
+            'docx',
+            'xlsx',
+            'pptx',
+            'txt',
+            'html',
+            'jpg',
+            'png'
+          ]
         },
         options: {
           type: 'object',
           description: '转换选项',
           properties: {
-            preserve_layout: { type: 'boolean' },
-            ocr_enabled: { type: 'boolean' },
-            image_quality: { type: 'number' }
+            preserve_layout: {
+              type: 'boolean'
+            },
+            ocr_enabled: {
+              type: 'boolean'
+            },
+            image_quality: {
+              type: 'number'
+            }
           }
         }
       },
@@ -15113,34 +18689,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        output_path: { type: 'string' },
-        pages: { type: 'number' },
-        size: { type: 'number' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "PDF转换器使用示例",
-      "params": {
-        "input_path": "./input/sample.txt",
-        "output_path": "./output/result.txt",
-        "conversion_type": "to_pdf",
-        "target_format": "pdf",
-        "options": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        output_path: {
+          type: 'string'
+        },
+        pages: {
+          type: 'number'
+        },
+        size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: 'PDF转换器使用示例',
+        params: {
+          input_path: './input/sample.txt',
+          output_path: './output/result.txt',
+          conversion_type: 'to_pdf',
+          target_format: 'pdf',
+          options: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_office_converter',
     name: 'office_converter',
@@ -15162,12 +18747,32 @@ const builtinTools = [
         source_format: {
           type: 'string',
           description: '源格式',
-          enum: ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp']
+          enum: [
+            'doc',
+            'docx',
+            'xls',
+            'xlsx',
+            'ppt',
+            'pptx',
+            'odt',
+            'ods',
+            'odp'
+          ]
         },
         target_format: {
           type: 'string',
           description: '目标格式',
-          enum: ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf', 'html', 'txt']
+          enum: [
+            'doc',
+            'docx',
+            'xls',
+            'xlsx',
+            'ppt',
+            'pptx',
+            'pdf',
+            'html',
+            'txt'
+          ]
         },
         preserve_formatting: {
           type: 'boolean',
@@ -15179,30 +18784,37 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        output_path: { type: 'string' },
-        size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        output_path: {
+          type: 'string'
+        },
+        size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "Office文档转换器使用示例",
-      "params": {
-        "input_path": "./input/sample.txt",
-        "output_path": "./output/result.txt",
-        "source_format": "doc",
-        "target_format": "doc",
-        "preserve_formatting": true
+    examples: [
+      {
+        description: 'Office文档转换器使用示例',
+        params: {
+          input_path: './input/sample.txt',
+          output_path: './output/result.txt',
+          source_format: 'doc',
+          target_format: 'doc',
+          preserve_formatting: true
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read', 'file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_qrcode_generator_advanced',
     name: 'qrcode_generator_advanced',
@@ -15235,10 +18847,18 @@ const builtinTools = [
           type: 'object',
           description: '样式配置',
           properties: {
-            foreground_color: { type: 'string' },
-            background_color: { type: 'string' },
-            logo_path: { type: 'string' },
-            logo_size_ratio: { type: 'number' }
+            foreground_color: {
+              type: 'string'
+            },
+            background_color: {
+              type: 'string'
+            },
+            logo_path: {
+              type: 'string'
+            },
+            logo_size_ratio: {
+              type: 'number'
+            }
           }
         },
         format: {
@@ -15252,31 +18872,38 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        qrcode_path: { type: 'string' },
-        size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        qrcode_path: {
+          type: 'string'
+        },
+        size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "高级二维码生成器使用示例",
-      "params": {
-        "content": "这是一段示例文本用于测试",
-        "output_path": "./output/result.txt",
-        "size": 100,
-        "error_correction": "L",
-        "style": "example_value",
-        "format": "png"
+    examples: [
+      {
+        description: '高级二维码生成器使用示例',
+        params: {
+          content: '这是一段示例文本用于测试',
+          output_path: './output/result.txt',
+          size: 100,
+          error_correction: 'L',
+          style: 'example_value',
+          format: 'png'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_qrcode_scanner',
     name: 'qrcode_scanner',
@@ -15306,37 +18933,46 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         codes: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
-              type: { type: 'string' },
-              data: { type: 'string' },
-              position: { type: 'object' }
+              type: {
+                type: 'string'
+              },
+              data: {
+                type: 'string'
+              },
+              position: {
+                type: 'object'
+              }
             }
           }
         },
-        error: { type: 'string' }
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "二维码扫描器使用示例",
-      "params": {
-        "image_path": "./images/sample.png",
-        "scan_type": "qrcode",
-        "multiple": true
+    examples: [
+      {
+        description: '二维码扫描器使用示例',
+        params: {
+          image_path: './images/sample.png',
+          scan_type: 'qrcode',
+          multiple: true
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_screenshot_tool',
     name: 'screenshot_tool',
@@ -15360,10 +18996,18 @@ const builtinTools = [
           type: 'object',
           description: '截图区域',
           properties: {
-            x: { type: 'number' },
-            y: { type: 'number' },
-            width: { type: 'number' },
-            height: { type: 'number' }
+            x: {
+              type: 'number'
+            },
+            y: {
+              type: 'number'
+            },
+            width: {
+              type: 'number'
+            },
+            height: {
+              type: 'number'
+            }
           }
         },
         include_cursor: {
@@ -15381,31 +19025,40 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        screenshot_path: { type: 'string' },
-        width: { type: 'number' },
-        height: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        screenshot_path: {
+          type: 'string'
+        },
+        width: {
+          type: 'number'
+        },
+        height: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "output_path": "./output/result.txt",
-        "capture_type": "fullscreen",
-        "region": "example_value",
-        "include_cursor": true,
-        "format": "png"
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          output_path: './output/result.txt',
+          capture_type: 'fullscreen',
+          region: 'example_value',
+          include_cursor: true,
+          format: 'png'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.screen'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_screen_recorder',
     name: 'screen_recorder',
@@ -15452,33 +19105,42 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        video_path: { type: 'string' },
-        duration: { type: 'number' },
-        size: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        video_path: {
+          type: 'string'
+        },
+        duration: {
+          type: 'number'
+        },
+        size: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "处理媒体文件",
-      "params": {
-        "output_path": "./output/result.txt",
-        "output_format": "mp4",
-        "capture_type": "fullscreen",
-        "region": "example_value",
-        "fps": 10,
-        "record_audio": true,
-        "duration": 10
+    examples: [
+      {
+        description: '处理媒体文件',
+        params: {
+          output_path: './output/result.txt',
+          output_format: 'mp4',
+          capture_type: 'fullscreen',
+          region: 'example_value',
+          fps: 10,
+          record_audio: true,
+          duration: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['system.screen', 'system.audio'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_calendar_manager',
     name: 'calendar_manager',
@@ -15498,22 +19160,42 @@ const builtinTools = [
           type: 'object',
           description: '事件信息',
           properties: {
-            id: { type: 'string' },
-            title: { type: 'string' },
-            description: { type: 'string' },
-            start_time: { type: 'string' },
-            end_time: { type: 'string' },
-            location: { type: 'string' },
-            attendees: { type: 'array' },
-            recurrence: { type: 'object' }
+            id: {
+              type: 'string'
+            },
+            title: {
+              type: 'string'
+            },
+            description: {
+              type: 'string'
+            },
+            start_time: {
+              type: 'string'
+            },
+            end_time: {
+              type: 'string'
+            },
+            location: {
+              type: 'string'
+            },
+            attendees: {
+              type: 'array'
+            },
+            recurrence: {
+              type: 'object'
+            }
           }
         },
         date_range: {
           type: 'object',
           description: '查询日期范围',
           properties: {
-            start: { type: 'string' },
-            end: { type: 'string' }
+            start: {
+              type: 'string'
+            },
+            end: {
+              type: 'string'
+            }
           }
         }
       },
@@ -15522,28 +19204,35 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        event: { type: 'object' },
-        events: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        event: {
+          type: 'object'
+        },
+        events: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "日历管理器使用示例",
-      "params": {
-        "action": "create",
-        "event": "example_value",
-        "date_range": "example_value"
+    examples: [
+      {
+        description: '日历管理器使用示例',
+        params: {
+          action: 'create',
+          event: 'example_value',
+          date_range: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['calendar.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_reminder_scheduler',
     name: 'reminder_scheduler',
@@ -15563,12 +19252,26 @@ const builtinTools = [
           type: 'object',
           description: '提醒信息',
           properties: {
-            id: { type: 'string' },
-            title: { type: 'string' },
-            description: { type: 'string' },
-            remind_time: { type: 'string' },
-            repeat: { type: 'string', enum: ['none', 'daily', 'weekly', 'monthly'] },
-            priority: { type: 'string', enum: ['low', 'medium', 'high'] }
+            id: {
+              type: 'string'
+            },
+            title: {
+              type: 'string'
+            },
+            description: {
+              type: 'string'
+            },
+            remind_time: {
+              type: 'string'
+            },
+            repeat: {
+              type: 'string',
+              enum: ['none', 'daily', 'weekly', 'monthly']
+            },
+            priority: {
+              type: 'string',
+              enum: ['low', 'medium', 'high']
+            }
           }
         }
       },
@@ -15577,27 +19280,34 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        reminder: { type: 'object' },
-        reminders: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        reminder: {
+          type: 'object'
+        },
+        reminders: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "提醒调度器使用示例",
-      "params": {
-        "action": "create",
-        "reminder": "example_value"
+    examples: [
+      {
+        description: '提醒调度器使用示例',
+        params: {
+          action: 'create',
+          reminder: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['notification.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_note_editor',
     name: 'note_editor',
@@ -15617,12 +19327,25 @@ const builtinTools = [
           type: 'object',
           description: '笔记信息',
           properties: {
-            id: { type: 'string' },
-            title: { type: 'string' },
-            content: { type: 'string' },
-            tags: { type: 'array' },
-            folder: { type: 'string' },
-            format: { type: 'string', enum: ['markdown', 'rich_text', 'plain'] }
+            id: {
+              type: 'string'
+            },
+            title: {
+              type: 'string'
+            },
+            content: {
+              type: 'string'
+            },
+            tags: {
+              type: 'array'
+            },
+            folder: {
+              type: 'string'
+            },
+            format: {
+              type: 'string',
+              enum: ['markdown', 'rich_text', 'plain']
+            }
           }
         }
       },
@@ -15631,26 +19354,31 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        note: { type: 'object' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        note: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "笔记编辑器使用示例",
-      "params": {
-        "action": "create",
-        "note": "example_value"
+    examples: [
+      {
+        description: '笔记编辑器使用示例',
+        params: {
+          action: 'create',
+          note: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.write'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_note_searcher',
     name: 'note_searcher',
@@ -15669,11 +19397,21 @@ const builtinTools = [
           type: 'object',
           description: '筛选条件',
           properties: {
-            tags: { type: 'array' },
-            folder: { type: 'string' },
-            date_from: { type: 'string' },
-            date_to: { type: 'string' },
-            format: { type: 'string' }
+            tags: {
+              type: 'array'
+            },
+            folder: {
+              type: 'string'
+            },
+            date_from: {
+              type: 'string'
+            },
+            date_to: {
+              type: 'string'
+            },
+            format: {
+              type: 'string'
+            }
           }
         },
         sort_by: {
@@ -15691,29 +19429,36 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        notes: { type: 'array' },
-        total: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        notes: {
+          type: 'array'
+        },
+        total: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "笔记搜索器使用示例",
-      "params": {
-        "query": "example_value",
-        "filters": "example_value",
-        "sort_by": "created_at",
-        "limit": 100
+    examples: [
+      {
+        description: '笔记搜索器使用示例',
+        params: {
+          query: 'example_value',
+          filters: 'example_value',
+          sort_by: 'created_at',
+          limit: 100
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['file.read'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_password_generator_advanced',
     name: 'password_generator_advanced',
@@ -15764,34 +19509,43 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        passwords: { type: 'array' },
-        strength: { type: 'string' },
-        entropy: { type: 'number' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        passwords: {
+          type: 'array'
+        },
+        strength: {
+          type: 'string'
+        },
+        entropy: {
+          type: 'number'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "高级密码生成器使用示例",
-      "params": {
-        "length": 16,
-        "include_uppercase": true,
-        "include_lowercase": true,
-        "include_numbers": true,
-        "include_symbols": true,
-        "exclude_ambiguous": true,
-        "custom_charset": "example_value",
-        "count": 1
+    examples: [
+      {
+        description: '高级密码生成器使用示例',
+        params: {
+          length: 16,
+          include_uppercase: true,
+          include_lowercase: true,
+          include_numbers: true,
+          include_symbols: true,
+          exclude_ambiguous: true,
+          custom_charset: 'example_value',
+          count: 1
+        }
       }
-    }
-  ],
-    required_permissions: ["security:manage"],
+    ],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_password_vault',
     name: 'password_vault',
@@ -15811,13 +19565,27 @@ const builtinTools = [
           type: 'object',
           description: '密码条目',
           properties: {
-            id: { type: 'string' },
-            title: { type: 'string' },
-            username: { type: 'string' },
-            password: { type: 'string' },
-            url: { type: 'string' },
-            notes: { type: 'string' },
-            tags: { type: 'array' }
+            id: {
+              type: 'string'
+            },
+            title: {
+              type: 'string'
+            },
+            username: {
+              type: 'string'
+            },
+            password: {
+              type: 'string'
+            },
+            url: {
+              type: 'string'
+            },
+            notes: {
+              type: 'string'
+            },
+            tags: {
+              type: 'array'
+            }
           }
         },
         master_password: {
@@ -15834,29 +19602,36 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        entry: { type: 'object' },
-        entries: { type: 'array' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        entry: {
+          type: 'object'
+        },
+        entries: {
+          type: 'array'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "密码保险库使用示例",
-      "params": {
-        "action": "add",
-        "entry": "example_value",
-        "master_password": "example_value",
-        "search_query": "example_value"
+    examples: [
+      {
+        description: '密码保险库使用示例',
+        params: {
+          action: 'add',
+          entry: 'example_value',
+          master_password: 'example_value',
+          search_query: 'example_value'
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['security.password'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_network_speed_tester',
     name: 'network_speed_tester',
@@ -15886,31 +19661,48 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        download_speed: { type: 'number', description: 'Mbps' },
-        upload_speed: { type: 'number', description: 'Mbps' },
-        ping: { type: 'number', description: 'ms' },
-        jitter: { type: 'number', description: 'ms' },
-        server_location: { type: 'string' },
-        error: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        download_speed: {
+          type: 'number',
+          description: 'Mbps'
+        },
+        upload_speed: {
+          type: 'number',
+          description: 'Mbps'
+        },
+        ping: {
+          type: 'number',
+          description: 'ms'
+        },
+        jitter: {
+          type: 'number',
+          description: 'ms'
+        },
+        server_location: {
+          type: 'string'
+        },
+        error: {
+          type: 'string'
+        }
       }
     },
-  examples:   [
-    {
-      "description": "网络请求示例",
-      "params": {
-        "test_type": "download",
-        "server": "example_value",
-        "duration": 10
+    examples: [
+      {
+        description: '网络请求示例',
+        params: {
+          test_type: 'download',
+          server: 'example_value',
+          duration: 10
+        }
       }
-    }
-  ],
+    ],
     required_permissions: ['network.test'],
     risk_level: 1,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
   {
     id: 'tool_network_diagnostic_tool',
     name: 'network_diagnostic_tool',
@@ -15934,12 +19726,35 @@ const builtinTools = [
           type: 'object',
           description: '操作选项',
           properties: {
-            count: { type: 'number', description: 'Ping次数' },
-            timeout: { type: 'number', description: '超时(ms)' },
-            ports: { type: 'array', description: '端口列表' },
-            port_range: { type: 'object', properties: { start: { type: 'number' }, end: { type: 'number' } } },
-            dns_server: { type: 'string' },
-            max_hops: { type: 'number' }
+            count: {
+              type: 'number',
+              description: 'Ping次数'
+            },
+            timeout: {
+              type: 'number',
+              description: '超时(ms)'
+            },
+            ports: {
+              type: 'array',
+              description: '端口列表'
+            },
+            port_range: {
+              type: 'object',
+              properties: {
+                start: {
+                  type: 'number'
+                },
+                end: {
+                  type: 'number'
+                }
+              }
+            },
+            dns_server: {
+              type: 'string'
+            },
+            max_hops: {
+              type: 'number'
+            }
           }
         }
       },
@@ -15948,36 +19763,35 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        result: { type: 'object' },
-        error: { type: 'string' }
-      }
-    },
-  examples:   [
-    {
-      "description": "网络请求示例",
-      "params": {
-        "operation": "ping",
-        "target": "example_value",
-        "options": {
-          "key": "value",
-          "enabled": true
+        success: {
+          type: 'boolean'
+        },
+        result: {
+          type: 'object'
+        },
+        error: {
+          type: 'string'
         }
       }
-    }
-  ],
+    },
+    examples: [
+      {
+        description: '网络请求示例',
+        params: {
+          operation: 'ping',
+          target: 'example_value',
+          options: {
+            key: 'value',
+            enabled: true
+          }
+        }
+      }
+    ],
     required_permissions: ['network.diagnostic'],
     risk_level: 2,
     is_builtin: 1,
-    enabled: 1,
+    enabled: 1
   },
-
-  // ==================== 数据科学工具 (Data Science) ====================
-
-  /**
-   * 数据预处理器
-   * 数据清洗、缺失值处理、特征缩放
-   */
   {
     id: 'tool_data_preprocessor',
     name: 'data_preprocessor',
@@ -16014,7 +19828,14 @@ const builtinTools = [
           properties: {
             missingStrategy: {
               type: 'string',
-              enum: ['drop', 'mean', 'median', 'mode', 'forward_fill', 'backward_fill'],
+              enum: [
+                'drop',
+                'mean',
+                'median',
+                'mode',
+                'forward_fill',
+                'backward_fill'
+              ],
               default: 'median'
             },
             outlierMethod: {
@@ -16039,16 +19860,30 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        outputPath: { type: 'string' },
-        rowsProcessed: { type: 'number' },
-        columnsProcessed: { type: 'number' },
+        success: {
+          type: 'boolean'
+        },
+        outputPath: {
+          type: 'string'
+        },
+        rowsProcessed: {
+          type: 'number'
+        },
+        columnsProcessed: {
+          type: 'number'
+        },
         summary: {
           type: 'object',
           properties: {
-            duplicatesRemoved: { type: 'number' },
-            missingValuesHandled: { type: 'number' },
-            outliersDetected: { type: 'number' }
+            duplicatesRemoved: {
+              type: 'number'
+            },
+            missingValuesHandled: {
+              type: 'number'
+            },
+            outliersDetected: {
+              type: 'number'
+            }
           }
         }
       }
@@ -16072,11 +19907,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * 特征工程工具
-   * 特征创建、选择和转换
-   */
   {
     id: 'tool_feature_engineer',
     name: 'feature_engineer',
@@ -16108,14 +19938,23 @@ const builtinTools = [
         config: {
           type: 'object',
           properties: {
-            polynomialDegree: { type: 'number', default: 2 },
-            pcaComponents: { type: 'number', default: 0.95 },
+            polynomialDegree: {
+              type: 'number',
+              default: 2
+            },
+            pcaComponents: {
+              type: 'number',
+              default: 0.95
+            },
             selectionMethod: {
               type: 'string',
               enum: ['chi2', 'mutual_info', 'f_classif', 'rfe'],
               default: 'mutual_info'
             },
-            topK: { type: 'number', description: '保留前K个特征' }
+            topK: {
+              type: 'number',
+              description: '保留前K个特征'
+            }
           }
         },
         outputPath: {
@@ -16128,11 +19967,24 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        outputPath: { type: 'string' },
-        originalFeatures: { type: 'number' },
-        newFeatures: { type: 'number' },
-        featureNames: { type: 'array', items: { type: 'string' } }
+        success: {
+          type: 'boolean'
+        },
+        outputPath: {
+          type: 'string'
+        },
+        originalFeatures: {
+          type: 'number'
+        },
+        newFeatures: {
+          type: 'number'
+        },
+        featureNames: {
+          type: 'array',
+          items: {
+            type: 'string'
+          }
+        }
       }
     },
     examples: [
@@ -16155,11 +20007,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * 模型评估器
-   * 评估机器学习模型性能
-   */
   {
     id: 'tool_model_evaluator',
     name: 'model_evaluator',
@@ -16198,19 +20045,29 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         metrics: {
           type: 'object',
           description: '评估指标（accuracy、f1_score、rmse等）'
         },
-        confusionMatrix: { type: 'array' },
-        featureImportance: { type: 'array' },
+        confusionMatrix: {
+          type: 'array'
+        },
+        featureImportance: {
+          type: 'array'
+        },
         plots: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string'
+          },
           description: '生成的图表路径列表'
         },
-        reportPath: { type: 'string' }
+        reportPath: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -16230,11 +20087,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * 统计分析工具
-   * 描述性统计、相关性分析、假设检验
-   */
   {
     id: 'tool_statistical_analyzer',
     name: 'statistical_analyzer',
@@ -16267,14 +20119,21 @@ const builtinTools = [
         },
         columns: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string'
+          },
           description: '要分析的列名（可选）'
         },
         options: {
           type: 'object',
           properties: {
-            confidence_level: { type: 'number', default: 0.95 },
-            method: { type: 'string' }
+            confidence_level: {
+              type: 'number',
+              default: 0.95
+            },
+            method: {
+              type: 'string'
+            }
           }
         },
         reportOutputPath: {
@@ -16287,12 +20146,16 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
+        success: {
+          type: 'boolean'
+        },
         results: {
           type: 'object',
           description: '分析结果'
         },
-        reportPath: { type: 'string' }
+        reportPath: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -16310,11 +20173,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * 数据探索性分析（EDA）工具
-   * 自动生成探索性数据分析报告
-   */
   {
     id: 'tool_eda_generator',
     name: 'eda_generator',
@@ -16355,11 +20213,17 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        reportPath: { type: 'string' },
+        success: {
+          type: 'boolean'
+        },
+        reportPath: {
+          type: 'string'
+        },
         sections: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string'
+          },
           description: '报告章节列表'
         }
       }
@@ -16381,13 +20245,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  // ==================== Office文档工具 ====================
-
-  /**
-   * Word文档生成器
-   * 生成标准格式的Word文档（.docx）
-   */
   {
     id: 'tool_word_generator',
     name: 'word_generator',
@@ -16418,17 +20275,42 @@ const builtinTools = [
           type: 'object',
           description: '文档选项',
           properties: {
-            fontSize: { type: 'number', default: 12 },
-            fontFamily: { type: 'string', default: '宋体' },
-            lineSpacing: { type: 'number', default: 1.5 },
-            pageSize: { type: 'string', enum: ['A4', 'A5', 'Letter'], default: 'A4' },
+            fontSize: {
+              type: 'number',
+              default: 12
+            },
+            fontFamily: {
+              type: 'string',
+              default: '宋体'
+            },
+            lineSpacing: {
+              type: 'number',
+              default: 1.5
+            },
+            pageSize: {
+              type: 'string',
+              enum: ['A4', 'A5', 'Letter'],
+              default: 'A4'
+            },
             margin: {
               type: 'object',
               properties: {
-                top: { type: 'number', default: 2.54 },
-                bottom: { type: 'number', default: 2.54 },
-                left: { type: 'number', default: 3.18 },
-                right: { type: 'number', default: 3.18 }
+                top: {
+                  type: 'number',
+                  default: 2.54
+                },
+                bottom: {
+                  type: 'number',
+                  default: 2.54
+                },
+                left: {
+                  type: 'number',
+                  default: 3.18
+                },
+                right: {
+                  type: 'number',
+                  default: 3.18
+                }
               }
             }
           }
@@ -16439,10 +20321,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' },
-        fileSize: { type: 'number' },
-        pageCount: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        },
+        fileSize: {
+          type: 'number'
+        },
+        pageCount: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -16450,7 +20340,9 @@ const builtinTools = [
         description: '生成商业计划书',
         params: {
           title: '2025年商业计划书',
-          content: '# 执行摘要\n\n项目描述...',
+          content: `# 执行摘要
+
+项目描述...`,
           outputPath: './business-plan.docx'
         }
       }
@@ -16460,11 +20352,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * Word表格创建器
-   * 在Word文档中创建格式化表格
-   */
   {
     id: 'tool_word_table_creator',
     name: 'word_table_creator',
@@ -16483,8 +20370,18 @@ const builtinTools = [
           type: 'object',
           description: '表格数据',
           properties: {
-            headers: { type: 'array', items: { type: 'string' } },
-            rows: { type: 'array', items: { type: 'array' } }
+            headers: {
+              type: 'array',
+              items: {
+                type: 'string'
+              }
+            },
+            rows: {
+              type: 'array',
+              items: {
+                type: 'array'
+              }
+            }
           },
           required: ['headers', 'rows']
         },
@@ -16500,9 +20397,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        tableCount: { type: 'number' },
-        rowCount: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        tableCount: {
+          type: 'number'
+        },
+        rowCount: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -16526,11 +20429,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * Excel电子表格生成器
-   * 生成多工作表Excel文件
-   */
   {
     id: 'tool_excel_generator',
     name: 'excel_generator',
@@ -16547,21 +20445,30 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              name: { type: 'string', description: '工作表名称' },
+              name: {
+                type: 'string',
+                description: '工作表名称'
+              },
               data: {
                 type: 'array',
                 description: '二维数组数据',
-                items: { type: 'array' }
+                items: {
+                  type: 'array'
+                }
               },
               headers: {
                 type: 'array',
                 description: '表头（可选）',
-                items: { type: 'string' }
+                items: {
+                  type: 'string'
+                }
               },
               columnWidths: {
                 type: 'array',
                 description: '列宽数组',
-                items: { type: 'number' }
+                items: {
+                  type: 'number'
+                }
               }
             },
             required: ['name', 'data']
@@ -16575,14 +20482,26 @@ const builtinTools = [
           type: 'object',
           description: 'Excel选项',
           properties: {
-            creator: { type: 'string', default: 'ChainlessChain' },
-            created: { type: 'string' },
-            autoFilter: { type: 'boolean', default: false },
+            creator: {
+              type: 'string',
+              default: 'ChainlessChain'
+            },
+            created: {
+              type: 'string'
+            },
+            autoFilter: {
+              type: 'boolean',
+              default: false
+            },
             freeze: {
               type: 'object',
               properties: {
-                row: { type: 'number' },
-                column: { type: 'number' }
+                row: {
+                  type: 'number'
+                },
+                column: {
+                  type: 'number'
+                }
               }
             }
           }
@@ -16593,10 +20512,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' },
-        sheetCount: { type: 'number' },
-        totalRows: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        },
+        sheetCount: {
+          type: 'number'
+        },
+        totalRows: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -16622,11 +20549,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * Excel公式构建器
-   * 辅助生成Excel公式
-   */
   {
     id: 'tool_excel_formula_builder',
     name: 'excel_formula_builder',
@@ -16639,7 +20561,16 @@ const builtinTools = [
       properties: {
         formulaType: {
           type: 'string',
-          enum: ['SUM', 'AVERAGE', 'IF', 'VLOOKUP', 'COUNTIF', 'SUMIF', 'CONCATENATE', 'CUSTOM'],
+          enum: [
+            'SUM',
+            'AVERAGE',
+            'IF',
+            'VLOOKUP',
+            'COUNTIF',
+            'SUMIF',
+            'CONCATENATE',
+            'CUSTOM'
+          ],
           description: '公式类型'
         },
         range: {
@@ -16660,9 +20591,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        formula: { type: 'string' },
-        description: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        formula: {
+          type: 'string'
+        },
+        description: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -16682,16 +20619,11 @@ const builtinTools = [
         }
       }
     ],
-    required_permissions: ["file:read","file:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * Excel图表创建器
-   * 在Excel中创建各类图表
-   */
   {
     id: 'tool_excel_chart_creator',
     name: 'excel_chart_creator',
@@ -16712,7 +20644,15 @@ const builtinTools = [
         },
         chartType: {
           type: 'string',
-          enum: ['line', 'bar', 'column', 'pie', 'area', 'scatter', 'doughnut'],
+          enum: [
+            'line',
+            'bar',
+            'column',
+            'pie',
+            'area',
+            'scatter',
+            'doughnut'
+          ],
           description: '图表类型'
         },
         dataRange: {
@@ -16727,8 +20667,12 @@ const builtinTools = [
           type: 'object',
           description: '图表位置',
           properties: {
-            row: { type: 'number' },
-            column: { type: 'number' }
+            row: {
+              type: 'number'
+            },
+            column: {
+              type: 'number'
+            }
           }
         }
       },
@@ -16737,8 +20681,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        chartId: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        chartId: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -16758,11 +20706,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * PPT演示文稿生成器
-   * 生成PowerPoint演示文稿
-   */
   {
     id: 'tool_ppt_generator',
     name: 'ppt_generator',
@@ -16779,14 +20722,31 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              title: { type: 'string', description: '幻灯片标题' },
-              content: { type: 'string', description: '幻灯片内容' },
+              title: {
+                type: 'string',
+                description: '幻灯片标题'
+              },
+              content: {
+                type: 'string',
+                description: '幻灯片内容'
+              },
               layout: {
                 type: 'string',
-                enum: ['title', 'titleAndContent', 'sectionHeader', 'twoContent', 'comparison', 'titleOnly', 'blank'],
+                enum: [
+                  'title',
+                  'titleAndContent',
+                  'sectionHeader',
+                  'twoContent',
+                  'comparison',
+                  'titleOnly',
+                  'blank'
+                ],
                 description: '布局类型'
               },
-              notes: { type: 'string', description: '演讲者备注' }
+              notes: {
+                type: 'string',
+                description: '演讲者备注'
+              }
             },
             required: ['title', 'layout']
           }
@@ -16804,8 +20764,12 @@ const builtinTools = [
         options: {
           type: 'object',
           properties: {
-            author: { type: 'string' },
-            company: { type: 'string' },
+            author: {
+              type: 'string'
+            },
+            company: {
+              type: 'string'
+            },
             slideSize: {
               type: 'string',
               enum: ['standard', 'widescreen', 'custom'],
@@ -16819,9 +20783,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' },
-        slideCount: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        },
+        slideCount: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -16836,7 +20806,9 @@ const builtinTools = [
             },
             {
               title: '核心功能',
-              content: '1. 智能对话\n2. 文档生成\n3. 数据分析',
+              content: `1. 智能对话
+2. 文档生成
+3. 数据分析`,
               layout: 'titleAndContent'
             }
           ],
@@ -16850,11 +20822,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * PPT幻灯片创建器
-   * 向现有PPT添加幻灯片
-   */
   {
     id: 'tool_ppt_slide_creator',
     name: 'ppt_slide_creator',
@@ -16873,10 +20840,19 @@ const builtinTools = [
           type: 'object',
           description: '幻灯片配置',
           properties: {
-            title: { type: 'string' },
-            content: { type: 'string' },
-            layout: { type: 'string' },
-            position: { type: 'number', description: '插入位置（索引）' }
+            title: {
+              type: 'string'
+            },
+            content: {
+              type: 'string'
+            },
+            layout: {
+              type: 'string'
+            },
+            position: {
+              type: 'number',
+              description: '插入位置（索引）'
+            }
           },
           required: ['title', 'layout']
         }
@@ -16886,9 +20862,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        slideIndex: { type: 'number' },
-        totalSlides: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        slideIndex: {
+          type: 'number'
+        },
+        totalSlides: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -16909,11 +20891,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  /**
-   * PPT主题应用器
-   * 应用或修改PPT主题
-   */
   {
     id: 'tool_ppt_theme_applicator',
     name: 'ppt_theme_applicator',
@@ -16932,9 +20909,18 @@ const builtinTools = [
           type: 'object',
           description: '主题配置',
           properties: {
-            primaryColor: { type: 'string', description: '主色调（十六进制）' },
-            secondaryColor: { type: 'string', description: '辅助色' },
-            fontFamily: { type: 'string', description: '字体' },
+            primaryColor: {
+              type: 'string',
+              description: '主色调（十六进制）'
+            },
+            secondaryColor: {
+              type: 'string',
+              description: '辅助色'
+            },
+            fontFamily: {
+              type: 'string',
+              description: '字体'
+            },
             backgroundStyle: {
               type: 'string',
               enum: ['solid', 'gradient', 'image'],
@@ -16948,8 +20934,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        appliedSlides: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        appliedSlides: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -16971,11 +20961,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  // ==================== 项目初始化工具 ====================
-  // 以下工具来自 additional-project-tools.js，已整合到此处
-
-  // NPM项目初始化工具
   {
     id: 'tool_npm_project_setup',
     name: 'npm_project_setup',
@@ -16996,7 +20981,14 @@ const builtinTools = [
         },
         template: {
           type: 'string',
-          enum: ['basic', 'express', 'koa', 'nest', 'cli', 'library'],
+          enum: [
+            'basic',
+            'express',
+            'koa',
+            'nest',
+            'cli',
+            'library'
+          ],
           default: 'basic',
           description: '项目模板'
         },
@@ -17022,9 +21014,18 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        projectPath: { type: 'string' },
-        filesCreated: { type: 'array', items: { type: 'string' } }
+        success: {
+          type: 'boolean'
+        },
+        projectPath: {
+          type: 'string'
+        },
+        filesCreated: {
+          type: 'array',
+          items: {
+            type: 'string'
+          }
+        }
       }
     },
     examples: [
@@ -17044,8 +21045,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  // package.json构建器
   {
     id: 'tool_package_json_builder',
     name: 'package_json_builder',
@@ -17063,16 +21062,42 @@ const builtinTools = [
         config: {
           type: 'object',
           properties: {
-            name: { type: 'string' },
-            version: { type: 'string', default: '1.0.0' },
-            description: { type: 'string' },
-            main: { type: 'string', default: 'index.js' },
-            scripts: { type: 'object' },
-            dependencies: { type: 'object' },
-            devDependencies: { type: 'object' },
-            keywords: { type: 'array', items: { type: 'string' } },
-            author: { type: 'string' },
-            license: { type: 'string', default: 'MIT' }
+            name: {
+              type: 'string'
+            },
+            version: {
+              type: 'string',
+              default: '1.0.0'
+            },
+            description: {
+              type: 'string'
+            },
+            main: {
+              type: 'string',
+              default: 'index.js'
+            },
+            scripts: {
+              type: 'object'
+            },
+            dependencies: {
+              type: 'object'
+            },
+            devDependencies: {
+              type: 'object'
+            },
+            keywords: {
+              type: 'array',
+              items: {
+                type: 'string'
+              }
+            },
+            author: {
+              type: 'string'
+            },
+            license: {
+              type: 'string',
+              default: 'MIT'
+            }
           },
           required: ['name']
         }
@@ -17082,8 +21107,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -17116,8 +21145,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  // Python项目初始化工具
   {
     id: 'tool_python_project_setup',
     name: 'python_project_setup',
@@ -17138,7 +21165,15 @@ const builtinTools = [
         },
         projectType: {
           type: 'string',
-          enum: ['package', 'script', 'flask', 'django', 'fastapi', 'ml', 'data-science'],
+          enum: [
+            'package',
+            'script',
+            'flask',
+            'django',
+            'fastapi',
+            'ml',
+            'data-science'
+          ],
           default: 'package',
           description: '项目类型'
         },
@@ -17163,10 +21198,21 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        projectPath: { type: 'string' },
-        filesCreated: { type: 'array', items: { type: 'string' } },
-        venvPath: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        projectPath: {
+          type: 'string'
+        },
+        filesCreated: {
+          type: 'array',
+          items: {
+            type: 'string'
+          }
+        },
+        venvPath: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -17195,8 +21241,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  // requirements.txt生成器
   {
     id: 'tool_requirements_generator',
     name: 'requirements_generator',
@@ -17216,9 +21260,18 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              name: { type: 'string' },
-              version: { type: 'string' },
-              extras: { type: 'array', items: { type: 'string' } }
+              name: {
+                type: 'string'
+              },
+              version: {
+                type: 'string'
+              },
+              extras: {
+                type: 'array',
+                items: {
+                  type: 'string'
+                }
+              }
             },
             required: ['name']
           },
@@ -17239,9 +21292,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' },
-        packageCount: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        },
+        packageCount: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -17250,10 +21309,22 @@ const builtinTools = [
         params: {
           projectPath: './ml-project',
           packages: [
-            { name: 'numpy', version: '1.26.2' },
-            { name: 'pandas', version: '2.1.3' },
-            { name: 'scikit-learn', version: '1.3.2' },
-            { name: 'tensorflow', version: '2.15.0' }
+            {
+              name: 'numpy',
+              version: '1.26.2'
+            },
+            {
+              name: 'pandas',
+              version: '2.1.3'
+            },
+            {
+              name: 'scikit-learn',
+              version: '1.3.2'
+            },
+            {
+              name: 'tensorflow',
+              version: '2.15.0'
+            }
           ]
         }
       }
@@ -17263,8 +21334,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  // setup.py生成器
   {
     id: 'tool_setup_py_generator',
     name: 'setup_py_generator',
@@ -17282,17 +21351,49 @@ const builtinTools = [
         config: {
           type: 'object',
           properties: {
-            name: { type: 'string' },
-            version: { type: 'string' },
-            author: { type: 'string' },
-            author_email: { type: 'string' },
-            description: { type: 'string' },
-            long_description: { type: 'string' },
-            url: { type: 'string' },
-            packages: { type: 'array', items: { type: 'string' } },
-            install_requires: { type: 'array', items: { type: 'string' } },
-            python_requires: { type: 'string', default: '>=3.7' },
-            classifiers: { type: 'array', items: { type: 'string' } }
+            name: {
+              type: 'string'
+            },
+            version: {
+              type: 'string'
+            },
+            author: {
+              type: 'string'
+            },
+            author_email: {
+              type: 'string'
+            },
+            description: {
+              type: 'string'
+            },
+            long_description: {
+              type: 'string'
+            },
+            url: {
+              type: 'string'
+            },
+            packages: {
+              type: 'array',
+              items: {
+                type: 'string'
+              }
+            },
+            install_requires: {
+              type: 'array',
+              items: {
+                type: 'string'
+              }
+            },
+            python_requires: {
+              type: 'string',
+              default: '>=3.7'
+            },
+            classifiers: {
+              type: 'array',
+              items: {
+                type: 'string'
+              }
+            }
           },
           required: ['name', 'version']
         }
@@ -17302,8 +21403,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -17327,8 +21432,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  // Dockerfile生成器
   {
     id: 'tool_dockerfile_generator',
     name: 'dockerfile_generator',
@@ -17368,7 +21471,9 @@ const builtinTools = [
         },
         buildSteps: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string'
+          },
           description: '构建步骤'
         }
       },
@@ -17377,8 +21482,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -17398,8 +21507,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  // docker-compose.yml生成器
   {
     id: 'tool_docker_compose_generator',
     name: 'docker_compose_generator',
@@ -17419,13 +21526,36 @@ const builtinTools = [
           items: {
             type: 'object',
             properties: {
-              name: { type: 'string' },
-              image: { type: 'string' },
-              build: { type: 'string' },
-              ports: { type: 'array', items: { type: 'string' } },
-              volumes: { type: 'array', items: { type: 'string' } },
-              environment: { type: 'object' },
-              depends_on: { type: 'array', items: { type: 'string' } }
+              name: {
+                type: 'string'
+              },
+              image: {
+                type: 'string'
+              },
+              build: {
+                type: 'string'
+              },
+              ports: {
+                type: 'array',
+                items: {
+                  type: 'string'
+                }
+              },
+              volumes: {
+                type: 'array',
+                items: {
+                  type: 'string'
+                }
+              },
+              environment: {
+                type: 'object'
+              },
+              depends_on: {
+                type: 'array',
+                items: {
+                  type: 'string'
+                }
+              }
             },
             required: ['name']
           },
@@ -17445,8 +21575,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -17459,7 +21593,9 @@ const builtinTools = [
               name: 'web',
               build: '.',
               ports: ['3000:3000'],
-              environment: { NODE_ENV: 'production' }
+              environment: {
+                NODE_ENV: 'production'
+              }
             },
             {
               name: 'db',
@@ -17479,8 +21615,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  // .gitignore生成器
   {
     id: 'tool_gitignore_generator',
     name: 'gitignore_generator',
@@ -17499,13 +21633,25 @@ const builtinTools = [
           type: 'array',
           items: {
             type: 'string',
-            enum: ['Node', 'Python', 'Java', 'Go', 'VisualStudioCode', 'JetBrains', 'macOS', 'Windows', 'Linux']
+            enum: [
+              'Node',
+              'Python',
+              'Java',
+              'Go',
+              'VisualStudioCode',
+              'JetBrains',
+              'macOS',
+              'Windows',
+              'Linux'
+            ]
           },
           description: '模板列表'
         },
         customPatterns: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string'
+          },
           description: '自定义忽略模式'
         }
       },
@@ -17514,9 +21660,15 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' },
-        patterns: { type: 'number' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        },
+        patterns: {
+          type: 'number'
+        }
       }
     },
     examples: [
@@ -17534,8 +21686,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-
-  // ESLint配置生成器
   {
     id: 'tool_eslint_config_generator',
     name: 'eslint_config_generator',
@@ -17573,8 +21723,12 @@ const builtinTools = [
     return_schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        filePath: { type: 'string' }
+        success: {
+          type: 'boolean'
+        },
+        filePath: {
+          type: 'string'
+        }
       }
     },
     examples: [
@@ -17593,11 +21747,6 @@ const builtinTools = [
     is_builtin: 1,
     enabled: 1
   },
-  // ==================== V3专业领域工具（已补全Schema）====================
-  // 以下28个工具来自additional-tools-v3.js，已补充完整schema定义
-  // 涵盖：区块链、法律、财务、CRM、HR、项目管理、市场营销、审计等专业领域
-
-  // 1. 智能合约分析器 / Smart Contract Analyzer
   {
     id: 'tool_contract_analyzer',
     name: 'contract_analyzer',
@@ -17605,83 +21754,76 @@ const builtinTools = [
     description: '分析智能合约代码，检测安全漏洞、gas优化建议和最佳实践',
     category: 'blockchain',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "contractCode": {
-                      "type": "string",
-                      "description": "智能合约源代码"
-                },
-                "analysisDepth": {
-                      "type": "string",
-                      "description": "分析深度",
-                      "enum": [
-                            "basic",
-                            "comprehensive"
-                      ],
-                      "default": "comprehensive"
-                },
-                "securityFocus": {
-                      "type": "boolean",
-                      "description": "是否重点检查安全问题",
-                      "default": true
-                }
-          },
-          "required": [
-                "contractCode"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        contractCode: {
+          type: 'string',
+          description: '智能合约源代码'
+        },
+        analysisDepth: {
+          type: 'string',
+          description: '分析深度',
+          enum: ['basic', 'comprehensive'],
+          default: 'comprehensive'
+        },
+        securityFocus: {
+          type: 'boolean',
+          description: '是否重点检查安全问题',
+          default: true
+        }
+      },
+      required: ['contractCode']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "issues": {
-                      "type": "array",
-                      "description": "array of security issues",
-                      "items": {
-                            "type": "object"
-                      }
-                },
-                "optimizations": {
-                      "type": "array",
-                      "description": "array of optimization suggestions",
-                      "items": {
-                            "type": "object"
-                      }
-                },
-                "bestPractices": {
-                      "type": "array",
-                      "description": "array of best practice recommendations",
-                      "items": {
-                            "type": "object"
-                      }
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        issues: {
+          type: 'array',
+          description: 'array of security issues',
+          items: {
+            type: 'object'
           }
+        },
+        optimizations: {
+          type: 'array',
+          description: 'array of optimization suggestions',
+          items: {
+            type: 'object'
+          }
+        },
+        bestPractices: {
+          type: 'array',
+          description: 'array of best practice recommendations',
+          items: {
+            type: 'object'
+          }
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '分析Solidity智能合约',
-        params:         {
-                  "contractCode": "pragma solidity ^0.8.0; contract MyToken { ... }",
-                  "analysisDepth": "comprehensive",
-                  "securityFocus": true
+        params: {
+          contractCode: 'pragma solidity ^0.8.0; contract MyToken { ... }',
+          analysisDepth: 'comprehensive',
+          securityFocus: true
         }
       }
     ],
-    required_permissions: ["code:analyze"],
+    required_permissions: ['code:analyze'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 2. 区块链查询工具 / Blockchain Query Tool
   {
     id: 'tool_blockchain_query',
     name: 'blockchain_query',
@@ -17689,73 +21831,59 @@ const builtinTools = [
     description: '查询区块链数据，包括交易、区块、地址余额等信息',
     category: 'blockchain',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "chain": {
-                      "type": "string",
-                      "description": "区块链网络",
-                      "enum": [
-                            "ethereum",
-                            "bsc",
-                            "polygon"
-                      ],
-                      "default": "ethereum"
-                },
-                "queryType": {
-                      "type": "string",
-                      "description": "查询类型",
-                      "enum": [
-                            "transaction",
-                            "block",
-                            "address",
-                            "balance"
-                      ]
-                },
-                "identifier": {
-                      "type": "string",
-                      "description": "查询标识符（交易哈希/区块号/地址）"
-                }
-          },
-          "required": [
-                "queryType",
-                "identifier"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        chain: {
+          type: 'string',
+          description: '区块链网络',
+          enum: ['ethereum', 'bsc', 'polygon'],
+          default: 'ethereum'
+        },
+        queryType: {
+          type: 'string',
+          description: '查询类型',
+          enum: ['transaction', 'block', 'address', 'balance']
+        },
+        identifier: {
+          type: 'string',
+          description: '查询标识符（交易哈希/区块号/地址）'
+        }
+      },
+      required: ['queryType', 'identifier']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "查询结果"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: '查询结果'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '查询以太坊地址余额',
-        params:         {
-                  "chain": "ethereum",
-                  "queryType": "balance",
-                  "identifier": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+        params: {
+          chain: 'ethereum',
+          queryType: 'balance',
+          identifier: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'
         }
       }
     ],
-    required_permissions: ["network:request"],
+    required_permissions: ['network:request'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 3. 代币经济模拟器 / Tokenomics Simulator
   {
     id: 'tool_tokenomics_simulator',
     name: 'tokenomics_simulator',
@@ -17763,76 +21891,72 @@ const builtinTools = [
     description: '模拟代币经济模型的长期表现，包括供需、价格、流通等',
     category: 'blockchain',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "tokenConfig": {
-                      "type": "object",
-                      "description": "代币配置（总量、分配等）"
-                },
-                "simulationPeriod": {
-                      "type": "string",
-                      "description": "模拟周期",
-                      "default": "5years"
-                },
-                "iterations": {
-                      "type": "number",
-                      "description": "模拟迭代次数",
-                      "default": 1000
-                }
-          },
-          "required": [
-                "tokenConfig"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        tokenConfig: {
+          type: 'object',
+          description: '代币配置（总量、分配等）'
+        },
+        simulationPeriod: {
+          type: 'string',
+          description: '模拟周期',
+          default: '5years'
+        },
+        iterations: {
+          type: 'number',
+          description: '模拟迭代次数',
+          default: 1000
+        }
+      },
+      required: ['tokenConfig']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "simulations": {
-                      "type": "array",
-                      "description": "array of simulation results",
-                      "items": {
-                            "type": "object"
-                      }
-                },
-                "summary": {
-                      "type": "object",
-                      "description": "统计摘要"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        simulations: {
+          type: 'array',
+          description: 'array of simulation results',
+          items: {
+            type: 'object'
           }
+        },
+        summary: {
+          type: 'object',
+          description: '统计摘要'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '模拟代币经济模型',
-        params:         {
-                  "tokenConfig": {
-                            "totalSupply": 1000000000,
-                            "initialPrice": 0.1,
-                            "distributions": {
-                                      "team": 0.2,
-                                      "investors": 0.3,
-                                      "public": 0.5
-                            }
-                  },
-                  "simulationPeriod": "5years"
+        params: {
+          tokenConfig: {
+            totalSupply: 1000000000,
+            initialPrice: 0.1,
+            distributions: {
+              team: 0.2,
+              investors: 0.3,
+              public: 0.5
+            }
+          },
+          simulationPeriod: '5years'
         }
       }
     ],
-    required_permissions: ["compute:intensive"],
+    required_permissions: ['compute:intensive'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 4. 法律文书生成器 / Legal Template Generator
   {
     id: 'tool_legal_template_generator',
     name: 'legal_template_generator',
@@ -17840,72 +21964,62 @@ const builtinTools = [
     description: '生成各类法律文书模板，包括合同、协议、申请书等',
     category: 'legal',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "templateType": {
-                      "type": "string",
-                      "description": "文书类型",
-                      "enum": [
-                            "contract",
-                            "agreement",
-                            "notice",
-                            "application"
-                      ]
-                },
-                "jurisdiction": {
-                      "type": "string",
-                      "description": "法律管辖区",
-                      "default": "CN"
-                },
-                "variables": {
-                      "type": "object",
-                      "description": "模板变量"
-                }
-          },
-          "required": [
-                "templateType",
-                "variables"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        templateType: {
+          type: 'string',
+          description: '文书类型',
+          enum: ['contract', 'agreement', 'notice', 'application']
+        },
+        jurisdiction: {
+          type: 'string',
+          description: '法律管辖区',
+          default: 'CN'
+        },
+        variables: {
+          type: 'object',
+          description: '模板变量'
+        }
+      },
+      required: ['templateType', 'variables']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "document": {
-                      "type": "string",
-                      "description": "生成的法律文书"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        document: {
+          type: 'string',
+          description: '生成的法律文书'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '生成劳动合同',
-        params:         {
-                  "templateType": "contract",
-                  "jurisdiction": "CN",
-                  "variables": {
-                            "employeeName": "张三",
-                            "position": "软件工程师",
-                            "startDate": "2024-01-01"
-                  }
+        params: {
+          templateType: 'contract',
+          jurisdiction: 'CN',
+          variables: {
+            employeeName: '张三',
+            position: '软件工程师',
+            startDate: '2024-01-01'
+          }
         }
       }
     ],
-    required_permissions: ["file:write"],
+    required_permissions: ['file:write'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 5. 专利权利要求分析器 / Patent Claim Analyzer
   {
     id: 'tool_patent_claim_analyzer',
     name: 'claim_analyzer',
@@ -17913,67 +22027,60 @@ const builtinTools = [
     description: '分析专利权利要求的保护范围、新颖性和创造性',
     category: 'legal',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "claimText": {
-                      "type": "string",
-                      "description": "专利权利要求文本"
-                },
-                "analysisType": {
-                      "type": "string",
-                      "description": "分析类型",
-                      "enum": [
-                            "basic",
-                            "comprehensive"
-                      ],
-                      "default": "comprehensive"
-                }
-          },
-          "required": [
-                "claimText"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        claimText: {
+          type: 'string',
+          description: '专利权利要求文本'
+        },
+        analysisType: {
+          type: 'string',
+          description: '分析类型',
+          enum: ['basic', 'comprehensive'],
+          default: 'comprehensive'
+        }
+      },
+      required: ['claimText']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "analysis": {
-                      "type": "object",
-                      "description": "分析结果"
-                },
-                "suggestions": {
-                      "type": "array",
-                      "description": "array",
-                      "items": {
-                            "type": "object"
-                      }
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        analysis: {
+          type: 'object',
+          description: '分析结果'
+        },
+        suggestions: {
+          type: 'array',
+          description: 'array',
+          items: {
+            type: 'object'
           }
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '分析专利权利要求',
-        params:         {
-                  "claimText": "一种智能手机的触摸屏组件，其特征在于...",
-                  "analysisType": "comprehensive"
+        params: {
+          claimText: '一种智能手机的触摸屏组件，其特征在于...',
+          analysisType: 'comprehensive'
         }
       }
     ],
-    required_permissions: ["text:analyze"],
+    required_permissions: ['text:analyze'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 6. 市场数据分析器 / Market Data Analyzer
   {
     id: 'tool_market_data_analyzer',
     name: 'market_data_analyzer',
@@ -17981,78 +22088,64 @@ const builtinTools = [
     description: '分析市场数据，包括价格趋势、供需关系、竞争格局等',
     category: 'analysis',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "market": {
-                      "type": "string",
-                      "description": "市场名称"
-                },
-                "dataSources": {
-                      "type": "array",
-                      "description": "数据源",
-                      "default": [
-                            "multiple"
-                      ]
-                },
-                "metrics": {
-                      "type": "array",
-                      "description": "分析指标",
-                      "default": [
-                            "price",
-                            "volume",
-                            "trend"
-                      ]
-                }
-          },
-          "required": [
-                "market"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        market: {
+          type: 'string',
+          description: '市场名称'
+        },
+        dataSources: {
+          type: 'array',
+          description: '数据源',
+          default: ['multiple']
+        },
+        metrics: {
+          type: 'array',
+          description: '分析指标',
+          default: ['price', 'volume', 'trend']
+        }
+      },
+      required: ['market']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "analysis": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "trends": {
-                      "type": "array",
-                      "description": "array",
-                      "items": {
-                            "type": "object"
-                      }
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        analysis: {
+          type: 'object',
+          description: 'object'
+        },
+        trends: {
+          type: 'array',
+          description: 'array',
+          items: {
+            type: 'object'
           }
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '分析股票市场',
-        params:         {
-                  "market": "AAPL",
-                  "metrics": [
-                            "price",
-                            "volume",
-                            "trend"
-                  ]
+        params: {
+          market: 'AAPL',
+          metrics: ['price', 'volume', 'trend']
         }
       }
     ],
-    required_permissions: ["network:request"],
+    required_permissions: ['network:request'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 7. 房地产财务计算器 / Real Estate Financial Calculator
   {
     id: 'tool_real_estate_calculator',
     name: 'real_estate_calculator',
@@ -18060,86 +22153,72 @@ const builtinTools = [
     description: '计算房地产项目的IRR、NPV、现金流等财务指标',
     category: 'finance',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "projectData": {
-                      "type": "object",
-                      "description": "项目数据（成本、收入、周期等）"
-                },
-                "discountRate": {
-                      "type": "number",
-                      "description": "折现率",
-                      "default": 0.08
-                },
-                "currency": {
-                      "type": "string",
-                      "description": "货币单位",
-                      "default": "CNY"
-                }
-          },
-          "required": [
-                "projectData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectData: {
+          type: 'object',
+          description: '项目数据（成本、收入、周期等）'
+        },
+        discountRate: {
+          type: 'number',
+          description: '折现率',
+          default: 0.08
+        },
+        currency: {
+          type: 'string',
+          description: '货币单位',
+          default: 'CNY'
+        }
+      },
+      required: ['projectData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "irr": {
-                      "type": "number",
-                      "description": "内部收益率"
-                },
-                "npv": {
-                      "type": "number",
-                      "description": "净现值"
-                },
-                "cashFlows": {
-                      "type": "array",
-                      "description": "array",
-                      "items": {
-                            "type": "object"
-                      }
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        irr: {
+          type: 'number',
+          description: '内部收益率'
+        },
+        npv: {
+          type: 'number',
+          description: '净现值'
+        },
+        cashFlows: {
+          type: 'array',
+          description: 'array',
+          items: {
+            type: 'object'
           }
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '计算房地产项目IRR和NPV',
-        params:         {
-                  "projectData": {
-                            "investment": 10000000,
-                            "revenues": [
-                                      2000000,
-                                      3000000,
-                                      4000000,
-                                      5000000
-                            ],
-                            "costs": [
-                                      500000,
-                                      600000,
-                                      700000,
-                                      800000
-                            ]
-                  },
-                  "discountRate": 0.08
+        params: {
+          projectData: {
+            investment: 10000000,
+            revenues: [2000000, 3000000, 4000000, 5000000],
+            costs: [500000, 600000, 700000, 800000]
+          },
+          discountRate: 0.08
         }
       }
     ],
-    required_permissions: ["compute:intensive"],
+    required_permissions: ['compute:intensive'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 8. 客户健康度评分器 / Customer Health Score Calculator
   {
     id: 'tool_customer_health_scorer',
     name: 'health_score_calculator',
@@ -18147,77 +22226,69 @@ const builtinTools = [
     description: '计算客户健康度评分，预测续约风险和扩展机会',
     category: 'crm',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "customerData": {
-                      "type": "object",
-                      "description": "客户数据"
-                },
-                "scoringModel": {
-                      "type": "string",
-                      "description": "评分模型",
-                      "enum": [
-                            "simple",
-                            "weighted",
-                            "ml"
-                      ],
-                      "default": "weighted"
-                }
-          },
-          "required": [
-                "customerData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        customerData: {
+          type: 'object',
+          description: '客户数据'
+        },
+        scoringModel: {
+          type: 'string',
+          description: '评分模型',
+          enum: ['simple', 'weighted', 'ml'],
+          default: 'weighted'
+        }
+      },
+      required: ['customerData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "healthScore": {
-                      "type": "number",
-                      "description": "健康度评分（0-100）"
-                },
-                "riskLevel": {
-                      "type": "string",
-                      "description": "string"
-                },
-                "recommendations": {
-                      "type": "array",
-                      "description": "array",
-                      "items": {
-                            "type": "object"
-                      }
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        healthScore: {
+          type: 'number',
+          description: '健康度评分（0-100）'
+        },
+        riskLevel: {
+          type: 'string',
+          description: 'string'
+        },
+        recommendations: {
+          type: 'array',
+          description: 'array',
+          items: {
+            type: 'object'
           }
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '计算客户健康度评分',
-        params:         {
-                  "customerData": {
-                            "usage": 85,
-                            "engagement": 90,
-                            "support_tickets": 2,
-                            "nps_score": 8
-                  },
-                  "scoringModel": "weighted"
+        params: {
+          customerData: {
+            usage: 85,
+            engagement: 90,
+            support_tickets: 2,
+            nps_score: 8
+          },
+          scoringModel: 'weighted'
         }
       }
     ],
-    required_permissions: ["data:analyze"],
+    required_permissions: ['data:analyze'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 9. 客户流失预测器 / Churn Predictor
   {
     id: 'tool_churn_predictor',
     name: 'churn_predictor',
@@ -18225,84 +22296,77 @@ const builtinTools = [
     description: '基于客户行为数据预测流失风险，提供挽留建议',
     category: 'crm',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "customerData": {
-                      "type": "object",
-                      "description": "客户行为数据"
-                },
-                "modelType": {
-                      "type": "string",
-                      "description": "预测模型类型",
-                      "enum": [
-                            "simple",
-                            "ml"
-                      ],
-                      "default": "ml"
-                },
-                "predictionWindow": {
-                      "type": "string",
-                      "description": "预测窗口期",
-                      "default": "90days"
-                }
-          },
-          "required": [
-                "customerData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        customerData: {
+          type: 'object',
+          description: '客户行为数据'
+        },
+        modelType: {
+          type: 'string',
+          description: '预测模型类型',
+          enum: ['simple', 'ml'],
+          default: 'ml'
+        },
+        predictionWindow: {
+          type: 'string',
+          description: '预测窗口期',
+          default: '90days'
+        }
+      },
+      required: ['customerData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "churnProbability": {
-                      "type": "number",
-                      "description": "流失概率（0-1）"
-                },
-                "riskFactors": {
-                      "type": "array",
-                      "description": "array",
-                      "items": {
-                            "type": "object"
-                      }
-                },
-                "recommendations": {
-                      "type": "array",
-                      "description": "array",
-                      "items": {
-                            "type": "object"
-                      }
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        churnProbability: {
+          type: 'number',
+          description: '流失概率（0-1）'
+        },
+        riskFactors: {
+          type: 'array',
+          description: 'array',
+          items: {
+            type: 'object'
           }
+        },
+        recommendations: {
+          type: 'array',
+          description: 'array',
+          items: {
+            type: 'object'
+          }
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '预测客户流失风险',
-        params:         {
-                  "customerData": {
-                            "last_login_days": 30,
-                            "usage_decline": 0.5,
-                            "support_tickets": 5,
-                            "payment_delays": 2
-                  },
-                  "modelType": "ml"
+        params: {
+          customerData: {
+            last_login_days: 30,
+            usage_decline: 0.5,
+            support_tickets: 5,
+            payment_delays: 2
+          },
+          modelType: 'ml'
         }
       }
     ],
-    required_permissions: ["data:analyze","ml:predict"],
+    required_permissions: ['data:analyze', 'ml:predict'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 10. 利益相关者映射工具 / Stakeholder Mapping Tool
   {
     id: 'tool_stakeholder_mapper',
     name: 'stakeholder_analyzer',
@@ -18310,52 +22374,48 @@ const builtinTools = [
     description: '分析和映射项目利益相关者，生成权力-利益矩阵',
     category: 'project',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "projectData": {
-                      "type": "object",
-                      "description": "项目数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "projectData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectData: {
+          type: 'object',
+          description: '项目数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['projectData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用利益相关者映射工具 / Stakeholder Mapping Tool',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: ['data:read', 'data:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 11. 变革准备度评估器 / Change Readiness Assessor
   {
     id: 'tool_change_readiness_assessor',
     name: 'readiness_assessor',
@@ -18363,46 +22423,44 @@ const builtinTools = [
     description: '评估组织的变革准备度，使用ADKAR或其他框架',
     category: 'management',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": []
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: []
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用变革准备度评估器 / Change Readiness Assessor',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 12. 沟通计划工具 / Communication Planner
   {
     id: 'tool_communication_planner',
     name: 'communication_planner',
@@ -18410,52 +22468,48 @@ const builtinTools = [
     description: '规划项目沟通策略，生成沟通矩阵和时间表',
     category: 'project',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "projectData": {
-                      "type": "object",
-                      "description": "项目数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "projectData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        projectData: {
+          type: 'object',
+          description: '项目数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['projectData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用沟通计划工具 / Communication Planner',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: ['data:read', 'data:write'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 13. 组织架构图生成器 / Organization Chart Generator
   {
     id: 'tool_org_chart_generator',
     name: 'org_chart_generator',
@@ -18463,52 +22517,48 @@ const builtinTools = [
     description: '生成组织架构图，支持多种格式和样式',
     category: 'hr',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "organizationData": {
-                      "type": "object",
-                      "description": "组织数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "organizationData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        organizationData: {
+          type: 'object',
+          description: '组织数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['organizationData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用组织架构图生成器 / Organization Chart Generator',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: ['data:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 14. 企业文化分析器 / Culture Analyzer
   {
     id: 'tool_culture_analyzer',
     name: 'culture_analyzer',
@@ -18516,52 +22566,48 @@ const builtinTools = [
     description: '分析企业文化现状，识别文化差距和改进机会',
     category: 'hr',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "organizationData": {
-                      "type": "object",
-                      "description": "组织数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "organizationData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        organizationData: {
+          type: 'object',
+          description: '组织数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['organizationData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用企业文化分析器 / Culture Analyzer',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: ['data:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 15. 活动时间线生成器 / Event Timeline Generator
   {
     id: 'tool_event_timeline_creator',
     name: 'event_timeline_generator',
@@ -18569,46 +22615,44 @@ const builtinTools = [
     description: '创建活动执行时间线，包括里程碑和关键任务',
     category: 'event',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": []
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: []
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用活动时间线生成器 / Event Timeline Generator',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["code:execute","data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 16. 新闻稿生成器 / Press Release Generator
   {
     id: 'tool_press_release_generator',
     name: 'press_release_generator',
@@ -18616,52 +22660,48 @@ const builtinTools = [
     description: '生成专业新闻稿，符合媒体发布标准',
     category: 'marketing',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "content": {
-                      "type": "string",
-                      "description": "内容"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "content"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: '内容'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['content']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用新闻稿生成器 / Press Release Generator',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["text:generate"],
+    required_permissions: ['text:generate'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 17. 媒体列表管理器 / Media List Manager
   {
     id: 'tool_media_list_manager',
     name: 'media_list_manager',
@@ -18669,52 +22709,48 @@ const builtinTools = [
     description: '管理媒体联系人列表，分类和追踪媒体关系',
     category: 'marketing',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "content": {
-                      "type": "string",
-                      "description": "内容"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "content"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: '内容'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['content']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用媒体列表管理器 / Media List Manager',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["text:generate"],
+    required_permissions: ['text:generate'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 18. 舆情分析器 / Sentiment Analyzer
   {
     id: 'tool_sentiment_analyzer',
     name: 'sentiment_analyzer',
@@ -18722,52 +22758,48 @@ const builtinTools = [
     description: '分析社交媒体和新闻的情感倾向，监测品牌声誉',
     category: 'marketing',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "content": {
-                      "type": "string",
-                      "description": "内容"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "content"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: '内容'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['content']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用舆情分析器 / Sentiment Analyzer',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["text:generate"],
+    required_permissions: ['text:generate'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 19. 审计风险评估器 / Audit Risk Assessor
   {
     id: 'tool_audit_risk_assessor',
     name: 'risk_assessor',
@@ -18775,52 +22807,48 @@ const builtinTools = [
     description: '评估审计风险，确定审计重点和资源分配',
     category: 'audit',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "auditData": {
-                      "type": "object",
-                      "description": "审计数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "auditData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        auditData: {
+          type: 'object',
+          description: '审计数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['auditData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用审计风险评估器 / Audit Risk Assessor',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read","data:analyze"],
+    required_permissions: ['data:read', 'data:analyze'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 20. 内部控制评价器 / Control Effectiveness Evaluator
   {
     id: 'tool_control_effectiveness_evaluator',
     name: 'control_evaluator',
@@ -18828,52 +22856,48 @@ const builtinTools = [
     description: '评价内部控制的设计和执行有效性',
     category: 'audit',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "auditData": {
-                      "type": "object",
-                      "description": "审计数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "auditData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        auditData: {
+          type: 'object',
+          description: '审计数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['auditData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用内部控制评价器 / Control Effectiveness Evaluator',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read","data:analyze"],
+    required_permissions: ['data:read', 'data:analyze'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 21. 代码生成器 / Code Generator
   {
     id: 'tool_code_generator',
     name: 'code_generator',
@@ -18881,52 +22905,48 @@ const builtinTools = [
     description: '生成各类编程语言代码，支持函数、类、模块等多种代码结构',
     category: 'code',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "codeSpec": {
-                      "type": "object",
-                      "description": "代码规格"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "codeSpec"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        codeSpec: {
+          type: 'object',
+          description: '代码规格'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['codeSpec']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用代码生成器 / Code Generator',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["code:generate"],
+    required_permissions: ['code:generate'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 22. 财务计算器 / Financial Calculator
   {
     id: 'tool_financial_calculator',
     name: 'financial_calculator',
@@ -18934,52 +22954,48 @@ const builtinTools = [
     description: '计算各类财务指标，包括NPV、IRR、ROI、现值、终值等',
     category: 'finance',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "financialData": {
-                      "type": "object",
-                      "description": "财务数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "financialData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        financialData: {
+          type: 'object',
+          description: '财务数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['financialData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用财务计算器 / Financial Calculator',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read","compute:intensive"],
+    required_permissions: ['data:read', 'compute:intensive'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 23. 模拟运行器 / Simulation Runner
   {
     id: 'tool_simulation_runner',
     name: 'simulation_runner',
@@ -18987,46 +23003,44 @@ const builtinTools = [
     description: '运行各类业务模拟场景，支持蒙特卡洛模拟、敏感性分析等',
     category: 'analysis',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": []
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: []
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用模拟运行器 / Simulation Runner',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["code:execute","data:analyze","data:read"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 24. CRM集成器 / CRM Integrator
   {
     id: 'tool_crm_integrator',
     name: 'crm_integrator',
@@ -19034,52 +23048,48 @@ const builtinTools = [
     description: '集成主流CRM系统（Salesforce、HubSpot、Zoho等），同步客户数据',
     category: 'crm',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "crmData": {
-                      "type": "object",
-                      "description": "CRM数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "crmData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        crmData: {
+          type: 'object',
+          description: 'CRM数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['crmData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用CRM集成器 / CRM Integrator',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read","network:request"],
+    required_permissions: ['data:read', 'network:request'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 25. 能力框架工具 / Competency Framework Tool
   {
     id: 'tool_competency_framework',
     name: 'competency_framework',
@@ -19087,52 +23097,48 @@ const builtinTools = [
     description: '构建和管理企业能力素质模型，定义岗位能力要求',
     category: 'hr',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "organizationData": {
-                      "type": "object",
-                      "description": "组织数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "organizationData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        organizationData: {
+          type: 'object',
+          description: '组织数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['organizationData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用能力框架工具 / Competency Framework Tool',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read"],
+    required_permissions: ['data:read'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 26. 预算计算器 / Budget Calculator
   {
     id: 'tool_budget_calculator',
     name: 'budget_calculator',
@@ -19140,52 +23146,48 @@ const builtinTools = [
     description: '计算和管理项目预算，支持成本分解、预算跟踪、差异分析',
     category: 'finance',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "financialData": {
-                      "type": "object",
-                      "description": "财务数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "financialData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        financialData: {
+          type: 'object',
+          description: '财务数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['financialData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用预算计算器 / Budget Calculator',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read","compute:intensive"],
+    required_permissions: ['data:read', 'compute:intensive'],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 27. 供应商管理器 / Vendor Manager
   {
     id: 'tool_vendor_manager',
     name: 'vendor_manager',
@@ -19193,46 +23195,44 @@ const builtinTools = [
     description: '管理供应商信息、合同、绩效评估、付款跟踪',
     category: 'procurement',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": []
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: []
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用供应商管理器 / Vendor Manager',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read","data:write"],
+    required_permissions: [],
     risk_level: 1,
     is_builtin: 1,
     enabled: 1
   },
-
-  // 28. 证据记录器 / Evidence Documenter
   {
     id: 'tool_evidence_documenter',
     name: 'evidence_documenter',
@@ -19240,58 +23240,48 @@ const builtinTools = [
     description: '记录和管理审计证据，支持文档归档、标记、溯源',
     category: 'audit',
     tool_type: 'function',
-    parameters_schema:     {
-          "type": "object",
-          "properties": {
-                "auditData": {
-                      "type": "object",
-                      "description": "审计数据"
-                },
-                "options": {
-                      "type": "object",
-                      "description": "配置选项"
-                }
-          },
-          "required": [
-                "auditData"
-          ]
+    parameters_schema: {
+      type: 'object',
+      properties: {
+        auditData: {
+          type: 'object',
+          description: '审计数据'
+        },
+        options: {
+          type: 'object',
+          description: '配置选项'
+        }
+      },
+      required: ['auditData']
     },
-    return_schema:     {
-          "type": "object",
-          "properties": {
-                "success": {
-                      "type": "boolean",
-                      "description": "boolean"
-                },
-                "data": {
-                      "type": "object",
-                      "description": "object"
-                },
-                "error": {
-                      "type": "string",
-                      "description": "string"
-                }
-          }
+    return_schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'boolean'
+        },
+        data: {
+          type: 'object',
+          description: 'object'
+        },
+        error: {
+          type: 'string',
+          description: 'string'
+        }
+      }
     },
     examples: [
       {
         description: '使用证据记录器 / Evidence Documenter',
-        params:         {}
+        params: {}
       }
     ],
-    required_permissions: ["data:read","data:analyze"],
+    required_permissions: ['data:read', 'data:analyze'],
     risk_level: 2,
     is_builtin: 1,
     enabled: 1
   }
-
 ];
 
-// 导出所有工具（单一定义源）
-// 注：所有工具已整合到 builtinTools 数组中
-//   - Office工具: 8个（已整合）
-//   - Data Science工具: 5个（已整合）
-//   - Project工具: 9个（已整合）
-//   - V3专业领域工具: 28个（已整合并补全schema）
-// 总计: 300个完整工具
-module.exports = builtinTools;
+module.exports = tools;
