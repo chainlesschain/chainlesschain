@@ -39,10 +39,15 @@ const HierarchicalTaskPlanner = require('./hierarchical-task-planner');
 const CheckpointValidator = require('./checkpoint-validator');
 const SelfCorrectionLoop = require('./self-correction-loop');
 
-// P2优化模块
+// P2核心模块
 const IntentFusion = require('./intent-fusion');
 const { KnowledgeDistillation } = require('./knowledge-distillation');
 const { StreamingResponse } = require('./streaming-response');
+
+// P2扩展模块
+const { TaskDecompositionEnhancement } = require('./task-decomposition-enhancement');
+const { ToolCompositionSystem } = require('./tool-composition-system');
+const { HistoryMemoryOptimization } = require('./history-memory-optimization');
 
 class AIEngineManagerP2 {
   constructor() {
@@ -64,10 +69,15 @@ class AIEngineManagerP2 {
     this.checkpointValidator = null;
     this.selfCorrectionLoop = null;
 
-    // P2优化模块（延迟初始化）
+    // P2核心模块（延迟初始化）
     this.intentFusion = null;
-    this.knowledgeDistillation = null; // 待实现
-    this.streamingResponse = null; // 待实现
+    this.knowledgeDistillation = null;
+    this.streamingResponse = null;
+
+    // P2扩展模块（延迟初始化）
+    this.taskDecomposition = null;
+    this.toolComposition = null;
+    this.historyMemory = null;
 
     // 依赖项（延迟注入）
     this.llmManager = null;
@@ -126,7 +136,8 @@ class AIEngineManagerP2 {
       console.log(`[AIEngineP2] 会话ID: ${this.sessionId}`);
       console.log(`[AIEngineP2] P0优化: ${this._countEnabledModules(['slotFiller', 'toolSandbox', 'performanceMonitor'])}/3`);
       console.log(`[AIEngineP2] P1优化: ${this._countEnabledModules(['multiIntentRecognizer', 'fewShotLearner', 'hierarchicalPlanner', 'checkpointValidator', 'selfCorrectionLoop'])}/5`);
-      console.log(`[AIEngineP2] P2优化: ${this._countEnabledModules(['intentFusion', 'knowledgeDistillation', 'streamingResponse'])}/3`);
+      console.log(`[AIEngineP2] P2核心: ${this._countEnabledModules(['intentFusion', 'knowledgeDistillation', 'streamingResponse'])}/3`);
+      console.log(`[AIEngineP2] P2扩展: ${this._countEnabledModules(['taskDecomposition', 'toolComposition', 'historyMemory'])}/3`);
 
       return true;
     } catch (error) {
@@ -265,6 +276,54 @@ class AIEngineManagerP2 {
       console.log(`[AIEngineP2]   - 进度追踪: ${this.config.streamingResponseConfig?.enableProgressTracking ? '启用' : '禁用'}`);
       console.log(`[AIEngineP2]   - 部分结果: ${this.config.streamingResponseConfig?.enablePartialResults ? '启用' : '禁用'}`);
       console.log(`[AIEngineP2]   - 最大并发: ${this.config.streamingResponseConfig?.maxConcurrentTasks || 10}`);
+    }
+
+    // ===== P2扩展模块 =====
+
+    // 任务分解增强
+    if (this.config.enableTaskDecomposition) {
+      this.taskDecomposition = new TaskDecompositionEnhancement(this.config.taskDecompositionConfig);
+
+      if (this.database) {
+        this.taskDecomposition.setDatabase(this.database);
+      }
+
+      if (this.llmManager) {
+        this.taskDecomposition.setLLM(this.llmManager);
+      }
+
+      console.log('[AIEngineP2] ✓ 任务分解增强已启用');
+      console.log(`[AIEngineP2]   - 动态粒度: ${this.config.taskDecompositionConfig?.enableDynamicGranularity ? '启用' : '禁用'}`);
+      console.log(`[AIEngineP2]   - 依赖分析: ${this.config.taskDecompositionConfig?.enableDependencyAnalysis ? '启用' : '禁用'}`);
+      console.log(`[AIEngineP2]   - 模式学习: ${this.config.taskDecompositionConfig?.enableLearning ? '启用' : '禁用'}`);
+    }
+
+    // 工具组合系统
+    if (this.config.enableToolComposition) {
+      this.toolComposition = new ToolCompositionSystem(this.config.toolCompositionConfig);
+
+      if (this.database) {
+        this.toolComposition.setDatabase(this.database);
+      }
+
+      console.log('[AIEngineP2] ✓ 工具组合系统已启用');
+      console.log(`[AIEngineP2]   - 自动组合: ${this.config.toolCompositionConfig?.enableAutoComposition ? '启用' : '禁用'}`);
+      console.log(`[AIEngineP2]   - 效果预测: ${this.config.toolCompositionConfig?.enableEffectPrediction ? '启用' : '禁用'}`);
+      console.log(`[AIEngineP2]   - 组合优化: ${this.config.toolCompositionConfig?.enableOptimization ? '启用' : '禁用'}`);
+    }
+
+    // 历史记忆优化
+    if (this.config.enableHistoryMemory) {
+      this.historyMemory = new HistoryMemoryOptimization(this.config.historyMemoryConfig);
+
+      if (this.database) {
+        this.historyMemory.setDatabase(this.database);
+      }
+
+      console.log('[AIEngineP2] ✓ 历史记忆优化已启用');
+      console.log(`[AIEngineP2]   - 历史学习: ${this.config.historyMemoryConfig?.enableLearning ? '启用' : '禁用'}`);
+      console.log(`[AIEngineP2]   - 成功预测: ${this.config.historyMemoryConfig?.enablePrediction ? '启用' : '禁用'}`);
+      console.log(`[AIEngineP2]   - 记忆窗口: ${this.config.historyMemoryConfig?.historyWindowSize || 1000}`);
     }
   }
 
@@ -529,6 +588,7 @@ class AIEngineManagerP2 {
   async cleanup() {
     console.log('[AIEngineP2] 清理资源...');
 
+    // P2核心模块
     if (this.intentFusion) {
       this.intentFusion.clearCache();
     }
@@ -541,9 +601,154 @@ class AIEngineManagerP2 {
       this.streamingResponse.cleanup();
     }
 
-    // 清理其他模块...
+    // P2扩展模块
+    if (this.taskDecomposition) {
+      this.taskDecomposition.cleanup();
+    }
+
+    if (this.toolComposition) {
+      this.toolComposition.cleanup();
+    }
+
+    if (this.historyMemory) {
+      this.historyMemory.cleanup();
+    }
 
     console.log('[AIEngineP2] 资源清理完成');
+  }
+
+  // ==================== P2扩展集成方法 ====================
+
+  /**
+   * 任务分解 - 将复杂任务分解为子任务
+   * @param {Object} task - 任务对象 {type, description, params}
+   * @param {Object} context - 执行上下文
+   * @returns {Promise<Array>} 子任务数组
+   */
+  async decomposeTaskWithHistory(task, context = {}) {
+    if (!this.taskDecomposition) {
+      console.warn('[AIEngineP2] 任务分解模块未启用，返回原任务');
+      return [task];
+    }
+
+    try {
+      const subtasks = await this.taskDecomposition.decomposeTask(task, {
+        ...context,
+        sessionId: this.sessionId,
+        userId: this.userId
+      });
+
+      console.log(`[AIEngineP2] 任务分解完成: 1 -> ${subtasks.length}`);
+      return subtasks;
+    } catch (error) {
+      console.error('[AIEngineP2] 任务分解失败:', error);
+      return [task]; // 失败时返回原任务
+    }
+  }
+
+  /**
+   * 工具组合 - 智能组合多个工具
+   * @param {string} goal - 目标描述
+   * @param {Object} context - 执行上下文
+   * @returns {Promise<Array>} 工具组合链
+   */
+  async composeToolsOptimized(goal, context = {}) {
+    if (!this.toolComposition) {
+      console.warn('[AIEngineP2] 工具组合模块未启用');
+      return [];
+    }
+
+    try {
+      const composition = await this.toolComposition.composeTools(goal, {
+        ...context,
+        sessionId: this.sessionId,
+        userId: this.userId
+      });
+
+      console.log(`[AIEngineP2] 工具组合完成: ${composition.length}个步骤`);
+      return composition;
+    } catch (error) {
+      console.error('[AIEngineP2] 工具组合失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 预测任务成功率 - 基于历史记忆
+   * @param {Object} task - 任务对象
+   * @param {Object} context - 执行上下文
+   * @returns {Promise<Object>} 预测结果 {probability, confidence, memory}
+   */
+  async predictTaskSuccess(task, context = {}) {
+    if (!this.historyMemory) {
+      return { probability: 0.5, confidence: 0, memory: null };
+    }
+
+    try {
+      const prediction = await this.historyMemory.predictSuccess(task, {
+        ...context,
+        sessionId: this.sessionId,
+        userId: this.userId
+      });
+
+      console.log(`[AIEngineP2] 任务成功率预测: ${(prediction.probability * 100).toFixed(1)}% (置信度: ${(prediction.confidence * 100).toFixed(1)}%)`);
+      return prediction;
+    } catch (error) {
+      console.error('[AIEngineP2] 成功率预测失败:', error);
+      return { probability: 0.5, confidence: 0, memory: null };
+    }
+  }
+
+  /**
+   * 记录任务执行 - 用于历史记忆学习
+   * @param {Object} task - 任务对象
+   * @param {Object} result - 执行结果
+   * @param {number} duration - 执行耗时
+   * @param {Object} context - 执行上下文
+   */
+  async recordTaskExecution(task, result, duration, context = {}) {
+    if (!this.historyMemory) {
+      return;
+    }
+
+    try {
+      await this.historyMemory.recordExecution(task, result, duration, {
+        ...context,
+        sessionId: this.sessionId,
+        userId: this.userId
+      });
+
+      console.log(`[AIEngineP2] 任务执行已记录: ${task.type}`);
+    } catch (error) {
+      console.error('[AIEngineP2] 记录任务执行失败:', error);
+    }
+  }
+
+  /**
+   * 注册工具到工具组合系统
+   * @param {string} name - 工具名称
+   * @param {Object} tool - 工具对象 {execute, inputs, outputs, dependencies, cost}
+   */
+  registerTool(name, tool) {
+    if (!this.toolComposition) {
+      console.warn('[AIEngineP2] 工具组合模块未启用');
+      return;
+    }
+
+    this.toolComposition.registerTool(name, tool);
+    console.log(`[AIEngineP2] 工具已注册: ${name}`);
+  }
+
+  /**
+   * 获取P2扩展模块统计信息
+   * @returns {Object} 统计信息
+   */
+  getP2ExtendedStats() {
+    return {
+      taskDecomposition: this.taskDecomposition ? this.taskDecomposition.getStats() : null,
+      toolComposition: this.toolComposition ? this.toolComposition.getStats() : null,
+      historyMemory: this.historyMemory ? this.historyMemory.getStats() : null
+    };
   }
 }
 

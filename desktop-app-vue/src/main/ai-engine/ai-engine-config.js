@@ -36,7 +36,7 @@ const DEFAULT_CONFIG = {
   // 是否启用自我修正循环
   enableSelfCorrection: true,
 
-  // P2优化模块（新增 v0.18.0）
+  // P2核心模块（v0.18.0）
   // 是否启用意图融合（合并相似意图，减少LLM调用）
   enableIntentFusion: true,
 
@@ -45,6 +45,16 @@ const DEFAULT_CONFIG = {
 
   // 是否启用流式响应（实时进度反馈）
   enableStreamingResponse: true,
+
+  // P2扩展模块（v0.20.0）
+  // 是否启用任务分解增强
+  enableTaskDecomposition: true,
+
+  // 是否启用工具组合系统
+  enableToolComposition: true,
+
+  // 是否启用历史记忆优化
+  enableHistoryMemory: true,
 
   // 工具沙箱配置
   sandboxConfig: {
@@ -290,6 +300,59 @@ const DEFAULT_CONFIG = {
       'complete',       // 任务完成
       'cancel'          // 任务取消
     ]
+  },
+
+  // ===== P2扩展模块配置 (v0.20.0) =====
+
+  // 任务分解增强配置
+  taskDecompositionConfig: {
+    // 是否启用模式学习（从历史中学习分解模式）
+    enableLearning: true,
+
+    // 是否启用依赖关系分析
+    enableDependencyAnalysis: true,
+
+    // 是否启用动态粒度控制
+    enableDynamicGranularity: true,
+
+    // 默认分解粒度 (atomic, fine, medium, coarse, macro)
+    defaultGranularity: 'medium',
+
+    // 每次分解的最少子任务数
+    minTasksPerDecomposition: 2,
+
+    // 每次分解的最多子任务数
+    maxTasksPerDecomposition: 10
+  },
+
+  // 工具组合系统配置
+  toolCompositionConfig: {
+    // 是否启用自动工具组合
+    enableAutoComposition: true,
+
+    // 是否启用效果预测
+    enableEffectPrediction: true,
+
+    // 是否启用组合优化（并行化检测等）
+    enableOptimization: true,
+
+    // 最大组合深度（避免过深嵌套）
+    maxCompositionDepth: 5
+  },
+
+  // 历史记忆优化配置
+  historyMemoryConfig: {
+    // 是否启用历史学习
+    enableLearning: true,
+
+    // 是否启用成功率预测
+    enablePrediction: true,
+
+    // 历史记忆窗口大小（最多记录多少条）
+    historyWindowSize: 1000,
+
+    // 进行预测所需的最少样本数
+    minSamplesForPrediction: 10
   }
 };
 
@@ -445,6 +508,19 @@ function mergeConfig(userConfig = {}) {
     streamingResponseConfig: {
       ...baseConfig.streamingResponseConfig,
       ...(userConfig.streamingResponseConfig || {})
+    },
+    // P2扩展模块配置
+    taskDecompositionConfig: {
+      ...baseConfig.taskDecompositionConfig,
+      ...(userConfig.taskDecompositionConfig || {})
+    },
+    toolCompositionConfig: {
+      ...baseConfig.toolCompositionConfig,
+      ...(userConfig.toolCompositionConfig || {})
+    },
+    historyMemoryConfig: {
+      ...baseConfig.historyMemoryConfig,
+      ...(userConfig.historyMemoryConfig || {})
     }
   };
 }
