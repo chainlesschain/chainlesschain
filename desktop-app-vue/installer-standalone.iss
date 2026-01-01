@@ -71,8 +71,8 @@ Source: "out\ChainlessChain-win32-x64\backend-standalone\*"; DestDir: "{app}\bac
   Flags: ignoreversion recursesubdirs createallsubdirs; Check: BackendStandaloneExists
 
 ; Cloud backend configuration (if exists)
-Source: "out\ChainlessChain-win32-x64\backend-config\*"; DestDir: "{app}\backend-config"; \
-  Flags: ignoreversion recursesubdirs createallsubdirs; Check: BackendConfigExists
+; Source: "out\ChainlessChain-win32-x64\backend-config\*"; DestDir: "{app}\backend-config"; \
+;   Flags: ignoreversion recursesubdirs createallsubdirs; Check: BackendConfigExists
 
 ; Installation info
 Source: "INSTALL_INFO_STANDALONE.md"; DestDir: "{app}"; Flags: ignoreversion
@@ -81,7 +81,7 @@ Source: "INSTALL_INFO_STANDALONE.md"; DestDir: "{app}"; Flags: ignoreversion
 ; Start Menu
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\管理后端服务"; Filename: "{app}\backend-standalone\manage-backend.bat"; Check: BackendStandaloneExists
-Name: "{group}\后端配置说明"; Filename: "{app}\backend-config\README.md"; Check: BackendConfigExists
+; Name: "{group}\后端配置说明"; Filename: "{app}\backend-config\README.md"; Check: BackendConfigExists
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 ; Desktop
