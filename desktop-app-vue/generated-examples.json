@@ -1,0 +1,1795 @@
+{
+  "tool_model_generator": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "type": "cube",
+        "dimensions": "example_value",
+        "material": "example_value",
+        "outputFormat": "obj"
+      }
+    }
+  ],
+  "tool_model_converter": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "inputPath": "./input/sample.txt",
+        "inputFormat": "obj",
+        "outputFormat": "obj",
+        "options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_audio_fingerprint": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "audioPath": "./audio/sample.mp3",
+        "algorithm": "chromaprint",
+        "duration": 10
+      }
+    }
+  ],
+  "tool_contract_caller": [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "contractAddress": "example_value",
+        "abi": [
+          "item1",
+          "item2"
+        ],
+        "method": "example_value",
+        "params": [
+          "item1",
+          "item2"
+        ],
+        "network": "mainnet"
+      }
+    }
+  ],
+  "tool_chart_generator": [
+    {
+      "description": "处理数据使用图表生成器",
+      "params": {
+        "chartType": "line",
+        "data": {
+          "key": "value",
+          "enabled": true
+        },
+        "options": {
+          "key": "value",
+          "enabled": true
+        },
+        "outputFormat": "png"
+      }
+    }
+  ],
+  "tool_graph_plotter": [
+    {
+      "description": "处理数据使用图形绘制器",
+      "params": {
+        "type": "function",
+        "expression": "example_value",
+        "points": [
+          "item1",
+          "item2"
+        ],
+        "range": "example_value"
+      }
+    }
+  ],
+  "tool_device_manager": [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "action": "register",
+        "deviceId": "example_value",
+        "deviceType": "sensor",
+        "config": {
+          "key": "value",
+          "enabled": true
+        },
+        "command": "example_value"
+      }
+    }
+  ],
+  "tool_mqtt_client": [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "action": "connect",
+        "broker": "example_value",
+        "topic": "example_value",
+        "message": "这是一段示例文本用于测试",
+        "qos": 10
+      }
+    }
+  ],
+  "tool_text_classifier": [
+    {
+      "description": "使用文本分类器进行AI处理",
+      "params": {
+        "text": "这是一段示例文本用于测试",
+        "taskType": "topic",
+        "model": "example_value",
+        "categories": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+  "tool_entity_recognizer": [
+    {
+      "description": "使用实体识别器进行AI处理",
+      "params": {
+        "text": "这是一段示例文本用于测试",
+        "entityTypes": [
+          "item1",
+          "item2"
+        ],
+        "language": "zh"
+      }
+    }
+  ],
+  "tool_resource_monitor": [
+    {
+      "description": "资源监控器使用示例",
+      "params": {
+        "metrics": [
+          "item1",
+          "item2"
+        ],
+        "interval": 10,
+        "duration": 10
+      }
+    }
+  ],
+  "tool_protobuf_encoder": [
+    {
+      "description": "处理数据使用Protobuf编码器",
+      "params": {
+        "schema": "example_value",
+        "messageName": "这是一段示例文本用于测试",
+        "data": {
+          "key": "value",
+          "enabled": true
+        },
+        "outputFormat": "binary"
+      }
+    }
+  ],
+  "tool_protobuf_decoder": [
+    {
+      "description": "处理数据使用Protobuf解码器",
+      "params": {
+        "schema": "example_value",
+        "messageName": "这是一段示例文本用于测试",
+        "data": {
+          "key": "value",
+          "enabled": true
+        },
+        "inputFormat": "binary"
+      }
+    }
+  ],
+  "tool_search_indexer": [
+    {
+      "description": "处理数据使用搜索索引器",
+      "params": {
+        "action": "create",
+        "indexName": "example_value",
+        "documents": [
+          "item1",
+          "item2"
+        ],
+        "analyzer": "standard"
+      }
+    }
+  ],
+  "tool_search_query": [
+    {
+      "description": "处理数据使用搜索查询器",
+      "params": {
+        "indexName": "example_value",
+        "query": "example_value",
+        "options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_vulnerability_scanner": [
+    {
+      "description": "漏洞扫描器使用示例",
+      "params": {
+        "target": "example_value",
+        "scanType": "port",
+        "depth": "quick",
+        "options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_security_auditor": [
+    {
+      "description": "安全审计器使用示例",
+      "params": {
+        "auditType": "code",
+        "target": "example_value",
+        "rules": [
+          "item1",
+          "item2"
+        ],
+        "standard": "owasp"
+      }
+    }
+  ],
+  "tool_physics_engine": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "action": "create",
+        "objectId": "example_value",
+        "properties": "example_value",
+        "force": [
+          "item1",
+          "item2"
+        ],
+        "deltaTime": 10
+      }
+    }
+  ],
+  "tool_collision_detector": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "objects": [
+          "item1",
+          "item2"
+        ],
+        "algorithm": "aabb",
+        "continuous": true
+      }
+    }
+  ],
+  "tool_spatial_analyzer": [
+    {
+      "description": "处理数据使用空间分析器",
+      "params": {
+        "analysisType": "buffer",
+        "inputData": {
+          "key": "value",
+          "enabled": true
+        },
+        "parameters": "example_value"
+      }
+    }
+  ],
+  "tool_route_planner": [
+    {
+      "description": "处理数据使用路径规划器",
+      "params": {
+        "start": "example_value",
+        "end": "example_value",
+        "waypoints": [
+          "item1",
+          "item2"
+        ],
+        "algorithm": "dijkstra",
+        "constraints": "example_value"
+      }
+    }
+  ],
+  "tool_sequence_aligner": [
+    {
+      "description": "使用序列比对器进行AI处理",
+      "params": {
+        "sequences": [
+          "item1",
+          "item2"
+        ],
+        "algorithm": "needleman-wunsch",
+        "sequenceType": "dna",
+        "parameters": "example_value"
+      }
+    }
+  ],
+  "tool_protein_predictor": [
+    {
+      "description": "使用蛋白质结构预测器进行AI处理",
+      "params": {
+        "sequence": "example_value",
+        "predictionType": "secondary",
+        "method": "alphafold"
+      }
+    }
+  ],
+  "tool_financial_modeler": [
+    {
+      "description": "处理数据使用财务建模器",
+      "params": {
+        "modelType": "dcf",
+        "inputs": "example_value",
+        "assumptions": "example_value"
+      }
+    }
+  ],
+  "tool_risk_analyzer": [
+    {
+      "description": "处理数据使用风险分析器",
+      "params": {
+        "portfolio": [
+          "item1",
+          "item2"
+        ],
+        "riskMetrics": [
+          "item1",
+          "item2"
+        ],
+        "confidence_level": 10,
+        "time_horizon": 10
+      }
+    }
+  ],
+  "tool_exercise_generator": [
+    {
+      "description": "使用习题生成器进行AI处理",
+      "params": {
+        "subject": "math",
+        "topic": "example_value",
+        "difficulty": "easy",
+        "count": 10,
+        "type": "choice"
+      }
+    }
+  ],
+  "tool_auto_grader": [
+    {
+      "description": "使用自动批改器进行AI处理",
+      "params": {
+        "submissions": [
+          "item1",
+          "item2"
+        ],
+        "answer_key": [
+          "item1",
+          "item2"
+        ],
+        "grading_rubric": "example_value",
+        "feedback_level": "minimal"
+      }
+    }
+  ],
+  "tool_medical_image_analyzer": [
+    {
+      "description": "使用医学影像分析器进行AI处理",
+      "params": {
+        "imagePath": "./images/sample.png",
+        "imageType": "ct",
+        "analysisType": "lesion_detection",
+        "bodyPart": "brain"
+      }
+    }
+  ],
+  "tool_health_monitor": [
+    {
+      "description": "使用健康监测器进行AI处理",
+      "params": {
+        "metrics": "example_value",
+        "history": [
+          "item1",
+          "item2"
+        ],
+        "user_profile": "./data/sample.dat"
+      }
+    }
+  ],
+  "tool_legal_document_generator": [
+    {
+      "description": "使用法律文书生成器进行AI处理",
+      "params": {
+        "documentType": "contract",
+        "template": "example_value",
+        "parties": [
+          "item1",
+          "item2"
+        ],
+        "clauses": [
+          "item1",
+          "item2"
+        ],
+        "jurisdiction": "cn"
+      }
+    }
+  ],
+  "tool_case_searcher": [
+    {
+      "description": "使用案例检索器进行AI处理",
+      "params": {
+        "query": "example_value",
+        "searchType": "case",
+        "jurisdiction": "example_value",
+        "dateRange": "example_value",
+        "filters": "example_value"
+      }
+    }
+  ],
+  "tool_bim_modeler": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "action": "create",
+        "modelPath": "./data/sample.dat",
+        "format": "ifc",
+        "elements": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+  "tool_structure_analyzer": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "structure": "example_value",
+        "analysisType": "static",
+        "loads": [
+          "item1",
+          "item2"
+        ],
+        "standard": "gb"
+      }
+    }
+  ],
+  "tool_recommendation_engine": [
+    {
+      "description": "处理数据使用推荐引擎",
+      "params": {
+        "userId": "example_value",
+        "algorithm": "collaborative",
+        "context": "这是一段示例文本用于测试",
+        "filters": "example_value",
+        "limit": 100
+      }
+    }
+  ],
+  "tool_inventory_manager": [
+    {
+      "description": "处理数据使用库存管理器",
+      "params": {
+        "action": "forecast",
+        "inventory": [
+          "item1",
+          "item2"
+        ],
+        "parameters": "example_value",
+        "forecast_horizon": 10
+      }
+    }
+  ],
+  "tool_container_orchestrator": [
+    {
+      "description": "容器编排器使用示例",
+      "params": {
+        "action": "deploy",
+        "service": "example_value",
+        "namespace": "example_value",
+        "cluster": "example_value"
+      }
+    }
+  ],
+  "tool_cicd_pipeline": [
+    {
+      "description": "CI/CD流水线使用示例",
+      "params": {
+        "action": "create",
+        "pipeline": "example_value",
+        "repository": "example_value",
+        "branch": "example_value"
+      }
+    }
+  ],
+  "tool_quantum_circuit_builder": [
+    {
+      "description": "使用量子电路构建器进行AI处理",
+      "params": {
+        "num_qubits": 10,
+        "gates": [
+          "item1",
+          "item2"
+        ],
+        "measurements": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+  "tool_quantum_simulator": [
+    {
+      "description": "使用量子模拟器进行AI处理",
+      "params": {
+        "circuit": "example_value",
+        "shots": 10,
+        "backend": "statevector",
+        "noise_model": "example_value"
+      }
+    }
+  ],
+  "tool_ar_content_creator": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "contentType": "这是一段示例文本用于测试",
+        "assets": [
+          "item1",
+          "item2"
+        ],
+        "interactions": [
+          "item1",
+          "item2"
+        ],
+        "tracking": "example_value"
+      }
+    }
+  ],
+  "tool_vr_scene_builder": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "environment": "example_value",
+        "objects": [
+          "item1",
+          "item2"
+        ],
+        "navigation": "example_value"
+      }
+    }
+  ],
+  "tool_voice_cloner": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "action": "train",
+        "reference_audio": "example_value",
+        "text": "这是一段示例文本用于测试",
+        "model_id": "example_value",
+        "training_duration": 10
+      }
+    }
+  ],
+  "tool_object_detector": [
+    {
+      "description": "使用目标检测器进行AI处理",
+      "params": {
+        "imagePath": "./images/sample.png",
+        "model": "yolo",
+        "classes": [
+          "item1",
+          "item2"
+        ],
+        "confidence_threshold": 10,
+        "nms_threshold": 10
+      }
+    }
+  ],
+  "tool_image_segmenter": [
+    {
+      "description": "使用图像分割器进行AI处理",
+      "params": {
+        "imagePath": "./images/sample.png",
+        "segmentationType": "semantic",
+        "model": "unet",
+        "classes": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+  "tool_test_generator": [
+    {
+      "description": "测试用例生成器使用示例",
+      "params": {
+        "sourcePath": "./data/sample.dat",
+        "testType": "unit",
+        "framework": "jest",
+        "coverage_target": 10,
+        "mocking": true
+      }
+    }
+  ],
+  "tool_test_runner": [
+    {
+      "description": "测试执行器使用示例",
+      "params": {
+        "testPath": "./data/sample.dat",
+        "framework": "example_value",
+        "options": {
+          "key": "value",
+          "enabled": true
+        },
+        "filters": "example_value"
+      }
+    }
+  ],
+  "tool_content_publisher": [
+    {
+      "description": "处理数据使用内容发布器",
+      "params": {
+        "action": "create",
+        "content": "这是一段示例文本用于测试",
+        "workflow": "example_value",
+        "schedule": "example_value"
+      }
+    }
+  ],
+  "tool_media_manager": [
+    {
+      "description": "处理数据使用媒体管理器",
+      "params": {
+        "action": "upload",
+        "file": "./data/sample.dat",
+        "transcode_options": "function example() { return true; }",
+        "cdn": "example_value"
+      }
+    }
+  ],
+  "tool_sentiment_monitor": [
+    {
+      "description": "处理数据使用舆情监控器",
+      "params": {
+        "keywords": [
+          "item1",
+          "item2"
+        ],
+        "platforms": [
+          "item1",
+          "item2"
+        ],
+        "timeRange": "example_value",
+        "language": "example_value"
+      }
+    }
+  ],
+  "tool_influencer_analyzer": [
+    {
+      "description": "处理数据使用影响力分析器",
+      "params": {
+        "user_id": "example_value",
+        "platform": "twitter",
+        "metrics": [
+          "item1",
+          "item2"
+        ],
+        "period": 10
+      }
+    }
+  ],
+  "tool_logistics_optimizer": [
+    {
+      "description": "处理数据使用物流优化器",
+      "params": {
+        "problem_type": "vehicle_routing",
+        "locations": [
+          "item1",
+          "item2"
+        ],
+        "vehicles": [
+          "item1",
+          "item2"
+        ],
+        "constraints": "example_value",
+        "optimization_goal": "minimize_cost"
+      }
+    }
+  ],
+  "tool_demand_forecaster": [
+    {
+      "description": "处理数据使用需求预测器",
+      "params": {
+        "historical_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "forecast_horizon": 10,
+        "model": "arima",
+        "external_factors": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+  "tool_weather_analyzer": [
+    {
+      "description": "使用气象分析器进行AI处理",
+      "params": {
+        "location": "example_value",
+        "analysisType": "current",
+        "timeRange": "example_value",
+        "parameters": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+  "tool_pollution_predictor": [
+    {
+      "description": "使用污染预测器进行AI处理",
+      "params": {
+        "location": "example_value",
+        "pollutionType": "air",
+        "pollutants": [
+          "item1",
+          "item2"
+        ],
+        "forecast_hours": 10,
+        "historical_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_iot_device_manager": [
+    {
+      "description": "IoT设备管理器使用示例",
+      "params": {
+        "action": "register",
+        "device": "example_value",
+        "command": "example_value"
+      }
+    }
+  ],
+  "tool_mqtt_broker": [
+    {
+      "description": "MQTT消息代理使用示例",
+      "params": {
+        "action": "publish",
+        "topic": "example_value",
+        "message": "这是一段示例文本用于测试",
+        "qos": 0,
+        "retain": false
+      }
+    }
+  ],
+  "tool_edge_node_manager": [
+    {
+      "description": "边缘节点管理器使用示例",
+      "params": {
+        "action": "deploy",
+        "node": "example_value",
+        "workload": "example_value"
+      }
+    }
+  ],
+  "tool_edge_inferencer": [
+    {
+      "description": "使用边缘推理引擎进行AI处理",
+      "params": {
+        "model": "example_value",
+        "input_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "format": "onnx",
+        "device": "cpu"
+      }
+    }
+  ],
+  "tool_twin_model_builder": [
+    {
+      "description": "使用数字孪生模型构建器进行AI处理",
+      "params": {
+        "entity": "example_value",
+        "sensors": [
+          "item1",
+          "item2"
+        ],
+        "parameters": "example_value",
+        "physics_model": "kinematic"
+      }
+    }
+  ],
+  "tool_twin_simulator": [
+    {
+      "description": "使用数字孪生仿真器进行AI处理",
+      "params": {
+        "twin_id": "example_value",
+        "simulation_type": "real_time",
+        "scenario": "example_value",
+        "time_horizon": 10
+      }
+    }
+  ],
+  "tool_plc_controller": [
+    {
+      "description": "PLC控制器使用示例",
+      "params": {
+        "action": "read",
+        "plc": "example_value",
+        "address": "example_value",
+        "value": "example_value"
+      }
+    }
+  ],
+  "tool_production_scheduler": [
+    {
+      "description": "处理数据使用生产调度器",
+      "params": {
+        "orders": [
+          "item1",
+          "item2"
+        ],
+        "resources": "example_value",
+        "constraints": "example_value",
+        "optimization_goal": "minimize_time"
+      }
+    }
+  ],
+  "tool_scene_automator": [
+    {
+      "description": "场景自动化器使用示例",
+      "params": {
+        "action": "create",
+        "scene": "example_value",
+        "scene_id": "example_value"
+      }
+    }
+  ],
+  "tool_device_linker": [
+    {
+      "description": "设备联动器使用示例",
+      "params": {
+        "linkage": "example_value",
+        "enabled": true
+      }
+    }
+  ],
+  "tool_crop_monitor": [
+    {
+      "description": "使用作物监测器进行AI处理",
+      "params": {
+        "field": "example_value",
+        "monitoring_type": "growth",
+        "images": [
+          "item1",
+          "item2"
+        ],
+        "sensor_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_irrigation_controller": [
+    {
+      "description": "灌溉控制器使用示例",
+      "params": {
+        "action": "start",
+        "zone": "example_value",
+        "parameters": "example_value",
+        "soil_moisture": 10,
+        "weather_forecast": "example_value"
+      }
+    }
+  ],
+  "tool_traffic_controller": [
+    {
+      "description": "交通控制器使用示例",
+      "params": {
+        "intersection": "example_value",
+        "mode": "fixed",
+        "traffic_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "optimization_goal": "minimize_delay"
+      }
+    }
+  ],
+  "tool_public_safety_monitor": [
+    {
+      "description": "使用公共安全监控器进行AI处理",
+      "params": {
+        "area": "example_value",
+        "monitoring_types": [
+          "item1",
+          "item2"
+        ],
+        "alert_rules": [
+          "item1",
+          "item2"
+        ],
+        "video_streams": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+  "tool_orbit_calculator": [
+    {
+      "description": "处理数据使用轨道计算器",
+      "params": {
+        "calculation_type": "propagation",
+        "orbital_elements": "example_value",
+        "time_span": 10,
+        "perturbations": [
+          "item1",
+          "item2"
+        ]
+      }
+    }
+  ],
+  "tool_flight_planner": [
+    {
+      "description": "处理数据使用飞行规划器",
+      "params": {
+        "departure": "example_value",
+        "destination": "example_value",
+        "aircraft": "example_value",
+        "optimization": "shortest",
+        "weather_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_ocean_monitor": [
+    {
+      "description": "使用海洋监测器进行AI处理",
+      "params": {
+        "area": "example_value",
+        "monitoring_type": "temperature",
+        "data_sources": {
+          "key": "value",
+          "enabled": true
+        },
+        "time_range": "example_value"
+      }
+    }
+  ],
+  "tool_navigation_planner": [
+    {
+      "description": "处理数据使用航海规划器",
+      "params": {
+        "departure": "example_value",
+        "destination": "example_value",
+        "vessel": "example_value",
+        "optimization": "shortest",
+        "constraints": "example_value"
+      }
+    }
+  ],
+  "tool_power_dispatcher": [
+    {
+      "description": "电力调度器使用示例",
+      "params": {
+        "grid": "example_value",
+        "generators": [
+          "item1",
+          "item2"
+        ],
+        "load_forecast": "example_value",
+        "optimization": "minimize_cost",
+        "constraints": "example_value"
+      }
+    }
+  ],
+  "tool_renewable_forecaster": [
+    {
+      "description": "使用新能源预测器进行AI处理",
+      "params": {
+        "energy_type": "solar",
+        "location": "example_value",
+        "capacity": 10,
+        "forecast_horizon": 10,
+        "historical_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "weather_forecast": "example_value"
+      }
+    }
+  ],
+  "tool_quantum_key_distributor": [
+    {
+      "description": "量子密钥分发器使用示例",
+      "params": {
+        "protocol": "BB84",
+        "key_length": 10,
+        "channel": "example_value",
+        "error_correction": true
+      }
+    }
+  ],
+  "tool_quantum_teleporter": [
+    {
+      "description": "使用量子隐形传态器进行AI处理",
+      "params": {
+        "quantum_state": "example_value",
+        "entanglement_quality": 10,
+        "classical_channel": "example_value"
+      }
+    }
+  ],
+  "tool_eeg_processor": [
+    {
+      "description": "使用脑电信号处理器进行AI处理",
+      "params": {
+        "eeg_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "sampling_rate": 10,
+        "channels": [
+          "item1",
+          "item2"
+        ],
+        "processing": "example_value"
+      }
+    }
+  ],
+  "tool_bci_decoder": [
+    {
+      "description": "使用脑机接口解码器进行AI处理",
+      "params": {
+        "features": "example_value",
+        "task_type": "motor_imagery",
+        "model": "lda",
+        "calibration_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_gene_editor": [
+    {
+      "description": "使用基因编辑器进行AI处理",
+      "params": {
+        "target_gene": "example_value",
+        "edit_type": "knockout",
+        "editor": "Cas9",
+        "pam_sequence": "example_value",
+        "grna_design": "example_value"
+      }
+    }
+  ],
+  "tool_protein_designer": [
+    {
+      "description": "使用蛋白质设计器进行AI处理",
+      "params": {
+        "design_goal": "enzyme",
+        "sequence": "example_value",
+        "structure_constraints": "example_value",
+        "function_requirements": "example_value",
+        "optimization_cycles": 10
+      }
+    }
+  ],
+  "tool_nano_simulator": [
+    {
+      "description": "使用纳米模拟器进行AI处理",
+      "params": {
+        "system": "example_value",
+        "method": "MD",
+        "simulation_time": 10,
+        "force_field": "LAMMPS"
+      }
+    }
+  ],
+  "tool_nano_fabricator": [
+    {
+      "description": "纳米加工器使用示例",
+      "params": {
+        "process": "lithography",
+        "pattern": "example_value",
+        "materials": [
+          "item1",
+          "item2"
+        ],
+        "parameters": "example_value"
+      }
+    }
+  ],
+  "tool_reactor_simulator": [
+    {
+      "description": "使用反应堆模拟器进行AI处理",
+      "params": {
+        "reactor_type": "PWR",
+        "power_level": 10,
+        "fuel_composition": "example_value",
+        "control_rods": "example_value",
+        "simulation_type": "steady_state"
+      }
+    }
+  ],
+  "tool_radiation_monitor": [
+    {
+      "description": "辐射监测器使用示例",
+      "params": {
+        "detector_type": "GM",
+        "measurement_type": "dose_rate",
+        "location": "example_value",
+        "background": 10
+      }
+    }
+  ],
+  "tool_underwater_navigator": [
+    {
+      "description": "处理数据使用水下导航器",
+      "params": {
+        "navigation_mode": "INS",
+        "sensor_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "initial_position": "example_value",
+        "current": "example_value"
+      }
+    }
+  ],
+  "tool_deep_sea_mapper": [
+    {
+      "description": "处理数据使用深海测绘器",
+      "params": {
+        "sonar_type": "multibeam",
+        "survey_area": "example_value",
+        "resolution": 10,
+        "raw_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_asteroid_analyzer": [
+    {
+      "description": "使用小行星分析器进行AI处理",
+      "params": {
+        "asteroid_id": "example_value",
+        "analysis_type": "composition",
+        "spectral_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "orbital_elements": "example_value"
+      }
+    }
+  ],
+  "tool_lunar_miner": [
+    {
+      "description": "月球采矿器使用示例",
+      "params": {
+        "site": "example_value",
+        "target_resource": "water_ice",
+        "equipment": [
+          "item1",
+          "item2"
+        ],
+        "extraction_method": "excavation"
+      }
+    }
+  ],
+  "tool_cloud_seeder": [
+    {
+      "description": "云播种器使用示例",
+      "params": {
+        "operation_type": "precipitation_enhancement",
+        "seeding_agent": "silver_iodide",
+        "target_area": "example_value",
+        "weather_conditions": "example_value",
+        "aircraft": "example_value"
+      }
+    }
+  ],
+  "tool_weather_modeler": [
+    {
+      "description": "使用天气建模器进行AI处理",
+      "params": {
+        "model": "WRF",
+        "domain": "example_value",
+        "initial_conditions": "example_value",
+        "forecast_hours": 10,
+        "physics_options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_material_designer": [
+    {
+      "description": "使用材料设计器进行AI处理",
+      "params": {
+        "material_class": "metal",
+        "target_properties": "example_value",
+        "constraints": "example_value",
+        "design_method": "ML"
+      }
+    }
+  ],
+  "tool_property_predictor": [
+    {
+      "description": "使用性能预测器进行AI处理",
+      "params": {
+        "material": "example_value",
+        "properties": [
+          "item1",
+          "item2"
+        ],
+        "method": "ML"
+      }
+    }
+  ],
+  "tool_snn_builder": [
+    {
+      "description": "使用脉冲神经网络构建器进行AI处理",
+      "params": {
+        "architecture": "example_value",
+        "learning_rule": "STDP",
+        "encoding": "rate",
+        "training_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_neuromorphic_accelerator": [
+    {
+      "description": "神经形态加速器使用示例",
+      "params": {
+        "hardware": "Loihi",
+        "model": "example_value",
+        "optimization": "example_value",
+        "input_data": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_ligo_data_analyzer": [
+    {
+      "description": "LIGO数据分析器使用示例",
+      "params": {
+        "detector": "LIGO-Hanford",
+        "data_segment": {
+          "key": "value",
+          "enabled": true
+        },
+        "preprocessing": "example_value",
+        "analysis_method": "matched_filter"
+      }
+    }
+  ],
+  "tool_waveform_matcher": [
+    {
+      "description": "引力波波形匹配器使用示例",
+      "params": {
+        "strain_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "template_bank": "example_value",
+        "search_params": "example_value",
+        "parameter_estimation": true
+      }
+    }
+  ],
+  "tool_particle_simulator": [
+    {
+      "description": "粒子碰撞模拟器使用示例",
+      "params": {
+        "collider": "LHC",
+        "collision_energy": 10,
+        "beam_particles": "example_value",
+        "process": "Higgs_production",
+        "num_events": 10,
+        "detector_simulation": true
+      }
+    }
+  ],
+  "tool_event_generator": [
+    {
+      "description": "粒子事例生成器使用示例",
+      "params": {
+        "generator": "Pythia",
+        "process": "example_value",
+        "pdf_set": "NNPDF",
+        "hadronization": "example_value",
+        "cuts": "example_value",
+        "num_events": 10
+      }
+    }
+  ],
+  "tool_wimp_detector": [
+    {
+      "description": "WIMP探测器使用示例",
+      "params": {
+        "detector_type": "xenon_TPC",
+        "target_material": "Xe",
+        "exposure": "example_value",
+        "energy_threshold": 10,
+        "background_model": "example_value",
+        "wimp_params": "example_value"
+      }
+    }
+  ],
+  "tool_axion_searcher": [
+    {
+      "description": "轴子搜寻器使用示例",
+      "params": {
+        "search_method": "cavity_haloscope",
+        "mass_range": "example_value",
+        "cavity_params": "example_value",
+        "magnetic_field": 10,
+        "integration_time": 10,
+        "coupling_constant": 10
+      }
+    }
+  ],
+  "tool_tokamak_simulator": [
+    {
+      "description": "托卡马克模拟器使用示例",
+      "params": {
+        "device": "ITER",
+        "plasma_params": "example_value",
+        "operating_scenario": "L-mode",
+        "heating_systems": "example_value",
+        "simulation_type": "equilibrium",
+        "duration": 10
+      }
+    }
+  ],
+  "tool_plasma_controller": [
+    {
+      "description": "等离子体控制器使用示例",
+      "params": {
+        "control_objectives": "example_value",
+        "actuators": "example_value",
+        "controller_type": "PID",
+        "feedback_sensors": [
+          "item1",
+          "item2"
+        ],
+        "constraints": "example_value"
+      }
+    }
+  ],
+  "tool_photonic_router": [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "architecture": "wavelength_routing",
+        "wavelength_channels": 10,
+        "switching_technology": "MEMS",
+        "modulation_format": "OOK",
+        "routing_table": [
+          "item1",
+          "item2"
+        ],
+        "qos_requirements": "example_value"
+      }
+    }
+  ],
+  "tool_optical_nn_designer": [
+    {
+      "description": "使用光学神经网络设计器进行AI处理",
+      "params": {
+        "architecture": "diffractive",
+        "layers": [
+          "item1",
+          "item2"
+        ],
+        "optical_components": "example_value",
+        "training_method": "in_situ",
+        "task": "classification",
+        "dataset": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_topological_state_calculator": [
+    {
+      "description": "拓扑态计算器使用示例",
+      "params": {
+        "material": "example_value",
+        "hamiltonian": "example_value",
+        "topological_invariant": "chern_number",
+        "k_points": "example_value",
+        "calculation_method": "wannier"
+      }
+    }
+  ],
+  "tool_majorana_detector": [
+    {
+      "description": "马约拉纳费米子探测器使用示例",
+      "params": {
+        "system_type": "nanowire",
+        "experimental_setup": "example_value",
+        "measurement_type": "tunneling_spectroscopy",
+        "bias_voltage_range": "example_value",
+        "signature_criteria": "example_value"
+      }
+    }
+  ],
+  "tool_ice_core_analyzer": [
+    {
+      "description": "冰芯分析器使用示例",
+      "params": {
+        "core_info": "example_value",
+        "analysis_types": [
+          "item1",
+          "item2"
+        ],
+        "isotope_ratios": "example_value",
+        "gas_measurements": "example_value",
+        "resolution": 10,
+        "dating_method": "layer_counting"
+      }
+    }
+  ],
+  "tool_climate_reconstructor": [
+    {
+      "description": "气候重建器使用示例",
+      "params": {
+        "proxy_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "reconstruction_method": "transfer_function",
+        "target_variable": "temperature",
+        "time_period": "example_value",
+        "spatial_resolution": "global",
+        "climate_model": "CESM"
+      }
+    }
+  ],
+  "tool_magma_simulator": [
+    {
+      "description": "岩浆模拟器使用示例",
+      "params": {
+        "volcano_type": "shield",
+        "magma_properties": "example_value",
+        "chamber_geometry": "example_value",
+        "conduit_model": "example_value",
+        "simulation_type": "eruption",
+        "boundary_conditions": "example_value"
+      }
+    }
+  ],
+  "tool_volcanic_monitor": [
+    {
+      "description": "火山监测器使用示例",
+      "params": {
+        "volcano_name": "example_value",
+        "monitoring_systems": "example_value",
+        "alert_criteria": "example_value",
+        "data_window": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_radiocarbon_dater": [
+    {
+      "description": "放射性碳测年器使用示例",
+      "params": {
+        "sample_info": "example_value",
+        "measurement_method": "AMS",
+        "c14_measurement": "example_value",
+        "calibration_curve": "IntCal20",
+        "reservoir_effect": "example_value"
+      }
+    }
+  ],
+  "tool_artifact_reconstructor": [
+    {
+      "description": "文物3D重建器使用示例",
+      "params": {
+        "artifact_type": "pottery",
+        "scanning_method": "photogrammetry",
+        "input_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "reconstruction_settings": "example_value",
+        "virtual_restoration": "example_value",
+        "export_format": "OBJ"
+      }
+    }
+  ],
+  "tool_flexible_sensor_designer": [
+    {
+      "description": "柔性传感器设计器使用示例",
+      "params": {
+        "sensor_type": "strain",
+        "substrate": "example_value",
+        "active_material": "example_value",
+        "design_parameters": "example_value",
+        "application": "health_monitoring",
+        "performance_requirements": "example_value"
+      }
+    }
+  ],
+  "tool_biochip_analyzer": [
+    {
+      "description": "生物芯片分析器使用示例",
+      "params": {
+        "chip_type": "microarray",
+        "assay_type": "gene_expression",
+        "raw_data": {
+          "key": "value",
+          "enabled": true
+        },
+        "normalization": "quantile",
+        "background_correction": true,
+        "statistical_analysis": "example_value",
+        "quality_control": "example_value"
+      }
+    }
+  ],
+  "tool_file_compressor": [
+    {
+      "description": "文件操作示例",
+      "params": {
+        "files": "./data/sample.dat",
+        "output_path": "./output/result.txt",
+        "format": "zip",
+        "compression_level": "store",
+        "password": "example_value",
+        "split_size": 100
+      }
+    }
+  ],
+  "tool_file_decompressor": [
+    {
+      "description": "文件操作示例",
+      "params": {
+        "archive_path": "./data/sample.dat",
+        "output_dir": "example_value",
+        "password": "example_value",
+        "overwrite": true,
+        "extract_files": "./data/sample.dat"
+      }
+    }
+  ],
+  "tool_image_editor": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "input_path": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "operations": [
+          "item1",
+          "item2"
+        ],
+        "format": "jpg",
+        "quality": 10
+      }
+    }
+  ],
+  "tool_image_filter": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "input_path": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "filter": "grayscale",
+        "brightness": 10,
+        "contrast": 10,
+        "watermark": "example_value"
+      }
+    }
+  ],
+  "tool_video_cutter": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "input_path": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "start_time": "example_value",
+        "end_time": "example_value",
+        "extract_audio": true,
+        "audio_format": "mp3"
+      }
+    }
+  ],
+  "tool_video_merger": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "input_files": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "output_format": "mp4",
+        "codec": "function example() { return true; }",
+        "resolution": "original"
+      }
+    }
+  ],
+  "tool_pdf_converter": [
+    {
+      "description": "PDF转换器使用示例",
+      "params": {
+        "input_path": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "conversion_type": "to_pdf",
+        "target_format": "pdf",
+        "options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ],
+  "tool_office_converter": [
+    {
+      "description": "Office文档转换器使用示例",
+      "params": {
+        "input_path": "./input/sample.txt",
+        "output_path": "./output/result.txt",
+        "source_format": "doc",
+        "target_format": "doc",
+        "preserve_formatting": true
+      }
+    }
+  ],
+  "tool_qrcode_generator_advanced": [
+    {
+      "description": "高级二维码生成器使用示例",
+      "params": {
+        "content": "这是一段示例文本用于测试",
+        "output_path": "./output/result.txt",
+        "size": 100,
+        "error_correction": "L",
+        "style": "example_value",
+        "format": "png"
+      }
+    }
+  ],
+  "tool_qrcode_scanner": [
+    {
+      "description": "二维码扫描器使用示例",
+      "params": {
+        "image_path": "./images/sample.png",
+        "scan_type": "qrcode",
+        "multiple": true
+      }
+    }
+  ],
+  "tool_screenshot_tool": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "output_path": "./output/result.txt",
+        "capture_type": "fullscreen",
+        "region": "example_value",
+        "include_cursor": true,
+        "format": "png"
+      }
+    }
+  ],
+  "tool_screen_recorder": [
+    {
+      "description": "处理媒体文件",
+      "params": {
+        "output_path": "./output/result.txt",
+        "output_format": "mp4",
+        "capture_type": "fullscreen",
+        "region": "example_value",
+        "fps": 10,
+        "record_audio": true,
+        "duration": 10
+      }
+    }
+  ],
+  "tool_calendar_manager": [
+    {
+      "description": "日历管理器使用示例",
+      "params": {
+        "action": "create",
+        "event": "example_value",
+        "date_range": "example_value"
+      }
+    }
+  ],
+  "tool_reminder_scheduler": [
+    {
+      "description": "提醒调度器使用示例",
+      "params": {
+        "action": "create",
+        "reminder": "example_value"
+      }
+    }
+  ],
+  "tool_note_editor": [
+    {
+      "description": "笔记编辑器使用示例",
+      "params": {
+        "action": "create",
+        "note": "example_value"
+      }
+    }
+  ],
+  "tool_note_searcher": [
+    {
+      "description": "笔记搜索器使用示例",
+      "params": {
+        "query": "example_value",
+        "filters": "example_value",
+        "sort_by": "created_at",
+        "limit": 100
+      }
+    }
+  ],
+  "tool_password_generator_advanced": [
+    {
+      "description": "高级密码生成器使用示例",
+      "params": {
+        "length": 16,
+        "include_uppercase": true,
+        "include_lowercase": true,
+        "include_numbers": true,
+        "include_symbols": true,
+        "exclude_ambiguous": true,
+        "custom_charset": "example_value",
+        "count": 1
+      }
+    }
+  ],
+  "tool_password_vault": [
+    {
+      "description": "密码保险库使用示例",
+      "params": {
+        "action": "add",
+        "entry": "example_value",
+        "master_password": "example_value",
+        "search_query": "example_value"
+      }
+    }
+  ],
+  "tool_network_speed_tester": [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "test_type": "download",
+        "server": "example_value",
+        "duration": 10
+      }
+    }
+  ],
+  "tool_network_diagnostic_tool": [
+    {
+      "description": "网络请求示例",
+      "params": {
+        "operation": "ping",
+        "target": "example_value",
+        "options": {
+          "key": "value",
+          "enabled": true
+        }
+      }
+    }
+  ]
+}
