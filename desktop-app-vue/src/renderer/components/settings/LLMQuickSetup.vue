@@ -251,20 +251,80 @@ const testConnection = async () => {
   testResult.value = null;
 
   try {
-    // 构建测试配置
-    const testConfig = {
-      provider: formData.provider,
-      apiKey: formData.apiKey,
-      baseUrl: formData.baseUrl,
-      model: formData.model || getDefaultModel(),
-    };
+    // 验证必填字段
+    if (formData.provider !== 'ollama' && !formData.apiKey) {
+      throw new Error('请先输入 API Key');
+    }
 
     // 如果没有window.electronAPI，提示错误
     if (!window.electronAPI || !window.electronAPI.llm) {
       throw new Error('LLM API 不可用');
     }
 
-    // 调用测试接口
+    // 构建完整的LLM配置对象
+    const llmConfig = {
+      provider: formData.provider,
+      options: {
+        temperature: 0.7,
+        timeout: 120000,
+      },
+    };
+
+    // 根据提供商添加特定配置
+    switch (formData.provider) {
+      case 'ollama':
+        llmConfig.ollama = {
+          url: formData.baseUrl || 'http://localhost:11434',
+          model: formData.model || 'llama2',
+        };
+        break;
+      case 'openai':
+        llmConfig.openai = {
+          apiKey: formData.apiKey,
+          baseURL: formData.baseUrl || 'https://api.openai.com/v1',
+          model: formData.model || 'gpt-3.5-turbo',
+        };
+        break;
+      case 'anthropic':
+        llmConfig.anthropic = {
+          apiKey: formData.apiKey,
+          baseURL: formData.baseUrl || 'https://api.anthropic.com',
+          model: formData.model || 'claude-3-5-sonnet-20241022',
+          version: '2023-06-01',
+        };
+        break;
+      case 'volcengine':
+        llmConfig.volcengine = {
+          apiKey: formData.apiKey,
+          baseURL: formData.baseUrl || 'https://ark.cn-beijing.volces.com/api/v3',
+          model: formData.model || 'doubao-pro-4k',
+        };
+        break;
+      case 'deepseek':
+        llmConfig.deepseek = {
+          apiKey: formData.apiKey,
+          baseURL: formData.baseUrl || 'https://api.deepseek.com/v1',
+          model: formData.model || 'deepseek-chat',
+        };
+        break;
+      case 'zhipu':
+        llmConfig.zhipu = {
+          apiKey: formData.apiKey,
+          model: formData.model || 'glm-4',
+        };
+        break;
+      case 'qianfan':
+        llmConfig.qianfan = {
+          apiKey: formData.apiKey,
+          model: formData.model || 'ERNIE-Bot-turbo',
+        };
+        break;
+    }
+
+    // 先保存配置到LLM服务
+    await window.electronAPI.llm.setConfig(llmConfig);
+
+    // 然后测试连接
     const result = await window.electronAPI.llm.checkStatus();
 
     if (result.available) {
