@@ -31,6 +31,8 @@ const NativeMessagingHTTPServer = require('./native-messaging/http-server');
 const FileSyncManager = require('./file-sync/sync-manager');
 const PreviewManager = require('./preview/preview-manager');
 const { getProjectConfig } = require('./project/project-config');
+const MenuManager = require('./menu-manager');
+const AdvancedFeaturesIPC = require('./advanced-features-ipc');
 // Trade modules
 const KnowledgePaymentManager = require('./trade/knowledge-payment');
 const CreditScoreManager = require('./trade/credit-score');
@@ -277,6 +279,13 @@ class ChainlessChainApp {
     app.on('will-quit', async (event) => {
       event.preventDefault();
       console.log('[Main] Application is quitting, stopping backend services...');
+
+      // 清理菜单管理器
+      if (this.menuManager) {
+        this.menuManager.destroy();
+        this.menuManager = null;
+      }
+
       const backendManager = getBackendServiceManager();
       await backendManager.stopServices();
       app.exit(0);
@@ -1241,6 +1250,25 @@ class ChainlessChainApp {
       console.log('预览管理器初始化成功');
     } catch (error) {
       console.error('预览管理器初始化失败:', error);
+    }
+
+    // 创建应用菜单
+    try {
+      console.log('创建应用菜单...');
+      this.menuManager = new MenuManager(this.mainWindow);
+      this.menuManager.createMenu();
+      console.log('✓ 应用菜单已创建');
+    } catch (error) {
+      console.error('应用菜单创建失败:', error);
+    }
+
+    // 注册高级特性IPC handlers
+    try {
+      console.log('注册高级特性IPC handlers...');
+      this.advancedFeaturesIPC = new AdvancedFeaturesIPC(this.mainWindow);
+      console.log('✓ 高级特性IPC handlers注册成功');
+    } catch (error) {
+      console.error('高级特性IPC注册失败:', error);
     }
 
     // 注册AI引擎IPC handlers
