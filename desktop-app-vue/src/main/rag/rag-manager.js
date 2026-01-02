@@ -22,7 +22,7 @@ const DEFAULT_CONFIG = {
   maxContextLength: 6000, // 最大上下文长度（字符） (增加以支持更长上下文)
 
   // 启用选项
-  enableRAG: true, // 是否启用RAG
+  enableRAG: false, // 是否启用RAG (临时禁用，避免启动时构建索引)
   enableReranking: true, // 🔥 启用重排序以提升检索质量
   enableHybridSearch: true, // 是否启用混合搜索（向量+关键词）
 
@@ -37,7 +37,7 @@ const DEFAULT_CONFIG = {
 
   // 向量存储配置
   chromaUrl: 'http://localhost:8000', // ChromaDB地址
-  useChromaDB: true, // 是否使用ChromaDB (false则使用内存)
+  useChromaDB: false, // 是否使用ChromaDB (临时改为false避免启动挂起) (false则使用内存)
 
   // 文档分块配置
   enableChunking: true, // 是否启用文档分块
