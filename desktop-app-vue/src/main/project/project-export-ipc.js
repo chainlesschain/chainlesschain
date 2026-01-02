@@ -1,0 +1,832 @@
+/**
+ * 项目导出分享 IPC
+ * 处理项目导出、分享、文件导入导出等操作
+ *
+ * @module project-export-ipc
+ * @description 项目导出分享模块，包括文档导出、PPT生成、分享功能、文件操作等
+ */
+
+const { ipcMain, dialog } = require('electron');
+const path = require('path');
+
+/**
+ * 注册项目导出分享相关的 IPC 处理器
+ * @param {Object} dependencies - 依赖对象
+ * @param {Object} dependencies.database - 数据库实例
+ * @param {Object} dependencies.llmManager - LLM 管理器
+ * @param {Object} dependencies.mainWindow - 主窗口实例
+ * @param {Function} dependencies.getDatabaseConnection - 获取数据库连接
+ * @param {Function} dependencies.saveDatabase - 保存数据库
+ * @param {Function} dependencies.getProjectConfig - 获取项目配置
+ * @param {Function} dependencies.copyDirectory - 复制目录函数
+ * @param {Function} dependencies.convertSlidesToOutline - 转换幻灯片为大纲
+ */
+function registerProjectExportIPC({
+  database,
+  llmManager,
+  mainWindow,
+  getDatabaseConnection,
+  saveDatabase,
+  getProjectConfig,
+  copyDirectory,
+  convertSlidesToOutline
+}) {
+  console.log('[Project Export IPC] Registering Project Export/Share IPC handlers...');
+
+  // ============================================================
+  // 文档导出相关 (4 handlers)
+  // ============================================================
+
+  /**
+   * 导出文档为不同格式
+   * 支持导出为 PDF, Word, HTML 等格式
+   */
+  ipcMain.handle('project:exportDocument', async (_event, params) => {
+    try {
+      const { projectId, sourcePath, format, outputPath } = params;
+
+      // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+      const projectConfig = getProjectConfig();
+      const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+      const resolvedOutputPath = outputPath ? projectConfig.resolveProjectPath(outputPath) : null;
+
+      console.log(`[Main] 导出文档: ${resolvedSourcePath} -> ${format}`);
+
+      const DocumentEngine = require('../engines/document-engine');
+      const documentEngine = new DocumentEngine();
+      const result = await documentEngine.exportTo(resolvedSourcePath, format, resolvedOutputPath);
+
+      return {
+        success: true,
+        fileName: path.basename(result.path),
+        path: result.path
+      };
+    } catch (error) {
+      console.error('[Main] 文档导出失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 生成 PPT 演示文稿
+   * 从 Markdown 内容生成 PowerPoint 文件
+   */
+  ipcMain.handle('project:generatePPT', async (_event, params) => {
+    try {
+      const { projectId, sourcePath } = params;
+
+      // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+      const projectConfig = getProjectConfig();
+      const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+
+      console.log(`[Main] 生成PPT: ${resolvedSourcePath}`);
+
+      const fs = require('fs').promises;
+      const PPTEngine = require('../engines/ppt-engine');
+
+      // 读取Markdown内容
+      const markdownContent = await fs.readFile(resolvedSourcePath, 'utf-8');
+
+      // 生成PPT
+      const pptEngine = new PPTEngine();
+      const result = await pptEngine.generateFromMarkdown(markdownContent, {
+        outputPath: resolvedSourcePath.replace(/\.md$/, '.pptx'),
+        llmManager: llmManager
+      });
+
+      return {
+        success: true,
+        fileName: result.fileName,
+        path: result.path,
+        slideCount: result.slideCount
+      };
+    } catch (error) {
+      console.error('[Main] PPT生成失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 生成播客脚本
+   * 将文章内容转换为适合播客朗读的口语化脚本
+   */
+  ipcMain.handle('project:generatePodcastScript', async (_event, params) => {
+    try {
+      const { projectId, sourcePath } = params;
+
+      // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+      const projectConfig = getProjectConfig();
+      const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+
+      console.log(`[Main] 生成播客脚本: ${resolvedSourcePath}`);
+
+      const fs = require('fs').promises;
+
+      // 读取文档内容
+      const content = await fs.readFile(resolvedSourcePath, 'utf-8');
+
+      // 使用LLM转换为播客脚本
+      const prompt = `请将以下文章内容转换为适合播客朗读的口语化脚本：
+
+${content}
+
+要求：
+1. 使用第一人称，自然流畅
+2. 增加过渡语和互动语言
+3. 适合音频传播
+4. 保持原文核心内容`;
+
+      const response = await llmManager.query(prompt, {
+        temperature: 0.7,
+        maxTokens: 3000
+      });
+
+      // 保存脚本
+      const outputPath = resolvedSourcePath.replace(/\.[^.]+$/, '_podcast.txt');
+      await fs.writeFile(outputPath, response.text, 'utf-8');
+
+      return {
+        success: true,
+        fileName: path.basename(outputPath),
+        path: outputPath,
+        content: response.text
+      };
+    } catch (error) {
+      console.error('[Main] 播客脚本生成失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 生成文章配图
+   * 分析文章内容，提取适合配图的关键主题
+   */
+  ipcMain.handle('project:generateArticleImages', async (_event, params) => {
+    try {
+      const { projectId, sourcePath } = params;
+
+      // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+      const projectConfig = getProjectConfig();
+      const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+
+      console.log(`[Main] 生成文章配图: ${resolvedSourcePath}`);
+
+      const fs = require('fs').promises;
+
+      // 读取文档内容
+      const content = await fs.readFile(resolvedSourcePath, 'utf-8');
+
+      // 使用LLM提取关键主题
+      const prompt = `请分析以下文章，提取3-5个适合配图的关键主题：
+
+${content.substring(0, 2000)}
+
+请以JSON数组格式返回主题列表，每个主题包含：
+- title: 主题标题
+- description: 图片描述（用于AI绘图）
+
+格式示例：
+[
+  {"title": "主题1", "description": "详细的图片描述"},
+  {"title": "主题2", "description": "详细的图片描述"}
+]`;
+
+      const response = await llmManager.query(prompt, {
+        temperature: 0.7,
+        maxTokens: 1000
+      });
+
+      // 解析主题
+      let themes = [];
+      try {
+        const jsonMatch = response.text.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          themes = JSON.parse(jsonMatch[0]);
+        }
+      } catch (parseError) {
+        console.warn('[Main] 解析主题失败，使用默认主题');
+        themes = [
+          { title: '文章插图1', description: '根据文章内容创作的插图' }
+        ];
+      }
+
+      // 创建图片目录
+      const imageDir = resolvedSourcePath.replace(/\.[^.]+$/, '_images');
+      await fs.mkdir(imageDir, { recursive: true });
+
+      // 保存主题列表
+      const themesPath = path.join(imageDir, 'themes.json');
+      await fs.writeFile(themesPath, JSON.stringify(themes, null, 2), 'utf-8');
+
+      return {
+        success: true,
+        path: imageDir,
+        themes,
+        message: '主题已生成，请使用AI绘图工具生成实际图片'
+      };
+    } catch (error) {
+      console.error('[Main] 文章配图生成失败:', error);
+      throw error;
+    }
+  });
+
+  // ============================================================
+  // 分享功能相关 (5 handlers)
+  // ============================================================
+
+  /**
+   * 创建或更新项目分享
+   * 生成分享链接和 token
+   */
+  ipcMain.handle('project:shareProject', async (_event, params) => {
+    try {
+      const { projectId, shareMode, expiresInDays, regenerateToken } = params;
+      console.log(`[Main] 分享项目: ${projectId}, 模式: ${shareMode}`);
+
+      if (!database) {
+        throw new Error('数据库未初始化');
+      }
+
+      // 获取分享管理器
+      let shareManager;
+      if (!shareManager) {
+        const { getShareManager } = require('./share-manager');
+        shareManager = getShareManager(database);
+      }
+
+      // 创建或更新分享
+      const result = await shareManager.createOrUpdateShare(projectId, shareMode, {
+        expiresInDays,
+        regenerateToken
+      });
+
+      // 如果是公开模式，可以发布到社交模块（暂未实现）
+      if (shareMode === 'public') {
+        console.log('[Main] 项目设置为公开访问');
+        // TODO: 集成社交模块
+      }
+
+      return {
+        success: true,
+        shareLink: result.share.share_link,
+        shareToken: result.share.share_token,
+        shareMode: result.share.share_mode,
+        share: result.share
+      };
+    } catch (error) {
+      console.error('[Main] 项目分享失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取项目分享信息
+   */
+  ipcMain.handle('project:getShare', async (_event, projectId) => {
+    try {
+      console.log(`[Main] 获取项目分享信息: ${projectId}`);
+
+      if (!database) {
+        throw new Error('数据库未初始化');
+      }
+
+      const { getShareManager } = require('./share-manager');
+      const shareManager = getShareManager(database);
+
+      const share = shareManager.getShareByProjectId(projectId);
+
+      return {
+        success: true,
+        share
+      };
+    } catch (error) {
+      console.error('[Main] 获取分享信息失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 删除项目分享
+   */
+  ipcMain.handle('project:deleteShare', async (_event, projectId) => {
+    try {
+      console.log(`[Main] 删除项目分享: ${projectId}`);
+
+      if (!database) {
+        throw new Error('数据库未初始化');
+      }
+
+      const { getShareManager } = require('./share-manager');
+      const shareManager = getShareManager(database);
+
+      const success = shareManager.deleteShare(projectId);
+
+      return {
+        success
+      };
+    } catch (error) {
+      console.error('[Main] 删除分享失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 根据 token 访问分享项目
+   */
+  ipcMain.handle('project:accessShare', async (_event, token) => {
+    try {
+      console.log(`[Main] 访问分享项目: ${token}`);
+
+      if (!database) {
+        throw new Error('数据库未初始化');
+      }
+
+      const { getShareManager } = require('./share-manager');
+      const shareManager = getShareManager(database);
+
+      const share = shareManager.getShareByToken(token);
+
+      if (!share) {
+        throw new Error('分享不存在');
+      }
+
+      if (share.is_expired) {
+        throw new Error('分享已过期');
+      }
+
+      if (!share.accessible) {
+        throw new Error('分享已设置为私密');
+      }
+
+      // 增加访问计数
+      shareManager.incrementAccessCount(token);
+
+      return {
+        success: true,
+        share
+      };
+    } catch (error) {
+      console.error('[Main] 访问分享失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 微信分享（生成二维码）
+   */
+  ipcMain.handle('project:shareToWechat', async (_event, params) => {
+    try {
+      const { projectId, shareLink } = params;
+      console.log(`[Main] 微信分享: ${shareLink}`);
+
+      // TODO: 集成二维码生成库
+      // const QRCode = require('qrcode');
+      // const qrCodeDataURL = await QRCode.toDataURL(shareLink);
+
+      return {
+        success: true,
+        message: '微信分享功能开发中，请使用复制链接'
+      };
+    } catch (error) {
+      console.error('[Main] 微信分享失败:', error);
+      throw error;
+    }
+  });
+
+  // ============================================================
+  // 文件操作相关 (8 handlers)
+  // ============================================================
+
+  /**
+   * 复制文件（项目内）
+   */
+  ipcMain.handle('project:copyFile', async (_event, params) => {
+    try {
+      const { sourcePath, targetPath } = params;
+
+      // 解析路径（将 /data/projects/xxx 转换为绝对路径）
+      const projectConfig = getProjectConfig();
+      const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+      const resolvedTargetPath = projectConfig.resolveProjectPath(targetPath);
+
+      console.log(`[Main] 复制文件: ${resolvedSourcePath} -> ${resolvedTargetPath}`);
+
+      const fs = require('fs').promises;
+      await fs.copyFile(resolvedSourcePath, resolvedTargetPath);
+
+      return {
+        success: true,
+        fileName: path.basename(resolvedTargetPath),
+        path: resolvedTargetPath
+      };
+    } catch (error) {
+      console.error('[Main] 文件复制失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 移动文件（项目内拖拽）
+   */
+  ipcMain.handle('project:move-file', async (_event, params) => {
+    try {
+      const { projectId, fileId, sourcePath, targetPath } = params;
+      console.log(`[Main] 移动文件: ${sourcePath} -> ${targetPath}`);
+
+      const fs = require('fs').promises;
+      const projectConfig = getProjectConfig();
+
+      // 解析路径
+      const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
+      const resolvedTargetPath = projectConfig.resolveProjectPath(targetPath);
+
+      // 确保目标目录存在
+      const targetDir = path.dirname(resolvedTargetPath);
+      await fs.mkdir(targetDir, { recursive: true });
+
+      // 移动文件
+      await fs.rename(resolvedSourcePath, resolvedTargetPath);
+
+      // 更新数据库中的文件记录
+      if (projectId && fileId) {
+        const db = getDatabaseConnection();
+        const newFileName = path.basename(resolvedTargetPath);
+        const newFilePath = targetPath;
+
+        const updateSQL = `
+          UPDATE project_files
+          SET file_name = ?, file_path = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND project_id = ?
+        `;
+        await db.run(updateSQL, [newFileName, newFilePath, fileId, projectId]);
+        await saveDatabase();
+        console.log(`[Main] 文件记录已更新: ${fileId}`);
+      }
+
+      return {
+        success: true,
+        fileName: path.basename(resolvedTargetPath),
+        path: resolvedTargetPath
+      };
+    } catch (error) {
+      console.error('[Main] 文件移动失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 从外部导入文件到项目
+   */
+  ipcMain.handle('project:import-file', async (_event, params) => {
+    try {
+      const { projectId, externalPath, targetPath } = params;
+      console.log(`[Main] 导入文件: ${externalPath} -> ${targetPath}`);
+
+      const fs = require('fs').promises;
+      const projectConfig = getProjectConfig();
+
+      // 解析目标路径
+      const resolvedTargetPath = projectConfig.resolveProjectPath(targetPath);
+
+      // 确保目标目录存在
+      const targetDir = path.dirname(resolvedTargetPath);
+      await fs.mkdir(targetDir, { recursive: true });
+
+      // 复制文件（保留外部源文件）
+      await fs.copyFile(externalPath, resolvedTargetPath);
+
+      // 获取文件信息
+      const stats = await fs.stat(resolvedTargetPath);
+      const content = await fs.readFile(resolvedTargetPath, 'utf-8');
+
+      // 添加到数据库
+      const db = getDatabaseConnection();
+      const fileId = require('crypto').randomUUID();
+      const fileName = path.basename(resolvedTargetPath);
+      const fileExt = path.extname(fileName).substring(1);
+
+      const insertSQL = `
+        INSERT INTO project_files (
+          id, project_id, file_name, file_path, file_type, file_size, content,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `;
+
+      await db.run(insertSQL, [
+        fileId,
+        projectId,
+        fileName,
+        targetPath,
+        fileExt || 'unknown',
+        stats.size,
+        content
+      ]);
+      await saveDatabase();
+
+      console.log(`[Main] 文件导入成功: ${fileId}`);
+
+      return {
+        success: true,
+        fileId: fileId,
+        fileName: fileName,
+        path: resolvedTargetPath,
+        size: stats.size
+      };
+    } catch (error) {
+      console.error('[Main] 文件导入失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 导出文件到外部
+   */
+  ipcMain.handle('project:export-file', async (_event, params) => {
+    try {
+      const { projectPath, targetPath, isDirectory } = params;
+      console.log(`[Main] 导出文件参数:`, params);
+
+      const fs = require('fs').promises;
+      const projectConfig = getProjectConfig();
+
+      // 解析项目内路径
+      const resolvedSourcePath = projectConfig.resolveProjectPath(projectPath);
+      console.log(`[Main] 解析后的源路径: ${resolvedSourcePath}`);
+      console.log(`[Main] 目标路径: ${targetPath}`);
+
+      // 检查源文件/文件夹是否存在
+      try {
+        await fs.access(resolvedSourcePath);
+      } catch (err) {
+        console.error(`[Main] 源文件不存在: ${resolvedSourcePath}`);
+        throw new Error(`源文件不存在: ${projectPath}`);
+      }
+
+      const stats = await fs.stat(resolvedSourcePath);
+
+      if (stats.isDirectory()) {
+        // 递归复制目录
+        console.log(`[Main] 复制目录: ${resolvedSourcePath} -> ${targetPath}`);
+        await copyDirectory(resolvedSourcePath, targetPath);
+      } else {
+        // 确保目标目录存在
+        const targetDir = path.dirname(targetPath);
+        await fs.mkdir(targetDir, { recursive: true });
+
+        // 复制单个文件
+        console.log(`[Main] 复制文件: ${resolvedSourcePath} -> ${targetPath}`);
+        await fs.copyFile(resolvedSourcePath, targetPath);
+      }
+
+      console.log(`[Main] 文件导出成功: ${targetPath}`);
+
+      return {
+        success: true,
+        path: targetPath,
+        isDirectory: stats.isDirectory()
+      };
+    } catch (error) {
+      console.error('[Main] 文件导出失败:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+
+  /**
+   * 批量导出文件到外部
+   */
+  ipcMain.handle('project:export-files', async (_event, params) => {
+    try {
+      const { files, targetDirectory } = params;
+      console.log(`[Main] 批量导出 ${files.length} 个文件到: ${targetDirectory}`);
+
+      const fs = require('fs').promises;
+      const projectConfig = getProjectConfig();
+      const results = [];
+
+      // 确保目标目录存在
+      await fs.mkdir(targetDirectory, { recursive: true });
+
+      for (const file of files) {
+        try {
+          const resolvedSourcePath = projectConfig.resolveProjectPath(file.path);
+          const targetPath = path.join(targetDirectory, file.name);
+
+          const stats = await fs.stat(resolvedSourcePath);
+
+          if (stats.isDirectory()) {
+            await copyDirectory(resolvedSourcePath, targetPath);
+          } else {
+            await fs.copyFile(resolvedSourcePath, targetPath);
+          }
+
+          results.push({
+            success: true,
+            name: file.name,
+            path: targetPath
+          });
+        } catch (error) {
+          console.error(`[Main] 导出文件失败: ${file.name}`, error);
+          results.push({
+            success: false,
+            name: file.name,
+            error: error.message
+          });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      console.log(`[Main] 批量导出完成: ${successCount}/${files.length} 成功`);
+
+      return {
+        success: true,
+        results,
+        successCount,
+        totalCount: files.length
+      };
+    } catch (error) {
+      console.error('[Main] 批量导出失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 选择导出目录对话框
+   */
+  ipcMain.handle('project:select-export-directory', async (_event) => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: '选择导出目录'
+      });
+
+      if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+        return {
+          success: false,
+          canceled: true
+        };
+      }
+
+      return {
+        success: true,
+        path: result.filePaths[0]
+      };
+    } catch (error) {
+      console.error('[Main] 选择导出目录失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 选择导入文件对话框
+   */
+  ipcMain.handle('project:select-import-files', async (_event, options = {}) => {
+    try {
+      const dialogOptions = {
+        properties: ['openFile', 'multiSelections'],
+        title: '选择要导入的文件'
+      };
+
+      // 如果允许选择文件夹
+      if (options.allowDirectory) {
+        dialogOptions.properties.push('openDirectory');
+      }
+
+      // 文件过滤器
+      if (options.filters) {
+        dialogOptions.filters = options.filters;
+      }
+
+      const result = await dialog.showOpenDialog(mainWindow, dialogOptions);
+
+      if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+        return {
+          success: false,
+          canceled: true
+        };
+      }
+
+      return {
+        success: true,
+        filePaths: result.filePaths
+      };
+    } catch (error) {
+      console.error('[Main] 选择导入文件失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 批量导入文件到项目
+   */
+  ipcMain.handle('project:import-files', async (_event, params) => {
+    try {
+      const { projectId, externalPaths, targetDirectory } = params;
+      console.log(`[Main] 批量导入 ${externalPaths.length} 个文件到: ${targetDirectory}`);
+
+      const fs = require('fs').promises;
+      const projectConfig = getProjectConfig();
+      const results = [];
+
+      for (const externalPath of externalPaths) {
+        try {
+          const fileName = path.basename(externalPath);
+          const targetPath = path.join(targetDirectory, fileName);
+          const resolvedTargetPath = projectConfig.resolveProjectPath(targetPath);
+
+          // 确保目标目录存在
+          const targetDir = path.dirname(resolvedTargetPath);
+          await fs.mkdir(targetDir, { recursive: true });
+
+          // 检查源是文件还是目录
+          const stats = await fs.stat(externalPath);
+
+          if (stats.isDirectory()) {
+            await copyDirectory(externalPath, resolvedTargetPath);
+          } else {
+            await fs.copyFile(externalPath, resolvedTargetPath);
+          }
+
+          // 读取文件内容（仅对文件，不对目录）
+          let content = '';
+          let fileSize = 0;
+
+          if (stats.isFile()) {
+            try {
+              content = await fs.readFile(resolvedTargetPath, 'utf-8');
+              fileSize = stats.size;
+            } catch (err) {
+              // 如果是二进制文件，忽略内容读取错误
+              console.log(`[Main] 无法读取文件内容（可能是二进制文件）: ${fileName}`);
+              fileSize = stats.size;
+            }
+          }
+
+          // 添加到数据库
+          const db = getDatabaseConnection();
+          const fileId = require('crypto').randomUUID();
+          const fileExt = path.extname(fileName).substring(1);
+
+          const insertSQL = `
+            INSERT INTO project_files (
+              id, project_id, file_name, file_path, file_type, file_size, content,
+              created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          `;
+
+          await db.run(insertSQL, [
+            fileId,
+            projectId,
+            fileName,
+            targetPath,
+            fileExt || 'unknown',
+            fileSize,
+            content
+          ]);
+
+          results.push({
+            success: true,
+            fileId,
+            name: fileName,
+            path: resolvedTargetPath
+          });
+
+          console.log(`[Main] 文件导入成功: ${fileName}`);
+        } catch (error) {
+          console.error(`[Main] 导入文件失败: ${path.basename(externalPath)}`, error);
+          results.push({
+            success: false,
+            name: path.basename(externalPath),
+            error: error.message
+          });
+        }
+      }
+
+      await saveDatabase();
+
+      const successCount = results.filter(r => r.success).length;
+      console.log(`[Main] 批量导入完成: ${successCount}/${externalPaths.length} 成功`);
+
+      return {
+        success: true,
+        results,
+        successCount,
+        totalCount: externalPaths.length
+      };
+    } catch (error) {
+      console.error('[Main] 批量导入失败:', error);
+      throw error;
+    }
+  });
+
+  console.log('[Project Export IPC] ✓ 17 handlers registered');
+  console.log('[Project Export IPC] - 4 document export handlers');
+  console.log('[Project Export IPC] - 5 sharing handlers');
+  console.log('[Project Export IPC] - 8 file operation handlers');
+}
+
+module.exports = {
+  registerProjectExportIPC
+};
