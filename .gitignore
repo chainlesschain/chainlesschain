@@ -149,3 +149,5 @@ packaging/jre-17/
 packaging/postgres/
 packaging/qdrant/
 packaging/redis/
+test-results/
+playwright-report/

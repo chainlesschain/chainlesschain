@@ -790,6 +790,74 @@ class KnowledgePaymentManager extends EventEmitter {
   }
 
   /**
+   * 列出付费内容
+   * @param {Object} filters - 筛选条件
+   * @param {string} filters.contentType - 内容类型
+   * @param {string} filters.status - 状态
+   * @param {number} filters.limit - 限制数量
+   * @param {number} filters.offset - 偏移量
+   * @returns {Array} 内容列表
+   */
+  listContents(filters = {}) {
+    const {
+      contentType,
+      status = 'active',
+      limit = 50,
+      offset = 0
+    } = filters;
+
+    let query = `
+      SELECT
+        id,
+        content_type,
+        title,
+        description,
+        creator_did,
+        price_asset_id,
+        price_amount,
+        pricing_model,
+        preview_data,
+        view_count,
+        purchase_count,
+        rating,
+        status,
+        created_at,
+        updated_at
+      FROM paid_contents
+      WHERE status = ?
+    `;
+    const params = [status];
+
+    if (contentType) {
+      query += ` AND content_type = ?`;
+      params.push(contentType);
+    }
+
+    query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const rows = this.db.prepare(query).all(...params);
+
+    return rows.map(row => ({
+      id: row.id,
+      contentType: row.content_type,
+      title: row.title,
+      description: row.description,
+      creatorDid: row.creator_did,
+      priceAssetId: row.price_asset_id,
+      priceAmount: row.price_amount,
+      pricingModel: row.pricing_model,
+      previewData: row.preview_data ? JSON.parse(row.preview_data) : null,
+      viewCount: row.view_count,
+      purchaseCount: row.purchase_count,
+      rating: row.rating,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }));
+  }
+
+  /**
    * 获取统计信息
    */
   getStatistics(creatorDid) {
