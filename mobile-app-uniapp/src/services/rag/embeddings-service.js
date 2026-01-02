@@ -527,4 +527,19 @@ class EmbeddingsService {
   }
 }
 
+// 创建单例
+let embeddingsServiceInstance = null
+
+/**
+ * 获取EmbeddingsService实例（单例）
+ * @param {Object} config - 配置
+ * @returns {EmbeddingsService}
+ */
+export function getEmbeddingsService(config) {
+  if (!embeddingsServiceInstance) {
+    embeddingsServiceInstance = new EmbeddingsService(config)
+  }
+  return embeddingsServiceInstance
+}
+
 export default EmbeddingsService

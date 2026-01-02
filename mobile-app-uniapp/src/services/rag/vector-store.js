@@ -70,7 +70,7 @@ class VectorStore {
    * 确保数据库表存在
    */
   async ensureTable() {
-    await database.exec(`
+    await database.executeSql(`
       CREATE TABLE IF NOT EXISTS vector_embeddings (
         id TEXT PRIMARY KEY,
         embedding TEXT NOT NULL,
@@ -81,7 +81,7 @@ class VectorStore {
     `)
 
     // 创建索引
-    await database.exec(`
+    await database.executeSql(`
       CREATE INDEX IF NOT EXISTS idx_vector_created
       ON vector_embeddings(created_at DESC)
     `)
@@ -96,7 +96,7 @@ class VectorStore {
     console.log('[VectorStore] 从数据库加载向量...')
 
     try {
-      const rows = await database.exec(`
+      const rows = await database.selectSql(`
         SELECT id, embedding, metadata
         FROM vector_embeddings
         ORDER BY created_at DESC
@@ -187,7 +187,7 @@ class VectorStore {
   async saveToDatabase(id, embedding, metadata) {
     const now = Date.now()
 
-    await database.exec(`
+    await database.executeSql(`
       INSERT OR REPLACE INTO vector_embeddings (
         id, embedding, metadata, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?)
@@ -273,7 +273,7 @@ class VectorStore {
     this.vectors.delete(id)
 
     if (this.config.enablePersistence) {
-      await database.exec(`
+      await database.executeSql(`
         DELETE FROM vector_embeddings WHERE id = ?
       `, [id])
     }
@@ -289,7 +289,7 @@ class VectorStore {
     this.vectors.clear()
 
     if (this.config.enablePersistence) {
-      await database.exec('DELETE FROM vector_embeddings')
+      await database.executeSql('DELETE FROM vector_embeddings')
     }
 
     this.stats.totalVectors = 0
@@ -340,6 +340,21 @@ class VectorStore {
   getAllIds() {
     return Array.from(this.vectors.keys())
   }
+}
+
+// 创建单例
+let vectorStoreInstance = null
+
+/**
+ * 获取VectorStore实例（单例）
+ * @param {Object} config - 配置
+ * @returns {VectorStore}
+ */
+export function getVectorStore(config) {
+  if (!vectorStoreInstance) {
+    vectorStoreInstance = new VectorStore(config)
+  }
+  return vectorStoreInstance
 }
 
 export default VectorStore

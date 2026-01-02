@@ -633,6 +633,16 @@ class DatabaseService {
   }
 
   /**
+   * 执行SQL（exec别名，兼容性）
+   * @param {string} sql SQL语句
+   * @param {Array} params 参数
+   * @returns {Promise} 执行结果
+   */
+  async exec(sql, params = []) {
+    return this.executeSql(sql, params)
+  }
+
+  /**
    * 关闭数据库
    */
   async close() {
