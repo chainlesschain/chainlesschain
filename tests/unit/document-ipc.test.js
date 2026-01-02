@@ -28,7 +28,7 @@ describe('Document IPC', () => {
       handlers[channel] = handler;
     });
 
-    const { registerDocumentIPC } = require('../../src/main/document/document-ipc');
+    const { registerDocumentIPC } = require('../../desktop-app-vue/src/main/document/document-ipc');
     registerDocumentIPC({ pptExporter: mockPPTExporter });
   });
 

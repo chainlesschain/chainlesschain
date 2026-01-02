@@ -36,7 +36,7 @@ describe('Social IPC', () => {
       handlers[channel] = handler;
     });
 
-    const { registerSocialIPC } = require('../../src/main/social/social-ipc');
+    const { registerSocialIPC } = require('../../desktop-app-vue/src/main/social/social-ipc');
     registerSocialIPC({ database: mockDatabase, p2pManager: mockP2PManager });
   });
 
