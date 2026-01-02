@@ -10,6 +10,7 @@
 import EmbeddingsService from './embeddings-service.js'
 import VectorStore from './vector-store.js'
 import Reranker from './reranker.js'
+import { getHybridSearch } from './hybrid-search.js'
 import { db as database } from '../database.js'
 
 /**
@@ -63,6 +64,14 @@ class RAGManager {
       vectorWeight: this.config.vectorWeight,
       keywordWeight: this.config.keywordWeight
     })
+
+    // 混合检索
+    this.hybridSearch = this.config.enableHybridSearch ? getHybridSearch({
+      vectorWeight: this.config.vectorWeight,
+      bm25Weight: this.config.keywordWeight,
+      enableCache: true,
+      cacheSize: 100
+    }) : null
 
     // 状态
     this.isInitialized = false
@@ -176,6 +185,13 @@ class RAGManager {
       const allTexts = items.map(item => `${item.title}\n${item.content || ''}`)
       this.embeddingsService.updateIDF(allTexts)
 
+      // 构建BM25索引（如果启用混合检索）
+      if (this.config.enableHybridSearch && this.hybridSearch) {
+        console.log('[RAGManager] 构建BM25索引...')
+        await this.hybridSearch.buildBM25Index(items)
+        console.log('[RAGManager] ✅ BM25索引构建完成')
+      }
+
       console.log(`[RAGManager] ✅ 索引构建完成: ${processed}/${items.length}`)
 
       this.indexBuilding = false
@@ -201,21 +217,44 @@ class RAGManager {
     const startTime = Date.now()
 
     try {
-      // 1. 生成查询向量
-      const queryEmbedding = await this.embeddingsService.generateEmbedding(query)
+      let vectorResults = []
 
-      // 2. 向量搜索
-      const vectorResults = await this.vectorStore.search(queryEmbedding, {
-        topK: options.topK || this.config.topK,
-        similarityThreshold: options.similarityThreshold || this.config.similarityThreshold
-      })
+      // 1. 使用混合检索或纯向量检索
+      if (this.config.enableHybridSearch && this.hybridSearch) {
+        console.log('[RAGManager] 使用混合检索（向量+BM25）')
+
+        const hybridResult = await this.hybridSearch.search(query, {
+          topK: options.topK || this.config.topK,
+          useCache: true,
+          expandQuery: true
+        })
+
+        vectorResults = hybridResult.results
+
+        console.log('[RAGManager] 混合检索结果:', {
+          total: hybridResult.total,
+          vector: hybridResult.vectorCount,
+          bm25: hybridResult.bm25Count
+        })
+      } else {
+        console.log('[RAGManager] 使用纯向量检索')
+
+        // 生成查询向量
+        const queryEmbedding = await this.embeddingsService.generateEmbedding(query)
+
+        // 向量搜索
+        vectorResults = await this.vectorStore.search(queryEmbedding, {
+          topK: options.topK || this.config.topK,
+          similarityThreshold: options.similarityThreshold || this.config.similarityThreshold
+        })
+      }
 
       if (vectorResults.length === 0) {
         console.log('[RAGManager] 未找到相关文档')
         return []
       }
 
-      // 3. 重排序
+      // 2. 重排序
       let finalResults = vectorResults
 
       if (this.config.enableReranking && vectorResults.length > 1) {

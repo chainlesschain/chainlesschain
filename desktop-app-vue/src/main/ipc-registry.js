@@ -231,8 +231,8 @@ function registerAllIPC(dependencies) {
       registerProjectCoreIPC({
         database,
         fileSyncManager,
-        removeUndefinedValues: app.removeUndefinedValues,
-        _replaceUndefinedWithNull: app._replaceUndefinedWithNull
+        removeUndefinedValues: app.removeUndefinedValues?.bind(app),
+        _replaceUndefinedWithNull: app._replaceUndefinedWithNull?.bind(app)
       });
       console.log('[IPC Registry] ✓ Project Core IPC registered (34 handlers)');
     }
@@ -247,7 +247,7 @@ function registerAllIPC(dependencies) {
         aiEngineManager,
         chatSkillBridge,
         mainWindow,
-        scanAndRegisterProjectFiles: app.scanAndRegisterProjectFiles
+        scanAndRegisterProjectFiles: app.scanAndRegisterProjectFiles?.bind(app)
       });
       console.log('[IPC Registry] ✓ Project AI IPC registered (15 handlers)');
     }
@@ -270,7 +270,7 @@ function registerAllIPC(dependencies) {
         saveDatabase,
         getProjectConfig,
         copyDirectory,
-        convertSlidesToOutline: app.convertSlidesToOutline
+        convertSlidesToOutline: app.convertSlidesToOutline?.bind(app)
       });
       console.log('[IPC Registry] ✓ Project Export/Share IPC registered (17 handlers)');
     }
@@ -313,8 +313,126 @@ function registerAllIPC(dependencies) {
     console.log('[IPC Registry] ========================================');
 
     // ============================================================
-    // 后续模块将在拆分时逐步添加
+    // 第六阶段模块 (核心功能 - File, Template, Knowledge, Prompt, Image)
     // ============================================================
+
+    // 文件操作 (函数模式 - 中等模块，17 handlers)
+    if (database) {
+      console.log('[IPC Registry] Registering File IPC...');
+      const { registerFileIPC } = require('./file/file-ipc');
+      const { getProjectConfig } = require('./project/project-config');
+
+      registerFileIPC({
+        database,
+        mainWindow,
+        getProjectConfig
+      });
+      console.log('[IPC Registry] ✓ File IPC registered (17 handlers)');
+    }
+
+    // 模板管理 (函数模式 - 大模块，20 handlers)
+    console.log('[IPC Registry] Registering Template IPC...');
+    const { registerTemplateIPC } = require('./template/template-ipc');
+
+    registerTemplateIPC({
+      templateManager: app.templateManager
+    });
+    console.log('[IPC Registry] ✓ Template IPC registered (20 handlers)');
+
+    // 知识管理 (函数模式 - 中等模块，17 handlers)
+    if (dbManager || versionManager || knowledgePaymentManager) {
+      console.log('[IPC Registry] Registering Knowledge IPC...');
+      const { registerKnowledgeIPC } = require('./knowledge/knowledge-ipc');
+
+      registerKnowledgeIPC({
+        dbManager,
+        versionManager,
+        knowledgePaymentManager
+      });
+      console.log('[IPC Registry] ✓ Knowledge IPC registered (17 handlers)');
+    }
+
+    // 提示词模板 (函数模式 - 小模块，11 handlers)
+    if (promptTemplateManager) {
+      console.log('[IPC Registry] Registering Prompt Template IPC...');
+      const { registerPromptTemplateIPC } = require('./prompt-template/prompt-template-ipc');
+
+      registerPromptTemplateIPC({
+        promptTemplateManager
+      });
+      console.log('[IPC Registry] ✓ Prompt Template IPC registered (11 handlers)');
+    }
+
+    // 图像管理 (函数模式 - 大模块，22 handlers)
+    if (imageUploader) {
+      console.log('[IPC Registry] Registering Image IPC...');
+      const { registerImageIPC } = require('./image/image-ipc');
+
+      registerImageIPC({
+        imageUploader,
+        llmManager,
+        mainWindow
+      });
+      console.log('[IPC Registry] ✓ Image IPC registered (22 handlers)');
+    }
+
+    console.log('[IPC Registry] ========================================');
+    console.log('[IPC Registry] Phase 6 Complete: 5 modules migrated (87 handlers)!');
+    console.log('[IPC Registry] ========================================');
+
+    // ============================================================
+    // 第七阶段模块 (媒体处理 - Speech, Video, PDF, Document)
+    // ============================================================
+
+    // 语音处理 (函数模式 - 超大模块，34 handlers)
+    console.log('[IPC Registry] Registering Speech IPC...');
+    const { registerSpeechIPC } = require('./speech/speech-ipc');
+
+    // 获取 initializeSpeechManager 函数
+    const initializeSpeechManager = app.initializeSpeechManager.bind(app);
+
+    registerSpeechIPC({
+      initializeSpeechManager
+    });
+    console.log('[IPC Registry] ✓ Speech IPC registered (34 handlers)');
+
+    // 视频处理 (函数模式 - 大模块，18 handlers)
+    if (app.videoImporter) {
+      console.log('[IPC Registry] Registering Video IPC...');
+      const { registerVideoIPC } = require('./video/video-ipc');
+
+      registerVideoIPC({
+        videoImporter: app.videoImporter,
+        mainWindow,
+        llmManager
+      });
+      console.log('[IPC Registry] ✓ Video IPC registered (18 handlers)');
+    }
+
+    // PDF 处理 (函数模式 - 小模块，4 handlers)
+    console.log('[IPC Registry] Registering PDF IPC...');
+    const { registerPDFIPC } = require('./pdf/pdf-ipc');
+
+    // 获取 getPDFEngine 函数
+    const { getPDFEngine } = require('./engines/pdf-engine');
+
+    registerPDFIPC({
+      getPDFEngine
+    });
+    console.log('[IPC Registry] ✓ PDF IPC registered (4 handlers)');
+
+    // 文档处理 (函数模式 - 小模块，1 handler)
+    console.log('[IPC Registry] Registering Document IPC...');
+    const { registerDocumentIPC } = require('./document/document-ipc');
+
+    registerDocumentIPC({
+      convertSlidesToOutline: app.convertSlidesToOutline.bind(app)
+    });
+    console.log('[IPC Registry] ✓ Document IPC registered (1 handler)');
+
+    console.log('[IPC Registry] ========================================');
+    console.log('[IPC Registry] Phase 7 Complete: 4 modules migrated (57 handlers)!');
+    console.log('[IPC Registry] ========================================');
 
     // ============================================================
     // 注册统计
