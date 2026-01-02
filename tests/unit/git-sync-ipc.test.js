@@ -30,7 +30,7 @@ describe('Git Sync IPC', () => {
       handlers[channel] = handler;
     });
 
-    const { registerGitIPC } = require('../../src/main/git/git-ipc');
+    const { registerGitIPC } = require('../../desktop-app-vue/src/main/git/git-ipc');
     registerGitIPC({
       gitManager: null,
       markdownExporter: null,

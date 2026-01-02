@@ -41,7 +41,7 @@ describe('Notification IPC', () => {
       handlers[channel] = handler;
     });
 
-    const { registerNotificationIPC } = require('../../src/main/notification/notification-ipc');
+    const { registerNotificationIPC } = require('../../desktop-app-vue/src/main/notification/notification-ipc');
     registerNotificationIPC({ database: mockDatabase, mainWindow: mockMainWindow });
   });
 

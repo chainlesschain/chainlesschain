@@ -35,7 +35,7 @@ describe('Knowledge IPC', () => {
     });
 
     // 注册Knowledge IPC
-    const { registerKnowledgeIPC } = require('../../src/main/knowledge/knowledge-ipc');
+    const { registerKnowledgeIPC } = require('../../desktop-app-vue/src/main/knowledge/knowledge-ipc');
     registerKnowledgeIPC({ database: mockDatabase });
   });
 

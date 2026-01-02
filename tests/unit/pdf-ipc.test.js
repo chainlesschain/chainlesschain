@@ -41,7 +41,7 @@ describe('PDF IPC', () => {
       handlers[channel] = handler;
     });
 
-    const { registerPDFIPC } = require('../../src/main/pdf/pdf-ipc');
+    const { registerPDFIPC } = require('../../desktop-app-vue/src/main/pdf/pdf-ipc');
     registerPDFIPC({ pdfConverter: mockPDFConverter });
   });
 

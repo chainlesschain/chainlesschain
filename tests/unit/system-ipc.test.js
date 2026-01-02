@@ -71,7 +71,7 @@ describe('System IPC', () => {
     });
 
     // 注册System IPC
-    const { registerSystemIPC } = require('../../src/main/system/system-ipc');
+    const { registerSystemIPC } = require('../../desktop-app-vue/src/main/system/system-ipc');
     registerSystemIPC({ mainWindow: mockMainWindow });
   });
 
