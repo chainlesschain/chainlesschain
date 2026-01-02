@@ -305,14 +305,8 @@ class ChainlessChainApp {
       // 继续启动应用，即使后端服务启动失败
     }
 
-    // IPC handlers
-    try {
-      this.setupIPC();
-    } catch (error) {
-      console.error('[Main] IPC setup failed:', error);
-    } finally {
-      this.registerCoreIPCHandlers();
-    }
+    // IPC handlers - 延迟到管理器初始化完成后注册
+    // setupIPC() 将在所有管理器初始化完成后调用
 
     // 显示后端服务配置
     console.log('='.repeat(60));
@@ -1086,6 +1080,15 @@ class ChainlessChainApp {
     } catch (error) {
       console.error('插件系统初始化失败:', error);
       // 不影响主应用启动
+    }
+
+    // 所有管理器初始化完成，现在注册IPC handlers
+    try {
+      this.setupIPC();
+    } catch (error) {
+      console.error('[Main] IPC setup failed:', error);
+    } finally {
+      this.registerCoreIPCHandlers();
     }
 
     await this.createWindow();
@@ -3771,6 +3774,9 @@ class ChainlessChainApp {
     // ============================
     // 企业版：身份上下文 IPC Handler
     // ============================
+    /* ========================================================================
+       MIGRATED TO identity-context/identity-context-ipc.js (7 identity:* handlers)
+       ======================================================================== */
 
     // 获取所有身份上下文
     ipcMain.handle('identity:get-all-contexts', async (_event, { userDID }) => {
@@ -3872,10 +3878,14 @@ class ChainlessChainApp {
         return { success: false, error: error.message, history: [] };
       }
     });
+    /* END OF MIGRATED Identity Context handlers */
 
     // ============================
     // 企业版：组织管理IPC Handler
     // ============================
+    /* ========================================================================
+       MIGRATED TO organization/organization-ipc.js (32 org:* handlers)
+       ======================================================================== */
 
     // 创建组织
     ipcMain.handle('org:create-organization', async (_event, orgData) => {
@@ -4511,6 +4521,7 @@ class ChainlessChainApp {
         return { success: false, error: error.message };
       }
     });
+    /* END OF MIGRATED Organization handlers (org:* + org knowledge) */
 
     // 获取标签列表
     ipcMain.handle('knowledge:get-tags', async (_event) => {
@@ -7287,6 +7298,9 @@ class ChainlessChainApp {
     /* END OF MIGRATED P2P handlers */
 
     // 可验证凭证 (VC)
+    /* ========================================================================
+       MIGRATED TO vc/vc-ipc.js (10 vc:* handlers)
+       ======================================================================== */
     ipcMain.handle('vc:create', async (_event, params) => {
       try {
         if (!this.vcManager) {
@@ -7416,6 +7430,7 @@ class ChainlessChainApp {
         throw error;
       }
     });
+    /* END OF MIGRATED VC handlers */
 
     // VC模板管理 IPC处理器
     ipcMain.handle('vc-template:get-all', async (_event, filters) => {
@@ -7799,6 +7814,25 @@ class ChainlessChainApp {
     END OF MIGRATED Git handlers */
 
     // ==================== 项目管理 IPC ====================
+
+    /* ========================================================================
+       MIGRATED TO project/project-core-ipc.js (34 project: handlers)
+       包括: CRUD, 文件管理, 路径修复, 同步恢复, 统计等
+
+       已迁移 handlers:
+       - project:get-all, project:get, project:create, project:create-stream
+       - project:stream-cancel, project:create-quick, project:save, project:update
+       - project:delete, project:delete-local, project:fetch-from-backend
+       - project:fix-path, project:repair-root-path, project:repair-all-root-paths
+       - project:get-files, project:get-file, project:save-files
+       - project:update-file, project:delete-file
+       - project:indexConversations, project:startWatcher, project:stopWatcher
+       - project:resolve-path
+       - project:sync, project:sync-one
+       - project:scan-recoverable, project:recover, project:recover-batch
+       - project:auto-recover, project:recovery-stats
+       - project:stats:start, project:stats:stop, project:stats:get, project:stats:update
+       ======================================================================== */
 
     // 获取所有项目（本地SQLite）
     ipcMain.handle('project:get-all', async (_event, userId) => {
@@ -9208,6 +9242,20 @@ class ChainlessChainApp {
 
     // ==================== 项目AI对话 IPC ====================
 
+    /* ========================================================================
+       MIGRATED TO project/project-ai-ipc.js (15 project: AI handlers)
+       包括: AI对话, 文件扫描, 任务规划, 内容处理, 代码助手
+
+       已迁移 handlers:
+       - project:aiChat, project:scan-files
+       - project:decompose-task, project:execute-task-plan
+       - project:get-task-plan, project:get-task-plan-history, project:cancel-task-plan
+       - project:polishContent, project:expandContent
+       - project:code-generate, project:code-review, project:code-refactor
+       - project:code-explain, project:code-fix-bug
+       - project:code-generate-tests, project:code-optimize
+       ======================================================================== */
+
     /**
      * 项目AI对话 - 支持文件操作
      * 用户可以通过自然语言与AI对话，AI会根据需要执行文件操作
@@ -10471,6 +10519,18 @@ class ChainlessChainApp {
     });
 
     // ============ 文档导出功能 ============
+
+    /* ========================================================================
+       MIGRATED TO project/project-export-ipc.js (17 project: export/share handlers)
+       包括: 文档导出, PPT生成, 分享功能, 文件操作等
+
+       已迁移 handlers:
+       - project:exportDocument, project:generatePPT, project:generatePodcastScript, project:generateArticleImages
+       - project:shareProject, project:getShare, project:deleteShare, project:accessShare, project:shareToWechat
+       - project:copyFile, project:move-file, project:import-file
+       - project:export-file, project:export-files, project:select-export-directory
+       - project:select-import-files, project:import-files
+       ======================================================================== */
 
     // 导出文档为多种格式
     ipcMain.handle('project:exportDocument', async (_event, params) => {
@@ -12223,6 +12283,17 @@ ${content}
 
     // ==================== 项目RAG增强接口 ====================
 
+    /* ========================================================================
+       MIGRATED TO project/project-rag-ipc.js (10 project: RAG handlers)
+       包括: 文件索引, RAG查询, 索引统计等
+
+       已迁移 handlers:
+       - project:indexFiles, project:ragQuery, project:updateFileIndex
+       - project:deleteIndex, project:getIndexStats
+       - project:rag-index, project:rag-stats, project:rag-query
+       - project:rag-update-file, project:rag-delete
+       ======================================================================== */
+
     // 索引项目文件
     ipcMain.handle('project:indexFiles', async (_event, projectId, options = {}) => {
       try {
@@ -13872,6 +13943,18 @@ ${content}
         throw error;
       }
     });
+
+    /* ========================================================================
+       MIGRATED TO project/project-git-ipc.js (14 project: Git handlers)
+       包括: Git基础操作, 历史与差异, 分支管理等
+
+       已迁移 handlers:
+       - project:git-init, project:git-status, project:git-commit
+       - project:git-push, project:git-pull
+       - project:git-log, project:git-show-commit, project:git-diff
+       - project:git-branches, project:git-create-branch, project:git-checkout
+       - project:git-merge, project:git-resolve-conflicts, project:git-generate-commit-message
+       ======================================================================== */
 
     // Git初始化
     ipcMain.handle('project:git-init', async (_event, repoPath, remoteUrl = null) => {

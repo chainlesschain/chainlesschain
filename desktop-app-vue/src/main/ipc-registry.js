@@ -73,7 +73,6 @@ function registerAllIPC(dependencies) {
       friendManager,
       postManager,
       vcManager,
-      identityContextManager,
       organizationManager,
       dbManager,
       versionManager
@@ -222,17 +221,100 @@ function registerAllIPC(dependencies) {
     }
 
     // ============================================================
-    // 后续模块将在拆分时逐步添加
+    // 第五阶段模块 (项目管理 - 最大模块组，分为多个子模块)
     // ============================================================
 
-    // TODO: 项目管理 IPC (类模式 - 大模块)
-    // const ProjectIPC = require('./project/project-ipc');
-    // const projectIPC = new ProjectIPC();
-    // projectIPC.setDependencies({ database, llmManager, mainWindow });
-    // projectIPC.registerHandlers();
-    // registeredModules.projectIPC = projectIPC;
+    // 项目核心管理 (函数模式 - 大模块，34 handlers)
+    if (database) {
+      console.log('[IPC Registry] Registering Project Core IPC...');
+      const { registerProjectCoreIPC } = require('./project/project-core-ipc');
+      registerProjectCoreIPC({
+        database,
+        fileSyncManager,
+        removeUndefinedValues: app.removeUndefinedValues,
+        _replaceUndefinedWithNull: app._replaceUndefinedWithNull
+      });
+      console.log('[IPC Registry] ✓ Project Core IPC registered (34 handlers)');
+    }
 
-    // TODO: 更多模块...
+    // 项目AI功能 (函数模式 - 中等模块，15 handlers)
+    if (database && llmManager) {
+      console.log('[IPC Registry] Registering Project AI IPC...');
+      const { registerProjectAIIPC } = require('./project/project-ai-ipc');
+      registerProjectAIIPC({
+        database,
+        llmManager,
+        aiEngineManager,
+        chatSkillBridge,
+        mainWindow,
+        scanAndRegisterProjectFiles: app.scanAndRegisterProjectFiles
+      });
+      console.log('[IPC Registry] ✓ Project AI IPC registered (15 handlers)');
+    }
+
+    // 项目导出分享 (函数模式 - 大模块，17 handlers)
+    if (database || llmManager) {
+      console.log('[IPC Registry] Registering Project Export/Share IPC...');
+      const { registerProjectExportIPC } = require('./project/project-export-ipc');
+
+      // 获取必要的依赖函数
+      const { getDatabaseConnection, saveDatabase } = require('./database');
+      const { getProjectConfig } = require('./project/project-config');
+      const { copyDirectory } = require('./utils/file-utils');
+
+      registerProjectExportIPC({
+        database,
+        llmManager,
+        mainWindow,
+        getDatabaseConnection,
+        saveDatabase,
+        getProjectConfig,
+        copyDirectory,
+        convertSlidesToOutline: app.convertSlidesToOutline
+      });
+      console.log('[IPC Registry] ✓ Project Export/Share IPC registered (17 handlers)');
+    }
+
+    // 项目RAG检索 (函数模式 - 中等模块，10 handlers)
+    console.log('[IPC Registry] Registering Project RAG IPC...');
+    const { registerProjectRAGIPC } = require('./project/project-rag-ipc');
+
+    // 获取必要的依赖函数
+    const { getProjectRAGManager } = require('./project/project-rag');
+    const { getProjectConfig: getRagProjectConfig } = require('./project/project-config');
+    const RAGAPI = require('./project/rag-api');
+
+    registerProjectRAGIPC({
+      getProjectRAGManager,
+      getProjectConfig: getRagProjectConfig,
+      RAGAPI
+    });
+    console.log('[IPC Registry] ✓ Project RAG IPC registered (10 handlers)');
+
+    // 项目Git集成 (函数模式 - 大模块，14 handlers)
+    console.log('[IPC Registry] Registering Project Git IPC...');
+    const { registerProjectGitIPC } = require('./project/project-git-ipc');
+
+    // 获取必要的依赖函数
+    const { getProjectConfig: getGitProjectConfig } = require('./project/project-config');
+    const GitAPI = require('./project/git-api');
+
+    registerProjectGitIPC({
+      getProjectConfig: getGitProjectConfig,
+      GitAPI,
+      gitManager,
+      fileSyncManager,
+      mainWindow
+    });
+    console.log('[IPC Registry] ✓ Project Git IPC registered (14 handlers)');
+
+    console.log('[IPC Registry] ========================================');
+    console.log('[IPC Registry] Phase 5 Complete: All 91 project: handlers migrated!');
+    console.log('[IPC Registry] ========================================');
+
+    // ============================================================
+    // 后续模块将在拆分时逐步添加
+    // ============================================================
 
     // ============================================================
     // 注册统计

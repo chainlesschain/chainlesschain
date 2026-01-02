@@ -65,6 +65,14 @@ const requiredFiles = [
   'src/main/did/did-ipc.js',
   'src/main/p2p/p2p-ipc.js',
   'src/main/social/social-ipc.js',
+  'src/main/vc/vc-ipc.js',
+  'src/main/identity-context/identity-context-ipc.js',
+  'src/main/organization/organization-ipc.js',
+  'src/main/project/project-core-ipc.js',
+  'src/main/project/project-ai-ipc.js',
+  'src/main/project/project-export-ipc.js',
+  'src/main/project/project-rag-ipc.js',
+  'src/main/project/project-git-ipc.js',
   'templates/ipc-template.js',
   'src/main/index.js'
 ];
@@ -200,6 +208,106 @@ try {
   addTest('导入 social/social-ipc.js', false, error.message);
 }
 
+try {
+  const vcIPC = require('../src/main/vc/vc-ipc');
+  addTest('导入 vc/vc-ipc.js', true);
+
+  if (typeof vcIPC.registerVCIPC === 'function') {
+    addTest('vc-ipc 导出 registerVCIPC', true);
+  } else {
+    addTest('vc-ipc 导出 registerVCIPC', false);
+  }
+} catch (error) {
+  addTest('导入 vc/vc-ipc.js', false, error.message);
+}
+
+try {
+  const identityContextIPC = require('../src/main/identity-context/identity-context-ipc');
+  addTest('导入 identity-context/identity-context-ipc.js', true);
+
+  if (typeof identityContextIPC.registerIdentityContextIPC === 'function') {
+    addTest('identity-context-ipc 导出 registerIdentityContextIPC', true);
+  } else {
+    addTest('identity-context-ipc 导出 registerIdentityContextIPC', false);
+  }
+} catch (error) {
+  addTest('导入 identity-context/identity-context-ipc.js', false, error.message);
+}
+
+try {
+  const organizationIPC = require('../src/main/organization/organization-ipc');
+  addTest('导入 organization/organization-ipc.js', true);
+
+  if (typeof organizationIPC.registerOrganizationIPC === 'function') {
+    addTest('organization-ipc 导出 registerOrganizationIPC', true);
+  } else {
+    addTest('organization-ipc 导出 registerOrganizationIPC', false);
+  }
+} catch (error) {
+  addTest('导入 organization/organization-ipc.js', false, error.message);
+}
+
+// Phase 5: 项目管理模块
+try {
+  const projectCoreIPC = require('../src/main/project/project-core-ipc');
+  addTest('导入 project/project-core-ipc.js', true);
+  if (typeof projectCoreIPC.registerProjectCoreIPC === 'function') {
+    addTest('project-core-ipc 导出 registerProjectCoreIPC', true);
+  } else {
+    addTest('project-core-ipc 导出 registerProjectCoreIPC', false);
+  }
+} catch (error) {
+  addTest('导入 project/project-core-ipc.js', false, error.message);
+}
+
+try {
+  const projectAIIPC = require('../src/main/project/project-ai-ipc');
+  addTest('导入 project/project-ai-ipc.js', true);
+  if (typeof projectAIIPC.registerProjectAIIPC === 'function') {
+    addTest('project-ai-ipc 导出 registerProjectAIIPC', true);
+  } else {
+    addTest('project-ai-ipc 导出 registerProjectAIIPC', false);
+  }
+} catch (error) {
+  addTest('导入 project/project-ai-ipc.js', false, error.message);
+}
+
+try {
+  const projectExportIPC = require('../src/main/project/project-export-ipc');
+  addTest('导入 project/project-export-ipc.js', true);
+  if (typeof projectExportIPC.registerProjectExportIPC === 'function') {
+    addTest('project-export-ipc 导出 registerProjectExportIPC', true);
+  } else {
+    addTest('project-export-ipc 导出 registerProjectExportIPC', false);
+  }
+} catch (error) {
+  addTest('导入 project/project-export-ipc.js', false, error.message);
+}
+
+try {
+  const projectRAGIPC = require('../src/main/project/project-rag-ipc');
+  addTest('导入 project/project-rag-ipc.js', true);
+  if (typeof projectRAGIPC.registerProjectRAGIPC === 'function') {
+    addTest('project-rag-ipc 导出 registerProjectRAGIPC', true);
+  } else {
+    addTest('project-rag-ipc 导出 registerProjectRAGIPC', false);
+  }
+} catch (error) {
+  addTest('导入 project/project-rag-ipc.js', false, error.message);
+}
+
+try {
+  const projectGitIPC = require('../src/main/project/project-git-ipc');
+  addTest('导入 project/project-git-ipc.js', true);
+  if (typeof projectGitIPC.registerProjectGitIPC === 'function') {
+    addTest('project-git-ipc 导出 registerProjectGitIPC', true);
+  } else {
+    addTest('project-git-ipc 导出 registerProjectGitIPC', false);
+  }
+} catch (error) {
+  addTest('导入 project/project-git-ipc.js', false, error.message);
+}
+
 console.log('');
 console.log('📋 第三步：代码质量检查');
 console.log('-'.repeat(70));
@@ -230,7 +338,15 @@ const migratedMarkers = [
   'MIGRATED TO git/git-ipc.js',
   'MIGRATED TO did/did-ipc.js',
   'MIGRATED TO p2p/p2p-ipc.js',
-  'MIGRATED TO social/social-ipc.js'
+  'MIGRATED TO social/social-ipc.js',
+  'MIGRATED TO vc/vc-ipc.js',
+  'MIGRATED TO identity-context/identity-context-ipc.js',
+  'MIGRATED TO organization/organization-ipc.js',
+  'MIGRATED TO project/project-core-ipc.js',
+  'MIGRATED TO project/project-ai-ipc.js',
+  'MIGRATED TO project/project-export-ipc.js',
+  'MIGRATED TO project/project-rag-ipc.js',
+  'MIGRATED TO project/project-git-ipc.js'
 ];
 
 migratedMarkers.forEach(marker => {
@@ -265,6 +381,14 @@ const fileSizes = {
   'did-ipc.js': countLines(path.join(__dirname, '..', 'src/main/did/did-ipc.js')),
   'p2p-ipc.js': countLines(path.join(__dirname, '..', 'src/main/p2p/p2p-ipc.js')),
   'social-ipc.js': countLines(path.join(__dirname, '..', 'src/main/social/social-ipc.js')),
+  'vc-ipc.js': countLines(path.join(__dirname, '..', 'src/main/vc/vc-ipc.js')),
+  'identity-context-ipc.js': countLines(path.join(__dirname, '..', 'src/main/identity-context/identity-context-ipc.js')),
+  'organization-ipc.js': countLines(path.join(__dirname, '..', 'src/main/organization/organization-ipc.js')),
+  'project-core-ipc.js': countLines(path.join(__dirname, '..', 'src/main/project/project-core-ipc.js')),
+  'project-ai-ipc.js': countLines(path.join(__dirname, '..', 'src/main/project/project-ai-ipc.js')),
+  'project-export-ipc.js': countLines(path.join(__dirname, '..', 'src/main/project/project-export-ipc.js')),
+  'project-rag-ipc.js': countLines(path.join(__dirname, '..', 'src/main/project/project-rag-ipc.js')),
+  'project-git-ipc.js': countLines(path.join(__dirname, '..', 'src/main/project/project-git-ipc.js')),
   'ipc-template.js': countLines(path.join(__dirname, '..', 'templates/ipc-template.js')),
   'index.js': countLines(path.join(__dirname, '..', 'src/main/index.js'))
 };
@@ -282,7 +406,15 @@ const totalModularLines = fileSizes['ipc-registry.js'] +
                           fileSizes['git-ipc.js'] +
                           fileSizes['did-ipc.js'] +
                           fileSizes['p2p-ipc.js'] +
-                          fileSizes['social-ipc.js'];
+                          fileSizes['social-ipc.js'] +
+                          fileSizes['vc-ipc.js'] +
+                          fileSizes['identity-context-ipc.js'] +
+                          fileSizes['organization-ipc.js'] +
+                          fileSizes['project-core-ipc.js'] +
+                          fileSizes['project-ai-ipc.js'] +
+                          fileSizes['project-export-ipc.js'] +
+                          fileSizes['project-rag-ipc.js'] +
+                          fileSizes['project-git-ipc.js'];
 
 console.log(`  ${'模块化代码总计'.padEnd(30)} ${String(totalModularLines).padStart(5)} 行`);
 
