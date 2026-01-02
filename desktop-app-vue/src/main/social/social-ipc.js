@@ -64,13 +64,24 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
   ipcMain.handle('contact:get-all', async () => {
     try {
       if (!contactManager) {
-        return [];
+        return {
+          success: true,
+          contacts: [],
+        };
       }
 
-      return contactManager.getAllContacts();
+      const contacts = contactManager.getAllContacts();
+      return {
+        success: true,
+        contacts: contacts || [],
+      };
     } catch (error) {
       console.error('[Social IPC] 获取联系人列表失败:', error);
-      return [];
+      return {
+        success: false,
+        contacts: [],
+        error: error.message,
+      };
     }
   });
 
@@ -166,13 +177,24 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
   ipcMain.handle('contact:get-statistics', async () => {
     try {
       if (!contactManager) {
-        return { total: 0, friends: 0, byRelationship: {} };
+        return {
+          success: true,
+          statistics: { total: 0, friends: 0, byRelationship: {} },
+        };
       }
 
-      return contactManager.getStatistics();
+      const statistics = contactManager.getStatistics();
+      return {
+        success: true,
+        statistics: statistics || { total: 0, friends: 0, byRelationship: {} },
+      };
     } catch (error) {
       console.error('[Social IPC] 获取统计信息失败:', error);
-      return { total: 0, friends: 0, byRelationship: {} };
+      return {
+        success: false,
+        statistics: { total: 0, friends: 0, byRelationship: {} },
+        error: error.message,
+      };
     }
   });
 
