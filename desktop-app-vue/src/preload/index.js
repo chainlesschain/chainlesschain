@@ -1208,6 +1208,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectFile: (options) => ipcRenderer.invoke('system:select-file', options),
     quit: () => ipcRenderer.invoke('system:quit'),
     restart: () => ipcRenderer.invoke('system:restart'),
+    getWindowState: () => ipcRenderer.invoke('system:get-window-state'),
+    maximize: () => ipcRenderer.invoke('system:maximize'),
+    minimize: () => ipcRenderer.invoke('system:minimize'),
+    close: () => ipcRenderer.invoke('system:close'),
+    setAlwaysOnTop: (flag) => ipcRenderer.invoke('system:set-always-on-top', flag),
   },
 
   // 技能工具系统通用

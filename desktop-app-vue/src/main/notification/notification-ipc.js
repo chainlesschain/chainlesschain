@@ -98,11 +98,17 @@ function registerNotificationIPC({ database }) {
 
       const notifications = database.db.prepare(query).all(...params);
 
-      return notifications || [];
+      return {
+        success: true,
+        notifications: notifications || [],
+      };
     } catch (error) {
       console.error('[Notification IPC] 获取通知列表失败:', error);
-      // Return empty array on error to prevent frontend crashes
-      return [];
+      return {
+        success: false,
+        notifications: [],
+        error: error.message,
+      };
     }
   });
 
@@ -110,7 +116,7 @@ function registerNotificationIPC({ database }) {
    * 获取未读通知数量
    * Channel: 'notification:get-unread-count'
    *
-   * @returns {Promise<number>} 未读通知数量
+   * @returns {Promise<{success: boolean, count: number}>} 未读通知数量
    */
   ipcMain.handle('notification:get-unread-count', async () => {
     try {
@@ -122,10 +128,17 @@ function registerNotificationIPC({ database }) {
         .prepare('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0')
         .get();
 
-      return result.count || 0;
+      return {
+        success: true,
+        count: result.count || 0,
+      };
     } catch (error) {
       console.error('[Notification IPC] 获取未读数量失败:', error);
-      throw error;
+      return {
+        success: false,
+        count: 0,
+        error: error.message,
+      };
     }
   });
 

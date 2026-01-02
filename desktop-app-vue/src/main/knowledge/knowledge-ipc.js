@@ -184,12 +184,23 @@ function registerKnowledgeIPC({
   ipcMain.handle('knowledge:list-contents', async (_event, filters) => {
     try {
       if (!knowledgePaymentManager) {
-        return [];
+        return {
+          success: true,
+          contents: [],
+        };
       }
-      return await knowledgePaymentManager.listContents(filters);
+      const contents = await knowledgePaymentManager.listContents(filters);
+      return {
+        success: true,
+        contents: contents || [],
+      };
     } catch (error) {
       console.error('[Knowledge] 列出内容失败:', error);
-      return [];
+      return {
+        success: false,
+        contents: [],
+        error: error.message,
+      };
     }
   });
 
