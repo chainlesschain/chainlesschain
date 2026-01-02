@@ -1,0 +1,30 @@
+# Test databases
+test/*.db
+test/*.db-shm
+test/*.db-wal
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build output
+dist/
+build/
+unpackage/
+
+# Environment
+.env.local
+.env.*.local
