@@ -128,13 +128,211 @@ function registerSystemIPC({ mainWindow }) {
     }
   });
 
-  console.log('[System IPC] Registered 6 system: handlers');
+  /**
+   * 获取系统信息
+   * Channel: 'system:get-system-info'
+   */
+  ipcMain.handle('system:get-system-info', async () => {
+    try {
+      const { app } = require('electron');
+      const os = require('os');
+      return {
+        success: true,
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.versions.node,
+        chromeVersion: process.versions.chrome,
+        electronVersion: process.versions.electron,
+        appVersion: app.getVersion(),
+        appName: app.getName(),
+        osType: os.type(),
+        osRelease: os.release(),
+        osPlatform: os.platform(),
+        totalMemory: os.totalmem(),
+        freeMemory: os.freemem(),
+        cpus: os.cpus().length,
+      };
+    } catch (error) {
+      console.error('[System IPC] 获取系统信息失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取应用信息
+   * Channel: 'system:get-app-info'
+   */
+  ipcMain.handle('system:get-app-info', async () => {
+    try {
+      const { app } = require('electron');
+      return {
+        success: true,
+        name: app.getName(),
+        version: app.getVersion(),
+        path: app.getAppPath(),
+        isPackaged: app.isPackaged,
+      };
+    } catch (error) {
+      console.error('[System IPC] 获取应用信息失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取平台信息
+   * Channel: 'system:get-platform'
+   */
+  ipcMain.handle('system:get-platform', async () => {
+    try {
+      return {
+        success: true,
+        platform: process.platform,
+      };
+    } catch (error) {
+      console.error('[System IPC] 获取平台信息失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取版本信息
+   * Channel: 'system:get-version'
+   */
+  ipcMain.handle('system:get-version', async () => {
+    try {
+      const { app } = require('electron');
+      return {
+        success: true,
+        version: app.getVersion(),
+      };
+    } catch (error) {
+      console.error('[System IPC] 获取版本信息失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取路径
+   * Channel: 'system:get-path'
+   */
+  ipcMain.handle('system:get-path', async (_event, name) => {
+    try {
+      const { app } = require('electron');
+      return {
+        success: true,
+        path: app.getPath(name),
+      };
+    } catch (error) {
+      console.error('[System IPC] 获取路径失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 打开外部链接
+   * Channel: 'system:open-external'
+   */
+  ipcMain.handle('system:open-external', async (_event, url) => {
+    try {
+      const { shell } = require('electron');
+      await shell.openExternal(url);
+      return { success: true };
+    } catch (error) {
+      console.error('[System IPC] 打开外部链接失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 在文件夹中显示文件
+   * Channel: 'system:show-item-in-folder'
+   */
+  ipcMain.handle('system:show-item-in-folder', async (_event, path) => {
+    try {
+      const { shell } = require('electron');
+      shell.showItemInFolder(path);
+      return { success: true };
+    } catch (error) {
+      console.error('[System IPC] 显示文件失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 选择目录
+   * Channel: 'system:select-directory'
+   */
+  ipcMain.handle('system:select-directory', async () => {
+    try {
+      const { dialog } = require('electron');
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory'],
+      });
+      return {
+        success: true,
+        canceled: result.canceled,
+        filePaths: result.filePaths,
+      };
+    } catch (error) {
+      console.error('[System IPC] 选择目录失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 选择文件
+   * Channel: 'system:select-file'
+   */
+  ipcMain.handle('system:select-file', async (_event, options = {}) => {
+    try {
+      const { dialog } = require('electron');
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile'],
+        ...options,
+      });
+      return {
+        success: true,
+        canceled: result.canceled,
+        filePaths: result.filePaths,
+      };
+    } catch (error) {
+      console.error('[System IPC] 选择文件失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 退出应用
+   * Channel: 'system:quit'
+   */
+  ipcMain.handle('system:quit', async () => {
+    try {
+      const { app } = require('electron');
+      app.quit();
+      return { success: true };
+    } catch (error) {
+      console.error('[System IPC] 退出应用失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  console.log('[System IPC] Registered 16 system: handlers');
   console.log('[System IPC] - system:maximize');
   console.log('[System IPC] - system:minimize');
   console.log('[System IPC] - system:close');
   console.log('[System IPC] - system:restart');
   console.log('[System IPC] - system:get-window-state');
   console.log('[System IPC] - system:set-always-on-top');
+  console.log('[System IPC] - system:get-system-info');
+  console.log('[System IPC] - system:get-app-info');
+  console.log('[System IPC] - system:get-platform');
+  console.log('[System IPC] - system:get-version');
+  console.log('[System IPC] - system:get-path');
+  console.log('[System IPC] - system:open-external');
+  console.log('[System IPC] - system:show-item-in-folder');
+  console.log('[System IPC] - system:select-directory');
+  console.log('[System IPC] - system:select-file');
+  console.log('[System IPC] - system:quit');
 }
 
 module.exports = { registerSystemIPC };

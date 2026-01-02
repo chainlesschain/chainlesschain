@@ -473,11 +473,15 @@ class ChainlessChainApp {
 
       const autoSelect = this.database.getSetting('llm.autoSelect');
 
+      // 临时禁用智能选择，尊重用户配置
       // 如果启用了智能选择，自动选择最优LLM
+      // if (autoSelect && this.llmSelector) {
+      //   const selectedProvider = this.llmSelector.selectBestLLM({ taskType: 'chat' });
+      //   console.log(`[Main] 智能选择LLM: ${selectedProvider}`);
+      //   llmConfig.setProvider(selectedProvider);
+      // }
       if (autoSelect && this.llmSelector) {
-        const selectedProvider = this.llmSelector.selectBestLLM({ taskType: 'chat' });
-        console.log(`[Main] 智能选择LLM: ${selectedProvider}`);
-        llmConfig.setProvider(selectedProvider);
+        console.log(`[Main] 智能选择已禁用，使用配置的提供商: ${provider}`);
       }
 
       // 使用LLMConfig的getManagerConfig方法获取完整配置
@@ -1164,13 +1168,15 @@ class ChainlessChainApp {
   }
 
   async createWindow() {
-    // 清除会话缓存以解决ERR_CACHE_READ_FAILURE错误
-    const { session } = require('electron');
-    try {
-      await session.defaultSession.clearCache();
-      console.log('[Main] 会话缓存已清除');
-    } catch (error) {
-      console.error('[Main] 清除缓存失败:', error);
+    // 清除会话缓存以解决ERR_CACHE_READ_FAILURE错误（仅在app ready后）
+    if (app.isReady()) {
+      const { session } = require('electron');
+      try {
+        await session.defaultSession.clearCache();
+        console.log('[Main] 会话缓存已清除');
+      } catch (error) {
+        console.error('[Main] 清除缓存失败:', error);
+      }
     }
 
     this.mainWindow = new BrowserWindow({
@@ -1206,6 +1212,16 @@ class ChainlessChainApp {
     // 设置数据库加密 IPC 的主窗口引用
     if (this.dbEncryptionIPC) {
       this.dbEncryptionIPC.setMainWindow(this.mainWindow);
+    }
+
+    // 注册 System IPC（需要 mainWindow）
+    try {
+      console.log('[Main] Registering System IPC (deferred)...');
+      const { registerSystemIPC } = require('./system/system-ipc');
+      registerSystemIPC({ mainWindow: this.mainWindow });
+      console.log('[Main] ✓ System IPC registered (16 handlers)');
+    } catch (error) {
+      console.error('[Main] System IPC registration failed:', error);
     }
 
     // 初始化文件同步管理器
@@ -1902,7 +1918,11 @@ class ChainlessChainApp {
         creditScoreManager: this.creditScoreManager,
         reviewManager: this.reviewManager,
         vcTemplateManager: this.vcTemplateManager,
+        vcManager: this.vcManager,
         identityContextManager: this.identityContextManager,
+        organizationManager: this.organizationManager,
+        dbManager: this.database,
+        versionManager: this.versionManager,
         aiEngineManager: this.aiEngineManager,
         webEngine: this.webEngine,
         documentEngine: this.documentEngine,
@@ -2109,6 +2129,11 @@ class ChainlessChainApp {
   }
 
   async onActivate() {
+    // 只在app ready后才创建窗口
+    if (!app.isReady()) {
+      return;
+    }
+
     if (this.mainWindow === null) {
       await this.createWindow();
     }

@@ -234,6 +234,30 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
   });
 
   /**
+   * 获取同步状态
+   * Channel: 'git:get-sync-status'
+   */
+  ipcMain.handle('git:get-sync-status', async () => {
+    try {
+      const gitConfig = getGitConfig();
+      const config = gitConfig.getAll();
+
+      return {
+        enabled: config.enabled || false,
+        autoCommit: config.autoCommit || false,
+        autoSync: config.autoSync || false,
+        syncInterval: config.syncInterval || 300000,
+        lastSyncTime: config.lastSyncTime || null,
+        repoPath: config.repoPath || null,
+        remoteUrl: config.remoteUrl || null,
+      };
+    } catch (error) {
+      console.error('[Git IPC] 获取同步状态失败:', error);
+      throw error;
+    }
+  });
+
+  /**
    * 设置 Git 配置
    * Channel: 'git:set-config'
    */

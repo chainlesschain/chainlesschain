@@ -177,6 +177,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     pull: () => ipcRenderer.invoke('git:pull'),
     getLog: (depth) => ipcRenderer.invoke('git:get-log', depth),
     getConfig: () => ipcRenderer.invoke('git:get-config'),
+    getSyncStatus: () => ipcRenderer.invoke('git:get-sync-status'),
     setConfig: (config) => ipcRenderer.invoke('git:set-config', config),
     setRemote: (url) => ipcRenderer.invoke('git:set-remote', url),
     setAuth: (auth) => ipcRenderer.invoke('git:set-auth', auth),
@@ -412,6 +413,59 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
+  },
+
+  // 身份上下文管理 (Identity Context)
+  identityContext: {
+    getAllContexts: (userDID) => ipcRenderer.invoke('identity:get-all-contexts', { userDID }),
+    getActiveContext: (userDID) => ipcRenderer.invoke('identity:get-active-context', { userDID }),
+    createPersonalContext: (userDID, displayName) => ipcRenderer.invoke('identity:create-personal-context', { userDID, displayName }),
+    createOrganizationContext: (params) => ipcRenderer.invoke('identity:create-organization-context', params),
+    switchContext: (userDID, targetContextId) => ipcRenderer.invoke('identity:switch-context', { userDID, targetContextId }),
+    deleteOrganizationContext: (userDID, orgId) => ipcRenderer.invoke('identity:delete-organization-context', { userDID, orgId }),
+    getSwitchHistory: (userDID, limit) => ipcRenderer.invoke('identity:get-switch-history', { userDID, limit }),
+  },
+
+  // 组织管理 (Organization)
+  organization: {
+    // 组织CRUD
+    create: (orgData) => ipcRenderer.invoke('org:create-organization', orgData),
+    join: (inviteCode) => ipcRenderer.invoke('org:join-organization', inviteCode),
+    get: (orgId) => ipcRenderer.invoke('org:get-organization', orgId),
+    update: (params) => ipcRenderer.invoke('org:update-organization', params),
+    getUserOrganizations: (userDID) => ipcRenderer.invoke('org:get-user-organizations', userDID),
+    leave: (orgId, userDID) => ipcRenderer.invoke('org:leave-organization', orgId, userDID),
+    delete: (orgId, userDID) => ipcRenderer.invoke('org:delete-organization', orgId, userDID),
+    // 成员管理
+    getMembers: (orgId) => ipcRenderer.invoke('org:get-members', orgId),
+    updateMemberRole: (orgId, memberDID, newRole) => ipcRenderer.invoke('org:update-member-role', orgId, memberDID, newRole),
+    removeMember: (orgId, memberDID) => ipcRenderer.invoke('org:remove-member', orgId, memberDID),
+    checkPermission: (orgId, userDID, permission) => ipcRenderer.invoke('org:check-permission', orgId, userDID, permission),
+    getMemberActivities: (params) => ipcRenderer.invoke('org:get-member-activities', params),
+    // 邀请管理
+    createInvitation: (orgId, inviteData) => ipcRenderer.invoke('org:create-invitation', orgId, inviteData),
+    inviteByDID: (orgId, inviteData) => ipcRenderer.invoke('org:invite-by-did', orgId, inviteData),
+    acceptDIDInvitation: (invitationId) => ipcRenderer.invoke('org:accept-did-invitation', invitationId),
+    rejectDIDInvitation: (invitationId) => ipcRenderer.invoke('org:reject-did-invitation', invitationId),
+    getPendingDIDInvitations: () => ipcRenderer.invoke('org:get-pending-did-invitations'),
+    getDIDInvitations: (orgId, options) => ipcRenderer.invoke('org:get-did-invitations', orgId, options),
+    getInvitations: (orgId) => ipcRenderer.invoke('org:get-invitations', orgId),
+    revokeInvitation: (params) => ipcRenderer.invoke('org:revoke-invitation', params),
+    deleteInvitation: (params) => ipcRenderer.invoke('org:delete-invitation', params),
+    // 角色管理
+    getRoles: (orgId) => ipcRenderer.invoke('org:get-roles', orgId),
+    getRole: (roleId) => ipcRenderer.invoke('org:get-role', roleId),
+    createCustomRole: (orgId, roleData, creatorDID) => ipcRenderer.invoke('org:create-custom-role', orgId, roleData, creatorDID),
+    updateRole: (roleId, updates, updaterDID) => ipcRenderer.invoke('org:update-role', roleId, updates, updaterDID),
+    deleteRole: (roleId, deleterDID) => ipcRenderer.invoke('org:delete-role', roleId, deleterDID),
+    getAllPermissions: () => ipcRenderer.invoke('org:get-all-permissions'),
+    // 活动日志
+    getActivities: (options) => ipcRenderer.invoke('org:get-activities', options),
+    exportActivities: (options) => ipcRenderer.invoke('org:export-activities', options),
+    // 知识库
+    getKnowledgeItems: (params) => ipcRenderer.invoke('org:get-knowledge-items', params),
+    createKnowledge: (params) => ipcRenderer.invoke('org:create-knowledge', params),
+    deleteKnowledge: (params) => ipcRenderer.invoke('org:delete-knowledge', params),
   },
 
   // 可验证凭证 (VC)
@@ -1066,6 +1120,94 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAdditionalV3Recent: (limit) => ipcRenderer.invoke('tool:get-additional-v3-recent', limit),
     getAdditionalV3DailyStats: (days) => ipcRenderer.invoke('tool:get-additional-v3-daily-stats', days),
     getAdditionalV3Performance: () => ipcRenderer.invoke('tool:get-additional-v3-performance'),
+  },
+
+  // 知识管理 (Knowledge)
+  knowledge: {
+    getTags: () => ipcRenderer.invoke('knowledge:get-tags'),
+    getVersionHistory: (params) => ipcRenderer.invoke('knowledge:get-version-history', params),
+    restoreVersion: (params) => ipcRenderer.invoke('knowledge:restore-version', params),
+    compareVersions: (params) => ipcRenderer.invoke('knowledge:compare-versions', params),
+    createContent: (options) => ipcRenderer.invoke('knowledge:create-content', options),
+    updateContent: (contentId, updates) => ipcRenderer.invoke('knowledge:update-content', contentId, updates),
+    deleteContent: (contentId) => ipcRenderer.invoke('knowledge:delete-content', contentId),
+    getContent: (contentId) => ipcRenderer.invoke('knowledge:get-content', contentId),
+    listContents: (filters) => ipcRenderer.invoke('knowledge:list-contents', filters),
+    getAll: (filters) => ipcRenderer.invoke('knowledge:list-contents', filters), // 别名
+    purchaseContent: (contentId, paymentAssetId) => ipcRenderer.invoke('knowledge:purchase-content', contentId, paymentAssetId),
+    subscribe: (planId, paymentAssetId) => ipcRenderer.invoke('knowledge:subscribe', planId, paymentAssetId),
+    unsubscribe: (planId) => ipcRenderer.invoke('knowledge:unsubscribe', planId),
+    getMyPurchases: (userDid) => ipcRenderer.invoke('knowledge:get-my-purchases', userDid),
+    getMySubscriptions: (userDid) => ipcRenderer.invoke('knowledge:get-my-subscriptions', userDid),
+    accessContent: (contentId) => ipcRenderer.invoke('knowledge:access-content', contentId),
+    checkAccess: (contentId, userDid) => ipcRenderer.invoke('knowledge:check-access', contentId, userDid),
+    getStatistics: (creatorDid) => ipcRenderer.invoke('knowledge:get-statistics', creatorDid),
+    getCategories: () => ipcRenderer.invoke('knowledge:get-tags'), // 别名
+  },
+
+  // 文档处理 (Document)
+  document: {
+    exportPPT: (params) => ipcRenderer.invoke('ppt:export', params),
+  },
+
+  // PDF处理
+  pdf: {
+    markdownToPDF: (params) => ipcRenderer.invoke('pdf:markdownToPDF', params),
+    htmlFileToPDF: (params) => ipcRenderer.invoke('pdf:htmlFileToPDF', params),
+    textFileToPDF: (params) => ipcRenderer.invoke('pdf:textFileToPDF', params),
+    batchConvert: (params) => ipcRenderer.invoke('pdf:batchConvert', params),
+  },
+
+  // 社交功能 (Social)
+  social: {
+    // 联系人管理
+    addContact: (contact) => ipcRenderer.invoke('contact:add', contact),
+    addContactFromQR: (qrData) => ipcRenderer.invoke('contact:add-from-qr', qrData),
+    getAllContacts: () => ipcRenderer.invoke('contact:get-all'),
+    getContact: (did) => ipcRenderer.invoke('contact:get', did),
+    getContacts: (options) => ipcRenderer.invoke('contact:get-all'), // 别名，兼容测试
+    updateContact: (did, updates) => ipcRenderer.invoke('contact:update', did, updates),
+    deleteContact: (did) => ipcRenderer.invoke('contact:delete', did),
+    searchContacts: (query) => ipcRenderer.invoke('contact:search', query),
+    getFriends: () => ipcRenderer.invoke('contact:get-friends'),
+    getContactStatistics: () => ipcRenderer.invoke('contact:get-statistics'),
+    // 好友管理
+    sendFriendRequest: (targetDid, message) => ipcRenderer.invoke('friend:send-request', targetDid, message),
+    acceptFriendRequest: (requestId) => ipcRenderer.invoke('friend:accept-request', requestId),
+    rejectFriendRequest: (requestId) => ipcRenderer.invoke('friend:reject-request', requestId),
+    getPendingFriendRequests: () => ipcRenderer.invoke('friend:get-pending-requests'),
+    getFriendsByGroup: (groupName) => ipcRenderer.invoke('friend:get-friends', groupName),
+    removeFriend: (friendDid) => ipcRenderer.invoke('friend:remove', friendDid),
+    updateFriendNickname: (friendDid, nickname) => ipcRenderer.invoke('friend:update-nickname', friendDid, nickname),
+    updateFriendGroup: (friendDid, groupName) => ipcRenderer.invoke('friend:update-group', friendDid, groupName),
+    getFriendStatistics: () => ipcRenderer.invoke('friend:get-statistics'),
+    // 动态/帖子管理
+    createPost: (options) => ipcRenderer.invoke('post:create', options),
+    getFeed: (options) => ipcRenderer.invoke('post:get-feed', options),
+  },
+
+  // 通知系统 (Notification)
+  notification: {
+    markRead: (id) => ipcRenderer.invoke('notification:mark-read', id),
+    markAllRead: () => ipcRenderer.invoke('notification:mark-all-read'),
+    getAll: (options) => ipcRenderer.invoke('notification:get-all', options),
+    getUnreadCount: () => ipcRenderer.invoke('notification:get-unread-count'),
+    sendDesktop: (title, body) => ipcRenderer.invoke('notification:send-desktop', title, body),
+  },
+
+  // 系统信息 (System)
+  system: {
+    getSystemInfo: () => ipcRenderer.invoke('system:get-system-info'),
+    getAppInfo: () => ipcRenderer.invoke('system:get-app-info'),
+    getPlatform: () => ipcRenderer.invoke('system:get-platform'),
+    getVersion: () => ipcRenderer.invoke('system:get-version'),
+    getPath: (name) => ipcRenderer.invoke('system:get-path', name),
+    openExternal: (url) => ipcRenderer.invoke('system:open-external', url),
+    showItemInFolder: (path) => ipcRenderer.invoke('system:show-item-in-folder', path),
+    selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
+    selectFile: (options) => ipcRenderer.invoke('system:select-file', options),
+    quit: () => ipcRenderer.invoke('system:quit'),
+    restart: () => ipcRenderer.invoke('system:restart'),
   },
 
   // 技能工具系统通用

@@ -230,7 +230,18 @@ class EmbeddingsService extends EventEmitter {
    * 清除缓存
    */
   clearCache() {
-    this.cache.clear();
+    // 兼容 LRU-cache 不同版本的 API
+    if (this.useLRU) {
+      // LRU-cache v4-5 使用 reset(), v6+ 使用 clear()
+      if (typeof this.cache.reset === 'function') {
+        this.cache.reset();
+      } else if (typeof this.cache.clear === 'function') {
+        this.cache.clear();
+      }
+    } else {
+      // Map 使用 clear()
+      this.cache.clear();
+    }
     this.cacheHits = 0;
     this.cacheMisses = 0;
     console.log('[EmbeddingsService] 缓存已清除');

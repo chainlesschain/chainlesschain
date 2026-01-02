@@ -96,7 +96,8 @@ function registerAllIPC(dependencies) {
         ragManager,
         promptTemplateManager,
         llmSelector,
-        database
+        database,
+        app
       });
 
       console.log('[IPC Registry] ✓ LLM IPC registered (14 handlers)');
@@ -597,12 +598,15 @@ function registerAllIPC(dependencies) {
       console.log('[IPC Registry] ✓ Category IPC registered (7 handlers)');
     }
 
-    // 系统窗口控制 (函数模式 - 小模块，6 handlers)
+    // 系统窗口控制 (函数模式 - 小模块，16 handlers)
+    console.log('[IPC Registry] DEBUG: mainWindow =', mainWindow, ', type =', typeof mainWindow, ', isDestroyed =', mainWindow ? mainWindow.isDestroyed?.() : 'N/A');
     if (mainWindow) {
       console.log('[IPC Registry] Registering System IPC...');
       const { registerSystemIPC } = require('./system/system-ipc');
       registerSystemIPC({ mainWindow });
-      console.log('[IPC Registry] ✓ System IPC registered (6 handlers)');
+      console.log('[IPC Registry] ✓ System IPC registered (16 handlers)');
+    } else {
+      console.log('[IPC Registry] ⚠️ System IPC NOT registered - mainWindow is falsy');
     }
 
     console.log('[IPC Registry] ========================================');

@@ -17,9 +17,13 @@ const { ipcMain } = require('electron');
  * @param {Object} [dependencies.promptTemplateManager] - 提示词模板管理器（可选）
  * @param {Object} [dependencies.llmSelector] - LLM 智能选择器（可选）
  * @param {Object} [dependencies.database] - 数据库实例（可选）
+ * @param {Object} [dependencies.app] - App 实例（可选，用于更新 llmManager 引用）
  */
-function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateManager, llmSelector, database }) {
+function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateManager, llmSelector, database, app }) {
   console.log('[LLM IPC] Registering LLM IPC handlers...');
+
+  // 创建一个可变的引用容器
+  const managerRef = { current: llmManager };
 
   // ============================================================
   // 基础 LLM 服务
@@ -31,14 +35,14 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
    */
   ipcMain.handle('llm:check-status', async () => {
     try {
-      if (!llmManager) {
+      if (!managerRef.current) {
         return {
           available: false,
           error: 'LLM服务未初始化',
         };
       }
 
-      return await llmManager.checkStatus();
+      return await managerRef.current.checkStatus();
     } catch (error) {
       return {
         available: false,
@@ -53,11 +57,11 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
    */
   ipcMain.handle('llm:query', async (_event, prompt, options = {}) => {
     try {
-      if (!llmManager) {
+      if (!managerRef.current) {
         throw new Error('LLM服务未初始化');
       }
 
-      return await llmManager.query(prompt, options);
+      return await managerRef.current.query(prompt, options);
     } catch (error) {
       console.error('[LLM IPC] LLM查询失败:', error);
       throw error;
@@ -70,7 +74,7 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
    */
   ipcMain.handle('llm:chat', async (_event, { messages, stream = false, enableRAG = true, ...options }) => {
     try {
-      if (!llmManager) {
+      if (!managerRef.current) {
         throw new Error('LLM服务未初始化');
       }
 
@@ -130,7 +134,7 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
       }
 
       // 使用新的 chatWithMessages 方法，保留完整的 messages 历史
-      const response = await llmManager.chatWithMessages(enhancedMessages, options);
+      const response = await managerRef.current.chatWithMessages(enhancedMessages, options);
 
       console.log('[LLM IPC] LLM 聊天响应成功, tokens:', response.tokens);
 
@@ -164,7 +168,7 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
    */
   ipcMain.handle('llm:chat-with-template', async (_event, { templateId, variables, messages = [], ...options }) => {
     try {
-      if (!llmManager) {
+      if (!managerRef.current) {
         throw new Error('LLM服务未初始化');
       }
 
@@ -189,7 +193,7 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
       ];
 
       // 调用标准的聊天方法
-      return await llmManager.chatWithMessages(enhancedMessages, options);
+      return await managerRef.current.chatWithMessages(enhancedMessages, options);
     } catch (error) {
       console.error('[LLM IPC] 模板聊天失败:', error);
       throw error;
@@ -202,12 +206,12 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
    */
   ipcMain.handle('llm:query-stream', async (_event, prompt, options = {}) => {
     try {
-      if (!llmManager) {
+      if (!managerRef.current) {
         throw new Error('LLM服务未初始化');
       }
 
       // 流式响应通过事件发送
-      const result = await llmManager.queryStream(
+      const result = await managerRef.current.queryStream(
         prompt,
         (chunk, fullText) => {
           if (mainWindow) {
@@ -250,7 +254,7 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
   ipcMain.handle('llm:set-config', async (_event, config) => {
     try {
       const { getLLMConfig } = require('./llm-config');
-      const LLMManager = require('./llm-manager');
+      const { LLMManager } = require('./llm-manager');
       const llmConfig = getLLMConfig();
 
       // 更新配置
@@ -261,15 +265,22 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
       llmConfig.save();
 
       // 重新初始化LLM管理器
-      if (llmManager) {
-        await llmManager.close();
+      if (managerRef.current) {
+        await managerRef.current.close();
       }
 
       const managerConfig = llmConfig.getManagerConfig();
-      // 注意：这里需要更新外部传入的 llmManager 引用
-      // 但由于是参数传递，无法直接修改，需要返回新的实例
+      // 创建新的 LLMManager 实例
       const newManager = new LLMManager(managerConfig);
       await newManager.initialize();
+
+      // 更新引用容器
+      managerRef.current = newManager;
+
+      // 如果有 app 实例，也更新 app 上的引用
+      if (app) {
+        app.llmManager = newManager;
+      }
 
       console.log('[LLM IPC] LLM配置已更新并重新初始化');
 
@@ -286,11 +297,11 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
    */
   ipcMain.handle('llm:list-models', async () => {
     try {
-      if (!llmManager) {
+      if (!managerRef.current) {
         return [];
       }
 
-      return await llmManager.listModels();
+      return await managerRef.current.listModels();
     } catch (error) {
       console.error('[LLM IPC] 列出模型失败:', error);
       return [];
@@ -303,11 +314,11 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
    */
   ipcMain.handle('llm:clear-context', async (_event, conversationId) => {
     try {
-      if (!llmManager) {
+      if (!managerRef.current) {
         throw new Error('LLM服务未初始化');
       }
 
-      llmManager.clearContext(conversationId);
+      managerRef.current.clearContext(conversationId);
       return true;
     } catch (error) {
       console.error('[LLM IPC] 清除上下文失败:', error);
@@ -321,11 +332,11 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
    */
   ipcMain.handle('llm:embeddings', async (_event, text) => {
     try {
-      if (!llmManager) {
+      if (!managerRef.current) {
         throw new Error('LLM服务未初始化');
       }
 
-      return await llmManager.embeddings(text);
+      return await managerRef.current.embeddings(text);
     } catch (error) {
       console.error('[LLM IPC] 生成嵌入失败:', error);
       throw error;
@@ -402,15 +413,15 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
       }
 
       const { getLLMConfig } = require('./llm-config');
-      const LLMManager = require('./llm-manager');
+      const { LLMManager } = require('./llm-manager');
 
       // 保存新的提供商到llm-config.json
       const llmConfig = getLLMConfig();
       llmConfig.setProvider(provider);
 
       // 重新初始化LLM管理器
-      if (llmManager) {
-        await llmManager.close();
+      if (managerRef.current) {
+        await managerRef.current.close();
       }
 
       const managerConfig = llmConfig.getManagerConfig();
@@ -418,6 +429,14 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
 
       const newManager = new LLMManager(managerConfig);
       await newManager.initialize();
+
+      // 更新引用容器
+      managerRef.current = newManager;
+
+      // 如果有 app 实例，也更新 app 上的引用
+      if (app) {
+        app.llmManager = newManager;
+      }
 
       console.log(`[LLM IPC] 已切换到LLM提供商: ${provider}`);
       return true;
