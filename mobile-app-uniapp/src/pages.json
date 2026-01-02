@@ -102,6 +102,12 @@
       }
     },
     {
+      "path": "pages/trade/index",
+      "style": {
+        "navigationBarTitleText": "交易系统"
+      }
+    },
+    {
       "path": "pages/trade/market/market",
       "style": {
         "navigationBarTitleText": "交易市场"
@@ -117,6 +123,41 @@
       "path": "pages/trade/assets/assets",
       "style": {
         "navigationBarTitleText": "我的资产"
+      }
+    },
+    {
+      "path": "pages/trade/assets/index",
+      "style": {
+        "navigationBarTitleText": "资产管理",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/trade/market/index",
+      "style": {
+        "navigationBarTitleText": "市场交易",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/trade/contracts/index",
+      "style": {
+        "navigationBarTitleText": "智能合约",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/trade/social/index",
+      "style": {
+        "navigationBarTitleText": "社交交易",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/trade/user/index",
+      "style": {
+        "navigationBarTitleText": "用户中心",
+        "enablePullDownRefresh": true
       }
     },
     {

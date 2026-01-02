@@ -71,6 +71,42 @@ function registerNotificationIPC({ database }) {
   // ============================================================
 
   /**
+   * 获取所有通知
+   * Channel: 'notification:get-all'
+   *
+   * @param {Object} options - 查询选项 (limit, offset, isRead)
+   * @returns {Promise<Array>} 通知列表
+   */
+  ipcMain.handle('notification:get-all', async (_event, options = {}) => {
+    try {
+      if (!database || !database.db) {
+        throw new Error('数据库未初始化');
+      }
+
+      const { limit = 50, offset = 0, isRead } = options;
+
+      let query = 'SELECT * FROM notifications';
+      const params = [];
+
+      if (isRead !== undefined) {
+        query += ' WHERE is_read = ?';
+        params.push(isRead ? 1 : 0);
+      }
+
+      query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+      params.push(limit, offset);
+
+      const notifications = database.db.prepare(query).all(...params);
+
+      return notifications || [];
+    } catch (error) {
+      console.error('[Notification IPC] 获取通知列表失败:', error);
+      // Return empty array on error to prevent frontend crashes
+      return [];
+    }
+  });
+
+  /**
    * 获取未读通知数量
    * Channel: 'notification:get-unread-count'
    *
@@ -125,7 +161,8 @@ function registerNotificationIPC({ database }) {
     }
   });
 
-  console.log('[Notification IPC] Registered 4 notification: handlers');
+  console.log('[Notification IPC] Registered 5 notification: handlers');
+  console.log('[Notification IPC] - notification:get-all');
   console.log('[Notification IPC] - notification:mark-read');
   console.log('[Notification IPC] - notification:mark-all-read');
   console.log('[Notification IPC] - notification:get-unread-count');

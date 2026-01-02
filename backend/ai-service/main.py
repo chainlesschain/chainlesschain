@@ -26,7 +26,7 @@ from src.engines.web_engine import WebEngine
 from src.engines.doc_engine import DocumentEngine
 from src.engines.data_engine import DataEngine
 from src.nlu.intent_classifier import IntentClassifier
-from src.rag.rag_engine import RAGEngine
+# from src.rag.rag_engine import RAGEngine  # 暂时注释，等待sentence-transformers安装完成
 
 # 导入流式工具
 from src.utils.stream_utils import format_sse
@@ -81,14 +81,16 @@ web_engine = WebEngine()
 doc_engine = DocumentEngine()
 data_engine = DataEngine()
 intent_classifier = IntentClassifier()
-rag_engine = RAGEngine()
+# rag_engine = RAGEngine()  # 暂时注释，等待sentence-transformers安装完成
+rag_engine = None  # 临时设为None
 
 # 初始化Git管理器
 git_manager = GitManager()
 conflict_resolver = ConflictResolver()
 
 # 初始化文件索引器
-file_indexer = FileIndexer(rag_engine)
+# file_indexer = FileIndexer(rag_engine)  # 暂时注释，等待RAG引擎可用
+file_indexer = None  # 临时设为None
 
 # 初始化代码助手
 code_generator = CodeGenerator()
