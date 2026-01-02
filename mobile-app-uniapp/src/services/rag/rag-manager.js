@@ -139,7 +139,7 @@ class RAGManager {
 
     try {
       // 获取所有知识库项
-      const items = await database.exec(`
+      const items = await database.selectSql(`
         SELECT id, title, content, type, tags, created_at
         FROM notes
         WHERE deleted = 0
@@ -337,11 +337,12 @@ class RAGManager {
     for (const result of results) {
       try {
         // 从数据库获取完整文档
-        const doc = await database.exec(`
+        const docs = await database.selectSql(`
           SELECT id, title, content, type, tags, created_at, updated_at
           FROM notes
           WHERE id = ?
-        `, [result.id])[0]
+        `, [result.id])
+        const doc = docs[0]
 
         if (doc) {
           enriched.push({
