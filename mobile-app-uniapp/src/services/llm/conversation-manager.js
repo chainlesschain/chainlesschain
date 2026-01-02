@@ -609,6 +609,107 @@ class ConversationManager {
   }
 
   /**
+   * 流式发送消息并获取AI回复
+   * @param {string} conversationId - 对话ID
+   * @param {string} userMessage - 用户消息
+   * @param {Object} options - 选项
+   * @param {Function} options.onStart - 开始回调
+   * @param {Function} options.onChunk - 数据块回调 (chunk, buffer)
+   * @param {Function} options.onComplete - 完成回调
+   * @param {Function} options.onError - 错误回调
+   * @returns {Promise<Object>}
+   */
+  async sendMessageStream(conversationId, userMessage, options = {}) {
+    if (!this.isInitialized) {
+      await this.initialize()
+    }
+
+    try {
+      console.log('[ConversationManager] 流式发送消息:', conversationId)
+
+      this.emit('message-stream-start', { conversationId, userMessage })
+
+      // 1. 保存用户消息
+      await this.addMessage(conversationId, {
+        role: 'user',
+        content: userMessage
+      })
+
+      // 2. 获取上下文消息
+      const contextMessages = await this.getContextMessages(conversationId, options)
+
+      // 3. 流式调用LLM
+      let assistantMessage = ''
+
+      const response = await this.llmManager.chatStream(contextMessages, {
+        ...options,
+        onStart: (data) => {
+          if (options.onStart) {
+            options.onStart(data)
+          }
+        },
+        onChunk: (data) => {
+          assistantMessage = data.buffer || data.content
+
+          if (options.onChunk) {
+            options.onChunk({
+              chunk: data.content,
+              buffer: assistantMessage,
+              progress: data.progress
+            })
+          }
+
+          this.emit('message-stream-chunk', {
+            conversationId,
+            chunk: data.content,
+            buffer: assistantMessage
+          })
+        },
+        onComplete: (data) => {
+          if (options.onComplete) {
+            options.onComplete(data)
+          }
+        },
+        onError: (error) => {
+          if (options.onError) {
+            options.onError(error)
+          }
+        }
+      })
+
+      // 4. 保存AI回复
+      await this.addMessage(conversationId, {
+        role: 'assistant',
+        content: response.content || assistantMessage,
+        tokens: response.usage?.total_tokens || null
+      })
+
+      console.log('[ConversationManager] ✅ 流式消息完成')
+
+      this.emit('message-stream-complete', {
+        conversationId,
+        userMessage,
+        assistantMessage: response.content || assistantMessage
+      })
+
+      return {
+        success: true,
+        conversationId,
+        userMessage,
+        assistantMessage: response.content || assistantMessage,
+        usage: response.usage,
+        sessionId: response.sessionId
+      }
+    } catch (error) {
+      console.error('[ConversationManager] 流式发送消息失败:', error)
+
+      this.emit('message-stream-error', { conversationId, error })
+
+      throw error
+    }
+  }
+
+  /**
    * 获取上下文消息
    * @param {string} conversationId - 对话ID
    * @param {Object} options - 选项

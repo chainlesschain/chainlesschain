@@ -73,6 +73,15 @@ const requiredFiles = [
   'src/main/project/project-export-ipc.js',
   'src/main/project/project-rag-ipc.js',
   'src/main/project/project-git-ipc.js',
+  'src/main/file/file-ipc.js',
+  'src/main/template/template-ipc.js',
+  'src/main/knowledge/knowledge-ipc.js',
+  'src/main/prompt-template/prompt-template-ipc.js',
+  'src/main/image/image-ipc.js',
+  'src/main/speech/speech-ipc.js',
+  'src/main/video/video-ipc.js',
+  'src/main/pdf/pdf-ipc.js',
+  'src/main/document/document-ipc.js',
   'templates/ipc-template.js',
   'src/main/index.js'
 ];
@@ -306,6 +315,117 @@ try {
   }
 } catch (error) {
   addTest('导入 project/project-git-ipc.js', false, error.message);
+}
+
+// Phase 6: File & Template modules
+try {
+  const fileIPC = require('../src/main/file/file-ipc');
+  addTest('导入 file/file-ipc.js', true);
+  if (typeof fileIPC.registerFileIPC === 'function') {
+    addTest('file-ipc 导出 registerFileIPC', true);
+  } else {
+    addTest('file-ipc 导出 registerFileIPC', false);
+  }
+} catch (error) {
+  addTest('导入 file/file-ipc.js', false, error.message);
+}
+
+try {
+  const templateIPC = require('../src/main/template/template-ipc');
+  addTest('导入 template/template-ipc.js', true);
+  if (typeof templateIPC.registerTemplateIPC === 'function') {
+    addTest('template-ipc 导出 registerTemplateIPC', true);
+  } else {
+    addTest('template-ipc 导出 registerTemplateIPC', false);
+  }
+} catch (error) {
+  addTest('导入 template/template-ipc.js', false, error.message);
+}
+
+// Phase 6 (Batch 2): Knowledge, Prompt Template & Image modules
+try {
+  const knowledgeIPC = require('../src/main/knowledge/knowledge-ipc');
+  addTest('导入 knowledge/knowledge-ipc.js', true);
+  if (typeof knowledgeIPC.registerKnowledgeIPC === 'function') {
+    addTest('knowledge-ipc 导出 registerKnowledgeIPC', true);
+  } else {
+    addTest('knowledge-ipc 导出 registerKnowledgeIPC', false);
+  }
+} catch (error) {
+  addTest('导入 knowledge/knowledge-ipc.js', false, error.message);
+}
+
+try {
+  const promptTemplateIPC = require('../src/main/prompt-template/prompt-template-ipc');
+  addTest('导入 prompt-template/prompt-template-ipc.js', true);
+  if (typeof promptTemplateIPC.registerPromptTemplateIPC === 'function') {
+    addTest('prompt-template-ipc 导出 registerPromptTemplateIPC', true);
+  } else {
+    addTest('prompt-template-ipc 导出 registerPromptTemplateIPC', false);
+  }
+} catch (error) {
+  addTest('导入 prompt-template/prompt-template-ipc.js', false, error.message);
+}
+
+try {
+  const imageIPC = require('../src/main/image/image-ipc');
+  addTest('导入 image/image-ipc.js', true);
+  if (typeof imageIPC.registerImageIPC === 'function') {
+    addTest('image-ipc 导出 registerImageIPC', true);
+  } else {
+    addTest('image-ipc 导出 registerImageIPC', false);
+  }
+} catch (error) {
+  addTest('导入 image/image-ipc.js', false, error.message);
+}
+
+// Phase 7: Media Processing modules (Speech, Video, PDF, Document)
+try {
+  const speechIPC = require('../src/main/speech/speech-ipc');
+  addTest('导入 speech/speech-ipc.js', true);
+  if (typeof speechIPC.registerSpeechIPC === 'function') {
+    addTest('speech-ipc 导出 registerSpeechIPC', true);
+  } else {
+    addTest('speech-ipc 导出 registerSpeechIPC', false);
+  }
+} catch (error) {
+  addTest('导入 speech/speech-ipc.js', false, error.message);
+}
+
+try {
+  const videoIPC = require('../src/main/video/video-ipc');
+  addTest('导入 video/video-ipc.js', true);
+  if (typeof videoIPC.registerVideoIPC === 'function') {
+    addTest('video-ipc 导出 registerVideoIPC', true);
+  } else {
+    addTest('video-ipc 导出 registerVideoIPC', false);
+  }
+} catch (error) {
+  addTest('导入 video/video-ipc.js', false, error.message);
+}
+
+try {
+  const pdfIPC = require('../src/main/pdf/pdf-ipc');
+  addTest('导入 pdf/pdf-ipc.js', true);
+  if (typeof pdfIPC.registerPDFIPC === 'function') {
+    addTest('pdf-ipc 导出 registerPDFIPC', true);
+  } else {
+    addTest('pdf-ipc 导出 registerPDFIPC', false);
+  }
+} catch (error) {
+  addTest('导入 pdf/pdf-ipc.js', false, error.message);
+}
+
+try {
+  const documentIPC = require('../src/main/document/document-ipc');
+  addTest('导入 document/document-ipc.js', true);
+  if (typeof documentIPC.registerDocumentIPC === 'function') {
+    addTest('document-ipc 导出 registerDocumentIPC', true);
+  } else {
+    addTest('document-ipc 导出 registerDocumentIPC', false);
+  }
+} catch (error) {
+  addTest('导入 document/document-ipc.js', false, error.message);
 }
 
 console.log('');

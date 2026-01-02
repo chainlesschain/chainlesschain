@@ -1884,6 +1884,30 @@ class ChainlessChainApp {
 
   setupIPC() {
     // ========================================================================
+    // 覆盖 ipcMain.handle 以自动跳过重复注册（临时）
+    // ========================================================================
+    const originalHandle = ipcMain.handle.bind(ipcMain);
+    ipcMain.handle = (channel, handler) => {
+      try {
+        originalHandle(channel, handler);
+      } catch (error) {
+        const message = String(error?.message || error);
+        const isDuplicate = message.includes('second handler') || message.includes('register a second handler');
+        if (isDuplicate) {
+          // 忽略重复注册错误（handler已在模块化IPC中注册）
+          console.log(`[ChainlessChainApp] Skipping duplicate handler: ${channel}`);
+        } else {
+          // 其他错误需要报告
+          console.error(`[ChainlessChainApp] Failed to register IPC handler: ${channel}`, error);
+          throw error;
+        }
+      }
+    };
+
+    // Helper函数：安全注册IPC handler（向后兼容）
+    const safeRegisterHandler = ipcMain.handle;
+
+    // ========================================================================
     // 模块化 IPC 注册中心 (第一阶段：LLM 和 RAG 模块已迁移)
     // ========================================================================
     console.log('[ChainlessChainApp] ========================================');
@@ -2182,7 +2206,8 @@ class ChainlessChainApp {
 
     /* MIGRATED TO database/database-ipc.js (15 db:* handlers) */
     // 数据库操作 - 使用 SQLite
-    ipcMain.handle('db:get-knowledge-items', async (_event, limit, offset) => {
+    // 注意：这些handlers已迁移到模块化IPC，但为了向后兼容保留（使用安全注册）
+    safeRegisterHandler('db:get-knowledge-items', async (_event, limit, offset) => {
       try {
         return this.database?.getKnowledgeItems(limit, offset) || [];
       } catch (error) {
@@ -2191,7 +2216,7 @@ class ChainlessChainApp {
       }
     });
 
-    ipcMain.handle('db:get-knowledge-item-by-id', async (_event, id) => {
+    safeRegisterHandler('db:get-knowledge-item-by-id', async (_event, id) => {
       try {
         return this.database?.getKnowledgeItemById(id) || null;
       } catch (error) {
@@ -2200,7 +2225,7 @@ class ChainlessChainApp {
       }
     });
 
-    ipcMain.handle('db:add-knowledge-item', async (_event, item) => {
+    safeRegisterHandler('db:add-knowledge-item', async (_event, item) => {
       try {
         const newItem = this.database?.addKnowledgeItem(item);
 
@@ -2216,7 +2241,7 @@ class ChainlessChainApp {
       }
     });
 
-    ipcMain.handle('db:update-knowledge-item', async (_event, id, updates) => {
+    safeRegisterHandler('db:update-knowledge-item', async (_event, id, updates) => {
       try {
         const updatedItem = this.database?.updateKnowledgeItem(id, updates);
 
@@ -2232,7 +2257,7 @@ class ChainlessChainApp {
       }
     });
 
-    ipcMain.handle('db:delete-knowledge-item', async (_event, id) => {
+    safeRegisterHandler('db:delete-knowledge-item', async (_event, id) => {
       try {
         const result = this.database?.deleteKnowledgeItem(id);
 
@@ -2248,7 +2273,7 @@ class ChainlessChainApp {
       }
     });
 
-    ipcMain.handle('db:search-knowledge-items', async (_event, query) => {
+    safeRegisterHandler('db:search-knowledge-items', async (_event, query) => {
       try {
         return this.database?.searchKnowledge(query) || [];
       } catch (error) {
@@ -2258,7 +2283,7 @@ class ChainlessChainApp {
     });
 
     // 标签操作
-    ipcMain.handle('db:get-all-tags', async () => {
+    safeRegisterHandler('db:get-all-tags', async () => {
       try {
         return this.database?.getAllTags() || [];
       } catch (error) {
@@ -2267,7 +2292,7 @@ class ChainlessChainApp {
       }
     });
 
-    ipcMain.handle('db:create-tag', async (_event, name, color) => {
+    safeRegisterHandler('db:create-tag', async (_event, name, color) => {
       try {
         return this.database?.createTag(name, color);
       } catch (error) {
@@ -2276,7 +2301,7 @@ class ChainlessChainApp {
       }
     });
 
-    ipcMain.handle('db:get-knowledge-tags', async (_event, knowledgeId) => {
+    safeRegisterHandler('db:get-knowledge-tags', async (_event, knowledgeId) => {
       try {
         return this.database?.getKnowledgeTags(knowledgeId) || [];
       } catch (error) {
@@ -2286,7 +2311,7 @@ class ChainlessChainApp {
     });
 
     // 统计数据
-    ipcMain.handle('db:get-statistics', async () => {
+    safeRegisterHandler('db:get-statistics', async () => {
       try {
         return this.database?.getStatistics() || { total: 0, today: 0, byType: {} };
       } catch (error) {
@@ -2296,12 +2321,12 @@ class ChainlessChainApp {
     });
 
     // 数据库工具
-    ipcMain.handle('db:get-path', async () => {
+    safeRegisterHandler('db:get-path', async () => {
       return this.database?.getDatabasePath() || null;
     });
 
     // 数据库切换（企业版多身份）
-    ipcMain.handle('db:switch-database', async (_event, contextId, options = {}) => {
+    safeRegisterHandler('db:switch-database', async (_event, contextId, options = {}) => {
       try {
         if (!this.database) {
           throw new Error('数据库管理器未初始化');
@@ -2323,7 +2348,7 @@ class ChainlessChainApp {
     });
 
     // 获取数据库路径（根据身份上下文）
-    ipcMain.handle('db:get-context-path', async (_event, contextId) => {
+    safeRegisterHandler('db:get-context-path', async (_event, contextId) => {
       try {
         if (!this.database) {
           return null;
@@ -2336,7 +2361,7 @@ class ChainlessChainApp {
     });
 
     // 获取当前数据库路径
-    ipcMain.handle('db:get-current-path', async () => {
+    safeRegisterHandler('db:get-current-path', async () => {
       try {
         return this.database?.getCurrentDatabasePath() || null;
       } catch (error) {
@@ -2345,7 +2370,7 @@ class ChainlessChainApp {
       }
     });
 
-    ipcMain.handle('db:backup', async (_event, backupPath) => {
+    safeRegisterHandler('db:backup', async (_event, backupPath) => {
       try {
         await this.database?.backup(backupPath);
         return true;
@@ -2495,6 +2520,21 @@ class ChainlessChainApp {
         throw error;
       }
     });
+
+    /* ========================================================================
+       MIGRATED TO video/video-ipc.js (18 video: handlers)
+       包括: 文件选择导入, 视频管理, 视频编辑处理
+
+       已迁移 handlers (导入管理部分):
+       - video:select-files, video:import-file, video:import-files
+       - video:get-video, video:get-videos, video:get-analysis
+       - video:get-keyframes, video:delete-video, video:get-stats
+
+       已迁移 handlers (编辑处理部分):
+       - video:convert, video:trim, video:merge
+       - video:addSubtitles, video:generateSubtitles, video:extractAudio
+       - video:generateThumbnail, video:compress, video:getInfo
+       ======================================================================== */
 
     // 视频导入
     ipcMain.handle('video:select-files', async () => {
@@ -2705,6 +2745,19 @@ class ChainlessChainApp {
       }
     });
 
+    /* ========================================================================
+       MIGRATED TO image/image-ipc.js (22 image: handlers)
+       包括: 图片选择上传, 图片管理, AI图像生成与处理
+
+       已迁移 handlers:
+       - image:select-images, image:upload, image:upload-batch
+       - image:ocr, image:get, image:list, image:search, image:delete
+       - image:get-stats, image:get-supported-formats, image:get-supported-languages
+       - image:generateFromText, image:removeBackground, image:resize, image:crop
+       - image:enhance, image:upscale, image:addWatermark, image:batchProcess
+       - image:convertFormat, image:createCollage, image:getInfo
+       ======================================================================== */
+
     // 图片上传和 OCR
     ipcMain.handle('image:select-images', async () => {
       try {
@@ -2905,6 +2958,18 @@ class ChainlessChainApp {
         throw error;
       }
     });
+
+    /* ========================================================================
+       MIGRATED TO prompt-template/prompt-template-ipc.js (11 prompt-template: handlers)
+       包括: 模板查询, 模板管理, 模板使用, 分类统计, 导入导出
+
+       已迁移 handlers:
+       - prompt-template:get-all, prompt-template:get, prompt-template:search
+       - prompt-template:create, prompt-template:update, prompt-template:delete
+       - prompt-template:fill
+       - prompt-template:get-categories, prompt-template:get-statistics
+       - prompt-template:export, prompt-template:import
+       ======================================================================== */
 
     // 提示词模板管理
     ipcMain.handle('prompt-template:get-all', async (_event, filters) => {
@@ -4522,6 +4587,20 @@ class ChainlessChainApp {
       }
     });
     /* END OF MIGRATED Organization handlers (org:* + org knowledge) */
+
+    /* ========================================================================
+       MIGRATED TO knowledge/knowledge-ipc.js (17 knowledge: handlers)
+       包括: 标签管理, 版本管理, 付费内容管理
+
+       已迁移 handlers:
+       - knowledge:get-tags
+       - knowledge:get-version-history, knowledge:restore-version, knowledge:compare-versions
+       - knowledge:create-content, knowledge:update-content, knowledge:delete-content
+       - knowledge:get-content, knowledge:list-contents
+       - knowledge:purchase-content, knowledge:subscribe, knowledge:unsubscribe
+       - knowledge:get-my-purchases, knowledge:get-my-subscriptions
+       - knowledge:access-content, knowledge:check-access, knowledge:get-statistics
+       ======================================================================== */
 
     // 获取标签列表
     ipcMain.handle('knowledge:get-tags', async (_event) => {
@@ -9436,6 +9515,19 @@ class ChainlessChainApp {
 
     // ==================== 文件内容读写 IPC ====================
 
+    /* ========================================================================
+       MIGRATED TO file/file-ipc.js (17 file: handlers)
+       包括: 文件读写, 文件管理, 系统剪贴板, 扩展操作
+
+       已迁移 handlers:
+       - file:read-content, file:write-content, file:read-binary
+       - file:revealInExplorer, file:copyItem, file:moveItem, file:deleteItem
+       - file:renameItem, file:createFile, file:createFolder, file:openWithDefault
+       - file:copyToSystemClipboard, file:cutToSystemClipboard
+       - file:pasteFromSystemClipboard, file:importFromSystemClipboard
+       - file:openWith, file:openWithProgram
+       ======================================================================== */
+
     // 读取文件内容（文本文件）
     ipcMain.handle('file:read-content', async (_event, filePath) => {
       try {
@@ -11262,6 +11354,14 @@ class ChainlessChainApp {
       }
     });
 
+    /* ========================================================================
+       MIGRATED TO document/document-ipc.js (1 ppt: handler)
+       包括: PPT导出
+
+       已迁移 handlers:
+       - ppt:export
+       ======================================================================== */
+
     // 从PPT编辑器导出为 .pptx 文件
     ipcMain.handle('ppt:export', async (_event, params) => {
       try {
@@ -11361,6 +11461,20 @@ ${content}
     });
 
     // ==================== 项目模板管理 ====================
+
+    /* ========================================================================
+       MIGRATED TO template/template-ipc.js (20 template: handlers)
+       包括: 模板查询, 模板管理, 模板渲染, 使用评价, 文件操作
+
+       已迁移 handlers:
+       - template:getAll, template:getById, template:search
+       - template:getStats, template:getRecent, template:getPopular
+       - template:create, template:update, template:delete, template:duplicate
+       - template:renderPrompt, template:render, template:validate
+       - template:recordUsage, template:rate
+       - template:preview, template:loadTemplate, template:saveTemplate
+       - template:extractVariables, template:getDefaultVariables
+       ======================================================================== */
 
     // 获取所有模板
     ipcMain.handle('template:getAll', async (_event, filters = {}) => {
@@ -12458,6 +12572,15 @@ ${content}
     // ==================== 项目统计接口结束 ====================
 
     // ==================== PDF导出接口 ====================
+
+    /* ========================================================================
+       MIGRATED TO pdf/pdf-ipc.js (4 pdf: handlers)
+       包括: Markdown/HTML/文本转PDF, 批量转换
+
+       已迁移 handlers:
+       - pdf:markdownToPDF, pdf:htmlFileToPDF
+       - pdf:textFileToPDF, pdf:batchConvert
+       ======================================================================== */
 
     // Markdown转PDF
     ipcMain.handle('pdf:markdownToPDF', async (_event, params) => {
@@ -14686,6 +14809,26 @@ ${content}
       return speechManager;
     };
 
+    /* ========================================================================
+       MIGRATED TO speech/speech-ipc.js (34 speech: handlers)
+       包括: 文件转录, 配置管理, 历史记录, 音频处理, 字幕生成, 实时录音, 命令识别
+
+       已迁移 handlers:
+       - speech:transcribe-file, speech:transcribe-batch, speech:select-audio-files
+       - speech:get-config, speech:update-config, speech:set-engine, speech:get-available-engines
+       - speech:get-history, speech:delete-history
+       - speech:get-audio-file, speech:list-audio-files, speech:search-audio-files
+       - speech:delete-audio-file, speech:get-stats
+       - speech:denoise-audio, speech:enhance-audio, speech:enhance-for-recognition
+       - speech:detect-language, speech:detect-languages
+       - speech:generate-subtitle, speech:transcribe-and-generate-subtitle, speech:batch-generate-subtitles
+       - speech:start-realtime-recording, speech:add-realtime-audio-data
+       - speech:pause-realtime-recording, speech:resume-realtime-recording
+       - speech:stop-realtime-recording, speech:cancel-realtime-recording, speech:get-realtime-status
+       - speech:recognize-command, speech:register-command, speech:get-all-commands
+       - speech:get-cache-stats, speech:clear-cache
+       ======================================================================== */
+
     // 转录音频文件
     ipcMain.handle('speech:transcribe-file', async (event, filePath, options = {}) => {
       try {
@@ -15150,6 +15293,12 @@ ${content}
 
     console.log('[Main] 语音识别系统 IPC handlers 注册完成（含实时语音输入）');
     console.log('[Main] 插件系统 IPC handlers 注册完成');
+
+    // ========================================================================
+    // 恢复原来的 ipcMain.handle 方法
+    // ========================================================================
+    ipcMain.handle = originalHandle;
+    console.log('[ChainlessChainApp] ✓ IPC setup completed, original ipcMain.handle restored');
   }
 
   registerCoreIPCHandlers() {
