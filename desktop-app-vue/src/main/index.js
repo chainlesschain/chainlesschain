@@ -1880,9 +1880,74 @@ class ChainlessChainApp {
   }
 
   setupIPC() {
+    // ========================================================================
+    // 模块化 IPC 注册中心 (第一阶段：LLM 和 RAG 模块已迁移)
+    // ========================================================================
+    console.log('[ChainlessChainApp] ========================================');
+    console.log('[ChainlessChainApp] Starting IPC setup (Modular Mode)...');
+    console.log('[ChainlessChainApp] ========================================');
+
+    // 导入注册中心
+    const { registerAllIPC } = require('./ipc-registry');
+
+    // 注册所有模块化的 IPC 处理器
+    try {
+      this.ipcHandlers = registerAllIPC({
+        app: this,
+        database: this.database,
+        mainWindow: this.mainWindow,
+        llmManager: this.llmManager,
+        ragManager: this.ragManager,
+        ukeyManager: this.ukeyManager,
+        gitManager: this.gitManager,
+        didManager: this.didManager,
+        p2pManager: this.p2pManager,
+        skillManager: this.skillManager,
+        toolManager: this.toolManager,
+        imageUploader: this.imageUploader,
+        fileImporter: this.fileImporter,
+        promptTemplateManager: this.promptTemplateManager,
+        knowledgePaymentManager: this.knowledgePaymentManager,
+        creditScoreManager: this.creditScoreManager,
+        reviewManager: this.reviewManager,
+        vcTemplateManager: this.vcTemplateManager,
+        identityContextManager: this.identityContextManager,
+        aiEngineManager: this.aiEngineManager,
+        webEngine: this.webEngine,
+        documentEngine: this.documentEngine,
+        dataEngine: this.dataEngine,
+        projectStructureManager: this.projectStructureManager,
+        pluginManager: this.pluginManager,
+        webideManager: this.webideManager,
+        statsCollector: this.statsCollector,
+        fileSyncManager: this.fileSyncManager,
+        previewManager: this.previewManager,
+        markdownExporter: this.markdownExporter,
+        nativeMessagingServer: this.nativeMessagingServer,
+        gitAutoCommit: this.gitAutoCommit,
+        skillExecutor: this.skillExecutor,
+        aiScheduler: this.aiScheduler,
+        chatSkillBridge: this.chatSkillBridge
+      });
+
+      console.log('[ChainlessChainApp] ✓ Modular IPC registration complete');
+    } catch (error) {
+      console.error('[ChainlessChainApp] ❌ Modular IPC registration failed:', error);
+    }
+
+    console.log('[ChainlessChainApp] ========================================');
+    console.log('[ChainlessChainApp] Registering legacy IPC handlers...');
+    console.log('[ChainlessChainApp] (To be migrated in future phases)');
+    console.log('[ChainlessChainApp] ========================================');
+
+    // ========================================================================
+    // 遗留 IPC Handlers（待迁移到模块化）
+    // ========================================================================
+
     // 注册技能和工具IPC handlers
     // 注意：实际注册在 onReady() 中进行，因为需要等待 skillManager 和 toolManager 初始化完成
 
+    /* ⚠️ MIGRATED TO ukey/ukey-ipc.js (9 handlers)
     // U盾相关 - 使用真实硬件实现
     ipcMain.handle('ukey:detect', async () => {
       try {
@@ -2037,6 +2102,7 @@ class ChainlessChainApp {
         };
       }
     });
+    END OF MIGRATED U-Key & Auth handlers */
 
     // ==================== 数据同步 IPC 处理器 ====================
 
@@ -2111,6 +2177,7 @@ class ChainlessChainApp {
       }
     });
 
+    /* MIGRATED TO database/database-ipc.js (15 db:* handlers) */
     // 数据库操作 - 使用 SQLite
     ipcMain.handle('db:get-knowledge-items', async (_event, limit, offset) => {
       try {
@@ -2980,6 +3047,12 @@ class ChainlessChainApp {
       }
     });
 
+    // ========================================================================
+    // ⚠️ LLM & RAG 相关 IPC 已迁移到模块化 (llm/llm-ipc.js 和 rag/rag-ipc.js)
+    // 以下代码已注释，避免重复注册
+    // ========================================================================
+
+    /* MIGRATED TO llm/llm-ipc.js
     // LLM服务 - 完整实现
     ipcMain.handle('llm:check-status', async () => {
       try {
@@ -2998,6 +3071,16 @@ class ChainlessChainApp {
         };
       }
     });
+
+    /*
+    ========================================================================
+    以下所有 LLM 和 RAG IPC handlers 已迁移到模块化文件
+    - llm/llm-ipc.js (14 handlers)
+    - rag/rag-ipc.js (7 handlers)
+
+    保留此代码作为参考，但已被注释以避免重复注册
+    如需回滚，可取消注释并禁用 ipc-registry.js 中的对应模块
+    ========================================================================
 
     ipcMain.handle('llm:query', async (_event, prompt, options = {}) => {
       try {
@@ -3355,7 +3438,12 @@ class ChainlessChainApp {
       }
     });
 
+    END OF MIGRATED LLM & RAG handlers */
+
     // DID身份管理
+    /* ========================================================================
+       MIGRATED TO did/did-ipc.js (24 did:* handlers)
+       ======================================================================== */
     ipcMain.handle('did:create-identity', async (_event, profile, options) => {
       try {
         if (!this.didManager) {
@@ -3678,6 +3766,7 @@ class ChainlessChainApp {
         return false;
       }
     });
+    /* END OF MIGRATED DID handlers */
 
     // ============================
     // 企业版：身份上下文 IPC Handler
@@ -4677,6 +4766,13 @@ class ChainlessChainApp {
     });
 
     // 联系人管理
+    /* ========================================================================
+       MIGRATED TO social/social-ipc.js (33 handlers)
+       - Contact Management (9 handlers): contact:*
+       - Friend Management (9 handlers): friend:*
+       - Post/Feed Management (10 handlers): post:*
+       - Chat/Messaging (5 handlers): chat:*
+       ======================================================================== */
     ipcMain.handle('contact:add', async (_event, contact) => {
       try {
         if (!this.contactManager) {
@@ -5192,6 +5288,7 @@ class ChainlessChainApp {
         throw error;
       }
     });
+    /* END OF MIGRATED Social handlers (contact + friend + post + chat) */
 
     // ==================== 通知管理 ====================
 
@@ -6914,6 +7011,9 @@ class ChainlessChainApp {
     });
 
     // P2P网络
+    /* ========================================================================
+       MIGRATED TO p2p/p2p-ipc.js (18 p2p:* handlers)
+       ======================================================================== */
     ipcMain.handle('p2p:get-node-info', async () => {
       try {
         if (!this.p2pManager || !this.p2pManager.initialized) {
@@ -7184,6 +7284,7 @@ class ChainlessChainApp {
         throw error;
       }
     });
+    /* END OF MIGRATED P2P handlers */
 
     // 可验证凭证 (VC)
     ipcMain.handle('vc:create', async (_event, params) => {
@@ -7459,6 +7560,7 @@ class ChainlessChainApp {
       }
     });
 
+    /* MIGRATED TO git/git-ipc.js (15 git:* handlers)
     // Git同步 - 完整实现
     ipcMain.handle('git:status', async () => {
       try {
@@ -7694,6 +7796,7 @@ class ChainlessChainApp {
         throw error;
       }
     });
+    END OF MIGRATED Git handlers */
 
     // ==================== 项目管理 IPC ====================
 
@@ -7758,6 +7861,7 @@ class ChainlessChainApp {
       }
     });
 
+    /* MIGRATED TO database/database-ipc.js */
     // 调试：获取数据库统计信息
     ipcMain.handle('database:get-stats', async () => {
       try {
@@ -9837,6 +9941,7 @@ class ChainlessChainApp {
       }
     });
 
+    /* ⚠️ MIGRATED TO llm/llm-ipc.js
     // ==================== LLM智能选择 IPC ====================
 
     // 获取LLM选择器信息
@@ -9914,8 +10019,10 @@ class ChainlessChainApp {
         throw error;
       }
     });
+    END OF MIGRATED LLM智能选择 */
 
     // ==================== 数据库配置 IPC ====================
+    /* MIGRATED TO database/database-ipc.js (6 database:* handlers) */
 
     // 获取数据库配置
     ipcMain.handle('database:get-config', async () => {
@@ -12356,6 +12463,7 @@ ${content}
     // ==================== PDF导出接口结束 ====================
 
     // ==================== Git AI提交信息接口 ====================
+    /* MIGRATED TO git/git-ipc.js */
 
     // AI生成提交信息
     ipcMain.handle('git:generateCommitMessage', async (_event, projectPath) => {

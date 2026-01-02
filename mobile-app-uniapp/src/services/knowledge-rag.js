@@ -8,14 +8,16 @@
  * - 语义搜索和关键词匹配
  * - 知识图谱遍历
  *
- * 架构：
- * - 优先使用后端AI服务的向量检索（Qdrant + BGE嵌入模型）
- * - 降级到本地关键词检索（离线模式）
+ * 架构更新 (v0.2.0):
+ * - 优先使用本地RAG Manager（transformers.js向量化）
+ * - 降级到后端AI服务（Qdrant + BGE嵌入模型）
+ * - 再降级到本地关键词检索（离线模式）
  */
 
 import database from './database'
 import { llm } from './llm'
 import { aiService } from './ai'
+import RAGManager from './rag/rag-manager.js'
 
 // 后端AI服务配置
 const AI_SERVICE_BASE_URL = process.env.VUE_APP_AI_SERVICE_URL || 'http://localhost:8001'
@@ -28,8 +30,37 @@ class KnowledgeRAGService {
     this.lastBackendCheck = null // 最后检查时间
     this.checkInterval = 60000 // 检查间隔（1分钟）
 
-    // 启动时检查后端
-    this._checkBackendAvailability()
+    // 新增：本地RAG Manager
+    this.ragManager = new RAGManager({
+      enableRAG: true,
+      enableReranking: true,
+      rerankMethod: 'hybrid',
+      topK: 10,
+      rerankTopK: 5
+    })
+    this.ragInitialized = false
+
+    // 启动时初始化
+    this._initialize()
+  }
+
+  /**
+   * 初始化服务
+   * @private
+   */
+  async _initialize() {
+    // 初始化本地RAG Manager
+    try {
+      const result = await this.ragManager.initialize()
+      this.ragInitialized = result.success
+      console.log('[KnowledgeRAG] 本地RAG Manager初始化:', result)
+    } catch (error) {
+      console.error('[KnowledgeRAG] 本地RAG初始化失败:', error)
+      this.ragInitialized = false
+    }
+
+    // 检查后端
+    await this._checkBackendAvailability()
   }
 
   /**
@@ -133,12 +164,24 @@ class KnowledgeRAGService {
       includeContent = true,
       includeTags = true,
       searchMode = 'hybrid', // 'keyword', 'semantic', 'hybrid'
-      useBackend = true, // 是否尝试使用后端
-      useReranker = true // 是否使用重排序（仅后端）
+      useBackend = false, // 默认false，优先本地
+      useReranker = true // 是否使用重排序
     } = options
 
     try {
-      // 优先尝试后端向量检索
+      // 优先使用本地RAG Manager（新增）
+      if (this.ragInitialized && searchMode !== 'keyword') {
+        console.log('[KnowledgeRAG] 使用本地RAG Manager (transformers.js)')
+        return await this._retrieveWithRAGManager(query, {
+          limit,
+          minScore,
+          includeContent,
+          includeTags,
+          useReranker
+        })
+      }
+
+      // 降级到后端向量检索
       if (useBackend) {
         const available = await this._checkBackendAvailability()
         if (available) {
@@ -153,8 +196,8 @@ class KnowledgeRAGService {
         }
       }
 
-      // 降级到本地关键词检索
-      console.log('[KnowledgeRAG] 使用本地关键词检索')
+      // 再降级到本地关键词检索
+      console.log('[KnowledgeRAG] 使用本地关键词检索（降级）')
       return await this._retrieveLocally(query, {
         limit,
         minScore,
@@ -165,6 +208,46 @@ class KnowledgeRAGService {
     } catch (error) {
       console.error('[KnowledgeRAG] 检索失败:', error)
       return []
+    }
+  }
+
+  /**
+   * 使用本地RAG Manager检索（新增）
+   * @private
+   */
+  async _retrieveWithRAGManager(query, options) {
+    const {
+      limit = 5,
+      minScore = 0.3,
+      includeContent = true,
+      includeTags = true,
+      useReranker = true
+    } = options
+
+    try {
+      // 使用RAG Manager检索
+      const results = await this.ragManager.retrieve(query, {
+        topK: Math.max(limit * 2, 10), // 初步检索更多，供重排序
+        similarityThreshold: minScore,
+        rerankTopK: limit,
+        rerankMethod: useReranker ? 'hybrid' : null
+      })
+
+      // 转换为统一格式
+      return results.map(doc => ({
+        id: doc.id,
+        title: doc.title,
+        content: includeContent ? doc.content : doc.content?.substring(0, 200),
+        tags: includeTags ? doc.tags : undefined,
+        type: doc.type,
+        score: doc.rerank_score || doc.similarity,
+        source: 'local_rag',
+        created_at: doc.created_at,
+        updated_at: doc.updated_at
+      }))
+    } catch (error) {
+      console.error('[KnowledgeRAG] RAG Manager检索失败:', error)
+      throw error
     }
   }
 
