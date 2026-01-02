@@ -1209,6 +1209,42 @@ async def project_chat(project_id: str, request: ProjectChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ==================== P2P Signaling Server ====================
+
+from src.p2p.signaling_server import get_signaling_server
+
+signaling_server = get_signaling_server()
+
+
+@app.websocket("/ws/signaling/{peer_id}")
+async def websocket_signaling(websocket: WebSocket, peer_id: str):
+    """
+    WebSocket信令服务器端点
+
+    Args:
+        websocket: WebSocket连接
+        peer_id: 节点ID（通常是DID）
+
+    功能：
+        - P2P节点注册和发现
+        - WebRTC信令交换（SDP Offer/Answer, ICE Candidate）
+        - 消息路由和转发
+        - 在线状态管理
+    """
+    await signaling_server.handle_websocket(websocket, peer_id)
+
+
+@app.get("/api/signaling/stats")
+async def get_signaling_stats():
+    """
+    获取信令服务器统计信息
+
+    Returns:
+        统计信息，包含在线节点数、节点列表等
+    """
+    return signaling_server.get_stats()
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
