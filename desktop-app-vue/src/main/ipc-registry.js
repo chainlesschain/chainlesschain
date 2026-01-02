@@ -435,6 +435,151 @@ function registerAllIPC(dependencies) {
     console.log('[IPC Registry] ========================================');
 
     // ============================================================
+    // 第八阶段模块 (新增模块 - 区块链、代码工具、知识图谱等)
+    // ============================================================
+
+    // 区块链核心 (7个模块, 75 handlers)
+    if (app.walletManager) {
+      console.log('[IPC Registry] Registering Blockchain Wallet IPC...');
+      const { registerWalletIPC } = require('./blockchain/wallet-ipc');
+      registerWalletIPC({
+        walletManager: app.walletManager,
+        externalWalletConnector: app.externalWalletConnector
+      });
+      console.log('[IPC Registry] ✓ Blockchain Wallet IPC registered (15 handlers)');
+    }
+
+    if (app.contractEngine) {
+      console.log('[IPC Registry] Registering Smart Contract IPC...');
+      const { registerContractIPC } = require('./blockchain/contract-ipc');
+      registerContractIPC({ contractEngine: app.contractEngine });
+      console.log('[IPC Registry] ✓ Smart Contract IPC registered (15 handlers)');
+    }
+
+    if (app.blockchainAdapter || app.transactionMonitor) {
+      console.log('[IPC Registry] Registering Blockchain IPC...');
+      const { registerBlockchainIPC } = require('./blockchain/blockchain-ipc');
+      registerBlockchainIPC({
+        blockchainAdapter: app.blockchainAdapter,
+        transactionMonitor: app.transactionMonitor,
+        database,
+        mainWindow
+      });
+      console.log('[IPC Registry] ✓ Blockchain IPC registered (14 handlers)');
+    }
+
+    if (app.assetManager) {
+      console.log('[IPC Registry] Registering Asset IPC...');
+      const { registerAssetIPC } = require('./blockchain/asset-ipc');
+      registerAssetIPC({ assetManager: app.assetManager });
+      console.log('[IPC Registry] ✓ Asset IPC registered (10 handlers)');
+    }
+
+    if (app.marketplaceManager) {
+      console.log('[IPC Registry] Registering Marketplace IPC...');
+      const { registerMarketplaceIPC } = require('./blockchain/marketplace-ipc');
+      registerMarketplaceIPC({ marketplaceManager: app.marketplaceManager });
+      console.log('[IPC Registry] ✓ Marketplace IPC registered (9 handlers)');
+    }
+
+    if (app.bridgeManager) {
+      console.log('[IPC Registry] Registering Bridge IPC...');
+      const { registerBridgeIPC } = require('./blockchain/bridge-ipc');
+      registerBridgeIPC(app.bridgeManager);
+      console.log('[IPC Registry] ✓ Bridge IPC registered (7 handlers)');
+    }
+
+    if (app.escrowManager) {
+      console.log('[IPC Registry] Registering Escrow IPC...');
+      const { registerEscrowIPC } = require('./blockchain/escrow-ipc');
+      registerEscrowIPC(app.escrowManager);
+      console.log('[IPC Registry] ✓ Escrow IPC registered (5 handlers)');
+    }
+
+    // 代码工具 (2个模块, 20 handlers)
+    if (llmManager) {
+      console.log('[IPC Registry] Registering Code Tools IPC...');
+      const { registerCodeIPC } = require('./code-tools/code-ipc');
+      registerCodeIPC({ llmManager });
+      console.log('[IPC Registry] ✓ Code Tools IPC registered (10 handlers)');
+    }
+
+    if (reviewManager) {
+      console.log('[IPC Registry] Registering Review System IPC...');
+      const { registerReviewIPC } = require('./code-tools/review-ipc');
+      registerReviewIPC({ reviewManager });
+      console.log('[IPC Registry] ✓ Review System IPC registered (10 handlers)');
+    }
+
+    // 企业协作 (3个模块, 28 handlers)
+    console.log('[IPC Registry] Registering Collaboration IPC...');
+    const { registerCollaborationIPC } = require('./collaboration/collaboration-ipc');
+    registerCollaborationIPC();
+    console.log('[IPC Registry] ✓ Collaboration IPC registered (8 handlers)');
+
+    if (vcTemplateManager) {
+      console.log('[IPC Registry] Registering VC Template IPC...');
+      const { registerVCTemplateIPC } = require('./vc-template/vc-template-ipc');
+      registerVCTemplateIPC(vcTemplateManager);
+      console.log('[IPC Registry] ✓ VC Template IPC registered (11 handlers)');
+    }
+
+    console.log('[IPC Registry] Registering Automation IPC...');
+    const { registerAutomationIPC } = require('./automation/automation-ipc');
+    registerAutomationIPC();
+    console.log('[IPC Registry] ✓ Automation IPC registered (9 handlers)');
+
+    // 知识图谱与信用 (2个模块, 18 handlers)
+    if (database || app.graphExtractor) {
+      console.log('[IPC Registry] Registering Knowledge Graph IPC...');
+      const { registerGraphIPC } = require('./knowledge-graph/graph-ipc');
+      registerGraphIPC({
+        database,
+        graphExtractor: app.graphExtractor,
+        llmManager
+      });
+      console.log('[IPC Registry] ✓ Knowledge Graph IPC registered (11 handlers)');
+    }
+
+    if (creditScoreManager) {
+      console.log('[IPC Registry] Registering Credit Score IPC...');
+      const { registerCreditIPC } = require('./credit/credit-ipc');
+      registerCreditIPC({ creditScoreManager });
+      console.log('[IPC Registry] ✓ Credit Score IPC registered (7 handlers)');
+    }
+
+    // 其他功能 (3个模块, 13 handlers)
+    if (fileImporter) {
+      console.log('[IPC Registry] Registering Import IPC...');
+      const { registerImportIPC } = require('./import/import-ipc');
+      registerImportIPC({
+        fileImporter,
+        mainWindow,
+        database,
+        ragManager
+      });
+      console.log('[IPC Registry] ✓ Import IPC registered (5 handlers)');
+    }
+
+    if (app.syncManager) {
+      console.log('[IPC Registry] Registering Sync IPC...');
+      const { registerSyncIPC } = require('./sync/sync-ipc');
+      registerSyncIPC({ syncManager: app.syncManager });
+      console.log('[IPC Registry] ✓ Sync IPC registered (4 handlers)');
+    }
+
+    if (database) {
+      console.log('[IPC Registry] Registering Notification IPC...');
+      const { registerNotificationIPC } = require('./notification/notification-ipc');
+      registerNotificationIPC({ database });
+      console.log('[IPC Registry] ✓ Notification IPC registered (4 handlers)');
+    }
+
+    console.log('[IPC Registry] ========================================');
+    console.log('[IPC Registry] Phase 8 Complete: 17 modules migrated (154 handlers)!');
+    console.log('[IPC Registry] ========================================');
+
+    // ============================================================
     // 注册统计
     // ============================================================
 
