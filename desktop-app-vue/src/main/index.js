@@ -55,9 +55,6 @@ const GitAutoCommit = require('./git-auto-commit');
 // File operation IPC
 const FileIPC = require('./ipc/file-ipc');
 
-// Category management IPC
-const { registerCategoryIPCHandlers } = require('./category-ipc');
-
 // Backend API clients
 const { ProjectFileAPI, GitAPI, RAGAPI, CodeAPI } = require('./api/backend-client');
 
@@ -395,15 +392,6 @@ class ChainlessChainApp {
       console.log('项目模板管理器初始化成功');
     } catch (error) {
       console.error('项目模板管理器初始化失败:', error);
-    }
-
-    // 注册分类管理IPC处理函数
-    try {
-      console.log('注册分类管理IPC处理函数...');
-      registerCategoryIPCHandlers(this.database, this.mainWindow);
-      console.log('分类管理IPC处理函数注册成功');
-    } catch (error) {
-      console.error('分类管理IPC处理函数注册失败:', error);
     }
 
     // 初始化U盾管理器

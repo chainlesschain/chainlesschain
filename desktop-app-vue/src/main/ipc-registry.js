@@ -139,20 +139,22 @@ function registerAllIPC(dependencies) {
     }
 
     // Git 版本控制 (函数模式 - 中等模块，16 handlers)
-    if (gitManager) {
-      console.log('[IPC Registry] Registering Git IPC...');
-      const { registerGitIPC } = require('./git/git-ipc');
+    // 注意：即使 gitManager 为 null 也注册 IPC，让 handler 内部处理
+    console.log('[IPC Registry] Registering Git IPC...');
+    const { registerGitIPC } = require('./git/git-ipc');
 
-      // 获取 getGitConfig 函数
-      const { getGitConfig } = require('./git/git-config');
+    // 获取 getGitConfig 函数
+    const { getGitConfig } = require('./git/git-config');
 
-      registerGitIPC({
-        gitManager,
-        markdownExporter,
-        getGitConfig,
-        llmManager
-      });
-      console.log('[IPC Registry] ✓ Git IPC registered (16 handlers)');
+    registerGitIPC({
+      gitManager,
+      markdownExporter,
+      getGitConfig,
+      llmManager
+    });
+    console.log('[IPC Registry] ✓ Git IPC registered (16 handlers)');
+    if (!gitManager) {
+      console.log('[IPC Registry] ⚠️  Git manager not initialized (Git sync disabled in config)');
     }
 
     // ============================================================
@@ -385,16 +387,21 @@ function registerAllIPC(dependencies) {
     // ============================================================
 
     // 语音处理 (函数模式 - 超大模块，34 handlers)
-    console.log('[IPC Registry] Registering Speech IPC...');
-    const { registerSpeechIPC } = require('./speech/speech-ipc');
+    // 注意：检查 initializeSpeechManager 是否存在
+    if (app.initializeSpeechManager && typeof app.initializeSpeechManager === 'function') {
+      console.log('[IPC Registry] Registering Speech IPC...');
+      const { registerSpeechIPC } = require('./speech/speech-ipc');
 
-    // 获取 initializeSpeechManager 函数
-    const initializeSpeechManager = app.initializeSpeechManager.bind(app);
+      // 获取 initializeSpeechManager 函数
+      const initializeSpeechManager = app.initializeSpeechManager.bind(app);
 
-    registerSpeechIPC({
-      initializeSpeechManager
-    });
-    console.log('[IPC Registry] ✓ Speech IPC registered (34 handlers)');
+      registerSpeechIPC({
+        initializeSpeechManager
+      });
+      console.log('[IPC Registry] ✓ Speech IPC registered (34 handlers)');
+    } else {
+      console.log('[IPC Registry] ⚠️  Speech IPC skipped (initializeSpeechManager not available)');
+    }
 
     // 视频处理 (函数模式 - 大模块，18 handlers)
     if (app.videoImporter) {
@@ -572,11 +579,34 @@ function registerAllIPC(dependencies) {
       console.log('[IPC Registry] Registering Notification IPC...');
       const { registerNotificationIPC } = require('./notification/notification-ipc');
       registerNotificationIPC({ database });
-      console.log('[IPC Registry] ✓ Notification IPC registered (4 handlers)');
+      console.log('[IPC Registry] ✓ Notification IPC registered (5 handlers)');
+    }
+
+    // 配置管理 (函数模式 - 小模块，4 handlers)
+    console.log('[IPC Registry] Registering Config IPC...');
+    const { registerConfigIPC } = require('./config/config-ipc');
+    const { getAppConfig } = require('./app-config');
+    registerConfigIPC({ appConfig: getAppConfig() });
+    console.log('[IPC Registry] ✓ Config IPC registered (4 handlers)');
+
+    // 分类管理 (函数模式 - 中等模块，7 handlers)
+    if (database) {
+      console.log('[IPC Registry] Registering Category IPC...');
+      const { registerCategoryIPCHandlers } = require('./category-ipc');
+      registerCategoryIPCHandlers(database, mainWindow);
+      console.log('[IPC Registry] ✓ Category IPC registered (7 handlers)');
+    }
+
+    // 系统窗口控制 (函数模式 - 小模块，6 handlers)
+    if (mainWindow) {
+      console.log('[IPC Registry] Registering System IPC...');
+      const { registerSystemIPC } = require('./system/system-ipc');
+      registerSystemIPC({ mainWindow });
+      console.log('[IPC Registry] ✓ System IPC registered (6 handlers)');
     }
 
     console.log('[IPC Registry] ========================================');
-    console.log('[IPC Registry] Phase 8 Complete: 17 modules migrated (154 handlers)!');
+    console.log('[IPC Registry] Phase 8 Complete: 20 modules migrated (176 handlers)!');
     console.log('[IPC Registry] ========================================');
 
     // ============================================================
