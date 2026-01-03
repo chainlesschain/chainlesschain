@@ -644,18 +644,102 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       projectType = 'document';
     }
 
+    // 检测文件格式（用于document类型）
+    let documentFormat = null;
+    if (projectType === 'document') {
+      if (textLower.includes('txt') || textLower.includes('文本')) {
+        documentFormat = 'txt';
+      } else if (textLower.includes('markdown') || textLower.includes('md')) {
+        documentFormat = 'markdown';
+      } else if (textLower.includes('word') || textLower.includes('docx') || textLower.includes('doc')) {
+        documentFormat = 'docx';
+      }
+      // 默认为txt格式（如果是document类型但未明确指定格式）
+      if (!documentFormat) {
+        documentFormat = 'txt';
+      }
+    }
+
     console.log('[ProjectsPage] 智能检测项目类型:');
     console.log('  - 用户输入:', text);
     console.log('  - 检测结果: projectType =', projectType || '(由后端AI自动识别)');
+    console.log('  - 文档格式: documentFormat =', documentFormat || '(无)');
     console.log('  - isDocumentRequest:', isDocumentRequest);
     console.log('  - isDataRequest:', isDataRequest);
     console.log('  - isWebRequest:', isWebRequest);
 
+    // 检测是否是简单的txt文件创建请求（适合本地快速创建）
+    const isSimpleTxtRequest = documentFormat === 'txt' && text.length < 200;
+
+    // 如果是简单的txt请求，使用本地快速创建（更可靠）
+    if (isSimpleTxtRequest) {
+      console.log('[ProjectsPage] 检测到简单txt请求，使用本地快速创建');
+
+      try {
+        // 提取文件内容（从用户输入中）
+        let fileContent = '';
+        const contentMatch = text.match(/(?:里面写|内容是|写上|内容为)[\s:：]*(.*?)(?:\.|。|$)/);
+        if (contentMatch && contentMatch[1]) {
+          fileContent = contentMatch[1].trim();
+        } else {
+          // 如果没有明确内容，使用整个输入作为内容
+          fileContent = text.replace(/帮我|请|创建|生成|做|写|一个|txt|文件|文本/g, '').trim();
+        }
+
+        console.log('[ProjectsPage] 提取的文件内容:', fileContent);
+
+        // 使用快速创建
+        const quickCreateData = {
+          name: text.substring(0, 50) || '未命名txt项目',
+          description: text,
+          projectType: 'document',
+          status: 'draft',
+          userId: userId,
+        };
+
+        const createdProject = await window.electronAPI.project.createQuick(quickCreateData);
+        console.log('[ProjectsPage] 快速创建项目成功:', createdProject);
+
+        // 创建txt文件
+        const fileName = 'content.txt';
+        const fileData = {
+          projectId: createdProject.id,
+          filePath: fileName, // 文件路径（相对于项目根目录）
+          content: fileContent, // 文件内容
+        };
+
+        await window.electronAPI.file.createFile(fileData);
+        console.log('[ProjectsPage] txt文件创建成功');
+
+        message.success('txt文件创建完成！', 2);
+
+        // 跳转到项目页面
+        setTimeout(() => {
+          router.push(`/projects/${createdProject.id}`);
+        }, 500);
+
+        return; // 使用快速创建后直接返回
+      } catch (error) {
+        console.error('[ProjectsPage] 快速创建失败，回退到流式创建:', error);
+        // 如果快速创建失败，继续使用流式创建
+      }
+    }
+
+    // 增强用户提示词，明确文件格式（用于流式创建）
+    let enhancedPrompt = text;
+    if (documentFormat === 'txt') {
+      // 如果检测到txt请求，在提示词中强调生成纯文本文件
+      enhancedPrompt = `${text}\n\n【重要】请生成纯文本格式(.txt)文件，不要生成Word(.docx)或其他格式。`;
+    } else if (documentFormat === 'markdown') {
+      enhancedPrompt = `${text}\n\n【重要】请生成Markdown格式(.md)文件。`;
+    }
+
     const projectData = {
-      userPrompt: text,
+      userPrompt: enhancedPrompt, // 使用增强后的提示词
       name: text.substring(0, 50) || '未命名项目',
       projectType: projectType, // 智能检测后的项目类型
       userId: userId,
+      metadata: documentFormat ? { documentFormat: documentFormat } : undefined, // 添加文档格式提示
     };
 
     const project = await projectStore.createProjectStream(projectData, (progressUpdate) => {

@@ -752,7 +752,7 @@ describe('TaskPlanner', () => {
     });
 
     it('should parse JSON wrapped in markdown with extra text', async () => {
-      mockLLMService.complete.mockResolvedValueOnce(`
+      mockLLMService.complete.mockResolvedValue(`
 Here is the task plan:
 
 \`\`\`json
@@ -774,7 +774,7 @@ This is the plan I generated.
     });
 
     it('should parse JSON without markdown code block', async () => {
-      mockLLMService.complete.mockResolvedValueOnce(`
+      mockLLMService.complete.mockResolvedValue(`
 {
   "task_title": "纯JSON",
   "task_type": "web",
