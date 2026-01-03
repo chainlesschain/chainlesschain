@@ -3,23 +3,25 @@
  * 测试订阅和技能交换合约执行逻辑
  */
 
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 const { SmartContractEngine, ContractType } = require('../../../src/main/trade/contract-engine');
 
 // Mock 依赖
 const createMockDatabase = () => ({
   db: {
-    prepare: vitest.fn(),
-    exec: vitest.fn(),
+    prepare: vi.fn(),
+    exec: vi.fn(),
   },
 });
 
 const createMockDIDManager = () => ({
-  getCurrentIdentity: jest.fn(() => ({ did: 'did:example:user123' })),
+  getCurrentIdentity: vi.fn(() => ({ did: 'did:example:user123' })),
 });
 
 const createMockEscrowManager = () => ({
-  releaseEscrow: vitest.fn(),
-  refundEscrow: vitest.fn(),
+  releaseEscrow: vi.fn(),
+  refundEscrow: vi.fn(),
 });
 
 describe('SmartContractEngine - executeContractLogic', () => {
@@ -40,7 +42,7 @@ describe('SmartContractEngine - executeContractLogic', () => {
       mockEscrowManager
     );
 
-    vitest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('订阅合约执行（SUBSCRIPTION）', () => {
@@ -58,8 +60,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
       };
 
       // Mock prepare 方法返回
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: vitest.fn(),
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn(),
       });
       mockDatabase.db.prepare.mockImplementation(mockPrepare);
 
@@ -95,8 +97,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
       };
 
       let savedMetadata = null;
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: jest.fn((metadata, contractId) => {
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn((metadata, contractId) => {
           if (metadata && typeof metadata === 'string') {
             savedMetadata = JSON.parse(metadata);
           }
@@ -124,8 +126,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
       };
 
       let savedMetadata = null;
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: jest.fn((metadata, contractId) => {
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn((metadata, contractId) => {
           if (metadata && typeof metadata === 'string') {
             savedMetadata = JSON.parse(metadata);
           }
@@ -176,8 +178,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
       };
 
       let savedMetadata = null;
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: jest.fn((metadata, contractId) => {
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn((metadata, contractId) => {
           if (metadata && typeof metadata === 'string') {
             savedMetadata = JSON.parse(metadata);
           }
@@ -221,8 +223,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
       };
 
       let savedMetadata = null;
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: jest.fn((metadata, contractId) => {
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn((metadata, contractId) => {
           if (metadata && typeof metadata === 'string') {
             savedMetadata = JSON.parse(metadata);
           }
@@ -257,8 +259,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
       };
 
       let savedMetadata = null;
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: jest.fn((metadata, contractId) => {
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn((metadata, contractId) => {
           if (metadata && typeof metadata === 'string') {
             savedMetadata = JSON.parse(metadata);
           }
@@ -300,8 +302,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
         metadata: JSON.stringify(existingMetadata),
       };
 
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: vitest.fn(),
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn(),
       });
       mockDatabase.db.prepare.mockImplementation(mockPrepare);
 
@@ -326,8 +328,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
         metadata: null,
       };
 
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: vitest.fn(),
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn(),
       });
       mockDatabase.db.prepare.mockImplementation(mockPrepare);
 
@@ -350,8 +352,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
 
       mockDIDManager.getCurrentIdentity.mockReturnValue(null);
 
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: vitest.fn(),
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn(),
       });
       mockDatabase.db.prepare.mockImplementation(mockPrepare);
 
@@ -383,8 +385,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
       };
 
       let savedMetadata = null;
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: jest.fn((metadata, contractId) => {
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn((metadata, contractId) => {
           if (metadata && typeof metadata === 'string') {
             savedMetadata = JSON.parse(metadata);
           }
@@ -408,8 +410,8 @@ describe('SmartContractEngine - executeContractLogic', () => {
         metadata: '',
       };
 
-      const mockPrepare = vitest.fn().mockReturnValue({
-        run: vitest.fn(),
+      const mockPrepare = vi.fn().mockReturnValue({
+        run: vi.fn(),
       });
       mockDatabase.db.prepare.mockImplementation(mockPrepare);
 

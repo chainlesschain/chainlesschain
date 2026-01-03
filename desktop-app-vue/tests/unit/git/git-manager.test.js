@@ -3,6 +3,8 @@
  * 测试 ahead/behind commits 计算逻辑
  */
 
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 const GitManager = require('../../../src/main/git/git-manager');
 const git = require('isomorphic-git');
 const fs = require('fs');
@@ -10,11 +12,11 @@ const path = require('path');
 const os = require('os');
 
 // Mock dependencies
-vitest.mock('isomorphic-git');
-vitest.mock('fs');
-vitest.mock('electron', () => ({
+vi.mock('isomorphic-git');
+vi.mock('fs');
+vi.mock('electron', () => ({
   app: {
-    getPath: jest.fn(() => '/mock/user/data'),
+    getPath: vi.fn(() => '/mock/user/data'),
   },
 }));
 
@@ -24,7 +26,11 @@ describe('GitManager - calculateAheadBehind', () => {
 
   beforeEach(() => {
     // 重置所有 mocks
-    vitest.clearAllMocks();
+    vi.clearAllMocks();
+
+    // 初始化git对象的所有方法为mock函数
+    git.resolveRef = vi.fn();
+    git.log = vi.fn();
 
     mockRepoPath = path.join(os.tmpdir(), 'test-git-repo');
 
