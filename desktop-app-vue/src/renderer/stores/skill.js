@@ -95,11 +95,12 @@ export const useSkillStore = defineStore('skill', {
     async fetchAll(options = {}) {
       this.loading = true;
       try {
-        if (!window.electronAPI?.skill) {
-          console.error('[SkillStore] electronAPI.skill 不可用');
+        const skillAPI = window.electronAPI?.skill || window.electron?.api?.skill;
+        if (!skillAPI?.getAll) {
+          console.error('[SkillStore] skill API 不可用 (缺少 getAll)');
           return;
         }
-        const result = await window.electronAPI.skill.getAll(options);
+        const result = await skillAPI.getAll(options);
         if (result.success) {
           const skills = Array.isArray(result.data) ? result.data : (result.skills || result.content || []);
           this.skills = skills.map(skill => ({
@@ -122,11 +123,12 @@ export const useSkillStore = defineStore('skill', {
      */
     async fetchById(skillId) {
       try {
-        if (!window.electronAPI?.skill) {
-          console.error('[SkillStore] electronAPI.skill 不可用');
+        const skillAPI = window.electronAPI?.skill || window.electron?.api?.skill;
+        if (!skillAPI?.getById) {
+          console.error('[SkillStore] skill API 不可用 (缺少 getById)');
           return null;
         }
-        const result = await window.electronAPI.skill.getById(skillId);
+        const result = await skillAPI.getById(skillId);
         if (result.success) {
           const data = result.data || result.skill || result.content;
           this.currentSkill = data
@@ -152,11 +154,12 @@ export const useSkillStore = defineStore('skill', {
      */
     async fetchByCategory(category) {
       try {
-        if (!window.electronAPI?.skill) {
-          console.error('[SkillStore] electronAPI.skill 不可用');
+        const skillAPI = window.electronAPI?.skill || window.electron?.api?.skill;
+        if (!skillAPI?.getByCategory) {
+          console.error('[SkillStore] skill API 不可用 (缺少 getByCategory)');
           return [];
         }
-        const result = await window.electronAPI.skill.getByCategory(category);
+        const result = await skillAPI.getByCategory(category);
         if (result.success) {
           return result.content ?? result.data ?? result.skills ?? [];
         } else {
