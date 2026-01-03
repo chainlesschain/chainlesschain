@@ -5,15 +5,18 @@
  * 提供7个IPC处理器用于信用评分的管理、查询和统计
  */
 
-const { ipcMain } = require('electron');
-
 /**
  * 注册信用评分相关的IPC处理器
  * @param {Object} context - 上下文对象
  * @param {Object} context.creditScoreManager - 信用评分管理器实例
+ * @param {Object} context.ipcMain - (可选) ipcMain实例，用于测试时注入mock
  */
 function registerCreditIPC(context) {
-  const { creditScoreManager } = context;
+  const { creditScoreManager, ipcMain: injectedIpcMain } = context;
+
+  // 支持依赖注入，用于测试
+  const electron = require('electron');
+  const ipcMain = injectedIpcMain || electron.ipcMain;
 
   // 1. 获取用户信用信息
   ipcMain.handle('credit:get-user-credit', async (_event, userDid) => {

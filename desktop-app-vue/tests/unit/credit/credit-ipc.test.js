@@ -12,14 +12,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // Create mock ipcMain instance
 let mockIpcMain;
 
-// Mock electron module before importing credit-ipc
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn(),
-  },
-}));
-
-// Import after mocking electron
+// Import credit-ipc (no need to mock electron - we use dependency injection)
 const { registerCreditIPC } = require('../../../src/main/credit/credit-ipc');
 
 // ===================== MOCK FACTORIES =====================
@@ -149,13 +142,10 @@ describe('Credit IPC Handlers', () => {
     // Create new mock ipcMain for each test
     mockIpcMain = createMockIpcMain();
 
-    // Replace the electron module's ipcMain with our mock
-    const electron = require('electron');
-    electron.ipcMain.handle = mockIpcMain.handle;
-
     mockCreditManager = createMockCreditManager();
     context = {
       creditScoreManager: mockCreditManager,
+      ipcMain: mockIpcMain, // ✅ 注入 mock ipcMain
     };
 
     // Mock console.log and console.error to avoid cluttering test output
@@ -214,7 +204,7 @@ describe('Credit IPC Handlers', () => {
     });
 
     it('should return null when manager is not available', async () => {
-      const contextWithoutManager = { creditScoreManager: null };
+      const contextWithoutManager = { creditScoreManager: null, ipcMain: mockIpcMain };
       registerCreditIPC(contextWithoutManager);
 
       const result = await mockIpcMain.invoke('credit:get-user-credit', 'did:example:123');
@@ -259,7 +249,7 @@ describe('Credit IPC Handlers', () => {
     });
 
     it('should throw error when manager is not initialized', async () => {
-      const contextWithoutManager = { creditScoreManager: null };
+      const contextWithoutManager = { creditScoreManager: null, ipcMain: mockIpcMain };
       registerCreditIPC(contextWithoutManager);
 
       await expect(
@@ -317,7 +307,7 @@ describe('Credit IPC Handlers', () => {
     });
 
     it('should return empty array when manager is not available', async () => {
-      const contextWithoutManager = { creditScoreManager: null };
+      const contextWithoutManager = { creditScoreManager: null, ipcMain: mockIpcMain };
       registerCreditIPC(contextWithoutManager);
 
       const result = await mockIpcMain.invoke('credit:get-score-history', 'did:example:123');
@@ -363,7 +353,7 @@ describe('Credit IPC Handlers', () => {
     });
 
     it('should return null when manager is not available', async () => {
-      const contextWithoutManager = { creditScoreManager: null };
+      const contextWithoutManager = { creditScoreManager: null, ipcMain: mockIpcMain };
       registerCreditIPC(contextWithoutManager);
 
       const result = await mockIpcMain.invoke('credit:get-credit-level', 750);
@@ -424,7 +414,7 @@ describe('Credit IPC Handlers', () => {
     });
 
     it('should return empty array when manager is not available', async () => {
-      const contextWithoutManager = { creditScoreManager: null };
+      const contextWithoutManager = { creditScoreManager: null, ipcMain: mockIpcMain };
       registerCreditIPC(contextWithoutManager);
 
       const result = await mockIpcMain.invoke('credit:get-leaderboard');
@@ -469,7 +459,7 @@ describe('Credit IPC Handlers', () => {
     });
 
     it('should return empty array when manager is not available', async () => {
-      const contextWithoutManager = { creditScoreManager: null };
+      const contextWithoutManager = { creditScoreManager: null, ipcMain: mockIpcMain };
       registerCreditIPC(contextWithoutManager);
 
       const result = await mockIpcMain.invoke('credit:get-benefits', 'did:example:123');
@@ -533,7 +523,7 @@ describe('Credit IPC Handlers', () => {
     });
 
     it('should return null when manager is not available', async () => {
-      const contextWithoutManager = { creditScoreManager: null };
+      const contextWithoutManager = { creditScoreManager: null, ipcMain: mockIpcMain };
       registerCreditIPC(contextWithoutManager);
 
       const result = await mockIpcMain.invoke('credit:get-statistics');
@@ -579,7 +569,7 @@ describe('Credit IPC Handlers', () => {
     });
 
     it('should handle context without creditScoreManager', () => {
-      const emptyContext = {};
+      const emptyContext = { ipcMain: mockIpcMain };
       expect(() => registerCreditIPC(emptyContext)).not.toThrow();
     });
 
