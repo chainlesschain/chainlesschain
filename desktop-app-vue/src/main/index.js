@@ -84,6 +84,9 @@ const InitialSetupIPC = require('./initial-setup-ipc');
 // Identity Context Manager (Enterprise)
 const { getIdentityContextManager } = require('./identity/identity-context-manager');
 
+// Performance Monitor
+const { getPerformanceMonitor } = require('../utils/performance-monitor');
+
 // 过滤不需要的控制台输出
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
@@ -363,6 +366,16 @@ class ChainlessChainApp {
     } catch (error) {
       console.error('数据库初始化失败:', error);
       // 即使数据库初始化失败，也继续启动应用
+    }
+
+    // 初始化性能监控器
+    try {
+      console.log('初始化性能监控器...');
+      this.performanceMonitor = getPerformanceMonitor();
+      this.performanceMonitor.startMonitoring();
+      console.log('性能监控器初始化成功');
+    } catch (error) {
+      console.error('性能监控器初始化失败:', error);
     }
 
     // 初始化文件导入器
@@ -1948,9 +1961,92 @@ class ChainlessChainApp {
       throw error;
     }
 
+    // 注册性能监控 IPC handlers
+    this.setupPerformanceIPC();
+
     console.log('[ChainlessChainApp] ========================================');
     console.log('[ChainlessChainApp] IPC setup complete!');
     console.log('[ChainlessChainApp] ========================================');
+  }
+
+  /**
+   * 设置性能监控 IPC 处理器
+   */
+  setupPerformanceIPC() {
+    const { ipcMain } = require('electron');
+
+    // 获取性能监控实例
+    const performanceMonitor = this.performanceMonitor;
+    if (!performanceMonitor) {
+      console.warn('[Performance IPC] Performance monitor not initialized');
+      return;
+    }
+
+    // 获取当前性能指标
+    ipcMain.handle('performance:get-metrics', async () => {
+      try {
+        return performanceMonitor.getMetrics();
+      } catch (error) {
+        console.error('[Performance IPC] Failed to get metrics:', error);
+        throw error;
+      }
+    });
+
+    // 获取性能报告
+    ipcMain.handle('performance:get-report', async () => {
+      try {
+        return performanceMonitor.generateReport();
+      } catch (error) {
+        console.error('[Performance IPC] Failed to get report:', error);
+        throw error;
+      }
+    });
+
+    // 记录慢查询
+    ipcMain.handle('performance:log-slow-query', async (event, queryInfo) => {
+      try {
+        performanceMonitor.logSlowQuery(
+          queryInfo.query,
+          queryInfo.duration,
+          queryInfo.params
+        );
+        return { success: true };
+      } catch (error) {
+        console.error('[Performance IPC] Failed to log slow query:', error);
+        throw error;
+      }
+    });
+
+    // 跟踪操作性能
+    ipcMain.handle('performance:track-operation', async (event, operationInfo) => {
+      try {
+        performanceMonitor.trackOperation(
+          operationInfo.name,
+          operationInfo.duration,
+          operationInfo.metadata
+        );
+        return { success: true };
+      } catch (error) {
+        console.error('[Performance IPC] Failed to track operation:', error);
+        throw error;
+      }
+    });
+
+    // 清除性能数据
+    ipcMain.handle('performance:clear', async () => {
+      try {
+        // 重置性能监控器
+        const { getPerformanceMonitor } = require('../utils/performance-monitor');
+        const newMonitor = getPerformanceMonitor();
+        newMonitor.reset();
+        return { success: true };
+      } catch (error) {
+        console.error('[Performance IPC] Failed to clear performance data:', error);
+        throw error;
+      }
+    });
+
+    console.log('[Performance IPC] ✓ Performance monitoring IPC handlers registered');
   }
 
   /**

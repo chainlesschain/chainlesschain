@@ -942,8 +942,16 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_kr_target ON knowledge_relations(target_id);
       CREATE INDEX IF NOT EXISTS idx_kr_type ON knowledge_relations(relation_type);
       CREATE INDEX IF NOT EXISTS idx_kr_weight ON knowledge_relations(weight DESC);
+      -- 复合索引优化图谱查询性能
+      CREATE INDEX IF NOT EXISTS idx_kr_source_type_weight ON knowledge_relations(source_id, relation_type, weight DESC);
+      CREATE INDEX IF NOT EXISTS idx_kr_target_type_weight ON knowledge_relations(target_id, relation_type, weight DESC);
+      CREATE INDEX IF NOT EXISTS idx_kr_type_weight_source ON knowledge_relations(relation_type, weight DESC, source_id);
+      CREATE INDEX IF NOT EXISTS idx_kr_type_weight_target ON knowledge_relations(relation_type, weight DESC, target_id);
       CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
       CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC);
+      -- 复合索引优化消息分页查询
+      CREATE INDEX IF NOT EXISTS idx_messages_conversation_timestamp ON messages(conversation_id, timestamp ASC);
+      CREATE INDEX IF NOT EXISTS idx_knowledge_items_type_updated ON knowledge_items(type, updated_at DESC);
 
       CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
       CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);
@@ -2783,6 +2791,37 @@ class DatabaseManager {
   // ==================== 工具方法 ====================
 
   /**
+   * Track query performance and log slow queries
+   * @param {string} queryName - Name of the query operation
+   * @param {number} duration - Query execution time in milliseconds
+   * @param {string} sql - SQL query string
+   * @param {Array|Object} params - Query parameters
+   */
+  trackQueryPerformance(queryName, duration, sql, params = []) {
+    try {
+      // Get performance monitor
+      const { getPerformanceMonitor } = require('../utils/performance-monitor');
+      const monitor = getPerformanceMonitor();
+
+      // Log slow query if it exceeds threshold (from env or default 100ms)
+      const slowQueryThreshold = parseInt(process.env.DB_SLOW_QUERY_THRESHOLD) || 100;
+
+      if (duration > slowQueryThreshold) {
+        monitor.logSlowQuery(sql, duration, params);
+      }
+
+      // Track the operation
+      monitor.trackOperation(queryName, duration, {
+        sql: sql.substring(0, 100), // First 100 chars of SQL
+        paramCount: Array.isArray(params) ? params.length : 0
+      });
+    } catch (error) {
+      // Silently fail if performance monitoring is not available
+      // Don't let performance tracking break the database operations
+    }
+  }
+
+  /**
    * Normalize SQL params to avoid undefined values and special number types.
    * @param {Array|Object|null|undefined} params
    * @returns {Array|Object|null|undefined}
@@ -2829,6 +2868,7 @@ class DatabaseManager {
       throw new Error('Database not initialized');
     }
 
+    const startTime = Date.now();
     try {
       console.log('[Database] 开始执行SQL操作');
       const safeParams = this.normalizeParams(params);
@@ -2852,6 +2892,10 @@ class DatabaseManager {
         this.saveToFile();
         console.log('[Database] ✅ 数据已保存到文件');
       }
+
+      // Track performance
+      const duration = Date.now() - startTime;
+      this.trackQueryPerformance('db.run', duration, sql, safeParams);
     } catch (error) {
       console.error('[Database] ❌ SQL执行失败:', error.message);
       console.error('[Database] Error类型:', error.constructor.name);
@@ -2871,12 +2915,19 @@ class DatabaseManager {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
+
+    const startTime = Date.now();
     const stmt = this.db.prepare(sql);
 
     // Use the wrapped get() method if available (safer than direct getAsObject)
     if (stmt.get && typeof stmt.get === 'function' && stmt.__betterSqliteCompat) {
       const row = stmt.get(params);
       stmt.free();
+
+      // Track performance
+      const duration = Date.now() - startTime;
+      this.trackQueryPerformance('db.get', duration, sql, params);
+
       return row;
     }
 
@@ -2911,6 +2962,11 @@ class DatabaseManager {
     }
 
     stmt.free();
+
+    // Track performance
+    const duration = Date.now() - startTime;
+    this.trackQueryPerformance('db.get', duration, sql, safeParams);
+
     return row;
   }
 
@@ -2924,12 +2980,19 @@ class DatabaseManager {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
+
+    const startTime = Date.now();
     const stmt = this.db.prepare(sql);
 
     // Use the wrapped all() method if available (safer than direct getAsObject)
     if (stmt.all && typeof stmt.all === 'function' && stmt.__betterSqliteCompat) {
       const rows = stmt.all(params);
       stmt.free();
+
+      // Track performance
+      const duration = Date.now() - startTime;
+      this.trackQueryPerformance('db.all', duration, sql, params);
+
       return rows;
     }
 
@@ -2968,6 +3031,11 @@ class DatabaseManager {
     }
 
     stmt.free();
+
+    // Track performance
+    const duration = Date.now() - startTime;
+    this.trackQueryPerformance('db.all', duration, sql, safeParams);
+
     return rows;
   }
 
@@ -4589,22 +4657,43 @@ class DatabaseManager {
   }
 
   /**
-   * 获取对话的所有消息
+   * 获取对话的所有消息（支持分页）
    * @param {string} conversationId - 对话ID
    * @param {Object} options - 查询选项
-   * @returns {Array} 消息列表
+   * @param {number} options.limit - 每页消息数量
+   * @param {number} options.offset - 偏移量
+   * @param {string} options.order - 排序方式 ('ASC' 或 'DESC')
+   * @returns {Object} 包含消息列表和总数的对象
    */
   getMessagesByConversation(conversationId, options = {}) {
-    let query = 'SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ASC';
+    const order = options.order || 'ASC';
+    let query = `SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ${order}`;
     const params = [conversationId];
 
+    // 添加分页支持
     if (options.limit) {
       query += ' LIMIT ?';
       params.push(options.limit);
+
+      if (options.offset) {
+        query += ' OFFSET ?';
+        params.push(options.offset);
+      }
     }
 
     const stmt = this.db.prepare(query);
-    return stmt.all(...params);
+    const messages = stmt.all(...params);
+
+    // 获取总消息数
+    const countStmt = this.db.prepare('SELECT COUNT(*) as total FROM messages WHERE conversation_id = ?');
+    const countResult = countStmt.get(conversationId);
+    const total = countResult ? countResult.total : 0;
+
+    return {
+      messages,
+      total,
+      hasMore: options.limit && options.offset ? (options.offset + options.limit) < total : false
+    };
   }
 
   /**

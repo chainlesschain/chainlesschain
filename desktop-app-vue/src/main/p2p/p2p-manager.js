@@ -13,6 +13,7 @@ const DeviceManager = require('./device-manager');
 const { DeviceSyncManager, MessageStatus, SyncMessageType } = require('./device-sync-manager');
 const NATDetector = require('./nat-detector');
 const TransportDiagnostics = require('./transport-diagnostics');
+const { ConnectionPool } = require('./connection-pool');
 
 // 动态导入 ESM 模块
 let createLibp2p, tcp, noise, mplex, kadDHT, mdns, bootstrap, multiaddr;
@@ -43,7 +44,7 @@ class P2PManager extends EventEmitter {
       this.config = { ...DEFAULT_CONFIG, ...config };
       this.node = null;
     this.peerId = null;
-    this.peers = new Map(); // 连接的对等节点
+    this.peers = new Map(); // 连接的对等节点（保留用于兼容性）
     this.dht = null;
       this.signalManager = null; // Signal 加密会话管理器
       this.deviceManager = null; // 设备管理器
@@ -58,6 +59,9 @@ class P2PManager extends EventEmitter {
       this.natDetector = null;    // NAT检测器
       this.natInfo = null;        // NAT信息
       this.transportDiagnostics = null; // 传输诊断工具
+
+      // 连接池（性能优化）
+      this.connectionPool = null;
     }
 
   /**
@@ -314,6 +318,38 @@ class P2PManager extends EventEmitter {
       if (this.p2pConfig.connection.healthCheckInterval > 0) {
         this.transportDiagnostics.startHealthMonitoring(this.p2pConfig.connection.healthCheckInterval);
       }
+
+      // 初始化连接池
+      console.log('[P2PManager] 初始化连接池...');
+      this.connectionPool = new ConnectionPool({
+        maxConnections: parseInt(process.env.P2P_MAX_CONNECTIONS) || 100,
+        minConnections: parseInt(process.env.P2P_MIN_CONNECTIONS) || 5,
+        maxIdleTime: parseInt(process.env.P2P_CONNECTION_IDLE_TIMEOUT) || 300000, // 5分钟
+        connectionTimeout: this.p2pConfig.connection.dialTimeout,
+        maxRetries: this.p2pConfig.connection.maxRetries,
+        healthCheckInterval: this.p2pConfig.connection.healthCheckInterval,
+      });
+
+      await this.connectionPool.initialize();
+
+      // 监听连接池事件
+      this.connectionPool.on('connection:created', ({ peerId }) => {
+        console.log(`[P2P Pool] 连接已创建: ${peerId}`);
+      });
+
+      this.connectionPool.on('connection:reused', ({ peerId, count }) => {
+        console.log(`[P2P Pool] 连接已复用: ${peerId}, 使用次数: ${count}`);
+      });
+
+      this.connectionPool.on('connection:closed', ({ peerId, reason }) => {
+        console.log(`[P2P Pool] 连接已关闭: ${peerId}, 原因: ${reason}`);
+      });
+
+      this.connectionPool.on('pool:full', () => {
+        console.warn('[P2P Pool] 连接池已满，正在清理空闲连接');
+      });
+
+      console.log('[P2PManager] 连接池已初始化');
 
       // 初始化设备管理器
       await this.initializeDeviceManager();
@@ -1027,6 +1063,60 @@ class P2PManager extends EventEmitter {
       console.error('[P2PManager] DHT 查找提供者失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 使用连接池获取连接
+   * @param {string} peerIdStr - 对等节点 ID
+   * @returns {Promise<Connection>} 连接对象
+   */
+  async acquireConnection(peerIdStr) {
+    if (!this.connectionPool) {
+      // 连接池未初始化，直接返回null让调用方使用传统方式
+      return null;
+    }
+
+    try {
+      const { peerIdFromString } = await import('@libp2p/peer-id');
+      const peerId = peerIdFromString(peerIdStr);
+
+      // 使用连接池获取或创建连接
+      const connection = await this.connectionPool.acquireConnection(
+        peerIdStr,
+        async (id) => {
+          // 连接工厂函数 - 创建新连接
+          console.log(`[P2P Pool] 创建新连接: ${id}`);
+          const conn = await this.node.dial(peerId);
+          return conn;
+        }
+      );
+
+      return connection;
+    } catch (error) {
+      console.error('[P2PManager] 获取连接失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 释放连接回连接池
+   * @param {string} peerIdStr - 对等节点 ID
+   */
+  releaseConnection(peerIdStr) {
+    if (this.connectionPool) {
+      this.connectionPool.releaseConnection(peerIdStr);
+    }
+  }
+
+  /**
+   * 获取连接池统计信息
+   * @returns {Object} 统计信息
+   */
+  getConnectionPoolStats() {
+    if (!this.connectionPool) {
+      return null;
+    }
+    return this.connectionPool.getStats();
   }
 
   /**

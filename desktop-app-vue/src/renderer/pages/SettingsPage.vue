@@ -159,6 +159,27 @@
           <AdditionalToolsStats />
         </a-tab-pane>
 
+        <!-- 性能监控 -->
+        <a-tab-pane key="performance" tab="性能监控">
+          <template #tab>
+            <span>
+              <dashboard-outlined />
+              性能监控
+            </span>
+          </template>
+          <a-card title="系统性能监控">
+            <PerformanceDashboard v-model:visible="performanceDashboardVisible" />
+            <a-button
+              v-if="!performanceDashboardVisible"
+              type="primary"
+              @click="performanceDashboardVisible = true"
+            >
+              <dashboard-outlined />
+              打开性能仪表板
+            </a-button>
+          </a-card>
+        </a-tab-pane>
+
         <!-- 关于 -->
         <a-tab-pane key="about" tab="关于">
           <template #tab>
@@ -226,6 +247,7 @@ import {
   DatabaseOutlined,
   LockOutlined,
   BarChartOutlined,
+  DashboardOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { supportedLocales, setLocale, getLocale } from '../locales';
@@ -233,6 +255,7 @@ import LLMSettings from '../components/LLMSettings.vue';
 import GitSettings from '../components/GitSettings.vue';
 import RAGSettings from '../components/RAGSettings.vue';
 import AdditionalToolsStats from '../components/tool/AdditionalToolsStats.vue';
+import PerformanceDashboard from '../components/PerformanceDashboard.vue';
 
 const router = useRouter();
 const store = useAppStore();
@@ -249,6 +272,9 @@ const theme = ref('light');
 const language = ref(getLocale());
 const openOnStartup = ref(false);
 const minimizeToTray = ref(true);
+
+// 性能仪表板
+const performanceDashboardVisible = ref(false);
 
 // 处理语言切换
 const handleLanguageChange = (value) => {
