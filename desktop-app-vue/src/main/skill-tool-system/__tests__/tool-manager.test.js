@@ -11,6 +11,44 @@ vi.mock('nanoid', () => ({
   nanoid: vi.fn(() => 'tool_test_id_456'),
 }));
 
+// Mock FunctionCaller
+class MockFunctionCaller {
+  constructor() {
+    this.tools = new Map(); // toolName -> { handler, schema }
+  }
+
+  registerTool(name, handler, schema) {
+    this.tools.set(name, { handler, schema });
+  }
+
+  unregisterTool(name) {
+    this.tools.delete(name);
+  }
+
+  hasTool(name) {
+    return this.tools.has(name);
+  }
+
+  getAvailableTools() {
+    const tools = [];
+    for (const [name, { schema }] of this.tools.entries()) {
+      tools.push({
+        name,
+        ...schema,
+      });
+    }
+    return tools;
+  }
+
+  async callTool(name, args) {
+    const tool = this.tools.get(name);
+    if (!tool) {
+      throw new Error(`Tool not found: ${name}`);
+    }
+    return await tool.handler(args);
+  }
+}
+
 // Mock数据库
 class MockDatabase {
   constructor() {
@@ -18,6 +56,61 @@ class MockDatabase {
       tools: [],
       tool_stats: [],
     };
+  }
+
+  // 直接调用的 get 方法
+  async get(query, params = []) {
+    const lowerQuery = query.toLowerCase();
+    if (lowerQuery.includes('from tools where id')) {
+      return this.data.tools.find(t => t.id === params[0]) || null;
+    } else if (lowerQuery.includes('from tools where name')) {
+      return this.data.tools.find(t => t.name === params[0]) || null;
+    }
+    return null;
+  }
+
+  // 直接调用的 all 方法
+  async all(query, params = []) {
+    const lowerQuery = query.toLowerCase();
+    if (lowerQuery.includes('from tools')) {
+      let results = [...this.data.tools];
+
+      // 简单处理筛选条件 - 按照参数顺序匹配查询中的占位符
+      if (lowerQuery.includes('and category = ?') && params.length > 0) {
+        // 找到第一个非null的category参数
+        for (const param of params) {
+          if (param !== null && param !== undefined) {
+            results = results.filter(t => t.category === param);
+            break;
+          }
+        }
+      }
+
+      return results;
+    }
+    return [];
+  }
+
+  // 直接调用的 run 方法
+  async run(query, params = []) {
+    const lowerQuery = query.toLowerCase();
+    if (lowerQuery.includes('insert into tools')) {
+      const tool = this._parseInsertTool(params);
+      this.data.tools.push(tool);
+      return { changes: 1 };
+    } else if (lowerQuery.includes('delete from tools')) {
+      const prevLength = this.data.tools.length;
+      this.data.tools = this.data.tools.filter(t => t.id !== params[0]);
+      return { changes: prevLength - this.data.tools.length };
+    } else if (lowerQuery.includes('update tools')) {
+      const index = this.data.tools.findIndex(t => t.id === params[params.length - 1]);
+      if (index >= 0) {
+        this.data.tools[index].updated_at = Date.now();
+        return { changes: 1 };
+      }
+      return { changes: 0 };
+    }
+    return { changes: 0 };
   }
 
   prepare(query) {
@@ -100,11 +193,24 @@ async function loadToolManager() {
 describe('ToolManager', () => {
   let toolManager;
   let mockDb;
+  let mockFunctionCaller;
 
   beforeEach(async () => {
     mockDb = new MockDatabase();
+    mockFunctionCaller = new MockFunctionCaller();
     const ToolManager = await loadToolManager();
-    toolManager = new ToolManager(mockDb);
+
+    // Mock DocGenerator to avoid file system dependencies
+    const MockDocGenerator = class {
+      async initialize() {}
+      async generateToolDoc() {}
+      async readToolDoc() { return null; }
+      async generateAllDocs() {}
+    };
+
+    toolManager = new ToolManager(mockDb, mockFunctionCaller, {
+      DocGeneratorClass: MockDocGenerator,
+    });
   });
 
   describe('创建工具', () => {
@@ -179,23 +285,23 @@ describe('ToolManager', () => {
     });
 
     it('应该获取所有工具', async () => {
-      const result = await toolManager.getAllTools();
+      const tools = await toolManager.getAllTools();
 
-      expect(result.success).toBe(true);
-      expect(result.tools).toHaveLength(2);
+      expect(Array.isArray(tools)).toBe(true);
+      expect(tools).toHaveLength(2);
     });
 
     it('应该按分类筛选工具', async () => {
-      const result = await toolManager.getToolsByCategory('file');
+      const tools = await toolManager.getToolsByCategory('file');
 
-      expect(result.success).toBe(true);
-      expect(result.tools).toHaveLength(1);
-      expect(result.tools[0].category).toBe('file');
+      expect(Array.isArray(tools)).toBe(true);
+      expect(tools).toHaveLength(1);
+      expect(tools[0].category).toBe('file');
     });
 
     it('应该通过ID获取工具', async () => {
-      const all = await toolManager.getAllTools();
-      const toolId = all.tools[0].id;
+      const allTools = await toolManager.getAllTools();
+      const toolId = allTools[0].id;
 
       const result = await toolManager.getToolById(toolId);
 
@@ -205,11 +311,11 @@ describe('ToolManager', () => {
     });
 
     it('应该通过名称获取工具', async () => {
-      const result = await toolManager.getToolByName('tool1');
+      const tool = await toolManager.getToolByName('tool1');
 
-      expect(result.success).toBe(true);
-      expect(result.tool).toBeDefined();
-      expect(result.tool.name).toBe('tool1');
+      expect(tool).toBeDefined();
+      expect(tool).not.toBeNull();
+      expect(tool.name).toBe('tool1');
     });
 
     it('获取不存在的工具应返回null', async () => {

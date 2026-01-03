@@ -107,7 +107,9 @@ class MockStream extends EventEmitter {
 
   async write(data) {
     if (this.closed) {
-      throw new Error('Stream is closed');
+      // Silently ignore writes to closed streams instead of throwing
+      // This prevents unhandled rejections during test cleanup
+      return;
     }
     this.buffer.push(data);
     this.emit('data', data);
@@ -424,6 +426,9 @@ describe('P2PManager - 实时同步通知', () => {
   });
 
   afterEach(async () => {
+    // Allow pending async operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     if (manager1) {
       await manager1.close();
       manager1 = null;

@@ -292,20 +292,34 @@ new ToolManager()
 
 ---
 
-#### `async getToolStats(toolId, dateRange = null)`
+#### `async getToolStats(toolId = null, dateRange = null)`
 
 ---
 
-#### `if(dateRange)`
+#### `if(!toolId)`
 
 获取工具统计
 
 **参数:**
 
-- `toolId` (`string`) - 工具ID
+- `toolId` (`string`) - 工具ID (如果不提供，返回总体统计)
 - `dateRange` (`Object`) - 日期范围 {start, end}
 
-**返回:** `Promise<Array>` - 统计数据
+**返回:** `Promise<Array|Object>` - 统计数据
+
+---
+
+#### `forEach(tool => {
+          // 统计分类
+          if (tool.category)`
+
+---
+
+#### `if(tool.tool_type)`
+
+---
+
+#### `if(dateRange)`
 
 ---
 
@@ -503,6 +517,68 @@ new ToolManager()
 
 ---
 
+#### `async createTool(toolData, handler)`
+
+recordExecution 方法（别名，用于兼容 ToolRunner）
+
+**参数:**
+
+- `toolName` (`string`) - 工具名称
+- `success` (`boolean`) - 是否成功
+- `duration` (`number`) - 执行时长(ms)
+
+---
+
+#### `catch(error)`
+
+createTool 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `toolData` (`Object`) - 工具元数据
+- `handler` (`Function`) - 工具处理函数
+
+**返回:** `Promise<Object>` - 创建结果
+
+---
+
+#### `async loadBuiltinTools()`
+
+createTool 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `toolData` (`Object`) - 工具元数据
+- `handler` (`Function`) - 工具处理函数
+
+**返回:** `Promise<Object>` - 创建结果
+
+---
+
+#### `catch(error)`
+
+loadBuiltinTools 方法（别名，用于兼容测试）
+
+**返回:** `Promise<Object>` - 加载结果
+
+---
+
+#### `async getToolCount()`
+
+loadBuiltinTools 方法（别名，用于兼容测试）
+
+**返回:** `Promise<Object>` - 加载结果
+
+---
+
+#### `catch(error)`
+
+getToolCount 方法（用于兼容测试）
+
+**返回:** `Promise<Object>` - 工具数量
+
+---
+
 
 ## 事件
 
@@ -521,4 +597,4 @@ const toolmanager = new ToolManager(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/3 11:36:59
+> 自动生成时间: 2026/1/3 13:23:27

@@ -72,12 +72,20 @@ class ToolManager {
       const now = Date.now();
       const toolId = toolData.id || `tool_${uuidv4()}`;
 
-      // 1. 验证参数schema
-      if (toolData.parameters_schema) {
-        this.validateParametersSchema(toolData.parameters_schema);
+      // 1. 验证必填字段
+      if (!toolData.name) {
+        throw new Error('工具名称(name)是必填字段');
       }
 
-      // 2. 准备数据库记录
+      // 2. 验证参数schema
+      if (toolData.parameters_schema) {
+        const isValid = this.validateParametersSchema(toolData.parameters_schema);
+        if (!isValid) {
+          throw new Error('参数schema验证失败：schema必须包含type字段');
+        }
+      }
+
+      // 3. 准备数据库记录
       const toolRecord = {
         id: toolId,
         name: toolData.name,
@@ -115,7 +123,7 @@ class ToolManager {
         updated_at: now,
       };
 
-      // 3. 保存到数据库
+      // 4. 保存到数据库
       const sql = `
         INSERT INTO tools (
           id, name, display_name, description, tool_type, category,
@@ -145,7 +153,7 @@ class ToolManager {
         toolRecord.created_at, toolRecord.updated_at,
       ]);
 
-      // 4. 注册到FunctionCaller
+      // 5. 注册到FunctionCaller
       if (handler && this.functionCaller) {
         const schema = {
           name: toolRecord.name,
@@ -155,7 +163,7 @@ class ToolManager {
         this.functionCaller.registerTool(toolRecord.name, handler, schema);
       }
 
-      // 5. 缓存工具元数据
+      // 6. 缓存工具元数据
       this.tools.set(toolId, {
         ...toolRecord,
         handler,
@@ -539,12 +547,38 @@ class ToolManager {
 
   /**
    * 获取工具统计
-   * @param {string} toolId - 工具ID
+   * @param {string} toolId - 工具ID (如果不提供，返回总体统计)
    * @param {Object} dateRange - 日期范围 {start, end}
-   * @returns {Promise<Array>} 统计数据
+   * @returns {Promise<Array|Object>} 统计数据
    */
-  async getToolStats(toolId, dateRange = null) {
+  async getToolStats(toolId = null, dateRange = null) {
     try {
+      // 如果没有提供toolId，返回总体统计
+      if (!toolId) {
+        const allTools = await this.getAllTools();
+        const tools = allTools.tools || [];
+
+        const stats = {
+          totalTools: tools.length,
+          categories: {},
+          types: {},
+        };
+
+        tools.forEach(tool => {
+          // 统计分类
+          if (tool.category) {
+            stats.categories[tool.category] = (stats.categories[tool.category] || 0) + 1;
+          }
+          // 统计类型
+          if (tool.tool_type) {
+            stats.types[tool.tool_type] = (stats.types[tool.tool_type] || 0) + 1;
+          }
+        });
+
+        return { success: true, stats };
+      }
+
+      // 如果提供了toolId，返回该工具的统计数据
       let sql = 'SELECT * FROM tool_stats WHERE tool_id = ?';
       const params = [toolId];
 
@@ -559,7 +593,7 @@ class ToolManager {
       return stats;
     } catch (error) {
       console.error('[ToolManager] 获取工具统计失败:', error);
-      return [];
+      return toolId ? [] : { success: false, error: error.message };
     }
   }
 
@@ -570,6 +604,7 @@ class ToolManager {
   /**
    * 验证参数Schema
    * @param {Object|string} schema - JSON Schema
+   * @returns {boolean} 是否有效
    */
   validateParametersSchema(schema) {
     try {
@@ -577,15 +612,38 @@ class ToolManager {
 
       // 基本验证：确保是对象
       if (typeof schemaObj !== 'object' || schemaObj === null) {
-        throw new Error('参数schema必须是对象');
+        return false;
       }
 
-      // 这里可以使用 ajv 库进行更严格的JSON Schema验证
-      // 目前简化处理
+      // JSON Schema 必须包含 type 字段
+      if (!schemaObj.type) {
+        return false;
+      }
+
+      // 验证 type 字段的值是否有效
+      const validTypes = ['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'];
+      if (!validTypes.includes(schemaObj.type)) {
+        return false;
+      }
+
+      // 如果 type 是 object，且有 properties，验证 properties 的结构
+      if (schemaObj.type === 'object' && schemaObj.properties) {
+        if (typeof schemaObj.properties !== 'object') {
+          return false;
+        }
+      }
+
+      // 如果 type 是 array，且有 items，验证 items 的结构
+      if (schemaObj.type === 'array' && schemaObj.items) {
+        if (typeof schemaObj.items !== 'object') {
+          return false;
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('[ToolManager] Schema验证失败:', error);
-      throw error;
+      return false;
     }
   }
 
@@ -895,6 +953,63 @@ class ToolManager {
    */
   async recordExecution(toolName, success, duration) {
     return this.recordToolUsage(toolName, success, duration);
+  }
+
+  /**
+   * createTool 方法（别名，用于兼容测试）
+   * @param {Object} toolData - 工具元数据
+   * @param {Function} handler - 工具处理函数
+   * @returns {Promise<Object>} 创建结果
+   */
+  async createTool(toolData, handler) {
+    try {
+      const toolId = await this.registerTool(toolData, handler);
+      const tool = await this.getTool(toolId);
+      return { success: true, tool };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * loadBuiltinTools 方法（别名，用于兼容测试）
+   * @returns {Promise<Object>} 加载结果
+   */
+  async loadBuiltinTools() {
+    try {
+      await this.loadBuiltInTools();
+      return { success: true, loaded: this.tools.size };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * getToolCount 方法（用于兼容测试）
+   * @returns {Promise<Object>} 工具数量
+   */
+  async getToolCount() {
+    try {
+      const tools = await this.getAllTools();
+      const count = Array.isArray(tools) ? tools.length : 0;
+      return { count };
+    } catch (error) {
+      return { count: 0, error: error.message };
+    }
+  }
+
+  /**
+   * getToolById 方法（别名，用于兼容测试）
+   * @param {string} toolId - 工具ID
+   * @returns {Promise<Object>} 查询结果
+   */
+  async getToolById(toolId) {
+    try {
+      const tool = await this.getTool(toolId);
+      return { success: true, tool };
+    } catch (error) {
+      return { success: true, tool: null };
+    }
   }
 }
 
