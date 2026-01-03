@@ -16,10 +16,11 @@ import EventEmitter from 'events';
  * 模拟P2P节点（libp2p）
  */
 class MockLibp2pNode extends EventEmitter {
-  constructor() {
+  constructor(peerId = null) {
     super();
-    this.protocols = new Map();  // protocol -> handler
-    this.peers = new Map();      // peerId -> MockPeer
+    this.peerId = peerId;           // 节点自己的ID
+    this.protocols = new Map();     // protocol -> handler
+    this.peers = new Map();         // peerId -> MockPeer
     this.isStarted = false;
   }
 
@@ -65,7 +66,8 @@ class MockLibp2pNode extends EventEmitter {
     setTimeout(async () => {
       const handler = peer.protocols.get(protocol);
       if (handler) {
-        await handler({ stream, connection: { remotePeer: { toString: () => peerId } } });
+        // remotePeer 应该是发起连接的节点（this.peerId），而不是目标节点（peerId）
+        await handler({ stream, connection: { remotePeer: { toString: () => this.peerId || 'unknown' } } });
       }
     }, peer.latency || 10);
 
@@ -409,9 +411,9 @@ describe('P2PManager - 实时同步通知', () => {
   let syncManager1, syncManager2;
 
   beforeEach(async () => {
-    // 创建两个模拟P2P节点
-    node1 = new MockLibp2pNode();
-    node2 = new MockLibp2pNode();
+    // 创建两个模拟P2P节点（带有 peerId）
+    node1 = new MockLibp2pNode('peer-1');
+    node2 = new MockLibp2pNode('peer-2');
 
     await node1.start();
     await node2.start();
