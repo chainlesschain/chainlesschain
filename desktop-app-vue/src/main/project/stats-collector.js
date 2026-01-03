@@ -364,4 +364,20 @@ class ProjectStatsCollector {
   }
 }
 
+// 单例模式
+let statsCollectorInstance = null;
+
+/**
+ * 获取统计收集器单例
+ * @param {Object} db - 数据库实例（首次调用时需要）
+ * @returns {ProjectStatsCollector}
+ */
+function getStatsCollector(db) {
+  if (!statsCollectorInstance && db) {
+    statsCollectorInstance = new ProjectStatsCollector(db);
+  }
+  return statsCollectorInstance;
+}
+
 module.exports = ProjectStatsCollector;
+module.exports.getStatsCollector = getStatsCollector;
