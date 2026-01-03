@@ -524,13 +524,10 @@ export const useProjectStore = defineStore('project', {
      */
     async deleteProject(projectId) {
       try {
-        // 1. 从后端删除
+        // 删除项目（包含本地和后端）
         await window.electronAPI.project.delete(projectId);
 
-        // 2. 从本地删除
-        await window.electronAPI.project.deleteLocal(projectId);
-
-        // 3. 更新store
+        // 更新store
         this.projects = this.projects.filter((p) => p.id !== projectId);
         this.pagination.total--;
 
