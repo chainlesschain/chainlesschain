@@ -853,6 +853,17 @@ class AIEngineManagerP1 {
   }
 
   /**
+   * 获取任务规划器（兼容旧API）
+   * @returns {TaskPlannerEnhanced}
+   */
+  getTaskPlanner() {
+    if (!this.taskPlannerEnhanced) {
+      throw new Error('增强版任务规划器未初始化，请先调用 initialize()');
+    }
+    return this.taskPlannerEnhanced;
+  }
+
+  /**
    * 注册自定义工具
    * @param {string} name - 工具名称
    * @param {Function} implementation - 工具实现函数
