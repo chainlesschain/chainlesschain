@@ -675,6 +675,34 @@ class PluginManager extends EventEmitter {
       console.error(`[PluginManager] 注销扩展点失败:`, error);
     }
   }
+
+  /**
+   * 获取插件已授予的权限
+   * @param {string} pluginId
+   * @returns {Array}
+   */
+  getPluginPermissions(pluginId) {
+    return this.registry.getPluginPermissions(pluginId) || [];
+  }
+
+  /**
+   * 更新插件权限
+   * @param {string} pluginId
+   * @param {string} permission
+   * @param {boolean} granted
+   */
+  async updatePluginPermission(pluginId, permission, granted) {
+    await this.registry.updatePermission(pluginId, permission, granted);
+    return this.getPluginPermissions(pluginId);
+  }
+
+  /**
+   * 获取插件目录
+   * @returns {string}
+   */
+  getPluginsDirectory() {
+    return this.loader?.pluginsDir;
+  }
 }
 
 // ============================================

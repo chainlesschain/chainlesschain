@@ -7,7 +7,7 @@
         <p class="subtitle">管理和配置 AI 助手的技能集</p>
       </div>
       <div class="header-right">
-        <a-statistic-group direction="horizontal">
+        <a-space :size="24" align="center">
           <a-statistic :value="skillStore.totalCount" title="总技能数" />
           <a-statistic :value="skillStore.enabledCount" title="已启用" :value-style="{ color: '#52c41a' }" />
           <a-statistic
@@ -15,7 +15,7 @@
             title="已禁用"
             :value-style="{ color: '#ff4d4f' }"
           />
-        </a-statistic-group>
+        </a-space>
       </div>
     </div>
 

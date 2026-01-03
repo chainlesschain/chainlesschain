@@ -7,12 +7,12 @@
         <p class="subtitle">管理和测试 AI 助手的工具库</p>
       </div>
       <div class="header-right">
-        <a-statistic-group direction="horizontal">
+        <a-space :size="24" align="center">
           <a-statistic :value="toolStore.totalCount" title="总工具数" />
           <a-statistic :value="toolStore.enabledCount" title="已启用" :value-style="{ color: '#52c41a' }" />
           <a-statistic :value="toolStore.builtinCount" title="内置工具" :value-style="{ color: '#1890ff' }" />
           <a-statistic :value="toolStore.pluginCount" title="插件工具" :value-style="{ color: '#722ed1' }" />
-        </a-statistic-group>
+        </a-space>
       </div>
     </div>
 

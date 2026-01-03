@@ -85,42 +85,94 @@ function registerProjectAIIPC({
         ? currentFile.file_path
         : currentFile;
 
-      // 5. 调用后端AI服务
+      // 5. 尝试调用后端AI服务，如果失败则使用本地LLM
       const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+      let aiResponse = null;
+      let operations = [];
+      let rag_sources = [];
+      let useLocalLLM = false;
 
-      const requestData = {
-        project_id: projectId,
-        user_message: userMessage,
-        conversation_history: conversationHistory || [],
-        context_mode: contextMode || 'project',
-        current_file: currentFilePath || null,
-        project_info: projectInfo || {
-          name: project.name,
-          description: project.description || '',
-          type: project.project_type || 'general'
-        },
-        file_list: fileList || []
-      };
+      try {
+        const requestData = {
+          project_id: projectId,
+          user_message: userMessage,
+          conversation_history: conversationHistory || [],
+          context_mode: contextMode || 'project',
+          current_file: currentFilePath || null,
+          project_info: projectInfo || {
+            name: project.name,
+            description: project.description || '',
+            type: project.project_type || 'general'
+          },
+          file_list: fileList || []
+        };
 
-      console.log('[Main] 发送到AI服务的数据:', JSON.stringify({
-        ...requestData,
-        file_list: `[${fileList?.length || 0} files]`
-      }, null, 2));
+        console.log('[Main] 尝试连接后端AI服务:', AI_SERVICE_URL);
 
-      const response = await axios.post(
-        `${AI_SERVICE_URL}/api/projects/${projectId}/chat`,
-        requestData,
-        {
-          timeout: 60000  // 60秒超时
+        const response = await axios.post(
+          `${AI_SERVICE_URL}/api/projects/${projectId}/chat`,
+          requestData,
+          {
+            timeout: 5000  // 5秒超时，快速失败
+          }
+        );
+
+        const responseData = response.data;
+        aiResponse = responseData.response;
+        operations = responseData.operations || [];
+        rag_sources = responseData.rag_sources || [];
+
+        console.log('[Main] 后端AI服务响应成功');
+      } catch (backendError) {
+        console.warn('[Main] 后端AI服务不可用，切换到本地LLM:', backendError.message);
+        useLocalLLM = true;
+
+        // 使用本地LLM管理器
+        if (!llmManager) {
+          throw new Error('LLM管理器未初始化，无法使用本地AI功能');
         }
-      );
 
-      const { response: aiResponse, operations, rag_sources } = response.data;
+        // 构建对话上下文
+        const messages = [];
+
+        // 添加系统提示
+        messages.push({
+          role: 'system',
+          content: `你是一个智能项目助手，正在协助用户处理项目: ${project.name}。
+当前上下文模式: ${contextMode || 'project'}
+${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
+
+请根据用户的问题提供有帮助的回答。`
+        });
+
+        // 添加对话历史
+        if (conversationHistory && Array.isArray(conversationHistory)) {
+          messages.push(...conversationHistory);
+        }
+
+        // 添加用户消息
+        messages.push({
+          role: 'user',
+          content: userMessage
+        });
+
+        console.log('[Main] 使用本地LLM，消息数量:', messages.length);
+
+        // 调用本地LLM
+        const llmResult = await llmManager.chat(messages, {
+          temperature: 0.7,
+          maxTokens: 2000
+        });
+
+        aiResponse = llmResult.content || llmResult.text || llmResult;
+        console.log('[Main] 本地LLM响应成功');
+      }
 
       console.log('[Main] AI响应:', aiResponse);
       console.log('[Main] 文件操作数量:', operations ? operations.length : 0);
+      console.log('[Main] 使用本地LLM:', useLocalLLM);
 
-      // 5. 使用ChatSkillBridge拦截并处理
+      // 6. 使用ChatSkillBridge拦截并处理
       let bridgeResult = null;
       if (chatSkillBridge) {
         try {
@@ -145,7 +197,7 @@ function registerProjectAIIPC({
         }
       }
 
-      // 6. 如果桥接器成功处理，返回增强响应
+      // 7. 如果桥接器成功处理，返回增强响应
       if (bridgeResult && bridgeResult.shouldIntercept) {
         console.log('[Main] 使用桥接器处理结果');
         return {
@@ -155,18 +207,19 @@ function registerProjectAIIPC({
           ragSources: rag_sources || [],
           hasFileOperations: bridgeResult.toolCalls.length > 0,
           usedBridge: true,
+          useLocalLLM: useLocalLLM,
           toolCalls: bridgeResult.toolCalls,
           bridgeSummary: bridgeResult.summary
         };
       }
 
-      // 7. 否则使用原有的解析逻辑
+      // 8. 否则使用原有的解析逻辑
       console.log('[Main] 使用原有解析逻辑');
       const parsed = parseAIResponse(aiResponse, operations);
 
-      // 8. 执行文件操作
+      // 9. 执行文件操作（仅当使用后端服务时才执行文件操作）
       let operationResults = [];
-      if (parsed.hasFileOperations) {
+      if (!useLocalLLM && parsed.hasFileOperations) {
         console.log(`[Main] 执行 ${parsed.operations.length} 个文件操作`);
 
         try {
@@ -186,21 +239,27 @@ function registerProjectAIIPC({
         }
       }
 
-      // 9. 返回结果
+      // 10. 返回结果
       return {
         success: true,
         conversationResponse: aiResponse,
         fileOperations: operationResults,
         ragSources: rag_sources || [],
-        hasFileOperations: parsed.hasFileOperations,
-        usedBridge: false
+        hasFileOperations: !useLocalLLM && parsed.hasFileOperations,
+        usedBridge: false,
+        useLocalLLM: useLocalLLM
       };
 
     } catch (error) {
       console.error('[Main] 项目AI对话失败:', error);
 
-      if (error.code === 'ECONNREFUSED') {
-        throw new Error('AI服务连接失败，请确保后端服务已启动');
+      // 提供更友好的错误信息
+      if (error.message.includes('LLM管理器未初始化')) {
+        throw new Error('AI功能未配置，请在设置中配置LLM服务（Ollama或云端API）');
+      }
+
+      if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+        throw new Error('后端AI服务未运行，已尝试使用本地LLM但配置不正确');
       }
 
       throw error;

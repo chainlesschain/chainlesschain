@@ -95,9 +95,14 @@ export const useSkillStore = defineStore('skill', {
     async fetchAll(options = {}) {
       this.loading = true;
       try {
+        if (!window.electronAPI?.skill) {
+          console.error('[SkillStore] electronAPI.skill 不可用');
+          return;
+        }
         const result = await window.electronAPI.skill.getAll(options);
         if (result.success) {
-          this.skills = result.data.map(skill => ({
+          const skills = Array.isArray(result.data) ? result.data : (result.skills || result.content || []);
+          this.skills = skills.map(skill => ({
             ...skill,
             tags: typeof skill.tags === 'string' ? JSON.parse(skill.tags) : (skill.tags || []),
             config: typeof skill.config === 'string' ? JSON.parse(skill.config) : (skill.config || {}),
@@ -117,13 +122,20 @@ export const useSkillStore = defineStore('skill', {
      */
     async fetchById(skillId) {
       try {
+        if (!window.electronAPI?.skill) {
+          console.error('[SkillStore] electronAPI.skill 不可用');
+          return null;
+        }
         const result = await window.electronAPI.skill.getById(skillId);
         if (result.success) {
-          this.currentSkill = {
-            ...result.data,
-            tags: typeof result.data.tags === 'string' ? JSON.parse(result.data.tags) : (result.data.tags || []),
-            config: typeof result.data.config === 'string' ? JSON.parse(result.data.config) : (result.data.config || {}),
-          };
+          const data = result.data || result.skill || result.content;
+          this.currentSkill = data
+            ? {
+                ...data,
+                tags: typeof data.tags === 'string' ? JSON.parse(data.tags) : (data.tags || []),
+                config: typeof data.config === 'string' ? JSON.parse(data.config) : (data.config || {}),
+              }
+            : null;
           return this.currentSkill;
         } else {
           console.error('获取技能失败:', result.error);
@@ -140,9 +152,13 @@ export const useSkillStore = defineStore('skill', {
      */
     async fetchByCategory(category) {
       try {
+        if (!window.electronAPI?.skill) {
+          console.error('[SkillStore] electronAPI.skill 不可用');
+          return [];
+        }
         const result = await window.electronAPI.skill.getByCategory(category);
         if (result.success) {
-          return result.content ?? result.data;
+          return result.content ?? result.data ?? result.skills ?? [];
         } else {
           console.error('获取技能失败:', result.error);
           return [];

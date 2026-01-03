@@ -556,6 +556,15 @@ function registerAllIPC(dependencies) {
       console.log('[IPC Registry] ✓ Credit Score IPC registered (7 handlers)');
     }
 
+    if (pluginManager) {
+      console.log('[IPC Registry] Registering Plugin IPC...');
+      const { registerPluginIPC } = require('./plugins/plugin-ipc');
+      registerPluginIPC({ pluginManager });
+      console.log('[IPC Registry] ✓ Plugin IPC registered');
+    } else {
+      console.warn('[IPC Registry] ⚠️ 插件管理器未初始化，跳过 Plugin IPC 注册');
+    }
+
     // 其他功能 (3个模块, 13 handlers)
     if (fileImporter) {
       console.log('[IPC Registry] Registering Import IPC...');
@@ -569,12 +578,13 @@ function registerAllIPC(dependencies) {
       console.log('[IPC Registry] ✓ Import IPC registered (5 handlers)');
     }
 
-    if (app.syncManager) {
-      console.log('[IPC Registry] Registering Sync IPC...');
-      const { registerSyncIPC } = require('./sync/sync-ipc');
-      registerSyncIPC({ syncManager: app.syncManager });
-      console.log('[IPC Registry] ✓ Sync IPC registered (4 handlers)');
+    console.log('[IPC Registry] Registering Sync IPC...');
+    if (!app.syncManager) {
+      console.warn('[IPC Registry] ⚠️ syncManager 未初始化，将注册降级的 Sync IPC handlers');
     }
+    const { registerSyncIPC } = require('./sync/sync-ipc');
+    registerSyncIPC({ syncManager: app.syncManager || null });
+    console.log('[IPC Registry] ✓ Sync IPC registered (4 handlers)');
 
     if (database) {
       console.log('[IPC Registry] Registering Notification IPC...');
@@ -592,11 +602,16 @@ function registerAllIPC(dependencies) {
     }
 
     // 文件同步监听 (函数模式 - 小模块，3 handlers)
-    if (fileSyncManager && database) {
+    if (database) {
       console.log('[IPC Registry] Registering File Sync IPC...');
+      if (!fileSyncManager) {
+        console.warn('[IPC Registry] ⚠️ fileSyncManager 未初始化，将注册降级的 File Sync IPC handlers');
+      }
       const { registerFileSyncIPC } = require('./file-sync/file-sync-ipc');
-      registerFileSyncIPC({ fileSyncManager, database });
+      registerFileSyncIPC({ fileSyncManager: fileSyncManager || null, database });
       console.log('[IPC Registry] ✓ File Sync IPC registered (3 handlers)');
+    } else {
+      console.warn('[IPC Registry] ⚠️ 数据库未初始化，跳过 File Sync IPC 注册');
     }
 
     // 配置管理 (函数模式 - 小模块，4 handlers)

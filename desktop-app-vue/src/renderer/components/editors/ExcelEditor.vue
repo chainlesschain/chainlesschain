@@ -273,7 +273,29 @@ const renderSheet = async (sheetIndex) => {
     width: col?.width || 100,
   }));
 
-  // 创建jspreadsheet实例 - v5 API 不使用worksheets，直接传递data
+  const worksheetConfig = {
+    name: sheet.name || `Sheet${sheetIndex + 1}`,
+    data: data.length > 0 ? data : [Array(columns.length).fill('')],
+    columns,
+    minDimensions: [10, 20],
+    allowInsertRow: !props.readOnly,
+    allowInsertColumn: !props.readOnly,
+    allowDeleteRow: !props.readOnly,
+    allowDeleteColumn: !props.readOnly,
+    allowRenameColumn: !props.readOnly,
+    editable: !props.readOnly,
+    tableOverflow: true,
+    tableHeight: 'calc(100vh - 300px)',
+    tableWidth: '100%',
+    onchange: handleCellChange,
+    onselection: handleCellSelection,
+    oninsertrow: handleRowInsert,
+    ondeleterow: handleRowDelete,
+    oninsertcolumn: handleColumnInsert,
+    ondeletecolumn: handleColumnDelete,
+  };
+
+  // 创建jspreadsheet实例 - v5 API 使用worksheets
   try {
     console.log('[ExcelEditor] Creating jspreadsheet with data:', {
       rows: data.length,
@@ -281,27 +303,8 @@ const renderSheet = async (sheetIndex) => {
       readOnly: props.readOnly
     });
 
-    // jspreadsheet-ce v5.x API - 直接传递配置，不需要worksheets包装
     spreadsheet.value = jspreadsheet(spreadsheetRef.value, {
-      data: data.length > 0 ? data : [Array(columns.length).fill('')],
-      columns: columns,
-      minDimensions: [10, 20],
-      allowInsertRow: !props.readOnly,
-      allowInsertColumn: !props.readOnly,
-      allowDeleteRow: !props.readOnly,
-      allowDeleteColumn: !props.readOnly,
-      allowRenameColumn: !props.readOnly,
-      editable: !props.readOnly,
-      tableOverflow: true,
-      tableHeight: 'calc(100vh - 300px)',
-      tableWidth: '100%',
-      // Event handlers
-      onchange: handleCellChange,
-      onselection: handleCellSelection,
-      oninsertrow: handleRowInsert,
-      ondeleterow: handleRowDelete,
-      oninsertcolumn: handleColumnInsert,
-      ondeletecolumn: handleColumnDelete,
+      worksheets: [worksheetConfig],
     });
 
     console.log('[ExcelEditor] jspreadsheet created successfully');
@@ -314,8 +317,11 @@ const renderSheet = async (sheetIndex) => {
     try {
       console.log('[ExcelEditor] Attempting fallback initialization...');
       spreadsheet.value = jspreadsheet(spreadsheetRef.value, {
-        data: [['']], // 最少一个单元格
-        minDimensions: [10, 20],
+        worksheets: [{
+          name: 'Sheet1',
+          data: [['']],
+          minDimensions: [10, 20],
+        }],
       });
       console.log('[ExcelEditor] Fallback initialization successful');
     } catch (fallbackError) {
@@ -326,6 +332,9 @@ const renderSheet = async (sheetIndex) => {
 
 // 获取当前工作表实例 - v5直接返回spreadsheet对象
 const getCurrentWorksheet = () => {
+  if (spreadsheet.value?.worksheets?.length) {
+    return spreadsheet.value.worksheets[0];
+  }
   return spreadsheet.value;
 };
 
