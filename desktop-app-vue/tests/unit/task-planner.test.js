@@ -744,8 +744,15 @@ describe('TaskPlanner', () => {
 
   // ==================== LLM响应格式测试 ====================
   describe('LLM响应格式测试', () => {
+    beforeEach(() => {
+      // Ensure mock RAG returns empty context for these tests
+      mockRAGManager.enhancedQuery.mockResolvedValue({
+        context: []
+      });
+    });
+
     it('should parse JSON wrapped in markdown with extra text', async () => {
-      mockLLMService.complete.mockResolvedValue(`
+      mockLLMService.complete.mockResolvedValueOnce(`
 Here is the task plan:
 
 \`\`\`json
@@ -767,7 +774,7 @@ This is the plan I generated.
     });
 
     it('should parse JSON without markdown code block', async () => {
-      mockLLMService.complete.mockResolvedValue(`
+      mockLLMService.complete.mockResolvedValueOnce(`
 {
   "task_title": "纯JSON",
   "task_type": "web",

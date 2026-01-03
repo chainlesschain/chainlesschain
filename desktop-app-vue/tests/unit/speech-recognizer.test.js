@@ -52,7 +52,10 @@ const mockFs = {
   createReadStream: vi.fn().mockReturnValue('mock-stream'),
 };
 
-vi.mock('fs', () => mockFs);
+vi.mock('fs', () => ({
+  default: mockFs,
+  ...mockFs,
+}));
 
 // Mock path
 vi.mock('path', async () => {

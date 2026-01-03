@@ -198,8 +198,13 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
    */
   ipcMain.handle('tool:get-all', async (event, options = {}) => {
     try {
-      const tools = await toolManager.getAllTools(options);
-      return { success: true, data: tools };
+      const result = await toolManager.getAllTools(options);
+      // getAllTools 已经返回 { success, tools } 格式，转换为前端期望的 { success, data } 格式
+      if (result.success) {
+        return { success: true, data: result.tools };
+      } else {
+        return { success: false, error: result.error };
+      }
     } catch (error) {
       console.error('[IPC] tool:get-all 失败:', error);
       return { success: false, error: error.message };
@@ -430,15 +435,19 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
   ipcMain.handle('skill-tool:get-usage-analytics', async (event, dateRange = null) => {
     try {
       // 获取技能和工具的统计数据
-      const skills = await skillManager.getAllSkills({ enabled: 1 });
-      const tools = await toolManager.getAllTools({ enabled: 1 });
+      const skillResult = await skillManager.getAllSkills({ enabled: 1 });
+      const toolResult = await toolManager.getAllTools({ enabled: 1 });
+
+      // 提取技能和工具数组
+      const skills = skillResult.success ? skillResult.skills : [];
+      const tools = toolResult.success ? toolResult.tools : [];
 
       // 计算总体统计
       const analytics = {
         totalSkills: skills.length,
         totalTools: tools.length,
-        skillUsage: skills.reduce((sum, s) => sum + s.usage_count, 0),
-        toolUsage: tools.reduce((sum, t) => sum + t.usage_count, 0),
+        skillUsage: skills.reduce((sum, s) => sum + (s.usage_count || 0), 0),
+        toolUsage: tools.reduce((sum, t) => sum + (t.usage_count || 0), 0),
         topSkills: skills
           .sort((a, b) => b.usage_count - a.usage_count)
           .slice(0, 10)
@@ -476,8 +485,12 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
    */
   ipcMain.handle('skill-tool:get-category-stats', async (event) => {
     try {
-      const skills = await skillManager.getAllSkills({ enabled: 1 });
-      const tools = await toolManager.getAllTools({ enabled: 1 });
+      const skillResult = await skillManager.getAllSkills({ enabled: 1 });
+      const toolResult = await toolManager.getAllTools({ enabled: 1 });
+
+      // 提取技能和工具数组
+      const skills = skillResult.success ? skillResult.skills : [];
+      const tools = toolResult.success ? toolResult.tools : [];
 
       // 按分类统计
       const skillCategories = {};

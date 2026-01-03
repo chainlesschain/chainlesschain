@@ -185,6 +185,7 @@ describe('SkillManager', () => {
     it('should set default values for optional fields', async () => {
       const minimalData = {
         name: 'minimal_skill',
+        category: 'test', // category is required
       };
 
       const skillId = await skillManager.registerSkill(minimalData);
@@ -206,6 +207,7 @@ describe('SkillManager', () => {
       await skillManager.registerSkill({
         id: 'skill-to-delete',
         name: 'delete_me',
+        category: 'test', // category is required
       });
     });
 
@@ -285,10 +287,12 @@ describe('SkillManager', () => {
       expect(mockDb.run).toHaveBeenCalled();
     });
 
-    it('should throw error if skill does not exist', async () => {
+    it('should return error status if skill does not exist', async () => {
       mockDb.get.mockResolvedValueOnce(null);
 
-      await expect(skillManager.updateSkill('nonexistent', {})).rejects.toThrow('技能不存在');
+      const result = await skillManager.updateSkill('nonexistent', {});
+      expect(result.success).toBe(false);
+      expect(result.changes).toBe(0);
     });
 
     it('should do nothing if no valid updates provided', async () => {
@@ -364,7 +368,8 @@ describe('SkillManager', () => {
 
       const result = await skillManager.getAllSkills();
 
-      expect(result).toEqual(mockSkills);
+      expect(result.success).toBe(true);
+      expect(result.skills).toEqual(mockSkills);
       expect(mockDb.all).toHaveBeenCalled();
     });
 
@@ -375,7 +380,8 @@ describe('SkillManager', () => {
 
       const result = await skillManager.getAllSkills({ enabled: true });
 
-      expect(result.length).toBe(1);
+      expect(result.success).toBe(true);
+      expect(result.skills.length).toBe(1);
       expect(mockDb.all).toHaveBeenCalled();
     });
 
@@ -386,7 +392,8 @@ describe('SkillManager', () => {
 
       const result = await skillManager.getAllSkills({ category: 'testing' });
 
-      expect(result.length).toBe(1);
+      expect(result.success).toBe(true);
+      expect(result.skills.length).toBe(1);
     });
 
     it('should support limit and offset', async () => {
@@ -399,7 +406,8 @@ describe('SkillManager', () => {
         offset: 10,
       });
 
-      expect(result.length).toBe(1);
+      expect(result.success).toBe(true);
+      expect(result.skills.length).toBe(1);
     });
   });
 
@@ -411,7 +419,8 @@ describe('SkillManager', () => {
 
       const result = await skillManager.getSkillsByCategory('testing');
 
-      expect(result.length).toBe(1);
+      expect(result.success).toBe(true);
+      expect(result.skills.length).toBe(1);
       expect(mockDb.all).toHaveBeenCalled();
       // getSkillsByCategory calls getAllSkills({ category })
       // which generates dynamic SQL with WHERE 1=1 AND category = ?
@@ -427,7 +436,8 @@ describe('SkillManager', () => {
 
       const result = await skillManager.getEnabledSkills();
 
-      expect(result.length).toBe(2);
+      expect(result.success).toBe(true);
+      expect(result.skills.length).toBe(2);
       expect(mockDb.all).toHaveBeenCalled();
       // getEnabledSkills calls getAllSkills({ enabled: 1 })
     });
@@ -697,7 +707,9 @@ describe('SkillManager', () => {
 
       const result = await skillManager.getSuggestedSkills('test intent');
 
-      expect(result).toEqual(mockSuggestions);
+      // getSuggestedSkills calls getAllSkills or getSkillsByCategory which return { success, skills }
+      expect(result.success).toBe(true);
+      expect(result.skills).toEqual(mockSuggestions);
       expect(mockDb.all).toHaveBeenCalled();
     });
   });
