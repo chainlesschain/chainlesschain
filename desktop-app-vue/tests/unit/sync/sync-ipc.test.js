@@ -46,15 +46,15 @@ describe('Sync IPC', () => {
       },
     };
 
-    // 动态导入，确保 mock 已设置
-    const module = await import('../../../src/main/sync/sync-ipc.js');
-    registerSyncIPC = module.registerSyncIPC;
-
-    // 捕获 IPC handlers
+    // IMPORTANT: 设置 mockImplementation BEFORE 导入 IPC 模块
     const { ipcMain } = await import('electron');
     ipcMain.handle.mockImplementation((channel, handler) => {
       handlers[channel] = handler;
     });
+
+    // 动态导入，确保 mock 已设置
+    const module = await import('../../../src/main/sync/sync-ipc.js');
+    registerSyncIPC = module.registerSyncIPC;
 
     // 注册 Sync IPC
     registerSyncIPC({ syncManager: mockSyncManager });
