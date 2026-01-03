@@ -75,10 +75,10 @@ describe('MultimediaAPI', () => {
 
       const result = await api.uploadImage(imagePath, options);
 
+      // 没有提供 onProgress 回调，所以不应该包含 taskId
       expect(mockInvoke).toHaveBeenCalledWith('image:upload', {
         imagePath,
         options,
-        taskId: expect.stringContaining('image:upload_'),
       });
       expect(result).toEqual(mockResult);
     });
@@ -275,10 +275,10 @@ describe('MultimediaAPI', () => {
 
       await api.extractAudio('/video.mp4', '/audio.mp3');
 
+      // 没有提供 onProgress 回调，所以不应该包含 taskId
       expect(mockInvoke).toHaveBeenCalledWith('video:extractAudio', {
         inputPath: '/video.mp4',
         outputPath: '/audio.mp3',
-        taskId: expect.any(String),
       });
     });
 
@@ -484,7 +484,6 @@ describe('MultimediaAPI', () => {
 
   describe('进度回调处理', () => {
     it('应该正确触发进度回调', async () => {
-      const api = new MultimediaAPI();
       const progressCallback = vi.fn();
       let progressHandler: Function | undefined;
 
@@ -495,12 +494,12 @@ describe('MultimediaAPI', () => {
         }
       });
 
-      // 重新创建实例以捕获处理器
-      new MultimediaAPI();
+      // 创建实例（会调用setupProgressListener）
+      const api = new MultimediaAPI();
 
       mockInvoke.mockImplementation(async (channel, params) => {
         // 模拟进度事件
-        if (progressHandler) {
+        if (progressHandler && params.taskId) {
           progressHandler(null, {
             taskId: params.taskId,
             percent: 50,
