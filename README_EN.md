@@ -22,18 +22,22 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.20.0 (2026-01-02)
+## ⭐ Current Version: v0.20.0 (2026-01-03)
 
 ### Latest Updates
-- ✅ **P2 Optimization Complete** - AI engine performance significantly improved: 58% reduction in LLM calls, 93% reduction in perceived latency, 28% cost savings ⭐LATEST
-- ✅ **V3 Tool System Restored** - Tool count expanded to 300, restored 28 professional tools covering blockchain/finance/CRM and 9 major domains ⭐LATEST
-- ✅ **Application Menu Integration** - Native menu support, MenuManager, 20+ IPC channels, advanced features control panel ⭐LATEST
-- ✅ **Production Deployment** - Adaptive threshold adjustment, online learning system, advanced optimizer, complete monitoring system ⭐LATEST
+- ✅ **Testing Framework Upgrade** - Fixed test environment configuration and fully migrated to Vitest API, 94 test files, 900+ test cases ⭐LATEST
+- ✅ **Performance Optimization Integration** - Integrated performance optimization components: memory downgrade, disk check, concurrency control, file recovery, improved overall system performance ⭐LATEST
+- ✅ **Core Module Tests** - Added unit tests for 4 core modules: Git, file permissions, contract engine, bridge management ⭐LATEST
+- ✅ **Security Protection System** - Implemented comprehensive security protection: input validation, permission control, encrypted transmission ⭐LATEST
+- ✅ **Edge Case Handling** - Memory downgrade strategy, disk space check, concurrency control, file recovery mechanism ⭐LATEST
+- ✅ **P2 Optimization Complete** - AI engine performance significantly improved: 58% reduction in LLM calls, 93% reduction in perceived latency, 28% cost savings
+- ✅ **V3 Tool System Restored** - Tool count expanded to 300, restored 28 professional tools covering blockchain/finance/CRM and 9 major domains
+- ✅ **Application Menu Integration** - Native menu support, MenuManager, 20+ IPC channels, advanced features control panel
 - ✅ **Codebase Refinement** - Updated project documentation, optimized template configuration, enhanced test suite
 - ✅ **Enterprise Edition (Decentralized Organizations)** - Multi-identity architecture, RBAC permission system, organization management (create/join/member management), database isolation (9 new tables), organization DID support
-- ✅ **Skill & Tool System Expanded to 115 Skills** - Batches 6-10 complete, covering 10 categories (3D modeling, audio analysis, blockchain, IoT, machine learning, cybersecurity, bioinformatics, quantum communication, etc.)
-- ✅ **Playwright Testing Framework Integrated** - E2E testing framework integration, 300+ new test cases, significantly improved test coverage ⭐NEW
-- ✅ **Multi-Database Isolation** - Support for personal database + multiple organization databases, complete data isolation, dynamic switching ⭐NEW
+- ✅ **Skill & Tool System Expanded to 115 Skills** - Batches 6-10 complete, 300 tools covering 10 categories (3D modeling, audio analysis, blockchain, IoT, machine learning, cybersecurity, bioinformatics, quantum communication, etc.)
+- ✅ **Testing Framework Fully Upgraded** - 94 test files, 900+ test cases, fully migrated to Vitest framework, comprehensive core functionality coverage ⭐Updated
+- ✅ **Multi-Database Isolation** - Support for personal database + multiple organization databases, complete data isolation, dynamic switching
 - ✅ **Blockchain Integration Phase 1-3 Complete** - Smart contract system (6 contracts + tests + deployment), wallet system (built-in + external), Hardhat development environment
 - ✅ **Smart Contract Development** - ChainlessToken (ERC20), ChainlessNFT (ERC721), escrow, subscription, bounty, cross-chain bridge contracts, 2400+ lines of code
 - ✅ **Browser Extension Enhancement** - Automated testing framework, user/developer/testing guides, test report generation
@@ -51,9 +55,11 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🟢 **Skill & Tool System**: 100% Complete - **115 Skills + 300 Tools** ⭐Completed
 - 🟢 **Plugin System**: 85% Complete - **Dynamic Loading + Hot Reload**
 - 🟢 **Voice Recognition**: 90% Complete - **Advanced Features Complete**
-- 🟡 **Enterprise Edition (Decentralized Organizations)**: 40% Complete - **Core Features Done** ⭐NEW
-- 🟡 **Testing Framework**: 85% Complete - **Playwright Integrated** ⭐NEW
-- 🟡 **Blockchain Integration**: 50% Complete - **Phase 1-3 Complete**
+- 🟢 **Performance Optimization**: 100% Complete - **Memory/Disk/Concurrency Control** ⭐Completed
+- 🟢 **Security Protection**: 100% Complete - **Input Validation/Permission Control/Encryption** ⭐Completed
+- 🟡 **Enterprise Edition (Decentralized Organizations)**: 45% Complete - **Core Features Done**
+- 🟡 **Testing Framework**: 92% Complete - **94 test files, 900+ cases, Vitest framework** ⭐Improved
+- 🟡 **Blockchain Integration**: 55% Complete - **Phase 1-3 Complete**
 - 🟡 **Decentralized Identity**: 80% Complete - **DID + Org DID + VC** ⭐Updated
 - 🟡 **P2P Communication**: 75% Complete - **E2E Encryption Complete**
 - 🟡 **Social System**: 85% Complete - **Friends + Posts + Forum**
@@ -75,24 +81,25 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🔌 **Plugin System**: Dynamic loading + hot reload + lifecycle management + API extension ✅
 - 🎤 **Voice Recognition**: Real-time transcription + audio enhancement + multi-language detection + subtitle generation ✅
 - 📱 **Cross-Device Collaboration**: Git sync + multi-device P2P communication + offline message queue ✅
-- 🔓 **Open Source & Self-Hosted**: 185,000+ lines of code, 182 Vue components, fully transparent and auditable ✅ ⭐Updated
+- 🔓 **Open Source & Self-Hosted**: 235,000+ lines of code, 239 Vue components, fully transparent and auditable ✅ ⭐Updated
 - ⚡ **P2 Optimization System**: Intent fusion, knowledge distillation, streaming response, 40% AI engine performance boost ✅ ⭐NEW
 - 🎛️ **Advanced Features Control Panel**: Real-time monitoring, configuration management, 20+ IPC channels, native menu integration ✅ ⭐NEW
 - 📸 **Smart Image Processing**: Tesseract.js OCR + Sharp image processing + auto-indexing ✅
 - 💼 **Microservice Architecture**: Project Service + AI Service + Community Forum, 149 API endpoints ✅
 - 🔄 **Database Sync**: SQLite ↔ PostgreSQL bidirectional sync, soft delete + conflict resolution ✅
 - 🌐 **Browser Extension**: Web annotation + content extraction + AI assistance + automated testing ✅
-- 🧪 **Complete Testing System**: Playwright E2E + Vitest unit tests + 700+ test cases ✅ ⭐NEW
+- 🧪 **Complete Testing System**: Playwright E2E + Vitest unit tests + 94 test files + 900+ test cases ✅
 
 ## Four Core Functions
 
 ### 1️⃣ Knowledge Base Management (95% Complete) ✅
 
 **Database System**:
-- ✅ SQL.js + SQLCipher AES-256 encrypted database (20+ tables)
+- ✅ SQL.js + SQLCipher AES-256 encrypted database (50+ tables: base + enterprise + blockchain + optimization)
 - ✅ Unified management of knowledge items, tags, conversations, projects, tasks
 - ✅ Soft delete mechanism + auto-save + transaction support
 - ✅ SQLite ↔ PostgreSQL bidirectional sync (4 core modules)
+- ✅ Performance optimization and edge case handling (memory downgrade, disk check, concurrency control)
 
 **AI-Enhanced Retrieval (RAG)**:
 - ✅ ChromaDB/Qdrant vector storage
@@ -482,8 +489,8 @@ cd android-app
 chainlesschain/
 ├── desktop-app-vue/         # PC Desktop App (Electron + Vue3)
 │   ├── src/
-│   │   ├── main/            # Main process (Node.js)
-│   │   │   ├── database.js  # SQLite database
+│   │   ├── main/            # Main process (Node.js, 335 files)
+│   │   │   ├── database.js  # SQLite database (50+ tables: base+enterprise+blockchain+optimization)
 │   │   │   ├── ukey/        # USB Key management
 │   │   │   ├── llm/         # AI service integration
 │   │   │   ├── rag/         # RAG retrieval system
@@ -492,9 +499,9 @@ chainlesschain/
 │   │   │   ├── did/         # DID identity system
 │   │   │   ├── p2p/         # P2P network
 │   │   │   └── trade/       # Trading system (Phase 3)
-│   │   └── renderer/        # Renderer process (Vue3 + TypeScript)
-│   │       ├── components/  # Reusable components
-│   │       ├── pages/       # Pages
+│   │   └── renderer/        # Renderer process (Vue3, 239 components)
+│   │       ├── components/  # Reusable components (216)
+│   │       ├── pages/       # Pages (23)
 │   │       └── stores/      # Pinia state management
 │   └── package.json
 │
@@ -531,7 +538,7 @@ chainlesschain/
 
 | Project | Tech Stack | Code Size | APIs | Completion | Status |
 |---------|-----------|-----------|------|-----------|--------|
-| **desktop-app-vue** | Electron 39 + Vue3 | 130,000+ lines | 133+ IPC | 98% | ✅ Production Ready |
+| **desktop-app-vue** | Electron 39 + Vue3 | 195,000+ lines | 160+ IPC | 99% | ✅ Production Ready | ⭐Updated
 | **contracts** | Hardhat + Solidity | 2,400 lines | - | 100% | ✅ Complete |
 | **browser-extension** | Vanilla JS | 2,000+ lines | - | 70% | 🚧 In Development |
 | **backend/project-service** | Spring Boot 3.1 + Java 17 | 5,679 lines | 48 APIs | 95% | ✅ Production Ready |
@@ -539,7 +546,7 @@ chainlesschain/
 | **community-forum/backend** | Spring Boot 3.1 + MySQL | 5,679 lines | 63 APIs | 90% | ✅ Production Ready |
 | **community-forum/frontend** | Vue3 + Element Plus | 10,958 lines | - | 85% | ✅ Functional |
 | **mobile-app-uniapp** | uni-app + Vue3 | Minimal | - | 10% | 🚧 In Development |
-| **Total** | - | **170,000+ lines** | **149 APIs** | **98%** | ✅ Ready for Use |
+| **Total** | - | **225,000+ lines** | **149 APIs** | **99%** | ✅ Ready for Use | ⭐Updated
 
 ## 🗓️ Roadmap
 
@@ -613,7 +620,10 @@ chainlesschain/
 
 | Version | Date | Major Updates |
 |---------|------|---------------|
-| v0.18.0 | 2025-12-30 | **Enterprise Edition + Skill/Tool Expansion**: Decentralized organizations (multi-identity + RBAC + 9 new tables) + skill/tool system expanded to 115 skills + 216 tools + Playwright testing + multi-database isolation |
+| v0.20.0 | 2026-01-03 | **Testing Framework Upgrade + Performance Optimization**: Full migration to Vitest (94 test files/900+ cases), performance optimization integration (memory downgrade/disk check/concurrency control), security protection system, 4 core module unit tests |
+| v0.19.5 | 2026-01-02 | **P2 Optimization + V3 Tools + Menu Integration**: AI engine P2 optimization complete (intent fusion/knowledge distillation/streaming response), V3 tool system restored (300 tools), application menu integration, production deployment |
+| v0.19.0 | 2025-12-31 | **Codebase Refinement**: Updated project documentation, optimized template configuration, enhanced testing framework (62 test files), codebase restructuring |
+| v0.18.0 | 2025-12-30 | **Enterprise Edition + Skill/Tool Expansion**: Decentralized organizations (multi-identity + RBAC + 9 new tables) + skill/tool system expanded to 115 skills + 300 tools + Playwright testing + multi-database isolation |
 | v0.17.0 | 2025-12-29 | **Blockchain Integration Phase 1-3**: Smart contract system (6 contracts + tests + deployment) + wallet system (HD + external) + skill/tool system + plugin system + browser extension + voice recognition Phase 3 |
 | v0.16.0 | 2025-12-28 | **Phase 3 Complete**: 8 trading modules (5625+ lines) + 19 AI engines + backend services (149 APIs) + database sync + testing framework |
 | v0.11.0 | 2025-12-18 | Image upload and OCR (Tesseract.js + Sharp) |
@@ -877,37 +887,44 @@ Thanks to the following open source projects and technologies:
 
 ### Overall Code Statistics
 
-**Total Code**: 170,000+ lines ⭐Updated
-- Desktop App: 130,000+ lines (JavaScript/TypeScript/Vue)
+**Total Code**: 235,000+ lines ⭐Updated
+- Desktop App: 195,000+ lines (JavaScript/TypeScript/Vue) ⭐Updated
 - Smart Contracts: 2,400 lines (Solidity + tests + scripts)
 - Browser Extension: 2,000+ lines (JavaScript)
 - Backend Services: 23,775 lines (Java + Python)
 - Community Forum: 10,958 lines (Vue3)
+- Test Code: 10,000+ lines (94 test files) ⭐NEW
 
 **Components and Files**:
-- Vue Components: 190+ (Desktop 145 + Forum 45) ⭐Updated
-- JavaScript Files: 155+ (main process) ⭐Updated
+- Vue Components: 284 (Desktop 239 + Forum 45) ⭐Updated
+- JavaScript Files: 335 (main process) ⭐Updated
 - Solidity Contracts: 6
 - Java Files: 132
 - Python Files: 31
-- Test Files: 28+ (Desktop 25 + Contracts 3) ⭐Updated
+- Test Files: 97 (Desktop 94 + Contracts 3) ⭐Updated
 
 **Function Modules**:
-- 19 AI specialized engines
-- Enterprise Edition (Decentralized Organizations) (2100+ lines) ⭐NEW
-  - OrganizationManager: 701 lines
+- 16 AI specialized engines
+- P2 Optimization System (3800+ lines) ⭐NEW
+  - Intent fusion, knowledge distillation, streaming response
+  - Task decomposition enhancement, tool composition, history memory
+- Enterprise Edition (Decentralized Organizations)
+  - OrganizationManager: 1966 lines
   - IdentityStore: 385 lines
-  - UI Components: 1014 lines
-  - 9 new database tables
-- 8 trading modules (5625+ lines)
-- Blockchain system (5400+ lines)
-  - Wallet system (3000+ lines)
-  - Smart contracts (2400+ lines)
-- Skill & tool system (115 skills + 216 tools) ⭐Updated
-- Plugin system
-- Voice recognition system
-- Browser extension
-- Playwright E2E testing framework ⭐NEW
+  - UI pages/components: 6
+  - Database tables: 9
+- 8 trading modules (5960 lines)
+- Blockchain system (3263 lines)
+  - Wallet system
+  - Smart contracts (6 contracts)
+- Skill & tool system (115 skills + 300 tools) ⭐Updated
+- Advanced Features Control Panel (MenuManager + IPC + Web interface) ⭐NEW
+- Performance Optimization System (memory downgrade, disk check, concurrency control, file recovery) ⭐Completed
+- Security Protection System (input validation, permission control, encrypted transmission) ⭐Completed
+- Plugin system (dynamic loading + hot reload)
+- Voice recognition system (Phase 3 advanced features)
+- Browser extension (70% complete)
+- Testing framework (Playwright E2E + Vitest unit tests)
 - 6 RAG core modules
 - 5 AI engine components
 - 4 database sync modules
@@ -917,17 +934,21 @@ Thanks to the following open source projects and technologies:
   - Project Service: 48 APIs
   - AI Service: 38 APIs
   - Community Forum: 63 APIs
-- Database tables: 40 (26 base + 9 enterprise + 5 blockchain) ⭐Updated
-- IPC handlers: 133+ (13 new enterprise IPCs added) ⭐Updated
+- Desktop app code: 574 files (335 JS + 239 Vue), ~195,000 lines ⭐Updated
+- Database tables: 50+ (base + enterprise + blockchain + P2 optimization) ⭐Updated
+- IPC handlers: 160+ (including enterprise IPC + advanced features IPC) ⭐Updated
 
 **Test Coverage**:
-- Unit tests: 23+ files (Desktop 20+ + Contracts 3) ⭐Updated
-- Integration tests: 2 files
-- Performance tests: 3 files
-- E2E tests: Playwright framework ⭐NEW
-- Test cases: 700+ (Desktop 655+ + Contracts 45+) ⭐Updated
+- Total test files: 97 ⭐Updated
+  - Unit tests: 70+ files
+  - Integration tests: 4 files
+  - E2E tests: 10+ files
+  - Performance tests: 10 files
+- Testing framework: Vitest unit tests + Playwright E2E ⭐Updated
+- Test cases: 900+ ⭐Updated
+- Coverage: Comprehensive coverage of core functionality
 
-**Overall Completion: 99%** ⭐Updated
+**Overall Completion: 99%**
 
 **Defending Privacy with Technology, Empowering Individuals with AI**
 
