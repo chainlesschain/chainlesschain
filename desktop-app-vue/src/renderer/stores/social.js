@@ -499,18 +499,13 @@ export const useSocialStore = defineStore('social', {
     async loadNotifications(limit = 50) {
       this.notificationsLoading = true
       try {
-        const notifications = await ipcRenderer.invoke('notification:get-all', { limit })
+        const result = await ipcRenderer.invoke('notification:get-all', { limit })
+        const notifications = Array.isArray(result)
+          ? result
+          : result?.notifications || result?.data || []
 
-        // 确保 notifications 是数组
-        if (Array.isArray(notifications)) {
-          this.notifications = notifications
-          this.unreadNotifications = notifications.filter((n) => n.is_read === 0).length
-        } else {
-          // 如果返回的不是数组，可能是包装对象或空值
-          console.warn('通知数据格式不正确:', notifications)
-          this.notifications = []
-          this.unreadNotifications = 0
-        }
+        this.notifications = notifications
+        this.unreadNotifications = notifications.filter((n) => n.is_read === 0).length
       } catch (error) {
         console.error('加载通知失败:', error)
         this.notifications = []

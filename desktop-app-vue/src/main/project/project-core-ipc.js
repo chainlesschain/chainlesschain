@@ -1514,7 +1514,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:stats:start', async (_event, projectId, projectPath) => {
     try {
-      const { getStatsCollector } = require('../stats/stats-collector');
+      const { getStatsCollector } = require('./stats-collector');
       const statsCollector = getStatsCollector();
 
       await statsCollector.initialize();
@@ -1534,7 +1534,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:stats:stop', async (_event, projectId) => {
     try {
-      const { getStatsCollector } = require('../stats/stats-collector');
+      const { getStatsCollector } = require('./stats-collector');
       const statsCollector = getStatsCollector();
 
       await statsCollector.initialize();
@@ -1554,7 +1554,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:stats:get', async (_event, projectId) => {
     try {
-      const { getStatsCollector } = require('../stats/stats-collector');
+      const { getStatsCollector } = require('./stats-collector');
       const statsCollector = getStatsCollector();
 
       await statsCollector.initialize();
@@ -1573,7 +1573,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:stats:update', async (_event, projectId) => {
     try {
-      const { getStatsCollector } = require('../stats/stats-collector');
+      const { getStatsCollector } = require('./stats-collector');
       const statsCollector = getStatsCollector();
 
       await statsCollector.initialize();

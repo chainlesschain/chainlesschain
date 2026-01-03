@@ -311,10 +311,40 @@ watch(
   { deep: true }
 )
 
+function getSelectInitialValue(variable) {
+  const options = Array.isArray(variable.options) ? variable.options : []
+  if (options.length === 0) {
+    return variable.default ?? ''
+  }
+
+  // allow default to match option value or label
+  const matchedOption =
+    options.find(opt => opt.value === variable.default) ||
+    options.find(opt => opt.label === variable.default)
+
+  if (matchedOption) {
+    return matchedOption.value
+  }
+
+  if (typeof variable.default === 'string') {
+    const partialMatch = options.find(
+      opt => typeof opt.label === 'string' && opt.label.includes(variable.default)
+    )
+    if (partialMatch) {
+      return partialMatch.value
+    }
+  }
+
+  // fallback to first option to keep select valid by default
+  return options[0]?.value ?? ''
+}
+
 function initFormData() {
   const data = {}
   variablesSchema.value.forEach(variable => {
-    if (variable.default !== undefined) {
+    if (variable.type === 'select') {
+      data[variable.name] = getSelectInitialValue(variable)
+    } else if (variable.default !== undefined) {
       data[variable.name] = variable.default
     } else if (variable.type === 'array') {
       data[variable.name] = []

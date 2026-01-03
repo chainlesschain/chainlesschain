@@ -115,9 +115,14 @@ export const useToolStore = defineStore('tool', {
     async fetchAll(options = {}) {
       this.loading = true;
       try {
+        if (!window.electronAPI?.tool) {
+          console.error('[ToolStore] electronAPI.tool 不可用');
+          return;
+        }
         const result = await window.electronAPI.tool.getAll(options);
         if (result.success) {
-          this.tools = result.data.map(tool => ({
+          const tools = Array.isArray(result.data) ? result.data : (result.tools || result.content || []);
+          this.tools = tools.map(tool => ({
             ...tool,
             parameters_schema: typeof tool.parameters_schema === 'string'
               ? JSON.parse(tool.parameters_schema)
@@ -144,20 +149,27 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchById(toolId) {
       try {
+        if (!window.electronAPI?.tool) {
+          console.error('[ToolStore] electronAPI.tool 不可用');
+          return null;
+        }
         const result = await window.electronAPI.tool.getById(toolId);
         if (result.success) {
-          this.currentTool = {
-            ...result.data,
-            parameters_schema: typeof result.data.parameters_schema === 'string'
-              ? JSON.parse(result.data.parameters_schema)
-              : (result.data.parameters_schema || {}),
-            return_schema: typeof result.data.return_schema === 'string'
-              ? JSON.parse(result.data.return_schema)
-              : (result.data.return_schema || {}),
-            required_permissions: typeof result.data.required_permissions === 'string'
-              ? JSON.parse(result.data.required_permissions)
-              : (result.data.required_permissions || []),
-          };
+          const data = result.data || result.tool || result.content;
+          this.currentTool = data
+            ? {
+                ...data,
+                parameters_schema: typeof data.parameters_schema === 'string'
+                  ? JSON.parse(data.parameters_schema)
+                  : (data.parameters_schema || {}),
+                return_schema: typeof data.return_schema === 'string'
+                  ? JSON.parse(data.return_schema)
+                  : (data.return_schema || {}),
+                required_permissions: typeof data.required_permissions === 'string'
+                  ? JSON.parse(data.required_permissions)
+                  : (data.required_permissions || []),
+              }
+            : null;
           return this.currentTool;
         } else {
           console.error('获取工具失败:', result.error);
@@ -174,9 +186,13 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchByCategory(category) {
       try {
+        if (!window.electronAPI?.tool) {
+          console.error('[ToolStore] electronAPI.tool 不可用');
+          return [];
+        }
         const result = await window.electronAPI.tool.getByCategory(category);
         if (result.success) {
-          return result.content ?? result.data;
+          return result.content ?? result.data ?? result.tools ?? [];
         } else {
           console.error('获取工具失败:', result.error);
           return [];
