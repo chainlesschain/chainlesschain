@@ -85,7 +85,7 @@ const InitialSetupIPC = require('./initial-setup-ipc');
 const { getIdentityContextManager } = require('./identity/identity-context-manager');
 
 // Performance Monitor
-const { getPerformanceMonitor } = require('../utils/performance-monitor');
+const { getPerformanceMonitor } = require('../../utils/performance-monitor');
 
 // 过滤不需要的控制台输出
 const originalConsoleLog = console.log;
@@ -372,7 +372,7 @@ class ChainlessChainApp {
     try {
       console.log('初始化性能监控器...');
       this.performanceMonitor = getPerformanceMonitor();
-      this.performanceMonitor.startMonitoring();
+      this.performanceMonitor.start();
       console.log('性能监控器初始化成功');
     } catch (error) {
       console.error('性能监控器初始化失败:', error);
@@ -978,6 +978,11 @@ class ChainlessChainApp {
 
       // 创建AI引擎管理器 (使用单例模式)
       this.aiEngineManager = getAIEngineManager();
+
+      // 初始化AI引擎管理器（异步初始化增强版任务规划器）
+      this.aiEngineManager.initialize().catch(error => {
+        console.error('[ChainlessChainApp] AI引擎管理器初始化失败:', error);
+      });
 
       // 注册自定义工具（集成到Function Caller）
       this.aiEngineManager.registerTool(
@@ -1951,7 +1956,11 @@ class ChainlessChainApp {
         gitAutoCommit: this.gitAutoCommit,
         skillExecutor: this.skillExecutor,
         aiScheduler: this.aiScheduler,
-        chatSkillBridge: this.chatSkillBridge
+        chatSkillBridge: this.chatSkillBridge,
+        syncManager: this.syncManager,
+        contactManager: this.contactManager,
+        friendManager: this.friendManager,
+        postManager: this.postManager
       });
 
       console.log('[ChainlessChainApp] ✓ Modular IPC registration complete');
@@ -2036,7 +2045,7 @@ class ChainlessChainApp {
     ipcMain.handle('performance:clear', async () => {
       try {
         // 重置性能监控器
-        const { getPerformanceMonitor } = require('../utils/performance-monitor');
+        const { getPerformanceMonitor } = require('../../utils/performance-monitor');
         const newMonitor = getPerformanceMonitor();
         newMonitor.reset();
         return { success: true };

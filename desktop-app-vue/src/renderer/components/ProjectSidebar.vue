@@ -306,6 +306,11 @@ const handleAICreate = () => {
   router.push('/');
 };
 
+// 新建项目 - 与快速新建相同
+const handleNewProject = () => {
+  handleQuickCreate();
+};
+
 // 快速新建项目提交
 const handleQuickCreateSubmit = async () => {
   if (!quickCreateForm.value.name || !quickCreateForm.value.name.trim()) {

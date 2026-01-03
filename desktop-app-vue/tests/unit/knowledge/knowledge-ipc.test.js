@@ -7,25 +7,25 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ipcMain } from 'electron';
-
-// Mock electron 模块
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn(),
-  },
-}));
 
 describe('Knowledge IPC', () => {
   let handlers = {};
   let mockDbManager;
   let mockVersionManager;
   let mockKnowledgePaymentManager;
+  let mockIpcMain;
   let registerKnowledgeIPC;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     handlers = {};
+
+    // 创建 mock ipcMain
+    mockIpcMain = {
+      handle: (channel, handler) => {
+        handlers[channel] = handler;
+      },
+    };
 
     // Mock db manager
     mockDbManager = {
@@ -63,21 +63,16 @@ describe('Knowledge IPC', () => {
       getStatistics: vi.fn(),
     };
 
-    // 动态导入，确保 mock 已设置
+    // 动态导入
     const module = await import('../../../src/main/knowledge/knowledge-ipc.js');
     registerKnowledgeIPC = module.registerKnowledgeIPC;
 
-    // 捕获 IPC handlers
-    const { ipcMain } = await import('electron');
-    ipcMain.handle.mockImplementation((channel, handler) => {
-      handlers[channel] = handler;
-    });
-
-    // 注册 Knowledge IPC
+    // 注册 Knowledge IPC 并注入 mock ipcMain
     registerKnowledgeIPC({
       dbManager: mockDbManager,
       versionManager: mockVersionManager,
       knowledgePaymentManager: mockKnowledgePaymentManager,
+      ipcMain: mockIpcMain
     });
   });
 
