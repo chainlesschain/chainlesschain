@@ -14,8 +14,6 @@ public class ProjectCreateRequest {
 
     private String projectType;  // web, document, data (可选，AI会自动识别)
 
-    private String templateId;
-
     private String name;  // 项目名称（可选，AI会自动生成）
 
     private String userId;  // 用户ID

@@ -1,9 +1,21 @@
 /**
  * Better-SQLite3 适配器
- * 用于开发环境，直接使用 better-sqlite3 而不需要加密
+ * 用于开发环境，直接使用 better-sqlite3-multiple-ciphers
  */
 
-const Database = require('better-sqlite3');
+// Try to load better-sqlite3-multiple-ciphers first, fallback to better-sqlite3
+let Database;
+try {
+  Database = require('better-sqlite3-multiple-ciphers');
+  console.log('[BetterSQLiteAdapter] 使用 better-sqlite3-multiple-ciphers');
+} catch (e) {
+  try {
+    Database = require('better-sqlite3');
+    console.log('[BetterSQLiteAdapter] 使用 better-sqlite3');
+  } catch (err) {
+    throw new Error('Neither better-sqlite3-multiple-ciphers nor better-sqlite3 available: ' + err.message);
+  }
+}
 const fs = require('fs');
 const path = require('path');
 

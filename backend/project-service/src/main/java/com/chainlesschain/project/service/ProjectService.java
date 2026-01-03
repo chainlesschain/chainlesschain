@@ -57,8 +57,7 @@ public class ProjectService {
             // 1. 调用AI Service生成文件
             JsonNode aiResult = aiServiceClient.createProject(
                     request.getUserPrompt(),
-                    request.getProjectType(),
-                    request.getTemplateId()
+                    request.getProjectType()
             ).block();
 
             if (aiResult == null) {
@@ -92,7 +91,6 @@ public class ProjectService {
             project.setStatus("active");
             project.setFolderPath(projectPath);
             project.setRootPath(projectPath);
-            project.setTemplateId(request.getTemplateId());
             project.setFileCount(0L);
             project.setTotalSize(0L);
 

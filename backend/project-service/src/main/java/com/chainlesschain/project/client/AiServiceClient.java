@@ -35,14 +35,11 @@ public class AiServiceClient {
     /**
      * 创建项目 - 调用AI Service生成文件
      */
-    public Mono<JsonNode> createProject(String userPrompt, String projectType, String templateId) {
+    public Mono<JsonNode> createProject(String userPrompt, String projectType) {
         Map<String, Object> request = new HashMap<>();
         request.put("user_prompt", userPrompt);
         if (projectType != null) {
             request.put("project_type", projectType);
-        }
-        if (templateId != null) {
-            request.put("template_id", templateId);
         }
 
         return webClient.post()

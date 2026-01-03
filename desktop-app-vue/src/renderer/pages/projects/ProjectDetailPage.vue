@@ -654,6 +654,12 @@ const getLocalProjectPath = async (path) => {
   try {
     // 调用后端 API 解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(path);
+
+    // 如果返回的是对象，提取path属性；否则直接返回
+    if (resolvedPath && typeof resolvedPath === 'object' && resolvedPath.path) {
+      return resolvedPath.path;
+    }
+
     return resolvedPath;
   } catch (error) {
     console.error('解析项目路径失败:', error);

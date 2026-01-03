@@ -28,8 +28,6 @@ public class ProjectResponse {
 
     private Long totalSize;
 
-    private String templateId;
-
     private String coverImageUrl;
 
     private List<String> tags;
