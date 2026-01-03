@@ -4,6 +4,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
 
 // Mock all dependencies before importing
 vi.mock('fs', () => ({
@@ -77,10 +80,16 @@ describe('Word引擎测试', () => {
   let mockDocx;
   let mockMammoth;
   let mockMarked;
+  let tmpDir;
+  let testDocxPath;
 
   beforeEach(async () => {
     // Clear all mocks
     vi.clearAllMocks();
+
+    // Create temporary directory for test files
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'word-test-'));
+    testDocxPath = path.join(tmpDir, 'test.docx');
 
     // Import mocked modules
     mockFs = await import('fs');
@@ -109,8 +118,16 @@ describe('Word引擎测试', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.clearAllMocks();
+    // Clean up temporary directory
+    if (tmpDir) {
+      try {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      } catch (error) {
+        console.warn('Failed to clean up temp directory:', error);
+      }
+    }
   });
 
   describe('基础功能', () => {
@@ -135,7 +152,7 @@ describe('Word引擎测试', () => {
 
   describe('readWord', () => {
     it('should read Word document successfully', async () => {
-      const result = await wordEngine.readWord('/test.docx');
+      const result = await wordEngine.readWord(testDocxPath);
 
       expect(mockMammoth.convertToHtml).toHaveBeenCalled();
       expect(mockMammoth.extractRawText).toHaveBeenCalled();
@@ -161,7 +178,7 @@ describe('Word引擎测试', () => {
       const fileHandlerMock = (await import('../../src/main/utils/file-handler')).getFileHandler();
       fileHandlerMock.checkAvailableMemory.mockReturnValue({ isAvailable: false });
 
-      const result = await wordEngine.readWord('/test.docx');
+      const result = await wordEngine.readWord(testDocxPath);
 
       expect(fileHandlerMock.waitForMemory).toHaveBeenCalled();
       expect(result.success).toBe(true);
@@ -170,7 +187,7 @@ describe('Word引擎测试', () => {
     it('should handle read errors', async () => {
       mockMammoth.convertToHtml.mockRejectedValue(new Error('Read failed'));
 
-      await expect(wordEngine.readWord('/test.docx')).rejects.toThrow('Read failed');
+      await expect(wordEngine.readWord(testDocxPath)).rejects.toThrow('Read failed');
     });
 
     it('should parse mammoth messages', async () => {
@@ -181,7 +198,7 @@ describe('Word引擎测试', () => {
         ],
       });
 
-      const result = await wordEngine.readWord('/test.docx');
+      const result = await wordEngine.readWord(testDocxPath);
 
       expect(result.messages).toHaveLength(1);
       expect(result.messages[0].type).toBe('warning');
@@ -548,7 +565,7 @@ describe('Word引擎测试', () => {
     });
 
     it('should convert Word to Markdown', async () => {
-      const result = await wordEngine.wordToMarkdown('/input.docx');
+      const result = await wordEngine.wordToMarkdown(path.join(tmpDir, 'input.docx'));
 
       expect(result.success).toBe(true);
       expect(result.markdown).toContain('# Title');
@@ -560,7 +577,7 @@ describe('Word引擎测试', () => {
         messages: [],
       });
 
-      const result = await wordEngine.wordToMarkdown('/input.docx');
+      const result = await wordEngine.wordToMarkdown(path.join(tmpDir, 'input.docx'));
 
       expect(result.markdown).toContain('# H1');
       expect(result.markdown).toContain('## H2');
@@ -573,7 +590,7 @@ describe('Word引擎测试', () => {
         messages: [],
       });
 
-      const result = await wordEngine.wordToMarkdown('/input.docx');
+      const result = await wordEngine.wordToMarkdown(path.join(tmpDir, 'input.docx'));
 
       expect(result.markdown).toContain('**Bold**');
     });
@@ -584,7 +601,7 @@ describe('Word引擎测试', () => {
         messages: [],
       });
 
-      const result = await wordEngine.wordToMarkdown('/input.docx');
+      const result = await wordEngine.wordToMarkdown(path.join(tmpDir, 'input.docx'));
 
       expect(result.markdown).toContain('*Italic*');
     });
@@ -593,7 +610,7 @@ describe('Word引擎测试', () => {
       mockMammoth.convertToHtml.mockRejectedValue(new Error('Conversion failed'));
 
       await expect(
-        wordEngine.wordToMarkdown('/input.docx')
+        wordEngine.wordToMarkdown(path.join(tmpDir, 'input.docx'))
       ).rejects.toThrow('Conversion failed');
     });
   });
@@ -605,7 +622,7 @@ describe('Word引擎测试', () => {
     });
 
     it('should create report template', async () => {
-      const result = await wordEngine.createTemplate('report', '/report.docx', {
+      const result = await wordEngine.createTemplate('report', path.join(tmpDir, 'report.docx'), {
         title: 'Q1 Report',
         author: 'John Doe',
       });
@@ -615,7 +632,7 @@ describe('Word引擎测试', () => {
     });
 
     it('should create letter template', async () => {
-      const result = await wordEngine.createTemplate('letter', '/letter.docx', {
+      const result = await wordEngine.createTemplate('letter', path.join(tmpDir, 'letter.docx'), {
         recipient: 'Jane Smith',
         sender: 'John Doe',
       });
@@ -624,7 +641,7 @@ describe('Word引擎测试', () => {
     });
 
     it('should create resume template', async () => {
-      const result = await wordEngine.createTemplate('resume', '/resume.docx', {
+      const result = await wordEngine.createTemplate('resume', path.join(tmpDir, 'resume.docx'), {
         name: 'John Doe',
         phone: '123-456-7890',
         email: 'john@example.com',
@@ -635,7 +652,7 @@ describe('Word引擎测试', () => {
 
     it('should throw error for unknown template type', async () => {
       await expect(
-        wordEngine.createTemplate('unknown', '/test.docx')
+        wordEngine.createTemplate('unknown', testDocxPath)
       ).rejects.toThrow('未知的模板类型');
     });
   });
@@ -695,7 +712,7 @@ describe('Word引擎测试', () => {
       mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
       mockFs.promises.writeFile.mockResolvedValue(undefined);
 
-      const result = await wordEngine.writeWord('/test.docx', {});
+      const result = await wordEngine.writeWord(testDocxPath, {});
 
       expect(result.success).toBe(true);
     });
@@ -704,7 +721,7 @@ describe('Word引擎测试', () => {
       mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
       mockFs.promises.writeFile.mockResolvedValue(undefined);
 
-      const result = await wordEngine.writeWord('/test.docx', { paragraphs: [] });
+      const result = await wordEngine.writeWord(testDocxPath, { paragraphs: [] });
 
       expect(result.success).toBe(true);
     });
@@ -718,7 +735,7 @@ describe('Word引擎测试', () => {
       mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
       mockFs.promises.writeFile.mockResolvedValue(undefined);
 
-      const result = await wordEngine.writeWord('/test.docx', content);
+      const result = await wordEngine.writeWord(testDocxPath, content);
 
       expect(result.success).toBe(true);
     });
@@ -732,7 +749,7 @@ describe('Word引擎测试', () => {
       mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
       mockFs.promises.writeFile.mockResolvedValue(undefined);
 
-      const result = await wordEngine.writeWord('/test.docx', content);
+      const result = await wordEngine.writeWord(testDocxPath, content);
 
       expect(result.success).toBe(true);
     });

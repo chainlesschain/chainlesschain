@@ -17,6 +17,14 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+// Mock electron at the module level
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: vi.fn(),
+    removeHandler: vi.fn(),
+  },
+}));
+
 // Import after mocks
 const { registerCodeIPC } = require('../../../src/main/code-tools/code-ipc');
 
