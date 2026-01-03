@@ -16,14 +16,6 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ipcMain } from 'electron';
-
-// Mock electron 模块
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn(),
-  },
-}));
 
 describe('Sync IPC', () => {
   let handlers = {};
@@ -32,7 +24,17 @@ describe('Sync IPC', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.resetModules(); // 清除模块缓存
     handlers = {};
+
+    // Mock electron BEFORE importing sync-ipc
+    vi.doMock('electron', () => ({
+      ipcMain: {
+        handle: (channel, handler) => {
+          handlers[channel] = handler;
+        },
+      },
+    }));
 
     // Mock sync manager
     mockSyncManager = {
@@ -46,17 +48,11 @@ describe('Sync IPC', () => {
       },
     };
 
-    // IMPORTANT: 设置 mockImplementation BEFORE 导入 IPC 模块
-    const { ipcMain } = await import('electron');
-    ipcMain.handle.mockImplementation((channel, handler) => {
-      handlers[channel] = handler;
-    });
-
     // 动态导入，确保 mock 已设置
     const module = await import('../../../src/main/sync/sync-ipc.js');
     registerSyncIPC = module.registerSyncIPC;
 
-    // 注册 Sync IPC
+    // 注册 Sync IPC - handlers 会自动填充
     registerSyncIPC({ syncManager: mockSyncManager });
   });
 
