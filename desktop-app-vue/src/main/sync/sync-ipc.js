@@ -6,14 +6,16 @@
  * @description 提供数据同步启动、状态查询、增量同步、冲突解决等 IPC 接口
  */
 
-const { ipcMain } = require('electron');
-
 /**
  * 注册所有数据同步 IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.syncManager - 同步管理器实例
+ * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
  */
-function registerSyncIPC({ syncManager }) {
+function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
+  // 支持依赖注入，用于测试
+  const ipcMain = injectedIpcMain || require('electron').ipcMain;
+
   console.log('[Sync IPC] Registering Sync IPC handlers...');
 
   // ============================================================

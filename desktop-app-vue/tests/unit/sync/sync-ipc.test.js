@@ -20,21 +20,19 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 describe('Sync IPC', () => {
   let handlers = {};
   let mockSyncManager;
+  let mockIpcMain;
   let registerSyncIPC;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    vi.resetModules(); // 清除模块缓存
     handlers = {};
 
-    // Mock electron BEFORE importing sync-ipc
-    vi.doMock('electron', () => ({
-      ipcMain: {
-        handle: (channel, handler) => {
-          handlers[channel] = handler;
-        },
+    // 创建 mock ipcMain
+    mockIpcMain = {
+      handle: (channel, handler) => {
+        handlers[channel] = handler;
       },
-    }));
+    };
 
     // Mock sync manager
     mockSyncManager = {
@@ -48,12 +46,15 @@ describe('Sync IPC', () => {
       },
     };
 
-    // 动态导入，确保 mock 已设置
+    // 动态导入
     const module = await import('../../../src/main/sync/sync-ipc.js');
     registerSyncIPC = module.registerSyncIPC;
 
-    // 注册 Sync IPC - handlers 会自动填充
-    registerSyncIPC({ syncManager: mockSyncManager });
+    // 注册 Sync IPC 并注入 mock ipcMain
+    registerSyncIPC({
+      syncManager: mockSyncManager,
+      ipcMain: mockIpcMain
+    });
   });
 
   afterEach(() => {
@@ -134,10 +135,7 @@ describe('Sync IPC', () => {
     it('should return error when syncManager is not initialized', async () => {
       // 使用 null syncManager 重新注册
       handlers = {};
-      ipcMain.handle.mockImplementation((channel, handler) => {
-        handlers[channel] = handler;
-      });
-      registerSyncIPC({ syncManager: null });
+      registerSyncIPC({ syncManager: null, ipcMain: mockIpcMain });
 
       const result = await handlers['sync:start'](null, 'test-device');
 
@@ -199,10 +197,7 @@ describe('Sync IPC', () => {
     it('should return error when syncManager is not initialized', async () => {
       // 使用 null syncManager 重新注册
       handlers = {};
-      ipcMain.handle.mockImplementation((channel, handler) => {
-        handlers[channel] = handler;
-      });
-      registerSyncIPC({ syncManager: null });
+      registerSyncIPC({ syncManager: null, ipcMain: mockIpcMain });
 
       const result = await handlers['sync:get-status'](null);
 
@@ -215,10 +210,8 @@ describe('Sync IPC', () => {
     it('should return error when httpClient is not initialized', async () => {
       // 使用没有 httpClient 的 syncManager 重新注册
       handlers = {};
-      ipcMain.handle.mockImplementation((channel, handler) => {
-        handlers[channel] = handler;
-      });
-      registerSyncIPC({ syncManager: { deviceId: 'test' } });
+      registerSyncIPC({
+        ipcMain: mockIpcMain, syncManager: { deviceId: 'test' } });
 
       const result = await handlers['sync:get-status'](null);
 
@@ -269,10 +262,7 @@ describe('Sync IPC', () => {
     it('should return error when syncManager is not initialized', async () => {
       // 使用 null syncManager 重新注册
       handlers = {};
-      ipcMain.handle.mockImplementation((channel, handler) => {
-        handlers[channel] = handler;
-      });
-      registerSyncIPC({ syncManager: null });
+      registerSyncIPC({ syncManager: null, ipcMain: mockIpcMain });
 
       const result = await handlers['sync:incremental'](null);
 
@@ -364,10 +354,7 @@ describe('Sync IPC', () => {
     it('should return error when syncManager is not initialized', async () => {
       // 使用 null syncManager 重新注册
       handlers = {};
-      ipcMain.handle.mockImplementation((channel, handler) => {
-        handlers[channel] = handler;
-      });
-      registerSyncIPC({ syncManager: null });
+      registerSyncIPC({ syncManager: null, ipcMain: mockIpcMain });
 
       const result = await handlers['sync:resolve-conflict'](null, 'conflict-123', 'local');
 
