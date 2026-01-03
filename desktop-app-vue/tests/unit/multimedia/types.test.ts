@@ -285,13 +285,12 @@ describe('Multimedia类型定义', () => {
 
   describe('类型推断', () => {
     it('应该能从函数返回值推断类型', () => {
-      const mockAPI = {} as IMultimediaAPI;
+      // 使用类型检查而非实际调用方法
+      type UploadImageReturn = ReturnType<IMultimediaAPI['uploadImage']>;
+      expectTypeOf<UploadImageReturn>().toEqualTypeOf<Promise<ImageUploadResult>>();
 
-      const imageResult = mockAPI.uploadImage('/path');
-      expectTypeOf(imageResult).toEqualTypeOf<Promise<ImageUploadResult>>();
-
-      const videoInfo = mockAPI.getVideoInfo('/video.mp4');
-      expectTypeOf(videoInfo).toEqualTypeOf<Promise<VideoInfo>>();
+      type GetVideoInfoReturn = ReturnType<IMultimediaAPI['getVideoInfo']>;
+      expectTypeOf<GetVideoInfoReturn>().toEqualTypeOf<Promise<VideoInfo>>();
     });
 
     it('应该能从数组推断元素类型', () => {
