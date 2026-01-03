@@ -5,29 +5,38 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+// Mock ipcMain at the top level
+let ipcHandlers = {};
+const mockIpcMain = {
+  handle: vi.fn((channel, handler) => {
+    ipcHandlers[channel] = handler;
+  }),
+};
+
+// Mock electron module before any imports
+vi.mock('electron', () => ({
+  ipcMain: mockIpcMain,
+  dialog: {
+    showOpenDialog: vi.fn(),
+    showSaveDialog: vi.fn(),
+  },
+}));
+
 describe('InitialSetupIPC - IPC通道测试', () => {
-  let ipcMain;
   let mockApp;
   let mockDatabase;
   let mockAppConfig;
   let mockLlmConfig;
   let InitialSetupIPC;
   let ipcInstance;
-  let ipcHandlers = {};
 
   beforeEach(async () => {
-    // Mock ipcMain
+    // Reset ipcHandlers before each test
     ipcHandlers = {};
-    ipcMain = {
-      handle: vi.fn((channel, handler) => {
-        ipcHandlers[channel] = handler;
-      }),
-    };
-
-    // Mock electron模块
-    vi.doMock('electron', () => ({
-      ipcMain,
-    }));
+    mockIpcMain.handle.mockClear();
+    mockIpcMain.handle.mockImplementation((channel, handler) => {
+      ipcHandlers[channel] = handler;
+    });
 
     // Mock依赖
     mockApp = {

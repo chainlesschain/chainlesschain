@@ -528,12 +528,9 @@ describe('FunctionCaller', () => {
       });
 
       it('should create web project structure', async () => {
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
-
         const result = await caller.call('create_project_structure', {
           type: 'web',
-          projectPath: '/test/project',
+          projectPath: path.join(testDir, 'project'),
           projectName: 'MyWebsite'
         });
 
@@ -543,24 +540,18 @@ describe('FunctionCaller', () => {
       });
 
       it('should create document project structure', async () => {
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
-
         const result = await caller.call('create_project_structure', {
           type: 'document',
-          projectPath: '/test/docs'
+          projectPath: path.join(testDir, 'docs')
         });
 
         expect(result.structure.directories).toContain('docs');
       });
 
       it('should create data project structure', async () => {
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
-
         const result = await caller.call('create_project_structure', {
           type: 'data',
-          projectPath: '/test/data-project'
+          projectPath: path.join(testDir, 'data-project')
         });
 
         expect(result.structure.directories).toContain('data');
@@ -1060,11 +1051,8 @@ describe('FunctionCaller', () => {
 
     describe('file_writer边界情况', () => {
       it('should handle content being empty string', async () => {
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
-
         const result = await caller.call('file_writer', {
-          filePath: '/test/empty.txt',
+          filePath: path.join(testDir, 'empty.txt'),
           content: ''
         });
 
@@ -1073,11 +1061,8 @@ describe('FunctionCaller', () => {
       });
 
       it('should handle content being 0', async () => {
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
-
         const result = await caller.call('file_writer', {
-          filePath: '/test/zero.txt',
+          filePath: path.join(testDir, 'zero.txt'),
           content: 0
         });
 
@@ -1085,11 +1070,8 @@ describe('FunctionCaller', () => {
       });
 
       it('should handle content being false', async () => {
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
-
         const result = await caller.call('file_writer', {
-          filePath: '/test/false.txt',
+          filePath: path.join(testDir, 'false.txt'),
           content: false
         });
 
@@ -1098,15 +1080,12 @@ describe('FunctionCaller', () => {
 
       it('should reject when content is truly undefined', async () => {
         await expect(
-          caller.call('file_writer', { filePath: '/test.txt', content: undefined })
+          caller.call('file_writer', { filePath: path.join(testDir, 'test.txt'), content: undefined })
         ).rejects.toThrow('未指定文件内容');
       });
 
       it('should handle very long file paths', async () => {
-        mockMkdir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
-
-        const longPath = '/test/' + 'a/'.repeat(50) + 'file.txt';
+        const longPath = path.join(testDir, 'a/'.repeat(50) + 'file.txt');
 
         const result = await caller.call('file_writer', {
           filePath: longPath,
