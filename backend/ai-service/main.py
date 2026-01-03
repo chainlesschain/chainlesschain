@@ -166,6 +166,12 @@ async def root():
 @app.get("/health")
 async def health_check():
     """健康检查"""
+    rag_ready = False
+    try:
+        rag_ready = bool(rag_engine) and getattr(rag_engine, "is_ready", lambda: False)()
+    except Exception as e:
+        logger.warning(f"RAG engine health check failed: {e}")
+
     return {
         "status": "healthy",
         "engines": {
@@ -173,7 +179,7 @@ async def health_check():
             "document": doc_engine.is_ready(),
             "data": data_engine.is_ready(),
             "nlu": intent_classifier.is_ready(),
-            "rag": rag_engine.is_ready()
+            "rag": rag_ready
         }
     }
 
@@ -1093,7 +1099,12 @@ async def project_chat(project_id: str, request: ProjectChatRequest):
 
         # 2. RAG检索相关项目文件（如果启用）
         rag_context = []
-        if request.context_mode == "project":
+        rag_available = (
+            request.context_mode == "project"
+            and rag_engine
+            and getattr(rag_engine, "is_ready", lambda: False)()
+        )
+        if rag_available:
             try:
                 query_result = await rag_engine.enhanced_search(
                     query=request.user_message,
@@ -1105,6 +1116,8 @@ async def project_chat(project_id: str, request: ProjectChatRequest):
             except Exception as e:
                 logger.error(f"RAG query failed: {e}")
                 # RAG失败不影响对话，继续执行
+        elif request.context_mode == "project":
+            logger.info("RAG engine not available, skipping enhanced project context search")
 
         # 3. 构建系统提示词
         project_info = request.project_info or {

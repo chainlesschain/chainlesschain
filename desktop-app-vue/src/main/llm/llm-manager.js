@@ -292,6 +292,44 @@ class LLMManager extends EventEmitter {
   }
 
   /**
+   * 向后兼容：聊天对话（消息数组）
+   * @param {Array} messages
+   * @param {Object} options
+   */
+  async chat(messages, options = {}) {
+    if (!Array.isArray(messages)) {
+      throw new Error('messages必须是数组');
+    }
+
+    const result = await this.chatWithMessages(messages, options);
+    return {
+      ...result,
+      content: result.message?.content || result.text,
+    };
+  }
+
+  /**
+   * 向后兼容：聊天对话（流式）
+   * @param {Array} messages
+   * @param {Function} onChunk
+   * @param {Object} options
+   */
+  async chatStream(messages, onChunk, options = {}) {
+    if (!Array.isArray(messages)) {
+      throw new Error('messages必须是数组');
+    }
+    if (typeof onChunk !== 'function') {
+      throw new Error('onChunk回调是必需的');
+    }
+
+    const result = await this.chatWithMessagesStream(messages, onChunk, options);
+    return {
+      ...result,
+      content: result.message?.content || result.text,
+    };
+  }
+
+  /**
    * 聊天对话（支持完整messages数组，非流式）
    * @param {Array} messages - 消息数组 [{role: 'user'|'assistant'|'system', content: string}]
    * @param {Object} options - 选项
