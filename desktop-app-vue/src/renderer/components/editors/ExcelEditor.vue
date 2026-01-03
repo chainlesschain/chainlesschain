@@ -239,24 +239,48 @@ const renderSheet = async (sheetIndex) => {
     return;
   }
 
+  // 验证sheet结构
+  if (!sheet.rows || !Array.isArray(sheet.rows)) {
+    console.error('[ExcelEditor] Invalid sheet structure: rows missing or not an array');
+    return;
+  }
+
+  if (!sheet.columns || !Array.isArray(sheet.columns)) {
+    console.error('[ExcelEditor] Invalid sheet structure: columns missing or not an array');
+    return;
+  }
+
   // 清除旧的表格实例
   if (spreadsheet.value) {
-    jspreadsheet.destroy(spreadsheetRef.value);
+    try {
+      jspreadsheet.destroy(spreadsheetRef.value);
+    } catch (destroyError) {
+      console.warn('[ExcelEditor] Failed to destroy previous instance:', destroyError);
+    }
     spreadsheet.value = null;
   }
 
   // 转换数据格式为jspreadsheet需要的格式
-  const data = sheet.rows.map(row =>
-    row.values.map(cell => cell.value ?? '')
-  );
+  const data = sheet.rows.map(row => {
+    if (!row || !row.values || !Array.isArray(row.values)) {
+      return Array(sheet.columns.length).fill('');
+    }
+    return row.values.map(cell => cell?.value ?? '');
+  });
 
   const columns = sheet.columns.map(col => ({
-    title: col.header || col.key || '',
-    width: col.width || 100,
+    title: col?.header || col?.key || '',
+    width: col?.width || 100,
   }));
 
   // 创建jspreadsheet实例
   try {
+    console.log('[ExcelEditor] Creating jspreadsheet with data:', {
+      rows: data.length,
+      cols: columns.length,
+      readOnly: props.readOnly
+    });
+
     spreadsheet.value = jspreadsheet(spreadsheetRef.value, {
       data: data,
       columns: columns,
@@ -277,9 +301,24 @@ const renderSheet = async (sheetIndex) => {
       oninsertcolumn: handleColumnInsert,
       ondeletecolumn: handleColumnDelete,
     });
+
+    console.log('[ExcelEditor] jspreadsheet created successfully');
   } catch (error) {
     console.error('[ExcelEditor] jspreadsheet init error:', error);
+    console.error('[ExcelEditor] Error stack:', error.stack);
     message.error('创建表格失败: ' + error.message);
+
+    // 尝试使用更简单的配置作为fallback
+    try {
+      console.log('[ExcelEditor] Attempting fallback initialization...');
+      spreadsheet.value = jspreadsheet(spreadsheetRef.value, {
+        data: data.length > 0 ? data : [['']], // 至少提供一个空单元格
+        minDimensions: [10, 20],
+      });
+      console.log('[ExcelEditor] Fallback initialization successful');
+    } catch (fallbackError) {
+      console.error('[ExcelEditor] Fallback init also failed:', fallbackError);
+    }
   }
 };
 
