@@ -8,11 +8,29 @@ const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs').promises;
 const path = require('path');
 const { EventEmitter } = require('events');
+const ResumableProcessor = require('../utils/resumable-processor');
+const ProgressEmitter = require('../utils/progress-emitter');
 
 class VideoEngine extends EventEmitter {
   constructor(llmManager = null) {
     super();
     this.llmManager = llmManager;
+
+    // v0.18.0: 集成错误恢复和进度通知系统
+    this.resumableProcessor = new ResumableProcessor({
+      maxRetries: 3,
+      retryDelay: 2000,
+      checkpointInterval: 10,
+    });
+    this.progressEmitter = new ProgressEmitter({
+      autoForwardToIPC: true,
+      throttleInterval: 200,
+    });
+
+    // 初始化处理器
+    this.resumableProcessor.initialize().catch(err => {
+      console.error('[VideoEngine] ResumableProcessor 初始化失败:', err);
+    });
 
     // 支持的视频格式
     this.supportedFormats = ['mp4', 'avi', 'mov', 'mkv', 'flv', 'webm', 'wmv'];
@@ -41,6 +59,79 @@ class VideoEngine extends EventEmitter {
         audioBitrate: '96k'
       }
     };
+
+    // v0.18.0: 视频滤镜预设（13种）
+    this.filterPresets = {
+      blur: (intensity = 1) => `boxblur=${intensity * 5}:1`,
+      sharpen: (intensity = 1) => `unsharp=5:5:${intensity}:5:5:0`,
+      grayscale: () => 'hue=s=0',
+      sepia: () => 'colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131',
+      vignette: (intensity = 1) => `vignette=PI/${intensity * 4}`,
+      brightness: (intensity = 1) => `eq=brightness=${(intensity - 1) * 0.5}`,
+      contrast: (intensity = 1) => `eq=contrast=${intensity}`,
+      saturation: (intensity = 1) => `eq=saturation=${intensity}`,
+      negative: () => 'negate',
+      mirror: () => 'hflip',
+      flip: () => 'vflip',
+      vintage: () => 'curves=vintage',
+      cartoon: () => 'edgedetect=low=0.1:high=0.4'
+    };
+
+    // v0.18.0: 字幕样式预设（4种风格）
+    this.subtitlePresets = {
+      default: {
+        fontName: 'Arial',
+        fontSize: 24,
+        fontColor: 'FFFFFF',
+        outlineColor: '000000',
+        outlineWidth: 2,
+        bold: false,
+        italic: false,
+        position: 'bottom',
+        marginV: 20,
+        shadowDepth: 2,
+        glowEffect: false
+      },
+      cinema: {
+        fontName: 'Arial',
+        fontSize: 28,
+        fontColor: 'FFFFFF',
+        outlineColor: '000000',
+        outlineWidth: 3,
+        bold: true,
+        italic: false,
+        position: 'bottom',
+        marginV: 40,
+        shadowDepth: 3,
+        glowEffect: false
+      },
+      minimal: {
+        fontName: 'Helvetica',
+        fontSize: 20,
+        fontColor: 'FFFFFF',
+        outlineColor: '202020',
+        outlineWidth: 1,
+        bold: false,
+        italic: false,
+        position: 'bottom',
+        marginV: 15,
+        shadowDepth: 0,
+        glowEffect: false
+      },
+      bold: {
+        fontName: 'Arial Black',
+        fontSize: 26,
+        fontColor: 'FFFF00',
+        outlineColor: '000000',
+        outlineWidth: 3,
+        bold: true,
+        italic: false,
+        position: 'bottom',
+        marginV: 25,
+        shadowDepth: 2,
+        glowEffect: true
+      }
+    };
   }
 
   /**
@@ -48,39 +139,109 @@ class VideoEngine extends EventEmitter {
    * @param {Object} params - 任务参数
    * @param {Function} onProgress - 进度回调
    * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 新增滤镜、音轨处理任务
+   * v0.18.0: 集成统一进度通知和错误恢复
    */
   async handleProjectTask(params, onProgress = null) {
     const { taskType, inputPath, outputPath, options = {} } = params;
 
     console.log('[Video Engine] 执行任务:', taskType);
 
-    switch (taskType) {
-      case 'convert':
-        return await this.convertFormat(inputPath, outputPath, options, onProgress);
+    // 创建任务追踪器
+    const taskId = `video_${taskType}_${Date.now()}`;
+    const tracker = this.progressEmitter.createTracker(taskId, {
+      title: `视频${taskType}处理`,
+      description: `处理: ${path.basename(inputPath || '未知')}`,
+      totalSteps: 100,
+      metadata: { taskType, inputPath, outputPath },
+    });
 
-      case 'trim':
-        return await this.trimVideo(inputPath, outputPath, options, onProgress);
+    // 进度回调包装器
+    const progressCallback = (percent, message = '') => {
+      tracker.setPercent(percent, message);
+      if (onProgress) {
+        onProgress({ percent, message, taskType });
+      }
+    };
 
-      case 'merge':
-        return await this.mergeVideos(params.videoList, outputPath, options, onProgress);
+    try {
+      tracker.setStage(ProgressEmitter.Stage.PREPARING, '准备处理...');
 
-      case 'addSubtitles':
-        return await this.addSubtitles(inputPath, params.subtitlePath, outputPath, options, onProgress);
+      let result;
 
-      case 'extractAudio':
-        return await this.extractAudio(inputPath, outputPath, options, onProgress);
+      tracker.setStage(ProgressEmitter.Stage.PROCESSING, '开始处理...');
 
-      case 'generateThumbnail':
-        return await this.generateThumbnail(inputPath, outputPath, options);
+      switch (taskType) {
+        case 'convert':
+          result = await this.convertFormat(inputPath, outputPath, options, progressCallback);
+          break;
 
-      case 'compress':
-        return await this.compressVideo(inputPath, outputPath, options, onProgress);
+        case 'trim':
+          result = await this.trimVideo(inputPath, outputPath, options, progressCallback);
+          break;
 
-      case 'generateSubtitles':
-        return await this.generateSubtitlesWithAI(inputPath, outputPath, options, onProgress);
+        case 'merge':
+          result = await this.mergeVideos(params.videoList, outputPath, options, progressCallback);
+          break;
 
-      default:
-        throw new Error(`不支持的任务类型: ${taskType}`);
+        case 'addSubtitles':
+          result = await this.addSubtitles(inputPath, params.subtitlePath, outputPath, options, progressCallback);
+          break;
+
+        case 'extractAudio':
+          result = await this.extractAudio(inputPath, outputPath, options, progressCallback);
+          break;
+
+        case 'generateThumbnail':
+          result = await this.generateThumbnail(inputPath, outputPath, options);
+          break;
+
+        case 'compress':
+          result = await this.compressVideo(inputPath, outputPath, options, progressCallback);
+          break;
+
+        case 'generateSubtitles':
+          result = await this.generateSubtitlesWithAI(inputPath, outputPath, options, progressCallback);
+          break;
+
+        // v0.18.0: 新增滤镜功能
+        case 'applyFilter':
+          result = await this.applyFilter(inputPath, outputPath, options, progressCallback);
+          break;
+
+        case 'applyFilterChain':
+          result = await this.applyFilterChain(inputPath, outputPath, options.filters, progressCallback);
+          break;
+
+        // v0.18.0: 新增音轨处理功能
+        case 'separateAudio':
+          result = await this.separateAudioTracks(inputPath, params.outputDir, options);
+          break;
+
+        case 'replaceAudio':
+          result = await this.replaceAudio(inputPath, params.audioPath, outputPath, options, progressCallback);
+          break;
+
+        case 'adjustVolume':
+          result = await this.adjustVolume(inputPath, outputPath, options.volumeLevel, options, progressCallback);
+          break;
+
+        default:
+          throw new Error(`不支持的任务类型: ${taskType}`);
+      }
+
+      // 任务完成
+      tracker.setStage(ProgressEmitter.Stage.FINALIZING, '完成处理...');
+      progressCallback(100, '处理完成');
+      tracker.complete({ result });
+
+      return result;
+
+    } catch (error) {
+      console.error(`[VideoEngine] 任务失败 (${taskType}):`, error);
+      tracker.error(error);
+      throw error;
     }
   }
 
@@ -273,16 +434,45 @@ class VideoEngine extends EventEmitter {
    * @param {Object} options - 选项
    * @param {Function} onProgress - 进度回调
    * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 扩展支持10+自定义样式参数
    */
   async addSubtitles(inputPath, subtitlePath, outputPath, options = {}, onProgress = null) {
     const {
       fontName = 'Arial',
       fontSize = 24,
-      fontColor = 'white',
-      position = 'bottom'
+      fontColor = 'FFFFFF',
+      outlineColor = '000000',
+      outlineWidth = 2,
+      bold = false,
+      italic = false,
+      position = 'bottom',
+      marginV = 20,
+      shadowDepth = 2,
+      glowEffect = false
     } = options;
 
     console.log(`[Video Engine] 添加字幕: ${subtitlePath}`);
+
+    // 构建ASS样式字符串
+    const styleParams = [
+      `FontName=${fontName}`,
+      `FontSize=${fontSize}`,
+      `PrimaryColour=&H${fontColor}`,
+      `OutlineColour=&H${outlineColor}`,
+      `Outline=${outlineWidth}`,
+      `Shadow=${shadowDepth}`,
+      `MarginV=${marginV}`,
+      `Bold=${bold ? '-1' : '0'}`,
+      `Italic=${italic ? '-1' : '0'}`
+    ];
+
+    // 发光效果（通过增加边框模拟）
+    if (glowEffect) {
+      styleParams.push('BackColour=&H40000000');
+    }
+
+    const forceStyle = styleParams.join(',');
 
     return new Promise((resolve, reject) => {
       const command = ffmpeg(inputPath)
@@ -292,7 +482,7 @@ class VideoEngine extends EventEmitter {
             filter: 'subtitles',
             options: {
               filename: subtitlePath.replace(/\\/g, '/').replace(/:/g, '\\:'),
-              force_style: `FontName=${fontName},FontSize=${fontSize},PrimaryColour=&H${fontColor}`
+              force_style: forceStyle
             }
           }
         ]);
@@ -312,7 +502,14 @@ class VideoEngine extends EventEmitter {
           console.log('[Video Engine] 字幕添加完成');
           resolve({
             success: true,
-            outputPath: outputPath
+            outputPath: outputPath,
+            style: {
+              fontName,
+              fontSize,
+              fontColor,
+              bold,
+              italic
+            }
           });
         })
         .on('error', (error) => {
@@ -576,6 +773,7 @@ class VideoEngine extends EventEmitter {
             size: metadata.format.size,
             bitrate: metadata.format.bit_rate,
             format: metadata.format.format_name,
+            streams: metadata.streams,
             video: videoStream ? {
               codec: videoStream.codec_name,
               width: videoStream.width,
@@ -591,6 +789,351 @@ class VideoEngine extends EventEmitter {
         }
       });
     });
+  }
+
+  /**
+   * 应用单个滤镜
+   * @param {string} inputPath - 输入视频路径
+   * @param {string} outputPath - 输出视频路径
+   * @param {Object} options - 滤镜选项
+   * @param {Function} onProgress - 进度回调
+   * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 新增方法
+   */
+  async applyFilter(inputPath, outputPath, options = {}, onProgress = null) {
+    const {
+      filterType = 'grayscale',
+      intensity = 1,
+      customFilters = []
+    } = options;
+
+    console.log(`[Video Engine] 应用滤镜: ${filterType} (强度: ${intensity})`);
+
+    // 检查滤镜是否存在
+    if (!this.filterPresets[filterType] && customFilters.length === 0) {
+      throw new Error(`不支持的滤镜类型: ${filterType}`);
+    }
+
+    return new Promise((resolve, reject) => {
+      const filters = [];
+
+      // 添加预设滤镜
+      if (this.filterPresets[filterType]) {
+        filters.push(this.filterPresets[filterType](intensity));
+      }
+
+      // 添加自定义滤镜
+      if (customFilters.length > 0) {
+        filters.push(...customFilters);
+      }
+
+      const command = ffmpeg(inputPath)
+        .output(outputPath)
+        .videoFilters(filters);
+
+      if (onProgress) {
+        command.on('progress', (progress) => {
+          const percent = progress.percent || 0;
+          onProgress({
+            percent: Math.round(percent),
+            message: `正在应用滤镜: ${Math.round(percent)}%`
+          });
+        });
+      }
+
+      command
+        .on('end', () => {
+          console.log('[Video Engine] 滤镜应用完成');
+          resolve({
+            success: true,
+            outputPath: outputPath,
+            filterType: filterType,
+            intensity: intensity
+          });
+        })
+        .on('error', (error) => {
+          console.error('[Video Engine] 滤镜应用失败:', error);
+          reject(error);
+        })
+        .run();
+    });
+  }
+
+  /**
+   * 应用滤镜链（多个滤镜组合）
+   * @param {string} inputPath - 输入视频路径
+   * @param {string} outputPath - 输出视频路径
+   * @param {Array} filterChain - 滤镜链配置
+   * @param {Function} onProgress - 进度回调
+   * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 新增方法
+   */
+  async applyFilterChain(inputPath, outputPath, filterChain = [], onProgress = null) {
+    console.log(`[Video Engine] 应用滤镜链: ${filterChain.length}个滤镜`);
+
+    if (filterChain.length === 0) {
+      throw new Error('滤镜链不能为空');
+    }
+
+    return new Promise((resolve, reject) => {
+      const filters = [];
+
+      // 构建滤镜链
+      for (const filter of filterChain) {
+        const { type, intensity = 1, custom } = filter;
+
+        if (custom) {
+          // 自定义FFmpeg滤镜字符串
+          filters.push(custom);
+        } else if (this.filterPresets[type]) {
+          // 预设滤镜
+          filters.push(this.filterPresets[type](intensity));
+        } else {
+          console.warn(`[Video Engine] 未知滤镜类型: ${type}，跳过`);
+        }
+      }
+
+      const command = ffmpeg(inputPath)
+        .output(outputPath)
+        .videoFilters(filters);
+
+      if (onProgress) {
+        command.on('progress', (progress) => {
+          const percent = progress.percent || 0;
+          onProgress({
+            percent: Math.round(percent),
+            message: `正在应用滤镜链: ${Math.round(percent)}%`
+          });
+        });
+      }
+
+      command
+        .on('end', () => {
+          console.log('[Video Engine] 滤镜链应用完成');
+          resolve({
+            success: true,
+            outputPath: outputPath,
+            filterCount: filters.length
+          });
+        })
+        .on('error', (error) => {
+          console.error('[Video Engine] 滤镜链应用失败:', error);
+          reject(error);
+        })
+        .run();
+    });
+  }
+
+  /**
+   * 分离音轨（支持多音轨视频）
+   * @param {string} inputPath - 输入视频路径
+   * @param {string} outputDir - 输出目录
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} 分离结果
+   *
+   * v0.18.0: 新增方法
+   */
+  async separateAudioTracks(inputPath, outputDir, options = {}) {
+    const { format = 'mp3', bitrate = '192k' } = options;
+
+    console.log(`[Video Engine] 分离音轨: ${inputPath}`);
+
+    try {
+      // 获取视频信息
+      const info = await this.getVideoInfo(inputPath);
+      const audioStreams = info.streams.filter(s => s.codec_type === 'audio');
+
+      if (audioStreams.length === 0) {
+        throw new Error('视频不包含音轨');
+      }
+
+      console.log(`[Video Engine] 检测到 ${audioStreams.length} 个音轨`);
+
+      // 确保输出目录存在
+      await fs.mkdir(outputDir, { recursive: true });
+
+      const results = [];
+
+      // 分离每个音轨
+      for (let i = 0; i < audioStreams.length; i++) {
+        const outputPath = path.join(outputDir, `audio_track_${i}.${format}`);
+
+        await new Promise((resolve, reject) => {
+          ffmpeg(inputPath)
+            .output(outputPath)
+            .outputOptions([
+              `-map 0:a:${i}`,
+              '-vn'
+            ])
+            .audioCodec('libmp3lame')
+            .audioBitrate(bitrate)
+            .on('end', () => {
+              console.log(`[Video Engine] 音轨 ${i} 分离完成`);
+              resolve();
+            })
+            .on('error', (error) => {
+              console.error(`[Video Engine] 音轨 ${i} 分离失败:`, error);
+              reject(error);
+            })
+            .run();
+        });
+
+        results.push({
+          trackIndex: i,
+          outputPath: outputPath,
+          codec: audioStreams[i].codec_name,
+          channels: audioStreams[i].channels
+        });
+      }
+
+      return {
+        success: true,
+        trackCount: audioStreams.length,
+        tracks: results
+      };
+
+    } catch (error) {
+      console.error('[Video Engine] 分离音轨失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 替换音轨
+   * @param {string} videoPath - 视频文件路径
+   * @param {string} audioPath - 音频文件路径
+   * @param {string} outputPath - 输出文件路径
+   * @param {Object} options - 选项
+   * @param {Function} onProgress - 进度回调
+   * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 新增方法
+   */
+  async replaceAudio(videoPath, audioPath, outputPath, options = {}, onProgress = null) {
+    const { removeOriginalAudio = true } = options;
+
+    console.log(`[Video Engine] 替换音轨: ${audioPath}`);
+
+    return new Promise((resolve, reject) => {
+      const command = ffmpeg()
+        .input(videoPath)
+        .input(audioPath)
+        .output(outputPath)
+        .outputOptions([
+          '-c:v copy',
+          '-c:a aac',
+          '-map 0:v:0',
+          '-map 1:a:0'
+        ]);
+
+      if (onProgress) {
+        command.on('progress', (progress) => {
+          const percent = progress.percent || 0;
+          onProgress({
+            percent: Math.round(percent),
+            message: `正在替换音轨: ${Math.round(percent)}%`
+          });
+        });
+      }
+
+      command
+        .on('end', () => {
+          console.log('[Video Engine] 音轨替换完成');
+          resolve({
+            success: true,
+            outputPath: outputPath
+          });
+        })
+        .on('error', (error) => {
+          console.error('[Video Engine] 音轨替换失败:', error);
+          reject(error);
+        })
+        .run();
+    });
+  }
+
+  /**
+   * 调节音量
+   * @param {string} inputPath - 输入视频路径
+   * @param {string} outputPath - 输出视频路径
+   * @param {number} volumeLevel - 音量级别（0.5=50%, 1.0=100%, 2.0=200%）
+   * @param {Object} options - 选项
+   * @param {Function} onProgress - 进度回调
+   * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 新增方法
+   */
+  async adjustVolume(inputPath, outputPath, volumeLevel = 1.0, options = {}, onProgress = null) {
+    const { normalize = false } = options;
+
+    console.log(`[Video Engine] 调节音量: ${volumeLevel}x`);
+
+    return new Promise((resolve, reject) => {
+      const audioFilters = [];
+
+      // 音量归一化（先归一化，再调节音量）
+      if (normalize) {
+        audioFilters.push('loudnorm');
+      }
+
+      // 音量调节
+      audioFilters.push(`volume=${volumeLevel}`);
+
+      const command = ffmpeg(inputPath)
+        .output(outputPath)
+        .outputOptions(['-c:v copy'])
+        .audioFilters(audioFilters);
+
+      if (onProgress) {
+        command.on('progress', (progress) => {
+          const percent = progress.percent || 0;
+          onProgress({
+            percent: Math.round(percent),
+            message: `正在调节音量: ${Math.round(percent)}%`
+          });
+        });
+      }
+
+      command
+        .on('end', () => {
+          console.log('[Video Engine] 音量调节完成');
+          resolve({
+            success: true,
+            outputPath: outputPath,
+            volumeLevel: volumeLevel,
+            normalized: normalize
+          });
+        })
+        .on('error', (error) => {
+          console.error('[Video Engine] 音量调节失败:', error);
+          reject(error);
+        })
+        .run();
+    });
+  }
+
+  /**
+   * 使用预设样式添加字幕
+   * @param {string} inputPath - 输入视频路径
+   * @param {string} subtitlePath - 字幕文件路径
+   * @param {string} outputPath - 输出文件路径
+   * @param {string} presetName - 预设名称 (default/cinema/minimal/bold)
+   * @param {Function} onProgress - 进度回调
+   * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 新增方法
+   */
+  async addSubtitlesWithPreset(inputPath, subtitlePath, outputPath, presetName = 'default', onProgress = null) {
+    console.log(`[Video Engine] 应用字幕预设: ${presetName}`);
+
+    const preset = this.subtitlePresets[presetName];
+    if (!preset) {
+      throw new Error(`不支持的字幕预设: ${presetName}`);
+    }
+
+    return await this.addSubtitles(inputPath, subtitlePath, outputPath, preset, onProgress);
   }
 }
 

@@ -10,6 +10,7 @@ const path = require('path');
 const { EventEmitter } = require('events');
 const FileValidator = require('../security/file-validator');
 const XSSSanitizer = require('../security/xss-sanitizer');
+const { getFileHandler } = require('../utils/file-handler');
 
 class FileImporter extends EventEmitter {
   constructor(database) {
@@ -220,6 +221,8 @@ class FileImporter extends EventEmitter {
   /**
    * 导入 PDF 文件
    * 需要 pdf-parse 库
+   *
+   * v0.18.0: 新增流式导入支持（大文件优化）
    */
   async importPDF(filePath, options = {}) {
     try {
@@ -231,12 +234,79 @@ class FileImporter extends EventEmitter {
         throw new Error('PDF 解析库未安装。请运行: npm install pdf-parse');
       }
 
-      const dataBuffer = await fs.readFile(filePath);
-      const data = await pdfParse(dataBuffer);
+      const fileHandler = getFileHandler();
+      const fileSize = await fileHandler.getFileSize(filePath);
+      const isLargeFile = fileSize > 10 * 1024 * 1024; // 10MB阈值
+
+      let dataBuffer;
+      let data;
+
+      if (!isLargeFile) {
+        // 小文件: 使用原有方式（快速、兼容性好）
+        console.log(`[FileImporter] PDF小文件直接读取: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+        dataBuffer = await fs.readFile(filePath);
+        data = await pdfParse(dataBuffer);
+      } else {
+        // 大文件: 使用流式读取 + 进度通知
+        console.log(`[FileImporter] PDF大文件流式读取: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+
+        const chunks = [];
+        let accumulatedSize = 0;
+
+        await fileHandler.readFileStream(
+          filePath,
+          async (chunk, meta) => {
+            // 累积chunks
+            chunks.push(chunk);
+            accumulatedSize += chunk.length;
+
+            // 发送进度事件
+            this.emit('import-progress', {
+              filePath,
+              stage: 'reading',
+              percent: meta.progress,
+              processedBytes: meta.processedSize,
+              totalBytes: meta.totalSize,
+              processedMB: (meta.processedSize / 1024 / 1024).toFixed(2),
+              totalMB: (meta.totalSize / 1024 / 1024).toFixed(2),
+            });
+
+            return chunk; // 返回chunk以便累积
+          },
+          {
+            chunkSize: 5 * 1024 * 1024, // 5MB chunks（PDF更大块以减少开销）
+            returnChunks: false,
+          }
+        );
+
+        // 合并所有chunks
+        this.emit('import-progress', {
+          filePath,
+          stage: 'parsing',
+          percent: 95,
+          message: '正在解析PDF内容...',
+        });
+
+        dataBuffer = Buffer.concat(chunks);
+        console.log(`[FileImporter] 合并chunks完成，开始解析PDF: ${(dataBuffer.length / 1024 / 1024).toFixed(2)}MB`);
+
+        // 解析PDF
+        data = await pdfParse(dataBuffer);
+
+        // 释放内存
+        chunks.length = 0;
+      }
 
       const fileName = path.basename(filePath, path.extname(filePath));
 
       // 创建知识库条目
+      this.emit('import-progress', {
+        filePath,
+        stage: 'saving',
+        percent: 98,
+        message: '正在保存到数据库...',
+      });
+
       const knowledgeItem = {
         title: options.title || fileName,
         content: data.text,
@@ -246,11 +316,20 @@ class FileImporter extends EventEmitter {
         metadata: {
           pages: data.numpages,
           info: data.info,
+          fileSize: fileSize,
+          processingMode: isLargeFile ? 'streaming' : 'direct',
         },
       };
 
       // 保存到数据库
       const savedItem = this.database.addKnowledgeItem(knowledgeItem);
+
+      this.emit('import-progress', {
+        filePath,
+        stage: 'complete',
+        percent: 100,
+        message: '导入完成',
+      });
 
       return {
         id: savedItem.id,
@@ -258,6 +337,8 @@ class FileImporter extends EventEmitter {
         type: savedItem.type,
         pages: data.numpages,
         imported: true,
+        fileSize: fileSize,
+        processingMode: isLargeFile ? 'streaming' : 'direct',
       };
     } catch (error) {
       console.error(`[FileImporter] 导入 PDF 失败:`, error);

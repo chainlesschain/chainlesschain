@@ -489,10 +489,176 @@ function registerVideoIPC({
     }
   });
 
-  console.log('[Video IPC] ✓ 18 handlers registered');
+  // ============================================================
+  // v0.18.0: 高级视频编辑操作 (6 handlers)
+  // ============================================================
+
+  /**
+   * 应用单个滤镜
+   */
+  ipcMain.handle('video:applyFilter', async (_event, params) => {
+    try {
+      console.log('[Video] 应用滤镜:', params.options?.filterType);
+
+      const { getVideoEngine } = require('../engines/video-engine');
+      const videoEngine = getVideoEngine(llmManager);
+
+      const result = await videoEngine.handleProjectTask({
+        taskType: 'applyFilter',
+        ...params
+      }, (progress) => {
+        if (mainWindow) {
+          mainWindow.webContents.send('video:processing-progress', progress);
+        }
+      });
+
+      console.log('[Video] 滤镜应用完成');
+      return result;
+    } catch (error) {
+      console.error('[Video] 滤镜应用失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 应用滤镜链
+   */
+  ipcMain.handle('video:applyFilterChain', async (_event, params) => {
+    try {
+      console.log('[Video] 应用滤镜链:', params.options?.filters?.length, '个滤镜');
+
+      const { getVideoEngine } = require('../engines/video-engine');
+      const videoEngine = getVideoEngine(llmManager);
+
+      const result = await videoEngine.handleProjectTask({
+        taskType: 'applyFilterChain',
+        ...params
+      }, (progress) => {
+        if (mainWindow) {
+          mainWindow.webContents.send('video:processing-progress', progress);
+        }
+      });
+
+      console.log('[Video] 滤镜链应用完成');
+      return result;
+    } catch (error) {
+      console.error('[Video] 滤镜链应用失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 分离音轨
+   */
+  ipcMain.handle('video:separateAudio', async (_event, params) => {
+    try {
+      console.log('[Video] 分离音轨');
+
+      const { getVideoEngine } = require('../engines/video-engine');
+      const videoEngine = getVideoEngine(llmManager);
+
+      const result = await videoEngine.handleProjectTask({
+        taskType: 'separateAudio',
+        ...params
+      });
+
+      console.log('[Video] 音轨分离完成');
+      return result;
+    } catch (error) {
+      console.error('[Video] 音轨分离失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 替换音轨
+   */
+  ipcMain.handle('video:replaceAudio', async (_event, params) => {
+    try {
+      console.log('[Video] 替换音轨');
+
+      const { getVideoEngine } = require('../engines/video-engine');
+      const videoEngine = getVideoEngine(llmManager);
+
+      const result = await videoEngine.handleProjectTask({
+        taskType: 'replaceAudio',
+        ...params
+      }, (progress) => {
+        if (mainWindow) {
+          mainWindow.webContents.send('video:processing-progress', progress);
+        }
+      });
+
+      console.log('[Video] 音轨替换完成');
+      return result;
+    } catch (error) {
+      console.error('[Video] 音轨替换失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 调节音量
+   */
+  ipcMain.handle('video:adjustVolume', async (_event, params) => {
+    try {
+      console.log('[Video] 调节音量:', params.options?.volumeLevel);
+
+      const { getVideoEngine } = require('../engines/video-engine');
+      const videoEngine = getVideoEngine(llmManager);
+
+      const result = await videoEngine.handleProjectTask({
+        taskType: 'adjustVolume',
+        ...params
+      }, (progress) => {
+        if (mainWindow) {
+          mainWindow.webContents.send('video:processing-progress', progress);
+        }
+      });
+
+      console.log('[Video] 音量调节完成');
+      return result;
+    } catch (error) {
+      console.error('[Video] 音量调节失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 使用预设样式添加字幕
+   */
+  ipcMain.handle('video:addSubtitlesWithPreset', async (_event, params) => {
+    try {
+      console.log('[Video] 应用字幕预设:', params.presetName);
+
+      const { getVideoEngine } = require('../engines/video-engine');
+      const videoEngine = getVideoEngine(llmManager);
+
+      const result = await videoEngine.addSubtitlesWithPreset(
+        params.inputPath,
+        params.subtitlePath,
+        params.outputPath,
+        params.presetName,
+        (progress) => {
+          if (mainWindow) {
+            mainWindow.webContents.send('video:processing-progress', progress);
+          }
+        }
+      );
+
+      console.log('[Video] 预设字幕添加完成');
+      return result;
+    } catch (error) {
+      console.error('[Video] 预设字幕添加失败:', error);
+      throw error;
+    }
+  });
+
+  console.log('[Video IPC] ✓ 24 handlers registered (+6 new)');
   console.log('[Video IPC] - 4 file selection & import handlers');
   console.log('[Video IPC] - 5 video management handlers');
   console.log('[Video IPC] - 9 video editing handlers');
+  console.log('[Video IPC] - 6 advanced editing handlers (filters, audio, subtitles)');
 }
 
 module.exports = {

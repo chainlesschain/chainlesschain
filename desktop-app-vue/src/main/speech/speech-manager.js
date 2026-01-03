@@ -7,6 +7,7 @@
 
 const { EventEmitter } = require('events');
 const path = require('path');
+const os = require('os'); // 新增：用于动态并发数
 const { v4: uuidv4 } = require('uuid');
 
 const SpeechConfig = require('./speech-config');
@@ -52,7 +53,8 @@ class SpeechManager extends EventEmitter {
     // 任务队列
     this.taskQueue = [];
     this.runningTasks = 0;
-    this.maxConcurrentTasks = 2;
+    // 动态并发数：基于CPU核心数，最多4个并发任务
+    this.maxConcurrentTasks = Math.min(os.cpus().length, 4);
 
     // 初始化状态
     this.initialized = false;
@@ -124,8 +126,13 @@ class SpeechManager extends EventEmitter {
       // 设置实时输入事件转发
       this.setupRealtimeEvents();
 
-      // 设置并发任务数
-      this.maxConcurrentTasks = settings.performance.maxConcurrentJobs || 2;
+      // 设置并发任务数（优先使用配置，否则使用动态计算的默认值）
+      if (settings.performance && settings.performance.maxConcurrentJobs) {
+        this.maxConcurrentTasks = settings.performance.maxConcurrentJobs;
+      }
+      // else: 保持构造函数中设置的动态并发数
+
+      console.log(`[SpeechManager] 并发任务数: ${this.maxConcurrentTasks} (CPU核心数: ${os.cpus().length})`);
 
       this.initialized = true;
       console.log('[SpeechManager] 初始化完成（含实时语音输入）');
@@ -240,33 +247,41 @@ class SpeechManager extends EventEmitter {
         segments: segments.length,
       });
 
-      // 3. 转换音频格式（如果需要）
+      // 3. 转换音频格式（如果需要） - 并发处理提升性能
       const processedSegments = [];
 
-      for (let i = 0; i < segments.length; i++) {
-        const segment = segments[i];
+      // 检查格式，如果不是 WAV 16kHz 单声道，则转换
+      const shouldConvert = metadata.format !== 'wav' ||
+        metadata.sampleRate !== 16000 ||
+        metadata.channels !== 1;
 
-        // 检查格式，如果不是 WAV 16kHz 单声道，则转换
-        const shouldConvert = metadata.format !== 'wav' ||
-          metadata.sampleRate !== 16000 ||
-          metadata.channels !== 1;
+      if (shouldConvert) {
+        console.log(`[SpeechManager] 并发转换 ${segments.length} 个音频段...`);
 
-        let processedPath = segment;
+        // 并发转换所有分段（关键优化：从顺序改为并发）
+        const convertPromises = segments.map((segment, i) =>
+          this.processor.convertToWhisperFormat(segment).then(convertResult => {
+            // 发送每个分段的进度
+            this.emit('transcribe-progress', {
+              filePath,
+              step: 'convert',
+              percent: 20 + (i + 1) / segments.length * 30,
+              currentSegment: i + 1,
+              totalSegments: segments.length,
+            });
+            return convertResult.outputPath;
+          })
+        );
 
-        if (shouldConvert) {
-          const convertResult = await this.processor.convertToWhisperFormat(segment);
-          processedPath = convertResult.outputPath;
-        }
+        // 等待所有转换完成
+        const convertedPaths = await Promise.all(convertPromises);
+        processedSegments.push(...convertedPaths);
 
-        processedSegments.push(processedPath);
-
-        this.emit('transcribe-progress', {
-          filePath,
-          step: 'convert',
-          percent: 20 + (i + 1) / segments.length * 30,
-          currentSegment: i + 1,
-          totalSegments: segments.length,
-        });
+        console.log(`[SpeechManager] 并发转换完成，共 ${convertedPaths.length} 个文件`);
+      } else {
+        // 无需转换，直接使用原始分段
+        processedSegments.push(...segments);
+        console.log(`[SpeechManager] 音频格式已符合要求，跳过转换`);
       }
 
       // 4. 语音识别

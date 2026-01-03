@@ -7,6 +7,7 @@
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { EventEmitter } = require('events');
 const { getResourceMonitor } = require('../utils/resource-monitor');
@@ -29,6 +30,16 @@ const DEFAULT_CONFIG = {
 
   // 输出格式
   outputFormat: 'jpeg',     // 默认输出格式
+
+  // 大文件阈值 (10MB)
+  largeFileThreshold: 10 * 1024 * 1024,
+
+  // 大文件优化配置
+  largeFileOptions: {
+    limitInputPixels: 268402689,  // 限制输入像素数（防止OOM）
+    sequentialRead: true,          // 顺序读取（降低内存）
+    density: 150,                  // 降低DPI
+  },
 };
 
 /**
@@ -91,6 +102,8 @@ class ImageProcessor extends EventEmitter {
    * @param {string} outputPath - 输出路径
    * @param {Object} options - 压缩选项
    * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 新增大文件优化（流式输出、像素限制）
    */
   async compress(input, outputPath, options = {}) {
     // 获取当前资源降级策略
@@ -104,6 +117,20 @@ class ImageProcessor extends EventEmitter {
       format = this.config.outputFormat,
     } = options;
 
+    // 检测是否为大文件（仅对文件路径有效，Buffer跳过检测）
+    let isLargeFile = false;
+    let fileSize = 0;
+    if (typeof input === 'string') {
+      try {
+        const stats = await fs.stat(input);
+        fileSize = stats.size;
+        isLargeFile = fileSize > this.config.largeFileThreshold;
+      } catch (error) {
+        // 文件不存在或无法访问，继续处理
+        console.warn('[ImageProcessor] 无法获取文件大小:', error.message);
+      }
+    }
+
     // 如果资源紧张，发出警告
     if (resourceLevel !== 'normal') {
       this.emit('resource-warning', {
@@ -114,13 +141,24 @@ class ImageProcessor extends EventEmitter {
     }
 
     try {
-      this.emit('compress-start', { input, outputPath });
+      this.emit('compress-start', { input, outputPath, isLargeFile, fileSize });
+
+      if (isLargeFile) {
+        console.log(
+          `[ImageProcessor] 大文件检测: ${(fileSize / 1024 / 1024).toFixed(2)}MB, ` +
+          `启用优化模式`
+        );
+      }
 
       // 获取原始元信息
       const originalMetadata = await this.getMetadata(input);
 
-      // 创建处理管道
-      let pipeline = sharp(input);
+      // 创建处理管道（大文件启用优化）
+      let pipeline = sharp(input, {
+        ...(isLargeFile && {
+          ...this.config.largeFileOptions,
+        }),
+      });
 
       // 调整大小（保持宽高比）
       if (originalMetadata.width > maxWidth || originalMetadata.height > maxHeight) {
@@ -139,8 +177,20 @@ class ImageProcessor extends EventEmitter {
         pipeline = pipeline.webp({ quality });
       }
 
-      // 输出文件
-      await pipeline.toFile(outputPath);
+      // 输出文件（大文件使用流式输出）
+      if (isLargeFile) {
+        // 流式输出（减少内存占用）
+        const writeStream = fsSync.createWriteStream(outputPath);
+        await new Promise((resolve, reject) => {
+          pipeline
+            .pipe(writeStream)
+            .on('finish', resolve)
+            .on('error', reject);
+        });
+      } else {
+        // 小文件直接输出（性能更好）
+        await pipeline.toFile(outputPath);
+      }
 
       // 获取压缩后的元信息
       const compressedMetadata = await this.getMetadata(outputPath);
@@ -151,23 +201,24 @@ class ImageProcessor extends EventEmitter {
 
       const result = {
         success: true,
-        originalSize: originalMetadata.size || 0,
+        originalSize: originalMetadata.size || fileSize || 0,
         compressedSize: compressedSize,
         originalWidth: originalMetadata.width,
         originalHeight: originalMetadata.height,
         compressedWidth: compressedMetadata.width,
         compressedHeight: compressedMetadata.height,
-        compressionRatio: originalMetadata.size ?
-          ((1 - compressedSize / originalMetadata.size) * 100).toFixed(2) : 0,
+        compressionRatio: (originalMetadata.size || fileSize) ?
+          ((1 - compressedSize / (originalMetadata.size || fileSize)) * 100).toFixed(2) : 0,
         outputPath: outputPath,
         resourceLevel: resourceLevel,
-        degraded: resourceLevel !== 'normal'
+        degraded: resourceLevel !== 'normal',
+        processingMode: isLargeFile ? 'streaming' : 'direct',
       };
 
       this.emit('compress-complete', result);
 
       // 如果内存紧张，尝试垃圾回收
-      if (resourceLevel === 'critical') {
+      if (resourceLevel === 'critical' || isLargeFile) {
         this.resourceMonitor.forceGarbageCollection();
       }
 
@@ -195,6 +246,8 @@ class ImageProcessor extends EventEmitter {
    * @param {string} outputPath - 输出路径
    * @param {Object} options - 缩略图选项
    * @returns {Promise<Object>} 处理结果
+   *
+   * v0.18.0: 新增大文件支持
    */
   async generateThumbnail(input, outputPath, options = {}) {
     const {
@@ -203,10 +256,23 @@ class ImageProcessor extends EventEmitter {
       fit = 'cover',
     } = options;
 
-    try {
-      this.emit('thumbnail-start', { input, outputPath });
+    // 检测大文件
+    let isLargeFile = false;
+    if (typeof input === 'string') {
+      try {
+        const stats = await fs.stat(input);
+        isLargeFile = stats.size > this.config.largeFileThreshold;
+      } catch (error) {
+        // 忽略错误
+      }
+    }
 
-      await sharp(input)
+    try {
+      this.emit('thumbnail-start', { input, outputPath, isLargeFile });
+
+      await sharp(input, {
+        ...(isLargeFile && this.config.largeFileOptions),
+      })
         .resize(width, height, {
           fit: fit,
           position: 'center',
@@ -222,6 +288,7 @@ class ImageProcessor extends EventEmitter {
         height: height,
         size: stats.size,
         outputPath: outputPath,
+        processingMode: isLargeFile ? 'streaming' : 'direct',
       };
 
       this.emit('thumbnail-complete', result);
@@ -239,10 +306,25 @@ class ImageProcessor extends EventEmitter {
    * @param {string} outputPath - 输出路径
    * @param {string} format - 目标格式 (jpeg/png/webp)
    * @returns {Promise<Object>}
+   *
+   * v0.18.0: 新增大文件支持
    */
   async convertFormat(input, outputPath, format) {
+    // 检测大文件
+    let isLargeFile = false;
+    if (typeof input === 'string') {
+      try {
+        const stats = await fs.stat(input);
+        isLargeFile = stats.size > this.config.largeFileThreshold;
+      } catch (error) {
+        // 忽略错误
+      }
+    }
+
     try {
-      let pipeline = sharp(input);
+      let pipeline = sharp(input, {
+        ...(isLargeFile && this.config.largeFileOptions),
+      });
 
       if (format === 'jpeg' || format === 'jpg') {
         pipeline = pipeline.jpeg({ quality: this.config.quality });
@@ -263,6 +345,7 @@ class ImageProcessor extends EventEmitter {
         format: format,
         size: stats.size,
         outputPath: outputPath,
+        processingMode: isLargeFile ? 'streaming' : 'direct',
       };
     } catch (error) {
       console.error('[ImageProcessor] 格式转换失败:', error);
