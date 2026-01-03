@@ -21,6 +21,90 @@ class MockDatabase {
     };
   }
 
+  // 直接调用的 get 方法
+  async get(query, params = []) {
+    const lowerQuery = query.toLowerCase();
+    if (lowerQuery.includes('from skills where id')) {
+      return this.data.skills.find(s => s.id === params[0]) || null;
+    }
+    return null;
+  }
+
+  // 直接调用的 all 方法
+  async all(query, params = []) {
+    const lowerQuery = query.toLowerCase();
+    if (lowerQuery.includes('from skills')) {
+      let results = [...this.data.skills];
+
+      // 处理多个筛选条件
+      let paramIndex = 0;
+
+      if (lowerQuery.includes('and enabled = ?') && paramIndex < params.length) {
+        const enabled = params[paramIndex++];
+        if (enabled !== null && enabled !== undefined) {
+          results = results.filter(s => s.enabled === enabled);
+        }
+      }
+
+      if (lowerQuery.includes('and category = ?') && paramIndex < params.length) {
+        const category = params[paramIndex++];
+        if (category !== null && category !== undefined) {
+          results = results.filter(s => s.category === category);
+        }
+      }
+
+      if (lowerQuery.includes('and is_builtin = ?') && paramIndex < params.length) {
+        const is_builtin = params[paramIndex++];
+        if (is_builtin !== null && is_builtin !== undefined) {
+          results = results.filter(s => s.is_builtin === is_builtin);
+        }
+      }
+
+      return results;
+    }
+    return [];
+  }
+
+  // 直接调用的 run 方法
+  async run(query, params = []) {
+    const lowerQuery = query.toLowerCase();
+    if (lowerQuery.includes('insert into skills')) {
+      const skill = this._parseInsertSkill(params);
+      this.data.skills.push(skill);
+      return { changes: 1 };
+    } else if (lowerQuery.includes('delete from skills')) {
+      const prevLength = this.data.skills.length;
+      this.data.skills = this.data.skills.filter(s => s.id !== params[0]);
+      return { changes: prevLength - this.data.skills.length };
+    } else if (lowerQuery.includes('update skills')) {
+      // The last param is always the skill ID (WHERE id = ?)
+      const skillId = params[params.length - 1];
+      const index = this.data.skills.findIndex(s => s.id === skillId);
+
+      if (index >= 0) {
+        // Parse the SET clause to extract field names
+        const setMatch = query.match(/SET\s+(.+?)\s+WHERE/i);
+        if (setMatch) {
+          const setPairs = setMatch[1].split(',').map(s => s.trim());
+          let paramIndex = 0;
+
+          // Apply each update
+          for (const pair of setPairs) {
+            const fieldName = pair.split('=')[0].trim();
+            if (paramIndex < params.length - 1) {
+              this.data.skills[index][fieldName] = params[paramIndex];
+              paramIndex++;
+            }
+          }
+        }
+
+        return { changes: 1 };
+      }
+      return { changes: 0 };
+    }
+    return { changes: 0 };
+  }
+
   prepare(query) {
     const lowerQuery = query.toLowerCase();
 
@@ -37,8 +121,7 @@ class MockDatabase {
         } else if (lowerQuery.includes('update skills')) {
           const index = this.data.skills.findIndex(s => s.id === args[args.length - 1]);
           if (index >= 0) {
-            // 简化更新逻辑
-            Object.assign(this.data.skills[index], { updated_at: Date.now() });
+            this.data.skills[index].updated_at = Date.now();
             return { changes: 1 };
           }
           return { changes: 0 };

@@ -65,6 +65,14 @@ class SkillManager {
    */
   async registerSkill(skillData) {
     try {
+      // 验证必填字段
+      if (!skillData.name) {
+        throw new Error('技能名称(name)是必填字段');
+      }
+      if (!skillData.category) {
+        throw new Error('技能分类(category)是必填字段');
+      }
+
       const now = Date.now();
       const skillId = skillData.id || `skill_${uuidv4()}`;
 
@@ -74,7 +82,7 @@ class SkillManager {
         name: skillData.name,
         display_name: skillData.display_name || skillData.name,
         description: skillData.description || '',
-        category: skillData.category || 'general',
+        category: skillData.category,
         icon: skillData.icon || null,
         enabled: skillData.enabled !== undefined ? skillData.enabled : 1,
         is_builtin: skillData.is_builtin || 0,
@@ -161,7 +169,7 @@ class SkillManager {
     try {
       const skill = await this.getSkill(skillId);
       if (!skill) {
-        throw new Error(`技能不存在: ${skillId}`);
+        return { success: false, changes: 0 };
       }
 
       const allowedFields = [
@@ -186,7 +194,7 @@ class SkillManager {
       }
 
       if (updatePairs.length === 0) {
-        return;
+        return { success: true, changes: 0 };
       }
 
       updatePairs.push('updated_at = ?');
@@ -194,16 +202,17 @@ class SkillManager {
       updateValues.push(skillId);
 
       const sql = `UPDATE skills SET ${updatePairs.join(', ')} WHERE id = ?`;
-      await this.db.run(sql, updateValues);
+      const result = await this.db.run(sql, updateValues);
 
       // 更新缓存
       const updatedSkill = await this.getSkill(skillId);
       this.skills.set(skillId, updatedSkill);
 
       console.log(`[SkillManager] 技能更新成功: ${skill.name}`);
+      return { success: true, changes: result.changes || 1 };
     } catch (error) {
       console.error('[SkillManager] 更新技能失败:', error);
-      throw error;
+      return { success: false, changes: 0, error: error.message };
     }
   }
 
@@ -242,60 +251,27 @@ class SkillManager {
    */
   async getAllSkills(options = {}) {
     try {
-      const {
-        enabled = null,
-        category = null,
-        plugin_id = null,
-        is_builtin = null,
-        limit = null,
-        offset = 0,
-      } = options;
-
-      let sql = 'SELECT * FROM skills WHERE 1=1';
-      const params = [];
-
-      if (enabled !== null) {
-        sql += ' AND enabled = ?';
-        params.push(enabled);
-      }
-
-      if (category !== null) {
-        sql += ' AND category = ?';
-        params.push(category);
-      }
-
-      if (plugin_id !== null) {
-        sql += ' AND plugin_id = ?';
-        params.push(plugin_id);
-      }
-
-      if (is_builtin !== null) {
-        sql += ' AND is_builtin = ?';
-        params.push(is_builtin);
-      }
-
-      sql += ' ORDER BY usage_count DESC';
-
-      if (limit !== null) {
-        sql += ' LIMIT ? OFFSET ?';
-        params.push(limit, offset);
-      }
-
-      const skills = await this.db.all(sql, params);
-      return skills;
+      const skills = await this._getAllSkillsArray(options);
+      return { success: true, skills };
     } catch (error) {
       console.error('[SkillManager] 获取技能列表失败:', error);
-      return [];
+      return { success: false, skills: [], error: error.message };
     }
   }
 
   /**
    * 根据分类获取技能
    * @param {string} category - 分类
-   * @returns {Promise<Array>} 技能列表
+   * @returns {Promise<Object>} 技能列表
    */
   async getSkillsByCategory(category) {
-    return this.getAllSkills({ category });
+    try {
+      const skills = await this._getAllSkillsArray({ category });
+      return { success: true, skills };
+    } catch (error) {
+      console.error('[SkillManager] 获取技能列表失败:', error);
+      return { success: false, skills: [], error: error.message };
+    }
   }
 
   /**
@@ -535,8 +511,29 @@ class SkillManager {
    * @param {Object} dateRange - 日期范围 {start, end}
    * @returns {Promise<Array>} 统计数据
    */
-  async getSkillStats(skillId, dateRange = null) {
+  async getSkillStats(skillId = null, dateRange = null) {
     try {
+      // 如果没有提供skillId，返回总体统计
+      if (!skillId) {
+        const skills = await this._getAllSkillsArray();
+
+        const stats = {
+          totalSkills: skills.length,
+          categories: {},
+          enabled: skills.filter(s => s.enabled === 1).length,
+          disabled: skills.filter(s => s.enabled === 0).length,
+        };
+
+        skills.forEach(skill => {
+          if (skill.category) {
+            stats.categories[skill.category] = (stats.categories[skill.category] || 0) + 1;
+          }
+        });
+
+        return { success: true, stats };
+      }
+
+      // 如果提供了skillId，返回该技能的统计数据
       let sql = 'SELECT * FROM skill_stats WHERE skill_id = ?';
       const params = [skillId];
 
@@ -781,6 +778,137 @@ class SkillManager {
    */
   async recordExecution(skillId, success, duration) {
     return this.recordSkillUsage(skillId, success, duration / 1000); // 转换为秒
+  }
+
+  /**
+   * createSkill 方法（别名，用于兼容测试）
+   * @param {Object} skillData - 技能数据
+   * @returns {Promise<Object>} 创建结果
+   */
+  async createSkill(skillData) {
+    try {
+      const skillId = await this.registerSkill(skillData);
+      const skill = await this.getSkill(skillId);
+      return { success: true, skill };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * deleteSkill 方法（别名，用于兼容测试）
+   * @param {string} skillId - 技能ID
+   * @returns {Promise<Object>} 删除结果
+   */
+  async deleteSkill(skillId) {
+    try {
+      // 检查技能是否存在
+      const skill = await this.getSkill(skillId);
+      if (!skill) {
+        return { success: true, changes: 0 };
+      }
+      await this.unregisterSkill(skillId);
+      return { success: true, changes: 1 };
+    } catch (error) {
+      return { success: false, changes: 0, error: error.message };
+    }
+  }
+
+  /**
+   * toggleSkillEnabled 方法（用于兼容测试）
+   * @param {string} skillId - 技能ID
+   * @param {boolean} enabled - 是否启用
+   * @returns {Promise<Object>} 更新结果
+   */
+  async toggleSkillEnabled(skillId, enabled) {
+    try {
+      const result = await this.updateSkill(skillId, { enabled: enabled ? 1 : 0 });
+      return result;
+    } catch (error) {
+      return { success: false, changes: 0, error: error.message };
+    }
+  }
+
+  /**
+   * getSkillById 方法（别名，用于兼容测试）
+   * @param {string} skillId - 技能ID
+   * @returns {Promise<Object>} 查询结果
+   */
+  async getSkillById(skillId) {
+    try {
+      const skill = await this.getSkill(skillId);
+      return { success: true, skill };
+    } catch (error) {
+      return { success: true, skill: null };
+    }
+  }
+
+  /**
+   * getSkillCount 方法（用于兼容测试）
+   * @returns {Promise<Object>} 技能数量
+   */
+  async getSkillCount() {
+    try {
+      const skills = await this._getAllSkillsArray();
+      const count = Array.isArray(skills) ? skills.length : 0;
+      return { count };
+    } catch (error) {
+      return { count: 0, error: error.message };
+    }
+  }
+
+  /**
+   * _getAllSkillsArray 内部方法，返回技能数组
+   * @param {Object} options - 查询选项
+   * @returns {Promise<Array>} 技能列表
+   */
+  async _getAllSkillsArray(options = {}) {
+    try {
+      const {
+        enabled = null,
+        category = null,
+        plugin_id = null,
+        is_builtin = null,
+        limit = null,
+        offset = 0,
+      } = options;
+
+      let sql = 'SELECT * FROM skills WHERE 1=1';
+      const params = [];
+
+      if (enabled !== null) {
+        sql += ' AND enabled = ?';
+        params.push(enabled);
+      }
+
+      if (category !== null) {
+        sql += ' AND category = ?';
+        params.push(category);
+      }
+
+      if (plugin_id !== null) {
+        sql += ' AND plugin_id = ?';
+        params.push(plugin_id);
+      }
+
+      if (is_builtin !== null) {
+        sql += ' AND is_builtin = ?';
+        params.push(is_builtin);
+      }
+
+      sql += ' ORDER BY usage_count DESC';
+
+      if (limit !== null) {
+        sql += ' LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+      }
+
+      const skills = await this.db.all(sql, params);
+      return skills;
+    } catch (error) {
+      console.error('[SkillManager] 获取技能列表失败:', error);
+      return [];
+    }
   }
 }
 

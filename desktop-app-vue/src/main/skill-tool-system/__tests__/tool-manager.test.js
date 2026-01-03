@@ -75,14 +75,41 @@ class MockDatabase {
     if (lowerQuery.includes('from tools')) {
       let results = [...this.data.tools];
 
-      // 简单处理筛选条件 - 按照参数顺序匹配查询中的占位符
-      if (lowerQuery.includes('and category = ?') && params.length > 0) {
-        // 找到第一个非null的category参数
-        for (const param of params) {
-          if (param !== null && param !== undefined) {
-            results = results.filter(t => t.category === param);
-            break;
-          }
+      // 处理多个筛选条件 - 按SQL查询中的条件顺序匹配参数
+      let paramIndex = 0;
+
+      if (lowerQuery.includes('and enabled = ?') && paramIndex < params.length) {
+        const enabled = params[paramIndex++];
+        if (enabled !== null && enabled !== undefined) {
+          results = results.filter(t => t.enabled === enabled);
+        }
+      }
+
+      if (lowerQuery.includes('and category = ?') && paramIndex < params.length) {
+        const category = params[paramIndex++];
+        if (category !== null && category !== undefined) {
+          results = results.filter(t => t.category === category);
+        }
+      }
+
+      if (lowerQuery.includes('and plugin_id = ?') && paramIndex < params.length) {
+        const plugin_id = params[paramIndex++];
+        if (plugin_id !== null && plugin_id !== undefined) {
+          results = results.filter(t => t.plugin_id === plugin_id);
+        }
+      }
+
+      if (lowerQuery.includes('and is_builtin = ?') && paramIndex < params.length) {
+        const is_builtin = params[paramIndex++];
+        if (is_builtin !== null && is_builtin !== undefined) {
+          results = results.filter(t => t.is_builtin === is_builtin);
+        }
+      }
+
+      if (lowerQuery.includes('and deprecated = ?') && paramIndex < params.length) {
+        const deprecated = params[paramIndex++];
+        if (deprecated !== null && deprecated !== undefined) {
+          results = results.filter(t => t.deprecated === deprecated);
         }
       }
 
@@ -94,8 +121,8 @@ class MockDatabase {
   // 直接调用的 run 方法
   async run(query, params = []) {
     const lowerQuery = query.toLowerCase();
-    if (lowerQuery.includes('insert into tools')) {
-      const tool = this._parseInsertTool(params);
+    if (lowerQuery.includes('insert into tools') || lowerQuery.includes('insert or ignore into tools')) {
+      const tool = this._parseInsertTool(query, params);
       this.data.tools.push(tool);
       return { changes: 1 };
     } else if (lowerQuery.includes('delete from tools')) {
@@ -103,9 +130,27 @@ class MockDatabase {
       this.data.tools = this.data.tools.filter(t => t.id !== params[0]);
       return { changes: prevLength - this.data.tools.length };
     } else if (lowerQuery.includes('update tools')) {
-      const index = this.data.tools.findIndex(t => t.id === params[params.length - 1]);
+      // The last param is always the tool ID (WHERE id = ?)
+      const toolId = params[params.length - 1];
+      const index = this.data.tools.findIndex(t => t.id === toolId);
+
       if (index >= 0) {
-        this.data.tools[index].updated_at = Date.now();
+        // Parse the SET clause to extract field names
+        const setMatch = query.match(/SET\s+(.+?)\s+WHERE/i);
+        if (setMatch) {
+          const setPairs = setMatch[1].split(',').map(s => s.trim());
+          let paramIndex = 0;
+
+          // Apply each update
+          for (const pair of setPairs) {
+            const fieldName = pair.split('=')[0].trim();
+            if (paramIndex < params.length - 1) { // -1 because last param is toolId
+              this.data.tools[index][fieldName] = params[paramIndex];
+              paramIndex++;
+            }
+          }
+        }
+
         return { changes: 1 };
       }
       return { changes: 0 };
@@ -118,8 +163,8 @@ class MockDatabase {
 
     return {
       run: (...args) => {
-        if (lowerQuery.includes('insert into tools')) {
-          const tool = this._parseInsertTool(args);
+        if (lowerQuery.includes('insert into tools') || lowerQuery.includes('insert or ignore into tools')) {
+          const tool = this._parseInsertTool(query, args);
           this.data.tools.push(tool);
           return { changes: 1 };
         } else if (lowerQuery.includes('delete from tools')) {
@@ -153,7 +198,45 @@ class MockDatabase {
     };
   }
 
-  _parseInsertTool(args) {
+  _parseInsertTool(query, args) {
+    // Detect which INSERT format is being used based on the query
+    const lowerQuery = query.toLowerCase();
+
+    // loadBuiltInTools format: 14 parameters
+    // (id, name, display_name, description, category,
+    //  parameters_schema, is_builtin, enabled,
+    //  tool_type, usage_count, success_count, avg_execution_time,
+    //  created_at, updated_at)
+    if (args.length === 14 && lowerQuery.includes('insert or ignore')) {
+      return {
+        id: args[0],
+        name: args[1],
+        display_name: args[2] || '',
+        description: args[3] || '',
+        category: args[4] || '',
+        parameters_schema: args[5] || '{}',
+        is_builtin: args[6] !== undefined ? args[6] : 0,
+        enabled: args[7] !== undefined ? args[7] : 1,
+        tool_type: args[8] || 'function',
+        usage_count: args[9] || 0,
+        success_count: args[10] || 0,
+        avg_execution_time: args[11] || 0,
+        created_at: args[12] || Date.now(),
+        updated_at: args[13] || Date.now(),
+        return_schema: '{}',
+        plugin_id: null,
+        handler_path: '',
+        deprecated: 0,
+        config: '{}',
+        examples: '[]',
+        doc_path: '',
+        required_permissions: '[]',
+        risk_level: 1,
+        last_used_at: null,
+      };
+    }
+
+    // registerTool format: 18+ parameters
     return {
       id: args[0],
       name: args[1],
@@ -447,6 +530,36 @@ describe('ToolManager', () => {
   });
 
   describe('内置工具加载', () => {
+    beforeEach(() => {
+      // 注册一些模拟的内置工具到 FunctionCaller
+      mockFunctionCaller.registerTool('file_reader', async (args) => {
+        return { content: 'mock file content' };
+      }, {
+        name: 'file_reader',
+        description: 'Read file content',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: { type: 'string' }
+          }
+        }
+      });
+
+      mockFunctionCaller.registerTool('file_writer', async (args) => {
+        return { success: true };
+      }, {
+        name: 'file_writer',
+        description: 'Write file content',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: { type: 'string' },
+            content: { type: 'string' }
+          }
+        }
+      });
+    });
+
     it('应该成功加载内置工具', async () => {
       const result = await toolManager.loadBuiltinTools();
 
