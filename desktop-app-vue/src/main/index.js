@@ -1049,7 +1049,11 @@ class ChainlessChainApp {
       );
 
       // 注册技能和工具IPC handlers（在初始化完成后）
-      registerSkillToolIPC(ipcMain, this.skillManager, this.toolManager);
+      registerSkillToolIPC({
+        ipcMain,
+        skillManager: this.skillManager,
+        toolManager: this.toolManager
+      });
       console.log('[Main] 技能和工具IPC handlers已注册');
 
       console.log('[Main] 技能和工具管理系统初始化完成（含桥接器）');
