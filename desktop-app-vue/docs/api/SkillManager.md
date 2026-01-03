@@ -2,7 +2,7 @@
 
 技能管理器 - 负责技能的CRUD操作、状态管理和统计
 
-**文件路径**: `src\main\skill-tool-system\skill-manager.js`
+**文件路径**: `src/main/skill-tool-system/skill-manager.js`
 
 ## 类概述
 
@@ -517,4 +517,4 @@ const skillmanager = new SkillManager(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2025/12/30 22:31:08
+> 自动生成时间: 2026/1/3 11:46:22
