@@ -39,6 +39,19 @@ new ToolManager()
 
 ---
 
+#### `if(!toolData.name)`
+
+注册工具
+
+**参数:**
+
+- `toolData` (`Object`) - 工具元数据
+- `handler` (`Function`) - 工具处理函数
+
+**返回:** `Promise<string>` - 工具ID
+
+---
+
 #### `if(toolData.parameters_schema)`
 
 注册工具
@@ -49,6 +62,10 @@ new ToolManager()
 - `handler` (`Function`) - 工具处理函数
 
 **返回:** `Promise<string>` - 工具ID
+
+---
+
+#### `if(!isValid)`
 
 ---
 
@@ -339,15 +356,39 @@ new ToolManager()
 
 - `schema` (`Object|string`) - JSON Schema
 
+**返回:** `boolean` - 是否有效
+
 ---
 
-#### `catch(error)`
+#### `if(!schemaObj.type)`
 
 验证参数Schema
 
 **参数:**
 
 - `schema` (`Object|string`) - JSON Schema
+
+**返回:** `boolean` - 是否有效
+
+---
+
+#### `if(schemaObj.type === 'object' && schemaObj.properties)`
+
+---
+
+#### `if(typeof schemaObj.properties !== 'object')`
+
+---
+
+#### `if(schemaObj.type === 'array' && schemaObj.items)`
+
+---
+
+#### `if(typeof schemaObj.items !== 'object')`
+
+---
+
+#### `catch(error)`
 
 ---
 
@@ -557,17 +598,9 @@ createTool 方法（别名，用于兼容测试）
 
 #### `catch(error)`
 
-loadBuiltinTools 方法（别名，用于兼容测试）
-
-**返回:** `Promise<Object>` - 加载结果
-
 ---
 
 #### `async getToolCount()`
-
-loadBuiltinTools 方法（别名，用于兼容测试）
-
-**返回:** `Promise<Object>` - 加载结果
 
 ---
 
@@ -576,6 +609,75 @@ loadBuiltinTools 方法（别名，用于兼容测试）
 getToolCount 方法（用于兼容测试）
 
 **返回:** `Promise<Object>` - 工具数量
+
+---
+
+#### `async getToolById(toolId)`
+
+getToolCount 方法（用于兼容测试）
+
+**返回:** `Promise<Object>` - 工具数量
+
+---
+
+#### `catch(error)`
+
+getToolById 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `toolId` (`string`) - 工具ID
+
+**返回:** `Promise<Object>` - 查询结果
+
+---
+
+#### `async deleteTool(toolId)`
+
+getToolById 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `toolId` (`string`) - 工具ID
+
+**返回:** `Promise<Object>` - 查询结果
+
+---
+
+#### `catch(error)`
+
+deleteTool 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `toolId` (`string`) - 工具ID
+
+**返回:** `Promise<Object>` - 删除结果
+
+---
+
+#### `async toggleToolEnabled(toolId, enabled)`
+
+deleteTool 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `toolId` (`string`) - 工具ID
+
+**返回:** `Promise<Object>` - 删除结果
+
+---
+
+#### `catch(error)`
+
+toggleToolEnabled 方法（用于兼容测试）
+
+**参数:**
+
+- `toolId` (`string`) - 工具ID
+- `enabled` (`boolean`) - 是否启用
+
+**返回:** `Promise<Object>` - 更新结果
 
 ---
 
@@ -597,4 +699,4 @@ const toolmanager = new ToolManager(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/3 13:23:27
+> 自动生成时间: 2026/1/3 14:42:10
