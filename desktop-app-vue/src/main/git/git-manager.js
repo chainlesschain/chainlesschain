@@ -145,10 +145,13 @@ class GitManager extends EventEmitter {
       // 获取最后同步时间
       const lastSync = await this.getLastCommitDate();
 
+      // 计算ahead/behind
+      const { ahead, behind } = await this.calculateAheadBehind(branch);
+
       return {
         branch,
-        ahead: 0, // TODO: 计算ahead commits
-        behind: 0, // TODO: 计算behind commits
+        ahead,
+        behind,
         modified,
         untracked,
         deleted,
@@ -178,6 +181,105 @@ class GitManager extends EventEmitter {
       return null;
     } catch (error) {
       return null;
+    }
+  }
+
+  /**
+   * 计算本地分支与远程分支的ahead/behind commits
+   * @param {string} branch - 本地分支名
+   * @returns {Promise<{ahead: number, behind: number}>}
+   */
+  async calculateAheadBehind(branch) {
+    try {
+      // 如果没有配置远程仓库，返回0
+      if (!this.remote.url) {
+        return { ahead: 0, behind: 0 };
+      }
+
+      const remoteBranch = `${this.remote.name}/${branch}`;
+
+      // 获取本地分支的commit oid
+      let localOid;
+      try {
+        localOid = await git.resolveRef({
+          fs,
+          dir: this.repoPath,
+          ref: branch,
+        });
+      } catch (error) {
+        // 本地分支不存在
+        return { ahead: 0, behind: 0 };
+      }
+
+      // 获取远程分支的commit oid
+      let remoteOid;
+      try {
+        remoteOid = await git.resolveRef({
+          fs,
+          dir: this.repoPath,
+          ref: `refs/remotes/${remoteBranch}`,
+        });
+      } catch (error) {
+        // 远程分支不存在（可能还未推送过）
+        // 本地有提交，远程没有，全部算作ahead
+        const localCommits = await git.log({
+          fs,
+          dir: this.repoPath,
+          ref: branch,
+        });
+        return { ahead: localCommits.length, behind: 0 };
+      }
+
+      // 如果两个oid相同，说明完全同步
+      if (localOid === remoteOid) {
+        return { ahead: 0, behind: 0 };
+      }
+
+      // 获取本地分支的所有commits
+      const localCommits = await git.log({
+        fs,
+        dir: this.repoPath,
+        ref: branch,
+      });
+
+      // 获取远程分支的所有commits
+      const remoteCommits = await git.log({
+        fs,
+        dir: this.repoPath,
+        ref: `refs/remotes/${remoteBranch}`,
+      });
+
+      // 创建commit oid集合
+      const localOids = new Set(localCommits.map(c => c.oid));
+      const remoteOids = new Set(remoteCommits.map(c => c.oid));
+
+      // 计算ahead: 本地有但远程没有的commits
+      let ahead = 0;
+      for (const commit of localCommits) {
+        if (!remoteOids.has(commit.oid)) {
+          ahead++;
+        } else {
+          // 找到共同祖先，停止计数
+          break;
+        }
+      }
+
+      // 计算behind: 远程有但本地没有的commits
+      let behind = 0;
+      for (const commit of remoteCommits) {
+        if (!localOids.has(commit.oid)) {
+          behind++;
+        } else {
+          // 找到共同祖先，停止计数
+          break;
+        }
+      }
+
+      return { ahead, behind };
+    } catch (error) {
+      gitError('GitManager', '计算ahead/behind失败:', error);
+      // 出错时返回0，不影响其他功能
+      return { ahead: 0, behind: 0 };
     }
   }
 
