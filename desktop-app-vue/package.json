@@ -33,7 +33,14 @@
     "make:win": "npm run build && electron-forge make --platform=win32",
     "installer": "npm run package && build-installer.bat",
     "installer:check": "where iscc || echo Inno Setup not installed. Please install from https://jrsoftware.org/isdl.php",
-    "publish": "electron-forge publish"
+    "publish": "electron-forge publish",
+    "perf:benchmark": "node test-scripts/performance-benchmark.js",
+    "perf:report": "node -e \"const { getPerformanceMonitor } = require('./utils/performance-monitor'); const m = getPerformanceMonitor(); m.printReport();\"",
+    "perf:apply": "node scripts/apply-performance-config.js",
+    "config:show": "node -e \"const { getPerformanceConfigManager } = require('./utils/performance-config-manager'); const c = getPerformanceConfigManager(); console.log(JSON.stringify(c.getConfigSummary(), null, 2));\"",
+    "config:preset:balanced": "node -e \"const { getPerformanceConfigManager } = require('./utils/performance-config-manager'); const c = getPerformanceConfigManager(); c.applyPreset('balanced'); c.saveConfig();\"",
+    "config:preset:high": "node -e \"const { getPerformanceConfigManager } = require('./utils/performance-config-manager'); const c = getPerformanceConfigManager(); c.applyPreset('high-performance'); c.saveConfig();\"",
+    "db:optimize": "echo '数据库优化将在应用启动时自动运行'"
   },
   "keywords": [
     "electron",
@@ -195,13 +202,33 @@
         "extraResource": [
           "../node_modules/sql.js/dist/sql-wasm.wasm"
         ],
-        "prune": false
+        "prune": false,
+        "asar": true,
+        "win32metadata": {
+          "CompanyName": "ChainlessChain Team",
+          "FileDescription": "ChainlessChain Desktop Application",
+          "OriginalFilename": "chainlesschain.exe",
+          "ProductName": "ChainlessChain",
+          "InternalName": "chainlesschain"
+        }
       },
       "makers": [
         {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "chainlesschain",
+            "authors": "ChainlessChain Team",
+            "exe": "chainlesschain.exe",
+            "setupIcon": "build/icon.ico",
+            "loadingGif": "build/install-spinner.gif",
+            "certificateFile": process.env.WINDOWS_CERTIFICATE_FILE,
+            "certificatePassword": process.env.WINDOWS_CERTIFICATE_PASSWORD,
+            "signWithParams": "/tr http://timestamp.digicert.com /td sha256 /fd sha256"
+          }
+        },
+        {
           "name": "@electron-forge/maker-zip",
           "platforms": [
-            "win32",
             "darwin",
             "linux"
           ]
