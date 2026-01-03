@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-panel" :class="{ collapsed: !visible }">
+  <div class="chat-panel" :class="{ collapsed: !props.open }">
     <!-- 头部 -->
     <div class="chat-header">
       <div class="header-left">
@@ -31,9 +31,9 @@
               <setting-outlined />
             </a-button>
           </a-tooltip>
-          <a-tooltip :title="visible ? '收起' : '展开'">
+          <a-tooltip :title="props.open ? '收起' : '展开'">
             <a-button type="text" size="small" @click="togglePanel">
-              <right-outlined v-if="visible" />
+              <right-outlined v-if="props.open" />
               <left-outlined v-else />
             </a-button>
           </a-tooltip>

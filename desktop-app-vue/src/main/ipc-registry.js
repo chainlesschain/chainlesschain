@@ -583,6 +583,22 @@ function registerAllIPC(dependencies) {
       console.log('[IPC Registry] ✓ Notification IPC registered (5 handlers)');
     }
 
+    // 对话管理 (函数模式 - 小模块，5 handlers)
+    if (database) {
+      console.log('[IPC Registry] Registering Conversation IPC...');
+      const { registerConversationIPC } = require('./conversation/conversation-ipc');
+      registerConversationIPC({ database });
+      console.log('[IPC Registry] ✓ Conversation IPC registered (5 handlers)');
+    }
+
+    // 文件同步监听 (函数模式 - 小模块，3 handlers)
+    if (fileSyncManager && database) {
+      console.log('[IPC Registry] Registering File Sync IPC...');
+      const { registerFileSyncIPC } = require('./file-sync/file-sync-ipc');
+      registerFileSyncIPC({ fileSyncManager, database });
+      console.log('[IPC Registry] ✓ File Sync IPC registered (3 handlers)');
+    }
+
     // 配置管理 (函数模式 - 小模块，4 handlers)
     console.log('[IPC Registry] Registering Config IPC...');
     const { registerConfigIPC } = require('./config/config-ipc');

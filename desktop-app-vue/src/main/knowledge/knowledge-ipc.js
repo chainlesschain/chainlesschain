@@ -6,20 +6,23 @@
  * @description 知识管理模块，提供标签管理、版本控制、付费内容管理等功能
  */
 
-const { ipcMain } = require('electron');
-
 /**
  * 注册知识管理相关的 IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.dbManager - 数据库管理器实例
  * @param {Object} dependencies.versionManager - 版本管理器实例
  * @param {Object} dependencies.knowledgePaymentManager - 知识付费管理器实例
+ * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
  */
 function registerKnowledgeIPC({
   dbManager,
   versionManager,
-  knowledgePaymentManager
+  knowledgePaymentManager,
+  ipcMain: injectedIpcMain
 }) {
+  // 支持依赖注入，用于测试
+  const ipcMain = injectedIpcMain || require('electron').ipcMain;
+
   console.log('[Knowledge IPC] Registering Knowledge IPC handlers...');
 
   // ============================================================

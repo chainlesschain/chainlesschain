@@ -28,3 +28,19 @@ Thumbs.db
 
 # Playwright
 playwright-report/
+
+# Temporary files
+*.txt
+test.txt
+*.pptx
+
+# OCR training data (large files)
+*.traineddata
+
+# Temporary test directories
+.temp-cache-test/
+*/.temp-cache-test/
+
+# Temporary reports
+*_REPORT.txt
+*_COMPLETION_REPORT.txt

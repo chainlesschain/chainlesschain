@@ -416,7 +416,13 @@ class ProjectTemplateManager {
       // 选项验证
       if (type === 'select' && options && Array.isArray(options)) {
         const validValues = options.map(opt => opt.value);
-        if (!validValues.includes(value)) {
+        const validLabels = options.map(opt => opt.label);
+
+        // 允许匹配 value 或 label（更灵活的验证）
+        const isValidValue = validValues.includes(value);
+        const isValidLabel = validLabels.includes(value);
+
+        if (!isValidValue && !isValidLabel) {
           errors.push({
             field: name,
             message: `${label || name} 必须是以下选项之一: ${validValues.join(', ')}`

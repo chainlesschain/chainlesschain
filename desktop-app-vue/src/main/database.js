@@ -2800,7 +2800,7 @@ class DatabaseManager {
   trackQueryPerformance(queryName, duration, sql, params = []) {
     try {
       // Get performance monitor
-      const { getPerformanceMonitor } = require('../utils/performance-monitor');
+      const { getPerformanceMonitor } = require('../../utils/performance-monitor');
       const monitor = getPerformanceMonitor();
 
       // Log slow query if it exceeds threshold (from env or default 100ms)
