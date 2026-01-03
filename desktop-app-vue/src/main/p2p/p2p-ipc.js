@@ -6,14 +6,16 @@
  * @description 提供 P2P 节点管理、加密消息、多设备支持、设备同步、NAT穿透等 IPC 接口
  */
 
-const { ipcMain } = require('electron');
-
 /**
  * 注册所有 P2P IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.p2pManager - P2P 管理器
+ * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
  */
-function registerP2PIPC({ p2pManager }) {
+function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
+  // 支持依赖注入，用于测试
+  const ipcMain = injectedIpcMain || require('electron').ipcMain;
+
   console.log('[P2P IPC] Registering P2P IPC handlers...');
 
   // ============================================================

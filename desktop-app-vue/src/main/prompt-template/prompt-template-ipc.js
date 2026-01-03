@@ -6,16 +6,19 @@
  * @description 提示词模板管理模块，提供模板的创建、查询、填充、导入导出等功能
  */
 
-const { ipcMain } = require('electron');
-
 /**
  * 注册提示词模板相关的 IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.promptTemplateManager - 提示词模板管理器实例
+ * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
  */
 function registerPromptTemplateIPC({
-  promptTemplateManager
+  promptTemplateManager,
+  ipcMain: injectedIpcMain
 }) {
+  // 支持依赖注入，用于测试
+  const ipcMain = injectedIpcMain || require('electron').ipcMain;
+
   console.log('[Prompt Template IPC] Registering Prompt Template IPC handlers...');
 
   // ============================================================
