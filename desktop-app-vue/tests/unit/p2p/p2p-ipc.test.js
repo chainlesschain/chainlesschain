@@ -11,23 +11,23 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ipcMain } from 'electron';
-
-// Mock electron 模块
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn(),
-  },
-}));
 
 describe('P2P Network IPC', () => {
   let handlers = {};
   let mockP2PManager;
+  let mockIpcMain;
   let registerP2PIPC;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     handlers = {};
+
+    // 创建 mock ipcMain
+    mockIpcMain = {
+      handle: (channel, handler) => {
+        handlers[channel] = handler;
+      },
+    };
 
     // Mock P2P manager with all required methods and properties
     mockP2PManager = {
@@ -75,19 +75,14 @@ describe('P2P Network IPC', () => {
       getDeviceStatistics: vi.fn(),
     };
 
-    // 动态导入，确保 mock 已设置
+    // 动态导入
     const module = await import('../../../src/main/p2p/p2p-ipc.js');
     registerP2PIPC = module.registerP2PIPC;
 
-    // 捕获 IPC handlers
-    const { ipcMain } = await import('electron');
-    ipcMain.handle.mockImplementation((channel, handler) => {
-      handlers[channel] = handler;
-    });
-
-    // 注册 P2P IPC
+    // 注册 P2P IPC 并注入 mock ipcMain
     registerP2PIPC({
       p2pManager: mockP2PManager,
+      ipcMain: mockIpcMain
     });
   });
 
@@ -163,15 +158,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should return null when manager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         const result = await handlers['p2p:get-node-info']();
 
@@ -201,15 +190,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should throw error when manager is not initialized', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         await expect(handlers['p2p:connect']({}, '/ip4/1.2.3.4/tcp/4001'))
           .rejects.toThrow('P2P管理器未初始化');
@@ -236,15 +219,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should throw error when manager is not initialized', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         await expect(handlers['p2p:disconnect']({}, 'QmPeer123'))
           .rejects.toThrow('P2P管理器未初始化');
@@ -274,15 +251,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should return empty array when manager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         const result = await handlers['p2p:get-peers']();
 
@@ -325,15 +296,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should throw error when manager is not initialized', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         await expect(handlers['p2p:send-encrypted-message'](
           {}, 'QmPeer123', 'message', 'device-1'
@@ -370,15 +335,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should return false when manager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         const result = await handlers['p2p:has-encrypted-session']({}, 'QmPeer123');
 
@@ -412,15 +371,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should throw error when manager is not initialized', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         await expect(handlers['p2p:initiate-key-exchange'](
           {}, 'QmPeer123', 'device-1'
@@ -455,15 +408,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should return empty array when manager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         const result = await handlers['p2p:get-user-devices']({}, 'user-123');
 
@@ -497,15 +444,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should return null when manager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         const result = await handlers['p2p:get-current-device']();
 
@@ -539,15 +480,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should return default stats when manager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         const result = await handlers['p2p:get-device-statistics']();
 
@@ -593,16 +528,10 @@ describe('P2P Network IPC', () => {
       });
 
       it('should return default stats when syncManager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
         const managerWithoutSync = { ...mockP2PManager, syncManager: null };
-        registerP2PIPC({ p2pManager: managerWithoutSync });
+        registerP2PIPC({ p2pManager: managerWithoutSync, ipcMain: mockIpcMain });
 
         const result = await handlers['p2p:get-sync-statistics']();
 
@@ -654,16 +583,10 @@ describe('P2P Network IPC', () => {
       });
 
       it('should return null when syncManager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
         const managerWithoutSync = { ...mockP2PManager, syncManager: null };
-        registerP2PIPC({ p2pManager: managerWithoutSync });
+        registerP2PIPC({ p2pManager: managerWithoutSync, ipcMain: mockIpcMain });
 
         const result = await handlers['p2p:get-message-status']({}, 'msg-123');
 
@@ -694,16 +617,10 @@ describe('P2P Network IPC', () => {
       });
 
       it('should throw error when syncManager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
         const managerWithoutSync = { ...mockP2PManager, syncManager: null };
-        registerP2PIPC({ p2pManager: managerWithoutSync });
+        registerP2PIPC({ p2pManager: managerWithoutSync, ipcMain: mockIpcMain });
 
         await expect(handlers['p2p:start-device-sync']({}, 'device-1'))
           .rejects.toThrow('设备同步管理器未初始化');
@@ -730,16 +647,10 @@ describe('P2P Network IPC', () => {
       });
 
       it('should throw error when syncManager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
         const managerWithoutSync = { ...mockP2PManager, syncManager: null };
-        registerP2PIPC({ p2pManager: managerWithoutSync });
+        registerP2PIPC({ p2pManager: managerWithoutSync, ipcMain: mockIpcMain });
 
         await expect(handlers['p2p:stop-device-sync']({}, 'device-1'))
           .rejects.toThrow('设备同步管理器未初始化');
@@ -775,16 +686,10 @@ describe('P2P Network IPC', () => {
       });
 
       it('should throw error when natDetector is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
         const managerWithoutNat = { ...mockP2PManager, natDetector: null };
-        registerP2PIPC({ p2pManager: managerWithoutNat });
+        registerP2PIPC({ p2pManager: managerWithoutNat, ipcMain: mockIpcMain });
 
         await expect(handlers['p2p:detect-nat']())
           .rejects.toThrow('P2P管理器未初始化');
@@ -811,15 +716,9 @@ describe('P2P Network IPC', () => {
       });
 
       it('should throw error when manager is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
-        registerP2PIPC({ p2pManager: null });
+        registerP2PIPC({ p2pManager: null, ipcMain: mockIpcMain });
 
         await expect(handlers['p2p:get-nat-info']())
           .rejects.toThrow('P2P管理器未初始化');
@@ -874,16 +773,10 @@ describe('P2P Network IPC', () => {
       });
 
       it('should return empty array when node is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
         const managerWithoutNode = { ...mockP2PManager, node: null };
-        registerP2PIPC({ p2pManager: managerWithoutNode });
+        registerP2PIPC({ p2pManager: managerWithoutNode, ipcMain: mockIpcMain });
 
         const result = await handlers['p2p:get-relay-info']();
 
@@ -917,16 +810,10 @@ describe('P2P Network IPC', () => {
       });
 
       it('should throw error when transportDiagnostics is null', async () => {
-        const { ipcMain } = await import('electron');
-        ipcMain.handle.mockClear();
         handlers = {};
 
-        ipcMain.handle.mockImplementation((channel, handler) => {
-          handlers[channel] = handler;
-        });
-
         const managerWithoutDiagnostics = { ...mockP2PManager, transportDiagnostics: null };
-        registerP2PIPC({ p2pManager: managerWithoutDiagnostics });
+        registerP2PIPC({ p2pManager: managerWithoutDiagnostics, ipcMain: mockIpcMain });
 
         await expect(handlers['p2p:run-diagnostics']())
           .rejects.toThrow('P2P管理器未初始化');

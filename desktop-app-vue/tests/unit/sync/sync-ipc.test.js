@@ -432,14 +432,11 @@ describe('Sync IPC', () => {
     it('should handle sync manager with missing methods gracefully', async () => {
       // 使用不完整的 syncManager 重新注册
       handlers = {};
-      ipcMain.handle.mockImplementation((channel, handler) => {
-        handlers[channel] = handler;
-      });
       const incompleteSyncManager = {
         deviceId: 'test-device',
         // 缺少其他方法
       };
-      registerSyncIPC({ syncManager: incompleteSyncManager });
+      registerSyncIPC({ syncManager: incompleteSyncManager, ipcMain: mockIpcMain });
 
       // 测试每个 handler 是否能正确处理缺失的方法
       try {
@@ -451,13 +448,10 @@ describe('Sync IPC', () => {
 
     it('should handle undefined syncManager parameter', () => {
       handlers = {};
-      ipcMain.handle.mockImplementation((channel, handler) => {
-        handlers[channel] = handler;
-      });
 
       // 不传递 syncManager
       expect(() => {
-        registerSyncIPC({});
+        registerSyncIPC({ ipcMain: mockIpcMain });
       }).not.toThrow();
 
       // 所有 handlers 仍然应该被注册
