@@ -113,15 +113,18 @@ class FunctionCaller {
           const dir = path.dirname(resolvedPath);
           await fs.mkdir(dir, { recursive: true });
 
-          // 写入文件
-          await fs.writeFile(resolvedPath, content, 'utf-8');
+          // 将content转换为字符串以支持number、boolean等类型
+          const contentStr = String(content);
 
-          console.log(`[FunctionCaller] 文件已写入: ${resolvedPath}, 大小: ${content.length} 字节`);
+          // 写入文件
+          await fs.writeFile(resolvedPath, contentStr, 'utf-8');
+
+          console.log(`[FunctionCaller] 文件已写入: ${resolvedPath}, 大小: ${contentStr.length} 字节`);
 
           return {
             success: true,
             filePath: resolvedPath,
-            size: content.length,
+            size: contentStr.length,
           };
         } catch (error) {
           throw new Error(`写入文件失败: ${error.message}`);
@@ -430,7 +433,7 @@ function initializeInteractions() {
         // 目前只是模拟返回
         return {
           success: true,
-          message: params.message || 'Auto commit',
+          message: params.message !== undefined ? params.message : 'Auto commit',
         };
       },
       {
@@ -472,10 +475,19 @@ function initializeInteractions() {
     this.registerTool(
       'format_output',
       async (params, context) => {
-        return {
-          success: true,
-          formatted: JSON.stringify(params.data, null, 2),
-        };
+        try {
+          return {
+            success: true,
+            formatted: JSON.stringify(params.data, null, 2),
+          };
+        } catch (error) {
+          // Handle circular references and other JSON.stringify errors
+          return {
+            success: true,
+            formatted: String(params.data),
+            error: error.message,
+          };
+        }
       },
       {
         name: 'format_output',
@@ -636,6 +648,10 @@ function initializeInteractions() {
    * @returns {Promise<any>} 工具执行结果
    */
   async call(toolName, params = {}, context = {}) {
+    // 确保params和context不是null
+    params = params || {};
+    context = context || {};
+
     const startTime = Date.now();
     const tool = this.tools.get(toolName);
 
