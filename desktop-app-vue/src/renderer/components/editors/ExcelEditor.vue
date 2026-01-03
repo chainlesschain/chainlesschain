@@ -273,7 +273,7 @@ const renderSheet = async (sheetIndex) => {
     width: col?.width || 100,
   }));
 
-  // 创建jspreadsheet实例
+  // 创建jspreadsheet实例 - v5 API 不使用worksheets，直接传递data
   try {
     console.log('[ExcelEditor] Creating jspreadsheet with data:', {
       rows: data.length,
@@ -281,8 +281,9 @@ const renderSheet = async (sheetIndex) => {
       readOnly: props.readOnly
     });
 
+    // jspreadsheet-ce v5.x API - 直接传递配置，不需要worksheets包装
     spreadsheet.value = jspreadsheet(spreadsheetRef.value, {
-      data: data,
+      data: data.length > 0 ? data : [Array(columns.length).fill('')],
       columns: columns,
       minDimensions: [10, 20],
       allowInsertRow: !props.readOnly,
@@ -294,6 +295,7 @@ const renderSheet = async (sheetIndex) => {
       tableOverflow: true,
       tableHeight: 'calc(100vh - 300px)',
       tableWidth: '100%',
+      // Event handlers
       onchange: handleCellChange,
       onselection: handleCellSelection,
       oninsertrow: handleRowInsert,
@@ -308,11 +310,11 @@ const renderSheet = async (sheetIndex) => {
     console.error('[ExcelEditor] Error stack:', error.stack);
     message.error('创建表格失败: ' + error.message);
 
-    // 尝试使用更简单的配置作为fallback
+    // 尝试使用最简单的配置作为fallback
     try {
       console.log('[ExcelEditor] Attempting fallback initialization...');
       spreadsheet.value = jspreadsheet(spreadsheetRef.value, {
-        data: data.length > 0 ? data : [['']], // 至少提供一个空单元格
+        data: [['']], // 最少一个单元格
         minDimensions: [10, 20],
       });
       console.log('[ExcelEditor] Fallback initialization successful');
@@ -320,6 +322,11 @@ const renderSheet = async (sheetIndex) => {
       console.error('[ExcelEditor] Fallback init also failed:', fallbackError);
     }
   }
+};
+
+// 获取当前工作表实例 - v5直接返回spreadsheet对象
+const getCurrentWorksheet = () => {
+  return spreadsheet.value;
 };
 
 // 处理单元格变化
@@ -433,41 +440,43 @@ const removeSheet = (index) => {
 
 // 插入操作
 const handleInsert = ({ key }) => {
-  if (!spreadsheet.value) return;
+  const worksheet = getCurrentWorksheet();
+  if (!worksheet) return;
 
   switch (key) {
     case 'row-before':
-      spreadsheet.value.insertRow(1, 0, true);
+      worksheet.insertRow(1, 0, true);
       break;
     case 'row-after':
-      spreadsheet.value.insertRow(1, undefined, false);
+      worksheet.insertRow(1, undefined, false);
       break;
     case 'col-before':
-      spreadsheet.value.insertColumn(1, 0, true);
+      worksheet.insertColumn(1, 0, true);
       break;
     case 'col-after':
-      spreadsheet.value.insertColumn(1, undefined, false);
+      worksheet.insertColumn(1, undefined, false);
       break;
   }
 };
 
 // 删除操作
 const handleDelete = ({ key }) => {
-  if (!spreadsheet.value) return;
+  const worksheet = getCurrentWorksheet();
+  if (!worksheet) return;
 
   switch (key) {
     case 'row':
-      const selectedRows = spreadsheet.value.getSelectedRows();
+      const selectedRows = worksheet.getSelectedRows();
       if (selectedRows.length > 0) {
-        spreadsheet.value.deleteRow(selectedRows.length);
+        worksheet.deleteRow(selectedRows.length);
       } else {
         message.warning('请先选择要删除的行');
       }
       break;
     case 'col':
-      const selectedCols = spreadsheet.value.getSelectedColumns();
+      const selectedCols = worksheet.getSelectedColumns();
       if (selectedCols.length > 0) {
-        spreadsheet.value.deleteColumn(selectedCols.length);
+        worksheet.deleteColumn(selectedCols.length);
       } else {
         message.warning('请先选择要删除的列');
       }
@@ -477,9 +486,10 @@ const handleDelete = ({ key }) => {
 
 // 格式化操作
 const handleFormat = ({ key }) => {
-  if (!spreadsheet.value) return;
+  const worksheet = getCurrentWorksheet();
+  if (!worksheet) return;
 
-  const selection = spreadsheet.value.getSelected();
+  const selection = worksheet.getSelected();
   if (!selection) {
     message.warning('请先选择单元格');
     return;
@@ -487,19 +497,19 @@ const handleFormat = ({ key }) => {
 
   switch (key) {
     case 'bold':
-      spreadsheet.value.setStyle(selection, 'font-weight', 'bold');
+      worksheet.setStyle(selection, 'font-weight', 'bold');
       break;
     case 'italic':
-      spreadsheet.value.setStyle(selection, 'font-style', 'italic');
+      worksheet.setStyle(selection, 'font-style', 'italic');
       break;
     case 'align-left':
-      spreadsheet.value.setStyle(selection, 'text-align', 'left');
+      worksheet.setStyle(selection, 'text-align', 'left');
       break;
     case 'align-center':
-      spreadsheet.value.setStyle(selection, 'text-align', 'center');
+      worksheet.setStyle(selection, 'text-align', 'center');
       break;
     case 'align-right':
-      spreadsheet.value.setStyle(selection, 'text-align', 'right');
+      worksheet.setStyle(selection, 'text-align', 'right');
       break;
   }
 
@@ -508,14 +518,15 @@ const handleFormat = ({ key }) => {
 
 // 数据操作
 const handleDataOperation = ({ key }) => {
-  if (!spreadsheet.value) return;
+  const worksheet = getCurrentWorksheet();
+  if (!worksheet) return;
 
   switch (key) {
     case 'sort-asc':
-      spreadsheet.value.orderBy(0, 0);
+      worksheet.orderBy(0, 0);
       break;
     case 'sort-desc':
-      spreadsheet.value.orderBy(0, 1);
+      worksheet.orderBy(0, 1);
       break;
     case 'sum':
       calculateSum();
@@ -528,13 +539,16 @@ const handleDataOperation = ({ key }) => {
 
 // 计算求和
 const calculateSum = () => {
-  const selection = spreadsheet.value.getSelected();
+  const worksheet = getCurrentWorksheet();
+  if (!worksheet) return;
+
+  const selection = worksheet.getSelected();
   if (!selection) {
     message.warning('请先选择单元格范围');
     return;
   }
 
-  const data = spreadsheet.value.getData();
+  const data = worksheet.getData();
   let sum = 0;
   let count = 0;
 
@@ -553,13 +567,16 @@ const calculateSum = () => {
 
 // 计算平均值
 const calculateAverage = () => {
-  const selection = spreadsheet.value.getSelected();
+  const worksheet = getCurrentWorksheet();
+  if (!worksheet) return;
+
+  const selection = worksheet.getSelected();
   if (!selection) {
     message.warning('请先选择单元格范围');
     return;
   }
 
-  const data = spreadsheet.value.getData();
+  const data = worksheet.getData();
   let sum = 0;
   let count = 0;
 
@@ -601,9 +618,10 @@ const handleExport = async ({ key }) => {
 
 // 获取当前数据
 const getCurrentData = () => {
-  if (!spreadsheet.value) return null;
+  const worksheet = getCurrentWorksheet();
+  if (!worksheet) return null;
 
-  const data = spreadsheet.value.getData();
+  const data = worksheet.getData();
   const currentSheetData = { ...currentSheet.value };
 
   // 更新行数据

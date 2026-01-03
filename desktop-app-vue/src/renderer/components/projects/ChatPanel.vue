@@ -349,12 +349,23 @@ const handleSendMessage = async () => {
       timestamp: Date.now(),
     };
 
+    // 确保 messages.value 是数组
+    if (!Array.isArray(messages.value)) {
+      console.warn('[ChatPanel] messages.value 不是数组，重新初始化为空数组');
+      messages.value = [];
+    }
+
     // 添加到消息列表
     messages.value.push(userMessage);
 
     // 如果没有当前对话，创建一个
     if (!currentConversation.value) {
       await createConversation();
+
+      // 检查对话是否创建成功
+      if (!currentConversation.value) {
+        throw new Error('创建对话失败，无法发送消息');
+      }
     }
 
     // 保存用户消息到数据库
@@ -429,20 +440,30 @@ const handleSendMessage = async () => {
       ragSources: response.ragSources || []
     };
 
+    // 确保 messages.value 是数组
+    if (!Array.isArray(messages.value)) {
+      console.warn('[ChatPanel] messages.value 不是数组（assistant），重新初始化为空数组');
+      messages.value = [];
+    }
+
     // 添加到消息列表
     messages.value.push(assistantMessage);
 
-    // 保存助手消息到数据库
-    await window.electronAPI.conversation.createMessage({
-      conversation_id: currentConversation.value.id,
-      role: 'assistant',
-      content: assistantMessage.content,
-      timestamp: Date.now(),
-      metadata: {
-        hasFileOperations: assistantMessage.hasFileOperations,
-        fileOperationCount: assistantMessage.fileOperations.length
-      }
-    });
+    // 保存助手消息到数据库（如果有对话）
+    if (currentConversation.value && currentConversation.value.id) {
+      await window.electronAPI.conversation.createMessage({
+        conversation_id: currentConversation.value.id,
+        role: 'assistant',
+        content: assistantMessage.content,
+        timestamp: Date.now(),
+        metadata: {
+          hasFileOperations: assistantMessage.hasFileOperations,
+          fileOperationCount: assistantMessage.fileOperations.length
+        }
+      });
+    } else {
+      console.warn('[ChatPanel] 无法保存助手消息：当前对话不存在');
+    }
 
     // 如果有文件操作成功执行，通知用户并刷新文件树
     if (response.hasFileOperations && response.fileOperations.length > 0) {
@@ -559,6 +580,7 @@ const createConversation = async () => {
     }
 
     const conversationData = {
+      id: `conv_${Date.now()}`, // 添加ID字段
       title: contextMode.value === 'project' ? '项目对话' : contextMode.value === 'file' ? '文件对话' : '新对话',
       project_id: contextMode.value === 'project' ? props.projectId : null,
       context_type: contextMode.value,
@@ -567,8 +589,15 @@ const createConversation = async () => {
         : null,
     };
 
-    currentConversation.value = await window.electronAPI.conversation.create(conversationData);
-    emit('conversationLoaded', currentConversation.value);
+    const result = await window.electronAPI.conversation.create(conversationData);
+
+    // 提取对话数据（API返回 {success: true, data: {...}} 格式）
+    if (result && result.success && result.data) {
+      currentConversation.value = result.data;
+      emit('conversationLoaded', currentConversation.value);
+    } else {
+      throw new Error(result?.error || '创建对话失败');
+    }
   } catch (error) {
     console.error('创建对话失败:', error);
     antMessage.error('创建对话失败');
@@ -590,14 +619,31 @@ const loadConversation = async () => {
 
     if (contextMode.value === 'project') {
       // 尝试加载项目对话
-      const conversation = await window.electronAPI.conversation.getByProject(props.projectId);
+      const result = await window.electronAPI.conversation.getByProject(props.projectId);
+
+      // 提取对话数据（API返回 {success: true, data: [...]} 格式）
+      let conversation = null;
+      if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
+        conversation = result.data[0]; // 取第一个对话
+      } else if (result && !result.success) {
+        console.warn('[ChatPanel] 获取项目对话失败:', result.error);
+      }
 
       if (conversation) {
         currentConversation.value = conversation;
 
         // 加载消息
         const loadedMessages = await window.electronAPI.conversation.getMessages(conversation.id);
-        messages.value = loadedMessages || [];
+
+        // 提取消息数组（API返回 {success: true, data: [...]} 格式）
+        if (loadedMessages && loadedMessages.success && Array.isArray(loadedMessages.data)) {
+          messages.value = loadedMessages.data;
+        } else if (Array.isArray(loadedMessages)) {
+          // 兼容直接返回数组的情况
+          messages.value = loadedMessages;
+        } else {
+          messages.value = [];
+        }
 
         emit('conversationLoaded', conversation);
 

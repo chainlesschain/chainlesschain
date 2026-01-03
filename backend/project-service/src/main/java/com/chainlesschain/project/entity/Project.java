@@ -46,8 +46,6 @@ public class Project {
 
     private Long totalSize;
 
-    private String templateId;
-
     private String coverImageUrl;
 
     private String tags;  // JSON array

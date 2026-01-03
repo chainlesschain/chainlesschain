@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:open="modalVisible"
+    v-model:open="visible"
     title="数据同步冲突"
     width="900px"
     :footer="null"

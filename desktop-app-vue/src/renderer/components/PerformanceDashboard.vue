@@ -1,6 +1,7 @@
 <template>
   <a-drawer
-    v-model:open="visible"
+    :open="props.visible"
+    @update:open="emit('update:visible', $event)"
     title="性能监控仪表板"
     placement="right"
     :width="700"
