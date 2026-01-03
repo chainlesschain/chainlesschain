@@ -8,6 +8,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { app } = require('electron');
+const { getResourceMonitor } = require('../utils/resource-monitor');
 
 /**
  * 图片存储配置
@@ -36,6 +37,9 @@ class ImageStorage {
     this.userDataPath = app.getPath('userData');
     this.storageBasePath = path.join(this.userDataPath, this.config.storageDir);
     this.thumbnailBasePath = path.join(this.userDataPath, this.config.thumbnailDir);
+
+    // 资源监控器
+    this.resourceMonitor = getResourceMonitor();
   }
 
   /**
@@ -116,6 +120,32 @@ class ImageStorage {
    */
   async saveImage(sourcePath, metadata = {}) {
     try {
+      // 检查源文件大小
+      const sourceStats = await fs.stat(sourcePath);
+      const fileSize = sourceStats.size;
+
+      // 检查磁盘空间（预留额外20%作为缓冲）
+      const requiredSpace = fileSize * 1.2;
+      const diskCheck = await this.resourceMonitor.checkDiskSpace(this.storageBasePath, requiredSpace);
+
+      if (!diskCheck.available) {
+        const error = new Error('磁盘空间不足');
+        error.code = 'ENOSPC';
+        error.details = {
+          required: requiredSpace,
+          available: diskCheck.freeSpace,
+          deficit: diskCheck.deficit
+        };
+        throw error;
+      }
+
+      if (diskCheck.warning) {
+        console.warn('[ImageStorage] 磁盘空间警告:', {
+          freeSpace: diskCheck.freeSpace,
+          threshold: this.resourceMonitor.thresholds.diskWarning
+        });
+      }
+
       const originalFilename = path.basename(sourcePath);
       const newFilename = this.generateFilename(originalFilename);
       const destPath = path.join(this.storageBasePath, newFilename);
@@ -170,6 +200,18 @@ class ImageStorage {
    */
   async saveThumbnail(imageId, thumbnailPath) {
     try {
+      // 检查磁盘空间
+      const stats = await fs.stat(thumbnailPath);
+      const requiredSpace = stats.size * 1.2;
+      const diskCheck = await this.resourceMonitor.checkDiskSpace(this.thumbnailBasePath, requiredSpace);
+
+      if (!diskCheck.available) {
+        const error = new Error('磁盘空间不足，无法保存缩略图');
+        error.code = 'ENOSPC';
+        error.details = diskCheck;
+        throw error;
+      }
+
       const filename = path.basename(thumbnailPath);
       const destPath = path.join(this.thumbnailBasePath, filename);
 

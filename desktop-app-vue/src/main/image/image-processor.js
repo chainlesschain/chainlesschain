@@ -9,6 +9,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
 const { EventEmitter } = require('events');
+const { getResourceMonitor } = require('../utils/resource-monitor');
 
 /**
  * 图片处理配置
@@ -37,6 +38,13 @@ class ImageProcessor extends EventEmitter {
   constructor(config = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.resourceMonitor = getResourceMonitor();
+
+    // 监听资源水平变化
+    this.resourceMonitor.on('level-change', ({ newLevel }) => {
+      this.emit('resource-level-change', { level: newLevel });
+      console.log(`[ImageProcessor] 资源水平变化: ${newLevel}`);
+    });
   }
 
   /**
@@ -85,12 +93,25 @@ class ImageProcessor extends EventEmitter {
    * @returns {Promise<Object>} 处理结果
    */
   async compress(input, outputPath, options = {}) {
+    // 获取当前资源降级策略
+    const strategy = this.resourceMonitor.getDegradationStrategy('imageProcessing');
+    const resourceLevel = this.resourceMonitor.currentLevel;
+
     const {
-      maxWidth = this.config.maxWidth,
-      maxHeight = this.config.maxHeight,
-      quality = this.config.quality,
+      maxWidth = options.maxWidth || strategy.maxDimension,
+      maxHeight = options.maxHeight || strategy.maxDimension,
+      quality = options.quality || strategy.quality,
       format = this.config.outputFormat,
     } = options;
+
+    // 如果资源紧张，发出警告
+    if (resourceLevel !== 'normal') {
+      this.emit('resource-warning', {
+        level: resourceLevel,
+        strategy,
+        message: `内存${resourceLevel === 'critical' ? '严重' : ''}不足，降级处理参数`
+      });
+    }
 
     try {
       this.emit('compress-start', { input, outputPath });
@@ -139,12 +160,30 @@ class ImageProcessor extends EventEmitter {
         compressionRatio: originalMetadata.size ?
           ((1 - compressedSize / originalMetadata.size) * 100).toFixed(2) : 0,
         outputPath: outputPath,
+        resourceLevel: resourceLevel,
+        degraded: resourceLevel !== 'normal'
       };
 
       this.emit('compress-complete', result);
+
+      // 如果内存紧张，尝试垃圾回收
+      if (resourceLevel === 'critical') {
+        this.resourceMonitor.forceGarbageCollection();
+      }
+
       return result;
     } catch (error) {
       console.error('[ImageProcessor] 压缩失败:', error);
+
+      // 如果是内存错误，尝试恢复
+      if (error.message && error.message.includes('memory')) {
+        this.emit('memory-error', {
+          input,
+          error,
+          memoryStatus: this.resourceMonitor.getMemoryStatus()
+        });
+      }
+
       this.emit('compress-error', { input, error });
       throw error;
     }
@@ -239,37 +278,76 @@ class ImageProcessor extends EventEmitter {
    */
   async batchProcess(images, operation = 'compress') {
     const results = [];
+    const strategy = this.resourceMonitor.getDegradationStrategy('imageProcessing');
+    const concurrent = strategy.concurrent;
 
-    for (let i = 0; i < images.length; i++) {
-      const { input, outputPath, options } = images[i];
+    console.log(`[ImageProcessor] 批量处理 ${images.length} 张图片，并发数: ${concurrent}`);
 
-      try {
-        this.emit('batch-progress', {
-          current: i + 1,
-          total: images.length,
-          percentage: Math.round(((i + 1) / images.length) * 100),
-        });
+    // 分批处理以控制并发
+    for (let batchStart = 0; batchStart < images.length; batchStart += concurrent) {
+      const batch = images.slice(batchStart, batchStart + concurrent);
 
-        let result;
-        if (operation === 'compress') {
-          result = await this.compress(input, outputPath, options);
-        } else if (operation === 'thumbnail') {
-          result = await this.generateThumbnail(input, outputPath, options);
+      // 并发处理当前批次
+      const batchResults = await Promise.allSettled(
+        batch.map(async ({ input, outputPath, options }, batchIndex) => {
+          const i = batchStart + batchIndex;
+
+          try {
+            // 更新进度
+            this.emit('batch-progress', {
+              current: i + 1,
+              total: images.length,
+              percentage: Math.round(((i + 1) / images.length) * 100),
+              resourceLevel: this.resourceMonitor.currentLevel
+            });
+
+            // 执行操作
+            let result;
+            if (operation === 'compress') {
+              result = await this.compress(input, outputPath, options);
+            } else if (operation === 'thumbnail') {
+              result = await this.generateThumbnail(input, outputPath, options);
+            } else {
+              throw new Error(`未知操作: ${operation}`);
+            }
+
+            return {
+              success: true,
+              input: input,
+              ...result,
+            };
+          } catch (error) {
+            console.error(`[ImageProcessor] 处理失败 [${i + 1}/${images.length}]:`, error);
+            return {
+              success: false,
+              input: input,
+              error: error.message,
+            };
+          }
+        })
+      );
+
+      // 收集批次结果
+      batchResults.forEach(promiseResult => {
+        if (promiseResult.status === 'fulfilled') {
+          results.push(promiseResult.value);
         } else {
-          throw new Error(`未知操作: ${operation}`);
+          results.push({
+            success: false,
+            error: promiseResult.reason?.message || '未知错误'
+          });
         }
+      });
 
-        results.push({
-          success: true,
-          input: input,
-          ...result,
-        });
-      } catch (error) {
-        results.push({
-          success: false,
-          input: input,
-          error: error.message,
-        });
+      // 批次之间检查资源并可能触发垃圾回收
+      if (batchStart + concurrent < images.length) {
+        const currentLevel = this.resourceMonitor.updateResourceLevel();
+        if (currentLevel === 'critical') {
+          console.log('[ImageProcessor] 内存临界，暂停并执行垃圾回收');
+          this.resourceMonitor.forceGarbageCollection();
+          // 暂停 1 秒让系统恢复
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
     }
 
