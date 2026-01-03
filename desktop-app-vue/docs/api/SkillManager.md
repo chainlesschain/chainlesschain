@@ -41,6 +41,30 @@ new SkillManager()
 
 ---
 
+#### `if(!skillData.name)`
+
+注册技能
+
+**参数:**
+
+- `skillData` (`Object`) - 技能元数据
+
+**返回:** `Promise<string>` - 技能ID
+
+---
+
+#### `if(!skillData.category)`
+
+注册技能
+
+**参数:**
+
+- `skillData` (`Object`) - 技能元数据
+
+**返回:** `Promise<string>` - 技能ID
+
+---
+
 #### `catch(error)`
 
 ---
@@ -124,7 +148,7 @@ new SkillManager()
 
 ---
 
-#### `if(enabled !== null)`
+#### `catch(error)`
 
 获取所有技能
 
@@ -136,27 +160,27 @@ new SkillManager()
 
 ---
 
-#### `if(category !== null)`
+#### `async getSkillsByCategory(category)`
 
----
+获取所有技能
 
-#### `if(plugin_id !== null)`
+**参数:**
 
----
+- `options` (`Object`) - 查询选项
 
-#### `if(is_builtin !== null)`
-
----
-
-#### `if(limit !== null)`
+**返回:** `Promise<Array>` - 技能列表
 
 ---
 
 #### `catch(error)`
 
----
+根据分类获取技能
 
-#### `async getSkillsByCategory(category)`
+**参数:**
+
+- `category` (`string`) - 分类
+
+**返回:** `Promise<Object>` - 技能列表
 
 ---
 
@@ -168,17 +192,13 @@ new SkillManager()
 
 - `category` (`string`) - 分类
 
-**返回:** `Promise<Array>` - 技能列表
+**返回:** `Promise<Object>` - 技能列表
 
 ---
 
 #### `async enableSkill(skillId)`
 
-根据分类获取技能
-
-**参数:**
-
-- `category` (`string`) - 分类
+获取启用的技能
 
 **返回:** `Promise<Array>` - 技能列表
 
@@ -326,11 +346,11 @@ new SkillManager()
 
 ---
 
-#### `async getSkillStats(skillId, dateRange = null)`
+#### `async getSkillStats(skillId = null, dateRange = null)`
 
 ---
 
-#### `if(dateRange)`
+#### `if(!skillId)`
 
 获取技能统计
 
@@ -340,6 +360,15 @@ new SkillManager()
 - `dateRange` (`Object`) - 日期范围 {start, end}
 
 **返回:** `Promise<Array>` - 统计数据
+
+---
+
+#### `forEach(skill => {
+          if (skill.category)`
+
+---
+
+#### `if(dateRange)`
 
 ---
 
@@ -499,6 +528,179 @@ new SkillManager()
 
 ---
 
+#### `async createSkill(skillData)`
+
+recordExecution 方法（别名，用于兼容 SkillExecutor）
+
+**参数:**
+
+- `skillId` (`string`) - 技能ID
+- `success` (`boolean`) - 是否成功
+- `duration` (`number`) - 执行时长(ms)
+
+---
+
+#### `catch(error)`
+
+createSkill 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `skillData` (`Object`) - 技能数据
+
+**返回:** `Promise<Object>` - 创建结果
+
+---
+
+#### `async deleteSkill(skillId)`
+
+createSkill 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `skillData` (`Object`) - 技能数据
+
+**返回:** `Promise<Object>` - 创建结果
+
+---
+
+#### `if(!skill)`
+
+deleteSkill 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `skillId` (`string`) - 技能ID
+
+**返回:** `Promise<Object>` - 删除结果
+
+---
+
+#### `catch(error)`
+
+deleteSkill 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `skillId` (`string`) - 技能ID
+
+**返回:** `Promise<Object>` - 删除结果
+
+---
+
+#### `async toggleSkillEnabled(skillId, enabled)`
+
+deleteSkill 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `skillId` (`string`) - 技能ID
+
+**返回:** `Promise<Object>` - 删除结果
+
+---
+
+#### `catch(error)`
+
+toggleSkillEnabled 方法（用于兼容测试）
+
+**参数:**
+
+- `skillId` (`string`) - 技能ID
+- `enabled` (`boolean`) - 是否启用
+
+**返回:** `Promise<Object>` - 更新结果
+
+---
+
+#### `async getSkillById(skillId)`
+
+toggleSkillEnabled 方法（用于兼容测试）
+
+**参数:**
+
+- `skillId` (`string`) - 技能ID
+- `enabled` (`boolean`) - 是否启用
+
+**返回:** `Promise<Object>` - 更新结果
+
+---
+
+#### `catch(error)`
+
+getSkillById 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `skillId` (`string`) - 技能ID
+
+**返回:** `Promise<Object>` - 查询结果
+
+---
+
+#### `async getSkillCount()`
+
+getSkillById 方法（别名，用于兼容测试）
+
+**参数:**
+
+- `skillId` (`string`) - 技能ID
+
+**返回:** `Promise<Object>` - 查询结果
+
+---
+
+#### `catch(error)`
+
+getSkillCount 方法（用于兼容测试）
+
+**返回:** `Promise<Object>` - 技能数量
+
+---
+
+#### `if(enabled !== null)`
+
+_getAllSkillsArray 内部方法，返回技能数组
+
+**参数:**
+
+- `options` (`Object`) - 查询选项
+
+**返回:** `Promise<Array>` - 技能列表
+
+---
+
+#### `if(category !== null)`
+
+---
+
+#### `if(plugin_id !== null)`
+
+---
+
+#### `if(is_builtin !== null)`
+
+---
+
+#### `if(limit !== null)`
+
+---
+
+#### `catch(error)`
+
+---
+
+
+### 私有方法
+
+#### `async _getAllSkillsArray(options = {})`
+
+getSkillCount 方法（用于兼容测试）
+
+**返回:** `Promise<Object>` - 技能数量
+
+---
+
 
 ## 事件
 
@@ -517,4 +719,4 @@ const skillmanager = new SkillManager(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/3 14:26:26
+> 自动生成时间: 2026/1/3 14:42:10
