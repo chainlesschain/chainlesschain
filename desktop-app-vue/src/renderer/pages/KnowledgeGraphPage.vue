@@ -184,7 +184,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons-vue';
 import { useGraphStore } from '../stores/graph';
-import GraphCanvas from '../components/graph/GraphCanvas.vue';
+import GraphCanvas from '../components/graph/GraphCanvasOptimized.vue';
 
 const router = useRouter();
 const graphStore = useGraphStore();
