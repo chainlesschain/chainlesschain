@@ -2,6 +2,8 @@
  * 图片上传管理器
  *
  * 整合图片处理、OCR 识别、存储管理等功能
+ *
+ * v0.17.0: 集成文件安全验证
  */
 
 const { EventEmitter } = require('events');
@@ -12,6 +14,7 @@ const { v4: uuidv4 } = require('uuid');
 const ImageProcessor = require('./image-processor');
 const OCRService = require('./ocr-service');
 const ImageStorage = require('./image-storage');
+const FileValidator = require('../security/file-validator');
 
 /**
  * 上传配置
@@ -105,11 +108,42 @@ class ImageUploader extends EventEmitter {
       knowledgeType = 'note',
       tags = [],
       title = null,
+      skipValidation = false, // 是否跳过安全验证
     } = options;
 
     try {
       console.log('[ImageUploader] 开始上传图片:', path.basename(imagePath));
       this.emit('upload-start', { imagePath });
+
+      // 🔒 安全验证: 验证图片文件安全性
+      if (!skipValidation) {
+        console.log(`[ImageUploader] 验证图片文件安全性: ${imagePath}`);
+        const validation = await FileValidator.validateFile(imagePath, 'image');
+
+        if (!validation.valid) {
+          const errorMsg = `图片验证失败: ${validation.errors.join(', ')}`;
+          console.error(`[ImageUploader] ${errorMsg}`);
+          this.emit('upload-error', { imagePath, error: errorMsg });
+          throw new Error(errorMsg);
+        }
+
+        // 记录警告信息（如SVG脚本注入）
+        if (validation.warnings && validation.warnings.length > 0) {
+          console.warn(`[ImageUploader] 图片安全警告:`, validation.warnings);
+          this.emit('upload-warning', {
+            imagePath,
+            warnings: validation.warnings,
+          });
+        }
+
+        // 记录验证信息
+        console.log(`[ImageUploader] 图片验证通过:`, {
+          hash: validation.fileInfo.hash,
+          size: validation.fileInfo.size,
+          extension: validation.fileInfo.extension,
+          signature: validation.fileInfo.signature,
+        });
+      }
 
       const imageId = uuidv4();
       const tempDir = os.tmpdir();

@@ -1,11 +1,15 @@
 /**
  * 文件导入器
  * 支持 PDF、Word、Markdown 等多种文件格式的导入
+ *
+ * v0.17.0: 集成文件安全验证
  */
 
 const fs = require('fs').promises;
 const path = require('path');
 const { EventEmitter } = require('events');
+const FileValidator = require('../security/file-validator');
+const XSSSanitizer = require('../security/xss-sanitizer');
 
 class FileImporter extends EventEmitter {
   constructor(database) {
@@ -17,6 +21,7 @@ class FileImporter extends EventEmitter {
       word: ['.doc', '.docx'],
       text: ['.txt'],
     };
+    this.enableSecurityValidation = true; // 启用安全验证
   }
 
   /**
@@ -47,6 +52,34 @@ class FileImporter extends EventEmitter {
     try {
       // 检查文件是否存在
       await fs.access(filePath);
+
+      // 🔒 安全验证: 验证文件安全性
+      if (this.enableSecurityValidation && !options.skipValidation) {
+        console.log(`[FileImporter] 验证文件安全性: ${filePath}`);
+        const validation = await FileValidator.validateFile(filePath, 'document');
+
+        if (!validation.valid) {
+          const errorMsg = `文件验证失败: ${validation.errors.join(', ')}`;
+          console.error(`[FileImporter] ${errorMsg}`);
+          throw new Error(errorMsg);
+        }
+
+        // 记录警告信息
+        if (validation.warnings && validation.warnings.length > 0) {
+          console.warn(`[FileImporter] 文件警告:`, validation.warnings);
+          this.emit('import-warning', {
+            filePath,
+            warnings: validation.warnings,
+          });
+        }
+
+        // 记录验证信息
+        console.log(`[FileImporter] 文件验证通过:`, {
+          hash: validation.fileInfo.hash,
+          size: validation.fileInfo.size,
+          category: validation.category,
+        });
+      }
 
       // 获取文件类型
       const fileType = this.getFileType(filePath);
@@ -142,6 +175,22 @@ class FileImporter extends EventEmitter {
           }
         }
         markdownContent = content.substring(frontMatterMatch[0].length);
+      }
+
+      // 🔒 安全处理: XSS 防护 - 清理 Markdown 内容中的危险脚本
+      if (this.enableSecurityValidation && !options.skipSanitization) {
+        markdownContent = XSSSanitizer.sanitizeMarkdown(markdownContent);
+
+        // 检测 XSS 威胁
+        const threats = XSSSanitizer.detectXSS(markdownContent);
+        if (threats.length > 0) {
+          console.warn(`[FileImporter] 检测到潜在的 XSS 威胁 (已清理):`, threats);
+          this.emit('import-warning', {
+            filePath,
+            type: 'xss_threat',
+            threats,
+          });
+        }
       }
 
       // 创建知识库条目
