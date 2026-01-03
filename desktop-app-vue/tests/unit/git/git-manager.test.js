@@ -116,7 +116,7 @@ describe('GitManager - calculateAheadBehind', () => {
   describe('本地领先远程（ahead commits）', () => {
     it('应该正确计算本地独有的 commits', async () => {
       const localOid = 'local-latest';
-      const remoteOid = 'remote-latest';
+      const remoteOid = 'shared-1'; // 远程停留在共同祖先
 
       // 模拟本地和远程 commits
       const localCommits = [
@@ -127,8 +127,7 @@ describe('GitManager - calculateAheadBehind', () => {
       ];
 
       const remoteCommits = [
-        { oid: 'remote-latest', commit: { message: 'remote commit 1' } },
-        { oid: 'shared-1', commit: { message: 'shared commit 1' } }, // 共同祖先
+        { oid: 'shared-1', commit: { message: 'shared commit 1' } }, // 远程最新就是共同祖先
         { oid: 'shared-0', commit: { message: 'shared commit 0' } },
       ];
 
@@ -144,19 +143,18 @@ describe('GitManager - calculateAheadBehind', () => {
 
       // 本地有 2 个独有 commits
       expect(result.ahead).toBe(2);
-      // 远程有 0 个独有 commits（local-2 之后找到共同祖先）
+      // 远程有 0 个独有 commits（远程停留在共同祖先）
       expect(result.behind).toBe(0);
     });
   });
 
   describe('远程领先本地（behind commits）', () => {
     it('应该正确计算远程独有的 commits', async () => {
-      const localOid = 'local-latest';
+      const localOid = 'shared-1'; // 本地停留在共同祖先
       const remoteOid = 'remote-latest';
 
       const localCommits = [
-        { oid: 'local-latest', commit: { message: 'local commit 1' } },
-        { oid: 'shared-1', commit: { message: 'shared commit 1' } }, // 共同祖先
+        { oid: 'shared-1', commit: { message: 'shared commit 1' } }, // 本地最新就是共同祖先
         { oid: 'shared-0', commit: { message: 'shared commit 0' } },
       ];
 
@@ -178,7 +176,7 @@ describe('GitManager - calculateAheadBehind', () => {
 
       const result = await gitManager.calculateAheadBehind('main');
 
-      // 本地有 0 个独有 commits
+      // 本地有 0 个独有 commits（本地停留在共同祖先）
       expect(result.ahead).toBe(0);
       // 远程有 3 个独有 commits
       expect(result.behind).toBe(3);
