@@ -607,10 +607,54 @@ const handleConversationalCreate = async ({ text, attachments }) => {
 
     // 1. 流式创建项目
     const userId = authStore.currentUser?.id || 'default-user';
+
+    // 智能检测项目类型
+    let projectType = ''; // 默认留空让后端AI自动识别
+
+    // 检测是否是文档类型请求（txt, md, doc等）
+    const textLower = text.toLowerCase();
+    const isDocumentRequest =
+      textLower.includes('txt') ||
+      textLower.includes('文本') ||
+      textLower.includes('文档') ||
+      textLower.includes('markdown') ||
+      textLower.includes('md文件') ||
+      textLower.includes('写一个') && (textLower.includes('文章') || textLower.includes('报告') || textLower.includes('说明'));
+
+    // 检测是否是数据类型请求
+    const isDataRequest =
+      textLower.includes('csv') ||
+      textLower.includes('json') ||
+      textLower.includes('数据') ||
+      textLower.includes('表格');
+
+    // 检测是否是web类型请求
+    const isWebRequest =
+      textLower.includes('网页') ||
+      textLower.includes('网站') ||
+      textLower.includes('html') ||
+      textLower.includes('页面');
+
+    // 设置项目类型（优先级：web > data > document）
+    if (isWebRequest) {
+      projectType = 'web';
+    } else if (isDataRequest) {
+      projectType = 'data';
+    } else if (isDocumentRequest) {
+      projectType = 'document';
+    }
+
+    console.log('[ProjectsPage] 智能检测项目类型:');
+    console.log('  - 用户输入:', text);
+    console.log('  - 检测结果: projectType =', projectType || '(由后端AI自动识别)');
+    console.log('  - isDocumentRequest:', isDocumentRequest);
+    console.log('  - isDataRequest:', isDataRequest);
+    console.log('  - isWebRequest:', isWebRequest);
+
     const projectData = {
       userPrompt: text,
       name: text.substring(0, 50) || '未命名项目',
-      projectType: '', // 留空让后端AI自动识别项目类型
+      projectType: projectType, // 智能检测后的项目类型
       userId: userId,
     };
 
@@ -639,7 +683,23 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       return;
     }
 
-    // 2. AI智能拆解任务
+    // 流式创建已完成，直接跳转到项目页面
+    // 注意：流式创建本身已经通过后端AI服务完成了文件生成
+    // 不需要再进行任务拆解和执行
+    const projectId = createdProjectId.value || project?.projectId || project?.id;
+    if (projectId) {
+      console.log('[ProjectsPage] 流式创建完成，跳转到项目页:', projectId);
+      message.success('项目创建完成！', 2);
+
+      // 跳转到项目详情页
+      setTimeout(() => {
+        router.push(`/projects/${projectId}`);
+      }, 500);
+    }
+
+    // 2. AI智能拆解任务（已禁用 - 流式创建已完成所有工作）
+    // 如果需要额外的任务执行，可以取消下面的注释
+    /*
     try {
       message.loading({ content: 'AI正在拆解任务...', key: 'ai-decompose', duration: 0 });
 
@@ -689,6 +749,7 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       // 即使拆解失败，也跳转到项目页
       router.push(`/projects/${project.projectId || createdProjectId.value}`);
     }
+    */
   } catch (error) {
     console.error('Failed to create project:', error);
     message.error({ content: '创建失败：' + error.message, key: 'ai-create', duration: 3 });

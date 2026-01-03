@@ -155,6 +155,18 @@ class BridgeManager extends EventEmitter {
 
       // 注册每个桥接合约到对应的链
       for (const contract of bridgeContracts) {
+        // 跳过数据不完整的合约
+        if (!contract.contract_address || !contract.chain_id) {
+          console.warn(`[BridgeManager] 跳过数据不完整的合约: ${contract.contract_name || 'Unknown'}`);
+          continue;
+        }
+
+        // 只注册每个chain_id的第一个合约（因为已按deployed_at降序排序，第一个是最新的）
+        if (this.bridgeContracts.has(contract.chain_id)) {
+          console.log(`[BridgeManager] Chain ${contract.chain_id} 已有桥接合约，跳过: ${contract.contract_address}`);
+          continue;
+        }
+
         this.registerBridgeContract(contract.chain_id, contract.contract_address);
 
         // 如果有 ABI 信息，更新本地 ABI（优先使用数据库中的 ABI）

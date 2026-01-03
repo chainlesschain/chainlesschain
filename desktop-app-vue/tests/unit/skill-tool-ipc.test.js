@@ -27,11 +27,17 @@ const createMockIpcMain = () => {
 };
 
 const createMockSkillManager = () => ({
-  getAllSkills: vi.fn().mockResolvedValue([
-    { id: 'skill-1', name: 'test_skill', enabled: 1, category: 'test' },
-  ]),
+  getAllSkills: vi.fn().mockResolvedValue({
+    success: true,
+    skills: [
+      { id: 'skill-1', name: 'test_skill', enabled: 1, category: 'test' },
+    ],
+  }),
   getSkill: vi.fn().mockResolvedValue({ id: 'skill-1', name: 'test_skill' }),
-  getSkillsByCategory: vi.fn().mockResolvedValue([]),
+  getSkillsByCategory: vi.fn().mockResolvedValue({
+    success: true,
+    skills: [],
+  }),
   enableSkill: vi.fn().mockResolvedValue(true),
   disableSkill: vi.fn().mockResolvedValue(true),
   updateSkill: vi.fn().mockResolvedValue(true),
@@ -48,11 +54,17 @@ const createMockSkillManager = () => ({
 });
 
 const createMockToolManager = () => ({
-  getAllTools: vi.fn().mockResolvedValue([
-    { id: 'tool-1', name: 'test_tool', enabled: 1, category: 'test', usage_count: 5, success_count: 4, avg_execution_time: 100 },
-  ]),
+  getAllTools: vi.fn().mockResolvedValue({
+    success: true,
+    tools: [
+      { id: 'tool-1', name: 'test_tool', enabled: 1, category: 'test', usage_count: 5, success_count: 4, avg_execution_time: 100 },
+    ],
+  }),
   getTool: vi.fn().mockResolvedValue({ id: 'tool-1', name: 'test_tool' }),
-  getToolsByCategory: vi.fn().mockResolvedValue([]),
+  getToolsByCategory: vi.fn().mockResolvedValue({
+    success: true,
+    tools: [],
+  }),
   getToolsBySkill: vi.fn().mockResolvedValue([]),
   enableTool: vi.fn().mockResolvedValue(true),
   disableTool: vi.fn().mockResolvedValue(true),

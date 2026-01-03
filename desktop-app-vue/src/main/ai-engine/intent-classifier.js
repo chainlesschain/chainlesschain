@@ -153,7 +153,7 @@ class IntentClassifier {
    */
   adjustByContext(intent, text, context) {
     // 如果用户正在编辑某个文件，且输入较短，优先判定为编辑意图
-    if (context.currentFile && text.length < 20 && text.includes('改')) {
+    if (context && context.currentFile && text.length < 20 && text.includes('改')) {
       return this.INTENTS.EDIT_FILE;
     }
 
@@ -168,7 +168,7 @@ class IntentClassifier {
     }
 
     // 如果项目类型是data，且提到分析/统计，优先判定为数据分析
-    if (context.projectType === 'data') {
+    if (context && context.projectType === 'data') {
       if (text.includes('分析') || text.includes('统计') || text.includes('图表')) {
         return this.INTENTS.ANALYZE_DATA;
       }
@@ -236,6 +236,7 @@ class IntentClassifier {
       'Word': ['word', 'Word', 'doc', 'docx', '文档'],
       'Excel': ['excel', 'Excel', 'xls', 'xlsx', '表格', '电子表格'],
       'Markdown': ['md', 'markdown', 'Markdown'],
+      'Text': ['txt', 'TXT', '文本文件', '文本', 'text'],
     };
 
     for (const [type, patterns] of Object.entries(fileTypes)) {
@@ -367,18 +368,21 @@ class IntentClassifier {
    */
   calculateConfidence(text, intent) {
     const keywords = this.keywords[intent] || [];
-    let matchCount = 0;
+    let totalMatches = 0; // 统计关键词出现的总次数（包括重复）
 
     for (const keyword of keywords) {
-      if (text.includes(keyword)) {
-        matchCount++;
+      // 统计这个关键词在文本中出现的次数
+      const regex = new RegExp(keyword, 'g');
+      const matches = text.match(regex);
+      if (matches) {
+        totalMatches += matches.length;
       }
     }
 
-    // 基于匹配关键词数量计算置信度
-    if (matchCount === 0) return 0.5; // 默认置信度
-    if (matchCount === 1) return 0.7;
-    if (matchCount >= 2) return 0.9;
+    // 基于总匹配次数计算置信度（重复关键词表示更高的确定性）
+    if (totalMatches === 0) return 0.5; // 默认置信度
+    if (totalMatches === 1) return 0.7;
+    if (totalMatches >= 2) return 0.9;
 
     return 0.6;
   }

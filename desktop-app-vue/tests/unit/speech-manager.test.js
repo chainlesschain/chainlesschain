@@ -208,7 +208,9 @@ describe('SpeechManager with Dependency Injection', () => {
     it('should initialize task queue', () => {
       expect(manager.taskQueue).toEqual([]);
       expect(manager.runningTasks).toBe(0);
-      expect(manager.maxConcurrentTasks).toBe(2);
+      // maxConcurrentTasks is dynamically calculated based on CPU cores (min 1, max 4)
+      expect(manager.maxConcurrentTasks).toBeGreaterThanOrEqual(1);
+      expect(manager.maxConcurrentTasks).toBeLessThanOrEqual(4);
     });
 
     it('should store injected dependencies', () => {

@@ -90,12 +90,14 @@ describe('BridgeManager - loadBridgeContracts', () => {
           chain_id: 1,
           contract_name: 'Latest Bridge',
           abi_json: null,
+          deployed_at: 1000000002, // 更新的时间戳
         },
         {
           contract_address: '0xOLDER',
           chain_id: 1,
           contract_name: 'Old Bridge',
           abi_json: null,
+          deployed_at: 1000000001, // 更旧的时间戳
         },
       ];
 
