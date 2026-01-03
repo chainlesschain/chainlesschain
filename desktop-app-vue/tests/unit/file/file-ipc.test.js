@@ -4,41 +4,52 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ipcMain, shell, clipboard, dialog } from 'electron';
 import path from 'path';
-
-// 必须在顶层 mock，在 import 之前
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn(),
-  },
-  shell: {
-    showItemInFolder: vi.fn(),
-    openPath: vi.fn(),
-  },
-  clipboard: {
-    writeBuffer: vi.fn(),
-    writeText: vi.fn(),
-    readText: vi.fn(),
-    readBuffer: vi.fn(),
-    clear: vi.fn(),
-  },
-  dialog: {
-    showOpenDialog: vi.fn(),
-    showSaveDialog: vi.fn(),
-  },
-}));
 
 describe('File Management IPC', () => {
   let handlers = {};
   let mockDatabase;
   let mockMainWindow;
   let mockGetProjectConfig;
+  let mockIpcMain;
+  let mockDialog;
+  let mockShell;
+  let mockClipboard;
   let registerFileIPC;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     handlers = {};
+
+    // 创建 mock ipcMain
+    mockIpcMain = {
+      handle: (channel, handler) => {
+        handlers[channel] = handler;
+      },
+    };
+
+    // 创建 mock dialog
+    mockDialog = {
+      showOpenDialog: vi.fn().mockResolvedValue({
+        canceled: false,
+        filePaths: ['/path/to/program'],
+      }),
+    };
+
+    // 创建 mock shell
+    mockShell = {
+      showItemInFolder: vi.fn(),
+      openPath: vi.fn().mockResolvedValue(''),
+    };
+
+    // 创建 mock clipboard
+    mockClipboard = {
+      writeBuffer: vi.fn(),
+      writeText: vi.fn(),
+      readText: vi.fn().mockReturnValue(''),
+      readBuffer: vi.fn().mockReturnValue(Buffer.alloc(0)),
+      clear: vi.fn(),
+    };
 
     // Mock database
     mockDatabase = {
@@ -66,21 +77,19 @@ describe('File Management IPC', () => {
       getProjectsRootPath: vi.fn(() => '/test/projects'),
     }));
 
-    // 动态导入，确保 mock 已设置
+    // 动态导入
     const module = await import('../../../src/main/file/file-ipc.js');
     registerFileIPC = module.registerFileIPC;
 
-    // 捕获 IPC handlers
-    const { ipcMain } = await import('electron');
-    ipcMain.handle.mockImplementation((channel, handler) => {
-      handlers[channel] = handler;
-    });
-
-    // 注册 File IPC
+    // 注册 File IPC 并注入 mock 对象
     registerFileIPC({
       database: mockDatabase,
       mainWindow: mockMainWindow,
       getProjectConfig: mockGetProjectConfig,
+      ipcMain: mockIpcMain,
+      dialog: mockDialog,
+      shell: mockShell,
+      clipboard: mockClipboard,
     });
   });
 

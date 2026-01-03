@@ -6,14 +6,17 @@
  * @description 提供 DID 身份 CRUD、文档管理、DHT 发布、自动重新发布、助记词管理等 IPC 接口
  */
 
-const { ipcMain } = require('electron');
-
 /**
  * 注册所有 DID IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.didManager - DID 管理器
+ * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
  */
-function registerDIDIPC({ didManager }) {
+function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
+  // 支持依赖注入，用于测试
+  const electron = require('electron');
+  const ipcMain = injectedIpcMain || electron.ipcMain;
+
   console.log('[DID IPC] Registering DID IPC handlers...');
 
   // ============================================================

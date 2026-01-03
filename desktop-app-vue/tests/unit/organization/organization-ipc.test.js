@@ -7,31 +7,37 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ipcMain, dialog, app } from 'electron';
-
-// Mock electron 模块
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn(),
-  },
-  dialog: {
-    showSaveDialog: vi.fn(),
-  },
-  app: {
-    getPath: vi.fn(() => '/test/documents'),
-  },
-}));
 
 describe('Organization IPC', () => {
   let handlers = {};
   let mockOrganizationManager;
   let mockDbManager;
   let mockVersionManager;
+  let mockIpcMain;
+  let mockDialog;
+  let mockApp;
   let registerOrganizationIPC;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     handlers = {};
+
+    // 创建 mock ipcMain
+    mockIpcMain = {
+      handle: (channel, handler) => {
+        handlers[channel] = handler;
+      },
+    };
+
+    // 创建 mock dialog
+    mockDialog = {
+      showSaveDialog: vi.fn(),
+    };
+
+    // 创建 mock app
+    mockApp = {
+      getPath: vi.fn(() => '/test/documents'),
+    };
 
     // Mock organization manager
     mockOrganizationManager = {
@@ -84,21 +90,18 @@ describe('Organization IPC', () => {
       restoreVersion: vi.fn(),
     };
 
-    // 动态导入，确保 mock 已设置
+    // 动态导入
     const module = await import('../../../src/main/organization/organization-ipc.js');
     registerOrganizationIPC = module.registerOrganizationIPC;
 
-    // 捕获 IPC handlers
-    const { ipcMain } = await import('electron');
-    ipcMain.handle.mockImplementation((channel, handler) => {
-      handlers[channel] = handler;
-    });
-
-    // 注册 Organization IPC
+    // 注册 Organization IPC 并注入 mock 对象
     registerOrganizationIPC({
       organizationManager: mockOrganizationManager,
       dbManager: mockDbManager,
       versionManager: mockVersionManager,
+      ipcMain: mockIpcMain,
+      dialog: mockDialog,
+      app: mockApp
     });
   });
 

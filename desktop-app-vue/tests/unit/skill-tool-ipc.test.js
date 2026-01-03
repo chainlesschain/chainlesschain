@@ -6,9 +6,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Import after mocks
-const { registerSkillToolIPC } = require('../../src/main/skill-tool-system/skill-tool-ipc');
-
 // ===================== MOCK FACTORIES =====================
 
 const createMockIpcMain = () => {
@@ -98,8 +95,9 @@ describe('SkillToolIPC', () => {
   let mockIpcMain;
   let mockSkillMgr;
   let mockToolMgr;
+  let registerSkillToolIPC;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
     mockIpcMain = createMockIpcMain();
@@ -109,18 +107,39 @@ describe('SkillToolIPC', () => {
     // Reset global objects
     global.skillRecommender = undefined;
     global.configManager = undefined;
+
+    // 动态导入模块
+    const module = await import('../../src/main/skill-tool-system/skill-tool-ipc.js');
+    registerSkillToolIPC = module.registerSkillToolIPC;
+
+    // 注册 Skill Tool IPC 并注入 mock 对象
+    registerSkillToolIPC({
+      ipcMain: mockIpcMain,
+      skillManager: mockSkillMgr,
+      toolManager: mockToolMgr
+    });
   });
 
   describe('registerSkillToolIPC()', () => {
     it('should register all IPC handlers', () => {
-      registerSkillToolIPC(mockIpcMain, mockSkillMgr, mockToolMgr);
+      const testIpcMain = createMockIpcMain();
+      registerSkillToolIPC({
+        ipcMain: testIpcMain,
+        skillManager: mockSkillMgr,
+        toolManager: mockToolMgr
+      });
 
-      expect(mockIpcMain.handle).toHaveBeenCalled();
-      expect(mockIpcMain.handle.mock.calls.length).toBeGreaterThan(30);
+      expect(testIpcMain.handle).toHaveBeenCalled();
+      expect(testIpcMain.handle.mock.calls.length).toBeGreaterThan(30);
     });
 
     it('should register skill handlers', () => {
-      registerSkillToolIPC(mockIpcMain, mockSkillMgr, mockToolMgr);
+      const testIpcMain = createMockIpcMain();
+      registerSkillToolIPC({
+        ipcMain: testIpcMain,
+        skillManager: mockSkillMgr,
+        toolManager: mockToolMgr
+      });
 
       const skillHandlers = [
         'skill:get-all',
@@ -143,7 +162,12 @@ describe('SkillToolIPC', () => {
     });
 
     it('should register tool handlers', () => {
-      registerSkillToolIPC(mockIpcMain, mockSkillMgr, mockToolMgr);
+      const testIpcMain = createMockIpcMain();
+      registerSkillToolIPC({
+        ipcMain: testIpcMain,
+        skillManager: mockSkillMgr,
+        toolManager: mockToolMgr
+      });
 
       const toolHandlers = [
         'tool:get-all',
@@ -161,12 +185,17 @@ describe('SkillToolIPC', () => {
       ];
 
       toolHandlers.forEach(channel => {
-        expect(mockIpcMain.getHandler(channel)).toBeDefined();
+        expect(testIpcMain.getHandler(channel)).toBeDefined();
       });
     });
 
     it('should register analytics handlers', () => {
-      registerSkillToolIPC(mockIpcMain, mockSkillMgr, mockToolMgr);
+      const testIpcMain = createMockIpcMain();
+      registerSkillToolIPC({
+        ipcMain: testIpcMain,
+        skillManager: mockSkillMgr,
+        toolManager: mockToolMgr
+      });
 
       const analyticsHandlers = [
         'skill-tool:get-dependency-graph',
@@ -175,15 +204,13 @@ describe('SkillToolIPC', () => {
       ];
 
       analyticsHandlers.forEach(channel => {
-        expect(mockIpcMain.getHandler(channel)).toBeDefined();
+        expect(testIpcMain.getHandler(channel)).toBeDefined();
       });
     });
   });
 
   describe('Skill IPC Handlers', () => {
-    beforeEach(() => {
-      registerSkillToolIPC(mockIpcMain, mockSkillMgr, mockToolMgr);
-    });
+    // beforeEach in parent scope already registered IPC handlers
 
     it('should handle skill:get-all', async () => {
       const result = await mockIpcMain.invoke('skill:get-all');
@@ -250,9 +277,7 @@ describe('SkillToolIPC', () => {
   });
 
   describe('Tool IPC Handlers', () => {
-    beforeEach(() => {
-      registerSkillToolIPC(mockIpcMain, mockSkillMgr, mockToolMgr);
-    });
+    // beforeEach in parent scope already registered IPC handlers
 
     it('should handle tool:get-all', async () => {
       const result = await mockIpcMain.invoke('tool:get-all');
@@ -322,9 +347,7 @@ describe('SkillToolIPC', () => {
   });
 
   describe('Analytics IPC Handlers', () => {
-    beforeEach(() => {
-      registerSkillToolIPC(mockIpcMain, mockSkillMgr, mockToolMgr);
-    });
+    // beforeEach in parent scope already registered IPC handlers
 
     it('should handle skill-tool:get-dependency-graph', async () => {
       const result = await mockIpcMain.invoke('skill-tool:get-dependency-graph');
@@ -389,7 +412,7 @@ describe('SkillToolIPC', () => {
   describe('Recommendation IPC Handlers', () => {
     beforeEach(() => {
       global.skillRecommender = createMockSkillRecommender();
-      registerSkillToolIPC(mockIpcMain, mockSkillMgr, mockToolMgr);
+      // beforeEach in parent scope already registered IPC handlers
     });
 
     it('should handle skill:recommend', async () => {
@@ -437,7 +460,7 @@ describe('SkillToolIPC', () => {
   describe('Config IPC Handlers', () => {
     beforeEach(() => {
       global.configManager = createMockConfigManager();
-      registerSkillToolIPC(mockIpcMain, mockSkillMgr, mockToolMgr);
+      // beforeEach in parent scope already registered IPC handlers
     });
 
     it('should handle config:export-skills', async () => {
@@ -500,9 +523,7 @@ describe('SkillToolIPC', () => {
   });
 
   describe('Error Handling', () => {
-    beforeEach(() => {
-      registerSkillToolIPC(mockIpcMain, mockSkillMgr, mockToolMgr);
-    });
+    // beforeEach in parent scope already registered IPC handlers
 
     it('should handle async errors in skill handlers', async () => {
       mockSkillMgr.getAllSkills.mockRejectedValueOnce(new Error('Database error'));

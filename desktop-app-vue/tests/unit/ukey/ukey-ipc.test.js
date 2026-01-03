@@ -2,23 +2,67 @@
  * U-Key IPC 单元测试
  * 测试9个 U-Key 相关 API 方法及备用认证
  *
- * 注意：CommonJS模块的mock限制说明
- * =============================
- * 本测试采用"结构验证"策略，直接定义并验证IPC handler的预期结构，
- * 而不是试图导入CommonJS源文件（会遭遇模块加载时序问题）。
- *
- * 这种方法的优势：
- * 1. 避免了ESM与CommonJS混用的时序问题
- * 2. 专注于验证handler注册结构是否完整
- * 3. 易于维护和理解
- * 4. 作为集成测试的补充，用于验证IPC契约
- *
- * 这种方法只测试 handler 注册的结构和签名，不测试 handler 的执行逻辑。
+ * 使用依赖注入模式测试 IPC handlers
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe('U-Key IPC 处理器', () => {
+  let handlers = {};
+  let mockUkeyManager;
+  let mockIpcMain;
+  let registerUKeyIPC;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    handlers = {};
+
+    // 创建 mock ipcMain
+    mockIpcMain = {
+      handle: (channel, handler) => {
+        handlers[channel] = handler;
+      },
+    };
+
+    // Mock ukey manager
+    mockUkeyManager = {
+      detect: vi.fn().mockResolvedValue({
+        detected: false,
+        unlocked: false,
+      }),
+      verifyPIN: vi.fn().mockResolvedValue({
+        success: false,
+      }),
+      getDeviceInfo: vi.fn().mockResolvedValue({
+        serialNumber: 'TEST-123456',
+        model: 'SIMKey-Test',
+      }),
+      sign: vi.fn().mockResolvedValue({
+        signature: 'test-signature',
+      }),
+      encrypt: vi.fn().mockResolvedValue({
+        encrypted: 'test-encrypted-data',
+      }),
+      decrypt: vi.fn().mockResolvedValue({
+        decrypted: 'test-decrypted-data',
+      }),
+      lock: vi.fn(),
+      getPublicKey: vi.fn().mockResolvedValue({
+        publicKey: 'test-public-key',
+      }),
+    };
+
+    // 动态导入
+    const module = await import('../../../src/main/ukey/ukey-ipc.js');
+    registerUKeyIPC = module.registerUKeyIPC;
+
+    // 注册 U-Key IPC 并注入 mock 对象
+    registerUKeyIPC({
+      ukeyManager: mockUkeyManager,
+      ipcMain: mockIpcMain
+    });
+  });
+
   // =====================================================================
   // 定义所有预期的IPC handlers
   // =====================================================================
@@ -82,8 +126,8 @@ describe('U-Key IPC 处理器', () => {
   // =====================================================================
 
   describe('基本功能测试', () => {
-    it('should define exactly 9 U-Key IPC handlers', () => {
-      expect(Object.keys(expectedHandlers).length).toBe(9);
+    it('should register exactly 9 U-Key IPC handlers', () => {
+      expect(Object.keys(handlers).length).toBe(9);
     });
 
     it('should include all required handler channels', () => {
@@ -100,16 +144,14 @@ describe('U-Key IPC 处理器', () => {
       ];
 
       requiredChannels.forEach((channel) => {
-        expect(expectedHandlers[channel]).toBeDefined();
-        expect(expectedHandlers[channel]).toHaveProperty('category');
-        expect(expectedHandlers[channel]).toHaveProperty('params');
-        expect(expectedHandlers[channel]).toHaveProperty('async');
+        expect(handlers[channel]).toBeDefined();
+        expect(typeof handlers[channel]).toBe('function');
       });
     });
 
-    it('all handlers should be configured as async', () => {
-      Object.values(expectedHandlers).forEach((handler) => {
-        expect(handler.async).toBe(true);
+    it('all handlers should be registered as functions', () => {
+      Object.values(handlers).forEach((handler) => {
+        expect(typeof handler).toBe('function');
       });
     });
   });
@@ -119,20 +161,30 @@ describe('U-Key IPC 处理器', () => {
   // =====================================================================
 
   describe('设备检测功能 (ukey:detect)', () => {
-    it('should be defined', () => {
-      expect(expectedHandlers['ukey:detect']).toBeDefined();
+    it('should register ukey:detect handler', () => {
+      expect(handlers['ukey:detect']).toBeDefined();
+      expect(typeof handlers['ukey:detect']).toBe('function');
     });
 
-    it('should be categorized as 设备检测', () => {
-      expect(expectedHandlers['ukey:detect'].category).toBe('设备检测');
+    it('should call ukeyManager.detect()', async () => {
+      const handler = handlers['ukey:detect'];
+      await handler({});
+      expect(mockUkeyManager.detect).toHaveBeenCalled();
     });
 
-    it('should be async', () => {
-      expect(expectedHandlers['ukey:detect'].async).toBe(true);
+    it('should return detection result', async () => {
+      const handler = handlers['ukey:detect'];
+      const result = await handler({});
+      expect(result).toHaveProperty('detected');
+      expect(result).toHaveProperty('unlocked');
     });
 
-    it('should not require extra parameters', () => {
-      expect(expectedHandlers['ukey:detect'].params).toBe(0);
+    it('should handle detect errors gracefully', async () => {
+      mockUkeyManager.detect.mockRejectedValueOnce(new Error('Detection failed'));
+      const handler = handlers['ukey:detect'];
+      const result = await handler({});
+      expect(result).toHaveProperty('detected', false);
+      expect(result).toHaveProperty('error');
     });
   });
 
@@ -141,20 +193,30 @@ describe('U-Key IPC 处理器', () => {
   // =====================================================================
 
   describe('PIN管理功能 (ukey:verify-pin)', () => {
-    it('should be defined', () => {
-      expect(expectedHandlers['ukey:verify-pin']).toBeDefined();
+    it('should register ukey:verify-pin handler', () => {
+      expect(handlers['ukey:verify-pin']).toBeDefined();
+      expect(typeof handlers['ukey:verify-pin']).toBe('function');
     });
 
-    it('should be categorized as PIN管理', () => {
-      expect(expectedHandlers['ukey:verify-pin'].category).toBe('PIN管理');
+    it('should call ukeyManager.verifyPIN()', async () => {
+      const handler = handlers['ukey:verify-pin'];
+      await handler({}, '123456');
+      expect(mockUkeyManager.verifyPIN).toHaveBeenCalledWith('123456');
     });
 
-    it('should be async', () => {
-      expect(expectedHandlers['ukey:verify-pin'].async).toBe(true);
+    it('should return verification result', async () => {
+      mockUkeyManager.verifyPIN.mockResolvedValueOnce({ success: true });
+      const handler = handlers['ukey:verify-pin'];
+      const result = await handler({}, '123456');
+      expect(result).toHaveProperty('success');
     });
 
-    it('should accept pin parameter', () => {
-      expect(expectedHandlers['ukey:verify-pin'].params).toBe(2);
+    it('should handle PIN verification errors', async () => {
+      mockUkeyManager.verifyPIN.mockRejectedValueOnce(new Error('PIN error'));
+      const handler = handlers['ukey:verify-pin'];
+      const result = await handler({}, 'invalid');
+      expect(result).toHaveProperty('success', false);
+      expect(result).toHaveProperty('error');
     });
   });
 
@@ -163,20 +225,37 @@ describe('U-Key IPC 处理器', () => {
   // =====================================================================
 
   describe('设备信息获取 (ukey:get-device-info)', () => {
-    it('should be defined', () => {
-      expect(expectedHandlers['ukey:get-device-info']).toBeDefined();
+    it('should register ukey:get-device-info handler', () => {
+      expect(handlers['ukey:get-device-info']).toBeDefined();
+      expect(typeof handlers['ukey:get-device-info']).toBe('function');
     });
 
-    it('should be categorized as 信息获取', () => {
-      expect(expectedHandlers['ukey:get-device-info'].category).toBe('信息获取');
+    it('should call ukeyManager.getDeviceInfo()', async () => {
+      const handler = handlers['ukey:get-device-info'];
+      await handler({});
+      expect(mockUkeyManager.getDeviceInfo).toHaveBeenCalled();
     });
 
-    it('should be async', () => {
-      expect(expectedHandlers['ukey:get-device-info'].async).toBe(true);
+    it('should return device information', async () => {
+      const handler = handlers['ukey:get-device-info'];
+      const result = await handler({});
+      expect(result).toHaveProperty('serialNumber');
+      expect(result).toHaveProperty('model');
     });
 
-    it('should not require extra parameters', () => {
-      expect(expectedHandlers['ukey:get-device-info'].params).toBe(0);
+    it('should throw error when manager not initialized', async () => {
+      const handlers2 = {};
+      const mockIpcMain2 = {
+        handle: (channel, handler) => {
+          handlers2[channel] = handler;
+        },
+      };
+      registerUKeyIPC({
+        ukeyManager: null,
+        ipcMain: mockIpcMain2
+      });
+      const handler = handlers2['ukey:get-device-info'];
+      await expect(handler({})).rejects.toThrow();
     });
   });
 
@@ -186,56 +265,59 @@ describe('U-Key IPC 处理器', () => {
 
   describe('加密操作功能', () => {
     describe('数字签名 (ukey:sign)', () => {
-      it('should be defined', () => {
-        expect(expectedHandlers['ukey:sign']).toBeDefined();
+      it('should register ukey:sign handler', () => {
+        expect(handlers['ukey:sign']).toBeDefined();
+        expect(typeof handlers['ukey:sign']).toBe('function');
       });
 
-      it('should be categorized as 加密操作', () => {
-        expect(expectedHandlers['ukey:sign'].category).toBe('加密操作');
+      it('should call ukeyManager.sign()', async () => {
+        const handler = handlers['ukey:sign'];
+        await handler({}, 'data-to-sign');
+        expect(mockUkeyManager.sign).toHaveBeenCalledWith('data-to-sign');
       });
 
-      it('should be async', () => {
-        expect(expectedHandlers['ukey:sign'].async).toBe(true);
-      });
-
-      it('should accept data parameter', () => {
-        expect(expectedHandlers['ukey:sign'].params).toBe(2);
+      it('should return signature', async () => {
+        const handler = handlers['ukey:sign'];
+        const result = await handler({}, 'data');
+        expect(result).toHaveProperty('signature');
       });
     });
 
     describe('数据加密 (ukey:encrypt)', () => {
-      it('should be defined', () => {
-        expect(expectedHandlers['ukey:encrypt']).toBeDefined();
+      it('should register ukey:encrypt handler', () => {
+        expect(handlers['ukey:encrypt']).toBeDefined();
+        expect(typeof handlers['ukey:encrypt']).toBe('function');
       });
 
-      it('should be categorized as 加密操作', () => {
-        expect(expectedHandlers['ukey:encrypt'].category).toBe('加密操作');
+      it('should call ukeyManager.encrypt()', async () => {
+        const handler = handlers['ukey:encrypt'];
+        await handler({}, 'data-to-encrypt');
+        expect(mockUkeyManager.encrypt).toHaveBeenCalledWith('data-to-encrypt');
       });
 
-      it('should be async', () => {
-        expect(expectedHandlers['ukey:encrypt'].async).toBe(true);
-      });
-
-      it('should accept data parameter', () => {
-        expect(expectedHandlers['ukey:encrypt'].params).toBe(2);
+      it('should return encrypted data', async () => {
+        const handler = handlers['ukey:encrypt'];
+        const result = await handler({}, 'data');
+        expect(result).toHaveProperty('encrypted');
       });
     });
 
     describe('数据解密 (ukey:decrypt)', () => {
-      it('should be defined', () => {
-        expect(expectedHandlers['ukey:decrypt']).toBeDefined();
+      it('should register ukey:decrypt handler', () => {
+        expect(handlers['ukey:decrypt']).toBeDefined();
+        expect(typeof handlers['ukey:decrypt']).toBe('function');
       });
 
-      it('should be categorized as 加密操作', () => {
-        expect(expectedHandlers['ukey:decrypt'].category).toBe('加密操作');
+      it('should call ukeyManager.decrypt()', async () => {
+        const handler = handlers['ukey:decrypt'];
+        await handler({}, 'encrypted-data');
+        expect(mockUkeyManager.decrypt).toHaveBeenCalledWith('encrypted-data');
       });
 
-      it('should be async', () => {
-        expect(expectedHandlers['ukey:decrypt'].async).toBe(true);
-      });
-
-      it('should accept encryptedData parameter', () => {
-        expect(expectedHandlers['ukey:decrypt'].params).toBe(2);
+      it('should return decrypted data', async () => {
+        const handler = handlers['ukey:decrypt'];
+        const result = await handler({}, 'encrypted');
+        expect(result).toHaveProperty('decrypted');
       });
     });
   });
@@ -246,38 +328,40 @@ describe('U-Key IPC 处理器', () => {
 
   describe('U-Key 锁定和公钥获取', () => {
     describe('U-Key 锁定 (ukey:lock)', () => {
-      it('should be defined', () => {
-        expect(expectedHandlers['ukey:lock']).toBeDefined();
+      it('should register ukey:lock handler', () => {
+        expect(handlers['ukey:lock']).toBeDefined();
+        expect(typeof handlers['ukey:lock']).toBe('function');
       });
 
-      it('should be categorized as 锁定操作', () => {
-        expect(expectedHandlers['ukey:lock'].category).toBe('锁定操作');
+      it('should call ukeyManager.lock()', async () => {
+        const handler = handlers['ukey:lock'];
+        await handler({});
+        expect(mockUkeyManager.lock).toHaveBeenCalled();
       });
 
-      it('should be async', () => {
-        expect(expectedHandlers['ukey:lock'].async).toBe(true);
-      });
-
-      it('should not require extra parameters', () => {
-        expect(expectedHandlers['ukey:lock'].params).toBe(0);
+      it('should return success', async () => {
+        const handler = handlers['ukey:lock'];
+        const result = await handler({});
+        expect(result).toBe(true);
       });
     });
 
     describe('获取公钥 (ukey:get-public-key)', () => {
-      it('should be defined', () => {
-        expect(expectedHandlers['ukey:get-public-key']).toBeDefined();
+      it('should register ukey:get-public-key handler', () => {
+        expect(handlers['ukey:get-public-key']).toBeDefined();
+        expect(typeof handlers['ukey:get-public-key']).toBe('function');
       });
 
-      it('should be categorized as 信息获取', () => {
-        expect(expectedHandlers['ukey:get-public-key'].category).toBe('信息获取');
+      it('should call ukeyManager.getPublicKey()', async () => {
+        const handler = handlers['ukey:get-public-key'];
+        await handler({});
+        expect(mockUkeyManager.getPublicKey).toHaveBeenCalled();
       });
 
-      it('should be async', () => {
-        expect(expectedHandlers['ukey:get-public-key'].async).toBe(true);
-      });
-
-      it('should not require extra parameters', () => {
-        expect(expectedHandlers['ukey:get-public-key'].params).toBe(0);
+      it('should return public key', async () => {
+        const handler = handlers['ukey:get-public-key'];
+        const result = await handler({});
+        expect(result).toHaveProperty('publicKey');
       });
     });
   });
@@ -287,116 +371,30 @@ describe('U-Key IPC 处理器', () => {
   // =====================================================================
 
   describe('备用认证功能 (auth:verify-password)', () => {
-    it('should be defined', () => {
-      expect(expectedHandlers['auth:verify-password']).toBeDefined();
+    it('should register auth:verify-password handler', () => {
+      expect(handlers['auth:verify-password']).toBeDefined();
+      expect(typeof handlers['auth:verify-password']).toBe('function');
     });
 
-    it('should be categorized as 认证', () => {
-      expect(expectedHandlers['auth:verify-password'].category).toBe('认证');
+    it('should verify correct credentials', async () => {
+      const handler = handlers['auth:verify-password'];
+      const result = await handler({}, 'admin', '123456');
+      expect(result).toHaveProperty('success');
     });
 
-    it('should be async', () => {
-      expect(expectedHandlers['auth:verify-password'].async).toBe(true);
+    it('should reject incorrect credentials', async () => {
+      const handler = handlers['auth:verify-password'];
+      const result = await handler({}, 'admin', 'wrongpass');
+      expect(result.success).toBe(false);
     });
 
-    it('should accept username and password parameters', () => {
-      expect(expectedHandlers['auth:verify-password'].params).toBe(3);
-    });
-  });
-
-  // =====================================================================
-  // 按功能域分组验证
-  // =====================================================================
-
-  describe('按功能域分组验证', () => {
-    describe('设备检测类 (1个)', () => {
-      it('should have ukey:detect handler', () => {
-        expect(expectedHandlers['ukey:detect']).toBeDefined();
-      });
-
-      it('should have exactly 1 device detection handler', () => {
-        const count = Object.values(expectedHandlers).filter(
-          (h) => h.category === '设备检测'
-        ).length;
-        expect(count).toBe(1);
-      });
-    });
-
-    describe('PIN管理类 (1个)', () => {
-      it('should have ukey:verify-pin handler', () => {
-        expect(expectedHandlers['ukey:verify-pin']).toBeDefined();
-      });
-
-      it('should have exactly 1 PIN management handler', () => {
-        const count = Object.values(expectedHandlers).filter(
-          (h) => h.category === 'PIN管理'
-        ).length;
-        expect(count).toBe(1);
-      });
-    });
-
-    describe('信息获取类 (2个)', () => {
-      it('should have ukey:get-device-info handler', () => {
-        expect(expectedHandlers['ukey:get-device-info']).toBeDefined();
-      });
-
-      it('should have ukey:get-public-key handler', () => {
-        expect(expectedHandlers['ukey:get-public-key']).toBeDefined();
-      });
-
-      it('should have exactly 2 info retrieval handlers', () => {
-        const count = Object.values(expectedHandlers).filter(
-          (h) => h.category === '信息获取'
-        ).length;
-        expect(count).toBe(2);
-      });
-    });
-
-    describe('加密操作类 (3个)', () => {
-      it('should have ukey:sign handler', () => {
-        expect(expectedHandlers['ukey:sign']).toBeDefined();
-      });
-
-      it('should have ukey:encrypt handler', () => {
-        expect(expectedHandlers['ukey:encrypt']).toBeDefined();
-      });
-
-      it('should have ukey:decrypt handler', () => {
-        expect(expectedHandlers['ukey:decrypt']).toBeDefined();
-      });
-
-      it('should have exactly 3 crypto operation handlers', () => {
-        const count = Object.values(expectedHandlers).filter(
-          (h) => h.category === '加密操作'
-        ).length;
-        expect(count).toBe(3);
-      });
-    });
-
-    describe('锁定操作类 (1个)', () => {
-      it('should have ukey:lock handler', () => {
-        expect(expectedHandlers['ukey:lock']).toBeDefined();
-      });
-
-      it('should have exactly 1 lock handler', () => {
-        const count = Object.values(expectedHandlers).filter(
-          (h) => h.category === '锁定操作'
-        ).length;
-        expect(count).toBe(1);
-      });
-    });
-
-    describe('认证类 (1个)', () => {
-      it('should have auth:verify-password handler', () => {
-        expect(expectedHandlers['auth:verify-password']).toBeDefined();
-      });
-
-      it('should have exactly 1 authentication handler', () => {
-        const count = Object.values(expectedHandlers).filter(
-          (h) => h.category === '认证'
-        ).length;
-        expect(count).toBe(1);
-      });
+    it('should return user info on success', async () => {
+      const handler = handlers['auth:verify-password'];
+      const result = await handler({}, 'admin', '123456');
+      if (result.success) {
+        expect(result).toHaveProperty('userId');
+        expect(result).toHaveProperty('username');
+      }
     });
   });
 
@@ -405,44 +403,40 @@ describe('U-Key IPC 处理器', () => {
   // =====================================================================
 
   describe('总体验证', () => {
-    it('should have exactly 9 handlers in total', () => {
-      expect(Object.keys(expectedHandlers).length).toBe(9);
+    it('should register all 9 U-Key IPC handlers', () => {
+      expect(Object.keys(handlers).length).toBe(9);
     });
 
-    it('should have handlers covering all categories', () => {
-      const categories = new Set(
-        Object.values(expectedHandlers).map((h) => h.category)
-      );
-      expect(categories.size).toBeGreaterThan(1);
-      expect(categories).toContain('设备检测');
-      expect(categories).toContain('PIN管理');
-      expect(categories).toContain('信息获取');
-      expect(categories).toContain('加密操作');
-      expect(categories).toContain('锁定操作');
-      expect(categories).toContain('认证');
+    it('should have all required handler channels', () => {
+      expect(handlers['ukey:detect']).toBeDefined();
+      expect(handlers['ukey:verify-pin']).toBeDefined();
+      expect(handlers['ukey:get-device-info']).toBeDefined();
+      expect(handlers['ukey:sign']).toBeDefined();
+      expect(handlers['ukey:encrypt']).toBeDefined();
+      expect(handlers['ukey:decrypt']).toBeDefined();
+      expect(handlers['ukey:lock']).toBeDefined();
+      expect(handlers['ukey:get-public-key']).toBeDefined();
+      expect(handlers['auth:verify-password']).toBeDefined();
     });
 
-    it('all handlers should be async', () => {
-      Object.values(expectedHandlers).forEach((handler) => {
-        expect(handler.async).toBe(true);
+    it('all handlers should be callable functions', () => {
+      Object.values(handlers).forEach((handler) => {
+        expect(typeof handler).toBe('function');
       });
     });
 
-    it('handlers should have proper parameter counts', () => {
-      // No parameters: detect, lock, get-device-info, get-public-key
-      expect(expectedHandlers['ukey:detect'].params).toBe(0);
-      expect(expectedHandlers['ukey:lock'].params).toBe(0);
-      expect(expectedHandlers['ukey:get-device-info'].params).toBe(0);
-      expect(expectedHandlers['ukey:get-public-key'].params).toBe(0);
-
-      // One parameter: verify-pin, sign, encrypt, decrypt
-      expect(expectedHandlers['ukey:verify-pin'].params).toBe(2);
-      expect(expectedHandlers['ukey:sign'].params).toBe(2);
-      expect(expectedHandlers['ukey:encrypt'].params).toBe(2);
-      expect(expectedHandlers['ukey:decrypt'].params).toBe(2);
-
-      // Two parameters: verify-password
-      expect(expectedHandlers['auth:verify-password'].params).toBe(3);
+    it('handlers should support dependency injection', () => {
+      const handlers2 = {};
+      const mockIpcMain2 = {
+        handle: (channel, handler) => {
+          handlers2[channel] = handler;
+        },
+      };
+      registerUKeyIPC({
+        ukeyManager: mockUkeyManager,
+        ipcMain: mockIpcMain2
+      });
+      expect(Object.keys(handlers2).length).toBe(9);
     });
   });
 });
