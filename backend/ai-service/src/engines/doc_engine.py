@@ -4,6 +4,7 @@ Document Engine - 文档生成引擎
 """
 import os
 import json
+import logging
 from typing import Dict, Any, Optional, List
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
@@ -19,6 +20,9 @@ import io
 import ollama
 from openai import AsyncOpenAI
 from src.llm.llm_client import get_llm_client
+
+# 配置日志
+logger = logging.getLogger(__name__)
 
 
 class DocumentEngine:
@@ -43,7 +47,7 @@ class DocumentEngine:
             try:
                 self.llm_client = get_llm_client()
             except Exception as e:
-                print(f"LLM client initialization error: {e}")
+                logger.error(f"[DocumentEngine] LLM client initialization error: {e}")
                 self._ready = False
 
     def is_ready(self) -> bool:
@@ -83,7 +87,7 @@ class DocumentEngine:
             doc_type = entities.get("doc_type", "report")
             output_format = entities.get("format", "word")  # word, pdf, ppt, both
 
-            print(f"[DocumentEngine] 生成文档: doc_type={doc_type}, format={output_format}")
+            logger.info(f"[DocumentEngine] 生成文档: doc_type={doc_type}, format={output_format}")
 
             # 生成文档大纲
             outline = await self._generate_outline(prompt, doc_type, entities)
@@ -130,53 +134,13 @@ class DocumentEngine:
             }
 
         except Exception as e:
-            print(f"Document generation error: {e}")
+            logger.error(f"[DocumentEngine] Document generation error: {e}", exc_info=True)
             raise
 
     def _get_quick_outline_template(self, doc_type: str, prompt: str) -> Optional[Dict[str, Any]]:
-        """快速模板：对于常见文档类型，直接返回预定义大纲，跳过LLM调用"""
-
-        templates = {
-            "report": {
-                "title": "工作报告",
-                "subtitle": "定期工作总结",
-                "author": "AI助手",
-                "date": "2024-12-24",
-                "sections": [
-                    {
-                        "title": "一、工作概述",
-                        "subsections": ["1.1 本期工作重点", "1.2 完成情况"]
-                    },
-                    {
-                        "title": "二、详细内容",
-                        "subsections": ["2.1 主要成果", "2.2 遇到的问题", "2.3 解决方案"]
-                    },
-                    {
-                        "title": "三、下期计划",
-                        "subsections": ["3.1 工作目标", "3.2 具体安排"]
-                    }
-                ],
-                "include_toc": True,
-                "include_charts": False
-            },
-            "resume": {
-                "title": "个人简历",
-                "subtitle": "",
-                "author": "求职者",
-                "date": "2024-12-24",
-                "sections": [
-                    {"title": "基本信息", "subsections": []},
-                    {"title": "教育背景", "subsections": []},
-                    {"title": "工作经历", "subsections": []},
-                    {"title": "项目经验", "subsections": []},
-                    {"title": "专业技能", "subsections": []}
-                ],
-                "include_toc": False,
-                "include_charts": False
-            }
-        }
-
-        return templates.get(doc_type)
+        """快速模板：已禁用，始终使用LLM根据用户需求生成，避免返回固定的工作报告"""
+        # 移除硬编码模板，让LLM根据用户实际需求生成内容
+        return None
 
     async def _generate_outline(
         self,
@@ -186,10 +150,10 @@ class DocumentEngine:
     ) -> Dict[str, Any]:
         """生成文档大纲"""
 
-        # 优先使用快速模板
+        # 优先使用快速模板（已禁用）
         quick_template = self._get_quick_outline_template(doc_type, prompt)
         if quick_template:
-            print(f"Using quick template for doc_type: {doc_type}")
+            logger.debug(f"[DocumentEngine] Using quick template for doc_type: {doc_type}")
             return quick_template
 
         outline_prompt = f"""根据用户需求生成文档大纲。
@@ -258,10 +222,16 @@ class DocumentEngine:
             return outline
 
         except Exception as e:
-            print(f"Outline generation error: {e}")
-            # 返回默认大纲
+            logger.warning(f"[DocumentEngine] Outline generation error: {e}")
+            # 返回基于用户需求的默认大纲，而不是固定的"工作报告"
+            # 尝试从prompt中提取标题，如果失败则使用通用标题
+            import re
+            title_match = re.search(r'(生成|创建|写)一?个?(.+?)(?:的|，|。|$)', prompt)
+            doc_title = title_match.group(2) if title_match else f"{doc_type}文档"
+            logger.info(f"[DocumentEngine] 使用fallback大纲，提取的标题: {doc_title}")
+
             return {
-                "title": "工作报告",
+                "title": doc_title,
                 "subtitle": "",
                 "author": "AI助手",
                 "date": "2024-01-01",
@@ -357,7 +327,7 @@ class DocumentEngine:
                 })
 
             except Exception as e:
-                print(f"Content generation error for section '{section_title}': {e}")
+                logger.warning(f"[DocumentEngine] Content generation error for section '{section_title}': {e}")
                 sections_content.append({
                     "title": section_title,
                     "content": f"这是{section_title}的内容。",
@@ -496,7 +466,7 @@ class DocumentEngine:
             from pptx.enum.text import PP_ALIGN
             from pptx.dml.color import RGBColor
         except ImportError:
-            print("[DocumentEngine] python-pptx未安装，使用Word格式替代")
+            logger.warning("[DocumentEngine] python-pptx未安装，使用Word格式替代")
             return self._create_word_document(outline, sections)
 
         prs = Presentation()
