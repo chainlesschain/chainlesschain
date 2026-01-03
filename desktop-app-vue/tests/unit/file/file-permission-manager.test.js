@@ -3,20 +3,22 @@
  * 测试文件所有者权限自动判断逻辑
  */
 
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 const FilePermissionManager = require('../../../src/main/file/file-permission-manager');
 
 // Mock 数据库
 const createMockDb = () => ({
-  prepare: jest.fn((sql) => ({
-    get: vitest.fn(),
-    all: vitest.fn(),
-    run: vitest.fn(),
+  prepare: vi.fn((sql) => ({
+    get: vi.fn(),
+    all: vi.fn(),
+    run: vi.fn(),
   })),
 });
 
 // Mock 组织管理器
 const createMockOrgManager = () => ({
-  checkPermission: vitest.fn(),
+  checkPermission: vi.fn(),
 });
 
 describe('FilePermissionManager - checkPermission', () => {
@@ -31,7 +33,7 @@ describe('FilePermissionManager - checkPermission', () => {
   });
 
   afterEach(() => {
-    vitest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('文件所有者权限判断', () => {
@@ -56,12 +58,12 @@ describe('FilePermissionManager - checkPermission', () => {
       // 设置 mock 返回值
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM projects WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockProject) };
+          return { get: vi.fn().mockReturnValue(mockProject) };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       const hasPermission = await filePermissionManager.checkPermission(
@@ -93,15 +95,15 @@ describe('FilePermissionManager - checkPermission', () => {
       // 设置 mock
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM projects WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockProject) };
+          return { get: vi.fn().mockReturnValue(mockProject) };
         }
         if (sql.includes('FROM file_permissions')) {
-          return { get: vitest.fn().mockReturnValue(null), all: vitest.fn().mockReturnValue([]) };
+          return { get: vi.fn().mockReturnValue(null), all: vi.fn().mockReturnValue([]) };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       const hasPermission = await filePermissionManager.checkPermission(
@@ -125,12 +127,12 @@ describe('FilePermissionManager - checkPermission', () => {
 
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM file_permissions')) {
-          return { get: vitest.fn().mockReturnValue(null), all: vitest.fn().mockReturnValue([]) };
+          return { get: vi.fn().mockReturnValue(null), all: vi.fn().mockReturnValue([]) };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       const hasPermission = await filePermissionManager.checkPermission(
@@ -167,15 +169,15 @@ describe('FilePermissionManager - checkPermission', () => {
 
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM projects WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockProject) };
+          return { get: vi.fn().mockReturnValue(mockProject) };
         }
         if (sql.includes('FROM file_permissions')) {
-          return { get: vitest.fn().mockReturnValue(mockPermission), all: vitest.fn() };
+          return { get: vi.fn().mockReturnValue(mockPermission), all: vi.fn() };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       const hasPermission = await filePermissionManager.checkPermission(
@@ -210,15 +212,15 @@ describe('FilePermissionManager - checkPermission', () => {
 
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM projects WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockProject) };
+          return { get: vi.fn().mockReturnValue(mockProject) };
         }
         if (sql.includes('FROM file_permissions')) {
-          return { get: vitest.fn().mockReturnValue(mockPermission) };
+          return { get: vi.fn().mockReturnValue(mockPermission) };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       // edit 权限应该包含 view
@@ -254,15 +256,15 @@ describe('FilePermissionManager - checkPermission', () => {
 
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM projects WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockProject) };
+          return { get: vi.fn().mockReturnValue(mockProject) };
         }
         if (sql.includes('FROM file_permissions')) {
-          return { get: vitest.fn().mockReturnValue(mockPermission) };
+          return { get: vi.fn().mockReturnValue(mockPermission) };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       // view 权限不应该包含 edit
@@ -296,15 +298,15 @@ describe('FilePermissionManager - checkPermission', () => {
 
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM file_permissions') && sql.includes('JOIN organization_members')) {
-          return { all: vitest.fn().mockReturnValue(mockRolePermissions) };
+          return { all: vi.fn().mockReturnValue(mockRolePermissions) };
         }
         if (sql.includes('FROM file_permissions')) {
-          return { get: vitest.fn().mockReturnValue(null) };
+          return { get: vi.fn().mockReturnValue(null) };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       mockOrgManager.checkPermission.mockResolvedValue(false);
@@ -333,12 +335,12 @@ describe('FilePermissionManager - checkPermission', () => {
 
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM file_permissions')) {
-          return { get: vitest.fn().mockReturnValue(null), all: vitest.fn().mockReturnValue([]) };
+          return { get: vi.fn().mockReturnValue(null), all: vi.fn().mockReturnValue([]) };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       // Mock 组织权限检查返回 true
@@ -370,12 +372,12 @@ describe('FilePermissionManager - checkPermission', () => {
 
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM file_permissions')) {
-          return { get: vitest.fn().mockReturnValue(null) };
+          return { get: vi.fn().mockReturnValue(null) };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       const hasPermission = await filePermissionManager.checkPermission(
@@ -396,9 +398,9 @@ describe('FilePermissionManager - checkPermission', () => {
 
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(null) }; // 文件不存在
+          return { get: vi.fn().mockReturnValue(null) }; // 文件不存在
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       const hasPermission = await filePermissionManager.checkPermission(
@@ -428,15 +430,15 @@ describe('FilePermissionManager - checkPermission', () => {
 
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM projects WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(null) }; // 项目不存在
+          return { get: vi.fn().mockReturnValue(null) }; // 项目不存在
         }
         if (sql.includes('FROM file_permissions')) {
-          return { get: vitest.fn().mockReturnValue(mockPermission) };
+          return { get: vi.fn().mockReturnValue(mockPermission) };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       const hasPermission = await filePermissionManager.checkPermission(
@@ -469,12 +471,12 @@ describe('FilePermissionManager - checkPermission', () => {
 
       mockDb.prepare.mockImplementation((sql) => {
         if (sql.includes('FROM project_files WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockFile) };
+          return { get: vi.fn().mockReturnValue(mockFile) };
         }
         if (sql.includes('FROM projects WHERE id')) {
-          return { get: vitest.fn().mockReturnValue(mockProject) };
+          return { get: vi.fn().mockReturnValue(mockProject) };
         }
-        return { get: vitest.fn(), all: vitest.fn() };
+        return { get: vi.fn(), all: vi.fn() };
       });
 
       const hasPermission = await filePermissionManager.checkPermission(

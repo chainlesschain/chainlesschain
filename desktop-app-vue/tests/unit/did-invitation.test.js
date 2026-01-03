@@ -2,13 +2,13 @@
  * DID邀请机制单元测试
  */
 
-const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 const path = require('path');
 const fs = require('fs');
 
 // 模拟依赖
-jest.mock('uuid', () => ({
-  v4: jest.fn(() => 'test-uuid-1234'),
+vi.mock('uuid', () => ({
+  v4: vi.fn(() => 'test-uuid-1234'),
 }));
 
 describe('DID Invitation Mechanism', () => {
@@ -47,8 +47,8 @@ describe('DID Invitation Mechanism', () => {
 
     // 模拟P2P管理器
     p2pManager = {
-      isInitialized: jest.fn(() => true),
-      sendMessage: jest.fn(async () => true),
+      isInitialized: vi.fn(() => true),
+      sendMessage: vi.fn(async () => true),
     };
 
     // 初始化组织管理器
@@ -635,7 +635,7 @@ describe('DID Invitation Mechanism', () => {
 
     it('P2P未初始化时应该仍能创建邀请', async () => {
       // 模拟P2P未初始化
-      p2pManager.isInitialized = jest.fn(() => false);
+      p2pManager.isInitialized = vi.fn(() => false);
 
       const invitation = await orgManager.inviteByDID(orgId, {
         invitedDID: bobDID,
@@ -652,7 +652,7 @@ describe('DID Invitation Mechanism', () => {
 
     it('P2P发送失败时应该不影响邀请创建', async () => {
       // 模拟P2P发送失败
-      p2pManager.sendMessage = jest.fn(() => {
+      p2pManager.sendMessage = vi.fn(() => {
         throw new Error('Network error');
       });
 
