@@ -686,8 +686,30 @@ class SmartContractEngine extends EventEmitter {
         break;
 
       case ContractType.SUBSCRIPTION:
-        // 订阅：处理订阅周期
-        // TODO: 实现订阅逻辑
+        // 订阅：处理订阅周期付费
+        if (contract.escrow_id && terms.providerDid) {
+          // 释放当前周期的订阅费用给服务提供者
+          await this.escrowManager.releaseEscrow(contract.escrow_id, terms.providerDid);
+
+          // 记录订阅支付事件
+          const db = this.database.db;
+          const now = Date.now();
+          const metadata = contract.metadata ? JSON.parse(contract.metadata) : {};
+
+          // 更新订阅元数据（记录已支付周期数）
+          metadata.paidPeriods = (metadata.paidPeriods || 0) + 1;
+          metadata.lastPaymentAt = now;
+
+          // 如果有周期信息，计算下次付款时间
+          if (terms.periodDays) {
+            metadata.nextPaymentAt = now + (terms.periodDays * 24 * 60 * 60 * 1000);
+          }
+
+          db.prepare('UPDATE contracts SET metadata = ? WHERE id = ?')
+            .run(JSON.stringify(metadata), contract.id);
+
+          console.log(`[ContractEngine] 订阅合约已支付第 ${metadata.paidPeriods} 期`);
+        }
         break;
 
       case ContractType.BOUNTY:
@@ -698,8 +720,48 @@ class SmartContractEngine extends EventEmitter {
         break;
 
       case ContractType.SKILL_EXCHANGE:
-        // 技能交换：标记交换完成
-        // TODO: 实现技能交换逻辑
+        // 技能交换：标记双方完成状态
+        const db = this.database.db;
+        const metadata = contract.metadata ? JSON.parse(contract.metadata) : {};
+
+        // 初始化双方完成状态
+        if (!metadata.completionStatus) {
+          metadata.completionStatus = {};
+        }
+
+        // 获取当前执行者的DID
+        const currentDid = this.didManager?.getCurrentIdentity()?.did;
+
+        // 标记当前用户已完成自己的部分
+        if (currentDid) {
+          metadata.completionStatus[currentDid] = {
+            completed: true,
+            completedAt: Date.now()
+          };
+
+          console.log(`[ContractEngine] 技能交换: ${currentDid} 已完成`);
+        }
+
+        // 检查是否双方都已完成
+        const parties = JSON.parse(contract.parties);
+        const allCompleted = parties.every(partyDid =>
+          metadata.completionStatus[partyDid]?.completed
+        );
+
+        if (allCompleted) {
+          metadata.exchangeCompletedAt = Date.now();
+          console.log('[ContractEngine] 技能交换: 双方均已完成');
+        }
+
+        // 更新元数据
+        db.prepare('UPDATE contracts SET metadata = ? WHERE id = ?')
+          .run(JSON.stringify(metadata), contract.id);
+
+        // 如果有托管费用（象征性），释放给双方
+        if (contract.escrow_id && allCompleted) {
+          // 技能交换通常不涉及金钱交易，如果有托管，可以退回或平分
+          await this.escrowManager.refundEscrow(contract.escrow_id, '技能交换完成');
+        }
         break;
 
       default:

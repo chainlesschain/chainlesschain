@@ -138,12 +138,42 @@ class BridgeManager extends EventEmitter {
    * 加载桥接合约地址
    */
   async loadBridgeContracts() {
-    // 从数据库或配置加载已部署的桥接合约地址
-    // 简化版本：使用硬编码的测试合约地址
+    try {
+      // 从 deployed_contracts 表加载桥接合约地址
+      // 查询所有已部署的桥接合约（contract_type 为 'bridge' 或 contract_name 包含 'bridge'）
+      const query = `
+        SELECT contract_address, chain_id, contract_name, abi_json
+        FROM deployed_contracts
+        WHERE contract_type = 'bridge'
+           OR LOWER(contract_name) LIKE '%bridge%'
+        ORDER BY deployed_at DESC
+      `;
 
-    // TODO: 从 deployed_contracts 表加载
-    // 这里先留空，实际部署后再填充
-    console.log('[BridgeManager] 桥接合约地址加载完成');
+      const bridgeContracts = this.database.all(query) || [];
+
+      console.log(`[BridgeManager] 从数据库加载到 ${bridgeContracts.length} 个桥接合约`);
+
+      // 注册每个桥接合约到对应的链
+      for (const contract of bridgeContracts) {
+        this.registerBridgeContract(contract.chain_id, contract.contract_address);
+
+        // 如果有 ABI 信息，更新本地 ABI（优先使用数据库中的 ABI）
+        if (contract.abi_json && !this.bridgeABI) {
+          try {
+            this.bridgeABI = JSON.parse(contract.abi_json);
+            console.log(`[BridgeManager] 从数据库加载桥接合约 ABI: ${contract.contract_name}`);
+          } catch (error) {
+            console.warn(`[BridgeManager] 解析 ABI 失败: ${contract.contract_name}`, error);
+          }
+        }
+      }
+
+      console.log('[BridgeManager] 桥接合约地址加载完成');
+    } catch (error) {
+      console.error('[BridgeManager] 加载桥接合约失败:', error);
+      // 不抛出错误，允许系统在没有预部署合约的情况下运行
+      console.log('[BridgeManager] 将在运行时手动注册桥接合约');
+    }
   }
 
   /**

@@ -110,8 +110,14 @@ class FilePermissionManager {
       return false;
     }
 
-    // 如果是文件所有者（通过项目判断），自动有所有权限
-    // TODO: 实现文件所有者逻辑
+    // 检查是否是文件所有者（通过项目判断）
+    if (file.project_id) {
+      const project = this.db.prepare('SELECT user_id FROM projects WHERE id = ?').get(file.project_id);
+      // 项目所有者拥有该项目下所有文件的所有权限
+      if (project && project.user_id === userDID) {
+        return true;
+      }
+    }
 
     // 检查直接权限
     const directPermission = this.db.prepare(`
