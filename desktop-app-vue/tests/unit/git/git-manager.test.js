@@ -10,9 +10,9 @@ const path = require('path');
 const os = require('os');
 
 // Mock dependencies
-jest.mock('isomorphic-git');
-jest.mock('fs');
-jest.mock('electron', () => ({
+vitest.mock('isomorphic-git');
+vitest.mock('fs');
+vitest.mock('electron', () => ({
   app: {
     getPath: jest.fn(() => '/mock/user/data'),
   },
@@ -24,7 +24,7 @@ describe('GitManager - calculateAheadBehind', () => {
 
   beforeEach(() => {
     // 重置所有 mocks
-    jest.clearAllMocks();
+    vitest.clearAllMocks();
 
     mockRepoPath = path.join(os.tmpdir(), 'test-git-repo');
 
