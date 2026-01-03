@@ -115,11 +115,12 @@ export const useToolStore = defineStore('tool', {
     async fetchAll(options = {}) {
       this.loading = true;
       try {
-        if (!window.electronAPI?.tool) {
-          console.error('[ToolStore] electronAPI.tool 不可用');
+        const toolAPI = window.electronAPI?.tool || window.electron?.api?.tool;
+        if (!toolAPI?.getAll) {
+          console.error('[ToolStore] tool API 不可用 (缺少 getAll)');
           return;
         }
-        const result = await window.electronAPI.tool.getAll(options);
+        const result = await toolAPI.getAll(options);
         if (result.success) {
           const tools = Array.isArray(result.data) ? result.data : (result.tools || result.content || []);
           this.tools = tools.map(tool => ({
@@ -149,11 +150,12 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchById(toolId) {
       try {
-        if (!window.electronAPI?.tool) {
-          console.error('[ToolStore] electronAPI.tool 不可用');
+        const toolAPI = window.electronAPI?.tool || window.electron?.api?.tool;
+        if (!toolAPI?.getById) {
+          console.error('[ToolStore] tool API 不可用 (缺少 getById)');
           return null;
         }
-        const result = await window.electronAPI.tool.getById(toolId);
+        const result = await toolAPI.getById(toolId);
         if (result.success) {
           const data = result.data || result.tool || result.content;
           this.currentTool = data
@@ -186,11 +188,12 @@ export const useToolStore = defineStore('tool', {
      */
     async fetchByCategory(category) {
       try {
-        if (!window.electronAPI?.tool) {
-          console.error('[ToolStore] electronAPI.tool 不可用');
+        const toolAPI = window.electronAPI?.tool || window.electron?.api?.tool;
+        if (!toolAPI?.getByCategory) {
+          console.error('[ToolStore] tool API 不可用 (缺少 getByCategory)');
           return [];
         }
-        const result = await window.electronAPI.tool.getByCategory(category);
+        const result = await toolAPI.getByCategory(category);
         if (result.success) {
           return result.content ?? result.data ?? result.tools ?? [];
         } else {
