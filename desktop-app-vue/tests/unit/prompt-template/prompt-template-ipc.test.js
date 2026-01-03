@@ -7,23 +7,23 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ipcMain } from 'electron';
-
-// Mock electron 模块
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn(),
-  },
-}));
 
 describe('Prompt Template IPC', () => {
   let handlers = {};
   let mockPromptTemplateManager;
+  let mockIpcMain;
   let registerPromptTemplateIPC;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     handlers = {};
+
+    // 创建 mock ipcMain
+    mockIpcMain = {
+      handle: (channel, handler) => {
+        handlers[channel] = handler;
+      },
+    };
 
     // Mock prompt template manager
     mockPromptTemplateManager = {
@@ -40,19 +40,14 @@ describe('Prompt Template IPC', () => {
       importTemplate: vi.fn(),
     };
 
-    // 动态导入，确保 mock 已设置
+    // 动态导入
     const module = await import('../../../src/main/prompt-template/prompt-template-ipc.js');
     registerPromptTemplateIPC = module.registerPromptTemplateIPC;
 
-    // 捕获 IPC handlers
-    const { ipcMain } = await import('electron');
-    ipcMain.handle.mockImplementation((channel, handler) => {
-      handlers[channel] = handler;
-    });
-
-    // 注册 Prompt Template IPC
+    // 注册 Prompt Template IPC 并注入 mock ipcMain
     registerPromptTemplateIPC({
       promptTemplateManager: mockPromptTemplateManager,
+      ipcMain: mockIpcMain
     });
   });
 
