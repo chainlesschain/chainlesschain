@@ -6,6 +6,28 @@ import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import SkillCard from '@renderer/components/skill/SkillCard.vue';
 
+// Mock Ant Design Vue icons
+vi.mock('@ant-design/icons-vue', () => ({
+  EyeOutlined: { name: 'EyeOutlined', template: '<span>👁</span>' },
+  FileTextOutlined: { name: 'FileTextOutlined', template: '<span>📄</span>' },
+}));
+
+// 全局组件stub配置
+const globalStubs = {
+  'a-button': {
+    template: '<button v-bind="$attrs" @click="$attrs.onClick"><slot /></button>',
+  },
+  'a-switch': {
+    template: '<input type="checkbox" v-bind="$attrs" @change="$attrs.onChange" />',
+  },
+  'a-tag': {
+    template: '<span><slot /></span>',
+  },
+  'a-space': {
+    template: '<div><slot /></div>',
+  },
+};
+
 describe('SkillCard.vue', () => {
   const mockSkill = {
     id: 'skill_test_1',
@@ -26,6 +48,9 @@ describe('SkillCard.vue', () => {
       props: {
         skill: mockSkill,
       },
+      global: {
+        stubs: globalStubs,
+      },
     });
 
     expect(wrapper.find('.skill-card').exists()).toBe(true);
@@ -38,6 +63,9 @@ describe('SkillCard.vue', () => {
       props: {
         skill: mockSkill,
       },
+      global: {
+        stubs: globalStubs,
+      },
     });
 
     const successRate = wrapper.vm.successRate;
@@ -48,6 +76,9 @@ describe('SkillCard.vue', () => {
     const wrapper = mount(SkillCard, {
       props: {
         skill: mockSkill,
+      },
+      global: {
+        stubs: globalStubs,
       },
     });
 
@@ -60,6 +91,9 @@ describe('SkillCard.vue', () => {
       props: {
         skill: { ...mockSkill, enabled: 0 },
       },
+      global: {
+        stubs: globalStubs,
+      },
     });
 
     expect(wrapper.find('.skill-card').classes()).toContain('disabled');
@@ -69,6 +103,9 @@ describe('SkillCard.vue', () => {
     const wrapper = mount(SkillCard, {
       props: {
         skill: mockSkill,
+      },
+      global: {
+        stubs: globalStubs,
       },
     });
 
@@ -82,6 +119,9 @@ describe('SkillCard.vue', () => {
       props: {
         skill: mockSkill,
       },
+      global: {
+        stubs: globalStubs,
+      },
     });
 
     expect(wrapper.html()).toContain('内置');
@@ -91,6 +131,9 @@ describe('SkillCard.vue', () => {
     const wrapper = mount(SkillCard, {
       props: {
         skill: mockSkill,
+      },
+      global: {
+        stubs: globalStubs,
       },
     });
 
