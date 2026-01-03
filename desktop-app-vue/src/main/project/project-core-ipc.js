@@ -575,16 +575,35 @@ function registerProjectCoreIPC({
   });
 
   /**
-   * 删除项目（后端）
+   * 删除项目（本地 + 后端）
    * Channel: 'project:delete'
    */
   ipcMain.handle('project:delete', async (_event, projectId) => {
     try {
-      const { getProjectHTTPClient } = require('./http-client');
-      const httpClient = getProjectHTTPClient();
+      // 1. 先删除本地数据库（确保用户立即看不到）
+      if (database) {
+        try {
+          await database.deleteProject(projectId);
+          console.log('[Main] 本地项目已删除:', projectId);
+        } catch (dbError) {
+          console.warn('[Main] 删除本地项目失败（继续删除后端）:', dbError.message);
+        }
+      }
 
-      // 从后端删除
-      await httpClient.deleteProject(projectId);
+      // 2. 尝试删除后端（best effort，失败不影响结果）
+      try {
+        const { getProjectHTTPClient } = require('./http-client');
+        const httpClient = getProjectHTTPClient();
+        await httpClient.deleteProject(projectId);
+        console.log('[Main] 后端项目已删除:', projectId);
+      } catch (httpError) {
+        // 如果是"项目不存在"，视为成功（幂等性）
+        if (httpError.message && httpError.message.includes('项目不存在')) {
+          console.log('[Main] 后端项目不存在，视为删除成功');
+        } else {
+          console.warn('[Main] 删除后端项目失败（已删除本地）:', httpError.message);
+        }
+      }
 
       return { success: true };
     } catch (error) {
