@@ -262,6 +262,8 @@ defineExpose({
   clearAll: () => {
     tasks.value.clear();
   },
+  toggleExpand,
+  clearCompleted,
 });
 </script>
 
