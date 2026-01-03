@@ -7,18 +7,18 @@ const BridgeManager = require('../../../src/main/blockchain/bridge-manager');
 
 // Mock 区块链适配器
 const createMockBlockchainAdapter = () => ({
-  switchChain: jest.fn(),
-  getProvider: jest.fn(),
+  switchChain: vitest.fn(),
+  getProvider: vitest.fn(),
   walletManager: {
-    unlockWallet: jest.fn(),
+    unlockWallet: vitest.fn(),
   },
 });
 
 // Mock 数据库
 const createMockDatabase = () => ({
-  run: jest.fn(),
-  get: jest.fn(),
-  all: jest.fn(),
+  run: vitest.fn(),
+  get: vitest.fn(),
+  all: vitest.fn(),
 });
 
 describe('BridgeManager - loadBridgeContracts', () => {
@@ -31,7 +31,7 @@ describe('BridgeManager - loadBridgeContracts', () => {
     mockDatabase = createMockDatabase();
     bridgeManager = new BridgeManager(mockAdapter, mockDatabase);
 
-    jest.clearAllMocks();
+    vitest.clearAllMocks();
   });
 
   describe('从数据库加载桥接合约', () => {
