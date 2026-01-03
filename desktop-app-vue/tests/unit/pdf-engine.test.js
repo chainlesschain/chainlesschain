@@ -27,16 +27,27 @@ vi.mock('marked', () => ({
   },
 }));
 
-vi.mock('electron', () => ({
-  BrowserWindow: vi.fn(() => ({
-    loadURL: vi.fn(),
+vi.mock('electron', () => {
+  // Create a constructor function for BrowserWindow
+  const mockBrowserWindowInstance = {
+    loadURL: vi.fn().mockResolvedValue(undefined),
     webContents: {
-      printToPDF: vi.fn(),
+      printToPDF: vi.fn().mockResolvedValue(Buffer.from('PDF content')),
     },
     close: vi.fn(),
-    isDestroyed: vi.fn(() => false),
-  })),
-}));
+    isDestroyed: vi.fn().mockReturnValue(false),
+    destroy: vi.fn(),
+  };
+
+  // Mock constructor function
+  const MockBrowserWindow = vi.fn(function() {
+    return mockBrowserWindowInstance;
+  });
+
+  return {
+    BrowserWindow: MockBrowserWindow,
+  };
+});
 
 describe('PDF引擎测试', () => {
   let pdfEngine;

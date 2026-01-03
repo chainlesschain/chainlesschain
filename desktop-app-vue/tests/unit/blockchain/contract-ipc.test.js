@@ -13,6 +13,20 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
+// Mock ipcMain at the top level
+let ipcHandlers = {};
+const mockIpcMain = {
+  handle: vi.fn((channel, handler) => {
+    ipcHandlers[channel] = handler;
+  }),
+  removeHandler: vi.fn(),
+};
+
+// Mock electron module before any imports
+vi.mock('electron', () => ({
+  ipcMain: mockIpcMain,
+}));
+
 // 获取源文件路径
 const CONTRACT_IPC_PATH = path.resolve(
   path.dirname(import.meta.url.replace('file://', '')),

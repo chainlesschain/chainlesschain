@@ -4,6 +4,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
 
 // Mock dependencies
 vi.mock('pptxgenjs', () => {
@@ -50,9 +53,15 @@ describe('PPT引擎测试', () => {
   let mockPptxgen;
   let mockFs;
   let mockHttp;
+  let tmpDir;
+  let testPptxPath;
 
   beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Create temporary directory for test files
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ppt-test-'));
+    testPptxPath = path.join(tmpDir, 'test.pptx');
 
     // Import mocked modules
     const pptxgenModule = await import('pptxgenjs');
@@ -67,8 +76,16 @@ describe('PPT引擎测试', () => {
     pptEngine = new PPTEngine();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.clearAllMocks();
+    // Clean up temporary directory
+    if (tmpDir) {
+      try {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      } catch (error) {
+        console.warn('Failed to clean up temp directory:', error);
+      }
+    }
   });
 
   describe('基础功能', () => {
@@ -125,11 +142,11 @@ describe('PPT引擎测试', () => {
       };
 
       const result = await pptEngine.generateFromOutline(outline, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe('/test.pptx');
+      expect(result.path).toBe(testPptxPath);
       expect(result.fileName).toBe('Test Presentation.pptx');
       expect(mockPptxgen).toHaveBeenCalled();
     });
@@ -142,7 +159,7 @@ describe('PPT引擎测试', () => {
 
       await pptEngine.generateFromOutline(outline, {
         theme: 'academic',
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(mockPptxgen).toHaveBeenCalled();
@@ -156,7 +173,7 @@ describe('PPT引擎测试', () => {
 
       await pptEngine.generateFromOutline(outline, {
         author: 'John Doe',
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       const pptInstance = mockPptxgen.mock.results[0].value;
@@ -172,7 +189,7 @@ describe('PPT引擎测试', () => {
 
       await pptEngine.generateFromOutline(outline, {
         author: 'Author',
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       const pptInstance = mockPptxgen.mock.results[0].value;
@@ -189,7 +206,7 @@ describe('PPT引擎测试', () => {
       };
 
       await pptEngine.generateFromOutline(outline, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       const pptInstance = mockPptxgen.mock.results[0].value;
@@ -212,7 +229,7 @@ describe('PPT引擎测试', () => {
       };
 
       await pptEngine.generateFromOutline(outline, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       const pptInstance = mockPptxgen.mock.results[0].value;
@@ -226,7 +243,7 @@ describe('PPT引擎测试', () => {
       };
 
       await pptEngine.generateFromOutline(outline, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       const pptInstance = mockPptxgen.mock.results[0].value;
@@ -241,7 +258,7 @@ describe('PPT引擎测试', () => {
       const outline = { title: 'Test', sections: [] };
 
       await expect(
-        pptEngine.generateFromOutline(outline, { outputPath: '/test.pptx' })
+        pptEngine.generateFromOutline(outline, { outputPath: testPptxPath })
       ).rejects.toThrow('生成PPT失败');
     });
 
@@ -285,7 +302,7 @@ describe('PPT引擎测试', () => {
       mockPptxgen.mockReturnValueOnce(pptInstance);
 
       const result = await pptEngine.generateFromOutline(outline, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(result.slideCount).toBe(4);
@@ -468,7 +485,7 @@ Valid point
 - Point 1`;
 
       const result = await pptEngine.generateFromMarkdown(markdown, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(result.success).toBe(true);
@@ -490,7 +507,7 @@ Valid point
 
       const result = await pptEngine.generateFromMarkdown(markdown, {
         llmManager: mockLLMManager,
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(result.success).toBe(true);
@@ -501,7 +518,7 @@ Valid point
 
       const result = await pptEngine.generateFromMarkdown(markdown, {
         theme: 'creative',
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(result.success).toBe(true);
@@ -515,7 +532,7 @@ Valid point
       });
 
       await expect(
-        pptEngine.generateFromMarkdown('# Test', { outputPath: '/test.pptx' })
+        pptEngine.generateFromMarkdown('# Test', { outputPath: testPptxPath })
       ).rejects.toThrow('从Markdown生成PPT失败');
     });
   });
@@ -927,7 +944,7 @@ Valid point
       };
 
       const result = await pptEngine.generateFromOutline(outline, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(result.success).toBe(true);
@@ -940,7 +957,7 @@ Valid point
       };
 
       const result = await pptEngine.generateFromOutline(outline, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(result.success).toBe(true);
@@ -958,7 +975,7 @@ Valid point
       };
 
       const result = await pptEngine.generateFromOutline(outline, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(result.success).toBe(true);
@@ -981,7 +998,7 @@ Valid point
       };
 
       const result = await pptEngine.generateFromOutline(outline, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(result.success).toBe(true);
@@ -995,7 +1012,7 @@ Valid point
       };
 
       const result = await pptEngine.generateFromOutline(outline, {
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       expect(result.success).toBe(true);
@@ -1009,7 +1026,7 @@ Valid point
 
       const result = await pptEngine.generateFromOutline(outline, {
         theme: 'unknown',
-        outputPath: '/test.pptx',
+        outputPath: testPptxPath,
       });
 
       // Should fall back to business theme

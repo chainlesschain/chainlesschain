@@ -3,7 +3,7 @@
  * 测试文件：src/main/initial-setup-ipc.js
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 // Mock ipcMain at the top level
 let ipcHandlers = {};
@@ -11,14 +11,21 @@ const mockIpcMain = {
   handle: vi.fn((channel, handler) => {
     ipcHandlers[channel] = handler;
   }),
+  removeHandler: vi.fn(),
 };
 
 // Mock electron module before any imports
 vi.mock('electron', () => ({
   ipcMain: mockIpcMain,
   dialog: {
-    showOpenDialog: vi.fn(),
-    showSaveDialog: vi.fn(),
+    showOpenDialog: vi.fn().mockResolvedValue({ canceled: false, filePaths: [] }),
+    showSaveDialog: vi.fn().mockResolvedValue({ canceled: false, filePath: '/test/path' }),
+  },
+  app: {
+    getPath: vi.fn((name) => {
+      if (name === 'userData') return '/test/userData';
+      return '/test';
+    }),
   },
 }));
 
