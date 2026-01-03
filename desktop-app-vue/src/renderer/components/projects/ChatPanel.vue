@@ -339,6 +339,33 @@ const handleSendMessage = async () => {
 
   console.log('[ChatPanel] 准备发送消息，input:', input);
 
+  // 检测创建文件的意图
+  const inputLower = input.toLowerCase();
+  const isCreateFileIntent =
+    (inputLower.includes('创建') || inputLower.includes('生成') || inputLower.includes('做') || inputLower.includes('新建')) &&
+    (inputLower.includes('文件') || inputLower.includes('ppt') || inputLower.includes('excel') ||
+     inputLower.includes('word') || inputLower.includes('pdf') || inputLower.includes('项目'));
+
+  // 特别检测PPT请求
+  const isPPTRequest = inputLower.includes('ppt') || inputLower.includes('幻灯片') || inputLower.includes('演示文稿');
+
+  if (isCreateFileIntent) {
+    if (isPPTRequest) {
+      antMessage.warning({
+        content: '💡 提示：当前聊天面板不支持创建PPT文件。建议：\n1. 返回主页，在AI对话框中输入您的需求\n2. 或创建Markdown/Word文档替代',
+        duration: 5,
+      });
+    } else {
+      antMessage.info({
+        content: '💡 提示：创建新文件请前往主页的"AI对话式创建"功能。\n当前聊天面板主要用于编辑现有文件和对话交流。',
+        duration: 4,
+      });
+    }
+
+    // 仍然继续对话，让AI提供建议
+    console.log('[ChatPanel] 检测到创建文件意图，已提示用户，继续AI对话');
+  }
+
   try {
     // 创建用户消息
     const userMessage = {
