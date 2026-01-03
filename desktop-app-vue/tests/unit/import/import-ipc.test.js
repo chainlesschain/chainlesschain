@@ -7,160 +7,131 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Import after mocks
-const { registerImportIPC } = require('../../../src/main/import/import-ipc');
-
-// ===================== MOCK FACTORIES =====================
-
-/**
- * 创建 ipcMain mock
- */
-const createMockIpcMain = () => {
-  const handlers = new Map();
-
-  return {
-    handle: vi.fn((channel, handler) => {
-      handlers.set(channel, handler);
-    }),
-    // Helper method to get registered handler
-    getHandler: (channel) => handlers.get(channel),
-    // Helper to simulate IPC call
-    invoke: async (channel, ...args) => {
-      const handler = handlers.get(channel);
-      if (!handler) throw new Error(`No handler for ${channel}`);
-      return handler({}, ...args);
-    },
-  };
-};
-
-/**
- * 创建 dialog mock
- */
-const createMockDialog = () => ({
-  showOpenDialog: vi.fn().mockResolvedValue({
-    canceled: false,
-    filePaths: ['/path/to/test.md'],
-  }),
-});
-
-/**
- * 创建 mainWindow mock
- */
-const createMockMainWindow = () => ({
-  webContents: {
-    send: vi.fn(),
-  },
-});
-
-/**
- * 创建 FileImporter mock
- */
-const createMockFileImporter = () => {
-  const eventHandlers = new Map();
-
-  return {
-    on: vi.fn((event, handler) => {
-      eventHandlers.set(event, handler);
-    }),
-    emit: (event, data) => {
-      const handler = eventHandlers.get(event);
-      if (handler) handler(data);
-    },
-    importFile: vi.fn().mockResolvedValue({
-      id: 'note-123',
-      title: 'Test Note',
-      content: 'Test content',
-      filePath: '/path/to/test.md',
-    }),
-    importFiles: vi.fn().mockResolvedValue({
-      success: [
-        { filePath: '/path/to/file1.md', result: { id: 'note-1' } },
-        { filePath: '/path/to/file2.md', result: { id: 'note-2' } },
-      ],
-      failed: [],
-      total: 2,
-    }),
-    getSupportedFormats: vi.fn().mockReturnValue(['.md', '.markdown', '.pdf', '.doc', '.docx', '.txt']),
-    isSupportedFile: vi.fn().mockReturnValue(true),
-    getFileType: vi.fn().mockReturnValue('markdown'),
-    _eventHandlers: eventHandlers, // Expose for testing
-  };
-};
-
-/**
- * 创建 database mock
- */
-const createMockDatabase = () => ({
-  getKnowledgeItemById: vi.fn().mockReturnValue({
-    id: 'note-123',
-    title: 'Test Note',
-    content: 'Test content',
-  }),
-});
-
-/**
- * 创建 ragManager mock
- */
-const createMockRagManager = () => ({
-  addToIndex: vi.fn().mockResolvedValue(true),
-  rebuildIndex: vi.fn().mockResolvedValue(true),
-});
-
-// Mock electron module
-vi.mock('electron', () => ({
-  ipcMain: createMockIpcMain(),
-  dialog: createMockDialog(),
-}));
-
-// ===================== TESTS =====================
-
 describe('ImportIPC', () => {
+  let handlers;
   let mockIpcMain;
   let mockDialog;
   let mockMainWindow;
   let mockFileImporter;
   let mockDatabase;
   let mockRagManager;
+  let registerImportIPC;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    handlers = new Map();
 
-    // Get mocked modules
-    const { ipcMain, dialog } = require('electron');
-    mockIpcMain = ipcMain;
-    mockDialog = dialog;
-
-    // Reset ipcMain
-    mockIpcMain.handle.mockClear();
-    const handlers = new Map();
-    mockIpcMain.handle.mockImplementation((channel, handler) => {
-      handlers.set(channel, handler);
-    });
-    mockIpcMain.getHandler = (channel) => handlers.get(channel);
-    mockIpcMain.invoke = async (channel, ...args) => {
-      const handler = handlers.get(channel);
-      if (!handler) throw new Error(`No handler for ${channel}`);
-      return handler({}, ...args);
+    // 创建 mock ipcMain
+    mockIpcMain = {
+      handle: (channel, handler) => {
+        handlers.set(channel, handler);
+      },
+      getHandler: (channel) => handlers.get(channel),
+      invoke: async (channel, ...args) => {
+        const handler = handlers.get(channel);
+        if (!handler) throw new Error(`No handler for ${channel}`);
+        return handler({}, ...args);
+      },
     };
 
-    mockMainWindow = createMockMainWindow();
-    mockFileImporter = createMockFileImporter();
-    mockDatabase = createMockDatabase();
-    mockRagManager = createMockRagManager();
+    // 创建 mock dialog
+    mockDialog = {
+      showOpenDialog: vi.fn().mockResolvedValue({
+        canceled: false,
+        filePaths: ['/path/to/test.md'],
+      }),
+    };
+
+    // 创建 mock mainWindow
+    mockMainWindow = {
+      webContents: {
+        send: vi.fn(),
+      },
+    };
+
+    // 创建 mock fileImporter
+    const eventHandlers = new Map();
+    mockFileImporter = {
+      on: vi.fn((event, handler) => {
+        eventHandlers.set(event, handler);
+      }),
+      emit: (event, data) => {
+        const handler = eventHandlers.get(event);
+        if (handler) handler(data);
+      },
+      importFile: vi.fn().mockResolvedValue({
+        id: 'note-123',
+        title: 'Test Note',
+        content: 'Test content',
+        filePath: '/path/to/test.md',
+      }),
+      importFiles: vi.fn().mockResolvedValue({
+        success: [
+          { filePath: '/path/to/file1.md', result: { id: 'note-1' } },
+          { filePath: '/path/to/file2.md', result: { id: 'note-2' } },
+        ],
+        failed: [],
+        total: 2,
+      }),
+      getSupportedFormats: vi.fn().mockReturnValue(['.md', '.markdown', '.pdf', '.doc', '.docx', '.txt']),
+      isSupportedFile: vi.fn().mockReturnValue(true),
+      getFileType: vi.fn().mockReturnValue('markdown'),
+      _eventHandlers: eventHandlers,
+    };
+
+    // 创建 mock database
+    mockDatabase = {
+      getKnowledgeItemById: vi.fn().mockReturnValue({
+        id: 'note-123',
+        title: 'Test Note',
+        content: 'Test content',
+      }),
+    };
+
+    // 创建 mock ragManager
+    mockRagManager = {
+      addToIndex: vi.fn().mockResolvedValue(true),
+      rebuildIndex: vi.fn().mockResolvedValue(true),
+    };
+
+    // 动态导入
+    const module = await import('../../../src/main/import/import-ipc.js');
+    registerImportIPC = module.registerImportIPC;
+
+    // 注册 Import IPC 并注入 mock 对象
+    registerImportIPC({
+      fileImporter: mockFileImporter,
+      mainWindow: mockMainWindow,
+      database: mockDatabase,
+      ragManager: mockRagManager,
+      ipcMain: mockIpcMain,
+      dialog: mockDialog
+    });
   });
 
   describe('registerImportIPC()', () => {
     it('should register all IPC handlers', () => {
+      const testHandlers = new Map();
+      const testIpcMain = {
+        handle: (channel, handler) => testHandlers.set(channel, handler),
+      };
+
       registerImportIPC({
         fileImporter: mockFileImporter,
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: testIpcMain,
+        dialog: mockDialog
       });
 
-      expect(mockIpcMain.handle).toHaveBeenCalled();
       // Should register 5 handlers
-      expect(mockIpcMain.handle.mock.calls.length).toBe(5);
+      expect(testHandlers.size).toBe(5);
+      expect(testHandlers.has('import:select-files')).toBe(true);
+      expect(testHandlers.has('import:import-file')).toBe(true);
+      expect(testHandlers.has('import:import-files')).toBe(true);
+      expect(testHandlers.has('import:get-supported-formats')).toBe(true);
+      expect(testHandlers.has('import:check-file')).toBe(true);
     });
 
     it('should register file selection handlers', () => {
@@ -169,6 +140,8 @@ describe('ImportIPC', () => {
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMain,
+        dialog: mockDialog
       });
 
       expect(mockIpcMain.getHandler('import:select-files')).toBeDefined();
@@ -182,6 +155,8 @@ describe('ImportIPC', () => {
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMain,
+        dialog: mockDialog
       });
 
       expect(mockIpcMain.getHandler('import:get-supported-formats')).toBeDefined();
@@ -196,6 +171,8 @@ describe('ImportIPC', () => {
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMain,
+        dialog: mockDialog
       });
     });
 
@@ -237,17 +214,23 @@ describe('ImportIPC', () => {
 
     it('should throw error when fileImporter is not initialized', async () => {
       // Re-register without fileImporter
-      const mockIpcMainNoImporter = createMockIpcMain();
-      vi.doMock('electron', () => ({
-        ipcMain: mockIpcMainNoImporter,
-        dialog: mockDialog,
-      }));
+      const mockIpcMainNoImporter = {
+        handle: (channel, handler) => handlers.set(channel, handler),
+        getHandler: (channel) => handlers.get(channel),
+        invoke: async (channel, ...args) => {
+          const handler = handlers.get(channel);
+          if (!handler) throw new Error(`No handler for ${channel}`);
+          return handler({}, ...args);
+        },
+      };
 
       registerImportIPC({
         fileImporter: null,
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMainNoImporter,
+        dialog: mockDialog,
       });
 
       await expect(mockIpcMainNoImporter.invoke('import:select-files')).rejects.toThrow('文件导入器未初始化');
@@ -261,6 +244,8 @@ describe('ImportIPC', () => {
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMain,
+        dialog: mockDialog
       });
     });
 
@@ -339,17 +324,23 @@ describe('ImportIPC', () => {
 
     it('should not add to RAG index if ragManager is not provided', async () => {
       // Re-register without ragManager
-      const mockIpcMainNoRag = createMockIpcMain();
-      vi.doMock('electron', () => ({
-        ipcMain: mockIpcMainNoRag,
-        dialog: mockDialog,
-      }));
+      const mockIpcMainNoRag = {
+        handle: (channel, handler) => handlers.set(channel, handler),
+        getHandler: (channel) => handlers.get(channel),
+        invoke: async (channel, ...args) => {
+          const handler = handlers.get(channel);
+          if (!handler) throw new Error(`No handler for ${channel}`);
+          return handler({}, ...args);
+        },
+      };
 
       registerImportIPC({
         fileImporter: mockFileImporter,
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: null,
+        ipcMain: mockIpcMainNoRag,
+        dialog: mockDialog,
       });
 
       await mockIpcMainNoRag.invoke('import:import-file', '/path/to/test.md', {});
@@ -359,17 +350,24 @@ describe('ImportIPC', () => {
 
     it('should not add to RAG index if database is not provided', async () => {
       // Re-register without database
-      const mockIpcMainNoDb = createMockIpcMain();
-      vi.doMock('electron', () => ({
-        ipcMain: mockIpcMainNoDb,
-        dialog: mockDialog,
-      }));
+      const handlersNoDb = new Map();
+      const mockIpcMainNoDb = {
+        handle: (channel, handler) => handlersNoDb.set(channel, handler),
+        getHandler: (channel) => handlersNoDb.get(channel),
+        invoke: async (channel, ...args) => {
+          const handler = handlersNoDb.get(channel);
+          if (!handler) throw new Error(`No handler for ${channel}`);
+          return handler({}, ...args);
+        },
+      };
 
       registerImportIPC({
         fileImporter: mockFileImporter,
         mainWindow: mockMainWindow,
         database: null,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMainNoDb,
+        dialog: mockDialog,
       });
 
       await mockIpcMainNoDb.invoke('import:import-file', '/path/to/test.md', {});
@@ -386,12 +384,22 @@ describe('ImportIPC', () => {
     });
 
     it('should throw error when fileImporter is not initialized', async () => {
-      const mockIpcMainNoImporter = createMockIpcMain();
+      const mockIpcMainNoImporter = {
+        handle: (channel, handler) => handlers.set(channel, handler),
+        getHandler: (channel) => handlers.get(channel),
+        invoke: async (channel, ...args) => {
+          const handler = handlers.get(channel);
+          if (!handler) throw new Error(`No handler for ${channel}`);
+          return handler({}, ...args);
+        },
+      };
       registerImportIPC({
         fileImporter: null,
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMainNoImporter,
+        dialog: mockDialog,
       });
 
       await expect(
@@ -416,6 +424,8 @@ describe('ImportIPC', () => {
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMain,
+        dialog: mockDialog
       });
     });
 
@@ -491,12 +501,22 @@ describe('ImportIPC', () => {
     });
 
     it('should not rebuild RAG index if ragManager is not provided', async () => {
-      const mockIpcMainNoRag = createMockIpcMain();
+      const mockIpcMainNoRag = {
+        handle: (channel, handler) => handlers.set(channel, handler),
+        getHandler: (channel) => handlers.get(channel),
+        invoke: async (channel, ...args) => {
+          const handler = handlers.get(channel);
+          if (!handler) throw new Error(`No handler for ${channel}`);
+          return handler({}, ...args);
+        },
+      };
       registerImportIPC({
         fileImporter: mockFileImporter,
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: null,
+        ipcMain: mockIpcMainNoRag,
+        dialog: mockDialog,
       });
 
       await mockIpcMainNoRag.invoke('import:import-files', ['/path/to/file1.md'], {});
@@ -505,12 +525,22 @@ describe('ImportIPC', () => {
     });
 
     it('should throw error when fileImporter is not initialized', async () => {
-      const mockIpcMainNoImporter = createMockIpcMain();
+      const mockIpcMainNoImporter = {
+        handle: (channel, handler) => handlers.set(channel, handler),
+        getHandler: (channel) => handlers.get(channel),
+        invoke: async (channel, ...args) => {
+          const handler = handlers.get(channel);
+          if (!handler) throw new Error(`No handler for ${channel}`);
+          return handler({}, ...args);
+        },
+      };
       registerImportIPC({
         fileImporter: null,
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMainNoImporter,
+        dialog: mockDialog,
       });
 
       await expect(
@@ -552,6 +582,8 @@ describe('ImportIPC', () => {
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMain,
+        dialog: mockDialog
       });
     });
 
@@ -563,12 +595,22 @@ describe('ImportIPC', () => {
     });
 
     it('should throw error when fileImporter is not initialized', async () => {
-      const mockIpcMainNoImporter = createMockIpcMain();
+      const mockIpcMainNoImporter = {
+        handle: (channel, handler) => handlers.set(channel, handler),
+        getHandler: (channel) => handlers.get(channel),
+        invoke: async (channel, ...args) => {
+          const handler = handlers.get(channel);
+          if (!handler) throw new Error(`No handler for ${channel}`);
+          return handler({}, ...args);
+        },
+      };
       registerImportIPC({
         fileImporter: null,
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMainNoImporter,
+        dialog: mockDialog,
       });
 
       await expect(mockIpcMainNoImporter.invoke('import:get-supported-formats')).rejects.toThrow(
@@ -595,6 +637,8 @@ describe('ImportIPC', () => {
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMain,
+        dialog: mockDialog
       });
     });
 
@@ -637,12 +681,22 @@ describe('ImportIPC', () => {
     });
 
     it('should throw error when fileImporter is not initialized', async () => {
-      const mockIpcMainNoImporter = createMockIpcMain();
+      const mockIpcMainNoImporter = {
+        handle: (channel, handler) => handlers.set(channel, handler),
+        getHandler: (channel) => handlers.get(channel),
+        invoke: async (channel, ...args) => {
+          const handler = handlers.get(channel);
+          if (!handler) throw new Error(`No handler for ${channel}`);
+          return handler({}, ...args);
+        },
+      };
       registerImportIPC({
         fileImporter: null,
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMainNoImporter,
+        dialog: mockDialog,
       });
 
       await expect(
@@ -669,6 +723,8 @@ describe('ImportIPC', () => {
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMain,
+        dialog: mockDialog
       });
     });
 
@@ -696,12 +752,24 @@ describe('ImportIPC', () => {
     });
 
     it('should handle mainWindow being null', async () => {
-      const mockIpcMainNoWindow = createMockIpcMain();
+      const handlersNoWindow = new Map();
+      const mockIpcMainNoWindow = {
+        handle: (channel, handler) => handlersNoWindow.set(channel, handler),
+        getHandler: (channel) => handlersNoWindow.get(channel),
+        invoke: async (channel, ...args) => {
+          const handler = handlersNoWindow.get(channel);
+          if (!handler) throw new Error(`No handler for ${channel}`);
+          return handler({}, ...args);
+        },
+      };
+
       registerImportIPC({
         fileImporter: mockFileImporter,
         mainWindow: null,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMainNoWindow,
+        dialog: mockDialog,
       });
 
       // Should not throw even if mainWindow is null
@@ -719,6 +787,8 @@ describe('ImportIPC', () => {
         mainWindow: mockMainWindow,
         database: mockDatabase,
         ragManager: mockRagManager,
+        ipcMain: mockIpcMain,
+        dialog: mockDialog
       });
     });
 

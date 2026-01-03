@@ -6,8 +6,6 @@
  * @description 提供文件选择、导入、格式检查等 IPC 接口
  */
 
-const { ipcMain, dialog } = require('electron');
-
 /**
  * 注册所有文件导入 IPC 处理器
  * @param {Object} dependencies - 依赖对象
@@ -15,8 +13,22 @@ const { ipcMain, dialog } = require('electron');
  * @param {Object} dependencies.mainWindow - 主窗口实例
  * @param {Object} dependencies.database - 数据库管理器
  * @param {Object} [dependencies.ragManager] - RAG 管理器（用于索引同步）
+ * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
+ * @param {Object} dependencies.dialog - Dialog对象（可选，用于测试注入）
  */
-function registerImportIPC({ fileImporter, mainWindow, database, ragManager }) {
+function registerImportIPC({
+  fileImporter,
+  mainWindow,
+  database,
+  ragManager,
+  ipcMain: injectedIpcMain,
+  dialog: injectedDialog
+}) {
+  // 支持依赖注入，用于测试
+  const electron = require('electron');
+  const ipcMain = injectedIpcMain || electron.ipcMain;
+  const dialog = injectedDialog || electron.dialog;
+
   console.log('[Import IPC] Registering Import IPC handlers...');
 
   // ============================================================

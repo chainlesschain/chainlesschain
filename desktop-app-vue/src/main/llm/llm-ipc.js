@@ -6,8 +6,6 @@
  * @description 提供 LLM 服务的所有 IPC 接口，包括聊天、查询、配置管理、智能选择等
  */
 
-const { ipcMain } = require('electron');
-
 /**
  * 注册所有 LLM IPC 处理器
  * @param {Object} dependencies - 依赖对象
@@ -18,8 +16,13 @@ const { ipcMain } = require('electron');
  * @param {Object} [dependencies.llmSelector] - LLM 智能选择器（可选）
  * @param {Object} [dependencies.database] - 数据库实例（可选）
  * @param {Object} [dependencies.app] - App 实例（可选，用于更新 llmManager 引用）
+ * @param {Object} [dependencies.ipcMain] - IPC主进程对象（可选，用于测试注入）
  */
-function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateManager, llmSelector, database, app }) {
+function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateManager, llmSelector, database, app, ipcMain: injectedIpcMain }) {
+  // 支持依赖注入，用于测试
+  const electron = require('electron');
+  const ipcMain = injectedIpcMain || electron.ipcMain;
+
   console.log('[LLM IPC] Registering LLM IPC handlers...');
 
   // 创建一个可变的引用容器

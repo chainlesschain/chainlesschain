@@ -6,7 +6,6 @@
  * @description 文件操作模块，提供完整的文件系统操作功能
  */
 
-const { ipcMain, shell, clipboard, dialog } = require('electron');
 const path = require('path');
 
 /**
@@ -15,12 +14,27 @@ const path = require('path');
  * @param {Object} dependencies.database - 数据库实例
  * @param {Object} dependencies.mainWindow - 主窗口实例
  * @param {Function} dependencies.getProjectConfig - 获取项目配置函数
+ * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
+ * @param {Object} dependencies.dialog - Dialog对象（可选，用于测试注入）
+ * @param {Object} dependencies.shell - Shell对象（可选，用于测试注入）
+ * @param {Object} dependencies.clipboard - Clipboard对象（可选，用于测试注入）
  */
 function registerFileIPC({
   database,
   mainWindow,
-  getProjectConfig
+  getProjectConfig,
+  ipcMain: injectedIpcMain,
+  dialog: injectedDialog,
+  shell: injectedShell,
+  clipboard: injectedClipboard
 }) {
+  // 支持依赖注入，用于测试
+  const electron = require('electron');
+  const ipcMain = injectedIpcMain || electron.ipcMain;
+  const dialog = injectedDialog || electron.dialog;
+  const shell = injectedShell || electron.shell;
+  const clipboard = injectedClipboard || electron.clipboard;
+
   console.log('[File IPC] Registering File IPC handlers...');
 
   // ============================================================

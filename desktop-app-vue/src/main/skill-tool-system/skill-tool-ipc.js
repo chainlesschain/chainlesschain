@@ -5,11 +5,20 @@
 
 /**
  * 注册所有技能和工具相关的IPC handlers
- * @param {Electron.IpcMain} ipcMain - IPC主进程对象
- * @param {SkillManager} skillManager - 技能管理器
- * @param {ToolManager} toolManager - 工具管理器
+ * @param {Object} dependencies - 依赖对象
+ * @param {Electron.IpcMain} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
+ * @param {SkillManager} dependencies.skillManager - 技能管理器
+ * @param {ToolManager} dependencies.toolManager - 工具管理器
  */
-function registerSkillToolIPC(ipcMain, skillManager, toolManager) {
+function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolManager }) {
+  // 支持依赖注入，用于测试
+  let ipcMain;
+  if (injectedIpcMain) {
+    ipcMain = injectedIpcMain;
+  } else {
+    const electron = require('electron');
+    ipcMain = electron.ipcMain;
+  }
   // ===================================
   // 技能相关IPC
   // ===================================

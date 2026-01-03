@@ -6,7 +6,6 @@
  * @description 提供组织创建、成员管理、权限控制、邀请管理、知识库等完整的企业协作功能 IPC 接口
  */
 
-const { ipcMain, dialog, app: electronApp } = require('electron');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -16,8 +15,24 @@ const path = require('path');
  * @param {Object} dependencies.organizationManager - 组织管理器
  * @param {Object} dependencies.dbManager - 数据库管理器（用于知识库操作）
  * @param {Object} dependencies.versionManager - 版本管理器（用于知识库版本）
+ * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
+ * @param {Object} dependencies.dialog - Dialog对象（可选，用于测试注入）
+ * @param {Object} dependencies.app - App对象（可选，用于测试注入）
  */
-function registerOrganizationIPC({ organizationManager, dbManager, versionManager }) {
+function registerOrganizationIPC({
+  organizationManager,
+  dbManager,
+  versionManager,
+  ipcMain: injectedIpcMain,
+  dialog: injectedDialog,
+  app: injectedApp
+}) {
+  // 支持依赖注入，用于测试
+  const electron = require('electron');
+  const ipcMain = injectedIpcMain || electron.ipcMain;
+  const dialog = injectedDialog || electron.dialog;
+  const electronApp = injectedApp || electron.app;
+
   console.log('[Organization IPC] Registering Organization IPC handlers...');
 
   // ============================================================

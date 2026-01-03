@@ -11,23 +11,23 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ipcMain } from 'electron';
-
-// Mock electron 模块
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn(),
-  },
-}));
 
 describe('DID IPC 处理器', () => {
   let handlers = {};
   let mockDidManager;
+  let mockIpcMain;
   let registerDIDIPC;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     handlers = {};
+
+    // 创建 mock ipcMain
+    mockIpcMain = {
+      handle: (channel, handler) => {
+        handlers[channel] = handler;
+      },
+    };
 
     // Mock DID 管理器
     mockDidManager = {
@@ -70,14 +70,8 @@ describe('DID IPC 处理器', () => {
     const module = await import('../../../src/main/did/did-ipc.js');
     registerDIDIPC = module.registerDIDIPC;
 
-    // 捕获 IPC handlers
-    const { ipcMain } = await import('electron');
-    ipcMain.handle.mockImplementation((channel, handler) => {
-      handlers[channel] = handler;
-    });
-
-    // 注册 DID IPC
-    registerDIDIPC({ didManager: mockDidManager });
+    // 注册 DID IPC 并注入 mock ipcMain
+    registerDIDIPC({ didManager: mockDidManager, ipcMain: mockIpcMain });
   });
 
   afterEach(() => {
@@ -177,11 +171,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:create-identity']({}, {}, {})
+          nullHandlers['did:create-identity']({}, {}, {})
         ).rejects.toThrow('DID管理器未初始化');
       });
 
@@ -215,10 +214,15 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
-        await expect(handlers['did:get-all-identities']({})).rejects.toThrow(
+        await expect(nullHandlers['did:get-all-identities']({})).rejects.toThrow(
           'DID管理器未初始化'
         );
       });
@@ -256,11 +260,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:get-identity']({}, 'did:key:test')
+          nullHandlers['did:get-identity']({}, 'did:key:test')
         ).rejects.toThrow('DID管理器未初始化');
       });
 
@@ -296,11 +305,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:get-current-identity']({})
+          nullHandlers['did:get-current-identity']({})
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -326,11 +340,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:set-default-identity']({}, 'did:key:test')
+          nullHandlers['did:set-default-identity']({}, 'did:key:test')
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -361,11 +380,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:update-identity']({}, 'did:key:test', {})
+          nullHandlers['did:update-identity']({}, 'did:key:test', {})
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -386,11 +410,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:delete-identity']({}, 'did:key:test')
+          nullHandlers['did:delete-identity']({}, 'did:key:test')
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -423,11 +452,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:export-document']({}, 'did:key:test')
+          nullHandlers['did:export-document']({}, 'did:key:test')
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -452,11 +486,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:generate-qrcode']({}, 'did:key:test')
+          nullHandlers['did:generate-qrcode']({}, 'did:key:test')
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -487,11 +526,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:verify-document']({}, {})
+          nullHandlers['did:verify-document']({}, {})
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -520,11 +564,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:publish-to-dht']({}, 'did:key:test')
+          nullHandlers['did:publish-to-dht']({}, 'did:key:test')
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -550,11 +599,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:resolve-from-dht']({}, 'did:key:test')
+          nullHandlers['did:resolve-from-dht']({}, 'did:key:test')
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -577,11 +631,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:unpublish-from-dht']({}, 'did:key:test')
+          nullHandlers['did:unpublish-from-dht']({}, 'did:key:test')
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -602,10 +661,15 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should return false when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
-        const result = await handlers['did:is-published-to-dht'](
+        const result = await nullHandlers['did:is-published-to-dht'](
           {},
           'did:key:test'
         );
@@ -652,11 +716,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:start-auto-republish']({}, 3600000)
+          nullHandlers['did:start-auto-republish']({}, 3600000)
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -676,10 +745,15 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
-        await expect(handlers['did:stop-auto-republish']({})).rejects.toThrow(
+        await expect(nullHandlers['did:stop-auto-republish']({})).rejects.toThrow(
           'DID管理器未初始化'
         );
       });
@@ -705,10 +779,15 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should return default status when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
-        const result = await handlers['did:get-auto-republish-status']({});
+        const result = await nullHandlers['did:get-auto-republish-status']({});
         expect(result).toEqual({
           enabled: false,
           interval: 0,
@@ -751,11 +830,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:set-auto-republish-interval']({}, 3600000)
+          nullHandlers['did:set-auto-republish-interval']({}, 3600000)
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -776,10 +860,15 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
-        await expect(handlers['did:republish-all']({})).rejects.toThrow(
+        await expect(nullHandlers['did:republish-all']({})).rejects.toThrow(
           'DID管理器未初始化'
         );
       });
@@ -815,11 +904,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:generate-mnemonic']({}, 256)
+          nullHandlers['did:generate-mnemonic']({}, 256)
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -846,10 +940,15 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should return false when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
-        const result = await handlers['did:validate-mnemonic']({}, 'test');
+        const result = await nullHandlers['did:validate-mnemonic']({}, 'test');
         expect(result).toBe(false);
       });
 
@@ -896,11 +995,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:create-from-mnemonic']({}, {}, 'test', {})
+          nullHandlers['did:create-from-mnemonic']({}, {}, 'test', {})
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -924,11 +1028,16 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should throw error when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
         await expect(
-          handlers['did:export-mnemonic']({}, 'did:key:test')
+          nullHandlers['did:export-mnemonic']({}, 'did:key:test')
         ).rejects.toThrow('DID管理器未初始化');
       });
     });
@@ -949,10 +1058,15 @@ describe('DID IPC 处理器', () => {
       });
 
       it('should return false when didManager is not initialized', async () => {
-        handlers = {};
-        registerDIDIPC({ didManager: null });
+        const nullHandlers = {};
+        const nullMockIpcMain = {
+          handle: (channel, handler) => {
+            nullHandlers[channel] = handler;
+          },
+        };
+        registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
-        const result = await handlers['did:has-mnemonic'](
+        const result = await nullHandlers['did:has-mnemonic'](
           {},
           'did:key:test'
         );
@@ -1054,8 +1168,13 @@ describe('DID IPC 处理器', () => {
 
   describe('错误处理验证', () => {
     it('should handle null didManager gracefully for all handlers', async () => {
-      handlers = {};
-      registerDIDIPC({ didManager: null });
+      const nullHandlers = {};
+      const nullMockIpcMain = {
+        handle: (channel, handler) => {
+          nullHandlers[channel] = handler;
+        },
+      };
+      registerDIDIPC({ didManager: null, ipcMain: nullMockIpcMain });
 
       // Handlers that should throw error
       const errorHandlers = [
@@ -1082,20 +1201,20 @@ describe('DID IPC 处理器', () => {
       ];
 
       for (const channel of errorHandlers) {
-        await expect(handlers[channel]({}, 'test')).rejects.toThrow(
+        await expect(nullHandlers[channel]({}, 'test')).rejects.toThrow(
           'DID管理器未初始化'
         );
       }
 
       // Handlers that should return false
       expect(
-        await handlers['did:is-published-to-dht']({}, 'test')
+        await nullHandlers['did:is-published-to-dht']({}, 'test')
       ).toBe(false);
-      expect(await handlers['did:validate-mnemonic']({}, 'test')).toBe(false);
-      expect(await handlers['did:has-mnemonic']({}, 'test')).toBe(false);
+      expect(await nullHandlers['did:validate-mnemonic']({}, 'test')).toBe(false);
+      expect(await nullHandlers['did:has-mnemonic']({}, 'test')).toBe(false);
 
       // Handler that should return default object
-      expect(await handlers['did:get-auto-republish-status']({})).toEqual({
+      expect(await nullHandlers['did:get-auto-republish-status']({})).toEqual({
         enabled: false,
         interval: 0,
         intervalHours: 0,
