@@ -13,8 +13,11 @@ const os = require('os');
 const { v4: uuidv4 } = require('uuid');
 const ImageProcessor = require('./image-processor');
 const OCRService = require('./ocr-service');
+const OCRWorkerPool = require('./ocr-worker-pool');
 const ImageStorage = require('./image-storage');
 const FileValidator = require('../security/file-validator');
+const ResumableProcessor = require('../utils/resumable-processor');
+const ProgressEmitter = require('../utils/progress-emitter');
 
 /**
  * 上传配置
@@ -50,6 +53,23 @@ class ImageUploader extends EventEmitter {
     });
     this.storage = new ImageStorage(databaseManager);
 
+    // v0.18.0: OCR Worker池（用于批量并发OCR）
+    this.ocrWorkerPool = new OCRWorkerPool({
+      maxWorkers: Math.min(os.cpus().length, 3), // 最多3个Workers
+      language: this.config.ocrLanguages.join('+'),
+    });
+
+    // v0.18.0: 集成错误恢复和进度通知系统
+    this.resumableProcessor = new ResumableProcessor({
+      maxRetries: 2,
+      retryDelay: 1000,
+      checkpointInterval: 20, // 图片处理较快，20%间隔
+    });
+    this.progressEmitter = new ProgressEmitter({
+      autoForwardToIPC: true,
+      throttleInterval: 150,
+    });
+
     // 转发子模块事件
     this.setupEventForwarding();
   }
@@ -73,6 +93,9 @@ class ImageUploader extends EventEmitter {
 
   /**
    * 初始化
+   *
+   * v0.18.0: 添加Worker池初始化
+   * v0.18.0: 添加ResumableProcessor初始化
    */
   async initialize() {
     try {
@@ -83,6 +106,12 @@ class ImageUploader extends EventEmitter {
 
       // 初始化 OCR (延迟初始化，首次使用时再初始化)
       // await this.ocrService.initialize();
+
+      // v0.18.0: 初始化OCR Worker池（用于批量处理）
+      await this.ocrWorkerPool.initialize();
+
+      // v0.18.0: 初始化ResumableProcessor
+      await this.resumableProcessor.initialize();
 
       console.log('[ImageUploader] 图片上传器初始化成功');
       return true;
@@ -274,19 +303,38 @@ class ImageUploader extends EventEmitter {
    * @param {Array} imagePaths - 图片路径列表
    * @param {Object} options - 上传选项
    * @returns {Promise<Array>} 上传结果列表
+   *
+   * v0.18.0: 集成统一进度通知
    */
   async uploadImages(imagePaths, options = {}) {
     console.log(`[ImageUploader] 开始批量上传 ${imagePaths.length} 张图片`);
+
+    // 创建批量任务追踪器
+    const taskId = `batch_upload_${Date.now()}`;
+    const tracker = this.progressEmitter.createTracker(taskId, {
+      title: '批量上传图片',
+      description: `上传 ${imagePaths.length} 张图片`,
+      totalSteps: imagePaths.length,
+      metadata: { count: imagePaths.length },
+    });
+
+    tracker.setStage(ProgressEmitter.Stage.PROCESSING, '开始上传...');
     this.emit('batch-start', { total: imagePaths.length });
 
     const results = [];
 
     for (let i = 0; i < imagePaths.length; i++) {
       try {
+        const percent = Math.round(((i + 1) / imagePaths.length) * 100);
+        tracker.setPercent(
+          percent,
+          `上传中: ${path.basename(imagePaths[i])} (${i + 1}/${imagePaths.length})`
+        );
+
         this.emit('batch-progress', {
           current: i + 1,
           total: imagePaths.length,
-          percentage: Math.round(((i + 1) / imagePaths.length) * 100),
+          percentage: percent,
         });
 
         const result = await this.uploadImage(imagePaths[i], options);
@@ -313,6 +361,12 @@ class ImageUploader extends EventEmitter {
     this.emit('batch-complete', summary);
     console.log('[ImageUploader] 批量上传完成:', summary);
 
+    // 完成追踪
+    tracker.complete({
+      message: `上传完成: ${summary.succeeded}/${summary.total} 成功`,
+      summary: summary,
+    });
+
     return results;
   }
 
@@ -338,6 +392,53 @@ class ImageUploader extends EventEmitter {
       };
     } catch (error) {
       console.error('[ImageUploader] OCR 失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量执行 OCR (使用Worker池并发处理)
+   * @param {Array<string>} imagePaths - 图片路径列表
+   * @param {Object} options - OCR选项
+   * @returns {Promise<Array<Object>>} OCR 结果列表
+   *
+   * v0.18.0: 新增方法，提供3-4倍并发加速
+   */
+  async performBatchOCR(imagePaths, options = {}) {
+    try {
+      console.log(`[ImageUploader] 批量 OCR 开始: ${imagePaths.length}张图片`);
+
+      // 使用Worker池并发处理
+      const results = await this.ocrWorkerPool.recognizeBatch(imagePaths, options);
+
+      // 转换结果格式（兼容现有API）
+      const formattedResults = results.map((result, index) => {
+        if (result.success) {
+          return {
+            success: true,
+            imagePath: imagePaths[index],
+            text: result.text,
+            confidence: result.confidence,
+            duration: result.duration,
+            workerId: result.workerId,
+          };
+        } else {
+          return {
+            success: false,
+            imagePath: imagePaths[index],
+            error: result.error,
+          };
+        }
+      });
+
+      const successCount = formattedResults.filter((r) => r.success).length;
+      console.log(
+        `[ImageUploader] 批量 OCR 完成: ${successCount}/${imagePaths.length}成功`
+      );
+
+      return formattedResults;
+    } catch (error) {
+      console.error('[ImageUploader] 批量 OCR 失败:', error);
       throw error;
     }
   }
@@ -421,10 +522,19 @@ class ImageUploader extends EventEmitter {
 
   /**
    * 终止服务
+   *
+   * v0.18.0: 添加Worker池终止
    */
   async terminate() {
     console.log('[ImageUploader] 终止服务...');
+
+    // 终止OCR服务
     await this.ocrService.terminate();
+
+    // v0.18.0: 终止OCR Worker池
+    await this.ocrWorkerPool.terminate();
+
+    console.log('[ImageUploader] 所有服务已终止');
   }
 }
 
