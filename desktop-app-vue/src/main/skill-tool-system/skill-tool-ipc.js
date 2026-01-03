@@ -28,8 +28,13 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
    */
   ipcMain.handle('skill:get-all', async (event, options = {}) => {
     try {
-      const skills = await skillManager.getAllSkills(options);
-      return { success: true, data: skills };
+      const result = await skillManager.getAllSkills(options);
+      // getAllSkills 已经返回 { success, skills } 格式，转换为前端期望的 { success, data } 格式
+      if (result.success) {
+        return { success: true, data: result.skills };
+      } else {
+        return { success: false, error: result.error };
+      }
     } catch (error) {
       console.error('[IPC] skill:get-all 失败:', error);
       return { success: false, error: error.message };
@@ -54,8 +59,13 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
    */
   ipcMain.handle('skill:get-by-category', async (event, category) => {
     try {
-      const skills = await skillManager.getSkillsByCategory(category);
-      return { success: true, data: skills };
+      const result = await skillManager.getSkillsByCategory(category);
+      // getSkillsByCategory 已经返回 { success, skills } 格式
+      if (result.success) {
+        return { success: true, data: result.skills };
+      } else {
+        return { success: false, error: result.error };
+      }
     } catch (error) {
       console.error('[IPC] skill:get-by-category 失败:', error);
       return { success: false, error: error.message };
