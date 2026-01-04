@@ -120,7 +120,20 @@ class TaskPlannerEnhanced extends EventEmitter {
 
       // 降级方案：使用简单的单步任务
       console.log('[TaskPlannerEnhanced] 使用降级方案创建简单任务计划');
-      return this.createFallbackPlan(userRequest, projectContext);
+      const fallbackPlan = this.createFallbackPlan(userRequest, projectContext);
+
+      // 🔧 修复：降级方案也需要保存到数据库
+      if (projectContext.projectId) {
+        try {
+          await this.saveTaskPlan(projectContext.projectId, fallbackPlan);
+          console.log('[TaskPlannerEnhanced] 降级任务计划已保存到数据库');
+        } catch (saveError) {
+          console.error('[TaskPlannerEnhanced] 降级任务计划保存失败:', saveError);
+          // 即使保存失败，也返回任务计划（至少可以在内存中使用）
+        }
+      }
+
+      return fallbackPlan;
     }
   }
 
