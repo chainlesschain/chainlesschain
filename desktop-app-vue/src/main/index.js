@@ -193,6 +193,21 @@ async function copyDirectory(source, destination) {
 
 class ChainlessChainApp {
   constructor() {
+    // 测试环境下重置IPC Guard，防止重复注册被跳过
+    if (process.env.NODE_ENV === 'test') {
+      try {
+        const { ipcGuard } = require('./ipc-registry');
+        console.log('[Main] Test environment detected - resetting IPC Guard...');
+        if (ipcGuard && typeof ipcGuard.resetAll === 'function') {
+          ipcGuard.resetAll();
+          console.log('[Main] IPC Guard reset successfully');
+        }
+      } catch (error) {
+        console.error('[Main] Failed to reset IPC Guard:', error);
+        // 继续启动，不影响应用
+      }
+    }
+
     this.mainWindow = null;
     this.database = null;
     this.ukeyManager = null;
@@ -1733,7 +1748,7 @@ class ChainlessChainApp {
       case 'volcengine':
         config.apiKey = this.database.getSetting('llm.volcengineApiKey') || '';
         config.baseURL = 'https://ark.cn-beijing.volces.com/api/v3';
-        config.model = this.database.getSetting('llm.volcengineModel') || 'doubao-seed-1-6-lite-251015';
+        config.model = this.database.getSetting('llm.volcengineModel') || 'doubao-seed-1.6-lite';
         break;
 
       case 'deepseek':

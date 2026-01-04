@@ -372,13 +372,24 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
    */
   ipcMain.handle('conversation:chat-stream', async (_event, chatData) => {
     try {
+      console.log('[Conversation IPC] conversation:chat-stream 调用，llmManager状态:', {
+        exists: !!llmManager,
+        type: llmManager ? typeof llmManager : 'undefined'
+      });
+
       if (!llmManager) {
-        return { success: false, error: 'LLM管理器未初始化' };
+        console.error('[Conversation IPC] LLM管理器未初始化！请检查主进程启动日志');
+        return {
+          success: false,
+          error: 'LLM管理器未初始化',
+          hint: '请检查LLM配置和初始化日志'
+        };
       }
 
-      if (!mainWindow || mainWindow.isDestroyed()) {
-        return { success: false, error: '主窗口未初始化' };
-      }
+      // 优先使用 mainWindow，如果不可用则使用 _event.sender（测试环境）
+      const webContents = (mainWindow && !mainWindow.isDestroyed())
+        ? mainWindow.webContents
+        : _event.sender;
 
       const {
         conversationId,
@@ -455,7 +466,7 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
           fullResponse += chunkContent;
 
           // 发送chunk给前端
-          mainWindow.webContents.send('conversation:stream-chunk', {
+          webContents.send('conversation:stream-chunk', {
             conversationId,
             messageId: aiMessageId,
             chunk: chunkContent,
@@ -520,7 +531,7 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
           tokens: totalTokens
         });
 
-        mainWindow.webContents.send('conversation:stream-complete', {
+        webContents.send('conversation:stream-complete', {
           conversationId,
           messageId: aiMessageId,
           fullContent: fullResponse,
@@ -541,7 +552,7 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
         // 通知前端错误
         streamController.error(llmError);
 
-        mainWindow.webContents.send('conversation:stream-error', {
+        webContents.send('conversation:stream-error', {
           conversationId,
           messageId: aiMessageId,
           error: llmError.message

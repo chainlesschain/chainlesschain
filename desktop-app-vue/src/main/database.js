@@ -4756,7 +4756,7 @@ class DatabaseManager {
 
       // 火山引擎（豆包）配置
       { key: 'llm.volcengineApiKey', value: '', type: 'string', description: '火山引擎API Key' },
-      { key: 'llm.volcengineModel', value: 'doubao-seed-1-6-lite-251015', type: 'string', description: '火山引擎模型' },
+      { key: 'llm.volcengineModel', value: 'doubao-seed-1.6-lite', type: 'string', description: '火山引擎模型' },
 
       // 阿里通义千问配置
       { key: 'llm.dashscopeApiKey', value: '', type: 'string', description: '阿里通义千问API Key' },

@@ -67,7 +67,7 @@ class LLMManager extends EventEmitter {
           this.toolsClient = new VolcengineToolsClient({
             apiKey: this.config.apiKey,
             baseURL: this.config.baseURL || 'https://ark.cn-beijing.volces.com/api/v3',
-            model: this.config.model || 'doubao-seed-1-6-lite-251015',
+            model: this.config.model || 'doubao-seed-1.6-lite',
           });
           console.log('[LLMManager] 火山引擎工具调用客户端已初始化');
         } catch (toolsError) {
@@ -154,7 +154,7 @@ class LLMManager extends EventEmitter {
         return new OpenAIClient({
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL || 'https://ark.cn-beijing.volces.com/api/v3',
-          model: this.config.model || 'doubao-seed-1-6-lite-251015',
+          model: this.config.model || 'doubao-seed-1.6-lite',
           embeddingModel: this.config.embeddingModel || 'doubao-embedding-large',
           timeout: this.config.timeout,
         });
