@@ -215,6 +215,10 @@ module.exports = {
   isChannelRegistered,
   isModuleRegistered,
 
+  // 标记函数
+  markChannelRegistered,
+  markModuleRegistered,
+
   // 注册函数
   safeRegisterHandler,
   safeRegisterHandlers,
