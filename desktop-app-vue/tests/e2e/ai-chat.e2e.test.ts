@@ -5,12 +5,78 @@
 
 import { test, expect } from '@playwright/test';
 import { launchElectronApp, closeElectronApp, callIPC } from './helpers';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 // 测试数据
 const TEST_USER_ID = 'ai-chat-test-user';
 const TEST_PROJECT_ID = 'ai-chat-test-project';
 
+// 设置Volcengine配置的辅助函数
+async function setupVolcengineConfig(window: any) {
+  console.log('\n========== 配置 Volcengine Provider ==========');
+
+  try {
+    // 一次性设置所有配置，包括 provider 和 volcengine 的 API key
+    const config = {
+      provider: 'volcengine',
+      'volcengine.apiKey': '7185ce7d-9775-450c-8450-783176be6265',
+      'volcengine.baseURL': 'https://ark.cn-beijing.volces.com/api/v3',
+      'volcengine.model': 'doubao-seed-1-6-lite-251015',
+    };
+
+    console.log('正在设置配置...');
+    await callIPC(window, 'llm:set-config', config);
+    console.log('✅ Volcengine 配置设置成功');
+
+    // 验证配置
+    const currentConfig = await callIPC(window, 'llm:get-config');
+    console.log('当前配置:');
+    console.log('  Provider:', currentConfig.provider);
+    console.log('  API Key:', currentConfig.volcengine?.apiKey ? currentConfig.volcengine.apiKey.substring(0, 20) + '...' : '未设置');
+    console.log('  Model:', currentConfig.volcengine?.model || '未设置');
+  } catch (error: any) {
+    console.error('❌ 配置 Volcengine 失败:', error);
+    console.error('错误详情:', error.stack);
+    // 不抛出错误，让测试继续运行
+  }
+
+  console.log('========================================\n');
+}
+
 test.describe('AI对话功能 E2E 测试', () => {
+  test.describe('配置测试', () => {
+    test('应该能够设置Volcengine配置', async () => {
+      const { app, window } = await launchElectronApp();
+
+      try {
+        console.log('\n========== 测试Volcengine配置设置 ==========');
+
+        // 获取初始配置
+        const initialConfig = await callIPC(window, 'llm:get-config');
+        console.log('初始 Provider:', initialConfig.provider);
+        console.log('初始 Volcengine API Key:', initialConfig.volcengine?.apiKey || '未设置');
+
+        // 设置Volcengine配置
+        await setupVolcengineConfig(window);
+
+        // 验证配置已更新
+        const updatedConfig = await callIPC(window, 'llm:get-config');
+        console.log('\n更新后 Provider:', updatedConfig.provider);
+        console.log('更新后 Volcengine API Key:', updatedConfig.volcengine?.apiKey ? '已设置' : '未设置');
+
+        // 断言配置已正确设置
+        expect(updatedConfig.provider).toBe('volcengine');
+        expect(updatedConfig.volcengine?.apiKey).toBe('7185ce7d-9775-450c-8450-783176be6265');
+
+        console.log('✅ Volcengine配置设置成功!');
+      } finally {
+        await closeElectronApp(app);
+      }
+    });
+  });
+
   test.describe('LLM基础功能测试', () => {
     test('应该能够检查LLM服务状态', async () => {
       const { app, window } = await launchElectronApp();
@@ -59,6 +125,16 @@ test.describe('AI对话功能 E2E 测试', () => {
         } else {
           console.log(`ℹ️  配置获取完成`);
         }
+
+        // 尝试设置 Volcengine 配置
+        console.log('\n尝试配置 Volcengine...');
+        await setupVolcengineConfig(window);
+
+        // 再次获取配置验证
+        const newConfig = await callIPC(window, 'llm:get-config');
+        console.log('\n配置后的LLM配置:');
+        console.log('  Provider:', newConfig.provider);
+        console.log('  Volcengine API Key:', newConfig.volcengine?.apiKey ? '已设置 (' + newConfig.volcengine.apiKey.substring(0, 20) + '...)' : '未设置');
       } finally {
         await closeElectronApp(app);
       }
@@ -106,6 +182,9 @@ test.describe('AI对话功能 E2E 测试', () => {
 
       try {
         console.log('\n========== 简单LLM查询 ==========');
+
+        // 配置 Volcengine
+        await setupVolcengineConfig(window);
 
         const prompt = '你好，请用一句话介绍一下你自己';
 

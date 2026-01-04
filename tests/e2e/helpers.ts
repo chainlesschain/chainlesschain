@@ -18,9 +18,13 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
   // 确定主进程入口文件路径
   const mainPath = path.join(__dirname, '../../desktop-app-vue/dist/main/index.js');
 
-  // 启动Electron（增加超时时间）
+  // 设置固定的 userData 路径，确保配置文件能被读取
+  const os = require('os');
+  const userDataPath = path.join(os.homedir(), 'Library', 'Application Support', 'chainlesschain');
+
+  // 启动Electron（增加超时时间，指定 userData 路径）
   const app = await electron.launch({
-    args: [mainPath],
+    args: [mainPath, `--user-data-dir=${userDataPath}`],
     env: {
       ...process.env,
       NODE_ENV: 'test',

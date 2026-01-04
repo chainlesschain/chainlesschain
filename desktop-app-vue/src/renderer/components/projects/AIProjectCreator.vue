@@ -10,20 +10,51 @@
         <p>用自然语言描述您的需求，AI将为您生成完整的项目结构和代码</p>
       </div>
 
-      <!-- 示例卡片 -->
-      <div class="examples-section">
-        <h3>示例需求</h3>
-        <a-row :gutter="[16, 16]">
-          <a-col :span="8" v-for="example in examples" :key="example.title">
-            <div class="example-card" @click="fillExample(example)">
-              <div class="example-icon">
-                <component :is="example.icon" />
-              </div>
-              <h4>{{ example.title }}</h4>
-              <p>{{ example.description }}</p>
+      <!-- 模板选择区域 -->
+      <div class="template-section">
+        <div class="section-header">
+          <h3>快速开始</h3>
+          <a-button type="link" @click="showTemplateModal = true">
+            <FileTextOutlined />
+            浏览所有模板
+          </a-button>
+        </div>
+
+        <!-- 已选择的模板 -->
+        <div v-if="selectedTemplate" class="selected-template-banner">
+          <div class="banner-content">
+            <div class="banner-icon">
+              <CheckCircleFilled style="color: #52c41a; font-size: 24px" />
             </div>
-          </a-col>
-        </a-row>
+            <div class="banner-info">
+              <div class="banner-title">
+                已选择模板：{{ selectedTemplate.display_name || selectedTemplate.name }}
+              </div>
+              <div class="banner-description">
+                {{ selectedTemplate.description }}
+              </div>
+            </div>
+            <a-button type="text" danger @click="clearTemplate">
+              <CloseCircleOutlined />
+              清除
+            </a-button>
+          </div>
+        </div>
+
+        <!-- 示例卡片 -->
+        <div class="examples-section">
+          <a-row :gutter="[16, 16]">
+            <a-col :span="8" v-for="example in examples" :key="example.title">
+              <div class="example-card" @click="fillExample(example)">
+                <div class="example-icon">
+                  <component :is="example.icon" />
+                </div>
+                <h4>{{ example.title }}</h4>
+                <p>{{ example.description }}</p>
+              </div>
+            </a-col>
+          </a-row>
+        </div>
       </div>
 
       <!-- 创建表单 -->
@@ -80,6 +111,18 @@
           </a-col>
         </a-row>
 
+        <!-- 技能和工具选择（可选） -->
+        <a-form-item label="技能和工具配置（可选）">
+          <a-collapse :bordered="false" ghost>
+            <a-collapse-panel key="1" header="配置可用的技能和工具">
+              <SkillToolSelector
+                v-model="selectedSkillsAndTools"
+                :project-type="formData.projectType"
+              />
+            </a-collapse-panel>
+          </a-collapse>
+        </a-form-item>
+
         <!-- 提交按钮 -->
         <a-form-item>
           <div class="form-actions">
@@ -94,26 +137,47 @@
         </a-form-item>
       </a-form>
     </div>
+
+    <!-- 模板选择对话框 -->
+    <TemplateSelectionModal
+      :open="showTemplateModal"
+      @confirm="handleTemplateConfirm"
+      @cancel="handleTemplateCancel"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue';
+import { message } from 'ant-design-vue';
 import { useAuthStore } from '@/stores/auth';
+import { useTemplateStore } from '@/stores/template';
 import {
   RobotOutlined,
   CodeOutlined,
   FileTextOutlined,
   BarChartOutlined,
   AppstoreOutlined,
+  CheckCircleFilled,
+  CloseCircleOutlined,
 } from '@ant-design/icons-vue';
+import TemplateSelectionModal from './TemplateSelectionModal.vue';
+import SkillToolSelector from './SkillToolSelector.vue';
 
 const emit = defineEmits(['create']);
 const authStore = useAuthStore();
+const templateStore = useTemplateStore();
 
 // 响应式状态
 const formRef = ref(null);
 const creating = ref(false);
+const showTemplateModal = ref(false);
+const selectedTemplate = ref(null);
+const templateVariables = ref({});
+const selectedSkillsAndTools = ref({
+  skills: [],
+  tools: [],
+});
 
 const formData = reactive({
   userPrompt: '',
@@ -178,6 +242,19 @@ const handleSubmit = async () => {
     createData.name = formData.name.trim();
   }
 
+  // 添加技能和工具配置
+  if (selectedSkillsAndTools.value.skills.length > 0) {
+    createData.skills = selectedSkillsAndTools.value.skills;
+  }
+  if (selectedSkillsAndTools.value.tools.length > 0) {
+    createData.tools = selectedSkillsAndTools.value.tools;
+  }
+
+  // 如果有选择的模板，也添加到 createData
+  if (selectedTemplate.value) {
+    createData.templateId = selectedTemplate.value.id;
+  }
+
   emit('create', createData);
 
   // 延迟重置creating状态，等待父组件显示进度
@@ -189,6 +266,75 @@ const handleSubmit = async () => {
 // 重置表单
 const handleReset = () => {
   formRef.value?.resetFields();
+  clearTemplate();
+};
+
+// 处理模板选择确认
+const handleTemplateConfirm = async (template) => {
+  try {
+    selectedTemplate.value = template;
+    showTemplateModal.value = false;
+
+    // 如果模板有变量定义，需要先收集变量值
+    if (template.variables && template.variables.length > 0) {
+      // 初始化变量默认值
+      templateVariables.value = {};
+      template.variables.forEach((variable) => {
+        templateVariables.value[variable.name] = variable.default || '';
+      });
+
+      // 渲染提示词模板（使用默认值）
+      await renderAndFillPrompt();
+    } else {
+      // 没有变量，直接使用提示词模板
+      formData.userPrompt = template.prompt_template || '';
+    }
+
+    // 设置项目类型
+    if (template.project_type) {
+      formData.projectType = template.project_type;
+    }
+
+    // 设置建议的项目名称
+    if (!formData.name) {
+      formData.name = `基于${template.display_name || template.name}的新项目`;
+    }
+
+    message.success(`已选择模板：${template.display_name || template.name}`);
+  } catch (error) {
+    console.error('处理模板选择失败:', error);
+    message.error('处理模板失败：' + error.message);
+  }
+};
+
+// 渲染并填充提示词
+const renderAndFillPrompt = async () => {
+  try {
+    if (!selectedTemplate.value) return;
+
+    const renderedPrompt = await templateStore.renderPrompt(
+      selectedTemplate.value.id,
+      templateVariables.value
+    );
+    formData.userPrompt = renderedPrompt;
+  } catch (error) {
+    console.error('渲染提示词失败:', error);
+    // 如果渲染失败，直接使用原始模板
+    formData.userPrompt = selectedTemplate.value.prompt_template || '';
+  }
+};
+
+// 清除模板选择
+const clearTemplate = () => {
+  selectedTemplate.value = null;
+  templateVariables.value = {};
+  formData.userPrompt = '';
+  formData.projectType = '';
+};
+
+// 取消模板选择
+const handleTemplateCancel = () => {
+  showTemplateModal.value = false;
 };
 </script>
 
@@ -230,9 +376,64 @@ const handleReset = () => {
   margin: 0;
 }
 
+/* 模板选择区域 */
+.template-section {
+  margin-bottom: 40px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+
+/* 已选择模板横幅 */
+.selected-template-banner {
+  background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
+  border: 2px solid #91d5ff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.banner-icon {
+  flex-shrink: 0;
+}
+
+.banner-info {
+  flex: 1;
+}
+
+.banner-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.banner-description {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
 /* 示例卡片 */
 .examples-section {
-  margin-bottom: 40px;
+  margin-bottom: 16px;
 }
 
 .examples-section h3 {
