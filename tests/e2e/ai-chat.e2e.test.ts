@@ -32,7 +32,7 @@ async function setupVolcengineConfig(window: any) {
     console.log('✅ Volcengine 配置设置成功');
 
     // 验证配置
-    const currentConfig = await callIPC(window, 'llm:get-config');
+    const currentConfig: any = await callIPC(window, 'llm:get-config');
     console.log('当前配置:');
     console.log('  Provider:', currentConfig.provider);
     console.log('  API Key:', currentConfig.volcengine?.apiKey ? currentConfig.volcengine.apiKey.substring(0, 20) + '...' : '未设置');
@@ -56,7 +56,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         console.log('\n========== 测试Volcengine配置设置 ==========');
 
         // 获取初始配置
-        const initialConfig = await callIPC(window, 'llm:get-config');
+        const initialConfig: any = await callIPC(window, 'llm:get-config');
         console.log('初始 Provider:', initialConfig.provider);
         console.log('初始 Volcengine API Key:', initialConfig.volcengine?.apiKey || '未设置');
 
@@ -64,7 +64,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         await setupVolcengineConfig(window);
 
         // 验证配置已更新
-        const updatedConfig = await callIPC(window, 'llm:get-config');
+        const updatedConfig: any = await callIPC(window, 'llm:get-config');
         console.log('\n更新后 Provider:', updatedConfig.provider);
         console.log('更新后 Volcengine API Key:', updatedConfig.volcengine?.apiKey ? '已设置' : '未设置');
 
@@ -86,7 +86,7 @@ test.describe('AI对话功能 E2E 测试', () => {
       try {
         console.log('\n========== 检查LLM状态 ==========');
 
-        const status = await callIPC(window, 'llm:check-status');
+        const status: any = await callIPC(window, 'llm:check-status');
 
         console.log('LLM状态:', status);
 
@@ -111,7 +111,7 @@ test.describe('AI对话功能 E2E 测试', () => {
       try {
         console.log('\n========== 获取LLM配置 ==========');
 
-        const config = await callIPC(window, 'llm:get-config');
+        const config: any = await callIPC(window, 'llm:get-config');
 
         console.log('LLM配置:', config);
 
@@ -133,7 +133,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         await setupVolcengineConfig(window);
 
         // 再次获取配置验证
-        const newConfig = await callIPC(window, 'llm:get-config');
+        const newConfig: any = await callIPC(window, 'llm:get-config');
         console.log('\n配置后的LLM配置:');
         console.log('  Provider:', newConfig.provider);
         console.log('  Volcengine API Key:', newConfig.volcengine?.apiKey ? '已设置 (' + newConfig.volcengine.apiKey.substring(0, 20) + '...)' : '未设置');
@@ -148,7 +148,7 @@ test.describe('AI对话功能 E2E 测试', () => {
       try {
         console.log('\n========== 列出可用模型 ==========');
 
-        const models = await callIPC(window, 'llm:list-models');
+        const models: any = await callIPC(window, 'llm:list-models');
 
         console.log('可用模型结果:', models);
 
@@ -190,7 +190,7 @@ test.describe('AI对话功能 E2E 测试', () => {
 
         const prompt = '你好，请用一句话介绍一下你自己';
 
-        const result = await callIPC(window, 'llm:query', prompt, {
+        const result: any = await callIPC(window, 'llm:query', prompt, {
           maxTokens: 100,
         });
 
@@ -231,7 +231,7 @@ test.describe('AI对话功能 E2E 测试', () => {
           { role: 'user', content: '我想学习Python编程' },
         ];
 
-        const result1 = await callIPC(window, 'llm:chat', {
+        const result1: any = await callIPC(window, 'llm:chat', {
           messages: messages1,
           stream: false,
           enableRAG: false,
@@ -258,7 +258,7 @@ test.describe('AI对话功能 E2E 测试', () => {
           { role: 'user', content: '那我应该从哪里开始？' },
         ];
 
-        const result2 = await callIPC(window, 'llm:chat', {
+        const result2: any = await callIPC(window, 'llm:chat', {
           messages: messages2,
           stream: false,
           enableRAG: false,
@@ -302,7 +302,7 @@ test.describe('AI对话功能 E2E 测试', () => {
           messages: [],
         };
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'llm:chat-with-template',
           templateOptions
@@ -346,7 +346,7 @@ test.describe('AI对话功能 E2E 测试', () => {
           },
         };
 
-        const result = await callIPC(window, 'project:aiChat', chatData);
+        const result: any = await callIPC(window, 'project:aiChat', chatData);
 
         console.log('项目AI对话结果:', result);
 
@@ -391,7 +391,7 @@ test.describe('AI对话功能 E2E 测试', () => {
           },
         };
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'conversation:create',
           conversationData
@@ -426,7 +426,7 @@ test.describe('AI对话功能 E2E 测试', () => {
       try {
         console.log('\n========== 获取对话列表 ==========');
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'conversation:get-by-project',
           TEST_PROJECT_ID
@@ -466,7 +466,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         console.log('\n========== 添加消息到对话 ==========');
 
         // 先获取一个对话ID
-        const conversations = await callIPC(
+        const conversations: any = await callIPC(
           window,
           'conversation:get-by-project',
           TEST_PROJECT_ID
@@ -486,7 +486,7 @@ test.describe('AI对话功能 E2E 测试', () => {
           timestamp: Date.now(),
         };
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'conversation:create-message',
           messageData
@@ -516,7 +516,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         console.log('\n========== 获取消息历史 ==========');
 
         // 获取对话ID
-        const conversations = await callIPC(
+        const conversations: any = await callIPC(
           window,
           'conversation:get-by-project',
           TEST_PROJECT_ID
@@ -529,7 +529,7 @@ test.describe('AI对话功能 E2E 测试', () => {
             : `test-conv-${Date.now()}`;
 
         // 获取消息
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'conversation:get-messages',
           conversationId,
@@ -572,7 +572,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         console.log('\n========== 更新对话 ==========');
 
         // 获取对话ID
-        const conversations = await callIPC(
+        const conversations: any = await callIPC(
           window,
           'conversation:get-by-project',
           TEST_PROJECT_ID
@@ -596,7 +596,7 @@ test.describe('AI对话功能 E2E 测试', () => {
           },
         };
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'conversation:update',
           conversationId,
@@ -632,7 +632,7 @@ test.describe('AI对话功能 E2E 测试', () => {
           type: 'ai-chat',
         };
 
-        const createResult = await callIPC(
+        const createResult: any = await callIPC(
           window,
           'conversation:create',
           tempConversation
@@ -649,7 +649,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         }
 
         // 删除对话
-        const deleteResult = await callIPC(
+        const deleteResult: any = await callIPC(
           window,
           'conversation:delete',
           conversationId
@@ -680,7 +680,7 @@ test.describe('AI对话功能 E2E 测试', () => {
 
         const conversationId = `test-context-${Date.now()}`;
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'llm:clear-context',
           conversationId
@@ -712,7 +712,7 @@ test.describe('AI对话功能 E2E 测试', () => {
 
         const text = '这是一段用于测试嵌入功能的文本';
 
-        const result = await callIPC(window, 'llm:embeddings', text);
+        const result: any = await callIPC(window, 'llm:embeddings', text);
 
         console.log('嵌入结果:', result);
 
@@ -745,7 +745,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         console.log('\n========== 切换LLM提供商 ==========');
 
         // 获取当前配置
-        const currentConfig = await callIPC(window, 'llm:get-config');
+        const currentConfig: any = await callIPC(window, 'llm:get-config');
         const currentProvider = currentConfig.provider || 'unknown';
 
         console.log(`   当前提供商: ${currentProvider}`);
@@ -753,7 +753,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         // 尝试切换（可能不支持）
         const newProvider = 'ollama'; // 或其他支持的提供商
 
-        const result = await callIPC(window, 'llm:switch-provider', newProvider);
+        const result: any = await callIPC(window, 'llm:switch-provider', newProvider);
 
         console.log('切换提供商结果:', result);
 
@@ -779,7 +779,7 @@ test.describe('AI对话功能 E2E 测试', () => {
       try {
         console.log('\n========== 获取模型选择器信息 ==========');
 
-        const result = await callIPC(window, 'llm:get-selector-info');
+        const result: any = await callIPC(window, 'llm:get-selector-info');
 
         console.log('选择器信息:', result);
 
@@ -813,7 +813,7 @@ test.describe('AI对话功能 E2E 测试', () => {
           complexity: 'medium',
         };
 
-        const result = await callIPC(window, 'llm:select-best', options);
+        const result: any = await callIPC(window, 'llm:select-best', options);
 
         console.log('最佳模型选择结果:', result);
 
@@ -839,7 +839,7 @@ test.describe('AI对话功能 E2E 测试', () => {
 
         const taskType = 'chat';
 
-        const result = await callIPC(window, 'llm:generate-report', taskType);
+        const result: any = await callIPC(window, 'llm:generate-report', taskType);
 
         console.log('使用报告结果:', result);
 
@@ -873,7 +873,7 @@ test.describe('AI对话功能 E2E 测试', () => {
         // 配置 Volcengine
         await setupVolcengineConfig(window);
 
-        const result = await callIPC(window, 'llm:query', '', {});
+        const result: any = await callIPC(window, 'llm:query', '', {});
 
         console.log('空消息结果:', result);
 
@@ -896,7 +896,7 @@ test.describe('AI对话功能 E2E 测试', () => {
 
         const fakeId = 'non-existent-conversation-12345';
 
-        const result = await callIPC(window, 'conversation:get-by-id', fakeId);
+        const result: any = await callIPC(window, 'conversation:get-by-id', fakeId);
 
         console.log('不存在对话的查询结果:', result);
 
@@ -922,7 +922,7 @@ test.describe('AI对话功能 E2E 测试', () => {
           maxTokens: -1, // 无效值
         };
 
-        const result = await callIPC(window, 'llm:set-config', invalidConfig);
+        const result: any = await callIPC(window, 'llm:set-config', invalidConfig);
 
         console.log('无效配置更新结果:', result);
 

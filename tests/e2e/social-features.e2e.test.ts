@@ -32,7 +32,7 @@ test.describe('社交功能 E2E 测试', () => {
       try {
         console.log('\n========== 添加联系人 ==========');
 
-        const result = await callIPC(window, 'contact:add', TEST_CONTACT);
+        const result: any = await callIPC(window, 'contact:add', TEST_CONTACT);
 
         console.log('添加联系人结果:', result);
 
@@ -68,7 +68,7 @@ test.describe('社交功能 E2E 测试', () => {
       try {
         console.log('\n========== 获取联系人列表 ==========');
 
-        const result = await callIPC(window, 'contact:get-all');
+        const result: any = await callIPC(window, 'contact:get-all');
 
         console.log('联系人列表结果:', result);
 
@@ -106,7 +106,7 @@ test.describe('社交功能 E2E 测试', () => {
         console.log('\n========== 获取联系人详情 ==========');
 
         // 先获取联系人列表
-        const listResult = await callIPC(window, 'contact:get-all');
+        const listResult: any = await callIPC(window, 'contact:get-all');
         const contacts = listResult.contacts || listResult.data || listResult;
 
         if (!Array.isArray(contacts) || contacts.length === 0) {
@@ -117,7 +117,7 @@ test.describe('社交功能 E2E 测试', () => {
         const contactDid = contacts[0].did;
 
         // 获取详情
-        const result = await callIPC(window, 'contact:get', contactDid);
+        const result: any = await callIPC(window, 'contact:get', contactDid);
 
         console.log('联系人详情结果:', result);
 
@@ -147,7 +147,7 @@ test.describe('社交功能 E2E 测试', () => {
         console.log('\n========== 更新联系人 ==========');
 
         // 先获取一个联系人
-        const listResult = await callIPC(window, 'contact:get-all');
+        const listResult: any = await callIPC(window, 'contact:get-all');
         const contacts = listResult.contacts || listResult.data || listResult;
 
         if (!Array.isArray(contacts) || contacts.length === 0) {
@@ -164,7 +164,7 @@ test.describe('社交功能 E2E 测试', () => {
           tags: ['updated', 'e2e'],
         };
 
-        const result = await callIPC(window, 'contact:update', contactDid, updates);
+        const result: any = await callIPC(window, 'contact:update', contactDid, updates);
 
         console.log('更新联系人结果:', result);
 
@@ -195,7 +195,7 @@ test.describe('社交功能 E2E 测试', () => {
 
         const query = 'test';
 
-        const result = await callIPC(window, 'contact:search', query);
+        const result: any = await callIPC(window, 'contact:search', query);
 
         console.log('搜索联系人结果:', result);
 
@@ -232,7 +232,7 @@ test.describe('社交功能 E2E 测试', () => {
       try {
         console.log('\n========== 获取好友列表 ==========');
 
-        const result = await callIPC(window, 'contact:get-friends');
+        const result: any = await callIPC(window, 'contact:get-friends');
 
         console.log('好友列表结果:', result);
 
@@ -266,7 +266,7 @@ test.describe('社交功能 E2E 测试', () => {
       try {
         console.log('\n========== 获取统计信息 ==========');
 
-        const result = await callIPC(window, 'contact:get-statistics');
+        const result: any = await callIPC(window, 'contact:get-statistics');
 
         console.log('统计信息结果:', result);
 
@@ -307,7 +307,7 @@ test.describe('社交功能 E2E 测试', () => {
           name: 'Temp Contact for Deletion',
         };
 
-        const createResult = await callIPC(window, 'contact:add', tempContact);
+        const createResult: any = await callIPC(window, 'contact:add', tempContact);
 
         const contactDid =
           createResult.did || createResult.contact?.did || tempContact.did;
@@ -318,7 +318,7 @@ test.describe('社交功能 E2E 测试', () => {
         }
 
         // 删除联系人
-        const deleteResult = await callIPC(window, 'contact:delete', contactDid);
+        const deleteResult: any = await callIPC(window, 'contact:delete', contactDid);
 
         console.log('删除联系人结果:', deleteResult);
 
@@ -346,7 +346,7 @@ test.describe('社交功能 E2E 测试', () => {
         const targetDid = `did:test:target-${Date.now()}`;
         const message = '你好，我想加你为好友！';
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'friend:send-request',
           targetDid,
@@ -385,7 +385,7 @@ test.describe('社交功能 E2E 测试', () => {
           to: 'did:test:receiver',
         };
 
-        const result = await callIPC(window, 'chat:save-message', message);
+        const result: any = await callIPC(window, 'chat:save-message', message);
 
         console.log('保存消息结果:', result);
 
@@ -419,7 +419,7 @@ test.describe('社交功能 E2E 测试', () => {
         const limit = 20;
         const offset = 0;
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'chat:get-messages',
           sessionId,
@@ -475,7 +475,7 @@ test.describe('社交功能 E2E 测试', () => {
         await callIPC(window, 'chat:save-message', message);
 
         // 更新状态为已读
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'chat:update-message-status',
           message.id,
@@ -523,7 +523,7 @@ test.describe('社交功能 E2E 测试', () => {
           priority: 'high',
         };
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'p2p:send-encrypted-message',
           peerId,
@@ -561,7 +561,7 @@ test.describe('社交功能 E2E 测试', () => {
 
         const messageId = 'msg-p2p-test-001';
 
-        const result = await callIPC(window, 'p2p:get-message-status', messageId);
+        const result: any = await callIPC(window, 'p2p:get-message-status', messageId);
 
         console.log('消息状态结果:', result);
 
@@ -603,7 +603,7 @@ test.describe('社交功能 E2E 测试', () => {
           avatar: 'https://example.com/qr-avatar.jpg',
         };
 
-        const result = await callIPC(window, 'contact:add-from-qr', qrData);
+        const result: any = await callIPC(window, 'contact:add-from-qr', qrData);
 
         console.log('二维码添加结果:', result);
 
@@ -641,12 +641,12 @@ test.describe('社交功能 E2E 测试', () => {
         };
 
         // 第一次添加
-        const firstResult = await callIPC(window, 'contact:add', contact);
+        const firstResult: any = await callIPC(window, 'contact:add', contact);
 
         expect(firstResult).toBeDefined();
 
         // 第二次添加相同DID
-        const secondResult = await callIPC(window, 'contact:add', contact);
+        const secondResult: any = await callIPC(window, 'contact:add', contact);
 
         expect(secondResult).toBeDefined();
 
@@ -673,7 +673,7 @@ test.describe('社交功能 E2E 测试', () => {
 
         const fakeDid = 'did:test:non-existent-12345';
 
-        const result = await callIPC(window, 'contact:get', fakeDid);
+        const result: any = await callIPC(window, 'contact:get', fakeDid);
 
         console.log('不存在DID的查询结果:', result);
 
@@ -701,7 +701,7 @@ test.describe('社交功能 E2E 测试', () => {
         };
 
         try {
-          const result = await callIPC(window, 'contact:add', invalidContact);
+          const result: any = await callIPC(window, 'contact:add', invalidContact);
 
           console.log('无效DID添加结果:', result);
 
@@ -732,7 +732,7 @@ test.describe('社交功能 E2E 测试', () => {
           to: 'did:test:receiver',
         };
 
-        const result = await callIPC(window, 'chat:save-message', emptyMessage);
+        const result: any = await callIPC(window, 'chat:save-message', emptyMessage);
 
         expect(result).toBeDefined();
 

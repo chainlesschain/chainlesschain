@@ -21,6 +21,7 @@ const { getGitConfig } = require('./git/git-config');
 const { LLMManager } = require('./llm/llm-manager');
 const { getLLMConfig } = require('./llm/llm-config');
 const LLMSelector = require('./llm/llm-selector');
+const { registerVolcengineIPC } = require('./llm/volcengine-ipc');
 const { RAGManager } = require('./rag/rag-manager');
 const FileImporter = require('./import/file-importer');
 const VideoImporter = require('./video/video-importer');
@@ -1057,6 +1058,14 @@ class ChainlessChainApp {
         toolManager: this.toolManager
       });
       console.log('[Main] 技能和工具IPC handlers已注册');
+
+      // 注册火山引擎工具调用IPC handlers
+      try {
+        registerVolcengineIPC();
+        console.log('[Main] 火山引擎工具调用IPC handlers已注册');
+      } catch (error) {
+        console.warn('[Main] 火山引擎IPC注册失败（可能API Key未配置）:', error.message);
+      }
 
       console.log('[Main] 技能和工具管理系统初始化完成（含桥接器）');
     } catch (error) {

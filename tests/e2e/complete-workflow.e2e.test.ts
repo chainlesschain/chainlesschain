@@ -32,7 +32,7 @@ test.describe('完整工作流 E2E 测试', () => {
           rootPath: `/tmp/ai-demo-${Date.now()}`,
         };
 
-        const createResult = await callIPC(window, 'project:create-quick', projectData);
+        const createResult: any = await callIPC(window, 'project:create-quick', projectData);
 
         expect(createResult).toBeDefined();
         expect(createResult.success).toBe(true);
@@ -57,7 +57,7 @@ test.describe('完整工作流 E2E 测试', () => {
         console.log('\n========== 步骤2: 用户提出需求 ==========');
 
         // 获取项目列表确认项目存在
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
         expect(projects).toBeDefined();
         expect(Array.isArray(projects)).toBe(true);
 
@@ -79,14 +79,14 @@ test.describe('完整工作流 E2E 测试', () => {
         console.log('\n========== 步骤3: 意图识别与任务分解 ==========');
 
         // 获取项目
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目，跳过测试');
           return;
         }
 
         projectId = projects[0].id;
-        const project = await callIPC(window, 'project:get', projectId);
+        const project: any = await callIPC(window, 'project:get', projectId);
 
         // 用户需求
         const userRequest = '帮我创建一个用户登录功能，包括用户名密码登录和记住我功能';
@@ -103,7 +103,7 @@ test.describe('完整工作流 E2E 测试', () => {
         console.log('   开始任务分解...');
 
         // 调用任务分解接口
-        const decomposeResult = await callIPC(
+        const decomposeResult: any = await callIPC(
           window,
           'project:decompose-task',
           userRequest,
@@ -152,7 +152,7 @@ test.describe('完整工作流 E2E 测试', () => {
         console.log('\n========== 步骤4: AI对话 ==========');
 
         // 获取项目
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目，跳过测试');
           return;
@@ -177,7 +177,7 @@ test.describe('完整工作流 E2E 测试', () => {
         console.log('   用户问题:', chatData.message);
 
         // 调用AI对话接口
-        const chatResult = await callIPC(window, 'project:aiChat', chatData);
+        const chatResult: any = await callIPC(window, 'project:aiChat', chatData);
 
         console.log('   AI响应:', JSON.stringify(chatResult, null, 2));
 
@@ -214,7 +214,7 @@ test.describe('完整工作流 E2E 测试', () => {
 - is_active (是否激活)
 `;
 
-        const codeGenResult = await callIPC(
+        const codeGenResult: any = await callIPC(
           window,
           'project:code-generate',
           modelDescription,
@@ -245,7 +245,7 @@ test.describe('完整工作流 E2E 测试', () => {
 - 处理"记住我"功能
 `;
 
-        const viewGenResult = await callIPC(
+        const viewGenResult: any = await callIPC(
           window,
           'project:code-generate',
           viewDescription,
@@ -281,7 +281,7 @@ def login(request):
 
         console.log('   提交代码进行审查...');
 
-        const reviewResult = await callIPC(
+        const reviewResult: any = await callIPC(
           window,
           'project:code-review',
           sampleCode,
@@ -337,7 +337,7 @@ def login(request):
 
         const bugDescription = '代码存在安全漏洞：明文密码比较和未处理的异常';
 
-        const fixResult = await callIPC(
+        const fixResult: any = await callIPC(
           window,
           'project:code-fix-bug',
           buggyCode,
@@ -360,7 +360,7 @@ def login(request):
         // 代码优化
         console.log('\n   任务: 优化代码性能...');
 
-        const optimizeResult = await callIPC(
+        const optimizeResult: any = await callIPC(
           window,
           'project:code-optimize',
           buggyCode,
@@ -404,7 +404,7 @@ def login_view(request):
 
         console.log('   任务: 为登录功能生成单元测试...');
 
-        const testResult = await callIPC(
+        const testResult: any = await callIPC(
           window,
           'project:code-generate-tests',
           codeToTest,
@@ -432,7 +432,7 @@ def login_view(request):
         console.log('\n========== 步骤9: 保存文件到项目 ==========');
 
         // 获取项目
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目，跳过测试');
           return;
@@ -473,7 +473,7 @@ def login_view(request):
 
         console.log(`   保存 ${files.length} 个文件到项目...`);
 
-        const saveResult = await callIPC(window, 'project:save-files', projectId, files);
+        const saveResult: any = await callIPC(window, 'project:save-files', projectId, files);
 
         expect(saveResult).toBeDefined();
         expect(saveResult.success).toBeTruthy();
@@ -495,7 +495,7 @@ def login_view(request):
         console.log('\n========== 步骤10: 同步项目 ==========');
 
         // 获取项目
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目，跳过测试');
           return;
@@ -505,7 +505,7 @@ def login_view(request):
 
         console.log('   开始同步项目到后端...');
 
-        const syncResult = await callIPC(window, 'project:sync-one', projectId);
+        const syncResult: any = await callIPC(window, 'project:sync-one', projectId);
 
         expect(syncResult).toBeDefined();
 
@@ -528,7 +528,7 @@ def login_view(request):
         console.log('\n========== 步骤11: 查看任务历史 ==========');
 
         // 获取项目
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目，跳过测试');
           return;
@@ -537,7 +537,7 @@ def login_view(request):
         projectId = projects[0].id;
 
         // 获取任务计划历史
-        const history = await callIPC(
+        const history: any = await callIPC(
           window,
           'project:get-task-plan-history',
           projectId,
@@ -575,7 +575,7 @@ def login_view(request):
       try {
         console.log('\n========== LLM状态检查 ==========');
 
-        const status = await callIPC(window, 'llm:check-status');
+        const status: any = await callIPC(window, 'llm:check-status');
 
         expect(status).toBeDefined();
 
@@ -609,7 +609,7 @@ def login_view(request):
           enableRAG: false,
         };
 
-        const response = await callIPC(window, 'llm:chat', chatOptions);
+        const response: any = await callIPC(window, 'llm:chat', chatOptions);
 
         expect(response).toBeDefined();
 
@@ -643,7 +643,7 @@ def login_view(request):
           messages: [],
         };
 
-        const response = await callIPC(window, 'llm:chat-with-template', templateOptions);
+        const response: any = await callIPC(window, 'llm:chat-with-template', templateOptions);
 
         expect(response).toBeDefined();
 
@@ -666,7 +666,7 @@ def login_view(request):
         console.log('\n========== LLM配置管理 ==========');
 
         // 获取当前配置
-        const config = await callIPC(window, 'llm:get-config');
+        const config: any = await callIPC(window, 'llm:get-config');
 
         expect(config).toBeDefined();
 
@@ -674,7 +674,7 @@ def login_view(request):
         console.log(`   ✅ 获取配置成功!`);
 
         // 列出可用模型
-        const models = await callIPC(window, 'llm:list-models');
+        const models: any = await callIPC(window, 'llm:list-models');
 
         expect(models).toBeDefined();
 

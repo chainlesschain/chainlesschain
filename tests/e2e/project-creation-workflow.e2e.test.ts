@@ -95,7 +95,7 @@ test.describe('项目创建流程 E2E 测试', () => {
 
       try {
         // 通过 IPC 获取模板列表
-        const templates = await callIPC(window, 'template:getAll', {});
+        const templates: any = await callIPC(window, 'template:getAll', {});
 
         console.log('获取到的模板数量:', templates?.length || 0);
 
@@ -122,11 +122,11 @@ test.describe('项目创建流程 E2E 测试', () => {
 
       try {
         // 通过 IPC 获取单个模板详情
-        const templates = await callIPC(window, 'template:getAll', {});
+        const templates: any = await callIPC(window, 'template:getAll', {});
 
         if (templates && templates.length > 0) {
           const templateId = templates[0].id;
-          const template = await callIPC(window, 'template:getById', templateId);
+          const template: any = await callIPC(window, 'template:getById', templateId);
 
           expect(template).toBeDefined();
           expect(template.id).toBe(templateId);
@@ -144,7 +144,7 @@ test.describe('项目创建流程 E2E 测试', () => {
 
       try {
         // 创建测试模板
-        const result = await callIPC(window, 'template:create', TEST_TEMPLATE);
+        const result: any = await callIPC(window, 'template:create', TEST_TEMPLATE);
 
         if (result.success || result.template) {
           const template = result.template || result;
@@ -155,7 +155,7 @@ test.describe('项目创建流程 E2E 测试', () => {
             projectName: '我的测试项目',
           };
 
-          const rendered = await callIPC(
+          const rendered: any = await callIPC(
             window,
             'template:renderPrompt',
             template.id,
@@ -257,7 +257,7 @@ test.describe('项目创建流程 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const skills = await callIPC(window, 'skill:getAll');
+        const skills: any = await callIPC(window, 'skill:getAll');
 
         console.log('获取到的技能数量:', skills?.length || 0);
 
@@ -283,7 +283,7 @@ test.describe('项目创建流程 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const tools = await callIPC(window, 'tool:getAll');
+        const tools: any = await callIPC(window, 'tool:getAll');
 
         console.log('获取到的工具数量:', tools?.length || 0);
 
@@ -309,7 +309,7 @@ test.describe('项目创建流程 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const skills = await callIPC(window, 'skill:getAll');
+        const skills: any = await callIPC(window, 'skill:getAll');
 
         if (skills && skills.length > 0) {
           const enabledSkills = skills.filter((s: any) => s.enabled);
@@ -327,7 +327,7 @@ test.describe('项目创建流程 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const skills = await callIPC(window, 'skill:getAll');
+        const skills: any = await callIPC(window, 'skill:getAll');
 
         if (skills && skills.length > 0) {
           const categories = [...new Set(skills.map((s: any) => s.category))];
@@ -355,7 +355,7 @@ test.describe('项目创建流程 E2E 测试', () => {
 
       try {
         // 调用创建项目接口
-        const result = await callIPC(window, 'project:create', TEST_PROJECT_DATA);
+        const result: any = await callIPC(window, 'project:create', TEST_PROJECT_DATA);
 
         console.log('创建项目结果:', result);
 
@@ -385,8 +385,8 @@ test.describe('项目创建流程 E2E 测试', () => {
 
       try {
         // 获取技能和工具列表
-        const skills = await callIPC(window, 'skill:getAll');
-        const tools = await callIPC(window, 'tool:getAll');
+        const skills: any = await callIPC(window, 'skill:getAll');
+        const tools: any = await callIPC(window, 'tool:getAll');
 
         const projectData = {
           ...TEST_PROJECT_DATA,
@@ -397,7 +397,7 @@ test.describe('项目创建流程 E2E 测试', () => {
 
         console.log('创建项目数据:', projectData);
 
-        const result = await callIPC(window, 'project:create', projectData);
+        const result: any = await callIPC(window, 'project:create', projectData);
 
         if (result.success || result.project) {
           const project = result.project || result;
@@ -420,7 +420,7 @@ test.describe('项目创建流程 E2E 测试', () => {
 
       try {
         // 先创建测试模板
-        const templateResult = await callIPC(window, 'template:create', TEST_TEMPLATE);
+        const templateResult: any = await callIPC(window, 'template:create', TEST_TEMPLATE);
 
         if (templateResult.success || templateResult.template) {
           const template = templateResult.template || templateResult;
@@ -432,7 +432,7 @@ test.describe('项目创建流程 E2E 测试', () => {
             templateId: template.id,
           };
 
-          const result = await callIPC(window, 'project:create', projectData);
+          const result: any = await callIPC(window, 'project:create', projectData);
 
           if (result.success || result.project) {
             const project = result.project || result;
@@ -463,7 +463,7 @@ test.describe('项目创建流程 E2E 测试', () => {
           userId: TEST_USER_ID,
         };
 
-        const result = await callIPC(window, 'project:create', invalidData);
+        const result: any = await callIPC(window, 'project:create', invalidData);
 
         // 应该返回错误或失败
         console.log('无效数据创建结果:', result);
@@ -538,7 +538,7 @@ test.describe('项目创建流程 E2E 测试', () => {
 
       try {
         // 创建项目
-        const result = await callIPC(window, 'project:create', TEST_PROJECT_DATA);
+        const result: any = await callIPC(window, 'project:create', TEST_PROJECT_DATA);
 
         if (result.success || result.project) {
           const project = result.project || result;
@@ -578,7 +578,7 @@ test.describe('项目创建流程 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const templates = await callIPC(window, 'template:getAll', {});
+        const templates: any = await callIPC(window, 'template:getAll', {});
 
         // 应该返回数组（即使是空的）
         expect(Array.isArray(templates) || templates === null).toBe(true);
@@ -595,7 +595,7 @@ test.describe('项目创建流程 E2E 测试', () => {
       try {
         const fakeTemplateId = 'non-existent-template-12345';
 
-        const result = await callIPC(window, 'template:getById', fakeTemplateId);
+        const result: any = await callIPC(window, 'template:getById', fakeTemplateId);
 
         // 应该返回 null 或错误
         console.log('不存在的模板ID返回:', result);
@@ -621,7 +621,7 @@ test.describe('项目创建流程 E2E 测试', () => {
           tools: [],
         };
 
-        const result = await callIPC(window, 'project:create', projectData);
+        const result: any = await callIPC(window, 'project:create', projectData);
 
         // 应该能够成功创建
         if (result.success || result.project) {

@@ -25,7 +25,7 @@ test.describe('知识库功能 E2E 测试', () => {
       try {
         console.log('\n========== 创建知识内容 ==========');
 
-        const result = await callIPC(window, 'knowledge:create-content', TEST_CONTENT);
+        const result: any = await callIPC(window, 'knowledge:create-content', TEST_CONTENT);
 
         console.log('创建结果:', result);
 
@@ -65,7 +65,7 @@ test.describe('知识库功能 E2E 测试', () => {
           category: null,
         };
 
-        const result = await callIPC(window, 'knowledge:list-contents', filters);
+        const result: any = await callIPC(window, 'knowledge:list-contents', filters);
 
         console.log('列表结果:', result);
 
@@ -102,7 +102,7 @@ test.describe('知识库功能 E2E 测试', () => {
         console.log('\n========== 获取知识详情 ==========');
 
         // 先获取列表
-        const listResult = await callIPC(window, 'knowledge:list-contents', {
+        const listResult: any = await callIPC(window, 'knowledge:list-contents', {
           limit: 1,
         });
 
@@ -116,7 +116,7 @@ test.describe('知识库功能 E2E 测试', () => {
         const contentId = contents[0].id;
 
         // 获取详情
-        const result = await callIPC(window, 'knowledge:get-content', contentId);
+        const result: any = await callIPC(window, 'knowledge:get-content', contentId);
 
         console.log('详情结果:', result);
 
@@ -146,7 +146,7 @@ test.describe('知识库功能 E2E 测试', () => {
         console.log('\n========== 更新知识内容 ==========');
 
         // 先获取一个内容
-        const listResult = await callIPC(window, 'knowledge:list-contents', {
+        const listResult: any = await callIPC(window, 'knowledge:list-contents', {
           limit: 1,
         });
 
@@ -166,7 +166,7 @@ test.describe('知识库功能 E2E 测试', () => {
           tags: ['updated', 'e2e'],
         };
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'knowledge:update-content',
           contentId,
@@ -206,7 +206,7 @@ test.describe('知识库功能 E2E 测试', () => {
           title: 'Temp Content for Deletion',
         };
 
-        const createResult = await callIPC(
+        const createResult: any = await callIPC(
           window,
           'knowledge:create-content',
           tempContent
@@ -221,7 +221,7 @@ test.describe('知识库功能 E2E 测试', () => {
         }
 
         // 删除内容
-        const deleteResult = await callIPC(
+        const deleteResult: any = await callIPC(
           window,
           'knowledge:delete-content',
           contentId
@@ -250,7 +250,7 @@ test.describe('知识库功能 E2E 测试', () => {
       try {
         console.log('\n========== 获取标签列表 ==========');
 
-        const result = await callIPC(window, 'knowledge:get-tags');
+        const result: any = await callIPC(window, 'knowledge:get-tags');
 
         console.log('标签结果:', result);
 
@@ -286,7 +286,7 @@ test.describe('知识库功能 E2E 测试', () => {
 
         const query = '测试';
 
-        const result = await callIPC(window, 'db:search-knowledge-items', query);
+        const result: any = await callIPC(window, 'db:search-knowledge-items', query);
 
         console.log('搜索结果:', result);
 
@@ -330,7 +330,7 @@ test.describe('知识库功能 E2E 测试', () => {
           limit: 10,
         };
 
-        const result = await callIPC(window, 'knowledge:list-contents', filters);
+        const result: any = await callIPC(window, 'knowledge:list-contents', filters);
 
         expect(result).toBeDefined();
 
@@ -369,7 +369,7 @@ test.describe('知识库功能 E2E 测试', () => {
           limit: 10,
         };
 
-        const result = await callIPC(window, 'knowledge:list-contents', filters);
+        const result: any = await callIPC(window, 'knowledge:list-contents', filters);
 
         expect(result).toBeDefined();
 
@@ -395,7 +395,7 @@ test.describe('知识库功能 E2E 测试', () => {
         console.log('\n========== 获取版本历史 ==========');
 
         // 获取一个内容
-        const listResult = await callIPC(window, 'knowledge:list-contents', {
+        const listResult: any = await callIPC(window, 'knowledge:list-contents', {
           limit: 1,
         });
 
@@ -409,7 +409,7 @@ test.describe('知识库功能 E2E 测试', () => {
         const contentId = contents[0].id;
 
         // 获取版本历史
-        const result = await callIPC(window, 'knowledge:get-version-history', {
+        const result: any = await callIPC(window, 'knowledge:get-version-history', {
           contentId,
           limit: 10,
         });
@@ -458,7 +458,7 @@ test.describe('知识库功能 E2E 测试', () => {
         console.log('\n========== 比较版本 ==========');
 
         // 获取一个内容的版本历史
-        const listResult = await callIPC(window, 'knowledge:list-contents', {
+        const listResult: any = await callIPC(window, 'knowledge:list-contents', {
           limit: 1,
         });
 
@@ -471,7 +471,7 @@ test.describe('知识库功能 E2E 测试', () => {
 
         const contentId = contents[0].id;
 
-        const versionsResult = await callIPC(
+        const versionsResult: any = await callIPC(
           window,
           'knowledge:get-version-history',
           { contentId, limit: 2 }
@@ -486,7 +486,7 @@ test.describe('知识库功能 E2E 测试', () => {
         }
 
         // 比较版本
-        const result = await callIPC(window, 'knowledge:compare-versions', {
+        const result: any = await callIPC(window, 'knowledge:compare-versions', {
           contentId,
           version1: versions[0].id || versions[0].version,
           version2: versions[1].id || versions[1].version,
@@ -519,7 +519,7 @@ test.describe('知识库功能 E2E 测试', () => {
         console.log('\n========== 恢复版本 ==========');
 
         // 先创建内容并更新几次
-        const content = await callIPC(window, 'knowledge:create-content', {
+        const content: any = await callIPC(window, 'knowledge:create-content', {
           title: 'Version Test Content',
           content: 'Version 1',
         });
@@ -537,7 +537,7 @@ test.describe('知识库功能 E2E 测试', () => {
         });
 
         // 获取版本历史
-        const versionsResult = await callIPC(
+        const versionsResult: any = await callIPC(
           window,
           'knowledge:get-version-history',
           { contentId, limit: 2 }
@@ -554,7 +554,7 @@ test.describe('知识库功能 E2E 测试', () => {
         // 恢复到第一个版本
         const versionId = versions[0].id || versions[0].version;
 
-        const restoreResult = await callIPC(window, 'knowledge:restore-version', {
+        const restoreResult: any = await callIPC(window, 'knowledge:restore-version', {
           contentId,
           versionId,
         });
@@ -588,7 +588,7 @@ test.describe('知识库功能 E2E 测试', () => {
         const limit = 10;
         const offset = 0;
 
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'db:get-knowledge-items',
           limit,
@@ -632,7 +632,7 @@ test.describe('知识库功能 E2E 测试', () => {
           createdAt: new Date().toISOString(),
         };
 
-        const result = await callIPC(window, 'db:add-knowledge-item', item);
+        const result: any = await callIPC(window, 'db:add-knowledge-item', item);
 
         console.log('数据库添加结果:', result);
 
@@ -643,7 +643,7 @@ test.describe('知识库功能 E2E 测试', () => {
           console.log(`   条目ID: ${result.id || item.id}`);
 
           // 验证添加成功：尝试读取
-          const readResult = await callIPC(
+          const readResult: any = await callIPC(
             window,
             'db:get-knowledge-item-by-id',
             result.id || item.id
@@ -669,7 +669,7 @@ test.describe('知识库功能 E2E 测试', () => {
       try {
         console.log('\n========== 空搜索查询 ==========');
 
-        const result = await callIPC(window, 'db:search-knowledge-items', '');
+        const result: any = await callIPC(window, 'db:search-knowledge-items', '');
 
         expect(result).toBeDefined();
 
@@ -687,7 +687,7 @@ test.describe('知识库功能 E2E 测试', () => {
 
         const fakeId = 'non-existent-id-12345';
 
-        const result = await callIPC(window, 'knowledge:get-content', fakeId);
+        const result: any = await callIPC(window, 'knowledge:get-content', fakeId);
 
         // 应该返回null或错误
         console.log('不存在ID的查询结果:', result);
@@ -711,7 +711,7 @@ test.describe('知识库功能 E2E 测试', () => {
         };
 
         try {
-          const result = await callIPC(
+          const result: any = await callIPC(
             window,
             'knowledge:create-content',
             invalidContent

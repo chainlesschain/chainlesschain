@@ -56,7 +56,7 @@ const DEFAULT_CONFIG = {
     apiKey: '',
     baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
     model: 'doubao-seed-1-6-lite-251015',
-    embeddingModel: 'doubao-embedding', // 火山引擎嵌入模型
+    embeddingModel: 'doubao-embedding-text-240715', // 火山引擎嵌入模型（推荐使用 text-240715）
   },
 
   // 自定义配置
@@ -363,6 +363,7 @@ class LLMConfig {
           ...baseConfig,
           ollamaURL: providerConfig.url,
           model: providerConfig.model,
+          embeddingModel: providerConfig.embeddingModel,
         };
 
       case 'openai':
@@ -371,6 +372,7 @@ class LLMConfig {
           apiKey: providerConfig.apiKey,
           baseURL: providerConfig.baseURL,
           model: providerConfig.model,
+          embeddingModel: providerConfig.embeddingModel,
           organization: providerConfig.organization,
         };
 
@@ -380,6 +382,7 @@ class LLMConfig {
           apiKey: providerConfig.apiKey,
           baseURL: providerConfig.baseURL || 'https://api.anthropic.com',
           model: providerConfig.model,
+          embeddingModel: providerConfig.embeddingModel,
           anthropicVersion: providerConfig.version,
         };
 
@@ -389,6 +392,7 @@ class LLMConfig {
           apiKey: providerConfig.apiKey,
           baseURL: providerConfig.baseURL || 'https://api.deepseek.com/v1',
           model: providerConfig.model,
+          embeddingModel: providerConfig.embeddingModel,
         };
 
       case 'volcengine':
@@ -397,6 +401,7 @@ class LLMConfig {
           apiKey: providerConfig.apiKey,
           baseURL: providerConfig.baseURL || 'https://ark.cn-beijing.volces.com/api/v3',
           model: providerConfig.model,
+          embeddingModel: providerConfig.embeddingModel,
         };
 
       case 'custom':
@@ -405,6 +410,7 @@ class LLMConfig {
           apiKey: providerConfig.apiKey,
           baseURL: providerConfig.baseURL,
           model: providerConfig.model,
+          embeddingModel: providerConfig.embeddingModel,
         };
 
       default:
