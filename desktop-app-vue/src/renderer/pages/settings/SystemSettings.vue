@@ -172,8 +172,14 @@
                 <a-form-item label="服务地址">
                   <a-input v-model:value="config.llm.ollamaHost" placeholder="http://localhost:11434" />
                 </a-form-item>
-                <a-form-item label="模型名称">
+                <a-form-item label="对话模型">
                   <a-input v-model:value="config.llm.ollamaModel" placeholder="qwen2:7b" />
+                </a-form-item>
+                <a-form-item label="嵌入模型">
+                  <a-input v-model:value="config.llm.ollamaEmbeddingModel" placeholder="nomic-embed-text" />
+                  <template #extra>
+                    <span style="color: #999;">用于生成文本嵌入向量的模型</span>
+                  </template>
                 </a-form-item>
               </template>
 
@@ -186,8 +192,14 @@
                 <a-form-item label="API 地址">
                   <a-input v-model:value="config.llm.openaiBaseUrl" placeholder="https://api.openai.com/v1" />
                 </a-form-item>
-                <a-form-item label="模型">
+                <a-form-item label="对话模型">
                   <a-input v-model:value="config.llm.openaiModel" placeholder="gpt-3.5-turbo" />
+                </a-form-item>
+                <a-form-item label="嵌入模型">
+                  <a-input v-model:value="config.llm.openaiEmbeddingModel" placeholder="text-embedding-3-small" />
+                  <template #extra>
+                    <span style="color: #999;">推荐: text-embedding-3-small 或 text-embedding-3-large</span>
+                  </template>
                 </a-form-item>
               </template>
 
@@ -200,8 +212,14 @@
                 <a-form-item label="API 地址">
                   <a-input v-model:value="config.llm.anthropicBaseUrl" placeholder="https://api.anthropic.com" />
                 </a-form-item>
-                <a-form-item label="模型">
+                <a-form-item label="对话模型">
                   <a-input v-model:value="config.llm.anthropicModel" placeholder="claude-3-5-sonnet-20241022" />
+                </a-form-item>
+                <a-form-item label="嵌入模型">
+                  <a-input v-model:value="config.llm.anthropicEmbeddingModel" placeholder="需使用其他服务（如Voyage AI）" disabled />
+                  <template #extra>
+                    <span style="color: #999;">Claude暂无嵌入模型API，建议使用OpenAI或其他服务</span>
+                  </template>
                 </a-form-item>
               </template>
 
@@ -211,8 +229,14 @@
                 <a-form-item label="API Key">
                   <a-input-password v-model:value="config.llm.volcengineApiKey" />
                 </a-form-item>
-                <a-form-item label="模型">
-                  <a-input v-model:value="config.llm.volcengineModel" placeholder="doubao-seed-1-6-lite-251015" />
+                <a-form-item label="对话模型">
+                  <a-input v-model:value="config.llm.volcengineModel" placeholder="doubao-seed-1-6-flash-250828" />
+                </a-form-item>
+                <a-form-item label="嵌入模型">
+                  <a-input v-model:value="config.llm.volcengineEmbeddingModel" placeholder="doubao-embedding" />
+                  <template #extra>
+                    <span style="color: #999;">火山引擎提供的文本嵌入模型</span>
+                  </template>
                 </a-form-item>
               </template>
 
@@ -222,12 +246,18 @@
                 <a-form-item label="API Key">
                   <a-input-password v-model:value="config.llm.dashscopeApiKey" />
                 </a-form-item>
-                <a-form-item label="模型">
+                <a-form-item label="对话模型">
                   <a-select v-model:value="config.llm.dashscopeModel" style="width: 100%;">
                     <a-select-option value="qwen-turbo">Qwen Turbo（推荐）</a-select-option>
                     <a-select-option value="qwen-plus">Qwen Plus</a-select-option>
                     <a-select-option value="qwen-max">Qwen Max</a-select-option>
                   </a-select>
+                </a-form-item>
+                <a-form-item label="嵌入模型">
+                  <a-input v-model:value="config.llm.dashscopeEmbeddingModel" placeholder="text-embedding-v2" />
+                  <template #extra>
+                    <span style="color: #999;">阿里云灵积提供的嵌入模型</span>
+                  </template>
                 </a-form-item>
               </template>
 
@@ -237,8 +267,14 @@
                 <a-form-item label="API Key">
                   <a-input-password v-model:value="config.llm.zhipuApiKey" />
                 </a-form-item>
-                <a-form-item label="模型">
+                <a-form-item label="对话模型">
                   <a-input v-model:value="config.llm.zhipuModel" placeholder="glm-4" />
+                </a-form-item>
+                <a-form-item label="嵌入模型">
+                  <a-input v-model:value="config.llm.zhipuEmbeddingModel" placeholder="embedding-2" />
+                  <template #extra>
+                    <span style="color: #999;">智谱AI提供的文本嵌入模型</span>
+                  </template>
                 </a-form-item>
               </template>
 
@@ -248,8 +284,14 @@
                 <a-form-item label="API Key">
                   <a-input-password v-model:value="config.llm.deepseekApiKey" />
                 </a-form-item>
-                <a-form-item label="模型">
+                <a-form-item label="对话模型">
                   <a-input v-model:value="config.llm.deepseekModel" placeholder="deepseek-chat" />
+                </a-form-item>
+                <a-form-item label="嵌入模型">
+                  <a-input v-model:value="config.llm.deepseekEmbeddingModel" placeholder="" />
+                  <template #extra>
+                    <span style="color: #999;">DeepSeek嵌入模型（如支持）</span>
+                  </template>
                 </a-form-item>
               </template>
 
@@ -873,20 +915,27 @@ const config = ref({
     selectionStrategy: 'balanced',
     ollamaHost: '',
     ollamaModel: '',
+    ollamaEmbeddingModel: '',
     openaiApiKey: '',
     openaiBaseUrl: '',
     openaiModel: '',
+    openaiEmbeddingModel: '',
     anthropicApiKey: '',
     anthropicBaseUrl: '',
     anthropicModel: '',
+    anthropicEmbeddingModel: '',
     volcengineApiKey: '',
     volcengineModel: '',
+    volcengineEmbeddingModel: '',
     dashscopeApiKey: '',
     dashscopeModel: '',
+    dashscopeEmbeddingModel: '',
     zhipuApiKey: '',
     zhipuModel: '',
+    zhipuEmbeddingModel: '',
     deepseekApiKey: '',
     deepseekModel: '',
+    deepseekEmbeddingModel: '',
   },
   vector: {
     qdrantHost: '',

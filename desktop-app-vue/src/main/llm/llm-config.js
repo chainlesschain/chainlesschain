@@ -22,6 +22,7 @@ const DEFAULT_CONFIG = {
   ollama: {
     url: 'http://localhost:11434',
     model: 'llama2',
+    embeddingModel: 'nomic-embed-text', // Ollama嵌入模型
   },
 
   // OpenAI配置
@@ -29,6 +30,7 @@ const DEFAULT_CONFIG = {
     apiKey: '',
     baseURL: 'https://api.openai.com/v1',
     model: 'gpt-3.5-turbo',
+    embeddingModel: 'text-embedding-3-small', // OpenAI嵌入模型
     organization: '',
   },
 
@@ -37,6 +39,7 @@ const DEFAULT_CONFIG = {
     apiKey: '',
     baseURL: 'https://api.anthropic.com',
     model: 'claude-3-opus-20240229',
+    embeddingModel: '', // Anthropic目前无嵌入模型API，使用外部服务
     version: '2023-06-01',
   },
 
@@ -45,6 +48,7 @@ const DEFAULT_CONFIG = {
     apiKey: '',
     baseURL: 'https://api.deepseek.com/v1',
     model: 'deepseek-chat',
+    embeddingModel: '', // DeepSeek嵌入模型（若支持）
   },
 
   // 豆包（火山引擎）配置
@@ -52,6 +56,7 @@ const DEFAULT_CONFIG = {
     apiKey: '',
     baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
     model: 'doubao-seed-1-6-lite-251015',
+    embeddingModel: 'doubao-embedding', // 火山引擎嵌入模型
   },
 
   // 自定义配置
@@ -59,6 +64,7 @@ const DEFAULT_CONFIG = {
     apiKey: '',
     baseURL: '',
     model: '',
+    embeddingModel: '',
     name: 'Custom Provider',
   },
 
