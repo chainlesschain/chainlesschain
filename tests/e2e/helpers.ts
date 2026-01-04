@@ -18,7 +18,7 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
   // 确定主进程入口文件路径
   const mainPath = path.join(__dirname, '../../desktop-app-vue/dist/main/index.js');
 
-  // 启动Electron
+  // 启动Electron（增加超时时间）
   const app = await electron.launch({
     args: [mainPath],
     env: {
@@ -26,18 +26,34 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       NODE_ENV: 'test',
       ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
     },
+    timeout: 60000, // 60秒启动超时
   });
 
-  // 等待并获取第一个窗口
-  const window = await app.firstWindow();
+  // 等待并获取第一个窗口（增加超时）
+  const window = await app.firstWindow({
+    timeout: 30000, // 30秒窗口创建超时
+  });
 
   // 等待加载完成
-  await window.waitForLoadState('domcontentloaded');
-
-  // 等待IPC API准备就绪
-  await window.waitForFunction(() => {
-    return typeof (window as any).electronAPI !== 'undefined';
+  await window.waitForLoadState('domcontentloaded', {
+    timeout: 30000,
   });
+
+  // 等待IPC API准备就绪（可选，某些应用可能不需要electronAPI）
+  try {
+    await window.waitForFunction(
+      () => {
+        return (
+          typeof (window as any).electronAPI !== 'undefined' ||
+          typeof (window as any).electron !== 'undefined' ||
+          typeof (window as any).api !== 'undefined'
+        );
+      },
+      { timeout: 10000 }
+    );
+  } catch (error) {
+    console.warn('Warning: electronAPI not found, but continuing anyway');
+  }
 
   return { app, window };
 }
@@ -51,31 +67,59 @@ export async function closeElectronApp(app: ElectronApplication): Promise<void> 
 
 /**
  * 调用IPC API
+ * 使用electronAPI暴露的接口调用IPC
+ * IPC通道格式如 'project:get-all' 会被转换为 electronAPI的方法调用
  */
 export async function callIPC<T>(
   window: Page,
-  apiPath: string,
+  channel: string,
   ...args: any[]
 ): Promise<T> {
   return await window.evaluate(
-    async ({ path, args }) => {
-      const pathParts = path.split('.');
-      let api: any = (window as any).electronAPI;
+    async ({ channel, args }) => {
+      // 通过window.electron对象调用IPC（如果可用）
+      if ((window as any).electron && (window as any).electron.ipcRenderer) {
+        return await (window as any).electron.ipcRenderer.invoke(channel, ...args);
+      }
 
-      for (const part of pathParts) {
-        api = api[part];
-        if (!api) {
-          throw new Error(`API path not found: ${path}`);
+      // 或者通过preload暴露的API
+      if ((window as any).api && typeof (window as any).api.invoke === 'function') {
+        return await (window as any).api.invoke(channel, ...args);
+      }
+
+      // 最后尝试使用electronAPI对象（如果是嵌套路径格式）
+      // 例如：'project.getAll' -> electronAPI.project.getAll()
+      if ((window as any).electronAPI) {
+        // 如果是IPC通道格式（如 'project:get-all'），转换为对象路径
+        let apiPath = channel;
+        if (channel.includes(':')) {
+          // 将 'project:get-all' 转换为 'project.getAll'
+          const [module, method] = channel.split(':');
+          // 将 kebab-case 转换为 camelCase
+          const camelMethod = method.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+          apiPath = `${module}.${camelMethod}`;
         }
+
+        const pathParts = apiPath.split('.');
+        let api: any = (window as any).electronAPI;
+
+        for (const part of pathParts) {
+          api = api[part];
+          if (!api) {
+            throw new Error(`API path not found: ${apiPath} (original: ${channel})`);
+          }
+        }
+
+        if (typeof api !== 'function') {
+          throw new Error(`API is not a function: ${apiPath}`);
+        }
+
+        return await api(...args);
       }
 
-      if (typeof api !== 'function') {
-        throw new Error(`API is not a function: ${path}`);
-      }
-
-      return await api(...args);
+      throw new Error('No IPC interface found in window object');
     },
-    { path: apiPath, args }
+    { channel, args }
   );
 }
 

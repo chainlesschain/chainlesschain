@@ -56,13 +56,7 @@ export default defineConfig({
     },
   ],
 
-  // Webserver配置（用于开发模式）
-  webServer: process.env.CI
-    ? undefined
-    : {
-        command: 'npm run dev:renderer',
-        url: 'http://localhost:5173',
-        reuseExistingServer: !process.env.CI,
-        timeout: 120000,
-      },
+  // E2E测试不需要webserver（直接测试Electron应用）
+  // webServer配置已禁用，因为我们直接启动打包好的Electron应用
+  webServer: undefined,
 });
