@@ -31,10 +31,11 @@ function registerTemplateIPC({
         throw new Error('模板管理器未初始化');
       }
       const templates = await templateManager.getAllTemplates(filters);
-      return { success: true, templates };
+      // 直接返回数组，保持与其他查询接口一致
+      return templates || [];
     } catch (error) {
       console.error('[Template] 获取模板列表失败:', error);
-      return { success: false, error: error.message };
+      return [];
     }
   });
 
@@ -63,10 +64,10 @@ function registerTemplateIPC({
         throw new Error('模板管理器未初始化');
       }
       const templates = await templateManager.searchTemplates(keyword, filters);
-      return { success: true, templates };
+      return templates || [];
     } catch (error) {
       console.error('[Template] 搜索模板失败:', error);
-      return { success: false, error: error.message };
+      return [];
     }
   });
 
@@ -115,6 +116,24 @@ function registerTemplateIPC({
     } catch (error) {
       console.error('[Template] 获取热门模板失败:', error);
       throw error;
+    }
+  });
+
+  /**
+   * 智能推荐模板
+   * 基于用户输入、项目类型和历史使用情况推荐模板
+   */
+  ipcMain.handle('template:recommend', async (_event, userInput, projectType, userId, options = {}) => {
+    try {
+      if (!templateManager) {
+        throw new Error('模板管理器未初始化');
+      }
+      console.log('[Template] 推荐模板:', { userInput, projectType, userId });
+      const templates = await templateManager.recommendTemplates(userInput, projectType, userId, options);
+      return templates || [];
+    } catch (error) {
+      console.error('[Template] 智能推荐模板失败:', error);
+      return [];
     }
   });
 
@@ -427,8 +446,8 @@ function registerTemplateIPC({
     }
   });
 
-  console.log('[Template IPC] ✓ 20 handlers registered');
-  console.log('[Template IPC] - 6 template query handlers');
+  console.log('[Template IPC] ✓ 21 handlers registered');
+  console.log('[Template IPC] - 7 template query handlers (包含智能推荐)');
   console.log('[Template IPC] - 4 template management handlers');
   console.log('[Template IPC] - 3 template rendering handlers');
   console.log('[Template IPC] - 2 usage & rating handlers');

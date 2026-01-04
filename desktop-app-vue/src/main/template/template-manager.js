@@ -845,6 +845,148 @@ class ProjectTemplateManager {
     const templates = stmt.all([limit]);
     return templates.map(t => this.parseTemplateData(t));
   }
+
+  /**
+   * 智能推荐模板
+   * 基于用户输入、项目类型和历史使用情况推荐合适的模板
+   */
+  async recommendTemplates(userInput, projectType, userId, options = {}) {
+    const { limit = 10, includeReasons = true } = options;
+
+    try {
+      // 1. 基础过滤：按项目类型筛选
+      let candidates = [];
+      if (projectType && projectType !== 'general') {
+        candidates = await this.getAllTemplates({ projectType });
+      } else {
+        candidates = await this.getAllTemplates();
+      }
+
+      if (candidates.length === 0) {
+        console.log('[TemplateManager] 没有找到符合条件的模板');
+        return [];
+      }
+
+      // 2. 提取用户输入的关键词
+      const keywords = this.extractKeywords(userInput);
+      console.log('[TemplateManager] 提取的关键词:', keywords);
+
+      // 3. 计算每个模板的相关性分数
+      const scoredTemplates = candidates.map(template => {
+        let score = 0;
+        const reasons = [];
+
+        // 3.1 关键词匹配（权重：40%）
+        const keywordScore = this.calculateKeywordScore(template, keywords);
+        score += keywordScore * 0.4;
+        if (keywordScore > 0) {
+          reasons.push(`关键词匹配 (${(keywordScore * 100).toFixed(0)}%)`);
+        }
+
+        // 3.2 使用频率（权重：20%）
+        const usageScore = Math.min(template.usage_count / 100, 1);
+        score += usageScore * 0.2;
+        if (template.usage_count > 0) {
+          reasons.push(`使用次数: ${template.usage_count}`);
+        }
+
+        // 3.3 评分（权重：20%）
+        const ratingScore = template.rating / 5;
+        score += ratingScore * 0.2;
+        if (template.rating > 0) {
+          reasons.push(`评分: ${template.rating.toFixed(1)}/5.0`);
+        }
+
+        // 3.4 项目类型完全匹配（权重：20%）
+        if (template.project_type === projectType) {
+          score += 0.2;
+          reasons.push('项目类型匹配');
+        }
+
+        return {
+          ...template,
+          score,
+          matchReasons: includeReasons ? reasons : undefined
+        };
+      });
+
+      // 4. 排序并返回top N
+      const recommended = scoredTemplates
+        .filter(t => t.score > 0.1) // 过滤掉分数太低的
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+
+      console.log(`[TemplateManager] 推荐了 ${recommended.length} 个模板，总候选: ${candidates.length}`);
+
+      return recommended;
+    } catch (error) {
+      console.error('[TemplateManager] 推荐模板失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 提取关键词
+   */
+  extractKeywords(text) {
+    if (!text || typeof text !== 'string') {
+      return [];
+    }
+
+    // 简单的中文分词（基于常见词汇）
+    const commonKeywords = [
+      // 技术相关
+      '网站', '应用', 'app', 'web', '博客', 'blog', '前端', '后端', '全栈',
+      '待办', 'todo', '任务', 'task', '管理', '系统',
+      '数据', '分析', '报告', '可视化', '图表', 'dashboard',
+      '社交', '聊天', '论坛', '评论',
+      // 文档相关
+      '文章', '写作', '笔记', '文档', 'markdown', 'md',
+      '简历', 'resume', '个人', '介绍',
+      'ppt', '演示', '幻灯片', 'presentation',
+      'excel', '表格', '数据表',
+      // 创意相关
+      '设计', 'design', 'ui', 'ux',
+      '视频', 'video', '剪辑',
+      '音频', 'podcast', '播客',
+      // 业务相关
+      '营销', '推广', '运营', '电商', 'ecommerce',
+      '教育', '学习', '课程', '培训',
+      '健康', '健身', '食谱', '烹饪',
+      '旅行', '旅游', '规划'
+    ];
+
+    const keywords = [];
+    const lowerText = text.toLowerCase();
+
+    for (const keyword of commonKeywords) {
+      if (lowerText.includes(keyword)) {
+        keywords.push(keyword);
+      }
+    }
+
+    return [...new Set(keywords)]; // 去重
+  }
+
+  /**
+   * 计算关键词匹配分数
+   */
+  calculateKeywordScore(template, keywords) {
+    if (keywords.length === 0) {
+      return 0;
+    }
+
+    let matches = 0;
+    const searchText = `${template.display_name} ${template.description} ${template.tags.join(' ')}`.toLowerCase();
+
+    for (const keyword of keywords) {
+      if (searchText.includes(keyword.toLowerCase())) {
+        matches++;
+      }
+    }
+
+    return matches / keywords.length;
+  }
 }
 
 module.exports = ProjectTemplateManager;

@@ -26,20 +26,25 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
   /**
    * 获取所有技能
    */
-  ipcMain.handle('skill:get-all', async (event, options = {}) => {
+  const getAllSkillsHandler = async (event, options = {}) => {
     try {
       const result = await skillManager.getAllSkills(options);
-      // getAllSkills 已经返回 { success, skills } 格式，转换为前端期望的 { success, data } 格式
+      // 直接返回数组，保持与模板接口一致
       if (result.success) {
-        return { success: true, data: result.skills };
+        return result.skills || [];
       } else {
-        return { success: false, error: result.error };
+        console.error('[IPC] skill:get-all 失败:', result.error);
+        return [];
       }
     } catch (error) {
       console.error('[IPC] skill:get-all 失败:', error);
-      return { success: false, error: error.message };
+      return [];
     }
-  });
+  };
+
+  ipcMain.handle('skill:get-all', getAllSkillsHandler);
+  // 添加驼峰命名别名以兼容不同的调用方式
+  ipcMain.handle('skill:getAll', getAllSkillsHandler);
 
   /**
    * 根据ID获取技能
@@ -196,20 +201,25 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
   /**
    * 获取所有工具
    */
-  ipcMain.handle('tool:get-all', async (event, options = {}) => {
+  const getAllToolsHandler = async (event, options = {}) => {
     try {
       const result = await toolManager.getAllTools(options);
-      // getAllTools 已经返回 { success, tools } 格式，转换为前端期望的 { success, data } 格式
+      // 直接返回数组，保持与模板接口一致
       if (result.success) {
-        return { success: true, data: result.tools };
+        return result.tools || [];
       } else {
-        return { success: false, error: result.error };
+        console.error('[IPC] tool:get-all 失败:', result.error);
+        return [];
       }
     } catch (error) {
       console.error('[IPC] tool:get-all 失败:', error);
-      return { success: false, error: error.message };
+      return [];
     }
-  });
+  };
+
+  ipcMain.handle('tool:get-all', getAllToolsHandler);
+  // 添加驼峰命名别名以兼容不同的调用方式
+  ipcMain.handle('tool:getAll', getAllToolsHandler);
 
   /**
    * 根据ID获取工具

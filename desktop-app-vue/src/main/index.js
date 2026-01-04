@@ -247,11 +247,13 @@ class ChainlessChainApp {
   }
 
   setupApp() {
-    // 单实例锁定
-    const gotTheLock = app.requestSingleInstanceLock();
-    if (!gotTheLock) {
-      app.quit();
-      return;
+    // 单实例锁定（测试环境下跳过）
+    if (process.env.NODE_ENV !== 'test') {
+      const gotTheLock = app.requestSingleInstanceLock();
+      if (!gotTheLock) {
+        app.quit();
+        return;
+      }
     }
 
     app.on('second-instance', () => {
@@ -1304,6 +1306,18 @@ class ChainlessChainApp {
     if (this.aiEngineManager && !this.aiEngineIPC) {
       try {
         console.log('注册AI引擎IPC handlers...');
+
+        // 设置主窗口引用用于发送任务事件
+        if (this.webEngine) {
+          this.webEngine.setMainWindow(this.mainWindow);
+        }
+        if (this.documentEngine && this.documentEngine.setMainWindow) {
+          this.documentEngine.setMainWindow(this.mainWindow);
+        }
+        if (this.dataEngine && this.dataEngine.setMainWindow) {
+          this.dataEngine.setMainWindow(this.mainWindow);
+        }
+
         this.aiEngineIPC = new AIEngineIPC(
           this.aiEngineManager,
           this.webEngine,

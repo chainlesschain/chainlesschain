@@ -13,6 +13,9 @@ class WebEngine {
     // 预览服务器
     this.previewServer = new PreviewServer();
 
+    // 主窗口引用（用于发送事件）
+    this.mainWindow = null;
+
     // 模板定义
     this.templates = {
       blog: {
@@ -44,6 +47,33 @@ class WebEngine {
   }
 
   /**
+   * 设置主窗口引用
+   * @param {BrowserWindow} mainWindow - 主窗口实例
+   */
+  setMainWindow(mainWindow) {
+    this.mainWindow = mainWindow;
+  }
+
+  /**
+   * 发送任务执行事件
+   * @param {string} taskName - 任务名称
+   * @param {string} status - 任务状态 (started, progress, completed, failed)
+   * @param {Object} data - 附加数据
+   */
+  sendTaskEvent(taskName, status, data = {}) {
+    if (this.mainWindow && this.mainWindow.webContents) {
+      const event = {
+        taskName,
+        status,
+        timestamp: Date.now(),
+        ...data
+      };
+      console.log('[Web Engine] 发送任务事件:', event);
+      this.mainWindow.webContents.send('task:progress', event);
+    }
+  }
+
+  /**
    * 生成Web项目
    * @param {Object} options - 配置选项
    * @returns {Promise<Object>} 生成结果
@@ -66,10 +96,16 @@ class WebEngine {
     console.log(`[Web Engine] 生成${this.templates[template]?.name || template}项目...`);
 
     try {
+      // 发送开始事件
+      this.sendTaskEvent('generate-project', 'started', { template, title });
+
       // 创建项目目录结构
+      this.sendTaskEvent('create-structure', 'started');
       await this.createProjectStructure(projectPath);
+      this.sendTaskEvent('create-structure', 'completed');
 
       // 生成HTML文件
+      this.sendTaskEvent('generate-html', 'started');
       const html = this.generateHTML(template, {
         title,
         description,
@@ -81,8 +117,10 @@ class WebEngine {
         html,
         'utf-8'
       );
+      this.sendTaskEvent('generate-html', 'completed', { file: 'index.html' });
 
       // 生成CSS文件
+      this.sendTaskEvent('generate-css', 'started');
       const css = this.generateCSS(template, {
         primaryColor,
         secondaryColor,
@@ -93,8 +131,10 @@ class WebEngine {
         css,
         'utf-8'
       );
+      this.sendTaskEvent('generate-css', 'completed', { file: 'css/style.css' });
 
       // 生成JavaScript文件
+      this.sendTaskEvent('generate-js', 'started');
       const js = this.generateJavaScript(template);
 
       await fs.writeFile(
@@ -102,8 +142,10 @@ class WebEngine {
         js,
         'utf-8'
       );
+      this.sendTaskEvent('generate-js', 'completed', { file: 'js/script.js' });
 
       // 生成README
+      this.sendTaskEvent('generate-readme', 'started');
       const readme = this.generateReadme(title, description, template);
 
       await fs.writeFile(
@@ -111,8 +153,15 @@ class WebEngine {
         readme,
         'utf-8'
       );
+      this.sendTaskEvent('generate-readme', 'completed', { file: 'README.md' });
 
       console.log(`[Web Engine] 项目生成成功: ${projectPath}`);
+
+      // 发送完成事件
+      this.sendTaskEvent('generate-project', 'completed', {
+        projectPath,
+        filesCount: 4
+      });
 
       return {
         success: true,
@@ -127,6 +176,8 @@ class WebEngine {
       };
     } catch (error) {
       console.error('[Web Engine] 生成项目失败:', error);
+      // 发送失败事件
+      this.sendTaskEvent('generate-project', 'failed', { error: error.message });
       throw new Error(`生成Web项目失败: ${error.message}`);
     }
   }
