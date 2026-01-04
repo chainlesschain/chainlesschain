@@ -9,15 +9,15 @@ export default defineConfig({
   // 测试目录
   testDir: './tests/e2e',
 
-  // 测试超时时间
-  timeout: 60000,
+  // 测试超时时间（提升到120秒以支持AI相关的长时间测试）
+  timeout: 120000,
 
-  // 全局超时
+  // 全局超时（10分钟）
   globalTimeout: 600000,
 
-  // 期望超时
+  // 期望超时（提升到15秒以支持较慢的断言）
   expect: {
-    timeout: 10000,
+    timeout: 15000,
   },
 
   // 并发测试
@@ -44,6 +44,12 @@ export default defineConfig({
 
     // 追踪
     trace: 'retain-on-failure',
+
+    // 操作超时（提升到30秒，支持慢速操作）
+    actionTimeout: 30000,
+
+    // 导航超时（提升到60秒，支持慢速页面加载）
+    navigationTimeout: 60000,
 
     // 基础URL (如果需要)
     // baseURL: 'http://localhost:5173',
