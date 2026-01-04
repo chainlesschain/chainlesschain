@@ -1544,17 +1544,26 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:stats:start', async (_event, projectId, projectPath) => {
     try {
-      const { getStatsCollector } = require('./stats-collector');
-      const statsCollector = getStatsCollector();
+      if (!database || !database.db) {
+        console.warn('[Main] 数据库未初始化，跳过统计收集');
+        return { success: false, error: '数据库未初始化' };
+      }
 
-      await statsCollector.initialize();
-      await statsCollector.startProjectStats(projectId, projectPath);
+      const { getStatsCollector } = require('./stats-collector');
+      const statsCollector = getStatsCollector(database.db);
+
+      if (!statsCollector) {
+        console.warn('[Main] 统计收集器初始化失败');
+        return { success: false, error: '统计收集器初始化失败' };
+      }
+
+      statsCollector.startWatching(projectId, projectPath);
 
       console.log('[Main] 项目统计已启动:', projectId);
       return { success: true };
     } catch (error) {
       console.error('[Main] 启动项目统计失败:', error);
-      throw error;
+      return { success: false, error: error.message };
     }
   });
 
@@ -1564,17 +1573,26 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:stats:stop', async (_event, projectId) => {
     try {
-      const { getStatsCollector } = require('./stats-collector');
-      const statsCollector = getStatsCollector();
+      if (!database || !database.db) {
+        console.warn('[Main] 数据库未初始化，跳过统计收集');
+        return { success: false, error: '数据库未初始化' };
+      }
 
-      await statsCollector.initialize();
-      statsCollector.stopProjectStats(projectId);
+      const { getStatsCollector } = require('./stats-collector');
+      const statsCollector = getStatsCollector(database.db);
+
+      if (!statsCollector) {
+        console.warn('[Main] 统计收集器初始化失败');
+        return { success: false, error: '统计收集器初始化失败' };
+      }
+
+      statsCollector.stopWatching(projectId);
 
       console.log('[Main] 项目统计已停止:', projectId);
       return { success: true };
     } catch (error) {
       console.error('[Main] 停止项目统计失败:', error);
-      throw error;
+      return { success: false, error: error.message };
     }
   });
 
@@ -1584,11 +1602,18 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:stats:get', async (_event, projectId) => {
     try {
-      const { getStatsCollector } = require('./stats-collector');
-      const statsCollector = getStatsCollector();
+      if (!database || !database.db) {
+        throw new Error('数据库未初始化');
+      }
 
-      await statsCollector.initialize();
-      const stats = await statsCollector.getProjectStats(projectId);
+      const { getStatsCollector } = require('./stats-collector');
+      const statsCollector = getStatsCollector(database.db);
+
+      if (!statsCollector) {
+        throw new Error('统计收集器初始化失败');
+      }
+
+      const stats = statsCollector.getStats(projectId);
 
       return { success: true, stats };
     } catch (error) {
@@ -1603,11 +1628,18 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:stats:update', async (_event, projectId) => {
     try {
-      const { getStatsCollector } = require('./stats-collector');
-      const statsCollector = getStatsCollector();
+      if (!database || !database.db) {
+        throw new Error('数据库未初始化');
+      }
 
-      await statsCollector.initialize();
-      await statsCollector.updateProjectStats(projectId);
+      const { getStatsCollector } = require('./stats-collector');
+      const statsCollector = getStatsCollector(database.db);
+
+      if (!statsCollector) {
+        throw new Error('统计收集器初始化失败');
+      }
+
+      await statsCollector.updateStats(projectId, 'manual', '');
 
       console.log('[Main] 项目统计已更新:', projectId);
       return { success: true };

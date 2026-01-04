@@ -100,7 +100,7 @@ class AppConfig {
 
         // 火山引擎（豆包）
         volcengineApiKey: '',
-        volcengineModel: 'doubao-seed-1-6-lite-251015',
+        volcengineModel: 'doubao-seed-1.6-lite',
         volcengineEmbeddingModel: 'doubao-embedding-large',
 
         // 阿里通义千问

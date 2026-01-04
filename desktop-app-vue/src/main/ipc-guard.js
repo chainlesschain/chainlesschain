@@ -168,11 +168,17 @@ function unregisterModule(moduleName) {
 function resetAll() {
   console.log('[IPC Guard] Resetting all registrations...');
 
-  // 移除所有handlers
+  // 移除我们注册的handlers（不是所有监听器）
   try {
-    ipcMain.removeAllListeners();
+    for (const channel of registeredChannels.keys()) {
+      try {
+        ipcMain.removeHandler(channel);
+      } catch (err) {
+        // 忽略单个channel移除失败
+      }
+    }
   } catch (error) {
-    console.error('[IPC Guard] Failed to remove all listeners:', error);
+    console.error('[IPC Guard] Failed to remove handlers:', error);
   }
 
   // 清空注册状态

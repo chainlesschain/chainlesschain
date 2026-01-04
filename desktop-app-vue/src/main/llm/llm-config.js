@@ -16,7 +16,7 @@ const normalizeProvider = (provider) => {
  */
 const DEFAULT_CONFIG = {
   // 提供商
-  provider: 'ollama', // 'ollama' | 'openai' | 'deepseek' | 'custom'
+  provider: 'volcengine', // 'volcengine' | 'ollama' | 'openai' | 'deepseek' | 'custom'
 
   // Ollama配置
   ollama: {
@@ -53,10 +53,10 @@ const DEFAULT_CONFIG = {
 
   // 豆包（火山引擎）配置
   volcengine: {
-    apiKey: '',
+    apiKey: '7185ce7d-9775-450c-8450-783176be6265', // 默认测试API密钥
     baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-    model: 'doubao-seed-1-6-lite-251015',
-    embeddingModel: 'doubao-embedding-text-240715', // 火山引擎嵌入模型（推荐使用 text-240715）
+    model: 'doubao-seed-1.6-flash', // 使用flash模型以获得更快响应（正确格式）
+    embeddingModel: 'doubao-embedding-large', // 更大的嵌入模型以获得更好的效果
   },
 
   // 自定义配置

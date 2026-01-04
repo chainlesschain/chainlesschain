@@ -641,7 +641,7 @@ function registerAllIPC(dependencies) {
     // 配置管理 (函数模式 - 小模块，4 handlers)
     console.log('[IPC Registry] Registering Config IPC...');
     const { registerConfigIPC } = require('./config/config-ipc');
-    const { getAppConfig } = require('./app-config');
+    // getAppConfig 已在第145行声明，此处复用
     registerConfigIPC({ appConfig: getAppConfig() });
     console.log('[IPC Registry] ✓ Config IPC registered (4 handlers)');
 

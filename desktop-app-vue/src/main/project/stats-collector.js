@@ -379,5 +379,7 @@ function getStatsCollector(db) {
   return statsCollectorInstance;
 }
 
-module.exports = ProjectStatsCollector;
-module.exports.getStatsCollector = getStatsCollector;
+module.exports = {
+  ProjectStatsCollector,
+  getStatsCollector
+};

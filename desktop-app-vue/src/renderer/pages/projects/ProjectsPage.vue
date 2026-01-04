@@ -19,6 +19,77 @@
         />
       </div>
 
+      <!-- 🔥 AI对话消息区域（在对话框中展示创建过程） -->
+      <div v-if="conversationMessages.length > 0" class="conversation-messages-area">
+        <div
+          v-for="(msg, index) in conversationMessages"
+          :key="index"
+          class="conversation-message"
+          :class="[msg.type, msg.status]"
+        >
+          <!-- 用户消息 -->
+          <div v-if="msg.type === 'user'" class="user-message">
+            <div class="message-avatar">👤</div>
+            <div class="message-content">
+              <div class="message-text">{{ msg.content }}</div>
+              <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
+            </div>
+          </div>
+
+          <!-- AI消息 -->
+          <div v-else-if="msg.type === 'assistant'" class="assistant-message">
+            <div class="message-avatar">🤖</div>
+            <div class="message-content">
+              <div class="message-text" v-html="msg.content"></div>
+              <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
+            </div>
+          </div>
+
+          <!-- 项目创建进度消息 -->
+          <div v-else-if="msg.type === 'progress'" class="progress-message">
+            <div class="message-avatar">⚙️</div>
+            <div class="message-content">
+              <div class="progress-stage">
+                <a-tag :color="getStageColor(msg.stage)">{{ msg.stageName }}</a-tag>
+              </div>
+              <div class="progress-text">{{ msg.content }}</div>
+              <div v-if="msg.details" class="progress-details">
+                <pre>{{ msg.details }}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- 成功消息 -->
+          <div v-else-if="msg.type === 'success'" class="success-message">
+            <div class="message-avatar">✅</div>
+            <div class="message-content">
+              <div class="message-text">{{ msg.content }}</div>
+              <div v-if="msg.projectId" class="message-actions">
+                <a-button type="primary" size="small" @click="router.push(`/projects/${msg.projectId}`)">
+                  查看项目
+                </a-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 错误消息 -->
+          <div v-else-if="msg.type === 'error'" class="error-message">
+            <div class="message-avatar">❌</div>
+            <div class="message-content">
+              <div class="message-text">{{ msg.content }}</div>
+              <div v-if="msg.error" class="error-details">
+                <pre>{{ msg.error }}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 清空对话按钮 -->
+        <div class="conversation-actions">
+          <a-button size="small" @click="clearConversation">清空对话</a-button>
+        </div>
+      </div>
+
       <!-- 第一行：项目类型按钮 -->
       <div class="project-type-buttons">
         <a-button
@@ -155,6 +226,9 @@ const streamProgressData = ref({
 });
 const createError = ref('');
 const createdProjectId = ref('');
+
+// 🔥 AI对话消息列表（在对话框中展示创建过程）
+const conversationMessages = ref([]);
 
 // 项目类型按钮（第一行）
 const projectTypes = ref([
@@ -591,11 +665,109 @@ const handleUserAction = (action) => {
   }
 };
 
+// 🔥 AI对话辅助方法
+const formatTime = (timestamp) => {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
+
+  if (diff < 60000) return '刚刚';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+  return date.toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+const getStageColor = (stage) => {
+  const colors = {
+    intent: 'blue',
+    engine: 'cyan',
+    spec: 'purple',
+    html: 'orange',
+    css: 'green',
+    js: 'volcano',
+    complete: 'success',
+  };
+  return colors[stage] || 'default';
+};
+
+const clearConversation = () => {
+  conversationMessages.value = [];
+  message.success('对话已清空');
+};
+
+const addMessage = (type, content, options = {}) => {
+  conversationMessages.value.push({
+    type,
+    content,
+    timestamp: Date.now(),
+    ...options,
+  });
+};
+
 // 处理对话式创建项目（流式）
 const handleConversationalCreate = async ({ text, attachments }) => {
   try {
-    // 显示流式进度Modal
-    showStreamProgress.value = true;
+    const textLower = text.toLowerCase();
+
+    // ============================================================
+    // 🔥 改进意图识别：区分"创建项目"和"聊天咨询"
+    // ============================================================
+
+    // 1. 检测是否是纯聊天/咨询意图（不需要创建项目）
+    const isChatIntent =
+      // 设计/绘图类咨询（不涉及实际文件创建）
+      (textLower.includes('logo') || textLower.includes('标志') || textLower.includes('图标')) ||
+      (textLower.includes('设计') && !textLower.includes('网页') && !textLower.includes('网站') && !textLower.includes('页面')) ||
+      (textLower.includes('做个') && (textLower.includes('图') || textLower.includes('画'))) ||
+      // 纯咨询类问题
+      textLower.includes('什么是') ||
+      textLower.includes('如何') ||
+      textLower.includes('怎么') ||
+      textLower.includes('为什么') ||
+      textLower.includes('能不能') ||
+      textLower.includes('可以吗') ||
+      textLower.includes('告诉我') ||
+      // 明确表示只是想聊天
+      textLower.includes('聊聊') ||
+      textLower.includes('咨询') ||
+      textLower.includes('问一下');
+
+    // 2. 检测是否是明确的项目创建意图
+    const isProjectCreationIntent =
+      textLower.includes('创建项目') ||
+      textLower.includes('新建项目') ||
+      textLower.includes('创建网页') ||
+      textLower.includes('做个网站') ||
+      textLower.includes('建个网站') ||
+      textLower.includes('创建网站') ||
+      textLower.includes('做个应用') ||
+      textLower.includes('创建应用') ||
+      textLower.includes('写个网页') ||
+      textLower.includes('生成网页') ||
+      textLower.includes('创建文件') ||
+      textLower.includes('新建文件') ||
+      textLower.includes('生成文件');
+
+    // 3. 如果是纯聊天意图且不是项目创建意图，则跳转到AI对话
+    if (isChatIntent && !isProjectCreationIntent) {
+      console.log('[ProjectsPage] 检测到聊天咨询意图，不创建项目');
+
+      // 添加用户消息到对话
+      addMessage('user', text);
+
+      // 添加AI回复（暂时显示提示消息）
+      addMessage('assistant', `你好！关于"${text.substring(0, 20)}..."的问题，我建议：<br/><br/>
+        1. 如果需要设计Logo，可以使用专业的设计工具如Canva、Adobe Illustrator等<br/>
+        2. 如果需要我帮你创建包含Logo的网页，请说"帮我创建一个网页/网站"<br/>
+        3. 如果需要Logo文件，请说"创建Logo文件"<br/><br/>
+        <em>完整的AI对话功能即将支持，敬请期待！</em>`);
+
+      return;
+    }
+
+    // 🔥 不显示Modal，而是在对话区域展示进度
+    // showStreamProgress.value = true;  // 注释掉
     createError.value = '';
     streamProgressData.value = {
       currentStage: '',
@@ -605,6 +777,9 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       metadata: {},
     };
 
+    // 添加用户消息
+    addMessage('user', text);
+
     // 1. 流式创建项目
     const userId = authStore.currentUser?.id || 'default-user';
 
@@ -612,7 +787,6 @@ const handleConversationalCreate = async ({ text, attachments }) => {
     let projectType = ''; // 默认留空让后端AI自动识别
 
     // 检测是否是文档类型请求（txt, md, doc等）
-    const textLower = text.toLowerCase();
     const isDocumentRequest =
       textLower.includes('txt') ||
       textLower.includes('文本') ||
@@ -751,12 +925,39 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       streamProgressData.value = { ...progressUpdate };
       console.log('[ProjectsPage] streamProgressData.value已更新');
 
-      // 处理不同类型
-      if (progressUpdate.type === 'complete') {
+      // 🔥 将进度添加到对话消息中
+      if (progressUpdate.type === 'progress' && progressUpdate.stage) {
+        const stageNames = {
+          intent: '意图识别',
+          engine: '引擎选择',
+          spec: '生成规格',
+          html: '生成HTML',
+          css: '生成CSS',
+          js: '生成JavaScript',
+        };
+
+        addMessage('progress', progressUpdate.message || '处理中...', {
+          stage: progressUpdate.stage,
+          stageName: stageNames[progressUpdate.stage] || progressUpdate.stage,
+          details: progressUpdate.intent || progressUpdate.spec || null,
+        });
+      } else if (progressUpdate.type === 'complete') {
         createdProjectId.value = progressUpdate.result.projectId;
+
+        // 添加成功消息
+        addMessage('success', '项目创建成功！点击下方按钮查看项目详情', {
+          projectId: progressUpdate.result.projectId,
+        });
+
         message.success('项目创建成功！');
       } else if (progressUpdate.type === 'error') {
         createError.value = progressUpdate.error;
+
+        // 添加错误消息
+        addMessage('error', '创建项目失败', {
+          error: progressUpdate.error,
+        });
+
         message.error('创建项目失败：' + progressUpdate.error);
         return; // 出错时直接返回，不执行任务拆解
       }
@@ -1351,6 +1552,131 @@ onUnmounted(() => {
   margin: 0 auto 32px;
 }
 
+/* 🔥 AI对话消息区域 */
+.conversation-messages-area {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 32px;
+  padding: 20px;
+  background: #F9FAFB;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+
+  .conversation-message {
+    margin-bottom: 16px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .user-message,
+  .assistant-message,
+  .progress-message,
+  .success-message,
+  .error-message {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    background: white;
+
+    .message-avatar {
+      font-size: 24px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .message-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .message-text {
+      color: #374151;
+      line-height: 1.6;
+      margin-bottom: 4px;
+    }
+
+    .message-time {
+      font-size: 12px;
+      color: #9CA3AF;
+    }
+  }
+
+  .progress-message {
+    background: #EFF6FF;
+    border-left: 3px solid #3B82F6;
+
+    .progress-stage {
+      margin-bottom: 8px;
+    }
+
+    .progress-text {
+      color: #1E40AF;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .progress-details {
+      margin-top: 8px;
+      padding: 8px;
+      background: white;
+      border-radius: 4px;
+      font-size: 12px;
+
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+    }
+  }
+
+  .success-message {
+    background: #F0FDF4;
+    border-left: 3px solid #10B981;
+
+    .message-text {
+      color: #065F46;
+      font-weight: 500;
+    }
+
+    .message-actions {
+      margin-top: 12px;
+    }
+  }
+
+  .error-message {
+    background: #FEF2F2;
+    border-left: 3px solid #EF4444;
+
+    .message-text {
+      color: #991B1B;
+      font-weight: 500;
+    }
+
+    .error-details {
+      margin-top: 8px;
+      padding: 8px;
+      background: white;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #DC2626;
+
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+    }
+  }
+
+  .conversation-actions {
+    margin-top: 16px;
+    text-align: right;
+  }
+}
 
 /* 第一行：项目类型按钮 */
 .project-type-buttons {
