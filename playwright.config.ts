@@ -7,8 +7,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
 
-  // 测试超时
-  timeout: 30000,
+  // 测试超时 (增加到60秒以适应LLM API响应时间)
+  timeout: 60000,
 
   // 全局设置超时
   expect: {

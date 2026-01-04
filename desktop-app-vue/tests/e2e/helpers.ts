@@ -1,136 +1,150 @@
 /**
- * E2E测试辅助函数
+ * E2E测试辅助工具
+ * 提供Electron应用启动、窗口管理等工具函数
  */
 
 import { _electron as electron, ElectronApplication, Page } from '@playwright/test';
 import path from 'path';
 
+export interface ElectronTestContext {
+  app: ElectronApplication;
+  window: Page;
+}
+
 /**
  * 启动Electron应用
  */
-export async function launchApp(): Promise<{ app: ElectronApplication; page: Page }> {
-  // 启动Electron
+export async function launchElectronApp(): Promise<ElectronTestContext> {
+  // 确定主进程入口文件路径
+  const mainPath = path.join(__dirname, '../../dist/main/index.js');
+
+  // 设置固定的 userData 路径，确保配置文件能被读取
+  const os = require('os');
+  const userDataPath = path.join(os.homedir(), 'Library', 'Application Support', 'chainlesschain');
+
+  // 启动Electron（增加超时时间，指定 userData 路径）
   const app = await electron.launch({
-    args: [path.join(__dirname, '../../dist/main/index.js')],
+    args: [mainPath, `--user-data-dir=${userDataPath}`],
     env: {
       ...process.env,
       NODE_ENV: 'test',
       ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
     },
+    timeout: 60000, // 60秒启动超时
   });
 
-  // 等待窗口打开
-  const page = await app.firstWindow();
+  // 等待并获取第一个窗口（增加超时）
+  const window = await app.firstWindow({
+    timeout: 30000, // 30秒窗口创建超时
+  });
 
-  // 等待应用加载完成
-  await page.waitForLoadState('domcontentloaded');
+  // 等待加载完成
+  await window.waitForLoadState('domcontentloaded', {
+    timeout: 30000,
+  });
 
-  return { app, page };
+  // 等待IPC API准备就绪（可选，某些应用可能不需要electronAPI）
+  try {
+    await window.waitForFunction(
+      () => {
+        return (
+          typeof (window as any).electronAPI !== 'undefined' ||
+          typeof (window as any).electron !== 'undefined' ||
+          typeof (window as any).api !== 'undefined'
+        );
+      },
+      { timeout: 10000 }
+    );
+  } catch (error) {
+    console.warn('Warning: electronAPI not found, but continuing anyway');
+  }
+
+  return { app, window };
 }
 
 /**
  * 关闭Electron应用
  */
-export async function closeApp(app: ElectronApplication): Promise<void> {
+export async function closeElectronApp(app: ElectronApplication): Promise<void> {
   await app.close();
 }
 
 /**
- * 等待元素出现
+ * 调用IPC API
+ * 使用electronAPI暴露的接口调用IPC
+ * IPC通道格式如 'project:get-all' 会被转换为 electronAPI的方法调用
  */
-export async function waitForElement(page: Page, selector: string, timeout = 10000): Promise<void> {
-  await page.waitForSelector(selector, { timeout });
+export async function callIPC<T>(
+  window: Page,
+  channel: string,
+  ...args: any[]
+): Promise<T> {
+  return await window.evaluate(
+    async ({ channel, args }) => {
+      // 通过window.electron对象调用IPC（如果可用）
+      if ((window as any).electron && (window as any).electron.ipcRenderer) {
+        return await (window as any).electron.ipcRenderer.invoke(channel, ...args);
+      }
+
+      // 或者通过preload暴露的API
+      if ((window as any).api && typeof (window as any).api.invoke === 'function') {
+        return await (window as any).api.invoke(channel, ...args);
+      }
+
+      // 最后尝试使用electronAPI对象（如果是嵌套路径格式）
+      // 例如：'project.getAll' -> electronAPI.project.getAll()
+      if ((window as any).electronAPI) {
+        // 如果是IPC通道格式（如 'project:get-all'），转换为对象路径
+        let apiPath = channel;
+        if (channel.includes(':')) {
+          // 将 'project:get-all' 转换为 'project.getAll'
+          const [module, method] = channel.split(':');
+          // 将 kebab-case 转换为 camelCase
+          const camelMethod = method.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+          apiPath = `${module}.${camelMethod}`;
+        }
+
+        const pathParts = apiPath.split('.');
+        let api: any = (window as any).electronAPI;
+
+        for (const part of pathParts) {
+          api = api[part];
+          if (!api) {
+            throw new Error(`API path not found: ${apiPath} (original: ${channel})`);
+          }
+        }
+
+        if (typeof api !== 'function') {
+          throw new Error(`API is not a function: ${apiPath}`);
+        }
+
+        return await api(...args);
+      }
+
+      throw new Error('No IPC interface found in window object');
+    },
+    { channel, args }
+  );
 }
 
 /**
- * 点击并等待导航
+ * 等待IPC响应
  */
-export async function clickAndWait(page: Page, selector: string): Promise<void> {
-  await Promise.all([
-    page.waitForLoadState('networkidle'),
-    page.click(selector),
-  ]);
+export async function waitForIPC(
+  window: Page,
+  timeout: number = 5000
+): Promise<void> {
+  await window.waitForTimeout(timeout);
 }
 
 /**
- * 填写表单字段
+ * 截图保存
  */
-export async function fillForm(page: Page, fields: Record<string, string>): Promise<void> {
-  for (const [selector, value] of Object.entries(fields)) {
-    await page.fill(selector, value);
-  }
-}
-
-/**
- * 截图
- */
-export async function takeScreenshot(page: Page, name: string): Promise<void> {
-  await page.screenshot({
-    path: path.join(__dirname, '../../test-results', `${name}.png`),
-    fullPage: true,
-  });
-}
-
-/**
- * 等待文本出现
- */
-export async function waitForText(page: Page, text: string, timeout = 10000): Promise<void> {
-  await page.waitForSelector(`text=${text}`, { timeout });
-}
-
-/**
- * 获取元素文本
- */
-export async function getElementText(page: Page, selector: string): Promise<string> {
-  const element = await page.$(selector);
-  if (!element) {
-    throw new Error(`Element not found: ${selector}`);
-  }
-  return await element.textContent() || '';
-}
-
-/**
- * 检查元素是否可见
- */
-export async function isVisible(page: Page, selector: string): Promise<boolean> {
-  try {
-    await page.waitForSelector(selector, { state: 'visible', timeout: 5000 });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * 等待API响应
- */
-export async function waitForAPIResponse(
-  page: Page,
-  urlPattern: string | RegExp,
-  action: () => Promise<void>
-): Promise<any> {
-  const [response] = await Promise.all([
-    page.waitForResponse(urlPattern),
-    action(),
-  ]);
-
-  return await response.json();
-}
-
-/**
- * 清除应用数据
- */
-export async function clearAppData(app: ElectronApplication): Promise<void> {
-  // 执行清除逻辑
-  await app.evaluate(async ({ app }) => {
-    const fs = require('fs');
-    const path = require('path');
-    const userDataPath = app.getPath('userData');
-    const dbPath = path.join(userDataPath, 'data', 'chainlesschain.db');
-
-    // 删除数据库文件
-    if (fs.existsSync(dbPath)) {
-      fs.unlinkSync(dbPath);
-    }
+export async function takeScreenshot(
+  window: Page,
+  name: string
+): Promise<void> {
+  await window.screenshot({
+    path: `test-results/screenshots/${name}.png`,
   });
 }

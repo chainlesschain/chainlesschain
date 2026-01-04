@@ -42,7 +42,49 @@
         </div>
       </div>
 
-      <!-- 3. 代码预览（Tab切换） -->
+      <!-- 3. 创建的文件列表 -->
+      <div v-if="hasFiles" class="files-section">
+        <div class="section-header-with-action">
+          <h3>创建的文件</h3>
+          <a-tag color="blue">{{ createdFiles.length }} 个文件</a-tag>
+        </div>
+        <div class="file-list">
+          <div
+            v-for="file in createdFiles"
+            :key="file.path"
+            class="file-item"
+            :class="{ clickable: file.content }"
+            @click="handleFileClick(file)"
+          >
+            <div class="file-icon">
+              <FileTextOutlined v-if="file.type === 'text'" />
+              <CodeOutlined v-else-if="file.type === 'code'" />
+              <FileImageOutlined v-else-if="file.type === 'image'" />
+              <FileOutlined v-else />
+            </div>
+            <div class="file-info">
+              <div class="file-name">{{ file.name }}</div>
+              <div class="file-meta">
+                <span v-if="file.size">{{ formatFileSize(file.size) }}</span>
+                <span v-if="file.path" class="file-path">{{ file.path }}</span>
+              </div>
+            </div>
+            <div class="file-status">
+              <CheckCircleOutlined
+                v-if="file.status === 'created'"
+                style="color: #52c41a"
+              />
+              <LoadingOutlined v-else-if="file.status === 'creating'" spin />
+              <ExclamationCircleOutlined
+                v-else-if="file.status === 'error'"
+                style="color: #ff4d4f"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. 代码预览（Tab切换） -->
       <div v-if="hasContent" class="code-preview-section">
         <h3>生成内容</h3>
         <a-tabs v-model:activeKey="activeTab" type="card">
@@ -144,11 +186,16 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { message } from 'ant-design-vue';
 import {
   CheckCircleOutlined,
   LoadingOutlined,
   CloseCircleOutlined,
   ExclamationCircleOutlined,
+  FileTextOutlined,
+  CodeOutlined,
+  FileImageOutlined,
+  FileOutlined,
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
@@ -161,6 +208,7 @@ const props = defineProps({
       contentByStage: {},
       logs: [],
       metadata: {},
+      files: [], // 新增：创建的文件列表
     }),
   },
   error: String,
@@ -265,9 +313,35 @@ const hasMetadata = computed(() => {
   return Object.keys(props.progressData.metadata).length > 0;
 });
 
+const hasFiles = computed(() => {
+  return props.progressData.files && props.progressData.files.length > 0;
+});
+
+const createdFiles = computed(() => {
+  return props.progressData.files || [];
+});
+
 // 方法
 const isGenerating = (stage) => {
   return props.progressData.currentStage === stage;
+};
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '-';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+};
+
+const handleFileClick = (file) => {
+  if (file.content) {
+    // 可以显示文件预览
+    message.info(`查看文件: ${file.name}`);
+    // TODO: 可以打开一个模态框显示文件内容
+  } else if (file.path) {
+    // 显示文件路径信息
+    message.info(`文件路径: ${file.path}`);
+  }
 };
 
 const formatTime = (timestamp) => {
@@ -403,6 +477,104 @@ watch(
 .stage-message {
   color: #6b7280;
   font-size: 14px;
+}
+
+/* 文件列表 */
+.files-section {
+  margin-bottom: 24px;
+}
+
+.section-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-header-with-action h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.file-list {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s;
+}
+
+.file-item:last-child {
+  margin-bottom: 0;
+}
+
+.file-item.clickable {
+  cursor: pointer;
+}
+
+.file-item.clickable:hover {
+  border-color: #1890ff;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15);
+}
+
+.file-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e6f7ff;
+  border-radius: 6px;
+  margin-right: 12px;
+  font-size: 20px;
+  color: #1890ff;
+  flex-shrink: 0;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.file-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-status {
+  flex-shrink: 0;
+  font-size: 20px;
+  margin-left: 12px;
 }
 
 /* 代码预览 */

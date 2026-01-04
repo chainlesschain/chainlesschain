@@ -135,7 +135,64 @@
 - P2P 加密通信正常
 - DID 格式验证正确
 
-### 5. 其他现有测试
+### 5. 项目创建流程测试 ⭐ (`project-creation-workflow.e2e.test.ts`)
+
+**NEW!** 测试项目创建流程的所有新功能。
+
+**测试范围**:
+- ✅ 模板选择功能（浏览、搜索、筛选、预览、渲染）
+- ✅ 首次访问模板推荐（智能引导）
+- ✅ 技能和工具选择（智能配置）
+- ✅ 完整项目创建流程（含模板、技能、工具）
+- ✅ 流式进度显示（实时反馈）
+- ✅ 边界情况和错误处理
+- ✅ 性能基准测试
+
+**测试用例数**: 22个
+
+**快速运行**:
+```bash
+npm run test:e2e:creation
+./tests/e2e/run-creation-tests.sh
+```
+
+**文档**: [PROJECT_CREATION_TEST_GUIDE.md](./PROJECT_CREATION_TEST_GUIDE.md)
+
+---
+
+### 6. AI 智能化流程测试 🤖 (`ai-intelligent-creation.e2e.test.ts`)
+
+**NEW!** 从 AI 智能化角度测试完整的项目创建流程。
+
+**测试维度**:
+- 🎯 **用户意图识别** - AI 理解能力测试
+- 🎨 **智能模板推荐** - 推荐系统准确度
+- 🛠️ **技能工具智能选择** - 自动化配置
+- 📋 **任务调度执行** - 执行顺序和效率
+- ✅ **最终任务完成** - 输出质量验证
+- 🔄 **端到端集成** - 完整流程测试
+- ⚡ **性能和质量基准** - 性能监控
+
+**测试场景**:
+1. 待办事项应用
+2. 数据分析报告
+3. 技术博客网站
+4. 电商网站（完整集成）
+
+**测试用例数**: 25+
+
+**快速运行**:
+```bash
+npm run test:e2e:ai-flow
+./tests/e2e/run-ai-flow-tests.sh
+./tests/e2e/run-ai-flow-tests.sh integration  # 仅完整流程
+```
+
+**文档**: [AI_INTELLIGENT_FLOW_TEST_GUIDE.md](./AI_INTELLIGENT_FLOW_TEST_GUIDE.md)
+
+---
+
+### 7. 其他现有测试
 
 - `simple-api.e2e.test.ts` - 简化的 API 快速验证
 - `ipc-api.e2e.test.ts` - IPC API 完整测试
@@ -144,6 +201,7 @@
 - `social-extended.e2e.test.ts` - 社交扩展测试
 - `performance.e2e.test.ts` - 性能测试
 - `data-driven.e2e.test.ts` - 数据驱动测试
+- `ai-chat.e2e.test.ts` - AI 聊天功能测试
 
 ## 快速开始
 
