@@ -893,40 +893,7 @@ class FileIPC {
     });
 
     // ============ 对话框操作 ============
-
-    // 显示打开文件对话框
-    ipcMain.handle('dialog:showOpenDialog', async (event, options) => {
-      try {
-        const result = await dialog.showOpenDialog(mainWindow, options);
-        return {
-          success: true,
-          ...result,
-        };
-      } catch (error) {
-        console.error('[File IPC] 打开文件对话框失败:', error);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-    });
-
-    // 显示保存文件对话框
-    ipcMain.handle('dialog:showSaveDialog', async (event, options) => {
-      try {
-        const result = await dialog.showSaveDialog(mainWindow, options);
-        return {
-          success: true,
-          ...result,
-        };
-      } catch (error) {
-        console.error('[File IPC] 保存文件对话框失败:', error);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-    });
+    // Note: 对话框处理器已在 system-ipc.js 中注册，此处不重复注册
 
     this.handlersRegistered = true;
     console.log('[File IPC] 文件操作IPC处理器已注册');
