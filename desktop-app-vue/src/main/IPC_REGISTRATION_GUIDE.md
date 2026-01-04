@@ -132,10 +132,11 @@ console.log(`注册: ${result.registered}, 跳过: ${result.skipped}`);
 
 以下模块需要集成IPC Guard保护机制：
 
-- [ ] `rag/rag-ipc.js`
-- [ ] `import/import-ipc.js`
-- [ ] `database/database-ipc.js`
-- [ ] `git/git-ipc.js`
+- [x] `rag/rag-ipc.js` (已有保护)
+- [x] `import/import-ipc.js` (已有保护)
+- [x] `database/database-ipc.js` (已更新)
+- [x] `git/git-ipc.js` (已有保护)
+- [x] `ukey/ukey-ipc.js` (已更新)
 - [ ] `did/did-ipc.js`
 - [ ] `p2p/p2p-ipc.js`
 - [ ] `social/social-ipc.js`
