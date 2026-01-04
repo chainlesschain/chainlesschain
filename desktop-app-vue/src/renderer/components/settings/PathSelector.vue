@@ -106,7 +106,7 @@ watch(() => props.modelValue, (newValue) => {
 
 const browsePath = async () => {
   try {
-    const result = await window.electronAPI.dialog.openDirectory({
+    const result = await window.electronAPI.dialog.selectFolder({
       title: `选择${props.label}`,
       defaultPath: localPath.value || props.defaultPath || undefined,
     });
