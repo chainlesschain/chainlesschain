@@ -88,17 +88,18 @@ class PostManager extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
     `);
 
-    // 点赞表
+    // 点赞表（添加外键约束）
     db.exec(`
       CREATE TABLE IF NOT EXISTS post_likes (
         post_id TEXT NOT NULL,
         user_did TEXT NOT NULL,
         created_at INTEGER NOT NULL,
-        PRIMARY KEY (post_id, user_did)
+        PRIMARY KEY (post_id, user_did),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
       )
     `);
 
-    // 评论表
+    // 评论表（添加外键约束）
     db.exec(`
       CREATE TABLE IF NOT EXISTS post_comments (
         id TEXT PRIMARY KEY,
@@ -106,7 +107,9 @@ class PostManager extends EventEmitter {
         author_did TEXT NOT NULL,
         content TEXT NOT NULL,
         parent_id TEXT,
-        created_at INTEGER NOT NULL
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_id) REFERENCES post_comments(id) ON DELETE CASCADE
       )
     `);
 
