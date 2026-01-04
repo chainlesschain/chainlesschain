@@ -27,22 +27,21 @@ vi.mock('marked', () => ({
   },
 }));
 
-vi.mock('electron', () => {
-  // Create a constructor function for BrowserWindow
-  const mockBrowserWindowInstance = {
-    loadURL: vi.fn().mockResolvedValue(undefined),
-    webContents: {
-      printToPDF: vi.fn().mockResolvedValue(Buffer.from('PDF content')),
-    },
-    close: vi.fn(),
-    isDestroyed: vi.fn().mockReturnValue(false),
-    destroy: vi.fn(),
-  };
+// Default implementation factory for BrowserWindow
+const createMockBrowserWindow = () => ({
+  options: {},
+  loadURL: vi.fn().mockResolvedValue(undefined),
+  webContents: {
+    printToPDF: vi.fn().mockResolvedValue(Buffer.from('PDF content')),
+  },
+  close: vi.fn(),
+  isDestroyed: vi.fn().mockReturnValue(false),
+  destroy: vi.fn(),
+});
 
-  // Mock constructor function
-  const MockBrowserWindow = vi.fn(function() {
-    return mockBrowserWindowInstance;
-  });
+vi.mock('electron', () => {
+  // Create mock constructor with vi.fn() so it supports mockImplementation
+  const MockBrowserWindow = vi.fn(createMockBrowserWindow);
 
   return {
     BrowserWindow: MockBrowserWindow,
@@ -67,6 +66,9 @@ describe('PDF引擎测试', () => {
 
     // 重置所有mock
     vi.clearAllMocks();
+
+    // Reset BrowserWindow mock to default implementation after clearAllMocks
+    mockBrowserWindow.mockImplementation(createMockBrowserWindow);
   });
 
   afterEach(() => {

@@ -23,10 +23,16 @@ export default defineConfig({
       ],
     },
     testTimeout: 10000,
+    server: {
+      deps: {
+        inline: ['electron'],
+      },
+    },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './desktop-app-vue/src'),
+      'electron': path.resolve(__dirname, './tests/__mocks__/electron.js'),
     },
   },
 });
