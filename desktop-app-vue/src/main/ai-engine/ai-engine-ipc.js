@@ -499,6 +499,65 @@ class AIEngineIPC {
       }
     });
 
+    // 意图识别：使用LLM分析用户意图
+    ipcMain.handle('aiEngine:recognizeIntent', async (_event, userInput) => {
+      try {
+        console.log('[AI Engine IPC] 开始意图识别:', userInput);
+
+        const { recognizeProjectIntent } = require('./intent-recognizer');
+        const { getLLMConfig } = require('../llm/llm-config');
+        const { LLMManager } = require('../llm/llm-manager');
+
+        // 获取LLM配置并初始化管理器
+        const llmConfig = getLLMConfig();
+        const managerConfig = llmConfig.getManagerConfig();
+        const llmManager = new LLMManager(managerConfig);
+        await llmManager.initialize();
+
+        // 调用意图识别
+        const result = await recognizeProjectIntent(userInput, llmManager);
+
+        console.log('[AI Engine IPC] 意图识别成功:', result);
+
+        return result;
+      } catch (error) {
+        console.error('[AI Engine IPC] 意图识别失败:', error);
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+    });
+
+    // PPT生成：从大纲生成PPT文件
+    ipcMain.handle('aiEngine:generatePPT', async (_event, options) => {
+      try {
+        console.log('[AI Engine IPC] 开始生成PPT:', options);
+
+        const PPTEngine = require('../engines/ppt-engine');
+        const pptEngine = new PPTEngine();
+
+        const result = await pptEngine.generateFromOutline(options.outline, {
+          theme: options.theme || 'business',
+          author: options.author || '作者',
+          outputPath: options.outputPath
+        });
+
+        console.log('[AI Engine IPC] PPT生成成功:', result);
+
+        return {
+          success: true,
+          ...result
+        };
+      } catch (error) {
+        console.error('[AI Engine IPC] PPT生成失败:', error);
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+    });
+
     console.log('[AI Engine IPC] 所有IPC handlers已注册');
   }
 
@@ -533,6 +592,8 @@ class AIEngineIPC {
       'git-auto-commit:setInterval',
       'git-auto-commit:setEnabled',
       'git-auto-commit:getWatchedProjects',
+      'aiEngine:recognizeIntent',
+      'aiEngine:generatePPT',
     ];
 
     channels.forEach(channel => {

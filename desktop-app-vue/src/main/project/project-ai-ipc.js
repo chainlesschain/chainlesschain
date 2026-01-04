@@ -9,6 +9,97 @@
 const { ipcMain } = require('electron');
 const axios = require('axios');
 const crypto = require('crypto');
+const path = require('path');
+
+/**
+ * 从AI响应中提取PPT大纲
+ * @param {string} aiResponse - AI响应文本
+ * @returns {Object|null} PPT大纲对象，如果没有则返回null
+ */
+function extractPPTOutline(aiResponse) {
+  try {
+    // 查找PPT大纲标记
+    const startMarker = '**[PPT_OUTLINE_START]**';
+    const endMarker = '**[PPT_OUTLINE_END]**';
+
+    const startIndex = aiResponse.indexOf(startMarker);
+    const endIndex = aiResponse.indexOf(endMarker);
+
+    if (startIndex === -1 || endIndex === -1) {
+      console.log('[PPT Detector] 未找到PPT大纲标记');
+      return null;
+    }
+
+    // 提取标记之间的内容
+    const outlineSection = aiResponse.substring(
+      startIndex + startMarker.length,
+      endIndex
+    );
+
+    // 提取JSON
+    const jsonMatch = outlineSection.match(/```json\s*([\s\S]*?)```/) ||
+                      outlineSection.match(/```\s*([\s\S]*?)```/) ||
+                      outlineSection.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+      console.warn('[PPT Detector] 未找到JSON格式的大纲');
+      return null;
+    }
+
+    const jsonText = jsonMatch[1] || jsonMatch[0];
+    const outline = JSON.parse(jsonText);
+
+    console.log('[PPT Detector] 成功提取PPT大纲:', outline.title);
+    return outline;
+  } catch (error) {
+    console.error('[PPT Detector] 提取PPT大纲失败:', error);
+    return null;
+  }
+}
+
+/**
+ * 生成PPT文件
+ * @param {Object} outline - PPT大纲
+ * @param {string} projectPath - 项目路径
+ * @param {Object} project - 项目信息
+ * @returns {Promise<Object>} 生成结果
+ */
+async function generatePPTFile(outline, projectPath, project) {
+  try {
+    const PPTEngine = require('../engines/ppt-engine');
+    const pptEngine = new PPTEngine();
+
+    // 生成PPT文件
+    const outputPath = path.join(projectPath, `${outline.title || 'presentation'}.pptx`);
+
+    console.log('[PPT Generator] 开始生成PPT:', outline.title);
+    console.log('[PPT Generator] 输出路径:', outputPath);
+
+    const result = await pptEngine.generateFromOutline(outline, {
+      theme: 'business',
+      author: project.user_id || '作者',
+      outputPath: outputPath
+    });
+
+    console.log('[PPT Generator] PPT生成成功:', result.fileName);
+
+    return {
+      success: true,
+      generated: true,
+      filePath: result.path,
+      fileName: result.fileName,
+      slideCount: result.slideCount,
+      theme: result.theme
+    };
+  } catch (error) {
+    console.error('[PPT Generator] 生成PPT失败:', error);
+    return {
+      success: false,
+      generated: false,
+      error: error.message
+    };
+  }
+}
 
 /**
  * 注册所有 Project AI IPC 处理器
@@ -136,13 +227,109 @@ function registerProjectAIIPC({
         const messages = [];
 
         // 添加系统提示
-        messages.push({
-          role: 'system',
-          content: `你是一个智能项目助手，正在协助用户处理项目: ${project.name}。
+        const systemPrompt = `你是一个智能项目助手，正在协助用户处理项目: ${project.name}。
 当前上下文模式: ${contextMode || 'project'}
 ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
 
-请根据用户的问题提供有帮助的回答。`
+## 🎯 重要：PPT生成特殊指令（最高优先级）
+
+**检测规则**：如果用户消息包含以下任一关键词，必须生成PPT大纲：
+- "PPT" / "ppt"
+- "幻灯片"
+- "演示文稿" / "演示"
+- "presentation"
+
+**必须输出格式**（严格遵守）：
+
+第一步：立即输出JSON大纲（必须使用标记包裹）
+
+**[PPT_OUTLINE_START]**
+\`\`\`json
+{
+  "title": "PPT标题（必填，20字以内）",
+  "subtitle": "副标题（可选）",
+  "sections": [
+    {
+      "title": "第一章节（必填）",
+      "subsections": [
+        {
+          "title": "子主题1（必填）",
+          "points": ["要点1（3-5个要点）", "要点2", "要点3"]
+        },
+        {
+          "title": "子主题2",
+          "points": ["要点1", "要点2", "要点3"]
+        }
+      ]
+    },
+    {
+      "title": "第二章节",
+      "subsections": [
+        {
+          "title": "子主题",
+          "points": ["要点1", "要点2", "要点3"]
+        }
+      ]
+    }
+  ]
+}
+\`\`\`
+**[PPT_OUTLINE_END]**
+
+第二步：在大纲下方提供文字说明（可选）
+
+**示例**：
+用户："做一个新年致辞PPT"
+
+你的回答必须是：
+
+**[PPT_OUTLINE_START]**
+\`\`\`json
+{
+  "title": "2026新年致辞",
+  "subtitle": "迎接新征程",
+  "sections": [
+    {
+      "title": "回顾2025",
+      "subsections": [
+        {
+          "title": "年度成就",
+          "points": ["业绩突破历史新高", "团队规模扩大50%", "产品获行业大奖"]
+        }
+      ]
+    },
+    {
+      "title": "展望2026",
+      "subsections": [
+        {
+          "title": "战略目标",
+          "points": ["市场份额增长30%", "推出3款新产品", "拓展海外市场"]
+        }
+      ]
+    },
+    {
+      "title": "致谢与祝福",
+      "subsections": [
+        {
+          "title": "感谢团队",
+          "points": ["感谢全体员工辛勤付出", "感谢合作伙伴信任支持", "祝愿大家新年快乐"]
+        }
+      ]
+    }
+  ]
+}
+\`\`\`
+**[PPT_OUTLINE_END]**
+
+我已为您生成了新年致辞PPT大纲，包含3个章节：回顾2025、展望2026、致谢与祝福。系统将自动生成.pptx文件并保存到项目目录。
+
+---
+
+对于非PPT请求，正常回答即可。请根据用户的问题提供有帮助的回答。`;
+
+        messages.push({
+          role: 'system',
+          content: systemPrompt
         });
 
         // 添加对话历史
@@ -278,6 +465,23 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
       // 7. 如果桥接器成功处理，返回增强响应
       if (bridgeResult && bridgeResult.shouldIntercept) {
         console.log('[Main] 使用桥接器处理结果');
+
+        // 🔥 检测并生成PPT（桥接器分支）
+        let pptResult = null;
+        try {
+          const pptOutline = extractPPTOutline(aiResponse);
+          if (pptOutline) {
+            console.log('[Main] 🎨 检测到PPT生成请求（桥接器分支）...');
+            pptResult = await generatePPTFile(pptOutline, projectPath, project);
+
+            if (pptResult.success && scanAndRegisterProjectFiles) {
+              await scanAndRegisterProjectFiles(projectId, projectPath);
+            }
+          }
+        } catch (pptError) {
+          console.error('[Main] PPT处理出错（桥接器分支）:', pptError);
+        }
+
         return {
           success: true,
           conversationResponse: bridgeResult.enhancedResponse,
@@ -287,7 +491,10 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
           usedBridge: true,
           useLocalLLM: useLocalLLM,
           toolCalls: bridgeResult.toolCalls,
-          bridgeSummary: bridgeResult.summary
+          bridgeSummary: bridgeResult.summary,
+          // 🔥 新增：PPT生成结果
+          pptGenerated: pptResult?.generated || false,
+          pptResult: pptResult
         };
       }
 
@@ -317,7 +524,41 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
         }
       }
 
-      // 10. 返回结果
+      // 10. 检测并生成PPT（如果AI响应包含PPT大纲）
+      let pptResult = null;
+      try {
+        const pptOutline = extractPPTOutline(aiResponse);
+
+        if (pptOutline) {
+          console.log('[Main] 🎨 检测到PPT生成请求，开始生成PPT文件...');
+          pptResult = await generatePPTFile(pptOutline, projectPath, project);
+
+          if (pptResult.success) {
+            console.log('[Main] ✅ PPT文件已生成:', pptResult.fileName);
+
+            // 将生成的PPT文件添加到项目文件列表（可选）
+            if (scanAndRegisterProjectFiles) {
+              try {
+                await scanAndRegisterProjectFiles(projectId, projectPath);
+                console.log('[Main] PPT文件已注册到项目');
+              } catch (scanError) {
+                console.warn('[Main] 注册PPT文件失败:', scanError.message);
+              }
+            }
+          } else {
+            console.error('[Main] ❌ PPT生成失败:', pptResult.error);
+          }
+        }
+      } catch (pptError) {
+        console.error('[Main] PPT处理出错:', pptError);
+        pptResult = {
+          success: false,
+          generated: false,
+          error: pptError.message
+        };
+      }
+
+      // 11. 返回结果
       return {
         success: true,
         conversationResponse: aiResponse,
@@ -325,7 +566,10 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
         ragSources: rag_sources || [],
         hasFileOperations: !useLocalLLM && parsed.hasFileOperations,
         usedBridge: false,
-        useLocalLLM: useLocalLLM
+        useLocalLLM: useLocalLLM,
+        // 🔥 新增：PPT生成结果
+        pptGenerated: pptResult?.generated || false,
+        pptResult: pptResult
       };
 
     } catch (error) {

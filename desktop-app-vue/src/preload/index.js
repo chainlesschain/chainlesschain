@@ -856,6 +856,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     offStepUpdate: (callback) => ipcRenderer.removeListener('ai:stepUpdate', callback),
   },
 
+  // AI引擎扩展功能
+  aiEngine: {
+    recognizeIntent: (userInput) => ipcRenderer.invoke('aiEngine:recognizeIntent', userInput),
+    generatePPT: (options) => ipcRenderer.invoke('aiEngine:generatePPT', options),
+  },
+
   // 代码开发引擎
   code: {
     generate: (description, options) => ipcRenderer.invoke('code:generate', description, removeUndefined(options || {})),

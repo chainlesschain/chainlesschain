@@ -230,12 +230,29 @@
                   <a-input-password v-model:value="config.llm.volcengineApiKey" />
                 </a-form-item>
                 <a-form-item label="对话模型">
-                  <a-input v-model:value="config.llm.volcengineModel" placeholder="doubao-seed-1.6-flash" />
+                  <a-select
+                    v-model:value="config.llm.volcengineModel"
+                    placeholder="选择模型版本"
+                    :options="volcengineModelOptions"
+                    show-search
+                    :filter-option="filterOption"
+                  >
+                  </a-select>
+                  <template #extra>
+                    <span style="color: #999;">推荐使用最新版本：doubao-seed-1-6-251015（注意：模型名称使用下划线，不是点）</span>
+                  </template>
                 </a-form-item>
                 <a-form-item label="嵌入模型">
-                  <a-input v-model:value="config.llm.volcengineEmbeddingModel" placeholder="doubao-embedding" />
+                  <a-select
+                    v-model:value="config.llm.volcengineEmbeddingModel"
+                    placeholder="选择嵌入模型"
+                    :options="volcengineEmbeddingModelOptions"
+                    show-search
+                    :filter-option="filterOption"
+                  >
+                  </a-select>
                   <template #extra>
-                    <span style="color: #999;">火山引擎提供的文本嵌入模型</span>
+                    <span style="color: #999;">用于文本向量化，推荐：doubao-embedding-text-240715</span>
                   </template>
                 </a-form-item>
               </template>
@@ -896,6 +913,39 @@ const llmProviderOptions = [
   { label: '智谱 AI', value: 'zhipu' },
   { label: 'DeepSeek', value: 'deepseek' },
 ];
+
+// 火山引擎（豆包）模型选项 - 2025年1月最新版本
+const volcengineModelOptions = [
+  // Doubao Seed 1.6 系列（最新推荐 - 注意使用下划线格式）
+  { label: 'doubao-seed-1-6-251015（推荐 - 最新，支持reasoning_effort）', value: 'doubao-seed-1-6-251015' },
+  { label: 'doubao-seed-1-6-250615（支持thinking控制）', value: 'doubao-seed-1-6-250615' },
+
+  // Doubao 1.5 系列
+  { label: 'doubao-1-5-pro-32k-250115（高性能32k）', value: 'doubao-1-5-pro-32k-250115' },
+  { label: 'doubao-1-5-lite-250115（轻量版）', value: 'doubao-1-5-lite-250115' },
+  { label: 'doubao-1-5-vision-pro-250115（视觉模型）', value: 'doubao-1-5-vision-pro-250115' },
+
+  // Doubao Pro 系列
+  { label: 'doubao-pro-32k-241215（高性能32k）', value: 'doubao-pro-32k-241215' },
+  { label: 'doubao-pro-32k-240828', value: 'doubao-pro-32k-240828' },
+
+  // 其他版本
+  { label: 'doubao-lite-32k（轻量32k）', value: 'doubao-lite-32k' },
+];
+
+// 火山引擎（豆包）嵌入模型选项
+const volcengineEmbeddingModelOptions = [
+  { label: 'doubao-embedding-text-240715（推荐 - 最新，2560维）', value: 'doubao-embedding-text-240715' },
+  { label: 'doubao-embedding-text-240515（2048维）', value: 'doubao-embedding-text-240515' },
+  { label: 'doubao-embedding-large（大模型）', value: 'doubao-embedding-large' },
+  { label: 'doubao-embedding-vision（视觉嵌入）', value: 'doubao-embedding-vision' },
+];
+
+// 过滤选项
+const filterOption = (input, option) => {
+  return option.value.toLowerCase().includes(input.toLowerCase()) ||
+         option.label.toLowerCase().includes(input.toLowerCase());
+};
 
 // 数据库配置
 const databaseConfig = ref({
