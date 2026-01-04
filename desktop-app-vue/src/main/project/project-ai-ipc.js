@@ -781,7 +781,226 @@ ${content}
     }
   });
 
-  console.log('[Project AI IPC] ✓ All Project AI IPC handlers registered successfully (15 handlers)');
+  /**
+   * 项目AI对话（流式） - 支持文件操作和流式输出
+   * Channel: 'project:aiChatStream'
+   */
+  ipcMain.handle('project:aiChatStream', async (_event, chatData) => {
+    try {
+      console.log('[Main] 项目AI对话（流式）:', chatData);
+
+      const {
+        projectId,
+        userMessage,
+        conversationHistory,
+        contextMode,
+        currentFile,
+        projectInfo,
+        fileList,
+        options = {}
+      } = chatData;
+
+      // 1. 检查数据库
+      if (!database) {
+        throw new Error('数据库未初始化');
+      }
+
+      // 2. 检查LLM管理器
+      if (!llmManager) {
+        throw new Error('LLM管理器未初始化，请在设置中配置LLM服务');
+      }
+
+      // 3. 检查主窗口
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        throw new Error('主窗口未初始化');
+      }
+
+      // 4. 获取项目信息
+      const project = database.db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
+
+      if (!project) {
+        throw new Error(`项目不存在: ${projectId}`);
+      }
+
+      const projectPath = project.root_path;
+
+      // 验证项目路径
+      if (!projectPath) {
+        throw new Error(`项目路径未设置: ${projectId}，请在项目设置中指定项目根目录`);
+      }
+
+      console.log('[Main] 项目路径:', projectPath);
+
+      // 5. 构建消息列表
+      const messages = [];
+
+      // 添加系统提示
+      messages.push({
+        role: 'system',
+        content: `你是一个智能项目助手，正在协助用户处理项目: ${project.name}。
+当前上下文模式: ${contextMode || 'project'}
+${currentFile ? `当前文件: ${currentFile}` : ''}
+
+请根据用户的问题提供有帮助的回答。`
+      });
+
+      // 添加对话历史
+      if (conversationHistory && Array.isArray(conversationHistory)) {
+        messages.push(...conversationHistory);
+      }
+
+      // 添加用户消息
+      messages.push({
+        role: 'user',
+        content: userMessage
+      });
+
+      console.log('[Main] 使用流式LLM，消息数量:', messages.length);
+
+      // 6. 创建流式控制器
+      const { createStreamController } = require('../llm/stream-controller');
+      const streamController = createStreamController({
+        enableBuffering: true
+      });
+
+      streamController.start();
+
+      // 7. 准备响应累积
+      let fullResponse = '';
+      let totalTokens = 0;
+      const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // 8. 定义chunk回调函数
+      const onChunk = async (chunk) => {
+        // 处理chunk
+        const shouldContinue = await streamController.processChunk(chunk);
+        if (!shouldContinue) {
+          return false;
+        }
+
+        // 提取chunk内容
+        const chunkContent = chunk.content || chunk.text || chunk.delta?.content || '';
+        if (chunkContent) {
+          fullResponse += chunkContent;
+
+          // 发送chunk给前端
+          mainWindow.webContents.send('project:aiChatStream-chunk', {
+            projectId,
+            messageId,
+            chunk: chunkContent,
+            fullContent: fullResponse
+          });
+        }
+
+        // 更新tokens
+        if (chunk.usage) {
+          totalTokens = chunk.usage.total_tokens || 0;
+        }
+
+        return true;
+      };
+
+      // 9. 智能选择模型（如果是火山引擎）
+      const chatOptions = {
+        temperature: 0.7,
+        maxTokens: 2000,
+        ...options
+      };
+
+      if (llmManager.provider === 'volcengine') {
+        try {
+          // 根据项目类型和对话内容智能选择模型
+          const scenario = {
+            userBudget: 'medium',
+          };
+
+          // 根据项目类型调整场景
+          const projectType = project.project_type;
+          if (projectType === 'code' || projectType === 'app' || projectType === 'web') {
+            scenario.needsCodeGeneration = true;
+            console.log('[Main] 检测到代码项目，启用代码生成模式');
+          }
+
+          // 根据上下文模式调整
+          if (contextMode === 'file' || contextMode === 'project') {
+            scenario.needsLongContext = true;
+            console.log('[Main] 检测到需要长上下文（项目/文件模式）');
+          }
+
+          // 分析用户消息内容
+          if (userMessage) {
+            if (/(分析|推理|思考|为什么|如何|怎么)/.test(userMessage)) {
+              scenario.needsThinking = true;
+              console.log('[Main] 检测到需要深度思考');
+            }
+          }
+
+          // 智能选择模型
+          const selectedModel = llmManager.selectVolcengineModel(scenario);
+          if (selectedModel) {
+            chatOptions.model = selectedModel.modelId;
+            console.log('[Main] 项目AI对话（流式）智能选择模型:', selectedModel.modelName);
+          }
+        } catch (selectError) {
+          console.warn('[Main] 智能模型选择失败，使用默认配置:', selectError.message);
+        }
+      }
+
+      // 10. 调用LLM流式对话
+      try {
+        const llmResult = await llmManager.chatStream(messages, onChunk, chatOptions);
+
+        console.log('[Main] 流式对话完成');
+
+        // 11. 通知前端完成
+        streamController.complete({
+          messageId,
+          tokens: totalTokens || llmResult.tokens
+        });
+
+        mainWindow.webContents.send('project:aiChatStream-complete', {
+          projectId,
+          messageId,
+          fullContent: fullResponse,
+          tokens: totalTokens || llmResult.tokens,
+          stats: streamController.getStats()
+        });
+
+        return {
+          success: true,
+          messageId,
+          tokens: totalTokens || llmResult.tokens,
+          response: fullResponse
+        };
+
+      } catch (llmError) {
+        console.error('[Main] LLM流式对话失败:', llmError);
+
+        // 通知前端错误
+        streamController.error(llmError);
+
+        mainWindow.webContents.send('project:aiChatStream-error', {
+          projectId,
+          messageId,
+          error: llmError.message
+        });
+
+        throw llmError;
+      }
+
+    } catch (error) {
+      console.error('[Main] 项目AI对话（流式）失败:', error);
+
+      // 提供更友好的错误信息
+      if (error.message.includes('LLM管理器未初始化')) {
+        throw new Error('AI功能未配置，请在设置中配置LLM服务（Ollama或云端API）');
+      }
+
+      throw error;
+    }
+  });
+
+  console.log('[Project AI IPC] ✓ All Project AI IPC handlers registered successfully (16 handlers)');
 }
 
 module.exports = {

@@ -7,6 +7,7 @@
  */
 
 const ipcGuard = require('../ipc-guard');
+const { getStreamControllerManager } = require('./stream-controller-manager');
 
 /**
  * 注册所有对话 IPC 处理器
@@ -25,6 +26,9 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
 
   // 支持依赖注入，用于测试
   const ipcMain = injectedIpcMain || require('electron').ipcMain;
+
+  // 获取StreamController管理器
+  const streamManager = getStreamControllerManager();
 
   console.log('[Conversation IPC] Registering Conversation IPC handlers...');
 
@@ -430,9 +434,8 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
       let fullResponse = '';
       let totalTokens = 0;
 
-      // 4. 创建流式控制器（如果需要）
-      const { createStreamController } = require('../llm/stream-controller');
-      const streamController = createStreamController({
+      // 4. 使用StreamController管理器创建控制器
+      const streamController = streamManager.create(conversationId, {
         enableBuffering: true
       });
 
@@ -556,10 +559,171 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
     }
   });
 
+  // ============================================================
+  // 流式输出控制 (Stream Control)
+  // ============================================================
+
+  /**
+   * 暂停流式输出
+   * Channel: 'conversation:stream-pause'
+   *
+   * @param {string} conversationId - 对话ID
+   * @returns {Promise<Object>} { success: boolean, status?: string, error?: string }
+   */
+  ipcMain.handle('conversation:stream-pause', async (_event, conversationId) => {
+    try {
+      if (!conversationId) {
+        return { success: false, error: '对话ID不能为空' };
+      }
+
+      console.log('[Conversation IPC] 暂停流式输出:', conversationId);
+
+      const result = streamManager.pause(conversationId);
+      return result;
+    } catch (error) {
+      console.error('[Conversation IPC] 暂停流式输出失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 恢复流式输出
+   * Channel: 'conversation:stream-resume'
+   *
+   * @param {string} conversationId - 对话ID
+   * @returns {Promise<Object>} { success: boolean, status?: string, error?: string }
+   */
+  ipcMain.handle('conversation:stream-resume', async (_event, conversationId) => {
+    try {
+      if (!conversationId) {
+        return { success: false, error: '对话ID不能为空' };
+      }
+
+      console.log('[Conversation IPC] 恢复流式输出:', conversationId);
+
+      const result = streamManager.resume(conversationId);
+      return result;
+    } catch (error) {
+      console.error('[Conversation IPC] 恢复流式输出失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 取消流式输出
+   * Channel: 'conversation:stream-cancel'
+   *
+   * @param {string} conversationId - 对话ID
+   * @param {string} reason - 取消原因（可选）
+   * @returns {Promise<Object>} { success: boolean, status?: string, reason?: string, error?: string }
+   */
+  ipcMain.handle('conversation:stream-cancel', async (_event, conversationId, reason) => {
+    try {
+      if (!conversationId) {
+        return { success: false, error: '对话ID不能为空' };
+      }
+
+      console.log('[Conversation IPC] 取消流式输出:', conversationId, reason || '');
+
+      const result = streamManager.cancel(conversationId, reason);
+      return result;
+    } catch (error) {
+      console.error('[Conversation IPC] 取消流式输出失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取流式输出统计信息
+   * Channel: 'conversation:stream-stats'
+   *
+   * @param {string} conversationId - 对话ID
+   * @returns {Promise<Object>} { success: boolean, stats?: Object, error?: string }
+   */
+  ipcMain.handle('conversation:stream-stats', async (_event, conversationId) => {
+    try {
+      if (!conversationId) {
+        return { success: false, error: '对话ID不能为空' };
+      }
+
+      console.log('[Conversation IPC] 获取流式输出统计:', conversationId);
+
+      const result = streamManager.getStats(conversationId);
+      return result;
+    } catch (error) {
+      console.error('[Conversation IPC] 获取流式输出统计失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取所有活动的流式会话
+   * Channel: 'conversation:stream-list'
+   *
+   * @returns {Promise<Object>} { success: boolean, sessions?: Array, error?: string }
+   */
+  ipcMain.handle('conversation:stream-list', async (_event) => {
+    try {
+      console.log('[Conversation IPC] 获取所有活动流式会话');
+
+      const sessions = streamManager.getAllActiveSessions();
+      return {
+        success: true,
+        sessions,
+        count: sessions.length,
+      };
+    } catch (error) {
+      console.error('[Conversation IPC] 获取活动会话失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 清理已完成的流式会话
+   * Channel: 'conversation:stream-cleanup'
+   *
+   * @returns {Promise<Object>} { success: boolean, cleanedCount?: number, error?: string }
+   */
+  ipcMain.handle('conversation:stream-cleanup', async (_event) => {
+    try {
+      console.log('[Conversation IPC] 清理已完成的流式会话');
+
+      const cleanedCount = streamManager.cleanup();
+      return {
+        success: true,
+        cleanedCount,
+      };
+    } catch (error) {
+      console.error('[Conversation IPC] 清理会话失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取StreamController管理器状态
+   * Channel: 'conversation:stream-manager-stats'
+   *
+   * @returns {Promise<Object>} { success: boolean, stats?: Object, error?: string }
+   */
+  ipcMain.handle('conversation:stream-manager-stats', async (_event) => {
+    try {
+      console.log('[Conversation IPC] 获取StreamController管理器状态');
+
+      const stats = streamManager.getManagerStats();
+      return {
+        success: true,
+        stats,
+      };
+    } catch (error) {
+      console.error('[Conversation IPC] 获取管理器状态失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('conversation-ipc');
 
-  console.log('[Conversation IPC] Registered 8 conversation handlers');
+  console.log('[Conversation IPC] Registered 15 conversation handlers');
   console.log('[Conversation IPC] - conversation:get-by-project');
   console.log('[Conversation IPC] - conversation:get-by-id');
   console.log('[Conversation IPC] - conversation:create');
@@ -568,6 +732,13 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
   console.log('[Conversation IPC] - conversation:create-message');
   console.log('[Conversation IPC] - conversation:get-messages');
   console.log('[Conversation IPC] - conversation:chat-stream');
+  console.log('[Conversation IPC] - conversation:stream-pause');
+  console.log('[Conversation IPC] - conversation:stream-resume');
+  console.log('[Conversation IPC] - conversation:stream-cancel');
+  console.log('[Conversation IPC] - conversation:stream-stats');
+  console.log('[Conversation IPC] - conversation:stream-list');
+  console.log('[Conversation IPC] - conversation:stream-cleanup');
+  console.log('[Conversation IPC] - conversation:stream-manager-stats');
 }
 
 module.exports = { registerConversationIPC };
