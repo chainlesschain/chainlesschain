@@ -297,14 +297,30 @@
 
               <!-- 测试连接按钮 -->
               <a-divider />
-              <a-form-item :wrapper-col="{ span: 18, offset: 6 }">
-                <a-space>
-                  <a-button type="primary" @click="testLLMConnection" :loading="testingConnection">
-                    测试连接
-                  </a-button>
-                  <a-tag v-if="llmTestResult" :color="llmTestResult.success ? 'success' : 'error'">
-                    {{ llmTestResult.message }}
-                  </a-tag>
+              <a-form-item label="功能测试" :wrapper-col="{ span: 18, offset: 6 }">
+                <a-space direction="vertical" style="width: 100%;">
+                  <!-- 测试对话功能 -->
+                  <div>
+                    <a-space>
+                      <a-button type="primary" @click="testLLMConnection" :loading="testingConnection">
+                        测试对话
+                      </a-button>
+                      <a-tag v-if="llmTestResult" :color="llmTestResult.success ? 'success' : 'error'">
+                        {{ llmTestResult.message }}
+                      </a-tag>
+                    </a-space>
+                  </div>
+                  <!-- 测试嵌入功能 -->
+                  <div>
+                    <a-space>
+                      <a-button @click="testEmbedding" :loading="testingEmbedding">
+                        测试嵌入
+                      </a-button>
+                      <a-tag v-if="embeddingTestResult" :color="embeddingTestResult.success ? 'success' : 'error'">
+                        {{ embeddingTestResult.message }}
+                      </a-tag>
+                    </a-space>
+                  </div>
                 </a-space>
               </a-form-item>
             </a-form>
@@ -866,6 +882,10 @@ const activeTab = ref('project');
 const testingConnection = ref(false);
 const llmTestResult = ref(null);
 
+// LLM 嵌入测试相关
+const testingEmbedding = ref(false);
+const embeddingTestResult = ref(null);
+
 // LLM 提供商选项
 const llmProviderOptions = [
   { label: 'Ollama（本地）', value: 'ollama' },
@@ -1252,6 +1272,121 @@ const testLLMConnection = async () => {
     message.error('测试失败：' + error.message);
   } finally {
     testingConnection.value = false;
+  }
+};
+
+// 测试嵌入模型
+const testEmbedding = async () => {
+  testingEmbedding.value = true;
+  embeddingTestResult.value = null;
+
+  try {
+    // 验证必填字段
+    const provider = config.value.llm.provider;
+    if (provider === 'openai' && !config.value.llm.openaiApiKey) {
+      throw new Error('请先输入 OpenAI API Key');
+    }
+    if (provider === 'volcengine' && !config.value.llm.volcengineApiKey) {
+      throw new Error('请先输入火山引擎 API Key');
+    }
+    if (provider === 'deepseek' && !config.value.llm.deepseekApiKey) {
+      throw new Error('请先输入 DeepSeek API Key');
+    }
+    if (provider === 'dashscope' && !config.value.llm.dashscopeApiKey) {
+      throw new Error('请先输入阿里通义千问 API Key');
+    }
+    if (provider === 'zhipu' && !config.value.llm.zhipuApiKey) {
+      throw new Error('请先输入智谱 AI API Key');
+    }
+
+    // 构建LLM配置对象（包含嵌入模型）
+    const llmConfig = {
+      provider: provider,
+      options: {
+        timeout: 120000,
+      },
+    };
+
+    // 根据提供商添加特定配置
+    switch (provider) {
+      case 'ollama':
+        llmConfig.ollama = {
+          url: config.value.llm.ollamaHost || 'http://localhost:11434',
+          model: config.value.llm.ollamaModel || 'llama2',
+          embeddingModel: config.value.llm.ollamaEmbeddingModel || 'nomic-embed-text',
+        };
+        break;
+      case 'openai':
+        llmConfig.openai = {
+          apiKey: config.value.llm.openaiApiKey,
+          baseURL: config.value.llm.openaiBaseUrl || 'https://api.openai.com/v1',
+          model: config.value.llm.openaiModel || 'gpt-3.5-turbo',
+          embeddingModel: config.value.llm.openaiEmbeddingModel || 'text-embedding-3-small',
+        };
+        break;
+      case 'volcengine':
+        llmConfig.volcengine = {
+          apiKey: config.value.llm.volcengineApiKey,
+          baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
+          model: config.value.llm.volcengineModel || 'doubao-pro-4k',
+          embeddingModel: config.value.llm.volcengineEmbeddingModel || 'doubao-embedding',
+        };
+        break;
+      case 'deepseek':
+        llmConfig.deepseek = {
+          apiKey: config.value.llm.deepseekApiKey,
+          baseURL: 'https://api.deepseek.com/v1',
+          model: config.value.llm.deepseekModel || 'deepseek-chat',
+          embeddingModel: config.value.llm.deepseekEmbeddingModel || '',
+        };
+        break;
+      case 'dashscope':
+        llmConfig.dashscope = {
+          apiKey: config.value.llm.dashscopeApiKey,
+          model: config.value.llm.dashscopeModel || 'qwen-turbo',
+          embeddingModel: config.value.llm.dashscopeEmbeddingModel || 'text-embedding-v2',
+        };
+        break;
+      case 'zhipu':
+        llmConfig.zhipu = {
+          apiKey: config.value.llm.zhipuApiKey,
+          model: config.value.llm.zhipuModel || 'glm-4',
+          embeddingModel: config.value.llm.zhipuEmbeddingModel || 'embedding-2',
+        };
+        break;
+      default:
+        throw new Error(`提供商 ${provider} 可能不支持嵌入模型`);
+    }
+
+    // 先保存LLM配置
+    await window.electronAPI.llm.setConfig(llmConfig);
+
+    // 测试嵌入功能
+    const testText = '这是一段用于测试嵌入模型的中文文本。';
+    const result = await window.electronAPI.llm.embeddings(testText);
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      embeddingTestResult.value = {
+        success: true,
+        message: `嵌入生成成功！向量维度: ${result.length}`,
+      };
+      message.success(`嵌入模型测试成功，向量维度: ${result.length}`);
+    } else {
+      embeddingTestResult.value = {
+        success: false,
+        message: '嵌入生成失败: 返回结果为空',
+      };
+      message.error('嵌入模型测试失败');
+    }
+  } catch (error) {
+    console.error('测试嵌入模型失败:', error);
+    embeddingTestResult.value = {
+      success: false,
+      message: '测试失败: ' + error.message,
+    };
+    message.error('测试失败：' + error.message);
+  } finally {
+    testingEmbedding.value = false;
   }
 };
 
