@@ -30,6 +30,28 @@ module.exports = {
     '!**/out/**',
   ],
 
+  // 覆盖率报告器
+  coverageReporters: ['text', 'text-summary', 'html', 'lcov', 'json'],
+
+  // 覆盖率输出目录
+  coverageDirectory: '<rootDir>/coverage/jest',
+
+  // 覆盖率阈值
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
+    './desktop-app-vue/src/main/project/': {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+
   // 设置文件
   setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.js'],
 
@@ -48,6 +70,12 @@ module.exports = {
 
   // 详细输出
   verbose: true,
+
+  // 性能优化
+  maxWorkers: '50%', // 使用 50% 的 CPU 核心并行执行
+  maxConcurrency: 5, // 每个 worker 最多同时运行 5 个测试
+  cache: true, // 启用缓存
+  cacheDirectory: '<rootDir>/.jest-cache',
 
   // 忽略的路径
   testPathIgnorePatterns: [

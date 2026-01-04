@@ -10,7 +10,17 @@ describe('System IPC', () => {
   let handlers = {};
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    // Clear mock call history but preserve implementations
+    ipcMain.handle.mockClear();
+    app.getVersion.mockClear();
+    app.getPath.mockClear();
+    app.relaunch.mockClear();
+    app.exit.mockClear();
+    app.quit.mockClear();
+    shell.openExternal.mockClear();
+    shell.showItemInFolder.mockClear();
+    dialog.showOpenDialog.mockClear();
+
     handlers = {};
 
     // Mock主窗口
@@ -27,12 +37,24 @@ describe('System IPC', () => {
       setAlwaysOnTop: jest.fn(),
     };
 
-    // 重置 electron mock 以捕获新的 handlers
-    ipcMain.handle.mockClear();
+    // Setup ipcMain.handle to capture handlers
     ipcMain.handle.mockImplementation((channel, handler) => {
       handlers[channel] = handler;
       return handler;
     });
+
+    // Ensure app mocks have correct implementations
+    if (!app.getVersion.mock) {
+      app.getVersion = jest.fn(() => '0.1.0');
+    } else {
+      app.getVersion.mockReturnValue('0.1.0');
+    }
+
+    if (!app.getPath.mock) {
+      app.getPath = jest.fn((name) => `/path/to/${name}`);
+    } else {
+      app.getPath.mockImplementation((name) => `/path/to/${name}`);
+    }
 
     // 删除缓存并重新导入模块
     delete require.cache[require.resolve('../../desktop-app-vue/src/main/system/system-ipc')];
@@ -74,7 +96,7 @@ describe('System IPC', () => {
     });
 
     test('should toggle always on top', async () => {
-      const result = await handlers['system:toggleAlwaysOnTop'](null, true);
+      const result = await handlers['system:set-always-on-top'](null, true);
 
       expect(result.success).toBe(true);
       expect(mockMainWindow.setAlwaysOnTop).toHaveBeenCalledWith(true);
@@ -83,21 +105,21 @@ describe('System IPC', () => {
 
   describe('System Information', () => {
     test('should get platform', async () => {
-      const result = await handlers['system:getPlatform']();
+      const result = await handlers['system:get-platform']();
 
       expect(result.success).toBe(true);
-      expect(result.platform).toBe('darwin');
+      expect(result.platform).toBe(process.platform);
     });
 
     test('should get version', async () => {
-      const result = await handlers['system:getVersion']();
+      const result = await handlers['system:get-version']();
 
       expect(result.success).toBe(true);
       expect(result.version).toBe('0.1.0');
     });
 
     test('should get path', async () => {
-      const result = await handlers['system:getPath'](null, 'userData');
+      const result = await handlers['system:get-path'](null, 'userData');
 
       expect(result.success).toBe(true);
       expect(result.path).toBe('/path/to/userData');
@@ -108,7 +130,7 @@ describe('System IPC', () => {
     test('should open external URL', async () => {
       shell.openExternal.mockResolvedValue();
 
-      const result = await handlers['system:openExternal'](null, 'https://example.com');
+      const result = await handlers['system:open-external'](null, 'https://example.com');
 
       expect(result.success).toBe(true);
       expect(shell.openExternal).toHaveBeenCalledWith('https://example.com');
@@ -117,7 +139,7 @@ describe('System IPC', () => {
     test('should show item in folder', async () => {
       shell.showItemInFolder.mockReturnValue();
 
-      const result = await handlers['system:showItemInFolder'](null, '/path/to/file');
+      const result = await handlers['system:show-item-in-folder'](null, '/path/to/file');
 
       expect(result.success).toBe(true);
       expect(shell.showItemInFolder).toHaveBeenCalledWith('/path/to/file');
@@ -129,10 +151,11 @@ describe('System IPC', () => {
         filePaths: ['/selected/directory'],
       });
 
-      const result = await handlers['system:selectDirectory']();
+      const result = await handlers['system:select-directory']();
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe('/selected/directory');
+      expect(result.canceled).toBe(false);
+      expect(result.filePaths).toEqual(['/selected/directory']);
     });
 
     test('should select file', async () => {
@@ -141,10 +164,11 @@ describe('System IPC', () => {
         filePaths: ['/selected/file.txt'],
       });
 
-      const result = await handlers['system:selectFile']();
+      const result = await handlers['system:select-file']();
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe('/selected/file.txt');
+      expect(result.canceled).toBe(false);
+      expect(result.filePaths).toEqual(['/selected/file.txt']);
     });
 
     test('should handle dialog cancellation', async () => {
@@ -153,10 +177,11 @@ describe('System IPC', () => {
         filePaths: [],
       });
 
-      const result = await handlers['system:selectFile']();
+      const result = await handlers['system:select-file']();
 
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
       expect(result.canceled).toBe(true);
+      expect(result.filePaths).toEqual([]);
     });
   });
 
@@ -188,14 +213,21 @@ describe('System IPC', () => {
     });
 
     test('should handle system info errors', async () => {
+      // Save original mock
+      const originalGetVersion = app.getVersion;
+
+      // Make getVersion throw an error
       app.getVersion.mockImplementation(() => {
         throw new Error('Version error');
       });
 
-      const result = await handlers['system:getVersion']();
+      const result = await handlers['system:get-version']();
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Version error');
+
+      // Restore original mock
+      app.getVersion = originalGetVersion;
     });
   });
 });

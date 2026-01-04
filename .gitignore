@@ -125,6 +125,10 @@ coverage/
 *.lcov
 .nyc_output/
 
+# Test cache
+.jest-cache/
+.vitest-cache/
+
 # Test reports
 backend/test/reports/
 desktop-app-vue/test-data-output/
