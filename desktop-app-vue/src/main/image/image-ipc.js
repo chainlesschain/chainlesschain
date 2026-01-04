@@ -7,6 +7,7 @@
  */
 
 const { ipcMain, dialog } = require('electron');
+const ipcGuard = require('../ipc-guard');
 
 /**
  * 注册图像管理相关的 IPC 处理器
@@ -20,6 +21,12 @@ function registerImageIPC({
   llmManager,
   mainWindow
 }) {
+  // 防止重复注册
+  if (ipcGuard.isModuleRegistered('image-ipc')) {
+    console.log('[Image IPC] Handlers already registered, skipping...');
+    return;
+  }
+
   console.log('[Image IPC] Registering Image IPC handlers...');
 
   // ============================================================
@@ -532,6 +539,9 @@ function registerImageIPC({
       throw error;
     }
   });
+
+  // 标记模块为已注册
+  ipcGuard.markModuleRegistered('image-ipc');
 
   console.log('[Image IPC] ✓ 22 handlers registered');
   console.log('[Image IPC] - 3 image selection & upload handlers');

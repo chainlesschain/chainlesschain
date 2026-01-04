@@ -6,6 +6,8 @@
  * @description 负责注册所有模块化的 IPC 处理器，实现主进程入口文件的解耦
  */
 
+const ipcGuard = require('./ipc-guard');
+
 /**
  * 注册所有 IPC 处理器
  * @param {Object} dependencies - 依赖对象，包含所有管理器实例
@@ -30,6 +32,13 @@ function registerAllIPC(dependencies) {
 
   const startTime = Date.now();
   const registeredModules = {};
+
+  // 检查是否已经注册过（防止重复注册）
+  if (ipcGuard.isModuleRegistered('ipc-registry')) {
+    console.log('[IPC Registry] ⚠️  IPC Registry already initialized, skipping registration...');
+    ipcGuard.printStats();
+    return registeredModules;
+  }
 
   try {
     // 解构所有依赖（便于后续传递给各个模块）
@@ -651,11 +660,17 @@ function registerAllIPC(dependencies) {
     const endTime = Date.now();
     const duration = endTime - startTime;
 
+    // 标记IPC Registry为已注册
+    ipcGuard.markModuleRegistered('ipc-registry');
+
     console.log('[IPC Registry] ========================================');
     console.log('[IPC Registry] Registration complete!');
     console.log(`[IPC Registry] Registered modules: ${Object.keys(registeredModules).length}`);
     console.log(`[IPC Registry] Duration: ${duration}ms`);
     console.log('[IPC Registry] ========================================');
+
+    // 打印IPC Guard统计信息
+    ipcGuard.printStats();
 
     return registeredModules;
   } catch (error) {
@@ -670,12 +685,13 @@ function registerAllIPC(dependencies) {
  */
 function unregisterAllIPC(ipcMain) {
   console.log('[IPC Registry] Unregistering all IPC handlers...');
-  // 移除所有 handler（Electron 会在 removeAllListeners 时处理）
-  ipcMain.removeAllListeners();
+  // 使用IPC Guard的resetAll功能
+  ipcGuard.resetAll();
   console.log('[IPC Registry] ✓ All IPC handlers unregistered');
 }
 
 module.exports = {
   registerAllIPC,
-  unregisterAllIPC
+  unregisterAllIPC,
+  ipcGuard  // 导出IPC Guard供外部使用
 };

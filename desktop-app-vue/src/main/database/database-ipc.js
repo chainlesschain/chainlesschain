@@ -7,6 +7,7 @@
  */
 
 const { ipcMain } = require('electron');
+const ipcGuard = require('../ipc-guard');
 
 /**
  * 注册所有数据库 IPC 处理器
@@ -16,6 +17,12 @@ const { ipcMain } = require('electron');
  * @param {Function} dependencies.getAppConfig - 获取应用配置函数
  */
 function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
+  // 防止重复注册
+  if (ipcGuard.isModuleRegistered('database-ipc')) {
+    console.log('[Database IPC] Handlers already registered, skipping...');
+    return;
+  }
+
   console.log('[Database IPC] Registering Database IPC handlers...');
 
   // ============================================================
@@ -395,6 +402,9 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
       throw error;
     }
   });
+
+  // 标记模块为已注册
+  ipcGuard.markModuleRegistered('database-ipc');
 
   console.log('[Database IPC] ✓ All Database IPC handlers registered successfully (22 handlers)');
 }

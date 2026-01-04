@@ -7,6 +7,7 @@
  */
 
 const { ipcMain } = require('electron');
+const ipcGuard = require('../ipc-guard');
 
 /**
  * 注册所有 Git IPC 处理器
@@ -17,6 +18,12 @@ const { ipcMain } = require('electron');
  * @param {Object} [dependencies.llmManager] - LLM 管理器（用于 AI 提交信息生成）
  */
 function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager }) {
+  // 防止重复注册
+  if (ipcGuard.isModuleRegistered('git-ipc')) {
+    console.log('[Git IPC] Handlers already registered, skipping...');
+    return;
+  }
+
   console.log('[Git IPC] Registering Git IPC handlers...');
 
   // ============================================================
@@ -375,6 +382,9 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
       throw error;
     }
   });
+
+  // 标记模块为已注册
+  ipcGuard.markModuleRegistered('git-ipc');
 
   console.log('[Git IPC] ✓ All Git IPC handlers registered successfully (16 handlers)');
 }

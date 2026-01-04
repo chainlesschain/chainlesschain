@@ -6,6 +6,8 @@
  * @description 提供 RAG 知识库检索、增强查询、索引管理、配置等 IPC 接口
  */
 
+const ipcGuard = require('../ipc-guard');
+
 /**
  * 注册所有 RAG IPC 处理器
  * @param {Object} dependencies - 依赖对象
@@ -14,6 +16,12 @@
  * @param {Object} [dependencies.ipcMain] - IPC主进程对象（可选，用于测试注入）
  */
 function registerRAGIPC({ ragManager, llmManager, ipcMain: injectedIpcMain }) {
+  // 防止重复注册
+  if (ipcGuard.isModuleRegistered('rag-ipc')) {
+    console.log('[RAG IPC] Handlers already registered, skipping...');
+    return;
+  }
+
   // 支持依赖注入，用于测试
   const electron = require('electron');
   const ipcMain = injectedIpcMain || electron.ipcMain;
@@ -173,6 +181,9 @@ function registerRAGIPC({ ragManager, llmManager, ipcMain: injectedIpcMain }) {
       throw error;
     }
   });
+
+  // 标记模块为已注册
+  ipcGuard.markModuleRegistered('rag-ipc');
 
   console.log('[RAG IPC] ✓ All RAG IPC handlers registered successfully (7 handlers)');
 }
