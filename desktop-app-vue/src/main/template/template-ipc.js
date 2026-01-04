@@ -31,11 +31,11 @@ function registerTemplateIPC({
         throw new Error('模板管理器未初始化');
       }
       const templates = await templateManager.getAllTemplates(filters);
-      // 直接返回数组，保持与其他查询接口一致
-      return templates || [];
+      // 返回标准格式 {success, templates}，与前端期望一致
+      return { success: true, templates: templates || [] };
     } catch (error) {
       console.error('[Template] 获取模板列表失败:', error);
-      return [];
+      return { success: false, error: error.message, templates: [] };
     }
   });
 
