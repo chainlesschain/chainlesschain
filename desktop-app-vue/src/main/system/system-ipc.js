@@ -324,7 +324,90 @@ function registerSystemIPC({ mainWindow }) {
     }
   });
 
-  console.log('[System IPC] Registered 16 system: handlers');
+  // ============================================================
+  // Dialog 对话框 IPC 处理器
+  // ============================================================
+
+  /**
+   * 选择文件夹（通用对话框）
+   * Channel: 'dialog:select-folder'
+   */
+  ipcMain.handle('dialog:select-folder', async (_event, options = {}) => {
+    try {
+      const { dialog } = require('electron');
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory'],
+        ...options,
+      });
+      return {
+        success: true,
+        canceled: result.canceled,
+        filePaths: result.filePaths,
+      };
+    } catch (error) {
+      console.error('[System IPC] 选择文件夹失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 显示打开文件对话框
+   * Channel: 'dialog:showOpenDialog'
+   */
+  ipcMain.handle('dialog:showOpenDialog', async (_event, options = {}) => {
+    try {
+      const { dialog } = require('electron');
+      const result = await dialog.showOpenDialog(mainWindow, options);
+      return {
+        success: true,
+        canceled: result.canceled,
+        filePaths: result.filePaths,
+      };
+    } catch (error) {
+      console.error('[System IPC] 打开文件对话框失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 显示保存文件对话框
+   * Channel: 'dialog:showSaveDialog'
+   */
+  ipcMain.handle('dialog:showSaveDialog', async (_event, options = {}) => {
+    try {
+      const { dialog } = require('electron');
+      const result = await dialog.showSaveDialog(mainWindow, options);
+      return {
+        success: true,
+        canceled: result.canceled,
+        filePath: result.filePath,
+      };
+    } catch (error) {
+      console.error('[System IPC] 保存文件对话框失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 显示消息框
+   * Channel: 'dialog:showMessageBox'
+   */
+  ipcMain.handle('dialog:showMessageBox', async (_event, options = {}) => {
+    try {
+      const { dialog } = require('electron');
+      const result = await dialog.showMessageBox(mainWindow, options);
+      return {
+        success: true,
+        response: result.response,
+        checkboxChecked: result.checkboxChecked,
+      };
+    } catch (error) {
+      console.error('[System IPC] 消息框显示失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  console.log('[System IPC] Registered 20 handlers (16 system + 4 dialog)');
   console.log('[System IPC] - system:maximize');
   console.log('[System IPC] - system:minimize');
   console.log('[System IPC] - system:close');
@@ -341,6 +424,10 @@ function registerSystemIPC({ mainWindow }) {
   console.log('[System IPC] - system:select-directory');
   console.log('[System IPC] - system:select-file');
   console.log('[System IPC] - system:quit');
+  console.log('[System IPC] - dialog:select-folder');
+  console.log('[System IPC] - dialog:showOpenDialog');
+  console.log('[System IPC] - dialog:showSaveDialog');
+  console.log('[System IPC] - dialog:showMessageBox');
 
   isRegistered = true;
   console.log('[System IPC] ✓ All handlers registered successfully');
