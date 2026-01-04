@@ -1536,6 +1536,13 @@ watch(() => route.params.id, async (newId, oldId) => {
       gitStatus.value = {};
       resolvedProjectPath.value = '';
 
+      // 🔥 检查是否是AI创建模式
+      if (newId === 'ai-creating') {
+        console.log('[ProjectDetail] Watch检测到AI创建模式，跳过项目加载');
+        loading.value = false;
+        return;
+      }
+
       // 3. 加载新项目
       await projectStore.fetchProjectById(newId);
       console.log('[ProjectDetail] 项目数据已加载:', currentProject.value?.name);
