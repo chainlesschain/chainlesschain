@@ -29,16 +29,24 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
   const getAllSkillsHandler = async (event, options = {}) => {
     try {
       const result = await skillManager.getAllSkills(options);
-      // 直接返回数组，保持与模板接口一致
-      if (result.success) {
-        return result.skills || [];
-      } else {
-        console.error('[IPC] skill:get-all 失败:', result.error);
-        return [];
+
+      // skillManager.getAllSkills 返回 {success, skills} 格式
+      if (result && result.success) {
+        console.log(`[IPC] skill:get-all 成功，技能数量: ${result.skills?.length || 0}`);
+        return { success: true, data: result.skills || [], skills: result.skills || [] };
       }
+
+      // 兼容可能的数组返回格式
+      if (Array.isArray(result)) {
+        console.log(`[IPC] skill:get-all 成功(数组格式)，技能数量: ${result.length}`);
+        return { success: true, data: result, skills: result };
+      }
+
+      console.warn('[IPC] skill:get-all 返回格式异常:', result);
+      return { success: true, data: [], skills: [] };
     } catch (error) {
       console.error('[IPC] skill:get-all 失败:', error);
-      return [];
+      return { success: false, error: error.message, data: [], skills: [] };
     }
   };
 
@@ -204,16 +212,23 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
   const getAllToolsHandler = async (event, options = {}) => {
     try {
       const result = await toolManager.getAllTools(options);
-      // 直接返回数组，保持与模板接口一致
-      if (result.success) {
-        return result.tools || [];
-      } else {
-        console.error('[IPC] tool:get-all 失败:', result.error);
-        return [];
+
+      // toolManager.getAllTools 直接返回数组，而不是 {success, tools} 对象
+      if (Array.isArray(result)) {
+        console.log(`[IPC] tool:get-all 成功，工具数量: ${result.length}`);
+        return { success: true, data: result, tools: result };
       }
+
+      // 兼容可能的对象返回格式
+      if (result && result.success) {
+        return { success: true, data: result.tools || [], tools: result.tools || [] };
+      }
+
+      console.warn('[IPC] tool:get-all 返回格式异常:', typeof result);
+      return { success: true, data: [], tools: [] };
     } catch (error) {
       console.error('[IPC] tool:get-all 失败:', error);
-      return [];
+      return { success: false, error: error.message, data: [], tools: [] };
     }
   };
 
