@@ -6,6 +6,8 @@
  * @description 提供对话创建、查询、更新、删除等 IPC 接口
  */
 
+const ipcGuard = require('../ipc-guard');
+
 /**
  * 注册所有对话 IPC 处理器
  * @param {Object} dependencies - 依赖对象
@@ -13,6 +15,12 @@
  * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
  */
 function registerConversationIPC({ database, ipcMain: injectedIpcMain }) {
+  // 防止重复注册
+  if (ipcGuard.isModuleRegistered('conversation-ipc')) {
+    console.log('[Conversation IPC] Handlers already registered, skipping...');
+    return;
+  }
+
   // 支持依赖注入，用于测试
   const ipcMain = injectedIpcMain || require('electron').ipcMain;
 
@@ -340,6 +348,9 @@ function registerConversationIPC({ database, ipcMain: injectedIpcMain }) {
       return { success: false, error: error.message };
     }
   });
+
+  // 标记模块为已注册
+  ipcGuard.markModuleRegistered('conversation-ipc');
 
   console.log('[Conversation IPC] Registered 7 conversation handlers');
   console.log('[Conversation IPC] - conversation:get-by-project');

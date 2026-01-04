@@ -6,6 +6,8 @@
  * @description 提供文件选择、导入、格式检查等 IPC 接口
  */
 
+const ipcGuard = require('../ipc-guard');
+
 /**
  * 注册所有文件导入 IPC 处理器
  * @param {Object} dependencies - 依赖对象
@@ -24,6 +26,12 @@ function registerImportIPC({
   ipcMain: injectedIpcMain,
   dialog: injectedDialog
 }) {
+  // 防止重复注册
+  if (ipcGuard.isModuleRegistered('import-ipc')) {
+    console.log('[Import IPC] Handlers already registered, skipping...');
+    return;
+  }
+
   // 支持依赖注入，用于测试
   const electron = require('electron');
   const ipcMain = injectedIpcMain || electron.ipcMain;
@@ -38,9 +46,6 @@ function registerImportIPC({
   /**
    * 选择要导入的文件
    * Channel: 'import:select-files'
-   *
-   * NOTE: This handler is already defined in index.js at line 2072
-   * Keeping here for completeness and future migration
    */
   ipcMain.handle('import:select-files', async () => {
     try {
@@ -78,9 +83,6 @@ function registerImportIPC({
   /**
    * 导入单个文件
    * Channel: 'import:import-file'
-   *
-   * NOTE: This handler is already defined in index.js at line 2105
-   * Keeping here for completeness and future migration
    *
    * @param {string} filePath - 文件路径
    * @param {Object} options - 导入选项
@@ -131,9 +133,6 @@ function registerImportIPC({
   /**
    * 批量导入文件
    * Channel: 'import:import-files'
-   *
-   * NOTE: This handler is already defined in index.js at line 2147
-   * Keeping here for completeness and future migration
    *
    * @param {string[]} filePaths - 文件路径数组
    * @param {Object} options - 导入选项
@@ -221,12 +220,15 @@ function registerImportIPC({
     }
   });
 
-  console.log('[Import IPC] Registered 5 import: handlers');
-  console.log('[Import IPC] - import:select-files (ALREADY IN index.js:2072)');
-  console.log('[Import IPC] - import:import-file (ALREADY IN index.js:2105)');
-  console.log('[Import IPC] - import:import-files (ALREADY IN index.js:2147)');
-  console.log('[Import IPC] - import:get-supported-formats');
-  console.log('[Import IPC] - import:check-file');
+  // 标记模块为已注册
+  ipcGuard.markModuleRegistered('import-ipc');
+
+  console.log('[Import IPC] ✓ Registered 5 import handlers:');
+  console.log('[Import IPC]   - import:select-files');
+  console.log('[Import IPC]   - import:import-file');
+  console.log('[Import IPC]   - import:import-files');
+  console.log('[Import IPC]   - import:get-supported-formats');
+  console.log('[Import IPC]   - import:check-file');
 }
 
 module.exports = { registerImportIPC };
