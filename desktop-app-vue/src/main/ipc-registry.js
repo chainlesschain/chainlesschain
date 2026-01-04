@@ -125,28 +125,32 @@ function registerAllIPC(dependencies) {
     // ============================================================
 
     // U-Key 硬件管理 (函数模式 - 小模块，9 handlers)
-    if (ukeyManager) {
-      console.log('[IPC Registry] Registering U-Key IPC...');
-      const { registerUKeyIPC } = require('./ukey/ukey-ipc');
-      registerUKeyIPC({ ukeyManager });
-      console.log('[IPC Registry] ✓ U-Key IPC registered (9 handlers)');
+    // 注意：即使 ukeyManager 为 null 也注册，handler 内部会处理 null 情况
+    console.log('[IPC Registry] Registering U-Key IPC...');
+    const { registerUKeyIPC } = require('./ukey/ukey-ipc');
+    registerUKeyIPC({ ukeyManager });
+    if (!ukeyManager) {
+      console.log('[IPC Registry] ⚠️  U-Key manager not initialized (handlers registered with degraded functionality)');
     }
+    console.log('[IPC Registry] ✓ U-Key IPC registered (9 handlers)');
 
     // 数据库管理 (函数模式 - 中等模块，22 handlers)
-    if (database) {
-      console.log('[IPC Registry] Registering Database IPC...');
-      const { registerDatabaseIPC } = require('./database/database-ipc');
+    // 注意：即使 database 为 null 也注册，handler 内部会处理 null 情况
+    console.log('[IPC Registry] Registering Database IPC...');
+    const { registerDatabaseIPC } = require('./database/database-ipc');
 
-      // 获取 getAppConfig 函数
-      const { getAppConfig } = require('./app-config');
+    // 获取 getAppConfig 函数
+    const { getAppConfig } = require('./app-config');
 
-      registerDatabaseIPC({
-        database,
-        ragManager,
-        getAppConfig
-      });
-      console.log('[IPC Registry] ✓ Database IPC registered (22 handlers)');
+    registerDatabaseIPC({
+      database,
+      ragManager,
+      getAppConfig
+    });
+    if (!database) {
+      console.log('[IPC Registry] ⚠️  Database manager not initialized (handlers registered with degraded functionality)');
     }
+    console.log('[IPC Registry] ✓ Database IPC registered (22 handlers)');
 
     // Git 版本控制 (函数模式 - 中等模块，16 handlers)
     // 注意：即使 gitManager 为 null 也注册 IPC，让 handler 内部处理
