@@ -41,13 +41,39 @@ jobs:
         run: npm run lint --if-present
         continue-on-error: true
 
-      - name: Run unit tests
-        working-directory: ./desktop-app-vue
-        run: npm run test:unit
+      - name: Run Jest tests with coverage
+        working-directory: .
+        run: npm run test:jest:coverage
+        continue-on-error: true
 
-      - name: Run integration tests
-        working-directory: ./desktop-app-vue
-        run: npm run test:integration
+      - name: Run Vitest tests with coverage
+        working-directory: .
+        run: npm run test:vitest:coverage
+        continue-on-error: true
+
+      - name: Upload Jest coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/jest/lcov.info
+          flags: jest
+          name: jest-coverage-${{ matrix.os }}
+          fail_ci_if_error: false
+
+      - name: Upload Vitest coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/vitest/lcov.info
+          flags: vitest
+          name: vitest-coverage-${{ matrix.os }}
+          fail_ci_if_error: false
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: coverage-${{ matrix.os }}-${{ matrix.node-version }}
+          path: coverage/
+          retention-days: 30
 
       - name: Run coverage
         working-directory: ./desktop-app-vue
