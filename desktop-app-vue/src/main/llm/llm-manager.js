@@ -9,6 +9,7 @@ const OllamaClient = require('./ollama-client');
 const { OpenAIClient, DeepSeekClient } = require('./openai-client');
 const { AnthropicClient } = require('./anthropic-client');
 const { getModelSelector, TaskTypes } = require('./volcengine-models');
+const { VolcengineToolsClient } = require('./volcengine-tools');
 
 /**
  * LLM 提供商类型
@@ -45,6 +46,9 @@ class LLMManager extends EventEmitter {
 
     // 会话上下文
     this.conversationContext = new Map();
+
+    // 火山引擎工具调用客户端
+    this.toolsClient = null;
   }
 
   /**
@@ -56,6 +60,20 @@ class LLMManager extends EventEmitter {
 
     try {
       this.client = await this.createClient(this.provider);
+
+      // 🔥 初始化火山引擎工具调用客户端
+      if (this.provider === LLMProviders.VOLCENGINE) {
+        try {
+          this.toolsClient = new VolcengineToolsClient({
+            apiKey: this.config.apiKey,
+            baseURL: this.config.baseURL || 'https://ark.cn-beijing.volces.com/api/v3',
+            model: this.config.model || 'doubao-seed-1-6-lite-251015',
+          });
+          console.log('[LLMManager] 火山引擎工具调用客户端已初始化');
+        } catch (toolsError) {
+          console.warn('[LLMManager] 工具调用客户端初始化失败:', toolsError.message);
+        }
+      }
 
       if (this.client) {
         // 检查服务状态（不阻塞初始化）
@@ -644,6 +662,107 @@ class LLMManager extends EventEmitter {
 
     const selector = getModelSelector();
     return selector.listModels(filters);
+  }
+
+  // ========================================
+  // 🔥 火山引擎工具调用功能
+  // ========================================
+
+  /**
+   * 启用联网搜索的对话
+   * @param {Array} messages - 消息数组
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} API响应
+   */
+  async chatWithWebSearch(messages, options = {}) {
+    if (this.provider !== LLMProviders.VOLCENGINE) {
+      throw new Error('联网搜索仅支持火山引擎');
+    }
+
+    if (!this.toolsClient) {
+      throw new Error('火山引擎工具调用客户端未初始化');
+    }
+
+    console.log('[LLMManager] 使用联网搜索对话');
+    return await this.toolsClient.chatWithWebSearch(messages, options);
+  }
+
+  /**
+   * 启用图像处理的对话
+   * @param {Array} messages - 消息数组（需包含图像URL）
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} API响应
+   */
+  async chatWithImageProcess(messages, options = {}) {
+    if (this.provider !== LLMProviders.VOLCENGINE) {
+      throw new Error('图像处理仅支持火山引擎');
+    }
+
+    if (!this.toolsClient) {
+      throw new Error('火山引擎工具调用客户端未初始化');
+    }
+
+    console.log('[LLMManager] 使用图像处理对话');
+    return await this.toolsClient.chatWithImageProcess(messages, options);
+  }
+
+  /**
+   * 使用知识库增强的对话
+   * @param {Array} messages - 消息数组
+   * @param {string} knowledgeBaseId - 知识库ID
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} API响应
+   */
+  async chatWithKnowledgeBase(messages, knowledgeBaseId, options = {}) {
+    if (this.provider !== LLMProviders.VOLCENGINE) {
+      throw new Error('知识库搜索仅支持火山引擎');
+    }
+
+    if (!this.toolsClient) {
+      throw new Error('火山引擎工具调用客户端未初始化');
+    }
+
+    console.log('[LLMManager] 使用知识库搜索对话');
+    return await this.toolsClient.chatWithKnowledgeBase(messages, knowledgeBaseId, options);
+  }
+
+  /**
+   * Function Calling 对话
+   * @param {Array} messages - 消息数组
+   * @param {Array} functions - 可用函数列表
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} API响应
+   */
+  async chatWithFunctionCalling(messages, functions, options = {}) {
+    if (this.provider !== LLMProviders.VOLCENGINE) {
+      throw new Error('函数调用仅支持火山引擎');
+    }
+
+    if (!this.toolsClient) {
+      throw new Error('火山引擎工具调用客户端未初始化');
+    }
+
+    console.log('[LLMManager] 使用函数调用对话');
+    return await this.toolsClient.chatWithFunctionCalling(messages, functions, options);
+  }
+
+  /**
+   * 混合多种工具的对话（智能组合）
+   * @param {Array} messages - 消息数组
+   * @param {Object} toolConfig - 工具配置
+   * @returns {Promise<Object>} API响应
+   */
+  async chatWithMultipleTools(messages, toolConfig = {}) {
+    if (this.provider !== LLMProviders.VOLCENGINE) {
+      throw new Error('工具调用仅支持火山引擎');
+    }
+
+    if (!this.toolsClient) {
+      throw new Error('火山引擎工具调用客户端未初始化');
+    }
+
+    console.log('[LLMManager] 使用多种工具对话');
+    return await this.toolsClient.chatWithMultipleTools(messages, toolConfig);
   }
 
   /**
