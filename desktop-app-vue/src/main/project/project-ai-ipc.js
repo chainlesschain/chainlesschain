@@ -158,11 +158,59 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
 
         console.log('[Main] 使用本地LLM，消息数量:', messages.length);
 
-        // 调用本地LLM
-        const llmResult = await llmManager.chat(messages, {
+        // 🔥 火山引擎智能模型选择（根据项目类型和对话场景）
+        const chatOptions = {
           temperature: 0.7,
           maxTokens: 2000
-        });
+        };
+
+        if (llmManager.provider === 'volcengine') {
+          try {
+            // 根据项目类型和对话内容智能选择模型
+            const scenario = {
+              userBudget: 'medium',  // 默认中等预算
+            };
+
+            // 根据项目类型调整场景
+            const projectType = project.project_type;
+            if (projectType === 'code' || projectType === 'app' || projectType === 'web') {
+              scenario.needsCodeGeneration = true;
+              console.log('[Main] 检测到代码项目，启用代码生成模式');
+            }
+
+            // 根据上下文模式调整
+            if (contextMode === 'file' || contextMode === 'project') {
+              scenario.needsLongContext = true;
+              console.log('[Main] 检测到需要长上下文（项目/文件模式）');
+            }
+
+            // 分析用户消息内容
+            if (userMessage) {
+              if (/(分析|推理|思考|为什么|如何|怎么)/.test(userMessage)) {
+                scenario.needsThinking = true;
+                console.log('[Main] 检测到需要深度思考');
+              }
+            }
+
+            // 智能选择模型
+            const selectedModel = llmManager.selectVolcengineModel(scenario);
+            if (selectedModel) {
+              chatOptions.model = selectedModel.modelId;
+              console.log('[Main] 项目AI对话智能选择模型:', selectedModel.modelName);
+              console.log('[Main] 预估成本: ¥', llmManager.estimateCost(
+                selectedModel.modelId,
+                messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0) / 4, // 粗略估计tokens
+                500, // 预估输出500 tokens
+                0
+              ).toFixed(4));
+            }
+          } catch (selectError) {
+            console.warn('[Main] 智能模型选择失败，使用默认配置:', selectError.message);
+          }
+        }
+
+        // 调用本地LLM
+        const llmResult = await llmManager.chat(messages, chatOptions);
 
         aiResponse = llmResult.content || llmResult.text || llmResult;
         console.log('[Main] 本地LLM响应成功');

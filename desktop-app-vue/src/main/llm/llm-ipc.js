@@ -6,6 +6,8 @@
  * @description 提供 LLM 服务的所有 IPC 接口，包括聊天、查询、配置管理、智能选择等
  */
 
+const ipcGuard = require('../ipc-guard');
+
 /**
  * 注册所有 LLM IPC 处理器
  * @param {Object} dependencies - 依赖对象
@@ -19,6 +21,12 @@
  * @param {Object} [dependencies.ipcMain] - IPC主进程对象（可选，用于测试注入）
  */
 function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateManager, llmSelector, database, app, ipcMain: injectedIpcMain }) {
+  // 防止重复注册
+  if (ipcGuard.isModuleRegistered('llm-ipc')) {
+    console.log('[LLM IPC] Handlers already registered, skipping...');
+    return;
+  }
+
   // 支持依赖注入，用于测试
   const electron = require('electron');
   const ipcMain = injectedIpcMain || electron.ipcMain;
@@ -82,6 +90,52 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
       }
 
       console.log('[LLM IPC] LLM 聊天请求, messages:', messages?.length || 0, 'stream:', stream, 'RAG:', enableRAG);
+
+      // 🔥 火山引擎智能模型选择
+      if (managerRef.current.provider === 'volcengine' && !options.model) {
+        try {
+          const TaskTypes = require('./volcengine-models').TaskTypes;
+
+          // 分析对话场景，智能选择模型
+          const scenario = {
+            userBudget: options.userBudget || 'medium',
+          };
+
+          // 分析消息内容，判断是否需要特殊能力
+          const lastUserMsg = [...messages].reverse().find(msg => msg.role === 'user');
+          if (lastUserMsg) {
+            const content = lastUserMsg.content;
+
+            // 检查是否需要深度思考（复杂问题、分析、推理）
+            if (/(为什么|怎么|如何|分析|推理|思考|解释|原理)/.test(content)) {
+              scenario.needsThinking = true;
+              console.log('[LLM IPC] 检测到需要深度思考');
+            }
+
+            // 检查是否包含代码（代码生成、调试）
+            if (/(代码|函数|class|function|编程|bug|调试)/.test(content) || /```/.test(content)) {
+              scenario.needsCodeGeneration = true;
+              console.log('[LLM IPC] 检测到代码相关任务');
+            }
+
+            // 检查上下文长度，如果消息很多或很长，选择大上下文模型
+            const totalLength = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0);
+            if (totalLength > 10000 || messages.length > 20) {
+              scenario.needsLongContext = true;
+              console.log('[LLM IPC] 检测到长上下文需求，总长度:', totalLength);
+            }
+          }
+
+          // 智能选择模型
+          const selectedModel = managerRef.current.selectVolcengineModel(scenario);
+          if (selectedModel) {
+            options.model = selectedModel.modelId;
+            console.log('[LLM IPC] 智能选择火山引擎模型:', selectedModel.modelName, '(', selectedModel.modelId, ')');
+          }
+        } catch (selectError) {
+          console.warn('[LLM IPC] 智能模型选择失败，使用默认配置:', selectError.message);
+        }
+      }
 
       let enhancedMessages = messages;
       let retrievedDocs = [];
@@ -448,6 +502,9 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
       throw error;
     }
   });
+
+  // 标记模块为已注册
+  ipcGuard.markModuleRegistered('llm-ipc');
 
   console.log('[LLM IPC] ✓ All LLM IPC handlers registered successfully (14 handlers)');
 }
