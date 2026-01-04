@@ -27,7 +27,7 @@ test.describe('项目管理 E2E 测试', () => {
 
       try {
         // 调用创建项目接口
-        const result = await callIPC(window, 'project:create', TEST_PROJECT);
+        const result: any = await callIPC(window, 'project:create', TEST_PROJECT);
 
         console.log('创建项目结果:', result);
 
@@ -56,7 +56,7 @@ test.describe('项目管理 E2E 测试', () => {
           name: 'Quick Test Project',
         };
 
-        const result = await callIPC(window, 'project:create-quick', quickProject);
+        const result: any = await callIPC(window, 'project:create-quick', quickProject);
 
         expect(result).toBeDefined();
         expect(result.success).toBe(true);
@@ -72,7 +72,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         console.log('获取到的项目数量:', projects?.length || 0);
 
@@ -97,7 +97,7 @@ test.describe('项目管理 E2E 测试', () => {
 
       try {
         // 先获取项目列表
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -107,7 +107,7 @@ test.describe('项目管理 E2E 测试', () => {
         const projectId = projects[0].id;
 
         // 获取单个项目
-        const project = await callIPC(window, 'project:get', projectId);
+        const project: any = await callIPC(window, 'project:get', projectId);
 
         expect(project).toBeDefined();
         expect(project.id).toBe(projectId);
@@ -124,7 +124,7 @@ test.describe('项目管理 E2E 测试', () => {
 
       try {
         // 先获取一个项目
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -138,7 +138,7 @@ test.describe('项目管理 E2E 测试', () => {
         };
 
         // 更新项目
-        const result = await callIPC(window, 'project:update', projectId, updates);
+        const result: any = await callIPC(window, 'project:update', projectId, updates);
 
         expect(result).toBeDefined();
         expect(result.name).toBe(updates.name);
@@ -160,7 +160,7 @@ test.describe('项目管理 E2E 测试', () => {
           id: `local-${Date.now()}`,
         };
 
-        const result = await callIPC(window, 'project:save', project);
+        const result: any = await callIPC(window, 'project:save', project);
 
         expect(result).toBeDefined();
         expect(result.saved || result.success).toBeTruthy();
@@ -185,7 +185,7 @@ test.describe('项目管理 E2E 测试', () => {
         await callIPC(window, 'project:save', tempProject);
 
         // 删除项目
-        const result = await callIPC(window, 'project:delete-local', tempProject.id);
+        const result: any = await callIPC(window, 'project:delete-local', tempProject.id);
 
         expect(result).toBeDefined();
         expect(result.success || result.deleted).toBeTruthy();
@@ -202,7 +202,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -212,7 +212,7 @@ test.describe('项目管理 E2E 测试', () => {
         const projectId = projects[0].id;
 
         // 获取项目文件，传入正确的参数：projectId, fileType, pageNum, pageSize
-        const result = await callIPC(
+        const result: any = await callIPC(
           window,
           'project:get-files',
           projectId,
@@ -234,7 +234,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -261,7 +261,7 @@ test.describe('项目管理 E2E 测试', () => {
           },
         ];
 
-        const result = await callIPC(window, 'project:save-files', projectId, files);
+        const result: any = await callIPC(window, 'project:save-files', projectId, files);
 
         expect(result).toBeDefined();
         expect(result.success).toBeTruthy();
@@ -284,7 +284,7 @@ test.describe('项目管理 E2E 测试', () => {
           content: 'print("Hello, World!")',
         };
 
-        const result = await callIPC(window, 'project:update-file', fileUpdate);
+        const result: any = await callIPC(window, 'project:update-file', fileUpdate);
 
         // 某些实现可能返回 success 或直接返回更新后的文件
         expect(result).toBeDefined();
@@ -299,7 +299,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -309,7 +309,7 @@ test.describe('项目管理 E2E 测试', () => {
         const projectId = projects[0].id;
         const fileId = `file-to-delete-${Date.now()}`;
 
-        const result = await callIPC(window, 'project:delete-file', projectId, fileId);
+        const result: any = await callIPC(window, 'project:delete-file', projectId, fileId);
 
         // 某些实现可能返回成功标志或直接返回 true
         expect(result).toBeDefined();
@@ -326,7 +326,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -335,7 +335,7 @@ test.describe('项目管理 E2E 测试', () => {
 
         const projectId = projects[0].id;
 
-        const result = await callIPC(window, 'project:sync-one', projectId);
+        const result: any = await callIPC(window, 'project:sync-one', projectId);
 
         expect(result).toBeDefined();
         // 同步可能成功或失败（如果后端未启动），只要有响应就算通过
@@ -351,7 +351,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const result = await callIPC(window, 'project:sync', TEST_USER_ID);
+        const result: any = await callIPC(window, 'project:sync', TEST_USER_ID);
 
         expect(result).toBeDefined();
         console.log('同步所有项目结果:', result);
@@ -366,7 +366,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -375,7 +375,7 @@ test.describe('项目管理 E2E 测试', () => {
 
         const projectId = projects[0].id;
 
-        const result = await callIPC(window, 'project:fetch-from-backend', projectId);
+        const result: any = await callIPC(window, 'project:fetch-from-backend', projectId);
 
         // 如果后端未启动，可能返回错误，但应该有响应
         expect(result).toBeDefined();
@@ -393,7 +393,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const result = await callIPC(window, 'project:scan-recoverable');
+        const result: any = await callIPC(window, 'project:scan-recoverable');
 
         expect(result).toBeDefined();
         expect(Array.isArray(result) || result.projects).toBeTruthy();
@@ -408,7 +408,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const result = await callIPC(window, 'project:recovery-stats');
+        const result: any = await callIPC(window, 'project:recovery-stats');
 
         expect(result).toBeDefined();
         console.log('恢复统计:', result);
@@ -423,7 +423,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const result = await callIPC(window, 'project:auto-recover');
+        const result: any = await callIPC(window, 'project:auto-recover');
 
         expect(result).toBeDefined();
         console.log('自动恢复结果:', result);
@@ -440,7 +440,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -449,7 +449,7 @@ test.describe('项目管理 E2E 测试', () => {
 
         const projectId = projects[0].id;
 
-        const result = await callIPC(window, 'project:fix-path', projectId);
+        const result: any = await callIPC(window, 'project:fix-path', projectId);
 
         expect(result).toBeDefined();
         console.log('修复路径结果:', result);
@@ -464,7 +464,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -473,7 +473,7 @@ test.describe('项目管理 E2E 测试', () => {
 
         const projectId = projects[0].id;
 
-        const result = await callIPC(window, 'project:repair-root-path', projectId);
+        const result: any = await callIPC(window, 'project:repair-root-path', projectId);
 
         expect(result).toBeDefined();
         console.log('修复根路径结果:', result);
@@ -488,7 +488,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const result = await callIPC(window, 'project:repair-all-root-paths');
+        const result: any = await callIPC(window, 'project:repair-all-root-paths');
 
         expect(result).toBeDefined();
         console.log('批量修复根路径结果:', result);
@@ -505,7 +505,7 @@ test.describe('项目管理 E2E 测试', () => {
       try {
         const relativePath = './test/file.py';
 
-        const result = await callIPC(window, 'project:resolve-path', relativePath);
+        const result: any = await callIPC(window, 'project:resolve-path', relativePath);
 
         expect(result).toBeDefined();
         console.log('解析路径结果:', result);
@@ -522,7 +522,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -534,7 +534,7 @@ test.describe('项目管理 E2E 测试', () => {
         const projectPath = project.rootPath || '/tmp/test-project';
 
         // 启动监听
-        const startResult = await callIPC(
+        const startResult: any = await callIPC(
           window,
           'project:startWatcher',
           projectId,
@@ -548,7 +548,7 @@ test.describe('项目管理 E2E 测试', () => {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // 停止监听
-        const stopResult = await callIPC(window, 'project:stopWatcher', projectId);
+        const stopResult: any = await callIPC(window, 'project:stopWatcher', projectId);
 
         expect(stopResult).toBeDefined();
         console.log('停止监听结果:', stopResult);
@@ -567,7 +567,7 @@ test.describe('项目管理 E2E 测试', () => {
       try {
         const fakeProjectId = 'non-existent-project-id-12345';
 
-        const result = await callIPC(window, 'project:get', fakeProjectId);
+        const result: any = await callIPC(window, 'project:get', fakeProjectId);
 
         // 应该返回 null 或 undefined，或者返回错误
         console.log('不存在的项目ID返回:', result);
@@ -582,7 +582,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+        const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
         if (!projects || projects.length === 0) {
           console.log('⚠️ 没有项目可供测试，跳过');
@@ -591,7 +591,7 @@ test.describe('项目管理 E2E 测试', () => {
 
         const projectId = projects[0].id;
 
-        const result = await callIPC(window, 'project:save-files', projectId, []);
+        const result: any = await callIPC(window, 'project:save-files', projectId, []);
 
         expect(result).toBeDefined();
         expect(result.success).toBeTruthy();
@@ -606,7 +606,7 @@ test.describe('项目管理 E2E 测试', () => {
       const { app, window } = await launchElectronApp();
 
       try {
-        const result = await callIPC(window, 'project:get-all', '');
+        const result: any = await callIPC(window, 'project:get-all', '');
 
         // 应该返回空数组或错误
         expect(Array.isArray(result) || result === null).toBe(true);
@@ -645,7 +645,7 @@ test.describe('项目管理性能测试', () => {
     const { app, window } = await launchElectronApp();
 
     try {
-      const projects = await callIPC(window, 'project:get-all', TEST_USER_ID);
+      const projects: any = await callIPC(window, 'project:get-all', TEST_USER_ID);
 
       if (!projects || projects.length === 0) {
         console.log('⚠️ 没有项目可供测试，跳过');

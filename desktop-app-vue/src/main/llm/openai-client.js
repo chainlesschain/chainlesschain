@@ -18,6 +18,7 @@ class OpenAIClient extends EventEmitter {
     this.apiKey = config.apiKey;
     this.baseURL = config.baseURL || 'https://api.openai.com/v1';
     this.model = config.model || 'gpt-3.5-turbo';
+    this.embeddingModel = config.embeddingModel || 'text-embedding-ada-002';
     this.timeout = config.timeout || 120000;
     this.organization = config.organization;
 
@@ -217,12 +218,14 @@ class OpenAIClient extends EventEmitter {
   /**
    * 生成嵌入向量
    * @param {string|Array} input - 文本或文本数组
-   * @param {string} model - 模型
+   * @param {string} model - 模型（可选，默认使用配置的embeddingModel）
    */
-  async embeddings(input, model = 'text-embedding-ada-002') {
+  async embeddings(input, model = null) {
     try {
+      const embeddingModel = model || this.embeddingModel;
+
       const response = await this.client.post('/embeddings', {
-        model,
+        model: embeddingModel,
         input,
       });
 

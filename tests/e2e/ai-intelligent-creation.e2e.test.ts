@@ -65,7 +65,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
 
         try {
           // 调用意图识别接口
-          const intentResult = await callIPC(
+          const intentResult: any = await callIPC(
             window,
             'ai:analyzeIntent',
             scenario.userInput
@@ -128,7 +128,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
         console.log('\n测试多种项目类型的意图识别:');
 
         for (const [type, input] of Object.entries(intents)) {
-          const result = await callIPC(window, 'ai:analyzeIntent', input).catch(() => null);
+          const result: any = await callIPC(window, 'ai:analyzeIntent', input).catch(() => null);
 
           if (result) {
             console.log(`  ${type}: ${input}`);
@@ -152,7 +152,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
           console.log(`\n场景: ${scenario.name}`);
 
           // 获取所有模板
-          const allTemplates = await callIPC(window, 'template:getAll', {});
+          const allTemplates: any = await callIPC(window, 'template:getAll', {});
 
           if (!allTemplates || allTemplates.length === 0) {
             console.log(`⚠️ 没有可用模板，跳过测试`);
@@ -160,7 +160,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
           }
 
           // 调用智能推荐接口
-          const recommendedTemplates = await callIPC(
+          const recommendedTemplates: any = await callIPC(
             window,
             'template:recommend',
             scenario.userInput,
@@ -203,7 +203,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
 
       try {
         // 获取用户使用历史
-        const usageHistory = await callIPC(
+        const usageHistory: any = await callIPC(
           window,
           'template:getUserHistory',
           TEST_USER_ID
@@ -247,14 +247,14 @@ test.describe('AI 智能化项目创建流程测试', () => {
           console.log(`\n场景: ${scenario.name}`);
 
           // 获取所有技能和工具
-          const allSkills = await callIPC(window, 'skill:getAll').catch(() => []);
-          const allTools = await callIPC(window, 'tool:getAll').catch(() => []);
+          const allSkills: any = await callIPC(window, 'skill:getAll').catch(() => []);
+          const allTools: any = await callIPC(window, 'tool:getAll').catch(() => []);
 
           console.log(`可用技能数: ${allSkills?.length || 0}`);
           console.log(`可用工具数: ${allTools?.length || 0}`);
 
           // 调用智能选择接口
-          const recommendation = await callIPC(
+          const recommendation: any = await callIPC(
             window,
             'ai:recommendSkillsAndTools',
             scenario.userInput,
@@ -309,7 +309,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
       try {
         console.log(`\n测试技能依赖关系:`);
 
-        const allSkills = await callIPC(window, 'skill:getAll').catch(() => []);
+        const allSkills: any = await callIPC(window, 'skill:getAll').catch(() => []);
 
         if (allSkills && allSkills.length > 0) {
           // 查找有依赖关系的技能
@@ -325,7 +325,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
             console.log(`依赖: ${skill.dependencies.join(', ')}`);
 
             // 调用自动解析依赖的接口
-            const resolved = await callIPC(
+            const resolved: any = await callIPC(
               window,
               'skill:resolveDependencies',
               [skill.id]
@@ -376,7 +376,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
         });
 
         // 创建项目
-        const result = await callIPC(window, 'project:create', projectData);
+        const result: any = await callIPC(window, 'project:create', projectData);
 
         // 等待任务执行
         await window.waitForTimeout(3000);
@@ -519,7 +519,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
             userId: TEST_USER_ID,
           };
 
-          const result = await callIPC(window, 'project:create', projectData);
+          const result: any = await callIPC(window, 'project:create', projectData);
 
           console.log(`\n创建结果:`, result ? '成功' : '失败');
 
@@ -628,13 +628,13 @@ test.describe('AI 智能化项目创建流程测试', () => {
           userId: TEST_USER_ID,
         };
 
-        const result = await callIPC(window, 'project:create', projectData);
+        const result: any = await callIPC(window, 'project:create', projectData);
 
         if (result.success || result.project) {
           const project = result.project || result;
 
           // 获取创建日志
-          const logs = await callIPC(
+          const logs: any = await callIPC(
             window,
             'project:getCreationLogs',
             project.id
@@ -688,7 +688,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
 
         // 步骤 1: 意图识别
         console.log(`[步骤 1/5] 意图识别...`);
-        const intent = await callIPC(window, 'ai:analyzeIntent', userInput).catch(() => ({
+        const intent: any = await callIPC(window, 'ai:analyzeIntent', userInput).catch(() => ({
           projectType: 'web',
           keywords: ['电商', '商品', '购物车'],
         }));
@@ -697,13 +697,13 @@ test.describe('AI 智能化项目创建流程测试', () => {
 
         // 步骤 2: 模板推荐
         console.log(`[步骤 2/5] 模板推荐...`);
-        const templates = await callIPC(
+        const templates: any = await callIPC(
           window,
           'template:recommend',
           userInput,
           intent.projectType || 'web'
         ).catch(async () => {
-          const all = await callIPC(window, 'template:getAll', {});
+          const all: any = await callIPC(window, 'template:getAll', {});
           return all?.filter((t: any) => t.project_type === 'web').slice(0, 3) || [];
         });
         console.log(`  推荐模板数: ${templates.length}`);
@@ -714,14 +714,14 @@ test.describe('AI 智能化项目创建流程测试', () => {
 
         // 步骤 3: 技能工具选择
         console.log(`[步骤 3/5] 技能工具选择...`);
-        const skillTools = await callIPC(
+        const skillTools: any = await callIPC(
           window,
           'ai:recommendSkillsAndTools',
           userInput,
           intent.projectType || 'web'
         ).catch(async () => {
-          const skills = await callIPC(window, 'skill:getAll');
-          const tools = await callIPC(window, 'tool:getAll');
+          const skills: any = await callIPC(window, 'skill:getAll');
+          const tools: any = await callIPC(window, 'tool:getAll');
           return {
             skills: skills?.filter((s: any) => s.enabled && s.category === 'web').slice(0, 3) || [],
             tools: tools?.filter((t: any) => t.enabled).slice(0, 3) || [],
@@ -743,7 +743,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
         };
 
         const startTime = Date.now();
-        const result = await callIPC(window, 'project:create', projectData);
+        const result: any = await callIPC(window, 'project:create', projectData);
         const endTime = Date.now();
 
         console.log(`  创建耗时: ${endTime - startTime}ms`);
@@ -850,7 +850,7 @@ test.describe('AI 智能化项目创建流程测试', () => {
           userId: TEST_USER_ID,
         };
 
-        const result = await callIPC(window, 'project:create', projectData);
+        const result: any = await callIPC(window, 'project:create', projectData);
 
         if (result.success || result.project) {
           const project = result.project || result;

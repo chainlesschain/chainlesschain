@@ -8,6 +8,7 @@ const EventEmitter = require('events');
 const OllamaClient = require('./ollama-client');
 const { OpenAIClient, DeepSeekClient } = require('./openai-client');
 const { AnthropicClient } = require('./anthropic-client');
+const { getModelSelector, TaskTypes } = require('./volcengine-models');
 
 /**
  * LLM 提供商类型
@@ -117,6 +118,7 @@ class LLMManager extends EventEmitter {
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL,
           model: this.config.model || 'gpt-3.5-turbo',
+          embeddingModel: this.config.embeddingModel || 'text-embedding-ada-002',
           organization: this.config.organization,
           timeout: this.config.timeout,
         });
@@ -126,6 +128,7 @@ class LLMManager extends EventEmitter {
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL,
           model: this.config.model || 'deepseek-chat',
+          embeddingModel: this.config.embeddingModel || 'text-embedding-ada-002',
           timeout: this.config.timeout,
         });
 
@@ -134,6 +137,7 @@ class LLMManager extends EventEmitter {
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL || 'https://ark.cn-beijing.volces.com/api/v3',
           model: this.config.model || 'doubao-seed-1-6-lite-251015',
+          embeddingModel: this.config.embeddingModel || 'doubao-embedding-large',
           timeout: this.config.timeout,
         });
 
@@ -142,6 +146,7 @@ class LLMManager extends EventEmitter {
           apiKey: this.config.apiKey,
           baseURL: this.config.baseURL,
           model: this.config.model,
+          embeddingModel: this.config.embeddingModel,
           timeout: this.config.timeout,
         });
 
@@ -544,6 +549,104 @@ class LLMManager extends EventEmitter {
   }
 
   /**
+   * 智能选择模型（仅限火山引擎）
+   * @param {Object} scenario - 场景描述
+   * @returns {Object} 推荐的模型配置
+   */
+  selectVolcengineModel(scenario = {}) {
+    if (this.provider !== LLMProviders.VOLCENGINE) {
+      console.warn('[LLMManager] 智能选择器仅支持火山引擎，当前提供商:', this.provider);
+      return null;
+    }
+
+    const selector = getModelSelector();
+    const model = selector.selectByScenario(scenario);
+
+    console.log('[LLMManager] 智能选择模型:', model.name);
+    console.log('[LLMManager] 模型ID:', model.id);
+    console.log('[LLMManager] 能力:', model.capabilities);
+    console.log('[LLMManager] 价格:', model.pricing);
+
+    return {
+      modelId: model.id,
+      modelName: model.name,
+      capabilities: model.capabilities,
+      pricing: model.pricing,
+      description: model.description,
+      contextLength: model.contextLength,
+      maxOutputTokens: model.maxOutputTokens,
+    };
+  }
+
+  /**
+   * 根据任务类型智能选择模型
+   * @param {string} taskType - 任务类型（来自 TaskTypes）
+   * @param {Object} options - 选项
+   * @returns {Object} 推荐的模型配置
+   */
+  selectModelByTask(taskType, options = {}) {
+    if (this.provider !== LLMProviders.VOLCENGINE) {
+      console.warn('[LLMManager] 智能选择器仅支持火山引擎，当前提供商:', this.provider);
+      return null;
+    }
+
+    const selector = getModelSelector();
+    const model = selector.selectModel(taskType, options);
+
+    console.log('[LLMManager] 为任务', taskType, '选择模型:', model.name);
+
+    return {
+      modelId: model.id,
+      modelName: model.name,
+      capabilities: model.capabilities,
+      pricing: model.pricing,
+      description: model.description,
+    };
+  }
+
+  /**
+   * 估算成本（仅限火山引擎）
+   * @param {string} modelId - 模型ID
+   * @param {number} inputTokens - 输入tokens
+   * @param {number} outputTokens - 输出tokens
+   * @param {number} imageCount - 图片数量
+   * @returns {number} 预估成本（人民币）
+   */
+  estimateCost(modelId, inputTokens = 0, outputTokens = 0, imageCount = 0) {
+    if (this.provider !== LLMProviders.VOLCENGINE) {
+      console.warn('[LLMManager] 成本估算仅支持火山引擎，当前提供商:', this.provider);
+      return 0;
+    }
+
+    const selector = getModelSelector();
+    const cost = selector.estimateCost(modelId, inputTokens, outputTokens, imageCount);
+
+    console.log('[LLMManager] 成本估算:');
+    console.log('  模型:', modelId);
+    console.log('  输入tokens:', inputTokens);
+    console.log('  输出tokens:', outputTokens);
+    console.log('  图片数量:', imageCount);
+    console.log('  预估成本: ¥', cost.toFixed(4));
+
+    return cost;
+  }
+
+  /**
+   * 列出火山引擎所有可用模型
+   * @param {Object} filters - 过滤条件
+   * @returns {Array} 模型列表
+   */
+  listVolcengineModels(filters = {}) {
+    if (this.provider !== LLMProviders.VOLCENGINE) {
+      console.warn('[LLMManager] 模型列表仅支持火山引擎，当前提供商:', this.provider);
+      return [];
+    }
+
+    const selector = getModelSelector();
+    return selector.listModels(filters);
+  }
+
+  /**
    * 关闭管理器
    */
   async close() {
@@ -703,4 +806,5 @@ module.exports = {
   LLMManager,
   LLMProviders,
   getLLMManager,
+  TaskTypes, // 导出任务类型枚举，方便外部使用
 };

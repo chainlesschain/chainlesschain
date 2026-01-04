@@ -85,10 +85,12 @@ tmp/
 temp/
 *.tmp
 *.bak
+*.bak*
 *.backup
 *.backup-*
 *.js.backup*
 *.json.backup*
+fix-types.sh
 
 # Docker volumes
 backend/docker/ollama_data/

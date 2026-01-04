@@ -12,20 +12,20 @@ test.describe('IPC API Quick E2E Tests', () => {
 
     try {
       // 测试 getSystemInfo
-      const systemInfo = await callIPC(window, 'system.getSystemInfo');
+      const systemInfo: any = await callIPC(window, 'system.getSystemInfo');
       expect(systemInfo).toHaveProperty('success', true);
       expect(systemInfo).toHaveProperty('platform');
       expect(systemInfo).toHaveProperty('arch');
       console.log('✓ system.getSystemInfo works');
 
       // 测试 getPlatform
-      const platform = await callIPC(window, 'system.getPlatform');
+      const platform: any = await callIPC(window, 'system.getPlatform');
       expect(platform).toHaveProperty('success', true);
       expect(platform).toHaveProperty('platform');
       console.log('✓ system.getPlatform works');
 
       // 测试 getAppInfo
-      const appInfo = await callIPC(window, 'system.getAppInfo');
+      const appInfo: any = await callIPC(window, 'system.getAppInfo');
       expect(appInfo).toHaveProperty('success', true);
       expect(appInfo).toHaveProperty('name');
       expect(appInfo).toHaveProperty('version');
@@ -41,7 +41,7 @@ test.describe('IPC API Quick E2E Tests', () => {
     const { app, window } = await launchElectronApp();
 
     try {
-      const syncStatus = await callIPC(window, 'git.getSyncStatus');
+      const syncStatus: any = await callIPC(window, 'git.getSyncStatus');
       expect(syncStatus).toBeDefined();
       expect(typeof syncStatus.enabled).toBe('boolean');
       expect(typeof syncStatus.autoCommit).toBe('boolean');
@@ -57,7 +57,7 @@ test.describe('IPC API Quick E2E Tests', () => {
     const { app, window } = await launchElectronApp();
 
     try {
-      const unreadCount = await callIPC(window, 'notification.getUnreadCount');
+      const unreadCount: any = await callIPC(window, 'notification.getUnreadCount');
       expect(unreadCount).toHaveProperty('success', true);
       expect(typeof unreadCount.count).toBe('number');
       console.log('✓ notification.getUnreadCount works');
