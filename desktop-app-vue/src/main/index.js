@@ -1248,6 +1248,16 @@ class ChainlessChainApp {
       console.error('[Main] System IPC registration failed:', error);
     }
 
+    // 注册 Config IPC
+    try {
+      console.log('[Main] Registering Config IPC...');
+      const { registerConfigIPC } = require('./config/config-ipc');
+      registerConfigIPC({ appConfig: getAppConfig() });
+      console.log('[Main] ✓ Config IPC registered (5 handlers)');
+    } catch (error) {
+      console.error('[Main] Config IPC registration failed:', error);
+    }
+
     // 初始化文件同步管理器
     try {
       console.log('初始化文件同步管理器...');
@@ -2224,31 +2234,34 @@ class ChainlessChainApp {
   }
 
   onWindowAllClosed() {
-    // 关闭数据库连接
-    if (this.database) {
-      this.database.close();
-    }
-
-    // 关闭U盾管理器
-    if (this.ukeyManager) {
-      this.ukeyManager.stopDeviceMonitor();
-      this.ukeyManager.close();
-    }
-
-    // 关闭Git管理器
-    if (this.gitManager) {
-      this.stopAutoSync();
-      this.gitManager.close();
-    }
-
-    // 关闭 Native Messaging HTTP Server
-    if (this.nativeMessagingServer) {
-      this.nativeMessagingServer.stop();
-    }
-
+    // 在非 macOS 平台上关闭资源
     if (process.platform !== 'darwin') {
+      // 关闭数据库连接
+      if (this.database) {
+        this.database.close();
+      }
+
+      // 关闭U盾管理器
+      if (this.ukeyManager) {
+        this.ukeyManager.stopDeviceMonitor();
+        this.ukeyManager.close();
+      }
+
+      // 关闭Git管理器
+      if (this.gitManager) {
+        this.stopAutoSync();
+        this.gitManager.close();
+      }
+
+      // 关闭 Native Messaging HTTP Server
+      if (this.nativeMessagingServer) {
+        this.nativeMessagingServer.stop();
+      }
+
       app.quit();
     }
+    // 在 macOS 上，窗口关闭但应用继续运行，保持资源打开状态
+    // 这样当用户从 Dock 重新激活应用时，资源仍然可用
   }
 
   async onActivate() {

@@ -8,6 +8,9 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+// 防止重复注册的标志
+let handlersRegistered = false;
+
 class AdvancedFeaturesIPC {
   constructor(mainWindow) {
     this.mainWindow = mainWindow;
@@ -15,6 +18,13 @@ class AdvancedFeaturesIPC {
   }
 
   setupHandlers() {
+    if (handlersRegistered) {
+      console.log('[AdvancedFeaturesIPC] Handlers already registered, skipping...');
+      return;
+    }
+
+    console.log('[AdvancedFeaturesIPC] Registering handlers...');
+
     // ===== 总览 =====
     ipcMain.handle('advanced-features:get-overview', async (event, days = 7) => {
       return this.getOverviewData(days);
@@ -93,6 +103,9 @@ class AdvancedFeaturesIPC {
     ipcMain.handle('advanced-features:open-control-panel', async () => {
       return this.openControlPanel();
     });
+
+    handlersRegistered = true;
+    console.log('[AdvancedFeaturesIPC] ✓ All handlers registered successfully');
   }
 
   /**

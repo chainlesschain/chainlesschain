@@ -8,12 +8,20 @@
 
 const { ipcMain } = require('electron');
 
+// 防止重复注册的标志
+let isRegistered = false;
+
 /**
  * 注册所有配置 IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.appConfig - 应用配置管理器实例
  */
 function registerConfigIPC({ appConfig }) {
+  if (isRegistered) {
+    console.log('[Config IPC] Handlers already registered, skipping...');
+    return;
+  }
+
   console.log('[Config IPC] Registering Config IPC handlers...');
 
   /**
@@ -82,6 +90,33 @@ function registerConfigIPC({ appConfig }) {
   });
 
   /**
+   * 更新配置（批量设置）
+   * Channel: 'config:update'
+   *
+   * @param {Object} config - 配置对象（可包含多个键值对）
+   * @returns {Promise<Object>} { success: boolean }
+   */
+  ipcMain.handle('config:update', async (_event, config) => {
+    try {
+      if (!appConfig) {
+        throw new Error('AppConfig未初始化');
+      }
+
+      // 批量更新配置
+      if (config && typeof config === 'object') {
+        for (const [key, value] of Object.entries(config)) {
+          appConfig.set(key, value);
+        }
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('[Config IPC] 更新配置失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
    * 重置配置为默认值
    * Channel: 'config:reset'
    *
@@ -101,11 +136,15 @@ function registerConfigIPC({ appConfig }) {
     }
   });
 
-  console.log('[Config IPC] Registered 4 config: handlers');
+  console.log('[Config IPC] Registered 5 config: handlers');
   console.log('[Config IPC] - config:get');
   console.log('[Config IPC] - config:set');
   console.log('[Config IPC] - config:get-all');
+  console.log('[Config IPC] - config:update');
   console.log('[Config IPC] - config:reset');
+
+  isRegistered = true;
+  console.log('[Config IPC] ✓ All handlers registered successfully');
 }
 
 module.exports = { registerConfigIPC };
