@@ -263,6 +263,15 @@ class ChainlessChainApp {
   }
 
   setupApp() {
+    // macOS 特定配置：解决开发模式下的权限问题
+    if (process.platform === 'darwin' && process.env.NODE_ENV === 'development') {
+      // 禁用 Mach 端口渲染服务器（避免 Permission denied 1100 错误）
+      app.commandLine.appendSwitch('disable-features', 'RendererCodeIntegrity');
+      app.commandLine.appendSwitch('disable-site-isolation-trials');
+      // 禁用GPU沙盒可以避免一些macOS权限问题
+      app.commandLine.appendSwitch('in-process-gpu');
+    }
+
     // 单实例锁定（测试环境下跳过）
     if (process.env.NODE_ENV !== 'test') {
       const gotTheLock = app.requestSingleInstanceLock();

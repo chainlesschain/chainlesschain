@@ -36,17 +36,7 @@
       </a-tabs>
     </div>
 
-    <!-- 流式创建进度Modal -->
-    <StreamProgressModal
-      :open="showProgressModal"
-      :progress-data="streamProgressData"
-      :error="createError"
-      @cancel="handleCancelStream"
-      @retry="handleRetryCreate"
-      @close="handleCloseStream"
-      @view-project="handleViewNewProject"
-      @continue="handleContinueCreate"
-    />
+    <!-- 流式创建进度Modal - 已移除，改为在 ProjectDetailPage 的对话框中展示 -->
 
     <!-- 模板推荐对话框 -->
     <a-modal
@@ -115,7 +105,6 @@ import {
 } from '@ant-design/icons-vue';
 import AIProjectCreator from '@/components/projects/AIProjectCreator.vue';
 import ManualProjectForm from '@/components/projects/ManualProjectForm.vue';
-import StreamProgressModal from '@/components/projects/StreamProgressModal.vue';
 import TemplateSelectionModal from '@/components/projects/TemplateSelectionModal.vue';
 
 const router = useRouter();
@@ -124,44 +113,21 @@ const authStore = useAuthStore();
 
 // 响应式状态
 const activeTab = ref('ai');
-const showProgressModal = ref(false);
 const showTemplateRecommendModal = ref(false);
 const showTemplateSelectorModal = ref(false);
-const createProgress = ref(0);
-const progressText = ref('准备创建...');
-const createError = ref('');
-const createdProjectId = ref('');
-const pendingCreateData = ref(null);
 const hasShownTemplateRecommend = ref(false);
-
-// 流式进度数据
-const streamProgressData = ref({
-  currentStage: '',
-  stages: [],
-  contentByStage: {},
-  logs: [],
-  metadata: {},
-});
-
-// 计算属性
-const progressStatus = computed(() => {
-  if (createError.value) return 'exception';
-  if (createProgress.value === 100) return 'success';
-  return 'active';
-});
 
 // 返回项目列表
 const handleBack = () => {
   router.push('/projects');
 };
 
-// 处理创建项目
+// 处理创建项目（直接跳转到 ai-creating 模式，在 ProjectDetailPage 的对话框中展示创建过程）
 const handleCreateProject = async (createData) => {
-  pendingCreateData.value = createData;
   await startCreateProcess(createData);
 };
 
-// 处理模板选择
+// 处理模板选择（第一次，从模板推荐对话框）
 const handleTemplateSelect = async (template) => {
   // 构建创建数据，避免 undefined 值
   const createData = {
@@ -176,15 +142,14 @@ const handleTemplateSelect = async (template) => {
     createData.templateId = template.id;
   }
 
-  pendingCreateData.value = createData;
   await startCreateProcess(createData);
 };
 
-// 开始创建流程（流式）- 新流程：直接跳转到特殊的创建页面
+// 开始创建流程 - 跳转到 ai-creating 模式，在 ProjectDetailPage 的对话框中展示创建过程
 const startCreateProcess = async (createData) => {
   try {
-    // 直接跳转到一个特殊的"AI创建"路由，传递创建数据
-    // 使用特殊的路径 /projects/new-ai-creation
+    // 跳转到特殊的 "ai-creating" 路由
+    // ProjectDetailPage 会检测到 ai-creating 模式，并在 ChatPanel 中展示创建过程
     router.push({
       path: `/projects/ai-creating`,
       query: {
@@ -197,60 +162,6 @@ const startCreateProcess = async (createData) => {
   }
 };
 
-// 查看新创建的项目
-const handleViewNewProject = () => {
-  showProgressModal.value = false;
-  router.push(`/projects/${createdProjectId.value}`);
-};
-
-// 继续创建
-const handleContinueCreate = () => {
-  showProgressModal.value = false;
-  createProgress.value = 0;
-  createError.value = '';
-  createdProjectId.value = '';
-  pendingCreateData.value = null;
-};
-
-// 重试创建
-const handleRetryCreate = async () => {
-  if (pendingCreateData.value) {
-    createError.value = '';
-    await startCreateProcess(pendingCreateData.value);
-  }
-};
-
-// 取消创建
-const handleCancelCreate = () => {
-  showProgressModal.value = false;
-  createProgress.value = 0;
-  createError.value = '';
-  pendingCreateData.value = null;
-};
-
-// 取消流式创建
-const handleCancelStream = async () => {
-  try {
-    await projectStore.cancelProjectStream();
-    showProgressModal.value = false;
-    message.info('已取消创建');
-  } catch (error) {
-    message.error('取消失败：' + error.message);
-  }
-};
-
-// 关闭流式Modal
-const handleCloseStream = () => {
-  showProgressModal.value = false;
-  streamProgressData.value = {
-    currentStage: '',
-    stages: [],
-    contentByStage: {},
-    logs: [],
-    metadata: {},
-  };
-};
-
 // 处理模板推荐
 const handleTemplateRecommendAccept = () => {
   showTemplateRecommendModal.value = false;
@@ -261,13 +172,13 @@ const handleTemplateRecommendDecline = () => {
   showTemplateRecommendModal.value = false;
 };
 
-const handleTemplateSelect = async (template) => {
+const handleTemplateSelectFromModal = async (template) => {
   showTemplateSelectorModal.value = false;
-  // 这里可以直接调用 AIProjectCreator 的模板选择逻辑
-  // 或者将模板信息传递给 AIProjectCreator
+  // 将模板信息传递给 AIProjectCreator
   message.success(`已选择模板：${template.display_name || template.name}`);
   // 切换到 AI 创建标签页
   activeTab.value = 'ai';
+  // TODO: 将模板信息传递给 AIProjectCreator 组件
 };
 
 const handleTemplateSelectorCancel = () => {

@@ -187,12 +187,17 @@
           </a-form-item>
 
           <a-form-item label="模型">
-            <a-input
+            <a-select
               v-model:value="form.volcengine.model"
-              placeholder="输入模型名称，如 doubao-lite-4k"
-            />
+              placeholder="选择或输入模型名称"
+              :options="volcengineModelOptions"
+              show-search
+              allow-clear
+              :filter-option="filterOption"
+            >
+            </a-select>
             <div class="form-hint">
-              常用模型: doubao-lite-32k, doubao-pro-32k, doubao-seed-1.6-lite, doubao-seed-1.6-flash
+              选择常用模型或输入自定义模型名称（必须包含年月版本号，如 doubao-pro-32k-241202）
             </div>
           </a-form-item>
         </template>
@@ -386,6 +391,31 @@ const status = ref({
   error: null,
 });
 
+// 火山引擎（豆包）模型选项 - 2025年1月最新版本
+const volcengineModelOptions = [
+  // Doubao Seed 1.6 系列（最新推荐 - 注意使用下划线格式）
+  { label: 'doubao-seed-1-6-251015（推荐 - 最新，支持reasoning_effort）', value: 'doubao-seed-1-6-251015' },
+  { label: 'doubao-seed-1-6-250615（支持thinking控制）', value: 'doubao-seed-1-6-250615' },
+
+  // Doubao 1.5 系列
+  { label: 'doubao-1-5-pro-32k-250115（高性能32k）', value: 'doubao-1-5-pro-32k-250115' },
+  { label: 'doubao-1-5-lite-250115（轻量版）', value: 'doubao-1-5-lite-250115' },
+  { label: 'doubao-1-5-vision-pro-250115（视觉模型）', value: 'doubao-1-5-vision-pro-250115' },
+
+  // Doubao Pro 系列
+  { label: 'doubao-pro-32k-241215（高性能32k）', value: 'doubao-pro-32k-241215' },
+  { label: 'doubao-pro-32k-240828', value: 'doubao-pro-32k-240828' },
+
+  // 其他版本
+  { label: 'doubao-lite-32k（轻量32k）', value: 'doubao-lite-32k' },
+];
+
+// 过滤选项
+const filterOption = (input, option) => {
+  return option.value.toLowerCase().includes(input.toLowerCase()) ||
+         option.label.toLowerCase().includes(input.toLowerCase());
+};
+
 // 表单数据
 const form = reactive({
   provider: 'ollama',
@@ -418,7 +448,7 @@ const form = reactive({
   volcengine: {
     apiKey: '',
     baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-    model: 'doubao-seed-1.6-lite',
+    model: 'doubao-seed-1-6-251015',
   },
 
   custom: {
@@ -552,7 +582,7 @@ const handleReset = () => {
   form.volcengine = {
     apiKey: '',
     baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-    model: 'doubao-seed-1.6-lite',
+    model: 'doubao-seed-1-6-251015',
   };
   form.custom = {
     name: 'Custom Provider',

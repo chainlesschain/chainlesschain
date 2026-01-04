@@ -55,8 +55,8 @@ const DEFAULT_CONFIG = {
   volcengine: {
     apiKey: '7185ce7d-9775-450c-8450-783176be6265', // 默认测试API密钥
     baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-    model: 'doubao-seed-1.6-flash', // 使用flash模型以获得更快响应（正确格式）
-    embeddingModel: 'doubao-embedding-large', // 更大的嵌入模型以获得更好的效果
+    model: 'doubao-seed-1-6-251015', // 使用最新版本（注意：下划线格式，带版本号）
+    embeddingModel: 'doubao-embedding-text-240715', // 嵌入模型（最新版本，支持中英双语）
   },
 
   // 自定义配置
@@ -127,6 +127,42 @@ class LLMConfig {
         };
 
         this.config.provider = normalizeProvider(this.config.provider);
+
+        // 🔥 自动迁移旧的火山引擎模型名称
+        let needsMigration = false;
+        if (this.config.volcengine) {
+          // 迁移对话模型
+          const oldModel = this.config.volcengine.model;
+          if (oldModel && (
+            oldModel.includes('doubao-seed-1.6-flash') ||
+            oldModel.includes('doubao-seed-1.6-lite') ||
+            oldModel === 'doubao-seed-1.6' ||
+            !oldModel.match(/-\d{6}$/) // 没有版本号后缀
+          )) {
+            console.log(`[LLMConfig] 迁移旧模型: ${oldModel} → doubao-seed-1-6-251015`);
+            this.config.volcengine.model = 'doubao-seed-1-6-251015';
+            needsMigration = true;
+          }
+
+          // 迁移嵌入模型
+          const oldEmbedding = this.config.volcengine.embeddingModel;
+          if (oldEmbedding && (
+            oldEmbedding === 'doubao-embedding' ||
+            oldEmbedding === 'doubao-embedding-large' ||
+            !oldEmbedding.match(/-\d{6}$/) // 没有版本号后缀
+          )) {
+            console.log(`[LLMConfig] 迁移旧嵌入模型: ${oldEmbedding} → doubao-embedding-text-240715`);
+            this.config.volcengine.embeddingModel = 'doubao-embedding-text-240715';
+            needsMigration = true;
+          }
+        }
+
+        // 如果有迁移，自动保存新配置
+        if (needsMigration) {
+          console.log('[LLMConfig] 检测到旧配置，已自动迁移并保存');
+          this.save();
+        }
+
         this.loaded = true;
         console.log('[LLMConfig] 配置加载成功');
       } else {

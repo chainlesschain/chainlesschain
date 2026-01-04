@@ -56,7 +56,7 @@ const VOLCENGINE_MODELS = {
   // ============= 文本生成模型 =============
 
   'doubao-seed-1.6': {
-    id: 'doubao-seed-1.6',
+    id: 'doubao-seed-1-6-251015',  // ✅ 真实存在 - 2025年10月15日版本
     name: '豆包 Seed 1.6',
     type: 'text',
     capabilities: [
@@ -84,7 +84,7 @@ const VOLCENGINE_MODELS = {
   },
 
   'doubao-seed-1.6-thinking': {
-    id: 'doubao-seed-1.6-thinking',
+    id: 'doubao-seed-1-6-thinking-250715',  // ✅ 真实存在 - 强制深度思考，32K输出
     name: '豆包 Seed 1.6 思考版',
     type: 'text',
     capabilities: [
@@ -103,18 +103,19 @@ const VOLCENGINE_MODELS = {
       TaskTypes.CODE_WRITING,
       TaskTypes.CREATIVE_WRITING,
     ],
-    description: '专注深度思考的版本，适合需要复杂推理的场景',
+    description: '专注深度思考的版本，强制开启思考模式，适合需要复杂推理的场景',
   },
 
   'doubao-seed-1.6-flash': {
-    id: 'doubao-seed-1.6-flash',
-    name: '豆包 Seed 1.6 闪电版',
+    id: 'doubao-seed-1-6-flash-250828',  // ✅ 真实存在 - 2025年8月28日最新版
+    name: '豆包 Seed 1.6 快速版',
     type: 'text',
     capabilities: [
       ModelCapabilities.TEXT_GENERATION,
+      ModelCapabilities.VISION,
     ],
-    contextLength: 128000,      // 128K
-    maxOutputTokens: 16000,
+    contextLength: 256000,
+    maxOutputTokens: 32000,
     pricing: {
       input: 0.0004,            // 价格更低
       output: 0.001,
@@ -124,19 +125,19 @@ const VOLCENGINE_MODELS = {
       TaskTypes.COST_EFFECTIVE,
       TaskTypes.CHAT,
     ],
-    description: '快速响应版本，延迟更低，成本更优，适合实时对话',
+    description: '快速响应版本，延迟更低，成本更优，支持视频/图像理解，适合实时对话',
     recommended: false,
   },
 
   'doubao-seed-1.6-lite': {
-    id: 'doubao-seed-1.6-lite',
+    id: 'doubao-seed-1-6-lite-251015',  // ✅ 真实存在 - 2025年10月15日版本
     name: '豆包 Seed 1.6 轻量版',
     type: 'text',
     capabilities: [
       ModelCapabilities.TEXT_GENERATION,
     ],
-    contextLength: 64000,       // 64K
-    maxOutputTokens: 8000,
+    contextLength: 256000,
+    maxOutputTokens: 32000,
     pricing: {
       input: 0.0003,            // 最低价格
       output: 0.0008,
@@ -145,11 +146,11 @@ const VOLCENGINE_MODELS = {
       TaskTypes.COST_EFFECTIVE,
       TaskTypes.CHAT,
     ],
-    description: '轻量高效版本，价格最低，适合大规模调用场景',
+    description: '轻量高效版本，支持reasoning_effort调节思考长度，价格最低，适合大规模调用场景',
   },
 
   'doubao-pro-32k': {
-    id: 'doubao-pro-32k',
+    id: 'doubao-pro-32k-240515',  // 使用带日期的正确格式
     name: '豆包 Pro 32K',
     type: 'text',
     capabilities: [
@@ -169,7 +170,7 @@ const VOLCENGINE_MODELS = {
   },
 
   'doubao-lite-32k': {
-    id: 'doubao-lite-32k',
+    id: 'doubao-lite-32k-240515',  // 使用带日期的正确格式
     name: '豆包 Lite 32K',
     type: 'text',
     capabilities: [
@@ -190,7 +191,7 @@ const VOLCENGINE_MODELS = {
   // ============= 多模态视觉模型 =============
 
   'doubao-seed-1.6-vision': {
-    id: 'doubao-seed-1.6-vision',
+    id: 'doubao-seed-1-6-vision-250115',  // 使用带日期的正确格式
     name: '豆包 Seed 1.6 视觉版',
     type: 'vision',
     capabilities: [
@@ -218,7 +219,7 @@ const VOLCENGINE_MODELS = {
   },
 
   'doubao-1.5-vision-pro': {
-    id: 'doubao-1.5-vision-pro',
+    id: 'doubao-1-5-vision-pro-240828',  // 使用带日期的正确格式
     name: '豆包 1.5 Vision Pro',
     type: 'vision',
     capabilities: [
@@ -240,7 +241,7 @@ const VOLCENGINE_MODELS = {
   },
 
   'doubao-1.5-vision-lite': {
-    id: 'doubao-1.5-vision-lite',
+    id: 'doubao-1-5-vision-lite-240828',  // 使用带日期的正确格式
     name: '豆包 1.5 Vision Lite',
     type: 'vision',
     capabilities: [
@@ -260,7 +261,7 @@ const VOLCENGINE_MODELS = {
   },
 
   'doubao-1.5-thinking-vision-pro': {
-    id: 'doubao-1.5-thinking-vision-pro',
+    id: 'doubao-1-5-thinking-vision-pro-240828',  // 使用带日期的正确格式
     name: '豆包 1.5 思考视觉版',
     type: 'vision',
     capabilities: [
@@ -533,7 +534,7 @@ const VOLCENGINE_MODELS = {
   },
 
   'doubao-seed-1.6-code': {
-    id: 'doubao-seed-1.6-code',
+    id: 'doubao-seed-code',  // Code模型使用特殊命名，不带日期
     name: '豆包 Code',
     type: 'text',
     capabilities: [

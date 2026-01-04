@@ -339,32 +339,8 @@ const handleSendMessage = async () => {
 
   console.log('[ChatPanel] 准备发送消息，input:', input);
 
-  // 检测创建文件的意图
-  const inputLower = input.toLowerCase();
-  const isCreateFileIntent =
-    (inputLower.includes('创建') || inputLower.includes('生成') || inputLower.includes('做') || inputLower.includes('新建')) &&
-    (inputLower.includes('文件') || inputLower.includes('ppt') || inputLower.includes('excel') ||
-     inputLower.includes('word') || inputLower.includes('pdf') || inputLower.includes('项目'));
-
-  // 特别检测PPT请求
-  const isPPTRequest = inputLower.includes('ppt') || inputLower.includes('幻灯片') || inputLower.includes('演示文稿');
-
-  if (isCreateFileIntent) {
-    if (isPPTRequest) {
-      antMessage.warning({
-        content: '💡 提示：当前聊天面板不支持创建PPT文件。建议：\n1. 返回主页，在AI对话框中输入您的需求\n2. 或创建Markdown/Word文档替代',
-        duration: 5,
-      });
-    } else {
-      antMessage.info({
-        content: '💡 提示：创建新文件请前往主页的"AI对话式创建"功能。\n当前聊天面板主要用于编辑现有文件和对话交流。',
-        duration: 4,
-      });
-    }
-
-    // 仍然继续对话，让AI提供建议
-    console.log('[ChatPanel] 检测到创建文件意图，已提示用户，继续AI对话');
-  }
+  // 🔥 删除旧的警告提示，现在已支持PPT生成
+  console.log('[ChatPanel] 准备调用AI对话（支持PPT生成）');
 
   try {
     // 创建用户消息
@@ -455,6 +431,25 @@ const handleSendMessage = async () => {
 
     console.log('[ChatPanel] AI响应:', response);
 
+    // 🔥 检查PPT生成结果
+    if (response.pptGenerated && response.pptResult) {
+      console.log('[ChatPanel] ✅ PPT已生成:', response.pptResult);
+      antMessage.success({
+        content: `🎉 PPT文件已生成！\n文件名: ${response.pptResult.fileName}\n幻灯片数: ${response.pptResult.slideCount}`,
+        duration: 5,
+      });
+
+      // 🔥 触发文件树刷新事件
+      console.log('[ChatPanel] PPT已生成，触发 files-changed 事件');
+      emit('files-changed');
+
+      // 🔥 等待一小段时间再次刷新（确保文件系统已同步）
+      setTimeout(() => {
+        console.log('[ChatPanel] 延迟刷新文件列表');
+        emit('files-changed');
+      }, 500);
+    }
+
     // 创建助手消息
     const assistantMessage = {
       id: `msg_${Date.now()}_assistant`,
@@ -464,7 +459,10 @@ const handleSendMessage = async () => {
       timestamp: Date.now(),
       fileOperations: response.fileOperations || [],
       hasFileOperations: response.hasFileOperations || false,
-      ragSources: response.ragSources || []
+      ragSources: response.ragSources || [],
+      // 🔥 添加PPT生成结果
+      pptGenerated: response.pptGenerated || false,
+      pptResult: response.pptResult || null
     };
 
     // 确保 messages.value 是数组

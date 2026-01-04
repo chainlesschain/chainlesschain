@@ -161,23 +161,13 @@
       />
     </a-modal>
 
-    <!-- 流式创建进度Modal -->
-    <StreamProgressModal
-      :open="showStreamProgress"
-      :progress-data="streamProgressData"
-      :error="createError"
-      @cancel="handleCancelStream"
-      @retry="handleRetryStream"
-      @close="handleCloseStream"
-      @view-project="handleViewCreatedProject"
-      @continue="handleContinueCreate"
-    />
+    <!-- 流式创建进度Modal - 已移除，改为在对话框中展示 -->
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { useProjectStore } from '@/stores/project';
@@ -190,7 +180,6 @@ import {
 } from '@ant-design/icons-vue';
 import ConversationInput from '@/components/projects/ConversationInput.vue';
 import TaskExecutionMonitor from '@/components/projects/TaskExecutionMonitor.vue';
-import StreamProgressModal from '@/components/projects/StreamProgressModal.vue';
 import ProjectSidebar from '@/components/ProjectSidebar.vue';
 import TemplateGallery from '@/components/templates/TemplateGallery.vue';
 import TemplateVariableModal from '@/components/templates/TemplateVariableModal.vue';
@@ -215,15 +204,7 @@ const currentTaskPlan = ref(null);
 const showTaskMonitor = ref(false);
 const isExecutingTask = ref(false);
 
-// 流式创建进度
-const showStreamProgress = ref(false);
-const streamProgressData = ref({
-  currentStage: '',
-  stages: [],
-  contentByStage: {},
-  logs: [],
-  metadata: {},
-});
+// 创建进度相关（已改为在对话框中展示）
 const createError = ref('');
 const createdProjectId = ref('');
 
@@ -703,6 +684,14 @@ const addMessage = (type, content, options = {}) => {
     timestamp: Date.now(),
     ...options,
   });
+
+  // 自动滚动到底部（显示最新消息）
+  nextTick(() => {
+    const messagesArea = document.querySelector('.conversation-messages-area');
+    if (messagesArea) {
+      messagesArea.scrollTop = messagesArea.scrollHeight;
+    }
+  });
 };
 
 // 处理对话式创建项目（流式）
@@ -767,15 +756,7 @@ const handleConversationalCreate = async ({ text, attachments }) => {
     }
 
     // 🔥 不显示Modal，而是在对话区域展示进度
-    // showStreamProgress.value = true;  // 注释掉
     createError.value = '';
-    streamProgressData.value = {
-      currentStage: '',
-      stages: [],
-      contentByStage: {},
-      logs: [],
-      metadata: {},
-    };
 
     // 添加用户消息
     addMessage('user', text);
@@ -783,64 +764,120 @@ const handleConversationalCreate = async ({ text, attachments }) => {
     // 1. 流式创建项目
     const userId = authStore.currentUser?.id || 'default-user';
 
-    // 智能检测项目类型
+    // 🔥 使用LLM进行智能意图识别
     let projectType = ''; // 默认留空让后端AI自动识别
-
-    // 检测是否是文档类型请求（txt, md, doc等）
-    const isDocumentRequest =
-      textLower.includes('txt') ||
-      textLower.includes('文本') ||
-      textLower.includes('文档') ||
-      textLower.includes('markdown') ||
-      textLower.includes('md文件') ||
-      textLower.includes('写一个') && (textLower.includes('文章') || textLower.includes('报告') || textLower.includes('说明'));
-
-    // 检测是否是数据类型请求
-    const isDataRequest =
-      textLower.includes('csv') ||
-      textLower.includes('json') ||
-      textLower.includes('数据') ||
-      textLower.includes('表格');
-
-    // 检测是否是web类型请求
-    const isWebRequest =
-      textLower.includes('网页') ||
-      textLower.includes('网站') ||
-      textLower.includes('html') ||
-      textLower.includes('页面');
-
-    // 设置项目类型（优先级：web > data > document）
-    if (isWebRequest) {
-      projectType = 'web';
-    } else if (isDataRequest) {
-      projectType = 'data';
-    } else if (isDocumentRequest) {
-      projectType = 'document';
-    }
-
-    // 检测文件格式（用于document类型）
     let documentFormat = null;
-    if (projectType === 'document') {
-      if (textLower.includes('txt') || textLower.includes('文本')) {
-        documentFormat = 'txt';
-      } else if (textLower.includes('markdown') || textLower.includes('md')) {
-        documentFormat = 'markdown';
-      } else if (textLower.includes('word') || textLower.includes('docx') || textLower.includes('doc')) {
-        documentFormat = 'docx';
-      }
-      // 默认为txt格式（如果是document类型但未明确指定格式）
-      if (!documentFormat) {
-        documentFormat = 'txt';
-      }
-    }
+    let isPPTRequest = false;
 
-    console.log('[ProjectsPage] 智能检测项目类型:');
-    console.log('  - 用户输入:', text);
-    console.log('  - 检测结果: projectType =', projectType || '(由后端AI自动识别)');
-    console.log('  - 文档格式: documentFormat =', documentFormat || '(无)');
-    console.log('  - isDocumentRequest:', isDocumentRequest);
-    console.log('  - isDataRequest:', isDataRequest);
-    console.log('  - isWebRequest:', isWebRequest);
+    try {
+      console.log('[ProjectsPage] 🤖 调用LLM进行意图识别...');
+      const intentResult = await window.electronAPI.aiEngine.recognizeIntent(text);
+
+      if (intentResult && intentResult.success) {
+        // 使用LLM识别的结果
+        projectType = intentResult.projectType;
+        documentFormat = intentResult.outputFormat || null;
+        isPPTRequest = intentResult.subType === 'ppt' && intentResult.outputFormat === 'pptx';
+
+        console.log('[ProjectsPage] ✅ LLM意图识别成功:');
+        console.log('  - 用户输入:', text);
+        console.log('  - 项目类型:', projectType);
+        console.log('  - 子类型:', intentResult.subType);
+        console.log('  - 置信度:', intentResult.confidence);
+        console.log('  - 输出格式:', documentFormat);
+        console.log('  - 是否PPT请求:', isPPTRequest);
+        console.log('  - 建议名称:', intentResult.suggestedName);
+        console.log('  - 分析理由:', intentResult.reasoning);
+        console.log('  - 识别方法:', intentResult.method);
+      } else {
+        throw new Error('意图识别失败，使用降级方案');
+      }
+    } catch (error) {
+      console.error('[ProjectsPage] ❌ LLM意图识别出错，使用规则匹配降级:', error);
+
+      // 降级到简单规则识别
+      // 1. 检测是否是文档/写作类型（优先级最高，因为更常见）
+      const isDocumentRequest =
+        // 明确的文档关键词
+        textLower.includes('写') ||
+        textLower.includes('写一个') ||
+        textLower.includes('写一篇') ||
+        textLower.includes('文章') ||
+        textLower.includes('致辞') ||
+        textLower.includes('演讲') ||
+        textLower.includes('稿') ||
+        textLower.includes('报告') ||
+        textLower.includes('说明') ||
+        textLower.includes('文档') ||
+        textLower.includes('txt') ||
+        textLower.includes('文本') ||
+        textLower.includes('word') ||
+        textLower.includes('docx') ||
+        textLower.includes('markdown') ||
+        textLower.includes('md文件') ||
+        textLower.includes('总结') ||
+        textLower.includes('心得') ||
+        textLower.includes('日记') ||
+        textLower.includes('随笔') ||
+        textLower.includes('作文') ||
+        textLower.includes('ppt') ||
+        textLower.includes('幻灯片') ||
+        textLower.includes('演示');
+
+      // 2. 检测是否是web类型请求（排除文档类型）
+      const isWebRequest =
+        !isDocumentRequest && (
+          textLower.includes('网页') ||
+          textLower.includes('网站') ||
+          textLower.includes('html') ||
+          textLower.includes('页面') ||
+          textLower.includes('前端') ||
+          textLower.includes('web')
+        );
+
+      // 3. 检测是否是数据类型请求
+      const isDataRequest =
+        !isDocumentRequest && (
+          textLower.includes('csv') ||
+          textLower.includes('json') ||
+          textLower.includes('数据分析') ||
+          textLower.includes('表格') ||
+          textLower.includes('excel')
+        );
+
+      // 设置项目类型（优先级：document > web > data）
+      if (isDocumentRequest) {
+        projectType = 'document';
+      } else if (isWebRequest) {
+        projectType = 'web';
+      } else if (isDataRequest) {
+        projectType = 'data';
+      }
+
+      // 检测文件格式（用于document类型）
+      if (projectType === 'document') {
+        if (textLower.includes('ppt') || textLower.includes('幻灯片') || textLower.includes('演示')) {
+          documentFormat = 'pptx';
+          isPPTRequest = true;
+        } else if (textLower.includes('txt') || textLower.includes('文本')) {
+          documentFormat = 'txt';
+        } else if (textLower.includes('markdown') || textLower.includes('md')) {
+          documentFormat = 'markdown';
+        } else if (textLower.includes('word') || textLower.includes('docx') || textLower.includes('doc')) {
+          documentFormat = 'docx';
+        }
+        // 默认为txt格式（如果是document类型但未明确指定格式）
+        if (!documentFormat) {
+          documentFormat = 'txt';
+        }
+      }
+
+      console.log('[ProjectsPage] 规则匹配结果:');
+      console.log('  - 用户输入:', text);
+      console.log('  - 检测结果: projectType =', projectType || '(由后端AI自动识别)');
+      console.log('  - 文档格式: documentFormat =', documentFormat || '(无)');
+      console.log('  - 是否PPT请求:', isPPTRequest);
+    }
 
     // 检测是否是简单的txt文件创建请求（适合本地快速创建）
     const isSimpleTxtRequest = documentFormat === 'txt' && text.length < 200;
@@ -899,88 +936,32 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       }
     }
 
-    // 增强用户提示词，明确文件格式（用于流式创建）
+    // 🔥 跳转到 ai-creating 模式，在 ProjectDetailPage 的 AI对话面板（ChatPanel）中展示创建过程
+    console.log('[ProjectsPage] 跳转到 ai-creating 模式，将在AI对话面板展示创建过程');
+
+    // 增强用户提示词，明确文件格式
     let enhancedPrompt = text;
     if (documentFormat === 'txt') {
-      // 如果检测到txt请求，在提示词中强调生成纯文本文件
       enhancedPrompt = `${text}\n\n【重要】请生成纯文本格式(.txt)文件，不要生成Word(.docx)或其他格式。`;
     } else if (documentFormat === 'markdown') {
       enhancedPrompt = `${text}\n\n【重要】请生成Markdown格式(.md)文件。`;
     }
 
     const projectData = {
-      userPrompt: enhancedPrompt, // 使用增强后的提示词
+      userPrompt: enhancedPrompt,
       name: text.substring(0, 50) || '未命名项目',
-      projectType: projectType, // 智能检测后的项目类型
+      projectType: projectType,
       userId: userId,
-      metadata: documentFormat ? { documentFormat: documentFormat } : undefined, // 添加文档格式提示
+      metadata: documentFormat ? { documentFormat: documentFormat } : undefined,
     };
 
-    const project = await projectStore.createProjectStream(projectData, (progressUpdate) => {
-      console.log('[ProjectsPage] ===== Progress回调被触发 =====');
-      console.log('[ProjectsPage] Progress update:', progressUpdate);
-      console.log('[ProjectsPage] Progress type:', progressUpdate.type);
-
-      // 更新进度数据
-      streamProgressData.value = { ...progressUpdate };
-      console.log('[ProjectsPage] streamProgressData.value已更新');
-
-      // 🔥 将进度添加到对话消息中
-      if (progressUpdate.type === 'progress' && progressUpdate.stage) {
-        const stageNames = {
-          intent: '意图识别',
-          engine: '引擎选择',
-          spec: '生成规格',
-          html: '生成HTML',
-          css: '生成CSS',
-          js: '生成JavaScript',
-        };
-
-        addMessage('progress', progressUpdate.message || '处理中...', {
-          stage: progressUpdate.stage,
-          stageName: stageNames[progressUpdate.stage] || progressUpdate.stage,
-          details: progressUpdate.intent || progressUpdate.spec || null,
-        });
-      } else if (progressUpdate.type === 'complete') {
-        createdProjectId.value = progressUpdate.result.projectId;
-
-        // 添加成功消息
-        addMessage('success', '项目创建成功！点击下方按钮查看项目详情', {
-          projectId: progressUpdate.result.projectId,
-        });
-
-        message.success('项目创建成功！');
-      } else if (progressUpdate.type === 'error') {
-        createError.value = progressUpdate.error;
-
-        // 添加错误消息
-        addMessage('error', '创建项目失败', {
-          error: progressUpdate.error,
-        });
-
-        message.error('创建项目失败：' + progressUpdate.error);
-        return; // 出错时直接返回，不执行任务拆解
-      }
+    // 跳转到 ai-creating 模式
+    router.push({
+      path: `/projects/ai-creating`,
+      query: {
+        createData: JSON.stringify(projectData),
+      },
     });
-
-    // 如果创建失败，不继续执行任务拆解
-    if (createError.value) {
-      return;
-    }
-
-    // 流式创建已完成，直接跳转到项目页面
-    // 注意：流式创建本身已经通过后端AI服务完成了文件生成
-    // 不需要再进行任务拆解和执行
-    const projectId = createdProjectId.value || project?.projectId || project?.id;
-    if (projectId) {
-      console.log('[ProjectsPage] 流式创建完成，跳转到项目页:', projectId);
-      message.success('项目创建完成！', 2);
-
-      // 跳转到项目详情页
-      setTimeout(() => {
-        router.push(`/projects/${projectId}`);
-      }, 500);
-    }
 
     // 2. AI智能拆解任务（已禁用 - 流式创建已完成所有工作）
     // 如果需要额外的任务执行，可以取消下面的注释
@@ -1085,110 +1066,43 @@ const handleTemplateUse = (template) => {
   showTemplateModal.value = true;
 };
 
-// 处理模板创建开始（流式创建 + 进度展示）
+// 处理模板创建开始（跳转到 ai-creating 模式，在 ProjectDetailPage 的 AI对话面板中展示进度）
 const handleTemplateCreateStart = async (createData) => {
   try {
-    console.log('[ProjectsPage] 模板创建开始:', createData);
-
-    // 显示流式进度Modal
-    showStreamProgress.value = true;
-    createError.value = '';
-    streamProgressData.value = {
-      currentStage: '',
-      stages: [],
-      contentByStage: {},
-      logs: [],
-      metadata: {},
-    };
+    console.log('[ProjectsPage] 模板创建开始，跳转到 ai-creating 模式:', createData);
 
     // 获取用户ID
     const userId = authStore.currentUser?.id || 'default-user';
 
-    // 流式创建项目
-    const project = await projectStore.createProjectStream({
+    const aiCreateData = {
       userPrompt: createData.renderedPrompt,
       name: createData.projectName,
       projectType: createData.projectType,
       userId: userId,
-    }, (progressUpdate) => {
-      console.log('[ProjectsPage] 模板创建进度更新:', progressUpdate.type);
+      templateId: createData.templateId,
+      templateVariables: createData.variables,
+    };
 
-      // 更新进度数据
-      streamProgressData.value = { ...progressUpdate };
-
-      // 处理不同类型
-      if (progressUpdate.type === 'complete') {
-        createdProjectId.value = progressUpdate.result.projectId;
-        message.success('项目创建成功！');
-
-        // 记录模板使用
-        templateStore.recordUsage(
-          createData.templateId,
-          userId,
-          progressUpdate.result.projectId,
-          createData.variables
-        ).catch(err => {
-          console.error('[ProjectsPage] 记录模板使用失败:', err);
-        });
-      } else if (progressUpdate.type === 'error') {
-        createError.value = progressUpdate.error;
-        message.error('创建项目失败：' + progressUpdate.error);
-        return; // 出错时直接返回，不执行任务拆解
-      }
+    // 🔥 跳转到 ai-creating 模式，在 ProjectDetailPage 的 AI对话面板中展示创建过程
+    router.push({
+      path: `/projects/ai-creating`,
+      query: {
+        createData: JSON.stringify(aiCreateData),
+      },
     });
 
-    // 如果创建失败，不继续执行任务拆解
-    if (createError.value) {
-      return;
-    }
-
-    // AI智能拆解任务
-    try {
-      message.loading({ content: 'AI正在拆解任务...', key: 'ai-decompose', duration: 0 });
-
-      const projectId = createdProjectId.value || project?.projectId || project?.id;
-
-      if (!projectId) {
-        console.error('[ProjectsPage] 错误：projectId为空！');
-        throw new Error('项目ID不存在，无法进行任务拆解');
-      }
-
-      const contextData = {
-        projectId: projectId,
-        projectType: project?.project_type || project?.projectType,
-        projectName: createData.projectName,
-        root_path: project?.root_path || project?.rootPath
-      };
-
-      console.log('[ProjectsPage] 模板项目任务拆解上下文:', contextData);
-
-      const taskPlan = await window.electronAPI.project.decomposeTask(
-        createData.renderedPrompt,
-        contextData
-      );
-
-      message.success({ content: '任务拆解完成', key: 'ai-decompose', duration: 2 });
-
-      // 显示任务执行监控器
-      currentTaskPlan.value = taskPlan;
-      showTaskMonitor.value = true;
-
-      // 自动开始执行
-      executeTaskPlan(taskPlan);
-    } catch (decomposeError) {
-      console.error('[ProjectsPage] Task decompose failed:', decomposeError);
-      message.warning({
-        content: '任务拆解失败，已创建项目。您可以手动编辑。',
-        key: 'ai-decompose',
-        duration: 3
-      });
-
-      // 即使拆解失败，也跳转到项目页
-      router.push(`/projects/${project.projectId || createdProjectId.value}`);
-    }
+    // 记录模板使用（异步记录，不阻塞跳转）
+    templateStore.recordUsage(
+      createData.templateId,
+      userId,
+      null,
+      createData.variables
+    ).catch(err => {
+      console.error('[ProjectsPage] 记录模板使用失败:', err);
+    });
   } catch (error) {
-    console.error('[ProjectsPage] Failed to create project from template:', error);
-    message.error({ content: '创建失败：' + error.message, key: 'template-create', duration: 3 });
+    console.error('[ProjectsPage] Failed to start template creation:', error);
+    message.error({ content: '启动创建失败：' + error.message, key: 'template-create', duration: 3 });
   }
 };
 
@@ -1368,47 +1282,7 @@ const handleCloseTaskMonitor = () => {
   }
 };
 
-// 流式创建相关处理方法
-const handleCancelStream = async () => {
-  try {
-    await projectStore.cancelProjectStream();
-    showStreamProgress.value = false;
-    message.info('已取消创建');
-  } catch (error) {
-    message.error('取消失败：' + error.message);
-  }
-};
-
-const handleRetryStream = async () => {
-  // 重试逻辑：重新开始创建
-  showStreamProgress.value = false;
-  createError.value = '';
-};
-
-const handleCloseStream = () => {
-  showStreamProgress.value = false;
-  streamProgressData.value = {
-    currentStage: '',
-    stages: [],
-    contentByStage: {},
-    logs: [],
-    metadata: {},
-  };
-  createError.value = '';
-};
-
-const handleViewCreatedProject = () => {
-  showStreamProgress.value = false;
-  if (createdProjectId.value) {
-    router.push(`/projects/${createdProjectId.value}`);
-  }
-};
-
-const handleContinueCreate = () => {
-  showStreamProgress.value = false;
-  createError.value = '';
-  createdProjectId.value = '';
-};
+// 流式创建相关处理方法（已移除，改为在对话框中展示）
 
 // 查看任务结果
 const handleViewTaskResults = (taskPlan) => {
