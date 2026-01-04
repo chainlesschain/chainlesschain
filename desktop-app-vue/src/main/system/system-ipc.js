@@ -8,12 +8,20 @@
 
 const { ipcMain, BrowserWindow } = require('electron');
 
+// 防止重复注册的标志
+let isRegistered = false;
+
 /**
  * 注册所有系统 IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.mainWindow - 主窗口实例
  */
 function registerSystemIPC({ mainWindow }) {
+  if (isRegistered) {
+    console.log('[System IPC] Handlers already registered, skipping...');
+    return;
+  }
+
   console.log('[System IPC] Registering System IPC handlers...');
 
   /**
@@ -333,6 +341,9 @@ function registerSystemIPC({ mainWindow }) {
   console.log('[System IPC] - system:select-directory');
   console.log('[System IPC] - system:select-file');
   console.log('[System IPC] - system:quit');
+
+  isRegistered = true;
+  console.log('[System IPC] ✓ All handlers registered successfully');
 }
 
 module.exports = { registerSystemIPC };

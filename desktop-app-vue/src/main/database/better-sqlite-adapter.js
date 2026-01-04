@@ -80,6 +80,13 @@ class BetterSQLiteAdapter {
   }
 
   /**
+   * 获取数据库引擎名称
+   */
+  getEngine() {
+    return 'better-sqlite3';
+  }
+
+  /**
    * 关闭数据库
    */
   close() {
