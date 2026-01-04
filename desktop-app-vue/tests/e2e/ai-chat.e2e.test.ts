@@ -23,7 +23,8 @@ async function setupVolcengineConfig(window: any) {
       provider: 'volcengine',
       'volcengine.apiKey': '7185ce7d-9775-450c-8450-783176be6265',
       'volcengine.baseURL': 'https://ark.cn-beijing.volces.com/api/v3',
-      'volcengine.model': 'doubao-seed-1-6-lite-251015',
+      'volcengine.model': 'doubao-seed-1-6-flash-250828',
+      'volcengine.embeddingModel': 'doubao-embedding-large',
     };
 
     console.log('正在设置配置...');
@@ -36,6 +37,7 @@ async function setupVolcengineConfig(window: any) {
     console.log('  Provider:', currentConfig.provider);
     console.log('  API Key:', currentConfig.volcengine?.apiKey ? currentConfig.volcengine.apiKey.substring(0, 20) + '...' : '未设置');
     console.log('  Model:', currentConfig.volcengine?.model || '未设置');
+    console.log('  Embedding Model:', currentConfig.volcengine?.embeddingModel || '未设置');
   } catch (error: any) {
     console.error('❌ 配置 Volcengine 失败:', error);
     console.error('错误详情:', error.stack);
