@@ -281,24 +281,12 @@ function registerConversationIPC({ database, ipcMain: injectedIpcMain }) {
       }
 
       // 如果方法不存在，直接插入数据库
-      try {
-        database.db.prepare(`
-          INSERT INTO conversation_messages (id, conversation_id, role, content, timestamp, tokens)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).run(flatData.id, flatData.conversation_id, flatData.role, flatData.content, flatData.timestamp, flatData.tokens);
+      database.db.prepare(`
+        INSERT INTO messages (id, conversation_id, role, content, timestamp, tokens)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(flatData.id, flatData.conversation_id, flatData.role, flatData.content, flatData.timestamp, flatData.tokens);
 
-        return { success: true, data: flatData };
-      } catch (tableError) {
-        console.warn('[Conversation IPC] conversation_messages 表不存在，尝试其他表:', tableError.message);
-
-        // 尝试 chat_messages 表
-        database.db.prepare(`
-          INSERT INTO chat_messages (id, conversation_id, role, content, timestamp, tokens)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).run(flatData.id, flatData.conversation_id, flatData.role, flatData.content, flatData.timestamp, flatData.tokens);
-
-        return { success: true, data: flatData };
-      }
+      return { success: true, data: flatData };
     } catch (error) {
       console.error('[Conversation IPC] 创建消息失败:', error);
       return { success: false, error: error.message };
@@ -338,25 +326,12 @@ function registerConversationIPC({ database, ipcMain: injectedIpcMain }) {
       }
 
       // 如果方法不存在，直接查询数据库
-      let messages = [];
-
-      try {
-        messages = database.db.prepare(`
-          SELECT * FROM conversation_messages
-          WHERE conversation_id = ?
-          ORDER BY timestamp ASC
-          LIMIT ? OFFSET ?
-        `).all(conversationId, limit, offset);
-      } catch (tableError) {
-        console.warn('[Conversation IPC] conversation_messages 表不存在，尝试 chat_messages:', tableError.message);
-
-        messages = database.db.prepare(`
-          SELECT * FROM chat_messages
-          WHERE conversation_id = ?
-          ORDER BY timestamp ASC
-          LIMIT ? OFFSET ?
-        `).all(conversationId, limit, offset);
-      }
+      const messages = database.db.prepare(`
+        SELECT * FROM messages
+        WHERE conversation_id = ?
+        ORDER BY timestamp ASC
+        LIMIT ? OFFSET ?
+      `).all(conversationId, limit, offset);
 
       console.log('[Conversation IPC] 找到消息数量:', messages.length);
       return { success: true, data: messages, total: messages.length };
