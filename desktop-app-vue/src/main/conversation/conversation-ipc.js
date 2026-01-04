@@ -12,9 +12,11 @@ const ipcGuard = require('../ipc-guard');
  * 注册所有对话 IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.database - 数据库实例
+ * @param {Object} dependencies.llmManager - LLM管理器
+ * @param {Object} dependencies.mainWindow - 主窗口实例
  * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
  */
-function registerConversationIPC({ database, ipcMain: injectedIpcMain }) {
+function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: injectedIpcMain }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('conversation-ipc')) {
     console.log('[Conversation IPC] Handlers already registered, skipping...');
@@ -349,10 +351,215 @@ function registerConversationIPC({ database, ipcMain: injectedIpcMain }) {
     }
   });
 
+  // ============================================================
+  // 流式AI对话 (Streaming Chat)
+  // ============================================================
+
+  /**
+   * 流式AI对话
+   * Channel: 'conversation:chat-stream'
+   *
+   * @param {Object} chatData - 对话数据
+   * @param {string} chatData.conversationId - 对话ID
+   * @param {string} chatData.userMessage - 用户消息
+   * @param {Array} chatData.conversationHistory - 对话历史（可选）
+   * @param {Object} chatData.options - LLM选项（可选）
+   * @returns {Promise<Object>} { success: boolean, messageId: string, error?: string }
+   */
+  ipcMain.handle('conversation:chat-stream', async (_event, chatData) => {
+    try {
+      if (!llmManager) {
+        return { success: false, error: 'LLM管理器未初始化' };
+      }
+
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        return { success: false, error: '主窗口未初始化' };
+      }
+
+      const {
+        conversationId,
+        userMessage,
+        conversationHistory = [],
+        options = {}
+      } = chatData;
+
+      if (!conversationId) {
+        return { success: false, error: '对话ID不能为空' };
+      }
+
+      if (!userMessage) {
+        return { success: false, error: '用户消息不能为空' };
+      }
+
+      console.log('[Conversation IPC] 流式AI对话:', conversationId);
+
+      // 1. 创建用户消息记录
+      const userMessageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const userMessageData = {
+        id: userMessageId,
+        conversation_id: conversationId,
+        role: 'user',
+        content: userMessage,
+        timestamp: Date.now()
+      };
+
+      if (database.createMessage) {
+        await database.createMessage(userMessageData);
+      } else {
+        database.db.prepare(`
+          INSERT INTO messages (id, conversation_id, role, content, timestamp)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(
+          userMessageData.id,
+          userMessageData.conversation_id,
+          userMessageData.role,
+          userMessageData.content,
+          userMessageData.timestamp
+        );
+      }
+
+      // 2. 构建消息列表
+      const messages = [...conversationHistory];
+      messages.push({
+        role: 'user',
+        content: userMessage
+      });
+
+      // 3. 准备AI消息记录
+      const aiMessageId = `msg_${Date.now() + 1}_${Math.random().toString(36).substr(2, 9)}`;
+      let fullResponse = '';
+      let totalTokens = 0;
+
+      // 4. 创建流式控制器（如果需要）
+      const { createStreamController } = require('../llm/stream-controller');
+      const streamController = createStreamController({
+        enableBuffering: true
+      });
+
+      streamController.start();
+
+      // 5. 定义chunk回调函数
+      const onChunk = async (chunk) => {
+        // 处理chunk
+        const shouldContinue = await streamController.processChunk(chunk);
+        if (!shouldContinue) {
+          return false;
+        }
+
+        // 提取chunk内容
+        const chunkContent = chunk.content || chunk.text || chunk.delta?.content || '';
+        if (chunkContent) {
+          fullResponse += chunkContent;
+
+          // 发送chunk给前端
+          mainWindow.webContents.send('conversation:stream-chunk', {
+            conversationId,
+            messageId: aiMessageId,
+            chunk: chunkContent,
+            fullContent: fullResponse
+          });
+        }
+
+        // 更新tokens
+        if (chunk.usage) {
+          totalTokens = chunk.usage.total_tokens || 0;
+        }
+
+        return true;
+      };
+
+      // 6. 调用LLM流式对话
+      try {
+        const llmResult = await llmManager.chatStream(messages, onChunk, {
+          temperature: 0.7,
+          maxTokens: 2000,
+          ...options
+        });
+
+        console.log('[Conversation IPC] 流式对话完成');
+
+        // 7. 保存AI消息
+        const aiMessageData = {
+          id: aiMessageId,
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: fullResponse,
+          timestamp: Date.now(),
+          tokens: totalTokens || llmResult.tokens
+        };
+
+        if (database.createMessage) {
+          await database.createMessage(aiMessageData);
+        } else {
+          database.db.prepare(`
+            INSERT INTO messages (id, conversation_id, role, content, timestamp, tokens)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(
+            aiMessageData.id,
+            aiMessageData.conversation_id,
+            aiMessageData.role,
+            aiMessageData.content,
+            aiMessageData.timestamp,
+            aiMessageData.tokens
+          );
+        }
+
+        // 8. 更新对话的updated_at
+        database.db.prepare(`
+          UPDATE conversations
+          SET updated_at = ?
+          WHERE id = ?
+        `).run(Date.now(), conversationId);
+
+        // 9. 通知前端完成
+        streamController.complete({
+          messageId: aiMessageId,
+          tokens: totalTokens
+        });
+
+        mainWindow.webContents.send('conversation:stream-complete', {
+          conversationId,
+          messageId: aiMessageId,
+          fullContent: fullResponse,
+          tokens: totalTokens,
+          stats: streamController.getStats()
+        });
+
+        return {
+          success: true,
+          userMessageId,
+          aiMessageId,
+          tokens: totalTokens
+        };
+
+      } catch (llmError) {
+        console.error('[Conversation IPC] LLM流式对话失败:', llmError);
+
+        // 通知前端错误
+        streamController.error(llmError);
+
+        mainWindow.webContents.send('conversation:stream-error', {
+          conversationId,
+          messageId: aiMessageId,
+          error: llmError.message
+        });
+
+        return {
+          success: false,
+          error: llmError.message
+        };
+      }
+
+    } catch (error) {
+      console.error('[Conversation IPC] 流式对话处理失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('conversation-ipc');
 
-  console.log('[Conversation IPC] Registered 7 conversation handlers');
+  console.log('[Conversation IPC] Registered 8 conversation handlers');
   console.log('[Conversation IPC] - conversation:get-by-project');
   console.log('[Conversation IPC] - conversation:get-by-id');
   console.log('[Conversation IPC] - conversation:create');
@@ -360,6 +567,7 @@ function registerConversationIPC({ database, ipcMain: injectedIpcMain }) {
   console.log('[Conversation IPC] - conversation:delete');
   console.log('[Conversation IPC] - conversation:create-message');
   console.log('[Conversation IPC] - conversation:get-messages');
+  console.log('[Conversation IPC] - conversation:chat-stream');
 }
 
 module.exports = { registerConversationIPC };
