@@ -232,7 +232,7 @@ const getMigrationTypeDescription = () => {
 
 const browseProjectPath = async () => {
   try {
-    const result = await window.electronAPI.dialog.openDirectory({
+    const result = await window.electronAPI.dialog.selectFolder({
       title: '选择新的项目路径',
       defaultPath: currentPaths.project,
     });
@@ -248,7 +248,7 @@ const browseProjectPath = async () => {
 
 const browseDatabasePath = async () => {
   try {
-    const result = await window.electronAPI.dialog.openDirectory({
+    const result = await window.electronAPI.dialog.selectFolder({
       title: '选择新的数据库路径',
       defaultPath: currentPaths.database.substring(0, currentPaths.database.lastIndexOf('/')),
     });
