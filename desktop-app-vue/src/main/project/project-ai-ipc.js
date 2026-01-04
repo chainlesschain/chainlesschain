@@ -158,11 +158,14 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
 
         console.log('[Main] 使用本地LLM，消息数量:', messages.length);
 
-        // 🔥 火山引擎智能模型选择（根据项目类型和对话场景）
+        // 🔥 火山引擎智能模型选择 + 工具调用（根据项目类型和对话场景）
         const chatOptions = {
           temperature: 0.7,
           maxTokens: 2000
         };
+
+        let useToolCalling = false;
+        let toolsToUse = [];
 
         if (llmManager.provider === 'volcengine') {
           try {
@@ -186,9 +189,16 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
 
             // 分析用户消息内容
             if (userMessage) {
+              // 检测深度思考需求
               if (/(分析|推理|思考|为什么|如何|怎么)/.test(userMessage)) {
                 scenario.needsThinking = true;
                 console.log('[Main] 检测到需要深度思考');
+              }
+
+              // 🔥 检测是否需要联网搜索
+              if (/(最新|今天|现在|实时|新闻|API文档|库文档|框架文档|技术文档)/.test(userMessage)) {
+                toolsToUse.push('web_search');
+                console.log('[Main] 检测到需要联网搜索（获取最新文档/信息）');
               }
             }
 
@@ -209,8 +219,28 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
           }
         }
 
-        // 调用本地LLM
-        const llmResult = await llmManager.chat(messages, chatOptions);
+        // 调用本地LLM（根据是否需要工具调用选择不同方法）
+        let llmResult;
+        if (toolsToUse.length > 0 && llmManager.toolsClient) {
+          console.log('[Main] 项目AI对话使用工具调用:', toolsToUse.join(', '));
+
+          if (toolsToUse.includes('web_search')) {
+            // 使用联网搜索
+            const toolResult = await llmManager.chatWithWebSearch(messages, {
+              ...chatOptions,
+              searchMode: 'auto',
+            });
+
+            // 转换为统一格式
+            llmResult = {
+              content: toolResult.choices?.[0]?.message?.content || '',
+              text: toolResult.choices?.[0]?.message?.content || '',
+            };
+          }
+        } else {
+          // 标准对话
+          llmResult = await llmManager.chat(messages, chatOptions);
+        }
 
         aiResponse = llmResult.content || llmResult.text || llmResult;
         console.log('[Main] 本地LLM响应成功');

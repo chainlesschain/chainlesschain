@@ -91,7 +91,8 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
 
       console.log('[LLM IPC] LLM 聊天请求, messages:', messages?.length || 0, 'stream:', stream, 'RAG:', enableRAG);
 
-      // 🔥 火山引擎智能模型选择
+      // 🔥 火山引擎智能模型选择 + 工具调用自动启用
+      let toolsToUse = [];
       if (managerRef.current.provider === 'volcengine' && !options.model) {
         try {
           const TaskTypes = require('./volcengine-models').TaskTypes;
@@ -123,6 +124,22 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
             if (totalLength > 10000 || messages.length > 20) {
               scenario.needsLongContext = true;
               console.log('[LLM IPC] 检测到长上下文需求，总长度:', totalLength);
+            }
+
+            // 🔥 检测是否需要联网搜索
+            if (/(最新|今天|现在|实时|新闻|天气|股票|汇率|当前|最近)/.test(content)) {
+              toolsToUse.push('web_search');
+              console.log('[LLM IPC] 检测到需要联网搜索');
+            }
+
+            // 🔥 检测是否包含图片（多模态消息）
+            if (Array.isArray(lastUserMsg.content)) {
+              const hasImage = lastUserMsg.content.some(item => item.type === 'image_url');
+              if (hasImage) {
+                scenario.hasImage = true;
+                toolsToUse.push('image_process');
+                console.log('[LLM IPC] 检测到图片输入');
+              }
             }
           }
 
@@ -190,8 +207,54 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
         }
       }
 
-      // 使用新的 chatWithMessages 方法，保留完整的 messages 历史
-      const response = await managerRef.current.chatWithMessages(enhancedMessages, options);
+      // 🔥 根据检测结果选择调用方法（工具调用 vs 普通对话）
+      let response;
+      if (toolsToUse.length > 0 && managerRef.current.provider === 'volcengine' && managerRef.current.toolsClient) {
+        console.log('[LLM IPC] 使用工具调用:', toolsToUse.join(', '));
+
+        // 如果只有一个工具，使用专用方法
+        if (toolsToUse.length === 1) {
+          const tool = toolsToUse[0];
+          if (tool === 'web_search') {
+            response = await managerRef.current.chatWithWebSearch(enhancedMessages, {
+              ...options,
+              searchMode: options.searchMode || 'auto',
+            });
+          } else if (tool === 'image_process') {
+            response = await managerRef.current.chatWithImageProcess(enhancedMessages, options);
+          }
+
+          // 转换为统一格式
+          response = {
+            text: response.choices?.[0]?.message?.content || '',
+            message: response.choices?.[0]?.message,
+            usage: response.usage,
+            tokens: response.usage?.total_tokens || 0,
+          };
+        } else {
+          // 多个工具，使用混合工具调用
+          const toolConfig = {};
+          if (toolsToUse.includes('web_search')) {
+            toolConfig.enableWebSearch = true;
+          }
+          if (toolsToUse.includes('image_process')) {
+            toolConfig.enableImageProcess = true;
+          }
+
+          response = await managerRef.current.chatWithMultipleTools(enhancedMessages, toolConfig, options);
+
+          // 转换为统一格式
+          response = {
+            text: response.choices?.[0]?.message?.content || '',
+            message: response.choices?.[0]?.message,
+            usage: response.usage,
+            tokens: response.usage?.total_tokens || 0,
+          };
+        }
+      } else {
+        // 使用标准的 chatWithMessages 方法，保留完整的 messages 历史
+        response = await managerRef.current.chatWithMessages(enhancedMessages, options);
+      }
 
       console.log('[LLM IPC] LLM 聊天响应成功, tokens:', response.tokens);
 
