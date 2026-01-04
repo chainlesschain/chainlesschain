@@ -92,25 +92,27 @@ function registerAllIPC(dependencies) {
     // ============================================================
 
     // LLM 服务 (函数模式 - 小模块示范，14 handlers)
-    if (llmManager) {
-      console.log('[IPC Registry] Registering LLM IPC...');
-      const { registerLLMIPC } = require('./llm/llm-ipc');
+    // 注意：即使 llmManager 为 null 也注册，handler 内部会处理 null 情况
+    console.log('[IPC Registry] Registering LLM IPC...');
+    const { registerLLMIPC } = require('./llm/llm-ipc');
 
-      // 获取 LLM 智能选择器（如果已初始化）
-      const llmSelector = app.llmSelector || null;
+    // 获取 LLM 智能选择器（如果已初始化）
+    const llmSelector = app ? (app.llmSelector || null) : null;
 
-      registerLLMIPC({
-        llmManager,
-        mainWindow,
-        ragManager,
-        promptTemplateManager,
-        llmSelector,
-        database,
-        app
-      });
+    registerLLMIPC({
+      llmManager: llmManager || null,
+      mainWindow: mainWindow || null,
+      ragManager: ragManager || null,
+      promptTemplateManager: promptTemplateManager || null,
+      llmSelector,
+      database: database || null,
+      app: app || null
+    });
 
-      console.log('[IPC Registry] ✓ LLM IPC registered (14 handlers)');
+    if (!llmManager) {
+      console.log('[IPC Registry] ⚠️  LLM manager not initialized (handlers registered with degraded functionality)');
     }
+    console.log('[IPC Registry] ✓ LLM IPC registered (14 handlers)');
 
     // RAG 检索 (函数模式 - 小模块示范，7 handlers)
     if (ragManager) {
@@ -253,7 +255,7 @@ function registerAllIPC(dependencies) {
       console.log('[IPC Registry] ✓ Project Core IPC registered (34 handlers)');
     }
 
-    // 项目AI功能 (函数模式 - 中等模块，15 handlers)
+    // 项目AI功能 (函数模式 - 中等模块，16 handlers)
     if (database && llmManager) {
       console.log('[IPC Registry] Registering Project AI IPC...');
       const { registerProjectAIIPC } = require('./project/project-ai-ipc');
@@ -265,7 +267,7 @@ function registerAllIPC(dependencies) {
         mainWindow,
         scanAndRegisterProjectFiles: app.scanAndRegisterProjectFiles?.bind(app)
       });
-      console.log('[IPC Registry] ✓ Project AI IPC registered (15 handlers)');
+      console.log('[IPC Registry] ✓ Project AI IPC registered (16 handlers)');
     }
 
     // 项目导出分享 (函数模式 - 大模块，17 handlers)
@@ -606,13 +608,22 @@ function registerAllIPC(dependencies) {
       console.log('[IPC Registry] ✓ Notification IPC registered (5 handlers)');
     }
 
-    // 对话管理 (函数模式 - 小模块，5 handlers)
-    if (database) {
-      console.log('[IPC Registry] Registering Conversation IPC...');
-      const { registerConversationIPC } = require('./conversation/conversation-ipc');
-      registerConversationIPC({ database });
-      console.log('[IPC Registry] ✓ Conversation IPC registered (5 handlers)');
+    // 对话管理 (函数模式 - 中等模块，15 handlers)
+    // 注意：即使 database 为 null 也注册，handler 内部会处理 null 情况
+    console.log('[IPC Registry] Registering Conversation IPC...');
+    const { registerConversationIPC } = require('./conversation/conversation-ipc');
+    registerConversationIPC({
+      database: database || null,
+      llmManager: llmManager || null,
+      mainWindow: mainWindow || null
+    });
+    if (!database) {
+      console.log('[IPC Registry] ⚠️  Database manager not initialized (handlers registered with degraded functionality)');
     }
+    if (!llmManager) {
+      console.log('[IPC Registry] ⚠️  LLM manager not initialized (handlers registered with degraded functionality)');
+    }
+    console.log('[IPC Registry] ✓ Conversation IPC registered (15 handlers)');
 
     // 文件同步监听 (函数模式 - 小模块，3 handlers)
     if (database) {
