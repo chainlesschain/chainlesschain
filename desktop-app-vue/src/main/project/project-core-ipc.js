@@ -251,9 +251,20 @@ function registerProjectCoreIPC({
             timestamp: Date.now(),
           });
           console.log(`[Main] 流式进度: ${data.stage} - ${data.message}`);
+
+          // 发送流式进度事件
           event.sender.send('project:stream-chunk', {
             type: 'progress',
             data,
+          });
+
+          // 发送任务执行事件
+          event.sender.send('project:task-execute', {
+            stage: data.stage,
+            name: data.stage,
+            message: data.message,
+            status: 'running',
+            timestamp: Date.now(),
           });
         },
 

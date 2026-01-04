@@ -718,6 +718,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onTaskProgressUpdate: (callback) => ipcRenderer.on('task:progress-update', (_event, progress) => callback(progress)),
     offTaskProgressUpdate: (callback) => ipcRenderer.removeListener('task:progress-update', callback),
 
+    // 任务执行事件监听
+    onTaskExecute: (callback) => ipcRenderer.on('project:task-execute', (_event, task) => callback(task)),
+    offTaskExecute: (callback) => ipcRenderer.removeListener('project:task-execute', callback),
+
     // 项目文件更新监听
     onFilesUpdated: (callback) => ipcRenderer.on('project:files-updated', (_event, data) => callback(data)),
     offFilesUpdated: (callback) => ipcRenderer.removeListener('project:files-updated', callback),
