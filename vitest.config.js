@@ -12,6 +12,14 @@ export default defineConfig({
       'desktop-app-vue/tests/**/*.test.js',
       'desktop-app-vue/tests/**/*.spec.js',
     ],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/*.jest.test.js',  // Exclude Jest test files
+      '**/blockchain/**',   // Exclude blockchain tests (use Mocha)
+      '**/e2e/**',          // Exclude E2E tests (use Playwright)
+      '**/performance/**',  // Exclude performance tests (run separately)
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'json', 'html', 'lcov'],
