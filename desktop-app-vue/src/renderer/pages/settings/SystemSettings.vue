@@ -230,7 +230,7 @@
                   <a-input-password v-model:value="config.llm.volcengineApiKey" />
                 </a-form-item>
                 <a-form-item label="对话模型">
-                  <a-input v-model:value="config.llm.volcengineModel" placeholder="doubao-seed-1-6-flash-250828" />
+                  <a-input v-model:value="config.llm.volcengineModel" placeholder="doubao-seed-1.6-flash" />
                 </a-form-item>
                 <a-form-item label="嵌入模型">
                   <a-input v-model:value="config.llm.volcengineEmbeddingModel" placeholder="doubao-embedding" />

@@ -192,7 +192,7 @@
               placeholder="输入模型名称，如 doubao-lite-4k"
             />
             <div class="form-hint">
-              常用模型: doubao-lite-4k (免费), doubao-pro-4k, doubao-seed-1-6-lite-251015
+              常用模型: doubao-lite-32k, doubao-pro-32k, doubao-seed-1.6-lite, doubao-seed-1.6-flash
             </div>
           </a-form-item>
         </template>
@@ -418,7 +418,7 @@ const form = reactive({
   volcengine: {
     apiKey: '',
     baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-    model: 'doubao-seed-1-6-lite-251015',
+    model: 'doubao-seed-1.6-lite',
   },
 
   custom: {
@@ -552,7 +552,7 @@ const handleReset = () => {
   form.volcengine = {
     apiKey: '',
     baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-    model: 'doubao-seed-1-6-lite-251015',
+    model: 'doubao-seed-1.6-lite',
   };
   form.custom = {
     name: 'Custom Provider',
