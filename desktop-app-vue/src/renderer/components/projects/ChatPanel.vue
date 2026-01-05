@@ -165,6 +165,16 @@ import InterviewQuestionMessage from '../messages/InterviewQuestionMessage.vue';
 import { MessageType, createSystemMessage, createIntentConfirmationMessage, createInterviewMessage, createTaskPlanMessage, createUserMessage, createAssistantMessage } from '../../utils/messageTypes';
 import { TaskPlanner } from '../../utils/taskPlanner';
 import { marked } from 'marked';
+// 🔥 导入后续输入意图处理助手
+import {
+  findExecutingTask,
+  buildClassificationContext,
+  createIntentSystemMessage,
+  mergeRequirements,
+  addClarificationToTaskPlan,
+  formatIntentLog,
+  handleClassificationError
+} from '../../utils/followupIntentHelper';
 
 // 配置 marked 选项
 marked.setOptions({
@@ -456,6 +466,42 @@ const handleSendMessage = async () => {
   userInput.value = '';
 
   console.log('[ChatPanel] 准备发送消息，input:', input);
+
+  // 🔥 NEW: 检查是否有正在执行的任务，判断后续输入意图
+  const executingTask = findExecutingTask(messages.value);
+  if (executingTask && executingTask.metadata?.status === 'executing') {
+    console.log('[ChatPanel] 🎯 检测到正在执行的任务，分析后续输入意图');
+
+    try {
+      // 检查 followupIntent API 是否可用
+      if (!window.electronAPI?.followupIntent) {
+        console.warn('[ChatPanel] followupIntent API 不可用，跳过后续输入意图分类');
+      } else {
+        // 调用后续输入意图分类器
+        const classifyResult = await window.electronAPI.followupIntent.classify({
+          input,
+          context: buildClassificationContext(executingTask, messages.value)
+        });
+
+        if (classifyResult.success) {
+          const { intent, confidence, reason, extractedInfo } = classifyResult.data;
+
+          console.log(formatIntentLog(classifyResult, input));
+
+          // 根据意图类型采取不同的行动
+          await handleFollowupIntent(intent, input, extractedInfo, reason, executingTask);
+
+          isLoading.value = false;
+          return;
+        } else {
+          console.error('[ChatPanel] 意图分类失败:', classifyResult.error);
+        }
+      }
+    } catch (error) {
+      console.error('[ChatPanel] 后续输入意图分类异常:', error);
+      // 继续执行原有逻辑
+    }
+  }
 
   // 🔥 任务规划模式：对复杂任务进行需求分析和任务规划
   if (enablePlanning.value && shouldUsePlanning(input)) {
@@ -1755,12 +1801,14 @@ onMounted(() => {
   padding: 32px 16px;
   min-height: 0;
   display: flex;
-  justify-content: center;
+  flex-direction: column; /* 确保内容从上到下排列 */
+  align-items: center; /* 使用 align-items 实现水平居中 */
 }
 
 .messages-container > * {
   width: 100%;
   max-width: 800px; /* 限制消息最大宽度，使其居中显示 */
+  flex-shrink: 0; /* 防止内容被压缩 */
 }
 
 /* 空状态 */
