@@ -251,11 +251,12 @@ const router = useRouter();
 const llmStore = useLLMStore();
 const conversationStore = useConversationStore();
 
-// Markdown渲染器
+// Markdown渲染器 - 禁用 HTML 以防止 XSS 攻击
 const md = new MarkdownIt({
-  html: false,
+  html: false,  // 禁用 HTML 标签
   linkify: true,
   breaks: true,
+  xhtmlOut: true,
 });
 
 // 状态
@@ -478,7 +479,16 @@ const handleSelectConversation = (conversation) => {
 // 渲染Markdown
 const renderMarkdown = (text) => {
   if (!text) return '';
-  return md.render(text);
+  try {
+    // MarkdownIt 已配置为 html: false，会自动转义 HTML 标签，防止 XSS
+    return md.render(text);
+  } catch (error) {
+    console.error('Markdown 渲染失败:', error);
+    // 发生错误时，转义文本以防止 XSS
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
 };
 
 // 格式化时间
