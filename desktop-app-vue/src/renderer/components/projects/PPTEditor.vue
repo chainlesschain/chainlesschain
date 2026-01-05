@@ -1,7 +1,30 @@
 <template>
   <div class="ppt-editor">
+    <!-- 🔥 二进制.pptx文件提示 -->
+    <div v-if="isBinaryPPTX" class="binary-pptx-notice">
+      <div class="notice-content">
+        <FilePptOutlined class="notice-icon" />
+        <h3>无法编辑此PowerPoint文件</h3>
+        <p class="notice-desc">
+          这是一个Microsoft PowerPoint二进制文件（.pptx），需要使用PowerPoint或WPS打开编辑。
+        </p>
+        <a-space size="large" style="margin-top: 24px">
+          <a-button type="primary" size="large" @click="handleDownload">
+            <DownloadOutlined />
+            下载文件
+          </a-button>
+          <a-tooltip title="将在系统默认程序中打开">
+            <a-button size="large">
+              <ExportOutlined />
+              用PowerPoint打开
+            </a-button>
+          </a-tooltip>
+        </a-space>
+      </div>
+    </div>
+
     <!-- 演示模式 -->
-    <div v-if="isPresentMode" class="presentation-mode">
+    <div v-else-if="isPresentMode" class="presentation-mode">
       <div class="presentation-slide">
         <div
           v-if="slides[presentSlideIndex]"
@@ -321,6 +344,7 @@ import {
   LeftOutlined,
   RightOutlined,
   CloseOutlined,
+  ExportOutlined,
 } from '@ant-design/icons-vue';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -384,25 +408,35 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown);
 });
 
+// 是否为二进制.pptx文件
+const isBinaryPPTX = ref(false);
+
 // 初始化PPT
 const initPPT = () => {
   try {
-    if (props.file.content) {
-      const data = typeof props.file.content === 'string'
-        ? JSON.parse(props.file.content)
-        : props.file.content;
+    // 🔥 检测是否为二进制.pptx文件（无content或content无效）
+    if (!props.file.content || props.file.content.trim() === '') {
+      console.warn('[PPTEditor] 检测到二进制.pptx文件，无法编辑');
+      isBinaryPPTX.value = true;
+      return;
+    }
 
-      if (data.slides && Array.isArray(data.slides)) {
-        slides.value = data.slides;
-      } else {
-        createDefaultSlide();
-      }
+    // 尝试解析JSON格式的演示文稿数据
+    const data = typeof props.file.content === 'string'
+      ? JSON.parse(props.file.content)
+      : props.file.content;
+
+    if (data.slides && Array.isArray(data.slides)) {
+      slides.value = data.slides;
+      isBinaryPPTX.value = false;
     } else {
       createDefaultSlide();
+      isBinaryPPTX.value = false;
     }
   } catch (error) {
-    console.error('解析PPT数据失败:', error);
-    createDefaultSlide();
+    console.error('[PPTEditor] 解析PPT数据失败:', error);
+    // JSON解析失败，可能是二进制文件
+    isBinaryPPTX.value = true;
   }
 };
 
@@ -1169,6 +1203,45 @@ watch(
       }
     }
   }
+}
+
+/* 二进制PPTX文件提示 */
+.binary-pptx-notice {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px;
+}
+
+.notice-content {
+  background: #ffffff;
+  padding: 60px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  max-width: 600px;
+}
+
+.notice-icon {
+  font-size: 80px;
+  color: #d35400;
+  margin-bottom: 24px;
+}
+
+.notice-content h3 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+}
+
+.notice-desc {
+  font-size: 16px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 8px;
 }
 
 .editor-footer {
