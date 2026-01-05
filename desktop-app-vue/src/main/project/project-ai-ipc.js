@@ -159,11 +159,29 @@ function registerProjectAIIPC({
         throw new Error(`项目不存在: ${projectId}`);
       }
 
-      const projectPath = project.root_path;
+      let projectPath = project.root_path;
 
-      // 验证项目路径
+      // 🔥 修复：如果项目路径不存在，自动创建（解决PPT生成失败问题）
       if (!projectPath) {
-        throw new Error(`项目路径未设置: ${projectId}，请在项目设置中指定项目根目录`);
+        console.warn('[Main] 项目路径未设置，自动创建项目目录');
+
+        const fs = require('fs').promises;
+        const { getProjectConfig } = require('../config/project-config');
+        const projectConfig = getProjectConfig();
+
+        // 使用项目名称或ID作为目录名
+        const dirName = project.name ? project.name.replace(/[^\w\s-]/g, '_') : `project_${projectId}`;
+        projectPath = path.join(projectConfig.getProjectsRootPath(), dirName);
+
+        // 创建目录
+        await fs.mkdir(projectPath, { recursive: true });
+        console.log('[Main] 项目目录已自动创建:', projectPath);
+
+        // 更新数据库中的项目路径
+        database.db.prepare('UPDATE projects SET root_path = ?, updated_at = ? WHERE id = ?')
+          .run(projectPath, Date.now(), projectId);
+
+        console.log('[Main] 项目路径已更新到数据库');
       }
 
       console.log('[Main] 项目路径:', projectPath);
@@ -1071,11 +1089,29 @@ ${content}
         throw new Error(`项目不存在: ${projectId}`);
       }
 
-      const projectPath = project.root_path;
+      let projectPath = project.root_path;
 
-      // 验证项目路径
+      // 🔥 修复：如果项目路径不存在，自动创建
       if (!projectPath) {
-        throw new Error(`项目路径未设置: ${projectId}，请在项目设置中指定项目根目录`);
+        console.warn('[Main] 项目路径未设置（流式），自动创建项目目录');
+
+        const fs = require('fs').promises;
+        const { getProjectConfig } = require('../config/project-config');
+        const projectConfig = getProjectConfig();
+
+        // 使用项目名称或ID作为目录名
+        const dirName = project.name ? project.name.replace(/[^\w\s-]/g, '_') : `project_${projectId}`;
+        projectPath = path.join(projectConfig.getProjectsRootPath(), dirName);
+
+        // 创建目录
+        await fs.mkdir(projectPath, { recursive: true });
+        console.log('[Main] 项目目录已自动创建:', projectPath);
+
+        // 更新数据库中的项目路径
+        database.db.prepare('UPDATE projects SET root_path = ?, updated_at = ? WHERE id = ?')
+          .run(projectPath, Date.now(), projectId);
+
+        console.log('[Main] 项目路径已更新到数据库');
       }
 
       console.log('[Main] 项目路径:', projectPath);

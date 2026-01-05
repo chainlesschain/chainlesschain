@@ -280,9 +280,11 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
         content: String(messageData.content || ''),
         timestamp: Number(messageData.timestamp || Date.now()),
         tokens: messageData.tokens ? Number(messageData.tokens) : null,
+        message_type: messageData.type || messageData.message_type || null, // 支持 type 或 message_type
+        metadata: messageData.metadata ? JSON.stringify(messageData.metadata) : null, // 序列化 metadata
       };
 
-      console.log('[Conversation IPC] 创建消息:', flatData.id);
+      console.log('[Conversation IPC] 创建消息:', flatData.id, 'type:', flatData.message_type);
 
       // 尝试使用 createMessage 方法
       try {
@@ -295,10 +297,45 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
       }
 
       // 如果方法不存在，直接插入数据库
-      database.db.prepare(`
-        INSERT INTO messages (id, conversation_id, role, content, timestamp, tokens)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(flatData.id, flatData.conversation_id, flatData.role, flatData.content, flatData.timestamp, flatData.tokens);
+      // 先检查 message_type 和 metadata 列是否存在
+      const tableInfo = database.db.prepare("PRAGMA table_info(messages)").all();
+      const hasMessageType = tableInfo.some(col => col.name === 'message_type');
+      const hasMetadata = tableInfo.some(col => col.name === 'metadata');
+
+      if (hasMessageType && hasMetadata) {
+        database.db.prepare(`
+          INSERT INTO messages (id, conversation_id, role, content, timestamp, tokens, message_type, metadata)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          flatData.id,
+          flatData.conversation_id,
+          flatData.role,
+          flatData.content,
+          flatData.timestamp,
+          flatData.tokens,
+          flatData.message_type,
+          flatData.metadata
+        );
+      } else if (hasMessageType) {
+        database.db.prepare(`
+          INSERT INTO messages (id, conversation_id, role, content, timestamp, tokens, message_type)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          flatData.id,
+          flatData.conversation_id,
+          flatData.role,
+          flatData.content,
+          flatData.timestamp,
+          flatData.tokens,
+          flatData.message_type
+        );
+      } else {
+        // 旧版本数据库，只保存基本字段
+        database.db.prepare(`
+          INSERT INTO messages (id, conversation_id, role, content, timestamp, tokens)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(flatData.id, flatData.conversation_id, flatData.role, flatData.content, flatData.timestamp, flatData.tokens);
+      }
 
       return { success: true, data: flatData };
     } catch (error) {
@@ -333,7 +370,28 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
       try {
         if (database.getMessagesByConversation) {
           const result = await database.getMessagesByConversation(conversationId, options);
-          return { success: true, data: result.messages || result, total: result.total || result.length };
+          const messages = result.messages || result;
+
+          // 处理 message_type 和 metadata
+          const processedMessages = messages.map(msg => {
+            const processed = { ...msg };
+            // 将 message_type 映射为 type（前端使用）
+            if (msg.message_type) {
+              processed.type = msg.message_type;
+            }
+            // 反序列化 metadata
+            if (msg.metadata && typeof msg.metadata === 'string') {
+              try {
+                processed.metadata = JSON.parse(msg.metadata);
+              } catch (e) {
+                console.warn('[Conversation IPC] 解析 metadata 失败:', e);
+                processed.metadata = null;
+              }
+            }
+            return processed;
+          });
+
+          return { success: true, data: processedMessages, total: result.total || processedMessages.length };
         }
       } catch (methodError) {
         console.warn('[Conversation IPC] getMessagesByConversation 方法不存在，尝试直接查询:', methodError.message);
@@ -347,8 +405,27 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
         LIMIT ? OFFSET ?
       `).all(conversationId, limit, offset);
 
-      console.log('[Conversation IPC] 找到消息数量:', messages.length);
-      return { success: true, data: messages, total: messages.length };
+      // 处理 message_type 和 metadata
+      const processedMessages = messages.map(msg => {
+        const processed = { ...msg };
+        // 将 message_type 映射为 type（前端使用）
+        if (msg.message_type) {
+          processed.type = msg.message_type;
+        }
+        // 反序列化 metadata
+        if (msg.metadata && typeof msg.metadata === 'string') {
+          try {
+            processed.metadata = JSON.parse(msg.metadata);
+          } catch (e) {
+            console.warn('[Conversation IPC] 解析 metadata 失败:', e);
+            processed.metadata = null;
+          }
+        }
+        return processed;
+      });
+
+      console.log('[Conversation IPC] 找到消息数量:', processedMessages.length);
+      return { success: true, data: processedMessages, total: processedMessages.length };
     } catch (error) {
       console.error('[Conversation IPC] 获取对话消息失败:', error);
       return { success: false, error: error.message };

@@ -68,7 +68,8 @@ class OpenAIClient extends EventEmitter {
    */
   async chat(messages, options = {}) {
     try {
-      const response = await this.client.post('/chat/completions', {
+      // 构建请求体
+      const requestBody = {
         model: options.model || this.model,
         messages,
         temperature: options.temperature || 0.7,
@@ -77,7 +78,24 @@ class OpenAIClient extends EventEmitter {
         presence_penalty: options.presence_penalty || 0,
         frequency_penalty: options.frequency_penalty || 0,
         stream: false,
-      });
+      };
+
+      // 🔥 修复：只有在 tools 有效且非空时才添加（避免阿里云等API报错）
+      if (options.tools && Array.isArray(options.tools) && options.tools.length > 0) {
+        // 验证每个tool都有必要的字段
+        const validTools = options.tools.filter(tool => {
+          if (tool.type === 'function') {
+            return tool.function && tool.function.name;
+          }
+          return true; // 其他类型的工具暂时允许
+        });
+
+        if (validTools.length > 0) {
+          requestBody.tools = validTools;
+        }
+      }
+
+      const response = await this.client.post('/chat/completions', requestBody);
 
       const choice = response.data.choices[0];
 
@@ -102,18 +120,36 @@ class OpenAIClient extends EventEmitter {
    */
   async chatStream(messages, onChunk, options = {}) {
     try {
+      // 构建请求体
+      const requestBody = {
+        model: options.model || this.model,
+        messages,
+        temperature: options.temperature || 0.7,
+        top_p: options.top_p || 1,
+        max_tokens: options.max_tokens,
+        presence_penalty: options.presence_penalty || 0,
+        frequency_penalty: options.frequency_penalty || 0,
+        stream: true,
+      };
+
+      // 🔥 修复：只有在 tools 有效且非空时才添加（避免阿里云等API报错）
+      if (options.tools && Array.isArray(options.tools) && options.tools.length > 0) {
+        // 验证每个tool都有必要的字段
+        const validTools = options.tools.filter(tool => {
+          if (tool.type === 'function') {
+            return tool.function && tool.function.name;
+          }
+          return true; // 其他类型的工具暂时允许
+        });
+
+        if (validTools.length > 0) {
+          requestBody.tools = validTools;
+        }
+      }
+
       const response = await this.client.post(
         '/chat/completions',
-        {
-          model: options.model || this.model,
-          messages,
-          temperature: options.temperature || 0.7,
-          top_p: options.top_p || 1,
-          max_tokens: options.max_tokens,
-          presence_penalty: options.presence_penalty || 0,
-          frequency_penalty: options.frequency_penalty || 0,
-          stream: true,
-        },
+        requestBody,
         {
           responseType: 'stream',
         }
