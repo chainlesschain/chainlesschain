@@ -273,7 +273,7 @@ function fallbackRuleBasedRecognition(userInput) {
     reasoning: '未检测到明确关键词，默认为文本文档（降级方案）',
     suggestedName: userInput.substring(0, 30),
     detectedKeywords: [],
-    outputFormat: 'txt',
+    outputFormat: 'md',
     toolEngine: 'document-engine',
     method: 'fallback'
   };
@@ -290,7 +290,7 @@ function inferOutputFormat(subType) {
     word: 'docx',
     pdf: 'pdf',
     markdown: 'md',
-    text: 'txt',
+    text: 'md',
     excel: 'xlsx',
     csv: 'csv',
     image: 'png',
@@ -298,7 +298,7 @@ function inferOutputFormat(subType) {
     website: 'html',
     webpage: 'html'
   };
-  return formatMap[subType] || 'txt';
+  return formatMap[subType] || 'md';
 }
 
 /**
