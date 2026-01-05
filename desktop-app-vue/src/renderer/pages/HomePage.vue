@@ -78,6 +78,9 @@
       @cancel="showTemplateModal = false"
     />
 
+    <!-- 交互式任务规划对话框 -->
+    <InteractivePlanningDialog />
+
     <!-- 系统状态 -->
     <div class="system-status">
       <a-row :gutter="[16, 16]">
@@ -98,15 +101,18 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAppStore } from '../stores/app';
 import { useAuthStore } from '../stores/auth';
+import { usePlanningStore } from '../stores/planning';
 import LLMStatus from '../components/LLMStatus.vue';
 import GitStatus from '../components/GitStatus.vue';
 import ProjectSidebar from '../components/ProjectSidebar.vue';
 import TemplateGallery from '../components/templates/TemplateGallery.vue';
 import TemplateVariableModal from '../components/templates/TemplateVariableModal.vue';
+import InteractivePlanningDialog from '../components/planning/InteractivePlanningDialog.vue';
 
 const router = useRouter();
 const store = useAppStore();
 const authStore = useAuthStore();
+const planningStore = usePlanningStore();
 
 // 状态
 const selectedType = ref('');
@@ -254,8 +260,18 @@ const handleCategoryChange = (category) => {
 // 处理模板使用
 const handleTemplateUse = (template) => {
   console.log('[HomePage] 使用模板:', template);
-  selectedTemplate.value = template;
-  showTemplateModal.value = true;
+
+  // 使用交互式规划模式
+  const userRequest = template.description || `使用${template.name}模板创建项目`;
+  const projectContext = {
+    templateId: template.id,
+    templateName: template.name,
+    category: template.category,
+    type: selectedType.value || 'document'
+  };
+
+  // 打开交互式规划对话框
+  planningStore.openPlanDialog(userRequest, projectContext);
 };
 
 // 处理模板创建成功

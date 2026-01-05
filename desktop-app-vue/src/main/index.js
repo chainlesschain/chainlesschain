@@ -44,6 +44,10 @@ const ReviewManager = require('./trade/review-manager');
 const { AIEngineManagerP1, getAIEngineManagerP1 } = require('./ai-engine/ai-engine-manager-p1');
 const AIEngineIPC = require('./ai-engine/ai-engine-ipc');
 
+// Interactive Task Planning System (Claude Plan模式)
+const InteractiveTaskPlanner = require('./ai-engine/task-planner-interactive');
+const InteractivePlanningIPC = require('./ai-engine/interactive-planning-ipc');
+
 // 创建快捷别名以保持API兼容性
 const AIEngineManager = AIEngineManagerP1;
 const getAIEngineManager = getAIEngineManagerP1;
@@ -1097,6 +1101,25 @@ class ChainlessChainApp {
       // 不影响主应用启动
     }
 
+    // 初始化交互式任务规划系统 (Claude Plan模式)
+    try {
+      console.log('[Main] 初始化交互式任务规划系统...');
+
+      this.interactiveTaskPlanner = new InteractiveTaskPlanner({
+        database: this.database,
+        llmManager: this.llmManager,
+        templateManager: this.templateManager,
+        skillManager: this.skillManager,
+        toolManager: this.toolManager,
+        aiEngineManager: this.aiEngineManager
+      });
+
+      console.log('[Main] 交互式任务规划系统初始化完成');
+    } catch (error) {
+      console.error('[Main] 交互式任务规划系统初始化失败:', error);
+      // 不影响主应用启动
+    }
+
     // 初始化插件系统 (Phase 2)
     try {
       console.log('初始化插件系统...');
@@ -2021,7 +2044,9 @@ class ChainlessChainApp {
         syncManager: this.syncManager,
         contactManager: this.contactManager,
         friendManager: this.friendManager,
-        postManager: this.postManager
+        postManager: this.postManager,
+        interactiveTaskPlanner: this.interactiveTaskPlanner,
+        templateManager: this.templateManager
       });
 
       console.log('[ChainlessChainApp] ✓ Modular IPC registration complete');
@@ -2033,6 +2058,9 @@ class ChainlessChainApp {
 
     // 注册性能监控 IPC handlers
     this.setupPerformanceIPC();
+
+    // 注册交互式任务规划 IPC handlers
+    this.setupInteractivePlanningIPC();
 
     console.log('[ChainlessChainApp] ========================================');
     console.log('[ChainlessChainApp] IPC setup complete!');
@@ -2117,6 +2145,25 @@ class ChainlessChainApp {
     });
 
     console.log('[Performance IPC] ✓ Performance monitoring IPC handlers registered');
+  }
+
+  /**
+   * 设置交互式任务规划 IPC 处理器
+   */
+  setupInteractivePlanningIPC() {
+    // 检查交互式任务规划器是否已初始化
+    if (!this.interactiveTaskPlanner) {
+      console.warn('[Interactive Planning IPC] Interactive task planner not initialized');
+      return;
+    }
+
+    try {
+      // 创建IPC接口实例
+      this.interactivePlanningIPC = new InteractivePlanningIPC(this.interactiveTaskPlanner);
+      console.log('[Interactive Planning IPC] ✓ Interactive planning IPC handlers registered');
+    } catch (error) {
+      console.error('[Interactive Planning IPC] Failed to register IPC handlers:', error);
+    }
   }
 
   /**
