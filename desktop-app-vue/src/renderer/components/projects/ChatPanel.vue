@@ -691,22 +691,6 @@ const scrollToBottom = () => {
 };
 
 /**
- * 渲染Markdown
- */
-const renderMarkdown = (content) => {
-  if (!content) return '';
-  try {
-    return marked(content, {
-      breaks: true,
-      gfm: true,
-    });
-  } catch (error) {
-    console.error('[ChatPanel] Markdown渲染失败:', error);
-    return content;
-  }
-};
-
-/**
  * 格式化时间
  */
 const formatTime = (timestamp) => {
