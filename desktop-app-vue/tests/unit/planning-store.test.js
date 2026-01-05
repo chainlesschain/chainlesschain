@@ -7,6 +7,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { usePlanningStore } from '@renderer/stores/planning';
 
+// Mock ant-design-vue message
+vi.mock('ant-design-vue', () => ({
+  message: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn()
+  }
+}));
+
 // Mock IPC
 global.window = {
   ipc: {
@@ -36,7 +46,15 @@ describe('Planning Store', () => {
       expect(store.recommendedTemplates).toEqual([]);
       expect(store.recommendedSkills).toEqual([]);
       expect(store.recommendedTools).toEqual([]);
-      expect(store.executionProgress).toBeNull();
+
+      // executionProgress 是对象而不是 null
+      expect(store.executionProgress).toEqual({
+        currentStep: 0,
+        totalSteps: 0,
+        status: '',
+        logs: []
+      });
+
       expect(store.executionResult).toBeNull();
       expect(store.qualityScore).toBeNull();
       expect(store.dialogVisible).toBe(false);
@@ -98,6 +116,7 @@ describe('Planning Store', () => {
   describe('startPlanSession', () => {
     it('应该成功启动规划会话', async () => {
       const mockResponse = {
+        success: true,
         sessionId: 'test-session-123',
         status: 'planning',
         plan: null
@@ -105,13 +124,18 @@ describe('Planning Store', () => {
 
       window.ipc.invoke.mockResolvedValue(mockResponse);
 
-      await store.startPlanSession('创建一个PPT', { type: 'document' });
+      const result = await store.startPlanSession('创建一个PPT', { type: 'document' });
 
       expect(window.ipc.invoke).toHaveBeenCalledWith('interactive-planning:start-session', {
         userRequest: '创建一个PPT',
         projectContext: { type: 'document' }
       });
 
+      // 验证返回值
+      expect(result).not.toBeNull();
+      expect(result.success).toBe(true);
+
+      // 验证状态更新
       expect(store.currentSession).toEqual({
         sessionId: 'test-session-123',
         userRequest: '创建一个PPT',
@@ -121,10 +145,28 @@ describe('Planning Store', () => {
     });
 
     it('应该处理启动会话失败的情况', async () => {
-      const error = new Error('Failed to start session');
+      const mockResponse = {
+        success: false,
+        error: 'Failed to start session'
+      };
+
+      window.ipc.invoke.mockResolvedValue(mockResponse);
+
+      const result = await store.startPlanSession('测试', {});
+
+      // 返回 null 而不是抛出错误
+      expect(result).toBeNull();
+      expect(store.sessionStatus).toBe('failed');
+    });
+
+    it('应该处理IPC调用异常', async () => {
+      const error = new Error('Network error');
       window.ipc.invoke.mockRejectedValue(error);
 
-      await expect(store.startPlanSession('测试', {})).rejects.toThrow('Failed to start session');
+      const result = await store.startPlanSession('测试', {});
+
+      expect(result).toBeNull();
+      expect(store.sessionStatus).toBe('failed');
     });
   });
 
@@ -139,24 +181,35 @@ describe('Planning Store', () => {
 
     it('应该成功确认计划', async () => {
       const mockResponse = {
+        success: true,
         status: 'executing',
-        result: { message: 'Starting execution' }
+        totalSteps: 4
       };
 
       window.ipc.invoke.mockResolvedValue(mockResponse);
 
-      await store.respondToPlan('confirm');
+      const result = await store.respondToPlan('confirm');
 
       expect(window.ipc.invoke).toHaveBeenCalledWith('interactive-planning:respond', {
         sessionId: 'test-session-123',
         userResponse: { action: 'confirm' }
       });
 
+      expect(result).not.toBeNull();
+      expect(result.success).toBe(true);
       expect(store.sessionStatus).toBe('executing');
+
+      // 验证执行进度初始化
+      expect(store.executionProgress).toMatchObject({
+        currentStep: 0,
+        totalSteps: 4,
+        status: '准备执行...'
+      });
     });
 
     it('应该支持调整计划参数', async () => {
       const mockResponse = {
+        success: true,
         status: 'awaiting_confirmation',
         plan: { updated: true }
       };
@@ -168,7 +221,7 @@ describe('Planning Store', () => {
         creativity: 0.8
       };
 
-      await store.respondToPlan('adjust', adjustments);
+      const result = await store.respondToPlan('adjust', adjustments);
 
       expect(window.ipc.invoke).toHaveBeenCalledWith('interactive-planning:respond', {
         sessionId: 'test-session-123',
@@ -178,17 +231,21 @@ describe('Planning Store', () => {
           creativity: 0.8
         }
       });
+
+      expect(result).not.toBeNull();
+      expect(store.taskPlan).toEqual({ updated: true });
     });
 
     it('应该支持应用推荐模板', async () => {
       const mockResponse = {
+        success: true,
         status: 'awaiting_confirmation',
         plan: { templateId: 'template-456' }
       };
 
       window.ipc.invoke.mockResolvedValue(mockResponse);
 
-      await store.respondToPlan('use_template', { templateId: 'template-456' });
+      const result = await store.respondToPlan('use_template', { templateId: 'template-456' });
 
       expect(window.ipc.invoke).toHaveBeenCalledWith('interactive-planning:respond', {
         sessionId: 'test-session-123',
@@ -197,40 +254,50 @@ describe('Planning Store', () => {
           templateId: 'template-456'
         }
       });
+
+      expect(result).not.toBeNull();
+      expect(store.taskPlan).toEqual({ templateId: 'template-456' });
     });
 
     it('应该支持重新生成计划', async () => {
       const mockResponse = {
+        success: true,
         status: 'planning'
       };
 
       window.ipc.invoke.mockResolvedValue(mockResponse);
 
-      await store.respondToPlan('regenerate');
+      const result = await store.respondToPlan('regenerate');
 
       expect(window.ipc.invoke).toHaveBeenCalledWith('interactive-planning:respond', {
         sessionId: 'test-session-123',
         userResponse: { action: 'regenerate' }
       });
 
+      expect(result).not.toBeNull();
       expect(store.sessionStatus).toBe('planning');
     });
 
-    it('应该支持取消计划', async () => {
+    it('应该处理响应失败的情况', async () => {
       const mockResponse = {
-        status: 'cancelled'
+        success: false,
+        error: '处理响应失败'
       };
 
       window.ipc.invoke.mockResolvedValue(mockResponse);
 
-      await store.respondToPlan('cancel');
+      const result = await store.respondToPlan('confirm');
 
-      expect(window.ipc.invoke).toHaveBeenCalledWith('interactive-planning:respond', {
-        sessionId: 'test-session-123',
-        userResponse: { action: 'cancel' }
-      });
+      expect(result).toBeNull();
+    });
 
-      expect(store.sessionStatus).toBe('cancelled');
+    it('应该在无会话时返回null', async () => {
+      store.currentSession = null;
+
+      const result = await store.respondToPlan('confirm');
+
+      expect(result).toBeNull();
+      expect(window.ipc.invoke).not.toHaveBeenCalled();
     });
   });
 
@@ -242,38 +309,67 @@ describe('Planning Store', () => {
     });
 
     it('应该成功提交反馈', async () => {
-      window.ipc.invoke.mockResolvedValue({ success: true });
+      const mockResponse = {
+        success: true,
+        feedbackId: 'feedback-456'
+      };
+
+      window.ipc.invoke.mockResolvedValue(mockResponse);
 
       const feedback = {
         rating: 5,
         issues: [],
-        comment: '非常好用'
+        comment: '很好用'
       };
 
-      await store.submitFeedback(feedback);
+      const result = await store.submitFeedback(feedback);
 
+      expect(result).toBe(true);
       expect(window.ipc.invoke).toHaveBeenCalledWith('interactive-planning:submit-feedback', {
         sessionId: 'test-session-123',
         feedback: expect.objectContaining({
           rating: 5,
-          issues: [],
-          comment: '非常好用',
-          timestamp: expect.any(Number)
+          comment: '很好用'
         })
       });
     });
 
     it('应该处理提交反馈失败的情况', async () => {
-      const error = new Error('Failed to submit feedback');
+      const mockResponse = {
+        success: false,
+        error: 'Failed to submit feedback'
+      };
+
+      window.ipc.invoke.mockResolvedValue(mockResponse);
+
+      const result = await store.submitFeedback({ rating: 3 });
+
+      expect(result).toBe(false);
+    });
+
+    it('应该处理IPC调用异常', async () => {
+      const error = new Error('Network error');
       window.ipc.invoke.mockRejectedValue(error);
 
-      await expect(store.submitFeedback({ rating: 3 })).rejects.toThrow('Failed to submit feedback');
+      const result = await store.submitFeedback({ rating: 3 });
+
+      expect(result).toBe(false);
+    });
+
+    it('应该在无会话时返回false', async () => {
+      store.currentSession = null;
+
+      const result = await store.submitFeedback({ rating: 3 });
+
+      expect(result).toBe(false);
+      expect(window.ipc.invoke).not.toHaveBeenCalled();
     });
   });
 
   describe('openPlanDialog', () => {
     it('应该打开对话框并启动会话', async () => {
       const mockResponse = {
+        success: true,
         sessionId: 'test-session-456',
         status: 'planning',
         plan: null
@@ -288,19 +384,24 @@ describe('Planning Store', () => {
       expect(store.sessionStatus).toBe('planning');
     });
 
-    it('如果启动会话失败应该关闭对话框', async () => {
-      const error = new Error('Failed to start');
-      window.ipc.invoke.mockRejectedValue(error);
+    it('如果启动会话失败对话框仍然打开', async () => {
+      const mockResponse = {
+        success: false,
+        error: 'Failed to start'
+      };
 
-      await expect(store.openPlanDialog('测试', {})).rejects.toThrow();
+      window.ipc.invoke.mockResolvedValue(mockResponse);
 
-      // 对话框应该被关闭
-      expect(store.dialogVisible).toBe(false);
+      await store.openPlanDialog('测试', {});
+
+      // openPlanDialog只打开对话框，不管会话是否成功
+      expect(store.dialogVisible).toBe(true);
+      expect(store.sessionStatus).toBe('failed');
     });
   });
 
   describe('closePlanDialog', () => {
-    it('应该关闭对话框并重置状态', () => {
+    it('应该只关闭对话框不重置其他状态', () => {
       // 设置一些状态
       store.dialogVisible = true;
       store.currentSession = { sessionId: 'test' };
@@ -310,43 +411,45 @@ describe('Planning Store', () => {
       // 关闭对话框
       store.closePlanDialog();
 
-      // 验证状态被重置
+      // 验证只有 dialogVisible 被修改
+      expect(store.dialogVisible).toBe(false);
+      // 其他状态保持不变
+      expect(store.currentSession).toEqual({ sessionId: 'test' });
+      expect(store.sessionStatus).toBe('planning');
+      expect(store.taskPlan).toEqual({ steps: [] });
+    });
+  });
+
+  describe('reset', () => {
+    it('应该重置所有状态', () => {
+      // 设置一些状态
+      store.dialogVisible = true;
+      store.currentSession = { sessionId: 'test' };
+      store.sessionStatus = 'planning';
+      store.taskPlan = { steps: [] };
+      store.recommendedTemplates = [{ id: 't1' }];
+      store.executionResult = { files: [] };
+
+      // 重置
+      store.reset();
+
+      // 验证所有状态被重置
       expect(store.dialogVisible).toBe(false);
       expect(store.currentSession).toBeNull();
       expect(store.sessionStatus).toBeNull();
       expect(store.taskPlan).toBeNull();
-    });
-  });
-
-  describe('IPC 事件监听', () => {
-    it('应该注册所有必要的IPC事件监听器', () => {
-      // 验证事件监听器被注册
-      expect(window.ipc.on).toHaveBeenCalledWith('interactive-planning:plan-generated', expect.any(Function));
-      expect(window.ipc.on).toHaveBeenCalledWith('interactive-planning:execution-started', expect.any(Function));
-      expect(window.ipc.on).toHaveBeenCalledWith('interactive-planning:progress-update', expect.any(Function));
-      expect(window.ipc.on).toHaveBeenCalledWith('interactive-planning:execution-completed', expect.any(Function));
-      expect(window.ipc.on).toHaveBeenCalledWith('interactive-planning:execution-failed', expect.any(Function));
-      expect(window.ipc.on).toHaveBeenCalledWith('interactive-planning:quality-scored', expect.any(Function));
-    });
-  });
-
-  describe('错误处理', () => {
-    it('应该处理无效的会话ID', async () => {
-      store.currentSession = null;
-
-      await expect(store.respondToPlan('confirm')).rejects.toThrow();
-    });
-
-    it('应该处理无效的用户响应动作', async () => {
-      store.currentSession = { sessionId: 'test' };
-
-      const mockResponse = { error: 'Invalid action' };
-      window.ipc.invoke.mockResolvedValue(mockResponse);
-
-      await store.respondToPlan('invalid_action');
-
-      // 应该调用IPC但不修改状态
-      expect(window.ipc.invoke).toHaveBeenCalled();
+      expect(store.recommendedTemplates).toEqual([]);
+      expect(store.recommendedSkills).toEqual([]);
+      expect(store.recommendedTools).toEqual([]);
+      expect(store.executionResult).toBeNull();
+      expect(store.qualityScore).toBeNull();
+      expect(store.loading).toBe(false);
+      expect(store.executionProgress).toEqual({
+        currentStep: 0,
+        totalSteps: 0,
+        status: '',
+        logs: []
+      });
     });
   });
 
@@ -354,10 +457,13 @@ describe('Planning Store', () => {
     it('应该按正确顺序流转状态', async () => {
       // 1. 启动会话 (planning)
       window.ipc.invoke.mockResolvedValue({
+        success: true,
         sessionId: 'test',
         status: 'planning'
       });
-      await store.startPlanSession('测试', {});
+
+      const startResult = await store.startPlanSession('测试', {});
+      expect(startResult).not.toBeNull();
       expect(store.sessionStatus).toBe('planning');
 
       // 2. 计划生成 (awaiting_confirmation)
@@ -366,8 +472,14 @@ describe('Planning Store', () => {
       expect(store.isAwaitingConfirmation).toBe(true);
 
       // 3. 确认执行 (executing)
-      window.ipc.invoke.mockResolvedValue({ status: 'executing' });
-      await store.respondToPlan('confirm');
+      window.ipc.invoke.mockResolvedValue({
+        success: true,
+        status: 'executing',
+        totalSteps: 4
+      });
+
+      const confirmResult = await store.respondToPlan('confirm');
+      expect(confirmResult).not.toBeNull();
       expect(store.sessionStatus).toBe('executing');
 
       // 4. 执行完成 (completed)

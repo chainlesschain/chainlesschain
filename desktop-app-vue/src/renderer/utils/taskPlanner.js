@@ -171,11 +171,11 @@ export class TaskPlanner {
 }`;
 
     try {
-      console.log('[TaskPlanner] 开始调用LLM，设置30秒超时...');
+      console.log('[TaskPlanner] 开始调用LLM，设置10分钟超时...');
 
-      // 🔥 添加超时机制（30秒）
+      // 🔥 添加超时机制（10分钟 = 600秒）
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('LLM调用超时（30秒）')), 30000);
+        setTimeout(() => reject(new Error('LLM调用超时（10分钟）')), 600000);
       });
 
       const response = await Promise.race([
