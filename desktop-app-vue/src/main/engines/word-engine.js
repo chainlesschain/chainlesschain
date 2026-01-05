@@ -475,6 +475,248 @@ class WordEngine {
       ],
     };
   }
+
+  /**
+   * 处理项目任务（用于任务规划系统集成）
+   * @param {Object} params - 任务参数
+   * @returns {Promise<Object>} 执行结果
+   */
+  async handleProjectTask(params) {
+    const { description, projectPath, llmManager, action = 'create_document' } = params;
+
+    console.log('[WordEngine] 处理Word文档生成任务');
+    console.log('[WordEngine] 描述:', description);
+    console.log('[WordEngine] 操作:', action);
+
+    try {
+      // 使用LLM生成文档结构
+      const documentStructure = await this.generateDocumentStructureFromDescription(description, llmManager);
+
+      // 生成Word文档
+      const fileName = `${documentStructure.title || 'document'}.docx`;
+      const filePath = path.join(projectPath, fileName);
+
+      const result = await this.writeWord(filePath, documentStructure);
+
+      return {
+        type: 'word-document',
+        success: true,
+        ...result,
+        title: documentStructure.title,
+        paragraphCount: documentStructure.paragraphs?.length || 0
+      };
+    } catch (error) {
+      console.error('[WordEngine] 任务执行失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 从描述生成Word文档结构
+   * @param {string} description - 文档描述
+   * @param {Object} llmManager - LLM管理器
+   * @returns {Promise<Object>} 文档结构
+   */
+  async generateDocumentStructureFromDescription(description, llmManager) {
+    const prompt = `请根据以下描述生成一份Word文档的结构（JSON格式）：
+
+${description}
+
+返回JSON格式：
+{
+  "title": "文档标题",
+  "paragraphs": [
+    {
+      "text": "段落文本内容",
+      "heading": 1,  // 可选，1-6表示标题级别
+      "alignment": "left",  // left/center/right/justify
+      "style": {
+        "bold": false,
+        "italic": false,
+        "underline": false
+      }
+    }
+  ]
+}
+
+要求：
+1. title要简洁明确
+2. paragraphs要包含完整的文档内容，包括标题、正文段落
+3. 使用不同的heading级别组织文档结构（1级标题、2级标题等）
+4. 每个段落的text要有实际的内容，不要留空或使用占位符
+5. 根据段落的性质设置合适的alignment和style
+6. 内容要充实、专业、符合中文写作规范
+
+请只返回JSON，不要添加其他解释。`;
+
+    try {
+      let responseText;
+
+      // 尝试使用本地LLM
+      if (llmManager && llmManager.isInitialized) {
+        console.log('[WordEngine] 使用本地LLM生成文档结构');
+        const response = await llmManager.query(prompt, {
+          temperature: 0.7,
+          maxTokens: 3000  // Word文档需要更多token
+        });
+        responseText = response.text;
+      } else {
+        // 降级到后端AI服务
+        console.log('[WordEngine] 本地LLM不可用，使用后端AI服务');
+        responseText = await this.queryBackendAI(prompt);
+      }
+
+      // 提取JSON
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const structure = JSON.parse(jsonMatch[0]);
+        return this.normalizeDocumentStructure(structure, description);
+      }
+
+      // 解析失败，返回默认结构
+      return this.getDefaultDocumentStructure(description);
+    } catch (error) {
+      console.error('[WordEngine] 生成文档结构失败:', error);
+      return this.getDefaultDocumentStructure(description);
+    }
+  }
+
+  /**
+   * 规范化文档结构
+   */
+  normalizeDocumentStructure(structure, description) {
+    return {
+      title: structure.title || description.substring(0, 50),
+      paragraphs: (structure.paragraphs || []).map(para => ({
+        text: para.text || '',
+        heading: para.heading,
+        alignment: para.alignment || 'left',
+        style: {
+          bold: para.style?.bold || false,
+          italic: para.style?.italic || false,
+          underline: para.style?.underline || false,
+          fontSize: para.style?.fontSize,
+          fontFamily: para.style?.fontFamily,
+          color: para.style?.color
+        },
+        spacing: para.spacing || { after: 200 }
+      }))
+    };
+  }
+
+  /**
+   * 获取默认文档结构
+   */
+  getDefaultDocumentStructure(description) {
+    return {
+      title: description.substring(0, 50),
+      paragraphs: [
+        {
+          text: '概述',
+          heading: 1,
+          alignment: 'left',
+          spacing: { after: 300 }
+        },
+        {
+          text: '本文档根据用户需求自动生成。主要内容如下：',
+          spacing: { after: 200 }
+        },
+        {
+          text: description,
+          spacing: { after: 400 }
+        },
+        {
+          text: '详细内容',
+          heading: 1,
+          spacing: { after: 300 }
+        },
+        {
+          text: '请根据实际需求补充详细内容。',
+          spacing: { after: 200 }
+        }
+      ]
+    };
+  }
+
+  /**
+   * 查询后端AI服务（降级方案）
+   */
+  async queryBackendAI(prompt) {
+    const http = require('http');
+
+    return new Promise((resolve, reject) => {
+      const postData = JSON.stringify({
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant. Return valid JSON only.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7
+      });
+
+      const options = {
+        hostname: 'localhost',
+        port: 8001,
+        path: '/api/chat/stream',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        },
+        timeout: 60000
+      };
+
+      const req = http.request(options, (res) => {
+        let fullText = '';
+        let buffer = '';
+
+        res.on('data', (chunk) => {
+          buffer += chunk.toString();
+
+          // 处理SSE流
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === 'content' && data.content) {
+                  fullText += data.content;
+                } else if (data.type === 'done') {
+                  resolve(fullText);
+                  return;
+                } else if (data.type === 'error') {
+                  reject(new Error(data.error));
+                  return;
+                }
+              } catch (e) {
+                // 忽略解析错误
+              }
+            }
+          }
+        });
+
+        res.on('end', () => {
+          if (fullText) {
+            resolve(fullText);
+          } else {
+            reject(new Error('后端AI服务未返回内容'));
+          }
+        });
+
+        res.on('error', reject);
+      });
+
+      req.on('error', reject);
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('后端AI服务请求超时'));
+      });
+
+      req.write(postData);
+      req.end();
+    });
+  }
 }
 
 module.exports = new WordEngine();

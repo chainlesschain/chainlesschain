@@ -1364,17 +1364,16 @@ onMounted(async () => {
           aiCreationData.value = JSON.parse(route.query.createData);
           console.log('[ProjectDetail] AI创建数据:', aiCreationData.value);
 
-          // 🔥 自动创建项目（不执行AI任务）
+          // 🔥 自动创建项目（使用快速创建方法，不调用后端）
           const createData = {
             name: aiCreationData.value.name || '新项目',
             projectType: aiCreationData.value.projectType || 'document',
             userId: aiCreationData.value.userId,
-            description: aiCreationData.value.userPrompt?.substring(0, 100) || '',
-            tags: [],
+            status: 'draft',
           };
 
           console.log('[ProjectDetail] 创建项目参数:', createData);
-          const createdProject = await window.electronAPI.project.create(createData);
+          const createdProject = await window.electronAPI.project.createQuick(createData);
           console.log('[ProjectDetail] 项目创建成功:', createdProject);
 
           // 添加到项目列表
@@ -1393,7 +1392,7 @@ onMounted(async () => {
           return;
         } catch (error) {
           console.error('[ProjectDetail] 自动创建项目失败:', error);
-          antMessage.error('创建项目失败: ' + error.message);
+          message.error('创建项目失败: ' + error.message);
           // 失败时返回项目列表
           router.push('/projects');
           loading.value = false;
@@ -1401,7 +1400,7 @@ onMounted(async () => {
         }
       } else {
         console.error('[ProjectDetail] AI创建模式但缺少createData参数');
-        antMessage.error('缺少项目创建数据');
+        message.error('缺少项目创建数据');
         router.push('/projects');
         loading.value = false;
         return;
