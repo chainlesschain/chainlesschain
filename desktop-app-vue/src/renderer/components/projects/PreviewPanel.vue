@@ -691,7 +691,9 @@ const loadWord = async (filePath) => {
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
     console.log('[PreviewPanel] Word文档解析后路径:', resolvedPath);
 
-    const result = await window.electronAPI.file.previewOffice(resolvedPath, 'word');
+    // 🔥 修复：从resolvedPath对象中提取path字符串
+    const actualPath = resolvedPath?.path || resolvedPath;
+    const result = await window.electronAPI.file.previewOffice(actualPath, 'word');
     console.log('[PreviewPanel] Word预览结果:', result);
 
     if (result.success) {
@@ -732,7 +734,9 @@ const loadExcel = async (filePath) => {
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
     console.log('[PreviewPanel] Excel解析后路径:', resolvedPath);
 
-    const result = await window.electronAPI.file.previewOffice(resolvedPath, 'excel');
+    // 🔥 修复：从resolvedPath对象中提取path字符串
+    const actualPath = resolvedPath?.path || resolvedPath;
+    const result = await window.electronAPI.file.previewOffice(actualPath, 'excel');
     console.log('[PreviewPanel] Excel预览结果:', result);
 
     if (result.success) {
@@ -773,7 +777,9 @@ const loadPowerPoint = async (filePath) => {
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
     console.log('[PreviewPanel] PowerPoint解析后路径:', resolvedPath);
 
-    const result = await window.electronAPI.file.previewOffice(resolvedPath, 'powerpoint');
+    // 🔥 修复：从resolvedPath对象中提取path字符串
+    const actualPath = resolvedPath?.path || resolvedPath;
+    const result = await window.electronAPI.file.previewOffice(actualPath, 'powerpoint');
     console.log('[PreviewPanel] PowerPoint预览结果:', result);
 
     if (result.success) {
