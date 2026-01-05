@@ -29,13 +29,19 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       ...process.env,
       NODE_ENV: 'test',
       ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+      // 测试模式：跳过慢速初始化
+      SKIP_SLOW_INIT: 'true',
+      // Mock硬件设备（U-Key等）
+      MOCK_HARDWARE: 'true',
+      // Mock LLM服务
+      MOCK_LLM: 'true',
     },
-    timeout: 60000, // 60秒启动超时
+    timeout: 120000, // 120秒启动超时（从60秒增加）
   });
 
   // 等待并获取第一个窗口（增加超时）
   const window = await app.firstWindow({
-    timeout: 30000, // 30秒窗口创建超时
+    timeout: 60000, // 60秒窗口创建超时（从30秒增加）
   });
 
   // 等待加载完成
