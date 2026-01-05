@@ -911,7 +911,13 @@ const startTaskPlanning = async (userInput) => {
             fullResponse = chunkData.fullContent;
             // 更新思考消息的内容
             thinkingMsg.content = fullResponse;
-            messages.value = [...messages.value]; // 触发响应式更新
+
+            // 🔥 强制触发响应式更新：找到消息并替换它
+            const thinkingIndex = messages.value.findIndex(m => m.id === thinkingMsg.id);
+            if (thinkingIndex !== -1) {
+              messages.value[thinkingIndex] = { ...thinkingMsg };
+              messages.value = [...messages.value]; // 触发数组更新
+            }
             console.log('[ChatPanel] 📝 更新内容，长度:', fullResponse.length);
 
             nextTick(() => scrollToBottom());
@@ -1117,7 +1123,13 @@ const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {
 
             fullResponse = chunkData.fullContent;
             planGenerationMsg.content = fullResponse;
-            messages.value = [...messages.value];
+
+            // 🔥 强制触发响应式更新：找到消息并替换它
+            const planGenIndex = messages.value.findIndex(m => m.id === planGenerationMsg.id);
+            if (planGenIndex !== -1) {
+              messages.value[planGenIndex] = { ...planGenerationMsg };
+              messages.value = [...messages.value]; // 触发数组更新
+            }
             nextTick(() => scrollToBottom());
           };
 
@@ -1282,6 +1294,9 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         // 获取项目路径
         const project = await window.electronAPI.project.get(props.projectId);
+        if (!project || !project.project_path) {
+          throw new Error('无法获取项目路径，请确保项目已正确配置');
+        }
         const projectPath = project.project_path;
         // 使用简单的路径拼接（跨平台兼容）
         const fileName = `${outline.title || 'presentation'}.pptx`;
@@ -1314,6 +1329,12 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           messages.value.push(successMsg);
 
           antMessage.success(`PPT文件已生成: ${result.fileName}`);
+
+          // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
+          setTimeout(() => {
+            console.log('[ChatPanel] 延迟刷新文件树');
+            emit('files-changed');
+          }, 2000);
         } else {
           throw new Error(result.error || '生成PPT失败');
         }
@@ -1512,9 +1533,11 @@ const handlePlanConfirm = async (message) => {
         duration: 5,
       });
 
-      // 触发文件树刷新
-      emit('files-changed');
-      setTimeout(() => emit('files-changed'), 500);
+      // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
+      setTimeout(() => {
+        console.log('[ChatPanel] 延迟刷新文件树');
+        emit('files-changed');
+      }, 2000);
     }
 
     // 更新计划状态为"已完成"
@@ -1958,8 +1981,11 @@ const executeChatWithInput = async (input) => {
         duration: 5,
       });
 
-      emit('files-changed');
-      setTimeout(() => emit('files-changed'), 500);
+      // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
+      setTimeout(() => {
+        console.log('[ChatPanel] 延迟刷新文件树');
+        emit('files-changed');
+      }, 2000);
     }
 
     // 创建助手消息
