@@ -174,7 +174,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import {
   LoadingOutlined,
   QuestionCircleOutlined,
@@ -267,6 +267,22 @@ const handleCancelPlan = () => {
 const handleModifyPlan = () => {
   emit('plan-modify');
 };
+
+// 组件挂载时输出日志
+onMounted(() => {
+  console.log('[PlanningView] 组件已挂载');
+  console.log('[PlanningView] state:', props.state);
+  console.log('[PlanningView] session:', props.session);
+});
+
+// 监听状态变化
+watch(() => props.state, (newState, oldState) => {
+  console.log('[PlanningView] 状态变化:', oldState, '→', newState);
+});
+
+watch(() => props.session, (newSession) => {
+  console.log('[PlanningView] session变化:', newSession);
+}, { deep: true });
 
 // 暴露方法供父组件调用
 defineExpose({
