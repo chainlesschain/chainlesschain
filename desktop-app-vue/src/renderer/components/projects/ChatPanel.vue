@@ -929,11 +929,14 @@ const startTaskPlanning = async (userInput) => {
     if (analysis.needsInterview && analysis.suggestedQuestions) {
       console.log('[ChatPanel] 需求不完整，启动采访模式');
       planningSession.value.setState(PlanningState.INTERVIEWING);
+      console.log('[ChatPanel] planningSession状态已更新:', planningSession.value.state);
+      console.log('[ChatPanel] planningSession对象:', planningSession.value);
 
       // 添加问题到会话
       analysis.suggestedQuestions.forEach(q => {
         planningSession.value.addQuestion(q.question, q.key, q.required);
       });
+      console.log('[ChatPanel] 问题已添加，总数:', planningSession.value.interview.questions.length);
 
       // 添加AI消息告知用户
       const aiMessage = {
