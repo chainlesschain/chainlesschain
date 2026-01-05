@@ -1379,12 +1379,18 @@ onMounted(async () => {
           // 添加到项目列表
           projectStore.projects.unshift(createdProject);
 
+          // 🔥 保存用户输入，准备自动发送
+          const userPrompt = aiCreationData.value.userPrompt;
+
+          // 🔥 清空aiCreationData，避免重复触发AI创建
+          aiCreationData.value = null;
+
           // 🔥 跳转到真实项目ID，并传递用户prompt以便ChatPanel自动发送
           console.log('[ProjectDetail] 跳转到真实项目:', createdProject.id);
           router.replace({
             path: `/projects/${createdProject.id}`,
             query: {
-              autoSendMessage: aiCreationData.value.userPrompt, // 传递给ChatPanel自动发送
+              autoSendMessage: userPrompt, // 传递给ChatPanel自动发送
             },
           });
 
