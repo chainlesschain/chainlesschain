@@ -35,7 +35,7 @@
       </div>
 
       <!-- 消息列表 -->
-      <div v-else class="messages-list">
+      <div v-else class="messages-list" data-test="chat-messages-list">
         <template v-for="(message, index) in messages" :key="message.id || index">
           <!-- 系统消息 -->
           <SystemMessage
@@ -97,6 +97,7 @@
           :auto-size="{ minRows: 1, maxRows: 4 }"
           :disabled="isLoading"
           @keydown="handleKeyDown"
+          data-test="chat-input"
         />
 
         <div class="input-actions">
@@ -117,6 +118,7 @@
             :loading="isLoading"
             :disabled="!userInput.trim()"
             @click="handleSendMessage"
+            data-test="chat-send-button"
           >
             <SendOutlined v-if="!isLoading" />
             发送
@@ -1182,6 +1184,12 @@ const handleInterviewAnswer = ({ questionKey, answer, index }) => {
 
   // 触发Vue更新
   messages.value = [...messages.value];
+
+  // 检查是否所有问题都已回答
+  if (interviewMsg.metadata.currentIndex >= interviewMsg.metadata.questions.length) {
+    console.log('[ChatPanel] 所有问题已回答，自动触发完成');
+    handleInterviewComplete();
+  }
 };
 
 /**
@@ -1205,6 +1213,12 @@ const handleInterviewSkip = ({ questionKey, index }) => {
 
   // 触发Vue更新
   messages.value = [...messages.value];
+
+  // 检查是否所有问题都已回答
+  if (interviewMsg.metadata.currentIndex >= interviewMsg.metadata.questions.length) {
+    console.log('[ChatPanel] 所有问题已回答/跳过，自动触发完成');
+    handleInterviewComplete();
+  }
 };
 
 /**
