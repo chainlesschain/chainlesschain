@@ -149,7 +149,12 @@ class OpenAIClient extends EventEmitter {
 
               if (delta?.content) {
                 fullMessage.content += delta.content;
-                onChunk(delta.content, fullMessage.content);
+                // 传递对象格式的chunk，保持统一接口
+                onChunk({
+                  content: delta.content,
+                  delta: delta,
+                  fullContent: fullMessage.content
+                });
               }
 
               if (parsed.choices[0]?.finish_reason) {
