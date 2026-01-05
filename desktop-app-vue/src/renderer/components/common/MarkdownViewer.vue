@@ -25,7 +25,6 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
-import DOMPurify from 'dompurify';
 
 const props = defineProps({
   content: {
@@ -78,15 +77,16 @@ const renderedContent = computed(() => {
   if (!content) return '';
 
   try {
+    // marked.parse() 会自动转义 HTML 标签
     const rawHtml = marked.parse(content);
-    // 使用DOMPurify清理HTML，防止XSS
-    return DOMPurify.sanitize(rawHtml, {
-      ADD_ATTR: ['target'],
-    });
+    return rawHtml;
   } catch (err) {
     console.error('Markdown parse error:', err);
     error.value = 'Markdown解析失败: ' + err.message;
-    return '';
+    // 发生错误时，转义文本以防止 XSS
+    const div = document.createElement('div');
+    div.textContent = content;
+    return div.innerHTML;
   }
 });
 

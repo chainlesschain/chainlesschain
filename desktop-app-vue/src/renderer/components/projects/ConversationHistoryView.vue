@@ -170,7 +170,6 @@ import {
   PaperClipOutlined,
 } from '@ant-design/icons-vue';
 import { marked } from 'marked';
-import DOMPurify from 'dompurify';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -227,12 +226,15 @@ const renderMarkdown = (content) => {
     }
     textContent = String(textContent || '');
 
+    // marked.parse() 会自动转义 HTML 标签
     const rawHTML = marked.parse(textContent);
-    // 使用 DOMPurify 清理 HTML，防止 XSS 攻击
-    return DOMPurify.sanitize(rawHTML);
+    return rawHTML;
   } catch (error) {
     console.error('Markdown rendering error:', error);
-    return String(content || '');
+    // 发生错误时，转义文本以防止 XSS
+    const div = document.createElement('div');
+    div.textContent = String(content || '');
+    return div.innerHTML;
   }
 };
 
