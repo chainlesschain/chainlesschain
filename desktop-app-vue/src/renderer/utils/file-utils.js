@@ -2,6 +2,11 @@
  * 文件操作工具函数
  */
 
+import { fileMetadataCache } from './lru-cache';
+
+// 文件类型检测缓存（使用LRU Cache优化）
+const FILE_TYPE_CACHE_ENABLED = true;
+
 /**
  * 安全地拼接文件路径，防止路径遍历攻击
  * @param {string} basePath - 基础路径（项目根路径）
@@ -188,3 +193,68 @@ export function debounce(func, wait = 300) {
     }, wait);
   };
 }
+
+/**
+ * 获取文件类型信息（带缓存优化）
+ * @param {string} filePath - 文件路径
+ * @param {string} fileName - 文件名
+ * @returns {Object} 文件类型信息
+ */
+export function getFileTypeInfo(filePath, fileName) {
+  // 尝试从缓存获取
+  if (FILE_TYPE_CACHE_ENABLED) {
+    const cached = fileMetadataCache.getFileType(filePath);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  // 计算文件类型信息
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+
+  const editableExtensions = ['js', 'ts', 'vue', 'jsx', 'tsx', 'html', 'css', 'scss', 'less', 'json', 'md', 'txt', 'xml', 'yml', 'yaml'];
+  const excelExtensions = ['xlsx', 'xls', 'csv'];
+  const wordExtensions = ['docx', 'doc'];
+  const pptExtensions = ['pptx', 'ppt'];
+  const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'];
+  const pdfExtensions = ['pdf'];
+  const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
+  const audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac'];
+
+  const typeInfo = {
+    extension: ext,
+    isEditable: editableExtensions.includes(ext),
+    isExcel: excelExtensions.includes(ext),
+    isWord: wordExtensions.includes(ext),
+    isPPT: pptExtensions.includes(ext),
+    isPDF: pdfExtensions.includes(ext),
+    isImage: imageExtensions.includes(ext),
+    isVideo: videoExtensions.includes(ext),
+    isAudio: audioExtensions.includes(ext),
+    isCode: ['js', 'ts', 'vue', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c'].includes(ext),
+    isMarkdown: ext === 'md',
+  };
+
+  // 缓存结果
+  if (FILE_TYPE_CACHE_ENABLED) {
+    fileMetadataCache.setFileType(filePath, typeInfo);
+  }
+
+  return typeInfo;
+}
+
+/**
+ * 获取缓存统计信息
+ * @returns {Object}
+ */
+export function getCacheStats() {
+  return fileMetadataCache.getStats();
+}
+
+/**
+ * 清空文件类型缓存
+ */
+export function clearFileTypeCache() {
+  fileMetadataCache.clearAll();
+}
+
