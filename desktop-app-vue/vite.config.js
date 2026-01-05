@@ -18,6 +18,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src/renderer', import.meta.url)),
       '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
     },
+    // Add parent node_modules to resolve path for workspace dependencies
+    preserveSymlinks: false,
+    dedupe: ['vue', 'vue-router', 'pinia'],
   },
   optimizeDeps: {
     include: ['monaco-editor'],
