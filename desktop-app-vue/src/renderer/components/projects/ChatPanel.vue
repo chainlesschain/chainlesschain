@@ -23,29 +23,70 @@
       </a-radio-group>
     </div>
 
-    <!-- 🔥 任务规划视图 -->
-    <PlanningView
-      v-if="planningSession && planningSession.state !== 'idle'"
-      :state="planningSession.state"
-      :session="planningSession"
-      @answer-submitted="handleAnswerSubmitted"
-      @question-skipped="handleQuestionSkipped"
-      @plan-confirmed="handlePlanConfirmed"
-      @plan-cancelled="handlePlanCancelled"
-      @plan-modify="handlePlanModify"
-    />
+    <!-- 消息列表区域 -->
+    <div ref="messagesContainer" class="messages-container">
+      <!-- 空状态 -->
+      <div v-if="messages.length === 0 && !isLoading" class="empty-state">
+        <div class="empty-icon">
+          <RobotOutlined />
+        </div>
+        <h4>{{ getEmptyStateText() }}</h4>
+        <p class="empty-hint">{{ getEmptyHint() }}</p>
+      </div>
 
-    <!-- 对话历史显示组件 -->
-    <ConversationHistoryView
-      v-else
-      :messages="messages"
-      :is-loading="isLoading"
-      :loading-text="'正在思考...'"
-      :empty-title="getEmptyStateText()"
-      :empty-hint="getEmptyHint()"
-      @source-click="openFile"
-      @file-click="handleFileClick"
-    />
+      <!-- 消息列表 -->
+      <div v-else class="messages-list">
+        <template v-for="(message, index) in messages" :key="message.id || index">
+          <!-- 系统消息 -->
+          <SystemMessage
+            v-if="message.type === MessageType.SYSTEM || message.type === MessageType.TASK_ANALYSIS || message.type === MessageType.INTENT_RECOGNITION"
+            :message="message"
+          />
+
+          <!-- 采访问题消息 -->
+          <InterviewQuestionMessage
+            v-else-if="message.type === MessageType.INTERVIEW"
+            :message="message"
+            @answer="handleInterviewAnswer"
+            @skip="handleInterviewSkip"
+            @complete="handleInterviewComplete"
+          />
+
+          <!-- 任务计划消息 -->
+          <TaskPlanMessage
+            v-else-if="message.type === MessageType.TASK_PLAN"
+            :message="message"
+            @confirm="handlePlanConfirm"
+            @modify="handlePlanModify"
+            @cancel="handlePlanCancel"
+          />
+
+          <!-- 普通用户/助手消息 -->
+          <div v-else :class="['message-item', message.role]">
+            <div class="message-avatar">
+              <UserOutlined v-if="message.role === 'user'" />
+              <RobotOutlined v-else />
+            </div>
+            <div class="message-content">
+              <div class="message-text" v-html="renderMarkdown(message.content)"></div>
+              <div class="message-meta">
+                <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- 加载中指示器 -->
+        <div v-if="isLoading" class="message-item assistant loading">
+          <div class="message-avatar">
+            <RobotOutlined />
+          </div>
+          <div class="message-content">
+            <div class="message-text">🤔 正在思考...</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 输入区域 -->
     <div class="input-container">
@@ -103,10 +144,16 @@ import {
   SendOutlined,
   DeleteOutlined,
   InfoCircleOutlined,
+  UserOutlined,
+  RobotOutlined,
 } from '@ant-design/icons-vue';
 import ConversationHistoryView from './ConversationHistoryView.vue';
-import PlanningView from './PlanningView.vue';
-import { TaskPlanner, PlanningSession, PlanningState } from '../../utils/taskPlanner';
+import SystemMessage from '../messages/SystemMessage.vue';
+import TaskPlanMessage from '../messages/TaskPlanMessage.vue';
+import InterviewQuestionMessage from '../messages/InterviewQuestionMessage.vue';
+import { MessageType, createSystemMessage, createInterviewMessage, createTaskPlanMessage, createUserMessage, createAssistantMessage } from '../../utils/messageTypes';
+import { TaskPlanner } from '../../utils/taskPlanner';
+import { marked } from 'marked';
 
 const props = defineProps({
   projectId: {
@@ -139,8 +186,7 @@ const messagesContainer = ref(null);
 const currentConversation = ref(null);
 const creationProgress = ref(null); // AI创建进度数据
 
-// 🔥 任务规划状态
-const planningSession = ref(null); // 当前规划会话
+// 🔥 任务规划配置
 const enablePlanning = ref(true);  // 是否启用任务规划功能
 
 // 计算属性
@@ -645,6 +691,60 @@ const scrollToBottom = () => {
 };
 
 /**
+ * 渲染Markdown
+ */
+const renderMarkdown = (content) => {
+  if (!content) return '';
+  try {
+    return marked(content, {
+      breaks: true,
+      gfm: true,
+    });
+  } catch (error) {
+    console.error('[ChatPanel] Markdown渲染失败:', error);
+    return content;
+  }
+};
+
+/**
+ * 格式化时间
+ */
+const formatTime = (timestamp) => {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
+
+  // 小于1分钟
+  if (diff < 60000) {
+    return '刚刚';
+  }
+
+  // 小于1小时
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
+
+  // 小于24小时
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
+  }
+
+  // 今天
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // 超过今天
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+/**
  * 创建对话
  */
 const createConversation = async () => {
@@ -870,32 +970,29 @@ const shouldUsePlanning = (input) => {
 };
 
 /**
- * 启动任务规划流程
+ * 启动任务规划流程（新版 - 基于消息流）
  * @param {string} userInput - 用户输入
  */
 const startTaskPlanning = async (userInput) => {
-  console.log('[ChatPanel] 启动任务规划流程:', userInput);
+  console.log('[ChatPanel] 🚀 启动任务规划流程:', userInput);
 
   try {
-    // 创建规划会话
     const projectType = 'document'; // TODO: 从上下文推断项目类型
-    planningSession.value = new PlanningSession(userInput, projectType);
-    planningSession.value.setState(PlanningState.ANALYZING);
 
-    // 添加用户消息到对话历史
-    const userMessage = {
-      id: `msg_${Date.now()}_user`,
-      conversation_id: currentConversation.value?.id,
-      role: 'user',
-      content: userInput,
-      timestamp: Date.now(),
-    };
+    // 1. 添加用户消息
+    const userMessage = createUserMessage(userInput, currentConversation.value?.id);
     messages.value.push(userMessage);
 
-    // 调用LLM分析需求完整性
+    // 2. 添加"正在分析"系统消息
+    const analyzingMsg = createSystemMessage('🤔 正在分析您的需求...', { type: 'loading' });
+    messages.value.push(analyzingMsg);
+
+    await nextTick();
+    scrollToBottom();
+
+    // 3. 调用LLM分析需求
     const llmService = {
       chat: async (prompt) => {
-        // 使用项目AI对话API
         const response = await window.electronAPI.project.aiChat({
           projectId: props.projectId,
           userMessage: prompt,
@@ -907,69 +1004,89 @@ const startTaskPlanning = async (userInput) => {
     };
 
     const analysis = await TaskPlanner.analyzeRequirements(userInput, projectType, llmService);
-    console.log('[ChatPanel] 需求分析结果:', analysis);
+    console.log('[ChatPanel] ✅ 需求分析完成:', analysis);
 
-    // 更新会话的分析结果
-    planningSession.value.analysis = {
-      isComplete: analysis.isComplete,
-      confidence: analysis.confidence,
-      missing: analysis.missing || [],
-      collected: analysis.collected || {},
-      suggestions: analysis.suggestedQuestions || []
-    };
+    // 移除"正在分析"消息
+    const analyzingIndex = messages.value.findIndex(m => m.id === analyzingMsg.id);
+    if (analyzingIndex !== -1) {
+      messages.value.splice(analyzingIndex, 1);
+    }
 
-    // 如果需求完整，直接生成计划
+    // 4. 如果需求完整，直接生成计划
     if (analysis.isComplete && analysis.confidence > 0.7) {
-      console.log('[ChatPanel] 需求完整，直接生成计划');
-      await generateTaskPlan();
+      console.log('[ChatPanel] 需求完整，直接生成任务计划');
+
+      // 添加系统消息
+      const completeMsgContent = createSystemMessage(
+        '✅ 需求分析完成，正在生成任务计划...',
+        { type: 'success' }
+      );
+      messages.value.push(completeMsgContent);
+
+      await nextTick();
+      scrollToBottom();
+
+      // 生成并添加任务计划
+      await generateTaskPlanMessage(userInput, analysis, {});
       return;
     }
 
-    // 如果需要采访，生成问题
-    if (analysis.needsInterview && analysis.suggestedQuestions) {
-      console.log('[ChatPanel] 需求不完整，启动采访模式');
-      planningSession.value.setState(PlanningState.INTERVIEWING);
-      console.log('[ChatPanel] planningSession状态已更新:', planningSession.value.state);
-      console.log('[ChatPanel] planningSession对象:', planningSession.value);
+    // 5. 如果需要采访，添加采访消息
+    if (analysis.needsInterview && analysis.suggestedQuestions && analysis.suggestedQuestions.length > 0) {
+      console.log('[ChatPanel] 需求不完整，启动采访模式，问题数:', analysis.suggestedQuestions.length);
 
-      // 添加问题到会话
-      analysis.suggestedQuestions.forEach(q => {
-        planningSession.value.addQuestion(q.question, q.key, q.required);
-      });
-      console.log('[ChatPanel] 问题已添加，总数:', planningSession.value.interview.questions.length);
+      // 创建采访消息
+      const interviewMsg = createInterviewMessage(analysis.suggestedQuestions, 0);
+      // 保存分析结果和用户输入到metadata，以便后续生成计划时使用
+      interviewMsg.metadata.userInput = userInput;
+      interviewMsg.metadata.analysis = analysis;
 
-      // 添加AI消息告知用户
-      const aiMessage = {
-        id: `msg_${Date.now()}_ai`,
-        conversation_id: currentConversation.value?.id,
-        role: 'assistant',
-        content: '我需要了解一些信息才能更好地帮您完成任务，请回答以下问题：',
-        timestamp: Date.now(),
-      };
-      messages.value.push(aiMessage);
+      messages.value.push(interviewMsg);
+
+      await nextTick();
+      scrollToBottom();
 
       return;
     }
 
-    // 如果既不完整也没有建议问题，显示错误
-    antMessage.error('无法分析您的需求，请提供更多信息');
-    planningSession.value = null;
+    // 6. 如果既不完整也没有问题，显示错误
+    const errorMsg = createSystemMessage(
+      '❌ 无法分析您的需求，请提供更多详细信息',
+      { type: 'error' }
+    );
+    messages.value.push(errorMsg);
 
   } catch (error) {
-    console.error('[ChatPanel] 任务规划启动失败:', error);
+    console.error('[ChatPanel] ❌ 任务规划启动失败:', error);
+
+    const errorMsg = createSystemMessage(
+      `任务规划失败: ${error.message}`,
+      { type: 'error' }
+    );
+    messages.value.push(errorMsg);
+
     antMessage.error('任务规划失败: ' + error.message);
-    planningSession.value = null;
   }
 };
 
 /**
- * 生成任务计划
+ * 生成并添加任务计划消息
+ * @param {string} userInput - 用户原始输入
+ * @param {Object} analysis - 需求分析结果
+ * @param {Object} interviewAnswers - 采访答案
  */
-const generateTaskPlan = async () => {
-  console.log('[ChatPanel] 开始生成任务计划');
-  planningSession.value.setState(PlanningState.PLANNING);
+const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {}) => {
+  console.log('[ChatPanel] 🔨 开始生成任务计划...');
 
   try {
+    // 添加"正在生成"系统消息
+    const generatingMsg = createSystemMessage('⚙️ 正在生成任务计划...', { type: 'loading' });
+    messages.value.push(generatingMsg);
+
+    await nextTick();
+    scrollToBottom();
+
+    // 构建LLM服务
     const llmService = {
       chat: async (prompt) => {
         const response = await window.electronAPI.project.aiChat({
@@ -982,81 +1099,150 @@ const generateTaskPlan = async () => {
       }
     };
 
-    const plan = await TaskPlanner.generatePlan(planningSession.value, llmService);
-    planningSession.value.setPlan(plan);
-    planningSession.value.setState(PlanningState.CONFIRMING);
-
-    // 添加AI消息展示计划
-    const planMarkdown = TaskPlanner.formatPlanAsMarkdown(plan);
-    const aiMessage = {
-      id: `msg_${Date.now()}_ai`,
-      conversation_id: currentConversation.value?.id,
-      role: 'assistant',
-      content: `我已经为您制定了详细的任务计划：\n\n${planMarkdown}`,
-      timestamp: Date.now(),
+    // 构建上下文（用于生成计划）
+    const context = {
+      userInput,
+      projectType: 'document',
+      analysis,
+      interviewAnswers,
     };
-    messages.value.push(aiMessage);
 
-    console.log('[ChatPanel] 任务计划已生成，等待用户确认');
+    // 调用TaskPlanner生成计划（需要伪造session对象）
+    const fakeSession = {
+      userInput,
+      projectType: 'document',
+      analysis: {
+        collected: analysis.collected || {},
+      },
+      interview: {
+        answers: interviewAnswers,
+      },
+    };
+
+    const plan = await TaskPlanner.generatePlan(fakeSession, llmService);
+    console.log('[ChatPanel] ✅ 任务计划生成完成:', plan);
+
+    // 移除"正在生成"消息
+    const generatingIndex = messages.value.findIndex(m => m.id === generatingMsg.id);
+    if (generatingIndex !== -1) {
+      messages.value.splice(generatingIndex, 1);
+    }
+
+    // 创建任务计划消息
+    const planMsg = createTaskPlanMessage(plan);
+    messages.value.push(planMsg);
+
+    await nextTick();
+    scrollToBottom();
+
   } catch (error) {
-    console.error('[ChatPanel] 任务计划生成失败:', error);
+    console.error('[ChatPanel] ❌ 任务计划生成失败:', error);
+
+    // 移除"正在生成"消息
+    const generatingIndex = messages.value.findIndex(m => m.type === MessageType.SYSTEM && m.content.includes('正在生成'));
+    if (generatingIndex !== -1) {
+      messages.value.splice(generatingIndex, 1);
+    }
+
+    const errorMsg = createSystemMessage(
+      `生成任务计划失败: ${error.message}`,
+      { type: 'error' }
+    );
+    messages.value.push(errorMsg);
+
     antMessage.error('生成任务计划失败: ' + error.message);
-    planningSession.value = null;
   }
 };
+
+// ============ 事件处理器（新版 - 基于消息） ============
 
 /**
  * 处理采访问题回答
  */
-const handleAnswerSubmitted = async ({ questionIndex, answer }) => {
-  console.log('[ChatPanel] 用户回答问题:', questionIndex, answer);
+const handleInterviewAnswer = ({ questionKey, answer, index }) => {
+  console.log('[ChatPanel] 💬 用户回答问题:', questionKey, answer);
 
-  // 记录答案
-  planningSession.value.recordAnswer(questionIndex, answer);
-
-  // 如果还有更多问题，继续采访
-  if (planningSession.value.hasMoreQuestions()) {
-    planningSession.value.interview.currentIndex++;
+  // 找到采访消息
+  const interviewMsg = messages.value.find(m => m.type === MessageType.INTERVIEW);
+  if (!interviewMsg) {
+    console.error('[ChatPanel] 找不到采访消息');
     return;
   }
 
-  // 所有问题已回答，生成计划
-  console.log('[ChatPanel] 采访完成，生成任务计划');
-  planningSession.value.interview.completed = true;
-  await generateTaskPlan();
+  // 保存答案
+  interviewMsg.metadata.answers[questionKey] = answer;
+
+  // 移动到下一个问题
+  interviewMsg.metadata.currentIndex++;
+
+  // 触发Vue更新
+  messages.value = [...messages.value];
 };
 
 /**
  * 处理跳过问题
  */
-const handleQuestionSkipped = (questionIndex) => {
-  console.log('[ChatPanel] 用户跳过问题:', questionIndex);
+const handleInterviewSkip = ({ questionKey, index }) => {
+  console.log('[ChatPanel] ⏭️ 用户跳过问题:', questionKey);
 
-  // 记录空答案（表示跳过）
-  planningSession.value.recordAnswer(questionIndex, '');
-
-  // 继续下一个问题或生成计划
-  if (planningSession.value.hasMoreQuestions()) {
-    planningSession.value.interview.currentIndex++;
-  } else {
-    console.log('[ChatPanel] 采访完成（部分跳过），生成任务计划');
-    planningSession.value.interview.completed = true;
-    generateTaskPlan();
+  // 找到采访消息
+  const interviewMsg = messages.value.find(m => m.type === MessageType.INTERVIEW);
+  if (!interviewMsg) {
+    console.error('[ChatPanel] 找不到采访消息');
+    return;
   }
+
+  // 保存空答案表示跳过
+  interviewMsg.metadata.answers[questionKey] = '';
+
+  // 移动到下一个问题
+  interviewMsg.metadata.currentIndex++;
+
+  // 触发Vue更新
+  messages.value = [...messages.value];
+};
+
+/**
+ * 处理采访完成
+ */
+const handleInterviewComplete = async () => {
+  console.log('[ChatPanel] ✅ 采访完成，开始生成任务计划');
+
+  // 找到采访消息
+  const interviewMsg = messages.value.find(m => m.type === MessageType.INTERVIEW);
+  if (!interviewMsg) {
+    console.error('[ChatPanel] 找不到采访消息');
+    return;
+  }
+
+  // 获取用户输入、分析结果和答案
+  const userInput = interviewMsg.metadata.userInput;
+  const analysis = interviewMsg.metadata.analysis;
+  const answers = interviewMsg.metadata.answers;
+
+  // 生成任务计划
+  await generateTaskPlanMessage(userInput, analysis, answers);
 };
 
 /**
  * 处理计划确认
  */
-const handlePlanConfirmed = async () => {
-  console.log('[ChatPanel] 用户确认计划，开始执行');
+const handlePlanConfirm = async (message) => {
+  console.log('[ChatPanel] ✅ 用户确认计划，开始执行');
 
-  planningSession.value.confirmed = true;
-  planningSession.value.setState(PlanningState.EXECUTING);
+  // 更新计划消息状态为"已确认"
+  message.metadata.status = 'confirmed';
+  messages.value = [...messages.value]; // 触发更新
 
   try {
+    // 更新为"执行中"
+    message.metadata.status = 'executing';
+    messages.value = [...messages.value];
+
+    const plan = message.metadata.plan;
+
     // 执行任务：调用AI对话API
-    const prompt = `请根据以下任务计划执行任务：\n\n${JSON.stringify(planningSession.value.plan, null, 2)}\n\n原始需求：${planningSession.value.userInput}`;
+    const prompt = `请根据以下任务计划执行任务：\n\n${JSON.stringify(plan, null, 2)}\n\n请按照计划逐步完成任务。`;
 
     const response = await window.electronAPI.project.aiChat({
       projectId: props.projectId,
@@ -1066,13 +1252,10 @@ const handlePlanConfirmed = async () => {
     });
 
     // 添加AI响应消息
-    const aiMessage = {
-      id: `msg_${Date.now()}_ai`,
-      conversation_id: currentConversation.value?.id,
-      role: 'assistant',
-      content: response.conversationResponse,
-      timestamp: Date.now(),
-    };
+    const aiMessage = createAssistantMessage(
+      response.conversationResponse,
+      currentConversation.value?.id
+    );
     messages.value.push(aiMessage);
 
     // 检查PPT生成结果
@@ -1088,46 +1271,62 @@ const handlePlanConfirmed = async () => {
       setTimeout(() => emit('files-changed'), 500);
     }
 
-    planningSession.value.setState(PlanningState.COMPLETED);
+    // 更新计划状态为"已完成"
+    message.metadata.status = 'completed';
+    messages.value = [...messages.value];
 
     antMessage.success('任务执行完成！');
 
-    // 重置规划会话
-    setTimeout(() => {
-      planningSession.value = null;
-    }, 2000);
+    await nextTick();
+    scrollToBottom();
 
   } catch (error) {
-    console.error('[ChatPanel] 任务执行失败:', error);
+    console.error('[ChatPanel] ❌ 任务执行失败:', error);
+
+    // 恢复为待确认状态
+    message.metadata.status = 'pending';
+    messages.value = [...messages.value];
+
+    const errorMsg = createSystemMessage(
+      `任务执行失败: ${error.message}`,
+      { type: 'error' }
+    );
+    messages.value.push(errorMsg);
+
     antMessage.error('任务执行失败: ' + error.message);
-    planningSession.value.setState(PlanningState.IDLE);
   }
 };
 
 /**
  * 处理取消计划
  */
-const handlePlanCancelled = () => {
-  console.log('[ChatPanel] 用户取消计划');
-  planningSession.value.setState(PlanningState.CANCELLED);
+const handlePlanCancel = (message) => {
+  console.log('[ChatPanel] ❌ 用户取消计划');
+
+  // 更新计划消息状态
+  message.metadata.status = 'cancelled';
+  messages.value = [...messages.value];
+
+  const cancelMsg = createSystemMessage('已取消任务计划', { type: 'info' });
+  messages.value.push(cancelMsg);
 
   antMessage.info('已取消任务计划');
-
-  // 重置规划会话
-  planningSession.value = null;
 };
 
 /**
  * 处理修改计划
  */
-const handlePlanModify = () => {
-  console.log('[ChatPanel] 用户请求修改计划');
+const handlePlanModify = (message) => {
+  console.log('[ChatPanel] ✏️ 用户请求修改计划');
 
-  // 重新进入采访模式
-  planningSession.value.setState(PlanningState.INTERVIEWING);
-  planningSession.value.interview.currentIndex = 0;
+  // 添加提示消息
+  const modifyMsg = createSystemMessage(
+    '💡 提示：您可以在下方输入框中描述需要修改的内容，我会为您重新生成计划。',
+    { type: 'info' }
+  );
+  messages.value.push(modifyMsg);
 
-  antMessage.info('请重新回答问题以修改计划');
+  antMessage.info('请在输入框中描述需要修改的内容');
 };
 
 // 监听aiCreationData的变化
