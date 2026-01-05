@@ -951,8 +951,11 @@ const startTaskPlanning = async (userInput) => {
           window.electronAPI.project.aiChatStream({
             projectId: props.projectId,
             userMessage: prompt,
-            conversationId: currentConversation.value?.id,
-            context: contextMode.value,
+            conversationHistory: [], // 空历史记录，只发送当前prompt
+            contextMode: contextMode.value,
+            currentFile: null,
+            projectInfo: null,
+            fileList: []
           }).catch((error) => {
             handleError(error);
           });

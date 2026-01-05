@@ -780,9 +780,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
     startStats: (projectId, projectPath) => ipcRenderer.invoke('project:stats:start', projectId, projectPath),
     stopStats: (projectId) => ipcRenderer.invoke('project:stats:stop', projectId),
 
-    // 事件监听
-    on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
-    off: (event, callback) => ipcRenderer.removeListener(event, callback),
+    // 事件监听（修复版 - 保存包装函数引用以支持正确的off）
+    on: (event, callback) => {
+      const wrappedCallback = (_event, ...args) => callback(...args);
+      // 保存包装函数的引用到callback对象上
+      if (!callback._wrappedListeners) {
+        callback._wrappedListeners = new Map();
+      }
+      callback._wrappedListeners.set(event, wrappedCallback);
+      ipcRenderer.on(event, wrappedCallback);
+    },
+    off: (event, callback) => {
+      // 使用保存的包装函数引用
+      if (callback._wrappedListeners && callback._wrappedListeners.has(event)) {
+        const wrappedCallback = callback._wrappedListeners.get(event);
+        ipcRenderer.removeListener(event, wrappedCallback);
+        callback._wrappedListeners.delete(event);
+      } else {
+        // 降级方案：尝试移除原始callback
+        ipcRenderer.removeListener(event, callback);
+      }
+    },
   },
 
   // 文件操作
@@ -1226,6 +1244,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
     minimize: () => ipcRenderer.invoke('system:minimize'),
     close: () => ipcRenderer.invoke('system:close'),
     setAlwaysOnTop: (flag) => ipcRenderer.invoke('system:set-always-on-top', flag),
+  },
+
+  // 后续输入意图分类器 (Follow-up Intent Classifier)
+  followupIntent: {
+    /**
+     * 分类单个用户输入
+     * @param {Object} params - 参数对象
+     * @param {string} params.input - 用户输入
+     * @param {Object} params.context - 上下文信息
+     * @returns {Promise<Object>} 分类结果
+     */
+    classify: ({ input, context }) =>
+      ipcRenderer.invoke('followup-intent:classify', { input, context }),
+
+    /**
+     * 批量分类多个输入
+     * @param {Object} params - 参数对象
+     * @param {Array<string>} params.inputs - 用户输入数组
+     * @param {Object} params.context - 共享的上下文信息
+     * @returns {Promise<Object>} 批量分类结果
+     */
+    classifyBatch: ({ inputs, context }) =>
+      ipcRenderer.invoke('followup-intent:classify-batch', { inputs, context }),
+
+    /**
+     * 获取分类器统计信息
+     * @returns {Promise<Object>} 统计信息
+     */
+    getStats: () =>
+      ipcRenderer.invoke('followup-intent:get-stats'),
   },
 
   // 技能工具系统通用
