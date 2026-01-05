@@ -19,7 +19,44 @@
           {{ currentQuestion.question }}
         </div>
 
+        <!-- 选项按钮组（新增） -->
+        <div v-if="currentQuestion.options && currentQuestion.options.length > 0"
+             class="option-buttons">
+          <a-space direction="vertical" :size="8" style="width: 100%">
+            <a-button
+              v-for="option in currentQuestion.options"
+              :key="option.value"
+              :type="selectedOption === option.value ? 'primary' : 'default'"
+              :class="['option-button', { 'selected': selectedOption === option.value }]"
+              block
+              size="large"
+              @click="handleSelectOption(option.value)"
+            >
+              <div class="option-content">
+                <span class="option-label">{{ option.label }}</span>
+                <span v-if="option.description" class="option-description">
+                  {{ option.description }}
+                </span>
+              </div>
+            </a-button>
+          </a-space>
+        </div>
+
+        <!-- 补充输入框（选择选项后显示） -->
+        <div v-if="selectedOption !== null" class="additional-input-section">
+          <div class="input-label">补充说明（可选）</div>
+          <a-textarea
+            v-model:value="additionalInput"
+            placeholder="您可以进一步说明..."
+            :auto-size="{ minRows: 2, maxRows: 4 }"
+            class="additional-input"
+            @keydown.ctrl.enter="handleSubmitAnswer"
+          />
+        </div>
+
+        <!-- 传统文本框（无选项时的降级方案） -->
         <a-textarea
+          v-if="!currentQuestion.options || currentQuestion.options.length === 0"
           v-model:value="currentAnswer"
           :placeholder="currentQuestion.required ? '请输入答案（必填）' : '请输入答案（选填）'"
           :auto-size="{ minRows: 2, maxRows: 4 }"
@@ -38,7 +75,7 @@
           <a-button
             type="primary"
             @click="handleSubmitAnswer"
-            :disabled="currentQuestion.required && !currentAnswer.trim()"
+            :disabled="isSubmitDisabled"
             size="small"
           >
             {{ currentIndex < questions.length - 1 ? '下一个' : '完成' }}
@@ -54,7 +91,19 @@
             :key="index"
             :header="`✓ ${item.question.question}`"
           >
-            <div class="answer-text">{{ item.answer || '已跳过' }}</div>
+            <div class="answer-text">
+              <!-- 结构化答案显示 -->
+              <template v-if="typeof item.answer === 'object' && item.answer !== null && item.answer.selectedOption !== undefined">
+                <a-tag color="blue">{{ item.answer.selectedOption }}</a-tag>
+                <span v-if="item.answer.additionalInput">
+                  {{ item.answer.additionalInput }}
+                </span>
+              </template>
+              <!-- 传统答案显示 -->
+              <template v-else>
+                {{ item.answer || '已跳过' }}
+              </template>
+            </div>
           </a-collapse-panel>
         </a-collapse>
       </div>
@@ -69,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import {
   QuestionCircleOutlined,
   CheckCircleOutlined,
@@ -84,7 +133,10 @@ const props = defineProps({
 
 const emit = defineEmits(['answer', 'skip', 'complete']);
 
-const currentAnswer = ref('');
+// 响应式状态
+const currentAnswer = ref('');              // 传统文本框答案
+const selectedOption = ref(null);           // 当前选中的选项值
+const additionalInput = ref('');            // 补充说明文本
 
 const questions = computed(() => props.message.metadata?.questions || []);
 const currentIndex = computed(() => props.message.metadata?.currentIndex || 0);
@@ -125,20 +177,58 @@ const isCompleted = computed(() => {
   return completed;
 });
 
+// 提交按钮禁用逻辑
+const isSubmitDisabled = computed(() => {
+  if (!currentQuestion.value) return true;
+  if (!currentQuestion.value.required) return false;
+
+  // 如果有选项：必须选择一个选项
+  if (currentQuestion.value.options && currentQuestion.value.options.length > 0) {
+    return selectedOption.value === null;
+  }
+
+  // 如果无选项：必须提供传统答案
+  return !currentAnswer.value.trim();
+});
+
+// 选项点击处理
+const handleSelectOption = (optionValue) => {
+  selectedOption.value = optionValue;
+  // 自动聚焦到补充输入框
+  nextTick(() => {
+    const inputEl = document.querySelector('.additional-input textarea');
+    if (inputEl) inputEl.focus();
+  });
+};
+
 const handleSubmitAnswer = () => {
   if (!currentQuestion.value) return;
 
-  if (currentQuestion.value.required && !currentAnswer.value.trim()) {
-    return;
+  let answerData;
+
+  if (currentQuestion.value.options && currentQuestion.value.options.length > 0) {
+    // 新格式：结构化答案
+    answerData = {
+      selectedOption: selectedOption.value,
+      additionalInput: additionalInput.value.trim()
+    };
+    console.log('[InterviewQuestionMessage] 提交结构化答案:', answerData);
+  } else {
+    // 旧格式：纯字符串答案（降级方案）
+    answerData = currentAnswer.value.trim();
+    console.log('[InterviewQuestionMessage] 提交传统答案:', answerData);
   }
 
   emit('answer', {
     questionKey: currentQuestion.value.key,
-    answer: currentAnswer.value.trim(),
+    answer: answerData,
     index: currentIndex.value,
   });
 
+  // 重置所有状态
   currentAnswer.value = '';
+  selectedOption.value = null;
+  additionalInput.value = '';
   // 不在这里触发 complete，让 ChatPanel 统一检查
 };
 
@@ -150,7 +240,10 @@ const handleSkip = () => {
     index: currentIndex.value,
   });
 
+  // 重置所有状态
   currentAnswer.value = '';
+  selectedOption.value = null;
+  additionalInput.value = '';
   // 不在这里触发 complete，让 ChatPanel 统一检查
 };
 </script>
@@ -237,6 +330,83 @@ const handleSkip = () => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* 选项按钮组样式（Claude 风格） */
+.option-buttons {
+  margin: 16px 0;
+}
+
+.option-button {
+  height: auto !important;
+  padding: 12px 16px !important;
+  text-align: left !important;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border: 2px solid #d9d9d9 !important;
+}
+
+.option-button:hover {
+  border-color: #1890ff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15) !important;
+}
+
+.option-button.selected {
+  border-color: #1890ff !important;
+  background: #e6f7ff !important;
+}
+
+.option-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+}
+
+.option-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.option-description {
+  font-size: 13px;
+  color: #8c8c8c;
+  line-height: 1.4;
+}
+
+/* 补充输入框样式 */
+.additional-input-section {
+  margin-top: 16px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px dashed #d9d9d9;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.input-label {
+  font-size: 13px;
+  color: #595959;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.additional-input {
+  background: white !important;
 }
 
 .answered-questions {

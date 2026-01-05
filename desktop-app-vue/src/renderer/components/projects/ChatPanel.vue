@@ -1148,8 +1148,14 @@ const startTaskPlanning = async (userInput) => {
         }
       }
 
+      // 等待 DOM 更新并滚动（采访组件渲染需要时间）
       await nextTick();
       scrollToBottom();
+
+      // 延迟再次滚动，确保采访组件完全渲染
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
 
       return;
     }
@@ -1339,6 +1345,16 @@ const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {
 const handleInterviewAnswer = ({ questionKey, answer, index }) => {
   console.log('[ChatPanel] 💬 用户回答问题:', questionKey, answer);
 
+  // 🆕 记录答案类型（结构化 vs 传统）
+  if (typeof answer === 'object' && answer !== null && answer.selectedOption !== undefined) {
+    console.log('[ChatPanel] 📝 结构化答案:', {
+      选项: answer.selectedOption,
+      补充说明: answer.additionalInput || '(无)'
+    });
+  } else {
+    console.log('[ChatPanel] 📝 传统文本答案:', answer);
+  }
+
   // 找到采访消息
   const interviewMsg = messages.value.find(m => m.type === MessageType.INTERVIEW);
   if (!interviewMsg) {
@@ -1354,6 +1370,15 @@ const handleInterviewAnswer = ({ questionKey, answer, index }) => {
 
   // 触发Vue更新
   messages.value = [...messages.value];
+
+  // 滚动到底部，确保用户能看到下一个问题
+  nextTick(() => {
+    scrollToBottom();
+    // 延迟再次滚动，确保组件完全渲染
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+  });
 
   // 检查是否所有问题都已回答
   if (interviewMsg.metadata.currentIndex >= interviewMsg.metadata.questions.length) {
@@ -1383,6 +1408,15 @@ const handleInterviewSkip = ({ questionKey, index }) => {
 
   // 触发Vue更新
   messages.value = [...messages.value];
+
+  // 滚动到底部，确保用户能看到下一个问题
+  nextTick(() => {
+    scrollToBottom();
+    // 延迟再次滚动，确保组件完全渲染
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+  });
 
   // 检查是否所有问题都已回答
   if (interviewMsg.metadata.currentIndex >= interviewMsg.metadata.questions.length) {

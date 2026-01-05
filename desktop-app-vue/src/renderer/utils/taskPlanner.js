@@ -154,6 +154,11 @@ export class TaskPlanner {
 5. 风格偏好 - 什么风格？
 6. 其他约束 - 还有什么要求？
 
+【重要】对于每个需要询问的问题，请提供2-4个常见选项，帮助用户快速选择：
+- 选项应涵盖该问题的典型答案（如正式/轻松、初学者/专业人士等）
+- 用户可以选择选项后补充说明，或完全自定义答案
+- 每个选项包含：value（选项值）、label（显示文本）、description（说明，可选）
+
 请返回JSON格式：
 {
   "isComplete": true/false,
@@ -165,10 +170,32 @@ export class TaskPlanner {
   },
   "needsInterview": true/false,
   "suggestedQuestions": [
-    {"key": "audience", "question": "这份文档的目标受众是谁？", "required": true},
-    {"key": "style", "question": "您期望的风格是正式还是轻松？", "required": false}
+    {
+      "key": "audience",
+      "question": "这份文档的目标受众是谁？",
+      "required": true,
+      "options": [
+        {"value": "beginner", "label": "初学者/新手", "description": "需要详细解释基础概念"},
+        {"value": "professional", "label": "专业人士", "description": "可以使用行业术语"},
+        {"value": "general", "label": "普通大众", "description": "通俗易懂的语言"}
+      ],
+      "allowCustom": true
+    },
+    {
+      "key": "style",
+      "question": "您期望的风格是？",
+      "required": false,
+      "options": [
+        {"value": "formal", "label": "正式专业"},
+        {"value": "casual", "label": "轻松随意"},
+        {"value": "technical", "label": "技术性强"}
+      ],
+      "allowCustom": true
+    }
   ]
-}`;
+}
+
+【提示】如果无法生成选项，可以省略options字段，系统会回退到普通文本框。`;
 
     try {
       console.log('[TaskPlanner] 开始调用LLM，设置10分钟超时...');
@@ -213,18 +240,102 @@ export class TaskPlanner {
 
       const defaultQuestions = {
         document: [
-          { key: 'audience', question: '这份文档的目标受众是谁？', required: true },
-          { key: 'style', question: '您期望的风格是？（如：正式、轻松、专业等）', required: false },
-          { key: 'length', question: '文档大概需要多长？（如：页数、字数）', required: false },
+          {
+            key: 'audience',
+            question: '这份文档的目标受众是谁？',
+            required: true,
+            options: [
+              { value: 'beginner', label: '初学者/新手', description: '需要详细解释基础概念' },
+              { value: 'professional', label: '专业人士', description: '可以使用行业术语' },
+              { value: 'general', label: '普通大众', description: '通俗易懂的语言' }
+            ],
+            allowCustom: true
+          },
+          {
+            key: 'style',
+            question: '您期望的风格是？',
+            required: false,
+            options: [
+              { value: 'formal', label: '正式专业', description: '适合商务、学术场景' },
+              { value: 'casual', label: '轻松随意', description: '适合日常交流' },
+              { value: 'technical', label: '技术性强', description: '包含详细技术细节' },
+              { value: 'creative', label: '创意活泼', description: '生动有趣的表达' }
+            ],
+            allowCustom: true
+          },
+          {
+            key: 'length',
+            question: '文档大概需要多长？',
+            required: false,
+            options: [
+              { value: 'short', label: '简短（1-2页）', description: '约500-1000字' },
+              { value: 'medium', label: '中等（3-5页）', description: '约1500-3000字' },
+              { value: 'long', label: '详细（5页以上）', description: '3000字以上' }
+            ],
+            allowCustom: true
+          },
         ],
         web: [
-          { key: 'purpose', question: '这个网页的主要目的是什么？', required: true },
-          { key: 'target_users', question: '目标用户群体是谁？', required: false },
-          { key: 'features', question: '需要哪些主要功能？', required: true },
+          {
+            key: 'purpose',
+            question: '这个网页的主要目的是什么？',
+            required: true,
+            options: [
+              { value: 'marketing', label: '营销推广', description: '产品或服务宣传' },
+              { value: 'information', label: '信息展示', description: '展示内容和资讯' },
+              { value: 'ecommerce', label: '电商销售', description: '在线购物功能' },
+              { value: 'community', label: '社区互动', description: '用户交流平台' }
+            ],
+            allowCustom: true
+          },
+          {
+            key: 'target_users',
+            question: '目标用户群体是谁？',
+            required: false,
+            options: [
+              { value: 'youth', label: '年轻用户（18-30岁）' },
+              { value: 'professional', label: '职场人士' },
+              { value: 'senior', label: '中老年用户' },
+              { value: 'all', label: '全年龄段' }
+            ],
+            allowCustom: true
+          },
+          {
+            key: 'features',
+            question: '需要哪些主要功能？',
+            required: true,
+            options: [
+              { value: 'basic', label: '基础展示', description: '文字、图片展示' },
+              { value: 'interactive', label: '交互功能', description: '表单、评论、搜索等' },
+              { value: 'advanced', label: '高级功能', description: '用户系统、支付等' }
+            ],
+            allowCustom: true
+          },
         ],
         data: [
-          { key: 'data_source', question: '数据来源是什么？', required: true },
-          { key: 'analysis_goal', question: '分析的目标是什么？', required: true },
+          {
+            key: 'data_source',
+            question: '数据来源是什么？',
+            required: true,
+            options: [
+              { value: 'csv', label: 'CSV文件' },
+              { value: 'excel', label: 'Excel表格' },
+              { value: 'database', label: '数据库' },
+              { value: 'api', label: 'API接口' }
+            ],
+            allowCustom: true
+          },
+          {
+            key: 'analysis_goal',
+            question: '分析的目标是什么？',
+            required: true,
+            options: [
+              { value: 'visualization', label: '数据可视化', description: '图表展示' },
+              { value: 'statistics', label: '统计分析', description: '计算指标和趋势' },
+              { value: 'report', label: '分析报告', description: '生成完整报告' }
+            ],
+            allowCustom: true
+          },
         ]
       };
 
@@ -256,7 +367,16 @@ export class TaskPlanner {
       .join('\n');
 
     const interviewAnswers = Object.entries(session.interview.answers)
-      .map(([key, value]) => `- ${key}: ${value}`)
+      .map(([key, value]) => {
+        // 处理结构化答案（新格式）
+        if (typeof value === 'object' && value !== null && value.selectedOption !== undefined) {
+          const optionText = value.selectedOption || '(未选择)';
+          const additionalText = value.additionalInput ? ` - ${value.additionalInput}` : '';
+          return `- ${key}: ${optionText}${additionalText}`;
+        }
+        // 处理传统字符串答案（旧格式，保持兼容）
+        return `- ${key}: ${value}`;
+      })
       .join('\n');
 
     const prompt = `基于以下信息，请生成详细的任务执行计划：

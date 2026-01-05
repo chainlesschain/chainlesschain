@@ -1434,7 +1434,10 @@ onMounted(async () => {
       // 🔄 延迟清除query参数，等ChatPanel处理完并保存到conversation（2秒足够）
       setTimeout(() => {
         console.log('[ProjectDetail] 清除autoSendMessage query参数');
-        router.replace({ path: route.path });
+        // 🔥 使用 replaceState 代替 router.replace，避免触发页面重新加载
+        const url = new URL(window.location.href);
+        url.searchParams.delete('autoSendMessage');
+        window.history.replaceState({}, '', url.toString());
       }, 2000);
     }
 
