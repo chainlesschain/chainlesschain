@@ -203,6 +203,7 @@
           :project-id="projectId"
           :current-file="currentFile"
           :ai-creation-data="aiCreationData"
+          :auto-send-message="autoSendMessage"
           @close="showChatPanel = false"
           @creation-complete="handleAICreationComplete"
           @files-changed="handleRefreshFiles"
@@ -476,6 +477,7 @@ const showGitCommitModal = ref(false);
 const commitMessage = ref('');
 const resolvedProjectPath = ref('');
 const aiCreationData = ref(null); // AI创建数据
+const autoSendMessage = ref(''); // 自动发送的消息（从路由参数传入）
 const fileTreeKey = ref(0); // 文件树刷新计数器
 
 // 新增状态
@@ -1354,23 +1356,56 @@ onMounted(async () => {
   try {
     // 🔥 检查是否是AI创建模式（projectId为'ai-creating'）
     if (projectId.value === 'ai-creating') {
-      console.log('[ProjectDetail] 检测到AI创建模式，跳过项目加载');
+      console.log('[ProjectDetail] 检测到AI创建模式，开始自动创建项目');
 
       // 如果有 createData 参数，解析并保存
       if (route.query.createData) {
         try {
           aiCreationData.value = JSON.parse(route.query.createData);
           console.log('[ProjectDetail] AI创建数据:', aiCreationData.value);
-          // 清除query参数，避免刷新时重复创建
-          router.replace({ path: route.path });
-        } catch (error) {
-          console.error('[ProjectDetail] 解析创建数据失败:', error);
-        }
-      }
 
-      // AI创建模式下，不需要加载项目，直接结束loading
-      loading.value = false;
-      return;
+          // 🔥 自动创建项目（不执行AI任务）
+          const createData = {
+            name: aiCreationData.value.name || '新项目',
+            projectType: aiCreationData.value.projectType || 'document',
+            userId: aiCreationData.value.userId,
+            description: aiCreationData.value.userPrompt?.substring(0, 100) || '',
+            tags: [],
+          };
+
+          console.log('[ProjectDetail] 创建项目参数:', createData);
+          const createdProject = await window.electronAPI.project.create(createData);
+          console.log('[ProjectDetail] 项目创建成功:', createdProject);
+
+          // 添加到项目列表
+          projectStore.projects.unshift(createdProject);
+
+          // 🔥 跳转到真实项目ID，并传递用户prompt以便ChatPanel自动发送
+          console.log('[ProjectDetail] 跳转到真实项目:', createdProject.id);
+          router.replace({
+            path: `/projects/${createdProject.id}`,
+            query: {
+              autoSendMessage: aiCreationData.value.userPrompt, // 传递给ChatPanel自动发送
+            },
+          });
+
+          loading.value = false;
+          return;
+        } catch (error) {
+          console.error('[ProjectDetail] 自动创建项目失败:', error);
+          antMessage.error('创建项目失败: ' + error.message);
+          // 失败时返回项目列表
+          router.push('/projects');
+          loading.value = false;
+          return;
+        }
+      } else {
+        console.error('[ProjectDetail] AI创建模式但缺少createData参数');
+        antMessage.error('缺少项目创建数据');
+        router.push('/projects');
+        loading.value = false;
+        return;
+      }
     }
 
     // 加载项目详情
@@ -1385,6 +1420,14 @@ onMounted(async () => {
     await loadFilesWithSync(projectId.value);
   updateFileTreeMode(); // 根据文件数量选择最佳模式
     console.log('[ProjectDetail] 初始文件树已加载');
+
+    // 🔥 检查是否有自动发送消息的请求
+    if (route.query.autoSendMessage) {
+      autoSendMessage.value = route.query.autoSendMessage;
+      console.log('[ProjectDetail] 检测到自动发送消息:', autoSendMessage.value);
+      // 清除query参数，避免刷新时重复发送
+      router.replace({ path: route.path });
+    }
 
     // 解析项目路径
     if (currentProject.value?.root_path) {

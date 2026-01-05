@@ -107,6 +107,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  autoSendMessage: {
+    type: String,
+    default: '',
+  },
 });
 
 const emit = defineEmits(['conversationLoaded', 'creation-complete']);
@@ -827,6 +831,22 @@ watch(() => props.aiCreationData, (newData) => {
   if (newData) {
     console.log('[ChatPanel] 检测到AI创建数据:', newData);
     startAICreation(newData);
+  }
+}, { immediate: true });
+
+// 🔥 监听autoSendMessage的变化，自动发送消息
+watch(() => props.autoSendMessage, (newMessage) => {
+  if (newMessage && newMessage.trim()) {
+    console.log('[ChatPanel] 检测到自动发送消息:', newMessage);
+    // 使用nextTick确保对话已加载
+    nextTick(() => {
+      // 设置用户输入
+      userInput.value = newMessage;
+      // 延迟一小段时间，确保对话完全加载
+      setTimeout(() => {
+        handleSendMessage();
+      }, 500);
+    });
   }
 }, { immediate: true });
 
