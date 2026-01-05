@@ -352,6 +352,17 @@ const handleSendMessage = async () => {
       timestamp: Date.now(),
     };
 
+    // 🔥 添加"AI思考中"占位消息，让用户能看到AI正在处理
+    const thinkingMessageId = `msg_${Date.now()}_thinking`;
+    const thinkingMessage = {
+      id: thinkingMessageId,
+      conversation_id: currentConversation.value?.id,
+      role: 'assistant',
+      content: '🤔 正在思考并生成回复...',
+      timestamp: Date.now(),
+      isThinking: true,  // 标记为思考消息
+    };
+
     // 确保 messages.value 是数组
     if (!Array.isArray(messages.value)) {
       console.warn('[ChatPanel] messages.value 不是数组，重新初始化为空数组');
@@ -360,6 +371,9 @@ const handleSendMessage = async () => {
 
     // 添加到消息列表
     messages.value.push(userMessage);
+
+    // 🔥 添加思考中消息
+    messages.value.push(thinkingMessage);
 
     // 如果没有当前对话，创建一个
     if (!currentConversation.value) {
@@ -430,6 +444,9 @@ const handleSendMessage = async () => {
     });
 
     console.log('[ChatPanel] AI响应:', response);
+
+    // 🔥 移除思考中消息
+    messages.value = messages.value.filter(msg => msg.id !== thinkingMessageId);
 
     // 🔥 检查PPT生成结果
     if (response.pptGenerated && response.pptResult) {
@@ -525,6 +542,9 @@ const handleSendMessage = async () => {
   } catch (error) {
     console.error('发送消息失败:', error);
     antMessage.error('发送消息失败: ' + error.message);
+
+    // 🔥 出错时也移除思考中消息
+    messages.value = messages.value.filter(msg => !msg.isThinking);
   } finally {
     isLoading.value = false;
   }

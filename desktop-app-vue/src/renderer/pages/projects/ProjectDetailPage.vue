@@ -1352,19 +1352,25 @@ onMounted(async () => {
   loading.value = true;
 
   try {
-    // 检查是否是AI创建模式（projectId为'ai-creating'）
-    if (projectId.value === 'ai-creating' && route.query.createData) {
-      try {
-        aiCreationData.value = JSON.parse(route.query.createData);
-        console.log('[ProjectDetail] 检测到AI创建模式:', aiCreationData.value);
-        // 清除query参数，避免刷新时重复创建
-        router.replace({ path: route.path });
-        // AI创建模式下，不需要加载项目，直接结束loading
-        loading.value = false;
-        return;
-      } catch (error) {
-        console.error('[ProjectDetail] 解析创建数据失败:', error);
+    // 🔥 检查是否是AI创建模式（projectId为'ai-creating'）
+    if (projectId.value === 'ai-creating') {
+      console.log('[ProjectDetail] 检测到AI创建模式，跳过项目加载');
+
+      // 如果有 createData 参数，解析并保存
+      if (route.query.createData) {
+        try {
+          aiCreationData.value = JSON.parse(route.query.createData);
+          console.log('[ProjectDetail] AI创建数据:', aiCreationData.value);
+          // 清除query参数，避免刷新时重复创建
+          router.replace({ path: route.path });
+        } catch (error) {
+          console.error('[ProjectDetail] 解析创建数据失败:', error);
+        }
       }
+
+      // AI创建模式下，不需要加载项目，直接结束loading
+      loading.value = false;
+      return;
     }
 
     // 加载项目详情
