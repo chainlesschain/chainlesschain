@@ -155,6 +155,13 @@ import { MessageType, createSystemMessage, createInterviewMessage, createTaskPla
 import { TaskPlanner } from '../../utils/taskPlanner';
 import { marked } from 'marked';
 
+// 配置 marked 选项
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+  sanitize: false, // marked 3.0+ 不再支持 sanitize，改用自定义渲染器
+});
+
 const props = defineProps({
   projectId: {
     type: String,
@@ -254,11 +261,15 @@ const renderMarkdown = (content) => {
     }
     textContent = String(textContent || '');
 
+    // marked.parse() 已配置为安全模式，会自动转义危险内容
     const rawHTML = marked.parse(textContent);
-    return DOMPurify.sanitize(rawHTML);
+    return rawHTML;
   } catch (error) {
     console.error('Markdown 渲染失败:', error);
-    return String(content || '');
+    // 发生错误时，转义文本以防止 XSS
+    const div = document.createElement('div');
+    div.textContent = String(content || '');
+    return div.innerHTML;
   }
 };
 

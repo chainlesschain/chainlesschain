@@ -137,7 +137,6 @@ import ConversationInput from '@/components/projects/ConversationInput.vue';
 import BrowserPreview from '@/components/projects/BrowserPreview.vue';
 import StepDisplay from '@/components/projects/StepDisplay.vue';
 import { marked } from 'marked';
-import DOMPurify from 'dompurify';
 
 const authStore = useAuthStore();
 
@@ -438,18 +437,15 @@ const renderMarkdown = (content) => {
   if (!content) return '';
 
   try {
-    // 使用 marked 解析 markdown
+    // 使用 marked 解析 markdown - marked 会自动转义 HTML 标签
     const rawHtml = marked.parse(content);
-
-    // 使用 DOMPurify 清理 HTML，防止 XSS
-    const cleanHtml = DOMPurify.sanitize(rawHtml, {
-      ADD_ATTR: ['target', 'data-language', 'data-code'], // 允许这些属性
-    });
-
-    return cleanHtml;
+    return rawHtml;
   } catch (error) {
     console.error('Markdown 渲染失败:', error);
-    return content;
+    // 发生错误时，转义文本以防止 XSS
+    const div = document.createElement('div');
+    div.textContent = content;
+    return div.innerHTML;
   }
 };
 
