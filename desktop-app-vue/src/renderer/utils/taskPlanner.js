@@ -1,0 +1,310 @@
+/**
+ * 对话式任务规划助手
+ * 类似Claude Code的plan模式，通过对话收集信息并制定详细计划
+ */
+
+/**
+ * 规划状态
+ */
+export const PlanningState = {
+  IDLE: 'idle',                    // 空闲状态
+  ANALYZING: 'analyzing',          // 分析需求
+  INTERVIEWING: 'interviewing',    // 采访用户
+  PLANNING: 'planning',            // 生成计划
+  CONFIRMING: 'confirming',        // 等待确认
+  EXECUTING: 'executing',          // 执行任务
+  COMPLETED: 'completed',          // 已完成
+  CANCELLED: 'cancelled'           // 已取消
+};
+
+/**
+ * 任务规划会话
+ */
+export class PlanningSession {
+  constructor(userInput, projectType = 'document') {
+    this.id = `plan_${Date.now()}`;
+    this.state = PlanningState.IDLE;
+    this.userInput = userInput;
+    this.projectType = projectType;
+
+    // 需求分析结果
+    this.analysis = {
+      isComplete: false,           // 需求是否完整
+      confidence: 0,               // 完整性置信度
+      missing: [],                 // 缺失的信息
+      collected: {},               // 已收集的信息
+      suggestions: []              // 建议
+    };
+
+    // 采访数据
+    this.interview = {
+      questions: [],               // 问题列表
+      currentIndex: 0,             // 当前问题索引
+      answers: {},                 // 用户答案
+      completed: false             // 是否完成
+    };
+
+    // 任务计划
+    this.plan = {
+      title: '',                   // 计划标题
+      summary: '',                 // 摘要
+      tasks: [],                   // 任务列表
+      resources: [],               // 需要的资源
+      estimatedDuration: '',       // 预估时长
+      outputs: []                  // 预期输出
+    };
+
+    this.confirmed = false;        // 计划是否确认
+    this.createdAt = Date.now();
+    this.updatedAt = Date.now();
+  }
+
+  /**
+   * 更新状态
+   */
+  setState(newState) {
+    this.state = newState;
+    this.updatedAt = Date.now();
+  }
+
+  /**
+   * 添加已收集的信息
+   */
+  addCollectedInfo(key, value) {
+    this.analysis.collected[key] = value;
+    this.updatedAt = Date.now();
+  }
+
+  /**
+   * 添加采访问题
+   */
+  addQuestion(question, key, required = true) {
+    this.interview.questions.push({
+      question,
+      key,
+      required,
+      answered: false
+    });
+  }
+
+  /**
+   * 记录答案
+   */
+  recordAnswer(questionIndex, answer) {
+    if (questionIndex < this.interview.questions.length) {
+      const question = this.interview.questions[questionIndex];
+      question.answered = true;
+      this.interview.answers[question.key] = answer;
+      this.addCollectedInfo(question.key, answer);
+    }
+  }
+
+  /**
+   * 是否还有未回答的问题
+   */
+  hasMoreQuestions() {
+    return this.interview.currentIndex < this.interview.questions.length;
+  }
+
+  /**
+   * 获取下一个问题
+   */
+  getNextQuestion() {
+    if (this.hasMoreQuestions()) {
+      const question = this.interview.questions[this.interview.currentIndex];
+      this.interview.currentIndex++;
+      return question;
+    }
+    return null;
+  }
+
+  /**
+   * 设置任务计划
+   */
+  setPlan(plan) {
+    this.plan = { ...this.plan, ...plan };
+    this.updatedAt = Date.now();
+  }
+}
+
+/**
+ * 任务规划器
+ */
+export class TaskPlanner {
+  /**
+   * 分析需求完整性
+   * @param {string} userInput - 用户输入
+   * @param {string} projectType - 项目类型
+   * @param {Object} llmService - LLM服务
+   * @returns {Promise<Object>} 分析结果
+   */
+  static async analyzeRequirements(userInput, projectType, llmService) {
+    console.log('[TaskPlanner] 开始分析需求完整性:', userInput);
+
+    const prompt = `请分析以下用户需求的完整性：
+
+用户输入: "${userInput}"
+项目类型: ${projectType}
+
+请从以下维度分析需求是否完整：
+1. 目标明确性 - 用户想要什么？
+2. 内容要求 - 需要包含什么内容？
+3. 格式规格 - 输出格式是什么？
+4. 受众对象 - 面向谁？
+5. 风格偏好 - 什么风格？
+6. 其他约束 - 还有什么要求？
+
+请返回JSON格式：
+{
+  "isComplete": true/false,
+  "confidence": 0.0-1.0,
+  "missing": ["缺失的信息1", "缺失的信息2"],
+  "collected": {
+    "目标": "...",
+    "格式": "..."
+  },
+  "needsInterview": true/false,
+  "suggestedQuestions": [
+    {"key": "audience", "question": "这份文档的目标受众是谁？", "required": true},
+    {"key": "style", "question": "您期望的风格是正式还是轻松？", "required": false}
+  ]
+}`;
+
+    try {
+      const response = await llmService.chat(prompt);
+
+      // 尝试提取JSON
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const analysis = JSON.parse(jsonMatch[0]);
+        console.log('[TaskPlanner] 需求分析完成:', analysis);
+        return analysis;
+      }
+
+      // 如果没有JSON，返回默认结果（假设需求不完整）
+      console.warn('[TaskPlanner] 无法解析分析结果，使用默认值');
+      return {
+        isComplete: false,
+        confidence: 0.5,
+        missing: ['详细要求'],
+        collected: {},
+        needsInterview: true,
+        suggestedQuestions: [
+          { key: 'details', question: '能否详细描述一下您的需求？', required: true }
+        ]
+      };
+    } catch (error) {
+      console.error('[TaskPlanner] 需求分析失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 生成任务计划
+   * @param {PlanningSession} session - 规划会话
+   * @param {Object} llmService - LLM服务
+   * @returns {Promise<Object>} 任务计划
+   */
+  static async generatePlan(session, llmService) {
+    console.log('[TaskPlanner] 开始生成任务计划');
+
+    // 构建上下文
+    const collectedInfo = Object.entries(session.analysis.collected)
+      .map(([key, value]) => `- ${key}: ${value}`)
+      .join('\n');
+
+    const interviewAnswers = Object.entries(session.interview.answers)
+      .map(([key, value]) => `- ${key}: ${value}`)
+      .join('\n');
+
+    const prompt = `基于以下信息，请生成详细的任务执行计划：
+
+原始需求: "${session.userInput}"
+项目类型: ${session.projectType}
+
+已收集的信息:
+${collectedInfo}
+
+采访得到的补充信息:
+${interviewAnswers}
+
+请生成一个详细的任务计划，包括：
+1. 计划标题和摘要
+2. 详细的任务步骤（每个步骤要具体可执行）
+3. 预期输出
+4. 注意事项
+
+返回JSON格式：
+{
+  "title": "任务计划标题",
+  "summary": "计划摘要，2-3句话",
+  "tasks": [
+    {
+      "id": 1,
+      "name": "任务名称",
+      "description": "详细描述",
+      "action": "具体要做什么",
+      "output": "预期输出是什么"
+    }
+  ],
+  "outputs": ["最终输出1", "最终输出2"],
+  "notes": ["注意事项1", "注意事项2"]
+}`;
+
+    try {
+      const response = await llmService.chat(prompt);
+
+      // 提取JSON
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const plan = JSON.parse(jsonMatch[0]);
+        console.log('[TaskPlanner] 任务计划生成完成:', plan);
+        return plan;
+      }
+
+      throw new Error('无法解析任务计划');
+    } catch (error) {
+      console.error('[TaskPlanner] 任务计划生成失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 格式化计划为Markdown
+   * @param {Object} plan - 任务计划
+   * @returns {string} Markdown格式的计划
+   */
+  static formatPlanAsMarkdown(plan) {
+    let markdown = `# ${plan.title}\n\n`;
+    markdown += `${plan.summary}\n\n`;
+
+    markdown += `## 📋 任务步骤\n\n`;
+    plan.tasks.forEach((task, index) => {
+      markdown += `### ${index + 1}. ${task.name}\n\n`;
+      markdown += `**描述**: ${task.description}\n\n`;
+      markdown += `**操作**: ${task.action}\n\n`;
+      markdown += `**输出**: ${task.output}\n\n`;
+      markdown += `---\n\n`;
+    });
+
+    if (plan.outputs && plan.outputs.length > 0) {
+      markdown += `## 🎯 预期输出\n\n`;
+      plan.outputs.forEach(output => {
+        markdown += `- ${output}\n`;
+      });
+      markdown += '\n';
+    }
+
+    if (plan.notes && plan.notes.length > 0) {
+      markdown += `## ⚠️ 注意事项\n\n`;
+      plan.notes.forEach(note => {
+        markdown += `- ${note}\n`;
+      });
+      markdown += '\n';
+    }
+
+    return markdown;
+  }
+}
+
+export default TaskPlanner;

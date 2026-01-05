@@ -23,8 +23,21 @@
       </a-radio-group>
     </div>
 
+    <!-- 🔥 任务规划视图 -->
+    <PlanningView
+      v-if="planningSession && planningSession.state !== 'idle'"
+      :state="planningSession.state"
+      :session="planningSession"
+      @answer-submitted="handleAnswerSubmitted"
+      @question-skipped="handleQuestionSkipped"
+      @plan-confirmed="handlePlanConfirmed"
+      @plan-cancelled="handlePlanCancelled"
+      @plan-modify="handlePlanModify"
+    />
+
     <!-- 对话历史显示组件 -->
     <ConversationHistoryView
+      v-else
       :messages="messages"
       :is-loading="isLoading"
       :loading-text="'正在思考...'"
@@ -92,6 +105,8 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons-vue';
 import ConversationHistoryView from './ConversationHistoryView.vue';
+import PlanningView from './PlanningView.vue';
+import { TaskPlanner, PlanningSession, PlanningState } from '../../utils/taskPlanner';
 
 const props = defineProps({
   projectId: {
@@ -123,6 +138,10 @@ const isLoading = ref(false);
 const messagesContainer = ref(null);
 const currentConversation = ref(null);
 const creationProgress = ref(null); // AI创建进度数据
+
+// 🔥 任务规划状态
+const planningSession = ref(null); // 当前规划会话
+const enablePlanning = ref(true);  // 是否启用任务规划功能
 
 // 计算属性
 const contextInfo = computed(() => {
@@ -342,6 +361,14 @@ const handleSendMessage = async () => {
   userInput.value = '';
 
   console.log('[ChatPanel] 准备发送消息，input:', input);
+
+  // 🔥 任务规划模式：对复杂任务进行需求分析和任务规划
+  if (enablePlanning.value && shouldUsePlanning(input)) {
+    console.log('[ChatPanel] 检测到复杂任务，启动任务规划模式');
+    await startTaskPlanning(input);
+    isLoading.value = false;
+    return;
+  }
 
   // 🔥 删除旧的警告提示，现在已支持PPT生成
   console.log('[ChatPanel] 准备调用AI对话（支持PPT生成）');
@@ -824,6 +851,280 @@ const startAICreation = async (createData) => {
   } finally {
     isLoading.value = false;
   }
+};
+
+// ============ 任务规划相关函数 ============
+
+/**
+ * 判断是否需要使用任务规划
+ * @param {string} input - 用户输入
+ * @returns {boolean}
+ */
+const shouldUsePlanning = (input) => {
+  // 简单启发式规则：如果包含创建、生成、制作等关键词，且超过一定长度，启用规划
+  const keywords = ['创建', '生成', '制作', '写', '做', '开发', '设计', 'ppt', 'PPT', '文档', '报告'];
+  const hasKeyword = keywords.some(keyword => input.includes(keyword));
+
+  // 对于创建型任务，启用规划
+  return hasKeyword;
+};
+
+/**
+ * 启动任务规划流程
+ * @param {string} userInput - 用户输入
+ */
+const startTaskPlanning = async (userInput) => {
+  console.log('[ChatPanel] 启动任务规划流程:', userInput);
+
+  try {
+    // 创建规划会话
+    const projectType = 'document'; // TODO: 从上下文推断项目类型
+    planningSession.value = new PlanningSession(userInput, projectType);
+    planningSession.value.setState(PlanningState.ANALYZING);
+
+    // 添加用户消息到对话历史
+    const userMessage = {
+      id: `msg_${Date.now()}_user`,
+      conversation_id: currentConversation.value?.id,
+      role: 'user',
+      content: userInput,
+      timestamp: Date.now(),
+    };
+    messages.value.push(userMessage);
+
+    // 调用LLM分析需求完整性
+    const llmService = {
+      chat: async (prompt) => {
+        // 使用项目AI对话API
+        const response = await window.electronAPI.project.aiChat({
+          projectId: props.projectId,
+          userMessage: prompt,
+          conversationId: currentConversation.value?.id,
+          context: contextMode.value,
+        });
+        return response.conversationResponse || '';
+      }
+    };
+
+    const analysis = await TaskPlanner.analyzeRequirements(userInput, projectType, llmService);
+    console.log('[ChatPanel] 需求分析结果:', analysis);
+
+    // 更新会话的分析结果
+    planningSession.value.analysis = {
+      isComplete: analysis.isComplete,
+      confidence: analysis.confidence,
+      missing: analysis.missing || [],
+      collected: analysis.collected || {},
+      suggestions: analysis.suggestedQuestions || []
+    };
+
+    // 如果需求完整，直接生成计划
+    if (analysis.isComplete && analysis.confidence > 0.7) {
+      console.log('[ChatPanel] 需求完整，直接生成计划');
+      await generateTaskPlan();
+      return;
+    }
+
+    // 如果需要采访，生成问题
+    if (analysis.needsInterview && analysis.suggestedQuestions) {
+      console.log('[ChatPanel] 需求不完整，启动采访模式');
+      planningSession.value.setState(PlanningState.INTERVIEWING);
+
+      // 添加问题到会话
+      analysis.suggestedQuestions.forEach(q => {
+        planningSession.value.addQuestion(q.question, q.key, q.required);
+      });
+
+      // 添加AI消息告知用户
+      const aiMessage = {
+        id: `msg_${Date.now()}_ai`,
+        conversation_id: currentConversation.value?.id,
+        role: 'assistant',
+        content: '我需要了解一些信息才能更好地帮您完成任务，请回答以下问题：',
+        timestamp: Date.now(),
+      };
+      messages.value.push(aiMessage);
+
+      return;
+    }
+
+    // 如果既不完整也没有建议问题，显示错误
+    antMessage.error('无法分析您的需求，请提供更多信息');
+    planningSession.value = null;
+
+  } catch (error) {
+    console.error('[ChatPanel] 任务规划启动失败:', error);
+    antMessage.error('任务规划失败: ' + error.message);
+    planningSession.value = null;
+  }
+};
+
+/**
+ * 生成任务计划
+ */
+const generateTaskPlan = async () => {
+  console.log('[ChatPanel] 开始生成任务计划');
+  planningSession.value.setState(PlanningState.PLANNING);
+
+  try {
+    const llmService = {
+      chat: async (prompt) => {
+        const response = await window.electronAPI.project.aiChat({
+          projectId: props.projectId,
+          userMessage: prompt,
+          conversationId: currentConversation.value?.id,
+          context: contextMode.value,
+        });
+        return response.conversationResponse || '';
+      }
+    };
+
+    const plan = await TaskPlanner.generatePlan(planningSession.value, llmService);
+    planningSession.value.setPlan(plan);
+    planningSession.value.setState(PlanningState.CONFIRMING);
+
+    // 添加AI消息展示计划
+    const planMarkdown = TaskPlanner.formatPlanAsMarkdown(plan);
+    const aiMessage = {
+      id: `msg_${Date.now()}_ai`,
+      conversation_id: currentConversation.value?.id,
+      role: 'assistant',
+      content: `我已经为您制定了详细的任务计划：\n\n${planMarkdown}`,
+      timestamp: Date.now(),
+    };
+    messages.value.push(aiMessage);
+
+    console.log('[ChatPanel] 任务计划已生成，等待用户确认');
+  } catch (error) {
+    console.error('[ChatPanel] 任务计划生成失败:', error);
+    antMessage.error('生成任务计划失败: ' + error.message);
+    planningSession.value = null;
+  }
+};
+
+/**
+ * 处理采访问题回答
+ */
+const handleAnswerSubmitted = async ({ questionIndex, answer }) => {
+  console.log('[ChatPanel] 用户回答问题:', questionIndex, answer);
+
+  // 记录答案
+  planningSession.value.recordAnswer(questionIndex, answer);
+
+  // 如果还有更多问题，继续采访
+  if (planningSession.value.hasMoreQuestions()) {
+    planningSession.value.interview.currentIndex++;
+    return;
+  }
+
+  // 所有问题已回答，生成计划
+  console.log('[ChatPanel] 采访完成，生成任务计划');
+  planningSession.value.interview.completed = true;
+  await generateTaskPlan();
+};
+
+/**
+ * 处理跳过问题
+ */
+const handleQuestionSkipped = (questionIndex) => {
+  console.log('[ChatPanel] 用户跳过问题:', questionIndex);
+
+  // 记录空答案（表示跳过）
+  planningSession.value.recordAnswer(questionIndex, '');
+
+  // 继续下一个问题或生成计划
+  if (planningSession.value.hasMoreQuestions()) {
+    planningSession.value.interview.currentIndex++;
+  } else {
+    console.log('[ChatPanel] 采访完成（部分跳过），生成任务计划');
+    planningSession.value.interview.completed = true;
+    generateTaskPlan();
+  }
+};
+
+/**
+ * 处理计划确认
+ */
+const handlePlanConfirmed = async () => {
+  console.log('[ChatPanel] 用户确认计划，开始执行');
+
+  planningSession.value.confirmed = true;
+  planningSession.value.setState(PlanningState.EXECUTING);
+
+  try {
+    // 执行任务：调用AI对话API
+    const prompt = `请根据以下任务计划执行任务：\n\n${JSON.stringify(planningSession.value.plan, null, 2)}\n\n原始需求：${planningSession.value.userInput}`;
+
+    const response = await window.electronAPI.project.aiChat({
+      projectId: props.projectId,
+      userMessage: prompt,
+      conversationId: currentConversation.value?.id,
+      context: contextMode.value,
+    });
+
+    // 添加AI响应消息
+    const aiMessage = {
+      id: `msg_${Date.now()}_ai`,
+      conversation_id: currentConversation.value?.id,
+      role: 'assistant',
+      content: response.conversationResponse,
+      timestamp: Date.now(),
+    };
+    messages.value.push(aiMessage);
+
+    // 检查PPT生成结果
+    if (response.pptGenerated && response.pptResult) {
+      console.log('[ChatPanel] ✅ PPT已生成:', response.pptResult);
+      antMessage.success({
+        content: `🎉 PPT文件已生成！\n文件名: ${response.pptResult.fileName}\n幻灯片数: ${response.pptResult.slideCount}`,
+        duration: 5,
+      });
+
+      // 触发文件树刷新
+      emit('files-changed');
+      setTimeout(() => emit('files-changed'), 500);
+    }
+
+    planningSession.value.setState(PlanningState.COMPLETED);
+
+    antMessage.success('任务执行完成！');
+
+    // 重置规划会话
+    setTimeout(() => {
+      planningSession.value = null;
+    }, 2000);
+
+  } catch (error) {
+    console.error('[ChatPanel] 任务执行失败:', error);
+    antMessage.error('任务执行失败: ' + error.message);
+    planningSession.value.setState(PlanningState.IDLE);
+  }
+};
+
+/**
+ * 处理取消计划
+ */
+const handlePlanCancelled = () => {
+  console.log('[ChatPanel] 用户取消计划');
+  planningSession.value.setState(PlanningState.CANCELLED);
+
+  antMessage.info('已取消任务计划');
+
+  // 重置规划会话
+  planningSession.value = null;
+};
+
+/**
+ * 处理修改计划
+ */
+const handlePlanModify = () => {
+  console.log('[ChatPanel] 用户请求修改计划');
+
+  // 重新进入采访模式
+  planningSession.value.setState(PlanningState.INTERVIEWING);
+  planningSession.value.interview.currentIndex = 0;
+
+  antMessage.info('请重新回答问题以修改计划');
 };
 
 // 监听aiCreationData的变化
