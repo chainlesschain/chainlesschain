@@ -386,7 +386,8 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
 
       // 重新初始化LLM管理器
       if (managerRef.current) {
-        await managerRef.current.close();
+        // LLMManager 没有 close 方法，直接清空引用即可
+        managerRef.current = null;
       }
 
       const managerConfig = llmConfig.getManagerConfig();

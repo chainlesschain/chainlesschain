@@ -34,9 +34,18 @@
         <p class="empty-hint">{{ getEmptyHint() }}</p>
       </div>
 
-      <!-- 消息列表 -->
-      <div v-else class="messages-list" data-test="chat-messages-list" data-testid="messages-list">
-        <template v-for="(message, index) in messages" :key="message.id || index">
+      <!-- 消息列表（虚拟滚动） -->
+      <VirtualMessageList
+        v-else
+        ref="virtualListRef"
+        :messages="messages"
+        :estimate-size="150"
+        @load-more="handleLoadMoreMessages"
+        @scroll-to-bottom="handleScrollToBottom"
+        data-test="chat-messages-list"
+        data-testid="messages-list"
+      >
+        <template #default="{ message, index }">
           <!-- 系统消息 -->
           <SystemMessage
             v-if="message.type === MessageType.SYSTEM || message.type === MessageType.TASK_ANALYSIS || message.type === MessageType.INTENT_RECOGNITION"
@@ -83,17 +92,20 @@
             </div>
           </div>
         </template>
+      </VirtualMessageList>
 
-        <!-- 加载中指示器 -->
-        <div v-if="isLoading" class="message-item assistant loading">
-          <div class="message-avatar">
-            <RobotOutlined />
-          </div>
-          <div class="message-content">
-            <div class="message-text">🤔 正在思考...</div>
-          </div>
-        </div>
-      </div>
+      <!-- 思考过程可视化 -->
+      <ThinkingProcess
+        v-if="isLoading && thinkingState.show"
+        :current-stage="thinkingState.stage"
+        :progress="thinkingState.progress"
+        :show-progress="thinkingState.showProgress"
+        :progress-text="thinkingState.progressText"
+        :steps="thinkingState.steps"
+        :streaming-content="thinkingState.streamingContent"
+        :show-cancel-button="thinkingState.showCancelButton"
+        @cancel="handleCancelThinking"
+      />
     </div>
 
     <!-- 输入区域 -->
@@ -147,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, nextTick, reactive } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
   MessageOutlined,
@@ -165,6 +177,8 @@ import SystemMessage from '../messages/SystemMessage.vue';
 import IntentConfirmationMessage from '../messages/IntentConfirmationMessage.vue';
 import TaskPlanMessage from '../messages/TaskPlanMessage.vue';
 import InterviewQuestionMessage from '../messages/InterviewQuestionMessage.vue';
+import VirtualMessageList from './VirtualMessageList.vue';
+import ThinkingProcess from './ThinkingProcess.vue';
 import { MessageType, createSystemMessage, createIntentConfirmationMessage, createInterviewMessage, createTaskPlanMessage, createUserMessage, createAssistantMessage } from '../../utils/messageTypes';
 import { TaskPlanner } from '../../utils/taskPlanner';
 import { marked } from 'marked';
@@ -216,9 +230,30 @@ const isLoading = ref(false);
 const messagesContainer = ref(null);
 const currentConversation = ref(null);
 const creationProgress = ref(null); // AI创建进度数据
+const virtualListRef = ref(null); // 虚拟列表引用
 
 // 🔥 任务规划配置
 const enablePlanning = ref(true);  // 是否启用任务规划功能
+
+// 🔥 思考过程可视化状态
+const thinkingState = reactive({
+  show: false,
+  stage: '正在思考...',
+  progress: 0,
+  showProgress: true,
+  progressText: '',
+  steps: [],
+  streamingContent: '',
+  showCancelButton: true
+});
+
+// 🔥 消息分页加载状态
+const messageLoadState = reactive({
+  currentPage: 0,
+  pageSize: 50,
+  hasMore: true,
+  isLoadingMore: false
+});
 
 // 计算属性
 const contextInfo = computed(() => {
@@ -373,6 +408,101 @@ const handleFileClick = (file) => {
     fileName: file.name || file.fileName,
     fileId: file.id
   });
+};
+
+/**
+ * 🔥 构建智能对话历史（多轮上下文保持）
+ *
+ * 策略：
+ * 1. 优先保留重要消息（任务计划、采访、意图确认等）
+ * 2. 保留最近的N轮对话（用户-助手配对）
+ * 3. 如果有当前文件上下文，包含文件相关的对话
+ * 4. 控制总 token 数不超过限制
+ */
+const buildSmartContextHistory = () => {
+  const MAX_HISTORY_MESSAGES = 20; // 最多保留20条消息
+  const MIN_RECENT_TURNS = 3; // 至少保留最近3轮对话
+
+  if (messages.value.length === 0) {
+    return [];
+  }
+
+  // 1. 分类消息
+  const importantMessages = []; // 重要消息（任务计划、采访等）
+  const regularMessages = []; // 普通对话消息
+
+  messages.value.forEach(msg => {
+    // 重要消息类型
+    if ([
+      MessageType.TASK_PLAN,
+      MessageType.INTERVIEW,
+      MessageType.INTENT_CONFIRMATION,
+      MessageType.INTENT_RECOGNITION
+    ].includes(msg.type)) {
+      importantMessages.push(msg);
+    } else if (msg.role === 'user' || msg.role === 'assistant') {
+      // 排除系统消息，只保留用户和助手的对话
+      regularMessages.push(msg);
+    }
+  });
+
+  console.log('[ChatPanel] 📊 消息分类:', {
+    total: messages.value.length,
+    important: importantMessages.length,
+    regular: regularMessages.length
+  });
+
+  // 2. 提取最近的N轮对话（一轮 = 用户消息 + 助手回复）
+  const recentTurns = [];
+  let turnCount = 0;
+
+  for (let i = regularMessages.length - 1; i >= 0 && turnCount < MIN_RECENT_TURNS * 2; i--) {
+    recentTurns.unshift(regularMessages[i]);
+    turnCount++;
+  }
+
+  // 3. 合并重要消息和最近对话
+  const contextMessages = [];
+
+  // 添加最近的重要消息（最多3条）
+  const recentImportant = importantMessages.slice(-3);
+  contextMessages.push(...recentImportant);
+
+  // 添加最近的对话
+  contextMessages.push(...recentTurns);
+
+  // 4. 去重（按 ID）
+  const uniqueMessages = [];
+  const seenIds = new Set();
+
+  contextMessages.forEach(msg => {
+    if (!seenIds.has(msg.id)) {
+      seenIds.add(msg.id);
+      uniqueMessages.push(msg);
+    }
+  });
+
+  // 5. 按时间戳排序
+  uniqueMessages.sort((a, b) => a.timestamp - b.timestamp);
+
+  // 6. 限制总消息数
+  const finalMessages = uniqueMessages.slice(-MAX_HISTORY_MESSAGES);
+
+  // 7. 转换为API格式
+  const conversationHistory = finalMessages.map(msg => ({
+    role: msg.role,
+    content: msg.content,
+    // 可选：添加消息类型信息供后端参考
+    type: msg.type
+  }));
+
+  console.log('[ChatPanel] 📝 智能上下文历史:', {
+    selectedMessages: conversationHistory.length,
+    fromTotal: messages.value.length,
+    turns: Math.floor(conversationHistory.filter(m => m.role === 'user').length)
+  });
+
+  return conversationHistory;
 };
 
 /**
@@ -586,12 +716,94 @@ const handleKeyDown = (event) => {
 };
 
 /**
- * 滚动到底部
+ * 滚动到底部（使用虚拟列表）
  */
 const scrollToBottom = () => {
-  if (messagesContainer.value) {
+  if (virtualListRef.value) {
+    virtualListRef.value.scrollToBottom();
+  } else if (messagesContainer.value) {
+    // 后备方案：如果虚拟列表未初始化
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
   }
+};
+
+/**
+ * 处理加载更多消息（分页加载）
+ */
+const handleLoadMoreMessages = async () => {
+  if (messageLoadState.isLoadingMore || !messageLoadState.hasMore) {
+    return;
+  }
+
+  if (!currentConversation.value) {
+    return;
+  }
+
+  try {
+    messageLoadState.isLoadingMore = true;
+
+    // 加载下一页消息
+    const nextPage = messageLoadState.currentPage + 1;
+    const offset = nextPage * messageLoadState.pageSize;
+
+    const result = await window.electronAPI.conversation.getMessages(
+      currentConversation.value.id,
+      {
+        limit: messageLoadState.pageSize,
+        offset: offset
+      }
+    );
+
+    const loadedMessages = result?.data || [];
+
+    if (loadedMessages.length > 0) {
+      // 在前面插入历史消息
+      messages.value.unshift(...loadedMessages.map(msg => {
+        if (msg.message_type) {
+          return { ...msg, type: msg.message_type };
+        }
+        return msg;
+      }));
+
+      messageLoadState.currentPage = nextPage;
+      console.log(`[ChatPanel] 📜 加载了${loadedMessages.length}条历史消息`);
+    } else {
+      messageLoadState.hasMore = false;
+      console.log('[ChatPanel] 📜 没有更多历史消息');
+    }
+  } catch (error) {
+    console.error('[ChatPanel] 加载历史消息失败:', error);
+    antMessage.error('加载历史消息失败');
+  } finally {
+    messageLoadState.isLoadingMore = false;
+  }
+};
+
+/**
+ * 处理滚动到底部事件
+ */
+const handleScrollToBottom = () => {
+  // 可以在这里添加逻辑，比如标记消息为已读
+  console.log('[ChatPanel] 📍 已滚动到底部');
+};
+
+/**
+ * 取消AI思考/生成
+ */
+const handleCancelThinking = () => {
+  console.log('[ChatPanel] ⛔ 用户取消了AI思考');
+  isLoading.value = false;
+  thinkingState.show = false;
+
+  // TODO: 实际取消正在进行的API调用（需要AbortController支持）
+  antMessage.info('已取消');
+};
+
+/**
+ * 更新思考过程状态
+ */
+const updateThinkingState = (updates) => {
+  Object.assign(thinkingState, updates);
 };
 
 /**
@@ -1870,6 +2082,23 @@ const executeChatWithInput = async (input) => {
 
   isLoading.value = true;
 
+  // 🔥 初始化思考过程可视化
+  updateThinkingState({
+    show: true,
+    stage: '理解您的需求...',
+    progress: 10,
+    showProgress: true,
+    progressText: '正在分析问题',
+    steps: [
+      { title: '理解需求', status: 'in-progress', description: '分析用户输入的问题' },
+      { title: '检索知识', status: 'pending', description: '从知识库中查找相关信息' },
+      { title: '生成回复', status: 'pending', description: '使用AI生成答案' },
+      { title: '完成', status: 'pending', description: '返回结果' }
+    ],
+    streamingContent: '',
+    showCancelButton: true
+  });
+
   try {
     // 创建用户消息
     const userMessage = {
@@ -1880,29 +2109,18 @@ const executeChatWithInput = async (input) => {
       timestamp: Date.now(),
     };
 
-    // 添加思考中消息
-    const thinkingMessageId = `msg_${Date.now()}_thinking`;
-    const thinkingMessage = {
-      id: thinkingMessageId,
-      conversation_id: currentConversation.value?.id,
-      role: 'assistant',
-      content: '🤔 正在思考并生成回复...',
-      timestamp: Date.now(),
-      isThinking: true,
-    };
-
     // 确保 messages.value 是数组
     if (!Array.isArray(messages.value)) {
       console.warn('[ChatPanel] messages.value 不是数组，重新初始化为空数组');
       messages.value = [];
     }
 
-    // 添加到消息列表
+    // 添加用户消息到列表
     messages.value.push(userMessage);
-    messages.value.push(thinkingMessage);
 
     // 如果没有当前对话，创建一个
     if (!currentConversation.value) {
+      updateThinkingState({ stage: '创建对话...', progress: 15 });
       await createConversation();
 
       if (!currentConversation.value) {
@@ -1921,6 +2139,15 @@ const executeChatWithInput = async (input) => {
     // 滚动到底部
     await nextTick();
     scrollToBottom();
+
+    // 🔥 更新思考状态：完成需求理解
+    thinkingState.steps[0].status = 'completed';
+    thinkingState.steps[1].status = 'in-progress';
+    updateThinkingState({
+      stage: '检索相关知识...',
+      progress: 30,
+      progressText: '查找相关信息'
+    });
 
     // 获取项目信息和文件列表
     const project = await window.electronAPI.project.get(props.projectId);
@@ -1941,11 +2168,17 @@ const executeChatWithInput = async (input) => {
       size: file.size
     })) : [];
 
-    // 构建对话历史（最近10条）
-    const conversationHistory = messages.value.slice(-10).map(msg => ({
-      role: msg.role,
-      content: msg.content,
-    }));
+    // 🔥 更新思考状态：构建上下文
+    thinkingState.steps[1].status = 'completed';
+    thinkingState.steps[2].status = 'in-progress';
+    updateThinkingState({
+      stage: '生成回复...',
+      progress: 50,
+      progressText: 'AI正在思考答案'
+    });
+
+    // 🔥 构建智能对话历史（保留最近N轮，优先保留重要消息）
+    const conversationHistory = buildSmartContextHistory();
 
     // 清理 currentFile
     const cleanCurrentFile = props.currentFile ? {
@@ -1970,8 +2203,14 @@ const executeChatWithInput = async (input) => {
 
     console.log('[ChatPanel] AI响应:', response);
 
-    // 移除思考中消息
-    messages.value = messages.value.filter(msg => msg.id !== thinkingMessageId);
+    // 🔥 更新思考状态：生成完成
+    thinkingState.steps[2].status = 'completed';
+    thinkingState.steps[3].status = 'in-progress';
+    updateThinkingState({
+      stage: '处理结果...',
+      progress: 90,
+      progressText: '几乎完成了'
+    });
 
     // 检查PPT生成结果
     if (response.pptGenerated && response.pptResult) {
@@ -2053,6 +2292,19 @@ const executeChatWithInput = async (input) => {
       }
     }
 
+    // 🔥 完成所有步骤
+    thinkingState.steps[3].status = 'completed';
+    updateThinkingState({
+      stage: '完成！',
+      progress: 100,
+      progressText: '回复已生成'
+    });
+
+    // 短暂延迟后隐藏思考状态
+    setTimeout(() => {
+      thinkingState.show = false;
+    }, 500);
+
     // 滚动到底部
     await nextTick();
     scrollToBottom();
@@ -2060,8 +2312,19 @@ const executeChatWithInput = async (input) => {
     console.error('[ChatPanel] 执行对话失败:', error);
     antMessage.error('对话失败: ' + error.message);
 
-    // 出错时移除思考中消息
-    messages.value = messages.value.filter(msg => !msg.isThinking);
+    // 🔥 更新思考状态为错误
+    updateThinkingState({
+      show: true,
+      stage: '发生错误',
+      progress: 100,
+      status: 'exception',
+      progressText: error.message
+    });
+
+    // 2秒后隐藏
+    setTimeout(() => {
+      thinkingState.show = false;
+    }, 2000);
   } finally {
     isLoading.value = false;
   }

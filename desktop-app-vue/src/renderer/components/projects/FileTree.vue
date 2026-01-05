@@ -1,5 +1,25 @@
 <template>
   <div class="file-tree">
+    <!-- 搜索框 -->
+    <div class="tree-search">
+      <a-input
+        v-model:value="searchQuery"
+        placeholder="搜索文件..."
+        allow-clear
+        size="small"
+        @change="handleSearchChange"
+      >
+        <template #prefix>
+          <SearchOutlined />
+        </template>
+      </a-input>
+    </div>
+
+    <!-- 搜索结果统计 -->
+    <div v-if="searchQuery && filteredTreeData.length > 0" class="search-stats">
+      找到 <strong>{{ searchResultCount }}</strong> 个文件
+    </div>
+
     <!-- 加载状态 -->
     <div v-if="loading" class="tree-loading">
       <a-spin size="small" />
@@ -8,8 +28,8 @@
 
     <!-- 文件树 -->
     <a-tree
-      v-else-if="treeData.length > 0"
-      :tree-data="treeData"
+      v-else-if="filteredTreeData.length > 0"
+      :tree-data="filteredTreeData"
       :selected-keys="selectedKeys"
       :expanded-keys="expandedKeys"
       @select="handleSelect"
@@ -18,7 +38,7 @@
       <template #title="{ title, isLeaf, icon, filePath }">
         <div class="tree-node-title">
           <component :is="icon" class="node-icon" />
-          <span>{{ title }}</span>
+          <span v-html="highlightText(title, searchQuery)"></span>
           <a-tag
             v-if="gitStatus && filePath && gitStatus[filePath]"
             :color="getStatusColor(gitStatus[filePath])"
@@ -32,9 +52,16 @@
     </a-tree>
 
     <!-- 空状态 -->
-    <div v-else class="tree-empty">
+    <div v-else-if="!searchQuery" class="tree-empty">
       <FolderOpenOutlined />
       <p>暂无文件</p>
+    </div>
+
+    <!-- 搜索无结果 -->
+    <div v-else class="tree-empty">
+      <FileSearchOutlined />
+      <p>未找到匹配的文件</p>
+      <span class="empty-hint">尝试使用不同的关键词</span>
     </div>
   </div>
 </template>
@@ -52,6 +79,8 @@ import {
   FileExcelOutlined,
   FilePdfOutlined,
   Html5Outlined,
+  SearchOutlined,
+  FileSearchOutlined,
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
@@ -78,6 +107,7 @@ const emit = defineEmits(['select']);
 // 响应式状态
 const selectedKeys = ref([]);
 const expandedKeys = ref([]);
+const searchQuery = ref(''); // 搜索关键词
 
 // 文件图标映射
 const fileIconMap = {
@@ -236,6 +266,115 @@ const treeData = computed(() => {
   return tree;
 });
 
+/**
+ * 过滤树形数据（搜索功能）
+ */
+const filteredTreeData = computed(() => {
+  if (!searchQuery.value || !searchQuery.value.trim()) {
+    return treeData.value;
+  }
+
+  const query = searchQuery.value.toLowerCase().trim();
+
+  // 递归过滤树节点
+  const filterTree = (nodes) => {
+    return nodes
+      .map(node => {
+        // 检查当前节点是否匹配
+        const titleMatch = node.title.toLowerCase().includes(query);
+
+        // 如果是文件夹，递归过滤子节点
+        if (!node.isLeaf && node.children) {
+          const filteredChildren = filterTree(node.children);
+
+          // 如果有匹配的子节点或当前节点匹配，保留该节点
+          if (filteredChildren.length > 0 || titleMatch) {
+            return {
+              ...node,
+              children: filteredChildren
+            };
+          }
+          return null;
+        }
+
+        // 如果是文件且匹配，保留该节点
+        if (node.isLeaf && titleMatch) {
+          return node;
+        }
+
+        return null;
+      })
+      .filter(Boolean);
+  };
+
+  const filtered = filterTree(treeData.value);
+
+  // 搜索时自动展开所有匹配的节点
+  if (filtered.length > 0) {
+    const getAllKeys = (nodes) => {
+      let keys = [];
+      nodes.forEach(node => {
+        if (!node.isLeaf) {
+          keys.push(node.key);
+          if (node.children) {
+            keys = keys.concat(getAllKeys(node.children));
+          }
+        }
+      });
+      return keys;
+    };
+    expandedKeys.value = getAllKeys(filtered);
+  }
+
+  return filtered;
+});
+
+/**
+ * 计算搜索结果数量
+ */
+const searchResultCount = computed(() => {
+  const countFiles = (nodes) => {
+    let count = 0;
+    nodes.forEach(node => {
+      if (node.isLeaf) {
+        count++;
+      }
+      if (node.children) {
+        count += countFiles(node.children);
+      }
+    });
+    return count;
+  };
+  return countFiles(filteredTreeData.value);
+});
+
+/**
+ * 高亮搜索关键词
+ */
+const highlightText = (text, query) => {
+  if (!query || !query.trim()) {
+    return text;
+  }
+
+  const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+  return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+};
+
+/**
+ * 转义正则表达式特殊字符
+ */
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+/**
+ * 处理搜索输入变化
+ */
+const handleSearchChange = () => {
+  // 搜索时的逻辑已在 computed 中处理
+  console.log('[FileTree] 搜索:', searchQuery.value);
+};
+
 // 处理节点选择
 const handleSelect = (keys, { node }) => {
   if (node.isLeaf && node.fileId) {
@@ -283,6 +422,29 @@ watch(treeData, (newTreeData) => {
 .file-tree {
   height: 100%;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 搜索框 */
+.tree-search {
+  padding: 12px;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fafafa;
+}
+
+/* 搜索统计 */
+.search-stats {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #666;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.search-stats strong {
+  color: #1890ff;
+  font-weight: 600;
 }
 
 /* 加载状态 */
@@ -358,11 +520,27 @@ watch(treeData, (newTreeData) => {
   font-size: 48px;
   margin-bottom: 12px;
   display: block;
+  opacity: 0.5;
 }
 
 .tree-empty p {
-  margin: 0;
+  margin: 0 0 8px 0;
   font-size: 14px;
+  color: #6b7280;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* 搜索高亮 */
+.tree-node-title :deep(mark.search-highlight) {
+  background: #fff566;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-weight: 600;
+  color: #000;
 }
 
 /* 滚动条样式 */

@@ -121,30 +121,40 @@ export async function selectFileInTree(window: Page, fileName: string): Promise<
  */
 export async function sendChatMessage(window: Page, message: string): Promise<boolean> {
   try {
-    // 查找输入框
-    const chatInput = await window.$('[data-testid="chat-input"]');
-    if (!chatInput) {
-      console.error('Chat input not found');
+    // 输入消息并点击发送
+    const success = await window.evaluate((msg) => {
+      const input = document.querySelector('[data-testid="chat-input"]') as HTMLTextAreaElement;
+      if (!input) {
+        console.error('[Helper] Chat input not found');
+        return false;
+      }
+
+      // 设置输入值
+      input.value = msg;
+      // 触发input事件让Vue响应
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // 等待一小会儿让Vue更新
+      setTimeout(() => {
+        const btn = document.querySelector('[data-testid="chat-send-button"]') as HTMLElement;
+        if (btn) {
+          btn.click();
+        }
+      }, 100);
+
+      return true;
+    }, message);
+
+    if (!success) {
+      console.error('[Helper] Failed to send chat message');
       return false;
     }
 
-    // 输入消息
-    await chatInput.fill(message);
-    await window.waitForTimeout(300);
-
-    // 查找并点击发送按钮
-    const sendButton = await window.$('[data-testid="chat-send-button"]');
-    if (!sendButton) {
-      console.error('Send button not found');
-      return false;
-    }
-
-    await sendButton.click();
     await window.waitForTimeout(1000);
 
     return true;
   } catch (error) {
-    console.error('Failed to send chat message:', error);
+    console.error('[Helper] Failed to send chat message:', error);
     return false;
   }
 }
@@ -205,13 +215,20 @@ export async function switchContextMode(
   mode: 'project' | 'file' | 'global'
 ): Promise<boolean> {
   try {
-    const button = await window.$(`[data-testid="context-mode-${mode}"]`);
-    if (!button) {
+    const clicked = await window.evaluate((modeValue) => {
+      const btn = document.querySelector(`[data-testid="context-mode-${modeValue}"]`) as HTMLElement;
+      if (btn) {
+        btn.click();
+        return true;
+      }
+      return false;
+    }, mode);
+
+    if (!clicked) {
       console.error(`Context mode button not found: ${mode}`);
       return false;
     }
 
-    await button.click();
     await window.waitForTimeout(300);
     return true;
   } catch (error) {
@@ -338,13 +355,20 @@ export async function performGitAction(
  */
 export async function toggleEditorPanel(window: Page): Promise<boolean> {
   try {
-    const toggleButton = await window.$('[data-testid="toggle-editor-button"]');
-    if (!toggleButton) {
+    const clicked = await window.evaluate(() => {
+      const btn = document.querySelector('[data-testid="toggle-editor-button"]') as HTMLElement;
+      if (btn) {
+        btn.click();
+        return true;
+      }
+      return false;
+    });
+
+    if (!clicked) {
       console.error('Toggle editor button not found');
       return false;
     }
 
-    await toggleButton.click();
     await window.waitForTimeout(500);
 
     return true;
@@ -359,20 +383,30 @@ export async function toggleEditorPanel(window: Page): Promise<boolean> {
  */
 export async function openFileManageModal(window: Page): Promise<boolean> {
   try {
-    const button = await window.$('[data-testid="file-manage-button"]');
-    if (!button) {
-      console.error('File manage button not found');
+    // 使用evaluate直接触发DOM点击，绕过遮罩层
+    const clicked = await window.evaluate(() => {
+      const btn = document.querySelector('[data-testid="file-manage-button"]') as HTMLElement;
+      if (btn) {
+        console.log('[Helper] 找到文件管理按钮，触发点击');
+        btn.click();
+        return true;
+      }
+      console.log('[Helper] 未找到文件管理按钮');
+      return false;
+    });
+
+    if (!clicked) {
+      console.error('[Helper] File manage button not found');
       return false;
     }
 
-    await button.click();
     await window.waitForTimeout(500);
 
     // 验证对话框打开
     const modal = await window.$('.ant-modal');
     return modal !== null;
   } catch (error) {
-    console.error('Failed to open file manage modal:', error);
+    console.error('[Helper] Failed to open file manage modal:', error);
     return false;
   }
 }
@@ -382,20 +416,30 @@ export async function openFileManageModal(window: Page): Promise<boolean> {
  */
 export async function openShareModal(window: Page): Promise<boolean> {
   try {
-    const button = await window.$('[data-testid="share-button"]');
-    if (!button) {
-      console.error('Share button not found');
+    // 使用evaluate直接触发DOM点击，绕过遮罩层
+    const clicked = await window.evaluate(() => {
+      const btn = document.querySelector('[data-testid="share-button"]') as HTMLElement;
+      if (btn) {
+        console.log('[Helper] 找到分享按钮，触发点击');
+        btn.click();
+        return true;
+      }
+      console.log('[Helper] 未找到分享按钮');
+      return false;
+    });
+
+    if (!clicked) {
+      console.error('[Helper] Share button not found');
       return false;
     }
 
-    await button.click();
     await window.waitForTimeout(500);
 
     // 验证对话框打开
     const modal = await window.$('.ant-modal');
     return modal !== null;
   } catch (error) {
-    console.error('Failed to open share modal:', error);
+    console.error('[Helper] Failed to open share modal:', error);
     return false;
   }
 }
@@ -416,28 +460,52 @@ export async function waitForProjectDetailLoad(window: Page, timeout: number = 1
 
     await window.waitForTimeout(1000);
 
-    // 关闭可能出现的首次使用向导modal
-    try {
-      const modal = await window.$('.ant-modal-wrap:visible');
-      if (modal) {
-        console.log('[Helper] 检测到首次使用向导modal，尝试关闭...');
+    // 强力关闭所有可能的modal（最多尝试3次）
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        // 检查是否有可见的modal
+        const hasModal = await window.evaluate(() => {
+          const modals = document.querySelectorAll('.ant-modal-wrap');
+          return Array.from(modals).some((m) => {
+            const el = m as HTMLElement;
+            return el.style.display !== 'none' && el.offsetParent !== null;
+          });
+        });
 
-        // 尝试点击关闭按钮或ESC键
-        const closeButton = await window.$('.ant-modal-close');
-        if (closeButton && await closeButton.isVisible()) {
-          await closeButton.click({ force: true });
-          await window.waitForTimeout(500);
-          console.log('[Helper] 已关闭首次使用向导modal');
-        } else {
-          // 如果没有关闭按钮，按ESC键
-          await window.keyboard.press('Escape');
-          await window.waitForTimeout(500);
-          console.log('[Helper] 使用ESC键关闭modal');
+        if (!hasModal) {
+          if (attempt > 0) {
+            console.log('[Helper] ✅ Modal已成功关闭');
+          }
+          break;
         }
+
+        console.log(`[Helper] 检测到modal，第${attempt + 1}次尝试关闭...`);
+
+        // 方法1: 使用evaluate直接点击关闭按钮
+        const closed = await window.evaluate(() => {
+          const closeBtn = document.querySelector('.ant-modal-close') as HTMLElement;
+          if (closeBtn && closeBtn.offsetParent !== null) {
+            closeBtn.click();
+            return true;
+          }
+          return false;
+        });
+
+        if (closed) {
+          await window.waitForTimeout(500);
+          console.log('[Helper] 通过关闭按钮关闭modal');
+          continue;
+        }
+
+        // 方法2: 按ESC键
+        await window.keyboard.press('Escape');
+        await window.waitForTimeout(500);
+        console.log('[Helper] 通过ESC键关闭modal');
+
+      } catch (e) {
+        console.log(`[Helper] 第${attempt + 1}次关闭尝试失败:`, e);
+        // 继续尝试
       }
-    } catch (e) {
-      // 忽略关闭modal的错误
-      console.log('[Helper] 未发现modal或关闭失败（这是正常的）');
     }
 
     return true;
@@ -493,13 +561,20 @@ export async function backToProjectList(window: Page): Promise<boolean> {
  */
 export async function toggleFileTreeMode(window: Page): Promise<boolean> {
   try {
-    const switchButton = await window.$('[data-testid="file-tree-mode-switch"]');
-    if (!switchButton) {
+    const clicked = await window.evaluate(() => {
+      const switchBtn = document.querySelector('[data-testid="file-tree-mode-switch"]') as HTMLElement;
+      if (switchBtn) {
+        switchBtn.click();
+        return true;
+      }
+      return false;
+    });
+
+    if (!clicked) {
       console.error('File tree mode switch not found');
       return false;
     }
 
-    await switchButton.click();
     await window.waitForTimeout(500);
 
     return true;

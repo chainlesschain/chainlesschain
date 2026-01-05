@@ -614,8 +614,11 @@ const shouldShowWebEditor = computed(() => {
 // 是否显示PPT编辑器
 const shouldShowPPTEditor = computed(() => {
   if (!currentFile.value) return false;
-  if (viewMode.value === 'preview') return false;
-  return fileTypeInfo.value?.isPPT;
+  // PPT文件在auto和edit模式下使用编辑器
+  if (viewMode.value === 'auto' || viewMode.value === 'edit') {
+    return fileTypeInfo.value?.isPPT;
+  }
+  return false;
 });
 
 // 是否显示文本编辑器
@@ -1703,6 +1706,14 @@ watch(() => currentFile.value, async (newFile, oldFile) => {
   }
 
   if (newFile) {
+    // 🔥 如果是PPT/Excel/Word文件,且当前是preview模式,自动切换到auto模式
+    const ext = newFile.file_name?.split('.').pop()?.toLowerCase();
+    const editableOfficeFiles = ['pptx', 'ppt', 'xlsx', 'xls', 'docx', 'doc'];
+    if (editableOfficeFiles.includes(ext) && viewMode.value === 'preview') {
+      console.log('[ProjectDetail] 检测到Office文件,自动切换到auto模式');
+      viewMode.value = 'auto';
+    }
+
     await loadFileContent(newFile);
   } else {
     fileContent.value = '';
