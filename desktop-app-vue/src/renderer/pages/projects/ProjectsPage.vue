@@ -755,213 +755,47 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       return;
     }
 
-    // 🔥 不显示Modal，而是在对话区域展示进度
+    // 🔥 新设计：直接创建项目并跳转到详情页，让ChatPanel负责意图识别和任务规划
     createError.value = '';
 
     // 添加用户消息
     addMessage('user', text);
 
-    // 1. 流式创建项目
     const userId = authStore.currentUser?.id || 'default-user';
-
-    // 🔥 使用LLM进行智能意图识别
-    let projectType = ''; // 默认留空让后端AI自动识别
-    let documentFormat = null;
-    let isPPTRequest = false;
+    const projectName = text.substring(0, 50) || '未命名项目';
 
     try {
-      console.log('[ProjectsPage] 🤖 调用LLM进行意图识别...');
-      const intentResult = await window.electronAPI.aiEngine.recognizeIntent(text);
+      console.log('[ProjectsPage] 🚀 直接创建项目:', projectName);
 
-      if (intentResult && intentResult.success) {
-        // 使用LLM识别的结果
-        projectType = intentResult.projectType;
-        documentFormat = intentResult.outputFormat || null;
-        isPPTRequest = intentResult.subType === 'ppt' && intentResult.outputFormat === 'pptx';
+      // 直接创建项目（不进行意图识别）
+      const createData = {
+        name: projectName,
+        projectType: 'document', // 默认类型，后续由ChatPanel的AI识别
+        userId: userId,
+        status: 'draft',
+      };
 
-        console.log('[ProjectsPage] ✅ LLM意图识别成功:');
-        console.log('  - 用户输入:', text);
-        console.log('  - 项目类型:', projectType);
-        console.log('  - 子类型:', intentResult.subType);
-        console.log('  - 置信度:', intentResult.confidence);
-        console.log('  - 输出格式:', documentFormat);
-        console.log('  - 是否PPT请求:', isPPTRequest);
-        console.log('  - 建议名称:', intentResult.suggestedName);
-        console.log('  - 分析理由:', intentResult.reasoning);
-        console.log('  - 识别方法:', intentResult.method);
-      } else {
-        throw new Error('意图识别失败，使用降级方案');
-      }
+      const createdProject = await window.electronAPI.project.createQuick(createData);
+      console.log('[ProjectsPage] ✅ 项目创建成功:', createdProject.id);
+
+      // 显示成功提示
+      addMessage('system', '项目创建成功！正在进入...');
+
+      // 跳转到项目详情页，传递用户输入给ChatPanel
+      setTimeout(() => {
+        router.push({
+          path: `/projects/${createdProject.id}`,
+          query: {
+            autoSendMessage: text, // 传递给ChatPanel自动发送，触发意图识别和任务规划
+          },
+        });
+      }, 300);
+
     } catch (error) {
-      console.error('[ProjectsPage] ❌ LLM意图识别出错，使用规则匹配降级:', error);
-
-      // 降级到简单规则识别
-      // 1. 检测是否是文档/写作类型（优先级最高，因为更常见）
-      const isDocumentRequest =
-        // 明确的文档关键词
-        textLower.includes('写') ||
-        textLower.includes('写一个') ||
-        textLower.includes('写一篇') ||
-        textLower.includes('文章') ||
-        textLower.includes('致辞') ||
-        textLower.includes('演讲') ||
-        textLower.includes('稿') ||
-        textLower.includes('报告') ||
-        textLower.includes('说明') ||
-        textLower.includes('文档') ||
-        textLower.includes('txt') ||
-        textLower.includes('文本') ||
-        textLower.includes('word') ||
-        textLower.includes('docx') ||
-        textLower.includes('markdown') ||
-        textLower.includes('md文件') ||
-        textLower.includes('总结') ||
-        textLower.includes('心得') ||
-        textLower.includes('日记') ||
-        textLower.includes('随笔') ||
-        textLower.includes('作文') ||
-        textLower.includes('ppt') ||
-        textLower.includes('幻灯片') ||
-        textLower.includes('演示');
-
-      // 2. 检测是否是web类型请求（排除文档类型）
-      const isWebRequest =
-        !isDocumentRequest && (
-          textLower.includes('网页') ||
-          textLower.includes('网站') ||
-          textLower.includes('html') ||
-          textLower.includes('页面') ||
-          textLower.includes('前端') ||
-          textLower.includes('web')
-        );
-
-      // 3. 检测是否是数据类型请求
-      const isDataRequest =
-        !isDocumentRequest && (
-          textLower.includes('csv') ||
-          textLower.includes('json') ||
-          textLower.includes('数据分析') ||
-          textLower.includes('表格') ||
-          textLower.includes('excel')
-        );
-
-      // 设置项目类型（优先级：document > web > data）
-      if (isDocumentRequest) {
-        projectType = 'document';
-      } else if (isWebRequest) {
-        projectType = 'web';
-      } else if (isDataRequest) {
-        projectType = 'data';
-      }
-
-      // 检测文件格式（用于document类型）
-      if (projectType === 'document') {
-        if (textLower.includes('ppt') || textLower.includes('幻灯片') || textLower.includes('演示')) {
-          documentFormat = 'pptx';
-          isPPTRequest = true;
-        } else if (textLower.includes('txt') || textLower.includes('文本')) {
-          documentFormat = 'txt';
-        } else if (textLower.includes('markdown') || textLower.includes('md')) {
-          documentFormat = 'markdown';
-        } else if (textLower.includes('word') || textLower.includes('docx') || textLower.includes('doc')) {
-          documentFormat = 'docx';
-        }
-        // 默认为txt格式（如果是document类型但未明确指定格式）
-        if (!documentFormat) {
-          documentFormat = 'txt';
-        }
-      }
-
-      console.log('[ProjectsPage] 规则匹配结果:');
-      console.log('  - 用户输入:', text);
-      console.log('  - 检测结果: projectType =', projectType || '(由后端AI自动识别)');
-      console.log('  - 文档格式: documentFormat =', documentFormat || '(无)');
-      console.log('  - 是否PPT请求:', isPPTRequest);
+      console.error('[ProjectsPage] ❌ 项目创建失败:', error);
+      message.error('项目创建失败: ' + error.message);
+      addMessage('system', `项目创建失败: ${error.message}`);
     }
-
-    // 检测是否是简单的txt文件创建请求（适合本地快速创建）
-    const isSimpleTxtRequest = documentFormat === 'txt' && text.length < 200;
-
-    // 如果是简单的txt请求，使用本地快速创建（更可靠）
-    if (isSimpleTxtRequest) {
-      console.log('[ProjectsPage] 检测到简单txt请求，使用本地快速创建');
-
-      try {
-        // 提取文件内容（从用户输入中）
-        let fileContent = '';
-        const contentMatch = text.match(/(?:里面写|内容是|写上|内容为)[\s:：]*(.*?)(?:\.|。|$)/);
-        if (contentMatch && contentMatch[1]) {
-          fileContent = contentMatch[1].trim();
-        } else {
-          // 如果没有明确内容，使用整个输入作为内容
-          fileContent = text.replace(/帮我|请|创建|生成|做|写|一个|txt|文件|文本/g, '').trim();
-        }
-
-        console.log('[ProjectsPage] 提取的文件内容:', fileContent);
-
-        // 使用快速创建
-        const quickCreateData = {
-          name: text.substring(0, 50) || '未命名txt项目',
-          description: text,
-          projectType: 'document',
-          status: 'draft',
-          userId: userId,
-        };
-
-        const createdProject = await window.electronAPI.project.createQuick(quickCreateData);
-        console.log('[ProjectsPage] 快速创建项目成功:', createdProject);
-
-        // 创建txt文件
-        const fileName = 'content.txt';
-        const fileData = {
-          projectId: createdProject.id,
-          filePath: fileName, // 文件路径（相对于项目根目录）
-          content: fileContent, // 文件内容
-        };
-
-        await window.electronAPI.file.createFile(fileData);
-        console.log('[ProjectsPage] txt文件创建成功');
-
-        message.success('txt文件创建完成！', 2);
-
-        // 跳转到项目页面
-        setTimeout(() => {
-          router.push(`/projects/${createdProject.id}`);
-        }, 500);
-
-        return; // 使用快速创建后直接返回
-      } catch (error) {
-        console.error('[ProjectsPage] 快速创建失败，回退到流式创建:', error);
-        // 如果快速创建失败，继续使用流式创建
-      }
-    }
-
-    // 🔥 跳转到 ai-creating 模式，在 ProjectDetailPage 的 AI对话面板（ChatPanel）中展示创建过程
-    console.log('[ProjectsPage] 跳转到 ai-creating 模式，将在AI对话面板展示创建过程');
-
-    // 增强用户提示词，明确文件格式
-    let enhancedPrompt = text;
-    if (documentFormat === 'txt') {
-      enhancedPrompt = `${text}\n\n【重要】请生成纯文本格式(.txt)文件，不要生成Word(.docx)或其他格式。`;
-    } else if (documentFormat === 'markdown') {
-      enhancedPrompt = `${text}\n\n【重要】请生成Markdown格式(.md)文件。`;
-    }
-
-    const projectData = {
-      userPrompt: enhancedPrompt,
-      name: text.substring(0, 50) || '未命名项目',
-      projectType: projectType,
-      userId: userId,
-      metadata: documentFormat ? { documentFormat: documentFormat } : undefined,
-    };
-
-    // 跳转到 ai-creating 模式
-    router.push({
-      path: `/projects/ai-creating`,
-      query: {
-        createData: JSON.stringify(projectData),
-      },
-    });
 
     // 2. AI智能拆解任务（已禁用 - 流式创建已完成所有工作）
     // 如果需要额外的任务执行，可以取消下面的注释
