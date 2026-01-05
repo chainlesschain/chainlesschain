@@ -412,13 +412,30 @@ onUnmounted(() => {
 const isBinaryPPTX = ref(false);
 
 // 初始化PPT
-const initPPT = () => {
+const initPPT = async () => {
   try {
+    console.log('[PPTEditor] 初始化PPT编辑器, file:', props.file);
+
     // 🔥 检测是否为二进制.pptx文件（无content或content无效）
     if (!props.file.content || props.file.content.trim() === '') {
-      console.warn('[PPTEditor] 检测到二进制.pptx文件，无法编辑');
-      isBinaryPPTX.value = true;
-      return;
+      console.warn('[PPTEditor] 文件内容为空，尝试从磁盘加载...');
+
+      // 尝试从磁盘读取文件内容
+      try {
+        const result = await window.electronAPI.file.readContent(props.file.file_path);
+        if (result && result.success && result.content) {
+          props.file.content = result.content;
+          console.log('[PPTEditor] 从磁盘加载内容成功');
+        } else {
+          console.warn('[PPTEditor] 检测到二进制.pptx文件，无法编辑');
+          isBinaryPPTX.value = true;
+          return;
+        }
+      } catch (readError) {
+        console.error('[PPTEditor] 读取文件失败:', readError);
+        isBinaryPPTX.value = true;
+        return;
+      }
     }
 
     // 尝试解析JSON格式的演示文稿数据
@@ -429,13 +446,16 @@ const initPPT = () => {
     if (data.slides && Array.isArray(data.slides)) {
       slides.value = data.slides;
       isBinaryPPTX.value = false;
+      console.log('[PPTEditor] 加载了', slides.value.length, '张幻灯片');
     } else {
+      console.log('[PPTEditor] 创建默认幻灯片');
       createDefaultSlide();
       isBinaryPPTX.value = false;
     }
   } catch (error) {
     console.error('[PPTEditor] 解析PPT数据失败:', error);
     // JSON解析失败，可能是二进制文件
+    console.warn('[PPTEditor] 这是一个二进制.pptx文件，显示下载提示');
     isBinaryPPTX.value = true;
   }
 };
