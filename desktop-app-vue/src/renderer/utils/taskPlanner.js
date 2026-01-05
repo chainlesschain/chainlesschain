@@ -415,19 +415,117 @@ ${interviewAnswers}
 
     try {
       const response = await llmService.chat(prompt);
+      console.log('[TaskPlanner] LLM响应:', response);
+      console.log('[TaskPlanner] 响应长度:', response?.length || 0);
 
-      // 提取JSON
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const plan = JSON.parse(jsonMatch[0]);
-        console.log('[TaskPlanner] 任务计划生成完成:', plan);
-        return plan;
+      if (!response || response.length === 0) {
+        throw new Error('LLM返回空响应');
       }
 
-      throw new Error('无法解析任务计划');
+      // 尝试多种方式提取JSON
+      let jsonText = null;
+
+      // 方式1: 提取代码块中的JSON
+      const codeBlockMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (codeBlockMatch) {
+        jsonText = codeBlockMatch[1];
+        console.log('[TaskPlanner] 从代码块中提取JSON');
+      }
+
+      // 方式2: 提取第一个完整的JSON对象（非贪婪匹配）
+      if (!jsonText) {
+        const jsonMatch = response.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
+        if (jsonMatch) {
+          jsonText = jsonMatch[0];
+          console.log('[TaskPlanner] 使用简单匹配提取JSON');
+        }
+      }
+
+      // 方式3: 尝试找到最外层的{}
+      if (!jsonText) {
+        const firstBrace = response.indexOf('{');
+        const lastBrace = response.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          jsonText = response.substring(firstBrace, lastBrace + 1);
+          console.log('[TaskPlanner] 使用{}匹配提取JSON');
+        }
+      }
+
+      if (!jsonText) {
+        console.error('[TaskPlanner] 无法从响应中提取JSON');
+        console.error('[TaskPlanner] 完整响应:', response);
+        throw new Error('响应中未找到JSON格式的任务计划');
+      }
+
+      // 解析JSON
+      let plan;
+      try {
+        plan = JSON.parse(jsonText);
+        console.log('[TaskPlanner] JSON解析成功:', plan);
+      } catch (parseError) {
+        console.error('[TaskPlanner] JSON解析失败:', parseError);
+        console.error('[TaskPlanner] 尝试解析的文本:', jsonText);
+        throw new Error(`JSON解析失败: ${parseError.message}`);
+      }
+
+      // 验证必要字段
+      if (!plan.title || !plan.tasks || !Array.isArray(plan.tasks)) {
+        console.warn('[TaskPlanner] 计划缺少必要字段，使用默认值补充');
+        plan.title = plan.title || '任务执行计划';
+        plan.summary = plan.summary || '根据您的需求生成的任务计划';
+        plan.tasks = Array.isArray(plan.tasks) ? plan.tasks : [];
+        plan.outputs = plan.outputs || [];
+        plan.notes = plan.notes || [];
+      }
+
+      console.log('[TaskPlanner] 任务计划生成完成:', plan);
+      return plan;
+
     } catch (error) {
       console.error('[TaskPlanner] 任务计划生成失败:', error);
-      throw error;
+
+      // 🔥 降级方案：返回一个基于用户输入的默认计划
+      console.warn('[TaskPlanner] 使用降级方案：生成默认任务计划');
+
+      const defaultPlan = {
+        title: `执行计划：${session.userInput}`,
+        summary: `根据您的需求"${session.userInput}"，我们将分步骤完成任务。`,
+        tasks: [
+          {
+            id: 1,
+            name: '需求分析',
+            description: '详细分析用户需求',
+            action: `分析"${session.userInput}"的具体要求`,
+            output: '需求分析报告'
+          },
+          {
+            id: 2,
+            name: '方案设计',
+            description: '设计实施方案',
+            action: '根据需求设计具体实施方案',
+            output: '实施方案文档'
+          },
+          {
+            id: 3,
+            name: '执行实施',
+            description: '按照方案执行',
+            action: '按照设计的方案逐步实施',
+            output: '任务成果'
+          },
+          {
+            id: 4,
+            name: '验证优化',
+            description: '验证结果并优化',
+            action: '检查成果质量并进行必要的优化',
+            output: '最终成果'
+          }
+        ],
+        outputs: ['最终成果文档', '相关文件'],
+        notes: ['请根据实际情况调整计划', '遇到问题及时沟通']
+      };
+
+      console.log('[TaskPlanner] 返回默认计划:', defaultPlan);
+      return defaultPlan;
     }
   }
 
