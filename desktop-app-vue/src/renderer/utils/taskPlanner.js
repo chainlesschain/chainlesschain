@@ -171,7 +171,19 @@ export class TaskPlanner {
 }`;
 
     try {
-      const response = await llmService.chat(prompt);
+      console.log('[TaskPlanner] 开始调用LLM，设置30秒超时...');
+
+      // 🔥 添加超时机制（30秒）
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('LLM调用超时（30秒）')), 30000);
+      });
+
+      const response = await Promise.race([
+        llmService.chat(prompt),
+        timeoutPromise
+      ]);
+
+      console.log('[TaskPlanner] ✅ LLM响应成功，长度:', response?.length || 0);
 
       // 尝试提取JSON
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -194,8 +206,38 @@ export class TaskPlanner {
         ]
       };
     } catch (error) {
-      console.error('[TaskPlanner] 需求分析失败:', error);
-      throw error;
+      console.error('[TaskPlanner] ❌ 需求分析失败:', error);
+
+      // 🔥 降级方案：返回基于项目类型的默认问题
+      console.warn('[TaskPlanner] 使用降级方案：返回默认采访问题');
+
+      const defaultQuestions = {
+        document: [
+          { key: 'audience', question: '这份文档的目标受众是谁？', required: true },
+          { key: 'style', question: '您期望的风格是？（如：正式、轻松、专业等）', required: false },
+          { key: 'length', question: '文档大概需要多长？（如：页数、字数）', required: false },
+        ],
+        web: [
+          { key: 'purpose', question: '这个网页的主要目的是什么？', required: true },
+          { key: 'target_users', question: '目标用户群体是谁？', required: false },
+          { key: 'features', question: '需要哪些主要功能？', required: true },
+        ],
+        data: [
+          { key: 'data_source', question: '数据来源是什么？', required: true },
+          { key: 'analysis_goal', question: '分析的目标是什么？', required: true },
+        ]
+      };
+
+      const questions = defaultQuestions[projectType] || defaultQuestions.document;
+
+      return {
+        isComplete: false,
+        confidence: 0.3,
+        missing: ['具体需求细节'],
+        collected: { userInput },
+        needsInterview: true,
+        suggestedQuestions: questions
+      };
     }
   }
 
