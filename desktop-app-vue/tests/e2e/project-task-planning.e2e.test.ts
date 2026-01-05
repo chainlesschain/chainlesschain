@@ -158,23 +158,19 @@ test.describe('项目详情页 - 交互式任务规划', () => {
       // 等待ChatPanel完全加载
       await window.waitForTimeout(2000);
 
-      // 打印ChatPanel内部结构
-      const chatStructure = await window.evaluate(() => {
-        const chatPanel = document.querySelector('.chat-panel, .conversation-panel');
-        if (!chatPanel) return { found: false };
-
-        const textareas = chatPanel.querySelectorAll('textarea');
-        const inputs = chatPanel.querySelectorAll('input');
-        return {
-          found: true,
-          textareaCount: textareas.length,
-          inputCount: inputs.length,
-          hasDataTest: !!chatPanel.querySelector('[data-test="chat-input"]'),
-          textareaClasses: Array.from(textareas).map(t => t.className).slice(0, 3),
-          inputClasses: Array.from(inputs).map(i => i.className).slice(0, 3)
-        };
+      // 打印页面上所有的textarea
+      const allTextareas = await window.evaluate(() => {
+        const textareas = Array.from(document.querySelectorAll('textarea'));
+        return textareas.map((t, index) => ({
+          index,
+          placeholder: t.placeholder,
+          disabled: t.disabled,
+          value: t.value,
+          className: t.className,
+          parentClass: t.parentElement?.className || ''
+        }));
       });
-      console.log('  ChatPanel结构:', JSON.stringify(chatStructure, null, 2));
+      console.log('  页面上所有textarea:', JSON.stringify(allTextareas, null, 2));
 
       // 查找输入框
       const chatInput = window.locator('[data-test="chat-input"]').first();
@@ -182,22 +178,50 @@ test.describe('项目详情页 - 交互式任务规划', () => {
 
       if (!inputVisible) {
         console.log('⚠️  未找到data-test="chat-input"（可能被Vite优化移除）');
-        // 尝试备用选择器
-        const fallbackInput = window.locator('.chat-panel textarea, .conversation-panel textarea').last();
-        if (await fallbackInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-          console.log('✓ 使用备用选择器找到输入框');
-          await fallbackInput.fill('创建一个关于人工智能的PPT演示文稿，包含5页内容');
-          await window.waitForTimeout(500);
+        // 使用evaluate直接操作DOM并触发Vue事件
+        const sent = await window.evaluate((taskText) => {
+          const textareas = Array.from(document.querySelectorAll('textarea'));
+          const enabledTextarea = textareas.find(t => !t.disabled);
+          if (!enabledTextarea) return false;
 
-          // 直接使用Enter键发送（更可靠，不受Modal遮挡影响）
-          console.log('  使用Enter键发送任务...');
-          await fallbackInput.press('Enter');
-          console.log('✓ 已发送任务需求（Enter键）');
-          await window.waitForTimeout(1000);
-        } else {
-          console.log('⚠️  完全找不到输入框，跳过测试');
+          // 设置值并触发input事件（Vue v-model监听）
+          enabledTextarea.value = taskText;
+          enabledTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+          enabledTextarea.dispatchEvent(new Event('change', { bubbles: true }));
+
+          // 等待Vue更新
+          setTimeout(() => {
+            // 查找发送按钮并点击
+            const buttons = Array.from(document.querySelectorAll('button'));
+            const sendButton = buttons.find(btn =>
+              btn.textContent?.includes('发送') && !btn.disabled
+            );
+            if (sendButton) {
+              sendButton.click();
+              console.log('[E2E] 点击发送按钮');
+            } else {
+              // 如果没有找到按钮，触发Enter事件
+              const keyEvent = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                bubbles: true
+              });
+              enabledTextarea.dispatchEvent(keyEvent);
+              console.log('[E2E] 触发Enter键');
+            }
+          }, 100);
+
+          return true;
+        }, '创建一个关于人工智能的PPT演示文稿，包含5页内容');
+
+        if (!sent) {
+          console.log('⚠️  完全找不到启用的输入框，跳过测试');
           return;
         }
+
+        console.log('✓ 已填充任务内容并发送');
+        await window.waitForTimeout(2000);
       } else {
         console.log('✓ 找到聊天输入框');
         await chatInput.fill('创建一个关于人工智能的PPT演示文稿，包含5页内容');

@@ -42,10 +42,17 @@ class MockLLMService {
 
   /**
    * Mock流式聊天完成
+   * @param {Array} messages - 消息数组
+   * @param {Function} onChunk - 回调函数
+   * @param {Object} options - 选项
    */
-  async *chatStream(messages, options = {}) {
+  async chatStream(messages, onChunk, options = {}) {
     if (!this.isEnabled) {
       throw new Error('Mock LLM service is not enabled');
+    }
+
+    if (typeof onChunk !== 'function') {
+      throw new Error('onChunk回调是必需的');
     }
 
     const lastUserMessage = messages.filter(m => m.role === 'user').pop();
@@ -54,23 +61,40 @@ class MockLLMService {
 
     // 模拟流式输出
     const words = response.split('');
+    let fullContent = '';
+
     for (const char of words) {
       await this.delay(50); // 每个字符50ms延迟
-      yield {
+      fullContent += char;
+
+      // 调用回调函数
+      const shouldContinue = await onChunk({
         role: 'assistant',
         content: char,
-        delta: char,
+        delta: { content: char },
+        text: char,
         isComplete: false
-      };
+      });
+
+      if (shouldContinue === false) {
+        break; // 允许提前终止
+      }
     }
 
-    // 发送完成信号
-    yield {
-      role: 'assistant',
-      content: response,
-      delta: '',
-      isComplete: true,
-      finishReason: 'stop'
+    // 返回完整结果
+    return {
+      text: response,
+      message: {
+        role: 'assistant',
+        content: response
+      },
+      model: 'mock-llm-v1',
+      tokens: userContent.length + response.length,
+      usage: {
+        promptTokens: userContent.length,
+        completionTokens: response.length,
+        totalTokens: userContent.length + response.length
+      }
     };
   }
 
