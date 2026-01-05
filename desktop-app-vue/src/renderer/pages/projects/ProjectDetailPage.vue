@@ -1430,8 +1430,12 @@ onMounted(async () => {
     if (route.query.autoSendMessage) {
       autoSendMessage.value = route.query.autoSendMessage;
       console.log('[ProjectDetail] 检测到自动发送消息:', autoSendMessage.value);
-      // 清除query参数，避免刷新时重复发送
-      router.replace({ path: route.path });
+
+      // 🔄 延迟清除query参数，等ChatPanel处理完并保存到conversation（2秒足够）
+      setTimeout(() => {
+        console.log('[ProjectDetail] 清除autoSendMessage query参数');
+        router.replace({ path: route.path });
+      }, 2000);
     }
 
     // 解析项目路径

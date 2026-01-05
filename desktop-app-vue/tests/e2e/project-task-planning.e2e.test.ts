@@ -15,9 +15,17 @@ test.describe('项目详情页 - 交互式任务规划', () => {
       console.log('\n========== 项目任务规划完整流程测试 ==========');
 
       // 等待应用加载
-      await window.waitForTimeout(3000);
+      await window.waitForTimeout(2000);
 
-      console.log('[步骤1] 尝试创建测试项目...');
+      // ⚠️ 重要：必须先设置测试模式标志，再进行任何路由导航
+      console.log('[步骤1] 设置E2E测试模式标志...');
+      await window.evaluate(() => {
+        (window as any).__E2E_TEST_MODE__ = true;
+        console.log('[E2E] 已设置测试模式标志');
+      });
+      console.log('✓ E2E测试模式已启用');
+
+      console.log('[步骤2] 尝试创建测试项目...');
 
       // 使用Mock数据库创建项目（如果启用了Mock）
       const projectId = await window.evaluate(async () => {
@@ -47,7 +55,7 @@ test.describe('项目详情页 - 交互式任务规划', () => {
 
       const testProjectId = projectId || '1';
 
-      console.log(`[步骤2] 导航到项目详情页 (ID: ${testProjectId})...`);
+      console.log(`[步骤3] 导航到项目详情页 (ID: ${testProjectId})...`);
       await window.evaluate((id) => {
         if ((window as any).location) {
           (window as any).location.hash = `#/projects/${id}`;
@@ -55,7 +63,16 @@ test.describe('项目详情页 - 交互式任务规划', () => {
       }, testProjectId).catch(() => {});
       await window.waitForTimeout(4000);
 
-      console.log('[步骤3] 检查页面是否成功加载...');
+      console.log('[步骤4] 检查页面是否成功加载...');
+
+      // 检查测试模式标志
+      const testModeCheck = await window.evaluate(() => {
+        return {
+          hasTestFlag: (window as any).__E2E_TEST_MODE__,
+          windowKeys: Object.keys(window).filter(k => k.includes('E2E') || k.includes('TEST'))
+        };
+      });
+      console.log('  测试模式检查:', JSON.stringify(testModeCheck, null, 2));
 
       // 打印当前URL
       const currentUrl = await window.evaluate(() => window.location.href);
@@ -72,7 +89,7 @@ test.describe('项目详情页 - 交互式任务规划', () => {
       });
       console.log('  页面结构:', JSON.stringify(pageStructure, null, 2));
 
-      console.log('[步骤4] 查找ChatPanel聊天面板...');
+      console.log('[步骤5] 查找ChatPanel聊天面板...');
 
       // 尝试多种选择器
       const selectors = [
@@ -106,30 +123,77 @@ test.describe('项目详情页 - 交互式任务规划', () => {
         return;
       }
 
-      console.log('[步骤5] 输入任务需求...');
+      console.log('[步骤6] 检查并关闭可能的Modal对话框...');
+
+      // 检查是否有遮挡的Modal
+      const modal = window.locator('.ant-modal-wrap').first();
+      const modalVisible = await modal.isVisible({ timeout: 2000 }).catch(() => false);
+
+      if (modalVisible) {
+        console.log('  检测到Modal对话框，尝试关闭...');
+
+        // 直接按ESC键关闭（最可靠的方式）
+        console.log('  按ESC键关闭Modal...');
+        await window.keyboard.press('Escape');
+        await window.waitForTimeout(1000);
+
+        // 验证Modal是否已关闭
+        const stillVisible = await modal.isVisible({ timeout: 1000 }).catch(() => false);
+        if (!stillVisible) {
+          console.log('  ✓ Modal已成功关闭');
+        } else {
+          console.log('  ⚠️  Modal仍然可见，尝试强制点击关闭按钮');
+          const closeButton = window.locator('.ant-modal-close, button:has-text("关闭"), button:has-text("取消")').first();
+          await closeButton.click({ force: true }).catch(() => {
+            console.log('  ⚠️  强制点击也失败，继续测试...');
+          });
+          await window.waitForTimeout(1000);
+        }
+      } else {
+        console.log('  ✓ 没有Modal遮挡');
+      }
+
+      console.log('[步骤7] 输入任务需求...');
+
+      // 等待ChatPanel完全加载
+      await window.waitForTimeout(2000);
+
+      // 打印ChatPanel内部结构
+      const chatStructure = await window.evaluate(() => {
+        const chatPanel = document.querySelector('.chat-panel, .conversation-panel');
+        if (!chatPanel) return { found: false };
+
+        const textareas = chatPanel.querySelectorAll('textarea');
+        const inputs = chatPanel.querySelectorAll('input');
+        return {
+          found: true,
+          textareaCount: textareas.length,
+          inputCount: inputs.length,
+          hasDataTest: !!chatPanel.querySelector('[data-test="chat-input"]'),
+          textareaClasses: Array.from(textareas).map(t => t.className).slice(0, 3),
+          inputClasses: Array.from(inputs).map(i => i.className).slice(0, 3)
+        };
+      });
+      console.log('  ChatPanel结构:', JSON.stringify(chatStructure, null, 2));
 
       // 查找输入框
       const chatInput = window.locator('[data-test="chat-input"]').first();
       const inputVisible = await chatInput.isVisible({ timeout: 5000 }).catch(() => false);
 
       if (!inputVisible) {
-        console.log('⚠️  未找到聊天输入框');
+        console.log('⚠️  未找到data-test="chat-input"（可能被Vite优化移除）');
         // 尝试备用选择器
-        const fallbackInput = window.locator('textarea, input[type="text"]').last();
+        const fallbackInput = window.locator('.chat-panel textarea, .conversation-panel textarea').last();
         if (await fallbackInput.isVisible({ timeout: 3000 }).catch(() => false)) {
           console.log('✓ 使用备用选择器找到输入框');
           await fallbackInput.fill('创建一个关于人工智能的PPT演示文稿，包含5页内容');
           await window.waitForTimeout(500);
 
-          // 查找发送按钮
-          const sendButton = window.locator('button:has-text("发送"), [data-test="chat-send-button"]').first();
-          if (await sendButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-            await sendButton.click();
-            console.log('✓ 已发送任务需求');
-          } else {
-            await fallbackInput.press('Enter');
-            console.log('✓ 使用Enter键发送');
-          }
+          // 直接使用Enter键发送（更可靠，不受Modal遮挡影响）
+          console.log('  使用Enter键发送任务...');
+          await fallbackInput.press('Enter');
+          console.log('✓ 已发送任务需求（Enter键）');
+          await window.waitForTimeout(1000);
         } else {
           console.log('⚠️  完全找不到输入框，跳过测试');
           return;
@@ -139,20 +203,14 @@ test.describe('项目详情页 - 交互式任务规划', () => {
         await chatInput.fill('创建一个关于人工智能的PPT演示文稿，包含5页内容');
         await window.waitForTimeout(500);
 
-        // 查找发送按钮
-        const sendButton = window.locator('[data-test="chat-send-button"]').first();
-        const sendVisible = await sendButton.isVisible({ timeout: 3000 }).catch(() => false);
-
-        if (sendVisible) {
-          await sendButton.click();
-          console.log('✓ 已发送任务需求');
-        } else {
-          await chatInput.press('Enter');
-          console.log('✓ 使用Enter键发送');
-        }
+        // 直接使用Enter键发送（更可靠）
+        console.log('  使用Enter键发送任务...');
+        await chatInput.press('Enter');
+        console.log('✓ 已发送任务需求（Enter键）');
+        await window.waitForTimeout(1000);
       }
 
-      console.log('[步骤5] 等待任务计划生成...');
+      console.log('[步骤8] 等待任务计划生成...');
 
       // 等待TaskPlanMessage出现（最多60秒）
       const taskPlanMessage = window.locator('[data-test="task-plan-message"]').first();

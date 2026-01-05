@@ -510,37 +510,52 @@ class ChainlessChainApp {
     try {
       console.log('初始化LLM管理器...');
 
-      // 从llm-config.json加载配置
-      const llmConfig = getLLMConfig();
-      const provider = llmConfig.getProvider();
-      console.log(`[Main] 当前LLM提供商: ${provider}`);
+      // 🔥 检查是否在测试模式下使用Mock LLM服务
+      const { getTestModeConfig } = require('./test-mode-config');
+      const testModeConfig = getTestModeConfig();
 
-      const autoSelect = this.database.getSetting('llm.autoSelect');
+      if (testModeConfig.mockLLM) {
+        console.log('[Main] ✓ 测试模式：使用Mock LLM服务');
+        this.llmManager = testModeConfig.getMockLLMService();
 
-      // 临时禁用智能选择，尊重用户配置
-      // 如果启用了智能选择，自动选择最优LLM
-      // if (autoSelect && this.llmSelector) {
-      //   const selectedProvider = this.llmSelector.selectBestLLM({ taskType: 'chat' });
-      //   console.log(`[Main] 智能选择LLM: ${selectedProvider}`);
-      //   llmConfig.setProvider(selectedProvider);
-      // }
-      if (autoSelect && this.llmSelector) {
-        console.log(`[Main] 智能选择已禁用，使用配置的提供商: ${provider}`);
+        if (!this.llmManager) {
+          throw new Error('Mock LLM服务加载失败');
+        }
+
+        console.log('[Main] ✓ Mock LLM服务初始化成功');
+      } else {
+        // 从llm-config.json加载配置
+        const llmConfig = getLLMConfig();
+        const provider = llmConfig.getProvider();
+        console.log(`[Main] 当前LLM提供商: ${provider}`);
+
+        const autoSelect = this.database.getSetting('llm.autoSelect');
+
+        // 临时禁用智能选择，尊重用户配置
+        // 如果启用了智能选择，自动选择最优LLM
+        // if (autoSelect && this.llmSelector) {
+        //   const selectedProvider = this.llmSelector.selectBestLLM({ taskType: 'chat' });
+        //   console.log(`[Main] 智能选择LLM: ${selectedProvider}`);
+        //   llmConfig.setProvider(selectedProvider);
+        // }
+        if (autoSelect && this.llmSelector) {
+          console.log(`[Main] 智能选择已禁用，使用配置的提供商: ${provider}`);
+        }
+
+        // 使用LLMConfig的getManagerConfig方法获取完整配置
+        const managerConfig = llmConfig.getManagerConfig();
+        console.log(`[Main] LLM管理器配置:`, {
+          provider: managerConfig.provider,
+          model: managerConfig.model,
+          baseURL: managerConfig.baseURL,
+          apiKey: managerConfig.apiKey ? `${managerConfig.apiKey.substring(0, 8)}...` : '(未设置)'
+        });
+
+        this.llmManager = new LLMManager(managerConfig);
+        await this.llmManager.initialize();
+
+        console.log('LLM管理器初始化成功');
       }
-
-      // 使用LLMConfig的getManagerConfig方法获取完整配置
-      const managerConfig = llmConfig.getManagerConfig();
-      console.log(`[Main] LLM管理器配置:`, {
-        provider: managerConfig.provider,
-        model: managerConfig.model,
-        baseURL: managerConfig.baseURL,
-        apiKey: managerConfig.apiKey ? `${managerConfig.apiKey.substring(0, 8)}...` : '(未设置)'
-      });
-
-      this.llmManager = new LLMManager(managerConfig);
-      await this.llmManager.initialize();
-
-      console.log('LLM管理器初始化成功');
     } catch (error) {
       console.error('LLM管理器初始化失败:', error);
       // LLM初始化失败不影响应用启动
