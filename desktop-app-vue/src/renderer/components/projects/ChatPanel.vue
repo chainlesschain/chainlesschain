@@ -899,8 +899,10 @@ const startTaskPlanning = async (userInput) => {
 
           // 监听流式chunk事件
           const handleChunk = (chunkData) => {
+            console.log('[ChatPanel] 📥 收到 chunk 事件:', chunkData);
             if (!streamStarted) {
               streamStarted = true;
+              console.log('[ChatPanel] 🎬 流式输出开始');
               // 第一次收到chunk时，更新消息类型
               thinkingMsg.content = ''; // 清空初始文本
               thinkingMsg.metadata.type = 'streaming';
@@ -910,6 +912,7 @@ const startTaskPlanning = async (userInput) => {
             // 更新思考消息的内容
             thinkingMsg.content = fullResponse;
             messages.value = [...messages.value]; // 触发响应式更新
+            console.log('[ChatPanel] 📝 更新内容，长度:', fullResponse.length);
 
             nextTick(() => scrollToBottom());
           };
@@ -946,11 +949,13 @@ const startTaskPlanning = async (userInput) => {
           };
 
           // 注册事件监听器
+          console.log('[ChatPanel] 📡 注册流式事件监听器');
           window.electronAPI.project.on('project:aiChatStream-chunk', handleChunk);
           window.electronAPI.project.on('project:aiChatStream-complete', handleComplete);
           window.electronAPI.project.on('project:aiChatStream-error', handleError);
 
           // 调用流式API
+          console.log('[ChatPanel] 🚀 开始调用流式 API');
           window.electronAPI.project.aiChatStream({
             projectId: props.projectId,
             userMessage: prompt,
@@ -960,6 +965,7 @@ const startTaskPlanning = async (userInput) => {
             projectInfo: null,
             fileList: []
           }).catch((error) => {
+            console.error('[ChatPanel] ❌ API 调用失败:', error);
             handleError(error);
           });
         });
@@ -1208,12 +1214,15 @@ const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {
     }
 
     // 🎨 检测是否是PPT任务，如果是则自动生成PPT文件
+    console.log('[ChatPanel] 🔍 检测PPT任务，userInput:', userInput);
+    console.log('[ChatPanel] 🔍 plan.title:', plan.title);
     const isPPTTask = (userInput.toLowerCase().includes('ppt') ||
                        userInput.toLowerCase().includes('演示') ||
                        userInput.toLowerCase().includes('幻灯片') ||
                        userInput.toLowerCase().includes('powerpoint') ||
                        (plan.title && plan.title.toLowerCase().includes('ppt')));
 
+    console.log('[ChatPanel] 🔍 isPPTTask:', isPPTTask);
     if (isPPTTask) {
       console.log('[ChatPanel] 🎨 检测到PPT任务，开始生成PPT文件...');
 
@@ -1253,7 +1262,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 }
 \`\`\``;
 
-        const outlineResponse = await llmService.chatStream(outlinePrompt);
+        const outlineResponse = await llmService.chat(outlinePrompt);
         console.log('[ChatPanel] 📄 LLM生成的PPT大纲:', outlineResponse);
 
         // 提取JSON大纲

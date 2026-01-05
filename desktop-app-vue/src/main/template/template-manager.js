@@ -58,28 +58,45 @@ class ProjectTemplateManager {
       return str.charAt(0).toUpperCase() + str.slice(1);
     });
 
-    // 条件判断
-    this.handlebars.registerHelper('eq', (a, b) => {
+    // 条件判断 - 支持块级和内联使用
+    this.handlebars.registerHelper('eq', function(a, b, options) {
+      // 块级helper使用（{{#eq a b}}...{{/eq}}）
+      if (options && options.fn) {
+        return a === b ? options.fn(this) : options.inverse(this);
+      }
+      // 内联helper使用（{{eq a b}}）
       return a === b;
     });
 
-    // 小于或等于
-    this.handlebars.registerHelper('lte', (a, b) => {
+    // 小于或等于 - 支持块级和内联使用
+    this.handlebars.registerHelper('lte', function(a, b, options) {
+      if (options && options.fn) {
+        return a <= b ? options.fn(this) : options.inverse(this);
+      }
       return a <= b;
     });
 
-    // 大于或等于
-    this.handlebars.registerHelper('gte', (a, b) => {
+    // 大于或等于 - 支持块级和内联使用
+    this.handlebars.registerHelper('gte', function(a, b, options) {
+      if (options && options.fn) {
+        return a >= b ? options.fn(this) : options.inverse(this);
+      }
       return a >= b;
     });
 
-    // 小于
-    this.handlebars.registerHelper('lt', (a, b) => {
+    // 小于 - 支持块级和内联使用
+    this.handlebars.registerHelper('lt', function(a, b, options) {
+      if (options && options.fn) {
+        return a < b ? options.fn(this) : options.inverse(this);
+      }
       return a < b;
     });
 
-    // 大于
-    this.handlebars.registerHelper('gt', (a, b) => {
+    // 大于 - 支持块级和内联使用
+    this.handlebars.registerHelper('gt', function(a, b, options) {
+      if (options && options.fn) {
+        return a > b ? options.fn(this) : options.inverse(this);
+      }
       return a > b;
     });
 

@@ -5,7 +5,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { launchElectronApp, closeElectronApp, takeScreenshot } from './helpers';
+import { launchElectronApp, closeElectronApp, takeScreenshot, login } from './helpers';
 import {
   createAndOpenProject,
   createTestFile,
@@ -35,6 +35,10 @@ test.describe('项目详情页 - 核心功能测试', () => {
     const { app, window } = await launchElectronApp();
 
     try {
+      console.log('[Test] 第0步: 执行登录');
+      await login(window);
+      await window.waitForTimeout(1000);
+
       console.log('[Test] 第1步: 创建并打开项目');
       const project = await createAndOpenProject(window, {
         name: TEST_PROJECT_NAME,
@@ -189,6 +193,10 @@ test.describe('项目详情页 - 核心功能测试', () => {
     const { app, window } = await launchElectronApp();
 
     try {
+      console.log('[Test] 执行登录');
+      await login(window);
+      await window.waitForTimeout(1000);
+
       console.log('[Test] 导航到不存在的项目');
       const nonExistentId = 'non-existent-project-id-12345';
 
@@ -218,6 +226,10 @@ test.describe('项目详情页 - 核心功能测试', () => {
     const { app, window } = await launchElectronApp();
 
     try {
+      console.log('[Test] 执行登录');
+      await login(window);
+      await window.waitForTimeout(1000);
+
       console.log('[Test] 创建项目');
       const project = await createAndOpenProject(window, {
         name: '文件操作测试项目',
@@ -265,6 +277,10 @@ test.describe('项目详情页 - 核心功能测试', () => {
     const { app, window } = await launchElectronApp();
 
     try {
+      console.log('[Test] 执行登录');
+      await login(window);
+      await window.waitForTimeout(1000);
+
       console.log('[Test] 创建项目');
       const project = await createAndOpenProject(window, {
         name: 'UI交互测试项目',

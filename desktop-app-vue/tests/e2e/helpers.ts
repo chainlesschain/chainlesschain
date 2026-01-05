@@ -154,3 +154,113 @@ export async function takeScreenshot(
     path: `test-results/screenshots/${name}.png`,
   });
 }
+
+/**
+ * 执行登录
+ *
+ * @param window - Playwright Page对象
+ * @param options - 登录选项
+ * @returns Promise<void>
+ */
+export async function login(
+  window: Page,
+  options: {
+    username?: string;
+    password?: string;
+    pin?: string;
+    timeout?: number;
+  } = {}
+): Promise<void> {
+  const {
+    username = 'admin',
+    password = '123456',
+    pin = '123456',
+    timeout = 10000
+  } = options;
+
+  console.log('[Test Helper] 开始登录流程...');
+
+  try {
+    // 等待页面完全加载
+    await window.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {
+      console.log('[Test Helper] networkidle超时，继续...');
+    });
+    await window.waitForTimeout(2000); // 额外等待Vue渲染
+
+    // 等待登录页面加载
+    const isLoginPage = await window.evaluate(() => {
+      return window.location.hash.includes('/login');
+    });
+
+    if (!isLoginPage) {
+      console.log('[Test Helper] 当前不在登录页面，跳过登录');
+      return;
+    }
+
+    console.log('[Test Helper] 当前在登录页面，等待登录容器...');
+
+    // 等待登录容器出现（增加超时时间）
+    await window.waitForSelector('[data-testid="login-container"]', { timeout: 20000 });
+    console.log('[Test Helper] 登录页面已加载');
+
+    // 检查是否是U盾登录模式
+    const pinInput = await window.$('[data-testid="pin-input"]');
+
+    if (pinInput) {
+      // U盾登录模式
+      console.log('[Test Helper] 检测到U盾登录模式，使用PIN码登录');
+      await pinInput.fill(pin);
+      await window.waitForTimeout(300);
+    } else {
+      // 密码登录模式
+      console.log('[Test Helper] 使用用户名密码登录');
+
+      // 填写用户名
+      const usernameInput = await window.$('[data-testid="username-input"]');
+      if (!usernameInput) {
+        throw new Error('未找到用户名输入框');
+      }
+      await usernameInput.fill(username);
+      await window.waitForTimeout(300);
+
+      // 填写密码
+      const passwordInput = await window.$('[data-testid="password-input"]');
+      if (!passwordInput) {
+        throw new Error('未找到密码输入框');
+      }
+      await passwordInput.fill(password);
+      await window.waitForTimeout(300);
+    }
+
+    // 点击登录按钮
+    const loginButton = await window.$('[data-testid="login-button"]');
+    if (!loginButton) {
+      throw new Error('未找到登录按钮');
+    }
+
+    console.log('[Test Helper] 点击登录按钮...');
+    await loginButton.click();
+
+    // 等待登录完成（URL改变）
+    await window.waitForTimeout(2000);
+
+    // 检查是否登录成功（不再是登录页面）
+    const currentUrl = await window.evaluate(() => window.location.hash);
+
+    if (currentUrl.includes('/login')) {
+      // 可能登录失败，检查错误提示
+      const errorMessage = await window.$('.ant-message-error');
+      if (errorMessage) {
+        const errorText = await errorMessage.textContent();
+        throw new Error(`登录失败: ${errorText}`);
+      }
+      throw new Error('登录未成功，仍在登录页面');
+    }
+
+    console.log('[Test Helper] ✅ 登录成功！当前URL:', currentUrl);
+  } catch (error) {
+    console.error('[Test Helper] ❌ 登录失败:', error);
+    await takeScreenshot(window, 'login-error');
+    throw error;
+  }
+}
