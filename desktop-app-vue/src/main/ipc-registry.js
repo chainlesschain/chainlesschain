@@ -122,6 +122,12 @@ function registerAllIPC(dependencies) {
       console.log('[IPC Registry] ✓ RAG IPC registered (7 handlers)');
     }
 
+    // 后续输入意图分类器 (Follow-up Intent Classifier，3 handlers)
+    console.log('[IPC Registry] Registering Follow-up Intent Classifier IPC...');
+    const { registerIPCHandlers: registerFollowupIntentIPC } = require('./ai-engine/followup-intent-ipc');
+    registerFollowupIntentIPC(llmManager);
+    console.log('[IPC Registry] ✓ Follow-up Intent Classifier IPC registered (3 handlers)');
+
     // ============================================================
     // 第二阶段模块 (核心功能)
     // ============================================================

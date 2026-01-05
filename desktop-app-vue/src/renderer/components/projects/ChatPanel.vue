@@ -1,22 +1,22 @@
 <template>
-  <div class="chat-panel">
+  <div class="chat-panel" data-testid="chat-panel">
     <!-- 头部：上下文选择器 -->
-    <div class="chat-header">
+    <div class="chat-header" data-testid="chat-header">
       <h3 class="chat-title">
         <MessageOutlined />
         AI 助手
       </h3>
 
-      <a-radio-group v-model:value="contextMode" size="small" button-style="solid">
-        <a-radio-button value="project">
+      <a-radio-group v-model:value="contextMode" size="small" button-style="solid" data-testid="context-mode-selector">
+        <a-radio-button value="project" data-testid="context-mode-project">
           <FolderOutlined />
           项目
         </a-radio-button>
-        <a-radio-button value="file">
+        <a-radio-button value="file" data-testid="context-mode-file">
           <FileTextOutlined />
           文件
         </a-radio-button>
-        <a-radio-button value="global">
+        <a-radio-button value="global" data-testid="context-mode-global">
           <GlobalOutlined />
           全局
         </a-radio-button>
@@ -24,9 +24,9 @@
     </div>
 
     <!-- 消息列表区域 -->
-    <div ref="messagesContainer" class="messages-container">
+    <div ref="messagesContainer" class="messages-container" data-testid="messages-container">
       <!-- 空状态 -->
-      <div v-if="messages.length === 0 && !isLoading" class="empty-state">
+      <div v-if="messages.length === 0 && !isLoading" class="empty-state" data-testid="chat-empty-state">
         <div class="empty-icon">
           <RobotOutlined />
         </div>
@@ -35,7 +35,7 @@
       </div>
 
       <!-- 消息列表 -->
-      <div v-else class="messages-list" data-test="chat-messages-list">
+      <div v-else class="messages-list" data-test="chat-messages-list" data-testid="messages-list">
         <template v-for="(message, index) in messages" :key="message.id || index">
           <!-- 系统消息 -->
           <SystemMessage
@@ -97,7 +97,7 @@
     </div>
 
     <!-- 输入区域 -->
-    <div class="input-container">
+    <div class="input-container" data-testid="input-container">
       <div class="input-wrapper">
         <a-textarea
           v-model:value="userInput"
@@ -106,6 +106,7 @@
           :disabled="isLoading"
           @keydown="handleKeyDown"
           data-test="chat-input"
+          data-testid="chat-input"
         />
 
         <div class="input-actions">
@@ -115,6 +116,7 @@
               size="small"
               :disabled="messages.length === 0 || isLoading"
               @click="handleClearConversation"
+              data-testid="clear-conversation-button"
             >
               <DeleteOutlined />
             </a-button>
@@ -127,6 +129,7 @@
             :disabled="!userInput.trim()"
             @click="handleSendMessage"
             data-test="chat-send-button"
+            data-testid="chat-send-button"
           >
             <SendOutlined v-if="!isLoading" />
             发送
@@ -135,7 +138,7 @@
       </div>
 
       <!-- 上下文信息提示 -->
-      <div v-if="contextInfo" class="context-info">
+      <div v-if="contextInfo" class="context-info" data-testid="context-info">
         <InfoCircleOutlined />
         <span>{{ contextInfo }}</span>
       </div>
@@ -1201,6 +1204,128 @@ const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {
         console.log('[ChatPanel] 💾 任务计划消息已保存到数据库');
       } catch (error) {
         console.error('[ChatPanel] 保存任务计划消息失败:', error);
+      }
+    }
+
+    // 🎨 检测是否是PPT任务，如果是则自动生成PPT文件
+    const isPPTTask = (userInput.toLowerCase().includes('ppt') ||
+                       userInput.toLowerCase().includes('演示') ||
+                       userInput.toLowerCase().includes('幻灯片') ||
+                       userInput.toLowerCase().includes('powerpoint') ||
+                       (plan.title && plan.title.toLowerCase().includes('ppt')));
+
+    if (isPPTTask) {
+      console.log('[ChatPanel] 🎨 检测到PPT任务，开始生成PPT文件...');
+
+      // 显示"正在生成PPT"消息
+      const generatingPPTMsg = createSystemMessage('⏳ 正在生成PPT文件...', { type: 'info' });
+      messages.value.push(generatingPPTMsg);
+      await nextTick();
+      scrollToBottom();
+
+      try {
+        // 使用LLM将任务计划转换为PPT大纲
+        const outlinePrompt = `请根据以下任务计划，生成一个详细的PPT演示文稿大纲。
+
+任务标题: ${plan.title}
+任务摘要: ${plan.summary || ''}
+任务列表:
+${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.description}`).join('\n')}
+
+请生成一个包含标题、副标题和多个章节的PPT大纲，每个章节包含标题和要点列表。
+
+要求返回JSON格式：
+\`\`\`json
+{
+  "title": "PPT标题",
+  "subtitle": "副标题",
+  "sections": [
+    {
+      "title": "章节1标题",
+      "subsections": [
+        {
+          "title": "子章节标题",
+          "points": ["要点1", "要点2", "要点3"]
+        }
+      ]
+    }
+  ]
+}
+\`\`\``;
+
+        const outlineResponse = await llmService.chatStream(outlinePrompt);
+        console.log('[ChatPanel] 📄 LLM生成的PPT大纲:', outlineResponse);
+
+        // 提取JSON大纲
+        const jsonMatch = outlineResponse.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) ||
+                         outlineResponse.match(/(\{[\s\S]*\})/);
+
+        if (!jsonMatch) {
+          throw new Error('无法从LLM响应中提取PPT大纲JSON');
+        }
+
+        const outline = JSON.parse(jsonMatch[1]);
+        console.log('[ChatPanel] ✅ PPT大纲解析成功:', outline);
+
+        // 更新消息为"正在写入文件"
+        generatingPPTMsg.content = '⏳ 正在写入PPT文件...';
+        messages.value = [...messages.value];
+
+        // 获取项目路径
+        const project = await window.electronAPI.project.get(props.projectId);
+        const projectPath = project.project_path;
+        // 使用简单的路径拼接（跨平台兼容）
+        const fileName = `${outline.title || 'presentation'}.pptx`;
+        const outputPath = projectPath.endsWith('/') || projectPath.endsWith('\\')
+          ? projectPath + fileName
+          : projectPath + '/' + fileName;
+
+        // 调用PPT生成API
+        const result = await window.electronAPI.aiEngine.generatePPT({
+          outline,
+          theme: 'business',
+          author: '用户',
+          outputPath
+        });
+
+        if (result.success) {
+          console.log('[ChatPanel] ✅ PPT文件生成成功:', result.fileName);
+
+          // 移除"正在生成"消息
+          const genPPTIndex = messages.value.findIndex(m => m.id === generatingPPTMsg.id);
+          if (genPPTIndex !== -1) {
+            messages.value.splice(genPPTIndex, 1);
+          }
+
+          // 显示成功消息
+          const successMsg = createSystemMessage(
+            `✅ PPT文件已生成: ${result.fileName}\n📁 保存位置: ${result.path}\n📊 幻灯片数量: ${result.slideCount}`,
+            { type: 'success' }
+          );
+          messages.value.push(successMsg);
+
+          antMessage.success(`PPT文件已生成: ${result.fileName}`);
+        } else {
+          throw new Error(result.error || '生成PPT失败');
+        }
+
+      } catch (error) {
+        console.error('[ChatPanel] ❌ 生成PPT文件失败:', error);
+
+        // 移除"正在生成"消息
+        const genPPTIndex = messages.value.findIndex(m => m.id === generatingPPTMsg.id);
+        if (genPPTIndex !== -1) {
+          messages.value.splice(genPPTIndex, 1);
+        }
+
+        // 显示错误消息
+        const errorMsg = createSystemMessage(
+          `⚠️ PPT文件生成失败: ${error.message}\n📋 任务计划已生成，您可以稍后手动创建PPT`,
+          { type: 'warning' }
+        );
+        messages.value.push(errorMsg);
+
+        antMessage.warning('PPT文件生成失败，但任务计划已完成');
       }
     }
 

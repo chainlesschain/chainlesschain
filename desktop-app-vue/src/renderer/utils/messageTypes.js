@@ -68,6 +68,57 @@ export function createSystemMessage(content, metadata = {}) {
 }
 
 /**
+ * 创建后续输入意图系统消息
+ * @param {string} intent - 意图类型 (CONTINUE_EXECUTION, MODIFY_REQUIREMENT, CLARIFICATION, CANCEL_TASK)
+ * @param {string} userInput - 用户输入
+ * @param {Object} options - 额外选项
+ * @param {string} options.reason - 判断理由
+ * @param {string} options.extractedInfo - 提取的关键信息
+ * @returns {Object} 系统消息对象
+ */
+export function createIntentSystemMessage(intent, userInput, options = {}) {
+  const { reason, extractedInfo } = options;
+
+  const messages = {
+    CONTINUE_EXECUTION: {
+      content: '✅ 收到，继续执行任务...',
+      icon: '✅'
+    },
+    MODIFY_REQUIREMENT: {
+      content: `⚠️ 检测到需求变更: ${extractedInfo || userInput}\n正在重新规划任务...`,
+      icon: '⚠️'
+    },
+    CLARIFICATION: {
+      content: `📝 已记录补充信息: ${extractedInfo || userInput}\n继续执行任务...`,
+      icon: '📝'
+    },
+    CANCEL_TASK: {
+      content: `❌ 任务已取消`,
+      icon: '❌'
+    }
+  };
+
+  const messageConfig = messages[intent] || {
+    content: '⚠️ 未知意图，请重新表述',
+    icon: '⚠️'
+  };
+
+  return {
+    id: `msg_${Date.now()}_system`,
+    role: MessageRole.SYSTEM,
+    type: MessageType.SYSTEM,
+    content: messageConfig.content,
+    timestamp: Date.now(),
+    metadata: {
+      intent,
+      reason,
+      userInput,
+      extractedInfo
+    }
+  };
+}
+
+/**
  * 创建意图识别消息
  */
 export function createIntentRecognitionMessage(intentResult) {

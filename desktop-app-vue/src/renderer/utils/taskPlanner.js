@@ -198,7 +198,7 @@ export class TaskPlanner {
 【提示】如果无法生成选项，可以省略options字段，系统会回退到普通文本框。`;
 
     try {
-      console.log('[TaskPlanner] 开始调用LLM，设置10分钟超时...');
+      console.log('[TaskPlanner] 开始调用LLM（流式），设置10分钟超时...');
 
       // 🔥 添加超时机制（10分钟 = 600秒）
       const timeoutPromise = new Promise((_, reject) => {
@@ -206,11 +206,11 @@ export class TaskPlanner {
       });
 
       const response = await Promise.race([
-        llmService.chat(prompt),
+        llmService.chatStream(prompt),
         timeoutPromise
       ]);
 
-      console.log('[TaskPlanner] ✅ LLM响应成功，长度:', response?.length || 0);
+      console.log('[TaskPlanner] ✅ LLM响应成功（流式），长度:', response?.length || 0);
 
       // 尝试提取JSON
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -414,8 +414,8 @@ ${interviewAnswers}
 }`;
 
     try {
-      const response = await llmService.chat(prompt);
-      console.log('[TaskPlanner] LLM响应:', response);
+      const response = await llmService.chatStream(prompt);
+      console.log('[TaskPlanner] LLM响应（流式）:', response);
       console.log('[TaskPlanner] 响应长度:', response?.length || 0);
 
       if (!response || response.length === 0) {
