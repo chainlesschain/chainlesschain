@@ -267,9 +267,36 @@ const renderMarkdown = (content) => {
  */
 const formatTime = (timestamp) => {
   if (!timestamp) return '';
-  return formatDistanceToNow(new Date(timestamp), {
-    addSuffix: true,
-    locale: zhCN,
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
+
+  // 小于1分钟
+  if (diff < 60000) {
+    return '刚刚';
+  }
+
+  // 小于1小时
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
+
+  // 小于24小时
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
+  }
+
+  // 今天
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // 超过今天
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 };
 
