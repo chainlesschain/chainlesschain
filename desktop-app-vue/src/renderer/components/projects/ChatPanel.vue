@@ -968,7 +968,7 @@ const startTaskPlanning = async (userInput) => {
     messages.value.push(userMessage);
 
     // 2. 添加"正在分析"系统消息
-    const analyzingMsg = createSystemMessage('🤔 正在分析您的需求...', { type: 'loading' });
+    const analyzingMsg = createSystemMessage('🤔 正在分析您的需求，请稍候...（最长可能需要10分钟）', { type: 'loading' });
     messages.value.push(analyzingMsg);
 
     await nextTick();
@@ -977,6 +977,10 @@ const startTaskPlanning = async (userInput) => {
     // 3. 调用LLM分析需求
     const llmService = {
       chat: async (prompt) => {
+        // 更新分析消息显示 LLM 正在思考
+        analyzingMsg.content = '🤖 AI 正在思考中...';
+        messages.value = [...messages.value]; // 触发响应式更新
+
         const response = await window.electronAPI.project.aiChat({
           projectId: props.projectId,
           userMessage: prompt,
@@ -990,11 +994,20 @@ const startTaskPlanning = async (userInput) => {
     const analysis = await TaskPlanner.analyzeRequirements(userInput, projectType, llmService);
     console.log('[ChatPanel] ✅ 需求分析完成:', analysis);
 
-    // 移除"正在分析"消息
-    const analyzingIndex = messages.value.findIndex(m => m.id === analyzingMsg.id);
-    if (analyzingIndex !== -1) {
-      messages.value.splice(analyzingIndex, 1);
-    }
+    // 更新"正在分析"消息为完成状态
+    analyzingMsg.content = '✅ 需求分析完成';
+    analyzingMsg.metadata.type = 'success';
+    messages.value = [...messages.value]; // 触发响应式更新
+
+    await nextTick();
+
+    // 短暂延迟后移除分析消息
+    setTimeout(() => {
+      const analyzingIndex = messages.value.findIndex(m => m.id === analyzingMsg.id);
+      if (analyzingIndex !== -1) {
+        messages.value.splice(analyzingIndex, 1);
+      }
+    }, 1000);
 
     // 4. 如果需求完整，直接生成计划
     if (analysis.isComplete && analysis.confidence > 0.7) {
@@ -1018,6 +1031,7 @@ const startTaskPlanning = async (userInput) => {
     // 5. 如果需要采访，添加采访消息
     if (analysis.needsInterview && analysis.suggestedQuestions && analysis.suggestedQuestions.length > 0) {
       console.log('[ChatPanel] 需求不完整，启动采访模式，问题数:', analysis.suggestedQuestions.length);
+      console.log('[ChatPanel] 问题列表:', analysis.suggestedQuestions);
 
       // 创建采访消息
       const interviewMsg = createInterviewMessage(analysis.suggestedQuestions, 0);
@@ -1025,7 +1039,14 @@ const startTaskPlanning = async (userInput) => {
       interviewMsg.metadata.userInput = userInput;
       interviewMsg.metadata.analysis = analysis;
 
+      console.log('[ChatPanel] 创建的采访消息:', interviewMsg);
+      console.log('[ChatPanel] 添加前 messages 数量:', messages.value.length);
+
       messages.value.push(interviewMsg);
+
+      console.log('[ChatPanel] 添加后 messages 数量:', messages.value.length);
+      console.log('[ChatPanel] 最后一条消息类型:', messages.value[messages.value.length - 1]?.type);
+      console.log('[ChatPanel] 最后一条消息内容:', messages.value[messages.value.length - 1]);
 
       await nextTick();
       scrollToBottom();

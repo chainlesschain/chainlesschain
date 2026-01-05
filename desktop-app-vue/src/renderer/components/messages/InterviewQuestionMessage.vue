@@ -69,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import {
   QuestionCircleOutlined,
   CheckCircleOutlined,
@@ -89,6 +89,18 @@ const currentAnswer = ref('');
 const questions = computed(() => props.message.metadata?.questions || []);
 const currentIndex = computed(() => props.message.metadata?.currentIndex || 0);
 const answers = computed(() => props.message.metadata?.answers || {});
+
+// 添加调试日志
+onMounted(() => {
+  console.log('[InterviewQuestionMessage] 组件已挂载');
+  console.log('[InterviewQuestionMessage] message:', props.message);
+  console.log('[InterviewQuestionMessage] questions:', questions.value);
+  console.log('[InterviewQuestionMessage] currentIndex:', currentIndex.value);
+});
+
+watch(questions, (newVal) => {
+  console.log('[InterviewQuestionMessage] questions 变化:', newVal);
+}, { immediate: true });
 
 const currentQuestion = computed(() => {
   return questions.value[currentIndex.value] || null;

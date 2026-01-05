@@ -3,8 +3,8 @@
  * 测试主进程与渲染进程之间的交互式任务规划通信
  */
 
-const { describe, it, expect, beforeEach, afterEach, vi } = require('vitest');
-const { EventEmitter } = require('events');
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { EventEmitter } from 'events';
 
 // Mock Electron modules
 const mockIpcMain = {
@@ -27,15 +27,17 @@ vi.mock('electron', () => ({
   BrowserWindow: mockBrowserWindow
 }));
 
-// Import after mocking
-const InteractivePlanningIPC = require('@main/ai-engine/interactive-planning-ipc');
-
 describe('InteractivePlanningIPC', () => {
+  let InteractivePlanningIPC;
   let ipcHandler;
   let mockPlanner;
   let mockEvent;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // 动态导入 (在mock之后)
+    const module = await import('../../src/main/ai-engine/interactive-planning-ipc.js');
+    InteractivePlanningIPC = module.default || module;
+
     // 创建mock planner
     mockPlanner = new EventEmitter();
     mockPlanner.startPlanSession = vi.fn();
