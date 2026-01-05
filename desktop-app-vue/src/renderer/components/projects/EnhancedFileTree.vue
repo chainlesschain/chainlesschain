@@ -556,7 +556,7 @@ const handleCollapseAll = () => {
 
 // 新建文件
 const handleNewFile = async () => {
-  let fileName = 'newfile.txt';
+  let fileName = 'newfile.md';
 
   Modal.confirm({
     title: '新建文件',
