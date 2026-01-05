@@ -141,27 +141,23 @@
 
       <!-- PowerPoint预览 -->
       <div v-else-if="fileType === 'powerpoint'" class="office-preview ppt-preview">
-        <div v-if="officeContent && officeContent.slides" class="ppt-slides">
-          <a-carousel arrows>
-            <template #prevArrow>
-              <div class="custom-slick-arrow" style="left: 10px; z-index: 1">
-                <LeftCircleOutlined />
-              </div>
-            </template>
-            <template #nextArrow>
-              <div class="custom-slick-arrow" style="right: 10px">
-                <RightCircleOutlined />
-              </div>
-            </template>
-            <div v-for="(slide, index) in officeContent.slides" :key="index" class="ppt-slide">
-              <h3>{{ slide.title || `幻灯片 ${index + 1}` }}</h3>
-              <div v-if="slide.content" class="slide-content">
-                <div v-for="(item, itemIndex) in slide.content" :key="itemIndex" class="slide-item">
-                  {{ item }}
-                </div>
-              </div>
-            </div>
-          </a-carousel>
+        <!-- 🔥 改进：使用友好的提示替代不完整的预览 -->
+        <div class="ppt-preview-tip">
+          <FilePptOutlined class="ppt-icon" />
+          <h3>PowerPoint 演示文稿</h3>
+          <p class="file-info">{{ file?.file_name }}</p>
+          <p class="tip-text">浏览器暂不支持PPT完整预览</p>
+          <p class="tip-text">请使用PowerPoint或WPS打开以查看完整内容</p>
+          <a-space size="large" style="margin-top: 24px">
+            <a-button type="primary" size="large" @click="handleOpenExternal">
+              <ExportOutlined />
+              用PowerPoint打开
+            </a-button>
+            <a-button size="large" @click="handleDownload">
+              <DownloadOutlined />
+              下载文件
+            </a-button>
+          </a-space>
         </div>
       </div>
 
@@ -211,6 +207,7 @@ import { message } from 'ant-design-vue';
 import {
   FileOutlined,
   FileUnknownOutlined,
+  FilePptOutlined,
   ExportOutlined,
   DownloadOutlined,
   ZoomInOutlined,
@@ -1402,6 +1399,43 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   background: #f0f0f0;
+}
+
+/* 🔥 新增：PPT预览提示样式 */
+.ppt-preview-tip {
+  text-align: center;
+  padding: 60px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  max-width: 500px;
+}
+
+.ppt-preview-tip .ppt-icon {
+  font-size: 80px;
+  color: #d35400;
+  margin-bottom: 24px;
+}
+
+.ppt-preview-tip h3 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 8px;
+}
+
+.ppt-preview-tip .file-info {
+  font-size: 14px;
+  color: #8c8c8c;
+  margin-bottom: 24px;
+  word-break: break-all;
+}
+
+.ppt-preview-tip .tip-text {
+  font-size: 14px;
+  color: #595959;
+  margin: 8px 0;
+  line-height: 1.6;
 }
 
 .ppt-slide {
