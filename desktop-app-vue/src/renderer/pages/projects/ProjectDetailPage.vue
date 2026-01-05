@@ -485,7 +485,7 @@ const fileTreeKey = ref(0); // 文件树刷新计数器
 // 新增状态
 const viewMode = ref('auto'); // 'auto' | 'edit' | 'preview'
 const showChatPanel = ref(true); // 对话面板始终显示在中间
-const showEditorPanel = ref(true); // 默认显示编辑器面板（右侧）
+const showEditorPanel = ref(false); // 默认隐藏编辑器面板（右侧），用户可通过按钮打开
 const fileContent = ref(''); // 文件内容
 
 // 面板宽度状态
