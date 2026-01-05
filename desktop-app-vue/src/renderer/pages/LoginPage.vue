@@ -1,6 +1,6 @@
 <template>
-  <div class="login-container">
-    <a-card class="login-card">
+  <div class="login-container" data-testid="login-container">
+    <a-card class="login-card" data-testid="login-card">
       <!-- 设置按钮 -->
       <div class="settings-trigger">
         <a-tooltip title="系统设置" placement="left">
@@ -57,6 +57,7 @@
             :maxlength="6"
             :disabled="loading"
             @keypress.enter="handleLogin"
+            data-testid="pin-input"
           >
             <template #prefix>
               <LockOutlined />
@@ -76,6 +77,7 @@
               placeholder="输入用户名"
               :disabled="loading"
               @keypress.enter="handleLogin"
+              data-testid="username-input"
             >
               <template #prefix>
                 <UserOutlined />
@@ -92,6 +94,7 @@
               placeholder="输入密码"
               :disabled="loading"
               @keypress.enter="handleLogin"
+              data-testid="password-input"
             >
               <template #prefix>
                 <LockOutlined />
@@ -107,6 +110,7 @@
           block
           :loading="loading"
           @click="handleLogin"
+          data-testid="login-button"
         >
           {{ loading ? '验证中...' : '登录' }}
         </a-button>

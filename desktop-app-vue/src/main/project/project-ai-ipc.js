@@ -1121,18 +1121,24 @@ ${currentFile ? `当前文件: ${currentFile}` : ''}
 
       // 8. 定义chunk回调函数
       const onChunk = async (chunk) => {
+        console.log('[Main] 📥 收到 LLM chunk:', JSON.stringify(chunk).substring(0, 100));
+
         // 处理chunk
         const shouldContinue = await streamController.processChunk(chunk);
         if (!shouldContinue) {
+          console.log('[Main] ⏸️  Stream controller 指示停止');
           return false;
         }
 
         // 提取chunk内容
         const chunkContent = chunk.content || chunk.text || chunk.delta?.content || '';
+        console.log('[Main] 📝 提取的 chunk 内容长度:', chunkContent.length);
+
         if (chunkContent) {
           fullResponse += chunkContent;
 
           // 发送chunk给前端
+          console.log('[Main] 📤 发送 chunk 到前端，完整内容长度:', fullResponse.length);
           currentWindow.webContents.send('project:aiChatStream-chunk', {
             projectId,
             messageId,
@@ -1197,9 +1203,10 @@ ${currentFile ? `当前文件: ${currentFile}` : ''}
 
       // 10. 调用LLM流式对话
       try {
+        console.log('[Main] 🚀 开始调用 llmManager.chatStream');
         const llmResult = await llmManager.chatStream(messages, onChunk, chatOptions);
 
-        console.log('[Main] 流式对话完成');
+        console.log('[Main] ✅ 流式对话完成，总长度:', fullResponse.length);
 
         // 11. 通知前端完成
         streamController.complete({

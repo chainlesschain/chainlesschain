@@ -4,7 +4,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { launchElectronApp, closeElectronApp, callIPC } from './helpers';
+import { launchElectronApp, closeElectronApp, callIPC, login } from './helpers';
 
 test.describe('项目详情页 - 基础功能验证', () => {
   test('验证应用启动和基本UI', async () => {
@@ -14,6 +14,11 @@ test.describe('项目详情页 - 基础功能验证', () => {
       console.log('[Test] Step 1: 验证应用已启动');
       const url = await window.evaluate(() => window.location.href);
       console.log('[Test] 当前URL:', url);
+
+      // 登录
+      console.log('[Test] Step 1.5: 执行登录');
+      await login(window);
+      await window.waitForTimeout(1000);
 
       // 截图查看当前状态
       await window.screenshot({ path: 'test-results/00-app-started.png' });
