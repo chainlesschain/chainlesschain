@@ -103,7 +103,9 @@ watch(questions, (newVal) => {
 }, { immediate: true });
 
 const currentQuestion = computed(() => {
-  return questions.value[currentIndex.value] || null;
+  const question = questions.value[currentIndex.value] || null;
+  console.log('[InterviewQuestionMessage] currentQuestion computed:', question);
+  return question;
 });
 
 const answeredQuestions = computed(() => {
@@ -118,7 +120,9 @@ const answeredQuestions = computed(() => {
 });
 
 const isCompleted = computed(() => {
-  return currentIndex.value >= questions.value.length;
+  const completed = currentIndex.value >= questions.value.length;
+  console.log('[InterviewQuestionMessage] isCompleted:', completed, 'currentIndex:', currentIndex.value, 'questions.length:', questions.value.length);
+  return completed;
 });
 
 const handleSubmitAnswer = () => {
@@ -135,11 +139,7 @@ const handleSubmitAnswer = () => {
   });
 
   currentAnswer.value = '';
-
-  // 如果是最后一个问题，触发完成事件
-  if (currentIndex.value >= questions.value.length - 1) {
-    emit('complete');
-  }
+  // 不在这里触发 complete，让 ChatPanel 统一检查
 };
 
 const handleSkip = () => {
@@ -151,11 +151,7 @@ const handleSkip = () => {
   });
 
   currentAnswer.value = '';
-
-  // 如果是最后一个问题，触发完成事件
-  if (currentIndex.value >= questions.value.length - 1) {
-    emit('complete');
-  }
+  // 不在这里触发 complete，让 ChatPanel 统一检查
 };
 </script>
 

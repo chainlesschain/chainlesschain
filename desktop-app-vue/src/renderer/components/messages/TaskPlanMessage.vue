@@ -1,11 +1,11 @@
 <template>
-  <div class="task-plan-message">
+  <div class="task-plan-message" data-test="task-plan-message">
     <div class="plan-header">
       <FileTextOutlined class="plan-icon" />
       <span class="plan-title">{{ message.content }}</span>
     </div>
 
-    <div v-if="plan" class="plan-content">
+    <div v-if="plan" class="plan-content" data-test="plan-content">
       <!-- 计划标题和摘要 -->
       <div class="plan-summary-section">
         <h3>{{ plan.title || '任务计划' }}</h3>
@@ -13,12 +13,13 @@
       </div>
 
       <!-- 任务步骤 -->
-      <div v-if="plan.tasks && plan.tasks.length > 0" class="plan-tasks">
+      <div v-if="plan.tasks && plan.tasks.length > 0" class="plan-tasks" data-test="plan-tasks">
         <h4>📋 任务步骤</h4>
         <div
           v-for="(task, index) in plan.tasks"
           :key="task.id || index"
           class="task-item"
+          :data-test="`plan-task-${index}`"
         >
           <div class="task-number">{{ index + 1 }}</div>
           <div class="task-details">
@@ -53,16 +54,16 @@
       </div>
 
       <!-- 操作按钮 -->
-      <div v-if="status === 'pending'" class="plan-actions">
-        <a-button @click="handleCancel" size="large">
+      <div v-if="status === 'pending'" class="plan-actions" data-test="plan-actions">
+        <a-button @click="handleCancel" size="large" data-test="plan-cancel-button">
           <CloseOutlined />
           取消
         </a-button>
-        <a-button @click="handleModify" size="large">
+        <a-button @click="handleModify" size="large" data-test="plan-modify-button">
           <EditOutlined />
           修改计划
         </a-button>
-        <a-button type="primary" @click="handleConfirm" size="large">
+        <a-button type="primary" @click="handleConfirm" size="large" data-test="plan-confirm-button">
           <CheckOutlined />
           确认执行
         </a-button>
