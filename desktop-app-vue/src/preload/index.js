@@ -684,6 +684,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // AI对话 - 支持文件操作
     aiChat: (chatData) => ipcRenderer.invoke('project:aiChat', removeUndefined(chatData)),
 
+    // AI对话（流式） - 支持文件操作和流式输出
+    aiChatStream: (chatData) => ipcRenderer.invoke('project:aiChatStream', removeUndefined(chatData)),
+
     // 路径解析
     resolvePath: (relativePath) => ipcRenderer.invoke('project:resolve-path', relativePath),
 

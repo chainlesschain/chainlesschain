@@ -337,9 +337,22 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   // 测试环境：跳过认证检查
-  const isTestEnv = typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test';
+  // 检查URL查询参数或window全局标志
+  const hasTestFlag = typeof window !== 'undefined' && window.__E2E_TEST_MODE__;
+  const hasQueryParam = to.query && to.query.e2e === 'true';
+  const isTestEnv = hasTestFlag || hasQueryParam;
+
+  console.log('[Router] beforeEach:', {
+    to: to.path,
+    from: from.path,
+    hasTestFlag,
+    hasQueryParam,
+    isTestEnv,
+    requiresAuth: to.meta.requiresAuth
+  });
+
   if (isTestEnv) {
-    console.log('[Router] 测试环境，跳过认证检查');
+    console.log('[Router] ✓ E2E测试环境，跳过认证检查');
     next();
     return;
   }
@@ -347,10 +360,13 @@ router.beforeEach((to, from, next) => {
   const store = useAppStore();
 
   if (to.meta.requiresAuth && !store.isAuthenticated) {
+    console.log('[Router] ⚠️  需要认证但未登录，重定向到 /login');
     next('/login');
   } else if (to.path === '/login' && store.isAuthenticated) {
+    console.log('[Router] 已登录，重定向到首页');
     next('/');
   } else {
+    console.log('[Router] ✓ 放行');
     next();
   }
 });

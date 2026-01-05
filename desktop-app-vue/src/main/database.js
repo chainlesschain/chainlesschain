@@ -1879,6 +1879,35 @@ class DatabaseManager {
         this.rebuildProjectTemplatesTable();
       }
 
+      // ==================== 任务规划消息支持迁移 (V5) ====================
+      console.log('[Database] 执行任务规划消息支持迁移 (V5)...');
+
+      // 为 messages 表添加 message_type 和 metadata 字段
+      const messagesInfoV5 = this.db.prepare("PRAGMA table_info(messages)").all();
+      if (!messagesInfoV5.some(col => col.name === 'message_type')) {
+        console.log('[Database] 添加 messages.message_type 列');
+        // 默认为 'ASSISTANT'，与原有的 role='assistant' 消息兼容
+        this.db.run("ALTER TABLE messages ADD COLUMN message_type TEXT DEFAULT 'ASSISTANT'");
+
+        // 迁移现有数据：根据role设置message_type
+        console.log('[Database] 迁移现有消息的 message_type...');
+        this.db.run(`
+          UPDATE messages
+          SET message_type = CASE
+            WHEN role = 'user' THEN 'USER'
+            WHEN role = 'assistant' THEN 'ASSISTANT'
+            WHEN role = 'system' THEN 'SYSTEM'
+            ELSE 'ASSISTANT'
+          END
+          WHERE message_type = 'ASSISTANT'
+        `);
+      }
+
+      if (!messagesInfoV5.some(col => col.name === 'metadata')) {
+        console.log('[Database] 添加 messages.metadata 列');
+        this.db.run('ALTER TABLE messages ADD COLUMN metadata TEXT');
+      }
+
       console.log('[Database] 数据库迁移完成');
     } catch (error) {
       console.error('[Database] 数据库迁移失败:', error);
@@ -4623,10 +4652,23 @@ class DatabaseManager {
     const id = messageData.id || `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const now = Date.now();
 
+    // 确定message_type：优先使用messageData.type，否则根据role推断
+    let messageType = messageData.type || messageData.message_type;
+    if (!messageType) {
+      // 向后兼容：根据role推断message_type
+      if (messageData.role === 'user') messageType = 'USER';
+      else if (messageData.role === 'assistant') messageType = 'ASSISTANT';
+      else if (messageData.role === 'system') messageType = 'SYSTEM';
+      else messageType = 'ASSISTANT'; // 默认值
+    }
+
+    // 序列化metadata为JSON字符串
+    const metadataStr = messageData.metadata ? JSON.stringify(messageData.metadata) : null;
+
     const stmt = this.db.prepare(`
       INSERT INTO messages (
-        id, conversation_id, role, content, timestamp, tokens
-      ) VALUES (?, ?, ?, ?, ?, ?)
+        id, conversation_id, role, content, timestamp, tokens, message_type, metadata
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -4635,7 +4677,9 @@ class DatabaseManager {
       messageData.role,
       messageData.content,
       messageData.timestamp || now,
-      messageData.tokens || null
+      messageData.tokens || null,
+      messageType,
+      metadataStr
     );
 
     this.saveToFile();
@@ -4682,7 +4726,27 @@ class DatabaseManager {
     }
 
     const stmt = this.db.prepare(query);
-    const messages = stmt.all(...params);
+    const rawMessages = stmt.all(...params);
+
+    // 反序列化metadata字段
+    const messages = rawMessages.map(msg => {
+      if (msg.metadata) {
+        try {
+          msg.metadata = JSON.parse(msg.metadata);
+        } catch (e) {
+          console.warn('[Database] 无法解析消息metadata:', msg.id, e);
+          msg.metadata = null;
+        }
+      }
+      // 向后兼容：如果没有message_type，根据role设置
+      if (!msg.message_type) {
+        if (msg.role === 'user') msg.message_type = 'USER';
+        else if (msg.role === 'assistant') msg.message_type = 'ASSISTANT';
+        else if (msg.role === 'system') msg.message_type = 'SYSTEM';
+        else msg.message_type = 'ASSISTANT';
+      }
+      return msg;
+    });
 
     // 获取总消息数
     const countStmt = this.db.prepare('SELECT COUNT(*) as total FROM messages WHERE conversation_id = ?');

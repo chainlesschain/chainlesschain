@@ -798,14 +798,33 @@ const loadConversation = async () => {
         const loadedMessages = await window.electronAPI.conversation.getMessages(conversation.id);
 
         // 提取消息数组（API返回 {success: true, data: [...]} 格式）
+        let rawMessages = [];
         if (loadedMessages && loadedMessages.success && Array.isArray(loadedMessages.data)) {
-          messages.value = loadedMessages.data;
+          rawMessages = loadedMessages.data;
         } else if (Array.isArray(loadedMessages)) {
           // 兼容直接返回数组的情况
-          messages.value = loadedMessages;
-        } else {
-          messages.value = [];
+          rawMessages = loadedMessages;
         }
+
+        // 🔄 恢复特殊类型的消息（INTERVIEW、TASK_PLAN）
+        messages.value = rawMessages.map(msg => {
+          // 如果有message_type字段，使用它来恢复消息类型
+          if (msg.message_type) {
+            return {
+              ...msg,
+              type: msg.message_type, // 将message_type映射到type字段
+            };
+          }
+          // 向后兼容：没有message_type的旧消息
+          return msg;
+        });
+
+        console.log('[ChatPanel] 💾 从数据库恢复了', messages.value.length, '条消息');
+        console.log('[ChatPanel] 消息类型分布:', messages.value.reduce((acc, m) => {
+          const type = m.type || m.message_type || 'unknown';
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {}));
 
         emit('conversationLoaded', conversation);
 
@@ -976,20 +995,82 @@ const startTaskPlanning = async (userInput) => {
     await nextTick();
     scrollToBottom();
 
-    // 3. 调用LLM分析需求
+    // 3. 调用LLM分析需求（流式）
     const llmService = {
       chat: async (prompt) => {
-        // 更新分析消息显示 LLM 正在思考
-        analyzingMsg.content = '🤖 AI 正在思考中...';
-        messages.value = [...messages.value]; // 触发响应式更新
+        // 创建一个流式思考消息
+        const thinkingMsg = createSystemMessage('💭 AI 思考中...', { type: 'thinking' });
+        messages.value.push(thinkingMsg);
+        await nextTick();
+        scrollToBottom();
 
-        const response = await window.electronAPI.project.aiChat({
-          projectId: props.projectId,
-          userMessage: prompt,
-          conversationId: currentConversation.value?.id,
-          context: contextMode.value,
+        return new Promise((resolve, reject) => {
+          let fullResponse = '';
+          let streamStarted = false;
+
+          // 监听流式chunk事件
+          const handleChunk = (chunkData) => {
+            if (!streamStarted) {
+              streamStarted = true;
+              // 第一次收到chunk时，更新消息类型
+              thinkingMsg.content = ''; // 清空初始文本
+              thinkingMsg.metadata.type = 'streaming';
+            }
+
+            fullResponse = chunkData.fullContent;
+            // 更新思考消息的内容
+            thinkingMsg.content = fullResponse;
+            messages.value = [...messages.value]; // 触发响应式更新
+
+            nextTick(() => scrollToBottom());
+          };
+
+          // 监听流式完成事件
+          const handleComplete = (result) => {
+            // 移除临时监听器
+            window.electronAPI.project.off('project:aiChatStream-chunk', handleChunk);
+            window.electronAPI.project.off('project:aiChatStream-complete', handleComplete);
+            window.electronAPI.project.off('project:aiChatStream-error', handleError);
+
+            // 移除思考消息
+            const thinkingIndex = messages.value.findIndex(m => m.id === thinkingMsg.id);
+            if (thinkingIndex !== -1) {
+              messages.value.splice(thinkingIndex, 1);
+            }
+
+            resolve(fullResponse);
+          };
+
+          // 监听流式错误事件
+          const handleError = (error) => {
+            // 移除临时监听器
+            window.electronAPI.project.off('project:aiChatStream-chunk', handleChunk);
+            window.electronAPI.project.off('project:aiChatStream-complete', handleComplete);
+            window.electronAPI.project.off('project:aiChatStream-error', handleError);
+
+            // 更新思考消息为错误状态
+            thinkingMsg.content = `❌ LLM调用失败: ${error.message}`;
+            thinkingMsg.metadata.type = 'error';
+            messages.value = [...messages.value];
+
+            reject(new Error(error.message));
+          };
+
+          // 注册事件监听器
+          window.electronAPI.project.on('project:aiChatStream-chunk', handleChunk);
+          window.electronAPI.project.on('project:aiChatStream-complete', handleComplete);
+          window.electronAPI.project.on('project:aiChatStream-error', handleError);
+
+          // 调用流式API
+          window.electronAPI.project.aiChatStream({
+            projectId: props.projectId,
+            userMessage: prompt,
+            conversationId: currentConversation.value?.id,
+            context: contextMode.value,
+          }).catch((error) => {
+            handleError(error);
+          });
         });
-        return response.conversationResponse || '';
       }
     };
 
@@ -1050,6 +1131,23 @@ const startTaskPlanning = async (userInput) => {
       console.log('[ChatPanel] 最后一条消息类型:', messages.value[messages.value.length - 1]?.type);
       console.log('[ChatPanel] 最后一条消息内容:', messages.value[messages.value.length - 1]);
 
+      // 💾 保存采访消息到数据库
+      if (currentConversation.value && currentConversation.value.id) {
+        try {
+          await window.electronAPI.conversation.createMessage({
+            conversation_id: currentConversation.value.id,
+            role: 'system',
+            content: interviewMsg.content,
+            timestamp: interviewMsg.timestamp,
+            type: MessageType.INTERVIEW,
+            metadata: interviewMsg.metadata
+          });
+          console.log('[ChatPanel] 💾 采访消息已保存到数据库');
+        } catch (error) {
+          console.error('[ChatPanel] 保存采访消息失败:', error);
+        }
+      }
+
       await nextTick();
       scrollToBottom();
 
@@ -1093,16 +1191,71 @@ const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {
     await nextTick();
     scrollToBottom();
 
-    // 构建LLM服务
+    // 构建LLM服务（流式）
     const llmService = {
       chat: async (prompt) => {
-        const response = await window.electronAPI.project.aiChat({
-          projectId: props.projectId,
-          userMessage: prompt,
-          conversationId: currentConversation.value?.id,
-          context: contextMode.value,
+        // 创建一个流式生成消息
+        const planGenerationMsg = createSystemMessage('📝 正在编写任务计划...', { type: 'thinking' });
+        messages.value.push(planGenerationMsg);
+        await nextTick();
+        scrollToBottom();
+
+        return new Promise((resolve, reject) => {
+          let fullResponse = '';
+          let streamStarted = false;
+
+          const handleChunk = (chunkData) => {
+            if (!streamStarted) {
+              streamStarted = true;
+              planGenerationMsg.content = '';
+              planGenerationMsg.metadata.type = 'streaming';
+            }
+
+            fullResponse = chunkData.fullContent;
+            planGenerationMsg.content = fullResponse;
+            messages.value = [...messages.value];
+            nextTick(() => scrollToBottom());
+          };
+
+          const handleComplete = (result) => {
+            window.electronAPI.project.off('project:aiChatStream-chunk', handleChunk);
+            window.electronAPI.project.off('project:aiChatStream-complete', handleComplete);
+            window.electronAPI.project.off('project:aiChatStream-error', handleError);
+
+            // 移除生成消息
+            const planGenIndex = messages.value.findIndex(m => m.id === planGenerationMsg.id);
+            if (planGenIndex !== -1) {
+              messages.value.splice(planGenIndex, 1);
+            }
+
+            resolve(fullResponse);
+          };
+
+          const handleError = (error) => {
+            window.electronAPI.project.off('project:aiChatStream-chunk', handleChunk);
+            window.electronAPI.project.off('project:aiChatStream-complete', handleComplete);
+            window.electronAPI.project.off('project:aiChatStream-error', handleError);
+
+            planGenerationMsg.content = `❌ 生成失败: ${error.message}`;
+            planGenerationMsg.metadata.type = 'error';
+            messages.value = [...messages.value];
+
+            reject(new Error(error.message));
+          };
+
+          window.electronAPI.project.on('project:aiChatStream-chunk', handleChunk);
+          window.electronAPI.project.on('project:aiChatStream-complete', handleComplete);
+          window.electronAPI.project.on('project:aiChatStream-error', handleError);
+
+          window.electronAPI.project.aiChatStream({
+            projectId: props.projectId,
+            userMessage: prompt,
+            conversationId: currentConversation.value?.id,
+            context: contextMode.value,
+          }).catch((error) => {
+            handleError(error);
+          });
         });
-        return response.conversationResponse || '';
       }
     };
 
@@ -1138,6 +1291,23 @@ const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {
     // 创建任务计划消息
     const planMsg = createTaskPlanMessage(plan);
     messages.value.push(planMsg);
+
+    // 💾 保存任务计划消息到数据库
+    if (currentConversation.value && currentConversation.value.id) {
+      try {
+        await window.electronAPI.conversation.createMessage({
+          conversation_id: currentConversation.value.id,
+          role: 'system',
+          content: planMsg.content,
+          timestamp: planMsg.timestamp,
+          type: MessageType.TASK_PLAN,
+          metadata: planMsg.metadata
+        });
+        console.log('[ChatPanel] 💾 任务计划消息已保存到数据库');
+      } catch (error) {
+        console.error('[ChatPanel] 保存任务计划消息失败:', error);
+      }
+    }
 
     await nextTick();
     scrollToBottom();
@@ -1357,18 +1527,50 @@ watch(() => props.aiCreationData, (newData) => {
 }, { immediate: true });
 
 // 🔥 监听autoSendMessage的变化，自动发送消息
-watch(() => props.autoSendMessage, (newMessage) => {
+watch(() => props.autoSendMessage, async (newMessage) => {
   if (newMessage && newMessage.trim()) {
     console.log('[ChatPanel] 检测到自动发送消息:', newMessage);
+
+    // 检查是否已经处理过（避免重复处理）
+    if (currentConversation.value && currentConversation.value.context_data) {
+      try {
+        const contextData = JSON.parse(currentConversation.value.context_data);
+        if (contextData.autoMessageHandled) {
+          console.log('[ChatPanel] 自动消息已处理过，跳过');
+          return;
+        }
+      } catch (e) {
+        // 忽略解析错误
+      }
+    }
+
     // 使用nextTick确保对话已加载
-    nextTick(() => {
-      // 设置用户输入
-      userInput.value = newMessage;
-      // 延迟一小段时间，确保对话完全加载
-      setTimeout(() => {
-        handleSendMessage();
-      }, 500);
-    });
+    await nextTick();
+
+    // 设置用户输入
+    userInput.value = newMessage;
+
+    // 标记为已处理（保存到conversation metadata）
+    if (currentConversation.value && currentConversation.value.id) {
+      try {
+        const contextData = {
+          autoSendMessage: newMessage,
+          autoMessageHandled: true,
+          handledAt: Date.now()
+        };
+        await window.electronAPI.conversation.update(currentConversation.value.id, {
+          context_data: JSON.stringify(contextData)
+        });
+        console.log('[ChatPanel] 自动消息已标记为已处理');
+      } catch (error) {
+        console.error('[ChatPanel] 保存处理标记失败:', error);
+      }
+    }
+
+    // 延迟一小段时间，确保对话完全加载
+    setTimeout(() => {
+      handleSendMessage();
+    }, 500);
   }
 }, { immediate: true });
 
