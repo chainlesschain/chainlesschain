@@ -1,17 +1,17 @@
 <template>
-  <div class="project-detail-page-wrapper">
+  <div class="project-detail-page-wrapper" data-testid="project-detail-wrapper">
     <!-- 项目历史侧边栏 -->
     <ProjectSidebar />
 
     <!-- 主内容区 -->
-    <div class="project-detail-page">
+    <div class="project-detail-page" data-testid="project-detail-page">
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <!-- 左侧：面包屑导航 -->
-      <div class="toolbar-left">
+      <div class="toolbar-left" data-testid="toolbar-breadcrumb">
         <a-breadcrumb>
           <a-breadcrumb-item>
-            <a @click="handleBackToList">
+            <a @click="handleBackToList" data-testid="back-to-projects-link">
               <FolderOpenOutlined />
               我的项目
             </a>
@@ -56,50 +56,50 @@
         />
 
         <!-- 文件管理按钮 -->
-        <a-button @click="showFileManageModal = true">
+        <a-button @click="showFileManageModal = true" data-testid="file-manage-button">
           <FolderOpenOutlined />
           文件管理
         </a-button>
 
         <!-- 分享按钮 -->
-        <a-button v-if="currentProject" @click="showShareModal = true">
+        <a-button v-if="currentProject" @click="showShareModal = true" data-testid="share-button">
           <ShareAltOutlined />
           分享
         </a-button>
 
         <!-- 编辑器面板开关 -->
-        <a-button @click="toggleEditorPanel">
+        <a-button @click="toggleEditorPanel" data-testid="toggle-editor-button">
           <CodeOutlined />
           {{ showEditorPanel ? '隐藏' : '显示' }} 编辑器
         </a-button>
 
         <!-- Git操作下拉菜单 -->
         <a-dropdown v-if="currentProject">
-          <a-button>
+          <a-button data-testid="git-actions-button">
             <GitlabOutlined />
             Git操作
             <DownOutlined />
           </a-button>
           <template #overlay>
-            <a-menu @click="handleGitAction">
-              <a-menu-item key="status">
+            <a-menu @click="handleGitAction" data-testid="git-actions-menu">
+              <a-menu-item key="status" data-testid="git-status-item">
                 <InfoCircleOutlined />
                 查看状态
               </a-menu-item>
-              <a-menu-item key="history">
+              <a-menu-item key="history" data-testid="git-history-item">
                 <HistoryOutlined />
                 提交历史
               </a-menu-item>
               <a-menu-divider />
-              <a-menu-item key="commit">
+              <a-menu-item key="commit" data-testid="git-commit-item">
                 <CheckOutlined />
                 提交更改
               </a-menu-item>
-              <a-menu-item key="push">
+              <a-menu-item key="push" data-testid="git-push-item">
                 <CloudUploadOutlined />
                 推送到远程
               </a-menu-item>
-              <a-menu-item key="pull">
+              <a-menu-item key="pull" data-testid="git-pull-item">
                 <CloudDownloadOutlined />
                 拉取最新
               </a-menu-item>
@@ -113,13 +113,14 @@
           :disabled="!hasUnsavedChanges"
           :loading="saving"
           @click="handleSave"
+          data-testid="save-button"
         >
           <SaveOutlined />
           保存
         </a-button>
 
         <!-- 关闭按钮 -->
-        <a-button @click="handleBackToList">
+        <a-button @click="handleBackToList" data-testid="close-button">
           <CloseOutlined />
           关闭
         </a-button>
@@ -127,28 +128,28 @@
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
+    <div v-if="loading" class="loading-container" data-testid="loading-container">
       <a-spin size="large" tip="加载项目中..." />
     </div>
 
     <!-- 项目不存在 -->
-    <div v-else-if="!currentProject" class="error-container">
+    <div v-else-if="!currentProject" class="error-container" data-testid="error-container">
       <div class="error-icon">
         <ExclamationCircleOutlined />
       </div>
       <h3>项目不存在</h3>
       <p>找不到ID为 {{ projectId }} 的项目</p>
-      <a-button type="primary" @click="handleBackToList">
+      <a-button type="primary" @click="handleBackToList" data-testid="back-to-list-button">
         <FolderOpenOutlined />
         返回项目列表
       </a-button>
     </div>
 
     <!-- 主内容区 -->
-    <div v-else-if="currentProject || projectId === 'ai-creating'" class="content-container">
+    <div v-else-if="currentProject || projectId === 'ai-creating'" class="content-container" data-testid="content-container">
       <!-- 左侧：文件树管理器（AI创建模式下隐藏） -->
-      <div v-if="projectId !== 'ai-creating'" class="file-explorer-panel" :style="{ width: fileExplorerWidth + 'px' }">
-        <div class="sidebar-header">
+      <div v-if="projectId !== 'ai-creating'" class="file-explorer-panel" :style="{ width: fileExplorerWidth + 'px' }" data-testid="file-explorer-panel">
+        <div class="sidebar-header" data-testid="file-explorer-header">
           <h3>
             <FolderOutlined />
             项目文件
@@ -164,14 +165,15 @@
               checked-children="虚拟"
               un-checked-children="标准"
               style="margin-left: 8px;"
+              data-testid="file-tree-mode-switch"
             />
           </a-tooltip>
-          <a-button size="small" type="text" @click="handleRefreshFiles">
+          <a-button size="small" type="text" @click="handleRefreshFiles" data-testid="refresh-files-button">
             <ReloadOutlined :spin="refreshing" />
           </a-button>
         </div>
 
-        <div class="sidebar-content">
+        <div class="sidebar-content" data-testid="file-tree-container">
           <!-- 动态组件：根据useVirtualFileTree切换 -->
           <component
             :is="useVirtualFileTree ? VirtualFileTree : EnhancedFileTree"

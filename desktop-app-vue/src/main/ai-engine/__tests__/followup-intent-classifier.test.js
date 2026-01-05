@@ -2,11 +2,12 @@
  * 后续输入意图分类器 - 单元测试
  */
 
+const { vi, describe, test, expect, beforeEach } = require('vitest');
 const FollowupIntentClassifier = require('../followup-intent-classifier');
 
 // Mock LLM Service
 const createMockLLMService = () => ({
-  complete: jest.fn()
+  complete: vi.fn()
 });
 
 describe('FollowupIntentClassifier', () => {
