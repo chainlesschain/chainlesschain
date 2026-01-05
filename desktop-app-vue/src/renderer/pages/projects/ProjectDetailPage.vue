@@ -303,6 +303,7 @@
             v-else-if="shouldShowPPTEditor"
             ref="pptEditorRef"
             :file="currentFile"
+            :project-id="projectId"
             :auto-save="true"
             @change="handlePPTChange"
             @save="handlePPTSave"
@@ -722,8 +723,17 @@ const loadFileContent = async (file) => {
   }
 
   try {
-    // 只为可编辑和可预览的文件加载内容
-    if (fileTypeInfo.value && (fileTypeInfo.value.isEditable || fileTypeInfo.value.isMarkdown || fileTypeInfo.value.isData)) {
+    // 为可编辑、可预览和PPT文件加载内容
+    const shouldLoadContent = fileTypeInfo.value && (
+      fileTypeInfo.value.isEditable ||
+      fileTypeInfo.value.isMarkdown ||
+      fileTypeInfo.value.isData ||
+      fileTypeInfo.value.isPPT ||  // 🔥 添加PPT文件支持
+      fileTypeInfo.value.isExcel ||
+      fileTypeInfo.value.isWord
+    );
+
+    if (shouldLoadContent) {
       // 检查项目信息是否完整
       if (!currentProject.value || !currentProject.value.root_path) {
         throw new Error('项目信息不完整，缺少 root_path');
