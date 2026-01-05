@@ -150,9 +150,15 @@ export async function takeScreenshot(
   window: Page,
   name: string
 ): Promise<void> {
-  await window.screenshot({
-    path: `test-results/screenshots/${name}.png`,
-  });
+  try {
+    await window.screenshot({
+      path: `test-results/screenshots/${name}.png`,
+      timeout: 5000, // 减少超时时间
+    });
+  } catch (error) {
+    console.warn(`[Helper] 截图失败 (${name}):`, error.message);
+    // 不抛出错误，继续执行测试
+  }
 }
 
 /**
@@ -232,14 +238,29 @@ export async function login(
       await window.waitForTimeout(300);
     }
 
-    // 点击登录按钮
-    const loginButton = await window.$('[data-testid="login-button"]');
-    if (!loginButton) {
-      throw new Error('未找到登录按钮');
-    }
+    // 点击登录按钮或按Enter键登录
+    console.log('[Test Helper] 触发登录...');
 
-    console.log('[Test Helper] 点击登录按钮...');
-    await loginButton.click();
+    // 尝试按Enter键（更可靠）
+    try {
+      if (pinInput) {
+        await pinInput.press('Enter');
+      } else {
+        const passwordInput = await window.$('[data-testid="password-input"]');
+        if (passwordInput) {
+          await passwordInput.press('Enter');
+        }
+      }
+    } catch (error) {
+      console.log('[Test Helper] Enter键登录失败，尝试点击按钮');
+
+      // 如果Enter键失败，尝试force点击按钮
+      const loginButton = await window.$('[data-testid="login-button"]');
+      if (!loginButton) {
+        throw new Error('未找到登录按钮');
+      }
+      await loginButton.click({ force: true });
+    }
 
     // 等待登录完成（URL改变）
     await window.waitForTimeout(2000);

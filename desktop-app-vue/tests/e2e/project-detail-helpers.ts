@@ -33,7 +33,7 @@ export async function createAndOpenProject(
 }
 
 /**
- * 创建测试文件
+ * 创建测试文件（物理文件 + 数据库记录）
  */
 export async function createTestFile(
   window: Page,
@@ -44,12 +44,38 @@ export async function createTestFile(
     fileType: string;
   }
 ) {
-  const file = await callIPC(window, 'project:create-file', {
+  // Step 1: 创建物理文件
+  const result = await callIPC(window, 'file:createFile', {
     projectId,
-    ...fileData,
+    filePath: fileData.fileName,
+    content: fileData.content,
   });
 
-  return file;
+  // Step 2: 保存文件记录到数据库
+  const timestamp = Date.now();
+  const fileRecord = {
+    project_id: projectId,
+    file_name: fileData.fileName,
+    file_path: fileData.fileName,
+    file_type: fileData.fileType,
+    content: fileData.content,
+    created_at: timestamp,
+    updated_at: timestamp,
+  };
+
+  await callIPC(window, 'project:save-files', projectId, [fileRecord]);
+
+  console.log(`[Helper] 文件创建完成: ${fileData.fileName}`);
+
+  // 等待可能的成功提示消失
+  await window.waitForTimeout(1000);
+
+  return {
+    ...result,
+    file_name: fileData.fileName,
+    file_type: fileData.fileType,
+    content: fileData.content,
+  };
 }
 
 /**
@@ -60,13 +86,29 @@ export async function selectFileInTree(window: Page, fileName: string): Promise<
     // 等待文件树加载
     await window.waitForSelector('[data-testid="file-tree-container"]', { timeout: 5000 });
 
-    // 查找并点击文件
-    const fileNode = await window.$(`text=${fileName}`);
-    if (fileNode) {
-      await fileNode.click();
+    // 多次尝试查找文件（因为文件树可能需要时间刷新）
+    let fileNode = null;
+    for (let i = 0; i < 5; i++) {
+      fileNode = await window.$(`text="${fileName}"`);
+      if (fileNode) {
+        break;
+      }
+      console.log(`[Helper] 第${i + 1}次尝试查找文件: ${fileName}`);
       await window.waitForTimeout(1000);
+    }
+
+    if (fileNode) {
+      // 使用force click绕过modal阻挡
+      await fileNode.click({ force: true });
+      await window.waitForTimeout(1000);
+      console.log(`[Helper] 成功选择文件: ${fileName}`);
       return true;
     }
+
+    console.error(`[Helper] 未找到文件: ${fileName}`);
+    // 输出文件树内容以便调试
+    const treeContent = await window.textContent('[data-testid="file-tree-container"]');
+    console.log('[Helper] 文件树内容:', treeContent);
     return false;
   } catch (error) {
     console.error('Failed to select file in tree:', error);
@@ -213,18 +255,42 @@ export async function saveCurrentFile(window: Page): Promise<boolean> {
  */
 export async function refreshFileList(window: Page): Promise<boolean> {
   try {
-    const refreshButton = await window.$('[data-testid="refresh-files-button"]');
-    if (!refreshButton) {
-      console.error('Refresh button not found');
+    // 先尝试关闭可能存在的modal
+    try {
+      const closeButtons = await window.$$('.ant-modal-close, .ant-message-notice-close');
+      for (const closeBtn of closeButtons) {
+        if (await closeBtn.isVisible()) {
+          await closeBtn.click({ force: true });
+          await window.waitForTimeout(300);
+        }
+      }
+    } catch (e) {
+      // 忽略关闭modal的错误
+    }
+
+    // 使用evaluate直接触发DOM点击，这样更可靠
+    const clicked = await window.evaluate(() => {
+      const btn = document.querySelector('[data-testid="refresh-files-button"]') as HTMLElement;
+      if (btn) {
+        console.log('[Helper] 找到刷新按钮，触发点击');
+        btn.click();
+        return true;
+      }
+      console.log('[Helper] 未找到刷新按钮');
+      return false;
+    });
+
+    if (!clicked) {
+      console.error('[Helper] Refresh button not found');
       return false;
     }
 
-    await refreshButton.click();
-    await window.waitForTimeout(1000);
+    // 等待刷新完成
+    await window.waitForTimeout(2000);
 
     return true;
   } catch (error) {
-    console.error('Failed to refresh file list:', error);
+    console.error('[Helper] Failed to refresh file list:', error);
     return false;
   }
 }
@@ -349,6 +415,30 @@ export async function waitForProjectDetailLoad(window: Page, timeout: number = 1
     await window.waitForSelector('[data-testid="chat-panel"]', { timeout });
 
     await window.waitForTimeout(1000);
+
+    // 关闭可能出现的首次使用向导modal
+    try {
+      const modal = await window.$('.ant-modal-wrap:visible');
+      if (modal) {
+        console.log('[Helper] 检测到首次使用向导modal，尝试关闭...');
+
+        // 尝试点击关闭按钮或ESC键
+        const closeButton = await window.$('.ant-modal-close');
+        if (closeButton && await closeButton.isVisible()) {
+          await closeButton.click({ force: true });
+          await window.waitForTimeout(500);
+          console.log('[Helper] 已关闭首次使用向导modal');
+        } else {
+          // 如果没有关闭按钮，按ESC键
+          await window.keyboard.press('Escape');
+          await window.waitForTimeout(500);
+          console.log('[Helper] 使用ESC键关闭modal');
+        }
+      }
+    } catch (e) {
+      // 忽略关闭modal的错误
+      console.log('[Helper] 未发现modal或关闭失败（这是正常的）');
+    }
 
     return true;
   } catch (error) {
