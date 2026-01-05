@@ -43,6 +43,14 @@
             :message="message"
           />
 
+          <!-- 意图确认消息 -->
+          <IntentConfirmationMessage
+            v-else-if="message.type === MessageType.INTENT_CONFIRMATION"
+            :message="message"
+            @confirm="handleIntentConfirm"
+            @correct="handleIntentCorrect"
+          />
+
           <!-- 采访问题消息 -->
           <InterviewQuestionMessage
             v-else-if="message.type === MessageType.INTERVIEW"
@@ -151,9 +159,10 @@ import {
 } from '@ant-design/icons-vue';
 import ConversationHistoryView from './ConversationHistoryView.vue';
 import SystemMessage from '../messages/SystemMessage.vue';
+import IntentConfirmationMessage from '../messages/IntentConfirmationMessage.vue';
 import TaskPlanMessage from '../messages/TaskPlanMessage.vue';
 import InterviewQuestionMessage from '../messages/InterviewQuestionMessage.vue';
-import { MessageType, createSystemMessage, createInterviewMessage, createTaskPlanMessage, createUserMessage, createAssistantMessage } from '../../utils/messageTypes';
+import { MessageType, createSystemMessage, createIntentConfirmationMessage, createInterviewMessage, createTaskPlanMessage, createUserMessage, createAssistantMessage } from '../../utils/messageTypes';
 import { TaskPlanner } from '../../utils/taskPlanner';
 import { marked } from 'marked';
 
@@ -456,215 +465,21 @@ const handleSendMessage = async () => {
     return;
   }
 
-  // 🔥 删除旧的警告提示，现在已支持PPT生成
-  console.log('[ChatPanel] 准备调用AI对话（支持PPT生成）');
-
+  // 🔥 新增：意图理解和确认步骤
+  console.log('[ChatPanel] 🎯 启动意图理解流程');
   try {
-    // 创建用户消息
-    const userMessage = {
-      id: `msg_${Date.now()}_user`,
-      conversation_id: currentConversation.value?.id,
-      role: 'user',
-      content: input,
-      timestamp: Date.now(),
-    };
-
-    // 🔥 添加"AI思考中"占位消息，让用户能看到AI正在处理
-    const thinkingMessageId = `msg_${Date.now()}_thinking`;
-    const thinkingMessage = {
-      id: thinkingMessageId,
-      conversation_id: currentConversation.value?.id,
-      role: 'assistant',
-      content: '🤔 正在思考并生成回复...',
-      timestamp: Date.now(),
-      isThinking: true,  // 标记为思考消息
-    };
-
-    // 确保 messages.value 是数组
-    if (!Array.isArray(messages.value)) {
-      console.warn('[ChatPanel] messages.value 不是数组，重新初始化为空数组');
-      messages.value = [];
-    }
-
-    // 添加到消息列表
-    messages.value.push(userMessage);
-
-    // 🔥 添加思考中消息
-    messages.value.push(thinkingMessage);
-
-    // 如果没有当前对话，创建一个
-    if (!currentConversation.value) {
-      await createConversation();
-
-      // 检查对话是否创建成功
-      if (!currentConversation.value) {
-        throw new Error('创建对话失败，无法发送消息');
-      }
-    }
-
-    // 保存用户消息到数据库
-    await window.electronAPI.conversation.createMessage({
-      conversation_id: currentConversation.value.id,
-      role: 'user',
-      content: input,
-      timestamp: Date.now(),
-    });
-
-    // 滚动到底部
-    await nextTick();
-    scrollToBottom();
-
-    // 获取项目信息和文件列表
-    const project = await window.electronAPI.project.get(props.projectId);
-    const projectInfo = project ? {
-      name: project.name,
-      description: project.description || '',
-      type: project.project_type || 'general'
-    } : null;
-    const rawFileList = await getProjectFiles();
-
-    // 清理文件列表，只保留可序列化的字段
-    const fileList = Array.isArray(rawFileList) ? rawFileList.map(file => ({
-      id: file.id,
-      file_name: file.file_name,
-      file_path: file.file_path,
-      file_type: file.file_type,
-      content: file.content,
-      size: file.size
-    })) : [];
-
-    // 构建对话历史（最近10条）
-    const conversationHistory = messages.value.slice(-10).map(msg => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    // 清理 currentFile，只保留可序列化的字段
-    const cleanCurrentFile = props.currentFile ? {
-      id: props.currentFile.id,
-      file_name: props.currentFile.file_name,
-      file_path: props.currentFile.file_path,
-      file_type: props.currentFile.file_type,
-      content: props.currentFile.content,
-      size: props.currentFile.size
-    } : null;
-
-    // 调用新的项目AI对话API
-    const response = await window.electronAPI.project.aiChat({
-      projectId: props.projectId,
-      userMessage: input,
-      conversationHistory: conversationHistory,
-      contextMode: contextMode.value,
-      currentFile: cleanCurrentFile,
-      projectInfo: projectInfo,
-      fileList: fileList
-    });
-
-    console.log('[ChatPanel] AI响应:', response);
-
-    // 🔥 移除思考中消息
-    messages.value = messages.value.filter(msg => msg.id !== thinkingMessageId);
-
-    // 🔥 检查PPT生成结果
-    if (response.pptGenerated && response.pptResult) {
-      console.log('[ChatPanel] ✅ PPT已生成:', response.pptResult);
-      antMessage.success({
-        content: `🎉 PPT文件已生成！\n文件名: ${response.pptResult.fileName}\n幻灯片数: ${response.pptResult.slideCount}`,
-        duration: 5,
-      });
-
-      // 🔥 触发文件树刷新事件
-      console.log('[ChatPanel] PPT已生成，触发 files-changed 事件');
-      emit('files-changed');
-
-      // 🔥 等待一小段时间再次刷新（确保文件系统已同步）
-      setTimeout(() => {
-        console.log('[ChatPanel] 延迟刷新文件列表');
-        emit('files-changed');
-      }, 500);
-    }
-
-    // 创建助手消息
-    const assistantMessage = {
-      id: `msg_${Date.now()}_assistant`,
-      conversation_id: currentConversation.value.id,
-      role: 'assistant',
-      content: response.conversationResponse || '抱歉，我没有理解你的问题。',
-      timestamp: Date.now(),
-      fileOperations: response.fileOperations || [],
-      hasFileOperations: response.hasFileOperations || false,
-      ragSources: response.ragSources || [],
-      // 🔥 添加PPT生成结果
-      pptGenerated: response.pptGenerated || false,
-      pptResult: response.pptResult || null
-    };
-
-    // 确保 messages.value 是数组
-    if (!Array.isArray(messages.value)) {
-      console.warn('[ChatPanel] messages.value 不是数组（assistant），重新初始化为空数组');
-      messages.value = [];
-    }
-
-    // 添加到消息列表
-    messages.value.push(assistantMessage);
-
-    // 保存助手消息到数据库（如果有对话）
-    if (currentConversation.value && currentConversation.value.id) {
-      await window.electronAPI.conversation.createMessage({
-        conversation_id: currentConversation.value.id,
-        role: 'assistant',
-        content: assistantMessage.content,
-        timestamp: Date.now(),
-        metadata: {
-          hasFileOperations: assistantMessage.hasFileOperations,
-          fileOperationCount: assistantMessage.fileOperations.length
-        }
-      });
-    } else {
-      console.warn('[ChatPanel] 无法保存助手消息：当前对话不存在');
-    }
-
-    // 如果有文件操作成功执行，通知用户并刷新文件树
-    if (response.hasFileOperations && response.fileOperations.length > 0) {
-      // 兼容两种数据格式：ChatSkillBridge (success: boolean) 和原有格式 (status: 'success')
-      const successCount = response.fileOperations.filter(op =>
-        op.success === true || op.status === 'success'
-      ).length;
-      const errorCount = response.fileOperations.filter(op =>
-        op.success === false || op.status === 'error'
-      ).length;
-
-      console.log('[ChatPanel] 文件操作统计:', {
-        total: response.fileOperations.length,
-        successCount,
-        errorCount,
-        operations: response.fileOperations
-      });
-
-      if (successCount > 0) {
-        antMessage.success(`成功执行 ${successCount} 个文件操作`);
-        // 触发文件树刷新事件（如果父组件有监听）
-        console.log('[ChatPanel] 触发 files-changed 事件');
-        emit('files-changed');
-      }
-
-      if (errorCount > 0) {
-        antMessage.warning(`${errorCount} 个文件操作失败`);
-      }
-    }
-
-    // 滚动到底部
-    await nextTick();
-    scrollToBottom();
-  } catch (error) {
-    console.error('发送消息失败:', error);
-    antMessage.error('发送消息失败: ' + error.message);
-
-    // 🔥 出错时也移除思考中消息
-    messages.value = messages.value.filter(msg => !msg.isThinking);
-  } finally {
+    await understandUserIntent(input);
+    // 意图理解后，等待用户确认或纠正
+    // 实际的对话执行将在 handleIntentConfirm 中进行
     isLoading.value = false;
+    return;
+  } catch (error) {
+    console.error('[ChatPanel] 意图理解失败，继续执行原流程:', error);
+    // 如果意图理解失败，继续原有流程（已在 understandUserIntent 中处理）
+    isLoading.value = false;
+    return;
   }
+
 };
 
 /**
@@ -1550,6 +1365,297 @@ const handlePlanModify = (message) => {
   messages.value.push(modifyMsg);
 
   antMessage.info('请在输入框中描述需要修改的内容');
+};
+
+// ============ 意图确认相关函数 ============
+
+/**
+ * 处理意图确认
+ * 用户确认AI的理解是正确的，继续执行原有的对话流程
+ */
+const handleIntentConfirm = async ({ messageId, originalInput, understanding }) => {
+  console.log('[ChatPanel] ✅ 用户确认意图理解正确');
+
+  // 找到意图确认消息并更新状态
+  const intentMsg = messages.value.find(m => m.id === messageId);
+  if (intentMsg) {
+    intentMsg.metadata.status = 'confirmed';
+    messages.value = [...messages.value]; // 触发更新
+  }
+
+  // 使用纠错后的输入继续对话流程
+  const finalInput = understanding.correctedInput || originalInput;
+  await executeChatWithInput(finalInput);
+};
+
+/**
+ * 处理意图纠正
+ * 用户认为AI理解有误，提供了纠正内容
+ */
+const handleIntentCorrect = async ({ messageId, originalInput, correction }) => {
+  console.log('[ChatPanel] 🔄 用户提供了纠正内容:', correction);
+
+  // 找到意图确认消息并更新状态
+  const intentMsg = messages.value.find(m => m.id === messageId);
+  if (intentMsg) {
+    intentMsg.metadata.status = 'corrected';
+    intentMsg.metadata.correction = correction;
+    messages.value = [...messages.value]; // 触发更新
+  }
+
+  // 重新理解纠正后的内容
+  await understandUserIntent(correction);
+};
+
+/**
+ * 理解用户意图（纠错 + 意图识别）
+ * @param {string} input - 用户输入
+ * @returns {Promise<Object>} - 返回理解结果
+ */
+const understandUserIntent = async (input) => {
+  console.log('[ChatPanel] 🤔 开始理解用户意图:', input);
+
+  try {
+    // 调用意图理解API
+    const result = await window.electronAPI.project.understandIntent({
+      userInput: input,
+      projectId: props.projectId,
+      contextMode: contextMode.value,
+    });
+
+    console.log('[ChatPanel] ✅ 意图理解完成:', result);
+
+    // 创建意图确认消息
+    const confirmationMsg = createIntentConfirmationMessage(input, result);
+    messages.value.push(confirmationMsg);
+
+    // 保存到数据库
+    if (currentConversation.value && currentConversation.value.id) {
+      await window.electronAPI.conversation.createMessage({
+        conversation_id: currentConversation.value.id,
+        role: 'system',
+        content: confirmationMsg.content,
+        timestamp: confirmationMsg.timestamp,
+        type: MessageType.INTENT_CONFIRMATION,
+        metadata: confirmationMsg.metadata,
+      });
+    }
+
+    await nextTick();
+    scrollToBottom();
+
+    return result;
+  } catch (error) {
+    console.error('[ChatPanel] ❌ 意图理解失败:', error);
+    antMessage.error('意图理解失败: ' + error.message);
+
+    // 如果理解失败，直接执行原始输入
+    await executeChatWithInput(input);
+    throw error;
+  }
+};
+
+/**
+ * 执行对话（使用确认后的输入）
+ * @param {string} input - 确认后的输入
+ */
+const executeChatWithInput = async (input) => {
+  console.log('[ChatPanel] 🚀 执行对话，输入:', input);
+
+  isLoading.value = true;
+
+  try {
+    // 创建用户消息
+    const userMessage = {
+      id: `msg_${Date.now()}_user`,
+      conversation_id: currentConversation.value?.id,
+      role: 'user',
+      content: input,
+      timestamp: Date.now(),
+    };
+
+    // 添加思考中消息
+    const thinkingMessageId = `msg_${Date.now()}_thinking`;
+    const thinkingMessage = {
+      id: thinkingMessageId,
+      conversation_id: currentConversation.value?.id,
+      role: 'assistant',
+      content: '🤔 正在思考并生成回复...',
+      timestamp: Date.now(),
+      isThinking: true,
+    };
+
+    // 确保 messages.value 是数组
+    if (!Array.isArray(messages.value)) {
+      console.warn('[ChatPanel] messages.value 不是数组，重新初始化为空数组');
+      messages.value = [];
+    }
+
+    // 添加到消息列表
+    messages.value.push(userMessage);
+    messages.value.push(thinkingMessage);
+
+    // 如果没有当前对话，创建一个
+    if (!currentConversation.value) {
+      await createConversation();
+
+      if (!currentConversation.value) {
+        throw new Error('创建对话失败，无法发送消息');
+      }
+    }
+
+    // 保存用户消息到数据库
+    await window.electronAPI.conversation.createMessage({
+      conversation_id: currentConversation.value.id,
+      role: 'user',
+      content: input,
+      timestamp: Date.now(),
+    });
+
+    // 滚动到底部
+    await nextTick();
+    scrollToBottom();
+
+    // 获取项目信息和文件列表
+    const project = await window.electronAPI.project.get(props.projectId);
+    const projectInfo = project ? {
+      name: project.name,
+      description: project.description || '',
+      type: project.project_type || 'general'
+    } : null;
+    const rawFileList = await getProjectFiles();
+
+    // 清理文件列表
+    const fileList = Array.isArray(rawFileList) ? rawFileList.map(file => ({
+      id: file.id,
+      file_name: file.file_name,
+      file_path: file.file_path,
+      file_type: file.file_type,
+      content: file.content,
+      size: file.size
+    })) : [];
+
+    // 构建对话历史（最近10条）
+    const conversationHistory = messages.value.slice(-10).map(msg => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+
+    // 清理 currentFile
+    const cleanCurrentFile = props.currentFile ? {
+      id: props.currentFile.id,
+      file_name: props.currentFile.file_name,
+      file_path: props.currentFile.file_path,
+      file_type: props.currentFile.file_type,
+      content: props.currentFile.content,
+      size: props.currentFile.size
+    } : null;
+
+    // 调用AI对话API
+    const response = await window.electronAPI.project.aiChat({
+      projectId: props.projectId,
+      userMessage: input,
+      conversationHistory: conversationHistory,
+      contextMode: contextMode.value,
+      currentFile: cleanCurrentFile,
+      projectInfo: projectInfo,
+      fileList: fileList
+    });
+
+    console.log('[ChatPanel] AI响应:', response);
+
+    // 移除思考中消息
+    messages.value = messages.value.filter(msg => msg.id !== thinkingMessageId);
+
+    // 检查PPT生成结果
+    if (response.pptGenerated && response.pptResult) {
+      console.log('[ChatPanel] ✅ PPT已生成:', response.pptResult);
+      antMessage.success({
+        content: `🎉 PPT文件已生成！\n文件名: ${response.pptResult.fileName}\n幻灯片数: ${response.pptResult.slideCount}`,
+        duration: 5,
+      });
+
+      emit('files-changed');
+      setTimeout(() => emit('files-changed'), 500);
+    }
+
+    // 创建助手消息
+    const assistantMessage = {
+      id: `msg_${Date.now()}_assistant`,
+      conversation_id: currentConversation.value.id,
+      role: 'assistant',
+      content: response.conversationResponse || '抱歉，我没有理解你的问题。',
+      timestamp: Date.now(),
+      fileOperations: response.fileOperations || [],
+      hasFileOperations: response.hasFileOperations || false,
+      ragSources: response.ragSources || [],
+      pptGenerated: response.pptGenerated || false,
+      pptResult: response.pptResult || null
+    };
+
+    // 确保 messages.value 是数组
+    if (!Array.isArray(messages.value)) {
+      console.warn('[ChatPanel] messages.value 不是数组（assistant），重新初始化为空数组');
+      messages.value = [];
+    }
+
+    // 添加到消息列表
+    messages.value.push(assistantMessage);
+
+    // 保存助手消息到数据库
+    if (currentConversation.value && currentConversation.value.id) {
+      await window.electronAPI.conversation.createMessage({
+        conversation_id: currentConversation.value.id,
+        role: 'assistant',
+        content: assistantMessage.content,
+        timestamp: Date.now(),
+        metadata: {
+          hasFileOperations: assistantMessage.hasFileOperations,
+          fileOperationCount: assistantMessage.fileOperations.length
+        }
+      });
+    } else {
+      console.warn('[ChatPanel] 无法保存助手消息：当前对话不存在');
+    }
+
+    // 处理文件操作
+    if (response.hasFileOperations && response.fileOperations.length > 0) {
+      const successCount = response.fileOperations.filter(op =>
+        op.success === true || op.status === 'success'
+      ).length;
+      const errorCount = response.fileOperations.filter(op =>
+        op.success === false || op.status === 'error'
+      ).length;
+
+      console.log('[ChatPanel] 文件操作统计:', {
+        total: response.fileOperations.length,
+        successCount,
+        errorCount,
+        operations: response.fileOperations
+      });
+
+      if (successCount > 0) {
+        antMessage.success(`成功执行 ${successCount} 个文件操作`);
+        emit('files-changed');
+      }
+
+      if (errorCount > 0) {
+        antMessage.warning(`${errorCount} 个文件操作失败`);
+      }
+    }
+
+    // 滚动到底部
+    await nextTick();
+    scrollToBottom();
+  } catch (error) {
+    console.error('[ChatPanel] 执行对话失败:', error);
+    antMessage.error('对话失败: ' + error.message);
+
+    // 出错时移除思考中消息
+    messages.value = messages.value.filter(msg => !msg.isThinking);
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 // 监听aiCreationData的变化

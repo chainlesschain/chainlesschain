@@ -9,6 +9,7 @@ export const MessageType = {
   ASSISTANT: 'assistant',                // AI助手回复
   SYSTEM: 'system',                      // 系统消息（提示、通知）
   INTENT_RECOGNITION: 'intent-recognition', // 意图识别结果
+  INTENT_CONFIRMATION: 'intent-confirmation', // 意图确认（需要用户确认理解是否正确）
   TASK_ANALYSIS: 'task-analysis',        // 任务分析中
   INTERVIEW: 'interview',                // 采访问题
   TASK_PLAN: 'task-plan',                // 任务计划
@@ -161,6 +162,30 @@ export function createErrorMessage(error) {
     timestamp: Date.now(),
     metadata: {
       error,
+    },
+  };
+}
+
+/**
+ * 创建意图确认消息
+ * @param {string} originalInput - 用户原始输入
+ * @param {Object} understanding - AI理解结果
+ * @param {string} understanding.correctedInput - 纠错后的输入
+ * @param {string} understanding.intent - 理解的意图
+ * @param {Array} understanding.keyPoints - 关键要点
+ */
+export function createIntentConfirmationMessage(originalInput, understanding) {
+  return {
+    id: `msg_${Date.now()}_intent_confirmation`,
+    role: MessageRole.ASSISTANT,
+    type: MessageType.INTENT_CONFIRMATION,
+    content: '我理解您的需求如下，请确认：',
+    timestamp: Date.now(),
+    metadata: {
+      originalInput,       // 用户原始输入
+      understanding,       // AI理解结果
+      status: 'pending',   // pending, confirmed, corrected
+      correction: null,    // 用户的纠正内容（如果有）
     },
   };
 }
