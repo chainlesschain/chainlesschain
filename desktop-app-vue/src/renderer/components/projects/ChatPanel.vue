@@ -843,11 +843,36 @@ const startTaskPlanning = async (userInput) => {
   console.log('[ChatPanel] 🚀 启动任务规划流程:', userInput);
 
   try {
+    // 0. 确保对话已创建
+    if (!currentConversation.value) {
+      console.log('[ChatPanel] 对话不存在，创建新对话...');
+      await createConversation();
+
+      if (!currentConversation.value) {
+        throw new Error('创建对话失败，无法开始任务规划');
+      }
+    }
+
     const projectType = 'document'; // TODO: 从上下文推断项目类型
 
     // 1. 添加用户消息
-    const userMessage = createUserMessage(userInput, currentConversation.value?.id);
+    const userMessage = createUserMessage(userInput, currentConversation.value.id);
     messages.value.push(userMessage);
+
+    // 1.1 保存用户消息到数据库
+    if (currentConversation.value && currentConversation.value.id) {
+      try {
+        await window.electronAPI.conversation.createMessage({
+          conversation_id: currentConversation.value.id,
+          role: 'user',
+          content: userInput,
+          timestamp: userMessage.timestamp,
+        });
+        console.log('[ChatPanel] 💾 用户消息已保存');
+      } catch (error) {
+        console.error('[ChatPanel] 保存用户消息失败:', error);
+      }
+    }
 
     // 2. 添加"正在分析"系统消息
     const analyzingMsg = createSystemMessage('🤔 正在分析您的需求，请稍候...（最长可能需要10分钟）', { type: 'loading' });
@@ -1411,6 +1436,181 @@ const handlePlanModify = (message) => {
   messages.value.push(modifyMsg);
 
   antMessage.info('请在输入框中描述需要修改的内容');
+};
+
+// ============ 后续输入意图处理函数 ============
+
+/**
+ * 处理后续输入的不同意图
+ * @param {string} intent - 意图类型
+ * @param {string} userInput - 用户输入
+ * @param {string} extractedInfo - 提取的关键信息
+ * @param {string} reason - 判断理由
+ * @param {Object} executingTask - 正在执行的任务消息
+ */
+const handleFollowupIntent = async (intent, userInput, extractedInfo, reason, executingTask) => {
+  console.log(`[ChatPanel] 📋 处理后续输入意图: ${intent}`);
+
+  // 创建用户消息（记录用户的输入）
+  const userMessage = createUserMessage(userInput, currentConversation.value?.id);
+  messages.value.push(userMessage);
+
+  // 保存用户消息到数据库
+  if (currentConversation.value && currentConversation.value.id) {
+    try {
+      await window.electronAPI.conversation.createMessage({
+        conversation_id: currentConversation.value.id,
+        role: 'user',
+        content: userInput,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.error('[ChatPanel] 保存用户消息失败:', error);
+    }
+  }
+
+  switch (intent) {
+    case 'CONTINUE_EXECUTION':
+      // 用户催促继续执行，不做任何修改
+      console.log('[ChatPanel] ✅ 用户催促继续执行，无需操作');
+
+      // 添加一条确认消息
+      const continueMessage = createIntentSystemMessage(intent, userInput, { reason, extractedInfo });
+      messages.value.push(continueMessage);
+      await saveMessageToDb(continueMessage);
+
+      // 可选：向用户反馈正在执行
+      antMessage.info('继续执行任务中...');
+      break;
+
+    case 'MODIFY_REQUIREMENT':
+      // 用户修改需求，需要暂停并重新规划
+      console.log('[ChatPanel] ⚠️ 用户修改需求:', extractedInfo);
+
+      // 1. 暂停当前任务
+      if (executingTask) {
+        executingTask.metadata.status = 'paused';
+        executingTask.metadata.pauseReason = '用户修改需求';
+        messages.value = [...messages.value]; // 触发更新
+        await updateMessageInDb(executingTask);
+      }
+
+      // 2. 添加系统提示
+      const modifyMessage = createIntentSystemMessage(intent, userInput, { reason, extractedInfo });
+      messages.value.push(modifyMessage);
+      await saveMessageToDb(modifyMessage);
+
+      // 3. 重新启动任务规划（将原需求和新需求合并）
+      const originalRequirement = executingTask.metadata?.plan?.description || '原始需求';
+      const mergedInput = mergeRequirements(originalRequirement, userInput);
+
+      antMessage.warning('检测到需求变更，正在重新规划任务...');
+
+      // 延迟一下，让用户看到提示消息
+      await nextTick();
+      scrollToBottom();
+
+      // 重新启动任务规划
+      await startTaskPlanning(mergedInput);
+      break;
+
+    case 'CLARIFICATION':
+      // 用户补充说明，追加到上下文继续执行
+      console.log('[ChatPanel] 📝 用户补充说明:', extractedInfo);
+
+      // 1. 将信息追加到任务计划的上下文中
+      if (executingTask && executingTask.metadata && executingTask.metadata.plan) {
+        const updatedPlan = addClarificationToTaskPlan(
+          executingTask.metadata.plan,
+          extractedInfo || userInput
+        );
+        executingTask.metadata.plan = updatedPlan;
+        messages.value = [...messages.value]; // 触发更新
+        await updateMessageInDb(executingTask);
+      }
+
+      // 2. 添加确认消息
+      const clarifyMessage = createIntentSystemMessage(intent, userInput, { reason, extractedInfo });
+      messages.value.push(clarifyMessage);
+      await saveMessageToDb(clarifyMessage);
+
+      antMessage.success('已记录补充信息，继续执行任务...');
+
+      // 3. 可选：调用 AI 服务使用更新后的上下文重新生成响应
+      // 这里可以根据需要决定是否重新调用 AI
+      break;
+
+    case 'CANCEL_TASK':
+      // 用户取消任务
+      console.log('[ChatPanel] ❌ 用户取消任务');
+
+      // 1. 停止任务执行
+      if (executingTask) {
+        executingTask.metadata.status = 'cancelled';
+        executingTask.metadata.cancelReason = reason;
+        messages.value = [...messages.value]; // 触发更新
+        await updateMessageInDb(executingTask);
+      }
+
+      // 2. 添加取消消息
+      const cancelMessage = createIntentSystemMessage(intent, userInput, { reason });
+      messages.value.push(cancelMessage);
+      await saveMessageToDb(cancelMessage);
+
+      antMessage.info('任务已取消');
+      break;
+
+    default:
+      console.warn('[ChatPanel] ⚠️ 未知意图类型:', intent);
+      antMessage.warning('无法识别您的意图，请重新表述');
+  }
+
+  // 滚动到底部
+  await nextTick();
+  scrollToBottom();
+};
+
+/**
+ * 保存消息到数据库
+ */
+const saveMessageToDb = async (message) => {
+  if (!currentConversation.value || !currentConversation.value.id) {
+    console.warn('[ChatPanel] 无当前对话，无法保存消息');
+    return;
+  }
+
+  try {
+    await window.electronAPI.conversation.createMessage({
+      conversation_id: currentConversation.value.id,
+      role: message.role || 'system',
+      content: message.content,
+      timestamp: message.timestamp,
+      type: message.type,
+      metadata: message.metadata
+    });
+  } catch (error) {
+    console.error('[ChatPanel] 保存消息失败:', error);
+  }
+};
+
+/**
+ * 更新消息到数据库
+ */
+const updateMessageInDb = async (message) => {
+  if (!currentConversation.value || !currentConversation.value.id) {
+    console.warn('[ChatPanel] 无当前对话，无法更新消息');
+    return;
+  }
+
+  try {
+    await window.electronAPI.conversation.updateMessage({
+      id: message.id,
+      conversation_id: currentConversation.value.id,
+      metadata: message.metadata
+    });
+  } catch (error) {
+    console.error('[ChatPanel] 更新消息失败:', error);
+  }
 };
 
 // ============ 意图确认相关函数 ============
