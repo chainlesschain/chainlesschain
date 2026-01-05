@@ -487,7 +487,7 @@ class FileIPC {
 
     // ============ 通用文件操作 ============
 
-    // 读取文件内容
+    // 读取文件内容（优化：大文件流式读取）
     ipcMain.handle('file:readContent', async (event, filePath) => {
       try {
         console.log('[File IPC] ========== 读取文件 ==========');
@@ -504,6 +504,38 @@ class FileIPC {
           throw new Error(`文件不存在: ${filePath}`);
         }
 
+        // 获取文件大小
+        const stats = await fs.stat(filePath);
+        const fileSizeInMB = stats.size / (1024 * 1024);
+        const LARGE_FILE_THRESHOLD = 5; // 5MB
+
+        console.log('[File IPC] 文件大小:', fileSizeInMB.toFixed(2), 'MB');
+
+        // 大文件使用流式读取（优化：防止内存溢出）
+        if (fileSizeInMB > LARGE_FILE_THRESHOLD) {
+          console.log('[File IPC] 使用流式读取（文件 > 5MB）');
+
+          if (!this.largeFileReader) {
+            const LargeFileReader = require('../file/large-file-reader');
+            this.largeFileReader = new LargeFileReader();
+          }
+
+          // 读取文件头部（前1000行）
+          const lines = await this.largeFileReader.getFileHead(filePath, 1000);
+          const content = lines.join('\n');
+
+          console.log('[File IPC] ✓ 流式读取成功，返回前1000行');
+
+          return {
+            success: true,
+            content,
+            isPartial: true,
+            fileSize: stats.size,
+            message: `文件较大（${fileSizeInMB.toFixed(2)}MB），已加载前1000行。使用大文件查看器查看完整内容。`,
+          };
+        }
+
+        // 小文件直接读取
         const content = await fs.readFile(filePath, 'utf-8');
         console.log('[File IPC] ✓ 读取成功，内容长度:', content.length);
         console.log('[File IPC] 内容预览:', content.substring(0, 100));
@@ -511,6 +543,8 @@ class FileIPC {
         return {
           success: true,
           content,
+          isPartial: false,
+          fileSize: stats.size,
         };
       } catch (error) {
         console.error('[File IPC] ========== 读取文件失败 ==========');
