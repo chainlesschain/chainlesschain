@@ -1,102 +1,167 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import { useAppStore } from '../stores/app';
 import { setupCommonHints, preloadRouteResources } from '../utils/resource-hints';
+import { lazyRoute, createRouteGroup, progressiveLoader } from '../utils/code-splitting';
+
+// ===== 优化的路由组件加载器 =====
+// 使用webpack magic comments进行代码分割命名
+
+// 核心页面组（高优先级）
+const corePages = createRouteGroup('core', {
+  login: () => import(/* webpackChunkName: "core-login" */ '../pages/LoginPage.vue'),
+  mainLayout: () => import(/* webpackChunkName: "core-layout" */ '../components/MainLayout.vue'),
+  projects: () => import(/* webpackChunkName: "core-projects" */ '../pages/projects/ProjectsPage.vue'),
+});
+
+// 项目相关页面组（高优先级）
+const projectPages = createRouteGroup('project', {
+  detail: () => import(/* webpackChunkName: "project-detail" */ '../pages/projects/ProjectDetailPage.vue'),
+  new: () => import(/* webpackChunkName: "project-new" */ '../pages/projects/NewProjectPage.vue'),
+  market: () => import(/* webpackChunkName: "project-market" */ '../pages/projects/MarketPage.vue'),
+  management: () => import(/* webpackChunkName: "project-management" */ '../pages/projects/ProjectManagementPage.vue'),
+  collaboration: () => import(/* webpackChunkName: "project-collab" */ '../pages/projects/CollaborationPage.vue'),
+  archived: () => import(/* webpackChunkName: "project-archived" */ '../pages/projects/ArchivedPage.vue'),
+  categories: () => import(/* webpackChunkName: "project-categories" */ '../pages/projects/CategoriesPage.vue'),
+  share: () => import(/* webpackChunkName: "project-share" */ '../pages/ShareProjectView.vue'),
+});
+
+// 知识库页面组（中优先级）
+const knowledgePages = createRouteGroup('knowledge', {
+  detail: () => import(/* webpackChunkName: "knowledge-detail" */ '../pages/KnowledgeDetailPage.vue'),
+  list: () => import(/* webpackChunkName: "knowledge-list" */ '../pages/KnowledgeListPage.vue'),
+  graph: () => import(/* webpackChunkName: "knowledge-graph" */ '../pages/KnowledgeGraphPage.vue'),
+});
+
+// AI相关页面组（中优先级）
+const aiPages = createRouteGroup('ai', {
+  chat: () => import(/* webpackChunkName: "ai-chat" */ '../pages/AIChatPage.vue'),
+  prompts: () => import(/* webpackChunkName: "ai-prompts" */ '../pages/AIPromptsPage.vue'),
+});
+
+// 设置页面组（低优先级）
+const settingsPages = createRouteGroup('settings', {
+  main: () => import(/* webpackChunkName: "settings-main" */ '../pages/SettingsPage.vue'),
+  system: () => import(/* webpackChunkName: "settings-system" */ '../pages/settings/SystemSettings.vue'),
+  plugins: () => import(/* webpackChunkName: "settings-plugins" */ '../pages/settings/PluginManagement.vue'),
+  database: () => import(/* webpackChunkName: "settings-db" */ '../pages/settings/DatabaseSecurity.vue'),
+  skills: () => import(/* webpackChunkName: "settings-skills" */ '../pages/SkillManagement.vue'),
+  tools: () => import(/* webpackChunkName: "settings-tools" */ '../pages/ToolManagement.vue'),
+  voice: () => import(/* webpackChunkName: "settings-voice" */ '../pages/VoiceInputTestPage.vue'),
+});
+
+// 社交功能页面组（低优先级）
+const socialPages = createRouteGroup('social', {
+  did: () => import(/* webpackChunkName: "social-did" */ '../components/DIDManagement.vue'),
+  contacts: () => import(/* webpackChunkName: "social-contacts" */ '../components/ContactManagement.vue'),
+  credentials: () => import(/* webpackChunkName: "social-vc" */ '../components/VCManagement.vue'),
+  p2pMessaging: () => import(/* webpackChunkName: "social-p2p" */ '../components/P2PMessaging.vue'),
+  chat: () => import(/* webpackChunkName: "social-chat" */ '../components/social/ChatWindow.vue'),
+  moments: () => import(/* webpackChunkName: "social-moments" */ '../components/social/MomentsTimeline.vue'),
+  forums: () => import(/* webpackChunkName: "social-forums" */ '../components/social/ForumList.vue'),
+});
+
+// 其他功能页面（按需加载）
+const miscPages = {
+  webIDE: lazyRoute(() => import(/* webpackChunkName: "misc-webide" */ '../pages/webide/WebIDEPage.vue'), { chunkName: 'webide' }),
+  designEditor: lazyRoute(() => import(/* webpackChunkName: "misc-design" */ '../pages/design/DesignEditorPage.vue'), { chunkName: 'design' }),
+  organizations: lazyRoute(() => import(/* webpackChunkName: "misc-orgs" */ '../pages/OrganizationsPage.vue'), { chunkName: 'orgs' }),
+};
 
 const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('../pages/LoginPage.vue'),
+    component: corePages.login,
   },
   // 公开分享页面（无需认证）
   {
     path: '/share/project/:token',
     name: 'ShareProject',
-    component: () => import('../pages/ShareProjectView.vue'),
+    component: projectPages.share,
     meta: { requiresAuth: false },
   },
   {
     path: '/',
     name: 'Main',
-    component: () => import('../components/MainLayout.vue'),
+    component: corePages.mainLayout,
     meta: { requiresAuth: true },
     children: [
       {
         path: '',
         name: 'Home',
-        component: () => import('../pages/projects/ProjectsPage.vue'),
+        component: corePages.projects,
       },
       {
         path: 'knowledge/:id',
         name: 'KnowledgeDetail',
-        component: () => import('../pages/KnowledgeDetailPage.vue'),
+        component: knowledgePages.detail,
       },
       {
         path: 'settings',
         name: 'Settings',
-        component: () => import('../pages/SettingsPage.vue'),
+        component: settingsPages.main,
       },
       {
         path: 'settings/system',
         name: 'SystemSettings',
-        component: () => import('../pages/settings/SystemSettings.vue'),
+        component: settingsPages.system,
         meta: { title: '系统设置' },
       },
       {
         path: 'settings/plugins',
         name: 'PluginManagement',
-        component: () => import('../pages/settings/PluginManagement.vue'),
+        component: settingsPages.plugins,
         meta: { title: '插件管理' },
       },
       {
         path: 'settings/database-security',
         name: 'DatabaseSecurity',
-        component: () => import('../pages/settings/DatabaseSecurity.vue'),
+        component: settingsPages.database,
         meta: { title: '数据库安全' },
       },
       {
         path: 'settings/skills',
         name: 'SkillManagement',
-        component: () => import('../pages/SkillManagement.vue'),
+        component: settingsPages.skills,
         meta: { title: '技能管理' },
       },
       {
         path: 'settings/tools',
         name: 'ToolManagement',
-        component: () => import('../pages/ToolManagement.vue'),
+        component: settingsPages.tools,
         meta: { title: '工具管理' },
       },
       {
         path: 'settings/voice-input',
         name: 'VoiceInputTest',
-        component: () => import('../pages/VoiceInputTestPage.vue'),
+        component: settingsPages.voice,
         meta: { title: '语音输入测试' },
       },
       {
         path: 'did',
         name: 'DIDManagement',
-        component: () => import('../components/DIDManagement.vue'),
+        component: socialPages.did,
       },
       {
         path: 'contacts',
         name: 'ContactManagement',
-        component: () => import('../components/ContactManagement.vue'),
+        component: socialPages.contacts,
       },
       {
         path: 'credentials',
         name: 'VCManagement',
-        component: () => import('../components/VCManagement.vue'),
+        component: socialPages.credentials,
       },
       {
         path: 'p2p-messaging',
         name: 'P2PMessaging',
-        component: () => import('../components/P2PMessaging.vue'),
+        component: socialPages.p2pMessaging,
         meta: { title: 'P2P加密消息' },
       },
       {
         path: 'chat',
         name: 'Chat',
-        component: () => import('../components/social/ChatWindow.vue'),
+        component: socialPages.chat,
         meta: { title: '聊天' },
       },
       {
