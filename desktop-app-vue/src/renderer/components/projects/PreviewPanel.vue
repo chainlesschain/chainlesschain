@@ -978,7 +978,8 @@ watch(() => props.content, () => {
 });
 
 onMounted(() => {
-  loadFileContent();
+  // 🔥 修复：不要在这里调用 loadFileContent()，因为 watch 的 immediate: true 已经会调用
+  // loadFileContent(); // ← 移除这行，避免重复调用
 
   // 添加键盘事件监听
   window.addEventListener('keydown', handleKeyDown);

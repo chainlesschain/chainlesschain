@@ -994,13 +994,31 @@ class FileIPC {
           renderEndnotes: true,
         });
 
-        // 🔥 修复：docx-preview会创建一个wrapper div，获取实际内容避免多层嵌套
-        let htmlContent = container.innerHTML;
+        // 🔥 修复：移除docx-preview-wrapper和section标签，只保留实际内容和样式
+        let htmlContent = '';
 
-        // 如果container只有一个子元素，并且是div.docx-preview，则取其innerHTML
-        if (container.children.length === 1 && container.children[0].classList.contains('docx-preview')) {
-          htmlContent = container.children[0].innerHTML;
-          console.log('[FileIPC] 已移除docx-preview wrapper，获取实际内容');
+        // 1. 收集所有style标签
+        const styles = container.querySelectorAll('style');
+        styles.forEach(style => {
+          htmlContent += style.outerHTML;
+        });
+
+        // 2. 找到section.docx-preview，取其article内容
+        const section = container.querySelector('section.docx-preview');
+        if (section) {
+          const article = section.querySelector('article');
+          if (article) {
+            htmlContent += article.innerHTML;
+            console.log('[FileIPC] 已移除wrapper和section标签，只保留article内容');
+          } else {
+            // 如果没有article，则取section的全部内容
+            htmlContent += section.innerHTML;
+            console.log('[FileIPC] 已移除wrapper标签，保留section内容');
+          }
+        } else {
+          // 降级：如果找不到section，使用原始innerHTML
+          htmlContent = container.innerHTML;
+          console.log('[FileIPC] 使用原始HTML内容');
         }
 
         console.log('[FileIPC] Word预览HTML生成成功，长度:', htmlContent.length);
