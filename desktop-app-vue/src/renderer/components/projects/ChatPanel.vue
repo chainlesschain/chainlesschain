@@ -1666,10 +1666,10 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         // 获取项目路径
         const project = await window.electronAPI.project.get(props.projectId);
-        if (!project || !project.project_path) {
+        if (!project || !project.root_path) {
           throw new Error('无法获取项目路径，请确保项目已正确配置');
         }
-        const projectPath = project.project_path;
+        const projectPath = project.root_path;
         // 使用简单的路径拼接（跨平台兼容）
         const fileName = `${outline.title || 'presentation'}.pptx`;
         const outputPath = projectPath.endsWith('/') || projectPath.endsWith('\\')
@@ -1786,10 +1786,10 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         // 获取项目路径
         const project = await window.electronAPI.project.get(props.projectId);
-        if (!project || !project.project_path) {
+        if (!project || !project.root_path) {
           throw new Error('无法获取项目路径，请确保项目已正确配置');
         }
-        const projectPath = project.project_path;
+        const projectPath = project.root_path;
         const fileName = `${documentStructure.title || 'document'}.docx`;
         const outputPath = projectPath.endsWith('/') || projectPath.endsWith('\\')
           ? projectPath + fileName
@@ -1897,10 +1897,10 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         messages.value = [...messages.value];
 
         const project = await window.electronAPI.project.get(props.projectId);
-        if (!project || !project.project_path) {
+        if (!project || !project.root_path) {
           throw new Error('无法获取项目路径');
         }
-        const projectPath = project.project_path;
+        const projectPath = project.root_path;
         const fileName = `${plan.title || 'data'}.xlsx`;
         const outputPath = projectPath.endsWith('/') || projectPath.endsWith('\\')
           ? projectPath + fileName
@@ -1976,10 +1976,10 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         messages.value = [...messages.value];
 
         const project = await window.electronAPI.project.get(props.projectId);
-        if (!project || !project.project_path) {
+        if (!project || !project.root_path) {
           throw new Error('无法获取项目路径');
         }
-        const projectPath = project.project_path;
+        const projectPath = project.root_path;
         const fileName = `${plan.title || 'document'}.md`;
         const outputPath = projectPath.endsWith('/') || projectPath.endsWith('\\')
           ? projectPath + fileName
@@ -2058,10 +2058,10 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         messages.value = [...messages.value];
 
         const project = await window.electronAPI.project.get(props.projectId);
-        if (!project || !project.project_path) {
+        if (!project || !project.root_path) {
           throw new Error('无法获取项目路径');
         }
-        const projectPath = project.project_path;
+        const projectPath = project.root_path;
         const fileName = `${plan.title || 'index'}.html`;
         const outputPath = projectPath.endsWith('/') || projectPath.endsWith('\\')
           ? projectPath + fileName
