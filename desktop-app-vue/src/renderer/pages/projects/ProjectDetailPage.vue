@@ -1,11 +1,18 @@
 <template>
   <div class="project-detail-page-wrapper" data-testid="project-detail-wrapper">
+    <!-- 性能监控面板（开发环境） -->
+    <PerformanceMonitor v-if="isDevelopment" />
+
+    <!-- 命令面板 -->
+    <CommandPalette />
+
     <!-- 项目历史侧边栏 -->
     <ProjectSidebar />
 
     <!-- 主内容区 -->
     <div class="project-detail-page" data-testid="project-detail-page">
-    <!-- 顶部工具栏 -->
+    <!-- 顶部工具栏 - 使用FadeSlide过渡 -->
+    <FadeSlide direction="down" :duration="300" appear>
     <div class="toolbar">
       <!-- 左侧：面包屑导航 -->
       <div class="toolbar-left" data-testid="toolbar-breadcrumb">
@@ -126,20 +133,24 @@
         </a-button>
       </div>
     </div>
+    </FadeSlide>
 
-    <!-- 加载状态 -->
+    <!-- 加载状态 - 使用骨架屏优化 -->
     <div v-if="loading" class="loading-container" data-testid="loading-container">
-      <a-spin size="large" tip="加载项目中..." />
+      <div class="skeleton-layout">
+        <SkeletonLoader type="file-tree" :rows="15" style="width: 280px; margin-right: 16px;" />
+        <SkeletonLoader type="chat" :rows="8" style="flex: 1; margin-right: 16px;" />
+        <SkeletonLoader type="editor" style="width: 600px;" />
+      </div>
     </div>
 
     <!-- 项目不存在（排除AI创建模式） -->
-    <div v-else-if="!currentProject && projectId !== 'ai-creating'" class="error-container" data-testid="error-container">
+    <div v-else-if="!currentProject && !isAICreatingMode" class="error-container" data-testid="error-container">
       <div class="error-icon">
         <ExclamationCircleOutlined />
       </div>
       <h3>项目不存在</h3>
       <p>找不到ID为 {{ projectId }} 的项目</p>
-      <p style="font-size: 12px; color: #999;">Debug: projectId类型={{ typeof projectId }}, 值="{{ projectId }}", 是否等于'ai-creating': {{ projectId === 'ai-creating' }}</p>
       <a-button type="primary" @click="handleBackToList" data-testid="back-to-list-button">
         <FolderOpenOutlined />
         返回项目列表
@@ -147,9 +158,9 @@
     </div>
 
     <!-- 主内容区 -->
-    <div v-else-if="currentProject || projectId === 'ai-creating'" class="content-container" data-testid="content-container">
+    <div v-else-if="currentProject || isAICreatingMode" class="content-container" data-testid="content-container">
       <!-- 左侧：文件树管理器（AI创建模式下隐藏） -->
-      <div v-if="projectId !== 'ai-creating'" class="file-explorer-panel" :style="{ width: fileExplorerWidth + 'px' }" data-testid="file-explorer-panel">
+      <div v-if="!isAICreatingMode" class="file-explorer-panel" :style="{ width: fileExplorerWidth + 'px' }" data-testid="file-explorer-panel">
         <div class="sidebar-header" data-testid="file-explorer-header">
           <h3>
             <FolderOutlined />
@@ -193,7 +204,7 @@
 
       <!-- 拖拽手柄：文件树 <-> 对话面板（AI创建模式下隐藏） -->
       <ResizeHandle
-        v-if="projectId !== 'ai-creating'"
+        v-if="!isAICreatingMode"
         direction="vertical"
         :min-size="minPanelWidth"
         :max-size="maxFileExplorerWidth"
@@ -215,7 +226,7 @@
 
       <!-- 拖拽手柄：对话面板 <-> 编辑器面板（AI创建模式下隐藏） -->
       <ResizeHandle
-        v-if="showEditorPanel && projectId !== 'ai-creating'"
+        v-if="showEditorPanel && !isAICreatingMode"
         direction="vertical"
         :min-size="minPanelWidth"
         :max-size="maxEditorPanelWidth"
@@ -223,7 +234,7 @@
       />
 
       <!-- 右侧：编辑器/预览面板（AI创建模式下隐藏） -->
-      <div v-show="showEditorPanel && projectId !== 'ai-creating'" class="editor-preview-panel" :style="{ width: editorPanelWidth + 'px' }">
+      <div v-show="showEditorPanel && !isAICreatingMode" class="editor-preview-panel" :style="{ width: editorPanelWidth + 'px' }">
           <!-- 编辑器头部 -->
           <EditorPanelHeader
             v-if="currentFile"
@@ -469,6 +480,14 @@ import { sanitizePath, validateFileSize, throttle, debounce, getFileTypeInfo, ge
 import { fileCacheManager } from '@/utils/indexeddb-cache';
 import { fileWorker, syntaxWorker, workerManager } from '@/utils/worker-manager';
 
+// 导入性能优化工具
+import { getRequestBatcher, batchedRequest } from '@/utils/request-batcher';
+import { getOptimisticUpdateManager } from '@/utils/optimistic-update-manager';
+import { getIncrementalSyncManager, trackChange } from '@/utils/incremental-sync';
+import { getIntelligentPrefetchManager, enableHoverPrefetch } from '@/utils/intelligent-prefetch';
+import { getAccessibilityManager, announce } from '@/utils/accessibility';
+import keyboardShortcuts from '@/utils/keyboard-shortcuts';
+
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -515,7 +534,14 @@ const useVirtualFileTree = ref(true); // 使用虚拟滚动文件树（性能优
 
 // 计算属性
 const projectId = computed(() => route.params.id);
+const isAICreatingMode = computed(() => {
+  const id = route.params.id;
+  return id === 'ai-creating' || String(id).includes('ai-creating');
+});
 const currentProject = computed(() => projectStore.currentProject);
+const isDevelopment = computed(() => {
+  return process.env.NODE_ENV === 'development';
+});
 const projectFiles = computed(() => {
   const files = projectStore.projectFiles;
   console.log('[ProjectDetail] projectFiles computed 执行');
@@ -630,6 +656,38 @@ const shouldShowPreview = computed(() => {
     return true;
   }
   return false;
+});
+
+// 初始化优化管理器实例
+const requestBatcher = getRequestBatcher({
+  batchWindow: 50,
+  maxBatchSize: 10,
+  enableCache: true,
+  enableDeduplication: true,
+});
+
+const optimisticManager = getOptimisticUpdateManager({
+  enableUndoRedo: true,
+  enableOfflineQueue: true,
+});
+
+const syncManager = getIncrementalSyncManager({
+  syncInterval: 30000, // 30秒自动同步一次
+  enableAutoSync: true,
+  enableWebSocket: false, // 根据需要启用WebSocket
+});
+
+const prefetchManager = getIntelligentPrefetchManager({
+  enableHoverPrefetch: true,
+  enableViewportPrefetch: true,
+  enableIdlePrefetch: true,
+  networkAware: true,
+});
+
+const a11yManager = getAccessibilityManager({
+  enableAnnouncements: true,
+  enableFocusTrap: true,
+  autoFocus: true,
 });
 
 // 获取本地项目路径（将相对路径转换为绝对路径显示）
@@ -1060,20 +1118,80 @@ const handleSelectFile = async (fileData) => {
   }
 };
 
-const selectFile = (fileId) => {
+const selectFile = async (fileId) => {
   console.log('[ProjectDetail] 选择文件, fileId:', fileId);
   const file = projectFiles.value.find(f => f.id === fileId);
+
   if (file) {
     console.log('[ProjectDetail] 找到文件:', file);
-    projectStore.currentFile = file;
-    hasUnsavedChanges.value = false;
-    // 如果编辑器面板被隐藏，则显示它
-    if (!showEditorPanel.value) {
-      showEditorPanel.value = true;
-    }
+
+    // 使用乐观更新选择文件
+    await optimisticManager.update({
+      entity: `file-select:${fileId}`,
+
+      // 立即更新UI
+      mutation: async () => {
+        projectStore.currentFile = file;
+        hasUnsavedChanges.value = false;
+
+        // 如果编辑器面板被隐藏，则显示它
+        if (!showEditorPanel.value) {
+          showEditorPanel.value = true;
+        }
+      },
+
+      // 跟踪文件访问（用于智能预取）
+      apiCall: async () => {
+        // 记录文件访问历史
+        trackChange(`file:${fileId}`, 'access', {
+          lastAccessed: Date.now(),
+        });
+
+        return { success: true };
+      },
+
+      rollback: async () => {
+        // 如果失败，不做任何回滚（因为只是选择文件）
+      },
+
+      onSuccess: () => {
+        announce(`已打开文件 ${file.file_name}`, 'polite');
+
+        // 启用智能预取：预加载相邻文件
+        prefetchAdjacentFiles(fileId);
+      },
+
+      onFailure: (error) => {
+        console.error('选择文件失败:', error);
+      },
+    });
   } else {
     console.warn('[ProjectDetail] 未找到文件, fileId:', fileId, '可用文件:', projectFiles.value);
   }
+};
+
+// 智能预取相邻文件
+const prefetchAdjacentFiles = (currentFileId) => {
+  const currentIndex = projectFiles.value.findIndex(f => f.id === currentFileId);
+  if (currentIndex === -1) return;
+
+  // 预取前后各2个文件
+  const filesToPrefetch = [
+    projectFiles.value[currentIndex - 2],
+    projectFiles.value[currentIndex - 1],
+    projectFiles.value[currentIndex + 1],
+    projectFiles.value[currentIndex + 2],
+  ].filter(Boolean);
+
+  filesToPrefetch.forEach(file => {
+    if (file && file.file_path) {
+      const fullPath = file.file_path;
+      prefetchManager.prefetch(fullPath, {
+        type: 'fetch',
+        priority: 'low',
+      });
+    }
+  });
 };
 
 // 文件内容变化
@@ -1081,21 +1199,53 @@ const handleFileChange = (content) => {
   hasUnsavedChanges.value = true;
 };
 
-// 保存文件
+// 保存文件 - 使用乐观更新
 const handleSave = async () => {
   if (!currentFile.value) return;
 
   saving.value = true;
-  try {
-    await projectStore.updateFile(currentFile.value.id, currentFile.value.content);
-    hasUnsavedChanges.value = false;
-    message.success('文件已保存');
-  } catch (error) {
-    console.error('Save file failed:', error);
-    message.error('保存失败：' + error.message);
-  } finally {
-    saving.value = false;
-  }
+
+  await optimisticManager.update({
+    entity: `file:${currentFile.value.id}`,
+
+    // 立即更新本地UI
+    mutation: async () => {
+      hasUnsavedChanges.value = false;
+    },
+
+    // 后台保存
+    apiCall: async () => {
+      await projectStore.updateFile(currentFile.value.id, currentFile.value.content);
+
+      // 跟踪变更用于增量同步
+      trackChange(`file:${currentFile.value.id}`, 'update', {
+        content: currentFile.value.content,
+        updatedAt: Date.now(),
+      });
+
+      // 触发增量同步
+      await syncManager.syncNow();
+
+      return { success: true };
+    },
+
+    // 失败时回滚
+    rollback: async () => {
+      hasUnsavedChanges.value = true;
+    },
+
+    onSuccess: () => {
+      message.success('文件已保存');
+      announce('文件已保存', 'polite');
+    },
+
+    onFailure: (error) => {
+      console.error('Save file failed:', error);
+      message.error('保存失败：' + error.message);
+    },
+  });
+
+  saving.value = false;
 };
 
 // 处理视图模式变化
@@ -1380,7 +1530,7 @@ const handleAICreationComplete = async (result) => {
   aiCreationData.value = null;
 
   // 如果当前是ai-creating模式，需要跳转到真实的项目详情页
-  if (projectId.value === 'ai-creating') {
+  if (isAICreatingMode.value) {
     router.replace(`/projects/${result.projectId}`);
   } else {
     // 刷新项目信息和文件列表
@@ -1390,13 +1540,47 @@ const handleAICreationComplete = async (result) => {
   }
 };
 
+// 注册键盘快捷键
+const registerShortcuts = () => {
+  console.log('[ProjectDetail] 注册键盘快捷键');
+
+  // 设置作用域
+  keyboardShortcuts.setScope('project-detail');
+
+  // 监听快捷键事件
+  window.addEventListener('shortcut-save', handleSave);
+  window.addEventListener('shortcut-undo', async () => {
+    if (optimisticManager.canUndo()) {
+      await optimisticManager.undo();
+      message.info('已撤销');
+      announce('操作已撤销', 'polite');
+    }
+  });
+  window.addEventListener('shortcut-redo', async () => {
+    if (optimisticManager.canRedo()) {
+      await optimisticManager.redo();
+      message.info('已重做');
+      announce('操作已重做', 'polite');
+    }
+  });
+  window.addEventListener('shortcut-toggle-sidebar', toggleChatPanel);
+};
+
+// 清理快捷键
+const cleanupShortcuts = () => {
+  window.removeEventListener('shortcut-save', handleSave);
+  keyboardShortcuts.setScope('global');
+};
+
 // 组件挂载时加载项目
 onMounted(async () => {
   loading.value = true;
 
   try {
+    // 注册键盘快捷键
+    registerShortcuts();
     // 🔥 检查是否是AI创建模式（projectId为'ai-creating'）
-    if (projectId.value === 'ai-creating') {
+    if (isAICreatingMode.value) {
       console.log('[ProjectDetail] 检测到AI创建模式，开始自动创建项目');
 
       // 如果有 createData 参数，解析并保存
@@ -1463,8 +1647,11 @@ onMounted(async () => {
 
     // 加载项目文件（使用统一的加载函数）
     await loadFilesWithSync(projectId.value);
-  updateFileTreeMode(); // 根据文件数量选择最佳模式
+    updateFileTreeMode(); // 根据文件数量选择最佳模式
     console.log('[ProjectDetail] 初始文件树已加载');
+
+    // 无障碍通知：项目已加载
+    announce(`项目 ${currentProject.value.name} 已加载，包含 ${projectFiles.value.length} 个文件`, 'polite');
 
     // 🔥 检查是否有自动发送消息的请求
     if (route.query.autoSendMessage) {
@@ -1577,6 +1764,9 @@ onMounted(async () => {
 
 // 组件卸载时清理定时器
 onUnmounted(async () => {
+  // 清理快捷键
+  cleanupShortcuts();
+
   if (gitStatusInterval) {
     clearInterval(gitStatusInterval);
     gitStatusInterval = null;
@@ -1882,6 +2072,14 @@ const formatDate = (timestamp) => {
   align-items: center;
   justify-content: center;
   background: white;
+  padding: 24px;
+}
+
+.skeleton-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 16px;
 }
 
 /* 主内容区 */
