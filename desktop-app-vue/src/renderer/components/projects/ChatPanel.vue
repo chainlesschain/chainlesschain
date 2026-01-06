@@ -1574,6 +1574,39 @@ const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {
                                        plan.title.toLowerCase().includes('总结'))));
 
     console.log('[ChatPanel] 🔍 isWordTask:', isWordTask);
+
+    // 📊 检测是否是Excel/数据分析任务
+    const isExcelTask = (userInput.toLowerCase().includes('excel') ||
+                         userInput.toLowerCase().includes('表格') ||
+                         userInput.toLowerCase().includes('数据分析') ||
+                         userInput.toLowerCase().includes('xlsx') ||
+                         userInput.toLowerCase().includes('csv') ||
+                         (plan.title && (plan.title.toLowerCase().includes('excel') ||
+                                        plan.title.toLowerCase().includes('表格') ||
+                                        plan.title.toLowerCase().includes('数据'))));
+
+    console.log('[ChatPanel] 🔍 isExcelTask:', isExcelTask);
+
+    // 📄 检测是否是Markdown任务
+    const isMarkdownTask = (userInput.toLowerCase().includes('markdown') ||
+                            userInput.toLowerCase().includes('md文件') ||
+                            userInput.toLowerCase().includes('技术文档') ||
+                            userInput.toLowerCase().includes('笔记') ||
+                            (plan.title && (plan.title.toLowerCase().includes('markdown') ||
+                                           plan.title.toLowerCase().includes('技术文档'))));
+
+    console.log('[ChatPanel] 🔍 isMarkdownTask:', isMarkdownTask);
+
+    // 🌐 检测是否是网页任务
+    const isWebTask = (userInput.toLowerCase().includes('网页') ||
+                       userInput.toLowerCase().includes('html') ||
+                       userInput.toLowerCase().includes('网站') ||
+                       userInput.toLowerCase().includes('前端页面') ||
+                       (plan.title && (plan.title.toLowerCase().includes('网页') ||
+                                      plan.title.toLowerCase().includes('html') ||
+                                      plan.title.toLowerCase().includes('网站'))));
+
+    console.log('[ChatPanel] 🔍 isWebTask:', isWebTask);
     if (isPPTTask) {
       console.log('[ChatPanel] 🎨 检测到PPT任务，开始生成PPT文件...');
 
@@ -1812,6 +1845,265 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         messages.value.push(errorMsg);
 
         antMessage.warning('Word文件生成失败，但任务计划已完成');
+      }
+    }
+
+    // 📊 如果是Excel任务，自动生成Excel文件
+    if (isExcelTask) {
+      console.log('[ChatPanel] 📊 检测到Excel任务，开始生成Excel文件...');
+
+      const generatingExcelMsg = createSystemMessage('⏳ 正在生成Excel文件...', { type: 'info' });
+      messages.value.push(generatingExcelMsg);
+      await nextTick();
+      scrollToBottom();
+
+      try {
+        // 使用LLM生成数据结构
+        const dataPrompt = `请根据以下任务计划，生成一个Excel数据结构。
+
+任务标题: ${plan.title}
+任务摘要: ${plan.summary || ''}
+任务列表:
+${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.description}`).join('\n')}
+
+请生成包含表头和数据行的结构。
+
+要求返回JSON格式：
+\`\`\`json
+{
+  "sheetName": "Sheet1",
+  "headers": ["列1", "列2", "列3"],
+  "data": [
+    ["数据1", "数据2", "数据3"],
+    ["数据4", "数据5", "数据6"]
+  ]
+}
+\`\`\``;
+
+        const dataResponse = await llmService.chat(dataPrompt);
+        console.log('[ChatPanel] 📄 LLM生成的数据结构:', dataResponse);
+
+        const jsonMatch = dataResponse.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) ||
+                         dataResponse.match(/(\{[\s\S]*\})/);
+
+        if (!jsonMatch) {
+          throw new Error('无法从LLM响应中提取数据结构JSON');
+        }
+
+        const dataStructure = JSON.parse(jsonMatch[1]);
+        console.log('[ChatPanel] ✅ 数据结构解析成功:', dataStructure);
+
+        generatingExcelMsg.content = '⏳ 正在写入Excel文件...';
+        messages.value = [...messages.value];
+
+        const project = await window.electronAPI.project.get(props.projectId);
+        if (!project || !project.project_path) {
+          throw new Error('无法获取项目路径');
+        }
+        const projectPath = project.project_path;
+        const fileName = `${plan.title || 'data'}.xlsx`;
+        const outputPath = projectPath.endsWith('/') || projectPath.endsWith('\\')
+          ? projectPath + fileName
+          : projectPath + '/' + fileName;
+
+        // 调用data-engine写入Excel
+        await window.electronAPI.file.writeExcel(outputPath, {
+          sheetName: dataStructure.sheetName || 'Sheet1',
+          headers: dataStructure.headers,
+          data: dataStructure.data
+        });
+
+        console.log('[ChatPanel] ✅ Excel文件生成成功');
+
+        const genExcelIndex = messages.value.findIndex(m => m.id === generatingExcelMsg.id);
+        if (genExcelIndex !== -1) {
+          messages.value.splice(genExcelIndex, 1);
+        }
+
+        const successMsg = createSystemMessage(
+          `✅ Excel文件已生成: ${fileName}\n📁 保存位置: ${outputPath}\n📊 数据行数: ${dataStructure.data.length}`,
+          { type: 'success' }
+        );
+        messages.value.push(successMsg);
+
+        antMessage.success(`Excel文件已生成: ${fileName}`);
+
+        setTimeout(() => {
+          emit('files-changed');
+        }, 2000);
+
+      } catch (error) {
+        console.error('[ChatPanel] ❌ 生成Excel文件失败:', error);
+
+        const genExcelIndex = messages.value.findIndex(m => m.id === generatingExcelMsg.id);
+        if (genExcelIndex !== -1) {
+          messages.value.splice(genExcelIndex, 1);
+        }
+
+        const errorMsg = createSystemMessage(
+          `⚠️ Excel文件生成失败: ${error.message}\n📋 任务计划已生成，您可以稍后手动创建Excel文件`,
+          { type: 'warning' }
+        );
+        messages.value.push(errorMsg);
+
+        antMessage.warning('Excel文件生成失败，但任务计划已完成');
+      }
+    }
+
+    // 📄 如果是Markdown任务，自动生成Markdown文件
+    if (isMarkdownTask) {
+      console.log('[ChatPanel] 📄 检测到Markdown任务，开始生成Markdown文件...');
+
+      const generatingMdMsg = createSystemMessage('⏳ 正在生成Markdown文档...', { type: 'info' });
+      messages.value.push(generatingMdMsg);
+      await nextTick();
+      scrollToBottom();
+
+      try {
+        const mdPrompt = `请根据以下任务计划，生成一个Markdown文档内容。
+
+任务标题: ${plan.title}
+任务摘要: ${plan.summary || ''}
+任务列表:
+${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.description}`).join('\n')}
+
+请生成完整的Markdown格式内容，包含标题、章节、列表等。`;
+
+        const mdResponse = await llmService.chat(mdPrompt);
+        console.log('[ChatPanel] 📄 LLM生成的Markdown内容');
+
+        generatingMdMsg.content = '⏳ 正在写入Markdown文件...';
+        messages.value = [...messages.value];
+
+        const project = await window.electronAPI.project.get(props.projectId);
+        if (!project || !project.project_path) {
+          throw new Error('无法获取项目路径');
+        }
+        const projectPath = project.project_path;
+        const fileName = `${plan.title || 'document'}.md`;
+        const outputPath = projectPath.endsWith('/') || projectPath.endsWith('\\')
+          ? projectPath + fileName
+          : projectPath + '/' + fileName;
+
+        // 写入Markdown文件
+        await window.electronAPI.file.write(outputPath, mdResponse);
+
+        console.log('[ChatPanel] ✅ Markdown文件生成成功');
+
+        const genMdIndex = messages.value.findIndex(m => m.id === generatingMdMsg.id);
+        if (genMdIndex !== -1) {
+          messages.value.splice(genMdIndex, 1);
+        }
+
+        const successMsg = createSystemMessage(
+          `✅ Markdown文档已生成: ${fileName}\n📁 保存位置: ${outputPath}`,
+          { type: 'success' }
+        );
+        messages.value.push(successMsg);
+
+        antMessage.success(`Markdown文档已生成: ${fileName}`);
+
+        setTimeout(() => {
+          emit('files-changed');
+        }, 2000);
+
+      } catch (error) {
+        console.error('[ChatPanel] ❌ 生成Markdown文件失败:', error);
+
+        const genMdIndex = messages.value.findIndex(m => m.id === generatingMdMsg.id);
+        if (genMdIndex !== -1) {
+          messages.value.splice(genMdIndex, 1);
+        }
+
+        const errorMsg = createSystemMessage(
+          `⚠️ Markdown文件生成失败: ${error.message}\n📋 任务计划已生成，您可以稍后手动创建Markdown文档`,
+          { type: 'warning' }
+        );
+        messages.value.push(errorMsg);
+
+        antMessage.warning('Markdown文件生成失败，但任务计划已完成');
+      }
+    }
+
+    // 🌐 如果是网页任务，自动生成HTML文件
+    if (isWebTask) {
+      console.log('[ChatPanel] 🌐 检测到网页任务，开始生成HTML文件...');
+
+      const generatingWebMsg = createSystemMessage('⏳ 正在生成网页文件...', { type: 'info' });
+      messages.value.push(generatingWebMsg);
+      await nextTick();
+      scrollToBottom();
+
+      try {
+        const htmlPrompt = `请根据以下任务计划，生成一个完整的HTML网页。
+
+任务标题: ${plan.title}
+任务摘要: ${plan.summary || ''}
+任务列表:
+${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.description}`).join('\n')}
+
+请生成包含HTML、CSS和基本交互的完整网页代码。`;
+
+        const htmlResponse = await llmService.chat(htmlPrompt);
+        console.log('[ChatPanel] 📄 LLM生成的HTML内容');
+
+        // 提取HTML代码
+        let htmlContent = htmlResponse;
+        const htmlMatch = htmlResponse.match(/```(?:html)?\s*([\s\S]*?)\s*```/);
+        if (htmlMatch) {
+          htmlContent = htmlMatch[1];
+        }
+
+        generatingWebMsg.content = '⏳ 正在写入HTML文件...';
+        messages.value = [...messages.value];
+
+        const project = await window.electronAPI.project.get(props.projectId);
+        if (!project || !project.project_path) {
+          throw new Error('无法获取项目路径');
+        }
+        const projectPath = project.project_path;
+        const fileName = `${plan.title || 'index'}.html`;
+        const outputPath = projectPath.endsWith('/') || projectPath.endsWith('\\')
+          ? projectPath + fileName
+          : projectPath + '/' + fileName;
+
+        // 写入HTML文件
+        await window.electronAPI.file.write(outputPath, htmlContent);
+
+        console.log('[ChatPanel] ✅ 网页文件生成成功');
+
+        const genWebIndex = messages.value.findIndex(m => m.id === generatingWebMsg.id);
+        if (genWebIndex !== -1) {
+          messages.value.splice(genWebIndex, 1);
+        }
+
+        const successMsg = createSystemMessage(
+          `✅ 网页文件已生成: ${fileName}\n📁 保存位置: ${outputPath}`,
+          { type: 'success' }
+        );
+        messages.value.push(successMsg);
+
+        antMessage.success(`网页文件已生成: ${fileName}`);
+
+        setTimeout(() => {
+          emit('files-changed');
+        }, 2000);
+
+      } catch (error) {
+        console.error('[ChatPanel] ❌ 生成网页文件失败:', error);
+
+        const genWebIndex = messages.value.findIndex(m => m.id === generatingWebMsg.id);
+        if (genWebIndex !== -1) {
+          messages.value.splice(genWebIndex, 1);
+        }
+
+        const errorMsg = createSystemMessage(
+          `⚠️ 网页文件生成失败: ${error.message}\n📋 任务计划已生成，您可以稍后手动创建网页`,
+          { type: 'warning' }
+        );
+        messages.value.push(errorMsg);
+
+        antMessage.warning('网页文件生成失败，但任务计划已完成');
       }
     }
 
