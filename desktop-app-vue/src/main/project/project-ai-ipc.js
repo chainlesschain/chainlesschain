@@ -520,32 +520,29 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
 
         // 调用本地LLM（根据是否需要工具调用选择不同方法）
         let llmResult;
-        if (toolsToUse.length > 0 && llmManager.toolsClient && llmManager.provider === 'volcengine') {
-          console.log('[Main] 项目AI对话使用工具调用:', toolsToUse.join(', '));
+        if (toolsToUse.length > 0 && toolsToUse.includes('web_search')) {
+          // 使用通用联网搜索（不依赖特定LLM提供商）
+          console.log('[Main] 项目AI对话使用联网搜索');
+          try {
+            const { enhanceChatWithSearch } = require('../utils/web-search');
 
-          if (toolsToUse.includes('web_search')) {
-            // 使用联网搜索（仅火山引擎支持）
-            try {
-              const toolResult = await llmManager.chatWithWebSearch(messages, {
+            // 使用搜索结果增强对话
+            llmResult = await enhanceChatWithSearch(
+              userMessage,
+              messages,
+              (msgs, opts) => llmManager.chat(msgs, opts),
+              {
                 ...chatOptions,
-                searchMode: 'auto',
-              });
-
-              // 转换为统一格式
-              llmResult = {
-                content: toolResult.choices?.[0]?.message?.content || '',
-                text: toolResult.choices?.[0]?.message?.content || '',
-              };
-            } catch (toolError) {
-              console.warn('[Main] 工具调用失败，降级到标准对话:', toolError.message);
-              llmResult = await llmManager.chat(messages, chatOptions);
-            }
+                maxResults: 5,
+                engine: 'auto' // 自动选择可用搜索引擎（默认DuckDuckGo）
+              }
+            );
+          } catch (searchError) {
+            console.warn('[Main] 联网搜索失败，使用标准对话:', searchError.message);
+            llmResult = await llmManager.chat(messages, chatOptions);
           }
         } else {
-          // 标准对话（不支持工具调用或非火山引擎）
-          if (toolsToUse.length > 0) {
-            console.warn('[Main] 当前LLM提供商不支持工具调用，使用标准对话');
-          }
+          // 标准对话
           llmResult = await llmManager.chat(messages, chatOptions);
         }
 
