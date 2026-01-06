@@ -21,7 +21,7 @@ const projectPages = createRouteGroup('project', {
   management: () => import(/* webpackChunkName: "project-management" */ '../pages/projects/ProjectManagementPage.vue'),
   collaboration: () => import(/* webpackChunkName: "project-collab" */ '../pages/projects/CollaborationPage.vue'),
   archived: () => import(/* webpackChunkName: "project-archived" */ '../pages/projects/ArchivedPage.vue'),
-  categories: () => import(/* webpackChunkName: "project-categories" */ '../pages/projects/CategoriesPage.vue'),
+  categories: () => import(/* webpackChunkName: "project-categories" */ '../pages/projects/CategoryManagePage.vue'),
   share: () => import(/* webpackChunkName: "project-share" */ '../pages/ShareProjectView.vue'),
 });
 
@@ -56,8 +56,8 @@ const socialPages = createRouteGroup('social', {
   credentials: () => import(/* webpackChunkName: "social-vc" */ '../components/VCManagement.vue'),
   p2pMessaging: () => import(/* webpackChunkName: "social-p2p" */ '../components/P2PMessaging.vue'),
   chat: () => import(/* webpackChunkName: "social-chat" */ '../components/social/ChatWindow.vue'),
-  moments: () => import(/* webpackChunkName: "social-moments" */ '../components/social/MomentsTimeline.vue'),
-  forums: () => import(/* webpackChunkName: "social-forums" */ '../components/social/ForumList.vue'),
+  // moments: () => import(/* webpackChunkName: "social-moments" */ '../components/social/MomentsTimeline.vue'), // TODO: 文件不存在，待实现
+  // forums: () => import(/* webpackChunkName: "social-forums" */ '../components/social/ForumList.vue'), // TODO: 文件不存在，待实现
 });
 
 // 其他功能页面（按需加载）
