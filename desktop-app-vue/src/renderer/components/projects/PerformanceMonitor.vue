@@ -352,14 +352,9 @@ const updateMemoryMetrics = () => {
   // DOM metrics
   metrics.dom.nodes = document.querySelectorAll('*').length
 
-  // Estimate event listeners (approximate)
-  const elements = document.querySelectorAll('*')
-  let listenerCount = 0
-  elements.forEach(el => {
-    const listeners = getEventListeners ? getEventListeners(el) : {}
-    listenerCount += Object.keys(listeners).length
-  })
-  metrics.dom.listeners = listenerCount
+  // Event listeners: getEventListeners() only works in Chrome DevTools Console
+  // Not available in regular JavaScript, so we set it to 0
+  metrics.dom.listeners = 0
 }
 
 // Update FPS
