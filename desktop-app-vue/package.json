@@ -87,6 +87,7 @@
     "@privacyresearch/libsignal-protocol-typescript": "^0.0.16",
     "@tanstack/virtual-core": "^3.13.13",
     "@teamwork/websocket-json-stream": "^2.0.0",
+    "@xmldom/xmldom": "^0.8.11",
     "7zip-bin": "^5.2.0",
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",

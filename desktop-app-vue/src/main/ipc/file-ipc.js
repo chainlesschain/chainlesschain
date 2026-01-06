@@ -958,29 +958,94 @@ class FileIPC {
       const docxPreview = require('docx-preview');
       const { JSDOM } = require('jsdom');
       const dom = new JSDOM('<!DOCTYPE html><html><body><div id="container"></div></body></html>');
-      const container = dom.window.document.getElementById('container');
 
-      await docxPreview.renderAsync(fileBuffer, container, null, {
-        className: 'docx-preview',
-        ignoreWidth: false,
-        ignoreHeight: false,
-        ignoreFonts: false,
-        breakPages: true,
-        debug: false,
-        experimental: false,
-        renderChanges: false,
-        renderHeaders: true,
-        renderFooters: true,
-        renderFootnotes: true,
-        renderEndnotes: true,
-      });
+      // 🔥 修复：将JSDOM的所有必要浏览器API暴露到全局，供docx-preview使用
+      const originalDOMParser = global.DOMParser;
+      const originalDocument = global.document;
+      const originalXMLSerializer = global.XMLSerializer;
+      const originalNode = global.Node;
+      const originalElement = global.Element;
+      const originalHTMLElement = global.HTMLElement;
+      const originalWindow = global.window;
 
-      const htmlContent = container.innerHTML;
-      console.log('[FileIPC] Word预览HTML生成成功，长度:', htmlContent.length);
+      try {
+        global.DOMParser = dom.window.DOMParser;
+        global.document = dom.window.document;
+        global.XMLSerializer = dom.window.XMLSerializer;
+        global.Node = dom.window.Node;
+        global.Element = dom.window.Element;
+        global.HTMLElement = dom.window.HTMLElement;
+        global.window = dom.window;
 
-      return {
-        html: htmlContent,
-      };
+        const container = dom.window.document.getElementById('container');
+
+        await docxPreview.renderAsync(fileBuffer, container, null, {
+          className: 'docx-preview',
+          ignoreWidth: false,
+          ignoreHeight: false,
+          ignoreFonts: false,
+          breakPages: true,
+          debug: false,
+          experimental: false,
+          renderChanges: false,
+          renderHeaders: true,
+          renderFooters: true,
+          renderFootnotes: true,
+          renderEndnotes: true,
+        });
+
+        // 🔥 修复：docx-preview会创建一个wrapper div，获取实际内容避免多层嵌套
+        let htmlContent = container.innerHTML;
+
+        // 如果container只有一个子元素，并且是div.docx-preview，则取其innerHTML
+        if (container.children.length === 1 && container.children[0].classList.contains('docx-preview')) {
+          htmlContent = container.children[0].innerHTML;
+          console.log('[FileIPC] 已移除docx-preview wrapper，获取实际内容');
+        }
+
+        console.log('[FileIPC] Word预览HTML生成成功，长度:', htmlContent.length);
+
+        return {
+          html: htmlContent,
+        };
+      } finally {
+        // 恢复全局变量
+        if (originalDOMParser !== undefined) {
+          global.DOMParser = originalDOMParser;
+        } else {
+          delete global.DOMParser;
+        }
+        if (originalDocument !== undefined) {
+          global.document = originalDocument;
+        } else {
+          delete global.document;
+        }
+        if (originalXMLSerializer !== undefined) {
+          global.XMLSerializer = originalXMLSerializer;
+        } else {
+          delete global.XMLSerializer;
+        }
+        if (originalNode !== undefined) {
+          global.Node = originalNode;
+        } else {
+          delete global.Node;
+        }
+        if (originalElement !== undefined) {
+          global.Element = originalElement;
+        } else {
+          delete global.Element;
+        }
+        if (originalHTMLElement !== undefined) {
+          global.HTMLElement = originalHTMLElement;
+        } else {
+          delete global.HTMLElement;
+        }
+        if (originalWindow !== undefined) {
+          global.window = originalWindow;
+        } else {
+          delete global.window;
+        }
+      }
     } catch (error) {
       console.error('[FileIPC] Word预览失败:', error);
       throw error;
