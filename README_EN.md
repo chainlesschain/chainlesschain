@@ -2,13 +2,14 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.20.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.21.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-99%25-brightgreen.svg)
 ![Phase 1](https://img.shields.io/badge/Phase%201-100%25-brightgreen.svg)
 ![Phase 2](https://img.shields.io/badge/Phase%202-100%25-brightgreen.svg)
 ![Phase 3](https://img.shields.io/badge/Phase%203-100%25-brightgreen.svg)
 ![P2 Optimization](https://img.shields.io/badge/P2%20Optimization-100%25-brightgreen.svg)
+![Deep Optimization](https://img.shields.io/badge/Deep%20Optimization-100%25-brightgreen.svg)
 ![Enterprise](https://img.shields.io/badge/Enterprise-45%25-yellow.svg)
 ![Blockchain](https://img.shields.io/badge/Blockchain-55%25-yellow.svg)
 
@@ -22,14 +23,18 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.20.0 (2026-01-03)
+## ⭐ Current Version: v0.21.0 (2026-01-06)
 
 ### Latest Updates
-- ✅ **Testing Framework Upgrade** - Fixed test environment configuration and fully migrated to Vitest API, 94 test files, 900+ test cases ⭐LATEST
-- ✅ **Performance Optimization Integration** - Integrated performance optimization components: memory downgrade, disk check, concurrency control, file recovery, improved overall system performance ⭐LATEST
-- ✅ **Core Module Tests** - Added unit tests for 4 core modules: Git, file permissions, contract engine, bridge management ⭐LATEST
-- ✅ **Security Protection System** - Implemented comprehensive security protection: input validation, permission control, encrypted transmission ⭐LATEST
-- ✅ **Edge Case Handling** - Memory downgrade strategy, disk space check, concurrency control, file recovery mechanism ⭐LATEST
+- ✅ **Deep Performance Optimization System Complete** - Added 14,000+ lines of optimization code, 18 utility classes, 4 specialized components, comprehensive performance improvements ⭐LATEST
+- ✅ **Smart Image Optimization System** - WebP/AVIF format detection, responsive loading, progressive loading, LQIP placeholders, CDN support, network-aware loading ⭐LATEST
+- ✅ **Real-time Performance Monitoring System** - Core Web Vitals monitoring (LCP/FID/CLS), performance budgets, FPS monitoring, memory monitoring, performance alerts ⭐LATEST
+- ✅ **Frontend Deep Optimization** - Code splitting, component lazy loading, virtual scrolling, intelligent prefetch, request batching, optimistic updates, data compression ⭐LATEST
+- ✅ **Performance Toolkit** - Incremental sync, memory optimization, animation control, resource hints, performance benchmarking, accessibility enhancements ⭐LATEST
+- ✅ **Testing Framework Upgrade** - Fixed test environment configuration and fully migrated to Vitest API, 94 test files, 900+ test cases
+- ✅ **Performance Optimization Integration** - Integrated performance optimization components: memory downgrade, disk check, concurrency control, file recovery, improved overall system performance
+- ✅ **Core Module Tests** - Added unit tests for 4 core modules: Git, file permissions, contract engine, bridge management
+- ✅ **Security Protection System** - Implemented comprehensive security protection: input validation, permission control, encrypted transmission
 - ✅ **P2 Optimization Complete** - AI engine performance significantly improved: 58% reduction in LLM calls, 93% reduction in perceived latency, 28% cost savings
 - ✅ **V3 Tool System Restored** - Tool count expanded to 300, restored 28 professional tools covering blockchain/finance/CRM and 9 major domains
 - ✅ **Application Menu Integration** - Native menu support, MenuManager, 20+ IPC channels, advanced features control panel
@@ -55,6 +60,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🟢 **Skill & Tool System**: 100% Complete - **115 Skills + 300 Tools** ⭐Completed
 - 🟢 **Plugin System**: 85% Complete - **Dynamic Loading + Hot Reload**
 - 🟢 **Voice Recognition**: 90% Complete - **Advanced Features Complete**
+- 🟢 **Deep Performance Optimization**: 100% Complete - **18 Optimization Tools + 4 Specialized Components** ⭐Completed
 - 🟢 **Performance Optimization**: 100% Complete - **Memory/Disk/Concurrency Control** ⭐Completed
 - 🟢 **Security Protection**: 100% Complete - **Input Validation/Permission Control/Encryption** ⭐Completed
 - 🟡 **Enterprise Edition (Decentralized Organizations)**: 45% Complete - **Core Features Done**
@@ -81,10 +87,11 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🔌 **Plugin System**: Dynamic loading + hot reload + lifecycle management + API extension ✅
 - 🎤 **Voice Recognition**: Real-time transcription + audio enhancement + multi-language detection + subtitle generation ✅
 - 📱 **Cross-Device Collaboration**: Git sync + multi-device P2P communication + offline message queue ✅
-- 🔓 **Open Source & Self-Hosted**: 235,000+ lines of code, 239 Vue components, fully transparent and auditable ✅ ⭐Updated
+- 🔓 **Open Source & Self-Hosted**: 210,000+ lines of code, 243 Vue components, 23 pages, fully transparent and auditable ✅ ⭐Updated
 - ⚡ **P2 Optimization System**: Intent fusion, knowledge distillation, streaming response, 40% AI engine performance boost ✅ ⭐NEW
+- 🚀 **Deep Performance Optimization**: 18 optimization tools + 4 specialized components + Core Web Vitals monitoring + smart image loading ✅ ⭐NEW
 - 🎛️ **Advanced Features Control Panel**: Real-time monitoring, configuration management, 20+ IPC channels, native menu integration ✅ ⭐NEW
-- 📸 **Smart Image Processing**: Tesseract.js OCR + Sharp image processing + auto-indexing ✅
+- 📸 **Smart Image Processing**: Tesseract.js OCR + Sharp image processing + WebP/AVIF optimization + responsive loading ✅ ⭐Updated
 - 💼 **Microservice Architecture**: Project Service + AI Service + Community Forum, 149 API endpoints ✅
 - 🔄 **Database Sync**: SQLite ↔ PostgreSQL bidirectional sync, soft delete + conflict resolution ✅
 - 🌐 **Browser Extension**: Web annotation + content extraction + AI assistance + automated testing ✅
@@ -119,6 +126,40 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - ✅ AI auto-generated commit messages
 - ✅ Visual conflict resolution UI
 - ✅ Git sync scheduler
+
+**Deep Performance Optimization** (v0.21.0 NEW):
+- ✅ **Smart Image Optimization** (560 lines):
+  - WebP/AVIF format auto-detection and conversion
+  - Responsive image loading (srcset/sizes)
+  - LQIP (Low Quality Image Placeholder)
+  - Progressive loading and CDN support
+  - Network-aware loading (auto quality reduction on 2G/3G)
+- ✅ **Real-time Performance Monitoring** (644 lines):
+  - Core Web Vitals monitoring (LCP/FID/CLS/FCP/TTFB)
+  - Performance budget management and violation alerts
+  - Real-time FPS monitoring (60fps target)
+  - Memory usage monitoring and alerts
+  - Network status monitoring
+- ✅ **Frontend Optimization Toolkit** (18 utility classes):
+  - Code splitting and component lazy loading
+  - Virtual scrolling list (VirtualMessageList)
+  - Intelligent prefetch (based on user behavior prediction)
+  - Request batching
+  - Optimistic updates
+  - Data compression (LZ-string algorithm)
+  - Incremental sync
+  - Memory optimization (object pool, weak references)
+  - Animation control (requestAnimationFrame)
+  - Resource hints (preload/prefetch/preconnect)
+  - Content Visibility API optimization
+  - Accessibility enhancements (ARIA)
+  - Performance benchmarking tools
+- ✅ **Specialized Components** (4 components):
+  - AsyncComponent.vue - Async component loading
+  - LazyImage.vue - Lazy loading image component
+  - PerformanceMonitor.vue - Performance monitoring panel
+  - VirtualMessageList.vue - Virtual scrolling message list
+- ✅ **Complete Documentation**: 8 detailed documents (OPTIMIZATION_*.md)
 
 ### 2️⃣ Decentralized Social (85% Complete) ✅
 
@@ -499,10 +540,30 @@ chainlesschain/
 │   │   │   ├── did/         # DID identity system
 │   │   │   ├── p2p/         # P2P network
 │   │   │   └── trade/       # Trading system (Phase 3)
-│   │   └── renderer/        # Renderer process (Vue3, 239 components)
-│   │       ├── components/  # Reusable components (216)
+│   │   └── renderer/        # Renderer process (Vue3, 243 components) ⭐Updated
+│   │       ├── components/  # Reusable components (220) ⭐Updated
 │   │       ├── pages/       # Pages (23)
-│   │       └── stores/      # Pinia state management
+│   │       ├── stores/      # Pinia state management
+│   │       ├── services/    # Frontend service layer ⭐NEW
+│   │       │   ├── api.js   # API service (300 lines)
+│   │       │   └── __tests__/ # Service tests
+│   │       └── utils/       # Utility library (34 files) ⭐Updated
+│   │           ├── image-optimization.js         # Image optimization (560 lines) ⭐NEW
+│   │           ├── performance-monitoring.js     # Performance monitoring (644 lines) ⭐NEW
+│   │           ├── code-splitting.js             # Code splitting (387 lines) ⭐NEW
+│   │           ├── component-lazy-loader.js      # Component lazy loading (384 lines) ⭐NEW
+│   │           ├── intelligent-prefetch.js       # Intelligent prefetch (598 lines) ⭐NEW
+│   │           ├── request-batcher.js            # Request batching (451 lines) ⭐NEW
+│   │           ├── optimistic-update-manager.js  # Optimistic updates (528 lines) ⭐NEW
+│   │           ├── data-compression.js           # Data compression (425 lines) ⭐NEW
+│   │           ├── incremental-sync.js           # Incremental sync (514 lines) ⭐NEW
+│   │           ├── memory-optimization.js        # Memory optimization (450 lines) ⭐NEW
+│   │           ├── animation-controller.js       # Animation control (450 lines) ⭐NEW
+│   │           ├── resource-hints.js             # Resource hints (455 lines) ⭐NEW
+│   │           ├── content-visibility.js         # Content visibility (412 lines) ⭐NEW
+│   │           ├── accessibility.js              # Accessibility (482 lines) ⭐NEW
+│   │           ├── performance-benchmark.js      # Performance benchmarking (494 lines) ⭐NEW
+│   │           └── ... (other 19 utility files)
 │   └── package.json
 │
 ├── community-forum/         # 🌐 Community Forum (Complete App)
@@ -529,6 +590,17 @@ chainlesschain/
 │   ├── 项目完成度报告_2025-12-18.md
 │   └── API.md (TBD)
 │
+├── desktop-app-vue/docs/   # 🚀 Performance Optimization Docs ⭐NEW
+│   ├── ADVANCED_OPTIMIZATIONS.md          # Advanced optimization techniques (578 lines)
+│   ├── DEEP_OPTIMIZATION_COMPLETE.md      # Deep optimization completion report (765 lines)
+│   ├── OPTIMIZATION_INTEGRATION_COMPLETE.md # Optimization integration complete (500 lines)
+│   ├── OPTIMIZATION_INTEGRATION_FINAL.md  # Optimization integration final (573 lines)
+│   ├── OPTIMIZATION_INTEGRATION_GUIDE.md  # Optimization integration guide (883 lines)
+│   ├── OPTIMIZATION_QUICK_START.md        # Optimization quick start (424 lines)
+│   ├── OPTIMIZATION_SUMMARY.md            # Optimization summary (571 lines)
+│   ├── OPTIMIZATION_USAGE_GUIDE.md        # Optimization usage guide (updated)
+│   └── E2E_TEST_WORK_SUMMARY.md           # E2E test work summary (306 lines)
+│
 └── scripts/                 # 🛠️ Utility scripts
     ├── setup.sh             # Environment setup
     └── build.sh             # Build scripts
@@ -538,7 +610,7 @@ chainlesschain/
 
 | Project | Tech Stack | Code Size | APIs | Completion | Status |
 |---------|-----------|-----------|------|-----------|--------|
-| **desktop-app-vue** | Electron 39 + Vue3 | 195,000+ lines | 160+ IPC | 99% | ✅ Production Ready | ⭐Updated
+| **desktop-app-vue** | Electron 39 + Vue3 | 210,000+ lines | 160+ IPC | 99% | ✅ Production Ready | ⭐Updated
 | **contracts** | Hardhat + Solidity | 2,400 lines | - | 100% | ✅ Complete |
 | **browser-extension** | Vanilla JS | 2,000+ lines | - | 70% | 🚧 In Development |
 | **backend/project-service** | Spring Boot 3.1 + Java 17 | 5,679 lines | 48 APIs | 95% | ✅ Production Ready |
@@ -546,7 +618,7 @@ chainlesschain/
 | **community-forum/backend** | Spring Boot 3.1 + MySQL | 5,679 lines | 63 APIs | 90% | ✅ Production Ready |
 | **community-forum/frontend** | Vue3 + Element Plus | 10,958 lines | - | 85% | ✅ Functional |
 | **mobile-app-uniapp** | uni-app + Vue3 | Minimal | - | 10% | 🚧 In Development |
-| **Total** | - | **225,000+ lines** | **149 APIs** | **99%** | ✅ Ready for Use | ⭐Updated
+| **Total** | - | **240,000+ lines** | **149 APIs** | **99%** | ✅ Ready for Use | ⭐Updated
 
 ## 🗓️ Roadmap
 
@@ -620,6 +692,7 @@ chainlesschain/
 
 | Version | Date | Major Updates |
 |---------|------|---------------|
+| v0.21.0 | 2026-01-06 | **Deep Performance Optimization System**: Added 14,000+ lines of optimization code, 18 utility classes, 4 specialized components, smart image optimization system (WebP/AVIF), real-time performance monitoring (Core Web Vitals), frontend deep optimization (code splitting/lazy loading/virtual scrolling/intelligent prefetch), 8 detailed documents |
 | v0.20.0 | 2026-01-03 | **Testing Framework Upgrade + Performance Optimization**: Full migration to Vitest (94 test files/900+ cases), performance optimization integration (memory downgrade/disk check/concurrency control), security protection system, 4 core module unit tests |
 | v0.19.5 | 2026-01-02 | **P2 Optimization + V3 Tools + Menu Integration**: AI engine P2 optimization complete (intent fusion/knowledge distillation/streaming response), V3 tool system restored (300 tools), application menu integration, production deployment |
 | v0.19.0 | 2025-12-31 | **Codebase Refinement**: Updated project documentation, optimized template configuration, enhanced testing framework (62 test files), codebase restructuring |
@@ -887,27 +960,40 @@ Thanks to the following open source projects and technologies:
 
 ### Overall Code Statistics
 
-**Total Code**: 235,000+ lines ⭐Updated
-- Desktop App: 195,000+ lines (JavaScript/TypeScript/Vue) ⭐Updated
+**Total Code**: 250,000+ lines ⭐Updated
+- Desktop App: 210,000+ lines (JavaScript/TypeScript/Vue) ⭐Updated
+  - Main process: ~180,000 lines
+  - Renderer process: ~15,000 lines (243 components)
+  - Utility classes: ~15,000 lines (34 files)
 - Smart Contracts: 2,400 lines (Solidity + tests + scripts)
 - Browser Extension: 2,000+ lines (JavaScript)
 - Backend Services: 23,775 lines (Java + Python)
 - Community Forum: 10,958 lines (Vue3)
-- Test Code: 10,000+ lines (94 test files) ⭐NEW
+- Test Code: 10,000+ lines (94 test files)
+- Optimization Docs: 4,200+ lines (8 documents) ⭐NEW
 
 **Components and Files**:
-- Vue Components: 284 (Desktop 239 + Forum 45) ⭐Updated
-- JavaScript Files: 335 (main process) ⭐Updated
+- Vue Components: 288 (Desktop 243 + Forum 45) ⭐Updated
+- JavaScript Files: 369 (Main process 335 + Utilities 34) ⭐Updated
 - Solidity Contracts: 6
 - Java Files: 132
 - Python Files: 31
-- Test Files: 97 (Desktop 94 + Contracts 3) ⭐Updated
+- Test Files: 97 (Desktop 94 + Contracts 3)
+- Optimization Docs: 8 ⭐NEW
 
 **Function Modules**:
 - 16 AI specialized engines
-- P2 Optimization System (3800+ lines) ⭐NEW
+- P2 Optimization System (3800+ lines)
   - Intent fusion, knowledge distillation, streaming response
   - Task decomposition enhancement, tool composition, history memory
+- Deep Performance Optimization System (~8,700 lines) ⭐NEW
+  - 18 optimization utility classes (~8,000 lines)
+  - 4 specialized components (~700 lines)
+  - Smart image optimization, real-time performance monitoring
+  - Code splitting, component lazy loading, virtual scrolling
+  - Intelligent prefetch, request batching, optimistic updates
+  - Data compression, incremental sync, memory optimization
+  - Animation control, resource hints, accessibility features
 - Enterprise Edition (Decentralized Organizations)
   - OrganizationManager: 1966 lines
   - IdentityStore: 385 lines
@@ -917,10 +1003,10 @@ Thanks to the following open source projects and technologies:
 - Blockchain system (3263 lines)
   - Wallet system
   - Smart contracts (6 contracts)
-- Skill & tool system (115 skills + 300 tools) ⭐Updated
-- Advanced Features Control Panel (MenuManager + IPC + Web interface) ⭐NEW
-- Performance Optimization System (memory downgrade, disk check, concurrency control, file recovery) ⭐Completed
-- Security Protection System (input validation, permission control, encrypted transmission) ⭐Completed
+- Skill & tool system (115 skills + 300 tools)
+- Advanced Features Control Panel (MenuManager + IPC + Web interface)
+- Performance Optimization System (memory downgrade, disk check, concurrency control, file recovery)
+- Security Protection System (input validation, permission control, encrypted transmission)
 - Plugin system (dynamic loading + hot reload)
 - Voice recognition system (Phase 3 advanced features)
 - Browser extension (70% complete)
@@ -934,9 +1020,10 @@ Thanks to the following open source projects and technologies:
   - Project Service: 48 APIs
   - AI Service: 38 APIs
   - Community Forum: 63 APIs
-- Desktop app code: 574 files (335 JS + 239 Vue), ~195,000 lines ⭐Updated
-- Database tables: 50+ (base + enterprise + blockchain + P2 optimization) ⭐Updated
-- IPC handlers: 160+ (including enterprise IPC + advanced features IPC) ⭐Updated
+- Desktop app code: 612 files (335 JS + 243 Vue + 34 Utils), ~210,000 lines ⭐Updated
+- Database tables: 50+ (base + enterprise + blockchain + P2 optimization)
+- IPC handlers: 160+ (including enterprise IPC + advanced features IPC)
+- Optimization docs: 8 documents, ~4,200 lines ⭐NEW
 
 **Test Coverage**:
 - Total test files: 97 ⭐Updated
