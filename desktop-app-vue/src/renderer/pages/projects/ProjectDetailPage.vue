@@ -1938,13 +1938,9 @@ watch(() => currentFile.value, async (newFile, oldFile) => {
   }
 
   if (newFile) {
-    // 🔥 如果是PPT/Excel/Word文件,且当前是preview模式,自动切换到auto模式
-    const ext = newFile.file_name?.split('.').pop()?.toLowerCase();
-    const editableOfficeFiles = ['pptx', 'ppt', 'xlsx', 'xls', 'docx', 'doc'];
-    if (editableOfficeFiles.includes(ext) && viewMode.value === 'preview') {
-      console.log('[ProjectDetail] 检测到Office文件,自动切换到auto模式');
-      viewMode.value = 'auto';
-    }
+    // Office文件（PPT/Excel/Word）默认使用预览模式
+    // 用户可以通过"用本地应用打开"功能进行编辑
+    // 不再自动切换到编辑模式，保持预览模式的简洁体验
 
     await loadFileContent(newFile);
   } else {
