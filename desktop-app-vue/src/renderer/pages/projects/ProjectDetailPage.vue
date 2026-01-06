@@ -132,8 +132,8 @@
       <a-spin size="large" tip="加载项目中..." />
     </div>
 
-    <!-- 项目不存在 -->
-    <div v-else-if="!currentProject" class="error-container" data-testid="error-container">
+    <!-- 项目不存在（排除AI创建模式） -->
+    <div v-else-if="!currentProject && projectId !== 'ai-creating'" class="error-container" data-testid="error-container">
       <div class="error-icon">
         <ExclamationCircleOutlined />
       </div>
@@ -1445,9 +1445,8 @@ onMounted(async () => {
           return;
         }
       } else {
-        console.error('[ProjectDetail] AI创建模式但缺少createData参数');
-        message.error('缺少项目创建数据');
-        router.push('/projects');
+        // 没有 createData 参数，显示空的ChatPanel让用户手动输入
+        console.log('[ProjectDetail] AI创建模式，等待用户输入创建请求');
         loading.value = false;
         return;
       }
