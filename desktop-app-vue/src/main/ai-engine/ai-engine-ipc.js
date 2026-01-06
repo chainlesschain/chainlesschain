@@ -563,8 +563,7 @@ class AIEngineIPC {
       try {
         console.log('[AI Engine IPC] 开始生成Word文档:', options);
 
-        const WordEngine = require('../engines/word-engine');
-        const wordEngine = new WordEngine();
+        const wordEngine = require('../engines/word-engine');
 
         const result = await wordEngine.writeWord(options.outputPath, options.structure);
 
