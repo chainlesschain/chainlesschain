@@ -163,8 +163,7 @@ function extractWordRequest(userMessage, aiResponse) {
  */
 async function generateWordFile(wordRequest, projectPath, llmManager) {
   try {
-    const WordEngine = require('../engines/word-engine');
-    const wordEngine = new WordEngine();
+    const wordEngine = require('../engines/word-engine');
 
     console.log('[Word Generator] 开始生成Word文档');
     console.log('[Word Generator] 描述:', wordRequest.description);
