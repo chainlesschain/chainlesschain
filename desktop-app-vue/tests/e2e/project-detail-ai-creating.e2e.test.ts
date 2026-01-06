@@ -27,7 +27,19 @@ test.describe('项目详情页 - AI创建项目模式测试', () => {
         window.location.hash = '#/projects/ai-creating';
       });
 
-      await window.waitForTimeout(2000);
+      // 等待页面加载完成（使用选择器而不是固定时间）
+      console.log('[Test] 等待页面加载...');
+      try {
+        await window.waitForSelector('[data-testid="project-detail-page"]', { timeout: 10000 });
+      } catch (error) {
+        // 如果失败，打印当前页面信息用于debug
+        const currentURL = await window.evaluate(() => window.location.hash);
+        const bodyHTML = await window.evaluate(() => document.body.innerHTML);
+        console.log('[Test] ❌ 页面加载失败');
+        console.log('[Test] 当前URL:', currentURL);
+        console.log('[Test] Body HTML长度:', bodyHTML.length);
+        throw error;
+      }
 
       console.log('[Test] 验证AI创建模式页面加载');
       const projectDetailPage = await window.$('[data-testid="project-detail-page"]');
