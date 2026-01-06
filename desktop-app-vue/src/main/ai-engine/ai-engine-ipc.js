@@ -558,6 +558,31 @@ class AIEngineIPC {
       }
     });
 
+    // Word文档生成：从结构生成Word文件
+    ipcMain.handle('aiEngine:generateWord', async (_event, options) => {
+      try {
+        console.log('[AI Engine IPC] 开始生成Word文档:', options);
+
+        const WordEngine = require('../engines/word-engine');
+        const wordEngine = new WordEngine();
+
+        const result = await wordEngine.writeWord(options.outputPath, options.structure);
+
+        console.log('[AI Engine IPC] Word文档生成成功:', result);
+
+        return {
+          success: true,
+          ...result
+        };
+      } catch (error) {
+        console.error('[AI Engine IPC] Word文档生成失败:', error);
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+    });
+
     console.log('[AI Engine IPC] 所有IPC handlers已注册');
   }
 
@@ -594,6 +619,7 @@ class AIEngineIPC {
       'git-auto-commit:getWatchedProjects',
       'aiEngine:recognizeIntent',
       'aiEngine:generatePPT',
+      'aiEngine:generateWord',
     ];
 
     channels.forEach(channel => {

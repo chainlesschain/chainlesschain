@@ -882,6 +882,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   aiEngine: {
     recognizeIntent: (userInput) => ipcRenderer.invoke('aiEngine:recognizeIntent', userInput),
     generatePPT: (options) => ipcRenderer.invoke('aiEngine:generatePPT', options),
+    generateWord: (options) => ipcRenderer.invoke('aiEngine:generateWord', options),
   },
 
   // 代码开发引擎

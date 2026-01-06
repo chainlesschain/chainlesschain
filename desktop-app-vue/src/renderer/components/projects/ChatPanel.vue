@@ -1561,6 +1561,19 @@ const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {
                        (plan.title && plan.title.toLowerCase().includes('ppt')));
 
     console.log('[ChatPanel] 🔍 isPPTTask:', isPPTTask);
+
+    // 📝 检测是否是Word文档任务
+    const isWordTask = (userInput.toLowerCase().includes('word') ||
+                        userInput.toLowerCase().includes('docx') ||
+                        userInput.toLowerCase().includes('文档') ||
+                        userInput.toLowerCase().includes('报告') ||
+                        userInput.toLowerCase().includes('总结') ||
+                        (plan.title && (plan.title.toLowerCase().includes('word') ||
+                                       plan.title.toLowerCase().includes('文档') ||
+                                       plan.title.toLowerCase().includes('报告') ||
+                                       plan.title.toLowerCase().includes('总结'))));
+
+    console.log('[ChatPanel] 🔍 isWordTask:', isWordTask);
     if (isPPTTask) {
       console.log('[ChatPanel] 🎨 检测到PPT任务，开始生成PPT文件...');
 
@@ -1682,6 +1695,123 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         messages.value.push(errorMsg);
 
         antMessage.warning('PPT文件生成失败，但任务计划已完成');
+      }
+    }
+
+    // 📝 如果是Word文档任务，自动生成Word文件
+    if (isWordTask) {
+      console.log('[ChatPanel] 📝 检测到Word文档任务，开始生成Word文件...');
+
+      // 显示"正在生成Word"消息
+      const generatingWordMsg = createSystemMessage('⏳ 正在生成Word文档...', { type: 'info' });
+      messages.value.push(generatingWordMsg);
+      await nextTick();
+      scrollToBottom();
+
+      try {
+        // 使用LLM生成文档结构
+        const structurePrompt = `请根据以下任务计划，生成一个详细的Word文档结构。
+
+任务标题: ${plan.title}
+任务摘要: ${plan.summary || ''}
+任务列表:
+${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.description}`).join('\n')}
+
+请生成一个包含标题和多个段落的文档结构，内容要正式、专业。
+
+要求返回JSON格式：
+\`\`\`json
+{
+  "title": "文档标题",
+  "paragraphs": [
+    {
+      "heading": "章节标题",
+      "level": 1,
+      "content": "段落内容"
+    }
+  ]
+}
+\`\`\``;
+
+        const structureResponse = await llmService.chat(structurePrompt);
+        console.log('[ChatPanel] 📄 LLM生成的文档结构:', structureResponse);
+
+        // 提取JSON结构
+        const jsonMatch = structureResponse.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) ||
+                         structureResponse.match(/(\{[\s\S]*\})/);
+
+        if (!jsonMatch) {
+          throw new Error('无法从LLM响应中提取文档结构JSON');
+        }
+
+        const documentStructure = JSON.parse(jsonMatch[1]);
+        console.log('[ChatPanel] ✅ 文档结构解析成功:', documentStructure);
+
+        // 更新消息为"正在写入文件"
+        generatingWordMsg.content = '⏳ 正在写入Word文件...';
+        messages.value = [...messages.value];
+
+        // 获取项目路径
+        const project = await window.electronAPI.project.get(props.projectId);
+        if (!project || !project.project_path) {
+          throw new Error('无法获取项目路径，请确保项目已正确配置');
+        }
+        const projectPath = project.project_path;
+        const fileName = `${documentStructure.title || 'document'}.docx`;
+        const outputPath = projectPath.endsWith('/') || projectPath.endsWith('\\')
+          ? projectPath + fileName
+          : projectPath + '/' + fileName;
+
+        // 调用Word生成API
+        const result = await window.electronAPI.aiEngine.generateWord({
+          structure: documentStructure,
+          outputPath
+        });
+
+        if (result.success) {
+          console.log('[ChatPanel] ✅ Word文件生成成功:', result.fileName);
+
+          // 移除"正在生成"消息
+          const genWordIndex = messages.value.findIndex(m => m.id === generatingWordMsg.id);
+          if (genWordIndex !== -1) {
+            messages.value.splice(genWordIndex, 1);
+          }
+
+          // 显示成功消息
+          const successMsg = createSystemMessage(
+            `✅ Word文档已生成: ${result.fileName}\n📁 保存位置: ${result.path}\n📄 段落数量: ${result.paragraphCount || 0}`,
+            { type: 'success' }
+          );
+          messages.value.push(successMsg);
+
+          antMessage.success(`Word文档已生成: ${result.fileName}`);
+
+          // 🔄 延迟2秒后刷新文件树
+          setTimeout(() => {
+            console.log('[ChatPanel] 延迟刷新文件树');
+            emit('files-changed');
+          }, 2000);
+        } else {
+          throw new Error(result.error || '生成Word文档失败');
+        }
+
+      } catch (error) {
+        console.error('[ChatPanel] ❌ 生成Word文件失败:', error);
+
+        // 移除"正在生成"消息
+        const genWordIndex = messages.value.findIndex(m => m.id === generatingWordMsg.id);
+        if (genWordIndex !== -1) {
+          messages.value.splice(genWordIndex, 1);
+        }
+
+        // 显示错误消息
+        const errorMsg = createSystemMessage(
+          `⚠️ Word文件生成失败: ${error.message}\n📋 任务计划已生成，您可以稍后手动创建Word文档`,
+          { type: 'warning' }
+        );
+        messages.value.push(errorMsg);
+
+        antMessage.warning('Word文件生成失败，但任务计划已完成');
       }
     }
 
