@@ -58,7 +58,7 @@
         <div class="footer-hint">
           <span><ArrowUpOutlined /> <ArrowDownOutlined /> 选择</span>
           <span><EnterOutlined /> 执行</span>
-          <span><EscOutlined /> 关闭</span>
+          <span><CloseOutlined /> 关闭</span>
         </div>
         <div class="footer-stats">{{ filteredCommands.length }} / {{ allCommands.length }} 命令</div>
       </div>
@@ -74,7 +74,8 @@ import {
   InboxOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
-  EnterOutlined
+  EnterOutlined,
+  CloseOutlined
 } from '@ant-design/icons-vue'
 import keyboardShortcuts from '@/utils/keyboard-shortcuts'
 

@@ -94,6 +94,7 @@
     "better-sqlite3-multiple-ciphers": "^12.5.0",
     "bip39": "^3.1.0",
     "canvas": "^3.2.0",
+    "chart.js": "^4.5.1",
     "chokidar": "^5.0.0",
     "chromadb": "^3.1.8",
     "color": "^5.0.3",

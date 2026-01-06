@@ -438,7 +438,7 @@ class DIDManager extends EventEmitter {
     try {
       const result = this.db.exec('SELECT * FROM identities ORDER BY created_at DESC');
 
-      if (!result || result.length === 0 || !result[0].values) {
+      if (!result || result.length === 0 || !result[0] || !result[0].values) {
         return [];
       }
 
