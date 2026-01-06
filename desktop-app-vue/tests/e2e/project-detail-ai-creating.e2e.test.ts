@@ -11,7 +11,7 @@
 
 import { test, expect } from '@playwright/test';
 import { launchElectronApp, closeElectronApp, takeScreenshot, login } from './helpers';
-import { sendChatMessage, waitForProjectDetailLoad } from './project-detail-helpers';
+import { sendChatMessage, waitForProjectDetailLoad, navigateToAICreatingMode } from './project-detail-helpers';
 
 test.describe('项目详情页 - AI创建项目模式测试', () => {
   test('应该能够进入AI创建项目模式', async () => {
@@ -23,23 +23,8 @@ test.describe('项目详情页 - AI创建项目模式测试', () => {
       await window.waitForTimeout(1000);
 
       console.log('[Test] 导航到AI创建项目页面');
-      await window.evaluate(() => {
-        window.location.hash = '#/projects/ai-creating';
-      });
-
-      // 等待页面加载完成（使用选择器而不是固定时间）
-      console.log('[Test] 等待页面加载...');
-      try {
-        await window.waitForSelector('[data-testid="project-detail-page"]', { timeout: 10000 });
-      } catch (error) {
-        // 如果失败，打印当前页面信息用于debug
-        const currentURL = await window.evaluate(() => window.location.hash);
-        const bodyHTML = await window.evaluate(() => document.body.innerHTML);
-        console.log('[Test] ❌ 页面加载失败');
-        console.log('[Test] 当前URL:', currentURL);
-        console.log('[Test] Body HTML长度:', bodyHTML.length);
-        throw error;
-      }
+      const navigated = await navigateToAICreatingMode(window);
+      expect(navigated).toBe(true);
 
       console.log('[Test] 验证AI创建模式页面加载');
       const projectDetailPage = await window.$('[data-testid="project-detail-page"]');
@@ -74,11 +59,8 @@ test.describe('项目详情页 - AI创建项目模式测试', () => {
       await window.waitForTimeout(1000);
 
       console.log('[Test] 进入AI创建模式');
-      await window.evaluate(() => {
-        window.location.hash = '#/projects/ai-creating';
-      });
-
-      await window.waitForTimeout(2000);
+      const navigated = await navigateToAICreatingMode(window);
+      expect(navigated).toBe(true);
 
       console.log('[Test] 发送项目创建请求');
       const messageSent = await sendChatMessage(
@@ -112,11 +94,8 @@ test.describe('项目详情页 - AI创建项目模式测试', () => {
       await window.waitForTimeout(1000);
 
       console.log('[Test] 进入AI创建模式');
-      await window.evaluate(() => {
-        window.location.hash = '#/projects/ai-creating';
-      });
-
-      await window.waitForTimeout(2000);
+      const navigated = await navigateToAICreatingMode(window);
+      expect(navigated).toBe(true);
 
       console.log('[Test] 验证UI元素状态');
 
@@ -163,11 +142,8 @@ test.describe('项目详情页 - AI创建项目模式测试', () => {
       await window.waitForTimeout(1000);
 
       console.log('[Test] 进入AI创建模式');
-      await window.evaluate(() => {
-        window.location.hash = '#/projects/ai-creating';
-      });
-
-      await window.waitForTimeout(2000);
+      const navigated = await navigateToAICreatingMode(window);
+      expect(navigated).toBe(true);
 
       console.log('[Test] 查找取消或返回按钮');
       const closeButton = await window.$('[data-testid="close-button"], button:has-text("取消"), button:has-text("返回")');
@@ -205,11 +181,8 @@ test.describe('项目详情页 - AI创建项目模式测试', () => {
       await window.waitForTimeout(1000);
 
       console.log('[Test] 进入AI创建模式');
-      await window.evaluate(() => {
-        window.location.hash = '#/projects/ai-creating';
-      });
-
-      await window.waitForTimeout(2000);
+      const navigated = await navigateToAICreatingMode(window);
+      expect(navigated).toBe(true);
 
       console.log('[Test] 发送项目创建请求');
       await sendChatMessage(window, '创建一个名为"跳转测试项目"的项目');
@@ -253,11 +226,8 @@ test.describe('项目详情页 - AI创建项目模式测试', () => {
       await window.waitForTimeout(1000);
 
       console.log('[Test] 进入AI创建模式');
-      await window.evaluate(() => {
-        window.location.hash = '#/projects/ai-creating';
-      });
-
-      await window.waitForTimeout(2000);
+      const navigated = await navigateToAICreatingMode(window);
+      expect(navigated).toBe(true);
 
       console.log('[Test] 发送项目创建请求');
       await sendChatMessage(window, '创建一个包含多个文件的复杂项目');
@@ -293,11 +263,8 @@ test.describe('项目详情页 - AI创建项目模式测试', () => {
       await window.waitForTimeout(1000);
 
       console.log('[Test] 进入AI创建模式');
-      await window.evaluate(() => {
-        window.location.hash = '#/projects/ai-creating';
-      });
-
-      await window.waitForTimeout(2000);
+      const navigated = await navigateToAICreatingMode(window);
+      expect(navigated).toBe(true);
 
       console.log('[Test] 发送无效的项目创建请求');
       await sendChatMessage(window, ''); // 空消息

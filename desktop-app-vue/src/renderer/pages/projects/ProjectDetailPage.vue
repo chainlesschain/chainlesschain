@@ -139,6 +139,7 @@
       </div>
       <h3>项目不存在</h3>
       <p>找不到ID为 {{ projectId }} 的项目</p>
+      <p style="font-size: 12px; color: #999;">Debug: projectId类型={{ typeof projectId }}, 值="{{ projectId }}", 是否等于'ai-creating': {{ projectId === 'ai-creating' }}</p>
       <a-button type="primary" @click="handleBackToList" data-testid="back-to-list-button">
         <FolderOpenOutlined />
         返回项目列表
