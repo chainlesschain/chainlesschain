@@ -663,3 +663,114 @@ export async function clearConversation(window: Page): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * 导航到AI创建项目模式
+ * @param window - Playwright Page对象
+ * @param createData - 可选的创建数据
+ * @returns 是否成功导航
+ */
+export async function navigateToAICreatingMode(
+  window: Page,
+  createData?: any
+): Promise<boolean> {
+  try {
+    console.log('[Helper] 导航到AI创建模式...');
+
+    // 构建URL
+    let url = '#/projects/ai-creating';
+    if (createData) {
+      const queryString = new URLSearchParams({
+        createData: JSON.stringify(createData)
+      }).toString();
+      url += `?${queryString}`;
+    }
+
+    console.log('[Helper] 目标URL:', url);
+
+    // 方法1: 尝试使用window.location.hash
+    await window.evaluate((targetUrl) => {
+      console.log('[Browser] 设置hash:', targetUrl);
+      window.location.hash = targetUrl.replace('#', '');
+    }, url);
+
+    await window.waitForTimeout(1000);
+
+    // 检查URL是否改变
+    const currentHash = await window.evaluate(() => window.location.hash);
+    console.log('[Helper] 当前hash:', currentHash);
+
+    if (!currentHash.includes('ai-creating')) {
+      console.warn('[Helper] Hash未改变，尝试强制刷新...');
+
+      // 方法2: 强制触发hashchange事件
+      await window.evaluate((targetUrl) => {
+        window.location.hash = targetUrl.replace('#', '');
+        // 手动触发hashchange事件
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+      }, url);
+
+      await window.waitForTimeout(1000);
+    }
+
+    // 再次检查
+    const finalHash = await window.evaluate(() => window.location.hash);
+    console.log('[Helper] 最终hash:', finalHash);
+
+    if (!finalHash.includes('ai-creating')) {
+      console.error('[Helper] ❌ 无法导航到AI创建模式');
+      return false;
+    }
+
+    // 等待页面元素出现
+    try {
+      // 首先等待wrapper出现
+      await window.waitForSelector('[data-testid="project-detail-wrapper"]', { timeout: 5000 });
+      console.log('[Helper] ✅ 页面wrapper已加载');
+
+      // 然后等待loading状态消失
+      try {
+        await window.waitForSelector('[data-testid="loading-container"]', { state: 'hidden', timeout: 5000 });
+        console.log('[Helper] ✅ Loading状态已消失');
+      } catch (e) {
+        console.log('[Helper] ℹ️  未检测到loading容器或已经消失');
+      }
+
+      // 最后等待content-container出现
+      try {
+        await window.waitForSelector('[data-testid="content-container"]', { timeout: 5000 });
+        console.log('[Helper] ✅ AI创建模式页面已完全加载');
+        return true;
+      } catch (e) {
+        console.error('[Helper] ❌ content-container未出现，调查页面状态...');
+
+        // Debug: 检查页面上有哪些元素
+        const hasError = await window.$('[data-testid="error-container"]');
+        const hasLoading = await window.$('[data-testid="loading-container"]');
+        const hasContent = await window.$('[data-testid="content-container"]');
+
+        console.log('[Helper] Debug - 页面状态:', {
+          hasError: !!hasError,
+          hasLoading: !!hasLoading,
+          hasContent: !!hasContent
+        });
+
+        // 检查页面HTML
+        const errorContainerText = await window.evaluate(() => {
+          const errorDiv = document.querySelector('[data-testid="error-container"]');
+          return errorDiv ? errorDiv.innerText : '未找到error-container';
+        });
+        console.log('[Helper] Debug - 错误容器文本:', errorContainerText);
+
+        return false;
+      }
+    } catch (error) {
+      console.error('[Helper] ❌ 导航过程发生错误:', error);
+      return false;
+    }
+
+  } catch (error) {
+    console.error('[Helper] 导航到AI创建模式失败:', error);
+    return false;
+  }
+}

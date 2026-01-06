@@ -280,7 +280,522 @@ const showPalette = () => {
 
 ---
 
-## 5. 在 ProjectDetailPage 中集成
+## 4. 图片懒加载 (Image Lazy Loading)
+
+### 基础用法 - LazyImage 组件
+
+```vue
+<template>
+  <div>
+    <!-- 基础用法 -->
+    <LazyImage
+      src="/path/to/image.jpg"
+      alt="Description"
+      :width="400"
+      :height="300"
+    />
+
+    <!-- 带缩略图的渐进加载 -->
+    <LazyImage
+      src="/path/to/full-image.jpg"
+      thumbnail="/path/to/thumbnail.jpg"
+      :width="800"
+      :height="600"
+      :radius="8"
+      fit="cover"
+    />
+
+    <!-- 高优先级图片（首屏） -->
+    <LazyImage
+      src="/hero-image.jpg"
+      priority="high"
+      :fade-in="true"
+      @load="handleImageLoad"
+      @error="handleImageError"
+    />
+  </div>
+</template>
+
+<script setup>
+import LazyImage from '@/components/common/LazyImage.vue'
+
+const handleImageLoad = (event) => {
+  console.log('图片加载完成')
+}
+
+const handleImageError = (error) => {
+  console.error('图片加载失败', error)
+}
+</script>
+```
+
+### 使用指令 - v-lazy
+
+```vue
+<template>
+  <div>
+    <!-- 简单用法 -->
+    <img v-lazy="imageUrl" alt="Image" />
+
+    <!-- 带配置 -->
+    <img
+      v-lazy="{
+        src: imageUrl,
+        lowRes: thumbnailUrl,
+        priority: 'high'
+      }"
+      alt="Image"
+    />
+
+    <!-- 背景图片懒加载 -->
+    <div
+      v-lazy:background="backgroundImageUrl"
+      class="hero-section"
+    ></div>
+  </div>
+</template>
+
+<script setup>
+const imageUrl = ref('/path/to/image.jpg')
+const thumbnailUrl = ref('/path/to/thumbnail.jpg')
+const backgroundImageUrl = ref('/path/to/bg.jpg')
+</script>
+```
+
+### LazyImage Props
+
+| Prop | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `src` | String | - | 图片 URL (必填) |
+| `thumbnail` | String | '' | 缩略图 URL (用于渐进加载) |
+| `alt` | String | '' | 图片描述 |
+| `priority` | String | 'normal' | 加载优先级: 'high', 'normal', 'low' |
+| `width` | String/Number | 'auto' | 宽度 |
+| `height` | String/Number | 'auto' | 高度 |
+| `fit` | String | 'cover' | object-fit 值 |
+| `radius` | String/Number | 0 | 圆角半径 |
+| `showLoader` | Boolean | true | 显示加载动画 |
+| `showError` | Boolean | true | 显示错误信息 |
+| `fadeIn` | Boolean | true | 淡入动画 |
+| `allowRetry` | Boolean | true | 允许重试 |
+
+### 性能优化建议
+
+```javascript
+import { getLazyLoader } from '@/utils/image-lazy-loader'
+
+// 预加载关键图片（首屏）
+const lazyLoader = getLazyLoader()
+lazyLoader.preloadCritical([
+  '/hero-image.jpg',
+  '/logo.png',
+  '/banner.jpg'
+])
+
+// 查看统计信息
+const stats = lazyLoader.getStats()
+console.log('图片加载统计:', stats)
+// {
+//   totalImages: 50,
+//   loadedImages: 45,
+//   failedImages: 2,
+//   successRate: 90,
+//   averageLoadTime: 856,
+//   bandwidthSavedKB: 2048
+// }
+```
+
+---
+
+## 5. 请求批处理与去重 (Request Batching)
+
+### 基础用法
+
+```javascript
+import { getRequestBatcher } from '@/utils/request-batcher'
+
+const batcher = getRequestBatcher({
+  batchWindow: 50, // 批处理窗口：50ms
+  maxBatchSize: 10, // 每批最多10个请求
+  enableCache: true,
+  cacheTTL: 5 * 60 * 1000, // 缓存5分钟
+})
+
+// 单个请求（自动批处理和去重）
+const result = await batcher.request('/api/users', { id: 123 })
+
+// 跳过缓存
+const freshData = await batcher.request(
+  '/api/users',
+  { id: 123 },
+  { skipCache: true }
+)
+
+// 禁用批处理（立即执行）
+const immediateResult = await batcher.request(
+  '/api/users',
+  { id: 123 },
+  { enableBatching: false }
+)
+```
+
+### 自定义批处理 API
+
+```javascript
+import RequestBatcher from '@/utils/request-batcher'
+
+class MyRequestBatcher extends RequestBatcher {
+  /**
+   * 重写批处理 API 调用
+   */
+  async executeBatchAPI(endpoint, batchParams) {
+    // 实现你的批量 API
+    const response = await fetch(`${endpoint}/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: batchParams })
+    })
+
+    const data = await response.json()
+    return data.results // 返回结果数组
+  }
+
+  /**
+   * 自定义批处理逻辑
+   */
+  isBatchable(endpoint) {
+    // 只批处理 GET 请求
+    return endpoint.includes('/api/') && !endpoint.includes('/auth/')
+  }
+}
+
+// 使用自定义批处理器
+const batcher = new MyRequestBatcher()
+```
+
+### 统计信息
+
+```javascript
+const stats = batcher.getStats()
+console.log('请求统计:', stats)
+// {
+//   totalRequests: 100,
+//   batchedRequests: 80,
+//   cachedRequests: 15,
+//   deduplicatedRequests: 20,
+//   batchRate: '80%',
+//   cacheHitRate: '15%',
+//   averageResponseTime: 234,
+//   bandwidthSavedKB: 512
+// }
+```
+
+---
+
+## 6. 组件懒加载 (Component Lazy Loading)
+
+### 基础用法 - AsyncComponent
+
+```vue
+<template>
+  <div>
+    <!-- 使用 AsyncComponent 包装器 -->
+    <AsyncComponent
+      :loader="() => import('@/components/HeavyComponent.vue')"
+      :delay="200"
+      :timeout="10000"
+      :show-progress="true"
+      @loaded="handleLoaded"
+      @error="handleError"
+    >
+      <!-- 自定义加载状态 -->
+      <template #loading>
+        <div class="custom-loading">
+          <Spin size="large" />
+          <p>Loading component...</p>
+        </div>
+      </template>
+
+      <!-- 自定义错误状态 -->
+      <template #error="{ error, retry }">
+        <div class="custom-error">
+          <p>{{ error.message }}</p>
+          <a-button @click="retry">Retry</a-button>
+        </div>
+      </template>
+    </AsyncComponent>
+  </div>
+</template>
+
+<script setup>
+import AsyncComponent from '@/components/common/AsyncComponent.vue'
+
+const handleLoaded = (component) => {
+  console.log('组件加载完成:', component)
+}
+
+const handleError = (error) => {
+  console.error('组件加载失败:', error)
+}
+</script>
+```
+
+### 使用 lazyComponent 工具函数
+
+```javascript
+import { lazyComponent } from '@/utils/component-lazy-loader'
+
+// 创建懒加载组件
+const HeavyComponent = lazyComponent(
+  () => import('@/components/HeavyComponent.vue'),
+  {
+    delay: 200,
+    timeout: 10000,
+  }
+)
+
+// 在组件中使用
+export default {
+  components: {
+    HeavyComponent
+  }
+}
+```
+
+### 路由懒加载
+
+```javascript
+import { lazyRoutes } from '@/utils/component-lazy-loader'
+
+const routes = lazyRoutes([
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/pages/Dashboard.vue')
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/pages/Profile.vue'),
+    // 自定义加载组件
+    loadingComponent: () => import('@/components/RouteLoading.vue')
+  }
+])
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+```
+
+### 预加载和预取
+
+```javascript
+import { getComponentLazyLoader } from '@/utils/component-lazy-loader'
+
+const loader = getComponentLazyLoader()
+
+// 预加载组件（在后台加载）
+loader.prefetch(() => import('@/components/ExpensiveChart.vue'))
+
+// 鼠标悬停时预取
+const prefetchHandlers = loader.prefetchOnHover(
+  () => import('@/components/Modal.vue')
+)
+
+// 在模板中使用
+<button
+  @mouseenter="prefetchHandlers.onMouseenter"
+  @mouseleave="prefetchHandlers.onMouseleave"
+>
+  Open Modal
+</button>
+
+// 可见时预取（Intersection Observer）
+const cleanup = loader.prefetchOnVisible(
+  element,
+  () => import('@/components/Footer.vue')
+)
+
+// 清理
+onUnmounted(() => cleanup())
+```
+
+---
+
+## 7. 乐观更新 (Optimistic Updates)
+
+### 基础用法
+
+```javascript
+import { getOptimisticUpdateManager } from '@/utils/optimistic-update-manager'
+
+const manager = getOptimisticUpdateManager()
+
+// 执行乐观更新
+const result = await manager.update({
+  entity: 'post:123',
+
+  // 立即更新本地状态
+  mutation: async () => {
+    post.value.likes += 1
+    post.value.isLiked = true
+  },
+
+  // 后台调用 API
+  apiCall: async () => {
+    return await fetch('/api/posts/123/like', { method: 'POST' })
+      .then(res => res.json())
+  },
+
+  // 可选：自定义回滚
+  rollback: async (snapshot) => {
+    post.value.likes = snapshot.likes
+    post.value.isLiked = snapshot.isLiked
+  },
+
+  // 成功回调
+  onSuccess: (result) => {
+    console.log('点赞成功', result)
+    showMessage('已点赞!')
+  },
+
+  // 失败回调
+  onFailure: (error) => {
+    console.error('点赞失败', error)
+    showError('点赞失败，请重试')
+  }
+})
+```
+
+### 撤销/重做
+
+```javascript
+const manager = getOptimisticUpdateManager({
+  enableUndoRedo: true,
+  maxHistorySize: 50
+})
+
+// 执行操作
+await manager.update({ /* ... */ })
+
+// 撤销最后一次操作
+await manager.undo()
+
+// 重做
+await manager.redo()
+
+// 监听 Ctrl+Z / Ctrl+Shift+Z
+keyboardShortcuts.register({
+  key: 'Ctrl+Z',
+  handler: () => manager.undo()
+})
+
+keyboardShortcuts.register({
+  key: 'Ctrl+Shift+Z',
+  handler: () => manager.redo()
+})
+```
+
+### 批量操作
+
+```javascript
+// 批量更新（并行执行）
+const results = await manager.batchUpdate([
+  {
+    entity: 'post:1',
+    mutation: async () => { /* ... */ },
+    apiCall: async () => { /* ... */ }
+  },
+  {
+    entity: 'post:2',
+    mutation: async () => { /* ... */ },
+    apiCall: async () => { /* ... */ }
+  },
+  {
+    entity: 'post:3',
+    mutation: async () => { /* ... */ },
+    apiCall: async () => { /* ... */ }
+  }
+])
+
+console.log(`批量操作完成: ${results.filter(r => r.status === 'fulfilled').length} 成功`)
+```
+
+### 离线支持
+
+```javascript
+const manager = getOptimisticUpdateManager({
+  enableOfflineQueue: true,
+  retryOnFailure: true,
+  maxRetries: 3
+})
+
+// 离线时，操作会被加入队列
+await manager.update({
+  entity: 'comment:456',
+  mutation: async () => {
+    comments.value.push(newComment)
+  },
+  apiCall: async () => {
+    return await createComment(newComment)
+  }
+})
+
+// 恢复在线时，自动处理离线队列
+// 监听在线状态
+window.addEventListener('online', () => {
+  console.log('已恢复在线，正在同步...')
+})
+```
+
+### 监听事件
+
+```javascript
+// 监听成功
+manager.on('success', ({ updateId, entity, result }) => {
+  console.log(`更新成功: ${entity}`, result)
+})
+
+// 监听失败
+manager.on('failure', ({ updateId, entity, error }) => {
+  console.error(`更新失败: ${entity}`, error)
+  showNotification('操作失败，已自动回滚')
+})
+
+// 监听回滚
+manager.on('rollback', ({ updateId, entity }) => {
+  console.log(`已回滚: ${entity}`)
+})
+
+// 监听冲突
+manager.on('conflict', (conflict) => {
+  console.warn('检测到冲突:', conflict)
+  showConflictDialog(conflict)
+})
+```
+
+### 统计信息
+
+```javascript
+const stats = manager.getStats()
+console.log('乐观更新统计:', stats)
+// {
+//   totalUpdates: 50,
+//   successfulUpdates: 45,
+//   failedUpdates: 3,
+//   rolledBackUpdates: 3,
+//   pendingUpdates: 2,
+//   offlineQueueSize: 0,
+//   undoStackSize: 10,
+//   redoStackSize: 0,
+//   isOnline: true
+// }
+```
+
+---
+
+## 8. 在 ProjectDetailPage 中集成
 
 ### 完整示例
 
