@@ -33,9 +33,19 @@ class TaskPlannerEnhanced extends EventEmitter {
     if (!this.engines[engineName]) {
       try {
         const enginePath = path.join(__dirname, '..', 'engines', `${engineName}.js`);
-        const EngineClass = require(enginePath);
-        // 实例化引擎类
-        this.engines[engineName] = new EngineClass();
+        const EngineModule = require(enginePath);
+
+        // 检查导出的是类还是实例
+        if (typeof EngineModule === 'function') {
+          // 如果是类（构造函数），则实例化
+          this.engines[engineName] = new EngineModule();
+        } else if (typeof EngineModule === 'object' && EngineModule !== null) {
+          // 如果是对象（已实例化），则直接使用
+          this.engines[engineName] = EngineModule;
+        } else {
+          throw new Error(`引擎模块格式不正确: ${engineName}`);
+        }
+
         console.log(`[TaskPlannerEnhanced] 加载引擎: ${engineName}`);
       } catch (error) {
         console.error(`[TaskPlannerEnhanced] 加载引擎失败 ${engineName}:`, error);
@@ -241,7 +251,8 @@ ${userRequest}
 
 【可用工具说明】
 - web-engine: 生成HTML/CSS/JS网页
-- document-engine: 生成Word/PDF/Markdown文档
+- document-engine: 生成Markdown/PDF文档、文档转换
+- word-engine: 生成Word文档（.docx格式）
 - data-engine: 处理Excel/CSV数据、数据分析
 - ppt-engine: 生成PowerPoint演示文稿
 - code-engine: 生成代码文件
@@ -249,10 +260,16 @@ ${userRequest}
 
 【action操作说明】
 - web-engine: generate_html, generate_css, generate_js, create_web_project
-- document-engine: create_document, create_markdown, export_pdf, export_docx
+- document-engine: create_markdown, export_pdf, export_html
+- word-engine: create_document (生成Word文档)
 - data-engine: read_excel, analyze_data, calculate_nutrition, create_chart, export_csv
 - ppt-engine: generate_presentation
 - code-engine: generate_code, create_project_structure
+
+【工具选择建议】
+- 如果用户明确要求生成Word文档（含"Word"、"文档"、"报告"、".docx"等关键词），使用 word-engine
+- 如果需要Markdown或PDF，使用 document-engine
+- 如果需要PPT演示文稿，使用 ppt-engine
 
 【重要规则】
 1. 步骤要具体、可执行，避免模糊描述
@@ -344,14 +361,42 @@ ${userRequest}
     console.log('[TaskPlannerEnhanced] 使用降级方案');
 
     const timestamp = Date.now();
-    const { projectType = 'web' } = projectContext;
+    const { projectType = 'web', subType, toolEngine } = projectContext;
 
-    // 根据项目类型推断工具
-    const toolMap = {
-      'web': 'web-engine',
-      'document': 'document-engine',
-      'data': 'data-engine',
-      'app': 'code-engine'
+    // 优先使用意图识别器提供的 toolEngine
+    let selectedTool = toolEngine;
+
+    // 如果没有 toolEngine，根据项目类型和子类型推断工具
+    if (!selectedTool) {
+      // 检查用户需求中的关键词
+      const requestLower = userRequest.toLowerCase();
+      if (requestLower.includes('word') || requestLower.includes('文档') ||
+          requestLower.includes('报告') || requestLower.includes('docx') ||
+          subType === 'word') {
+        selectedTool = 'word-engine';
+      } else if (requestLower.includes('ppt') || requestLower.includes('演示') ||
+                 requestLower.includes('幻灯片') || subType === 'ppt') {
+        selectedTool = 'ppt-engine';
+      } else {
+        // 默认工具映射
+        const toolMap = {
+          'web': 'web-engine',
+          'document': 'document-engine',
+          'data': 'data-engine',
+          'app': 'code-engine'
+        };
+        selectedTool = toolMap[projectType] || 'web-engine';
+      }
+    }
+
+    // 根据工具类型确定输出文件扩展名
+    const outputFileMap = {
+      'word-engine': ['document.docx'],
+      'ppt-engine': ['presentation.pptx'],
+      'document-engine': ['document.md'],
+      'web-engine': ['output.html'],
+      'data-engine': ['data.xlsx'],
+      'code-engine': ['code.js']
     };
 
     return {
@@ -365,11 +410,11 @@ ${userRequest}
         step: 1,
         title: '执行用户请求',
         description: userRequest,
-        tool: toolMap[projectType] || 'web-engine',
-        action: 'execute',
+        tool: selectedTool,
+        action: 'create_document',
         estimated_tokens: 1000,
         dependencies: [],
-        output_files: ['output.html'],
+        output_files: outputFileMap[selectedTool] || ['output.txt'],
         status: 'pending',
         result: null,
         error: null,
@@ -379,7 +424,7 @@ ${userRequest}
       final_output: {
         type: 'file',
         description: '生成的文件',
-        files: ['output.html']
+        files: outputFileMap[selectedTool] || ['output.txt']
       },
       status: 'pending',
       current_step: 0,
@@ -792,6 +837,9 @@ ${userRequest}
         case 'document-engine':
           return await this.executeDocumentEngineTask(subtask, projectContext, progressCallback);
 
+        case 'word-engine':
+          return await this.executeWordEngineTask(subtask, projectContext, progressCallback);
+
         case 'data-engine':
           return await this.executeDataEngineTask(subtask, projectContext, progressCallback);
 
@@ -901,6 +949,31 @@ ${userRequest}
         console.warn('[TaskPlannerEnhanced] PPT引擎未实现，使用LLM生成大纲');
         return await this.executeGenericTask(subtask, projectContext, progressCallback);
       }
+      throw error;
+    }
+  }
+
+  /**
+   * 执行Word引擎任务
+   */
+  async executeWordEngineTask(subtask, projectContext, progressCallback) {
+    try {
+      const wordEngine = this.loadEngine('word-engine');
+      const { action, description, output_files } = subtask;
+
+      console.log(`[TaskPlannerEnhanced] Word引擎 - ${action}`);
+
+      const result = await wordEngine.handleProjectTask({
+        action: action,
+        description: description,
+        outputFiles: output_files,
+        projectPath: projectContext.root_path,
+        llmManager: this.llmManager
+      });
+
+      return result;
+    } catch (error) {
+      console.error('[TaskPlannerEnhanced] Word引擎执行失败:', error);
       throw error;
     }
   }

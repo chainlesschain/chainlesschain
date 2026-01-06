@@ -484,19 +484,45 @@ class WordEngine {
   async handleProjectTask(params) {
     const { description, projectPath, llmManager, action = 'create_document' } = params;
 
-    console.log('[WordEngine] 处理Word文档生成任务');
+    console.log('[WordEngine] ========== 开始处理Word文档生成任务 ==========');
     console.log('[WordEngine] 描述:', description);
     console.log('[WordEngine] 操作:', action);
+    console.log('[WordEngine] 项目路径:', projectPath);
 
     try {
       // 使用LLM生成文档结构
+      console.log('[WordEngine] 步骤1: 使用LLM生成文档结构...');
       const documentStructure = await this.generateDocumentStructureFromDescription(description, llmManager);
+      console.log('[WordEngine] ✓ 文档结构已生成');
+      console.log('[WordEngine]   - 标题:', documentStructure.title);
+      console.log('[WordEngine]   - 段落数:', documentStructure.paragraphs?.length);
 
       // 生成Word文档
       const fileName = `${documentStructure.title || 'document'}.docx`;
       const filePath = path.join(projectPath, fileName);
 
+      console.log('[WordEngine] 步骤2: 写入Word文件...');
+      console.log('[WordEngine]   - 文件名:', fileName);
+      console.log('[WordEngine]   - 项目路径:', projectPath);
+      console.log('[WordEngine]   - 完整路径:', filePath);
+
+      // 确保目录存在
+      const dirPath = path.dirname(filePath);
+      console.log('[WordEngine]   - 检查目录:', dirPath);
+      try {
+        await fs.mkdir(dirPath, { recursive: true });
+        console.log('[WordEngine]   ✓ 目录已确保存在');
+      } catch (mkdirError) {
+        console.error('[WordEngine]   ✗ 创建目录失败:', mkdirError.message);
+        throw new Error(`无法创建目录 ${dirPath}: ${mkdirError.message}`);
+      }
+
       const result = await this.writeWord(filePath, documentStructure);
+
+      console.log('[WordEngine] ✓ Word文件写入成功!');
+      console.log('[WordEngine]   - 文件路径:', result.filePath);
+      console.log('[WordEngine]   - 文件大小:', (result.fileSize / 1024).toFixed(2), 'KB');
+      console.log('[WordEngine] ========== Word文档生成完成 ==========');
 
       return {
         type: 'word-document',
@@ -506,7 +532,9 @@ class WordEngine {
         paragraphCount: documentStructure.paragraphs?.length || 0
       };
     } catch (error) {
-      console.error('[WordEngine] 任务执行失败:', error);
+      console.error('[WordEngine] ========== 任务执行失败 ==========');
+      console.error('[WordEngine] 错误:', error.message);
+      console.error('[WordEngine] 堆栈:', error.stack);
       throw error;
     }
   }

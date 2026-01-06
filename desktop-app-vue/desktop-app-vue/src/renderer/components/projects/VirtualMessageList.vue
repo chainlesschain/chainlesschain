@@ -1,6 +1,6 @@
 <template>
   <div ref="scrollContainer" class="virtual-message-list" @scroll="handleScroll">
-    <!-- 🔥 添加安全检查，防止virtualizer为null时报错 -->
+    <!-- 🔥 虚拟滚动模式：仅当virtualizer已初始化时使用 -->
     <div
       v-if="virtualizer"
       :style="{
@@ -10,7 +10,7 @@
       }"
     >
       <div
-        v-for="virtualRow in virtualizer.getVirtualItems()"
+        v-for="virtualRow in virtualItems"
         :key="virtualRow.key"
         :style="{
           position: 'absolute',
@@ -53,6 +53,17 @@ const emit = defineEmits(['scroll-to-bottom', 'load-more']);
 
 const scrollContainer = ref(null);
 const virtualizer = ref(null);
+const updateKey = ref(0); // 用于强制更新
+
+// 创建一个响应式的虚拟项列表
+const virtualItems = computed(() => {
+  if (!virtualizer.value) {
+    return [];
+  }
+  // 访问updateKey以确保当它变化时重新计算
+  updateKey.value;
+  return virtualizer.value.getVirtualItems();
+});
 
 // 初始化虚拟滚动器
 const initVirtualizer = () => {
@@ -65,7 +76,7 @@ const initVirtualizer = () => {
     virtualizer.value = new Virtualizer({
       count: props.messages.length,
       getScrollElement: () => scrollContainer.value,
-      estimateSize: () => props.estimateSize,
+      estimateSize: (index) => props.estimateSize,
       overscan: 5, // 预渲染5条额外消息
       scrollMargin: 0
     });
@@ -115,8 +126,12 @@ const scrollToMessage = (messageId) => {
 watch(() => props.messages.length, (newLength, oldLength) => {
   if (virtualizer.value) {
     virtualizer.value.setOptions({
-      count: newLength
+      count: newLength,
+      estimateSize: (index) => props.estimateSize
     });
+
+    // 🔥 强制更新虚拟列表以响应长度变化
+    updateKey.value++;
 
     // 如果是新增消息，自动滚动到底部
     if (newLength > oldLength) {
@@ -129,19 +144,26 @@ watch(() => props.messages.length, (newLength, oldLength) => {
     console.log('[VirtualMessageList] Virtualizer not initialized, attempting to initialize...');
     nextTick(() => {
       initVirtualizer();
+      // 初始化后也要强制更新
+      if (virtualizer.value) {
+        updateKey.value++;
+      }
     });
   }
 });
 
-// 监听messages数组本身的变化（不仅仅是长度）
-watch(() => props.messages, (newMessages) => {
+// 监听messages数组本身的变化（深度监听以捕获内容更新）
+watch(() => props.messages, (newMessages, oldMessages) => {
   if (!virtualizer.value && newMessages.length > 0) {
     console.log('[VirtualMessageList] Messages updated, initializing virtualizer...');
     nextTick(() => {
       initVirtualizer();
     });
+  } else if (virtualizer.value) {
+    // 强制更新虚拟列表以响应消息内容变化（如流式更新）
+    updateKey.value++;
   }
-}, { deep: false });
+}, { deep: true });
 
 // 暴露方法给父组件
 defineExpose({
@@ -150,7 +172,6 @@ defineExpose({
 });
 
 onMounted(() => {
-  console.log('[VirtualMessageList] Component mounted with', props.messages.length, 'messages');
   nextTick(() => {
     initVirtualizer();
     if (props.messages.length > 0) {

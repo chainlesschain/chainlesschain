@@ -422,16 +422,50 @@ const handleExport = async ({ key }) => {
 
 // 导出为Word
 const exportToWord = async (html) => {
-  const result = await window.electronAPI.dialog.showSaveDialog({
-    defaultPath: props.file?.file_name?.replace(/\.[^.]+$/, '.docx') || 'document.docx',
-    filters: [{ name: 'Word文档', extensions: ['docx'] }],
-  });
+  console.log('[RichTextEditor] 🔄 开始导出Word...');
+  console.log('[RichTextEditor] 文件名:', props.file?.file_name);
+  console.log('[RichTextEditor] HTML长度:', html?.length, '字符');
 
-  if (!result.canceled && result.filePath) {
-    await window.electronAPI.file.htmlToWord(html, result.filePath, {
+  try {
+    console.log('[RichTextEditor] 📂 打开保存对话框...');
+    const result = await window.electronAPI.dialog.showSaveDialog({
+      defaultPath: props.file?.file_name?.replace(/\.[^.]+$/, '.docx') || 'document.docx',
+      filters: [{ name: 'Word文档', extensions: ['docx'] }],
+    });
+
+    console.log('[RichTextEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
+
+    if (result.canceled) {
+      console.log('[RichTextEditor] ❌ 用户取消了导出');
+      return;
+    }
+
+    if (!result.filePath) {
+      console.error('[RichTextEditor] ❌ 没有选择文件路径');
+      message.error('请选择保存位置');
+      return;
+    }
+
+    console.log('[RichTextEditor] ✅ 用户选择路径:', result.filePath);
+    console.log('[RichTextEditor] 📝 调用 htmlToWord IPC...');
+
+    const exportResult = await window.electronAPI.file.htmlToWord(html, result.filePath, {
       title: props.file?.file_name || 'Document',
     });
-    message.success('导出成功: ' + result.filePath);
+
+    console.log('[RichTextEditor] IPC返回结果:', exportResult);
+
+    if (exportResult && exportResult.success) {
+      console.log('[RichTextEditor] ✅ 导出成功!');
+      message.success('导出成功: ' + result.filePath);
+    } else {
+      console.error('[RichTextEditor] ❌ 导出失败:', exportResult);
+      message.error('导出失败: ' + (exportResult?.error || '未知错误'));
+    }
+  } catch (error) {
+    console.error('[RichTextEditor] ❌ 导出过程发生异常:', error);
+    console.error('[RichTextEditor] 错误堆栈:', error.stack);
+    message.error('导出失败: ' + error.message);
   }
 };
 

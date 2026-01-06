@@ -102,6 +102,101 @@ async function generatePPTFile(outline, projectPath, project) {
 }
 
 /**
+ * 检测Word文档生成请求
+ * @param {string} userMessage - 用户消息
+ * @param {string} aiResponse - AI响应文本
+ * @returns {Object|null} Word请求信息，如果没有则返回null
+ */
+function extractWordRequest(userMessage, aiResponse) {
+  try {
+    // 检测用户消息中的Word/docx关键词
+    const userMsgLower = (userMessage || '').toLowerCase();
+    const aiResponseLower = (aiResponse || '').toLowerCase();
+
+    const wordKeywords = ['word', 'docx', 'doc文档', 'word文档', '生成文档', '创建文档'];
+    const hasWordKeyword = wordKeywords.some(keyword =>
+      userMsgLower.includes(keyword) || aiResponseLower.includes(keyword)
+    );
+
+    if (!hasWordKeyword) {
+      console.log('[Word Detector] 未检测到Word生成请求');
+      return null;
+    }
+
+    // 提取文档描述
+    let description = userMessage;
+
+    // 尝试提取更具体的描述
+    const descPatterns = [
+      /生成(?:一个|一份)?(.+?)(?:的)?(?:word|docx|文档)/i,
+      /创建(?:一个|一份)?(.+?)(?:的)?(?:word|docx|文档)/i,
+      /写(?:一个|一份)?(.+?)(?:的)?(?:word|docx|文档)/i,
+    ];
+
+    for (const pattern of descPatterns) {
+      const match = userMessage.match(pattern);
+      if (match && match[1]) {
+        description = match[1].trim();
+        break;
+      }
+    }
+
+    console.log('[Word Detector] 检测到Word生成请求');
+    console.log('[Word Detector] 文档描述:', description);
+
+    return {
+      description: description,
+      format: 'docx'
+    };
+  } catch (error) {
+    console.error('[Word Detector] 检测Word请求失败:', error);
+    return null;
+  }
+}
+
+/**
+ * 生成Word文件
+ * @param {Object} wordRequest - Word请求信息
+ * @param {string} projectPath - 项目路径
+ * @param {Object} llmManager - LLM管理器
+ * @returns {Promise<Object>} 生成结果
+ */
+async function generateWordFile(wordRequest, projectPath, llmManager) {
+  try {
+    const WordEngine = require('../engines/word-engine');
+    const wordEngine = new WordEngine();
+
+    console.log('[Word Generator] 开始生成Word文档');
+    console.log('[Word Generator] 描述:', wordRequest.description);
+    console.log('[Word Generator] 项目路径:', projectPath);
+
+    const result = await wordEngine.handleProjectTask({
+      description: wordRequest.description,
+      projectPath: projectPath,
+      llmManager: llmManager,
+      action: 'create_document'
+    });
+
+    console.log('[Word Generator] Word文档生成成功:', result.fileName);
+
+    return {
+      success: true,
+      generated: true,
+      filePath: result.filePath,
+      fileName: result.fileName,
+      fileSize: result.fileSize
+    };
+  } catch (error) {
+    console.error('[Word Generator] 生成Word文档失败:', error);
+    return {
+      success: false,
+      generated: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * 注册所有 Project AI IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.database - 数据库管理器
@@ -426,24 +521,32 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
 
         // 调用本地LLM（根据是否需要工具调用选择不同方法）
         let llmResult;
-        if (toolsToUse.length > 0 && llmManager.toolsClient) {
+        if (toolsToUse.length > 0 && llmManager.toolsClient && llmManager.provider === 'volcengine') {
           console.log('[Main] 项目AI对话使用工具调用:', toolsToUse.join(', '));
 
           if (toolsToUse.includes('web_search')) {
-            // 使用联网搜索
-            const toolResult = await llmManager.chatWithWebSearch(messages, {
-              ...chatOptions,
-              searchMode: 'auto',
-            });
+            // 使用联网搜索（仅火山引擎支持）
+            try {
+              const toolResult = await llmManager.chatWithWebSearch(messages, {
+                ...chatOptions,
+                searchMode: 'auto',
+              });
 
-            // 转换为统一格式
-            llmResult = {
-              content: toolResult.choices?.[0]?.message?.content || '',
-              text: toolResult.choices?.[0]?.message?.content || '',
-            };
+              // 转换为统一格式
+              llmResult = {
+                content: toolResult.choices?.[0]?.message?.content || '',
+                text: toolResult.choices?.[0]?.message?.content || '',
+              };
+            } catch (toolError) {
+              console.warn('[Main] 工具调用失败，降级到标准对话:', toolError.message);
+              llmResult = await llmManager.chat(messages, chatOptions);
+            }
           }
         } else {
-          // 标准对话
+          // 标准对话（不支持工具调用或非火山引擎）
+          if (toolsToUse.length > 0) {
+            console.warn('[Main] 当前LLM提供商不支持工具调用，使用标准对话');
+          }
           llmResult = await llmManager.chat(messages, chatOptions);
         }
 
@@ -500,6 +603,22 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
           console.error('[Main] PPT处理出错（桥接器分支）:', pptError);
         }
 
+        // 🔥 检测并生成Word文档（桥接器分支）
+        let wordResult = null;
+        try {
+          const wordRequest = extractWordRequest(userMessage, aiResponse);
+          if (wordRequest) {
+            console.log('[Main] 📝 检测到Word文档生成请求（桥接器分支）...');
+            wordResult = await generateWordFile(wordRequest, projectPath, llmManager);
+
+            if (wordResult.success && scanAndRegisterProjectFiles) {
+              await scanAndRegisterProjectFiles(projectId, projectPath);
+            }
+          }
+        } catch (wordError) {
+          console.error('[Main] Word处理出错（桥接器分支）:', wordError);
+        }
+
         return {
           success: true,
           conversationResponse: bridgeResult.enhancedResponse,
@@ -512,7 +631,10 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
           bridgeSummary: bridgeResult.summary,
           // 🔥 新增：PPT生成结果
           pptGenerated: pptResult?.generated || false,
-          pptResult: pptResult
+          pptResult: pptResult,
+          // 🔥 新增：Word生成结果
+          wordGenerated: wordResult?.generated || false,
+          wordResult: wordResult
         };
       }
 
@@ -576,6 +698,40 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
         };
       }
 
+      // 10.5 检测并生成Word文档（如果用户请求生成Word文档）
+      let wordResult = null;
+      try {
+        const wordRequest = extractWordRequest(userMessage, aiResponse);
+
+        if (wordRequest) {
+          console.log('[Main] 📝 检测到Word文档生成请求，开始生成Word文件...');
+          wordResult = await generateWordFile(wordRequest, projectPath, llmManager);
+
+          if (wordResult.success) {
+            console.log('[Main] ✅ Word文档已生成:', wordResult.fileName);
+
+            // 将生成的Word文件添加到项目文件列表（可选）
+            if (scanAndRegisterProjectFiles) {
+              try {
+                await scanAndRegisterProjectFiles(projectId, projectPath);
+                console.log('[Main] Word文件已注册到项目');
+              } catch (scanError) {
+                console.warn('[Main] 注册Word文件失败:', scanError.message);
+              }
+            }
+          } else {
+            console.error('[Main] ❌ Word生成失败:', wordResult.error);
+          }
+        }
+      } catch (wordError) {
+        console.error('[Main] Word处理出错:', wordError);
+        wordResult = {
+          success: false,
+          generated: false,
+          error: wordError.message
+        };
+      }
+
       // 11. 返回结果
       return {
         success: true,
@@ -587,7 +743,10 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
         useLocalLLM: useLocalLLM,
         // 🔥 新增：PPT生成结果
         pptGenerated: pptResult?.generated || false,
-        pptResult: pptResult
+        pptResult: pptResult,
+        // 🔥 新增：Word生成结果
+        wordGenerated: wordResult?.generated || false,
+        wordResult: wordResult
       };
 
     } catch (error) {

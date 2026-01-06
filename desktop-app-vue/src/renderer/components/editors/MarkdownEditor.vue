@@ -483,18 +483,52 @@ const exportHTML = async () => {
 
 // 导出Word
 const exportWord = async () => {
-  const result = await window.electronAPI.dialog.showSaveDialog({
-    defaultPath: props.file?.file_name?.replace('.md', '.docx') || 'document.docx',
-    filters: [{ name: 'Word文档', extensions: ['docx'] }],
-  });
+  console.log('[MarkdownEditor] 🔄 开始导出Word...');
+  console.log('[MarkdownEditor] 文件名:', props.file?.file_name);
+  console.log('[MarkdownEditor] 内容长度:', content.value?.length, '字符');
 
-  if (!result.canceled && result.filePath) {
-    await window.electronAPI.file.markdownToWord(
+  try {
+    console.log('[MarkdownEditor] 📂 打开保存对话框...');
+    const result = await window.electronAPI.dialog.showSaveDialog({
+      defaultPath: props.file?.file_name?.replace('.md', '.docx') || 'document.docx',
+      filters: [{ name: 'Word文档', extensions: ['docx'] }],
+    });
+
+    console.log('[MarkdownEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
+
+    if (result.canceled) {
+      console.log('[MarkdownEditor] ❌ 用户取消了导出');
+      return;
+    }
+
+    if (!result.filePath) {
+      console.error('[MarkdownEditor] ❌ 没有选择文件路径');
+      message.error('请选择保存位置');
+      return;
+    }
+
+    console.log('[MarkdownEditor] ✅ 用户选择路径:', result.filePath);
+    console.log('[MarkdownEditor] 📝 调用 markdownToWord IPC...');
+
+    const exportResult = await window.electronAPI.file.markdownToWord(
       content.value,
       result.filePath,
       { title: props.file?.file_name || 'Document' }
     );
-    message.success('导出成功: ' + result.filePath);
+
+    console.log('[MarkdownEditor] IPC返回结果:', exportResult);
+
+    if (exportResult && exportResult.success) {
+      console.log('[MarkdownEditor] ✅ 导出成功!');
+      message.success('导出成功: ' + result.filePath);
+    } else {
+      console.error('[MarkdownEditor] ❌ 导出失败:', exportResult);
+      message.error('导出失败: ' + (exportResult?.error || '未知错误'));
+    }
+  } catch (error) {
+    console.error('[MarkdownEditor] ❌ 导出过程发生异常:', error);
+    console.error('[MarkdownEditor] 错误堆栈:', error.stack);
+    message.error('导出失败: ' + error.message);
   }
 };
 

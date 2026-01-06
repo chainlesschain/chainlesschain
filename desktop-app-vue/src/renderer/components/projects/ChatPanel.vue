@@ -38,6 +38,7 @@
       <VirtualMessageList
         v-else
         ref="virtualListRef"
+        :key="`messages-${messagesRefreshKey}`"
         :messages="messages"
         :estimate-size="150"
         @load-more="handleLoadMoreMessages"
@@ -63,6 +64,7 @@
           <!-- 采访问题消息 -->
           <InterviewQuestionMessage
             v-else-if="message.type === MessageType.INTERVIEW"
+            :key="`interview-${message.id}-${message.metadata?.currentIndex || 0}-${messagesRefreshKey}`"
             :message="message"
             @answer="handleInterviewAnswer"
             @skip="handleInterviewSkip"
@@ -231,6 +233,7 @@ const messagesContainer = ref(null);
 const currentConversation = ref(null);
 const creationProgress = ref(null); // AI创建进度数据
 const virtualListRef = ref(null); // 虚拟列表引用
+const messagesRefreshKey = ref(0); // 🔥 强制刷新消息列表的key
 
 // 🔥 任务规划配置
 const enablePlanning = ref(true);  // 是否启用任务规划功能
@@ -266,6 +269,66 @@ const contextInfo = computed(() => {
   }
   return null;
 });
+
+// ============ 工具函数 ============
+
+/**
+ * 清理对象，移除不可序列化的内容（用于IPC传输）
+ * @param {any} obj - 要清理的对象
+ * @returns {any} 清理后的对象
+ */
+const cleanForIPC = (obj) => {
+  try {
+    // 使用JSON序列化来清理不可序列化的对象
+    return JSON.parse(JSON.stringify(obj));
+  } catch (error) {
+    console.error('[ChatPanel] 清理对象失败，使用手动清理:', error);
+
+    // 如果JSON.stringify失败（可能是循环引用），手动清理
+    const seen = new WeakSet();
+
+    const clean = (value) => {
+      // 处理基本类型
+      if (value === null || typeof value !== 'object') {
+        return value;
+      }
+
+      // 检测循环引用
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+
+      seen.add(value);
+
+      // 处理数组
+      if (Array.isArray(value)) {
+        return value.map(item => clean(item));
+      }
+
+      // 处理普通对象
+      const cleaned = {};
+      for (const key in value) {
+        if (value.hasOwnProperty(key)) {
+          const val = value[key];
+          // 跳过函数
+          if (typeof val === 'function') continue;
+          // 跳过Symbol
+          if (typeof val === 'symbol') continue;
+          // 跳过undefined
+          if (val === undefined) continue;
+
+          cleaned[key] = clean(val);
+        }
+      }
+
+      return cleaned;
+    };
+
+    return clean(obj);
+  }
+};
+
+// ============ 空状态相关函数 ============
 
 /**
  * 获取空状态文本
@@ -884,23 +947,58 @@ const loadConversation = async () => {
 
         // 🔄 恢复特殊类型的消息（INTERVIEW、TASK_PLAN）
         messages.value = rawMessages.map(msg => {
+          // 🔥 反序列化 metadata（如果是字符串）
+          let metadata = msg.metadata;
+          if (typeof metadata === 'string') {
+            try {
+              metadata = JSON.parse(metadata);
+            } catch (e) {
+              console.error('[ChatPanel] metadata 解析失败:', e, metadata);
+            }
+          }
+
           // 如果有message_type字段，使用它来恢复消息类型
           if (msg.message_type) {
             return {
               ...msg,
               type: msg.message_type, // 将message_type映射到type字段
+              metadata: metadata
             };
           }
           // 向后兼容：没有message_type的旧消息
-          return msg;
+          return {
+            ...msg,
+            metadata: metadata
+          };
+        });
+
+        // 🔥 数据修复：验证并修复采访消息的 currentIndex
+        messages.value.forEach((msg, index) => {
+          if (msg.type === MessageType.INTERVIEW && msg.metadata) {
+            const currentIdx = msg.metadata.currentIndex || 0;
+            const totalQuestions = msg.metadata.questions?.length || 0;
+
+            console.log('[ChatPanel] 🔍 检查采访消息', {
+              messageId: msg.id,
+              currentIndex: currentIdx,
+              totalQuestions: totalQuestions,
+              metadata类型: typeof msg.metadata,
+              metadata: msg.metadata
+            });
+
+            if (currentIdx > totalQuestions) {
+              console.warn('[ChatPanel] 🔧 修复损坏的采访消息数据', {
+                messageId: msg.id,
+                原currentIndex: currentIdx,
+                问题总数: totalQuestions,
+                修复为: totalQuestions
+              });
+              msg.metadata.currentIndex = totalQuestions;
+            }
+          }
         });
 
         console.log('[ChatPanel] 💾 从数据库恢复了', messages.value.length, '条消息');
-        console.log('[ChatPanel] 消息类型分布:', messages.value.reduce((acc, m) => {
-          const type = m.type || m.message_type || 'unknown';
-          acc[type] = (acc[type] || 0) + 1;
-          return acc;
-        }, {}));
 
         emit('conversationLoaded', conversation);
 
@@ -1073,17 +1171,24 @@ const startTaskPlanning = async (userInput) => {
     // 1. 添加用户消息
     const userMessage = createUserMessage(userInput, currentConversation.value.id);
     messages.value.push(userMessage);
+    console.log('[ChatPanel] 💬 用户消息已添加到列表，当前消息数:', messages.value.length);
+    console.log('[ChatPanel] 💬 用户消息内容:', userMessage);
+
+    // 🔥 立即滚动到底部，确保用户能看到自己的消息
+    await nextTick();
+    scrollToBottom();
 
     // 1.1 保存用户消息到数据库
     if (currentConversation.value && currentConversation.value.id) {
       try {
         await window.electronAPI.conversation.createMessage({
+          id: userMessage.id, // 🔥 关键修复：传入id以保持一致性
           conversation_id: currentConversation.value.id,
           role: 'user',
           content: userInput,
           timestamp: userMessage.timestamp,
         });
-        console.log('[ChatPanel] 💾 用户消息已保存');
+        console.log('[ChatPanel] 💾 用户消息已保存，id:', userMessage.id);
       } catch (error) {
         console.error('[ChatPanel] 保存用户消息失败:', error);
       }
@@ -1092,6 +1197,7 @@ const startTaskPlanning = async (userInput) => {
     // 2. 添加"正在分析"系统消息
     const analyzingMsg = createSystemMessage('🤔 正在分析您的需求，请稍候...（最长可能需要10分钟）', { type: 'loading' });
     messages.value.push(analyzingMsg);
+    console.log('[ChatPanel] 📝 系统消息已添加，当前消息数:', messages.value.length);
 
     await nextTick();
     scrollToBottom();
@@ -1124,10 +1230,13 @@ const startTaskPlanning = async (userInput) => {
             // 更新思考消息的内容
             thinkingMsg.content = fullResponse;
 
-            // 🔥 强制触发响应式更新：找到消息并替换它
+            // 🔥 强制触发响应式更新：找到消息并完全替换它（深拷贝metadata）
             const thinkingIndex = messages.value.findIndex(m => m.id === thinkingMsg.id);
             if (thinkingIndex !== -1) {
-              messages.value[thinkingIndex] = { ...thinkingMsg };
+              messages.value[thinkingIndex] = {
+                ...thinkingMsg,
+                metadata: { ...thinkingMsg.metadata }
+              };
               messages.value = [...messages.value]; // 触发数组更新
             }
             console.log('[ChatPanel] 📝 更新内容，长度:', fullResponse.length);
@@ -1251,14 +1360,15 @@ const startTaskPlanning = async (userInput) => {
       if (currentConversation.value && currentConversation.value.id) {
         try {
           await window.electronAPI.conversation.createMessage({
+            id: interviewMsg.id, // 🔥 关键修复：传入id以保持一致性
             conversation_id: currentConversation.value.id,
             role: 'system',
             content: interviewMsg.content,
             timestamp: interviewMsg.timestamp,
             type: MessageType.INTERVIEW,
-            metadata: interviewMsg.metadata
+            metadata: cleanForIPC(interviewMsg.metadata) // 🔥 清理不可序列化的对象
           });
-          console.log('[ChatPanel] 💾 采访消息已保存到数据库');
+          console.log('[ChatPanel] 💾 采访消息已保存到数据库，id:', interviewMsg.id);
         } catch (error) {
           console.error('[ChatPanel] 保存采访消息失败:', error);
         }
@@ -1336,10 +1446,13 @@ const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {
             fullResponse = chunkData.fullContent;
             planGenerationMsg.content = fullResponse;
 
-            // 🔥 强制触发响应式更新：找到消息并替换它
+            // 🔥 强制触发响应式更新：找到消息并完全替换它（深拷贝metadata）
             const planGenIndex = messages.value.findIndex(m => m.id === planGenerationMsg.id);
             if (planGenIndex !== -1) {
-              messages.value[planGenIndex] = { ...planGenerationMsg };
+              messages.value[planGenIndex] = {
+                ...planGenerationMsg,
+                metadata: { ...planGenerationMsg.metadata }
+              };
               messages.value = [...messages.value]; // 触发数组更新
             }
             nextTick(() => scrollToBottom());
@@ -1424,14 +1537,15 @@ const generateTaskPlanMessage = async (userInput, analysis, interviewAnswers = {
     if (currentConversation.value && currentConversation.value.id) {
       try {
         await window.electronAPI.conversation.createMessage({
+          id: planMsg.id, // 🔥 关键修复：传入id以保持一致性
           conversation_id: currentConversation.value.id,
           role: 'system',
           content: planMsg.content,
           timestamp: planMsg.timestamp,
           type: MessageType.TASK_PLAN,
-          metadata: planMsg.metadata
+          metadata: cleanForIPC(planMsg.metadata) // 🔥 清理不可序列化的对象
         });
-        console.log('[ChatPanel] 💾 任务计划消息已保存到数据库');
+        console.log('[ChatPanel] 💾 任务计划消息已保存到数据库，id:', planMsg.id);
       } catch (error) {
         console.error('[ChatPanel] 保存任务计划消息失败:', error);
       }
@@ -1598,7 +1712,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 /**
  * 处理采访问题回答
  */
-const handleInterviewAnswer = ({ questionKey, answer, index }) => {
+const handleInterviewAnswer = async ({ questionKey, answer, index }) => {
   console.log('[ChatPanel] 💬 用户回答问题:', questionKey, answer);
 
   // 🆕 记录答案类型（结构化 vs 传统）
@@ -1611,33 +1725,79 @@ const handleInterviewAnswer = ({ questionKey, answer, index }) => {
     console.log('[ChatPanel] 📝 传统文本答案:', answer);
   }
 
-  // 找到采访消息
-  const interviewMsg = messages.value.find(m => m.type === MessageType.INTERVIEW);
-  if (!interviewMsg) {
+  // 找到采访消息的索引
+  const interviewMsgIndex = messages.value.findIndex(m => m.type === MessageType.INTERVIEW);
+  if (interviewMsgIndex === -1) {
     console.error('[ChatPanel] 找不到采访消息');
     return;
   }
 
-  // 保存答案
-  interviewMsg.metadata.answers[questionKey] = answer;
+  const interviewMsg = messages.value[interviewMsgIndex];
 
-  // 移动到下一个问题
-  interviewMsg.metadata.currentIndex++;
+  // 🔥 数据验证：修复错误的 currentIndex
+  const currentIdx = interviewMsg.metadata.currentIndex || 0;
+  const totalQuestions = interviewMsg.metadata.questions?.length || 0;
 
-  // 触发Vue更新
+  if (currentIdx >= totalQuestions) {
+    console.error('[ChatPanel] ⚠️ 数据异常：currentIndex 超出范围', {
+      currentIndex: currentIdx,
+      totalQuestions: totalQuestions
+    });
+    // 重置为最后一个问题
+    interviewMsg.metadata.currentIndex = Math.max(0, totalQuestions - 1);
+  }
+
+  // 🔥 关键修复：创建新的metadata对象，确保Vue能检测到变化
+  const newMetadata = {
+    ...interviewMsg.metadata,
+    answers: {
+      ...interviewMsg.metadata.answers,
+      [questionKey]: answer
+    },
+    currentIndex: Math.min(interviewMsg.metadata.currentIndex + 1, totalQuestions)
+  };
+
+  // 🔥 替换整个消息对象以触发响应式更新
+  messages.value[interviewMsgIndex] = {
+    ...interviewMsg,
+    metadata: newMetadata
+  };
+
+  // 触发数组更新
   messages.value = [...messages.value];
 
-  // 滚动到底部，确保用户能看到下一个问题
+  // 🔥 强制刷新虚拟列表组件
+  messagesRefreshKey.value++;
+
+  console.log('[ChatPanel] 📝 已更新到下一个问题', {
+    currentIndex: newMetadata.currentIndex,
+    nextQuestionKey: newMetadata.questions[newMetadata.currentIndex]?.key,
+    refreshKey: messagesRefreshKey.value
+  });
+
+  // 🔥 保存到数据库
+  if (currentConversation.value && currentConversation.value.id) {
+    try {
+      await window.electronAPI.conversation.updateMessage({
+        id: messages.value[interviewMsgIndex].id,
+        metadata: cleanForIPC(newMetadata) // 🔥 清理不可序列化的对象
+      });
+      console.log('[ChatPanel] 💾 采访进度已保存到数据库');
+    } catch (error) {
+      console.error('[ChatPanel] 保存采访进度失败:', error);
+      console.error('[ChatPanel] 失败的metadata:', newMetadata);
+    }
+  }
+
+  // 🔥 优化滚动：使用单次延迟滚动，等待组件完全渲染
   nextTick(() => {
-    scrollToBottom();
-    // 延迟再次滚动，确保组件完全渲染
     setTimeout(() => {
       scrollToBottom();
-    }, 100);
+    }, 150); // 给组件足够的渲染时间
   });
 
   // 检查是否所有问题都已回答
-  if (interviewMsg.metadata.currentIndex >= interviewMsg.metadata.questions.length) {
+  if (newMetadata.currentIndex >= newMetadata.questions.length) {
     console.log('[ChatPanel] 所有问题已回答，自动触发完成');
     handleInterviewComplete();
   }
@@ -1646,36 +1806,80 @@ const handleInterviewAnswer = ({ questionKey, answer, index }) => {
 /**
  * 处理跳过问题
  */
-const handleInterviewSkip = ({ questionKey, index }) => {
+const handleInterviewSkip = async ({ questionKey, index }) => {
   console.log('[ChatPanel] ⏭️ 用户跳过问题:', questionKey);
 
-  // 找到采访消息
-  const interviewMsg = messages.value.find(m => m.type === MessageType.INTERVIEW);
-  if (!interviewMsg) {
+  // 找到采访消息的索引
+  const interviewMsgIndex = messages.value.findIndex(m => m.type === MessageType.INTERVIEW);
+  if (interviewMsgIndex === -1) {
     console.error('[ChatPanel] 找不到采访消息');
     return;
   }
 
-  // 保存空答案表示跳过
-  interviewMsg.metadata.answers[questionKey] = '';
+  const interviewMsg = messages.value[interviewMsgIndex];
 
-  // 移动到下一个问题
-  interviewMsg.metadata.currentIndex++;
+  // 🔥 数据验证：修复错误的 currentIndex
+  const currentIdx = interviewMsg.metadata.currentIndex || 0;
+  const totalQuestions = interviewMsg.metadata.questions?.length || 0;
 
-  // 触发Vue更新
+  if (currentIdx >= totalQuestions) {
+    console.error('[ChatPanel] ⚠️ 数据异常：currentIndex 超出范围', {
+      currentIndex: currentIdx,
+      totalQuestions: totalQuestions
+    });
+    interviewMsg.metadata.currentIndex = Math.max(0, totalQuestions - 1);
+  }
+
+  // 🔥 关键修复：创建新的metadata对象，确保Vue能检测到变化
+  const newMetadata = {
+    ...interviewMsg.metadata,
+    answers: {
+      ...interviewMsg.metadata.answers,
+      [questionKey]: ''
+    },
+    currentIndex: Math.min(interviewMsg.metadata.currentIndex + 1, totalQuestions)
+  };
+
+  // 🔥 替换整个消息对象以触发响应式更新
+  messages.value[interviewMsgIndex] = {
+    ...interviewMsg,
+    metadata: newMetadata
+  };
+
+  // 触发数组更新
   messages.value = [...messages.value];
 
-  // 滚动到底部，确保用户能看到下一个问题
+  // 🔥 强制刷新虚拟列表组件
+  messagesRefreshKey.value++;
+
+  console.log('[ChatPanel] 📝 已跳过问题', {
+    currentIndex: newMetadata.currentIndex,
+    refreshKey: messagesRefreshKey.value
+  });
+
+  // 🔥 保存到数据库
+  if (currentConversation.value && currentConversation.value.id) {
+    try {
+      await window.electronAPI.conversation.updateMessage({
+        id: messages.value[interviewMsgIndex].id,
+        metadata: cleanForIPC(newMetadata) // 🔥 清理不可序列化的对象
+      });
+      console.log('[ChatPanel] 💾 采访进度已保存到数据库（跳过）');
+    } catch (error) {
+      console.error('[ChatPanel] 保存采访进度失败:', error);
+      console.error('[ChatPanel] 失败的metadata:', newMetadata);
+    }
+  }
+
+  // 🔥 优化滚动：使用单次延迟滚动，等待组件完全渲染
   nextTick(() => {
-    scrollToBottom();
-    // 延迟再次滚动，确保组件完全渲染
     setTimeout(() => {
       scrollToBottom();
-    }, 100);
+    }, 150); // 给组件足够的渲染时间
   });
 
   // 检查是否所有问题都已回答
-  if (interviewMsg.metadata.currentIndex >= interviewMsg.metadata.questions.length) {
+  if (newMetadata.currentIndex >= newMetadata.questions.length) {
     console.log('[ChatPanel] 所有问题已回答/跳过，自动触发完成');
     handleInterviewComplete();
   }
@@ -1748,6 +1952,21 @@ const handlePlanConfirm = async (message) => {
       // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
       setTimeout(() => {
         console.log('[ChatPanel] 延迟刷新文件树');
+        emit('files-changed');
+      }, 2000);
+    }
+
+    // 检查Word生成结果
+    if (response.wordGenerated && response.wordResult) {
+      console.log('[ChatPanel] ✅ Word文档已生成:', response.wordResult);
+      antMessage.success({
+        content: `📝 Word文档已生成！\n文件名: ${response.wordResult.fileName}\n文件大小: ${(response.wordResult.fileSize / 1024).toFixed(2)} KB`,
+        duration: 5,
+      });
+
+      // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
+      setTimeout(() => {
+        console.log('[ChatPanel] 延迟刷新文件树（Word）');
         emit('files-changed');
       }, 2000);
     }
@@ -1831,10 +2050,11 @@ const handleFollowupIntent = async (intent, userInput, extractedInfo, reason, ex
   if (currentConversation.value && currentConversation.value.id) {
     try {
       await window.electronAPI.conversation.createMessage({
+        id: userMessage.id, // 🔥 关键修复：传入id以保持一致性
         conversation_id: currentConversation.value.id,
         role: 'user',
         content: userInput,
-        timestamp: Date.now(),
+        timestamp: userMessage.timestamp,
       });
     } catch (error) {
       console.error('[ChatPanel] 保存用户消息失败:', error);
@@ -1953,12 +2173,13 @@ const saveMessageToDb = async (message) => {
 
   try {
     await window.electronAPI.conversation.createMessage({
+      id: message.id, // 🔥 关键修复：传入id以保持一致性
       conversation_id: currentConversation.value.id,
       role: message.role || 'system',
       content: message.content,
       timestamp: message.timestamp,
       type: message.type,
-      metadata: message.metadata
+      metadata: cleanForIPC(message.metadata) // 🔥 清理不可序列化的对象
     });
   } catch (error) {
     console.error('[ChatPanel] 保存消息失败:', error);
@@ -1978,7 +2199,7 @@ const updateMessageInDb = async (message) => {
     await window.electronAPI.conversation.updateMessage({
       id: message.id,
       conversation_id: currentConversation.value.id,
-      metadata: message.metadata
+      metadata: cleanForIPC(message.metadata) // 🔥 清理不可序列化的对象
     });
   } catch (error) {
     console.error('[ChatPanel] 更新消息失败:', error);
@@ -2050,12 +2271,13 @@ const understandUserIntent = async (input) => {
     // 保存到数据库
     if (currentConversation.value && currentConversation.value.id) {
       await window.electronAPI.conversation.createMessage({
+        id: confirmationMsg.id, // 🔥 关键修复：传入id以保持一致性
         conversation_id: currentConversation.value.id,
         role: 'system',
         content: confirmationMsg.content,
         timestamp: confirmationMsg.timestamp,
         type: MessageType.INTENT_CONFIRMATION,
-        metadata: confirmationMsg.metadata,
+        metadata: cleanForIPC(confirmationMsg.metadata), // 🔥 清理不可序列化的对象
       });
     }
 
@@ -2130,10 +2352,11 @@ const executeChatWithInput = async (input) => {
 
     // 保存用户消息到数据库
     await window.electronAPI.conversation.createMessage({
+      id: userMessage.id, // 🔥 关键修复：传入id以保持一致性
       conversation_id: currentConversation.value.id,
       role: 'user',
-      content: input,
-      timestamp: Date.now(),
+      content: userMessage.content,
+      timestamp: userMessage.timestamp,
     });
 
     // 滚动到底部
@@ -2227,6 +2450,21 @@ const executeChatWithInput = async (input) => {
       }, 2000);
     }
 
+    // 检查Word生成结果
+    if (response.wordGenerated && response.wordResult) {
+      console.log('[ChatPanel] ✅ Word文档已生成:', response.wordResult);
+      antMessage.success({
+        content: `📝 Word文档已生成！\n文件名: ${response.wordResult.fileName}\n文件大小: ${(response.wordResult.fileSize / 1024).toFixed(2)} KB`,
+        duration: 5,
+      });
+
+      // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
+      setTimeout(() => {
+        console.log('[ChatPanel] 延迟刷新文件树（Word）');
+        emit('files-changed');
+      }, 2000);
+    }
+
     // 创建助手消息
     const assistantMessage = {
       id: `msg_${Date.now()}_assistant`,
@@ -2238,7 +2476,9 @@ const executeChatWithInput = async (input) => {
       hasFileOperations: response.hasFileOperations || false,
       ragSources: response.ragSources || [],
       pptGenerated: response.pptGenerated || false,
-      pptResult: response.pptResult || null
+      pptResult: response.pptResult || null,
+      wordGenerated: response.wordGenerated || false,
+      wordResult: response.wordResult || null
     };
 
     // 确保 messages.value 是数组
@@ -2253,14 +2493,15 @@ const executeChatWithInput = async (input) => {
     // 保存助手消息到数据库
     if (currentConversation.value && currentConversation.value.id) {
       await window.electronAPI.conversation.createMessage({
+        id: assistantMessage.id, // 🔥 关键修复：传入id以保持一致性
         conversation_id: currentConversation.value.id,
         role: 'assistant',
         content: assistantMessage.content,
-        timestamp: Date.now(),
-        metadata: {
+        timestamp: assistantMessage.timestamp,
+        metadata: cleanForIPC({
           hasFileOperations: assistantMessage.hasFileOperations,
           fileOperationCount: assistantMessage.fileOperations.length
-        }
+        }) // 🔥 清理不可序列化的对象
       });
     } else {
       console.warn('[ChatPanel] 无法保存助手消息：当前对话不存在');

@@ -11,8 +11,33 @@
         <span>问题 {{ currentIndex + 1 }} / {{ questions.length }}</span>
       </div>
 
+      <!-- 已回答的问题 -->
+      <div v-if="answeredQuestions.length > 0" class="answered-questions">
+        <a-collapse>
+          <a-collapse-panel
+            v-for="(item, index) in answeredQuestions"
+            :key="index"
+            :header="`✓ ${item.question.question}`"
+          >
+            <div class="answer-text">
+              <!-- 结构化答案显示 -->
+              <template v-if="typeof item.answer === 'object' && item.answer !== null && item.answer.selectedOption !== undefined">
+                <a-tag color="blue">{{ item.answer.selectedOption }}</a-tag>
+                <span v-if="item.answer.additionalInput">
+                  {{ item.answer.additionalInput }}
+                </span>
+              </template>
+              <!-- 传统答案显示 -->
+              <template v-else>
+                {{ item.answer || '已跳过' }}
+              </template>
+            </div>
+          </a-collapse-panel>
+        </a-collapse>
+      </div>
+
       <!-- 当前问题 -->
-      <div v-if="currentQuestion && !isCompleted" class="current-question">
+      <div v-if="currentQuestion && !isCompleted" class="current-question" :key="`question-${currentIndex}`">
         <div class="question-text">
           <span class="question-number">Q{{ currentIndex + 1 }}</span>
           <span v-if="currentQuestion.required" class="required-mark">*</span>
@@ -83,31 +108,6 @@
         </div>
       </div>
 
-      <!-- 已回答的问题 -->
-      <div v-if="answeredQuestions.length > 0" class="answered-questions">
-        <a-collapse>
-          <a-collapse-panel
-            v-for="(item, index) in answeredQuestions"
-            :key="index"
-            :header="`✓ ${item.question.question}`"
-          >
-            <div class="answer-text">
-              <!-- 结构化答案显示 -->
-              <template v-if="typeof item.answer === 'object' && item.answer !== null && item.answer.selectedOption !== undefined">
-                <a-tag color="blue">{{ item.answer.selectedOption }}</a-tag>
-                <span v-if="item.answer.additionalInput">
-                  {{ item.answer.additionalInput }}
-                </span>
-              </template>
-              <!-- 传统答案显示 -->
-              <template v-else>
-                {{ item.answer || '已跳过' }}
-              </template>
-            </div>
-          </a-collapse-panel>
-        </a-collapse>
-      </div>
-
       <!-- 完成提示 -->
       <div v-if="isCompleted" class="interview-completed">
         <CheckCircleOutlined class="completed-icon" />
@@ -118,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import {
   QuestionCircleOutlined,
   CheckCircleOutlined,
@@ -142,22 +142,18 @@ const questions = computed(() => props.message.metadata?.questions || []);
 const currentIndex = computed(() => props.message.metadata?.currentIndex || 0);
 const answers = computed(() => props.message.metadata?.answers || {});
 
-// 添加调试日志
-onMounted(() => {
-  console.log('[InterviewQuestionMessage] 组件已挂载');
-  console.log('[InterviewQuestionMessage] message:', props.message);
-  console.log('[InterviewQuestionMessage] questions:', questions.value);
-  console.log('[InterviewQuestionMessage] currentIndex:', currentIndex.value);
-});
-
-watch(questions, (newVal) => {
-  console.log('[InterviewQuestionMessage] questions 变化:', newVal);
-}, { immediate: true });
+// 🔥 监听 currentIndex 变化，重置输入状态
+watch(currentIndex, (newIndex, oldIndex) => {
+  // 当问题切换时，重置所有输入状态
+  if (newIndex !== oldIndex) {
+    currentAnswer.value = '';
+    selectedOption.value = null;
+    additionalInput.value = '';
+  }
+}, { immediate: false });
 
 const currentQuestion = computed(() => {
-  const question = questions.value[currentIndex.value] || null;
-  console.log('[InterviewQuestionMessage] currentQuestion computed:', question);
-  return question;
+  return questions.value[currentIndex.value] || null;
 });
 
 const answeredQuestions = computed(() => {
@@ -172,9 +168,7 @@ const answeredQuestions = computed(() => {
 });
 
 const isCompleted = computed(() => {
-  const completed = currentIndex.value >= questions.value.length;
-  console.log('[InterviewQuestionMessage] isCompleted:', completed, 'currentIndex:', currentIndex.value, 'questions.length:', questions.value.length);
-  return completed;
+  return currentIndex.value >= questions.value.length;
 });
 
 // 提交按钮禁用逻辑
@@ -212,11 +206,9 @@ const handleSubmitAnswer = () => {
       selectedOption: selectedOption.value,
       additionalInput: additionalInput.value.trim()
     };
-    console.log('[InterviewQuestionMessage] 提交结构化答案:', answerData);
   } else {
     // 旧格式：纯字符串答案（降级方案）
     answerData = currentAnswer.value.trim();
-    console.log('[InterviewQuestionMessage] 提交传统答案:', answerData);
   }
 
   emit('answer', {
@@ -225,11 +217,7 @@ const handleSubmitAnswer = () => {
     index: currentIndex.value,
   });
 
-  // 重置所有状态
-  currentAnswer.value = '';
-  selectedOption.value = null;
-  additionalInput.value = '';
-  // 不在这里触发 complete，让 ChatPanel 统一检查
+  // 状态重置由 watch(currentIndex) 统一处理
 };
 
 const handleSkip = () => {
@@ -240,11 +228,7 @@ const handleSkip = () => {
     index: currentIndex.value,
   });
 
-  // 重置所有状态
-  currentAnswer.value = '';
-  selectedOption.value = null;
-  additionalInput.value = '';
-  // 不在这里触发 complete，让 ChatPanel 统一检查
+  // 🔥 不在这里重置状态，由 watch(currentIndex) 统一处理
 };
 </script>
 
