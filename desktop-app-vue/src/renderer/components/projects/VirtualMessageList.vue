@@ -1,8 +1,8 @@
 <template>
   <div ref="scrollContainer" class="virtual-message-list" @scroll="handleScroll">
-    <!-- 🔥 添加安全检查，防止virtualizer为null时报错 -->
+    <!-- 🔥 虚拟滚动模式：仅当virtualizer已初始化且有虚拟项时使用 -->
     <div
-      v-if="virtualizer"
+      v-if="virtualizer && virtualItems.length > 0"
       :style="{
         height: `${virtualizer.getTotalSize()}px`,
         width: '100%',
@@ -10,7 +10,7 @@
       }"
     >
       <div
-        v-for="virtualRow in virtualizer.getVirtualItems()"
+        v-for="virtualRow in virtualItems"
         :key="virtualRow.key"
         :style="{
           position: 'absolute',
@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <!-- 🔥 降级渲染：virtualizer未初始化时显示所有消息 -->
+    <!-- 🔥 降级渲染：virtualizer未初始化或没有虚拟项时显示所有消息 -->
     <div v-else class="fallback-list">
       <div v-for="(message, index) in messages" :key="message.id || index">
         <slot :message="message" :index="index" />
@@ -53,6 +53,17 @@ const emit = defineEmits(['scroll-to-bottom', 'load-more']);
 
 const scrollContainer = ref(null);
 const virtualizer = ref(null);
+const updateKey = ref(0); // 用于强制更新
+
+// 创建一个响应式的虚拟项列表
+const virtualItems = computed(() => {
+  if (!virtualizer.value) {
+    return [];
+  }
+  // 访问updateKey以确保当它变化时重新计算
+  updateKey.value;
+  return virtualizer.value.getVirtualItems();
+});
 
 // 初始化虚拟滚动器
 const initVirtualizer = () => {
@@ -65,11 +76,31 @@ const initVirtualizer = () => {
     virtualizer.value = new Virtualizer({
       count: props.messages.length,
       getScrollElement: () => scrollContainer.value,
-      estimateSize: () => props.estimateSize,
+      estimateSize: (index) => props.estimateSize,
       overscan: 5, // 预渲染5条额外消息
-      scrollMargin: 0
+      scrollMargin: 0,
+      // 添加onChange回调来监听virtualizer的变化
+      onChange: (instance) => {
+        // 强制更新以触发computed重新计算
+        updateKey.value++;
+      }
     });
-    console.log('[VirtualMessageList] Virtualizer initialized with', props.messages.length, 'messages');
+    // 🔥 关键修复：初始化后立即测量并强制更新
+    nextTick(() => {
+      if (virtualizer.value && scrollContainer.value) {
+        virtualizer.value.measure();
+        updateKey.value++;
+
+        // 🔥 额外修复：触发一次scroll事件来强制virtualizer计算项目
+        // 临时滚动1px然后滚回0，触发计算
+        scrollContainer.value.scrollTop = 1;
+        setTimeout(() => {
+          if (scrollContainer.value) {
+            scrollContainer.value.scrollTop = 0;
+          }
+        }, 50);
+      }
+    });
   } catch (error) {
     console.error('[VirtualMessageList] Failed to initialize virtualizer:', error);
   }
@@ -78,6 +109,11 @@ const initVirtualizer = () => {
 // 处理滚动事件
 const handleScroll = () => {
   if (!scrollContainer.value) return;
+
+  // 🔥 关键修复：通知virtualizer滚动位置已改变
+  if (virtualizer.value) {
+    virtualizer.value.measure();
+  }
 
   const { scrollTop, scrollHeight, clientHeight } = scrollContainer.value;
 
@@ -115,8 +151,12 @@ const scrollToMessage = (messageId) => {
 watch(() => props.messages.length, (newLength, oldLength) => {
   if (virtualizer.value) {
     virtualizer.value.setOptions({
-      count: newLength
+      count: newLength,
+      estimateSize: (index) => props.estimateSize
     });
+
+    // 🔥 强制更新虚拟列表以响应长度变化
+    updateKey.value++;
 
     // 如果是新增消息，自动滚动到底部
     if (newLength > oldLength) {
@@ -126,22 +166,45 @@ watch(() => props.messages.length, (newLength, oldLength) => {
     }
   } else {
     // 如果virtualizer未初始化，尝试初始化
-    console.log('[VirtualMessageList] Virtualizer not initialized, attempting to initialize...');
     nextTick(() => {
       initVirtualizer();
+      // 初始化后也要强制更新
+      if (virtualizer.value) {
+        updateKey.value++;
+      }
     });
   }
 });
 
-// 监听messages数组本身的变化（不仅仅是长度）
-watch(() => props.messages, (newMessages) => {
+// 监听messages数组本身的变化（深度监听以捕获内容更新）
+watch(() => props.messages, (newMessages, oldMessages) => {
   if (!virtualizer.value && newMessages.length > 0) {
-    console.log('[VirtualMessageList] Messages updated, initializing virtualizer...');
     nextTick(() => {
       initVirtualizer();
     });
+  } else if (virtualizer.value) {
+    // 🔥 关键修复：先重置 virtualizer 的选项以强制刷新
+    virtualizer.value.setOptions({
+      count: newMessages.length,
+      estimateSize: (index) => props.estimateSize,
+      getScrollElement: () => scrollContainer.value,
+      overscan: 5,
+      scrollMargin: 0,
+      onChange: (instance) => {
+        updateKey.value++;
+      }
+    });
+
+    updateKey.value++;
+
+    // 🔥 额外修复：强制测量以重新计算项目高度
+    nextTick(() => {
+      if (virtualizer.value) {
+        virtualizer.value.measure();
+      }
+    });
   }
-}, { deep: false });
+}, { deep: true });
 
 // 暴露方法给父组件
 defineExpose({
@@ -150,7 +213,6 @@ defineExpose({
 });
 
 onMounted(() => {
-  console.log('[VirtualMessageList] Component mounted with', props.messages.length, 'messages');
   nextTick(() => {
     initVirtualizer();
     if (props.messages.length > 0) {

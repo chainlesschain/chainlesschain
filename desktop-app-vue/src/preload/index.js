@@ -154,6 +154,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     update: (conversationId, updates) => ipcRenderer.invoke('conversation:update', conversationId, updates),
     delete: (conversationId) => ipcRenderer.invoke('conversation:delete', conversationId),
     createMessage: (messageData) => ipcRenderer.invoke('conversation:create-message', messageData),
+    updateMessage: (updateData) => ipcRenderer.invoke('conversation:update-message', updateData),
     getMessages: (conversationId, options) => ipcRenderer.invoke('conversation:get-messages', conversationId, options),
     deleteMessage: (messageId) => ipcRenderer.invoke('conversation:delete-message', messageId),
     clearMessages: (conversationId) => ipcRenderer.invoke('conversation:clear-messages', conversationId),

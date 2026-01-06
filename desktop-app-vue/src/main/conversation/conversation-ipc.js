@@ -345,6 +345,71 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
   });
 
   /**
+   * 更新消息
+   * Channel: 'conversation:update-message'
+   *
+   * @param {Object} updateData - 更新数据
+   * @param {string} updateData.id - 消息ID
+   * @param {string} [updateData.content] - 消息内容
+   * @param {Object} [updateData.metadata] - 元数据
+   * @returns {Promise<Object>} { success: boolean, error?: string }
+   */
+  ipcMain.handle('conversation:update-message', async (_event, updateData) => {
+    try {
+      if (!database) {
+        return { success: false, error: '数据库未初始化' };
+      }
+
+      const { id, content, metadata } = updateData;
+
+      if (!id) {
+        return { success: false, error: '消息ID不能为空' };
+      }
+
+      console.log('[Conversation IPC] 更新消息:', id);
+
+      // 检查 metadata 列是否存在
+      const tableInfo = database.db.prepare("PRAGMA table_info(messages)").all();
+      const hasMetadata = tableInfo.some(col => col.name === 'metadata');
+
+      // 构建更新SQL
+      const updates = [];
+      const params = [];
+
+      if (content !== undefined) {
+        updates.push('content = ?');
+        params.push(content);
+      }
+
+      if (metadata !== undefined && hasMetadata) {
+        updates.push('metadata = ?');
+        params.push(JSON.stringify(metadata));
+      }
+
+      if (updates.length === 0) {
+        return { success: false, error: '没有提供更新字段' };
+      }
+
+      // 添加 ID 参数
+      params.push(id);
+
+      // 执行更新
+      const sql = `UPDATE messages SET ${updates.join(', ')} WHERE id = ?`;
+      const result = database.db.prepare(sql).run(...params);
+
+      if (result.changes === 0) {
+        return { success: false, error: '消息不存在或未更新' };
+      }
+
+      console.log('[Conversation IPC] 消息更新成功:', id);
+      return { success: true };
+    } catch (error) {
+      console.error('[Conversation IPC] 更新消息失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
    * 获取对话的所有消息
    * Channel: 'conversation:get-messages'
    *
@@ -811,13 +876,14 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('conversation-ipc');
 
-  console.log('[Conversation IPC] Registered 15 conversation handlers');
+  console.log('[Conversation IPC] Registered 16 conversation handlers');
   console.log('[Conversation IPC] - conversation:get-by-project');
   console.log('[Conversation IPC] - conversation:get-by-id');
   console.log('[Conversation IPC] - conversation:create');
   console.log('[Conversation IPC] - conversation:update');
   console.log('[Conversation IPC] - conversation:delete');
   console.log('[Conversation IPC] - conversation:create-message');
+  console.log('[Conversation IPC] - conversation:update-message');
   console.log('[Conversation IPC] - conversation:get-messages');
   console.log('[Conversation IPC] - conversation:chat-stream');
   console.log('[Conversation IPC] - conversation:stream-pause');

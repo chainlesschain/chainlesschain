@@ -94,6 +94,18 @@ class PPTEngine {
       const fileName = `${outline.title || 'presentation'}.pptx`;
       const filePath = outputPath || path.join(process.cwd(), fileName);
 
+      // 确保目录存在
+      const fs = require('fs').promises;
+      const dirPath = path.dirname(filePath);
+      console.log('[PPT Engine] 检查目录:', dirPath);
+      try {
+        await fs.mkdir(dirPath, { recursive: true });
+        console.log('[PPT Engine] ✓ 目录已确保存在');
+      } catch (mkdirError) {
+        console.error('[PPT Engine] 创建目录失败:', mkdirError.message);
+        throw new Error(`无法创建目录 ${dirPath}: ${mkdirError.message}`);
+      }
+
       await ppt.writeFile({ fileName: filePath });
 
       console.log('[PPT Engine] PPT生成成功:', filePath);
