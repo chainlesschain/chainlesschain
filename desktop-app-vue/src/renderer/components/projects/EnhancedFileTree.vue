@@ -48,7 +48,6 @@
         :show-icon="false"
         @select="handleSelect"
         @expand="handleExpand"
-        @rightClick="handleRightClick"
       >
       <template #title="{ title, isLeaf, dataRef }">
         <div
@@ -58,6 +57,7 @@
           @dragover="handleDragOver($event, dataRef)"
           @dragleave="handleDragLeave"
           @drop="handleDrop($event, dataRef)"
+          @contextmenu.prevent="handleNodeContextMenu($event, dataRef)"
         >
           <component :is="dataRef.icon" class="node-icon" v-if="dataRef.icon" />
           <span class="node-label">{{ title }}</span>
@@ -80,102 +80,104 @@
       <p>暂无文件</p>
     </div>
 
-    <!-- 右键菜单 -->
+    <!-- 点击外部关闭菜单的遮罩（必须在菜单之前渲染） -->
     <div
-      v-if="contextMenuVisible"
-      class="context-menu-wrapper"
-      :style="{
-        position: 'fixed',
-        left: contextMenuX + 'px',
-        top: contextMenuY + 'px',
-        zIndex: 9999
-      }"
-      @click.stop
-    >
-      <a-menu @click="handleMenuClick" mode="vertical" style="min-width: 200px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
-          <!-- 新建操作（空白处和节点右键都显示） -->
-          <a-menu-item key="newFile">
-            <FileAddOutlined />
-            新建文件
-          </a-menu-item>
-          <a-menu-item key="newFolder">
-            <FolderAddOutlined />
-            新建文件夹
-          </a-menu-item>
-
-          <!-- 以下选项仅在节点右键时显示 -->
-          <template v-if="!isEmptySpaceContext">
-            <a-menu-divider />
-
-            <!-- 文件操作 -->
-            <a-menu-item key="rename" :disabled="!contextNode">
-              <EditOutlined />
-              重命名
-            </a-menu-item>
-            <a-menu-item key="delete" :disabled="!contextNode">
-              <DeleteOutlined />
-              删除
-            </a-menu-item>
-
-            <a-menu-divider />
-
-            <!-- 复制操作 -->
-            <a-menu-item key="copy" :disabled="!contextNode">
-              <CopyOutlined />
-              复制
-            </a-menu-item>
-            <a-menu-item key="cut" :disabled="!contextNode">
-              <ScissorOutlined />
-              剪切
-            </a-menu-item>
-            <a-menu-item key="paste" :disabled="!clipboard">
-              <SnippetsOutlined />
-              粘贴{{ clipboard ? ` (${clipboard.operation === 'cut' ? '移动' : '复制'})` : '' }}
-            </a-menu-item>
-
-            <a-menu-divider />
-
-            <!-- 打开方式 -->
-            <a-menu-item key="openDefault" :disabled="!contextNode || !contextNode.isLeaf">
-              <FileOutlined />
-              打开
-            </a-menu-item>
-            <a-menu-item key="openWith" :disabled="!contextNode || !contextNode.isLeaf">
-              <FolderOpenOutlined />
-              打开方式...
-            </a-menu-item>
-
-            <a-menu-divider />
-
-            <!-- 其他操作 -->
-            <a-menu-item key="copyPath" :disabled="!contextNode">
-              <LinkOutlined />
-              复制路径
-            </a-menu-item>
-            <a-menu-item key="reveal" :disabled="!contextNode">
-              <FolderOpenOutlined />
-              在文件管理器中显示
-            </a-menu-item>
-
-            <a-menu-divider />
-
-            <!-- 导入导出操作 -->
-            <a-menu-item key="export" :disabled="!contextNode">
-              <ExportOutlined />
-              导出到外部
-            </a-menu-item>
-          </template>
-      </a-menu>
-    </div>
-
-    <!-- 点击外部关闭菜单的遮罩 -->
-    <div
-      v-if="contextMenuVisible"
+      v-show="contextMenuVisible"
       class="context-menu-backdrop"
       @click="contextMenuVisible = false"
       @contextmenu.prevent="contextMenuVisible = false"
-      style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9998;"
     ></div>
+
+    <!-- 右键菜单 -->
+    <teleport to="body">
+      <div
+        v-show="contextMenuVisible"
+        class="context-menu-wrapper"
+        :style="{
+          position: 'fixed',
+          left: contextMenuX + 'px',
+          top: contextMenuY + 'px',
+          zIndex: 10000
+        }"
+        @click.stop
+        @contextmenu.prevent
+      >
+        <a-menu @click="handleMenuClick" mode="vertical" style="min-width: 200px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); background: white;">
+            <!-- 新建操作（空白处和节点右键都显示） -->
+            <a-menu-item key="newFile">
+              <FileAddOutlined />
+              新建文件
+            </a-menu-item>
+            <a-menu-item key="newFolder">
+              <FolderAddOutlined />
+              新建文件夹
+            </a-menu-item>
+
+            <!-- 以下选项仅在节点右键时显示 -->
+            <template v-if="!isEmptySpaceContext">
+              <a-menu-divider />
+
+              <!-- 文件操作 -->
+              <a-menu-item key="rename" :disabled="!contextNode">
+                <EditOutlined />
+                重命名
+              </a-menu-item>
+              <a-menu-item key="delete" :disabled="!contextNode">
+                <DeleteOutlined />
+                删除
+              </a-menu-item>
+
+              <a-menu-divider />
+
+              <!-- 复制操作 -->
+              <a-menu-item key="copy" :disabled="!contextNode">
+                <CopyOutlined />
+                复制
+              </a-menu-item>
+              <a-menu-item key="cut" :disabled="!contextNode">
+                <ScissorOutlined />
+                剪切
+              </a-menu-item>
+              <a-menu-item key="paste" :disabled="!clipboard">
+                <SnippetsOutlined />
+                粘贴{{ clipboard ? ` (${clipboard.operation === 'cut' ? '移动' : '复制'})` : '' }}
+              </a-menu-item>
+
+              <a-menu-divider />
+
+              <!-- 打开方式 -->
+              <a-menu-item key="openDefault" :disabled="!contextNode || !contextNode.isLeaf">
+                <FileOutlined />
+                打开
+              </a-menu-item>
+              <a-menu-item key="openWith" :disabled="!contextNode || !contextNode.isLeaf">
+                <FolderOpenOutlined />
+                打开方式...
+              </a-menu-item>
+
+              <a-menu-divider />
+
+              <!-- 其他操作 -->
+              <a-menu-item key="copyPath" :disabled="!contextNode">
+                <LinkOutlined />
+                复制路径
+              </a-menu-item>
+              <a-menu-item key="reveal" :disabled="!contextNode">
+                <FolderOpenOutlined />
+                在文件管理器中显示
+              </a-menu-item>
+
+              <a-menu-divider />
+
+              <!-- 导入导出操作 -->
+              <a-menu-item key="export" :disabled="!contextNode">
+                <ExportOutlined />
+                导出到外部
+              </a-menu-item>
+            </template>
+        </a-menu>
+      </div>
+    </teleport>
   </div>
 </template>
 
@@ -468,8 +470,8 @@ const handleExpand = (keys) => {
   expandedKeys.value = keys;
 };
 
-// 处理节点右键点击
-const handleRightClick = ({ event, node }) => {
+// 处理节点右键点击（直接在模板上绑定 contextmenu 事件）
+const handleNodeContextMenu = (event, node) => {
   event.preventDefault();
   event.stopPropagation(); // 阻止事件冒泡到容器
   contextNode.value = node;
@@ -481,13 +483,13 @@ const handleRightClick = ({ event, node }) => {
 
 // 处理空白处右键点击
 const handleEmptySpaceRightClick = (event) => {
-  // 检查点击的目标是否是树容器本身或tree组件的包装元素
+  // 检查点击的目标是否是树节点
   const target = event.target;
-  const isTreeNode = target.closest('.ant-tree-node-content-wrapper') ||
-                     target.closest('.tree-node-title') ||
+  const isTreeNode = target.closest('.tree-node-title') ||
+                     target.closest('.ant-tree-node-content-wrapper') ||
                      target.classList.contains('ant-tree-treenode');
 
-  // 如果点击的是节点，不处理（让节点的右键事件处理）
+  // 如果点击的是节点，不处理（节点的 contextmenu 事件会处理）
   if (isTreeNode) {
     return;
   }
@@ -1193,13 +1195,13 @@ const handleExport = async () => {
   }
 };
 
-// 生命周期日志
+// 生命周期
 onMounted(() => {
-  console.log('[EnhancedFileTree] onMounted, files:', props.files?.length || 0);
+  // 组件已挂载
 });
 
 onUpdated(() => {
-  console.log('[EnhancedFileTree] onUpdated, files:', props.files?.length || 0);
+  // 组件已更新
 });
 </script>
 
@@ -1350,5 +1352,22 @@ onUpdated(() => {
 
 .tree-node-title[draggable="true"]:active {
   opacity: 0.6;
+}
+
+/* 右键菜单遮罩 */
+.context-menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+  background: transparent;
+}
+
+/* 右键菜单包装器 */
+.context-menu-wrapper {
+  position: fixed;
+  z-index: 10000;
 }
 </style>
