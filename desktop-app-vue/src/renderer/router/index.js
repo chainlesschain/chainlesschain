@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import { useAppStore } from '../stores/app';
+import { setupCommonHints, preloadRouteResources } from '../utils/resource-hints';
 
 const routes = [
   {
@@ -369,6 +370,51 @@ router.beforeEach((to, from, next) => {
     console.log('[Router] ✓ 放行');
     next();
   }
+});
+
+// ===== Resource Hints 优化 =====
+// 设置常用资源提示（DNS预解析、预连接等）
+setupCommonHints();
+
+// 路由导航后预加载下一个可能访问的资源
+router.afterEach((to) => {
+  // 根据当前路由预加载相关资源
+  const routeResourceMap = {
+    '/': {
+      nextPages: ['/projects', '/knowledge/list', '/ai/chat'],
+    },
+    '/projects': {
+      nextPages: ['/projects/new', '/projects/market'],
+    },
+    '/knowledge/list': {
+      nextPages: ['/knowledge/graph'],
+    },
+    '/ai/chat': {
+      nextPages: ['/ai/prompts'],
+    },
+  };
+
+  // 预加载项目详情页资源
+  if (to.path.startsWith('/projects/') && to.path !== '/projects') {
+    preloadRouteResources(to.path, {
+      // 项目详情页需要的资源
+      scripts: [],
+      styles: [],
+      nextPages: ['/projects'], // 可能返回项目列表
+    });
+  }
+
+  // 预加载配置的下一个页面
+  const config = routeResourceMap[to.path];
+  if (config?.nextPages) {
+    config.nextPages.forEach(page => {
+      preloadRouteResources(page, {
+        nextPages: [page],
+      });
+    });
+  }
+
+  console.log('[Router] Resource hints applied for:', to.path);
 });
 
 export default router;

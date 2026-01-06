@@ -2022,6 +2022,8 @@ const formatDate = (timestamp) => {
   flex-direction: column;
   background: #f5f7fa;
   overflow: hidden;
+  /* CSS Containment - 布局和样式隔离 */
+  contain: layout style;
 }
 
 /* 工具栏 */
@@ -2034,6 +2036,8 @@ const formatDate = (timestamp) => {
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   gap: 16px;
+  /* CSS Containment - 完整隔离（静态元素） */
+  contain: layout style paint;
 }
 
 .toolbar-left {
@@ -2099,6 +2103,8 @@ const formatDate = (timestamp) => {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  /* CSS Containment - 完整隔离（独立面板） */
+  contain: layout style paint;
 }
 
 .sidebar-header {
@@ -2133,6 +2139,8 @@ const formatDate = (timestamp) => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* CSS Containment - 完整隔离（独立面板） */
+  contain: layout style paint;
 }
 
 /* 右侧：编辑/预览面板 - 可调整大小，可折叠 */
@@ -2146,6 +2154,8 @@ const formatDate = (timestamp) => {
   flex-direction: column;
   flex-shrink: 0;
   overflow: hidden;
+  /* CSS Containment - 完整隔离（独立面板） */
+  contain: layout style paint;
 }
 
 /* 空编辑器状态 */
