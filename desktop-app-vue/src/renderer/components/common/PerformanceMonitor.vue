@@ -285,7 +285,7 @@ import { getDataCompressor } from '@/utils/data-compression'
 import { getAnimationController } from '@/utils/animation-controller'
 
 // State
-const isCollapsed = ref(false)
+const isCollapsed = ref(true) // 默认最小化
 
 const overallStats = reactive({
   fps: 60,
