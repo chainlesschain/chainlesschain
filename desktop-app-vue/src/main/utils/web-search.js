@@ -7,7 +7,52 @@ const https = require('https');
 const http = require('http');
 
 /**
+ * 使用简单的搜索建议作为备选方案
+ * @param {string} query - 搜索查询
+ * @param {Object} options - 选项
+ * @returns {Promise<Object>} 模拟搜索结果
+ */
+async function searchFallback(query, options = {}) {
+  const { maxResults = 5 } = options;
+
+  console.log('[WebSearch] 使用备选搜索方案:', query);
+
+  // 返回基于查询的建议结果（引导用户自己搜索）
+  const results = [
+    {
+      title: `关于 "${query}" 的搜索建议`,
+      snippet: `由于联网搜索暂时不可用，建议您：
+1. 访问搜索引擎（如百度、Google、必应）搜索 "${query}"
+2. 查阅官方文档或技术社区
+3. 如果是技术问题，可以访问 Stack Overflow、GitHub、CSDN 等平台`,
+      url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+      source: '搜索建议'
+    },
+    {
+      title: '百度搜索',
+      snippet: `在百度搜索 "${query}"`,
+      url: `https://www.baidu.com/s?wd=${encodeURIComponent(query)}`,
+      source: '百度'
+    },
+    {
+      title: '必应搜索',
+      snippet: `在必应搜索 "${query}"`,
+      url: `https://www.bing.com/search?q=${encodeURIComponent(query)}`,
+      source: '必应'
+    }
+  ];
+
+  return {
+    query,
+    results: results.slice(0, maxResults),
+    totalResults: results.length,
+    isFallback: true
+  };
+}
+
+/**
  * DuckDuckGo即时回答API搜索（无需API key）
+ * 注意：DuckDuckGo的API有时不稳定，作为备选方案
  * @param {string} query - 搜索查询
  * @param {Object} options - 选项
  * @returns {Promise<Object>} 搜索结果
@@ -17,11 +62,12 @@ async function searchDuckDuckGo(query, options = {}) {
 
   return new Promise((resolve, reject) => {
     const encodedQuery = encodeURIComponent(query);
+    // 使用DuckDuckGo即时回答API（仅支持即时回答，不支持常规搜索）
     const url = `https://api.duckduckgo.com/?q=${encodedQuery}&format=json&no_html=1&skip_disambig=1`;
 
-    console.log('[WebSearch] 使用DuckDuckGo搜索:', query);
+    console.log('[WebSearch] 尝试使用DuckDuckGo API:', query);
 
-    https.get(url, (res) => {
+    const request = https.get(url, { timeout: 5000 }, (res) => {
       let data = '';
 
       res.on('data', (chunk) => {
@@ -30,6 +76,12 @@ async function searchDuckDuckGo(query, options = {}) {
 
       res.on('end', () => {
         try {
+          // 检查是否是HTML响应（API失败）
+          if (data.trim().startsWith('<')) {
+            console.warn('[WebSearch] DuckDuckGo API返回HTML，使用备选方案');
+            return resolve(searchFallback(query, options));
+          }
+
           const result = JSON.parse(data);
 
           // 提取搜索结果
@@ -59,7 +111,13 @@ async function searchDuckDuckGo(query, options = {}) {
             });
           }
 
-          console.log('[WebSearch] 找到', results.length, '条结果');
+          // 如果没有结果，使用备选方案
+          if (results.length === 0) {
+            console.warn('[WebSearch] DuckDuckGo API无结果，使用备选方案');
+            return resolve(searchFallback(query, options));
+          }
+
+          console.log('[WebSearch] DuckDuckGo找到', results.length, '条结果');
 
           resolve({
             query,
@@ -67,13 +125,23 @@ async function searchDuckDuckGo(query, options = {}) {
             totalResults: results.length
           });
         } catch (error) {
-          console.error('[WebSearch] 解析结果失败:', error);
-          reject(error);
+          console.error('[WebSearch] DuckDuckGo解析失败:', error.message);
+          // 解析失败时使用备选方案
+          resolve(searchFallback(query, options));
         }
       });
-    }).on('error', (error) => {
-      console.error('[WebSearch] 请求失败:', error);
-      reject(error);
+    });
+
+    request.on('error', (error) => {
+      console.error('[WebSearch] DuckDuckGo请求失败:', error.message);
+      // 请求失败时使用备选方案
+      resolve(searchFallback(query, options));
+    });
+
+    request.on('timeout', () => {
+      console.error('[WebSearch] DuckDuckGo请求超时');
+      request.destroy();
+      resolve(searchFallback(query, options));
     });
   });
 }
@@ -195,7 +263,26 @@ async function enhanceChatWithSearch(userQuery, messages, llmChat, options = {})
     // 执行搜索
     const searchResult = await search(userQuery, options);
 
-    // 格式化搜索结果
+    // 检查是否使用了备选方案
+    if (searchResult.isFallback) {
+      console.log('[WebSearch] 使用备选搜索建议');
+      // 格式化搜索建议
+      const searchContext = formatSearchResults(searchResult);
+
+      // 将搜索建议作为系统消息添加到对话中
+      const enhancedMessages = [
+        ...messages,
+        {
+          role: 'system',
+          content: `注意：由于联网搜索功能暂时不可用，以下是搜索建议链接供参考：\n\n${searchContext}\n\n请基于您已有的知识回答用户问题，并适当提醒用户可以通过上述链接获取最新信息。`
+        }
+      ];
+
+      console.log('[WebSearch] 使用搜索建议增强对话');
+      return await llmChat(enhancedMessages, options);
+    }
+
+    // 正常搜索结果
     const searchContext = formatSearchResults(searchResult);
 
     // 将搜索结果作为系统消息添加到对话中
