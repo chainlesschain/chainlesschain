@@ -87,17 +87,40 @@ export async function selectFileInTree(window: Page, fileName: string): Promise<
     await window.waitForSelector('[data-testid="file-tree-container"]', { timeout: 5000 });
 
     // 多次尝试查找文件（因为文件树可能需要时间刷新）
-    let fileNode = null;
+    let fileNode: any = null;
+    const lowerFileName = fileName.toLowerCase();
+
     for (let i = 0; i < 5; i++) {
+      // 先尝试精确匹配
       fileNode = await window.$(`text="${fileName}"`);
       if (fileNode) {
         break;
       }
+
+      // 如果精确匹配失败，尝试大小写不敏感匹配（使用contains）
+      // 使用XPath进行大小写不敏感的匹配
+      fileNode = await window.evaluateHandle((searchName) => {
+        // 查找所有可能包含文件名的元素
+        const allNodes = Array.from(document.querySelectorAll('[data-testid="file-tree-container"] *'));
+        const found = allNodes.find(node => {
+          const text = node.textContent?.trim() || '';
+          // 大小写不敏感，并且去除可能的标记（如'U'代表未保存）
+          return text.toLowerCase().includes(searchName.toLowerCase()) &&
+                 text.length < searchName.length + 5; // 避免匹配到包含文件名的父节点
+        });
+        return found || null;
+      }, fileName);
+
+      if (fileNode && await fileNode.asElement()) {
+        console.log(`[Helper] 通过大小写不敏感匹配找到文件: ${fileName}`);
+        break;
+      }
+
       console.log(`[Helper] 第${i + 1}次尝试查找文件: ${fileName}`);
       await window.waitForTimeout(1000);
     }
 
-    if (fileNode) {
+    if (fileNode && await fileNode.asElement()) {
       // 使用force click绕过modal阻挡
       await fileNode.click({ force: true });
       await window.waitForTimeout(1000);
