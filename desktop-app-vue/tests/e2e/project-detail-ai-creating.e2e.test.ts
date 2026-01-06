@@ -145,11 +145,22 @@ test.describe('项目详情页 - AI创建项目模式测试', () => {
       const navigated = await navigateToAICreatingMode(window);
       expect(navigated).toBe(true);
 
-      console.log('[Test] 查找取消或返回按钮');
-      const closeButton = await window.$('[data-testid="close-button"], button:has-text("取消"), button:has-text("返回")');
+      console.log('[Test] 查找close-button或back-to-list-button');
+      // 优先查找close-button或back-to-list-button，避免匹配到MainLayout的"返回首页"按钮
+      let closeButton = await window.$('[data-testid="close-button"]');
+      if (!closeButton) {
+        closeButton = await window.$('[data-testid="back-to-list-button"]');
+      }
+      if (!closeButton) {
+        // 最后尝试查找"返回项目列表"按钮
+        closeButton = await window.$('button:has-text("返回项目列表")');
+      }
 
       if (closeButton) {
-        console.log('[Test] 点击取消按钮');
+        const buttonText = await closeButton.textContent();
+        const buttonTestId = await closeButton.getAttribute('data-testid');
+        console.log('[Test] 找到按钮 - 文本:', buttonText?.trim(), 'testid:', buttonTestId);
+        console.log('[Test] 点击按钮返回项目列表');
         await closeButton.click();
         await window.waitForTimeout(1000);
 
