@@ -539,9 +539,10 @@ onUnmounted(() => {
 .performance-monitor {
   position: fixed;
   bottom: 20px;
-  right: 20px;
-  z-index: 1000;
-  max-width: 800px;
+  left: 20px;
+  z-index: 999;
+  max-width: 600px;
+  pointer-events: auto;
 }
 
 .monitor-card {
