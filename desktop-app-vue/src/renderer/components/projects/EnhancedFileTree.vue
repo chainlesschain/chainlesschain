@@ -48,7 +48,7 @@
         :show-icon="false"
         @select="handleSelect"
         @expand="handleExpand"
-        @right-click="handleRightClick"
+        @rightClick="handleRightClick"
       >
       <template #title="{ title, isLeaf, dataRef }">
         <div
