@@ -79,11 +79,11 @@ class DIDManager extends EventEmitter {
     // identities 表应该在数据库初始化时已创建
     // 这里只做检查
     try {
-      const result = this.db.exec(
+      const result = this.db.prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='identities'"
-      );
+      ).get();
 
-      if (!result || result.length === 0) {
+      if (!result) {
         // 创建 identities 表
         this.db.exec(`
           CREATE TABLE IF NOT EXISTS identities (
