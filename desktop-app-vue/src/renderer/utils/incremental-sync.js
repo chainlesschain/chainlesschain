@@ -206,6 +206,13 @@ class IncrementalSyncManager {
   async sendChanges(changes) {
     // Default implementation using fetch
     // Override this method to use your API client
+
+    // 🔥 暂时禁用远程同步功能（后端 API 未实现）
+    // 只在本地存储，避免 404 错误
+    console.log('[IncrementalSync] 跳过远程同步（后端未实现），变更数量:', changes.length);
+    return { success: true, message: 'Local only' };
+
+    /* 原实现 - 等待后端 API 准备好后启用
     const response = await fetch('/api/sync', {
       method: 'POST',
       headers: {
@@ -222,6 +229,7 @@ class IncrementalSyncManager {
     }
 
     return response.json()
+    */
   }
 
   /**

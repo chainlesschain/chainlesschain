@@ -1047,52 +1047,16 @@ class FileIPC {
         throw new Error(`文件不存在: ${filePath}`);
       }
 
-      const pptx2json = require('pptx2json');
+      // 🔥 使用自定义 PPTX 解析器替代 pptx2json
+      const { parsePPTX } = require('../utils/pptx-parser');
+      const slides = await parsePPTX(filePath);
 
-      return new Promise((resolve, reject) => {
-        pptx2json(filePath, (err, json) => {
-          if (err) {
-            console.error('[FileIPC] PowerPoint解析失败:', err);
-            reject(err);
-            return;
-          }
+      console.log('[FileIPC] PowerPoint预览解析完成，幻灯片数量:', slides.length);
 
-          console.log('[FileIPC] PowerPoint解析结果:', json);
-
-          // 转换pptx2json的输出为我们需要的格式
-          const slides = [];
-
-          if (json && Array.isArray(json)) {
-            for (const slideData of json) {
-              const slide = {
-                title: slideData.title || '',
-                content: [],
-              };
-
-              // 提取文本内容
-              if (slideData.content && Array.isArray(slideData.content)) {
-                slide.content = slideData.content.map(item => {
-                  if (typeof item === 'string') {
-                    return item;
-                  } else if (item && item.text) {
-                    return item.text;
-                  }
-                  return String(item);
-                });
-              }
-
-              slides.push(slide);
-            }
-          }
-
-          console.log('[FileIPC] PowerPoint预览解析完成，幻灯片数量:', slides.length);
-
-          resolve({
-            slides,
-            slideCount: slides.length,
-          });
-        });
-      });
+      return {
+        slides,
+        slideCount: slides.length,
+      };
     } catch (error) {
       console.error('[FileIPC] PowerPoint预览外部失败:', error);
       throw error;

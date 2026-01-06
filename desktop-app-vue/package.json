@@ -138,6 +138,7 @@
     "pdf-parse": "^1.1.1",
     "pptx2json": "^0.0.10",
     "pptxgenjs": "^4.0.1",
+    "pptxtojson": "^1.10.0",
     "puppeteer": "^24.34.0",
     "qrcode": "^1.5.4",
     "screenshot-desktop": "^1.15.3",

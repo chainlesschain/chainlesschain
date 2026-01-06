@@ -141,21 +141,58 @@
 
       <!-- PowerPoint预览 -->
       <div v-else-if="fileType === 'powerpoint'" class="office-preview ppt-preview">
-        <!-- 🔥 改进：使用友好的提示替代不完整的预览 -->
-        <div class="ppt-preview-tip">
+        <div v-if="officeContent && officeContent.slides" class="ppt-slides">
+          <!-- 幻灯片导航 -->
+          <div class="ppt-navigation">
+            <a-button :disabled="currentSlide === 0" @click="previousSlide">
+              <LeftOutlined />
+              上一页
+            </a-button>
+            <span class="slide-counter">
+              {{ currentSlide + 1 }} / {{ officeContent.slides.length }}
+            </span>
+            <a-button :disabled="currentSlide === officeContent.slides.length - 1" @click="nextSlide">
+              下一页
+              <RightOutlined />
+            </a-button>
+          </div>
+
+          <!-- 幻灯片内容 -->
+          <div class="ppt-slide-container">
+            <div class="ppt-slide" v-if="officeContent.slides[currentSlide]">
+              <h2 class="slide-title">{{ officeContent.slides[currentSlide].title }}</h2>
+              <div class="slide-content">
+                <p v-for="(line, index) in officeContent.slides[currentSlide].content" :key="index" class="slide-line">
+                  {{ line }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 幻灯片缩略图列表 -->
+          <div class="ppt-thumbnails">
+            <div
+              v-for="(slide, index) in officeContent.slides"
+              :key="index"
+              :class="['thumbnail-item', { active: currentSlide === index }]"
+              @click="currentSlide = index"
+            >
+              <div class="thumbnail-number">{{ index + 1 }}</div>
+              <div class="thumbnail-title">{{ slide.title || '无标题' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 如果没有幻灯片数据，显示提示 -->
+        <div v-else class="ppt-preview-tip">
           <FilePptOutlined class="ppt-icon" />
           <h3>PowerPoint 演示文稿</h3>
           <p class="file-info">{{ file?.file_name }}</p>
-          <p class="tip-text">浏览器暂不支持PPT完整预览</p>
-          <p class="tip-text">请使用PowerPoint或WPS打开以查看完整内容</p>
+          <p class="tip-text">无法加载幻灯片内容</p>
           <a-space size="large" style="margin-top: 24px">
             <a-button type="primary" size="large" @click="handleOpenExternal">
               <ExportOutlined />
               用PowerPoint打开
-            </a-button>
-            <a-button size="large" @click="handleDownload">
-              <DownloadOutlined />
-              下载文件
             </a-button>
           </a-space>
         </div>
@@ -216,6 +253,8 @@ import {
   CloseCircleOutlined,
   LeftCircleOutlined,
   RightCircleOutlined,
+  LeftOutlined,
+  RightOutlined,
   FullscreenOutlined,
   FullscreenExitOutlined,
 } from '@ant-design/icons-vue';
@@ -284,6 +323,7 @@ const audioUrl = ref('');
 const officeContent = ref(null);
 const officeType = ref('');
 const activeSheet = ref(0);
+const currentSlide = ref(0); // PPT 当前幻灯片索引
 
 /**
  * 文件类型检测
@@ -789,6 +829,7 @@ const loadPowerPoint = async (filePath) => {
       }
       officeContent.value = result.data;
       officeType.value = 'powerpoint';
+      currentSlide.value = 0; // 重置到第一张幻灯片
       console.log('[PreviewPanel] PowerPoint内容已设置，幻灯片数量:', result.data.slides.length);
     } else {
       throw new Error(result.error || 'PowerPoint预览失败');
@@ -843,6 +884,24 @@ const handleDownload = async () => {
  */
 const handleRetry = () => {
   loadFileContent();
+};
+
+/**
+ * PPT 导航 - 上一张幻灯片
+ */
+const previousSlide = () => {
+  if (currentSlide.value > 0) {
+    currentSlide.value--;
+  }
+};
+
+/**
+ * PPT 导航 - 下一张幻灯片
+ */
+const nextSlide = () => {
+  if (officeContent.value?.slides && currentSlide.value < officeContent.value.slides.length - 1) {
+    currentSlide.value++;
+  }
 };
 
 /**
@@ -1484,5 +1543,126 @@ onUnmounted(() => {
 
 .custom-slick-arrow:hover {
   color: #40a9ff;
+}
+
+/* PPT 幻灯片显示 */
+.ppt-slides {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+}
+
+.ppt-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 16px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.slide-counter {
+  font-size: 14px;
+  color: #595959;
+  font-weight: 500;
+  min-width: 80px;
+  text-align: center;
+}
+
+.ppt-slide-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.ppt-slide {
+  background: #fff;
+  padding: 60px;
+  min-height: 500px;
+  width: 100%;
+  max-width: 900px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.slide-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 40px;
+  text-align: center;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e8e8e8;
+}
+
+.slide-content {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #595959;
+}
+
+.slide-line {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.slide-line:before {
+  content: '•';
+  margin-right: 12px;
+  color: #1890ff;
+  font-weight: bold;
+}
+
+.ppt-thumbnails {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: #fff;
+  border-top: 1px solid #e8e8e8;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.thumbnail-item {
+  flex-shrink: 0;
+  width: 120px;
+  padding: 12px;
+  background: #fafafa;
+  border: 2px solid #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.thumbnail-item:hover {
+  border-color: #1890ff;
+  background: #e6f7ff;
+}
+
+.thumbnail-item.active {
+  border-color: #1890ff;
+  background: #e6f7ff;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+}
+
+.thumbnail-number {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1890ff;
+  margin-bottom: 6px;
+}
+
+.thumbnail-title {
+  font-size: 12px;
+  color: #595959;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
