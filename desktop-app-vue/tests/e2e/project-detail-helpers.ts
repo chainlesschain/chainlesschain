@@ -460,8 +460,8 @@ export async function waitForProjectDetailLoad(window: Page, timeout: number = 1
 
     await window.waitForTimeout(1000);
 
-    // 强力关闭所有可能的modal（最多尝试3次）
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // 强力关闭所有可能的modal（最多尝试5次，使用更激进的方法）
+    for (let attempt = 0; attempt < 5; attempt++) {
       try {
         // 检查是否有可见的modal
         const hasModal = await window.evaluate(() => {
@@ -481,26 +481,78 @@ export async function waitForProjectDetailLoad(window: Page, timeout: number = 1
 
         console.log(`[Helper] 检测到modal，第${attempt + 1}次尝试关闭...`);
 
-        // 方法1: 使用evaluate直接点击关闭按钮
-        const closed = await window.evaluate(() => {
-          const closeBtn = document.querySelector('.ant-modal-close') as HTMLElement;
-          if (closeBtn && closeBtn.offsetParent !== null) {
-            closeBtn.click();
-            return true;
-          }
-          return false;
+        // 方法1: 使用evaluate直接点击所有关闭按钮
+        const closedByButton = await window.evaluate(() => {
+          const closeBtns = document.querySelectorAll('.ant-modal-close');
+          let clickedCount = 0;
+          closeBtns.forEach((btn) => {
+            const el = btn as HTMLElement;
+            if (el.offsetParent !== null) {
+              el.click();
+              clickedCount++;
+            }
+          });
+          return clickedCount > 0;
         });
 
-        if (closed) {
+        if (closedByButton) {
           await window.waitForTimeout(500);
           console.log('[Helper] 通过关闭按钮关闭modal');
           continue;
         }
 
-        // 方法2: 按ESC键
+        // 方法2: 按ESC键（多次）
         await window.keyboard.press('Escape');
-        await window.waitForTimeout(500);
+        await window.waitForTimeout(300);
+        await window.keyboard.press('Escape');
+        await window.waitForTimeout(300);
         console.log('[Helper] 通过ESC键关闭modal');
+
+        // 方法3: 直接隐藏所有modal（最激进的方法）
+        if (attempt >= 2) {
+          const hiddenCount = await window.evaluate(() => {
+            const modals = document.querySelectorAll('.ant-modal-wrap');
+            let count = 0;
+            modals.forEach((modal) => {
+              const el = modal as HTMLElement;
+              if (el.offsetParent !== null) {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+                el.style.pointerEvents = 'none';
+                el.style.zIndex = '-9999';
+                count++;
+              }
+            });
+            return count;
+          });
+
+          if (hiddenCount > 0) {
+            await window.waitForTimeout(500);
+            console.log(`[Helper] 通过直接隐藏强制关闭了${hiddenCount}个modal`);
+            continue;
+          }
+        }
+
+        // 方法4: 如果上述方法都失败，直接从DOM中移除modal（最后手段）
+        if (attempt >= 3) {
+          const removedCount = await window.evaluate(() => {
+            const modals = document.querySelectorAll('.ant-modal-wrap');
+            let count = 0;
+            modals.forEach((modal) => {
+              if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+                count++;
+              }
+            });
+            return count;
+          });
+
+          if (removedCount > 0) {
+            await window.waitForTimeout(500);
+            console.log(`[Helper] ⚠️ 从DOM中移除了${removedCount}个modal（最后手段）`);
+          }
+        }
 
       } catch (e) {
         console.log(`[Helper] 第${attempt + 1}次关闭尝试失败:`, e);
