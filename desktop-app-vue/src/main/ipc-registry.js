@@ -128,6 +128,12 @@ function registerAllIPC(dependencies) {
     registerFollowupIntentIPC(llmManager);
     console.log('[IPC Registry] ✓ Follow-up Intent Classifier IPC registered (3 handlers)');
 
+    // 联网搜索工具 (Web Search，4 handlers)
+    console.log('[IPC Registry] Registering Web Search IPC...');
+    const { registerWebSearchIPC } = require('./utils/web-search-ipc');
+    registerWebSearchIPC();
+    console.log('[IPC Registry] ✓ Web Search IPC registered (4 handlers)');
+
     // ============================================================
     // 第二阶段模块 (核心功能)
     // ============================================================

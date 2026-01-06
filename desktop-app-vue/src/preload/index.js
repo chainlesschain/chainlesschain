@@ -885,6 +885,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     generateWord: (options) => ipcRenderer.invoke('aiEngine:generateWord', options),
   },
 
+  // 联网搜索
+  webSearch: {
+    search: (query, options) => ipcRenderer.invoke('webSearch:search', query, options),
+    duckduckgo: (query, options) => ipcRenderer.invoke('webSearch:duckduckgo', query, options),
+    bing: (query, options) => ipcRenderer.invoke('webSearch:bing', query, options),
+    format: (searchResult) => ipcRenderer.invoke('webSearch:format', searchResult),
+  },
+
   // 代码开发引擎
   code: {
     generate: (description, options) => ipcRenderer.invoke('code:generate', description, removeUndefined(options || {})),
