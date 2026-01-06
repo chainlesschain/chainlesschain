@@ -23,6 +23,7 @@ import CollapseTransition from '@/components/common/transitions/CollapseTransiti
 
 // 导入指令
 import { createLazyLoadDirective } from '@/directives/lazy-load';
+import { createContentVisibilityDirective } from '@/utils/content-visibility';
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -47,6 +48,9 @@ app.component('CollapseTransition', CollapseTransition);
 
 // 注册懒加载指令
 app.directive('lazy', createLazyLoadDirective());
+
+// 注册 content-visibility 指令
+app.directive('content-visibility', createContentVisibilityDirective());
 
 console.log('[App] Performance optimizations initialized');
 
