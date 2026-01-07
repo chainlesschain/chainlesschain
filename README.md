@@ -28,14 +28,19 @@
 
 ---
 
-## ⭐ 当前版本: v0.21.0 (2026-01-06)
+## ⭐ 当前版本: v0.20.0 (2026-01-07)
 
 ### 最新更新
-- ✅ **深度性能优化系统完成** - 新增14,000+行优化代码，18个工具类，4个专用组件，全方位性能提升 ⭐最新
-- ✅ **智能图片优化系统** - WebP/AVIF格式检测、响应式加载、渐进式加载、LQIP占位符、CDN支持、网络感知 ⭐最新
-- ✅ **实时性能监控系统** - Core Web Vitals监控(LCP/FID/CLS)、性能预算、FPS监控、内存监控、性能告警 ⭐最新
-- ✅ **前端深度优化** - 代码分割、组件懒加载、虚拟滚动、智能预取、请求批处理、乐观更新、数据压缩 ⭐最新
-- ✅ **性能工具集** - 增量同步、内存优化、动画控制、资源提示、性能基准测试、无障碍功能增强 ⭐最新
+- ✅ **移动端数据同步** - 实现移动端与PC端数据同步功能，支持跨设备无缝协作 ⭐最新
+- ✅ **Linux平台完整支持** - 添加Linux ZIP便携版和DEB安装包支持，覆盖主流发行版 ⭐最新
+- ✅ **多平台打包优化** - 完善macOS(ARM64/x64)、Windows、Linux三大平台打包流程 ⭐最新
+- ✅ **Word文档处理增强** - Word文档预览界面和导出功能完善，修复DOM API问题 ⭐最新
+- ✅ **下载安装文档完善** - 为Mac、Windows、Linux三大平台提供详细安装指南 ⭐最新
+- ✅ **深度性能优化系统完成** - 新增14,000+行优化代码，18个工具类，4个专用组件，全方位性能提升
+- ✅ **智能图片优化系统** - WebP/AVIF格式检测、响应式加载、渐进式加载、LQIP占位符、CDN支持、网络感知
+- ✅ **实时性能监控系统** - Core Web Vitals监控(LCP/FID/CLS)、性能预算、FPS监控、内存监控、性能告警
+- ✅ **前端深度优化** - 代码分割、组件懒加载、虚拟滚动、智能预取、请求批处理、乐观更新、数据压缩
+- ✅ **性能工具集** - 增量同步、内存优化、动画控制、资源提示、性能基准测试、无障碍功能增强
 - ✅ **测试框架升级** - 修复测试环境配置并全面迁移到Vitest API，94个测试文件，900+测试用例
 - ✅ **性能优化集成** - 集成性能优化组件，内存降级、磁盘检查、并发控制、文件恢复，提升系统整体性能
 - ✅ **核心模块测试** - 新增Git、文件权限、合约引擎、桥接管理4个核心模块的单元测试
@@ -91,8 +96,8 @@
 - 🔧 **技能工具系统**: 115个技能 + 300个工具 + 10大类别 + 动态管理 ✅ ⭐完成
 - 🔌 **插件系统**: 动态加载 + 热更新 + 生命周期管理 + API扩展 ✅
 - 🎤 **语音识别**: 实时转写 + 音频增强 + 多语言检测 + 字幕生成 ✅
-- 📱 **跨设备协作**: Git同步 + 多设备P2P通信 + 离线消息队列 ✅
-- 🔓 **开源自主**: 210,000+行代码，243个Vue组件，23个页面，完全透明可审计 ✅ ⭐更新
+- 📱 **跨设备协作**: Git同步 + 移动端PC端数据同步 + 多设备P2P通信 + 离线消息队列 ✅ ⭐更新
+- 🔓 **开源自主**: 218,000+行代码，243个Vue组件，23个页面，完全透明可审计 ✅ ⭐更新
 - ⚡ **P2优化系统**: 意图融合、知识蒸馏、流式响应，AI引擎性能提升40% ✅ ⭐新增
 - 🚀 **深度性能优化**: 18个优化工具 + 4个专用组件 + Core Web Vitals监控 + 智能图片加载 ✅ ⭐新增
 - 🎛️ **高级特性控制面板**: 实时监控、配置管理、20+个IPC通道、原生菜单集成 ✅ ⭐新增
@@ -113,15 +118,15 @@
 
 #### 选择对应版本
 
-- **Apple Silicon (M1/M2/M3芯片)**: 下载 `ChainlessChain-darwin-arm64-*.zip` (约142MB)
-- **Intel芯片**: 下载 `ChainlessChain-darwin-x64-*.zip` (约148MB)
+- **Intel芯片 (x64)**: 下载 `ChainlessChain-darwin-x64-0.20.0.zip` (约1.4GB)
+- **Apple Silicon (M1/M2/M3芯片)**: ARM64版本开发中，请使用Rosetta运行x64版本
 
 #### 安装步骤
 
-1. 下载对应芯片架构的zip文件
-2. 解压缩
+1. 下载 `ChainlessChain-darwin-x64-0.20.0.zip` 文件
+2. 解压缩（双击zip文件）
 3. 将 `ChainlessChain.app` 拖到"应用程序"文件夹
-4. 双击运行
+4. 双击运行（首次运行请参考下方说明）
 
 #### 首次运行说明
 
@@ -145,13 +150,13 @@
 
 #### 下载版本
 
-- **Windows x64 (64位系统)**: 下载 `ChainlessChain-win32-x64-*.zip` (约166MB)
+- **Windows x64 (64位系统)**: 下载 `ChainlessChain-win32-x64-0.20.0.zip` (约1.4GB)
 
 #### 安装步骤（便携版，无需安装）
 
-1. 下载zip文件
+1. 下载 `ChainlessChain-win32-x64-0.20.0.zip` 文件
 2. 解压到任意文件夹（推荐解压到 `C:\Program Files\ChainlessChain\`）
-3. 双击运行 `chainlesschain.exe`
+3. 双击运行 `ChainlessChain.exe`
 4. 无需管理员权限
 
 #### 注意事项
@@ -179,7 +184,8 @@ npm run make:win
 
 #### 下载版本
 
-- **Linux x64 (64位系统)**: 下载 `ChainlessChain-linux-x64-*.zip` (约145MB)
+- **Linux x64 ZIP便携版**: 下载 `ChainlessChain-linux-x64-0.20.0.zip` (约1.4GB)
+- **Linux x64 DEB安装包**: 下载 `chainlesschain-desktop-vue_0.20.0_amd64.deb` (约923MB) ⭐推荐
 
 #### 支持发行版
 
@@ -188,12 +194,30 @@ npm run make:win
 - Arch Linux / Manjaro
 - 其他主流Linux发行版
 
-#### 安装步骤（便携版，无需安装）
+#### 安装步骤
+
+**方式一：DEB安装包（推荐，适用于Ubuntu/Debian）**
+
+1. 下载deb文件
+2. 安装：
+   ```bash
+   sudo dpkg -i chainlesschain-desktop-vue_0.20.0_amd64.deb
+   ```
+3. 如遇依赖问题，运行：
+   ```bash
+   sudo apt-get install -f
+   ```
+4. 从应用菜单启动，或命令行运行：
+   ```bash
+   chainlesschain-desktop-vue
+   ```
+
+**方式二：ZIP便携版（适用于所有发行版）**
 
 1. 下载zip文件
 2. 解压到任意目录：
    ```bash
-   unzip ChainlessChain-linux-x64-*.zip
+   unzip ChainlessChain-linux-x64-0.20.0.zip
    cd ChainlessChain-linux-x64
    ```
 3. 赋予执行权限：
@@ -714,6 +738,36 @@ cd android-app
 ./gradlew assembleDebug
 ```
 
+### 📱 移动端与PC端数据同步 ⭐新增
+
+ChainlessChain v0.20.0 引入了完整的移动端与PC端数据同步系统，支持跨设备无缝协作。
+
+**核心功能**:
+- 🔗 **设备配对**: 二维码扫描或配对码，快速建立P2P连接
+- 📚 **知识库同步**: 增量同步笔记、标签、附件等数据
+- 📁 **项目同步**: 项目元数据、任务、Git仓库状态同步
+- 💻 **PC状态监控**: 实时查看PC端系统状态和性能指标
+- 🔒 **安全加密**: WebRTC P2P通信 + libp2p加密传输
+- 📴 **离线支持**: 信令服务器提供离线消息队列
+
+**快速开始**:
+
+1. 启动信令服务器：
+```bash
+cd signaling-server
+npm install
+npm start  # 默认端口: 9003
+```
+
+2. PC端开启配对模式（设置 → 设备管理 → 设备配对）
+
+3. 移动端扫描二维码或输入配对码
+
+**详细文档**:
+- [系统设计文档](./MOBILE_PC_SYNC.md) - 架构设计、技术选型、数据同步策略
+- [快速开始指南](./QUICKSTART_MOBILE_PC.md) - 环境配置、使用流程、常见问题
+- [集成测试指南](./TEST_MOBILE_PC_INTEGRATION.md) - 测试用例、测试脚本、验证清单
+
 ## 📁 项目结构
 
 ```
@@ -728,6 +782,11 @@ chainlesschain/
 │   │   ├── image/                # 图片处理+OCR (Sharp+Tesseract.js)
 │   │   ├── did/                  # DID身份 (W3C标准+组织DID) ⭐更新
 │   │   ├── p2p/                  # P2P网络 (libp2p + Signal)
+│   │   │   ├── mobile-bridge.js         # 移动端桥接 (499行) ⭐新增
+│   │   │   ├── device-pairing-handler.js # 设备配对 (305行) ⭐新增
+│   │   │   ├── knowledge-sync-handler.js # 知识库同步 (442行) ⭐新增
+│   │   │   ├── project-sync-handler.js   # 项目同步 (516行) ⭐新增
+│   │   │   └── pc-status-handler.js      # PC状态 (388行) ⭐新增
 │   │   ├── social/               # 社交功能 (好友+动态)
 │   │   ├── trade/                # 交易系统 (8模块, 5625+行)
 │   │   ├── organization/         # 企业版组织管理 (701行) ⭐新增
@@ -912,7 +971,17 @@ chainlesschain/
 ├── mobile-app-uniapp/            # 📱 移动端应用 (10%完成)
 │   ├── pages/                    # 页面
 │   ├── services/                 # 服务层
+│   │   ├── device-pairing.js    # 设备配对服务 (354行) ⭐新增
+│   │   ├── knowledge-sync.js    # 知识库同步 (220行) ⭐新增
+│   │   ├── project-sync.js      # 项目同步 (217行) ⭐新增
+│   │   └── pc-status.js         # PC状态监控 (253行) ⭐新增
 │   └── manifest.json
+│
+├── signaling-server/             # 🔗 信令服务器 ⭐新增
+│   ├── index.js                  # WebSocket信令服务器 (492行)
+│   ├── package.json              # 依赖配置
+│   ├── Dockerfile                # Docker支持
+│   └── README.md                 # 服务器文档
 │
 ├── docker-compose.yml            # 🐳 Docker服务配置
 │   # - Ollama (端口11434)
@@ -930,6 +999,9 @@ chainlesschain/
 │   ├── P2_IMPLEMENTATION_SUMMARY.md        # P2优化实施总结
 │   ├── V3_TOOLS_RESTORATION_COMPLETE.md    # V3工具恢复报告
 │   ├── MENU_INTEGRATION_COMPLETE.md        # 菜单集成完成报告
+│   ├── MOBILE_PC_SYNC.md         # 移动端PC端数据同步设计 ⭐新增
+│   ├── QUICKSTART_MOBILE_PC.md   # 移动端同步快速开始 ⭐新增
+│   ├── TEST_MOBILE_PC_INTEGRATION.md # 移动端同步测试指南 ⭐新增
 │   └── HOW_TO_RUN.md
 │
 ├── desktop-app-vue/docs/        # 🚀 性能优化文档 ⭐新增
@@ -1368,9 +1440,9 @@ chainlesschain/
 
 ### 整体代码统计
 
-**代码总量**: 250,000+ 行 ⭐更新
-- Desktop App: 210,000+ 行 (JavaScript/TypeScript/Vue) ⭐更新
-  - 主进程: ~180,000 行
+**代码总量**: 258,000+ 行 ⭐更新
+- Desktop App: 218,000+ 行 (JavaScript/TypeScript/Vue) ⭐更新
+  - 主进程: ~188,000 行 (含移动端同步7700行)
   - 渲染进程: ~15,000 行 (243个组件)
   - 工具类: ~15,000 行 (34个文件)
 - Smart Contracts: 2,400 行 (Solidity + 测试 + 脚本)
@@ -1391,6 +1463,10 @@ chainlesschain/
 
 **功能模块**:
 - 16个AI专用引擎
+- 移动端PC端数据同步系统 (7700+行) ⭐新增
+  - 设备配对、知识库同步、项目同步、PC状态监控
+  - WebRTC P2P通信、libp2p加密、信令服务器
+  - 离线消息队列、增量同步
 - P2优化系统 (3800+行)
   - 意图融合、知识蒸馏、流式响应
   - 任务分解增强、工具组合、历史记忆
