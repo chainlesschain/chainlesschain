@@ -31,6 +31,9 @@
     "package": "npm run build && electron-forge package",
     "make": "npm run build && electron-forge make",
     "make:win": "npm run build && electron-forge make --platform=win32",
+    "make:mac": "npm run build && electron-forge make --platform=darwin",
+    "make:mac:arm64": "npm run build && electron-forge make --platform=darwin --arch=arm64",
+    "make:mac:x64": "npm run build && electron-forge make --platform=darwin --arch=x64",
     "installer": "npm run package && build-installer.bat",
     "installer:check": "where iscc || echo Inno Setup not installed. Please install from https://jrsoftware.org/isdl.php",
     "publish": "electron-forge publish",
@@ -164,6 +167,7 @@
   "devDependencies": {
     "@electron-forge/cli": "^7.2.0",
     "@electron-forge/maker-deb": "^7.2.0",
+    "@electron-forge/maker-dmg": "^7.10.2",
     "@electron-forge/maker-rpm": "^7.2.0",
     "@electron-forge/maker-squirrel": "^7.2.0",
     "@electron-forge/maker-zip": "^7.2.0",
