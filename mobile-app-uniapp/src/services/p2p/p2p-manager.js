@@ -136,7 +136,13 @@ class P2PManager {
           // 注册节点
           this.sendSignalingMessage({
             type: 'register',
-            peerId: this.localPeerId
+            peerId: this.localPeerId,
+            deviceType: 'mobile',
+            deviceInfo: {
+              name: uni.getSystemInfoSync().model || 'Unknown Device',
+              platform: uni.getSystemInfoSync().platform || 'unknown',
+              version: '0.16.0'
+            }
           })
 
           this.emit('signaling:connected')
@@ -191,14 +197,34 @@ class P2PManager {
 
     try {
       switch (message.type) {
-        case 'register:success':
-          console.log('[P2PManager] 节点注册成功:', message.peerId)
+        case 'registered':
+          console.log('[P2PManager] ✅ 节点注册成功:', message.peerId)
           this.emit('peer:registered', message)
           break
 
-        case 'peer:list':
-          console.log('[P2PManager] 在线节点列表:', message.peers?.length || 0)
+        case 'peers-list':
+          console.log('[P2PManager] 在线节点列表:', message.count || 0)
           this.emit('peer:list', message.peers)
+          break
+
+        case 'peer-status':
+          if (message.status === 'online') {
+            console.log('[P2PManager] 节点上线:', message.peerId)
+            this.emit('peer:online', message)
+          } else if (message.status === 'offline') {
+            console.log('[P2PManager] 节点离线:', message.peerId)
+            this.handlePeerOffline(message.peerId)
+          }
+          break
+
+        case 'peer-offline':
+          console.log('[P2PManager] 节点离线（目标不可达）:', message.peerId)
+          this.emit('peer:unreachable', message)
+          break
+
+        case 'offline-message':
+          console.log('[P2PManager] 收到离线消息')
+          this.emit('offline-message', message.originalMessage)
           break
 
         case 'offer':
@@ -213,14 +239,9 @@ class P2PManager {
           await this.handleICECandidate(message)
           break
 
-        case 'peer:online':
-          console.log('[P2PManager] 节点上线:', message.peerId)
-          this.emit('peer:online', message.peerId)
-          break
-
-        case 'peer:offline':
-          console.log('[P2PManager] 节点离线:', message.peerId)
-          this.handlePeerOffline(message.peerId)
+        case 'error':
+          console.error('[P2PManager] 服务器错误:', message.error)
+          this.emit('server:error', message)
           break
 
         default:
@@ -616,6 +637,15 @@ class P2PManager {
   }
 
   /**
+   * 请求在线节点列表
+   */
+  async requestPeersList() {
+    this.sendSignalingMessage({
+      type: 'get-peers'
+    })
+  }
+
+  /**
    * 获取连接状态
    */
   getConnectionState(peerId) {
@@ -627,6 +657,20 @@ class P2PManager {
    */
   getOnlinePeers() {
     return Array.from(this.peers.keys())
+  }
+
+  /**
+   * 获取统计信息
+   */
+  getStats() {
+    return {
+      isInitialized: this.isInitialized,
+      isConnected: this.isConnected,
+      peersCount: this.peers.size,
+      dataChannelsCount: this.dataChannels.size,
+      messageQueueSize: this.messageQueue.length,
+      natType: this.natType
+    }
   }
 
   /**

@@ -102,7 +102,7 @@ class P2PManager extends EventEmitter {
           healthCheckInterval: parseInt(settings['p2p.connection.healthCheckInterval']) || 60000,
         },
         websocket: {
-          port: parseInt(settings['p2p.websocket.port']) || 9001,
+          port: parseInt(settings['p2p.websocket.port']) || 9003,
         },
         compatibility: {
           detectLegacy: settings['p2p.compatibility.detectLegacy'] !== 'false',
@@ -140,7 +140,7 @@ class P2PManager extends EventEmitter {
           healthCheckInterval: 60000,
         },
         websocket: {
-          port: 9001,
+          port: 9003,
         },
         compatibility: {
           detectLegacy: true,

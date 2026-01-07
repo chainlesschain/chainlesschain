@@ -36,6 +36,7 @@
     "make:mac:x64": "npm run build && electron-forge make --platform=darwin --arch=x64",
     "make:linux": "npm run build && electron-forge make --platform=linux",
     "make:linux:x64": "npm run build && electron-forge make --platform=linux --arch=x64",
+    "make:linux:deb": "npm run build && electron-forge make --platform=linux --arch=x64 --targets=@electron-forge/maker-deb,@electron-forge/maker-zip",
     "installer": "npm run package && build-installer.bat",
     "installer:check": "where iscc || echo Inno Setup not installed. Please install from https://jrsoftware.org/isdl.php",
     "publish": "electron-forge publish",
@@ -163,6 +164,7 @@
     "vue-draggable-plus": "^0.6.0",
     "vue-i18n": "^9.14.5",
     "vue-pdf-embed": "^2.1.3",
+    "wrtc": "^0.4.7",
     "ws": "^8.18.3",
     "xlsx": "^0.18.5"
   },
@@ -202,65 +204,6 @@
     "wait-on": "^9.0.3",
     "webpack": "^5.104.1",
     "webpack-cli": "^6.0.1"
-  },
-  "config": {
-    "forge": {
-      "packagerConfig": {
-        "name": "ChainlessChain",
-        "executableName": "chainlesschain",
-        "icon": "build/icon",
-        "extraResource": [
-          "../node_modules/sql.js/dist/sql-wasm.wasm"
-        ],
-        "prune": false,
-        "asar": true,
-        "win32metadata": {
-          "CompanyName": "ChainlessChain Team",
-          "FileDescription": "ChainlessChain Desktop Application",
-          "OriginalFilename": "chainlesschain.exe",
-          "ProductName": "ChainlessChain",
-          "InternalName": "chainlesschain"
-        }
-      },
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "chainlesschain",
-            "authors": "ChainlessChain Team",
-            "exe": "chainlesschain.exe",
-            "setupIcon": "build/icon.ico",
-            "loadingGif": "build/install-spinner.gif",
-            "signWithParams": "/tr http://timestamp.digicert.com /td sha256 /fd sha256"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin",
-            "linux",
-            "win32"
-          ]
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "config": {
-            "options": {
-              "maintainer": "ChainlessChain Team",
-              "homepage": "https://github.com/chainlesschain"
-            }
-          }
-        },
-        {
-          "name": "@electron-forge/maker-rpm",
-          "config": {
-            "options": {
-              "homepage": "https://github.com/chainlesschain"
-            }
-          }
-        }
-      ]
-    }
   },
   "directories": {
     "doc": "docs",
