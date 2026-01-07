@@ -1,10 +1,12 @@
 # 基于U盾和SIMKey的个人移动AI管理系统
-## 系统设计文档 v2.6 (更新至 v0.20.0 实际实现状态)
+## 系统设计文档 v2.7 (更新至 v0.20.0 实际实现状态)
 
-**文档版本**: 2.6
+**文档版本**: 2.7
 **系统版本**: v0.20.0 (生产可用,性能业界领先)
-**最后更新**: 2026-01-06
+**最后更新**: 2026-01-07
 **更新内容**:
+- ✅ **移动端与PC端P2P同步**(WebRTC+libp2p,设备配对,知识库/项目同步) ⭐新增
+- ✅ **Linux平台打包支持**(支持x64,ZIP/DEB/RPM三种格式) ⭐新增
 - ✅ **深度性能优化**(三层优化体系100%完成,首次加载0.25s,提升90%)
 - ✅ **智能图片优化**(WebP/AVIF支持,响应式加载,带宽节省65%)
 - ✅ **实时性能监控**(Core Web Vitals,FPS,内存,网络监控)
@@ -42,7 +44,10 @@
 #### 1.2.1 基础特性
 - **完全去中心化**: 数据存储在用户自己的设备上,不依赖第三方云服务
 - **硬件安全**: 基于U盾/SIMKey的硬件级密钥保护(支持Windows,模拟模式用于开发)
-- **跨设备同步**: PC端为主,通过Git和HTTP同步实现多设备协作
+- **跨设备同步**: PC端为主,支持三种同步方式
+  - Git同步: 多PC设备间的版本控制同步
+  - HTTP同步: 轻量级PC间同步
+  - **⭐ P2P移动端同步** (v0.20.0新增): 移动端与PC端实时P2P同步,支持知识库/项目访问
 - **AI增强**: 集成本地大模型(Ollama)和14+云端LLM API,支持RAG检索增强
 - **隐私优先**: 用户完全掌控自己的数据和AI模型
 - **对话式项目管理**: AI驱动的项目创建、文件生成和智能任务拆解
@@ -126,11 +131,14 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        用户层                                     │
 ├──────────────────────┬──────────────────────┬───────────────────┤
-│   移动端 (Android/iOS)│      PC端 (Win/Mac)  │   Web端 (可选)    │
+│   移动端 (Android/iOS)│ PC端 (Win/Mac/Linux) │   Web端 (可选)    │
 │   - 移动APP           │      - 桌面应用       │   - 浏览器访问     │
 │   - SIMKey认证        │      - U盾认证        │   - 轻量级界面     │
+│   - P2P同步⭐         │      - P2P桥接⭐      │                   │
 └──────────────────────┴──────────────────────┴───────────────────┘
-                               ↕
+              ↕                       ↕                    ↕
+         (P2P/WebRTC)            (Git/HTTP)          (HTTP)
+              ↕                       ↕                    ↕
 ┌─────────────────────────────────────────────────────────────────┐
 │                     业务逻辑层                                    │
 ├──────────────────────────────┬──────────────────────────────────┤
@@ -145,6 +153,12 @@
 │                               │     - 智能合约                   │
 │                               │     - 信任评分                   │
 │                               │     - 交易协商                   │
+│                               ├─────────────────────────────────┤
+│                               │ ⭐移动端同步模块 (v0.20.0新增)  │
+│                               │     - 设备配对                   │
+│                               │     - 知识库同步                 │
+│                               │     - 项目同步                   │
+│                               │     - PC状态监控                 │
 └──────────────────────────────┴──────────────────────────────────┘
                                ↕
 ┌─────────────────────────────────────────────────────────────────┐
@@ -153,9 +167,9 @@
 │  本地存储         │   分布式存储         │   AI模型层             │
 │  - SQLite DB     │   - Git仓库          │   - 思维模型(LLM)     │
 │    (sql.js)      │   - HTTP同步         │     • Ollama本地      │
-│  - 文件系统       │   - P2P节点(规划)    │     • 14+云端API      │
-│    • knowledge/  │   - IPFS(规划)       │   - 问答模型(RAG)     │
-│    • projects/   │                      │   - 嵌入模型          │
+│  - 文件系统       │   - P2P同步⭐        │     • 14+云端API      │
+│    • knowledge/  │   - WebRTC通道⭐     │   - 问答模型(RAG)     │
+│    • projects/   │   - 信令服务器⭐     │   - 嵌入模型          │
 │    • data/       │                      │     (Ollama内置)      │
 │  - ChromaDB      │                      │   - 多模态模型(规划)  │
 │    (向量存储)    │                      │                       │
@@ -169,6 +183,7 @@
 │  - 数字签名                    │   - 数字签名                     │
 │  - 身份认证                    │   - SIM卡安全芯片                │
 │  - 数据加密密钥                │   - 移动运营商支持               │
+│  - Windows支持 (Linux模拟)    │   - WebRTC加密通道⭐            │
 └──────────────────────────────┴──────────────────────────────────┘
 ```
 
@@ -4558,6 +4573,202 @@ my-knowledge-base/ (Git仓库根目录)
 - GitHub只看到加密后的乱码
 - 免费用户可建无限私有仓库
 
+### 4.5 移动端与PC端P2P同步 ⭐新增 (v0.20.0)
+
+#### 4.5.1 架构设计
+
+**技术栈**:
+```
+┌─────────────┐         WebSocket信令服务器         ┌─────────────┐
+│  移动端App   │◄──────────────┬──────────────────►│  PC端应用    │
+│ (uni-app)   │                │                    │  (Electron)  │
+└─────────────┘                │                    └─────────────┘
+      ▲                        │                           ▲
+      │    WebRTC DataChannel  │                           │
+      └────────────────────────┴───────────────────────────┘
+                          P2P直连通讯
+```
+
+**核心组件**:
+- **PC端**:
+  - `mobile-bridge.js`: 移动端桥接管理器 (499行)
+  - `device-pairing-handler.js`: 设备配对处理器 (305行)
+  - `knowledge-sync-handler.js`: 知识库同步处理器 (442行)
+  - `project-sync-handler.js`: 项目同步处理器 (516行)
+  - `pc-status-handler.js`: PC状态监控处理器 (388行)
+- **移动端**:
+  - `device-pairing.js`: 设备配对服务
+  - `knowledge-sync.js`: 知识库同步服务
+  - `project-sync.js`: 项目同步服务
+  - `pc-status.js`: PC状态监控服务
+- **信令服务器**:
+  - `signaling-server/index.js`: WebSocket信令服务器 (492行)
+  - 端口: 9003 (避免与其他服务冲突)
+  - 支持离线消息队列 (24小时保留)
+
+#### 4.5.2 设备配对流程
+
+**方式一: PC端扫描移动端二维码**
+```
+移动端操作流程:
+1. 打开"设备配对"页面
+2. 生成6位配对码和二维码
+   - 格式: {"code":"123456","peerId":"mobile-peer-id"}
+3. 等待PC端扫描 (5分钟有效期)
+
+PC端操作流程:
+1. 点击"扫描移动设备"按钮
+2. 使用摄像头扫描二维码
+3. 解析配对码和移动端Peer ID
+4. 通过信令服务器建立WebRTC连接
+5. 验证配对码
+6. 完成配对,保存设备信息
+```
+
+**方式二: 配对码手动输入**
+```
+适用场景: PC端无摄像头或摄像头不可用
+1. 移动端显示6位数字配对码
+2. PC端手动输入配对码
+3. 系统查询信令服务器获取移动端Peer ID
+4. 建立WebRTC连接并验证
+```
+
+#### 4.5.3 数据同步功能
+
+**知识库同步** (knowledge-sync-handler.js):
+```javascript
+支持的操作:
+- listNotes: 获取笔记列表 (支持分页、排序、文件夹筛选)
+- getNote: 获取笔记详情 (完整Markdown内容)
+- searchNotes: 全文搜索笔记
+- getFolders: 获取文件夹树形结构
+- getTags: 获取标签列表和统计
+- 本地缓存策略: 减少重复请求
+
+数据流向: PC SQLCipher → 序列化 → WebRTC → 移动端缓存
+```
+
+**项目同步** (project-sync-handler.js):
+```javascript
+支持的操作:
+- listProjects: 获取项目列表
+- getProject: 获取项目详情
+- listProjectFiles: 获取项目文件列表 (树形结构)
+- getFileContent: 读取文件内容
+- getFileStats: 获取文件统计信息
+- createProject: 创建新项目
+- updateFile: 更新文件内容
+
+特性:
+- 支持大文件分块传输 (1MB chunks)
+- 文件类型检测 (二进制/文本)
+- 实时项目状态同步
+```
+
+**PC状态监控** (pc-status-handler.js):
+```javascript
+监控指标:
+- CPU使用率、内存使用情况
+- 磁盘空间、网络速度
+- 活动应用程序列表
+- AI服务状态 (LLM、向量数据库)
+- 笔记/项目数量统计
+
+更新频率:
+- 基础指标: 每10秒
+- AI服务状态: 每30秒
+- 按需查询: 移动端随时请求
+```
+
+#### 4.5.4 技术特点
+
+**P2P通信**:
+- 使用WebRTC DataChannel进行端到端传输
+- 信令服务器仅用于连接建立,不传输数据
+- 支持NAT穿透 (STUN/TURN)
+- 离线消息队列: 移动端离线时缓存消息
+
+**安全性**:
+- WebRTC内置DTLS加密 (类似HTTPS)
+- 配对码验证 (6位随机数字,5分钟有效)
+- 设备白名单机制
+- 每次连接重新协商密钥
+
+**性能优化**:
+- 数据分块传输 (大文件1MB chunk)
+- 本地缓存策略 (减少重复请求)
+- 增量同步 (只传输变化部分)
+- 压缩传输 (可选)
+
+**容错机制**:
+- 自动重连 (指数退避策略)
+- 请求超时处理 (30秒)
+- 错误重试机制
+- 连接状态监控
+
+#### 4.5.5 使用场景
+
+**场景一: 移动端查看知识库**
+```
+1. 用户外出时想查看笔记
+2. 移动端连接PC (通过信令服务器)
+3. 请求笔记列表 (分页加载)
+4. 点击查看详情 (从PC实时读取)
+5. 本地缓存常用笔记 (离线可访问)
+```
+
+**场景二: 移动端访问项目文件**
+```
+1. 用户需要在手机上查看项目代码
+2. 移动端连接PC
+3. 浏览项目文件树
+4. 选择文件查看内容
+5. 支持搜索和筛选
+```
+
+**场景三: 监控PC运行状态**
+```
+1. 用户外出想了解PC端AI任务进展
+2. 移动端连接PC
+3. 实时查看CPU/内存/网络状态
+4. 查看AI服务运行情况
+5. 查看知识库和项目统计
+```
+
+#### 4.5.6 部署和测试
+
+**信令服务器部署**:
+```bash
+cd signaling-server
+npm install
+node index.js  # 监听9003端口
+
+# Docker部署
+docker build -t chainlesschain-signaling .
+docker run -d -p 9003:9003 chainlesschain-signaling
+```
+
+**测试脚本**:
+```bash
+# 测试设备配对
+node test-pairing.js
+
+# 测试数据同步
+node test-data-sync.js
+
+# 测试移动端客户端
+node test-mobile-client.js
+
+# 测试PC端配对
+node test-pc-pairing.js
+```
+
+**相关文档**:
+- `MOBILE_PC_SYNC.md`: 完整系统设计文档 (489行)
+- `QUICKSTART_MOBILE_PC.md`: 快速开始指南 (352行)
+- `TEST_MOBILE_PC_INTEGRATION.md`: 集成测试指南 (310行)
+
 ---
 
 ## 五、AI模型部署方案
@@ -4818,7 +5029,10 @@ class AIRouter:
 ├── 国际化: **Vue I18n 9.x** ⭐新增
 ├── 区块链: **Hardhat + ethers.js** ⭐新增
 ├── 浏览器扩展: **Chrome Extension Manifest V3** ⭐新增
-├── 打包: **Electron Forge + electron-builder**
+├── 打包: **Electron Forge 7.2.0** (支持Windows/macOS/Linux多平台) ⭐更新
+│   ├── Windows: Squirrel + ZIP格式
+│   ├── macOS: DMG + ZIP格式 (ARM64/x64)
+│   └── Linux: DEB + RPM + ZIP格式 (x64) ⭐新增
 └── 代码规范: **ESLint + Prettier**
 ```
 
@@ -5201,7 +5415,76 @@ wget https://github.com/chainlesschain/desktop/releases/latest/ChainlessChain-Se
 # 4. 按照向导完成初始化
 ```
 
-### A.2 移动端安装 (Android)
+### A.2 Linux安装 ⭐新增 (v0.20.0)
+
+**支持的发行版**: Ubuntu 20.04+, Debian 11+, Fedora 35+, Arch Linux
+
+**安装方式一: DEB包 (Debian/Ubuntu)**
+```bash
+# 1. 下载DEB包
+wget https://github.com/chainlesschain/desktop/releases/latest/chainlesschain_0.20.0_amd64.deb
+
+# 2. 安装
+sudo dpkg -i chainlesschain_0.20.0_amd64.deb
+
+# 3. 修复依赖 (如果有报错)
+sudo apt-get install -f
+
+# 4. 运行应用
+chainlesschain
+```
+
+**安装方式二: RPM包 (Fedora/RHEL/CentOS)**
+```bash
+# 1. 下载RPM包
+wget https://github.com/chainlesschain/desktop/releases/latest/chainlesschain-0.20.0.x86_64.rpm
+
+# 2. 安装
+sudo rpm -i chainlesschain-0.20.0.x86_64.rpm
+# 或使用dnf
+sudo dnf install chainlesschain-0.20.0.x86_64.rpm
+
+# 3. 运行应用
+chainlesschain
+```
+
+**安装方式三: ZIP包 (通用)**
+```bash
+# 1. 下载ZIP包
+wget https://github.com/chainlesschain/desktop/releases/latest/chainlesschain-linux-x64-0.20.0.zip
+
+# 2. 解压
+unzip chainlesschain-linux-x64-0.20.0.zip -d ~/chainlesschain
+
+# 3. 添加执行权限
+chmod +x ~/chainlesschain/chainlesschain
+
+# 4. 运行
+~/chainlesschain/chainlesschain
+
+# 5. 可选：创建桌面快捷方式
+cat > ~/.local/share/applications/chainlesschain.desktop <<EOF
+[Desktop Entry]
+Name=ChainlessChain
+Exec=$HOME/chainlesschain/chainlesschain
+Icon=$HOME/chainlesschain/resources/icon.png
+Type=Application
+Categories=Utility;
+EOF
+```
+
+**系统要求**:
+- 64位系统 (x86_64)
+- 8GB+ RAM (推荐16GB用于本地LLM)
+- 20GB+ 可用磁盘空间
+- GLIBC 2.31+ (Ubuntu 20.04+)
+
+**注意事项**:
+- U盾功能当前仅支持Windows,Linux使用模拟模式
+- 推荐使用Docker运行Ollama和Qdrant服务
+- 首次运行需要下载AI模型 (约4GB)
+
+### A.3 移动端安装 (Android)
 
 ```bash
 # 1. 从Google Play下载
@@ -5214,7 +5497,7 @@ wget https://github.com/chainlesschain/desktop/releases/latest/ChainlessChain-Se
 # 4. 扫描PC端二维码完成绑定
 ```
 
-### A.3 第一次使用
+### A.4 第一次使用
 
 ```
 1. 创建身份
@@ -5677,7 +5960,81 @@ interface GitAPI {
 
 ---
 
-## 附录C: v2.1文档更新说明 (2025-12-29)
+## 附录C: 文档版本更新历史
+
+### v2.7更新内容 (2026-01-07)
+
+#### 新增功能模块
+
+**1. 移动端与PC端P2P同步** ⭐核心新功能 (100%完成)
+- **架构**: WebRTC + libp2p + WebSocket信令服务器
+- **核心组件** (PC端):
+  - `mobile-bridge.js`: 移动端桥接管理器 (499行)
+  - `device-pairing-handler.js`: 设备配对处理器 (305行)
+  - `knowledge-sync-handler.js`: 知识库同步处理器 (442行)
+  - `project-sync-handler.js`: 项目同步处理器 (516行)
+  - `pc-status-handler.js`: PC状态监控处理器 (388行)
+- **功能特性**:
+  - 设备配对: 支持二维码扫描和配对码两种方式
+  - 知识库同步: 笔记列表、详情、搜索、文件夹、标签
+  - 项目同步: 项目列表、文件树、文件读写、大文件分块传输
+  - PC状态监控: CPU、内存、磁盘、网络、AI服务状态
+- **安全性**: WebRTC内置DTLS加密、配对码验证、设备白名单
+- **性能优化**: 数据分块传输、本地缓存、增量同步、压缩传输
+- **部署**: 独立信令服务器 (端口9003)、支持Docker部署
+- **文档**:
+  - `MOBILE_PC_SYNC.md`: 完整系统设计文档 (489行)
+  - `QUICKSTART_MOBILE_PC.md`: 快速开始指南 (352行)
+  - `TEST_MOBILE_PC_INTEGRATION.md`: 集成测试指南 (310行)
+- **测试脚本**: test-pairing.js, test-data-sync.js, test-mobile-client.js, test-pc-pairing.js
+
+**2. Linux平台打包支持** ⭐跨平台扩展 (100%完成)
+- **支持格式**: DEB、RPM、ZIP三种安装包格式
+- **支持架构**: x64
+- **支持发行版**: Ubuntu 20.04+, Debian 11+, Fedora 35+, Arch Linux
+- **打包工具**: Electron Forge 7.2.0
+- **打包命令**:
+  - `make:linux`: Linux通用打包
+  - `make:linux:x64`: x64架构打包
+  - `make:linux:deb`: DEB+ZIP打包
+- **安装方式**:
+  - DEB: `sudo dpkg -i chainlesschain_0.20.0_amd64.deb`
+  - RPM: `sudo rpm -i chainlesschain-0.20.0.x86_64.rpm`
+  - ZIP: 解压即用,支持创建桌面快捷方式
+- **注意事项**: U盾功能当前仅支持Windows,Linux使用模拟模式
+
+#### 文档结构更新
+
+**新增章节**:
+- **4.5 移动端与PC端P2P同步**: 详细介绍架构设计、配对流程、数据同步、技术特点、使用场景、部署测试
+- **A.2 Linux安装**: 完整的Linux安装指南,包含DEB/RPM/ZIP三种安装方式
+
+**更新章节**:
+- **1.2.1 基础特性**: 扩展跨设备同步说明,新增P2P移动端同步
+- **1.3 技术架构图**: 添加移动端P2P同步组件和WebRTC通道
+- **6.1 PC端技术栈**: 更新打包工具说明,新增Linux打包支持
+
+#### 版本信息
+- 文档版本: v2.6 → **v2.7**
+- 系统版本: v0.20.0 (保持不变)
+- 最后更新: 2026-01-06 → **2026-01-07**
+
+#### 技术亮点
+1. **实现真正的移动端-PC端实时同步**: 通过WebRTC实现低延迟P2P通信
+2. **完整的Linux支持**: 覆盖主流Linux发行版的三种安装方式
+3. **7个核心源文件**: 新增2150+行移动端同步代码
+4. **3个详细文档**: 提供1151行配套文档支持
+
+---
+
+### v2.6更新内容 (2026-01-06)
+
+深度性能优化、智能图片优化、实时性能监控、P2优化系统、高级特性系统等功能完成。
+详见前序版本更新说明。
+
+---
+
+### v2.1文档更新说明 (2025-12-29)
 
 ### v2.1更新内容 (相比v2.0)
 
