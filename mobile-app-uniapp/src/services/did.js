@@ -16,6 +16,26 @@ import { db as database } from './database.js'
 class DIDService {
   constructor() {
     this.keyCache = new Map() // 内存中缓存解密后的密钥（会话级别）
+    this.isInitialized = false
+  }
+
+  /**
+   * 初始化DID服务
+   */
+  async initialize() {
+    if (this.isInitialized) {
+      return
+    }
+
+    try {
+      // 这里可以添加初始化逻辑，比如检查数据库连接等
+      // 目前只是简单标记为已初始化
+      this.isInitialized = true
+      console.log('[DIDService] 初始化成功')
+    } catch (error) {
+      console.error('[DIDService] 初始化失败:', error)
+      throw error
+    }
   }
 
   /**
@@ -783,5 +803,11 @@ class DIDService {
 }
 
 // 导出单例
-export default new DIDService()
+const didServiceInstance = new DIDService()
+
+export default didServiceInstance
+
+export function getDIDService() {
+  return didServiceInstance
+}
 

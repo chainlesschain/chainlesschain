@@ -10,13 +10,54 @@
         <p>用自然语言描述您的需求，AI将为您生成完整的项目结构和代码</p>
       </div>
 
-      <!-- 模板选择区域 -->
+      <!-- 职业Prompt模板选择区域 -->
+      <div class="prompt-template-section">
+        <div class="section-header">
+          <h3>
+            <MedicineBoxOutlined />
+            职业专用模板
+          </h3>
+          <p>为医生、律师、教师、研究员等职业定制的AI提示词模板</p>
+        </div>
+
+        <!-- 职业分类选择 -->
+        <div class="profession-tabs">
+          <a-button
+            v-for="profession in professions"
+            :key="profession.value"
+            :type="selectedProfession === profession.value ? 'primary' : 'default'"
+            @click="selectProfession(profession.value)"
+            class="profession-btn"
+          >
+            <component :is="profession.icon" />
+            {{ profession.label }}
+          </a-button>
+        </div>
+
+        <!-- Prompt模板列表 -->
+        <div v-if="filteredPromptTemplates.length > 0" class="prompt-templates-list">
+          <a-row :gutter="[12, 12]">
+            <a-col :span="12" v-for="template in filteredPromptTemplates" :key="template.id">
+              <div class="prompt-template-card" @click="fillPromptTemplate(template)">
+                <div class="template-header">
+                  <span class="template-name">{{ template.name }}</span>
+                  <ArrowRightOutlined class="arrow-icon" />
+                </div>
+                <div class="template-description">{{ template.description }}</div>
+              </div>
+            </a-col>
+          </a-row>
+        </div>
+        <a-empty v-else description="该职业暂无专用模板" />
+      </div>
+
+      <!-- 项目模板选择区域 -->
       <div class="template-section">
         <div class="section-header">
-          <h3>快速开始</h3>
+          <h3>项目模板</h3>
           <a-button type="link" @click="showTemplateModal = true">
             <FileTextOutlined />
-            浏览所有模板
+            浏览所有项目模板
           </a-button>
         </div>
 
@@ -148,7 +189,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { useAuthStore } from '@/stores/auth';
 import { useTemplateStore } from '@/stores/template';
@@ -160,6 +201,11 @@ import {
   AppstoreOutlined,
   CheckCircleFilled,
   CloseCircleOutlined,
+  MedicineBoxOutlined,
+  SafetyCertificateOutlined,
+  ReadOutlined,
+  ExperimentOutlined,
+  ArrowRightOutlined,
 } from '@ant-design/icons-vue';
 import TemplateSelectionModal from './TemplateSelectionModal.vue';
 import SkillToolSelector from './SkillToolSelector.vue';
@@ -177,6 +223,27 @@ const templateVariables = ref({});
 const selectedSkillsAndTools = ref({
   skills: [],
   tools: [],
+});
+
+// Prompt模板相关状态
+const selectedProfession = ref('medical');
+const promptTemplates = ref([]);
+const loadingPromptTemplates = ref(false);
+
+// 职业分类配置
+const professions = [
+  { label: '医疗', value: 'medical', icon: MedicineBoxOutlined },
+  { label: '法律', value: 'legal', icon: SafetyCertificateOutlined },
+  { label: '教育', value: 'education', icon: ReadOutlined },
+  { label: '研究', value: 'research', icon: ExperimentOutlined },
+];
+
+// 过滤的Prompt模板（根据选中的职业）
+const filteredPromptTemplates = computed(() => {
+  if (!promptTemplates.value || promptTemplates.value.length === 0) {
+    return [];
+  }
+  return promptTemplates.value.filter(t => t.category === selectedProfession.value);
 });
 
 const formData = reactive({
@@ -336,6 +403,69 @@ const clearTemplate = () => {
 const handleTemplateCancel = () => {
   showTemplateModal.value = false;
 };
+
+// ========== Prompt模板相关方法 ==========
+
+// 加载Prompt模板
+const loadPromptTemplates = async () => {
+  try {
+    loadingPromptTemplates.value = true;
+    // 通过electronAPI加载所有Prompt模板
+    const allTemplates = await window.electronAPI.promptTemplate.getAll();
+    // 只保留职业专用模板（medical, legal, education, research）
+    promptTemplates.value = allTemplates.filter(t =>
+      ['medical', 'legal', 'education', 'research'].includes(t.category)
+    );
+    console.log('Loaded prompt templates:', promptTemplates.value.length);
+  } catch (error) {
+    console.error('Failed to load prompt templates:', error);
+    message.error('加载Prompt模板失败');
+    promptTemplates.value = [];
+  } finally {
+    loadingPromptTemplates.value = false;
+  }
+};
+
+// 选择职业
+const selectProfession = (profession) => {
+  selectedProfession.value = profession;
+};
+
+// 填充Prompt模板到输入框
+const fillPromptTemplate = async (template) => {
+  try {
+    // 解析模板变量
+    const variables = template.variables ? JSON.parse(template.variables) : [];
+
+    if (variables.length > 0) {
+      // 如果有变量，创建一个示例填充值的对象
+      const exampleValues = {};
+      variables.forEach(varName => {
+        // 为每个变量提供一个示例值
+        exampleValues[varName] = `[请填写${varName}]`;
+      });
+
+      // 使用electronAPI填充模板
+      const filledPrompt = await window.electronAPI.promptTemplate.fill(template.id, exampleValues);
+      formData.userPrompt = filledPrompt;
+    } else {
+      // 没有变量，直接使用模板内容
+      formData.userPrompt = template.template;
+    }
+
+    message.success(`已选择模板：${template.name}`);
+  } catch (error) {
+    console.error('Fill prompt template failed:', error);
+    // 如果填充失败，直接使用原始模板
+    formData.userPrompt = template.template || template.description;
+    message.warning('已填充模板，但部分变量需要手动替换');
+  }
+};
+
+// 组件挂载时加载Prompt模板
+onMounted(() => {
+  loadPromptTemplates();
+});
 </script>
 
 <style scoped>
@@ -501,5 +631,145 @@ const handleTemplateCancel = () => {
   gap: 12px;
   justify-content: center;
   padding-top: 24px;
+}
+
+/* ========== 职业Prompt模板选择器样式 ========== */
+
+.prompt-template-section {
+  margin-bottom: 40px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.prompt-template-section .section-header {
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.prompt-template-section .section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  color: #0c4a6e;
+  margin-bottom: 8px;
+}
+
+.prompt-template-section .section-header h3 :deep(.anticon) {
+  font-size: 22px;
+  color: #0ea5e9;
+}
+
+.prompt-template-section .section-header p {
+  font-size: 14px;
+  color: #475569;
+  margin: 0;
+}
+
+/* 职业分类按钮 */
+.profession-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.profession-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.profession-btn :deep(.anticon) {
+  font-size: 16px;
+}
+
+.profession-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Prompt模板卡片列表 */
+.prompt-templates-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.prompt-template-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  height: 100%;
+}
+
+.prompt-template-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.template-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.template-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.arrow-icon {
+  color: #9ca3af;
+  transition: all 0.3s;
+}
+
+.prompt-template-card:hover .arrow-icon {
+  color: #3b82f6;
+  transform: translateX(4px);
+}
+
+.template-description {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* 滚动条样式 */
+.prompt-templates-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.prompt-templates-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.prompt-templates-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.prompt-templates-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 </style>

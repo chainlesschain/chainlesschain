@@ -7,7 +7,7 @@
 const WebSocket = require('ws');
 
 const mobilePeerId = 'test-mobile-sync-' + Date.now();
-const pcPeerId = '12D3KooWRTYRYqDk4GX2BEYyZbyePnAUTEbzpawkN1KAvxFekQoE';
+const pcPeerId = '12D3KooWMhASR2ZSgRt3EJeDtqhidnNWYQerjoHTVb7YsiSYXCdQ';
 
 console.log('📱 移动端数据同步测试');
 console.log('==================\n');

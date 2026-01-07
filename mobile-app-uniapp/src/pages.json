@@ -253,6 +253,57 @@
       "style": {
         "navigationBarTitleText": "消息"
       }
+    },
+    {
+      "path": "pages/device-pairing/index",
+      "style": {
+        "navigationBarTitleText": "设备配对",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/p2p/device-list",
+      "style": {
+        "navigationBarTitleText": "我的PC设备"
+      }
+    },
+    {
+      "path": "pages/p2p/pc-status",
+      "style": {
+        "navigationBarTitleText": "PC状态监控"
+      }
+    },
+    {
+      "path": "pages/p2p/knowledge-list",
+      "style": {
+        "navigationBarTitleText": "PC端知识库"
+      }
+    },
+    {
+      "path": "pages/p2p/note-detail",
+      "style": {
+        "navigationBarTitleText": "笔记详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/p2p/project-list",
+      "style": {
+        "navigationBarTitleText": "PC端项目",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/p2p/project-detail",
+      "style": {
+        "navigationBarTitleText": "项目详情"
+      }
+    },
+    {
+      "path": "pages/p2p/file-detail",
+      "style": {
+        "navigationBarTitleText": "文件内容"
+      }
     }
   ],
   "globalStyle": {

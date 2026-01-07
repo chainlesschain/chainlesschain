@@ -25378,4 +25378,10 @@ services:
   }
 ];
 
-module.exports = tools;
+// 导入职业专用工具（医生、律师、教师、研究员）
+const professionalTools = require('./professional-tools');
+
+// 合并所有工具
+const allTools = [...tools, ...professionalTools];
+
+module.exports = allTools;

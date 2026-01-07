@@ -116,7 +116,7 @@ const emit = defineEmits(['send', 'fillInput']);
 
 // State
 const inputText = ref('');
-const selectedCategory = ref('writing');
+const selectedCategory = ref('medical'); // 默认选择医疗分类，展示职业模板
 const selectedSubCategory = ref('all');
 const templates = ref([]);
 const loading = ref(false);
@@ -130,15 +130,25 @@ const greetingMessage = computed(() => {
   return '晚上好！今天还有什么要完成的？';
 });
 
-// Main Categories
+// Main Categories - 分类顺序调整，职业分类放前面
 const mainCategories = [
+  // 职业专用分类
+  { label: '🏥 医疗', value: 'medical' },
+  { label: '⚖️ 法律', value: 'legal' },
+  { label: '👨‍🏫 教育', value: 'education' },
+  { label: '🔬 研究', value: 'research' },
+  // 通用分类
   { label: '写作', value: 'writing' },
+  { label: '翻译', value: 'translation' },
+  { label: '分析', value: 'analysis' },
+  { label: '问答', value: 'qa' },
+  { label: '创意', value: 'creative' },
+  { label: '编程', value: 'programming' },
+  { label: '检索增强', value: 'rag' },
   { label: '营销', value: 'marketing' },
   { label: 'Excel', value: 'excel' },
   { label: '简历', value: 'resume' },
   { label: 'PPT', value: 'ppt' },
-  { label: '研究', value: 'research' },
-  { label: '教育', value: 'education' },
   { label: '生活', value: 'lifestyle' },
   { label: '播客', value: 'podcast' },
   { label: '设计', value: 'design' },
