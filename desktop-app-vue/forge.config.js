@@ -67,71 +67,73 @@ const collectExtraResources = () => {
   const extraResources = [];
   const missingResources = [];
 
-  const sqlWasmPath = path.join(
+  // sql.js wasm文件可能在desktop-app-vue/node_modules或根目录node_modules
+  let sqlWasmPath = path.join(
     __dirname,
     'node_modules',
     'sql.js',
     'dist',
     'sql-wasm.wasm'
   );
+  if (!fs.existsSync(sqlWasmPath)) {
+    // 尝试根目录的node_modules
+    sqlWasmPath = path.join(
+      ROOT_DIR,
+      'node_modules',
+      'sql.js',
+      'dist',
+      'sql-wasm.wasm'
+    );
+  }
+
   if (fs.existsSync(sqlWasmPath)) {
     extraResources.push(sqlWasmPath);
   } else {
-    missingResources.push('desktop-app-vue/node_modules/sql.js/dist/sql-wasm.wasm');
+    missingResources.push('node_modules/sql.js/dist/sql-wasm.wasm');
   }
 
   const scriptsDir = path.join(PACKAGING_DIR, 'scripts');
   if (fs.existsSync(scriptsDir)) {
-    extraResources.push({
-      from: scriptsDir,
-      to: 'scripts',
-      filter: ['**/*.bat']
-    });
+    // electron-packager extraResource需要的是简单的字符串路径，不是对象
+    extraResources.push(scriptsDir);
   } else {
-    missingResources.push('packaging/scripts');
+    // scripts目录不是必需的，只记录警告
+    console.warn('[Packaging] Optional scripts directory not found: packaging/scripts');
   }
 
   const projectServiceJar = resolveProjectServiceJar();
   if (projectServiceJar) {
-    extraResources.push({
-      from: projectServiceJar,
-      to: 'backend/project-service.jar'
-    });
+    extraResources.push(projectServiceJar);
   } else {
     missingResources.push('backend/project-service/target/project-service-*.jar');
   }
 
-  const dirMappings = [
+  const dirPaths = [
     {
-      from: path.join(PACKAGING_DIR, 'jre-17'),
-      to: 'backend/jre',
+      path: path.join(PACKAGING_DIR, 'jre-17'),
       label: 'packaging/jre-17'
     },
     {
-      from: path.join(PACKAGING_DIR, 'postgres'),
-      to: 'backend/postgres',
+      path: path.join(PACKAGING_DIR, 'postgres'),
       label: 'packaging/postgres'
     },
     {
-      from: path.join(PACKAGING_DIR, 'redis'),
-      to: 'backend/redis',
+      path: path.join(PACKAGING_DIR, 'redis'),
       label: 'packaging/redis'
     },
     {
-      from: path.join(PACKAGING_DIR, 'qdrant'),
-      to: 'backend/qdrant',
+      path: path.join(PACKAGING_DIR, 'qdrant'),
       label: 'packaging/qdrant'
     },
     {
-      from: path.join(PACKAGING_DIR, 'config'),
-      to: 'config',
+      path: path.join(PACKAGING_DIR, 'config'),
       label: 'packaging/config'
     },
   ];
 
-  dirMappings.forEach(({ from, to, label }) => {
-    if (fs.existsSync(from)) {
-      extraResources.push({ from, to });
+  dirPaths.forEach(({ path: dirPath, label }) => {
+    if (fs.existsSync(dirPath)) {
+      extraResources.push(dirPath);
     } else {
       missingResources.push(label);
     }
@@ -176,8 +178,13 @@ module.exports = {
     name: 'ChainlessChain',
     executableName: 'chainlesschain',
     icon: path.join(__dirname, 'assets', 'icon'),
-    asar: true,
+    asar: {
+      unpack: '*.{node,dll,dylib,so,exe}' // 排除原生模块和可执行文件
+    },
     extraResource: extraResources,
+
+    // 禁用prune以保留所有依赖(包括workspace提升的)
+    prune: false,
 
     // 忽略不需要打包的文件
     ignore: [
@@ -191,7 +198,6 @@ module.exports = {
 
       // 文档和配置文件
       /^\/docs/,
-      /.*\.md$/i,
       /^\/\.vscode/,
       /^\/\.git/,
       /^\/\.github/,
@@ -203,18 +209,14 @@ module.exports = {
       /^\/playwright-report/,
       /\.coverage$/,
 
-      // Node modules 优化
-      /node_modules\/.*\/test/,
-      /node_modules\/.*\/tests/,
-      /node_modules\/.*\/\..*$/,
-      /node_modules\/.*\/README\.md$/i,
-      /node_modules\/.*\/CHANGELOG\.md$/i,
-      /node_modules\/.*\/\.eslintrc/,
-      /node_modules\/.*\/\.prettierrc/,
+      // Node modules 优化 - 修改为更精确的规则，避免误删
+      /node_modules\/.*\/test\//,
+      /node_modules\/.*\/tests\//,
+      /node_modules\/.*\/\.github\//,
+      /node_modules\/.*\/\.vscode\//,
 
       // 源码映射
       /\.map$/,
-      /\.map\.js$/,
 
       // 临时文件
       /^\/temp/,
@@ -322,6 +324,32 @@ module.exports = {
     // 打包前的钩子
     packageAfterCopy: async (config, buildPath, electronVersion, platform, arch) => {
       console.log('Running post-copy hook...');
+
+      // 复制workspace的node_modules到打包目录
+      const rootNodeModules = path.join(ROOT_DIR, 'node_modules');
+      const buildNodeModules = path.join(buildPath, 'node_modules');
+
+      console.log('[Packaging] Copying workspace dependencies...');
+      console.log(`  From: ${rootNodeModules}`);
+      console.log(`  To: ${buildNodeModules}`);
+
+      // 删除现有的node_modules（包含符号链接）
+      if (fs.existsSync(buildNodeModules)) {
+        console.log('[Packaging] Removing existing node_modules...');
+        fs.rmSync(buildNodeModules, { recursive: true, force: true });
+      }
+
+      // 使用cp -R复制（比Node.js的fs.cp快得多）
+      try {
+        execSync(`cp -R "${rootNodeModules}" "${buildNodeModules}"`, {
+          stdio: 'inherit',
+          maxBuffer: 1024 * 1024 * 100 // 100MB buffer
+        });
+        console.log('[Packaging] Workspace dependencies copied successfully');
+      } catch (error) {
+        console.error('[Packaging] Failed to copy node_modules:', error.message);
+        throw error;
+      }
 
       // 创建必要的目录结构
       const dataDir = path.join(buildPath, '..', '..', 'data');

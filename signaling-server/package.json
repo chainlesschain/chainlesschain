@@ -1,0 +1,28 @@
+{
+  "name": "chainlesschain-signaling-server",
+  "version": "0.1.0",
+  "description": "WebSocket signaling server for ChainlessChain P2P communication between mobile and desktop",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "webrtc",
+    "signaling",
+    "p2p",
+    "websocket"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

@@ -627,6 +627,11 @@ class ChainlessChainApp {
         // 设置 P2P 加密消息事件监听
         this.setupP2PEncryptionEvents();
 
+        // 初始化移动端桥接
+        this.initializeMobileBridge().catch(error => {
+          console.error('移动端桥接初始化失败:', error);
+        });
+
         // P2P初始化成功后，设置到DID管理器中以启用DHT功能
         if (this.didManager) {
           this.didManager.setP2PManager(this.p2pManager);
@@ -1711,6 +1716,160 @@ class ChainlessChainApp {
     console.log('[Main] P2P 加密事件监听已设置');
   }
 
+  async initializeMobileBridge() {
+    console.log('[Main] 初始化移动端桥接...');
+
+    try {
+      // 导入Mobile Bridge相关模块
+      const MobileBridge = require('./p2p/mobile-bridge');
+      const DevicePairingHandler = require('./p2p/device-pairing-handler');
+      const KnowledgeSyncHandler = require('./p2p/knowledge-sync-handler');
+      const ProjectSyncHandler = require('./p2p/project-sync-handler');
+      const PCStatusHandler = require('./p2p/pc-status-handler');
+      const DeviceManager = require('./p2p/device-manager');
+
+      // 创建设备管理器
+      if (!this.deviceManager) {
+        this.deviceManager = new DeviceManager(this.database);
+        await this.deviceManager.initialize();
+      }
+
+      // 创建MobileBridge
+      this.mobileBridge = new MobileBridge(this.p2pManager, {
+        signalingUrl: 'ws://localhost:9001',
+        reconnectInterval: 5000,
+        enableAutoReconnect: true
+      });
+
+      await this.mobileBridge.connect();
+
+      // 创建设备配对处理器
+      this.devicePairingHandler = new DevicePairingHandler(
+        this.p2pManager,
+        this.mobileBridge,
+        this.deviceManager
+      );
+
+      // 创建同步处理器（传递mobileBridge）
+      this.knowledgeSyncHandler = new KnowledgeSyncHandler(
+        this.database,
+        this.p2pManager,
+        this.mobileBridge
+      );
+
+      this.projectSyncHandler = new ProjectSyncHandler(
+        this.database,
+        this.p2pManager,
+        this.mobileBridge
+      );
+
+      this.pcStatusHandler = new PCStatusHandler(this.p2pManager, this.mobileBridge);
+
+      // 设置消息路由
+      this.setupMobileBridgeMessageRouting();
+
+      console.log('[Main] ✅ 移动端桥接初始化成功');
+
+    } catch (error) {
+      console.error('[Main] ❌ 移动端桥接初始化失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 设置移动端桥接消息路由
+   */
+  setupMobileBridgeMessageRouting() {
+    if (!this.mobileBridge) {
+      console.warn('[Main] MobileBridge未初始化，无法设置消息路由');
+      return;
+    }
+
+    // 监听来自移动端的消息
+    this.mobileBridge.on('message-from-mobile', async ({ mobilePeerId, message }) => {
+      const { type, requestId, params } = message;
+
+      console.log(`[Main] 收到移动端消息: ${type} from ${mobilePeerId}`);
+
+      try {
+        let handler;
+        let response;
+
+        // 根据消息类型路由到对应的处理器
+        if (type.startsWith('knowledge:')) {
+          handler = this.knowledgeSyncHandler;
+        } else if (type.startsWith('project:')) {
+          handler = this.projectSyncHandler;
+        } else if (type.startsWith('pc-status:')) {
+          handler = this.pcStatusHandler;
+        } else if (type.startsWith('pairing:')) {
+          handler = this.devicePairingHandler;
+        } else {
+          console.warn(`[Main] 未知消息类型: ${type}`);
+          this.mobileBridge.send({
+            type: 'message',
+            to: mobilePeerId,
+            payload: {
+              type: `${type}:response`,
+              requestId: requestId,
+              error: {
+                code: 'UNKNOWN_MESSAGE_TYPE',
+                message: `Unknown message type: ${type}`
+              }
+            }
+          });
+          return;
+        }
+
+        // 调用处理器的handleMessage方法
+        if (handler && typeof handler.handleMessage === 'function') {
+          response = await handler.handleMessage(mobilePeerId, message);
+        } else {
+          console.warn(`[Main] 处理器不支持handleMessage方法: ${type}`);
+          response = {
+            error: {
+              code: 'NOT_IMPLEMENTED',
+              message: `Handler for ${type} does not implement handleMessage`
+            }
+          };
+        }
+
+        // 如果处理器没有直接发送响应，我们手动发送
+        if (response !== undefined) {
+          this.mobileBridge.send({
+            type: 'message',
+            to: mobilePeerId,
+            payload: {
+              type: `${type}:response`,
+              requestId: requestId,
+              ...response
+            }
+          });
+        }
+
+      } catch (error) {
+        console.error(`[Main] 处理移动端消息失败 (${type}):`, error);
+
+        // 发送错误响应
+        this.mobileBridge.send({
+          type: 'message',
+          to: mobilePeerId,
+          payload: {
+            type: `${type}:response`,
+            requestId: requestId,
+            error: {
+              code: 'INTERNAL_ERROR',
+              message: error.message,
+              stack: error.stack
+            }
+          }
+        });
+      }
+    });
+
+    console.log('[Main] ✓ 移动端桥接消息路由已设置');
+  }
+
   setupPluginEvents() {
     if (!this.pluginManager) {
       return;
@@ -2077,6 +2236,9 @@ class ChainlessChainApp {
     // 注册交互式任务规划 IPC handlers
     this.setupInteractivePlanningIPC();
 
+    // 注册移动端桥接 IPC handlers
+    this.setupMobileBridgeIPC();
+
     console.log('[ChainlessChainApp] ========================================');
     console.log('[ChainlessChainApp] IPC setup complete!');
     console.log('[ChainlessChainApp] ========================================');
@@ -2160,6 +2322,86 @@ class ChainlessChainApp {
     });
 
     console.log('[Performance IPC] ✓ Performance monitoring IPC handlers registered');
+  }
+
+  /**
+   * 设置移动端桥接 IPC 处理器
+   */
+  setupMobileBridgeIPC() {
+    // 扫描二维码配对
+    ipcMain.handle('mobile:start-scanner', async () => {
+      try {
+        if (!this.devicePairingHandler) {
+          throw new Error('设备配对处理器未初始化');
+        }
+        const result = await this.devicePairingHandler.startQRCodeScanner();
+        return { success: true, device: result.device };
+      } catch (error) {
+        console.error('[IPC] 扫描失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 手动输入配对码
+    ipcMain.handle('mobile:pair-with-code', async (event, pairingCode) => {
+      try {
+        if (!this.devicePairingHandler) {
+          throw new Error('设备配对处理器未初始化');
+        }
+        const result = await this.devicePairingHandler.pairWithCode(pairingCode, null, null);
+        return { success: true, device: result.device };
+      } catch (error) {
+        console.error('[IPC] 配对失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 获取已配对设备列表
+    ipcMain.handle('mobile:get-paired-devices', async () => {
+      try {
+        if (!this.deviceManager) {
+          throw new Error('设备管理器未初始化');
+        }
+        const devices = await this.deviceManager.getAllDevices();
+        return { success: true, devices };
+      } catch (error) {
+        console.error('[IPC] 获取设备列表失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 移除已配对设备
+    ipcMain.handle('mobile:remove-device', async (event, deviceId) => {
+      try {
+        if (!this.deviceManager) {
+          throw new Error('设备管理器未初始化');
+        }
+        await this.deviceManager.removeDevice(deviceId);
+        return { success: true };
+      } catch (error) {
+        console.error('[IPC] 移除设备失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 获取统计信息
+    ipcMain.handle('mobile:get-stats', async () => {
+      try {
+        return {
+          success: true,
+          stats: {
+            bridge: this.mobileBridge?.getStats() || {},
+            knowledge: this.knowledgeSyncHandler?.getStats() || {},
+            project: this.projectSyncHandler?.getStats() || {}
+          }
+        };
+      } catch (error) {
+        console.error('[IPC] 获取统计失败:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    console.log('[Mobile Bridge IPC] ✓ Mobile bridge IPC handlers registered');
   }
 
   /**
