@@ -34,6 +34,8 @@
     "make:mac": "npm run build && electron-forge make --platform=darwin",
     "make:mac:arm64": "npm run build && electron-forge make --platform=darwin --arch=arm64",
     "make:mac:x64": "npm run build && electron-forge make --platform=darwin --arch=x64",
+    "make:linux": "npm run build && electron-forge make --platform=linux",
+    "make:linux:x64": "npm run build && electron-forge make --platform=linux --arch=x64",
     "installer": "npm run package && build-installer.bat",
     "installer:check": "where iscc || echo Inno Setup not installed. Please install from https://jrsoftware.org/isdl.php",
     "publish": "electron-forge publish",
@@ -242,11 +244,20 @@
         },
         {
           "name": "@electron-forge/maker-deb",
-          "config": {}
+          "config": {
+            "options": {
+              "maintainer": "ChainlessChain Team",
+              "homepage": "https://github.com/chainlesschain"
+            }
+          }
         },
         {
           "name": "@electron-forge/maker-rpm",
-          "config": {}
+          "config": {
+            "options": {
+              "homepage": "https://github.com/chainlesschain"
+            }
+          }
         }
       ]
     }
