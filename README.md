@@ -2,9 +2,14 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.21.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.20.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-99%25-brightgreen.svg)
+![GitHub release](https://img.shields.io/github/v/release/chainlesschain/chainlesschain?color=blue)
+![GitHub downloads](https://img.shields.io/github/downloads/chainlesschain/chainlesschain/total?color=brightgreen)
+![GitHub stars](https://img.shields.io/github/stars/chainlesschain/chainlesschain?style=social)
+![GitHub forks](https://img.shields.io/github/forks/chainlesschain/chainlesschain?style=social)
+
 ![Phase 1](https://img.shields.io/badge/Phase%201-100%25-brightgreen.svg)
 ![Phase 2](https://img.shields.io/badge/Phase%202-100%25-brightgreen.svg)
 ![Phase 3](https://img.shields.io/badge/Phase%203-100%25-brightgreen.svg)
