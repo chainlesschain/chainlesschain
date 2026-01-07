@@ -210,13 +210,14 @@ class KnowledgeSyncHandler extends EventEmitter {
         throw new Error('搜索关键词不能为空');
       }
 
-      // 全文搜索
+      // 全文搜索 - JOIN notes表获取folder_id等字段
       const searchQuery = `
         SELECT
-          id, title, folder_id, tags, created_at, updated_at,
-          LENGTH(content) as content_length,
+          n.id, n.title, n.folder_id, n.tags, n.created_at, n.updated_at,
+          LENGTH(n.content) as content_length,
           snippet(notes_fts, -1, '<mark>', '</mark>', '...', 64) as snippet
         FROM notes_fts
+        JOIN notes n ON notes_fts.id = n.id
         WHERE notes_fts MATCH ?
         ORDER BY rank
         LIMIT ? OFFSET ?

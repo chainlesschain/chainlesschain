@@ -651,7 +651,10 @@ const builtinSkills = [
 // 导入额外的技能定义 V4
 const additionalSkillsV4 = require('./additional-skills-v4');
 
+// 导入职业专用技能（医生、律师、教师、研究员）
+const professionalSkills = require('./professional-skills');
+
 // 合并所有技能
-const allSkills = [...builtinSkills, ...additionalSkills, ...additionalSkillsV3, ...additionalSkillsV4];
+const allSkills = [...builtinSkills, ...additionalSkills, ...additionalSkillsV3, ...additionalSkillsV4, ...professionalSkills];
 
 module.exports = allSkills;
