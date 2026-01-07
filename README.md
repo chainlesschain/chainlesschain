@@ -133,9 +133,30 @@
 
 ### Windows用户
 
-Windows版本正在开发中，敬请期待！
+#### 下载地址
 
-您也可以从源码构建：
+- **GitHub Releases** (国际用户): [https://github.com/chainlesschain/chainlesschain/releases/latest](https://github.com/chainlesschain/chainlesschain/releases/latest)
+- **Gitee Releases** (国内加速): [https://gitee.com/chainlesschaincn/chainlesschain/releases](https://gitee.com/chainlesschaincn/chainlesschain/releases)
+
+#### 下载版本
+
+- **Windows x64 (64位系统)**: 下载 `ChainlessChain-win32-x64-*.zip` (约166MB)
+
+#### 安装步骤（便携版，无需安装）
+
+1. 下载zip文件
+2. 解压到任意文件夹（推荐解压到 `C:\Program Files\ChainlessChain\`）
+3. 双击运行 `chainlesschain.exe`
+4. 无需管理员权限
+
+#### 注意事项
+
+- **系统要求**: Windows 10/11 (64位)
+- **便携版本**: 可以解压到U盘随身携带
+- **数据存储**: 数据库文件位于应用目录下的 `data` 文件夹
+- **防火墙**: 首次运行可能需要允许网络访问（用于P2P通信）
+
+#### 从源码构建（可选）
 
 ```bash
 git clone https://github.com/chainlesschain/chainlesschain.git
