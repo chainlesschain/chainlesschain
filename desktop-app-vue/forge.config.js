@@ -175,7 +175,7 @@ module.exports = {
   packagerConfig: {
     name: 'ChainlessChain',
     executableName: 'chainlesschain',
-    icon: path.join(__dirname, 'build', 'icon'),
+    icon: path.join(__dirname, 'assets', 'icon'),
     asar: true,
     extraResource: extraResources,
 
@@ -238,6 +238,15 @@ module.exports = {
       name: '@electron-forge/maker-zip',
       platforms: ['win32', 'darwin', 'linux']
     },
+    {
+      name: '@electron-forge/maker-dmg',
+      config: {
+        name: 'ChainlessChain',
+        icon: path.join(__dirname, 'assets', 'icon.icns'),
+        format: 'ULFO',
+        overwrite: true
+      }
+    },
     // Squirrel installer - temporarily disabled due to path issues
     // Re-enable after investigating the nuspec generation error
     /*
@@ -293,7 +302,11 @@ module.exports = {
 
   hooks: {
     prePackage: async (config, platform, arch) => {
-      if (missingResources.length > 0) {
+      // Mac打包：使用Docker，不需要所有后端资源
+      if (platform === 'darwin') {
+        console.log('[Packaging] Mac build: Backend services will use Docker');
+        console.log('[Packaging] Skipping backend resources check');
+      } else if (missingResources.length > 0) {
         const missingList = missingResources.map(item => `- ${item}`).join('\n');
         throw new Error(
           `Missing packaging resources:\n${missingList}\n\nFollow packaging/BUILD_INSTRUCTIONS.md before packaging.`
