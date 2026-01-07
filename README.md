@@ -170,6 +170,78 @@ npm install
 npm run make:win
 ```
 
+### Linux用户
+
+#### 下载地址
+
+- **GitHub Releases** (国际用户): [https://github.com/chainlesschain/chainlesschain/releases/latest](https://github.com/chainlesschain/chainlesschain/releases/latest)
+- **Gitee Releases** (国内加速): [https://gitee.com/chainlesschaincn/chainlesschain/releases](https://gitee.com/chainlesschaincn/chainlesschain/releases)
+
+#### 下载版本
+
+- **Linux x64 (64位系统)**: 下载 `ChainlessChain-linux-x64-*.zip` (约145MB)
+
+#### 支持发行版
+
+- Ubuntu 20.04+ / Debian 11+
+- Fedora 35+ / CentOS 8+
+- Arch Linux / Manjaro
+- 其他主流Linux发行版
+
+#### 安装步骤（便携版，无需安装）
+
+1. 下载zip文件
+2. 解压到任意目录：
+   ```bash
+   unzip ChainlessChain-linux-x64-*.zip
+   cd ChainlessChain-linux-x64
+   ```
+3. 赋予执行权限：
+   ```bash
+   chmod +x chainlesschain
+   ```
+4. 运行应用：
+   ```bash
+   ./chainlesschain
+   ```
+
+#### 可选：创建桌面快捷方式
+
+```bash
+# 复制到/opt（可选）
+sudo cp -r ChainlessChain-linux-x64 /opt/chainlesschain
+
+# 创建符号链接
+sudo ln -s /opt/chainlesschain/chainlesschain /usr/local/bin/chainlesschain
+
+# 创建.desktop文件
+cat > ~/.local/share/applications/chainlesschain.desktop <<'EOF'
+[Desktop Entry]
+Name=ChainlessChain
+Comment=去中心化个人AI管理系统
+Exec=/opt/chainlesschain/chainlesschain
+Icon=/opt/chainlesschain/resources/app/build/icon.png
+Terminal=false
+Type=Application
+Categories=Utility;Office;
+EOF
+```
+
+#### 依赖项检查
+
+大多数现代Linux发行版已包含所需库。如遇到问题，可能需要安装：
+
+```bash
+# Ubuntu/Debian
+sudo apt install libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6
+
+# Fedora/CentOS
+sudo dnf install gtk3 libnotify nss libXScrnSaver libXtst
+
+# Arch Linux
+sudo pacman -S gtk3 libnotify nss libxss libxtst
+```
+
 ### 从源码运行（开发者）
 
 如果您想从源码运行或参与开发，请查看下方的 [🚀 快速开始](#🚀-快速开始) 部分。
