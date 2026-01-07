@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.21.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.20.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-99%25-brightgreen.svg)
 ![Phase 1](https://img.shields.io/badge/Phase%201-100%25-brightgreen.svg)
@@ -23,14 +23,19 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.21.0 (2026-01-06)
+## ⭐ Current Version: v0.20.0 (2026-01-07)
 
 ### Latest Updates
-- ✅ **Deep Performance Optimization System Complete** - Added 14,000+ lines of optimization code, 18 utility classes, 4 specialized components, comprehensive performance improvements ⭐LATEST
-- ✅ **Smart Image Optimization System** - WebP/AVIF format detection, responsive loading, progressive loading, LQIP placeholders, CDN support, network-aware loading ⭐LATEST
-- ✅ **Real-time Performance Monitoring System** - Core Web Vitals monitoring (LCP/FID/CLS), performance budgets, FPS monitoring, memory monitoring, performance alerts ⭐LATEST
-- ✅ **Frontend Deep Optimization** - Code splitting, component lazy loading, virtual scrolling, intelligent prefetch, request batching, optimistic updates, data compression ⭐LATEST
-- ✅ **Performance Toolkit** - Incremental sync, memory optimization, animation control, resource hints, performance benchmarking, accessibility enhancements ⭐LATEST
+- ✅ **Mobile Data Sync** - Implemented mobile-PC data synchronization for seamless cross-device collaboration ⭐LATEST
+- ✅ **Full Linux Platform Support** - Added Linux ZIP portable version and DEB package support, covering mainstream distributions ⭐LATEST
+- ✅ **Multi-Platform Packaging Optimization** - Improved packaging workflow for macOS (ARM64/x64), Windows, and Linux ⭐LATEST
+- ✅ **Enhanced Word Document Processing** - Improved Word document preview interface and export functionality, fixed DOM API issues ⭐LATEST
+- ✅ **Complete Installation Documentation** - Detailed installation guides for Mac, Windows, and Linux platforms ⭐LATEST
+- ✅ **Deep Performance Optimization System Complete** - Added 14,000+ lines of optimization code, 18 utility classes, 4 specialized components, comprehensive performance improvements
+- ✅ **Smart Image Optimization System** - WebP/AVIF format detection, responsive loading, progressive loading, LQIP placeholders, CDN support, network-aware loading
+- ✅ **Real-time Performance Monitoring System** - Core Web Vitals monitoring (LCP/FID/CLS), performance budgets, FPS monitoring, memory monitoring, performance alerts
+- ✅ **Frontend Deep Optimization** - Code splitting, component lazy loading, virtual scrolling, intelligent prefetch, request batching, optimistic updates, data compression
+- ✅ **Performance Toolkit** - Incremental sync, memory optimization, animation control, resource hints, performance benchmarking, accessibility enhancements
 - ✅ **Testing Framework Upgrade** - Fixed test environment configuration and fully migrated to Vitest API, 94 test files, 900+ test cases
 - ✅ **Performance Optimization Integration** - Integrated performance optimization components: memory downgrade, disk check, concurrency control, file recovery, improved overall system performance
 - ✅ **Core Module Tests** - Added unit tests for 4 core modules: Git, file permissions, contract engine, bridge management
@@ -48,7 +53,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - ✅ **Browser Extension Enhancement** - Automated testing framework, user/developer/testing guides, test report generation
 - ✅ **Plugin System Enhancement** - Integrated with skill-tool system, supports dynamic loading and hot reload
 - ✅ **Voice Recognition System Complete** - Phase 3 advanced features, audio enhancement, multi-language detection, subtitle generation
-- ✅ **19 AI Specialized Engines** - Code generation/review, document processing (Word/PDF/Excel/PPT), image/video processing, web development, data analysis, and more
+- ✅ **16 AI Specialized Engines** - Code generation/review, document processing (Word/PDF/Excel/PPT), image/video processing, web development, data analysis, and more
 - ✅ **Complete Backend Service System** - Project Service (Spring Boot, 48 APIs) + AI Service (FastAPI, 38 APIs) + Community Forum (63 APIs)
 - ✅ **145 Vue Components** - 14 pages, 54 project components, trading components (with escrow UI), social components, editors, skill-tool components, enterprise edition components
 
@@ -79,15 +84,15 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🔐 **Military-Grade Security**: SQLCipher AES-256 encryption + USB Key hardware keys + Signal protocol E2E encryption ✅
 - 🌐 **Fully Decentralized**: P2P network (libp2p 3.1.2) + DHT + local data storage, no central servers needed ✅
 - 🧠 **AI Native**: Support for 14+ cloud LLM providers + Ollama local deployment + RAG-enhanced retrieval ✅
-- 🎯 **19 AI Engines**: Code/document/spreadsheet/PPT/PDF/image/video specialized processing, covering all scenarios ✅
+- 🎯 **16 AI Engines**: Code/document/spreadsheet/PPT/PDF/image/video specialized processing, covering all scenarios ✅
 - 📋 **Template System**: 178 AI templates + 32 categories + smart engine allocation + 100% configuration coverage ✅ ⭐NEW
 - ⛓️ **Blockchain Integration**: 6 smart contracts + HD wallet system + MetaMask/WalletConnect + Hardhat development environment ✅
 - 🏢 **Enterprise Edition (Decentralized Organizations)**: Multi-identity architecture + RBAC permissions + organization management + data isolation ✅ ⭐NEW
 - 🔧 **Skill & Tool System**: 115 skills + 300 tools + 10 categories + dynamic management ✅ ⭐Completed
 - 🔌 **Plugin System**: Dynamic loading + hot reload + lifecycle management + API extension ✅
 - 🎤 **Voice Recognition**: Real-time transcription + audio enhancement + multi-language detection + subtitle generation ✅
-- 📱 **Cross-Device Collaboration**: Git sync + multi-device P2P communication + offline message queue ✅
-- 🔓 **Open Source & Self-Hosted**: 210,000+ lines of code, 243 Vue components, 23 pages, fully transparent and auditable ✅ ⭐Updated
+- 📱 **Cross-Device Collaboration**: Git sync + mobile-PC data sync + multi-device P2P communication + offline message queue ✅ ⭐Updated
+- 🔓 **Open Source & Self-Hosted**: 218,000+ lines of code, 243 Vue components, 23 pages, fully transparent and auditable ✅ ⭐Updated
 - ⚡ **P2 Optimization System**: Intent fusion, knowledge distillation, streaming response, 40% AI engine performance boost ✅ ⭐NEW
 - 🚀 **Deep Performance Optimization**: 18 optimization tools + 4 specialized components + Core Web Vitals monitoring + smart image loading ✅ ⭐NEW
 - 🎛️ **Advanced Features Control Panel**: Real-time monitoring, configuration management, 20+ IPC channels, native menu integration ✅ ⭐NEW
@@ -96,6 +101,171 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🔄 **Database Sync**: SQLite ↔ PostgreSQL bidirectional sync, soft delete + conflict resolution ✅
 - 🌐 **Browser Extension**: Web annotation + content extraction + AI assistance + automated testing ✅
 - 🧪 **Complete Testing System**: Playwright E2E + Vitest unit tests + 94 test files + 900+ test cases ✅
+
+## 📥 Download & Installation
+
+### Mac Users
+
+#### Download Links
+
+- **GitHub Releases** (International): [https://github.com/chainlesschain/chainlesschain/releases/latest](https://github.com/chainlesschain/chainlesschain/releases/latest)
+- **Gitee Releases** (China Mirror): [https://gitee.com/chainlesschaincn/chainlesschain/releases](https://gitee.com/chainlesschaincn/chainlesschain/releases)
+
+#### Choose Your Version
+
+- **Intel Chip (x64)**: Download `ChainlessChain-darwin-x64-0.20.0.zip` (~1.4GB)
+- **Apple Silicon (M1/M2/M3)**: ARM64 version in development, please use x64 version with Rosetta
+
+#### Installation Steps
+
+1. Download `ChainlessChain-darwin-x64-0.20.0.zip`
+2. Extract the file (double-click the zip file)
+3. Drag `ChainlessChain.app` to Applications folder
+4. Double-click to run (see notes below for first run)
+
+#### First Run Notes
+
+**If you see "Cannot open because developer cannot be verified"**:
+
+**Method 1** (Recommended):
+- Right-click on `ChainlessChain.app`
+- Select "Open"
+- Click "Open" in the dialog
+
+**Method 2**:
+- Open "System Preferences" → "Security & Privacy"
+- In the "General" tab, click "Open Anyway" button at the bottom
+
+### Windows Users
+
+#### Download Links
+
+- **GitHub Releases** (International): [https://github.com/chainlesschain/chainlesschain/releases/latest](https://github.com/chainlesschain/chainlesschain/releases/latest)
+- **Gitee Releases** (China Mirror): [https://gitee.com/chainlesschaincn/chainlesschain/releases](https://gitee.com/chainlesschaincn/chainlesschain/releases)
+
+#### Download Version
+
+- **Windows x64 (64-bit)**: Download `ChainlessChain-win32-x64-0.20.0.zip` (~1.4GB)
+
+#### Installation Steps (Portable Version)
+
+1. Download `ChainlessChain-win32-x64-0.20.0.zip`
+2. Extract to any folder (recommended: `C:\Program Files\ChainlessChain\`)
+3. Double-click `ChainlessChain.exe` to run
+4. No administrator privileges required
+
+#### Notes
+
+- **System Requirements**: Windows 10/11 (64-bit)
+- **Portable Version**: Can be extracted to USB drive for portability
+- **Data Storage**: Database files located in `data` folder within application directory
+- **Firewall**: May need to allow network access on first run (for P2P communication)
+
+#### Build from Source (Optional)
+
+```bash
+git clone https://github.com/chainlesschain/chainlesschain.git
+cd chainlesschain/desktop-app-vue
+npm install
+npm run make:win
+```
+
+### Linux Users
+
+#### Download Links
+
+- **GitHub Releases** (International): [https://github.com/chainlesschain/chainlesschain/releases/latest](https://github.com/chainlesschain/chainlesschain/releases/latest)
+- **Gitee Releases** (China Mirror): [https://gitee.com/chainlesschaincn/chainlesschain/releases](https://gitee.com/chainlesschaincn/chainlesschain/releases)
+
+#### Download Version
+
+- **Linux x64 ZIP Portable**: Download `ChainlessChain-linux-x64-0.20.0.zip` (~1.4GB)
+- **Linux x64 DEB Package**: Download `chainlesschain-desktop-vue_0.20.0_amd64.deb` (~923MB) ⭐Recommended
+
+#### Supported Distributions
+
+- Ubuntu 20.04+ / Debian 11+
+- Fedora 35+ / CentOS 8+
+- Arch Linux / Manjaro
+- Other mainstream Linux distributions
+
+#### Installation Steps
+
+**Method 1: DEB Package (Recommended for Ubuntu/Debian)**
+
+1. Download the deb file
+2. Install:
+   ```bash
+   sudo dpkg -i chainlesschain-desktop-vue_0.20.0_amd64.deb
+   ```
+3. If dependency issues occur:
+   ```bash
+   sudo apt-get install -f
+   ```
+4. Launch from application menu or run:
+   ```bash
+   chainlesschain-desktop-vue
+   ```
+
+**Method 2: ZIP Portable (All Distributions)**
+
+1. Download the zip file
+2. Extract to any directory:
+   ```bash
+   unzip ChainlessChain-linux-x64-0.20.0.zip
+   cd ChainlessChain-linux-x64
+   ```
+3. Grant execute permission:
+   ```bash
+   chmod +x chainlesschain
+   ```
+4. Run the application:
+   ```bash
+   ./chainlesschain
+   ```
+
+#### Optional: Create Desktop Shortcut
+
+```bash
+# Copy to /opt (optional)
+sudo cp -r ChainlessChain-linux-x64 /opt/chainlesschain
+
+# Create symbolic link
+sudo ln -s /opt/chainlesschain/chainlesschain /usr/local/bin/chainlesschain
+
+# Create .desktop file
+cat > ~/.local/share/applications/chainlesschain.desktop <<'EOF'
+[Desktop Entry]
+Name=ChainlessChain
+Comment=Decentralized Personal AI Management System
+Exec=/opt/chainlesschain/chainlesschain
+Icon=/opt/chainlesschain/resources/app/build/icon.png
+Terminal=false
+Type=Application
+Categories=Utility;Office;
+EOF
+```
+
+#### Dependency Check
+
+Most modern Linux distributions include required libraries. If issues occur, install:
+
+```bash
+# Ubuntu/Debian
+sudo apt install libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6
+
+# Fedora/CentOS
+sudo dnf install gtk3 libnotify nss libXScrnSaver libXtst
+
+# Arch Linux
+sudo pacman -S gtk3 libnotify nss libxss libxtst
+```
+
+### Build from Source (Developers)
+
+If you want to run from source or contribute to development, see the [🚀 Quick Start](#🚀-quick-start) section below.
+
+---
 
 ## Four Core Functions
 
@@ -127,7 +297,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - ✅ Visual conflict resolution UI
 - ✅ Git sync scheduler
 
-**Deep Performance Optimization** (v0.21.0 NEW):
+**Deep Performance Optimization** (v0.20.0):
 - ✅ **Smart Image Optimization** (560 lines):
   - WebP/AVIF format auto-detection and conversion
   - Responsive image loading (srcset/sizes)
