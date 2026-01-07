@@ -97,6 +97,59 @@
 - 🌐 **浏览器扩展**: 网页标注 + 内容提取 + AI辅助 + 自动化测试 ✅
 - 🧪 **完整测试体系**: Playwright E2E + Vitest单元测试 + 94个测试文件 + 900+测试用例 ✅
 
+## 📥 下载安装
+
+### Mac用户
+
+#### 下载地址
+
+- **GitHub Releases** (国际用户): [https://github.com/chainlesschain/chainlesschain/releases/latest](https://github.com/chainlesschain/chainlesschain/releases/latest)
+- **Gitee Releases** (国内加速): [https://gitee.com/chainlesschaincn/chainlesschain/releases](https://gitee.com/chainlesschaincn/chainlesschain/releases)
+
+#### 选择对应版本
+
+- **Apple Silicon (M1/M2/M3芯片)**: 下载 `ChainlessChain-darwin-arm64-*.zip` (约142MB)
+- **Intel芯片**: 下载 `ChainlessChain-darwin-x64-*.zip` (约148MB)
+
+#### 安装步骤
+
+1. 下载对应芯片架构的zip文件
+2. 解压缩
+3. 将 `ChainlessChain.app` 拖到"应用程序"文件夹
+4. 双击运行
+
+#### 首次运行说明
+
+**如果遇到"无法打开，因为无法验证开发者"提示**：
+
+**方法1**（推荐）：
+- 右键点击 `ChainlessChain.app`
+- 选择"打开"
+- 在弹出的对话框中点击"打开"
+
+**方法2**：
+- 打开"系统偏好设置" → "安全性与隐私"
+- 在"通用"标签页底部，点击"仍要打开"按钮
+
+### Windows用户
+
+Windows版本正在开发中，敬请期待！
+
+您也可以从源码构建：
+
+```bash
+git clone https://github.com/chainlesschain/chainlesschain.git
+cd chainlesschain/desktop-app-vue
+npm install
+npm run make:win
+```
+
+### 从源码运行（开发者）
+
+如果您想从源码运行或参与开发，请查看下方的 [🚀 快速开始](#🚀-快速开始) 部分。
+
+---
+
 ## 三大核心功能
 
 ### 1️⃣ 知识库管理 (95% 完成) ✅
