@@ -270,6 +270,7 @@ module.exports = {
       name: '@electron-forge/maker-deb',
       config: {
         options: {
+          bin: 'chainlesschain',
           maintainer: 'ChainlessChain Team',
           homepage: 'https://chainlesschain.com'
         }
@@ -279,6 +280,7 @@ module.exports = {
       name: '@electron-forge/maker-rpm',
       config: {
         options: {
+          bin: 'chainlesschain',
           homepage: 'https://chainlesschain.com'
         }
       }

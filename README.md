@@ -182,6 +182,8 @@ npm run make:win
 - **GitHub Releases** (国际用户): [https://github.com/chainlesschain/chainlesschain/releases/latest](https://github.com/chainlesschain/chainlesschain/releases/latest)
 - **Gitee Releases** (国内加速): [https://gitee.com/chainlesschaincn/chainlesschain/releases](https://gitee.com/chainlesschaincn/chainlesschain/releases)
 
+> ℹ️ 每次发布正式版本后，GitHub Actions 工作流 `release-linux-packages.yml` 会自动构建并上传最新的 Linux ZIP/DEB/RPM 包到 Release 页面，无需再手动同步制品。
+
 #### 下载版本
 
 - **Linux x64 ZIP便携版**: 下载 `ChainlessChain-linux-x64-0.20.0.zip` (约1.4GB)

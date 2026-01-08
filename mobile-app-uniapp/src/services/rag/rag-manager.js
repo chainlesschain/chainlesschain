@@ -138,14 +138,7 @@ class RAGManager {
     console.log('[RAGManager] 开始构建向量索引...')
 
     try {
-      // 获取所有知识库项
-      const items = await database.selectSql(`
-        SELECT id, title, content, type, tags, created_at
-        FROM notes
-        WHERE deleted = 0
-        ORDER BY updated_at DESC
-        LIMIT 10000
-      `)
+      const items = await this._fetchKnowledgeItemsForIndex()
 
       if (!items || items.length === 0) {
         console.log('[RAGManager] 知识库为空')
@@ -336,28 +329,25 @@ class RAGManager {
 
     for (const result of results) {
       try {
-        // 从数据库获取完整文档
-        const docs = await database.selectSql(`
-          SELECT id, title, content, type, tags, created_at, updated_at
-          FROM notes
-          WHERE id = ?
-        `, [result.id])
-        const doc = docs[0]
-
-        if (doc) {
-          enriched.push({
-            id: doc.id,
-            title: doc.title,
-            content: doc.content,
-            type: doc.type,
-            tags: doc.tags,
-            created_at: doc.created_at,
-            updated_at: doc.updated_at,
-            similarity: result.similarity,
-            rerank_score: result.rerank_score,
-            match_count: result.match_count
-          })
+        const doc = await database.getKnowledgeItem(result.id)
+        if (!doc) {
+          continue
         }
+
+        const tags = await database.getKnowledgeTags(result.id)
+
+        enriched.push({
+          id: doc.id,
+          title: doc.title,
+          content: doc.content,
+          type: doc.type,
+          tags,
+          created_at: doc.created_at,
+          updated_at: doc.updated_at,
+          similarity: result.similarity,
+          rerank_score: result.rerank_score,
+          match_count: result.match_count
+        })
       } catch (error) {
         console.error(`[RAGManager] 补充文档失败: ${result.id}`, error)
       }
@@ -454,6 +444,25 @@ class RAGManager {
   clearCache() {
     this.embeddingsService.clearCache()
     console.log('[RAGManager] ✅ 缓存已清除')
+  }
+
+  /**
+   * 获取构建索引所需的知识项（包含标签）
+   * @private
+   */
+  async _fetchKnowledgeItemsForIndex() {
+    const items = await database.getAllKnowledge()
+    if (!items || items.length === 0) {
+      return []
+    }
+
+    return Promise.all(items.map(async item => {
+      const tags = await database.getKnowledgeTags(item.id)
+      return {
+        ...item,
+        tags
+      }
+    }))
   }
 }
 

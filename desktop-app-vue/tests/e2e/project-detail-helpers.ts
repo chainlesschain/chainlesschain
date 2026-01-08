@@ -435,6 +435,121 @@ export async function openFileManageModal(window: Page): Promise<boolean> {
 }
 
 /**
+ * 切换文件管理Modal的Tab
+ */
+export async function switchFileManageTab(window: Page, tabLabel: string): Promise<boolean> {
+  try {
+    const switched = await window.evaluate((label) => {
+      const tabs = Array.from(document.querySelectorAll('.ant-tabs-tab'));
+      const target = tabs.find(tab => tab.textContent?.trim().includes(label));
+      if (target) {
+        (target as HTMLElement).click();
+        return true;
+      }
+      return false;
+    }, tabLabel);
+
+    if (!switched) {
+      console.warn(`[Helper] File manage tab not found: ${tabLabel}`);
+      return false;
+    }
+
+    await window.waitForTimeout(400);
+    return true;
+  } catch (error) {
+    console.error('[Helper] Failed to switch file manage tab:', error);
+    return false;
+  }
+}
+
+/**
+ * 获取文件管理Modal中当前显示的文件名
+ */
+export async function getFileManageModalFileNames(window: Page, prefixFilter: string = ''): Promise<string[]> {
+  try {
+    return await window.evaluate((prefix) => {
+      const nodes = Array.from(document.querySelectorAll('.file-card .file-name'));
+      return nodes
+        .map(node => node.textContent?.trim() || '')
+        .filter(name => !prefix || name.includes(prefix));
+    }, prefixFilter);
+  } catch (error) {
+    console.error('[Helper] Failed to read file manage modal file names:', error);
+    return [];
+  }
+}
+
+/**
+ * 在文件管理Modal中点击文件卡片
+ */
+export async function clickFileCardInModal(window: Page, fileName: string): Promise<boolean> {
+  try {
+    const clicked = await window.evaluate((targetName) => {
+      const cards = Array.from(document.querySelectorAll('.file-card'));
+      const card = cards.find(item => item.textContent?.trim().includes(targetName));
+      if (card) {
+        (card as HTMLElement).click();
+        return true;
+      }
+      return false;
+    }, fileName);
+
+    if (!clicked) {
+      console.warn(`[Helper] File card not found in modal: ${fileName}`);
+      return false;
+    }
+
+    await window.waitForTimeout(500);
+    return true;
+  } catch (error) {
+    console.error('[Helper] Failed to click file card:', error);
+    return false;
+  }
+}
+
+/**
+ * 触发文件管理Modal中文件卡片的操作菜单
+ */
+export async function triggerFileCardAction(window: Page, fileName: string, actionLabel: string): Promise<boolean> {
+  try {
+    const actionOpened = await window.evaluate((targetName) => {
+      const cards = Array.from(document.querySelectorAll('.file-card'));
+      const card = cards.find(item => item.textContent?.trim().includes(targetName));
+      if (!card) {
+        return false;
+      }
+
+      const actionButton = card.querySelector('.file-actions button');
+      if (actionButton) {
+        (actionButton as HTMLElement).click();
+        return true;
+      }
+      return false;
+    }, fileName);
+
+    if (!actionOpened) {
+      console.warn(`[Helper] Failed to open actions for file: ${fileName}`);
+      return false;
+    }
+
+    await window.waitForSelector('.ant-dropdown-menu-item', { timeout: 2000 }).catch(() => null);
+    const menuItem = await window.$(`.ant-dropdown-menu-item:has-text("${actionLabel}")`);
+
+    if (!menuItem) {
+      console.warn(`[Helper] Action menu item not found: ${actionLabel}`);
+      return false;
+    }
+
+    await menuItem.click({ force: true });
+    await window.waitForTimeout(500);
+    return true;
+  } catch (error) {
+    console.error('[Helper] Failed to trigger file card action:', error);
+    return false;
+  }
+}
+
+/**
  * 打开分享对话框
  */
 export async function openShareModal(window: Page): Promise<boolean> {
