@@ -888,7 +888,7 @@ class DatabaseManager {
         description TEXT,
         icon TEXT,
         cover_image TEXT,
-        category TEXT NOT NULL CHECK(category IN ('writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'research', 'marketing', 'education', 'lifestyle', 'travel', 'video', 'social-media', 'creative-writing', 'code-project', 'data-science', 'tech-docs', 'ecommerce', 'marketing-pro', 'legal', 'learning', 'health', 'time-management', 'productivity', 'finance', 'photography', 'music', 'gaming', 'cooking', 'career')),
+        category TEXT NOT NULL CHECK(category IN ('medical', 'legal', 'education', 'research', 'writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'marketing', 'lifestyle', 'travel', 'video', 'social-media', 'creative-writing', 'code-project', 'data-science', 'tech-docs', 'ecommerce', 'marketing-pro', 'learning', 'health', 'time-management', 'productivity', 'finance', 'photography', 'music', 'gaming', 'cooking', 'career')),
         subcategory TEXT,
         tags TEXT,
         project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code')),
@@ -2296,7 +2296,12 @@ class DatabaseManager {
 
           -- 分类信息
           category TEXT NOT NULL CHECK(category IN (
-            -- 原有分类
+            -- 职业专用分类 (v0.20.0)
+            'medical',      -- 医疗
+            'legal',        -- 法律
+            'education',    -- 教育
+            'research',     -- 研究
+            -- 通用分类
             'writing',      -- 写作
             'ppt',          -- PPT演示
             'excel',        -- Excel数据
@@ -2304,9 +2309,7 @@ class DatabaseManager {
             'design',       -- 设计
             'podcast',      -- 播客
             'resume',       -- 简历
-            'research',     -- 研究
             'marketing',    -- 营销
-            'education',    -- 教育
             'lifestyle',    -- 生活
             'travel',       -- 旅游
             -- 新增分类 (v0.19.0)
@@ -2318,7 +2321,6 @@ class DatabaseManager {
             'tech-docs',        -- 技术文档
             'ecommerce',        -- 电商运营
             'marketing-pro',    -- 营销推广
-            'legal',            -- 法律文档
             'learning',         -- 学习成长
             'health',           -- 健康生活
             'productivity',     -- 时间管理

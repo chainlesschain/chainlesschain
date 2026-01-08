@@ -1,0 +1,70 @@
+{
+  "id": "tpl_legal_agency_305",
+  "name": "agency-agreement",
+  "display_name": "委托代理协议",
+  "description": "法律服务委托合同",
+  "icon": "⚖️",
+  "category": "legal",
+  "subcategory": "合同协议",
+  "tags": [
+    "合同协议"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写委托代理协议：\n\n委托人：{{client}}\n受托人：{{agent}}\n\n委托事项：\n{{mandate}}\n\n权利义务：\n{{rightsObligations}}\n\n费用：\n{{fees}}",
+  "variables_schema": [
+    {
+      "name": "client",
+      "type": "textarea",
+      "label": "client",
+      "required": true
+    },
+    {
+      "name": "agent",
+      "type": "textarea",
+      "label": "agent",
+      "required": true
+    },
+    {
+      "name": "mandate",
+      "type": "textarea",
+      "label": "mandate",
+      "required": true
+    },
+    {
+      "name": "rightsObligations",
+      "type": "textarea",
+      "label": "rightsObligations",
+      "required": true
+    },
+    {
+      "name": "fees",
+      "type": "textarea",
+      "label": "fees",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "委托代理协议",
+    "children": [
+      {
+        "type": "file",
+        "name": "委托代理协议.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

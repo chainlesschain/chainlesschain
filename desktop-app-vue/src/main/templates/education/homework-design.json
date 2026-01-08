@@ -1,0 +1,70 @@
+{
+  "id": "tpl_education_homework_102",
+  "name": "homework-design",
+  "display_name": "作业设计方案",
+  "description": "分层作业设计，满足不同学生需求",
+  "icon": "📚",
+  "category": "education",
+  "subcategory": "作业设计",
+  "tags": [
+    "作业设计"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我设计分层作业：\n\n学科：{{subject}}\n年级：{{grade}}\n知识点：{{knowledgePoints}}\n\n基础层作业：\n{{basicLevel}}\n\n提高层作业：\n{{advancedLevel}}\n\n请设计完整的分层作业，包括：\n1. 基础巩固题\n2. 能力提升题\n3. 拓展探究题\n4. 评价标准",
+  "variables_schema": [
+    {
+      "name": "subject",
+      "type": "textarea",
+      "label": "subject",
+      "required": true
+    },
+    {
+      "name": "grade",
+      "type": "textarea",
+      "label": "grade",
+      "required": true
+    },
+    {
+      "name": "knowledgePoints",
+      "type": "textarea",
+      "label": "knowledgePoints",
+      "required": true
+    },
+    {
+      "name": "basicLevel",
+      "type": "textarea",
+      "label": "basicLevel",
+      "required": true
+    },
+    {
+      "name": "advancedLevel",
+      "type": "textarea",
+      "label": "advancedLevel",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "作业设计方案",
+    "children": [
+      {
+        "type": "file",
+        "name": "作业设计方案.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

@@ -1,0 +1,64 @@
+{
+  "id": "tpl_legal_compliance_306",
+  "name": "compliance-review",
+  "display_name": "合规审查报告",
+  "description": "企业合规性审查和建议",
+  "icon": "⚖️",
+  "category": "legal",
+  "subcategory": "合规审查",
+  "tags": [
+    "合规审查"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写合规审查报告：\n\n企业：{{company}}\n审查范围：{{scope}}\n\n审查发现：\n{{findings}}\n\n合规建议：\n{{recommendations}}",
+  "variables_schema": [
+    {
+      "name": "company",
+      "type": "textarea",
+      "label": "company",
+      "required": true
+    },
+    {
+      "name": "scope",
+      "type": "textarea",
+      "label": "scope",
+      "required": true
+    },
+    {
+      "name": "findings",
+      "type": "textarea",
+      "label": "findings",
+      "required": true
+    },
+    {
+      "name": "recommendations",
+      "type": "textarea",
+      "label": "recommendations",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "合规审查报告",
+    "children": [
+      {
+        "type": "file",
+        "name": "合规审查报告.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

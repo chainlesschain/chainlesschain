@@ -1,0 +1,64 @@
+{
+  "id": "tpl_education_class_activity_106",
+  "name": "class-activity",
+  "display_name": "班级活动方案",
+  "description": "主题班会和班级活动设计",
+  "icon": "📚",
+  "category": "education",
+  "subcategory": "班级管理",
+  "tags": [
+    "班级管理"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我设计班级活动：\n\n活动主题：{{activityTheme}}\n参与对象：{{participants}}\n\n活动目标：\n{{objectives}}\n\n活动流程：\n{{process}}",
+  "variables_schema": [
+    {
+      "name": "activityTheme",
+      "type": "textarea",
+      "label": "activityTheme",
+      "required": true
+    },
+    {
+      "name": "participants",
+      "type": "textarea",
+      "label": "participants",
+      "required": true
+    },
+    {
+      "name": "objectives",
+      "type": "textarea",
+      "label": "objectives",
+      "required": true
+    },
+    {
+      "name": "process",
+      "type": "textarea",
+      "label": "process",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "班级活动方案",
+    "children": [
+      {
+        "type": "file",
+        "name": "班级活动方案.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

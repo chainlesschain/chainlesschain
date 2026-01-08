@@ -1,0 +1,58 @@
+{
+  "id": "tpl_legal_evidence_304",
+  "name": "evidence-list",
+  "display_name": "证据清单整理",
+  "description": "诉讼证据目录和说明",
+  "icon": "⚖️",
+  "category": "legal",
+  "subcategory": "证据材料",
+  "tags": [
+    "证据材料"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我整理证据清单：\n\n案件：{{caseName}}\n\n证据材料：\n{{evidenceMaterials}}\n\n证明目的：\n{{provingPurpose}}",
+  "variables_schema": [
+    {
+      "name": "caseName",
+      "type": "textarea",
+      "label": "caseName",
+      "required": true
+    },
+    {
+      "name": "evidenceMaterials",
+      "type": "textarea",
+      "label": "evidenceMaterials",
+      "required": true
+    },
+    {
+      "name": "provingPurpose",
+      "type": "textarea",
+      "label": "provingPurpose",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "证据清单整理",
+    "children": [
+      {
+        "type": "file",
+        "name": "证据清单整理.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}
