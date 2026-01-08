@@ -120,21 +120,12 @@ export const useTemplateStore = defineStore('template', () => {
         return template
       }
 
-      // 检查是否为Prompt模板
-      const isPromptTemplate = templateId.startsWith('builtin-') || templateId.startsWith('custom-')
-
-      if (isPromptTemplate && electronAPI.promptTemplate && electronAPI.promptTemplate.get) {
-        // 使用Prompt模板API（方法名是get，不是getById）
-        const promptTemplate = await electronAPI.promptTemplate.get(templateId)
-        return promptTemplate
+      // 从服务器获取
+      const result = await electronAPI.template.getById(templateId)
+      if (result.success) {
+        return result.template
       } else {
-        // 使用常规项目模板API
-        const result = await electronAPI.template.getById(templateId)
-        if (result.success) {
-          return result.template
-        } else {
-          throw new Error(result.error || '获取模板失败')
-        }
+        throw new Error(result.error || '获取模板失败')
       }
     } catch (error) {
       console.error('[TemplateStore] 获取模板异常:', error)
