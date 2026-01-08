@@ -19,21 +19,21 @@
       "name": "title",
       "type": "text",
       "label": "文献标题",
-      "default": "",
+      "default": "示例标题",
       "required": true
     },
     {
       "name": "authors",
       "type": "text",
       "label": "作者",
-      "default": "",
+      "default": "示例内容",
       "required": true
     },
     {
       "name": "journal",
       "type": "text",
       "label": "发表期刊",
-      "default": "",
+      "default": "示例内容",
       "required": true
     },
     {
@@ -50,40 +50,58 @@
       "default": "临床试验",
       "required": true,
       "options": [
-        {"value": "临床试验", "label": "临床试验"},
-        {"value": "队列研究", "label": "队列研究"},
-        {"value": "病例对照研究", "label": "病例对照研究"},
-        {"value": "Meta分析", "label": "Meta分析"},
-        {"value": "综述", "label": "综述"},
-        {"value": "病例报告", "label": "病例报告"}
+        {
+          "value": "临床试验",
+          "label": "临床试验"
+        },
+        {
+          "value": "队列研究",
+          "label": "队列研究"
+        },
+        {
+          "value": "病例对照研究",
+          "label": "病例对照研究"
+        },
+        {
+          "value": "Meta分析",
+          "label": "Meta分析"
+        },
+        {
+          "value": "综述",
+          "label": "综述"
+        },
+        {
+          "value": "病例报告",
+          "label": "病例报告"
+        }
       ]
     },
     {
       "name": "objective",
       "type": "textarea",
       "label": "研究目的",
-      "default": "",
+      "default": "详细描述医疗相关内容",
       "required": true
     },
     {
       "name": "methods",
       "type": "textarea",
       "label": "研究方法",
-      "default": "",
+      "default": "详细描述医疗相关内容",
       "required": true
     },
     {
       "name": "findings",
       "type": "textarea",
       "label": "主要发现",
-      "default": "",
+      "default": "详细描述医疗相关内容",
       "required": true
     },
     {
       "name": "conclusions",
       "type": "textarea",
       "label": "结论",
-      "default": "",
+      "default": "详细描述医疗相关内容",
       "required": true
     },
     {

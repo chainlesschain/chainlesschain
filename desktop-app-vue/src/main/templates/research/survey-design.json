@@ -19,7 +19,8 @@
       "name": "surveyTopic",
       "label": "调查主题",
       "type": "string",
-      "required": true
+      "required": true,
+      "default": "记叙文写作"
     },
     {
       "name": "sampleSize",
@@ -32,8 +33,14 @@
   "file_structure": {
     "root": "问卷调查-{{surveyTopic}}",
     "files": [
-      {"path": "调查方案.docx", "type": "document"},
-      {"path": "问卷模板.docx", "type": "document"}
+      {
+        "path": "调查方案.docx",
+        "type": "document"
+      },
+      {
+        "path": "问卷模板.docx",
+        "type": "document"
+      }
     ]
   },
   "default_files": [],

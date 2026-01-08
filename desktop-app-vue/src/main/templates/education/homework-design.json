@@ -16,31 +16,36 @@
       "name": "subject",
       "type": "textarea",
       "label": "subject",
-      "required": true
+      "required": true,
+      "default": "语文"
     },
     {
       "name": "grade",
       "type": "textarea",
       "label": "grade",
-      "required": true
+      "required": true,
+      "default": "五年级"
     },
     {
       "name": "knowledgePoints",
       "type": "textarea",
       "label": "knowledgePoints",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     },
     {
       "name": "basicLevel",
       "type": "textarea",
       "label": "basicLevel",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     },
     {
       "name": "advancedLevel",
       "type": "textarea",
       "label": "advancedLevel",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     }
   ],
   "file_structure": {

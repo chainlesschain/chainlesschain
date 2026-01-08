@@ -22,29 +22,56 @@
       "type": "select",
       "required": true,
       "options": [
-        { "value": "房屋租赁合同", "label": "房屋租赁合同" },
-        { "value": "劳动合同", "label": "劳动合同" },
-        { "value": "服务合同", "label": "服务合同" },
-        { "value": "采购合同", "label": "采购合同" },
-        { "value": "销售合同", "label": "销售合同" },
-        { "value": "技术开发合同", "label": "技术开发合同" },
-        { "value": "保密协议", "label": "保密协议(NDA)" },
-        { "value": "合作协议", "label": "合作协议" }
-      ]
+        {
+          "value": "房屋租赁合同",
+          "label": "房屋租赁合同"
+        },
+        {
+          "value": "劳动合同",
+          "label": "劳动合同"
+        },
+        {
+          "value": "服务合同",
+          "label": "服务合同"
+        },
+        {
+          "value": "采购合同",
+          "label": "采购合同"
+        },
+        {
+          "value": "销售合同",
+          "label": "销售合同"
+        },
+        {
+          "value": "技术开发合同",
+          "label": "技术开发合同"
+        },
+        {
+          "value": "保密协议",
+          "label": "保密协议(NDA)"
+        },
+        {
+          "value": "合作协议",
+          "label": "合作协议"
+        }
+      ],
+      "default": "技术开发合同"
     },
     {
       "name": "partyAName",
       "label": "甲方名称",
       "type": "string",
       "required": true,
-      "placeholder": "公司全称或个人姓名"
+      "placeholder": "公司全称或个人姓名",
+      "default": "张三"
     },
     {
       "name": "partyBName",
       "label": "乙方名称",
       "type": "string",
       "required": true,
-      "placeholder": "公司全称或个人姓名"
+      "placeholder": "公司全称或个人姓名",
+      "default": "某科技公司"
     },
     {
       "name": "amount",
@@ -58,7 +85,8 @@
       "label": "合同期限",
       "type": "string",
       "required": true,
-      "placeholder": "例如：12个月、3年"
+      "placeholder": "例如：12个月、3年",
+      "default": "7天"
     },
     {
       "name": "signDate",

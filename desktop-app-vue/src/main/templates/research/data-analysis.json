@@ -16,25 +16,29 @@
       "name": "researchTitle",
       "type": "textarea",
       "label": "researchTitle",
-      "required": true
+      "required": true,
+      "default": "详细描述研究相关内容"
     },
     {
       "name": "dataSource",
       "type": "textarea",
       "label": "dataSource",
-      "required": true
+      "required": true,
+      "default": "医院病例数据库、公开数据集"
     },
     {
       "name": "analysisMethod",
       "type": "textarea",
       "label": "analysisMethod",
-      "required": true
+      "required": true,
+      "default": "统计分析、机器学习模型"
     },
     {
       "name": "results",
       "type": "textarea",
       "label": "results",
-      "required": true
+      "required": true,
+      "default": "详细描述研究相关内容"
     }
   ],
   "file_structure": {

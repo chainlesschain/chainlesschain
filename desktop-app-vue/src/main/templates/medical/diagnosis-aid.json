@@ -19,7 +19,7 @@
       "name": "patientAge",
       "type": "text",
       "label": "患者年龄",
-      "default": "",
+      "default": "45岁",
       "required": true
     },
     {
@@ -43,14 +43,14 @@
       "name": "symptoms",
       "type": "textarea",
       "label": "主要症状",
-      "default": "",
+      "default": "发热、咳嗽",
       "required": true
     },
     {
       "name": "duration",
       "type": "text",
       "label": "症状持续时间",
-      "default": "",
+      "default": "7天",
       "required": true
     },
     {

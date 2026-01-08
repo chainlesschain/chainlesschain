@@ -19,7 +19,7 @@
       "name": "patientName",
       "type": "text",
       "label": "患者姓名",
-      "default": "",
+      "default": "张三",
       "required": true
     },
     {
@@ -43,7 +43,7 @@
       "name": "age",
       "type": "text",
       "label": "年龄",
-      "default": "",
+      "default": "45岁",
       "required": true
     },
     {
@@ -57,21 +57,21 @@
       "name": "admissionDate",
       "type": "text",
       "label": "入院日期",
-      "default": "",
+      "default": "2026-01-08",
       "required": true
     },
     {
       "name": "chiefComplaint",
       "type": "textarea",
       "label": "主诉",
-      "default": "",
+      "default": "反复咳嗽、咳痰伴发热3天",
       "required": true
     },
     {
       "name": "presentIllness",
       "type": "textarea",
       "label": "现病史",
-      "default": "",
+      "default": "患者3天前无明显诱因出现咳嗽、咳痰，痰为白色粘液痰，伴发热，体温最高38.5℃，无畏寒、寒战，无胸痛、胸闷，无呼吸困难。",
       "required": true
     },
     {
@@ -85,7 +85,7 @@
       "name": "physicalExamination",
       "type": "textarea",
       "label": "体格检查",
-      "default": "",
+      "default": "体温38.2℃，脉搏86次/分，呼吸20次/分，血压120/80mmHg。神志清楚，精神可，双肺呼吸音粗，未闻及明显干湿啰音。",
       "required": true
     },
     {
@@ -99,14 +99,14 @@
       "name": "preliminaryDiagnosis",
       "type": "textarea",
       "label": "初步诊断",
-      "default": "",
+      "default": "上呼吸道感染",
       "required": true
     },
     {
       "name": "treatmentPlan",
       "type": "textarea",
       "label": "诊疗计划",
-      "default": "",
+      "default": "1. 完善血常规、胸片等检查\n2. 予抗感染、止咳化痰对症治疗\n3. 注意休息，多饮水\n4. 观察病情变化",
       "required": true
     }
   ],

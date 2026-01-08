@@ -16,31 +16,36 @@
       "name": "client",
       "type": "textarea",
       "label": "client",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     },
     {
       "name": "caseReason",
       "type": "textarea",
       "label": "caseReason",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     },
     {
       "name": "facts",
       "type": "textarea",
       "label": "facts",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     },
     {
       "name": "legalAnalysis",
       "type": "textarea",
       "label": "legalAnalysis",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     },
     {
       "name": "conclusion",
       "type": "textarea",
       "label": "conclusion",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     }
   ],
   "file_structure": {
