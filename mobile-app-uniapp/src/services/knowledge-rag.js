@@ -242,8 +242,8 @@ class KnowledgeRAGService {
         type: doc.type,
         score: doc.rerank_score || doc.similarity,
         source: 'local_rag',
-        created_at: doc.created_at,
-        updated_at: doc.updated_at
+        createdAt: doc.created_at,
+        updatedAt: doc.updated_at
       }))
     } catch (error) {
       console.error('[KnowledgeRAG] RAG Manager检索失败:', error)
@@ -288,29 +288,23 @@ class KnowledgeRAGService {
       // 将后端结果格式转换为统一格式
       const results = []
       for (const item of backendResults) {
-        // 过滤低分结果
         if (item.score < minScore) {
           continue
         }
 
-        // 从后端payload提取知识ID
         const knowledgeId = item.file_path || item.id
-
-        // 从本地数据库获取完整知识信息
-        let knowledge = null
-        if (knowledgeId) {
-          knowledge = await database.getKnowledge(knowledgeId)
-        }
+        const knowledgeDetails = knowledgeId ? await this._getKnowledgeDetails(knowledgeId) : null
 
         results.push({
           id: knowledgeId,
-          title: item.metadata?.title || knowledge?.title || '未命名',
-          type: knowledge?.type || 'note',
+          title: item.metadata?.title || knowledgeDetails?.title || '未命名',
+          type: knowledgeDetails?.type || 'note',
           score: item.score,
-          content: includeContent ? (item.text || knowledge?.content || '') : undefined,
-          tags: includeTags && knowledge?.tags ? knowledge.tags : undefined,
-          createdAt: knowledge?.createdAt,
-          source: 'backend_vector', // 标记来源
+          content: includeContent ? (item.text || knowledgeDetails?.content || '') : undefined,
+          tags: includeTags ? knowledgeDetails?.tags : undefined,
+          createdAt: knowledgeDetails?.created_at,
+          updatedAt: knowledgeDetails?.updated_at,
+          source: 'backend_vector',
           metadata: item.metadata
         })
       }
@@ -380,20 +374,28 @@ class KnowledgeRAGService {
           title: item.title,
           type: item.type,
           score,
-          createdAt: item.createdAt,
-          source: 'local_keyword' // 标记来源
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          source: 'local_keyword'
         }
 
         if (includeContent) {
           result.content = item.content
         }
 
-        if (includeTags && item.tags) {
-          result.tags = item.tags
-        }
-
         return result
       })
+
+      if (includeTags) {
+        await Promise.all(results.map(async (res) => {
+          try {
+            res.tags = await database.getKnowledgeTags(res.id)
+          } catch (error) {
+            console.error(`[KnowledgeRAG] 获取标签失败: ${res.id}`, error)
+            res.tags = []
+          }
+        }))
+      }
 
       console.log(`[KnowledgeRAG] 本地检索返回 ${results.length} 个结果`)
       return results
@@ -605,36 +607,42 @@ ${context}
       const results = []
 
       // 获取当前知识
-      const currentKnowledge = await database.getKnowledge(knowledgeId)
+      const currentKnowledge = await database.getKnowledgeItem(knowledgeId)
       if (!currentKnowledge) {
         return []
       }
 
+      const currentTags = await database.getKnowledgeTags(knowledgeId)
+
       // 1. 获取显式链接的知识
       if (includeLinked) {
-        const linkedItems = await database.getLinkedKnowledge(knowledgeId)
-        for (const item of linkedItems) {
+        const linkedItems = await database.getKnowledgeLinks(knowledgeId)
+        linkedItems.forEach(item => {
           results.push({
             ...item,
             reason: 'linked',
             score: 1.0
           })
-        }
+        })
       }
 
       // 2. 基于标签查找相似知识
-      if (includeSimilar && currentKnowledge.tags && currentKnowledge.tags.length > 0) {
-        const tagIds = currentKnowledge.tags.map(t => t.id)
-        const similarByTags = await database.getKnowledgeByTags(tagIds)
-
-        for (const item of similarByTags) {
-          if (item.id !== knowledgeId && !results.find(r => r.id === item.id)) {
+      if (includeSimilar && currentTags.length > 0) {
+        for (const tag of currentTags) {
+          const items = await database.getKnowledgeItemsByTag(tag.id, { limit: 20 })
+          items.forEach(item => {
+            if (item.id === knowledgeId) {
+              return
+            }
+            if (results.find(r => r.id === item.id)) {
+              return
+            }
             results.push({
               ...item,
               reason: 'similar_tags',
               score: 0.8
             })
-          }
+          })
         }
       }
 
@@ -650,7 +658,7 @@ ${context}
 
         for (const id of similarByContent) {
           const item = allKnowledge.find(k => k.id === id)
-          if (item && !results.find(r => r.id === item.id)) {
+          if (item && item.id !== knowledgeId && !results.find(r => r.id === item.id)) {
             results.push({
               ...item,
               reason: 'similar_content',
@@ -667,6 +675,76 @@ ${context}
     } catch (error) {
       console.error('获取相关知识失败:', error)
       return []
+    }
+  }
+
+  /**
+   * 同步知识到本地RAG索引
+   * @param {Object|string} knowledge 知识对象或ID
+   */
+  async indexKnowledgeLocally(knowledge) {
+    if (!this.ragInitialized) {
+      return false
+    }
+
+    try {
+      const normalized = await this._getKnowledgeDetails(knowledge)
+      if (!normalized) {
+        return false
+      }
+
+      await this.ragManager.addDocument({
+        id: normalized.id,
+        title: normalized.title,
+        content: normalized.content || '',
+        type: normalized.type || 'note',
+        tags: normalized.tags || [],
+        created_at: normalized.created_at,
+        updated_at: normalized.updated_at
+      })
+      return true
+    } catch (error) {
+      console.error('[KnowledgeRAG] 本地索引更新失败:', error)
+      return false
+    }
+  }
+
+  /**
+   * 从本地RAG索引中移除知识
+   * @param {string} knowledgeId 知识ID
+   */
+  async removeKnowledgeFromLocalIndex(knowledgeId) {
+    if (!this.ragInitialized) {
+      return false
+    }
+
+    try {
+      await this.ragManager.removeDocument(knowledgeId)
+      return true
+    } catch (error) {
+      console.error('[KnowledgeRAG] 本地索引删除失败:', error)
+      return false
+    }
+  }
+
+  /**
+   * 获取知识详情（包含标签）
+   * @private
+   */
+  async _getKnowledgeDetails(knowledgeOrId) {
+    const base =
+      knowledgeOrId && typeof knowledgeOrId === 'object' && knowledgeOrId.id
+        ? knowledgeOrId
+        : await database.getKnowledgeItem(knowledgeOrId)
+
+    if (!base) {
+      return null
+    }
+
+    const tags = await database.getKnowledgeTags(base.id)
+    return {
+      ...base,
+      tags
     }
   }
 
@@ -772,7 +850,7 @@ ${context}
         index.items[item.id] = {
           title: item.title,
           type: item.type,
-          createdAt: item.createdAt
+          createdAt: item.created_at
         }
 
         // 提取并索引关键词

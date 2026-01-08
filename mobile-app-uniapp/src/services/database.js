@@ -936,11 +936,14 @@ class DatabaseService {
     import('@/services/knowledge-rag').then(module => {
       const knowledgeRAG = module.default
 
+      knowledgeRAG.indexKnowledgeLocally(knowledge).catch(err => {
+        console.error(`[Database] 本地RAG索引更新失败: ${knowledge.id}`, err)
+      })
+
       knowledgeRAG.syncKnowledgeToBackend(knowledge)
         .then(success => {
           if (success) {
             console.log(`[Database] 知识 ${knowledge.id} 已同步到后端`)
-            // 可选：更新sync_status为synced
             this._updateSyncStatus(knowledge.id, 'synced').catch(err => {
               console.error('[Database] 更新同步状态失败:', err)
             })
@@ -972,6 +975,10 @@ class DatabaseService {
     // 异步删除，不阻塞主流程
     import('@/services/knowledge-rag').then(module => {
       const knowledgeRAG = module.default
+
+      knowledgeRAG.removeKnowledgeFromLocalIndex(knowledgeId).catch(err => {
+        console.error(`[Database] 本地RAG索引删除失败: ${knowledgeId}`, err)
+      })
 
       knowledgeRAG.deleteKnowledgeFromBackend(knowledgeId)
         .then(success => {
