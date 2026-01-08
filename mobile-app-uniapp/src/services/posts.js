@@ -11,11 +11,20 @@
 import database from './database'
 import didService from './did'
 import friendService from './friends'
+import websocketService from './websocket'
 
 class PostsService {
   constructor() {
     this.posts = []
     this.myPosts = []
+    this.currentDid = null
+    this.realtimeHandlersRegistered = false
+    this._handleIncomingPost = null
+    this._handlePostLiked = null
+    this._handlePostUnliked = null
+    this._handlePostCommented = null
+    this._handlePostCommentDeleted = null
+    this._handlePostDeleted = null
   }
 
   /**
@@ -31,6 +40,8 @@ class PostsService {
 
       await this.loadTimeline()
       console.log('动态服务初始化完成')
+
+      await this._setupRealtimeChannel()
     } catch (error) {
       console.error('动态服务初始化失败:', error)
       throw error
@@ -49,6 +60,8 @@ class PostsService {
       if (!currentIdentity) {
         throw new Error('请先创建DID身份')
       }
+      this.currentDid = currentIdentity.did
+      await websocketService.ensureConnection({ did: currentIdentity.did })
 
       const { content, images = [], visibility = 'friends' } = postData
 
@@ -76,10 +89,10 @@ class PostsService {
       // 保存到数据库
       await database.savePost(post)
 
-      // 重新加载动态
-      await this.loadMyPosts()
+      await websocketService.send('post:created', { post })
 
-      // TODO: 通过WebSocket广播给好友（Week 3-4后期实现）
+      // 刷新缓存
+      await this._refreshCaches()
 
       return {
         success: true,
@@ -206,6 +219,7 @@ class PostsService {
       if (!currentIdentity) {
         throw new Error('请先创建DID身份')
       }
+      await websocketService.ensureConnection({ did: currentIdentity.did })
 
       // 检查是否已点赞
       const hasLiked = await this.hasLiked(postId)
@@ -226,6 +240,9 @@ class PostsService {
 
       // 更新动态的点赞数
       await database.incrementPostLikeCount(postId)
+
+      await websocketService.send('post:liked', { like })
+      await this._refreshCaches()
 
       return {
         success: true,
@@ -248,12 +265,19 @@ class PostsService {
       if (!currentIdentity) {
         throw new Error('请先创建DID身份')
       }
+      await websocketService.ensureConnection({ did: currentIdentity.did })
 
       // 删除点赞记录
       await database.deleteLike(postId, currentIdentity.did)
 
       // 更新动态的点赞数
       await database.decrementPostLikeCount(postId)
+
+      await websocketService.send('post:unliked', {
+        postId,
+        userDid: currentIdentity.did
+      })
+      await this._refreshCaches()
 
       return {
         success: true
@@ -296,6 +320,7 @@ class PostsService {
       if (!currentIdentity) {
         throw new Error('请先创建DID身份')
       }
+      await websocketService.ensureConnection({ did: currentIdentity.did })
 
       if (!content || content.trim().length === 0) {
         throw new Error('评论内容不能为空')
@@ -315,6 +340,9 @@ class PostsService {
 
       // 更新动态的评论数
       await database.incrementPostCommentCount(postId)
+
+      await websocketService.send('post:commented', { comment })
+      await this._refreshCaches()
 
       return {
         success: true,
@@ -376,6 +404,7 @@ class PostsService {
       if (!currentIdentity) {
         throw new Error('请先创建DID身份')
       }
+      await websocketService.ensureConnection({ did: currentIdentity.did })
 
       // 获取动态
       const post = await database.getPostById(postId)
@@ -391,8 +420,11 @@ class PostsService {
       // 删除动态（软删除或硬删除）
       await database.deletePost(postId)
 
-      // 重新加载
-      await this.loadMyPosts()
+      // 通知其他设备
+      await websocketService.send('post:deleted', { postId, authorDid: currentIdentity.did })
+
+      // 刷新缓存
+      await this._refreshCaches()
 
       return {
         success: true
@@ -414,6 +446,7 @@ class PostsService {
       if (!currentIdentity) {
         throw new Error('请先创建DID身份')
       }
+      await websocketService.ensureConnection({ did: currentIdentity.did })
 
       // 获取评论
       const comment = await database.getCommentById(commentId)
@@ -427,11 +460,15 @@ class PostsService {
         throw new Error('没有权限删除此评论')
       }
 
-      // 删除评论
-      await database.deleteComment(commentId)
+      // 删除评论（含评论数更新）
+      await database.deleteComment(commentId, comment.postId)
 
-      // 更新动态的评论数
-      await database.decrementPostCommentCount(comment.postId)
+      await websocketService.send('post:comment-deleted', {
+        postId: comment.postId,
+        commentId,
+        authorDid: comment.authorDid
+      })
+      await this._refreshCaches()
 
       return {
         success: true
@@ -506,6 +543,155 @@ class PostsService {
         totalLikes: 0,
         totalComments: 0
       }
+    }
+  }
+
+  /**
+   * 刷新时间线和我的动态缓存
+   * @private
+   */
+  async _refreshCaches() {
+    await Promise.all([
+      this.loadTimeline(),
+      this.loadMyPosts()
+    ])
+  }
+
+  /**
+   * 初始化实时动态通道
+   * @private
+   */
+  async _setupRealtimeChannel() {
+    try {
+      const identity = await didService.getCurrentIdentity()
+      if (!identity) {
+        return
+      }
+
+      this.currentDid = identity.did
+      await websocketService.ensureConnection({ did: identity.did })
+
+      if (this.realtimeHandlersRegistered) {
+        return
+      }
+
+      this._handleIncomingPost = async (payload = {}) => {
+        const post = payload.post
+        if (!post) {
+          return
+        }
+
+        const existing = await database.getPostById(post.id)
+        if (!existing) {
+          await database.savePost({
+            ...post,
+            createdAt: post.createdAt || new Date().toISOString(),
+            updatedAt: post.updatedAt || post.createdAt || new Date().toISOString()
+          })
+        }
+
+        await this._refreshCaches()
+      }
+
+      websocketService.on('post:created', this._handleIncomingPost)
+
+      this._handlePostLiked = async (payload = {}) => {
+        const like = payload.like
+        if (!like || !like.postId || !like.userDid) {
+          return
+        }
+
+        const existing = await database.getLike(like.postId, like.userDid)
+        if (!existing) {
+          await database.saveLike({
+            id: like.id || `like_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            postId: like.postId,
+            userDid: like.userDid,
+            createdAt: like.createdAt || new Date().toISOString()
+          })
+          await database.incrementPostLikeCount(like.postId)
+        }
+
+        await this._refreshCaches()
+      }
+
+      this._handlePostUnliked = async (payload = {}) => {
+        const { postId, userDid } = payload
+        if (!postId || !userDid) {
+          return
+        }
+
+        const existing = await database.getLike(postId, userDid)
+        if (!existing) {
+          return
+        }
+
+        await database.deleteLike(postId, userDid)
+        await database.decrementPostLikeCount(postId)
+
+        await this._refreshCaches()
+      }
+
+      this._handlePostCommented = async (payload = {}) => {
+        const comment = payload.comment
+        if (!comment || !comment.id || !comment.postId) {
+          return
+        }
+
+        const existing = await database.getCommentById(comment.id)
+        if (!existing) {
+          await database.saveComment({
+            id: comment.id,
+            postId: comment.postId,
+            authorDid: comment.authorDid,
+            content: comment.content,
+            createdAt: comment.createdAt || new Date().toISOString()
+          })
+          await database.incrementPostCommentCount(comment.postId)
+        }
+
+        await this._refreshCaches()
+      }
+
+      this._handlePostCommentDeleted = async (payload = {}) => {
+        const { commentId, postId } = payload
+        if (!commentId || !postId) {
+          return
+        }
+
+        const existing = await database.getCommentById(commentId)
+        if (!existing) {
+          return
+        }
+
+        await database.deleteComment(commentId, postId)
+        await this._refreshCaches()
+      }
+
+      this._handlePostDeleted = async (payload = {}) => {
+        const { postId } = payload
+        if (!postId) {
+          return
+        }
+
+        const existing = await database.getPost(postId)
+        if (!existing) {
+          return
+        }
+
+        await database.deletePost(postId)
+        await this._refreshCaches()
+      }
+
+      websocketService.on('post:liked', this._handlePostLiked)
+      websocketService.on('post:unliked', this._handlePostUnliked)
+      websocketService.on('post:commented', this._handlePostCommented)
+      websocketService.on('post:comment-deleted', this._handlePostCommentDeleted)
+      websocketService.on('post:deleted', this._handlePostDeleted)
+
+      this.realtimeHandlersRegistered = true
+    } catch (error) {
+      console.error('[PostsService] 初始化实时动态通道失败:', error)
     }
   }
 }
