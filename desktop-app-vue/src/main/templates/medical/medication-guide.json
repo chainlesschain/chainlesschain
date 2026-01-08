@@ -1,0 +1,122 @@
+{
+  "id": "tpl_medical_medication_004",
+  "name": "medication-guide",
+  "display_name": "用药指导生成",
+  "description": "生成患者用药指导说明书，包含用法用量、注意事项等",
+  "icon": "💊",
+  "category": "medical",
+  "subcategory": "药学服务",
+  "tags": [
+    "用药指导",
+    "药物说明",
+    "患者教育",
+    "用药安全"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成用药指导说明：\n\n药品名称：{{medicationName}}\n\n通用名：{{genericName}}\n\n适应症：\n{{indications}}\n\n用法用量：\n{{dosage}}\n\n服药时间：{{#if timing}}{{timing}}{{else}}遵医嘱{{/if}}\n\n疗程：{{#if duration}}{{duration}}{{else}}遵医嘱{{/if}}\n\n注意事项：\n{{precautions}}\n\n不良反应：\n{{adverseReactions}}\n\n禁忌症：\n{{contraindications}}\n\n药物相互作用：\n{{interactions}}\n\n特殊人群用药：\n{{specialPopulations}}\n\n请生成一份患者易于理解的用药指导说明书，包括：\n1. 药品基本信息\n2. 详细的用法用量说明\n3. 重要注意事项和禁忌\n4. 可能出现的不良反应及处理方法\n5. 储存条件\n6. 漏服处理\n7. 其他重要提示",
+  "variables_schema": [
+    {
+      "name": "medicationName",
+      "type": "text",
+      "label": "药品名称",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "genericName",
+      "type": "text",
+      "label": "通用名",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "indications",
+      "type": "textarea",
+      "label": "适应症",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "dosage",
+      "type": "textarea",
+      "label": "用法用量",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "timing",
+      "type": "text",
+      "label": "服药时间",
+      "default": "",
+      "required": false
+    },
+    {
+      "name": "duration",
+      "type": "text",
+      "label": "疗程",
+      "default": "",
+      "required": false
+    },
+    {
+      "name": "precautions",
+      "type": "textarea",
+      "label": "注意事项",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "adverseReactions",
+      "type": "textarea",
+      "label": "不良反应",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "contraindications",
+      "type": "textarea",
+      "label": "禁忌症",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "interactions",
+      "type": "textarea",
+      "label": "药物相互作用",
+      "default": "无明显相互作用",
+      "required": false
+    },
+    {
+      "name": "specialPopulations",
+      "type": "textarea",
+      "label": "特殊人群用药",
+      "default": "",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "用药指导-{{medicationName}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "用药指导说明书.md",
+        "description": "用药指导正文"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

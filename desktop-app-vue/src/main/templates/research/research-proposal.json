@@ -1,39 +1,41 @@
 {
-  "id": "tpl_research_proposal_008",
-  "name": "research_proposal",
-  "display_name": "研究提案",
-  "description": "学术或商业研究提案，包含研究问题、文献综述、研究方法、预期成果和预算",
+  "id": "tpl_research_proposal_200",
+  "name": "research-proposal",
+  "display_name": "研究计划撰写",
+  "description": "学术研究项目申请书/研究计划书模板",
   "icon": "🔬",
   "category": "research",
-  "subcategory": "planning",
-  "tags": ["研究提案", "科研", "方法论", "学术"],
+  "subcategory": "项目申请",
+  "tags": ["研究计划", "项目申请", "课题申报", "研究设计"],
   "project_type": "document",
-  "prompt_template": "研究提案\n\n**研究标题：** {{researchTitle}}\n**研究者：** {{researcher}}\n**所属机构：** {{institution}}\n**提交日期：** {{submitDate}}\n\n# {{researchTitle}}\n\n## 研究提案\n\n---\n\n## 1. 研究概述\n\n### 1.1 研究背景\n\n{{background}}\n\n### 1.2 研究问题\n\n**核心研究问题（RQ）：**\n{{mainResearchQuestion}}\n\n**子问题：**\n1. RQ1: {{subQuestion1}}\n2. RQ2: {{subQuestion2}}\n3. RQ3: {{subQuestion3}}\n\n### 1.3 研究意义\n\n**理论意义：**\n{{theoreticalSignificance}}\n\n**实践意义：**\n{{practicalSignificance}}\n\n**创新点：**\n1. {{innovation1}}\n2. {{innovation2}}\n3. {{innovation3}}\n\n---\n\n## 2. 文献综述\n\n### 2.1 理论基础\n\n**主要理论框架：** {{theoreticalFramework}}\n\n**核心概念：**\n- {{concept1}}：{{concept1Definition}}\n- {{concept2}}：{{concept2Definition}}\n- {{concept3}}：{{concept3Definition}}\n\n### 2.2 已有研究\n\n**主题1：{{literatureTheme1}}**\n\n{{#if literature1}}\n- {{author1}}等（{{year1}}）发现{{finding1}}\n- {{author2}}等（{{year2}}）指出{{finding2}}\n{{/if}}\n\n**研究现状总结：** {{currentStateOfResearch}}\n\n### 2.3 研究空缺（Research Gap）\n\n**空缺1：{{gap1}}**\n{{gap1Description}}\n\n**空缺2：{{gap2}}**\n{{gap2Description}}\n\n**本研究填补的空缺：** {{gapFilled}}\n\n---\n\n## 3. 研究设计\n\n### 3.1 研究范式\n\n**研究类型：** {{researchType}}\n\n{{#eq researchType \"定量研究\"}}\n- 研究方法：实验法/调查法/准实验法\n- 数据类型：数值型\n- 分析方法：统计分析\n{{/eq}}\n\n{{#eq researchType \"定性研究\"}}\n- 研究方法：访谈/观察/案例研究\n- 数据类型：文本/音频/视频\n- 分析方法：主题分析/扎根理论\n{{/eq}}\n\n{{#eq researchType \"混合方法\"}}\n- 定量+定性结合\n- 三角验证\n{{/eq}}\n\n### 3.2 研究假设（如适用）\n\n**H1：** {{hypothesis1}}\n**H2：** {{hypothesis2}}\n**H3：** {{hypothesis3}}\n\n### 3.3 变量定义\n\n**自变量（Independent Variables）：**\n- {{independentVar1}}：{{iv1Definition}}\n- {{independentVar2}}：{{iv2Definition}}\n\n**因变量（Dependent Variables）：**\n- {{dependentVar1}}：{{dv1Definition}}\n- {{dependentVar2}}：{{dv2Definition}}\n\n**控制变量：**\n- {{controlVar1}}\n- {{controlVar2}}\n\n---\n\n## 4. 研究方法\n\n### 4.1 样本设计\n\n**总体（Population）：** {{population}}\n**样本量（Sample Size）：** {{sampleSize}}\n**抽样方法：** {{samplingMethod}}\n\n**样本特征：**\n- 年龄：{{ageRange}}\n- 性别：{{genderDist}}\n- 其他：{{otherCharacteristics}}\n\n**纳入标准：**\n- {{inclusionCriteria1}}\n- {{inclusionCriteria2}}\n\n**排除标准：**\n- {{exclusionCriteria1}}\n- {{exclusionCriteria2}}\n\n### 4.2 数据收集\n\n**方法1：{{dataCollectionMethod1}}**\n- 工具：{{tool1}}\n- 频率：{{frequency1}}\n- 时长：{{duration1}}\n\n**方法2：{{dataCollectionMethod2}}**\n- 工具：{{tool2}}\n- 时长：{{duration2}}\n\n**数据来源：**\n- 一手数据：{{primaryData}}\n- 二手数据：{{secondaryData}}\n\n### 4.3 测量工具\n\n**问卷/量表：** {{measurementTool}}\n- 维度：{{dimensions}}\n- 信度：Cronbach's α = {{reliability}}\n- 效度：{{validity}}\n\n**访谈提纲：** （如适用）\n1. {{interviewQuestion1}}\n2. {{interviewQuestion2}}\n3. {{interviewQuestion3}}\n\n### 4.4 数据分析\n\n**定量分析：**\n- 描述性统计\n- {{analysisMethod1}}（如回归分析）\n- {{analysisMethod2}}（如ANOVA）\n\n**定性分析：**\n- 编码方法：{{codingMethod}}\n- 分析软件：{{qualitativeSoftware}}（如NVivo）\n\n**统计软件：** {{statisticalSoftware}}（如SPSS/R/Python）\n\n---\n\n## 5. 研究流程\n\n### 5.1 时间规划\n\n| 阶段 | 任务 | 时长 | 截止日期 |\n|------|------|------|----------|\n| 第1阶段 | {{phase1Task}} | {{phase1Duration}} | {{phase1Deadline}} |\n| 第2阶段 | {{phase2Task}} | {{phase2Duration}} | {{phase2Deadline}} |\n| 第3阶段 | {{phase3Task}} | {{phase3Duration}} | {{phase3Deadline}} |\n| 第4阶段 | {{phase4Task}} | {{phase4Duration}} | {{phase4Deadline}} |\n\n**总研究周期：** {{totalDuration}}\n\n### 5.2 甘特图\n\n```\n任务               月份\n               1  2  3  4  5  6  7  8  9  10 11 12\n文献综述       ████\n问卷设计          ██\n数据收集             ████\n数据分析                 ███\n论文撰写                     ████\n修改完善                         ██\n```\n\n---\n\n## 6. 伦理考量\n\n**伦理审批：** {{ethicsApproval}}\n\n**知情同意：**\n- 参与者知情同意书\n- 自愿参与原则\n- 随时退出权利\n\n**隐私保护：**\n- 数据匿名化\n- 安全存储（{{storageMethod}}）\n- 保密协议\n\n**潜在风险：** {{potentialRisks}}\n**风险控制：** {{riskMitigation}}\n\n---\n\n## 7. 预期成果\n\n### 7.1 研究贡献\n\n**理论贡献：**\n{{theoreticalContribution}}\n\n**实践贡献：**\n{{practicalContribution}}\n\n### 7.2 预期发现\n\n{{expectedFindings}}\n\n### 7.3 成果形式\n\n- [ ] 学术论文：{{journalTarget}}（目标期刊）\n- [ ] 研究报告：{{reportFormat}}\n- [ ] 会议发表：{{conferenceTarget}}\n- [ ] 其他：{{otherOutputs}}\n\n---\n\n## 8. 预算\n\n### 8.1 经费预算\n\n| 项目 | 金额（元） | 说明 |\n|------|-----------|------|\n| 人员费用 | {{personnelCost}} | {{personnelNote}} |\n| 设备费用 | {{equipmentCost}} | {{equipmentNote}} |\n| 材料费 | {{materialCost}} | {{materialNote}} |\n| 数据采集费 | {{dataCollectionCost}} | {{dataCollectionNote}} |\n| 差旅费 | {{travelCost}} | {{travelNote}} |\n| 会议/出版费 | {{publicationCost}} | {{publicationNote}} |\n| 其他 | {{otherCost}} | {{otherNote}} |\n| **总计** | **{{totalCost}}** | |\n\n### 8.2 经费来源\n\n- {{fundingSource1}}：{{funding1Amount}}\n- {{fundingSource2}}：{{funding2Amount}}\n\n---\n\n## 9. 研究团队\n\n### 9.1 核心成员\n\n**首席研究员（PI）：** {{principalInvestigator}}\n- 职称：{{piTitle}}\n- 专长：{{piExpertise}}\n- 角色：{{piRole}}\n\n**共同研究员（Co-I）：** {{coInvestigator}}\n- 职称：{{ciTitle}}\n- 专长：{{ciExpertise}}\n- 角色：{{ciRole}}\n\n**研究助理：** {{researchAssistant}}\n- 职责：{{raRole}}\n\n### 9.2 顾问委员会\n\n- {{advisor1}} - {{advisor1Affiliation}}\n- {{advisor2}} - {{advisor2Affiliation}}\n\n---\n\n## 10. 可行性分析\n\n### 10.1 优势（Strengths）\n\n- {{strength1}}\n- {{strength2}}\n- {{strength3}}\n\n### 10.2 挑战（Challenges）\n\n**挑战1：{{challenge1}}**\n应对：{{solution1}}\n\n**挑战2：{{challenge2}}**\n应对：{{solution2}}\n\n### 10.3 成功因素\n\n{{successFactors}}\n\n---\n\n## 11. 参考文献\n\n**APA格式：**\n\n{{reference1}}\n\n{{reference2}}\n\n{{reference3}}\n\n（完整文献列表）\n\n---\n\n## 附录\n\n### A. 问卷/访谈提纲\n\n（完整版）\n\n### B. 知情同意书模板\n\n（完整版）\n\n### C. 数据管理计划\n\n**数据类型：** {{dataTypes}}\n**存储方式：** {{storageMethod}}\n**备份策略：** {{backupStrategy}}\n**保留期限：** {{retentionPeriod}}\n",
+  "prompt_template": "请帮我撰写研究计划：\n\n研究题目：{{researchTitle}}\n研究领域：{{researchField}}\n研究类型：{{researchType}}\n\n研究背景：\n{{background}}\n\n研究问题：\n{{researchQuestions}}\n\n研究目标：\n{{objectives}}\n\n研究方法：\n{{methodology}}\n\n预期成果：\n{{expectedOutcomes}}\n\n请生成完整的研究计划，包括：\n1. 研究背景和意义\n2. 国内外研究现状\n3. 研究内容和研究问题\n4. 研究方法和技术路线\n5. 研究计划和时间安排\n6. 预期成果和创新点\n7. 研究基础和条件保障\n8. 经费预算",
   "variables_schema": [
-    {"name": "researchTitle", "label": "研究标题", "type": "string", "required": true},
-    {"name": "researcher", "label": "研究者", "type": "string", "required": false},
-    {
-      "name": "researchType",
-      "label": "研究类型",
-      "type": "select",
-      "required": false,
+    {"name": "researchTitle", "type": "text", "label": "研究题目", "required": true},
+    {"name": "researchField", "type": "text", "label": "研究领域", "required": true},
+    {"name": "researchType", "type": "select", "label": "研究类型", "default": "基础研究", "required": true,
       "options": [
-        {"value": "定量研究", "label": "定量研究"},
-        {"value": "定性研究", "label": "定性研究"},
-        {"value": "混合方法", "label": "混合方法"}
+        {"value": "基础研究", "label": "基础研究"},
+        {"value": "应用研究", "label": "应用研究"}
       ]
-    }
+    },
+    {"name": "background", "type": "textarea", "label": "研究背景", "required": true},
+    {"name": "researchQuestions", "type": "textarea", "label": "研究问题", "required": true},
+    {"name": "objectives", "type": "textarea", "label": "研究目标", "required": true},
+    {"name": "methodology", "type": "textarea", "label": "研究方法", "required": true},
+    {"name": "expectedOutcomes", "type": "textarea", "label": "预期成果", "required": true}
   ],
   "file_structure": {
-    "root": "研究提案-{{researchTitle}}",
-    "files": [
-      {"path": "提案文档.md", "type": "document"},
-      {"path": "文献/", "type": "folder"},
-      {"path": "工具/", "type": "folder"}
-    ]
+    "type": "folder",
+    "name": "研究计划-{{researchTitle}}",
+    "children": [{"type": "file", "name": "研究计划书.md"}]
   },
-  "default_files": [],
   "is_builtin": true,
   "author": "ChainlessChain Team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": ["skill_document_processing"],
+  "required_tools": ["tool_word_generator", "tool_pdf_generator"],
+  "execution_engine": "document"
 }

@@ -1,0 +1,115 @@
+{
+  "id": "tpl_medical_case_006",
+  "name": "case-discussion",
+  "display_name": "病例讨论记录",
+  "description": "多学科病例讨论会议记录模板",
+  "icon": "🗣️",
+  "category": "medical",
+  "subcategory": "临床交流",
+  "tags": [
+    "病例讨论",
+    "MDT",
+    "会议记录",
+    "学术交流"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成病例讨论记录：\n\n讨论主题：{{topic}}\n\n讨论时间：{{discussionDate}}\n\n主持人：{{moderator}}\n\n参与科室：{{departments}}\n\n参与人员：{{participants}}\n\n病例摘要：\n{{caseSummary}}\n\n讨论要点：\n{{discussionPoints}}\n\n各科室意见：\n{{departmentOpinions}}\n\n讨论结论：\n{{conclusions}}\n\n后续处理计划：\n{{followUpPlan}}\n\n请生成一份完整的病例讨论记录，包括：\n1. 会议基本信息\n2. 病例简要介绍\n3. 各科室讨论意见\n4. 讨论结论和共识\n5. 后续诊疗计划\n6. 需要关注的问题",
+  "variables_schema": [
+    {
+      "name": "topic",
+      "type": "text",
+      "label": "讨论主题",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "discussionDate",
+      "type": "text",
+      "label": "讨论时间",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "moderator",
+      "type": "text",
+      "label": "主持人",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "departments",
+      "type": "text",
+      "label": "参与科室",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "participants",
+      "type": "textarea",
+      "label": "参与人员",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "caseSummary",
+      "type": "textarea",
+      "label": "病例摘要",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "discussionPoints",
+      "type": "textarea",
+      "label": "讨论要点",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "departmentOpinions",
+      "type": "textarea",
+      "label": "各科室意见",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "conclusions",
+      "type": "textarea",
+      "label": "讨论结论",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "followUpPlan",
+      "type": "textarea",
+      "label": "后续处理计划",
+      "default": "",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "病例讨论-{{topic}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "讨论记录.md",
+        "description": "讨论记录正文"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

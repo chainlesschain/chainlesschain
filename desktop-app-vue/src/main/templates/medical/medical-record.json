@@ -1,0 +1,140 @@
+{
+  "id": "tpl_medical_record_001",
+  "name": "medical-record",
+  "display_name": "病历记录助手",
+  "description": "结构化病历记录模板，帮助医生快速生成规范的病历文档",
+  "icon": "🏥",
+  "category": "medical",
+  "subcategory": "临床记录",
+  "tags": [
+    "病历",
+    "医疗记录",
+    "临床文档",
+    "病历书写"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成结构化的病历记录：\n\n患者信息：\n- 姓名：{{patientName}}\n- 性别：{{gender}}\n- 年龄：{{age}}\n- 病案号：{{#if medicalRecordNumber}}{{medicalRecordNumber}}{{else}}自动生成{{/if}}\n- 入院日期：{{admissionDate}}\n\n主诉：\n{{chiefComplaint}}\n\n现病史：\n{{presentIllness}}\n\n既往史：\n{{pastHistory}}\n\n体格检查：\n{{physicalExamination}}\n\n辅助检查：\n{{auxiliaryExamination}}\n\n初步诊断：\n{{preliminaryDiagnosis}}\n\n诊疗计划：\n{{treatmentPlan}}\n\n请生成一份格式规范、内容详实的病历记录文档，确保符合医疗文书书写规范。",
+  "variables_schema": [
+    {
+      "name": "patientName",
+      "type": "text",
+      "label": "患者姓名",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "gender",
+      "type": "select",
+      "label": "性别",
+      "default": "男",
+      "required": true,
+      "options": [
+        {
+          "value": "男",
+          "label": "男"
+        },
+        {
+          "value": "女",
+          "label": "女"
+        }
+      ]
+    },
+    {
+      "name": "age",
+      "type": "text",
+      "label": "年龄",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "medicalRecordNumber",
+      "type": "text",
+      "label": "病案号",
+      "default": "",
+      "required": false
+    },
+    {
+      "name": "admissionDate",
+      "type": "text",
+      "label": "入院日期",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "chiefComplaint",
+      "type": "textarea",
+      "label": "主诉",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "presentIllness",
+      "type": "textarea",
+      "label": "现病史",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "pastHistory",
+      "type": "textarea",
+      "label": "既往史",
+      "default": "无特殊",
+      "required": false
+    },
+    {
+      "name": "physicalExamination",
+      "type": "textarea",
+      "label": "体格检查",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "auxiliaryExamination",
+      "type": "textarea",
+      "label": "辅助检查",
+      "default": "",
+      "required": false
+    },
+    {
+      "name": "preliminaryDiagnosis",
+      "type": "textarea",
+      "label": "初步诊断",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "treatmentPlan",
+      "type": "textarea",
+      "label": "诊疗计划",
+      "default": "",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "病历记录-{{patientName}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "病历记录.md",
+        "description": "病历正文"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator",
+    "tool_file_writer"
+  ],
+  "execution_engine": "document"
+}

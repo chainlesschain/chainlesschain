@@ -1,0 +1,37 @@
+{
+  "id": "tpl_education_teaching_design_100",
+  "name": "teaching-design",
+  "display_name": "教学设计方案",
+  "description": "完整的课时教学设计方案，包含教学目标、重难点、教学过程等",
+  "icon": "📝",
+  "category": "education",
+  "subcategory": "教学设计",
+  "tags": ["教学设计", "教案", "课时计划", "教学方案"],
+  "project_type": "document",
+  "prompt_template": "请帮我生成教学设计方案：\n\n课程名称：{{courseName}}\n学科：{{subject}}\n年级：{{grade}}\n课时：{{classHours}}\n教学内容：{{content}}\n\n学情分析：\n{{studentAnalysis}}\n\n教学目标：\n{{teachingObjectives}}\n\n教学重点：\n{{keyPoints}}\n\n教学难点：\n{{difficulties}}\n\n请生成完整的教学设计，包括：\n1. 教学目标（知识与技能、过程与方法、情感态度价值观）\n2. 教学重难点分析\n3. 教学准备\n4. 教学过程设计（导入、新授、巩固、总结）\n5. 板书设计\n6. 作业布置\n7. 教学反思预设",
+  "variables_schema": [
+    {"name": "courseName", "type": "text", "label": "课程名称", "required": true},
+    {"name": "subject", "type": "text", "label": "学科", "required": true},
+    {"name": "grade", "type": "text", "label": "年级", "required": true},
+    {"name": "classHours", "type": "text", "label": "课时", "default": "1课时", "required": true},
+    {"name": "content", "type": "textarea", "label": "教学内容", "required": true},
+    {"name": "studentAnalysis", "type": "textarea", "label": "学情分析", "required": false},
+    {"name": "teachingObjectives", "type": "textarea", "label": "教学目标", "required": true},
+    {"name": "keyPoints", "type": "textarea", "label": "教学重点", "required": true},
+    {"name": "difficulties", "type": "textarea", "label": "教学难点", "required": true}
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "教学设计-{{courseName}}",
+    "children": [{"type": "file", "name": "教学设计.md"}]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": ["skill_document_processing", "skill_content_creation"],
+  "required_tools": ["tool_word_generator", "tool_pdf_generator"],
+  "execution_engine": "document"
+}

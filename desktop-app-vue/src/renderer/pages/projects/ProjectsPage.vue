@@ -213,13 +213,17 @@ const conversationMessages = ref([]);
 
 // 项目类型按钮（第一行）
 const projectTypes = ref([
+  // 职业专用分类（放在前面优先显示）
+  { key: 'medical', label: '🏥 医疗', prompt: '协助我处理医疗相关的工作...' },
+  { key: 'legal', label: '⚖️ 法律', prompt: '协助我处理法律相关的工作...' },
+  { key: 'education', label: '👨‍🏫 教育', prompt: '设计一门...的课程' },
+  { key: 'research', label: '🔬 研究', prompt: '进行...的研究分析' },
+  // 通用分类
   { key: 'writing', label: '写作', prompt: '帮我写一篇关于...的文章' },
   { key: 'marketing', label: '营销', prompt: '制定一份...的营销方案' },
   { key: 'excel', label: 'Excel', prompt: '分析...的数据并生成报表' },
   { key: 'resume', label: '简历', prompt: '制作一份专业简历' },
   { key: 'ppt', label: 'PPT', prompt: '制作一份关于...的演示文稿' },
-  { key: 'research', label: '研究', prompt: '进行...的研究分析' },
-  { key: 'education', label: '教育', prompt: '设计一门...的课程' },
   { key: 'lifestyle', label: '生活', prompt: '规划...的生活计划' },
   { key: 'podcast', label: '播客', prompt: '为...生成播客脚本' },
   { key: 'design', label: '设计', prompt: '设计一个...的海报/Logo' },
@@ -276,6 +280,14 @@ const categoryConfig = ref({
     { key: '职位', label: '设计师' },
     { key: '职位', label: '技术岗位' },
   ],
+  // 医疗子分类（展示Prompt模板）
+  medical: [
+    { key: 'all', label: '全部' },
+  ],
+  // 法律子分类（展示Prompt模板）
+  legal: [
+    { key: 'all', label: '全部' },
+  ],
   // 研究子分类
   research: [
     { key: 'all', label: '全部' },
@@ -307,24 +319,60 @@ const categoryConfig = ref({
 });
 
 const categoryLabelMap = {
-  video: '视频',
+  // 职业专用分类
+  'medical': '🏥 医疗',
+  'legal': '⚖️ 法律',
+  'education': '👨‍🏫 教育',
+  'research': '🔬 研究',
+
+  // 通用分类
+  'writing': '写作',
+  'translation': '翻译',
+  'analysis': '分析',
+  'qa': '问答',
+  'creative': '创意',
+  'programming': '编程',
+  'rag': '检索增强',
+  'marketing': '营销',
+  'excel': 'Excel',
+  'resume': '简历',
+  'ppt': 'PPT',
+  'lifestyle': '生活',
+  'podcast': '播客',
+  'design': '设计',
+  'web': '网页',
+
+  // 其他分类
+  'video': '视频',
   'social-media': '社交媒体',
   'creative-writing': '创意写作',
   'code-project': '代码项目',
   'data-science': '数据科学',
   'tech-docs': '技术文档',
-  ecommerce: '电商',
+  'ecommerce': '电商',
   'marketing-pro': '营销推广',
-  legal: '法律',
-  learning: '学习',
-  health: '健康',
+  'learning': '学习',
+  'health': '健康',
   'time-management': '时间管理',
-  productivity: '效率',
-  career: '职业',
-  travel: '旅游'
+  'productivity': '效率',
+  'career': '职业',
+  'travel': '旅游',
+  'cooking': '烹饪',
+  'finance': '财务',
+  'gaming': '游戏',
+  'music': '音乐',
+  'photography': '摄影',
+
+  // 默认
+  'all': '全部',
+  'other': '其他',
+  'general': '通用'
 };
 
 const subcategoryLabelOverrides = {
+  // 特殊子分类
+  prompt: '提示词模板',
+
   academic: '学术',
   adventure: '冒险',
   analysis: '分析',
