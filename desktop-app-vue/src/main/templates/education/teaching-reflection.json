@@ -1,0 +1,70 @@
+{
+  "id": "tpl_education_teaching_reflection_105",
+  "name": "teaching-reflection",
+  "display_name": "教学反思记录",
+  "description": "课后反思和教学改进建议",
+  "icon": "📚",
+  "category": "education",
+  "subcategory": "教学反思",
+  "tags": [
+    "教学反思"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写教学反思：\n\n课程：{{courseName}}\n日期：{{date}}\n\n教学过程：\n{{teachingProcess}}\n\n存在问题：\n{{issues}}\n\n改进措施：\n{{improvements}}",
+  "variables_schema": [
+    {
+      "name": "courseName",
+      "type": "textarea",
+      "label": "courseName",
+      "required": true
+    },
+    {
+      "name": "date",
+      "type": "textarea",
+      "label": "date",
+      "required": true
+    },
+    {
+      "name": "teachingProcess",
+      "type": "textarea",
+      "label": "teachingProcess",
+      "required": true
+    },
+    {
+      "name": "issues",
+      "type": "textarea",
+      "label": "issues",
+      "required": true
+    },
+    {
+      "name": "improvements",
+      "type": "textarea",
+      "label": "improvements",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "教学反思记录",
+    "children": [
+      {
+        "type": "file",
+        "name": "教学反思记录.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

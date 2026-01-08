@@ -1,0 +1,70 @@
+{
+  "id": "tpl_legal_complaint_302",
+  "name": "complaint-draft",
+  "display_name": "起诉状代写",
+  "description": "民事、刑事起诉状撰写",
+  "icon": "⚖️",
+  "category": "legal",
+  "subcategory": "诉讼文书",
+  "tags": [
+    "诉讼文书"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写起诉状：\n\n原告：{{plaintiff}}\n被告：{{defendant}}\n案由：{{caseReason}}\n\n诉讼请求：\n{{claims}}\n\n事实与理由：\n{{factsAndReasons}}",
+  "variables_schema": [
+    {
+      "name": "plaintiff",
+      "type": "textarea",
+      "label": "plaintiff",
+      "required": true
+    },
+    {
+      "name": "defendant",
+      "type": "textarea",
+      "label": "defendant",
+      "required": true
+    },
+    {
+      "name": "caseReason",
+      "type": "textarea",
+      "label": "caseReason",
+      "required": true
+    },
+    {
+      "name": "claims",
+      "type": "textarea",
+      "label": "claims",
+      "required": true
+    },
+    {
+      "name": "factsAndReasons",
+      "type": "textarea",
+      "label": "factsAndReasons",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "起诉状代写",
+    "children": [
+      {
+        "type": "file",
+        "name": "起诉状代写.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

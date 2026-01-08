@@ -1,0 +1,70 @@
+{
+  "id": "tpl_legal_opinion_301",
+  "name": "legal-opinion",
+  "display_name": "法律意见书",
+  "description": "专业法律意见和风险分析",
+  "icon": "⚖️",
+  "category": "legal",
+  "subcategory": "法律文书",
+  "tags": [
+    "法律文书"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写法律意见书：\n\n委托人：{{client}}\n案由：{{caseReason}}\n\n案件事实：\n{{facts}}\n\n法律分析：\n{{legalAnalysis}}\n\n意见结论：\n{{conclusion}}",
+  "variables_schema": [
+    {
+      "name": "client",
+      "type": "textarea",
+      "label": "client",
+      "required": true
+    },
+    {
+      "name": "caseReason",
+      "type": "textarea",
+      "label": "caseReason",
+      "required": true
+    },
+    {
+      "name": "facts",
+      "type": "textarea",
+      "label": "facts",
+      "required": true
+    },
+    {
+      "name": "legalAnalysis",
+      "type": "textarea",
+      "label": "legalAnalysis",
+      "required": true
+    },
+    {
+      "name": "conclusion",
+      "type": "textarea",
+      "label": "conclusion",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "法律意见书",
+    "children": [
+      {
+        "type": "file",
+        "name": "法律意见书.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

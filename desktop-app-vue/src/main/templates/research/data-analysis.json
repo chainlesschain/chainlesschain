@@ -1,49 +1,49 @@
 {
-  "id": "tpl_research_literature_review_201",
-  "name": "literature-review",
-  "display_name": "文献综述撰写",
-  "description": "学术文献综述和研究现状分析",
+  "id": "tpl_research_data_analysis_202",
+  "name": "data-analysis",
+  "display_name": "数据分析报告",
+  "description": "研究数据分析和结果解读",
   "icon": "🔬",
   "category": "research",
-  "subcategory": "文献研究",
+  "subcategory": "数据分析",
   "tags": [
-    "文献研究"
+    "数据分析"
   ],
   "project_type": "document",
-  "prompt_template": "请帮我撰写文献综述：\n\n研究主题：{{researchTopic}}\n研究领域：{{field}}\n\n文献范围：\n{{literatureScope}}\n\n研究现状：\n{{currentStatus}}\n\n请生成完整的文献综述",
+  "prompt_template": "请帮我撰写数据分析报告：\n\n研究课题：{{researchTitle}}\n数据来源：{{dataSource}}\n\n分析方法：\n{{analysisMethod}}\n\n数据结果：\n{{results}}",
   "variables_schema": [
     {
-      "name": "researchTopic",
+      "name": "researchTitle",
       "type": "textarea",
-      "label": "researchTopic",
+      "label": "researchTitle",
       "required": true
     },
     {
-      "name": "field",
+      "name": "dataSource",
       "type": "textarea",
-      "label": "field",
+      "label": "dataSource",
       "required": true
     },
     {
-      "name": "literatureScope",
+      "name": "analysisMethod",
       "type": "textarea",
-      "label": "literatureScope",
+      "label": "analysisMethod",
       "required": true
     },
     {
-      "name": "currentStatus",
+      "name": "results",
       "type": "textarea",
-      "label": "currentStatus",
+      "label": "results",
       "required": true
     }
   ],
   "file_structure": {
     "type": "folder",
-    "name": "文献综述撰写",
+    "name": "数据分析报告",
     "children": [
       {
         "type": "file",
-        "name": "文献综述撰写.md"
+        "name": "数据分析报告.md"
       }
     ]
   },

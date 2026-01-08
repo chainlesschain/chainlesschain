@@ -1,0 +1,64 @@
+{
+  "id": "tpl_legal_defense_303",
+  "name": "defense-statement",
+  "display_name": "答辩状撰写",
+  "description": "诉讼答辩意见和抗辩理由",
+  "icon": "⚖️",
+  "category": "legal",
+  "subcategory": "诉讼文书",
+  "tags": [
+    "诉讼文书"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我撰写答辩状：\n\n答辩人：{{defendant}}\n原告主张：\n{{plaintiffClaims}}\n\n答辩意见：\n{{defenseOpinion}}\n\n事实与理由：\n{{factsAndReasons}}",
+  "variables_schema": [
+    {
+      "name": "defendant",
+      "type": "textarea",
+      "label": "defendant",
+      "required": true
+    },
+    {
+      "name": "plaintiffClaims",
+      "type": "textarea",
+      "label": "plaintiffClaims",
+      "required": true
+    },
+    {
+      "name": "defenseOpinion",
+      "type": "textarea",
+      "label": "defenseOpinion",
+      "required": true
+    },
+    {
+      "name": "factsAndReasons",
+      "type": "textarea",
+      "label": "factsAndReasons",
+      "required": true
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "答辩状撰写",
+    "children": [
+      {
+        "type": "file",
+        "name": "答辩状撰写.md"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}
