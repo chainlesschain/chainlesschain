@@ -1,0 +1,123 @@
+{
+  "id": "tpl_medical_literature_003",
+  "name": "literature-summary",
+  "display_name": "医学文献摘要",
+  "description": "快速生成医学文献的结构化摘要和关键信息提取",
+  "icon": "📚",
+  "category": "medical",
+  "subcategory": "学术研究",
+  "tags": [
+    "文献综述",
+    "医学研究",
+    "学术摘要",
+    "证据总结"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我生成医学文献摘要：\n\n文献标题：{{title}}\n\n作者：{{authors}}\n\n发表期刊：{{journal}}\n\n发表年份：{{year}}\n\n研究类型：{{studyType}}\n\n研究目的：\n{{objective}}\n\n研究方法：\n{{methods}}\n\n主要发现：\n{{findings}}\n\n结论：\n{{conclusions}}\n\n临床意义：\n{{clinicalSignificance}}\n\n请生成一份结构化的医学文献摘要，包括：\n1. 研究背景与目的\n2. 研究方法概述\n3. 主要研究结果\n4. 结论与临床应用价值\n5. 研究局限性\n6. 对临床实践的启示",
+  "variables_schema": [
+    {
+      "name": "title",
+      "type": "text",
+      "label": "文献标题",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "authors",
+      "type": "text",
+      "label": "作者",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "journal",
+      "type": "text",
+      "label": "发表期刊",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "year",
+      "type": "text",
+      "label": "发表年份",
+      "default": "2024",
+      "required": true
+    },
+    {
+      "name": "studyType",
+      "type": "select",
+      "label": "研究类型",
+      "default": "临床试验",
+      "required": true,
+      "options": [
+        {"value": "临床试验", "label": "临床试验"},
+        {"value": "队列研究", "label": "队列研究"},
+        {"value": "病例对照研究", "label": "病例对照研究"},
+        {"value": "Meta分析", "label": "Meta分析"},
+        {"value": "综述", "label": "综述"},
+        {"value": "病例报告", "label": "病例报告"}
+      ]
+    },
+    {
+      "name": "objective",
+      "type": "textarea",
+      "label": "研究目的",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "methods",
+      "type": "textarea",
+      "label": "研究方法",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "findings",
+      "type": "textarea",
+      "label": "主要发现",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "conclusions",
+      "type": "textarea",
+      "label": "结论",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "clinicalSignificance",
+      "type": "textarea",
+      "label": "临床意义",
+      "default": "",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "医学文献摘要",
+    "children": [
+      {
+        "type": "file",
+        "name": "文献摘要.md",
+        "description": "文献摘要正文"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

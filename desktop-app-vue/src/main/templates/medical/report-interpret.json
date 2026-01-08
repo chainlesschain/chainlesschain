@@ -1,0 +1,89 @@
+{
+  "id": "tpl_medical_report_007",
+  "name": "report-interpret",
+  "display_name": "医疗报告解读",
+  "description": "将检查报告转换为患者易懂的解读说明",
+  "icon": "📋",
+  "category": "medical",
+  "subcategory": "患者教育",
+  "tags": [
+    "报告解读",
+    "检查报告",
+    "患者教育",
+    "健康科普"
+  ],
+  "project_type": "document",
+  "prompt_template": "请帮我解读医疗报告：\n\n报告类型：{{reportType}}\n\n检查项目：{{examName}}\n\n检查日期：{{examDate}}\n\n报告内容：\n{{reportContent}}\n\n异常指标：\n{{abnormalFindings}}\n\n请生成一份患者易于理解的报告解读，包括：\n\n1. 检查目的和方法简介\n2. 主要检查结果说明\n3. 异常指标的含义和可能原因\n4. 临床意义解释\n5. 需要注意的事项\n6. 建议的后续措施\n7. 常见问题解答\n\n要求：\n- 使用通俗易懂的语言\n- 避免过度解读引起不必要的焦虑\n- 强调需由医生综合判断\n- 提供实用的健康建议",
+  "variables_schema": [
+    {
+      "name": "reportType",
+      "type": "select",
+      "label": "报告类型",
+      "default": "血液检查",
+      "required": true,
+      "options": [
+        {"value": "血液检查", "label": "血液检查"},
+        {"value": "影像检查", "label": "影像检查"},
+        {"value": "病理检查", "label": "病理检查"},
+        {"value": "内镜检查", "label": "内镜检查"},
+        {"value": "超声检查", "label": "超声检查"},
+        {"value": "心电图", "label": "心电图"},
+        {"value": "其他检查", "label": "其他检查"}
+      ]
+    },
+    {
+      "name": "examName",
+      "type": "text",
+      "label": "检查项目",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "examDate",
+      "type": "text",
+      "label": "检查日期",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "reportContent",
+      "type": "textarea",
+      "label": "报告内容",
+      "default": "",
+      "required": true
+    },
+    {
+      "name": "abnormalFindings",
+      "type": "textarea",
+      "label": "异常指标",
+      "default": "",
+      "required": false
+    }
+  ],
+  "file_structure": {
+    "type": "folder",
+    "name": "报告解读-{{examName}}",
+    "children": [
+      {
+        "type": "file",
+        "name": "报告解读说明.md",
+        "description": "报告解读正文"
+      }
+    ]
+  },
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "required_skills": [
+    "skill_document_processing",
+    "skill_content_creation"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
+  "execution_engine": "document"
+}

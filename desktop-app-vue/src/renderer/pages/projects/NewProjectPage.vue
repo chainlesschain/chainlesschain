@@ -12,12 +12,12 @@
     <!-- 创建方式选择 -->
     <div class="page-content">
       <a-tabs v-model:activeKey="activeTab" type="card" size="large">
-        <!-- AI辅助创建 -->
-        <a-tab-pane key="ai" tab="AI辅助创建">
+        <!-- 自定义创建 -->
+        <a-tab-pane key="ai" tab="自定义创建">
           <template #tab>
             <span>
               <RobotOutlined />
-              AI辅助创建
+              自定义创建
             </span>
           </template>
           <AIProjectCreator @create="handleCreateProject" />

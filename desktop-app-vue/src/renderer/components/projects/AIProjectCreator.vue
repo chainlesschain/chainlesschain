@@ -409,17 +409,50 @@ const handleTemplateCancel = () => {
 // 加载Prompt模板
 const loadPromptTemplates = async () => {
   try {
+    console.log('[AIProjectCreator] 开始加载Prompt模板...');
     loadingPromptTemplates.value = true;
+
+    // 检查electronAPI
+    if (!window.electronAPI || !window.electronAPI.promptTemplate) {
+      console.error('[AIProjectCreator] ❌ electronAPI.promptTemplate 不可用');
+      message.error('Prompt模板API不可用');
+      return;
+    }
+
     // 通过electronAPI加载所有Prompt模板
+    console.log('[AIProjectCreator] 调用 electronAPI.promptTemplate.getAll()...');
     const allTemplates = await window.electronAPI.promptTemplate.getAll();
+    console.log(`[AIProjectCreator] ✓ 获取到 ${allTemplates.length} 个模板`);
+
+    // 显示所有分类
+    const categories = [...new Set(allTemplates.map(t => t.category))];
+    console.log('[AIProjectCreator] 所有分类:', categories);
+
+    // 统计每个分类的数量
+    const categoryCounts = {};
+    allTemplates.forEach(t => {
+      categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
+    });
+    console.log('[AIProjectCreator] 分类统计:', categoryCounts);
+
     // 只保留职业专用模板（medical, legal, education, research）
     promptTemplates.value = allTemplates.filter(t =>
       ['medical', 'legal', 'education', 'research'].includes(t.category)
     );
-    console.log('Loaded prompt templates:', promptTemplates.value.length);
+
+    console.log(`[AIProjectCreator] ✓ 职业专用模板: ${promptTemplates.value.length} 个`);
+    console.log('[AIProjectCreator] 医疗:', allTemplates.filter(t => t.category === 'medical').length);
+    console.log('[AIProjectCreator] 法律:', allTemplates.filter(t => t.category === 'legal').length);
+    console.log('[AIProjectCreator] 教育:', allTemplates.filter(t => t.category === 'education').length);
+    console.log('[AIProjectCreator] 研究:', allTemplates.filter(t => t.category === 'research').length);
+
+    if (promptTemplates.value.length === 0) {
+      console.warn('[AIProjectCreator] ⚠️ 职业专用模板数量为0！');
+      message.warning('未找到职业专用模板');
+    }
   } catch (error) {
-    console.error('Failed to load prompt templates:', error);
-    message.error('加载Prompt模板失败');
+    console.error('[AIProjectCreator] ❌ 加载Prompt模板失败:', error);
+    message.error('加载Prompt模板失败: ' + error.message);
     promptTemplates.value = [];
   } finally {
     loadingPromptTemplates.value = false;

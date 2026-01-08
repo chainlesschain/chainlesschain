@@ -149,6 +149,11 @@ class ProjectTemplateManager {
 
     const templatesDir = path.join(__dirname, '../templates');
     const categories = [
+      // 职业专用分类（优先加载）
+      'medical',              // 医疗
+      'legal',                // 法律
+      'education',            // 教育
+      'research',             // 研究
       // 原有分类
       'writing',
       'ppt',
@@ -157,9 +162,7 @@ class ProjectTemplateManager {
       'design',
       'podcast',
       'resume',
-      'research',
       'marketing',
-      'education',
       'lifestyle',
       // 新增分类（v0.19.0）
       'video',                // 视频内容
@@ -170,7 +173,6 @@ class ProjectTemplateManager {
       'tech-docs',            // 技术文档
       'ecommerce',            // 电商运营
       'marketing-pro',        // 营销推广
-      'legal',                // 法律文档
       'learning',             // 学习成长
       'health',               // 健康生活
       'time-management',      // 时间管理

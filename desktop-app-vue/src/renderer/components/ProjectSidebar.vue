@@ -36,7 +36,7 @@
         <template #icon>
           <span class="ai-icon">AI</span>
         </template>
-        AI模板新建
+        自定义新建
       </a-button>
     </div>
 
@@ -301,9 +301,9 @@ const handleQuickCreate = () => {
   quickCreateForm.value = { name: '', description: '' };
 };
 
-// AI模板新建 - 回到首页
+// 自定义新建 - 跳转到新建项目页面（包含职业专用模板）
 const handleAICreate = () => {
-  router.push('/');
+  router.push('/projects/new');
 };
 
 // 新建项目 - 与快速新建相同

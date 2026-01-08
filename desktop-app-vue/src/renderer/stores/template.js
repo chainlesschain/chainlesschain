@@ -42,17 +42,18 @@ export const useTemplateStore = defineStore('template', () => {
   async function fetchTemplates(filters = {}) {
     loading.value = true
     try {
+      // 加载项目模板（包含职业专用模板）
       const result = await electronAPI.template.getAll(filters)
 
       if (result.success) {
         templates.value = result.templates || []
-        console.log('[TemplateStore] 成功加载模板:', templates.value.length)
-        return templates.value
+        console.log('[TemplateStore] 成功加载项目模板:', templates.value.length)
       } else {
-        console.error('[TemplateStore] 加载模板失败:', result.error)
+        console.error('[TemplateStore] 加载项目模板失败:', result.error)
         templates.value = []
-        throw new Error(result.error || '加载模板失败')
       }
+
+      return templates.value
     } catch (error) {
       console.error('[TemplateStore] 加载模板异常:', error)
       templates.value = []
@@ -113,12 +114,27 @@ export const useTemplateStore = defineStore('template', () => {
 
   async function getTemplateById(templateId) {
     try {
-      const result = await electronAPI.template.getById(templateId)
+      // 先尝试从已加载的模板中查找
+      const template = templates.value.find(t => t.id === templateId)
+      if (template) {
+        return template
+      }
 
-      if (result.success) {
-        return result.template
+      // 检查是否为Prompt模板
+      const isPromptTemplate = templateId.startsWith('builtin-') || templateId.startsWith('custom-')
+
+      if (isPromptTemplate && electronAPI.promptTemplate && electronAPI.promptTemplate.get) {
+        // 使用Prompt模板API（方法名是get，不是getById）
+        const promptTemplate = await electronAPI.promptTemplate.get(templateId)
+        return promptTemplate
       } else {
-        throw new Error(result.error || '获取模板失败')
+        // 使用常规项目模板API
+        const result = await electronAPI.template.getById(templateId)
+        if (result.success) {
+          return result.template
+        } else {
+          throw new Error(result.error || '获取模板失败')
+        }
       }
     } catch (error) {
       console.error('[TemplateStore] 获取模板异常:', error)
@@ -150,10 +166,8 @@ export const useTemplateStore = defineStore('template', () => {
       // 使用 JSON 序列化进行深拷贝，确保移除所有响应式引用
       const plainVariables = JSON.parse(JSON.stringify(toRaw(variables)))
 
-      const result = await electronAPI.template.renderPrompt(
-        templateId,
-        plainVariables
-      )
+      // 使用项目模板API渲染
+      const result = await electronAPI.template.renderPrompt(templateId, plainVariables)
 
       if (result.success) {
         return result.renderedPrompt
