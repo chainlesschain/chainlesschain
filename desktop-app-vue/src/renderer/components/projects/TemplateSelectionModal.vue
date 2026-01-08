@@ -258,6 +258,12 @@ const pageSize = ref(12);
 
 // 分类选项
 const categories = [
+  // 职业专用分类
+  { label: '🏥 医疗', value: 'medical' },
+  { label: '⚖️ 法律', value: 'legal' },
+  { label: '👨‍🏫 教育', value: 'education' },
+  { label: '🔬 研究', value: 'research' },
+  // 通用分类
   { label: '写作', value: 'writing' },
   { label: 'PPT', value: 'ppt' },
   { label: 'Excel', value: 'excel' },
