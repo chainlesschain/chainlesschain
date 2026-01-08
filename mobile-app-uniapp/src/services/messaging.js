@@ -11,6 +11,7 @@
 import database from './database'
 import didService from './did'
 import friendService from './friends'
+import websocketService from './websocket'
 import nacl from 'tweetnacl-util'
 import { encodeBase64, decodeBase64 } from 'tweetnacl-util'
 
@@ -18,6 +19,10 @@ class MessagingService {
   constructor() {
     this.conversations = []
     this.messageListeners = []
+    this.currentDid = null
+    this.realtimeHandlersRegistered = false
+    this._handleRealtimeIncomingMessage = null
+    this._handleRealtimeStatusUpdate = null
   }
 
   /**
@@ -33,6 +38,8 @@ class MessagingService {
 
       await this.loadConversations()
       console.log('消息服务初始化完成')
+
+      await this._setupRealtimeChannel()
     } catch (error) {
       console.error('消息服务初始化失败:', error)
       throw error
@@ -98,9 +105,14 @@ class MessagingService {
       // 保存到数据库
       await database.saveMessage(messageRecord)
 
-      // TODO: 通过WebSocket发送消息（Week 3-4后期实现）
-      // 模拟发送成功
-      await this._simulateMessageSent(messageRecord.id)
+      const realtimeResult = await this._sendThroughRealtimeChannel(messageRecord)
+      if (realtimeResult?.ok) {
+        await database.updateMessageStatus(messageRecord.id, 'sent')
+      } else if (realtimeResult?.queued) {
+        console.log('[MessagingService] 消息已加入实时发送队列')
+      } else if (realtimeResult?.skipped) {
+        await this._simulateMessageSent(messageRecord.id)
+      }
 
       // 更新会话
       await this._updateConversation(messageRecord)
@@ -126,6 +138,7 @@ class MessagingService {
     try {
       // 获取当前用户身份
       const currentIdentity = await didService.getCurrentIdentity()
+      const toDid = encryptedMessage.toDid || currentIdentity?.did
 
       // 解密消息
       const senderDidDoc = await didService.resolveDID(encryptedMessage.fromDid)
@@ -138,17 +151,27 @@ class MessagingService {
         senderPublicKey
       )
 
+      const createdAt = encryptedMessage.createdAt || new Date().toISOString()
+
       // 保存消息
       const messageRecord = {
         ...encryptedMessage,
+        toDid,
+        createdAt,
+        updatedAt: encryptedMessage.updatedAt || createdAt,
+        conversationId: encryptedMessage.conversationId || this._getConversationId(encryptedMessage.fromDid, toDid),
         status: 'delivered',
-        decryptedContent: decryptedContent
+        decryptedContent: decryptedContent,
+        metadata: encryptedMessage.metadata || {}
       }
 
       await database.saveMessage(messageRecord)
 
       // 更新会话
       await this._updateConversation(messageRecord)
+
+      // 发送送达回执
+      await this._sendDeliveryReceipt(messageRecord)
 
       // 通知监听器
       this._notifyListeners('message:received', messageRecord)
@@ -214,7 +237,19 @@ class MessagingService {
    */
   async markAsRead(conversationId) {
     try {
+      const currentIdentity = await didService.getCurrentIdentity()
+
       await database.markConversationAsRead(conversationId)
+
+      if (currentIdentity) {
+        const unreadMessageIds = await database.getUnreadMessages(conversationId, currentIdentity.did)
+        if (unreadMessageIds.length > 0) {
+          await Promise.all(
+            unreadMessageIds.map(messageId => database.updateMessageStatus(messageId, 'read'))
+          )
+          await this._sendReadReceipt(conversationId, unreadMessageIds, currentIdentity.did)
+        }
+      }
 
       // 通知监听器
       this._notifyListeners('conversation:read', { conversationId })
@@ -466,6 +501,75 @@ class MessagingService {
   }
 
   /**
+   * 通过实时通道发送消息
+   * @private
+   */
+  async _sendThroughRealtimeChannel(messageRecord) {
+    try {
+      await this._setupRealtimeChannel()
+
+      const payload = {
+        messageId: messageRecord.id,
+        fromDid: messageRecord.fromDid,
+        toDid: messageRecord.toDid,
+        type: messageRecord.type,
+        content: messageRecord.content,
+        metadata: messageRecord.metadata || {},
+        createdAt: messageRecord.createdAt,
+        conversationId: messageRecord.conversationId
+      }
+
+      return await websocketService.send('message:send', payload)
+    } catch (error) {
+      console.error('通过实时通道发送消息失败:', error)
+      return { ok: false, error }
+    }
+  }
+
+  /**
+   * 发送送达回执
+   * @private
+   */
+  async _sendDeliveryReceipt(messageRecord) {
+    if (!messageRecord?.id) {
+      return
+    }
+
+    try {
+      await websocketService.send('message:delivered', {
+        messageId: messageRecord.id,
+        conversationId: messageRecord.conversationId,
+        fromDid: messageRecord.fromDid,
+        toDid: messageRecord.toDid,
+        deliveredBy: messageRecord.toDid,
+        createdAt: messageRecord.createdAt
+      })
+    } catch (error) {
+      console.error('发送送达回执失败:', error)
+    }
+  }
+
+  /**
+   * 发送已读回执
+   * @private
+   */
+  async _sendReadReceipt(conversationId, messageIds = [], readerDid = null) {
+    if (!messageIds || messageIds.length === 0) {
+      return
+    }
+
+    try {
+      await websocketService.send('message:read', {
+        conversationId,
+        messageIds,
+        readerDid
+      })
+    } catch (error) {
+      console.error('发送已读回执失败:', error)
+    }
+  }
+
+  /**
    * 通知监听器
    * @private
    */
@@ -507,6 +611,67 @@ class MessagingService {
     } catch (error) {
       console.error('搜索消息失败:', error)
       return []
+    }
+  }
+
+  /**
+   * 初始化实时消息通道
+   * @private
+   */
+  async _setupRealtimeChannel() {
+    try {
+      const identity = await didService.getCurrentIdentity()
+      if (!identity) {
+        return
+      }
+
+      this.currentDid = identity.did
+      await websocketService.ensureConnection({ did: identity.did })
+
+      if (this.realtimeHandlersRegistered) {
+        return
+      }
+
+      this._handleRealtimeIncomingMessage = async (payload = {}) => {
+        if (!payload.fromDid || !payload.toDid || !payload.content) {
+          return
+        }
+
+        const normalized = {
+          id: payload.messageId || payload.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+          fromDid: payload.fromDid,
+          toDid: payload.toDid,
+          type: payload.type || 'text',
+          content: payload.content,
+          metadata: payload.metadata || {},
+          conversationId: payload.conversationId || this._getConversationId(payload.fromDid, payload.toDid),
+          createdAt: payload.createdAt || new Date().toISOString(),
+          updatedAt: payload.updatedAt || payload.createdAt || new Date().toISOString()
+        }
+
+        await this.receiveMessage(normalized)
+      }
+
+      this._handleRealtimeStatusUpdate = async (payload = {}) => {
+        if (!payload.messageId) {
+          return
+        }
+
+        const status = payload.status || (payload.type === 'message:read' ? 'read' : 'delivered')
+        await database.updateMessageStatus(payload.messageId, status)
+        this._notifyListeners('message:status', {
+          messageId: payload.messageId,
+          status
+        })
+      }
+
+      websocketService.on('message:incoming', this._handleRealtimeIncomingMessage)
+      websocketService.on('message:delivered', this._handleRealtimeStatusUpdate)
+      websocketService.on('message:read', this._handleRealtimeStatusUpdate)
+
+      this.realtimeHandlersRegistered = true
+    } catch (error) {
+      console.error('[MessagingService] 初始化实时通道失败:', error)
     }
   }
 }

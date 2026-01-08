@@ -12,12 +12,17 @@
 import database from './database'
 import didService from './did'
 import authService from './auth'
+import websocketService from './websocket'
 
 class FriendService {
   constructor() {
     this.friendRequests = []
     this.friends = []
     this.blockedUsers = []
+    this.currentDid = null
+    this.realtimeHandlersRegistered = false
+    this._handleIncomingFriendRequest = null
+    this._handleFriendAccepted = null
   }
 
   /**
@@ -35,6 +40,8 @@ class FriendService {
       await this.loadFriendRequests()
       await this.loadBlockedUsers()
       console.log('好友服务初始化完成')
+
+      await this._setupRealtimeChannel()
     } catch (error) {
       console.error('好友服务初始化失败:', error)
       throw error
@@ -77,6 +84,8 @@ class FriendService {
       if (!currentIdentity) {
         throw new Error('请先创建DID身份')
       }
+      this.currentDid = currentIdentity.did
+      await websocketService.ensureConnection({ did: currentIdentity.did })
 
       // 创建好友请求
       const request = {
@@ -97,7 +106,7 @@ class FriendService {
       // 保存到数据库
       await database.saveFriendRequest(request)
 
-      // TODO: 通过WebSocket发送给对方（Week 3-4后期实现）
+      await websocketService.send('friend:request', { request })
 
       return {
         success: true,
@@ -140,6 +149,8 @@ class FriendService {
 
       // 获取当前用户身份
       const currentIdentity = await didService.getCurrentIdentity()
+      this.currentDid = currentIdentity.did
+      await websocketService.ensureConnection({ did: currentIdentity.did })
 
       // 创建双向好友关系
       const friendship = {
@@ -161,10 +172,14 @@ class FriendService {
         updatedAt: new Date().toISOString()
       })
 
+      await websocketService.send('friend:accepted', {
+        friendship: {
+          ...friendship
+        }
+      })
+
       // 重新加载好友列表
       await this.loadFriends()
-
-      // TODO: 通知对方（Week 3-4后期实现）
 
       return {
         success: true,
@@ -540,6 +555,73 @@ class FriendService {
       pendingReceivedCount: pendingReceived.length,
       pendingSentCount: pendingSent.length,
       blockedCount: this.blockedUsers.length
+    }
+  }
+
+  /**
+   * 初始化实时好友通道
+   * @private
+   */
+  async _setupRealtimeChannel() {
+    try {
+      const identity = await didService.getCurrentIdentity()
+      if (!identity) {
+        return
+      }
+
+      this.currentDid = identity.did
+      await websocketService.ensureConnection({ did: identity.did })
+
+      if (this.realtimeHandlersRegistered) {
+        return
+      }
+
+      this._handleIncomingFriendRequest = async (payload = {}) => {
+        const request = payload.request
+        if (!request || request.toDid !== this.currentDid) {
+          return
+        }
+
+        const normalized = {
+          ...request,
+          direction: 'received',
+          status: request.status || 'pending',
+          createdAt: request.createdAt || new Date().toISOString(),
+          updatedAt: request.updatedAt || new Date().toISOString()
+        }
+
+        await database.saveFriendRequest(normalized)
+        await this.loadFriendRequests()
+      }
+
+      this._handleFriendAccepted = async (payload = {}) => {
+        const friendship = payload.friendship
+        if (!friendship || friendship.userDid !== this.currentDid) {
+          return
+        }
+
+        const existing = await database.getFriendByDid(friendship.friendDid)
+        if (!existing) {
+          await database.saveFriend({
+            id: friendship.id || `friend_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            userDid: friendship.userDid,
+            friendDid: friendship.friendDid,
+            nickname: friendship.nickname || '',
+            notes: friendship.notes || '',
+            createdAt: friendship.createdAt || new Date().toISOString(),
+            updatedAt: friendship.updatedAt || new Date().toISOString()
+          })
+        }
+
+        await this.loadFriends()
+      }
+
+      websocketService.on('friend:request', this._handleIncomingFriendRequest)
+      websocketService.on('friend:accepted', this._handleFriendAccepted)
+
+      this.realtimeHandlersRegistered = true
+    } catch (error) {
+      console.error('[FriendService] 初始化好友实时通道失败:', error)
     }
   }
 }

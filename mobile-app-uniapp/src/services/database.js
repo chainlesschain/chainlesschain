@@ -2189,6 +2189,37 @@ class DatabaseService {
   }
 
   /**
+   * 获取未读消息ID列表
+   * @param {string} conversationId 会话ID
+   * @param {string} userDid 当前用户DID（接收方）
+   * @returns {Promise<Array<string>>}
+   */
+  async getUnreadMessages(conversationId, userDid) {
+    if (this.isH5) {
+      this.ensureH5Data('messages')
+      if (!this.h5Data.messages) {
+        return []
+      }
+      return this.h5Data.messages
+        .filter(m =>
+          m.conversationId === conversationId &&
+          m.toDid === userDid &&
+          m.status !== 'read'
+        )
+        .map(m => m.id)
+    }
+
+    const sql = `
+      SELECT id FROM messages
+      WHERE conversation_id = ?
+        AND to_did = ?
+        AND status != 'read'
+    `
+    const result = await this.selectSql(sql, [conversationId, userDid])
+    return (result || []).map(row => row.id)
+  }
+
+  /**
    * 获取会话列表
    * @param {string} userDid 用户DID
    * @returns {Promise<Array>}
