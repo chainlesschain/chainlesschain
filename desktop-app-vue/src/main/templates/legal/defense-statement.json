@@ -16,25 +16,29 @@
       "name": "defendant",
       "type": "textarea",
       "label": "defendant",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     },
     {
       "name": "plaintiffClaims",
       "type": "textarea",
       "label": "plaintiffClaims",
-      "required": true
+      "required": true,
+      "default": "请求判令被告支付违法解除劳动合同赔偿金"
     },
     {
       "name": "defenseOpinion",
       "type": "textarea",
       "label": "defenseOpinion",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     },
     {
       "name": "factsAndReasons",
       "type": "textarea",
       "label": "factsAndReasons",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     }
   ],
   "file_structure": {

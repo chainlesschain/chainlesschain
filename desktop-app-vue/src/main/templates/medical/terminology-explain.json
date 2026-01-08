@@ -19,7 +19,7 @@
       "name": "terminology",
       "type": "text",
       "label": "医学术语",
-      "default": "",
+      "default": "示例内容",
       "required": true
     },
     {
@@ -36,10 +36,22 @@
       "default": "普通患者",
       "required": true,
       "options": [
-        {"value": "普通患者", "label": "普通患者"},
-        {"value": "患者家属", "label": "患者家属"},
-        {"value": "医学生", "label": "医学生"},
-        {"value": "非专科医生", "label": "非专科医生"}
+        {
+          "value": "普通患者",
+          "label": "普通患者"
+        },
+        {
+          "value": "患者家属",
+          "label": "患者家属"
+        },
+        {
+          "value": "医学生",
+          "label": "医学生"
+        },
+        {
+          "value": "非专科医生",
+          "label": "非专科医生"
+        }
       ]
     }
   ],

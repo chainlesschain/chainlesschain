@@ -16,19 +16,22 @@
       "name": "caseName",
       "type": "textarea",
       "label": "caseName",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     },
     {
       "name": "evidenceMaterials",
       "type": "textarea",
       "label": "evidenceMaterials",
-      "required": true
+      "required": true,
+      "default": "1. 劳动合同 2. 解除通知书 3. 工资流水"
     },
     {
       "name": "provingPurpose",
       "type": "textarea",
       "label": "provingPurpose",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     }
   ],
   "file_structure": {

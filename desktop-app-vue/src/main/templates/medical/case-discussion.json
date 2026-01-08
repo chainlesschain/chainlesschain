@@ -19,70 +19,70 @@
       "name": "topic",
       "type": "text",
       "label": "讨论主题",
-      "default": "",
+      "default": "疑难病例讨论：不明原因发热",
       "required": true
     },
     {
       "name": "discussionDate",
       "type": "text",
       "label": "讨论时间",
-      "default": "",
+      "default": "2026-01-08",
       "required": true
     },
     {
       "name": "moderator",
       "type": "text",
       "label": "主持人",
-      "default": "",
+      "default": "李主任",
       "required": true
     },
     {
       "name": "departments",
       "type": "text",
       "label": "参与科室",
-      "default": "",
+      "default": "内科、感染科、检验科",
       "required": true
     },
     {
       "name": "participants",
       "type": "textarea",
       "label": "参与人员",
-      "default": "",
+      "default": "内科主任医师李医生、感染科副主任医师王医生、检验科主管技师张技师",
       "required": true
     },
     {
       "name": "caseSummary",
       "type": "textarea",
       "label": "病例摘要",
-      "default": "",
+      "default": "患者男性，52岁，因\"反复发热1个月\"入院。体温波动于37.5-39.2℃，伴乏力、盗汗。",
       "required": true
     },
     {
       "name": "discussionPoints",
       "type": "textarea",
       "label": "讨论要点",
-      "default": "",
+      "default": "1. 发热原因分析\n2. 鉴别诊断\n3. 进一步检查建议",
       "required": true
     },
     {
       "name": "departmentOpinions",
       "type": "textarea",
       "label": "各科室意见",
-      "default": "",
+      "default": "内科：建议完善自身免疫相关检查\n感染科：需排除隐匿性感染\n检验科：血培养已送检",
       "required": true
     },
     {
       "name": "conclusions",
       "type": "textarea",
       "label": "讨论结论",
-      "default": "",
+      "default": "初步诊断：不明原因发热，需进一步检查明确病因",
       "required": true
     },
     {
       "name": "followUpPlan",
       "type": "textarea",
       "label": "后续处理计划",
-      "default": "",
+      "default": "1. 完善风湿免疫相关检查\n2. 行PET-CT检查\n3. 继续观察体温变化",
       "required": true
     }
   ],

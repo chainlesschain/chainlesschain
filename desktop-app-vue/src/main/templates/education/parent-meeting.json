@@ -16,25 +16,29 @@
       "name": "meetingTheme",
       "type": "textarea",
       "label": "meetingTheme",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     },
     {
       "name": "className",
       "type": "textarea",
       "label": "className",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     },
     {
       "name": "classStatus",
       "type": "textarea",
       "label": "classStatus",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     },
     {
       "name": "keyPoints",
       "type": "textarea",
       "label": "keyPoints",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     }
   ],
   "file_structure": {

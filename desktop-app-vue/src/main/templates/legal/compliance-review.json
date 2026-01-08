@@ -16,25 +16,29 @@
       "name": "company",
       "type": "textarea",
       "label": "company",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     },
     {
       "name": "scope",
       "type": "textarea",
       "label": "scope",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     },
     {
       "name": "findings",
       "type": "textarea",
       "label": "findings",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     },
     {
       "name": "recommendations",
       "type": "textarea",
       "label": "recommendations",
-      "required": true
+      "required": true,
+      "default": "详细描述法律相关内容"
     }
   ],
   "file_structure": {

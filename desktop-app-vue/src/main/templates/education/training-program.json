@@ -18,7 +18,8 @@
       "name": "trainingTopic",
       "label": "培训主题",
       "type": "string",
-      "required": true
+      "required": true,
+      "default": "记叙文写作"
     },
     {
       "name": "targetGroup",

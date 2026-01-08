@@ -196,9 +196,9 @@
         <a-divider>变量定义</a-divider>
         <div class="template-variables">
           <a-table
-            v-if="selectedTemplate.variables?.length"
+            v-if="selectedTemplate.variables_schema?.length"
             :columns="variableColumns"
-            :data-source="selectedTemplate.variables"
+            :data-source="selectedTemplate.variables_schema"
             :pagination="false"
             size="small"
           >

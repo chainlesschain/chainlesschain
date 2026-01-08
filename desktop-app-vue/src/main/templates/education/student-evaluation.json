@@ -16,25 +16,29 @@
       "name": "studentName",
       "type": "textarea",
       "label": "studentName",
-      "required": true
+      "required": true,
+      "default": "李明"
     },
     {
       "name": "semester",
       "type": "textarea",
       "label": "semester",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     },
     {
       "name": "academicPerformance",
       "type": "textarea",
       "label": "academicPerformance",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     },
     {
       "name": "overallPerformance",
       "type": "textarea",
       "label": "overallPerformance",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     }
   ],
   "file_structure": {

@@ -22,34 +22,55 @@
       "default": "血液检查",
       "required": true,
       "options": [
-        {"value": "血液检查", "label": "血液检查"},
-        {"value": "影像检查", "label": "影像检查"},
-        {"value": "病理检查", "label": "病理检查"},
-        {"value": "内镜检查", "label": "内镜检查"},
-        {"value": "超声检查", "label": "超声检查"},
-        {"value": "心电图", "label": "心电图"},
-        {"value": "其他检查", "label": "其他检查"}
+        {
+          "value": "血液检查",
+          "label": "血液检查"
+        },
+        {
+          "value": "影像检查",
+          "label": "影像检查"
+        },
+        {
+          "value": "病理检查",
+          "label": "病理检查"
+        },
+        {
+          "value": "内镜检查",
+          "label": "内镜检查"
+        },
+        {
+          "value": "超声检查",
+          "label": "超声检查"
+        },
+        {
+          "value": "心电图",
+          "label": "心电图"
+        },
+        {
+          "value": "其他检查",
+          "label": "其他检查"
+        }
       ]
     },
     {
       "name": "examName",
       "type": "text",
       "label": "检查项目",
-      "default": "",
+      "default": "血常规检查报告",
       "required": true
     },
     {
       "name": "examDate",
       "type": "text",
       "label": "检查日期",
-      "default": "",
+      "default": "2026-01-08",
       "required": true
     },
     {
       "name": "reportContent",
       "type": "textarea",
       "label": "报告内容",
-      "default": "",
+      "default": "WBC: 12.5×10^9/L（参考范围：4-10）\nRBC: 4.5×10^12/L（参考范围：4-5.5）\nHGB: 140g/L（参考范围：120-160）\nPLT: 250×10^9/L（参考范围：100-300）\n中性粒细胞比例: 78%（参考范围：50-70）",
       "required": true
     },
     {

@@ -6,30 +6,97 @@
   "icon": "⚖️",
   "category": "legal",
   "subcategory": "案件分析",
-  "tags": ["案件分析", "法律适用", "案例研究", "法律论证"],
+  "tags": [
+    "案件分析",
+    "法律适用",
+    "案例研究",
+    "法律论证"
+  ],
   "project_type": "document",
   "prompt_template": "请帮我进行法律案件分析：\n\n案件名称：{{caseName}}\n案件类型：{{caseType}}\n案件号：{{caseNumber}}\n\n案件事实：\n{{facts}}\n\n争议焦点：\n{{disputePoints}}\n\n当事人主张：\n{{claims}}\n\n证据材料：\n{{evidence}}\n\n适用法律：\n{{applicableLaws}}\n\n请生成完整的案件分析报告，包括：\n1. 案件事实梳理\n2. 法律关系分析\n3. 争议焦点归纳\n4. 法律适用分析\n5. 法律依据和案例引用\n6. 裁判要点预测\n7. 风险提示和应对建议",
   "variables_schema": [
-    {"name": "caseName", "type": "text", "label": "案件名称", "required": true},
-    {"name": "caseType", "type": "select", "label": "案件类型", "default": "民事", "required": true,
+    {
+      "name": "caseName",
+      "type": "text",
+      "label": "案件名称",
+      "required": true,
+      "default": "张三"
+    },
+    {
+      "name": "caseType",
+      "type": "select",
+      "label": "案件类型",
+      "default": "民事",
+      "required": true,
       "options": [
-        {"value": "民事", "label": "民事"},
-        {"value": "刑事", "label": "刑事"},
-        {"value": "行政", "label": "行政"},
-        {"value": "商事", "label": "商事"}
+        {
+          "value": "民事",
+          "label": "民事"
+        },
+        {
+          "value": "刑事",
+          "label": "刑事"
+        },
+        {
+          "value": "行政",
+          "label": "行政"
+        },
+        {
+          "value": "商事",
+          "label": "商事"
+        }
       ]
     },
-    {"name": "caseNumber", "type": "text", "label": "案件号", "required": false},
-    {"name": "facts", "type": "textarea", "label": "案件事实", "required": true},
-    {"name": "disputePoints", "type": "textarea", "label": "争议焦点", "required": true},
-    {"name": "claims", "type": "textarea", "label": "当事人主张", "required": true},
-    {"name": "evidence", "type": "textarea", "label": "证据材料", "required": false},
-    {"name": "applicableLaws", "type": "textarea", "label": "适用法律", "required": true}
+    {
+      "name": "caseNumber",
+      "type": "text",
+      "label": "案件号",
+      "required": false
+    },
+    {
+      "name": "facts",
+      "type": "textarea",
+      "label": "案件事实",
+      "required": true,
+      "default": "详细描述法律相关内容"
+    },
+    {
+      "name": "disputePoints",
+      "type": "textarea",
+      "label": "争议焦点",
+      "required": true,
+      "default": "详细描述法律相关内容"
+    },
+    {
+      "name": "claims",
+      "type": "textarea",
+      "label": "当事人主张",
+      "required": true,
+      "default": "请求判令被告支付违法解除劳动合同赔偿金"
+    },
+    {
+      "name": "evidence",
+      "type": "textarea",
+      "label": "证据材料",
+      "required": false
+    },
+    {
+      "name": "applicableLaws",
+      "type": "textarea",
+      "label": "适用法律",
+      "required": true,
+      "default": "详细描述法律相关内容"
+    }
   ],
   "file_structure": {
     "type": "folder",
     "name": "案件分析-{{caseName}}",
-    "children": [{"type": "file", "name": "案件分析报告.md"}]
+    "children": [
+      {
+        "type": "file",
+        "name": "案件分析报告.md"
+      }
+    ]
   },
   "is_builtin": true,
   "author": "ChainlessChain Team",
@@ -37,7 +104,12 @@
   "usage_count": 0,
   "rating": 0,
   "rating_count": 0,
-  "required_skills": ["skill_document_processing"],
-  "required_tools": ["tool_word_generator", "tool_pdf_generator"],
+  "required_skills": [
+    "skill_document_processing"
+  ],
+  "required_tools": [
+    "tool_word_generator",
+    "tool_pdf_generator"
+  ],
   "execution_engine": "document"
 }

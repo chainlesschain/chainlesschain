@@ -16,25 +16,29 @@
       "name": "activityTheme",
       "type": "textarea",
       "label": "activityTheme",
-      "required": true
+      "required": true,
+      "default": "科技创新"
     },
     {
       "name": "participants",
       "type": "textarea",
       "label": "participants",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     },
     {
       "name": "objectives",
       "type": "textarea",
       "label": "objectives",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     },
     {
       "name": "process",
       "type": "textarea",
       "label": "process",
-      "required": true
+      "required": true,
+      "default": "详细描述教学相关内容"
     }
   ],
   "file_structure": {

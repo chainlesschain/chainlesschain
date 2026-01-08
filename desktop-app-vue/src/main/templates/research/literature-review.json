@@ -16,25 +16,29 @@
       "name": "researchTopic",
       "type": "textarea",
       "label": "researchTopic",
-      "required": true
+      "required": true,
+      "default": "记叙文写作"
     },
     {
       "name": "field",
       "type": "textarea",
       "label": "field",
-      "required": true
+      "required": true,
+      "default": "详细描述研究相关内容"
     },
     {
       "name": "literatureScope",
       "type": "textarea",
       "label": "literatureScope",
-      "required": true
+      "required": true,
+      "default": "详细描述研究相关内容"
     },
     {
       "name": "currentStatus",
       "type": "textarea",
       "label": "currentStatus",
-      "required": true
+      "required": true,
+      "default": "详细描述研究相关内容"
     }
   ],
   "file_structure": {

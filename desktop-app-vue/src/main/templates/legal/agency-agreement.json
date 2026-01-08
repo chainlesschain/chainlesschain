@@ -16,31 +16,36 @@
       "name": "client",
       "type": "textarea",
       "label": "client",
-      "required": true
+      "required": true,
+      "default": "张三"
     },
     {
       "name": "agent",
       "type": "textarea",
       "label": "agent",
-      "required": true
+      "required": true,
+      "default": "李律师"
     },
     {
       "name": "mandate",
       "type": "textarea",
       "label": "mandate",
-      "required": true
+      "required": true,
+      "default": "代理张三与某科技公司劳动争议一案"
     },
     {
       "name": "rightsObligations",
       "type": "textarea",
       "label": "rightsObligations",
-      "required": true
+      "required": true,
+      "default": "1. 代理权限：一般代理\n2. 代理期限：至案件审理终结\n3. 费用：律师费10000元"
     },
     {
       "name": "fees",
       "type": "textarea",
       "label": "fees",
-      "required": true
+      "required": true,
+      "default": "律师代理费：10000元（一次性支付）"
     }
   ],
   "file_structure": {

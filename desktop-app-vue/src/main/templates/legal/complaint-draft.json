@@ -16,31 +16,36 @@
       "name": "plaintiff",
       "type": "textarea",
       "label": "plaintiff",
-      "required": true
+      "required": true,
+      "default": "张三"
     },
     {
       "name": "defendant",
       "type": "textarea",
       "label": "defendant",
-      "required": true
+      "required": true,
+      "default": "某科技公司"
     },
     {
       "name": "caseReason",
       "type": "textarea",
       "label": "caseReason",
-      "required": true
+      "required": true,
+      "default": "劳动合同纠纷"
     },
     {
       "name": "claims",
       "type": "textarea",
       "label": "claims",
-      "required": true
+      "required": true,
+      "default": "1. 请求判令被告支付违法解除劳动合同赔偿金50000元\n2. 诉讼费由被告承担"
     },
     {
       "name": "factsAndReasons",
       "type": "textarea",
       "label": "factsAndReasons",
-      "required": true
+      "required": true,
+      "default": "原告于2023年1月入职被告公司，从事软件开发工作。2025年12月，被告以\"业绩不佳\"为由解除劳动合同，但未提供任何证据。根据《劳动合同法》规定，被告行为构成违法解除。"
     }
   ],
   "file_structure": {

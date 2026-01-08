@@ -19,28 +19,28 @@
       "name": "medicationName",
       "type": "text",
       "label": "药品名称",
-      "default": "",
+      "default": "阿莫西林胶囊",
       "required": true
     },
     {
       "name": "genericName",
       "type": "text",
       "label": "通用名",
-      "default": "",
+      "default": "阿莫西林",
       "required": true
     },
     {
       "name": "indications",
       "type": "textarea",
       "label": "适应症",
-      "default": "",
+      "default": "用于敏感菌所致的呼吸道感染、泌尿道感染等",
       "required": true
     },
     {
       "name": "dosage",
       "type": "textarea",
       "label": "用法用量",
-      "default": "",
+      "default": "成人：一次0.5g，一日3次",
       "required": true
     },
     {
@@ -61,21 +61,21 @@
       "name": "precautions",
       "type": "textarea",
       "label": "注意事项",
-      "default": "",
+      "default": "1. 青霉素过敏者禁用\n2. 肾功能不全者需调整剂量\n3. 服药期间避免饮酒",
       "required": true
     },
     {
       "name": "adverseReactions",
       "type": "textarea",
       "label": "不良反应",
-      "default": "",
+      "default": "可能出现恶心、呕吐、腹泻、皮疹等",
       "required": true
     },
     {
       "name": "contraindications",
       "type": "textarea",
       "label": "禁忌症",
-      "default": "",
+      "default": "对青霉素类药物过敏者禁用",
       "required": true
     },
     {
