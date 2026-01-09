@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const { OrgP2PNetwork, MessageType } = require('./org-p2p-network');
 
 /**
  * 组织管理器 - 去中心化组织核心模块
@@ -13,6 +14,49 @@ class OrganizationManager {
     this.didManager = didManager;
     this.p2pManager = p2pManager;
     this.currentOrgId = null;
+
+    // 初始化组织P2P网络管理器
+    this.orgP2PNetwork = null;
+    if (p2pManager && didManager) {
+      this.orgP2PNetwork = new OrgP2PNetwork(p2pManager, didManager, db);
+      this.setupP2PEventListeners();
+    }
+  }
+
+  /**
+   * 设置P2P事件监听器
+   */
+  setupP2PEventListeners() {
+    if (!this.orgP2PNetwork) {
+      return;
+    }
+
+    // 成员上线
+    this.orgP2PNetwork.on('member:online', ({ orgId, memberDID, displayName }) => {
+      console.log(`[OrganizationManager] 成员上线: ${displayName} (${memberDID})`);
+      // 可以在这里更新UI或触发其他操作
+    });
+
+    // 成员下线
+    this.orgP2PNetwork.on('member:offline', ({ orgId, memberDID }) => {
+      console.log(`[OrganizationManager] 成员下线: ${memberDID}`);
+    });
+
+    // 成员发现
+    this.orgP2PNetwork.on('member:discovered', ({ orgId, memberDID, displayName }) => {
+      console.log(`[OrganizationManager] 发现成员: ${displayName} (${memberDID})`);
+    });
+
+    // 知识库事件
+    this.orgP2PNetwork.on('knowledge:event', async ({ orgId, type, data }) => {
+      console.log(`[OrganizationManager] 知识库事件: ${type}`);
+      await this.handleKnowledgeEvent(orgId, type, data);
+    });
+
+    // 广播消息
+    this.orgP2PNetwork.on('broadcast:received', ({ orgId, type, content, senderDID }) => {
+      console.log(`[OrganizationManager] 收到广播: ${type} from ${senderDID}`);
+    });
   }
 
   /**
@@ -1194,29 +1238,21 @@ class OrganizationManager {
    * @returns {Promise<void>}
    */
   async initializeOrgP2PNetwork(orgId) {
-    if (!this.p2pManager) {
-      console.warn('[OrganizationManager] P2P Manager未初始化，跳过网络设置');
+    if (!this.orgP2PNetwork) {
+      console.warn('[OrganizationManager] OrgP2PNetwork未初始化，跳过网络设置');
       return;
     }
 
     try {
-      const topic = `org_${orgId}_sync`;
-      console.log('[OrganizationManager] 初始化组织P2P网络:', topic);
+      console.log('[OrganizationManager] 初始化组织P2P网络:', orgId);
 
-      // 注册P2P消息处理器
-      this.p2pManager.on('message:received', async (data) => {
-        if (data.topic === topic) {
-          await this.handleOrgSyncMessage(orgId, data.message);
-        }
-      });
+      // 使用新的P2P网络模块初始化
+      await this.orgP2PNetwork.initialize(orgId);
 
-      // 订阅组织topic (使用P2P广播协议)
-      if (this.p2pManager.node && this.p2pManager.node.services?.pubsub) {
-        await this.p2pManager.node.services.pubsub.subscribe(topic);
-        console.log('[OrganizationManager] ✓ 已订阅组织topic:', topic);
-      }
+      console.log('[OrganizationManager] ✓ 组织P2P网络初始化完成');
     } catch (error) {
       console.error('[OrganizationManager] P2P网络初始化失败:', error);
+      // 不抛出错误，允许组织创建继续
     }
   }
 
@@ -1226,28 +1262,18 @@ class OrganizationManager {
    * @returns {Promise<void>}
    */
   async connectToOrgP2PNetwork(orgId) {
-    if (!this.p2pManager) {
-      console.warn('[OrganizationManager] P2P Manager未初始化，跳过连接');
+    if (!this.orgP2PNetwork) {
+      console.warn('[OrganizationManager] OrgP2PNetwork未初始化，跳过连接');
       return;
     }
 
     try {
-      const topic = `org_${orgId}_sync`;
-      console.log('[OrganizationManager] 连接到组织P2P网络:', topic);
+      console.log('[OrganizationManager] 连接到组织P2P网络:', orgId);
 
       // 初始化网络订阅
-      await this.initializeOrgP2PNetwork(orgId);
+      await this.orgP2PNetwork.initialize(orgId);
 
-      // 广播加入消息
-      await this.broadcastOrgMessage(orgId, {
-        type: 'member_joined',
-        orgId: orgId,
-        memberDID: await this.didManager.getCurrentDID(),
-        timestamp: Date.now()
-      });
-
-      // 请求增量同步
-      await this.requestIncrementalSync(orgId);
+      console.log('[OrganizationManager] ✓ 已连接到组织P2P网络');
     } catch (error) {
       console.error('[OrganizationManager] 连接P2P网络失败:', error);
     }
@@ -1960,6 +1986,93 @@ class OrganizationManager {
         { value: 'message.read', label: '阅读消息', description: '阅读组织消息' }
       ]}
     ];
+  }
+
+  /**
+   * 获取组织在线成员列表
+   * @param {string} orgId - 组织ID
+   * @returns {Array<string>} 在线成员DID列表
+   */
+  getOnlineMembers(orgId) {
+    if (!this.orgP2PNetwork) {
+      return [];
+    }
+    return this.orgP2PNetwork.getOnlineMembers(orgId);
+  }
+
+  /**
+   * 获取组织在线成员数量
+   * @param {string} orgId - 组织ID
+   * @returns {number} 在线成员数量
+   */
+  getOnlineMemberCount(orgId) {
+    if (!this.orgP2PNetwork) {
+      return 0;
+    }
+    return this.orgP2PNetwork.getOnlineMemberCount(orgId);
+  }
+
+  /**
+   * 检查成员是否在线
+   * @param {string} orgId - 组织ID
+   * @param {string} memberDID - 成员DID
+   * @returns {boolean} 是否在线
+   */
+  isMemberOnline(orgId, memberDID) {
+    if (!this.orgP2PNetwork) {
+      return false;
+    }
+    return this.orgP2PNetwork.isMemberOnline(orgId, memberDID);
+  }
+
+  /**
+   * 广播消息到组织
+   * @param {string} orgId - 组织ID
+   * @param {Object} message - 消息内容
+   * @returns {Promise<void>}
+   */
+  async broadcastOrgMessage(orgId, message) {
+    if (!this.orgP2PNetwork) {
+      throw new Error('OrgP2PNetwork未初始化');
+    }
+    await this.orgP2PNetwork.broadcastMessage(orgId, message);
+  }
+
+  /**
+   * 获取组织P2P网络统计信息
+   * @param {string} orgId - 组织ID
+   * @returns {Object} 统计信息
+   */
+  getOrgNetworkStats(orgId) {
+    if (!this.orgP2PNetwork) {
+      return null;
+    }
+    return this.orgP2PNetwork.getNetworkStats(orgId);
+  }
+
+  /**
+   * 断开组织P2P网络连接
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<void>}
+   */
+  async disconnectFromOrgP2PNetwork(orgId) {
+    if (!this.orgP2PNetwork) {
+      return;
+    }
+    await this.orgP2PNetwork.unsubscribeTopic(orgId);
+  }
+
+  /**
+   * 处理知识库事件
+   * @param {string} orgId - 组织ID
+   * @param {string} type - 事件类型
+   * @param {Object} data - 事件数据
+   * @returns {Promise<void>}
+   */
+  async handleKnowledgeEvent(orgId, type, data) {
+    // 这里可以实现知识库同步逻辑
+    console.log(`[OrganizationManager] 处理知识库事件: ${type}`, data);
+    // TODO: 实现知识库同步
   }
 }
 
