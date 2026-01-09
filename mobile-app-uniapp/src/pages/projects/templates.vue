@@ -213,16 +213,40 @@ export default {
   },
 
   async onLoad() {
-    await this.initDatabase()
-    await this.loadTemplates()
+    try {
+      await this.initDatabase()
+      await this.loadTemplates()
+    } catch (error) {
+      console.error('[ProjectTemplates] 页面初始化失败:', error)
+    }
   },
 
   methods: {
     async initDatabase() {
-      if (!database.isOpen) {
-        await database.initWithoutPin()
+      try {
+        if (!database.isOpen) {
+          await database.initWithoutPin()
+        }
+      } catch (error) {
+        console.error('[ProjectTemplates] 数据库初始化失败:', error)
+        uni.showToast({
+          title: error.message || '初始化失败',
+          icon: 'none'
+        })
+        throw error
       }
+
       this.templateManager = getTemplateManager()
+      try {
+        await this.templateManager.initialize()
+      } catch (error) {
+        console.error('[ProjectTemplates] 模板服务初始化失败:', error)
+        uni.showToast({
+          title: error.message || '模板服务初始化失败',
+          icon: 'none'
+        })
+        throw error
+      }
     },
 
     async loadTemplates() {
@@ -314,6 +338,7 @@ export default {
       this.variableForm = {}
       this.renderedContent = ''
       this.renderError = ''
+      this.previewLoading = false
       if (this.previewTimer) {
         clearTimeout(this.previewTimer)
         this.previewTimer = null
@@ -331,10 +356,12 @@ export default {
     },
 
     async renderTemplatePreview(force = false) {
-      if (!this.selectedTemplate) return
+      if (!this.selectedTemplate || !this.templateManager) return
       if (!force && !this.showTemplateModal) return
 
-      const missingField = this.variableSchema.find(field => field.required && this.isFieldEmpty(this.variableForm[field.name], field.type))
+      const missingField = this.variableSchema.find(
+        field => field.required && this.isFieldEmpty(this.variableForm[field.name], field.type)
+      )
       if (missingField) {
         this.renderedContent = ''
         this.renderError = `请填写 ${missingField.label || missingField.name}`
@@ -348,7 +375,8 @@ export default {
         this.variableSchema.forEach(field => {
           data[field.name] = this.variableForm[field.name] ?? ''
         })
-        const content = await this.templateManager.applyTemplate(this.selectedTemplate.id, data)
+        const templateSource = this.selectedTemplate.content ? this.selectedTemplate : this.selectedTemplate.id
+        const content = await this.templateManager.renderTemplateContent(templateSource, data)
         this.renderedContent = content
         this.renderError = ''
       } catch (error) {

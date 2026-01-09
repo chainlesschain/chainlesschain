@@ -794,6 +794,8 @@ class TemplateManager {
    * @param {string} id - 模板ID
    */
   async incrementUsageCount(id) {
+    this.ensureDatabase()
+
     const sql = 'UPDATE templates SET usage_count = usage_count + 1 WHERE id = ?'
     await this.db.executeSql(sql, [id])
 
@@ -808,6 +810,8 @@ class TemplateManager {
    * @returns {Object} 更新后的模板
    */
   async rateTemplate(id, rating) {
+    this.ensureDatabase()
+
     if (rating < 1 || rating > 5) {
       throw new Error('评分必须在1-5之间')
     }
@@ -868,6 +872,8 @@ class TemplateManager {
    * @returns {Object} 统计数据
    */
   async getStats() {
+    this.ensureDatabase()
+
     const totalSQL = 'SELECT COUNT(*) as total FROM templates WHERE deleted = 0'
     const builtinSQL = 'SELECT COUNT(*) as count FROM templates WHERE is_builtin = 1 AND deleted = 0'
     const customSQL = 'SELECT COUNT(*) as count FROM templates WHERE is_builtin = 0 AND deleted = 0'
@@ -900,6 +906,15 @@ class TemplateManager {
    */
   clearCache() {
     this.cache.clear()
+  }
+
+  /**
+   * 确保数据库可用
+   */
+  ensureDatabase() {
+    if (!this.db) {
+      throw new Error('[TemplateManager] 尚未初始化，请先调用 initialize()')
+    }
   }
 }
 
