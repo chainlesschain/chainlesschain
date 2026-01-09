@@ -45,6 +45,10 @@
             <template #icon><TableOutlined /></template>
             项目列表管理
           </a-menu-item>
+          <a-menu-item key="workspace-management">
+            <template #icon><ApartmentOutlined /></template>
+            工作区管理
+          </a-menu-item>
           <a-menu-item key="template-management">
             <template #icon><TagsOutlined /></template>
             模板管理
@@ -406,6 +410,7 @@ import {
   ThunderboltOutlined,
   ToolOutlined,
   TableOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { useSocialStore } from '../stores/social';
@@ -443,6 +448,7 @@ const menuConfig = {
     'project-categories': { path: '/projects/categories', title: '项目分类' },
   projects: { path: '/projects', title: '我的项目' },
   'project-list-management': { path: '/projects/management', title: '项目列表管理' },
+  'workspace-management': { path: '/projects/workspace', title: '工作区管理' },
   'template-management': { path: '/template-management', title: '模板管理' },
   'project-market': { path: '/projects/market', title: '项目市场' },
   'project-collaboration': { path: '/projects/collaboration', title: '协作项目' },
