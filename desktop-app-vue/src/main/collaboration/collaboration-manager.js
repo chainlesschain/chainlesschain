@@ -748,6 +748,25 @@ class CollaborationManager extends EventEmitter {
   }
 
   /**
+   * 获取权限级别数值
+   * @param {string} permission - 权限名称
+   * @returns {number} 权限级别（数值越大权限越高）
+   * @private
+   */
+  _getPermissionLevel(permission) {
+    const levels = {
+      'view': 1,
+      'read': 1,
+      'comment': 2,
+      'edit': 3,
+      'write': 3,
+      'admin': 4,
+      'owner': 5
+    };
+    return levels[permission] || 0;
+  }
+
+  /**
    * 设置组织管理器引用
    * @param {Object} organizationManager - 组织管理器实例
    */
