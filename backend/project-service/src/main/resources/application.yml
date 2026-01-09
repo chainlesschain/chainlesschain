@@ -111,3 +111,23 @@ git:
   auto-commit: true
   auto-push: false
 
+# JWT配置
+jwt:
+  secret: ${JWT_SECRET:chainlesschain-secret-key-for-jwt-token-generation-2024-please-change-in-production}
+  expiration: ${JWT_EXPIRATION:86400000} # 24小时（毫秒）
+
+# 文件上传配置
+file:
+  upload:
+    path: ${FILE_UPLOAD_PATH:/data/uploads}
+    max-size: ${FILE_UPLOAD_MAX_SIZE:10485760} # 10MB
+    allowed-types: jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,md,zip,rar
+
+# Spring文件上传配置
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 50MB
+
