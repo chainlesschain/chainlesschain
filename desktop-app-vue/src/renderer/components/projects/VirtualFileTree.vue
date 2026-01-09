@@ -109,6 +109,10 @@
               <FileOutlined />
               打开
             </a-menu-item>
+            <a-menu-item key="download">
+              <DownloadOutlined />
+              下载
+            </a-menu-item>
             <a-menu-item key="export">
               <ExportOutlined />
               导出到外部
@@ -130,7 +134,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, onUpdated, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, onUpdated, nextTick, h } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   SearchOutlined,
@@ -148,6 +152,7 @@ import {
   DeleteOutlined,
   ImportOutlined,
   ExportOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons-vue';
 
 const props = defineProps({
@@ -372,14 +377,17 @@ const handleMenuClick = ({ key }) => {
         emit('select', contextNode.value.fileData);
       }
       break;
+    case 'download':
+      handleDownloadFile(contextNode.value);
+      break;
     case 'export':
       handleExportFile(contextNode.value);
       break;
     case 'rename':
-      message.info('重命名功能开发中');
+      handleRenameFile(contextNode.value);
       break;
     case 'delete':
-      message.info('删除功能开发中');
+      handleDeleteFile(contextNode.value);
       break;
   }
 };
@@ -468,6 +476,262 @@ const handleExportFile = async (node) => {
     message.error(`导出失败: ${error.message}`);
   } finally {
     exporting.value = false;
+  }
+};
+
+// 重命名文件
+const handleRenameFile = async (node) => {
+  if (!node) {
+    message.warning('请选择要重命名的文件或文件夹');
+    return;
+  }
+
+  try {
+    // 使用 Modal 输入新名称
+    const { Modal } = await import('ant-design-vue');
+
+    Modal.confirm({
+      title: '重命名',
+      content: h('div', [
+        h('p', { style: { marginBottom: '8px' } }, `当前名称: ${node.title}`),
+        h('input', {
+          id: 'rename-input',
+          type: 'text',
+          value: node.title,
+          placeholder: '请输入新名称',
+          style: {
+            width: '100%',
+            padding: '8px',
+            border: '1px solid #d9d9d9',
+            borderRadius: '4px',
+            fontSize: '14px'
+          },
+          onMounted: () => {
+            // 自动聚焦并选中文件名（不包括扩展名）
+            nextTick(() => {
+              const input = document.getElementById('rename-input');
+              if (input) {
+                input.focus();
+                const lastDotIndex = node.title.lastIndexOf('.');
+                if (lastDotIndex > 0) {
+                  input.setSelectionRange(0, lastDotIndex);
+                } else {
+                  input.select();
+                }
+              }
+            });
+          }
+        })
+      ]),
+      okText: '确定',
+      cancelText: '取消',
+      onOk: async () => {
+        const input = document.getElementById('rename-input');
+        const newName = input?.value?.trim();
+
+        if (!newName) {
+          message.warning('文件名不能为空');
+          return Promise.reject();
+        }
+
+        if (newName === node.title) {
+          message.info('文件名未改变');
+          return;
+        }
+
+        // 验证文件名
+        const invalidChars = /[<>:"/\\|?*]/;
+        if (invalidChars.test(newName)) {
+          message.error('文件名包含非法字符: < > : " / \\ | ? *');
+          return Promise.reject();
+        }
+
+        try {
+          // 调用后端 API 重命名文件
+          if (node.fileData?.id) {
+            const result = await window.electron.project.updateFile({
+              fileId: node.fileData.id,
+              projectId: props.projectId,
+              title: newName,
+              path: node.filePath.replace(node.title, newName)
+            });
+
+            if (result.success) {
+              message.success('重命名成功');
+              // 刷新文件列表
+              emit('refresh');
+            } else {
+              message.error(`重命名失败: ${result.error || '未知错误'}`);
+              return Promise.reject();
+            }
+          } else {
+            message.error('无法获取文件信息');
+            return Promise.reject();
+          }
+        } catch (error) {
+          console.error('[VirtualFileTree] 重命名失败:', error);
+
+          let errorMessage = '重命名失败';
+          if (error.message) {
+            if (error.message.includes('exist')) {
+              errorMessage = '文件名已存在';
+            } else if (error.message.includes('permission')) {
+              errorMessage = '没有权限重命名此文件';
+            } else if (error.message.includes('not found')) {
+              errorMessage = '文件不存在';
+            } else {
+              errorMessage = `重命名失败: ${error.message}`;
+            }
+          }
+
+          message.error(errorMessage);
+          return Promise.reject();
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[VirtualFileTree] 打开重命名对话框失败:', error);
+    message.error('打开重命名对话框失败');
+  }
+};
+
+// 删除文件
+const handleDeleteFile = async (node) => {
+  if (!node) {
+    message.warning('请选择要删除的文件或文件夹');
+    return;
+  }
+
+  try {
+    const { Modal } = await import('ant-design-vue');
+
+    Modal.confirm({
+      title: '确认删除',
+      content: h('div', [
+        h('p', { style: { color: '#ff4d4f', marginBottom: '8px' } }, '⚠️ 此操作不可恢复！'),
+        h('p', `确定要删除 "${node.title}" 吗？`),
+        node.isLeaf ? null : h('p', { style: { color: '#faad14', marginTop: '8px' } }, '注意：这将删除文件夹及其所有内容')
+      ]),
+      okText: '确定删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          if (!node.fileData?.id) {
+            message.error('无法获取文件信息');
+            return Promise.reject();
+          }
+
+          // 调用后端 API 删除文件
+          const result = await window.electron.project.deleteFile(
+            props.projectId,
+            node.fileData.id
+          );
+
+          if (result.success) {
+            message.success(`已删除: ${node.title}`);
+            // 刷新文件列表
+            emit('refresh');
+          } else {
+            message.error(`删除失败: ${result.error || '未知错误'}`);
+            return Promise.reject();
+          }
+        } catch (error) {
+          console.error('[VirtualFileTree] 删除失败:', error);
+
+          let errorMessage = '删除失败';
+          if (error.message) {
+            if (error.message.includes('permission')) {
+              errorMessage = '没有权限删除此文件';
+            } else if (error.message.includes('not found')) {
+              errorMessage = '文件不存在';
+            } else if (error.message.includes('in use')) {
+              errorMessage = '文件正在使用中，无法删除';
+            } else {
+              errorMessage = `删除失败: ${error.message}`;
+            }
+          }
+
+          message.error(errorMessage);
+          return Promise.reject();
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[VirtualFileTree] 打开删除确认对话框失败:', error);
+    message.error('打开删除确认对话框失败');
+  }
+};
+
+// 下载文件
+const handleDownloadFile = async (node) => {
+  if (!node) {
+    message.warning('请选择要下载的文件或文件夹');
+    return;
+  }
+
+  try {
+    // 使用浏览器的下载功能
+    if (node.fileData?.content) {
+      // 如果文件内容在内存中，直接下载
+      const blob = new Blob([node.fileData.content], {
+        type: node.fileData.mimeType || 'application/octet-stream'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = node.title;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      message.success(`已下载: ${node.title}`);
+    } else {
+      // 否则，使用导出功能
+      message.info('正在准备下载...');
+
+      // 获取用户的下载目录
+      const result = await window.electron.project.selectExportDirectory();
+
+      if (result.canceled || !result.path) {
+        return;
+      }
+
+      // 构建完整的项目路径
+      const projectPath = `/data/projects/${props.projectId}/${node.filePath}`;
+      const targetPath = `${result.path}\\${node.title}`;
+
+      // 导出文件到下载目录
+      const exportResult = await window.electron.project.exportFile({
+        projectPath: projectPath,
+        targetPath: targetPath,
+        isDirectory: !node.isLeaf
+      });
+
+      if (exportResult.success) {
+        message.success(`已下载到: ${result.path}`);
+      } else {
+        message.error(`下载失败: ${exportResult.error || '未知错误'}`);
+      }
+    }
+  } catch (error) {
+    console.error('[VirtualFileTree] 下载失败:', error);
+
+    let errorMessage = '下载失败';
+    if (error.message) {
+      if (error.message.includes('permission')) {
+        errorMessage = '没有权限访问此文件';
+      } else if (error.message.includes('not found')) {
+        errorMessage = '文件不存在';
+      } else if (error.message.includes('too large')) {
+        errorMessage = '文件过大，无法下载';
+      } else {
+        errorMessage = `下载失败: ${error.message}`;
+      }
+    }
+
+    message.error(errorMessage);
   }
 };
 
