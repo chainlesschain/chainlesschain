@@ -1,5 +1,11 @@
 package com.chainlesschain.project.security;
 
+import com.chainlesschain.project.entity.Role;
+import com.chainlesschain.project.mapper.RoleMapper;
+import com.chainlesschain.project.mapper.UserMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -7,30 +13,56 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 自定义用户详情服务
- * 用于加载用户信息（后续可集成数据库）
+ * 从数据库加载用户信息
  */
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private RoleMapper roleMapper;
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // TODO: 从数据库加载用户信息
-        // 目前返回模拟用户，实际应用中应该查询数据库
+        // 从数据库查询用户
+        com.chainlesschain.project.entity.User user = userMapper.findByUsername(username);
 
-        // 模拟用户验证
-        if (username == null || username.isEmpty()) {
-            throw new UsernameNotFoundException("用户名不能为空");
+        if (user == null) {
+            throw new UsernameNotFoundException("用户不存在: " + username);
         }
 
-        // 返回用户详情（密码已加密）
-        // 实际应用中应该从数据库查询用户信息
+        // 检查用户状态
+        if (!"active".equals(user.getStatus())) {
+            throw new UsernameNotFoundException("用户已被禁用: " + username);
+        }
+
+        // 获取用户角色
+        List<Role> roles = roleMapper.findByUserId(user.getId());
+        List<GrantedAuthority> authorities = roles.stream()
+            .map(role -> new SimpleGrantedAuthority(role.getCode()))
+            .collect(Collectors.toList());
+
+        // 如果没有角色，添加默认角色
+        if (authorities.isEmpty()) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+
+        // 返回Spring Security的UserDetails
         return User.builder()
-                .username(username)
-                .password("") // 密码在JWT验证中不需要
-                .authorities(new ArrayList<>())
-                .build();
+            .username(user.getUsername())
+            .password(user.getPassword())
+            .authorities(authorities)
+            .accountExpired(false)
+            .accountLocked(false)
+            .credentialsExpired(false)
+            .disabled(!"active".equals(user.getStatus()))
+            .build();
     }
 }
