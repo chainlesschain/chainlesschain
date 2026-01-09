@@ -1,0 +1,328 @@
+{
+  "info": {
+    "name": "ChainlessChain API Tests",
+    "description": "ChainlessChain 对话管理API测试集合",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Conversation API",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has conversation ID\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "    pm.environment.set(\"conversationId\", jsonData.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"测试对话\",\n  \"userId\": \"user_test_001\",\n  \"contextMode\": \"global\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Conversation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "{{conversationId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/list?userId=user_test_001&pageNum=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "list"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "user_test_001"
+                },
+                {
+                  "key": "pageNum",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Conversation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"更新后的对话标题\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "{{conversationId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has message ID\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "    pm.environment.set(\"messageId\", jsonData.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"role\": \"user\",\n  \"content\": \"你好，这是一条测试消息\",\n  \"type\": \"text\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/messages/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "messages", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/{{conversationId}}/messages?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "{{conversationId}}", "messages"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "messages", "{{messageId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Conversation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "{{conversationId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sync API",
+      "item": [
+        {
+          "name": "Get Server Time",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sync/server-time",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sync", "server-time"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableName\": \"conversations\",\n  \"deviceId\": \"device_test_001\",\n  \"records\": [\n    {\n      \"id\": \"conv_sync_001\",\n      \"title\": \"同步测试对话\",\n      \"userId\": \"user_test_001\",\n      \"contextMode\": \"global\",\n      \"createdAt\": \"2026-01-09T15:00:00\",\n      \"updatedAt\": \"2026-01-09T15:00:00\"\n    }\n  ],\n  \"lastSyncedAt\": 1704787200000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sync/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sync", "upload"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Download Incremental",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sync/download/conversations?lastSyncedAt=0&deviceId=device_test_001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sync", "download", "conversations"],
+              "query": [
+                {
+                  "key": "lastSyncedAt",
+                  "value": "0"
+                },
+                {
+                  "key": "deviceId",
+                  "value": "device_test_001"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sync Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sync/status?deviceId=device_test_001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sync", "status"],
+              "query": [
+                {
+                  "key": "deviceId",
+                  "value": "device_test_001"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sync/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sync", "health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:9090",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
