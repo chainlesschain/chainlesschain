@@ -548,17 +548,20 @@ const loadInvitations = async () => {
 
   loading.value = true;
   try {
-    // TODO: 实现获取邀请列表的API
-    // const orgId = identityStore.currentOrgId;
-    // const result = await window.ipc.invoke('org:get-invitations', orgId);
-    // invitations.value = result || [];
+    const orgId = identityStore.currentOrgId;
+    const result = await window.ipc.invoke('org:get-invitations', orgId);
 
-    // 模拟数据
-    invitations.value = [];
-    pagination.value.total = invitations.value.length;
+    if (result.success) {
+      invitations.value = result.invitations || [];
+      pagination.value.total = invitations.value.length;
+    } else {
+      message.error(result.error || '加载邀请列表失败');
+      invitations.value = [];
+    }
   } catch (error) {
     console.error('加载邀请列表失败:', error);
     message.error('加载邀请列表失败');
+    invitations.value = [];
   } finally {
     loading.value = false;
   }
@@ -683,9 +686,25 @@ const getInviteLink = (invitation) => {
 // 切换邀请状态
 const toggleInvitationStatus = async (invitation) => {
   try {
-    // TODO: 实现切换邀请状态的API
-    message.success(`邀请已${invitation.is_active ? '禁用' : '启用'}`);
-    await loadInvitations();
+    const orgId = identityStore.currentOrgId;
+
+    // Use revoke to disable, or would need a separate enable API
+    if (invitation.is_active) {
+      const result = await window.ipc.invoke('org:revoke-invitation', {
+        orgId,
+        invitationId: invitation.id
+      });
+
+      if (result.success) {
+        message.success('邀请已禁用');
+        await loadInvitations();
+      } else {
+        message.error(result.error || '禁用邀请失败');
+      }
+    } else {
+      // Note: There's no enable API, so we show a message
+      message.info('已禁用的邀请无法重新启用，请创建新邀请');
+    }
   } catch (error) {
     console.error('切换状态失败:', error);
     message.error('切换状态失败');
@@ -695,9 +714,19 @@ const toggleInvitationStatus = async (invitation) => {
 // 删除邀请
 const handleDeleteInvitation = async (invitation) => {
   try {
-    // TODO: 实现删除邀请的API
-    message.success('邀请已删除');
-    await loadInvitations();
+    const orgId = identityStore.currentOrgId;
+
+    const result = await window.ipc.invoke('org:delete-invitation', {
+      orgId,
+      invitationId: invitation.id
+    });
+
+    if (result.success) {
+      message.success('邀请已删除');
+      await loadInvitations();
+    } else {
+      message.error(result.error || '删除邀请失败');
+    }
   } catch (error) {
     console.error('删除邀请失败:', error);
     message.error('删除邀请失败');

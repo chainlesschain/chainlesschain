@@ -140,14 +140,18 @@ class IncrementalSyncManager {
       // Send changes to server
       const result = await this.sendChanges(changes)
 
+      // Fetch remote changes from server
+      const remoteChanges = await this.fetchRemoteChanges()
+
       // Handle server response
       if (result.conflicts && result.conflicts.length > 0) {
         await this.resolveConflicts(result.conflicts)
       }
 
-      // Apply remote changes
-      if (result.remoteChanges && result.remoteChanges.length > 0) {
-        await this.applyRemoteChanges(result.remoteChanges)
+      // Apply remote changes (from server response or fetched)
+      const changesToApply = result.remoteChanges || remoteChanges
+      if (changesToApply && changesToApply.length > 0) {
+        await this.applyRemoteChanges(changesToApply)
       }
 
       // Clear synced changes
@@ -207,29 +211,137 @@ class IncrementalSyncManager {
     // Default implementation using fetch
     // Override this method to use your API client
 
-    // 🔥 暂时禁用远程同步功能（后端 API 未实现）
-    // 只在本地存储，避免 404 错误
-    console.log('[IncrementalSync] 跳过远程同步（后端未实现），变更数量:', changes.length);
-    return { success: true, message: 'Local only' };
+    try {
+      // Get backend URL from environment or use default
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9090';
 
-    /* 原实现 - 等待后端 API 准备好后启用
-    const response = await fetch('/api/sync', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        changes,
-        lastSyncTime: this.lastSyncTime,
-      }),
-    })
+      // Get device ID (generate if not exists)
+      let deviceId = localStorage.getItem('deviceId');
+      if (!deviceId) {
+        deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('deviceId', deviceId);
+      }
 
-    if (!response.ok) {
-      throw new Error(`Sync failed: HTTP ${response.status}`)
+      // Group changes by table/entity type
+      const changesByTable = this.groupChangesByTable(changes);
+
+      // Upload each table's changes
+      const results = [];
+      for (const [tableName, tableChanges] of Object.entries(changesByTable)) {
+        const response = await fetch(`${backendUrl}/api/sync/upload`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tableName,
+            deviceId,
+            records: tableChanges,
+            timestamp: Date.now()
+          }),
+        });
+
+        if (!response.ok) {
+          console.error(`[IncrementalSync] Upload failed for ${tableName}: HTTP ${response.status}`);
+          continue;
+        }
+
+        const result = await response.json();
+        results.push({ tableName, ...result });
+      }
+
+      console.log('[IncrementalSync] Remote sync completed, changes:', changes.length);
+      return { success: true, results };
+
+    } catch (error) {
+      console.error('[IncrementalSync] Remote sync error:', error);
+      // Fallback to local-only mode on error
+      console.log('[IncrementalSync] Falling back to local-only mode');
+      return { success: true, message: 'Local only (remote sync failed)', error: error.message };
+    }
+  }
+
+  /**
+   * Group changes by table name
+   * @param {Array} changes - Array of changes
+   * @returns {Object} Changes grouped by table
+   */
+  groupChangesByTable(changes) {
+    const grouped = {};
+
+    for (const change of changes) {
+      // Extract table name from entity (e.g., 'notes:123' -> 'notes')
+      const tableName = change.entity.split(':')[0];
+
+      if (!grouped[tableName]) {
+        grouped[tableName] = [];
+      }
+
+      grouped[tableName].push({
+        id: change.entity.split(':')[1] || change.entity,
+        operation: change.operation,
+        data: change.data,
+        timestamp: change.timestamp
+      });
     }
 
-    return response.json()
-    */
+    return grouped;
+  }
+
+  /**
+   * Fetch remote changes from server
+   * @returns {Promise<Array>} Remote changes
+   */
+  async fetchRemoteChanges() {
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9090';
+
+      let deviceId = localStorage.getItem('deviceId');
+      if (!deviceId) {
+        deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.getItem('deviceId', deviceId);
+      }
+
+      // Fetch incremental changes for each table
+      const tables = ['notes', 'chat_conversations', 'projects', 'social_posts', 'p2p_messages'];
+      const allChanges = [];
+
+      for (const tableName of tables) {
+        const response = await fetch(
+          `${backendUrl}/api/sync/download/${tableName}?lastSyncedAt=${this.lastSyncTime || 0}&deviceId=${deviceId}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (!response.ok) {
+          console.warn(`[IncrementalSync] Download failed for ${tableName}: HTTP ${response.status}`);
+          continue;
+        }
+
+        const result = await response.json();
+        if (result.code === 200 && result.data?.records) {
+          // Convert server records to change format
+          const changes = result.data.records.map(record => ({
+            entity: `${tableName}:${record.id}`,
+            operation: record.operation || 'update',
+            data: record.data || record,
+            timestamp: record.timestamp || record.updated_at
+          }));
+          allChanges.push(...changes);
+        }
+      }
+
+      console.log('[IncrementalSync] Fetched remote changes:', allChanges.length);
+      return allChanges;
+
+    } catch (error) {
+      console.error('[IncrementalSync] Fetch remote changes error:', error);
+      return [];
+    }
   }
 
   /**

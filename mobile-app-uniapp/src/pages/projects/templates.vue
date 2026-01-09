@@ -409,8 +409,21 @@ export default {
     handleSelectChange(field, event) {
       const index = Number(event.detail.value || 0)
       const options = field.options || []
+      if (!options.length) {
+        this.$set(this.variableForm, field.name, '')
+        return
+      }
       const option = options[index]
-      this.$set(this.variableForm, field.name, option ? (option.value ?? option.label ?? '') : '')
+      if (option === undefined) {
+        this.$set(this.variableForm, field.name, '')
+        return
+      }
+      if (typeof option === 'object') {
+        const value = option.value !== undefined ? option.value : (option.label ?? '')
+        this.$set(this.variableForm, field.name, value)
+      } else {
+        this.$set(this.variableForm, field.name, option)
+      }
     },
 
     handleBooleanChange(field, event) {
@@ -419,8 +432,18 @@ export default {
 
     getSelectLabel(field, value) {
       const options = field.options || []
-      const match = options.find(option => option.value === value || option.label === value)
-      return match ? (match.label || match.value) : ''
+      const match = options.find(option => {
+        if (typeof option === 'object') {
+          return option.value === value || option.label === value
+        }
+        return option === value
+      })
+      if (!match) {
+        return ''
+      }
+      return typeof match === 'object'
+        ? (match.label ?? match.value ?? '')
+        : match
     },
 
     copyPreview() {

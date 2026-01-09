@@ -363,7 +363,40 @@ onMounted(async () => {
     }),
   ];
 
-  // 定期刷新状态
+  // 监听Git热重载事件
+  if (window.electronAPI.git.onStatusChanged) {
+    unsubscribers.push(
+      window.electronAPI.git.onStatusChanged((data) => {
+        console.log('[GitStatus] Git状态已变化:', data);
+        // 更新状态
+        if (data.current) {
+          status.value = data.current;
+          enabled.value = true;
+        }
+      })
+    );
+  }
+
+  if (window.electronAPI.git.onFileChanged) {
+    unsubscribers.push(
+      window.electronAPI.git.onFileChanged((data) => {
+        console.log('[GitStatus] 文件已变化:', data);
+        // 文件变化时可以显示通知（可选）
+        // message.info(`文件${data.type}: ${data.path}`);
+      })
+    );
+  }
+
+  if (window.electronAPI.git.onHotReloadError) {
+    unsubscribers.push(
+      window.electronAPI.git.onHotReloadError((error) => {
+        console.error('[GitStatus] Git热重载错误:', error);
+        message.error('Git热重载错误: ' + error.message);
+      })
+    );
+  }
+
+  // 定期刷新状态（作为备用，热重载失败时仍能更新）
   refreshTimer = setInterval(handleRefresh, 30000); // 每30秒刷新一次
 });
 

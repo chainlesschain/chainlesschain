@@ -487,6 +487,23 @@ class ChainlessChainApp {
         // 创建Markdown导出器
         this.markdownExporter = new MarkdownExporter(this.database, exportPath);
 
+        // 初始化Git热重载
+        try {
+          console.log('初始化Git热重载...');
+          const GitHotReload = require('./git/git-hot-reload');
+          this.gitHotReload = new GitHotReload(this.gitManager, {
+            enabled: gitConfig.get('hotReloadEnabled') !== false, // 默认启用
+            debounceDelay: gitConfig.get('hotReloadDebounceDelay') || 1000,
+          });
+
+          // 启动热重载
+          this.gitHotReload.start();
+          console.log('Git热重载初始化成功');
+        } catch (error) {
+          console.error('Git热重载初始化失败:', error);
+          // 热重载失败不影响Git基本功能
+        }
+
         // 监听Git事件
         this.setupGitEvents();
 
@@ -2190,6 +2207,7 @@ class ChainlessChainApp {
         ragManager: this.ragManager,
         ukeyManager: this.ukeyManager,
         gitManager: this.gitManager,
+        gitHotReload: this.gitHotReload,
         didManager: this.didManager,
         p2pManager: this.p2pManager,
         skillManager: this.skillManager,
@@ -2595,6 +2613,11 @@ class ChainlessChainApp {
       if (this.gitManager) {
         this.stopAutoSync();
         this.gitManager.close();
+      }
+
+      // 关闭Git热重载
+      if (this.gitHotReload) {
+        this.gitHotReload.stop();
       }
 
       // 关闭 Native Messaging HTTP Server

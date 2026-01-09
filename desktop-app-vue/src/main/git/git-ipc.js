@@ -16,8 +16,10 @@ const ipcGuard = require('../ipc-guard');
  * @param {Object} [dependencies.markdownExporter] - Markdown 导出器
  * @param {Function} dependencies.getGitConfig - 获取 Git 配置函数
  * @param {Object} [dependencies.llmManager] - LLM 管理器（用于 AI 提交信息生成）
+ * @param {Object} [dependencies.gitHotReload] - Git 热重载管理器
+ * @param {Object} [dependencies.mainWindow] - 主窗口对象（用于发送事件）
  */
-function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager }) {
+function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager, gitHotReload, mainWindow }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('git-ipc')) {
     console.log('[Git IPC] Handlers already registered, skipping...');
@@ -383,10 +385,164 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
     }
   });
 
+  // ============================================================
+  // Git 热重载 (Hot Reload)
+  // ============================================================
+
+  /**
+   * 启动 Git 热重载
+   * Channel: 'git:hot-reload:start'
+   */
+  ipcMain.handle('git:hot-reload:start', async () => {
+    try {
+      if (!gitHotReload) {
+        throw new Error('Git热重载未初始化');
+      }
+
+      gitHotReload.start();
+      return { success: true };
+    } catch (error) {
+      console.error('[Git IPC] 启动Git热重载失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 停止 Git 热重载
+   * Channel: 'git:hot-reload:stop'
+   */
+  ipcMain.handle('git:hot-reload:stop', async () => {
+    try {
+      if (!gitHotReload) {
+        throw new Error('Git热重载未初始化');
+      }
+
+      await gitHotReload.stop();
+      return { success: true };
+    } catch (error) {
+      console.error('[Git IPC] 停止Git热重载失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取 Git 热重载状态
+   * Channel: 'git:hot-reload:status'
+   */
+  ipcMain.handle('git:hot-reload:status', async () => {
+    try {
+      if (!gitHotReload) {
+        return {
+          enabled: false,
+          watching: false,
+          error: 'Git热重载未初始化'
+        };
+      }
+
+      return gitHotReload.getStatus();
+    } catch (error) {
+      console.error('[Git IPC] 获取Git热重载状态失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 手动刷新 Git 状态
+   * Channel: 'git:hot-reload:refresh'
+   */
+  ipcMain.handle('git:hot-reload:refresh', async () => {
+    try {
+      if (!gitHotReload) {
+        throw new Error('Git热重载未初始化');
+      }
+
+      await gitHotReload.refresh();
+      return { success: true };
+    } catch (error) {
+      console.error('[Git IPC] 刷新Git状态失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 设置 Git 热重载配置
+   * Channel: 'git:hot-reload:configure'
+   */
+  ipcMain.handle('git:hot-reload:configure', async (_event, config) => {
+    try {
+      if (!gitHotReload) {
+        throw new Error('Git热重载未初始化');
+      }
+
+      if (config.enabled !== undefined) {
+        gitHotReload.setEnabled(config.enabled);
+      }
+
+      if (config.debounceDelay !== undefined) {
+        gitHotReload.setDebounceDelay(config.debounceDelay);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('[Git IPC] 配置Git热重载失败:', error);
+      throw error;
+    }
+  });
+
+  // ============================================================
+  // Git 热重载事件转发（从主进程到渲染进程）
+  // ============================================================
+
+  if (gitHotReload && mainWindow) {
+    // 文件变化事件
+    gitHotReload.on('file-changed', (data) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('git:file-changed', data);
+      }
+    });
+
+    // 状态变化事件
+    gitHotReload.on('status-changed', (data) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('git:status-changed', data);
+      }
+    });
+
+    // 错误事件
+    gitHotReload.on('error', (error) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('git:hot-reload:error', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
+    });
+
+    // 就绪事件
+    gitHotReload.on('ready', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('git:hot-reload:ready');
+      }
+    });
+
+    // 启动/停止事件
+    gitHotReload.on('started', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('git:hot-reload:started');
+      }
+    });
+
+    gitHotReload.on('stopped', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('git:hot-reload:stopped');
+      }
+    });
+  }
+
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('git-ipc');
 
-  console.log('[Git IPC] ✓ All Git IPC handlers registered successfully (16 handlers)');
+  console.log('[Git IPC] ✓ All Git IPC handlers registered successfully (22 handlers)');
 }
 
 module.exports = {
