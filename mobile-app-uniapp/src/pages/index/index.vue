@@ -54,6 +54,16 @@
           <text class="section-title">项目管理</text>
           <text class="section-more" @click="goToModule('projects')">更多 ›</text>
         </view>
+        <view class="project-actions">
+          <button class="project-action primary" @click="navigateTo('/pages/projects/create')">
+            <text class="action-icon">＋</text>
+            <text class="action-text">新建项目</text>
+          </button>
+          <button class="project-action secondary" @click="navigateTo('/pages/projects/templates')">
+            <text class="action-icon">✨</text>
+            <text class="action-text">AI模板</text>
+          </button>
+        </view>
         <view class="module-grid">
           <view class="module-card" @click="navigateTo('/pages/projects/list')">
             <view class="card-icon">🗂️</view>
@@ -74,6 +84,76 @@
             <view class="card-icon">📑</view>
             <text class="card-title">项目模板</text>
             <text class="card-desc">复用最佳实践</text>
+          </view>
+        </view>
+        <view class="recent-projects" v-if="recentProjects.length">
+          <view class="recent-header">
+            <text class="recent-title">最近项目</text>
+            <text class="recent-link" @click="navigateTo('/pages/projects/list')">查看全部 ›</text>
+          </view>
+          <view class="recent-list">
+            <view
+              class="recent-item"
+              v-for="project in recentProjects"
+              :key="project.id"
+              @click="goToProject(project.id)"
+            >
+              <view class="recent-name">{{ project.name }}</view>
+              <view class="recent-meta">
+                <text class="recent-type">{{ formatProjectType(project.type) }}</text>
+                <text class="recent-updated">{{ formatProjectTime(project.updated_at) }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- P2P协作 -->
+      <view class="module-section">
+        <view class="section-header">
+          <text class="section-icon">🔗</text>
+          <text class="section-title">P2P协作</text>
+          <text class="section-more" @click="navigateTo('/pages/p2p/device-list')">更多 ›</text>
+        </view>
+        <view v-if="p2pSummary.pairedCount > 0" class="p2p-summary">
+          <view class="p2p-stat">
+            <text class="p2p-value">{{ p2pSummary.onlineCount }}/{{ p2pSummary.pairedCount }}</text>
+            <text class="p2p-label">在线设备</text>
+          </view>
+          <view class="p2p-stat">
+            <text class="p2p-value">{{ p2pSummary.primaryDevice || '未配对' }}</text>
+            <text class="p2p-label">当前PC</text>
+          </view>
+          <view class="p2p-stat">
+            <text class="p2p-value">{{ formatDeviceTime(p2pSummary.lastConnected) }}</text>
+            <text class="p2p-label">最近连接</text>
+          </view>
+        </view>
+        <view v-else class="p2p-empty">
+          <text class="empty-title">尚未配对PC设备</text>
+          <text class="empty-subtitle">保持桌面端在线，即可启用项目/知识镜像</text>
+          <button class="pair-btn" @click="navigateTo('/pages/device-pairing/index')">立即配对</button>
+        </view>
+        <view class="module-grid">
+          <view class="module-card" @click="navigateTo('/pages/p2p/pc-status')">
+            <view class="card-icon">💻</view>
+            <text class="card-title">PC状态</text>
+            <text class="card-desc">CPU/内存监控</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/p2p/project-list')">
+            <view class="card-icon">🛰️</view>
+            <text class="card-title">项目镜像</text>
+            <text class="card-desc">浏览PC项目</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/p2p/knowledge-list')">
+            <view class="card-icon">🧠</view>
+            <text class="card-title">知识镜像</text>
+            <text class="card-desc">搜索PC知识</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/p2p/device-list')">
+            <view class="card-icon">🛰</view>
+            <text class="card-title">设备管理</text>
+            <text class="card-desc">联网/断开PC</text>
           </view>
         </view>
       </view>
@@ -217,6 +297,7 @@ import friendService from '@/services/friends'
 import aiConversationService from '@/services/ai-conversation'
 import database from '@/services/database'
 import projectManager from '@/services/project-manager'
+import { getP2PManager } from '@/services/p2p/p2p-manager'
 
 export default {
   data() {
