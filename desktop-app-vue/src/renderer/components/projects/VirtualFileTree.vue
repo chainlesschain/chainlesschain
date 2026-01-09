@@ -189,6 +189,7 @@ const containerHeight = ref(600);
 
 // 状态
 const searchText = ref('');
+const filteredFiles = ref([]); // 搜索过滤后的文件列表
 const expandedKeys = ref(new Set()); // 展开的节点key
 const contextMenuVisible = ref(false);
 const contextNode = ref(null);
@@ -200,9 +201,12 @@ const flattenedNodes = ref([]);
 
 // 构建树形结构并扁平化
 const buildTree = () => {
-  console.log('[VirtualFileTree] 开始构建文件树，文件数量:', props.files?.length || 0);
+  // 使用过滤后的文件列表或原始文件列表
+  const filesToUse = filteredFiles.value.length > 0 ? filteredFiles.value : props.files;
 
-  if (!props.files || props.files.length === 0) {
+  console.log('[VirtualFileTree] 开始构建文件树，文件数量:', filesToUse?.length || 0);
+
+  if (!filesToUse || filesToUse.length === 0) {
     flattenedNodes.value = [];
     return;
   }
@@ -210,7 +214,7 @@ const buildTree = () => {
   // 1. 构建树形结构
   const root = {};
 
-  props.files.forEach((file) => {
+  filesToUse.forEach((file) => {
     const filePath = file.file_path || file.path || file.file_name || '';
     const parts = filePath.split('/').filter(p => p);
 
@@ -737,8 +741,63 @@ const handleDownloadFile = async (node) => {
 
 // 搜索
 const handleSearch = () => {
-  // TODO: 实现搜索过滤
-  console.log('搜索:', searchText.value);
+  try {
+    const query = searchText.value.trim().toLowerCase();
+    console.log('[VirtualFileTree] 搜索:', query);
+
+    if (!query) {
+      // 清空搜索，显示所有文件
+      filteredFiles.value = [];
+      buildTree();
+      return;
+    }
+
+    // 搜索匹配的文件
+    const matches = props.files.filter(file => {
+      const fileName = (file.file_name || file.title || '').toLowerCase();
+      const filePath = (file.file_path || file.path || '').toLowerCase();
+      const content = (file.content || '').toLowerCase();
+
+      // 匹配文件名、路径或内容
+      return fileName.includes(query) ||
+             filePath.includes(query) ||
+             content.includes(query);
+    });
+
+    console.log('[VirtualFileTree] 搜索结果:', matches.length, '个文件');
+
+    if (matches.length === 0) {
+      message.info('未找到匹配的文件');
+    } else {
+      message.success(`找到 ${matches.length} 个匹配的文件`);
+    }
+
+    filteredFiles.value = matches;
+
+    // 自动展开所有包含搜索结果的文件夹
+    if (matches.length > 0) {
+      const pathsToExpand = new Set();
+      matches.forEach(file => {
+        const filePath = file.file_path || file.path || file.file_name || '';
+        const parts = filePath.split('/').filter(p => p);
+
+        // 添加所有父路径到展开列表
+        let currentPath = '';
+        for (let i = 0; i < parts.length - 1; i++) {
+          currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
+          pathsToExpand.add(`folder_${currentPath}`);
+        }
+      });
+
+      expandedKeys.value = pathsToExpand;
+    }
+
+    // 重新构建树
+    buildTree();
+  } catch (error) {
+    console.error('[VirtualFileTree] 搜索失败:', error);
+    message.error('搜索失败: ' + (error.message || '未知错误'));
+  }
 };
 
 // 获取文件图标
