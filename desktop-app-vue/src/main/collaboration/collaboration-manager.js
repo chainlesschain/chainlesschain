@@ -664,11 +664,79 @@ class CollaborationManager extends EventEmitter {
       }
 
       // 3. 检查知识库级别的权限 (如果知识库有特定的共享范围)
-      // TODO: 查询knowledge_items表,检查share_scope和permissions字段
-      // const knowledge = await getKnowledge(knowledgeId);
-      // if (knowledge.share_scope === 'private' && knowledge.created_by !== userDID) {
-      //   return false;
-      // }
+      if (knowledgeId && this.database) {
+        try {
+          const knowledge = this.database.db.prepare(`
+            SELECT share_scope, permissions, created_by, owner_did
+            FROM knowledge_items
+            WHERE id = ?
+          `).get(knowledgeId);
+
+          if (knowledge) {
+            // 检查共享范围
+            const shareScope = knowledge.share_scope || 'private';
+
+            // 如果是私有的，只有创建者可以访问
+            if (shareScope === 'private') {
+              const isOwner = knowledge.created_by === userDID || knowledge.owner_did === userDID;
+              if (!isOwner) {
+                console.warn('[CollaborationManager] 知识库为私有，用户无权访问:', userDID);
+                return false;
+              }
+            }
+
+            // 如果是组织级别，检查用户是否在组织中
+            if (shareScope === 'organization' && this.organizationManager) {
+              const userOrgs = await this.organizationManager.getUserOrganizations(userDID);
+              const knowledgeOrg = knowledge.organization_id;
+
+              if (knowledgeOrg && !userOrgs.some(org => org.id === knowledgeOrg)) {
+                console.warn('[CollaborationManager] 用户不在知识库所属组织中:', userDID);
+                return false;
+              }
+            }
+
+            // 检查特定权限设置
+            if (knowledge.permissions) {
+              try {
+                const permissions = JSON.parse(knowledge.permissions);
+
+                // 检查黑名单
+                if (permissions.blacklist && permissions.blacklist.includes(userDID)) {
+                  console.warn('[CollaborationManager] 用户在黑名单中:', userDID);
+                  return false;
+                }
+
+                // 检查白名单（如果设置了白名单，只有白名单中的用户可以访问）
+                if (permissions.whitelist && permissions.whitelist.length > 0) {
+                  if (!permissions.whitelist.includes(userDID)) {
+                    console.warn('[CollaborationManager] 用户不在白名单中:', userDID);
+                    return false;
+                  }
+                }
+
+                // 检查特定权限级别
+                if (permissions.users && permissions.users[userDID]) {
+                  const userPermLevel = permissions.users[userDID];
+                  const requiredLevel = this._getPermissionLevel(requiredPermission);
+                  const userLevel = this._getPermissionLevel(userPermLevel);
+
+                  if (userLevel < requiredLevel) {
+                    console.warn('[CollaborationManager] 用户权限级别不足:', userDID, userPermLevel, '<', requiredPermission);
+                    return false;
+                  }
+                }
+              } catch (parseError) {
+                console.error('[CollaborationManager] 解析权限配置失败:', parseError);
+              }
+            }
+          }
+        } catch (dbError) {
+          console.error('[CollaborationManager] 查询知识库权限失败:', dbError);
+          // 出错时拒绝访问，安全优先
+          return false;
+        }
+      }
 
       console.log('[CollaborationManager] ✓ 权限检查通过:', userDID, requiredPermission);
       return true;

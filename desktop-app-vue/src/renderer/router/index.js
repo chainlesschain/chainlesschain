@@ -56,8 +56,8 @@ const socialPages = createRouteGroup('social', {
   credentials: () => import(/* webpackChunkName: "social-vc" */ '../components/VCManagement.vue'),
   p2pMessaging: () => import(/* webpackChunkName: "social-p2p" */ '../components/P2PMessaging.vue'),
   chat: () => import(/* webpackChunkName: "social-chat" */ '../components/social/ChatWindow.vue'),
-  // moments: () => import(/* webpackChunkName: "social-moments" */ '../components/social/MomentsTimeline.vue'), // TODO: 文件不存在，待实现
-  // forums: () => import(/* webpackChunkName: "social-forums" */ '../components/social/ForumList.vue'), // TODO: 文件不存在，待实现
+  moments: () => import(/* webpackChunkName: "social-moments" */ '../components/social/MomentsTimeline.vue'),
+  forums: () => import(/* webpackChunkName: "social-forums" */ '../components/social/ForumList.vue'),
 });
 
 // 其他功能页面（按需加载）
