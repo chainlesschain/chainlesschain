@@ -294,13 +294,49 @@ export const useWorkspaceStore = defineStore('workspace', () => {
    */
   async function loadWorkspaceMembers(workspaceId) {
     try {
-      // TODO: 实现获取工作区成员的IPC接口
-      // const result = await window.ipc.invoke('organization:workspace:getMembers', { workspaceId });
-      // currentWorkspaceMembers.value = result.members || [];
-      currentWorkspaceMembers.value = [];
-      console.log('[WorkspaceStore] 工作区成员加载成功');
+      loading.value = true;
+      console.log('[WorkspaceStore] 开始加载工作区成员:', workspaceId);
+
+      // 使用组织成员API获取成员列表
+      // 工作区成员是组织成员的子集
+      const workspace = workspaces.value.find(ws => ws.id === workspaceId);
+      if (!workspace) {
+        console.error('[WorkspaceStore] 工作区不存在:', workspaceId);
+        message.error('工作区不存在');
+        return;
+      }
+
+      // 获取组织成员
+      const result = await window.electronAPI.organization.getMembers(workspace.org_id);
+
+      if (result && result.success) {
+        // 过滤出属于当前工作区的成员
+        // 如果工作区有特定成员列表，则过滤；否则显示所有组织成员
+        currentWorkspaceMembers.value = result.members || [];
+        console.log('[WorkspaceStore] 工作区成员加载成功:', currentWorkspaceMembers.value.length, '个成员');
+      } else {
+        console.warn('[WorkspaceStore] 加载成员失败:', result?.error);
+        currentWorkspaceMembers.value = [];
+        message.warning('加载成员失败: ' + (result?.error || '未知错误'));
+      }
     } catch (error) {
-      console.error('[WorkspaceStore] 加载工作区成员失败:', error);
+      console.error('[WorkspaceStore] 加载工作区成员异常:', error);
+      currentWorkspaceMembers.value = [];
+
+      let errorMessage = '加载成员失败';
+      if (error.message) {
+        if (error.message.includes('permission')) {
+          errorMessage = '没有权限查看成员列表';
+        } else if (error.message.includes('not found')) {
+          errorMessage = '工作区不存在';
+        } else {
+          errorMessage = `加载失败: ${error.message}`;
+        }
+      }
+
+      message.error(errorMessage);
+    } finally {
+      loading.value = false;
     }
   }
 
@@ -310,13 +346,67 @@ export const useWorkspaceStore = defineStore('workspace', () => {
    */
   async function loadWorkspaceResources(workspaceId) {
     try {
-      // TODO: 实现获取工作区资源的IPC接口
-      // const result = await window.ipc.invoke('organization:workspace:getResources', { workspaceId });
-      // currentWorkspaceResources.value = result.resources || [];
-      currentWorkspaceResources.value = [];
-      console.log('[WorkspaceStore] 工作区资源加载成功');
+      loading.value = true;
+      console.log('[WorkspaceStore] 开始加载工作区资源:', workspaceId);
+
+      const workspace = workspaces.value.find(ws => ws.id === workspaceId);
+      if (!workspace) {
+        console.error('[WorkspaceStore] 工作区不存在:', workspaceId);
+        message.error('工作区不存在');
+        return;
+      }
+
+      // 获取工作区的知识库资源
+      const knowledgeResult = await window.electronAPI.organization.getKnowledgeItems({
+        orgId: workspace.org_id,
+        workspaceId: workspaceId
+      });
+
+      // 构建资源列表
+      const resources = [];
+
+      if (knowledgeResult && knowledgeResult.success) {
+        const knowledgeItems = knowledgeResult.items || [];
+        knowledgeItems.forEach(item => {
+          resources.push({
+            id: item.id,
+            type: 'knowledge',
+            name: item.title || item.file_name,
+            description: item.content?.substring(0, 100) || '无描述',
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            creator: item.created_by,
+            metadata: item
+          });
+        });
+      }
+
+      // TODO: 可以添加其他类型的资源（项目、对话等）
+      // const projectResult = await window.electronAPI.project.getByWorkspace(workspaceId);
+      // ...
+
+      currentWorkspaceResources.value = resources;
+      console.log('[WorkspaceStore] 工作区资源加载成功:', resources.length, '个资源');
     } catch (error) {
-      console.error('[WorkspaceStore] 加载工作区资源失败:', error);
+      console.error('[WorkspaceStore] 加载工作区资源异常:', error);
+      currentWorkspaceResources.value = [];
+
+      let errorMessage = '加载资源失败';
+      if (error.message) {
+        if (error.message.includes('permission')) {
+          errorMessage = '没有权限查看资源列表';
+        } else if (error.message.includes('not found')) {
+          errorMessage = '工作区不存在';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = '加载超时，请重试';
+        } else {
+          errorMessage = `加载失败: ${error.message}`;
+        }
+      }
+
+      message.error(errorMessage);
+    } finally {
+      loading.value = false;
     }
   }
 
