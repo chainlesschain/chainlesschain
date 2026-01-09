@@ -115,16 +115,26 @@ class DatabaseEncryptionIPC {
     // 修改加密密码
     ipcMain.handle('database:change-encryption-password', async (_event, data) => {
       try {
+        const { oldPassword, newPassword } = data;
+
+        if (!oldPassword || !newPassword) {
+          throw new Error('旧密码和新密码不能为空');
+        }
+
         if (!this.databaseManager || !this.databaseManager.adapter) {
           throw new Error('数据库未使用加密适配器');
         }
 
-        // TODO: 实现密码修改逻辑
-        // 这需要在适配器中添加 changePassword 方法
+        // 调用适配器的 changePassword 方法
+        const result = await this.databaseManager.adapter.changePassword(
+          oldPassword,
+          newPassword,
+          this.databaseManager.db
+        );
 
         return {
           success: true,
-          message: '密码修改成功'
+          message: result.message || '密码修改成功'
         };
       } catch (error) {
         console.error('[DatabaseEncryptionIPC] 修改密码失败:', error);
