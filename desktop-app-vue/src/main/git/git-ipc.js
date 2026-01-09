@@ -283,8 +283,25 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       // 如果启用状态改变，需要重新初始化
       if ('enabled' in config) {
-        // 重启应用以应用新配置
-        // TODO: 实现热重载
+        // 热重载Git管理器
+        if (config.enabled && !gitManager) {
+          // 启用Git - 初始化管理器
+          const GitManager = require('./git-manager');
+          gitManager = new GitManager({
+            repoPath: gitConfig.getRepoPath(),
+            autoCommit: gitConfig.isAutoCommitEnabled(),
+            autoCommitInterval: gitConfig.getAutoCommitInterval(),
+            remoteUrl: gitConfig.getRemoteUrl(),
+            auth: gitConfig.getAuth()
+          });
+          await gitManager.initialize();
+          console.log('[Git IPC] Git管理器已启用（热重载）');
+        } else if (!config.enabled && gitManager) {
+          // 禁用Git - 关闭管理器
+          await gitManager.close();
+          gitManager = null;
+          console.log('[Git IPC] Git管理器已禁用（热重载）');
+        }
       }
 
       return true;
