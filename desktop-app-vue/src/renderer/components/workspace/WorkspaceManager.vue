@@ -177,8 +177,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { Modal } from 'ant-design-vue';
+import { ref, computed, h } from 'vue';
+import { Modal, message } from 'ant-design-vue';
 import {
   ApartmentOutlined,
   PlusOutlined,
@@ -371,8 +371,73 @@ async function handleDelete(workspace) {
 }
 
 function handleAddMember() {
-  // TODO: Implement add member functionality
-  console.log('Add member to workspace');
+  if (!selectedWorkspace.value) {
+    message.warning('请先选择一个工作区');
+    return;
+  }
+
+  // 显示添加成员对话框
+  Modal.confirm({
+    title: '添加工作区成员',
+    content: h('div', [
+      h('p', '请输入成员DID:'),
+      h('input', {
+        id: 'member-did-input',
+        type: 'text',
+        placeholder: 'did:example:123456',
+        style: 'width: 100%; padding: 8px; margin: 8px 0; border: 1px solid #d9d9d9; border-radius: 4px;'
+      }),
+      h('p', { style: 'margin-top: 16px;' }, '选择角色:'),
+      h('select', {
+        id: 'member-role-select',
+        style: 'width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px;'
+      }, [
+        h('option', { value: 'member' }, '成员'),
+        h('option', { value: 'admin' }, '管理员'),
+        h('option', { value: 'viewer' }, '查看者')
+      ])
+    ]),
+    okText: '添加',
+    cancelText: '取消',
+    onOk: async () => {
+      const didInput = document.getElementById('member-did-input');
+      const roleSelect = document.getElementById('member-role-select');
+
+      const memberDID = didInput?.value?.trim();
+      const role = roleSelect?.value || 'member';
+
+      if (!memberDID) {
+        message.error('请输入成员DID');
+        return Promise.reject();
+      }
+
+      if (!memberDID.startsWith('did:')) {
+        message.error('DID格式错误，应以 "did:" 开头');
+        return Promise.reject();
+      }
+
+      try {
+        const result = await window.electronAPI.invoke('organization:workspace:addMember', {
+          workspaceId: selectedWorkspace.value.id,
+          memberDID,
+          role
+        });
+
+        if (result.success) {
+          message.success('成员添加成功');
+          // 刷新工作区详情
+          await workspaceStore.loadWorkspaces();
+        } else {
+          message.error(result.error || '添加成员失败');
+          return Promise.reject();
+        }
+      } catch (error) {
+        console.error('添加成员失败:', error);
+        message.error('添加成员失败');
+        return Promise.reject();
+      }
+    }
+  });
 }
 </script>
 
