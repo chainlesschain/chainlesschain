@@ -167,7 +167,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, h } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { useProjectStore } from '@/stores/project';
@@ -647,16 +647,128 @@ const handleConversationClick = (conversation) => {
 const handleConversationAction = ({ action, conversation }) => {
   switch (action) {
     case 'rename':
-      // TODO: 实现重命名功能
-      message.info('重命名功能开发中...');
+      handleRenameConversation(conversation);
       break;
     case 'star':
-      // TODO: 实现收藏功能
-      message.info('收藏功能开发中...');
+      handleStarConversation(conversation);
       break;
     case 'delete':
       handleDeleteConversation(conversation);
       break;
+  }
+};
+
+// 重命名对话
+const handleRenameConversation = async (conversation) => {
+  try {
+    const { Modal } = await import('ant-design-vue');
+
+    Modal.confirm({
+      title: '重命名对话',
+      content: h('div', [
+        h('p', { style: { marginBottom: '8px' } }, `当前名称: ${conversation.title}`),
+        h('input', {
+          id: 'rename-conversation-input',
+          type: 'text',
+          value: conversation.title,
+          placeholder: '请输入新名称',
+          style: {
+            width: '100%',
+            padding: '8px',
+            border: '1px solid #d9d9d9',
+            borderRadius: '4px',
+            fontSize: '14px'
+          },
+          onMounted: () => {
+            nextTick(() => {
+              const input = document.getElementById('rename-conversation-input');
+              if (input) {
+                input.focus();
+                input.select();
+              }
+            });
+          }
+        })
+      ]),
+      okText: '确定',
+      cancelText: '取消',
+      onOk: async () => {
+        const input = document.getElementById('rename-conversation-input');
+        const newTitle = input?.value?.trim();
+
+        if (!newTitle) {
+          message.warning('对话名称不能为空');
+          return Promise.reject();
+        }
+
+        if (newTitle === conversation.title) {
+          message.info('名称未改变');
+          return;
+        }
+
+        try {
+          await conversationStore.updateConversation(conversation.id, {
+            title: newTitle
+          });
+
+          message.success('重命名成功');
+
+          // 刷新对话列表
+          await loadConversations();
+        } catch (error) {
+          console.error('[ProjectsPage] 重命名失败:', error);
+
+          let errorMessage = '重命名失败';
+          if (error.message) {
+            if (error.message.includes('not found')) {
+              errorMessage = '对话不存在';
+            } else if (error.message.includes('database')) {
+              errorMessage = '数据库错误，请重试';
+            } else {
+              errorMessage = `重命名失败: ${error.message}`;
+            }
+          }
+
+          message.error(errorMessage);
+          return Promise.reject();
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[ProjectsPage] 打开重命名对话框失败:', error);
+    message.error('打开重命名对话框失败');
+  }
+};
+
+// 收藏/取消收藏对话
+const handleStarConversation = async (conversation) => {
+  try {
+    const isStarred = conversation.is_starred || false;
+    const newStarredState = !isStarred;
+
+    await conversationStore.updateConversation(conversation.id, {
+      is_starred: newStarredState
+    });
+
+    message.success(newStarredState ? '已收藏' : '已取消收藏');
+
+    // 刷新对话列表
+    await loadConversations();
+  } catch (error) {
+    console.error('[ProjectsPage] 收藏操作失败:', error);
+
+    let errorMessage = '操作失败';
+    if (error.message) {
+      if (error.message.includes('not found')) {
+        errorMessage = '对话不存在';
+      } else if (error.message.includes('database')) {
+        errorMessage = '数据库错误，请重试';
+      } else {
+        errorMessage = `操作失败: ${error.message}`;
+      }
+    }
+
+    message.error(errorMessage);
   }
 };
 
