@@ -440,6 +440,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getNATInfo: () => ipcRenderer.invoke('p2p:get-nat-info'),
     getRelayInfo: () => ipcRenderer.invoke('p2p:get-relay-info'),
     runDiagnostics: () => ipcRenderer.invoke('p2p:run-diagnostics'),
+    // WebRTC质量监控
+    getWebRTCQualityReport: (peerId) => ipcRenderer.invoke('p2p:get-webrtc-quality-report', peerId),
+    getWebRTCOptimizationSuggestions: (peerId) => ipcRenderer.invoke('p2p:get-webrtc-optimization-suggestions', peerId),
+    getConnectionPoolStats: () => ipcRenderer.invoke('p2p:get-connection-pool-stats'),
     // 事件监听
     on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
     off: (event, callback) => ipcRenderer.removeListener(event, callback),

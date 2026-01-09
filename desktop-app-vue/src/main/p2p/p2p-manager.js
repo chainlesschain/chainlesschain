@@ -14,6 +14,7 @@ const { DeviceSyncManager, MessageStatus, SyncMessageType } = require('./device-
 const NATDetector = require('./nat-detector');
 const TransportDiagnostics = require('./transport-diagnostics');
 const { ConnectionPool } = require('./connection-pool');
+const { WebRTCQualityMonitor } = require('./webrtc-quality-monitor');
 
 // 动态导入 ESM 模块
 let createLibp2p, tcp, noise, mplex, kadDHT, mdns, bootstrap, multiaddr;
@@ -62,6 +63,9 @@ class P2PManager extends EventEmitter {
 
       // 连接池（性能优化）
       this.connectionPool = null;
+
+      // WebRTC质量监控
+      this.webrtcQualityMonitor = null;
     }
 
   /**
@@ -84,8 +88,13 @@ class P2PManager extends EventEmitter {
         stun: {
           servers: settings['p2p.stun.servers'] ? JSON.parse(settings['p2p.stun.servers']) : [
             'stun:stun.l.google.com:19302',
-            'stun:stun1.l.google.com:19302'
+            'stun:stun1.l.google.com:19302',
+            'stun:stun2.l.google.com:19302'
           ],
+        },
+        turn: {
+          enabled: settings['p2p.turn.enabled'] === 'true',
+          servers: settings['p2p.turn.servers'] ? JSON.parse(settings['p2p.turn.servers']) : [],
         },
         relay: {
           enabled: settings['p2p.relay.enabled'] !== 'false',
@@ -103,6 +112,11 @@ class P2PManager extends EventEmitter {
         },
         websocket: {
           port: parseInt(settings['p2p.websocket.port']) || 9003,
+        },
+        webrtc: {
+          port: parseInt(settings['p2p.webrtc.port']) || 9095,
+          iceTransportPolicy: settings['p2p.webrtc.iceTransportPolicy'] || 'all', // 'all' or 'relay'
+          iceCandidatePoolSize: parseInt(settings['p2p.webrtc.iceCandidatePoolSize']) || 10,
         },
         compatibility: {
           detectLegacy: settings['p2p.compatibility.detectLegacy'] !== 'false',
@@ -122,8 +136,14 @@ class P2PManager extends EventEmitter {
           servers: [
             'stun:stun.l.google.com:19302',
             'stun:stun1.l.google.com:19302',
-            'stun:stun2.l.google.com:19302'
+            'stun:stun2.l.google.com:19302',
+            'stun:stun3.l.google.com:19302',
+            'stun:stun4.l.google.com:19302'
           ],
+        },
+        turn: {
+          enabled: false,
+          servers: [],
         },
         relay: {
           enabled: true,
@@ -141,6 +161,11 @@ class P2PManager extends EventEmitter {
         },
         websocket: {
           port: 9003,
+        },
+        webrtc: {
+          port: 9095,
+          iceTransportPolicy: 'all',
+          iceCandidatePoolSize: 10,
         },
         compatibility: {
           detectLegacy: true,
@@ -257,9 +282,10 @@ class P2PManager extends EventEmitter {
 
       // 如果启用WebRTC，添加WebRTC监听地址
       if (this.p2pConfig.transports.webrtc) {
-        const webrtcPort = this.config.webrtcPort || 9095;
+        const webrtcPort = this.p2pConfig.webrtc.port || 9095;
         listenAddresses.push(`/ip4/0.0.0.0/udp/${webrtcPort}/webrtc`);
         listenAddresses.push(`/ip4/127.0.0.1/udp/${webrtcPort}/webrtc`);
+        console.log(`[P2PManager] WebRTC监听端口: ${webrtcPort}`);
       }
 
       // 根据配置和NAT类型智能选择传输层
@@ -350,6 +376,35 @@ class P2PManager extends EventEmitter {
       });
 
       console.log('[P2PManager] 连接池已初始化');
+
+      // 初始化WebRTC质量监控器（如果启用WebRTC）
+      if (this.p2pConfig.transports.webrtc) {
+        console.log('[P2PManager] 初始化WebRTC质量监控器...');
+        this.webrtcQualityMonitor = new WebRTCQualityMonitor(this, {
+          monitorInterval: 5000,
+          statsRetention: 100,
+          packetLossThreshold: 5,
+          rttThreshold: 300,
+          jitterThreshold: 50,
+          bandwidthThreshold: 100000
+        });
+
+        // 监听质量变化事件
+        this.webrtcQualityMonitor.on('quality:change', ({ peerId, previousQuality, currentQuality }) => {
+          console.log(`[WebRTC] ${peerId} 连接质量变化: ${previousQuality} -> ${currentQuality}`);
+          this.emit('webrtc:quality:change', { peerId, previousQuality, currentQuality });
+        });
+
+        // 监听告警事件
+        this.webrtcQualityMonitor.on('alert', ({ peerId, alerts, metrics }) => {
+          console.warn(`[WebRTC] ${peerId} 连接告警:`, alerts);
+          this.emit('webrtc:alert', { peerId, alerts, metrics });
+        });
+
+        // 启动监控
+        this.webrtcQualityMonitor.start();
+        console.log('[P2PManager] WebRTC质量监控器已启动');
+      }
 
       // 初始化设备管理器
       await this.initializeDeviceManager();
@@ -1541,6 +1596,13 @@ class P2PManager extends EventEmitter {
   async close() {
     console.log('[P2PManager] 关闭 P2P 节点');
 
+    // 停止WebRTC质量监控器
+    if (this.webrtcQualityMonitor) {
+      this.webrtcQualityMonitor.stop();
+      this.webrtcQualityMonitor = null;
+      console.log('[P2PManager] WebRTC质量监控器已停止');
+    }
+
     if (this.syncManager) {
       await this.syncManager.close();
       this.syncManager = null;
@@ -1581,8 +1643,27 @@ class P2PManager extends EventEmitter {
     // Helper function to safely add WebRTC transport
     const addWebRTCTransport = (priority = '后备') => {
       try {
-        transports.push(webRTC({ iceServers: this.buildICEServers() }));
+        const webrtcConfig = {
+          iceServers: this.buildICEServers()
+        };
+
+        // 添加WebRTC特定配置
+        if (config.webrtc) {
+          if (config.webrtc.iceTransportPolicy) {
+            webrtcConfig.iceTransportPolicy = config.webrtc.iceTransportPolicy;
+          }
+          if (config.webrtc.iceCandidatePoolSize) {
+            webrtcConfig.iceCandidatePoolSize = config.webrtc.iceCandidatePoolSize;
+          }
+        }
+
+        transports.push(webRTC(webrtcConfig));
         console.log(`[P2PManager] 添加WebRTC传输（${priority}）`);
+        console.log(`[P2PManager] WebRTC配置:`, {
+          iceServers: webrtcConfig.iceServers.length,
+          iceTransportPolicy: webrtcConfig.iceTransportPolicy,
+          iceCandidatePoolSize: webrtcConfig.iceCandidatePoolSize
+        });
         return true;
       } catch (error) {
         console.warn('[P2PManager] WebRTC传输初始化失败，跳过:', error.message);
@@ -1666,14 +1747,67 @@ class P2PManager extends EventEmitter {
   /**
    * 构建ICE服务器配置（用于WebRTC）
    */
+  /**
+   * 构建ICE服务器配置（STUN + TURN）
+   */
   buildICEServers() {
-    if (!this.p2pConfig || !this.p2pConfig.stun || !this.p2pConfig.stun.servers) {
+    const iceServers = [];
+
+    // 添加STUN服务器
+    if (this.p2pConfig && this.p2pConfig.stun && this.p2pConfig.stun.servers) {
+      this.p2pConfig.stun.servers.forEach(server => {
+        iceServers.push({
+          urls: server
+        });
+      });
+    }
+
+    // 添加TURN服务器（如果配置）
+    if (this.p2pConfig && this.p2pConfig.turn && this.p2pConfig.turn.enabled) {
+      const turnServers = this.p2pConfig.turn.servers || [];
+      turnServers.forEach(server => {
+        const turnConfig = {
+          urls: server.urls
+        };
+
+        // 添加认证信息（如果有）
+        if (server.username && server.credential) {
+          turnConfig.username = server.username;
+          turnConfig.credential = server.credential;
+        }
+
+        iceServers.push(turnConfig);
+      });
+    }
+
+    console.log(`[P2PManager] ICE服务器配置: ${iceServers.length} 个服务器`);
+    return iceServers;
+  }
+
+  /**
+   * 获取WebRTC连接质量报告
+   */
+  getWebRTCQualityReport(peerId) {
+    if (!this.webrtcQualityMonitor) {
+      return null;
+    }
+
+    if (peerId) {
+      return this.webrtcQualityMonitor.getQualityReport(peerId);
+    } else {
+      return this.webrtcQualityMonitor.getAllQualityReports();
+    }
+  }
+
+  /**
+   * 获取WebRTC优化建议
+   */
+  getWebRTCOptimizationSuggestions(peerId) {
+    if (!this.webrtcQualityMonitor) {
       return [];
     }
 
-    return this.p2pConfig.stun.servers.map(server => ({
-      urls: server
-    }));
+    return this.webrtcQualityMonitor.getOptimizationSuggestions(peerId);
   }
 }
 

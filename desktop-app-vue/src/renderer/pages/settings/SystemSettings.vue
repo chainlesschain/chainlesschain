@@ -651,6 +651,124 @@
             </a-form>
           </a-card>
 
+          <!-- WebRTC 配置 -->
+          <a-card title="WebRTC 配置" style="margin-bottom: 16px;">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+              <a-form-item label="WebRTC 端口">
+                <a-input-number
+                  v-model:value="config.p2p.webrtc.port"
+                  :min="1024"
+                  :max="65535"
+                  style="width: 200px;"
+                />
+                <template #extra>
+                  WebRTC监听端口（UDP）
+                </template>
+              </a-form-item>
+
+              <a-form-item label="ICE 传输策略">
+                <a-select
+                  v-model:value="config.p2p.webrtc.iceTransportPolicy"
+                  style="width: 200px;"
+                >
+                  <a-select-option value="all">全部（STUN + TURN）</a-select-option>
+                  <a-select-option value="relay">仅中继（TURN）</a-select-option>
+                </a-select>
+                <template #extra>
+                  'all' 尝试所有候选，'relay' 强制使用TURN中继（更私密但速度慢）
+                </template>
+              </a-form-item>
+
+              <a-form-item label="ICE 候选池大小">
+                <a-slider
+                  v-model:value="config.p2p.webrtc.iceCandidatePoolSize"
+                  :min="0"
+                  :max="20"
+                  :marks="{ 0: '0', 5: '5', 10: '10', 15: '15', 20: '20' }"
+                />
+                <template #extra>
+                  预先收集的ICE候选数量，增加可加快连接建立速度
+                </template>
+              </a-form-item>
+
+              <a-divider>STUN 服务器</a-divider>
+
+              <a-form-item label="STUN 服务器列表">
+                <a-space direction="vertical" style="width: 100%;">
+                  <a-tag
+                    v-for="(server, index) in config.p2p.stun.servers"
+                    :key="index"
+                    closable
+                    @close="handleRemoveStunServer(index)"
+                  >
+                    {{ server }}
+                  </a-tag>
+                  <a-input-group compact>
+                    <a-input
+                      v-model:value="newStunServer"
+                      placeholder="stun:stun.example.com:19302"
+                      style="width: calc(100% - 80px);"
+                      @pressEnter="handleAddStunServer"
+                    />
+                    <a-button type="primary" @click="handleAddStunServer">
+                      添加
+                    </a-button>
+                  </a-input-group>
+                </a-space>
+                <template #extra>
+                  STUN服务器用于NAT穿透和公网IP发现
+                </template>
+              </a-form-item>
+
+              <a-divider>TURN 服务器</a-divider>
+
+              <a-form-item label="启用 TURN">
+                <a-switch
+                  v-model:checked="config.p2p.turn.enabled"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
+                <template #extra>
+                  TURN服务器用于在无法建立直接P2P连接时提供中继服务
+                </template>
+              </a-form-item>
+
+              <a-form-item v-if="config.p2p.turn.enabled" label="TURN 服务器列表">
+                <a-space direction="vertical" style="width: 100%;">
+                  <a-card
+                    v-for="(server, index) in config.p2p.turn.servers"
+                    :key="index"
+                    size="small"
+                    style="margin-bottom: 8px;"
+                  >
+                    <template #extra>
+                      <a-button
+                        type="text"
+                        danger
+                        size="small"
+                        @click="handleRemoveTurnServer(index)"
+                      >
+                        删除
+                      </a-button>
+                    </template>
+                    <a-descriptions :column="1" size="small">
+                      <a-descriptions-item label="URL">{{ server.urls }}</a-descriptions-item>
+                      <a-descriptions-item label="用户名">{{ server.username || '-' }}</a-descriptions-item>
+                      <a-descriptions-item label="凭证">{{ server.credential ? '***' : '-' }}</a-descriptions-item>
+                    </a-descriptions>
+                  </a-card>
+
+                  <a-button type="dashed" block @click="showAddTurnServerModal = true">
+                    + 添加 TURN 服务器
+                  </a-button>
+                </a-space>
+                <template #extra>
+                  生产环境建议配置自建TURN服务器
+                </template>
+              </a-form-item>
+            </a-form>
+          </a-card>
+
           <!-- NAT 穿透状态 -->
           <a-card title="NAT 穿透状态" style="margin-bottom: 16px;">
             <a-space direction="vertical" size="middle" style="width: 100%;">
@@ -785,6 +903,99 @@
             </a-form>
           </a-card>
 
+          <!-- WebRTC 连接质量监控 -->
+          <a-card title="WebRTC 连接质量监控" style="margin-bottom: 16px;">
+            <a-space direction="vertical" size="middle" style="width: 100%;">
+              <a-button type="primary" @click="handleRefreshWebRTCQuality" :loading="refreshingWebRTCQuality">
+                <ReloadOutlined />
+                刷新质量报告
+              </a-button>
+
+              <a-empty v-if="!webrtcQualityReports || webrtcQualityReports.length === 0" description="暂无WebRTC连接" />
+
+              <div v-else>
+                <a-card
+                  v-for="report in webrtcQualityReports"
+                  :key="report.peerId"
+                  size="small"
+                  style="margin-bottom: 12px;"
+                >
+                  <template #title>
+                    <a-space>
+                      <span>{{ report.peerId.substring(0, 20) }}...</span>
+                      <a-tag :color="getQualityColor(report.quality)">
+                        {{ getQualityLabel(report.quality) }}
+                      </a-tag>
+                    </a-space>
+                  </template>
+
+                  <a-descriptions :column="2" size="small" bordered>
+                    <a-descriptions-item label="丢包率">
+                      <a-tag :color="report.metrics.packetLoss > 5 ? 'red' : 'green'">
+                        {{ report.metrics.packetLoss.toFixed(2) }}%
+                      </a-tag>
+                    </a-descriptions-item>
+                    <a-descriptions-item label="延迟 (RTT)">
+                      <a-tag :color="report.metrics.rtt > 300 ? 'red' : 'green'">
+                        {{ report.metrics.rtt }} ms
+                      </a-tag>
+                    </a-descriptions-item>
+                    <a-descriptions-item label="抖动 (Jitter)">
+                      <a-tag :color="report.metrics.jitter > 50 ? 'red' : 'green'">
+                        {{ report.metrics.jitter }} ms
+                      </a-tag>
+                    </a-descriptions-item>
+                    <a-descriptions-item label="带宽">
+                      {{ (report.metrics.bandwidth / 1000).toFixed(2) }} kbps
+                    </a-descriptions-item>
+                    <a-descriptions-item label="运行时间" :span="2">
+                      {{ formatUptime(report.uptime) }}
+                    </a-descriptions-item>
+                  </a-descriptions>
+
+                  <!-- 告警信息 -->
+                  <a-alert
+                    v-if="report.alerts && report.alerts.length > 0"
+                    type="warning"
+                    style="margin-top: 12px;"
+                  >
+                    <template #message>
+                      <div v-for="(alert, index) in report.alerts" :key="index">
+                        <a-tag :color="alert.severity === 'critical' ? 'red' : 'orange'">
+                          {{ alert.type }}
+                        </a-tag>
+                        {{ alert.message }}
+                      </div>
+                    </template>
+                  </a-alert>
+
+                  <!-- 优化建议 -->
+                  <a-collapse v-if="report.suggestions && report.suggestions.length > 0" style="margin-top: 12px;">
+                    <a-collapse-panel key="1" header="优化建议">
+                      <a-list size="small" :data-source="report.suggestions">
+                        <template #renderItem="{ item }">
+                          <a-list-item>
+                            <a-list-item-meta>
+                              <template #title>
+                                <a-tag :color="getPriorityColor(item.priority)">
+                                  {{ item.priority }}
+                                </a-tag>
+                                {{ item.issue }}
+                              </template>
+                              <template #description>
+                                {{ item.suggestion }}
+                              </template>
+                            </a-list-item-meta>
+                          </a-list-item>
+                        </template>
+                      </a-list>
+                    </a-collapse-panel>
+                  </a-collapse>
+                </a-card>
+              </div>
+            </a-space>
+          </a-card>
+
           <!-- 网络诊断 -->
           <a-card title="网络诊断">
             <a-space direction="vertical" size="middle" style="width: 100%;">
@@ -865,6 +1076,35 @@
         </a-space>
       </div>
     </a-spin>
+
+    <!-- 添加 TURN 服务器模态框 -->
+    <a-modal
+      v-model:open="showAddTurnServerModal"
+      title="添加 TURN 服务器"
+      @ok="handleAddTurnServer"
+      @cancel="resetTurnServerForm"
+    >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+        <a-form-item label="服务器 URL" required>
+          <a-input
+            v-model:value="newTurnServer.urls"
+            placeholder="turn:turn.example.com:3478"
+          />
+        </a-form-item>
+        <a-form-item label="用户名">
+          <a-input
+            v-model:value="newTurnServer.username"
+            placeholder="username"
+          />
+        </a-form-item>
+        <a-form-item label="凭证/密码">
+          <a-input-password
+            v-model:value="newTurnServer.credential"
+            placeholder="password"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -1043,6 +1283,15 @@ const config = ref({
         'stun:stun2.l.google.com:19302'
       ],
     },
+    turn: {
+      enabled: false,
+      servers: [],
+    },
+    webrtc: {
+      port: 9095,
+      iceTransportPolicy: 'all',
+      iceCandidatePoolSize: 10,
+    },
     relay: {
       enabled: true,
       maxReservations: 2,
@@ -1120,6 +1369,19 @@ const diagnosticResults = ref(null);
 const detectingNAT = ref(false);
 const refreshingRelays = ref(false);
 const runningDiagnostics = ref(false);
+
+// STUN/TURN 服务器管理
+const newStunServer = ref('');
+const showAddTurnServerModal = ref(false);
+const newTurnServer = ref({
+  urls: '',
+  username: '',
+  credential: ''
+});
+
+// WebRTC 质量监控
+const webrtcQualityReports = ref([]);
+const refreshingWebRTCQuality = ref(false);
 
 // 诊断表格列定义
 const diagnosticColumns = [
@@ -1204,6 +1466,154 @@ const handleRunDiagnostics = async () => {
     message.error('诊断失败：' + error.message);
   } finally {
     runningDiagnostics.value = false;
+  }
+};
+
+// STUN 服务器管理
+const handleAddStunServer = () => {
+  if (!newStunServer.value) {
+    message.warning('请输入STUN服务器地址');
+    return;
+  }
+
+  // 验证格式
+  if (!newStunServer.value.startsWith('stun:')) {
+    message.error('STUN服务器地址格式错误，应以 stun: 开头');
+    return;
+  }
+
+  // 检查是否已存在
+  if (config.value.p2p.stun.servers.includes(newStunServer.value)) {
+    message.warning('该STUN服务器已存在');
+    return;
+  }
+
+  config.value.p2p.stun.servers.push(newStunServer.value);
+  newStunServer.value = '';
+  message.success('STUN服务器已添加');
+};
+
+const handleRemoveStunServer = (index) => {
+  config.value.p2p.stun.servers.splice(index, 1);
+  message.success('STUN服务器已删除');
+};
+
+// TURN 服务器管理
+const handleAddTurnServer = () => {
+  if (!newTurnServer.value.urls) {
+    message.warning('请输入TURN服务器地址');
+    return;
+  }
+
+  // 验证格式
+  if (!newTurnServer.value.urls.startsWith('turn:') && !newTurnServer.value.urls.startsWith('turns:')) {
+    message.error('TURN服务器地址格式错误，应以 turn: 或 turns: 开头');
+    return;
+  }
+
+  // 添加到列表
+  config.value.p2p.turn.servers.push({
+    urls: newTurnServer.value.urls,
+    username: newTurnServer.value.username || undefined,
+    credential: newTurnServer.value.credential || undefined
+  });
+
+  // 重置表单
+  resetTurnServerForm();
+  showAddTurnServerModal.value = false;
+  message.success('TURN服务器已添加');
+};
+
+const handleRemoveTurnServer = (index) => {
+  config.value.p2p.turn.servers.splice(index, 1);
+  message.success('TURN服务器已删除');
+};
+
+const resetTurnServerForm = () => {
+  newTurnServer.value = {
+    urls: '',
+    username: '',
+    credential: ''
+  };
+};
+
+// WebRTC 质量监控
+const handleRefreshWebRTCQuality = async () => {
+  refreshingWebRTCQuality.value = true;
+  try {
+    // 获取所有连接的质量报告
+    const reports = await window.electronAPI.p2p.getWebRTCQualityReport();
+
+    if (reports && Array.isArray(reports)) {
+      // 为每个报告获取优化建议
+      webrtcQualityReports.value = await Promise.all(
+        reports.map(async (report) => {
+          const suggestions = await window.electronAPI.p2p.getWebRTCOptimizationSuggestions(report.peerId);
+          return {
+            ...report,
+            suggestions
+          };
+        })
+      );
+    } else {
+      webrtcQualityReports.value = [];
+    }
+
+    message.success('WebRTC质量报告已更新');
+  } catch (error) {
+    console.error('获取WebRTC质量报告失败:', error);
+    message.error('获取WebRTC质量报告失败：' + error.message);
+  } finally {
+    refreshingWebRTCQuality.value = false;
+  }
+};
+
+// 质量等级颜色映射
+const getQualityColor = (quality) => {
+  const colorMap = {
+    'excellent': 'green',
+    'good': 'blue',
+    'fair': 'orange',
+    'poor': 'red',
+    'critical': 'red'
+  };
+  return colorMap[quality] || 'default';
+};
+
+// 质量等级标签映射
+const getQualityLabel = (quality) => {
+  const labelMap = {
+    'excellent': '优秀',
+    'good': '良好',
+    'fair': '一般',
+    'poor': '较差',
+    'critical': '严重'
+  };
+  return labelMap[quality] || quality;
+};
+
+// 优先级颜色映射
+const getPriorityColor = (priority) => {
+  const colorMap = {
+    'high': 'red',
+    'medium': 'orange',
+    'low': 'blue'
+  };
+  return colorMap[priority] || 'default';
+};
+
+// 格式化运行时间
+const formatUptime = (uptime) => {
+  const seconds = Math.floor(uptime / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  if (hours > 0) {
+    return `${hours}小时${minutes % 60}分钟`;
+  } else if (minutes > 0) {
+    return `${minutes}分钟${seconds % 60}秒`;
+  } else {
+    return `${seconds}秒`;
   }
 };
 
