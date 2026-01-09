@@ -350,28 +350,178 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
     this.modelPath = config.modelPath || '';
     this.modelSize = config.modelSize || 'base';  // tiny/base/small/medium/large
     this.device = config.device || 'cpu';
+    this.serverUrl = config.serverUrl || 'http://localhost:8000';  // 本地 Whisper 服务器
+    this.timeout = config.timeout || 120000;  // 2分钟超时
   }
 
+  /**
+   * 识别音频文件（使用本地 Whisper 服务）
+   * @param {string} audioPath - 音频文件路径
+   * @param {Object} options - 识别选项
+   * @returns {Promise<Object>}
+   */
   async recognize(audioPath, options = {}) {
-    throw new Error('Whisper Local 识别器尚未实现。请使用 Whisper API 或等待 Phase 2 更新。');
+    const {
+      language = 'zh',
+      task = 'transcribe',  // transcribe | translate
+      temperature = 0,
+      initialPrompt = null,
+    } = options;
+
+    try {
+      console.log('[WhisperLocal] 开始识别:', path.basename(audioPath));
+
+      // 检查文件是否存在
+      const fileExists = await fs.promises.access(audioPath)
+        .then(() => true)
+        .catch(() => false);
+
+      if (!fileExists) {
+        throw new Error(`音频文件不存在: ${audioPath}`);
+      }
+
+      // 获取文件大小
+      const stats = await fs.promises.stat(audioPath);
+      const fileSizeMB = stats.size / (1024 * 1024);
+      console.log(`[WhisperLocal] 文件大小: ${fileSizeMB.toFixed(2)} MB`);
+
+      // 准备表单数据
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(audioPath));
+      formData.append('model', this.modelSize);
+      formData.append('language', language);
+      formData.append('task', task);
+      formData.append('temperature', temperature.toString());
+
+      if (initialPrompt) {
+        formData.append('initial_prompt', initialPrompt);
+      }
+
+      // 发送请求到本地 Whisper 服务器
+      const startTime = Date.now();
+      const response = await axios.post(
+        `${this.serverUrl}/v1/audio/transcriptions`,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+          },
+          timeout: this.timeout,
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+        }
+      );
+
+      const duration = Date.now() - startTime;
+      console.log(`[WhisperLocal] 识别完成，耗时: ${(duration / 1000).toFixed(2)}s`);
+
+      // 解析响应
+      const data = response.data;
+      const text = data.text || '';
+      const language_detected = data.language || language;
+
+      return {
+        success: true,
+        text: text,
+        language: language_detected,
+        engine: 'whisper-local',
+        model: this.modelSize,
+        duration: duration,
+        confidence: data.confidence || 0.9,
+        segments: data.segments || [],
+      };
+    } catch (error) {
+      console.error('[WhisperLocal] 识别失败:', error);
+
+      let errorMessage = error.message;
+
+      if (error.code === 'ECONNREFUSED') {
+        errorMessage = `无法连接到本地 Whisper 服务器 (${this.serverUrl})。请确保服务器正在运行。`;
+      } else if (error.code === 'ETIMEDOUT') {
+        errorMessage = '识别超时。请尝试使用较小的音频文件或增加超时时间。';
+      } else if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+
+        if (status === 400) {
+          errorMessage = '音频文件格式不支持或参数错误';
+        } else if (status === 500) {
+          errorMessage = '服务器内部错误，请检查 Whisper 服务日志';
+        } else if (data && data.error) {
+          errorMessage = data.error.message || data.error;
+        }
+      }
+
+      throw new Error(errorMessage);
+    }
   }
 
   getEngineName() {
     return 'whisper-local';
   }
 
+  /**
+   * 检查本地 Whisper 服务是否可用
+   */
   async isAvailable() {
-    // 检查模型文件是否存在
-    if (!this.modelPath) {
+    try {
+      // 尝试连接到服务器
+      const response = await axios.get(`${this.serverUrl}/health`, {
+        timeout: 5000,
+      });
+
+      return response.status === 200;
+    } catch (error) {
+      console.warn('[WhisperLocal] 服务不可用:', error.message);
       return false;
+    }
+  }
+
+  /**
+   * 获取可用的模型列表
+   */
+  async getAvailableModels() {
+    try {
+      const response = await axios.get(`${this.serverUrl}/v1/models`, {
+        timeout: 5000,
+      });
+
+      return response.data.models || [];
+    } catch (error) {
+      console.error('[WhisperLocal] 获取模型列表失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 批量识别（本地服务通常更快，可以并发）
+   */
+  async recognizeBatch(audioPaths, options = {}) {
+    const results = [];
+    const concurrency = options.concurrency || 2;  // 并发数
+
+    // 分批处理
+    for (let i = 0; i < audioPaths.length; i += concurrency) {
+      const batch = audioPaths.slice(i, i + concurrency);
+      const batchPromises = batch.map(audioPath =>
+        this.recognize(audioPath, options)
+          .then(result => ({
+            success: true,
+            path: audioPath,
+            ...result,
+          }))
+          .catch(error => ({
+            success: false,
+            path: audioPath,
+            error: error.message,
+          }))
+      );
+
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
     }
 
-    try {
-      await fs.promises.access(this.modelPath);
-      return true;
-    } catch {
-      return false;
-    }
+    return results;
   }
 }
 

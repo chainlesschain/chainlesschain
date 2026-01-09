@@ -1,7 +1,9 @@
 // sql.js is optional (may not be available in packaged builds)
 let initSqlJs = null;
 try {
-  initSqlJs = require('sql.js');
+  const sqlJsModule = require('sql.js');
+  // sql.js exports a function as default export
+  initSqlJs = sqlJsModule.default || sqlJsModule;
 } catch (err) {
   console.log('[Database] sql.js not available (will use better-sqlite3)');
 }
