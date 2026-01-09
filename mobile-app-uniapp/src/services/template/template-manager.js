@@ -489,6 +489,8 @@ class TemplateManager {
    * @returns {Object} 创建的模板
    */
   async createTemplate(templateData, isBuiltin = false) {
+    this.ensureDatabase()
+
     const now = Date.now()
     const id = templateData.id || `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
@@ -759,15 +761,31 @@ class TemplateManager {
    * @returns {string} 渲染结果
    */
   async applyTemplate(templateId, data = {}) {
-    const template = await this.getTemplateById(templateId)
-    if (!template) {
-      throw new Error('模板不存在')
-    }
+    const content = await this.renderTemplateContent(templateId, data)
 
     // 增加使用次数
     await this.incrementUsageCount(templateId)
 
-    // 渲染模板
+    return content
+  }
+
+  /**
+   * 渲染模板内容（不会记录使用次数）
+   * @param {string|Object} templateOrId 模板ID或模板对象
+   * @param {Object} data 填充数据
+   * @returns {string} 渲染结果
+   */
+  async renderTemplateContent(templateOrId, data = {}) {
+    this.ensureDatabase()
+
+    const template = typeof templateOrId === 'string'
+      ? await this.getTemplateById(templateOrId)
+      : templateOrId
+
+    if (!template) {
+      throw new Error('模板不存在')
+    }
+
     return this.engine.render(template.content, data)
   }
 
