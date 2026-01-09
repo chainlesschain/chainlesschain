@@ -23,6 +23,7 @@ const projectPages = createRouteGroup('project', {
   archived: () => import(/* webpackChunkName: "project-archived" */ '../pages/projects/ArchivedPage.vue'),
   categories: () => import(/* webpackChunkName: "project-categories" */ '../pages/projects/CategoryManagePage.vue'),
   share: () => import(/* webpackChunkName: "project-share" */ '../pages/ShareProjectView.vue'),
+  workspace: () => import(/* webpackChunkName: "project-workspace" */ '../components/workspace/WorkspaceManager.vue'),
 });
 
 // 知识库页面组（中优先级）
@@ -270,6 +271,12 @@ const routes = [
         name: 'ProjectManagement',
         component: () => import('../pages/projects/ProjectManagementPage.vue'),
         meta: { title: '项目列表管理' },
+      },
+      {
+        path: 'projects/workspace',
+        name: 'WorkspaceManagement',
+        component: projectPages.workspace,
+        meta: { title: '工作区管理' },
       },
       {
         path: 'projects',
