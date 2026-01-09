@@ -1,11 +1,5 @@
 <template>
   <div class="suggested-prompts-panel">
-    <!-- Info Banner -->
-    <div class="info-banner">
-      <InfoCircleOutlined />
-      <span>功能开发中: 将建议填充到输入框</span>
-    </div>
-
     <!-- Greeting Message -->
     <div class="greeting-section">
       <h1 class="greeting-title">{{ greetingMessage }}</h1>
@@ -22,6 +16,18 @@
           {{ suggestion.display_name || suggestion.name }}
           <RightOutlined />
         </a-button>
+      </div>
+
+      <!-- Loading State -->
+      <div v-else-if="loading" class="loading-state">
+        <a-spin size="small" />
+        <span>加载提示模板...</span>
+      </div>
+
+      <!-- Empty State -->
+      <div v-else class="empty-state">
+        <InfoCircleOutlined />
+        <span>暂无可用的提示模板</span>
       </div>
 
       <!-- AI Template Badge -->
@@ -94,6 +100,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { message } from 'ant-design-vue';
 import {
   InfoCircleOutlined,
   BulbOutlined,
@@ -200,11 +207,33 @@ const filteredSuggestions = computed(() => {
 const loadTemplates = async () => {
   try {
     loading.value = true;
+    console.log('[SuggestedPromptsPanel] 开始加载提示模板...');
+
     const allTemplates = await window.electronAPI.promptTemplate.getAll();
-    templates.value = allTemplates || [];
+
+    if (allTemplates && allTemplates.length > 0) {
+      templates.value = allTemplates;
+      console.log('[SuggestedPromptsPanel] ✅ 加载成功:', allTemplates.length, '个模板');
+    } else {
+      templates.value = [];
+      console.warn('[SuggestedPromptsPanel] ⚠️ 未找到提示模板');
+    }
   } catch (error) {
-    console.error('Failed to load templates:', error);
+    console.error('[SuggestedPromptsPanel] ❌ 加载模板失败:', error);
     templates.value = [];
+
+    let errorMessage = '加载提示模板失败';
+    if (error.message) {
+      if (error.message.includes('not found')) {
+        errorMessage = '提示模板服务不可用';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = '加载超时，请重试';
+      } else {
+        errorMessage = `加载失败: ${error.message}`;
+      }
+    }
+
+    message.error(errorMessage);
   } finally {
     loading.value = false;
   }
@@ -212,13 +241,28 @@ const loadTemplates = async () => {
 
 // Fill suggestion into input
 const fillSuggestion = (suggestion) => {
-  // Use the description or prompt template as the suggestion text
-  const suggestionText = suggestion.description ||
-                         suggestion.display_name ||
-                         suggestion.name;
+  try {
+    console.log('[SuggestedPromptsPanel] 填充建议:', suggestion);
 
-  inputText.value = suggestionText;
-  emit('fillInput', suggestionText);
+    // Use the description or prompt template as the suggestion text
+    const suggestionText = suggestion.description ||
+                           suggestion.display_name ||
+                           suggestion.name;
+
+    if (!suggestionText) {
+      message.warning('该提示模板内容为空');
+      return;
+    }
+
+    inputText.value = suggestionText;
+    emit('fillInput', suggestionText);
+
+    message.success('已填充提示内容');
+    console.log('[SuggestedPromptsPanel] ✅ 填充成功');
+  } catch (error) {
+    console.error('[SuggestedPromptsPanel] ❌ 填充建议失败:', error);
+    message.error('填充失败: ' + (error.message || '未知错误'));
+  }
 };
 
 // Handle category selection
@@ -265,21 +309,27 @@ defineExpose({
   background: #f5f5f5;
 }
 
-.info-banner {
+.loading-state,
+.empty-state {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #e6f7ff;
-  border: 1px solid #91d5ff;
-  border-radius: 8px;
-  color: #1890ff;
-  margin-bottom: 20px;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  color: #8c8c8c;
   font-size: 14px;
 
   .anticon {
-    font-size: 16px;
+    font-size: 18px;
   }
+}
+
+.loading-state {
+  color: #1890ff;
+}
+
+.empty-state {
+  color: #bfbfbf;
 }
 
 .greeting-section {
