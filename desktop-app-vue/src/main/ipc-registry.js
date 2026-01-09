@@ -50,6 +50,7 @@ function registerAllIPC(dependencies) {
       ragManager,
       ukeyManager,
       gitManager,
+      gitHotReload,
       didManager,
       p2pManager,
       skillManager,
@@ -178,11 +179,16 @@ function registerAllIPC(dependencies) {
       gitManager,
       markdownExporter,
       getGitConfig,
-      llmManager
+      llmManager,
+      gitHotReload,
+      mainWindow
     });
-    console.log('[IPC Registry] ✓ Git IPC registered (16 handlers)');
+    console.log('[IPC Registry] ✓ Git IPC registered (22 handlers)');
     if (!gitManager) {
       console.log('[IPC Registry] ⚠️  Git manager not initialized (Git sync disabled in config)');
+    }
+    if (gitHotReload) {
+      console.log('[IPC Registry] ✓ Git Hot Reload enabled');
     }
 
     // ============================================================

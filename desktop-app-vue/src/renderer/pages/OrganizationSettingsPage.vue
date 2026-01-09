@@ -490,9 +490,26 @@ const loadActivities = async () => {
 const handleSaveBasicInfo = async () => {
   saving.value = true;
   try {
-    // TODO: 实现更新组织信息的API
-    message.success('保存成功');
-    await loadOrganizationInfo();
+    const orgId = identityStore.currentOrgId;
+    if (!orgId) {
+      message.error('未找到当前组织');
+      return;
+    }
+
+    const result = await window.ipc.invoke('org:update-organization', {
+      orgId,
+      name: orgForm.value.name,
+      type: orgForm.value.type,
+      description: orgForm.value.description,
+      visibility: orgForm.value.visibility
+    });
+
+    if (result.success) {
+      message.success('保存成功');
+      await loadOrganizationInfo();
+    } else {
+      message.error(result.error || '保存失败');
+    }
   } catch (error) {
     console.error('保存失败:', error);
     message.error('保存失败');
@@ -505,9 +522,24 @@ const handleSaveBasicInfo = async () => {
 const handleSaveSettings = async () => {
   saving.value = true;
   try {
-    // TODO: 实现更新组织设置的API
-    message.success('设置已保存');
-    await loadOrganizationInfo();
+    const orgId = identityStore.currentOrgId;
+    if (!orgId) {
+      message.error('未找到当前组织');
+      return;
+    }
+
+    const result = await window.ipc.invoke('org:update-organization', {
+      orgId,
+      p2pEnabled: settingsForm.value.p2pEnabled,
+      syncMode: settingsForm.value.syncMode
+    });
+
+    if (result.success) {
+      message.success('设置已保存');
+      await loadOrganizationInfo();
+    } else {
+      message.error(result.error || '保存设置失败');
+    }
   } catch (error) {
     console.error('保存设置失败:', error);
     message.error('保存设置失败');
@@ -522,17 +554,50 @@ const handleGoToRolesPage = () => {
 };
 
 // 上传头像
-const handleAvatarUpload = (file) => {
-  // TODO: 实现头像上传
-  message.info('头像上传功能开发中');
-  return false;
+const handleAvatarUpload = async (file) => {
+  try {
+    // Read file as base64
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64Data = e.target.result;
+
+      const orgId = identityStore.currentOrgId;
+      if (!orgId) {
+        message.error('未找到当前组织');
+        return;
+      }
+
+      // Update organization with new avatar
+      const result = await window.ipc.invoke('org:update-organization', {
+        orgId,
+        avatar: base64Data
+      });
+
+      if (result.success) {
+        orgForm.value.avatar = base64Data;
+        message.success('头像上传成功');
+      } else {
+        message.error(result.error || '头像上传失败');
+      }
+    };
+    reader.readAsDataURL(file);
+  } catch (error) {
+    console.error('头像上传失败:', error);
+    message.error('头像上传失败');
+  }
+  return false; // Prevent default upload behavior
 };
 
 // 备份数据库
 const handleBackupDatabase = async () => {
   try {
-    // TODO: 实现数据库备份
-    message.success('数据备份成功');
+    const result = await window.electronAPI.invoke('db:backup');
+
+    if (result.success) {
+      message.success(`数据备份成功: ${result.backupPath}`);
+    } else {
+      message.error(result.error || '备份失败');
+    }
   } catch (error) {
     console.error('备份失败:', error);
     message.error('备份失败');
@@ -543,9 +608,20 @@ const handleBackupDatabase = async () => {
 const handleSyncNow = async () => {
   syncing.value = true;
   try {
-    // TODO: 实现P2P同步
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    message.success('同步完成');
+    const orgId = identityStore.currentOrgId;
+    if (!orgId) {
+      message.error('未找到当前组织');
+      return;
+    }
+
+    // Trigger P2P sync
+    const result = await window.electronAPI.invoke('p2p:sync-organization', { orgId });
+
+    if (result.success) {
+      message.success('同步完成');
+    } else {
+      message.error(result.error || '同步失败');
+    }
   } catch (error) {
     console.error('同步失败:', error);
     message.error('同步失败');

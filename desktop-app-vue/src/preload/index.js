@@ -190,9 +190,37 @@ contextBridge.exposeInMainWorld('electronAPI', {
     resolveConflict: (filepath, resolution, content) => ipcRenderer.invoke('git:resolve-conflict', filepath, resolution, content),
     abortMerge: () => ipcRenderer.invoke('git:abort-merge'),
     completeMerge: (message) => ipcRenderer.invoke('git:complete-merge', message),
+    // 热重载
+    hotReload: {
+      start: () => ipcRenderer.invoke('git:hot-reload:start'),
+      stop: () => ipcRenderer.invoke('git:hot-reload:stop'),
+      status: () => ipcRenderer.invoke('git:hot-reload:status'),
+      refresh: () => ipcRenderer.invoke('git:hot-reload:refresh'),
+      configure: (config) => ipcRenderer.invoke('git:hot-reload:configure', config),
+    },
     // 事件监听
-    on: (event, callback) => ipcRenderer.on(event, (_event, ...args) => callback(...args)),
+    on: (event, callback) => {
+      const listener = (_event, ...args) => callback(...args);
+      ipcRenderer.on(event, listener);
+      return () => ipcRenderer.removeListener(event, listener);
+    },
     off: (event, callback) => ipcRenderer.removeListener(event, callback),
+    // 热重载事件监听（便捷方法）
+    onStatusChanged: (callback) => {
+      const listener = (_event, data) => callback(data);
+      ipcRenderer.on('git:status-changed', listener);
+      return () => ipcRenderer.removeListener('git:status-changed', listener);
+    },
+    onFileChanged: (callback) => {
+      const listener = (_event, data) => callback(data);
+      ipcRenderer.on('git:file-changed', listener);
+      return () => ipcRenderer.removeListener('git:file-changed', listener);
+    },
+    onHotReloadError: (callback) => {
+      const listener = (_event, error) => callback(error);
+      ipcRenderer.on('git:hot-reload:error', listener);
+      return () => ipcRenderer.removeListener('git:hot-reload:error', listener);
+    },
   },
 
   // RAG - 知识库检索增强

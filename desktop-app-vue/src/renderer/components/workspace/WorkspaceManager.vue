@@ -300,8 +300,9 @@ function handleView(workspace) {
 }
 
 function handleEdit(workspace) {
-  // TODO: Implement edit functionality
-  console.log('Edit workspace:', workspace);
+  // Set the workspace to edit and show the create dialog (which can also edit)
+  workspaceStore.editingWorkspace = workspace;
+  workspaceStore.createDialogVisible = true;
 }
 
 function handleArchive(workspace) {
@@ -316,12 +317,33 @@ function handleArchive(workspace) {
   });
 }
 
-function handleRestore(workspace) {
-  // TODO: Implement restore functionality
-  console.log('Restore workspace:', workspace);
+async function handleRestore(workspace) {
+  Modal.confirm({
+    title: '确认恢复',
+    content: `确定要恢复工作区"${workspace.name}"吗？`,
+    okText: '恢复',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        const result = await window.electronAPI.invoke('organization:workspace:restore', {
+          workspaceId: workspace.id
+        });
+
+        if (result.success) {
+          message.success('工作区已恢复');
+          await workspaceStore.loadWorkspaces();
+        } else {
+          message.error(result.error || '恢复工作区失败');
+        }
+      } catch (error) {
+        console.error('恢复工作区失败:', error);
+        message.error('恢复工作区失败');
+      }
+    }
+  });
 }
 
-function handleDelete(workspace) {
+async function handleDelete(workspace) {
   Modal.confirm({
     title: '确认删除',
     content: `确定要永久删除工作区"${workspace.name}"吗？此操作不可撤销！`,
@@ -329,8 +351,21 @@ function handleDelete(workspace) {
     okType: 'danger',
     cancelText: '取消',
     onOk: async () => {
-      // TODO: Implement permanent delete
-      console.log('Delete workspace:', workspace);
+      try {
+        const result = await window.electronAPI.invoke('organization:workspace:permanentDelete', {
+          workspaceId: workspace.id
+        });
+
+        if (result.success) {
+          message.success('工作区已永久删除');
+          await workspaceStore.loadWorkspaces();
+        } else {
+          message.error(result.error || '删除工作区失败');
+        }
+      } catch (error) {
+        console.error('删除工作区失败:', error);
+        message.error('删除工作区失败');
+      }
     }
   });
 }

@@ -115,6 +115,58 @@ function registerWorkspaceTaskIPC(app) {
   });
 
   /**
+   * 恢复工作区
+   */
+  ipcMain.handle('organization:workspace:restore', async (event, { workspaceId }) => {
+    try {
+      if (!app.workspaceManager) {
+        return { success: false, error: '工作区管理器未初始化' };
+      }
+
+      const currentIdentity = await app.didManager.getDefaultIdentity();
+      if (!currentIdentity) {
+        return { success: false, error: '未找到当前用户身份' };
+      }
+
+      const result = await app.workspaceManager.restoreWorkspace(
+        workspaceId,
+        currentIdentity.did
+      );
+
+      return result;
+    } catch (error) {
+      console.error('[IPC] 恢复工作区失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 永久删除工作区
+   */
+  ipcMain.handle('organization:workspace:permanentDelete', async (event, { workspaceId }) => {
+    try {
+      if (!app.workspaceManager) {
+        return { success: false, error: '工作区管理器未初始化' };
+      }
+
+      const currentIdentity = await app.didManager.getDefaultIdentity();
+      if (!currentIdentity) {
+        return { success: false, error: '未找到当前用户身份' };
+      }
+
+      const result = await app.workspaceManager.permanentDeleteWorkspace(
+        workspaceId,
+        currentIdentity.did
+      );
+
+      return result;
+    } catch (error) {
+      console.error('[IPC] 永久删除工作区失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
    * 添加工作区成员
    */
   ipcMain.handle('organization:workspace:addMember', async (event, { workspaceId, memberDID, role }) => {

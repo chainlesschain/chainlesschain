@@ -340,6 +340,129 @@ class WorkspaceManager {
   }
 
   /**
+   * 恢复已归档的工作区
+   * @param {string} workspaceId - 工作区ID
+   * @param {string} restorerDID - 恢复者DID
+   * @returns {Promise<Object>} 恢复结果
+   */
+  async restoreWorkspace(workspaceId, restorerDID) {
+    try {
+      // 1. 获取工作区信息（包括已归档的）
+      const workspace = this.db.prepare(
+        'SELECT * FROM organization_workspaces WHERE id = ?'
+      ).get(workspaceId);
+
+      if (!workspace) {
+        return { success: false, error: '工作区不存在' };
+      }
+
+      if (!workspace.archived) {
+        return { success: false, error: '工作区未归档，无需恢复' };
+      }
+
+      // 2. 检查权限
+      const hasPermission = await this.organizationManager.checkPermission(
+        workspace.org_id,
+        restorerDID,
+        'workspace.manage'
+      );
+
+      if (!hasPermission) {
+        return { success: false, error: '没有权限恢复工作区' };
+      }
+
+      // 3. 恢复工作区
+      this.db.prepare(
+        'UPDATE organization_workspaces SET archived = 0, updated_at = ? WHERE id = ?'
+      ).run(Date.now(), workspaceId);
+
+      // 4. 记录活动
+      await this.organizationManager.logActivity(
+        workspace.org_id,
+        restorerDID,
+        'restore_workspace',
+        'workspace',
+        workspaceId,
+        { workspaceName: workspace.name }
+      );
+
+      console.log('[WorkspaceManager] ✓ 工作区已恢复:', workspaceId);
+
+      return { success: true };
+    } catch (error) {
+      console.error('[WorkspaceManager] 恢复工作区失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 永久删除工作区
+   * @param {string} workspaceId - 工作区ID
+   * @param {string} deleterDID - 删除者DID
+   * @returns {Promise<Object>} 删除结果
+   */
+  async permanentDeleteWorkspace(workspaceId, deleterDID) {
+    try {
+      // 1. 获取工作区信息（包括已归档的）
+      const workspace = this.db.prepare(
+        'SELECT * FROM organization_workspaces WHERE id = ?'
+      ).get(workspaceId);
+
+      if (!workspace) {
+        return { success: false, error: '工作区不存在' };
+      }
+
+      // 2. 检查权限（需要管理员权限）
+      const hasPermission = await this.organizationManager.checkPermission(
+        workspace.org_id,
+        deleterDID,
+        'workspace.delete'
+      );
+
+      if (!hasPermission) {
+        return { success: false, error: '没有权限永久删除工作区' };
+      }
+
+      // 3. 不能删除默认工作区
+      if (workspace.is_default) {
+        return { success: false, error: '不能删除默认工作区' };
+      }
+
+      // 4. 删除工作区成员
+      this.db.prepare(
+        'DELETE FROM workspace_members WHERE workspace_id = ?'
+      ).run(workspaceId);
+
+      // 5. 删除工作区任务
+      this.db.prepare(
+        'DELETE FROM workspace_tasks WHERE workspace_id = ?'
+      ).run(workspaceId);
+
+      // 6. 删除工作区
+      this.db.prepare(
+        'DELETE FROM organization_workspaces WHERE id = ?'
+      ).run(workspaceId);
+
+      // 7. 记录活动
+      await this.organizationManager.logActivity(
+        workspace.org_id,
+        deleterDID,
+        'permanent_delete_workspace',
+        'workspace',
+        workspaceId,
+        { workspaceName: workspace.name }
+      );
+
+      console.log('[WorkspaceManager] ✓ 工作区已永久删除:', workspaceId);
+
+      return { success: true };
+    } catch (error) {
+      console.error('[WorkspaceManager] 永久删除工作区失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * 添加工作区成员
    * @param {string} workspaceId - 工作区ID
    * @param {string} memberDID - 成员DID
