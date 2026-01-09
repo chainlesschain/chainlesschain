@@ -1586,6 +1586,139 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_comments_status ON design_comments(status);
       CREATE INDEX IF NOT EXISTS idx_versions_artboard ON design_versions(artboard_id);
       CREATE INDEX IF NOT EXISTS idx_versions_artboard_version ON design_versions(artboard_id, version_number);
+
+      -- ============================
+      -- Yjs 协作模块表（Real-time Collaboration with Yjs CRDT）
+      -- ============================
+
+      -- Yjs 文档更新表（存储 CRDT 更新）
+      CREATE TABLE IF NOT EXISTS knowledge_yjs_updates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        knowledge_id TEXT NOT NULL,
+        update_data BLOB NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
+      );
+
+      -- Yjs 文档快照表（用于版本回滚）
+      CREATE TABLE IF NOT EXISTS knowledge_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        knowledge_id TEXT NOT NULL,
+        snapshot_data BLOB NOT NULL,
+        state_vector BLOB NOT NULL,
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
+      );
+
+      -- 协作会话表（跟踪谁在编辑）
+      CREATE TABLE IF NOT EXISTS collaboration_sessions (
+        id TEXT PRIMARY KEY,
+        knowledge_id TEXT NOT NULL,
+        org_id TEXT,
+        user_did TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        user_color TEXT NOT NULL,
+        peer_id TEXT NOT NULL,
+        cursor_position INTEGER,
+        selection_start INTEGER,
+        selection_end INTEGER,
+        last_activity INTEGER NOT NULL,
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'idle', 'disconnected')),
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (org_id) REFERENCES organization_info(id) ON DELETE CASCADE
+      );
+
+      -- 知识库评论表（内联评论和注释）
+      CREATE TABLE IF NOT EXISTS knowledge_comments (
+        id TEXT PRIMARY KEY,
+        knowledge_id TEXT NOT NULL,
+        org_id TEXT,
+        author_did TEXT NOT NULL,
+        author_name TEXT NOT NULL,
+        content TEXT NOT NULL,
+        position_start INTEGER,
+        position_end INTEGER,
+        thread_id TEXT,
+        parent_comment_id TEXT,
+        status TEXT DEFAULT 'open' CHECK(status IN ('open', 'resolved', 'deleted')),
+        resolved_by TEXT,
+        resolved_at INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (org_id) REFERENCES organization_info(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_comment_id) REFERENCES knowledge_comments(id) ON DELETE CASCADE
+      );
+
+      -- 组织知识库文件夹表（共享文件夹）
+      CREATE TABLE IF NOT EXISTS org_knowledge_folders (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        parent_folder_id TEXT,
+        description TEXT,
+        icon TEXT,
+        color TEXT,
+        permissions TEXT NOT NULL,
+        created_by TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (org_id) REFERENCES organization_info(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_folder_id) REFERENCES org_knowledge_folders(id) ON DELETE CASCADE
+      );
+
+      -- 组织知识库项表（扩展 knowledge_items）
+      CREATE TABLE IF NOT EXISTS org_knowledge_items (
+        id TEXT PRIMARY KEY,
+        knowledge_id TEXT NOT NULL UNIQUE,
+        org_id TEXT NOT NULL,
+        folder_id TEXT,
+        permissions TEXT NOT NULL,
+        is_public BOOLEAN DEFAULT 0,
+        created_by TEXT NOT NULL,
+        last_edited_by TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (org_id) REFERENCES organization_info(id) ON DELETE CASCADE,
+        FOREIGN KEY (folder_id) REFERENCES org_knowledge_folders(id) ON DELETE SET NULL
+      );
+
+      -- 知识库活动日志表（用于仪表板分析）
+      CREATE TABLE IF NOT EXISTS knowledge_activities (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        knowledge_id TEXT NOT NULL,
+        org_id TEXT,
+        user_did TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        activity_type TEXT NOT NULL CHECK(activity_type IN ('create', 'edit', 'view', 'comment', 'share', 'delete', 'restore')),
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (org_id) REFERENCES organization_info(id) ON DELETE CASCADE
+      );
+
+      -- 协作模块索引
+      CREATE INDEX IF NOT EXISTS idx_yjs_updates_knowledge ON knowledge_yjs_updates(knowledge_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_snapshots_knowledge ON knowledge_snapshots(knowledge_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_collab_sessions_knowledge ON collaboration_sessions(knowledge_id, status);
+      CREATE INDEX IF NOT EXISTS idx_collab_sessions_org ON collaboration_sessions(org_id, status);
+      CREATE INDEX IF NOT EXISTS idx_collab_sessions_activity ON collaboration_sessions(last_activity DESC);
+      CREATE INDEX IF NOT EXISTS idx_comments_knowledge ON knowledge_comments(knowledge_id, status);
+      CREATE INDEX IF NOT EXISTS idx_comments_org ON knowledge_comments(org_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_comments_thread ON knowledge_comments(thread_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_comments_author ON knowledge_comments(author_did);
+      CREATE INDEX IF NOT EXISTS idx_org_folders_org ON org_knowledge_folders(org_id);
+      CREATE INDEX IF NOT EXISTS idx_org_folders_parent ON org_knowledge_folders(parent_folder_id);
+      CREATE INDEX IF NOT EXISTS idx_org_knowledge_org ON org_knowledge_items(org_id);
+      CREATE INDEX IF NOT EXISTS idx_org_knowledge_folder ON org_knowledge_items(folder_id);
+      CREATE INDEX IF NOT EXISTS idx_org_knowledge_created ON org_knowledge_items(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_knowledge_activities_knowledge ON knowledge_activities(knowledge_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_knowledge_activities_org ON knowledge_activities(org_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_knowledge_activities_user ON knowledge_activities(user_did, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_knowledge_activities_type ON knowledge_activities(activity_type, created_at DESC);
     `);
 
       console.log('[Database] ✓ 所有表和索引创建成功');
