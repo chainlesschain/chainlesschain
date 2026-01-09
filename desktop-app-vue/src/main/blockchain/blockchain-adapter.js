@@ -43,7 +43,16 @@ class BlockchainAdapter extends EventEmitter {
 
     try {
       // 初始化各链的提供者
-      const supportedChains = [1, 11155111, 137, 80001, 31337]; // 以太坊主网、Sepolia、Polygon、Mumbai、Hardhat本地
+      const supportedChains = [
+        1, 11155111,      // Ethereum Mainnet, Sepolia
+        137, 80001,       // Polygon Mainnet, Mumbai
+        56, 97,           // BSC Mainnet, Testnet
+        42161, 421614,    // Arbitrum One, Sepolia
+        10, 11155420,     // Optimism Mainnet, Sepolia
+        43114, 43113,     // Avalanche C-Chain, Fuji
+        8453, 84532,      // Base Mainnet, Sepolia
+        31337             // Hardhat Local
+      ];
 
       for (const chainId of supportedChains) {
         try {
@@ -68,7 +77,7 @@ class BlockchainAdapter extends EventEmitter {
 
               // 连接成功
               this.providers.set(chainId, provider);
-              console.log(`[BlockchainAdapter] 链 ${chainId} 提供者初始化成功 (${rpcUrl})`);
+              console.log(`[BlockchainAdapter] 链 ${chainId} (${config.name}) 提供者初始化成功 (${rpcUrl})`);
               break;
             } catch (rpcError) {
               console.warn(`[BlockchainAdapter] RPC URL ${rpcUrl} 失败:`, rpcError.message);
@@ -78,7 +87,7 @@ class BlockchainAdapter extends EventEmitter {
           }
 
           if (!this.providers.has(chainId)) {
-            console.warn(`[BlockchainAdapter] 链 ${chainId} 所有RPC URL均不可用`);
+            console.warn(`[BlockchainAdapter] 链 ${chainId} (${config.name}) 所有RPC URL均不可用`);
           }
         } catch (error) {
           console.warn(`[BlockchainAdapter] 链 ${chainId} 初始化失败:`, error.message);
@@ -441,6 +450,303 @@ class BlockchainAdapter extends EventEmitter {
 
     this.providers.clear();
     this.initialized = false;
+  }
+
+  // ==================== Phase 5: 高级功能 ====================
+
+  /**
+   * 批量转账代币
+   * @param {string} walletId - 钱包ID
+   * @param {string} tokenAddress - 代币合约地址
+   * @param {Array<{to: string, amount: string}>} transfers - 转账列表
+   * @param {string} password - 钱包密码
+   * @returns {Promise<Array<string>>} 交易哈希列表
+   */
+  async batchTransferToken(walletId, tokenAddress, transfers, password) {
+    console.log(`[BlockchainAdapter] 批量转账代币: ${transfers.length} 笔交易`);
+
+    const results = [];
+    const wallet = await this.walletManager.unlockWallet(walletId, password);
+    const provider = this.getProvider();
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
+
+    const abi = getERC20ABI();
+    const contract = new ethers.Contract(tokenAddress, abi, signer);
+    const decimals = await contract.decimals();
+
+    for (const transfer of transfers) {
+      try {
+        const transferAmount = ethers.parseUnits(transfer.amount.toString(), decimals);
+        const tx = await contract.transfer(transfer.to, transferAmount);
+        const receipt = await tx.wait();
+        results.push({ success: true, txHash: receipt.hash, to: transfer.to });
+        console.log(`[BlockchainAdapter] 转账成功: ${transfer.to} - ${receipt.hash}`);
+      } catch (error) {
+        console.error(`[BlockchainAdapter] 转账失败: ${transfer.to}`, error);
+        results.push({ success: false, error: error.message, to: transfer.to });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 估算交易费用（包含 L2 特殊处理）
+   * @param {object} transaction - 交易对象
+   * @returns {Promise<object>} 费用估算
+   */
+  async estimateTransactionFee(transaction) {
+    const provider = this.getProvider();
+    const config = getNetworkConfig(this.currentChainId);
+
+    try {
+      const gasEstimate = await provider.estimateGas(transaction);
+      const feeData = await provider.getFeeData();
+
+      let totalFee;
+      let feeBreakdown = {
+        gasLimit: gasEstimate,
+        gasPrice: feeData.gasPrice,
+      };
+
+      // L2 链（Arbitrum, Optimism, Base）需要额外计算 L1 数据费用
+      if ([42161, 421614, 10, 11155420, 8453, 84532].includes(this.currentChainId)) {
+        // L2 链的费用 = L2 执行费用 + L1 数据费用
+        const l2ExecutionFee = gasEstimate * feeData.gasPrice;
+
+        // L1 数据费用估算（简化版本）
+        const txDataSize = ethers.toUtf8Bytes(JSON.stringify(transaction)).length;
+        const l1DataFee = BigInt(txDataSize) * BigInt(16) * feeData.gasPrice;
+
+        totalFee = l2ExecutionFee + l1DataFee;
+        feeBreakdown.l2ExecutionFee = l2ExecutionFee;
+        feeBreakdown.l1DataFee = l1DataFee;
+      } else {
+        totalFee = gasEstimate * feeData.gasPrice;
+      }
+
+      return {
+        totalFee: totalFee.toString(),
+        totalFeeEth: ethers.formatEther(totalFee),
+        ...feeBreakdown,
+        nativeCurrency: config.nativeCurrency.symbol,
+      };
+    } catch (error) {
+      console.error('[BlockchainAdapter] 费用估算失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 交易重试（带指数退避）
+   * @param {Function} txFunction - 交易函数
+   * @param {number} maxRetries - 最大重试次数
+   * @param {number} baseDelay - 基础延迟（毫秒）
+   * @returns {Promise<any>} 交易结果
+   */
+  async retryTransaction(txFunction, maxRetries = 3, baseDelay = 1000) {
+    let lastError;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        console.log(`[BlockchainAdapter] 交易尝试 ${attempt + 1}/${maxRetries}`);
+        const result = await txFunction();
+        console.log('[BlockchainAdapter] 交易成功');
+        return result;
+      } catch (error) {
+        lastError = error;
+        console.warn(`[BlockchainAdapter] 交易失败 (尝试 ${attempt + 1}):`, error.message);
+
+        // 如果不是最后一次尝试，等待后重试
+        if (attempt < maxRetries - 1) {
+          const delay = baseDelay * Math.pow(2, attempt); // 指数退避
+          console.log(`[BlockchainAdapter] 等待 ${delay}ms 后重试...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    console.error('[BlockchainAdapter] 交易失败，已达最大重试次数');
+    throw lastError;
+  }
+
+  /**
+   * Gas 价格优化（根据网络拥堵情况调整）
+   * @param {string} speed - 速度等级 ('slow', 'standard', 'fast')
+   * @returns {Promise<object>} 优化后的 Gas 价格
+   */
+  async getOptimizedGasPrice(speed = 'standard') {
+    const provider = this.getProvider();
+    const feeData = await provider.getFeeData();
+    const config = getNetworkConfig(this.currentChainId);
+
+    // 获取配置的 Gas 价格
+    const { GasConfigs } = require('./blockchain-config');
+    const gasConfig = GasConfigs[this.currentChainId] || { slow: 1, standard: 2, fast: 3 };
+
+    let multiplier = 1;
+    switch (speed) {
+      case 'slow':
+        multiplier = gasConfig.slow / gasConfig.standard;
+        break;
+      case 'fast':
+        multiplier = gasConfig.fast / gasConfig.standard;
+        break;
+      default:
+        multiplier = 1;
+    }
+
+    // EIP-1559 支持的链
+    if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+      return {
+        maxFeePerGas: (feeData.maxFeePerGas * BigInt(Math.floor(multiplier * 100))) / BigInt(100),
+        maxPriorityFeePerGas: (feeData.maxPriorityFeePerGas * BigInt(Math.floor(multiplier * 100))) / BigInt(100),
+        type: 'eip1559',
+      };
+    } else {
+      // Legacy 交易
+      return {
+        gasPrice: (feeData.gasPrice * BigInt(Math.floor(multiplier * 100))) / BigInt(100),
+        type: 'legacy',
+      };
+    }
+  }
+
+  /**
+   * 获取所有支持的链列表
+   * @returns {Array<object>} 链列表
+   */
+  getSupportedChains() {
+    const { NetworkConfigs } = require('./blockchain-config');
+    return Object.values(NetworkConfigs).map(config => ({
+      chainId: config.chainId,
+      name: config.name,
+      symbol: config.symbol,
+      nativeCurrency: config.nativeCurrency,
+      blockExplorerUrls: config.blockExplorerUrls,
+      isConnected: this.providers.has(config.chainId),
+    }));
+  }
+
+  /**
+   * 获取当前链信息
+   * @returns {object} 当前链信息
+   */
+  getCurrentChainInfo() {
+    const config = getNetworkConfig(this.currentChainId);
+    return {
+      chainId: this.currentChainId,
+      name: config.name,
+      symbol: config.symbol,
+      nativeCurrency: config.nativeCurrency,
+      blockExplorerUrls: config.blockExplorerUrls,
+      isConnected: this.providers.has(this.currentChainId),
+    };
+  }
+
+  /**
+   * 监控交易状态
+   * @param {string} txHash - 交易哈希
+   * @param {number} confirmations - 需要的确认数
+   * @param {Function} onUpdate - 状态更新回调
+   * @returns {Promise<object>} 交易收据
+   */
+  async monitorTransaction(txHash, confirmations = 1, onUpdate = null) {
+    console.log(`[BlockchainAdapter] 监控交易: ${txHash}, 需要 ${confirmations} 个确认`);
+
+    const provider = this.getProvider();
+
+    try {
+      // 等待交易被挖掘
+      if (onUpdate) onUpdate({ status: 'pending', confirmations: 0 });
+
+      const receipt = await provider.waitForTransaction(txHash, confirmations);
+
+      if (onUpdate) {
+        onUpdate({
+          status: receipt.status === 1 ? 'success' : 'failed',
+          confirmations: confirmations,
+          blockNumber: receipt.blockNumber,
+          gasUsed: receipt.gasUsed.toString(),
+        });
+      }
+
+      console.log(`[BlockchainAdapter] 交易已确认: ${txHash}`);
+      return receipt;
+    } catch (error) {
+      console.error(`[BlockchainAdapter] 交易监控失败: ${txHash}`, error);
+      if (onUpdate) onUpdate({ status: 'error', error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * 取消或加速交易（通过替换交易）
+   * @param {string} walletId - 钱包ID
+   * @param {string} txHash - 原交易哈希
+   * @param {string} action - 'cancel' 或 'speedup'
+   * @param {string} password - 钱包密码
+   * @returns {Promise<string>} 新交易哈希
+   */
+  async replaceTransaction(walletId, txHash, action = 'speedup', password) {
+    console.log(`[BlockchainAdapter] ${action === 'cancel' ? '取消' : '加速'}交易: ${txHash}`);
+
+    const provider = this.getProvider();
+    const wallet = await this.walletManager.unlockWallet(walletId, password);
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
+
+    try {
+      // 获取原交易
+      const originalTx = await provider.getTransaction(txHash);
+      if (!originalTx) {
+        throw new Error('交易不存在');
+      }
+
+      // 检查交易是否已确认
+      if (originalTx.blockNumber) {
+        throw new Error('交易已确认，无法替换');
+      }
+
+      // 获取当前 Gas 价格
+      const feeData = await provider.getFeeData();
+
+      let newTx;
+      if (action === 'cancel') {
+        // 取消交易：发送 0 ETH 给自己，使用相同 nonce 但更高 Gas 价格
+        newTx = {
+          to: await signer.getAddress(),
+          value: 0,
+          nonce: originalTx.nonce,
+          gasLimit: 21000,
+        };
+      } else {
+        // 加速交易：使用相同参数但更高 Gas 价格
+        newTx = {
+          to: originalTx.to,
+          value: originalTx.value,
+          data: originalTx.data,
+          nonce: originalTx.nonce,
+          gasLimit: originalTx.gasLimit,
+        };
+      }
+
+      // 设置更高的 Gas 价格（至少提高 10%）
+      if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+        newTx.maxFeePerGas = (feeData.maxFeePerGas * BigInt(110)) / BigInt(100);
+        newTx.maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * BigInt(110)) / BigInt(100);
+      } else {
+        newTx.gasPrice = (feeData.gasPrice * BigInt(110)) / BigInt(100);
+      }
+
+      // 发送新交易
+      const tx = await signer.sendTransaction(newTx);
+      console.log(`[BlockchainAdapter] 替换交易已发送: ${tx.hash}`);
+
+      return tx.hash;
+    } catch (error) {
+      console.error('[BlockchainAdapter] 替换交易失败:', error);
+      throw error;
+    }
   }
 }
 
