@@ -1,5 +1,6 @@
 package com.chainlesschain.project.controller;
 
+import com.chainlesschain.project.annotation.RateLimit;
 import com.chainlesschain.project.dto.AuthResponse;
 import com.chainlesschain.project.dto.LoginRequest;
 import com.chainlesschain.project.dto.RegisterRequest;
@@ -38,6 +39,7 @@ public class AuthController {
      * 用户登录
      */
     @PostMapping("/login")
+    @RateLimit(key = "auth:login", time = 60, count = 5, limitType = RateLimit.LimitType.IP)
     @Operation(summary = "用户登录", description = "使用用户名和密码登录，返回JWT令牌")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
