@@ -68,6 +68,7 @@ export const useLLMStore = defineStore('llm', {
     // 流式响应临时数据
     streamingText: '',
     streamingMessageId: null,
+    currentStreamControllerId: null,
 
     // 最后查询时间
     lastQueryTime: null,
@@ -301,6 +302,37 @@ export const useLLMStore = defineStore('llm', {
         }
       } catch (error) {
         console.error('清除上下文失败:', error);
+        throw error;
+      }
+    },
+
+    // 取消流式输出
+    async cancelStream(reason = '用户取消') {
+      try {
+        if (!this.currentStreamControllerId) {
+          console.warn('[LLM Store] 没有正在进行的流式输出');
+          return { success: false, message: '没有正在进行的流式输出' };
+        }
+
+        const result = await window.electronAPI.llm.cancelStream(
+          this.currentStreamControllerId,
+          reason
+        );
+
+        // 重置状态
+        this.isStreaming = false;
+        this.isQuerying = false;
+        this.streamingText = '';
+        this.currentStreamControllerId = null;
+
+        return result;
+      } catch (error) {
+        console.error('取消流式输出失败:', error);
+        // 即使取消失败，也重置状态
+        this.isStreaming = false;
+        this.isQuerying = false;
+        this.streamingText = '';
+        this.currentStreamControllerId = null;
         throw error;
       }
     },

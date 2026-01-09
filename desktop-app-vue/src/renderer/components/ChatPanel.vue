@@ -301,20 +301,20 @@ const handleSend = async () => {
   const userMessage = inputText.value.trim();
   inputText.value = '';
 
-  // 添加用户消息
-  conversationStore.addMessage({
-    role: 'user',
-    content: userMessage,
-    timestamp: Date.now(),
-  });
-
-  // 滚动到底部
-  scrollToBottom();
-
-  // 发送到LLM
-  isProcessing.value = true;
-
   try {
+    // 添加用户消息
+    conversationStore.addMessage({
+      role: 'user',
+      content: userMessage,
+      timestamp: Date.now(),
+    });
+
+    // 滚动到底部
+    scrollToBottom();
+
+    // 发送到LLM
+    isProcessing.value = true;
+
     // RAG增强查询
     let enhancedPrompt = userMessage;
     let retrievedDocs = [];
@@ -332,6 +332,7 @@ const handleSend = async () => {
       }
     } catch (error) {
       console.warn('[ChatPanel] RAG增强失败，使用原始查询:', error);
+      // RAG失败不影响主流程，继续使用原始查询
     }
 
     if (llmStore.config.streamEnabled) {
@@ -398,13 +399,37 @@ const handleSend = async () => {
 
     // 自动保存
     if (llmStore.config.autoSaveConversations) {
-      await conversationStore.saveCurrentConversation();
+      try {
+        await conversationStore.saveCurrentConversation();
+      } catch (saveError) {
+        console.error('[ChatPanel] 自动保存失败:', saveError);
+        message.warning('对话保存失败，但消息已添加到当前会话');
+      }
     }
 
     scrollToBottom();
   } catch (error) {
-    console.error('发送消息失败:', error);
-    message.error('发送失败: ' + error.message);
+    console.error('[ChatPanel] 发送消息失败:', error);
+
+    // 根据错误类型提供更友好的错误消息
+    let errorMessage = '发送失败';
+    if (error.message) {
+      if (error.message.includes('timeout')) {
+        errorMessage = '请求超时，请检查网络连接或LLM服务状态';
+      } else if (error.message.includes('network')) {
+        errorMessage = '网络错误，请检查网络连接';
+      } else if (error.message.includes('unauthorized') || error.message.includes('401')) {
+        errorMessage = 'API密钥无效或已过期，请检查配置';
+      } else if (error.message.includes('rate limit')) {
+        errorMessage = 'API调用频率超限，请稍后再试';
+      } else {
+        errorMessage = `发送失败: ${error.message}`;
+      }
+    }
+
+    message.error(errorMessage);
+
+    // 重置状态
     isStreaming.value = false;
     isThinking.value = false;
   } finally {
@@ -413,12 +438,46 @@ const handleSend = async () => {
 };
 
 // 停止生成
-const handleStop = () => {
-  // TODO: 实现停止功能
-  isProcessing.value = false;
-  isStreaming.value = false;
-  isThinking.value = false;
-  message.info('已停止生成');
+const handleStop = async () => {
+  try {
+    // 调用LLM store的取消方法
+    await llmStore.cancelStream('用户手动停止');
+
+    // 如果有部分生成的内容，保存为消息
+    if (streamingText.value && streamingText.value.trim()) {
+      const aiMessage = {
+        role: 'assistant',
+        content: streamingText.value + '\n\n[已停止生成]',
+        timestamp: Date.now(),
+        model: llmStore.currentModel,
+        incomplete: true,
+      };
+
+      conversationStore.addMessage(aiMessage);
+
+      // 自动保存
+      if (llmStore.config.autoSaveConversations) {
+        await conversationStore.saveCurrentConversation();
+      }
+    }
+
+    // 重置状态
+    isProcessing.value = false;
+    isStreaming.value = false;
+    isThinking.value = false;
+    streamingText.value = '';
+
+    message.success('已停止生成');
+  } catch (error) {
+    console.error('停止生成失败:', error);
+    message.error('停止失败: ' + (error.message || '未知错误'));
+
+    // 确保状态被重置
+    isProcessing.value = false;
+    isStreaming.value = false;
+    isThinking.value = false;
+    streamingText.value = '';
+  }
 };
 
 // 快捷提示
