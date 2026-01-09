@@ -8,7 +8,7 @@
       </view>
       <text class="nav-title">项目详情</text>
       <view class="nav-right" @click="showMoreMenu">
-        <text class="nav-icon">⋯</text>
+        <text class="nav-icon">&#8943;</text>
       </view>
     </view>
 
@@ -96,27 +96,44 @@
         <!-- 文件Tab -->
         <view v-if="currentTab === 'files'" class="files-tab">
           <!-- 文件列表 -->
-          <view v-if="files.length > 0" class="file-list">
-            <view
-              v-for="file in files"
-              :key="file.id"
-              class="file-item"
-              @click="previewFile(file)"
-            >
-              <view class="file-icon">
-                {{ getFileIcon(file.file_type) }}
-              </view>
-              <view class="file-info">
-                <text class="file-name">{{ file.file_name }}</text>
-                <view class="file-meta">
-                  <text class="file-size">{{ formatFileSize(file.file_size) }}</text>
-                  <text class="file-time">{{ formatTime(file.created_at) }}</text>
+          <view v-if="fileTree.length > 0" class="file-tree-container">
+            <scroll-view scroll-y class="file-tree-scroll">
+              <view
+                v-for="node in visibleFileNodes"
+                :key="node.key"
+                class="file-tree-node"
+                :class="['node-' + node.type]"
+                :style="{ paddingLeft: (node.level * 18 + 12) + 'px' }"
+              >
+                <view class="tree-node-content" @click="handleTreeNodeTap(node)">
+                  <text
+                    v-if="node.type === 'folder'"
+                    class="tree-toggle"
+                    @click.stop="toggleFolderState(node.key)"
+                  >
+                    {{ isFolderExpandedKey(node.key) ? '▾' : '▸' }}
+                  </text>
+                  <text v-else class="tree-toggle placeholder"> </text>
+                  <text class="tree-icon">
+                    {{ node.type === 'folder' ? '📂' : getFileIcon(node.file?.file_type) }}
+                  </text>
+                  <view class="tree-info">
+                    <text class="tree-name">{{ node.name }}</text>
+                    <view v-if="node.type === 'file'" class="tree-meta">
+                      <text>{{ formatFileSize(node.file?.file_size) }}</text>
+                      <text>{{ formatTime(node.file?.created_at) }}</text>
+                    </view>
+                  </view>
+                </view>
+                <view
+                  v-if="node.type === 'file'"
+                  class="tree-actions"
+                  @click.stop="showFileMenu(node.file)"
+                >
+                  <text class="action-icon">&#8943;</text>
                 </view>
               </view>
-              <view class="file-actions" @click.stop="showFileMenu(file)">
-                <text class="action-icon">⋯</text>
-              </view>
-            </view>
+            </scroll-view>
           </view>
 
           <!-- 空状态 -->
@@ -240,17 +257,17 @@
           <!-- 协作 -->
           <view class="settings-section">
             <text class="section-title">协作管理</text>
-            <view class="setting-item" @click="manageCollaborators">
+            <view class="setting-item" @click="openCollaboratorDialog">
               <view class="setting-label">
                 <text class="label-icon">👥</text>
                 <text class="label-text">协作者</text>
               </view>
               <view class="setting-value">
-                <text>{{ project.collaboratorCount || 0 }} 人</text>
+                <text>{{ collaborators.length }} 人</text>
                 <text class="setting-arrow">›</text>
               </view>
             </view>
-            <view class="setting-item" @click="inviteCollaborator">
+            <view class="setting-item" @click="openCollaboratorDialog(true)">
               <view class="setting-label">
                 <text class="label-icon">➕</text>
                 <text class="label-text">邀请协作者</text>
@@ -479,6 +496,117 @@
         </view>
       </view>
     </view>
+
+    <!-- 协作者管理 -->
+    <view v-if="showCollaboratorDialog" class="popup-overlay" @click="closeCollaboratorDialog">
+      <view class="collaborator-dialog" @click.stop>
+        <view class="dialog-header">
+          <text class="dialog-title">协作成员</text>
+          <text class="dialog-close" @click="closeCollaboratorDialog">×</text>
+        </view>
+
+        <view class="collaborator-body">
+          <scroll-view scroll-y class="collaborator-list">
+            <view
+              v-for="collaborator in collaborators"
+              :key="collaborator.collaborator_did"
+              class="collaborator-item"
+            >
+              <view class="collaborator-info">
+                <text class="collaborator-id">{{ collaborator.collaborator_did }}</text>
+                <view class="collaborator-role">{{ getRoleLabel(collaborator.role) }}</view>
+              </view>
+              <view class="collaborator-meta">
+                <text class="collaborator-status">
+                  {{ collaborator.accepted_at ? '已接受' : '待接受' }}
+                </text>
+                <text class="collaborator-time" v-if="collaborator.invited_at">
+                  {{ formatTime(collaborator.invited_at) }}
+                </text>
+              </view>
+            </view>
+            <view v-if="!collaborators.length" class="collaborator-empty">
+              <text class="empty-title">暂无协作者</text>
+              <text class="empty-subtitle">邀请 DID 好友加入项目协同</text>
+            </view>
+          </scroll-view>
+
+          <view class="invite-form">
+            <text class="form-label">邀请 DID</text>
+            <input
+              ref="inviteInput"
+              v-model="inviteForm.did"
+              class="form-input"
+              placeholder="did:example:123..."
+              maxlength="200"
+            />
+
+            <text class="form-label">角色</text>
+            <view class="role-selector">
+              <view
+                v-for="role in roles"
+                :key="role.value"
+                :class="['role-option', { active: inviteForm.role === role.value }]"
+                @click="inviteForm.role = role.value"
+              >
+                {{ role.label }}
+              </view>
+            </view>
+
+            <view class="dialog-button confirm" @click="submitInvitation">
+              发送邀请
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 文件预览 -->
+    <view v-if="filePreviewVisible" class="popup-overlay" @click="closeFilePreview">
+      <view class="file-preview-dialog" @click.stop>
+        <view class="dialog-header">
+          <text class="dialog-title">{{ previewFileData?.name || '文件预览' }}</text>
+          <text class="dialog-close" @click="closeFilePreview">×</text>
+        </view>
+
+        <view class="preview-meta" v-if="previewFileData">
+          <text>{{ previewFileData.type || 'text/plain' }}</text>
+          <text>{{ formatFileSize(previewFileData.size) }}</text>
+        </view>
+
+        <view class="preview-loading" v-if="previewLoading">
+          <view class="loading-spinner small"></view>
+          <text class="loading-text">正在加载内容...</text>
+        </view>
+        <scroll-view v-else class="preview-content" scroll-y>
+          <text v-if="previewFileData?.isText" class="preview-text">
+            {{ previewFileData?.content || '暂无内容' }}
+          </text>
+          <image
+            v-else-if="previewFileData?.isImage"
+            :src="previewFileData?.content"
+            mode="widthFix"
+            class="preview-image"
+          />
+          <view v-else class="preview-placeholder">
+            <text>暂不支持在线预览该文件类型，请下载后查看。</text>
+          </view>
+        </scroll-view>
+
+        <view class="dialog-footer">
+          <view
+            v-if="previewFileData?.isText && previewFileData?.content"
+            class="dialog-button secondary"
+            @click="copyPreviewContent"
+          >
+            复制内容
+          </view>
+          <view class="dialog-button confirm" @click="downloadPreviewFile">
+            下载文件
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -501,6 +629,8 @@ export default {
 
       // 文件相关
       files: [],
+      fileTree: [],
+      expandedFolders: {},
 
       // 任务相关
       tasks: [],
@@ -538,7 +668,45 @@ export default {
         enableAI: false,
         enableRAG: false,
         autoBackup: true
+      },
+
+      // 协作
+      collaborators: [],
+      showCollaboratorDialog: false,
+      inviteForm: {
+        did: '',
+        role: 'viewer'
+      },
+      roles: [
+        { value: 'viewer', label: '只读' },
+        { value: 'editor', label: '可编辑' }
+      ],
+
+      // 文件预览
+      filePreviewVisible: false,
+      previewLoading: false,
+      previewFileData: null
+    }
+  },
+
+  computed: {
+    visibleFileNodes() {
+      const nodes = []
+      const traverse = (list, level) => {
+        if (!Array.isArray(list)) return
+        list.forEach(node => {
+          nodes.push({
+            ...node,
+            level,
+            expanded: node.type === 'folder' ? this.isFolderExpandedKey(node.key) : false
+          })
+          if (node.type === 'folder' && this.isFolderExpandedKey(node.key) && node.children?.length) {
+            traverse(node.children, level + 1)
+          }
+        })
       }
+      traverse(this.fileTree, 0)
+      return nodes
     }
   },
 
@@ -581,6 +749,9 @@ export default {
         // 加载任务列表
         await this.loadTasks()
 
+        // 加载协作者
+        await this.loadCollaborators()
+
       } catch (error) {
         console.error('[ProjectDetail] 加载项目失败:', error)
         uni.showToast({
@@ -595,6 +766,7 @@ export default {
     async loadFiles() {
       try {
         this.files = await projectManager.getFiles(this.projectId)
+        this.buildFileTree()
       } catch (error) {
         console.error('[ProjectDetail] 加载文件失败:', error)
       }
@@ -612,6 +784,104 @@ export default {
         }
       } catch (error) {
         console.error('[ProjectDetail] 加载任务失败:', error)
+      }
+    },
+
+    buildFileTree() {
+      const root = []
+      const folderMap = new Map()
+      folderMap.set('', root)
+
+      this.files.forEach(file => {
+        const rawPath = (file.file_path && file.file_path.trim()) ? file.file_path : file.file_name || ''
+        const segments = this.getPathSegments(rawPath)
+        const fileName = segments.length > 0 ? segments.pop() : (file.file_name || '未命名文件')
+        let currentPath = ''
+        let parentChildren = root
+
+        segments.forEach(segment => {
+          currentPath = currentPath ? `${currentPath}/${segment}` : segment
+          let folderNode = folderMap.get(currentPath)
+          if (!folderNode) {
+            folderNode = {
+              key: `dir-${currentPath}`,
+              name: segment,
+              type: 'folder',
+              path: currentPath,
+              children: []
+            }
+            folderMap.set(currentPath, folderNode)
+            parentChildren.push(folderNode)
+          }
+          parentChildren = folderNode.children
+        })
+
+        parentChildren.push({
+          key: file.id,
+          name: fileName,
+          type: 'file',
+          path: rawPath,
+          file
+        })
+      })
+
+      this.sortTreeNodes(root)
+      this.fileTree = root
+
+      if (!Object.keys(this.expandedFolders).length) {
+        root.forEach(node => {
+          if (node.type === 'folder') {
+            this.$set(this.expandedFolders, node.key, true)
+          }
+        })
+      }
+    },
+
+    sortTreeNodes(nodes) {
+      nodes.sort((a, b) => {
+        if (a.type === b.type) {
+          return a.name.localeCompare(b.name)
+        }
+        return a.type === 'folder' ? -1 : 1
+      })
+      nodes.forEach(node => {
+        if (node.type === 'folder' && node.children) {
+          this.sortTreeNodes(node.children)
+        }
+      })
+    },
+
+    getPathSegments(path = '') {
+      if (!path) return []
+      return path.split(/[\\/]/).filter(Boolean)
+    },
+
+    handleTreeNodeTap(node) {
+      if (node.type === 'folder') {
+        this.toggleFolderState(node.key)
+      } else if (node.file) {
+        this.previewFile(node.file)
+      }
+    },
+
+    toggleFolderState(key) {
+      const current = !!this.expandedFolders[key]
+      this.$set(this.expandedFolders, key, !current)
+    },
+
+    isFolderExpandedKey(key) {
+      return !!this.expandedFolders[key]
+    },
+
+    async loadCollaborators() {
+      try {
+        const list = await projectManager.getCollaborators(this.projectId)
+        this.collaborators = Array.isArray(list) ? list : []
+        if (this.project) {
+          this.project.collaboratorCount = this.collaborators.length
+        }
+      } catch (error) {
+        console.error('[ProjectDetail] 加载协作者失败:', error)
       }
     },
 
@@ -704,13 +974,45 @@ export default {
       // #endif
     },
 
-    previewFile(file) {
-      // TODO: 实现文件预览功能
-      console.log('[ProjectDetail] 预览文件:', file.file_name)
-      uni.showToast({
-        title: '预览功能开发中',
-        icon: 'none'
-      })
+    async previewFile(file) {
+      if (!file || !file.id) return
+
+      this.filePreviewVisible = true
+      this.previewLoading = true
+      this.previewFileData = {
+        name: file.file_name,
+        type: file.file_type,
+        size: file.file_size,
+        content: '',
+        isText: this.isTextFile(file.file_type, file.file_name),
+        isImage: this.isImageFile(file.file_type, file.file_name)
+      }
+
+      try {
+        const record = await projectManager.getFile(file.id)
+        const type = record?.file_type || file.file_type || 'text/plain'
+        const size = record?.file_size || file.file_size || 0
+        const content = record?.content || ''
+
+        this.previewFileData = {
+          name: file.file_name,
+          type,
+          size,
+          content,
+          isText: this.isTextFile(type, file.file_name),
+          isImage: this.isImageFile(type, file.file_name),
+          raw: record
+        }
+      } catch (error) {
+        console.error('[ProjectDetail] 预览文件失败:', error)
+        uni.showToast({
+          title: '预览失败',
+          icon: 'none'
+        })
+        this.filePreviewVisible = false
+      } finally {
+        this.previewLoading = false
+      }
     },
 
     showFileMenu(file) {
@@ -728,13 +1030,32 @@ export default {
       })
     },
 
-    downloadFile(file) {
-      // TODO: 实现文件下载功能
-      console.log('[ProjectDetail] 下载文件:', file.file_name)
-      uni.showToast({
-        title: '下载功能开发中',
-        icon: 'none'
-      })
+    async downloadFile(file) {
+      if (!file || !file.id) return
+
+      try {
+        const record = await projectManager.getFile(file.id)
+
+        if (!record || !record.content) {
+          uni.showToast({
+            title: '暂无可下载内容',
+            icon: 'none'
+          })
+          return
+        }
+
+        this.downloadContent(
+          file.file_name || 'project-file.txt',
+          record.content,
+          record.file_type || 'text/plain'
+        )
+      } catch (error) {
+        console.error('[ProjectDetail] 下载文件失败:', error)
+        uni.showToast({
+          title: '下载失败',
+          icon: 'none'
+        })
+      }
     },
 
     confirmDeleteFile(file) {
@@ -883,20 +1204,53 @@ export default {
       })
     },
 
-    manageCollaborators() {
-      // TODO: 跳转到协作者管理页面
-      uni.showToast({
-        title: '协作管理开发中',
-        icon: 'none'
-      })
+    openCollaboratorDialog(autoFocus = false) {
+      this.showCollaboratorDialog = true
+      if (autoFocus) {
+        this.$nextTick(() => {
+          const input = this.$refs && this.$refs.inviteInput
+          if (input && typeof input.focus === 'function') {
+            input.focus()
+          }
+        })
+      }
     },
 
-    inviteCollaborator() {
-      // TODO: 显示邀请协作者弹窗
-      uni.showToast({
-        title: '邀请功能开发中',
-        icon: 'none'
-      })
+    closeCollaboratorDialog() {
+      this.showCollaboratorDialog = false
+    },
+
+    async submitInvitation() {
+      if (!this.inviteForm.did.trim()) {
+        uni.showToast({
+          title: '请输入协作者 DID',
+          icon: 'none'
+        })
+        return
+      }
+
+      try {
+        await projectManager.inviteCollaborator(
+          this.projectId,
+          this.inviteForm.did.trim(),
+          this.inviteForm.role
+        )
+
+        uni.showToast({
+          title: '邀请已发送',
+          icon: 'success'
+        })
+
+        this.inviteForm.did = ''
+        this.inviteForm.role = 'viewer'
+        await this.loadCollaborators()
+      } catch (error) {
+        console.error('[ProjectDetail] 邀请协作者失败:', error)
+        uni.showToast({
+          title: error.message || '邀请失败',
+          icon: 'none'
+        })
+      }
     },
 
     async toggleSetting(key, event) {
@@ -1089,6 +1443,99 @@ export default {
 
       const date = new Date(timestamp)
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    },
+
+    getRoleLabel(role) {
+      const map = {
+        owner: '所有者',
+        editor: '可编辑',
+        viewer: '只读'
+      }
+      return map[role] || '协作者'
+    },
+
+    isTextFile(type = '', name = '') {
+      const textExt = ['.txt', '.md', '.json', '.js', '.ts', '.vue', '.py', '.java', '.go', '.rs', '.xml', '.yml', '.yaml']
+      return (
+        !type ||
+        type.startsWith('text') ||
+        type.includes('json') ||
+        textExt.some(ext => name?.toLowerCase().endsWith(ext))
+      )
+    },
+
+    isImageFile(type = '', name = '') {
+      const imageExt = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp']
+      return (
+        type.startsWith('image') ||
+        imageExt.some(ext => name?.toLowerCase().endsWith(ext))
+      )
+    },
+
+    closeFilePreview() {
+      this.filePreviewVisible = false
+      this.previewFileData = null
+    },
+
+    copyPreviewContent() {
+      if (!this.previewFileData?.content) return
+
+      uni.setClipboardData({
+        data: this.previewFileData.content,
+        success: () => {
+          uni.showToast({
+            title: '内容已复制',
+            icon: 'none'
+          })
+        }
+      })
+    },
+
+    downloadPreviewFile() {
+      if (!this.previewFileData) return
+
+      this.downloadContent(
+        this.previewFileData.name || 'project-file.txt',
+        this.previewFileData.content || '',
+        this.previewFileData.type || 'text/plain'
+      )
+    },
+
+    downloadContent(fileName, content, mimeType) {
+      if (typeof document === 'undefined') {
+        uni.setClipboardData({
+          data: content,
+          success: () => {
+            uni.showToast({
+              title: '内容已复制',
+              icon: 'none'
+            })
+          }
+        })
+        return
+      }
+
+      try {
+        const blob = new Blob([content], { type: mimeType || 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        uni.showToast({
+          title: '已开始下载',
+          icon: 'none'
+        })
+      } catch (error) {
+        console.error('[ProjectDetail] 触发下载失败:', error)
+        uni.showToast({
+          title: '下载失败',
+          icon: 'none'
+        })
+      }
     }
   }
 }
@@ -1362,58 +1809,76 @@ export default {
   position: relative;
 }
 
-.file-list {
+.file-tree-container {
   background: white;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.file-item {
+.file-tree-scroll {
+  max-height: 420px;
+}
+
+.file-tree-node {
   display: flex;
   align-items: center;
-  padding: 16px;
+  justify-content: space-between;
+  padding: 10px 16px;
   border-bottom: 1px solid #f0f0f0;
 }
 
-.file-item:last-child {
+.file-tree-node:last-child {
   border-bottom: none;
 }
 
-.file-icon {
-  font-size: 32px;
-  margin-right: 12px;
+.tree-node-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 8px;
 }
 
-.file-info {
+.tree-toggle {
+  width: 16px;
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+
+.tree-toggle.placeholder {
+  color: transparent;
+}
+
+.tree-icon {
+  width: 22px;
+  text-align: center;
+}
+
+.tree-info {
   flex: 1;
   min-width: 0;
 }
 
-.file-name {
-  font-size: 15px;
-  font-weight: 500;
+.tree-name {
+  font-size: 14px;
   color: #333;
   display: block;
-  margin-bottom: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.file-meta {
+.tree-meta {
   display: flex;
-  gap: 12px;
-}
-
-.file-size,
-.file-time {
+  gap: 10px;
   font-size: 12px;
   color: #999;
+  margin-top: 2px;
 }
 
-.file-actions {
-  padding: 8px;
+.tree-actions {
+  padding-left: 8px;
 }
 
 .action-icon {
@@ -1881,9 +2346,175 @@ export default {
   color: white;
 }
 
+.dialog-button.secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
 .dialog-button.danger {
   background: #ff4d4f;
   color: white;
+}
+
+/* 协作者弹窗 */
+.collaborator-dialog {
+  width: 90%;
+  max-width: 420px;
+  max-height: 80vh;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.collaborator-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.collaborator-list {
+  max-height: 200px;
+}
+
+.collaborator-item {
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.collaborator-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.collaborator-id {
+  font-size: 13px;
+  color: #333;
+  flex: 1;
+  word-break: break-all;
+}
+
+.collaborator-role {
+  font-size: 12px;
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.12);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.collaborator-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #888;
+}
+
+.collaborator-empty {
+  padding: 20px 0;
+  text-align: center;
+}
+
+.collaborator-empty .empty-title {
+  font-weight: 600;
+  color: #333;
+}
+
+.collaborator-empty .empty-subtitle {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.invite-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.role-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.role-option {
+  flex: 1;
+  padding: 10px 12px;
+  text-align: center;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #666;
+}
+
+.role-option.active {
+  border-color: #667eea;
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.12);
+}
+
+/* 文件预览 */
+.file-preview-dialog {
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  background: white;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.preview-meta {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 12px;
+  color: #999;
+}
+
+.preview-loading {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-spinner.small {
+  width: 24px;
+  height: 24px;
+}
+
+.preview-content {
+  flex: 1;
+  padding: 16px 20px;
+  background: #fafafa;
+}
+
+.preview-text {
+  font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+  white-space: pre-wrap;
+  font-size: 13px;
+  color: #333;
+}
+
+.preview-image {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.preview-placeholder {
+  font-size: 14px;
+  color: #999;
+  text-align: center;
+  padding: 40px 0;
 }
 
 /* 任务详情对话框 */
