@@ -11,7 +11,11 @@
     "watch:firefox": "webpack --env browser=firefox --watch",
     "clean": "rm -rf build/*",
     "test": "node test-runner.js",
-    "test:quick": "node test-runner.js"
+    "test:quick": "node test-runner.js",
+    "generate:icons": "node scripts/generate-icons-canvas.js",
+    "prebuild:chrome": "npm run generate:icons",
+    "prebuild:firefox": "npm run generate:icons",
+    "prebuild:safari": "npm run generate:icons"
   },
   "keywords": [
     "browser-extension",

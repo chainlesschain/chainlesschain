@@ -379,12 +379,71 @@ class PKCS11Driver extends BaseUKeyDriver {
 
         return encrypted.toString('base64');
       } else {
-        // CLI fallback - use openssl with exported public key
-        throw new Error('CLI encryption not implemented - use pkcs11-js module');
+        // CLI fallback - export public key and use OpenSSL
+        return await this.encryptWithCLI(data);
       }
     } catch (error) {
       console.error('[PKCS11Driver] Encryption failed:', error);
       throw new Error(`Encryption failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Encrypt data using CLI tools (fallback)
+   */
+  async encryptWithCLI(data) {
+    const tempDir = os.tmpdir();
+    const pubKeyFile = path.join(tempDir, `pkcs11-pubkey-${Date.now()}.pem`);
+    const dataFile = path.join(tempDir, `pkcs11-data-${Date.now()}.txt`);
+    const encFile = path.join(tempDir, `pkcs11-enc-${Date.now()}.bin`);
+
+    try {
+      // Step 1: Export public key from token
+      console.log('[PKCS11Driver] Exporting public key from token...');
+      const { stdout: keyOutput } = await execAsync(
+        `pkcs11-tool --read-object --type pubkey --pin ${this.currentPin} --output-file ${pubKeyFile}`,
+        { timeout: 10000 }
+      );
+
+      // Check if key was exported
+      if (!fs.existsSync(pubKeyFile)) {
+        throw new Error('Failed to export public key from token');
+      }
+
+      // Step 2: Write data to temp file
+      fs.writeFileSync(dataFile, data, 'utf8');
+
+      // Step 3: Encrypt using OpenSSL with RSA public key
+      console.log('[PKCS11Driver] Encrypting with OpenSSL...');
+      const { stdout: encOutput } = await execAsync(
+        `openssl pkeyutl -encrypt -pubin -inkey ${pubKeyFile} -in ${dataFile} -out ${encFile}`,
+        { timeout: 10000 }
+      );
+
+      // Step 4: Read encrypted data
+      if (!fs.existsSync(encFile)) {
+        throw new Error('Encryption failed - no output file');
+      }
+
+      const encryptedData = fs.readFileSync(encFile);
+      const base64Encrypted = encryptedData.toString('base64');
+
+      console.log('[PKCS11Driver] CLI encryption successful');
+      return base64Encrypted;
+    } catch (error) {
+      console.error('[PKCS11Driver] CLI encryption error:', error);
+      throw new Error(`CLI encryption failed: ${error.message}`);
+    } finally {
+      // Cleanup temp files
+      [pubKeyFile, dataFile, encFile].forEach(file => {
+        try {
+          if (fs.existsSync(file)) {
+            fs.unlinkSync(file);
+          }
+        } catch (e) {
+          console.warn(`[PKCS11Driver] Failed to cleanup ${file}:`, e.message);
+        }
+      });
     }
   }
 
@@ -421,11 +480,63 @@ class PKCS11Driver extends BaseUKeyDriver {
 
         return decrypted.toString('utf8');
       } else {
-        throw new Error('CLI decryption not implemented - use pkcs11-js module');
+        // CLI fallback - use pkcs11-tool for decryption
+        return await this.decryptWithCLI(encryptedData);
       }
     } catch (error) {
       console.error('[PKCS11Driver] Decryption failed:', error);
       throw new Error(`Decryption failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Decrypt data using CLI tools (fallback)
+   */
+  async decryptWithCLI(encryptedData) {
+    const tempDir = os.tmpdir();
+    const encFile = path.join(tempDir, `pkcs11-enc-${Date.now()}.bin`);
+    const decFile = path.join(tempDir, `pkcs11-dec-${Date.now()}.txt`);
+
+    try {
+      // Step 1: Write encrypted data to temp file
+      const encryptedBuffer = Buffer.from(encryptedData, 'base64');
+      fs.writeFileSync(encFile, encryptedBuffer);
+
+      // Step 2: Decrypt using pkcs11-tool with private key on token
+      console.log('[PKCS11Driver] Decrypting with pkcs11-tool...');
+      const { stdout, stderr } = await execAsync(
+        `pkcs11-tool --decrypt --pin ${this.currentPin} --mechanism RSA-PKCS --input-file ${encFile} --output-file ${decFile}`,
+        { timeout: 10000 }
+      );
+
+      // Check for errors
+      if (stderr && (stderr.includes('error') || stderr.includes('failed'))) {
+        throw new Error(`Decryption failed: ${stderr}`);
+      }
+
+      // Step 3: Read decrypted data
+      if (!fs.existsSync(decFile)) {
+        throw new Error('Decryption failed - no output file');
+      }
+
+      const decryptedData = fs.readFileSync(decFile, 'utf8');
+
+      console.log('[PKCS11Driver] CLI decryption successful');
+      return decryptedData;
+    } catch (error) {
+      console.error('[PKCS11Driver] CLI decryption error:', error);
+      throw new Error(`CLI decryption failed: ${error.message}`);
+    } finally {
+      // Cleanup temp files
+      [encFile, decFile].forEach(file => {
+        try {
+          if (fs.existsSync(file)) {
+            fs.unlinkSync(file);
+          }
+        } catch (e) {
+          console.warn(`[PKCS11Driver] Failed to cleanup ${file}:`, e.message);
+        }
+      });
     }
   }
 
