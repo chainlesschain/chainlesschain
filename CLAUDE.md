@@ -363,11 +363,11 @@ Prefixes: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`
 
 ## Documentation References
 
-- **System Design**: `系统设计_个人移动AI管理系统.md` (123KB, comprehensive)
+- **System Design**: `docs/design/系统设计_个人移动AI管理系统.md` (123KB, comprehensive)
 - **Implementation Status**: `IMPLEMENTATION_COMPLETE.md`
 - **Project Progress**: `PROJECT_PROGRESS_REPORT_2025-12-18.md`
 - **Quick Start**: `QUICK_START.md`, `HOW_TO_RUN.md`
-- **Contributing**: `CONTRIBUTING.md`
+- **Contributing**: `docs/development/CONTRIBUTING.md`
 - **README**: `README.md` (Chinese), `README_EN.md` (English)
 - **Cloud Deployment**: `README-云端部署指南.md`
 

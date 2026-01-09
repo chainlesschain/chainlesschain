@@ -17,7 +17,7 @@
 
 A fully decentralized personal AI assistant platform integrating knowledge base management, social networking, and transaction assistance.
 
-[中文](./README.md) | [Design Document](./系统设计_个人移动AI管理系统.md)
+[中文](./README.md) | [Design Document](./docs/design/系统设计_个人移动AI管理系统.md)
 
 </div>
 
@@ -1001,7 +1001,7 @@ We welcome all forms of contribution!
 - Testing: Add necessary unit and integration tests
 - Documentation: Update relevant documentation and comments
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for details
+See [CONTRIBUTING.md](./docs/development/CONTRIBUTING.md) for details
 
 ### Priority Tasks
 1. 🔴 **High Priority**:

@@ -22,7 +22,7 @@
 
 一个完全去中心化的个人AI助手平台,整合知识库管理、社交网络和交易辅助三大核心功能。
 
-[English](./README_EN.md) | [设计文档](./系统设计_个人移动AI管理系统.md)
+[English](./README_EN.md) | [设计文档](./docs/design/系统设计_个人移动AI管理系统.md)
 
 </div>
 
@@ -766,9 +766,9 @@ npm start  # 默认端口: 9003
 3. 移动端扫描二维码或输入配对码
 
 **详细文档**:
-- [系统设计文档](./MOBILE_PC_SYNC.md) - 架构设计、技术选型、数据同步策略
-- [快速开始指南](./QUICKSTART_MOBILE_PC.md) - 环境配置、使用流程、常见问题
-- [集成测试指南](./TEST_MOBILE_PC_INTEGRATION.md) - 测试用例、测试脚本、验证清单
+- [系统设计文档](./docs/features/MOBILE_PC_SYNC.md) - 架构设计、技术选型、数据同步策略
+- [快速开始指南](./docs/deployment/QUICKSTART_MOBILE_PC.md) - 环境配置、使用流程、常见问题
+- [集成测试指南](./docs/testing/TEST_MOBILE_PC_INTEGRATION.md) - 测试用例、测试脚本、验证清单
 
 ## 📁 项目结构
 
@@ -1313,7 +1313,7 @@ chainlesschain/
 - 测试: 添加必要的单元测试和集成测试
 - 文档: 更新相关文档和注释
 
-详见 [CONTRIBUTING.md](./CONTRIBUTING.md)
+详见 [CONTRIBUTING.md](./docs/development/CONTRIBUTING.md)
 
 ### 优先级任务
 1. 🔴 **高优先级**:
