@@ -304,6 +304,14 @@ export default {
     return {
       currentIdentity: null,
       syncStatus: 'synced', // 'synced', 'syncing', 'failed'
+      recentProjects: [],
+      p2pSummary: {
+        pairedCount: 0,
+        onlineCount: 0,
+        primaryDevice: '',
+        lastConnected: null
+      },
+      p2pManager: null,
       statistics: {
         knowledgeCount: 0,
         conversationCount: 0,
@@ -343,12 +351,15 @@ export default {
   },
 
   async onLoad() {
+    this.p2pManager = getP2PManager()
     await this.loadUserInfo()
     await this.loadStatistics()
+    await this.loadP2PStatus()
   },
 
   async onShow() {
     await this.loadStatistics()
+    await this.loadP2PStatus()
   },
 
   methods: {
@@ -425,6 +436,7 @@ export default {
       try {
         const projects = await projectManager.getProjects()
         this.statistics.projectCount = projects.length
+        this.recentProjects = projects.slice(0, 3)
 
         const collaboratingProjects = await projectManager.getCollaboratingProjects()
         this.statistics.collaboratingCount = collaboratingProjects.length
@@ -449,7 +461,95 @@ export default {
         this.statistics.projectCount = 0
         this.statistics.collaboratingCount = 0
         this.statistics.activeTaskCount = 0
+        this.recentProjects = []
       }
+    },
+
+    goToProject(projectId) {
+      if (!projectId) return
+      uni.navigateTo({ url: `/pages/projects/detail?id=${projectId}` })
+    },
+
+    formatProjectType(type) {
+      const map = {
+        general: '通用',
+        code: '代码',
+        research: '研究',
+        writing: '写作',
+        learning: '学习',
+        marketing: '营销',
+        other: '其他'
+      }
+      return map[type] || '通用'
+    },
+
+    formatProjectTime(timestamp) {
+      if (!timestamp) return ''
+      const diff = Date.now() - timestamp
+      const minute = 60 * 1000
+      const hour = 60 * minute
+      const day = 24 * hour
+      if (diff < minute) return '刚刚'
+      if (diff < hour) return `${Math.floor(diff / minute)} 分钟前`
+      if (diff < day) return `${Math.floor(diff / hour)} 小时前`
+      if (diff < 7 * day) return `${Math.floor(diff / day)} 天前`
+      const date = new Date(timestamp)
+      return `${date.getMonth() + 1}月${date.getDate()}日`
+    },
+
+    async loadP2PStatus() {
+      try {
+        const devicesStr = uni.getStorageSync('paired_devices')
+        if (!devicesStr) {
+          this.p2pSummary = {
+            pairedCount: 0,
+            onlineCount: 0,
+            primaryDevice: '',
+            lastConnected: null
+          }
+          return
+        }
+
+        const devices = JSON.parse(devicesStr)
+        const manager = this.p2pManager || getP2PManager()
+        const enriched = devices.map(device => {
+          const state = manager ? manager.getConnectionState(device.peerId) : 'disconnected'
+          return {
+            ...device,
+            connected: state === 'connected'
+          }
+        })
+
+        const online = enriched.filter(device => device.connected)
+        const primary = online[0] || enriched[0]
+
+        this.p2pSummary = {
+          pairedCount: enriched.length,
+          onlineCount: online.length,
+          primaryDevice: primary ? (primary.deviceInfo?.name || 'PC设备') : '',
+          lastConnected: primary?.lastConnected || null
+        }
+      } catch (error) {
+        console.error('加载P2P状态失败:', error)
+        this.p2pSummary = {
+          pairedCount: 0,
+          onlineCount: 0,
+          primaryDevice: '',
+          lastConnected: null
+        }
+      }
+    },
+
+    formatDeviceTime(timestamp) {
+      if (!timestamp) {
+        return this.p2pSummary.onlineCount > 0 ? '在线' : '未连接'
+      }
+      const diff = Date.now() - timestamp
+      if (diff < 60 * 1000) return '刚刚'
+      if (diff < 3600 * 1000) return `${Math.floor(diff / (60 * 1000))} 分钟前`
+      if (diff < 24 * 3600 * 1000) return `${Math.floor(diff / (3600 * 1000))} 小时前`
+      const date = new Date(timestamp)
+      return `${date.getMonth() + 1}月${date.getDate()}日`
     }
   }
 }
@@ -612,6 +712,150 @@ export default {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+}
+
+.project-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.project-action {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.project-action.primary {
+  background: linear-gradient(135deg, #5c6ac4 0%, #8066ff 100%);
+  color: white;
+}
+
+.project-action.secondary {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.project-action .action-icon {
+  font-size: 18px;
+}
+
+.project-action .action-text {
+  font-weight: 600;
+}
+
+.recent-projects {
+  margin-top: 16px;
+  background: #f8f8fc;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.recent-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.recent-link {
+  font-size: 13px;
+  color: #666;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recent-item {
+  background: white;
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.recent-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.recent-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.p2p-summary {
+  display: flex;
+  justify-content: space-between;
+  background: #f8f9ff;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.p2p-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.p2p-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.p2p-label {
+  font-size: 12px;
+  color: #777;
+}
+
+.p2p-empty {
+  background: #fff4f2;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.p2p-empty .empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #c44;
+}
+
+.p2p-empty .empty-subtitle {
+  font-size: 12px;
+  color: #c44;
+  margin-top: 4px;
+}
+
+.pair-btn {
+  margin-top: 12px;
+  padding: 10px 18px;
+  background: #ff7a45;
+  color: white;
+  border: none;
+  border-radius: 20px;
 }
 
 .module-card {
