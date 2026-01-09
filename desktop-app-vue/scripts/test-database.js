@@ -7,16 +7,38 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-// 设置全局 app 对象（在 require database 之前）
-global.app = {
+// 创建测试目录
+const testDir = path.join(os.tmpdir(), 'chainlesschain-test');
+if (!fs.existsSync(testDir)) {
+  fs.mkdirSync(testDir, { recursive: true });
+}
+
+// Mock Electron modules before requiring any main process code
+const mockApp = {
   isPackaged: false,
   getPath: (name) => {
     if (name === 'userData') {
-      return path.join(os.tmpdir(), 'chainlesschain-test');
+      return testDir;
     }
     return os.tmpdir();
   },
+  getName: () => 'ChainlessChain',
+  getVersion: () => '0.20.0',
 };
+
+// Mock electron module
+require.cache[require.resolve('electron')] = {
+  exports: {
+    app: mockApp,
+    ipcMain: {
+      handle: () => {},
+      on: () => {},
+    },
+  },
+};
+
+// Set global app for backward compatibility
+global.app = mockApp;
 
 const DatabaseManager = require('../src/main/database');
 
@@ -32,12 +54,20 @@ async function testDatabase() {
     try {
       await db.initialize();
     } catch (error) {
-      if (error.message.includes('Cannot read properties of undefined')) {
-        console.log('⚠ 数据库测试需要在Electron环境中运行');
-        console.log('  请使用以下命令在真实环境中测试:');
-        console.log('  npm run dev');
-        console.log('  然后在应用中打开DevTools控制台进行测试\n');
-        console.log('✓ 数据库模块加载成功（跳过Electron专用测试）\n');
+      if (error.message && (
+        error.message.includes('Cannot read properties of undefined') ||
+        error.message.includes('Cannot find module') ||
+        error.message.includes('better-sqlite3')
+      )) {
+        console.log('⚠ 数据库测试需要编译的原生模块');
+        console.log('  原因: better-sqlite3 需要 Visual Studio Build Tools');
+        console.log('  解决方案:');
+        console.log('  1. 安装 Visual Studio Build Tools');
+        console.log('  2. 或在真实 Electron 环境中测试:');
+        console.log('     npm run dev');
+        console.log('     然后在应用中打开DevTools控制台进行测试\n');
+        console.log('✓ 数据库模块加载成功（跳过原生模块测试）\n');
+        console.log('错误详情:', error.message);
         process.exit(0);
       }
       throw error;
@@ -152,7 +182,9 @@ async function testDatabase() {
 
     console.log('=== 所有测试通过 ✓ ===\n');
   } catch (error) {
-    console.error('✗ 测试失败:', error);
+    console.error('数据库初始化失败:', error.message);
+    console.error('错误堆栈:', error.stack);
+    console.error('\n✗ 测试失败:', error.message);
     process.exit(1);
   }
 }

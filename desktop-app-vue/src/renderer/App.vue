@@ -28,11 +28,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onErrorCaptured } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import { useAppStore } from './stores/app';
 import { ukeyAPI, llmAPI } from './utils/ipc';
+import { handleError, ErrorType, ErrorLevel } from './utils/errorHandler';
 import DatabaseEncryptionWizard from './components/DatabaseEncryptionWizard.vue';
 import GlobalSettingsWizard from './components/GlobalSettingsWizard.vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
@@ -60,6 +61,45 @@ const antdLocaleMap = {
 const currentAntdLocale = computed(() => {
   return antdLocaleMap[locale.value] || zhCN;
 });
+
+// 全局错误捕获
+onErrorCaptured((err, instance, info) => {
+  console.error('[App] Global error captured:', err);
+  console.error('[App] Component info:', info);
+
+  // 使用统一错误处理
+  handleError(err, {
+    showMessage: true,
+    showNotification: true,
+    logToFile: true,
+    context: {
+      component: 'App',
+      componentInfo: info,
+      location: 'global',
+    },
+  });
+
+  // 不阻止错误传播到开发工具
+  return false;
+});
+
+// 监听未捕获的 Promise 错误
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[App] Unhandled promise rejection:', event.reason);
+
+    handleError(event.reason, {
+      showMessage: true,
+      logToFile: true,
+      context: {
+        type: 'unhandledRejection',
+        promise: event.promise,
+      },
+    });
+
+    event.preventDefault();
+  });
+}
 
 onMounted(async () => {
   try {
