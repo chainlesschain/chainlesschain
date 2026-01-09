@@ -81,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
   MoreOutlined,
@@ -101,6 +101,8 @@ const hasMore = ref(false);
 const showRenameModal = ref(false);
 const renameTitle = ref('');
 const renamingConversation = ref(null);
+const currentPage = ref(1);
+const pageSize = ref(20);
 
 // 当前对话ID
 const currentConversationId = computed(() => conversationStore.currentConversation?.id);
@@ -115,6 +117,18 @@ const filteredConversations = computed(() => {
   return conversationStore.conversations.filter((conv) =>
     conv.title.toLowerCase().includes(query)
   );
+});
+
+// 检查是否还有更多数据
+const checkHasMore = () => {
+  const total = conversationStore.pagination.total;
+  const loaded = conversationStore.conversations.length;
+  hasMore.value = loaded < total;
+};
+
+// 组件挂载时初始化
+onMounted(() => {
+  checkHasMore();
 });
 
 // 选择对话
@@ -144,7 +158,20 @@ const handleRenameConfirm = async () => {
     message.success('重命名成功');
     showRenameModal.value = false;
   } catch (error) {
-    message.error('重命名失败: ' + error.message);
+    console.error('[ConversationHistory] 重命名失败:', error);
+
+    let errorMessage = '重命名失败';
+    if (error.message) {
+      if (error.message.includes('not found')) {
+        errorMessage = '对话不存在';
+      } else if (error.message.includes('database')) {
+        errorMessage = '数据库错误，请重试';
+      } else {
+        errorMessage = `重命名失败: ${error.message}`;
+      }
+    }
+
+    message.error(errorMessage);
   }
 };
 
@@ -160,17 +187,65 @@ const handleDelete = (conversation) => {
       try {
         await conversationStore.deleteConversation(conversation.id);
         message.success('删除成功');
+
+        // 重新检查是否还有更多数据
+        checkHasMore();
       } catch (error) {
-        message.error('删除失败: ' + error.message);
+        console.error('[ConversationHistory] 删除失败:', error);
+
+        let errorMessage = '删除失败';
+        if (error.message) {
+          if (error.message.includes('not found')) {
+            errorMessage = '对话不存在';
+          } else if (error.message.includes('database')) {
+            errorMessage = '数据库错误，请重试';
+          } else {
+            errorMessage = `删除失败: ${error.message}`;
+          }
+        }
+
+        message.error(errorMessage);
       }
     },
   });
 };
 
 // 加载更多
-const loadMore = () => {
-  // TODO: 实现分页加载
-  message.info('暂无更多对话');
+const loadMore = async () => {
+  if (loading.value || !hasMore.value) {
+    return;
+  }
+
+  loading.value = true;
+
+  try {
+    const offset = conversationStore.conversations.length;
+    await conversationStore.loadConversations(offset, pageSize.value);
+
+    // 更新分页状态
+    currentPage.value++;
+    checkHasMore();
+
+    message.success(`已加载 ${conversationStore.conversations.length} 条对话`);
+  } catch (error) {
+    console.error('[ConversationHistory] 加载更多失败:', error);
+
+    // 提供友好的错误消息
+    let errorMessage = '加载失败';
+    if (error.message) {
+      if (error.message.includes('database')) {
+        errorMessage = '数据库错误，请重试';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = '加载超时，请重试';
+      } else {
+        errorMessage = `加载失败: ${error.message}`;
+      }
+    }
+
+    message.error(errorMessage);
+  } finally {
+    loading.value = false;
+  }
 };
 
 // 格式化日期

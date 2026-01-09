@@ -135,6 +135,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listModels: () => ipcRenderer.invoke('llm:list-models'),
     clearContext: (conversationId) => ipcRenderer.invoke('llm:clear-context', conversationId),
     embeddings: (text) => ipcRenderer.invoke('llm:embeddings', text),
+    cancelStream: (controllerId, reason) => ipcRenderer.invoke('llm:cancel-stream', controllerId, reason),
     // 智能选择
     getSelectorInfo: () => ipcRenderer.invoke('llm:get-selector-info'),
     selectBest: (options) => ipcRenderer.invoke('llm:select-best', options),
