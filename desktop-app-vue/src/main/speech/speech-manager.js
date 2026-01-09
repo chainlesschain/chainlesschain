@@ -1050,3 +1050,4 @@ class SpeechManager extends EventEmitter {
 }
 
 module.exports = SpeechManager;
+module.exports.SpeechManager = SpeechManager;

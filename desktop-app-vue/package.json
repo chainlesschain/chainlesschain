@@ -23,6 +23,7 @@
     "test:coverage": "vitest run --coverage",
     "test:db": "node scripts/test-database.js",
     "test:ukey": "node scripts/test-ukey.js",
+    "test:pkcs11": "node scripts/test-pkcs11-encryption.js",
     "test:data": "node scripts/test-data-engine.js",
     "test:all": "npm run test && npm run test:db && npm run test:ukey && npm run test:data",
     "test:runner": "node scripts/test-runner.js",

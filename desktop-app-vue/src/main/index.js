@@ -219,6 +219,7 @@ class ChainlessChainApp {
     this.markdownExporter = null;
     this.llmManager = null;
     this.ragManager = null;
+    this.speechManager = null;
     this.vcTemplateManager = null;
     this.fileImporter = null;
     this.imageUploader = null;
@@ -329,6 +330,21 @@ class ChainlessChainApp {
       app.exit(0);
     });
 
+  }
+
+  /**
+   * 初始化语音管理器（供IPC注册使用）
+   * 这是一个延迟初始化函数，确保在需要时才创建管理器
+   */
+  async initializeSpeechManager() {
+    if (!this.speechManager) {
+      console.log('[Main] 延迟初始化语音管理器...');
+      const { SpeechManager } = require('./speech/speech-manager');
+      this.speechManager = new SpeechManager(this.database, this.ragManager);
+      await this.speechManager.initialize();
+      console.log('[Main] 语音管理器延迟初始化成功');
+    }
+    return this.speechManager;
   }
 
   async onReady() {
@@ -594,6 +610,18 @@ class ChainlessChainApp {
     } catch (error) {
       console.error('RAG管理器初始化失败:', error);
       // RAG初始化失败不影响应用启动
+    }
+
+    // 初始化语音管理器
+    try {
+      console.log('初始化语音管理器...');
+      const { SpeechManager } = require('./speech/speech-manager');
+      this.speechManager = new SpeechManager(this.database, this.ragManager);
+      await this.speechManager.initialize();
+      console.log('语音管理器初始化成功');
+    } catch (error) {
+      console.error('语音管理器初始化失败:', error);
+      // 语音管理器初始化失败不影响应用启动
     }
 
     // 初始化图片上传器
