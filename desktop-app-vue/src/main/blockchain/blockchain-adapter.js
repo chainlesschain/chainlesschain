@@ -96,12 +96,26 @@ class BlockchainAdapter extends EventEmitter {
       }
 
       if (this.providers.size === 0) {
-        throw new Error('没有可用的网络提供者');
+        console.warn('[BlockchainAdapter] 没有可用的网络提供者，将使用公共RPC端点');
+        // 至少初始化一个测试网络作为备用
+        try {
+          const sepoliaConfig = getNetworkConfig(11155111);
+          const sepoliaProvider = new ethers.JsonRpcProvider(sepoliaConfig.rpcUrls[1]); // 使用公共端点
+          this.providers.set(11155111, sepoliaProvider);
+          console.log('[BlockchainAdapter] 已初始化Sepolia测试网作为备用');
+        } catch (fallbackError) {
+          console.error('[BlockchainAdapter] 初始化备用网络失败:', fallbackError);
+        }
       }
 
-      // 设置默认链为第一个可用的提供者
-      const firstChainId = Array.from(this.providers.keys())[0];
-      this.currentChainId = firstChainId;
+      // 设置默认链（优先使用已初始化的链）
+      if (this.providers.has(this.currentChainId)) {
+        console.log(`[BlockchainAdapter] 使用默认链: ${this.currentChainId}`);
+      } else {
+        // 使用第一个可用的链
+        this.currentChainId = Array.from(this.providers.keys())[0];
+        console.log(`[BlockchainAdapter] 切换到可用链: ${this.currentChainId}`);
+      }
 
       this.initialized = true;
       console.log(`[BlockchainAdapter] 区块链适配器初始化成功，共 ${this.providers.size} 个网络可用，当前链: ${this.currentChainId}`);
