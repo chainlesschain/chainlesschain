@@ -325,6 +325,70 @@ class DatabaseAdapter {
   isEncrypted() {
     return this.engine === DatabaseEngine.SQLCIPHER;
   }
+
+  /**
+   * 修改数据库加密密码
+   * @param {string} oldPassword - 旧密码
+   * @param {string} newPassword - 新密码
+   * @param {Object} db - 数据库实例
+   * @returns {Promise<Object>} 修改结果
+   */
+  async changePassword(oldPassword, newPassword, db) {
+    if (!this.isEncrypted()) {
+      throw new Error('数据库未使用加密，无法修改密码');
+    }
+
+    if (!this.keyManager) {
+      throw new Error('密钥管理器未初始化');
+    }
+
+    try {
+      // 1. 验证旧密码
+      const oldKeyResult = await this.keyManager.getOrCreateKey({
+        password: oldPassword,
+        forcePassword: true
+      });
+
+      // 验证旧密钥是否正确（通过尝试读取数据库）
+      const testDb = createEncryptedDatabase(this.getEncryptedDbPath(), oldKeyResult.key);
+      try {
+        testDb.open();
+        testDb.prepare('SELECT count(*) FROM sqlite_master').get();
+        testDb.close();
+      } catch (error) {
+        throw new Error('旧密码验证失败');
+      }
+
+      // 2. 生成新密钥
+      const newKeyResult = await this.keyManager.deriveKeyFromPassword(newPassword);
+
+      // 3. 使用 rekey 修改数据库密钥
+      if (db && db.rekey) {
+        db.rekey(newKeyResult.key);
+      } else {
+        throw new Error('数据库实例不支持密钥修改');
+      }
+
+      // 4. 更新密钥元数据
+      await this.keyManager.saveKeyMetadata({
+        method: 'password',
+        salt: newKeyResult.salt,
+        encryptionEnabled: true
+      });
+
+      // 5. 更新当前密码
+      this.password = newPassword;
+
+      console.log('[DatabaseAdapter] 数据库密码修改成功');
+      return {
+        success: true,
+        message: '密码修改成功'
+      };
+    } catch (error) {
+      console.error('[DatabaseAdapter] 密码修改失败:', error);
+      throw error;
+    }
+  }
 }
 
 /**
