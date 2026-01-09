@@ -731,6 +731,8 @@ class TemplateManager {
    * @returns {boolean} 是否成功
    */
   async deleteTemplate(id) {
+    this.ensureDatabase()
+
     const template = await this.getTemplateById(id)
     if (!template) {
       throw new Error('模板不存在')
