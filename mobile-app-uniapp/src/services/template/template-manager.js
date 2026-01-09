@@ -4,7 +4,7 @@
  * 功能: 项目模板管理、变量替换、模板应用
  */
 
-import { getDatabase } from '../database'
+import database from '../database'
 
 /**
  * 简化的模板引擎
@@ -95,7 +95,7 @@ class TemplateManager {
     }
 
     try {
-      this.db = await getDatabase()
+      this.db = database
 
       // 创建模板表
       await this.createTables()
@@ -559,6 +559,8 @@ class TemplateManager {
    * @returns {Object|null} 模板对象
    */
   async getTemplateById(id) {
+    this.ensureDatabase()
+
     // 检查缓存
     if (this.cache.has(id)) {
       return this.cache.get(id)
@@ -582,6 +584,8 @@ class TemplateManager {
    * @returns {Array} 模板列表
    */
   async getTemplates(options = {}) {
+    this.ensureDatabase()
+
     const {
       category = null,
       subcategory = null,
@@ -634,6 +638,8 @@ class TemplateManager {
    * @returns {Array} 分类列表
    */
   async getCategories() {
+    this.ensureDatabase()
+
     const sql = `
       SELECT DISTINCT category, COUNT(*) as count
       FROM templates
@@ -661,6 +667,8 @@ class TemplateManager {
    * @returns {Object} 更新后的模板
    */
   async updateTemplate(id, updates) {
+    this.ensureDatabase()
+
     const template = await this.getTemplateById(id)
     if (!template) {
       throw new Error('模板不存在')
