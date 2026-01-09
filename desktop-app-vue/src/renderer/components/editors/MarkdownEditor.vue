@@ -404,7 +404,7 @@ const handleExport = async ({ key }) => {
         await exportHTML();
         break;
       case 'pdf':
-        message.info('PDF导出功能开发中...');
+        await exportPDF();
         break;
       case 'word':
         await exportWord();
@@ -478,6 +478,98 @@ const exportHTML = async () => {
   if (!result.canceled && result.filePath) {
     await window.electronAPI.file.writeContent(result.filePath, html);
     message.success('导出成功: ' + result.filePath);
+  }
+};
+
+// 导出PDF
+const exportPDF = async () => {
+  console.log('[MarkdownEditor] 🔄 开始导出PDF...');
+  console.log('[MarkdownEditor] 文件名:', props.file?.file_name);
+  console.log('[MarkdownEditor] 内容长度:', content.value?.length, '字符');
+
+  try {
+    console.log('[MarkdownEditor] 📂 打开保存对话框...');
+    const result = await window.electronAPI.dialog.showSaveDialog({
+      defaultPath: props.file?.file_name?.replace('.md', '.pdf') || 'document.pdf',
+      filters: [{ name: 'PDF文档', extensions: ['pdf'] }],
+    });
+
+    console.log('[MarkdownEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
+
+    if (result.canceled) {
+      console.log('[MarkdownEditor] ❌ 用户取消导出');
+      return;
+    }
+
+    if (!result.filePath) {
+      console.error('[MarkdownEditor] ❌ 未获取到文件路径');
+      message.error('未选择保存路径');
+      return;
+    }
+
+    console.log('[MarkdownEditor] 📝 准备转换内容...');
+    console.log('[MarkdownEditor] Markdown内容:', content.value?.substring(0, 100) + '...');
+
+    message.loading({ content: '正在生成PDF...', key: 'pdf-export' });
+
+    // 调用PDF转换API
+    const pdfResult = await window.electronAPI.pdf.markdownToPDF({
+      markdown: content.value,
+      outputPath: result.filePath,
+      title: props.file?.file_name || 'Markdown文档',
+      options: {
+        format: 'A4',
+        margin: {
+          top: '20mm',
+          right: '20mm',
+          bottom: '20mm',
+          left: '20mm'
+        },
+        printBackground: true,
+        preferCSSPageSize: false
+      }
+    });
+
+    console.log('[MarkdownEditor] PDF转换结果:', pdfResult);
+
+    if (pdfResult.success) {
+      message.success({
+        content: `PDF导出成功: ${result.filePath}`,
+        key: 'pdf-export',
+        duration: 3
+      });
+      console.log('[MarkdownEditor] ✅ PDF导出成功');
+    } else {
+      const errorMsg = pdfResult.error || '未知错误';
+      console.error('[MarkdownEditor] ❌ PDF转换失败:', errorMsg);
+      message.error({
+        content: `PDF导出失败: ${errorMsg}`,
+        key: 'pdf-export',
+        duration: 3
+      });
+    }
+  } catch (error) {
+    console.error('[MarkdownEditor] ❌ PDF导出异常:', error);
+    console.error('[MarkdownEditor] 错误堆栈:', error.stack);
+
+    let errorMessage = 'PDF导出失败';
+    if (error.message) {
+      if (error.message.includes('not available')) {
+        errorMessage = 'PDF转换服务不可用，请检查系统配置';
+      } else if (error.message.includes('permission')) {
+        errorMessage = '没有权限写入文件，请检查文件路径';
+      } else if (error.message.includes('disk')) {
+        errorMessage = '磁盘空间不足';
+      } else {
+        errorMessage = `PDF导出失败: ${error.message}`;
+      }
+    }
+
+    message.error({
+      content: errorMessage,
+      key: 'pdf-export',
+      duration: 3
+    });
   }
 };
 

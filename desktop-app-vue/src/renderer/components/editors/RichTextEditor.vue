@@ -411,7 +411,7 @@ const handleExport = async ({ key }) => {
         await exportToHTML(html);
         break;
       case 'pdf':
-        message.info('PDF导出功能开发中...');
+        await exportToPDF(html);
         break;
     }
   } catch (error) {
@@ -525,6 +525,174 @@ const exportToHTML = async (html) => {
   if (!result.canceled && result.filePath) {
     await window.electronAPI.file.writeContent(result.filePath, fullHtml);
     message.success('导出成功: ' + result.filePath);
+  }
+};
+
+// 导出为PDF
+const exportToPDF = async (html) => {
+  console.log('[RichTextEditor] 🔄 开始导出PDF...');
+  console.log('[RichTextEditor] 文件名:', props.file?.file_name);
+  console.log('[RichTextEditor] HTML长度:', html?.length, '字符');
+
+  try {
+    console.log('[RichTextEditor] 📂 打开保存对话框...');
+    const result = await window.electronAPI.dialog.showSaveDialog({
+      defaultPath: props.file?.file_name?.replace(/\.[^.]+$/, '.pdf') || 'document.pdf',
+      filters: [{ name: 'PDF文档', extensions: ['pdf'] }],
+    });
+
+    console.log('[RichTextEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
+
+    if (result.canceled) {
+      console.log('[RichTextEditor] ❌ 用户取消导出');
+      return;
+    }
+
+    if (!result.filePath) {
+      console.error('[RichTextEditor] ❌ 未获取到文件路径');
+      message.error('未选择保存路径');
+      return;
+    }
+
+    console.log('[RichTextEditor] 📝 准备转换内容...');
+    console.log('[RichTextEditor] HTML内容:', html?.substring(0, 100) + '...');
+
+    message.loading({ content: '正在生成PDF...', key: 'pdf-export' });
+
+    // 构建完整的HTML文档
+    const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${props.file?.file_name || 'Document'}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 24px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+    p {
+      margin-bottom: 16px;
+    }
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    blockquote {
+      border-left: 4px solid #ddd;
+      padding-left: 20px;
+      margin: 20px 0;
+      color: #666;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background: #f4f4f4;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  ${html}
+</body>
+</html>`;
+
+    // 先创建临时HTML文件
+    const tempHtmlPath = result.filePath.replace('.pdf', '_temp.html');
+    await window.electronAPI.file.writeContent(tempHtmlPath, fullHtml);
+
+    // 调用PDF转换API
+    const pdfResult = await window.electronAPI.pdf.htmlFileToPDF({
+      htmlPath: tempHtmlPath,
+      outputPath: result.filePath,
+      options: {
+        format: 'A4',
+        margin: {
+          top: '20mm',
+          right: '20mm',
+          bottom: '20mm',
+          left: '20mm'
+        },
+        printBackground: true,
+        preferCSSPageSize: false
+      }
+    });
+
+    console.log('[RichTextEditor] PDF转换结果:', pdfResult);
+
+    // 删除临时HTML文件
+    try {
+      await window.electronAPI.file.deleteFile(tempHtmlPath);
+    } catch (e) {
+      console.warn('[RichTextEditor] 删除临时文件失败:', e);
+    }
+
+    if (pdfResult.success) {
+      message.success({
+        content: `PDF导出成功: ${result.filePath}`,
+        key: 'pdf-export',
+        duration: 3
+      });
+      console.log('[RichTextEditor] ✅ PDF导出成功');
+    } else {
+      const errorMsg = pdfResult.error || '未知错误';
+      console.error('[RichTextEditor] ❌ PDF转换失败:', errorMsg);
+      message.error({
+        content: `PDF导出失败: ${errorMsg}`,
+        key: 'pdf-export',
+        duration: 3
+      });
+    }
+  } catch (error) {
+    console.error('[RichTextEditor] ❌ PDF导出异常:', error);
+    console.error('[RichTextEditor] 错误堆栈:', error.stack);
+
+    let errorMessage = 'PDF导出失败';
+    if (error.message) {
+      if (error.message.includes('not available')) {
+        errorMessage = 'PDF转换服务不可用，请检查系统配置';
+      } else if (error.message.includes('permission')) {
+        errorMessage = '没有权限写入文件，请检查文件路径';
+      } else if (error.message.includes('disk')) {
+        errorMessage = '磁盘空间不足';
+      } else {
+        errorMessage = `PDF导出失败: ${error.message}`;
+      }
+    }
+
+    message.error({
+      content: errorMessage,
+      key: 'pdf-export',
+      duration: 3
+    });
   }
 };
 
