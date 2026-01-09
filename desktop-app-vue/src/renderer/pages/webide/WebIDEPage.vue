@@ -481,38 +481,120 @@ const startDevServer = async () => {
   try {
     message.loading({ content: '启动服务器...', key: 'server' });
 
-    // TODO: 实现服务器启动
-    // const result = await window.electronAPI.webIDE.startDevServer({
-    //   html: htmlCode.value,
-    //   css: cssCode.value,
-    //   js: jsCode.value,
-    //   port: 3000
-    // });
+    console.log('[WebIDE] 开始启动开发服务器...');
 
-    // 模拟响应
-    setTimeout(() => {
+    // 调用后端API启动服务器
+    const result = await window.electronAPI.webIDE.startDevServer({
+      html: htmlCode.value,
+      css: cssCode.value,
+      js: jsCode.value,
+      port: 3000 // 默认端口
+    });
+
+    console.log('[WebIDE] 服务器启动结果:', result);
+
+    if (result.success) {
       serverRunning.value = true;
-      serverUrl.value = 'http://localhost:3000';
-      message.success({ content: '服务器启动成功！', key: 'server', duration: 2 });
-    }, 1000);
+      serverUrl.value = result.url || 'http://localhost:3000';
+
+      message.success({
+        content: `服务器启动成功！访问地址: ${serverUrl.value}`,
+        key: 'server',
+        duration: 3
+      });
+
+      console.log('[WebIDE] ✅ 服务器启动成功:', serverUrl.value);
+    } else {
+      const errorMsg = result.error || '未知错误';
+      console.error('[WebIDE] ❌ 服务器启动失败:', errorMsg);
+
+      message.error({
+        content: `启动失败: ${errorMsg}`,
+        key: 'server',
+        duration: 3
+      });
+    }
   } catch (error) {
-    console.error('启动服务器失败:', error);
-    message.error({ content: '启动失败: ' + error.message, key: 'server', duration: 3 });
+    console.error('[WebIDE] ❌ 启动服务器异常:', error);
+    console.error('[WebIDE] 错误堆栈:', error.stack);
+
+    let errorMessage = '启动服务器失败';
+    if (error.message) {
+      if (error.message.includes('port') || error.message.includes('EADDRINUSE')) {
+        errorMessage = '端口已被占用，请关闭其他服务后重试';
+      } else if (error.message.includes('permission')) {
+        errorMessage = '没有权限启动服务器';
+      } else if (error.message.includes('not available')) {
+        errorMessage = '开发服务器不可用，请检查系统配置';
+      } else {
+        errorMessage = `启动失败: ${error.message}`;
+      }
+    }
+
+    message.error({
+      content: errorMessage,
+      key: 'server',
+      duration: 3
+    });
   }
 };
 
 // 停止开发服务器
 const stopDevServer = async () => {
   try {
-    // TODO: 实现服务器停止
-    // await window.electronAPI.webIDE.stopDevServer();
+    console.log('[WebIDE] 开始停止开发服务器...');
 
-    serverRunning.value = false;
-    serverUrl.value = '';
-    message.info('服务器已停止');
+    message.loading({ content: '停止服务器...', key: 'server-stop' });
+
+    // 调用后端API停止服务器
+    const result = await window.electronAPI.webIDE.stopDevServer(3000); // 传入端口号
+
+    console.log('[WebIDE] 服务器停止结果:', result);
+
+    if (result.success) {
+      serverRunning.value = false;
+      serverUrl.value = '';
+
+      message.success({
+        content: '服务器已停止',
+        key: 'server-stop',
+        duration: 2
+      });
+
+      console.log('[WebIDE] ✅ 服务器停止成功');
+    } else {
+      const errorMsg = result.error || '未知错误';
+      console.error('[WebIDE] ❌ 服务器停止失败:', errorMsg);
+
+      message.error({
+        content: `停止失败: ${errorMsg}`,
+        key: 'server-stop',
+        duration: 3
+      });
+    }
   } catch (error) {
-    console.error('停止服务器失败:', error);
-    message.error('停止失败: ' + error.message);
+    console.error('[WebIDE] ❌ 停止服务器异常:', error);
+    console.error('[WebIDE] 错误堆栈:', error.stack);
+
+    let errorMessage = '停止服务器失败';
+    if (error.message) {
+      if (error.message.includes('not running')) {
+        errorMessage = '服务器未运行';
+        // 即使停止失败，也重置状态
+        serverRunning.value = false;
+        serverUrl.value = '';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = '停止超时，请重试';
+      } else {
+        errorMessage = `停止失败: ${error.message}`;
+      }
+    }
+
+    message.error({
+      content: errorMessage,
+      key: 'server-stop',
+      duration: 3
+    });
   }
 };
 
