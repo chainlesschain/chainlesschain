@@ -374,7 +374,64 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
     }
   });
 
-  console.log('[P2P IPC] ✓ All P2P IPC handlers registered successfully (18 handlers)');
+  // ============================================================
+  // WebRTC 质量监控 (WebRTC Quality Monitoring)
+  // ============================================================
+
+  /**
+   * 获取WebRTC连接质量报告
+   * Channel: 'p2p:get-webrtc-quality-report'
+   * @param {string} peerId - 对等节点ID（可选，不传则返回所有连接的报告）
+   */
+  ipcMain.handle('p2p:get-webrtc-quality-report', async (_event, peerId) => {
+    try {
+      if (!p2pManager) {
+        return null;
+      }
+
+      return p2pManager.getWebRTCQualityReport(peerId);
+    } catch (error) {
+      console.error('[P2P IPC] 获取WebRTC质量报告失败:', error);
+      return null;
+    }
+  });
+
+  /**
+   * 获取WebRTC优化建议
+   * Channel: 'p2p:get-webrtc-optimization-suggestions'
+   * @param {string} peerId - 对等节点ID
+   */
+  ipcMain.handle('p2p:get-webrtc-optimization-suggestions', async (_event, peerId) => {
+    try {
+      if (!p2pManager) {
+        return [];
+      }
+
+      return p2pManager.getWebRTCOptimizationSuggestions(peerId);
+    } catch (error) {
+      console.error('[P2P IPC] 获取WebRTC优化建议失败:', error);
+      return [];
+    }
+  });
+
+  /**
+   * 获取连接池统计信息
+   * Channel: 'p2p:get-connection-pool-stats'
+   */
+  ipcMain.handle('p2p:get-connection-pool-stats', async () => {
+    try {
+      if (!p2pManager) {
+        return null;
+      }
+
+      return p2pManager.getConnectionPoolStats();
+    } catch (error) {
+      console.error('[P2P IPC] 获取连接池统计失败:', error);
+      return null;
+    }
+  });
+
+  console.log('[P2P IPC] ✓ All P2P IPC handlers registered successfully (21 handlers)');
 }
 
 module.exports = {
