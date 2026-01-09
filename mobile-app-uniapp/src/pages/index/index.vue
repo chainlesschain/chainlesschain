@@ -47,6 +47,37 @@
 
     <!-- 功能模块卡片 -->
     <scroll-view class="modules-scroll" scroll-y>
+      <!-- 项目管理 -->
+      <view class="module-section">
+        <view class="section-header">
+          <text class="section-icon">📁</text>
+          <text class="section-title">项目管理</text>
+          <text class="section-more" @click="goToModule('projects')">更多 ›</text>
+        </view>
+        <view class="module-grid">
+          <view class="module-card" @click="navigateTo('/pages/projects/list')">
+            <view class="card-icon">🗂️</view>
+            <text class="card-title">项目总览</text>
+            <text class="card-desc">{{ statistics.projectCount }} 个项目</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/projects/list')">
+            <view class="card-icon">📝</view>
+            <text class="card-title">待办任务</text>
+            <text class="card-desc">{{ statistics.activeTaskCount }} 个待办</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/projects/list?tab=collaborating')">
+            <view class="card-icon">🤝</view>
+            <text class="card-title">协作空间</text>
+            <text class="card-desc">{{ statistics.collaboratingCount }} 个协作</text>
+          </view>
+          <view class="module-card" @click="navigateTo('/pages/projects/templates')">
+            <view class="card-icon">📑</view>
+            <text class="card-title">项目模板</text>
+            <text class="card-desc">复用最佳实践</text>
+          </view>
+        </view>
+      </view>
+
       <!-- 知识与AI -->
       <view class="module-section">
         <view class="section-header">
@@ -185,6 +216,7 @@ import didService from '@/services/did'
 import friendService from '@/services/friends'
 import aiConversationService from '@/services/ai-conversation'
 import database from '@/services/database'
+import projectManager from '@/services/project-manager'
 
 export default {
   data() {
@@ -195,7 +227,10 @@ export default {
         knowledgeCount: 0,
         conversationCount: 0,
         friendCount: 0,
-        unreadCount: 0
+        unreadCount: 0,
+        projectCount: 0,
+        activeTaskCount: 0,
+        collaboratingCount: 0
       }
     }
   },
@@ -246,20 +281,18 @@ export default {
 
     async loadStatistics() {
       try {
-        // 加载知识库统计
-        const knowledge = await database.getAllKnowledge()
+        const [knowledge, conversations, friends] = await Promise.all([
+          database.getAllKnowledge(),
+          aiConversationService.getConversations(),
+          friendService.getFriends()
+        ])
+
         this.statistics.knowledgeCount = knowledge.length
-
-        // 加载AI对话统计
-        const conversations = await aiConversationService.getConversations()
         this.statistics.conversationCount = conversations.length
-
-        // 加载好友统计
-        const friends = await friendService.getFriends()
         this.statistics.friendCount = friends.length
-
-        // TODO: 加载未读消息数
         this.statistics.unreadCount = 0
+
+        await this.loadProjectStatistics()
       } catch (error) {
         console.error('加载统计数据失败:', error)
       }
@@ -294,6 +327,7 @@ export default {
         'knowledge': '/pages/knowledge/list/list',
         'social': '/pages/social/friends/list',
         'trade': '/pages/trade/market/market',
+        'projects': '/pages/projects/list',
         'settings': '/pages/settings/settings'
       }
 
@@ -304,6 +338,37 @@ export default {
 
     goToSync() {
       uni.navigateTo({ url: '/pages/backup/cloud-sync' })
+    },
+
+    async loadProjectStatistics() {
+      try {
+        const projects = await projectManager.getProjects()
+        this.statistics.projectCount = projects.length
+
+        const collaboratingProjects = await projectManager.getCollaboratingProjects()
+        this.statistics.collaboratingCount = collaboratingProjects.length
+
+        if (!projects.length) {
+          this.statistics.activeTaskCount = 0
+          return
+        }
+
+        const statsList = await Promise.all(
+          projects.map(project => projectManager.getProjectStatistics(project.id))
+        )
+
+        const pendingTasks = statsList.reduce((total, stats) => {
+          const tasksByStatus = stats.tasksByStatus || {}
+          return total + (tasksByStatus.todo || 0) + (tasksByStatus.in_progress || 0)
+        }, 0)
+
+        this.statistics.activeTaskCount = pendingTasks
+      } catch (error) {
+        console.error('加载项目统计失败:', error)
+        this.statistics.projectCount = 0
+        this.statistics.collaboratingCount = 0
+        this.statistics.activeTaskCount = 0
+      }
     }
   }
 }

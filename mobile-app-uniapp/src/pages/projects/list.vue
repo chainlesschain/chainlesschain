@@ -168,7 +168,13 @@ export default {
     }
   },
 
-  onLoad() {
+  onLoad(options = {}) {
+    if (options.tab) {
+      const targetTab = this.tabs.find(tab => tab.value === options.tab)
+      if (targetTab) {
+        this.currentTab = targetTab.value
+      }
+    }
     this.initDatabase()
   },
 
