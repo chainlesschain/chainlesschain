@@ -1,12 +1,7 @@
 <template>
   <a-config-provider
     :locale="currentAntdLocale"
-    :theme="{
-      token: {
-        colorPrimary: '#1890ff',
-        borderRadius: 6,
-      },
-    }"
+    :theme="themeConfig"
   >
     <a-spin v-if="loading" size="large" :tip="$t('app.initializing')" class="loading-overlay" />
     <router-view v-else />
@@ -24,6 +19,12 @@
       @complete="onEncryptionWizardComplete"
       @skip="onEncryptionWizardSkip"
     />
+
+    <!-- 通知中心 -->
+    <NotificationCenter />
+
+    <!-- 快捷键帮助面板 -->
+    <ShortcutHelpPanel v-model="showShortcutHelp" />
   </a-config-provider>
 </template>
 
@@ -34,8 +35,13 @@ import { message } from 'ant-design-vue';
 import { useAppStore } from './stores/app';
 import { ukeyAPI, llmAPI } from './utils/ipc';
 import { handleError, ErrorType, ErrorLevel } from './utils/errorHandler';
+import { useTheme } from './utils/themeManager';
+import { useShortcuts, CommonShortcuts } from './utils/shortcutManager';
+import { useNotifications } from './utils/notificationManager';
 import DatabaseEncryptionWizard from './components/DatabaseEncryptionWizard.vue';
 import GlobalSettingsWizard from './components/GlobalSettingsWizard.vue';
+import NotificationCenter from './components/common/NotificationCenter.vue';
+import ShortcutHelpPanel from './components/common/ShortcutHelpPanel.vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import zhTW from 'ant-design-vue/es/locale/zh_TW';
@@ -47,6 +53,42 @@ const loading = ref(true);
 const { locale } = useI18n();
 const showGlobalSetupWizard = ref(false);
 const showEncryptionWizard = ref(false);
+
+// 主题系统
+const { effectiveTheme, toggle: toggleTheme } = useTheme();
+
+// 主题配置
+const themeConfig = computed(() => ({
+  token: {
+    colorPrimary: effectiveTheme.value.colors?.primary || '#1890ff',
+    borderRadius: 6,
+  },
+}));
+
+// 快捷键帮助面板
+const showShortcutHelp = ref(false);
+
+// 通知系统
+const { success: notifySuccess, error: notifyError } = useNotifications();
+
+// 注册全局快捷键
+useShortcuts([
+  {
+    keys: CommonShortcuts.HELP,
+    description: '显示快捷键帮助',
+    handler: () => {
+      showShortcutHelp.value = true;
+    },
+  },
+  {
+    keys: ['ctrl', 't'],
+    description: '切换主题',
+    handler: () => {
+      toggleTheme();
+      notifySuccess('主题已切换', `当前主题: ${effectiveTheme.value.name}`);
+    },
+  },
+]);
 
 // Ant Design Vue locale mapping
 const antdLocaleMap = {
