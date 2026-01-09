@@ -146,7 +146,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, h, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   SaveOutlined,
@@ -276,21 +276,78 @@ const handleSave = async () => {
   try {
     message.loading({ content: '保存中...', key: 'save' });
 
-    // TODO: 实现保存到数据库
-    // const result = await window.electronAPI.webIDE.saveProject({
-    //   html: htmlCode.value,
-    //   css: cssCode.value,
-    //   js: jsCode.value,
-    //   name: 'Untitled',
-    //   createdAt: Date.now()
-    // });
+    // 使用 Modal 输入项目名称
+    const { Modal } = await import('ant-design-vue');
 
-    setTimeout(() => {
-      message.success({ content: '保存成功！', key: 'save', duration: 2 });
-    }, 500);
+    Modal.confirm({
+      title: '保存项目',
+      content: h('div', [
+        h('p', { style: { marginBottom: '8px' } }, '请输入项目名称:'),
+        h('input', {
+          id: 'project-name-input',
+          type: 'text',
+          placeholder: '例如: 我的网页项目',
+          style: {
+            width: '100%',
+            padding: '8px',
+            border: '1px solid #d9d9d9',
+            borderRadius: '4px',
+            fontSize: '14px'
+          },
+          onMounted: () => {
+            nextTick(() => {
+              const input = document.getElementById('project-name-input');
+              if (input) {
+                input.focus();
+              }
+            });
+          }
+        })
+      ]),
+      okText: '保存',
+      cancelText: '取消',
+      onOk: async () => {
+        const input = document.getElementById('project-name-input');
+        const projectName = input?.value?.trim() || 'Untitled';
+
+        try {
+          const result = await window.electronAPI.webIDE.saveProject({
+            name: projectName,
+            html: htmlCode.value,
+            css: cssCode.value,
+            js: jsCode.value,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          });
+
+          if (result.success) {
+            message.success({ content: `项目 "${projectName}" 保存成功！`, key: 'save', duration: 2 });
+          } else {
+            message.error({ content: `保存失败: ${result.error || '未知错误'}`, key: 'save', duration: 3 });
+            return Promise.reject();
+          }
+        } catch (error) {
+          console.error('[WebIDE] 保存失败:', error);
+
+          let errorMessage = '保存失败';
+          if (error.message) {
+            if (error.message.includes('database')) {
+              errorMessage = '数据库错误，请重试';
+            } else if (error.message.includes('permission')) {
+              errorMessage = '没有权限保存项目';
+            } else {
+              errorMessage = `保存失败: ${error.message}`;
+            }
+          }
+
+          message.error({ content: errorMessage, key: 'save', duration: 3 });
+          return Promise.reject();
+        }
+      }
+    });
   } catch (error) {
-    console.error('保存失败:', error);
-    message.error({ content: '保存失败: ' + error.message, key: 'save', duration: 3 });
+    console.error('[WebIDE] 打开保存对话框失败:', error);
+    message.error({ content: '打开保存对话框失败', key: 'save', duration: 3 });
   }
 };
 
@@ -299,19 +356,114 @@ const handleExport = async () => {
   try {
     message.loading({ content: '导出中...', key: 'export' });
 
-    // TODO: 实现导出功能
-    // const result = await window.electronAPI.webIDE.exportHTML({
-    //   html: htmlCode.value,
-    //   css: cssCode.value,
-    //   js: jsCode.value
-    // });
+    // 使用 Modal 选择导出格式
+    const { Modal } = await import('ant-design-vue');
 
-    setTimeout(() => {
-      message.success({ content: '导出成功！', key: 'export', duration: 2 });
-    }, 500);
+    Modal.confirm({
+      title: '导出项目',
+      content: h('div', [
+        h('p', { style: { marginBottom: '12px' } }, '选择导出格式:'),
+        h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, [
+          h('button', {
+            id: 'export-html-btn',
+            style: {
+              padding: '10px',
+              border: '1px solid #d9d9d9',
+              borderRadius: '4px',
+              background: '#fff',
+              cursor: 'pointer',
+              textAlign: 'left'
+            },
+            onclick: () => {
+              document.getElementById('export-format').value = 'html';
+            }
+          }, '📄 单个 HTML 文件 (包含内联 CSS 和 JS)'),
+          h('button', {
+            id: 'export-zip-btn',
+            style: {
+              padding: '10px',
+              border: '1px solid #d9d9d9',
+              borderRadius: '4px',
+              background: '#fff',
+              cursor: 'pointer',
+              textAlign: 'left'
+            },
+            onclick: () => {
+              document.getElementById('export-format').value = 'zip';
+            }
+          }, '📦 ZIP 压缩包 (分离的 HTML, CSS, JS 文件)'),
+          h('input', {
+            id: 'export-format',
+            type: 'hidden',
+            value: 'html'
+          })
+        ])
+      ]),
+      okText: '导出',
+      cancelText: '取消',
+      onOk: async () => {
+        const format = document.getElementById('export-format')?.value || 'html';
+
+        try {
+          let result;
+
+          if (format === 'zip') {
+            // 导出为 ZIP
+            result = await window.electronAPI.webIDE.exportZIP({
+              html: htmlCode.value,
+              css: cssCode.value,
+              js: jsCode.value,
+              name: 'webide-project'
+            });
+          } else {
+            // 导出为单个 HTML 文件
+            result = await window.electronAPI.webIDE.exportHTML({
+              html: htmlCode.value,
+              css: cssCode.value,
+              js: jsCode.value
+            });
+          }
+
+          if (result.success) {
+            message.success({
+              content: `导出成功！文件已保存到: ${result.path || '下载目录'}`,
+              key: 'export',
+              duration: 3
+            });
+          } else {
+            message.error({
+              content: `导出失败: ${result.error || '未知错误'}`,
+              key: 'export',
+              duration: 3
+            });
+            return Promise.reject();
+          }
+        } catch (error) {
+          console.error('[WebIDE] 导出失败:', error);
+
+          let errorMessage = '导出失败';
+          if (error.message) {
+            if (error.message.includes('permission')) {
+              errorMessage = '没有权限写入文件';
+            } else if (error.message.includes('disk')) {
+              errorMessage = '磁盘空间不足';
+            } else if (error.message.includes('canceled')) {
+              errorMessage = '用户取消了导出';
+              message.info({ content: errorMessage, key: 'export', duration: 2 });
+              return;
+            } else {
+              errorMessage = `导出失败: ${error.message}`;
+            }
+          }
+
+          message.error({ content: errorMessage, key: 'export', duration: 3 });
+          return Promise.reject();
+        }
+      }
+    });
   } catch (error) {
-    console.error('导出失败:', error);
-    message.error({ content: '导出失败: ' + error.message, key: 'export', duration: 3 });
+    console.error('[WebIDE] 打开导出对话框失败:', error);
+    message.error({ content: '打开导出对话框失败', key: 'export', duration: 3 });
   }
 };
 
