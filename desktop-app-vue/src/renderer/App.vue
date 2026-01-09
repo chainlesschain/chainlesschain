@@ -25,6 +25,9 @@
 
     <!-- 快捷键帮助面板 -->
     <ShortcutHelpPanel v-model="showShortcutHelp" />
+
+    <!-- 全局搜索 -->
+    <GlobalSearch v-model="showGlobalSearch" />
   </a-config-provider>
 </template>
 
@@ -42,6 +45,7 @@ import DatabaseEncryptionWizard from './components/DatabaseEncryptionWizard.vue'
 import GlobalSettingsWizard from './components/GlobalSettingsWizard.vue';
 import NotificationCenter from './components/common/NotificationCenter.vue';
 import ShortcutHelpPanel from './components/common/ShortcutHelpPanel.vue';
+import GlobalSearch from './components/common/GlobalSearch.vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import zhTW from 'ant-design-vue/es/locale/zh_TW';
@@ -68,6 +72,9 @@ const themeConfig = computed(() => ({
 // 快捷键帮助面板
 const showShortcutHelp = ref(false);
 
+// 全局搜索
+const showGlobalSearch = ref(false);
+
 // 通知系统
 const { success: notifySuccess, error: notifyError } = useNotifications();
 
@@ -86,6 +93,13 @@ useShortcuts([
     handler: () => {
       toggleTheme();
       notifySuccess('主题已切换', `当前主题: ${effectiveTheme.value.name}`);
+    },
+  },
+  {
+    keys: CommonShortcuts.SEARCH,
+    description: '全局搜索',
+    handler: () => {
+      showGlobalSearch.value = true;
     },
   },
 ]);
