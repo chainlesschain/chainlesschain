@@ -4,30 +4,26 @@ ChainlessChain 桌面应用（Electron + Vue3）的技术文档库。
 
 ## 📁 文档分类
 
-### 📖 [user-guides/](./user-guides/) - 用户指南和快速开始
-面向用户的使用指南、快速开始文档、功能演示
+### 📖 [user-guide/](./user-guide/) - 用户指南
+面向用户的使用指南和功能说明
 
 **包含**:
-- 快速开始指南 (QUICK_START_GUIDE.md)
-- 用户手册 (USER_MANUAL.md)
-- 功能演示 (FEATURE_DEMO.md)
-- 性能优化快速开始
-- 项目管理页面使用指南
-- 分享功能测试指南
-- 新增功能使用指南
+- P2P通信用户指南 (P2P_COMMUNICATION_USER_GUIDE.md)
+- P2P音视频功能说明 (P2P_VOICE_VIDEO_README.md)
+- P2P通话用户指南 (P2P_CALL_USER_GUIDE.md)
 
 ### 🎯 [features/](./features/) - 功能特性文档
 各功能模块的详细说明和实现报告
 
 **包含**:
-- P2P加密通信 (P2P_ENCRYPTION_*)
-- 文件导入导出 (FILE_IMPORT_EXPORT_*)
-- 多设备支持 (MULTI_DEVICE_*)
-- AI任务智能拆解系统
-- 项目分享功能
-- 国际化 (i18n)
-- 技能和工具系统
-- 同步协议设计
+- P2P增强总结 (P2P_ENHANCEMENT_SUMMARY.md)
+- P2P音视频完成总结 (P2P_VOICE_VIDEO_COMPLETION_SUMMARY.md)
+- P2P通信改进总结 (P2P_COMMUNICATION_IMPROVEMENT_SUMMARY.md)
+- PC端功能增强总结 (PC_FEATURES_ENHANCEMENT_SUMMARY.md)
+- 知识图谱总结 (KNOWLEDGE_GRAPH_SUMMARY.md)
+- 插件市场总结 (PLUGIN_MARKETPLACE_SUMMARY.md)
+- UI/UX优化总结 (UI_UX_OPTIMIZATION_SUMMARY.md)
+- PKCS11加密总结 (PKCS11_ENCRYPTION_SUMMARY.md)
 
 ### ⚡ [optimization/](./optimization/) - 性能优化文档
 性能优化方案、优化指南、性能测试报告
@@ -55,10 +51,20 @@ ChainlessChain 桌面应用（Electron + Vue3）的技术文档库。
 ### 📈 [reports/](./reports/) - 项目报告和总结
 开发进度报告、功能完成总结、阶段性报告
 
+**包含**:
+- 项目完成报告 (PROJECT_COMPLETION_REPORT.md)
+- 未来功能实现计划 (FUTURE_FEATURES_IMPLEMENTATION.md)
+
 **子目录**:
 - **[batch-expansions/](./reports/batch-expansions/)** - 批次扩展报告 (第3-12批)
 - **[phase/](./reports/phase/)** - 阶段完成报告 (Phase 1-6)
 - **[completion/](./reports/completion/)** - 功能完成总结和集成指南
+
+### 📦 [releases/](./releases/) - 版本发布说明
+各版本的发布说明和更新日志
+
+**包含**:
+- v0.21.0 发布说明 (RELEASE_NOTES_v0.21.0.md)
 
 ### 🐛 [bugfixes/](./bugfixes/) - Bug修复文档
 Bug修复记录、边缘情况处理、问题解决方案
@@ -69,19 +75,20 @@ Bug修复记录、边缘情况处理、问题解决方案
 - 边缘情况处理
 - Git日志输出控制
 
-### 📖 [guides/](./guides/) - 开发指南
-开发者指南、配置说明、数据库文档
+### 📖 [guides/](./guides/) - 快速开始指南
+开发者和用户的快速开始文档
 
 **包含**:
-- 快速开始指南
-- 配置指南
-- 数据库文档
-- Web IDE文档
+- 快速开始指南 (QUICK_START_GUIDE.md)
+- 新功能快速开始 (QUICK_START_NEW_FEATURES.md)
+- PKCS11快速开始 (PKCS11_QUICKSTART.md)
 
 ### 🔨 [implementation/](./implementation/) - 功能实现文档
 各功能模块的详细实现文档和技术方案
 
 **包含**:
+- P2P音视频实现 (P2P_VOICE_VIDEO_IMPLEMENTATION.md)
+- PKCS11加密实现 (PKCS11_ENCRYPTION_IMPLEMENTATION.md)
 - DID身份系统实现
 - P2P网络实现
 - VC可验证凭证
@@ -94,6 +101,8 @@ Bug修复记录、边缘情况处理、问题解决方案
 测试计划、测试报告、自动化测试指南
 
 **包含**:
+- 测试和部署指南 (TESTING_AND_DEPLOYMENT_GUIDE.md)
+- 验证和测试指南 (VERIFICATION_AND_TESTING_GUIDE.md)
 - 测试计划
 - 测试报告
 - 自动化测试
@@ -137,18 +146,24 @@ Bug修复记录、边缘情况处理、问题解决方案
 
 ## 📈 统计信息
 
-- **总文档数**: 130+ 个技术文档
-- **主要分类**: 13 个目录
+- **总文档数**: 140+ 个技术文档
+- **主要分类**: 16 个目录
 - **语言**: 中英文双语
-- **新增分类**: user-guides, features, optimization, project-management, bugfixes
+- **最新版本**: v0.21.0
 
 ## 🔍 快速查找
 
 ### 新手入门？
-→ 查看 [user-guides/QUICK_START_GUIDE.md](./user-guides/QUICK_START_GUIDE.md)
+→ 查看 [guides/QUICK_START_GUIDE.md](./guides/QUICK_START_GUIDE.md)
+
+### 用户使用指南？
+→ 查看 [user-guide/](./user-guide/) 目录
 
 ### 查看功能特性？
 → 查看 [features/](./features/) 目录
+
+### 查看版本更新？
+→ 查看 [releases/](./releases/) 目录
 
 ### 性能优化？
 → 查看 [optimization/](./optimization/) 目录
@@ -168,6 +183,9 @@ Bug修复记录、边缘情况处理、问题解决方案
 ### 部署应用？
 → 查看 [deployment/](./deployment/) 目录
 
+### 测试指南？
+→ 查看 [testing/](./testing/) 目录
+
 ### Bug修复记录？
 → 查看 [bugfixes/](./bugfixes/) 目录
 
@@ -181,4 +199,4 @@ Bug修复记录、边缘情况处理、问题解决方案
 
 ---
 
-**最后更新**: 2026-01-09
+**最后更新**: 2026-01-11

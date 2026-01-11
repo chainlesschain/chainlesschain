@@ -4,7 +4,15 @@
  */
 const path = require('path');
 const fs = require('fs-extra');
-const { BrowserWindow } = require('electron');
+
+// Lazy load BrowserWindow to support test environments
+let BrowserWindow;
+try {
+  BrowserWindow = require('electron').BrowserWindow;
+} catch (e) {
+  // In test environment, BrowserWindow may not be available
+  console.warn('[PDFEngine] BrowserWindow not available, PDF generation will be disabled');
+}
 
 class PDFEngine {
   constructor() {
@@ -223,6 +231,11 @@ class PDFEngine {
    * HTML转PDF（使用Electron的printToPDF）
    */
   async htmlToPDF(html, outputPath, options = {}) {
+    // Check if BrowserWindow is available
+    if (!BrowserWindow) {
+      throw new Error('BrowserWindow is not available. PDF generation requires Electron runtime.');
+    }
+
     let win = null;
 
     try {
