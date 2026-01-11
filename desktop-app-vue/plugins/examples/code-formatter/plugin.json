@@ -1,0 +1,155 @@
+{
+  "id": "code-formatter",
+  "name": "代码格式化插件",
+  "version": "1.0.0",
+  "author": "ChainlessChain Team",
+  "description": "智能代码格式化工具，支持多种编程语言的代码美化和规范化",
+  "category": "productivity",
+  "main": "index.js",
+  "homepage": "https://github.com/chainlesschain/plugin-code-formatter",
+  "license": "MIT",
+  "keywords": ["code", "formatter", "beautify", "lint"],
+  "chainlesschain": {
+    "apiVersion": "1.0",
+    "minVersion": "0.16.0",
+    "permissions": [
+      "file:read",
+      "file:write"
+    ],
+    "skills": [
+      {
+        "id": "skill_code_formatting",
+        "name": "代码格式化",
+        "display_name": "Code Formatting",
+        "description": "自动格式化和美化代码，支持JavaScript、Python、Java等多种语言",
+        "category": "development",
+        "icon": "code",
+        "tags": ["代码", "格式化", "美化", "规范"],
+        "config": {
+          "indentSize": 2,
+          "useTabs": false,
+          "semicolons": true,
+          "singleQuote": true,
+          "trailingComma": "es5"
+        },
+        "tools": ["format_code", "detect_language", "validate_syntax"]
+      }
+    ],
+    "tools": [
+      {
+        "id": "tool_format_code",
+        "name": "format_code",
+        "display_name": "格式化代码",
+        "description": "自动格式化代码，使其符合规范",
+        "category": "development",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "要格式化的代码"
+            },
+            "language": {
+              "type": "string",
+              "description": "编程语言（javascript, python, java, etc.）",
+              "enum": ["javascript", "typescript", "python", "java", "cpp", "go", "rust", "html", "css", "json"]
+            },
+            "options": {
+              "type": "object",
+              "description": "格式化选项",
+              "properties": {
+                "indentSize": { "type": "number", "default": 2 },
+                "useTabs": { "type": "boolean", "default": false },
+                "semicolons": { "type": "boolean", "default": true },
+                "singleQuote": { "type": "boolean", "default": true }
+              }
+            }
+          },
+          "required": ["code", "language"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "formattedCode": { "type": "string" },
+            "language": { "type": "string" },
+            "changes": { "type": "number" }
+          }
+        },
+        "required_permissions": [],
+        "risk_level": 1
+      },
+      {
+        "id": "tool_detect_language",
+        "name": "detect_language",
+        "display_name": "检测编程语言",
+        "description": "自动检测代码的编程语言类型",
+        "category": "development",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "要检测的代码"
+            }
+          },
+          "required": ["code"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "language": { "type": "string" },
+            "confidence": { "type": "number" }
+          }
+        },
+        "required_permissions": [],
+        "risk_level": 1
+      },
+      {
+        "id": "tool_validate_syntax",
+        "name": "validate_syntax",
+        "display_name": "验证语法",
+        "description": "检查代码语法是否正确",
+        "category": "development",
+        "tool_type": "function",
+        "parameters_schema": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "要验证的代码"
+            },
+            "language": {
+              "type": "string",
+              "description": "编程语言"
+            }
+          },
+          "required": ["code", "language"]
+        },
+        "return_schema": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "valid": { "type": "boolean" },
+            "errors": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "line": { "type": "number" },
+                  "column": { "type": "number" },
+                  "message": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "required_permissions": [],
+        "risk_level": 1
+      }
+    ]
+  }
+}
