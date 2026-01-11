@@ -163,7 +163,138 @@ function registerGraphIPC(context) {
     }
   });
 
-  console.log('[Graph IPC] 已注册 11 个知识图谱 IPC 处理器');
+  // 12. 计算节点中心性
+  ipcMain.handle('graph:calculate-centrality', async (_event, nodes, edges, type) => {
+    try {
+      const analytics = require('./graph-analytics');
+
+      switch (type) {
+        case 'degree':
+          return Array.from(analytics.calculateDegreeCentrality(nodes, edges).entries());
+        case 'closeness':
+          return Array.from(analytics.calculateClosenessCentrality(nodes, edges).entries());
+        case 'betweenness':
+          return Array.from(analytics.calculateBetweennessCentrality(nodes, edges).entries());
+        case 'pagerank':
+          return Array.from(analytics.calculatePageRank(nodes, edges).entries());
+        default:
+          throw new Error(`未知的中心性类型: ${type}`);
+      }
+    } catch (error) {
+      console.error('[Graph IPC] 计算中心性失败:', error);
+      return [];
+    }
+  });
+
+  // 13. 社区检测
+  ipcMain.handle('graph:detect-communities', async (_event, nodes, edges) => {
+    try {
+      const analytics = require('./graph-analytics');
+      const communities = analytics.detectCommunities(nodes, edges);
+      return Array.from(communities.entries());
+    } catch (error) {
+      console.error('[Graph IPC] 社区检测失败:', error);
+      return [];
+    }
+  });
+
+  // 14. 节点聚类
+  ipcMain.handle('graph:cluster-nodes', async (_event, nodes, edges, k) => {
+    try {
+      const analytics = require('./graph-analytics');
+      const clusters = analytics.clusterNodes(nodes, edges, k);
+      return Array.from(clusters.entries());
+    } catch (error) {
+      console.error('[Graph IPC] 节点聚类失败:', error);
+      return [];
+    }
+  });
+
+  // 15. 查找关键节点
+  ipcMain.handle('graph:find-key-nodes', async (_event, nodes, edges, topN) => {
+    try {
+      const analytics = require('./graph-analytics');
+      return analytics.findKeyNodes(nodes, edges, topN);
+    } catch (error) {
+      console.error('[Graph IPC] 查找关键节点失败:', error);
+      return [];
+    }
+  });
+
+  // 16. 分析图谱统计
+  ipcMain.handle('graph:analyze-stats', async (_event, nodes, edges) => {
+    try {
+      const analytics = require('./graph-analytics');
+      return analytics.analyzeGraphStats(nodes, edges);
+    } catch (error) {
+      console.error('[Graph IPC] 分析图谱统计失败:', error);
+      return null;
+    }
+  });
+
+  // 17. 导出图谱
+  ipcMain.handle('graph:export-graph', async (_event, nodes, edges, format) => {
+    try {
+      const { exportGraph } = require('./graph-export');
+      const result = await exportGraph(nodes, edges, format);
+      return result;
+    } catch (error) {
+      console.error('[Graph IPC] 导出图谱失败:', error);
+      throw error;
+    }
+  });
+
+  // 18. 提取实体
+  ipcMain.handle('graph:extract-entities', async (_event, text, useLLM) => {
+    try {
+      const entityExtraction = require('./entity-extraction');
+
+      if (useLLM && llmManager) {
+        return await entityExtraction.extractEntitiesWithLLM(text, llmManager);
+      } else {
+        return { entities: entityExtraction.extractEntities(text), relations: [] };
+      }
+    } catch (error) {
+      console.error('[Graph IPC] 提取实体失败:', error);
+      return { entities: [], relations: [] };
+    }
+  });
+
+  // 19. 提取关键词
+  ipcMain.handle('graph:extract-keywords', async (_event, text, topN) => {
+    try {
+      const entityExtraction = require('./entity-extraction');
+      return entityExtraction.extractKeywords(text, topN);
+    } catch (error) {
+      console.error('[Graph IPC] 提取关键词失败:', error);
+      return [];
+    }
+  });
+
+  // 20. 批量处理笔记提取实体
+  ipcMain.handle('graph:process-notes-entities', async (_event, notes, useLLM) => {
+    try {
+      const entityExtraction = require('./entity-extraction');
+      const manager = useLLM ? llmManager : null;
+      return await entityExtraction.processNotesForEntities(notes, manager);
+    } catch (error) {
+      console.error('[Graph IPC] 批量处理笔记失败:', error);
+      return [];
+    }
+  });
+
+  // 21. 构建实体关系图
+  ipcMain.handle('graph:build-entity-graph', async (_event, processedNotes) => {
+    try {
+      const entityExtraction = require('./entity-extraction');
+      return entityExtraction.buildEntityGraph(processedNotes);
+    } catch (error) {
+      console.error('[Graph IPC] 构建实体关系图失败:', error);
+      return { nodes: [], edges: [] };
+    }
+  });
+
+  console.log('[Graph IPC] 已注册 21 个知识图谱 IPC 处理器');
 }
 
 module.exports = {
