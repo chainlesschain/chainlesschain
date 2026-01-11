@@ -80,6 +80,26 @@
               <a-tooltip :title="hasAnyEncryptionSession(item.peerId) ? '已建立加密会话' : '未建立加密会话'">
                 <a-badge :status="hasAnyEncryptionSession(item.peerId) ? 'success' : 'default'" />
               </a-tooltip>
+              <a-tooltip title="语音通话">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="handleVoiceCall(item)"
+                  :disabled="!hasAnyEncryptionSession(item.peerId)"
+                >
+                  <template #icon><phone-outlined /></template>
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="视频通话">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="handleVideoCall(item)"
+                  :disabled="!hasAnyEncryptionSession(item.peerId)"
+                >
+                  <template #icon><video-camera-outlined /></template>
+                </a-button>
+              </a-tooltip>
               <a-button
                 type="link"
                 size="small"
@@ -401,6 +421,8 @@ import {
   MobileOutlined,
   LaptopOutlined,
   SyncOutlined,
+  PhoneOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons-vue';
 
 // 状态
@@ -735,6 +757,54 @@ const handleOpenChat = async (peer) => {
 
   // 加载该对话的历史消息
   loadChatHistory(peer.peerId, targetDeviceId);
+};
+
+// 语音通话
+const handleVoiceCall = async (peer) => {
+  try {
+    const peerId = peer.peerId;
+    const nickname = shortenPeerId(peerId);
+
+    antMessage.loading(`正在呼叫 ${nickname}...`, 0);
+
+    const result = await window.electronAPI.p2p.startVoiceCall(peerId);
+
+    antMessage.destroy();
+
+    if (result.success) {
+      antMessage.success(`语音通话已建立`);
+    } else {
+      antMessage.error(`语音通话失败: ${result.error || '未知错误'}`);
+    }
+  } catch (error) {
+    antMessage.destroy();
+    console.error('发起语音通话失败:', error);
+    antMessage.error('发起语音通话失败');
+  }
+};
+
+// 视频通话
+const handleVideoCall = async (peer) => {
+  try {
+    const peerId = peer.peerId;
+    const nickname = shortenPeerId(peerId);
+
+    antMessage.loading(`正在呼叫 ${nickname}...`, 0);
+
+    const result = await window.electronAPI.p2p.startVideoCall(peerId);
+
+    antMessage.destroy();
+
+    if (result.success) {
+      antMessage.success(`视频通话已建立`);
+    } else {
+      antMessage.error(`视频通话失败: ${result.error || '未知错误'}`);
+    }
+  } catch (error) {
+    antMessage.destroy();
+    console.error('发起视频通话失败:', error);
+    antMessage.error('发起视频通话失败');
+  }
 };
 
 // 与特定设备聊天
