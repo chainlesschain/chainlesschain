@@ -80,6 +80,9 @@ const SkillExecutor = require('./skill-tool-system/skill-executor');
 const AISkillScheduler = require('./skill-tool-system/ai-skill-scheduler');
 const ChatSkillBridge = require('./skill-tool-system/chat-skill-bridge');
 
+// Speech/Voice Input System
+const { registerSpeechIPC } = require('./speech/speech-ipc');
+
 // Database Encryption IPC
 const DatabaseEncryptionIPC = require('./database-encryption-ipc');
 
@@ -1165,6 +1168,16 @@ class ChainlessChainApp {
         console.log('[Main] 火山引擎工具调用IPC handlers已注册');
       } catch (error) {
         console.warn('[Main] 火山引擎IPC注册失败（可能API Key未配置）:', error.message);
+      }
+
+      // 注册语音/语音输入IPC handlers
+      try {
+        registerSpeechIPC({
+          initializeSpeechManager: this.initializeSpeechManager.bind(this)
+        });
+        console.log('[Main] 语音输入IPC handlers已注册 (34 handlers)');
+      } catch (error) {
+        console.error('[Main] 语音输入IPC注册失败:', error);
       }
 
       console.log('[Main] 技能和工具管理系统初始化完成（含桥接器）');
