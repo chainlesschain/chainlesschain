@@ -167,6 +167,10 @@ function unregisterModule(moduleName) {
  */
 function resetAll() {
   console.log('[IPC Guard] Resetting all registrations...');
+  console.log('[IPC Guard] Current state before reset:', {
+    channels: registeredChannels.size,
+    modules: Array.from(registeredModules)
+  });
 
   // 移除我们注册的handlers（不是所有监听器）
   try {
@@ -185,7 +189,7 @@ function resetAll() {
   registeredChannels.clear();
   registeredModules.clear();
 
-  console.log('[IPC Guard] All registrations reset');
+  console.log('[IPC Guard] All registrations reset - channels and modules cleared');
 }
 
 /**

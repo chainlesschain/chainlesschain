@@ -18,9 +18,17 @@ const { getStreamControllerManager } = require('./stream-controller-manager');
  * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
  */
 function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: injectedIpcMain }) {
+  console.log('[Conversation IPC] registerConversationIPC called with:', {
+    hasDatabase: !!database,
+    hasLLMManager: !!llmManager,
+    hasMainWindow: !!mainWindow,
+    isAlreadyRegistered: ipcGuard.isModuleRegistered('conversation-ipc')
+  });
+
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('conversation-ipc')) {
-    console.log('[Conversation IPC] Handlers already registered, skipping...');
+    console.log('[Conversation IPC] ⚠️  Handlers already registered, skipping...');
+    console.log('[Conversation IPC] If you see this message but handlers are missing, there may be a registration state mismatch');
     return;
   }
 
@@ -876,10 +884,10 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('conversation-ipc');
 
-  console.log('[Conversation IPC] Registered 16 conversation handlers');
+  console.log('[Conversation IPC] ✅ Successfully registered 16 conversation handlers');
   console.log('[Conversation IPC] - conversation:get-by-project');
   console.log('[Conversation IPC] - conversation:get-by-id');
-  console.log('[Conversation IPC] - conversation:create');
+  console.log('[Conversation IPC] - conversation:create ✓');
   console.log('[Conversation IPC] - conversation:update');
   console.log('[Conversation IPC] - conversation:delete');
   console.log('[Conversation IPC] - conversation:create-message');
@@ -893,6 +901,15 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
   console.log('[Conversation IPC] - conversation:stream-list');
   console.log('[Conversation IPC] - conversation:stream-cleanup');
   console.log('[Conversation IPC] - conversation:stream-manager-stats');
+
+  // Verify handler is actually registered
+  try {
+    const { ipcMain: electronIpcMain } = require('electron');
+    console.log('[Conversation IPC] Verification: conversation:create handler exists:',
+      typeof electronIpcMain._events !== 'undefined');
+  } catch (err) {
+    console.warn('[Conversation IPC] Could not verify handler registration:', err.message);
+  }
 }
 
 module.exports = { registerConversationIPC };
