@@ -515,6 +515,14 @@ export const useSocialStore = defineStore('social', {
         this.notifications = notifications
         this.unreadNotifications = notifications.filter((n) => n.is_read === 0).length
       } catch (error) {
+        // 如果是用户中断请求（页面刷新、导航等），静默处理
+        if (error.message && error.message.includes('interrupted')) {
+          console.log('[Social Store] 通知加载被中断（用户操作）')
+          this.notifications = []
+          this.unreadNotifications = 0
+          return
+        }
+
         console.error('加载通知失败:', error)
 
         // 如果是"No handler registered"错误，说明后端还未初始化完成
