@@ -351,8 +351,13 @@ class AssetManager extends EventEmitter {
    * @param {string} toDid - 接收者 DID
    * @param {number} amount - 数量
    * @param {string} memo - 备注
+   * @param {Object} onChainOptions - 链上转账选项（可选）
+   * @param {boolean} onChainOptions.onChain - 是否执行链上转账
+   * @param {string} onChainOptions.toAddress - 接收者区块链地址
+   * @param {string} onChainOptions.walletId - 钱包 ID
+   * @param {string} onChainOptions.password - 钱包密码
    */
-  async transferAsset(assetId, toDid, amount, memo = '') {
+  async transferAsset(assetId, toDid, amount, memo = '', onChainOptions = {}) {
     try {
       const currentDid = this.didManager?.getCurrentIdentity()?.did;
 
@@ -386,7 +391,66 @@ class AssetManager extends EventEmitter {
 
       const now = Date.now();
       const transferId = uuidv4();
+      let blockchainTxHash = null;
 
+      // 如果需要执行链上转账
+      if (onChainOptions.onChain && this.blockchainAdapter) {
+        try {
+          const blockchainAsset = await this._getBlockchainAsset(assetId);
+
+          if (!blockchainAsset) {
+            throw new Error('该资产未部署到区块链，无法执行链上转账');
+          }
+
+          if (!onChainOptions.toAddress) {
+            throw new Error('链上转账需要提供接收者区块链地址');
+          }
+
+          if (!onChainOptions.walletId || !onChainOptions.password) {
+            throw new Error('链上转账需要提供钱包 ID 和密码');
+          }
+
+          console.log('[AssetManager] 执行链上转账:', {
+            contractAddress: blockchainAsset.contract_address,
+            chainId: blockchainAsset.chain_id,
+            to: onChainOptions.toAddress,
+            amount
+          });
+
+          // 切换到资产所在的链
+          await this.blockchainAdapter.switchChain(blockchainAsset.chain_id);
+
+          // 执行链上转账
+          if (blockchainAsset.token_type === 'ERC20') {
+            // ERC-20 代币转账
+            blockchainTxHash = await this.blockchainAdapter.transferToken(
+              onChainOptions.walletId,
+              blockchainAsset.contract_address,
+              onChainOptions.toAddress,
+              amount.toString(),
+              onChainOptions.password
+            );
+          } else if (blockchainAsset.token_type === 'ERC721') {
+            // ERC-721 NFT 转账（需要实现）
+            throw new Error('NFT 链上转账功能待实现');
+          } else {
+            throw new Error(`不支持的代币类型: ${blockchainAsset.token_type}`);
+          }
+
+          console.log('[AssetManager] 链上转账成功:', blockchainTxHash);
+          this.emit('asset:on-chain-transferred', {
+            assetId,
+            txHash: blockchainTxHash,
+            chainId: blockchainAsset.chain_id
+          });
+        } catch (error) {
+          console.error('[AssetManager] 链上转账失败:', error);
+          // 链上转账失败，抛出错误，不执行本地转账
+          throw new Error(`链上转账失败: ${error.message}`);
+        }
+      }
+
+      // 执行本地转账（记录）
       // 扣除发送者余额
       db.prepare(`
         UPDATE asset_holdings
@@ -403,12 +467,22 @@ class AssetManager extends EventEmitter {
           updated_at = ?
       `).run(assetId, toDid, amount, now, now, amount, now);
 
-      // 记录转账
+      // 记录转账（包含链上交易哈希）
       db.prepare(`
         INSERT INTO asset_transfers
-        (id, asset_id, from_did, to_did, amount, transaction_type, memo, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(transferId, assetId, currentDid, toDid, amount, TransactionType.TRANSFER, memo, now);
+        (id, asset_id, from_did, to_did, amount, transaction_type, transaction_id, memo, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        transferId,
+        assetId,
+        currentDid,
+        toDid,
+        amount,
+        TransactionType.TRANSFER,
+        blockchainTxHash,
+        memo,
+        now
+      );
 
       console.log('[AssetManager] 已转账资产:', assetId, currentDid, '->', toDid, amount);
 
@@ -422,6 +496,7 @@ class AssetManager extends EventEmitter {
             fromDid: currentDid,
             amount,
             memo,
+            blockchainTxHash,
             timestamp: now,
           }));
         } catch (error) {
@@ -429,9 +504,19 @@ class AssetManager extends EventEmitter {
         }
       }
 
-      this.emit('asset:transferred', { assetId, fromDid: currentDid, toDid, amount });
+      this.emit('asset:transferred', {
+        assetId,
+        fromDid: currentDid,
+        toDid,
+        amount,
+        blockchainTxHash
+      });
 
-      return { success: true, transferId };
+      return {
+        success: true,
+        transferId,
+        blockchainTxHash
+      };
     } catch (error) {
       console.error('[AssetManager] 转账失败:', error);
       throw error;

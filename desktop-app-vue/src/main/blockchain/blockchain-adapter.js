@@ -15,6 +15,9 @@ const { getNetworkConfig, getRpcUrl } = require('./blockchain-config');
 const {
   getChainlessTokenArtifact,
   getChainlessNFTArtifact,
+  getEscrowContractArtifact,
+  getSubscriptionContractArtifact,
+  getBountyContractArtifact,
   getERC20ABI,
   getERC721ABI,
 } = require('./contract-artifacts');
@@ -245,6 +248,123 @@ class BlockchainAdapter extends EventEmitter {
     return {
       address,
       txHash,
+    };
+  }
+
+  /**
+   * 部署托管合约 (EscrowContract)
+   * @param {string} walletId - 钱包ID
+   * @param {string} password - 钱包密码
+   * @returns {Promise<{address: string, txHash: string, abi: Array}>}
+   */
+  async deployEscrowContract(walletId, password) {
+    console.log('[BlockchainAdapter] 部署托管合约 (EscrowContract)');
+
+    // 获取钱包
+    const wallet = await this.walletManager.unlockWallet(walletId, password);
+    const provider = this.getProvider();
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
+
+    // 加载合约 artifact
+    const { abi, bytecode } = getEscrowContractArtifact();
+
+    // 创建合约工厂
+    const factory = new ethers.ContractFactory(abi, bytecode, signer);
+
+    // 部署合约
+    console.log('[BlockchainAdapter] 开始部署托管合约...');
+    const contract = await factory.deploy();
+
+    // 等待部署完成
+    await contract.waitForDeployment();
+
+    const address = await contract.getAddress();
+    const txHash = contract.deploymentTransaction().hash;
+
+    console.log(`[BlockchainAdapter] 托管合约部署成功: ${address}`);
+
+    return {
+      address,
+      txHash,
+      abi,
+    };
+  }
+
+  /**
+   * 部署订阅合约 (SubscriptionContract)
+   * @param {string} walletId - 钱包ID
+   * @param {string} password - 钱包密码
+   * @returns {Promise<{address: string, txHash: string, abi: Array}>}
+   */
+  async deploySubscriptionContract(walletId, password) {
+    console.log('[BlockchainAdapter] 部署订阅合约 (SubscriptionContract)');
+
+    // 获取钱包
+    const wallet = await this.walletManager.unlockWallet(walletId, password);
+    const provider = this.getProvider();
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
+
+    // 加载合约 artifact
+    const { abi, bytecode } = getSubscriptionContractArtifact();
+
+    // 创建合约工厂
+    const factory = new ethers.ContractFactory(abi, bytecode, signer);
+
+    // 部署合约
+    console.log('[BlockchainAdapter] 开始部署订阅合约...');
+    const contract = await factory.deploy();
+
+    // 等待部署完成
+    await contract.waitForDeployment();
+
+    const address = await contract.getAddress();
+    const txHash = contract.deploymentTransaction().hash;
+
+    console.log(`[BlockchainAdapter] 订阅合约部署成功: ${address}`);
+
+    return {
+      address,
+      txHash,
+      abi,
+    };
+  }
+
+  /**
+   * 部署悬赏合约 (BountyContract)
+   * @param {string} walletId - 钱包ID
+   * @param {string} password - 钱包密码
+   * @returns {Promise<{address: string, txHash: string, abi: Array}>}
+   */
+  async deployBountyContract(walletId, password) {
+    console.log('[BlockchainAdapter] 部署悬赏合约 (BountyContract)');
+
+    // 获取钱包
+    const wallet = await this.walletManager.unlockWallet(walletId, password);
+    const provider = this.getProvider();
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
+
+    // 加载合约 artifact
+    const { abi, bytecode } = getBountyContractArtifact();
+
+    // 创建合约工厂
+    const factory = new ethers.ContractFactory(abi, bytecode, signer);
+
+    // 部署合约
+    console.log('[BlockchainAdapter] 开始部署悬赏合约...');
+    const contract = await factory.deploy();
+
+    // 等待部署完成
+    await contract.waitForDeployment();
+
+    const address = await contract.getAddress();
+    const txHash = contract.deploymentTransaction().hash;
+
+    console.log(`[BlockchainAdapter] 悬赏合约部署成功: ${address}`);
+
+    return {
+      address,
+      txHash,
+      abi,
     };
   }
 
