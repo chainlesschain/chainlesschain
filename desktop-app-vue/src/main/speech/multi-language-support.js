@@ -165,6 +165,209 @@ const SUPPORTED_LANGUAGES = {
     webSpeechCode: 'vi-VN',
     commonPhrases: ['xin chào', 'cảm ơn', 'tạm biệt', 'gì', 'như thế nào'],
     confidence: 0.8
+  },
+
+  // 印尼语
+  'id-ID': {
+    name: 'Indonesian',
+    nativeName: 'Bahasa Indonesia',
+    whisperCode: 'id',
+    webSpeechCode: 'id-ID',
+    commonPhrases: ['halo', 'terima kasih', 'selamat tinggal', 'apa', 'bagaimana'],
+    confidence: 0.85
+  },
+
+  // 马来语
+  'ms-MY': {
+    name: 'Malay',
+    nativeName: 'Bahasa Melayu',
+    whisperCode: 'ms',
+    webSpeechCode: 'ms-MY',
+    commonPhrases: ['hello', 'terima kasih', 'selamat tinggal', 'apa', 'bagaimana'],
+    confidence: 0.85
+  },
+
+  // 土耳其语
+  'tr-TR': {
+    name: 'Turkish',
+    nativeName: 'Türkçe',
+    whisperCode: 'tr',
+    webSpeechCode: 'tr-TR',
+    commonPhrases: ['merhaba', 'teşekkür ederim', 'güle güle', 'ne', 'nasıl'],
+    confidence: 0.85
+  },
+
+  // 波兰语
+  'pl-PL': {
+    name: 'Polish',
+    nativeName: 'Polski',
+    whisperCode: 'pl',
+    webSpeechCode: 'pl-PL',
+    commonPhrases: ['cześć', 'dziękuję', 'do widzenia', 'co', 'jak'],
+    confidence: 0.85
+  },
+
+  // 荷兰语
+  'nl-NL': {
+    name: 'Dutch',
+    nativeName: 'Nederlands',
+    whisperCode: 'nl',
+    webSpeechCode: 'nl-NL',
+    commonPhrases: ['hallo', 'dank je', 'tot ziens', 'wat', 'hoe'],
+    confidence: 0.85
+  },
+
+  // 瑞典语
+  'sv-SE': {
+    name: 'Swedish',
+    nativeName: 'Svenska',
+    whisperCode: 'sv',
+    webSpeechCode: 'sv-SE',
+    commonPhrases: ['hej', 'tack', 'hej då', 'vad', 'hur'],
+    confidence: 0.85
+  },
+
+  // 挪威语
+  'no-NO': {
+    name: 'Norwegian',
+    nativeName: 'Norsk',
+    whisperCode: 'no',
+    webSpeechCode: 'no-NO',
+    commonPhrases: ['hei', 'takk', 'ha det', 'hva', 'hvordan'],
+    confidence: 0.85
+  },
+
+  // 丹麦语
+  'da-DK': {
+    name: 'Danish',
+    nativeName: 'Dansk',
+    whisperCode: 'da',
+    webSpeechCode: 'da-DK',
+    commonPhrases: ['hej', 'tak', 'farvel', 'hvad', 'hvordan'],
+    confidence: 0.85
+  },
+
+  // 芬兰语
+  'fi-FI': {
+    name: 'Finnish',
+    nativeName: 'Suomi',
+    whisperCode: 'fi',
+    webSpeechCode: 'fi-FI',
+    commonPhrases: ['hei', 'kiitos', 'näkemiin', 'mitä', 'miten'],
+    confidence: 0.85
+  },
+
+  // 希腊语
+  'el-GR': {
+    name: 'Greek',
+    nativeName: 'Ελληνικά',
+    whisperCode: 'el',
+    webSpeechCode: 'el-GR',
+    commonPhrases: ['γεια', 'ευχαριστώ', 'αντίο', 'τι', 'πώς'],
+    confidence: 0.85
+  },
+
+  // 捷克语
+  'cs-CZ': {
+    name: 'Czech',
+    nativeName: 'Čeština',
+    whisperCode: 'cs',
+    webSpeechCode: 'cs-CZ',
+    commonPhrases: ['ahoj', 'děkuji', 'sbohem', 'co', 'jak'],
+    confidence: 0.85
+  },
+
+  // 匈牙利语
+  'hu-HU': {
+    name: 'Hungarian',
+    nativeName: 'Magyar',
+    whisperCode: 'hu',
+    webSpeechCode: 'hu-HU',
+    commonPhrases: ['szia', 'köszönöm', 'viszlát', 'mi', 'hogyan'],
+    confidence: 0.85
+  },
+
+  // 罗马尼亚语
+  'ro-RO': {
+    name: 'Romanian',
+    nativeName: 'Română',
+    whisperCode: 'ro',
+    webSpeechCode: 'ro-RO',
+    commonPhrases: ['salut', 'mulțumesc', 'la revedere', 'ce', 'cum'],
+    confidence: 0.85
+  },
+
+  // 乌克兰语
+  'uk-UA': {
+    name: 'Ukrainian',
+    nativeName: 'Українська',
+    whisperCode: 'uk',
+    webSpeechCode: 'uk-UA',
+    commonPhrases: ['привіт', 'дякую', 'до побачення', 'що', 'як'],
+    confidence: 0.85
+  },
+
+  // 希伯来语
+  'he-IL': {
+    name: 'Hebrew',
+    nativeName: 'עברית',
+    whisperCode: 'he',
+    webSpeechCode: 'he-IL',
+    commonPhrases: ['שלום', 'תודה', 'להתראות', 'מה', 'איך'],
+    confidence: 0.8,
+    rtl: true // 从右到左书写
+  },
+
+  // 波斯语
+  'fa-IR': {
+    name: 'Persian',
+    nativeName: 'فارسی',
+    whisperCode: 'fa',
+    webSpeechCode: 'fa-IR',
+    commonPhrases: ['سلام', 'متشکرم', 'خداحافظ', 'چه', 'چگونه'],
+    confidence: 0.8,
+    rtl: true // 从右到左书写
+  },
+
+  // 孟加拉语
+  'bn-BD': {
+    name: 'Bengali',
+    nativeName: 'বাংলা',
+    whisperCode: 'bn',
+    webSpeechCode: 'bn-BD',
+    commonPhrases: ['হ্যালো', 'ধন্যবাদ', 'বিদায়', 'কি', 'কিভাবে'],
+    confidence: 0.8
+  },
+
+  // 泰米尔语
+  'ta-IN': {
+    name: 'Tamil',
+    nativeName: 'தமிழ்',
+    whisperCode: 'ta',
+    webSpeechCode: 'ta-IN',
+    commonPhrases: ['வணக்கம்', 'நன்றி', 'பிரியாவிடை', 'என்ன', 'எப்படி'],
+    confidence: 0.8
+  },
+
+  // 泰卢固语
+  'te-IN': {
+    name: 'Telugu',
+    nativeName: 'తెలుగు',
+    whisperCode: 'te',
+    webSpeechCode: 'te-IN',
+    commonPhrases: ['హలో', 'ధన్యవాదాలు', 'వీడ్కోలు', 'ఏమిటి', 'ఎలా'],
+    confidence: 0.8
+  },
+
+  // 乌尔都语
+  'ur-PK': {
+    name: 'Urdu',
+    nativeName: 'اردو',
+    whisperCode: 'ur',
+    webSpeechCode: 'ur-PK',
+    commonPhrases: ['ہیلو', 'شکریہ', 'الوداع', 'کیا', 'کیسے'],
+    confidence: 0.8,
+    rtl: true // 从右到左书写
   }
 };
 
@@ -375,10 +578,46 @@ class MultiLanguageSupport extends EventEmitter {
       return thaiChars ? Math.min(thaiChars.length / text.length, 1.0) : 0;
     }
 
-    // 西里尔字符检测（俄语）
-    if (code === 'ru-RU') {
+    // 西里尔字符检测（俄语、乌克兰语）
+    if (code === 'ru-RU' || code === 'uk-UA') {
       const cyrillicChars = text.match(/[\u0400-\u04ff]/g);
       return cyrillicChars ? Math.min(cyrillicChars.length / text.length, 1.0) : 0;
+    }
+
+    // 希伯来字符检测
+    if (code === 'he-IL') {
+      const hebrewChars = text.match(/[\u0590-\u05ff]/g);
+      return hebrewChars ? Math.min(hebrewChars.length / text.length, 1.0) : 0;
+    }
+
+    // 波斯/乌尔都字符检测
+    if (code === 'fa-IR' || code === 'ur-PK') {
+      const persianChars = text.match(/[\u0600-\u06ff\u0750-\u077f]/g);
+      return persianChars ? Math.min(persianChars.length / text.length, 1.0) : 0;
+    }
+
+    // 孟加拉字符检测
+    if (code === 'bn-BD') {
+      const bengaliChars = text.match(/[\u0980-\u09ff]/g);
+      return bengaliChars ? Math.min(bengaliChars.length / text.length, 1.0) : 0;
+    }
+
+    // 泰米尔字符检测
+    if (code === 'ta-IN') {
+      const tamilChars = text.match(/[\u0b80-\u0bff]/g);
+      return tamilChars ? Math.min(tamilChars.length / text.length, 1.0) : 0;
+    }
+
+    // 泰卢固字符检测
+    if (code === 'te-IN') {
+      const teluguChars = text.match(/[\u0c00-\u0c7f]/g);
+      return teluguChars ? Math.min(teluguChars.length / text.length, 1.0) : 0;
+    }
+
+    // 希腊字符检测
+    if (code === 'el-GR') {
+      const greekChars = text.match(/[\u0370-\u03ff]/g);
+      return greekChars ? Math.min(greekChars.length / text.length, 1.0) : 0;
     }
 
     // 拉丁字符检测（英语、法语、德语等）
@@ -481,7 +720,27 @@ class MultiLanguageSupport extends EventEmitter {
         'it-IT': 'Registrazione...',
         'hi-IN': 'रिकॉर्डिंग...',
         'th-TH': 'กำลังบันทึก...',
-        'vi-VN': 'Đang ghi âm...'
+        'vi-VN': 'Đang ghi âm...',
+        'id-ID': 'Merekam...',
+        'ms-MY': 'Merakam...',
+        'tr-TR': 'Kaydediliyor...',
+        'pl-PL': 'Nagrywanie...',
+        'nl-NL': 'Opnemen...',
+        'sv-SE': 'Spelar in...',
+        'no-NO': 'Tar opp...',
+        'da-DK': 'Optager...',
+        'fi-FI': 'Nauhoitetaan...',
+        'el-GR': 'Εγγραφή...',
+        'cs-CZ': 'Nahrávání...',
+        'hu-HU': 'Felvétel...',
+        'ro-RO': 'Înregistrare...',
+        'uk-UA': 'Запис...',
+        'he-IL': 'מקליט...',
+        'fa-IR': 'ضبط...',
+        'bn-BD': 'রেকর্ডিং...',
+        'ta-IN': 'பதிவு செய்கிறது...',
+        'te-IN': 'రికార్డింగ్...',
+        'ur-PK': 'ریکارڈنگ...'
       },
       'processing': {
         'zh-CN': '正在处理...',
@@ -497,7 +756,27 @@ class MultiLanguageSupport extends EventEmitter {
         'it-IT': 'Elaborazione...',
         'hi-IN': 'प्रसंस्करण...',
         'th-TH': 'กำลังประมวลผล...',
-        'vi-VN': 'Đang xử lý...'
+        'vi-VN': 'Đang xử lý...',
+        'id-ID': 'Memproses...',
+        'ms-MY': 'Memproses...',
+        'tr-TR': 'İşleniyor...',
+        'pl-PL': 'Przetwarzanie...',
+        'nl-NL': 'Verwerken...',
+        'sv-SE': 'Bearbetar...',
+        'no-NO': 'Behandler...',
+        'da-DK': 'Behandler...',
+        'fi-FI': 'Käsitellään...',
+        'el-GR': 'Επεξεργασία...',
+        'cs-CZ': 'Zpracování...',
+        'hu-HU': 'Feldolgozás...',
+        'ro-RO': 'Procesare...',
+        'uk-UA': 'Обробка...',
+        'he-IL': 'מעבד...',
+        'fa-IR': 'پردازش...',
+        'bn-BD': 'প্রক্রিয়াকরণ...',
+        'ta-IN': 'செயலாக்கம்...',
+        'te-IN': 'ప్రాసెసింగ్...',
+        'ur-PK': 'پروسیسنگ...'
       },
       'completed': {
         'zh-CN': '完成',
@@ -513,7 +792,27 @@ class MultiLanguageSupport extends EventEmitter {
         'it-IT': 'Completato',
         'hi-IN': 'पूर्ण',
         'th-TH': 'เสร็จสิ้น',
-        'vi-VN': 'Hoàn thành'
+        'vi-VN': 'Hoàn thành',
+        'id-ID': 'Selesai',
+        'ms-MY': 'Selesai',
+        'tr-TR': 'Tamamlandı',
+        'pl-PL': 'Ukończono',
+        'nl-NL': 'Voltooid',
+        'sv-SE': 'Slutförd',
+        'no-NO': 'Fullført',
+        'da-DK': 'Fuldført',
+        'fi-FI': 'Valmis',
+        'el-GR': 'Ολοκληρώθηκε',
+        'cs-CZ': 'Dokončeno',
+        'hu-HU': 'Befejezve',
+        'ro-RO': 'Finalizat',
+        'uk-UA': 'Завершено',
+        'he-IL': 'הושלם',
+        'fa-IR': 'تکمیل شد',
+        'bn-BD': 'সম্পন্ন',
+        'ta-IN': 'முடிந்தது',
+        'te-IN': 'పూర్తయింది',
+        'ur-PK': 'مکمل'
       }
     };
 

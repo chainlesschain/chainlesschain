@@ -30,10 +30,11 @@ async function runTests() {
   try {
     // 测试1: NAT检测器
     console.log('[测试 1] NAT检测器...');
-    const NATDetector = require('./src/main/p2p/nat-detector');
+    const NATDetector = require('../src/main/p2p/nat-detector');
     const natDetector = new NATDetector();
 
     const stunServers = [
+      'stun:localhost:3478',  // 本地coturn服务器
       'stun:stun.l.google.com:19302',
       'stun:stun1.l.google.com:19302'
     ];
@@ -47,7 +48,7 @@ async function runTests() {
 
     // 测试2: P2P Manager初始化
     console.log('[测试 2] P2P Manager初始化（多传输层）...');
-    const P2PManager = require('./src/main/p2p/p2p-manager');
+    const P2PManager = require('../src/main/p2p/p2p-manager');
     const p2pManager = new P2PManager(TEST_CONFIG);
 
     console.log('  - 正在初始化P2P节点...');
