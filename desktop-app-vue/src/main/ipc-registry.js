@@ -424,16 +424,21 @@ function registerAllIPC(dependencies) {
     // 语音处理 (函数模式 - 超大模块，34 handlers)
     // 注意：检查 initializeSpeechManager 是否存在
     if (app.initializeSpeechManager && typeof app.initializeSpeechManager === 'function') {
-      console.log('[IPC Registry] Registering Speech IPC...');
-      const { registerSpeechIPC } = require('./speech/speech-ipc');
+      try {
+        console.log('[IPC Registry] Registering Speech IPC...');
+        const { registerSpeechIPC } = require('./speech/speech-ipc');
 
-      // 获取 initializeSpeechManager 函数
-      const initializeSpeechManager = app.initializeSpeechManager.bind(app);
+        // 获取 initializeSpeechManager 函数
+        const initializeSpeechManager = app.initializeSpeechManager.bind(app);
 
-      registerSpeechIPC({
-        initializeSpeechManager
-      });
-      console.log('[IPC Registry] ✓ Speech IPC registered (34 handlers)');
+        registerSpeechIPC({
+          initializeSpeechManager
+        });
+        console.log('[IPC Registry] ✓ Speech IPC registered (34 handlers)');
+      } catch (speechError) {
+        console.error('[IPC Registry] ❌ Speech IPC registration failed:', speechError.message);
+        console.log('[IPC Registry] ⚠️  Continuing with other IPC registrations...');
+      }
     } else {
       console.log('[IPC Registry] ⚠️  Speech IPC skipped (initializeSpeechManager not available)');
     }
