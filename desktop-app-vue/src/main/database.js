@@ -1809,6 +1809,169 @@ class DatabaseManager {
         FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
       );
 
+      -- ============================
+      -- RSS 订阅相关表
+      -- ============================
+
+      -- RSS 订阅源表
+      CREATE TABLE IF NOT EXISTS rss_feeds (
+        id TEXT PRIMARY KEY,
+        url TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        description TEXT,
+        link TEXT,
+        language TEXT,
+        image_url TEXT,
+        category TEXT,
+        update_frequency INTEGER DEFAULT 3600,
+        last_fetched_at INTEGER,
+        last_build_date TEXT,
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'paused', 'error')),
+        error_message TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- RSS 文章表
+      CREATE TABLE IF NOT EXISTS rss_items (
+        id TEXT PRIMARY KEY,
+        feed_id TEXT NOT NULL,
+        item_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        link TEXT,
+        description TEXT,
+        content TEXT,
+        author TEXT,
+        pub_date TEXT,
+        categories TEXT,
+        enclosure_url TEXT,
+        enclosure_type TEXT,
+        is_read INTEGER DEFAULT 0,
+        is_starred INTEGER DEFAULT 0,
+        is_archived INTEGER DEFAULT 0,
+        knowledge_item_id TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (feed_id) REFERENCES rss_feeds(id) ON DELETE CASCADE,
+        FOREIGN KEY (knowledge_item_id) REFERENCES knowledge_items(id) ON DELETE SET NULL,
+        UNIQUE(feed_id, item_id)
+      );
+
+      -- RSS 订阅分类表
+      CREATE TABLE IF NOT EXISTS rss_categories (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        color TEXT,
+        icon TEXT,
+        sort_order INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL
+      );
+
+      -- RSS 订阅-分类关联表
+      CREATE TABLE IF NOT EXISTS rss_feed_categories (
+        feed_id TEXT NOT NULL,
+        category_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        PRIMARY KEY (feed_id, category_id),
+        FOREIGN KEY (feed_id) REFERENCES rss_feeds(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES rss_categories(id) ON DELETE CASCADE
+      );
+
+      -- ============================
+      -- 邮件集成相关表
+      -- ============================
+
+      -- 邮件账户表
+      CREATE TABLE IF NOT EXISTS email_accounts (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        display_name TEXT,
+        imap_host TEXT NOT NULL,
+        imap_port INTEGER NOT NULL,
+        imap_tls INTEGER DEFAULT 1,
+        smtp_host TEXT NOT NULL,
+        smtp_port INTEGER NOT NULL,
+        smtp_secure INTEGER DEFAULT 0,
+        password TEXT NOT NULL,
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'paused', 'error')),
+        error_message TEXT,
+        last_sync_at INTEGER,
+        sync_frequency INTEGER DEFAULT 300,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 邮件邮箱表
+      CREATE TABLE IF NOT EXISTS email_mailboxes (
+        id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        display_name TEXT NOT NULL,
+        delimiter TEXT DEFAULT '/',
+        flags TEXT,
+        sync_enabled INTEGER DEFAULT 1,
+        last_sync_at INTEGER,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (account_id) REFERENCES email_accounts(id) ON DELETE CASCADE,
+        UNIQUE(account_id, name)
+      );
+
+      -- 邮件表
+      CREATE TABLE IF NOT EXISTS emails (
+        id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        mailbox_id TEXT NOT NULL,
+        message_id TEXT NOT NULL,
+        uid INTEGER,
+        subject TEXT,
+        from_address TEXT,
+        to_address TEXT,
+        cc_address TEXT,
+        date TEXT,
+        text_content TEXT,
+        html_content TEXT,
+        has_attachments INTEGER DEFAULT 0,
+        is_read INTEGER DEFAULT 0,
+        is_starred INTEGER DEFAULT 0,
+        is_archived INTEGER DEFAULT 0,
+        knowledge_item_id TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (account_id) REFERENCES email_accounts(id) ON DELETE CASCADE,
+        FOREIGN KEY (mailbox_id) REFERENCES email_mailboxes(id) ON DELETE CASCADE,
+        FOREIGN KEY (knowledge_item_id) REFERENCES knowledge_items(id) ON DELETE SET NULL,
+        UNIQUE(account_id, mailbox_id, message_id)
+      );
+
+      -- 邮件附件表
+      CREATE TABLE IF NOT EXISTS email_attachments (
+        id TEXT PRIMARY KEY,
+        email_id TEXT NOT NULL,
+        filename TEXT NOT NULL,
+        content_type TEXT,
+        size INTEGER,
+        file_path TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (email_id) REFERENCES emails(id) ON DELETE CASCADE
+      );
+
+      -- 邮件标签表
+      CREATE TABLE IF NOT EXISTS email_labels (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        color TEXT,
+        icon TEXT,
+        created_at INTEGER NOT NULL
+      );
+
+      -- 邮件-标签关联表
+      CREATE TABLE IF NOT EXISTS email_label_mappings (
+        email_id TEXT NOT NULL,
+        label_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        PRIMARY KEY (email_id, label_id),
+        FOREIGN KEY (email_id) REFERENCES emails(id) ON DELETE CASCADE,
+        FOREIGN KEY (label_id) REFERENCES email_labels(id) ON DELETE CASCADE
+      );
+
       -- 协作模块索引
       CREATE INDEX IF NOT EXISTS idx_yjs_updates_knowledge ON knowledge_yjs_updates(knowledge_id, created_at);
       CREATE INDEX IF NOT EXISTS idx_snapshots_knowledge ON knowledge_snapshots(knowledge_id, created_at DESC);
@@ -1828,6 +1991,29 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_knowledge_activities_org ON knowledge_activities(org_id, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_knowledge_activities_user ON knowledge_activities(user_did, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_knowledge_activities_type ON knowledge_activities(activity_type, created_at DESC);
+
+      -- RSS 模块索引
+      CREATE INDEX IF NOT EXISTS idx_rss_feeds_status ON rss_feeds(status);
+      CREATE INDEX IF NOT EXISTS idx_rss_feeds_category ON rss_feeds(category);
+      CREATE INDEX IF NOT EXISTS idx_rss_feeds_last_fetched ON rss_feeds(last_fetched_at);
+      CREATE INDEX IF NOT EXISTS idx_rss_items_feed ON rss_items(feed_id, pub_date DESC);
+      CREATE INDEX IF NOT EXISTS idx_rss_items_read ON rss_items(is_read, pub_date DESC);
+      CREATE INDEX IF NOT EXISTS idx_rss_items_starred ON rss_items(is_starred, pub_date DESC);
+      CREATE INDEX IF NOT EXISTS idx_rss_items_archived ON rss_items(is_archived);
+      CREATE INDEX IF NOT EXISTS idx_rss_items_knowledge ON rss_items(knowledge_item_id);
+
+      -- 邮件模块索引
+      CREATE INDEX IF NOT EXISTS idx_email_accounts_status ON email_accounts(status);
+      CREATE INDEX IF NOT EXISTS idx_email_accounts_last_sync ON email_accounts(last_sync_at);
+      CREATE INDEX IF NOT EXISTS idx_email_mailboxes_account ON email_mailboxes(account_id);
+      CREATE INDEX IF NOT EXISTS idx_email_mailboxes_sync ON email_mailboxes(sync_enabled, last_sync_at);
+      CREATE INDEX IF NOT EXISTS idx_emails_account ON emails(account_id, date DESC);
+      CREATE INDEX IF NOT EXISTS idx_emails_mailbox ON emails(mailbox_id, date DESC);
+      CREATE INDEX IF NOT EXISTS idx_emails_read ON emails(is_read, date DESC);
+      CREATE INDEX IF NOT EXISTS idx_emails_starred ON emails(is_starred, date DESC);
+      CREATE INDEX IF NOT EXISTS idx_emails_archived ON emails(is_archived);
+      CREATE INDEX IF NOT EXISTS idx_emails_knowledge ON emails(knowledge_item_id);
+      CREATE INDEX IF NOT EXISTS idx_email_attachments_email ON email_attachments(email_id);
     `);
 
       console.log('[Database] ✓ 所有表和索引创建成功');

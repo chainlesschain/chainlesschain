@@ -86,6 +86,10 @@ const { registerSpeechIPC } = require('./speech/speech-ipc');
 // Plugin Marketplace System
 const { registerPluginMarketplaceIPC } = require('./plugins/marketplace-ipc');
 
+// RSS and Email Integration
+const RSSIPCHandler = require('./api/rss-ipc');
+const EmailIPCHandler = require('./api/email-ipc');
+
 // Database Encryption IPC
 const DatabaseEncryptionIPC = require('./database-encryption-ipc');
 
@@ -329,6 +333,14 @@ class ChainlessChainApp {
       if (this.menuManager) {
         this.menuManager.destroy();
         this.menuManager = null;
+      }
+
+      // 清理 RSS 和 Email IPC 处理器
+      if (this.rssIPCHandler) {
+        this.rssIPCHandler.cleanup();
+      }
+      if (this.emailIPCHandler) {
+        this.emailIPCHandler.cleanup();
       }
 
       const backendManager = getBackendServiceManager();
@@ -2516,6 +2528,19 @@ class ChainlessChainApp {
       console.log('[Plugin Marketplace IPC] ✓ Plugin marketplace IPC handlers registered (20 handlers)');
     } catch (error) {
       console.error('[Plugin Marketplace IPC] Failed to register handlers:', error);
+    }
+
+    // 注册 RSS 和 Email IPC 处理器
+    try {
+      const appConfig = getAppConfig();
+      const appDataPath = appConfig.getDataPath();
+
+      this.rssIPCHandler = new RSSIPCHandler(this.database);
+      this.emailIPCHandler = new EmailIPCHandler(this.database, appDataPath);
+
+      console.log('[API Integration] ✓ RSS and Email IPC handlers registered');
+    } catch (error) {
+      console.error('[API Integration] Failed to register RSS/Email handlers:', error);
     }
   }
 
