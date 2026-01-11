@@ -111,6 +111,7 @@ class SignalingServer {
       case 'offer':
       case 'answer':
       case 'ice-candidate':
+      case 'ice-candidates':
         this.handleSignaling(ws, message);
         break;
 

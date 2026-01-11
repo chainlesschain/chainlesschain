@@ -38,12 +38,32 @@ class MobileBridge extends EventEmitter {
     this.dataChannels = new Map();    // mobilePeerId -> RTCDataChannel
     this.connectionStates = new Map(); // mobilePeerId -> state
 
+    // 连接池管理
+    this.maxConnections = options.maxConnections || 50;
+    this.connectionTimeout = options.connectionTimeout || 30000;
+    this.connectionTimers = new Map(); // mobilePeerId -> timer
+
+    // ICE候选批量处理
+    this.pendingIceCandidates = new Map(); // mobilePeerId -> candidate[]
+    this.iceFlushTimers = new Map(); // mobilePeerId -> timer
+
+    // 错误处理
+    this.errorCounts = new Map(); // mobilePeerId -> count
+    this.maxErrors = options.maxErrors || 5;
+    this.errorResetInterval = options.errorResetInterval || 60000;
+
+    // 重连管理
+    this.reconnectAttempts = new Map(); // mobilePeerId -> attempts
+    this.maxReconnectAttempts = options.maxReconnectAttempts || 3;
+
     // 统计信息
     this.stats = {
       totalConnections: 0,
       activeConnections: 0,
       messagesForwarded: 0,
-      bytesTransferred: 0
+      bytesTransferred: 0,
+      errors: 0,
+      reconnects: 0
     };
   }
 
@@ -144,6 +164,10 @@ class MobileBridge extends EventEmitter {
         await this.handleICECandidate(message);
         break;
 
+      case 'ice-candidates':
+        await this.handleICECandidates(message);
+        break;
+
       case 'peer-status':
         this.handlePeerStatus(message);
         break;
@@ -169,24 +193,49 @@ class MobileBridge extends EventEmitter {
    * 处理移动端的WebRTC Offer
    */
   async handleOffer(message) {
-    const { from, offer } = message;
+    const { from, offer, iceRestart } = message;
 
-    console.log('[MobileBridge] 收到移动端Offer:', from);
+    console.log('[MobileBridge] 收到移动端Offer:', from, iceRestart ? '(ICE重启)' : '');
 
     try {
+      // 检查连接池限制
+      if (!this.peerConnections.has(from) && this.peerConnections.size >= this.maxConnections) {
+        console.error('[MobileBridge] 连接池已满，拒绝新连接:', from);
+        this.send({
+          type: 'error',
+          to: from,
+          error: 'Connection pool full'
+        });
+        return;
+      }
+
+      // 检查错误计数
+      if (this.shouldBlockPeer(from)) {
+        console.error('[MobileBridge] 节点错误过多，暂时阻止:', from);
+        return;
+      }
+
+      // 如果是ICE重启，关闭旧连接
+      if (iceRestart && this.peerConnections.has(from)) {
+        console.log('[MobileBridge] ICE重启，关闭旧连接:', from);
+        this.closePeerConnection(from);
+      }
+
       // 创建WebRTC PeerConnection
       const pc = new wrtc.RTCPeerConnection({
         iceServers: this.options.iceServers
       });
 
-      // 监听ICE候选
+      // 设置连接超时
+      this.setConnectionTimeout(from);
+
+      // 监听ICE候选 - 批量发送
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          this.send({
-            type: 'ice-candidate',
-            to: from,
-            candidate: event.candidate.toJSON()
-          });
+          this.queueIceCandidate(from, event.candidate);
+        } else {
+          // ICE收集完成，立即发送剩余候选
+          this.flushIceCandidates(from);
         }
       };
 
@@ -196,11 +245,23 @@ class MobileBridge extends EventEmitter {
         this.connectionStates.set(from, pc.connectionState);
 
         if (pc.connectionState === 'connected') {
+          this.clearConnectionTimeout(from);
           this.stats.activeConnections++;
+          this.reconnectAttempts.delete(from); // 重置重连计数
           this.emit('peer-connected', { peerId: from, type: 'mobile' });
-        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-          this.stats.activeConnections = Math.max(0, this.stats.activeConnections - 1);
-          this.emit('peer-disconnected', { peerId: from });
+        } else if (pc.connectionState === 'disconnected') {
+          this.handleDisconnection(from);
+        } else if (pc.connectionState === 'failed') {
+          this.handleConnectionFailed(from);
+        }
+      };
+
+      // 监听ICE连接状态
+      pc.oniceconnectionstatechange = () => {
+        console.log(`[MobileBridge] ICE连接状态 (${from}):`, pc.iceConnectionState);
+
+        if (pc.iceConnectionState === 'failed') {
+          this.handleConnectionFailed(from);
         }
       };
 
@@ -216,11 +277,15 @@ class MobileBridge extends EventEmitter {
         };
 
         channel.onmessage = async (event) => {
-          await this.bridgeToLibp2p(from, event.data);
+          try {
+            await this.bridgeToLibp2p(from, event.data);
+          } catch (error) {
+            this.handleError(from, '桥接消息失败', error);
+          }
         };
 
         channel.onerror = (error) => {
-          console.error('[MobileBridge] 数据通道错误:', error);
+          this.handleError(from, 'DataChannel错误', error);
         };
 
         channel.onclose = () => {
@@ -250,7 +315,7 @@ class MobileBridge extends EventEmitter {
       console.log('[MobileBridge] Answer已发送:', from);
 
     } catch (error) {
-      console.error('[MobileBridge] 处理Offer失败:', error);
+      this.handleError(from, '处理Offer失败', error);
     }
   }
 
@@ -289,8 +354,177 @@ class MobileBridge extends EventEmitter {
     try {
       await pc.addIceCandidate(new wrtc.RTCIceCandidate(candidate));
     } catch (error) {
-      console.error('[MobileBridge] 添加ICE候选失败:', error);
+      this.handleError(from, '添加ICE候选失败', error);
     }
+  }
+
+  /**
+   * 处理批量ICE候选
+   */
+  async handleICECandidates(message) {
+    const { from, candidates } = message;
+
+    if (!candidates || candidates.length === 0) return;
+
+    console.log(`[MobileBridge] 处理批量ICE候选: ${candidates.length}个`, from);
+
+    const pc = this.peerConnections.get(from);
+    if (!pc) {
+      console.warn('[MobileBridge] 未找到对应的PeerConnection:', from);
+      return;
+    }
+
+    try {
+      for (const candidate of candidates) {
+        try {
+          await pc.addIceCandidate(new wrtc.RTCIceCandidate(candidate));
+        } catch (error) {
+          console.error('[MobileBridge] 添加单个ICE候选失败:', error);
+        }
+      }
+      console.log(`[MobileBridge] ✅ 已添加 ${candidates.length} 个ICE候选`);
+    } catch (error) {
+      this.handleError(from, '处理批量ICE候选失败', error);
+    }
+  }
+
+  /**
+   * 队列ICE候选（批量发送）
+   */
+  queueIceCandidate(peerId, candidate) {
+    if (!this.pendingIceCandidates.has(peerId)) {
+      this.pendingIceCandidates.set(peerId, []);
+    }
+
+    this.pendingIceCandidates.get(peerId).push(candidate.toJSON());
+
+    // 清除旧的定时器
+    if (this.iceFlushTimers.has(peerId)) {
+      clearTimeout(this.iceFlushTimers.get(peerId));
+    }
+
+    // 设置新的定时器（100ms后发送）
+    const timer = setTimeout(() => {
+      this.flushIceCandidates(peerId);
+    }, 100);
+
+    this.iceFlushTimers.set(peerId, timer);
+  }
+
+  /**
+   * 批量发送ICE候选
+   */
+  flushIceCandidates(peerId) {
+    const candidates = this.pendingIceCandidates.get(peerId);
+    if (!candidates || candidates.length === 0) return;
+
+    console.log(`[MobileBridge] 批量发送 ${candidates.length} 个ICE候选:`, peerId);
+
+    this.send({
+      type: 'ice-candidates',
+      to: peerId,
+      candidates: candidates
+    });
+
+    // 清空队列和定时器
+    this.pendingIceCandidates.set(peerId, []);
+    if (this.iceFlushTimers.has(peerId)) {
+      clearTimeout(this.iceFlushTimers.get(peerId));
+      this.iceFlushTimers.delete(peerId);
+    }
+  }
+
+  /**
+   * 设置连接超时
+   */
+  setConnectionTimeout(peerId) {
+    const timer = setTimeout(() => {
+      console.error('[MobileBridge] 连接超时:', peerId);
+      this.handleConnectionFailed(peerId);
+    }, this.connectionTimeout);
+
+    this.connectionTimers.set(peerId, timer);
+  }
+
+  /**
+   * 清除连接超时
+   */
+  clearConnectionTimeout(peerId) {
+    if (this.connectionTimers.has(peerId)) {
+      clearTimeout(this.connectionTimers.get(peerId));
+      this.connectionTimers.delete(peerId);
+    }
+  }
+
+  /**
+   * 处理错误
+   */
+  handleError(peerId, context, error) {
+    console.error(`[MobileBridge] ${context}:`, peerId, error);
+
+    this.stats.errors++;
+
+    // 增加错误计数
+    const count = (this.errorCounts.get(peerId) || 0) + 1;
+    this.errorCounts.set(peerId, count);
+
+    // 设置错误计数重置定时器
+    setTimeout(() => {
+      this.errorCounts.delete(peerId);
+    }, this.errorResetInterval);
+
+    // 如果错误过多，断开连接
+    if (count >= this.maxErrors) {
+      console.error('[MobileBridge] 错误次数过多，断开连接:', peerId);
+      this.closePeerConnection(peerId);
+    }
+
+    this.emit('error', { peerId, context, error, count });
+  }
+
+  /**
+   * 检查是否应该阻止节点
+   */
+  shouldBlockPeer(peerId) {
+    const errorCount = this.errorCounts.get(peerId) || 0;
+    return errorCount >= this.maxErrors;
+  }
+
+  /**
+   * 处理断开连接
+   */
+  handleDisconnection(peerId) {
+    console.warn('[MobileBridge] 连接断开:', peerId);
+
+    this.stats.activeConnections = Math.max(0, this.stats.activeConnections - 1);
+    this.emit('peer-disconnected', { peerId });
+
+    // 尝试重连
+    const attempts = this.reconnectAttempts.get(peerId) || 0;
+    if (attempts < this.maxReconnectAttempts) {
+      console.log(`[MobileBridge] 将尝试重连 (${attempts + 1}/${this.maxReconnectAttempts})`);
+      this.reconnectAttempts.set(peerId, attempts + 1);
+      this.stats.reconnects++;
+      // 注意：实际重连需要移动端重新发起Offer
+    } else {
+      console.log('[MobileBridge] 达到最大重连次数，放弃重连');
+      this.closePeerConnection(peerId);
+    }
+  }
+
+  /**
+   * 处理连接失败
+   */
+  handleConnectionFailed(peerId) {
+    console.error('[MobileBridge] 连接失败:', peerId);
+
+    this.clearConnectionTimeout(peerId);
+    this.stats.activeConnections = Math.max(0, this.stats.activeConnections - 1);
+
+    this.emit('connection-failed', { peerId });
+
+    // 清理连接
+    this.closePeerConnection(peerId);
   }
 
   /**
@@ -467,6 +701,22 @@ class MobileBridge extends EventEmitter {
   async disconnect() {
     console.log('[MobileBridge] 断开连接...');
 
+    // 清除所有定时器
+    for (const timer of this.connectionTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.connectionTimers.clear();
+
+    for (const timer of this.iceFlushTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.iceFlushTimers.clear();
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
     // 关闭所有WebRTC连接
     for (const [peerId, pc] of this.peerConnections.entries()) {
       try {
@@ -479,6 +729,9 @@ class MobileBridge extends EventEmitter {
     this.peerConnections.clear();
     this.dataChannels.clear();
     this.connectionStates.clear();
+    this.pendingIceCandidates.clear();
+    this.errorCounts.clear();
+    this.reconnectAttempts.clear();
 
     // 关闭WebSocket连接
     if (this.signalingSocket) {
@@ -487,12 +740,6 @@ class MobileBridge extends EventEmitter {
     }
 
     this.isConnected = false;
-
-    // 清除重连定时器
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
   }
 }
 

@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marketplace-service
+  namespace: plugin-marketplace
+  labels:
+    app: marketplace-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: marketplace-service
+  template:
+    metadata:
+      labels:
+        app: marketplace-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8090"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      containers:
+      - name: marketplace-service
+        image: chainlesschain/plugin-marketplace-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8090
+          name: http
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: JAVA_OPTS
+          value: "-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+        envFrom:
+        - secretRef:
+            name: marketplace-secrets
+        resources:
+          requests:
+            memory: "768Mi"
+            cpu: "500m"
+          limits:
+            memory: "1536Mi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8090
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8090
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: marketplace-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: marketplace-service
+  namespace: plugin-marketplace
+  labels:
+    app: marketplace-service
+spec:
+  type: ClusterIP
+  selector:
+    app: marketplace-service
+  ports:
+  - port: 8090
+    targetPort: 8090
+    protocol: TCP
+    name: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: marketplace-service-hpa
+  namespace: plugin-marketplace
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: marketplace-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

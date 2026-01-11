@@ -185,6 +185,26 @@ services:
     networks:
       - chainlesschain-network
 
+  # 信令服务器 - WebSocket信令服务（移动端与PC端P2P通讯）
+  signaling-server:
+    build:
+      context: ./signaling-server
+      dockerfile: Dockerfile
+    container_name: chainlesschain-signaling-server
+    ports:
+      - "9001:9001"
+    environment:
+      - PORT=9001
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9001 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
 networks:
   chainlesschain-network:
     driver: bridge
