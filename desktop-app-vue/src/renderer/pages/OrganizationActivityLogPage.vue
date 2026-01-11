@@ -304,7 +304,7 @@ const filteredActivities = computed(() => {
 async function loadActivities() {
   loading.value = true;
   try {
-    const result = await window.electron.invoke('org:get-activities', {
+    const result = await window.electron.ipcRenderer.invoke('org:get-activities', {
       orgId: orgId.value,
       limit: 500
     });
@@ -326,7 +326,7 @@ async function loadActivities() {
 // 加载成员列表
 async function loadMembers() {
   try {
-    const result = await window.electron.invoke('org:get-members', { orgId: orgId.value });
+    const result = await window.electron.ipcRenderer.invoke('org:get-members', { orgId: orgId.value });
     if (result.success) {
       members.value = result.members;
     }
@@ -360,7 +360,7 @@ function showDetails(activity) {
 // 导出日志
 async function exportLogs() {
   try {
-    const result = await window.electron.invoke('org:export-activities', {
+    const result = await window.electron.ipcRenderer.invoke('org:export-activities', {
       orgId: orgId.value,
       activities: filteredActivities.value
     });

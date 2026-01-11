@@ -99,7 +99,7 @@ export const useIdentityStore = defineStore('identity', () => {
       await loadContexts();
 
       // 2. 获取当前激活的上下文
-      const result = await window.electron.invoke('identity:get-active-context', { userDID });
+      const result = await window.electron.ipcRenderer.invoke('identity:get-active-context', { userDID });
 
       if (result.success && result.context) {
         activeContext.value = result.context;
@@ -127,7 +127,7 @@ export const useIdentityStore = defineStore('identity', () => {
    */
   async function loadContexts() {
     try {
-      const result = await window.electron.invoke('identity:get-all-contexts', {
+      const result = await window.electron.ipcRenderer.invoke('identity:get-all-contexts', {
         userDID: currentUserDID.value
       });
 
@@ -151,7 +151,7 @@ export const useIdentityStore = defineStore('identity', () => {
    */
   async function ensurePersonalContext(userDID, displayName = '个人') {
     try {
-      const result = await window.electron.invoke('identity:create-personal-context', {
+      const result = await window.electron.ipcRenderer.invoke('identity:create-personal-context', {
         userDID,
         displayName
       });
@@ -182,7 +182,7 @@ export const useIdentityStore = defineStore('identity', () => {
    */
   async function createOrganizationContext(orgId, orgDID, displayName, avatar = null) {
     try {
-      const result = await window.electron.invoke('identity:create-organization-context', {
+      const result = await window.electron.ipcRenderer.invoke('identity:create-organization-context', {
         userDID: currentUserDID.value,
         orgId,
         orgDID,
@@ -214,7 +214,7 @@ export const useIdentityStore = defineStore('identity', () => {
 
       switching.value = true;
 
-      const result = await window.electron.invoke('identity:switch-context', {
+      const result = await window.electron.ipcRenderer.invoke('identity:switch-context', {
         userDID: currentUserDID.value,
         targetContextId
       });
@@ -257,7 +257,7 @@ export const useIdentityStore = defineStore('identity', () => {
    */
   async function deleteOrganizationContext(orgId) {
     try {
-      const result = await window.electron.invoke('identity:delete-organization-context', {
+      const result = await window.electron.ipcRenderer.invoke('identity:delete-organization-context', {
         userDID: currentUserDID.value,
         orgId
       });
@@ -279,7 +279,7 @@ export const useIdentityStore = defineStore('identity', () => {
    */
   async function getSwitchHistory(limit = 10) {
     try {
-      const result = await window.electron.invoke('identity:get-switch-history', {
+      const result = await window.electron.ipcRenderer.invoke('identity:get-switch-history', {
         userDID: currentUserDID.value,
         limit
       });
@@ -303,7 +303,7 @@ export const useIdentityStore = defineStore('identity', () => {
    */
   async function refreshActiveContext() {
     try {
-      const result = await window.electron.invoke('identity:get-active-context', {
+      const result = await window.electron.ipcRenderer.invoke('identity:get-active-context', {
         userDID: currentUserDID.value
       });
 

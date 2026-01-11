@@ -139,7 +139,7 @@ const initTree = async () => {
 
   try {
     // Load root level files
-    const files = await window.electron.invoke('get-project-files', {
+    const files = await window.electron.ipcRenderer.invoke('get-project-files', {
       projectPath: props.projectPath,
       depth: 0
     })
@@ -286,7 +286,7 @@ const onLoadData = async (treeNode) => {
   const startTime = performance.now()
 
   try {
-    const children = await window.electron.invoke('get-directory-contents', {
+    const children = await window.electron.ipcRenderer.invoke('get-directory-contents', {
       path: dataRef.path
     })
 
@@ -414,7 +414,7 @@ const handleSearch = async (value) => {
   const startTime = performance.now()
 
   try {
-    const results = await window.electron.invoke('search-files', {
+    const results = await window.electron.ipcRenderer.invoke('search-files', {
       projectPath: props.projectPath,
       query: value
     })

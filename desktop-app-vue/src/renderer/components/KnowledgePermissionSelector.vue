@@ -220,7 +220,7 @@ async function loadOrgMembers() {
   if (!props.orgId || !props.showAdvanced) return;
 
   try {
-    const result = await window.electron.invoke('org:get-members', props.orgId);
+    const result = await window.electron.ipcRenderer.invoke('org:get-members', props.orgId);
     if (result.success) {
       orgMembers.value = result.members || [];
     }

@@ -402,7 +402,7 @@ async function loadOrganizationData() {
     loading.value = true;
 
     // 1. 获取组织信息
-    const orgResult = await window.electron.invoke('org:get-organization', orgId.value);
+    const orgResult = await window.electron.ipcRenderer.invoke('org:get-organization', orgId.value);
     if (orgResult.success) {
       orgData.value = orgResult.organization;
 
@@ -416,19 +416,19 @@ async function loadOrganizationData() {
     }
 
     // 2. 获取成员列表
-    const membersResult = await window.electron.invoke('org:get-members', orgId.value);
+    const membersResult = await window.electron.ipcRenderer.invoke('org:get-members', orgId.value);
     if (membersResult.success) {
       members.value = membersResult.members;
     }
 
     // 3. 获取角色列表
-    const rolesResult = await window.electron.invoke('org:get-roles', orgId.value);
+    const rolesResult = await window.electron.ipcRenderer.invoke('org:get-roles', orgId.value);
     if (rolesResult.success) {
       roles.value = rolesResult.roles;
     }
 
     // 4. 获取邀请列表
-    const invitationsResult = await window.electron.invoke('org:get-invitations', orgId.value);
+    const invitationsResult = await window.electron.ipcRenderer.invoke('org:get-invitations', orgId.value);
     if (invitationsResult.success) {
       invitations.value = invitationsResult.invitations;
     }
@@ -453,7 +453,7 @@ async function handleSave() {
   try {
     saving.value = true;
 
-    const result = await window.electron.invoke('org:update-organization', {
+    const result = await window.electron.ipcRenderer.invoke('org:update-organization', {
       orgId: orgId.value,
       name: formData.name,
       type: formData.type,
@@ -536,7 +536,7 @@ async function handleCreateRole() {
   try {
     creatingRole.value = true;
 
-    const result = await window.electron.invoke('org:create-custom-role', {
+    const result = await window.electron.ipcRenderer.invoke('org:create-custom-role', {
       orgId: orgId.value,
       roleName: newRole.name,
       description: newRole.description,
@@ -582,7 +582,7 @@ async function handleDeleteRole(role) {
   if (!confirmed) return;
 
   try {
-    const result = await window.electron.invoke('org:delete-role', {
+    const result = await window.electron.ipcRenderer.invoke('org:delete-role', {
       orgId: orgId.value,
       roleName: role.role_name
     });
@@ -621,7 +621,7 @@ async function handleLeaveOrganization() {
   if (!confirmed) return;
 
   try {
-    const result = await window.electron.invoke('org:leave-organization', {
+    const result = await window.electron.ipcRenderer.invoke('org:leave-organization', {
       orgId: orgId.value,
       userDID: identityStore.currentUserDID
     });
@@ -683,7 +683,7 @@ async function handleDeleteOrganization() {
   if (!confirmed) return;
 
   try {
-    const result = await window.electron.invoke('org:delete-organization', {
+    const result = await window.electron.ipcRenderer.invoke('org:delete-organization', {
       orgId: orgId.value,
       userDID: identityStore.currentUserDID
     });

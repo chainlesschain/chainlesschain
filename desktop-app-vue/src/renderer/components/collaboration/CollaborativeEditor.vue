@@ -247,7 +247,7 @@ onMounted(async () => {
 // Clean up on unmount
 onUnmounted(async () => {
   if (ydoc) {
-    await window.electron.invoke('collab:close-document', {
+    await window.electron.ipcRenderer.invoke('collab:close-document', {
       docId: props.knowledgeId
     });
   }
@@ -261,7 +261,7 @@ onUnmounted(async () => {
 async function initializeCollaboration() {
   try {
     // Open document for collaboration
-    const result = await window.electron.invoke('collab:open-document', {
+    const result = await window.electron.ipcRenderer.invoke('collab:open-document', {
       docId: props.knowledgeId,
       organizationId: props.organizationId
     });
@@ -297,7 +297,7 @@ async function initializeCollaboration() {
 // Sync editor content with Yjs document
 async function syncEditorContent() {
   try {
-    const result = await window.electron.invoke('collab:get-content', {
+    const result = await window.electron.ipcRenderer.invoke('collab:get-content', {
       docId: props.knowledgeId
     });
 
@@ -313,7 +313,7 @@ async function syncEditorContent() {
 // Update cursor position
 async function updateCursorPosition(position) {
   try {
-    await window.electron.invoke('collab:update-cursor', {
+    await window.electron.ipcRenderer.invoke('collab:update-cursor', {
       docId: props.knowledgeId,
       cursor: {
         line: position.lineNumber,
@@ -329,7 +329,7 @@ async function updateCursorPosition(position) {
 // Update selection
 async function updateSelection(selection) {
   try {
-    await window.electron.invoke('collab:update-cursor', {
+    await window.electron.ipcRenderer.invoke('collab:update-cursor', {
       docId: props.knowledgeId,
       cursor: {
         line: selection.startLineNumber,
@@ -395,7 +395,7 @@ async function saveSnapshot() {
       resolve(desc || 'Manual save');
     });
 
-    const result = await window.electron.invoke('collab:create-snapshot', {
+    const result = await window.electron.ipcRenderer.invoke('collab:create-snapshot', {
       docId: props.knowledgeId,
       metadata: {
         description,
@@ -423,7 +423,7 @@ async function saveSnapshot() {
 // Load version history
 async function loadVersionHistory() {
   try {
-    const result = await window.electron.invoke('collab:get-version-history', {
+    const result = await window.electron.ipcRenderer.invoke('collab:get-version-history', {
       docId: props.knowledgeId,
       limit: 50
     });
@@ -445,7 +445,7 @@ function showVersionHistory() {
 // Preview version
 async function previewVersion(versionId) {
   try {
-    const result = await window.electron.invoke('collab:preview-version', {
+    const result = await window.electron.ipcRenderer.invoke('collab:preview-version', {
       docId: props.knowledgeId,
       versionId
     });
@@ -468,7 +468,7 @@ async function restoreVersion(versionId) {
 
     if (!confirmed) return;
 
-    const result = await window.electron.invoke('collab:restore-version', {
+    const result = await window.electron.ipcRenderer.invoke('collab:restore-version', {
       docId: props.knowledgeId,
       versionId
     });
@@ -491,7 +491,7 @@ async function restoreVersion(versionId) {
 // Load comments
 async function loadComments() {
   try {
-    const result = await window.electron.invoke('knowledge:get-comments', {
+    const result = await window.electron.ipcRenderer.invoke('knowledge:get-comments', {
       knowledgeId: props.knowledgeId,
       orgId: props.organizationId
     });
@@ -515,7 +515,7 @@ async function addComment() {
   try {
     const selection = editor.getSelection();
 
-    const result = await window.electron.invoke('knowledge:add-comment', {
+    const result = await window.electron.ipcRenderer.invoke('knowledge:add-comment', {
       knowledgeId: props.knowledgeId,
       orgId: props.organizationId,
       content: newCommentText.value,
@@ -546,7 +546,7 @@ function replyToComment(commentId) {
 // Resolve comment
 async function resolveComment(commentId) {
   try {
-    const result = await window.electron.invoke('knowledge:resolve-comment', {
+    const result = await window.electron.ipcRenderer.invoke('knowledge:resolve-comment', {
       commentId
     });
 

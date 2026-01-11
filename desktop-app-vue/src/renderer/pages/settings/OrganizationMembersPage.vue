@@ -284,7 +284,7 @@ async function loadMembers() {
   try {
     loading.value = true;
 
-    const result = await window.electron.invoke('org:get-members', props.orgId);
+    const result = await window.electron.ipcRenderer.invoke('org:get-members', props.orgId);
 
     if (result.success) {
       members.value = result.members;
@@ -323,7 +323,7 @@ async function handleChangeRole(member, newRole) {
   }
 
   try {
-    const result = await window.electron.invoke('org:update-member-role', {
+    const result = await window.electron.ipcRenderer.invoke('org:update-member-role', {
       orgId: props.orgId,
       memberDID: member.member_did,
       newRole
@@ -346,7 +346,7 @@ async function handleChangeRole(member, newRole) {
  */
 async function handleRemoveMember(member) {
   try {
-    const result = await window.electron.invoke('org:remove-member', {
+    const result = await window.electron.ipcRenderer.invoke('org:remove-member', {
       orgId: props.orgId,
       memberDID: member.member_did
     });
@@ -415,7 +415,7 @@ async function handleViewMemberDetail(member) {
 
   // 加载成员活动历史
   try {
-    const result = await window.electron.invoke('org:get-member-activities', {
+    const result = await window.electron.ipcRenderer.invoke('org:get-member-activities', {
       orgId: props.orgId,
       memberDID: member.member_did,
       limit: 10

@@ -366,15 +366,15 @@ watch(selectedLanguage, (newLang) => {
 const initializeVoiceSystem = async () => {
   try {
     // 加载可用语言
-    const languages = await window.electron.invoke('speech:getLanguages');
+    const languages = await window.electron.ipcRenderer.invoke('speech:getLanguages');
     availableLanguages.value = languages;
 
     // 加载学习统计
-    const stats = await window.electron.invoke('speech:getLearningStats');
+    const stats = await window.electron.ipcRenderer.invoke('speech:getLearningStats');
     learningStats.value = stats;
 
     // 加载命令建议
-    const commands = await window.electron.invoke('speech:getCommandSuggestions');
+    const commands = await window.electron.ipcRenderer.invoke('speech:getCommandSuggestions');
     suggestedCommands.value = commands;
 
     console.log('[VoiceFeedback] 语音系统已初始化');
@@ -408,7 +408,7 @@ const startRecording = async () => {
     await initAudioVisualization();
 
     // 开始录音
-    await window.electron.invoke('speech:startRecording', {
+    await window.electron.ipcRenderer.invoke('speech:startRecording', {
       language: selectedLanguage.value,
       engine: selectedEngine.value,
       autoDetect: autoDetectLanguage.value
@@ -438,7 +438,7 @@ const stopRecording = async () => {
     statusType.value = 'info';
 
     // 停止录音并获取结果
-    const result = await window.electron.invoke('speech:stopRecording');
+    const result = await window.electron.ipcRenderer.invoke('speech:stopRecording');
 
     if (result.success) {
       finalTranscript.value = result.text;
@@ -474,7 +474,7 @@ const stopRecording = async () => {
 // 取消录音
 const cancelRecording = async () => {
   try {
-    await window.electron.invoke('speech:cancelRecording');
+    await window.electron.ipcRenderer.invoke('speech:cancelRecording');
     isRecording.value = false;
     isActive.value = false;
     showFeedbackPanel.value = false;
@@ -625,7 +625,7 @@ const filterLanguageOption = (input, option) => {
 // 更新学习统计
 const updateLearningStats = async () => {
   try {
-    const stats = await window.electron.invoke('speech:getLearningStats');
+    const stats = await window.electron.ipcRenderer.invoke('speech:getLearningStats');
     learningStats.value = stats;
   } catch (error) {
     console.error('[VoiceFeedback] 更新学习统计失败:', error);
@@ -635,7 +635,7 @@ const updateLearningStats = async () => {
 // 导出语音数据
 const exportVoiceData = async () => {
   try {
-    await window.electron.invoke('speech:exportData');
+    await window.electron.ipcRenderer.invoke('speech:exportData');
     message.success('语音数据已导出');
   } catch (error) {
     console.error('[VoiceFeedback] 导出失败:', error);
@@ -646,7 +646,7 @@ const exportVoiceData = async () => {
 // 导入语音数据
 const importVoiceData = async () => {
   try {
-    await window.electron.invoke('speech:importData');
+    await window.electron.ipcRenderer.invoke('speech:importData');
     message.success('语音数据已导入');
     await updateLearningStats();
   } catch (error) {
@@ -658,7 +658,7 @@ const importVoiceData = async () => {
 // 重置语音数据
 const resetVoiceData = async () => {
   try {
-    await window.electron.invoke('speech:resetData');
+    await window.electron.ipcRenderer.invoke('speech:resetData');
     message.success('语音数据已重置');
     await updateLearningStats();
   } catch (error) {

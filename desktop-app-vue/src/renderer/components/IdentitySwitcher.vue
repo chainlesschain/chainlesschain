@@ -292,7 +292,7 @@ async function handleCreateOrg() {
 
   try {
     // 1. 创建组织
-    const orgResult = await window.electron.invoke('org:create-organization', {
+    const orgResult = await window.electron.ipcRenderer.invoke('org:create-organization', {
       name: newOrgForm.value.name,
       description: newOrgForm.value.description,
       type: newOrgForm.value.type
@@ -351,7 +351,7 @@ async function handleJoinOrg() {
 
   try {
     // 1. 加入组织
-    const joinResult = await window.electron.invoke('org:join-organization', {
+    const joinResult = await window.electron.ipcRenderer.invoke('org:join-organization', {
       inviteCode: inviteCode.value.toUpperCase()
     });
 

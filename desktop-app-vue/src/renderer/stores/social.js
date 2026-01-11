@@ -499,6 +499,14 @@ export const useSocialStore = defineStore('social', {
     async loadNotifications(limit = 50) {
       this.notificationsLoading = true
       try {
+        // 检查IPC API是否可用
+        if (!window.electronAPI || !ipcRenderer) {
+          console.warn('[Social Store] Electron API 未就绪，跳过加载通知')
+          this.notifications = []
+          this.unreadNotifications = 0
+          return
+        }
+
         const result = await ipcRenderer.invoke('notification:get-all', { limit })
         const notifications = Array.isArray(result)
           ? result
@@ -508,8 +516,26 @@ export const useSocialStore = defineStore('social', {
         this.unreadNotifications = notifications.filter((n) => n.is_read === 0).length
       } catch (error) {
         console.error('加载通知失败:', error)
-        this.notifications = []
-        this.unreadNotifications = 0
+
+        // 如果是"No handler registered"错误，说明后端还未初始化完成
+        if (error.message && error.message.includes('No handler registered')) {
+          console.warn('[Social Store] IPC处理器未注册，将在稍后重试')
+          // 设置空数据，避免前端报错
+          this.notifications = []
+          this.unreadNotifications = 0
+
+          // 延迟重试一次
+          setTimeout(() => {
+            console.log('[Social Store] 重试加载通知...')
+            this.loadNotifications(limit).catch(err => {
+              console.error('[Social Store] 重试加载通知失败:', err)
+            })
+          }, 2000)
+        } else {
+          // 其他错误，设置空数据
+          this.notifications = []
+          this.unreadNotifications = 0
+        }
       } finally {
         this.notificationsLoading = false
       }

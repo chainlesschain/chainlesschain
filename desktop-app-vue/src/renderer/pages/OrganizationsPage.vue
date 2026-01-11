@@ -168,7 +168,7 @@ const createForm = ref({
 async function loadOrganizations() {
   loading.value = true;
   try {
-    const result = await window.electron.invoke('org:get-user-organizations');
+    const result = await window.electron.ipcRenderer.invoke('org:get-user-organizations');
 
     if (result.success) {
       organizations.value = result.organizations;
@@ -192,7 +192,7 @@ async function handleCreate() {
 
   creating.value = true;
   try {
-    const result = await window.electron.invoke('org:create-organization', createForm.value);
+    const result = await window.electron.ipcRenderer.invoke('org:create-organization', createForm.value);
 
     if (result.success) {
       message.success('组织创建成功');
