@@ -177,6 +177,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     sync: () => ipcRenderer.invoke('git:sync'),
     push: () => ipcRenderer.invoke('git:push'),
     pull: () => ipcRenderer.invoke('git:pull'),
+    clone: (url, targetPath, auth) => ipcRenderer.invoke('git:clone', url, targetPath, auth),
     getLog: (depth) => ipcRenderer.invoke('git:get-log', depth),
     getConfig: () => ipcRenderer.invoke('git:get-config'),
     getSyncStatus: () => ipcRenderer.invoke('git:get-sync-status'),
