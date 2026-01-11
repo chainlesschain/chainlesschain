@@ -59,6 +59,7 @@ const socialPages = createRouteGroup('social', {
   chat: () => import(/* webpackChunkName: "social-chat" */ '../components/social/ChatWindow.vue'),
   moments: () => import(/* webpackChunkName: "social-moments" */ '../components/social/MomentsTimeline.vue'),
   forums: () => import(/* webpackChunkName: "social-forums" */ '../components/social/ForumList.vue'),
+  callHistory: () => import(/* webpackChunkName: "social-call-history" */ '../pages/CallHistoryPage.vue'),
 });
 
 // 其他功能页面（按需加载）
@@ -164,6 +165,12 @@ const routes = [
         name: 'Chat',
         component: socialPages.chat,
         meta: { title: '聊天' },
+      },
+      {
+        path: 'call-history',
+        name: 'CallHistory',
+        component: socialPages.callHistory,
+        meta: { title: '通话记录' },
       },
       {
         path: 'image-upload',

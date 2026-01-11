@@ -77,6 +77,59 @@ export function useP2PCall() {
   };
 
   /**
+   * 发起屏幕共享
+   */
+  const startScreenShare = async (peerId, sourceId, options = {}) => {
+    try {
+      const result = await ipcRenderer.invoke('p2p-enhanced:start-call', {
+        peerId,
+        type: 'screen',
+        options: {
+          ...options,
+          sourceId
+        }
+      });
+
+      if (result.success) {
+        activeCall.value = {
+          callId: result.callId,
+          peerId,
+          type: 'screen',
+          isInitiator: true,
+          sourceId
+        };
+        return result.callId;
+      } else {
+        message.error('发起屏幕共享失败: ' + result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error('发起屏幕共享失败:', error);
+      message.error('发起屏幕共享失败');
+      return null;
+    }
+  };
+
+  /**
+   * 获取屏幕源列表
+   */
+  const getScreenSources = async (options = {}) => {
+    try {
+      const result = await ipcRenderer.invoke('screen-share:get-sources', options);
+      if (result.success) {
+        return result.sources;
+      } else {
+        message.error('获取屏幕源失败: ' + result.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('获取屏幕源失败:', error);
+      message.error('获取屏幕源失败');
+      return [];
+    }
+  };
+
+  /**
    * 接受通话
    */
   const acceptCall = async (callId) => {
@@ -336,6 +389,8 @@ export function useP2PCall() {
     // 方法
     startAudioCall,
     startVideoCall,
+    startScreenShare,
+    getScreenSources,
     acceptCall,
     rejectCall,
     endCall,

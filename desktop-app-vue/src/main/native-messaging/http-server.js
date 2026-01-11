@@ -94,6 +94,12 @@ class NativeMessagingHTTPServer {
       await this.handleGenerateSummaryRequest(req, res);
     } else if (url.pathname === '/api/upload-screenshot') {
       await this.handleUploadScreenshotRequest(req, res);
+    } else if (url.pathname === '/api/batch-clip') {
+      await this.handleBatchClipRequest(req, res);
+    } else if (url.pathname === '/api/search') {
+      await this.handleSearchRequest(req, res);
+    } else if (url.pathname === '/api/stats') {
+      await this.handleStatsRequest(req, res);
     } else {
       this.sendError(res, 404, 'Not Found');
     }
@@ -408,6 +414,183 @@ class NativeMessagingHTTPServer {
       success: false,
       error,
     }));
+  }
+
+  /**
+   * 处理批量剪藏请求
+   */
+  async handleBatchClipRequest(req, res) {
+    try {
+      const body = await this.readRequestBody(req);
+      const data = JSON.parse(body);
+
+      console.log('[NativeMessagingHTTPServer] 收到批量剪藏请求:', data.items?.length);
+
+      if (!data.items || !Array.isArray(data.items)) {
+        this.sendError(res, 400, '缺少必要字段: items (array)');
+        return;
+      }
+
+      const results = [];
+      for (const item of data.items) {
+        try {
+          const knowledgeItem = {
+            title: item.title,
+            content: item.content,
+            type: item.type || 'web_clip',
+            tags: item.tags || [],
+            source_url: item.url || '',
+            author: item.author || '',
+            published_date: item.date || new Date().toISOString(),
+            metadata: JSON.stringify({
+              domain: item.domain || '',
+              excerpt: item.excerpt || '',
+              clipped_at: new Date().toISOString(),
+            }),
+          };
+
+          const savedItem = await this.database.addKnowledgeItem(knowledgeItem);
+
+          // 添加到 RAG 索引
+          if (data.autoIndex && this.ragManager) {
+            try {
+              await this.ragManager.addToIndex(savedItem);
+            } catch (error) {
+              console.error('[NativeMessagingHTTPServer] 添加到 RAG 索引失败:', error);
+            }
+          }
+
+          results.push({
+            success: true,
+            id: savedItem.id,
+            title: savedItem.title,
+          });
+        } catch (error) {
+          results.push({
+            success: false,
+            title: item.title,
+            error: error.message,
+          });
+        }
+      }
+
+      const summary = {
+        total: data.items.length,
+        succeeded: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length,
+      };
+
+      console.log('[NativeMessagingHTTPServer] 批量剪藏完成:', summary);
+
+      this.sendSuccess(res, {
+        summary,
+        results,
+      });
+    } catch (error) {
+      console.error('[NativeMessagingHTTPServer] 批量剪藏失败:', error);
+      this.sendError(res, 500, error.message);
+    }
+  }
+
+  /**
+   * 处理搜索请求
+   */
+  async handleSearchRequest(req, res) {
+    try {
+      const body = await this.readRequestBody(req);
+      const data = JSON.parse(body);
+
+      console.log('[NativeMessagingHTTPServer] 收到搜索请求:', data.query);
+
+      if (!data.query) {
+        this.sendError(res, 400, '缺少必要字段: query');
+        return;
+      }
+
+      // 使用数据库搜索
+      const results = await this.database.searchKnowledgeItems(data.query, {
+        type: data.type || null,
+        limit: data.limit || 20,
+        offset: data.offset || 0,
+      });
+
+      this.sendSuccess(res, {
+        results,
+        total: results.length,
+      });
+    } catch (error) {
+      console.error('[NativeMessagingHTTPServer] 搜索失败:', error);
+      this.sendError(res, 500, error.message);
+    }
+  }
+
+  /**
+   * 处理统计请求
+   */
+  async handleStatsRequest(req, res) {
+    try {
+      console.log('[NativeMessagingHTTPServer] 收到统计请求');
+
+      // 获取统计信息
+      const stats = {
+        totalItems: 0,
+        webClips: 0,
+        notes: 0,
+        documents: 0,
+        conversations: 0,
+        recentClips: [],
+      };
+
+      if (this.database && this.database.db) {
+        // 总数
+        const totalResult = await new Promise((resolve, reject) => {
+          this.database.db.get(
+            'SELECT COUNT(*) as count FROM knowledge_items',
+            (err, row) => {
+              if (err) reject(err);
+              else resolve(row);
+            }
+          );
+        });
+        stats.totalItems = totalResult.count;
+
+        // 按类型统计
+        const typeResults = await new Promise((resolve, reject) => {
+          this.database.db.all(
+            'SELECT type, COUNT(*) as count FROM knowledge_items GROUP BY type',
+            (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows);
+            }
+          );
+        });
+
+        typeResults.forEach(row => {
+          if (row.type === 'web_clip') stats.webClips = row.count;
+          else if (row.type === 'note') stats.notes = row.count;
+          else if (row.type === 'document') stats.documents = row.count;
+          else if (row.type === 'conversation') stats.conversations = row.count;
+        });
+
+        // 最近的剪藏
+        const recentResults = await new Promise((resolve, reject) => {
+          this.database.db.all(
+            'SELECT id, title, type, created_at FROM knowledge_items WHERE type = ? ORDER BY created_at DESC LIMIT 10',
+            ['web_clip'],
+            (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows);
+            }
+          );
+        });
+        stats.recentClips = recentResults;
+      }
+
+      this.sendSuccess(res, stats);
+    } catch (error) {
+      console.error('[NativeMessagingHTTPServer] 获取统计失败:', error);
+      this.sendError(res, 500, error.message);
+    }
   }
 }
 

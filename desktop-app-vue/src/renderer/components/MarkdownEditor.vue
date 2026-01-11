@@ -60,6 +60,13 @@
           </a-button>
         </a-tooltip>
         <a-divider type="vertical" />
+        <a-tooltip title="语音输入">
+          <EnhancedVoiceInput
+            @result="handleVoiceResult"
+            @partial="handleVoicePartial"
+          />
+        </a-tooltip>
+        <a-divider type="vertical" />
         <a-button-group size="small">
           <a-button :type="mode === 'edit' ? 'primary' : 'default'" @click="mode = 'edit'">
             编辑
@@ -107,6 +114,7 @@ import {
   TableOutlined,
 } from '@ant-design/icons-vue';
 import MarkdownIt from 'markdown-it';
+import EnhancedVoiceInput from './common/EnhancedVoiceInput.vue';
 
 const props = defineProps({
   modelValue: {
@@ -271,6 +279,19 @@ function handleKeyDown(event) {
         break;
     }
   }
+}
+
+// 语音输入处理
+function handleVoiceResult(text) {
+  const currentValue = props.modelValue || '';
+  const newValue = currentValue + (currentValue ? '\n\n' : '') + text;
+  emit('update:modelValue', newValue);
+  emit('change', newValue);
+}
+
+function handleVoicePartial(text) {
+  // 可以在这里显示临时的语音识别结果
+  console.log('语音识别中:', text);
 }
 
 // 暴露方法给父组件

@@ -125,7 +125,7 @@ import {
   FileOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons-vue';
-import VoiceInput from './VoiceInput.vue';
+import VoiceInput from '../common/EnhancedVoiceInput.vue';
 
 const props = defineProps({
   placeholder: {
