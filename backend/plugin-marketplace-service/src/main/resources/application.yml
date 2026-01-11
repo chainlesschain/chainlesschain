@@ -1,0 +1,88 @@
+server:
+  port: 8090
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: plugin-marketplace-service
+
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:plugin_marketplace}
+    username: ${DB_USER:chainlesschain}
+    password: ${DB_PASSWORD:chainlesschain_pwd_2024}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:chainlesschain_redis_2024}
+      database: 2
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: -1ms
+
+# MyBatis Plus Configuration
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.chainlesschain.marketplace.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    lazy-loading-enabled: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:chainlesschain-plugin-marketplace-secret-key-2024}
+  expiration: 86400000  # 24 hours
+  refresh-expiration: 604800000  # 7 days
+
+# MinIO Configuration
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket-name: ${MINIO_BUCKET:plugin-marketplace}
+  secure: ${MINIO_SECURE:false}
+
+# Plugin Marketplace Configuration
+marketplace:
+  max-plugin-size: 52428800  # 50MB
+  allowed-extensions: .zip,.tar.gz
+  cache-ttl: 3600  # 1 hour
+  featured-limit: 10
+  popular-limit: 20
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.chainlesschain.marketplace: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/plugin-marketplace.log
+    max-size: 10MB
+    max-history: 30
