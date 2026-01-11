@@ -363,6 +363,17 @@
     >
       <NotificationCenter />
     </a-drawer>
+
+    <!-- 语音输入组件 - 浮动在右下角 -->
+    <div class="voice-feedback-container">
+      <VoiceFeedbackWidget
+        :show-panel="true"
+        :enable-command-hints="true"
+        @result="handleVoiceResult"
+        @error="handleVoiceError"
+        @command="handleVoiceCommand"
+      />
+    </div>
   </a-layout>
 </template>
 
@@ -419,6 +430,7 @@ import SyncConflictDialog from './SyncConflictDialog.vue';
 import LanguageSwitcher from './LanguageSwitcher.vue';
 import NotificationCenter from './social/NotificationCenter.vue';
 import DatabaseEncryptionStatus from './DatabaseEncryptionStatus.vue';
+import VoiceFeedbackWidget from './VoiceFeedbackWidget.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -594,6 +606,54 @@ const handleLogout = () => {
 // 返回首页
 const handleBackToHome = () => {
   router.push('/');
+};
+
+// ==================== 语音输入处理 ====================
+
+// 处理语音识别结果
+const handleVoiceResult = (result) => {
+  console.log('[MainLayout] 语音识别结果:', result);
+
+  // 如果聊天面板打开,将文本发送到聊天
+  if (chatPanelVisible.value) {
+    // 触发聊天面板的输入事件
+    window.dispatchEvent(new CustomEvent('voice-input', {
+      detail: { text: result.text }
+    }));
+    message.success('语音已转换为文本');
+  } else {
+    // 否则显示提示
+    message.info(`识别结果: ${result.text}`);
+  }
+};
+
+// 处理语音识别错误
+const handleVoiceError = (error) => {
+  console.error('[MainLayout] 语音识别错误:', error);
+  message.error('语音识别失败: ' + error.message);
+};
+
+// 处理语音命令
+const handleVoiceCommand = (command) => {
+  console.log('[MainLayout] 执行语音命令:', command);
+
+  // 根据命令类型执行相应操作
+  switch (command.type) {
+    case 'navigate':
+      router.push(command.path);
+      message.success(`已导航到: ${command.name}`);
+      break;
+    case 'toggle-chat':
+      toggleChat();
+      message.success('已切换聊天面板');
+      break;
+    case 'search':
+      // 触发搜索
+      message.info(`搜索: ${command.query}`);
+      break;
+    default:
+      message.info(`执行命令: ${command.name}`);
+  }
 };
 
 // ==================== 同步状态管理 ====================
@@ -875,5 +935,19 @@ const handleSyncClick = async () => {
   transition: width 0.3s;
   z-index: 100;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 语音输入组件容器 */
+.voice-feedback-container {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  transition: right 0.3s;
+}
+
+/* 当聊天面板打开时,语音组件向左移动 */
+.chat-panel-container:has(+ .voice-feedback-container) {
+  /* 聊天面板打开时的样式 */
 }
 </style>

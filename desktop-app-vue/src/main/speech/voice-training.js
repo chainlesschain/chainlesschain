@@ -574,6 +574,81 @@ class VoiceTraining extends EventEmitter {
     console.log('[VoiceTraining] 用户数据已重置');
     this.emit('dataReset');
   }
+
+  /**
+   * 获取统计信息
+   */
+  async getStats() {
+    return {
+      totalTranscriptions: this.userProfile?.learningStats?.totalTranscriptions || 0,
+      averageConfidence: this.userProfile?.learningStats?.averageConfidence || 0,
+      vocabularySize: this.customVocabulary.size || 0,
+      totalCorrections: this.userProfile?.learningStats?.totalCorrections || 0,
+      totalCommands: this.userProfile?.learningStats?.totalCommands || 0
+    };
+  }
+
+  /**
+   * 导出配置文件
+   */
+  async exportProfile() {
+    try {
+      const exportData = {
+        profile: this.userProfile,
+        customVocabulary: Array.from(this.customVocabulary.entries()),
+        commandUsageStats: Array.from(this.commandUsageStats.entries()),
+        accentPatterns: Array.from(this.accentPatterns.entries()),
+        correctionHistory: this.correctionHistory,
+        exportedAt: Date.now()
+      };
+
+      const exportPath = path.join(this.config.profilePath, `${this.currentUserId}_export_${Date.now()}.json`);
+      await fs.writeFile(exportPath, JSON.stringify(exportData, null, 2), 'utf-8');
+
+      console.log('[VoiceTraining] 配置文件已导出:', exportPath);
+      return { success: true, path: exportPath };
+    } catch (error) {
+      console.error('[VoiceTraining] 导出配置文件失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 导入配置文件
+   */
+  async importProfile(filePath) {
+    try {
+      if (!filePath) {
+        // 如果没有提供路径,查找最新的导出文件
+        const files = await fs.readdir(this.config.profilePath);
+        const exportFiles = files.filter(f => f.includes('_export_'));
+        if (exportFiles.length === 0) {
+          throw new Error('没有找到导出文件');
+        }
+        exportFiles.sort().reverse();
+        filePath = path.join(this.config.profilePath, exportFiles[0]);
+      }
+
+      const data = await fs.readFile(filePath, 'utf-8');
+      const importData = JSON.parse(data);
+
+      await this.importUserData(importData);
+
+      console.log('[VoiceTraining] 配置文件已导入:', filePath);
+      return { success: true };
+    } catch (error) {
+      console.error('[VoiceTraining] 导入配置文件失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 重置配置文件
+   */
+  async resetProfile() {
+    await this.resetUserData();
+    return { success: true };
+  }
 }
 
 module.exports = VoiceTraining;
