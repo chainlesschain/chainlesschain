@@ -1,6 +1,31 @@
 version: '3.8'
 
 services:
+  # Whisper Local Speech Recognition Service
+  whisper-service:
+    build:
+      context: ./backend/whisper-service
+      dockerfile: Dockerfile
+    container_name: chainlesschain-whisper
+    ports:
+      - "8002:8000"
+    environment:
+      - WHISPER_HOST=0.0.0.0
+      - WHISPER_PORT=8000
+      - WHISPER_MODEL=base
+      - WHISPER_DEVICE=auto
+    volumes:
+      - whisper-models:/root/.cache/whisper
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chainlesschain-network
+
   # Ollama - 本地LLM服务（CPU版本）
   ollama:
     image: ollama/ollama:latest
@@ -193,10 +218,12 @@ services:
     container_name: chainlesschain-signaling-server
     ports:
       - "9001:9001"
+      - "9002:9002"
     environment:
       - PORT=9001
+      - HEALTH_PORT=9002
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9001 || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9002/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -214,3 +241,4 @@ volumes:
   qdrant-data:
   postgres-data:
   redis-data:
+  whisper-models:
