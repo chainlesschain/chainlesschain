@@ -164,9 +164,9 @@ class DatabaseManager {
       };
     }
 
-    // 启用外键约束
+    // 临时禁用外键约束以允许表创建和迁移
     if (this.db.pragma) {
-      this.db.pragma('foreign_keys = ON');
+      this.db.pragma('foreign_keys = OFF');
     }
 
     // 创建表
@@ -174,6 +174,11 @@ class DatabaseManager {
 
     // 运行数据库迁移
     this.runMigrations();
+
+    // 重新启用外键约束
+    if (this.db.pragma) {
+      this.db.pragma('foreign_keys = ON');
+    }
   }
 
   /**

@@ -347,10 +347,9 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
 class WhisperLocalRecognizer extends BaseSpeechRecognizer {
   constructor(config = {}) {
     super(config);
-    this.modelPath = config.modelPath || '';
+    this.serverUrl = config.serverUrl || process.env.WHISPER_LOCAL_URL || 'http://localhost:8002';
     this.modelSize = config.modelSize || 'base';  // tiny/base/small/medium/large
-    this.device = config.device || 'cpu';
-    this.serverUrl = config.serverUrl || 'http://localhost:8000';  // 本地 Whisper 服务器
+    this.device = config.device || 'auto';
     this.timeout = config.timeout || 120000;  // 2分钟超时
   }
 

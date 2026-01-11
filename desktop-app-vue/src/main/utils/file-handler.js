@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const fsPromises = require('fs').promises;
+const path = require('path');
 const { Transform } = require('stream');
 const { pipeline } = require('stream/promises');
 const os = require('os');
@@ -47,7 +48,23 @@ class FileHandler {
    * 获取文件大小
    */
   async getFileSize(filePath) {
+    // Validate file path
+    if (!filePath || typeof filePath !== 'string') {
+      throw new Error('Invalid file path: path must be a non-empty string');
+    }
+
+    // Check if path is absolute and not just '/'
+    if (!path.isAbsolute(filePath) || filePath === '/' || filePath === '\\') {
+      throw new Error(`Invalid file path: ${filePath}. Path must be absolute and point to a file.`);
+    }
+
     const stats = await fsPromises.stat(filePath);
+
+    // Ensure it's a file, not a directory
+    if (!stats.isFile()) {
+      throw new Error(`Path is not a file: ${filePath}`);
+    }
+
     return stats.size;
   }
 

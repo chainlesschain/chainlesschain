@@ -134,16 +134,21 @@ class P2PManager extends EventEmitter {
         },
         stun: {
           servers: [
-            'stun:stun.l.google.com:19302',
+            'stun:localhost:3478',  // 本地coturn STUN服务器
+            'stun:stun.l.google.com:19302',  // 备用公共STUN服务器
             'stun:stun1.l.google.com:19302',
-            'stun:stun2.l.google.com:19302',
-            'stun:stun3.l.google.com:19302',
-            'stun:stun4.l.google.com:19302'
+            'stun:stun2.l.google.com:19302'
           ],
         },
         turn: {
-          enabled: false,
-          servers: [],
+          enabled: true,  // 启用TURN服务器
+          servers: [
+            {
+              urls: 'turn:localhost:3478',
+              username: 'chainlesschain',
+              credential: 'chainlesschain2024'
+            }
+          ],
         },
         relay: {
           enabled: true,
