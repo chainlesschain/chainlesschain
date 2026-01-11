@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const { OrgP2PNetwork, MessageType } = require('./org-p2p-network');
+const { DIDInvitationManager } = require('./did-invitation-manager');
 
 /**
  * 组织管理器 - 去中心化组织核心模块
@@ -14,6 +15,13 @@ class OrganizationManager {
     this.didManager = didManager;
     this.p2pManager = p2pManager;
     this.currentOrgId = null;
+
+    // 初始化DID邀请管理器
+    this.didInvitationManager = null;
+    if (db && didManager) {
+      this.didInvitationManager = new DIDInvitationManager(db, didManager, p2pManager, this);
+      console.log('[OrganizationManager] ✓ DID邀请管理器已初始化');
+    }
 
     // 初始化组织P2P网络管理器
     this.orgP2PNetwork = null;
@@ -2023,6 +2031,25 @@ class OrganizationManager {
       return false;
     }
     return this.orgP2PNetwork.isMemberOnline(orgId, memberDID);
+  }
+
+  /**
+   * 检查用户是否是组织成员
+   * @param {string} orgId - 组织ID
+   * @param {string} userDID - 用户DID
+   * @returns {Promise<boolean>} 是否是成员
+   */
+  async isMember(orgId, userDID) {
+    try {
+      const member = this.db.prepare(
+        `SELECT id FROM organization_members WHERE org_id = ? AND member_did = ? AND status = 'active'`
+      ).get(orgId, userDID);
+
+      return !!member;
+    } catch (error) {
+      console.error('[OrganizationManager] 检查成员失败:', error);
+      return false;
+    }
   }
 
   /**

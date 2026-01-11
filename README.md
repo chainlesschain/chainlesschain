@@ -1088,8 +1088,16 @@ chainlesschain/
 │   ├── OPTIMIZATION_QUICK_START.md        # 优化快速开始 (424行)
 │   ├── OPTIMIZATION_SUMMARY.md            # 优化总结 (571行)
 │   ├── OPTIMIZATION_USAGE_GUIDE.md        # 优化使用指南 (更新)
-│   └── E2E_TEST_WORK_SUMMARY.md           # E2E测试工作总结 (306行)
-│
+│   ├── E2E_TEST_WORK_SUMMARY.md           # E2E测试工作总结 (306行)
+│   ├── INVITATION_LINK_FEATURE.md         # DID邀请链接功能文档 (500行) ⭐新增
+│   ├── KNOWLEDGE_GRAPH_COMPLETION_REPORT.md # 知识图谱完成报告 (380行) ⭐新增
+│   ├── KNOWLEDGE_GRAPH_ENHANCEMENTS.md    # 知识图谱增强文档 ⭐新增
+│   └── KNOWLEDGE_GRAPH_QUICKSTART.md      # 知识图谱快速开始 ⭐新增
+
+├── mobile-app-uniapp/docs/      # 📱 移动端文档 ⭐新增
+│   ├── MOBILE_ADAPTATION_PROGRESS_2026-01-12.md  # 移动端适配进度 (509行) ⭐新增
+│   └── KNOWLEDGE_FEATURES_GUIDE.md               # 知识库功能指南 (377行) ⭐新增
+
 └── scripts/                      # 🛠️ 工具脚本
     ├── setup.sh
     └── build.sh
@@ -1253,6 +1261,7 @@ chainlesschain/
 
 | 版本 | 日期 | 主要更新 |
 |------|------|---------|
+| v0.21.0 | 2026-01-12 | **知识图谱可视化+企业版DID邀请+移动端增强**: 8个图分析算法、5种可视化方式、智能实体提取、6种导出格式、DID邀请链接系统（安全令牌/使用控制/统计分析）、移动端Markdown渲染（代码高亮/图片预览/工具栏/实时预览/自动保存） |
 | v0.20.0 | 2026-01-11 | **语音识别完善+PC端核心功能**: Whisper集成测试通过(100%准确度)、语音设置UI完成、多语言支持、STUN/TURN网络测试、P2P通信增强(WebRTC+Signal Protocol)、文档结构重构、测试框架升级(Vitest) |
 | v0.20.0 | 2026-01-03 | **测试框架升级+性能优化**: 全面迁移到Vitest(94个测试文件/900+用例)、性能优化集成(内存降级/磁盘检查/并发控制)、安全防护体系、4个核心模块单元测试、移动端数据同步、Linux平台支持 |
 | v0.19.5 | 2026-01-02 | **P2优化+V3工具+菜单集成**: AI引擎P2优化完成(意图融合/知识蒸馏/流式响应)、V3工具系统恢复(300工具)、应用菜单集成、生产环境部署 |
