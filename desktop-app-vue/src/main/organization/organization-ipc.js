@@ -428,6 +428,193 @@ function registerOrganizationIPC({
   });
 
   // ============================================================
+  // 邀请链接管理 (Invitation Link Management) - 9 handlers
+  // ============================================================
+
+  /**
+   * 创建邀请链接
+   * Channel: 'org:create-invitation-link'
+   */
+  ipcMain.handle('org:create-invitation-link', async (_event, params) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        throw new Error('邀请管理器未初始化');
+      }
+
+      const invitationLink = await organizationManager.didInvitationManager.createInvitationLink(params);
+      return { success: true, invitationLink };
+    } catch (error) {
+      console.error('[Organization IPC] 创建邀请链接失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 验证邀请令牌
+   * Channel: 'org:validate-invitation-token'
+   */
+  ipcMain.handle('org:validate-invitation-token', async (_event, token) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        throw new Error('邀请管理器未初始化');
+      }
+
+      const linkInfo = await organizationManager.didInvitationManager.validateInvitationToken(token);
+      return { success: true, linkInfo };
+    } catch (error) {
+      console.error('[Organization IPC] 验证邀请令牌失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 通过邀请链接加入组织
+   * Channel: 'org:accept-invitation-link'
+   */
+  ipcMain.handle('org:accept-invitation-link', async (_event, token, options) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        throw new Error('邀请管理器未初始化');
+      }
+
+      const org = await organizationManager.didInvitationManager.acceptInvitationLink(token, options);
+      return { success: true, org };
+    } catch (error) {
+      console.error('[Organization IPC] 通过邀请链接加入失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取邀请链接列表
+   * Channel: 'org:get-invitation-links'
+   */
+  ipcMain.handle('org:get-invitation-links', async (_event, orgId, options) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        return { success: false, error: '邀请管理器未初始化', links: [] };
+      }
+
+      const links = organizationManager.didInvitationManager.getInvitationLinks(orgId, options);
+      return { success: true, links };
+    } catch (error) {
+      console.error('[Organization IPC] 获取邀请链接列表失败:', error);
+      return { success: false, error: error.message, links: [] };
+    }
+  });
+
+  /**
+   * 获取邀请链接详情
+   * Channel: 'org:get-invitation-link'
+   */
+  ipcMain.handle('org:get-invitation-link', async (_event, linkId) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        return { success: false, error: '邀请管理器未初始化', link: null };
+      }
+
+      const link = organizationManager.didInvitationManager.getInvitationLink(linkId);
+      return { success: true, link };
+    } catch (error) {
+      console.error('[Organization IPC] 获取邀请链接详情失败:', error);
+      return { success: false, error: error.message, link: null };
+    }
+  });
+
+  /**
+   * 撤销邀请链接
+   * Channel: 'org:revoke-invitation-link'
+   */
+  ipcMain.handle('org:revoke-invitation-link', async (_event, linkId) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        throw new Error('邀请管理器未初始化');
+      }
+
+      await organizationManager.didInvitationManager.revokeInvitationLink(linkId);
+      return { success: true };
+    } catch (error) {
+      console.error('[Organization IPC] 撤销邀请链接失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 删除邀请链接
+   * Channel: 'org:delete-invitation-link'
+   */
+  ipcMain.handle('org:delete-invitation-link', async (_event, linkId) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        throw new Error('邀请管理器未初始化');
+      }
+
+      await organizationManager.didInvitationManager.deleteInvitationLink(linkId);
+      return { success: true };
+    } catch (error) {
+      console.error('[Organization IPC] 删除邀请链接失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取邀请链接统计信息
+   * Channel: 'org:get-invitation-link-stats'
+   */
+  ipcMain.handle('org:get-invitation-link-stats', async (_event, orgId) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        return {
+          success: false,
+          error: '邀请管理器未初始化',
+          stats: {
+            total: 0,
+            active: 0,
+            expired: 0,
+            revoked: 0,
+            totalUses: 0,
+            totalMaxUses: 0,
+            utilizationRate: 0
+          }
+        };
+      }
+
+      const stats = organizationManager.didInvitationManager.getInvitationLinkStats(orgId);
+      return { success: true, stats };
+    } catch (error) {
+      console.error('[Organization IPC] 获取邀请链接统计失败:', error);
+      return {
+        success: false,
+        error: error.message,
+        stats: {
+          total: 0,
+          active: 0,
+          expired: 0,
+          revoked: 0,
+          totalUses: 0,
+          totalMaxUses: 0,
+          utilizationRate: 0
+        }
+      };
+    }
+  });
+
+  /**
+   * 复制邀请链接到剪贴板
+   * Channel: 'org:copy-invitation-link'
+   */
+  ipcMain.handle('org:copy-invitation-link', async (_event, invitationUrl) => {
+    try {
+      const { clipboard } = require('electron');
+      clipboard.writeText(invitationUrl);
+      return { success: true };
+    } catch (error) {
+      console.error('[Organization IPC] 复制邀请链接失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // ============================================================
   // 角色与权限管理 (Role & Permission Management) - 6 handlers
   // ============================================================
 
@@ -771,7 +958,7 @@ function registerOrganizationIPC({
     }
   });
 
-  console.log('[Organization IPC] ✓ All Organization IPC handlers registered successfully (32 handlers)');
+  console.log('[Organization IPC] ✓ All Organization IPC handlers registered successfully (41 handlers)');
 }
 
 module.exports = {

@@ -72,12 +72,50 @@ class DIDInvitationManager {
       )
     `);
 
+    // 邀请链接表（用于可分享的邀请链接）
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS invitation_links (
+        link_id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        inviter_did TEXT NOT NULL,
+        invitation_token TEXT UNIQUE NOT NULL,
+        role TEXT DEFAULT 'member',
+        message TEXT,
+        max_uses INTEGER DEFAULT 1,
+        used_count INTEGER DEFAULT 0,
+        metadata_json TEXT,
+        status TEXT DEFAULT 'active',
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER,
+        last_used_at INTEGER,
+        FOREIGN KEY (org_id) REFERENCES organization_info(org_id)
+      )
+    `);
+
+    // 邀请链接使用记录表
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS invitation_link_usage (
+        id TEXT PRIMARY KEY,
+        link_id TEXT NOT NULL,
+        user_did TEXT NOT NULL,
+        used_at INTEGER NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        FOREIGN KEY (link_id) REFERENCES invitation_links(link_id)
+      )
+    `);
+
     // 创建索引
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_did_invitations_org ON did_invitations(org_id);
       CREATE INDEX IF NOT EXISTS idx_did_invitations_inviter ON did_invitations(inviter_did);
       CREATE INDEX IF NOT EXISTS idx_did_invitations_invitee ON did_invitations(invitee_did);
       CREATE INDEX IF NOT EXISTS idx_did_invitations_status ON did_invitations(status);
+      CREATE INDEX IF NOT EXISTS idx_invitation_links_org ON invitation_links(org_id);
+      CREATE INDEX IF NOT EXISTS idx_invitation_links_token ON invitation_links(invitation_token);
+      CREATE INDEX IF NOT EXISTS idx_invitation_links_status ON invitation_links(status);
+      CREATE INDEX IF NOT EXISTS idx_invitation_link_usage_link ON invitation_link_usage(link_id);
+      CREATE INDEX IF NOT EXISTS idx_invitation_link_usage_user ON invitation_link_usage(user_did);
     `);
 
     console.log('[DIDInvitationManager] ✓ 数据库表已初始化');
@@ -784,6 +822,520 @@ class DIDInvitationManager {
         pending: 0,
         accepted: 0,
         rejected: 0
+      };
+    }
+  }
+
+  // ============================================================
+  // 邀请链接功能 (Invitation Link Features)
+  // ============================================================
+
+  /**
+   * 生成安全的邀请令牌
+   * @returns {string} 邀请令牌
+   */
+  generateInvitationToken() {
+    // 生成32字节随机令牌，转为base64url格式
+    const token = crypto.randomBytes(32).toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+    return token;
+  }
+
+  /**
+   * 创建邀请链接
+   * @param {Object} params - 邀请链接参数
+   * @param {string} params.orgId - 组织ID
+   * @param {string} params.role - 角色（默认member）
+   * @param {string} params.message - 邀请消息
+   * @param {number} params.maxUses - 最大使用次数（默认1，-1表示无限制）
+   * @param {number} params.expiresIn - 过期时间（毫秒，默认7天）
+   * @param {Object} params.metadata - 额外元数据
+   * @returns {Promise<Object>} 邀请链接信息
+   */
+  async createInvitationLink(params) {
+    const {
+      orgId,
+      role = 'member',
+      message = '',
+      maxUses = 1,
+      expiresIn = 7 * 24 * 60 * 60 * 1000, // 7天
+      metadata = {}
+    } = params;
+
+    console.log(`[DIDInvitationManager] 创建邀请链接: ${orgId}`);
+
+    try {
+      // 1. 验证权限
+      const currentDID = await this.didManager.getCurrentDID();
+      const hasPermission = await this.orgManager.checkPermission(orgId, currentDID, 'member.invite');
+      if (!hasPermission) {
+        throw new Error('没有创建邀请链接的权限');
+      }
+
+      // 2. 获取组织信息
+      const org = await this.orgManager.getOrganization(orgId);
+      if (!org) {
+        throw new Error('组织不存在');
+      }
+
+      // 3. 创建邀请链接记录
+      const linkId = `link_${uuidv4().replace(/-/g, '')}`;
+      const invitationToken = this.generateInvitationToken();
+      const now = Date.now();
+      const expiresAt = expiresIn ? now + expiresIn : null;
+
+      const invitationLink = {
+        linkId,
+        orgId,
+        inviterDID: currentDID,
+        invitationToken,
+        role,
+        message,
+        maxUses: maxUses === -1 ? 999999 : maxUses, // -1表示无限制
+        usedCount: 0,
+        metadata: JSON.stringify(metadata),
+        status: 'active',
+        createdAt: now,
+        expiresAt,
+        lastUsedAt: null
+      };
+
+      this.db.run(`
+        INSERT INTO invitation_links
+        (link_id, org_id, inviter_did, invitation_token, role, message, max_uses, used_count, metadata_json, status, created_at, expires_at, last_used_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        invitationLink.linkId,
+        invitationLink.orgId,
+        invitationLink.inviterDID,
+        invitationLink.invitationToken,
+        invitationLink.role,
+        invitationLink.message,
+        invitationLink.maxUses,
+        invitationLink.usedCount,
+        invitationLink.metadata,
+        invitationLink.status,
+        invitationLink.createdAt,
+        invitationLink.expiresAt,
+        invitationLink.lastUsedAt
+      ]);
+
+      // 4. 生成完整的邀请URL
+      const invitationUrl = `chainlesschain://invite/${invitationToken}`;
+
+      // 5. 记录活动日志
+      await this.orgManager.logActivity(
+        orgId,
+        currentDID,
+        'create_invitation_link',
+        'invitation_link',
+        linkId,
+        { role, maxUses, expiresAt }
+      );
+
+      console.log(`[DIDInvitationManager] ✓ 邀请链接已创建: ${linkId}`);
+
+      return {
+        ...invitationLink,
+        invitationUrl,
+        orgName: org.name,
+        orgDescription: org.description,
+        orgAvatar: org.avatar
+      };
+    } catch (error) {
+      console.error('[DIDInvitationManager] 创建邀请链接失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 验证邀请令牌
+   * @param {string} token - 邀请令牌
+   * @returns {Promise<Object>} 邀请链接信息
+   */
+  async validateInvitationToken(token) {
+    console.log(`[DIDInvitationManager] 验证邀请令牌`);
+
+    try {
+      // 1. 查询邀请链接
+      const link = this.db.prepare(`
+        SELECT * FROM invitation_links WHERE invitation_token = ?
+      `).get(token);
+
+      if (!link) {
+        throw new Error('邀请链接不存在');
+      }
+
+      // 2. 检查状态
+      if (link.status !== 'active') {
+        throw new Error(`邀请链接已${link.status === 'revoked' ? '撤销' : '失效'}`);
+      }
+
+      // 3. 检查是否过期
+      if (link.expires_at && link.expires_at < Date.now()) {
+        // 更新状态为已过期
+        this.db.run(`
+          UPDATE invitation_links SET status = 'expired' WHERE link_id = ?
+        `, [link.link_id]);
+        throw new Error('邀请链接已过期');
+      }
+
+      // 4. 检查使用次数
+      if (link.used_count >= link.max_uses) {
+        throw new Error('邀请链接使用次数已达上限');
+      }
+
+      // 5. 获取组织信息
+      const org = await this.orgManager.getOrganization(link.org_id);
+      if (!org) {
+        throw new Error('组织不存在');
+      }
+
+      // 6. 获取邀请人信息
+      const inviterIdentity = await this.didManager.getIdentityByDID(link.inviter_did);
+
+      return {
+        linkId: link.link_id,
+        orgId: link.org_id,
+        orgName: org.name,
+        orgDescription: org.description,
+        orgAvatar: org.avatar,
+        inviterDID: link.inviter_did,
+        inviterName: inviterIdentity?.displayName || 'Unknown',
+        role: link.role,
+        message: link.message,
+        maxUses: link.max_uses,
+        usedCount: link.used_count,
+        remainingUses: link.max_uses - link.used_count,
+        expiresAt: link.expires_at,
+        createdAt: link.created_at,
+        metadata: link.metadata_json ? JSON.parse(link.metadata_json) : {}
+      };
+    } catch (error) {
+      console.error('[DIDInvitationManager] 验证邀请令牌失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 通过邀请链接加入组织
+   * @param {string} token - 邀请令牌
+   * @param {Object} options - 选项
+   * @param {string} options.ipAddress - IP地址（可选）
+   * @param {string} options.userAgent - User Agent（可选）
+   * @returns {Promise<Object>} 加入的组织信息
+   */
+  async acceptInvitationLink(token, options = {}) {
+    console.log(`[DIDInvitationManager] 通过邀请链接加入组织`);
+
+    try {
+      // 1. 验证邀请令牌
+      const linkInfo = await this.validateInvitationToken(token);
+
+      // 2. 获取当前用户DID
+      const currentDID = await this.didManager.getCurrentDID();
+      if (!currentDID) {
+        throw new Error('未找到当前用户身份');
+      }
+
+      // 3. 检查是否已经是成员
+      const isMember = await this.orgManager.isMember(linkInfo.orgId, currentDID);
+      if (isMember) {
+        throw new Error('您已经是该组织的成员');
+      }
+
+      // 4. 检查是否已经使用过此链接
+      const existingUsage = this.db.prepare(`
+        SELECT * FROM invitation_link_usage
+        WHERE link_id = ? AND user_did = ?
+      `).get(linkInfo.linkId, currentDID);
+
+      if (existingUsage) {
+        throw new Error('您已经使用过此邀请链接');
+      }
+
+      // 5. 加入组织
+      const currentIdentity = await this.didManager.getDefaultIdentity();
+      await this.orgManager.addMember(linkInfo.orgId, {
+        memberDID: currentDID,
+        displayName: currentIdentity?.displayName || 'Unknown',
+        avatar: currentIdentity?.avatar || '',
+        role: linkInfo.role,
+        invitedBy: linkInfo.inviterDID
+      });
+
+      // 6. 记录使用情况
+      const usageId = uuidv4();
+      const now = Date.now();
+
+      this.db.run(`
+        INSERT INTO invitation_link_usage
+        (id, link_id, user_did, used_at, ip_address, user_agent)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [
+        usageId,
+        linkInfo.linkId,
+        currentDID,
+        now,
+        options.ipAddress || null,
+        options.userAgent || null
+      ]);
+
+      // 7. 更新链接使用次数
+      this.db.run(`
+        UPDATE invitation_links
+        SET used_count = used_count + 1, last_used_at = ?
+        WHERE link_id = ?
+      `, [now, linkInfo.linkId]);
+
+      // 8. 连接到组织P2P网络
+      await this.orgManager.connectToOrgP2PNetwork(linkInfo.orgId);
+
+      // 9. 记录活动日志
+      await this.orgManager.logActivity(
+        linkInfo.orgId,
+        currentDID,
+        'accept_invitation_link',
+        'invitation_link',
+        linkInfo.linkId,
+        { inviterDID: linkInfo.inviterDID }
+      );
+
+      console.log(`[DIDInvitationManager] ✓ 通过邀请链接加入组织成功`);
+
+      // 10. 获取组织信息
+      const org = await this.orgManager.getOrganization(linkInfo.orgId);
+
+      return org;
+    } catch (error) {
+      console.error('[DIDInvitationManager] 通过邀请链接加入失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取邀请链接列表
+   * @param {string} orgId - 组织ID
+   * @param {Object} options - 选项
+   * @param {string} options.status - 状态过滤（active/expired/revoked）
+   * @returns {Array<Object>} 邀请链接列表
+   */
+  getInvitationLinks(orgId, options = {}) {
+    try {
+      let query = `
+        SELECT * FROM invitation_links
+        WHERE org_id = ?
+      `;
+
+      const params = [orgId];
+
+      if (options.status) {
+        query += ` AND status = ?`;
+        params.push(options.status);
+      }
+
+      query += ` ORDER BY created_at DESC`;
+
+      const links = this.db.prepare(query).all(...params);
+
+      return links.map(link => ({
+        ...link,
+        metadata: link.metadata_json ? JSON.parse(link.metadata_json) : {},
+        invitationUrl: `chainlesschain://invite/${link.invitation_token}`,
+        remainingUses: link.max_uses - link.used_count,
+        isExpired: link.expires_at && link.expires_at < Date.now(),
+        isExhausted: link.used_count >= link.max_uses
+      }));
+    } catch (error) {
+      console.error('[DIDInvitationManager] 获取邀请链接列表失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取邀请链接详情
+   * @param {string} linkId - 链接ID
+   * @returns {Object|null} 邀请链接详情
+   */
+  getInvitationLink(linkId) {
+    try {
+      const link = this.db.prepare(`
+        SELECT * FROM invitation_links WHERE link_id = ?
+      `).get(linkId);
+
+      if (!link) {
+        return null;
+      }
+
+      // 获取使用记录
+      const usageRecords = this.db.prepare(`
+        SELECT * FROM invitation_link_usage
+        WHERE link_id = ?
+        ORDER BY used_at DESC
+      `).all(linkId);
+
+      return {
+        ...link,
+        metadata: link.metadata_json ? JSON.parse(link.metadata_json) : {},
+        invitationUrl: `chainlesschain://invite/${link.invitation_token}`,
+        remainingUses: link.max_uses - link.used_count,
+        isExpired: link.expires_at && link.expires_at < Date.now(),
+        isExhausted: link.used_count >= link.max_uses,
+        usageRecords
+      };
+    } catch (error) {
+      console.error('[DIDInvitationManager] 获取邀请链接详情失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 撤销邀请链接
+   * @param {string} linkId - 链接ID
+   * @returns {Promise<void>}
+   */
+  async revokeInvitationLink(linkId) {
+    console.log(`[DIDInvitationManager] 撤销邀请链接: ${linkId}`);
+
+    try {
+      // 1. 获取链接信息
+      const link = this.db.prepare(`
+        SELECT * FROM invitation_links WHERE link_id = ?
+      `).get(linkId);
+
+      if (!link) {
+        throw new Error('邀请链接不存在');
+      }
+
+      // 2. 验证权限（只有创建者或管理员可以撤销）
+      const currentDID = await this.didManager.getCurrentDID();
+      const isCreator = link.inviter_did === currentDID;
+      const isAdmin = await this.orgManager.checkPermission(link.org_id, currentDID, 'member.manage');
+
+      if (!isCreator && !isAdmin) {
+        throw new Error('没有权限撤销此邀请链接');
+      }
+
+      // 3. 更新状态
+      this.db.run(`
+        UPDATE invitation_links
+        SET status = 'revoked'
+        WHERE link_id = ?
+      `, [linkId]);
+
+      // 4. 记录活动日志
+      await this.orgManager.logActivity(
+        link.org_id,
+        currentDID,
+        'revoke_invitation_link',
+        'invitation_link',
+        linkId,
+        {}
+      );
+
+      console.log(`[DIDInvitationManager] ✓ 邀请链接已撤销`);
+    } catch (error) {
+      console.error('[DIDInvitationManager] 撤销邀请链接失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 删除邀请链接
+   * @param {string} linkId - 链接ID
+   * @returns {Promise<void>}
+   */
+  async deleteInvitationLink(linkId) {
+    console.log(`[DIDInvitationManager] 删除邀请链接: ${linkId}`);
+
+    try {
+      // 1. 获取链接信息
+      const link = this.db.prepare(`
+        SELECT * FROM invitation_links WHERE link_id = ?
+      `).get(linkId);
+
+      if (!link) {
+        throw new Error('邀请链接不存在');
+      }
+
+      // 2. 验证权限
+      const currentDID = await this.didManager.getCurrentDID();
+      const isCreator = link.inviter_did === currentDID;
+      const isAdmin = await this.orgManager.checkPermission(link.org_id, currentDID, 'member.manage');
+
+      if (!isCreator && !isAdmin) {
+        throw new Error('没有权限删除此邀请链接');
+      }
+
+      // 3. 删除使用记录
+      this.db.run(`
+        DELETE FROM invitation_link_usage WHERE link_id = ?
+      `, [linkId]);
+
+      // 4. 删除链接
+      this.db.run(`
+        DELETE FROM invitation_links WHERE link_id = ?
+      `, [linkId]);
+
+      // 5. 记录活动日志
+      await this.orgManager.logActivity(
+        link.org_id,
+        currentDID,
+        'delete_invitation_link',
+        'invitation_link',
+        linkId,
+        {}
+      );
+
+      console.log(`[DIDInvitationManager] ✓ 邀请链接已删除`);
+    } catch (error) {
+      console.error('[DIDInvitationManager] 删除邀请链接失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取邀请链接统计信息
+   * @param {string} orgId - 组织ID
+   * @returns {Object} 统计信息
+   */
+  getInvitationLinkStats(orgId) {
+    try {
+      const stats = this.db.prepare(`
+        SELECT
+          COUNT(*) as total,
+          SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+          SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) as expired,
+          SUM(CASE WHEN status = 'revoked' THEN 1 ELSE 0 END) as revoked,
+          SUM(used_count) as totalUses,
+          SUM(max_uses) as totalMaxUses
+        FROM invitation_links
+        WHERE org_id = ?
+      `).get(orgId);
+
+      return {
+        total: stats.total || 0,
+        active: stats.active || 0,
+        expired: stats.expired || 0,
+        revoked: stats.revoked || 0,
+        totalUses: stats.totalUses || 0,
+        totalMaxUses: stats.totalMaxUses || 0,
+        utilizationRate: stats.totalMaxUses > 0
+          ? ((stats.totalUses / stats.totalMaxUses) * 100).toFixed(2)
+          : 0
+      };
+    } catch (error) {
+      console.error('[DIDInvitationManager] 获取邀请链接统计失败:', error);
+      return {
+        total: 0,
+        active: 0,
+        expired: 0,
+        revoked: 0,
+        totalUses: 0,
+        totalMaxUses: 0,
+        utilizationRate: 0
       };
     }
   }
