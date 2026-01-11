@@ -75,6 +75,12 @@ class CrashReporter {
 
     // 捕获未捕获的异常
     process.on('uncaughtException', (error) => {
+      // 忽略 EPIPE 错误（管道已关闭，通常发生在应用关闭时）
+      if (error.code === 'EPIPE') {
+        console.log('[CrashReporter] Ignoring EPIPE error (broken pipe)');
+        return;
+      }
+
       console.error('[CrashReporter] Uncaught Exception:', error);
       this.saveCrashReport({
         type: 'uncaughtException',
