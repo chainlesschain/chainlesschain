@@ -22,7 +22,7 @@
       </view>
 
       <view class="body">
-        <text class="text-content">{{ item.content }}</text>
+        <MarkdownRenderer :content="item.content" />
       </view>
 
       <!-- 关联知识 -->
@@ -185,8 +185,12 @@
 import { db } from '@/services/database'
 import { aiService } from '@/services/ai'
 import { importExport } from '@/services/importExport'
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 
 export default {
+  components: {
+    MarkdownRenderer
+  },
   data() {
     return {
       id: '',
@@ -806,13 +810,6 @@ export default {
     padding: 40rpx;
     margin-bottom: 20rpx;
     min-height: 400rpx;
-
-    .text-content {
-      font-size: 15px;
-      color: var(--text-primary);
-      line-height: 1.8;
-      white-space: pre-wrap;
-    }
   }
 
   .actions {

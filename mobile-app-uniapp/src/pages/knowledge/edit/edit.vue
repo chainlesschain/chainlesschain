@@ -87,16 +87,38 @@
       <view class="form-item content-item">
         <view class="label-row">
           <text class="label">内容</text>
-          <text class="ai-assistant-btn" @click="showAIModal = true">🤖 AI助手</text>
+          <view class="content-actions">
+            <text class="preview-btn" @click="togglePreview">
+              {{ showPreview ? '📝 编辑' : '👁 预览' }}
+            </text>
+            <text class="ai-assistant-btn" @click="showAIModal = true">🤖 AI助手</text>
+          </view>
         </view>
+
+        <!-- Markdown工具栏 -->
+        <MarkdownToolbar
+          v-if="!showPreview"
+          @insert="handleMarkdownInsert"
+          @upload-image="handleImageUpload"
+        />
+
+        <!-- 编辑模式 -->
         <textarea
+          v-if="!showPreview"
           class="textarea"
           v-model="form.content"
-          placeholder="请输入内容"
+          placeholder="请输入内容，支持Markdown格式"
           :maxlength="-1"
           :auto-height="true"
           :show-confirm-bar="false"
+          :cursor="cursorPosition"
+          @focus="handleTextareaFocus"
         />
+
+        <!-- 预览模式 -->
+        <view v-else class="preview-container">
+          <MarkdownRenderer :content="form.content || '暂无内容'" />
+        </view>
       </view>
     </view>
 
@@ -264,13 +286,24 @@
 import { db as database } from '@/services/database'
 import authService from '@/services/auth'
 import { aiService } from '@/services/ai'
+import MarkdownToolbar from '@/components/MarkdownToolbar.vue'
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 
 export default {
+  components: {
+    MarkdownToolbar,
+    MarkdownRenderer
+  },
   data() {
     return {
       id: '',
       isEdit: false,
       saving: false,
+      showPreview: false, // 是否显示预览
+      cursorPosition: 0, // 光标位置
+      autoSaveTimer: null, // 自动保存定时器
+      lastSavedContent: '', // 上次保存的内容
+      isDraftSaved: false, // 草稿是否已保存
       form: {
         title: '',
         type: 'note',
@@ -342,6 +375,15 @@ export default {
       return !exists && query.length > 0
     }
   },
+  watch: {
+    // 监听表单内容变化，触发自动保存
+    'form.title'() {
+      this.scheduleAutoSave()
+    },
+    'form.content'() {
+      this.scheduleAutoSave()
+    }
+  },
   onLoad(options) {
     if (options.id) {
       this.id = options.id
@@ -361,8 +403,278 @@ export default {
 
     this.loadTags()
     this.loadFolders()
+
+    // 如果是新建，尝试加载草稿
+    if (!this.isEdit) {
+      this.loadDraft()
+    }
+  },
+  onUnload() {
+    // 清理自动保存定时器
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer)
+      this.autoSaveTimer = null
+    }
   },
   methods: {
+    /**
+     * 切换预览模式
+     */
+    togglePreview() {
+      this.showPreview = !this.showPreview
+    },
+
+    /**
+     * 计划自动保存（防抖）
+     */
+    scheduleAutoSave() {
+      // 清除之前的定时器
+      if (this.autoSaveTimer) {
+        clearTimeout(this.autoSaveTimer)
+      }
+
+      // 设置新的定时器（3秒后保存）
+      this.autoSaveTimer = setTimeout(() => {
+        this.saveDraft()
+      }, 3000)
+    },
+
+    /**
+     * 保存草稿到本地存储
+     */
+    saveDraft() {
+      try {
+        const draftData = {
+          title: this.form.title,
+          type: this.form.type,
+          content: this.form.content,
+          folder_id: this.form.folder_id,
+          encrypted: this.form.encrypted,
+          selectedTags: this.selectedTags,
+          timestamp: Date.now()
+        }
+
+        // 检查内容是否有变化
+        const currentContent = JSON.stringify(draftData)
+        if (currentContent === this.lastSavedContent) {
+          return // 内容没有变化，不需要保存
+        }
+
+        // 保存到本地存储
+        uni.setStorageSync('knowledge_draft', draftData)
+        this.lastSavedContent = currentContent
+        this.isDraftSaved = true
+
+        // 显示保存提示（可选）
+        // uni.showToast({
+        //   title: '草稿已保存',
+        //   icon: 'none',
+        //   duration: 1000
+        // })
+      } catch (error) {
+        console.error('保存草稿失败:', error)
+      }
+    },
+
+    /**
+     * 加载草稿
+     */
+    loadDraft() {
+      try {
+        const draftData = uni.getStorageSync('knowledge_draft')
+
+        if (draftData && draftData.timestamp) {
+          // 检查草稿是否过期（7天）
+          const now = Date.now()
+          const draftAge = now - draftData.timestamp
+          const maxAge = 7 * 24 * 60 * 60 * 1000 // 7天
+
+          if (draftAge > maxAge) {
+            // 草稿过期，删除
+            uni.removeStorageSync('knowledge_draft')
+            return
+          }
+
+          // 询问用户是否恢复草稿
+          uni.showModal({
+            title: '发现草稿',
+            content: '检测到未保存的草稿，是否恢复？',
+            confirmText: '恢复',
+            cancelText: '放弃',
+            success: (res) => {
+              if (res.confirm) {
+                // 恢复草稿
+                this.form.title = draftData.title || ''
+                this.form.type = draftData.type || 'note'
+                this.form.content = draftData.content || ''
+                this.form.folder_id = draftData.folder_id || null
+                this.form.encrypted = draftData.encrypted || false
+                this.selectedTags = draftData.selectedTags || []
+
+                this.lastSavedContent = JSON.stringify(draftData)
+                this.isDraftSaved = true
+
+                uni.showToast({
+                  title: '草稿已恢复',
+                  icon: 'success'
+                })
+              } else {
+                // 用户选择放弃草稿
+                uni.removeStorageSync('knowledge_draft')
+              }
+            }
+          })
+        }
+      } catch (error) {
+        console.error('加载草稿失败:', error)
+      }
+    },
+
+    /**
+     * 清除草稿
+     */
+    clearDraft() {
+      try {
+        uni.removeStorageSync('knowledge_draft')
+        this.isDraftSaved = false
+        this.lastSavedContent = ''
+      } catch (error) {
+        console.error('清除草稿失败:', error)
+      }
+    },
+
+    /**
+     * 处理Markdown工具栏插入
+     */
+    handleMarkdownInsert({ prefix, suffix, placeholder }) {
+      const content = this.form.content || ''
+      const cursorPos = this.cursorPosition || content.length
+
+      // 获取选中的文本（如果有）
+      // 注意：uni-app的textarea不支持获取选中文本，所以这里简化处理
+      const selectedText = placeholder || ''
+
+      // 构建新内容
+      const before = content.substring(0, cursorPos)
+      const after = content.substring(cursorPos)
+      const insertText = prefix + selectedText + suffix
+
+      this.form.content = before + insertText + after
+
+      // 更新光标位置（移动到插入内容的中间）
+      this.$nextTick(() => {
+        this.cursorPosition = cursorPos + prefix.length + selectedText.length
+      })
+    },
+
+    /**
+     * 处理textarea获得焦点
+     */
+    handleTextareaFocus(e) {
+      // 记录光标位置
+      if (e.detail && e.detail.cursor !== undefined) {
+        this.cursorPosition = e.detail.cursor
+      }
+    },
+
+    /**
+     * 处理图片上传
+     */
+    handleImageUpload() {
+      uni.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const tempFilePath = res.tempFilePaths[0]
+
+          // 显示加载提示
+          uni.showLoading({
+            title: '上传中...',
+            mask: true
+          })
+
+          // 保存图片到本地存储
+          this.saveImageToLocal(tempFilePath)
+            .then((savedPath) => {
+              uni.hideLoading()
+
+              // 插入Markdown图片语法
+              const imageMarkdown = `![图片](${savedPath})`
+              this.handleMarkdownInsert({
+                prefix: imageMarkdown,
+                suffix: '',
+                placeholder: ''
+              })
+
+              uni.showToast({
+                title: '图片已插入',
+                icon: 'success'
+              })
+            })
+            .catch((error) => {
+              uni.hideLoading()
+              console.error('保存图片失败:', error)
+              uni.showToast({
+                title: '图片上传失败',
+                icon: 'none'
+              })
+            })
+        },
+        fail: (error) => {
+          console.error('选择图片失败:', error)
+          uni.showToast({
+            title: '选择图片失败',
+            icon: 'none'
+          })
+        }
+      })
+    },
+
+    /**
+     * 保存图片到本地存储
+     */
+    async saveImageToLocal(tempFilePath) {
+      return new Promise((resolve, reject) => {
+        // #ifdef H5
+        // H5环境：使用base64
+        uni.getFileSystemManager().readFile({
+          filePath: tempFilePath,
+          encoding: 'base64',
+          success: (res) => {
+            const base64 = 'data:image/png;base64,' + res.data
+            resolve(base64)
+          },
+          fail: reject
+        })
+        // #endif
+
+        // #ifndef H5
+        // App环境：保存到本地文件系统
+        const fs = uni.getFileSystemManager()
+        const fileName = `image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`
+        const savedPath = `${uni.env.USER_DATA_PATH}/images/${fileName}`
+
+        // 确保images目录存在
+        try {
+          fs.mkdirSync(`${uni.env.USER_DATA_PATH}/images`, true)
+        } catch (e) {
+          // 目录可能已存在，忽略错误
+        }
+
+        // 复制文件
+        fs.copyFile({
+          srcPath: tempFilePath,
+          destPath: savedPath,
+          success: () => {
+            resolve(savedPath)
+          },
+          fail: reject
+        })
+        // #endif
+      })
+    },
+
     /**
      * 加载标签列表
      */
@@ -664,6 +976,9 @@ export default {
         // 保存标签关联
         const tagIds = this.selectedTags.map(tag => tag.id)
         await database.setKnowledgeTags(itemId, tagIds)
+
+        // 清除草稿
+        this.clearDraft()
 
         uni.showToast({
           title: this.isEdit ? '保存成功' : '创建成功',
@@ -1095,6 +1410,20 @@ export default {
       align-items: center;
       margin-bottom: 20rpx;
 
+      .content-actions {
+        display: flex;
+        gap: 12rpx;
+        align-items: center;
+      }
+
+      .preview-btn {
+        font-size: 12px;
+        color: var(--color-info);
+        padding: 10rpx 20rpx;
+        background-color: rgba(24, 144, 255, 0.1);
+        border-radius: 32rpx;
+      }
+
       .add-tag-btn {
         font-size: 13px;
         color: var(--color-primary);
@@ -1158,6 +1487,14 @@ export default {
 
       .textarea {
         flex: 1;
+      }
+
+      .preview-container {
+        min-height: 400rpx;
+        padding: 24rpx;
+        background-color: var(--bg-input);
+        border-radius: 8rpx;
+        overflow-y: auto;
       }
     }
 
