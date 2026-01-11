@@ -119,6 +119,29 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
   });
 
   /**
+   * 克隆远程仓库
+   * Channel: 'git:clone'
+   */
+  ipcMain.handle('git:clone', async (_event, url, targetPath, auth) => {
+    try {
+      if (!gitManager) {
+        throw new Error('Git同步未启用');
+      }
+
+      // 如果提供了认证信息，临时设置
+      if (auth) {
+        gitManager.setAuth(auth);
+      }
+
+      await gitManager.clone(url, targetPath);
+      return { success: true, path: targetPath };
+    } catch (error) {
+      console.error('[Git IPC] Git克隆失败:', error);
+      throw error;
+    }
+  });
+
+  /**
    * 获取 Git 日志
    * Channel: 'git:get-log'
    */
@@ -559,7 +582,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('git-ipc');
 
-  console.log('[Git IPC] ✓ All Git IPC handlers registered successfully (22 handlers)');
+  console.log('[Git IPC] ✓ All Git IPC handlers registered successfully (23 handlers)');
 }
 
 module.exports = {

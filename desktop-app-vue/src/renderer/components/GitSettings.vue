@@ -166,6 +166,13 @@
             <template #icon><download-outlined /></template>
             拉取更新 (Pull)
           </a-button>
+          <a-button
+            @click="showCloneDialog = true"
+            :loading="cloning"
+          >
+            <template #icon><cloud-download-outlined /></template>
+            克隆仓库 (Clone)
+          </a-button>
         </a-space>
         <div v-if="testResult" class="test-result" :class="testResult.success ? 'success' : 'error'">
           {{ testResult.message }}
@@ -180,13 +187,86 @@
       @resolved="handleConflictResolved"
       @aborted="handleConflictAborted"
     />
+
+    <!-- Git Clone 对话框 -->
+    <a-modal
+      v-model:open="showCloneDialog"
+      title="克隆Git仓库"
+      :confirm-loading="cloning"
+      @ok="handleClone"
+      @cancel="resetCloneForm"
+      width="600px"
+    >
+      <a-form
+        :model="cloneForm"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
+        <a-form-item label="仓库URL" required>
+          <a-input
+            v-model:value="cloneForm.url"
+            placeholder="https://github.com/username/repo.git"
+          />
+          <div class="form-hint">
+            远程Git仓库的URL（支持HTTPS和SSH）
+          </div>
+        </a-form-item>
+
+        <a-form-item label="目标路径">
+          <a-input
+            v-model:value="cloneForm.targetPath"
+            placeholder="留空使用默认路径"
+          />
+          <div class="form-hint">
+            克隆到本地的路径，留空将使用应用数据目录
+          </div>
+        </a-form-item>
+
+        <a-form-item label="认证方式">
+          <a-radio-group v-model:value="cloneForm.authType">
+            <a-radio value="none">无需认证</a-radio>
+            <a-radio value="password">用户名/密码</a-radio>
+            <a-radio value="token">Access Token</a-radio>
+          </a-radio-group>
+        </a-form-item>
+
+        <template v-if="cloneForm.authType === 'password'">
+          <a-form-item label="用户名">
+            <a-input v-model:value="cloneForm.username" />
+          </a-form-item>
+          <a-form-item label="密码">
+            <a-input-password v-model:value="cloneForm.password" />
+          </a-form-item>
+        </template>
+
+        <template v-if="cloneForm.authType === 'token'">
+          <a-form-item label="Access Token">
+            <a-input-password
+              v-model:value="cloneForm.token"
+              placeholder="ghp_xxxxxxxxxxxx"
+            />
+            <div class="form-hint">
+              GitHub Personal Access Token 或其他Git服务的令牌
+            </div>
+          </a-form-item>
+        </template>
+      </a-form>
+
+      <div v-if="cloneProgress" class="clone-progress">
+        <a-progress
+          :percent="cloneProgress.percent"
+          :status="cloneProgress.status"
+        />
+        <div class="progress-text">{{ cloneProgress.message }}</div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import { message } from 'ant-design-vue';
-import { ApiOutlined, ExportOutlined, DownloadOutlined } from '@ant-design/icons-vue';
+import { ApiOutlined, ExportOutlined, DownloadOutlined, CloudDownloadOutlined } from '@ant-design/icons-vue';
 import GitConflictResolver from './GitConflictResolver.vue';
 
 const loading = ref(false);
@@ -194,11 +274,24 @@ const saving = ref(false);
 const testing = ref(false);
 const exporting = ref(false);
 const pulling = ref(false);
+const cloning = ref(false);
 const testResult = ref(null);
 
 // 冲突解决相关
 const showConflictResolver = ref(false);
 const conflicts = ref([]);
+
+// Clone 对话框相关
+const showCloneDialog = ref(false);
+const cloneProgress = ref(null);
+const cloneForm = reactive({
+  url: '',
+  targetPath: '',
+  authType: 'none',
+  username: '',
+  password: '',
+  token: '',
+});
 
 const form = reactive({
   enabled: false,
@@ -399,6 +492,93 @@ function handleConflictAborted() {
   conflicts.value = [];
 }
 
+// 克隆仓库
+async function handleClone() {
+  if (!cloneForm.url) {
+    message.warning('请输入仓库URL');
+    return;
+  }
+
+  cloning.value = true;
+  cloneProgress.value = {
+    percent: 0,
+    status: 'active',
+    message: '正在克隆仓库...',
+  };
+
+  try {
+    // 构建认证对象
+    let auth = null;
+    if (cloneForm.authType === 'password' && cloneForm.username && cloneForm.password) {
+      auth = {
+        username: cloneForm.username,
+        password: cloneForm.password,
+      };
+    } else if (cloneForm.authType === 'token' && cloneForm.token) {
+      auth = {
+        token: cloneForm.token,
+      };
+    }
+
+    // 模拟进度更新
+    const progressInterval = setInterval(() => {
+      if (cloneProgress.value && cloneProgress.value.percent < 90) {
+        cloneProgress.value.percent += 10;
+      }
+    }, 500);
+
+    // 执行克隆
+    const result = await window.electronAPI.git.clone(
+      cloneForm.url,
+      cloneForm.targetPath || null,
+      auth
+    );
+
+    clearInterval(progressInterval);
+
+    if (result.success) {
+      cloneProgress.value = {
+        percent: 100,
+        status: 'success',
+        message: '克隆成功！',
+      };
+
+      message.success(`仓库已成功克隆到: ${result.path}`);
+
+      // 延迟关闭对话框
+      setTimeout(() => {
+        showCloneDialog.value = false;
+        resetCloneForm();
+      }, 1500);
+
+      testResult.value = {
+        success: true,
+        message: `仓库已克隆到: ${result.path}`,
+      };
+    }
+  } catch (error) {
+    cloneProgress.value = {
+      percent: 0,
+      status: 'exception',
+      message: '克隆失败: ' + error.message,
+    };
+    message.error('克隆失败: ' + error.message);
+  } finally {
+    cloning.value = false;
+  }
+}
+
+// 重置克隆表单
+function resetCloneForm() {
+  cloneForm.url = '';
+  cloneForm.targetPath = '';
+  cloneForm.authType = 'none';
+  cloneForm.username = '';
+  cloneForm.password = '';
+  cloneForm.token = '';
+  cloneProgress.value = null;
+}
+
 onMounted(() => {
   loadConfig();
 });
@@ -444,5 +624,19 @@ onMounted(() => {
   background: #fff2f0;
   border: 1px solid #ffccc7;
   color: #ff4d4f;
+}
+
+.clone-progress {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.progress-text {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
 }
 </style>
