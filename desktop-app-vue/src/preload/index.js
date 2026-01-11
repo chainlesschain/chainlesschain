@@ -1196,6 +1196,45 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAdditionalV3Performance: () => ipcRenderer.invoke('tool:get-additional-v3-performance'),
   },
 
+  // 插件市场 (Plugin Marketplace)
+  pluginMarketplace: {
+    // 浏览和搜索
+    list: (options) => ipcRenderer.invoke('plugin-marketplace:list', options),
+    get: (pluginId) => ipcRenderer.invoke('plugin-marketplace:get', pluginId),
+    search: (query, options) => ipcRenderer.invoke('plugin-marketplace:search', query, options),
+    featured: (limit) => ipcRenderer.invoke('plugin-marketplace:featured', limit),
+    categories: () => ipcRenderer.invoke('plugin-marketplace:categories'),
+
+    // 安装和下载
+    install: (pluginId, version) => ipcRenderer.invoke('plugin-marketplace:install', pluginId, version),
+    download: (pluginId, version, savePath) => ipcRenderer.invoke('plugin-marketplace:download', pluginId, version, savePath),
+
+    // 评分和评论
+    rate: (pluginId, rating, comment) => ipcRenderer.invoke('plugin-marketplace:rate', pluginId, rating, comment),
+    reviews: (pluginId, page, pageSize) => ipcRenderer.invoke('plugin-marketplace:reviews', pluginId, page, pageSize),
+    report: (pluginId, reason, description) => ipcRenderer.invoke('plugin-marketplace:report', pluginId, reason, description),
+
+    // 插件更新
+    checkUpdates: (force) => ipcRenderer.invoke('plugin-marketplace:check-updates', force),
+    updatePlugin: (pluginId, version) => ipcRenderer.invoke('plugin-marketplace:update-plugin', pluginId, version),
+    updateAll: () => ipcRenderer.invoke('plugin-marketplace:update-all'),
+    availableUpdates: () => ipcRenderer.invoke('plugin-marketplace:available-updates'),
+    setAutoUpdate: (enabled) => ipcRenderer.invoke('plugin-marketplace:set-auto-update', enabled),
+
+    // 插件发布（开发者功能）
+    publish: (pluginData, pluginFilePath) => ipcRenderer.invoke('plugin-marketplace:publish', pluginData, pluginFilePath),
+    updatePublished: (pluginId, version, pluginFilePath, changelog) => ipcRenderer.invoke('plugin-marketplace:update-published', pluginId, version, pluginFilePath, changelog),
+    stats: (pluginId) => ipcRenderer.invoke('plugin-marketplace:stats', pluginId),
+
+    // 缓存管理
+    clearCache: () => ipcRenderer.invoke('plugin-marketplace:clear-cache'),
+
+    // 事件监听
+    onUpdatesAvailable: (callback) => ipcRenderer.on('plugin-marketplace:updates-available', (_event, updates) => callback(updates)),
+    onUpdateComplete: (callback) => ipcRenderer.on('plugin-marketplace:update-complete', (_event, pluginId) => callback(pluginId)),
+    onUpdateError: (callback) => ipcRenderer.on('plugin-marketplace:update-error', (_event, data) => callback(data)),
+  },
+
   // 知识管理 (Knowledge)
   knowledge: {
     getTags: () => ipcRenderer.invoke('knowledge:get-tags'),
