@@ -97,7 +97,7 @@ public class PluginReportController {
         log.info("Review report: {} with action: {}", id, request.getAction());
 
         pluginReportService.reviewReport(id, request.getAction(), request.getResponse());
-        return ApiResponse.success(null, "Report reviewed successfully");
+        return ApiResponse.successMessage("Report reviewed successfully");
     }
 
     /**
@@ -109,7 +109,7 @@ public class PluginReportController {
     public ApiResponse<Void> deleteReport(@PathVariable Long id) {
         log.info("Delete report: {}", id);
         pluginReportService.deleteReport(id);
-        return ApiResponse.success(null, "Report deleted successfully");
+        return ApiResponse.successMessage("Report deleted successfully");
     }
 
     /**

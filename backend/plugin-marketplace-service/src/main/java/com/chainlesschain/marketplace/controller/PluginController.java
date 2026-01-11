@@ -89,7 +89,7 @@ public class PluginController {
         String fileHash = "hash123";  // TODO: Calculate file hash
 
         Plugin plugin = pluginService.createPlugin(dto, userDid, fileUrl, fileSize, fileHash);
-        return ApiResponse.success("Plugin created successfully", plugin);
+        return ApiResponse.success(plugin, "Plugin created successfully");
     }
 
     /**
@@ -105,7 +105,7 @@ public class PluginController {
 
         String userDid = authentication.getName();
         Plugin plugin = pluginService.updatePlugin(id, dto, userDid);
-        return ApiResponse.success("Plugin updated successfully", plugin);
+        return ApiResponse.success(plugin, "Plugin updated successfully");
     }
 
     /**
@@ -120,7 +120,7 @@ public class PluginController {
 
         String userDid = authentication.getName();
         pluginService.deletePlugin(id, userDid);
-        return ApiResponse.success("Plugin deleted successfully", null);
+        return ApiResponse.successMessage("Plugin deleted successfully");
     }
 
     /**
@@ -193,7 +193,7 @@ public class PluginController {
     public ApiResponse<Void> approvePlugin(@PathVariable Long id) {
         log.info("Approve plugin: {}", id);
         pluginService.approvePlugin(id);
-        return ApiResponse.success("Plugin approved successfully", null);
+        return ApiResponse.successMessage("Plugin approved successfully");
     }
 
     /**
@@ -204,8 +204,8 @@ public class PluginController {
     public ApiResponse<Void> rejectPlugin(
             @PathVariable Long id,
             @RequestParam String reason) {
-        log.info("Reject plugin: {}, reason: {}", id, reason);
+        log.info("Reject plugin: {}, reason: ", id, reason);
         pluginService.rejectPlugin(id, reason);
-        return ApiResponse.success("Plugin rejected", null);
+        return ApiResponse.successMessage("Plugin rejected");
     }
 }

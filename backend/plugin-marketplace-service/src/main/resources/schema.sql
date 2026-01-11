@@ -1,11 +1,6 @@
 -- Plugin Marketplace Database Schema
 -- PostgreSQL 16+
 
--- Create database
-CREATE DATABASE plugin_marketplace;
-
-\c plugin_marketplace;
-
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 

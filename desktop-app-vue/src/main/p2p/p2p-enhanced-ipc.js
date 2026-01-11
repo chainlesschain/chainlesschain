@@ -35,6 +35,16 @@ class P2PEnhancedIPC {
     this.registerHandler('p2p-enhanced:cancel-transfer', this.handleCancelTransfer.bind(this));
     this.registerHandler('p2p-enhanced:get-transfer-stats', this.handleGetTransferStats.bind(this));
 
+    // 语音/视频通话相关
+    this.registerHandler('p2p-enhanced:start-call', this.handleStartCall.bind(this));
+    this.registerHandler('p2p-enhanced:accept-call', this.handleAcceptCall.bind(this));
+    this.registerHandler('p2p-enhanced:reject-call', this.handleRejectCall.bind(this));
+    this.registerHandler('p2p-enhanced:end-call', this.handleEndCall.bind(this));
+    this.registerHandler('p2p-enhanced:toggle-mute', this.handleToggleMute.bind(this));
+    this.registerHandler('p2p-enhanced:toggle-video', this.handleToggleVideo.bind(this));
+    this.registerHandler('p2p-enhanced:get-call-info', this.handleGetCallInfo.bind(this));
+    this.registerHandler('p2p-enhanced:get-active-calls', this.handleGetActiveCalls.bind(this));
+
     // 统计信息
     this.registerHandler('p2p-enhanced:get-stats', this.handleGetStats.bind(this));
 
@@ -119,6 +129,47 @@ class P2PEnhancedIPC {
 
     this.enhancedManager.on('file:transfer-request', (data) => {
       this.sendToRenderer('p2p-enhanced:transfer-request', data);
+    });
+
+    // 语音/视频通话事件
+    this.enhancedManager.on('call:started', (data) => {
+      this.sendToRenderer('p2p-enhanced:call-started', data);
+    });
+
+    this.enhancedManager.on('call:incoming', (data) => {
+      this.sendToRenderer('p2p-enhanced:call-incoming', data);
+    });
+
+    this.enhancedManager.on('call:accepted', (data) => {
+      this.sendToRenderer('p2p-enhanced:call-accepted', data);
+    });
+
+    this.enhancedManager.on('call:rejected', (data) => {
+      this.sendToRenderer('p2p-enhanced:call-rejected', data);
+    });
+
+    this.enhancedManager.on('call:connected', (data) => {
+      this.sendToRenderer('p2p-enhanced:call-connected', data);
+    });
+
+    this.enhancedManager.on('call:ended', (data) => {
+      this.sendToRenderer('p2p-enhanced:call-ended', data);
+    });
+
+    this.enhancedManager.on('call:remote-stream', (data) => {
+      this.sendToRenderer('p2p-enhanced:call-remote-stream', data);
+    });
+
+    this.enhancedManager.on('call:quality-update', (data) => {
+      this.sendToRenderer('p2p-enhanced:call-quality-update', data);
+    });
+
+    this.enhancedManager.on('call:mute-changed', (data) => {
+      this.sendToRenderer('p2p-enhanced:call-mute-changed', data);
+    });
+
+    this.enhancedManager.on('call:video-changed', (data) => {
+      this.sendToRenderer('p2p-enhanced:call-video-changed', data);
     });
 
     // 节点连接事件
@@ -375,6 +426,163 @@ class P2PEnhancedIPC {
       };
     } catch (error) {
       console.error('[P2PEnhancedIPC] 获取统计信息失败:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 处理发起通话
+   */
+  async handleStartCall(event, { peerId, type, options }) {
+    try {
+      const callId = await this.enhancedManager.startCall(peerId, type, options);
+
+      return {
+        success: true,
+        callId
+      };
+    } catch (error) {
+      console.error('[P2PEnhancedIPC] 发起通话失败:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 处理接受通话
+   */
+  async handleAcceptCall(event, { callId }) {
+    try {
+      await this.enhancedManager.acceptCall(callId);
+
+      return {
+        success: true
+      };
+    } catch (error) {
+      console.error('[P2PEnhancedIPC] 接受通话失败:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 处理拒绝通话
+   */
+  async handleRejectCall(event, { callId, reason }) {
+    try {
+      await this.enhancedManager.rejectCall(callId, reason);
+
+      return {
+        success: true
+      };
+    } catch (error) {
+      console.error('[P2PEnhancedIPC] 拒绝通话失败:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 处理结束通话
+   */
+  async handleEndCall(event, { callId }) {
+    try {
+      await this.enhancedManager.endCall(callId);
+
+      return {
+        success: true
+      };
+    } catch (error) {
+      console.error('[P2PEnhancedIPC] 结束通话失败:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 处理切换静音
+   */
+  async handleToggleMute(event, { callId }) {
+    try {
+      const isMuted = this.enhancedManager.toggleMute(callId);
+
+      return {
+        success: true,
+        isMuted
+      };
+    } catch (error) {
+      console.error('[P2PEnhancedIPC] 切换静音失败:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 处理切换视频
+   */
+  async handleToggleVideo(event, { callId }) {
+    try {
+      const isVideoEnabled = this.enhancedManager.toggleVideo(callId);
+
+      return {
+        success: true,
+        isVideoEnabled
+      };
+    } catch (error) {
+      console.error('[P2PEnhancedIPC] 切换视频失败:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 获取通话信息
+   */
+  async handleGetCallInfo(event, { callId }) {
+    try {
+      const info = this.enhancedManager.getCallInfo(callId);
+
+      return {
+        success: true,
+        info
+      };
+    } catch (error) {
+      console.error('[P2PEnhancedIPC] 获取通话信息失败:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 获取活动通话列表
+   */
+  async handleGetActiveCalls(event) {
+    try {
+      const calls = this.enhancedManager.getActiveCalls();
+
+      return {
+        success: true,
+        calls
+      };
+    } catch (error) {
+      console.error('[P2PEnhancedIPC] 获取活动通话失败:', error);
       return {
         success: false,
         error: error.message

@@ -22,8 +22,12 @@ public class ApiResponse<T> {
         return new ApiResponse<>(true, "Success", data, System.currentTimeMillis());
     }
 
-    public static <T> ApiResponse<T> success(String message, T data) {
+    public static <T> ApiResponse<T> success(T data, String message) {
         return new ApiResponse<>(true, message, data, System.currentTimeMillis());
+    }
+
+    public static ApiResponse<Void> successMessage(String message) {
+        return new ApiResponse<>(true, message, null, System.currentTimeMillis());
     }
 
     public static <T> ApiResponse<T> error(String message) {

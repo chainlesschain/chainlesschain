@@ -32,6 +32,9 @@ public class FileStorageService {
     @Value("${minio.bucket}")
     private String bucketName;
 
+    @Value("${minio.endpoint}")
+    private String minioEndpoint;
+
     /**
      * Initialize bucket if not exists
      */
@@ -189,7 +192,7 @@ public class FileStorageService {
      */
     public String getFileUrl(String objectName) {
         return String.format("%s/%s/%s",
-                minioClient.getBaseUrl(), bucketName, objectName);
+                minioEndpoint, bucketName, objectName);
     }
 
     /**
