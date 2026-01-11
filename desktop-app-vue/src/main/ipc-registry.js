@@ -79,6 +79,7 @@ function registerAllIPC(dependencies) {
       skillExecutor,
       aiScheduler,
       chatSkillBridge,
+      syncManager,
       contactManager,
       friendManager,
       postManager,
@@ -612,11 +613,11 @@ function registerAllIPC(dependencies) {
     }
 
     console.log('[IPC Registry] Registering Sync IPC...');
-    if (!app.syncManager) {
+    if (!syncManager) {
       console.warn('[IPC Registry] ⚠️ syncManager 未初始化，将注册降级的 Sync IPC handlers');
     }
     const { registerSyncIPC } = require('./sync/sync-ipc');
-    registerSyncIPC({ syncManager: app.syncManager || null });
+    registerSyncIPC({ syncManager: syncManager || null });
     console.log('[IPC Registry] ✓ Sync IPC registered (4 handlers)');
 
     // Always register notification IPC (handle null database gracefully)

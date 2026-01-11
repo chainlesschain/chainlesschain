@@ -4,7 +4,7 @@
  * 提供屏幕共享相关的IPC通道
  */
 
-import { ipcMain, desktopCapturer } from 'electron';
+const { ipcMain, desktopCapturer } = require('electron');
 
 class ScreenShareIPC {
   constructor() {
@@ -108,4 +108,4 @@ class ScreenShareIPC {
   }
 }
 
-export default ScreenShareIPC;
+module.exports = ScreenShareIPC;
