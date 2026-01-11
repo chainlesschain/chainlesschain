@@ -193,6 +193,9 @@ async function testStunServer() {
       reject(new Error('STUN请求超时'));
     }, 5000);
 
+    // 创建请求并保存transaction ID
+    const { buffer, transactionId } = createStunBindingRequest();
+
     socket.on('error', (err) => {
       clearTimeout(timeout);
       socket.close();
@@ -203,7 +206,6 @@ async function testStunServer() {
       clearTimeout(timeout);
 
       try {
-        const { buffer, transactionId } = createStunBindingRequest();
         const attributes = parseStunResponse(msg, transactionId);
 
         console.log('✓ STUN服务器响应成功');
@@ -224,7 +226,6 @@ async function testStunServer() {
       }
     });
 
-    const { buffer } = createStunBindingRequest();
     socket.send(buffer, STUN_PORT, STUN_SERVER, (err) => {
       if (err) {
         clearTimeout(timeout);

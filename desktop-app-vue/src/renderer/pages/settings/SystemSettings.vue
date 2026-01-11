@@ -693,6 +693,21 @@
 
               <a-divider>STUN 服务器</a-divider>
 
+              <a-alert
+                message="快速配置本地STUN/TURN服务器"
+                description="如果您已经使用Docker启动了本地coturn服务器，点击下方按钮可以自动配置"
+                type="info"
+                show-icon
+                style="margin-bottom: 16px;"
+              >
+                <template #action>
+                  <a-button size="small" type="primary" @click="handleQuickSetupLocalCoturn">
+                    <ThunderboltOutlined />
+                    一键配置
+                  </a-button>
+                </template>
+              </a-alert>
+
               <a-form-item label="STUN 服务器列表">
                 <a-space direction="vertical" style="width: 100%;">
                   <a-tag
@@ -1127,6 +1142,7 @@ import {
   ExportOutlined,
   GlobalOutlined,
   ExperimentOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons-vue';
 
 const router = useRouter();
@@ -1535,6 +1551,35 @@ const resetTurnServerForm = () => {
     username: '',
     credential: ''
   };
+};
+
+// 快速配置本地coturn服务器
+const handleQuickSetupLocalCoturn = () => {
+  // 添加本地STUN服务器（如果不存在）
+  const localStunServer = 'stun:localhost:3478';
+  if (!config.value.p2p.stun.servers.includes(localStunServer)) {
+    config.value.p2p.stun.servers.unshift(localStunServer);
+  }
+
+  // 启用TURN
+  config.value.p2p.turn.enabled = true;
+
+  // 添加本地TURN服务器（如果不存在）
+  const localTurnServer = {
+    urls: 'turn:localhost:3478',
+    username: 'chainlesschain',
+    credential: 'chainlesschain2024'
+  };
+
+  const exists = config.value.p2p.turn.servers.some(
+    server => server.urls === localTurnServer.urls
+  );
+
+  if (!exists) {
+    config.value.p2p.turn.servers.unshift(localTurnServer);
+  }
+
+  message.success('本地coturn服务器配置已完成！请确保Docker容器正在运行。');
 };
 
 // WebRTC 质量监控
