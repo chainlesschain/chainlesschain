@@ -23,6 +23,12 @@ class ErrorMonitor {
   setupGlobalErrorHandlers() {
     // 捕获未处理的异常
     process.on('uncaughtException', (error) => {
+      // 忽略 EPIPE 错误（管道已关闭，通常发生在应用关闭时）
+      if (error.code === 'EPIPE') {
+        console.log('[ErrorMonitor] Ignoring EPIPE error (broken pipe)');
+        return;
+      }
+
       console.error('Uncaught Exception:', error);
       this.captureError('UNCAUGHT_EXCEPTION', error);
     });

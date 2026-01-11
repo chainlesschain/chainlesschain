@@ -161,22 +161,38 @@ console.warn = function(...args) {
 if (process.stdout && process.stdout.write) {
   const originalStdoutWrite = process.stdout.write.bind(process.stdout);
   process.stdout.write = function(chunk, encoding, callback) {
-    const str = String(chunk);
-    if (!shouldFilterMessage(str)) {
-      return originalStdoutWrite(chunk, encoding, callback);
+    try {
+      const str = String(chunk);
+      if (!shouldFilterMessage(str)) {
+        return originalStdoutWrite(chunk, encoding, callback);
+      }
+      return true;
+    } catch (err) {
+      // 忽略 EPIPE 错误（管道已关闭）
+      if (err.code !== 'EPIPE') {
+        throw err;
+      }
+      return true;
     }
-    return true;
   };
 }
 
 if (process.stderr && process.stderr.write) {
   const originalStderrWrite = process.stderr.write.bind(process.stderr);
   process.stderr.write = function(chunk, encoding, callback) {
-    const str = String(chunk);
-    if (!shouldFilterMessage(str)) {
-      return originalStderrWrite(chunk, encoding, callback);
+    try {
+      const str = String(chunk);
+      if (!shouldFilterMessage(str)) {
+        return originalStderrWrite(chunk, encoding, callback);
+      }
+      return true;
+    } catch (err) {
+      // 忽略 EPIPE 错误（管道已关闭）
+      if (err.code !== 'EPIPE') {
+        throw err;
+      }
+      return true;
     }
-    return true;
   };
 }
 
