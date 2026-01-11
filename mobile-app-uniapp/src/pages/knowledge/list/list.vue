@@ -2,7 +2,7 @@
   <view class="knowledge-list">
     <!-- 搜索栏 -->
     <view class="header">
-      <view class="search-box">
+      <view class="search-box" v-if="!selectionMode">
         <input
           class="search-input"
           type="text"
@@ -15,14 +15,30 @@
           <text class="mode-icon">{{ searchMode === 'smart' ? '🧠' : '📝' }}</text>
         </view>
       </view>
-      <view class="folder-btn" @click="goToFolders">
-        <text class="folder-icon">📁</text>
+
+      <!-- 批量选择模式标题 -->
+      <view class="selection-header" v-else>
+        <text class="selection-title">已选择 {{ selectedItems.length }} 项</text>
       </view>
-      <view class="stats-btn" @click="goToStatistics">
-        <text class="stats-icon">📊</text>
-      </view>
-      <view class="filter-btn" @click="showFilterModal = true">
-        <text class="filter-icon">{{ hasActiveFilter ? '🎯' : '☰' }}</text>
+
+      <!-- 操作按钮 -->
+      <view class="action-buttons">
+        <view class="action-btn" @click="toggleSelectionMode" v-if="!selectionMode">
+          <text class="action-icon">☑️</text>
+        </view>
+        <view class="action-btn" @click="cancelSelection" v-else>
+          <text class="action-text">取消</text>
+        </view>
+
+        <view class="folder-btn" @click="goToFolders" v-if="!selectionMode">
+          <text class="folder-icon">📁</text>
+        </view>
+        <view class="stats-btn" @click="goToStatistics" v-if="!selectionMode">
+          <text class="stats-icon">📊</text>
+        </view>
+        <view class="filter-btn" @click="showFilterModal = true" v-if="!selectionMode">
+          <text class="filter-icon">{{ hasActiveFilter ? '🎯' : '☰' }}</text>
+        </view>
       </view>
     </view>
 
@@ -72,41 +88,72 @@
         </button>
       </view>
 
-      <view class="item" v-for="item in items" :key="item.id" @click="goToDetail(item.id)">
-        <view class="item-header">
-          <text class="item-title">{{ item.title }}</text>
-          <view class="item-badges">
-            <!-- RAG相关性分数 -->
-            <text class="relevance-score" v-if="item.score && searchMode === 'smart'">
-              {{ (item.score * 100).toFixed(0) }}%
-            </text>
-            <!-- 检索来源标记 -->
-            <text class="source-badge" v-if="item.source === 'backend_vector'">🧠</text>
-            <text class="source-badge" v-if="item.source === 'local_keyword'">📝</text>
-            <text class="favorite-icon" v-if="item.is_favorite" @click.stop="toggleItemFavorite(item)">⭐</text>
-            <text class="favorite-icon-empty" v-else @click.stop="toggleItemFavorite(item)">☆</text>
-          </view>
+      <view
+        class="item"
+        :class="{ selected: isItemSelected(item.id) }"
+        v-for="item in items"
+        :key="item.id"
+        @click="handleItemClick(item)"
+      >
+        <!-- 选择框 -->
+        <view class="selection-checkbox" v-if="selectionMode" @click.stop="toggleItemSelection(item.id)">
+          <text class="checkbox-icon">{{ isItemSelected(item.id) ? '☑️' : '⬜' }}</text>
         </view>
-        <text class="item-content">{{ item.content }}</text>
-        <view class="item-footer">
-          <view class="item-tags" v-if="itemTags[item.id] && itemTags[item.id].length > 0">
-            <view
-              class="item-tag"
-              v-for="tag in itemTags[item.id]"
-              :key="tag.id"
-              :style="{ backgroundColor: tag.color + '20', borderColor: tag.color }"
-            >
-              <text class="item-tag-name" :style="{ color: tag.color }">{{ tag.name }}</text>
+
+        <view class="item-content-wrapper">
+          <view class="item-header">
+            <text class="item-title">{{ item.title }}</text>
+            <view class="item-badges">
+              <!-- RAG相关性分数 -->
+              <text class="relevance-score" v-if="item.score && searchMode === 'smart'">
+                {{ (item.score * 100).toFixed(0) }}%
+              </text>
+              <!-- 检索来源标记 -->
+              <text class="source-badge" v-if="item.source === 'backend_vector'">🧠</text>
+              <text class="source-badge" v-if="item.source === 'local_keyword'">📝</text>
+              <text class="favorite-icon" v-if="item.is_favorite" @click.stop="toggleItemFavorite(item)">⭐</text>
+              <text class="favorite-icon-empty" v-else @click.stop="toggleItemFavorite(item)">☆</text>
             </view>
           </view>
-          <text class="item-time">{{ formatTime(item.updated_at) }}</text>
+          <text class="item-content">{{ item.content }}</text>
+          <view class="item-footer">
+            <view class="item-tags" v-if="itemTags[item.id] && itemTags[item.id].length > 0">
+              <view
+                class="item-tag"
+                v-for="tag in itemTags[item.id]"
+                :key="tag.id"
+                :style="{ backgroundColor: tag.color + '20', borderColor: tag.color }"
+              >
+                <text class="item-tag-name" :style="{ color: tag.color }">{{ tag.name }}</text>
+              </view>
+            </view>
+            <text class="item-time">{{ formatTime(item.updated_at) }}</text>
+          </view>
         </view>
       </view>
     </view>
 
     <!-- 添加按钮 -->
-    <view class="fab" @click="goToAdd">
+    <view class="fab" @click="goToAdd" v-if="!selectionMode">
       <text class="fab-icon">+</text>
+    </view>
+
+    <!-- 批量操作工具栏 -->
+    <view class="batch-toolbar" v-if="selectionMode && selectedItems.length > 0">
+      <view class="toolbar-actions">
+        <view class="toolbar-btn" @click="selectAll">
+          <text class="toolbar-icon">☑️</text>
+          <text class="toolbar-label">全选</text>
+        </view>
+        <view class="toolbar-btn" @click="showFolderSelector">
+          <text class="toolbar-icon">📁</text>
+          <text class="toolbar-label">移动</text>
+        </view>
+        <view class="toolbar-btn" @click="batchDelete">
+          <text class="toolbar-icon">🗑️</text>
+          <text class="toolbar-label">删除</text>
+        </view>
+      </view>
     </view>
 
     <!-- 筛选弹窗 -->
@@ -178,14 +225,26 @@
         </view>
       </view>
     </view>
+
+    <!-- 文件夹选择器 -->
+    <FolderSelector
+      :visible="showFolderSelector"
+      :current-folder-id="currentFolderId"
+      @close="showFolderSelector = false"
+      @confirm="handleBatchMove"
+    />
   </view>
 </template>
 
 <script>
 import { db } from '@/services/database'
 import knowledgeRAG from '@/services/knowledge-rag'
+import FolderSelector from '@/components/FolderSelector.vue'
 
 export default {
+  components: {
+    FolderSelector
+  },
   data() {
     return {
       searchQuery: '',
@@ -200,7 +259,11 @@ export default {
       sortBy: 'updated',
       filterType: null,
       currentFolderId: null, // 当前文件夹ID筛选
-      ragServiceStatus: null // RAG服务状态
+      ragServiceStatus: null, // RAG服务状态
+      // 批量选择相关
+      selectionMode: false,
+      selectedItems: [],
+      showFolderSelector: false
     }
   },
   computed: {
@@ -497,6 +560,177 @@ export default {
     goToStatistics() {
       uni.navigateTo({
         url: '/pages/knowledge/statistics/statistics'
+      })
+    },
+
+    /**
+     * 切换批量选择模式
+     */
+    toggleSelectionMode() {
+      this.selectionMode = !this.selectionMode
+      if (!this.selectionMode) {
+        this.selectedItems = []
+      }
+    },
+
+    /**
+     * 取消选择
+     */
+    cancelSelection() {
+      this.selectionMode = false
+      this.selectedItems = []
+    },
+
+    /**
+     * 处理列表项点击
+     */
+    handleItemClick(item) {
+      if (this.selectionMode) {
+        this.toggleItemSelection(item.id)
+      } else {
+        this.goToDetail(item.id)
+      }
+    },
+
+    /**
+     * 切换项目选择状态
+     */
+    toggleItemSelection(itemId) {
+      const index = this.selectedItems.indexOf(itemId)
+      if (index > -1) {
+        this.selectedItems.splice(index, 1)
+      } else {
+        this.selectedItems.push(itemId)
+      }
+    },
+
+    /**
+     * 检查项目是否被选中
+     */
+    isItemSelected(itemId) {
+      return this.selectedItems.includes(itemId)
+    },
+
+    /**
+     * 全选
+     */
+    selectAll() {
+      if (this.selectedItems.length === this.items.length) {
+        // 如果已全选，则取消全选
+        this.selectedItems = []
+      } else {
+        // 否则全选
+        this.selectedItems = this.items.map(item => item.id)
+      }
+    },
+
+    /**
+     * 显示文件夹选择器
+     */
+    showFolderSelector() {
+      this.showFolderSelector = true
+    },
+
+    /**
+     * 批量移动到文件夹
+     */
+    async handleBatchMove(targetFolderId) {
+      if (this.selectedItems.length === 0) {
+        uni.showToast({
+          title: '请先选择知识条目',
+          icon: 'none'
+        })
+        return
+      }
+
+      uni.showLoading({
+        title: '移动中...',
+        mask: true
+      })
+
+      try {
+        // 批量更新文件夹
+        for (const itemId of this.selectedItems) {
+          await db.updateKnowledgeItem(itemId, {
+            folder_id: targetFolderId
+          })
+        }
+
+        uni.hideLoading()
+
+        uni.showToast({
+          title: `已移动 ${this.selectedItems.length} 项`,
+          icon: 'success'
+        })
+
+        // 关闭文件夹选择器
+        this.showFolderSelector = false
+
+        // 退出选择模式
+        this.cancelSelection()
+
+        // 重新加载列表
+        await this.loadItems()
+      } catch (error) {
+        uni.hideLoading()
+        console.error('批量移动失败:', error)
+        uni.showToast({
+          title: '移动失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    /**
+     * 批量删除
+     */
+    batchDelete() {
+      if (this.selectedItems.length === 0) {
+        uni.showToast({
+          title: '请先选择知识条目',
+          icon: 'none'
+        })
+        return
+      }
+
+      uni.showModal({
+        title: '确认删除',
+        content: `确定要删除选中的 ${this.selectedItems.length} 项知识吗？删除后无法恢复。`,
+        success: async (res) => {
+          if (res.confirm) {
+            uni.showLoading({
+              title: '删除中...',
+              mask: true
+            })
+
+            try {
+              // 批量删除
+              for (const itemId of this.selectedItems) {
+                await db.deleteKnowledgeItem(itemId)
+              }
+
+              uni.hideLoading()
+
+              uni.showToast({
+                title: `已删除 ${this.selectedItems.length} 项`,
+                icon: 'success'
+              })
+
+              // 退出选择模式
+              this.cancelSelection()
+
+              // 重新加载列表
+              await this.loadItems()
+            } catch (error) {
+              uni.hideLoading()
+              console.error('批量删除失败:', error)
+              uni.showToast({
+                title: '删除失败',
+                icon: 'none'
+              })
+            }
+          }
+        }
       })
     },
 
