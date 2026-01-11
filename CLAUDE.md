@@ -49,11 +49,14 @@ npm run test:ukey
 ### Backend Services (Docker-based)
 
 ```bash
-# Start all services (Ollama, Qdrant, PostgreSQL, Redis, AI service, Project service)
+# Start all services (Ollama, Qdrant, PostgreSQL, Redis, AI service, Project service, Signaling server)
 docker-compose up -d
 
+# Start only signaling server
+docker-compose up -d signaling-server
+
 # Cloud deployment version
-docker-compose -f docker-compose.cloud.yml up -d
+docker-compose -f config/docker/docker-compose.cloud.yml up -d
 
 # Stop services
 docker-compose down
@@ -61,8 +64,32 @@ docker-compose down
 # View logs
 docker-compose logs -f
 
+# View signaling server logs
+docker-compose logs -f signaling-server
+
 # Pull LLM model (first time)
 docker exec chainlesschain-ollama ollama pull qwen2:7b
+```
+
+### Signaling Server (WebSocket for P2P)
+
+```bash
+# Navigate to signaling server
+cd signaling-server
+
+# Install dependencies
+npm install
+
+# Development mode (with auto-restart)
+npm run dev
+
+# Production mode
+npm start
+
+# Or run from root directory
+npm run signaling:start    # Production
+npm run signaling:dev      # Development
+npm run signaling:docker   # Docker mode
 ```
 
 ### Java Backend Services
@@ -340,6 +367,7 @@ Prefixes: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`
 
 ### Port Conflicts
 - Desktop app dev server: 5173 (Vite)
+- Signaling server: 9001 (WebSocket)
 - Ollama: 11434
 - Qdrant: 6333
 - PostgreSQL: 5432

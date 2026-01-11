@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: plugin-marketplace-service-test
+
+  # Test Database (H2 in-memory)
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # Redis (Embedded for testing)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 1
+
+  # Cache Configuration
+  cache:
+    type: simple
+
+# Server Configuration
+server:
+  port: 0  # Random port for testing
+
+# Logging
+logging:
+  level:
+    com.chainlesschain.marketplace: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+
+# Marketplace Configuration
+marketplace:
+  max-file-size: 52428800  # 50MB
+  allowed-extensions:
+    - .zip
+    - .tar.gz
+  storage:
+    type: local
+    local-path: /tmp/test-plugins

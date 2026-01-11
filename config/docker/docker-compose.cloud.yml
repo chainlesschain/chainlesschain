@@ -122,6 +122,18 @@ services:
       - chainlesschain_network
     restart: unless-stopped
 
+  # Signaling Server - WebSocket信令服务（移动端与PC端P2P通讯）
+  signaling-server:
+    build: ../../signaling-server
+    container_name: chainlesschain_signaling_server
+    ports:
+      - "9001:9001"
+    environment:
+      PORT: 9001
+    networks:
+      - chainlesschain_network
+    restart: unless-stopped
+
 networks:
   chainlesschain_network:
     driver: bridge

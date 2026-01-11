@@ -68,6 +68,19 @@ class P2PManager {
     // NAT类型
     this.natType = null
     this.publicAddress = null
+
+    // ICE候选收集
+    this.iceGatheringComplete = new Map() // peerId -> boolean
+    this.pendingIceCandidates = new Map() // peerId -> candidate[]
+
+    // 连接质量监控
+    this.connectionQuality = new Map() // peerId -> { rtt, packetLoss, bandwidth }
+    this.qualityCheckTimer = null
+
+    // 重连管理
+    this.reconnectAttempts = new Map() // peerId -> attempts
+    this.maxReconnectAttempts = config.maxReconnectAttempts || 5
+    this.reconnectBackoff = config.reconnectBackoff || 1000 // 指数退避基数
   }
 
   /**
@@ -94,6 +107,9 @@ class P2PManager {
 
       // 启动心跳
       this.startHeartbeat()
+
+      // 启动连接质量监控
+      this.startQualityMonitoring()
 
       // 检测NAT类型
       await this.detectNATType()
@@ -239,6 +255,10 @@ class P2PManager {
           await this.handleICECandidate(message)
           break
 
+        case 'ice-candidates':
+          await this.handleICECandidates(message)
+          break
+
         case 'error':
           console.error('[P2PManager] 服务器错误:', message.error)
           this.emit('server:error', message)
@@ -317,12 +337,48 @@ class P2PManager {
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         console.log('[P2PManager] 生成ICE候选:', peerId)
-        this.sendSignalingMessage({
-          type: 'ice-candidate',
-          from: this.localPeerId,
-          to: peerId,
-          candidate: event.candidate
-        })
+
+        // 批量收集ICE候选，减少信令消息数量
+        if (!this.pendingIceCandidates.has(peerId)) {
+          this.pendingIceCandidates.set(peerId, [])
+        }
+        this.pendingIceCandidates.get(peerId).push(event.candidate)
+
+        // 延迟发送，等待更多候选
+        setTimeout(() => {
+          this.flushIceCandidates(peerId)
+        }, 100)
+      } else {
+        // ICE候选收集完成
+        console.log('[P2PManager] ICE候选收集完成:', peerId)
+        this.iceGatheringComplete.set(peerId, true)
+        this.flushIceCandidates(peerId) // 立即发送剩余候选
+      }
+    }
+
+    // ICE收集状态变化
+    peerConnection.onicegatheringstatechange = () => {
+      console.log('[P2PManager] ICE收集状态:', peerId, peerConnection.iceGatheringState)
+      if (peerConnection.iceGatheringState === 'complete') {
+        this.iceGatheringComplete.set(peerId, true)
+      }
+    }
+
+    // ICE连接状态变化
+    peerConnection.oniceconnectionstatechange = () => {
+      console.log('[P2PManager] ICE连接状态:', peerId, peerConnection.iceConnectionState)
+
+      if (peerConnection.iceConnectionState === 'failed') {
+        console.warn('[P2PManager] ICE连接失败，尝试重启ICE:', peerId)
+        this.restartIce(peerId)
+      } else if (peerConnection.iceConnectionState === 'disconnected') {
+        console.warn('[P2PManager] ICE连接断开:', peerId)
+        // 等待一段时间看是否能自动恢复
+        setTimeout(() => {
+          if (peerConnection.iceConnectionState === 'disconnected') {
+            this.handleConnectionFailed(peerId)
+          }
+        }, 5000)
       }
     }
 
@@ -466,6 +522,38 @@ class P2PManager {
   }
 
   /**
+   * 处理批量ICE候选
+   */
+  async handleICECandidates(message) {
+    const { from, candidates } = message
+
+    if (!candidates || candidates.length === 0) return
+
+    console.log(`[P2PManager] 处理批量ICE候选: ${candidates.length}个`, from)
+
+    try {
+      const peerConnection = this.peers.get(from)
+      if (!peerConnection) {
+        console.error('[P2PManager] 找不到PeerConnection:', from)
+        return
+      }
+
+      // 批量添加ICE候选
+      for (const candidate of candidates) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+        } catch (error) {
+          console.error('[P2PManager] 添加ICE候选失败:', error)
+        }
+      }
+
+      console.log(`[P2PManager] ✅ 已添加 ${candidates.length} 个ICE候选`)
+    } catch (error) {
+      console.error('[P2PManager] 处理批量ICE候选失败:', error)
+    }
+  }
+
+  /**
    * 发送消息到对等节点
    * @param {string} peerId - 目标节点ID
    * @param {Object} message - 消息内容
@@ -583,10 +671,202 @@ class P2PManager {
    */
   handleConnectionFailed(peerId) {
     console.error('[P2PManager] 连接失败:', peerId)
-    this.handlePeerOffline(peerId)
-    this.emit('connection:failed', peerId)
 
-    // TODO: 可以在这里实现重试逻辑
+    const attempts = this.reconnectAttempts.get(peerId) || 0
+
+    if (attempts < this.maxReconnectAttempts) {
+      // 指数退避重连
+      const delay = this.reconnectBackoff * Math.pow(2, attempts)
+      console.log(`[P2PManager] 将在 ${delay}ms 后重连 (尝试 ${attempts + 1}/${this.maxReconnectAttempts})`)
+
+      setTimeout(async () => {
+        try {
+          this.reconnectAttempts.set(peerId, attempts + 1)
+          await this.reconnectToPeer(peerId)
+        } catch (error) {
+          console.error('[P2PManager] 重连失败:', error)
+          this.handleConnectionFailed(peerId) // 递归重试
+        }
+      }, delay)
+    } else {
+      console.error('[P2PManager] 达到最大重连次数，放弃连接:', peerId)
+      this.handlePeerOffline(peerId)
+      this.reconnectAttempts.delete(peerId)
+      this.emit('connection:failed', { peerId, reason: 'max_retries_exceeded' })
+    }
+  }
+
+  /**
+   * 重连到对等节点
+   */
+  async reconnectToPeer(peerId) {
+    console.log('[P2PManager] 重连到节点:', peerId)
+
+    // 清理旧连接
+    const oldConnection = this.peers.get(peerId)
+    if (oldConnection) {
+      oldConnection.close()
+      this.peers.delete(peerId)
+    }
+    this.dataChannels.delete(peerId)
+    this.connectionStates.delete(peerId)
+    this.iceGatheringComplete.delete(peerId)
+    this.pendingIceCandidates.delete(peerId)
+
+    // 建立新连接
+    await this.connectToPeer(peerId)
+  }
+
+  /**
+   * 重启ICE
+   */
+  async restartIce(peerId) {
+    console.log('[P2PManager] 重启ICE:', peerId)
+
+    try {
+      const peerConnection = this.peers.get(peerId)
+      if (!peerConnection) {
+        console.error('[P2PManager] 找不到PeerConnection:', peerId)
+        return
+      }
+
+      // 创建新的Offer with iceRestart
+      const offer = await peerConnection.createOffer({ iceRestart: true })
+      await peerConnection.setLocalDescription(offer)
+
+      // 发送新的Offer
+      this.sendSignalingMessage({
+        type: 'offer',
+        from: this.localPeerId,
+        to: peerId,
+        offer: peerConnection.localDescription,
+        iceRestart: true
+      })
+
+      console.log('[P2PManager] ICE重启Offer已发送:', peerId)
+    } catch (error) {
+      console.error('[P2PManager] ICE重启失败:', error)
+      this.handleConnectionFailed(peerId)
+    }
+  }
+
+  /**
+   * 批量发送ICE候选
+   */
+  flushIceCandidates(peerId) {
+    const candidates = this.pendingIceCandidates.get(peerId)
+    if (!candidates || candidates.length === 0) return
+
+    console.log(`[P2PManager] 批量发送 ${candidates.length} 个ICE候选:`, peerId)
+
+    // 发送批量候选
+    this.sendSignalingMessage({
+      type: 'ice-candidates',
+      from: this.localPeerId,
+      to: peerId,
+      candidates: candidates
+    })
+
+    // 清空待发送队列
+    this.pendingIceCandidates.set(peerId, [])
+  }
+
+  /**
+   * 启动连接质量监控
+   */
+  startQualityMonitoring() {
+    if (this.qualityCheckTimer) {
+      clearInterval(this.qualityCheckTimer)
+    }
+
+    this.qualityCheckTimer = setInterval(async () => {
+      for (const [peerId, peerConnection] of this.peers) {
+        try {
+          const stats = await peerConnection.getStats()
+          const quality = this.analyzeConnectionQuality(stats)
+
+          this.connectionQuality.set(peerId, quality)
+
+          // 如果连接质量很差，触发警告
+          if (quality.score < 30) {
+            console.warn('[P2PManager] 连接质量差:', peerId, quality)
+            this.emit('connection:poor-quality', { peerId, quality })
+          }
+
+          // 如果连接质量极差，考虑重连
+          if (quality.score < 10) {
+            console.error('[P2PManager] 连接质量极差，考虑重连:', peerId)
+            this.handleConnectionFailed(peerId)
+          }
+        } catch (error) {
+          console.error('[P2PManager] 获取连接统计失败:', peerId, error)
+        }
+      }
+    }, 10000) // 每10秒检查一次
+  }
+
+  /**
+   * 分析连接质量
+   */
+  analyzeConnectionQuality(stats) {
+    let rtt = 0
+    let packetLoss = 0
+    let bandwidth = 0
+    let jitter = 0
+
+    stats.forEach(report => {
+      if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+        rtt = report.currentRoundTripTime * 1000 || 0 // 转换为ms
+      }
+
+      if (report.type === 'inbound-rtp') {
+        const packetsLost = report.packetsLost || 0
+        const packetsReceived = report.packetsReceived || 0
+        if (packetsReceived > 0) {
+          packetLoss = (packetsLost / (packetsLost + packetsReceived)) * 100
+        }
+        jitter = report.jitter || 0
+      }
+
+      if (report.type === 'outbound-rtp') {
+        bandwidth = report.bytesSent || 0
+      }
+    })
+
+    // 计算质量分数 (0-100)
+    let score = 100
+
+    // RTT影响 (>200ms开始扣分)
+    if (rtt > 200) {
+      score -= Math.min(30, (rtt - 200) / 10)
+    }
+
+    // 丢包率影响 (>1%开始扣分)
+    if (packetLoss > 1) {
+      score -= Math.min(40, packetLoss * 10)
+    }
+
+    // 抖动影响 (>30ms开始扣分)
+    if (jitter > 30) {
+      score -= Math.min(20, (jitter - 30) / 5)
+    }
+
+    score = Math.max(0, Math.min(100, score))
+
+    return {
+      rtt: Math.round(rtt),
+      packetLoss: Math.round(packetLoss * 100) / 100,
+      bandwidth: Math.round(bandwidth / 1024), // KB
+      jitter: Math.round(jitter),
+      score: Math.round(score)
+    }
+  }
+
+  /**
+   * 获取连接质量
+   */
+  getConnectionQuality(peerId) {
+    return this.connectionQuality.get(peerId) || null
   }
 
   /**
@@ -726,6 +1006,11 @@ class P2PManager {
       this.reconnectTimer = null
     }
 
+    if (this.qualityCheckTimer) {
+      clearInterval(this.qualityCheckTimer)
+      this.qualityCheckTimer = null
+    }
+
     // 关闭所有peer连接
     for (const [peerId, peerConnection] of this.peers) {
       peerConnection.close()
@@ -733,6 +1018,10 @@ class P2PManager {
     this.peers.clear()
     this.dataChannels.clear()
     this.connectionStates.clear()
+    this.iceGatheringComplete.clear()
+    this.pendingIceCandidates.clear()
+    this.connectionQuality.clear()
+    this.reconnectAttempts.clear()
 
     // 关闭信令服务器连接
     if (this.signalingSocket) {
