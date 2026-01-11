@@ -8,12 +8,14 @@
 const { ipcMain } = require('electron');
 const { v4: uuidv4 } = require('uuid');
 const RSSFetcher = require('./rss-fetcher');
+const { getAPINotificationManager } = require('./notification-manager');
 
 class RSSIPCHandler {
   constructor(database) {
     this.database = database;
     this.rssFetcher = new RSSFetcher();
     this.syncIntervals = new Map(); // 存储自动同步定时器
+    this.notificationManager = getAPINotificationManager();
     this.registerHandlers();
   }
 
@@ -433,6 +435,10 @@ class RSSIPCHandler {
         throw new Error('订阅源不存在');
       }
 
+      // 获取当前文章数量（用于计算新文章）
+      const countStmt = this.database.db.prepare('SELECT COUNT(*) as count FROM rss_items WHERE feed_id = ?');
+      const beforeCount = countStmt.get([feedId])?.count || 0;
+
       // 获取最新内容
       const feedData = await this.rssFetcher.fetchFeed(feed.url);
 
@@ -447,9 +453,31 @@ class RSSIPCHandler {
       // 保存新文章
       await this.saveFeedItems(feedId, feedData.items);
 
-      return { success: true, itemCount: feedData.items.length };
+      // 计算新文章数量
+      const afterCount = countStmt.get([feedId])?.count || 0;
+      const newItemsCount = afterCount - beforeCount;
+
+      // 发送通知（如果有新文章）
+      if (newItemsCount > 0) {
+        this.notificationManager.notifyNewArticles(
+          feed.title,
+          newItemsCount,
+          feedData.items.slice(0, 5)
+        );
+      }
+
+      return { success: true, itemCount: feedData.items.length, newItemsCount };
     } catch (error) {
       console.error('[RSSIPCHandler] 获取 Feed 更新失败:', error);
+
+      // 获取 feed 信息用于通知
+      const feedStmt = this.database.db.prepare('SELECT title FROM rss_feeds WHERE id = ?');
+      const feed = feedStmt.get([feedId]);
+
+      // 发送错误通知
+      if (feed) {
+        this.notificationManager.notifyRSSError(feed.title, error.message);
+      }
 
       // 更新错误状态
       const updateStmt = this.database.db.prepare(`
