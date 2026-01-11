@@ -5,32 +5,66 @@
     </view>
 
     <view class="content" v-else>
-      <!-- 文件夹列表 -->
-      <view class="folder-list" v-if="folders.length > 0">
+      <!-- 视图切换 -->
+      <view class="view-switcher">
         <view
-          class="folder-item"
-          v-for="folder in folders"
-          :key="folder.id"
-          @click="viewFolder(folder)"
+          class="switch-btn"
+          :class="{ active: viewMode === 'list' }"
+          @click="viewMode = 'list'"
         >
-          <view class="folder-icon" :style="{ backgroundColor: folder.color + '20' }">
-            <text :style="{ color: folder.color }">{{ folder.icon || '📁' }}</text>
-          </view>
-          <view class="folder-info">
-            <text class="folder-name">{{ folder.name }}</text>
-            <text class="folder-count">{{ folderCounts[folder.id] || 0 }} 项</text>
-          </view>
-          <view class="folder-actions">
-            <text class="action-btn" @click.stop="editFolder(folder)">✏️</text>
-            <text class="action-btn" @click.stop="confirmDeleteFolder(folder)">🗑️</text>
-          </view>
+          <text>列表视图</text>
+        </view>
+        <view
+          class="switch-btn"
+          :class="{ active: viewMode === 'tree' }"
+          @click="viewMode = 'tree'"
+        >
+          <text>树形视图</text>
         </view>
       </view>
 
-      <!-- 空状态 -->
-      <view class="empty" v-else>
-        <text class="empty-icon">📁</text>
-        <text class="empty-text">还没有文件夹，点击下方按钮创建</text>
+      <!-- 列表视图 -->
+      <view v-if="viewMode === 'list'" class="list-view">
+        <!-- 文件夹列表 -->
+        <view class="folder-list" v-if="folders.length > 0">
+          <view
+            class="folder-item"
+            v-for="folder in folders"
+            :key="folder.id"
+            @click="viewFolder(folder)"
+          >
+            <view class="folder-icon" :style="{ backgroundColor: folder.color + '20' }">
+              <text :style="{ color: folder.color }">{{ folder.icon || '📁' }}</text>
+            </view>
+            <view class="folder-info">
+              <text class="folder-name">{{ folder.name }}</text>
+              <text class="folder-count">{{ folderCounts[folder.id] || 0 }} 项</text>
+            </view>
+            <view class="folder-actions">
+              <text class="action-btn" @click.stop="editFolder(folder)">✏️</text>
+              <text class="action-btn" @click.stop="confirmDeleteFolder(folder)">🗑️</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 空状态 -->
+        <view class="empty" v-else>
+          <text class="empty-icon">📁</text>
+          <text class="empty-text">还没有文件夹，点击下方按钮创建</text>
+        </view>
+      </view>
+
+      <!-- 树形视图 -->
+      <view v-else class="tree-view">
+        <FolderTree
+          :folders="folders"
+          :folder-counts="folderCounts"
+          :selected-folder-id="selectedFolderId"
+          :root-count="rootCount"
+          @select="handleFolderSelect"
+          @edit="editFolder"
+          @delete="confirmDeleteFolder"
+        />
       </view>
     </view>
 
@@ -106,19 +140,27 @@
 
 <script>
 import { db } from '@/services/database'
+import FolderTree from '@/components/FolderTree.vue'
 
 export default {
+  components: {
+    FolderTree
+  },
   data() {
     return {
       loading: false,
+      viewMode: 'list', // 'list' or 'tree'
       folders: [],
       folderCounts: {},
+      rootCount: 0, // 根目录知识数量
+      selectedFolderId: null,
       showCreateModal: false,
       editingFolder: null,
       folderForm: {
         name: '',
         icon: '📁',
-        color: '#3cc51f'
+        color: '#3cc51f',
+        parent_id: null
       },
       iconOptions: ['📁', '📂', '📚', '📖', '📝', '💼', '🎯', '⭐', '🔖', '📌', '🏷️', '🎨'],
       colorOptions: [
@@ -147,6 +189,9 @@ export default {
           this.folderCounts[folder.id] = count
         }
 
+        // 加载根目录知识数量
+        this.rootCount = await db.getRootKnowledgeCount()
+
         // 强制更新
         this.$forceUpdate()
       } catch (error) {
@@ -157,6 +202,20 @@ export default {
         })
       } finally {
         this.loading = false
+      }
+    },
+
+    handleFolderSelect(folderId) {
+      this.selectedFolderId = folderId
+      // 跳转到知识列表，并筛选该文件夹
+      if (folderId === null) {
+        uni.navigateTo({
+          url: '/pages/knowledge/list/list'
+        })
+      } else {
+        uni.navigateTo({
+          url: `/pages/knowledge/list/list?folderId=${folderId}`
+        })
       }
     },
 
@@ -288,6 +347,42 @@ export default {
 
 .content {
   padding: 20rpx;
+
+  .view-switcher {
+    display: flex;
+    gap: 16rpx;
+    margin-bottom: 20rpx;
+    padding: 8rpx;
+    background-color: var(--bg-card);
+    border-radius: 12rpx;
+
+    .switch-btn {
+      flex: 1;
+      height: 64rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8rpx;
+      font-size: 14px;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+
+      &.active {
+        background-color: var(--color-primary);
+        color: #ffffff;
+        font-weight: 500;
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+    }
+  }
+
+  .list-view,
+  .tree-view {
+    // 视图容器样式
+  }
 }
 
 // 文件夹列表
