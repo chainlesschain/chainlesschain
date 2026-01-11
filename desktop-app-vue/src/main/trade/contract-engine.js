@@ -1208,28 +1208,54 @@ class SmartContractEngine extends EventEmitter {
     // 切换到目标链
     await this.blockchainAdapter.switchChain(chainId);
 
-    let contractAddress, deploymentTx, contractName;
+    let contractAddress, deploymentTx, contractName, abiJson;
 
     // 根据合约类型部署不同的智能合约
-    // 注意：目前我们只支持托管合约(Escrow)部署，其他类型需要相应的智能合约实现
-    // TODO: 实现订阅合约、悬赏合约等的部署逻辑
+    switch (contractType) {
+      case ContractType.SIMPLE_TRADE:
+        // 部署托管合约 (EscrowContract)
+        console.log('[ContractEngine] 部署托管合约 (EscrowContract)');
+        const escrowResult = await this.blockchainAdapter.deployEscrowContract(walletId, password);
+        contractAddress = escrowResult.address;
+        deploymentTx = escrowResult.txHash;
+        contractName = `Escrow: ${title}`;
+        abiJson = JSON.stringify(escrowResult.abi);
+        break;
 
-    // 这里为简化，使用 ERC-20 代币作为示例（实际应该部署托管合约）
-    // 实际部署托管合约需要 EscrowContract.sol 的 artifacts
-    console.warn('[ContractEngine] 链上合约部署当前使用 ERC-20 代币作为示例');
-    console.warn('[ContractEngine] 生产环境需要部署实际的托管、订阅、悬赏合约');
+      case ContractType.SUBSCRIPTION:
+        // 部署订阅合约 (SubscriptionContract)
+        console.log('[ContractEngine] 部署订阅合约 (SubscriptionContract)');
+        const subResult = await this.blockchainAdapter.deploySubscriptionContract(walletId, password);
+        contractAddress = subResult.address;
+        deploymentTx = subResult.txHash;
+        contractName = `Subscription: ${title}`;
+        abiJson = JSON.stringify(subResult.abi);
+        break;
 
-    const result = await this.blockchainAdapter.deployERC20Token(walletId, {
-      name: title,
-      symbol: 'CONTRACT',
-      decimals: 0,
-      initialSupply: '0',
-      password
-    });
+      case ContractType.BOUNTY:
+        // 部署悬赏合约 (BountyContract)
+        console.log('[ContractEngine] 部署悬赏合约 (BountyContract)');
+        const bountyResult = await this.blockchainAdapter.deployBountyContract(walletId, password);
+        contractAddress = bountyResult.address;
+        deploymentTx = bountyResult.txHash;
+        contractName = `Bounty: ${title}`;
+        abiJson = JSON.stringify(bountyResult.abi);
+        break;
 
-    contractAddress = result.address;
-    deploymentTx = result.txHash;
-    contractName = title;
+      case ContractType.SKILL_EXCHANGE:
+      case ContractType.CUSTOM:
+        // 技能交换和自定义合约使用通用托管合约
+        console.log('[ContractEngine] 部署通用托管合约');
+        const genericResult = await this.blockchainAdapter.deployEscrowContract(walletId, password);
+        contractAddress = genericResult.address;
+        deploymentTx = genericResult.txHash;
+        contractName = `${contractType}: ${title}`;
+        abiJson = JSON.stringify(genericResult.abi);
+        break;
+
+      default:
+        throw new Error(`不支持的合约类型: ${contractType}`);
+    }
 
     console.log(`[ContractEngine] 合约已部署到区块链: ${contractAddress}`);
 
@@ -1240,7 +1266,8 @@ class SmartContractEngine extends EventEmitter {
       contractType,
       contractAddress,
       chainId,
-      deploymentTx
+      deploymentTx,
+      abiJson
     });
 
     return { contractAddress, deploymentTx };
