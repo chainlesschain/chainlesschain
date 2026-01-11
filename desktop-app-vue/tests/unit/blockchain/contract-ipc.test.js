@@ -394,20 +394,19 @@ describe('智能合约 IPC - 静态分析', () => {
 // ============================================================
 
 describe('智能合约 IPC - 动态执行测试', () => {
-  let mockIpcMain;
   let mockContractEngine;
   let mockContractTemplates;
-  let handlers = {};
+  let localHandlers = {};
   let registerContractIPC;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    handlers = {};
+    localHandlers = {};
 
-    // Mock ipcMain
-    mockIpcMain = {
+    // Create a local mock ipcMain for this test suite
+    const localMockIpcMain = {
       handle: vi.fn((channel, handler) => {
-        handlers[channel] = handler;
+        localHandlers[channel] = handler;
       }),
     };
 
@@ -435,15 +434,16 @@ describe('智能合约 IPC - 动态执行测试', () => {
       createFromTemplate: vi.fn(),
     };
 
-    // Mock require for contract-templates
-    vi.doMock('../trade/contract-templates', () => mockContractTemplates);
-
-    // Mock electron module
+    // Reset the module cache and re-mock electron
+    vi.resetModules();
     vi.doMock('electron', () => ({
-      ipcMain: mockIpcMain,
+      ipcMain: localMockIpcMain,
     }));
 
-    // 动态导入模块
+    // Mock contract-templates
+    vi.doMock('../../../src/main/trade/contract-templates.js', () => mockContractTemplates);
+
+    // 动态导入模块 - 使用时间戳确保每次都是新的导入
     const module = await import('../../../src/main/blockchain/contract-ipc.js?t=' + Date.now());
     registerContractIPC = module.registerContractIPC;
 
@@ -454,7 +454,7 @@ describe('智能合约 IPC - 动态执行测试', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.doUnmock('electron');
-    vi.doUnmock('../trade/contract-templates');
+    vi.doUnmock('../../../src/main/trade/contract-templates.js');
   });
 
   // ============================================================
@@ -472,7 +472,7 @@ describe('智能合约 IPC - 动态执行测试', () => {
 
       mockContractEngine.createContract.mockResolvedValue(mockResult);
 
-      const result = await handlers['contract:create']({}, mockOptions);
+      const result = await localHandlers['contract:create']({}, mockOptions);
 
       expect(mockContractEngine.createContract).toHaveBeenCalledWith(mockOptions);
       expect(result).toEqual(mockResult);
@@ -480,14 +480,20 @@ describe('智能合约 IPC - 动态执行测试', () => {
 
     it('should throw error when contractEngine is not initialized', async () => {
       // Re-register without contractEngine
-      handlers = {};
-      mockIpcMain.handle.mockImplementation((channel, handler) => {
-        handlers[channel] = handler;
-      });
-      registerContractIPC({ contractEngine: null });
+      localHandlers = ;
+      const tempMockIpcMain = {
+        handle: vi.fn((channel, handler) => {
+          localHandlers[channel] = handler;
+        }),
+      };
+      vi.doMock('electron', () => ({
+        ipcMain: tempMockIpcMain,
+      }));
+      const module = await import('../../../src/main/blockchain/contract-ipc.js?t=' + Date.now());
+      module.registerContractIPC({ contractEngine: null });
 
       await expect(
-        handlers['contract:create']({}, {})
+        localHandlers['contract:create']({}, {})
       ).rejects.toThrow('智能合约引擎未初始化');
     });
 
@@ -496,7 +502,7 @@ describe('智能合约 IPC - 动态执行测试', () => {
       mockContractEngine.createContract.mockRejectedValue(error);
 
       await expect(
-        handlers['contract:create']({}, {})
+        localHandlers['contract:create']({}, {})
       ).rejects.toThrow('创建合约失败');
     });
   });

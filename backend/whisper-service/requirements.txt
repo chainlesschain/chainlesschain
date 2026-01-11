@@ -1,0 +1,22 @@
+# Whisper Local Service Requirements
+
+# Core dependencies
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Whisper and ML dependencies
+openai-whisper==20231117
+torch==2.1.2
+torchaudio==2.1.2
+numpy==1.24.3
+
+# Optional: GPU support (uncomment if using CUDA)
+# torch==2.1.2+cu118
+# torchaudio==2.1.2+cu118
+
+# Audio processing
+ffmpeg-python==0.2.0
+
+# Utilities
+python-dotenv==1.0.0

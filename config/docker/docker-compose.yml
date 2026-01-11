@@ -232,6 +232,27 @@ services:
     networks:
       - chainlesschain-network
 
+  # Coturn - STUN/TURN服务器（P2P NAT穿透）
+  coturn:
+    build:
+      context: ./backend/coturn-service
+      dockerfile: Dockerfile
+    container_name: chainlesschain-coturn
+    ports:
+      - "3478:3478"
+      - "3478:3478/udp"
+      - "5349:5349"
+      - "5349:5349/udp"
+      - "49152-49252:49152-49252/udp"  # TURN relay端口范围（限制为100个端口）
+    volumes:
+      - ./backend/coturn-service/turnserver.conf:/etc/coturn/turnserver.conf
+      - coturn-logs:/var/log/coturn
+    environment:
+      - DETECT_EXTERNAL_IP=yes
+    restart: unless-stopped
+    networks:
+      - chainlesschain-network
+
 networks:
   chainlesschain-network:
     driver: bridge
@@ -242,3 +263,4 @@ volumes:
   postgres-data:
   redis-data:
   whisper-models:
+  coturn-logs:

@@ -36,10 +36,10 @@ const DEFAULT_CONFIG = {
 
   // Whisper Local 配置 (Phase 2)
   whisperLocal: {
-    modelPath: '',            // 模型文件路径
+    serverUrl: process.env.WHISPER_LOCAL_URL || 'http://localhost:8002',  // 本地 Whisper 服务器
     modelSize: 'base',        // tiny/base/small/medium/large
-    device: 'cpu',            // cpu/cuda
-    threads: os.cpus().length,
+    device: 'auto',           // auto/cpu/cuda
+    timeout: 120000,          // 2分钟超时
   },
 
   // 音频处理配置
