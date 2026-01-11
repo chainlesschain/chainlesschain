@@ -113,11 +113,42 @@
       </div>
       </div>
 
-      <!-- 右侧：实时预览 -->
+      <!-- 右侧：实时预览/编辑 -->
       <div class="preview-panel">
         <div class="preview-header">
-          <EyeOutlined />
-          <span>实时预览</span>
+          <EyeOutlined v-if="!isEditMode" />
+          <EditOutlined v-else />
+          <span>{{ isEditMode ? '编辑内容' : '实时预览' }}</span>
+
+          <!-- 切换编辑/预览模式按钮 -->
+          <div class="header-actions">
+            <a-tooltip :title="isEditMode ? '切换到预览模式' : '切换到编辑模式'">
+              <a-button
+                type="text"
+                size="small"
+                @click="toggleEditMode"
+                :disabled="!renderedPrompt || renderingPreview"
+              >
+                <template #icon>
+                  <EyeOutlined v-if="isEditMode" />
+                  <EditOutlined v-else />
+                </template>
+              </a-button>
+            </a-tooltip>
+
+            <!-- 重置按钮（仅编辑模式显示） -->
+            <a-tooltip v-if="isEditMode && hasEdited" title="重置为原始内容">
+              <a-button
+                type="text"
+                size="small"
+                @click="resetEditedContent"
+              >
+                <template #icon>
+                  <UndoOutlined />
+                </template>
+              </a-button>
+            </a-tooltip>
+          </div>
         </div>
 
         <div class="preview-content">
@@ -127,9 +158,20 @@
             <span>渲染中...</span>
           </div>
 
-          <!-- 渲染成功 -->
+          <!-- 编辑模式 -->
+          <div v-else-if="isEditMode && renderedPrompt" class="preview-editor">
+            <a-textarea
+              v-model:value="editedPrompt"
+              :auto-size="{ minRows: 15, maxRows: 25 }"
+              placeholder="在此编辑生成的内容..."
+              class="editor-textarea"
+              @change="handleContentEdit"
+            />
+          </div>
+
+          <!-- 预览模式 - 渲染成功 -->
           <div v-else-if="renderedPrompt && !renderError" class="preview-text">
-            <pre>{{ renderedPrompt }}</pre>
+            <pre>{{ displayPrompt }}</pre>
           </div>
 
           <!-- 渲染错误 -->
@@ -151,10 +193,14 @@
         </div>
 
         <!-- 统计信息 -->
-        <div v-if="renderedPrompt" class="preview-stats">
-          <span>字符数: {{ renderedPrompt.length }}</span>
+        <div v-if="displayPrompt" class="preview-stats">
+          <span>字符数: {{ displayPrompt.length }}</span>
           <span>•</span>
-          <span>行数: {{ renderedPrompt.split('\n').length }}</span>
+          <span>行数: {{ displayPrompt.split('\n').length }}</span>
+          <span v-if="hasEdited" class="edited-badge">
+            <CheckCircleOutlined />
+            已编辑
+          </span>
         </div>
       </div>
     </div>
@@ -167,8 +213,11 @@ import { message } from 'ant-design-vue'
 import {
   InfoCircleOutlined,
   EyeOutlined,
+  EditOutlined,
   FileTextOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  UndoOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons-vue'
 import { useTemplateStore } from '@/stores/template'
 import { useProjectStore } from '@/stores/project'
@@ -203,6 +252,11 @@ const renderedPrompt = ref('')
 const renderError = ref('')
 let renderDebounceTimer = null
 
+// 编辑模式相关状态
+const isEditMode = ref(false)
+const editedPrompt = ref('')
+const hasEdited = ref(false)
+
 const isVisible = computed({
   get: () => props.open,
   set: (val) => emit('update:open', val)
@@ -214,6 +268,11 @@ const modalTitle = computed(() => {
 
 const variablesSchema = computed(() => {
   return props.template?.variables_schema || []
+})
+
+// 显示的内容（编辑后的或原始的）
+const displayPrompt = computed(() => {
+  return hasEdited.value ? editedPrompt.value : renderedPrompt.value
 })
 
 const formRules = computed(() => {
@@ -284,6 +343,10 @@ watch(
       nextTick(() => {
         formRef.value?.resetFields()
         initFormData()
+        // 重置编辑状态
+        isEditMode.value = false
+        hasEdited.value = false
+        editedPrompt.value = ''
         // 初次打开时渲染预览
         renderPreview()
       })
@@ -291,6 +354,9 @@ watch(
       // 关闭时清空预览
       renderedPrompt.value = ''
       renderError.value = ''
+      isEditMode.value = false
+      hasEdited.value = false
+      editedPrompt.value = ''
     }
   }
 )
@@ -309,6 +375,16 @@ watch(
     }, 300)
   },
   { deep: true }
+)
+
+// 监听 renderedPrompt 变化，同步到 editedPrompt
+watch(
+  renderedPrompt,
+  (newPrompt) => {
+    if (newPrompt && !hasEdited.value) {
+      editedPrompt.value = newPrompt
+    }
+  }
 )
 
 function getSelectInitialValue(variable) {
@@ -416,24 +492,52 @@ async function renderPreview() {
   }
 }
 
+// 切换编辑/预览模式
+function toggleEditMode() {
+  isEditMode.value = !isEditMode.value
+  console.log('[TemplateVariableModal] 切换编辑模式:', isEditMode.value)
+}
+
+// 处理内容编辑
+function handleContentEdit() {
+  hasEdited.value = true
+  console.log('[TemplateVariableModal] 内容已编辑')
+}
+
+// 重置编辑内容
+function resetEditedContent() {
+  editedPrompt.value = renderedPrompt.value
+  hasEdited.value = false
+  message.success('已重置为原始内容')
+  console.log('[TemplateVariableModal] 重置编辑内容')
+}
+
 async function handleSubmit() {
   try {
     // 1. 验证表单
     await formRef.value?.validate()
 
-    // 2. 渲染 prompt
+    // 2. 使用编辑后的内容或渲染的内容
     creating.value = true
-    console.log('[TemplateVariableModal] 渲染 prompt...', {
-      templateId: props.template.id,
-      variables: formData.value
+    let finalPrompt = displayPrompt.value
+
+    // 如果没有编辑过且没有渲染内容，则重新渲染
+    if (!finalPrompt) {
+      console.log('[TemplateVariableModal] 渲染 prompt...', {
+        templateId: props.template.id,
+        variables: formData.value
+      })
+
+      finalPrompt = await templateStore.renderPrompt(
+        props.template.id,
+        formData.value
+      )
+    }
+
+    console.log('[TemplateVariableModal] 使用最终内容:', {
+      length: finalPrompt?.length || 0,
+      hasEdited: hasEdited.value
     })
-
-    const renderedPrompt = await templateStore.renderPrompt(
-      props.template.id,
-      formData.value
-    )
-
-    console.log('[TemplateVariableModal] Prompt 渲染成功')
 
     // 3. 获取项目名称（使用第一个变量的值或模板名称）
     const firstVariable = variablesSchema.value[0]
@@ -448,8 +552,9 @@ async function handleSubmit() {
       templateId: props.template.id,
       projectName: projectName,
       projectType: props.template.project_type || 'document',
-      renderedPrompt: renderedPrompt,
-      variables: formData.value
+      renderedPrompt: finalPrompt,
+      variables: formData.value,
+      isEdited: hasEdited.value
     })
 
     // 5. 重置状态并关闭对话框
@@ -592,6 +697,7 @@ function handleCancel() {
   .preview-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
     padding: 12px 16px;
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
@@ -601,6 +707,25 @@ function handleCancel() {
 
     :deep(.anticon) {
       font-size: 16px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+
+      .ant-btn-text {
+        color: #667eea;
+
+        &:hover:not(:disabled) {
+          background: rgba(102, 126, 234, 0.1);
+        }
+
+        &:disabled {
+          color: #d1d1d6;
+        }
+      }
     }
   }
 
@@ -621,6 +746,27 @@ function handleCancel() {
 
       span {
         font-size: 14px;
+      }
+    }
+
+    .preview-editor {
+      .editor-textarea {
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        border-radius: 8px;
+        border: 1px solid #e5e5ea;
+
+        &:focus {
+          border-color: #667eea;
+          box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        :deep(textarea) {
+          font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+          font-size: 13px;
+          line-height: 1.6;
+        }
       }
     }
 
@@ -702,6 +848,22 @@ function handleCancel() {
     border-top: 1px solid #e5e5ea;
     font-size: 12px;
     color: #86868b;
+
+    .edited-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+      padding: 2px 8px;
+      background: rgba(102, 126, 234, 0.1);
+      border-radius: 12px;
+      color: #667eea;
+      font-weight: 500;
+
+      :deep(.anticon) {
+        font-size: 12px;
+      }
+    }
   }
 }
 
