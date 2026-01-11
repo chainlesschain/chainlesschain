@@ -619,12 +619,14 @@ function registerAllIPC(dependencies) {
     registerSyncIPC({ syncManager: app.syncManager || null });
     console.log('[IPC Registry] ✓ Sync IPC registered (4 handlers)');
 
-    if (database) {
-      console.log('[IPC Registry] Registering Notification IPC...');
-      const { registerNotificationIPC } = require('./notification/notification-ipc');
-      registerNotificationIPC({ database });
-      console.log('[IPC Registry] ✓ Notification IPC registered (5 handlers)');
+    // Always register notification IPC (handle null database gracefully)
+    console.log('[IPC Registry] Registering Notification IPC...');
+    if (!database) {
+      console.warn('[IPC Registry] ⚠️ database 未初始化，将注册降级的 Notification IPC handlers');
     }
+    const { registerNotificationIPC } = require('./notification/notification-ipc');
+    registerNotificationIPC({ database: database || null });
+    console.log('[IPC Registry] ✓ Notification IPC registered (5 handlers)');
 
     // 对话管理 (函数模式 - 中等模块，15 handlers)
     // 注意：即使 database 为 null 也注册，handler 内部会处理 null 情况

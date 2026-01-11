@@ -205,7 +205,13 @@ class UKeyManager extends EventEmitter {
    */
   async detect() {
     if (!this.currentDriver) {
-      throw new Error('驱动未初始化');
+      // 在非Windows平台上，返回未检测到设备的状态，而不是抛出错误
+      return {
+        detected: false,
+        reason: 'driver_not_initialized',
+        message: 'U-Key driver not available on this platform (Windows only)',
+        platform: process.platform
+      };
     }
 
     const status = await this.currentDriver.detect();
@@ -224,7 +230,11 @@ class UKeyManager extends EventEmitter {
    */
   async verifyPIN(pin) {
     if (!this.currentDriver) {
-      throw new Error('驱动未初始化');
+      return {
+        success: false,
+        reason: 'driver_not_initialized',
+        message: 'U-Key driver not available on this platform (Windows only)'
+      };
     }
 
     const result = await this.currentDriver.verifyPIN(pin);
@@ -243,11 +253,19 @@ class UKeyManager extends EventEmitter {
    */
   async sign(data) {
     if (!this.currentDriver) {
-      throw new Error('驱动未初始化');
+      return {
+        success: false,
+        reason: 'driver_not_initialized',
+        message: 'U-Key driver not available on this platform (Windows only)'
+      };
     }
 
     if (!this.currentDriver.isDeviceUnlocked()) {
-      throw new Error('U盾未解锁');
+      return {
+        success: false,
+        reason: 'device_locked',
+        message: 'U-Key device is locked'
+      };
     }
 
     return await this.currentDriver.sign(data);
@@ -258,7 +276,11 @@ class UKeyManager extends EventEmitter {
    */
   async verifySignature(data, signature) {
     if (!this.currentDriver) {
-      throw new Error('驱动未初始化');
+      return {
+        success: false,
+        reason: 'driver_not_initialized',
+        message: 'U-Key driver not available on this platform (Windows only)'
+      };
     }
 
     return await this.currentDriver.verifySignature(data, signature);
@@ -269,11 +291,19 @@ class UKeyManager extends EventEmitter {
    */
   async encrypt(data) {
     if (!this.currentDriver) {
-      throw new Error('驱动未初始化');
+      return {
+        success: false,
+        reason: 'driver_not_initialized',
+        message: 'U-Key driver not available on this platform (Windows only)'
+      };
     }
 
     if (!this.currentDriver.isDeviceUnlocked()) {
-      throw new Error('U盾未解锁');
+      return {
+        success: false,
+        reason: 'device_locked',
+        message: 'U-Key device is locked'
+      };
     }
 
     return await this.currentDriver.encrypt(data);
@@ -284,11 +314,19 @@ class UKeyManager extends EventEmitter {
    */
   async decrypt(encryptedData) {
     if (!this.currentDriver) {
-      throw new Error('驱动未初始化');
+      return {
+        success: false,
+        reason: 'driver_not_initialized',
+        message: 'U-Key driver not available on this platform (Windows only)'
+      };
     }
 
     if (!this.currentDriver.isDeviceUnlocked()) {
-      throw new Error('U盾未解锁');
+      return {
+        success: false,
+        reason: 'device_locked',
+        message: 'U-Key device is locked'
+      };
     }
 
     return await this.currentDriver.decrypt(encryptedData);

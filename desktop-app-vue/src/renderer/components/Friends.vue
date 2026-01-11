@@ -599,9 +599,14 @@ onMounted(async () => {
     loadStatistics();
   }, 30000); // 30 秒刷新一次
 
-  onUnmounted(() => {
-    clearInterval(refreshInterval);
-  });
+  // Store interval ID for cleanup
+  window.__friendsRefreshInterval = refreshInterval;
+});
+
+onUnmounted(() => {
+  if (window.__friendsRefreshInterval) {
+    clearInterval(window.__friendsRefreshInterval);
+  }
 });
 </script>
 

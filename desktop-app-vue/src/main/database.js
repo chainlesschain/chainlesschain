@@ -1049,6 +1049,111 @@ class DatabaseManager {
       );
 
       -- ============================
+      -- 社交网络相关表
+      -- ============================
+
+      -- 联系人表
+      CREATE TABLE IF NOT EXISTS contacts (
+        id TEXT PRIMARY KEY,
+        did TEXT UNIQUE NOT NULL,
+        nickname TEXT,
+        avatar TEXT,
+        public_key_sign TEXT NOT NULL,
+        public_key_encrypt TEXT NOT NULL,
+        relationship TEXT DEFAULT 'contact',
+        notes TEXT,
+        tags TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 好友表
+      CREATE TABLE IF NOT EXISTS friends (
+        id TEXT PRIMARY KEY,
+        user_did TEXT NOT NULL,
+        friend_did TEXT NOT NULL,
+        nickname TEXT,
+        avatar TEXT,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'blocked')),
+        notes TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        UNIQUE(user_did, friend_did)
+      );
+
+      -- 好友请求表
+      CREATE TABLE IF NOT EXISTS friend_requests (
+        id TEXT PRIMARY KEY,
+        from_did TEXT NOT NULL,
+        to_did TEXT NOT NULL,
+        message TEXT,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'rejected')),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        UNIQUE(from_did, to_did)
+      );
+
+      -- 社交帖子表
+      CREATE TABLE IF NOT EXISTS social_posts (
+        id TEXT PRIMARY KEY,
+        author_did TEXT NOT NULL,
+        content TEXT NOT NULL,
+        media TEXT,
+        visibility TEXT DEFAULT 'public' CHECK(visibility IN ('public', 'friends', 'private')),
+        likes_count INTEGER DEFAULT 0,
+        comments_count INTEGER DEFAULT 0,
+        shares_count INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 帖子评论表
+      CREATE TABLE IF NOT EXISTS post_comments (
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL,
+        author_did TEXT NOT NULL,
+        content TEXT NOT NULL,
+        parent_id TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (post_id) REFERENCES social_posts(id) ON DELETE CASCADE
+      );
+
+      -- 帖子点赞表
+      CREATE TABLE IF NOT EXISTS post_likes (
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL,
+        user_did TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        UNIQUE(post_id, user_did),
+        FOREIGN KEY (post_id) REFERENCES social_posts(id) ON DELETE CASCADE
+      );
+
+      -- P2P聊天会话表
+      CREATE TABLE IF NOT EXISTS chat_sessions (
+        id TEXT PRIMARY KEY,
+        peer_did TEXT NOT NULL,
+        last_message TEXT,
+        last_message_time INTEGER,
+        unread_count INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- P2P聊天消息表
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        sender_did TEXT NOT NULL,
+        receiver_did TEXT NOT NULL,
+        content TEXT NOT NULL,
+        message_type TEXT DEFAULT 'text' CHECK(message_type IN ('text', 'image', 'file', 'voice', 'video')),
+        is_encrypted INTEGER DEFAULT 1,
+        is_read INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+      );
+
+      -- ============================
       -- 区块链相关表
       -- ============================
 

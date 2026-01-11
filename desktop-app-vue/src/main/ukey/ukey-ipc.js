@@ -45,7 +45,14 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain }) {
         };
       }
 
-      return await ukeyManager.detect();
+      const result = await ukeyManager.detect();
+
+      // 如果是驱动未初始化（非Windows平台），不记录错误日志
+      if (result.reason === 'driver_not_initialized') {
+        return result;
+      }
+
+      return result;
     } catch (error) {
       console.error('[UKey IPC] U盾检测失败:', error);
       return {
