@@ -352,6 +352,106 @@ export const useGraphStore = defineStore('graph', {
     },
 
     /**
+     * 计算节点中心性
+     */
+    async calculateCentrality(type = 'degree') {
+      try {
+        const result = await window.electronAPI.graph.calculateCentrality(
+          this.nodes,
+          this.edges,
+          type
+        );
+        return new Map(result);
+      } catch (error) {
+        console.error('[GraphStore] 计算中心性失败:', error);
+        return new Map();
+      }
+    },
+
+    /**
+     * 社区检测
+     */
+    async detectCommunities() {
+      try {
+        const result = await window.electronAPI.graph.detectCommunities(
+          this.nodes,
+          this.edges
+        );
+        return new Map(result);
+      } catch (error) {
+        console.error('[GraphStore] 社区检测失败:', error);
+        return new Map();
+      }
+    },
+
+    /**
+     * 节点聚类
+     */
+    async clusterNodes(k = 5) {
+      try {
+        const result = await window.electronAPI.graph.clusterNodes(
+          this.nodes,
+          this.edges,
+          k
+        );
+        return new Map(result);
+      } catch (error) {
+        console.error('[GraphStore] 节点聚类失败:', error);
+        return new Map();
+      }
+    },
+
+    /**
+     * 查找关键节点
+     */
+    async findKeyNodes(topN = 10) {
+      try {
+        const keyNodes = await window.electronAPI.graph.findKeyNodes(
+          this.nodes,
+          this.edges,
+          topN
+        );
+        return keyNodes;
+      } catch (error) {
+        console.error('[GraphStore] 查找关键节点失败:', error);
+        return [];
+      }
+    },
+
+    /**
+     * 分析图谱统计
+     */
+    async analyzeGraphStats() {
+      try {
+        const stats = await window.electronAPI.graph.analyzeStats(
+          this.nodes,
+          this.edges
+        );
+        return stats;
+      } catch (error) {
+        console.error('[GraphStore] 分析图谱统计失败:', error);
+        return null;
+      }
+    },
+
+    /**
+     * 导出图谱
+     */
+    async exportGraph(format) {
+      try {
+        const result = await window.electronAPI.graph.exportGraph(
+          this.nodes,
+          this.edges,
+          format
+        );
+        return result;
+      } catch (error) {
+        console.error('[GraphStore] 导出图谱失败:', error);
+        throw error;
+      }
+    },
+
+    /**
      * 重置状态
      */
     reset() {

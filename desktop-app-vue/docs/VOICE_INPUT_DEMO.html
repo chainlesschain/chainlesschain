@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChainlessChain 语音输入功能演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .status-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .status-text {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .recording-time {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1677ff;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #1677ff;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #0958d9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4);
+        }
+
+        .btn-danger {
+            background: #ff4d4f;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #cf1322;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #d9d9d9;
+        }
+
+        .transcript-box {
+            background: #f9f9f9;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 150px;
+            margin-bottom: 20px;
+        }
+
+        .transcript-label {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .transcript-text {
+            color: #333;
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .transcript-text.empty {
+            color: #999;
+            font-style: italic;
+        }
+
+        .interim-text {
+            color: #999;
+            font-style: italic;
+        }
+
+        .volume-indicator {
+            width: 100%;
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .volume-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #52c41a, #1677ff);
+            transition: width 0.1s ease;
+            border-radius: 3px;
+        }
+
+        .info-box {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .info-box h3 {
+            color: #0958d9;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box li {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .info-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #52c41a;
+            font-weight: bold;
+        }
+
+        .recording {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 77, 79, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 77, 79, 0);
+            }
+        }
+
+        .wave-animation {
+            display: inline-block;
+            animation: wave 1s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(1.5); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 语音输入功能演示</h1>
+        <p class="subtitle">ChainlessChain Desktop App - Voice Input Demo</p>
+
+        <div class="status">
+            <div class="status-icon" id="statusIcon">🎙️</div>
+            <div class="status-text" id="statusText">准备就绪</div>
+            <div class="recording-time" id="recordingTime">00:00</div>
+            <div class="volume-indicator">
+                <div class="volume-bar" id="volumeBar" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" id="startBtn" onclick="startRecording()">
+                <span>▶️</span>
+                <span>开始录音</span>
+            </button>
+            <button class="btn-secondary" id="pauseBtn" onclick="pauseRecording()" disabled>
+                <span>⏸️</span>
+                <span>暂停</span>
+            </button>
+            <button class="btn-danger" id="stopBtn" onclick="stopRecording()" disabled>
+                <span>⏹️</span>
+                <span>停止</span>
+            </button>
+        </div>
+
+        <div class="transcript-box">
+            <div class="transcript-label">识别结果</div>
+            <div class="transcript-text empty" id="transcriptText">
+                点击"开始录音"按钮开始语音输入...
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h3>💡 使用提示</h3>
+            <ul>
+                <li>确保浏览器已授予麦克风权限</li>
+                <li>在安静的环境中使用效果更佳</li>
+                <li>清晰地说话，语速适中</li>
+                <li>支持中文语音识别</li>
+                <li>可以暂停和继续录音</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let recognition = null;
+        let isRecording = false;
+        let isPaused = false;
+        let recordingStartTime = null;
+        let recordingTimer = null;
+        let pauseStartTime = null;
+        let totalPausedTime = 0;
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        // 初始化语音识别
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                alert('您的浏览器不支持语音识别功能！\n\n请使用 Chrome、Edge 或其他基于 Chromium 的浏览器。');
+                return false;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                console.log('语音识别已启动');
+                updateStatus('正在录音...', '🔴');
+                startRecordingTimer();
+            };
+
+            recognition.onresult = (event) => {
+                interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                updateTranscript();
+                animateVolume();
+            };
+
+            recognition.onerror = (event) => {
+                console.error('语音识别错误:', event.error);
+                let errorMessage = '语音识别失败';
+
+                switch (event.error) {
+                    case 'no-speech':
+                        errorMessage = '未检测到语音';
+                        break;
+                    case 'audio-capture':
+                        errorMessage = '无法访问麦克风';
+                        break;
+                    case 'not-allowed':
+                        errorMessage = '请允许麦克风权限';
+                        break;
+                    case 'network':
+                        errorMessage = '网络错误';
+                        break;
+                }
+
+                alert(errorMessage);
+                stopRecording();
+            };
+
+            recognition.onend = () => {
+                console.log('语音识别已结束');
+                if (isRecording && !isPaused) {
+                    // 自动重启以保持连续识别
+                    try {
+                        recognition.start();
+                    } catch (error) {
+                        console.error('重启识别失败:', error);
+                    }
+                }
+            };
+
+            return true;
+        }
+
+        // 开始录音
+        function startRecording() {
+            if (!recognition) {
+                if (!initSpeechRecognition()) {
+                    return;
+                }
+            }
+
+            try {
+                isRecording = true;
+                isPaused = false;
+                recordingStartTime = Date.now();
+                totalPausedTime = 0;
+                finalTranscript = '';
+                interimTranscript = '';
+
+                recognition.start();
+
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('startBtn').classList.add('recording');
+            } catch (error) {
+                console.error('启动录音失败:', error);
+                alert('启动录音失败: ' + error.message);
+                isRecording = false;
+            }
+        }
+
+        // 暂停录音
+        function pauseRecording() {
+            if (recognition && isRecording && !isPaused) {
+                try {
+                    recognition.stop();
+                    isPaused = true;
+                    pauseStartTime = Date.now();
+                    updateStatus('已暂停', '⏸️');
+                    stopRecordingTimer();
+
+                    document.getElementById('pauseBtn').textContent = '▶️ 继续';
+                } catch (error) {
+                    console.error('暂停录音失败:', error);
+                }
+            } else if (isPaused) {
+                // 继续录音
+                try {
+                    totalPausedTime += Date.now() - pauseStartTime;
+                    isPaused = false;
+                    recognition.start();
+                    updateStatus('正在录音...', '🔴');
+                    startRecordingTimer();
+
+                    document.getElementById('pauseBtn').innerHTML = '<span>⏸️</span><span>暂停</span>';
+                } catch (error) {
+                    console.error('恢复录音失败:', error);
+                }
+            }
+        }
+
+        // 停止录音
+        function stopRecording() {
+            try {
+                if (recognition && isRecording) {
+                    recognition.stop();
+                }
+
+                isRecording = false;
+                isPaused = false;
+                updateStatus('录音完成', '✅');
+                stopRecordingTimer();
+
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('startBtn').classList.remove('recording');
+                document.getElementById('pauseBtn').innerHTML = '<span>⏸️</span><span>暂停</span>';
+
+                // 显示最终结果
+                if (finalTranscript) {
+                    updateTranscript();
+                }
+            } catch (error) {
+                console.error('停止录音失败:', error);
+            }
+        }
+
+        // 更新状态
+        function updateStatus(text, icon) {
+            document.getElementById('statusText').textContent = text;
+            document.getElementById('statusIcon').textContent = icon;
+        }
+
+        // 更新转录文本
+        function updateTranscript() {
+            const transcriptEl = document.getElementById('transcriptText');
+            const fullText = finalTranscript + (interimTranscript ? ' ' + interimTranscript : '');
+
+            if (fullText) {
+                transcriptEl.textContent = fullText;
+                transcriptEl.classList.remove('empty');
+
+                if (interimTranscript) {
+                    // 高亮显示临时文本
+                    const parts = fullText.split(interimTranscript);
+                    transcriptEl.innerHTML = parts[0] + '<span class="interim-text">' + interimTranscript + '</span>';
+                }
+            } else {
+                transcriptEl.textContent = '正在等待语音输入...';
+                transcriptEl.classList.add('empty');
+            }
+        }
+
+        // 启动录音计时器
+        function startRecordingTimer() {
+            recordingTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - recordingStartTime - totalPausedTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('recordingTime').textContent =
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        // 停止录音计时器
+        function stopRecordingTimer() {
+            if (recordingTimer) {
+                clearInterval(recordingTimer);
+                recordingTimer = null;
+            }
+        }
+
+        // 模拟音量动画
+        function animateVolume() {
+            const volumeBar = document.getElementById('volumeBar');
+            const level = Math.random() * 60 + 40; // 40-100%
+            volumeBar.style.width = level + '%';
+
+            setTimeout(() => {
+                volumeBar.style.width = (Math.random() * 40 + 20) + '%'; // 20-60%
+            }, 100);
+        }
+
+        // 页面加载时检查浏览器支持
+        window.onload = () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                document.getElementById('statusText').textContent = '浏览器不支持语音识别';
+                document.getElementById('statusIcon').textContent = '❌';
+                document.getElementById('startBtn').disabled = true;
+            }
+        };
+
+        // 页面卸载时清理
+        window.onbeforeunload = () => {
+            if (recognition && isRecording) {
+                recognition.stop();
+            }
+            stopRecordingTimer();
+        };
+    </script>
+</body>
+</html>
