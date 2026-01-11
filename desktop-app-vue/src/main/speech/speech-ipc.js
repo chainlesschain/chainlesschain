@@ -528,7 +528,8 @@ function registerSpeechIPC({
    */
   ipcMain.handle('speech:getLanguages', async () => {
     try {
-      const multiLanguageSupport = require('./multi-language-support');
+      const MultiLanguageSupport = require('./multi-language-support');
+      const multiLanguageSupport = new MultiLanguageSupport();
       return multiLanguageSupport.getSupportedLanguages();
     } catch (error) {
       console.error('[Speech] 获取语言列表失败:', error);
