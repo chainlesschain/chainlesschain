@@ -83,6 +83,9 @@ const ChatSkillBridge = require('./skill-tool-system/chat-skill-bridge');
 // Speech/Voice Input System
 const { registerSpeechIPC } = require('./speech/speech-ipc');
 
+// Plugin Marketplace System
+const { registerPluginMarketplaceIPC } = require('./plugins/marketplace-ipc');
+
 // Database Encryption IPC
 const DatabaseEncryptionIPC = require('./database-encryption-ipc');
 
@@ -2299,6 +2302,9 @@ class ChainlessChainApp {
     // 注册性能监控 IPC handlers
     this.setupPerformanceIPC();
 
+    // 注册插件市场 IPC handlers
+    this.setupPluginMarketplaceIPC();
+
     // 注册交互式任务规划 IPC handlers
     this.setupInteractivePlanningIPC();
 
@@ -2388,6 +2394,27 @@ class ChainlessChainApp {
     });
 
     console.log('[Performance IPC] ✓ Performance monitoring IPC handlers registered');
+  }
+
+  /**
+   * 设置插件市场 IPC 处理器
+   */
+  setupPluginMarketplaceIPC() {
+    if (!this.pluginManager) {
+      console.warn('[Plugin Marketplace IPC] Plugin manager not initialized');
+      return;
+    }
+
+    try {
+      // 注册插件市场IPC处理器
+      registerPluginMarketplaceIPC({
+        pluginManager: this.pluginManager
+      });
+
+      console.log('[Plugin Marketplace IPC] ✓ Plugin marketplace IPC handlers registered (20 handlers)');
+    } catch (error) {
+      console.error('[Plugin Marketplace IPC] Failed to register handlers:', error);
+    }
   }
 
   /**
