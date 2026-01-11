@@ -36,6 +36,8 @@
 - ✅ **多维度可视化** - 2D优化(LOD/节点聚合/渐进渲染)、3D力导向图(WebGL)、时间轴视图、关系热力图 ⭐最新
 - ✅ **智能实体提取** - 9种实体类型、8种关系类型、基于规则+LLM双模式、关键词提取、Wiki链接识别 ⭐最新
 - ✅ **多格式导出** - JSON、GraphML(Gephi)、GEXF、DOT(Graphviz)、CSV、交互式HTML ⭐最新
+- ✅ **企业版DID邀请链接** - 安全令牌生成、灵活使用控制、过期管理、权限控制、使用记录追踪、统计分析 ⭐最新
+- ✅ **移动端知识库增强** - Markdown渲染、代码高亮、图片预览、工具栏、实时预览、图片上传、自动保存草稿 ⭐最新
 - ✅ **语音识别功能完善** - Whisper集成测试通过(100%准确度/2.5x实时速度)，语音设置UI完成，支持本地/云端识别
 - ✅ **PC端核心功能完善** - 多语言支持、STUN/TURN网络测试、系统设置优化、性能监控增强
 - ✅ **P2P通信增强** - WebRTC媒体流测试、Signal Protocol高级测试、信令服务器优化
@@ -84,14 +86,14 @@
 - 🟢 **性能优化**: 100% 完成 - **内存/磁盘/并发控制** ⭐完成
 - 🟢 **安全防护**: 100% 完成 - **输入验证/权限控制/加密** ⭐完成
 - 🟢 **测试框架**: 100% 完成 - **94个测试文件，900+用例，Vitest框架** ⭐完成
-- 🟡 **企业版（去中心化组织）**: 45% 完成 - **核心架构+组织管理**
+- 🟡 **企业版（去中心化组织）**: 50% 完成 - **核心架构+组织管理+DID邀请链接** ⭐提升
 - 🟡 **区块链集成**: 55% 完成 - **阶段1-3完成，钱包+合约系统**
 - 🟡 **去中心化身份**: 80% 完成 - **DID+组织DID+VC**
 - 🟡 **P2P通信**: 85% 完成 - **E2E加密+WebRTC测试** ⭐提升
 - 🟡 **社交系统**: 85% 完成 - **好友+动态+论坛**
 - 🟡 **交易系统**: 85% 完成 - **8大模块+链上合约**
 - 🟡 **浏览器扩展**: 70% 完成 - **测试框架+文档完善**
-- 🟡 **移动端应用**: 15% 完成 - **数据同步完成**
+- 🟡 **移动端应用**: 50% 完成 - **知识库CRUD+Markdown渲染+数据同步** ⭐提升
 
 ## 核心特性
 
@@ -102,11 +104,11 @@
 - 🎯 **16个AI引擎**: 代码/文档/表格/PPT/PDF/图像/视频/数据可视化等专业处理，覆盖全场景 ✅
 - 📋 **模板系统**: 178个AI模板 + 32个分类 + 智能引擎分配 + 100%配置覆盖 ✅
 - ⛓️ **区块链集成**: 6个智能合约 + HD钱包系统 + MetaMask/WalletConnect + LayerZero跨链桥 ✅ ⭐更新
-- 🏢 **企业版（去中心化组织）**: 多身份架构 + RBAC权限 + 组织管理 + 数据隔离 ✅ ⭐更新
+- 🏢 **企业版（去中心化组织）**: 多身份架构 + RBAC权限 + 组织管理 + 数据隔离 + DID邀请链接系统 ✅ ⭐更新
 - 🔧 **技能工具系统**: 115个技能 + 300个工具 + 10大类别 + 动态管理 ✅
 - 🔌 **插件系统**: 动态加载 + 热更新 + 生命周期管理 + API扩展 ✅
 - 🎤 **语音识别**: Whisper集成(本地/云端) + 实时转写 + 设置UI + 测试通过(100%准确度) ✅ ⭐更新
-- 📱 **跨设备协作**: Git同步 + 移动端PC端数据同步 + 多设备P2P通信 + 离线消息队列 ✅
+- 📱 **跨设备协作**: Git同步 + 移动端PC端数据同步 + 多设备P2P通信 + 离线消息队列 + 移动端Markdown编辑器 ✅ ⭐更新
 - 🔓 **开源自主**: 220,000+行代码，243个Vue组件，23个页面，完全透明可审计 ✅ ⭐更新
 - ⚡ **P2优化系统**: 意图融合、知识蒸馏、流式响应，AI引擎性能提升40% ✅
 - 🚀 **深度性能优化**: 18个优化工具 + 4个专用组件 + Core Web Vitals监控 + 智能图片加载 ✅
@@ -523,7 +525,7 @@ sudo pacman -S gtk3 libnotify nss libxss libxtst
 - ContractCard/TransactionTimeline - 通用组件
 - CreditScore/ReviewList/MyReviews - 信用和评价
 
-### 4️⃣ 企业版（去中心化组织）(45% 完成)
+### 4️⃣ 企业版（去中心化组织）(50% 完成) ⭐更新
 
 **核心架构**:
 - ✅ **多身份架构**: 一个用户DID可拥有个人身份+多个组织身份
@@ -534,8 +536,19 @@ sudo pacman -S gtk3 libnotify nss libxss libxtst
 **组织管理** (OrganizationManager - 1966行):
 - ✅ 组织创建/删除 - UUID生成、DID创建、数据库初始化
 - ✅ 成员管理 - 添加/移除/角色变更、在线状态
-- ✅ 邀请系统 - 6位邀请码生成、DID邀请（规划中）
+- ✅ 邀请系统 - 6位邀请码生成、DID邀请链接（完整实现）⭐新增
 - ✅ 活动日志 - 所有操作自动记录、审计追溯
+
+**DID邀请链接系统** (DIDInvitationManager - 完整实现) ⭐新增:
+- ✅ **安全令牌生成** - 32字节随机令牌（base64url编码）
+- ✅ **灵活使用控制** - 单次/多次/无限制使用，使用次数追踪
+- ✅ **过期时间管理** - 默认7天过期，可自定义，自动过期检测
+- ✅ **权限控制** - 基于角色的邀请（owner/admin/member/viewer）
+- ✅ **使用记录追踪** - 记录用户DID、使用时间、IP地址、User Agent
+- ✅ **统计分析** - 链接总数、活跃/过期/撤销状态、使用率计算
+- ✅ **完整IPC接口** - 9个IPC处理器（创建/验证/接受/列表/详情/撤销/删除/统计/复制）
+- ✅ **数据库表** - invitation_links、invitation_link_usage
+- ✅ **详细文档** - INVITATION_LINK_FEATURE.md（500行完整文档）
 
 **权限系统** (RBAC + ACL):
 - ✅ **4个内置角色**: Owner(所有权限)、Admin(管理权限)、Member(读写权限)、Viewer(只读权限)
@@ -543,12 +556,14 @@ sudo pacman -S gtk3 libnotify nss libxss libxtst
 - ✅ **权限检查**: 支持通配符、前缀匹配、精确匹配
 - ✅ **自定义角色**: 支持创建自定义角色和权限（待完善）
 
-**数据库架构** (9个新表):
+**数据库架构** (11个表) ⭐更新:
 - ✅ `identity_contexts` - 身份上下文管理（个人+组织）
 - ✅ `organization_info` - 组织元数据（名称、类型、描述、Owner）
 - ✅ `organization_members` - 组织成员详情（DID、角色、权限）
 - ✅ `organization_roles` - 组织角色定义
 - ✅ `organization_invitations` - 组织邀请管理
+- ✅ `invitation_links` - DID邀请链接 ⭐新增
+- ✅ `invitation_link_usage` - 邀请链接使用记录 ⭐新增
 - ✅ `organization_projects` - 组织项目
 - ✅ `organization_activities` - 组织活动日志
 - ✅ `p2p_sync_state` - P2P同步状态
@@ -570,7 +585,6 @@ sudo pacman -S gtk3 libnotify nss libxss libxtst
 
 **待完成功能**:
 - ⏳ P2P组织网络（Topic订阅、成员发现）
-- ⏳ DID邀请机制（通过DID直接邀请）
 - ⏳ 知识库协作（共享、版本控制、冲突解决）
 - ⏳ 数据同步（增量同步、冲突检测）
 - ⏳ 前端UI完善（仪表板、统计图表）
@@ -1019,13 +1033,19 @@ chainlesschain/
 │           ├── components/       # UI组件
 │           └── api/              # API客户端
 │
-├── mobile-app-uniapp/            # 📱 移动端应用 (10%完成)
+├── mobile-app-uniapp/            # 📱 移动端应用 (50%完成) ⭐更新
 │   ├── pages/                    # 页面
+│   ├── components/               # 组件 ⭐更新
+│   │   ├── MarkdownRenderer.vue  # Markdown渲染组件 ⭐新增
+│   │   └── MarkdownToolbar.vue   # Markdown工具栏 ⭐新增
 │   ├── services/                 # 服务层
 │   │   ├── device-pairing.js    # 设备配对服务 (354行) ⭐新增
 │   │   ├── knowledge-sync.js    # 知识库同步 (220行) ⭐新增
 │   │   ├── project-sync.js      # 项目同步 (217行) ⭐新增
 │   │   └── pc-status.js         # PC状态监控 (253行) ⭐新增
+│   ├── docs/                     # 文档 ⭐新增
+│   │   ├── MOBILE_ADAPTATION_PROGRESS_2026-01-12.md  # 进度报告 ⭐新增
+│   │   └── KNOWLEDGE_FEATURES_GUIDE.md               # 功能指南 ⭐新增
 │   └── manifest.json
 │
 ├── signaling-server/             # 🔗 信令服务器 ⭐新增
@@ -1086,7 +1106,7 @@ chainlesschain/
 | **backend/ai-service** | FastAPI + Python 3.9+ | 12,417行 | 38 API | 85% | ✅ 功能完整 |
 | **community-forum/backend** | Spring Boot 3.1 + MySQL | 5,679行 | 63 API | 90% | ✅ 生产可用 |
 | **community-forum/frontend** | Vue3 + Element Plus | 10,958行 | - | 85% | ✅ 功能完整 |
-| **mobile-app-uniapp** | uni-app + Vue3 | 少量 | - | 15% | 🚧 开发中 | ⭐更新
+| **mobile-app-uniapp** | uni-app + Vue3 | 2,000+行 | - | 50% | 🚧 开发中 | ⭐更新
 | **总计** | - | **260,000+行** | **157 API** | **100%** | ✅ 生产就绪 | ⭐更新
 
 ### 代码规模统计
