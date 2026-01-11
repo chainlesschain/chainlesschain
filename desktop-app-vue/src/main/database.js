@@ -1801,8 +1801,7 @@ class DatabaseManager {
         activity_type TEXT NOT NULL CHECK(activity_type IN ('create', 'edit', 'view', 'comment', 'share', 'delete', 'restore')),
         metadata TEXT,
         created_at INTEGER NOT NULL,
-        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
-        FOREIGN KEY (org_id) REFERENCES organization_info(id) ON DELETE CASCADE
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
       );
 
       -- 协作模块索引
@@ -2661,18 +2660,14 @@ class DatabaseManager {
     const safeOffset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? Math.floor(parsedOffset) : 0;
 
     try {
-      const stmt = this.db.prepare(`
+      const sql = `
         SELECT * FROM knowledge_items
         ORDER BY updated_at DESC
         LIMIT ${safeLimit} OFFSET ${safeOffset}
-      `);
+      `;
 
-      const results = [];
-      while (stmt.step()) {
-        results.push(stmt.getAsObject());
-      }
-      stmt.free();
-      return results;
+      // Use the unified all() method which handles both sql.js and better-sqlite3
+      return this.all(sql);
     } catch (error) {
       console.error('[Database] 获取知识库项失败:', error.message);
       return [];
@@ -2690,12 +2685,7 @@ class DatabaseManager {
     }
 
     try {
-      const stmt = this.db.prepare('SELECT * FROM knowledge_items WHERE id = ?');
-      stmt.bind([id]);
-
-      const result = stmt.step() ? stmt.getAsObject() : null;
-      stmt.free();
-      return result;
+      return this.get('SELECT * FROM knowledge_items WHERE id = ?', [id]);
     } catch (error) {
       console.error('[Database] 获取知识库项失败:', error.message);
       return null;
@@ -2722,12 +2712,7 @@ class DatabaseManager {
     }
 
     try {
-      const stmt = this.db.prepare('SELECT * FROM knowledge_items WHERE title = ? LIMIT 1');
-      stmt.bind([title]);
-
-      const result = stmt.step() ? stmt.getAsObject() : null;
-      stmt.free();
-      return result;
+      return this.get('SELECT * FROM knowledge_items WHERE title = ? LIMIT 1', [title]);
     } catch (error) {
       console.error('[Database] 根据标题获取知识库项失败:', error.message);
       return null;
@@ -2745,17 +2730,7 @@ class DatabaseManager {
     }
 
     try {
-      const stmt = this.db.prepare(`
-        SELECT * FROM knowledge_items
-        ORDER BY updated_at DESC
-      `);
-
-      const results = [];
-      while (stmt.step()) {
-        results.push(stmt.getAsObject());
-      }
-      stmt.free();
-      return results;
+      return this.all('SELECT * FROM knowledge_items ORDER BY updated_at DESC');
     } catch (error) {
       console.error('[Database] 获取所有知识库项失败:', error.message);
       return [];
@@ -2874,13 +2849,10 @@ class DatabaseManager {
    */
   deleteKnowledgeItem(id) {
     // 删除搜索索引
-    this.db.run('DELETE FROM knowledge_search WHERE id = ?', [id]);
+    this.run('DELETE FROM knowledge_search WHERE id = ?', [id]);
 
     // 删除知识库项
-    this.db.run('DELETE FROM knowledge_items WHERE id = ?', [id]);
-
-    // 保存到文件
-    this.saveToFile();
+    this.run('DELETE FROM knowledge_items WHERE id = ?', [id]);
 
     return true;
   }
@@ -2899,20 +2871,12 @@ class DatabaseManager {
 
     // 使用 LIKE 搜索（sql.js 不支持 FTS5）
     const pattern = `%${query}%`;
-    const stmt = this.db.prepare(`
+    return this.all(`
       SELECT * FROM knowledge_items
       WHERE title LIKE ? OR content LIKE ?
       ORDER BY updated_at DESC
       LIMIT 50
-    `);
-    stmt.bind([pattern, pattern]);
-
-    const results = [];
-    while (stmt.step()) {
-      results.push(stmt.getAsObject());
-    }
-    stmt.free();
-    return results;
+    `, [pattern, pattern]);
   }
 
   /**
@@ -2939,13 +2903,7 @@ class DatabaseManager {
    * @returns {Array} 标签列表
    */
   getAllTags() {
-    const stmt = this.db.prepare('SELECT * FROM tags ORDER BY name');
-    const results = [];
-    while (stmt.step()) {
-      results.push(stmt.getAsObject());
-    }
-    stmt.free();
-    return results;
+    return this.all('SELECT * FROM tags ORDER BY name');
   }
 
   /**
@@ -2959,21 +2917,16 @@ class DatabaseManager {
     const now = Date.now();
 
     try {
-      this.db.run(`
+      this.run(`
         INSERT INTO tags (id, name, color, created_at)
         VALUES (?, ?, ?, ?)
       `, [id, name, color, now]);
 
-      this.saveToFile();
       return { id, name, color, created_at: now };
     } catch (error) {
       if (error.message.includes('UNIQUE')) {
         // 标签已存在，返回现有标签
-        const stmt = this.db.prepare('SELECT * FROM tags WHERE name = ?');
-        stmt.bind([name]);
-        const result = stmt.step() ? stmt.getAsObject() : null;
-        stmt.free();
-        return result;
+        return this.get('SELECT * FROM tags WHERE name = ?', [name]);
       }
       throw error;
     }
@@ -2998,19 +2951,11 @@ class DatabaseManager {
    * @returns {Array} 标签列表
    */
   getKnowledgeTags(knowledgeId) {
-    const stmt = this.db.prepare(`
+    return this.all(`
       SELECT t.* FROM tags t
       JOIN knowledge_tags kt ON t.id = kt.tag_id
       WHERE kt.knowledge_id = ?
-    `);
-    stmt.bind([knowledgeId]);
-
-    const results = [];
-    while (stmt.step()) {
-      results.push(stmt.getAsObject());
-    }
-    stmt.free();
-    return results;
+    `, [knowledgeId]);
   }
 
   // ==================== 统计功能 ====================
@@ -3020,34 +2965,22 @@ class DatabaseManager {
    * @returns {Object} 统计信息
    */
   getStatistics() {
-    const totalStmt = this.db.prepare('SELECT COUNT(*) as count FROM knowledge_items');
-    totalStmt.step();
-    const total = totalStmt.getAsObject();
-    totalStmt.free();
+    const total = this.get('SELECT COUNT(*) as count FROM knowledge_items');
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayTimestamp = today.getTime();
 
-    const todayStmt = this.db.prepare(
-      'SELECT COUNT(*) as count FROM knowledge_items WHERE created_at >= ?'
+    const todayCount = this.get(
+      'SELECT COUNT(*) as count FROM knowledge_items WHERE created_at >= ?',
+      [todayTimestamp]
     );
-    todayStmt.bind([todayTimestamp]);
-    todayStmt.step();
-    const todayCount = todayStmt.getAsObject();
-    todayStmt.free();
 
-    const byTypeStmt = this.db.prepare(`
+    const byType = this.all(`
       SELECT type, COUNT(*) as count
       FROM knowledge_items
       GROUP BY type
     `);
-
-    const byType = [];
-    while (byTypeStmt.step()) {
-      byType.push(byTypeStmt.getAsObject());
-    }
-    byTypeStmt.free();
 
     return {
       total: total.count,
@@ -3060,6 +2993,14 @@ class DatabaseManager {
   }
 
   // ==================== 工具方法 ====================
+
+  /**
+   * Generate a unique ID
+   * @returns {string} UUID
+   */
+  generateId() {
+    return uuidv4();
+  }
 
   /**
    * Track query performance and log slow queries

@@ -7,6 +7,7 @@
 const pptxgen = require('pptxgenjs');
 const fs = require('fs').promises;
 const path = require('path');
+const os = require('os');
 
 class PPTEngine {
   constructor() {
@@ -92,7 +93,17 @@ class PPTEngine {
 
       // 保存文件
       const fileName = `${outline.title || 'presentation'}.pptx`;
-      const filePath = outputPath || path.join(process.cwd(), fileName);
+
+      // 使用安全的默认路径（临时目录而不是根目录）
+      let filePath;
+      if (outputPath) {
+        filePath = outputPath;
+      } else {
+        // 使用系统临时目录作为默认路径
+        const tempDir = os.tmpdir();
+        filePath = path.join(tempDir, fileName);
+        console.log('[PPT Engine] 未指定输出路径，使用临时目录:', filePath);
+      }
 
       // 确保目录存在
       const fs = require('fs').promises;
