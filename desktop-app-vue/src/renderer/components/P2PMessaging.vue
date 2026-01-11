@@ -942,11 +942,16 @@ onMounted(async () => {
     loadSyncStatistics();
   }, 10000); // 每 10 秒刷新一次
 
-  onUnmounted(() => {
-    clearInterval(refreshInterval);
-    window.electronAPI.p2p.off('p2p:encrypted-message', handleEncryptedMessageReceived);
-    window.electronAPI.p2p.off('p2p:key-exchange-success', handleKeyExchangeSuccess);
-  });
+  // Store interval ID for cleanup
+  window.__p2pRefreshInterval = refreshInterval;
+});
+
+onUnmounted(() => {
+  if (window.__p2pRefreshInterval) {
+    clearInterval(window.__p2pRefreshInterval);
+  }
+  window.electronAPI.p2p.off('p2p:encrypted-message', handleEncryptedMessageReceived);
+  window.electronAPI.p2p.off('p2p:key-exchange-success', handleKeyExchangeSuccess);
 });
 </script>
 

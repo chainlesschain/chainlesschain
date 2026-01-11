@@ -269,7 +269,7 @@ async function loadContacts() {
   loading.value = true;
   try {
     const result = await window.electronAPI.contact.getAll();
-    contacts.value = result;
+    contacts.value = result.contacts || [];
 
     // 加载统计信息
     const stats = await window.electronAPI.contact.getStatistics();

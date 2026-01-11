@@ -1838,8 +1838,82 @@ class ChainlessChainApp {
 
       console.log('[Main] ✅ 移动端桥接初始化成功');
 
+      // 初始化P2P增强管理器（包含语音/视频功能）
+      await this.initializeP2PEnhancedManager();
+
     } catch (error) {
       console.error('[Main] ❌ 移动端桥接初始化失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 初始化P2P增强管理器（包含消息、文件传输、知识库同步、语音/视频）
+   */
+  async initializeP2PEnhancedManager() {
+    console.log('[Main] 初始化P2P增强管理器...');
+
+    try {
+      // 导入P2P增强管理器
+      const P2PEnhancedManager = require('./p2p/p2p-enhanced-manager');
+      const P2PEnhancedIPC = require('./p2p/p2p-enhanced-ipc');
+
+      // 创建P2P增强管理器
+      this.p2pEnhancedManager = new P2PEnhancedManager(
+        this.p2pManager,
+        this.database,
+        {
+          // 消息管理配置
+          messageBatchSize: 10,
+          messageBatchInterval: 100,
+          enableCompression: true,
+          enableRetry: true,
+          maxRetries: 3,
+
+          // 知识库同步配置
+          syncInterval: 60000,
+          syncBatchSize: 50,
+          enableAutoSync: true,
+          conflictStrategy: 'latest-wins',
+
+          // 文件传输配置
+          chunkSize: 64 * 1024,
+          maxConcurrentChunks: 3,
+          enableResume: true,
+          tempDir: path.join(app.getPath('userData'), 'p2p-temp'),
+
+          // 语音/视频配置
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+          ],
+          audioConstraints: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          },
+          videoConstraints: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
+          },
+          callTimeout: 60000,
+          qualityCheckInterval: 5000
+        }
+      );
+
+      // 初始化增强管理器
+      await this.p2pEnhancedManager.initialize();
+
+      // 创建并注册IPC处理器
+      this.p2pEnhancedIPC = new P2PEnhancedIPC(this.p2pEnhancedManager);
+      this.p2pEnhancedIPC.register();
+
+      console.log('[Main] ✅ P2P增强管理器初始化成功（包含语音/视频功能）');
+
+    } catch (error) {
+      console.error('[Main] ❌ P2P增强管理器初始化失败:', error);
       throw error;
     }
   }
