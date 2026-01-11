@@ -8,13 +8,17 @@
  * - 移动端与PC端（libp2p）桥接
  */
 
+const http = require('http');
 const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');
 
 class SignalingServer {
   constructor(options = {}) {
     this.port = options.port || 9001;
+    this.healthPort = options.healthPort || 9002;
     this.wss = null;
+    this.httpServer = null;
+    this.healthServer = null;
 
     // 连接管理
     this.clients = new Map(); // peerId -> { ws, deviceInfo, connectedAt }
@@ -29,7 +33,8 @@ class SignalingServer {
       totalConnections: 0,
       currentConnections: 0,
       messagesForwarded: 0,
-      offlineMessagesStored: 0
+      offlineMessagesStored: 0,
+      startTime: Date.now()
     };
 
     // 定期清理过期离线消息
@@ -37,9 +42,62 @@ class SignalingServer {
   }
 
   /**
+   * 启动HTTP健康检查服务器
+   */
+  startHealthServer() {
+    this.healthServer = http.createServer((req, res) => {
+      if (req.url === '/health' || req.url === '/') {
+        // 健康检查端点
+        const uptime = Math.floor((Date.now() - this.stats.startTime) / 1000);
+        const health = {
+          status: 'healthy',
+          service: 'signaling-server',
+          version: '0.1.0',
+          uptime: uptime,
+          connections: {
+            current: this.stats.currentConnections,
+            total: this.stats.totalConnections
+          },
+          messages: {
+            forwarded: this.stats.messagesForwarded,
+            offlineQueued: Array.from(this.offlineMessages.values())
+              .reduce((sum, queue) => sum + queue.length, 0)
+          },
+          timestamp: new Date().toISOString()
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(health, null, 2));
+      } else if (req.url === '/stats') {
+        // 统计信息端点
+        const stats = this.getStats();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(stats, null, 2));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not Found');
+      }
+    });
+
+    this.healthServer.listen(this.healthPort, () => {
+      console.log(`[SignalingServer] HTTP健康检查服务器启动在端口 ${this.healthPort}`);
+      console.log(`[SignalingServer] 健康检查端点: http://localhost:${this.healthPort}/health`);
+      console.log(`[SignalingServer] 统计信息端点: http://localhost:${this.healthPort}/stats`);
+    });
+
+    this.healthServer.on('error', (error) => {
+      console.error('[SignalingServer] HTTP服务器错误:', error);
+    });
+  }
+
+  /**
    * 启动WebSocket服务器
    */
   start() {
+    // 先启动健康检查服务器
+    this.startHealthServer();
+
+    // 启动WebSocket服务器
     this.wss = new WebSocket.Server({ port: this.port });
 
     this.wss.on('connection', (ws, req) => {
@@ -454,14 +512,23 @@ class SignalingServer {
     console.log('[SignalingServer] 正在关闭服务器...');
 
     // 关闭所有WebSocket连接
-    this.wss.clients.forEach((ws) => {
-      ws.close();
-    });
+    if (this.wss) {
+      this.wss.clients.forEach((ws) => {
+        ws.close();
+      });
 
-    // 关闭WebSocket服务器
-    this.wss.close(() => {
-      console.log('[SignalingServer] 服务器已关闭');
-    });
+      // 关闭WebSocket服务器
+      this.wss.close(() => {
+        console.log('[SignalingServer] WebSocket服务器已关闭');
+      });
+    }
+
+    // 关闭HTTP健康检查服务器
+    if (this.healthServer) {
+      this.healthServer.close(() => {
+        console.log('[SignalingServer] HTTP健康检查服务器已关闭');
+      });
+    }
   }
 }
 
