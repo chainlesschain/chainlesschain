@@ -484,22 +484,40 @@ const filteredPlugins = computed(() => {
 const loadPlugins = async () => {
   loading.value = true;
   try {
-    // TODO: 从插件市场API加载插件列表
-    // const result = await window.electronAPI.plugin.fetchMarketplacePlugins();
+    // 从插件市场API加载插件列表
+    const result = await window.electronAPI.pluginMarketplace.list({
+      category: activeCategory.value !== 'all' ? activeCategory.value : null,
+      sort: sortBy.value,
+      verified: showVerifiedOnly.value ? true : null,
+      page: 1,
+      pageSize: 100
+    });
 
-    // 模拟数据
-    plugins.value = await getMockPlugins();
+    if (result.success) {
+      plugins.value = result.data.plugins || result.data || [];
+    } else {
+      // 如果API失败，使用模拟数据
+      console.warn('插件市场API失败，使用模拟数据');
+      plugins.value = await getMockPlugins();
+    }
 
     // 检查已安装的插件
-    const installed = await window.electronAPI.plugin.listPlugins();
-    const installedIds = new Set(installed.map(p => p.id));
+    try {
+      const installed = await window.electronAPI.plugin.listPlugins();
+      const installedIds = new Set(installed.map(p => p.id));
 
-    plugins.value.forEach(p => {
-      p.installed = installedIds.has(p.id);
-      p.installing = false;
-    });
+      plugins.value.forEach(p => {
+        p.installed = installedIds.has(p.id);
+        p.installing = false;
+      });
+    } catch (err) {
+      console.warn('获取已安装插件列表失败:', err);
+    }
   } catch (error) {
-    message.error('加载插件列表失败: ' + error.message);
+    console.error('加载插件列表失败:', error);
+    message.error('加载插件列表失败，使用本地数据');
+    // 使用模拟数据作为后备
+    plugins.value = await getMockPlugins();
   } finally {
     loading.value = false;
   }
@@ -526,15 +544,20 @@ const installPlugin = async (plugin) => {
   try {
     plugin.installing = true;
 
-    // TODO: 从市场下载并安装插件
-    // await window.electronAPI.plugin.installFromMarketplace(plugin.id);
+    // 从市场下载并安装插件
+    const result = await window.electronAPI.pluginMarketplace.install(plugin.id, plugin.version || 'latest');
 
-    message.success(`插件 "${plugin.name}" 安装成功！`);
-    plugin.installed = true;
+    if (result.success) {
+      message.success(`插件 "${plugin.name}" 安装成功！`);
+      plugin.installed = true;
 
-    // 刷新插件列表
-    await loadPlugins();
+      // 刷新插件列表
+      await loadPlugins();
+    } else {
+      throw new Error(result.error || '安装失败');
+    }
   } catch (error) {
+    console.error('安装插件失败:', error);
     message.error('安装失败: ' + error.message);
   } finally {
     plugin.installing = false;
