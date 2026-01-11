@@ -1,5 +1,6 @@
 package com.chainlesschain.marketplace.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.chainlesschain.marketplace.entity.Category;
 import com.chainlesschain.marketplace.mapper.CategoryMapper;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +34,8 @@ public class CategoryService {
      */
     @Cacheable(value = "categories", key = "#code")
     public Category getCategoryByCode(String code) {
-        return categoryMapper.selectOne(
-            categoryMapper.selectOne(null).wrapper().eq("code", code).eq("deleted", false)
-        );
+        QueryWrapper<Category> wrapper = new QueryWrapper<>();
+        wrapper.eq("code", code).eq("deleted", false);
+        return categoryMapper.selectOne(wrapper);
     }
 }

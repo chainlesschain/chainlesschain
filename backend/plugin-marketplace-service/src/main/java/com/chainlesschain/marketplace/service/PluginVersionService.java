@@ -229,7 +229,10 @@ public class PluginVersionService {
      */
     @Transactional
     public void incrementDownloads(Long pluginId, String version) {
-        pluginVersionMapper.incrementDownloads(pluginId, version);
+        PluginVersion pluginVersion = pluginVersionMapper.getVersionByPluginIdAndVersion(pluginId, version);
+        if (pluginVersion != null) {
+            pluginVersionMapper.incrementDownloads(pluginVersion.getId());
+        }
     }
 
     /**

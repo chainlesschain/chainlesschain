@@ -47,11 +47,11 @@ public class RatingController {
             @RequestParam @Min(1) @Max(5) Integer rating,
             @RequestParam(required = false) String comment,
             Authentication authentication) {
-        log.info("Submit rating: plugin={}, rating={}", pluginId, rating);
+        log.info("Submit rating: plugin=, rating={}", pluginId, rating);
 
         String userDid = authentication.getName();
         PluginRating result = ratingService.submitRating(pluginId, userDid, rating, comment);
-        return ApiResponse.success("Rating submitted successfully", result);
+        return ApiResponse.success(result, "Rating submitted successfully");
     }
 
     /**
@@ -66,6 +66,6 @@ public class RatingController {
 
         String userDid = authentication.getName();
         ratingService.deleteRating(id, userDid);
-        return ApiResponse.success("Rating deleted successfully", null);
+        return ApiResponse.successMessage("Rating deleted successfully");
     }
 }

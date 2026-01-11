@@ -73,6 +73,21 @@ marketplace:
   featured-limit: 10
   popular-limit: 20
 
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
 # Logging Configuration
 logging:
   level:

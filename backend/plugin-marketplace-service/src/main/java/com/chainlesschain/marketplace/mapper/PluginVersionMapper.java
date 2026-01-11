@@ -31,6 +31,12 @@ public interface PluginVersionMapper extends BaseMapper<PluginVersion> {
     PluginVersion getLatestVersion(@Param("pluginId") Long pluginId);
 
     /**
+     * Get version by plugin ID and version string
+     */
+    @Select("SELECT * FROM plugin_versions WHERE plugin_id = #{pluginId} AND version = #{version} AND deleted = false LIMIT 1")
+    PluginVersion getVersionByPluginIdAndVersion(@Param("pluginId") Long pluginId, @Param("version") String version);
+
+    /**
      * Increment download count
      */
     @Update("UPDATE plugin_versions SET downloads = downloads + 1 WHERE id = #{id}")

@@ -13,6 +13,9 @@ const EventEmitter = require('events');
 const MessageManager = require('./message-manager');
 const KnowledgeSyncManager = require('./knowledge-sync-manager');
 const FileTransferManager = require('./file-transfer-manager');
+const { VoiceVideoManager } = require('./voice-video-manager');
+const MediaStreamBridge = require('./media-stream-bridge');
+const CallHistoryManager = require('./call-history-manager');
 
 class P2PEnhancedManager extends EventEmitter {
   constructor(p2pManager, database, options = {}) {
@@ -26,6 +29,9 @@ class P2PEnhancedManager extends EventEmitter {
     this.messageManager = null;
     this.knowledgeSyncManager = null;
     this.fileTransferManager = null;
+    this.voiceVideoManager = null;
+    this.mediaStreamBridge = null;
+    this.callHistoryManager = null;
 
     // 状态
     this.initialized = false;
@@ -37,6 +43,7 @@ class P2PEnhancedManager extends EventEmitter {
       totalMessages: 0,
       totalSyncs: 0,
       totalFileTransfers: 0,
+      totalCalls: 0,
       errors: 0
     };
   }
@@ -85,10 +92,32 @@ class P2PEnhancedManager extends EventEmitter {
         }
       );
 
-      // 4. 设置事件监听
+      // 4. 初始化语音/视频管理器
+      this.voiceVideoManager = new VoiceVideoManager(
+        this.p2pManager,
+        {
+          iceServers: this.options.iceServers,
+          audioConstraints: this.options.audioConstraints,
+          videoConstraints: this.options.videoConstraints,
+          callTimeout: this.options.callTimeout,
+          qualityCheckInterval: this.options.qualityCheckInterval
+        }
+      );
+
+      // 5. 初始化MediaStream桥接服务
+      this.mediaStreamBridge = new MediaStreamBridge();
+
+      // 6. 初始化通话历史管理器
+      this.callHistoryManager = new CallHistoryManager(this.database);
+      await this.callHistoryManager.initialize();
+
+      // 7. 连接MediaStream桥接到VoiceVideoManager
+      this.connectMediaStreamBridge();
+
+      // 8. 设置事件监听
       this.setupEventHandlers();
 
-      // 5. 连接到P2P网络
+      // 9. 连接到P2P网络
       this.connectToP2PNetwork();
 
       this.initialized = true;
@@ -103,6 +132,51 @@ class P2PEnhancedManager extends EventEmitter {
       console.error('[P2PEnhanced] ❌ 初始化失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 连接MediaStream桥接到VoiceVideoManager
+   */
+  connectMediaStreamBridge() {
+    // 监听VoiceVideoManager的媒体流请求
+    this.voiceVideoManager.on('media:stream-required', async (data) => {
+      try {
+        console.log('[P2PEnhanced] 请求媒体流:', data.type);
+
+        // 通过桥接服务请求媒体流
+        const streamInfo = await this.mediaStreamBridge.requestMediaStream(
+          data.type,
+          data.constraints,
+          {
+            callId: data.callId,
+            peerId: data.peerId,
+            timeout: 30000
+          }
+        );
+
+        console.log('[P2PEnhanced] 媒体流已获取:', streamInfo.streamId);
+
+        // 通知回调
+        if (data.callback) {
+          data.callback(streamInfo);
+        }
+      } catch (error) {
+        console.error('[P2PEnhanced] 获取媒体流失败:', error);
+      }
+    });
+
+    // 转发MediaStreamBridge事件到渲染进程
+    this.mediaStreamBridge.on('request-media-stream', (data) => {
+      this.emit('media:request-stream', data);
+    });
+
+    this.mediaStreamBridge.on('stop-media-stream', (data) => {
+      this.emit('media:stop-stream', data);
+    });
+
+    this.mediaStreamBridge.on('toggle-track', (data) => {
+      this.emit('media:toggle-track', data);
+    });
   }
 
   /**
@@ -197,6 +271,95 @@ class P2PEnhancedManager extends EventEmitter {
     this.fileTransferManager.on('transfer:request', (data) => {
       console.log('[P2PEnhanced] 收到文件传输请求:', data.fileName);
       this.emit('file:transfer-request', data);
+    });
+
+    // 语音/视频通话事件
+    this.voiceVideoManager.on('call:started', (data) => {
+      console.log('[P2PEnhanced] 通话已发起:', data.callId);
+      this.emit('call:started', data);
+
+      // 记录通话历史
+      this.callHistoryManager.recordCallStart(data).catch(err => {
+        console.error('[P2PEnhanced] 记录通话开始失败:', err);
+      });
+    });
+
+    this.voiceVideoManager.on('call:incoming', (data) => {
+      console.log('[P2PEnhanced] 收到来电:', data.callId);
+      this.emit('call:incoming', data);
+
+      // 记录来电
+      this.callHistoryManager.recordCallStart({
+        ...data,
+        isInitiator: false
+      }).catch(err => {
+        console.error('[P2PEnhanced] 记录来电失败:', err);
+      });
+    });
+
+    this.voiceVideoManager.on('call:accepted', (data) => {
+      console.log('[P2PEnhanced] 通话已接受:', data.callId);
+      this.emit('call:accepted', data);
+
+      // 更新通话状态
+      this.callHistoryManager.updateCallStatus(data.callId, 'accepted', {
+        isAnswered: true
+      }).catch(err => {
+        console.error('[P2PEnhanced] 更新通话状态失败:', err);
+      });
+    });
+
+    this.voiceVideoManager.on('call:rejected', (data) => {
+      console.log('[P2PEnhanced] 通话已拒绝:', data.callId);
+      this.emit('call:rejected', data);
+
+      // 更新通话状态
+      this.callHistoryManager.updateCallStatus(data.callId, 'rejected', {
+        isAnswered: false,
+        rejectReason: data.reason
+      }).catch(err => {
+        console.error('[P2PEnhanced] 更新通话状态失败:', err);
+      });
+    });
+
+    this.voiceVideoManager.on('call:connected', (data) => {
+      console.log('[P2PEnhanced] 通话已连接:', data.callId);
+      this.emit('call:connected', data);
+
+      // 更新通话状态
+      this.callHistoryManager.updateCallStatus(data.callId, 'connected').catch(err => {
+        console.error('[P2PEnhanced] 更新通话状态失败:', err);
+      });
+    });
+
+    this.voiceVideoManager.on('call:ended', (data) => {
+      console.log('[P2PEnhanced] 通话已结束:', data.callId);
+      this.emit('call:ended', data);
+
+      // 记录通话结束
+      const callInfo = this.voiceVideoManager.getCallInfo(data.callId);
+      this.callHistoryManager.recordCallEnd(data.callId, {
+        duration: callInfo ? callInfo.duration * 1000 : 0,
+        qualityStats: callInfo ? callInfo.stats : null
+      }).catch(err => {
+        console.error('[P2PEnhanced] 记录通话结束失败:', err);
+      });
+    });
+
+    this.voiceVideoManager.on('call:remote-stream', (data) => {
+      this.emit('call:remote-stream', data);
+    });
+
+    this.voiceVideoManager.on('call:quality-update', (data) => {
+      this.emit('call:quality-update', data);
+    });
+
+    this.voiceVideoManager.on('call:mute-changed', (data) => {
+      this.emit('call:mute-changed', data);
+    });
+
+    this.voiceVideoManager.on('call:video-changed', (data) => {
+      this.emit('call:video-changed', data);
     });
   }
 
@@ -377,6 +540,135 @@ class P2PEnhancedManager extends EventEmitter {
   }
 
   /**
+   * 发起语音/视频通话（公共API）
+   */
+  async startCall(peerId, type, options = {}) {
+    if (!this.initialized) {
+      throw new Error('增强管理器未初始化');
+    }
+
+    const callId = await this.voiceVideoManager.startCall(peerId, type, options);
+    this.stats.totalCalls++;
+    return callId;
+  }
+
+  /**
+   * 接受通话（公共API）
+   */
+  async acceptCall(callId) {
+    if (!this.initialized) {
+      throw new Error('增强管理器未初始化');
+    }
+
+    return await this.voiceVideoManager.acceptCall(callId);
+  }
+
+  /**
+   * 拒绝通话（公共API）
+   */
+  async rejectCall(callId, reason) {
+    if (!this.initialized) {
+      throw new Error('增强管理器未初始化');
+    }
+
+    return await this.voiceVideoManager.rejectCall(callId, reason);
+  }
+
+  /**
+   * 结束通话（公共API）
+   */
+  async endCall(callId) {
+    if (!this.initialized) {
+      throw new Error('增强管理器未初始化');
+    }
+
+    return await this.voiceVideoManager.endCall(callId);
+  }
+
+  /**
+   * 切换静音（公共API）
+   */
+  toggleMute(callId) {
+    return this.voiceVideoManager.toggleMute(callId);
+  }
+
+  /**
+   * 切换视频（公共API）
+   */
+  toggleVideo(callId) {
+    return this.voiceVideoManager.toggleVideo(callId);
+  }
+
+  /**
+   * 获取通话信息（公共API）
+   */
+  getCallInfo(callId) {
+    return this.voiceVideoManager.getCallInfo(callId);
+  }
+
+  /**
+   * 获取活动通话列表（公共API）
+   */
+  getActiveCalls() {
+    return this.voiceVideoManager.getActiveCalls();
+  }
+
+  /**
+   * 获取通话历史（公共API）
+   */
+  async getCallHistory(options = {}) {
+    if (!this.initialized) {
+      throw new Error('增强管理器未初始化');
+    }
+
+    return await this.callHistoryManager.getCallHistory(options);
+  }
+
+  /**
+   * 获取通话详情（公共API）
+   */
+  async getCallDetails(callId) {
+    if (!this.initialized) {
+      throw new Error('增强管理器未初始化');
+    }
+
+    return await this.callHistoryManager.getCallDetails(callId);
+  }
+
+  /**
+   * 获取通话统计（公共API）
+   */
+  async getCallStatistics(peerId = null) {
+    if (!this.initialized) {
+      throw new Error('增强管理器未初始化');
+    }
+
+    return await this.callHistoryManager.getCallStatistics(peerId);
+  }
+
+  /**
+   * 删除通话记录（公共API）
+   */
+  async deleteCallHistory(callId) {
+    if (!this.initialized) {
+      throw new Error('增强管理器未初始化');
+    }
+
+    return await this.callHistoryManager.deleteCallHistory(callId);
+  }
+
+  /**
+   * 清空通话历史（公共API）
+   */
+  async clearCallHistory(peerId = null) {
+    if (!this.initialized) {
+      throw new Error('增强管理器未初始化');
+    }
+
+    return await this.callHistoryManager.clearCallHistory(peerId);
+  }
+
+  /**
    * 获取统计信息
    */
   getStats() {
@@ -387,10 +679,12 @@ class P2PEnhancedManager extends EventEmitter {
       totalMessages: this.stats.totalMessages,
       totalSyncs: this.stats.totalSyncs,
       totalFileTransfers: this.stats.totalFileTransfers,
+      totalCalls: this.stats.totalCalls,
       errors: this.stats.errors,
       messageManager: this.messageManager ? this.messageManager.getStats() : null,
       knowledgeSyncManager: this.knowledgeSyncManager ? this.knowledgeSyncManager.getStats() : null,
-      fileTransferManager: this.fileTransferManager ? this.fileTransferManager.getStats() : null
+      fileTransferManager: this.fileTransferManager ? this.fileTransferManager.getStats() : null,
+      voiceVideoManager: this.voiceVideoManager ? this.voiceVideoManager.getStats() : null
     };
   }
 
@@ -413,6 +707,18 @@ class P2PEnhancedManager extends EventEmitter {
 
     if (this.fileTransferManager) {
       this.fileTransferManager.cleanup();
+    }
+
+    if (this.voiceVideoManager) {
+      await this.voiceVideoManager.cleanup();
+    }
+
+    if (this.mediaStreamBridge) {
+      this.mediaStreamBridge.cleanup();
+    }
+
+    if (this.callHistoryManager) {
+      this.callHistoryManager.cleanup();
     }
 
     this.emit('stopped');

@@ -37,6 +37,12 @@ public class PluginReport {
     @TableField("resolved_at")
     private LocalDateTime resolvedAt;
 
+    @TableField("admin_response")
+    private String adminResponse;
+
+    @TableField("reviewed_at")
+    private LocalDateTime reviewedAt;
+
     @TableLogic
     private Boolean deleted;
 
