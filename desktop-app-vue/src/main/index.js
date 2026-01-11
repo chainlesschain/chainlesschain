@@ -1910,6 +1910,31 @@ class ChainlessChainApp {
       this.p2pEnhancedIPC = new P2PEnhancedIPC(this.p2pEnhancedManager);
       this.p2pEnhancedIPC.register();
 
+      // 注册屏幕共享IPC处理器
+      const ScreenShareIPC = require('./p2p/screen-share-ipc');
+      this.screenShareIPC = new ScreenShareIPC();
+      this.screenShareIPC.register();
+      console.log('[Main] ✅ 屏幕共享IPC处理器已注册');
+
+      // 注册通话历史IPC处理器
+      const CallHistoryIPC = require('./p2p/call-history-ipc');
+      this.callHistoryIPC = new CallHistoryIPC(this.p2pEnhancedManager.callHistoryManager);
+      this.callHistoryIPC.register();
+      console.log('[Main] ✅ 通话历史IPC处理器已注册');
+
+      // 初始化连接健康管理器
+      const P2PConnectionHealthManager = require('./p2p/connection-health-manager');
+      this.connectionHealthManager = new P2PConnectionHealthManager(this.p2pManager, {
+        healthCheckInterval: 30000,
+        pingTimeout: 5000,
+        maxReconnectAttempts: 5,
+        reconnectDelay: 2000,
+        reconnectBackoffMultiplier: 1.5,
+        maxReconnectDelay: 30000
+      });
+      await this.connectionHealthManager.initialize();
+      console.log('[Main] ✅ 连接健康管理器已初始化');
+
       console.log('[Main] ✅ P2P增强管理器初始化成功（包含语音/视频功能）');
 
     } catch (error) {

@@ -1,5 +1,17 @@
 <template>
   <div class="chat-window">
+    <!-- 来电通知 -->
+    <CallNotification />
+
+    <!-- 通话窗口 -->
+    <CallWindow v-if="activeCall" />
+
+    <!-- 屏幕共享选择器 -->
+    <ScreenSharePicker
+      v-model:visible="showScreenSharePicker"
+      @select="handleScreenSourceSelect"
+    />
+
     <!-- 左侧：会话列表 -->
     <div class="chat-sidebar">
       <ConversationList
@@ -41,6 +53,11 @@
             <a-tooltip title="视频通话">
               <a-button type="text" @click="handleVideoCall">
                 <VideoCameraOutlined />
+              </a-button>
+            </a-tooltip>
+            <a-tooltip title="屏幕共享">
+              <a-button type="text" @click="handleScreenShare">
+                <DesktopOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="更多">
@@ -124,12 +141,17 @@
 import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useSocialStore } from '../../stores/social'
+import { useP2PCall } from '../../composables/useP2PCall'
 import ConversationList from './ConversationList.vue'
 import MessageBubble from './MessageBubble.vue'
+import CallNotification from '../call/CallNotification.vue'
+import CallWindow from '../call/CallWindow.vue'
+import ScreenSharePicker from '../call/ScreenSharePicker.vue'
 import {
   UserOutlined,
   PhoneOutlined,
   VideoCameraOutlined,
+  DesktopOutlined,
   MoreOutlined,
   SmileOutlined,
   PictureOutlined,
@@ -137,6 +159,10 @@ import {
 } from '@ant-design/icons-vue'
 
 const socialStore = useSocialStore()
+const { startAudioCall, startVideoCall, startScreenShare, activeCall } = useP2PCall()
+
+// 状态
+const showScreenSharePicker = ref(false)
 
 // 状态
 const currentSession = computed(() => socialStore.currentChatSession)
@@ -197,12 +223,62 @@ const handleSendFile = () => {
   message.info('文件发送功能即将开放')
 }
 
-const handleVoiceCall = () => {
-  message.info('语音通话功能即将开放')
+const handleVoiceCall = async () => {
+  if (!currentSession.value) {
+    message.warning('请先选择一个会话')
+    return
+  }
+
+  try {
+    const peerId = currentSession.value.participant_did
+    await startAudioCall(peerId)
+    message.success('正在发起语音通话...')
+  } catch (error) {
+    console.error('发起语音通话失败:', error)
+    message.error('发起语音通话失败')
+  }
 }
 
-const handleVideoCall = () => {
-  message.info('视频通话功能即将开放')
+const handleVideoCall = async () => {
+  if (!currentSession.value) {
+    message.warning('请先选择一个会话')
+    return
+  }
+
+  try {
+    const peerId = currentSession.value.participant_did
+    await startVideoCall(peerId)
+    message.success('正在发起视频通话...')
+  } catch (error) {
+    console.error('发起视频通话失败:', error)
+    message.error('发起视频通话失败')
+  }
+}
+
+const handleScreenShare = () => {
+  if (!currentSession.value) {
+    message.warning('请先选择一个会话')
+    return
+  }
+
+  // 显示屏幕共享选择器
+  showScreenSharePicker.value = true
+}
+
+const handleScreenSourceSelect = async (source) => {
+  if (!currentSession.value) {
+    message.warning('请先选择一个会话')
+    return
+  }
+
+  try {
+    const peerId = currentSession.value.participant_did
+    await startScreenShare(peerId, source.id)
+    message.success('正在发起屏幕共享...')
+  } catch (error) {
+    console.error('发起屏幕共享失败:', error)
+    message.error('发起屏幕共享失败')
+  }
 }
 
 const handlePinSession = async (session) => {
