@@ -1242,14 +1242,8 @@ class ChainlessChainApp {
       // 不影响主应用启动
     }
 
-    // 所有管理器初始化完成，现在注册IPC handlers
-    try {
-      this.setupIPC();
-    } catch (error) {
-      console.error('[Main] IPC setup failed:', error);
-    }
-    // Note: registerCoreIPCHandlers() has been removed as it's no longer needed
-    // The IPC handlers are now registered through the modular IPC system
+    // Note: setupIPC() will be called after all managers are initialized
+    // including syncManager, previewManager, etc.
 
     await this.createWindow();
   }
@@ -1507,6 +1501,15 @@ class ChainlessChainApp {
       } catch (error) {
         console.error('文件操作IPC handlers注册失败:', error);
       }
+    }
+
+    // 所有管理器初始化完成（包括 syncManager），现在注册IPC handlers
+    try {
+      console.log('[Main] 开始注册 IPC handlers...');
+      this.setupIPC();
+      console.log('[Main] IPC handlers 注册完成');
+    } catch (error) {
+      console.error('[Main] IPC setup failed:', error);
     }
 
     // 注册全局快捷键

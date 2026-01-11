@@ -339,7 +339,7 @@ async function loadKnowledgeItems() {
   try {
     loading.value = true;
 
-    const result = await window.electron.invoke('org:get-knowledge-items', {
+    const result = await window.electron.ipcRenderer.invoke('org:get-knowledge-items', {
       orgId: currentOrgId.value
     });
 
@@ -362,7 +362,7 @@ async function loadKnowledgeItems() {
  */
 async function loadTags() {
   try {
-    const result = await window.electron.invoke('knowledge:get-tags');
+    const result = await window.electron.ipcRenderer.invoke('knowledge:get-tags');
     if (result.success) {
       availableTags.value = result.tags || [];
     }
@@ -397,7 +397,7 @@ function editKnowledge(item) {
  */
 async function deleteKnowledge(item) {
   try {
-    const result = await window.electron.invoke('org:delete-knowledge', {
+    const result = await window.electron.ipcRenderer.invoke('org:delete-knowledge', {
       orgId: currentOrgId.value,
       knowledgeId: item.id
     });
@@ -442,7 +442,7 @@ async function handleCreateKnowledge() {
 
     creating.value = true;
 
-    const result = await window.electron.invoke('org:create-knowledge', {
+    const result = await window.electron.ipcRenderer.invoke('org:create-knowledge', {
       orgId: currentOrgId.value,
       title: createForm.value.title,
       type: createForm.value.type,

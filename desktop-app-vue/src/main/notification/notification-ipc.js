@@ -79,8 +79,22 @@ function registerNotificationIPC({ database }) {
    */
   ipcMain.handle('notification:get-all', async (_event, options = {}) => {
     try {
-      if (!database || !database.db) {
-        throw new Error('数据库未初始化');
+      console.log('[Notification IPC] 获取通知列表, options:', options);
+
+      if (!database) {
+        console.warn('[Notification IPC] 数据库管理器未初始化，返回空列表');
+        return {
+          success: true,
+          notifications: [],
+        };
+      }
+
+      if (!database.db) {
+        console.warn('[Notification IPC] 数据库连接未初始化，返回空列表');
+        return {
+          success: true,
+          notifications: [],
+        };
       }
 
       const { limit = 50, offset = 0, isRead } = options;
@@ -98,12 +112,15 @@ function registerNotificationIPC({ database }) {
 
       const notifications = database.db.prepare(query).all(...params);
 
+      console.log('[Notification IPC] 成功获取通知:', notifications.length, '条');
+
       return {
         success: true,
         notifications: notifications || [],
       };
     } catch (error) {
       console.error('[Notification IPC] 获取通知列表失败:', error);
+      // 返回空列表而不是抛出错误，避免前端崩溃
       return {
         success: false,
         notifications: [],

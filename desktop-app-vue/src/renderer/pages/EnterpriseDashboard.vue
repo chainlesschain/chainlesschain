@@ -353,7 +353,7 @@ onMounted(async () => {
 // Load organization info
 async function loadOrganizationInfo() {
   try {
-    const result = await window.electron.invoke('organization:get-info', {
+    const result = await window.electron.ipcRenderer.invoke('organization:get-info', {
       orgId: props.organizationId
     });
 
@@ -372,7 +372,7 @@ async function loadDashboardData() {
     loading.value = true;
 
     // Load stats
-    const statsResult = await window.electron.invoke('dashboard:get-stats', {
+    const statsResult = await window.electron.ipcRenderer.invoke('dashboard:get-stats', {
       orgId: props.organizationId,
       dateRange: dateRange.value
     });
@@ -382,7 +382,7 @@ async function loadDashboardData() {
     }
 
     // Load top contributors
-    const contributorsResult = await window.electron.invoke('dashboard:get-top-contributors', {
+    const contributorsResult = await window.electron.ipcRenderer.invoke('dashboard:get-top-contributors', {
       orgId: props.organizationId,
       limit: 10
     });
@@ -392,7 +392,7 @@ async function loadDashboardData() {
     }
 
     // Load recent activities
-    const activitiesResult = await window.electron.invoke('dashboard:get-recent-activities', {
+    const activitiesResult = await window.electron.ipcRenderer.invoke('dashboard:get-recent-activities', {
       orgId: props.organizationId,
       limit: 20
     });
@@ -402,7 +402,7 @@ async function loadDashboardData() {
     }
 
     // Load role stats
-    const roleStatsResult = await window.electron.invoke('dashboard:get-role-stats', {
+    const roleStatsResult = await window.electron.ipcRenderer.invoke('dashboard:get-role-stats', {
       orgId: props.organizationId
     });
 
@@ -449,7 +449,7 @@ async function updateCharts() {
 
 // Update activity chart
 async function updateActivityChart() {
-  const result = await window.electron.invoke('dashboard:get-activity-timeline', {
+  const result = await window.electron.ipcRenderer.invoke('dashboard:get-activity-timeline', {
     orgId: props.organizationId,
     days: 30
   });
@@ -503,7 +503,7 @@ async function updateActivityChart() {
 
 // Update activity pie chart
 async function updateActivityPieChart() {
-  const result = await window.electron.invoke('dashboard:get-activity-breakdown', {
+  const result = await window.electron.ipcRenderer.invoke('dashboard:get-activity-breakdown', {
     orgId: props.organizationId
   });
 
@@ -534,7 +534,7 @@ async function updateActivityPieChart() {
 
 // Update knowledge graph
 async function updateKnowledgeGraph() {
-  const result = await window.electron.invoke('dashboard:get-knowledge-graph', {
+  const result = await window.electron.ipcRenderer.invoke('dashboard:get-knowledge-graph', {
     orgId: props.organizationId
   });
 
@@ -565,7 +565,7 @@ async function updateKnowledgeGraph() {
 
 // Update storage breakdown
 async function updateStorageBreakdown() {
-  const result = await window.electron.invoke('dashboard:get-storage-breakdown', {
+  const result = await window.electron.ipcRenderer.invoke('dashboard:get-storage-breakdown', {
     orgId: props.organizationId
   });
 
@@ -589,7 +589,7 @@ async function updateStorageBreakdown() {
 
 // Update engagement chart
 async function updateEngagementChart() {
-  const result = await window.electron.invoke('dashboard:get-member-engagement', {
+  const result = await window.electron.ipcRenderer.invoke('dashboard:get-member-engagement', {
     orgId: props.organizationId
   });
 
@@ -619,7 +619,7 @@ async function updateEngagementChart() {
 
 // Update heatmap chart
 async function updateHeatmapChart() {
-  const result = await window.electron.invoke('dashboard:get-activity-heatmap', {
+  const result = await window.electron.ipcRenderer.invoke('dashboard:get-activity-heatmap', {
     orgId: props.organizationId
   });
 

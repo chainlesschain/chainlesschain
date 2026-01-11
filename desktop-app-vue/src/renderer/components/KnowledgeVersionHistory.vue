@@ -232,7 +232,7 @@ async function loadVersionHistory() {
   try {
     loading.value = true;
 
-    const result = await window.electron.invoke('knowledge:get-version-history', {
+    const result = await window.electron.ipcRenderer.invoke('knowledge:get-version-history', {
       knowledgeId: props.knowledgeId,
       orgId: props.orgId
     });
@@ -285,7 +285,7 @@ async function handleRestoreVersion(version) {
     const identityStore = useIdentityStore ? useIdentityStore() : null;
     const restoredBy = identityStore?.currentUserDID || 'system';
 
-    const result = await window.electron.invoke('knowledge:restore-version', {
+    const result = await window.electron.ipcRenderer.invoke('knowledge:restore-version', {
       knowledgeId: props.knowledgeId,
       versionId: version.id,
       restoredBy
