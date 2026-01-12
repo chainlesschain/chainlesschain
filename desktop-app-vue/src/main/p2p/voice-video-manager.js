@@ -691,31 +691,61 @@ class VoiceVideoManager extends EventEmitter {
       constraints.audio = { ...this.options.audioConstraints, ...options.audio };
       constraints.video = { ...this.options.videoConstraints, ...options.video };
     } else if (type === CallType.SCREEN) {
-      // 屏幕共享需要Electron的desktopCapturer API
-      // 应该在renderer进程中调用：
-      // const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] })
-      throw new Error('屏幕共享功能需要在Electron renderer进程中实现');
+      // 屏幕共享通过desktopCapturer在renderer进程中实现
+      constraints.video = {
+        mandatory: {
+          chromeMediaSource: 'desktop',
+          chromeMediaSourceId: options.sourceId || ''
+        }
+      };
+      constraints.audio = false;
     }
 
-    // 在Node.js/Electron主进程环境中，返回模拟的MediaStream
-    // 生产环境中应该从renderer进程获取真实的MediaStream
-    console.warn('[VoiceVideoManager] 在主进程中使用模拟MediaStream，生产环境需要从renderer进程获取');
+    console.log('[VoiceVideoManager] 请求媒体流:', { type, constraints });
 
-    // 创建模拟的MediaStream用于测试
-    const stream = new wrtc.MediaStream();
+    // 通过事件请求媒体流（由P2PEnhancedManager的MediaStreamBridge处理）
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('获取媒体流超时'));
+      }, 30000);
 
-    // 触发事件通知需要从renderer获取真实媒体流
-    this.emit('media:stream-required', {
-      type,
-      constraints,
-      // 回调函数用于接收renderer进程传来的stream
-      callback: (realStream) => {
-        console.log('[VoiceVideoManager] 收到来自renderer的真实MediaStream');
-        // 在实际应用中，这里应该替换模拟的stream
-      }
+      // 触发事件通知需要从renderer获取真实媒体流
+      this.emit('media:stream-required', {
+        type,
+        constraints,
+        callId: options.callId,
+        peerId: options.peerId,
+        // 回调函数用于接收renderer进程传来的stream信息
+        callback: (streamInfo) => {
+          clearTimeout(timeout);
+
+          if (streamInfo && streamInfo.tracks) {
+            console.log('[VoiceVideoManager] 收到来自renderer的媒体流信息:', {
+              streamId: streamInfo.streamId,
+              trackCount: streamInfo.tracks.length
+            });
+
+            // 创建MediaStream并添加tracks
+            // 注意：在主进程中，我们使用wrtc的MediaStream
+            // 实际的媒体数据通过WebRTC的PeerConnection传输
+            const stream = new wrtc.MediaStream();
+
+            // 保存streamId用于后续操作
+            stream.id = streamInfo.streamId;
+            stream._trackInfo = streamInfo.tracks;
+
+            resolve(stream);
+          } else {
+            reject(new Error('无效的媒体流信息'));
+          }
+        },
+        // 错误回调
+        onError: (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        }
+      });
     });
-
-    return stream;
   }
 
   /**
