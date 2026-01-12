@@ -223,6 +223,56 @@
           </view>
           <switch :checked="notificationSettings.socialNotification" @change="toggleNotification('socialNotification', $event)" />
         </view>
+
+        <view class="switch-item">
+          <view class="switch-info">
+            <text class="switch-label">通知声音</text>
+            <text class="switch-desc">接收通知时播放提示音</text>
+          </view>
+          <switch :checked="notificationSettings.notificationSound" @change="toggleNotification('notificationSound', $event)" />
+        </view>
+
+        <view class="switch-item">
+          <view class="switch-info">
+            <text class="switch-label">振动提醒</text>
+            <text class="switch-desc">接收通知时振动提醒</text>
+          </view>
+          <switch :checked="notificationSettings.notificationVibration" @change="toggleNotification('notificationVibration', $event)" />
+        </view>
+
+        <view class="switch-item">
+          <view class="switch-info">
+            <text class="switch-label">勿扰模式</text>
+            <text class="switch-desc">在指定时间段内不接收通知</text>
+          </view>
+          <switch :checked="notificationSettings.doNotDisturbEnabled" @change="toggleNotification('doNotDisturbEnabled', $event)" />
+        </view>
+
+        <view v-if="notificationSettings.doNotDisturbEnabled" class="dnd-time-settings">
+          <view class="time-picker-row">
+            <text class="time-label">开始时间</text>
+            <picker mode="time" :value="notificationSettings.doNotDisturbStart" @change="handleDndStartChange">
+              <view class="time-picker">
+                <text>{{ notificationSettings.doNotDisturbStart }}</text>
+                <text class="arrow">▼</text>
+              </view>
+            </picker>
+          </view>
+
+          <view class="time-picker-row">
+            <text class="time-label">结束时间</text>
+            <picker mode="time" :value="notificationSettings.doNotDisturbEnd" @change="handleDndEndChange">
+              <view class="time-picker">
+                <text>{{ notificationSettings.doNotDisturbEnd }}</text>
+                <text class="arrow">▼</text>
+              </view>
+            </picker>
+          </view>
+        </view>
+
+        <button class="action-btn" @click="goToNotificationCenter">
+          <text>📬 通知中心</text>
+        </button>
       </view>
 
       <!-- 隐私设置 -->
@@ -450,7 +500,12 @@ export default {
       notificationSettings: {
         messageNotification: true,
         tradeNotification: true,
-        socialNotification: true
+        socialNotification: true,
+        notificationSound: true,
+        notificationVibration: true,
+        doNotDisturbEnabled: false,
+        doNotDisturbStart: '22:00',
+        doNotDisturbEnd: '08:00'
       },
       privacySettings: {
         publicProfile: true,
@@ -1128,6 +1183,27 @@ export default {
         url: '/pages/knowledge/import-export/import-export'
       })
     },
+    goToNotificationCenter() {
+      uni.navigateTo({
+        url: '/pages/notifications/center'
+      })
+    },
+    handleDndStartChange(e) {
+      this.notificationSettings.doNotDisturbStart = e.detail.value
+      try {
+        uni.setStorageSync('notification_settings', JSON.stringify(this.notificationSettings))
+      } catch (error) {
+        console.error('保存勿扰时间失败:', error)
+      }
+    },
+    handleDndEndChange(e) {
+      this.notificationSettings.doNotDisturbEnd = e.detail.value
+      try {
+        uni.setStorageSync('notification_settings', JSON.stringify(this.notificationSettings))
+      } catch (error) {
+        console.error('保存勿扰时间失败:', error)
+      }
+    },
     handleLogout() {
       uni.showModal({
         title: '退出登录',
@@ -1543,6 +1619,47 @@ export default {
       &.active .theme-name {
         color: var(--color-primary);
         font-weight: 500;
+      }
+    }
+  }
+
+  // 勿扰模式时间设置
+  .dnd-time-settings {
+    margin-top: 24rpx;
+    padding: 24rpx;
+    background-color: var(--bg-input);
+    border-radius: 12rpx;
+
+    .time-picker-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16rpx 0;
+      border-bottom: 1rpx solid var(--border-light);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .time-label {
+        font-size: 28rpx;
+        color: var(--text-secondary);
+      }
+
+      .time-picker {
+        display: flex;
+        align-items: center;
+        gap: 12rpx;
+        padding: 12rpx 24rpx;
+        background-color: var(--bg-card);
+        border-radius: 8rpx;
+        font-size: 28rpx;
+        color: var(--text-primary);
+
+        .arrow {
+          font-size: 20rpx;
+          color: var(--text-tertiary);
+        }
       }
     }
   }

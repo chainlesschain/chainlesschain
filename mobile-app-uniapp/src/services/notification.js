@@ -6,14 +6,17 @@
 class NotificationService {
   constructor() {
     this.listeners = new Map()
-    this.notificationQueue = []
+    this.notificationHistory = []
     this.isInitialized = false
     this.settings = {
       messageNotification: true,
       tradeNotification: true,
       socialNotification: true,
-      sound: true,
-      vibrate: true
+      notificationSound: true,
+      notificationVibration: true,
+      doNotDisturbEnabled: false,
+      doNotDisturbStart: '22:00',
+      doNotDisturbEnd: '08:00'
     }
   }
 
@@ -161,10 +164,19 @@ class NotificationService {
       title,
       content,
       type = 'message',
+      priority = 'normal',
       data = {},
-      sound = this.settings.sound,
-      vibrate = this.settings.vibrate
+      sound = this.settings.notificationSound,
+      vibrate = this.settings.notificationVibration
     } = options
+
+    // 检查勿扰模式
+    if (this.isDoNotDisturbActive()) {
+      console.log('[NotificationService] 勿扰模式已开启，跳过通知')
+      // 仍然保存到历史记录
+      this.addToHistory({ title, content, type, priority, data, timestamp: Date.now(), read: false })
+      return
+    }
 
     // 检查通知设置
     if (!this.shouldShowNotification(type)) {
@@ -208,13 +220,32 @@ class NotificationService {
       // #endif
 
       // 触发通知事件
-      this.emit('notification', { title, content, type, data })
+      this.emit('notification', { title, content, type, priority, data })
 
-      // 添加到通知队列
-      this.addToQueue({ title, content, type, data, timestamp: Date.now() })
+      // 添加到通知历史
+      this.addToHistory({ title, content, type, priority, data, timestamp: Date.now(), read: false })
 
     } catch (error) {
       console.error('发送本地通知失败:', error)
+    }
+  }
+
+  /**
+   * 检查勿扰模式是否激活
+   */
+  isDoNotDisturbActive() {
+    if (!this.settings.doNotDisturbEnabled) return false
+
+    const now = new Date()
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+
+    const start = this.settings.doNotDisturbStart
+    const end = this.settings.doNotDisturbEnd
+
+    if (start < end) {
+      return currentTime >= start && currentTime < end
+    } else {
+      return currentTime >= start || currentTime < end
     }
   }
 
@@ -293,74 +324,85 @@ class NotificationService {
   }
 
   /**
-   * 添加到通知队列
+   * 添加到通知历史
    */
-  addToQueue(notification) {
-    this.notificationQueue.unshift(notification)
+  addToHistory(notification) {
+    const notificationWithId = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      ...notification
+    }
 
-    // 最多保留100条
-    if (this.notificationQueue.length > 100) {
-      this.notificationQueue = this.notificationQueue.slice(0, 100)
+    this.notificationHistory.unshift(notificationWithId)
+
+    // 最多保留200条
+    if (this.notificationHistory.length > 200) {
+      this.notificationHistory = this.notificationHistory.slice(0, 200)
     }
 
     // 保存到本地
-    this.saveQueue()
+    this.saveHistory()
+
+    // 更新TabBar角标
+    this.updateTabBarBadge()
   }
 
   /**
-   * 保存通知队列
+   * 保存通知历史
    */
-  saveQueue() {
+  saveHistory() {
     try {
-      uni.setStorageSync('notification_queue', JSON.stringify(this.notificationQueue))
+      uni.setStorageSync('notification_history', JSON.stringify(this.notificationHistory))
     } catch (error) {
-      console.error('保存通知队列失败:', error)
+      console.error('保存通知历史失败:', error)
     }
   }
 
   /**
-   * 加载通知队列
+   * 加载通知历史
    */
-  loadQueue() {
+  loadHistory() {
     try {
-      const queue = uni.getStorageSync('notification_queue')
-      if (queue) {
-        this.notificationQueue = JSON.parse(queue)
+      const history = uni.getStorageSync('notification_history')
+      if (history) {
+        this.notificationHistory = JSON.parse(history)
       }
     } catch (error) {
-      console.error('加载通知队列失败:', error)
+      console.error('加载通知历史失败:', error)
     }
   }
 
   /**
-   * 获取通知队列
+   * 获取通知历史
    */
-  getQueue() {
-    return this.notificationQueue
+  getNotificationHistory() {
+    return this.notificationHistory
   }
 
   /**
-   * 清空通知队列
+   * 清空通知历史
    */
-  clearQueue() {
-    this.notificationQueue = []
-    this.saveQueue()
+  clearHistory() {
+    this.notificationHistory = []
+    this.saveHistory()
+    this.updateTabBarBadge()
   }
 
   /**
    * 获取未读通知数量
    */
   getUnreadCount() {
-    return this.notificationQueue.filter(n => !n.read).length
+    return this.notificationHistory.filter(n => !n.read).length
   }
 
   /**
    * 标记通知为已读
    */
-  markAsRead(index) {
-    if (this.notificationQueue[index]) {
-      this.notificationQueue[index].read = true
-      this.saveQueue()
+  markAsRead(notificationId) {
+    const notification = this.notificationHistory.find(n => n.id === notificationId)
+    if (notification) {
+      notification.read = true
+      this.saveHistory()
+      this.updateTabBarBadge()
     }
   }
 
@@ -368,8 +410,63 @@ class NotificationService {
    * 标记所有通知为已读
    */
   markAllAsRead() {
-    this.notificationQueue.forEach(n => n.read = true)
-    this.saveQueue()
+    this.notificationHistory.forEach(n => n.read = true)
+    this.saveHistory()
+    this.updateTabBarBadge()
+  }
+
+  /**
+   * 删除通知
+   */
+  deleteNotification(notificationId) {
+    const index = this.notificationHistory.findIndex(n => n.id === notificationId)
+    if (index !== -1) {
+      this.notificationHistory.splice(index, 1)
+      this.saveHistory()
+      this.updateTabBarBadge()
+    }
+  }
+
+  /**
+   * 添加通知（供外部调用）
+   */
+  async addNotification(notification) {
+    await this.sendLocalNotification(notification)
+  }
+
+  /**
+   * 显示通知（供外部调用）
+   */
+  async showNotification(notification) {
+    await this.sendLocalNotification(notification)
+  }
+
+  /**
+   * 禁用通知
+   */
+  disableNotifications() {
+    this.settings.messageNotification = false
+    this.settings.tradeNotification = false
+    this.settings.socialNotification = false
+    this.saveSettings()
+  }
+
+  /**
+   * 更新TabBar角标
+   */
+  updateTabBarBadge() {
+    const unreadCount = this.getUnreadCount()
+
+    if (unreadCount > 0) {
+      uni.setTabBarBadge({
+        index: 2, // Messages tab index
+        text: unreadCount > 99 ? '99+' : unreadCount.toString()
+      })
+    } else {
+      uni.removeTabBarBadge({
+        index: 2
+      })
+    }
   }
 
   /**
@@ -504,7 +601,7 @@ class NotificationService {
     plus.push.clear()
     // #endif
 
-    this.clearQueue()
+    this.clearHistory()
   }
 
   /**
@@ -512,7 +609,7 @@ class NotificationService {
    */
   destroy() {
     this.listeners.clear()
-    this.clearQueue()
+    this.clearHistory()
     this.isInitialized = false
   }
 }
