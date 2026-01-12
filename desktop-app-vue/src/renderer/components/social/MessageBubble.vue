@@ -48,8 +48,22 @@
           <div class="file-info">
             <div class="file-name">{{ message.content }}</div>
             <div class="file-size">{{ formatFileSize(message.file_size) }}</div>
+            <!-- 传输进度 -->
+            <div v-if="transferProgress && transferProgress.status !== 'completed'" class="transfer-progress">
+              <a-progress
+                :percent="Math.round(transferProgress.progress * 100)"
+                :status="transferProgress.status === 'failed' ? 'exception' : 'active'"
+                size="small"
+              />
+              <div class="transfer-info">
+                <span>{{ formatFileSize(transferProgress.bytesTransferred) }} / {{ formatFileSize(transferProgress.totalBytes) }}</span>
+                <a-button v-if="transferProgress.status === 'transferring'" type="link" size="small" @click="handleCancelTransfer">
+                  取消
+                </a-button>
+              </div>
+            </div>
           </div>
-          <a-button type="link" size="small" @click="handleDownload">
+          <a-button v-if="!transferProgress || transferProgress.status === 'completed'" type="link" size="small" @click="handleDownload">
             <DownloadOutlined />
           </a-button>
         </div>
@@ -90,6 +104,40 @@
           <CloseCircleOutlined v-else-if="message.status === 'failed'" :style="{ color: '#ff4d4f' }" />
         </span>
       </div>
+
+      <!-- 表情回应区域 -->
+      <div v-if="reactionStats && Object.keys(reactionStats).length > 0" class="message-reactions">
+        <div
+          v-for="(stat, emoji) in reactionStats"
+          :key="emoji"
+          class="reaction-item"
+          :class="{ 'reaction-active': hasUserReacted(emoji) }"
+          @click="toggleReaction(emoji)"
+        >
+          <span class="reaction-emoji">{{ emoji }}</span>
+          <span class="reaction-count">{{ stat.count }}</span>
+        </div>
+        <a-button
+          type="text"
+          size="small"
+          class="add-reaction-btn"
+          @click="showReactionPicker = true"
+        >
+          <SmileOutlined />
+        </a-button>
+      </div>
+
+      <!-- 添加表情按钮（无表情时显示） -->
+      <div v-else class="add-reaction-container">
+        <a-button
+          type="text"
+          size="small"
+          class="add-reaction-btn-initial"
+          @click="showReactionPicker = true"
+        >
+          <SmileOutlined /> 添加表情
+        </a-button>
+      </div>
     </div>
 
     <!-- 头像（发送的消息） -->
@@ -98,11 +146,60 @@
         <template #icon><UserOutlined /></template>
       </a-avatar>
     </div>
+
+    <!-- 右键菜单 -->
+    <a-dropdown
+      v-model:visible="contextMenuVisible"
+      :trigger="['contextmenu']"
+      :get-popup-container="() => $el"
+    >
+      <div></div>
+      <template #overlay>
+        <a-menu @click="handleMenuClick">
+          <a-menu-item key="forward">
+            <ShareAltOutlined /> 转发
+          </a-menu-item>
+          <a-menu-item key="copy" v-if="message.message_type === 'text' || !message.message_type">
+            <CopyOutlined /> 复制
+          </a-menu-item>
+          <a-menu-item key="delete" danger>
+            <DeleteOutlined /> 删除
+          </a-menu-item>
+        </a-menu>
+      </template>
+    </a-dropdown>
+
+    <!-- 转发对话框 -->
+    <a-modal
+      v-model:visible="forwardModalVisible"
+      title="转发消息"
+      ok-text="转发"
+      cancel-text="取消"
+      :confirm-loading="forwarding"
+      @ok="handleForward"
+    >
+      <div class="forward-modal-content">
+        <p>选择要转发到的会话：</p>
+        <a-checkbox-group v-model:value="selectedSessions" style="width: 100%">
+          <div v-for="session in availableSessions" :key="session.id" class="session-item">
+            <a-checkbox :value="session.id">
+              <div class="session-info">
+                <a-avatar :size="32">
+                  <template #icon><UserOutlined /></template>
+                </a-avatar>
+                <span class="session-name">{{ session.friend_nickname || session.participant_did }}</span>
+              </div>
+            </a-checkbox>
+          </div>
+        </a-checkbox-group>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { message as antMessage } from 'ant-design-vue'
 import {
   UserOutlined,
   FileOutlined,
@@ -112,7 +209,10 @@ import {
   CheckOutlined,
   CheckCircleOutlined,
   CheckCircleFilled,
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  ShareAltOutlined,
+  CopyOutlined,
+  DeleteOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -134,15 +234,140 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['message-deleted', 'message-forwarded'])
+
 // 状态
 const isPlaying = ref(false)
+const contextMenuVisible = ref(false)
+const forwardModalVisible = ref(false)
+const forwarding = ref(false)
+const selectedSessions = ref([])
+const availableSessions = ref([])
+const transferProgress = ref(null)
+let progressInterval = null
 
 // 计算属性
 const isSent = computed(() => {
   return props.message.sender_did === props.currentUserDid
 })
 
+// 监听文件传输进度
+const startProgressMonitoring = () => {
+  if (!props.message.transfer_id) return
+
+  progressInterval = setInterval(async () => {
+    try {
+      const result = await window.electron.ipcRenderer.invoke('chat:get-transfer-progress', {
+        transferId: props.message.transfer_id
+      })
+
+      if (result.success) {
+        transferProgress.value = result.progress
+
+        // 如果传输完成或失败，停止监听
+        if (result.progress.status === 'completed' || result.progress.status === 'failed') {
+          clearInterval(progressInterval)
+          progressInterval = null
+        }
+      }
+    } catch (error) {
+      console.error('获取传输进度失败:', error)
+    }
+  }, 1000) // 每秒更新一次
+}
+
+// 取消文件传输
+const handleCancelTransfer = async () => {
+  if (!props.message.transfer_id) return
+
+  try {
+    const result = await window.electron.ipcRenderer.invoke('chat:cancel-transfer', {
+      transferId: props.message.transfer_id
+    })
+
+    if (result.success) {
+      antMessage.success('已取消传输')
+      if (progressInterval) {
+        clearInterval(progressInterval)
+        progressInterval = null
+      }
+    }
+  } catch (error) {
+    console.error('取消传输失败:', error)
+    antMessage.error('取消传输失败')
+  }
+}
+
 // 方法
+const handleContextMenu = (e) => {
+  contextMenuVisible.value = true
+}
+
+const handleMenuClick = async ({ key }) => {
+  contextMenuVisible.value = false
+
+  switch (key) {
+    case 'forward':
+      await loadAvailableSessions()
+      forwardModalVisible.value = true
+      break
+    case 'copy':
+      if (props.message.content) {
+        try {
+          await navigator.clipboard.writeText(props.message.content)
+          antMessage.success('已复制到剪贴板')
+        } catch (error) {
+          console.error('复制失败:', error)
+          antMessage.error('复制失败')
+        }
+      }
+      break
+    case 'delete':
+      // TODO: 实现删除消息功能
+      emit('message-deleted', props.message.id)
+      break
+  }
+}
+
+const loadAvailableSessions = async () => {
+  try {
+    const result = await window.electron.ipcRenderer.invoke('chat:get-sessions')
+    // 过滤掉当前会话
+    availableSessions.value = result.filter(s => s.id !== props.message.session_id)
+  } catch (error) {
+    console.error('加载会话列表失败:', error)
+    antMessage.error('加载会话列表失败')
+  }
+}
+
+const handleForward = async () => {
+  if (selectedSessions.value.length === 0) {
+    antMessage.warning('请选择至少一个会话')
+    return
+  }
+
+  try {
+    forwarding.value = true
+    const result = await window.electron.ipcRenderer.invoke('chat:forward-message', {
+      messageId: props.message.id,
+      targetSessionIds: selectedSessions.value
+    })
+
+    if (result.success) {
+      antMessage.success(`消息已转发到 ${result.count} 个会话`)
+      forwardModalVisible.value = false
+      selectedSessions.value = []
+      emit('message-forwarded', result)
+    } else {
+      antMessage.error(result.error || '转发失败')
+    }
+  } catch (error) {
+    console.error('转发消息失败:', error)
+    antMessage.error('转发失败')
+  } finally {
+    forwarding.value = false
+  }
+}
 const formatTime = (timestamp) => {
   const date = new Date(timestamp)
   const now = new Date()
@@ -200,6 +425,22 @@ const toggleVoicePlay = () => {
   isPlaying.value = !isPlaying.value
   // TODO: 实现语音播放逻辑
 }
+
+// 生命周期
+onMounted(() => {
+  // 如果消息有transfer_id，开始监听传输进度
+  if (props.message.transfer_id) {
+    startProgressMonitoring()
+  }
+})
+
+onUnmounted(() => {
+  // 清理定时器
+  if (progressInterval) {
+    clearInterval(progressInterval)
+    progressInterval = null
+  }
+})
 </script>
 
 <style scoped>
@@ -306,6 +547,19 @@ const toggleVoicePlay = () => {
   margin-top: 2px;
 }
 
+.transfer-progress {
+  margin-top: 8px;
+}
+
+.transfer-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
 .message-voice {
   display: flex;
   align-items: center;
@@ -368,5 +622,49 @@ const toggleVoicePlay = () => {
   .message-bubble {
     padding: 0 12px;
   }
+}
+
+/* 转发标记 */
+.forwarded-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 4px;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.message-sent .forwarded-indicator {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 转发对话框样式 */
+.forward-modal-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.session-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.session-item:last-child {
+  border-bottom: none;
+}
+
+.session-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.session-name {
+  font-size: 14px;
+  color: #262626;
 }
 </style>
