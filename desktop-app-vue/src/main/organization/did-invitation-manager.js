@@ -11,6 +11,7 @@
 
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const QRCode = require('qrcode');
 
 /**
  * 邀请状态枚举
@@ -1337,6 +1338,222 @@ class DIDInvitationManager {
         totalMaxUses: 0,
         utilizationRate: 0
       };
+    }
+  }
+
+  // ============================================================
+  // QR Code Generation Features
+  // ============================================================
+
+  /**
+   * 为邀请链接生成QR码
+   * @param {string} linkId - 链接ID或邀请令牌
+   * @param {Object} options - QR码选项
+   * @param {number} options.width - 宽度（默认300）
+   * @param {string} options.format - 格式（'png'|'svg'|'dataURL'，默认'dataURL'）
+   * @param {string} options.errorCorrectionLevel - 纠错级别（'L'|'M'|'Q'|'H'，默认'M'）
+   * @returns {Promise<string|Buffer>} QR码数据
+   */
+  async generateInvitationQRCode(linkId, options = {}) {
+    const {
+      width = 300,
+      format = 'dataURL',
+      errorCorrectionLevel = 'M'
+    } = options;
+
+    console.log(`[DIDInvitationManager] 生成邀请QR码: ${linkId}`);
+
+    try {
+      // 1. 获取邀请链接信息
+      let invitationUrl;
+
+      // 检查是否是令牌（长度较长）或linkId
+      if (linkId.length > 40) {
+        // 这是一个令牌
+        invitationUrl = `chainlesschain://invite/${linkId}`;
+      } else {
+        // 这是一个linkId，需要查询
+        const link = this.db.prepare(`
+          SELECT invitation_token FROM invitation_links WHERE link_id = ?
+        `).get(linkId);
+
+        if (!link) {
+          throw new Error('邀请链接不存在');
+        }
+
+        invitationUrl = `chainlesschain://invite/${link.invitation_token}`;
+      }
+
+      // 2. 生成QR码
+      const qrOptions = {
+        width,
+        errorCorrectionLevel,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      };
+
+      let qrCode;
+      switch (format) {
+        case 'png':
+          qrCode = await QRCode.toBuffer(invitationUrl, { ...qrOptions, type: 'png' });
+          break;
+        case 'svg':
+          qrCode = await QRCode.toString(invitationUrl, { ...qrOptions, type: 'svg' });
+          break;
+        case 'dataURL':
+        default:
+          qrCode = await QRCode.toDataURL(invitationUrl, qrOptions);
+          break;
+      }
+
+      console.log(`[DIDInvitationManager] ✓ QR码已生成 (${format})`);
+
+      return qrCode;
+    } catch (error) {
+      console.error('[DIDInvitationManager] 生成QR码失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 为DID邀请生成QR码
+   * @param {string} invitationId - 邀请ID
+   * @param {Object} options - QR码选项
+   * @returns {Promise<string>} QR码数据URL
+   */
+  async generateDIDInvitationQRCode(invitationId, options = {}) {
+    console.log(`[DIDInvitationManager] 生成DID邀请QR码: ${invitationId}`);
+
+    try {
+      // 1. 获取邀请信息
+      const invitation = this.getInvitation(invitationId);
+      if (!invitation) {
+        throw new Error('邀请不存在');
+      }
+
+      // 2. 构建邀请数据
+      const invitationData = {
+        type: 'did_invitation',
+        invitationId: invitation.invitation_id,
+        orgId: invitation.org_id,
+        orgName: invitation.org_name,
+        inviterDID: invitation.inviter_did,
+        role: invitation.role,
+        message: invitation.message,
+        expiresAt: invitation.expires_at
+      };
+
+      // 3. 生成QR码
+      const qrOptions = {
+        width: options.width || 300,
+        errorCorrectionLevel: options.errorCorrectionLevel || 'M',
+        margin: 2
+      };
+
+      const qrCode = await QRCode.toDataURL(JSON.stringify(invitationData), qrOptions);
+
+      console.log(`[DIDInvitationManager] ✓ DID邀请QR码已生成`);
+
+      return qrCode;
+    } catch (error) {
+      console.error('[DIDInvitationManager] 生成DID邀请QR码失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量生成邀请QR码
+   * @param {string} orgId - 组织ID
+   * @param {Object} options - 选项
+   * @param {string} options.status - 状态过滤
+   * @param {string} options.format - QR码格式
+   * @returns {Promise<Array<Object>>} QR码列表
+   */
+  async generateBatchInvitationQRCodes(orgId, options = {}) {
+    console.log(`[DIDInvitationManager] 批量生成邀请QR码: ${orgId}`);
+
+    try {
+      // 1. 获取邀请链接列表
+      const links = this.getInvitationLinks(orgId, { status: options.status || 'active' });
+
+      // 2. 为每个链接生成QR码
+      const qrCodes = await Promise.all(
+        links.map(async (link) => {
+          try {
+            const qrCode = await this.generateInvitationQRCode(
+              link.invitation_token,
+              { format: options.format || 'dataURL' }
+            );
+
+            return {
+              linkId: link.link_id,
+              invitationToken: link.invitation_token,
+              invitationUrl: link.invitationUrl,
+              qrCode,
+              orgName: link.org_name,
+              role: link.role,
+              expiresAt: link.expires_at,
+              remainingUses: link.remainingUses
+            };
+          } catch (error) {
+            console.error(`[DIDInvitationManager] 生成QR码失败 (${link.link_id}):`, error);
+            return null;
+          }
+        })
+      );
+
+      // 3. 过滤掉失败的
+      const validQRCodes = qrCodes.filter(qr => qr !== null);
+
+      console.log(`[DIDInvitationManager] ✓ 批量生成完成: ${validQRCodes.length}/${links.length}`);
+
+      return validQRCodes;
+    } catch (error) {
+      console.error('[DIDInvitationManager] 批量生成QR码失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 解析邀请QR码
+   * @param {string} qrData - QR码数据
+   * @returns {Promise<Object>} 解析后的邀请信息
+   */
+  async parseInvitationQRCode(qrData) {
+    console.log(`[DIDInvitationManager] 解析邀请QR码`);
+
+    try {
+      // 1. 尝试解析为URL
+      if (qrData.startsWith('chainlesschain://invite/')) {
+        const token = qrData.replace('chainlesschain://invite/', '');
+        const linkInfo = await this.validateInvitationToken(token);
+        return {
+          type: 'invitation_link',
+          ...linkInfo
+        };
+      }
+
+      // 2. 尝试解析为JSON（DID邀请）
+      try {
+        const invitationData = JSON.parse(qrData);
+        if (invitationData.type === 'did_invitation') {
+          const invitation = this.getInvitation(invitationData.invitationId);
+          return {
+            type: 'did_invitation',
+            ...invitation
+          };
+        }
+      } catch (e) {
+        // 不是JSON格式
+      }
+
+      throw new Error('无效的邀请QR码格式');
+    } catch (error) {
+      console.error('[DIDInvitationManager] 解析QR码失败:', error);
+      throw error;
     }
   }
 }

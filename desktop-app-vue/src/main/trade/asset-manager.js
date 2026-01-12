@@ -431,8 +431,26 @@ class AssetManager extends EventEmitter {
               onChainOptions.password
             );
           } else if (blockchainAsset.token_type === 'ERC721') {
-            // ERC-721 NFT 转账（需要实现）
-            throw new Error('NFT 链上转账功能待实现');
+            // ERC-721 NFT 转账
+            if (!blockchainAsset.token_id) {
+              throw new Error('NFT 资产缺少 token_id');
+            }
+
+            // 获取发送者的区块链地址
+            const wallet = await this.blockchainAdapter.walletManager.unlockWallet(
+              onChainOptions.walletId,
+              onChainOptions.password
+            );
+            const fromAddress = await wallet.getAddress();
+
+            blockchainTxHash = await this.blockchainAdapter.transferNFT(
+              onChainOptions.walletId,
+              blockchainAsset.contract_address,
+              fromAddress,
+              onChainOptions.toAddress,
+              blockchainAsset.token_id,
+              onChainOptions.password
+            );
           } else {
             throw new Error(`不支持的代币类型: ${blockchainAsset.token_type}`);
           }
@@ -583,6 +601,190 @@ class AssetManager extends EventEmitter {
       return { success: true, transferId };
     } catch (error) {
       console.error('[AssetManager] 销毁资产失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 转账 NFT（链上）
+   * @param {string} assetId - 资产 ID
+   * @param {string} toDid - 接收者 DID
+   * @param {string} toAddress - 接收者区块链地址
+   * @param {string} walletId - 钱包 ID
+   * @param {string} password - 钱包密码
+   * @param {string} memo - 备注
+   */
+  async transferNFTOnChain(assetId, toDid, toAddress, walletId, password, memo = '') {
+    try {
+      const currentDid = this.didManager?.getCurrentIdentity()?.did;
+
+      if (!currentDid) {
+        throw new Error('未登录');
+      }
+
+      if (currentDid === toDid) {
+        throw new Error('不能转账给自己');
+      }
+
+      if (!this.blockchainAdapter) {
+        throw new Error('区块链适配器未初始化');
+      }
+
+      const db = this.database.db;
+
+      // 检查资产是否存在
+      const asset = db.prepare('SELECT * FROM assets WHERE id = ?').get(assetId);
+
+      if (!asset) {
+        throw new Error('资产不存在');
+      }
+
+      // 验证是 NFT 类型
+      if (asset.asset_type !== AssetType.NFT) {
+        throw new Error('该资产不是 NFT 类型');
+      }
+
+      // 检查余额（NFT 余额应该是 1）
+      const balance = await this.getBalance(currentDid, assetId);
+
+      if (balance < 1) {
+        throw new Error('您不拥有此 NFT');
+      }
+
+      // 获取区块链资产信息
+      const blockchainAsset = await this._getBlockchainAsset(assetId);
+
+      if (!blockchainAsset) {
+        throw new Error('该 NFT 未部署到区块链，无法执行链上转账');
+      }
+
+      if (blockchainAsset.token_type !== 'ERC721') {
+        throw new Error(`资产类型不匹配，预期 ERC721，实际 ${blockchainAsset.token_type}`);
+      }
+
+      if (!blockchainAsset.token_id) {
+        throw new Error('NFT 缺少 token_id');
+      }
+
+      console.log('[AssetManager] 执行 NFT 链上转账:', {
+        contractAddress: blockchainAsset.contract_address,
+        chainId: blockchainAsset.chain_id,
+        tokenId: blockchainAsset.token_id,
+        to: toAddress
+      });
+
+      // 切换到资产所在的链
+      await this.blockchainAdapter.switchChain(blockchainAsset.chain_id);
+
+      // 获取发送者的区块链地址
+      const wallet = await this.blockchainAdapter.walletManager.unlockWallet(walletId, password);
+      const fromAddress = await wallet.getAddress();
+
+      // 验证链上所有权
+      try {
+        const onChainOwner = await this.blockchainAdapter.getNFTOwner(
+          blockchainAsset.contract_address,
+          blockchainAsset.token_id
+        );
+
+        if (onChainOwner.toLowerCase() !== fromAddress.toLowerCase()) {
+          throw new Error(`链上所有权验证失败。当前所有者: ${onChainOwner}, 您的地址: ${fromAddress}`);
+        }
+      } catch (error) {
+        console.error('[AssetManager] 链上所有权验证失败:', error);
+        throw new Error(`无法验证链上所有权: ${error.message}`);
+      }
+
+      // 执行链上转账
+      const blockchainTxHash = await this.blockchainAdapter.transferNFT(
+        walletId,
+        blockchainAsset.contract_address,
+        fromAddress,
+        toAddress,
+        blockchainAsset.token_id,
+        password
+      );
+
+      console.log('[AssetManager] NFT 链上转账成功:', blockchainTxHash);
+
+      // 执行本地转账（记录）
+      const now = Date.now();
+      const transferId = uuidv4();
+
+      // 扣除发送者余额
+      db.prepare(`
+        UPDATE asset_holdings
+        SET amount = 0, updated_at = ?
+        WHERE asset_id = ? AND owner_did = ?
+      `).run(now, assetId, currentDid);
+
+      // 增加接收者余额
+      db.prepare(`
+        INSERT INTO asset_holdings (asset_id, owner_did, amount, acquired_at, updated_at)
+        VALUES (?, ?, 1, ?, ?)
+        ON CONFLICT(asset_id, owner_did) DO UPDATE SET
+          amount = 1,
+          updated_at = ?
+      `).run(assetId, toDid, now, now, now);
+
+      // 记录转账（包含链上交易哈希）
+      db.prepare(`
+        INSERT INTO asset_transfers
+        (id, asset_id, from_did, to_did, amount, transaction_type, transaction_id, memo, created_at)
+        VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
+      `).run(
+        transferId,
+        assetId,
+        currentDid,
+        toDid,
+        TransactionType.TRANSFER,
+        blockchainTxHash,
+        memo,
+        now
+      );
+
+      console.log('[AssetManager] NFT 本地记录已更新');
+
+      // 通过 P2P 通知接收者
+      if (this.p2pManager) {
+        try {
+          await this.p2pManager.sendEncryptedMessage(toDid, JSON.stringify({
+            type: 'nft-transfer',
+            transferId,
+            assetId,
+            fromDid: currentDid,
+            toAddress,
+            blockchainTxHash,
+            chainId: blockchainAsset.chain_id,
+            contractAddress: blockchainAsset.contract_address,
+            tokenId: blockchainAsset.token_id,
+            memo,
+            timestamp: now,
+          }));
+        } catch (error) {
+          console.warn('[AssetManager] 通知接收者失败:', error.message);
+        }
+      }
+
+      this.emit('nft:transferred', {
+        assetId,
+        fromDid: currentDid,
+        toDid,
+        toAddress,
+        blockchainTxHash,
+        chainId: blockchainAsset.chain_id,
+        tokenId: blockchainAsset.token_id
+      });
+
+      return {
+        success: true,
+        transferId,
+        blockchainTxHash,
+        chainId: blockchainAsset.chain_id,
+        tokenId: blockchainAsset.token_id
+      };
+    } catch (error) {
+      console.error('[AssetManager] NFT 转账失败:', error);
       throw error;
     }
   }
