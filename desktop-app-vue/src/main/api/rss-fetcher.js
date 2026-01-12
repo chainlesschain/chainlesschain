@@ -9,6 +9,7 @@ const Parser = require('rss-parser');
 const { EventEmitter } = require('events');
 const https = require('https');
 const http = require('http');
+const LRU = require('lru-cache');
 
 class RSSFetcher extends EventEmitter {
   constructor() {
@@ -28,6 +29,15 @@ class RSSFetcher extends EventEmitter {
         ],
       },
     });
+
+    // LRU 缓存（最多100个Feed，5分钟过期）
+    this.cache = new LRU({
+      max: 100, // 最多缓存 100 个 Feed
+      maxAge: 5 * 60 * 1000, // 5分钟过期
+      updateAgeOnGet: true, // 访问时更新过期时间
+    });
+    this.maxRetries = 3; // 最大重试次数
+    this.retryDelay = 1000; // 重试延迟（毫秒）
   }
 
   /**
@@ -45,13 +55,26 @@ class RSSFetcher extends EventEmitter {
         throw new Error('无效的 Feed URL');
       }
 
-      // 解析 Feed
-      const feed = await this.parser.parseURL(feedUrl);
+      // 检查 LRU 缓存
+      if (!options.skipCache) {
+        const cached = this.cache.get(feedUrl);
+        if (cached) {
+          console.log(`[RSSFetcher] 使用 LRU 缓存数据: ${feedUrl}`);
+          this.emit('fetch-success', { feedUrl, feed: cached, fromCache: true });
+          return cached;
+        }
+      }
+
+      // 使用重试机制获取 Feed
+      const feed = await this.fetchWithRetry(feedUrl, options.maxRetries || this.maxRetries);
 
       // 标准化 Feed 数据
       const normalizedFeed = this.normalizeFeed(feed, feedUrl);
 
-      this.emit('fetch-success', { feedUrl, feed: normalizedFeed });
+      // 更新 LRU 缓存（自动处理过期和容量限制）
+      this.cache.set(feedUrl, normalizedFeed);
+
+      this.emit('fetch-success', { feedUrl, feed: normalizedFeed, fromCache: false });
       return normalizedFeed;
     } catch (error) {
       this.emit('fetch-error', { feedUrl, error });
@@ -61,40 +84,146 @@ class RSSFetcher extends EventEmitter {
   }
 
   /**
-   * 批量获取多个 Feed
+   * 带重试机制的 Feed 获取
+   * @param {string} feedUrl - RSS Feed URL
+   * @param {number} maxRetries - 最大重试次数
+   * @returns {Promise<object>} Feed 数据
+   */
+  async fetchWithRetry(feedUrl, maxRetries = 3) {
+    let lastError;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // 解析 Feed
+        const feed = await this.parser.parseURL(feedUrl);
+
+        if (attempt > 0) {
+          console.log(`[RSSFetcher] 重试成功 (尝试 ${attempt + 1}/${maxRetries}): ${feedUrl}`);
+        }
+
+        return feed;
+      } catch (error) {
+        lastError = error;
+
+        if (attempt < maxRetries - 1) {
+          // 指数退避策略
+          const delay = this.retryDelay * Math.pow(2, attempt);
+          console.log(`[RSSFetcher] 获取失败，${delay}ms 后重试 (尝试 ${attempt + 1}/${maxRetries}): ${feedUrl}`);
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    // 所有重试都失败
+    throw lastError;
+  }
+
+  /**
+   * 延迟函数
+   * @param {number} ms - 延迟毫秒数
+   */
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * 清除缓存
+   * @param {string} feedUrl - 可选，指定要清除的 Feed URL，不指定则清除所有
+   */
+  clearCache(feedUrl = null) {
+    if (feedUrl) {
+      this.cache.delete(feedUrl);
+      console.log(`[RSSFetcher] 已清除 LRU 缓存: ${feedUrl}`);
+    } else {
+      this.cache.reset();
+      console.log('[RSSFetcher] 已清除所有 LRU 缓存');
+    }
+  }
+
+  /**
+   * 获取缓存统计信息
+   */
+  getCacheStats() {
+    const keys = this.cache.keys();
+    const entries = [];
+
+    for (const key of keys) {
+      entries.push({
+        url: key,
+        hasValue: this.cache.has(key),
+      });
+    }
+
+    return {
+      size: this.cache.length,
+      maxSize: this.cache.max,
+      maxAge: this.cache.maxAge,
+      entries,
+    };
+  }
+
+  /**
+   * 清理过期缓存（LRU 会自动处理，此方法用于手动触发）
+   */
+  pruneCache() {
+    this.cache.prune();
+    console.log('[RSSFetcher] 已清理过期的 LRU 缓存条目');
+  }
+
+  /**
+   * 批量获取多个 Feed（优化并发控制）
    * @param {Array<string>} feedUrls - Feed URL 列表
+   * @param {object} options - 选项
    * @returns {Promise<object>} 结果统计
    */
   async fetchMultipleFeeds(feedUrls, options = {}) {
+    const concurrency = options.concurrency || 5; // 默认并发数为5
     const results = {
       success: [],
       failed: [],
       total: feedUrls.length,
     };
 
-    for (const feedUrl of feedUrls) {
-      try {
-        const feed = await this.fetchFeed(feedUrl, options);
-        results.success.push({ feedUrl, feed });
+    // 使用并发控制的工作队列
+    const queue = [...feedUrls];
+    const workers = [];
 
-        this.emit('fetch-progress', {
-          current: results.success.length + results.failed.length,
-          total: results.total,
-          status: 'success',
-          feedUrl,
-        });
-      } catch (error) {
-        results.failed.push({ feedUrl, error: error.message });
+    const worker = async () => {
+      while (queue.length > 0) {
+        const feedUrl = queue.shift();
+        if (!feedUrl) break;
 
-        this.emit('fetch-progress', {
-          current: results.success.length + results.failed.length,
-          total: results.total,
-          status: 'failed',
-          feedUrl,
-          error: error.message,
-        });
+        try {
+          const feed = await this.fetchFeed(feedUrl, options);
+          results.success.push({ feedUrl, feed });
+
+          this.emit('fetch-progress', {
+            current: results.success.length + results.failed.length,
+            total: results.total,
+            status: 'success',
+            feedUrl,
+          });
+        } catch (error) {
+          results.failed.push({ feedUrl, error: error.message });
+
+          this.emit('fetch-progress', {
+            current: results.success.length + results.failed.length,
+            total: results.total,
+            status: 'failed',
+            feedUrl,
+            error: error.message,
+          });
+        }
       }
+    };
+
+    // 创建并发工作线程
+    for (let i = 0; i < Math.min(concurrency, feedUrls.length); i++) {
+      workers.push(worker());
     }
+
+    // 等待所有工作线程完成
+    await Promise.all(workers);
 
     this.emit('fetch-complete', results);
     return results;
