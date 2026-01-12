@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.21.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.21.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Phase 1](https://img.shields.io/badge/Phase%201-100%25-brightgreen.svg)
@@ -23,11 +23,13 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.21.0 (2026-01-13)
+## ⭐ Current Version: v0.21.1 (2026-01-13)
 
 ### Latest Updates
-- ✅ **Message Forwarding Feature** - Forward messages to other chat sessions, supports text/image/file types, automatic file copying, tracks forwarding source ⭐LATEST
-- ✅ **Chat File Transfer Feature** - Send/receive images and files in P2P chats, automatic file management, download support
+- ✅ **Message Reactions Feature** - Emoji reactions beyond likes, 18 common emojis, real-time reaction stats, toggle reactions, visual feedback ⭐LATEST
+- ✅ **P2P File Transfer Complete Implementation** - Large file chunked transfer (64KB chunks), resume capability, real-time progress tracking, SHA-256 integrity verification, concurrent transfer control
+- ✅ **Message Forwarding Feature** - Forward messages to other chat sessions, supports text/image/file types, automatic file copying, tracks forwarding source
+- ✅ **Chat File Transfer Feature** - Send/receive images and files in P2P chats, automatic file management, download support, integrated P2P direct transfer
 - ✅ **Message Search Feature** - Search message content in chat history, filter by conversation/role, pagination and sorting support
 - ✅ **Knowledge Graph Visualization Enhancement** - 8 graph analysis algorithms, 5 visualization modes (2D/3D/timeline/heatmap), intelligent entity extraction, 6 export formats
 - ✅ **Remote Sync Enabled** - Implemented incremental sync, conflict resolution, multi-device collaboration ⭐LATEST
@@ -81,7 +83,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🟡 **Blockchain Integration**: 85% Complete - **Phase 1-4 Complete** ⭐Improved
 - 🟡 **Decentralized Identity**: 80% Complete - **DID + Org DID + VC**
 - 🟡 **P2P Communication**: 75% Complete - **E2E Encryption Complete**
-- 🟢 **Social System**: 96% Complete - **Friends + Posts + Forum + Group Chat + File Transfer + Message Forwarding** ⭐Improved
+- 🟢 **Social System**: 97% Complete - **Friends + Posts + Forum + Group Chat + File Transfer + Message Forwarding + Message Reactions** ⭐Improved
 - 🟢 **Trading System**: 90% Complete - **8 Modules + On-chain Contracts + NFT Transfers** ⭐Improved
 - 🟡 **Browser Extension**: 70% Complete - **Testing Framework + Documentation**
 - 🟡 **Mobile Application**: 15% Complete - **Data Sync Complete** ⭐Improved
@@ -90,6 +92,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 - 🔐 **Military-Grade Security**: SQLCipher AES-256 encryption + Cross-Platform USB Key hardware keys + Signal protocol E2E encryption ✅ ⭐Updated
 - 🌐 **Fully Decentralized**: P2P network (libp2p 3.1.2) + DHT + local data storage, no central servers needed ✅
+- 📁 **P2P File Transfer**: Large file chunked transfer (64KB) + resume capability + real-time progress + SHA-256 verification + concurrent control ✅ ⭐NEW
 - 🧠 **AI Native**: Support for 14+ cloud LLM providers + Ollama local deployment + RAG-enhanced retrieval ✅
 - 🎯 **16 AI Engines**: Code/document/spreadsheet/PPT/PDF/image/video specialized processing, covering all scenarios ✅
 - 📋 **Template System**: 178 AI templates + 32 categories + smart engine allocation + 100% configuration coverage ✅
@@ -110,6 +113,32 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🧪 **Complete Testing System**: Playwright E2E + Vitest unit tests + 94 test files + 900+ test cases ✅
 - 🖥️ **Workspace Management**: Full CRUD + restore + permanent delete + member management ✅ ⭐NEW
 - 🔄 **Remote Sync**: Incremental sync + conflict resolution + multi-device collaboration + auto-fallback ✅ ⭐NEW
+
+### P2P File Transfer System ⭐NEW
+
+ChainlessChain implements a complete P2P file transfer system supporting efficient and secure transfer of large files:
+
+**Core Features**:
+- 📦 **Large File Chunked Transfer**: 64KB chunk size, supports files of any size
+- 🔄 **Resume Capability**: Resume from breakpoint after interruption, no need to restart
+- 📊 **Real-time Progress Tracking**: Real-time display of transfer progress, speed, and remaining time
+- ✅ **File Integrity Verification**: SHA-256 hash verification ensures file integrity
+- ⚡ **Concurrent Transfer Control**: Up to 3 concurrent chunk transfers for optimized speed
+- 🎯 **Smart Retry Mechanism**: Automatic retry for failed chunks, up to 3 attempts
+- 💾 **Temporary File Management**: Automatic management of temporary files, cleanup after completion
+- 🔐 **E2E Encryption**: End-to-end encrypted transfer based on Signal Protocol
+
+**Use Cases**:
+- Send/receive images and files in chat
+- Knowledge base file synchronization
+- Project file collaboration
+- Large file peer-to-peer transfer
+
+**Technical Implementation**:
+- P2P network layer based on libp2p
+- MessageManager for message management and batch processing
+- FileTransferManager for file transfer management
+- IPC interface integrated into chat system
 
 ## 📥 Download & Installation
 
