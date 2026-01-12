@@ -109,18 +109,22 @@
 
 <script>
 import postsService from '@/services/posts'
+import websocketService from '@/services/websocket'
+import didService from '@/services/did'
 
 export default {
   data() {
     return {
       posts: [],
       loading: false,
-      refreshing: false
+      refreshing: false,
+      realtimeConnected: false
     }
   },
 
   onLoad() {
     this.loadTimeline()
+    this.setupRealtime()
   },
 
   onShow() {
@@ -128,7 +132,89 @@ export default {
     this.loadTimeline()
   },
 
+  onUnload() {
+    // 清理实时监听
+    this.cleanupRealtime()
+  },
+
   methods: {
+    async setupRealtime() {
+      try {
+        const identity = await didService.getCurrentIdentity()
+        if (!identity) return
+
+        await websocketService.ensureConnection({ did: identity.did })
+        this.realtimeConnected = websocketService.isReady()
+
+        // 监听新动态
+        websocketService.on('post:created', this.handleNewPost)
+        // 监听点赞更新
+        websocketService.on('post:liked', this.handlePostLiked)
+        websocketService.on('post:unliked', this.handlePostUnliked)
+        // 监听评论更新
+        websocketService.on('post:commented', this.handlePostCommented)
+      } catch (error) {
+        console.error('设置实时连接失败:', error)
+      }
+    },
+
+    cleanupRealtime() {
+      websocketService.off('post:created', this.handleNewPost)
+      websocketService.off('post:liked', this.handlePostLiked)
+      websocketService.off('post:unliked', this.handlePostUnliked)
+      websocketService.off('post:commented', this.handlePostCommented)
+    },
+
+    handleNewPost(data) {
+      if (data && data.post) {
+        // 在列表顶部添加新动态
+        this.posts.unshift(data.post)
+        uni.showToast({
+          title: '收到新动态',
+          icon: 'none',
+          duration: 1500
+        })
+      }
+    },
+
+    handlePostLiked(data) {
+      if (data && data.postId) {
+        const post = this.posts.find(p => p.id === data.postId)
+        if (post) {
+          post.likeCount = (post.likeCount || 0) + 1
+          if (data.fromCurrentUser) {
+            post.isLiked = true
+          }
+        }
+      }
+    },
+
+    handlePostUnliked(data) {
+      if (data && data.postId) {
+        const post = this.posts.find(p => p.id === data.postId)
+        if (post) {
+          post.likeCount = Math.max(0, (post.likeCount || 0) - 1)
+          if (data.fromCurrentUser) {
+            post.isLiked = false
+          }
+        }
+      }
+    },
+
+    handlePostCommented(data) {
+      if (data && data.postId) {
+        const post = this.posts.find(p => p.id === data.postId)
+        if (post) {
+          post.commentCount = (post.commentCount || 0) + 1
+          if (data.comment) {
+            if (!post.comments) {
+              post.comments = []
+            }
+            post.comments.push(data.comment)
+          }
+        }
+      }
+    },
     async loadTimeline() {
       this.loading = true
       try {
@@ -186,12 +272,70 @@ export default {
       })
     },
 
-    sharePost(post) {
-      // TODO: 实现分享功能
-      uni.showToast({
-        title: '分享功能开发中',
-        icon: 'none'
+    async sharePost(post) {
+      try {
+        const shareOptions = ['分享到好友', '复制链接', '生成分享图片', '取消']
+        const res = await uni.showActionSheet({
+          itemList: shareOptions.slice(0, -1)
+        })
+
+        switch (res.tapIndex) {
+          case 0: // 分享到好友
+            await this.shareToFriend(post)
+            break
+          case 1: // 复制链接
+            await this.copyPostLink(post)
+            break
+          case 2: // 生成分享图片
+            await this.generateShareImage(post)
+            break
+        }
+      } catch (error) {
+        if (error.errMsg !== 'showActionSheet:fail cancel') {
+          console.error('分享失败:', error)
+        }
+      }
+    },
+
+    async shareToFriend(post) {
+      // 跳转到好友选择页面
+      uni.navigateTo({
+        url: `/pages/social/share-select?postId=${post.id}&type=post`
       })
+    },
+
+    async copyPostLink(post) {
+      try {
+        const link = `chainlesschain://post/${post.id}`
+        await uni.setClipboardData({
+          data: link
+        })
+        uni.showToast({
+          title: '链接已复制',
+          icon: 'success'
+        })
+      } catch (error) {
+        console.error('复制链接失败:', error)
+        uni.showToast({
+          title: '复制失败',
+          icon: 'none'
+        })
+      }
+    },
+
+    async generateShareImage(post) {
+      uni.showToast({
+        title: '正在生成分享图片...',
+        icon: 'loading',
+        duration: 2000
+      })
+      // TODO: 实现分享图片生成
+      setTimeout(() => {
+        uni.showToast({
+          title: '分享图片功能即将上线',
+          icon: 'none'
+        })
+      }, 2000)
     },
 
     getAuthorAvatar(post) {
