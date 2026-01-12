@@ -257,6 +257,17 @@ function registerAllIPC(dependencies) {
       console.log('[IPC Registry] ✓ Organization IPC registered (32 handlers)');
     }
 
+    // 企业版仪表板 (函数模式 - 中模块，10 handlers)
+    if (database) {
+      console.log('[IPC Registry] Registering Dashboard IPC...');
+      const { registerDashboardIPC } = require('./organization/dashboard-ipc');
+      registerDashboardIPC({
+        database,
+        organizationManager
+      });
+      console.log('[IPC Registry] ✓ Dashboard IPC registered (10 handlers)');
+    }
+
     // ============================================================
     // 第五阶段模块 (项目管理 - 最大模块组，分为多个子模块)
     // ============================================================
