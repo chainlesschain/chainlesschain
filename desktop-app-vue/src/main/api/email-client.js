@@ -16,6 +16,11 @@ class EmailClient extends EventEmitter {
     this.imapConnection = null;
     this.smtpTransporter = null;
     this.config = null;
+
+    // 连接池管理
+    this.connectionPool = new Map();
+    this.maxConnections = 5;
+    this.connectionTimeout = 10 * 60 * 1000; // 10分钟连接超时
   }
 
   /**
@@ -45,6 +50,142 @@ class EmailClient extends EventEmitter {
   }
 
   /**
+   * 从连接池获取连接
+   * @param {string} accountId - 账户ID（用于区分不同账户的连接）
+   */
+  async getConnection(accountId = 'default') {
+    // 检查连接池中是否有可用连接
+    if (this.connectionPool.has(accountId)) {
+      const poolEntry = this.connectionPool.get(accountId);
+
+      // 检查连接是否仍然有效
+      if (poolEntry.connection && this.isConnectionValid(poolEntry)) {
+        console.log(`[EmailClient] 使用连接池中的连接: ${accountId}`);
+        poolEntry.lastUsed = Date.now();
+        return poolEntry.connection;
+      } else {
+        // 连接无效，从池中移除
+        this.connectionPool.delete(accountId);
+      }
+    }
+
+    // 检查连接池是否已满
+    if (this.connectionPool.size >= this.maxConnections) {
+      // 清理最久未使用的连接
+      this.cleanupOldestConnection();
+    }
+
+    // 创建新连接
+    const connection = await this.connect();
+
+    // 添加到连接池
+    this.connectionPool.set(accountId, {
+      connection,
+      createdAt: Date.now(),
+      lastUsed: Date.now(),
+    });
+
+    console.log(`[EmailClient] 创建新连接并加入连接池: ${accountId}`);
+    return connection;
+  }
+
+  /**
+   * 检查连接是否有效
+   */
+  isConnectionValid(poolEntry) {
+    if (!poolEntry || !poolEntry.connection) {
+      return false;
+    }
+
+    // 检查连接是否超时
+    const age = Date.now() - poolEntry.createdAt;
+    if (age > this.connectionTimeout) {
+      return false;
+    }
+
+    // 检查连接状态
+    try {
+      return poolEntry.connection.state === 'authenticated';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * 清理最久未使用的连接
+   */
+  cleanupOldestConnection() {
+    let oldestKey = null;
+    let oldestTime = Date.now();
+
+    for (const [key, entry] of this.connectionPool.entries()) {
+      if (entry.lastUsed < oldestTime) {
+        oldestTime = entry.lastUsed;
+        oldestKey = key;
+      }
+    }
+
+    if (oldestKey) {
+      const entry = this.connectionPool.get(oldestKey);
+      if (entry && entry.connection) {
+        try {
+          entry.connection.end();
+        } catch (error) {
+          console.error('[EmailClient] 关闭连接失败:', error);
+        }
+      }
+      this.connectionPool.delete(oldestKey);
+      console.log(`[EmailClient] 清理最久未使用的连接: ${oldestKey}`);
+    }
+  }
+
+  /**
+   * 清理所有过期连接
+   */
+  cleanupExpiredConnections() {
+    const now = Date.now();
+    const expiredKeys = [];
+
+    for (const [key, entry] of this.connectionPool.entries()) {
+      if (!this.isConnectionValid(entry)) {
+        expiredKeys.push(key);
+      }
+    }
+
+    for (const key of expiredKeys) {
+      const entry = this.connectionPool.get(key);
+      if (entry && entry.connection) {
+        try {
+          entry.connection.end();
+        } catch (error) {
+          console.error('[EmailClient] 关闭连接失败:', error);
+        }
+      }
+      this.connectionPool.delete(key);
+    }
+
+    if (expiredKeys.length > 0) {
+      console.log(`[EmailClient] 清理了 ${expiredKeys.length} 个过期连接`);
+    }
+  }
+
+  /**
+   * 获取连接池统计信息
+   */
+  getPoolStats() {
+    return {
+      size: this.connectionPool.size,
+      maxConnections: this.maxConnections,
+      connections: Array.from(this.connectionPool.entries()).map(([key, entry]) => ({
+        accountId: key,
+        age: Date.now() - entry.createdAt,
+        lastUsed: Date.now() - entry.lastUsed,
+        valid: this.isConnectionValid(entry),
+      })),
+    };
+  }
+
+  /**
    * 连接到 IMAP 服务器
    */
   async connect() {
@@ -59,7 +200,7 @@ class EmailClient extends EventEmitter {
       this.imapConnection.once('ready', () => {
         console.log('[EmailClient] IMAP 连接成功');
         this.emit('connected');
-        resolve();
+        resolve(this.imapConnection);
       });
 
       this.imapConnection.once('error', (err) => {
@@ -79,10 +220,43 @@ class EmailClient extends EventEmitter {
 
   /**
    * 断开连接
+   * @param {string} accountId - 可选，指定要断开的账户ID，不指定则断开所有连接
    */
-  disconnect() {
+  disconnect(accountId = null) {
+    if (accountId) {
+      // 断开指定账户的连接
+      const entry = this.connectionPool.get(accountId);
+      if (entry && entry.connection) {
+        try {
+          entry.connection.end();
+        } catch (error) {
+          console.error('[EmailClient] 断开连接失败:', error);
+        }
+        this.connectionPool.delete(accountId);
+        console.log(`[EmailClient] 已断开连接: ${accountId}`);
+      }
+    } else {
+      // 断开所有连接
+      for (const [key, entry] of this.connectionPool.entries()) {
+        if (entry && entry.connection) {
+          try {
+            entry.connection.end();
+          } catch (error) {
+            console.error('[EmailClient] 断开连接失败:', error);
+          }
+        }
+      }
+      this.connectionPool.clear();
+      console.log('[EmailClient] 已断开所有连接');
+    }
+
+    // 清理主连接
     if (this.imapConnection) {
-      this.imapConnection.end();
+      try {
+        this.imapConnection.end();
+      } catch (error) {
+        console.error('[EmailClient] 断开主连接失败:', error);
+      }
       this.imapConnection = null;
     }
   }
