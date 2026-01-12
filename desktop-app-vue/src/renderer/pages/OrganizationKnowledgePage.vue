@@ -88,7 +88,31 @@
     <div class="knowledge-list">
       <a-tabs v-model:activeKey="activeTab" type="card">
         <a-tab-pane key="all" tab="全部知识">
+          <!-- 视图切换 -->
+          <div class="view-controls">
+            <a-radio-group v-model:value="viewMode" button-style="solid" size="small">
+              <a-radio-button value="grid">
+                <AppstoreOutlined /> 网格
+              </a-radio-button>
+              <a-radio-button value="list">
+                <UnorderedListOutlined /> 列表
+              </a-radio-button>
+            </a-radio-group>
+            <a-select
+              v-model:value="sortBy"
+              placeholder="排序方式"
+              style="width: 150px"
+              size="small"
+            >
+              <a-select-option value="updated_at">最近更新</a-select-option>
+              <a-select-option value="created_at">创建时间</a-select-option>
+              <a-select-option value="title">标题</a-select-option>
+              <a-select-option value="views">浏览量</a-select-option>
+            </a-select>
+          </div>
+
           <a-list
+            v-if="viewMode === 'grid'"
             :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 3, xl: 4, xxl: 4 }"
             :data-source="filteredKnowledgeItems"
             :loading="loading"
@@ -99,14 +123,98 @@
                 <knowledge-card
                   :item="item"
                   :current-user-did="currentUserDID"
+                  :show-collaboration-status="true"
                   @view="viewDetail"
                   @edit="editKnowledge"
                   @delete="deleteKnowledge"
                   @share="shareKnowledge"
+                  @collaborate="startCollaboration"
                 />
               </a-list-item>
             </template>
           </a-list>
+
+          <!-- 列表视图 -->
+          <a-table
+            v-else
+            :columns="tableColumns"
+            :data-source="filteredKnowledgeItems"
+            :loading="loading"
+            :pagination="pagination"
+            row-key="id"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'title'">
+                <div class="title-cell">
+                  <a @click="viewDetail(record)">{{ record.title }}</a>
+                  <a-badge
+                    v-if="record.is_collaborating"
+                    status="processing"
+                    text="协作中"
+                    style="margin-left: 8px"
+                  />
+                </div>
+              </template>
+              <template v-else-if="column.key === 'type'">
+                <a-tag :color="getTypeColor(record.type)">
+                  {{ getTypeName(record.type) }}
+                </a-tag>
+              </template>
+              <template v-else-if="column.key === 'share_scope'">
+                <a-tag :color="getScopeColor(record.share_scope)">
+                  {{ getScopeName(record.share_scope) }}
+                </a-tag>
+              </template>
+              <template v-else-if="column.key === 'collaborators'">
+                <a-avatar-group :max-count="3" size="small">
+                  <a-avatar
+                    v-for="user in record.active_collaborators"
+                    :key="user.did"
+                    :src="user.avatar"
+                  >
+                    {{ user.name?.charAt(0) }}
+                  </a-avatar>
+                </a-avatar-group>
+              </template>
+              <template v-else-if="column.key === 'actions'">
+                <a-space>
+                  <a-button type="link" size="small" @click="viewDetail(record)">
+                    查看
+                  </a-button>
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="startCollaboration(record)"
+                    v-if="canEdit(record)"
+                  >
+                    协作
+                  </a-button>
+                  <a-dropdown>
+                    <a-button type="link" size="small">
+                      更多 <DownOutlined />
+                    </a-button>
+                    <template #overlay>
+                      <a-menu>
+                        <a-menu-item @click="editKnowledge(record)">
+                          编辑
+                        </a-menu-item>
+                        <a-menu-item @click="viewHistory(record)">
+                          版本历史
+                        </a-menu-item>
+                        <a-menu-item @click="shareKnowledge(record)">
+                          分享
+                        </a-menu-item>
+                        <a-menu-divider />
+                        <a-menu-item danger @click="deleteKnowledge(record)">
+                          删除
+                        </a-menu-item>
+                      </a-menu>
+                    </template>
+                  </a-dropdown>
+                </a-space>
+              </template>
+            </template>
+          </a-table>
         </a-tab-pane>
 
         <a-tab-pane key="my" tab="我创建的">
@@ -152,6 +260,68 @@
         </a-tab-pane>
       </a-tabs>
     </div>
+
+    <!-- 版本历史对话框 -->
+    <a-modal
+      v-model:open="showHistoryModal"
+      title="版本历史"
+      width="900px"
+      :footer="null"
+    >
+      <a-timeline mode="left">
+        <a-timeline-item
+          v-for="version in versionHistory"
+          :key="version.id"
+          :color="version.id === currentVersion ? 'green' : 'blue'"
+        >
+          <template #dot>
+            <ClockCircleOutlined v-if="version.id === currentVersion" style="font-size: 16px" />
+          </template>
+          <div class="version-item">
+            <div class="version-header">
+              <span class="version-number">v{{ version.version }}</span>
+              <span class="version-time">{{ formatTime(version.created_at) }}</span>
+              <a-tag v-if="version.id === currentVersion" color="green">当前版本</a-tag>
+            </div>
+            <div class="version-author">
+              <UserOutlined />
+              {{ version.created_by_name || version.created_by }}
+            </div>
+            <div class="version-content">
+              <a-typography-paragraph
+                :ellipsis="{ rows: 3, expandable: true }"
+                :content="version.content"
+              />
+            </div>
+            <div class="version-actions">
+              <a-space>
+                <a-button
+                  size="small"
+                  @click="previewVersion(version)"
+                >
+                  预览
+                </a-button>
+                <a-button
+                  size="small"
+                  type="primary"
+                  @click="restoreVersion(version)"
+                  v-if="version.id !== currentVersion"
+                >
+                  恢复此版本
+                </a-button>
+                <a-button
+                  size="small"
+                  @click="compareVersions(version)"
+                  v-if="version.id !== currentVersion"
+                >
+                  对比差异
+                </a-button>
+              </a-space>
+            </div>
+          </div>
+        </a-timeline-item>
+      </a-timeline>
+    </a-modal>
 
     <!-- 创建知识对话框 -->
     <a-modal
@@ -231,7 +401,11 @@ import {
   PlusOutlined,
   EditOutlined,
   PlusCircleOutlined,
-  UserOutlined
+  UserOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+  DownOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons-vue';
 import KnowledgeCard from '@/components/KnowledgeCard.vue';
 import KnowledgePermissionSelector from '@/components/KnowledgePermissionSelector.vue';
@@ -248,8 +422,14 @@ const availableTags = ref([]);
 const searchQuery = ref('');
 const filterScope = ref('');
 const activeTab = ref('all');
+const viewMode = ref('grid'); // 'grid' or 'list'
+const sortBy = ref('updated_at');
 
 const showCreateModal = ref(false);
+const showHistoryModal = ref(false);
+const versionHistory = ref([]);
+const currentVersion = ref(null);
+
 const createForm = ref({
   title: '',
   type: 'note',
@@ -265,6 +445,46 @@ const pagination = ref({
   showSizeChanger: true,
   showTotal: total => `共 ${total} 条知识`
 });
+
+// 表格列定义
+const tableColumns = [
+  {
+    title: '标题',
+    dataIndex: 'title',
+    key: 'title',
+    width: 300
+  },
+  {
+    title: '类型',
+    dataIndex: 'type',
+    key: 'type',
+    width: 100
+  },
+  {
+    title: '共享范围',
+    dataIndex: 'share_scope',
+    key: 'share_scope',
+    width: 120
+  },
+  {
+    title: '协作者',
+    key: 'collaborators',
+    width: 150
+  },
+  {
+    title: '更新时间',
+    dataIndex: 'updated_at',
+    key: 'updated_at',
+    width: 180,
+    customRender: ({ text }) => formatTime(text)
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 200,
+    fixed: 'right'
+  }
+];
 
 // ==================== Computed ====================
 const currentOrgId = computed(() => identityStore.currentOrgId);
@@ -481,6 +701,189 @@ function resetCreateForm() {
   };
 }
 
+/**
+ * 开始协作编辑
+ */
+async function startCollaboration(item) {
+  try {
+    const result = await window.electron.ipcRenderer.invoke('collaboration:start-session', {
+      documentId: item.id,
+      orgId: currentOrgId.value,
+      userDid: currentUserDID.value
+    });
+
+    if (result.success) {
+      message.success('已加入协作编辑');
+      router.push(`/knowledge/${item.id}/collaborate`);
+    } else {
+      message.error(result.error || '加入协作失败');
+    }
+  } catch (error) {
+    console.error('开始协作失败:', error);
+    message.error('开始协作失败');
+  }
+}
+
+/**
+ * 查看版本历史
+ */
+async function viewHistory(item) {
+  try {
+    const result = await window.electron.ipcRenderer.invoke('knowledge:get-version-history', {
+      knowledgeId: item.id
+    });
+
+    if (result.success) {
+      versionHistory.value = result.versions || [];
+      currentVersion.value = item.id;
+      showHistoryModal.value = true;
+    } else {
+      message.error(result.error || '加载版本历史失败');
+    }
+  } catch (error) {
+    console.error('加载版本历史失败:', error);
+    message.error('加载版本历史失败');
+  }
+}
+
+/**
+ * 预览版本
+ */
+function previewVersion(version) {
+  // TODO: 实现版本预览
+  message.info('版本预览功能开发中...');
+}
+
+/**
+ * 恢复版本
+ */
+async function restoreVersion(version) {
+  try {
+    const result = await window.electron.ipcRenderer.invoke('knowledge:restore-version', {
+      knowledgeId: currentVersion.value,
+      versionId: version.id
+    });
+
+    if (result.success) {
+      message.success('版本恢复成功');
+      showHistoryModal.value = false;
+      await loadKnowledgeItems();
+    } else {
+      message.error(result.error || '版本恢复失败');
+    }
+  } catch (error) {
+    console.error('版本恢复失败:', error);
+    message.error('版本恢复失败');
+  }
+}
+
+/**
+ * 对比版本差异
+ */
+function compareVersions(version) {
+  // TODO: 实现版本对比
+  message.info('版本对比功能开发中...');
+}
+
+/**
+ * 检查是否可以编辑
+ */
+function canEdit(item) {
+  const role = identityStore.currentRole;
+  if (['owner', 'admin'].includes(role)) return true;
+  if (item.created_by === currentUserDID.value) return true;
+  return item.permissions?.includes('edit');
+}
+
+/**
+ * 格式化时间
+ */
+function formatTime(timestamp) {
+  if (!timestamp) return '-';
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
+
+  // 1分钟内
+  if (diff < 60000) {
+    return '刚刚';
+  }
+  // 1小时内
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
+  // 今天
+  if (date.toDateString() === now.toDateString()) {
+    return `今天 ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  // 昨天
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return `昨天 ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  // 其他
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+/**
+ * 获取类型名称
+ */
+function getTypeName(type) {
+  const typeMap = {
+    note: '笔记',
+    document: '文档',
+    conversation: '对话',
+    web_clip: '网页剪藏'
+  };
+  return typeMap[type] || type;
+}
+
+/**
+ * 获取类型颜色
+ */
+function getTypeColor(type) {
+  const colorMap = {
+    note: 'blue',
+    document: 'green',
+    conversation: 'orange',
+    web_clip: 'purple'
+  };
+  return colorMap[type] || 'default';
+}
+
+/**
+ * 获取范围名称
+ */
+function getScopeName(scope) {
+  const scopeMap = {
+    private: '私有',
+    team: '团队',
+    org: '组织',
+    public: '公开'
+  };
+  return scopeMap[scope] || scope;
+}
+
+/**
+ * 获取范围颜色
+ */
+function getScopeColor(scope) {
+  const colorMap = {
+    private: 'default',
+    team: 'blue',
+    org: 'green',
+    public: 'orange'
+  };
+  return colorMap[scope] || 'default';
+}
+
 // ==================== Lifecycle ====================
 onMounted(async () => {
   await Promise.all([
@@ -533,10 +936,77 @@ onMounted(async () => {
   }
 
   .knowledge-list {
+    .view-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: #fafafa;
+      border-radius: 8px;
+    }
+
+    .title-cell {
+      display: flex;
+      align-items: center;
+
+      a {
+        color: #1890ff;
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+
     :deep(.ant-tabs-card) {
       .ant-tabs-nav {
         margin-bottom: 16px;
       }
+    }
+  }
+
+  // 版本历史样式
+  .version-item {
+    padding: 12px;
+    background: #fafafa;
+    border-radius: 8px;
+
+    .version-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+
+      .version-number {
+        font-weight: 600;
+        color: #1890ff;
+      }
+
+      .version-time {
+        color: #999;
+        font-size: 13px;
+      }
+    }
+
+    .version-author {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #666;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .version-content {
+      margin-bottom: 12px;
+      padding: 12px;
+      background: white;
+      border-radius: 6px;
+    }
+
+    .version-actions {
+      display: flex;
+      justify-content: flex-end;
     }
   }
 }
