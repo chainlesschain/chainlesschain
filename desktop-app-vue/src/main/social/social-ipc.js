@@ -692,6 +692,120 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
   });
 
   // ============================================================
+  // 消息表情回应 (Message Reactions) - 4 handlers
+  // ============================================================
+
+  /**
+   * 添加消息表情回应
+   * Channel: 'chat:add-reaction'
+   */
+  ipcMain.handle('chat:add-reaction', async (_event, { messageId, userDid, emoji }) => {
+    try {
+      if (!database || !database.db) {
+        throw new Error('数据库未初始化');
+      }
+
+      const { v4: uuidv4 } = require('uuid');
+      const id = uuidv4();
+      const now = Date.now();
+
+      const stmt = database.prepare(`
+        INSERT OR REPLACE INTO message_reactions (id, message_id, user_did, emoji, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      stmt.run(id, messageId, userDid, emoji, now);
+      database.saveToFile();
+
+      return { success: true, reaction: { id, messageId, userDid, emoji, createdAt: now } };
+    } catch (error) {
+      console.error('[Social IPC] 添加表情回应失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 移除消息表情回应
+   * Channel: 'chat:remove-reaction'
+   */
+  ipcMain.handle('chat:remove-reaction', async (_event, { messageId, userDid, emoji }) => {
+    try {
+      if (!database || !database.db) {
+        throw new Error('数据库未初始化');
+      }
+
+      const stmt = database.prepare(`
+        DELETE FROM message_reactions
+        WHERE message_id = ? AND user_did = ? AND emoji = ?
+      `);
+      stmt.run(messageId, userDid, emoji);
+      database.saveToFile();
+
+      return { success: true };
+    } catch (error) {
+      console.error('[Social IPC] 移除表情回应失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取消息的所有表情回应
+   * Channel: 'chat:get-reactions'
+   */
+  ipcMain.handle('chat:get-reactions', async (_event, messageId) => {
+    try {
+      if (!database || !database.db) {
+        return { success: true, reactions: [] };
+      }
+
+      const stmt = database.prepare(`
+        SELECT * FROM message_reactions
+        WHERE message_id = ?
+        ORDER BY created_at ASC
+      `);
+      const reactions = stmt.all(messageId);
+
+      return { success: true, reactions: reactions || [] };
+    } catch (error) {
+      console.error('[Social IPC] 获取表情回应失败:', error);
+      return { success: false, reactions: [], error: error.message };
+    }
+  });
+
+  /**
+   * 获取消息的表情回应统计
+   * Channel: 'chat:get-reaction-stats'
+   */
+  ipcMain.handle('chat:get-reaction-stats', async (_event, messageId) => {
+    try {
+      if (!database || !database.db) {
+        return { success: true, stats: {} };
+      }
+
+      const stmt = database.prepare(`
+        SELECT emoji, COUNT(*) as count, GROUP_CONCAT(user_did) as users
+        FROM message_reactions
+        WHERE message_id = ?
+        GROUP BY emoji
+        ORDER BY count DESC
+      `);
+      const rows = stmt.all(messageId);
+
+      const stats = {};
+      rows.forEach(row => {
+        stats[row.emoji] = {
+          count: row.count,
+          users: row.users ? row.users.split(',') : []
+        };
+      });
+
+      return { success: true, stats };
+    } catch (error) {
+      console.error('[Social IPC] 获取表情统计失败:', error);
+      return { success: false, stats: {}, error: error.message };
+    }
+  });
+
+  // ============================================================
   // 群聊管理 (Group Chat Management) - 15 handlers
   // ============================================================
 
@@ -1121,7 +1235,38 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
       database.saveToFile();
 
       // 通过P2P发送文件（如果P2P管理器可用）
-      // TODO: 集成P2P文件传输
+      if (global.mainApp && global.mainApp.p2pEnhancedManager && global.mainApp.p2pEnhancedManager.fileTransferManager) {
+        try {
+          console.log('[Social IPC] 开始P2P文件传输...');
+
+          // 使用FileTransferManager进行P2P传输
+          const transferId = await global.mainApp.p2pEnhancedManager.fileTransferManager.uploadFile(
+            session.participant_did,
+            destPath,
+            {
+              messageId,
+              sessionId,
+              fileName,
+              fileSize
+            }
+          );
+
+          console.log('[Social IPC] ✅ P2P文件传输已启动:', transferId);
+
+          // 更新消息状态为传输中
+          const updateTransferStmt = database.prepare(`
+            UPDATE p2p_chat_messages
+            SET transfer_id = ?, status = 'transferring'
+            WHERE id = ?
+          `);
+          updateTransferStmt.run(transferId, messageId);
+          database.saveToFile();
+
+        } catch (error) {
+          console.error('[Social IPC] P2P文件传输失败:', error);
+          // 即使P2P传输失败，消息仍然保存在本地
+        }
+      }
 
       return {
         success: true,
@@ -1335,7 +1480,101 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
     }
   });
 
-  console.log('[Social IPC] ✓ All Social IPC handlers registered successfully (53 handlers)');
+  /**
+   * 获取文件传输进度
+   * Channel: 'chat:get-transfer-progress'
+   */
+  ipcMain.handle('chat:get-transfer-progress', async (_event, { transferId }) => {
+    try {
+      if (!global.mainApp || !global.mainApp.p2pEnhancedManager || !global.mainApp.p2pEnhancedManager.fileTransferManager) {
+        return { success: false, error: 'P2P文件传输管理器未初始化' };
+      }
+
+      const progress = global.mainApp.p2pEnhancedManager.fileTransferManager.getProgress(transferId);
+
+      if (!progress) {
+        return { success: false, error: '传输任务不存在' };
+      }
+
+      return {
+        success: true,
+        progress
+      };
+    } catch (error) {
+      console.error('[Social IPC] 获取传输进度失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 取消文件传输
+   * Channel: 'chat:cancel-transfer'
+   */
+  ipcMain.handle('chat:cancel-transfer', async (_event, { transferId }) => {
+    try {
+      if (!global.mainApp || !global.mainApp.p2pEnhancedManager || !global.mainApp.p2pEnhancedManager.fileTransferManager) {
+        return { success: false, error: 'P2P文件传输管理器未初始化' };
+      }
+
+      await global.mainApp.p2pEnhancedManager.fileTransferManager.cancelTransfer(transferId);
+
+      return { success: true };
+    } catch (error) {
+      console.error('[Social IPC] 取消传输失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 接受文件传输
+   * Channel: 'chat:accept-transfer'
+   */
+  ipcMain.handle('chat:accept-transfer', async (_event, { transferId, savePath }) => {
+    try {
+      if (!global.mainApp || !global.mainApp.p2pEnhancedManager || !global.mainApp.p2pEnhancedManager.fileTransferManager) {
+        return { success: false, error: 'P2P文件传输管理器未初始化' };
+      }
+
+      const { dialog } = require('electron');
+      const path = require('path');
+
+      // 如果没有提供保存路径，打开保存对话框
+      if (!savePath) {
+        const downloadTask = global.mainApp.p2pEnhancedManager.fileTransferManager.downloads.get(transferId);
+        if (!downloadTask) {
+          return { success: false, error: '传输任务不存在' };
+        }
+
+        const result = await dialog.showSaveDialog({
+          defaultPath: downloadTask.fileName,
+          filters: [{ name: 'All Files', extensions: ['*'] }]
+        });
+
+        if (result.canceled || !result.filePath) {
+          return { success: false, error: '未选择保存位置' };
+        }
+
+        savePath = result.filePath;
+      }
+
+      // 开始下载
+      const filePath = await global.mainApp.p2pEnhancedManager.fileTransferManager.downloadFile(
+        null, // peerId will be retrieved from download task
+        transferId,
+        savePath
+      );
+
+      return {
+        success: true,
+        filePath
+      };
+    } catch (error) {
+      console.error('[Social IPC] 接受传输失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  console.log('[Social IPC] ✓ All Social IPC handlers registered successfully (56 handlers)');
 }
 
 module.exports = {

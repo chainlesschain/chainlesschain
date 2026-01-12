@@ -1045,6 +1045,17 @@ class DatabaseManager {
         FOREIGN KEY (forwarded_from_id) REFERENCES p2p_chat_messages(id) ON DELETE SET NULL
       );
 
+      -- 消息表情回应表
+      CREATE TABLE IF NOT EXISTS message_reactions (
+        id TEXT PRIMARY KEY,
+        message_id TEXT NOT NULL,
+        user_did TEXT NOT NULL,
+        emoji TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        UNIQUE(message_id, user_did, emoji),
+        FOREIGN KEY (message_id) REFERENCES p2p_chat_messages(id) ON DELETE CASCADE
+      );
+
       -- 群聊表
       CREATE TABLE IF NOT EXISTS group_chats (
         id TEXT PRIMARY KEY,
@@ -1352,6 +1363,9 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_p2p_messages_sender ON p2p_chat_messages(sender_did);
       CREATE INDEX IF NOT EXISTS idx_p2p_messages_receiver ON p2p_chat_messages(receiver_did);
       CREATE INDEX IF NOT EXISTS idx_p2p_messages_status ON p2p_chat_messages(status);
+      CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id);
+      CREATE INDEX IF NOT EXISTS idx_message_reactions_user ON message_reactions(user_did);
+      CREATE INDEX IF NOT EXISTS idx_message_reactions_created ON message_reactions(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_did);
       CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
       CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
@@ -2167,6 +2181,15 @@ class DatabaseManager {
       if (!hasFsPath) {
         console.log('[Database] 添加 project_files.fs_path 列');
         this.db.run('ALTER TABLE project_files ADD COLUMN fs_path TEXT');
+      }
+
+      // 检查 p2p_chat_messages 表是否有 transfer_id 列（用于P2P文件传输）
+      const chatMessagesInfo = this.db.prepare("PRAGMA table_info(p2p_chat_messages)").all();
+      const hasTransferId = chatMessagesInfo.some(col => col.name === 'transfer_id');
+
+      if (!hasTransferId) {
+        console.log('[Database] 添加 p2p_chat_messages.transfer_id 列');
+        this.db.run('ALTER TABLE p2p_chat_messages ADD COLUMN transfer_id TEXT');
       }
 
       // ==================== 同步字段迁移（V2） ====================

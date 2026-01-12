@@ -23,13 +23,13 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.21.0 (2026-01-09)
+## ⭐ Current Version: v0.21.0 (2026-01-13)
 
 ### Latest Updates
-- ✅ **PC Desktop App 100% Complete** - All core features developed, production-ready status achieved ⭐LATEST
-- ✅ **Cross-Platform USB Key Support** - Added macOS/Linux PKCS#11 driver support, covering YubiKey, Nitrokey, and other hardware ⭐LATEST
-- ✅ **Production-Grade Blockchain Bridge** - LayerZero integration complete, supporting 7 mainnets + 2 testnets for cross-chain asset transfers ⭐LATEST
-- ✅ **Workspace Management Enhancement** - Added workspace restore and permanent delete features, complete CRUD operations ⭐LATEST
+- ✅ **Message Forwarding Feature** - Forward messages to other chat sessions, supports text/image/file types, automatic file copying, tracks forwarding source ⭐LATEST
+- ✅ **Chat File Transfer Feature** - Send/receive images and files in P2P chats, automatic file management, download support
+- ✅ **Message Search Feature** - Search message content in chat history, filter by conversation/role, pagination and sorting support
+- ✅ **Knowledge Graph Visualization Enhancement** - 8 graph analysis algorithms, 5 visualization modes (2D/3D/timeline/heatmap), intelligent entity extraction, 6 export formats
 - ✅ **Remote Sync Enabled** - Implemented incremental sync, conflict resolution, multi-device collaboration ⭐LATEST
 - ✅ **Mobile Data Sync** - Implemented mobile-PC data synchronization for seamless cross-device collaboration
 - ✅ **Full Linux Platform Support** - Added Linux ZIP portable version and DEB package support, covering mainstream distributions
@@ -81,8 +81,8 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🟡 **Blockchain Integration**: 85% Complete - **Phase 1-4 Complete** ⭐Improved
 - 🟡 **Decentralized Identity**: 80% Complete - **DID + Org DID + VC**
 - 🟡 **P2P Communication**: 75% Complete - **E2E Encryption Complete**
-- 🟡 **Social System**: 85% Complete - **Friends + Posts + Forum**
-- 🟡 **Trading System**: 85% Complete - **8 Modules + On-chain Contracts**
+- 🟢 **Social System**: 96% Complete - **Friends + Posts + Forum + Group Chat + File Transfer + Message Forwarding** ⭐Improved
+- 🟢 **Trading System**: 90% Complete - **8 Modules + On-chain Contracts + NFT Transfers** ⭐Improved
 - 🟡 **Browser Extension**: 70% Complete - **Testing Framework + Documentation**
 - 🟡 **Mobile Application**: 15% Complete - **Data Sync Complete** ⭐Improved
 
@@ -365,7 +365,18 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 **Social Features**:
 - ✅ Friend management: request/accept/reject, online status, grouping, remarks
 - ✅ Social posts: publish, like, comment, share, image support
-- ✅ P2P encrypted private messages: offline messages, multi-device sync
+- ✅ P2P encrypted private messages: offline messages, multi-device sync, file transfer, message forwarding ⭐Updated
+- ✅ Group chat: create groups, member management, end-to-end encrypted group messages, invitation system
+
+**Message Forwarding Feature** (~200 lines of code): ⭐NEW
+- ✅ **Context Menu**: Right-click on message bubbles for forward, copy, delete operations
+- ✅ **Multi-Session Selection**: Select multiple target sessions for batch forwarding
+- ✅ **Automatic File Copying**: Automatically copy files when forwarding image/file messages
+- ✅ **Forward Indicator**: Forwarded messages display forward badge and track original source
+- ✅ **Forward Counter**: Track how many times a message has been forwarded
+- ✅ **Database Support**: Added forwarded_from_id and forward_count fields
+- ✅ **IPC Interface**: chat:forward-message handler for batch forwarding
+- ✅ **UI Components**: Forward dialog, session selector, forwarding status notifications
 
 **Community Forum** (Standalone App):
 - ✅ Spring Boot 3.1.5 backend (69 Java files, 63 APIs)
@@ -374,7 +385,7 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 - ✅ Elasticsearch full-text search + Redis cache
 - ✅ JWT authentication + Spring Security authorization
 
-### 3️⃣ Decentralized Trading System (85% Complete) ✅
+### 3️⃣ Decentralized Trading System (90% Complete) ✅ ⭐Improved
 
 Total code: **8000+ lines**, 8 core modules + blockchain smart contracts
 
@@ -383,6 +394,12 @@ Total code: **8000+ lines**, 8 core modules + blockchain smart contracts
 - ✅ Asset creation, minting, transfer, burning
 - ✅ Balance management + transfer history + metadata
 - ✅ Batch operation support
+- ✅ **NFT On-Chain Transfers** - Full ERC-721 implementation ⭐NEW
+  - Ownership verification + safe transfer (safeTransferFrom)
+  - Batch NFT transfer support
+  - Real-time on-chain queries (owner, balance, metadata URI)
+  - Post-transfer auto-verification + P2P notifications
+  - Complete transfer history tracking
 
 **2. Trading Market** (685 lines):
 - ✅ Product listing management (create, update, list, delist)
@@ -437,6 +454,12 @@ Total code: **8000+ lines**, 8 core modules + blockchain smart contracts
 - ✅ **ChainlessNFT** (ERC-721 NFT contract, 140 lines)
   - Metadata URI support, batch minting
   - ERC721Enumerable extension
+  - **Complete On-Chain Transfer Functionality** ⭐NEW
+    - safeTransferFrom secure transfer
+    - Ownership verification (ownerOf)
+    - Balance queries (balanceOf)
+    - Metadata URI queries (tokenURI)
+    - Batch transfer support
 - ✅ **EscrowContract** (Escrow contract, 260 lines)
   - Support for ETH/MATIC + ERC20 tokens
   - Dispute resolution mechanism + arbitrator function
