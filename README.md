@@ -1252,7 +1252,7 @@ sudo pacman -S gtk3 libnotify nss libxss libxtst
 - ContractCard/TransactionTimeline - 通用组件
 - CreditScore/ReviewList/MyReviews - 信用和评价
 
-### 4️⃣ 企业版（去中心化组织）(50% 完成) ⭐更新
+### 4️⃣ 企业版（去中心化组织）(55% 完成) ⭐更新
 
 **核心架构**:
 - ✅ **多身份架构**: 一个用户DID可拥有个人身份+多个组织身份
@@ -1296,19 +1296,59 @@ sudo pacman -S gtk3 libnotify nss libxss libxtst
 - ✅ `p2p_sync_state` - P2P同步状态
 - ✅ `knowledge_items扩展` - 新增8个企业版字段（org_id、created_by、share_scope等）
 
-**前端UI组件** (新增6个页面/组件):
-- ✅ **IdentitySwitcher.vue** - 身份切换器，支持创建/加入组织
+**前端UI组件** (10个页面/组件, 5885行) ⭐更新:
+- ✅ **IdentitySwitcher.vue** (511行) - 身份切换器，支持创建/加入组织
 - ✅ **OrganizationMembersPage.vue** - 成员管理页面，角色分配
 - ✅ **OrganizationSettingsPage.vue** - 组织设置页面，信息编辑
 - ✅ **OrganizationsPage.vue** - 组织列表页面
 - ✅ **OrganizationRolesPage.vue** - 角色权限管理页面
 - ✅ **OrganizationActivityLogPage.vue** - 组织活动日志页面
+- ✅ **OrganizationCard.vue** (280行) - 组织卡片组件，支持多种操作 ⭐新增
+- ✅ **CreateOrganizationDialog.vue** (240行) - 创建组织对话框，完整表单验证 ⭐新增
+- ✅ **MemberList.vue** (520行) - 成员列表组件，支持搜索/筛选/角色管理 ⭐新增
+- ✅ **PermissionManager.vue** (680行) - 权限管理组件，支持角色/权限/矩阵视图 ⭐新增
 
 **状态管理** (IdentityStore - 385行):
 - ✅ 当前激活身份管理
 - ✅ 所有身份上下文缓存
 - ✅ 组织列表和切换逻辑
 - ✅ 权限检查接口
+
+**企业版基础UI组件特性** ⭐新增:
+- ✅ **OrganizationCard** - 组织卡片展示
+  - 支持5种组织类型（Startup/Company/Community/Opensource/Education）
+  - 渐变色封面设计，视觉效果出色
+  - 实时统计（成员数/知识库数/创建时间）
+  - 角色标签显示（Owner/Admin/Editor/Member/Viewer）
+  - 丰富的操作菜单（切换/成员管理/邀请/设置/离开/删除）
+  - 悬停动画效果，选中状态高亮
+
+- ✅ **CreateOrganizationDialog** - 创建组织对话框
+  - 完整的表单验证（名称/类型/描述/隐私/功能/存储/成员限制）
+  - 隐私设置（公开/私有）
+  - 功能选择（知识库/项目/协作/P2P网络）
+  - 存储限制配置（1GB-100GB）
+  - 成员限制设置（1-1000人）
+  - 自动生成组织DID提示
+
+- ✅ **MemberList** - 成员列表管理
+  - 三种视图模式（全部成员/在线成员/按角色分组）
+  - 实时搜索和筛选
+  - 在线状态显示（绿色徽章）
+  - 成员信息展示（DID/加入时间/最后活跃）
+  - 角色管理（查看/消息/变更角色/移除）
+  - 权限控制（基于当前用户角色）
+  - 分页支持（10/20/50条每页）
+
+- ✅ **PermissionManager** - 权限管理系统
+  - 三种管理视图（角色/权限/矩阵）
+  - 角色CRUD操作（创建/编辑/删除/查看）
+  - 5大权限类别（组织/成员/知识库/项目/角色）
+  - 20+细粒度权限点
+  - 权限矩阵可视化（角色×权限交叉表）
+  - 内置角色保护（不可编辑/删除）
+  - 权限树选择器（层级结构）
+  - 实时权限切换（矩阵视图）
 
 **待完成功能**:
 - ⏳ P2P组织网络（Topic订阅、成员发现）
@@ -1856,10 +1896,10 @@ chainlesschain/
   - 18个新增优化工具类 (~8,000行)
 - 前端服务层: api.js (300行) + 测试
 - 交易系统: 8个模块, 5960行代码
-- 企业版（去中心化组织）: 核心模块1966行 + 6个UI页面/组件 + 完整API实现 ⭐更新
+- 企业版（去中心化组织）: 核心模块1966行 + 10个UI页面/组件(5885行) + 完整API实现 ⭐更新
   - OrganizationManager: 1966行
   - IdentityStore: 385行
-  - UI页面/组件: 6个（组织管理相关）
+  - UI组件: 10个（组织管理相关，包含4个新增基础UI组件）⭐新增
   - 组织设置API: 5个完整实现
   - 邀请系统API: 完整生命周期管理
 - 区块链系统: 钱包+合约+桥接, 3500+行代码 ⭐更新
