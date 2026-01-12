@@ -1135,7 +1135,7 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
    * 发送文件消息（图片/文件）
    * Channel: 'chat:send-file'
    */
-  ipcMain.handle('chat:send-file', async (_event, { sessionId, filePath, messageType }) => {
+  ipcMain.handle('chat:send-file', async (_event, { sessionId, filePath, messageType, duration }) => {
     try {
       const { dialog } = require('electron');
       const path = require('path');
@@ -1151,6 +1151,8 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
           properties: ['openFile'],
           filters: messageType === 'image'
             ? [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'] }]
+            : messageType === 'voice'
+            ? [{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'webm'] }]
             : [{ name: 'All Files', extensions: ['*'] }]
         });
 
@@ -1203,9 +1205,9 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
       const insertStmt = database.prepare(`
         INSERT INTO p2p_chat_messages (
           id, session_id, sender_did, receiver_did, content,
-          message_type, file_path, file_size, encrypted, status, timestamp
+          message_type, file_path, file_size, duration, encrypted, status, timestamp
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       insertStmt.run(
@@ -1217,6 +1219,7 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
         messageType || 'file',
         destPath,
         fileSize,
+        duration || null,
         1,
         'sent',
         timestamp
@@ -1229,7 +1232,9 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
         WHERE id = ?
       `);
 
-      const lastMessage = messageType === 'image' ? '[图片]' : `[文件] ${fileName}`;
+      const lastMessage = messageType === 'image' ? '[图片]'
+        : messageType === 'voice' ? '[语音]'
+        : `[文件] ${fileName}`;
       updateStmt.run(lastMessage, timestamp, timestamp, sessionId);
 
       database.saveToFile();
@@ -1247,7 +1252,8 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
               messageId,
               sessionId,
               fileName,
-              fileSize
+              fileSize,
+              duration
             }
           );
 
@@ -1279,6 +1285,7 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
           messageType: messageType || 'file',
           filePath: destPath,
           fileSize,
+          duration,
           timestamp
         }
       };

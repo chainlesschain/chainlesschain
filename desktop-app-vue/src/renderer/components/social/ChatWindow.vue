@@ -101,6 +101,7 @@
                   <SmileOutlined />
                 </a-button>
               </a-tooltip>
+              <VoiceMessageRecorder @voice-recorded="handleVoiceRecorded" />
               <a-tooltip title="图片">
                 <a-button type="text" size="small" @click="handleSendImage">
                   <PictureOutlined />
@@ -147,6 +148,7 @@ import MessageBubble from './MessageBubble.vue'
 import CallNotification from '../call/CallNotification.vue'
 import CallWindow from '../call/CallWindow.vue'
 import ScreenSharePicker from '../call/ScreenSharePicker.vue'
+import VoiceMessageRecorder from './VoiceMessageRecorder.vue'
 import {
   UserOutlined,
   PhoneOutlined,
@@ -266,6 +268,36 @@ const handleSendFile = async () => {
   } catch (error) {
     console.error('发送文件失败:', error)
     message.error('发送文件失败')
+  }
+}
+
+const handleVoiceRecorded = async (voiceData) => {
+  if (!currentSession.value) {
+    message.warning('请先选择一个会话')
+    return
+  }
+
+  try {
+    // 发送语音消息
+    const result = await window.electron.ipcRenderer.invoke('chat:send-file', {
+      sessionId: currentSession.value.id,
+      messageType: 'voice',
+      filePath: voiceData.filePath,
+      duration: voiceData.duration
+    })
+
+    if (result.success) {
+      message.success('语音消息发送成功')
+      // 刷新消息列表
+      await socialStore.loadMessages(currentSession.value.id)
+      await nextTick()
+      scrollToBottom()
+    } else {
+      message.error(result.error || '语音消息发送失败')
+    }
+  } catch (error) {
+    console.error('发送语音消息失败:', error)
+    message.error('发送语音消息失败')
   }
 }
 
