@@ -28,11 +28,19 @@
 
     <!-- 全局搜索 -->
     <GlobalSearch v-model="showGlobalSearch" />
+
+    <!-- 企业版DID邀请接受对话框 -->
+    <InvitationAcceptDialog
+      v-model:visible="showInvitationDialog"
+      :token="invitationToken"
+      @accepted="handleInvitationAccepted"
+      @rejected="handleInvitationRejected"
+    />
   </a-config-provider>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onErrorCaptured } from 'vue';
+import { ref, computed, onMounted, onUnmounted, onErrorCaptured } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import { useAppStore } from './stores/app';
@@ -46,6 +54,7 @@ import GlobalSettingsWizard from './components/GlobalSettingsWizard.vue';
 import NotificationCenter from './components/common/NotificationCenter.vue';
 import ShortcutHelpPanel from './components/common/ShortcutHelpPanel.vue';
 import GlobalSearch from './components/common/GlobalSearch.vue';
+import InvitationAcceptDialog from './components/organization/InvitationAcceptDialog.vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import zhTW from 'ant-design-vue/es/locale/zh_TW';
@@ -57,6 +66,10 @@ const loading = ref(true);
 const { locale } = useI18n();
 const showGlobalSetupWizard = ref(false);
 const showEncryptionWizard = ref(false);
+
+// 企业版DID邀请链接
+const showInvitationDialog = ref(false);
+const invitationToken = ref('');
 
 // 主题系统
 const { effectiveTheme, toggle: toggleTheme } = useTheme();
@@ -157,8 +170,29 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// 深链接事件处理器（企业版DID邀请链接）
+const handleInvitationDeepLink = (event, token) => {
+  console.log('收到邀请链接:', token);
+  invitationToken.value = token;
+  showInvitationDialog.value = true;
+};
+
+const handleInvitationAccepted = (org) => {
+  console.log('已加入组织:', org.name);
+  message.success(`成功加入组织: ${org.name}`);
+};
+
+const handleInvitationRejected = () => {
+  console.log('已拒绝邀请');
+};
+
 onMounted(async () => {
   try {
+    // 监听深链接事件（企业版DID邀请链接）
+    if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.on('deep-link:invitation', handleInvitationDeepLink);
+    }
+
     // 检测U盾状态
     const ukeyStatus = await ukeyAPI.detect();
     store.setUKeyStatus(ukeyStatus);
@@ -214,6 +248,13 @@ onMounted(async () => {
     console.error('应用初始化失败', error);
   } finally {
     loading.value = false;
+  }
+});
+
+// 清理事件监听器
+onUnmounted(() => {
+  if (window.electron?.ipcRenderer) {
+    window.electron.ipcRenderer.removeListener('deep-link:invitation', handleInvitationDeepLink);
   }
 });
 
