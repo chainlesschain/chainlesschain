@@ -304,6 +304,13 @@
       "style": {
         "navigationBarTitleText": "文件内容"
       }
+    },
+    {
+      "path": "pages/notifications/center",
+      "style": {
+        "navigationBarTitleText": "通知中心",
+        "enablePullDownRefresh": true
+      }
     }
   ],
   "globalStyle": {
