@@ -615,6 +615,116 @@ function registerOrganizationIPC({
   });
 
   // ============================================================
+  // QR Code Generation (QR码生成) - 5 handlers
+  // ============================================================
+
+  /**
+   * 为邀请链接生成QR码
+   * Channel: 'org:generate-invitation-qrcode'
+   */
+  ipcMain.handle('org:generate-invitation-qrcode', async (_event, linkId, options) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        return { success: false, error: '邀请管理器未初始化' };
+      }
+
+      const qrCode = await organizationManager.didInvitationManager.generateInvitationQRCode(linkId, options);
+      return { success: true, qrCode };
+    } catch (error) {
+      console.error('[Organization IPC] 生成邀请QR码失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 为DID邀请生成QR码
+   * Channel: 'org:generate-did-invitation-qrcode'
+   */
+  ipcMain.handle('org:generate-did-invitation-qrcode', async (_event, invitationId, options) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        return { success: false, error: '邀请管理器未初始化' };
+      }
+
+      const qrCode = await organizationManager.didInvitationManager.generateDIDInvitationQRCode(invitationId, options);
+      return { success: true, qrCode };
+    } catch (error) {
+      console.error('[Organization IPC] 生成DID邀请QR码失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 批量生成邀请QR码
+   * Channel: 'org:generate-batch-invitation-qrcodes'
+   */
+  ipcMain.handle('org:generate-batch-invitation-qrcodes', async (_event, orgId, options) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        return { success: false, error: '邀请管理器未初始化', qrCodes: [] };
+      }
+
+      const qrCodes = await organizationManager.didInvitationManager.generateBatchInvitationQRCodes(orgId, options);
+      return { success: true, qrCodes };
+    } catch (error) {
+      console.error('[Organization IPC] 批量生成QR码失败:', error);
+      return { success: false, error: error.message, qrCodes: [] };
+    }
+  });
+
+  /**
+   * 解析邀请QR码
+   * Channel: 'org:parse-invitation-qrcode'
+   */
+  ipcMain.handle('org:parse-invitation-qrcode', async (_event, qrData) => {
+    try {
+      if (!organizationManager || !organizationManager.didInvitationManager) {
+        return { success: false, error: '邀请管理器未初始化' };
+      }
+
+      const invitationInfo = await organizationManager.didInvitationManager.parseInvitationQRCode(qrData);
+      return { success: true, invitationInfo };
+    } catch (error) {
+      console.error('[Organization IPC] 解析QR码失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 下载QR码图片
+   * Channel: 'org:download-qrcode'
+   */
+  ipcMain.handle('org:download-qrcode', async (_event, qrCodeDataURL, filename) => {
+    try {
+      // 显示保存对话框
+      const result = await dialog.showSaveDialog({
+        title: '保存QR码',
+        defaultPath: filename || 'invitation-qrcode.png',
+        filters: [
+          { name: 'PNG图片', extensions: ['png'] },
+          { name: '所有文件', extensions: ['*'] }
+        ]
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { success: false, error: '用户取消保存' };
+      }
+
+      // 将DataURL转换为Buffer
+      const base64Data = qrCodeDataURL.replace(/^data:image\/png;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // 保存文件
+      await fs.writeFile(result.filePath, buffer);
+
+      return { success: true, filePath: result.filePath };
+    } catch (error) {
+      console.error('[Organization IPC] 下载QR码失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // ============================================================
   // 角色与权限管理 (Role & Permission Management) - 6 handlers
   // ============================================================
 

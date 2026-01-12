@@ -461,6 +461,205 @@ class BlockchainAdapter extends EventEmitter {
   }
 
   /**
+   * 转账 NFT (ERC-721)
+   * @param {string} walletId - 钱包ID
+   * @param {string} nftAddress - NFT合约地址
+   * @param {string} from - 发送者地址
+   * @param {string} to - 接收地址
+   * @param {string} tokenId - NFT Token ID
+   * @param {string} password - 钱包密码
+   * @returns {Promise<string>} 交易哈希
+   */
+  async transferNFT(walletId, nftAddress, from, to, tokenId, password) {
+    console.log(`[BlockchainAdapter] 转账 NFT: Token ID ${tokenId} from ${from} -> ${to}`);
+
+    // 获取钱包
+    const wallet = await this.walletManager.unlockWallet(walletId, password);
+    const provider = this.getProvider();
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
+
+    // 验证发送者地址与钱包地址匹配
+    const walletAddress = await signer.getAddress();
+    if (walletAddress.toLowerCase() !== from.toLowerCase()) {
+      throw new Error(`钱包地址 ${walletAddress} 与发送者地址 ${from} 不匹配`);
+    }
+
+    // 加载 ERC-721 合约
+    const abi = getERC721ABI();
+    const contract = new ethers.Contract(nftAddress, abi, signer);
+
+    // 验证所有权
+    try {
+      const owner = await contract.ownerOf(tokenId);
+      if (owner.toLowerCase() !== from.toLowerCase()) {
+        throw new Error(`Token ID ${tokenId} 不属于地址 ${from}，当前所有者: ${owner}`);
+      }
+    } catch (error) {
+      if (error.message.includes('不属于地址')) {
+        throw error;
+      }
+      throw new Error(`无法验证 NFT 所有权: ${error.message}`);
+    }
+
+    // 执行转账 (使用 safeTransferFrom)
+    console.log('[BlockchainAdapter] 执行 NFT 转账...');
+    const tx = await contract['safeTransferFrom(address,address,uint256)'](from, to, tokenId);
+
+    // 等待交易确认
+    const receipt = await tx.wait();
+
+    console.log(`[BlockchainAdapter] NFT 转账成功: ${receipt.hash}`);
+
+    // 验证转账结果
+    try {
+      const newOwner = await contract.ownerOf(tokenId);
+      if (newOwner.toLowerCase() !== to.toLowerCase()) {
+        console.warn(`[BlockchainAdapter] 警告: NFT 转账后所有者验证失败，预期: ${to}, 实际: ${newOwner}`);
+      } else {
+        console.log(`[BlockchainAdapter] NFT 所有权已成功转移至: ${newOwner}`);
+      }
+    } catch (error) {
+      console.warn(`[BlockchainAdapter] 无法验证转账后的所有权: ${error.message}`);
+    }
+
+    return receipt.hash;
+  }
+
+  /**
+   * 批量转账 NFT (ERC-721)
+   * @param {string} walletId - 钱包ID
+   * @param {string} nftAddress - NFT合约地址
+   * @param {string} from - 发送者地址
+   * @param {Array<{to: string, tokenId: string}>} transfers - 转账列表
+   * @param {string} password - 钱包密码
+   * @returns {Promise<Array<{success: boolean, txHash?: string, tokenId: string, to: string, error?: string}>>}
+   */
+  async batchTransferNFT(walletId, nftAddress, from, transfers, password) {
+    console.log(`[BlockchainAdapter] 批量转账 NFT: ${transfers.length} 个 Token`);
+
+    const results = [];
+    const wallet = await this.walletManager.unlockWallet(walletId, password);
+    const provider = this.getProvider();
+    const signer = wallet.provider ? wallet : wallet.connect(provider);
+
+    // 验证发送者地址
+    const walletAddress = await signer.getAddress();
+    if (walletAddress.toLowerCase() !== from.toLowerCase()) {
+      throw new Error(`钱包地址 ${walletAddress} 与发送者地址 ${from} 不匹配`);
+    }
+
+    const abi = getERC721ABI();
+    const contract = new ethers.Contract(nftAddress, abi, signer);
+
+    for (const transfer of transfers) {
+      try {
+        // 验证所有权
+        const owner = await contract.ownerOf(transfer.tokenId);
+        if (owner.toLowerCase() !== from.toLowerCase()) {
+          throw new Error(`Token ID ${transfer.tokenId} 不属于地址 ${from}`);
+        }
+
+        // 执行转账
+        const tx = await contract['safeTransferFrom(address,address,uint256)'](
+          from,
+          transfer.to,
+          transfer.tokenId
+        );
+        const receipt = await tx.wait();
+
+        results.push({
+          success: true,
+          txHash: receipt.hash,
+          tokenId: transfer.tokenId,
+          to: transfer.to
+        });
+
+        console.log(`[BlockchainAdapter] NFT 转账成功: Token ID ${transfer.tokenId} -> ${transfer.to}`);
+      } catch (error) {
+        console.error(`[BlockchainAdapter] NFT 转账失败: Token ID ${transfer.tokenId}`, error);
+        results.push({
+          success: false,
+          error: error.message,
+          tokenId: transfer.tokenId,
+          to: transfer.to
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 获取 NFT 所有者
+   * @param {string} nftAddress - NFT合约地址
+   * @param {string} tokenId - Token ID
+   * @returns {Promise<string>} 所有者地址
+   */
+  async getNFTOwner(nftAddress, tokenId) {
+    console.log(`[BlockchainAdapter] 查询 NFT 所有者: ${nftAddress} - Token ID ${tokenId}`);
+
+    const provider = this.getProvider();
+    const abi = getERC721ABI();
+    const contract = new ethers.Contract(nftAddress, abi, provider);
+
+    try {
+      const owner = await contract.ownerOf(tokenId);
+      console.log(`[BlockchainAdapter] NFT 所有者: ${owner}`);
+      return owner;
+    } catch (error) {
+      console.error(`[BlockchainAdapter] 查询 NFT 所有者失败:`, error);
+      throw new Error(`无法查询 NFT 所有者: ${error.message}`);
+    }
+  }
+
+  /**
+   * 获取地址拥有的 NFT 数量
+   * @param {string} nftAddress - NFT合约地址
+   * @param {string} ownerAddress - 所有者地址
+   * @returns {Promise<number>} NFT 数量
+   */
+  async getNFTBalance(nftAddress, ownerAddress) {
+    console.log(`[BlockchainAdapter] 查询 NFT 余额: ${nftAddress} - ${ownerAddress}`);
+
+    const provider = this.getProvider();
+    const abi = getERC721ABI();
+    const contract = new ethers.Contract(nftAddress, abi, provider);
+
+    try {
+      const balance = await contract.balanceOf(ownerAddress);
+      const balanceNumber = Number(balance);
+      console.log(`[BlockchainAdapter] NFT 余额: ${balanceNumber}`);
+      return balanceNumber;
+    } catch (error) {
+      console.error(`[BlockchainAdapter] 查询 NFT 余额失败:`, error);
+      throw new Error(`无法查询 NFT 余额: ${error.message}`);
+    }
+  }
+
+  /**
+   * 获取 NFT 元数据 URI
+   * @param {string} nftAddress - NFT合约地址
+   * @param {string} tokenId - Token ID
+   * @returns {Promise<string>} 元数据 URI
+   */
+  async getNFTTokenURI(nftAddress, tokenId) {
+    console.log(`[BlockchainAdapter] 查询 NFT 元数据 URI: ${nftAddress} - Token ID ${tokenId}`);
+
+    const provider = this.getProvider();
+    const abi = getERC721ABI();
+    const contract = new ethers.Contract(nftAddress, abi, provider);
+
+    try {
+      const tokenURI = await contract.tokenURI(tokenId);
+      console.log(`[BlockchainAdapter] NFT 元数据 URI: ${tokenURI}`);
+      return tokenURI;
+    } catch (error) {
+      console.error(`[BlockchainAdapter] 查询 NFT 元数据 URI 失败:`, error);
+      throw new Error(`无法查询 NFT 元数据 URI: ${error.message}`);
+    }
+  }
+
+  /**
    * 获取代币余额
    * @param {string} tokenAddress - 代币合约地址
    * @param {string} ownerAddress - 拥有者地址
