@@ -1039,7 +1039,10 @@ class DatabaseManager {
         status TEXT DEFAULT 'sent' CHECK(status IN ('sent', 'delivered', 'read', 'failed')),
         device_id TEXT,
         timestamp INTEGER NOT NULL,
-        FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+        forwarded_from_id TEXT,
+        forward_count INTEGER DEFAULT 0,
+        FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE,
+        FOREIGN KEY (forwarded_from_id) REFERENCES p2p_chat_messages(id) ON DELETE SET NULL
       );
 
       -- 群聊表

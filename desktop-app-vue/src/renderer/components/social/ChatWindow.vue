@@ -215,12 +215,58 @@ const handleNewLine = () => {
   inputMessage.value += '\n'
 }
 
-const handleSendImage = () => {
-  message.info('图片发送功能即将开放')
+const handleSendImage = async () => {
+  if (!currentSession.value) {
+    message.warning('请先选择一个会话')
+    return
+  }
+
+  try {
+    const result = await window.electron.ipcRenderer.invoke('chat:send-file', {
+      sessionId: currentSession.value.id,
+      messageType: 'image'
+    })
+
+    if (result.success) {
+      message.success('图片发送成功')
+      // 刷新消息列表
+      await socialStore.loadMessages(currentSession.value.id)
+      await nextTick()
+      scrollToBottom()
+    } else {
+      message.error(result.error || '图片发送失败')
+    }
+  } catch (error) {
+    console.error('发送图片失败:', error)
+    message.error('发送图片失败')
+  }
 }
 
-const handleSendFile = () => {
-  message.info('文件发送功能即将开放')
+const handleSendFile = async () => {
+  if (!currentSession.value) {
+    message.warning('请先选择一个会话')
+    return
+  }
+
+  try {
+    const result = await window.electron.ipcRenderer.invoke('chat:send-file', {
+      sessionId: currentSession.value.id,
+      messageType: 'file'
+    })
+
+    if (result.success) {
+      message.success('文件发送成功')
+      // 刷新消息列表
+      await socialStore.loadMessages(currentSession.value.id)
+      await nextTick()
+      scrollToBottom()
+    } else {
+      message.error(result.error || '文件发送失败')
+    }
+  } catch (error) {
+    console.error('发送文件失败:', error)
+    message.error('发送文件失败')
+  }
 }
 
 const handleVoiceCall = async () => {
