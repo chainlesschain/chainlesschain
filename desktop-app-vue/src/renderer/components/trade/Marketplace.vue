@@ -249,6 +249,21 @@
         </a-descriptions>
       </div>
     </a-modal>
+
+    <!-- 编辑订单对话框 -->
+    <order-edit
+      v-model:visible="showEditModal"
+      :order="selectedOrder || {}"
+      :available-balance="getAvailableBalance(selectedOrder)"
+      @updated="handleOrderUpdated"
+    />
+
+    <!-- 分享订单对话框 -->
+    <order-share-modal
+      v-model:visible="showShareModal"
+      :order="selectedOrder || {}"
+      @shared="handleOrderShared"
+    />
   </div>
 </template>
 
@@ -265,6 +280,8 @@ import { useTradeStore } from '../../stores/trade';
 import OrderCard from './common/OrderCard.vue';
 import OrderCreate from './OrderCreate.vue';
 import OrderDetail from './OrderDetail.vue';
+import OrderEdit from './OrderEdit.vue';
+import OrderShareModal from './common/OrderShareModal.vue';
 
 // Store
 const tradeStore = useTradeStore();
@@ -275,6 +292,8 @@ const searchKeyword = ref('');
 const showCreateModal = ref(false);
 const showDetailModal = ref(false);
 const showPurchaseModal = ref(false);
+const showEditModal = ref(false);
+const showShareModal = ref(false);
 const selectedOrder = ref(null);
 const purchaseQuantity = ref(1);
 const currentDid = ref('');
@@ -520,14 +539,46 @@ const handleOrderCancelled = () => {
 
 // 编辑订单
 const handleEditOrder = (order) => {
-  // TODO: 实现编辑订单功能
-  antMessage.info('编辑订单功能即将开放');
+  if (!isMyOrder(order)) {
+    antMessage.warning('只能编辑自己的订单');
+    return;
+  }
+  if (order.status !== 'open') {
+    antMessage.warning('只能编辑开放状态的订单');
+    return;
+  }
+  selectedOrder.value = order;
+  showEditModal.value = true;
+};
+
+// 订单更新成功
+const handleOrderUpdated = async (updatedOrder) => {
+  antMessage.success('订单已更新');
+  await loadOrders();
+  await loadMyOrders();
+  // 如果详情对话框打开，更新选中的订单
+  if (showDetailModal.value && selectedOrder.value?.id === updatedOrder.id) {
+    selectedOrder.value = updatedOrder;
+  }
 };
 
 // 分享订单
 const handleShareOrder = (order) => {
-  // TODO: 实现分享订单功能
-  antMessage.info('分享订单功能即将开放');
+  selectedOrder.value = order;
+  showShareModal.value = true;
+};
+
+// 订单分享成功
+const handleOrderShared = (shareInfo) => {
+  console.log('[Marketplace] 订单已分享:', shareInfo);
+};
+
+// 获取可用余额
+const getAvailableBalance = (order) => {
+  if (!order || order.order_type !== 'sell') return 0;
+  // 从 store 获取对应资产的余额
+  const asset = tradeStore.myAssets.find(a => a.id === order.asset_id);
+  return asset ? (asset.total_supply || 0) : 0;
 };
 
 // 确认收货

@@ -26,7 +26,8 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 ## ⭐ Current Version: v0.21.1 (2026-01-13)
 
 ### Latest Updates
-- ✅ **Voice Message Playback Feature** - Complete voice message playback system with play/pause controls, playback status display, automatic resource cleanup, error handling ⭐LATEST
+- ✅ **Trading UI Polish** - Order QR code generation, order editing feature, multiple sharing methods (link/social/export), multi-format export (JSON/CSV/PDF/image) ⭐LATEST
+- ✅ **Voice Message Playback Feature** - Complete voice message playback system with play/pause controls, playback status display, automatic resource cleanup, error handling
 - ✅ **Message Reactions Feature** - Emoji reactions beyond likes, 18 common emojis, real-time reaction stats, toggle reactions, visual feedback
 - ✅ **P2P File Transfer Complete Implementation** - Large file chunked transfer (64KB chunks), resume capability, real-time progress tracking, SHA-256 integrity verification, concurrent transfer control
 - ✅ **Message Forwarding Feature** - Forward messages to other chat sessions, supports text/image/file types, automatic file copying, tracks forwarding source
@@ -85,7 +86,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🟡 **Decentralized Identity**: 80% Complete - **DID + Org DID + VC**
 - 🟡 **P2P Communication**: 75% Complete - **E2E Encryption Complete**
 - 🟢 **Social System**: 98% Complete - **Friends + Posts + Forum + Group Chat + File Transfer + Message Forwarding + Message Reactions + Voice Message Playback** ⭐Improved
-- 🟢 **Trading System**: 90% Complete - **8 Modules + On-chain Contracts + NFT Transfers** ⭐Improved
+- 🟢 **Trading System**: 95% Complete - **8 Modules + On-chain Contracts + NFT Transfers + Order Editing + Sharing + QR Codes** ⭐Improved
 - 🟡 **Browser Extension**: 70% Complete - **Testing Framework + Documentation**
 - 🟡 **Mobile Application**: 15% Complete - **Data Sync Complete** ⭐Improved
 
