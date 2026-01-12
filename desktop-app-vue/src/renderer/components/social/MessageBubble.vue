@@ -194,6 +194,25 @@
         </a-checkbox-group>
       </div>
     </a-modal>
+
+    <!-- 表情选择器 -->
+    <a-modal
+      v-model:visible="showReactionPicker"
+      title="选择表情"
+      :footer="null"
+      width="400px"
+    >
+      <div class="reaction-picker">
+        <div
+          v-for="emoji in commonEmojis"
+          :key="emoji"
+          class="emoji-option"
+          @click="addReaction(emoji)"
+        >
+          {{ emoji }}
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -212,7 +231,8 @@ import {
   CloseCircleOutlined,
   ShareAltOutlined,
   CopyOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  SmileOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -234,7 +254,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['message-deleted', 'message-forwarded'])
+const emit = defineEmits(['message-deleted', 'message-forwarded', 'reaction-updated'])
 
 // 状态
 const isPlaying = ref(false)
@@ -244,11 +264,95 @@ const forwarding = ref(false)
 const selectedSessions = ref([])
 const availableSessions = ref([])
 const transferProgress = ref(null)
+const showReactionPicker = ref(false)
+const reactionStats = ref({})
 let progressInterval = null
+let audioElement = null
+
+// 常用表情列表
+const commonEmojis = [
+  '👍', '❤️', '😂', '😮', '😢', '😡',
+  '🎉', '🔥', '👏', '💯', '✨', '🙏',
+  '😊', '😍', '🤔', '😎', '🥳', '😭'
+]
 
 // 计算属性
 const isSent = computed(() => {
   return props.message.sender_did === props.currentUserDid
+})
+
+// 加载表情回应统计
+const loadReactionStats = async () => {
+  try {
+    const result = await window.electron.ipcRenderer.invoke('chat:get-reaction-stats', props.message.id)
+    if (result.success) {
+      reactionStats.value = result.stats
+    }
+  } catch (error) {
+    console.error('加载表情回应失败:', error)
+  }
+}
+
+// 检查当前用户是否对某个表情做出了回应
+const hasUserReacted = (emoji) => {
+  const stat = reactionStats.value[emoji]
+  return stat && stat.users.includes(props.currentUserDid)
+}
+
+// 切换表情回应
+const toggleReaction = async (emoji) => {
+  try {
+    if (hasUserReacted(emoji)) {
+      // 移除表情
+      const result = await window.electron.ipcRenderer.invoke('chat:remove-reaction', {
+        messageId: props.message.id,
+        userDid: props.currentUserDid,
+        emoji
+      })
+      if (result.success) {
+        await loadReactionStats()
+        emit('reaction-updated')
+      }
+    } else {
+      // 添加表情
+      const result = await window.electron.ipcRenderer.invoke('chat:add-reaction', {
+        messageId: props.message.id,
+        userDid: props.currentUserDid,
+        emoji
+      })
+      if (result.success) {
+        await loadReactionStats()
+        emit('reaction-updated')
+      }
+    }
+  } catch (error) {
+    console.error('切换表情回应失败:', error)
+    antMessage.error('操作失败')
+  }
+}
+
+// 添加新表情
+const addReaction = async (emoji) => {
+  showReactionPicker.value = false
+  await toggleReaction(emoji)
+}
+
+// 组件挂载时加载表情统计
+onMounted(() => {
+  loadReactionStats()
+
+  // 如果有文件传输，开始监听进度
+  if (props.message.transfer_id) {
+    startProgressMonitoring()
+  }
+})
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (progressInterval) {
+    clearInterval(progressInterval)
+    progressInterval = null
+  }
 })
 
 // 监听文件传输进度
@@ -421,9 +525,52 @@ const handleDownload = async () => {
   }
 }
 
-const toggleVoicePlay = () => {
-  isPlaying.value = !isPlaying.value
-  // TODO: 实现语音播放逻辑
+const toggleVoicePlay = async () => {
+  try {
+    if (isPlaying.value) {
+      // 停止播放
+      if (audioElement) {
+        audioElement.pause()
+        audioElement.currentTime = 0
+        audioElement = null
+      }
+      isPlaying.value = false
+    } else {
+      // 开始播放
+      const result = await window.electron.ipcRenderer.invoke('chat:play-voice-message', {
+        messageId: props.message.id
+      })
+
+      if (result.success) {
+        // 创建音频元素并播放
+        audioElement = new Audio(`file://${result.filePath}`)
+
+        audioElement.onended = () => {
+          isPlaying.value = false
+          audioElement = null
+        }
+
+        audioElement.onerror = (error) => {
+          console.error('音频播放失败:', error)
+          antMessage.error('语音播放失败')
+          isPlaying.value = false
+          audioElement = null
+        }
+
+        await audioElement.play()
+        isPlaying.value = true
+      } else {
+        antMessage.error(result.error || '无法播放语音消息')
+      }
+    }
+  } catch (error) {
+    console.error('播放语音消息失败:', error)
+    antMessage.error('播放失败')
+    isPlaying.value = false
+    if (audioElement) {
+      audioElement = null
+    }
+  }
 }
 
 // 生命周期
@@ -439,6 +586,12 @@ onUnmounted(() => {
   if (progressInterval) {
     clearInterval(progressInterval)
     progressInterval = null
+  }
+
+  // 清理音频元素
+  if (audioElement) {
+    audioElement.pause()
+    audioElement = null
   }
 })
 </script>
@@ -666,5 +819,81 @@ onUnmounted(() => {
 .session-name {
   font-size: 14px;
   color: #262626;
+}
+
+/* 表情回应样式 */
+.message-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+.reaction-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background-color: #f0f0f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.reaction-item:hover {
+  background-color: #e6e6e6;
+  transform: scale(1.05);
+}
+
+.reaction-item.reaction-active {
+  background-color: #e6f7ff;
+  border-color: #1890ff;
+}
+
+.reaction-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.reaction-count {
+  font-size: 12px;
+  color: #595959;
+  font-weight: 500;
+}
+
+.add-reaction-btn,
+.add-reaction-btn-initial {
+  padding: 4px 8px !important;
+  height: auto !important;
+  font-size: 14px;
+}
+
+.add-reaction-container {
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+/* 表情选择器样式 */
+.reaction-picker {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.emoji-option {
+  font-size: 32px;
+  text-align: center;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.emoji-option:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.2);
 }
 </style>

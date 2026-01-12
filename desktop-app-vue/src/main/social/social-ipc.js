@@ -1538,7 +1538,7 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
       const { dialog } = require('electron');
       const path = require('path');
 
-      // 如果没有提供保存路径，打开保存对话框
+      // 如果没有提供保存路径,打开保存对话框
       if (!savePath) {
         const downloadTask = global.mainApp.p2pEnhancedManager.fileTransferManager.downloads.get(transferId);
         if (!downloadTask) {
@@ -1574,7 +1574,54 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
     }
   });
 
-  console.log('[Social IPC] ✓ All Social IPC handlers registered successfully (56 handlers)');
+  // ============================================================
+  // 语音消息播放 (Voice Message Playback) - 1 handler
+  // ============================================================
+
+  /**
+   * 播放语音消息
+   * Channel: 'chat:play-voice-message'
+   */
+  ipcMain.handle('chat:play-voice-message', async (_event, { messageId }) => {
+    try {
+      if (!database || !database.db) {
+        return { success: false, error: '数据库未初始化' };
+      }
+
+      // 获取消息信息
+      const stmt = database.prepare('SELECT * FROM p2p_chat_messages WHERE id = ?');
+      const message = stmt.get(messageId);
+
+      if (!message) {
+        return { success: false, error: '消息不存在' };
+      }
+
+      if (message.message_type !== 'voice') {
+        return { success: false, error: '不是语音消息' };
+      }
+
+      if (!message.file_path) {
+        return { success: false, error: '语音文件路径不存在' };
+      }
+
+      const fs = require('fs');
+      if (!fs.existsSync(message.file_path)) {
+        return { success: false, error: '语音文件不存在' };
+      }
+
+      // 返回文件路径，让前端使用HTML5 Audio API播放
+      return {
+        success: true,
+        filePath: message.file_path,
+        duration: message.duration || 0
+      };
+    } catch (error) {
+      console.error('[Social IPC] 播放语音消息失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  console.log('[Social IPC] ✓ All Social IPC handlers registered successfully (57 handlers)');
 }
 
 module.exports = {
