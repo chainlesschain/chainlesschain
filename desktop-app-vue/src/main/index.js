@@ -797,8 +797,6 @@ class ChainlessChainApp {
     console.log('⚠️ 企业版功能已临时禁用，使用传统个人版模式 (chainlesschain.db)');
 
     // 初始化组织管理器（企业版）
-    // 🚧 临时禁用企业版功能
-    /*
     try {
       console.log('初始化组织管理器...');
       const OrganizationManager = require('./organization/organization-manager');
@@ -807,6 +805,16 @@ class ChainlessChainApp {
     } catch (error) {
       console.error('组织管理器初始化失败:', error);
       // 组织管理器初始化失败不影响应用启动
+    }
+
+    // 初始化深链接处理器（企业版DID邀请链接）
+    try {
+      console.log('初始化深链接处理器...');
+      this.deepLinkHandler = new DeepLinkHandler(this.mainWindow, this.organizationManager);
+      this.deepLinkHandler.register(app);
+      console.log('深链接处理器初始化成功');
+    } catch (error) {
+      console.error('深链接处理器初始化失败:', error);
     }
 
     // 初始化协作管理器（企业版集成）
@@ -826,7 +834,6 @@ class ChainlessChainApp {
       console.error('协作管理器初始化失败:', error);
       // 协作管理器初始化失败不影响应用启动
     }
-    */
 
     // 初始化P2P同步引擎
     try {
@@ -1280,6 +1287,11 @@ class ChainlessChainApp {
     // including syncManager, previewManager, etc.
 
     await this.createWindow();
+
+    // 处理启动时的协议URL (Windows/Linux)
+    if (this.deepLinkHandler && process.platform !== 'darwin') {
+      this.deepLinkHandler.handleStartupUrl(process.argv);
+    }
   }
 
   /**
@@ -1408,6 +1420,11 @@ class ChainlessChainApp {
     // 设置数据库加密 IPC 的主窗口引用
     if (this.dbEncryptionIPC) {
       this.dbEncryptionIPC.setMainWindow(this.mainWindow);
+    }
+
+    // 设置深链接处理器的主窗口引用
+    if (this.deepLinkHandler) {
+      this.deepLinkHandler.setMainWindow(this.mainWindow);
     }
 
     // 注册 System IPC（需要 mainWindow）
