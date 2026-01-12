@@ -3,7 +3,7 @@
  * 负责处理社交网络相关的前后端通信
  *
  * @module social-ipc
- * @description 提供联系人管理、好友关系、动态发布、聊天消息等社交功能的 IPC 接口
+ * @description 提供联系人管理、好友关系、动态发布、聊天消息、群聊等社交功能的 IPC 接口
  */
 
 const { ipcMain } = require('electron');
@@ -15,8 +15,9 @@ const { ipcMain } = require('electron');
  * @param {Object} dependencies.friendManager - 好友管理器
  * @param {Object} dependencies.postManager - 动态管理器
  * @param {Object} dependencies.database - 数据库管理器（用于聊天功能）
+ * @param {Object} dependencies.groupChatManager - 群聊管理器
  */
-function registerSocialIPC({ contactManager, friendManager, postManager, database }) {
+function registerSocialIPC({ contactManager, friendManager, postManager, database, groupChatManager }) {
   console.log('[Social IPC] Registering Social IPC handlers...');
 
   // ============================================================
@@ -690,7 +691,528 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
     }
   });
 
-  console.log('[Social IPC] ✓ All Social IPC handlers registered successfully (33 handlers)');
+  // ============================================================
+  // 群聊管理 (Group Chat Management) - 15 handlers
+  // ============================================================
+
+  /**
+   * 创建群聊
+   * Channel: 'group:create'
+   */
+  ipcMain.handle('group:create', async (_event, options) => {
+    try {
+      if (!groupChatManager) {
+        throw new Error('群聊管理器未初始化');
+      }
+      return await groupChatManager.createGroup(options);
+    } catch (error) {
+      console.error('[Social IPC] 创建群聊失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取群聊列表
+   * Channel: 'group:get-list'
+   */
+  ipcMain.handle('group:get-list', async () => {
+    try {
+      if (!groupChatManager) {
+        return [];
+      }
+      return await groupChatManager.getGroups();
+    } catch (error) {
+      console.error('[Social IPC] 获取群聊列表失败:', error);
+      return [];
+    }
+  });
+
+  /**
+   * 获取群聊详情
+   * Channel: 'group:get-details'
+   */
+  ipcMain.handle('group:get-details', async (_event, groupId) => {
+    try {
+      if (!groupChatManager) {
+        throw new Error('群聊管理器未初始化');
+      }
+      return await groupChatManager.getGroupDetails(groupId);
+    } catch (error) {
+      console.error('[Social IPC] 获取群聊详情失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 更新群信息
+   * Channel: 'group:update-info'
+   */
+  ipcMain.handle('group:update-info', async (_event, groupId, updates) => {
+    try {
+      if (!groupChatManager) {
+        throw new Error('群聊管理器未初始化');
+      }
+      return await groupChatManager.updateGroupInfo(groupId, updates);
+    } catch (error) {
+      console.error('[Social IPC] 更新群信息失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 添加群成员
+   * Channel: 'group:add-member'
+   */
+  ipcMain.handle('group:add-member', async (_event, groupId, memberDid, role) => {
+    try {
+      if (!groupChatManager) {
+        throw new Error('群聊管理器未初始化');
+      }
+      return await groupChatManager.addGroupMember(groupId, memberDid, role);
+    } catch (error) {
+      console.error('[Social IPC] 添加群成员失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 移除群成员
+   * Channel: 'group:remove-member'
+   */
+  ipcMain.handle('group:remove-member', async (_event, groupId, memberDid) => {
+    try {
+      if (!groupChatManager) {
+        throw new Error('群聊管理器未初始化');
+      }
+      return await groupChatManager.removeGroupMember(groupId, memberDid);
+    } catch (error) {
+      console.error('[Social IPC] 移除群成员失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 退出群聊
+   * Channel: 'group:leave'
+   */
+  ipcMain.handle('group:leave', async (_event, groupId) => {
+    try {
+      if (!groupChatManager) {
+        throw new Error('群聊管理器未初始化');
+      }
+      return await groupChatManager.leaveGroup(groupId);
+    } catch (error) {
+      console.error('[Social IPC] 退出群聊失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 解散群聊
+   * Channel: 'group:dismiss'
+   */
+  ipcMain.handle('group:dismiss', async (_event, groupId) => {
+    try {
+      if (!groupChatManager) {
+        throw new Error('群聊管理器未初始化');
+      }
+      return await groupChatManager.dismissGroup(groupId);
+    } catch (error) {
+      console.error('[Social IPC] 解散群聊失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 发送群消息
+   * Channel: 'group:send-message'
+   */
+  ipcMain.handle('group:send-message', async (_event, groupId, content, options) => {
+    try {
+      if (!groupChatManager) {
+        throw new Error('群聊管理器未初始化');
+      }
+      return await groupChatManager.sendGroupMessage(groupId, content, options);
+    } catch (error) {
+      console.error('[Social IPC] 发送群消息失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取群消息
+   * Channel: 'group:get-messages'
+   */
+  ipcMain.handle('group:get-messages', async (_event, groupId, limit, offset) => {
+    try {
+      if (!groupChatManager) {
+        return [];
+      }
+      return await groupChatManager.getGroupMessages(groupId, limit, offset);
+    } catch (error) {
+      console.error('[Social IPC] 获取群消息失败:', error);
+      return [];
+    }
+  });
+
+  /**
+   * 标记群消息为已读
+   * Channel: 'group:mark-message-read'
+   */
+  ipcMain.handle('group:mark-message-read', async (_event, messageId, groupId) => {
+    try {
+      if (!groupChatManager) {
+        return { success: false };
+      }
+      return await groupChatManager.markMessageAsRead(messageId, groupId);
+    } catch (error) {
+      console.error('[Social IPC] 标记群消息已读失败:', error);
+      return { success: false };
+    }
+  });
+
+  /**
+   * 邀请成员加入群聊
+   * Channel: 'group:invite-member'
+   */
+  ipcMain.handle('group:invite-member', async (_event, groupId, inviteeDid, message) => {
+    try {
+      if (!groupChatManager) {
+        throw new Error('群聊管理器未初始化');
+      }
+
+      // 创建邀请记录
+      const invitationId = require('uuid').v4();
+      const now = Date.now();
+      const expiresAt = now + 7 * 24 * 60 * 60 * 1000; // 7天后过期
+
+      const stmt = database.prepare(`
+        INSERT INTO group_invitations (
+          id, group_id, inviter_did, invitee_did, message,
+          status, created_at, expires_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        invitationId,
+        groupId,
+        groupChatManager.currentUserDid,
+        inviteeDid,
+        message || '',
+        'pending',
+        now,
+        expiresAt
+      );
+
+      database.saveToFile();
+
+      // 通过P2P发送邀请
+      if (groupChatManager.p2pManager) {
+        await groupChatManager.p2pManager.sendMessage(inviteeDid, {
+          type: 'group:invitation',
+          invitationId,
+          groupId,
+          inviterDid: groupChatManager.currentUserDid,
+          message
+        });
+      }
+
+      return { success: true, invitationId };
+    } catch (error) {
+      console.error('[Social IPC] 邀请成员失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 接受群聊邀请
+   * Channel: 'group:accept-invitation'
+   */
+  ipcMain.handle('group:accept-invitation', async (_event, invitationId) => {
+    try {
+      if (!groupChatManager || !database) {
+        throw new Error('群聊管理器或数据库未初始化');
+      }
+
+      // 获取邀请信息
+      const inviteStmt = database.prepare('SELECT * FROM group_invitations WHERE id = ?');
+      const invitation = inviteStmt.get(invitationId);
+
+      if (!invitation) {
+        throw new Error('邀请不存在');
+      }
+
+      if (invitation.status !== 'pending') {
+        throw new Error('邀请已处理');
+      }
+
+      if (invitation.expires_at && invitation.expires_at < Date.now()) {
+        throw new Error('邀请已过期');
+      }
+
+      // 添加为群成员
+      await groupChatManager.addGroupMember(invitation.group_id, invitation.invitee_did, 'member');
+
+      // 更新邀请状态
+      const updateStmt = database.prepare('UPDATE group_invitations SET status = ? WHERE id = ?');
+      updateStmt.run('accepted', invitationId);
+
+      database.saveToFile();
+
+      return { success: true, groupId: invitation.group_id };
+    } catch (error) {
+      console.error('[Social IPC] 接受邀请失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 拒绝群聊邀请
+   * Channel: 'group:reject-invitation'
+   */
+  ipcMain.handle('group:reject-invitation', async (_event, invitationId) => {
+    try {
+      if (!database) {
+        throw new Error('数据库未初始化');
+      }
+
+      const stmt = database.prepare('UPDATE group_invitations SET status = ? WHERE id = ?');
+      stmt.run('rejected', invitationId);
+      database.saveToFile();
+
+      return { success: true };
+    } catch (error) {
+      console.error('[Social IPC] 拒绝邀请失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取群聊邀请列表
+   * Channel: 'group:get-invitations'
+   */
+  ipcMain.handle('group:get-invitations', async (_event, inviteeDid) => {
+    try {
+      if (!database) {
+        return [];
+      }
+
+      const stmt = database.prepare(`
+        SELECT gi.*, gc.name as group_name, gc.avatar as group_avatar
+        FROM group_invitations gi
+        LEFT JOIN group_chats gc ON gi.group_id = gc.id
+        WHERE gi.invitee_did = ? AND gi.status = 'pending'
+        ORDER BY gi.created_at DESC
+      `);
+
+      return stmt.all(inviteeDid) || [];
+    } catch (error) {
+      console.error('[Social IPC] 获取邀请列表失败:', error);
+      return [];
+    }
+  });
+
+  // ============================================================
+  // 文件传输 (File Transfer in Chat) - 4 handlers
+  // ============================================================
+
+  /**
+   * 发送文件消息（图片/文件）
+   * Channel: 'chat:send-file'
+   */
+  ipcMain.handle('chat:send-file', async (_event, { sessionId, filePath, messageType }) => {
+    try {
+      const { dialog } = require('electron');
+      const path = require('path');
+      const fs = require('fs');
+
+      if (!database || !database.db) {
+        throw new Error('数据库未初始化');
+      }
+
+      // 如果没有提供文件路径，打开文件选择对话框
+      if (!filePath) {
+        const result = await dialog.showOpenDialog({
+          properties: ['openFile'],
+          filters: messageType === 'image'
+            ? [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'] }]
+            : [{ name: 'All Files', extensions: ['*'] }]
+        });
+
+        if (result.canceled || result.filePaths.length === 0) {
+          return { success: false, error: '未选择文件' };
+        }
+
+        filePath = result.filePaths[0];
+      }
+
+      // 检查文件是否存在
+      if (!fs.existsSync(filePath)) {
+        throw new Error('文件不存在');
+      }
+
+      // 获取文件信息
+      const stats = fs.statSync(filePath);
+      const fileName = path.basename(filePath);
+      const fileSize = stats.size;
+
+      // 获取会话信息
+      const sessionStmt = database.prepare('SELECT * FROM chat_sessions WHERE id = ?');
+      const session = sessionStmt.get(sessionId);
+
+      if (!session) {
+        throw new Error('会话不存在');
+      }
+
+      // 复制文件到应用数据目录
+      const { app } = require('electron');
+      const uploadsDir = path.join(app.getPath('userData'), 'uploads', 'chat');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const timestamp = Date.now();
+      const fileExt = path.extname(fileName);
+      const newFileName = `${timestamp}-${Math.random().toString(36).substring(7)}${fileExt}`;
+      const destPath = path.join(uploadsDir, newFileName);
+
+      fs.copyFileSync(filePath, destPath);
+
+      // 生成消息ID
+      const messageId = `msg-${timestamp}-${Math.random().toString(36).substring(7)}`;
+
+      // 获取当前用户DID
+      const currentUserDid = session.participant_did; // 这里需要从实际的用户身份获取
+
+      // 保存消息到数据库
+      const insertStmt = database.prepare(`
+        INSERT INTO p2p_chat_messages (
+          id, session_id, sender_did, receiver_did, content,
+          message_type, file_path, file_size, encrypted, status, timestamp
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      insertStmt.run(
+        messageId,
+        sessionId,
+        currentUserDid,
+        session.participant_did,
+        fileName,
+        messageType || 'file',
+        destPath,
+        fileSize,
+        1,
+        'sent',
+        timestamp
+      );
+
+      // 更新会话
+      const updateStmt = database.prepare(`
+        UPDATE chat_sessions
+        SET last_message = ?, last_message_time = ?, updated_at = ?
+        WHERE id = ?
+      `);
+
+      const lastMessage = messageType === 'image' ? '[图片]' : `[文件] ${fileName}`;
+      updateStmt.run(lastMessage, timestamp, timestamp, sessionId);
+
+      database.saveToFile();
+
+      // 通过P2P发送文件（如果P2P管理器可用）
+      // TODO: 集成P2P文件传输
+
+      return {
+        success: true,
+        message: {
+          id: messageId,
+          sessionId,
+          senderDid: currentUserDid,
+          receiverDid: session.participant_did,
+          content: fileName,
+          messageType: messageType || 'file',
+          filePath: destPath,
+          fileSize,
+          timestamp
+        }
+      };
+    } catch (error) {
+      console.error('[Social IPC] 发送文件失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 选择并发送图片
+   * Channel: 'chat:select-and-send-image'
+   */
+  ipcMain.handle('chat:select-and-send-image', async (_event, { sessionId }) => {
+    return ipcMain.emit('chat:send-file', _event, { sessionId, messageType: 'image' });
+  });
+
+  /**
+   * 选择并发送文件
+   * Channel: 'chat:select-and-send-file'
+   */
+  ipcMain.handle('chat:select-and-send-file', async (_event, { sessionId }) => {
+    return ipcMain.emit('chat:send-file', _event, { sessionId, messageType: 'file' });
+  });
+
+  /**
+   * 下载文件
+   * Channel: 'chat:download-file'
+   */
+  ipcMain.handle('chat:download-file', async (_event, { messageId, savePath }) => {
+    try {
+      const { dialog } = require('electron');
+      const path = require('path');
+      const fs = require('fs');
+
+      if (!database || !database.db) {
+        throw new Error('数据库未初始化');
+      }
+
+      // 获取消息信息
+      const stmt = database.prepare('SELECT * FROM p2p_chat_messages WHERE id = ?');
+      const message = stmt.get(messageId);
+
+      if (!message) {
+        throw new Error('消息不存在');
+      }
+
+      if (!message.file_path) {
+        throw new Error('消息不包含文件');
+      }
+
+      // 如果没有提供保存路径，打开保存对话框
+      if (!savePath) {
+        const result = await dialog.showSaveDialog({
+          defaultPath: message.content,
+          filters: [{ name: 'All Files', extensions: ['*'] }]
+        });
+
+        if (result.canceled || !result.filePath) {
+          return { success: false, error: '未选择保存位置' };
+        }
+
+        savePath = result.filePath;
+      }
+
+      // 复制文件
+      fs.copyFileSync(message.file_path, savePath);
+
+      return {
+        success: true,
+        filePath: savePath
+      };
+    } catch (error) {
+      console.error('[Social IPC] 下载文件失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  console.log('[Social IPC] ✓ All Social IPC handlers registered successfully (52 handlers)');
 }
 
 module.exports = {

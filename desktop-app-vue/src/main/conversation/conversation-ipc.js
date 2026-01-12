@@ -505,6 +505,136 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
     }
   });
 
+  /**
+   * 搜索消息
+   * Channel: 'conversation:search-messages'
+   *
+   * @param {Object} searchOptions - 搜索选项
+   * @param {string} searchOptions.query - 搜索关键词
+   * @param {string} [searchOptions.conversationId] - 对话ID（可选）
+   * @param {string} [searchOptions.role] - 消息角色（可选）
+   * @param {number} [searchOptions.limit] - 返回结果数量限制
+   * @param {number} [searchOptions.offset] - 偏移量
+   * @param {string} [searchOptions.order] - 排序方式
+   * @returns {Promise<Object>} { success: boolean, data?: Object, error?: string }
+   */
+  ipcMain.handle('conversation:search-messages', async (_event, searchOptions = {}) => {
+    try {
+      if (!database) {
+        return { success: false, error: '数据库未初始化' };
+      }
+
+      const { query } = searchOptions;
+
+      if (!query || !query.trim()) {
+        return { success: false, error: '搜索关键词不能为空' };
+      }
+
+      console.log('[Conversation IPC] 搜索消息:', query);
+
+      // 尝试使用 searchMessages 方法
+      try {
+        if (database.searchMessages) {
+          const result = database.searchMessages(searchOptions);
+          const messages = result.messages || [];
+
+          // 处理 message_type 和 metadata
+          const processedMessages = messages.map(msg => {
+            const processed = { ...msg };
+            // 将 message_type 映射为 type（前端使用）
+            if (msg.message_type) {
+              processed.type = msg.message_type;
+            }
+            // metadata 已在 searchMessages 中反序列化
+            return processed;
+          });
+
+          return {
+            success: true,
+            data: {
+              messages: processedMessages,
+              total: result.total || 0,
+              hasMore: result.hasMore || false
+            }
+          };
+        }
+      } catch (methodError) {
+        console.warn('[Conversation IPC] searchMessages 方法不存在，尝试直接查询:', methodError.message);
+      }
+
+      // 如果方法不存在，直接查询数据库
+      const {
+        conversationId,
+        role,
+        limit = 50,
+        offset = 0,
+        order = 'DESC'
+      } = searchOptions;
+
+      const searchPattern = `%${query.trim()}%`;
+      const params = [searchPattern];
+      let whereConditions = ['content LIKE ?'];
+
+      if (conversationId) {
+        whereConditions.push('conversation_id = ?');
+        params.push(conversationId);
+      }
+
+      if (role) {
+        whereConditions.push('role = ?');
+        params.push(role);
+      }
+
+      const whereClause = whereConditions.join(' AND ');
+      const orderClause = order === 'ASC' ? 'ASC' : 'DESC';
+
+      const messages = database.db.prepare(`
+        SELECT * FROM messages
+        WHERE ${whereClause}
+        ORDER BY timestamp ${orderClause}
+        LIMIT ? OFFSET ?
+      `).all(...params, limit, offset);
+
+      // 获取总数
+      const countResult = database.db.prepare(`
+        SELECT COUNT(*) as total FROM messages
+        WHERE ${whereClause}
+      `).get(...params);
+
+      const total = countResult ? countResult.total : 0;
+
+      // 处理 message_type 和 metadata
+      const processedMessages = messages.map(msg => {
+        const processed = { ...msg };
+        if (msg.message_type) {
+          processed.type = msg.message_type;
+        }
+        if (msg.metadata && typeof msg.metadata === 'string') {
+          try {
+            processed.metadata = JSON.parse(msg.metadata);
+          } catch (e) {
+            console.warn('[Conversation IPC] 解析 metadata 失败:', e);
+            processed.metadata = null;
+          }
+        }
+        return processed;
+      });
+
+      console.log('[Conversation IPC] 搜索到消息数量:', processedMessages.length);
+      return {
+        success: true,
+        data: {
+          messages: processedMessages,
+          total,
+          hasMore: (offset + limit) < total
+        }
+      };
+    } catch (error) {
+      console.error('[Conversation IPC] 搜索消息失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // ============================================================
   // 流式AI对话 (Streaming Chat)
   // ============================================================
@@ -884,7 +1014,7 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('conversation-ipc');
 
-  console.log('[Conversation IPC] ✅ Successfully registered 16 conversation handlers');
+  console.log('[Conversation IPC] ✅ Successfully registered 17 conversation handlers');
   console.log('[Conversation IPC] - conversation:get-by-project');
   console.log('[Conversation IPC] - conversation:get-by-id');
   console.log('[Conversation IPC] - conversation:create ✓');
@@ -893,6 +1023,7 @@ function registerConversationIPC({ database, llmManager, mainWindow, ipcMain: in
   console.log('[Conversation IPC] - conversation:create-message');
   console.log('[Conversation IPC] - conversation:update-message');
   console.log('[Conversation IPC] - conversation:get-messages');
+  console.log('[Conversation IPC] - conversation:search-messages ✓');
   console.log('[Conversation IPC] - conversation:chat-stream');
   console.log('[Conversation IPC] - conversation:stream-pause');
   console.log('[Conversation IPC] - conversation:stream-resume');

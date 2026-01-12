@@ -1034,11 +1034,98 @@ class DatabaseManager {
         content TEXT NOT NULL,
         message_type TEXT DEFAULT 'text' CHECK(message_type IN ('text', 'image', 'file', 'voice', 'video')),
         file_path TEXT,
+        file_size INTEGER,
         encrypted INTEGER DEFAULT 1,
         status TEXT DEFAULT 'sent' CHECK(status IN ('sent', 'delivered', 'read', 'failed')),
         device_id TEXT,
         timestamp INTEGER NOT NULL,
         FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+      );
+
+      -- 群聊表
+      CREATE TABLE IF NOT EXISTS group_chats (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        avatar TEXT,
+        creator_did TEXT NOT NULL,
+        group_type TEXT DEFAULT 'normal' CHECK(group_type IN ('normal', 'encrypted')),
+        max_members INTEGER DEFAULT 500,
+        member_count INTEGER DEFAULT 0,
+        encryption_key TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 群成员表
+      CREATE TABLE IF NOT EXISTS group_members (
+        id TEXT PRIMARY KEY,
+        group_id TEXT NOT NULL,
+        member_did TEXT NOT NULL,
+        nickname TEXT,
+        role TEXT DEFAULT 'member' CHECK(role IN ('owner', 'admin', 'member')),
+        muted INTEGER DEFAULT 0,
+        joined_at INTEGER NOT NULL,
+        UNIQUE(group_id, member_did),
+        FOREIGN KEY (group_id) REFERENCES group_chats(id) ON DELETE CASCADE
+      );
+
+      -- 群消息表
+      CREATE TABLE IF NOT EXISTS group_messages (
+        id TEXT PRIMARY KEY,
+        group_id TEXT NOT NULL,
+        sender_did TEXT NOT NULL,
+        content TEXT NOT NULL,
+        message_type TEXT DEFAULT 'text' CHECK(message_type IN ('text', 'image', 'file', 'voice', 'video', 'system')),
+        file_path TEXT,
+        encrypted INTEGER DEFAULT 1,
+        encryption_key_id TEXT,
+        reply_to_id TEXT,
+        mentions TEXT,
+        timestamp INTEGER NOT NULL,
+        FOREIGN KEY (group_id) REFERENCES group_chats(id) ON DELETE CASCADE,
+        FOREIGN KEY (reply_to_id) REFERENCES group_messages(id) ON DELETE SET NULL
+      );
+
+      -- 群消息已读状态表
+      CREATE TABLE IF NOT EXISTS group_message_reads (
+        id TEXT PRIMARY KEY,
+        message_id TEXT NOT NULL,
+        group_id TEXT NOT NULL,
+        member_did TEXT NOT NULL,
+        read_at INTEGER NOT NULL,
+        UNIQUE(message_id, member_did),
+        FOREIGN KEY (message_id) REFERENCES group_messages(id) ON DELETE CASCADE,
+        FOREIGN KEY (group_id) REFERENCES group_chats(id) ON DELETE CASCADE
+      );
+
+      -- 群加密密钥表（用于Signal Protocol Sender Keys）
+      CREATE TABLE IF NOT EXISTS group_encryption_keys (
+        id TEXT PRIMARY KEY,
+        group_id TEXT NOT NULL,
+        key_id TEXT NOT NULL,
+        sender_did TEXT NOT NULL,
+        chain_key TEXT NOT NULL,
+        signature_key TEXT NOT NULL,
+        iteration INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER,
+        UNIQUE(group_id, key_id),
+        FOREIGN KEY (group_id) REFERENCES group_chats(id) ON DELETE CASCADE
+      );
+
+      -- 群邀请表
+      CREATE TABLE IF NOT EXISTS group_invitations (
+        id TEXT PRIMARY KEY,
+        group_id TEXT NOT NULL,
+        inviter_did TEXT NOT NULL,
+        invitee_did TEXT NOT NULL,
+        message TEXT,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'rejected', 'expired')),
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER,
+        UNIQUE(group_id, invitee_did),
+        FOREIGN KEY (group_id) REFERENCES group_chats(id) ON DELETE CASCADE
       );
 
       -- 通知表
@@ -5154,6 +5241,100 @@ class DatabaseManager {
     this.db.run('DELETE FROM messages WHERE conversation_id = ?', [conversationId]);
     this.saveToFile();
     return true;
+  }
+
+  /**
+   * 搜索消息
+   * @param {Object} options - 搜索选项
+   * @param {string} options.query - 搜索关键词
+   * @param {string} [options.conversationId] - 对话ID（可选，限制在特定对话中搜索）
+   * @param {string} [options.role] - 消息角色（可选，user/assistant/system）
+   * @param {number} [options.limit] - 返回结果数量限制（默认50）
+   * @param {number} [options.offset] - 偏移量（默认0）
+   * @param {string} [options.order] - 排序方式（'ASC'或'DESC'，默认'DESC'）
+   * @returns {Object} { messages: Array, total: number, hasMore: boolean }
+   */
+  searchMessages(options = {}) {
+    const {
+      query,
+      conversationId,
+      role,
+      limit = 50,
+      offset = 0,
+      order = 'DESC'
+    } = options;
+
+    if (!query || !query.trim()) {
+      return { messages: [], total: 0, hasMore: false };
+    }
+
+    const searchPattern = `%${query.trim()}%`;
+    const params = [searchPattern];
+    let whereConditions = ['content LIKE ?'];
+
+    // 添加对话ID过滤
+    if (conversationId) {
+      whereConditions.push('conversation_id = ?');
+      params.push(conversationId);
+    }
+
+    // 添加角色过滤
+    if (role) {
+      whereConditions.push('role = ?');
+      params.push(role);
+    }
+
+    // 构建查询SQL
+    const whereClause = whereConditions.join(' AND ');
+    const orderClause = order === 'ASC' ? 'ASC' : 'DESC';
+
+    // 查询消息
+    const messagesQuery = `
+      SELECT * FROM messages
+      WHERE ${whereClause}
+      ORDER BY timestamp ${orderClause}
+      LIMIT ? OFFSET ?
+    `;
+    params.push(limit, offset);
+
+    const stmt = this.db.prepare(messagesQuery);
+    const rawMessages = stmt.all(...params);
+
+    // 反序列化metadata字段
+    const messages = rawMessages.map(msg => {
+      if (msg.metadata) {
+        try {
+          msg.metadata = JSON.parse(msg.metadata);
+        } catch (e) {
+          console.warn('[Database] 无法解析消息metadata:', msg.id, e);
+          msg.metadata = null;
+        }
+      }
+      // 向后兼容：如果没有message_type，根据role设置
+      if (!msg.message_type) {
+        if (msg.role === 'user') msg.message_type = 'USER';
+        else if (msg.role === 'assistant') msg.message_type = 'ASSISTANT';
+        else if (msg.role === 'system') msg.message_type = 'SYSTEM';
+        else msg.message_type = 'ASSISTANT';
+      }
+      return msg;
+    });
+
+    // 获取总数
+    const countQuery = `
+      SELECT COUNT(*) as total FROM messages
+      WHERE ${whereClause}
+    `;
+    const countParams = params.slice(0, -2); // 移除limit和offset参数
+    const countStmt = this.db.prepare(countQuery);
+    const countResult = countStmt.get(...countParams);
+    const total = countResult ? countResult.total : 0;
+
+    return {
+      messages,
+      total,
+      hasMore: (offset + limit) < total
+    };
   }
 
   // ==================== 系统配置管理 ====================
