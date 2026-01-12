@@ -20,10 +20,21 @@
             :header="`✓ ${item.question.question}`"
           >
             <div class="answer-text">
-              <!-- 结构化答案显示 -->
-              <template v-if="typeof item.answer === 'object' && item.answer !== null && item.answer.selectedOption !== undefined">
+              <!-- 结构化答案显示 - 多选 -->
+              <template v-if="typeof item.answer === 'object' && item.answer !== null && item.answer.selectedOptions !== undefined">
+                <div class="multi-select-answer">
+                  <a-tag v-for="option in item.answer.selectedOptions" :key="option" color="blue">
+                    {{ option }}
+                  </a-tag>
+                </div>
+                <span v-if="item.answer.additionalInput" class="additional-text">
+                  {{ item.answer.additionalInput }}
+                </span>
+              </template>
+              <!-- 结构化答案显示 - 单选 -->
+              <template v-else-if="typeof item.answer === 'object' && item.answer !== null && item.answer.selectedOption !== undefined">
                 <a-tag color="blue">{{ item.answer.selectedOption }}</a-tag>
-                <span v-if="item.answer.additionalInput">
+                <span v-if="item.answer.additionalInput" class="additional-text">
                   {{ item.answer.additionalInput }}
                 </span>
               </template>
@@ -51,14 +62,19 @@
             <a-button
               v-for="option in currentQuestion.options"
               :key="option.value"
-              :type="selectedOption === option.value ? 'primary' : 'default'"
-              :class="['option-button', { 'selected': selectedOption === option.value }]"
+              :type="isOptionSelected(option.value) ? 'primary' : 'default'"
+              :class="['option-button', { 'selected': isOptionSelected(option.value) }]"
               block
               size="large"
               @click="handleSelectOption(option.value)"
             >
               <div class="option-content">
-                <span class="option-label">{{ option.label }}</span>
+                <span class="option-label">
+                  <span v-if="currentQuestion.multiSelect" class="checkbox-indicator">
+                    {{ isOptionSelected(option.value) ? '☑' : '☐' }}
+                  </span>
+                  {{ option.label }}
+                </span>
                 <span v-if="option.description" class="option-description">
                   {{ option.description }}
                 </span>
@@ -68,7 +84,7 @@
         </div>
 
         <!-- 补充输入框（选择选项后显示） -->
-        <div v-if="selectedOption !== null" class="additional-input-section">
+        <div v-if="selectedOption !== null || selectedOptions.length > 0" class="additional-input-section">
           <div class="input-label">补充说明（可选）</div>
           <a-textarea
             v-model:value="additionalInput"
@@ -135,7 +151,8 @@ const emit = defineEmits(['answer', 'skip', 'complete']);
 
 // 响应式状态
 const currentAnswer = ref('');              // 传统文本框答案
-const selectedOption = ref(null);           // 当前选中的选项值
+const selectedOption = ref(null);           // 当前选中的选项值（单选）
+const selectedOptions = ref([]);            // 当前选中的选项值数组（多选）
 const additionalInput = ref('');            // 补充说明文本
 
 const questions = computed(() => props.message.metadata?.questions || []);
@@ -148,6 +165,7 @@ watch(currentIndex, (newIndex, oldIndex) => {
   if (newIndex !== oldIndex) {
     currentAnswer.value = '';
     selectedOption.value = null;
+    selectedOptions.value = [];
     additionalInput.value = '';
   }
 }, { immediate: false });
@@ -171,13 +189,27 @@ const isCompleted = computed(() => {
   return currentIndex.value >= questions.value.length;
 });
 
+// 判断选项是否被选中
+const isOptionSelected = (optionValue) => {
+  if (currentQuestion.value?.multiSelect) {
+    return selectedOptions.value.includes(optionValue);
+  } else {
+    return selectedOption.value === optionValue;
+  }
+};
+
 // 提交按钮禁用逻辑
 const isSubmitDisabled = computed(() => {
   if (!currentQuestion.value) return true;
   if (!currentQuestion.value.required) return false;
 
-  // 如果有选项：必须选择一个选项
+  // 如果有选项：必须选择至少一个选项
   if (currentQuestion.value.options && currentQuestion.value.options.length > 0) {
+    // 多选题：检查是否至少选择了一个选项
+    if (currentQuestion.value.multiSelect) {
+      return selectedOptions.value.length === 0;
+    }
+    // 单选题：检查是否选择了一个选项
     return selectedOption.value === null;
   }
 
@@ -187,12 +219,25 @@ const isSubmitDisabled = computed(() => {
 
 // 选项点击处理
 const handleSelectOption = (optionValue) => {
-  selectedOption.value = optionValue;
-  // 自动聚焦到补充输入框
-  nextTick(() => {
-    const inputEl = document.querySelector('.additional-input textarea');
-    if (inputEl) inputEl.focus();
-  });
+  if (currentQuestion.value?.multiSelect) {
+    // 多选逻辑：切换选中状态
+    const index = selectedOptions.value.indexOf(optionValue);
+    if (index > -1) {
+      // 已选中，取消选中
+      selectedOptions.value.splice(index, 1);
+    } else {
+      // 未选中，添加到选中列表
+      selectedOptions.value.push(optionValue);
+    }
+  } else {
+    // 单选逻辑：直接设置选中值
+    selectedOption.value = optionValue;
+    // 自动聚焦到补充输入框
+    nextTick(() => {
+      const inputEl = document.querySelector('.additional-input textarea');
+      if (inputEl) inputEl.focus();
+    });
+  }
 };
 
 const handleSubmitAnswer = () => {
@@ -202,10 +247,19 @@ const handleSubmitAnswer = () => {
 
   if (currentQuestion.value.options && currentQuestion.value.options.length > 0) {
     // 新格式：结构化答案
-    answerData = {
-      selectedOption: selectedOption.value,
-      additionalInput: additionalInput.value.trim()
-    };
+    if (currentQuestion.value.multiSelect) {
+      // 多选答案格式
+      answerData = {
+        selectedOptions: [...selectedOptions.value],
+        additionalInput: additionalInput.value.trim()
+      };
+    } else {
+      // 单选答案格式
+      answerData = {
+        selectedOption: selectedOption.value,
+        additionalInput: additionalInput.value.trim()
+      };
+    }
   } else {
     // 旧格式：纯字符串答案（降级方案）
     answerData = currentAnswer.value.trim();
@@ -353,6 +407,14 @@ const handleSkip = () => {
   font-size: 15px;
   font-weight: 500;
   color: #262626;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-indicator {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .option-description {
@@ -402,6 +464,19 @@ const handleSkip = () => {
   font-size: 14px;
   line-height: 1.6;
   padding: 8px 0;
+}
+
+.multi-select-answer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.additional-text {
+  display: block;
+  margin-top: 8px;
+  color: #595959;
 }
 
 .interview-completed {
