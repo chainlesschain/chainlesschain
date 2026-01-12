@@ -1212,7 +1212,130 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
     }
   });
 
-  console.log('[Social IPC] ✓ All Social IPC handlers registered successfully (52 handlers)');
+  /**
+   * 转发消息
+   * Channel: 'chat:forward-message'
+   */
+  ipcMain.handle('chat:forward-message', async (_event, { messageId, targetSessionIds }) => {
+    try {
+      if (!database || !database.db) {
+        throw new Error('数据库未初始化');
+      }
+
+      // 获取原始消息
+      const originalStmt = database.prepare('SELECT * FROM p2p_chat_messages WHERE id = ?');
+      const originalMessage = originalStmt.get(messageId);
+
+      if (!originalMessage) {
+        throw new Error('原始消息不存在');
+      }
+
+      // 更新原始消息的转发计数
+      const updateStmt = database.prepare(`
+        UPDATE p2p_chat_messages
+        SET forward_count = forward_count + ?
+        WHERE id = ?
+      `);
+      updateStmt.run(targetSessionIds.length, messageId);
+
+      const forwardedMessages = [];
+
+      // 为每个目标会话创建转发消息
+      for (const targetSessionId of targetSessionIds) {
+        // 获取目标会话信息
+        const sessionStmt = database.prepare('SELECT * FROM chat_sessions WHERE id = ?');
+        const session = sessionStmt.get(targetSessionId);
+
+        if (!session) {
+          console.warn(`[Social IPC] 会话不存在: ${targetSessionId}`);
+          continue;
+        }
+
+        // 生成新消息ID
+        const newMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        const timestamp = Date.now();
+
+        // 如果是文件消息，需要复制文件
+        let newFilePath = null;
+        if (originalMessage.file_path) {
+          const path = require('path');
+          const fs = require('fs');
+          const { app } = require('electron');
+
+          const uploadsDir = path.join(app.getPath('userData'), 'uploads', 'chat');
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+
+          const fileExt = path.extname(originalMessage.file_path);
+          const newFileName = `${timestamp}-${Math.random().toString(36).substring(7)}${fileExt}`;
+          newFilePath = path.join(uploadsDir, newFileName);
+
+          // 复制文件
+          fs.copyFileSync(originalMessage.file_path, newFilePath);
+        }
+
+        // 插入转发消息
+        const insertStmt = database.prepare(`
+          INSERT INTO p2p_chat_messages (
+            id, session_id, sender_did, receiver_did, content,
+            message_type, file_path, file_size, encrypted, status,
+            device_id, timestamp, forwarded_from_id, forward_count
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        insertStmt.run(
+          newMessageId,
+          targetSessionId,
+          originalMessage.sender_did, // 保持原发送者
+          session.participant_did,
+          originalMessage.content,
+          originalMessage.message_type,
+          newFilePath || originalMessage.file_path,
+          originalMessage.file_size,
+          originalMessage.encrypted,
+          'sent',
+          originalMessage.device_id,
+          timestamp,
+          messageId, // 记录原始消息ID
+          0 // 新消息的转发计数为0
+        );
+
+        // 更新会话
+        const updateSessionStmt = database.prepare(`
+          UPDATE chat_sessions
+          SET last_message = ?, last_message_time = ?, updated_at = ?
+          WHERE id = ?
+        `);
+
+        const lastMessage = originalMessage.message_type === 'text'
+          ? `[转发] ${originalMessage.content}`
+          : `[转发] ${originalMessage.message_type === 'image' ? '[图片]' : '[文件]'}`;
+
+        updateSessionStmt.run(lastMessage, timestamp, timestamp, targetSessionId);
+
+        forwardedMessages.push({
+          id: newMessageId,
+          sessionId: targetSessionId,
+          originalMessageId: messageId
+        });
+      }
+
+      database.saveToFile();
+
+      return {
+        success: true,
+        forwardedMessages,
+        count: forwardedMessages.length
+      };
+    } catch (error) {
+      console.error('[Social IPC] 转发消息失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  console.log('[Social IPC] ✓ All Social IPC handlers registered successfully (53 handlers)');
 }
 
 module.exports = {

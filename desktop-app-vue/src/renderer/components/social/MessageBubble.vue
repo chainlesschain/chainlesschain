@@ -1,5 +1,9 @@
 <template>
-  <div class="message-bubble" :class="{ 'message-sent': isSent, 'message-received': !isSent }">
+  <div
+    class="message-bubble"
+    :class="{ 'message-sent': isSent, 'message-received': !isSent }"
+    @contextmenu.prevent="handleContextMenu"
+  >
     <!-- 头像 -->
     <div v-if="!isSent" class="message-avatar">
       <a-avatar :size="32">
@@ -16,6 +20,11 @@
 
       <!-- 消息气泡 -->
       <div class="message-content" :class="`type-${message.message_type || 'text'}`">
+        <!-- 转发标记 -->
+        <div v-if="message.forwarded_from_id" class="forwarded-indicator">
+          <ShareAltOutlined /> 转发的消息
+        </div>
+
         <!-- 文本消息 -->
         <div v-if="message.message_type === 'text' || !message.message_type" class="message-text">
           {{ message.content }}
@@ -169,13 +178,21 @@ const formatFileSize = (bytes) => {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
 }
 
-const handleDownload = () => {
+const handleDownload = async () => {
   if (props.message.file_path) {
-    // 触发文件下载
-    const link = document.createElement('a')
-    link.href = props.message.file_path
-    link.download = props.message.content
-    link.click()
+    try {
+      // 如果文件在本地，直接打开文件选择对话框保存
+      const result = await window.electron.ipcRenderer.invoke('chat:download-file', {
+        messageId: props.message.id
+      })
+
+      if (result.success) {
+        // 可以添加成功提示
+        console.log('文件已保存到:', result.filePath)
+      }
+    } catch (error) {
+      console.error('下载文件失败:', error)
+    }
   }
 }
 
