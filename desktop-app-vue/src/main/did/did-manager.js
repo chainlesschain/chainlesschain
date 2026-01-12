@@ -11,6 +11,8 @@ const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const EventEmitter = require('events');
 const bip39 = require('bip39');
+const { DIDCache } = require('./did-cache');
+const { DIDUpdater } = require('./did-updater');
 
 /**
  * DID 配置
@@ -34,7 +36,13 @@ class DIDManager extends EventEmitter {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.currentIdentity = null;
 
-    // 自动重新发布配置
+    // 初始化DID缓存
+    this.cache = new DIDCache(databaseManager, config.cache);
+
+    // 初始化DID更新器
+    this.updater = new DIDUpdater(this, p2pManager, config.updater);
+
+    // 自动重新发布配置 (已被updater替代，保留以兼容)
     this.autoRepublishTimer = null;
     this.autoRepublishEnabled = false;
     this.autoRepublishInterval = 24 * 60 * 60 * 1000; // 默认 24 小时
@@ -58,6 +66,12 @@ class DIDManager extends EventEmitter {
     try {
       // 确保数据库表存在
       await this.ensureTables();
+
+      // 初始化DID缓存
+      await this.cache.initialize();
+
+      // 初始化DID更新器
+      await this.updater.initialize();
 
       // 加载默认身份
       await this.loadDefaultIdentity();
@@ -747,6 +761,14 @@ class DIDManager extends EventEmitter {
     try {
       console.log('[DIDManager] 从 DHT 解析 DID:', did);
 
+      // 1. 先尝试从缓存获取
+      const cachedDoc = await this.cache.get(did);
+      if (cachedDoc) {
+        console.log('[DIDManager] 从缓存获取 DID:', did);
+        return cachedDoc;
+      }
+
+      // 2. 缓存未命中，从DHT获取
       // 构建 DHT key
       const didParts = did.split(':');
       if (didParts.length !== 3 || didParts[0] !== 'did' || didParts[1] !== this.config.method) {
@@ -770,6 +792,9 @@ class DIDManager extends EventEmitter {
       if (!isValid) {
         throw new Error('DID 文档签名验证失败');
       }
+
+      // 3. 缓存DID文档
+      await this.cache.set(did, publishData);
 
       console.log('[DIDManager] 成功从 DHT 解析 DID:', did);
       this.emit('did-resolved', { did, data: publishData });
