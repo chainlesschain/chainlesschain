@@ -99,6 +99,9 @@ const InitialSetupIPC = require('./initial-setup-ipc');
 // Identity Context Manager (Enterprise)
 const { getIdentityContextManager } = require('./identity/identity-context-manager');
 
+// Deep Link Handler (Enterprise DID Invitation Links)
+const DeepLinkHandler = require('./deep-link-handler');
+
 // Performance Monitor
 const { getPerformanceMonitor } = require('../../utils/performance-monitor');
 
@@ -289,6 +292,9 @@ class ChainlessChainApp {
 
     // Identity Context Manager (Enterprise)
     this.identityContextManager = null;
+
+    // Deep Link Handler (Enterprise DID Invitation Links)
+    this.deepLinkHandler = null;
 
     this.setupApp();
   }
