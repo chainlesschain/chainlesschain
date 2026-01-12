@@ -45,11 +45,17 @@ class MediaStreamHandler {
         callId
       });
 
-      // 构建约束
-      const mediaConstraints = this.buildConstraints(type, constraints);
+      let stream;
 
-      // 获取媒体流
-      const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      // 根据类型获取媒体流
+      if (type === 'screen') {
+        // 屏幕共享使用desktopCapturer
+        stream = await this.getScreenStream(constraints);
+      } else {
+        // 音频/视频使用getUserMedia
+        const mediaConstraints = this.buildConstraints(type, constraints);
+        stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      }
 
       // 生成streamId
       const streamId = stream.id || this.generateStreamId();
@@ -113,6 +119,82 @@ class MediaStreamHandler {
         }
       });
 
+      throw error;
+    }
+  }
+
+  /**
+   * 获取屏幕共享流
+   */
+  async getScreenStream(constraints = {}) {
+    const { desktopCapturer } = window.require('electron');
+
+    try {
+      // 获取可用的屏幕和窗口源
+      const sources = await desktopCapturer.getSources({
+        types: ['screen', 'window'],
+        thumbnailSize: { width: 150, height: 150 }
+      });
+
+      if (sources.length === 0) {
+        throw new Error('没有可用的屏幕或窗口');
+      }
+
+      // 如果指定了sourceId，使用指定的源
+      let selectedSource;
+      if (constraints.sourceId) {
+        selectedSource = sources.find(s => s.id === constraints.sourceId);
+        if (!selectedSource) {
+          throw new Error('指定的屏幕源不存在');
+        }
+      } else {
+        // 默认使用第一个屏幕
+        selectedSource = sources.find(s => s.id.startsWith('screen')) || sources[0];
+      }
+
+      console.log('[MediaStreamHandler] 选择屏幕源:', {
+        id: selectedSource.id,
+        name: selectedSource.name
+      });
+
+      // 获取屏幕流
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          mandatory: {
+            chromeMediaSource: 'desktop',
+            chromeMediaSourceId: selectedSource.id
+          }
+        }
+      });
+
+      return stream;
+    } catch (error) {
+      console.error('[MediaStreamHandler] 获取屏幕流失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取可用的屏幕源列表（用于UI选择）
+   */
+  async getAvailableScreenSources() {
+    const { desktopCapturer } = window.require('electron');
+
+    try {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen', 'window'],
+        thumbnailSize: { width: 150, height: 150 }
+      });
+
+      return sources.map(source => ({
+        id: source.id,
+        name: source.name,
+        thumbnail: source.thumbnail.toDataURL(),
+        type: source.id.startsWith('screen') ? 'screen' : 'window'
+      }));
+    } catch (error) {
+      console.error('[MediaStreamHandler] 获取屏幕源列表失败:', error);
       throw error;
     }
   }

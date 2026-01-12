@@ -172,6 +172,19 @@ class P2PEnhancedIPC {
       this.sendToRenderer('p2p-enhanced:call-video-changed', data);
     });
 
+    // MediaStream桥接事件
+    this.enhancedManager.on('media:request-stream', (data) => {
+      this.sendToRenderer('media-stream:request', data);
+    });
+
+    this.enhancedManager.on('media:stop-stream', (data) => {
+      this.sendToRenderer('media-stream:stop', data);
+    });
+
+    this.enhancedManager.on('media:toggle-track', (data) => {
+      this.sendToRenderer('media-stream:toggle-track', data);
+    });
+
     // 节点连接事件
     this.enhancedManager.on('peer:connected', (data) => {
       this.sendToRenderer('p2p-enhanced:peer-connected', data);

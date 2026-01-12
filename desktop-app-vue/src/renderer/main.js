@@ -25,6 +25,9 @@ import CollapseTransition from '@/components/common/transitions/CollapseTransiti
 import { createLazyLoadDirective } from '@/directives/lazy-load';
 import { createContentVisibilityDirective } from '@/utils/content-visibility';
 
+// 导入并初始化MediaStream处理器（用于P2P语音/视频通话）
+import '@/utils/mediaStreamHandler';
+
 const app = createApp(App);
 const pinia = createPinia();
 
