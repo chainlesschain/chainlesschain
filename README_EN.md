@@ -26,7 +26,8 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 ## ⭐ Current Version: v0.21.1 (2026-01-13)
 
 ### Latest Updates
-- ✅ **Message Reactions Feature** - Emoji reactions beyond likes, 18 common emojis, real-time reaction stats, toggle reactions, visual feedback ⭐LATEST
+- ✅ **Voice Message Playback Feature** - Complete voice message playback system with play/pause controls, playback status display, automatic resource cleanup, error handling ⭐LATEST
+- ✅ **Message Reactions Feature** - Emoji reactions beyond likes, 18 common emojis, real-time reaction stats, toggle reactions, visual feedback
 - ✅ **P2P File Transfer Complete Implementation** - Large file chunked transfer (64KB chunks), resume capability, real-time progress tracking, SHA-256 integrity verification, concurrent transfer control
 - ✅ **Message Forwarding Feature** - Forward messages to other chat sessions, supports text/image/file types, automatic file copying, tracks forwarding source
 - ✅ **Chat File Transfer Feature** - Send/receive images and files in P2P chats, automatic file management, download support, integrated P2P direct transfer
@@ -83,7 +84,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🟡 **Blockchain Integration**: 85% Complete - **Phase 1-4 Complete** ⭐Improved
 - 🟡 **Decentralized Identity**: 80% Complete - **DID + Org DID + VC**
 - 🟡 **P2P Communication**: 75% Complete - **E2E Encryption Complete**
-- 🟢 **Social System**: 97% Complete - **Friends + Posts + Forum + Group Chat + File Transfer + Message Forwarding + Message Reactions** ⭐Improved
+- 🟢 **Social System**: 98% Complete - **Friends + Posts + Forum + Group Chat + File Transfer + Message Forwarding + Message Reactions + Voice Message Playback** ⭐Improved
 - 🟢 **Trading System**: 90% Complete - **8 Modules + On-chain Contracts + NFT Transfers** ⭐Improved
 - 🟡 **Browser Extension**: 70% Complete - **Testing Framework + Documentation**
 - 🟡 **Mobile Application**: 15% Complete - **Data Sync Complete** ⭐Improved
@@ -406,6 +407,16 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 - ✅ **Database Support**: Added forwarded_from_id and forward_count fields
 - ✅ **IPC Interface**: chat:forward-message handler for batch forwarding
 - ✅ **UI Components**: Forward dialog, session selector, forwarding status notifications
+
+**Voice Message Playback Feature** (~150 lines of code): ⭐NEW
+- ✅ **Playback Controls**: Click play/pause button to control voice playback, supports playback state toggle
+- ✅ **Status Display**: Real-time playback status display (playing/paused), dynamic icon switching
+- ✅ **Duration Display**: Shows voice message duration in MM:SS format
+- ✅ **HTML5 Audio**: Uses native Audio API for playback, supports all browser audio formats
+- ✅ **Auto Cleanup**: Automatically resets state when playback ends, releases audio resources on component unmount
+- ✅ **Error Handling**: Comprehensive error messages and exception handling, friendly prompts on playback failure
+- ✅ **IPC Interface**: chat:play-voice-message handler, validates message type and file existence
+- ✅ **UI Integration**: Voice message bubble, play/pause icons, duration label
 
 **Community Forum** (Standalone App):
 - ✅ Spring Boot 3.1.5 backend (69 Java files, 63 APIs)
