@@ -667,6 +667,94 @@ class MarketplaceManager extends EventEmitter {
   }
 
   /**
+   * 更新订单
+   * @param {string} orderId - 订单 ID
+   * @param {Object} updates - 更新内容
+   */
+  async updateOrder(orderId, updates) {
+    try {
+      const currentDid = this.didManager?.getCurrentIdentity()?.did;
+
+      if (!currentDid) {
+        throw new Error('未登录');
+      }
+
+      const db = this.database.db;
+
+      // 查询订单
+      const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+
+      if (!order) {
+        throw new Error('订单不存在');
+      }
+
+      if (order.creator_did !== currentDid) {
+        throw new Error('只有订单创建者才能编辑订单');
+      }
+
+      if (order.status !== OrderStatus.OPEN) {
+        throw new Error('只能编辑开放状态的订单');
+      }
+
+      const now = Date.now();
+      const allowedFields = [
+        'price_amount',
+        'quantity',
+        'description',
+        'contact_info',
+        'location',
+        'valid_until',
+      ];
+
+      // 构建更新语句
+      const updateFields = [];
+      const params = [];
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key) && value !== undefined) {
+          updateFields.push(`${key} = ?`);
+          params.push(value);
+        }
+      }
+
+      if (updateFields.length === 0) {
+        throw new Error('没有可更新的字段');
+      }
+
+      // 添加 updated_at
+      updateFields.push('updated_at = ?');
+      params.push(now);
+
+      // 添加 orderId 到参数末尾
+      params.push(orderId);
+
+      const updateQuery = `UPDATE orders SET ${updateFields.join(', ')} WHERE id = ?`;
+      db.prepare(updateQuery).run(...params);
+
+      // 获取更新后的订单
+      const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+
+      // 解析 metadata
+      if (updatedOrder.metadata) {
+        try {
+          updatedOrder.metadata = JSON.parse(updatedOrder.metadata);
+        } catch (e) {
+          updatedOrder.metadata = {};
+        }
+      }
+
+      console.log('[MarketplaceManager] 已更新订单:', orderId);
+
+      this.emit('order:updated', { order: updatedOrder });
+
+      return updatedOrder;
+    } catch (error) {
+      console.error('[MarketplaceManager] 更新订单失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 关闭交易市场管理器
    */
   async close() {
