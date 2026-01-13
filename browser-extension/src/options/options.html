@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChainlessChain 扩展设置</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-container">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="logo">
+        <img src="../../icons/icon48.png" alt="ChainlessChain">
+        <h1>ChainlessChain</h1>
+      </div>
+
+      <nav class="nav-menu">
+        <a href="#general" class="nav-item active" data-tab="general">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m-2 2l-4.2 4.2m13.2-5.2l-6 0m-6 0l-6 0m13.2 5.2l-4.2-4.2m-2-2l-4.2-4.2"/>
+          </svg>
+          <span>基本设置</span>
+        </a>
+
+        <a href="#clip" class="nav-item" data-tab="clip">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+          </svg>
+          <span>剪藏设置</span>
+        </a>
+
+        <a href="#batch" class="nav-item" data-tab="batch">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          <span>批量剪藏</span>
+        </a>
+
+        <a href="#schedule" class="nav-item" data-tab="schedule">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span>定时剪藏</span>
+        </a>
+
+        <a href="#sync" class="nav-item" data-tab="sync">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          <span>云同步</span>
+        </a>
+
+        <a href="#tags" class="nav-item" data-tab="tags">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+          <span>标签管理</span>
+        </a>
+
+        <a href="#search" class="nav-item" data-tab="search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+          <span>搜索设置</span>
+        </a>
+
+        <a href="#export" class="nav-item" data-tab="export">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>导出数据</span>
+        </a>
+
+        <a href="#about" class="nav-item" data-tab="about">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+          </svg>
+          <span>关于</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- 基本设置 -->
+      <section id="general" class="tab-content active">
+        <h2>基本设置</h2>
+
+        <div class="setting-group">
+          <h3>连接设置</h3>
+          <div class="setting-item">
+            <label>
+              <span class="label-text">桌面应用路径</span>
+              <input type="text" id="appPath" placeholder="/Applications/ChainlessChain.app">
+            </label>
+            <p class="setting-desc">桌面应用的安装路径</p>
+          </div>
+
+          <div class="setting-item">
+            <label>
+              <span class="label-text">连接超时（秒）</span>
+              <input type="number" id="connectionTimeout" min="5" max="60" value="30">
+            </label>
+            <p class="setting-desc">与桌面应用通信的超时时间</p>
+          </div>
+
+          <div class="setting-item">
+            <div class="connection-status">
+              <span class="status-indicator" id="statusIndicator"></span>
+              <span id="connectionStatusText">检查连接...</span>
+              <button class="btn-secondary" id="testConnection">测试连接</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>界面设置</h3>
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="showFloatingToolbar">
+              <span>显示浮动工具栏</span>
+            </label>
+            <p class="setting-desc">选中文本时显示快捷操作工具栏</p>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="showNotifications">
+              <span>显示通知</span>
+            </label>
+            <p class="setting-desc">操作完成后显示通知提示</p>
+          </div>
+        </div>
+
+        <div class="setting-actions">
+          <button class="btn-primary" id="saveGeneral">保存设置</button>
+          <button class="btn-secondary" id="resetGeneral">恢复默认</button>
+        </div>
+      </section>
+
+      <!-- 剪藏设置 -->
+      <section id="clip" class="tab-content">
+        <h2>剪藏设置</h2>
+
+        <div class="setting-group">
+          <h3>内容设置</h3>
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="captureImages">
+              <span>捕获图片</span>
+            </label>
+            <p class="setting-desc">保存页面中的图片</p>
+          </div>
+
+          <div class="setting-item">
+            <label>
+              <span class="label-text">最大图片数量</span>
+              <input type="number" id="maxImages" min="1" max="50" value="10">
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="captureLinks">
+              <span>捕获链接</span>
+            </label>
+            <p class="setting-desc">保存页面中的链接</p>
+          </div>
+
+          <div class="setting-item">
+            <label>
+              <span class="label-text">最大链接数量</span>
+              <input type="number" id="maxLinks" min="1" max="100" value="50">
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>默认标签</h3>
+          <div class="setting-item">
+            <div class="tags-input">
+              <div class="tags-list" id="defaultTagsList"></div>
+              <input type="text" id="newTagInput" placeholder="输入标签名，按回车添加">
+            </div>
+            <p class="setting-desc">自动添加到新剪藏的标签</p>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>自动化</h3>
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="autoSave">
+              <span>自动保存</span>
+            </label>
+            <p class="setting-desc">剪藏后自动保存，无需确认</p>
+          </div>
+        </div>
+
+        <div class="setting-actions">
+          <button class="btn-primary" id="saveClip">保存设置</button>
+        </div>
+      </section>
+
+      <!-- 批量剪藏 -->
+      <section id="batch" class="tab-content">
+        <h2>批量剪藏</h2>
+
+        <div class="setting-group">
+          <h3>批量操作</h3>
+          <div class="batch-tabs">
+            <button class="btn-primary" id="clipAllTabs">剪藏所有标签页</button>
+            <button class="btn-secondary" id="clipSelectedTabs">剪藏选中的标签页</button>
+          </div>
+
+          <div class="tabs-list" id="tabsList">
+            <p class="loading">加载标签页...</p>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>批量设置</h3>
+          <div class="setting-item">
+            <label>
+              <span class="label-text">并发数量</span>
+              <input type="number" id="batchConcurrency" min="1" max="10" value="3">
+            </label>
+            <p class="setting-desc">同时处理的标签页数量</p>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="batchCloseAfterClip">
+              <span>剪藏后关闭标签页</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="batch-progress" id="batchProgress" style="display: none;">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p class="progress-text" id="progressText">0 / 0</p>
+        </div>
+      </section>
+
+      <!-- 定时剪藏 -->
+      <section id="schedule" class="tab-content">
+        <h2>定时剪藏</h2>
+
+        <div class="setting-group">
+          <h3>定时任务</h3>
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="enableSchedule">
+              <span>启用定时剪藏</span>
+            </label>
+            <p class="setting-desc">定期自动保存当前标签页</p>
+          </div>
+
+          <div class="setting-item">
+            <label>
+              <span class="label-text">间隔时间（分钟）</span>
+              <input type="number" id="scheduleInterval" min="5" max="1440" value="30">
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="scheduleOnlyActive">
+              <span>仅剪藏活动标签页</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="schedule-list">
+          <h3>定时任务列表</h3>
+          <div id="scheduleTasksList">
+            <p class="empty-state">暂无定时任务</p>
+          </div>
+        </div>
+
+        <div class="setting-actions">
+          <button class="btn-primary" id="saveSchedule">保存设置</button>
+        </div>
+      </section>
+
+      <!-- 云同步 -->
+      <section id="sync" class="tab-content">
+        <h2>云同步</h2>
+
+        <div class="setting-group">
+          <h3>同步设置</h3>
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="enableSync">
+              <span>启用云同步</span>
+            </label>
+            <p class="setting-desc">跨设备同步剪藏历史和设置</p>
+          </div>
+
+          <div class="sync-status">
+            <p>同步状态: <span id="syncStatus">未同步</span></p>
+            <p>上次同步: <span id="lastSyncTime">从未</span></p>
+            <button class="btn-primary" id="syncNow">立即同步</button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>同步选项</h3>
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="syncHistory">
+              <span>同步剪藏历史</span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="syncSettings">
+              <span>同步扩展设置</span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="syncTags">
+              <span>同步标签</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-actions">
+          <button class="btn-primary" id="saveSync">保存设置</button>
+        </div>
+      </section>
+
+      <!-- 标签管理 -->
+      <section id="tags" class="tab-content">
+        <h2>标签管理</h2>
+
+        <div class="tags-manager">
+          <div class="tags-toolbar">
+            <input type="text" id="tagSearchInput" placeholder="搜索标签...">
+            <button class="btn-primary" id="addNewTag">新建标签</button>
+          </div>
+
+          <div class="tags-grid" id="tagsGrid">
+            <p class="loading">加载标签...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 搜索设置 -->
+      <section id="search" class="tab-content">
+        <h2>搜索设置</h2>
+
+        <div class="search-demo">
+          <input type="text" id="searchDemoInput" placeholder="在这里搜索已保存的内容...">
+          <button class="btn-primary" id="searchDemo">搜索</button>
+        </div>
+
+        <div class="search-results" id="searchResults"></div>
+
+        <div class="setting-group">
+          <h3>搜索选项</h3>
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="searchInTitle">
+              <span>搜索标题</span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="searchInContent">
+              <span>搜索内容</span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="searchInTags">
+              <span>搜索标签</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- 导出数据 -->
+      <section id="export" class="tab-content">
+        <h2>导出数据</h2>
+
+        <div class="setting-group">
+          <h3>导出格式</h3>
+          <div class="export-formats">
+            <button class="export-btn" data-format="markdown">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span>Markdown</span>
+            </button>
+
+            <button class="export-btn" data-format="html">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              <span>HTML</span>
+            </button>
+
+            <button class="export-btn" data-format="json">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+              <span>JSON</span>
+            </button>
+
+            <button class="export-btn" data-format="pdf">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <line x1="10" y1="9" x2="8" y2="9"/>
+              </svg>
+              <span>PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>导出选项</h3>
+          <div class="setting-item">
+            <label>
+              <span class="label-text">时间范围</span>
+              <select id="exportTimeRange">
+                <option value="all">全部</option>
+                <option value="today">今天</option>
+                <option value="week">最近一周</option>
+                <option value="month">最近一月</option>
+                <option value="custom">自定义</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="exportIncludeImages">
+              <span>包含图片</span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="exportIncludeMetadata">
+              <span>包含元数据</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="export-stats">
+          <p>总剪藏数: <strong id="totalClips">0</strong></p>
+          <p>选中导出: <strong id="selectedClips">0</strong></p>
+        </div>
+      </section>
+
+      <!-- 关于 -->
+      <section id="about" class="tab-content">
+        <h2>关于</h2>
+
+        <div class="about-content">
+          <div class="about-logo">
+            <img src="../../icons/icon128.png" alt="ChainlessChain">
+          </div>
+
+          <h3>ChainlessChain Web Clipper</h3>
+          <p class="version">版本 1.0.0</p>
+
+          <p class="description">
+            ChainlessChain浏览器扩展是一个强大的网页剪藏工具，
+            可以将网页内容快速保存到你的ChainlessChain知识库中。
+          </p>
+
+          <div class="about-links">
+            <a href="https://github.com/chainlesschain" target="_blank">GitHub</a>
+            <a href="https://chainlesschain.com" target="_blank">官网</a>
+            <a href="https://docs.chainlesschain.com" target="_blank">文档</a>
+          </div>
+
+          <div class="about-info">
+            <p>© 2026 ChainlessChain Team</p>
+            <p>MIT License</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>

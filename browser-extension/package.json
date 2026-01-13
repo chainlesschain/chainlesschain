@@ -1,0 +1,25 @@
+{
+  "name": "chainlesschain-browser-extension",
+  "version": "1.0.0",
+  "description": "ChainlessChain Web Clipper - Save web content to your knowledge base",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "watch": "node scripts/watch.js",
+    "pack:chrome": "node scripts/pack-chrome.js",
+    "pack:firefox": "node scripts/pack-firefox.js",
+    "install:chrome": "node scripts/install-chrome.js",
+    "install:firefox": "node scripts/install-firefox.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "firefox-addon",
+    "web-clipper",
+    "knowledge-base",
+    "note-taking"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "devDependencies": {
+    "archiver": "^7.0.1"
+  }
+}
