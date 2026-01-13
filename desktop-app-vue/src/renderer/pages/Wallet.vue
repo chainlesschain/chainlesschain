@@ -230,6 +230,14 @@
       v-model:open="importWalletModalVisible"
       @imported="handleWalletImported"
     />
+
+    <!-- 交易详情对话框 -->
+    <transaction-detail-modal
+      v-model:open="transactionDetailVisible"
+      :transaction="selectedTransaction"
+      :chainId="currentChainId"
+      @refresh="handleRefreshTransaction"
+    />
   </div>
 </template>
 
@@ -251,6 +259,7 @@ import ChainSelector from '@/components/blockchain/ChainSelector.vue';
 import CreateWalletModal from '@/components/blockchain/CreateWalletModal.vue';
 import ImportWalletModal from '@/components/blockchain/ImportWalletModal.vue';
 import TransactionList from '@/components/blockchain/TransactionList.vue';
+import TransactionDetailModal from '@/components/blockchain/TransactionDetailModal.vue';
 
 const blockchainStore = useBlockchainStore();
 
@@ -258,6 +267,8 @@ const blockchainStore = useBlockchainStore();
 const activeTab = ref('internal');
 const createWalletModalVisible = ref(false);
 const importWalletModalVisible = ref(false);
+const transactionDetailVisible = ref(false);
+const selectedTransaction = ref(null);
 
 // 从 store 获取数据
 const walletsLoading = computed(() => blockchainStore.walletLoading);
@@ -488,7 +499,20 @@ const handleChainSwitched = ({ chainId, network }) => {
  */
 const handleViewTransactionDetails = (transaction) => {
   console.log('[Wallet] 查看交易详情:', transaction);
-  // TODO: 打开交易详情对话框
+  selectedTransaction.value = transaction;
+  transactionDetailVisible.value = true;
+};
+
+/**
+ * 刷新交易状态
+ */
+const handleRefreshTransaction = async (transaction) => {
+  try {
+    // 刷新交易列表
+    await blockchainStore.refreshTransactions(currentAddress.value, currentChainId.value);
+  } catch (error) {
+    console.error('[Wallet] 刷新交易失败:', error);
+  }
 };
 
 // 生命周期
