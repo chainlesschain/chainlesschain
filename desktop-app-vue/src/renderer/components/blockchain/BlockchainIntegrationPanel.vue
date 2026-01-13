@@ -274,10 +274,13 @@ export default {
     // 加载数据
     const loadLocalAssets = async () => {
       try {
-        // TODO: 调用IPC获取本地资产列表
-        localAssets.value = await window.electron.invoke('asset:list');
+        // 调用IPC获取本地资产列表
+        const result = await window.electron.invoke('asset:list');
+        localAssets.value = result.assets || [];
       } catch (error) {
         console.error('加载本地资产失败:', error);
+        message.error('加载本地资产失败');
+        localAssets.value = [];
       }
     };
 
@@ -349,23 +352,34 @@ export default {
 
     const handleSyncBalance = async (record) => {
       try {
-        // TODO: 需要获取owner地址
+        // 获取当前钱包地址作为owner地址
+        const walletResult = await window.electron.invoke('wallet:get-current');
+        if (!walletResult || !walletResult.address) {
+          message.warning('请先选择一个钱包');
+          return;
+        }
+
         const balance = await window.electron.invoke(
           'blockchain-integration:sync-balance',
           record.local_asset_id,
-          'owner_address'
+          walletResult.address
         );
         message.success(`余额同步成功: ${balance}`);
+        await loadOnChainAssets();
       } catch (error) {
         console.error('同步余额失败:', error);
-        message.error('同步余额失败');
+        message.error(`同步余额失败: ${error.message}`);
       }
     };
 
     const handleViewOnExplorer = (record) => {
-      // TODO: 根据chainId获取浏览器URL
-      const explorerUrl = `https://etherscan.io/address/${record.contract_address}`;
-      window.open(explorerUrl, '_blank');
+      // 根据chainId获取浏览器URL
+      const explorerUrl = getBlockExplorerUrl(record.chain_id, 'address', record.contract_address);
+      if (explorerUrl) {
+        window.open(explorerUrl, '_blank');
+      } else {
+        message.warning('当前网络不支持区块链浏览器');
+      }
     };
 
     const handleMonitorTransaction = async (record) => {
@@ -380,8 +394,12 @@ export default {
     };
 
     const handleViewTxOnExplorer = (record) => {
-      const explorerUrl = `https://etherscan.io/tx/${record.tx_hash}`;
-      window.open(explorerUrl, '_blank');
+      const explorerUrl = getBlockExplorerUrl(record.chain_id, 'tx', record.tx_hash);
+      if (explorerUrl) {
+        window.open(explorerUrl, '_blank');
+      } else {
+        message.warning('当前网络不支持区块链浏览器');
+      }
     };
 
     const handleStartAutoSync = async () => {
@@ -428,6 +446,46 @@ export default {
     const formatAddress = (address) => {
       if (!address) return '';
       return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+    };
+
+    /**
+     * 获取区块链浏览器URL
+     * @param {number} chainId - 链ID
+     * @param {string} type - 类型 ('address' | 'tx' | 'block')
+     * @param {string} value - 地址/交易哈希/区块号
+     * @returns {string|null} 浏览器URL
+     */
+    const getBlockExplorerUrl = (chainId, type, value) => {
+      const explorers = {
+        1: 'https://etherscan.io',           // 以太坊主网
+        11155111: 'https://sepolia.etherscan.io', // Sepolia测试网
+        137: 'https://polygonscan.com',      // Polygon主网
+        80001: 'https://mumbai.polygonscan.com', // Mumbai测试网
+        56: 'https://bscscan.com',           // BSC主网
+        97: 'https://testnet.bscscan.com',   // BSC测试网
+        42161: 'https://arbiscan.io',        // Arbitrum One
+        421613: 'https://goerli.arbiscan.io', // Arbitrum Goerli
+        10: 'https://optimistic.etherscan.io', // Optimism
+        420: 'https://goerli-optimism.etherscan.io', // Optimism Goerli
+        43114: 'https://snowtrace.io',       // Avalanche C-Chain
+        43113: 'https://testnet.snowtrace.io', // Avalanche Fuji
+        250: 'https://ftmscan.com',          // Fantom Opera
+        4002: 'https://testnet.ftmscan.com', // Fantom Testnet
+        100: 'https://gnosisscan.io',        // Gnosis Chain
+        // Hardhat本地网络没有浏览器
+        31337: null,
+      };
+
+      const baseUrl = explorers[chainId];
+      if (!baseUrl) return null;
+
+      const paths = {
+        address: 'address',
+        tx: 'tx',
+        block: 'block',
+      };
+
+      return `${baseUrl}/${paths[type]}/${value}`;
     };
 
     const getSyncStatusColor = (status) => {

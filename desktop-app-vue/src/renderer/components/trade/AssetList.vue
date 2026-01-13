@@ -135,6 +135,12 @@
       :current-user-did="props.ownerDid || tradeStore.ui.selectedDid"
       @close="showHistoryDrawer = false"
     />
+
+    <!-- 资产二维码对话框 -->
+    <asset-qr-modal
+      v-model:open="showQRModal"
+      :asset="selectedAsset"
+    />
   </div>
 </template>
 
@@ -156,6 +162,7 @@ import AssetCreate from './AssetCreate.vue';
 import AssetTransfer from './AssetTransfer.vue';
 import AssetDetail from './AssetDetail.vue';
 import AssetHistory from './AssetHistory.vue';
+import AssetQRModal from './AssetQRModal.vue';
 
 // Props
 const props = defineProps({
@@ -175,6 +182,7 @@ const showCreateModal = ref(false);
 const showTransferModal = ref(false);
 const showDetailDrawer = ref(false);
 const showHistoryDrawer = ref(false);
+const showQRModal = ref(false);
 const selectedAsset = ref(null);
 
 // 从 store 获取数据
@@ -293,8 +301,8 @@ const handleHistory = (asset) => {
 };
 
 const handleShowQR = (asset) => {
-  // TODO: 显示资产二维码
-  antMessage.info('二维码功能即将开放');
+  selectedAsset.value = asset;
+  showQRModal.value = true;
 };
 
 // 转账成功
