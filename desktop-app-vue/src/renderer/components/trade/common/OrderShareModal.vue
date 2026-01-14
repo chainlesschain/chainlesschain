@@ -111,7 +111,7 @@
               show-icon
             />
 
-            <a-space wrap :size="12}>
+            <a-space wrap :size="12">
               <a-button @click="exportAsJSON">
                 <template #icon><FileTextOutlined /></template>
                 导出为 JSON
