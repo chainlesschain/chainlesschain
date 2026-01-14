@@ -273,6 +273,27 @@ const contextInfo = computed(() => {
 // ============ 工具函数 ============
 
 /**
+ * 清理JSON字符串中的控制字符
+ * 修复 "Bad control character in string literal" 错误
+ * @param {string} jsonString - 原始JSON字符串
+ * @returns {string} 清理后的JSON字符串
+ */
+const sanitizeJSONString = (jsonString) => {
+  if (!jsonString || typeof jsonString !== 'string') {
+    return jsonString;
+  }
+
+  // 替换常见的控制字符为转义序列
+  return jsonString
+    .replace(/\n/g, '\\n')    // 换行符
+    .replace(/\r/g, '\\r')    // 回车符
+    .replace(/\t/g, '\\t')    // 制表符
+    .replace(/\f/g, '\\f')    // 换页符
+    .replace(/\b/g, '\\b')    // 退格符
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, ''); // 移除其他控制字符
+};
+
+/**
  * 清理对象，移除不可序列化的内容（用于IPC传输）
  * @param {any} obj - 要清理的对象
  * @returns {any} 清理后的对象
@@ -1657,7 +1678,11 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           throw new Error('无法从LLM响应中提取PPT大纲JSON');
         }
 
-        const outline = JSON.parse(jsonMatch[1]);
+        // 🔥 清理JSON字符串中的控制字符，防止解析错误
+        const sanitizedJSON = sanitizeJSONString(jsonMatch[1]);
+        console.log('[ChatPanel] 🧹 JSON字符串已清理，长度:', sanitizedJSON.length);
+
+        const outline = JSON.parse(sanitizedJSON);
         console.log('[ChatPanel] ✅ PPT大纲解析成功:', outline);
 
         // 更新消息为"正在写入文件"
@@ -1777,7 +1802,11 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           throw new Error('无法从LLM响应中提取文档结构JSON');
         }
 
-        const documentStructure = JSON.parse(jsonMatch[1]);
+        // 🔥 清理JSON字符串中的控制字符，防止解析错误
+        const sanitizedJSON = sanitizeJSONString(jsonMatch[1]);
+        console.log('[ChatPanel] 🧹 JSON字符串已清理，长度:', sanitizedJSON.length);
+
+        const documentStructure = JSON.parse(sanitizedJSON);
         console.log('[ChatPanel] ✅ 文档结构解析成功:', documentStructure);
 
         // 更新消息为"正在写入文件"
@@ -1890,7 +1919,11 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           throw new Error('无法从LLM响应中提取数据结构JSON');
         }
 
-        const dataStructure = JSON.parse(jsonMatch[1]);
+        // 🔥 清理JSON字符串中的控制字符，防止解析错误
+        const sanitizedJSON = sanitizeJSONString(jsonMatch[1]);
+        console.log('[ChatPanel] 🧹 JSON字符串已清理，长度:', sanitizedJSON.length);
+
+        const dataStructure = JSON.parse(sanitizedJSON);
         console.log('[ChatPanel] ✅ 数据结构解析成功:', dataStructure);
 
         generatingExcelMsg.content = '⏳ 正在写入Excel文件...';
