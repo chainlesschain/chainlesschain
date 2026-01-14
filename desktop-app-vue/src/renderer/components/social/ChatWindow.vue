@@ -8,7 +8,7 @@
 
     <!-- 屏幕共享选择器 -->
     <ScreenSharePicker
-      v-model:visible="showScreenSharePicker"
+      v-model:open="showScreenSharePicker"
       @select="handleScreenSourceSelect"
     />
 

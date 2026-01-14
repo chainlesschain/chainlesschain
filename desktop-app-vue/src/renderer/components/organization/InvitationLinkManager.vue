@@ -226,21 +226,21 @@
 
     <!-- 创建邀请链接对话框 -->
     <CreateInvitationLinkDialog
-      v-model:visible="showCreateDialog"
+      v-model:open="showCreateDialog"
       :org-id="currentOrgId"
       @created="handleLinkCreated"
     />
 
     <!-- 邀请链接详情对话框 -->
     <InvitationLinkDetailDialog
-      v-model:visible="showDetailDialog"
+      v-model:open="showDetailDialog"
       :link-id="selectedLinkId"
       @refresh="loadInvitationLinks"
     />
 
     <!-- 二维码显示对话框 -->
     <QRCodeDialog
-      v-model:visible="showQRDialog"
+      v-model:open="showQRDialog"
       :url="selectedUrl"
       :title="qrCodeTitle"
     />

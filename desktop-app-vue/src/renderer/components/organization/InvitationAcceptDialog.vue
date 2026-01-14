@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:visible="visible"
+    v-model:open="visible"
     title="加入组织"
     width="600px"
     :confirm-loading="loading"

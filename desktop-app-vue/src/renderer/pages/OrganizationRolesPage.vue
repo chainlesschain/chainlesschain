@@ -74,7 +74,7 @@
 
     <!-- 创建/编辑角色弹窗 -->
     <a-modal
-      v-model:visible="roleModalVisible"
+      v-model:open="roleModalVisible"
       :title="isEditMode ? '编辑角色' : '创建角色'"
       width="800px"
       @ok="handleRoleModalOk"
@@ -142,7 +142,7 @@
 
     <!-- 查看角色详情弹窗 -->
     <a-modal
-      v-model:visible="viewRoleModalVisible"
+      v-model:open="viewRoleModalVisible"
       title="角色详情"
       width="700px"
       :footer="null"

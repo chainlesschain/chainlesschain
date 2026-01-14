@@ -168,7 +168,7 @@
             </span>
           </template>
           <a-card title="系统性能监控">
-            <PerformanceDashboard v-model:visible="performanceDashboardVisible" />
+            <PerformanceDashboard v-model:open="performanceDashboardVisible" />
             <a-button
               v-if="!performanceDashboardVisible"
               type="primary"

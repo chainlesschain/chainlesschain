@@ -252,7 +252,7 @@
 
     <!-- 编辑订单对话框 -->
     <order-edit
-      v-model:visible="showEditModal"
+      v-model:open="showEditModal"
       :order="selectedOrder || {}"
       :available-balance="getAvailableBalance(selectedOrder)"
       @updated="handleOrderUpdated"
@@ -260,7 +260,7 @@
 
     <!-- 分享订单对话框 -->
     <order-share-modal
-      v-model:visible="showShareModal"
+      v-model:open="showShareModal"
       :order="selectedOrder || {}"
       @shared="handleOrderShared"
     />

@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:visible="visible"
+    v-model:open="visible"
     title="创建邀请链接"
     width="600px"
     :confirm-loading="loading"
@@ -131,7 +131,7 @@
 
   <!-- 创建成功对话框 -->
   <a-modal
-    v-model:visible="showSuccessDialog"
+    v-model:open="showSuccessDialog"
     title="邀请链接创建成功"
     width="700px"
     :footer="null"

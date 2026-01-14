@@ -4,7 +4,7 @@
  * 在渲染进程中处理媒体流获取和管理
  */
 
-const { ipcRenderer } = window.require('electron');
+const { ipcRenderer } = window.electron;
 
 class MediaStreamHandler {
   constructor() {
@@ -127,7 +127,7 @@ class MediaStreamHandler {
    * 获取屏幕共享流
    */
   async getScreenStream(constraints = {}) {
-    const { desktopCapturer } = window.require('electron');
+    const { desktopCapturer } = window.electron;
 
     try {
       // 获取可用的屏幕和窗口源
@@ -179,7 +179,7 @@ class MediaStreamHandler {
    * 获取可用的屏幕源列表（用于UI选择）
    */
   async getAvailableScreenSources() {
-    const { desktopCapturer } = window.require('electron');
+    const { desktopCapturer } = window.electron;
 
     try {
       const sources = await desktopCapturer.getSources({

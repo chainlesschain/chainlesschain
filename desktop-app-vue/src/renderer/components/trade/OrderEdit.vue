@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:visible="visible"
+    v-model:open="visible"
     title="编辑订单"
     width="700px"
     :confirm-loading="updating"

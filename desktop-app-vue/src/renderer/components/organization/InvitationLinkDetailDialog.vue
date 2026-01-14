@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:visible="visible"
+    v-model:open="visible"
     title="邀请链接详情"
     width="900px"
     :footer="null"
@@ -109,7 +109,7 @@
 
     <!-- QR码对话框 -->
     <QRCodeDialog
-      v-model:visible="showQRDialog"
+      v-model:open="showQRDialog"
       :url="linkDetail?.invitationUrl"
       :title="`邀请链接二维码`"
     />

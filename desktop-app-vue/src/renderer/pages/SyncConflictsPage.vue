@@ -93,7 +93,7 @@
 
     <!-- 手动合并对话框 -->
     <a-modal
-      v-model:visible="mergeModalVisible"
+      v-model:open="mergeModalVisible"
       title="手动合并数据"
       width="800px"
       @ok="handleManualMergeOk"

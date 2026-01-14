@@ -86,7 +86,7 @@
 
     <!-- 创建权限模板对话框 -->
     <a-modal
-      v-model:visible="createTemplateVisible"
+      v-model:open="createTemplateVisible"
       title="创建权限模板"
       width="600px"
       @ok="handleCreateTemplateSubmit"
@@ -162,7 +162,7 @@
 
     <!-- 审计日志对话框 -->
     <a-modal
-      v-model:visible="auditLogVisible"
+      v-model:open="auditLogVisible"
       title="权限审计日志"
       width="1000px"
       :footer="null"
