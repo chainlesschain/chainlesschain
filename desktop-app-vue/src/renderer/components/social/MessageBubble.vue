@@ -149,7 +149,7 @@
 
     <!-- 右键菜单 -->
     <a-dropdown
-      v-model:visible="contextMenuVisible"
+      v-model:open="contextMenuVisible"
       :trigger="['contextmenu']"
       :get-popup-container="() => $el"
     >
@@ -171,7 +171,7 @@
 
     <!-- 转发对话框 -->
     <a-modal
-      v-model:visible="forwardModalVisible"
+      v-model:open="forwardModalVisible"
       title="转发消息"
       ok-text="转发"
       cancel-text="取消"
@@ -197,7 +197,7 @@
 
     <!-- 表情选择器 -->
     <a-modal
-      v-model:visible="showReactionPicker"
+      v-model:open="showReactionPicker"
       title="选择表情"
       :footer="null"
       width="400px"

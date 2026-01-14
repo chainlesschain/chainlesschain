@@ -1372,6 +1372,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 // Also expose a direct electron object for components that use window.electron.ipcRenderer
+const { desktopCapturer } = require('electron');
+
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
     invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
@@ -1379,5 +1381,8 @@ contextBridge.exposeInMainWorld('electron', {
     once: (channel, func) => ipcRenderer.once(channel, (event, ...args) => func(event, ...args)),
     removeListener: (channel, func) => ipcRenderer.removeListener(channel, func),
     removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+  },
+  desktopCapturer: {
+    getSources: (options) => desktopCapturer.getSources(options),
   }
 });

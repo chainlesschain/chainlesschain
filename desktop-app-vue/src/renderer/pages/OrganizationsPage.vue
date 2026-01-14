@@ -93,7 +93,7 @@
 
     <!-- 创建组织对话框 -->
     <a-modal
-      v-model:visible="showCreateModal"
+      v-model:open="showCreateModal"
       title="创建新组织"
       :confirm-loading="creating"
       @ok="handleCreate"

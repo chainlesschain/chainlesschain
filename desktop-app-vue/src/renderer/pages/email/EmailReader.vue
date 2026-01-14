@@ -238,7 +238,7 @@
 
     <!-- 撰写邮件对话框 -->
     <EmailComposer
-      v-model:visible="composerVisible"
+      v-model:open="composerVisible"
       :account-id="accountId"
       :reply-to="replyToEmail"
       :forward="forwardEmail"

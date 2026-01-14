@@ -187,7 +187,7 @@
 
     <!-- 创建群聊对话框 -->
     <a-modal
-      v-model:visible="showCreateGroupModal"
+      v-model:open="showCreateGroupModal"
       title="创建群聊"
       @ok="handleCreateGroup"
       @cancel="showCreateGroupModal = false"
@@ -217,7 +217,7 @@
 
     <!-- 群成员抽屉 -->
     <a-drawer
-      v-model:visible="showMembersDrawer"
+      v-model:open="showMembersDrawer"
       title="群成员"
       placement="right"
       :width="400"
@@ -261,7 +261,7 @@
 
     <!-- 邀请成员对话框 -->
     <a-modal
-      v-model:visible="showInviteModal"
+      v-model:open="showInviteModal"
       title="邀请成员"
       @ok="handleInviteMembers"
       @cancel="showInviteModal = false"

@@ -8,7 +8,7 @@
 
     <!-- 全局设置向导 (首次启动时显示) -->
     <GlobalSettingsWizard
-      :visible="showGlobalSetupWizard"
+      :open="showGlobalSetupWizard"
       :canSkip="false"
       @complete="handleGlobalSetupComplete"
     />
@@ -31,7 +31,7 @@
 
     <!-- 企业版DID邀请接受对话框 -->
     <InvitationAcceptDialog
-      v-model:visible="showInvitationDialog"
+      v-model:open="showInvitationDialog"
       :token="invitationToken"
       @accepted="handleInvitationAccepted"
       @rejected="handleInvitationRejected"

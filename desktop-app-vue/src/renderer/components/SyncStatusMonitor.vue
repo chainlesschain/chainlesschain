@@ -15,7 +15,7 @@
 
     <!-- 同步详情抽屉 -->
     <a-drawer
-      v-model:visible="showSyncDrawer"
+      v-model:open="showSyncDrawer"
       title="同步状态"
       placement="right"
       width="400"

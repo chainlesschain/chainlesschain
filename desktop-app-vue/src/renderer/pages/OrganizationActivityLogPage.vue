@@ -143,7 +143,7 @@
 
     <!-- 详情对话框 -->
     <a-modal
-      v-model:visible="detailsVisible"
+      v-model:open="detailsVisible"
       title="活动详情"
       :footer="null"
       width="600px"

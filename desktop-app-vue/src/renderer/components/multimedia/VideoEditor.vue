@@ -336,7 +336,7 @@
 
     <!-- 处理进度对话框 -->
     <a-modal
-      v-model:visible="showProgressModal"
+      v-model:open="showProgressModal"
       title="处理进度"
       :footer="null"
       :closable="false"

@@ -8,7 +8,7 @@
  * - 连接降级策略
  */
 
-import EventEmitter from 'events';
+const EventEmitter = require('events');
 
 class P2PConnectionHealthManager extends EventEmitter {
   constructor(p2pManager, options = {}) {
@@ -417,4 +417,4 @@ class P2PConnectionHealthManager extends EventEmitter {
   }
 }
 
-export default P2PConnectionHealthManager;
+module.exports = P2PConnectionHealthManager;

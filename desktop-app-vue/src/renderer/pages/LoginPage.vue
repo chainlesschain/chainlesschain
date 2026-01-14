@@ -129,7 +129,7 @@
 
     <!-- 全局设置对话框 -->
     <GlobalSettingsWizard
-      :visible="showSettings"
+      :open="showSettings"
       :canSkip="true"
       @complete="handleSettingsComplete"
       @cancel="showSettings = false"

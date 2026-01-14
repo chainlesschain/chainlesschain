@@ -4,7 +4,7 @@
  * 处理通话历史记录相关的IPC请求
  */
 
-import { ipcMain } from 'electron';
+const { ipcMain } = require('electron');
 
 class CallHistoryIPC {
   constructor(callHistoryManager) {
@@ -152,4 +152,4 @@ class CallHistoryIPC {
   }
 }
 
-export default CallHistoryIPC;
+module.exports = CallHistoryIPC;

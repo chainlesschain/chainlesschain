@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:visible="visible"
+    v-model:open="visible"
     title="分享订单"
     width="600px"
     :footer="null"
@@ -137,7 +137,7 @@
 
   <!-- QR Code Dialog -->
   <order-qr-code-dialog
-    v-model:visible="showQRCodeDialog"
+    v-model:open="showQRCodeDialog"
     :url="shareLink"
     :order-data="order"
     title="订单二维码"
