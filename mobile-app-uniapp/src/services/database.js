@@ -4016,7 +4016,10 @@ class DatabaseService {
 
     const sql = 'SELECT * FROM ai_conversations WHERE id = ? LIMIT 1'
     const result = await this.selectSql(sql, [conversationId])
-    return result && result.length > 0 ? result[0] : null
+    if (!result || result.length === 0) {
+      return null
+    }
+    return this.normalizeAIConversationRow(result[0])
   }
 
   /**
@@ -4031,7 +4034,57 @@ class DatabaseService {
     }
 
     const sql = 'SELECT * FROM ai_conversations ORDER BY updated_at DESC'
-    return this.selectSql(sql, [])
+    const rows = await this.selectSql(sql, [])
+    return rows.map(row => this.normalizeAIConversationRow(row))
+  }
+
+  /**
+   * 将SQLite返回的AI对话记录转换为驼峰字段，保持与H5模式一致
+   * @param {Object} row
+   * @returns {Object|null}
+   */
+  normalizeAIConversationRow(row) {
+    if (!row) return null
+
+    if (row.systemPrompt !== undefined || row.messageCount !== undefined) {
+      return { ...row }
+    }
+
+    return {
+      id: row.id,
+      title: row.title,
+      systemPrompt: row.system_prompt,
+      model: row.model,
+      temperature: row.temperature,
+      userDid: row.user_did,
+      messageCount: row.message_count ?? 0,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      lastMessageAt: row.last_message_at || null
+    }
+  }
+
+  /**
+   * 将SQLite返回的AI消息记录转换为驼峰字段
+   * @param {Object} row
+   * @returns {Object|null}
+   */
+  normalizeAIMessageRow(row) {
+    if (!row) return null
+
+    if (row.conversationId !== undefined) {
+      return { ...row }
+    }
+
+    return {
+      id: row.id,
+      conversationId: row.conversation_id,
+      role: row.role,
+      content: row.content,
+      model: row.model,
+      tokens: row.tokens,
+      createdAt: row.created_at
+    }
   }
 
   /**
@@ -4158,7 +4211,8 @@ class DatabaseService {
       ORDER BY created_at ASC
       LIMIT ? OFFSET ?`
 
-    return this.selectSql(sql, [conversationId, limit, offset])
+    const rows = await this.selectSql(sql, [conversationId, limit, offset])
+    return rows.map(row => this.normalizeAIMessageRow(row))
   }
 
   /**
