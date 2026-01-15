@@ -1,7 +1,7 @@
 ﻿<template>
   <view class="login-container">
     <view class="logo-section">
-      <image class="logo" src="/logo.png" mode="aspectFit"></image>
+      <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
       <text class="app-name">ChainlessChain</text>
       <text class="app-slogan">去中心化 · 隐私优先 · AI原生</text>
     </view>

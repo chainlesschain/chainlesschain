@@ -811,3 +811,8 @@ export function getDIDService() {
   return didServiceInstance
 }
 
+// 兼容性别名
+export function getDIDManager() {
+  return didServiceInstance
+}
+

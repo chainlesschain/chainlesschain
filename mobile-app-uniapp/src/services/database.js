@@ -4791,3 +4791,8 @@ class DatabaseService {
 export const db = new DatabaseService()
 export { DatabaseService }
 export default db
+
+// 兼容性函数 - 返回数据库实例
+export function getDatabase() {
+  return db
+}
