@@ -43,6 +43,11 @@ export const useAppStore = defineStore('app', {
       },
     ],
     activeTabKey: 'home',
+
+    // 菜单收藏和快捷访问
+    favoriteMenus: [], // 收藏的菜单项 [{key, title, path, icon, query}]
+    recentMenus: [],   // 最近访问的菜单项 (最多10个)
+    pinnedMenus: [],   // 置顶的菜单项
   }),
 
   getters: {
@@ -260,6 +265,210 @@ export const useAppStore = defineStore('app', {
         (tab) => tab.key === targetKey || tab.key === 'home'
       );
       this.activeTabKey = targetKey;
+    },
+
+    // ==================== 菜单收藏和快捷访问 ====================
+
+    /**
+     * 添加收藏菜单
+     */
+    addFavoriteMenu(menu) {
+      // 检查是否已收藏
+      const exists = this.favoriteMenus.find(m => m.key === menu.key);
+      if (exists) return;
+
+      // 添加到收藏列表
+      this.favoriteMenus.push({
+        key: menu.key,
+        title: menu.title,
+        path: menu.path,
+        icon: menu.icon,
+        query: menu.query || null,
+        addedAt: Date.now()
+      });
+
+      // 保存到 localStorage
+      this.saveFavoritesToStorage();
+    },
+
+    /**
+     * 移除收藏菜单
+     */
+    removeFavoriteMenu(key) {
+      this.favoriteMenus = this.favoriteMenus.filter(m => m.key !== key);
+      this.saveFavoritesToStorage();
+    },
+
+    /**
+     * 检查菜单是否已收藏
+     */
+    isFavoriteMenu(key) {
+      return this.favoriteMenus.some(m => m.key === key);
+    },
+
+    /**
+     * 切换收藏状态
+     */
+    toggleFavoriteMenu(menu) {
+      if (this.isFavoriteMenu(menu.key)) {
+        this.removeFavoriteMenu(menu.key);
+      } else {
+        this.addFavoriteMenu(menu);
+      }
+    },
+
+    /**
+     * 添加到最近访问
+     */
+    addRecentMenu(menu) {
+      // 移除已存在的相同项
+      this.recentMenus = this.recentMenus.filter(m => m.key !== menu.key);
+
+      // 添加到列表开头
+      this.recentMenus.unshift({
+        key: menu.key,
+        title: menu.title,
+        path: menu.path,
+        icon: menu.icon,
+        query: menu.query || null,
+        visitedAt: Date.now()
+      });
+
+      // 限制最多10个
+      if (this.recentMenus.length > 10) {
+        this.recentMenus = this.recentMenus.slice(0, 10);
+      }
+
+      // 保存到 localStorage
+      this.saveRecentsToStorage();
+    },
+
+    /**
+     * 清空最近访问
+     */
+    clearRecentMenus() {
+      this.recentMenus = [];
+      this.saveRecentsToStorage();
+    },
+
+    /**
+     * 置顶菜单
+     */
+    pinMenu(menu) {
+      // 检查是否已置顶
+      const exists = this.pinnedMenus.find(m => m.key === menu.key);
+      if (exists) return;
+
+      // 添加到置顶列表
+      this.pinnedMenus.push({
+        key: menu.key,
+        title: menu.title,
+        path: menu.path,
+        icon: menu.icon,
+        query: menu.query || null,
+        pinnedAt: Date.now()
+      });
+
+      this.savePinnedToStorage();
+    },
+
+    /**
+     * 取消置顶
+     */
+    unpinMenu(key) {
+      this.pinnedMenus = this.pinnedMenus.filter(m => m.key !== key);
+      this.savePinnedToStorage();
+    },
+
+    /**
+     * 检查菜单是否已置顶
+     */
+    isPinnedMenu(key) {
+      return this.pinnedMenus.some(m => m.key === key);
+    },
+
+    /**
+     * 保存收藏到 localStorage
+     */
+    saveFavoritesToStorage() {
+      try {
+        localStorage.setItem('favoriteMenus', JSON.stringify(this.favoriteMenus));
+      } catch (error) {
+        console.error('[AppStore] Failed to save favorites:', error);
+      }
+    },
+
+    /**
+     * 保存最近访问到 localStorage
+     */
+    saveRecentsToStorage() {
+      try {
+        localStorage.setItem('recentMenus', JSON.stringify(this.recentMenus));
+      } catch (error) {
+        console.error('[AppStore] Failed to save recents:', error);
+      }
+    },
+
+    /**
+     * 保存置顶到 localStorage
+     */
+    savePinnedToStorage() {
+      try {
+        localStorage.setItem('pinnedMenus', JSON.stringify(this.pinnedMenus));
+      } catch (error) {
+        console.error('[AppStore] Failed to save pinned:', error);
+      }
+    },
+
+    /**
+     * 从 localStorage 加载收藏
+     */
+    loadFavoritesFromStorage() {
+      try {
+        const data = localStorage.getItem('favoriteMenus');
+        if (data) {
+          this.favoriteMenus = JSON.parse(data);
+        }
+      } catch (error) {
+        console.error('[AppStore] Failed to load favorites:', error);
+      }
+    },
+
+    /**
+     * 从 localStorage 加载最近访问
+     */
+    loadRecentsFromStorage() {
+      try {
+        const data = localStorage.getItem('recentMenus');
+        if (data) {
+          this.recentMenus = JSON.parse(data);
+        }
+      } catch (error) {
+        console.error('[AppStore] Failed to load recents:', error);
+      }
+    },
+
+    /**
+     * 从 localStorage 加载置顶
+     */
+    loadPinnedFromStorage() {
+      try {
+        const data = localStorage.getItem('pinnedMenus');
+        if (data) {
+          this.pinnedMenus = JSON.parse(data);
+        }
+      } catch (error) {
+        console.error('[AppStore] Failed to load pinned:', error);
+      }
+    },
+
+    /**
+     * 初始化菜单数据
+     */
+    initMenuData() {
+      this.loadFavoritesFromStorage();
+      this.loadRecentsFromStorage();
+      this.loadPinnedFromStorage();
     },
   },
 });
