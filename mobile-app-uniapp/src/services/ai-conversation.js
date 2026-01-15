@@ -13,6 +13,7 @@ import database from './database'
 import { llm } from './llm'
 import didService from './did'
 import knowledgeRAG from './knowledge-rag'
+import aiBackend from './ai-backend'
 
 class AIConversationService {
   constructor() {
@@ -493,10 +494,6 @@ class AIConversationService {
         createdAt: new Date().toISOString()
       }
 
-      // 动态引入 ai-backend（避免循环依赖）
-      const aiBackendModule = await import('./ai-backend')
-      const aiBackend = aiBackendModule.default
-
       // 调用流式API
       let fullContent = ''
       await aiBackend.chatStream(messages, (data) => {
@@ -540,10 +537,6 @@ class AIConversationService {
    */
   async sendMessageWithRAG(conversationId, message, onChunk, options = {}) {
     try {
-      // 动态引入 ai-backend
-      const aiBackendModule = await import('./ai-backend')
-      const aiBackend = aiBackendModule.default
-
       // 1. 检索知识库
       let ragResult
       try {

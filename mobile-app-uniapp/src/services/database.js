@@ -932,31 +932,9 @@ class DatabaseService {
       return
     }
 
-    // 异步同步，不阻塞主流程
-    import('@/services/knowledge-rag').then(module => {
-      const knowledgeRAG = module.default
-
-      knowledgeRAG.indexKnowledgeLocally(knowledge).catch(err => {
-        console.error(`[Database] 本地RAG索引更新失败: ${knowledge.id}`, err)
-      })
-
-      knowledgeRAG.syncKnowledgeToBackend(knowledge)
-        .then(success => {
-          if (success) {
-            console.log(`[Database] 知识 ${knowledge.id} 已同步到后端`)
-            this._updateSyncStatus(knowledge.id, 'synced').catch(err => {
-              console.error('[Database] 更新同步状态失败:', err)
-            })
-          } else {
-            console.warn(`[Database] 知识 ${knowledge.id} 同步失败`)
-          }
-        })
-        .catch(error => {
-          console.error(`[Database] 知识 ${knowledge.id} 同步异常:`, error)
-        })
-    }).catch(error => {
-      console.error('[Database] 导入knowledge-rag模块失败:', error)
-    })
+    // 注意：RAG同步功能已禁用以避免动态导入导致的打包问题
+    // 如需启用，请在打包配置中解决代码分割问题
+    console.log('[Database] RAG同步功能已禁用（移动端打包优化）')
   }
 
   /**
@@ -972,28 +950,8 @@ class DatabaseService {
       return
     }
 
-    // 异步删除，不阻塞主流程
-    import('@/services/knowledge-rag').then(module => {
-      const knowledgeRAG = module.default
-
-      knowledgeRAG.removeKnowledgeFromLocalIndex(knowledgeId).catch(err => {
-        console.error(`[Database] 本地RAG索引删除失败: ${knowledgeId}`, err)
-      })
-
-      knowledgeRAG.deleteKnowledgeFromBackend(knowledgeId)
-        .then(success => {
-          if (success) {
-            console.log(`[Database] 知识 ${knowledgeId} 已从后端删除`)
-          } else {
-            console.warn(`[Database] 知识 ${knowledgeId} 从后端删除失败`)
-          }
-        })
-        .catch(error => {
-          console.error(`[Database] 知识 ${knowledgeId} 从后端删除异常:`, error)
-        })
-    }).catch(error => {
-      console.error('[Database] 导入knowledge-rag模块失败:', error)
-    })
+    // 注意：RAG删除功能已禁用以避免动态导入导致的打包问题
+    console.log('[Database] RAG删除功能已禁用（移动端打包优化）')
   }
 
   /**
@@ -1041,41 +999,14 @@ class DatabaseService {
         return { total: 0, success: 0, failed: 0 }
       }
 
-      console.log(`[Database] 开始同步 ${pendingItems.length} 个知识到后端`)
+      console.log(`[Database] RAG批量同步功能已禁用（移动端打包优化）`)
 
-      // 导入knowledge-rag服务
-      const knowledgeRAGModule = await import('@/services/knowledge-rag')
-      const knowledgeRAG = knowledgeRAGModule.default
-
-      let successCount = 0
-      let failedCount = 0
-
-      // 批量同步
-      for (const item of pendingItems) {
-        try {
-          const success = await knowledgeRAG.syncKnowledgeToBackend(item)
-          if (success) {
-            successCount++
-            await this._updateSyncStatus(item.id, 'synced')
-          } else {
-            failedCount++
-            await this._updateSyncStatus(item.id, 'failed')
-          }
-        } catch (error) {
-          console.error(`[Database] 同步知识 ${item.id} 失败:`, error)
-          failedCount++
-          await this._updateSyncStatus(item.id, 'failed')
-        }
-      }
-
-      const result = {
+      // 注意：RAG批量同步功能已禁用以避免动态导入导致的打包问题
+      return {
         total: pendingItems.length,
-        success: successCount,
-        failed: failedCount
+        success: 0,
+        failed: pendingItems.length
       }
-
-      console.log('[Database] 同步完成:', result)
-      return result
     } catch (error) {
       console.error('[Database] 批量同步失败:', error)
       throw error
