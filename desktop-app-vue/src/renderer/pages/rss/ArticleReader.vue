@@ -327,8 +327,16 @@ const handleMenuClick = async ({ key }) => {
         break;
 
       case 'markUnread':
-        // TODO: 实现标记未读
-        message.info('功能开发中');
+        await window.electron.ipcRenderer.invoke('rss:mark-as-unread', selectedArticle.value.id);
+        selectedArticle.value.is_read = 0;
+
+        // 更新列表中的状态
+        const article = articles.value.find(a => a.id === selectedArticle.value.id);
+        if (article) {
+          article.is_read = 0;
+        }
+
+        message.success('已标记为未读');
         break;
 
       case 'archive':

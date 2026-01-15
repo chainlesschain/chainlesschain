@@ -1563,6 +1563,24 @@ class ChainlessChainApp {
       console.error('[Main] IPC setup failed:', error);
     }
 
+    // 启动 RSS 自动同步
+    if (this.rssIPCHandler) {
+      try {
+        console.log('[Main] 启动 RSS 自动同步...');
+        const feeds = this.database.db.prepare(
+          "SELECT id FROM rss_feeds WHERE status = 'active'"
+        ).all();
+
+        for (const feed of feeds) {
+          this.rssIPCHandler.startAutoSync(feed.id);
+        }
+
+        console.log(`[Main] ✓ 已启动 ${feeds.length} 个 RSS 订阅源的自动同步`);
+      } catch (error) {
+        console.error('[Main] RSS 自动同步启动失败:', error);
+      }
+    }
+
     // 注册全局快捷键
     this.registerGlobalShortcuts();
 

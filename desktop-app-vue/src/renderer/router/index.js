@@ -413,7 +413,7 @@ const routes = [
         meta: { title: 'RSS订阅' },
       },
       {
-        path: 'rss/article/:id',
+        path: 'rss/article/:feedId',
         name: 'RSSArticle',
         component: () => import('../pages/rss/ArticleReader.vue'),
         meta: { title: '文章阅读' },
