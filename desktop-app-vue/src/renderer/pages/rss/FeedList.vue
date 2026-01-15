@@ -263,6 +263,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import {
   PlusOutlined,
@@ -283,6 +284,8 @@ import 'dayjs/locale/zh-cn';
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
+const router = useRouter();
+
 // 状态
 const loading = ref(false);
 const refreshing = ref(false);
@@ -294,6 +297,7 @@ const unreadCount = ref(0);
 // 添加订阅
 const addFeedModalVisible = ref(false);
 const addingFeed = ref(false);
+const editingFeedId = ref(null);
 const feedForm = reactive({
   url: '',
   category: null,
@@ -372,6 +376,7 @@ const showAddFeedModal = () => {
   feedForm.autoSync = true;
   feedValidation.valid = false;
   feedValidation.error = '';
+  editingFeedId.value = null;
   addFeedModalVisible.value = true;
 };
 
@@ -403,19 +408,36 @@ const handleAddFeed = async () => {
 
   addingFeed.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('rss:add-feed', feedForm.url, {
-      category: feedForm.category,
-      updateFrequency: feedForm.updateFrequency,
-      autoSync: feedForm.autoSync,
-    });
+    if (editingFeedId.value) {
+      // 更新现有订阅源
+      const result = await window.electron.ipcRenderer.invoke('rss:update-feed', editingFeedId.value, {
+        url: feedForm.url,
+        category: feedForm.category,
+        update_frequency: feedForm.updateFrequency,
+      });
 
-    if (result.success) {
-      message.success('订阅添加成功');
-      addFeedModalVisible.value = false;
-      await loadFeeds();
+      if (result.success) {
+        message.success('订阅更新成功');
+        addFeedModalVisible.value = false;
+        editingFeedId.value = null;
+        await loadFeeds();
+      }
+    } else {
+      // 添加新订阅源
+      const result = await window.electron.ipcRenderer.invoke('rss:add-feed', feedForm.url, {
+        category: feedForm.category,
+        updateFrequency: feedForm.updateFrequency,
+        autoSync: feedForm.autoSync,
+      });
+
+      if (result.success) {
+        message.success('订阅添加成功');
+        addFeedModalVisible.value = false;
+        await loadFeeds();
+      }
     }
   } catch (error) {
-    message.error('添加订阅失败: ' + error.message);
+    message.error(editingFeedId.value ? '更新订阅失败: ' + error.message : '添加订阅失败: ' + error.message);
   } finally {
     addingFeed.value = false;
   }
@@ -472,13 +494,26 @@ const deleteFeed = async (feedId) => {
 };
 
 const editFeed = (feed) => {
-  // TODO: 实现编辑功能
-  message.info('编辑功能开发中');
+  // 填充表单
+  feedForm.url = feed.url;
+  feedForm.category = feed.category;
+  feedForm.updateFrequency = feed.update_frequency;
+  feedForm.autoSync = feed.status === 'active';
+
+  // 清除验证状态
+  feedValidation.valid = false;
+  feedValidation.error = '';
+
+  // 设置编辑模式
+  editingFeedId.value = feed.id;
+  addFeedModalVisible.value = true;
 };
 
 const viewFeedArticles = (feed) => {
-  // TODO: 跳转到文章列表页面
-  message.info('查看文章: ' + feed.title);
+  router.push({
+    name: 'RSSArticle',
+    params: { feedId: feed.id }
+  });
 };
 
 const discoverFeeds = () => {

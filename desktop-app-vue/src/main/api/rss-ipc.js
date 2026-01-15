@@ -62,6 +62,10 @@ class RSSIPCHandler {
       return this.markAsRead(itemId);
     });
 
+    ipcMain.handle('rss:mark-as-unread', async (event, itemId) => {
+      return this.markAsUnread(itemId);
+    });
+
     ipcMain.handle('rss:mark-as-starred', async (event, itemId, starred = true) => {
       return this.markAsStarred(itemId, starred);
     });
@@ -344,6 +348,21 @@ class RSSIPCHandler {
       return { success: true };
     } catch (error) {
       console.error('[RSSIPCHandler] 标记已读失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 标记为未读
+   */
+  async markAsUnread(itemId) {
+    try {
+      const stmt = this.database.db.prepare('UPDATE rss_items SET is_read = 0 WHERE id = ?');
+      stmt.run([itemId]);
+
+      return { success: true };
+    } catch (error) {
+      console.error('[RSSIPCHandler] 标记未读失败:', error);
       throw error;
     }
   }
