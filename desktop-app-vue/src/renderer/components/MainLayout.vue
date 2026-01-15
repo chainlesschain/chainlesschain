@@ -17,6 +17,33 @@
         <h2 v-if="!sidebarCollapsed">ChainlessChain</h2>
       </div>
 
+      <!-- 快捷访问区域 -->
+      <div v-if="!sidebarCollapsed && store.favoriteMenus.length > 0" class="quick-access-section">
+        <div class="section-header">
+          <StarFilled class="section-icon" />
+          <span class="section-title">快捷访问</span>
+          <a-button type="text" size="small" class="manage-btn" @click="showFavoriteManager = true">
+            <SettingOutlined />
+          </a-button>
+        </div>
+
+        <div class="quick-access-items">
+          <a-tooltip
+            v-for="item in store.favoriteMenus.slice(0, 8)"
+            :key="item.key"
+            :title="item.title"
+            placement="right"
+          >
+            <div
+              class="quick-access-item"
+              @click="handleQuickAccessClick(item)"
+            >
+              <component :is="getIconComponent(item.icon)" />
+            </div>
+          </a-tooltip>
+        </div>
+      </div>
+
       <!-- 菜单容器 - 添加滚动 -->
       <div class="menu-container">
         <a-menu
@@ -35,35 +62,36 @@
           </template>
                     <a-menu-item key="project-categories">
             <template #icon><AppstoreOutlined /></template>
-            项目分类
+            <span @contextmenu="showContextMenu($event, 'project-categories')">项目分类</span>
           </a-menu-item>
           <a-menu-item key="projects">
             <template #icon><FolderOpenOutlined /></template>
-            我的项目
+            <span @contextmenu="showContextMenu($event, 'projects')">我的项目</span>
+            <span class="menu-shortcut">Alt+1</span>
           </a-menu-item>
           <a-menu-item key="project-list-management">
             <template #icon><TableOutlined /></template>
-            项目列表管理
+            <span @contextmenu="showContextMenu($event, 'project-list-management')">项目列表管理</span>
           </a-menu-item>
           <a-menu-item key="workspace-management">
             <template #icon><ApartmentOutlined /></template>
-            工作区管理
+            <span @contextmenu="showContextMenu($event, 'workspace-management')">工作区管理</span>
           </a-menu-item>
           <a-menu-item key="template-management">
             <template #icon><TagsOutlined /></template>
-            模板管理
+            <span @contextmenu="showContextMenu($event, 'template-management')">模板管理</span>
           </a-menu-item>
           <a-menu-item key="project-market">
             <template #icon><ShopOutlined /></template>
-            项目市场
+            <span @contextmenu="showContextMenu($event, 'project-market')">项目市场</span>
           </a-menu-item>
           <a-menu-item key="project-collaboration">
             <template #icon><TeamOutlined /></template>
-            协作项目
+            <span @contextmenu="showContextMenu($event, 'project-collaboration')">协作项目</span>
           </a-menu-item>
           <a-menu-item key="project-archived">
             <template #icon><InboxOutlined /></template>
-            已归档项目
+            <span @contextmenu="showContextMenu($event, 'project-archived')">已归档项目</span>
           </a-menu-item>
         </a-sub-menu>
 
@@ -77,7 +105,8 @@
           </a-menu-item>
           <a-menu-item key="knowledge-list">
             <template #icon><FileTextOutlined /></template>
-            我的知识
+            <span @contextmenu="showContextMenu($event, 'knowledge-list')">我的知识</span>
+            <span class="menu-shortcut">Alt+2</span>
           </a-menu-item>
           <a-menu-item key="knowledge-graph">
             <template #icon><NodeIndexOutlined /></template>
@@ -105,7 +134,8 @@
           </a-menu-item>
           <a-menu-item key="ai-chat">
             <template #icon><RobotOutlined /></template>
-            AI对话
+            <span @contextmenu="showContextMenu($event, 'ai-chat')">AI对话</span>
+            <span class="menu-shortcut">Alt+3</span>
           </a-menu-item>
           <a-menu-item key="knowledge-store">
             <template #icon><ShopOutlined /></template>
@@ -123,7 +153,8 @@
           <template #title>身份与社交</template>
           <a-menu-item key="did">
             <template #icon><IdcardOutlined /></template>
-            DID身份
+            <span @contextmenu="showContextMenu($event, 'did')">DID身份</span>
+            <span class="menu-shortcut">Alt+4</span>
           </a-menu-item>
           <a-menu-item key="credentials">
             <template #icon><SafetyCertificateOutlined /></template>
@@ -154,7 +185,8 @@
           <!-- 统一入口 -->
           <a-menu-item key="trading">
             <template #icon><DashboardOutlined /></template>
-            交易中心
+            <span @contextmenu="showContextMenu($event, 'trading')">交易中心</span>
+            <span class="menu-shortcut">Alt+5</span>
           </a-menu-item>
           <a-menu-divider />
           <!-- 快捷入口 -->
@@ -188,7 +220,8 @@
           <template #title>开发工具</template>
           <a-menu-item key="webide">
             <template #icon><CodeOutlined /></template>
-            Web IDE
+            <span @contextmenu="showContextMenu($event, 'webide')">Web IDE</span>
+            <span class="menu-shortcut">Alt+6</span>
             <a-badge count="新" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
           </a-menu-item>
           <a-menu-item key="design-editor">
@@ -220,7 +253,8 @@
           </template>
           <a-menu-item key="organizations">
             <template #icon><ApartmentOutlined /></template>
-            组织管理
+            <span @contextmenu="showContextMenu($event, 'organizations')">组织管理</span>
+            <span class="menu-shortcut">Alt+7</span>
           </a-menu-item>
           <a-menu-item key="enterprise-dashboard">
             <template #icon><DashboardOutlined /></template>
@@ -238,7 +272,8 @@
           <template #title>系统设置</template>
           <a-menu-item key="system-settings">
             <template #icon><SettingOutlined /></template>
-            系统配置
+            <span @contextmenu="showContextMenu($event, 'system-settings')">系统配置</span>
+            <span class="menu-shortcut">Alt+8</span>
             <a-badge count="新" :number-style="{ backgroundColor: '#1890ff', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
           </a-menu-item>
           <a-menu-item key="settings">
@@ -322,10 +357,38 @@
               返回首页
             </a-button>
           </div>
+
+          <!-- 面包屑导航 -->
+          <a-breadcrumb v-if="breadcrumbs.length > 1" class="breadcrumb-nav" separator=">">
+            <a-breadcrumb-item
+              v-for="(item, index) in breadcrumbs"
+              :key="index"
+            >
+              <a
+                v-if="item.path && index < breadcrumbs.length - 1"
+                @click="handleBreadcrumbClick(item)"
+                class="breadcrumb-link"
+              >
+                <component v-if="item.icon" :is="getIconComponent(item.icon)" class="breadcrumb-icon" />
+                {{ item.title }}
+              </a>
+              <span v-else class="breadcrumb-current">
+                <component v-if="item.icon" :is="getIconComponent(item.icon)" class="breadcrumb-icon" />
+                {{ item.title }}
+              </span>
+            </a-breadcrumb-item>
+          </a-breadcrumb>
         </div>
 
         <div class="header-right">
           <a-space :size="16">
+            <!-- 搜索按钮 -->
+            <a-tooltip title="搜索菜单 (Ctrl+K)">
+              <a-button type="text" @click="showCommandPalette" class="search-btn">
+                <SearchOutlined />
+              </a-button>
+            </a-tooltip>
+
             <!-- 同步状态 -->
             <a-tooltip :title="syncTooltip">
               <a-button type="text" @click="handleSyncClick" :loading="isSyncing">
@@ -468,6 +531,107 @@
         @command="handleVoiceCommand"
       />
     </div>
+
+    <!-- 命令面板 -->
+    <CommandPalette ref="commandPaletteRef" />
+
+    <!-- 收藏管理对话框 -->
+    <a-modal
+      v-model:open="showFavoriteManager"
+      title="管理快捷访问"
+      :width="600"
+      :footer="null"
+    >
+      <div class="favorite-manager">
+        <a-tabs v-model:activeKey="favoriteTab">
+          <a-tab-pane key="favorites" tab="收藏">
+            <a-list
+              :data-source="store.favoriteMenus"
+              :locale="{ emptyText: '暂无收藏' }"
+            >
+              <template #renderItem="{ item }">
+                <a-list-item>
+                  <template #actions>
+                    <a-button type="text" danger @click="store.removeFavoriteMenu(item.key)">
+                      <DeleteOutlined />
+                    </a-button>
+                  </template>
+                  <a-list-item-meta>
+                    <template #avatar>
+                      <component :is="getIconComponent(item.icon)" :style="{ fontSize: '20px' }" />
+                    </template>
+                    <template #title>{{ item.title }}</template>
+                    <template #description>{{ item.path }}</template>
+                  </a-list-item-meta>
+                </a-list-item>
+              </template>
+            </a-list>
+          </a-tab-pane>
+
+          <a-tab-pane key="recents" tab="最近访问">
+            <div class="recents-header">
+              <span>最近访问的 {{ store.recentMenus.length }} 个菜单</span>
+              <a-button type="link" size="small" @click="store.clearRecentMenus()">
+                清空
+              </a-button>
+            </div>
+            <a-list
+              :data-source="store.recentMenus"
+              :locale="{ emptyText: '暂无访问记录' }"
+            >
+              <template #renderItem="{ item }">
+                <a-list-item>
+                  <template #actions>
+                    <a-button type="text" @click="handleQuickAccessClick(item)">
+                      <ArrowRightOutlined />
+                    </a-button>
+                  </template>
+                  <a-list-item-meta>
+                    <template #avatar>
+                      <component :is="getIconComponent(item.icon)" :style="{ fontSize: '20px' }" />
+                    </template>
+                    <template #title>{{ item.title }}</template>
+                    <template #description>
+                      {{ formatTime(item.visitedAt) }}
+                    </template>
+                  </a-list-item-meta>
+                </a-list-item>
+              </template>
+            </a-list>
+          </a-tab-pane>
+        </a-tabs>
+      </div>
+    </a-modal>
+
+    <!-- 右键菜单 -->
+    <a-dropdown
+      v-model:open="contextMenuVisible"
+      :trigger="['contextmenu']"
+      :get-popup-container="() => document.body"
+    >
+      <div
+        :style="{
+          position: 'fixed',
+          left: contextMenuPosition.x + 'px',
+          top: contextMenuPosition.y + 'px',
+          width: '1px',
+          height: '1px'
+        }"
+      ></div>
+      <template #overlay>
+        <a-menu @click="contextMenuVisible = false">
+          <a-menu-item @click="toggleFavorite">
+            <StarFilled v-if="currentMenuItem && store.isFavoriteMenu(currentMenuItem.key)" />
+            <StarOutlined v-else />
+            {{ currentMenuItem && store.isFavoriteMenu(currentMenuItem.key) ? '取消收藏' : '添加收藏' }}
+          </a-menu-item>
+          <a-menu-item @click="pinToTop">
+            <PushpinOutlined />
+            {{ currentMenuItem && store.isPinnedMenu(currentMenuItem.key) ? '取消置顶' : '置顶' }}
+          </a-menu-item>
+        </a-menu>
+      </template>
+    </a-dropdown>
   </a-layout>
 </template>
 
@@ -526,6 +690,11 @@ import {
   RssOutlined,
   MailOutlined,
   BankOutlined,
+  StarFilled,
+  StarOutlined,
+  DeleteOutlined,
+  ArrowRightOutlined,
+  PushpinOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { useSocialStore } from '../stores/social';
@@ -535,11 +704,25 @@ import LanguageSwitcher from './LanguageSwitcher.vue';
 import NotificationCenter from './social/NotificationCenter.vue';
 import DatabaseEncryptionStatus from './DatabaseEncryptionStatus.vue';
 import VoiceFeedbackWidget from './VoiceFeedbackWidget.vue';
+import CommandPalette from './common/CommandPalette.vue';
+import { registerMenuCommands } from '../utils/keyboard-shortcuts';
 
 const router = useRouter();
 const route = useRoute();
 const store = useAppStore();
 const socialStore = useSocialStore();
+
+// 命令面板引用
+const commandPaletteRef = ref(null);
+
+// 收藏管理对话框
+const showFavoriteManager = ref(false);
+const favoriteTab = ref('favorites');
+
+// 右键菜单
+const contextMenuVisible = ref(false);
+const contextMenuPosition = ref({ x: 0, y: 0 });
+const currentMenuItem = ref(null);
 
 const sidebarCollapsed = computed({
   get: () => store.sidebarCollapsed,
@@ -673,6 +856,15 @@ const handleMenuClick = ({ key }) => {
   const config = menuConfig[key];
   if (!config) return;
 
+  // 添加到最近访问
+  store.addRecentMenu({
+    key,
+    title: config.title,
+    path: config.path,
+    icon: getMenuIcon(key),
+    query: config.query
+  });
+
   // 添加标签页
   store.addTab({
     key,
@@ -794,8 +986,363 @@ const syncTooltip = computed(() => {
   return '等待同步';
 });
 
+// ==================== 命令面板 ====================
+
+/**
+ * 显示命令面板
+ */
+const showCommandPalette = () => {
+  commandPaletteRef.value?.show();
+};
+
+/**
+ * 监听快捷键事件
+ */
+const handleKeyboardShortcut = (event) => {
+  // Ctrl+K 或 Cmd+K 打开命令面板
+  if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+    event.preventDefault();
+    showCommandPalette();
+  }
+};
+
+// ==================== 快捷访问 ====================
+
+/**
+ * 获取图标组件
+ */
+const getIconComponent = (iconName) => {
+  const iconMap = {
+    'AppstoreOutlined': AppstoreOutlined,
+    'FolderOpenOutlined': FolderOpenOutlined,
+    'TableOutlined': TableOutlined,
+    'ApartmentOutlined': ApartmentOutlined,
+    'TagsOutlined': TagsOutlined,
+    'ShopOutlined': ShopOutlined,
+    'TeamOutlined': TeamOutlined,
+    'InboxOutlined': InboxOutlined,
+    'HomeOutlined': HomeOutlined,
+    'FileTextOutlined': FileTextOutlined,
+    'NodeIndexOutlined': NodeIndexOutlined,
+    'CloudUploadOutlined': CloudUploadOutlined,
+    'FileImageOutlined': FileImageOutlined,
+    'SoundOutlined': SoundOutlined,
+    'VideoCameraOutlined': VideoCameraOutlined,
+    'RobotOutlined': RobotOutlined,
+    'ShoppingCartOutlined': ShoppingCartOutlined,
+    'IdcardOutlined': IdcardOutlined,
+    'SafetyCertificateOutlined': SafetyCertificateOutlined,
+    'UserOutlined': UserOutlined,
+    'CommentOutlined': CommentOutlined,
+    'MessageOutlined': MessageOutlined,
+    'DashboardOutlined': DashboardOutlined,
+    'AuditOutlined': AuditOutlined,
+    'StarOutlined': StarOutlined,
+    'WalletOutlined': WalletOutlined,
+    'SwapOutlined': SwapOutlined,
+    'CodeOutlined': CodeOutlined,
+    'BgColorsOutlined': BgColorsOutlined,
+    'RssOutlined': RssOutlined,
+    'MailOutlined': MailOutlined,
+    'BankOutlined': BankOutlined,
+    'SettingOutlined': SettingOutlined,
+    'ThunderboltOutlined': ThunderboltOutlined,
+    'ToolOutlined': ToolOutlined,
+    'ApiOutlined': ApiOutlined,
+    'DatabaseOutlined': DatabaseOutlined,
+    'SyncOutlined': SyncOutlined,
+    'ExclamationCircleOutlined': ExclamationCircleOutlined,
+    'SafetyOutlined': SafetyOutlined,
+  };
+  return iconMap[iconName] || FileTextOutlined;
+};
+
+/**
+ * 获取菜单图标名称
+ */
+const getMenuIcon = (key) => {
+  const iconMap = {
+    'project-categories': 'AppstoreOutlined',
+    'projects': 'FolderOpenOutlined',
+    'project-list-management': 'TableOutlined',
+    'workspace-management': 'ApartmentOutlined',
+    'template-management': 'TagsOutlined',
+    'project-market': 'ShopOutlined',
+    'project-collaboration': 'TeamOutlined',
+    'project-archived': 'InboxOutlined',
+    'home': 'HomeOutlined',
+    'knowledge-list': 'FileTextOutlined',
+    'knowledge-graph': 'NodeIndexOutlined',
+    'file-import': 'CloudUploadOutlined',
+    'image-upload': 'FileImageOutlined',
+    'audio-import': 'SoundOutlined',
+    'multimedia-demo': 'VideoCameraOutlined',
+    'prompt-templates': 'TagsOutlined',
+    'ai-chat': 'RobotOutlined',
+    'knowledge-store': 'ShopOutlined',
+    'my-purchases': 'ShoppingCartOutlined',
+    'did': 'IdcardOutlined',
+    'credentials': 'SafetyCertificateOutlined',
+    'contacts': 'TeamOutlined',
+    'friends': 'UserOutlined',
+    'posts': 'CommentOutlined',
+    'p2p-messaging': 'MessageOutlined',
+    'trading': 'DashboardOutlined',
+    'marketplace': 'ShopOutlined',
+    'contracts': 'AuditOutlined',
+    'credit-score': 'StarOutlined',
+    'wallet': 'WalletOutlined',
+    'bridge': 'SwapOutlined',
+    'webide': 'CodeOutlined',
+    'design-editor': 'BgColorsOutlined',
+    'rss-feeds': 'RssOutlined',
+    'email-accounts': 'MailOutlined',
+    'organizations': 'ApartmentOutlined',
+    'enterprise-dashboard': 'DashboardOutlined',
+    'permission-management': 'SafetyCertificateOutlined',
+    'system-settings': 'SettingOutlined',
+    'settings': 'SettingOutlined',
+    'plugin-management': 'AppstoreOutlined',
+    'plugin-marketplace': 'ShopOutlined',
+    'plugin-publisher': 'CloudUploadOutlined',
+    'skill-management': 'ThunderboltOutlined',
+    'tool-management': 'ToolOutlined',
+    'llm-settings': 'ApiOutlined',
+    'rag-settings': 'DatabaseOutlined',
+    'git-settings': 'SyncOutlined',
+    'sync-conflicts': 'ExclamationCircleOutlined',
+    'ukey-settings': 'SafetyOutlined',
+    'database-performance': 'DashboardOutlined',
+  };
+  return iconMap[key] || 'FileTextOutlined';
+};
+
+/**
+ * 处理快捷访问点击
+ */
+const handleQuickAccessClick = (item) => {
+  // 关闭管理对话框
+  showFavoriteManager.value = false;
+
+  // 添加标签页
+  store.addTab({
+    key: item.key,
+    title: item.title,
+    path: item.path,
+    query: item.query,
+    closable: true,
+  });
+
+  // 路由跳转
+  if (item.query) {
+    router.push({ path: item.path, query: item.query });
+  } else {
+    router.push(item.path);
+  }
+};
+
+/**
+ * 格式化时间
+ */
+const formatTime = (timestamp) => {
+  const now = Date.now();
+  const diff = now - timestamp;
+
+  if (diff < 60000) return '刚刚';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`;
+  if (diff < 604800000) return `${Math.floor(diff / 86400000)} 天前`;
+
+  const date = new Date(timestamp);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+};
+
+/**
+ * 显示右键菜单
+ */
+const showContextMenu = (event, key) => {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const config = menuConfig[key];
+  if (!config) return;
+
+  currentMenuItem.value = {
+    key,
+    title: config.title,
+    path: config.path,
+    icon: getMenuIcon(key),
+    query: config.query
+  };
+
+  contextMenuPosition.value = {
+    x: event.clientX,
+    y: event.clientY
+  };
+
+  contextMenuVisible.value = true;
+};
+
+/**
+ * 切换收藏状态
+ */
+const toggleFavorite = () => {
+  if (!currentMenuItem.value) return;
+
+  store.toggleFavoriteMenu(currentMenuItem.value);
+  contextMenuVisible.value = false;
+
+  message.success(
+    store.isFavoriteMenu(currentMenuItem.value.key)
+      ? '已添加到收藏'
+      : '已取消收藏'
+  );
+};
+
+/**
+ * 置顶菜单
+ */
+const pinToTop = () => {
+  if (!currentMenuItem.value) return;
+
+  if (store.isPinnedMenu(currentMenuItem.value.key)) {
+    store.unpinMenu(currentMenuItem.value.key);
+    message.success('已取消置顶');
+  } else {
+    store.pinMenu(currentMenuItem.value.key);
+    message.success('已置顶');
+  }
+
+  contextMenuVisible.value = false;
+};
+
+// ==================== 面包屑导航 ====================
+
+/**
+ * 生成面包屑导航
+ */
+const breadcrumbs = computed(() => {
+  const items = [];
+  const path = route.path;
+
+  // 首页
+  if (path === '/') {
+    items.push({ title: '首页', path: '/', icon: 'HomeOutlined' });
+    return items;
+  }
+
+  // 根据路由生成面包屑
+  items.push({ title: '首页', path: '/', icon: 'HomeOutlined' });
+
+  // 项目管理模块
+  if (path.startsWith('/projects')) {
+    items.push({ title: '项目管理', path: '/projects', icon: 'FolderOutlined' });
+
+    if (path === '/projects/categories') {
+      items.push({ title: '项目分类', path: null });
+    } else if (path === '/projects/management') {
+      items.push({ title: '项目列表管理', path: null });
+    } else if (path === '/projects/workspace') {
+      items.push({ title: '工作区管理', path: null });
+    } else if (path.match(/^\/projects\/\d+/)) {
+      items.push({ title: '项目详情', path: null });
+    }
+  }
+  // 知识与AI模块
+  else if (path.startsWith('/knowledge')) {
+    items.push({ title: '知识与AI', path: '/knowledge/list', icon: 'FileTextOutlined' });
+
+    if (path === '/knowledge/graph') {
+      items.push({ title: '知识图谱', path: null });
+    }
+  }
+  // AI对话
+  else if (path === '/ai/chat') {
+    items.push({ title: 'AI对话', path: null, icon: 'RobotOutlined' });
+  }
+  // 身份与社交模块
+  else if (path.startsWith('/did') || path.startsWith('/credentials') ||
+           path.startsWith('/contacts') || path.startsWith('/friends') ||
+           path.startsWith('/posts') || path.startsWith('/p2p-messaging')) {
+    items.push({ title: '身份与社交', path: '/did', icon: 'TeamOutlined' });
+
+    if (path === '/credentials') {
+      items.push({ title: '可验证凭证', path: null });
+    } else if (path === '/contacts') {
+      items.push({ title: '联系人', path: null });
+    } else if (path === '/friends') {
+      items.push({ title: '好友管理', path: null });
+    } else if (path === '/posts') {
+      items.push({ title: '动态广场', path: null });
+    } else if (path === '/p2p-messaging') {
+      items.push({ title: 'P2P加密消息', path: null });
+    }
+  }
+  // 交易系统模块
+  else if (path.startsWith('/trading') || path.startsWith('/marketplace') ||
+           path.startsWith('/contracts') || path.startsWith('/wallet')) {
+    items.push({ title: '交易系统', path: '/trading', icon: 'ShopOutlined' });
+
+    if (path === '/marketplace') {
+      items.push({ title: '交易市场', path: null });
+    } else if (path === '/contracts') {
+      items.push({ title: '智能合约', path: null });
+    } else if (path === '/wallet') {
+      items.push({ title: '钱包管理', path: null });
+    }
+  }
+  // 开发工具模块
+  else if (path === '/webide') {
+    items.push({ title: 'Web IDE', path: null, icon: 'CodeOutlined' });
+  }
+  // 企业版模块
+  else if (path.startsWith('/organizations') || path.startsWith('/enterprise') || path.startsWith('/permissions')) {
+    items.push({ title: '企业版', path: '/organizations', icon: 'BankOutlined' });
+
+    if (path === '/enterprise/dashboard') {
+      items.push({ title: '企业仪表板', path: null });
+    } else if (path === '/permissions') {
+      items.push({ title: '权限管理', path: null });
+    }
+  }
+  // 系统设置模块
+  else if (path.startsWith('/settings') || path.startsWith('/plugins') ||
+           path.startsWith('/sync') || path.startsWith('/database')) {
+    items.push({ title: '系统设置', path: '/settings', icon: 'SettingOutlined' });
+
+    if (path === '/settings/system') {
+      items.push({ title: '系统配置', path: null });
+    } else if (path === '/settings/plugins') {
+      items.push({ title: '插件管理', path: null });
+    } else if (path === '/plugins/marketplace') {
+      items.push({ title: '插件市场', path: null });
+    } else if (path === '/sync/conflicts') {
+      items.push({ title: '同步冲突管理', path: null });
+    } else if (path === '/database/performance') {
+      items.push({ title: '数据库性能监控', path: null });
+    }
+  }
+
+  return items;
+});
+
+/**
+ * 处理面包屑点击
+ */
+const handleBreadcrumbClick = (item) => {
+  if (item.path) {
+    router.push(item.path);
+  }
+};
+
 // 监听同步事件
 onMounted(async () => {
+  // 初始化菜单数据
+  store.initMenuData();
+
+  // 注册菜单命令
+  registerMenuCommands(router);
+
   // 加载社交数据
   try {
     await Promise.all([
@@ -806,6 +1353,9 @@ onMounted(async () => {
   } catch (error) {
     console.error('加载社交数据失败:', error);
   }
+
+  // 添加快捷键监听
+  window.addEventListener('keydown', handleKeyboardShortcut);
 
   if (window.electronAPI && window.electronAPI.sync) {
     window.electronAPI.sync.onSyncStarted(() => {
@@ -826,6 +1376,11 @@ onMounted(async () => {
       syncError.value = data.error || '同步失败';
     });
   }
+});
+
+onUnmounted(() => {
+  // 移除快捷键监听
+  window.removeEventListener('keydown', handleKeyboardShortcut);
 });
 
 // 手动触发同步
@@ -858,8 +1413,13 @@ const handleSyncClick = async () => {
 }
 
 .layout-sider {
-  background: #001529;
+  background: linear-gradient(180deg, #001529 0%, #002140 100%);
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+.layout-sider:not(.ant-layout-sider-collapsed) {
+  box-shadow: 2px 0 16px rgba(102, 126, 234, 0.15);
 }
 
 .main-content-area {
@@ -936,15 +1496,108 @@ const handleSyncClick = async () => {
 }
 
 .main-menu :deep(.ant-menu-submenu-title) {
-  height: 44px;
-  line-height: 44px;
-  margin: 4px 0;
+  height: 48px;
+  line-height: 48px;
+  margin: 6px 8px;
+  border-radius: 8px;
+  padding: 0 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-menu :deep(.ant-menu-submenu-title):hover {
+  background: rgba(102, 126, 234, 0.15) !important;
+  transform: translateX(4px);
+  animation: menu-item-glow 2s ease-in-out infinite;
 }
 
 .main-menu :deep(.ant-menu-item) {
-  height: 40px;
-  line-height: 40px;
-  margin: 2px 0;
+  height: 42px;
+  line-height: 42px;
+  margin: 4px 12px;
+  border-radius: 6px;
+  padding: 0 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-menu :deep(.ant-menu-item):hover {
+  background: rgba(102, 126, 234, 0.15) !important;
+  transform: translateX(4px);
+  animation: menu-item-glow 2s ease-in-out infinite;
+}
+
+.main-menu :deep(.ant-menu-item-selected) {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.main-menu :deep(.ant-menu-sub .ant-menu-item) {
+  padding-left: 48px !important;
+}
+
+/* 菜单项发光动画 */
+@keyframes menu-item-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(102, 126, 234, 0); }
+  50% { box-shadow: 0 0 12px rgba(102, 126, 234, 0.3); }
+}
+
+/* 子菜单展开动画 */
+@keyframes submenu-expand {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+    transform: translateY(0);
+  }
+}
+
+.main-menu :deep(.ant-menu-sub) {
+  animation: submenu-expand 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Badge脉冲动画 */
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.main-menu :deep(.ant-badge) {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* 图标悬停效果 */
+.main-menu :deep(.ant-menu-item-icon),
+.main-menu :deep(.ant-menu-submenu-title .anticon) {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-menu :deep(.ant-menu-item:hover .ant-menu-item-icon),
+.main-menu :deep(.ant-menu-submenu-title:hover .anticon) {
+  transform: scale(1.2) rotate(5deg);
+}
+
+.main-menu :deep(.ant-menu-item-selected .ant-menu-item-icon) {
+  color: #fff;
+}
+
+/* 快捷键提示 */
+.menu-shortcut {
+  float: right;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  transition: all 0.3s;
+}
+
+.main-menu :deep(.ant-menu-item:hover) .menu-shortcut {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .layout-header {
@@ -998,12 +1651,64 @@ const handleSyncClick = async () => {
   color: #764ba2;
 }
 
+/* 面包屑导航 */
+.breadcrumb-nav {
+  margin-left: 16px;
+  font-size: 14px;
+}
+
+.breadcrumb-nav :deep(.ant-breadcrumb-item) {
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+  transition: color 0.3s;
+  cursor: pointer;
+}
+
+.breadcrumb-link:hover {
+  color: #667eea;
+}
+
+.breadcrumb-current {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #262626;
+  font-weight: 500;
+}
+
+.breadcrumb-icon {
+  font-size: 14px;
+}
+
+.breadcrumb-nav :deep(.ant-breadcrumb-separator) {
+  color: #d9d9d9;
+  margin: 0 8px;
+}
+
 .header-right {
   display: flex;
   align-items: center;
   /* 为Windows窗口控制按钮预留空间，避免与个人中心等按钮重叠 */
   padding-right: 140px;
   -webkit-app-region: no-drag;
+}
+
+.search-btn {
+  font-size: 16px;
+  color: #667eea;
+  transition: all 0.3s;
+}
+
+.search-btn:hover {
+  color: #764ba2;
+  transform: scale(1.1);
 }
 
 .tabs-bar {
@@ -1074,5 +1779,85 @@ const handleSyncClick = async () => {
 /* 当聊天面板打开时,语音组件向左移动 */
 .chat-panel-container:has(+ .voice-feedback-container) {
   /* 聊天面板打开时的样式 */
+}
+
+/* 快捷访问区域 */
+.quick-access-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 8px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.section-icon {
+  font-size: 14px;
+  color: #faad14;
+}
+
+.section-title {
+  flex: 1;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.manage-btn {
+  color: rgba(255, 255, 255, 0.45);
+  padding: 0 4px;
+  height: 20px;
+  font-size: 12px;
+}
+
+.manage-btn:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.quick-access-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-access-item {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 18px;
+}
+
+.quick-access-item:hover {
+  background: rgba(102, 126, 234, 0.3);
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* 收藏管理对话框 */
+.favorite-manager {
+  max-height: 500px;
+}
+
+.recents-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #8c8c8c;
 }
 </style>
