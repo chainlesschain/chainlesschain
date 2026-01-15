@@ -8,7 +8,11 @@
     "dev:app": "uni -p app",
     "build:h5": "uni build",
     "build:mp-weixin": "uni build -p mp-weixin",
-    "build:app": "uni build -p app"
+    "build:app": "uni build -p app",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:watch": "vitest --watch"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-4080420251103001",
@@ -33,8 +37,13 @@
     "@dcloudio/uni-stacktracey": "3.0.0-4080420251103001",
     "@dcloudio/vite-plugin-uni": "3.0.0-4080420251103001",
     "@vue/runtime-core": "^3.4.21",
+    "@vue/test-utils": "^2.4.6",
+    "@vitest/ui": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "happy-dom": "^14.12.0",
     "sass": "^1.77.0",
     "sharp": "^0.34.5",
-    "vite": "5.2.8"
+    "vite": "5.2.8",
+    "vitest": "^1.6.0"
   }
 }
