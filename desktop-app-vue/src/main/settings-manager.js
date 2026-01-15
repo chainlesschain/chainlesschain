@@ -29,6 +29,18 @@ class SettingsManager extends EventEmitter {
    */
   getDefaultSettings() {
     return {
+      // 应用版本设置
+      app: {
+        edition: 'personal', // personal | enterprise
+      },
+
+      // 企业版配置
+      enterprise: {
+        serverUrl: '',
+        tenantId: '',
+        apiKey: '',
+      },
+
       // 通用设置
       general: {
         language: 'zh-CN',
@@ -58,6 +70,175 @@ class SettingsManager extends EventEmitter {
         'global-search': 'CommandOrControl+K',
         'screenshot': 'CommandOrControl+Shift+S',
         'clipboard-history': 'CommandOrControl+Shift+V',
+      },
+
+      // 项目配置
+      project: {
+        rootPath: '',
+        maxSizeMB: 1000,
+        allowedFileTypes: [],
+        autoSync: true,
+        syncIntervalSeconds: 300,
+      },
+
+      // LLM 配置
+      llm: {
+        provider: 'ollama',
+        priority: ['ollama', 'volcengine', 'deepseek'],
+        autoFallback: true,
+        autoSelect: false,
+        selectionStrategy: 'balanced',
+        ollamaHost: 'http://localhost:11434',
+        ollamaModel: 'qwen2:7b',
+        ollamaEmbeddingModel: 'nomic-embed-text',
+        openaiApiKey: '',
+        openaiBaseUrl: 'https://api.openai.com/v1',
+        openaiModel: 'gpt-3.5-turbo',
+        openaiEmbeddingModel: 'text-embedding-3-small',
+        anthropicApiKey: '',
+        anthropicBaseUrl: 'https://api.anthropic.com',
+        anthropicModel: 'claude-3-5-sonnet-20241022',
+        anthropicEmbeddingModel: '',
+        volcengineApiKey: '',
+        volcengineModel: 'doubao-seed-1-6-251015',
+        volcengineEmbeddingModel: 'doubao-embedding-text-240715',
+        dashscopeApiKey: '',
+        dashscopeModel: 'qwen-turbo',
+        dashscopeEmbeddingModel: 'text-embedding-v2',
+        zhipuApiKey: '',
+        zhipuModel: 'glm-4',
+        zhipuEmbeddingModel: 'embedding-2',
+        deepseekApiKey: '',
+        deepseekModel: 'deepseek-chat',
+        deepseekEmbeddingModel: '',
+      },
+
+      // 向量数据库配置
+      vector: {
+        qdrantHost: 'http://localhost:6333',
+        qdrantPort: 6333,
+        qdrantCollection: 'chainlesschain_vectors',
+        embeddingModel: 'bge-base-zh-v1.5',
+        embeddingDimension: 768,
+      },
+
+      // Git 同步配置
+      git: {
+        enabled: false,
+        autoSync: false,
+        autoSyncInterval: 300,
+        userName: '',
+        userEmail: '',
+        remoteUrl: '',
+      },
+
+      // 后端服务配置
+      backend: {
+        projectServiceUrl: 'http://localhost:9090',
+        aiServiceUrl: 'http://localhost:8001',
+      },
+
+      // 数据库配置
+      database: {
+        sqlcipherKey: '',
+      },
+
+      // P2P 网络配置
+      p2p: {
+        transports: {
+          webrtc: { enabled: true },
+          websocket: { enabled: true },
+          tcp: { enabled: true },
+          autoSelect: true,
+        },
+        stun: {
+          servers: [
+            'stun:stun.l.google.com:19302',
+            'stun:stun1.l.google.com:19302',
+            'stun:stun2.l.google.com:19302'
+          ],
+        },
+        turn: {
+          enabled: false,
+          servers: [],
+        },
+        webrtc: {
+          port: 9095,
+          iceTransportPolicy: 'all',
+          iceCandidatePoolSize: 10,
+        },
+        relay: {
+          enabled: true,
+          maxReservations: 2,
+          autoUpgrade: true,
+        },
+        nat: {
+          autoDetect: true,
+          detectionInterval: 3600000,
+        },
+        connection: {
+          dialTimeout: 30000,
+          maxRetries: 3,
+          healthCheckInterval: 60000,
+        },
+        websocket: {
+          port: 9001,
+        },
+        compatibility: {
+          detectLegacy: true,
+        },
+      },
+
+      // 语音识别配置
+      speech: {
+        defaultEngine: 'webspeech',
+        webSpeech: {
+          lang: 'zh-CN',
+          continuous: true,
+          interimResults: true,
+          maxAlternatives: 1,
+        },
+        whisperAPI: {
+          apiKey: '',
+          baseURL: 'https://api.openai.com/v1',
+          model: 'whisper-1',
+          language: 'zh',
+          temperature: 0,
+          responseFormat: 'json',
+          timeout: 60000,
+        },
+        whisperLocal: {
+          serverUrl: 'http://localhost:8002',
+          modelSize: 'base',
+          device: 'auto',
+          timeout: 120000,
+        },
+        audio: {
+          targetFormat: 'wav',
+          targetSampleRate: 16000,
+          targetChannels: 1,
+          maxFileSize: 26214400, // 25MB
+          maxDuration: 3600,
+          segmentDuration: 300,
+          supportedFormats: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'webm'],
+        },
+        storage: {
+          savePath: '',
+          keepOriginal: true,
+          keepProcessed: false,
+          autoCleanup: true,
+          cleanupAfterDays: 30,
+        },
+        knowledgeIntegration: {
+          autoSaveToKnowledge: true,
+          autoAddToIndex: true,
+          defaultType: 'note',
+        },
+        performance: {
+          maxConcurrentJobs: 2,
+          enableCache: true,
+          cacheExpiration: 3600000,
+        },
       },
 
       // 同步设置
