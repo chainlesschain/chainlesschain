@@ -405,6 +405,89 @@ const routes = [
         component: () => import('../pages/OrganizationKnowledgePage.vue'),
         meta: { title: '组织知识库' },
       },
+      // ===== 内容聚合模块 =====
+      {
+        path: 'rss/feeds',
+        name: 'RSSFeeds',
+        component: () => import('../pages/rss/FeedList.vue'),
+        meta: { title: 'RSS订阅' },
+      },
+      {
+        path: 'rss/article/:id',
+        name: 'RSSArticle',
+        component: () => import('../pages/rss/ArticleReader.vue'),
+        meta: { title: '文章阅读' },
+      },
+      {
+        path: 'email/accounts',
+        name: 'EmailAccounts',
+        component: () => import('../pages/email/AccountManager.vue'),
+        meta: { title: '邮件管理' },
+      },
+      {
+        path: 'email/compose',
+        name: 'EmailCompose',
+        component: () => import('../pages/email/EmailComposer.vue'),
+        meta: { title: '写邮件' },
+      },
+      {
+        path: 'email/read/:id',
+        name: 'EmailRead',
+        component: () => import('../pages/email/EmailReader.vue'),
+        meta: { title: '阅读邮件' },
+      },
+      // ===== 插件生态扩展 =====
+      {
+        path: 'plugins/marketplace',
+        name: 'PluginMarketplace',
+        component: () => import('../pages/PluginMarketplace.vue'),
+        meta: { title: '插件市场' },
+      },
+      {
+        path: 'plugins/publisher',
+        name: 'PluginPublisher',
+        component: () => import('../pages/PluginPublisher.vue'),
+        meta: { title: '插件发布' },
+      },
+      // ===== 多媒体处理 =====
+      {
+        path: 'audio/import',
+        name: 'AudioImport',
+        component: () => import('../pages/AudioImportPage.vue'),
+        meta: { title: '音频导入' },
+      },
+      {
+        path: 'multimedia/demo',
+        name: 'MultimediaDemo',
+        component: () => import('../pages/MultimediaDemo.vue'),
+        meta: { title: '多媒体处理' },
+      },
+      // ===== 系统监控与维护 =====
+      {
+        path: 'database/performance',
+        name: 'DatabasePerformance',
+        component: () => import('../pages/DatabasePerformancePage.vue'),
+        meta: { title: '数据库性能监控' },
+      },
+      {
+        path: 'sync/conflicts',
+        name: 'SyncConflicts',
+        component: () => import('../pages/SyncConflictsPage.vue'),
+        meta: { title: '同步冲突管理' },
+      },
+      // ===== 企业版功能 =====
+      {
+        path: 'enterprise/dashboard',
+        name: 'EnterpriseDashboard',
+        component: () => import('../pages/EnterpriseDashboard.vue'),
+        meta: { title: '企业仪表板' },
+      },
+      {
+        path: 'permissions',
+        name: 'PermissionManagement',
+        component: () => import('../pages/PermissionManagementPage.vue'),
+        meta: { title: '权限管理' },
+      },
     ],
   },
 ];
