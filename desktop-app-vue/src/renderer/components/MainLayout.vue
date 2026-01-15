@@ -53,29 +53,96 @@
           class="main-menu"
           @click="handleMenuClick"
         >
-        <!-- 项目管理 ⭐核心模块 -->
-        <a-sub-menu key="project-management">
-          <template #icon><FolderOutlined /></template>
+        <!-- 1. 工作台 ⭐高频功能集合 -->
+        <a-sub-menu key="workspace">
+          <template #icon><DashboardOutlined /></template>
           <template #title>
-            <span>项目管理</span>
+            <span>工作台</span>
             <a-badge count="核心" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
           </template>
-                    <a-menu-item key="project-categories">
-            <template #icon><AppstoreOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'project-categories')">项目分类</span>
+          <a-menu-item key="home">
+            <template #icon><HomeOutlined /></template>
+            知识首页
           </a-menu-item>
           <a-menu-item key="projects">
             <template #icon><FolderOpenOutlined /></template>
             <span @contextmenu="showContextMenu($event, 'projects')">我的项目</span>
             <span class="menu-shortcut">Alt+1</span>
           </a-menu-item>
-          <a-menu-item key="project-list-management">
-            <template #icon><TableOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'project-list-management')">项目列表管理</span>
+          <a-menu-item key="knowledge-list">
+            <template #icon><FileTextOutlined /></template>
+            <span @contextmenu="showContextMenu($event, 'knowledge-list')">我的知识</span>
+            <span class="menu-shortcut">Alt+2</span>
+          </a-menu-item>
+          <a-menu-item key="ai-chat">
+            <template #icon><RobotOutlined /></template>
+            <span @contextmenu="showContextMenu($event, 'ai-chat')">AI对话</span>
+            <span class="menu-shortcut">Alt+3</span>
           </a-menu-item>
           <a-menu-item key="workspace-management">
             <template #icon><ApartmentOutlined /></template>
             <span @contextmenu="showContextMenu($event, 'workspace-management')">工作区管理</span>
+          </a-menu-item>
+        </a-sub-menu>
+
+        <!-- 2. 知识管理 -->
+        <a-sub-menu key="knowledge-management">
+          <template #icon><FileTextOutlined /></template>
+          <template #title>知识管理</template>
+          <a-menu-item key="knowledge-graph">
+            <template #icon><NodeIndexOutlined /></template>
+            知识图谱
+          </a-menu-item>
+          <a-menu-item key="file-import">
+            <template #icon><CloudUploadOutlined /></template>
+            文件导入
+          </a-menu-item>
+          <a-menu-item key="image-upload">
+            <template #icon><FileImageOutlined /></template>
+            图片上传
+          </a-menu-item>
+          <a-menu-item key="prompt-templates">
+            <template #icon><TagsOutlined /></template>
+            提示词模板
+          </a-menu-item>
+          <a-menu-item key="knowledge-store">
+            <template #icon><ShopOutlined /></template>
+            知识付费
+          </a-menu-item>
+        </a-sub-menu>
+
+        <!-- 3. AI工具 -->
+        <a-sub-menu key="ai-tools">
+          <template #icon><RobotOutlined /></template>
+          <template #title>
+            <span>AI工具</span>
+            <a-badge count="新" :number-style="{ backgroundColor: '#1890ff', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
+          </template>
+          <a-menu-item key="audio-import">
+            <template #icon><SoundOutlined /></template>
+            音频导入
+          </a-menu-item>
+          <a-menu-item key="multimedia-demo">
+            <template #icon><VideoCameraOutlined /></template>
+            多媒体处理
+          </a-menu-item>
+          <a-menu-item key="my-purchases">
+            <template #icon><ShoppingCartOutlined /></template>
+            我的购买
+          </a-menu-item>
+        </a-sub-menu>
+
+        <!-- 4. 项目管理 -->
+        <a-sub-menu key="project-management">
+          <template #icon><FolderOutlined /></template>
+          <template #title>项目管理</template>
+          <a-menu-item key="project-categories">
+            <template #icon><AppstoreOutlined /></template>
+            <span @contextmenu="showContextMenu($event, 'project-categories')">项目分类</span>
+          </a-menu-item>
+          <a-menu-item key="project-list-management">
+            <template #icon><TableOutlined /></template>
+            <span @contextmenu="showContextMenu($event, 'project-list-management')">项目列表管理</span>
           </a-menu-item>
           <a-menu-item key="template-management">
             <template #icon><TagsOutlined /></template>
@@ -95,62 +162,10 @@
           </a-menu-item>
         </a-sub-menu>
 
-        <!-- 知识与AI -->
-        <a-sub-menu key="knowledge">
-          <template #icon><FileTextOutlined /></template>
-          <template #title>知识与AI</template>
-          <a-menu-item key="home">
-            <template #icon><HomeOutlined /></template>
-            知识首页
-          </a-menu-item>
-          <a-menu-item key="knowledge-list">
-            <template #icon><FileTextOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'knowledge-list')">我的知识</span>
-            <span class="menu-shortcut">Alt+2</span>
-          </a-menu-item>
-          <a-menu-item key="knowledge-graph">
-            <template #icon><NodeIndexOutlined /></template>
-            知识图谱
-          </a-menu-item>
-          <a-menu-item key="file-import">
-            <template #icon><CloudUploadOutlined /></template>
-            文件导入
-          </a-menu-item>
-          <a-menu-item key="image-upload">
-            <template #icon><FileImageOutlined /></template>
-            图片上传
-          </a-menu-item>
-          <a-menu-item key="audio-import">
-            <template #icon><SoundOutlined /></template>
-            音频导入
-          </a-menu-item>
-          <a-menu-item key="multimedia-demo">
-            <template #icon><VideoCameraOutlined /></template>
-            多媒体处理
-          </a-menu-item>
-          <a-menu-item key="prompt-templates">
-            <template #icon><TagsOutlined /></template>
-            提示词模板
-          </a-menu-item>
-          <a-menu-item key="ai-chat">
-            <template #icon><RobotOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'ai-chat')">AI对话</span>
-            <span class="menu-shortcut">Alt+3</span>
-          </a-menu-item>
-          <a-menu-item key="knowledge-store">
-            <template #icon><ShopOutlined /></template>
-            知识付费
-          </a-menu-item>
-          <a-menu-item key="my-purchases">
-            <template #icon><ShoppingCartOutlined /></template>
-            我的购买
-          </a-menu-item>
-        </a-sub-menu>
-
-        <!-- 身份与社交 -->
+        <!-- 5. 社交网络 -->
         <a-sub-menu key="social">
           <template #icon><TeamOutlined /></template>
-          <template #title>身份与社交</template>
+          <template #title>社交网络</template>
           <a-menu-item key="did">
             <template #icon><IdcardOutlined /></template>
             <span @contextmenu="showContextMenu($event, 'did')">DID身份</span>
@@ -178,18 +193,15 @@
           </a-menu-item>
         </a-sub-menu>
 
-        <!-- 交易系统 -->
+        <!-- 6. 交易市场 -->
         <a-sub-menu key="trade">
           <template #icon><ShopOutlined /></template>
-          <template #title>交易系统</template>
-          <!-- 统一入口 -->
+          <template #title>交易市场</template>
           <a-menu-item key="trading">
             <template #icon><DashboardOutlined /></template>
             <span @contextmenu="showContextMenu($event, 'trading')">交易中心</span>
             <span class="menu-shortcut">Alt+5</span>
           </a-menu-item>
-          <a-menu-divider />
-          <!-- 快捷入口 -->
           <a-menu-item key="marketplace">
             <template #icon><ShopOutlined /></template>
             交易市场
@@ -202,8 +214,6 @@
             <template #icon><StarOutlined /></template>
             信用评分
           </a-menu-item>
-          <a-menu-divider />
-          <!-- 区块链钱包 -->
           <a-menu-item key="wallet">
             <template #icon><WalletOutlined /></template>
             钱包管理
@@ -214,26 +224,22 @@
           </a-menu-item>
         </a-sub-menu>
 
-        <!-- 开发工具 -->
+        <!-- 7. 开发与设计 -->
         <a-sub-menu key="dev-tools">
           <template #icon><CodeOutlined /></template>
-          <template #title>开发工具</template>
+          <template #title>
+            <span>开发与设计</span>
+            <a-badge count="新" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
+          </template>
           <a-menu-item key="webide">
             <template #icon><CodeOutlined /></template>
             <span @contextmenu="showContextMenu($event, 'webide')">Web IDE</span>
             <span class="menu-shortcut">Alt+6</span>
-            <a-badge count="新" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
           </a-menu-item>
           <a-menu-item key="design-editor">
             <template #icon><BgColorsOutlined /></template>
             设计编辑器
           </a-menu-item>
-        </a-sub-menu>
-
-        <!-- 内容聚合 -->
-        <a-sub-menu key="content-aggregation">
-          <template #icon><GlobalOutlined /></template>
-          <template #title>内容聚合</template>
           <a-menu-item key="rss-feeds">
             <template #icon><RssOutlined /></template>
             RSS订阅
@@ -244,7 +250,7 @@
           </a-menu-item>
         </a-sub-menu>
 
-        <!-- 企业版 -->
+        <!-- 8. 企业版 -->
         <a-sub-menu key="enterprise">
           <template #icon><BankOutlined /></template>
           <template #title>
@@ -266,75 +272,79 @@
           </a-menu-item>
         </a-sub-menu>
 
-        <!-- 系统设置 -->
+        <!-- 9. 系统设置 -->
         <a-sub-menu key="system">
           <template #icon><SettingOutlined /></template>
           <template #title>系统设置</template>
-          <a-menu-item key="system-settings">
-            <template #icon><SettingOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'system-settings')">系统配置</span>
-            <span class="menu-shortcut">Alt+8</span>
-            <a-badge count="新" :number-style="{ backgroundColor: '#1890ff', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
-          </a-menu-item>
-          <a-menu-item key="settings">
-            <template #icon><SettingOutlined /></template>
-            通用设置
-          </a-menu-item>
-          <a-menu-divider />
+
+          <!-- 基础配置 -->
+          <a-menu-item-group title="基础配置">
+            <a-menu-item key="system-settings">
+              <template #icon><SettingOutlined /></template>
+              <span @contextmenu="showContextMenu($event, 'system-settings')">系统配置</span>
+              <span class="menu-shortcut">Alt+8</span>
+            </a-menu-item>
+            <a-menu-item key="settings">
+              <template #icon><SettingOutlined /></template>
+              通用设置
+            </a-menu-item>
+          </a-menu-item-group>
+
           <!-- 插件生态 -->
-          <a-menu-item key="plugin-management">
-            <template #icon><AppstoreOutlined /></template>
-            插件管理
-            <a-badge count="新" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
-          </a-menu-item>
-          <a-menu-item key="plugin-marketplace">
-            <template #icon><ShopOutlined /></template>
-            插件市场
-          </a-menu-item>
-          <a-menu-item key="plugin-publisher">
-            <template #icon><CloudUploadOutlined /></template>
-            插件发布
-          </a-menu-item>
-          <a-menu-divider />
-          <!-- 技能与工具 -->
-          <a-menu-item key="skill-management">
-            <template #icon><ThunderboltOutlined /></template>
-            技能管理
-          </a-menu-item>
-          <a-menu-item key="tool-management">
-            <template #icon><ToolOutlined /></template>
-            工具管理
-          </a-menu-item>
-          <a-menu-divider />
+          <a-menu-item-group title="插件生态">
+            <a-menu-item key="plugin-management">
+              <template #icon><AppstoreOutlined /></template>
+              插件管理
+            </a-menu-item>
+            <a-menu-item key="plugin-marketplace">
+              <template #icon><ShopOutlined /></template>
+              插件市场
+            </a-menu-item>
+            <a-menu-item key="plugin-publisher">
+              <template #icon><CloudUploadOutlined /></template>
+              插件发布
+            </a-menu-item>
+            <a-menu-item key="skill-management">
+              <template #icon><ThunderboltOutlined /></template>
+              技能管理
+            </a-menu-item>
+            <a-menu-item key="tool-management">
+              <template #icon><ToolOutlined /></template>
+              工具管理
+            </a-menu-item>
+          </a-menu-item-group>
+
           <!-- AI配置 -->
-          <a-menu-item key="llm-settings">
-            <template #icon><ApiOutlined /></template>
-            LLM配置
-          </a-menu-item>
-          <a-menu-item key="rag-settings">
-            <template #icon><DatabaseOutlined /></template>
-            RAG配置
-          </a-menu-item>
-          <a-menu-divider />
+          <a-menu-item-group title="AI配置">
+            <a-menu-item key="llm-settings">
+              <template #icon><ApiOutlined /></template>
+              LLM配置
+            </a-menu-item>
+            <a-menu-item key="rag-settings">
+              <template #icon><DatabaseOutlined /></template>
+              RAG配置
+            </a-menu-item>
+          </a-menu-item-group>
+
           <!-- 同步与安全 -->
-          <a-menu-item key="git-settings">
-            <template #icon><SyncOutlined /></template>
-            Git同步
-          </a-menu-item>
-          <a-menu-item key="sync-conflicts">
-            <template #icon><ExclamationCircleOutlined /></template>
-            同步冲突管理
-          </a-menu-item>
-          <a-menu-item key="ukey-settings">
-            <template #icon><SafetyOutlined /></template>
-            UKey安全
-          </a-menu-item>
-          <a-menu-divider />
-          <!-- 系统监控 -->
-          <a-menu-item key="database-performance">
-            <template #icon><DashboardOutlined /></template>
-            数据库性能监控
-          </a-menu-item>
+          <a-menu-item-group title="同步与安全">
+            <a-menu-item key="git-settings">
+              <template #icon><SyncOutlined /></template>
+              Git同步
+            </a-menu-item>
+            <a-menu-item key="sync-conflicts">
+              <template #icon><ExclamationCircleOutlined /></template>
+              同步冲突管理
+            </a-menu-item>
+            <a-menu-item key="ukey-settings">
+              <template #icon><SafetyOutlined /></template>
+              UKey安全
+            </a-menu-item>
+            <a-menu-item key="database-performance">
+              <template #icon><DashboardOutlined /></template>
+              数据库性能监控
+            </a-menu-item>
+          </a-menu-item-group>
         </a-sub-menu>
       </a-menu>
       </div>
