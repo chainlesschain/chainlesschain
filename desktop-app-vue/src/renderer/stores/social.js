@@ -92,14 +92,18 @@ export const useSocialStore = defineStore('social', {
     async loadFriends() {
       this.friendsLoading = true
       try {
-        const friends = await ipcRenderer.invoke('friend:get-friends')
-        this.friends = friends
+        const result = await ipcRenderer.invoke('friend:get-list')
+        if (result.success) {
+          this.friends = result.friends || []
 
-        // 获取好友在线状态
-        for (const friend of friends) {
-          // TODO: 实现从P2P网络获取在线状态
-          // 暂时设置为离线
-          this.onlineStatus.set(friend.friend_did, 'offline')
+          // 加载好友在线状态
+          for (const friend of this.friends) {
+            if (friend.onlineStatus) {
+              this.onlineStatus.set(friend.friend_did, friend.onlineStatus.status || 'offline')
+            } else {
+              this.onlineStatus.set(friend.friend_did, 'offline')
+            }
+          }
         }
       } catch (error) {
         console.error('加载好友列表失败:', error)
@@ -625,6 +629,73 @@ export const useSocialStore = defineStore('social', {
      */
     toggleNotificationPanel(visible) {
       this.notificationPanelVisible = visible !== undefined ? visible : !this.notificationPanelVisible
+    },
+
+    // ========== 在线状态管理 ==========
+
+    /**
+     * 初始化在线状态监听
+     */
+    initOnlineStatusListeners() {
+      // 监听好友上线事件
+      ipcRenderer.on('friend:online', (_event, data) => {
+        const { friendDid } = data
+        console.log('[SocialStore] 好友上线:', friendDid)
+
+        // 更新在线状态
+        this.onlineStatus.set(friendDid, 'online')
+
+        // 更新好友列表中的在线状态
+        const friend = this.friends.find(f => f.friend_did === friendDid)
+        if (friend) {
+          if (!friend.onlineStatus) {
+            friend.onlineStatus = {}
+          }
+          friend.onlineStatus.status = 'online'
+          friend.onlineStatus.lastSeen = Date.now()
+          friend.onlineStatus.deviceCount = (friend.onlineStatus.deviceCount || 0) + 1
+        }
+
+        // 添加通知
+        if (friend) {
+          this.addNotification({
+            type: 'system',
+            title: '好友上线',
+            content: `${friend.nickname || friendDid.substring(0, 16)}... 已上线`,
+          })
+        }
+      })
+
+      // 监听好友离线事件
+      ipcRenderer.on('friend:offline', (_event, data) => {
+        const { friendDid } = data
+        console.log('[SocialStore] 好友离线:', friendDid)
+
+        // 更新在线状态
+        this.onlineStatus.set(friendDid, 'offline')
+
+        // 更新好友列表中的在线状态
+        const friend = this.friends.find(f => f.friend_did === friendDid)
+        if (friend) {
+          if (!friend.onlineStatus) {
+            friend.onlineStatus = {}
+          }
+          friend.onlineStatus.status = 'offline'
+          friend.onlineStatus.lastSeen = Date.now()
+          friend.onlineStatus.deviceCount = 0
+        }
+      })
+
+      console.log('[SocialStore] 在线状态监听器已初始化')
+    },
+
+    /**
+     * 移除在线状态监听
+     */
+    removeOnlineStatusListeners() {
+      ipcRenderer.removeAllListeners('friend:online')
+      ipcRenderer.removeAllListeners('friend:offline')
+      console.log('[SocialStore] 在线状态监听器已移除')
     },
   },
 })

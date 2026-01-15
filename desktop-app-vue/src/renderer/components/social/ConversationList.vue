@@ -26,9 +26,11 @@
           <!-- 头像 -->
           <div class="conversation-avatar">
             <a-badge :count="session.unread_count" :overflow-count="99">
-              <a-avatar :size="48">
-                <template #icon><UserOutlined /></template>
-              </a-avatar>
+              <a-badge :dot="getOnlineStatus(session.participant_did) === 'online'" :offset="[-5, 40]">
+                <a-avatar :size="48">
+                  <template #icon><UserOutlined /></template>
+                </a-avatar>
+              </a-badge>
             </a-badge>
           </div>
 
@@ -75,6 +77,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useSocialStore } from '../../stores/social'
 import {
   SearchOutlined,
   UserOutlined,
@@ -84,6 +87,8 @@ import {
   DeleteOutlined
 } from '@ant-design/icons-vue'
 import { message as antdMessage } from 'ant-design-vue'
+
+const socialStore = useSocialStore()
 
 const props = defineProps({
   sessions: {
@@ -203,6 +208,14 @@ const formatTime = (timestamp) => {
 
   // 更早
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+}
+
+const getOnlineStatus = (did) => {
+  const friend = socialStore.friends.find(f => f.friend_did === did)
+  if (friend && friend.onlineStatus) {
+    return friend.onlineStatus.status || 'offline'
+  }
+  return 'offline'
 }
 </script>
 

@@ -44,6 +44,7 @@ import { ref, computed, onMounted, onUnmounted, onErrorCaptured } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { message } from 'ant-design-vue';
 import { useAppStore } from './stores/app';
+import { useSocialStore } from './stores/social';
 import { ukeyAPI, llmAPI } from './utils/ipc';
 import { handleError, ErrorType, ErrorLevel } from './utils/errorHandler';
 import { useTheme } from './utils/themeManager';
@@ -62,6 +63,7 @@ import jaJP from 'ant-design-vue/es/locale/ja_JP';
 import koKR from 'ant-design-vue/es/locale/ko_KR';
 
 const store = useAppStore();
+const socialStore = useSocialStore();
 const loading = ref(true);
 const { locale } = useI18n();
 const showGlobalSetupWizard = ref(false);
@@ -188,6 +190,9 @@ const handleInvitationRejected = () => {
 
 onMounted(async () => {
   try {
+    // 初始化社交模块在线状态监听器
+    socialStore.initOnlineStatusListeners();
+
     // 监听深链接事件（企业版DID邀请链接）
     if (window.electron?.ipcRenderer) {
       window.electron.ipcRenderer.on('deep-link:invitation', handleInvitationDeepLink);
@@ -253,6 +258,9 @@ onMounted(async () => {
 
 // 清理事件监听器
 onUnmounted(() => {
+  // 移除社交模块在线状态监听器
+  socialStore.removeOnlineStatusListeners();
+
   if (window.electron?.ipcRenderer) {
     window.electron.ipcRenderer.removeListener('deep-link:invitation', handleInvitationDeepLink);
   }
