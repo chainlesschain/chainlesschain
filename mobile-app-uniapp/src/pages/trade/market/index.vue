@@ -345,8 +345,8 @@
 <script>
 import { createMarketplaceManager } from '@/services/trade/marketplace-manager.js'
 import { createAssetManager } from '@/services/trade/asset-manager.js'
-import { getDatabase } from '@/services/database/index.js'
-import { getDIDManager } from '@/services/did/index.js'
+import { getDatabase } from '@/services/database.js'
+import { getDIDManager } from '@/services/did.js'
 
 export default {
   data() {

@@ -357,7 +357,7 @@
         <text class="section-title">关于</text>
 
         <view class="about-logo">
-          <image class="logo-image" src="/logo.png" mode="aspectFit"></image>
+          <image class="logo-image" src="/static/logo.png" mode="aspectFit"></image>
           <text class="app-name">ChainlessChain</text>
           <text class="app-desc">去中心化个人AI助手平台</text>
         </view>
