@@ -91,6 +91,14 @@
             <template #icon><FileImageOutlined /></template>
             图片上传
           </a-menu-item>
+          <a-menu-item key="audio-import">
+            <template #icon><SoundOutlined /></template>
+            音频导入
+          </a-menu-item>
+          <a-menu-item key="multimedia-demo">
+            <template #icon><VideoCameraOutlined /></template>
+            多媒体处理
+          </a-menu-item>
           <a-menu-item key="prompt-templates">
             <template #icon><TagsOutlined /></template>
             提示词模板
@@ -162,6 +170,66 @@
             <template #icon><StarOutlined /></template>
             信用评分
           </a-menu-item>
+          <a-menu-divider />
+          <!-- 区块链钱包 -->
+          <a-menu-item key="wallet">
+            <template #icon><WalletOutlined /></template>
+            钱包管理
+          </a-menu-item>
+          <a-menu-item key="bridge">
+            <template #icon><SwapOutlined /></template>
+            跨链桥
+          </a-menu-item>
+        </a-sub-menu>
+
+        <!-- 开发工具 -->
+        <a-sub-menu key="dev-tools">
+          <template #icon><CodeOutlined /></template>
+          <template #title>开发工具</template>
+          <a-menu-item key="webide">
+            <template #icon><CodeOutlined /></template>
+            Web IDE
+            <a-badge count="新" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
+          </a-menu-item>
+          <a-menu-item key="design-editor">
+            <template #icon><BgColorsOutlined /></template>
+            设计编辑器
+          </a-menu-item>
+        </a-sub-menu>
+
+        <!-- 内容聚合 -->
+        <a-sub-menu key="content-aggregation">
+          <template #icon><GlobalOutlined /></template>
+          <template #title>内容聚合</template>
+          <a-menu-item key="rss-feeds">
+            <template #icon><RssOutlined /></template>
+            RSS订阅
+          </a-menu-item>
+          <a-menu-item key="email-accounts">
+            <template #icon><MailOutlined /></template>
+            邮件管理
+          </a-menu-item>
+        </a-sub-menu>
+
+        <!-- 企业版 -->
+        <a-sub-menu key="enterprise">
+          <template #icon><BankOutlined /></template>
+          <template #title>
+            <span>企业版</span>
+            <a-badge count="Pro" :number-style="{ backgroundColor: '#faad14', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
+          </template>
+          <a-menu-item key="organizations">
+            <template #icon><ApartmentOutlined /></template>
+            组织管理
+          </a-menu-item>
+          <a-menu-item key="enterprise-dashboard">
+            <template #icon><DashboardOutlined /></template>
+            企业仪表板
+          </a-menu-item>
+          <a-menu-item key="permission-management">
+            <template #icon><SafetyCertificateOutlined /></template>
+            权限管理
+          </a-menu-item>
         </a-sub-menu>
 
         <!-- 系统设置 -->
@@ -177,11 +245,23 @@
             <template #icon><SettingOutlined /></template>
             通用设置
           </a-menu-item>
+          <a-menu-divider />
+          <!-- 插件生态 -->
           <a-menu-item key="plugin-management">
             <template #icon><AppstoreOutlined /></template>
             插件管理
             <a-badge count="新" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
           </a-menu-item>
+          <a-menu-item key="plugin-marketplace">
+            <template #icon><ShopOutlined /></template>
+            插件市场
+          </a-menu-item>
+          <a-menu-item key="plugin-publisher">
+            <template #icon><CloudUploadOutlined /></template>
+            插件发布
+          </a-menu-item>
+          <a-menu-divider />
+          <!-- 技能与工具 -->
           <a-menu-item key="skill-management">
             <template #icon><ThunderboltOutlined /></template>
             技能管理
@@ -190,21 +270,35 @@
             <template #icon><ToolOutlined /></template>
             工具管理
           </a-menu-item>
+          <a-menu-divider />
+          <!-- AI配置 -->
           <a-menu-item key="llm-settings">
             <template #icon><ApiOutlined /></template>
             LLM配置
-          </a-menu-item>
-          <a-menu-item key="git-settings">
-            <template #icon><SyncOutlined /></template>
-            Git同步
           </a-menu-item>
           <a-menu-item key="rag-settings">
             <template #icon><DatabaseOutlined /></template>
             RAG配置
           </a-menu-item>
+          <a-menu-divider />
+          <!-- 同步与安全 -->
+          <a-menu-item key="git-settings">
+            <template #icon><SyncOutlined /></template>
+            Git同步
+          </a-menu-item>
+          <a-menu-item key="sync-conflicts">
+            <template #icon><ExclamationCircleOutlined /></template>
+            同步冲突管理
+          </a-menu-item>
           <a-menu-item key="ukey-settings">
             <template #icon><SafetyOutlined /></template>
             UKey安全
+          </a-menu-item>
+          <a-menu-divider />
+          <!-- 系统监控 -->
+          <a-menu-item key="database-performance">
+            <template #icon><DashboardOutlined /></template>
+            数据库性能监控
           </a-menu-item>
         </a-sub-menu>
       </a-menu>
@@ -422,6 +516,16 @@ import {
   ToolOutlined,
   TableOutlined,
   ApartmentOutlined,
+  SoundOutlined,
+  VideoCameraOutlined,
+  WalletOutlined,
+  SwapOutlined,
+  CodeOutlined,
+  BgColorsOutlined,
+  GlobalOutlined,
+  RssOutlined,
+  MailOutlined,
+  BankOutlined,
 } from '@ant-design/icons-vue';
 import { useAppStore } from '../stores/app';
 import { useSocialStore } from '../stores/social';
@@ -457,7 +561,7 @@ const showSidebar = computed(() => {
 // 菜单配置
 const menuConfig = {
   // 项目管理模块
-    'project-categories': { path: '/projects/categories', title: '项目分类' },
+  'project-categories': { path: '/projects/categories', title: '项目分类' },
   projects: { path: '/projects', title: '我的项目' },
   'project-list-management': { path: '/projects/management', title: '项目列表管理' },
   'workspace-management': { path: '/projects/workspace', title: '工作区管理' },
@@ -472,6 +576,8 @@ const menuConfig = {
   'knowledge-graph': { path: '/knowledge/graph', title: '知识图谱' },
   'file-import': { path: '/file-import', title: '文件导入' },
   'image-upload': { path: '/image-upload', title: '图片上传' },
+  'audio-import': { path: '/audio/import', title: '音频导入' },
+  'multimedia-demo': { path: '/multimedia/demo', title: '多媒体处理' },
   'prompt-templates': { path: '/prompt-templates', title: '提示词模板' },
   'ai-chat': { path: '/ai/chat', title: 'AI对话' },
   'knowledge-store': { path: '/knowledge-store', title: '知识付费' },
@@ -490,17 +596,36 @@ const menuConfig = {
   marketplace: { path: '/marketplace', title: '交易市场' },
   contracts: { path: '/contracts', title: '智能合约' },
   'credit-score': { path: '/credit-score', title: '信用评分' },
+  wallet: { path: '/wallet', title: '钱包管理' },
+  bridge: { path: '/bridge', title: '跨链桥' },
+
+  // 开发工具模块
+  webide: { path: '/webide', title: 'Web IDE' },
+  'design-editor': { path: '/design/new', title: '设计编辑器' },
+
+  // 内容聚合模块
+  'rss-feeds': { path: '/rss/feeds', title: 'RSS订阅' },
+  'email-accounts': { path: '/email/accounts', title: '邮件管理' },
+
+  // 企业版模块
+  organizations: { path: '/organizations', title: '组织管理' },
+  'enterprise-dashboard': { path: '/enterprise/dashboard', title: '企业仪表板' },
+  'permission-management': { path: '/permissions', title: '权限管理' },
 
   // 系统设置模块
   'system-settings': { path: '/settings/system', title: '系统配置' },
   settings: { path: '/settings', title: '通用设置', query: { tab: 'general' } },
   'plugin-management': { path: '/settings/plugins', title: '插件管理' },
+  'plugin-marketplace': { path: '/plugins/marketplace', title: '插件市场' },
+  'plugin-publisher': { path: '/plugins/publisher', title: '插件发布' },
   'skill-management': { path: '/settings/skills', title: '技能管理' },
   'tool-management': { path: '/settings/tools', title: '工具管理' },
   'llm-settings': { path: '/settings', title: 'LLM配置', query: { tab: 'llm' } },
-  'git-settings': { path: '/settings', title: 'Git同步', query: { tab: 'git' } },
   'rag-settings': { path: '/settings', title: 'RAG配置', query: { tab: 'rag' } },
+  'git-settings': { path: '/settings', title: 'Git同步', query: { tab: 'git' } },
+  'sync-conflicts': { path: '/sync/conflicts', title: '同步冲突管理' },
   'ukey-settings': { path: '/settings', title: 'UKey安全', query: { tab: 'ukey' } },
+  'database-performance': { path: '/database/performance', title: '数据库性能监控' },
 };
 
 // 监听路由变化，更新选中的菜单项
