@@ -18,6 +18,7 @@ class PCStatusHandler extends EventEmitter {
 
     this.p2pManager = p2pManager;
     this.mobileBridge = mobileBridge;
+    this.subscriptions = new Map();
 
     // 状态缓存
     this.statusCache = {
@@ -101,15 +102,19 @@ class PCStatusHandler extends EventEmitter {
     console.log('[PCStatus] 处理服务状态请求');
 
     try {
+      const responseType = message.type === 'pc-status:get-services-status'
+        ? 'pc-status:get-services-status:response'
+        : 'pc-status:get-services:response';
+
       const services = await this.getServicesStatus();
 
       await this.sendToMobile(mobilePeerId, {
-        type: 'pc-status:get-services:response',
+        type: responseType,
         requestId: message.requestId,
         data: { services }
       });
 
-      console.log('[PCStatus] ✅ 服务状态已发送');
+      console.log(`[PCStatus] ✅ 服务状态已发送 (${responseType})`);
 
     } catch (error) {
       console.error('[PCStatus] 处理服务状态请求失败:', error);
@@ -148,6 +153,7 @@ class PCStatusHandler extends EventEmitter {
 
     try {
       const { interval = 30000 } = message.params || {};
+      this.startSubscription(mobilePeerId, interval);
 
       // 创建订阅
       this.emit('status-subscription', { mobilePeerId, interval });
@@ -351,6 +357,70 @@ class PCStatusHandler extends EventEmitter {
   }
 
   /**
+   * 启动指定设备的订阅推送
+   * @param {string} mobilePeerId
+   * @param {number} interval
+   */
+  startSubscription(mobilePeerId, interval) {
+    const normalizedInterval = Math.max(3000, Number(interval) || this.updateInterval);
+
+    // 清理旧的订阅
+    this.stopSubscription(mobilePeerId);
+
+    let isSending = false;
+    const pushUpdate = async () => {
+      if (isSending) {
+        return;
+      }
+      isSending = true;
+      try {
+        const realtimeStatus = await this.getRealtimeStatus();
+        await this.sendToMobile(mobilePeerId, {
+          type: 'pc-status:update',
+          data: realtimeStatus
+        });
+      } catch (error) {
+        console.error(`[PCStatus] 推送实时状态失败(${mobilePeerId}):`, error);
+      } finally {
+        isSending = false;
+      }
+    };
+
+    const timer = setInterval(() => {
+      pushUpdate();
+    }, normalizedInterval);
+
+    this.subscriptions.set(mobilePeerId, { timer, interval: normalizedInterval });
+
+    // 立即推送一次，避免等待第一个间隔
+    pushUpdate();
+
+    console.log(`[PCStatus] ✅ 已启动订阅: ${mobilePeerId} (${normalizedInterval}ms)`);
+  }
+
+  /**
+   * 停止指定设备的订阅
+   * @param {string} mobilePeerId
+   */
+  stopSubscription(mobilePeerId) {
+    const subscription = this.subscriptions.get(mobilePeerId);
+    if (subscription) {
+      clearInterval(subscription.timer);
+      this.subscriptions.delete(mobilePeerId);
+      console.log(`[PCStatus] 📴 已停止订阅: ${mobilePeerId}`);
+    }
+  }
+
+  /**
+   * 清理所有订阅
+   */
+  clearAllSubscriptions() {
+    for (const mobilePeerId of this.subscriptions.keys()) {
+      this.stopSubscription(mobilePeerId);
+    }
+  }
+
+  /**
    * 发送消息到移动端
    */
   async sendToMobile(mobilePeerId, message) {
@@ -381,6 +451,7 @@ class PCStatusHandler extends EventEmitter {
    */
   destroy() {
     this.stopStatusUpdates();
+    this.clearAllSubscriptions();
     this.removeAllListeners();
   }
 }
