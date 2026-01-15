@@ -40,7 +40,16 @@
             </a-avatar>
             <div class="chat-header-text">
               <div class="chat-header-name">{{ currentSession.friend_nickname || shortenDid(currentSession.participant_did) }}</div>
-              <div class="chat-header-status">{{ getOnlineStatus(currentSession.participant_did) }}</div>
+              <div class="chat-header-status">
+                <OnlineStatusIndicator
+                  :status="getOnlineStatusData(currentSession.participant_did).status"
+                  :last-seen="getOnlineStatusData(currentSession.participant_did).lastSeen"
+                  :device-count="getOnlineStatusData(currentSession.participant_did).deviceCount"
+                  :show-text="true"
+                  :show-device-count="true"
+                  size="small"
+                />
+              </div>
             </div>
           </div>
 
@@ -149,6 +158,7 @@ import CallNotification from '../call/CallNotification.vue'
 import CallWindow from '../call/CallWindow.vue'
 import ScreenSharePicker from '../call/ScreenSharePicker.vue'
 import VoiceMessageRecorder from './VoiceMessageRecorder.vue'
+import OnlineStatusIndicator from '../OnlineStatusIndicator.vue'
 import {
   UserOutlined,
   PhoneOutlined,
@@ -427,6 +437,22 @@ const shortenDid = (did) => {
 const getOnlineStatus = (did) => {
   const status = socialStore.onlineStatus.get(did)
   return status === 'online' ? '在线' : '离线'
+}
+
+const getOnlineStatusData = (did) => {
+  const friend = socialStore.friends.find(f => f.friend_did === did)
+  if (friend && friend.onlineStatus) {
+    return {
+      status: friend.onlineStatus.status || 'offline',
+      lastSeen: friend.onlineStatus.lastSeen || 0,
+      deviceCount: friend.onlineStatus.deviceCount || 0
+    }
+  }
+  return {
+    status: 'offline',
+    lastSeen: 0,
+    deviceCount: 0
+  }
 }
 
 const getSenderName = (did) => {

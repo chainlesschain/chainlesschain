@@ -191,6 +191,10 @@
             <template #icon><MessageOutlined /></template>
             P2P加密消息
           </a-menu-item>
+          <a-menu-item key="offline-queue">
+            <template #icon><InboxOutlined /></template>
+            离线消息队列
+          </a-menu-item>
         </a-sub-menu>
 
         <!-- 6. 交易市场 -->
@@ -422,6 +426,9 @@
 
             <!-- 语言切换 -->
             <LanguageSwitcher />
+
+            <!-- DID邀请通知 -->
+            <DIDInvitationNotifier />
 
             <!-- 通知中心 -->
             <a-badge :count="socialStore.totalUnreadCount" :overflow-count="99">
@@ -715,6 +722,7 @@ import NotificationCenter from './social/NotificationCenter.vue';
 import DatabaseEncryptionStatus from './DatabaseEncryptionStatus.vue';
 import VoiceFeedbackWidget from './VoiceFeedbackWidget.vue';
 import CommandPalette from './common/CommandPalette.vue';
+import DIDInvitationNotifier from './DIDInvitationNotifier.vue';
 import { registerMenuCommands } from '../utils/keyboard-shortcuts';
 
 const router = useRouter();

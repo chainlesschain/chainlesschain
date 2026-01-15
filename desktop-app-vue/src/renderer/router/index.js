@@ -161,6 +161,12 @@ const routes = [
         meta: { title: 'P2P加密消息' },
       },
       {
+        path: 'offline-queue',
+        name: 'OfflineQueue',
+        component: () => import('../components/OfflineQueueManager.vue'),
+        meta: { title: '离线消息队列' },
+      },
+      {
         path: 'chat',
         name: 'Chat',
         component: socialPages.chat,
@@ -199,7 +205,7 @@ const routes = [
       {
         path: 'friends',
         name: 'Friends',
-        component: () => import('../components/Friends.vue'),
+        component: () => import('../pages/FriendsPage.vue'),
         meta: { title: '好友管理' },
       },
       {
