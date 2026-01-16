@@ -19,13 +19,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          cache: "npm"
-          cache-dependency-path: "desktop-app-vue/package-lock.json"
 
       - name: Install dependencies
         run: |
           cd desktop-app-vue
-          npm ci
+          npm install
 
       - name: Run Rules Validator
         run: |
@@ -53,13 +51,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          cache: "npm"
-          cache-dependency-path: "desktop-app-vue/package-lock.json"
 
       - name: Install dependencies
         run: |
           cd desktop-app-vue
-          npm ci
+          npm install
 
       - name: Run npm audit
         run: |
@@ -92,13 +88,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          cache: "npm"
-          cache-dependency-path: "desktop-app-vue/package-lock.json"
 
       - name: Install dependencies
         run: |
           cd desktop-app-vue
-          npm ci
+          npm install
 
       - name: Check code style
         run: |
@@ -122,13 +116,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          cache: "npm"
-          cache-dependency-path: "desktop-app-vue/package-lock.json"
 
       - name: Install dependencies
         run: |
           cd desktop-app-vue
-          npm ci
+          npm install
 
       - name: Run database tests
         run: |
@@ -148,13 +140,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          cache: "npm"
-          cache-dependency-path: "desktop-app-vue/package-lock.json"
 
       - name: Install dependencies
         run: |
           cd desktop-app-vue
-          npm ci
+          npm install
 
       - name: Build main process
         run: |
