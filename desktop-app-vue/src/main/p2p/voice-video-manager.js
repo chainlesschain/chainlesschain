@@ -9,28 +9,43 @@
  * - 多人会议支持
  */
 
-const EventEmitter = require('events');
-const wrtc = require('wrtc');
+const EventEmitter = require("events");
+
+// wrtc is an optional dependency - not available on all platforms (e.g., darwin-arm64)
+let wrtc = null;
+let wrtcAvailable = false;
+try {
+  wrtc = require("wrtc");
+  wrtcAvailable = true;
+} catch (e) {
+  console.warn(
+    "[VoiceVideoManager] wrtc not available on this platform:",
+    e.message,
+  );
+  console.warn(
+    "[VoiceVideoManager] Voice/video calls will be disabled in main process",
+  );
+}
 
 /**
  * 通话状态
  */
 const CallState = {
-  IDLE: 'idle',
-  CALLING: 'calling',
-  RINGING: 'ringing',
-  CONNECTED: 'connected',
-  ENDED: 'ended',
-  FAILED: 'failed'
+  IDLE: "idle",
+  CALLING: "calling",
+  RINGING: "ringing",
+  CONNECTED: "connected",
+  ENDED: "ended",
+  FAILED: "failed",
 };
 
 /**
  * 通话类型
  */
 const CallType = {
-  AUDIO: 'audio',
-  VIDEO: 'video',
-  SCREEN: 'screen'
+  AUDIO: "audio",
+  VIDEO: "video",
+  SCREEN: "screen",
 };
 
 /**
@@ -57,7 +72,7 @@ class CallSession {
       bytesSent: 0,
       packetsLost: 0,
       jitter: 0,
-      roundTripTime: 0
+      roundTripTime: 0,
     };
 
     // 质量监控
@@ -82,24 +97,25 @@ class VoiceVideoManager extends EventEmitter {
     super();
 
     this.p2pManager = p2pManager;
+    this.wrtcAvailable = wrtcAvailable;
     this.options = {
       iceServers: options.iceServers || [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" },
       ],
       audioConstraints: options.audioConstraints || {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true
+        autoGainControl: true,
       },
       videoConstraints: options.videoConstraints || {
         width: { ideal: 1280 },
         height: { ideal: 720 },
-        frameRate: { ideal: 30 }
+        frameRate: { ideal: 30 },
       },
       callTimeout: options.callTimeout || 60000, // 60秒无应答超时
-      qualityCheckInterval: options.qualityCheckInterval || 5000 // 5秒检查一次质量
+      qualityCheckInterval: options.qualityCheckInterval || 5000, // 5秒检查一次质量
     };
 
     // 通话会话管理
@@ -114,7 +130,7 @@ class VoiceVideoManager extends EventEmitter {
       totalDuration: 0,
       audioCallsCount: 0,
       videoCallsCount: 0,
-      screenShareCount: 0
+      screenShareCount: 0,
     };
 
     // 注册P2P协议处理器
@@ -126,12 +142,12 @@ class VoiceVideoManager extends EventEmitter {
    */
   _registerProtocolHandlers() {
     if (!this.p2pManager || !this.p2pManager.node) {
-      console.warn('[VoiceVideoManager] P2P节点未初始化，延迟注册协议处理器');
+      console.warn("[VoiceVideoManager] P2P节点未初始化，延迟注册协议处理器");
 
       // 监听P2P管理器初始化完成事件
       if (this.p2pManager) {
-        this.p2pManager.once('initialized', () => {
-          console.log('[VoiceVideoManager] P2P节点已初始化，注册协议处理器');
+        this.p2pManager.once("initialized", () => {
+          console.log("[VoiceVideoManager] P2P节点已初始化，注册协议处理器");
           this._registerProtocolHandlers();
         });
       }
@@ -139,25 +155,28 @@ class VoiceVideoManager extends EventEmitter {
     }
 
     // 注册通话信令协议
-    this.p2pManager.node.handle('/chainlesschain/call/1.0.0', async ({ stream, connection }) => {
-      try {
-        const peerId = connection.remotePeer.toString();
-        const chunks = [];
+    this.p2pManager.node.handle(
+      "/chainlesschain/call/1.0.0",
+      async ({ stream, connection }) => {
+        try {
+          const peerId = connection.remotePeer.toString();
+          const chunks = [];
 
-        for await (const chunk of stream.source) {
-          chunks.push(chunk);
+          for await (const chunk of stream.source) {
+            chunks.push(chunk);
+          }
+
+          const data = Buffer.concat(chunks);
+          const message = JSON.parse(data.toString());
+
+          await this._handleCallSignaling(peerId, message);
+        } catch (error) {
+          console.error("[VoiceVideoManager] 处理通话信令失败:", error);
         }
+      },
+    );
 
-        const data = Buffer.concat(chunks);
-        const message = JSON.parse(data.toString());
-
-        await this._handleCallSignaling(peerId, message);
-      } catch (error) {
-        console.error('[VoiceVideoManager] 处理通话信令失败:', error);
-      }
-    });
-
-    console.log('[VoiceVideoManager] 协议处理器注册完成');
+    console.log("[VoiceVideoManager] 协议处理器注册完成");
   }
 
   /**
@@ -167,9 +186,16 @@ class VoiceVideoManager extends EventEmitter {
     try {
       console.log(`[VoiceVideoManager] 发起${type}通话:`, peerId);
 
+      // 检查wrtc是否可用
+      if (!this.wrtcAvailable) {
+        throw new Error(
+          "WebRTC (wrtc) is not available on this platform. Voice/video calls are disabled.",
+        );
+      }
+
       // 检查是否已有通话
       if (this.peerSessions.has(peerId)) {
-        throw new Error('该用户已在通话中');
+        throw new Error("该用户已在通话中");
       }
 
       // 创建通话会话
@@ -185,7 +211,7 @@ class VoiceVideoManager extends EventEmitter {
       session.peerConnection = this._createPeerConnection(session);
 
       // 添加本地流到连接
-      session.localStream.getTracks().forEach(track => {
+      session.localStream.getTracks().forEach((track) => {
         session.peerConnection.addTrack(track, session.localStream);
       });
 
@@ -195,10 +221,10 @@ class VoiceVideoManager extends EventEmitter {
 
       // 发送通话请求
       await this._sendCallSignaling(peerId, {
-        type: 'call-request',
+        type: "call-request",
         callId,
         callType: type,
-        offer: session.peerConnection.localDescription
+        offer: session.peerConnection.localDescription,
       });
 
       // 设置状态
@@ -207,18 +233,18 @@ class VoiceVideoManager extends EventEmitter {
       // 设置超时
       const timeout = setTimeout(() => {
         if (session.state === CallState.CALLING) {
-          this._endCall(callId, 'timeout');
+          this._endCall(callId, "timeout");
         }
       }, this.options.callTimeout);
 
       session.timeout = timeout;
 
       // 触发事件
-      this.emit('call:started', {
+      this.emit("call:started", {
         callId,
         peerId,
         type,
-        isInitiator: true
+        isInitiator: true,
       });
 
       // 更新统计
@@ -229,7 +255,7 @@ class VoiceVideoManager extends EventEmitter {
 
       return callId;
     } catch (error) {
-      console.error('[VoiceVideoManager] 发起通话失败:', error);
+      console.error("[VoiceVideoManager] 发起通话失败:", error);
       this.stats.failedCalls++;
       throw error;
     }
@@ -240,22 +266,22 @@ class VoiceVideoManager extends EventEmitter {
    */
   async acceptCall(callId) {
     try {
-      console.log('[VoiceVideoManager] 接受通话:', callId);
+      console.log("[VoiceVideoManager] 接受通话:", callId);
 
       const session = this.sessions.get(callId);
       if (!session) {
-        throw new Error('通话会话不存在');
+        throw new Error("通话会话不存在");
       }
 
       if (session.state !== CallState.RINGING) {
-        throw new Error('通话状态不正确');
+        throw new Error("通话状态不正确");
       }
 
       // 获取本地媒体流
       session.localStream = await this._getUserMedia(session.type);
 
       // 添加本地流到连接
-      session.localStream.getTracks().forEach(track => {
+      session.localStream.getTracks().forEach((track) => {
         session.peerConnection.addTrack(track, session.localStream);
       });
 
@@ -265,9 +291,9 @@ class VoiceVideoManager extends EventEmitter {
 
       // 发送应答
       await this._sendCallSignaling(session.peerId, {
-        type: 'call-answer',
+        type: "call-answer",
         callId,
-        answer: session.peerConnection.localDescription
+        answer: session.peerConnection.localDescription,
       });
 
       // 设置状态
@@ -278,15 +304,15 @@ class VoiceVideoManager extends EventEmitter {
       this._startQualityMonitoring(session);
 
       // 触发事件
-      this.emit('call:accepted', {
+      this.emit("call:accepted", {
         callId,
         peerId: session.peerId,
-        type: session.type
+        type: session.type,
       });
 
       return true;
     } catch (error) {
-      console.error('[VoiceVideoManager] 接受通话失败:', error);
+      console.error("[VoiceVideoManager] 接受通话失败:", error);
       throw error;
     }
   }
@@ -294,20 +320,20 @@ class VoiceVideoManager extends EventEmitter {
   /**
    * 拒绝通话
    */
-  async rejectCall(callId, reason = 'rejected') {
+  async rejectCall(callId, reason = "rejected") {
     try {
-      console.log('[VoiceVideoManager] 拒绝通话:', callId);
+      console.log("[VoiceVideoManager] 拒绝通话:", callId);
 
       const session = this.sessions.get(callId);
       if (!session) {
-        throw new Error('通话会话不存在');
+        throw new Error("通话会话不存在");
       }
 
       // 发送拒绝消息
       await this._sendCallSignaling(session.peerId, {
-        type: 'call-reject',
+        type: "call-reject",
         callId,
-        reason
+        reason,
       });
 
       // 结束通话
@@ -315,7 +341,7 @@ class VoiceVideoManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error('[VoiceVideoManager] 拒绝通话失败:', error);
+      console.error("[VoiceVideoManager] 拒绝通话失败:", error);
       throw error;
     }
   }
@@ -325,25 +351,25 @@ class VoiceVideoManager extends EventEmitter {
    */
   async endCall(callId) {
     try {
-      console.log('[VoiceVideoManager] 结束通话:', callId);
+      console.log("[VoiceVideoManager] 结束通话:", callId);
 
       const session = this.sessions.get(callId);
       if (!session) {
-        throw new Error('通话会话不存在');
+        throw new Error("通话会话不存在");
       }
 
       // 发送结束消息
       await this._sendCallSignaling(session.peerId, {
-        type: 'call-end',
-        callId
+        type: "call-end",
+        callId,
       });
 
       // 结束通话
-      this._endCall(callId, 'ended');
+      this._endCall(callId, "ended");
 
       return true;
     } catch (error) {
-      console.error('[VoiceVideoManager] 结束通话失败:', error);
+      console.error("[VoiceVideoManager] 结束通话失败:", error);
       throw error;
     }
   }
@@ -354,19 +380,19 @@ class VoiceVideoManager extends EventEmitter {
   toggleMute(callId) {
     const session = this.sessions.get(callId);
     if (!session || !session.localStream) {
-      throw new Error('通话会话不存在或无本地流');
+      throw new Error("通话会话不存在或无本地流");
     }
 
     const audioTracks = session.localStream.getAudioTracks();
-    audioTracks.forEach(track => {
+    audioTracks.forEach((track) => {
       track.enabled = !track.enabled;
     });
 
     const isMuted = !audioTracks[0].enabled;
 
-    this.emit('call:mute-changed', {
+    this.emit("call:mute-changed", {
       callId,
-      isMuted
+      isMuted,
     });
 
     return isMuted;
@@ -378,19 +404,19 @@ class VoiceVideoManager extends EventEmitter {
   toggleVideo(callId) {
     const session = this.sessions.get(callId);
     if (!session || !session.localStream) {
-      throw new Error('通话会话不存在或无本地流');
+      throw new Error("通话会话不存在或无本地流");
     }
 
     const videoTracks = session.localStream.getVideoTracks();
-    videoTracks.forEach(track => {
+    videoTracks.forEach((track) => {
       track.enabled = !track.enabled;
     });
 
     const isVideoEnabled = videoTracks[0].enabled;
 
-    this.emit('call:video-changed', {
+    this.emit("call:video-changed", {
       callId,
-      isVideoEnabled
+      isVideoEnabled,
     });
 
     return isVideoEnabled;
@@ -412,7 +438,7 @@ class VoiceVideoManager extends EventEmitter {
       state: session.state,
       isInitiator: session.isInitiator,
       duration: session.getDuration(),
-      stats: session.stats
+      stats: session.stats,
     };
   }
 
@@ -423,9 +449,11 @@ class VoiceVideoManager extends EventEmitter {
     const activeCalls = [];
 
     for (const [callId, session] of this.sessions) {
-      if (session.state === CallState.CONNECTED ||
-          session.state === CallState.CALLING ||
-          session.state === CallState.RINGING) {
+      if (
+        session.state === CallState.CONNECTED ||
+        session.state === CallState.CALLING ||
+        session.state === CallState.RINGING
+      ) {
         activeCalls.push(this.getCallInfo(callId));
       }
     }
@@ -440,7 +468,7 @@ class VoiceVideoManager extends EventEmitter {
     return {
       ...this.stats,
       activeCalls: this.getActiveCalls().length,
-      totalSessions: this.sessions.size
+      totalSessions: this.sessions.size,
     };
   }
 
@@ -449,34 +477,34 @@ class VoiceVideoManager extends EventEmitter {
    */
   async _handleCallSignaling(peerId, message) {
     try {
-      console.log('[VoiceVideoManager] 收到通话信令:', message.type);
+      console.log("[VoiceVideoManager] 收到通话信令:", message.type);
 
       switch (message.type) {
-        case 'call-request':
+        case "call-request":
           await this._handleCallRequest(peerId, message);
           break;
 
-        case 'call-answer':
+        case "call-answer":
           await this._handleCallAnswer(peerId, message);
           break;
 
-        case 'call-reject':
+        case "call-reject":
           await this._handleCallReject(peerId, message);
           break;
 
-        case 'call-end':
+        case "call-end":
           await this._handleCallEnd(peerId, message);
           break;
 
-        case 'ice-candidate':
+        case "ice-candidate":
           await this._handleIceCandidate(peerId, message);
           break;
 
         default:
-          console.warn('[VoiceVideoManager] 未知信令类型:', message.type);
+          console.warn("[VoiceVideoManager] 未知信令类型:", message.type);
       }
     } catch (error) {
-      console.error('[VoiceVideoManager] 处理通话信令失败:', error);
+      console.error("[VoiceVideoManager] 处理通话信令失败:", error);
     }
   }
 
@@ -489,9 +517,9 @@ class VoiceVideoManager extends EventEmitter {
     // 检查是否已有通话
     if (this.peerSessions.has(peerId)) {
       await this._sendCallSignaling(peerId, {
-        type: 'call-reject',
+        type: "call-reject",
         callId,
-        reason: 'busy'
+        reason: "busy",
       });
       return;
     }
@@ -506,17 +534,17 @@ class VoiceVideoManager extends EventEmitter {
 
     // 设置远程描述
     await session.peerConnection.setRemoteDescription(
-      new wrtc.RTCSessionDescription(offer)
+      new wrtc.RTCSessionDescription(offer),
     );
 
     // 设置状态
     session.state = CallState.RINGING;
 
     // 触发事件（通知UI显示来电）
-    this.emit('call:incoming', {
+    this.emit("call:incoming", {
       callId,
       peerId,
-      type: callType
+      type: callType,
     });
   }
 
@@ -528,7 +556,7 @@ class VoiceVideoManager extends EventEmitter {
 
     const session = this.sessions.get(callId);
     if (!session) {
-      console.warn('[VoiceVideoManager] 通话会话不存在:', callId);
+      console.warn("[VoiceVideoManager] 通话会话不存在:", callId);
       return;
     }
 
@@ -540,7 +568,7 @@ class VoiceVideoManager extends EventEmitter {
 
     // 设置远程描述
     await session.peerConnection.setRemoteDescription(
-      new wrtc.RTCSessionDescription(answer)
+      new wrtc.RTCSessionDescription(answer),
     );
 
     // 设置状态
@@ -551,10 +579,10 @@ class VoiceVideoManager extends EventEmitter {
     this._startQualityMonitoring(session);
 
     // 触发事件
-    this.emit('call:connected', {
+    this.emit("call:connected", {
       callId,
       peerId,
-      type: session.type
+      type: session.type,
     });
 
     // 更新统计
@@ -567,12 +595,12 @@ class VoiceVideoManager extends EventEmitter {
   async _handleCallReject(peerId, message) {
     const { callId, reason } = message;
 
-    this._endCall(callId, reason || 'rejected');
+    this._endCall(callId, reason || "rejected");
 
-    this.emit('call:rejected', {
+    this.emit("call:rejected", {
       callId,
       peerId,
-      reason
+      reason,
     });
   }
 
@@ -582,11 +610,11 @@ class VoiceVideoManager extends EventEmitter {
   async _handleCallEnd(peerId, message) {
     const { callId } = message;
 
-    this._endCall(callId, 'remote-ended');
+    this._endCall(callId, "remote-ended");
 
-    this.emit('call:ended', {
+    this.emit("call:ended", {
       callId,
-      peerId
+      peerId,
     });
   }
 
@@ -598,12 +626,12 @@ class VoiceVideoManager extends EventEmitter {
 
     const session = this.sessions.get(callId);
     if (!session || !session.peerConnection) {
-      console.warn('[VoiceVideoManager] 通话会话不存在:', callId);
+      console.warn("[VoiceVideoManager] 通话会话不存在:", callId);
       return;
     }
 
     await session.peerConnection.addIceCandidate(
-      new wrtc.RTCIceCandidate(candidate)
+      new wrtc.RTCIceCandidate(candidate),
     );
   }
 
@@ -614,14 +642,14 @@ class VoiceVideoManager extends EventEmitter {
     try {
       const stream = await this.p2pManager.node.dialProtocol(
         peerId,
-        '/chainlesschain/call/1.0.0'
+        "/chainlesschain/call/1.0.0",
       );
 
       const data = Buffer.from(JSON.stringify(message));
       await stream.sink([data]);
       await stream.close();
     } catch (error) {
-      console.error('[VoiceVideoManager] 发送通话信令失败:', error);
+      console.error("[VoiceVideoManager] 发送通话信令失败:", error);
       throw error;
     }
   }
@@ -630,40 +658,43 @@ class VoiceVideoManager extends EventEmitter {
    * 创建PeerConnection
    */
   _createPeerConnection(session) {
+    if (!wrtc) {
+      throw new Error("WebRTC (wrtc) is not available on this platform");
+    }
     const pc = new wrtc.RTCPeerConnection({
-      iceServers: this.options.iceServers
+      iceServers: this.options.iceServers,
     });
 
     // ICE候选事件
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         this._sendCallSignaling(session.peerId, {
-          type: 'ice-candidate',
+          type: "ice-candidate",
           callId: session.callId,
-          candidate: event.candidate
-        }).catch(error => {
-          console.error('[VoiceVideoManager] 发送ICE候选失败:', error);
+          candidate: event.candidate,
+        }).catch((error) => {
+          console.error("[VoiceVideoManager] 发送ICE候选失败:", error);
         });
       }
     };
 
     // 连接状态变化
     pc.onconnectionstatechange = () => {
-      console.log('[VoiceVideoManager] 连接状态:', pc.connectionState);
+      console.log("[VoiceVideoManager] 连接状态:", pc.connectionState);
 
-      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-        this._endCall(session.callId, 'connection-failed');
+      if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+        this._endCall(session.callId, "connection-failed");
       }
     };
 
     // 接收远程流
     pc.ontrack = (event) => {
-      console.log('[VoiceVideoManager] 收到远程流');
+      console.log("[VoiceVideoManager] 收到远程流");
       session.remoteStream = event.streams[0];
 
-      this.emit('call:remote-stream', {
+      this.emit("call:remote-stream", {
         callId: session.callId,
-        stream: event.streams[0]
+        stream: event.streams[0],
       });
     };
 
@@ -685,32 +716,41 @@ class VoiceVideoManager extends EventEmitter {
     const constraints = {};
 
     if (type === CallType.AUDIO) {
-      constraints.audio = { ...this.options.audioConstraints, ...options.audio };
+      constraints.audio = {
+        ...this.options.audioConstraints,
+        ...options.audio,
+      };
       constraints.video = false;
     } else if (type === CallType.VIDEO) {
-      constraints.audio = { ...this.options.audioConstraints, ...options.audio };
-      constraints.video = { ...this.options.videoConstraints, ...options.video };
+      constraints.audio = {
+        ...this.options.audioConstraints,
+        ...options.audio,
+      };
+      constraints.video = {
+        ...this.options.videoConstraints,
+        ...options.video,
+      };
     } else if (type === CallType.SCREEN) {
       // 屏幕共享通过desktopCapturer在renderer进程中实现
       constraints.video = {
         mandatory: {
-          chromeMediaSource: 'desktop',
-          chromeMediaSourceId: options.sourceId || ''
-        }
+          chromeMediaSource: "desktop",
+          chromeMediaSourceId: options.sourceId || "",
+        },
       };
       constraints.audio = false;
     }
 
-    console.log('[VoiceVideoManager] 请求媒体流:', { type, constraints });
+    console.log("[VoiceVideoManager] 请求媒体流:", { type, constraints });
 
     // 通过事件请求媒体流（由P2PEnhancedManager的MediaStreamBridge处理）
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('获取媒体流超时'));
+        reject(new Error("获取媒体流超时"));
       }, 30000);
 
       // 触发事件通知需要从renderer获取真实媒体流
-      this.emit('media:stream-required', {
+      this.emit("media:stream-required", {
         type,
         constraints,
         callId: options.callId,
@@ -720,14 +760,20 @@ class VoiceVideoManager extends EventEmitter {
           clearTimeout(timeout);
 
           if (streamInfo && streamInfo.tracks) {
-            console.log('[VoiceVideoManager] 收到来自renderer的媒体流信息:', {
+            console.log("[VoiceVideoManager] 收到来自renderer的媒体流信息:", {
               streamId: streamInfo.streamId,
-              trackCount: streamInfo.tracks.length
+              trackCount: streamInfo.tracks.length,
             });
 
             // 创建MediaStream并添加tracks
             // 注意：在主进程中，我们使用wrtc的MediaStream
             // 实际的媒体数据通过WebRTC的PeerConnection传输
+            if (!wrtc) {
+              reject(
+                new Error("WebRTC (wrtc) is not available on this platform"),
+              );
+              return;
+            }
             const stream = new wrtc.MediaStream();
 
             // 保存streamId用于后续操作
@@ -736,14 +782,14 @@ class VoiceVideoManager extends EventEmitter {
 
             resolve(stream);
           } else {
-            reject(new Error('无效的媒体流信息'));
+            reject(new Error("无效的媒体流信息"));
           }
         },
         // 错误回调
         onError: (error) => {
           clearTimeout(timeout);
           reject(error);
-        }
+        },
       });
     });
   }
@@ -761,25 +807,28 @@ class VoiceVideoManager extends EventEmitter {
         const stats = await session.peerConnection.getStats();
 
         // 解析统计信息
-        stats.forEach(report => {
-          if (report.type === 'inbound-rtp') {
+        stats.forEach((report) => {
+          if (report.type === "inbound-rtp") {
             session.stats.bytesReceived = report.bytesReceived || 0;
             session.stats.packetsLost = report.packetsLost || 0;
             session.stats.jitter = report.jitter || 0;
-          } else if (report.type === 'outbound-rtp') {
+          } else if (report.type === "outbound-rtp") {
             session.stats.bytesSent = report.bytesSent || 0;
-          } else if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          } else if (
+            report.type === "candidate-pair" &&
+            report.state === "succeeded"
+          ) {
             session.stats.roundTripTime = report.currentRoundTripTime || 0;
           }
         });
 
         // 触发质量更新事件
-        this.emit('call:quality-update', {
+        this.emit("call:quality-update", {
           callId: session.callId,
-          stats: session.stats
+          stats: session.stats,
         });
       } catch (error) {
-        console.error('[VoiceVideoManager] 质量监控失败:', error);
+        console.error("[VoiceVideoManager] 质量监控失败:", error);
       }
     }, this.options.qualityCheckInterval);
   }
@@ -793,7 +842,7 @@ class VoiceVideoManager extends EventEmitter {
       return;
     }
 
-    console.log('[VoiceVideoManager] 结束通话:', callId, reason);
+    console.log("[VoiceVideoManager] 结束通话:", callId, reason);
 
     // 清除超时
     if (session.timeout) {
@@ -809,7 +858,7 @@ class VoiceVideoManager extends EventEmitter {
 
     // 关闭本地流
     if (session.localStream) {
-      session.localStream.getTracks().forEach(track => track.stop());
+      session.localStream.getTracks().forEach((track) => track.stop());
       session.localStream = null;
     }
 
@@ -848,22 +897,22 @@ class VoiceVideoManager extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    console.log('[VoiceVideoManager] 清理资源...');
+    console.log("[VoiceVideoManager] 清理资源...");
 
     // 结束所有通话
     for (const [callId] of this.sessions) {
-      this._endCall(callId, 'cleanup');
+      this._endCall(callId, "cleanup");
     }
 
     this.sessions.clear();
     this.peerSessions.clear();
 
-    console.log('[VoiceVideoManager] 资源清理完成');
+    console.log("[VoiceVideoManager] 资源清理完成");
   }
 }
 
 module.exports = {
   VoiceVideoManager,
   CallState,
-  CallType
+  CallType,
 };
