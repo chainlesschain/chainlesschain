@@ -1918,7 +1918,7 @@ class DatabaseManager {
         status TEXT DEFAULT 'active' CHECK(status IN ('active', 'idle', 'disconnected')),
         created_at INTEGER NOT NULL,
         FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
-        FOREIGN KEY (org_id) REFERENCES organization_info(id) ON DELETE CASCADE
+        FOREIGN KEY (org_id) REFERENCES organization_info(org_id) ON DELETE CASCADE
       );
 
       -- 知识库评论表（内联评论和注释）
@@ -1939,7 +1939,7 @@ class DatabaseManager {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
-        FOREIGN KEY (org_id) REFERENCES organization_info(id) ON DELETE CASCADE,
+        FOREIGN KEY (org_id) REFERENCES organization_info(org_id) ON DELETE CASCADE,
         FOREIGN KEY (parent_comment_id) REFERENCES knowledge_comments(id) ON DELETE CASCADE
       );
 
@@ -1956,7 +1956,7 @@ class DatabaseManager {
         created_by TEXT NOT NULL,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
-        FOREIGN KEY (org_id) REFERENCES organization_info(id) ON DELETE CASCADE,
+        FOREIGN KEY (org_id) REFERENCES organization_info(org_id) ON DELETE CASCADE,
         FOREIGN KEY (parent_folder_id) REFERENCES org_knowledge_folders(id) ON DELETE CASCADE
       );
 
@@ -1973,7 +1973,7 @@ class DatabaseManager {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
-        FOREIGN KEY (org_id) REFERENCES organization_info(id) ON DELETE CASCADE,
+        FOREIGN KEY (org_id) REFERENCES organization_info(org_id) ON DELETE CASCADE,
         FOREIGN KEY (folder_id) REFERENCES org_knowledge_folders(id) ON DELETE SET NULL
       );
 
