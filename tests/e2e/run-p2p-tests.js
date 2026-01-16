@@ -90,7 +90,8 @@ async function runTests() {
   console.log('');
 
   return new Promise((resolve, reject) => {
-    const test = spawn('npx', ['playwright', 'test', 'tests/e2e/p2p-communication.test.js'], {
+    // P2P tests use Mocha/Chai, not Playwright
+    const test = spawn('npx', ['mocha', 'tests/e2e/p2p-communication.mocha.js', 'tests/e2e/p2p-enhanced.mocha.js', '--timeout', '30000'], {
       stdio: 'inherit'
     });
 

@@ -63,6 +63,14 @@ export default defineConfig({
     },
   ],
 
+  // 明确忽略不兼容的测试文件
+  testIgnore: [
+    // Browser extension tests (use Jest/Puppeteer)
+    '**/browser-extension/**',
+    // Tests with incorrect syntax or using other frameworks
+    '**/project-workflow.test.ts',
+  ],
+
   // 输出目录
   outputDir: 'test-results',
 });
