@@ -3,10 +3,10 @@
  * 提供内存、磁盘空间监控和优雅降级策略
  */
 
-const os = require('os');
-const fs = require('fs').promises;
-const path = require('path');
-const { EventEmitter } = require('events');
+const os = require("os");
+const fs = require("fs").promises;
+const path = require("path");
+const { EventEmitter } = require("events");
 
 class ResourceMonitor extends EventEmitter {
   constructor(options = {}) {
@@ -24,7 +24,7 @@ class ResourceMonitor extends EventEmitter {
 
       // 内存使用率阈值（百分比）
       memoryUsageWarning: options.memoryUsageWarning || 85, // 85%
-      memoryUsageCritical: options.memoryUsageCritical || 95 // 95%
+      memoryUsageCritical: options.memoryUsageCritical || 95, // 95%
     };
 
     // 降级策略配置
@@ -33,25 +33,25 @@ class ResourceMonitor extends EventEmitter {
       imageProcessing: {
         normal: { maxDimension: 1920, quality: 85, concurrent: 3 },
         warning: { maxDimension: 1280, quality: 75, concurrent: 2 },
-        critical: { maxDimension: 800, quality: 60, concurrent: 1 }
+        critical: { maxDimension: 800, quality: 60, concurrent: 1 },
       },
 
       // OCR处理降级策略
       ocrProcessing: {
-        normal: { concurrent: 3, language: 'chi_sim+eng' },
-        warning: { concurrent: 2, language: 'chi_sim+eng' },
-        critical: { concurrent: 1, language: 'eng' } // 只使用英文，减少内存
+        normal: { concurrent: 3, language: "chi_sim+eng" },
+        warning: { concurrent: 2, language: "chi_sim+eng" },
+        critical: { concurrent: 1, language: "eng" }, // 只使用英文，减少内存
       },
 
       // 批量导入降级策略
       batchImport: {
         normal: { batchSize: 10, concurrent: 3 },
         warning: { batchSize: 5, concurrent: 2 },
-        critical: { batchSize: 1, concurrent: 1 }
-      }
+        critical: { batchSize: 1, concurrent: 1 },
+      },
     };
 
-    this.currentLevel = 'normal';
+    this.currentLevel = "normal";
     this.monitoringInterval = null;
   }
 
@@ -76,8 +76,8 @@ class ResourceMonitor extends EventEmitter {
         heapUsed: processMemory.heapUsed,
         heapTotal: processMemory.heapTotal,
         rss: processMemory.rss,
-        external: processMemory.external
-      }
+        external: processMemory.external,
+      },
     };
   }
 
@@ -88,13 +88,13 @@ class ResourceMonitor extends EventEmitter {
   async getDiskStatus(dirPath) {
     try {
       // 不同平台获取磁盘空间的方法
-      if (process.platform === 'win32') {
+      if (process.platform === "win32") {
         return await this._getWindowsDiskSpace(dirPath);
       } else {
         return await this._getUnixDiskSpace(dirPath);
       }
     } catch (error) {
-      console.error('获取磁盘空间失败:', error);
+      console.error("获取磁盘空间失败:", error);
       return null;
     }
   }
@@ -103,14 +103,36 @@ class ResourceMonitor extends EventEmitter {
    * Windows 平台磁盘空间检查
    */
   async _getWindowsDiskSpace(dirPath) {
-    const { execSync } = require('child_process');
+    const { spawnSync } = require("child_process");
     try {
       const drive = path.parse(dirPath).root;
-      const output = execSync(`wmic logicaldisk where "DeviceID='${drive.replace('\\', '')}'" get Size,FreeSpace`, {
-        encoding: 'utf8'
-      });
+      // 验证驱动器格式 (如 "C:" 或 "D:")
+      const driveMatch = drive.match(/^([A-Za-z]:)/);
+      if (!driveMatch) {
+        console.error("Invalid drive format:", drive);
+        return null;
+      }
+      const deviceId = driveMatch[1];
 
-      const lines = output.trim().split('\n').filter(line => line.trim());
+      // 使用 spawnSync 替代 execSync 避免命令注入
+      const result = spawnSync(
+        "wmic",
+        [
+          "logicaldisk",
+          "where",
+          `DeviceID='${deviceId}'`,
+          "get",
+          "Size,FreeSpace",
+        ],
+        { encoding: "utf8", windowsHide: true },
+      );
+
+      const output = result.stdout || "";
+
+      const lines = output
+        .trim()
+        .split("\n")
+        .filter((line) => line.trim());
       if (lines.length >= 2) {
         const values = lines[1].trim().split(/\s+/);
         const freeSpace = parseInt(values[0]);
@@ -120,11 +142,12 @@ class ResourceMonitor extends EventEmitter {
           total: totalSpace,
           free: freeSpace,
           used: totalSpace - freeSpace,
-          usagePercentage: Math.round(((totalSpace - freeSpace) / totalSpace) * 10000) / 100
+          usagePercentage:
+            Math.round(((totalSpace - freeSpace) / totalSpace) * 10000) / 100,
         };
       }
     } catch (error) {
-      console.error('Windows 磁盘空间检查失败:', error);
+      console.error("Windows 磁盘空间检查失败:", error);
     }
     return null;
   }
@@ -133,10 +156,12 @@ class ResourceMonitor extends EventEmitter {
    * Unix/Linux/macOS 平台磁盘空间检查
    */
   async _getUnixDiskSpace(dirPath) {
-    const { execSync } = require('child_process');
+    const { spawnSync } = require("child_process");
     try {
-      const output = execSync(`df -k "${dirPath}"`, { encoding: 'utf8' });
-      const lines = output.trim().split('\n');
+      // 使用 spawnSync 替代 execSync 避免命令注入
+      const result = spawnSync("df", ["-k", dirPath], { encoding: "utf8" });
+      const output = result.stdout || "";
+      const lines = output.trim().split("\n");
 
       if (lines.length >= 2) {
         const values = lines[1].trim().split(/\s+/);
@@ -148,11 +173,11 @@ class ResourceMonitor extends EventEmitter {
           total: totalSpace,
           free: freeSpace,
           used: usedSpace,
-          usagePercentage: Math.round((usedSpace / totalSpace) * 10000) / 100
+          usagePercentage: Math.round((usedSpace / totalSpace) * 10000) / 100,
         };
       }
     } catch (error) {
-      console.error('Unix 磁盘空间检查失败:', error);
+      console.error("Unix 磁盘空间检查失败:", error);
     }
     return null;
   }
@@ -164,17 +189,21 @@ class ResourceMonitor extends EventEmitter {
     const memStatus = this.getMemoryStatus();
 
     // 检查可用内存
-    if (memStatus.free < this.thresholds.memoryCritical ||
-        memStatus.usagePercentage > this.thresholds.memoryUsageCritical) {
-      return 'critical';
+    if (
+      memStatus.free < this.thresholds.memoryCritical ||
+      memStatus.usagePercentage > this.thresholds.memoryUsageCritical
+    ) {
+      return "critical";
     }
 
-    if (memStatus.free < this.thresholds.memoryWarning ||
-        memStatus.usagePercentage > this.thresholds.memoryUsageWarning) {
-      return 'warning';
+    if (
+      memStatus.free < this.thresholds.memoryWarning ||
+      memStatus.usagePercentage > this.thresholds.memoryUsageWarning
+    ) {
+      return "warning";
     }
 
-    return 'normal';
+    return "normal";
   }
 
   /**
@@ -187,11 +216,11 @@ class ResourceMonitor extends EventEmitter {
       const oldLevel = this.currentLevel;
       this.currentLevel = newLevel;
 
-      this.emit('level-change', {
+      this.emit("level-change", {
         oldLevel,
         newLevel,
         memoryStatus: this.getMemoryStatus(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       console.log(`资源水平变化: ${oldLevel} -> ${newLevel}`);
@@ -226,7 +255,7 @@ class ResourceMonitor extends EventEmitter {
       return {
         available: true,
         warning: false,
-        critical: false
+        critical: false,
       };
     }
 
@@ -240,7 +269,7 @@ class ResourceMonitor extends EventEmitter {
       critical,
       freeSpace: diskStatus.free,
       requiredSpace,
-      deficit: available ? 0 : requiredSpace - diskStatus.free
+      deficit: available ? 0 : requiredSpace - diskStatus.free,
     };
   }
 
@@ -249,11 +278,11 @@ class ResourceMonitor extends EventEmitter {
    */
   forceGarbageCollection() {
     if (global.gc) {
-      console.log('执行垃圾回收...');
+      console.log("执行垃圾回收...");
       global.gc();
       return true;
     } else {
-      console.warn('垃圾回收不可用。启动时使用 --expose-gc 标志启用。');
+      console.warn("垃圾回收不可用。启动时使用 --expose-gc 标志启用。");
       return false;
     }
   }
@@ -284,7 +313,7 @@ class ResourceMonitor extends EventEmitter {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      console.log('停止资源监控');
+      console.log("停止资源监控");
     }
   }
 
@@ -301,10 +330,10 @@ class ResourceMonitor extends EventEmitter {
       memory: memStatus,
       disk: diskStatus,
       strategies: {
-        imageProcessing: this.getDegradationStrategy('imageProcessing'),
-        ocrProcessing: this.getDegradationStrategy('ocrProcessing'),
-        batchImport: this.getDegradationStrategy('batchImport')
-      }
+        imageProcessing: this.getDegradationStrategy("imageProcessing"),
+        ocrProcessing: this.getDegradationStrategy("ocrProcessing"),
+        batchImport: this.getDegradationStrategy("batchImport"),
+      },
     };
   }
 }
@@ -326,5 +355,5 @@ function getResourceMonitor(options) {
 
 module.exports = {
   ResourceMonitor,
-  getResourceMonitor
+  getResourceMonitor,
 };

@@ -1,14 +1,13 @@
 <template>
-  <a-modal
-    v-model:open="visible"
-    :title="title"
-    width="500px"
-    :footer="null"
-  >
+  <a-modal v-model:open="visible" :title="title" width="500px" :footer="null">
     <div class="qrcode-container">
       <div ref="qrcodeRef" class="qrcode-canvas"></div>
 
-      <a-space direction="vertical" style="width: 100%; margin-top: 24px" :size="12">
+      <a-space
+        direction="vertical"
+        style="width: 100%; margin-top: 24px"
+        :size="12"
+      >
         <a-button type="primary" block @click="downloadQRCode">
           <template #icon><DownloadOutlined /></template>
           下载二维码
@@ -31,33 +30,33 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
-import { DownloadOutlined, CopyOutlined } from '@ant-design/icons-vue';
-import QRCode from 'qrcode';
+import { ref, computed, watch, nextTick } from "vue";
+import { message } from "ant-design-vue";
+import { DownloadOutlined, CopyOutlined } from "@ant-design/icons-vue";
+import QRCode from "qrcode";
 
 const props = defineProps({
   visible: {
     type: Boolean,
-    default: false
+    default: false,
   },
   url: {
     type: String,
-    default: ''
+    default: "",
   },
   title: {
     type: String,
-    default: '邀请链接二维码'
-  }
+    default: "邀请链接二维码",
+  },
 });
 
-const emit = defineEmits(['update:visible']);
+const emit = defineEmits(["update:visible"]);
 
 const qrcodeRef = ref(null);
 
 const visible = computed({
   get: () => props.visible,
-  set: (val) => emit('update:visible', val)
+  set: (val) => emit("update:visible", val),
 });
 
 const generateQRCode = async () => {
@@ -65,77 +64,79 @@ const generateQRCode = async () => {
 
   try {
     // 清空之前的二维码
-    qrcodeRef.value.innerHTML = '';
+    qrcodeRef.value.replaceChildren();
 
     // 生成新的二维码
-    await QRCode.toCanvas(
-      qrcodeRef.value,
-      props.url,
-      {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      }
-    );
+    await QRCode.toCanvas(qrcodeRef.value, props.url, {
+      width: 300,
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    });
   } catch (error) {
-    console.error('生成二维码失败:', error);
-    message.error('生成二维码失败');
+    console.error("生成二维码失败:", error);
+    message.error("生成二维码失败");
   }
 };
 
 const downloadQRCode = () => {
-  const canvas = qrcodeRef.value?.querySelector('canvas');
+  const canvas = qrcodeRef.value?.querySelector("canvas");
   if (!canvas) {
-    message.error('二维码未生成');
+    message.error("二维码未生成");
     return;
   }
 
   try {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.download = `invitation-qrcode-${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
+    link.href = canvas.toDataURL("image/png");
     link.click();
-    message.success('二维码已下载');
+    message.success("二维码已下载");
   } catch (error) {
-    console.error('下载二维码失败:', error);
-    message.error('下载二维码失败');
+    console.error("下载二维码失败:", error);
+    message.error("下载二维码失败");
   }
 };
 
 const copyLink = async () => {
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'org:copy-invitation-link',
-      props.url
+      "org:copy-invitation-link",
+      props.url,
     );
 
     if (result.success) {
-      message.success('链接已复制到剪贴板');
+      message.success("链接已复制到剪贴板");
     } else {
-      message.error('复制失败');
+      message.error("复制失败");
     }
   } catch (error) {
-    console.error('复制链接失败:', error);
-    message.error('复制链接失败');
+    console.error("复制链接失败:", error);
+    message.error("复制链接失败");
   }
 };
 
-watch(() => props.visible, async (val) => {
-  if (val) {
-    await nextTick();
-    await generateQRCode();
-  }
-});
+watch(
+  () => props.visible,
+  async (val) => {
+    if (val) {
+      await nextTick();
+      await generateQRCode();
+    }
+  },
+);
 
-watch(() => props.url, async () => {
-  if (props.visible) {
-    await nextTick();
-    await generateQRCode();
-  }
-});
+watch(
+  () => props.url,
+  async () => {
+    if (props.visible) {
+      await nextTick();
+      await generateQRCode();
+    }
+  },
+);
 </script>
 
 <style scoped lang="scss">

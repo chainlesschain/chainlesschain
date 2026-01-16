@@ -177,6 +177,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
+import DOMPurify from 'dompurify';
 import {
   FileExcelOutlined,
   SaveOutlined,
@@ -308,7 +309,7 @@ const initBasicTable = () => {
   });
 
   html += '</tbody></table>';
-  container.innerHTML = html;
+  container.innerHTML = DOMPurify.sanitize(html);
 
   // 监听单元格编辑
   container.querySelectorAll('td').forEach(cell => {

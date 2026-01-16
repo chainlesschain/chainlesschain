@@ -4,16 +4,28 @@
     <div class="editor-toolbar">
       <div class="toolbar-group">
         <a-button-group size="small">
-          <a-button @click="execCommand('bold')" :type="isActive('bold') ? 'primary' : 'default'">
+          <a-button
+            @click="execCommand('bold')"
+            :type="isActive('bold') ? 'primary' : 'default'"
+          >
             <BoldOutlined />
           </a-button>
-          <a-button @click="execCommand('italic')" :type="isActive('italic') ? 'primary' : 'default'">
+          <a-button
+            @click="execCommand('italic')"
+            :type="isActive('italic') ? 'primary' : 'default'"
+          >
             <ItalicOutlined />
           </a-button>
-          <a-button @click="execCommand('underline')" :type="isActive('underline') ? 'primary' : 'default'">
+          <a-button
+            @click="execCommand('underline')"
+            :type="isActive('underline') ? 'primary' : 'default'"
+          >
             <UnderlineOutlined />
           </a-button>
-          <a-button @click="execCommand('strikeThrough')" :type="isActive('strikeThrough') ? 'primary' : 'default'">
+          <a-button
+            @click="execCommand('strikeThrough')"
+            :type="isActive('strikeThrough') ? 'primary' : 'default'"
+          >
             <StrikethroughOutlined />
           </a-button>
         </a-button-group>
@@ -22,7 +34,12 @@
       <a-divider type="vertical" />
 
       <div class="toolbar-group">
-        <a-select v-model:value="currentFontSize" size="small" style="width: 80px" @change="changeFontSize">
+        <a-select
+          v-model:value="currentFontSize"
+          size="small"
+          style="width: 80px"
+          @change="changeFontSize"
+        >
           <a-select-option :value="10">10</a-select-option>
           <a-select-option :value="12">12</a-select-option>
           <a-select-option :value="14">14</a-select-option>
@@ -140,8 +157,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { message } from "ant-design-vue";
+import DOMPurify from "dompurify";
 import {
   BoldOutlined,
   ItalicOutlined,
@@ -157,7 +175,7 @@ import {
   ExportOutlined,
   SaveOutlined,
   ClockCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   file: {
@@ -166,7 +184,7 @@ const props = defineProps({
   },
   initialContent: {
     type: String,
-    default: '',
+    default: "",
   },
   autoSave: {
     type: Boolean,
@@ -174,7 +192,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['change', 'save']);
+const emit = defineEmits(["change", "save"]);
 
 // 状态
 const editorRef = ref(null);
@@ -197,10 +215,13 @@ const initEditor = async () => {
       let fullPath = props.file.file_path;
 
       // 如果路径不是绝对路径，需要获取项目根路径
-      if (!fullPath.startsWith('/') && !fullPath.match(/^[a-zA-Z]:[/\\]/)) {
+      if (!fullPath.startsWith("/") && !fullPath.match(/^[a-zA-Z]:[/\\]/)) {
         // 尝试从URL获取项目ID
-        const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-        const projectId = window.location.hash.match(/\/projects\/([^/?]+)/)?.[1];
+        const urlParams = new URLSearchParams(
+          window.location.hash.split("?")[1],
+        );
+        const projectId =
+          window.location.hash.match(/\/projects\/([^/?]+)/)?.[1];
 
         if (projectId && !fullPath.includes(projectId)) {
           // 拼接完整路径：/data/projects/{projectId}/{file_path}
@@ -208,36 +229,41 @@ const initEditor = async () => {
         }
       }
 
-      console.log('[RichTextEditor] 读取Word文件:', fullPath);
+      console.log("[RichTextEditor] 读取Word文件:", fullPath);
       const result = await window.electronAPI.file.readWord(fullPath);
       if (result.success) {
         content = result.html;
-        console.log('[RichTextEditor] Word内容加载成功，HTML长度:', content?.length || 0);
+        console.log(
+          "[RichTextEditor] Word内容加载成功，HTML长度:",
+          content?.length || 0,
+        );
       } else {
-        console.error('[RichTextEditor] Word读取失败:', result.error);
-        message.error('读取Word文件失败: ' + (result.error || '未知错误'));
+        console.error("[RichTextEditor] Word读取失败:", result.error);
+        message.error("读取Word文件失败: " + (result.error || "未知错误"));
       }
     }
 
     // 异步操作后再次检查 DOM 是否仍然有效（防止组件在加载期间被卸载）
     if (!editorRef.value) {
-      console.warn('[RichTextEditor] 编辑器 DOM 已卸载，取消内容设置');
+      console.warn("[RichTextEditor] 编辑器 DOM 已卸载，取消内容设置");
       return;
     }
 
-    editorRef.value.innerHTML = content || '<p>开始编辑...</p>';
+    editorRef.value.innerHTML = DOMPurify.sanitize(
+      content || "<p>开始编辑...</p>",
+    );
     updateWordCount();
   } catch (error) {
-    console.error('[RichTextEditor] 初始化失败:', error);
-    message.error('初始化编辑器失败: ' + error.message);
+    console.error("[RichTextEditor] 初始化失败:", error);
+    message.error("初始化编辑器失败: " + error.message);
   }
 };
 
 // 判断是否是Word文件
 const isWordFile = (fileName) => {
   if (!fileName) return false;
-  const ext = fileName.split('.').pop().toLowerCase();
-  return ['docx', 'doc'].includes(ext);
+  const ext = fileName.split(".").pop().toLowerCase();
+  return ["docx", "doc"].includes(ext);
 };
 
 // 执行编辑命令
@@ -254,13 +280,13 @@ const isActive = (command) => {
 
 // 修改字体大小
 const changeFontSize = (size) => {
-  execCommand('fontSize', 7);
+  execCommand("fontSize", 7);
   // 查找所有font标签并设置size
   const selection = window.getSelection();
   if (selection.rangeCount > 0) {
     const range = selection.getRangeAt(0);
-    const span = document.createElement('span');
-    span.style.fontSize = size + 'px';
+    const span = document.createElement("span");
+    span.style.fontSize = size + "px";
     range.surroundContents(span);
   }
   hasUnsavedChanges.value = true;
@@ -269,16 +295,16 @@ const changeFontSize = (size) => {
 // 处理格式
 const handleFormat = ({ key }) => {
   switch (key) {
-    case 'h1':
-    case 'h2':
-    case 'h3':
-      execCommand('formatBlock', `<${key}>`);
+    case "h1":
+    case "h2":
+    case "h3":
+      execCommand("formatBlock", `<${key}>`);
       break;
-    case 'p':
-      execCommand('formatBlock', '<p>');
+    case "p":
+      execCommand("formatBlock", "<p>");
       break;
-    case 'blockquote':
-      execCommand('formatBlock', '<blockquote>');
+    case "blockquote":
+      execCommand("formatBlock", "<blockquote>");
       break;
   }
 };
@@ -288,7 +314,7 @@ const handleInput = () => {
   hasUnsavedChanges.value = true;
   updateWordCount();
 
-  emit('change', {
+  emit("change", {
     html: editorRef.value?.innerHTML,
     text: editorRef.value?.innerText,
   });
@@ -302,42 +328,42 @@ const handleInput = () => {
 // 处理键盘事件
 const handleKeydown = (e) => {
   // Ctrl+S 保存
-  if (e.ctrlKey && e.key === 's') {
+  if (e.ctrlKey && e.key === "s") {
     e.preventDefault();
     handleSave();
   }
 
   // Ctrl+B 粗体
-  if (e.ctrlKey && e.key === 'b') {
+  if (e.ctrlKey && e.key === "b") {
     e.preventDefault();
-    execCommand('bold');
+    execCommand("bold");
   }
 
   // Ctrl+I 斜体
-  if (e.ctrlKey && e.key === 'i') {
+  if (e.ctrlKey && e.key === "i") {
     e.preventDefault();
-    execCommand('italic');
+    execCommand("italic");
   }
 
   // Ctrl+U 下划线
-  if (e.ctrlKey && e.key === 'u') {
+  if (e.ctrlKey && e.key === "u") {
     e.preventDefault();
-    execCommand('underline');
+    execCommand("underline");
   }
 };
 
 // 处理粘贴
 const handlePaste = (e) => {
   e.preventDefault();
-  const text = e.clipboardData.getData('text/plain');
-  document.execCommand('insertText', false, text);
+  const text = e.clipboardData.getData("text/plain");
+  document.execCommand("insertText", false, text);
 };
 
 // 更新字数统计
 const updateWordCount = () => {
   if (!editorRef.value) return;
-  const text = editorRef.value.innerText || '';
-  wordCount.value = text.replace(/\s/g, '').length;
+  const text = editorRef.value.innerText || "";
+  wordCount.value = text.replace(/\s/g, "").length;
 };
 
 // 计划自动保存
@@ -357,22 +383,23 @@ const handleSave = async () => {
 
   saving.value = true;
   try {
-    const html = editorRef.value?.innerHTML || '';
-    const text = editorRef.value?.innerText || '';
+    const html = editorRef.value?.innerHTML || "";
+    const text = editorRef.value?.innerText || "";
 
     if (props.file?.file_path && isWordFile(props.file.file_name)) {
       // 构建完整的文件路径
       let fullPath = props.file.file_path;
 
       // 如果路径不是绝对路径，需要获取项目根路径
-      if (!fullPath.startsWith('/') && !fullPath.match(/^[a-zA-Z]:[/\\]/)) {
-        const projectId = window.location.hash.match(/\/projects\/([^/?]+)/)?.[1];
+      if (!fullPath.startsWith("/") && !fullPath.match(/^[a-zA-Z]:[/\\]/)) {
+        const projectId =
+          window.location.hash.match(/\/projects\/([^/?]+)/)?.[1];
         if (projectId && !fullPath.includes(projectId)) {
           fullPath = `/data/projects/${projectId}/${fullPath}`;
         }
       }
 
-      console.log('[RichTextEditor] 保存Word文件:', fullPath);
+      console.log("[RichTextEditor] 保存Word文件:", fullPath);
       // 保存为Word文件
       await window.electronAPI.file.writeWord(fullPath, {
         html,
@@ -380,15 +407,18 @@ const handleSave = async () => {
       });
     } else {
       // 保存为HTML文件
-      await window.electronAPI.file.writeContent(props.file?.file_path || 'document.html', html);
+      await window.electronAPI.file.writeContent(
+        props.file?.file_path || "document.html",
+        html,
+      );
     }
 
     hasUnsavedChanges.value = false;
-    emit('save', { html, text });
-    message.success('已保存');
+    emit("save", { html, text });
+    message.success("已保存");
   } catch (error) {
-    console.error('[RichTextEditor] 保存失败:', error);
-    message.error('保存失败: ' + error.message);
+    console.error("[RichTextEditor] 保存失败:", error);
+    message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -397,75 +427,83 @@ const handleSave = async () => {
 // 导出
 const handleExport = async ({ key }) => {
   try {
-    const html = editorRef.value?.innerHTML || '';
-    const text = editorRef.value?.innerText || '';
+    const html = editorRef.value?.innerHTML || "";
+    const text = editorRef.value?.innerText || "";
 
     switch (key) {
-      case 'word':
+      case "word":
         await exportToWord(html);
         break;
-      case 'markdown':
+      case "markdown":
         await exportToMarkdown(html);
         break;
-      case 'html':
+      case "html":
         await exportToHTML(html);
         break;
-      case 'pdf':
+      case "pdf":
         await exportToPDF(html);
         break;
     }
   } catch (error) {
-    console.error('[RichTextEditor] 导出失败:', error);
-    message.error('导出失败: ' + error.message);
+    console.error("[RichTextEditor] 导出失败:", error);
+    message.error("导出失败: " + error.message);
   }
 };
 
 // 导出为Word
 const exportToWord = async (html) => {
-  console.log('[RichTextEditor] 🔄 开始导出Word...');
-  console.log('[RichTextEditor] 文件名:', props.file?.file_name);
-  console.log('[RichTextEditor] HTML长度:', html?.length, '字符');
+  console.log("[RichTextEditor] 🔄 开始导出Word...");
+  console.log("[RichTextEditor] 文件名:", props.file?.file_name);
+  console.log("[RichTextEditor] HTML长度:", html?.length, "字符");
 
   try {
-    console.log('[RichTextEditor] 📂 打开保存对话框...');
+    console.log("[RichTextEditor] 📂 打开保存对话框...");
     const result = await window.electronAPI.dialog.showSaveDialog({
-      defaultPath: props.file?.file_name?.replace(/\.[^.]+$/, '.docx') || 'document.docx',
-      filters: [{ name: 'Word文档', extensions: ['docx'] }],
+      defaultPath:
+        props.file?.file_name?.replace(/\.[^.]+$/, ".docx") || "document.docx",
+      filters: [{ name: "Word文档", extensions: ["docx"] }],
     });
 
-    console.log('[RichTextEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
+    console.log("[RichTextEditor] 对话框结果:", {
+      canceled: result.canceled,
+      filePath: result.filePath,
+    });
 
     if (result.canceled) {
-      console.log('[RichTextEditor] ❌ 用户取消了导出');
+      console.log("[RichTextEditor] ❌ 用户取消了导出");
       return;
     }
 
     if (!result.filePath) {
-      console.error('[RichTextEditor] ❌ 没有选择文件路径');
-      message.error('请选择保存位置');
+      console.error("[RichTextEditor] ❌ 没有选择文件路径");
+      message.error("请选择保存位置");
       return;
     }
 
-    console.log('[RichTextEditor] ✅ 用户选择路径:', result.filePath);
-    console.log('[RichTextEditor] 📝 调用 htmlToWord IPC...');
+    console.log("[RichTextEditor] ✅ 用户选择路径:", result.filePath);
+    console.log("[RichTextEditor] 📝 调用 htmlToWord IPC...");
 
-    const exportResult = await window.electronAPI.file.htmlToWord(html, result.filePath, {
-      title: props.file?.file_name || 'Document',
-    });
+    const exportResult = await window.electronAPI.file.htmlToWord(
+      html,
+      result.filePath,
+      {
+        title: props.file?.file_name || "Document",
+      },
+    );
 
-    console.log('[RichTextEditor] IPC返回结果:', exportResult);
+    console.log("[RichTextEditor] IPC返回结果:", exportResult);
 
     if (exportResult && exportResult.success) {
-      console.log('[RichTextEditor] ✅ 导出成功!');
-      message.success('导出成功: ' + result.filePath);
+      console.log("[RichTextEditor] ✅ 导出成功!");
+      message.success("导出成功: " + result.filePath);
     } else {
-      console.error('[RichTextEditor] ❌ 导出失败:', exportResult);
-      message.error('导出失败: ' + (exportResult?.error || '未知错误'));
+      console.error("[RichTextEditor] ❌ 导出失败:", exportResult);
+      message.error("导出失败: " + (exportResult?.error || "未知错误"));
     }
   } catch (error) {
-    console.error('[RichTextEditor] ❌ 导出过程发生异常:', error);
-    console.error('[RichTextEditor] 错误堆栈:', error.stack);
-    message.error('导出失败: ' + error.message);
+    console.error("[RichTextEditor] ❌ 导出过程发生异常:", error);
+    console.error("[RichTextEditor] 错误堆栈:", error.stack);
+    message.error("导出失败: " + error.message);
   }
 };
 
@@ -473,25 +511,26 @@ const exportToWord = async (html) => {
 const exportToMarkdown = async (html) => {
   // 简单的HTML to Markdown转换
   let markdown = html
-    .replace(/<h1>(.*?)<\/h1>/g, '# $1\n\n')
-    .replace(/<h2>(.*?)<\/h2>/g, '## $1\n\n')
-    .replace(/<h3>(.*?)<\/h3>/g, '### $1\n\n')
-    .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-    .replace(/<b>(.*?)<\/b>/g, '**$1**')
-    .replace(/<em>(.*?)<\/em>/g, '*$1*')
-    .replace(/<i>(.*?)<\/i>/g, '*$1*')
-    .replace(/<p>(.*?)<\/p>/g, '$1\n\n')
-    .replace(/<br\s*\/?>/g, '\n')
-    .replace(/<[^>]+>/g, '');
+    .replace(/<h1>(.*?)<\/h1>/g, "# $1\n\n")
+    .replace(/<h2>(.*?)<\/h2>/g, "## $1\n\n")
+    .replace(/<h3>(.*?)<\/h3>/g, "### $1\n\n")
+    .replace(/<strong>(.*?)<\/strong>/g, "**$1**")
+    .replace(/<b>(.*?)<\/b>/g, "**$1**")
+    .replace(/<em>(.*?)<\/em>/g, "*$1*")
+    .replace(/<i>(.*?)<\/i>/g, "*$1*")
+    .replace(/<p>(.*?)<\/p>/g, "$1\n\n")
+    .replace(/<br\s*\/?>/g, "\n")
+    .replace(/<[^>]+>/g, "");
 
   const result = await window.electronAPI.dialog.showSaveDialog({
-    defaultPath: props.file?.file_name?.replace(/\.[^.]+$/, '.md') || 'document.md',
-    filters: [{ name: 'Markdown文件', extensions: ['md'] }],
+    defaultPath:
+      props.file?.file_name?.replace(/\.[^.]+$/, ".md") || "document.md",
+    filters: [{ name: "Markdown文件", extensions: ["md"] }],
   });
 
   if (!result.canceled && result.filePath) {
     await window.electronAPI.file.writeContent(result.filePath, markdown);
-    message.success('导出成功: ' + result.filePath);
+    message.success("导出成功: " + result.filePath);
   }
 };
 
@@ -501,7 +540,7 @@ const exportToHTML = async (html) => {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>${props.file?.file_name || 'Document'}</title>
+  <title>${props.file?.file_name || "Document"}</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -518,53 +557,58 @@ const exportToHTML = async (html) => {
 </html>`;
 
   const result = await window.electronAPI.dialog.showSaveDialog({
-    defaultPath: props.file?.file_name?.replace(/\.[^.]+$/, '.html') || 'document.html',
-    filters: [{ name: 'HTML文件', extensions: ['html'] }],
+    defaultPath:
+      props.file?.file_name?.replace(/\.[^.]+$/, ".html") || "document.html",
+    filters: [{ name: "HTML文件", extensions: ["html"] }],
   });
 
   if (!result.canceled && result.filePath) {
     await window.electronAPI.file.writeContent(result.filePath, fullHtml);
-    message.success('导出成功: ' + result.filePath);
+    message.success("导出成功: " + result.filePath);
   }
 };
 
 // 导出为PDF
 const exportToPDF = async (html) => {
-  console.log('[RichTextEditor] 🔄 开始导出PDF...');
-  console.log('[RichTextEditor] 文件名:', props.file?.file_name);
-  console.log('[RichTextEditor] HTML长度:', html?.length, '字符');
+  console.log("[RichTextEditor] 🔄 开始导出PDF...");
+  console.log("[RichTextEditor] 文件名:", props.file?.file_name);
+  console.log("[RichTextEditor] HTML长度:", html?.length, "字符");
 
   try {
-    console.log('[RichTextEditor] 📂 打开保存对话框...');
+    console.log("[RichTextEditor] 📂 打开保存对话框...");
     const result = await window.electronAPI.dialog.showSaveDialog({
-      defaultPath: props.file?.file_name?.replace(/\.[^.]+$/, '.pdf') || 'document.pdf',
-      filters: [{ name: 'PDF文档', extensions: ['pdf'] }],
+      defaultPath:
+        props.file?.file_name?.replace(/\.[^.]+$/, ".pdf") || "document.pdf",
+      filters: [{ name: "PDF文档", extensions: ["pdf"] }],
     });
 
-    console.log('[RichTextEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
+    console.log("[RichTextEditor] 对话框结果:", {
+      canceled: result.canceled,
+      filePath: result.filePath,
+    });
 
     if (result.canceled) {
-      console.log('[RichTextEditor] ❌ 用户取消导出');
+      console.log("[RichTextEditor] ❌ 用户取消导出");
       return;
     }
 
     if (!result.filePath) {
-      console.error('[RichTextEditor] ❌ 未获取到文件路径');
-      message.error('未选择保存路径');
+      console.error("[RichTextEditor] ❌ 未获取到文件路径");
+      message.error("未选择保存路径");
       return;
     }
 
-    console.log('[RichTextEditor] 📝 准备转换内容...');
-    console.log('[RichTextEditor] HTML内容:', html?.substring(0, 100) + '...');
+    console.log("[RichTextEditor] 📝 准备转换内容...");
+    console.log("[RichTextEditor] HTML内容:", html?.substring(0, 100) + "...");
 
-    message.loading({ content: '正在生成PDF...', key: 'pdf-export' });
+    message.loading({ content: "正在生成PDF...", key: "pdf-export" });
 
     // 构建完整的HTML文档
     const fullHtml = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>${props.file?.file_name || 'Document'}</title>
+  <title>${props.file?.file_name || "Document"}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -626,7 +670,7 @@ const exportToPDF = async (html) => {
 </html>`;
 
     // 先创建临时HTML文件
-    const tempHtmlPath = result.filePath.replace('.pdf', '_temp.html');
+    const tempHtmlPath = result.filePath.replace(".pdf", "_temp.html");
     await window.electronAPI.file.writeContent(tempHtmlPath, fullHtml);
 
     // 调用PDF转换API
@@ -634,55 +678,55 @@ const exportToPDF = async (html) => {
       htmlPath: tempHtmlPath,
       outputPath: result.filePath,
       options: {
-        format: 'A4',
+        format: "A4",
         margin: {
-          top: '20mm',
-          right: '20mm',
-          bottom: '20mm',
-          left: '20mm'
+          top: "20mm",
+          right: "20mm",
+          bottom: "20mm",
+          left: "20mm",
         },
         printBackground: true,
-        preferCSSPageSize: false
-      }
+        preferCSSPageSize: false,
+      },
     });
 
-    console.log('[RichTextEditor] PDF转换结果:', pdfResult);
+    console.log("[RichTextEditor] PDF转换结果:", pdfResult);
 
     // 删除临时HTML文件
     try {
       await window.electronAPI.file.deleteFile(tempHtmlPath);
     } catch (e) {
-      console.warn('[RichTextEditor] 删除临时文件失败:', e);
+      console.warn("[RichTextEditor] 删除临时文件失败:", e);
     }
 
     if (pdfResult.success) {
       message.success({
         content: `PDF导出成功: ${result.filePath}`,
-        key: 'pdf-export',
-        duration: 3
+        key: "pdf-export",
+        duration: 3,
       });
-      console.log('[RichTextEditor] ✅ PDF导出成功');
+      console.log("[RichTextEditor] ✅ PDF导出成功");
     } else {
-      const errorMsg = pdfResult.error || '未知错误';
-      console.error('[RichTextEditor] ❌ PDF转换失败:', errorMsg);
+      const errorMsg = pdfResult.error || "未知错误";
+      console.error("[RichTextEditor] ❌ PDF转换失败:", errorMsg);
       message.error({
         content: `PDF导出失败: ${errorMsg}`,
-        key: 'pdf-export',
-        duration: 3
+        key: "pdf-export",
+        duration: 3,
       });
     }
   } catch (error) {
-    console.error('[RichTextEditor] ❌ PDF导出异常:', error);
-    console.error('[RichTextEditor] 错误堆栈:', error.stack);
+    console.error("[RichTextEditor] ❌ PDF导出异常:", error);
+    console.error("[RichTextEditor] 错误堆栈:", error.stack);
 
-    let errorMessage = 'PDF导出失败';
+    let errorMessage = "PDF导出失败";
     if (error.message) {
-      if (error.message.includes('not available')) {
-        errorMessage = 'PDF转换服务不可用，请检查系统配置';
-      } else if (error.message.includes('permission')) {
-        errorMessage = '没有权限写入文件，请检查文件路径';
-      } else if (error.message.includes('disk')) {
-        errorMessage = '磁盘空间不足';
+      if (error.message.includes("not available")) {
+        errorMessage = "PDF转换服务不可用，请检查系统配置";
+      } else if (error.message.includes("permission")) {
+        errorMessage = "没有权限写入文件，请检查文件路径";
+      } else if (error.message.includes("disk")) {
+        errorMessage = "磁盘空间不足";
       } else {
         errorMessage = `PDF导出失败: ${error.message}`;
       }
@@ -690,8 +734,8 @@ const exportToPDF = async (html) => {
 
     message.error({
       content: errorMessage,
-      key: 'pdf-export',
-      duration: 3
+      key: "pdf-export",
+      duration: 3,
     });
   }
 };
@@ -709,9 +753,13 @@ onBeforeUnmount(() => {
 });
 
 // 监听文件变化
-watch(() => props.file, () => {
-  initEditor();
-}, { deep: true });
+watch(
+  () => props.file,
+  () => {
+    initEditor();
+  },
+  { deep: true },
+);
 
 // 暴露方法
 defineExpose({
@@ -758,7 +806,7 @@ defineExpose({
   outline: none;
   line-height: 1.8;
   font-size: 14px;
-  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  font-family: "Microsoft YaHei", Arial, sans-serif;
 }
 
 .editor-content:focus {

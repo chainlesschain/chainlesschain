@@ -4,7 +4,10 @@
       <template #extra>
         <a-space>
           <!-- 自动重新发布状态 -->
-          <a-badge :status="autoRepublishStatus.enabled ? 'processing' : 'default'" :text="autoRepublishStatus.enabled ? '自动重新发布' : '未启用'" />
+          <a-badge
+            :status="autoRepublishStatus.enabled ? 'processing' : 'default'"
+            :text="autoRepublishStatus.enabled ? '自动重新发布' : '未启用'"
+          />
           <a-button @click="showAutoRepublishModal = true">
             <template #icon><setting-outlined /></template>
             自动发布设置
@@ -41,12 +44,16 @@
             <template #title>
               <div class="identity-header">
                 <a-avatar :size="48" :src="identity.avatar_path">
-                  {{ identity.nickname?.charAt(0) || 'A' }}
+                  {{ identity.nickname?.charAt(0) || "A" }}
                 </a-avatar>
                 <div class="identity-title">
                   <div class="nickname">
                     {{ identity.nickname }}
-                    <a-tag v-if="identity.is_default" color="green" size="small">
+                    <a-tag
+                      v-if="identity.is_default"
+                      color="green"
+                      size="small"
+                    >
                       默认
                     </a-tag>
                   </div>
@@ -93,7 +100,7 @@
                     :color="identity.dhtPublished ? 'success' : 'default'"
                     size="small"
                   >
-                    {{ identity.dhtPublished ? '已发布' : '未发布' }}
+                    {{ identity.dhtPublished ? "已发布" : "未发布" }}
                   </a-tag>
                 </div>
                 <div class="metadata-item">
@@ -104,7 +111,7 @@
                   >
                     <safety-outlined v-if="identity.hasMnemonicBackup" />
                     <warning-outlined v-else />
-                    {{ identity.hasMnemonicBackup ? '已备份' : '未备份' }}
+                    {{ identity.hasMnemonicBackup ? "已备份" : "未备份" }}
                   </a-tag>
                 </div>
               </div>
@@ -141,9 +148,7 @@
             <a-radio :value="false">
               <safety-outlined /> 生成新身份（推荐）
             </a-radio>
-            <a-radio :value="true">
-              <key-outlined /> 从助记词恢复
-            </a-radio>
+            <a-radio :value="true"> <key-outlined /> 从助记词恢复 </a-radio>
           </a-radio-group>
         </a-form-item>
 
@@ -182,16 +187,12 @@
             v-model:value="createForm.avatar"
             placeholder="头像路径或URL（可选）"
           />
-          <div class="form-hint">
-            暂不支持上传，请输入本地路径或在线URL
-          </div>
+          <div class="form-hint">暂不支持上传，请输入本地路径或在线URL</div>
         </a-form-item>
 
         <a-form-item label="设为默认">
           <a-switch v-model:checked="createForm.setAsDefault" />
-          <div class="form-hint">
-            默认身份将用于 P2P 通信和内容发布
-          </div>
+          <div class="form-hint">默认身份将用于 P2P 通信和内容发布</div>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -219,7 +220,7 @@
           </a-descriptions-item>
 
           <a-descriptions-item label="个人简介">
-            {{ currentIdentity.bio || '无' }}
+            {{ currentIdentity.bio || "无" }}
           </a-descriptions-item>
 
           <a-descriptions-item label="签名公钥">
@@ -246,14 +247,18 @@
 
           <a-descriptions-item label="默认身份">
             <a-tag :color="currentIdentity.is_default ? 'green' : 'default'">
-              {{ currentIdentity.is_default ? '是' : '否' }}
+              {{ currentIdentity.is_default ? "是" : "否" }}
             </a-tag>
           </a-descriptions-item>
 
           <a-descriptions-item label="DHT 发布状态">
             <a-space>
-              <a-tag :color="currentIdentity.dhtPublished ? 'success' : 'default'">
-                {{ currentIdentity.dhtPublished ? '已发布到 DHT 网络' : '未发布' }}
+              <a-tag
+                :color="currentIdentity.dhtPublished ? 'success' : 'default'"
+              >
+                {{
+                  currentIdentity.dhtPublished ? "已发布到 DHT 网络" : "未发布"
+                }}
               </a-tag>
               <a-button
                 v-if="!currentIdentity.dhtPublished"
@@ -278,10 +283,14 @@
 
           <a-descriptions-item label="助记词备份">
             <a-space>
-              <a-tag :color="currentIdentity.hasMnemonicBackup ? 'success' : 'warning'">
+              <a-tag
+                :color="
+                  currentIdentity.hasMnemonicBackup ? 'success' : 'warning'
+                "
+              >
                 <safety-outlined v-if="currentIdentity.hasMnemonicBackup" />
                 <warning-outlined v-else />
-                {{ currentIdentity.hasMnemonicBackup ? '已备份' : '未备份' }}
+                {{ currentIdentity.hasMnemonicBackup ? "已备份" : "未备份" }}
               </a-tag>
               <a-button
                 v-if="currentIdentity.hasMnemonicBackup"
@@ -316,7 +325,10 @@
               <template #icon><download-outlined /></template>
               导出 DID 文档
             </a-button>
-            <a-button type="primary" @click="handleGenerateQR(currentIdentity.did)">
+            <a-button
+              type="primary"
+              @click="handleGenerateQR(currentIdentity.did)"
+            >
               <template #icon><qrcode-outlined /></template>
               生成二维码
             </a-button>
@@ -333,7 +345,9 @@
       :footer="null"
     >
       <a-typography>
-        <pre class="did-document">{{ JSON.stringify(didDocument, null, 2) }}</pre>
+        <pre class="did-document">{{
+          JSON.stringify(didDocument, null, 2)
+        }}</pre>
       </a-typography>
       <a-button type="primary" @click="handleCopyDocument">
         <template #icon><copy-outlined /></template>
@@ -536,8 +550,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, h } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, reactive, onMounted, h } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   PlusOutlined,
   StarOutlined,
@@ -552,8 +566,8 @@ import {
   KeyOutlined,
   SafetyOutlined,
   WarningOutlined,
-} from '@ant-design/icons-vue';
-import QRCode from 'qrcode';
+} from "@ant-design/icons-vue";
+import QRCode from "qrcode";
 
 const loading = ref(false);
 const creating = ref(false);
@@ -590,20 +604,20 @@ const republishing = ref(false);
 
 // 创建表单
 const createForm = reactive({
-  nickname: '',
-  bio: '',
-  avatar: '',
+  nickname: "",
+  bio: "",
+  avatar: "",
   setAsDefault: false,
   useMnemonic: false, // 是否使用助记词创建
-  mnemonic: '', // 助记词（用于恢复）
+  mnemonic: "", // 助记词（用于恢复）
 });
 
 // 助记词相关状态
-const generatedMnemonic = ref('');
+const generatedMnemonic = ref("");
 const mnemonicWords = ref([]);
 const mnemonicCopied = ref(false);
 const mnemonicConfirmed = ref(false);
-const exportingMnemonic = ref('');
+const exportingMnemonic = ref("");
 
 // 加载身份列表
 async function loadIdentities() {
@@ -615,19 +629,27 @@ async function loadIdentities() {
     const identitiesWithStatus = await Promise.all(
       result.map(async (identity) => {
         try {
-          const isPublished = await window.electronAPI.did.isPublishedToDHT(identity.did);
-          const hasMnemonic = await window.electronAPI.did.hasMnemonic(identity.did);
-          return { ...identity, dhtPublished: isPublished, hasMnemonicBackup: hasMnemonic };
+          const isPublished = await window.electronAPI.did.isPublishedToDHT(
+            identity.did,
+          );
+          const hasMnemonic = await window.electronAPI.did.hasMnemonic(
+            identity.did,
+          );
+          return {
+            ...identity,
+            dhtPublished: isPublished,
+            hasMnemonicBackup: hasMnemonic,
+          };
         } catch (error) {
-          console.error('检查状态失败:', error);
+          console.error("检查状态失败:", error);
           return { ...identity, dhtPublished: false, hasMnemonicBackup: false };
         }
-      })
+      }),
     );
 
     identities.value = identitiesWithStatus;
   } catch (error) {
-    message.error('加载身份列表失败: ' + error.message);
+    message.error("加载身份列表失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -636,20 +658,22 @@ async function loadIdentities() {
 // 创建新身份
 async function handleCreateIdentity() {
   if (!createForm.nickname.trim()) {
-    message.warning('请输入昵称');
+    message.warning("请输入昵称");
     return;
   }
 
   // 如果使用助记词恢复，需要验证助记词
   if (createForm.useMnemonic) {
     if (!createForm.mnemonic.trim()) {
-      message.warning('请输入助记词');
+      message.warning("请输入助记词");
       return;
     }
 
-    const isValid = await window.electronAPI.did.validateMnemonic(createForm.mnemonic.trim());
+    const isValid = await window.electronAPI.did.validateMnemonic(
+      createForm.mnemonic.trim(),
+    );
     if (!isValid) {
-      message.error('助记词格式无效，请检查后重试');
+      message.error("助记词格式无效，请检查后重试");
       return;
     }
   }
@@ -669,35 +693,43 @@ async function handleCreateIdentity() {
       const options = {
         setAsDefault: createForm.setAsDefault,
       };
-      result = await window.electronAPI.did.createFromMnemonic(profile, createForm.mnemonic.trim(), options);
-      message.success('身份已从助记词恢复！DID: ' + result.did);
+      result = await window.electronAPI.did.createFromMnemonic(
+        profile,
+        createForm.mnemonic.trim(),
+        options,
+      );
+      message.success("身份已从助记词恢复！DID: " + result.did);
     } else {
       // 生成新身份（自动生成助记词）
       const mnemonic = await window.electronAPI.did.generateMnemonic();
       const options = {
         setAsDefault: createForm.setAsDefault,
       };
-      result = await window.electronAPI.did.createFromMnemonic(profile, mnemonic, options);
+      result = await window.electronAPI.did.createFromMnemonic(
+        profile,
+        mnemonic,
+        options,
+      );
 
       // 保存生成的助记词并显示
       generatedMnemonic.value = mnemonic;
-      mnemonicWords.value = mnemonic.split(' ');
+      mnemonicWords.value = mnemonic.split(" ");
       mnemonicCopied.value = false;
       mnemonicConfirmed.value = false;
 
       // 关闭创建模态框，显示助记词模态框
       showCreateModal.value = false;
       showMnemonicDisplayModal.value = true;
-      message.success('身份创建成功！请务必备份助记词！');
+      message.success("身份创建成功！请务必备份助记词！");
     }
 
     // 重置表单
-    createForm.nickname = '';
-    createForm.bio = '';
-    createForm.avatar = '';
+    createForm.nickname = "";
+    createForm.bio = "";
+    createForm.avatar = "";
     createForm.setAsDefault = false;
     createForm.useMnemonic = false;
-    createForm.mnemonic = '';
+    createForm.mnemonic = "";
 
     // 如果是从助记词恢复，关闭模态框
     if (createForm.useMnemonic) {
@@ -707,7 +739,7 @@ async function handleCreateIdentity() {
     // 刷新列表
     await loadIdentities();
   } catch (error) {
-    message.error('创建身份失败: ' + error.message);
+    message.error("创建身份失败: " + error.message);
   } finally {
     creating.value = false;
   }
@@ -717,10 +749,10 @@ async function handleCreateIdentity() {
 async function handleSetDefault(did) {
   try {
     await window.electronAPI.did.setDefaultIdentity(did);
-    message.success('已设置为默认身份');
+    message.success("已设置为默认身份");
     await loadIdentities();
   } catch (error) {
-    message.error('设置失败: ' + error.message);
+    message.error("设置失败: " + error.message);
   }
 }
 
@@ -733,30 +765,34 @@ async function handleViewDetails(identity) {
 // 查看 DID 文档
 async function handleViewDIDDocument() {
   try {
-    const doc = await window.electronAPI.did.exportDocument(currentIdentity.value.did);
+    const doc = await window.electronAPI.did.exportDocument(
+      currentIdentity.value.did,
+    );
     didDocument.value = doc;
     showDocumentModal.value = true;
   } catch (error) {
-    message.error('获取 DID 文档失败: ' + error.message);
+    message.error("获取 DID 文档失败: " + error.message);
   }
 }
 
 // 导出 DID 文档
 async function handleExportDocument() {
   try {
-    const doc = await window.electronAPI.did.exportDocument(currentIdentity.value.did);
+    const doc = await window.electronAPI.did.exportDocument(
+      currentIdentity.value.did,
+    );
     const blob = new Blob([JSON.stringify(doc, null, 2)], {
-      type: 'application/json',
+      type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `did-document-${currentIdentity.value.nickname}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    message.success('DID 文档已导出');
+    message.success("DID 文档已导出");
   } catch (error) {
-    message.error('导出失败: ' + error.message);
+    message.error("导出失败: " + error.message);
   }
 }
 
@@ -764,7 +800,7 @@ async function handleExportDocument() {
 function handleCopyDocument() {
   const text = JSON.stringify(didDocument.value, null, 2);
   navigator.clipboard.writeText(text);
-  message.success('已复制到剪贴板');
+  message.success("已复制到剪贴板");
 }
 
 // 生成二维码
@@ -775,11 +811,11 @@ async function handleGenerateQR(did) {
 
     // 等待 DOM 更新
     setTimeout(async () => {
-      const container = document.getElementById('qrcode');
+      const container = document.getElementById("qrcode");
       if (container) {
-        container.innerHTML = '';
+        container.replaceChildren();
         await QRCode.toCanvas(qrData, {
-          errorCorrectionLevel: 'M',
+          errorCorrectionLevel: "M",
           width: 300,
           margin: 2,
         }).then((canvas) => {
@@ -788,22 +824,22 @@ async function handleGenerateQR(did) {
       }
     }, 100);
   } catch (error) {
-    message.error('生成二维码失败: ' + error.message);
+    message.error("生成二维码失败: " + error.message);
   }
 }
 
 // 保存二维码
 function handleSaveQR() {
-  const canvas = document.querySelector('#qrcode canvas');
+  const canvas = document.querySelector("#qrcode canvas");
   if (canvas) {
     canvas.toBlob((blob) => {
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `did-qrcode-${Date.now()}.png`;
       a.click();
       URL.revokeObjectURL(url);
-      message.success('二维码已保存');
+      message.success("二维码已保存");
     });
   }
 }
@@ -812,24 +848,24 @@ function handleSaveQR() {
 function handleDelete(did) {
   const identity = identities.value.find((i) => i.did === did);
   if (identity?.is_default) {
-    message.warning('不能删除默认身份');
+    message.warning("不能删除默认身份");
     return;
   }
 
   // 确认删除
   Modal.confirm({
-    title: '确认删除',
-    content: '删除身份后将无法恢复，确定要删除吗？',
-    okText: '确定',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认删除",
+    content: "删除身份后将无法恢复，确定要删除吗？",
+    okText: "确定",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         await window.electronAPI.did.deleteIdentity(did);
-        message.success('身份已删除');
+        message.success("身份已删除");
         await loadIdentities();
       } catch (error) {
-        message.error('删除失败: ' + error.message);
+        message.error("删除失败: " + error.message);
       }
     },
   });
@@ -837,12 +873,12 @@ function handleDelete(did) {
 
 // 缩短 DID 显示
 function shortenDID(did) {
-  if (!did) return '';
-  const parts = did.split(':');
+  if (!did) return "";
+  const parts = did.split(":");
   if (parts.length === 3) {
     const identifier = parts[2];
     return `did:${parts[1]}:${identifier.substring(0, 8)}...${identifier.substring(
-      identifier.length - 6
+      identifier.length - 6,
     )}`;
   }
   return did;
@@ -850,9 +886,9 @@ function shortenDID(did) {
 
 // 格式化日期
 function formatDate(timestamp) {
-  if (!timestamp) return '未知';
+  if (!timestamp) return "未知";
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 }
 
 // 发布 DID 到 DHT
@@ -863,9 +899,11 @@ async function handlePublishToDHT() {
 
   publishing.value = true;
   try {
-    const result = await window.electronAPI.did.publishToDHT(currentIdentity.value.did);
-    message.success('DID 已成功发布到 DHT 网络');
-    console.log('发布结果:', result);
+    const result = await window.electronAPI.did.publishToDHT(
+      currentIdentity.value.did,
+    );
+    message.success("DID 已成功发布到 DHT 网络");
+    console.log("发布结果:", result);
 
     // 更新当前身份的 DHT 状态
     currentIdentity.value.dhtPublished = true;
@@ -873,8 +911,8 @@ async function handlePublishToDHT() {
     // 刷新身份列表
     await loadIdentities();
   } catch (error) {
-    console.error('发布失败:', error);
-    message.error('发布失败: ' + error.message);
+    console.error("发布失败:", error);
+    message.error("发布失败: " + error.message);
   } finally {
     publishing.value = false;
   }
@@ -887,16 +925,18 @@ async function handleUnpublishFromDHT() {
   }
 
   Modal.confirm({
-    title: '确认取消发布',
-    content: '取消发布后，其他节点将无法通过 DHT 解析您的 DID，确定要继续吗？',
-    okText: '确定',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认取消发布",
+    content: "取消发布后，其他节点将无法通过 DHT 解析您的 DID，确定要继续吗？",
+    okText: "确定",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       unpublishing.value = true;
       try {
-        await window.electronAPI.did.unpublishFromDHT(currentIdentity.value.did);
-        message.success('DID 已从 DHT 网络取消发布');
+        await window.electronAPI.did.unpublishFromDHT(
+          currentIdentity.value.did,
+        );
+        message.success("DID 已从 DHT 网络取消发布");
 
         // 更新当前身份的 DHT 状态
         currentIdentity.value.dhtPublished = false;
@@ -904,8 +944,8 @@ async function handleUnpublishFromDHT() {
         // 刷新身份列表
         await loadIdentities();
       } catch (error) {
-        console.error('取消发布失败:', error);
-        message.error('取消发布失败: ' + error.message);
+        console.error("取消发布失败:", error);
+        message.error("取消发布失败: " + error.message);
       } finally {
         unpublishing.value = false;
       }
@@ -921,7 +961,7 @@ async function loadAutoRepublishStatus() {
     autoRepublishConfig.enabled = status.enabled;
     autoRepublishConfig.intervalHours = status.intervalHours;
   } catch (error) {
-    console.error('[DIDManagement] 加载自动重新发布状态失败:', error);
+    console.error("[DIDManagement] 加载自动重新发布状态失败:", error);
   }
 }
 
@@ -932,17 +972,17 @@ async function handleSaveAutoRepublishConfig() {
 
     if (autoRepublishConfig.enabled) {
       await window.electronAPI.did.startAutoRepublish(intervalMs);
-      message.success('自动重新发布已启用');
+      message.success("自动重新发布已启用");
     } else {
       await window.electronAPI.did.stopAutoRepublish();
-      message.success('自动重新发布已停止');
+      message.success("自动重新发布已停止");
     }
 
     await loadAutoRepublishStatus();
     showAutoRepublishModal.value = false;
   } catch (error) {
-    console.error('[DIDManagement] 保存配置失败:', error);
-    message.error('保存配置失败: ' + error.message);
+    console.error("[DIDManagement] 保存配置失败:", error);
+    message.error("保存配置失败: " + error.message);
   }
 }
 
@@ -954,18 +994,18 @@ async function handleRepublishNow() {
 
     if (result.failed > 0) {
       message.warning(
-        `重新发布完成: ${result.success} 成功，${result.failed} 失败，${result.skipped} 跳过`
+        `重新发布完成: ${result.success} 成功，${result.failed} 失败，${result.skipped} 跳过`,
       );
     } else {
       message.success(
-        `成功重新发布 ${result.success} 个 DID${result.skipped > 0 ? `（跳过 ${result.skipped} 个未发布的 DID）` : ''}`
+        `成功重新发布 ${result.success} 个 DID${result.skipped > 0 ? `（跳过 ${result.skipped} 个未发布的 DID）` : ""}`,
       );
     }
 
     await loadIdentities();
   } catch (error) {
-    console.error('[DIDManagement] 重新发布失败:', error);
-    message.error('重新发布失败: ' + error.message);
+    console.error("[DIDManagement] 重新发布失败:", error);
+    message.error("重新发布失败: " + error.message);
   } finally {
     republishing.value = false;
   }
@@ -976,9 +1016,9 @@ async function handleCopyMnemonic() {
   try {
     await navigator.clipboard.writeText(generatedMnemonic.value);
     mnemonicCopied.value = true;
-    message.success('助记词已复制到剪贴板');
+    message.success("助记词已复制到剪贴板");
   } catch (error) {
-    message.error('复制失败: ' + error.message);
+    message.error("复制失败: " + error.message);
   }
 }
 
@@ -986,28 +1026,28 @@ async function handleCopyMnemonic() {
 function handleConfirmMnemonicBackup() {
   if (!mnemonicCopied.value) {
     Modal.warning({
-      title: '请先复制助记词',
-      content: '请务必复制并安全保存助记词，这是恢复身份的唯一方式！',
+      title: "请先复制助记词",
+      content: "请务必复制并安全保存助记词，这是恢复身份的唯一方式！",
     });
     return;
   }
 
   mnemonicConfirmed.value = true;
   showMnemonicDisplayModal.value = false;
-  message.success('助记词备份确认完成');
+  message.success("助记词备份确认完成");
 }
 
 // 下载助记词为文本文件
 function handleDownloadMnemonic() {
-  const blob = new Blob([generatedMnemonic.value], { type: 'text/plain' });
+  const blob = new Blob([generatedMnemonic.value], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = `mnemonic-backup-${Date.now()}.txt`;
   a.click();
   URL.revokeObjectURL(url);
   mnemonicCopied.value = true;
-  message.success('助记词已下载');
+  message.success("助记词已下载");
 }
 
 // 导出现有身份的助记词
@@ -1018,26 +1058,29 @@ async function handleExportMnemonic() {
 
   // 安全警告
   Modal.confirm({
-    title: '导出助记词',
-    content: '助记词是恢复身份的唯一凭证，请务必妥善保管！任何人获得助记词都可以完全控制您的身份。确定要导出吗？',
+    title: "导出助记词",
+    content:
+      "助记词是恢复身份的唯一凭证，请务必妥善保管！任何人获得助记词都可以完全控制您的身份。确定要导出吗？",
     icon: h(WarningOutlined),
-    okText: '确定导出',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "确定导出",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
-        const mnemonic = await window.electronAPI.did.exportMnemonic(currentIdentity.value.did);
+        const mnemonic = await window.electronAPI.did.exportMnemonic(
+          currentIdentity.value.did,
+        );
 
         if (!mnemonic) {
-          message.warning('该身份没有助记词备份');
+          message.warning("该身份没有助记词备份");
           return;
         }
 
         exportingMnemonic.value = mnemonic;
         showMnemonicExportModal.value = true;
       } catch (error) {
-        console.error('导出助记词失败:', error);
-        message.error('导出助记词失败: ' + error.message);
+        console.error("导出助记词失败:", error);
+        message.error("导出助记词失败: " + error.message);
       }
     },
   });
@@ -1047,22 +1090,22 @@ async function handleExportMnemonic() {
 async function handleCopyExportedMnemonic() {
   try {
     await navigator.clipboard.writeText(exportingMnemonic.value);
-    message.success('助记词已复制到剪贴板');
+    message.success("助记词已复制到剪贴板");
   } catch (error) {
-    message.error('复制失败: ' + error.message);
+    message.error("复制失败: " + error.message);
   }
 }
 
 // 下载导出的助记词
 function handleDownloadExportedMnemonic() {
-  const blob = new Blob([exportingMnemonic.value], { type: 'text/plain' });
+  const blob = new Blob([exportingMnemonic.value], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = `mnemonic-${currentIdentity.value.nickname}-${Date.now()}.txt`;
   a.click();
   URL.revokeObjectURL(url);
-  message.success('助记词已下载');
+  message.success("助记词已下载");
 }
 
 onMounted(() => {
@@ -1111,7 +1154,7 @@ onMounted(() => {
 .did-short {
   font-size: 12px;
   color: #999;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1223,7 +1266,7 @@ onMounted(() => {
 
 .word-text {
   font-size: 14px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-weight: 500;
   color: #333;
 }
@@ -1247,4 +1290,3 @@ onMounted(() => {
   }
 }
 </style>
-
