@@ -49,11 +49,11 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
     }
   });
 
-  // 获取订单列表
+  // 获取订单列表（支持分页和高级筛选）
   ipcMain.handle("marketplace:get-orders", async (_event, filters) => {
     try {
       if (!marketplaceManager) {
-        return [];
+        return { items: [], total: 0, page: 1, pageSize: 20, totalPages: 0 };
       }
 
       return await marketplaceManager.getOrders(filters);
@@ -62,6 +62,63 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
       throw error;
     }
   });
+
+  // 高级搜索订单（分页+筛选+排序）
+  ipcMain.handle("marketplace:search-orders", async (_event, options) => {
+    try {
+      if (!marketplaceManager) {
+        return { items: [], total: 0, page: 1, pageSize: 20, totalPages: 0 };
+      }
+
+      const {
+        keyword,
+        type,
+        status = "open",
+        priceMin,
+        priceMax,
+        createdAfter,
+        createdBefore,
+        sortBy,
+        sortOrder,
+        page,
+        pageSize,
+      } = options || {};
+
+      return await marketplaceManager.getOrders({
+        search: keyword,
+        type,
+        status,
+        priceMin,
+        priceMax,
+        createdAfter,
+        createdBefore,
+        sortBy,
+        sortOrder,
+        page,
+        pageSize,
+      });
+    } catch (error) {
+      console.error("[Main] 搜索订单失败:", error);
+      throw error;
+    }
+  });
+
+  // 获取搜索建议（自动补全）
+  ipcMain.handle(
+    "marketplace:get-search-suggestions",
+    async (_event, prefix, limit = 10) => {
+      try {
+        if (!marketplaceManager) {
+          return [];
+        }
+
+        return await marketplaceManager.getSearchSuggestions(prefix, limit);
+      } catch (error) {
+        console.error("[Main] 获取搜索建议失败:", error);
+        return [];
+      }
+    },
+  );
 
   // 获取订单详情
   ipcMain.handle("marketplace:get-order", async (_event, orderId) => {
@@ -390,7 +447,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
     }
   });
 
-  console.log("[Marketplace IPC] ✓ 18 handlers registered");
+  console.log("[Marketplace IPC] ✓ 20 handlers registered");
 }
 
 module.exports = { registerMarketplaceIPC };
