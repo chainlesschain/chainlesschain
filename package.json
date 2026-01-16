@@ -45,7 +45,8 @@
     "test": "npm test --workspaces",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "clean": "rimraf desktop-app/dist desktop-app/out node_modules/.cache"
+    "clean": "rimraf desktop-app/dist desktop-app/out node_modules/.cache",
+    "prepare": "husky"
   },
   "keywords": [
     "decentralized",
@@ -89,5 +90,17 @@
   "bugs": {
     "url": "https://github.com/yourname/chainlesschain/issues"
   },
-  "homepage": "https://www.chainlesschain.com"
+  "homepage": "https://www.chainlesschain.com",
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ],
+    "*.{js,jsx,ts,tsx,json,md}": [
+      "node scripts/security-check.js"
+    ]
+  }
 }
