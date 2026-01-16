@@ -1627,55 +1627,254 @@ ${error?.stack || "无堆栈信息"}
 
   /**
    * 分类错误
+   * 支持 30+ 种错误类型的智能分类
    * @param {Error} error - 错误对象
    * @returns {string} 错误分类
    */
   classifyError(error) {
     const message = (error?.message || String(error)).toLowerCase();
     const code = error?.code;
+    const name = error?.name;
 
-    if (code === "SQLITE_BUSY" || message.includes("database"))
+    // ============================================================
+    // 数据库错误 (DATABASE)
+    // ============================================================
+    if (code === "SQLITE_BUSY" || message.includes("database is locked")) {
+      return "DATABASE_LOCKED";
+    }
+    if (
+      message.includes("database disk image is malformed") ||
+      message.includes("database corrupt")
+    ) {
+      return "DATABASE_CORRUPT";
+    }
+    if (
+      code === "SQLITE_READONLY" ||
+      message.includes("attempt to write a readonly database")
+    ) {
+      return "DATABASE_READONLY";
+    }
+    if (message.includes("database") || message.includes("sqlite")) {
       return "DATABASE";
-    if (code === "ECONNREFUSED" || message.includes("connection"))
-      return "NETWORK";
-    if (code === "ENOENT" || message.includes("no such file"))
-      return "FILESYSTEM";
-    if (code === "EPERM" || code === "EACCES") return "PERMISSION";
-    if (message.includes("timeout")) return "TIMEOUT";
-    if (message.includes("memory") || message.includes("heap")) return "MEMORY";
-    if (error?.name === "TypeError") return "TYPE_ERROR";
-    if (error?.name === "ReferenceError") return "REFERENCE_ERROR";
-    if (error?.name === "SyntaxError") return "SYNTAX_ERROR";
+    }
+
+    // ============================================================
+    // 网络错误 (NETWORK)
+    // ============================================================
+    if (code === "ECONNREFUSED" || message.includes("connection refused")) {
+      return "CONNECTION_REFUSED";
+    }
+    if (code === "ECONNRESET" || message.includes("connection reset")) {
+      return "CONNECTION_RESET";
+    }
+    if (
+      code === "ETIMEDOUT" ||
+      code === "ESOCKETTIMEDOUT" ||
+      message.includes("timeout")
+    ) {
+      return "TIMEOUT";
+    }
+    if (
+      code === "ENOTFOUND" ||
+      message.includes("getaddrinfo") ||
+      message.includes("dns")
+    ) {
+      return "DNS_ERROR";
+    }
+    if (
+      message.includes("ssl") ||
+      message.includes("certificate") ||
+      message.includes("tls")
+    ) {
+      return "SSL_ERROR";
+    }
+    if (
+      code === "ECONNABORTED" ||
+      code === "ENETUNREACH" ||
+      message.includes("network")
+    ) {
+      return "NETWORK_ERROR";
+    }
+
+    // ============================================================
+    // 文件系统错误 (FILESYSTEM)
+    // ============================================================
+    if (
+      code === "ENOENT" ||
+      message.includes("no such file") ||
+      message.includes("file not found")
+    ) {
+      return "FILE_NOT_FOUND";
+    }
+    if (code === "EPERM" || code === "EACCES") {
+      return "PERMISSION_DENIED";
+    }
+    if (code === "ENOSPC" || message.includes("no space left")) {
+      return "DISK_FULL";
+    }
+    if (code === "EBUSY" || message.includes("file is locked")) {
+      return "FILE_LOCKED";
+    }
+    if (code === "ENAMETOOLONG" || message.includes("path too long")) {
+      return "PATH_TOO_LONG";
+    }
+
+    // ============================================================
+    // 内存错误 (MEMORY)
+    // ============================================================
+    if (message.includes("heap out of memory") || message.includes("oom")) {
+      return "MEMORY_LEAK";
+    }
+    if (message.includes("maximum call stack")) {
+      return "STACK_OVERFLOW";
+    }
+    if (message.includes("memory") || message.includes("heap")) {
+      return "MEMORY";
+    }
+
+    // ============================================================
+    // API/HTTP 错误
+    // ============================================================
+    if (
+      message.includes("rate limit") ||
+      message.includes("too many requests") ||
+      message.includes("429")
+    ) {
+      return "RATE_LIMIT";
+    }
+    if (
+      message.includes("unauthorized") ||
+      message.includes("authentication") ||
+      message.includes("401") ||
+      message.includes("403")
+    ) {
+      return "AUTH_ERROR";
+    }
+    if (
+      message.includes("internal server error") ||
+      message.includes("500") ||
+      message.includes("502") ||
+      message.includes("503")
+    ) {
+      return "SERVER_ERROR";
+    }
+
+    // ============================================================
+    // Electron 特有错误
+    // ============================================================
+    if (message.includes("gpu") || message.includes("webgl")) {
+      return "GPU_ERROR";
+    }
+    if (message.includes("ipc") || message.includes("electron")) {
+      return "IPC_ERROR";
+    }
+    if (message.includes("browserwindow") || message.includes("renderer")) {
+      return "WINDOW_ERROR";
+    }
+
+    // ============================================================
+    // LLM/AI 错误
+    // ============================================================
+    if (
+      message.includes("context length") ||
+      message.includes("token limit") ||
+      message.includes("maximum context")
+    ) {
+      return "LLM_CONTEXT_LENGTH";
+    }
+    if (message.includes("model not found") || message.includes("model load")) {
+      return "LLM_MODEL_ERROR";
+    }
+    if (message.includes("ollama") || message.includes("llm")) {
+      return "LLM_API_ERROR";
+    }
+
+    // ============================================================
+    // 验证错误 (VALIDATION)
+    // ============================================================
+    if (
+      message.includes("invalid") ||
+      message.includes("validation") ||
+      message.includes("required")
+    ) {
+      return "VALIDATION";
+    }
+
+    // ============================================================
+    // JavaScript 运行时错误
+    // ============================================================
+    if (name === "TypeError") return "TYPE_ERROR";
+    if (name === "ReferenceError") return "REFERENCE_ERROR";
+    if (name === "SyntaxError") return "SYNTAX_ERROR";
+    if (name === "RangeError") return "RANGE_ERROR";
 
     return "UNKNOWN";
   }
 
   /**
    * 评估错误严重程度
+   * 四级评估系统：critical > high > medium > low
    * @param {Error} error - 错误对象
    * @returns {string} 严重程度 (low/medium/high/critical)
    */
   assessSeverity(error) {
     const message = (error?.message || String(error)).toLowerCase();
     const code = error?.code;
+    const classification = this.classifyError(error);
 
-    // Critical: 影响核心功能
-    if (message.includes("database") && message.includes("corrupt"))
-      return "critical";
+    // ============================================================
+    // Critical: 导致应用崩溃或核心功能不可用
+    // ============================================================
+    if (classification === "DATABASE_CORRUPT") return "critical";
+    if (classification === "MEMORY_LEAK") return "critical";
+    if (classification === "STACK_OVERFLOW") return "critical";
+    if (classification === "DISK_FULL") return "critical";
+    if (code === "ENOSPC") return "critical";
     if (message.includes("heap out of memory")) return "critical";
-    if (code === "ENOSPC") return "critical"; // 磁盘空间不足
+    if (message.includes("uncaught exception")) return "critical";
 
-    // High: 影响重要功能
+    // ============================================================
+    // High: 严重影响用户体验或数据完整性
+    // ============================================================
+    if (classification === "DATABASE_LOCKED") return "high";
+    if (classification === "DATABASE_READONLY") return "high";
+    if (classification === "CONNECTION_REFUSED") return "high";
+    if (classification === "AUTH_ERROR") return "high";
+    if (classification === "SSL_ERROR") return "high";
+    if (classification === "LLM_MODEL_ERROR") return "high";
     if (code === "SQLITE_BUSY") return "high";
     if (code === "ECONNREFUSED") return "high";
-    if (message.includes("uncaught exception")) return "high";
 
-    // Medium: 影响部分功能
+    // ============================================================
+    // Medium: 影响部分功能但有降级方案
+    // ============================================================
+    if (classification === "FILE_NOT_FOUND") return "medium";
+    if (classification === "PERMISSION_DENIED") return "medium";
+    if (classification === "TIMEOUT") return "medium";
+    if (classification === "CONNECTION_RESET") return "medium";
+    if (classification === "DNS_ERROR") return "medium";
+    if (classification === "RATE_LIMIT") return "medium";
+    if (classification === "SERVER_ERROR") return "medium";
+    if (classification === "LLM_CONTEXT_LENGTH") return "medium";
+    if (classification === "LLM_API_ERROR") return "medium";
+    if (classification === "VALIDATION") return "medium";
+    if (classification === "TYPE_ERROR") return "medium";
     if (code === "ENOENT") return "medium";
     if (code === "ETIMEDOUT") return "medium";
-    if (error?.name === "TypeError") return "medium";
 
-    // Low: 不影响核心功能
+    // ============================================================
+    // Low: 轻微问题，不影响主要功能
+    // ============================================================
+    if (classification === "FILE_LOCKED") return "low";
+    if (classification === "PATH_TOO_LONG") return "low";
+    if (classification === "NETWORK_ERROR") return "low";
+    if (classification === "GPU_ERROR") return "low";
+    if (classification === "IPC_ERROR") return "low";
+    if (classification === "WINDOW_ERROR") return "low";
+    if (classification === "REFERENCE_ERROR") return "low";
+    if (classification === "SYNTAX_ERROR") return "low";
+    if (classification === "RANGE_ERROR") return "low";
+
     return "low";
   }
 
