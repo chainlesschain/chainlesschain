@@ -10,17 +10,17 @@
  * - 冲突解决
  */
 
-const EventEmitter = require('events');
+const EventEmitter = require("events");
 
 /**
  * DID更新器配置
  */
 const DEFAULT_CONFIG = {
-  updateInterval: 24 * 60 * 60 * 1000,  // 更新检查间隔 (24小时)
-  autoRepublish: true,                   // 自动重新发布
+  updateInterval: 24 * 60 * 60 * 1000, // 更新检查间隔 (24小时)
+  autoRepublish: true, // 自动重新发布
   republishInterval: 24 * 60 * 60 * 1000, // 重新发布间隔 (24小时)
-  enableVersioning: true,                 // 启用版本管理
-  maxVersionHistory: 10,                  // 最大版本历史数量
+  enableVersioning: true, // 启用版本管理
+  maxVersionHistory: 10, // 最大版本历史数量
 };
 
 /**
@@ -40,14 +40,14 @@ class DIDUpdater extends EventEmitter {
     // 重新发布定时器
     this.republishTimers = new Map();
 
-    console.log('[DIDUpdater] DID自动更新器已创建');
+    console.log("[DIDUpdater] DID自动更新器已创建");
   }
 
   /**
    * 初始化更新器
    */
   async initialize() {
-    console.log('[DIDUpdater] 初始化DID自动更新器...');
+    console.log("[DIDUpdater] 初始化DID自动更新器...");
 
     try {
       // 确保版本历史表存在
@@ -55,12 +55,12 @@ class DIDUpdater extends EventEmitter {
         await this.ensureVersionHistoryTable();
       }
 
-      console.log('[DIDUpdater] DID自动更新器初始化成功');
-      this.emit('initialized');
+      console.log("[DIDUpdater] DID自动更新器初始化成功");
+      this.emit("initialized");
 
       return true;
     } catch (error) {
-      console.error('[DIDUpdater] 初始化失败:', error);
+      console.error("[DIDUpdater] 初始化失败:", error);
       throw error;
     }
   }
@@ -88,9 +88,9 @@ class DIDUpdater extends EventEmitter {
         ON did_version_history(did, version DESC)
       `);
 
-      console.log('[DIDUpdater] 版本历史表已就绪');
+      console.log("[DIDUpdater] 版本历史表已就绪");
     } catch (error) {
-      console.error('[DIDUpdater] 创建版本历史表失败:', error);
+      console.error("[DIDUpdater] 创建版本历史表失败:", error);
       throw error;
     }
   }
@@ -110,14 +110,14 @@ class DIDUpdater extends EventEmitter {
         await this.checkAndUpdate(did);
       } catch (error) {
         console.error(`[DIDUpdater] DID ${did} 自动更新失败:`, error);
-        this.emit('update-error', { did, error });
+        this.emit("update-error", { did, error });
       }
     }, this.config.updateInterval);
 
     this.updateTimers.set(did, timer);
 
     console.log(`[DIDUpdater] 已启动 DID ${did} 的自动更新`);
-    this.emit('auto-update-started', { did });
+    this.emit("auto-update-started", { did });
   }
 
   /**
@@ -131,7 +131,7 @@ class DIDUpdater extends EventEmitter {
       this.updateTimers.delete(did);
 
       console.log(`[DIDUpdater] 已停止 DID ${did} 的自动更新`);
-      this.emit('auto-update-stopped', { did });
+      this.emit("auto-update-stopped", { did });
     }
   }
 
@@ -154,14 +154,14 @@ class DIDUpdater extends EventEmitter {
         await this.republish(did);
       } catch (error) {
         console.error(`[DIDUpdater] DID ${did} 自动重新发布失败:`, error);
-        this.emit('republish-error', { did, error });
+        this.emit("republish-error", { did, error });
       }
     }, this.config.republishInterval);
 
     this.republishTimers.set(did, timer);
 
     console.log(`[DIDUpdater] 已启动 DID ${did} 的自动重新发布`);
-    this.emit('auto-republish-started', { did });
+    this.emit("auto-republish-started", { did });
   }
 
   /**
@@ -175,7 +175,7 @@ class DIDUpdater extends EventEmitter {
       this.republishTimers.delete(did);
 
       console.log(`[DIDUpdater] 已停止 DID ${did} 的自动重新发布`);
-      this.emit('auto-republish-stopped', { did });
+      this.emit("auto-republish-stopped", { did });
     }
   }
 
@@ -192,7 +192,7 @@ class DIDUpdater extends EventEmitter {
 
       if (!remoteDID) {
         console.log(`[DIDUpdater] DHT中未找到 DID ${did}`);
-        return { updated: false, reason: 'not-found-in-dht' };
+        return { updated: false, reason: "not-found-in-dht" };
       }
 
       // 2. 获取本地版本
@@ -200,7 +200,7 @@ class DIDUpdater extends EventEmitter {
 
       if (!localIdentity) {
         console.log(`[DIDUpdater] 本地未找到 DID ${did}`);
-        return { updated: false, reason: 'not-found-locally' };
+        return { updated: false, reason: "not-found-locally" };
       }
 
       // 3. 比较版本
@@ -211,7 +211,7 @@ class DIDUpdater extends EventEmitter {
 
       if (!needsUpdate) {
         console.log(`[DIDUpdater] DID ${did} 无需更新`);
-        return { updated: false, reason: 'up-to-date' };
+        return { updated: false, reason: "up-to-date" };
       }
 
       // 4. 保存旧版本到历史
@@ -223,7 +223,7 @@ class DIDUpdater extends EventEmitter {
       await this.updateLocalDID(did, remoteDoc, remoteDID);
 
       // 6. 触发更新事件
-      this.emit('did-updated', {
+      this.emit("did-updated", {
         did,
         oldVersion: localDoc.version || 1,
         newVersion: remoteDoc.version || 1,
@@ -232,7 +232,11 @@ class DIDUpdater extends EventEmitter {
 
       console.log(`[DIDUpdater] DID ${did} 已更新`);
 
-      return { updated: true, oldVersion: localDoc.version, newVersion: remoteDoc.version };
+      return {
+        updated: true,
+        oldVersion: localDoc.version,
+        newVersion: remoteDoc.version,
+      };
     } catch (error) {
       console.error(`[DIDUpdater] 检查更新失败:`, error);
       throw error;
@@ -275,23 +279,32 @@ class DIDUpdater extends EventEmitter {
     const changes = [];
 
     // 检查验证方法变更
-    if (JSON.stringify(oldDoc.verificationMethod) !== JSON.stringify(newDoc.verificationMethod)) {
-      changes.push('verificationMethod');
+    if (
+      JSON.stringify(oldDoc.verificationMethod) !==
+      JSON.stringify(newDoc.verificationMethod)
+    ) {
+      changes.push("verificationMethod");
     }
 
     // 检查认证方法变更
-    if (JSON.stringify(oldDoc.authentication) !== JSON.stringify(newDoc.authentication)) {
-      changes.push('authentication');
+    if (
+      JSON.stringify(oldDoc.authentication) !==
+      JSON.stringify(newDoc.authentication)
+    ) {
+      changes.push("authentication");
     }
 
     // 检查密钥协商变更
-    if (JSON.stringify(oldDoc.keyAgreement) !== JSON.stringify(newDoc.keyAgreement)) {
-      changes.push('keyAgreement');
+    if (
+      JSON.stringify(oldDoc.keyAgreement) !==
+      JSON.stringify(newDoc.keyAgreement)
+    ) {
+      changes.push("keyAgreement");
     }
 
     // 检查服务端点变更
     if (JSON.stringify(oldDoc.service) !== JSON.stringify(newDoc.service)) {
-      changes.push('service');
+      changes.push("service");
     }
 
     return changes;
@@ -306,25 +319,29 @@ class DIDUpdater extends EventEmitter {
   async updateLocalDID(did, newDoc, remoteDID) {
     try {
       // 更新数据库
-      this.didManager.db.exec(`
+      this.didManager.db
+        .prepare(
+          `
         UPDATE identities
         SET
           public_key_sign = ?,
           public_key_encrypt = ?,
           did_document = ?
         WHERE did = ?
-      `, [
-        remoteDID.publicKeySign,
-        remoteDID.publicKeyEncrypt,
-        JSON.stringify(newDoc),
-        did,
-      ]);
+      `,
+        )
+        .run(
+          remoteDID.publicKeySign,
+          remoteDID.publicKeyEncrypt,
+          JSON.stringify(newDoc),
+          did,
+        );
 
       this.didManager.db.saveToFile();
 
       console.log(`[DIDUpdater] 本地DID ${did} 已更新`);
     } catch (error) {
-      console.error('[DIDUpdater] 更新本地DID失败:', error);
+      console.error("[DIDUpdater] 更新本地DID失败:", error);
       throw error;
     }
   }
@@ -337,26 +354,26 @@ class DIDUpdater extends EventEmitter {
   async saveVersionHistory(did, document) {
     try {
       const version = document.version || 1;
-      const changes = document.versionHistory?.[document.versionHistory.length - 1]?.changes || 'Unknown';
+      const changes =
+        document.versionHistory?.[document.versionHistory.length - 1]
+          ?.changes || "Unknown";
 
-      this.didManager.db.prepare(`
+      this.didManager.db
+        .prepare(
+          `
         INSERT INTO did_version_history (
           did, version, document, changes, updated_at
         ) VALUES (?, ?, ?, ?, ?)
-      `).run([
-        did,
-        version,
-        JSON.stringify(document),
-        changes,
-        Date.now(),
-      ]);
+      `,
+        )
+        .run([did, version, JSON.stringify(document), changes, Date.now()]);
 
       // 清理旧版本历史
       await this.cleanupVersionHistory(did);
 
       console.log(`[DIDUpdater] 已保存 DID ${did} 版本 ${version} 到历史`);
     } catch (error) {
-      console.error('[DIDUpdater] 保存版本历史失败:', error);
+      console.error("[DIDUpdater] 保存版本历史失败:", error);
     }
   }
 
@@ -367,7 +384,9 @@ class DIDUpdater extends EventEmitter {
   async cleanupVersionHistory(did) {
     try {
       // 保留最新的N个版本
-      this.didManager.db.prepare(`
+      this.didManager.db
+        .prepare(
+          `
         DELETE FROM did_version_history
         WHERE did = ?
         AND version NOT IN (
@@ -376,11 +395,13 @@ class DIDUpdater extends EventEmitter {
           ORDER BY version DESC
           LIMIT ?
         )
-      `).all([did, did, this.config.maxVersionHistory]);
+      `,
+        )
+        .all([did, did, this.config.maxVersionHistory]);
 
       this.didManager.db.saveToFile();
     } catch (error) {
-      console.error('[DIDUpdater] 清理版本历史失败:', error);
+      console.error("[DIDUpdater] 清理版本历史失败:", error);
     }
   }
 
@@ -391,24 +412,28 @@ class DIDUpdater extends EventEmitter {
    */
   getVersionHistory(did) {
     try {
-      const result = this.didManager.db.prepare(`
+      const result = this.didManager.db
+        .prepare(
+          `
         SELECT version, changes, updated_at
         FROM did_version_history
         WHERE did = ?
         ORDER BY version DESC
-      `).all([did]);
+      `,
+        )
+        .all([did]);
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
       }
 
-      return result[0].values.map(row => ({
+      return result[0].values.map((row) => ({
         version: row[0],
         changes: row[1],
         updatedAt: row[2],
       }));
     } catch (error) {
-      console.error('[DIDUpdater] 获取版本历史失败:', error);
+      console.error("[DIDUpdater] 获取版本历史失败:", error);
       return [];
     }
   }
@@ -423,7 +448,7 @@ class DIDUpdater extends EventEmitter {
     try {
       await this.didManager.publishToDHT(did);
 
-      this.emit('did-republished', { did, timestamp: Date.now() });
+      this.emit("did-republished", { did, timestamp: Date.now() });
 
       console.log(`[DIDUpdater] DID ${did} 已重新发布`);
 
@@ -439,7 +464,7 @@ class DIDUpdater extends EventEmitter {
    * @param {string} did - DID标识符
    * @param {string} changes - 变更说明
    */
-  async incrementVersion(did, changes = 'Updated') {
+  async incrementVersion(did, changes = "Updated") {
     try {
       const identity = this.didManager.getIdentityByDID(did);
 
@@ -471,11 +496,15 @@ class DIDUpdater extends EventEmitter {
       }
 
       // 更新数据库
-      this.didManager.db.prepare(`
+      this.didManager.db
+        .prepare(
+          `
         UPDATE identities
         SET did_document = ?
         WHERE did = ?
-      `).run([JSON.stringify(document), did]);
+      `,
+        )
+        .run([JSON.stringify(document), did]);
 
       this.didManager.db.saveToFile();
 
@@ -484,13 +513,13 @@ class DIDUpdater extends EventEmitter {
         await this.republish(did);
       }
 
-      this.emit('version-incremented', { did, version: newVersion, changes });
+      this.emit("version-incremented", { did, version: newVersion, changes });
 
       console.log(`[DIDUpdater] DID ${did} 版本已更新为 ${newVersion}`);
 
       return { version: newVersion };
     } catch (error) {
-      console.error('[DIDUpdater] 增加版本号失败:', error);
+      console.error("[DIDUpdater] 增加版本号失败:", error);
       throw error;
     }
   }
@@ -499,7 +528,7 @@ class DIDUpdater extends EventEmitter {
    * 销毁更新器
    */
   async destroy() {
-    console.log('[DIDUpdater] 销毁DID自动更新器...');
+    console.log("[DIDUpdater] 销毁DID自动更新器...");
 
     // 停止所有定时器
     for (const did of this.updateTimers.keys()) {
@@ -513,7 +542,7 @@ class DIDUpdater extends EventEmitter {
     // 移除所有监听器
     this.removeAllListeners();
 
-    console.log('[DIDUpdater] DID自动更新器已销毁');
+    console.log("[DIDUpdater] DID自动更新器已销毁");
   }
 }
 
