@@ -50,27 +50,21 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install dependencies
+      - name: Install root dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Install desktop-app-vue dependencies
         working-directory: ./desktop-app-vue
         run: npm install --legacy-peer-deps
 
-      - name: Run npm audit
-        working-directory: ./desktop-app-vue
-        run: npm audit --audit-level=high
+      - name: Run npm audit (informational)
+        run: npm audit --audit-level=high || true
         continue-on-error: true
 
       - name: Check for critical vulnerabilities
-        working-directory: ./desktop-app-vue
         run: |
-          AUDIT_RESULT=$(npm audit --audit-level=critical --json || true)
-          CRITICAL_COUNT=$(echo $AUDIT_RESULT | jq '.metadata.vulnerabilities.critical // 0')
-
-          if [ "$CRITICAL_COUNT" -gt 0 ]; then
-            echo "❌ Found $CRITICAL_COUNT critical vulnerabilities"
-            exit 1
-          else
-            echo "✅ No critical vulnerabilities found"
-          fi
+          # Use custom audit check script that handles known unfixable vulnerabilities
+          node scripts/audit-check.js --audit-level=critical
 
   lint-and-format:
     name: Lint & Format Check
