@@ -2,7 +2,7 @@
 
 技能执行器 - 负责执行技能和调度工具
 
-**文件路径**: `src/main/skill-tool-system/skill-executor.js`
+**文件路径**: `src\main\skill-tool-system\skill-executor.js`
 
 ## 类概述
 
@@ -322,4 +322,4 @@ const skillexecutor = new SkillExecutor(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/13 01:06:44
+> 自动生成时间: 2026/1/16 09:14:43

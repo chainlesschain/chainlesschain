@@ -191,7 +191,7 @@ class ContactManager extends EventEmitter {
    */
   getAllContacts() {
     try {
-      const result = this.db.exec('SELECT * FROM contacts ORDER BY added_at DESC');
+      const result = this.db.prepare('SELECT * FROM contacts ORDER BY added_at DESC').all();
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -219,7 +219,7 @@ class ContactManager extends EventEmitter {
    */
   getContactByDID(did) {
     try {
-      const result = this.db.exec('SELECT * FROM contacts WHERE did = ?', [did]);
+      const result = this.db.prepare('SELECT * FROM contacts WHERE did = ?').all([did]);
 
       if (!result || result.length === 0 || !result[0].values || result[0].values.length === 0) {
         return null;
@@ -297,7 +297,7 @@ class ContactManager extends EventEmitter {
         throw new Error('联系人不存在');
       }
 
-      this.db.exec('DELETE FROM contacts WHERE did = ?', [did]);
+      this.db.prepare('DELETE FROM contacts WHERE did = ?').run([did]);
       this.db.saveToFile();
 
       console.log('[ContactManager] 联系人已删除:', did);
@@ -378,7 +378,7 @@ class ContactManager extends EventEmitter {
    */
   async updateLastSeen(did) {
     try {
-      this.db.exec('UPDATE contacts SET last_seen = ? WHERE did = ?', [Date.now(), did]);
+      this.db.prepare('UPDATE contacts SET last_seen = ? WHERE did = ?').run([Date.now(), did]);
 
       this.db.saveToFile();
 
@@ -406,7 +406,7 @@ class ContactManager extends EventEmitter {
       // 限制在 0-100 范围内
       newScore = Math.max(0, Math.min(100, newScore));
 
-      this.db.exec('UPDATE contacts SET trust_score = ? WHERE did = ?', [newScore, did]);
+      this.db.prepare('UPDATE contacts SET trust_score = ? WHERE did = ?').run([newScore, did]);
 
       this.db.saveToFile();
 
@@ -426,7 +426,7 @@ class ContactManager extends EventEmitter {
   getStatistics() {
     try {
       // 总联系人数
-      const totalResult = this.db.exec('SELECT COUNT(*) as count FROM contacts');
+      const totalResult = this.db.prepare('SELECT COUNT(*) as count FROM contacts').all();
       const total = totalResult[0]?.values[0]?.[0] || 0;
 
       // 好友数
@@ -436,9 +436,7 @@ class ContactManager extends EventEmitter {
       const friends = friendsResult[0]?.values[0]?.[0] || 0;
 
       // 按关系类型统计
-      const byRelationshipResult = this.db.exec(
-        'SELECT relationship, COUNT(*) as count FROM contacts GROUP BY relationship'
-      );
+      const byRelationshipResult = this.db.prepare('SELECT relationship, COUNT(*) as count FROM contacts GROUP BY relationship').all();
 
       const byRelationship = {};
       if (byRelationshipResult && byRelationshipResult[0]?.values) {

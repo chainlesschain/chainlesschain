@@ -3602,13 +3602,13 @@ class DatabaseManager {
       this.inTransaction = true;
 
       // 开始事务
-      this.db.exec('BEGIN TRANSACTION');
+      this.db.prepare('BEGIN TRANSACTION').run();
 
       // 执行回调中的操作
       callback();
 
       // 提交事务
-      this.db.exec('COMMIT');
+      this.db.prepare('COMMIT').run();
 
       // 清除事务标志
       this.inTransaction = false;
@@ -3618,7 +3618,7 @@ class DatabaseManager {
     } catch (error) {
       // 回滚事务
       try {
-        this.db.exec('ROLLBACK');
+        this.db.prepare('ROLLBACK').run();
       } catch (rollbackError) {
         console.error('[Database] ROLLBACK 失败:', rollbackError);
       }

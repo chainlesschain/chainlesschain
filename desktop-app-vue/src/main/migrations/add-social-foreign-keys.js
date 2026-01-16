@@ -18,7 +18,7 @@ async function up(db) {
 
   try {
     // 启用外键约束检查
-    db.exec('PRAGMA foreign_keys = ON');
+    db.prepare('PRAGMA foreign_keys = ON').run();
 
     // ========================================
     // 1. 迁移 post_likes 表
@@ -49,18 +49,18 @@ async function up(db) {
         `);
 
         // 1.2 复制数据（只复制有效的数据，即post_id存在于posts表中的）
-        db.exec(`
+        db.prepare(`
           INSERT INTO post_likes_new (post_id, user_did, created_at)
           SELECT pl.post_id, pl.user_did, pl.created_at
           FROM post_likes pl
           WHERE EXISTS (SELECT 1 FROM posts WHERE id = pl.post_id)
-        `);
+        `).all();
 
         // 1.3 删除旧表
         db.exec('DROP TABLE post_likes');
 
         // 1.4 重命名新表
-        db.exec('ALTER TABLE post_likes_new RENAME TO post_likes');
+        db.prepare('ALTER TABLE post_likes_new RENAME TO post_likes').run();
 
         console.log('[Migration] post_likes 表迁移完成');
       } else {
@@ -101,19 +101,19 @@ async function up(db) {
         `);
 
         // 2.2 复制数据（只复制有效的数据）
-        db.exec(`
+        db.prepare(`
           INSERT INTO post_comments_new (id, post_id, author_did, content, parent_id, created_at)
           SELECT pc.id, pc.post_id, pc.author_did, pc.content, pc.parent_id, pc.created_at
           FROM post_comments pc
           WHERE EXISTS (SELECT 1 FROM posts WHERE id = pc.post_id)
             AND (pc.parent_id IS NULL OR EXISTS (SELECT 1 FROM post_comments WHERE id = pc.parent_id))
-        `);
+        `).all();
 
         // 2.3 删除旧表
         db.exec('DROP TABLE post_comments');
 
         // 2.4 重命名新表
-        db.exec('ALTER TABLE post_comments_new RENAME TO post_comments');
+        db.prepare('ALTER TABLE post_comments_new RENAME TO post_comments').run();
 
         // 2.5 重建索引
         db.exec(`
@@ -166,16 +166,16 @@ async function down(db) {
       `);
 
       // 复制数据
-      db.exec(`
+      db.prepare(`
         INSERT INTO post_likes_rollback
         SELECT * FROM post_likes
-      `);
+      `).all();
 
       // 删除旧表
       db.exec('DROP TABLE post_likes');
 
       // 重命名
-      db.exec('ALTER TABLE post_likes_rollback RENAME TO post_likes');
+      db.prepare('ALTER TABLE post_likes_rollback RENAME TO post_likes').run();
 
       console.log('[Migration] post_likes 表回滚完成');
     }
@@ -203,16 +203,16 @@ async function down(db) {
       `);
 
       // 复制数据
-      db.exec(`
+      db.prepare(`
         INSERT INTO post_comments_rollback
         SELECT * FROM post_comments
-      `);
+      `).all();
 
       // 删除旧表
       db.exec('DROP TABLE post_comments');
 
       // 重命名
-      db.exec('ALTER TABLE post_comments_rollback RENAME TO post_comments');
+      db.prepare('ALTER TABLE post_comments_rollback RENAME TO post_comments').run();
 
       // 重建索引
       db.exec(`

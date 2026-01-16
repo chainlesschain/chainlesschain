@@ -36,6 +36,10 @@ const ALLOWED_FILES = [
   'security-check.js',
   'test-database.js',
   'test-ukey.js',
+  '.chainlesschain/examples/database-bad.js', // 故意包含错误示例
+  '.chainlesschain/examples/database-good.js',
+  '.chainlesschain/examples/p2p-encryption-bad.js',
+  '.chainlesschain/examples/p2p-encryption-good.js',
 ];
 
 function checkFileForSecrets(filePath) {

@@ -393,10 +393,7 @@ class VCManager extends EventEmitter {
    */
   getCredentialById(id) {
     try {
-      const result = this.db.exec(
-        'SELECT * FROM verifiable_credentials WHERE id = ?',
-        [id]
-      );
+      const result = this.db.prepare('SELECT * FROM verifiable_credentials WHERE id = ?').all([id]);
 
       if (!result || result.length === 0 || !result[0].values || result[0].values.length === 0) {
         return null;
@@ -435,10 +432,7 @@ class VCManager extends EventEmitter {
         throw new Error('只有颁发者可以撤销凭证');
       }
 
-      this.db.exec(
-        'UPDATE verifiable_credentials SET status = ? WHERE id = ?',
-        [VC_STATUS.REVOKED, id]
-      );
+      this.db.prepare('UPDATE verifiable_credentials SET status = ? WHERE id = ?').run([VC_STATUS.REVOKED, id]);
 
       this.db.saveToFile();
 
@@ -465,7 +459,7 @@ class VCManager extends EventEmitter {
         throw new Error('凭证不存在');
       }
 
-      this.db.exec('DELETE FROM verifiable_credentials WHERE id = ?', [id]);
+      this.db.prepare('DELETE FROM verifiable_credentials WHERE id = ?').run([id]);
       this.db.saveToFile();
 
       console.log('[VCManager] 凭证已删除:', id);

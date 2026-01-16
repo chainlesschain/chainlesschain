@@ -51,34 +51,34 @@ async function runMigration() {
 
     // 开始事务
     console.log('\n3. 开始执行迁移...');
-    db.exec('BEGIN TRANSACTION');
+    db.prepare('BEGIN TRANSACTION').run();
 
     try {
       // 添加新字段
       if (missingColumns.includes('required_skills')) {
         console.log('   - 添加 required_skills 字段...');
-        db.exec(`
+        db.prepare(`
           ALTER TABLE project_templates
           ADD COLUMN required_skills TEXT DEFAULT '[]'
-        `);
+        `).run();
         console.log('     ✓ required_skills 字段已添加');
       }
 
       if (missingColumns.includes('required_tools')) {
         console.log('   - 添加 required_tools 字段...');
-        db.exec(`
+        db.prepare(`
           ALTER TABLE project_templates
           ADD COLUMN required_tools TEXT DEFAULT '[]'
-        `);
+        `).run();
         console.log('     ✓ required_tools 字段已添加');
       }
 
       if (missingColumns.includes('execution_engine')) {
         console.log('   - 添加 execution_engine 字段...');
-        db.exec(`
+        db.prepare(`
           ALTER TABLE project_templates
           ADD COLUMN execution_engine TEXT DEFAULT 'default'
-        `);
+        `).run();
         console.log('     ✓ execution_engine 字段已添加');
       }
 
@@ -91,7 +91,7 @@ async function runMigration() {
       console.log('   ✓ 索引已创建');
 
       // 提交事务
-      db.exec('COMMIT');
+      db.prepare('COMMIT').run();
       console.log('\n5. 提交事务...');
       console.log('   ✓ 迁移成功提交');
 
@@ -138,7 +138,7 @@ async function runMigration() {
 
     } catch (error) {
       // 回滚事务
-      db.exec('ROLLBACK');
+      db.prepare('ROLLBACK').run();
       console.error('\n   ❌ 迁移失败，已回滚');
       throw error;
     }

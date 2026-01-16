@@ -586,6 +586,22 @@ class ChainlessChainApp {
       console.error('LLM选择器初始化失败:', error);
     }
 
+    // 初始化 TokenTracker (Token 追踪和成本管理)
+    try {
+      console.log('初始化 Token 追踪器...');
+      const { TokenTracker } = require('./llm/token-tracker');
+      this.tokenTracker = new TokenTracker(this.database, {
+        enableCostTracking: true,
+        enableBudgetAlerts: true,
+        exchangeRate: 7.2  // USD to CNY
+      });
+      console.log('✓ Token 追踪器初始化成功');
+    } catch (error) {
+      console.error('Token 追踪器初始化失败:', error);
+      // Token 追踪失败不影响应用启动
+      this.tokenTracker = null;
+    }
+
     // 初始化LLM管理器
     try {
       console.log('初始化LLM管理器...');
@@ -630,6 +646,11 @@ class ChainlessChainApp {
           baseURL: managerConfig.baseURL,
           apiKey: managerConfig.apiKey ? `${managerConfig.apiKey.substring(0, 8)}...` : '(未设置)'
         });
+
+        // 🔥 添加 TokenTracker 到配置
+        if (this.tokenTracker) {
+          managerConfig.tokenTracker = this.tokenTracker;
+        }
 
         this.llmManager = new LLMManager(managerConfig);
         await this.llmManager.initialize();

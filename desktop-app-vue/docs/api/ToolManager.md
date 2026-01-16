@@ -2,7 +2,7 @@
 
 工具管理器 - 负责工具的注册、执行和参数验证
 
-**文件路径**: `src/main/skill-tool-system/tool-manager.js`
+**文件路径**: `src\main\skill-tool-system\tool-manager.js`
 
 ## 类概述
 
@@ -260,7 +260,7 @@ new ToolManager()
 
 #### `async recordToolUsage(toolName, success, duration, errorType = null)`
 
-启用工具
+禁用工具
 
 **参数:**
 
@@ -699,4 +699,4 @@ const toolmanager = new ToolManager(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/13 01:06:44
+> 自动生成时间: 2026/1/16 09:14:43
