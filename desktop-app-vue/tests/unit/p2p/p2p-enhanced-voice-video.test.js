@@ -2,15 +2,17 @@
  * P2P Enhanced Manager 集成测试 - 包含语音/视频功能
  */
 
-const P2PEnhancedManager = require('../../../src/main/p2p/p2p-enhanced-manager');
-const { CallType } = require('../../../src/main/p2p/voice-video-manager');
-const EventEmitter = require('events');
+import { describe, it, expect, beforeEach, afterEach, vi, test } from 'vitest';
+import EventEmitter from 'events';
 
 // Mock dependencies
-jest.mock('../../../src/main/p2p/message-manager');
-jest.mock('../../../src/main/p2p/knowledge-sync-manager');
-jest.mock('../../../src/main/p2p/file-transfer-manager');
-jest.mock('../../../src/main/p2p/voice-video-manager');
+vi.mock('../../../src/main/p2p/message-manager');
+vi.mock('../../../src/main/p2p/knowledge-sync-manager');
+vi.mock('../../../src/main/p2p/file-transfer-manager');
+vi.mock('../../../src/main/p2p/voice-video-manager');
+
+const P2PEnhancedManager = (await import('../../../src/main/p2p/p2p-enhanced-manager')).default || (await import('../../../src/main/p2p/p2p-enhanced-manager'));
+const { CallType } = await import('../../../src/main/p2p/voice-video-manager');
 
 describe('P2PEnhancedManager - Voice/Video Integration', () => {
   let enhancedManager;
@@ -21,19 +23,19 @@ describe('P2PEnhancedManager - Voice/Video Integration', () => {
     // 创建模拟的P2P管理器
     mockP2PManager = new EventEmitter();
     mockP2PManager.node = {
-      handle: jest.fn(),
-      dialProtocol: jest.fn().mockResolvedValue({
-        sink: jest.fn().mockResolvedValue(),
-        close: jest.fn().mockResolvedValue()
+      handle: vi.fn(),
+      dialProtocol: vi.fn().mockResolvedValue({
+        sink: vi.fn().mockResolvedValue(),
+        close: vi.fn().mockResolvedValue()
       })
     };
-    mockP2PManager.sendMessage = jest.fn().mockResolvedValue();
+    mockP2PManager.sendMessage = vi.fn().mockResolvedValue();
 
     // 创建模拟的数据库
     mockDatabase = {
-      getAllSettings: jest.fn().mockResolvedValue({}),
-      getNote: jest.fn(),
-      updateNote: jest.fn()
+      getAllSettings: vi.fn().mockResolvedValue({}),
+      getNote: vi.fn(),
+      updateNote: vi.fn()
     };
 
     // 创建增强管理器
@@ -163,7 +165,7 @@ describe('P2PEnhancedManager - Voice/Video Integration', () => {
   });
 
   describe('事件转发', () => {
-    test('应该转发call:started事件', (done) => {
+    test('应该转发call:started事件', () => new Promise((done) => {
       const eventData = {
         callId: 'call-started-606',
         peerId: 'peer-606',
@@ -176,9 +178,9 @@ describe('P2PEnhancedManager - Voice/Video Integration', () => {
       });
 
       enhancedManager.voiceVideoManager.emit('call:started', eventData);
-    });
+    }));
 
-    test('应该转发call:incoming事件', (done) => {
+    test('应该转发call:incoming事件', () => new Promise((done) => {
       const eventData = {
         callId: 'call-incoming-707',
         peerId: 'peer-707',
@@ -191,9 +193,9 @@ describe('P2PEnhancedManager - Voice/Video Integration', () => {
       });
 
       enhancedManager.voiceVideoManager.emit('call:incoming', eventData);
-    });
+    }));
 
-    test('应该转发call:connected事件', (done) => {
+    test('应该转发call:connected事件', () => new Promise((done) => {
       const eventData = {
         callId: 'call-connected-808',
         peerId: 'peer-808'
@@ -205,9 +207,9 @@ describe('P2PEnhancedManager - Voice/Video Integration', () => {
       });
 
       enhancedManager.voiceVideoManager.emit('call:connected', eventData);
-    });
+    }));
 
-    test('应该转发call:ended事件', (done) => {
+    test('应该转发call:ended事件', () => new Promise((done) => {
       const eventData = {
         callId: 'call-ended-909',
         peerId: 'peer-909'
@@ -219,9 +221,9 @@ describe('P2PEnhancedManager - Voice/Video Integration', () => {
       });
 
       enhancedManager.voiceVideoManager.emit('call:ended', eventData);
-    });
+    }));
 
-    test('应该转发call:quality-update事件', (done) => {
+    test('应该转发call:quality-update事件', () => new Promise((done) => {
       const eventData = {
         callId: 'call-quality-1010',
         stats: {
@@ -239,7 +241,7 @@ describe('P2PEnhancedManager - Voice/Video Integration', () => {
       });
 
       enhancedManager.voiceVideoManager.emit('call:quality-update', eventData);
-    });
+    }));
   });
 
   describe('统计信息', () => {

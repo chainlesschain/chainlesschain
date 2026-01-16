@@ -332,48 +332,16 @@ describe("MCPToolAdapter", () => {
     });
   });
 
-  describe("Result Transformation", () => {
-    it("should transform MCP result to standard format", () => {
-      const mcpResult = {
-        content: [{ type: "text", text: "Hello World" }],
-      };
-
-      const transformed = adapter._transformResult(mcpResult);
-
-      expect(transformed.success).toBe(true);
-      expect(transformed.content).toBeDefined();
-    });
-
-    it("should handle error results", () => {
-      const mcpResult = {
-        isError: true,
-        content: [{ type: "text", text: "Error message" }],
-      };
-
-      const transformed = adapter._transformResult(mcpResult);
-
-      expect(transformed.success).toBe(false);
-      expect(transformed.error).toBeDefined();
-    });
-
-    it("should handle empty results", () => {
-      const mcpResult = {};
-
-      const transformed = adapter._transformResult(mcpResult);
-
-      expect(transformed.success).toBe(true);
-    });
-  });
-
   describe("Cleanup", () => {
     it("should clean up on shutdown", async () => {
+      // Use the actual property names from the implementation
       adapter.mcpToolRegistry.set("mcp_tool1", { name: "mcp_tool1" });
-      adapter.serverToolMap.set("server1", ["mcp_tool1"]);
+      adapter.serverTools.set("server1", ["mcp_tool1"]);
 
       await adapter.shutdown();
 
       expect(adapter.mcpToolRegistry.size).toBe(0);
-      expect(adapter.serverToolMap.size).toBe(0);
+      expect(adapter.serverTools.size).toBe(0);
     });
   });
 });

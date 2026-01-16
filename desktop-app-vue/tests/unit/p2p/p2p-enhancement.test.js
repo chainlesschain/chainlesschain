@@ -5,10 +5,30 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import ScreenShareIPC from '../../../src/main/p2p/screen-share-ipc.js';
-import CallHistoryIPC from '../../../src/main/p2p/call-history-ipc.js';
-import P2PConnectionHealthManager from '../../../src/main/p2p/connection-health-manager.js';
 import EventEmitter from 'events';
+
+// Mock electron before importing modules that use it
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: vi.fn(),
+    removeHandler: vi.fn()
+  },
+  desktopCapturer: {
+    getSources: vi.fn().mockResolvedValue([
+      {
+        id: 'screen:0:0',
+        name: 'Entire Screen',
+        thumbnail: { toDataURL: () => 'data:image/png;base64,mock' },
+        display_id: '0',
+        appIcon: null
+      }
+    ])
+  }
+}));
+
+const ScreenShareIPC = (await import('../../../src/main/p2p/screen-share-ipc.js')).default;
+const CallHistoryIPC = (await import('../../../src/main/p2p/call-history-ipc.js')).default;
+const P2PConnectionHealthManager = (await import('../../../src/main/p2p/connection-health-manager.js')).default;
 
 describe('P2P Enhancement Features', () => {
   describe('ScreenShareIPC', () => {

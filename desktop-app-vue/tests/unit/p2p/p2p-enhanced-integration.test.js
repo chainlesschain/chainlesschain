@@ -4,41 +4,43 @@
  * 测试P2P增强管理器与各子管理器的集成
  */
 
-const P2PEnhancedManager = require('../../../src/main/p2p/p2p-enhanced-manager');
-const { CallType, CallState } = require('../../../src/main/p2p/voice-video-manager');
-const EventEmitter = require('events');
+import { describe, it, expect, beforeEach, afterEach, vi, test } from 'vitest';
+import EventEmitter from 'events';
 
 // Mock dependencies
-jest.mock('../../../src/main/p2p/message-manager');
-jest.mock('../../../src/main/p2p/knowledge-sync-manager');
-jest.mock('../../../src/main/p2p/file-transfer-manager');
-jest.mock('wrtc', () => ({
-  RTCPeerConnection: jest.fn().mockImplementation(() => ({
-    createOffer: jest.fn().mockResolvedValue({ type: 'offer', sdp: 'mock-offer-sdp' }),
-    createAnswer: jest.fn().mockResolvedValue({ type: 'answer', sdp: 'mock-answer-sdp' }),
-    setLocalDescription: jest.fn().mockResolvedValue(),
-    setRemoteDescription: jest.fn().mockResolvedValue(),
-    addTrack: jest.fn(),
-    addIceCandidate: jest.fn().mockResolvedValue(),
-    close: jest.fn(),
-    getStats: jest.fn().mockResolvedValue(new Map()),
+vi.mock('../../../src/main/p2p/message-manager');
+vi.mock('../../../src/main/p2p/knowledge-sync-manager');
+vi.mock('../../../src/main/p2p/file-transfer-manager');
+vi.mock('wrtc', () => ({
+  RTCPeerConnection: vi.fn().mockImplementation(() => ({
+    createOffer: vi.fn().mockResolvedValue({ type: 'offer', sdp: 'mock-offer-sdp' }),
+    createAnswer: vi.fn().mockResolvedValue({ type: 'answer', sdp: 'mock-answer-sdp' }),
+    setLocalDescription: vi.fn().mockResolvedValue(),
+    setRemoteDescription: vi.fn().mockResolvedValue(),
+    addTrack: vi.fn(),
+    addIceCandidate: vi.fn().mockResolvedValue(),
+    close: vi.fn(),
+    getStats: vi.fn().mockResolvedValue(new Map()),
     connectionState: 'connected',
     onicecandidate: null,
     onconnectionstatechange: null,
     ontrack: null
   })),
-  RTCSessionDescription: jest.fn().mockImplementation((desc) => desc),
-  RTCIceCandidate: jest.fn().mockImplementation((candidate) => candidate),
-  MediaStream: jest.fn().mockImplementation(() => ({
-    getTracks: jest.fn().mockReturnValue([]),
-    getAudioTracks: jest.fn().mockReturnValue([
-      { enabled: true, stop: jest.fn() }
+  RTCSessionDescription: vi.fn().mockImplementation((desc) => desc),
+  RTCIceCandidate: vi.fn().mockImplementation((candidate) => candidate),
+  MediaStream: vi.fn().mockImplementation(() => ({
+    getTracks: vi.fn().mockReturnValue([]),
+    getAudioTracks: vi.fn().mockReturnValue([
+      { enabled: true, stop: vi.fn() }
     ]),
-    getVideoTracks: jest.fn().mockReturnValue([
-      { enabled: true, stop: jest.fn() }
+    getVideoTracks: vi.fn().mockReturnValue([
+      { enabled: true, stop: vi.fn() }
     ])
   }))
 }));
+
+const P2PEnhancedManager = (await import('../../../src/main/p2p/p2p-enhanced-manager')).default || (await import('../../../src/main/p2p/p2p-enhanced-manager'));
+const { CallType, CallState } = await import('../../../src/main/p2p/voice-video-manager');
 
 describe('P2PEnhancedManager Integration', () => {
   let enhancedManager;
@@ -49,19 +51,19 @@ describe('P2PEnhancedManager Integration', () => {
     // 创建模拟的P2P管理器
     mockP2PManager = new EventEmitter();
     mockP2PManager.node = {
-      handle: jest.fn(),
-      dialProtocol: jest.fn().mockResolvedValue({
-        sink: jest.fn().mockResolvedValue(),
-        close: jest.fn().mockResolvedValue()
+      handle: vi.fn(),
+      dialProtocol: vi.fn().mockResolvedValue({
+        sink: vi.fn().mockResolvedValue(),
+        close: vi.fn().mockResolvedValue()
       })
     };
-    mockP2PManager.sendMessage = jest.fn().mockResolvedValue();
+    mockP2PManager.sendMessage = vi.fn().mockResolvedValue();
 
     // 创建模拟的数据库
     mockDatabase = {
-      all: jest.fn().mockResolvedValue([]),
-      run: jest.fn().mockResolvedValue(),
-      get: jest.fn().mockResolvedValue(null)
+      all: vi.fn().mockResolvedValue([]),
+      run: vi.fn().mockResolvedValue(),
+      get: vi.fn().mockResolvedValue(null)
     };
 
     // 创建增强管理器
@@ -105,7 +107,7 @@ describe('P2PEnhancedManager Integration', () => {
   describe('语音/视频通话集成', () => {
     test('应该能够发起语音通话', async () => {
       const peerId = 'peer-audio-123';
-      const callStartedSpy = jest.fn();
+      const callStartedSpy = vi.fn();
 
       enhancedManager.on('call:started', callStartedSpy);
 
@@ -123,7 +125,7 @@ describe('P2PEnhancedManager Integration', () => {
 
     test('应该能够发起视频通话', async () => {
       const peerId = 'peer-video-456';
-      const callStartedSpy = jest.fn();
+      const callStartedSpy = vi.fn();
 
       enhancedManager.on('call:started', callStartedSpy);
 
@@ -143,18 +145,19 @@ describe('P2PEnhancedManager Integration', () => {
       const callId = 'call-incoming-789';
 
       // 模拟收到来电
+      const wrtc = await import('wrtc');
       const mockSession = {
         callId,
         peerId,
         type: CallType.AUDIO,
         state: CallState.RINGING,
-        peerConnection: new (require('wrtc').RTCPeerConnection)()
+        peerConnection: new wrtc.RTCPeerConnection()
       };
 
       enhancedManager.voiceVideoManager.sessions.set(callId, mockSession);
       enhancedManager.voiceVideoManager.peerSessions.set(peerId, callId);
 
-      const callAcceptedSpy = jest.fn();
+      const callAcceptedSpy = vi.fn();
       enhancedManager.on('call:accepted', callAcceptedSpy);
 
       await enhancedManager.acceptCall(callId);
@@ -167,12 +170,13 @@ describe('P2PEnhancedManager Integration', () => {
       const callId = 'call-reject-101';
 
       // 模拟收到来电
+      const wrtc = await import('wrtc');
       const mockSession = {
         callId,
         peerId,
         type: CallType.AUDIO,
         state: CallState.RINGING,
-        peerConnection: new (require('wrtc').RTCPeerConnection)()
+        peerConnection: new wrtc.RTCPeerConnection()
       };
 
       enhancedManager.voiceVideoManager.sessions.set(callId, mockSession);
@@ -193,7 +197,7 @@ describe('P2PEnhancedManager Integration', () => {
       session.state = CallState.CONNECTED;
       session.startTime = Date.now();
 
-      const callEndedSpy = jest.fn();
+      const callEndedSpy = vi.fn();
       enhancedManager.on('call:ended', callEndedSpy);
 
       await enhancedManager.endCall(callId);
@@ -207,9 +211,10 @@ describe('P2PEnhancedManager Integration', () => {
 
       const session = enhancedManager.voiceVideoManager.sessions.get(callId);
       session.state = CallState.CONNECTED;
-      session.localStream = new (require('wrtc').MediaStream)();
+      const wrtc = await import('wrtc');
+      session.localStream = new wrtc.MediaStream();
 
-      const muteChangedSpy = jest.fn();
+      const muteChangedSpy = vi.fn();
       enhancedManager.on('call:mute-changed', muteChangedSpy);
 
       const isMuted = enhancedManager.toggleMute(callId);
@@ -223,9 +228,10 @@ describe('P2PEnhancedManager Integration', () => {
 
       const session = enhancedManager.voiceVideoManager.sessions.get(callId);
       session.state = CallState.CONNECTED;
-      session.localStream = new (require('wrtc').MediaStream)();
+      const wrtc = await import('wrtc');
+      session.localStream = new wrtc.MediaStream();
 
-      const videoChangedSpy = jest.fn();
+      const videoChangedSpy = vi.fn();
       enhancedManager.on('call:video-changed', videoChangedSpy);
 
       const isVideoEnabled = enhancedManager.toggleVideo(callId);
@@ -264,10 +270,10 @@ describe('P2PEnhancedManager Integration', () => {
     test('应该转发通话事件到应用层', async () => {
       const peerId = 'peer-event';
 
-      const callStartedSpy = jest.fn();
-      const callIncomingSpy = jest.fn();
-      const callConnectedSpy = jest.fn();
-      const callEndedSpy = jest.fn();
+      const callStartedSpy = vi.fn();
+      const callIncomingSpy = vi.fn();
+      const callConnectedSpy = vi.fn();
+      const callEndedSpy = vi.fn();
 
       enhancedManager.on('call:started', callStartedSpy);
       enhancedManager.on('call:incoming', callIncomingSpy);
@@ -295,7 +301,7 @@ describe('P2PEnhancedManager Integration', () => {
       session.state = CallState.CONNECTED;
       session.startTime = Date.now();
 
-      const qualityUpdateSpy = jest.fn();
+      const qualityUpdateSpy = vi.fn();
       enhancedManager.on('call:quality-update', qualityUpdateSpy);
 
       // 开始质量监控
