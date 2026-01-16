@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node-version: [18.x]
+        node-version: [22.x]
 
     steps:
       - name: Checkout code
@@ -27,13 +27,12 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install root dependencies
+        run: npm install --legacy-peer-deps
 
       - name: Build desktop app main process
-        run: |
-          cd desktop-app-vue
-          npm run build:main
+        working-directory: ./desktop-app-vue
+        run: npm run build:main
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium

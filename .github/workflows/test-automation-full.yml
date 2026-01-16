@@ -2,17 +2,17 @@ name: Full Test Automation with Auto-Fix
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
-    - cron: '0 2 * * *'  # 每天凌晨2点运行
+    - cron: "0 2 * * *" # 每天凌晨2点运行
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '18'
-  JAVA_VERSION: '17'
-  PYTHON_VERSION: '3.11'
+  NODE_VERSION: "22"
+  JAVA_VERSION: "17"
+  PYTHON_VERSION: "3.11"
 
 jobs:
   # 健康检查
@@ -26,9 +26,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Run health checks
-        working-directory: desktop-app-vue
+        working-directory: ./desktop-app-vue
         run: |
-          npm ci
+          npm install --legacy-peer-deps
           node -e "const { getHealthCheckService } = require('./src/main/health-check'); const service = getHealthCheckService(); service.runChecks().then(r => console.log(JSON.stringify(r, null, 2)));" || true
 
   # 综合测试运行器
@@ -51,11 +51,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        working-directory: desktop-app-vue
-        run: npm install
+        working-directory: ./desktop-app-vue
+        run: npm install --legacy-peer-deps
 
       - name: Run comprehensive test suite
-        working-directory: desktop-app-vue
+        working-directory: ./desktop-app-vue
         run: node scripts/test-runner.js
         continue-on-error: true
 
@@ -70,12 +70,12 @@ jobs:
 
       - name: Attempt auto-fix on failure
         if: failure()
-        working-directory: desktop-app-vue
+        working-directory: ./desktop-app-vue
         run: node scripts/auto-fix-runner.js
 
       - name: Retry tests after auto-fix
         if: failure()
-        working-directory: desktop-app-vue
+        working-directory: ./desktop-app-vue
         run: node scripts/test-runner.js
         continue-on-error: true
 
@@ -90,24 +90,12 @@ jobs:
       - uses: actions/github-script@v6
         with:
           script: |
-            github.rest.issues.create({
+            const date = new Date().toISOString().split('T')[0];
+            const workflowUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `自动测试失败 - ${new Date().toISOString().split('T')[0]}`,
-              body: `## 自动测试失败报告
-
-**工作流运行**: [查看详情](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
-**分支**: ${context.ref}
-**提交**: ${context.sha}
-**触发者**: ${context.actor}
-
-部分测试失败且无法自动修复。请查看工作流日志获取详细信息。
-
-### 下一步行动
-1. 查看测试日志
-2. 本地运行 \`npm run test:all\`
-3. 尝试运行 \`node scripts/auto-fix-runner.js\`
-4. 修复问题后重新提交
-              `,
+              title: `自动测试失败 - ${date}`,
+              body: `## 自动测试失败报告\n\n**工作流运行**: [查看详情](${workflowUrl})\n**分支**: ${context.ref}\n**提交**: ${context.sha}\n**触发者**: ${context.actor}\n\n部分测试失败且无法自动修复。请查看工作流日志获取详细信息。\n\n### 下一步行动\n1. 查看测试日志\n2. 本地运行 \`npm run test:all\`\n3. 尝试运行 \`node scripts/auto-fix-runner.js\`\n4. 修复问题后重新提交`,
               labels: ['bug', 'automated-detection', 'test-failure', 'needs-triage']
-            })
+            });

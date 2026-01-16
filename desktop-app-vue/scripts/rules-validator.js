@@ -8,6 +8,12 @@
  * 2. P2P 加密（检测未加密的消息传输）
  * 3. 敏感信息泄露（检测日志中的 PIN/密钥）
  * 4. 依赖项漏洞（运行 npm audit）
+ * 5. XSS 风险检测（innerHTML, outerHTML, document.write 等）
+ * 6. 危险函数检测（eval, Function constructor, setTimeout with string）
+ * 7. 硬编码密钥检测（API keys, secrets, tokens）
+ *
+ * @version 2.0.0
+ * @since 2026-01-16
  */
 
 const fs = require("fs");
@@ -27,22 +33,34 @@ class RulesValidator {
    * 运行所有检查
    */
   async validate() {
-    console.log("🔍 ChainlessChain 规则验证器启动...\n");
+    console.log("🔍 ChainlessChain 规则验证器 v2.0 启动...\n");
 
     // 1. SQL 注入检查
-    console.log("📋 [1/4] 检查 SQL 注入防护...");
+    console.log("📋 [1/7] 检查 SQL 注入防护...");
     await this.checkSQLInjection();
 
     // 2. P2P 加密检查
-    console.log("📋 [2/4] 检查 P2P 加密规范...");
+    console.log("📋 [2/7] 检查 P2P 加密规范...");
     await this.checkP2PEncryption();
 
     // 3. 敏感信息泄露检查
-    console.log("📋 [3/4] 检查敏感信息泄露...");
+    console.log("📋 [3/7] 检查敏感信息泄露...");
     await this.checkSensitiveDataLeak();
 
-    // 4. 依赖项漏洞检查
-    console.log("📋 [4/4] 检查依赖项漏洞...");
+    // 4. XSS 风险检查
+    console.log("📋 [4/7] 检查 XSS 风险...");
+    await this.checkXSSRisk();
+
+    // 5. 危险函数检查
+    console.log("📋 [5/7] 检查危险函数使用...");
+    await this.checkDangerousFunctions();
+
+    // 6. 硬编码密钥检查
+    console.log("📋 [6/7] 检查硬编码密钥...");
+    await this.checkHardcodedSecrets();
+
+    // 7. 依赖项漏洞检查
+    console.log("📋 [7/7] 检查依赖项漏洞...");
     await this.checkDependencyVulnerabilities();
 
     // 输出报告
@@ -352,6 +370,402 @@ class RulesValidator {
     if (issueCount === 0) {
       this.info.push("✅ 敏感信息泄露检查通过，未发现可疑日志或硬编码");
     }
+  }
+
+  /**
+   * 检查 XSS 风险
+   */
+  async checkXSSRisk() {
+    const jsFiles = this.getAllFiles(this.srcDir, ".js");
+    const vueFiles = this.getAllFiles(this.srcDir, ".vue");
+    const allFiles = [...jsFiles, ...vueFiles];
+    let issueCount = 0;
+
+    // XSS 高危模式
+    const xssPatterns = [
+      {
+        pattern: /\.innerHTML\s*=/,
+        message:
+          "使用 innerHTML 可能导致 XSS 攻击，建议使用 textContent 或 DOMPurify",
+        severity: "HIGH",
+      },
+      {
+        pattern: /\.outerHTML\s*=/,
+        message: "使用 outerHTML 可能导致 XSS 攻击，建议使用安全的 DOM 操作",
+        severity: "HIGH",
+      },
+      {
+        pattern: /document\.write\s*\(/,
+        message: "document.write 可能导致 XSS 和性能问题，建议使用 DOM API",
+        severity: "HIGH",
+      },
+      {
+        pattern: /\.insertAdjacentHTML\s*\(/,
+        message: "insertAdjacentHTML 可能导致 XSS，确保输入已清洗",
+        severity: "MEDIUM",
+      },
+      {
+        pattern: /v-html\s*=/,
+        message: "Vue v-html 指令可能导致 XSS，确保内容已清洗或使用 DOMPurify",
+        severity: "MEDIUM",
+      },
+      {
+        pattern: /dangerouslySetInnerHTML/,
+        message: "dangerouslySetInnerHTML 可能导致 XSS，确保内容已清洗",
+        severity: "HIGH",
+      },
+    ];
+
+    for (const file of allFiles) {
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+
+      lines.forEach((line, index) => {
+        const lineNumber = index + 1;
+
+        // 跳过注释
+        if (line.trim().startsWith("//") || line.trim().startsWith("*")) {
+          return;
+        }
+
+        xssPatterns.forEach(({ pattern, message, severity }) => {
+          if (pattern.test(line)) {
+            // 检查是否有 DOMPurify 或其他清洗
+            const contextStart = Math.max(0, index - 5);
+            const contextLines = lines
+              .slice(contextStart, index + 1)
+              .join("\n");
+
+            const hasSanitization =
+              contextLines.includes("DOMPurify") ||
+              contextLines.includes("sanitize") ||
+              contextLines.includes("escape") ||
+              contextLines.includes("encodeHTML") ||
+              // Vue 的安全场景：静态 HTML
+              (pattern.source.includes("v-html") &&
+                line.includes('v-html="') &&
+                !line.includes("${"));
+
+            if (!hasSanitization) {
+              if (severity === "HIGH") {
+                this.errors.push({
+                  type: "XSS_RISK",
+                  severity,
+                  file: path.relative(this.rootDir, file),
+                  line: lineNumber,
+                  message,
+                  code: line.trim(),
+                });
+              } else {
+                this.warnings.push({
+                  type: "XSS_RISK",
+                  severity,
+                  file: path.relative(this.rootDir, file),
+                  line: lineNumber,
+                  message,
+                  code: line.trim(),
+                });
+              }
+              issueCount++;
+            }
+          }
+        });
+      });
+    }
+
+    if (issueCount === 0) {
+      this.info.push("✅ XSS 风险检查通过，未发现不安全的 DOM 操作");
+    }
+  }
+
+  /**
+   * 检查危险函数使用
+   */
+  async checkDangerousFunctions() {
+    const jsFiles = this.getAllFiles(this.srcDir, ".js");
+    let issueCount = 0;
+
+    // 危险函数模式
+    const dangerousPatterns = [
+      {
+        pattern: /\beval\s*\(/,
+        message: "eval() 是高危函数，可能导致代码注入攻击",
+        severity: "HIGH",
+        exceptions: ["evalPath", "evaluate", "evaluation"], // 允许的命名
+      },
+      {
+        pattern: /new\s+Function\s*\(/,
+        message: "new Function() 与 eval 一样危险，可能导致代码注入",
+        severity: "HIGH",
+        exceptions: [],
+      },
+      {
+        pattern: /setTimeout\s*\(\s*['"`]/,
+        message: "setTimeout 使用字符串参数等同于 eval，请改用函数",
+        severity: "MEDIUM",
+        exceptions: [],
+      },
+      {
+        pattern: /setInterval\s*\(\s*['"`]/,
+        message: "setInterval 使用字符串参数等同于 eval，请改用函数",
+        severity: "MEDIUM",
+        exceptions: [],
+      },
+      {
+        pattern: /child_process\.exec\s*\(/,
+        message: "exec() 可能导致命令注入，建议使用 execFile 或 spawn",
+        severity: "MEDIUM",
+        exceptions: [],
+      },
+      {
+        pattern: /execSync\s*\([^)]*\$\{/,
+        message: "execSync 使用模板字符串可能导致命令注入",
+        severity: "HIGH",
+        exceptions: [],
+      },
+      {
+        pattern: /require\s*\(\s*[^'"`]/,
+        message: "动态 require 可能导致任意代码加载，确保路径已验证",
+        severity: "MEDIUM",
+        exceptions: ["require(", "require.resolve"],
+      },
+    ];
+
+    for (const file of jsFiles) {
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+      const fileName = path.basename(file);
+
+      // 跳过测试文件和配置文件
+      if (
+        fileName.includes(".test.") ||
+        fileName.includes(".spec.") ||
+        fileName.includes("config")
+      ) {
+        continue;
+      }
+
+      lines.forEach((line, index) => {
+        const lineNumber = index + 1;
+
+        // 跳过注释
+        if (line.trim().startsWith("//") || line.trim().startsWith("*")) {
+          return;
+        }
+
+        dangerousPatterns.forEach(
+          ({ pattern, message, severity, exceptions }) => {
+            if (pattern.test(line)) {
+              // 检查是否在例外列表中
+              const isException = exceptions.some((exc) => line.includes(exc));
+              if (isException) return;
+
+              // 特殊处理：允许 rules-validator.js 和安全检查脚本中使用 exec
+              if (
+                (pattern.source.includes("exec") ||
+                  pattern.source.includes("execSync")) &&
+                (file.includes("rules-validator") ||
+                  file.includes("security-check") ||
+                  file.includes("test-"))
+              ) {
+                return;
+              }
+
+              // 特殊处理：允许 error-monitor.js 中的服务重启
+              if (
+                pattern.source.includes("exec") &&
+                file.includes("error-monitor") &&
+                (line.includes("docker") ||
+                  line.includes("netstat") ||
+                  line.includes("taskkill"))
+              ) {
+                return;
+              }
+
+              if (severity === "HIGH") {
+                this.errors.push({
+                  type: "DANGEROUS_FUNCTION",
+                  severity,
+                  file: path.relative(this.rootDir, file),
+                  line: lineNumber,
+                  message,
+                  code: line.trim(),
+                });
+              } else {
+                this.warnings.push({
+                  type: "DANGEROUS_FUNCTION",
+                  severity,
+                  file: path.relative(this.rootDir, file),
+                  line: lineNumber,
+                  message,
+                  code: line.trim(),
+                });
+              }
+              issueCount++;
+            }
+          },
+        );
+      });
+    }
+
+    if (issueCount === 0) {
+      this.info.push("✅ 危险函数检查通过，未发现 eval 或不安全的代码执行");
+    }
+  }
+
+  /**
+   * 检查硬编码密钥
+   */
+  async checkHardcodedSecrets() {
+    const jsFiles = this.getAllFiles(this.srcDir, ".js");
+    const envFiles = this.getAllFiles(this.rootDir, ".env");
+    let issueCount = 0;
+
+    // 密钥模式
+    const secretPatterns = [
+      {
+        // API Key 格式：sk-xxx, api-xxx, key-xxx 等
+        pattern:
+          /['"`](sk-[a-zA-Z0-9]{20,}|api[-_]?key[-_]?[a-zA-Z0-9]{16,}|key[-_][a-zA-Z0-9]{16,})['"`]/i,
+        message: "检测到可能的 API 密钥硬编码",
+        severity: "HIGH",
+      },
+      {
+        // AWS 密钥
+        pattern: /['"`](AKIA[0-9A-Z]{16})['"`]/,
+        message: "检测到 AWS Access Key 硬编码",
+        severity: "CRITICAL",
+      },
+      {
+        // GitHub Token
+        pattern: /['"`](ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{22,})['"`]/,
+        message: "检测到 GitHub Token 硬编码",
+        severity: "CRITICAL",
+      },
+      {
+        // OpenAI API Key
+        pattern: /['"`](sk-[a-zA-Z0-9]{48})['"`]/,
+        message: "检测到 OpenAI API Key 硬编码",
+        severity: "CRITICAL",
+      },
+      {
+        // 通用 secret/token 赋值
+        pattern:
+          /(?:api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token)\s*[:=]\s*['"`][a-zA-Z0-9+/=]{16,}['"`]/i,
+        message: "检测到敏感密钥硬编码，应使用环境变量",
+        severity: "HIGH",
+      },
+      {
+        // 私钥内容
+        pattern: /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----/,
+        message: "检测到私钥内容硬编码",
+        severity: "CRITICAL",
+      },
+      {
+        // 数据库连接字符串（带密码）
+        pattern: /(?:postgres|mysql|mongodb):\/\/[^:]+:[^@]+@[^/]+/i,
+        message: "检测到数据库连接字符串（含密码）硬编码",
+        severity: "HIGH",
+      },
+      {
+        // JWT Secret
+        pattern: /jwt[_-]?secret\s*[:=]\s*['"`][^'"`]{16,}['"`]/i,
+        message: "检测到 JWT Secret 硬编码",
+        severity: "HIGH",
+      },
+    ];
+
+    for (const file of jsFiles) {
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+      const fileName = path.basename(file);
+
+      // 跳过示例文件和测试文件
+      if (
+        fileName.includes(".example") ||
+        fileName.includes(".sample") ||
+        fileName.includes(".test.") ||
+        fileName.includes(".spec.") ||
+        fileName.includes("mock")
+      ) {
+        continue;
+      }
+
+      lines.forEach((line, index) => {
+        const lineNumber = index + 1;
+
+        // 跳过注释
+        if (line.trim().startsWith("//") || line.trim().startsWith("*")) {
+          return;
+        }
+
+        // 跳过从环境变量读取的行
+        if (
+          line.includes("process.env") ||
+          line.includes("getenv") ||
+          line.includes("dotenv")
+        ) {
+          return;
+        }
+
+        secretPatterns.forEach(({ pattern, message, severity }) => {
+          if (pattern.test(line)) {
+            // 检查是否是占位符或示例值
+            const isPlaceholder =
+              line.includes("xxx") ||
+              line.includes("your-") ||
+              line.includes("placeholder") ||
+              line.includes("example") ||
+              line.includes("test") ||
+              line.includes("demo") ||
+              line.includes("<") ||
+              line.includes(">") ||
+              // 模拟模式的默认值
+              (line.includes("123456") && line.includes("simulation"));
+
+            if (isPlaceholder) return;
+
+            if (severity === "CRITICAL" || severity === "HIGH") {
+              this.errors.push({
+                type: "HARDCODED_SECRET",
+                severity,
+                file: path.relative(this.rootDir, file),
+                line: lineNumber,
+                message,
+                code: this.maskSensitiveData(line.trim()),
+              });
+            } else {
+              this.warnings.push({
+                type: "HARDCODED_SECRET",
+                severity,
+                file: path.relative(this.rootDir, file),
+                line: lineNumber,
+                message,
+                code: this.maskSensitiveData(line.trim()),
+              });
+            }
+            issueCount++;
+          }
+        });
+      });
+    }
+
+    if (issueCount === 0) {
+      this.info.push("✅ 硬编码密钥检查通过，未发现敏感信息硬编码");
+    }
+  }
+
+  /**
+   * 遮盖敏感数据（用于日志输出）
+   */
+  maskSensitiveData(line) {
+    // 遮盖可能的密钥值
+    return line
+      .replace(/(sk-)[a-zA-Z0-9]+/g, "$1****")
+      .replace(/(ghp_)[a-zA-Z0-9]+/g, "$1****")
+      .replace(/(AKIA)[A-Z0-9]+/g, "$1****")
+      .replace(/(['"`])[a-zA-Z0-9+/=]{20,}(['"`])/g, "$1****$2")
+      .replace(/:\/\/([^:]+):([^@]+)@/g, "://$1:****@");
   }
 
   /**

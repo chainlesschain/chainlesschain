@@ -80,10 +80,8 @@
                 <CloudDownloadOutlined /> 使用远程版本
               </a-button>
 
-              <a-button
-                @click="showManualMerge(conflict)"
-              >
-                <MergeOutlined /> 手动合并
+              <a-button @click="showManualMerge(conflict)">
+                <BranchesOutlined /> 手动合并
               </a-button>
             </a-space>
           </div>
@@ -120,15 +118,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   CheckOutlined,
   CloudDownloadOutlined,
-  MergeOutlined
-} from '@ant-design/icons-vue';
-import { useIdentityStore } from '../stores/identity';
-import { useRouter } from 'vue-router';
+  BranchesOutlined,
+} from "@ant-design/icons-vue";
+import { useIdentityStore } from "../stores/identity";
+import { useRouter } from "vue-router";
 
 const { ipcRenderer } = window.electron || {};
 
@@ -139,8 +137,8 @@ const loading = ref(false);
 const conflicts = ref([]);
 const mergeModalVisible = ref(false);
 const currentConflict = ref(null);
-const mergedData = ref('');
-const mergeError = ref('');
+const mergedData = ref("");
+const mergeError = ref("");
 
 /**
  * 加载冲突列表
@@ -151,15 +149,15 @@ async function loadConflicts() {
   try {
     const orgId = identityStore.currentOrgId;
     if (!orgId) {
-      message.error('未选择组织');
+      message.error("未选择组织");
       return;
     }
 
-    const result = await ipcRenderer.invoke('sync:get-conflicts', orgId);
+    const result = await ipcRenderer.invoke("sync:get-conflicts", orgId);
     conflicts.value = result || [];
   } catch (error) {
-    console.error('加载冲突列表失败:', error);
-    message.error('加载冲突列表失败');
+    console.error("加载冲突列表失败:", error);
+    message.error("加载冲突列表失败");
   } finally {
     loading.value = false;
   }
@@ -170,17 +168,17 @@ async function loadConflicts() {
  */
 async function handleResolve(conflict, strategy) {
   try {
-    await ipcRenderer.invoke('sync:resolve-conflict', conflict.id, {
-      strategy
+    await ipcRenderer.invoke("sync:resolve-conflict", conflict.id, {
+      strategy,
     });
 
-    message.success('冲突已解决');
+    message.success("冲突已解决");
 
     // 移除已解决的冲突
-    conflicts.value = conflicts.value.filter(c => c.id !== conflict.id);
+    conflicts.value = conflicts.value.filter((c) => c.id !== conflict.id);
   } catch (error) {
-    console.error('解决冲突失败:', error);
-    message.error(error.message || '解决冲突失败');
+    console.error("解决冲突失败:", error);
+    message.error(error.message || "解决冲突失败");
   }
 }
 
@@ -190,7 +188,7 @@ async function handleResolve(conflict, strategy) {
 function showManualMerge(conflict) {
   currentConflict.value = conflict;
   mergedData.value = JSON.stringify(conflict.local_data, null, 2);
-  mergeError.value = '';
+  mergeError.value = "";
   mergeModalVisible.value = true;
 }
 
@@ -198,30 +196,36 @@ function showManualMerge(conflict) {
  * 手动合并确认
  */
 async function handleManualMergeOk() {
-  mergeError.value = '';
+  mergeError.value = "";
 
   try {
     // 验证JSON格式
     const data = JSON.parse(mergedData.value);
 
     // 解决冲突
-    await ipcRenderer.invoke('sync:resolve-conflict', currentConflict.value.id, {
-      strategy: 'manual',
-      data
-    });
+    await ipcRenderer.invoke(
+      "sync:resolve-conflict",
+      currentConflict.value.id,
+      {
+        strategy: "manual",
+        data,
+      },
+    );
 
-    message.success('冲突已解决');
+    message.success("冲突已解决");
 
     // 移除已解决的冲突
-    conflicts.value = conflicts.value.filter(c => c.id !== currentConflict.value.id);
+    conflicts.value = conflicts.value.filter(
+      (c) => c.id !== currentConflict.value.id,
+    );
 
     mergeModalVisible.value = false;
   } catch (error) {
     if (error instanceof SyntaxError) {
-      mergeError.value = 'JSON格式错误: ' + error.message;
+      mergeError.value = "JSON格式错误: " + error.message;
     } else {
-      console.error('解决冲突失败:', error);
-      message.error(error.message || '解决冲突失败');
+      console.error("解决冲突失败:", error);
+      message.error(error.message || "解决冲突失败");
     }
   }
 }
@@ -231,11 +235,11 @@ async function handleManualMergeOk() {
  */
 function getResourceTypeName(type) {
   const names = {
-    knowledge: '知识库',
-    project: '项目',
-    member: '成员',
-    role: '角色',
-    settings: '设置'
+    knowledge: "知识库",
+    project: "项目",
+    member: "成员",
+    role: "角色",
+    settings: "设置",
   };
   return names[type] || type;
 }
@@ -244,9 +248,9 @@ function getResourceTypeName(type) {
  * 格式化时间
  */
 function formatTime(timestamp) {
-  if (!timestamp) return '-';
+  if (!timestamp) return "-";
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 }
 
 /**
