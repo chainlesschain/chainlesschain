@@ -1,0 +1,37 @@
+{
+  "model": {
+    "defaultProvider": "ollama",
+    "temperature": 0.1,
+    "maxTokens": 4000,
+    "enableMemory": true,
+    "enableStreaming": true
+  },
+  "cost": {
+    "monthlyBudget": 50,
+    "alertThreshold": 40,
+    "preferLocalModels": true
+  },
+  "performance": {
+    "cacheEnabled": true,
+    "cacheTTL": 3600,
+    "contextCompressionThreshold": 10
+  },
+  "quality": {
+    "preCommitChecks": true,
+    "autoFix": true,
+    "securityScanning": true
+  },
+  "logging": {
+    "level": "INFO",
+    "enableFile": true,
+    "enableConsole": true,
+    "maxFileSize": 10,
+    "maxFiles": 30
+  },
+  "paths": {
+    "logsDir": ".chainlesschain/logs",
+    "cacheDir": ".chainlesschain/cache",
+    "memoryDir": ".chainlesschain/memory",
+    "checkpointsDir": ".chainlesschain/checkpoints"
+  }
+}
