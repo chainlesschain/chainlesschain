@@ -9,7 +9,10 @@
     <div class="order-content">
       <!-- 订单类型标签 -->
       <div class="order-type-section">
-        <a-tag :color="getOrderTypeColor(order.order_type)" style="font-size: 13px">
+        <a-tag
+          :color="getOrderTypeColor(order.order_type)"
+          style="font-size: 13px"
+        >
           {{ getOrderTypeLabel(order.order_type) }}
         </a-tag>
         <a-tag v-if="isMyOrder" color="blue">我的订单</a-tag>
@@ -17,8 +20,14 @@
 
       <!-- 资产信息 -->
       <div class="asset-info">
-        <div class="asset-icon" :style="{ backgroundColor: getAssetColor(order.asset_type) }">
-          <component :is="getAssetIcon(order.asset_type)" style="font-size: 24px; color: white" />
+        <div
+          class="asset-icon"
+          :style="{ backgroundColor: getAssetColor(order.asset_type) }"
+        >
+          <component
+            :is="getAssetIcon(order.asset_type)"
+            style="font-size: 24px; color: white"
+          />
         </div>
         <div class="asset-details">
           <div class="asset-name">{{ order.asset_name }}</div>
@@ -34,21 +43,23 @@
           <span class="label">单价:</span>
           <span class="price-value">
             {{ formatAmount(order.price_amount) }}
-            <span class="symbol">{{ order.price_asset_symbol || 'CC' }}</span>
+            <span class="symbol">{{ order.price_asset_symbol || "CC" }}</span>
           </span>
         </div>
         <div class="quantity-row">
           <span class="label">数量:</span>
           <span class="quantity-value">
             {{ formatAmount(order.quantity) }}
-            <span class="symbol">{{ order.asset_symbol || order.asset_name }}</span>
+            <span class="symbol">{{
+              order.asset_symbol || order.asset_name
+            }}</span>
           </span>
         </div>
         <div class="total-row">
           <span class="label">总价:</span>
           <span class="total-value">
             {{ formatAmount(totalPrice) }}
-            <span class="symbol">{{ order.price_asset_symbol || 'CC' }}</span>
+            <span class="symbol">{{ order.price_asset_symbol || "CC" }}</span>
           </span>
         </div>
       </div>
@@ -58,13 +69,15 @@
         {{ order.description }}
       </div>
 
-      <!-- 卖家信息 -->
+      <!-- 卖家/创建者信息 -->
       <div class="seller-info">
         <a-space size="small">
           <user-outlined style="color: #8c8c8c" />
-          <span class="label">卖家:</span>
-          <a-typography-text copyable :ellipsis="{ tooltip: order.seller_did }">
-            {{ formatDid(order.seller_did) }}
+          <span class="label">{{
+            order.order_type === "buy" ? "买家:" : "卖家:"
+          }}</span>
+          <a-typography-text copyable :ellipsis="{ tooltip: creatorDid }">
+            {{ formatDid(creatorDid) }}
           </a-typography-text>
         </a-space>
       </div>
@@ -102,7 +115,12 @@
                 <share-alt-outlined /> 分享
               </a-menu-item>
               <a-menu-divider v-if="canCancel" />
-              <a-menu-item v-if="canCancel" key="cancel" danger @click="handleCancel">
+              <a-menu-item
+                v-if="canCancel"
+                key="cancel"
+                danger
+                @click="handleCancel"
+              >
                 <close-circle-outlined /> 取消订单
               </a-menu-item>
             </a-menu>
@@ -114,7 +132,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from "vue";
 import {
   UserOutlined,
   ClockCircleOutlined,
@@ -128,8 +146,8 @@ import {
   PictureOutlined,
   ReadOutlined,
   FileProtectOutlined,
-} from '@ant-design/icons-vue';
-import StatusBadge from './StatusBadge.vue';
+} from "@ant-design/icons-vue";
+import StatusBadge from "./StatusBadge.vue";
 
 // Props
 const props = defineProps({
@@ -139,14 +157,19 @@ const props = defineProps({
   },
   currentUserDid: {
     type: String,
-    default: '',
+    default: "",
   },
 });
 
 // Emits
-const emit = defineEmits(['view', 'purchase', 'cancel', 'edit', 'share']);
+const emit = defineEmits(["view", "purchase", "cancel", "edit", "share"]);
 
 // 计算属性
+
+// 创建者 DID (兼容 creator_did 和 seller_did)
+const creatorDid = computed(() => {
+  return props.order.creator_did || props.order.seller_did || "";
+});
 
 // 总价
 const totalPrice = computed(() => {
@@ -155,22 +178,22 @@ const totalPrice = computed(() => {
 
 // 是否为我的订单
 const isMyOrder = computed(() => {
-  return props.currentUserDid && props.order.seller_did === props.currentUserDid;
+  return props.currentUserDid && creatorDid.value === props.currentUserDid;
 });
 
 // 是否可以购买
 const canPurchase = computed(() => {
-  return !isMyOrder.value && props.order.status === 'open';
+  return !isMyOrder.value && props.order.status === "open";
 });
 
 // 是否可以取消
 const canCancel = computed(() => {
-  return isMyOrder.value && props.order.status === 'open';
+  return isMyOrder.value && props.order.status === "open";
 });
 
 // 是否可以编辑
 const canEdit = computed(() => {
-  return isMyOrder.value && props.order.status === 'open';
+  return isMyOrder.value && props.order.status === "open";
 });
 
 // 工具函数
@@ -178,21 +201,21 @@ const canEdit = computed(() => {
 // 订单类型颜色
 const getOrderTypeColor = (type) => {
   const colorMap = {
-    sell: 'green',
-    buy: 'blue',
-    auction: 'purple',
-    exchange: 'orange',
+    sell: "green",
+    buy: "blue",
+    auction: "purple",
+    exchange: "orange",
   };
-  return colorMap[type] || 'default';
+  return colorMap[type] || "default";
 };
 
 // 订单类型标签
 const getOrderTypeLabel = (type) => {
   const labelMap = {
-    sell: '出售',
-    buy: '求购',
-    auction: '拍卖',
-    exchange: '交换',
+    sell: "出售",
+    buy: "求购",
+    auction: "拍卖",
+    exchange: "交换",
   };
   return labelMap[type] || type;
 };
@@ -211,42 +234,42 @@ const getAssetIcon = (type) => {
 // 资产类型颜色
 const getAssetColor = (type) => {
   const colorMap = {
-    token: '#1890ff',
-    nft: '#52c41a',
-    knowledge: '#faad14',
-    service: '#722ed1',
+    token: "#1890ff",
+    nft: "#52c41a",
+    knowledge: "#faad14",
+    service: "#722ed1",
   };
-  return colorMap[type] || '#999';
+  return colorMap[type] || "#999";
 };
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) return '0';
+  if (!amount && amount !== 0) return "0";
   const num = parseFloat(amount);
-  if (isNaN(num)) return '0';
+  if (isNaN(num)) return "0";
 
   // 大数字使用科学计数法
   if (num >= 1e9) {
-    return (num / 1e9).toFixed(2) + 'B';
+    return (num / 1e9).toFixed(2) + "B";
   } else if (num >= 1e6) {
-    return (num / 1e6).toFixed(2) + 'M';
+    return (num / 1e6).toFixed(2) + "M";
   } else if (num >= 1e3) {
-    return (num / 1e3).toFixed(2) + 'K';
+    return (num / 1e3).toFixed(2) + "K";
   }
 
   // 小数点后最多8位
-  return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
+  return num.toLocaleString("en-US", { maximumFractionDigits: 8 });
 };
 
 // 格式化 DID
 const formatDid = (did) => {
-  if (!did) return '-';
+  if (!did) return "-";
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) return "-";
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
@@ -261,24 +284,24 @@ const formatTime = (timestamp) => {
     } else if (minutes > 0) {
       return `${minutes}分钟前`;
     } else {
-      return '刚刚';
+      return "刚刚";
     }
   }
 
   // 超过24小时显示日期
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  return date.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
 };
 
 // 事件处理
-const handleView = () => emit('view', props.order);
-const handlePurchase = () => emit('purchase', props.order);
-const handleCancel = () => emit('cancel', props.order);
-const handleEdit = () => emit('edit', props.order);
-const handleShare = () => emit('share', props.order);
+const handleView = () => emit("view", props.order);
+const handlePurchase = () => emit("purchase", props.order);
+const handleCancel = () => emit("cancel", props.order);
+const handleEdit = () => emit("edit", props.order);
+const handleShare = () => emit("share", props.order);
 </script>
 
 <style scoped>

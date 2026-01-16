@@ -10,7 +10,10 @@
     <a-form ref="formRef" :model="form" :rules="rules" layout="vertical">
       <!-- 订单类型（不可编辑） -->
       <a-form-item label="订单类型">
-        <a-tag :color="getOrderTypeColor(order.order_type)" style="font-size: 14px">
+        <a-tag
+          :color="getOrderTypeColor(order.order_type)"
+          style="font-size: 14px"
+        >
           {{ getOrderTypeLabel(order.order_type) }}
         </a-tag>
         <span style="color: #8c8c8c; margin-left: 8px; font-size: 12px">
@@ -22,7 +25,9 @@
       <a-form-item label="资产">
         <a-space>
           <span style="font-weight: 500">{{ order.asset_name }}</span>
-          <a-tag v-if="order.asset_symbol" color="blue">{{ order.asset_symbol }}</a-tag>
+          <a-tag v-if="order.asset_symbol" color="blue">{{
+            order.asset_symbol
+          }}</a-tag>
         </a-space>
         <div style="color: #8c8c8c; font-size: 12px; margin-top: 4px">
           （资产不可修改）
@@ -39,7 +44,7 @@
           placeholder="输入单价"
         >
           <template #addonAfter>
-            {{ order.price_asset_symbol || 'CC' }}
+            {{ order.price_asset_symbol || "CC" }}
           </template>
         </a-input-number>
       </a-form-item>
@@ -57,9 +62,7 @@
           <span v-if="order.order_type === 'sell'">
             原数量: {{ order.quantity }} | 可用余额: {{ availableBalance }}
           </span>
-          <span v-else>
-            原数量: {{ order.quantity }}
-          </span>
+          <span v-else> 原数量: {{ order.quantity }} </span>
         </template>
       </a-form-item>
 
@@ -71,12 +74,9 @@
           :suffix="order.price_asset_symbol || 'CC'"
           style="display: inline-block"
         />
-        <a-tag
-          v-if="priceChanged"
-          color="orange"
-          style="margin-left: 12px"
-        >
-          原价: {{ originalTotalPrice.toFixed(2) }} {{ order.price_asset_symbol || 'CC' }}
+        <a-tag v-if="priceChanged" color="orange" style="margin-left: 12px">
+          原价: {{ originalTotalPrice.toFixed(2) }}
+          {{ order.price_asset_symbol || "CC" }}
         </a-tag>
       </a-form-item>
 
@@ -119,9 +119,7 @@
           :disabled-date="disabledDate"
           placeholder="选择订单有效期（可选）"
         />
-        <template #extra>
-          留空表示永久有效
-        </template>
+        <template #extra> 留空表示永久有效 </template>
       </a-form-item>
 
       <!-- 修改说明 -->
@@ -149,61 +147,66 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
-import dayjs from 'dayjs';
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
+import dayjs from "dayjs";
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
-    default: false
+    default: false,
   },
   order: {
     type: Object,
-    required: true
+    required: true,
   },
   availableBalance: {
     type: Number,
-    default: 0
-  }
+    default: 0,
+  },
 });
 
-const emit = defineEmits(['update:visible', 'updated']);
+const emit = defineEmits(["update:open", "updated"]);
 
 const formRef = ref(null);
 const updating = ref(false);
 
 const visible = computed({
-  get: () => props.visible,
-  set: (val) => emit('update:visible', val)
+  get: () => props.open,
+  set: (val) => emit("update:open", val),
 });
 
 // 表单数据
 const form = ref({
   price_amount: 0,
   quantity: 0,
-  description: '',
-  contact_info: '',
-  location: '',
+  description: "",
+  contact_info: "",
+  location: "",
   valid_until: null,
-  edit_reason: ''
+  edit_reason: "",
 });
 
 // 表单验证规则
 const rules = {
   price_amount: [
-    { required: true, message: '请输入单价', trigger: 'blur' },
-    { type: 'number', min: 0.00000001, message: '单价必须大于0', trigger: 'blur' }
+    { required: true, message: "请输入单价", trigger: "blur" },
+    {
+      type: "number",
+      min: 0.00000001,
+      message: "单价必须大于0",
+      trigger: "blur",
+    },
   ],
   quantity: [
-    { required: true, message: '请输入数量', trigger: 'blur' },
-    { type: 'number', min: 1, message: '数量必须大于0', trigger: 'blur' }
-  ]
+    { required: true, message: "请输入数量", trigger: "blur" },
+    { type: "number", min: 1, message: "数量必须大于0", trigger: "blur" },
+  ],
 };
 
 // 计算属性
 const maxQuantity = computed(() => {
-  if (props.order.order_type === 'sell') {
+  if (props.order.order_type === "sell") {
     // 对于出售订单，最大数量 = 原数量 + 可用余额
     return props.order.quantity + props.availableBalance;
   }
@@ -226,9 +229,9 @@ const hasChanges = computed(() => {
   return (
     form.value.price_amount !== props.order.price_amount ||
     form.value.quantity !== props.order.quantity ||
-    form.value.description !== (props.order.description || '') ||
-    form.value.contact_info !== (props.order.contact_info || '') ||
-    form.value.location !== (props.order.location || '')
+    form.value.description !== (props.order.description || "") ||
+    form.value.contact_info !== (props.order.contact_info || "") ||
+    form.value.location !== (props.order.location || "")
   );
 });
 
@@ -237,17 +240,19 @@ const initForm = () => {
   form.value = {
     price_amount: props.order.price_amount,
     quantity: props.order.quantity,
-    description: props.order.description || '',
-    contact_info: props.order.contact_info || '',
-    location: props.order.location || '',
-    valid_until: props.order.valid_until ? dayjs(props.order.valid_until) : null,
-    edit_reason: ''
+    description: props.order.description || "",
+    contact_info: props.order.contact_info || "",
+    location: props.order.location || "",
+    valid_until: props.order.valid_until
+      ? dayjs(props.order.valid_until)
+      : null,
+    edit_reason: "",
   };
 };
 
 // 禁用过去的日期
 const disabledDate = (current) => {
-  return current && current < dayjs().startOf('day');
+  return current && current < dayjs().startOf("day");
 };
 
 // 处理更新
@@ -256,38 +261,38 @@ const handleUpdate = async () => {
     await formRef.value.validate();
 
     if (!hasChanges.value) {
-      message.warning('没有任何修改');
+      message.warning("没有任何修改");
       return;
     }
 
     updating.value = true;
 
     const updateData = {
-      orderId: props.order.id,
       price_amount: form.value.price_amount,
       quantity: form.value.quantity,
       description: form.value.description,
       contact_info: form.value.contact_info,
       location: form.value.location,
-      valid_until: form.value.valid_until ? form.value.valid_until.valueOf() : null,
-      edit_reason: form.value.edit_reason
+      valid_until: form.value.valid_until
+        ? form.value.valid_until.valueOf()
+        : null,
     };
 
-    const result = await window.electron.ipcRenderer.invoke('trade:update-order', updateData);
+    // 使用统一的 electronAPI 调用
+    const result = await window.electronAPI.marketplace.updateOrder(
+      props.order.id,
+      updateData,
+    );
 
-    if (result.success) {
-      message.success('订单已更新');
-      emit('updated', result.order);
-      visible.value = false;
-    } else {
-      message.error(result.error || '更新订单失败');
-    }
+    message.success("订单已更新");
+    emit("updated", result);
+    visible.value = false;
   } catch (error) {
     if (error.errorFields) {
-      message.error('请检查表单填写');
+      message.error("请检查表单填写");
     } else {
-      console.error('更新订单失败:', error);
-      message.error('更新订单失败');
+      console.error("更新订单失败:", error);
+      message.error("更新订单失败");
     }
   } finally {
     updating.value = false;
@@ -302,30 +307,33 @@ const handleCancel = () => {
 // 工具函数
 const getOrderTypeColor = (type) => {
   const colorMap = {
-    sell: 'green',
-    buy: 'blue',
-    auction: 'purple',
-    exchange: 'orange',
+    sell: "green",
+    buy: "blue",
+    auction: "purple",
+    exchange: "orange",
   };
-  return colorMap[type] || 'default';
+  return colorMap[type] || "default";
 };
 
 const getOrderTypeLabel = (type) => {
   const labelMap = {
-    sell: '出售',
-    buy: '求购',
-    auction: '拍卖',
-    exchange: '交换',
+    sell: "出售",
+    buy: "求购",
+    auction: "拍卖",
+    exchange: "交换",
   };
   return labelMap[type] || type;
 };
 
-// 监听 visible 变化，初始化表单
-watch(() => props.visible, (val) => {
-  if (val) {
-    initForm();
-  }
-});
+// 监听 open 变化，初始化表单
+watch(
+  () => props.open,
+  (val) => {
+    if (val) {
+      initForm();
+    }
+  },
+);
 </script>
 
 <style scoped lang="scss">

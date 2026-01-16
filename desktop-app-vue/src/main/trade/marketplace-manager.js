@@ -142,7 +142,8 @@ class MarketplaceManager extends EventEmitter {
 
     // 创建 FTS5 全文搜索虚拟表
     try {
-      db.exec(`
+      db.prepare(
+        `
         CREATE VIRTUAL TABLE IF NOT EXISTS orders_fts USING fts5(
           id,
           title,
@@ -150,31 +151,38 @@ class MarketplaceManager extends EventEmitter {
           content='orders',
           content_rowid='rowid'
         )
-      `);
+      `,
+      ).run();
 
       // 创建触发器保持 FTS 索引同步
-      db.exec(`
+      db.prepare(
+        `
         CREATE TRIGGER IF NOT EXISTS orders_fts_insert AFTER INSERT ON orders BEGIN
           INSERT INTO orders_fts(rowid, id, title, description)
           VALUES (NEW.rowid, NEW.id, NEW.title, NEW.description);
         END
-      `);
+      `,
+      ).run();
 
-      db.exec(`
+      db.prepare(
+        `
         CREATE TRIGGER IF NOT EXISTS orders_fts_delete AFTER DELETE ON orders BEGIN
           INSERT INTO orders_fts(orders_fts, rowid, id, title, description)
           VALUES ('delete', OLD.rowid, OLD.id, OLD.title, OLD.description);
         END
-      `);
+      `,
+      ).run();
 
-      db.exec(`
+      db.prepare(
+        `
         CREATE TRIGGER IF NOT EXISTS orders_fts_update AFTER UPDATE ON orders BEGIN
           INSERT INTO orders_fts(orders_fts, rowid, id, title, description)
           VALUES ('delete', OLD.rowid, OLD.id, OLD.title, OLD.description);
           INSERT INTO orders_fts(rowid, id, title, description)
           VALUES (NEW.rowid, NEW.id, NEW.title, NEW.description);
         END
-      `);
+      `,
+      ).run();
 
       // 重建 FTS 索引（如果表已存在但没有数据）
       const ftsCount = db
@@ -184,7 +192,9 @@ class MarketplaceManager extends EventEmitter {
         .prepare("SELECT COUNT(*) as count FROM orders")
         .get();
       if (ftsCount.count === 0 && ordersCount.count > 0) {
-        db.exec(`INSERT INTO orders_fts(orders_fts) VALUES('rebuild')`);
+        db.prepare(
+          `INSERT INTO orders_fts(orders_fts) VALUES('rebuild')`,
+        ).run();
       }
 
       console.log("[MarketplaceManager] FTS5 全文搜索已启用");
