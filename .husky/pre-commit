@@ -1,1 +1,43 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 运行 Pre-commit 代码质量门禁..."
+echo ""
+
+# 1. 运行 lint-staged（ESLint + Prettier + 安全扫描）
+echo "📝 运行 ESLint 和代码格式化..."
 npx lint-staged
+
+# 检查 lint-staged 退出码
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ ESLint 或安全扫描失败！"
+  echo "请修复上述问题后再提交"
+  echo ""
+  echo "如需跳过验证（不推荐），使用: git commit --no-verify"
+  exit 1
+fi
+
+echo "✅ ESLint 和代码格式化通过"
+echo ""
+
+# 2. 运行项目规则验证
+echo "🔍 运行代码规则验证..."
+
+# 进入 desktop-app-vue 目录运行验证
+cd desktop-app-vue || exit 1
+
+# 运行规则验证器
+npm run validate:rules
+
+# 检查退出码
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ 代码规则验证失败！"
+  echo "请修复上述问题后再提交，或查看 .chainlesschain/rules.md 了解编码规范"
+  echo ""
+  echo "如需跳过验证（不推荐），使用: git commit --no-verify"
+  exit 1
+fi
+
+echo "✅ 代码规则验证通过"
