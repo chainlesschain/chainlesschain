@@ -157,3 +157,14 @@ packaging/qdrant/
 packaging/redis/
 test-results/
 playwright-report/
+
+# ChainlessChain unified configuration
+.chainlesschain/memory/
+.chainlesschain/logs/
+.chainlesschain/cache/
+.chainlesschain/checkpoints/
+.chainlesschain/config.json
+
+# Keep templates and rules (optional - can be committed)
+!.chainlesschain/config.json.example
+!.chainlesschain/rules.md

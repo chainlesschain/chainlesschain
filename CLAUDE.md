@@ -13,6 +13,87 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
+## Configuration Management
+
+### Unified Configuration Directory (`.chainlesschain/`)
+
+**Inspired by OpenClaude best practices**, this project uses a unified `.chainlesschain/` directory to centralize all configuration, logs, cache, and session data.
+
+**Directory Structure:**
+
+```
+.chainlesschain/
+├── config.json              # Core configuration (model, cost, performance, logging)
+├── config.json.example      # Configuration template (version controlled)
+├── rules.md                 # Project-specific coding rules and constraints
+├── memory/                  # Session and learning data
+│   ├── sessions/            # Conversation history
+│   ├── preferences/         # User preferences
+│   └── learned-patterns/    # Learned patterns from usage
+├── logs/                    # Operation logs
+│   ├── error.log
+│   ├── performance.log
+│   └── llm-usage.log        # LLM token usage tracking (planned)
+├── cache/                   # Cached data
+│   ├── embeddings/          # Vector embeddings cache
+│   ├── query-results/       # Query results cache
+│   └── model-outputs/       # Model output cache
+└── checkpoints/             # Checkpoints and backups
+    └── auto-backup/
+```
+
+**Configuration Priority (high to low):**
+
+1. **Environment variables** (`.env`, system env) - Highest priority
+2. **`.chainlesschain/config.json`** - User-specific settings
+3. **Default configuration** - Defined in code
+
+**Key Features:**
+
+- **Automatic initialization**: Directory structure created on first run
+- **Git-friendly**: Runtime data excluded via `.gitignore`, but templates/rules are version controlled
+- **Centralized management**: All paths accessible via `UnifiedConfigManager`
+- **Easy migration**: Export/import configuration for deployment
+
+**Usage Example:**
+
+```javascript
+// In main process
+const { getUnifiedConfigManager } = require('./config/unified-config-manager');
+
+const configManager = getUnifiedConfigManager();
+
+// Get configuration
+const modelConfig = configManager.getConfig('model');
+console.log('Default LLM provider:', modelConfig.defaultProvider);
+
+// Get paths
+const logsDir = configManager.getLogsDir();
+const cacheDir = configManager.getCacheDir();
+
+// Update configuration
+configManager.updateConfig({
+  cost: {
+    monthlyBudget: 100
+  }
+});
+
+// Clear cache
+configManager.clearCache('embeddings');
+```
+
+**Important Files:**
+
+- **`.chainlesschain/config.json`**: Main configuration file (git-ignored)
+- **`.chainlesschain/rules.md`**: Project coding rules - **READ THIS FIRST!** (priority > CLAUDE.md)
+- **`desktop-app-vue/src/main/config/unified-config-manager.js`**: Configuration manager implementation
+
+**Migration Notes:**
+
+- Existing `app-config.js` still works for backward compatibility
+- New code should use `UnifiedConfigManager` for centralized configuration
+- Logs will gradually migrate from `userData/logs` to `.chainlesschain/logs/`
+
 ## Critical Build & Development Commands
 
 ### Desktop Application (Primary Focus)

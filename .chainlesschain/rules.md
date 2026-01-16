@@ -1,443 +1,384 @@
-# ChainlessChain 编码规范与安全规则
+# ChainlessChain 项目编码规则
 
-本文档定义 ChainlessChain 项目的编码规范和安全规则，所有代码提交必须遵守这些规则。
-
-## 1. 安全规范
-
-### 1.1 SQL 注入防护
-
-**强制规则**：所有数据库查询必须使用参数化查询（Prepared Statements）
-
-#### ✅ 正确示例
-
-```javascript
-// SQLite (desktop-app-vue)
-db.prepare('SELECT * FROM notes WHERE id = ?').get(noteId);
-db.prepare('INSERT INTO notes (title, content) VALUES (?, ?)').run(title, content);
-
-// 使用 IN 子句
-const placeholders = ids.map(() => '?').join(',');
-db.prepare(`SELECT * FROM notes WHERE id IN (${placeholders})`).all(...ids);
-```
-
-#### ❌ 错误示例
-
-```javascript
-// 直接拼接 SQL - 禁止！
-db.exec(`SELECT * FROM notes WHERE id = ${noteId}`);
-db.exec(`INSERT INTO notes (title, content) VALUES ('${title}', '${content}')`);
-```
-
-#### MyBatis 规范 (Java Backend)
-
-```xml
-<!-- 使用 #{} 而非 ${} -->
-<select id="selectNote" resultType="Note">
-  SELECT * FROM notes WHERE id = #{id}
-</select>
-
-<!-- 动态 IN 子句 -->
-<select id="selectNotes" resultType="Note">
-  SELECT * FROM notes WHERE id IN
-  <foreach collection="ids" item="id" open="(" separator="," close=")">
-    #{id}
-  </foreach>
-</select>
-```
-
-**检查规则**：
-- JavaScript: 禁止使用 `db.exec()` 或模板字符串拼接 SQL
-- Java: 禁止 MyBatis 中使用 `${}`（除非用于表名/列名等元数据，且必须有白名单验证）
+> 本文件定义项目特定的编码规则和约束，优先级高于 CLAUDE.md 通用规则
+>
+> **版本**: v1.0
+> **最后更新**: 2026-01-16
 
 ---
 
-### 1.2 P2P 加密与安全通信
+## 数据库操作规则
 
-**强制规则**：所有 P2P 消息必须使用 E2E 加密（Signal Protocol）
+### 强制要求
 
-#### ✅ 正确示例
+1. **必须使用事务**: 所有写操作必须包裹在 `transaction()` 中
+2. **禁止字符串拼接 SQL**: 使用参数化查询防止注入
+3. **必须处理 SQLITE_BUSY**: 使用 ErrorMonitor 自动重试
+4. **加密要求**: 敏感数据必须使用 SQLCipher 加密存储
+
+### 示例代码
 
 ```javascript
-// 发送加密消息
-async function sendEncryptedMessage(recipientDID, message) {
-  // 1. 加载或建立 Signal Protocol 会话
-  const session = await getSignalSession(recipientDID);
-
-  // 2. 加密消息
-  const encryptedData = await session.encrypt(message);
-
-  // 3. 通过 libp2p 发送
-  await p2pNode.pubsub.publish(recipientDID, encryptedData);
-}
-
-// 接收消息解密
-libp2pNode.pubsub.on('message', async (msg) => {
-  const session = await getSignalSession(msg.from);
-  const decrypted = await session.decrypt(msg.data);
-  // 处理解密后的消息
+// ✅ 正确
+await db.transaction(async () => {
+  await db.run('INSERT INTO notes (title, content) VALUES (?, ?)', [title, content]);
 });
+
+// ❌ 错误 - 字符串拼接SQL
+db.run(`INSERT INTO notes (title, content) VALUES ('${title}', '${content}')`);
+
+// ❌ 错误 - 未使用事务
+db.run('INSERT INTO notes (title, content) VALUES (?, ?)', [title, content]);
 ```
-
-#### ❌ 错误示例
-
-```javascript
-// 明文传输 - 禁止！
-await p2pNode.pubsub.publish(recipientDID, plainMessage);
-
-// 自定义弱加密算法 - 禁止！
-const encrypted = Buffer.from(message).toString('base64'); // Base64 不是加密！
-```
-
-**检查规则**：
-- 所有 `p2pNode.pubsub.publish()` 调用前必须经过 Signal Protocol 加密
-- 禁止使用 Base64、ROT13 等编码方式代替加密
-- 禁止自行实现加密算法（使用标准库：Signal Protocol, node-forge, WebCrypto）
 
 ---
 
-### 1.3 数据库加密
+## LLM 调用规则
 
-**强制规则**：敏感数据库必须启用 SQLCipher 加密
+### 强制要求
 
-#### ✅ 正确示例
+1. **优先使用本地模型**: Ollama 可处理的任务不调用云端 API
+2. **必须追踪 Token**: 每次调用后更新 TokenTracker（待实现）
+3. **实现超时和重试**: 默认 30s 超时，失败重试 3 次
+4. **成本控制**: 遵循月度预算限制（默认 $50/月）
 
-```javascript
-const Database = require('better-sqlite3');
-const db = new Database('data/chainlesschain.db');
-
-// 启用 SQLCipher
-const encryptionKey = await getUKeyDerivedKey(); // 从 U-Key 派生密钥
-db.pragma(`key = '${encryptionKey}'`);
-db.pragma('cipher_page_size = 4096');
-db.pragma('kdf_iter = 256000');
-```
-
-#### ❌ 错误示例
+### 模型选择策略
 
 ```javascript
-// 未加密数据库 - 仅允许用于临时/缓存数据
-const db = new Database('data/plaintext.db'); // 没有设置 key
-```
-
-**检查规则**：
-- 主数据库文件（`chainlesschain.db`）必须设置 `pragma key`
-- 加密密钥必须从 U-Key 或用户密码派生，禁止硬编码
-- KDF 迭代次数不得低于 64000
-
----
-
-### 1.4 U-Key 安全
-
-**强制规则**：U-Key PIN 码必须安全存储和传输
-
-#### ✅ 正确示例
-
-```javascript
-// 从用户输入获取 PIN（内存中处理，不记录日志）
-const pin = await promptUserForPIN(); // 使用 password input
-
-// 验证后立即清除
-const verified = await ukey.verify(pin);
-pin = null; // 清除引用
-
-// 模拟模式下使用环境变量
-const simulationPIN = process.env.UKEY_SIMULATION_PIN || '123456';
-```
-
-#### ❌ 错误示例
-
-```javascript
-// 硬编码 PIN - 禁止！
-const pin = '123456';
-
-// 记录 PIN 到日志 - 禁止！
-console.log('User PIN:', pin);
-
-// 明文存储 PIN - 禁止！
-localStorage.setItem('pin', pin);
-```
-
-**检查规则**：
-- 禁止硬编码 PIN 码（除了默认演示值 `123456` 在模拟模式下）
-- 禁止在日志、控制台、文件中记录 PIN
-- PIN 验证后必须立即清除内存引用
-
----
-
-## 2. 代码质量规范
-
-### 2.1 错误处理
-
-**强制规则**：所有异步操作必须有错误处理
-
-#### ✅ 正确示例
-
-```javascript
-// Try-catch
-try {
-  const result = await someDatabaseOperation();
-  return result;
-} catch (error) {
-  console.error('Database operation failed:', error.message);
-  throw new Error('Failed to complete operation');
+// 简单任务 → 使用 Ollama (免费)
+if (taskComplexity === 'simple') {
+  provider = 'ollama';
+  model = 'qwen2:7b';
 }
 
-// IPC 错误处理
-ipcMain.handle('database:query', async (event, sql) => {
-  try {
-    return { success: true, data: db.prepare(sql).all() };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-```
-
-#### ❌ 错误示例
-
-```javascript
-// 缺少错误处理 - 禁止！
-const result = await someDatabaseOperation();
-
-// 忽略错误 - 禁止！
-try {
-  await riskyOperation();
-} catch (e) {
-  // 空 catch 块
+// 复杂推理 → 使用云端高性能模型
+if (taskComplexity === 'complex') {
+  provider = 'volcengine'; // 或 openai, zhipu
+  model = 'doubao-seed-1.6-pro';
 }
 ```
 
 ---
 
-### 2.2 输入验证
+## P2P 消息规则
 
-**强制规则**：所有外部输入必须验证
+### 强制要求
 
-#### ✅ 正确示例
+1. **强制 E2E 加密**: 所有 P2P 消息必须使用 Signal Protocol
+2. **离线消息队列**: 发送失败的消息加入 `offline_queue` 表
+3. **设备同步**: 多设备场景必须调用 DeviceSyncManager
+4. **身份验证**: 消息发送前必须验证 DID 身份
 
-```javascript
-// 类型验证
-function createNote(title, content) {
-  if (typeof title !== 'string' || title.length === 0) {
-    throw new Error('Invalid title');
-  }
-  if (typeof content !== 'string') {
-    throw new Error('Invalid content');
-  }
-  // 长度限制
-  if (title.length > 500) {
-    throw new Error('Title too long');
-  }
-  return db.prepare('INSERT INTO notes (title, content) VALUES (?, ?)').run(title, content);
-}
-
-// DID 格式验证
-function validateDID(did) {
-  const didRegex = /^did:key:[a-zA-Z0-9]+$/;
-  if (!didRegex.test(did)) {
-    throw new Error('Invalid DID format');
-  }
-  return did;
-}
-```
-
-#### ❌ 错误示例
+### 示例代码
 
 ```javascript
-// 无验证直接使用 - 禁止！
-function createNote(title, content) {
-  return db.prepare('INSERT INTO notes (title, content) VALUES (?, ?)').run(title, content);
-}
-```
+// ✅ 正确
+const encryptedMessage = await signalProtocol.encrypt(message, recipientDID);
+await p2pManager.sendMessage(recipientDID, encryptedMessage);
 
-**检查规则**：
-- IPC handler 的所有参数必须验证类型和范围
-- 文件路径必须验证（防止路径遍历攻击）
-- DID/地址格式必须使用正则表达式验证
+// ❌ 错误 - 未加密
+await p2pManager.sendMessage(recipientDID, message);
+```
 
 ---
 
-### 2.3 依赖项安全
+## 插件开发规则
 
-**强制规则**：定期检查和更新依赖项
+### 强制要求
+
+1. **沙箱隔离**: 所有插件必须在 PluginSandbox 中执行
+2. **权限最小化**: manifest.json 只声明必需权限
+3. **错误边界**: 插件错误不能影响主应用
+4. **安全审计**: 插件市场上架前必须通过安全扫描
+
+### manifest.json 示例
+
+```json
+{
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "permissions": [
+    "database:read",
+    "filesystem:read"
+  ],
+  "sandbox": true
+}
+```
+
+---
+
+## 性能规则
+
+### 强制要求
+
+1. **查询优化**: 数据库查询必须使用索引（通过 EXPLAIN QUERY PLAN 验证）
+2. **缓存策略**: 频繁访问的数据使用 QueryCache（TTL 60s）
+3. **懒加载**: Vue 组件超过 100KB 必须使用 `defineAsyncComponent`
+4. **图片优化**: 上传图片必须压缩和生成缩略图
+
+### 性能指标要求
+
+根据 `desktop-app-vue/config/performance.config.js`:
+
+- 意图识别延迟: P95 < 1500ms
+- 知识检索延迟: P95 < 2000ms
+- 响应生成延迟: P95 < 4000ms
+- 总响应时间: P95 < 8000ms
+
+---
+
+## 测试要求
+
+### 覆盖率要求
+
+1. **核心模块覆盖率**: DatabaseManager, LLMManager, P2PManager 必须 ≥ 80%
+2. **E2E 测试**: 新增页面必须有 Playwright 测试
+3. **性能测试**: AI 引擎管道必须符合性能阈值
+4. **安全测试**: 定期运行安全扫描（SQL注入、XSS等）
+
+### 测试命令
 
 ```bash
-# 检查漏洞
-npm audit
+# 单元测试
+npm run test:db      # 数据库测试
+npm run test:ukey    # U-Key集成测试
+vitest run           # 所有单元测试
 
-# 自动修复（谨慎使用）
-npm audit fix
+# E2E测试
+npx playwright test
 
-# 检查过期依赖
-npm outdated
-```
-
-**已知兼容性要求**：
-- MyBatis Plus: 必须 >= 3.5.9（Spring Boot 3.x 兼容性）
-- Ollama Python 客户端: `httpx<0.26.0`（避免兼容性问题）
-- Electron: >= 39.x（安全更新）
-
----
-
-## 3. 架构规范
-
-### 3.1 分层架构
-
-```
-┌─────────────────────────────────────┐
-│  Renderer Process (Vue3 Frontend)  │
-│  - UI Components                    │
-│  - Pinia Stores                     │
-│  - IPC Client                       │
-└─────────────────────────────────────┘
-              ↕ IPC
-┌─────────────────────────────────────┐
-│  Main Process (Electron Backend)    │
-│  - IPC Handlers                     │
-│  - Business Logic                   │
-│  - Database Access                  │
-│  - External Service Integration     │
-└─────────────────────────────────────┘
-              ↕
-┌─────────────────────────────────────┐
-│  External Services                  │
-│  - Ollama (LLM)                     │
-│  - Qdrant (Vector DB)               │
-│  - Project Service (Spring Boot)    │
-└─────────────────────────────────────┘
-```
-
-**规则**：
-- Renderer 进程不得直接访问数据库或文件系统（使用 IPC）
-- Main 进程不得直接操作 DOM（通过 IPC 发送事件）
-- 所有跨进程通信必须通过 IPC 通道
-
----
-
-### 3.2 模块职责
-
-| 模块 | 职责 | 禁止操作 |
-|------|------|----------|
-| `database.js` | 数据库初始化、Schema 管理 | 业务逻辑 |
-| `llm/index.js` | LLM 调用封装 | 直接修改数据库 |
-| `rag/index.js` | RAG 检索与重排序 | UI 交互 |
-| `p2p/index.js` | P2P 网络管理 | 存储明文消息 |
-| `ukey/index.js` | U-Key 硬件交互 | 记录 PIN 日志 |
-
----
-
-## 4. 测试规范
-
-### 4.1 单元测试覆盖
-
-**强制要求**：
-- 核心业务逻辑测试覆盖率 >= 70%
-- 安全相关模块（加密、验证）>= 90%
-
-```javascript
-// 示例：测试 SQL 注入防护
-describe('Database Security', () => {
-  it('should prevent SQL injection in note queries', () => {
-    const maliciousInput = "1' OR '1'='1";
-    const result = db.prepare('SELECT * FROM notes WHERE id = ?').get(maliciousInput);
-    expect(result).toBeUndefined(); // 应返回 undefined 而非所有记录
-  });
-});
+# 性能测试
+npm run test:performance
 ```
 
 ---
 
-## 5. 代码审查清单
+## Git 提交规范
 
-提交代码前请检查：
+### Conventional Commits
 
-- [ ] 所有数据库查询使用参数化查询
-- [ ] P2P 消息已加密（Signal Protocol）
-- [ ] 敏感数据库已启用 SQLCipher
-- [ ] U-Key PIN 未硬编码或记录日志
-- [ ] 所有异步操作有 try-catch
-- [ ] 外部输入已验证（类型、格式、范围）
-- [ ] 无 `console.log` 泄露敏感信息
-- [ ] 依赖项无已知漏洞（`npm audit`）
-- [ ] 符合分层架构（Renderer 不直接访问数据库）
-- [ ] 代码注释清晰（复杂逻辑必须注释）
-- [ ] 遵循 Conventional Commits 规范
-
----
-
-## 6. Git 提交规范
-
-### 6.1 Commit Message 格式
+遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范:
 
 ```
 <type>(<scope>): <subject>
 
-<body>
+[optional body]
 
-<footer>
+[optional footer]
 ```
 
-**Type 类型**：
-- `feat`: 新功能
-- `fix`: Bug 修复
-- `security`: 安全问题修复（高优先级）
+### Type 类型
+
+- `feat(module)`: 新功能
+- `fix(module)`: Bug 修复
+- `perf(module)`: 性能优化
+- `test(module)`: 测试相关
 - `docs`: 文档更新
-- `refactor`: 重构（不改变功能）
-- `test`: 添加测试
+- `refactor(module)`: 重构（不改变功能）
+- `style`: 代码格式化
 - `chore`: 构建/工具链更新
-- `perf`: 性能优化
 
-**Scope 范围**：
-- `ukey`: U-Key 模块
-- `p2p`: P2P 网络
-- `rag`: RAG 检索
-- `database`: 数据库
-- `llm`: LLM 集成
-- `social`: 社交功能
-- `trade`: 交易系统
+### Scope 模块
 
-**示例**：
+**必须指定模块**: rag, llm, p2p, database, plugin, ui, trade, did, git, etc.
 
-```
-security(database): 修复 SQL 注入漏洞
-
-- 将所有 db.exec() 替换为 db.prepare()
-- 添加输入验证（title 长度限制 500 字符）
-- 增加单元测试覆盖注入场景
-
-Fixes #123
-```
-
----
-
-## 7. 自动化检查
-
-本项目使用 `RulesValidator` 自动检查代码规范，检查项包括：
-
-1. **SQL 注入检测**：扫描 `.js` 文件中的 `db.exec()` 和字符串拼接
-2. **P2P 加密检测**：检查 `p2pNode.pubsub.publish()` 前是否加密
-3. **敏感信息泄露**：检测日志中的 PIN、密钥、密码
-4. **依赖项漏洞**：运行 `npm audit`（阻塞 >= high severity）
-
-运行检查：
+### 示例
 
 ```bash
-# 在 desktop-app-vue 目录
-npm run validate:rules
-
-# 或手动运行
-node scripts/rules-validator.js
+feat(rag): 添加重排序器支持
+fix(ukey): 修复Windows驱动兼容性问题
+perf(database): 优化查询索引，提升检索速度30%
+docs(api): 更新RAG API文档
+test(p2p): 添加E2E加密单元测试
 ```
 
 ---
 
-## 附录：工具与资源
+## 安全规则
 
-- **SQL 注入学习**：[OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)
-- **Signal Protocol 文档**：[@privacyresearch/libsignal-protocol-typescript](https://github.com/privacyresearch/libsignal-protocol-typescript)
-- **SQLCipher 配置**：[SQLCipher Documentation](https://www.zetetic.net/sqlcipher/sqlcipher-api/)
-- **安全编码指南**：[Node.js Security Best Practices](https://nodejs.org/en/docs/guides/security/)
+### 禁止项
+
+1. ❌ **硬编码密钥**: API Key、密码等必须使用环境变量
+2. ❌ **eval() 使用**: 禁止使用 `eval()` 和 `Function()` 构造函数
+3. ❌ **innerHTML 直接赋值**: 使用 `textContent` 或 Vue 模板
+4. ❌ **敏感数据日志**: 禁止记录 API Key、密码、私钥
+
+### 示例
+
+```javascript
+// ✅ 正确
+const apiKey = process.env.OPENAI_API_KEY;
+
+// ❌ 错误
+const apiKey = 'sk-1234567890abcdef';
+```
 
 ---
 
-**最后更新**：2026-01-16
-**版本**：v1.0.0
+## U-Key 集成规则
+
+### 平台支持
+
+- **Windows**: 完整硬件支持（Koffi FFI + SIMKey SDK）
+- **macOS/Linux**: 仅支持模拟模式
+
+### 强制要求
+
+1. **PIN 验证**: 所有 U-Key 操作必须先验证 PIN
+2. **错误处理**: 处理 U-Key 未插入、PIN 错误等异常
+3. **模拟模式**: 开发环境默认使用模拟模式
+
+---
+
+## 代码质量门禁
+
+### Pre-commit Hooks
+
+在提交代码前自动运行以下检查（待实现 Husky 集成）:
+
+1. ✅ **ESLint**: 代码风格和潜在错误
+2. ✅ **TypeScript**: 类型检查（如适用）
+3. ✅ **Vitest**: 关键单元测试
+4. ✅ **安全扫描**: SQL 注入、XSS 等漏洞检测
+
+### 配置 (待实施)
+
+```json
+{
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
+```
+
+---
+
+## Token 优化指引
+
+### 成本目标
+
+- **开发环境**: < $5/周
+- **生产环境**: < $50/月
+
+### 优化策略
+
+1. **优先本地模型**: 简单任务使用 Ollama（免费）
+2. **上下文压缩**: 对话历史超过 10 条消息时自动总结
+3. **结果缓存**: 重复查询使用缓存（TTL 1 小时）
+4. **批量处理**: 相似任务合并到一次调用
+5. **成本监控**: 实时查看 Token 使用（待实现 UI）
+
+---
+
+## 配置管理规则
+
+### 统一配置目录
+
+使用 `.chainlesschain/` 目录管理所有配置:
+
+```
+.chainlesschain/
+├── config.json              # 核心配置
+├── rules.md                 # 本文件
+├── memory/                  # 会话数据
+├── logs/                    # 日志文件
+├── cache/                   # 缓存数据
+└── checkpoints/             # 检查点和备份
+```
+
+### 配置优先级
+
+1. **环境变量** (最高优先级)
+2. **`.chainlesschain/config.json`**
+3. **默认配置** (代码中定义)
+
+---
+
+## 异常情况处理
+
+### 数据库锁定 (SQLITE_BUSY)
+
+```javascript
+// 自动重试策略
+const retryOptions = {
+  maxRetries: 3,
+  retryDelay: 100,
+  backoff: 'exponential'
+};
+```
+
+### 网络错误
+
+```javascript
+// LLM API 调用超时和重试
+const timeout = 30000; // 30s
+const maxRetries = 3;
+```
+
+### U-Key 错误
+
+```javascript
+// 处理 U-Key 未插入、PIN 错误等
+if (error.code === 'UKEY_NOT_FOUND') {
+  // 提示用户插入 U-Key
+} else if (error.code === 'PIN_ERROR') {
+  // 提示 PIN 错误，剩余次数
+}
+```
+
+---
+
+## 文档要求
+
+### 代码注释
+
+1. **JSDoc**: 所有公共 API 必须有 JSDoc 注释
+2. **复杂逻辑**: 添加行内注释解释"为什么"而非"是什么"
+3. **TODO**: 使用 `// TODO:` 标记待办事项
+
+### README 更新
+
+当添加新功能时，必须更新相关 README:
+
+- `README.md` (中文)
+- `README_EN.md` (英文)
+- `CLAUDE.md` (AI辅助开发指南)
+
+---
+
+## 依赖管理
+
+### 版本锁定
+
+1. **生产依赖**: 使用精确版本 (`"^"` 或 `"~"` 仅用于小版本)
+2. **关键依赖**: Electron, Vue, SQLite 版本锁定
+3. **安全更新**: 定期运行 `npm audit` 检查漏洞
+
+### 已知兼容性问题
+
+- **MyBatis Plus**: 需要 3.5.9+ 才能兼容 Spring Boot 3.x (当前 3.5.3.1 不兼容)
+- **Ollama httpx**: 必须 < 0.26.0
+
+---
+
+## 参考资料
+
+- **系统设计**: `docs/design/系统设计_个人移动AI管理系统.md`
+- **实施状态**: `IMPLEMENTATION_COMPLETE.md`
+- **快速开始**: `QUICK_START.md`, `HOW_TO_RUN.md`
+- **贡献指南**: `docs/development/CONTRIBUTING.md`
+- **优化计划**: `docs/development/OPTIMIZATION_PLAN_FROM_OPENCLAUDE.md`
+
+---
+
+**最后更新**: 2026-01-16
+**维护者**: 开发团队
+**审核周期**: 每月更新
