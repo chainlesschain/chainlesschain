@@ -165,6 +165,9 @@ playwright-report/
 .chainlesschain/checkpoints/
 .chainlesschain/config.json
 
-# Keep templates and rules (optional - can be committed)
+# Keep templates, rules, and documentation (version controlled)
 !.chainlesschain/config.json.example
 !.chainlesschain/rules.md
+!.chainlesschain/*.md
+!.chainlesschain/examples/
+!.chainlesschain/examples/*.js
