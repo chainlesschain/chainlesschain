@@ -375,13 +375,37 @@ class PluginManager extends EventEmitter {
 
     console.log(`[PluginManager] 插件请求权限:`, permissions);
 
-    // Phase 1: 暂时自动授予所有权限
-    // Phase 2: 实现权限对话框
-    for (const permission of permissions) {
-      await this.registry.updatePermission(manifest.id, permission, true);
-    }
+    try {
+      // 使用权限对话框管理器请求用户授权
+      const permissionDialogManager = getPermissionDialogManager();
+      const result = await permissionDialogManager.requestPermissions(manifest);
 
-    return true;
+      if (!result.granted) {
+        console.log(`[PluginManager] 用户拒绝了插件 ${manifest.id} 的权限请求`);
+        return false;
+      }
+
+      // 根据用户的选择更新权限
+      const grantedPermissions = result.permissions || {};
+      for (const permission of permissions) {
+        const granted = grantedPermissions[permission] === true;
+        await this.registry.updatePermission(manifest.id, permission, granted);
+      }
+
+      // 检查是否有任何权限被授予
+      const anyGranted = Object.values(grantedPermissions).some((v) => v === true);
+      if (!anyGranted) {
+        console.log(`[PluginManager] 用户未授予插件 ${manifest.id} 任何权限`);
+        return false;
+      }
+
+      console.log(`[PluginManager] 插件 ${manifest.id} 权限已更新:`, grantedPermissions);
+      return true;
+    } catch (error) {
+      console.error(`[PluginManager] 权限请求失败:`, error);
+      // 如果权限对话框失败（例如：窗口不可用），返回失败
+      return false;
+    }
   }
 
   /**
