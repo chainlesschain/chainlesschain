@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 ChainlessChain is a decentralized personal AI management system with hardware-level security (U-Key/SIMKey). It integrates three core features:
+
 1. **Knowledge Base Management** - Personal second brain with RAG-enhanced search
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts, credit scoring
@@ -59,13 +60,13 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 
 ```javascript
 // In main process
-const { getUnifiedConfigManager } = require('./config/unified-config-manager');
+const { getUnifiedConfigManager } = require("./config/unified-config-manager");
 
 const configManager = getUnifiedConfigManager();
 
 // Get configuration
-const modelConfig = configManager.getConfig('model');
-console.log('Default LLM provider:', modelConfig.defaultProvider);
+const modelConfig = configManager.getConfig("model");
+console.log("Default LLM provider:", modelConfig.defaultProvider);
 
 // Get paths
 const logsDir = configManager.getLogsDir();
@@ -74,12 +75,12 @@ const cacheDir = configManager.getCacheDir();
 // Update configuration
 configManager.updateConfig({
   cost: {
-    monthlyBudget: 100
-  }
+    monthlyBudget: 100,
+  },
 });
 
 // Clear cache
-configManager.clearCache('embeddings');
+configManager.clearCache("embeddings");
 ```
 
 **Important Files:**
@@ -232,6 +233,195 @@ npm run format
 npm run clean
 ```
 
+## MCP (Model Context Protocol) Integration
+
+**Status**: POC (Proof of Concept) - v0.1.0
+**Added**: 2026-01-16
+
+ChainlessChain integrates the **Model Context Protocol (MCP)** to extend AI capabilities through standardized external tools and data sources.
+
+### What is MCP?
+
+MCP is an open protocol that enables AI assistants to connect with various tools and services in a secure, standardized way. Think of it as "plugins for AI" - but better, because:
+
+- **Standardized**: One protocol works across all MCP-compatible tools
+- **Secure**: Tools run in isolated processes with fine-grained permissions
+- **Extensible**: Easy to add new capabilities without modifying core code
+
+### Supported MCP Servers
+
+| Server         | Purpose                    | Security Level | Status         |
+| -------------- | -------------------------- | -------------- | -------------- |
+| **Filesystem** | File read/write operations | Medium         | ✅ Implemented |
+| **PostgreSQL** | Database queries           | High           | ✅ Implemented |
+| **SQLite**     | Local database access      | Medium         | ✅ Implemented |
+| **Git**        | Repository operations      | Medium         | ✅ Implemented |
+| **Fetch**      | HTTP requests              | Medium         | ✅ Implemented |
+
+### Directory Structure
+
+```
+desktop-app-vue/src/main/mcp/
+├── README.md                          # POC documentation
+├── TESTING_GUIDE.md                   # Testing instructions
+├── mcp-client-manager.js              # Core client orchestrator
+├── mcp-tool-adapter.js                # Bridge to ToolManager
+├── mcp-security-policy.js             # Security enforcement
+├── mcp-config-loader.js               # Configuration management
+├── mcp-performance-monitor.js         # Performance tracking
+├── mcp-ipc.js                         # IPC handlers
+├── transports/
+│   └── stdio-transport.js             # Stdio communication layer
+└── servers/
+    ├── server-registry.json           # Trusted server whitelist
+    └── server-configs/
+        ├── filesystem.json            # Filesystem config schema
+        ├── postgres.json              # PostgreSQL config schema
+        ├── sqlite.json                # SQLite config schema
+        └── git.json                   # Git config schema
+```
+
+### Configuration
+
+MCP is configured in `.chainlesschain/config.json`:
+
+```json
+{
+  "mcp": {
+    "enabled": false,
+    "servers": {
+      "filesystem": {
+        "enabled": false,
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-filesystem",
+          "D:\\code\\chainlesschain\\data"
+        ],
+        "autoConnect": false,
+        "permissions": {
+          "allowedPaths": ["notes/", "imports/", "exports/"],
+          "forbiddenPaths": ["chainlesschain.db", "ukey/", "did/private-keys/"],
+          "readOnly": false
+        }
+      }
+    },
+    "security": {
+      "auditLog": true,
+      "requireConsent": true,
+      "trustRegistry": true
+    }
+  }
+}
+```
+
+### Using MCP
+
+#### 1. Enable MCP System
+
+Navigate to **Settings → MCP Servers** and toggle "启用MCP系统".
+
+#### 2. Connect to a Server
+
+```javascript
+// In renderer process (developer tools)
+await window.electronAPI.invoke("mcp:connect-server", {
+  serverName: "filesystem",
+  config: {
+    /* server-specific config */
+  },
+});
+```
+
+#### 3. Call MCP Tools
+
+```javascript
+// Read a file
+const result = await window.electronAPI.invoke("mcp:call-tool", {
+  serverName: "filesystem",
+  toolName: "read_file",
+  arguments: { path: "notes/example.md" },
+});
+
+console.log(result.result.content);
+```
+
+#### 4. AI Assistant Integration
+
+Once connected, AI assistants can automatically use MCP tools in conversations:
+
+```
+User: Read the content of notes/meeting.md
+
+AI: [Calls mcp_read_file tool]
+    Here's the content:
+    ...
+```
+
+### Security Model
+
+MCP integration follows **defense-in-depth** principles:
+
+1. **Server Whitelist**: Only trusted servers in `server-registry.json` can be loaded
+2. **Path Restrictions**: File access limited to `allowedPaths`, `forbiddenPaths` always blocked
+3. **User Consent**: High-risk operations require explicit user approval
+4. **Process Isolation**: MCP servers run in separate processes
+5. **Audit Logging**: All operations logged to `.chainlesschain/logs/mcp-*.log`
+
+**Always Forbidden**:
+
+- `/data/chainlesschain.db` (encrypted database)
+- `/data/ukey/` (hardware key data)
+- `/data/did/private-keys/` (DID private keys)
+- `/data/p2p/keys/` (P2P encryption keys)
+
+### Performance Metrics
+
+MCP integration tracks:
+
+- **Connection Time**: Target < 500ms, acceptable < 1s
+- **Tool Call Latency**: Target < 100ms, acceptable < 200ms
+- **Error Rate**: Target < 1%, acceptable < 5%
+- **Memory Usage**: Target < 50MB per server
+
+View metrics in **Settings → MCP Servers → Performance**.
+
+### Documentation
+
+- **User Guide**: [`docs/features/MCP_USER_GUIDE.md`](docs/features/MCP_USER_GUIDE.md)
+- **Testing Guide**: [`desktop-app-vue/src/main/mcp/TESTING_GUIDE.md`](desktop-app-vue/src/main/mcp/TESTING_GUIDE.md)
+- **MCP Specification**: [https://modelcontextprotocol.io/](https://modelcontextprotocol.io/)
+
+### Known Limitations (POC)
+
+- Only stdio transport (HTTP+SSE not implemented)
+- Limited error recovery (basic retry only)
+- Configuration is file-based only (no UI editing yet)
+- Windows-focused paths (cross-platform support needed)
+
+### Roadmap
+
+**Phase 1 (Current - POC)**:
+
+- ✅ Core MCP integration
+- ✅ Filesystem, PostgreSQL, SQLite, Git servers
+- ✅ UI for server management
+- ✅ Security policies
+
+**Phase 2 (Q1 2026)**:
+
+- [ ] HTTP+SSE transport
+- [ ] Enhanced UI configuration
+- [ ] More MCP servers (Slack, GitHub, etc.)
+- [ ] Plugin marketplace integration
+
+**Phase 3 (Q2 2026)**:
+
+- [ ] Custom MCP server development SDK
+- [ ] Community server repository
+- [ ] Advanced permission management
+- [ ] Multi-user support
+
 ## Architecture Overview
 
 ### Desktop Application Structure
@@ -276,6 +466,7 @@ desktop-app-vue/
 ### Database Schema
 
 Desktop app uses SQLite with SQLCipher (AES-256 encryption). Key tables:
+
 - `notes` - Knowledge base entries
 - `chat_conversations` - AI chat history
 - `did_identities` - Decentralized identities
@@ -286,6 +477,7 @@ Desktop app uses SQLite with SQLCipher (AES-256 encryption). Key tables:
 ## Technology Stack
 
 ### Desktop App Dependencies
+
 - **Electron**: 39.2.6
 - **Vue**: 3.4 with TypeScript
 - **UI**: Ant Design Vue 4.1
@@ -298,6 +490,7 @@ Desktop app uses SQLite with SQLCipher (AES-256 encryption). Key tables:
 - **Vector DB**: ChromaDB 3.1.8
 
 ### Backend Dependencies
+
 - **Java**: 17 with Spring Boot 3.1.11
 - **MyBatis Plus**: 3.5.3.1 (needs upgrade to 3.5.9)
 - **Python**: FastAPI, Ollama, Qdrant
@@ -313,6 +506,7 @@ The codebase is migrating from Spring Boot 3.2.1 to 3.1.11. Key changes:
 4. **Application port**: Changed from 8080 to 9090 (PROJECT_SERVICE_PORT)
 
 **Common issues:**
+
 - If you see bean creation errors on startup, check MyBatis Plus version compatibility
 - Ensure all `javax.*` imports are changed to `jakarta.*`
 
@@ -350,6 +544,7 @@ The codebase is migrating from Spring Boot 3.2.1 to 3.1.11. Key changes:
 ## U-Key Integration
 
 **Windows Only**: Currently only supports Windows platform via Koffi FFI
+
 - U-Key SDK: Located in `SIMKeySDK-20220416/`
 - Simulation mode: Available for testing without hardware
 - Default PIN: `123456`
@@ -447,6 +642,7 @@ Prefixes: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`
 ## Troubleshooting
 
 ### Port Conflicts
+
 - Desktop app dev server: 5173 (Vite)
 - Signaling server: 9001 (WebSocket)
 - Ollama: 11434
@@ -483,17 +679,20 @@ Prefixes: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`
 ## Priority Development Areas
 
 **High Priority**:
+
 - Upgrade MyBatis Plus to 3.5.9 for Spring Boot 3.x compatibility
 - Complete E2E encryption testing for P2P messaging
 - Voice input functionality
 - Mobile UI completion
 
 **Medium Priority**:
+
 - Browser extension for web clipping
 - Knowledge graph visualization
 - Cross-platform U-Key support (macOS/Linux)
 
 **Low Priority**:
+
 - Plugin system
 - Multi-language UI
 - Enterprise features

@@ -75,6 +75,17 @@
           <TokenUsageTab />
         </a-tab-pane>
 
+        <!-- MCP 服务器管理 -->
+        <a-tab-pane key="mcp" tab="MCP 服务器">
+          <template #tab>
+            <span>
+              <api-outlined />
+              MCP 服务器
+            </span>
+          </template>
+          <MCPSettings />
+        </a-tab-pane>
+
         <!-- Git 同步设置 -->
         <a-tab-pane key="git" tab="Git 同步">
           <template #tab>
@@ -264,6 +275,7 @@ import PerformanceDashboard from "../components/PerformanceDashboard.vue";
 
 const router = useRouter();
 const store = useAppStore();
+import MCPSettings from "../components/MCPSettings.vue";
 const { t } = useI18n();
 
 // 当前激活的标签页

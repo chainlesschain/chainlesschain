@@ -1150,32 +1150,98 @@ function registerLLMIPC({
    * 恢复 LLM 服务（预算超限暂停后）
    * Channel: 'llm:resume-service'
    */
-  ipcMain.handle("llm:resume-service", async (_event) => {
+  ipcMain.handle("llm:resume-service", async (_event, userId = "default") => {
     try {
-      if (!app) {
-        throw new Error("App 实例未初始化");
+      if (!managerRef.current) {
+        throw new Error("LLM 服务未初始化");
       }
 
-      // 调用 app 的 resumeLLMService 方法
-      app.resumeLLMService();
+      const result = await managerRef.current.resumeService(userId);
 
       console.log("[LLM IPC] ✓ LLM 服务已恢复");
 
-      return {
-        success: true,
-        message: "LLM 服务已恢复，可以继续使用",
-      };
+      return result;
     } catch (error) {
       console.error("[LLM IPC] 恢复 LLM 服务失败:", error);
       throw error;
     }
   });
 
+  /**
+   * 暂停 LLM 服务（手动暂停）
+   * Channel: 'llm:pause-service'
+   */
+  ipcMain.handle("llm:pause-service", async (_event) => {
+    try {
+      if (!managerRef.current) {
+        throw new Error("LLM 服务未初始化");
+      }
+
+      const result = await managerRef.current.pauseService();
+
+      console.log("[LLM IPC] ✓ LLM 服务已暂停");
+
+      return result;
+    } catch (error) {
+      console.error("[LLM IPC] 暂停 LLM 服务失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 计算成本估算
+   * Channel: 'llm:calculate-cost-estimate'
+   */
+  ipcMain.handle(
+    "llm:calculate-cost-estimate",
+    async (
+      _event,
+      { provider, model, inputTokens, outputTokens, cachedTokens = 0 },
+    ) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("LLM 服务未初始化");
+        }
+
+        return managerRef.current.calculateCostEstimate(
+          provider,
+          model,
+          inputTokens,
+          outputTokens,
+          cachedTokens,
+        );
+      } catch (error) {
+        console.error("[LLM IPC] 计算成本估算失败:", error);
+        throw error;
+      }
+    },
+  );
+
+  /**
+   * 检查是否可以执行操作（预算检查）
+   * Channel: 'llm:can-perform-operation'
+   */
+  ipcMain.handle(
+    "llm:can-perform-operation",
+    async (_event, estimatedTokens = 0) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("LLM 服务未初始化");
+        }
+
+        return await managerRef.current.canPerformOperation(estimatedTokens);
+      } catch (error) {
+        console.error("[LLM IPC] 检查操作权限失败:", error);
+        throw error;
+      }
+    },
+  );
+
   // 标记模块为已注册
   ipcGuard.markModuleRegistered("llm-ipc");
 
   console.log(
-    "[LLM IPC] ✓ All LLM IPC handlers registered successfully (29 handlers: 14 basic + 6 stream + 9 token tracking)",
+    "[LLM IPC] ✓ All LLM IPC handlers registered successfully (32 handlers: 14 basic + 6 stream + 12 token tracking)",
   );
 }
 

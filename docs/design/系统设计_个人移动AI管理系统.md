@@ -1,12 +1,14 @@
 # 基于U盾和SIMKey的个人移动AI管理系统
-## 系统设计文档 v2.12 (更新至 v0.20.0 实际实现状态)
 
-**文档版本**: 2.12
-**系统版本**: v0.20.0 (生产就绪,核心功能完成)
-**最后更新**: 2026-01-15
-**更新说明**: 本次更新将文档版本从v0.23.0回退至v0.20.0,以反映package.json和Git标签的真实版本号
+## 系统设计文档 v2.13 (更新至 v0.16.0 实际实现状态)
 
-**v0.20.0 已完成功能**:
+**文档版本**: 2.13
+**系统版本**: v0.16.0 (生产就绪,核心功能完成)
+**最后更新**: 2026-01-16
+**更新说明**: 添加MCP(Model Context Protocol)集成、统一配置管理系统、预算跟踪功能
+
+**v0.16.0 已完成功能**:
+
 - ✅ **深度性能优化** (三层优化体系100%完成,首次加载0.25s,提升90%)
 - ✅ **智能图片优化** (WebP/AVIF支持,响应式加载,带宽节省65%)
 - ✅ **实时性能监控** (Core Web Vitals,FPS,内存,网络监控)
@@ -15,8 +17,13 @@
 - ✅ **E2E测试覆盖** (95%+通过率,39个测试用例)
 - ✅ **移动端与PC端P2P同步** (WebRTC+libp2p,设备配对,知识库/项目同步)
 - ✅ **Linux平台打包支持** (支持x64,ZIP/DEB/RPM三种格式)
+- ✅ **MCP集成** (Model Context Protocol POC v0.1.0,扩展AI能力) ⭐新增
+- ✅ **统一配置管理** (.chainlesschain/目录,集中化配置和日志) ⭐新增
+- ✅ **预算跟踪系统** (令牌使用监控,成本预警,BudgetAlertListener) ⭐新增
+- ✅ **安全规则系统** (完整编码规范和安全规则验证器) ⭐新增
 
 **v0.21.0-v0.23.0 规划中功能** (部分代码已提交但未正式发布):
+
 - 🚧 **企业版权限管理系统** (RBAC,组织隔离,知识库协作) - 开发中
 - 🚧 **移动端同步功能增强** (Git同步优化,离线支持) - 开发中
 - 🚧 **区块链UI层集成** (钱包管理,交易监控,NFT转账) - 开发中
@@ -38,10 +45,12 @@
 ## 一、系统概述
 
 ### 1.1 系统定位
+
 本系统是一个**去中心化的个人AI助手平台**,整合了知识库管理、**项目管理(⭐核心)**、**企业版组织协作(⭐新增)**、社交网络和交易辅助五大核心功能,通过U盾(USB Key)和SIMKey提供硬件级安全保障。
 
 **主要应用**: `desktop-app-vue/` (Electron 39.2.6 + Vue 3.4 + TypeScript)
-**当前状态** (v0.23.0 - 生产就绪):
+**当前状态** (v0.16.0 - 生产就绪):
+
 - 知识库管理: 100% 完成,生产可用 ✅
   - **知识图谱可视化**: 交互式图谱,路径查找,社区检测,中心性分析
   - **网页剪藏系统**: 批量剪藏,全文搜索,智能提取,AI标签生成
@@ -57,6 +66,21 @@
 - **插件市场微服务**: 100% 完成 (Spring Boot后端+Vue3前端,Docker部署) ✅ ⭐最新
 - AI引擎系统: 100% 完成 (16个专业引擎,P2优化已完成) ✅
   - **语音输入系统**: 实时识别,音频优化,智能缓存,性能提升50% ⭐最新
+- **MCP集成系统**: POC完成 (Model Context Protocol v0.1.0) ✅ ⭐新增
+  - **支持服务器**: Filesystem, PostgreSQL, SQLite, Git, Fetch
+  - **安全策略**: 服务器白名单,路径限制,用户同意,审计日志
+  - **性能指标**: 连接<500ms,调用<100ms,错误率<1%
+  - **文件位置**: `desktop-app-vue/src/main/mcp/`
+- **统一配置管理**: 100% 完成 (集中化配置系统) ✅ ⭐新增
+  - **配置目录**: `.chainlesschain/` 统一管理配置、日志、缓存
+  - **配置优先级**: 环境变量 > config.json > 默认配置
+  - **自动初始化**: 首次运行自动创建目录结构
+  - **文件位置**: `desktop-app-vue/src/main/config/unified-config-manager.js`
+- **预算跟踪系统**: 100% 完成 (令牌使用和成本监控) ✅ ⭐新增
+  - **实时监控**: 令牌使用量,成本计算,预算预警
+  - **预警机制**: 50%/80%/100% 预算阈值通知
+  - **UI组件**: BudgetAlertListener 自动弹窗提醒
+  - **文件位置**: `desktop-app-vue/src/renderer/components/BudgetAlertListener.vue`
 - 技能工具系统: 100% 完成 (115个技能,300个工具) ✅
 - **性能优化系统**: 100% 完成 (三层优化体系,业界领先) ✅
 - **实时性能监控**: 100% 完成 (Core Web Vitals,FPS,内存) ✅
@@ -85,6 +109,7 @@
 ### 1.2 核心特性
 
 #### 1.2.1 基础特性
+
 - **完全去中心化**: 数据存储在用户自己的设备上,不依赖第三方云服务
 - **硬件安全**: 基于U盾/SIMKey的硬件级密钥保护(支持Windows,模拟模式用于开发)
 - **跨设备同步**: PC端为主,支持三种同步方式
@@ -97,6 +122,7 @@
 - **⭐ 多身份切换**: 个人身份+多组织身份,数据完全隔离,支持团队协作
 
 #### 1.2.2 技能工具系统 (v0.16.0 ✅已实现)
+
 - **⭐ 115个技能**: 涵盖9大专业领域的完整技能库
   - 基础技能: 文本处理、数据分析、文件操作等 (35个)
   - 项目管理: 任务拆解、进度跟踪、资源分配等 (15个)
@@ -122,6 +148,7 @@
     - 其他专业工具(275个): 覆盖日常办公、数据处理、内容创作等
 
 #### 1.2.3 AI引擎系统 (v0.16.0 ✅已实现)
+
 - **⭐ 16个专业引擎**: 多模态AI处理能力
   - Web引擎: 网页抓取、智能解析、内容提取
   - 文档引擎: PDF/Word/Excel/PPT处理与生成
@@ -141,6 +168,7 @@
   - 同步引擎: Git同步、HTTP同步、P2P同步
 
 #### 1.2.4 文档体系 (v0.16.0 ✅新增)
+
 - **⭐ 5个核心文档**: 总计65,000字,覆盖所有用户角色
   - **完整用户手册** (USER_MANUAL_COMPLETE.md, 12,000字)
     - 快速开始、安装配置、核心功能详解
@@ -164,6 +192,7 @@
     - 按功能/角色分类、常见问题链接
 
 #### 1.2.5 架构规模 (v0.23.0 实际统计)
+
 - **⭐ 强大架构**: 449个主进程JS文件,330个Vue组件,60张数据库表,802个IPC接口 ⭐更新
 - **⭐ 代码规模**: 约180,000行核心代码 (不含依赖) ⭐更新
 - **⭐ 文档规模**: 65,000字技术文档 + 系统设计文档
@@ -174,6 +203,7 @@
 **1. 企业版权限管理系统** ⭐核心更新
 
 **完整RBAC权限系统**:
+
 - ✅ 基于角色的访问控制 (Owner/Admin/Member/Viewer)
 - ✅ 组织级别数据隔离
 - ✅ 知识库协作权限管理
@@ -184,6 +214,7 @@
 - **文件**: `collaboration-manager.js`, `permission-checker.js`
 
 **组织协作增强**:
+
 - ✅ 工作区管理完善 (CRUD,成员管理,权限控制)
 - ✅ 组织设置优化 (基本信息,P2P设置,邀请码)
 - ✅ 数据库密码修改 (加密密钥更换,安全验证)
@@ -193,6 +224,7 @@
 **2. 移动端同步功能** ⭐生产级
 
 **Git同步支持**:
+
 - ✅ 完整的Git操作 (clone, pull, push, commit)
 - ✅ 冲突检测和解决
 - ✅ 增量同步优化
@@ -202,6 +234,7 @@
 - **文件**: `mobile-app/services/git-sync.js`
 
 **P2P同步支持**:
+
 - ✅ WebRTC数据通道
 - ✅ 设备配对和认证
 - ✅ 实时数据同步
@@ -213,6 +246,7 @@
 **3. 区块链UI层集成** ⭐完整实现
 
 **钱包管理界面**:
+
 - ✅ 多链钱包管理 (8大主网)
 - ✅ 资产余额显示
 - ✅ 交易历史查询
@@ -221,6 +255,7 @@
 - **文件**: `WalletManagement.vue`, `AssetList.vue`
 
 **交易监控系统**:
+
 - ✅ 实时交易状态追踪
 - ✅ Gas费用估算
 - ✅ 交易确认通知
@@ -228,6 +263,7 @@
 - **文件**: `TransactionMonitor.vue`, `TransactionHistory.vue`
 
 **NFT转账功能**:
+
 - ✅ NFT资产展示
 - ✅ 转账操作界面
 - ✅ 批量转账支持
@@ -237,6 +273,7 @@
 **4. 移动端社交功能** ⭐用户体验
 
 **语音消息系统**:
+
 - ✅ 实时录音和播放
 - ✅ 波形可视化显示
 - ✅ 自动语音转文字
@@ -246,6 +283,7 @@
 - **文件**: `VoiceRecorder.vue`, `VoicePlayer.vue`
 
 **通知系统增强**:
+
 - ✅ 推送通知支持
 - ✅ 通知分类管理
 - ✅ 免打扰模式
@@ -254,6 +292,7 @@
 - **文件**: `NotificationCenter.vue`, `notification-service.js`
 
 **高级交易功能**:
+
 - ✅ 移动端交易创建
 - ✅ 订单管理界面
 - ✅ 支付流程优化
@@ -263,6 +302,7 @@
 **5. 浏览器扩展测试框架** ⭐质量保证
 
 **自动化测试**:
+
 - ✅ Jest测试框架集成
 - ✅ 单元测试覆盖
 - ✅ 集成测试支持
@@ -272,6 +312,7 @@
 - **文件**: `browser-extension/tests/`
 
 **测试工具**:
+
 - ✅ Mock数据生成
 - ✅ 测试辅助函数
 - ✅ 性能基准测试
@@ -281,6 +322,7 @@
 **6. 项目根目录整理** ⭐代码质量
 
 **文件结构优化**:
+
 - ✅ 文档分类整理
 - ✅ 配置文件归档
 - ✅ 脚本文件组织
@@ -289,6 +331,7 @@
 - **改进**: 目录结构更清晰,易于维护
 
 **文档分类**:
+
 - ✅ 用户文档 (docs/user/)
 - ✅ 开发文档 (docs/development/)
 - ✅ 设计文档 (docs/design/)
@@ -296,6 +339,7 @@
 - ✅ 部署文档 (docs/deployment/)
 
 **语音输入系统增强**:
+
 - ✅ 实时语音识别,边说边显示
 - ✅ 音频优化和降噪 (FFmpeg滤镜)
 - ✅ 智能缓存机制,识别速度提升50%
@@ -306,6 +350,7 @@
 - **文件**: `speech-optimizer.js`, `RealtimeVoiceInput.vue`
 
 **知识图谱可视化**:
+
 - ✅ 交互式图谱渲染 (ECharts)
 - ✅ 节点搜索和智能筛选
 - ✅ 路径查找算法 (最短路径)
@@ -318,6 +363,7 @@
 - **文件**: `graph-optimizer.js`, `GraphInteractionPanel.vue`
 
 **网页剪藏系统**:
+
 - ✅ 批量剪藏多个网页
 - ✅ 全文搜索支持
 - ✅ 统计信息查询
@@ -331,6 +377,7 @@
 **2. 插件市场微服务** ⭐生产级
 
 **后端服务** (Spring Boot 3.1.11):
+
 - ✅ 完整的RESTful API (48个端点)
 - ✅ 实体层: Plugin, PluginVersion, PluginCategory, PluginReview等
 - ✅ 服务层: 插件管理、版本控制、分类管理、评论系统
@@ -341,6 +388,7 @@
 - **文件**: `plugin-marketplace/backend/` (9个核心文件,2400+行代码)
 
 **前端应用** (Vue 3 + Ant Design Vue):
+
 - ✅ 插件浏览和搜索
 - ✅ 插件详情和评论
 - ✅ 插件上传和管理
@@ -348,6 +396,7 @@
 - **文件**: `plugin-marketplace/frontend/` (15个组件)
 
 **Docker部署**:
+
 - ✅ docker-compose.yml配置
 - ✅ 多容器编排 (后端+MySQL+Redis+MinIO+Elasticsearch)
 - ✅ 生产环境配置
@@ -357,6 +406,7 @@
 **3. P2P音视频通话系统** ⭐实时通信
 
 **核心功能**:
+
 - ✅ WebRTC实时音视频通话
 - ✅ 屏幕共享功能
 - ✅ 通话历史记录
@@ -370,6 +420,7 @@
   - `components/call/ScreenSharePicker.vue` (屏幕选择器)
 
 **UI集成**:
+
 - ✅ 好友列表添加通话入口
 - ✅ 消息界面添加通话按钮
 - ✅ 通话界面完整实现
@@ -379,6 +430,7 @@
 **4. 实时协作系统** ⭐多人编辑
 
 **核心技术** (Yjs CRDT):
+
 - ✅ 无冲突复制数据类型 (CRDT)
 - ✅ 多人实时编辑
 - ✅ 自动冲突解决
@@ -390,6 +442,7 @@
   - `collaboration/collaboration-server.js` (协作服务器)
 
 **应用场景**:
+
 - ✅ 知识库协作编辑
 - ✅ 项目文档协作
 - ✅ 实时代码协作
@@ -398,6 +451,7 @@
 **5. macOS平台完整支持** ⭐跨平台
 
 **关键修复**:
+
 - ✅ 修复macOS路径问题
 - ✅ 修复文件权限问题
 - ✅ 修复原生模块加载
@@ -405,6 +459,7 @@
 - **文档**: `MACOS_PLATFORM_FIXES.md`
 
 **测试覆盖**:
+
 - ✅ 33个集成测试用例
 - ✅ 性能基准测试
 - ✅ 错误场景测试
@@ -479,6 +534,7 @@
 ### 2.1 知识库管理模块
 
 #### 2.1.1 功能描述
+
 个人知识库是用户的第二大脑,存储笔记、文档、对话历史等,并提供AI增强的检索和问答功能。
 
 #### 2.1.2 架构设计
@@ -543,6 +599,7 @@
 #### 2.1.3 核心流程
 
 **知识添加流程**:
+
 ```
 1. 用户输入/导入内容
 2. 安全校验 (U盾/SIMKey解锁)
@@ -556,6 +613,7 @@
 ```
 
 **知识检索流程**:
+
 ```
 1. 用户输入查询 (自然语言)
 2. 查询向量化 (Embedding)
@@ -566,6 +624,7 @@
 ```
 
 **AI问答流程**:
+
 ```
 1. 用户提问
 2. 向量检索相关知识 (RAG)
@@ -655,23 +714,24 @@ CREATE TABLE devices (
 
 #### 2.1.5 技术选型 (实际实现)
 
-| 组件 | PC端 (主要) | 移动端 (计划) | 说明 |
-|------|------------|--------------|------|
-| 数据库 | **sql.js** (SQLite WASM) | 同左 | 开发阶段无加密,生产可升级SQLCipher |
-| 向量数据库 | **ChromaDB 3.1.8** | ChromaDB-Lite | 嵌入式向量存储 |
-| LLM | **Ollama** (本地) + 14+云端API | 计划:MLC LLM | 支持Qwen/GLM/GPT等 |
-| Embedding | **Ollama内置** (nomic-embed-text等) | 同左 | 多模型支持 |
-| Git客户端 | **isomorphic-git** | 同左 | 纯JS实现 |
-| 加密库 | node-forge + U盾SDK (Windows) | 计划:原生加密 | 硬件密钥可选 |
-| UI框架 | **Vue 3.4 + Ant Design Vue 4.1** | 计划:uni-app | TypeScript支持 |
-| Markdown | **Milkdown 7.17.3** | 同左 | 所见即所得编辑 |
-| 图像处理 | **Sharp + Tesseract.js** | 计划 | OCR和处理 |
+| 组件       | PC端 (主要)                         | 移动端 (计划) | 说明                               |
+| ---------- | ----------------------------------- | ------------- | ---------------------------------- |
+| 数据库     | **sql.js** (SQLite WASM)            | 同左          | 开发阶段无加密,生产可升级SQLCipher |
+| 向量数据库 | **ChromaDB 3.1.8**                  | ChromaDB-Lite | 嵌入式向量存储                     |
+| LLM        | **Ollama** (本地) + 14+云端API      | 计划:MLC LLM  | 支持Qwen/GLM/GPT等                 |
+| Embedding  | **Ollama内置** (nomic-embed-text等) | 同左          | 多模型支持                         |
+| Git客户端  | **isomorphic-git**                  | 同左          | 纯JS实现                           |
+| 加密库     | node-forge + U盾SDK (Windows)       | 计划:原生加密 | 硬件密钥可选                       |
+| UI框架     | **Vue 3.4 + Ant Design Vue 4.1**    | 计划:uni-app  | TypeScript支持                     |
+| Markdown   | **Milkdown 7.17.3**                 | 同左          | 所见即所得编辑                     |
+| 图像处理   | **Sharp + Tesseract.js**            | 计划          | OCR和处理                          |
 
 ---
 
 ### 2.2 去中心化社交模块
 
 #### 2.2.1 功能描述
+
 构建基于身份自主权(DID)的去中心化社交网络,用户完全掌控自己的社交图谱和内容,无需依赖中心化平台。
 
 #### 2.2.2 架构设计
@@ -758,6 +818,7 @@ CREATE TABLE devices (
 #### 2.2.3 核心流程
 
 **用户注册流程**:
+
 ```
 1. 用户选择创建新身份
 2. U盾/SIMKey生成密钥对 (Ed25519签名 + X25519加密)
@@ -769,6 +830,7 @@ CREATE TABLE devices (
 ```
 
 **添加好友流程**:
+
 ```
 1. 用户A扫描用户B的DID二维码
 2. 从DHT网络获取B的DID文档
@@ -782,6 +844,7 @@ CREATE TABLE devices (
 ```
 
 **发布动态流程**:
+
 ```
 1. 用户撰写动态内容
 2. 选择可见性级别 (公开/好友/私密)
@@ -798,6 +861,7 @@ CREATE TABLE devices (
 ```
 
 **查看时间线流程**:
+
 ```
 1. 用户打开时间线
 2. 从本地数据库读取缓存内容
@@ -919,22 +983,23 @@ CREATE TABLE endorsements (
 
 #### 2.2.5 技术选型
 
-| 组件 | 技术选择 | 说明 |
-|------|---------|------|
-| DID标准 | W3C DID Core | 符合国际标准 |
-| P2P网络 | libp2p | 成熟的P2P通信库 |
-| NAT穿透 | WebRTC + STUN/TURN | 支持直连和中继 |
-| 端到端加密 | Signal协议 | 行业标准,前向安全 |
-| 分布式存储 | IPFS | 公开内容的永久存储 |
-| DHT | Kademlia | 节点发现和路由 |
-| 签名算法 | Ed25519 | 高效的椭圆曲线签名 |
-| 加密算法 | X25519 + ChaCha20-Poly1305 | 现代加密组合 |
+| 组件       | 技术选择                   | 说明               |
+| ---------- | -------------------------- | ------------------ |
+| DID标准    | W3C DID Core               | 符合国际标准       |
+| P2P网络    | libp2p                     | 成熟的P2P通信库    |
+| NAT穿透    | WebRTC + STUN/TURN         | 支持直连和中继     |
+| 端到端加密 | Signal协议                 | 行业标准,前向安全  |
+| 分布式存储 | IPFS                       | 公开内容的永久存储 |
+| DHT        | Kademlia                   | 节点发现和路由     |
+| 签名算法   | Ed25519                    | 高效的椭圆曲线签名 |
+| 加密算法   | X25519 + ChaCha20-Poly1305 | 现代加密组合       |
 
 ---
 
 ### 2.3 去中心化交易辅助模块
 
 #### 2.3.1 功能描述
+
 利用AI和区块链技术,在去中心化环境下辅助用户达成可信交易,无需传统中介平台。
 
 #### 2.3.2 架构设计
@@ -1061,6 +1126,7 @@ CREATE TABLE endorsements (
 #### 2.3.3 核心流程
 
 **发布交易需求流程**:
+
 ```
 1. 用户选择交易类型 (买/卖/服务)
 2. AI助手帮助用户完善描述
@@ -1079,6 +1145,7 @@ CREATE TABLE endorsements (
 ```
 
 **交易撮合流程**:
+
 ```
 1. 用户B看到用户A的需求
 2. 查看A的信誉分和交易历史
@@ -1097,6 +1164,7 @@ CREATE TABLE endorsements (
 ```
 
 **智能合约交易流程** (以商品买卖为例):
+
 ```
 1. 双方签署智能合约
 2. 买家支付金额到合约地址
@@ -1114,6 +1182,7 @@ CREATE TABLE endorsements (
 ```
 
 **争议仲裁流程**:
+
 ```
 1. 买家/卖家发起争议
 2. 冻结合约中的资金
@@ -1344,6 +1413,7 @@ contract EscrowContract {
 #### 2.3.6 AI辅助功能
 
 **交易描述优化**:
+
 ```python
 # AI Prompt示例
 system_prompt = """你是一个交易助手,帮助用户撰写清晰、吸引人的交易描述。
@@ -1359,6 +1429,7 @@ user_input = "我想卖一台用了2年的MacBook Pro, 16GB内存, 512GB硬盘, 
 ```
 
 **价格建议**:
+
 ```python
 # 基于历史交易数据和市场行情
 def suggest_price(item_description, condition, historical_data):
@@ -1377,6 +1448,7 @@ def suggest_price(item_description, condition, historical_data):
 ```
 
 **风险评估**:
+
 ```python
 # AI评估交易风险
 def assess_transaction_risk(transaction_data, user_reputation):
@@ -1420,6 +1492,7 @@ def assess_transaction_risk(transaction_data, user_reputation):
 **项目管理模块是整个系统最核心、对用户最有直接价值的模块**,它将AI能力转化为实际的生产力工具。用户通过自然语言对话的方式下达指令,AI助手帮助完成各种文件处理和创作任务,所有项目文件统一管理,实现真正的AI辅助工作流。
 
 **核心价值**:
+
 - **对话式工作流**: 用户只需用自然语言描述需求,无需掌握复杂软件
 - **全能文件处理**: 支持网页、文档、数据、演示、视频等几乎所有常见文件类型
 - **项目化管理**: 每个项目独立文件夹,清晰的文件组织和版本控制
@@ -1795,6 +1868,7 @@ def assess_transaction_risk(transaction_data, user_reputation):
 #### 2.4.3 核心流程
 
 **项目创建流程**:
+
 ```
 1. 用户发起创建项目请求
    - 方式1: 对话式 ("帮我创建一个产品介绍网站项目")
@@ -1829,6 +1903,7 @@ def assess_transaction_risk(transaction_data, user_reputation):
 ```
 
 **对话式任务执行流程** (核心工作流):
+
 ```
 用户输入: "帮我制作一个产品介绍网页,产品是智能手表,主要卖点是续航长、健康监测、时尚外观"
 
@@ -1912,6 +1987,7 @@ def assess_transaction_risk(transaction_data, user_reputation):
 ```
 
 **跨文件类型任务流程** (复杂示例):
+
 ```
 用户: "分析data文件夹中的销售数据,生成Excel报表和PPT演示文稿"
 
@@ -1974,6 +2050,7 @@ def assess_transaction_risk(transaction_data, user_reputation):
 ```
 
 **项目协作流程** (与社交模块集成):
+
 ```
 1. 项目所有者发起分享
    ├── 选择分享对象: 好友、群组、公开
@@ -2024,6 +2101,7 @@ def assess_transaction_risk(transaction_data, user_reputation):
 ```
 
 **项目商品化流程** (与交易模块集成):
+
 ```
 1. 打包为商品
    ├── 项目准备:
@@ -2400,6 +2478,7 @@ CREATE TABLE project_automation_rules (
 ```
 
 **.project.json 文件结构** (每个项目文件夹中):
+
 ```json
 {
   "id": "proj_20250115_a3f4e2d1",
@@ -2425,11 +2504,7 @@ CREATE TABLE project_automation_rules (
     "docs": "文档说明"
   },
 
-  "tech_stack": [
-    "HTML5",
-    "Tailwind CSS",
-    "Vanilla JavaScript"
-  ],
+  "tech_stack": ["HTML5", "Tailwind CSS", "Vanilla JavaScript"],
 
   "ai_models_used": [
     {
@@ -2474,49 +2549,49 @@ CREATE TABLE project_automation_rules (
 
 #### 2.4.5 技术选型
 
-| 组件 | PC端 | 移动端 | 说明 |
-|------|------|--------|------|
-| **对话引擎** |
-| NLU模型 | GPT-4 / Claude-3 | MiniCPM-2B (本地) | 意图识别和实体抽取 |
-| Function Calling | OpenAI Functions | 自定义解析 | 工具调用机制 |
-| **文件处理库** |
-| Web开发 | - | - | |
-| HTML/CSS | Jinja2模板 | 同左 | 模板渲染 |
-| JavaScript | - | - | 直接生成 |
-| 预览服务器 | Python http.server | 同左 | 本地预览 |
-| 文档处理 | - | - | |
-| Word | python-docx | python-docx | 创建和编辑 |
-| PDF | ReportLab, WeasyPrint | 同左 (精简版) | 生成PDF |
-| PDF解析 | pdfplumber | 同左 | 提取文本和表格 |
-| Markdown | markdown-it-py | 同左 | 渲染和转换 |
-| 数据处理 | - | - | |
-| Excel/CSV | pandas + openpyxl | 同左 (精简) | 数据分析和操作 |
-| 可视化 | matplotlib + plotly | matplotlib-lite | 图表生成 |
-| 统计分析 | scipy + statsmodels | 基础统计 | 科学计算 |
-| 演示文稿 | - | - | |
-| PPT | python-pptx | 同左 | 创建和编辑 |
-| 视频处理 | - | - | |
-| 视频编辑 | moviepy | 不支持 (移动端限制) | 剪辑和合成 |
-| 格式转换 | FFmpeg | FFmpeg-lite | 格式转换 |
-| 字幕 | pysrt | 同左 | 字幕解析 |
-| 语音识别 | Whisper (本地) | Whisper-tiny (本地) | 语音转文字 |
-| 图像处理 | - | - | |
-| 基础处理 | Pillow | Pillow | 裁剪、调整 |
-| AI绘图 | Stable Diffusion (本地) | 调用云端API | 文生图 |
-| 背景移除 | rembg | 同左 | AI抠图 |
-| 代码开发 | - | - | |
-| 代码生成 | Codex / StarCoder | 同左 (云端) | 多语言代码生成 |
-| 代码分析 | Tree-sitter | 同左 | 语法解析 |
-| 代码格式化 | Black, Prettier | 同左 | 代码美化 |
-| **存储** |
-| 数据库 | SQLCipher | SQLCipher | 加密数据库 |
-| 文件系统 | 本地目录 | 本地目录 | 项目文件夹 |
-| 版本控制 | libgit2 / GitPython | JGit / libgit2 | Git操作 |
-| **AI基础设施** |
-| LLM | Ollama (本地) | MLC LLM (本地) | 模型推理 |
-| Embedding | bge-large-zh-v1.5 | bge-small-zh-v1.5 | 向量化 |
-| RAG | LangChain | LangChain-lite | 检索增强 |
-| Agent框架 | AutoGPT / BabyAGI | 简化版 | 自主任务执行 |
+| 组件             | PC端                    | 移动端              | 说明               |
+| ---------------- | ----------------------- | ------------------- | ------------------ |
+| **对话引擎**     |
+| NLU模型          | GPT-4 / Claude-3        | MiniCPM-2B (本地)   | 意图识别和实体抽取 |
+| Function Calling | OpenAI Functions        | 自定义解析          | 工具调用机制       |
+| **文件处理库**   |
+| Web开发          | -                       | -                   |                    |
+| HTML/CSS         | Jinja2模板              | 同左                | 模板渲染           |
+| JavaScript       | -                       | -                   | 直接生成           |
+| 预览服务器       | Python http.server      | 同左                | 本地预览           |
+| 文档处理         | -                       | -                   |                    |
+| Word             | python-docx             | python-docx         | 创建和编辑         |
+| PDF              | ReportLab, WeasyPrint   | 同左 (精简版)       | 生成PDF            |
+| PDF解析          | pdfplumber              | 同左                | 提取文本和表格     |
+| Markdown         | markdown-it-py          | 同左                | 渲染和转换         |
+| 数据处理         | -                       | -                   |                    |
+| Excel/CSV        | pandas + openpyxl       | 同左 (精简)         | 数据分析和操作     |
+| 可视化           | matplotlib + plotly     | matplotlib-lite     | 图表生成           |
+| 统计分析         | scipy + statsmodels     | 基础统计            | 科学计算           |
+| 演示文稿         | -                       | -                   |                    |
+| PPT              | python-pptx             | 同左                | 创建和编辑         |
+| 视频处理         | -                       | -                   |                    |
+| 视频编辑         | moviepy                 | 不支持 (移动端限制) | 剪辑和合成         |
+| 格式转换         | FFmpeg                  | FFmpeg-lite         | 格式转换           |
+| 字幕             | pysrt                   | 同左                | 字幕解析           |
+| 语音识别         | Whisper (本地)          | Whisper-tiny (本地) | 语音转文字         |
+| 图像处理         | -                       | -                   |                    |
+| 基础处理         | Pillow                  | Pillow              | 裁剪、调整         |
+| AI绘图           | Stable Diffusion (本地) | 调用云端API         | 文生图             |
+| 背景移除         | rembg                   | 同左                | AI抠图             |
+| 代码开发         | -                       | -                   |                    |
+| 代码生成         | Codex / StarCoder       | 同左 (云端)         | 多语言代码生成     |
+| 代码分析         | Tree-sitter             | 同左                | 语法解析           |
+| 代码格式化       | Black, Prettier         | 同左                | 代码美化           |
+| **存储**         |
+| 数据库           | SQLCipher               | SQLCipher           | 加密数据库         |
+| 文件系统         | 本地目录                | 本地目录            | 项目文件夹         |
+| 版本控制         | libgit2 / GitPython     | JGit / libgit2      | Git操作            |
+| **AI基础设施**   |
+| LLM              | Ollama (本地)           | MLC LLM (本地)      | 模型推理           |
+| Embedding        | bge-large-zh-v1.5       | bge-small-zh-v1.5   | 向量化             |
+| RAG              | LangChain               | LangChain-lite      | 检索增强           |
+| Agent框架        | AutoGPT / BabyAGI       | 简化版              | 自主任务执行       |
 
 #### 2.4.6 AI辅助功能详解
 
@@ -2909,6 +2984,7 @@ def project_completion_summary(project_id):
 企业版是基于去中心化P2P网络的团队协作系统，支持多身份切换、组织管理、权限控制和知识库共享。每个组织拥有独立的DID标识、数据库和P2P网络，真正实现去中心化的团队协作。
 
 **核心特性**:
+
 - **多身份架构**: 一个用户DID可拥有个人身份+多个组织身份
 - **数据完全隔离**: 每个身份对应独立的数据库文件（personal.db, org_xxx.db）
 - **RBAC权限系统**: 基于角色的访问控制（Owner/Admin/Member/Viewer）
@@ -2917,6 +2993,7 @@ def project_completion_summary(project_id):
 - **活动审计**: 所有操作自动记录，支持审计和回溯
 
 **适用场景**:
+
 - 创业团队（Startup）- 小型公司（Company）- 技术社区（Community）
 - 开源项目（Opensource）
 - 教育机构（Education）
@@ -3013,6 +3090,7 @@ def project_completion_summary(project_id):
 #### 2.5.3 核心流程
 
 **组织创建流程**:
+
 ```
 1. 用户点击"创建组织"
 2. 填写组织信息（名称、类型、描述）
@@ -3029,6 +3107,7 @@ def project_completion_summary(project_id):
 ```
 
 **身份切换流程**:
+
 ```
 1. 用户选择要切换的身份（personal 或 org_xxx）
 2. 调用 identityStore.switchContext(contextId)
@@ -3048,6 +3127,7 @@ def project_completion_summary(project_id):
 ```
 
 **邀请加入流程**:
+
 ```
 1. Owner/Admin创建邀请
    ├── 生成6位邀请码（A-Z0-9）
@@ -3212,41 +3292,37 @@ ALTER TABLE knowledge_items ADD COLUMN cid TEXT;                      -- IPFS CI
 ```javascript
 // Owner - 所有权限
 {
-  permissions: ['*']  // 通配符表示所有权限
+  permissions: ["*"]; // 通配符表示所有权限
 }
 
 // Admin - 管理权限
 {
   permissions: [
-    'org.manage',           // 组织管理
-    'member.manage',        // 成员管理
-    'role.manage',          // 角色管理
-    'knowledge.*',          // 知识库所有权限
-    'project.*',            // 项目所有权限
-    'invitation.create'     // 创建邀请
-  ]
+    "org.manage", // 组织管理
+    "member.manage", // 成员管理
+    "role.manage", // 角色管理
+    "knowledge.*", // 知识库所有权限
+    "project.*", // 项目所有权限
+    "invitation.create", // 创建邀请
+  ];
 }
 
 // Member - 读写权限
 {
   permissions: [
-    'knowledge.read',
-    'knowledge.create',
-    'knowledge.write',
-    'project.read',
-    'project.create',
-    'project.write',
-    'member.read'
-  ]
+    "knowledge.read",
+    "knowledge.create",
+    "knowledge.write",
+    "project.read",
+    "project.create",
+    "project.write",
+    "member.read",
+  ];
 }
 
 // Viewer - 只读权限
 {
-  permissions: [
-    'knowledge.read',
-    'project.read',
-    'member.read'
-  ]
+  permissions: ["knowledge.read", "project.read", "member.read"];
 }
 ```
 
@@ -3284,50 +3360,55 @@ async checkPermission(orgId, userDID, permission) {
 #### 2.5.6 技术选型
 
 **后端模块**:
+
 - **OrganizationManager**: 组织管理核心逻辑（701行代码）
 - **DIDManager扩展**: 支持组织DID创建（did:chainlesschain:org:xxxx）
 - **DatabaseManager扩展**: 多数据库切换和隔离
 
 **前端模块**:
+
 - **IdentityStore** (Pinia): 状态管理（385行代码）
 - **IdentitySwitcher.vue**: 身份切换UI组件（361行代码）
 - **OrganizationMembersPage.vue**: 成员管理页面（新增）
 - **OrganizationSettingsPage.vue**: 组织设置页面（新增）
 
 **P2P网络**（规划中）:
+
 - **libp2p**: P2P网络基础
 - **GossipSub**: 组织Topic订阅
 - **Signal Protocol**: E2E加密消息
 
 **数据同步**（规划中）:
+
 - **IPFS**: 内容寻址存储
 - **OrbitDB**: 去中心化数据库（考虑中）
 - **Y.js**: CRDT协同编辑
 
 #### 2.5.7 实现进度
 
-| 模块 | 状态 | 完成度 |
-|------|------|--------|
-| 数据库架构（8个表） | ✅ 完成 | 100% |
-| OrganizationManager | ✅ 完成 | 100% |
-| IdentityStore | ✅ 完成 | 100% |
-| IdentitySwitcher UI | ✅ 完成 | 95% |
-| 成员管理UI | ✅ 完成 | 95% |
-| 多身份数据库隔离 | ✅ 完成 | 90% |
-| 组织DID创建 | ✅ 完成 | 100% |
-| 邀请码系统 | ✅ 完成 | 100% |
-| RBAC权限系统 | ✅ 完成 | 100% |
-| 活动日志 | ✅ 完成 | 100% |
-| 角色管理 | ✅ 完成 | 100% |
-| DID邀请机制 | ✅ 完成 | 85% |
-| 协作管理器 | ✅ 完成 | 85% |
-| 组织项目管理 | ✅ 完成 | 90% |
-| P2P组织网络 | ⚠️ 基础框架 | 30% |
-| 数据同步 | ⚠️ 开发中 | 40% |
+| 模块                | 状态        | 完成度 |
+| ------------------- | ----------- | ------ |
+| 数据库架构（8个表） | ✅ 完成     | 100%   |
+| OrganizationManager | ✅ 完成     | 100%   |
+| IdentityStore       | ✅ 完成     | 100%   |
+| IdentitySwitcher UI | ✅ 完成     | 95%    |
+| 成员管理UI          | ✅ 完成     | 95%    |
+| 多身份数据库隔离    | ✅ 完成     | 90%    |
+| 组织DID创建         | ✅ 完成     | 100%   |
+| 邀请码系统          | ✅ 完成     | 100%   |
+| RBAC权限系统        | ✅ 完成     | 100%   |
+| 活动日志            | ✅ 完成     | 100%   |
+| 角色管理            | ✅ 完成     | 100%   |
+| DID邀请机制         | ✅ 完成     | 85%    |
+| 协作管理器          | ✅ 完成     | 85%    |
+| 组织项目管理        | ✅ 完成     | 90%    |
+| P2P组织网络         | ⚠️ 基础框架 | 30%    |
+| 数据同步            | ⚠️ 开发中   | 40%    |
 
 **总体完成度**: **85%**（核心功能已完成,可生产使用）
 
 **实现亮点**:
+
 - ✅ 完整的组织CRUD操作
 - ✅ 多身份切换和数据隔离
 - ✅ 完善的成员和角色管理
@@ -3349,19 +3430,20 @@ async checkPermission(orgId, userDID, permission) {
 P2优化系统是在P0(基础优化)和P1(智能化)基础上的高级优化层,通过意图融合、知识蒸馏和流式响应三大核心模块,**已实现**显著的性能提升和用户体验改善。
 
 **优化历程**:
+
 - **P0优化**(基础): 槽位填充、工具沙箱、性能监控
 - **P1优化**(智能化): 多意图识别、动态Few-shot学习、分层任务规划、检查点校验、自我修正循环
 - **P2优化**(高级优化): 意图融合、知识蒸馏、流式响应 + 3个扩展模块
 
 **性能提升数据** (P2优化前后对比):
 
-| 性能指标 | P1阶段 | P2阶段 | 提升幅度 |
-|---------|--------|--------|---------|
-| 响应时延 | 1800ms | 1550ms | ↓ 13.9% |
-| LLM调用数 | 8次 | 4.2次 | ↓ 47.5% |
-| 感知延迟 | 2000ms | 175ms | ↓ 91.3% |
-| 计算成本 | 85% | 72% | ↓ 15.3% |
-| 任务成功率 | 92% | 95% | ↑ 3.3% |
+| 性能指标   | P1阶段 | P2阶段 | 提升幅度 |
+| ---------- | ------ | ------ | -------- |
+| 响应时延   | 1800ms | 1550ms | ↓ 13.9%  |
+| LLM调用数  | 8次    | 4.2次  | ↓ 47.5%  |
+| 感知延迟   | 2000ms | 175ms  | ↓ 91.3%  |
+| 计算成本   | 85%    | 72%    | ↓ 15.3%  |
+| 任务成功率 | 92%    | 95%    | ↑ 3.3%   |
 
 #### 2.6.2 核心模块1: 意图融合 (Intent Fusion)
 
@@ -3371,24 +3453,28 @@ P2优化系统是在P0(基础优化)和P1(智能化)基础上的高级优化层,
 **5种规则融合策略**:
 
 1. **同文件操作合并**:
+
    ```
    CREATE_FILE + WRITE_FILE → CREATE_AND_WRITE_FILE
    节省: 1次LLM调用
    ```
 
 2. **顺序操作合并**:
+
    ```
    GIT_ADD + GIT_COMMIT + GIT_PUSH → GIT_COMMIT_AND_PUSH
    节省: 2次LLM调用
    ```
 
 3. **批量操作合并**:
+
    ```
    CREATE_FILE(file1) + CREATE_FILE(file2) + ... → BATCH_CREATE_FILES([file1, file2, ...])
    节省: N-1次LLM调用
    ```
 
 4. **依赖操作合并**:
+
    ```
    IMPORT_CSV + VALIDATE_DATA → IMPORT_AND_VALIDATE_CSV
    节省: 1次LLM调用
@@ -3402,6 +3488,7 @@ P2优化系统是在P0(基础优化)和P1(智能化)基础上的高级优化层,
 
 **LLM智能融合**:
 对于规则无法处理的复杂场景,使用LLM判断是否可融合:
+
 ```javascript
 const fusionPrompt = `
 分析以下两个意图是否可以合并:
@@ -3414,11 +3501,13 @@ const fusionPrompt = `
 ```
 
 **性能优化**:
+
 - **LRU缓存**: 缓存融合决策,命中率82%
 - **批量融合**: 支持多意图并行融合
 - **融合耗时**: 平均5ms (极快)
 
 **数据库记录**:
+
 ```sql
 CREATE TABLE intent_fusion_history (
   id INTEGER PRIMARY KEY,
@@ -3433,6 +3522,7 @@ CREATE TABLE intent_fusion_history (
 ```
 
 **实测效果**:
+
 - 意图合并率: 57.8%
 - LLM调用节省: 57.8%
 - 平均融合耗时: 5ms
@@ -3445,14 +3535,15 @@ CREATE TABLE intent_fusion_history (
 
 **复杂度评估 - 4维特征分析**:
 
-| 维度 | 权重 | 评估内容 |
-|------|------|---------|
-| 意图复杂度 | 30% | 意图数量、嵌套层级 |
-| 参数复杂度 | 20% | 参数数量、类型复杂度 |
-| 任务类型 | 30% | 创建/分析/推理 |
-| 上下文大小 | 20% | 上下文tokens数量 |
+| 维度       | 权重 | 评估内容             |
+| ---------- | ---- | -------------------- |
+| 意图复杂度 | 30%  | 意图数量、嵌套层级   |
+| 参数复杂度 | 20%  | 参数数量、类型复杂度 |
+| 任务类型   | 30%  | 创建/分析/推理       |
+| 上下文大小 | 20%  | 上下文tokens数量     |
 
 **复杂度计算公式**:
+
 ```javascript
 complexityScore =
   intentComplexity * 0.3 +
@@ -3461,13 +3552,14 @@ complexityScore =
   contextComplexity * 0.2;
 
 if (complexityScore < threshold) {
-  model = 'qwen2:1.5b';  // 小模型
+  model = "qwen2:1.5b"; // 小模型
 } else {
-  model = 'qwen2:7b';     // 大模型
+  model = "qwen2:7b"; // 大模型
 }
 ```
 
 **质量检查 - 5维度验证**:
+
 1. 结果非空检查
 2. 无错误检查
 3. 置信度检查 (> 0.6)
@@ -3475,6 +3567,7 @@ if (complexityScore < threshold) {
 5. 输出格式正确性检查
 
 **回退机制**:
+
 ```javascript
 if (!qualityCheck(result)) {
   // 质量不合格,回退到大模型重新执行
@@ -3485,6 +3578,7 @@ if (!qualityCheck(result)) {
 
 **自适应学习**:
 基于历史回退率自动调整复杂度权重:
+
 ```javascript
 if (fallbackRate > 0.2) {
   // 回退率过高,降低阈值(更多使用大模型)
@@ -3496,6 +3590,7 @@ if (fallbackRate > 0.2) {
 ```
 
 **数据库记录**:
+
 ```sql
 CREATE TABLE knowledge_distillation_history (
   id INTEGER PRIMARY KEY,
@@ -3512,6 +3607,7 @@ CREATE TABLE knowledge_distillation_history (
 ```
 
 **实测效果**:
+
 - 小模型使用率: 42%
 - 大模型使用率: 58%
 - 回退率: 15% (可接受范围)
@@ -3524,6 +3620,7 @@ CREATE TABLE knowledge_distillation_history (
 实现任务执行的流式进度反馈,大幅降低用户感知延迟,并支持任务取消。
 
 **CancellationToken系统**:
+
 ```javascript
 class CancellationToken {
   constructor() {
@@ -3533,49 +3630,52 @@ class CancellationToken {
 
   cancel() {
     this.isCancelled = true;
-    this.callbacks.forEach(cb => cb());
+    this.callbacks.forEach((cb) => cb());
   }
 
   throwIfCancelled() {
     if (this.isCancelled) {
-      throw new CancellationError('Task cancelled by user');
+      throw new CancellationError("Task cancelled by user");
     }
   }
 }
 ```
 
 **StreamingTask生命周期**:
+
 ```
 PENDING → RUNNING → [COMPLETED / FAILED / CANCELLED]
 ```
 
 **进度事件系统**:
 
-| 事件类型 | 描述 | 数据内容 |
-|---------|------|---------|
-| STARTED | 任务开始 | taskId, timestamp |
-| PROGRESS | 进度更新 | percentage, message |
-| MILESTONE | 里程碑达成 | milestone, timestamp |
-| RESULT | 部分结果 | partialResult |
-| COMPLETED | 任务完成 | finalResult, duration |
-| FAILED | 任务失败 | error, stackTrace |
-| CANCELLED | 任务取消 | reason |
+| 事件类型  | 描述       | 数据内容              |
+| --------- | ---------- | --------------------- |
+| STARTED   | 任务开始   | taskId, timestamp     |
+| PROGRESS  | 进度更新   | percentage, message   |
+| MILESTONE | 里程碑达成 | milestone, timestamp  |
+| RESULT    | 部分结果   | partialResult         |
+| COMPLETED | 任务完成   | finalResult, duration |
+| FAILED    | 任务失败   | error, stackTrace     |
+| CANCELLED | 任务取消   | reason                |
 
 **进度节流机制**:
+
 ```javascript
 // 避免频繁更新,最小间隔100ms
 const throttledProgress = throttle((progress) => {
-  ipcMain.emit('task:progress', {
+  ipcMain.emit("task:progress", {
     taskId,
-    progress
+    progress,
   });
 }, 100);
 ```
 
 **IPC集成**:
+
 ```javascript
 // 主进程 → 渲染进程
-ipcMain.on('task:execute', async (event, taskData) => {
+ipcMain.on("task:execute", async (event, taskData) => {
   const cancellationToken = new CancellationToken();
 
   // 注册取消监听
@@ -3589,32 +3689,34 @@ ipcMain.on('task:execute', async (event, taskData) => {
       cancellationToken.throwIfCancelled();
 
       // 发送进度
-      event.reply('task:progress', {
+      event.reply("task:progress", {
         taskId: taskData.id,
         progress: step.progress,
-        message: step.message
+        message: step.message,
       });
 
       await executeStep(step);
     }
 
-    event.reply('task:completed', result);
+    event.reply("task:completed", result);
   } catch (error) {
     if (error instanceof CancellationError) {
-      event.reply('task:cancelled');
+      event.reply("task:cancelled");
     } else {
-      event.reply('task:failed', error);
+      event.reply("task:failed", error);
     }
   }
 });
 ```
 
 **任务管理**:
+
 - 最大并发任务数: 10个
 - 任务超时时间: 5分钟
 - 自动清理: 完成/失败任务30秒后清理
 
 **数据库记录**:
+
 ```sql
 CREATE TABLE streaming_response_events (
   id INTEGER PRIMARY KEY,
@@ -3626,6 +3728,7 @@ CREATE TABLE streaming_response_events (
 ```
 
 **实测效果**:
+
 - 用户感知延迟降低: 93% (2500ms → 175ms)
 - 进度更新间隔: 100ms
 - 任务成功率: 95%
@@ -3635,16 +3738,19 @@ CREATE TABLE streaming_response_events (
 #### 2.6.5 扩展模块
 
 **1. 任务分解增强 (Task Decomposition Enhancement)**:
+
 - 动态粒度调整: 根据任务复杂度调整分解粒度
 - 依赖分析: 自动识别子任务依赖关系
 - 模式学习: 从历史分解中学习最优策略
 
 **2. 工具组合系统 (Tool Composition System)**:
+
 - 自动工具组合: 智能组合多个工具完成目标
 - 效果预测: 预测组合效果和成功率
 - 成本优化: 选择成本最优的组合方案
 
 **3. 历史记忆优化 (History Memory Optimization)**:
+
 - 历史学习: 从过往执行中学习最佳实践
 - 成功率预测: 预测任务成功概率
 - 记忆窗口: 保持最近1000条执行记录
@@ -3652,6 +3758,7 @@ CREATE TABLE streaming_response_events (
 #### 2.6.6 P2集成架构
 
 **AIEngineManagerP2执行流程**:
+
 ```
 用户输入
     ↓
@@ -3675,6 +3782,7 @@ CREATE TABLE streaming_response_events (
 ```
 
 **初始化配置**:
+
 ```javascript
 const aiEngine = new AIEngineManagerP2();
 await aiEngine.initialize({
@@ -3696,14 +3804,15 @@ await aiEngine.initialize({
     // 性能配置
     complexityThreshold: 0.52,
     maxConcurrentTasks: 10,
-    streamingBufferSize: 1000
-  }
+    streamingBufferSize: 1000,
+  },
 });
 ```
 
 #### 2.6.7 数据库Schema
 
 **新增表**:
+
 ```sql
 -- 意图融合历史
 CREATE TABLE intent_fusion_history (
@@ -3742,6 +3851,7 @@ CREATE TABLE streaming_response_events (
 ```
 
 **统计视图**:
+
 ```sql
 -- 意图融合统计
 CREATE VIEW v_intent_fusion_stats AS
@@ -3805,6 +3915,7 @@ GROUP BY DATE(created_at);
 ```
 
 **触发器**:
+
 ```sql
 -- 自动更新融合统计
 CREATE TRIGGER intent_fusion_update_stats
@@ -3859,14 +3970,15 @@ END;
 
 **多目标优化**:
 
-| 目标 | 最小值 | 理想值 | 权重 |
-|------|--------|--------|------|
-| 小模型使用率 | 40% | 45% | 40分 |
-| 成本节约率 | 50% | 70% | 30分 |
-| 成功率 | 85% | 95% | 15分 |
-| 质量分数 | 0.8 | 0.9 | 15分 |
+| 目标         | 最小值 | 理想值 | 权重 |
+| ------------ | ------ | ------ | ---- |
+| 小模型使用率 | 40%    | 45%    | 40分 |
+| 成本节约率   | 50%    | 70%    | 30分 |
+| 成功率       | 85%    | 95%    | 15分 |
+| 质量分数     | 0.8    | 0.9    | 15分 |
 
 **评分算法 (0-100分)**:
+
 ```javascript
 // 1. 小模型使用率得分 (40分)
 if (rate >= 40% && rate <= 60%) {
@@ -3894,6 +4006,7 @@ totalScore = score1 + score2 + score3;
 ```
 
 **梯度下降调整**:
+
 ```javascript
 // 计算梯度
 gradient = (idealScore - currentScore) / idealScore;
@@ -3908,12 +4021,14 @@ newThreshold = clamp(newThreshold, minThreshold, maxThreshold);
 ```
 
 **安全机制**:
+
 - 冷却期: 每次调整后等待1小时
 - 最小样本量: 至少50条数据
 - 最大调整幅度: ±0.1
 - 边界限制: 阈值范围 [0.3, 0.8]
 
 **使用命令**:
+
 ```bash
 # 监控性能
 node adaptive-threshold.js monitor --days=7
@@ -3929,6 +4044,7 @@ node adaptive-threshold.js auto --interval=60
 ```
 
 **数据库表**:
+
 ```sql
 CREATE TABLE threshold_adjustment_history (
   id INTEGER PRIMARY KEY,
@@ -3960,7 +4076,7 @@ CREATE TABLE threshold_adjustment_history (
    - 阈值过滤: >= 0.7
 
 3. **工具选择器**:
-   - 偏好评分: successRate * 0.7 + usageFreq * 0.2 + speed * 0.1
+   - 偏好评分: successRate _ 0.7 + usageFreq _ 0.2 + speed \* 0.1
    - 更新策略: 指数移动平均
    - 目标: 推荐最佳工具
 
@@ -3970,6 +4086,7 @@ CREATE TABLE threshold_adjustment_history (
    - 目标: 个性化体验
 
 **数据来源**:
+
 ```sql
 -- 1. 复杂度训练数据
 SELECT task_id, complexity_score, actual_complexity, is_success, execution_time_ms
@@ -3993,6 +4110,7 @@ WHERE created_at >= DATE('now', '-30 days');
 ```
 
 **使用命令**:
+
 ```bash
 # 训练模型
 node online-learning.js train --days=30
@@ -4005,6 +4123,7 @@ node online-learning.js stats
 ```
 
 **性能指标**:
+
 - 复杂度预测准确率: 87.3%
 - 意图识别Top-1准确率: 82.5%
 - 工具推荐采纳率: 76.8%
@@ -4015,23 +4134,27 @@ node online-learning.js stats
 **四大优化功能**:
 
 **1. 预测性缓存**:
+
 - 原理: N-gram模式分析用户行为序列,预测下一步操作
 - 示例: "打开项目 → 查看文件" → 预测 "打开README.md" (置信度78%)
 - 效果: 缓存命中率提升22%, 等待时间减少75%
 
 **2. 并行任务优化**:
+
 - 原理: 分析任务依赖关系,识别可并行执行的独立任务组
 - 示例: [Task A, Task C, Task D]并行执行,Task B依赖Task A顺序执行
 - 效果: 时间节约38.5%, 平均并行度4
 
 **3. 智能重试机制**:
+
 - 退避策略:
-  - 线性退避: delay = initialDelay + (attemptNumber * increment)
-  - 指数退避: delay = initialDelay * Math.pow(2, attemptNumber)
+  - 线性退避: delay = initialDelay + (attemptNumber \* increment)
+  - 指数退避: delay = initialDelay \* Math.pow(2, attemptNumber)
   - 随机抖动: delay = baseDelay + random(0, jitterRange)
 - 效果: 恢复率提升9.8% (75.3% → 85.1%)
 
 **4. 瓶颈检测**:
+
 - 检测类型:
   - 慢任务瓶颈: 执行时长 > 2000ms
   - 高失败率瓶颈: 失败率 > 20%
@@ -4039,6 +4162,7 @@ node online-learning.js stats
 - 效果: 自动生成优化建议,预期性能提升35.2%
 
 **使用命令**:
+
 ```bash
 # 预测性缓存分析
 node advanced-optimizer.js predict --days=30 --confidence=0.6
@@ -4057,6 +4181,7 @@ node advanced-optimizer.js optimize
 ```
 
 **数据库表**:
+
 ```sql
 CREATE TABLE optimization_cache (
   id INTEGER PRIMARY KEY,
@@ -4097,6 +4222,7 @@ P2优化系统 (运行时)
 
 **监控面板**:
 访问 http://localhost:3000/dashboard 查看:
+
 - 阈值调整历史曲线
 - 模型训练性能趋势
 - 优化效果对比图表
@@ -4120,6 +4246,7 @@ P2优化系统 (运行时)
 #### 2.8.2 三层优化体系架构
 
 **第一层: 基础优化** (14个功能模块)
+
 - **组件优化** (5个):
   - SkeletonLoader - 6种类型骨架屏
   - LazyImage - 图片懒加载组件
@@ -4143,6 +4270,7 @@ P2优化系统 (运行时)
   - IntelligentPrefetchManager - 智能预取
 
 **第二层: 高级优化** (5个功能模块)
+
 1. **统一API服务层** (`services/api.js`)
    - 自动请求批处理
    - 数据压缩 (>10KB使用pako)
@@ -4172,6 +4300,7 @@ P2优化系统 (运行时)
    - 避免阻塞主线程
 
 **第三层: 深度优化** (14个功能模块) ⭐最新
+
 1. **代码分割系统** (5个):
    - `lazyLoad` - 智能懒加载组件
    - `lazyRoute` - 路由懒加载
@@ -4199,22 +4328,24 @@ P2优化系统 (运行时)
 **核心模块**:
 
 1. **PerformanceBudgetManager** - 性能预算管理
+
 ```javascript
 const budgets = {
-  FCP: 1800,      // First Contentful Paint (ms)
-  LCP: 2500,      // Largest Contentful Paint (ms)
-  FID: 100,       // First Input Delay (ms)
-  TTI: 3800,      // Time to Interactive (ms)
-  TBT: 300,       // Total Blocking Time (ms)
-  CLS: 0.1,       // Cumulative Layout Shift
-  totalJS: 200,   // JS bundle size (KB)
-  totalCSS: 100,  // CSS bundle size (KB)
-  requests: 50,   // HTTP requests count
-  domSize: 1500   // DOM nodes count
-}
+  FCP: 1800, // First Contentful Paint (ms)
+  LCP: 2500, // Largest Contentful Paint (ms)
+  FID: 100, // First Input Delay (ms)
+  TTI: 3800, // Time to Interactive (ms)
+  TBT: 300, // Total Blocking Time (ms)
+  CLS: 0.1, // Cumulative Layout Shift
+  totalJS: 200, // JS bundle size (KB)
+  totalCSS: 100, // CSS bundle size (KB)
+  requests: 50, // HTTP requests count
+  domSize: 1500, // DOM nodes count
+};
 ```
 
 2. **CoreWebVitalsMonitor** - Core Web Vitals监控
+
 - 实时监控 LCP (Largest Contentful Paint)
 - 实时监控 FID (First Input Delay)
 - 实时监控 CLS (Cumulative Layout Shift)
@@ -4223,37 +4354,40 @@ const budgets = {
 - 自动评分系统: good / needs-improvement / poor
 
 3. **RealtimePerformanceMonitor** - 实时性能监控
+
 - FPS监控 (帧率,1秒间隔)
 - 内存使用监控 (usedJSHeapSize, totalJSHeapSize)
 - 网络状态监控 (effectiveType, downlink, rtt)
 - 支持启动/停止监控
 
 4. **PerformanceAlertSystem** - 性能告警系统
+
 - 低FPS告警 (< 30fps)
 - 高内存告警 (> 100MB)
 - 慢网络告警 (slow-2g)
 - 支持浏览器通知
 
 **使用示例**:
+
 ```javascript
 import {
   performanceBudget,
   webVitalsMonitor,
-  realtimeMonitor
-} from '@/utils/performance-monitoring'
+  realtimeMonitor,
+} from "@/utils/performance-monitoring";
 
 // 启动实时监控
-realtimeMonitor.start()
+realtimeMonitor.start();
 
 // 监听Core Web Vitals
 webVitalsMonitor.onMetric((name, value) => {
-  console.log(`${name}: ${value}ms`)
-})
+  console.log(`${name}: ${value}ms`);
+});
 
 // 检查性能预算
-const result = performanceBudget.check(metrics)
+const result = performanceBudget.check(metrics);
 if (!result.passed) {
-  console.warn('Performance budget exceeded:', result.violations)
+  console.warn("Performance budget exceeded:", result.violations);
 }
 ```
 
@@ -4264,31 +4398,34 @@ if (!result.passed) {
 **核心模块**:
 
 1. **ImageFormatDetector** - 图片格式检测
+
 - 自动检测WebP支持
 - 自动检测AVIF支持
 - 返回最佳支持格式 (avif > webp > jpeg)
 
 2. **SmartImageLoader** - 智能图片加载器
+
 ```javascript
 const loader = new SmartImageLoader({
-  cdnBase: 'https://cdn.example.com',
+  cdnBase: "https://cdn.example.com",
   responsive: true,
   webp: true,
   networkAware: true,
   quality: 80,
-  placeholder: true
-})
+  placeholder: true,
+});
 
 // 加载优化图片
-const result = await loader.load('/images/photo.jpg', {
+const result = await loader.load("/images/photo.jpg", {
   width: 1024,
   height: 768,
   quality: 85,
-  priority: 'high'
-})
+  priority: "high",
+});
 ```
 
 **功能特性**:
+
 - CDN支持 (自动添加format/w/h/q参数)
 - 响应式图片加载
 - WebP/AVIF自动转换
@@ -4300,31 +4437,35 @@ const result = await loader.load('/images/photo.jpg', {
 - 智能预加载
 
 3. **ResponsiveImageGenerator** - 响应式图片生成
+
 ```javascript
 const generator = new ResponsiveImageGenerator({
-  breakpoints: [320, 640, 768, 1024, 1280, 1920]
-})
+  breakpoints: [320, 640, 768, 1024, 1280, 1920],
+});
 
 // 生成srcset
-const srcset = generator.generateSrcSet('/images/photo.jpg')
+const srcset = generator.generateSrcSet("/images/photo.jpg");
 // 输出: "/images/photo.jpg?w=320 320w, /images/photo.jpg?w=640 640w, ..."
 
 // 生成sizes
-const sizes = generator.generateSizes()
+const sizes = generator.generateSizes();
 // 输出: "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
 ```
 
 4. **ImagePlaceholderGenerator** - 占位符生成
+
 - 模糊占位符 (LQIP - Low Quality Image Placeholder)
 - 纯色占位符
 - 渐变占位符
 
 5. **ProgressiveImageLoader** - 渐进式加载
+
 - 先显示占位符 (blur: 20px)
 - 淡入效果加载高清图 (300ms transition)
 - 优雅降级
 
 **性能提升**:
+
 - 带宽节省: **65%**
 - 加载速度提升: **40-60%**
 - 支持懒加载和预加载
@@ -4334,53 +4475,55 @@ const sizes = generator.generateSizes()
 **文件**: `src/renderer/router/index.js`
 
 **路由分组策略**:
+
 ```javascript
 // 核心页面组 (core-*)
-const corePages = createRouteGroup('core', {
-  login: () => import('./LoginPage.vue'),
-  layout: () => import('./MainLayout.vue'),
-  projectList: () => import('./ProjectsPage.vue'),
-})
+const corePages = createRouteGroup("core", {
+  login: () => import("./LoginPage.vue"),
+  layout: () => import("./MainLayout.vue"),
+  projectList: () => import("./ProjectsPage.vue"),
+});
 
 // 项目页面组 (project-*)
-const projectPages = createRouteGroup('project', {
-  detail: () => import('./ProjectDetailPage.vue'),
-  new: () => import('./NewProjectPage.vue'),
-  market: () => import('./MarketPage.vue'),
-  collaboration: () => import('./CollaborationPage.vue'),
-})
+const projectPages = createRouteGroup("project", {
+  detail: () => import("./ProjectDetailPage.vue"),
+  new: () => import("./NewProjectPage.vue"),
+  market: () => import("./MarketPage.vue"),
+  collaboration: () => import("./CollaborationPage.vue"),
+});
 
 // 知识库页面组 (knowledge-*)
-const knowledgePages = createRouteGroup('knowledge', {
-  detail: () => import('./KnowledgeDetailPage.vue'),
-  list: () => import('./KnowledgeListPage.vue'),
-  graph: () => import('./KnowledgeGraphPage.vue'),
-})
+const knowledgePages = createRouteGroup("knowledge", {
+  detail: () => import("./KnowledgeDetailPage.vue"),
+  list: () => import("./KnowledgeListPage.vue"),
+  graph: () => import("./KnowledgeGraphPage.vue"),
+});
 
 // AI页面组 (ai-*)
-const aiPages = createRouteGroup('ai', {
-  chat: () => import('./AIChatPage.vue'),
-  prompts: () => import('./PromptsPage.vue'),
-})
+const aiPages = createRouteGroup("ai", {
+  chat: () => import("./AIChatPage.vue"),
+  prompts: () => import("./PromptsPage.vue"),
+});
 
 // 设置页面组 (settings-*)
-const settingsPages = createRouteGroup('settings', {
-  system: () => import('./SystemSettingsPage.vue'),
-  plugins: () => import('./PluginSettingsPage.vue'),
-  database: () => import('./DatabaseSettingsPage.vue'),
-  advanced: () => import('./AdvancedSettingsPage.vue'),
-})
+const settingsPages = createRouteGroup("settings", {
+  system: () => import("./SystemSettingsPage.vue"),
+  plugins: () => import("./PluginSettingsPage.vue"),
+  database: () => import("./DatabaseSettingsPage.vue"),
+  advanced: () => import("./AdvancedSettingsPage.vue"),
+});
 
 // 社交页面组 (social-*)
-const socialPages = createRouteGroup('social', {
-  did: () => import('./DIDPage.vue'),
-  contacts: () => import('./ContactsPage.vue'),
-  messages: () => import('./MessagesPage.vue'),
-  forum: () => import('./ForumPage.vue'),
-})
+const socialPages = createRouteGroup("social", {
+  did: () => import("./DIDPage.vue"),
+  contacts: () => import("./ContactsPage.vue"),
+  messages: () => import("./MessagesPage.vue"),
+  forum: () => import("./ForumPage.vue"),
+});
 ```
 
 **优化效果**:
+
 - 初始Bundle: 2.5MB → **850KB** (减少66%)
 - 首次加载: 2.5s → **0.25s** (提升90%)
 - 按需加载: ✅ 100%路由
@@ -4388,20 +4531,21 @@ const socialPages = createRouteGroup('social', {
 
 #### 2.8.6 综合性能提升数据 ⭐实测
 
-| 性能指标 | 优化前 | 基础优化 | 高级优化 | 深度优化 | 总提升 |
-|---------|--------|---------|---------|---------|--------|
-| **首次加载时间** | 2.5s | 1.2s | 0.4s | **0.25s** | **↑ 90%** |
-| **初始Bundle大小** | 2.5MB | 2.5MB | 2.5MB | **850KB** | **↓ 66%** |
-| **交互响应时间** | 150ms | 8ms | 3ms | **3ms** | **↑ 98%** |
-| **路由切换速度** | 300ms | 90ms | 50ms | **15ms** | **↑ 95%** |
-| **内存占用** | 200MB | 85MB | 35MB | **28MB** | **↓ 86%** |
-| **GC频率** | 3次/秒 | 1次/秒 | 1次/秒 | **0.5次/秒** | **↓ 83%** |
-| **页面渲染时间** | 300ms | 80ms | 50ms | **50ms** | **↑ 83%** |
-| **API调用次数** | 100 | 23 | 7 | **5** | **↓ 95%** |
-| **带宽消耗** | 100MB | 35MB | 15MB | **10MB** | **↓ 90%** |
-| **FPS** | 40-50 | 55-60 | 58-60 | **60** | **稳定60fps** |
+| 性能指标           | 优化前 | 基础优化 | 高级优化 | 深度优化     | 总提升        |
+| ------------------ | ------ | -------- | -------- | ------------ | ------------- |
+| **首次加载时间**   | 2.5s   | 1.2s     | 0.4s     | **0.25s**    | **↑ 90%**     |
+| **初始Bundle大小** | 2.5MB  | 2.5MB    | 2.5MB    | **850KB**    | **↓ 66%**     |
+| **交互响应时间**   | 150ms  | 8ms      | 3ms      | **3ms**      | **↑ 98%**     |
+| **路由切换速度**   | 300ms  | 90ms     | 50ms     | **15ms**     | **↑ 95%**     |
+| **内存占用**       | 200MB  | 85MB     | 35MB     | **28MB**     | **↓ 86%**     |
+| **GC频率**         | 3次/秒 | 1次/秒   | 1次/秒   | **0.5次/秒** | **↓ 83%**     |
+| **页面渲染时间**   | 300ms  | 80ms     | 50ms     | **50ms**     | **↑ 83%**     |
+| **API调用次数**    | 100    | 23       | 7        | **5**        | **↓ 95%**     |
+| **带宽消耗**       | 100MB  | 35MB     | 15MB     | **10MB**     | **↓ 90%**     |
+| **FPS**            | 40-50  | 55-60    | 58-60    | **60**       | **稳定60fps** |
 
 **Core Web Vitals 评分**:
+
 - LCP (Largest Contentful Paint): **250ms** (good, < 2.5s)
 - FID (First Input Delay): **3ms** (good, < 100ms)
 - CLS (Cumulative Layout Shift): **0.05** (good, < 0.1)
@@ -4415,12 +4559,13 @@ const socialPages = createRouteGroup('social', {
 ```json
 {
   "dependencies": {
-    "pako": "^2.1.0"  // 数据压缩库
+    "pako": "^2.1.0" // 数据压缩库
   }
 }
 ```
 
 **新增脚本**:
+
 ```json
 {
   "test:e2e": "playwright test",
@@ -4436,6 +4581,7 @@ const socialPages = createRouteGroup('social', {
 **优化相关文档**: 25个
 
 **核心文档**:
+
 1. `DEEP_OPTIMIZATION_COMPLETE.md` - 深度优化完成报告
 2. `OPTIMIZATION_INTEGRATION_FINAL.md` - 最终集成报告
 3. `OPTIMIZATION_INTEGRATION_GUIDE.md` - 集成指南 (883行)
@@ -4445,10 +4591,343 @@ const socialPages = createRouteGroup('social', {
 7. `E2E_TEST_WORK_SUMMARY.md` - E2E测试总结
 
 **测试覆盖**:
+
 - 基础优化: ✅ 100%
 - 高级优化: ✅ 100%
 - 深度优化: ✅ 100%
 - E2E测试通过率: **95%+**
+
+### 2.9 MCP集成系统 ✅POC完成 (v0.16.0) ⭐新增
+
+> **✅ 完成状态**: v0.16.0版本POC,MCP协议集成完成
+>
+> **完成时间**: 2026-01-16
+> **实施文件**: `desktop-app-vue/src/main/mcp/`
+> **测试覆盖**: 手动测试通过,自动化测试待实现
+> **协议版本**: Model Context Protocol v0.1.0
+
+#### 2.9.1 系统概述 ✅已实现
+
+MCP (Model Context Protocol) 集成系统为 ChainlessChain 提供了标准化的外部工具和数据源接入能力。通过实现 MCP 协议,AI 助手可以安全地访问文件系统、数据库、Git 仓库等外部资源,极大扩展了系统的能力边界。
+
+**核心价值**:
+
+- **标准化接入**: 使用统一的 MCP 协议,兼容所有 MCP 服务器
+- **安全隔离**: 服务器运行在独立进程,严格的权限控制
+- **易于扩展**: 通过配置文件即可添加新的 MCP 服务器
+- **性能监控**: 实时追踪连接、调用延迟和错误率
+
+#### 2.9.2 支持的 MCP 服务器
+
+| 服务器名称     | 用途           | 安全级别 | 配置文件          |
+| -------------- | -------------- | -------- | ----------------- |
+| **Filesystem** | 文件读写操作   | Medium   | `filesystem.json` |
+| **PostgreSQL** | 数据库查询     | High     | `postgres.json`   |
+| **SQLite**     | 本地数据库访问 | Medium   | `sqlite.json`     |
+| **Git**        | 仓库操作       | Medium   | `git.json`        |
+| **Fetch**      | HTTP 请求      | Medium   | `fetch.json`      |
+
+#### 2.9.3 架构设计
+
+**目录结构**:
+
+```
+desktop-app-vue/src/main/mcp/
+├── mcp-client-manager.js          # 核心客户端管理器
+├── mcp-tool-adapter.js            # 工具适配器(桥接到ToolManager)
+├── mcp-security-policy.js         # 安全策略执行
+├── mcp-config-loader.js           # 配置加载器
+├── mcp-performance-monitor.js     # 性能监控
+├── mcp-ipc.js                     # IPC 处理器
+├── transports/
+│   └── stdio-transport.js         # Stdio 通信层
+└── servers/
+    ├── server-registry.json       # 可信服务器白名单
+    └── server-configs/            # 服务器配置模板
+        ├── filesystem.json
+        ├── postgres.json
+        ├── sqlite.json
+        ├── git.json
+        └── fetch.json
+```
+
+**核心组件**:
+
+1. **MCPClientManager** (`mcp-client-manager.js`)
+   - 管理所有 MCP 服务器连接
+   - 支持动态连接/断开服务器
+   - 统一错误处理和重试机制
+   - 性能指标收集
+
+2. **MCPToolAdapter** (`mcp-tool-adapter.js`)
+   - 将 MCP 工具适配为 ToolManager 标准格式
+   - 自动生成工具 Schema
+   - 处理参数验证和转换
+
+3. **MCPSecurityPolicy** (`mcp-security-policy.js`)
+   - 执行安全策略(路径限制、权限检查)
+   - 用户同意管理(高风险操作需确认)
+   - 审计日志记录
+
+4. **MCPPerformanceMonitor** (`mcp-performance-monitor.js`)
+   - 追踪连接时间、调用延迟
+   - 错误率统计
+   - 内存使用监控
+
+#### 2.9.4 安全机制
+
+**多层安全防护**:
+
+1. **服务器白名单** (`server-registry.json`)
+   - 只有可信服务器才能被加载
+   - 每个服务器需要明确声明能力和风险等级
+
+2. **路径限制** (Filesystem 服务器)
+   - `allowedPaths`: 只能访问指定目录
+   - `forbiddenPaths`: 永久禁止访问的路径
+
+   ```json
+   {
+     "allowedPaths": ["notes/", "imports/", "exports/"],
+     "forbiddenPaths": [
+       "chainlesschain.db",
+       "ukey/",
+       "did/private-keys/",
+       "p2p/keys/"
+     ]
+   }
+   ```
+
+3. **用户同意机制**
+   - 高风险操作(写文件、执行数据库写操作)需用户确认
+   - 可选择"记住此选择"避免重复询问
+
+4. **审计日志**
+   - 所有 MCP 操作记录到 `.chainlesschain/logs/mcp-*.log`
+   - 包含时间戳、服务器名、工具名、参数、结果
+
+#### 2.9.5 配置管理
+
+**配置优先级**:
+
+1. `.chainlesschain/config.json` - 用户配置(最高优先级)
+2. `servers/server-configs/*.json` - 默认配置模板
+
+**示例配置** (`.chainlesschain/config.json`):
+
+```json
+{
+  "mcp": {
+    "enabled": true,
+    "servers": {
+      "filesystem": {
+        "enabled": true,
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "D:\\data"],
+        "autoConnect": false,
+        "permissions": {
+          "allowedPaths": ["notes/", "imports/"],
+          "forbiddenPaths": ["chainlesschain.db", "ukey/"],
+          "readOnly": false
+        }
+      }
+    },
+    "security": {
+      "auditLog": true,
+      "requireConsent": true,
+      "trustRegistry": true
+    }
+  }
+}
+```
+
+#### 2.9.6 性能指标
+
+**目标性能**:
+
+- **连接时间**: 目标 < 500ms, 可接受 < 1s
+- **工具调用延迟**: 目标 < 100ms, 可接受 < 200ms
+- **错误率**: 目标 < 1%, 可接受 < 5%
+- **内存使用**: 目标 < 50MB/服务器
+
+**实时监控**: 在 **设置 → MCP 服务器 → 性能** 查看实时指标
+
+#### 2.9.7 IPC 接口
+
+**已实现的 IPC 通道** (`mcp-ipc.js`):
+
+- `mcp:connect-server` - 连接 MCP 服务器
+- `mcp:disconnect-server` - 断开服务器
+- `mcp:list-servers` - 列出所有服务器
+- `mcp:list-tools` - 列出服务器提供的工具
+- `mcp:call-tool` - 调用 MCP 工具
+- `mcp:get-performance-metrics` - 获取性能指标
+
+#### 2.9.8 UI 集成
+
+**MCPSettings 组件** (`src/renderer/components/MCPSettings.vue`):
+
+- 启用/禁用 MCP 系统
+- 查看已连接的服务器列表
+- 连接/断开服务器
+- 查看性能指标
+- 配置服务器参数
+
+#### 2.9.9 已知限制 (POC 阶段)
+
+- ❌ 只支持 stdio 传输(HTTP+SSE 未实现)
+- ❌ 错误恢复机制较基础(仅支持简单重试)
+- ❌ 配置只能通过文件修改(UI 配置编辑器未实现)
+- ❌ 跨平台路径处理需改进(当前偏向 Windows)
+
+#### 2.9.10 路线图
+
+**Phase 1 (当前 - POC)**: ✅ 完成
+
+- [x] 核心 MCP 集成
+- [x] 5 个常用 MCP 服务器
+- [x] UI 管理界面
+- [x] 安全策略
+
+**Phase 2 (Q1 2026)**: 🚧 计划中
+
+- [ ] HTTP+SSE 传输支持
+- [ ] UI 配置编辑器
+- [ ] 更多 MCP 服务器(Slack, GitHub, etc.)
+- [ ] 插件市场集成
+
+**Phase 3 (Q2 2026)**: 📋 规划中
+
+- [ ] 自定义 MCP 服务器开发 SDK
+- [ ] 社区服务器仓库
+- [ ] 高级权限管理
+- [ ] 多用户支持
+
+### 2.10 统一配置管理系统 ✅完成 (v0.16.0) ⭐新增
+
+> **✅ 完成状态**: v0.16.0版本完成,生产可用
+>
+> **完成时间**: 2026-01-16
+> **实施文件**: `desktop-app-vue/src/main/config/unified-config-manager.js`
+> **灵感来源**: OpenClaude 最佳实践
+
+#### 2.10.1 系统概述 ✅已实现
+
+统一配置管理系统通过 `.chainlesschain/` 目录集中管理所有配置、日志、缓存和会话数据,提供了清晰的配置优先级和自动初始化机制。
+
+**核心特性**:
+
+- **集中化管理**: 所有配置和运行时数据统一存放
+- **Git 友好**: 运行时数据被忽略,模板和规则受版本控制
+- **自动初始化**: 首次运行自动创建目录结构
+- **配置优先级**: 环境变量 > config.json > 默认配置
+
+#### 2.10.2 目录结构
+
+```
+.chainlesschain/
+├── config.json              # 核心配置(模型、成本、性能、日志)
+├── config.json.example      # 配置模板(版本控制)
+├── rules.md                 # 项目编码规则和约束
+├── memory/                  # 会话和学习数据
+│   ├── sessions/            # 对话历史
+│   ├── preferences/         # 用户偏好
+│   └── learned-patterns/    # 使用模式学习
+├── logs/                    # 操作日志
+│   ├── error.log            # 错误日志
+│   ├── performance.log      # 性能日志
+│   ├── llm-usage.log        # LLM 令牌使用日志
+│   └── mcp-*.log            # MCP 审计日志
+├── cache/                   # 缓存数据
+│   ├── embeddings/          # 向量嵌入缓存
+│   ├── query-results/       # 查询结果缓存
+│   └── model-outputs/       # 模型输出缓存
+└── checkpoints/             # 检查点和备份
+    └── auto-backup/         # 自动备份
+```
+
+#### 2.10.3 配置优先级
+
+1. **环境变量** (`.env`, 系统环境) - 最高优先级
+2. **`.chainlesschain/config.json`** - 用户特定设置
+3. **默认配置** - 代码中定义
+
+#### 2.10.4 使用示例
+
+```javascript
+// 在主进程中
+const { getUnifiedConfigManager } = require("./config/unified-config-manager");
+
+const configManager = getUnifiedConfigManager();
+
+// 获取配置
+const modelConfig = configManager.getConfig("model");
+console.log("默认 LLM 提供商:", modelConfig.defaultProvider);
+
+// 获取路径
+const logsDir = configManager.getLogsDir();
+const cacheDir = configManager.getCacheDir();
+
+// 更新配置
+configManager.updateConfig({
+  cost: {
+    monthlyBudget: 100,
+  },
+});
+
+// 清除缓存
+configManager.clearCache("embeddings");
+```
+
+#### 2.10.5 迁移说明
+
+- ✅ 现有 `app-config.js` 保持向后兼容
+- ✅ 新代码应使用 `UnifiedConfigManager`
+- ✅ 日志将逐步从 `userData/logs` 迁移到 `.chainlesschain/logs/`
+
+### 2.11 预算跟踪系统 ✅完成 (v0.16.0) ⭐新增
+
+> **✅ 完成状态**: v0.16.0版本完成,生产可用
+>
+> **完成时间**: 2026-01-16
+> **实施文件**: `desktop-app-vue/src/renderer/components/BudgetAlertListener.vue`
+
+#### 2.11.1 系统概述 ✅已实现
+
+预算跟踪系统实时监控 LLM 令牌使用量和成本,当预算接近或超出限制时自动弹窗提醒用户。
+
+**核心功能**:
+
+- **实时监控**: 令牌使用量、成本计算、预算百分比
+- **三级预警**: 50%(提醒)、80%(警告)、100%(超限)
+- **自动弹窗**: BudgetAlertListener 监听预算事件并显示提醒
+- **持久化**: 令牌使用记录存储到 `.chainlesschain/logs/llm-usage.log`
+
+#### 2.11.2 预警机制
+
+| 预算使用率 | 级别    | 操作                          |
+| ---------- | ------- | ----------------------------- |
+| 50%        | 🟡 提醒 | 弹窗通知,可继续使用           |
+| 80%        | 🟠 警告 | 弹窗警告,建议控制使用         |
+| 100%       | 🔴 超限 | 弹窗提示超限,可选择继续或停止 |
+
+#### 2.11.3 UI 组件
+
+**BudgetAlertListener** (`BudgetAlertListener.vue`):
+
+- 全局监听 `cost:budget-alert` 事件
+- 使用 Ant Design Modal 显示预警
+- 提供"查看详情"链接跳转到设置页面
+- 自动记录用户响应(继续/停止)
+
+#### 2.11.4 集成方式
+
+```javascript
+// 在 App.vue 中引入
+import BudgetAlertListener from "./components/BudgetAlertListener.vue";
+
+// 自动监听预算事件,无需手动调用
+```
 
 ---
 
@@ -4457,6 +4936,7 @@ const socialPages = createRouteGroup('social', {
 ### 3.1 U盾安全机制
 
 #### 3.1.1 U盾架构
+
 ```
 U盾 (USB Key)
 ├── 硬件层
@@ -4481,6 +4961,7 @@ U盾 (USB Key)
 #### 3.1.2 密钥管理
 
 **密钥层次结构**:
+
 ```
 主密钥 (Master Key) - 永不导出,仅存U盾内
 ├── 设备签名密钥 (Device Sign Key)
@@ -4497,6 +4978,7 @@ U盾 (USB Key)
 ```
 
 **密钥生成流程**:
+
 ```
 1. 用户插入U盾
 2. 输入PIN码解锁
@@ -4509,6 +4991,7 @@ U盾 (USB Key)
 ```
 
 **安全操作**:
+
 ```c
 // U盾签名操作示例
 int ukey_sign_data(const char* data, size_t data_len,
@@ -4538,6 +5021,7 @@ int ukey_sign_data(const char* data, size_t data_len,
 #### 3.1.3 备份与恢复
 
 **备份方案**:
+
 ```
 方案一: 助记词备份 (BIP39)
 1. 生成256位熵
@@ -4560,6 +5044,7 @@ int ukey_sign_data(const char* data, size_t data_len,
 ```
 
 **U盾丢失恢复流程**:
+
 ```
 1. 用户使用助记词或备份U盾
 2. 生成新的U盾并导入密钥
@@ -4574,6 +5059,7 @@ int ukey_sign_data(const char* data, size_t data_len,
 ### 3.2 SIMKey安全机制
 
 #### 3.2.1 SIMKey架构
+
 ```
 SIMKey (SIM卡安全芯片)
 ├── 硬件层
@@ -4595,6 +5081,7 @@ SIMKey (SIM卡安全芯片)
 ```
 
 #### 3.2.2 SIMKey优势
+
 - **始终在线**: 手机随身携带,SIM卡始终在手机中
 - **运营商背书**: 实名制SIM卡提供额外身份保证
 - **难以复制**: SIM卡丢失后可挂失,防止冒用
@@ -4603,6 +5090,7 @@ SIMKey (SIM卡安全芯片)
 #### 3.2.3 SIMKey操作示例
 
 **Android OMAPI通信**:
+
 ```java
 // 打开SIM卡安全通道
 SEService seService = new SEService(context, new SEService.OnConnectedListener() {
@@ -4628,6 +5116,7 @@ SEService seService = new SEService(context, new SEService.OnConnectedListener()
 ```
 
 **SIMKey生命周期**:
+
 ```
 1. 用户首次使用:
    - 检测SIM卡是否支持安全Applet
@@ -4652,6 +5141,7 @@ SEService seService = new SEService(context, new SEService.OnConnectedListener()
 ### 3.3 统一认证流程
 
 **PC端登录**:
+
 ```
 1. 用户打开应用
 2. 插入U盾
@@ -4664,6 +5154,7 @@ SEService seService = new SEService(context, new SEService.OnConnectedListener()
 ```
 
 **移动端登录**:
+
 ```
 1. 用户打开APP
 2. 选择使用SIMKey认证
@@ -4676,6 +5167,7 @@ SEService seService = new SEService(context, new SEService.OnConnectedListener()
 ```
 
 **跨设备认证** (PC与手机联动):
+
 ```
 1. 用户在新PC上安装应用
 2. PC显示二维码
@@ -4692,6 +5184,7 @@ SEService seService = new SEService(context, new SEService.OnConnectedListener()
 ### 3.4 加密方案
 
 **数据加密层次**:
+
 ```
 1. 存储加密 (Data at Rest)
    ├── SQLCipher数据库: AES-256-CBC
@@ -4718,6 +5211,7 @@ SEService seService = new SEService(context, new SEService.OnConnectedListener()
 ```
 
 **加密密钥派生** (KDF):
+
 ```
 Master Key (U盾/SIMKey中,256位)
     ↓ HKDF-SHA256
@@ -4734,6 +5228,7 @@ Master Key (U盾/SIMKey中,256位)
 ### 4.1 Git-based同步架构
 
 **为什么选择Git**:
+
 - ✅ 去中心化: 无需中央服务器
 - ✅ 版本控制: 完整历史记录,可回滚
 - ✅ 冲突解决: 成熟的merge算法
@@ -4787,6 +5282,7 @@ my-knowledge-base/ (Git仓库根目录)
 ### 4.3 同步流程
 
 **首次克隆** (新设备):
+
 ```
 1. 用户在新设备登录
 2. 输入Git仓库地址 (HTTPS或SSH)
@@ -4800,6 +5296,7 @@ my-knowledge-base/ (Git仓库根目录)
 ```
 
 **增量同步** (双向):
+
 ```
 移动端 → 云端:
 1. 用户在手机上添加新笔记
@@ -4821,6 +5318,7 @@ my-knowledge-base/ (Git仓库根目录)
 ```
 
 **冲突解决**:
+
 ```
 场景: 用户在手机和PC上同时编辑同一笔记
 
@@ -4844,15 +5342,16 @@ my-knowledge-base/ (Git仓库根目录)
 
 ### 4.4 托管选项
 
-| 选项 | 优点 | 缺点 | 适用场景 |
-|------|------|------|---------|
-| **GitHub私有仓库** | 免费,稳定,大空间 | 数据在GitHub服务器 | 数据已加密,信任GitHub |
-| **GitLab自托管** | 完全控制,无限空间 | 需要自己维护服务器 | 技术能力强,隐私要求高 |
-| **Gitea (轻量)** | 资源占用少,易部署 | 功能相对简单 | 家庭服务器,NAS |
-| **Git + 加密云盘** | 利用现有云存储 | 需要手动同步 | 已有大容量云盘 |
-| **P2P Git** | 无中心服务器 | 设备需同时在线 | 极致去中心化需求 |
+| 选项               | 优点              | 缺点               | 适用场景              |
+| ------------------ | ----------------- | ------------------ | --------------------- |
+| **GitHub私有仓库** | 免费,稳定,大空间  | 数据在GitHub服务器 | 数据已加密,信任GitHub |
+| **GitLab自托管**   | 完全控制,无限空间 | 需要自己维护服务器 | 技术能力强,隐私要求高 |
+| **Gitea (轻量)**   | 资源占用少,易部署 | 功能相对简单       | 家庭服务器,NAS        |
+| **Git + 加密云盘** | 利用现有云存储    | 需要手动同步       | 已有大容量云盘        |
+| **P2P Git**        | 无中心服务器      | 设备需同时在线     | 极致去中心化需求      |
 
 **推荐方案**: GitHub私有仓库 + Git-crypt加密
+
 - 所有敏感数据用git-crypt透明加密
 - 只有拥有密钥的设备能解密
 - GitHub只看到加密后的乱码
@@ -4863,6 +5362,7 @@ my-knowledge-base/ (Git仓库根目录)
 #### 4.5.1 架构设计
 
 **技术栈**:
+
 ```
 ┌─────────────┐         WebSocket信令服务器         ┌─────────────┐
 │  移动端App   │◄──────────────┬──────────────────►│  PC端应用    │
@@ -4875,6 +5375,7 @@ my-knowledge-base/ (Git仓库根目录)
 ```
 
 **核心组件**:
+
 - **PC端**:
   - `mobile-bridge.js`: 移动端桥接管理器 (499行)
   - `device-pairing-handler.js`: 设备配对处理器 (305行)
@@ -4894,6 +5395,7 @@ my-knowledge-base/ (Git仓库根目录)
 #### 4.5.2 设备配对流程
 
 **方式一: PC端扫描移动端二维码**
+
 ```
 移动端操作流程:
 1. 打开"设备配对"页面
@@ -4911,6 +5413,7 @@ PC端操作流程:
 ```
 
 **方式二: 配对码手动输入**
+
 ```
 适用场景: PC端无摄像头或摄像头不可用
 1. 移动端显示6位数字配对码
@@ -4922,6 +5425,7 @@ PC端操作流程:
 #### 4.5.3 数据同步功能
 
 **知识库同步** (knowledge-sync-handler.js):
+
 ```javascript
 支持的操作:
 - listNotes: 获取笔记列表 (支持分页、排序、文件夹筛选)
@@ -4935,6 +5439,7 @@ PC端操作流程:
 ```
 
 **项目同步** (project-sync-handler.js):
+
 ```javascript
 支持的操作:
 - listProjects: 获取项目列表
@@ -4952,6 +5457,7 @@ PC端操作流程:
 ```
 
 **PC状态监控** (pc-status-handler.js):
+
 ```javascript
 监控指标:
 - CPU使用率、内存使用情况
@@ -4969,24 +5475,28 @@ PC端操作流程:
 #### 4.5.4 技术特点
 
 **P2P通信**:
+
 - 使用WebRTC DataChannel进行端到端传输
 - 信令服务器仅用于连接建立,不传输数据
 - 支持NAT穿透 (STUN/TURN)
 - 离线消息队列: 移动端离线时缓存消息
 
 **安全性**:
+
 - WebRTC内置DTLS加密 (类似HTTPS)
 - 配对码验证 (6位随机数字,5分钟有效)
 - 设备白名单机制
 - 每次连接重新协商密钥
 
 **性能优化**:
+
 - 数据分块传输 (大文件1MB chunk)
 - 本地缓存策略 (减少重复请求)
 - 增量同步 (只传输变化部分)
 - 压缩传输 (可选)
 
 **容错机制**:
+
 - 自动重连 (指数退避策略)
 - 请求超时处理 (30秒)
 - 错误重试机制
@@ -4995,6 +5505,7 @@ PC端操作流程:
 #### 4.5.5 使用场景
 
 **场景一: 移动端查看知识库**
+
 ```
 1. 用户外出时想查看笔记
 2. 移动端连接PC (通过信令服务器)
@@ -5004,6 +5515,7 @@ PC端操作流程:
 ```
 
 **场景二: 移动端访问项目文件**
+
 ```
 1. 用户需要在手机上查看项目代码
 2. 移动端连接PC
@@ -5013,6 +5525,7 @@ PC端操作流程:
 ```
 
 **场景三: 监控PC运行状态**
+
 ```
 1. 用户外出想了解PC端AI任务进展
 2. 移动端连接PC
@@ -5024,6 +5537,7 @@ PC端操作流程:
 #### 4.5.6 部署和测试
 
 **信令服务器部署**:
+
 ```bash
 cd signaling-server
 npm install
@@ -5035,6 +5549,7 @@ docker run -d -p 9003:9003 chainlesschain-signaling
 ```
 
 **测试脚本**:
+
 ```bash
 # 测试设备配对
 node test-pairing.js
@@ -5050,6 +5565,7 @@ node test-pc-pairing.js
 ```
 
 **相关文档**:
+
 - `MOBILE_PC_SYNC.md`: 完整系统设计文档 (489行)
 - `QUICKSTART_MOBILE_PC.md`: 快速开始指南 (352行)
 - `TEST_MOBILE_PC_INTEGRATION.md`: 集成测试指南 (310行)
@@ -5062,39 +5578,39 @@ node test-pc-pairing.js
 
 #### 5.1.1 LLM (大语言模型)
 
-| 设备类型 | 推荐模型 | 参数量 | 内存需求 | 性能 |
-|---------|---------|-------|---------|------|
-| **高性能PC** | LLaMA3-70B | 70B | 64GB RAM + 显卡 | 接近GPT-3.5 |
-| **普通PC** | Qwen2-7B | 7B | 16GB RAM | 日常使用足够 |
-| **低配PC** | Phi-3-mini | 3.8B | 8GB RAM | 轻量但实用 |
-| **旗舰手机** | MiniCPM-2B | 2.4B | 6GB RAM | 移动端最优 |
-| **中端手机** | Gemma-2B | 2B | 4GB RAM | 速度快 |
-| **云端API** | GPT-4/Claude | - | 无需本地资源 | 最强性能 |
+| 设备类型     | 推荐模型     | 参数量 | 内存需求        | 性能         |
+| ------------ | ------------ | ------ | --------------- | ------------ |
+| **高性能PC** | LLaMA3-70B   | 70B    | 64GB RAM + 显卡 | 接近GPT-3.5  |
+| **普通PC**   | Qwen2-7B     | 7B     | 16GB RAM        | 日常使用足够 |
+| **低配PC**   | Phi-3-mini   | 3.8B   | 8GB RAM         | 轻量但实用   |
+| **旗舰手机** | MiniCPM-2B   | 2.4B   | 6GB RAM         | 移动端最优   |
+| **中端手机** | Gemma-2B     | 2B     | 4GB RAM         | 速度快       |
+| **云端API**  | GPT-4/Claude | -      | 无需本地资源    | 最强性能     |
 
 #### 5.1.2 Embedding模型 (向量化)
 
-| 模型 | 维度 | 大小 | 语言支持 | 用途 |
-|------|------|------|---------|------|
-| bge-large-zh-v1.5 | 1024 | 1.3GB | 中英文 | PC端,高精度 |
-| bge-base-zh-v1.5 | 768 | 400MB | 中英文 | 平衡性能和精度 |
-| bge-small-zh-v1.5 | 512 | 95MB | 中英文 | 移动端,轻量 |
-| text-embedding-ada-002 | 1536 | API | 多语言 | 云端,最强效果 |
+| 模型                   | 维度 | 大小  | 语言支持 | 用途           |
+| ---------------------- | ---- | ----- | -------- | -------------- |
+| bge-large-zh-v1.5      | 1024 | 1.3GB | 中英文   | PC端,高精度    |
+| bge-base-zh-v1.5       | 768  | 400MB | 中英文   | 平衡性能和精度 |
+| bge-small-zh-v1.5      | 512  | 95MB  | 中英文   | 移动端,轻量    |
+| text-embedding-ada-002 | 1536 | API   | 多语言   | 云端,最强效果  |
 
 #### 5.1.3 向量数据库
 
-| 数据库 | 类型 | 优点 | 缺点 | 适用设备 |
-|--------|------|------|------|---------|
-| **ChromaDB** | 嵌入式 | 简单,自带持久化 | 性能一般 | PC和移动端 |
-| **Qdrant** | 独立服务 | 高性能,功能丰富 | 需要单独部署 | PC (Docker) |
-| **Milvus** | 分布式 | 企业级,可扩展 | 复杂,资源占用大 | 服务器 |
-| **FAISS** | 库 | 超高性能 | 无持久化,需自己封装 | 高级用户 |
+| 数据库       | 类型     | 优点            | 缺点                | 适用设备    |
+| ------------ | -------- | --------------- | ------------------- | ----------- |
+| **ChromaDB** | 嵌入式   | 简单,自带持久化 | 性能一般            | PC和移动端  |
+| **Qdrant**   | 独立服务 | 高性能,功能丰富 | 需要单独部署        | PC (Docker) |
+| **Milvus**   | 分布式   | 企业级,可扩展   | 复杂,资源占用大     | 服务器      |
+| **FAISS**    | 库       | 超高性能        | 无持久化,需自己封装 | 高级用户    |
 
 ### 5.2 PC端部署方案
 
 #### 5.2.1 Docker Compose配置
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   # Ollama - LLM推理引擎
@@ -5113,7 +5629,7 @@ services:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [gpu]  # 如果有NVIDIA显卡
+              capabilities: [gpu] # 如果有NVIDIA显卡
 
   # Qdrant - 向量数据库
   qdrant:
@@ -5138,7 +5654,7 @@ services:
       - OLLAMA_BASE_URL=http://ollama:11434
       - VECTOR_DB=qdrant
       - QDRANT_ENDPOINT=http://qdrant:6333
-      - EMBEDDING_ENGINE=native  # 使用内置Embedding
+      - EMBEDDING_ENGINE=native # 使用内置Embedding
 
   # Git服务器 (可选,自托管)
   gitea:
@@ -5156,6 +5672,7 @@ services:
 ```
 
 **一键启动脚本**:
+
 ```bash
 #!/bin/bash
 # setup_pc.sh
@@ -5252,6 +5769,7 @@ class LocalLLM {
 ### 5.4 混合部署策略
 
 **智能路由**:
+
 ```python
 class AIRouter:
     def __init__(self):
@@ -5308,6 +5826,9 @@ class AIRouter:
 ├── P2P: **libp2p 3.1.2**
 ├── 图像: **Sharp + Tesseract.js (OCR)**
 ├── LLM客户端: **Ollama官方SDK** + 自定义云端客户端
+├── MCP集成: **Model Context Protocol SDK** (stdio传输,5个服务器) ⭐新增
+├── 配置管理: **UnifiedConfigManager** (.chainlesschain/统一配置) ⭐新增
+├── 预算跟踪: **BudgetAlertListener** (令牌监控,成本预警) ⭐新增
 ├── 语音识别: **OpenAI Whisper API** ⭐新增
 ├── 音频处理: **FFmpeg** (降噪、增强、字幕) ⭐新增
 ├── 插件系统: **自研插件框架** (沙箱隔离) ⭐新增
@@ -5322,6 +5843,7 @@ class AIRouter:
 ```
 
 **目录结构**:
+
 ```
 desktop-app-vue/
 ├── src/
@@ -5330,6 +5852,8 @@ desktop-app-vue/
 │   │   ├── database/      # 数据库管理
 │   │   ├── git/           # Git同步
 │   │   ├── llm/           # LLM API封装
+│   │   ├── mcp/           # MCP集成系统 ⭐新增
+│   │   ├── config/        # 统一配置管理 ⭐新增
 │   │   ├── speech/        # 语音识别 ⭐新增
 │   │   ├── plugins/       # 插件系统 ⭐新增
 │   │   ├── skill-tool-system/  # 技能工具 ⭐新增
@@ -5347,6 +5871,9 @@ desktop-app-vue/
 │   │   │   ├── SkillManagement.vue  # 技能管理 ⭐新增
 │   │   │   └── PluginManagement.vue # 插件管理 ⭐新增
 │   │   ├── components/
+│   │   │   ├── MCPSettings.vue       # MCP服务器管理 ⭐新增
+│   │   │   ├── BudgetAlertListener.vue  # 预算预警监听 ⭐新增
+│   │   │   └── LLMSettings.vue       # LLM设置(含预算配置)
 │   │   └── stores/        # Pinia状态管理
 │   └── shared/            # 共享代码
 ├── browser-extension/     # 浏览器扩展 ⭐新增
@@ -5358,6 +5885,7 @@ desktop-app-vue/
 ### 6.2 移动端
 
 **Android**: Kotlin + Jetpack Compose
+
 ```
 技术栈:
 ├── UI: Jetpack Compose
@@ -5372,6 +5900,7 @@ desktop-app-vue/
 ```
 
 **iOS**: Swift + SwiftUI
+
 ```
 技术栈:
 ├── UI: SwiftUI
@@ -5388,6 +5917,7 @@ desktop-app-vue/
 ### 6.3 后端服务 (可选)
 
 **中继服务器** (用于NAT穿透和离线消息):
+
 ```
 技术栈:
 ├── 语言: Rust / Go
@@ -5399,6 +5929,7 @@ desktop-app-vue/
 ```
 
 **引导节点** (DHT网络):
+
 ```
 技术栈:
 ├── 语言: Go
@@ -5419,6 +5950,7 @@ desktop-app-vue/
 **目标**: 实现核心知识库功能
 
 **里程碑**:
+
 - [ ] Week 1-2: 项目搭建
   - 初始化Electron项目
   - 集成U盾SDK (支持常见品牌)
@@ -5454,6 +5986,7 @@ desktop-app-vue/
 **目标**: 添加去中心化社交网络
 
 **里程碑**:
+
 - [ ] Week 1-2: DID系统
   - DID生成和管理
   - DID文档发布到DHT
@@ -5478,6 +6011,7 @@ desktop-app-vue/
 **目标**: 去中心化交易辅助
 
 **里程碑**:
+
 - [ ] Week 1-2: 交易发布
   - 需求/供给发布界面
   - AI描述优化
@@ -5501,6 +6035,7 @@ desktop-app-vue/
 ### Phase 4: 生态完善 - 持续
 
 **长期目标**:
+
 - [ ] 浏览器扩展 (网页剪藏)
 - [ ] 插件系统 (第三方扩展)
 - [ ] 多语言支持
@@ -5517,6 +6052,7 @@ desktop-app-vue/
 **挑战**: 市场上U盾和SIM卡品牌众多,API不统一
 
 **解决方案**:
+
 ```
 1. 抽象层设计:
    定义统一接口 (ISecureKey)
@@ -5546,6 +6082,7 @@ desktop-app-vue/
 **挑战**: 手机资源有限,LLM推理慢,耗电高
 
 **解决方案**:
+
 ```
 1. 模型量化:
    - 使用4-bit量化模型 (Q4_K_M)
@@ -5573,6 +6110,7 @@ desktop-app-vue/
 **挑战**: 确保用户数据绝对私密,同时满足法律要求
 
 **解决方案**:
+
 ```
 1. 隐私设计原则:
    ✅ 数据最小化: 只收集必要信息
@@ -5599,6 +6137,7 @@ desktop-app-vue/
 **挑战**: NAT穿透困难,节点频繁上下线
 
 **解决方案**:
+
 ```
 1. 多层连接策略:
    ├── 优先: 直接P2P连接 (WebRTC STUN)
@@ -5630,6 +6169,7 @@ desktop-app-vue/
 ### 9.1 免费增值模式
 
 **免费功能**:
+
 - ✅ 完整知识库管理
 - ✅ 基础社交功能
 - ✅ 小额交易 (<1000元)
@@ -5637,6 +6177,7 @@ desktop-app-vue/
 - ✅ Git同步 (用户自备仓库)
 
 **高级功能** (订阅制):
+
 - 🔒 云端LLM API额度 (GPT-4/Claude)
 - 🔒 托管Git仓库 (100GB+)
 - 🔒 全球加速中继节点
@@ -5668,6 +6209,7 @@ desktop-app-vue/
 3. **去中心化交易**: AI辅助的可信交易平台
 
 **核心优势**:
+
 - 🔐 **极致安全**: 硬件级密钥保护,端到端加密
 - 🌐 **完全去中心化**: 无需信任第三方平台
 - 🧠 **AI原生**: 本地大模型,保护隐私的同时享受AI能力
@@ -5675,6 +6217,7 @@ desktop-app-vue/
 - 🔓 **开源自主**: 代码开源,数据自己掌控
 
 **技术创新点**:
+
 - Git-based数据同步 (而非传统云同步)
 - Signal协议社交通信 (而非明文或简单加密)
 - AI增强的信任网络 (而非中心化信誉系统)
@@ -5705,6 +6248,7 @@ wget https://github.com/chainlesschain/desktop/releases/latest/ChainlessChain-Se
 **支持的发行版**: Ubuntu 20.04+, Debian 11+, Fedora 35+, Arch Linux
 
 **安装方式一: DEB包 (Debian/Ubuntu)**
+
 ```bash
 # 1. 下载DEB包
 wget https://github.com/chainlesschain/desktop/releases/latest/chainlesschain_0.20.0_amd64.deb
@@ -5720,6 +6264,7 @@ chainlesschain
 ```
 
 **安装方式二: RPM包 (Fedora/RHEL/CentOS)**
+
 ```bash
 # 1. 下载RPM包
 wget https://github.com/chainlesschain/desktop/releases/latest/chainlesschain-0.20.0.x86_64.rpm
@@ -5734,6 +6279,7 @@ chainlesschain
 ```
 
 **安装方式三: ZIP包 (通用)**
+
 ```bash
 # 1. 下载ZIP包
 wget https://github.com/chainlesschain/desktop/releases/latest/chainlesschain-linux-x64-0.20.0.zip
@@ -5759,12 +6305,14 @@ EOF
 ```
 
 **系统要求**:
+
 - 64位系统 (x86_64)
 - 8GB+ RAM (推荐16GB用于本地LLM)
 - 20GB+ 可用磁盘空间
 - GLIBC 2.31+ (Ubuntu 20.04+)
 
 **注意事项**:
+
 - U盾功能当前仅支持Windows,Linux使用模拟模式
 - 推荐使用Docker运行Ollama和Qdrant服务
 - 首次运行需要下载AI模型 (约4GB)
@@ -5864,6 +6412,7 @@ interface GitAPI {
 **整体完成度**: 95% (生产可用)
 
 **核心架构统计**:
+
 - 主进程代码: 208个JavaScript文件, 14,161行核心IPC处理器 (src/main/index.js)
 - 渲染进程: 220个Vue组件
 - 数据库: 48张表 (SQLite + SQLCipher)
@@ -5873,29 +6422,29 @@ interface GitAPI {
 
 **各模块完成度对照表**:
 
-| 功能模块 | 完成度 | 状态 | 备注 |
-|---------|--------|------|------|
-| **核心功能** |
-| 知识库管理 | 100% | ✅ 生产可用 | 完整RAG, 全文搜索, 多格式导入 |
-| 项目管理 | 95% | ✅ 生产可用 | AI对话式创建, 10+引擎支持 |
-| 企业版组织协作 | 85% | ✅ 基本可用 | 多身份隔离, 成员角色管理 |
-| **基础设施** |
-| 数据库系统 | 100% | ✅ 完成 | 48张表, 事务管理, FTS5搜索 |
-| U-Key硬件集成 | 100% | ✅ 完成 | 7个驱动, Windows支持 |
-| LLM/AI集成 | 90% | ✅ 基本完成 | Ollama本地 + 14+云端API |
-| RAG检索系统 | 90% | ✅ 基本完成 | 向量嵌入, 重排序, 混合搜索 |
-| Git同步 | 90% | ✅ 基本完成 | isomorphic-git, 冲突解决 |
+| 功能模块       | 完成度 | 状态        | 备注                          |
+| -------------- | ------ | ----------- | ----------------------------- |
+| **核心功能**   |
+| 知识库管理     | 100%   | ✅ 生产可用 | 完整RAG, 全文搜索, 多格式导入 |
+| 项目管理       | 95%    | ✅ 生产可用 | AI对话式创建, 10+引擎支持     |
+| 企业版组织协作 | 85%    | ✅ 基本可用 | 多身份隔离, 成员角色管理      |
+| **基础设施**   |
+| 数据库系统     | 100%   | ✅ 完成     | 48张表, 事务管理, FTS5搜索    |
+| U-Key硬件集成  | 100%   | ✅ 完成     | 7个驱动, Windows支持          |
+| LLM/AI集成     | 90%    | ✅ 基本完成 | Ollama本地 + 14+云端API       |
+| RAG检索系统    | 90%    | ✅ 基本完成 | 向量嵌入, 重排序, 混合搜索    |
+| Git同步        | 90%    | ✅ 基本完成 | isomorphic-git, 冲突解决      |
 | **社交与交易** |
-| P2P社交网络 | 80% | 🚧 开发中 | DID, libp2p, Signal协议 |
-| 交易系统 | 75% | 🚧 开发中 | 后端完成, 前端待集成 |
-| **扩展功能** |
-| 插件系统 | 70% | 🚧 Phase 1 | 基础框架, 待完善沙箱 |
-| 技能工具系统 | 95% | ✅ 基本完成 | 35技能 + 52工具 |
-| 浏览器扩展 | 70% | 🚧 开发中 | Chrome扩展, 待发布 |
-| 音频处理 | 80% | 🚧 基本完成 | 转录, 字幕, 降噪 |
-| Web IDE | 70% | 🚧 基础框架 | 预览服务器, 待增强 |
-| 区块链集成 | 50% | 🚧 开发中 | 钱包, 智能合约基础 |
-| 国际化 | 100% | ✅ 完成 | 中英文支持 |
+| P2P社交网络    | 80%    | 🚧 开发中   | DID, libp2p, Signal协议       |
+| 交易系统       | 75%    | 🚧 开发中   | 后端完成, 前端待集成          |
+| **扩展功能**   |
+| 插件系统       | 70%    | 🚧 Phase 1  | 基础框架, 待完善沙箱          |
+| 技能工具系统   | 95%    | ✅ 基本完成 | 35技能 + 52工具               |
+| 浏览器扩展     | 70%    | 🚧 开发中   | Chrome扩展, 待发布            |
+| 音频处理       | 80%    | 🚧 基本完成 | 转录, 字幕, 降噪              |
+| Web IDE        | 70%    | 🚧 基础框架 | 预览服务器, 待增强            |
+| 区块链集成     | 50%    | 🚧 开发中   | 钱包, 智能合约基础            |
+| 国际化         | 100%   | ✅ 完成     | 中英文支持                    |
 
 **生产可用模块**: 知识库管理, 项目管理, 企业版组织协作, U-Key集成, LLM/RAG, Git同步
 **开发中模块**: P2P社交, 交易系统, 插件系统, 浏览器扩展, Web IDE, 区块链集成
@@ -5905,6 +6454,7 @@ interface GitAPI {
 #### ✅ Phase 1: MVP核心功能 (100%完成)
 
 **知识库管理模块**:
+
 - ✅ 数据库表结构 (knowledge_items, tags, conversations, messages)
 - ✅ Markdown编辑器 (Milkdown 7.17.3集成)
 - ✅ 文件导入 (PDF/Word/Markdown/TXT支持)
@@ -5914,6 +6464,7 @@ interface GitAPI {
 - ✅ 搜索功能 (knowledge_search表 + 全文检索)
 
 **项目管理模块** (⭐核心完成):
+
 - ✅ 完整数据模型 (14+核心表)
 - ✅ 对话式AI引擎 (task-planner, intent-classifier, function-caller)
 - ✅ 多引擎支持:
@@ -5932,6 +6483,7 @@ interface GitAPI {
 #### 🚧 Phase 2: 社交功能 (80%完成)
 
 **基础设施已完成**:
+
 - ✅ DID管理 (did-manager.js)
 - ✅ P2P框架 (p2p-manager.js, libp2p集成)
 - ✅ Signal协议 (signal-session-manager.js)
@@ -5941,6 +6493,7 @@ interface GitAPI {
 - ✅ 动态发布 (post-manager.js)
 
 **待完善**:
+
 - 🚧 P2P消息传输优化
 - 🚧 群组功能
 - 🚧 内容加密传输
@@ -5953,6 +6506,7 @@ interface GitAPI {
 #### 已实现模块详情
 
 **模块1: 数字资产管理** ✅
+
 - **实现文件**: `desktop-app-vue/src/main/trade/asset-manager.js` (780行)
 - **核心功能**:
   - 4种资产类型支持 (Token, NFT, 知识产品, 服务凭证)
@@ -5962,6 +6516,7 @@ interface GitAPI {
 - **数据库表**: assets, asset_holdings, asset_transfers
 
 **模块2: 交易市场** ✅
+
 - **实现文件**:
   - `marketplace-manager.js` (950行) - 市场管理
   - `escrow-manager.js` (600行) - 托管管理
@@ -5974,6 +6529,7 @@ interface GitAPI {
 - **前端界面**: MarketplaceList.vue, OrderCreate.vue
 
 **模块3: 智能合约托管** ✅
+
 - **实现文件**:
   - `contract-engine.js` (1200行) - 合约引擎
   - `contract-templates.js` (400行) - 合约模板
@@ -5990,6 +6546,7 @@ interface GitAPI {
   - ContractDetail.vue (642行) - 详情页
 
 **模块4: 知识付费系统** ✅
+
 - **实现文件**: `knowledge-payment.js` (716行)
 - **核心功能**:
   - 5种内容类型 (文章、视频、音频、课程、咨询)
@@ -6004,6 +6561,7 @@ interface GitAPI {
   - MyPurchases.vue (305行) - 购买记录
 
 **模块5: 信用评分系统** ✅
+
 - **实现文件**: `credit-score.js` (596行)
 - **核心功能**:
   - 6维度加权评分算法:
@@ -6022,6 +6580,7 @@ interface GitAPI {
 - **前端界面**: CreditScore.vue (398行)
 
 **模块6: 评价和反馈系统** ✅
+
 - **实现文件**: `review-manager.js` (565行)
 - **核心功能**:
   - 星级评分 (1-5星) 和文字评价
@@ -6046,11 +6605,13 @@ interface GitAPI {
 #### 代码统计
 
 **后端系统**:
+
 - 9个核心文件
 - 约5687行代码
 - 15个数据库表
 
 **前端界面**:
+
 - 9个主要组件
 - 约3384行代码
 - 完整的UI交互
@@ -6058,6 +6619,7 @@ interface GitAPI {
 #### 路由集成
 
 新增7个路由到主应用:
+
 - `/friends` - 好友管理
 - `/posts` - 社交动态
 - `/marketplace` - 交易市场
@@ -6077,6 +6639,7 @@ interface GitAPI {
 **Phase 4: 生态系统扩展**已完成核心基础实施,部分模块仍在完善中。
 
 **模块1: 插件系统** 🚧 (70%完成, Phase 1完成)
+
 - **实现文件**:
   - `plugin-manager.js` - 插件管理核心
   - `plugin-loader.js` - 插件加载器
@@ -6093,6 +6656,7 @@ interface GitAPI {
 - **完成报告**: `plan/completed/PLUGIN_SYSTEM_*.md` (3个文件)
 
 **模块2: 音频处理系统** ✅ (80%完成)
+
 - **实现文件**:
   - `speech-manager.js` - 语音管理核心
   - `speech-recognizer.js` - 语音识别
@@ -6111,6 +6675,7 @@ interface GitAPI {
 - **完成报告**: `plan/completed/VOICE_INPUT_*.md` (3个文件)
 
 **模块3: U-Key多品牌支持** ✅ (100%完成)
+
 - **实现文件**:
   - `ukey/huada-driver.js` - 华大U盾驱动
   - `ukey/tdr-driver.js` - 天地融U盾驱动
@@ -6129,6 +6694,7 @@ interface GitAPI {
 - **完成报告**: `plan/completed/UKEY_UPDATE_2025-12-28.md`
 
 **模块4: 技能工具系统** ✅ (95%完成)
+
 - **实现文件**:
   - `skill-tool-system/skill-manager.js` - 技能管理
   - `skill-tool-system/tool-manager.js` - 工具管理
@@ -6148,6 +6714,7 @@ interface GitAPI {
 - **完成报告**: `SKILL_TOOL_INTEGRATION_GUIDE.md`
 
 **模块5: 浏览器扩展** 🚧 (70%完成)
+
 - **实现目录**: `desktop-app-vue/browser-extension/`
 - **核心功能**:
   - 网页内容保存
@@ -6163,12 +6730,14 @@ interface GitAPI {
 - **文档**: `browser-extension/README.md`, `DEVELOPER_GUIDE.md`, `USER_GUIDE.md`
 
 **模块6: 国际化系统** ✅ (100%完成)
+
 - **实现**: Vue I18n集成
 - **支持语言**: 中文(简体/繁体)、英文
 - **覆盖范围**: 全部UI组件
 - **完成报告**: `plan/completed/I18N_IMPLEMENTATION_REPORT.md`
 
 **模块7: 区块链集成** 🚧 (50%完成)
+
 - **实现文件**:
   - `blockchain/blockchain-adapter.js` - 区块链适配器
   - `blockchain/wallet-manager.js` - 钱包管理
@@ -6187,6 +6756,7 @@ interface GitAPI {
 - **进度报告**: `BLOCKCHAIN_INTEGRATION_PROGRESS.md`
 
 **模块8: AI模板系统优化** ✅ (100%完成) ⭐新增
+
 - **实施时间**: 2025-12-31
 - **优化范围**: 全部178个AI模板 + 数据库203条记录
 - **核心成果**:
@@ -6225,6 +6795,7 @@ interface GitAPI {
 ### 下一步计划
 
 #### Phase 5: 完善和优化 (计划中)
+
 - v1.0.0路线图实施 (RAG增强、代码引擎、视频/图像引擎)
 - 文件树系统Critical Bug修复
 - 系统性能优化
@@ -6232,11 +6803,13 @@ interface GitAPI {
 - 文档完善
 
 #### 参考文档
+
 - `plan/V1.0.0_ROADMAP_ASSESSMENT.md` - v1.0.0可行性评估
 - `plan/FILE_TREE_CRITICAL_FIX.md` - 文件树紧急修复方案
 - `plan/TEAM_REVIEW_HIGH_PRIORITY.md` - 高优先级计划清单
 
 详见项目文档:
+
 - `CURRENT_STATUS.md` - 当前开发状态
 - `docs/PHASE_3_IMPLEMENTATION_PLAN.md` - Phase 3实施计划
 - `desktop-app-vue/PROJECT_SUMMARY.md` - 项目总结
@@ -6246,6 +6819,66 @@ interface GitAPI {
 ---
 
 ## 附录C: 文档版本更新历史
+
+### v2.13更新内容 (2026-01-16) ⭐新增功能
+
+**版本**: v0.20.0 → v0.16.0 (文档回退到实际代码版本)
+**更新说明**: 添加 MCP 集成、统一配置管理、预算跟踪系统
+
+#### 新增核心功能
+
+**1. MCP集成系统** (POC v0.1.0)
+
+- ✅ Model Context Protocol 协议集成
+- ✅ 5个MCP服务器支持 (Filesystem, PostgreSQL, SQLite, Git, Fetch)
+- ✅ 多层安全防护 (白名单、路径限制、用户同意、审计日志)
+- ✅ 性能监控 (连接<500ms, 调用<100ms)
+- ✅ UI管理界面 (MCPSettings.vue)
+- **新增章节**: 2.9 MCP集成系统
+- **文件位置**: `desktop-app-vue/src/main/mcp/`
+
+**2. 统一配置管理系统** (100%完成)
+
+- ✅ `.chainlesschain/` 目录集中管理
+- ✅ 配置优先级机制 (环境变量 > config.json > 默认)
+- ✅ 自动初始化目录结构
+- ✅ Git友好的配置管理
+- ✅ UnifiedConfigManager 实现
+- **新增章节**: 2.10 统一配置管理系统
+- **文件位置**: `desktop-app-vue/src/main/config/unified-config-manager.js`
+
+**3. 预算跟踪系统** (100%完成)
+
+- ✅ 实时令牌使用监控
+- ✅ 三级预算预警 (50%/80%/100%)
+- ✅ 自动弹窗提醒 (BudgetAlertListener)
+- ✅ 使用记录持久化
+- **新增章节**: 2.11 预算跟踪系统
+- **文件位置**: `desktop-app-vue/src/renderer/components/BudgetAlertListener.vue`
+
+**4. 安全规则系统** (100%完成)
+
+- ✅ 完整编码规范和安全规则
+- ✅ 规则验证器 (scripts/rules-validator.js)
+- ✅ SQL注入防护规则
+- ✅ 加密和密钥管理规则
+- **文件位置**: `.chainlesschain/rules.md`
+
+#### 技术栈更新
+
+- **新增**: Model Context Protocol SDK (stdio传输)
+- **新增**: UnifiedConfigManager (配置管理)
+- **新增**: BudgetAlertListener (预算监控)
+- **更新**: 目录结构添加 `mcp/`, `config/` 目录
+
+#### 文档改进
+
+- ✅ 更新系统概述和核心特性
+- ✅ 添加3个新章节 (2.9, 2.10, 2.11)
+- ✅ 更新技术栈和目录结构
+- ✅ 更新已完成功能列表
+
+---
 
 ### v2.9更新内容 (2026-01-09) ⭐重大里程碑
 
@@ -6258,6 +6891,7 @@ interface GitAPI {
 #### 核心成就
 
 **1. 跨平台U-Key支持** (100%完成)
+
 - ✅ Windows原生驱动 (5品牌支持)
 - ✅ macOS PKCS#11硬件支持 (YubiKey, Nitrokey, OpenPGP卡)
 - ✅ Linux PKCS#11硬件支持
@@ -6266,6 +6900,7 @@ interface GitAPI {
 - **文件**: `cross-platform-adapter.js`, `pkcs11-driver.js`
 
 **2. 生产级区块链桥接** (100%完成)
+
 - ✅ LayerZero集成 - 跨链资产转移
 - ✅ 支持7个主网 + 2个测试网
 - ✅ 费用估算、交易跟踪、目标链监控
@@ -6274,6 +6909,7 @@ interface GitAPI {
 - **文件**: `layerzero-bridge.js`
 
 **3. 工作区管理系统** (100%完成)
+
 - ✅ 完整CRUD操作 (创建、查询、更新、删除)
 - ✅ 成员管理 (添加、移除、角色变更)
 - ✅ 权限控制 (Owner/Admin/Member/Viewer)
@@ -6282,6 +6918,7 @@ interface GitAPI {
 - **文件**: `workspace-manager.js`, `workspace-task-ipc.js`
 
 **4. 组织设置与邀请** (100%完成)
+
 - ✅ 基本信息管理 (名称、描述、头像)
 - ✅ P2P和同步设置
 - ✅ 数据库备份触发
@@ -6291,6 +6928,7 @@ interface GitAPI {
 - **文件**: `OrganizationSettingsPage.vue`, `InvitationManager.vue`
 
 **5. 数据库密码修改** (100%完成)
+
 - ✅ IPC处理器 `database:change-encryption-password`
 - ✅ 调用适配器的 `changePassword()` 方法
 - ✅ 验证旧密码和新密码
@@ -6298,6 +6936,7 @@ interface GitAPI {
 - **文件**: `database-encryption-ipc.js`
 
 **6. Git热重载** (100%完成)
+
 - ✅ `GitHotReload` 类完整实现 (336行)
 - ✅ 使用 `chokidar` 监听文件变化
 - ✅ 防抖处理 (1秒)
@@ -6308,6 +6947,7 @@ interface GitAPI {
 - **文件**: `git-hot-reload.js`, `git-ipc.js`
 
 **7. 后端对话管理API** (100%完成)
+
 - ✅ 完整的CRUD操作
 - ✅ 分页查询支持
 - ✅ 多设备同步字段
@@ -6317,6 +6957,7 @@ interface GitAPI {
 - **文件**: 9个Java文件 (Entity, DTO, Mapper, Service, Controller)
 
 **8. 社交功能补全** (100%完成)
+
 - ✅ 朋友圈功能 (MomentsTimeline.vue, 450行)
   - 发布动态 (文字+图片,最多9张)
   - 可见范围设置 (公开/仅好友/仅自己)
@@ -6331,6 +6972,7 @@ interface GitAPI {
   - 置顶/热门标签
 
 **9. 协作权限系统** (100%完成)
+
 - ✅ 知识库级别权限检查
 - ✅ 共享范围检查 (private/public/organization)
 - ✅ 所有者验证 (created_by/owner_did)
@@ -6342,6 +6984,7 @@ interface GitAPI {
 - **文件**: `collaboration-manager.js` (+80行)
 
 **10. 区块链适配器优化** (100%完成)
+
 - ✅ 多RPC端点自动切换
 - ✅ 连接超时保护 (5秒)
 - ✅ 备用网络初始化 (Sepolia)
@@ -6353,20 +6996,20 @@ interface GitAPI {
 
 #### 功能完成度统计
 
-| 模块 | 功能数 | 完成数 | 完成率 |
-|------|--------|--------|--------|
-| 知识库管理 | 25 | 25 | 100% ✅ |
-| AI对话 | 18 | 18 | 100% ✅ |
-| Git同步 | 15 | 15 | 100% ✅ |
-| DID身份 | 12 | 12 | 100% ✅ |
-| P2P网络 | 20 | 20 | 100% ✅ |
-| 社交功能 | 16 | 16 | 100% ✅ |
-| 交易系统 | 24 | 24 | 100% ✅ |
-| 区块链 | 18 | 18 | 100% ✅ |
-| U-Key | 10 | 10 | 100% ✅ |
-| 工作区 | 12 | 12 | 100% ✅ |
-| 组织管理 | 15 | 15 | 100% ✅ |
-| **总计** | **185** | **185** | **100%** ✅ |
+| 模块       | 功能数  | 完成数  | 完成率      |
+| ---------- | ------- | ------- | ----------- |
+| 知识库管理 | 25      | 25      | 100% ✅     |
+| AI对话     | 18      | 18      | 100% ✅     |
+| Git同步    | 15      | 15      | 100% ✅     |
+| DID身份    | 12      | 12      | 100% ✅     |
+| P2P网络    | 20      | 20      | 100% ✅     |
+| 社交功能   | 16      | 16      | 100% ✅     |
+| 交易系统   | 24      | 24      | 100% ✅     |
+| 区块链     | 18      | 18      | 100% ✅     |
+| U-Key      | 10      | 10      | 100% ✅     |
+| 工作区     | 12      | 12      | 100% ✅     |
+| 组织管理   | 15      | 15      | 100% ✅     |
+| **总计**   | **185** | **185** | **100%** ✅ |
 
 #### 文件统计
 
@@ -6377,15 +7020,16 @@ interface GitAPI {
 
 #### 平台支持
 
-| 平台 | 支持状态 | 完成度 |
-|------|---------|--------|
-| Windows | ✅ 完全支持 | 100% |
-| macOS | ✅ 完全支持 | 100% |
-| Linux | ✅ 完全支持 | 100% |
+| 平台    | 支持状态    | 完成度 |
+| ------- | ----------- | ------ |
+| Windows | ✅ 完全支持 | 100%   |
+| macOS   | ✅ 完全支持 | 100%   |
+| Linux   | ✅ 完全支持 | 100%   |
 
 #### 生产就绪检查清单
 
 **功能完整性**:
+
 - ✅ 所有核心功能已实现
 - ✅ 所有TODO已完成或移除
 - ✅ 所有mock数据已替换或文档化
@@ -6393,24 +7037,28 @@ interface GitAPI {
 - ✅ 用户反馈机制完善
 
 **跨平台兼容性**:
+
 - ✅ Windows测试通过
 - ✅ macOS兼容性确认
 - ✅ Linux兼容性确认
 - ✅ 降级策略完善
 
 **安全性**:
+
 - ✅ 数据加密
 - ✅ 硬件安全模块
 - ✅ 端到端加密
 - ✅ 权限控制
 
 **性能**:
+
 - ✅ 数据库优化
 - ✅ 增量同步
 - ✅ 虚拟滚动
 - ✅ 懒加载
 
 **文档**:
+
 - ✅ 用户指南
 - ✅ 开发文档
 - ✅ API文档
@@ -6419,18 +7067,21 @@ interface GitAPI {
 #### 代码质量指标
 
 **架构**:
+
 - ✅ 模块化设计
 - ✅ 关注点分离
 - ✅ 依赖注入
 - ✅ 事件驱动
 
 **代码规范**:
+
 - ✅ ESLint配置
 - ✅ 一致的命名
 - ✅ 完整的注释
 - ✅ 错误处理
 
 **测试覆盖**:
+
 - ✅ 单元测试框架
 - ✅ 集成测试
 - ✅ E2E测试 (95%+通过率)
@@ -6441,6 +7092,7 @@ interface GitAPI {
 ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能点已实现并经过验证，达到生产就绪状态。
 
 **关键数据**:
+
 - **总功能点**: 185个
 - **完成功能**: 185个
 - **完成率**: 100%
@@ -6450,6 +7102,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 
 **生产就绪**:
 应用已准备好进行:
+
 1. ✅ 最终测试
 2. ✅ 安全审计
 3. ✅ 性能优化
@@ -6457,6 +7110,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 5. ✅ 生产部署
 
 **下一步建议**:
+
 1. 进行全面的集成测试
 2. 执行安全审计
 3. 性能基准测试
@@ -6474,6 +7128,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 #### 新增功能模块
 
 **1. 移动端与PC端P2P同步** ⭐核心新功能 (100%完成)
+
 - **架构**: WebRTC + libp2p + WebSocket信令服务器
 - **核心组件** (PC端):
   - `mobile-bridge.js`: 移动端桥接管理器 (499行)
@@ -6496,6 +7151,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 - **测试脚本**: test-pairing.js, test-data-sync.js, test-mobile-client.js, test-pc-pairing.js
 
 **2. Linux平台打包支持** ⭐跨平台扩展 (100%完成)
+
 - **支持格式**: DEB、RPM、ZIP三种安装包格式
 - **支持架构**: x64
 - **支持发行版**: Ubuntu 20.04+, Debian 11+, Fedora 35+, Arch Linux
@@ -6513,20 +7169,24 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 #### 文档结构更新
 
 **新增章节**:
+
 - **4.5 移动端与PC端P2P同步**: 详细介绍架构设计、配对流程、数据同步、技术特点、使用场景、部署测试
 - **A.2 Linux安装**: 完整的Linux安装指南,包含DEB/RPM/ZIP三种安装方式
 
 **更新章节**:
+
 - **1.2.1 基础特性**: 扩展跨设备同步说明,新增P2P移动端同步
 - **1.3 技术架构图**: 添加移动端P2P同步组件和WebRTC通道
 - **6.1 PC端技术栈**: 更新打包工具说明,新增Linux打包支持
 
 #### 版本信息
+
 - 文档版本: v2.6 → **v2.7**
 - 系统版本: v0.20.0 (保持不变)
 - 最后更新: 2026-01-06 → **2026-01-07**
 
 #### 技术亮点
+
 1. **实现真正的移动端-PC端实时同步**: 通过WebRTC实现低延迟P2P通信
 2. **完整的Linux支持**: 覆盖主流Linux发行版的三种安装方式
 3. **7个核心源文件**: 新增2150+行移动端同步代码
@@ -6548,6 +7208,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 #### 新增Phase 4功能模块
 
 **1. 插件系统** (70%完成, Phase 1)
+
 - 插件生命周期管理 (加载、启动、停止、卸载)
 - 扩展点机制
 - 基础沙箱隔离
@@ -6556,6 +7217,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 - 报告: `plan/completed/PLUGIN_SYSTEM_*.md` (3个文件)
 
 **2. 音频处理系统** (80%完成)
+
 - 语音转文字支持 (Whisper AI)
 - 音频降噪和增强 (FFmpeg)
 - 多语言检测支持
@@ -6565,12 +7227,14 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 - 报告: `plan/completed/VOICE_INPUT_*.md` (3个文件)
 
 **3. U-Key多品牌支持** (100%完成)
+
 - 新增华大驱动 (国密算法支持)
 - 新增天地融驱动 (支付密码器)
 - 支持5种主流U盾品牌
 - 报告: `plan/completed/UKEY_UPDATE_2025-12-28.md`
 
 **4. 技能工具系统** (95%完成)
+
 - 35个内置技能（涵盖核心开发场景）
 - 52个内置工具（高频使用工具）
 - 19大类别：code, web, data, content, document, media, project, ai, template, system, network, automation, text, security, database, file, config, utility, image
@@ -6588,27 +7252,32 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 - 报告: `SKILL_TOOL_INTEGRATION_GUIDE.md`
 
 **5. 浏览器扩展** (70%完成)
+
 - Chrome Extension开发
 - 网页内容保存和标注
 - AI标签/摘要生成
 - Native Messaging通信
 
 **6. 国际化系统** (100%完成)
+
 - Vue I18n集成
 - 中英文支持
 - 报告: `plan/completed/I18N_IMPLEMENTATION_REPORT.md`
 
 **7. 区块链集成** (50%完成)
+
 - Hardhat智能合约项目
 - 多链支持和钱包连接
 - 报告: `BLOCKCHAIN_INTEGRATION_PROGRESS.md`
 
 #### 版本更新
+
 - 系统版本: v0.16.0 → v0.17.0 → v0.18.0
 - 完成度: 95% → 97% → 98%
 - 最后更新: 2025-12-28 → 2025-12-29 → 2025-12-30
 
 #### 技术栈新增
+
 - **语音识别**: OpenAI Whisper API
 - **音频处理**: FFmpeg (afftdn, acompressor, loudnorm等滤镜)
 - **插件系统**: 自研插件框架 + 沙箱机制
@@ -6624,18 +7293,19 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 
 **从设计到实际的关键变化**:
 
-| 组件 | 原设计 | 实际实现 | 原因 |
-|------|--------|---------|------|
-| **数据库** | SQLCipher (加密) | sql.js (无加密) | 开发阶段优先功能实现,加密可后续升级 |
-| **前端框架** | React | Vue 3 | 团队熟悉度,生态成熟 |
-| **UI库** | Ant Design | Ant Design Vue | 配合Vue生态 |
-| **状态管理** | Redux Toolkit | Pinia | Vue官方推荐 |
-| **Git库** | libgit2 (原生) | isomorphic-git (纯JS) | 跨平台兼容性更好 |
-| **Electron版本** | 未指定 | 39.2.6 | 最新稳定版 |
+| 组件             | 原设计           | 实际实现              | 原因                                |
+| ---------------- | ---------------- | --------------------- | ----------------------------------- |
+| **数据库**       | SQLCipher (加密) | sql.js (无加密)       | 开发阶段优先功能实现,加密可后续升级 |
+| **前端框架**     | React            | Vue 3                 | 团队熟悉度,生态成熟                 |
+| **UI库**         | Ant Design       | Ant Design Vue        | 配合Vue生态                         |
+| **状态管理**     | Redux Toolkit    | Pinia                 | Vue官方推荐                         |
+| **Git库**        | libgit2 (原生)   | isomorphic-git (纯JS) | 跨平台兼容性更好                    |
+| **Electron版本** | 未指定           | 39.2.6                | 最新稳定版                          |
 
 #### 2. 模块实施优先级调整
 
 **实际开发路径**:
+
 1. ✅ **Phase 1**: 知识库 + 项目管理 (核心功能,100%完成)
 2. 🚧 **Phase 2**: 社交模块 (基础设施完成70%,UI待完善)
 3. ✅ **Phase 3**: 交易模块 (后端100%完成,前端部分完成)
@@ -6645,6 +7315,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 #### 3. 数据库表结构扩展
 
 **实际增加的字段**(相比原设计):
+
 - **同步字段**: `sync_status`, `synced_at`, `device_id`
 - **软删除**: `deleted` (用于数据恢复)
 - **类别管理**: `category_id` (projects表)
@@ -6652,6 +7323,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 - **文件系统路径**: `fs_path` (project_files表)
 
 **新增表**:
+
 - `file_sync_state` - 文件同步状态跟踪
 - `project_categories` - 项目分类系统
 - `project_task_plans` - AI任务拆解计划
@@ -6662,6 +7334,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 #### 4. AI能力增强
 
 **超出原设计的实现**:
+
 - ✅ **智能任务拆解**: AI自动将复杂需求分解为子任务
 - ✅ **14+云端LLM支持**: 不仅Ollama,还支持阿里通义/智谱GLM/百度千帆等
 - ✅ **多引擎架构**: Web/文档/数据/代码/图像/视频6大处理引擎
@@ -6671,16 +7344,19 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 #### 5. 重要实现细节
 
 **U盾/SIMKey安全**:
+
 - ✅ U盾SDK集成 (Windows支持,带模拟模式)
 - 🚧 SIMKey集成 (移动端规划中)
 - ✅ 软件模拟模式 (开发友好)
 
 **跨设备同步**:
+
 - ✅ Git based同步 (isomorphic-git)
 - ✅ HTTP同步服务 (sync-http-client.js)
 - 🚧 P2P直接同步 (基础设施已完成,优化中)
 
 **向量检索**:
+
 - ✅ ChromaDB集成 (嵌入式部署)
 - ✅ 自定义向量存储 (vector-store.js)
 - ✅ RAG Pipeline (embeddings + reranker + metrics)
@@ -6688,6 +7364,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 ### 与CLAUDE.md的一致性
 
 本文档v2.5更新已与项目根目录的`CLAUDE.md`和实际代码库保持一致,反映了以下真实信息:
+
 - ✅ 当前版本: v0.16.0
 - ✅ 完成度: 96% (生产可用)
 - ✅ 主要应用: desktop-app-vue/ (Electron 39.2.6 + Vue 3.4 + TypeScript)
@@ -6699,6 +7376,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 ### 下一步规划
 
 **Phase 5: v1.0.0路线图** (计划中):
+
 - RAG增强的项目AI
 - 代码开发引擎增强
 - 视频处理引擎
@@ -6708,10 +7386,12 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 - 详见: `plan/V1.0.0_ROADMAP_ASSESSMENT.md`
 
 **紧急修复** (高优先级):
+
 - 文件树系统Critical Bug
 - 详见: `plan/FILE_TREE_CRITICAL_FIX.md`
 
 **生态完善** (进行中):
+
 - 🚧 浏览器扩展 (70%完成,待发布)
 - 🚧 移动端APP (uni-app,10%完成)
 - 🚧 P2P社交模块UI完善 (20%待完成)
@@ -6722,6 +7402,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 - 🚧 区块链集成 (50%待完成)
 
 **未来优化**:
+
 - 数据库加密 (升级到SQLCipher)
 - P2P网络优化
 - 性能调优和测试覆盖
@@ -6737,6 +7418,7 @@ ChainlessChain PC端桌面应用已达到 **100%完成度**，所有185个功能
 ---
 
 **更新记录**:
+
 - 2026-01-15: v2.11更新,企业版权限管理+移动端同步+区块链UI+社交功能完善:
   - ✅ **企业版权限管理系统**: 完整RBAC,组织隔离,知识库协作,权限检查<5ms
   - ✅ **移动端同步功能**: Git同步(10MB/s),P2P同步(延迟<100ms),离线支持

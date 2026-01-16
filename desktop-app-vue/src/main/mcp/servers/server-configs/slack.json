@@ -1,0 +1,274 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Slack Server Configuration",
+  "description": "Configuration schema for @modelcontextprotocol/server-slack",
+  "type": "object",
+
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the Slack server"
+    },
+
+    "command": {
+      "type": "string",
+      "default": "npx",
+      "description": "Command to launch the server"
+    },
+
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["-y", "@modelcontextprotocol/server-slack"],
+      "description": "Arguments to pass to the command"
+    },
+
+    "autoConnect": {
+      "type": "boolean",
+      "default": false,
+      "description": "Automatically connect on application startup"
+    },
+
+    "authentication": {
+      "type": "object",
+      "description": "Slack workspace authentication",
+      "properties": {
+        "botToken": {
+          "type": "string",
+          "description": "Slack Bot User OAuth Token (xoxb-...)",
+          "pattern": "^xoxb-[0-9]+-[0-9]+-[a-zA-Z0-9]+$"
+        },
+
+        "appToken": {
+          "type": "string",
+          "description": "Slack App-Level Token (xapp-...) for Socket Mode",
+          "pattern": "^xapp-[0-9]+-[A-Z0-9]+-[0-9]+-[a-zA-Z0-9]+$"
+        },
+
+        "signingSecret": {
+          "type": "string",
+          "description": "Slack App Signing Secret for request verification"
+        },
+
+        "teamId": {
+          "type": "string",
+          "description": "Slack Team/Workspace ID",
+          "pattern": "^T[A-Z0-9]+$"
+        }
+      },
+      "required": ["botToken"]
+    },
+
+    "permissions": {
+      "type": "object",
+      "description": "Permission configuration for Slack operations",
+      "properties": {
+        "allowedChannels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Channels that are allowed for messaging (IDs or names)"
+        },
+
+        "forbiddenChannels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["general", "random"],
+          "description": "Channels that are always blocked"
+        },
+
+        "allowDirectMessages": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow sending direct messages to users"
+        },
+
+        "allowFileUploads": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow uploading files to Slack"
+        },
+
+        "allowChannelManagement": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow creating/archiving channels"
+        },
+
+        "maxMessageLength": {
+          "type": "integer",
+          "default": 4000,
+          "description": "Maximum message length in characters"
+        },
+
+        "requireConfirmation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["post_message", "upload_file", "create_channel"],
+          "description": "Operations that require user confirmation"
+        }
+      }
+    },
+
+    "features": {
+      "type": "object",
+      "description": "Feature flags for Slack operations",
+      "properties": {
+        "enableMessaging": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable posting messages"
+        },
+
+        "enableReactions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable adding reactions to messages"
+        },
+
+        "enableThreads": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable thread replies"
+        },
+
+        "enableUserLookup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable looking up user information"
+        },
+
+        "enableChannelHistory": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable reading channel history"
+        },
+
+        "enableFileSharing": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable file uploads and sharing"
+        },
+
+        "enableReminders": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable setting reminders"
+        }
+      }
+    },
+
+    "performance": {
+      "type": "object",
+      "description": "Performance tuning options",
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "default": 30000,
+          "description": "API call timeout in milliseconds"
+        },
+
+        "retryAttempts": {
+          "type": "integer",
+          "default": 3,
+          "description": "Number of retry attempts for failed requests"
+        },
+
+        "rateLimitPerMinute": {
+          "type": "integer",
+          "default": 60,
+          "description": "Maximum API calls per minute"
+        },
+
+        "cacheUserInfo": {
+          "type": "boolean",
+          "default": true,
+          "description": "Cache user information to reduce API calls"
+        },
+
+        "cacheTTL": {
+          "type": "integer",
+          "default": 3600,
+          "description": "Cache time-to-live in seconds"
+        }
+      }
+    },
+
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable audit logging"
+        },
+
+        "logMessages": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log all sent messages"
+        },
+
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Logging level"
+        },
+
+        "logPath": {
+          "type": "string",
+          "default": ".chainlesschain/logs/mcp-slack.log",
+          "description": "Path to log file (relative to app root)"
+        }
+      }
+    }
+  },
+
+  "required": ["authentication"],
+
+  "examples": [
+    {
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-slack"],
+      "autoConnect": false,
+      "authentication": {
+        "botToken": "xoxb-1234567890-1234567890-abcdefghijklmnopqrstuvwx",
+        "teamId": "T0123ABCD"
+      },
+      "permissions": {
+        "allowedChannels": ["dev-team", "announcements"],
+        "forbiddenChannels": ["general", "random"],
+        "allowDirectMessages": false,
+        "allowFileUploads": false,
+        "maxMessageLength": 4000
+      },
+      "features": {
+        "enableMessaging": true,
+        "enableReactions": true,
+        "enableThreads": true,
+        "enableChannelHistory": false
+      },
+      "performance": {
+        "timeout": 30000,
+        "rateLimitPerMinute": 60
+      },
+      "logging": {
+        "enabled": true,
+        "logMessages": true,
+        "logLevel": "info"
+      }
+    }
+  ]
+}

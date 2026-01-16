@@ -83,7 +83,65 @@
         "git:operations"
       ],
       "documentation": "https://github.com/modelcontextprotocol/servers/tree/main/src/git",
-      "configSchema": null
+      "configSchema": "./server-configs/git.json"
+    },
+    {
+      "id": "slack",
+      "name": "Slack Server",
+      "description": "Official MCP Slack server for workspace messaging and collaboration",
+      "vendor": "@modelcontextprotocol",
+      "packageName": "@modelcontextprotocol/server-slack",
+      "minVersion": "0.1.0",
+      "maxVersion": "1.0.0",
+      "verifiedChecksum": null,
+      "capabilities": ["tools", "resources"],
+      "securityLevel": "high",
+      "requiredPermissions": [
+        "network:http",
+        "slack:messaging",
+        "slack:workspace"
+      ],
+      "documentation": "https://github.com/modelcontextprotocol/servers/tree/main/src/slack",
+      "configSchema": "./server-configs/slack.json"
+    },
+    {
+      "id": "github",
+      "name": "GitHub Server",
+      "description": "Official MCP GitHub server for repository and issue management",
+      "vendor": "@modelcontextprotocol",
+      "packageName": "@modelcontextprotocol/server-github",
+      "minVersion": "0.1.0",
+      "maxVersion": "1.0.0",
+      "verifiedChecksum": null,
+      "capabilities": ["tools", "resources"],
+      "securityLevel": "high",
+      "requiredPermissions": [
+        "network:http",
+        "github:repos",
+        "github:issues",
+        "github:pulls"
+      ],
+      "documentation": "https://github.com/modelcontextprotocol/servers/tree/main/src/github",
+      "configSchema": "./server-configs/github.json"
+    },
+    {
+      "id": "puppeteer",
+      "name": "Puppeteer Server",
+      "description": "Official MCP Puppeteer server for web automation and scraping",
+      "vendor": "@modelcontextprotocol",
+      "packageName": "@modelcontextprotocol/server-puppeteer",
+      "minVersion": "0.1.0",
+      "maxVersion": "1.0.0",
+      "verifiedChecksum": null,
+      "capabilities": ["tools"],
+      "securityLevel": "high",
+      "requiredPermissions": [
+        "network:http",
+        "browser:automation",
+        "browser:screenshot"
+      ],
+      "documentation": "https://github.com/modelcontextprotocol/servers/tree/main/src/puppeteer",
+      "configSchema": "./server-configs/puppeteer.json"
     }
   ],
 
