@@ -1628,6 +1628,24 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // 工具
     openPluginsDir: () => ipcRenderer.invoke("plugin:open-plugins-dir"),
 
+    // 插件方法调用
+    callPluginMethod: (pluginId, methodName, args = []) =>
+      ipcRenderer.invoke("plugin:call-method", pluginId, methodName, args),
+
+    // 获取插件页面内容
+    getPluginPageContent: (pluginId, pageId = "main") =>
+      ipcRenderer.invoke("plugin:get-page-content", pluginId, pageId),
+
+    // 获取插件工具和技能
+    getPluginTools: (pluginId) =>
+      ipcRenderer.invoke("plugin:get-tools", pluginId),
+    getPluginSkills: (pluginId) =>
+      ipcRenderer.invoke("plugin:get-skills", pluginId),
+
+    // 执行插件工具
+    executePluginTool: (pluginId, toolId, params) =>
+      ipcRenderer.invoke("plugin:execute-tool", pluginId, toolId, params),
+
     // 事件监听
     on: (event, callback) =>
       ipcRenderer.on(event, (_event, ...args) => callback(...args)),

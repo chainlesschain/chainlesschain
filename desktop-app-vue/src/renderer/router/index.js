@@ -569,6 +569,30 @@ const routes = [
         component: () => import("../pages/PluginPublisher.vue"),
         meta: { title: "插件发布" },
       },
+      // 插件页面通用路由
+      {
+        path: "plugin/:pluginId",
+        name: "PluginPage",
+        component: () => import("../components/plugins/PluginPageWrapper.vue"),
+        meta: { title: "插件页面", isPluginPage: true },
+        props: (route) => ({
+          pluginId: route.params.pluginId,
+          pageConfig: route.query,
+        }),
+      },
+      {
+        path: "plugin/:pluginId/:pageId",
+        name: "PluginSubPage",
+        component: () => import("../components/plugins/PluginPageWrapper.vue"),
+        meta: { title: "插件页面", isPluginPage: true },
+        props: (route) => ({
+          pluginId: route.params.pluginId,
+          pageConfig: {
+            id: route.params.pageId,
+            ...route.query,
+          },
+        }),
+      },
       // ===== 多媒体处理 =====
       {
         path: "audio/import",
