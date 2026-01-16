@@ -18,9 +18,19 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
   // 确定主进程入口文件路径
   const mainPath = path.join(__dirname, '../../desktop-app-vue/dist/main/index.js');
 
-  // 设置固定的 userData 路径，确保配置文件能被读取
+  // 设置固定的 userData 路径，确保配置文件能被读取（跨平台兼容）
   const os = require('os');
-  const userDataPath = path.join(os.homedir(), 'Library', 'Application Support', 'chainlesschain');
+  let userDataPath: string;
+  switch (process.platform) {
+    case 'darwin':
+      userDataPath = path.join(os.homedir(), 'Library', 'Application Support', 'chainlesschain');
+      break;
+    case 'win32':
+      userDataPath = path.join(os.homedir(), 'AppData', 'Roaming', 'chainlesschain');
+      break;
+    default: // Linux and others
+      userDataPath = path.join(os.homedir(), '.config', 'chainlesschain');
+  }
 
   // 启动Electron（增加超时时间，指定 userData 路径）
   const app = await electron.launch({
