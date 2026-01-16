@@ -104,6 +104,12 @@ function registerAllIPC(dependencies) {
     // 获取 Token 追踪器（如果已初始化）
     const tokenTracker = app ? (app.tokenTracker || null) : null;
 
+    // 获取 Prompt 压缩器（如果已初始化）
+    const promptCompressor = app ? (app.promptCompressor || null) : null;
+
+    // 获取响应缓存（如果已初始化）
+    const responseCache = app ? (app.responseCache || null) : null;
+
     registerLLMIPC({
       llmManager: llmManager || null,
       mainWindow: mainWindow || null,
@@ -111,6 +117,8 @@ function registerAllIPC(dependencies) {
       promptTemplateManager: promptTemplateManager || null,
       llmSelector,
       tokenTracker,
+      promptCompressor,
+      responseCache,
       database: database || null,
       app: app || null
     });
