@@ -59,6 +59,18 @@ class LLMManager extends EventEmitter {
       this.tokenTracker.on("budget-alert", this._handleBudgetAlert.bind(this));
     }
 
+    // 🔥 响应缓存（可选）
+    this.responseCache = config.responseCache || null;
+    if (this.responseCache) {
+      console.log("[LLMManager] 响应缓存已启用");
+    }
+
+    // 🔥 Prompt 压缩器（可选）
+    this.promptCompressor = config.promptCompressor || null;
+    if (this.promptCompressor) {
+      console.log("[LLMManager] Prompt 压缩已启用");
+    }
+
     // 🔥 暂停标志（预算超限时）
     this.paused = false;
 
@@ -436,22 +448,126 @@ class LLMManager extends EventEmitter {
     }
 
     const startTime = Date.now();
+    let wasCached = false;
+    let wasCompressed = false;
+    let compressionRatio = 1.0;
+    let processedMessages = messages;
 
     try {
+      // 🔥 步骤 1: 检查响应缓存（如果启用）
+      if (this.responseCache && !options.skipCache) {
+        const cacheResult = await this.responseCache.get(
+          this.provider,
+          this.config.model,
+          messages,
+          options,
+        );
+
+        if (cacheResult.hit) {
+          console.log("[LLMManager] 缓存命中，跳过 LLM 调用");
+          wasCached = true;
+
+          // 🔥 记录 Token 使用（缓存命中）
+          if (this.tokenTracker) {
+            try {
+              await this.tokenTracker.recordUsage({
+                conversationId: options.conversationId,
+                messageId: options.messageId,
+                provider: this.provider,
+                model: this.config.model || "unknown",
+                inputTokens: 0,
+                outputTokens: 0,
+                cachedTokens: 0,
+                wasCached: true,
+                wasCompressed: false,
+                compressionRatio: 1.0,
+                responseTime: Date.now() - startTime,
+                endpoint: options.endpoint,
+                userId: options.userId || "default",
+              });
+            } catch (trackError) {
+              console.error("[LLMManager] Token 追踪失败:", trackError);
+            }
+          }
+
+          return {
+            text:
+              cacheResult.response.text ||
+              cacheResult.response.message?.content,
+            message: cacheResult.response.message,
+            model: cacheResult.response.model,
+            tokens: cacheResult.response.tokens || 0,
+            usage: cacheResult.response.usage,
+            timestamp: Date.now(),
+            wasCached: true,
+            tokensSaved: cacheResult.tokensSaved || 0,
+          };
+        }
+      }
+
+      // 🔥 步骤 2: Prompt 压缩（如果启用且未禁用）
+      if (
+        this.promptCompressor &&
+        !options.skipCompression &&
+        messages.length > 5
+      ) {
+        console.log("[LLMManager] 执行 Prompt 压缩...");
+        const compressionResult = await this.promptCompressor.compress(
+          messages,
+          {
+            preserveSystemMessage: true,
+            preserveLastUserMessage: true,
+          },
+        );
+
+        processedMessages = compressionResult.messages;
+        wasCompressed = true;
+        compressionRatio = compressionResult.compressionRatio;
+
+        console.log(
+          `[LLMManager] Prompt 已压缩: ${messages.length} → ${processedMessages.length} 条消息, ` +
+            `压缩率: ${compressionRatio.toFixed(2)}, 节省 ${compressionResult.tokensSaved} tokens`,
+        );
+      }
+
+      // 🔥 步骤 3: 调用 LLM API
       let result;
 
       if (this.provider === LLMProviders.OLLAMA) {
-        result = await this.client.chat(messages, options);
+        result = await this.client.chat(processedMessages, options);
       } else {
         // OpenAI兼容的API
-        result = await this.client.chat(messages, options);
+        result = await this.client.chat(processedMessages, options);
       }
 
-      this.emit("chat-completed", { messages, result });
+      this.emit("chat-completed", { messages: processedMessages, result });
 
       const responseTime = Date.now() - startTime;
 
-      // 🔥 记录 Token 使用
+      // 🔥 步骤 4: 存入响应缓存（如果启用）
+      if (this.responseCache && !options.skipCache && !wasCached) {
+        try {
+          await this.responseCache.set(
+            this.provider,
+            this.config.model,
+            messages, // 使用原始 messages 作为缓存键
+            {
+              text: result.message?.content || result.text,
+              message: result.message,
+              model: result.model,
+              tokens: result.tokens || result.usage?.total_tokens || 0,
+              usage: result.usage,
+            },
+            options,
+          );
+          console.log("[LLMManager] 响应已缓存");
+        } catch (cacheError) {
+          console.error("[LLMManager] 缓存保存失败:", cacheError);
+          // 不阻塞主流程
+        }
+      }
+
+      // 🔥 步骤 5: 记录 Token 使用
       if (this.tokenTracker) {
         try {
           await this.tokenTracker.recordUsage({
@@ -462,9 +578,9 @@ class LLMManager extends EventEmitter {
             inputTokens: result.usage?.prompt_tokens || 0,
             outputTokens: result.usage?.completion_tokens || 0,
             cachedTokens: result.usage?.cached_tokens || 0,
-            wasCached: options.wasCached || false,
-            wasCompressed: options.wasCompressed || false,
-            compressionRatio: options.compressionRatio || 1.0,
+            wasCached,
+            wasCompressed,
+            compressionRatio,
             responseTime,
             endpoint: options.endpoint,
             userId: options.userId || "default",
@@ -482,10 +598,13 @@ class LLMManager extends EventEmitter {
         tokens: result.tokens || result.usage?.total_tokens || 0,
         usage: result.usage,
         timestamp: Date.now(),
+        wasCached,
+        wasCompressed,
+        compressionRatio,
       };
     } catch (error) {
       console.error("[LLMManager] 聊天失败:", error);
-      this.emit("chat-failed", { messages, error });
+      this.emit("chat-failed", { messages: processedMessages, error });
       throw error;
     }
   }
@@ -509,18 +628,57 @@ class LLMManager extends EventEmitter {
     }
 
     const startTime = Date.now();
+    let wasCompressed = false;
+    let compressionRatio = 1.0;
+    let processedMessages = messages;
 
     try {
+      // 🔥 Prompt 压缩（流式不支持缓存，但支持压缩）
+      if (
+        this.promptCompressor &&
+        !options.skipCompression &&
+        messages.length > 5
+      ) {
+        console.log("[LLMManager] 执行 Prompt 压缩（流式）...");
+        const compressionResult = await this.promptCompressor.compress(
+          messages,
+          {
+            preserveSystemMessage: true,
+            preserveLastUserMessage: true,
+          },
+        );
+
+        processedMessages = compressionResult.messages;
+        wasCompressed = true;
+        compressionRatio = compressionResult.compressionRatio;
+
+        console.log(
+          `[LLMManager] Prompt 已压缩（流式）: ${messages.length} → ${processedMessages.length} 条消息, ` +
+            `压缩率: ${compressionRatio.toFixed(2)}, 节省 ${compressionResult.tokensSaved} tokens`,
+        );
+      }
+
       let result;
 
       if (this.provider === LLMProviders.OLLAMA) {
-        result = await this.client.chatStream(messages, onChunk, options);
+        result = await this.client.chatStream(
+          processedMessages,
+          onChunk,
+          options,
+        );
       } else {
         // OpenAI兼容的API
-        result = await this.client.chatStream(messages, onChunk, options);
+        result = await this.client.chatStream(
+          processedMessages,
+          onChunk,
+          options,
+        );
       }
 
-      this.emit("chat-stream-completed", { messages, result });
+      this.emit("chat-stream-completed", {
+        messages: processedMessages,
+        result,
+      });
 
       const responseTime = Date.now() - startTime;
 
@@ -535,9 +693,9 @@ class LLMManager extends EventEmitter {
             inputTokens: result.usage?.prompt_tokens || 0,
             outputTokens: result.usage?.completion_tokens || 0,
             cachedTokens: result.usage?.cached_tokens || 0,
-            wasCached: options.wasCached || false,
-            wasCompressed: options.wasCompressed || false,
-            compressionRatio: options.compressionRatio || 1.0,
+            wasCached: false, // 流式不支持缓存
+            wasCompressed,
+            compressionRatio,
             responseTime,
             endpoint: options.endpoint,
             userId: options.userId || "default",
@@ -555,10 +713,12 @@ class LLMManager extends EventEmitter {
         tokens: result.tokens || 0,
         usage: result.usage,
         timestamp: Date.now(),
+        wasCompressed,
+        compressionRatio,
       };
     } catch (error) {
       console.error("[LLMManager] 流式聊天失败:", error);
-      this.emit("chat-stream-failed", { messages, error });
+      this.emit("chat-stream-failed", { messages: processedMessages, error });
       throw error;
     }
   }

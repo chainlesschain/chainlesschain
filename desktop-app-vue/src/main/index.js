@@ -106,6 +106,9 @@ const { registerMCPIPC } = require("./mcp/mcp-ipc");
 // Speech/Voice Input System
 const { registerSpeechIPC } = require("./speech/speech-ipc");
 
+// Session Management System
+const { registerSessionManagerIPC } = require("./llm/session-manager-ipc");
+
 // Plugin Marketplace System
 const { registerPluginMarketplaceIPC } = require("./plugins/marketplace-ipc");
 
@@ -739,9 +742,15 @@ class ChainlessChainApp {
             : "(未设置)",
         });
 
-        // 🔥 添加 TokenTracker 到配置
+        // 🔥 添加 TokenTracker、ResponseCache、PromptCompressor 到配置
         if (this.tokenTracker) {
           managerConfig.tokenTracker = this.tokenTracker;
+        }
+        if (this.responseCache) {
+          managerConfig.responseCache = this.responseCache;
+        }
+        if (this.promptCompressor) {
+          managerConfig.promptCompressor = this.promptCompressor;
         }
 
         this.llmManager = new LLMManager(managerConfig);
@@ -758,6 +767,34 @@ class ChainlessChainApp {
     } catch (error) {
       console.error("LLM管理器初始化失败:", error);
       // LLM初始化失败不影响应用启动
+    }
+
+    // 初始化 SessionManager（会话管理器）
+    try {
+      console.log("初始化会话管理器...");
+      const { SessionManager } = require("./llm/session-manager");
+      const {
+        getUnifiedConfigManager,
+      } = require("./config/unified-config-manager");
+
+      const configManager = getUnifiedConfigManager();
+      const sessionsDir = path.join(configManager.paths.memory, "sessions");
+
+      this.sessionManager = new SessionManager({
+        database: this.database,
+        llmManager: this.llmManager,
+        sessionsDir: sessionsDir,
+        maxHistoryMessages: 10,
+        compressionThreshold: 10,
+        enableAutoSave: true,
+        enableCompression: true,
+      });
+
+      await this.sessionManager.initialize();
+      console.log("会话管理器初始化成功");
+    } catch (error) {
+      console.error("会话管理器初始化失败:", error);
+      // SessionManager 初始化失败不影响应用启动
     }
 
     // 初始化RAG管理器
@@ -1411,6 +1448,20 @@ class ChainlessChainApp {
         console.log("[Main] 语音输入IPC handlers已注册 (34 handlers)");
       } catch (error) {
         console.error("[Main] 语音输入IPC注册失败:", error);
+      }
+
+      // 注册会话管理IPC handlers
+      try {
+        if (this.sessionManager) {
+          registerSessionManagerIPC({
+            sessionManager: this.sessionManager,
+          });
+          console.log("[Main] 会话管理IPC handlers已注册 (10 handlers)");
+        } else {
+          console.warn("[Main] SessionManager 未初始化，跳过IPC注册");
+        }
+      } catch (error) {
+        console.error("[Main] 会话管理IPC注册失败:", error);
       }
 
       console.log("[Main] 技能和工具管理系统初始化完成（含桥接器）");
@@ -2841,6 +2892,8 @@ class ChainlessChainApp {
         tokenTracker: this.tokenTracker,
         promptCompressor: this.promptCompressor,
         responseCache: this.responseCache,
+        // 🔥 会话管理模块
+        sessionManager: this.sessionManager,
       });
 
       console.log("[ChainlessChainApp] ✓ Modular IPC registration complete");

@@ -1,49 +1,52 @@
 // sql.js is optional (may not be available in packaged builds)
 let initSqlJs = null;
 try {
-  const sqlJsModule = require('sql.js');
+  const sqlJsModule = require("sql.js");
   // sql.js exports a function as default export
   initSqlJs = sqlJsModule.default || sqlJsModule;
 } catch (err) {
-  console.log('[Database] sql.js not available (will use better-sqlite3)');
+  console.log("[Database] sql.js not available (will use better-sqlite3)");
 }
 
-const path = require('path');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
+const path = require("path");
+const fs = require("fs");
+const { v4: uuidv4 } = require("uuid");
 
 // 导入数据库加密模块
 let createDatabaseAdapter;
 let createBetterSQLiteAdapter;
 try {
-  const dbModule = require('./database/index');
+  const dbModule = require("./database/index");
   createDatabaseAdapter = dbModule.createDatabaseAdapter;
 } catch (e) {
-  console.warn('[Database] 加密模块不可用，将使用sql.js:', e.message);
+  console.warn("[Database] 加密模块不可用，将使用sql.js:", e.message);
   createDatabaseAdapter = null;
 }
 
 // 导入 Better-SQLite3 适配器（用于开发环境）
 try {
-  const betterSqliteModule = require('./database/better-sqlite-adapter');
+  const betterSqliteModule = require("./database/better-sqlite-adapter");
   createBetterSQLiteAdapter = betterSqliteModule.createBetterSQLiteAdapter;
 } catch (e) {
-  console.warn('[Database] Better-SQLite3 适配器不可用:', e.message);
+  console.warn("[Database] Better-SQLite3 适配器不可用:", e.message);
   createBetterSQLiteAdapter = null;
 }
 
 // Try to load electron, fallback to global.app for testing
 let app;
 try {
-  app = require('electron').app;
+  app = require("electron").app;
 } catch (e) {
   // In test environment, use global.app if available
-  app = global.app || { isPackaged: false, getPath: () => require('os').tmpdir() };
+  app = global.app || {
+    isPackaged: false,
+    getPath: () => require("os").tmpdir(),
+  };
 }
 
 let getAppConfig;
 try {
-  getAppConfig = require('./app-config').getAppConfig;
+  getAppConfig = require("./app-config").getAppConfig;
 } catch (e) {
   // Fallback for testing
   getAppConfig = () => ({ enableEncryption: false });
@@ -79,24 +82,28 @@ class DatabaseManager {
         appConfig.ensureDatabaseDir();
       }
 
-      console.log('数据库路径:', this.dbPath);
+      console.log("数据库路径:", this.dbPath);
 
       // 开发环境优先使用 Better-SQLite3
-      const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+      const isDevelopment =
+        process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
       if (isDevelopment && createBetterSQLiteAdapter) {
         try {
           await this.initializeWithBetterSQLite();
-          console.log('数据库初始化成功（Better-SQLite3 开发模式）');
+          console.log("数据库初始化成功（Better-SQLite3 开发模式）");
 
           // Verify database is actually initialized
           if (!this.db) {
-            throw new Error('数据库对象为null，初始化失败');
+            throw new Error("数据库对象为null，初始化失败");
           }
 
           return true;
         } catch (error) {
-          console.warn('[Database] Better-SQLite3 初始化失败，尝试其他方式:', error.message);
-          console.warn('[Database] 错误堆栈:', error.stack);
+          console.warn(
+            "[Database] Better-SQLite3 初始化失败，尝试其他方式:",
+            error.message,
+          );
+          console.warn("[Database] 错误堆栈:", error.stack);
         }
       }
 
@@ -104,34 +111,37 @@ class DatabaseManager {
       if (createDatabaseAdapter && this.encryptionEnabled) {
         try {
           await this.initializeWithAdapter();
-          console.log('数据库初始化成功（SQLCipher 加密模式）');
+          console.log("数据库初始化成功（SQLCipher 加密模式）");
 
           // Verify database is actually initialized
           if (!this.db) {
-            throw new Error('数据库对象为null，初始化失败');
+            throw new Error("数据库对象为null，初始化失败");
           }
 
           return true;
         } catch (error) {
-          console.warn('[Database] 加密初始化失败，回退到 sql.js:', error.message);
-          console.warn('[Database] 错误堆栈:', error.stack);
+          console.warn(
+            "[Database] 加密初始化失败，回退到 sql.js:",
+            error.message,
+          );
+          console.warn("[Database] 错误堆栈:", error.stack);
           // 继续使用 sql.js
         }
       }
 
       // Fallback: 使用 sql.js
       await this.initializeWithSqlJs();
-      console.log('数据库初始化成功（sql.js 模式）');
+      console.log("数据库初始化成功（sql.js 模式）");
 
       // Verify database is actually initialized
       if (!this.db) {
-        throw new Error('数据库对象为null，sql.js初始化失败');
+        throw new Error("数据库对象为null，sql.js初始化失败");
       }
 
       return true;
     } catch (error) {
-      console.error('数据库初始化失败:', error);
-      console.error('错误堆栈:', error.stack);
+      console.error("数据库初始化失败:", error);
+      console.error("错误堆栈:", error.stack);
       throw error;
     }
   }
@@ -140,11 +150,11 @@ class DatabaseManager {
    * 使用 Better-SQLite3 初始化（开发模式）
    */
   async initializeWithBetterSQLite() {
-    console.log('[Database] 使用 Better-SQLite3 初始化数据库...');
+    console.log("[Database] 使用 Better-SQLite3 初始化数据库...");
 
     // 创建适配器
     this.adapter = await createBetterSQLiteAdapter({
-      dbPath: this.dbPath
+      dbPath: this.dbPath,
     });
 
     // 获取数据库实例
@@ -156,7 +166,7 @@ class DatabaseManager {
     // 为 Better-SQLite3 添加 run() 方法以兼容旧代码
     if (!this.db.run && this.db.exec) {
       this.db.run = (sql, params) => {
-        if (params && (Array.isArray(params) || typeof params === 'object')) {
+        if (params && (Array.isArray(params) || typeof params === "object")) {
           return this.db.prepare(sql).run(params);
         } else {
           this.db.exec(sql);
@@ -166,7 +176,7 @@ class DatabaseManager {
 
     // 临时禁用外键约束以允许表创建和迁移
     if (this.db.pragma) {
-      this.db.pragma('foreign_keys = OFF');
+      this.db.pragma("foreign_keys = OFF");
     }
 
     // 创建表
@@ -177,7 +187,7 @@ class DatabaseManager {
 
     // 重新启用外键约束
     if (this.db.pragma) {
-      this.db.pragma('foreign_keys = ON');
+      this.db.pragma("foreign_keys = ON");
     }
   }
 
@@ -193,7 +203,7 @@ class DatabaseManager {
       encryptionEnabled: this.encryptionEnabled,
       password: this.encryptionPassword,
       autoMigrate: true,
-      configPath: path.join(app.getPath('userData'), 'db-key-config.json')
+      configPath: path.join(app.getPath("userData"), "db-key-config.json"),
     });
 
     // 创建数据库
@@ -204,9 +214,9 @@ class DatabaseManager {
 
     // 启用外键约束
     if (this.db.pragma) {
-      this.db.pragma('foreign_keys = ON');
+      this.db.pragma("foreign_keys = ON");
     } else if (this.db.run) {
-      this.db.run('PRAGMA foreign_keys = ON');
+      this.db.run("PRAGMA foreign_keys = ON");
     }
 
     // 创建表
@@ -221,35 +231,82 @@ class DatabaseManager {
    */
   async initializeWithSqlJs() {
     this.SQL = await initSqlJs({
-      locateFile: file => {
+      locateFile: (file) => {
         const possiblePaths = [];
 
         if (app && app.isPackaged) {
           possiblePaths.push(
             path.join(process.resourcesPath, file),
-            path.join(process.resourcesPath, 'app', 'node_modules', 'sql.js', 'dist', file),
-            path.join(process.resourcesPath, 'node_modules', 'sql.js', 'dist', file),
-            path.join(__dirname, '..', '..', 'node_modules', 'sql.js', 'dist', file)
+            path.join(
+              process.resourcesPath,
+              "app",
+              "node_modules",
+              "sql.js",
+              "dist",
+              file,
+            ),
+            path.join(
+              process.resourcesPath,
+              "node_modules",
+              "sql.js",
+              "dist",
+              file,
+            ),
+            path.join(
+              __dirname,
+              "..",
+              "..",
+              "node_modules",
+              "sql.js",
+              "dist",
+              file,
+            ),
           );
         } else {
           possiblePaths.push(
-            path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file),
-            path.join(process.cwd(), 'desktop-app-vue', 'node_modules', 'sql.js', 'dist', file),
-            path.join(__dirname, '..', '..', '..', 'node_modules', 'sql.js', 'dist', file),
-            path.join(__dirname, '..', '..', '..', '..', 'node_modules', 'sql.js', 'dist', file)
+            path.join(process.cwd(), "node_modules", "sql.js", "dist", file),
+            path.join(
+              process.cwd(),
+              "desktop-app-vue",
+              "node_modules",
+              "sql.js",
+              "dist",
+              file,
+            ),
+            path.join(
+              __dirname,
+              "..",
+              "..",
+              "..",
+              "node_modules",
+              "sql.js",
+              "dist",
+              file,
+            ),
+            path.join(
+              __dirname,
+              "..",
+              "..",
+              "..",
+              "..",
+              "node_modules",
+              "sql.js",
+              "dist",
+              file,
+            ),
           );
         }
 
         for (const filePath of possiblePaths) {
           if (fs.existsSync(filePath)) {
-            console.log('Found sql.js WASM at:', filePath);
+            console.log("Found sql.js WASM at:", filePath);
             return filePath;
           }
         }
 
-        console.error('Could not find sql.js WASM file. Tried:', possiblePaths);
+        console.error("Could not find sql.js WASM file. Tried:", possiblePaths);
         return possiblePaths[0];
-      }
+      },
     });
 
     // 加载或创建数据库
@@ -262,7 +319,7 @@ class DatabaseManager {
 
     // 启用外键约束
     this.applyStatementCompat();
-    this.db.run('PRAGMA foreign_keys = ON');
+    this.db.run("PRAGMA foreign_keys = ON");
 
     // 创建表
     this.createTables();
@@ -279,14 +336,14 @@ class DatabaseManager {
       return;
     }
 
-    const manager = this;
-
     // Wrap Database.run() method for compatibility
     const originalDbRun = this.db.run ? this.db.run.bind(this.db) : null;
-    this.db.run = function(sql, params) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const manager = this;
+    this.db.run = function (sql, params) {
       try {
         const stmt = manager.db.prepare(sql);
-        if (params && (Array.isArray(params) || typeof params === 'object')) {
+        if (params && (Array.isArray(params) || typeof params === "object")) {
           stmt.bind(manager.normalizeParams(params));
         }
         stmt.step();
@@ -297,10 +354,14 @@ class DatabaseManager {
           manager.saveToFile();
         }
 
-        return { changes: manager.db.getRowsModified ? manager.db.getRowsModified() : 0 };
+        return {
+          changes: manager.db.getRowsModified
+            ? manager.db.getRowsModified()
+            : 0,
+        };
       } catch (error) {
-        console.error('[Database] db.run() failed:', error.message);
-        console.error('[Database] SQL:', sql.substring(0, 100));
+        console.error("[Database] db.run() failed:", error.message);
+        console.error("[Database] SQL:", sql.substring(0, 100));
         throw error;
       }
     };
@@ -312,7 +373,7 @@ class DatabaseManager {
         const first = params[0];
         if (Array.isArray(first)) {
           result = first;
-        } else if (first && typeof first === 'object') {
+        } else if (first && typeof first === "object") {
           result = first;
         } else {
           result = params;
@@ -323,14 +384,14 @@ class DatabaseManager {
 
       // 将数组中的 undefined 替换为 null（sql.js 不支持 undefined）
       if (Array.isArray(result)) {
-        return result.map(v => v === undefined ? null : v);
+        return result.map((v) => (v === undefined ? null : v));
       }
 
       // 对象参数也要清理 undefined
-      if (result && typeof result === 'object') {
+      if (result && typeof result === "object") {
         const cleaned = {};
         for (const key in result) {
-          if (result.hasOwnProperty(key)) {
+          if (Object.prototype.hasOwnProperty.call(result, key)) {
             cleaned[key] = result[key] === undefined ? null : result[key];
           }
         }
@@ -351,7 +412,11 @@ class DatabaseManager {
 
         stmt.get = (...params) => {
           const bound = normalizeParams(params);
-          if (Array.isArray(bound) ? bound.length : bound && typeof bound === 'object') {
+          if (
+            Array.isArray(bound)
+              ? bound.length
+              : bound && typeof bound === "object"
+          ) {
             stmt.bind(bound);
           }
 
@@ -378,7 +443,7 @@ class DatabaseManager {
                 row = null;
               }
             } catch (err) {
-              console.error('[Database] 构建行对象失败:', err);
+              console.error("[Database] 构建行对象失败:", err);
               row = null;
             }
           }
@@ -389,7 +454,11 @@ class DatabaseManager {
 
         stmt.all = (...params) => {
           const bound = normalizeParams(params);
-          if (Array.isArray(bound) ? bound.length : bound && typeof bound === 'object') {
+          if (
+            Array.isArray(bound)
+              ? bound.length
+              : bound && typeof bound === "object"
+          ) {
             stmt.bind(bound);
           }
           const rows = [];
@@ -421,7 +490,7 @@ class DatabaseManager {
                 rows.push(row);
               }
             } catch (err) {
-              console.error('[Database] 构建行对象失败:', err);
+              console.error("[Database] 构建行对象失败:", err);
               // 跳过这一行，继续处理下一行
             }
           }
@@ -433,13 +502,21 @@ class DatabaseManager {
         stmt.run = (...params) => {
           const bound = normalizeParams(params);
           if (rawRun) {
-            if (Array.isArray(bound) ? bound.length : bound && typeof bound === 'object') {
+            if (
+              Array.isArray(bound)
+                ? bound.length
+                : bound && typeof bound === "object"
+            ) {
               rawRun(bound);
             } else {
               rawRun();
             }
           } else {
-            if (Array.isArray(bound) ? bound.length : bound && typeof bound === 'object') {
+            if (
+              Array.isArray(bound)
+                ? bound.length
+                : bound && typeof bound === "object"
+            ) {
               stmt.bind(bound);
             }
             stmt.step();
@@ -449,7 +526,7 @@ class DatabaseManager {
           if (!manager.inTransaction) {
             manager.saveToFile();
           }
-          if (typeof manager.db.getRowsModified === 'function') {
+          if (typeof manager.db.getRowsModified === "function") {
             return { changes: manager.db.getRowsModified() };
           }
           return {};
@@ -467,7 +544,7 @@ class DatabaseManager {
    */
   saveToFile() {
     if (!this.db) {
-      throw new Error('数据库未初始化');
+      throw new Error("数据库未初始化");
     }
 
     // 如果使用适配器（SQLCipher），数据库自动保存
@@ -488,7 +565,7 @@ class DatabaseManager {
    * 创建数据库表
    */
   createTables() {
-    console.log('[Database] 开始创建数据库表...');
+    console.log("[Database] 开始创建数据库表...");
 
     try {
       // 使用exec()一次性执行所有SQL语句
@@ -2120,15 +2197,15 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_email_attachments_email ON email_attachments(email_id);
     `);
 
-      console.log('[Database] ✓ 所有表和索引创建成功');
+      console.log("[Database] ✓ 所有表和索引创建成功");
 
       // 保存更改
       this.saveToFile();
-      console.log('[Database] 数据库表创建完成');
+      console.log("[Database] 数据库表创建完成");
     } catch (error) {
-      console.error('[Database] 创建表失败:', error);
-      console.error('[Database] 错误详情:', error.message);
-      console.error('[Database] 错误堆栈:', error.stack);
+      console.error("[Database] 创建表失败:", error);
+      console.error("[Database] 错误详情:", error.message);
+      console.error("[Database] 错误堆栈:", error.stack);
       throw error;
     }
 
@@ -2137,13 +2214,13 @@ class DatabaseManager {
     try {
       this.initDefaultSettings();
     } catch (error) {
-      console.warn('[Database] 初始化默认配置失败（可忽略）:', error.message);
+      console.warn("[Database] 初始化默认配置失败（可忽略）:", error.message);
     }
 
     try {
       this.migrateDatabase();
     } catch (error) {
-      console.warn('[Database] 数据库迁移失败（可忽略）:', error.message);
+      console.warn("[Database] 数据库迁移失败（可忽略）:", error.message);
     }
   }
 
@@ -2151,289 +2228,389 @@ class DatabaseManager {
    * 数据库迁移：为已存在的表添加新列
    */
   migrateDatabase() {
-    console.log('[Database] 开始数据库迁移...');
+    console.log("[Database] 开始数据库迁移...");
 
     try {
       // ==================== 原有迁移 ====================
       // 检查 conversations 表是否有 project_id 列
-      const conversationsInfo = this.db.prepare("PRAGMA table_info(conversations)").all();
-      const hasProjectId = conversationsInfo.some(col => col.name === 'project_id');
-      const hasContextType = conversationsInfo.some(col => col.name === 'context_type');
-      const hasContextData = conversationsInfo.some(col => col.name === 'context_data');
+      const conversationsInfo = this.db
+        .prepare("PRAGMA table_info(conversations)")
+        .all();
+      const hasProjectId = conversationsInfo.some(
+        (col) => col.name === "project_id",
+      );
+      const hasContextType = conversationsInfo.some(
+        (col) => col.name === "context_type",
+      );
+      const hasContextData = conversationsInfo.some(
+        (col) => col.name === "context_data",
+      );
 
       if (!hasProjectId) {
-        console.log('[Database] 添加 conversations.project_id 列');
-        this.db.run('ALTER TABLE conversations ADD COLUMN project_id TEXT');
+        console.log("[Database] 添加 conversations.project_id 列");
+        this.db.run("ALTER TABLE conversations ADD COLUMN project_id TEXT");
       }
       if (!hasContextType) {
-        console.log('[Database] 添加 conversations.context_type 列');
-        this.db.run("ALTER TABLE conversations ADD COLUMN context_type TEXT DEFAULT 'global'");
+        console.log("[Database] 添加 conversations.context_type 列");
+        this.db.run(
+          "ALTER TABLE conversations ADD COLUMN context_type TEXT DEFAULT 'global'",
+        );
       }
       if (!hasContextData) {
-        console.log('[Database] 添加 conversations.context_data 列');
-        this.db.run('ALTER TABLE conversations ADD COLUMN context_data TEXT');
+        console.log("[Database] 添加 conversations.context_data 列");
+        this.db.run("ALTER TABLE conversations ADD COLUMN context_data TEXT");
       }
 
       // 检查 project_files 表是否有 fs_path 列
-      const projectFilesInfo = this.db.prepare("PRAGMA table_info(project_files)").all();
-      const hasFsPath = projectFilesInfo.some(col => col.name === 'fs_path');
+      const projectFilesInfo = this.db
+        .prepare("PRAGMA table_info(project_files)")
+        .all();
+      const hasFsPath = projectFilesInfo.some((col) => col.name === "fs_path");
 
       if (!hasFsPath) {
-        console.log('[Database] 添加 project_files.fs_path 列');
-        this.db.run('ALTER TABLE project_files ADD COLUMN fs_path TEXT');
+        console.log("[Database] 添加 project_files.fs_path 列");
+        this.db.run("ALTER TABLE project_files ADD COLUMN fs_path TEXT");
       }
 
       // 检查 p2p_chat_messages 表是否有 transfer_id 列（用于P2P文件传输）
-      const chatMessagesInfo = this.db.prepare("PRAGMA table_info(p2p_chat_messages)").all();
-      const hasTransferId = chatMessagesInfo.some(col => col.name === 'transfer_id');
+      const chatMessagesInfo = this.db
+        .prepare("PRAGMA table_info(p2p_chat_messages)")
+        .all();
+      const hasTransferId = chatMessagesInfo.some(
+        (col) => col.name === "transfer_id",
+      );
 
       if (!hasTransferId) {
-        console.log('[Database] 添加 p2p_chat_messages.transfer_id 列');
-        this.db.run('ALTER TABLE p2p_chat_messages ADD COLUMN transfer_id TEXT');
+        console.log("[Database] 添加 p2p_chat_messages.transfer_id 列");
+        this.db.run(
+          "ALTER TABLE p2p_chat_messages ADD COLUMN transfer_id TEXT",
+        );
       }
 
       // ==================== 同步字段迁移（V2） ====================
-      console.log('[Database] 执行同步字段迁移 (V2)...');
+      console.log("[Database] 执行同步字段迁移 (V2)...");
 
       // 为 projects 表添加设备ID和同步字段
       const projectsInfo = this.db.prepare("PRAGMA table_info(projects)").all();
-      if (!projectsInfo.some(col => col.name === 'device_id')) {
-        console.log('[Database] 添加 projects.device_id 列');
-        this.db.run('ALTER TABLE projects ADD COLUMN device_id TEXT');
+      if (!projectsInfo.some((col) => col.name === "device_id")) {
+        console.log("[Database] 添加 projects.device_id 列");
+        this.db.run("ALTER TABLE projects ADD COLUMN device_id TEXT");
       }
-      if (!projectsInfo.some(col => col.name === 'synced_at')) {
-        console.log('[Database] 添加 projects.synced_at 列');
-        this.db.run('ALTER TABLE projects ADD COLUMN synced_at INTEGER');
+      if (!projectsInfo.some((col) => col.name === "synced_at")) {
+        console.log("[Database] 添加 projects.synced_at 列");
+        this.db.run("ALTER TABLE projects ADD COLUMN synced_at INTEGER");
       }
-      if (!projectsInfo.some(col => col.name === 'deleted')) {
-        console.log('[Database] 添加 projects.deleted 列');
-        this.db.run('ALTER TABLE projects ADD COLUMN deleted INTEGER DEFAULT 0');
+      if (!projectsInfo.some((col) => col.name === "deleted")) {
+        console.log("[Database] 添加 projects.deleted 列");
+        this.db.run(
+          "ALTER TABLE projects ADD COLUMN deleted INTEGER DEFAULT 0",
+        );
       }
 
       // 为 conversations 表添加同步字段
-      const convSyncInfo = this.db.prepare("PRAGMA table_info(conversations)").all();
-      if (!convSyncInfo.some(col => col.name === 'sync_status')) {
-        console.log('[Database] 添加 conversations.sync_status 列');
-        this.db.run("ALTER TABLE conversations ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      const convSyncInfo = this.db
+        .prepare("PRAGMA table_info(conversations)")
+        .all();
+      if (!convSyncInfo.some((col) => col.name === "sync_status")) {
+        console.log("[Database] 添加 conversations.sync_status 列");
+        this.db.run(
+          "ALTER TABLE conversations ADD COLUMN sync_status TEXT DEFAULT 'pending'",
+        );
       }
-      if (!convSyncInfo.some(col => col.name === 'synced_at')) {
-        console.log('[Database] 添加 conversations.synced_at 列');
-        this.db.run('ALTER TABLE conversations ADD COLUMN synced_at INTEGER');
+      if (!convSyncInfo.some((col) => col.name === "synced_at")) {
+        console.log("[Database] 添加 conversations.synced_at 列");
+        this.db.run("ALTER TABLE conversations ADD COLUMN synced_at INTEGER");
       }
 
       // 为 messages 表添加同步字段
       const messagesInfo = this.db.prepare("PRAGMA table_info(messages)").all();
-      if (!messagesInfo.some(col => col.name === 'sync_status')) {
-        console.log('[Database] 添加 messages.sync_status 列');
-        this.db.run("ALTER TABLE messages ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      if (!messagesInfo.some((col) => col.name === "sync_status")) {
+        console.log("[Database] 添加 messages.sync_status 列");
+        this.db.run(
+          "ALTER TABLE messages ADD COLUMN sync_status TEXT DEFAULT 'pending'",
+        );
       }
-      if (!messagesInfo.some(col => col.name === 'synced_at')) {
-        console.log('[Database] 添加 messages.synced_at 列');
-        this.db.run('ALTER TABLE messages ADD COLUMN synced_at INTEGER');
+      if (!messagesInfo.some((col) => col.name === "synced_at")) {
+        console.log("[Database] 添加 messages.synced_at 列");
+        this.db.run("ALTER TABLE messages ADD COLUMN synced_at INTEGER");
       }
 
       // 为 project_files 表添加设备ID和同步字段
-      const filesSyncInfo = this.db.prepare("PRAGMA table_info(project_files)").all();
-      if (!filesSyncInfo.some(col => col.name === 'device_id')) {
-        console.log('[Database] 添加 project_files.device_id 列');
-        this.db.run('ALTER TABLE project_files ADD COLUMN device_id TEXT');
+      const filesSyncInfo = this.db
+        .prepare("PRAGMA table_info(project_files)")
+        .all();
+      if (!filesSyncInfo.some((col) => col.name === "device_id")) {
+        console.log("[Database] 添加 project_files.device_id 列");
+        this.db.run("ALTER TABLE project_files ADD COLUMN device_id TEXT");
       }
-      if (!filesSyncInfo.some(col => col.name === 'sync_status')) {
-        console.log('[Database] 添加 project_files.sync_status 列');
-        this.db.run("ALTER TABLE project_files ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      if (!filesSyncInfo.some((col) => col.name === "sync_status")) {
+        console.log("[Database] 添加 project_files.sync_status 列");
+        this.db.run(
+          "ALTER TABLE project_files ADD COLUMN sync_status TEXT DEFAULT 'pending'",
+        );
       }
-      if (!filesSyncInfo.some(col => col.name === 'synced_at')) {
-        console.log('[Database] 添加 project_files.synced_at 列');
-        this.db.run('ALTER TABLE project_files ADD COLUMN synced_at INTEGER');
+      if (!filesSyncInfo.some((col) => col.name === "synced_at")) {
+        console.log("[Database] 添加 project_files.synced_at 列");
+        this.db.run("ALTER TABLE project_files ADD COLUMN synced_at INTEGER");
       }
-      if (!filesSyncInfo.some(col => col.name === 'deleted')) {
-        console.log('[Database] 添加 project_files.deleted 列');
-        this.db.run('ALTER TABLE project_files ADD COLUMN deleted INTEGER DEFAULT 0');
+      if (!filesSyncInfo.some((col) => col.name === "deleted")) {
+        console.log("[Database] 添加 project_files.deleted 列");
+        this.db.run(
+          "ALTER TABLE project_files ADD COLUMN deleted INTEGER DEFAULT 0",
+        );
       }
 
       // 为 knowledge_items 表添加设备ID和同步字段
-      const knowledgeInfo = this.db.prepare("PRAGMA table_info(knowledge_items)").all();
-      if (!knowledgeInfo.some(col => col.name === 'device_id')) {
-        console.log('[Database] 添加 knowledge_items.device_id 列');
-        this.db.run('ALTER TABLE knowledge_items ADD COLUMN device_id TEXT');
+      const knowledgeInfo = this.db
+        .prepare("PRAGMA table_info(knowledge_items)")
+        .all();
+      if (!knowledgeInfo.some((col) => col.name === "device_id")) {
+        console.log("[Database] 添加 knowledge_items.device_id 列");
+        this.db.run("ALTER TABLE knowledge_items ADD COLUMN device_id TEXT");
       }
-      if (!knowledgeInfo.some(col => col.name === 'sync_status')) {
-        console.log('[Database] 添加 knowledge_items.sync_status 列');
-        this.db.run("ALTER TABLE knowledge_items ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      if (!knowledgeInfo.some((col) => col.name === "sync_status")) {
+        console.log("[Database] 添加 knowledge_items.sync_status 列");
+        this.db.run(
+          "ALTER TABLE knowledge_items ADD COLUMN sync_status TEXT DEFAULT 'pending'",
+        );
       }
-      if (!knowledgeInfo.some(col => col.name === 'synced_at')) {
-        console.log('[Database] 添加 knowledge_items.synced_at 列');
-        this.db.run('ALTER TABLE knowledge_items ADD COLUMN synced_at INTEGER');
+      if (!knowledgeInfo.some((col) => col.name === "synced_at")) {
+        console.log("[Database] 添加 knowledge_items.synced_at 列");
+        this.db.run("ALTER TABLE knowledge_items ADD COLUMN synced_at INTEGER");
       }
-      if (!knowledgeInfo.some(col => col.name === 'deleted')) {
-        console.log('[Database] 添加 knowledge_items.deleted 列');
-        this.db.run('ALTER TABLE knowledge_items ADD COLUMN deleted INTEGER DEFAULT 0');
+      if (!knowledgeInfo.some((col) => col.name === "deleted")) {
+        console.log("[Database] 添加 knowledge_items.deleted 列");
+        this.db.run(
+          "ALTER TABLE knowledge_items ADD COLUMN deleted INTEGER DEFAULT 0",
+        );
       }
 
       // ==================== 企业版字段迁移 ====================
-      console.log('[Database] 执行企业版字段迁移...');
+      console.log("[Database] 执行企业版字段迁移...");
 
       // 为 knowledge_items 表添加组织相关字段
-      if (!knowledgeInfo.some(col => col.name === 'org_id')) {
-        console.log('[Database] 添加 knowledge_items.org_id 列');
-        this.db.run('ALTER TABLE knowledge_items ADD COLUMN org_id TEXT');
+      if (!knowledgeInfo.some((col) => col.name === "org_id")) {
+        console.log("[Database] 添加 knowledge_items.org_id 列");
+        this.db.run("ALTER TABLE knowledge_items ADD COLUMN org_id TEXT");
       }
-      if (!knowledgeInfo.some(col => col.name === 'created_by')) {
-        console.log('[Database] 添加 knowledge_items.created_by 列');
-        this.db.run('ALTER TABLE knowledge_items ADD COLUMN created_by TEXT');
+      if (!knowledgeInfo.some((col) => col.name === "created_by")) {
+        console.log("[Database] 添加 knowledge_items.created_by 列");
+        this.db.run("ALTER TABLE knowledge_items ADD COLUMN created_by TEXT");
       }
-      if (!knowledgeInfo.some(col => col.name === 'updated_by')) {
-        console.log('[Database] 添加 knowledge_items.updated_by 列');
-        this.db.run('ALTER TABLE knowledge_items ADD COLUMN updated_by TEXT');
+      if (!knowledgeInfo.some((col) => col.name === "updated_by")) {
+        console.log("[Database] 添加 knowledge_items.updated_by 列");
+        this.db.run("ALTER TABLE knowledge_items ADD COLUMN updated_by TEXT");
       }
-      if (!knowledgeInfo.some(col => col.name === 'share_scope')) {
-        console.log('[Database] 添加 knowledge_items.share_scope 列');
-        this.db.run("ALTER TABLE knowledge_items ADD COLUMN share_scope TEXT DEFAULT 'private'");
+      if (!knowledgeInfo.some((col) => col.name === "share_scope")) {
+        console.log("[Database] 添加 knowledge_items.share_scope 列");
+        this.db.run(
+          "ALTER TABLE knowledge_items ADD COLUMN share_scope TEXT DEFAULT 'private'",
+        );
       }
-      if (!knowledgeInfo.some(col => col.name === 'permissions')) {
-        console.log('[Database] 添加 knowledge_items.permissions 列');
-        this.db.run('ALTER TABLE knowledge_items ADD COLUMN permissions TEXT');
+      if (!knowledgeInfo.some((col) => col.name === "permissions")) {
+        console.log("[Database] 添加 knowledge_items.permissions 列");
+        this.db.run("ALTER TABLE knowledge_items ADD COLUMN permissions TEXT");
       }
-      if (!knowledgeInfo.some(col => col.name === 'version')) {
-        console.log('[Database] 添加 knowledge_items.version 列');
-        this.db.run('ALTER TABLE knowledge_items ADD COLUMN version INTEGER DEFAULT 1');
+      if (!knowledgeInfo.some((col) => col.name === "version")) {
+        console.log("[Database] 添加 knowledge_items.version 列");
+        this.db.run(
+          "ALTER TABLE knowledge_items ADD COLUMN version INTEGER DEFAULT 1",
+        );
       }
-      if (!knowledgeInfo.some(col => col.name === 'parent_version_id')) {
-        console.log('[Database] 添加 knowledge_items.parent_version_id 列');
-        this.db.run('ALTER TABLE knowledge_items ADD COLUMN parent_version_id TEXT');
+      if (!knowledgeInfo.some((col) => col.name === "parent_version_id")) {
+        console.log("[Database] 添加 knowledge_items.parent_version_id 列");
+        this.db.run(
+          "ALTER TABLE knowledge_items ADD COLUMN parent_version_id TEXT",
+        );
       }
-      if (!knowledgeInfo.some(col => col.name === 'cid')) {
-        console.log('[Database] 添加 knowledge_items.cid 列');
-        this.db.run('ALTER TABLE knowledge_items ADD COLUMN cid TEXT');
+      if (!knowledgeInfo.some((col) => col.name === "cid")) {
+        console.log("[Database] 添加 knowledge_items.cid 列");
+        this.db.run("ALTER TABLE knowledge_items ADD COLUMN cid TEXT");
       }
 
       // 为 project_collaborators 表添加基础和同步字段
-      const collabInfo = this.db.prepare("PRAGMA table_info(project_collaborators)").all();
-      if (!collabInfo.some(col => col.name === 'created_at')) {
-        console.log('[Database] 添加 project_collaborators.created_at 列');
-        this.db.run('ALTER TABLE project_collaborators ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0');
+      const collabInfo = this.db
+        .prepare("PRAGMA table_info(project_collaborators)")
+        .all();
+      if (!collabInfo.some((col) => col.name === "created_at")) {
+        console.log("[Database] 添加 project_collaborators.created_at 列");
+        this.db.run(
+          "ALTER TABLE project_collaborators ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0",
+        );
       }
-      if (!collabInfo.some(col => col.name === 'updated_at')) {
-        console.log('[Database] 添加 project_collaborators.updated_at 列');
-        this.db.run('ALTER TABLE project_collaborators ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0');
+      if (!collabInfo.some((col) => col.name === "updated_at")) {
+        console.log("[Database] 添加 project_collaborators.updated_at 列");
+        this.db.run(
+          "ALTER TABLE project_collaborators ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+        );
       }
-      if (!collabInfo.some(col => col.name === 'device_id')) {
-        console.log('[Database] 添加 project_collaborators.device_id 列');
-        this.db.run('ALTER TABLE project_collaborators ADD COLUMN device_id TEXT');
+      if (!collabInfo.some((col) => col.name === "device_id")) {
+        console.log("[Database] 添加 project_collaborators.device_id 列");
+        this.db.run(
+          "ALTER TABLE project_collaborators ADD COLUMN device_id TEXT",
+        );
       }
-      if (!collabInfo.some(col => col.name === 'sync_status')) {
-        console.log('[Database] 添加 project_collaborators.sync_status 列');
-        this.db.run("ALTER TABLE project_collaborators ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      if (!collabInfo.some((col) => col.name === "sync_status")) {
+        console.log("[Database] 添加 project_collaborators.sync_status 列");
+        this.db.run(
+          "ALTER TABLE project_collaborators ADD COLUMN sync_status TEXT DEFAULT 'pending'",
+        );
       }
-      if (!collabInfo.some(col => col.name === 'synced_at')) {
-        console.log('[Database] 添加 project_collaborators.synced_at 列');
-        this.db.run('ALTER TABLE project_collaborators ADD COLUMN synced_at INTEGER');
+      if (!collabInfo.some((col) => col.name === "synced_at")) {
+        console.log("[Database] 添加 project_collaborators.synced_at 列");
+        this.db.run(
+          "ALTER TABLE project_collaborators ADD COLUMN synced_at INTEGER",
+        );
       }
-      if (!collabInfo.some(col => col.name === 'deleted')) {
-        console.log('[Database] 添加 project_collaborators.deleted 列');
-        this.db.run('ALTER TABLE project_collaborators ADD COLUMN deleted INTEGER DEFAULT 0');
+      if (!collabInfo.some((col) => col.name === "deleted")) {
+        console.log("[Database] 添加 project_collaborators.deleted 列");
+        this.db.run(
+          "ALTER TABLE project_collaborators ADD COLUMN deleted INTEGER DEFAULT 0",
+        );
       }
 
       // 为 project_comments 表添加设备ID和同步字段
-      const commentsInfo = this.db.prepare("PRAGMA table_info(project_comments)").all();
-      if (!commentsInfo.some(col => col.name === 'device_id')) {
-        console.log('[Database] 添加 project_comments.device_id 列');
-        this.db.run('ALTER TABLE project_comments ADD COLUMN device_id TEXT');
+      const commentsInfo = this.db
+        .prepare("PRAGMA table_info(project_comments)")
+        .all();
+      if (!commentsInfo.some((col) => col.name === "device_id")) {
+        console.log("[Database] 添加 project_comments.device_id 列");
+        this.db.run("ALTER TABLE project_comments ADD COLUMN device_id TEXT");
       }
-      if (!commentsInfo.some(col => col.name === 'sync_status')) {
-        console.log('[Database] 添加 project_comments.sync_status 列');
-        this.db.run("ALTER TABLE project_comments ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      if (!commentsInfo.some((col) => col.name === "sync_status")) {
+        console.log("[Database] 添加 project_comments.sync_status 列");
+        this.db.run(
+          "ALTER TABLE project_comments ADD COLUMN sync_status TEXT DEFAULT 'pending'",
+        );
       }
-      if (!commentsInfo.some(col => col.name === 'synced_at')) {
-        console.log('[Database] 添加 project_comments.synced_at 列');
-        this.db.run('ALTER TABLE project_comments ADD COLUMN synced_at INTEGER');
+      if (!commentsInfo.some((col) => col.name === "synced_at")) {
+        console.log("[Database] 添加 project_comments.synced_at 列");
+        this.db.run(
+          "ALTER TABLE project_comments ADD COLUMN synced_at INTEGER",
+        );
       }
-      if (!commentsInfo.some(col => col.name === 'deleted')) {
-        console.log('[Database] 添加 project_comments.deleted 列');
-        this.db.run('ALTER TABLE project_comments ADD COLUMN deleted INTEGER DEFAULT 0');
+      if (!commentsInfo.some((col) => col.name === "deleted")) {
+        console.log("[Database] 添加 project_comments.deleted 列");
+        this.db.run(
+          "ALTER TABLE project_comments ADD COLUMN deleted INTEGER DEFAULT 0",
+        );
       }
 
       // 为 project_tasks 表添加设备ID和同步字段
-      const tasksInfo = this.db.prepare("PRAGMA table_info(project_tasks)").all();
-      if (!tasksInfo.some(col => col.name === 'device_id')) {
-        console.log('[Database] 添加 project_tasks.device_id 列');
-        this.db.run('ALTER TABLE project_tasks ADD COLUMN device_id TEXT');
+      const tasksInfo = this.db
+        .prepare("PRAGMA table_info(project_tasks)")
+        .all();
+      if (!tasksInfo.some((col) => col.name === "device_id")) {
+        console.log("[Database] 添加 project_tasks.device_id 列");
+        this.db.run("ALTER TABLE project_tasks ADD COLUMN device_id TEXT");
       }
-      if (!tasksInfo.some(col => col.name === 'sync_status')) {
-        console.log('[Database] 添加 project_tasks.sync_status 列');
-        this.db.run("ALTER TABLE project_tasks ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      if (!tasksInfo.some((col) => col.name === "sync_status")) {
+        console.log("[Database] 添加 project_tasks.sync_status 列");
+        this.db.run(
+          "ALTER TABLE project_tasks ADD COLUMN sync_status TEXT DEFAULT 'pending'",
+        );
       }
-      if (!tasksInfo.some(col => col.name === 'synced_at')) {
-        console.log('[Database] 添加 project_tasks.synced_at 列');
-        this.db.run('ALTER TABLE project_tasks ADD COLUMN synced_at INTEGER');
+      if (!tasksInfo.some((col) => col.name === "synced_at")) {
+        console.log("[Database] 添加 project_tasks.synced_at 列");
+        this.db.run("ALTER TABLE project_tasks ADD COLUMN synced_at INTEGER");
       }
-      if (!tasksInfo.some(col => col.name === 'deleted')) {
-        console.log('[Database] 添加 project_tasks.deleted 列');
-        this.db.run('ALTER TABLE project_tasks ADD COLUMN deleted INTEGER DEFAULT 0');
+      if (!tasksInfo.some((col) => col.name === "deleted")) {
+        console.log("[Database] 添加 project_tasks.deleted 列");
+        this.db.run(
+          "ALTER TABLE project_tasks ADD COLUMN deleted INTEGER DEFAULT 0",
+        );
       }
 
       // 为 project_conversations 表添加同步字段
-      const projConvInfo = this.db.prepare("PRAGMA table_info(project_conversations)").all();
-      if (!projConvInfo.some(col => col.name === 'sync_status')) {
-        console.log('[Database] 添加 project_conversations.sync_status 列');
-        this.db.run("ALTER TABLE project_conversations ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      const projConvInfo = this.db
+        .prepare("PRAGMA table_info(project_conversations)")
+        .all();
+      if (!projConvInfo.some((col) => col.name === "sync_status")) {
+        console.log("[Database] 添加 project_conversations.sync_status 列");
+        this.db.run(
+          "ALTER TABLE project_conversations ADD COLUMN sync_status TEXT DEFAULT 'pending'",
+        );
       }
-      if (!projConvInfo.some(col => col.name === 'synced_at')) {
-        console.log('[Database] 添加 project_conversations.synced_at 列');
-        this.db.run('ALTER TABLE project_conversations ADD COLUMN synced_at INTEGER');
+      if (!projConvInfo.some((col) => col.name === "synced_at")) {
+        console.log("[Database] 添加 project_conversations.synced_at 列");
+        this.db.run(
+          "ALTER TABLE project_conversations ADD COLUMN synced_at INTEGER",
+        );
       }
-      if (!projConvInfo.some(col => col.name === 'deleted')) {
-        console.log('[Database] 添加 project_conversations.deleted 列');
-        this.db.run('ALTER TABLE project_conversations ADD COLUMN deleted INTEGER DEFAULT 0');
+      if (!projConvInfo.some((col) => col.name === "deleted")) {
+        console.log("[Database] 添加 project_conversations.deleted 列");
+        this.db.run(
+          "ALTER TABLE project_conversations ADD COLUMN deleted INTEGER DEFAULT 0",
+        );
       }
 
       // 为 project_templates 表添加 deleted 字段
-      const templatesInfo = this.db.prepare("PRAGMA table_info(project_templates)").all();
-      if (!templatesInfo.some(col => col.name === 'deleted')) {
-        console.log('[Database] 添加 project_templates.deleted 列');
-        this.db.run('ALTER TABLE project_templates ADD COLUMN deleted INTEGER DEFAULT 0');
+      const templatesInfo = this.db
+        .prepare("PRAGMA table_info(project_templates)")
+        .all();
+      if (!templatesInfo.some((col) => col.name === "deleted")) {
+        console.log("[Database] 添加 project_templates.deleted 列");
+        this.db.run(
+          "ALTER TABLE project_templates ADD COLUMN deleted INTEGER DEFAULT 0",
+        );
       }
 
       // ==================== 项目分类迁移 (V3) ====================
-      console.log('[Database] 执行项目分类迁移 (V3)...');
+      console.log("[Database] 执行项目分类迁移 (V3)...");
 
       // 为 projects 表添加 category_id 字段
-      const projectsInfoV3 = this.db.prepare("PRAGMA table_info(projects)").all();
-      if (!projectsInfoV3.some(col => col.name === 'category_id')) {
-        console.log('[Database] 添加 projects.category_id 列');
-        this.db.run('ALTER TABLE projects ADD COLUMN category_id TEXT');
+      const projectsInfoV3 = this.db
+        .prepare("PRAGMA table_info(projects)")
+        .all();
+      if (!projectsInfoV3.some((col) => col.name === "category_id")) {
+        console.log("[Database] 添加 projects.category_id 列");
+        this.db.run("ALTER TABLE projects ADD COLUMN category_id TEXT");
         // 添加外键约束（注：SQLite的ALTER TABLE不支持直接添加外键，需要在查询时处理）
       }
 
       // ==================== CHECK约束更新迁移 (V4) ====================
-      console.log('[Database] 执行CHECK约束更新迁移 (V4)...');
+      console.log("[Database] 执行CHECK约束更新迁移 (V4)...");
 
       // 检查是否需要重建projects表（通过尝试插入测试数据来判断）
-      const needsProjectsRebuild = this.checkIfTableNeedsRebuild('projects', 'presentation');
+      const needsProjectsRebuild = this.checkIfTableNeedsRebuild(
+        "projects",
+        "presentation",
+      );
       if (needsProjectsRebuild) {
-        console.log('[Database] 检测到projects表需要更新CHECK约束，开始重建...');
+        console.log(
+          "[Database] 检测到projects表需要更新CHECK约束，开始重建...",
+        );
         this.rebuildProjectsTable();
       }
 
       // 检查是否需要重建project_templates表
-      const needsTemplatesRebuild = this.checkIfTableNeedsRebuild('project_templates', 'career');
+      const needsTemplatesRebuild = this.checkIfTableNeedsRebuild(
+        "project_templates",
+        "career",
+      );
       if (needsTemplatesRebuild) {
-        console.log('[Database] 检测到project_templates表需要更新CHECK约束，开始重建...');
+        console.log(
+          "[Database] 检测到project_templates表需要更新CHECK约束，开始重建...",
+        );
         this.rebuildProjectTemplatesTable();
       }
 
       // ==================== 任务规划消息支持迁移 (V5) ====================
-      console.log('[Database] 执行任务规划消息支持迁移 (V5)...');
+      console.log("[Database] 执行任务规划消息支持迁移 (V5)...");
 
       // 为 messages 表添加 message_type 和 metadata 字段
-      const messagesInfoV5 = this.db.prepare("PRAGMA table_info(messages)").all();
-      if (!messagesInfoV5.some(col => col.name === 'message_type')) {
-        console.log('[Database] 添加 messages.message_type 列');
+      const messagesInfoV5 = this.db
+        .prepare("PRAGMA table_info(messages)")
+        .all();
+      if (!messagesInfoV5.some((col) => col.name === "message_type")) {
+        console.log("[Database] 添加 messages.message_type 列");
         // 默认为 'ASSISTANT'，与原有的 role='assistant' 消息兼容
-        this.db.run("ALTER TABLE messages ADD COLUMN message_type TEXT DEFAULT 'ASSISTANT'");
+        this.db.run(
+          "ALTER TABLE messages ADD COLUMN message_type TEXT DEFAULT 'ASSISTANT'",
+        );
 
         // 迁移现有数据：根据role设置message_type
-        console.log('[Database] 迁移现有消息的 message_type...');
+        console.log("[Database] 迁移现有消息的 message_type...");
         this.db.run(`
           UPDATE messages
           SET message_type = CASE
@@ -2446,14 +2623,14 @@ class DatabaseManager {
         `);
       }
 
-      if (!messagesInfoV5.some(col => col.name === 'metadata')) {
-        console.log('[Database] 添加 messages.metadata 列');
-        this.db.run('ALTER TABLE messages ADD COLUMN metadata TEXT');
+      if (!messagesInfoV5.some((col) => col.name === "metadata")) {
+        console.log("[Database] 添加 messages.metadata 列");
+        this.db.run("ALTER TABLE messages ADD COLUMN metadata TEXT");
       }
 
-      console.log('[Database] 数据库迁移完成');
+      console.log("[Database] 数据库迁移完成");
     } catch (error) {
-      console.error('[Database] 数据库迁移失败:', error);
+      console.error("[Database] 数据库迁移失败:", error);
     }
   }
 
@@ -2462,16 +2639,24 @@ class DatabaseManager {
    */
   runMigrations() {
     try {
-      console.log('[Database] 开始运行数据库迁移...');
+      console.log("[Database] 开始运行数据库迁移...");
 
       // 迁移1: 修复 project_stats 表的列名
-      const statsInfo = this.db.prepare("PRAGMA table_info(project_stats)").all();
-      const hasTotalSize = statsInfo.some(col => col.name === 'total_size');
-      const hasTotalSizeKb = statsInfo.some(col => col.name === 'total_size_kb');
-      const hasLastUpdatedAt = statsInfo.some(col => col.name === 'last_updated_at');
+      const statsInfo = this.db
+        .prepare("PRAGMA table_info(project_stats)")
+        .all();
+      const hasTotalSize = statsInfo.some((col) => col.name === "total_size");
+      const hasTotalSizeKb = statsInfo.some(
+        (col) => col.name === "total_size_kb",
+      );
+      const hasLastUpdatedAt = statsInfo.some(
+        (col) => col.name === "last_updated_at",
+      );
 
       if (hasTotalSize && !hasTotalSizeKb) {
-        console.log('[Database] 迁移 project_stats 表: total_size -> total_size_kb');
+        console.log(
+          "[Database] 迁移 project_stats 表: total_size -> total_size_kb",
+        );
         // SQLite不支持重命名列，需要重建表
         this.db.exec(`
           -- 创建临时表
@@ -2510,211 +2695,411 @@ class DatabaseManager {
           ALTER TABLE project_stats_new RENAME TO project_stats;
         `);
         this.saveToFile();
-        console.log('[Database] project_stats 表迁移完成');
+        console.log("[Database] project_stats 表迁移完成");
       } else if (!hasTotalSizeKb) {
         // 如果两个列都不存在，添加 total_size_kb 列
-        console.log('[Database] 添加 project_stats.total_size_kb 列');
-        this.db.run('ALTER TABLE project_stats ADD COLUMN total_size_kb REAL DEFAULT 0');
+        console.log("[Database] 添加 project_stats.total_size_kb 列");
+        this.db.run(
+          "ALTER TABLE project_stats ADD COLUMN total_size_kb REAL DEFAULT 0",
+        );
         this.saveToFile();
 
         // 同时检查并添加 last_updated_at 列
         if (!hasLastUpdatedAt) {
-          console.log('[Database] 添加 project_stats.last_updated_at 列');
-          this.db.run('ALTER TABLE project_stats ADD COLUMN last_updated_at INTEGER');
+          console.log("[Database] 添加 project_stats.last_updated_at 列");
+          this.db.run(
+            "ALTER TABLE project_stats ADD COLUMN last_updated_at INTEGER",
+          );
           this.saveToFile();
         }
       } else if (!hasLastUpdatedAt) {
         // 如果 total_size_kb 已存在，但 last_updated_at 不存在
-        console.log('[Database] 添加 project_stats.last_updated_at 列');
-        this.db.run('ALTER TABLE project_stats ADD COLUMN last_updated_at INTEGER');
+        console.log("[Database] 添加 project_stats.last_updated_at 列");
+        this.db.run(
+          "ALTER TABLE project_stats ADD COLUMN last_updated_at INTEGER",
+        );
         this.saveToFile();
       }
 
       // 迁移2: 插件系统
-      const pluginTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='plugins'").get();
+      const pluginTableExists = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='plugins'",
+        )
+        .get();
 
       if (!pluginTableExists) {
-        console.log('[Database] 创建插件系统表...');
+        console.log("[Database] 创建插件系统表...");
         try {
-          const migrationPath = path.join(__dirname, 'database', 'migrations', '001_plugin_system.sql');
+          const migrationPath = path.join(
+            __dirname,
+            "database",
+            "migrations",
+            "001_plugin_system.sql",
+          );
           if (fs.existsSync(migrationPath)) {
-            const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+            const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log('[Database] 插件系统表创建完成');
+            console.log("[Database] 插件系统表创建完成");
           } else {
-            console.warn('[Database] 插件系统迁移文件不存在:', migrationPath);
+            console.warn("[Database] 插件系统迁移文件不存在:", migrationPath);
           }
         } catch (pluginError) {
-          console.error('[Database] 创建插件系统表失败:', pluginError);
+          console.error("[Database] 创建插件系统表失败:", pluginError);
         }
       }
 
       // 迁移3: 音频系统 (语音识别)
-      const audioTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='audio_files'").get();
+      const audioTableExists = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='audio_files'",
+        )
+        .get();
 
       if (!audioTableExists) {
-        console.log('[Database] 创建音频系统表...');
+        console.log("[Database] 创建音频系统表...");
         try {
-          const migrationPath = path.join(__dirname, 'database', 'migrations', '002_audio_system.sql');
+          const migrationPath = path.join(
+            __dirname,
+            "database",
+            "migrations",
+            "002_audio_system.sql",
+          );
           if (fs.existsSync(migrationPath)) {
-            const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+            const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log('[Database] 音频系统表创建完成');
+            console.log("[Database] 音频系统表创建完成");
           } else {
-            console.warn('[Database] 音频系统迁移文件不存在:', migrationPath);
+            console.warn("[Database] 音频系统迁移文件不存在:", migrationPath);
           }
         } catch (audioError) {
-          console.error('[Database] 创建音频系统表失败:', audioError);
+          console.error("[Database] 创建音频系统表失败:", audioError);
         }
       }
 
       // 迁移4: 技能和工具管理系统
-      const skillTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='skills'").get();
+      const skillTableExists = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='skills'",
+        )
+        .get();
 
       if (!skillTableExists) {
-        console.log('[Database] 创建技能和工具管理系统表...');
+        console.log("[Database] 创建技能和工具管理系统表...");
         try {
-          const migrationPath = path.join(__dirname, 'database', 'migrations', '003_skill_tool_system.sql');
+          const migrationPath = path.join(
+            __dirname,
+            "database",
+            "migrations",
+            "003_skill_tool_system.sql",
+          );
           if (fs.existsSync(migrationPath)) {
-            const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+            const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log('[Database] 技能和工具管理系统表创建完成');
+            console.log("[Database] 技能和工具管理系统表创建完成");
           } else {
-            console.warn('[Database] 技能工具系统迁移文件不存在:', migrationPath);
+            console.warn(
+              "[Database] 技能工具系统迁移文件不存在:",
+              migrationPath,
+            );
           }
         } catch (skillToolError) {
-          console.error('[Database] 创建技能工具系统表失败:', skillToolError);
+          console.error("[Database] 创建技能工具系统表失败:", skillToolError);
         }
       }
 
       // 迁移5: 初始化内置技能和工具数据
-      const skillsCount = this.db.prepare("SELECT COUNT(*) as count FROM skills WHERE is_builtin = 1").get();
+      const skillsCount = this.db
+        .prepare("SELECT COUNT(*) as count FROM skills WHERE is_builtin = 1")
+        .get();
 
       if (skillTableExists && skillsCount.count === 0) {
-        console.log('[Database] 初始化内置技能和工具数据...');
+        console.log("[Database] 初始化内置技能和工具数据...");
         try {
-          const dataInitPath = path.join(__dirname, 'database', 'migrations', '004_video_skills_tools.sql');
+          const dataInitPath = path.join(
+            __dirname,
+            "database",
+            "migrations",
+            "004_video_skills_tools.sql",
+          );
           if (fs.existsSync(dataInitPath)) {
-            const dataInitSQL = fs.readFileSync(dataInitPath, 'utf-8');
+            const dataInitSQL = fs.readFileSync(dataInitPath, "utf-8");
             this.db.exec(dataInitSQL);
             this.saveToFile();
 
             // 验证数据是否成功插入
-            const newSkillsCount = this.db.prepare("SELECT COUNT(*) as count FROM skills WHERE is_builtin = 1").get();
-            const newToolsCount = this.db.prepare("SELECT COUNT(*) as count FROM tools WHERE is_builtin = 1").get();
-            console.log(`[Database] 内置数据初始化完成 - 技能: ${newSkillsCount.count}, 工具: ${newToolsCount.count}`);
+            const newSkillsCount = this.db
+              .prepare(
+                "SELECT COUNT(*) as count FROM skills WHERE is_builtin = 1",
+              )
+              .get();
+            const newToolsCount = this.db
+              .prepare(
+                "SELECT COUNT(*) as count FROM tools WHERE is_builtin = 1",
+              )
+              .get();
+            console.log(
+              `[Database] 内置数据初始化完成 - 技能: ${newSkillsCount.count}, 工具: ${newToolsCount.count}`,
+            );
           } else {
-            console.warn('[Database] 内置数据初始化文件不存在:', dataInitPath);
+            console.warn("[Database] 内置数据初始化文件不存在:", dataInitPath);
           }
         } catch (dataInitError) {
-          console.error('[Database] 初始化内置数据失败:', dataInitError);
+          console.error("[Database] 初始化内置数据失败:", dataInitError);
         }
       }
 
       // 迁移6: Phase 1 - 工作区与任务管理系统 (v0.17.0)
-      const workspaceTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='organization_workspaces'").get();
+      const workspaceTableExists = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='organization_workspaces'",
+        )
+        .get();
 
       if (!workspaceTableExists) {
-        console.log('[Database] Phase 1 迁移 - 创建工作区与任务管理系统表...');
+        console.log("[Database] Phase 1 迁移 - 创建工作区与任务管理系统表...");
         try {
-          const migrationPath = path.join(__dirname, 'database', 'migrations', '005_workspace_task_system.sql');
+          const migrationPath = path.join(
+            __dirname,
+            "database",
+            "migrations",
+            "005_workspace_task_system.sql",
+          );
           if (fs.existsSync(migrationPath)) {
-            const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+            const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log('[Database] 工作区与任务管理系统表创建完成');
+            console.log("[Database] 工作区与任务管理系统表创建完成");
           } else {
-            console.warn('[Database] 工作区任务系统迁移文件不存在:', migrationPath);
+            console.warn(
+              "[Database] 工作区任务系统迁移文件不存在:",
+              migrationPath,
+            );
           }
         } catch (workspaceError) {
-          console.error('[Database] 创建工作区任务系统表失败:', workspaceError);
+          console.error("[Database] 创建工作区任务系统表失败:", workspaceError);
         }
       }
 
       // 迁移7: 为现有 project_tasks 表添加企业协作字段
-      const tasksInfo = this.db.prepare("PRAGMA table_info(project_tasks)").all();
+      const tasksInfo = this.db
+        .prepare("PRAGMA table_info(project_tasks)")
+        .all();
       const tasksColumnsToAdd = [
-        { name: 'org_id', type: 'TEXT', default: null },
-        { name: 'workspace_id', type: 'TEXT', default: null },
-        { name: 'assigned_to', type: 'TEXT', default: null },
-        { name: 'collaborators', type: 'TEXT', default: null },
-        { name: 'labels', type: 'TEXT', default: null },
-        { name: 'due_date', type: 'INTEGER', default: null },
-        { name: 'reminder_at', type: 'INTEGER', default: null },
-        { name: 'blocked_by', type: 'TEXT', default: null },
-        { name: 'estimate_hours', type: 'REAL', default: null },
-        { name: 'actual_hours', type: 'REAL', default: null }
+        { name: "org_id", type: "TEXT", default: null },
+        { name: "workspace_id", type: "TEXT", default: null },
+        { name: "assigned_to", type: "TEXT", default: null },
+        { name: "collaborators", type: "TEXT", default: null },
+        { name: "labels", type: "TEXT", default: null },
+        { name: "due_date", type: "INTEGER", default: null },
+        { name: "reminder_at", type: "INTEGER", default: null },
+        { name: "blocked_by", type: "TEXT", default: null },
+        { name: "estimate_hours", type: "REAL", default: null },
+        { name: "actual_hours", type: "REAL", default: null },
       ];
 
       let tasksColumnsAdded = false;
       for (const column of tasksColumnsToAdd) {
-        if (!tasksInfo.some(col => col.name === column.name)) {
+        if (!tasksInfo.some((col) => col.name === column.name)) {
           console.log(`[Database] 添加 project_tasks.${column.name} 列`);
-          const defaultClause = column.default !== null ? ` DEFAULT ${column.default}` : '';
-          this.db.run(`ALTER TABLE project_tasks ADD COLUMN ${column.name} ${column.type}${defaultClause}`);
+          const defaultClause =
+            column.default !== null ? ` DEFAULT ${column.default}` : "";
+          this.db.run(
+            `ALTER TABLE project_tasks ADD COLUMN ${column.name} ${column.type}${defaultClause}`,
+          );
           tasksColumnsAdded = true;
         }
       }
 
       if (tasksColumnsAdded) {
         this.saveToFile();
-        console.log('[Database] project_tasks 表字段扩展完成');
+        console.log("[Database] project_tasks 表字段扩展完成");
       }
 
       // 迁移8: Phase 2 - 文件共享与版本控制系统 (v0.18.0)
-      const fileVersionsTableExists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='file_versions'").get();
+      const fileVersionsTableExists = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='file_versions'",
+        )
+        .get();
 
       if (!fileVersionsTableExists) {
-        console.log('[Database] Phase 2 迁移 - 创建文件共享与版本控制系统表...');
+        console.log(
+          "[Database] Phase 2 迁移 - 创建文件共享与版本控制系统表...",
+        );
         try {
-          const migrationPath = path.join(__dirname, 'database', 'migrations', '006_file_sharing_system.sql');
+          const migrationPath = path.join(
+            __dirname,
+            "database",
+            "migrations",
+            "006_file_sharing_system.sql",
+          );
           if (fs.existsSync(migrationPath)) {
-            const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+            const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log('[Database] 文件共享与版本控制系统表创建完成');
+            console.log("[Database] 文件共享与版本控制系统表创建完成");
           } else {
-            console.warn('[Database] 文件共享系统迁移文件不存在:', migrationPath);
+            console.warn(
+              "[Database] 文件共享系统迁移文件不存在:",
+              migrationPath,
+            );
           }
         } catch (fileError) {
-          console.error('[Database] 创建文件共享系统表失败:', fileError);
+          console.error("[Database] 创建文件共享系统表失败:", fileError);
         }
       }
 
       // 迁移9: 为现有 project_files 表添加共享和锁定字段
-      const filesInfo = this.db.prepare("PRAGMA table_info(project_files)").all();
+      const filesInfo = this.db
+        .prepare("PRAGMA table_info(project_files)")
+        .all();
       const filesColumnsToAdd = [
-        { name: 'org_id', type: 'TEXT', default: null },
-        { name: 'workspace_id', type: 'TEXT', default: null },
-        { name: 'shared_with', type: 'TEXT', default: null },
-        { name: 'lock_status', type: 'TEXT', default: "'unlocked'" },
-        { name: 'locked_by', type: 'TEXT', default: null },
-        { name: 'locked_at', type: 'INTEGER', default: null },
-        { name: 'version_number', type: 'INTEGER', default: 1 },
-        { name: 'checksum', type: 'TEXT', default: null }
+        { name: "org_id", type: "TEXT", default: null },
+        { name: "workspace_id", type: "TEXT", default: null },
+        { name: "shared_with", type: "TEXT", default: null },
+        { name: "lock_status", type: "TEXT", default: "'unlocked'" },
+        { name: "locked_by", type: "TEXT", default: null },
+        { name: "locked_at", type: "INTEGER", default: null },
+        { name: "version_number", type: "INTEGER", default: 1 },
+        { name: "checksum", type: "TEXT", default: null },
       ];
 
       let filesColumnsAdded = false;
       for (const column of filesColumnsToAdd) {
-        if (!filesInfo.some(col => col.name === column.name)) {
+        if (!filesInfo.some((col) => col.name === column.name)) {
           console.log(`[Database] 添加 project_files.${column.name} 列`);
-          const defaultClause = column.default !== null ? ` DEFAULT ${column.default}` : '';
-          this.db.run(`ALTER TABLE project_files ADD COLUMN ${column.name} ${column.type}${defaultClause}`);
+          const defaultClause =
+            column.default !== null ? ` DEFAULT ${column.default}` : "";
+          this.db.run(
+            `ALTER TABLE project_files ADD COLUMN ${column.name} ${column.type}${defaultClause}`,
+          );
           filesColumnsAdded = true;
         }
       }
 
       if (filesColumnsAdded) {
         this.saveToFile();
-        console.log('[Database] project_files 表字段扩展完成');
+        console.log("[Database] project_files 表字段扩展完成");
       }
 
-      console.log('[Database] 数据库迁移任务完成');
+      // 迁移10: LLM 会话管理和 Token 追踪系统 (v0.20.0)
+      const llmSessionsTableExists = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='llm_sessions'",
+        )
+        .get();
+
+      if (!llmSessionsTableExists) {
+        console.log("[Database] 创建 LLM 会话管理和 Token 追踪系统表...");
+        try {
+          const migrationPath = path.join(
+            __dirname,
+            "database",
+            "migrations",
+            "005_llm_sessions.sql",
+          );
+          if (fs.existsSync(migrationPath)) {
+            const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
+            this.db.exec(migrationSQL);
+            this.saveToFile();
+            console.log("[Database] LLM 会话管理和 Token 追踪系统表创建完成");
+          } else {
+            console.warn(
+              "[Database] LLM 会话管理系统迁移文件不存在:",
+              migrationPath,
+            );
+          }
+        } catch (llmError) {
+          console.error("[Database] 创建 LLM 会话管理系统表失败:", llmError);
+        }
+      }
+
+      // 迁移11: 为 conversations 表添加 Token 统计字段
+      const conversationsInfo = this.db
+        .prepare("PRAGMA table_info(conversations)")
+        .all();
+      const conversationsColumnsToAdd = [
+        { name: "total_input_tokens", type: "INTEGER", default: 0 },
+        { name: "total_output_tokens", type: "INTEGER", default: 0 },
+        { name: "total_cost_usd", type: "REAL", default: 0 },
+        { name: "total_cost_cny", type: "REAL", default: 0 },
+      ];
+
+      let conversationsColumnsAdded = false;
+      for (const column of conversationsColumnsToAdd) {
+        if (!conversationsInfo.some((col) => col.name === column.name)) {
+          console.log(`[Database] 添加 conversations.${column.name} 列`);
+          const defaultClause =
+            column.default !== null ? ` DEFAULT ${column.default}` : "";
+          this.db.run(
+            `ALTER TABLE conversations ADD COLUMN ${column.name} ${column.type}${defaultClause}`,
+          );
+          conversationsColumnsAdded = true;
+        }
+      }
+
+      if (conversationsColumnsAdded) {
+        this.saveToFile();
+        console.log("[Database] conversations 表字段扩展完成");
+      }
+
+      // 迁移12: Token 追踪和成本优化完整系统 (v0.21.0)
+      const tokenTrackingTableExists = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='llm_usage_log'",
+        )
+        .get();
+
+      if (!tokenTrackingTableExists) {
+        console.log("[Database] 创建 Token 追踪和成本优化系统表...");
+        try {
+          const tokenTrackingMigration = require("./migrations/add-token-tracking");
+          // 同步调用迁移（虽然函数是 async，但内部操作都是同步的）
+          tokenTrackingMigration.migrate(this.db);
+          this.saveToFile();
+          console.log("[Database] ✓ Token 追踪和成本优化系统表创建完成");
+        } catch (tokenError) {
+          console.error("[Database] 创建 Token 追踪系统表失败:", tokenError);
+        }
+      }
+
+      // 迁移13: ErrorMonitor AI 诊断系统 (v0.22.0)
+      const errorAnalysisTableExists = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='error_analysis'",
+        )
+        .get();
+
+      if (!errorAnalysisTableExists) {
+        console.log("[Database] 创建 ErrorMonitor AI 诊断系统表...");
+        try {
+          const migrationSQL = fs.readFileSync(
+            path.join(
+              __dirname,
+              "database",
+              "migrations",
+              "006_error_analysis.sql",
+            ),
+            "utf-8",
+          );
+          this.db.exec(migrationSQL);
+          this.saveToFile();
+          console.log("[Database] ✓ ErrorMonitor AI 诊断系统表创建完成");
+        } catch (errorAnalysisError) {
+          console.error(
+            "[Database] 创建 ErrorMonitor AI 诊断系统表失败:",
+            errorAnalysisError,
+          );
+        }
+      }
+
+      console.log("[Database] 数据库迁移任务完成");
     } catch (error) {
-      console.error('[Database] 运行数据库迁移失败:', error);
+      console.error("[Database] 运行数据库迁移失败:", error);
       // 不抛出错误，避免影响应用启动
     }
   }
@@ -2725,7 +3110,9 @@ class DatabaseManager {
   checkIfTableNeedsRebuild(tableName, testCategoryValue) {
     try {
       // 获取表的SQL定义
-      const stmt = this.db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?");
+      const stmt = this.db.prepare(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+      );
       const result = stmt.get([tableName]);
       stmt.free();
 
@@ -2736,10 +3123,12 @@ class DatabaseManager {
       // 检查SQL定义中是否包含新的值
       const sql = result.sql;
 
-      if (tableName === 'projects') {
+      if (tableName === "projects") {
         // 检查是否包含 'presentation' 和 'spreadsheet'
-        return !sql.includes("'presentation'") || !sql.includes("'spreadsheet'");
-      } else if (tableName === 'project_templates') {
+        return (
+          !sql.includes("'presentation'") || !sql.includes("'spreadsheet'")
+        );
+      } else if (tableName === "project_templates") {
         // 检查category是否包含测试值
         return !sql.includes(`'${testCategoryValue}'`);
       }
@@ -2756,10 +3145,10 @@ class DatabaseManager {
    */
   rebuildProjectsTable() {
     try {
-      console.log('[Database] 开始重建projects表...');
+      console.log("[Database] 开始重建projects表...");
 
       // 1. 重命名旧表
-      this.db.run('ALTER TABLE projects RENAME TO projects_old');
+      this.db.run("ALTER TABLE projects RENAME TO projects_old");
 
       // 2. 创建新表（带更新的CHECK约束）
       this.db.run(`
@@ -2793,26 +3182,40 @@ class DatabaseManager {
         SELECT id, user_id, name, description, project_type, status, root_path,
                file_count, total_size, template_id, cover_image_url, tags, metadata,
                created_at, updated_at, sync_status, synced_at, device_id, deleted,
-               ${this.checkColumnExists('projects_old', 'category_id') ? 'category_id' : 'NULL'}
+               ${this.checkColumnExists("projects_old", "category_id") ? "category_id" : "NULL"}
         FROM projects_old
       `);
 
       // 4. 删除旧表
-      this.db.run('DROP TABLE projects_old');
+      this.db.run("DROP TABLE projects_old");
 
       // 5. 重新创建索引
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at DESC)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_type ON projects(project_type)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_sync_status ON projects(sync_status)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id)');
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at DESC)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_projects_type ON projects(project_type)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_projects_sync_status ON projects(sync_status)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_projects_category_id ON projects(category_id)",
+      );
 
       this.saveToFile();
-      console.log('[Database] projects表重建成功');
+      console.log("[Database] projects表重建成功");
     } catch (error) {
-      console.error('[Database] 重建projects表失败:', error);
+      console.error("[Database] 重建projects表失败:", error);
       throw error;
     }
   }
@@ -2822,10 +3225,12 @@ class DatabaseManager {
    */
   rebuildProjectTemplatesTable() {
     try {
-      console.log('[Database] 开始重建project_templates表...');
+      console.log("[Database] 开始重建project_templates表...");
 
       // 1. 重命名旧表
-      this.db.run('ALTER TABLE project_templates RENAME TO project_templates_old');
+      this.db.run(
+        "ALTER TABLE project_templates RENAME TO project_templates_old",
+      );
 
       // 2. 创建新表（带更新的CHECK约束）
       this.db.run(`
@@ -2905,26 +3310,40 @@ class DatabaseManager {
                project_type, prompt_template, variables_schema, file_structure, default_files,
                is_builtin, author, version, usage_count, rating, rating_count,
                created_at, updated_at, sync_status,
-               ${this.checkColumnExists('project_templates_old', 'deleted') ? 'deleted' : '0'}
+               ${this.checkColumnExists("project_templates_old", "deleted") ? "deleted" : "0"}
         FROM project_templates_old
       `);
 
       // 4. 删除旧表
-      this.db.run('DROP TABLE project_templates_old');
+      this.db.run("DROP TABLE project_templates_old");
 
       // 5. 重新创建索引
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_category ON project_templates(category)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_subcategory ON project_templates(subcategory)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_type ON project_templates(project_type)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_usage ON project_templates(usage_count DESC)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_rating ON project_templates(rating DESC)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_builtin ON project_templates(is_builtin)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_templates_deleted ON project_templates(deleted)');
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_templates_category ON project_templates(category)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_templates_subcategory ON project_templates(subcategory)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_templates_type ON project_templates(project_type)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_templates_usage ON project_templates(usage_count DESC)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_templates_rating ON project_templates(rating DESC)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_templates_builtin ON project_templates(is_builtin)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_templates_deleted ON project_templates(deleted)",
+      );
 
       this.saveToFile();
-      console.log('[Database] project_templates表重建成功');
+      console.log("[Database] project_templates表重建成功");
     } catch (error) {
-      console.error('[Database] 重建project_templates表失败:', error);
+      console.error("[Database] 重建project_templates表失败:", error);
       throw error;
     }
   }
@@ -2937,7 +3356,7 @@ class DatabaseManager {
       const stmt = this.db.prepare(`PRAGMA table_info(${tableName})`);
       const columns = stmt.all();
       stmt.free();
-      return columns.some(col => col.name === columnName);
+      return columns.some((col) => col.name === columnName);
     } catch (error) {
       return false;
     }
@@ -2954,14 +3373,20 @@ class DatabaseManager {
   getKnowledgeItems(limit = 100, offset = 0) {
     // 数据库未初始化检查
     if (!this.db) {
-      console.warn('[Database] 数据库未初始化，无法获取知识库项');
+      console.warn("[Database] 数据库未初始化，无法获取知识库项");
       return [];
     }
 
     const parsedLimit = Number(limit);
     const parsedOffset = Number(offset);
-    const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.floor(parsedLimit) : 100;
-    const safeOffset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? Math.floor(parsedOffset) : 0;
+    const safeLimit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? Math.floor(parsedLimit)
+        : 100;
+    const safeOffset =
+      Number.isFinite(parsedOffset) && parsedOffset >= 0
+        ? Math.floor(parsedOffset)
+        : 0;
 
     try {
       const sql = `
@@ -2973,7 +3398,7 @@ class DatabaseManager {
       // Use the unified all() method which handles both sql.js and better-sqlite3
       return this.all(sql);
     } catch (error) {
-      console.error('[Database] 获取知识库项失败:', error.message);
+      console.error("[Database] 获取知识库项失败:", error.message);
       return [];
     }
   }
@@ -2989,9 +3414,9 @@ class DatabaseManager {
     }
 
     try {
-      return this.get('SELECT * FROM knowledge_items WHERE id = ?', [id]);
+      return this.get("SELECT * FROM knowledge_items WHERE id = ?", [id]);
     } catch (error) {
-      console.error('[Database] 获取知识库项失败:', error.message);
+      console.error("[Database] 获取知识库项失败:", error.message);
       return null;
     }
   }
@@ -3016,9 +3441,11 @@ class DatabaseManager {
     }
 
     try {
-      return this.get('SELECT * FROM knowledge_items WHERE title = ? LIMIT 1', [title]);
+      return this.get("SELECT * FROM knowledge_items WHERE title = ? LIMIT 1", [
+        title,
+      ]);
     } catch (error) {
-      console.error('[Database] 根据标题获取知识库项失败:', error.message);
+      console.error("[Database] 根据标题获取知识库项失败:", error.message);
       return null;
     }
   }
@@ -3029,14 +3456,14 @@ class DatabaseManager {
    */
   getAllKnowledgeItems() {
     if (!this.db) {
-      console.warn('[Database] 数据库未初始化，无法获取知识库项');
+      console.warn("[Database] 数据库未初始化，无法获取知识库项");
       return [];
     }
 
     try {
-      return this.all('SELECT * FROM knowledge_items ORDER BY updated_at DESC');
+      return this.all("SELECT * FROM knowledge_items ORDER BY updated_at DESC");
     } catch (error) {
-      console.error('[Database] 获取所有知识库项失败:', error.message);
+      console.error("[Database] 获取所有知识库项失败:", error.message);
       return [];
     }
   }
@@ -3050,32 +3477,40 @@ class DatabaseManager {
     const safeItem = item || {};
     const id = safeItem.id || uuidv4();
     const now = Date.now();
-    const rawTitle = typeof safeItem.title === 'string' ? safeItem.title.trim() : '';
-    const title = rawTitle || 'Untitled';
-    const type = typeof safeItem.type === 'string' && safeItem.type ? safeItem.type : 'note';
-    const content = typeof safeItem.content === 'string' ? safeItem.content : null;
+    const rawTitle =
+      typeof safeItem.title === "string" ? safeItem.title.trim() : "";
+    const title = rawTitle || "Untitled";
+    const type =
+      typeof safeItem.type === "string" && safeItem.type
+        ? safeItem.type
+        : "note";
+    const content =
+      typeof safeItem.content === "string" ? safeItem.content : null;
 
-    this.db.run(`
+    this.db.run(
+      `
       INSERT INTO knowledge_items (
         id, title, type, content, content_path, embedding_path,
         created_at, updated_at, git_commit_hash, device_id, sync_status
       ) VALUES (?, COALESCE(NULLIF(?, ''), 'Untitled'), ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id,
-      title,
-      type,
-      content,
-      safeItem.content_path || null,
-      safeItem.embedding_path || null,
-      now,
-      now,
-      safeItem.git_commit_hash || null,
-      safeItem.device_id || null,
-      safeItem.sync_status || 'pending'
-    ]);
+    `,
+      [
+        id,
+        title,
+        type,
+        content,
+        safeItem.content_path || null,
+        safeItem.embedding_path || null,
+        now,
+        now,
+        safeItem.git_commit_hash || null,
+        safeItem.device_id || null,
+        safeItem.sync_status || "pending",
+      ],
+    );
 
     // 更新全文搜索索引
-    this.updateSearchIndex(id, title, content || '');
+    this.updateSearchIndex(id, title, content || "");
 
     // 保存到文件
     this.saveToFile();
@@ -3096,28 +3531,28 @@ class DatabaseManager {
 
     // 动态构建更新字段
     if (updates.title !== undefined) {
-      fields.push('title = ?');
+      fields.push("title = ?");
       values.push(updates.title);
     }
     if (updates.type !== undefined) {
-      fields.push('type = ?');
+      fields.push("type = ?");
       values.push(updates.type);
     }
     if (updates.content !== undefined) {
-      fields.push('content = ?');
+      fields.push("content = ?");
       values.push(updates.content);
     }
     if (updates.content_path !== undefined) {
-      fields.push('content_path = ?');
+      fields.push("content_path = ?");
       values.push(updates.content_path);
     }
     if (updates.sync_status !== undefined) {
-      fields.push('sync_status = ?');
+      fields.push("sync_status = ?");
       values.push(updates.sync_status);
     }
 
     // 总是更新 updated_at
-    fields.push('updated_at = ?');
+    fields.push("updated_at = ?");
     values.push(now);
 
     // 添加 WHERE 条件的 ID
@@ -3128,16 +3563,19 @@ class DatabaseManager {
       return this.getKnowledgeItemById(id);
     }
 
-    this.db.run(`
+    this.db.run(
+      `
       UPDATE knowledge_items
-      SET ${fields.join(', ')}
+      SET ${fields.join(", ")}
       WHERE id = ?
-    `, values);
+    `,
+      values,
+    );
 
     // 更新全文搜索索引
     const item = this.getKnowledgeItemById(id);
     if (item) {
-      this.updateSearchIndex(id, item.title, item.content || '');
+      this.updateSearchIndex(id, item.title, item.content || "");
     }
 
     // 保存到文件
@@ -3153,10 +3591,10 @@ class DatabaseManager {
    */
   deleteKnowledgeItem(id) {
     // 删除搜索索引
-    this.run('DELETE FROM knowledge_search WHERE id = ?', [id]);
+    this.run("DELETE FROM knowledge_search WHERE id = ?", [id]);
 
     // 删除知识库项
-    this.run('DELETE FROM knowledge_items WHERE id = ?', [id]);
+    this.run("DELETE FROM knowledge_items WHERE id = ?", [id]);
 
     return true;
   }
@@ -3175,12 +3613,15 @@ class DatabaseManager {
 
     // 使用 LIKE 搜索（sql.js 不支持 FTS5）
     const pattern = `%${query}%`;
-    return this.all(`
+    return this.all(
+      `
       SELECT * FROM knowledge_items
       WHERE title LIKE ? OR content LIKE ?
       ORDER BY updated_at DESC
       LIMIT 50
-    `, [pattern, pattern]);
+    `,
+      [pattern, pattern],
+    );
   }
 
   /**
@@ -3191,13 +3632,16 @@ class DatabaseManager {
    */
   updateSearchIndex(id, title, content) {
     // 先删除旧索引
-    this.db.run('DELETE FROM knowledge_search WHERE id = ?', [id]);
+    this.db.run("DELETE FROM knowledge_search WHERE id = ?", [id]);
 
     // 插入新索引
-    this.db.run(`
+    this.db.run(
+      `
       INSERT INTO knowledge_search (id, title, content)
       VALUES (?, ?, ?)
-    `, [id, title, content]);
+    `,
+      [id, title, content],
+    );
   }
 
   // ==================== 标签操作 ====================
@@ -3207,7 +3651,7 @@ class DatabaseManager {
    * @returns {Array} 标签列表
    */
   getAllTags() {
-    return this.all('SELECT * FROM tags ORDER BY name');
+    return this.all("SELECT * FROM tags ORDER BY name");
   }
 
   /**
@@ -3216,21 +3660,24 @@ class DatabaseManager {
    * @param {string} color - 颜色
    * @returns {Object} 创建的标签
    */
-  createTag(name, color = '#1890ff') {
+  createTag(name, color = "#1890ff") {
     const id = uuidv4();
     const now = Date.now();
 
     try {
-      this.run(`
+      this.run(
+        `
         INSERT INTO tags (id, name, color, created_at)
         VALUES (?, ?, ?, ?)
-      `, [id, name, color, now]);
+      `,
+        [id, name, color, now],
+      );
 
       return { id, name, color, created_at: now };
     } catch (error) {
-      if (error.message.includes('UNIQUE')) {
+      if (error.message.includes("UNIQUE")) {
         // 标签已存在，返回现有标签
-        return this.get('SELECT * FROM tags WHERE name = ?', [name]);
+        return this.get("SELECT * FROM tags WHERE name = ?", [name]);
       }
       throw error;
     }
@@ -3242,10 +3689,13 @@ class DatabaseManager {
    * @param {string} tagId - 标签ID
    */
   addTagToKnowledge(knowledgeId, tagId) {
-    this.db.run(`
+    this.db.run(
+      `
       INSERT OR IGNORE INTO knowledge_tags (knowledge_id, tag_id, created_at)
       VALUES (?, ?, ?)
-    `, [knowledgeId, tagId, Date.now()]);
+    `,
+      [knowledgeId, tagId, Date.now()],
+    );
     this.saveToFile();
   }
 
@@ -3255,11 +3705,14 @@ class DatabaseManager {
    * @returns {Array} 标签列表
    */
   getKnowledgeTags(knowledgeId) {
-    return this.all(`
+    return this.all(
+      `
       SELECT t.* FROM tags t
       JOIN knowledge_tags kt ON t.id = kt.tag_id
       WHERE kt.knowledge_id = ?
-    `, [knowledgeId]);
+    `,
+      [knowledgeId],
+    );
   }
 
   // ==================== 统计功能 ====================
@@ -3269,15 +3722,15 @@ class DatabaseManager {
    * @returns {Object} 统计信息
    */
   getStatistics() {
-    const total = this.get('SELECT COUNT(*) as count FROM knowledge_items');
+    const total = this.get("SELECT COUNT(*) as count FROM knowledge_items");
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayTimestamp = today.getTime();
 
     const todayCount = this.get(
-      'SELECT COUNT(*) as count FROM knowledge_items WHERE created_at >= ?',
-      [todayTimestamp]
+      "SELECT COUNT(*) as count FROM knowledge_items WHERE created_at >= ?",
+      [todayTimestamp],
     );
 
     const byType = this.all(`
@@ -3316,11 +3769,14 @@ class DatabaseManager {
   trackQueryPerformance(queryName, duration, sql, params = []) {
     try {
       // Get performance monitor
-      const { getPerformanceMonitor } = require('../../utils/performance-monitor');
+      const {
+        getPerformanceMonitor,
+      } = require("../../utils/performance-monitor");
       const monitor = getPerformanceMonitor();
 
       // Log slow query if it exceeds threshold (from env or default 100ms)
-      const slowQueryThreshold = parseInt(process.env.DB_SLOW_QUERY_THRESHOLD) || 100;
+      const slowQueryThreshold =
+        parseInt(process.env.DB_SLOW_QUERY_THRESHOLD) || 100;
 
       if (duration > slowQueryThreshold) {
         monitor.logSlowQuery(sql, duration, params);
@@ -3329,7 +3785,7 @@ class DatabaseManager {
       // Track the operation
       monitor.trackOperation(queryName, duration, {
         sql: sql.substring(0, 100), // First 100 chars of SQL
-        paramCount: Array.isArray(params) ? params.length : 0
+        paramCount: Array.isArray(params) ? params.length : 0,
       });
     } catch (error) {
       // Silently fail if performance monitoring is not available
@@ -3354,8 +3810,10 @@ class DatabaseManager {
         return null;
       }
       // Convert NaN and Infinity to null to avoid SQL binding errors
-      if (typeof value === 'number' && (!isFinite(value))) {
-        console.warn('[Database] 警告: 检测到特殊数值 (NaN/Infinity)，已转换为NULL');
+      if (typeof value === "number" && !isFinite(value)) {
+        console.warn(
+          "[Database] 警告: 检测到特殊数值 (NaN/Infinity)，已转换为NULL",
+        );
         return null;
       }
       return value;
@@ -3364,7 +3822,7 @@ class DatabaseManager {
     if (Array.isArray(params)) {
       return params.map(normalizeValue);
     }
-    if (typeof params === 'object') {
+    if (typeof params === "object") {
       const sanitized = {};
       Object.keys(params).forEach((key) => {
         sanitized[key] = normalizeValue(params[key]);
@@ -3381,42 +3839,51 @@ class DatabaseManager {
    */
   run(sql, params = []) {
     if (!this.db) {
-      throw new Error('Database not initialized');
+      throw new Error("Database not initialized");
     }
 
     const startTime = Date.now();
     try {
-      console.log('[Database] 开始执行SQL操作');
+      console.log("[Database] 开始执行SQL操作");
       const safeParams = this.normalizeParams(params);
-      console.log('[Database] 参数规范化完成');
-      console.log('[Database] 执行SQL:', sql.substring(0, 100).replace(/\s+/g, ' '));
-      console.log('[Database] 参数数量:', Array.isArray(safeParams) ? safeParams.length : 'N/A');
+      console.log("[Database] 参数规范化完成");
+      console.log(
+        "[Database] 执行SQL:",
+        sql.substring(0, 100).replace(/\s+/g, " "),
+      );
+      console.log(
+        "[Database] 参数数量:",
+        Array.isArray(safeParams) ? safeParams.length : "N/A",
+      );
 
       // 打印前3个参数用于调试（避免泄露过多信息）
       if (Array.isArray(safeParams) && safeParams.length > 0) {
-        console.log('[Database] 前3个参数:', safeParams.slice(0, 3));
+        console.log("[Database] 前3个参数:", safeParams.slice(0, 3));
       }
 
-      console.log('[Database] 调用 prepare + run...');
+      console.log("[Database] 调用 prepare + run...");
       // 使用 prepare + run 方式以确保参数正确绑定
       const stmt = this.db.prepare(sql);
       stmt.run(safeParams ?? []);
-      console.log('[Database] ✅ SQL执行成功');
+      console.log("[Database] ✅ SQL执行成功");
 
-      console.log('[Database] 开始保存到文件...');
+      console.log("[Database] 开始保存到文件...");
       if (!this.inTransaction) {
         this.saveToFile();
-        console.log('[Database] ✅ 数据已保存到文件');
+        console.log("[Database] ✅ 数据已保存到文件");
       }
 
       // Track performance
       const duration = Date.now() - startTime;
-      this.trackQueryPerformance('db.run', duration, sql, safeParams);
+      this.trackQueryPerformance("db.run", duration, sql, safeParams);
     } catch (error) {
-      console.error('[Database] ❌ SQL执行失败:', error.message);
-      console.error('[Database] Error类型:', error.constructor.name);
-      console.error('[Database] SQL语句前100字:', sql.substring(0, 100));
-      console.error('[Database] 参数数量:', Array.isArray(params) ? params.length : 'N/A');
+      console.error("[Database] ❌ SQL执行失败:", error.message);
+      console.error("[Database] Error类型:", error.constructor.name);
+      console.error("[Database] SQL语句前100字:", sql.substring(0, 100));
+      console.error(
+        "[Database] 参数数量:",
+        Array.isArray(params) ? params.length : "N/A",
+      );
       throw error;
     }
   }
@@ -3429,20 +3896,24 @@ class DatabaseManager {
    */
   get(sql, params = []) {
     if (!this.db) {
-      throw new Error('Database not initialized');
+      throw new Error("Database not initialized");
     }
 
     const startTime = Date.now();
     const stmt = this.db.prepare(sql);
 
     // Use the wrapped get() method if available (safer than direct getAsObject)
-    if (stmt.get && typeof stmt.get === 'function' && stmt.__betterSqliteCompat) {
+    if (
+      stmt.get &&
+      typeof stmt.get === "function" &&
+      stmt.__betterSqliteCompat
+    ) {
       const row = stmt.get(params);
       stmt.free();
 
       // Track performance
       const duration = Date.now() - startTime;
-      this.trackQueryPerformance('db.get', duration, sql, params);
+      this.trackQueryPerformance("db.get", duration, sql, params);
 
       return row;
     }
@@ -3472,7 +3943,7 @@ class DatabaseManager {
           row = null;
         }
       } catch (err) {
-        console.error('[Database] Error building row object:', err);
+        console.error("[Database] Error building row object:", err);
         row = null;
       }
     }
@@ -3481,7 +3952,7 @@ class DatabaseManager {
 
     // Track performance
     const duration = Date.now() - startTime;
-    this.trackQueryPerformance('db.get', duration, sql, safeParams);
+    this.trackQueryPerformance("db.get", duration, sql, safeParams);
 
     return row;
   }
@@ -3494,20 +3965,24 @@ class DatabaseManager {
    */
   all(sql, params = []) {
     if (!this.db) {
-      throw new Error('Database not initialized');
+      throw new Error("Database not initialized");
     }
 
     const startTime = Date.now();
     const stmt = this.db.prepare(sql);
 
     // Use the wrapped all() method if available (safer than direct getAsObject)
-    if (stmt.all && typeof stmt.all === 'function' && stmt.__betterSqliteCompat) {
+    if (
+      stmt.all &&
+      typeof stmt.all === "function" &&
+      stmt.__betterSqliteCompat
+    ) {
       const rows = stmt.all(params);
       stmt.free();
 
       // Track performance
       const duration = Date.now() - startTime;
-      this.trackQueryPerformance('db.all', duration, sql, params);
+      this.trackQueryPerformance("db.all", duration, sql, params);
 
       return rows;
     }
@@ -3541,7 +4016,7 @@ class DatabaseManager {
           rows.push(row);
         }
       } catch (err) {
-        console.error('[Database] Error building row object:', err);
+        console.error("[Database] Error building row object:", err);
         // Skip this row and continue
       }
     }
@@ -3550,7 +4025,7 @@ class DatabaseManager {
 
     // Track performance
     const duration = Date.now() - startTime;
-    this.trackQueryPerformance('db.all', duration, sql, safeParams);
+    this.trackQueryPerformance("db.all", duration, sql, safeParams);
 
     return rows;
   }
@@ -3562,13 +4037,13 @@ class DatabaseManager {
    */
   exec(sql) {
     if (!this.db) {
-      throw new Error('Database not initialized');
+      throw new Error("Database not initialized");
     }
     try {
       return this.db.exec(sql);
     } catch (error) {
-      console.error('[Database] exec() failed:', error.message);
-      console.error('[Database] SQL:', sql.substring(0, 100));
+      console.error("[Database] exec() failed:", error.message);
+      console.error("[Database] SQL:", sql.substring(0, 100));
       throw error;
     }
   }
@@ -3580,13 +4055,13 @@ class DatabaseManager {
    */
   prepare(sql) {
     if (!this.db) {
-      throw new Error('Database not initialized');
+      throw new Error("Database not initialized");
     }
     try {
       return this.db.prepare(sql);
     } catch (error) {
-      console.error('[Database] prepare() failed:', error.message);
-      console.error('[Database] SQL:', sql.substring(0, 100));
+      console.error("[Database] prepare() failed:", error.message);
+      console.error("[Database] SQL:", sql.substring(0, 100));
       throw error;
     }
   }
@@ -3602,13 +4077,13 @@ class DatabaseManager {
       this.inTransaction = true;
 
       // 开始事务
-      this.db.prepare('BEGIN TRANSACTION').run();
+      this.db.prepare("BEGIN TRANSACTION").run();
 
       // 执行回调中的操作
       callback();
 
       // 提交事务
-      this.db.prepare('COMMIT').run();
+      this.db.prepare("COMMIT").run();
 
       // 清除事务标志
       this.inTransaction = false;
@@ -3618,9 +4093,9 @@ class DatabaseManager {
     } catch (error) {
       // 回滚事务
       try {
-        this.db.prepare('ROLLBACK').run();
+        this.db.prepare("ROLLBACK").run();
       } catch (rollbackError) {
-        console.error('[Database] ROLLBACK 失败:', rollbackError);
+        console.error("[Database] ROLLBACK 失败:", rollbackError);
       }
 
       // 确保清除事务标志
@@ -3645,7 +4120,7 @@ class DatabaseManager {
         const stmt = this.db.prepare(
           `UPDATE ${tableName}
            SET sync_status = ?, synced_at = ?
-           WHERE id = ?`
+           WHERE id = ?`,
         );
 
         stmt.run(status, syncedAt, recordId);
@@ -3654,7 +4129,10 @@ class DatabaseManager {
 
       return true;
     } catch (error) {
-      console.error(`[Database] 更新同步状态失败: table=${tableName}, id=${recordId}`, error);
+      console.error(
+        `[Database] 更新同步状态失败: table=${tableName}, id=${recordId}`,
+        error,
+      );
       return false;
     }
   }
@@ -3674,7 +4152,7 @@ class DatabaseManager {
         tableName,
         update.id,
         update.status,
-        update.syncedAt
+        update.syncedAt,
       );
 
       if (result) {
@@ -3694,7 +4172,7 @@ class DatabaseManager {
     if (this.db) {
       this.saveToFile();
       this.db.close();
-      console.log('数据库连接已关闭');
+      console.log("数据库连接已关闭");
     }
   }
 
@@ -3705,12 +4183,12 @@ class DatabaseManager {
    * @returns {Promise<boolean>} 切换是否成功
    */
   async switchDatabase(newDbPath, options = {}) {
-    console.log('[Database] 切换数据库:', newDbPath);
+    console.log("[Database] 切换数据库:", newDbPath);
 
     try {
       // 1. 保存并关闭当前数据库
       if (this.db) {
-        console.log('[Database] 保存并关闭当前数据库...');
+        console.log("[Database] 保存并关闭当前数据库...");
         this.saveToFile();
         this.db.close();
         this.db = null;
@@ -3728,10 +4206,10 @@ class DatabaseManager {
       // 3. 初始化新数据库
       await this.initialize();
 
-      console.log('[Database] ✓ 数据库切换成功:', newDbPath);
+      console.log("[Database] ✓ 数据库切换成功:", newDbPath);
       return true;
     } catch (error) {
-      console.error('[Database] 切换数据库失败:', error);
+      console.error("[Database] 切换数据库失败:", error);
       throw error;
     }
   }
@@ -3743,22 +4221,24 @@ class DatabaseManager {
    */
   getDatabasePath(contextId) {
     const appConfig = getAppConfig();
-    const dataDir = appConfig.getDatabaseDir ? appConfig.getDatabaseDir() : path.join(app.getPath('userData'), 'data');
+    const dataDir = appConfig.getDatabaseDir
+      ? appConfig.getDatabaseDir()
+      : path.join(app.getPath("userData"), "data");
 
     // 确保数据目录存在
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
 
-    if (contextId === 'personal') {
+    if (contextId === "personal") {
       // 个人数据库
-      return path.join(dataDir, 'personal.db');
-    } else if (contextId.startsWith('org_')) {
+      return path.join(dataDir, "personal.db");
+    } else if (contextId.startsWith("org_")) {
       // 组织数据库
       return path.join(dataDir, `${contextId}.db`);
     } else {
       // 默认数据库（向后兼容）
-      return path.join(dataDir, 'chainlesschain.db');
+      return path.join(dataDir, "chainlesschain.db");
     }
   }
 
@@ -3771,20 +4251,12 @@ class DatabaseManager {
   }
 
   /**
-   * 获取数据库路径
-   * @returns {string} 数据库文件路径
-   */
-  getDatabasePath() {
-    return this.dbPath;
-  }
-
-  /**
    * 备份数据库
    * @param {string} backupPath - 备份路径
    */
   backup(backupPath) {
     if (!this.db) {
-      throw new Error('数据库未初始化');
+      throw new Error("数据库未初始化");
     }
 
     const data = this.db.export();
@@ -3807,7 +4279,7 @@ class DatabaseManager {
          SET deleted = 1,
              updated_at = ?,
              sync_status = 'pending'
-         WHERE id = ?`
+         WHERE id = ?`,
       );
 
       stmt.run(Date.now(), id);
@@ -3817,7 +4289,10 @@ class DatabaseManager {
       console.log(`[Database] 软删除记录: table=${tableName}, id=${id}`);
       return true;
     } catch (error) {
-      console.error(`[Database] 软删除失败: table=${tableName}, id=${id}`, error);
+      console.error(
+        `[Database] 软删除失败: table=${tableName}, id=${id}`,
+        error,
+      );
       return false;
     }
   }
@@ -3856,7 +4331,7 @@ class DatabaseManager {
          SET deleted = 0,
              updated_at = ?,
              sync_status = 'pending'
-         WHERE id = ?`
+         WHERE id = ?`,
       );
 
       stmt.run(Date.now(), id);
@@ -3884,7 +4359,7 @@ class DatabaseManager {
       const stmt = this.db.prepare(
         `DELETE FROM ${tableName}
          WHERE deleted = 1
-           AND updated_at < ?`
+           AND updated_at < ?`,
       );
 
       const info = stmt.run(cutoffTime);
@@ -3911,12 +4386,12 @@ class DatabaseManager {
    */
   cleanupAllSoftDeleted(olderThanDays = 30) {
     const syncTables = [
-      'projects',
-      'project_files',
-      'knowledge_items',
-      'project_collaborators',
-      'project_comments',
-      'project_tasks'
+      "projects",
+      "project_files",
+      "knowledge_items",
+      "project_collaborators",
+      "project_comments",
+      "project_tasks",
     ];
 
     const results = [];
@@ -3939,23 +4414,23 @@ class DatabaseManager {
    */
   getSoftDeletedStats() {
     const syncTables = [
-      'projects',
-      'project_files',
-      'knowledge_items',
-      'project_collaborators',
-      'project_comments',
-      'project_tasks'
+      "projects",
+      "project_files",
+      "knowledge_items",
+      "project_collaborators",
+      "project_comments",
+      "project_tasks",
     ];
 
     const stats = {
       total: 0,
-      byTable: {}
+      byTable: {},
     };
 
     for (const tableName of syncTables) {
       try {
         const stmt = this.db.prepare(
-          `SELECT COUNT(*) as count FROM ${tableName} WHERE deleted = 1`
+          `SELECT COUNT(*) as count FROM ${tableName} WHERE deleted = 1`,
         );
 
         stmt.step();
@@ -3980,16 +4455,21 @@ class DatabaseManager {
    * @returns {Object} 定时器对象
    */
   startPeriodicCleanup(intervalHours = 24, retentionDays = 30) {
-    console.log(`[Database] 启动定期清理: 每${intervalHours}小时清理${retentionDays}天前的软删除记录`);
+    console.log(
+      `[Database] 启动定期清理: 每${intervalHours}小时清理${retentionDays}天前的软删除记录`,
+    );
 
     // 立即执行一次
     this.cleanupAllSoftDeleted(retentionDays);
 
     // 定期执行
-    const timer = setInterval(() => {
-      console.log('[Database] 执行定期清理任务...');
-      this.cleanupAllSoftDeleted(retentionDays);
-    }, intervalHours * 60 * 60 * 1000);
+    const timer = setInterval(
+      () => {
+        console.log("[Database] 执行定期清理任务...");
+        this.cleanupAllSoftDeleted(retentionDays);
+      },
+      intervalHours * 60 * 60 * 1000,
+    );
 
     return timer;
   }
@@ -4034,16 +4514,27 @@ class DatabaseManager {
     `);
 
     let count = 0;
-    relations.forEach(rel => {
+    relations.forEach((rel) => {
       const id = this.generateId();
       const createdAt = Date.now();
       const metadataStr = rel.metadata ? JSON.stringify(rel.metadata) : null;
 
       try {
-        stmt.run([id, rel.sourceId, rel.targetId, rel.type, rel.weight || 1.0, metadataStr, createdAt]);
+        stmt.run([
+          id,
+          rel.sourceId,
+          rel.targetId,
+          rel.type,
+          rel.weight || 1.0,
+          metadataStr,
+          createdAt,
+        ]);
         count++;
       } catch (error) {
-        console.error(`[Database] 添加关系失败 (${rel.sourceId} -> ${rel.targetId}):`, error);
+        console.error(
+          `[Database] 添加关系失败 (${rel.sourceId} -> ${rel.targetId}):`,
+          error,
+        );
       }
     });
 
@@ -4064,7 +4555,7 @@ class DatabaseManager {
     let params;
 
     if (types && types.length > 0) {
-      const placeholders = types.map(() => '?').join(',');
+      const placeholders = types.map(() => "?").join(",");
       query = `
         DELETE FROM knowledge_relations
         WHERE (source_id = ? OR target_id = ?)
@@ -4094,14 +4585,14 @@ class DatabaseManager {
    */
   getGraphData(options = {}) {
     const {
-      relationTypes = ['link', 'tag', 'semantic', 'temporal'],
+      relationTypes = ["link", "tag", "semantic", "temporal"],
       minWeight = 0.0,
-      nodeTypes = ['note', 'document', 'conversation', 'web_clip'],
-      limit = 500
+      nodeTypes = ["note", "document", "conversation", "web_clip"],
+      limit = 500,
     } = options;
 
     // 1. 查询涉及关系的所有笔记ID
-    const relationTypesList = relationTypes.map(() => '?').join(',');
+    const relationTypesList = relationTypes.map(() => "?").join(",");
     const relStmt = this.db.prepare(`
       SELECT DISTINCT source_id as id FROM knowledge_relations
       WHERE relation_type IN (${relationTypesList}) AND weight >= ?
@@ -4110,7 +4601,13 @@ class DatabaseManager {
       WHERE relation_type IN (${relationTypesList}) AND weight >= ?
       LIMIT ?
     `);
-    relStmt.bind([...relationTypes, minWeight, ...relationTypes, minWeight, limit]);
+    relStmt.bind([
+      ...relationTypes,
+      minWeight,
+      ...relationTypes,
+      minWeight,
+      limit,
+    ]);
 
     const nodeIds = [];
     while (relStmt.step()) {
@@ -4121,8 +4618,8 @@ class DatabaseManager {
     // 2. 查询这些笔记的详细信息
     const nodes = [];
     if (nodeIds.length > 0) {
-      const nodeTypesFilter = nodeTypes.map(() => '?').join(',');
-      const idsFilter = nodeIds.map(() => '?').join(',');
+      const nodeTypesFilter = nodeTypes.map(() => "?").join(",");
+      const idsFilter = nodeIds.map(() => "?").join(",");
       const nodeStmt = this.db.prepare(`
         SELECT id, title, type, created_at, updated_at
         FROM knowledge_items
@@ -4146,8 +4643,8 @@ class DatabaseManager {
     // 3. 查询这些节点之间的关系
     const edges = [];
     if (nodeIds.length > 0) {
-      const idsFilter = nodeIds.map(() => '?').join(',');
-      const relationTypesFilter = relationTypes.map(() => '?').join(',');
+      const idsFilter = nodeIds.map(() => "?").join(",");
+      const relationTypesFilter = relationTypes.map(() => "?").join(",");
       const edgeStmt = this.db.prepare(`
         SELECT id, source_id, target_id, relation_type, weight, metadata
         FROM knowledge_relations
@@ -4303,7 +4800,7 @@ class DatabaseManager {
     for (let d = 0; d < depth; d++) {
       const nextLevel = [];
 
-      currentLevel.forEach(nodeId => {
+      currentLevel.forEach((nodeId) => {
         const stmt = this.db.prepare(`
           SELECT id, source_id, target_id, relation_type, weight, metadata
           FROM knowledge_relations
@@ -4313,7 +4810,8 @@ class DatabaseManager {
 
         while (stmt.step()) {
           const edge = stmt.getAsObject();
-          const otherId = edge.source_id === nodeId ? edge.target_id : edge.source_id;
+          const otherId =
+            edge.source_id === nodeId ? edge.target_id : edge.source_id;
 
           if (!allNodes.has(otherId)) {
             allNodes.add(otherId);
@@ -4341,7 +4839,7 @@ class DatabaseManager {
     const nodes = [];
     const nodeIds = Array.from(allNodes);
     if (nodeIds.length > 0) {
-      const idsFilter = nodeIds.map(() => '?').join(',');
+      const idsFilter = nodeIds.map(() => "?").join(",");
       const stmt = this.db.prepare(`
         SELECT id, title, type, created_at, updated_at
         FROM knowledge_items
@@ -4407,7 +4905,7 @@ class DatabaseManager {
       relations.push({
         sourceId: row.source_id,
         targetId: row.target_id,
-        type: 'tag',
+        type: "tag",
         weight: weight,
         metadata: { sharedTags: row.shared_tags },
       });
@@ -4457,9 +4955,11 @@ class DatabaseManager {
       const weight = 1 / (1 + daysDiff);
 
       relations.push({
-        sourceId: row.source_time < row.target_time ? row.source_id : row.target_id,
-        targetId: row.source_time < row.target_time ? row.target_id : row.source_id,
-        type: 'temporal',
+        sourceId:
+          row.source_time < row.target_time ? row.source_id : row.target_id,
+        targetId:
+          row.source_time < row.target_time ? row.target_id : row.source_id,
+        type: "temporal",
         weight: weight,
         metadata: { daysDiff: daysDiff.toFixed(2) },
       });
@@ -4478,7 +4978,7 @@ class DatabaseManager {
    */
   getProjects(userId) {
     if (!this.db) {
-      console.error('[DatabaseManager] 数据库未初始化');
+      console.error("[DatabaseManager] 数据库未初始化");
       return [];
     }
     const stmt = this.db.prepare(`
@@ -4495,16 +4995,16 @@ class DatabaseManager {
     try {
       projects = stmt.all(userId);
     } catch (err) {
-      console.error('[Database] getProjects 查询失败:', err);
+      console.error("[Database] getProjects 查询失败:", err);
       // 返回空数组
       return [];
     }
 
     // 清理每个项目中的 undefined 和 null 值
-    return projects.map(project => {
+    return projects.map((project) => {
       const cleaned = {};
       for (const key in project) {
-        if (project.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(project, key)) {
           const value = project[key];
           // 跳过 undefined 和 null
           if (value !== undefined && value !== null) {
@@ -4522,24 +5022,42 @@ class DatabaseManager {
    */
   getDatabaseStats() {
     if (!this.db) {
-      return { error: '数据库未初始化' };
+      return { error: "数据库未初始化" };
     }
 
     try {
       const stats = {};
 
       // 获取projects表统计
-      const projectsCount = this.db.prepare('SELECT COUNT(*) as count FROM projects').get();
-      const projectsDeleted = this.db.prepare('SELECT COUNT(*) as count FROM projects WHERE deleted = 1').get();
-      const projectsActive = this.db.prepare('SELECT COUNT(*) as count FROM projects WHERE deleted = 0').get();
+      const projectsCount = this.db
+        .prepare("SELECT COUNT(*) as count FROM projects")
+        .get();
+      const projectsDeleted = this.db
+        .prepare("SELECT COUNT(*) as count FROM projects WHERE deleted = 1")
+        .get();
+      const projectsActive = this.db
+        .prepare("SELECT COUNT(*) as count FROM projects WHERE deleted = 0")
+        .get();
 
       // 获取project_files表统计
-      const filesCount = this.db.prepare('SELECT COUNT(*) as count FROM project_files').get();
-      const filesDeleted = this.db.prepare('SELECT COUNT(*) as count FROM project_files WHERE deleted = 1').get();
-      const filesActive = this.db.prepare('SELECT COUNT(*) as count FROM project_files WHERE deleted = 0').get();
+      const filesCount = this.db
+        .prepare("SELECT COUNT(*) as count FROM project_files")
+        .get();
+      const filesDeleted = this.db
+        .prepare(
+          "SELECT COUNT(*) as count FROM project_files WHERE deleted = 1",
+        )
+        .get();
+      const filesActive = this.db
+        .prepare(
+          "SELECT COUNT(*) as count FROM project_files WHERE deleted = 0",
+        )
+        .get();
 
       // 获取所有用户ID
-      const users = this.db.prepare('SELECT DISTINCT user_id FROM projects').all();
+      const users = this.db
+        .prepare("SELECT DISTINCT user_id FROM projects")
+        .all();
 
       stats.projects = {
         total: projectsCount.count,
@@ -4553,14 +5071,14 @@ class DatabaseManager {
         deleted: filesDeleted.count,
       };
 
-      stats.users = users.map(u => u.user_id);
+      stats.users = users.map((u) => u.user_id);
 
       // 获取数据库路径和大小
       stats.dbPath = this.dbPath;
       if (fs.existsSync(this.dbPath)) {
         const fileStats = fs.statSync(this.dbPath);
         stats.dbSize = fileStats.size;
-        stats.dbSizeMB = (fileStats.size / 1024 / 1024).toFixed(2) + ' MB';
+        stats.dbSizeMB = (fileStats.size / 1024 / 1024).toFixed(2) + " MB";
         stats.dbModified = new Date(fileStats.mtime).toISOString();
       }
 
@@ -4569,7 +5087,7 @@ class DatabaseManager {
 
       return stats;
     } catch (error) {
-      console.error('[Database] getDatabaseStats 失败:', error);
+      console.error("[Database] getDatabaseStats 失败:", error);
       return { error: error.message };
     }
   }
@@ -4580,37 +5098,48 @@ class DatabaseManager {
    * @returns {Object|null} 项目
    */
   getProjectById(projectId) {
-    console.log('[Database] getProjectById 输入参数:', projectId, 'type:', typeof projectId);
+    console.log(
+      "[Database] getProjectById 输入参数:",
+      projectId,
+      "type:",
+      typeof projectId,
+    );
 
-    const stmt = this.db.prepare('SELECT * FROM projects WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM projects WHERE id = ?");
 
-    console.log('[Database] 准备执行 stmt.get...');
+    console.log("[Database] 准备执行 stmt.get...");
     let project;
     try {
       project = stmt.get(projectId);
-      console.log('[Database] stmt.get 执行成功，结果:', project ? 'OK' : 'NULL');
+      console.log(
+        "[Database] stmt.get 执行成功，结果:",
+        project ? "OK" : "NULL",
+      );
     } catch (getError) {
-      console.error('[Database] stmt.get 失败!');
-      console.error('[Database] 查询参数 projectId:', projectId);
-      console.error('[Database] 错误对象:', getError);
+      console.error("[Database] stmt.get 失败!");
+      console.error("[Database] 查询参数 projectId:", projectId);
+      console.error("[Database] 错误对象:", getError);
       throw getError;
     }
 
     // 清理 undefined 值，SQLite 可能返回 undefined
     if (!project) {
-      console.log('[Database] 未找到项目，返回 null');
+      console.log("[Database] 未找到项目，返回 null");
       return null;
     }
 
-    console.log('[Database] 开始清理 undefined 值...');
+    console.log("[Database] 开始清理 undefined 值...");
     const cleaned = {};
     for (const key in project) {
-      if (project.hasOwnProperty(key) && project[key] !== undefined) {
+      if (
+        Object.prototype.hasOwnProperty.call(project, key) &&
+        project[key] !== undefined
+      ) {
         cleaned[key] = project[key];
       }
     }
 
-    console.log('[Database] 清理完成，返回键:', Object.keys(cleaned));
+    console.log("[Database] 清理完成，返回键:", Object.keys(cleaned));
     return cleaned;
   }
 
@@ -4622,51 +5151,91 @@ class DatabaseManager {
   saveProject(project) {
     // Check if database is initialized
     if (!this.db) {
-      const errorMsg = '数据库未初始化，无法保存项目。请检查数据库配置和加密设置。';
-      console.error('[Database]', errorMsg);
+      const errorMsg =
+        "数据库未初始化，无法保存项目。请检查数据库配置和加密设置。";
+      console.error("[Database]", errorMsg);
       throw new Error(errorMsg);
     }
 
     const safeProject = project || {};
-    const projectType = safeProject.project_type ?? safeProject.projectType ?? 'web';
-    const userId = safeProject.user_id ?? safeProject.userId ?? 'local-user';
+    const projectType =
+      safeProject.project_type ?? safeProject.projectType ?? "web";
+    const userId = safeProject.user_id ?? safeProject.userId ?? "local-user";
     const rootPath = safeProject.root_path ?? safeProject.rootPath ?? null;
-    const templateId = safeProject.template_id ?? safeProject.templateId ?? null;
-    const coverImageUrl = safeProject.cover_image_url ?? safeProject.coverImageUrl ?? null;
+    const templateId =
+      safeProject.template_id ?? safeProject.templateId ?? null;
+    const coverImageUrl =
+      safeProject.cover_image_url ?? safeProject.coverImageUrl ?? null;
     const fileCount = safeProject.file_count ?? safeProject.fileCount ?? 0;
     const totalSize = safeProject.total_size ?? safeProject.totalSize ?? 0;
-    const tagsValue = typeof safeProject.tags === 'string'
-      ? safeProject.tags
-      : JSON.stringify(safeProject.tags || []);
-    const metadataValue = typeof safeProject.metadata === 'string'
-      ? safeProject.metadata
-      : JSON.stringify(safeProject.metadata || {});
+    const tagsValue =
+      typeof safeProject.tags === "string"
+        ? safeProject.tags
+        : JSON.stringify(safeProject.tags || []);
+    const metadataValue =
+      typeof safeProject.metadata === "string"
+        ? safeProject.metadata
+        : JSON.stringify(safeProject.metadata || {});
     // 确保时间戳是数字（毫秒），如果是字符串则转换
-    let createdAt = safeProject.created_at ?? safeProject.createdAt ?? Date.now();
-    console.log('[Database] createdAt 原始值:', createdAt, 'type:', typeof createdAt);
-    if (typeof createdAt === 'string') {
+    let createdAt =
+      safeProject.created_at ?? safeProject.createdAt ?? Date.now();
+    console.log(
+      "[Database] createdAt 原始值:",
+      createdAt,
+      "type:",
+      typeof createdAt,
+    );
+    if (typeof createdAt === "string") {
       createdAt = new Date(createdAt).getTime();
-      console.log('[Database] createdAt 转换后:', createdAt, 'type:', typeof createdAt);
+      console.log(
+        "[Database] createdAt 转换后:",
+        createdAt,
+        "type:",
+        typeof createdAt,
+      );
     }
 
-    let updatedAt = safeProject.updated_at ?? safeProject.updatedAt ?? Date.now();
-    console.log('[Database] updatedAt 原始值:', updatedAt, 'type:', typeof updatedAt);
-    if (typeof updatedAt === 'string') {
+    let updatedAt =
+      safeProject.updated_at ?? safeProject.updatedAt ?? Date.now();
+    console.log(
+      "[Database] updatedAt 原始值:",
+      updatedAt,
+      "type:",
+      typeof updatedAt,
+    );
+    if (typeof updatedAt === "string") {
       updatedAt = new Date(updatedAt).getTime();
-      console.log('[Database] updatedAt 转换后:', updatedAt, 'type:', typeof updatedAt);
+      console.log(
+        "[Database] updatedAt 转换后:",
+        updatedAt,
+        "type:",
+        typeof updatedAt,
+      );
     }
 
     let syncedAt = safeProject.synced_at ?? safeProject.syncedAt ?? null;
-    console.log('[Database] syncedAt 原始值:', syncedAt, 'type:', typeof syncedAt);
-    if (typeof syncedAt === 'string') {
+    console.log(
+      "[Database] syncedAt 原始值:",
+      syncedAt,
+      "type:",
+      typeof syncedAt,
+    );
+    if (typeof syncedAt === "string") {
       syncedAt = new Date(syncedAt).getTime();
-      console.log('[Database] syncedAt 转换后:', syncedAt, 'type:', typeof syncedAt);
+      console.log(
+        "[Database] syncedAt 转换后:",
+        syncedAt,
+        "type:",
+        typeof syncedAt,
+      );
     }
 
-    const syncStatus = safeProject.sync_status ?? safeProject.syncStatus ?? 'pending';
+    const syncStatus =
+      safeProject.sync_status ?? safeProject.syncStatus ?? "pending";
     const deviceId = safeProject.device_id ?? safeProject.deviceId ?? null;
     const deleted = safeProject.deleted ?? 0;
-    const categoryId = safeProject.category_id ?? safeProject.categoryId ?? null;
+    const categoryId =
+      safeProject.category_id ?? safeProject.categoryId ?? null;
 
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO projects (
@@ -4683,7 +5252,7 @@ class DatabaseManager {
       safeProject.name,
       safeProject.description,
       projectType,
-      safeProject.status || 'active',
+      safeProject.status || "active",
       rootPath,
       fileCount,
       totalSize,
@@ -4700,34 +5269,36 @@ class DatabaseManager {
       categoryId,
     ].map((value) => (value === undefined ? null : value));
 
-    console.log('[Database] 最终params准备绑定:');
+    console.log("[Database] 最终params准备绑定:");
     params.forEach((param, index) => {
-      console.log(`  [${index}] ${typeof param} = ${param === undefined ? 'UNDEFINED!' : (param === null ? 'NULL' : JSON.stringify(param).substring(0, 50))}`);
+      console.log(
+        `  [${index}] ${typeof param} = ${param === undefined ? "UNDEFINED!" : param === null ? "NULL" : JSON.stringify(param).substring(0, 50)}`,
+      );
     });
 
-    console.log('[Database] 开始执行 stmt.run...');
+    console.log("[Database] 开始执行 stmt.run...");
     try {
       stmt.run(...params);
-      console.log('[Database] stmt.run 执行成功');
+      console.log("[Database] stmt.run 执行成功");
     } catch (runError) {
-      console.error('[Database] stmt.run 失败!');
-      console.error('[Database] 错误对象:', runError);
-      console.error('[Database] 错误类型:', typeof runError);
-      console.error('[Database] 错误消息:', runError?.message);
-      console.error('[Database] 错误堆栈:', runError?.stack);
-      console.error('[Database] 错误代码:', runError?.code);
+      console.error("[Database] stmt.run 失败!");
+      console.error("[Database] 错误对象:", runError);
+      console.error("[Database] 错误类型:", typeof runError);
+      console.error("[Database] 错误消息:", runError?.message);
+      console.error("[Database] 错误堆栈:", runError?.stack);
+      console.error("[Database] 错误代码:", runError?.code);
       throw runError;
     }
 
     // 不查询数据库，直接返回刚保存的数据（避免查询返回 undefined 字段）
-    console.log('[Database] 直接返回 safeProject（不查询）');
+    console.log("[Database] 直接返回 safeProject（不查询）");
     const savedProject = {
       id: safeProject.id,
       user_id: userId,
       name: safeProject.name,
       description: safeProject.description,
       project_type: projectType,
-      status: safeProject.status || 'active',
+      status: safeProject.status || "active",
       root_path: rootPath,
       file_count: fileCount,
       total_size: totalSize,
@@ -4744,7 +5315,7 @@ class DatabaseManager {
       category_id: categoryId,
     };
 
-    console.log('[Database] saveProject 完成，返回结果');
+    console.log("[Database] saveProject 完成，返回结果");
     return savedProject;
   }
 
@@ -4760,16 +5331,29 @@ class DatabaseManager {
 
     // 动态构建更新字段
     const allowedFields = [
-      'name', 'description', 'status', 'tags', 'cover_image_url',
-      'file_count', 'total_size', 'sync_status', 'synced_at',
-      'root_path', 'folder_path', 'project_type'
+      "name",
+      "description",
+      "status",
+      "tags",
+      "cover_image_url",
+      "file_count",
+      "total_size",
+      "sync_status",
+      "synced_at",
+      "root_path",
+      "folder_path",
+      "project_type",
     ];
 
-    allowedFields.forEach(field => {
+    allowedFields.forEach((field) => {
       if (updates[field] !== undefined) {
         fields.push(`${field} = ?`);
-        if (field === 'tags' || field === 'metadata') {
-          values.push(typeof updates[field] === 'string' ? updates[field] : JSON.stringify(updates[field]));
+        if (field === "tags" || field === "metadata") {
+          values.push(
+            typeof updates[field] === "string"
+              ? updates[field]
+              : JSON.stringify(updates[field]),
+          );
         } else {
           values.push(updates[field]);
         }
@@ -4777,7 +5361,7 @@ class DatabaseManager {
     });
 
     // 总是更新 updated_at
-    fields.push('updated_at = ?');
+    fields.push("updated_at = ?");
     values.push(updates.updated_at || Date.now());
 
     values.push(projectId);
@@ -4786,9 +5370,12 @@ class DatabaseManager {
       return this.getProjectById(projectId);
     }
 
-    this.db.run(`
-      UPDATE projects SET ${fields.join(', ')} WHERE id = ?
-    `, values);
+    this.db.run(
+      `
+      UPDATE projects SET ${fields.join(", ")} WHERE id = ?
+    `,
+      values,
+    );
 
     this.saveToFile();
     return this.getProjectById(projectId);
@@ -4801,10 +5388,10 @@ class DatabaseManager {
    */
   deleteProject(projectId) {
     // 删除项目文件
-    this.db.run('DELETE FROM project_files WHERE project_id = ?', [projectId]);
+    this.db.run("DELETE FROM project_files WHERE project_id = ?", [projectId]);
 
     // 删除项目
-    this.db.run('DELETE FROM projects WHERE id = ?', [projectId]);
+    this.db.run("DELETE FROM projects WHERE id = ?", [projectId]);
 
     this.saveToFile();
     return true;
@@ -4832,8 +5419,9 @@ class DatabaseManager {
   saveProjectFiles(projectId, files) {
     // Check if database is initialized
     if (!this.db) {
-      const errorMsg = '数据库未初始化，无法保存项目文件。请检查数据库配置和加密设置。';
-      console.error('[Database]', errorMsg);
+      const errorMsg =
+        "数据库未初始化，无法保存项目文件。请检查数据库配置和加密设置。";
+      console.error("[Database]", errorMsg);
       throw new Error(errorMsg);
     }
 
@@ -4847,21 +5435,22 @@ class DatabaseManager {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      safeFiles.forEach(file => {
+      safeFiles.forEach((file) => {
         // 支持多种字段名格式：后端可能返回 path/type，前端可能使用 file_path/filePath
         const rawPath = file.file_path ?? file.filePath ?? file.path ?? null;
-        const derivedName = file.file_name
-          ?? file.fileName
-          ?? (rawPath ? rawPath.split(/[\\/]/).pop() : null);
-        const filePath = rawPath || derivedName || '';
-        const fileName = derivedName || filePath || 'untitled';
+        const derivedName =
+          file.file_name ??
+          file.fileName ??
+          (rawPath ? rawPath.split(/[\\/]/).pop() : null);
+        const filePath = rawPath || derivedName || "";
+        const fileName = derivedName || filePath || "untitled";
         const fileType = file.file_type ?? file.fileType ?? file.type ?? null;
         const fileSize = file.file_size ?? file.fileSize ?? null;
         const content = file.content ?? null;
         const contentHash = file.content_hash ?? file.contentHash ?? null;
         const version = file.version ?? 1;
         const fsPath = file.fs_path ?? file.fsPath ?? null;
-        const syncStatus = file.sync_status ?? file.syncStatus ?? 'pending';
+        const syncStatus = file.sync_status ?? file.syncStatus ?? "pending";
         const syncedAt = file.synced_at ?? file.syncedAt ?? null;
         const deviceId = file.device_id ?? file.deviceId ?? null;
         const deleted = file.deleted ?? 0;
@@ -4869,12 +5458,12 @@ class DatabaseManager {
         // 如果没有file_size但有content，自动计算大小
         let actualFileSize = fileSize;
         if (!actualFileSize && content) {
-          if (typeof content === 'string') {
+          if (typeof content === "string") {
             // base64编码的内容
-            if (file.content_encoding === 'base64') {
+            if (file.content_encoding === "base64") {
               actualFileSize = Math.floor(content.length * 0.75); // base64解码后约为3/4
             } else {
-              actualFileSize = Buffer.byteLength(content, 'utf-8');
+              actualFileSize = Buffer.byteLength(content, "utf-8");
             }
           } else if (Buffer.isBuffer(content)) {
             actualFileSize = content.length;
@@ -4884,12 +5473,12 @@ class DatabaseManager {
 
         // 确保时间戳是数字（毫秒），如果是字符串则转换
         let createdAt = file.created_at ?? file.createdAt ?? Date.now();
-        if (typeof createdAt === 'string') {
+        if (typeof createdAt === "string") {
           createdAt = new Date(createdAt).getTime();
         }
 
         let updatedAt = file.updated_at ?? file.updatedAt ?? Date.now();
-        if (typeof updatedAt === 'string') {
+        if (typeof updatedAt === "string") {
           updatedAt = new Date(updatedAt).getTime();
         }
 
@@ -4934,7 +5523,7 @@ class DatabaseManager {
       fileUpdate.content,
       fileUpdate.updated_at || Date.now(),
       fileUpdate.version,
-      fileUpdate.id
+      fileUpdate.id,
     );
 
     this.saveToFile();
@@ -4948,7 +5537,9 @@ class DatabaseManager {
    * @returns {Object} 创建的对话
    */
   createConversation(conversationData) {
-    const id = conversationData.id || `conv_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const id =
+      conversationData.id ||
+      `conv_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const now = Date.now();
 
     const stmt = this.db.prepare(`
@@ -4960,13 +5551,15 @@ class DatabaseManager {
 
     stmt.run(
       id,
-      conversationData.title || '新对话',
+      conversationData.title || "新对话",
       conversationData.knowledge_id || null,
       conversationData.project_id || null,
-      conversationData.context_type || 'global',
-      conversationData.context_data ? JSON.stringify(conversationData.context_data) : null,
+      conversationData.context_type || "global",
+      conversationData.context_data
+        ? JSON.stringify(conversationData.context_data)
+        : null,
       conversationData.created_at || now,
-      conversationData.updated_at || now
+      conversationData.updated_at || now,
     );
 
     this.saveToFile();
@@ -4980,7 +5573,7 @@ class DatabaseManager {
    * @returns {Object|null} 对话对象
    */
   getConversationById(conversationId) {
-    const stmt = this.db.prepare('SELECT * FROM conversations WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM conversations WHERE id = ?");
     const conversation = stmt.get(conversationId);
 
     if (!conversation) return null;
@@ -4990,7 +5583,7 @@ class DatabaseManager {
       try {
         conversation.context_data = JSON.parse(conversation.context_data);
       } catch (e) {
-        console.error('解析 context_data 失败:', e);
+        console.error("解析 context_data 失败:", e);
       }
     }
 
@@ -5019,7 +5612,7 @@ class DatabaseManager {
       try {
         conversation.context_data = JSON.parse(conversation.context_data);
       } catch (e) {
-        console.error('解析 context_data 失败:', e);
+        console.error("解析 context_data 失败:", e);
       }
     }
 
@@ -5032,28 +5625,28 @@ class DatabaseManager {
    * @returns {Array} 对话列表
    */
   getConversations(options = {}) {
-    let query = 'SELECT * FROM conversations WHERE 1=1';
+    let query = "SELECT * FROM conversations WHERE 1=1";
     const params = [];
 
     if (options.project_id) {
-      query += ' AND project_id = ?';
+      query += " AND project_id = ?";
       params.push(options.project_id);
     }
 
     if (options.knowledge_id) {
-      query += ' AND knowledge_id = ?';
+      query += " AND knowledge_id = ?";
       params.push(options.knowledge_id);
     }
 
     if (options.context_type) {
-      query += ' AND context_type = ?';
+      query += " AND context_type = ?";
       params.push(options.context_type);
     }
 
-    query += ' ORDER BY updated_at DESC';
+    query += " ORDER BY updated_at DESC";
 
     if (options.limit) {
-      query += ' LIMIT ?';
+      query += " LIMIT ?";
       params.push(options.limit);
     }
 
@@ -5061,12 +5654,12 @@ class DatabaseManager {
     const conversations = stmt.all(...params);
 
     // 解析 context_data
-    return conversations.map(conv => {
+    return conversations.map((conv) => {
       if (conv.context_data) {
         try {
           conv.context_data = JSON.parse(conv.context_data);
         } catch (e) {
-          console.error('解析 context_data 失败:', e);
+          console.error("解析 context_data 失败:", e);
         }
       }
       return conv;
@@ -5083,12 +5676,12 @@ class DatabaseManager {
     const fields = [];
     const values = [];
 
-    const allowedFields = ['title', 'context_type', 'context_data'];
+    const allowedFields = ["title", "context_type", "context_data"];
 
-    allowedFields.forEach(field => {
+    allowedFields.forEach((field) => {
       if (updates[field] !== undefined) {
         fields.push(`${field} = ?`);
-        if (field === 'context_data' && typeof updates[field] !== 'string') {
+        if (field === "context_data" && typeof updates[field] !== "string") {
           values.push(JSON.stringify(updates[field]));
         } else {
           values.push(updates[field]);
@@ -5097,7 +5690,7 @@ class DatabaseManager {
     });
 
     // 总是更新 updated_at
-    fields.push('updated_at = ?');
+    fields.push("updated_at = ?");
     values.push(Date.now());
 
     values.push(conversationId);
@@ -5106,9 +5699,12 @@ class DatabaseManager {
       return this.getConversationById(conversationId);
     }
 
-    this.db.run(`
-      UPDATE conversations SET ${fields.join(', ')} WHERE id = ?
-    `, values);
+    this.db.run(
+      `
+      UPDATE conversations SET ${fields.join(", ")} WHERE id = ?
+    `,
+      values,
+    );
 
     this.saveToFile();
     return this.getConversationById(conversationId);
@@ -5121,10 +5717,12 @@ class DatabaseManager {
    */
   deleteConversation(conversationId) {
     // 先删除相关消息
-    this.db.run('DELETE FROM messages WHERE conversation_id = ?', [conversationId]);
+    this.db.run("DELETE FROM messages WHERE conversation_id = ?", [
+      conversationId,
+    ]);
 
     // 删除对话
-    this.db.run('DELETE FROM conversations WHERE id = ?', [conversationId]);
+    this.db.run("DELETE FROM conversations WHERE id = ?", [conversationId]);
 
     this.saveToFile();
     return true;
@@ -5136,21 +5734,25 @@ class DatabaseManager {
    * @returns {Object} 创建的消息
    */
   createMessage(messageData) {
-    const id = messageData.id || `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const id =
+      messageData.id ||
+      `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const now = Date.now();
 
     // 确定message_type：优先使用messageData.type，否则根据role推断
     let messageType = messageData.type || messageData.message_type;
     if (!messageType) {
       // 向后兼容：根据role推断message_type
-      if (messageData.role === 'user') messageType = 'USER';
-      else if (messageData.role === 'assistant') messageType = 'ASSISTANT';
-      else if (messageData.role === 'system') messageType = 'SYSTEM';
-      else messageType = 'ASSISTANT'; // 默认值
+      if (messageData.role === "user") messageType = "USER";
+      else if (messageData.role === "assistant") messageType = "ASSISTANT";
+      else if (messageData.role === "system") messageType = "SYSTEM";
+      else messageType = "ASSISTANT"; // 默认值
     }
 
     // 序列化metadata为JSON字符串
-    const metadataStr = messageData.metadata ? JSON.stringify(messageData.metadata) : null;
+    const metadataStr = messageData.metadata
+      ? JSON.stringify(messageData.metadata)
+      : null;
 
     const stmt = this.db.prepare(`
       INSERT INTO messages (
@@ -5166,7 +5768,7 @@ class DatabaseManager {
       messageData.timestamp || now,
       messageData.tokens || null,
       messageType,
-      metadataStr
+      metadataStr,
     );
 
     this.saveToFile();
@@ -5183,7 +5785,7 @@ class DatabaseManager {
    * @returns {Object|null} 消息对象
    */
   getMessageById(messageId) {
-    const stmt = this.db.prepare('SELECT * FROM messages WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM messages WHERE id = ?");
     return stmt.get(messageId);
   }
 
@@ -5197,17 +5799,17 @@ class DatabaseManager {
    * @returns {Object} 包含消息列表和总数的对象
    */
   getMessagesByConversation(conversationId, options = {}) {
-    const order = options.order || 'ASC';
+    const order = options.order || "ASC";
     let query = `SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ${order}`;
     const params = [conversationId];
 
     // 添加分页支持
     if (options.limit) {
-      query += ' LIMIT ?';
+      query += " LIMIT ?";
       params.push(options.limit);
 
       if (options.offset) {
-        query += ' OFFSET ?';
+        query += " OFFSET ?";
         params.push(options.offset);
       }
     }
@@ -5216,34 +5818,39 @@ class DatabaseManager {
     const rawMessages = stmt.all(...params);
 
     // 反序列化metadata字段
-    const messages = rawMessages.map(msg => {
+    const messages = rawMessages.map((msg) => {
       if (msg.metadata) {
         try {
           msg.metadata = JSON.parse(msg.metadata);
         } catch (e) {
-          console.warn('[Database] 无法解析消息metadata:', msg.id, e);
+          console.warn("[Database] 无法解析消息metadata:", msg.id, e);
           msg.metadata = null;
         }
       }
       // 向后兼容：如果没有message_type，根据role设置
       if (!msg.message_type) {
-        if (msg.role === 'user') msg.message_type = 'USER';
-        else if (msg.role === 'assistant') msg.message_type = 'ASSISTANT';
-        else if (msg.role === 'system') msg.message_type = 'SYSTEM';
-        else msg.message_type = 'ASSISTANT';
+        if (msg.role === "user") msg.message_type = "USER";
+        else if (msg.role === "assistant") msg.message_type = "ASSISTANT";
+        else if (msg.role === "system") msg.message_type = "SYSTEM";
+        else msg.message_type = "ASSISTANT";
       }
       return msg;
     });
 
     // 获取总消息数
-    const countStmt = this.db.prepare('SELECT COUNT(*) as total FROM messages WHERE conversation_id = ?');
+    const countStmt = this.db.prepare(
+      "SELECT COUNT(*) as total FROM messages WHERE conversation_id = ?",
+    );
     const countResult = countStmt.get(conversationId);
     const total = countResult ? countResult.total : 0;
 
     return {
       messages,
       total,
-      hasMore: options.limit && options.offset ? (options.offset + options.limit) < total : false
+      hasMore:
+        options.limit && options.offset
+          ? options.offset + options.limit < total
+          : false,
     };
   }
 
@@ -5253,7 +5860,7 @@ class DatabaseManager {
    * @returns {boolean} 是否删除成功
    */
   deleteMessage(messageId) {
-    this.db.run('DELETE FROM messages WHERE id = ?', [messageId]);
+    this.db.run("DELETE FROM messages WHERE id = ?", [messageId]);
     this.saveToFile();
     return true;
   }
@@ -5264,7 +5871,9 @@ class DatabaseManager {
    * @returns {boolean} 是否清空成功
    */
   clearConversationMessages(conversationId) {
-    this.db.run('DELETE FROM messages WHERE conversation_id = ?', [conversationId]);
+    this.db.run("DELETE FROM messages WHERE conversation_id = ?", [
+      conversationId,
+    ]);
     this.saveToFile();
     return true;
   }
@@ -5287,7 +5896,7 @@ class DatabaseManager {
       role,
       limit = 50,
       offset = 0,
-      order = 'DESC'
+      order = "DESC",
     } = options;
 
     if (!query || !query.trim()) {
@@ -5296,23 +5905,23 @@ class DatabaseManager {
 
     const searchPattern = `%${query.trim()}%`;
     const params = [searchPattern];
-    let whereConditions = ['content LIKE ?'];
+    let whereConditions = ["content LIKE ?"];
 
     // 添加对话ID过滤
     if (conversationId) {
-      whereConditions.push('conversation_id = ?');
+      whereConditions.push("conversation_id = ?");
       params.push(conversationId);
     }
 
     // 添加角色过滤
     if (role) {
-      whereConditions.push('role = ?');
+      whereConditions.push("role = ?");
       params.push(role);
     }
 
     // 构建查询SQL
-    const whereClause = whereConditions.join(' AND ');
-    const orderClause = order === 'ASC' ? 'ASC' : 'DESC';
+    const whereClause = whereConditions.join(" AND ");
+    const orderClause = order === "ASC" ? "ASC" : "DESC";
 
     // 查询消息
     const messagesQuery = `
@@ -5327,21 +5936,21 @@ class DatabaseManager {
     const rawMessages = stmt.all(...params);
 
     // 反序列化metadata字段
-    const messages = rawMessages.map(msg => {
+    const messages = rawMessages.map((msg) => {
       if (msg.metadata) {
         try {
           msg.metadata = JSON.parse(msg.metadata);
         } catch (e) {
-          console.warn('[Database] 无法解析消息metadata:', msg.id, e);
+          console.warn("[Database] 无法解析消息metadata:", msg.id, e);
           msg.metadata = null;
         }
       }
       // 向后兼容：如果没有message_type，根据role设置
       if (!msg.message_type) {
-        if (msg.role === 'user') msg.message_type = 'USER';
-        else if (msg.role === 'assistant') msg.message_type = 'ASSISTANT';
-        else if (msg.role === 'system') msg.message_type = 'SYSTEM';
-        else msg.message_type = 'ASSISTANT';
+        if (msg.role === "user") msg.message_type = "USER";
+        else if (msg.role === "assistant") msg.message_type = "ASSISTANT";
+        else if (msg.role === "system") msg.message_type = "SYSTEM";
+        else msg.message_type = "ASSISTANT";
       }
       return msg;
     });
@@ -5359,7 +5968,7 @@ class DatabaseManager {
     return {
       messages,
       total,
-      hasMore: (offset + limit) < total
+      hasMore: offset + limit < total,
     };
   }
 
@@ -5370,117 +5979,382 @@ class DatabaseManager {
    */
   initDefaultSettings() {
     const now = Date.now();
-    const path = require('path');
-    const { app } = require('electron');
+    const path = require("path");
+    const { app } = require("electron");
 
     // 获取默认的项目根目录
-    const defaultProjectRoot = path.join(app.getPath('userData'), 'projects');
+    const defaultProjectRoot = path.join(app.getPath("userData"), "projects");
 
     const defaultSettings = [
       // 项目配置
-      { key: 'project.rootPath', value: defaultProjectRoot, type: 'string', description: '项目文件存储根目录' },
-      { key: 'project.maxSizeMB', value: '1000', type: 'number', description: '单个项目最大大小（MB）' },
-      { key: 'project.autoSync', value: 'true', type: 'boolean', description: '自动同步项目到后端' },
-      { key: 'project.syncIntervalSeconds', value: '300', type: 'number', description: '同步间隔（秒）' },
+      {
+        key: "project.rootPath",
+        value: defaultProjectRoot,
+        type: "string",
+        description: "项目文件存储根目录",
+      },
+      {
+        key: "project.maxSizeMB",
+        value: "1000",
+        type: "number",
+        description: "单个项目最大大小（MB）",
+      },
+      {
+        key: "project.autoSync",
+        value: "true",
+        type: "boolean",
+        description: "自动同步项目到后端",
+      },
+      {
+        key: "project.syncIntervalSeconds",
+        value: "300",
+        type: "number",
+        description: "同步间隔（秒）",
+      },
 
       // LLM 配置 - 优先级和智能选择
-      { key: 'llm.provider', value: 'volcengine', type: 'string', description: 'LLM服务提供商（当前激活）' },
-      { key: 'llm.priority', value: JSON.stringify(['volcengine', 'ollama', 'deepseek']), type: 'json', description: 'LLM服务优先级列表' },
-      { key: 'llm.autoFallback', value: 'true', type: 'boolean', description: '自动切换到备用LLM服务' },
-      { key: 'llm.autoSelect', value: 'true', type: 'boolean', description: 'AI自主选择最优LLM' },
-      { key: 'llm.selectionStrategy', value: 'balanced', type: 'string', description: '选择策略：cost（成本优先）、speed（速度优先）、quality（质量优先）、balanced（平衡）' },
+      {
+        key: "llm.provider",
+        value: "volcengine",
+        type: "string",
+        description: "LLM服务提供商（当前激活）",
+      },
+      {
+        key: "llm.priority",
+        value: JSON.stringify(["volcengine", "ollama", "deepseek"]),
+        type: "json",
+        description: "LLM服务优先级列表",
+      },
+      {
+        key: "llm.autoFallback",
+        value: "true",
+        type: "boolean",
+        description: "自动切换到备用LLM服务",
+      },
+      {
+        key: "llm.autoSelect",
+        value: "true",
+        type: "boolean",
+        description: "AI自主选择最优LLM",
+      },
+      {
+        key: "llm.selectionStrategy",
+        value: "balanced",
+        type: "string",
+        description:
+          "选择策略：cost（成本优先）、speed（速度优先）、quality（质量优先）、balanced（平衡）",
+      },
 
       // Ollama 配置
-      { key: 'llm.ollamaHost', value: 'http://localhost:11434', type: 'string', description: 'Ollama服务地址' },
-      { key: 'llm.ollamaModel', value: 'qwen2:7b', type: 'string', description: 'Ollama模型名称' },
+      {
+        key: "llm.ollamaHost",
+        value: "http://localhost:11434",
+        type: "string",
+        description: "Ollama服务地址",
+      },
+      {
+        key: "llm.ollamaModel",
+        value: "qwen2:7b",
+        type: "string",
+        description: "Ollama模型名称",
+      },
 
       // OpenAI 配置
-      { key: 'llm.openaiApiKey', value: '', type: 'string', description: 'OpenAI API Key' },
-      { key: 'llm.openaiBaseUrl', value: 'https://api.openai.com/v1', type: 'string', description: 'OpenAI API地址' },
-      { key: 'llm.openaiModel', value: 'gpt-3.5-turbo', type: 'string', description: 'OpenAI模型' },
+      {
+        key: "llm.openaiApiKey",
+        value: "",
+        type: "string",
+        description: "OpenAI API Key",
+      },
+      {
+        key: "llm.openaiBaseUrl",
+        value: "https://api.openai.com/v1",
+        type: "string",
+        description: "OpenAI API地址",
+      },
+      {
+        key: "llm.openaiModel",
+        value: "gpt-3.5-turbo",
+        type: "string",
+        description: "OpenAI模型",
+      },
 
       // 火山引擎（豆包）配置
-      { key: 'llm.volcengineApiKey', value: '', type: 'string', description: '火山引擎API Key' },
-      { key: 'llm.volcengineModel', value: 'doubao-seed-1.6-lite', type: 'string', description: '火山引擎模型' },
+      {
+        key: "llm.volcengineApiKey",
+        value: "",
+        type: "string",
+        description: "火山引擎API Key",
+      },
+      {
+        key: "llm.volcengineModel",
+        value: "doubao-seed-1.6-lite",
+        type: "string",
+        description: "火山引擎模型",
+      },
 
       // 阿里通义千问配置
-      { key: 'llm.dashscopeApiKey', value: '', type: 'string', description: '阿里通义千问API Key' },
-      { key: 'llm.dashscopeModel', value: 'qwen-turbo', type: 'string', description: '阿里通义千问模型' },
+      {
+        key: "llm.dashscopeApiKey",
+        value: "",
+        type: "string",
+        description: "阿里通义千问API Key",
+      },
+      {
+        key: "llm.dashscopeModel",
+        value: "qwen-turbo",
+        type: "string",
+        description: "阿里通义千问模型",
+      },
 
       // 智谱AI配置
-      { key: 'llm.zhipuApiKey', value: '', type: 'string', description: '智谱AI API Key' },
-      { key: 'llm.zhipuModel', value: 'glm-4', type: 'string', description: '智谱AI模型' },
+      {
+        key: "llm.zhipuApiKey",
+        value: "",
+        type: "string",
+        description: "智谱AI API Key",
+      },
+      {
+        key: "llm.zhipuModel",
+        value: "glm-4",
+        type: "string",
+        description: "智谱AI模型",
+      },
 
       // DeepSeek配置
-      { key: 'llm.deepseekApiKey', value: '', type: 'string', description: 'DeepSeek API Key' },
-      { key: 'llm.deepseekModel', value: 'deepseek-chat', type: 'string', description: 'DeepSeek模型' },
+      {
+        key: "llm.deepseekApiKey",
+        value: "",
+        type: "string",
+        description: "DeepSeek API Key",
+      },
+      {
+        key: "llm.deepseekModel",
+        value: "deepseek-chat",
+        type: "string",
+        description: "DeepSeek模型",
+      },
 
       // 向量数据库配置
-      { key: 'vector.qdrantHost', value: 'http://localhost:6333', type: 'string', description: 'Qdrant服务地址' },
-      { key: 'vector.qdrantPort', value: '6333', type: 'number', description: 'Qdrant端口' },
-      { key: 'vector.qdrantCollection', value: 'chainlesschain_vectors', type: 'string', description: 'Qdrant集合名称' },
-      { key: 'vector.embeddingModel', value: 'bge-base-zh-v1.5', type: 'string', description: 'Embedding模型' },
-      { key: 'vector.embeddingDimension', value: '768', type: 'number', description: '向量维度' },
+      {
+        key: "vector.qdrantHost",
+        value: "http://localhost:6333",
+        type: "string",
+        description: "Qdrant服务地址",
+      },
+      {
+        key: "vector.qdrantPort",
+        value: "6333",
+        type: "number",
+        description: "Qdrant端口",
+      },
+      {
+        key: "vector.qdrantCollection",
+        value: "chainlesschain_vectors",
+        type: "string",
+        description: "Qdrant集合名称",
+      },
+      {
+        key: "vector.embeddingModel",
+        value: "bge-base-zh-v1.5",
+        type: "string",
+        description: "Embedding模型",
+      },
+      {
+        key: "vector.embeddingDimension",
+        value: "768",
+        type: "number",
+        description: "向量维度",
+      },
 
       // Git 配置
-      { key: 'git.enabled', value: 'false', type: 'boolean', description: '启用Git同步' },
-      { key: 'git.autoSync', value: 'false', type: 'boolean', description: '自动提交和推送' },
-      { key: 'git.autoSyncInterval', value: '300', type: 'number', description: 'Git同步间隔（秒）' },
-      { key: 'git.userName', value: '', type: 'string', description: 'Git用户名' },
-      { key: 'git.userEmail', value: '', type: 'string', description: 'Git邮箱' },
-      { key: 'git.remoteUrl', value: '', type: 'string', description: 'Git远程仓库URL' },
+      {
+        key: "git.enabled",
+        value: "false",
+        type: "boolean",
+        description: "启用Git同步",
+      },
+      {
+        key: "git.autoSync",
+        value: "false",
+        type: "boolean",
+        description: "自动提交和推送",
+      },
+      {
+        key: "git.autoSyncInterval",
+        value: "300",
+        type: "number",
+        description: "Git同步间隔（秒）",
+      },
+      {
+        key: "git.userName",
+        value: "",
+        type: "string",
+        description: "Git用户名",
+      },
+      {
+        key: "git.userEmail",
+        value: "",
+        type: "string",
+        description: "Git邮箱",
+      },
+      {
+        key: "git.remoteUrl",
+        value: "",
+        type: "string",
+        description: "Git远程仓库URL",
+      },
 
       // 后端服务配置
-      { key: 'backend.projectServiceUrl', value: 'http://localhost:9090', type: 'string', description: '项目服务地址' },
-      { key: 'backend.aiServiceUrl', value: 'http://localhost:8001', type: 'string', description: 'AI服务地址' },
+      {
+        key: "backend.projectServiceUrl",
+        value: "http://localhost:9090",
+        type: "string",
+        description: "项目服务地址",
+      },
+      {
+        key: "backend.aiServiceUrl",
+        value: "http://localhost:8001",
+        type: "string",
+        description: "AI服务地址",
+      },
 
       // 数据库配置
-      { key: 'database.sqlcipherKey', value: '', type: 'string', description: 'SQLCipher加密密钥' },
+      {
+        key: "database.sqlcipherKey",
+        value: "",
+        type: "string",
+        description: "SQLCipher加密密钥",
+      },
 
       // P2P 网络配置
-      { key: 'p2p.transports.webrtc.enabled', value: 'true', type: 'boolean', description: '启用WebRTC传输（推荐）' },
-      { key: 'p2p.transports.websocket.enabled', value: 'true', type: 'boolean', description: '启用WebSocket传输' },
-      { key: 'p2p.transports.tcp.enabled', value: 'true', type: 'boolean', description: '启用TCP传输（向后兼容）' },
-      { key: 'p2p.transports.autoSelect', value: 'true', type: 'boolean', description: '智能自动选择传输层' },
+      {
+        key: "p2p.transports.webrtc.enabled",
+        value: "true",
+        type: "boolean",
+        description: "启用WebRTC传输（推荐）",
+      },
+      {
+        key: "p2p.transports.websocket.enabled",
+        value: "true",
+        type: "boolean",
+        description: "启用WebSocket传输",
+      },
+      {
+        key: "p2p.transports.tcp.enabled",
+        value: "true",
+        type: "boolean",
+        description: "启用TCP传输（向后兼容）",
+      },
+      {
+        key: "p2p.transports.autoSelect",
+        value: "true",
+        type: "boolean",
+        description: "智能自动选择传输层",
+      },
 
       // STUN 配置（仅公共免费服务器）
-      { key: 'p2p.stun.servers', value: JSON.stringify([
-        'stun:stun.l.google.com:19302',
-        'stun:stun1.l.google.com:19302',
-        'stun:stun2.l.google.com:19302'
-      ]), type: 'json', description: 'STUN服务器列表' },
+      {
+        key: "p2p.stun.servers",
+        value: JSON.stringify([
+          "stun:stun.l.google.com:19302",
+          "stun:stun1.l.google.com:19302",
+          "stun:stun2.l.google.com:19302",
+        ]),
+        type: "json",
+        description: "STUN服务器列表",
+      },
 
       // Circuit Relay 配置
-      { key: 'p2p.relay.enabled', value: 'true', type: 'boolean', description: '启用Circuit Relay v2中继' },
-      { key: 'p2p.relay.maxReservations', value: '2', type: 'number', description: '最大中继预留数量' },
-      { key: 'p2p.relay.autoUpgrade', value: 'true', type: 'boolean', description: '自动升级中继为直连（DCUTr）' },
+      {
+        key: "p2p.relay.enabled",
+        value: "true",
+        type: "boolean",
+        description: "启用Circuit Relay v2中继",
+      },
+      {
+        key: "p2p.relay.maxReservations",
+        value: "2",
+        type: "number",
+        description: "最大中继预留数量",
+      },
+      {
+        key: "p2p.relay.autoUpgrade",
+        value: "true",
+        type: "boolean",
+        description: "自动升级中继为直连（DCUTr）",
+      },
 
       // NAT 穿透配置
-      { key: 'p2p.nat.autoDetect', value: 'true', type: 'boolean', description: '启动时自动检测NAT类型' },
-      { key: 'p2p.nat.detectionInterval', value: '3600000', type: 'number', description: 'NAT检测间隔（毫秒，默认1小时）' },
+      {
+        key: "p2p.nat.autoDetect",
+        value: "true",
+        type: "boolean",
+        description: "启动时自动检测NAT类型",
+      },
+      {
+        key: "p2p.nat.detectionInterval",
+        value: "3600000",
+        type: "number",
+        description: "NAT检测间隔（毫秒，默认1小时）",
+      },
 
       // 连接配置
-      { key: 'p2p.connection.dialTimeout', value: '30000', type: 'number', description: '连接超时时间（毫秒）' },
-      { key: 'p2p.connection.maxRetries', value: '3', type: 'number', description: '最大重试次数' },
-      { key: 'p2p.connection.healthCheckInterval', value: '60000', type: 'number', description: '健康检查间隔（毫秒）' },
+      {
+        key: "p2p.connection.dialTimeout",
+        value: "30000",
+        type: "number",
+        description: "连接超时时间（毫秒）",
+      },
+      {
+        key: "p2p.connection.maxRetries",
+        value: "3",
+        type: "number",
+        description: "最大重试次数",
+      },
+      {
+        key: "p2p.connection.healthCheckInterval",
+        value: "60000",
+        type: "number",
+        description: "健康检查间隔（毫秒）",
+      },
 
       // WebSocket 端口配置
-      { key: 'p2p.websocket.port', value: '9001', type: 'number', description: 'WebSocket监听端口' },
+      {
+        key: "p2p.websocket.port",
+        value: "9001",
+        type: "number",
+        description: "WebSocket监听端口",
+      },
 
       // 向后兼容
-      { key: 'p2p.compatibility.detectLegacy', value: 'true', type: 'boolean', description: '自动检测并兼容旧版TCP节点' }
+      {
+        key: "p2p.compatibility.detectLegacy",
+        value: "true",
+        type: "boolean",
+        description: "自动检测并兼容旧版TCP节点",
+      },
     ];
 
-    const stmt = this.db.prepare('SELECT key FROM system_settings WHERE key = ?');
+    const stmt = this.db.prepare(
+      "SELECT key FROM system_settings WHERE key = ?",
+    );
 
     for (const setting of defaultSettings) {
       const existing = stmt.get([setting.key]);
 
       if (!existing) {
         const insertStmt = this.db.prepare(
-          'INSERT INTO system_settings (key, value, type, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+          "INSERT INTO system_settings (key, value, type, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
         );
-        insertStmt.run([setting.key, setting.value, setting.type, setting.description, now, now]);
+        insertStmt.run([
+          setting.key,
+          setting.value,
+          setting.type,
+          setting.description,
+          now,
+          now,
+        ]);
         insertStmt.free();
       }
     }
@@ -5495,7 +6369,9 @@ class DatabaseManager {
    * @returns {any} 配置值
    */
   getSetting(key) {
-    const stmt = this.db.prepare('SELECT value, type FROM system_settings WHERE key = ?');
+    const stmt = this.db.prepare(
+      "SELECT value, type FROM system_settings WHERE key = ?",
+    );
     const row = stmt.get([key]);
     stmt.free();
 
@@ -5505,11 +6381,11 @@ class DatabaseManager {
 
     // 根据类型转换值
     switch (row.type) {
-      case 'number':
+      case "number":
         return parseFloat(row.value);
-      case 'boolean':
-        return row.value === 'true';
-      case 'json':
+      case "boolean":
+        return row.value === "true";
+      case "json":
         try {
           return JSON.parse(row.value);
         } catch (e) {
@@ -5525,7 +6401,9 @@ class DatabaseManager {
    * @returns {Object} 配置对象
    */
   getAllSettings() {
-    const stmt = this.db.prepare('SELECT key, value, type FROM system_settings');
+    const stmt = this.db.prepare(
+      "SELECT key, value, type FROM system_settings",
+    );
     const rows = stmt.all();
     stmt.free();
 
@@ -5535,22 +6413,22 @@ class DatabaseManager {
       vector: {},
       git: {},
       backend: {},
-      database: {}
+      database: {},
     };
 
     for (const row of rows) {
-      const [section, key] = row.key.split('.');
+      const [section, key] = row.key.split(".");
       let value = row.value;
 
       // 根据类型转换值
       switch (row.type) {
-        case 'number':
+        case "number":
           value = parseFloat(value);
           break;
-        case 'boolean':
-          value = value === 'true';
+        case "boolean":
+          value = value === "true";
           break;
-        case 'json':
+        case "json":
           try {
             value = JSON.parse(value);
           } catch (e) {
@@ -5577,21 +6455,21 @@ class DatabaseManager {
     const now = Date.now();
 
     // 确定值的类型
-    let type = 'string';
+    let type = "string";
     let stringValue = String(value);
 
-    if (typeof value === 'number') {
-      type = 'number';
-    } else if (typeof value === 'boolean') {
-      type = 'boolean';
-      stringValue = value ? 'true' : 'false';
-    } else if (typeof value === 'object') {
-      type = 'json';
+    if (typeof value === "number") {
+      type = "number";
+    } else if (typeof value === "boolean") {
+      type = "boolean";
+      stringValue = value ? "true" : "false";
+    } else if (typeof value === "object") {
+      type = "json";
       stringValue = JSON.stringify(value);
     }
 
     const stmt = this.db.prepare(
-      'INSERT OR REPLACE INTO system_settings (key, value, type, updated_at, created_at) VALUES (?, ?, ?, ?, COALESCE((SELECT created_at FROM system_settings WHERE key = ?), ?))'
+      "INSERT OR REPLACE INTO system_settings (key, value, type, updated_at, created_at) VALUES (?, ?, ?, ?, COALESCE((SELECT created_at FROM system_settings WHERE key = ?), ?))",
     );
     stmt.run([key, stringValue, type, now, key, now]);
     stmt.free();
@@ -5607,7 +6485,7 @@ class DatabaseManager {
    */
   updateSettings(config) {
     for (const section in config) {
-      if (typeof config[section] === 'object' && config[section] !== null) {
+      if (typeof config[section] === "object" && config[section] !== null) {
         for (const key in config[section]) {
           this.setSetting(`${section}.${key}`, config[section][key]);
         }
@@ -5622,7 +6500,7 @@ class DatabaseManager {
    * @returns {boolean} 是否删除成功
    */
   deleteSetting(key) {
-    const stmt = this.db.prepare('DELETE FROM system_settings WHERE key = ?');
+    const stmt = this.db.prepare("DELETE FROM system_settings WHERE key = ?");
     stmt.run([key]);
     stmt.free();
     this.saveToFile();
@@ -5634,7 +6512,7 @@ class DatabaseManager {
    * @returns {boolean} 是否重置成功
    */
   resetSettings() {
-    this.db.run('DELETE FROM system_settings');
+    this.db.run("DELETE FROM system_settings");
     this.initDefaultSettings();
     return true;
   }
@@ -5649,7 +6527,7 @@ let databaseInstance = null;
  */
 function getDatabase() {
   if (!databaseInstance) {
-    throw new Error('数据库未初始化，请先调用 setDatabase()');
+    throw new Error("数据库未初始化，请先调用 setDatabase()");
   }
   return databaseInstance;
 }
