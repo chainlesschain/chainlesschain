@@ -24,8 +24,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -34,7 +32,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm ci
+        run: npm install
 
       - name: Run linter
         working-directory: ./desktop-app-vue
